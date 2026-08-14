@@ -53,6 +53,11 @@ export interface AprovacaoDoPortal {
   department: string;
   status: string;
   reviewedAt: string | null;
+  /** QUEM decidiu. Opcional porque a rota de leitura ainda não devolve o campo
+   *  — enquanto não devolver, o nome aparece no histórico do card (o comentário
+   *  da decisão carrega o mesmo autor). Quando devolver, entra no selo verde
+   *  sem mais nenhuma mudança de tela. */
+  reviewedBy?: string | null;
   reviewNote: string | null;
   version: number | null;
   questionOpen: boolean;
@@ -499,7 +504,11 @@ function DetalheDaAprovacao({
             vazio não é decidido: é uma entrega que ainda não chegou. */}
         {!pendente && !semCorpo && (
           <div className="mt-4 rounded-[10px] bg-[#DCFCE7] text-[#166534] px-3.5 py-2.5 text-[13px]">
-            <b>Decisão registrada{ap.reviewedAt ? ` em ${dataCurta(ap.reviewedAt)}` : ""}.</b>{" "}
+            <b>
+              Decisão registrada
+              {ap.reviewedBy ? ` por ${ap.reviewedBy}` : ""}
+              {ap.reviewedAt ? ` em ${dataCurta(ap.reviewedAt)}` : ""}.
+            </b>{" "}
             Registro imutável: os dois lados param de rediscutir o que já foi decidido.
           </div>
         )}
@@ -888,13 +897,11 @@ export function AprovacoesDoCliente({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Aprovações</h2>
-        <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">
-          O único lugar onde você decide: entregas e orçamentos, juntos — e o registro do que já foi decidido.
-        </p>
-      </div>
-
+      {/* O título e a frase de abertura saíram daqui em 14/08/2026: a aba
+          Aprovações do portal já entra com a capa da referência, que diz
+          exatamente as mesmas duas coisas. Empilhado, o cliente lia "Aprovações"
+          três vezes na mesma dobra — no cabeçalho, na capa e aqui. Este
+          componente só tem um lugar de uso (a aba), então não há chamada órfã. */}
       <section>
         <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-2">Aguardando você ({totalAguardando})</h3>
         {totalAguardando === 0 ? (

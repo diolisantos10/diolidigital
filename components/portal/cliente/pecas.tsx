@@ -121,6 +121,27 @@ export function mesEAno(iso: string | null | undefined): string | null {
   return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 }
 
+/**
+ * As etapas do projeto, DERIVADAS da etapa legível que o servidor já calcula a
+ * partir dos carimbos (`presentedAt`, `clientApprovedAt`). Nunca de um campo de
+ * status escrito à mão — status digitado mente, e a barra de progresso seria a
+ * primeira a repetir a mentira.
+ *
+ * Mora aqui, e não na aba, porque a Visão Geral desenha a MESMA barra no resumo
+ * de projetos: duas contas separadas para o mesmo projeto dariam dois números
+ * diferentes na mesma tela.
+ */
+export function passosDoProjeto(etapa: string): { passos: [string, string][]; progresso: number } {
+  const e = etapa.toLowerCase();
+  if (e.includes("aprovado por você")) {
+    return { passos: [["Produção", "done"], ["Aprovação", "done"], ["No ar", "active"]], progresso: 100 };
+  }
+  if (e.includes("esperando a sua aprovação") || e.includes("esperando sua aprovação")) {
+    return { passos: [["Produção", "done"], ["Aprovação", "active"], ["No ar", ""]], progresso: 66 };
+  }
+  return { passos: [["Produção", "active"], ["Aprovação", ""], ["No ar", ""]], progresso: 33 };
+}
+
 export function emReais(valor: number | null | undefined): string | null {
   if (valor == null || !Number.isFinite(valor)) return null;
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });

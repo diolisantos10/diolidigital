@@ -12,7 +12,7 @@
 
 import type { ReactNode } from "react";
 import type { BrandHubView, CampanhaView, ContaView, EntregaView } from "@/lib/agency/portal/vista-do-cliente";
-import { CapaDaAba, Etiqueta, Icone, Numeros, TituloDeSecao, Vazio, dataCurta, emReais, mesEAno } from "./pecas";
+import { CapaDaAba, Etiqueta, Icone, Numeros, TituloDeSecao, Vazio, dataCurta, emReais, mesEAno, passosDoProjeto } from "./pecas";
 
 export interface ProjetoDoPortal {
   id: string;
@@ -20,23 +20,6 @@ export interface ProjetoDoPortal {
   objetivo: string | null;
   etapa: string;
   criadoEm: string | null;
-}
-
-/**
- * As etapas do projeto, DERIVADAS da etapa legível que o servidor já calcula a
- * partir dos carimbos (`presentedAt`, `clientApprovedAt`). Nunca de um campo de
- * status escrito à mão — status digitado mente, e a barra de progresso seria a
- * primeira a repetir a mentira.
- */
-function passosDoProjeto(etapa: string): { passos: [string, string][]; progresso: number } {
-  const e = etapa.toLowerCase();
-  if (e.includes("aprovado por você")) {
-    return { passos: [["Produção", "done"], ["Aprovação", "done"], ["No ar", "active"]], progresso: 100 };
-  }
-  if (e.includes("esperando a sua aprovação") || e.includes("esperando sua aprovação")) {
-    return { passos: [["Produção", "done"], ["Aprovação", "active"], ["No ar", ""]], progresso: 66 };
-  }
-  return { passos: [["Produção", "active"], ["Aprovação", ""], ["No ar", ""]], progresso: 33 };
 }
 
 export function AbaProjetos({
@@ -122,6 +105,104 @@ export function AbaProjetos({
   );
 }
 
+/**
+ * RESULTADOS — a grade da referência (gráfico grande · leitura · por canal).
+ *
+ * O gráfico e os números vêm inteiros do componente que já lê a plataforma
+ * (`ResultadosDoCliente`), com os três estados dele. O que esta aba acrescenta
+ * é a MOLDURA aprovada: a leitura ao lado e a lista por canal embaixo.
+ *
+ * A "análise" da demonstração ("a campanha com prova real gerou 42% mais…")
+ * não tem equivalente honesto aqui: ninguém apurou isso para este cliente. No
+ * lugar dela entra o que é verdade sempre e ajuda de verdade — o que cada
+ * número quer dizer — e a porta para perguntar ao PM.
+ */
+export function AbaResultados({
+  simbolo, numeros, resultados, redes, periodo, aoAbrirChat, aoIrPara,
+}: {
+  simbolo: string;
+  numeros: { rotulo: string; valor: string; nota: string }[];
+  /** O painel medido, com os três estados — vem pronto de quem lê a plataforma. */
+  resultados: ReactNode;
+  redes: { id: string; plataforma: string; nome: string; ok: boolean }[];
+  periodo: string | null;
+  aoAbrirChat: () => void;
+  aoIrPara: (aba: string) => void;
+}) {
+  return (
+    <>
+      <CapaDaAba
+        simbolo={simbolo}
+        sobretitulo="VISÃO DOS RESULTADOS"
+        titulo="Resultados"
+        descricao="Uma leitura simples do que está acontecendo com a sua marca no período medido."
+      >
+        <button onClick={() => aoIrPara("integracoes")} style={{ touchAction: "manipulation" }}>
+          Gerenciar contas
+        </button>
+      </CapaDaAba>
+
+      <Numeros itens={numeros} />
+
+      <div className="cp-results-grid" style={{ marginTop: 13 }}>
+        <article className={`cp-card cp-main-chart${numeros.length === 0 ? " sem-serie" : ""}`}>
+          <TituloDeSecao
+            sobretitulo="CRESCIMENTO CONSOLIDADO"
+            titulo={periodo ? `Evolução em ${periodo}` : "Evolução dos resultados"}
+          />
+          <div style={{ marginTop: 15 }}>{resultados}</div>
+        </article>
+
+        <aside className="cp-card cp-insights">
+          <div className="cp-pm-top">
+            <div className="cp-pm-avatar" aria-hidden>✦</div>
+            <span><small>COMO LER ESTA TELA</small><h3>O que cada número diz</h3></span>
+          </div>
+          {[
+            ["◎", "Alcance é gente diferente que viu você. Duas visualizações da mesma pessoa contam uma vez."],
+            ["↗", "Interações são curtidas, comentários, salvamentos e compartilhamentos — o sinal de que o conteúdo tocou alguém."],
+            ["→", "Número que não aparece aqui não foi medido pela plataforma. A gente não completa com estimativa."],
+          ].map(([icone, texto]) => (
+            <div key={texto}><i aria-hidden>{icone}</i><p>{texto}</p></div>
+          ))}
+          <button onClick={aoAbrirChat} style={{ touchAction: "manipulation" }}>
+            Conversar sobre os resultados →
+          </button>
+        </aside>
+
+        <article className="cp-card cp-channel-results">
+          <TituloDeSecao
+            sobretitulo="POR CANAL"
+            titulo="De onde vêm os seus números"
+            acao={<button onClick={() => aoIrPara("integracoes")} style={{ touchAction: "manipulation" }}>Gerenciar →</button>}
+          />
+          {redes.length === 0 ? (
+            <div style={{ marginTop: 15 }}>
+              <Vazio
+                icone="⌁"
+                titulo="Nenhum canal conectado ainda"
+                texto="Os números desta tela vêm das contas que você conecta. Conecte a primeira e ela passa a aparecer aqui, com o que traz para o relatório."
+                acao={{ rotulo: "Conectar em Integrações", aoClicar: () => aoIrPara("integracoes") }}
+              />
+            </div>
+          ) : (
+            redes.map((r) => (
+              <button key={r.id} onClick={() => aoIrPara("integracoes")} style={{ touchAction: "manipulation" }}>
+                <Icone>{r.plataforma.toLocaleUpperCase("pt-BR").slice(0, 2)}</Icone>
+                <span><b>{r.nome || r.plataforma}</b><small>{r.plataforma}</small></span>
+                <strong>{r.ok ? "Conectado" : "Reconectar"}</strong>
+                <span><b>{r.ok ? "Trazendo dados" : "Sem leitura"}</b><small>estado da conexão</small></span>
+                <em style={r.ok ? undefined : { color: "#9a6417" }}>{r.ok ? "✓" : "!"}</em>
+                <i aria-hidden>→</i>
+              </button>
+            ))
+          )}
+        </article>
+      </div>
+    </>
+  );
+}
+
 export function AbaTrafegoPago({
   campanhas, simbolo, aoAbrirChat,
 }: {
@@ -135,6 +216,7 @@ export function AbaTrafegoPago({
   // plataforma no período, um "investido: R$ X" seria estimativa vestida de
   // fato. Enquanto não há leitura, a tela diz que não há.
   const teto = campanhas.reduce((s, c) => s + (c.tetoAprovadoBRL ?? 0), 0);
+  const verbaNoAr = noAr.reduce((s, c) => s + (c.verbaDiariaBRL ?? 0), 0);
 
   return (
     <>
@@ -150,7 +232,9 @@ export function AbaTrafegoPago({
       <Numeros
         itens={campanhas.length === 0 ? [] : [
           { rotulo: "CAMPANHAS NO AR", valor: String(noAr.length), nota: `de ${campanhas.length} montada(s)` },
+          { rotulo: "PAUSADAS", valor: String(campanhas.length - noAr.length), nota: "não estão gastando" },
           ...(teto > 0 ? [{ rotulo: "TETO APROVADO POR VOCÊ", valor: emReais(teto) ?? "—", nota: "somando as campanhas" }] : []),
+          ...(verbaNoAr > 0 ? [{ rotulo: "VERBA DIÁRIA NO AR", valor: emReais(verbaNoAr) ?? "—", nota: "por dia, enquanto estiver no ar" }] : []),
         ]}
       />
 
@@ -162,32 +246,13 @@ export function AbaTrafegoPago({
           acao={{ rotulo: "Quero anunciar — falar com o PM", aoClicar: aoAbrirChat }}
         />
       ) : (
-        <>
-          <article className="cp-card cp-campaign-table">
-            <TituloDeSecao sobretitulo="SUAS CAMPANHAS" titulo="Resultado por campanha" />
-            {/* Cinco colunas, não seis: o público já é a segunda linha do nome,
-                e repetir a mesma informação em duas colunas é o cliente
-                conferindo se são dois dados diferentes. */}
-            <div className="cp-table-head">
-              <span>Campanha</span><span>Objetivo</span><span>Verba diária</span><span>Teto aprovado</span><span>Situação</span>
-            </div>
-            {campanhas.map((c) => (
-              <button key={c.id} style={{ touchAction: "manipulation" }}>
-                <span><b>{c.nome}</b><small>{c.publico ?? "Público definido na plataforma"}</small></span>
-                <span>{c.objetivo}</span>
-                <strong>{emReais(c.verbaDiariaBRL) ?? "—"}</strong>
-                <span>{emReais(c.tetoAprovadoBRL) ?? "—"}</span>
-                <Etiqueta tom={c.situacao === "No ar" ? "green" : c.situacao === "Pausada" ? "amber" : "muted"}>
-                  {c.situacao}
-                </Etiqueta>
-              </button>
-            ))}
-          </article>
-
+        /* A grade da referência: desempenho à esquerda, a proteção da verba à
+           direita, a tabela inteira embaixo e a leitura escura no rodapé. */
+        <div className="cp-paid-dashboard" style={{ marginTop: 13 }}>
           {/* Os NÚMEROS de desempenho (gasto, contatos, custo por contato) vêm da
               plataforma de anúncio. Enquanto essa leitura não está ligada, a
               tela declara a ausência em vez de estampar uma estimativa. */}
-          <div className="cp-card" style={{ marginTop: 13 }}>
+          <article className="cp-card cp-paid-evolution sem-serie">
             <TituloDeSecao sobretitulo="DESEMPENHO DO PERÍODO" titulo="Quanto rendeu" />
             <div style={{ marginTop: 15 }}>
               <Vazio
@@ -196,8 +261,64 @@ export function AbaTrafegoPago({
                 texto="Gasto, contatos gerados e custo por contato vêm direto da plataforma de anúncio. Assim que a leitura do período fechar, eles aparecem aqui — medidos, nunca estimados."
               />
             </div>
-          </div>
-        </>
+          </article>
+
+          {/* O funil da demonstração (impressões → cliques → contatos) precisa de
+              leitura da plataforma. O que existe de verdade e é o que mais
+              importa para quem paga é o CONTROLE do dinheiro: o teto que ele
+              aprovou e o que sai por dia. É isso que ocupa a coluna. */}
+          <aside className="cp-card cp-funnel-card">
+            <TituloDeSecao sobretitulo="SEU DINHEIRO" titulo="O que está comprometido" />
+            <footer>
+              <span><small>TETO APROVADO POR VOCÊ</small><b>{emReais(teto) ?? "—"}</b></span>
+              <span><small>VERBA DIÁRIA NO AR</small><b>{emReais(verbaNoAr) ?? "—"}</b></span>
+            </footer>
+            <p style={{ marginTop: 13, color: "var(--cp-muted)" }}>
+              O teto é o limite que você aprovou por escrito e ele não muda sozinho.
+              Campanha pausada não gasta. Para subir o teto, é preciso a sua palavra.
+            </p>
+          </aside>
+
+          <article className="cp-card cp-campaign-table">
+            <TituloDeSecao sobretitulo="SUAS CAMPANHAS" titulo="Campanha por campanha" />
+            {/* Cinco colunas, não seis: o público já é a segunda linha do nome,
+                e repetir a mesma informação em duas colunas é o cliente
+                conferindo se são dois dados diferentes. */}
+            <div className="cp-table-head">
+              <span>Campanha</span><span>Objetivo</span><span>Verba diária</span><span>Teto aprovado</span><span>Situação</span>
+            </div>
+            {/* No ar primeiro: o que está gastando agora é o que ele precisa ver
+                antes. A ordem do banco é de criação, e não diz nada a ele. */}
+            {[...campanhas]
+              .sort((a, b) => Number(b.situacao === "No ar") - Number(a.situacao === "No ar"))
+              .map((c) => (
+                <button key={c.id} style={{ touchAction: "manipulation" }}>
+                  <span><b>{c.nome}</b><small>{c.publico ?? "Público definido na plataforma"}</small></span>
+                  <span>{c.objetivo}</span>
+                  <strong>{emReais(c.verbaDiariaBRL) ?? "—"}</strong>
+                  <span>{emReais(c.tetoAprovadoBRL) ?? "—"}</span>
+                  <Etiqueta tom={c.situacao === "No ar" ? "green" : c.situacao === "Pausada" ? "amber" : "muted"}>
+                    {c.situacao}
+                  </Etiqueta>
+                </button>
+              ))}
+          </article>
+
+          <article className="cp-card cp-paid-insight">
+            <div className="cp-pm-top">
+              <div className="cp-pm-avatar" aria-hidden>✦</div>
+              <span><small>COMO ISTO FUNCIONA</small><h3>Nada sobe sem você</h3></span>
+            </div>
+            <p>
+              Toda campanha nasce pausada e só vai ao ar com o teto que você aprovou.
+              Se quiser mudar público, verba ou objetivo, fale com o Project Manager —
+              ele leva à equipe e volta com o que muda, antes de qualquer alteração.
+            </p>
+            <button onClick={aoAbrirChat} style={{ touchAction: "manipulation" }}>
+              Falar com o PM →
+            </button>
+          </article>
+        </div>
       )}
     </>
   );

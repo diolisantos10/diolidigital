@@ -95,25 +95,14 @@
   border: 0; background: var(--cp-navy); color: #fff; font-weight: 700;
 }
 
-/* A faixa de departamentos — a operação apresentada por área (regra 5). */
-.cp-departamentos { display: grid; grid-template-columns: repeat(5, 1fr); gap: 9px; margin-top: 13px; }
-.cp-departamentos > div {
-  background: #fff; border: 1px solid var(--cp-line); border-radius: 12px; padding: 15px;
-}
-.cp-departamentos > div.off { background: #fbfcfc; }
-.cp-departamentos small {
-  display: block; font-weight: 800; letter-spacing: .4px; color: #5d6f76; text-transform: uppercase;
-}
-.cp-departamentos b { display: block; margin-top: 7px; font-size: 13px; color: var(--cp-text); line-height: 1.4; }
-.cp-departamentos em { display: block; margin-top: 6px; font-style: normal; color: var(--cp-muted); }
-.cp-departamentos > div.off b { color: var(--cp-muted); font-weight: 500; }
+/* A operação por área (regra 5) mora no cartão escuro da referência
+   (`.cp-executive-reading`), ao lado da evolução — era essa a coluna que a
+   demonstração reservava para a leitura. A grade própria que existia aqui saiu
+   junto: duas listas de departamento na mesma tela é o cliente conferindo se
+   são dois assuntos diferentes. */
 
 /* ── 375px: nada sai para o lado ─────────────────────────────────────────── */
-@media (max-width: 1020px) {
-  .cp-departamentos { grid-template-columns: 1fr 1fr; }
-}
 @media (max-width: 480px) {
-  .cp-departamentos { grid-template-columns: 1fr; }
   /* Nome de projeto e número longo não empurram a coluna para fora da tela.
      (A tabela de campanhas e a grade de KPIs a referência já resolve em 720px —
      não se reescreve o que já está resolvido.) */
@@ -138,7 +127,7 @@
    longas — em 375px elas quebravam em três linhas e as linhas se sobrepunham.
    A frase não é apagada: ela aparece inteira, logo abaixo, nos cartões de
    departamento. Aqui fica só o estado, que é o que a faixa existe para dar. */
-@media (max-width: 720px) {
+@media (max-width: 1020px) {
   .cp-shell .cp-performance-pulse > button > em { display: none; }
   .cp-shell .cp-performance-pulse > button { grid-template-columns: 30px 1fr 15px; }
   .cp-shell .cp-performance-pulse b { white-space: nowrap; }
@@ -151,7 +140,15 @@
    pílula esticada faz "Entregue" parecer uma barra de progresso. */
 .cp-shell .cp-delivery-list > button > span.cp-tag,
 .cp-shell .cp-request-list > button > span.cp-tag,
-.cp-shell .cp-folders > button > span.cp-tag {
+.cp-shell .cp-folders > button > span.cp-tag,
+/* Mesma armadilha nas três faixas de aviso: `> span { flex:1 }` pega a etiqueta
+   também, e "AMBIENTE SEGURO" virava uma pílula de mil pixels no meio da faixa
+   de Integrações. */
+.cp-shell .cp-integration-safe > span.cp-tag,
+.cp-shell .cp-success > span.cp-tag,
+.cp-shell .cp-approval-note > span.cp-tag,
+.cp-shell .cp-campaign-best > span.cp-tag,
+.cp-shell .cp-paid-overview .cp-campaign-best > span.cp-tag {
   flex: none;
   display: inline-flex;
   flex-direction: row;
@@ -170,6 +167,36 @@
   .cp-shell .cp-brand-map > button { grid-template-columns: 1fr 45px; }
   .cp-shell .cp-brand-map > button > i { grid-column: 1 / -1; }
 }
+
+/* ── TEXTO ESCURO EM BOTÃO CIANO ───────────────────────────────────────────
+   Nos cartões escuros da referência (`cp-executive-reading`, `cp-security-card`,
+   `cp-paid-insight`, `cp-brand-map > div`) o botão é ciano claro e NÃO declara
+   cor de texto — então ele herda o branco do cartão e o rótulo some no fundo.
+   Onde a própria referência declara (`.cp-insights > button`, `.cp-pm-card >
+   button`) a cor é a marinho. Aqui só se completa o que ficou faltando. */
+.cp-shell .cp-executive-reading > button,
+.cp-shell .cp-security-card > button,
+.cp-shell .cp-paid-insight > button,
+.cp-shell .cp-brand-map > div button {
+  color: var(--cp-navy);
+}
+
+/* Cartão de evolução SEM série medida: a altura de 383px foi desenhada para o
+   gráfico. Com o estado vazio no lugar dele, sobrava meia tela em branco — que
+   o cliente lê como "alguma coisa não carregou". */
+.cp-shell .cp-overview-performance.sem-serie,
+.cp-shell .cp-main-chart.sem-serie,
+.cp-shell .cp-paid-evolution.sem-serie,
+.cp-shell .cp-social-growth.sem-serie { min-height: 0; }
+
+/* Os dois painéis de canal têm conteúdo de tamanhos diferentes conforme o que
+   existe no cadastro. Esticar o mais curto até a altura do mais alto abre um
+   vazio dentro do cartão com a mesma cara de defeito. */
+.cp-shell .cp-channel-panels,
+.cp-shell .cp-results-grid,
+.cp-shell .cp-paid-dashboard,
+.cp-shell .cp-social-dashboard,
+.cp-shell .cp-dashboard-primary { align-items: start; }
 
 /* Herói sem número medido: a altura passa a vir do conteúdo, reservando embaixo
    o espaço exato da faixa de pulsos (86px, a mesma medida da referência). */
