@@ -104,61 +104,78 @@ describe("a decisão não volta para as telas de acompanhamento", () => {
   });
 });
 
-// ── "Integrações" continua sendo um ASSUNTO; deixou de ser uma ABA ──────────
+// ── AS 11 ABAS, E O QUE NÃO PODE SUMIR NA MUDANÇA ──────────────────────────
 //
-// Em 07/08/2026 o CEO separou Conta de Integrações e esta suíte travou a
-// separação numa ABA ("a navegação tem uma aba Integrações"). Em 08/08/2026,
-// auditando o portal no ar, ele viu a consequência: com 7 abas, MEDIDO a 375px,
-// 4 delas nasciam fora da tela — Integrações e Conta entre elas. Aba que não
-// aparece não separa nada; ela só esconde.
+// A história desta suíte, porque ela já mudou duas vezes e o motivo importa
+// mais que o número de abas:
 //
-// A regra sobreviveu, o mecanismo mudou: as duas são SEÇÕES ROTULADAS dentro de
-// "Sua conta". O que estes testes travam agora é o que sempre importou — cada
-// assunto com nome próprio, nenhum bloco misturado, e nenhum conteúdo perdido
-// na mudança.
-describe("Integrações e dados do cliente: dois assuntos, nomes próprios, nada perdido", () => {
+//   07/08/2026 — o CEO separou Conta de Integrações, e o teste travou a
+//                separação numa ABA.
+//   08/08/2026 — auditando o portal no ar, ele viu a consequência: com 7 abas,
+//                MEDIDO a 375px, 4 nasciam fora da tela. As duas viraram seções
+//                rotuladas dentro de "Sua conta", e o teste passou a travar isso.
+//   14/08/2026 — o CEO aprovou o dashboard do cliente com **11 abas em
+//                navegação horizontal**, e as duas voltam a ser abas próprias.
+//                O problema de 08/08 não era o número de abas: era a barra que
+//                se enfileirava e cortava sem avisar. A referência resolve isso
+//                com uma barra rolável COM SETAS nas pontas e a aba ativa
+//                trazida para o centro — o gesto deixa de ser adivinhação.
+//
+// O que sobreviveu às três versões, e é o que este bloco trava: **cada assunto
+// com nome próprio, e nenhum conteúdo perdido na mudança.**
+describe("as 11 abas do portal, e nada perdido na mudança", () => {
   const src = ler("app/portal/access/[token]/page.tsx");
+  const nav = src.slice(src.indexOf("const ABAS:"), src.indexOf("const DESTINO_ANTIGO"));
 
-  it("a barra cabe em 375px: são 5 itens, e nenhum deles se chama Integrações", () => {
-    const nav = src.slice(src.indexOf("const NAV:"), src.indexOf("const SECAO_DO_DESTINO"));
-    expect(nav.match(/\{ id: "/g) ?? []).toHaveLength(5);
-    expect(nav).not.toContain('label: "Integrações"');
+  it("são exatamente as 11 abas do handoff, nesta ordem, sem menu lateral", () => {
+    const rotulos = [...nav.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]);
+    expect(rotulos).toEqual([
+      "Visão Geral", "Social Media", "Tráfego Pago", "Resultados", "Projetos",
+      "Aprovações", "Entregas", "Brand Hub", "Solicitações", "Integrações", "Minha conta",
+    ]);
+    // Navegação HORIZONTAL: a barra é um <nav> rolável com setas, não uma
+    // coluna lateral. `aside` de navegação aqui seria o menu que o handoff proíbe.
+    expect(src).toContain("cp-nav-shell");
+    expect(src).toContain("Ver próximas abas");
   });
 
-  it("o checklist de conexões NÃO foi apagado — mora na seção Integrações de Sua conta", () => {
-    const conta = src.slice(src.indexOf('secao === "conta"'));
-    expect(conta).toContain("<ConexoesDoCliente");
-    expect(conta).toContain("INTEGRACOES_FUTURAS");
-    // E com nome próprio: o assunto não se dissolve dentro do outro.
-    expect(conta).toContain('id="integracoes"');
-    expect(conta).toContain("Seus dados");
+  it("o checklist de conexões NÃO foi apagado — voltou a ter aba própria", () => {
+    expect(src).toContain("<ConexoesDoCliente");
+    const integracoes = src.slice(src.indexOf('aba === "integracoes"'));
+    expect(integracoes).toContain("<ConexoesDoCliente");
   });
 
-  it("os dados do cliente continuam lá — a aba não foi eliminada para esconder o furo", () => {
-    const conta = src.slice(src.indexOf('secao === "conta"'));
-    for (const campo of ["Segmento", "Público-alvo", "Objetivos", "O que você contratou", "Seu acesso"]) {
+  it("os dados do cliente continuam lá — nenhum campo foi eliminado para esconder o furo", () => {
+    const conta = ler("components/portal/cliente/abas.tsx");
+    for (const campo of ["E-mail", "Telefone", "Site", "Cliente desde", "O que você contratou"]) {
       expect(conta).toContain(campo);
     }
+    // Campo sem dado diz "Não informado" — nunca some da tela.
+    expect(conta).toContain("Não informado");
   });
 
-  it("Resultados não é mais aba, mas o componente não foi apagado", () => {
-    const nav = src.slice(src.indexOf("const NAV:"), src.indexOf("const SECAO_DO_DESTINO"));
-    expect(nav).not.toContain('label: "Resultados"');
+  it("Resultados voltou a ser aba, e o componente que a alimenta é o mesmo", () => {
+    expect(nav).toContain('label: "Resultados"');
     expect(src).toContain("<ResultadosDoCliente");
-    // E só entra quando existe número — bloco vazio no portal é o cliente
-    // achando que não recebeu nada.
-    expect(src).toContain("somenteComNumeros");
   });
 
-  it("endereço antigo não vira beco: ?secao=integracoes e ?secao=resultados ainda chegam", () => {
-    const mapa = src.slice(src.indexOf("const SECAO_DO_DESTINO"), src.indexOf("const MODULOS_DE_SERVICO"));
-    expect(mapa).toContain('integracoes: "conta"');
-    expect(mapa).toContain('resultados: "inicio"');
+  it("endereço antigo não vira beco: ?secao=arquivos, =integracoes e =resultados ainda chegam", () => {
+    const mapa = src.slice(src.indexOf("const DESTINO_ANTIGO"), src.indexOf("// ── Tipos das rotas"));
+    expect(mapa).toContain('arquivos: "entregas"');
+    expect(mapa).toContain('integracoes: "integracoes"');
+    expect(mapa).toContain('resultados: "resultados"');
+    // E o parâmetro antigo continua sendo lido, ao lado do novo.
+    expect(src).toContain('sp.get("aba") ?? sp.get("secao")');
   });
 
-  it("conexão quebrada manda o cliente para Integrações, não para Conta", () => {
-    expect(src).toContain("Resolver em Integrações");
-    expect(src).not.toContain("Resolver em Conta");
+  it("o que existia antes continua montado — nenhum componente foi perdido", () => {
+    for (const componente of [
+      "<AprovacoesDoCliente", "<ResultadosDoCliente", "<ConexoesDoCliente",
+      "<EnvioDeMaterial", "<CalendarioDoMes", "<EsteiraDoCliente",
+      "<SolicitarAlgo", "<MeusPedidos", "<ChatDrawer",
+    ]) {
+      expect(src, `sumiu do portal: ${componente}`).toContain(componente);
+    }
   });
 
   it("Resultados também aponta para Integrações — um nome só para a mesma coisa", () => {

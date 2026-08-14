@@ -3,22 +3,22 @@
 // Até 03/08/2026 este layout punha um segundo cabeçalho e um contêiner de
 // 860px por cima do portal — o cliente via DUAS marcas Dioli empilhadas e a
 // tela virava um cartão dentro de outra tela (pior no celular, que é a
-// prioridade da casa). O portal novo (Hub v1) traz o próprio cabeçalho de
-// marca e a própria navegação; o layout só garante o fundo.
+// prioridade da casa). O portal traz o próprio cabeçalho de marca e a própria
+// navegação; o layout só garante o fundo e carrega a folha.
 //
-// O layout também é o único que sabe que existe um elemento FIXO por cima do
-// portal — o botão "Fale com seu PM". `.portal-shell` (app/globals.css) reserva
-// o espaço dele no fim da área rolável (altura + deslocamento + respiro +
-// safe-area do iOS), para que nada do fim do conteúdo fique coberto. Reservar
-// aqui, uma vez, evita o remendo de padding aba por aba.
+// 14/08/2026 — a folha da referência aprovada (`portal-cliente.css`) entra
+// AQUI, no layout do segmento, e não na página: assim ela vale para as duas
+// rotas do portal (o link antigo com token no caminho e a URL limpa `/me`) sem
+// duplicar 66 KB de CSS em dois lugares que podem sair de sincronia.
+//
+// A reserva do botão flutuante (`.portal-shell`, app/globals.css) some daqui: o
+// portal novo usa o `.cp-floating-pm` da referência, que já é canto inferior
+// direito FORA da coluna de conteúdo (DESIGN.md §6.2) e não cobre o fim da
+// rolagem. Reservar espaço para um botão que não está mais lá deixaria uma
+// faixa morta embaixo do rodapé.
+
+import "./portal-cliente.css";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
-  return (
-    // O fundo acompanha a superfície do portal (--bg-elevated): com o espaço
-    // reservado no fim, um fundo diferente do da página viraria uma faixa de
-    // cor visível embaixo do rodapé.
-    <div className="portal-shell min-h-screen" style={{ background: "var(--bg-elevated)" }}>
-      {children}
-    </div>
-  );
+  return <div className="min-h-screen">{children}</div>;
 }
