@@ -19,6 +19,12 @@ const db = vi.hoisted(() => ({
   // não o que está sob medição. Sem ela nada publicaria, que é justamente o
   // ponto da trava: ausência de lista nunca vira permissão.
   metaAtivoAutorizado: { findMany: vi.fn() },
+  // E desde 14/08/2026 ela confere também se o CLIENTE DONO da peça a aprovou
+  // (ordem do CEO — quem libera é o cliente, peça por peça). Mesma natureza que
+  // a lista acima: aqui é CENÁRIO, não o que está sob medição. Quem prova a
+  // trava é `__tests__/integrations/trava-de-publicacao.test.ts`.
+  socialPost: { findUnique: vi.fn() },
+  approvalRequest: { findMany: vi.fn() },
 }));
 
 const FakeGraphError = vi.hoisted(() => class FakeGraphError extends Error {
@@ -38,14 +44,26 @@ import { resolveWorkspaceForPhone } from "@/lib/integrations/meta/inbox";
 
 const decisaoOriginal = process.env.PUBLICACAO_ORGANICA;
 
+/** A peça sob medição. Desde 14/08/2026 `publishPost` exige saber QUAL peça
+ *  vai ao ar — é o que permite perguntar quem a aprovou. */
+const PECA = "sp_ritmo";
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
-  loadConnectionToken.mockResolvedValue({ token: "tk", platform: "instagram", externalId: "ig9" });
+  loadConnectionToken.mockResolvedValue({ token: "tk", platform: "instagram", externalId: "ig9", clientId: "cli9" });
   // O cenário destes testes: perfil autorizado e publicação liberada — para
   // que o que sobre sob medição seja o RITMO. Quem prova a trava em si é
   // `__tests__/integrations/trava-de-publicacao.test.ts`.
   db.metaAtivoAutorizado.findMany.mockResolvedValue([{ externalId: "ig9" }]);
+  db.socialPost.findUnique.mockResolvedValue({ id: PECA, clientId: "cli9" });
+  db.approvalRequest.findMany.mockResolvedValue([
+    {
+      id: "ap1", clientId: "cli9", reviewedBy: "client:Fulano",
+      reviewedAt: new Date("2026-08-14T12:00:00Z"),
+      sourcePostIdsJson: JSON.stringify([PECA]),
+    },
+  ]);
   process.env.PUBLICACAO_ORGANICA = "liberada";
 });
 
@@ -74,7 +92,7 @@ describe("carrossel — o post que sozinho fazia ~130 chamadas", () => {
         : { status_code: "FINISHED", permalink: "https://ig/p/1" });
 
     const r = await semEsperar(publishPost("w1", {
-      connectionId: "mc1", platform: "instagram", format: "carousel",
+      connectionId: "mc1", postId: PECA, platform: "instagram", format: "carousel",
       caption: "oi", mediaUrls: Array.from({ length: 10 }, (_, i) => `https://cdn/${i}.jpg`),
     } as never));
 
@@ -89,7 +107,7 @@ describe("carrossel — o post que sozinho fazia ~130 chamadas", () => {
     graphGet.mockResolvedValue({ status_code: "IN_PROGRESS" });
 
     await expect(semEsperar(publishPost("w1", {
-      connectionId: "mc1", platform: "instagram", format: "feed",
+      connectionId: "mc1", postId: PECA, platform: "instagram", format: "feed",
       caption: "oi", mediaUrl: "https://cdn/a.jpg",
     } as never))).resolves.toMatchObject({ ok: false });
 
@@ -103,7 +121,7 @@ describe("carrossel — o post que sozinho fazia ~130 chamadas", () => {
     graphGet.mockResolvedValue({ status_code: "ERROR" });
 
     const r = await semEsperar(publishPost("w1", {
-      connectionId: "mc1", platform: "instagram", format: "feed",
+      connectionId: "mc1", postId: PECA, platform: "instagram", format: "feed",
       caption: "oi", mediaUrl: "https://cdn/a.jpg",
     } as never));
     expect(r.ok).toBe(false);

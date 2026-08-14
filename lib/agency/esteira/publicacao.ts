@@ -687,6 +687,10 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
     try {
       r = await publishPost(post.workspaceId, {
         connectionId: conexao.id,
+        // QUAL peça — é o que permite à trava perguntar se o cliente dono dela
+        // a aprovou (14/08/2026). Sem isto o despertador seria recusado peça a
+        // peça, e com razão: ninguém saberia dizer o que estava indo ao ar.
+        postId: post.id,
         platform: "instagram",
         format: formato,
         caption: post.caption,

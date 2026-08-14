@@ -18,8 +18,10 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
   prisma: {
-    socialPost: { findMany: vi.fn() },
+    socialPost: { findMany: vi.fn(), findUnique: vi.fn() },
     mediaAsset: { findMany: vi.fn() },
+    // Lidos pelo portão 11 (aprovação do cliente), via `aprovacaoDaPeca`.
+    approvalRequest: { findMany: vi.fn() },
   },
 }));
 vi.mock("@/lib/db/client", () => db);
@@ -52,8 +54,9 @@ vi.mock("@/lib/integrations/meta/permissoes-do-token", () => perms);
 
 import {
   conferirProntidao,
-  portaoDaDecisao,
+  portaoDoFreioDeEmergencia,
   montarVeredito,
+  NOME_DO_PORTAO_DA_APROVACAO,
   type ProntidaoDeUmPost,
 } from "@/lib/agency/esteira/prontidao-de-publicacao";
 
@@ -96,6 +99,16 @@ beforeEach(() => {
     token: "tok", externalId: IG_DO_CLIENTE, platform: "instagram", clientId: "cli1", metaJson: {},
   });
   ativos.ativoAutorizado.mockResolvedValue(true);
+  // O caso FELIZ do portão 11: a peça tem card aprovado PELO CLIENTE dono dela.
+  // Sem isto, todo teste vizinho passaria a barrar no 11 e mediria outra coisa.
+  db.prisma.socialPost.findUnique.mockResolvedValue({ id: "sp1", clientId: "cli1" });
+  db.prisma.approvalRequest.findMany.mockResolvedValue([
+    {
+      id: "ap1", clientId: "cli1", reviewedBy: "client:Dioli Santos",
+      reviewedAt: new Date("2026-08-14T12:00:00Z"),
+      sourcePostIdsJson: JSON.stringify(["sp1"]),
+    },
+  ]);
 });
 
 describe("é SOMENTE LEITURA", () => {
@@ -123,19 +136,73 @@ describe("é SOMENTE LEITURA", () => {
   });
 });
 
-describe("a chave do CEO é fail-closed e diz o nome dela", () => {
+describe("o freio de emergência da casa é fail-closed e diz o nome dele", () => {
   it("ausente = barrado", () => {
-    const p = portaoDaDecisao();
+    const p = portaoDoFreioDeEmergencia();
     expect(p.estado).toBe("barrou");
-    expect(p.quemResolve).toBe("ceo_decide");
+    expect(p.quemResolve).toBe("freio_da_casa");
     expect(p.comoDestravar).toContain("PUBLICACAO_ORGANICA=liberada");
   });
 
   it("qualquer valor que não seja exatamente 'liberada' = barrado", () => {
     process.env.PUBLICACAO_ORGANICA = "sim";
-    expect(portaoDaDecisao().estado).toBe("barrou");
+    expect(portaoDoFreioDeEmergencia().estado).toBe("barrou");
     process.env.PUBLICACAO_ORGANICA = "liberada";
-    expect(portaoDaDecisao().estado).toBe("passou");
+    expect(portaoDoFreioDeEmergencia().estado).toBe("passou");
+  });
+
+  // O que a mudança de 14/08/2026 precisa DIZER, e não só fazer: soltar o freio
+  // não autoriza peça nenhuma. Quem lesse "passou" e concluísse "pode publicar"
+  // repetiria exatamente o erro que o modelo novo veio desfazer.
+  it("solto, o freio ainda manda ler o portão 11 — ele não autoriza peça", () => {
+    process.env.PUBLICACAO_ORGANICA = "liberada";
+    const p = portaoDoFreioDeEmergencia();
+    expect(p.estado).toBe("passou");
+    expect(p.motivo).toMatch(/cliente/i);
+    expect(p.motivo).toContain("portão 11");
+  });
+
+  it("o portão 11 não é da casa: é por peça, nunca uma linha global", async () => {
+    const r = await conferirProntidao({ workspaceId: "ws1" });
+    expect(r.portoesDaCasa.map((p) => p.nome)).not.toContain(NOME_DO_PORTAO_DA_APROVACAO);
+    expect(r.posts[0]!.portoes.map((p) => p.nome)).toContain(NOME_DO_PORTAO_DA_APROVACAO);
+  });
+});
+
+// ─── O PORTÃO 11, QUE É A ORDEM DO CEO DE 14/08/2026 ───────────────────────
+describe("portão 11 — a aprovação do CLIENTE, peça por peça", () => {
+  function portao11(r: Awaited<ReturnType<typeof conferirProntidao>>) {
+    return r.posts[0]!.portoes.find((p) => p.nome === NOME_DO_PORTAO_DA_APROVACAO)!;
+  }
+
+  it("aprovada pelo cliente dono: passa, e DIZ quem aprovou e quando", async () => {
+    const p = portao11(await conferirProntidao({ workspaceId: "ws1" }));
+    expect(p.estado).toBe("passou");
+    expect(p.quemResolve).toBe("cliente_aprova");
+    expect(p.motivo).toContain("Dioli Santos");
+    expect(p.motivo).toContain("2026-08-14");
+    expect(p.motivo).toContain("ap1");
+  });
+
+  it("sem aprovação nenhuma: barra, e nomeia QUEM precisa aprovar", async () => {
+    db.prisma.approvalRequest.findMany.mockResolvedValue([]);
+    const p = portao11(await conferirProntidao({ workspaceId: "ws1" }));
+    expect(p.estado).toBe("barrou");
+    expect(p.motivo).toContain("cli1");
+    expect(p.comoDestravar).toContain("/api/social-posts/aprovacao");
+  });
+
+  it("carimbo da AGÊNCIA não é aprovação do cliente", async () => {
+    db.prisma.approvalRequest.findMany.mockResolvedValue([
+      {
+        id: "ap9", clientId: "cli1", reviewedBy: "equipe:alguem@dioli.com",
+        reviewedAt: new Date(), sourcePostIdsJson: JSON.stringify(["sp1"]),
+      },
+    ]);
+    const p = portao11(await conferirProntidao({ workspaceId: "ws1" }));
+    expect(p.estado).toBe("barrou");
+    // A recusa carrega a evidência: QUEM carimbou (guardrail 6).
+    expect(p.motivo).toContain("equipe:alguem@dioli.com");
   });
 });
 
@@ -237,7 +304,7 @@ describe("o link assinado que lançava não derruba mais nada", () => {
 
 describe("o veredito não confunde 'sem post' com 'trava da Meta'", () => {
   it("zero agendados é uma resposta, não uma falha", () => {
-    const v = montarVeredito([], [portaoDaDecisao()]);
+    const v = montarVeredito([], [portaoDoFreioDeEmergencia()]);
     expect(v).toContain("não é trava da Meta");
   });
 
