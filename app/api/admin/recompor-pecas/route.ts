@@ -69,8 +69,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   //
   // O padrão continua `sem-molde`: quem já chamava esta rota continua tendo
   // exatamente o comportamento que conhecia.
+  // `?modo=formato-recusado` alcança a peça composta pelo rasterizador ANTIGO,
+  // que gravava PNG. Ela não tem defeito em `lastError` e não é mais velha que
+  // o logo do cliente — os dois modos acima passam ao lado dela. Quem a denuncia
+  // é o `mimeType` do arquivo, medido pela mesma régua da publicação. Medido em
+  // produção em 14/08: 6 posts do CityJobs agendados, os 6 barrados no portão de
+  // formato, com o rasterizador de hoje já saindo JPEG há uma semana.
   const bruto = request.nextUrl.searchParams.get("modo");
-  const modo = bruto === "marca-nova" || bruto === "carrossel" ? bruto : "sem-molde";
+  const modo =
+    bruto === "marca-nova" || bruto === "carrossel" || bruto === "formato-recusado"
+      ? bruto
+      : "sem-molde";
 
   // `?modo=carrossel` redesenha as TELAS de um carrossel. O modo normal compõe
   // uma arte por peça, e num carrossel o que vai ao ar são as N telas — recompor
