@@ -616,8 +616,16 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
     let carrossel: string[] = [];
     if (formato === "carousel") {
       const guardadas = lerLista(post.mediaUrlsJson);
-      carrossel = (await Promise.all(guardadas.map((u) => urlPublicaDaMidia(u))))
-        .filter((u): u is string => !!u);
+      // `linksPublicosDaMidia` e não `urlPublicaDaMidia` cru: a assinatura do
+      // link LANÇA quando falta `AUTH_SECRET`, e um `throw` aqui matava a
+      // rodada inteira sem gravar `lastError` em post nenhum. Ver o cabeçalho
+      // daquela função.
+      const r = await linksPublicosDaMidia(guardadas);
+      if (r.erro) {
+        await falhar(r.erro);
+        continue;
+      }
+      carrossel = r.links;
       if (carrossel.length < 2) {
         await falhar(
           guardadas.length === 0
@@ -628,7 +636,12 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
       }
     }
 
-    const mediaUrl = await urlPublicaDaMidia(post.mediaUrl);
+    const simples = await linksPublicosDaMidia([post.mediaUrl]);
+    if (simples.erro) {
+      await falhar(simples.erro);
+      continue;
+    }
+    const mediaUrl = simples.links[0];
     if (formato !== "carousel" && !mediaUrl) {
       await falhar(
         post.mediaUrl
@@ -765,7 +778,12 @@ async function proximaDataLivre(workspaceId: string, clientId: string | null): P
   return depois > base ? depois : base;
 }
 
-function normalizarFormato(f: string): "feed" | "reel" | "story" | "carousel" {
+/** EXPORTADA em 14/08/2026 para `prontidao-de-publicacao.ts`. Não é
+ *  conveniência: o diagnóstico precisa responder pelo MESMO formato que o
+ *  publicador vai usar. Uma segunda cópia desta régua diria "carrossel" onde o
+ *  publicador entende "feed" e o diagnóstico passaria a mentir no dia em que
+ *  alguém acrescentasse um formato aqui e esquecesse lá. */
+export function normalizarFormato(f: string): "feed" | "reel" | "story" | "carousel" {
   if (f === "reel" || f === "video") return "reel";
   if (f === "story") return "story";
   if (f === "carousel" || f === "carrossel") return "carousel";
@@ -773,8 +791,9 @@ function normalizarFormato(f: string): "feed" | "reel" | "story" | "carousel" {
 }
 
 /** Lê uma lista guardada como JSON. Campo corrompido vira lista vazia — nunca
- *  exceção: um JSON quebrado não pode derrubar a rodada de publicação. */
-function lerLista(bruto: string | null | undefined): string[] {
+ *  exceção: um JSON quebrado não pode derrubar a rodada de publicação.
+ *  EXPORTADA em 14/08/2026 pela mesma razão que `normalizarFormato`. */
+export function lerLista(bruto: string | null | undefined): string[] {
   try {
     const v = JSON.parse(bruto ?? "[]");
     return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
@@ -787,7 +806,7 @@ function lerLista(bruto: string | null | undefined): string[] {
  * A Meta busca a mídia com os servidores DELA: precisa de URL pública. Por isso
  * o link é assinado e expira — não é o arquivo aberto ao mundo.
  */
-async function urlPublicaDaMidia(mediaUrl: string | null): Promise<string | undefined> {
+export async function urlPublicaDaMidia(mediaUrl: string | null): Promise<string | undefined> {
   if (!mediaUrl) return undefined;
   if (!mediaUrl.startsWith("/api/media/")) {
     // Já é uma URL externa (Drive, CDN do cliente): usa como está.
@@ -798,6 +817,62 @@ async function urlPublicaDaMidia(mediaUrl: string | null): Promise<string | unde
   if (!base || !id) return undefined;
   const dominio = base.startsWith("http") ? base : `https://${base}`;
   return `${dominio}${caminhoPublicoAssinado(id)}`;
+}
+
+/**
+ * OS LINKS PÚBLICOS, SEM DERRUBAR A RODADA. (14/08/2026)
+ *
+ * ─── O defeito, medido ─────────────────────────────────────────────────────
+ *
+ * `urlPublicaDaMidia` **LANÇA** — `caminhoPublicoAssinado` → `assinar` →
+ * `segredoDeAssinatura` joga `Error("AUTH_SECRET ausente…")` quando nem
+ * `AUTH_SECRET` nem `JWT_SECRET` existem no ambiente. Está certo que lance: um
+ * link "assinado" com segredo previsível aparenta proteção e não protege
+ * (`media/armazenamento.ts:368-374`).
+ *
+ * O que estava errado era o CHAMADOR. As duas chamadas dentro do laço de
+ * `publicarAgendados` estavam cruas, fora de qualquer `try`. Uma variável de
+ * ambiente ausente, portanto, não produzia "este post não saiu porque X": ela
+ * estourava para fora do laço, e com isso:
+ *
+ *   • **nenhum** post recebia `lastError` — o campo que o painel lê;
+ *   • **nenhum** `ActivityEvent` de `publicacao_falhou` era criado — a
+ *     testemunha que existe desde 06/08 justamente porque "a hora marcada que
+ *     não aconteceu é notícia";
+ *   • os posts SEGUINTES da fila nem eram avaliados, porque o laço morria no
+ *     primeiro;
+ *   • e o que sobrava era uma linha genérica no pulso do despertador
+ *     (`despertador.ts:343`), sem dizer de qual post nem de qual cliente.
+ *
+ * Isto é o oposto declarado da regra desta função: *"o post CONTINUA
+ * scheduled… `lastError` é o que fica visível"* e *"trabalho pago não é
+ * enterrado"*. Um `throw` no meio do laço enterra — e enterra em silêncio, que
+ * é a forma de falha que esta casa mais paga caro.
+ *
+ * ─── Por que a correção é AQUI, e não em `segredoDeAssinatura` ─────────────
+ *
+ * Fazer a assinatura devolver `undefined` em vez de lançar transformaria a
+ * causa real ("falta o segredo") na mensagem errada que já existe ("falta
+ * domínio público configurado") — o operador procuraria a variável errada. O
+ * motivo tem de chegar inteiro ao post. Por isso a exceção é CAPTURADA e
+ * VIRA MOTIVO, em vez de ser evitada.
+ */
+export async function linksPublicosDaMidia(
+  brutas: Array<string | null>,
+): Promise<{ links: string[]; erro: string | null }> {
+  try {
+    const links = (await Promise.all(brutas.map((u) => urlPublicaDaMidia(u))))
+      .filter((u): u is string => !!u);
+    return { links, erro: null };
+  } catch (e) {
+    return {
+      links: [],
+      erro:
+        "não consegui montar o link público da mídia: " +
+        (e instanceof Error ? e.message : "erro desconhecido") +
+        ". A Meta busca o arquivo com os servidores dela, e sem link assinado não há como entregá-lo.",
+    };
+  }
 }
 
 import { quebrarCenas } from "@/lib/agency/design/storyboard";
