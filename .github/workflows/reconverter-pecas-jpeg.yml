@@ -1,0 +1,94 @@
+name: Reconverter peças em PNG para JPEG (à mão)
+
+# ── POR QUE ESTE WORKFLOW EXISTE (14/08/2026) ─────────────────────────────────
+#
+# A rota `/api/admin/recompor-pecas` exige `Authorization: Bearer CRON_SECRET`.
+# Esse segredo mora no Railway e nos secrets deste repositório — e em nenhum
+# outro lugar. Sem este workflow, converter as peças de produção exigiria que
+# alguém colasse o segredo num terminal, que é exatamente o caminho que esta
+# casa proíbe.
+#
+# ── SEM AGENDA, DE PROPÓSITO ─────────────────────────────────────────────────
+#
+# `workflow_dispatch` e nada mais. Isto é conserto de um estrago datado — 6
+# peças do CityJobs gravadas em PNG pelo rasterizador antigo, medidas em
+# produção em 14/08 às 21:43 — e não rotina. Máquina que reescreve arte já
+# entregue ao cliente a cada tantas horas, sem ninguém olhando, é o formato do
+# incidente de 03/08. Quem roda isto aperta o botão sabendo o que está fazendo.
+#
+# ── O QUE ELE NÃO FAZ ────────────────────────────────────────────────────────
+#
+#   • Não publica. A rota não lê `PUBLICACAO_ORGANICA` e não toca a data
+#     marcada — há teste que reprova se qualquer um dos dois aparecer.
+#   • Não gera imagem paga. A foto de fundo já está no armazenamento; recompor
+#     é rasterização local.
+#   • Não afrouxa trava. A peça recomposta é medida pela régua da publicação
+#     ANTES de ser gravada; se sair PNG de novo, a gravação é recusada.
+#
+# ── IDEMPOTENTE PELO DADO ────────────────────────────────────────────────────
+#
+# A seleção do modo `formato-recusado` é feita pelo `mimeType` gravado, não por
+# marca em `lastError`. Peça já convertida deixa de ser vista na passada
+# seguinte porque o dado dela mudou. Rodar duas vezes não faz mal.
+
+on:
+  workflow_dispatch:
+    inputs:
+      limite:
+        description: "Teto de peças nesta passada (vazio = o teto da rota)"
+        required: false
+        default: ""
+
+jobs:
+  reconverter:
+    runs-on: ubuntu-latest
+    # É um curl, não uma compilação — mas a rasterização de N peças acontece do
+    # lado do servidor e leva alguns segundos por peça.
+    timeout-minutes: 15
+    steps:
+      - name: Converter as peças recusadas por formato
+        run: |
+          # Segredo ausente NÃO passa verde. "Pulei" com exit 0 é um workflow
+          # que nunca chamou nada se declarando saudável.
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::CRON_SECRET não está nos secrets do repositório — nada foi convertido."
+            exit 1
+          fi
+
+          url="https://dioli-agency-os-1-production.up.railway.app/api/admin/recompor-pecas?modo=formato-recusado"
+          if [ -n "${{ inputs.limite }}" ]; then
+            url="$url&limite=${{ inputs.limite }}"
+          fi
+
+          code=$(curl -s -o /tmp/out.json -w "%{http_code}" -X POST "$url" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+
+          # ⚠️ NÃO despejar o corpo da resposta no log. Ele traz ids internos de
+          # post e de cliente, e o log de CI fica guardado 90 dias e é copiado
+          # para issue sem pensar. O que interessa é o status e a CONTAGEM.
+          echo "HTTP $code"
+          jq -c '{quantasRecompostas, modo, recompostas: (.recompostas | length), semFundo: (.semFundo // [] | length), falhas: (.falhas // [] | length)}' /tmp/out.json 2>/dev/null \
+            || echo "(resposta não-JSON, $(wc -c < /tmp/out.json) bytes — corpo omitido de propósito)"
+
+          # 503 da NOSSA rota quer dizer uma coisa só: CRON_SECRET não existe no
+          # servidor. 503 do edge (deploy em curso) não traz essa frase.
+          if [ "$code" = "503" ]; then
+            if grep -qiE 'não configurad|not configured' /tmp/out.json; then
+              echo "::error::A produção respondeu 503: CRON_SECRET não está configurado no servidor."
+              exit 1
+            fi
+            echo "::warning::503 sem ser de configuração (provável deploy em curso). Rode de novo em alguns minutos."
+            exit 1
+          fi
+          if [ "$code" != "200" ]; then
+            echo "::error::A rota respondeu HTTP $code — nenhuma peça foi convertida."
+            exit 1
+          fi
+
+          # Zero recomposta não é sucesso silencioso: ou já estavam todas em
+          # JPEG, ou a seleção não achou o que a medição de produção achou. As
+          # duas merecem alguém olhando, e a segunda é defeito.
+          n=$(jq -r '.quantasRecompostas // 0' /tmp/out.json 2>/dev/null || echo 0)
+          if [ "$n" = "0" ]; then
+            echo "::warning::Nenhuma peça foi recomposta. Se a medição em /api/meta/prontidao ainda acusa PNG, isto é defeito da seleção — não conclua que está tudo certo."
+          fi
