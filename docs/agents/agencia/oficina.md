@@ -392,3 +392,81 @@ Suíte: 219 arquivos, 3570 verdes, 1 pulado. `tsc --noEmit` limpo.
 - **`sharp` não é dependência declarada.** O caminho de reserva cobre, e o campo
   `caminhos` da resposta diz qual dos dois a produção realmente usou — mas
   declarar a dependência é uma decisão de deploy que não tomei sozinho.
+
+---
+
+## 2026-08-14 · O card de aprovação que faltava, e o botão para abri-lo
+
+### O que eu vim medir
+
+*"Existe card de aprovação para as 6 peças do CityJobs?"* — a trava nova
+(`lib/agency/esteira/aprovacao-da-peca.ts`) exige `ApprovalRequest` com
+`sourcePostIdsJson` contendo o id da peça, `status: "approved"` **e** `reviewedBy`
+começando em `client:`. Sem sessão de master não havia como olhar isso em
+produção: `/api/meta/prontidao` exige sessão, e o painel só mostra a contagem
+agregada ("Aprovações 15 · 7 aguardando revisão"), que **não diz de qual cliente
+nem de quais peças**. Contagem agregada respondendo pergunta específica é como se
+conclui errado com número certo.
+
+### O que eu fiz
+
+Um botão que **mede antes de escrever**, e que **abre o pedido sem aprovar nada**.
+
+- `lib/agency/esteira/cards-de-aprovacao.ts` — a regra (triagem + corpo do card).
+- `app/api/admin/cards-de-aprovacao/route.ts` — POST, `Bearer CRON_SECRET`,
+  segredo ausente → 503, **leitura pura por padrão**, `?criar=1` para gravar.
+- `.github/workflows/abrir-cards-de-aprovacao.yml` — `workflow_dispatch`, com
+  `medir` como opção padrão.
+- `__tests__/esteira/cards-de-aprovacao.test.ts` — 22 testes.
+
+### A régua saiu da rota, e por quê
+
+O corpo do card morava dentro de `/api/social-posts/aprovacao`, que **exige
+sessão**. A alternativa a extrair era uma segunda cópia — e a divergência
+apareceria no que **o cliente lê**: `reviewNote` é o que o portal renderiza
+("título na primeira linha, peças no resto"). Duas réguas produziriam cards que o
+cliente lê diferente conforme quem os abriu. Mesmo remédio de
+`links-do-portal.ts`, pelo mesmo motivo: uma implementação, dois donos.
+
+O que **não** saiu da rota, de propósito: o guard de sessão, a posse por
+`workspaceId` e o rigor. Lá alguém escolheu as peças a dedo, então peça
+inelegível é erro HTTP; aqui ninguém escolheu peça nenhuma, então ela é excluída
+com motivo. Isso é contrato de rota, não regra de negócio. O teste de contrato
+que já existia (`__tests__/portal/aprovacao-cliente-direto.test.ts`) passou sem
+uma linha alterada — é ele que prova que a extração não mudou comportamento.
+
+### A sutileza que faz o módulo valer
+
+Card `approved` cujo `reviewedBy` **não** é `client:` — o `cliente` seco de
+`aprovarPacote`, ou `equipe:<email>` — **não conta como aprovado**, e a peça
+continua elegível para um card novo. Tem que ser assim porque `aprovacaoDaPeca`
+recusa esse carimbo: se eu o tratasse como pronto, a peça ficaria num limbo
+silencioso — ninguém abriria o card e a trava nunca abriria a porta. Está travado
+em teste, com os quatro carimbos.
+
+### O que aprendi lendo a fila até o fim
+
+**Aprovar não empurra a data destas 6 peças, e isso muda o desfecho.**
+`agendarPecasAprovadas` só promove `ESTADOS_PROMOVIVEIS = ["draft","approved"]`
+(`lib/agency/esteira/publicacao.ts:177`). As 6 do CityJobs estão em `scheduled`,
+então caem em `ignorados` e **a data original fica de pé**. Como essas datas já
+passaram, o relógio as pega **na passada seguinte de 5 minutos** — e
+`MAX_PUBLICACOES_POR_RODADA = 10` deixa as 6 saírem **juntas**. Ninguém pediu
+rajada; ela é o efeito de um caminho que foi escrito para peça em `draft` e está
+sendo usado por peça em `scheduled`.
+
+### Verificação
+
+`npx tsc --noEmit` limpo. Suíte: 220 arquivos, 3589 verdes, 1 pulado.
+
+### O que fica aberto (não decidi sozinho)
+
+- **A rajada acima.** Duas saídas: (a) `agendarPecasAprovadas` passa a empurrar
+  data também de peça `scheduled` — vira uma peça por dia às 10h, previsível,
+  mas mexe no calendário que o cliente acabou de ver e aprovar; (b) deixar como
+  está e soltar o freio só quando a rajada for aceitável. É decisão de produto:
+  a (a) muda a data que o cliente aprovou, e mudar o que ele aprovou depois do
+  sim é o tipo de coisa que não se faz em silêncio.
+- **`ignorados` só vai para `console.error`.** Peça aprovada que não vira
+  calendário fica visível apenas no log do servidor. Aqui não machuca (a peça já
+  está `scheduled`), mas o alerta não tem testemunha.

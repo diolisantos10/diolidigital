@@ -1,0 +1,162 @@
+name: Abrir card de aprovação para um cliente (à mão)
+
+# ── O QUE ESTE BOTÃO FAZ, E O QUE ELE NÃO FAZ (14/08/2026) ────────────────────
+#
+# Ele **abre o pedido de aprovação** — o card que aparece na aba de Aprovações do
+# portal do cliente. Ele **NÃO aprova nada**: o card nasce PENDENTE, sem autor e
+# sem data de decisão. Quem aprova é o CLIENTE, clicando no portal dele; é a
+# decisão dele que a trava de publicação lê, e é só ela que conta.
+#
+# Se você está aqui porque as peças de um cliente não saem, este botão resolve
+# UMA das travas: a ausência do card. Ele não solta o freio de emergência da
+# casa, não mexe em permissão da Meta e não preenche ficha de marca.
+#
+# ── POR QUE UM WORKFLOW, E NÃO UM TERMINAL ───────────────────────────────────
+#
+# A rota exige `Authorization: Bearer CRON_SECRET`. Esse segredo mora no Railway
+# e nos secrets deste repositório — e em nenhum outro lugar. Sem este workflow,
+# abrir o card em produção exigiria que alguém colasse o segredo num terminal,
+# que é exatamente o caminho que esta casa proíbe. Mesmo padrão de
+# `reconverter-pecas-jpeg.yml`.
+#
+# ── SEM AGENDA, DE PROPÓSITO ─────────────────────────────────────────────────
+#
+# `workflow_dispatch` e nada mais. Uma máquina que abre pedido de aprovação
+# sozinha, a cada tantas horas, enche o portal do cliente de cards que ninguém
+# pediu — e treina ele a não ler nenhum. Quem roda isto aperta o botão sabendo
+# para qual cliente.
+#
+# ── COMECE SEMPRE EM "MEDIR" ─────────────────────────────────────────────────
+#
+# O padrão é `medir`: leitura pura, nada gravado. Ele responde a pergunta que
+# vem antes — *já existe card para essas peças?* — e é assim que se confere o
+# estado de produção sem sessão de master e sem risco. Só depois, `criar`.
+#
+# ── IDEMPOTENTE PELO DADO ────────────────────────────────────────────────────
+#
+# Peça que já está num card pendente é excluída pela leitura do próprio banco.
+# Apertar `criar` duas vezes não abre um segundo card: a segunda passada volta
+# "nada_a_criar" com o motivo. Rodar de novo não faz mal.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: "Nome do cliente (ex.: CityJobs). UM por vez — nome ambíguo é recusado, nunca adivinhado."
+        required: true
+        default: "CityJobs"
+      acao:
+        description: "medir = leitura pura, nada é gravado (comece por aqui). criar = abre o card PENDENTE para o cliente decidir."
+        required: true
+        type: choice
+        options: ["medir", "criar"]
+        default: "medir"
+      estados:
+        description: "Estados das peças examinadas (vazio = scheduled, o único estado que o relógio lê). Ex.: scheduled,draft"
+        required: false
+        default: ""
+
+jobs:
+  abrir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Medir ou abrir o card de aprovação
+        run: |
+          # Segredo ausente NÃO passa verde. "Pulei" com exit 0 é um workflow que
+          # nunca chamou nada se declarando saudável.
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::CRON_SECRET não está nos secrets do repositório — nenhum card foi aberto."
+            exit 1
+          fi
+
+          cliente="${{ inputs.cliente }}"
+          if [ -z "$cliente" ]; then
+            echo "::error::Informe o nome do cliente. Esta rota abre card para um cliente por chamada."
+            exit 1
+          fi
+
+          url="https://dioli-agency-os-1-production.up.railway.app/api/admin/cards-de-aprovacao"
+          # `--data-urlencode` com `-G` monta a query escapando o nome do cliente:
+          # um nome com espaço ou acento montado à mão vira URL quebrada, e a rota
+          # responderia "cliente não existe" por um defeito de aspas.
+          args=(--data-urlencode "cliente=$cliente")
+          if [ "${{ inputs.acao }}" = "criar" ]; then
+            args+=(--data-urlencode "criar=1")
+          fi
+          if [ -n "${{ inputs.estados }}" ]; then
+            args+=(--data-urlencode "estados=${{ inputs.estados }}")
+          fi
+
+          # `-G` faz o curl montar a query a partir dos --data-urlencode; `-X POST`
+          # mantém o VERBO que a rota exige. A rota não lê corpo, só a query.
+          code=$(curl -s -o /tmp/cards.json -w "%{http_code}" -G -X POST "$url" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${args[@]}")
+
+          # ⚠️ NÃO despejar o corpo da resposta no log. Ele traz ids internos de
+          # post, de cliente e do card, e o log de CI fica guardado 90 dias e é
+          # copiado para issue sem pensar. O que interessa é o status, o PLACAR e
+          # o VEREDITO — que são texto de sistema, sem id.
+          echo "HTTP $code"
+          jq -c '{situacao, examinadas, elegiveis, titulo}' /tmp/cards.json 2>/dev/null \
+            || echo "(resposta não-JSON, $(wc -c < /tmp/cards.json) bytes — corpo omitido de propósito)"
+
+          # ── O PLACAR COM O MOTIVO, NÃO SÓ A CONTAGEM ───────────────────────
+          #
+          # "4 peças ficaram de fora" cabe em pelo menos cinco causas diferentes
+          # — já publicada, interna, sem cliente, já em card pendente, já
+          # aprovada pelo cliente — e cada uma leva a um gesto diferente. A
+          # contagem sozinha gasta a passada sem responder a pergunta. Foi a
+          # lição que `reconverter-pecas-jpeg.yml` pagou em produção.
+          echo "— peças que ficaram de fora, por motivo:"
+          jq -r '(.excluidas // []) | if length == 0 then "  (nenhuma)" else .[] | "  · " + .motivo + " (" + (.quantas|tostring) + "): " + .detalhe end' \
+            /tmp/cards.json 2>/dev/null || echo "  (resposta não-JSON)"
+
+          echo "— veredito:"
+          jq -r '.veredito // .error // "(sem veredito)"' /tmp/cards.json 2>/dev/null | sed 's/^/  /'
+
+          # 503 da NOSSA rota quer dizer uma coisa só: CRON_SECRET não existe no
+          # servidor. 503 do edge (deploy em curso) não traz essa frase.
+          if [ "$code" = "503" ]; then
+            if grep -qiE 'não configurad|not configured' /tmp/cards.json; then
+              echo "::error::A produção respondeu 503: CRON_SECRET não está configurado no servidor."
+              exit 1
+            fi
+            echo "::warning::503 sem ser de configuração (provável deploy em curso). Rode de novo em alguns minutos."
+            exit 1
+          fi
+          if [ "$code" != "200" ]; then
+            echo "::error::A rota respondeu HTTP $code — nenhum card foi aberto."
+            exit 1
+          fi
+
+          situacao=$(jq -r '.situacao // "?"' /tmp/cards.json 2>/dev/null || echo "?")
+
+          # Nome que não casa com cliente nenhum, ou que casa com dois, NÃO é
+          # sucesso silencioso: a rota se recusou a adivinhar e nada foi gravado.
+          case "$situacao" in
+            cliente_nao_existe)
+              echo "::error::Nenhum cliente com esse nome. Confira a grafia — nada foi gravado."
+              exit 1 ;;
+            nome_ambiguo)
+              echo "::error::O nome casa com mais de um cliente e a rota não adivinha. Repita com o nome completo — nada foi gravado."
+              exit 1 ;;
+            "peças_demais")
+              echo "::error::Mais peças elegíveis do que cabe num card. Restrinja com ?estados= — nada foi gravado."
+              exit 1 ;;
+          esac
+
+          if [ "${{ inputs.acao }}" = "medir" ]; then
+            echo "::notice::Leitura pura — NADA foi gravado. Se o veredito acima diz que há peças prontas para virar card, rode de novo com acao=criar."
+            exit 0
+          fi
+
+          # Zero criado não é sucesso silencioso: ou já existia card, ou o
+          # cliente já aprovou tudo, ou a seleção não achou o que se esperava.
+          # As três merecem alguém lendo o placar acima.
+          if [ "$situacao" != "criado" ]; then
+            echo "::warning::Nenhum card novo foi aberto (situação: $situacao). Isso pode estar CERTO — card já aberto ou peças já aprovadas contam como 'nada a criar'. Leia o placar e o veredito acima antes de concluir que é defeito."
+            exit 0
+          fi
+
+          echo "::notice::Card aberto e PENDENTE. Ninguém aprovou nada: agora o cliente decide no portal dele. O link do portal está na ficha do cliente, no painel interno (botão 'Portal do cliente') — ele nunca é impresso aqui."
