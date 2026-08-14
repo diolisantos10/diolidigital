@@ -296,3 +296,99 @@ Suíte: **216 arquivos, 3523 verdes**, `tsc --noEmit` limpo. Commit `b8809bd`.
   também não precisa: a trava só olha para a frente.
 - **O freio segue puxado** por App Review e verificação do negócio — razões da
   plataforma, que nenhum cliente pode aprovar.
+
+---
+
+## 2026-08-14 (2) — O redesenho é o conserto ERRADO para estas 6 peças
+
+**Despacho:** as duas passadas contra produção voltaram `0` recompostas. A
+primeira porque as 6 peças são carrosséis; a segunda achou as 6 e **falhou nas
+6**, sem `semFundo`.
+
+### O que eu NÃO confirmei, e por que digo isso
+
+**Não consigo alcançar o banco de produção daqui**, então não confirmei a causa
+por medição. O que fiz foi enumerar, no código, TODOS os caminhos de
+`recomporCarrosseis` que produzem `falhas` — e o despacho supunha um só:
+
+| # | Caminho | Frase que ele grava |
+|---|---|---|
+| 1 | `cenas.length < 2` (`recompor-carrossel.ts:83`) | "o carrossel não tem telas descritas" |
+| 2 | `comporComMolde` devolve infra | "não há Chromium para rasterizar o molde…" |
+| 3 | `guardarArquivo` recusa | cota estourada / arquivo grande demais / mime |
+| 4 | `urls.length !== telas.length` | "não consegui redesenhar todas as telas" |
+
+**O caminho 2 produz EXATAMENTE o mesmo placar** (`recompostas:0, semFundo:0,
+falhas:6`) e é uma hipótese viva: `recomporPecas` tem a guarda
+`renderizadorDisponivel()` desde 08/08 e **`recomporCarrosseis` não tinha**.
+Sem Chromium, o laço ia até o molde, levava `sem_navegador` em cada tela e
+gravava seis falhas de CONTEÚDO — infra travestida de defeito de peça, que manda
+o operador para o lugar errado com confiança. Isso agora está fechado: a guarda
+existe e a passada devolve `semRenderizador` sem tocar em peça nenhuma.
+
+E o `jq` do workflow **escondia a resposta**: ele imprimia a contagem de falhas e
+nunca o motivo, e `semRenderizador` não estava na lista de campos. Uma passada em
+produção foi gasta sem responder a pergunta. Agora ele imprime **os motivos
+distintos, sem ids** (o texto do erro é frase de sistema, não carrega id de post
+nem de cliente) e sobe `::error::` quando falta rasterizador.
+
+### A resposta ao item 2: SIM, dá para reconverter sem redesenhar
+
+E é mais do que possível — é o caminho **certo**, por um motivo que não estava no
+despacho e que achei lendo `esteira/aprovacao-da-peca.ts`:
+
+> **A aprovação do cliente fica presa ao POST (`ApprovalRequest.sourcePostIdsJson`),
+> não ao arquivo.** Trocar os pixels de uma peça já aprovada **não invalida
+> nada** — ela simplesmente passa a valer para uma imagem que o cliente nunca
+> viu. Redesenhar não é só "mexer mais": é furar, em silêncio, a trava que o CEO
+> mandou criar hoje.
+
+Somando: redesenhar **precisa** do `scenesJson` (que é justamente o que falta),
+**muda** a peça do calendário e **engana** a aprovação. Reconverter o contêiner
+não precisa de roteiro nenhum, não muda um pixel e não cria nada para reaprovar.
+
+### O que mudou em código
+
+- `lib/agency/media/para-jpeg.ts` — **novo.** Os mesmos pixels, noutro
+  contêiner. Dois caminhos: `sharp` (que é **transitivo**, vem do `next` — não é
+  dependência declarada, e depender disso em silêncio é a armadilha do
+  `playwright` de 07/08) e, na falta dele, **o próprio rasterizador da casa**,
+  desenhando a imagem no tamanho natural e recortando o retângulo exato. Sem os
+  dois, a porta fecha e a recusa **nomeia as duas metades**.
+- `lib/agency/execution/reconverter-arquivos.ts` — **novo.** A passada:
+  carrosséis e peças únicas, tudo-ou-nada por post, portão de saída pela régua da
+  publicação antes de gravar. A escrita é **`mediaUrl` (+ `mediaUrlsJson`) e mais
+  nada** — `scheduledFor`, `status` e até `lastError` ficam intocados.
+- `lib/agency/execution/recompor-carrossel.ts` — a guarda de navegador que
+  faltava.
+- `app/api/admin/recompor-pecas/route.ts` — `?modo=so-o-arquivo`.
+- `.github/workflows/reconverter-pecas-jpeg.yml` — motivos distintos sem ids,
+  `semRenderizador` visível, `so-o-arquivo` como opção **padrão** do botão.
+- `scripts/reconverter-pecas-para-jpeg.mts` — `--aplicar` passa a fazer o gesto
+  mínimo; redesenhar exige `--redesenhar`, com aviso.
+- Testes: `__tests__/media/para-jpeg.test.ts` (12) e
+  `__tests__/execution/reconverter-arquivos.test.ts` (14), mais a guarda nova em
+  `recompor-carrossel.test.ts`.
+
+### Como sei que a conversão vale
+
+Medida nos **bytes**, não na etiqueta: PNG real de 12×9 entra, sai com
+assinatura JPEG e **nas mesmas medidas** (um `object-fit` ou escala errada
+apareceria como outra dimensão). Arquivo que já é JPEG volta **idêntico** —
+idempotência de verdade. E o caminho de reserva é **exercitado**: com o `sharp`
+mockado como ausente, a conversão sai pelo rasterizador de verdade (479 ms de
+Chromium na rodada), porque plano B que ninguém roda é decoração.
+
+Suíte: 219 arquivos, 3570 verdes, 1 pulado. `tsc --noEmit` limpo.
+
+### O que fica aberto (não decidi sozinho)
+
+- **A aprovação não acompanha a arte.** Hoje trocar o arquivo de uma peça
+  aprovada é invisível para `ApprovalRequest`. Reconverter não explora isso
+  (a imagem é a mesma), mas **redesenhar explora** — e o modo `carrossel` e o
+  `formato-recusado` continuam existindo e continuam podendo. O conserto seria
+  invalidar a aprovação quando a arte muda, e isso é decisão de produto: obriga
+  o cliente a reaprovar.
+- **`sharp` não é dependência declarada.** O caminho de reserva cobre, e o campo
+  `caminhos` da resposta diz qual dos dois a produção realmente usou — mas
+  declarar a dependência é uma decisão de deploy que não tomei sozinho.

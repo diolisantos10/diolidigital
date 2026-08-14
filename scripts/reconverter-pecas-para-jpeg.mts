@@ -15,9 +15,13 @@
 // desbloqueia, porque o arquivo antigo continua sendo o arquivo do post.
 //
 //   npx tsx scripts/reconverter-pecas-para-jpeg.mts                 (só mede)
-//   npx tsx scripts/reconverter-pecas-para-jpeg.mts --aplicar
-//   npx tsx scripts/reconverter-pecas-para-jpeg.mts --aplicar --carrosseis
+//   npx tsx scripts/reconverter-pecas-para-jpeg.mts --aplicar       (troca o contêiner)
 //   npx tsx scripts/reconverter-pecas-para-jpeg.mts --aplicar --limite=6
+//   npx tsx scripts/reconverter-pecas-para-jpeg.mts --aplicar --redesenhar --carrosseis
+//
+// `--aplicar` sozinho faz o gesto MÍNIMO: os mesmos pixels, noutro contêiner.
+// `--redesenhar` refaz a arte — muda a imagem e não avisa a aprovação do
+// cliente, que fica presa ao post. Ver o bloco no `main()`.
 //
 // Contra PRODUÇÃO: exportar o `DATABASE_URL` de produção na chamada. Sem isso
 // ele roda contra o banco local e não diz nada sobre o que está no ar.
@@ -47,6 +51,10 @@ import {
 } from "@/lib/agency/execution/reconversao-de-formato";
 import { recomporPecas, type Recomposicao } from "@/lib/agency/execution/artes";
 import { recomporCarrosseis } from "@/lib/agency/execution/recompor-carrossel";
+import {
+  reconverterArquivosParaJpeg,
+  type ReconversaoDeArquivos,
+} from "@/lib/agency/execution/reconverter-arquivos";
 
 const LIMITE_PADRAO = 20;
 
@@ -85,8 +93,45 @@ function relatarPassada(titulo: string, r: Recomposicao): void {
   for (const f of r.falhas) console.log(`  FALHOU ${f.postId}: ${f.erro}`);
 }
 
+/** O relato de uma passada de CONVERSÃO — a que não redesenha nada. */
+function relatarConversao(r: ReconversaoDeArquivos): void {
+  console.log("\nAPLICANDO · troca do contêiner (não redesenha, não muda a imagem)");
+  console.log(
+    `  peças convertidas: ${r.convertidas.length}` +
+      `${r.convertidas.length ? ` → ${r.convertidas.join(", ")}` : ""}` +
+      ` · arquivos reescritos: ${r.arquivosNovos}` +
+      `${r.caminhos.length ? ` · por: ${r.caminhos.join(", ")}` : ""}`,
+  );
+  if (r.semArquivo.length) {
+    console.log(
+      `  sem o arquivo no armazenamento (${r.semArquivo.length}): ${r.semArquivo.join(", ")}\n` +
+        "     não há contêiner para trocar — e inventar um seria produzir peça nova.",
+    );
+  }
+  if (r.bloqueadas.length) {
+    console.log(`  pilar bloqueado (${r.bloqueadas.length}): ${r.bloqueadas.join(", ")}`);
+  }
+  for (const f of r.falhas) console.log(`  FALHOU ${f.postId}: ${f.erro}`);
+}
+
 async function main(): Promise<void> {
   const aplicar = process.argv.includes("--aplicar");
+  // ── POR QUE REDESENHAR VIROU O CAMINHO EXCEPCIONAL (14/08/2026) ───────────
+  //
+  // Até aqui `--aplicar` REGERAVA a peça. Duas coisas medidas no mesmo dia
+  // mudaram qual é o caminho certo:
+  //
+  //   • as 6 peças travadas são carrosséis SEM roteiro (`scenesJson`), e o
+  //     redesenho para antes de tocar em arquivo quando não há o que escrever;
+  //   • quem aprova a peça passou a ser o CLIENTE, peça por peça
+  //     (`esteira/aprovacao-da-peca.ts`) — e a aprovação fica presa ao post, não
+  //     ao arquivo. Redesenhar troca os pixels de algo já aprovado sem que a
+  //     aprovação perceba.
+  //
+  // Então o padrão passou a ser o gesto mínimo: trocar o contêiner. Redesenhar
+  // continua disponível, e agora é preciso PEDIR — porque é uma decisão sobre o
+  // trabalho do cliente, não um detalhe de implementação.
+  const redesenhar = process.argv.includes("--redesenhar");
   const comCarrosseis = process.argv.includes("--carrosseis");
   const pedido = Number(arg("limite"));
   const limite = Number.isFinite(pedido) && pedido > 0 ? Math.min(pedido, LIMITE_PADRAO) : LIMITE_PADRAO;
@@ -103,8 +148,8 @@ async function main(): Promise<void> {
 
   if (!aplicar) {
     console.log(
-      "\n(medição apenas — NADA foi escrito. Rode com --aplicar para regerar as peças " +
-        "pelo rasterizador de hoje, que sai JPEG.)\n",
+      "\n(medição apenas — NADA foi escrito. Rode com --aplicar para trocar o contêiner dos " +
+        "arquivos para JPEG, mantendo a imagem exatamente como está.)\n",
     );
     return;
   }
@@ -114,15 +159,26 @@ async function main(): Promise<void> {
     return;
   }
 
-  relatarPassada("APLICANDO · peças únicas (modo `formato-recusado`)", await recomporPecas(limite, "formato-recusado"));
-
-  if (comCarrosseis) {
-    relatarPassada("APLICANDO · telas de carrossel (`recomporCarrosseis`)", await recomporCarrosseis(limite));
-  } else if (antes.carrosseis.length > 0) {
+  if (!redesenhar) {
+    // O gesto mínimo: mesmos pixels, contêiner novo. Alcança carrossel e peça
+    // única na mesma passada, e não precisa de roteiro nenhum.
+    relatarConversao(await reconverterArquivosParaJpeg(limite));
+  } else {
     console.log(
-      `\n⚠️  ${antes.carrosseis.length} carrossel(éis) continuam em formato recusado e NÃO foram tocados — ` +
-        "eles são redesenhados tela a tela, por outra função. Rode de novo com --carrosseis.",
+      "\n⚠️  --redesenhar: as peças abaixo serão REFEITAS, não reembaladas. A imagem muda, e a " +
+        "aprovação do cliente fica presa ao post — ela NÃO percebe a troca. Use só quando a peça " +
+        "ainda não foi ao cliente.",
     );
+    relatarPassada("APLICANDO · peças únicas (modo `formato-recusado`)", await recomporPecas(limite, "formato-recusado"));
+
+    if (comCarrosseis) {
+      relatarPassada("APLICANDO · telas de carrossel (`recomporCarrosseis`)", await recomporCarrosseis(limite));
+    } else if (antes.carrosseis.length > 0) {
+      console.log(
+        `\n⚠️  ${antes.carrosseis.length} carrossel(éis) continuam em formato recusado e NÃO foram tocados — ` +
+          "eles são redesenhados tela a tela, por outra função. Rode de novo com --carrosseis.",
+      );
+    }
   }
 
   // ── A MEDIÇÃO DEPOIS É OBRIGATÓRIA ────────────────────────────────────────

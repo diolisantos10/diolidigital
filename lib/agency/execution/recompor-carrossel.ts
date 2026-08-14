@@ -33,6 +33,7 @@ import {
   type Recomposicao,
 } from "@/lib/agency/execution/artes";
 import { conferirPilar } from "@/lib/agency/execution/pilares-bloqueados";
+import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
 import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
 import { lerStoryboard, conferirStoryboard, REGUA_CARROSSEL_DE_VENDA } from "@/lib/agency/design/storyboard";
 import { composicaoParaFuncao } from "@/lib/agency/design/repertorio";
@@ -60,6 +61,25 @@ function cenasDoPost(scenesJson: string | null | undefined): string[] {
  */
 export async function recomporCarrosseis(limite = TETO): Promise<Recomposicao> {
   const saida: Recomposicao = { recompostas: [], semFundo: [], bloqueadas: [], falhas: [] };
+
+  // ── SEM NAVEGADOR, A PASSADA NEM COMEÇA (14/08/2026) ──────────────────────
+  //
+  // `recomporPecas` tem esta guarda desde 08/08 e esta função não tinha — e a
+  // diferença custou um diagnóstico inteiro. Sem Chromium, o laço abaixo
+  // chegava até `comporComMolde`, levava `sem_navegador` em CADA tela e
+  // registrava N falhas de CONTEÚDO, uma por post. Quem lia o resultado via
+  // "falhou nos 6" e ia procurar defeito nas 6 peças — quando o que faltava era
+  // uma ferramenta, igual para todas, e nomeável numa linha.
+  //
+  // Falha de infra travestida de falha de conteúdo é pior que falha calada:
+  // ela manda o operador para o lugar errado com confiança.
+  const renderizador = await renderizadorDisponivel().catch(() => ({ disponivel: false, caminho: null }));
+  if (!renderizador.disponivel) {
+    saida.semRenderizador =
+      "não há Chromium para rasterizar o molde neste ambiente — NENHUM carrossel foi redesenhado. " +
+      "Diagnóstico ao vivo em GET /api/capacidades → `montar-molde`.";
+    return saida;
+  }
 
   const candidatos = await prisma.socialPost.findMany({
     where: {

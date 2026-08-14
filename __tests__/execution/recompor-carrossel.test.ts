@@ -66,3 +66,29 @@ describe("as travas da casa continuam valendo nesta porta", () => {
     expect(SRC.includes("roteiro.ok ? roteiro.telas")).toBe(true);
   });
 });
+
+// ── A GUARDA DO NAVEGADOR (14/08/2026) ──────────────────────────────────────
+//
+// Esta função NÃO tinha a guarda que a irmã (`recomporPecas`) tem desde 08/08,
+// e a diferença custou um diagnóstico inteiro em produção: sem Chromium, o laço
+// ia até `comporComMolde`, levava `sem_navegador` em cada tela e registrava uma
+// falha de CONTEÚDO por post. Quem leu "falhou nos 6" foi procurar defeito nas
+// 6 peças — e o que faltava era uma ferramenta, igual para todas.
+
+describe("sem navegador, a passada declara a ausência em vez de fingir 6 defeitos", () => {
+  it("a guarda existe e vem ANTES de qualquer leitura de peça", () => {
+    const iGuarda = SRC.indexOf("renderizadorDisponivel");
+    const iBusca = SRC.indexOf("prisma.socialPost.findMany");
+    expect(iGuarda, "a guarda de navegador sumiu de recomporCarrosseis").toBeGreaterThan(-1);
+    expect(iGuarda, "a passada lê peças antes de saber se consegue rasterizar").toBeLessThan(iBusca);
+  });
+
+  it("ela devolve `semRenderizador` — o campo que separa 'sem ferramenta' de 'peça com defeito'", () => {
+    expect(SRC.includes("saida.semRenderizador")).toBe(true);
+    // E volta ANTES de escrever `falhas`: infra travestida de conteúdo é pior
+    // que falha calada, porque manda o operador para o lugar errado com
+    // confiança.
+    const iVolta = SRC.indexOf("return saida;");
+    expect(SRC.indexOf("saida.semRenderizador")).toBeLessThan(iVolta);
+  });
+});
