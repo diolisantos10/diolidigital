@@ -310,3 +310,94 @@ fatura não é funcionalidade, é promessa.
    cadeia segue — mas o ideal é medir com áudio real do iPhone (mp4) e do Chrome.
 3. **`BriefingRoomV2` (painel interno)** ainda tem a linha de erro do microfone em
    10px. Não foi tocado nesta frente para não ampliar o escopo.
+
+---
+
+## 2026-08-14 · Portal do cliente V12: o que faltava não eram as abas, eram os blocos
+
+**Frente:** implantar a referência aprovada (`CLAUDE_HANDOFF_2` + ZIP V12) no
+portal real. Clone isolado, branch `claude/portal-cliente-v12`.
+
+### O achado que mudou o trabalho
+
+O despacho dizia que o design "nunca foi implantado" e que a página do cliente
+continuava a antiga. **Não era isso.** Na branch padrão já estavam as 11 abas, o
+cabeçalho da regra do CEO com trava (`cabecalhoDoPortal`), a fronteira por
+allowlist e — medido com `python3`, byte a byte — a folha `portal-cliente.css`
+com os **66.162 caracteres do ZIP como prefixo exato**, mais um apêndice nosso.
+
+O que faltava era outra coisa, e ninguém tinha nomeado: os **blocos** da
+referência que a implantação suprimiu por não ter número para pôr dentro.
+`cp-dashboard-primary`, `cp-channel-panels`, `cp-results-grid`,
+`cp-paid-dashboard`, `cp-social-dashboard`, `cp-integration-layout` — nenhum
+existia. A tela tinha a gramática certa e metade das frases.
+
+**A lição:** "o design não subiu" e "o design subiu sem os blocos do meio" dão a
+MESMA impressão para quem abre a tela — a de que não é o que foi aprovado. Só
+que a segunda não se resolve implantando de novo. Antes de recomeçar do zero
+porque alguém disse que não existe, **medir o que existe** custou 20 minutos e
+salvou reescrever 700 linhas boas.
+
+### A regra que guiou cada bloco restaurado
+
+O bloco volta; o número inventado, não. Onde a demonstração cravava "438
+contatos, +31,7%", entra ou a **contagem do cadastro dele** (publicações no ar e
+programadas, campanhas no ar, teto aprovado, verba diária — tudo já no banco e
+nunca estimado), ou o **estado vazio dizendo por quê**. A moldura aprovada é do
+CEO; o conteúdo é do cliente.
+
+Dois casos em que isto exigiu escolha, e não regra automática:
+
+- **A "Análise da Dioli"** (cartão escuro, coluna direita da Visão Geral) não
+  tem equivalente honesto: ninguém apurou uma leitura para este cliente. No
+  lugar dela foi a **operação por departamento**, que é medida — e que estava
+  numa grade `.cp-departamentos` inventada por nós. O cartão da referência
+  tinha exatamente a forma dela (ícone · rótulo · valor). Ganhou-se fidelidade
+  e sumiu uma invenção.
+- **O funil do Tráfego Pago** (impressões → cliques → contatos) depende de
+  leitura da plataforma que não está ligada. A coluna virou **o dinheiro dele**:
+  teto aprovado e verba diária no ar. É o que ele mais quer saber e é verdade.
+
+### O "0" que parecia fracasso
+
+Cliente recém-criado abria a Visão Geral com um **`0` em corpo 26** onde vai o
+alcance. Zero medido é honesto e ainda assim mentiroso na leitura: quem abre lê
+resultado ruim onde só existe começo. Manchete passou a exigir o que
+manchetear; sem nada, quem fala é o vazio com a saída na mão.
+
+### Defeitos de tela que a própria referência carregava
+
+Vieram no ZIP e teriam ido para produção iguais:
+
+1. **Botão ciano em cartão escuro sem `color`** — herdava o branco do cartão e o
+   rótulo sumia. A referência declara a marinho em `.cp-insights > button` e
+   esquece em quatro irmãos.
+2. **`> span { flex: 1 }` pegando a etiqueta** — "AMBIENTE SEGURO" virava uma
+   pílula da largura da faixa.
+3. **`min-height` de gráfico com estado vazio dentro** — meia tela em branco,
+   que o cliente lê como "não carregou".
+
+Todos no apêndice, marcados, com o porquê. Nenhum é redesenho.
+
+### Conferido
+
+`npx tsc --noEmit` limpo · **3.506 testes verdes (216 arquivos)** · varredura de
+estouro horizontal nas **11 abas × 375/768/1280** sem uma sobra · dois clientes
+de prova (um com dados, um recém-criado) abrindo tela que faz sentido.
+
+Aprovação medida de ponta a ponta no navegador: o corpo enviado passou a levar
+`authorName`, e o banco gravou `client:Foocci` no lugar de
+`client:portal:<hash>`. **Sem isso a aprovação passava na trava e ficava sem
+nome de gente** — e é a aba onde o CEO vai decidir.
+
+### O que ficou aberto
+
+1. **`reviewedBy` não volta da leitura.** `app/api/brain/portal-data/route.ts`
+   mapeia `reviewedAt` e não `reviewedBy`; a tela já sabe mostrar "Decisão
+   registrada **por Fulano**" e só espera o campo. Uma linha — em arquivo fora
+   do meu despacho, então foi reportada, não tocada.
+2. **Métrica por post** (o "melhor conteúdo") e **desempenho de anúncio** (gasto,
+   contatos, custo por contato) seguem em estado vazio: dependem de leitura da
+   plataforma, não de tela.
+3. **O funil da referência** volta a caber no dia em que essa leitura existir —
+   a classe `cp-funnel-card` está lá, usada só pela metade (o `footer`).
