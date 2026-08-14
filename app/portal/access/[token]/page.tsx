@@ -64,8 +64,15 @@ import { ChatDrawer } from "@/components/agency/portal/FloatingChat";
 import EsteiraDoCliente from "@/components/agency/portal/EsteiraDoCliente";
 import { cabecalhoDoPortal } from "@/lib/agency/portal/cabecalho";
 import type { VistaDoCliente } from "@/lib/agency/portal/vista-do-cliente";
-import { VisaoGeral, type NumeroMedido, type PendenciaDaVisaoGeral, type ResumoDoPeriodo } from "@/components/portal/cliente/VisaoGeral";
-import { AbaBrandHub, AbaEntregas, AbaMinhaConta, AbaProjetos, AbaTrafegoPago, type ProjetoDoPortal } from "@/components/portal/cliente/abas";
+import {
+  VisaoGeral,
+  type NumeroMedido, type PecaDoCalendario, type PendenciaDaVisaoGeral,
+  type RedeDoCliente, type ResumoDoPeriodo,
+} from "@/components/portal/cliente/VisaoGeral";
+import {
+  AbaBrandHub, AbaEntregas, AbaMinhaConta, AbaProjetos, AbaResultados, AbaTrafegoPago,
+  type ProjetoDoPortal,
+} from "@/components/portal/cliente/abas";
 import { EntrevistaDeMarca } from "@/components/portal/cliente/EntrevistaDeMarca";
 import { CapaDaAba, Carregando, Erro, Etiqueta, Numeros, TituloDeSecao, Vazio, dataCurta } from "@/components/portal/cliente/pecas";
 
@@ -321,6 +328,10 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
     })();
   }, [q]);
 
+  /** Quem assina a decisão no registro: o nome do cadastro, sem preposição.
+   *  Nunca um campo digitado na tela — quem decide é o dono do acesso. */
+  const nomeDeQuemDecide = vista?.marca.nome || data?.businessName || "Cliente do portal";
+
   function irPara(destino: string, aprovacaoId?: string | null) {
     const alvo = (ABAS.find((a) => a.id === destino)?.id) ?? DESTINO_ANTIGO[destino] ?? "inicio";
     setAba(alvo);
@@ -344,7 +355,19 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
       const res = await fetch("/api/portal/approvals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...(token ? { token } : {}), approvalRequestId: approvalId, action, comment: comment?.trim() || undefined }),
+        body: JSON.stringify({
+          ...(token ? { token } : {}),
+          approvalRequestId: approvalId,
+          action,
+          comment: comment?.trim() || undefined,
+          // ── APROVAÇÃO SEM AUTOR NÃO É APROVAÇÃO (14/08/2026) ─────────────
+          // A rota aceita `authorName` e, sem ele, grava `portal:<hash do
+          // token>`: passa na trava de publicação, mas o registro fica sem
+          // nome de gente — e o que prova a decisão depois é justamente o
+          // nome. O nome vem do CADASTRO (o mesmo do cabeçalho), nunca de um
+          // campo digitado aqui: quem assina é o dono do acesso.
+          authorName: nomeDeQuemDecide,
+        }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({} as { error?: string }));
@@ -457,6 +480,29 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
   /** As que a AGÊNCIA resolve. Aparecem — esconder seria a mesma mentira de
    *  outro jeito — mas fora da fila dele, e sem a palavra "reconecte". */
   const conexoesComAAgencia = conexoesCaidas.filter((c) => (c.quemResolve ?? "cliente") !== "cliente");
+
+  // ── O que os painéis de canal da referência mostram ───────────────────────
+  // Duas listas que já estavam carregadas e ficavam presas dentro de uma aba
+  // só. Nenhuma inventa campo: rede é a conexão que ELE fez; peça é o que já
+  // está compartilhado com ele no calendário.
+  const redesDoCliente: RedeDoCliente[] = conexoes.map((c) => ({
+    id: c.id,
+    plataforma: c.platform,
+    nome: c.name || c.platform,
+    ok: !(c.estado === "caiu" || ["expired", "revoked", "error"].includes(c.status)),
+  }));
+
+  const pecasDoCalendario: PecaDoCalendario[] = calendario.map((p) => {
+    const legenda = (p.caption ?? "").trim();
+    return {
+      id: p.id,
+      // A legenda é o texto do post, não um título — corta-se na primeira frase
+      // em vez de derramar um parágrafo dentro de um cartão de uma linha.
+      titulo: legenda ? (legenda.length > 72 ? `${legenda.slice(0, 71)}…` : legenda) : "Publicação sem legenda",
+      quando: dataCurta(p.scheduledFor),
+      noAr: p.status === "published",
+    };
+  });
 
   const decisoesEsperando = aprovacoesPendentes.length + orcamentosPendentes.length + (decisaoDaEsteira ? 1 : 0);
 
@@ -641,6 +687,9 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
               pendencias={pendencias}
               departamentos={vista.departamentos}
               projetos={projetos}
+              campanhas={vista.campanhas}
+              redes={redesDoCliente}
+              calendario={pecasDoCalendario}
               aoIrPara={irPara}
               aoAbrirChat={() => setChatAberto(true)}
               aoPedirAlgo={() => { setSolicitando(true); setRecadoDoPedido(null); }}
@@ -659,27 +708,73 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
                 <button onClick={() => irPara("integracoes")} style={{ touchAction: "manipulation" }}>Gerenciar contas</button>
               </CapaDaAba>
               <Numeros itens={numerosMedidos} />
-              <div className="cp-card" style={{ marginTop: 13 }}>
-                <TituloDeSecao sobretitulo="CRESCIMENTO DA AUDIÊNCIA" titulo="Alcance no período" />
-                <div style={{ marginTop: 15 }}>
-                  <ResultadosDoCliente token={token} onIrParaIntegracoes={() => irPara("integracoes")} />
-                </div>
-              </div>
-              <article className="cp-card" style={{ marginTop: 13 }}>
-                <TituloDeSecao sobretitulo="PLANO DE CONTEÚDO" titulo="Calendário do mês" />
-                <div style={{ marginTop: 15 }}>
-                  {calendario.length === 0 ? (
-                    <Vazio
-                      icone="▦"
-                      titulo="Nenhuma publicação no seu calendário ainda"
-                      texto="Quando a equipe programar o primeiro conteúdo, o mês inteiro aparece aqui — com data, rede e o que já foi ao ar."
-                      acao={{ rotulo: "Pedir conteúdo", aoClicar: () => { setSolicitando(true); setRecadoDoPedido(null); } }}
-                    />
-                  ) : (
-                    <CalendarioDoMes pecas={calendario} token={tokenDeMidia} aprovacoesPendentes={aprovacoesPendentes.length} />
+
+              {/* A grade da referência: o crescimento à esquerda, a leitura da
+                  área à direita, o calendário inteiro embaixo. */}
+              <div className="cp-social-dashboard" style={{ marginTop: 13 }}>
+                <article className={`cp-card cp-social-growth${numerosMedidos.length === 0 ? " sem-serie" : ""}`}>
+                  <TituloDeSecao sobretitulo="CRESCIMENTO DA AUDIÊNCIA" titulo="Alcance no período" />
+                  <div style={{ marginTop: 15 }}>
+                    <ResultadosDoCliente token={token} onIrParaIntegracoes={() => irPara("integracoes")} />
+                  </div>
+                  {redesDoCliente.length > 0 && (
+                    <div className="cp-platform-performance">
+                      {redesDoCliente.map((r) => (
+                        <button key={r.id} onClick={() => irPara("integracoes")} style={{ touchAction: "manipulation" }}>
+                          <i className="cp-icon" aria-hidden>{r.plataforma.toLocaleUpperCase("pt-BR").slice(0, 2)}</i>
+                          <span><b>{r.nome}</b><small>{r.ok ? "trazendo dados" : "precisa reconectar"}</small></span>
+                          <strong>{r.plataforma}</strong>
+                          <em style={r.ok ? undefined : { color: "#9a6417" }}>{r.ok ? "✓" : "!"}</em>
+                        </button>
+                      ))}
+                    </div>
                   )}
-                </div>
-              </article>
+                </article>
+
+                <aside>
+                  <article className="cp-card cp-content-winner">
+                    <TituloDeSecao sobretitulo="MELHOR CONTEÚDO" titulo="O que mais conectou" />
+                    {/* A demonstração cravava "86,4 mil visualizações". Sem
+                        métrica por post, dizer qual foi o melhor seria escolher
+                        um vencedor no chute — e ele decidiria pauta com isso. */}
+                    <div style={{ marginTop: 15 }}>
+                      <Vazio
+                        icone="▶"
+                        titulo="Ainda não medimos post a post"
+                        texto="Com a conta conectada e o primeiro fechamento, a peça de melhor desempenho aparece aqui — com o número que a plataforma deu."
+                      />
+                    </div>
+                  </article>
+
+                  <article className="cp-card cp-social-agent" style={{ marginTop: 13 }}>
+                    <div className="cp-pm-top">
+                      <div className="cp-pm-avatar" aria-hidden>◎</div>
+                      <span><small>SOCIAL MEDIA</small><h3>Como está o seu conteúdo</h3></span>
+                    </div>
+                    <p>
+                      {vista.departamentos.find((d) => d.chave === "social")?.situacao}
+                      {" "}Tudo que for publicado passa antes por você em Aprovações — nada
+                      vai ao ar sem o seu sim.
+                    </p>
+                  </article>
+                </aside>
+
+                <article className="cp-card cp-content-calendar">
+                  <TituloDeSecao sobretitulo="PLANO DE CONTEÚDO" titulo="Calendário do mês" />
+                  <div style={{ marginTop: 15 }}>
+                    {calendario.length === 0 ? (
+                      <Vazio
+                        icone="▦"
+                        titulo="Nenhuma publicação no seu calendário ainda"
+                        texto="Quando a equipe programar o primeiro conteúdo, o mês inteiro aparece aqui — com data, rede e o que já foi ao ar."
+                        acao={{ rotulo: "Pedir conteúdo", aoClicar: () => { setSolicitando(true); setRecadoDoPedido(null); } }}
+                      />
+                    ) : (
+                      <CalendarioDoMes pecas={calendario} token={tokenDeMidia} aprovacoesPendentes={aprovacoesPendentes.length} />
+                    )}
+                  </div>
+                </article>
+              </div>
             </>
           )}
 
@@ -689,18 +784,15 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
 
           {/* ── RESULTADOS — os números reais das redes, com os 3 estados ─── */}
           {aba === "resultados" && (
-            <>
-              <CapaDaAba
-                simbolo={simbolo}
-                sobretitulo="VISÃO DOS RESULTADOS"
-                titulo="Resultados"
-                descricao="Uma leitura simples do que está acontecendo com a sua marca no período medido."
-              />
-              <Numeros itens={numerosMedidos} />
-              <div className="cp-card" style={{ marginTop: 13 }}>
-                <ResultadosDoCliente token={token} onIrParaIntegracoes={() => irPara("integracoes")} />
-              </div>
-            </>
+            <AbaResultados
+              simbolo={simbolo}
+              numeros={numerosMedidos}
+              redes={redesDoCliente}
+              periodo={periodo}
+              resultados={<ResultadosDoCliente token={token} onIrParaIntegracoes={() => irPara("integracoes")} />}
+              aoAbrirChat={() => setChatAberto(true)}
+              aoIrPara={irPara}
+            />
           )}
 
           {aba === "projetos" && (
@@ -900,8 +992,44 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
                 </div>
               )}
 
-              <div style={{ marginTop: 13 }}>
-                <ConexoesDoCliente token={token} />
+              {/* A grade da referência: as conexões à esquerda, e à direita as
+                  duas garantias que o cliente precisa ler ANTES de autorizar —
+                  quem guarda a senha (ninguém aqui) e quem ajuda se travar. */}
+              <div className="cp-integration-layout" style={{ marginTop: 13 }}>
+                <article className="cp-card">
+                  <ConexoesDoCliente token={token} />
+                </article>
+
+                <aside>
+                  <article className="cp-card cp-security-card">
+                    <div className="cp-pm-top">
+                      <div className="cp-pm-avatar" aria-hidden>⌾</div>
+                      <span><small>SEGURANÇA E PRIVACIDADE</small><h3>Credenciais protegidas</h3></span>
+                    </div>
+                    <p>
+                      A Dioli não recebe nem guarda a sua senha. Quem autoriza é a
+                      própria plataforma, e ela libera só o que o trabalho contratado precisa.
+                    </p>
+                    {[
+                      ["Sua senha", "Nunca passa por aqui"],
+                      ["A autorização", "Você revoga quando quiser"],
+                      ["Quem conecta", "Somente você"],
+                    ].map(([o, q]) => (
+                      <div key={o}><span>{o}</span><b>{q} ✓</b></div>
+                    ))}
+                  </article>
+
+                  <article className="cp-card cp-integration-help">
+                    <TituloDeSecao sobretitulo="PRECISA DE AJUDA?" titulo="Conexão assistida" />
+                    <p style={{ marginTop: 13 }}>
+                      Se a autorização travar, o Project Manager acompanha você passo a
+                      passo — sem pedir senha e sem assumir o controle da sua conta.
+                    </p>
+                    <button onClick={() => setChatAberto(true)} style={{ touchAction: "manipulation" }}>
+                      Pedir ajuda ao PM →
+                    </button>
+                  </article>
+                </aside>
               </div>
             </>
           )}
