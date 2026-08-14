@@ -166,3 +166,94 @@ roda **dentro de `auditDeliverable`, antes da IA** — um lugar, quatro caminhos
 
 **Verificação:** `npx tsc --noEmit` limpo · `npx vitest run` 3472 verdes
 (212 arquivos), +103 testes.
+
+---
+
+## 2026-08-14 · O JPEG já estava consertado; o que faltava era a outra metade
+
+**O despacho:** consertar a saída da peça para JPEG (portão A) e levantar a ficha
+de marca do CityJobs (portão B). O pedido dizia, com todas as letras, **"meça
+antes de reescrever"** — e a medição mudou o trabalho inteiro.
+
+### Portão A — medido, não reescrito
+
+`lib/agency/design/renderizar.ts:114` já rasteriza em `{ type: "jpeg", quality:
+92 }`, e o MIME que quem grava usa (`MIME_DA_PECA_RENDERIZADA`) é **derivado
+dessa mesma opção** — mentir sobre o formato é impossível por construção, não por
+cuidado. Rodei a corrente com o Chromium de verdade
+(`__tests__/esteira/o-formato-da-peca-chega-na-meta.test.ts`, 6 verdes): bytes
+JPEG conferidos na assinatura, nome `.jpg`, e a trava real aceitando. **Nenhuma
+linha de produção precisou mudar.**
+
+**O que faltava era a segunda metade da prova.** A casa tinha o acerto testado
+ponta a ponta e a falha testada só como unidade, com MIME escrito à mão. Isso é
+justamente o perigo deste conserto: **ele remove uma trava de segurança
+acidental** — enquanto a casa gravava PNG, era a trava de formato, e não uma
+decisão, que impedia a publicação automática na conta de um cliente com o app sem
+App Review.
+
+`__tests__/esteira/as-duas-metades-do-formato.test.ts` põe as três no mesmo lugar:
+
+1. **o acerto** — peça composta é JPEG nos bytes, no MIME e no nome;
+2. **a falha reproduzida, pelo caminho vivo** — a degradação por conteúdo
+   (legenda sem frase utilizável) devolve a **foto crua**, que é PNG, o post
+   recebe `arte-*.png`, e a trava recusa com motivo que nomeia o arquivo, o
+   formato, o que a Meta exige, a fonte, e que **não é conexão nem autorização**;
+3. **o que sobrou segurando** — `PUBLICACAO_ORGANICA` continua fail-closed:
+   ausente e `travada` não publicam, só o valor literal do CEO libera.
+
+A metade 2 roda **sem navegador** de propósito: a rede de proteção precisa ser
+mensurável na máquina onde o rasterizador não existe.
+
+### Portão B — a ficha e o portão não diziam a mesma coisa
+
+Os nove campos e o que cada um exige estão levantados em
+`docs/projetos/cityjobs-ficha-de-marca.md`, com a fonte de cada linha. **Não
+gravei uma linha de conteúdo de marca do CityJobs** — inventar voz ou proibição
+dele é pior que o campo vazio.
+
+O achado que valia código: **`lacunas` conta campos vazios; o portão de
+publicação olha o gatilho de saída**, e os dois números divergem.
+
+- `atributos_formais` e `limites_de_promessa` podem estar definidos sem mover o
+  portão um milímetro;
+- `referencias` conta como "definido" com uma referência aprovada — e o gatilho
+  exige também uma **reprovada**;
+- `proibicoes` **não se preenche pela ficha**: tem dono próprio e entra pelo
+  texto do cliente.
+
+Ou seja: dava para preencher tudo o que aquela tela sabe preencher, ver
+"definido" em quase tudo, e o post continuar recusado com "marca não
+constituída" — sem ninguém conseguir ligar uma coisa na outra. Conserto:
+`oQueFaltaParaConstituir` nasce **do mesmo cálculo** que decide o portão
+(`ficha-de-marca.ts`), viaja no `ContratoDeMarca`, e agora aparece nos dois
+lugares onde a pessoa está olhando — no bloco "Marca" da ficha do cliente e
+**dentro da recusa da publicação**, que antes mandava "preencha a ficha de marca"
+e pronto.
+
+### O que ficou aberto (defeito de tela, não de régua)
+
+- **"Preencher" em `proibicoes` não grava nada** e a tela não mostra a recusa
+  (`components/agency/clients/FichaDeMarca.tsx:81` ignora a resposta do `PUT`).
+- **"Preencher" em `referencias` grava só o lado aprovado** — `envelopar` em
+  `app/api/agency/clients/[id]/marca/route.ts` monta `{aprovadas:[t],
+  reprovadas:[]}`. A rota **aceita** o objeto completo; é a tela que só sabe
+  mandar texto. Enquanto isso não mudar, este campo nunca fecha o portão pela
+  tela.
+- **Não li o banco de produção.** A frase "todos os clientes em
+  `marca_nao_constituida`, 0 de 9" não foi conferida por mim e é incompatível com
+  `semearMarcaDoBriefing` ter rodado. Mede-se com uma chamada — está escrita no
+  documento.
+
+### Resíduo de ambiente, não de código
+
+`.next/standalone` continha um **build parcial de outra sessão** (só
+`playwright-core/package.json`, e `.next/types` apontava para uma rota que não
+existe nesta branch). Ele derrubava
+`__tests__/plataforma/o-navegador-chega-em-producao.test.ts` e sujava o `tsc`.
+Movido para fora da árvore, **não apagado**; sem ele o teste pula, que é o
+comportamento declarado no próprio arquivo.
+
+**Verificação:** `npx tsc --noEmit` limpo · `npx vitest run` **3494 verdes, 1
+pulado** (214 arquivos), +15 testes. Base medida antes de tocar em nada: 3479
+verdes.

@@ -103,6 +103,29 @@ export interface FichaDeMarca {
   /** `true` enquanto a marca não sai do dia zero. Gatilho de saída da
    *  constituição, verificável por máquina — não por julgamento. */
   naoConstituida: boolean;
+  /**
+   * O QUE FALTA PARA A MARCA SE CONSTITUIR, item por item, em português.
+   *
+   * ── Por que isto não é o mesmo que `lacunas` (14/08/2026) ─────────────────
+   *
+   * `lacunas` conta CAMPOS VAZIOS. O portão de publicação não pergunta isso:
+   * ele pergunta pelo GATILHO DE SAÍDA — cinco campos nomeados, ao menos três
+   * proibições vigentes e ao menos uma referência aprovada MAIS uma reprovada.
+   * Os dois números divergem, e a divergência não é acadêmica:
+   *
+   *   • dois dos nove campos (`atributos_formais`, `limites_de_promessa`) podem
+   *     estar definidos sem mover o gatilho um milímetro;
+   *   • `referencias` conta como "definido" com UMA referência aprovada — e o
+   *     gatilho exige também uma REPROVADA, que é a que ensina;
+   *   • `proibicoes` não se preenche por este formulário: ela tem dono próprio
+   *     (`esteira/proibicoes.ts`) e entra pelo que o cliente escreve no pedido,
+   *     no ajuste ou no briefing.
+   *
+   * Sem esta lista, a ficha diz "faltam 2" e o post continua sendo recusado com
+   * "marca não constituída" — e ninguém consegue ligar uma coisa na outra.
+   * Vazio quando a marca ESTÁ constituída.
+   */
+  oQueFaltaParaConstituir: string[];
 }
 
 function textoDe(v: unknown): string {
@@ -212,16 +235,42 @@ export async function lerFichaDeMarca(clientId: string): Promise<FichaDeMarca> {
   // vigentes e ao menos 2 referências. "Quando houver regra" não é gatilho —
   // é opinião, e opinião nunca fecha um estado.
   const exigidos: CampoDaMarca[] = ["proposito_e_promessa", "publico_e_relacao", "voz", "lexico", "hierarquia_e_dono"];
-  const temExigidos = exigidos.every((c) => campos.find((x) => x.campo === c)?.estado === "definido");
-  const proibicoesSuficientes = (proib.itens ?? []).length >= 3;
-  const referenciasSuficientes = (() => {
+  const faltandoExigidos = exigidos.filter((c) => campos.find((x) => x.campo === c)?.estado !== "definido");
+  const temExigidos = faltandoExigidos.length === 0;
+  const quantasProibicoes = (proib.itens ?? []).length;
+  const proibicoesSuficientes = quantasProibicoes >= 3;
+  const referencias = (() => {
     try {
       const v = JSON.parse(marca?.referencesJson ?? "{}") as { aprovadas?: unknown[]; reprovadas?: unknown[] };
-      return (v.aprovadas?.length ?? 0) >= 1 && (v.reprovadas?.length ?? 0) >= 1;
+      return { aprovadas: v.aprovadas?.length ?? 0, reprovadas: v.reprovadas?.length ?? 0 };
     } catch {
-      return false;
+      return { aprovadas: 0, reprovadas: 0 };
     }
   })();
+  const referenciasSuficientes = referencias.aprovadas >= 1 && referencias.reprovadas >= 1;
+
+  // A lista é montada AQUI, do mesmo cálculo que decide o portão. Repetir a
+  // regra num segundo lugar é como nasce a tela que diz uma coisa e o portão
+  // que faz outra — e foi assim que a casa passou dias sem entender por que o
+  // post não saía.
+  const oQueFaltaParaConstituir: string[] = [];
+  for (const c of faltandoExigidos) {
+    oQueFaltaParaConstituir.push(`falta o campo "${ROTULO[c]}" — ${PERGUNTA[c]}`);
+  }
+  if (!proibicoesSuficientes) {
+    oQueFaltaParaConstituir.push(
+      `faltam proibições: há ${quantasProibicoes} registrada(s) e o portão exige 3. ` +
+        "Proibição NÃO se preenche por este formulário — ela entra pelo que o cliente escreve " +
+        "no pedido, no ajuste de uma peça ou no briefing, e fica guardada num lugar só.",
+    );
+  }
+  if (!referenciasSuficientes) {
+    oQueFaltaParaConstituir.push(
+      `faltam referências: ${referencias.aprovadas} aprovada(s) e ${referencias.reprovadas} reprovada(s); ` +
+        "o portão exige ao menos UMA de cada. O contra-exemplo é o que ensina — " +
+        "sem a reprovada, o produtor sabe o que agradou e não sabe o que não pode.",
+    );
+  }
 
   return {
     clientId,
@@ -229,6 +278,7 @@ export async function lerFichaDeMarca(clientId: string): Promise<FichaDeMarca> {
     definidos,
     lacunas,
     naoConstituida: !(temExigidos && proibicoesSuficientes && referenciasSuficientes),
+    oQueFaltaParaConstituir,
   };
 }
 

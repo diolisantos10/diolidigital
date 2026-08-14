@@ -581,11 +581,24 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
       await falhar("não consegui ler a régua de marca deste cliente — não publico sem saber por qual régua a peça foi feita");
       continue;
     }
+    // ── O MOTIVO CARREGA O QUE RESOLVE (14/08/2026) ──────────────────────────
+    // Esta recusa dizia "não declarou NENHUMA regra" e mandava "preencher a
+    // ficha de marca". As duas metades podiam estar erradas ao mesmo tempo: o
+    // cliente pode ter 6 dos 9 campos definidos e continuar recusado (o portão
+    // olha o GATILHO DE SAÍDA, não a contagem de campos), e uma das exigências
+    // — as proibições — nem se preenche por aquele formulário. O operador
+    // preenchia o que dava, o post continuava recusado com a mesma frase, e
+    // ninguém conseguia ligar uma coisa na outra. Agora o que falta vem
+    // nomeado, do MESMO cálculo que produziu a recusa.
     if (marca.naoConstituida) {
+      const oQueFalta = marca.oQueFaltaParaConstituir.join(" · ");
       await falhar(
-        "marca não constituída: este cliente não declarou nenhuma regra de marca — " +
-          "nem proibição, nem identidade. Publicar em nome dele agora é a agência " +
-          "escolhendo a marca por ele. Preencha a ficha de marca e este post sai sozinho na próxima passada.",
+        "marca não constituída: este cliente ainda não declarou régua suficiente, e " +
+          "publicar em nome dele agora é a agência escolhendo a marca por ele. " +
+          (oQueFalta
+            ? `Para constituir a ficha de marca, falta: ${oQueFalta}`
+            : "Preencha a ficha de marca") +
+          ". Resolvido isso, este post sai sozinho na próxima passada.",
       );
       continue;
     }

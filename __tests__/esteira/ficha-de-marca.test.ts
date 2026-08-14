@@ -98,6 +98,71 @@ describe("o dia zero fecha por GATILHO, não por opinião", () => {
   });
 });
 
+describe("o que falta é NOMEADO — a ficha e o portão dizem a mesma coisa", () => {
+  // 14/08/2026: a tela contava CAMPOS VAZIOS e o portão de publicação olhava o
+  // GATILHO DE SAÍDA. Dava para preencher tudo o que aquele formulário sabe
+  // preencher e o post continuar recusado com "marca não constituída", sem
+  // ninguém conseguir ligar uma coisa na outra.
+
+  it("marca constituída não deixa item nenhum pendurado", async () => {
+    const f = await lerFichaDeMarca("cli1");
+    expect(f.naoConstituida).toBe(false);
+    expect(f.oQueFaltaParaConstituir).toEqual([]);
+  });
+
+  it("proibição de menos aparece com o NÚMERO e com a porta certa", async () => {
+    proib.lerProibicoes.mockResolvedValue({ lidas: true, itens: TRES_PROIBICOES.itens.slice(0, 1) });
+    const f = await lerFichaDeMarca("cli1");
+    const linha = f.oQueFaltaParaConstituir.find((l) => l.includes("proibições"));
+    expect(linha, "o portão exige 3 proibições e a ficha não disse isso").toBeTruthy();
+    expect(linha!).toContain("1 registrada");
+    // A porta importa: proibição NÃO entra pelo formulário da ficha.
+    expect(linha!).toContain("NÃO se preenche por este formulário");
+  });
+
+  it("referência só aprovada aparece como falta — e o campo continua 'definido'", async () => {
+    db.brandBrain.findUnique.mockResolvedValue({
+      ...CHEIA, referencesJson: JSON.stringify({ aprovadas: ["p1"], reprovadas: [] }),
+    });
+    const f = await lerFichaDeMarca("cli1");
+    // As duas coisas ao mesmo tempo, e é esse o ponto: a tela mostrava
+    // "definido" e o portão recusava.
+    expect(f.campos.find((c) => c.campo === "referencias")!.estado).toBe("definido");
+    const linha = f.oQueFaltaParaConstituir.find((l) => l.includes("referências"));
+    expect(linha!).toContain("0 reprovada");
+  });
+
+  it("campo exigido em lacuna vem com a pergunta pronta dentro da linha", async () => {
+    db.brandBrain.findUnique.mockResolvedValue({ ...CHEIA, lexiconJson: "{}" });
+    const f = await lerFichaDeMarca("cli1");
+    const linha = f.oQueFaltaParaConstituir.find((l) => l.includes("Como o nome se escreve"));
+    expect(linha, "a falta de um campo exigido não virou linha com a pergunta").toBeTruthy();
+  });
+
+  it("dois dos nove NÃO movem o gatilho — e por isso não entram na lista", async () => {
+    // `atributos_formais` e `limites_de_promessa` podem estar vazios com a
+    // marca constituída. Pôr os dois na lista faria a tela cobrar o que o
+    // portão não cobra — e cobrança falsa ensina a ignorar a tela.
+    db.brandBrain.findUnique.mockResolvedValue({
+      ...CHEIA, formalTokensJson: "{}", primaryColor: null, secondaryColor: null,
+      typography: null, promiseLimits: null,
+    });
+    const f = await lerFichaDeMarca("cli1");
+    expect(f.naoConstituida).toBe(false);
+    expect(f.oQueFaltaParaConstituir).toEqual([]);
+    // …e eles continuam aparecendo como lacuna na ficha, que é a verdade.
+    expect(f.lacunas.map((c) => c.campo).sort()).toEqual(["atributos_formais", "limites_de_promessa"]);
+  });
+
+  it("banco fora do ar: a lista não fica vazia — vazio pareceria 'nada a fazer'", async () => {
+    db.brandBrain.findUnique.mockRejectedValue(new Error("db down"));
+    proib.lerProibicoes.mockRejectedValue(new Error("db down"));
+    const f = await lerFichaDeMarca("cli1");
+    expect(f.naoConstituida).toBe(true);
+    expect(f.oQueFaltaParaConstituir.length).toBeGreaterThan(0);
+  });
+});
+
 describe("as perguntas ao dono", () => {
   it("no máximo cinco por rodada — questionário longo é questionário abandonado", async () => {
     db.brandBrain.findUnique.mockResolvedValue(null);

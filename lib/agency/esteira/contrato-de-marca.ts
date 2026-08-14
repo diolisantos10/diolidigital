@@ -60,6 +60,11 @@ export interface ContratoDeMarca {
    *  `marca_nao_constituida` da constituição: legítimo, declarado, e não
    *  autoriza ninguém a julgar peça por identidade. */
   naoConstituida: boolean;
+  /** O que falta para sair do `marca_nao_constituida`, item por item. Vem da
+   *  ficha, do MESMO cálculo que decide o portão — e viaja até aqui porque
+   *  quem recusa a publicação precisa dizer o que resolve a recusa. Alerta que
+   *  não carrega a própria evidência é ruído que ninguém investiga. */
+  oQueFaltaParaConstituir: string[];
 }
 
 /**
@@ -76,6 +81,7 @@ export async function contratoDeMarca(clientId: string | null | undefined): Prom
       lacunas: [],
       cortado: [],
       naoConstituida: true,
+      oQueFaltaParaConstituir: ["esta peça não tem cliente: não há de quem ler a régua de marca"],
     };
   }
 
@@ -177,7 +183,14 @@ export async function contratoDeMarca(clientId: string | null | undefined): Prom
   }
 
   const texto = mantidos.join("\n\n");
-  return { texto, marcaVersao: versaoDe(texto), lacunas, cortado, naoConstituida };
+  return {
+    texto,
+    marcaVersao: versaoDe(texto),
+    lacunas,
+    cortado,
+    naoConstituida,
+    oQueFaltaParaConstituir: ficha.oQueFaltaParaConstituir,
+  };
 }
 
 /** A versão é do CONTEÚDO: mesma régua, mesma versão, em qualquer máquina e em

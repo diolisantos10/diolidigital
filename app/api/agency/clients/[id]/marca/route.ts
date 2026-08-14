@@ -53,9 +53,19 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       definidos: ficha.definidos,
       total: CAMPOS_DA_MARCA.length,
       faltam: ficha.lacunas.length,
+      // ── E O QUE FALTA, NOMEADO (14/08/2026) ──────────────────────────────
+      // Antes esta frase dizia só que "o portão barra a publicação". Ela estava
+      // certa e era inútil: o portão de `esteira/publicacao.ts` não olha quantos
+      // campos estão vazios, olha o gatilho de saída — cinco campos nomeados, 3
+      // proibições e 1 referência aprovada MAIS 1 reprovada. Dava para preencher
+      // tudo o que esta tela sabe preencher e continuar recusado, sem ninguém
+      // conseguir ligar uma coisa na outra. Agora a frase carrega a própria
+      // evidência, item por item.
       oQueAFaltaImpede: ficha.naoConstituida
-        ? "sem isto a peça sai sem régua de marca, e o portão de entrega barra a publicação"
+        ? "sem isto a peça sai sem régua de marca, e o portão de entrega barra a publicação. " +
+          `Para constituir a marca falta: ${ficha.oQueFaltaParaConstituir.join(" · ")}`
         : null,
+      oQueFaltaParaConstituir: ficha.oQueFaltaParaConstituir,
     },
     proximasPerguntas: proximasPerguntas(ficha),
   });

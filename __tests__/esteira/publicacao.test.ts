@@ -57,7 +57,7 @@ const projeto = {
 beforeEach(() => {
   contratoDeMarca.mockResolvedValue({
     texto: "QUEM É\nMarca: Cliente", marcaVersao: "mv_teste0001",
-    lacunas: [], cortado: [], naoConstituida: false,
+    lacunas: [], cortado: [], naoConstituida: false, oQueFaltaParaConstituir: [],
   });
   vi.clearAllMocks();
   db.mediaAsset.findMany.mockImplementation(midiaTodaJpeg);
@@ -319,11 +319,31 @@ describe("o relógio publica o que está agendado", () => {
     contratoDeMarca.mockResolvedValue({
       texto: "MARCA NÃO CONSTITUÍDA", marcaVersao: "mv_vazio0000",
       lacunas: ["proibições"], cortado: [], naoConstituida: true,
+      oQueFaltaParaConstituir: ["faltam proibições: há 0 registrada(s) e o portão exige 3."],
     });
     const r = await publicarAgendados();
     expect(r.publicados).toBe(0);
     expect(publishPost, "publicou sem saber por qual régua a peça foi feita").not.toHaveBeenCalled();
     expect(r.falhas[0]!.erro).toMatch(/marca não constituída/i);
+  });
+
+  it("e a recusa DIZ o que resolve — não manda 'preencher a ficha' e pronto", async () => {
+    // 14/08/2026: a frase antiga dizia "não declarou NENHUMA regra" e mandava
+    // preencher a ficha. Podia estar errada nas duas metades — o cliente com 6
+    // de 9 campos continua recusado, e proibição nem entra por aquele
+    // formulário. Alerta que não carrega a própria evidência é ruído.
+    contratoDeMarca.mockResolvedValue({
+      texto: "MARCA NÃO CONSTITUÍDA", marcaVersao: "mv_vazio0000",
+      lacunas: ["proibições"], cortado: [], naoConstituida: true,
+      oQueFaltaParaConstituir: [
+        "faltam proibições: há 1 registrada(s) e o portão exige 3.",
+        "faltam referências: 1 aprovada(s) e 0 reprovada(s); o portão exige ao menos UMA de cada.",
+      ],
+    });
+    const r = await publicarAgendados();
+    const erro = r.falhas[0]!.erro;
+    expect(erro).toContain("faltam proibições");
+    expect(erro).toContain("faltam referências");
   });
 
   it("a metade oposta: marca constituída publica normalmente", async () => {
