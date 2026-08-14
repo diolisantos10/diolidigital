@@ -46,6 +46,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "connectionId e platform são obrigatórios" }, { status: 400 });
   }
 
-  const result = await publishPost(session.workspaceId, body);
+  // ── O `postId` NÃO ATRAVESSA ESTA ROTA (14/08/2026) ───────────────────────
+  // Desde a ordem do CEO ("quem libera são os clientes, peça por peça") a trava
+  // pergunta se o cliente dono da PEÇA aprovou a PEÇA. Aqui o corpo traz
+  // legenda e mídia ARBITRÁRIAS: aceitar um `postId` junto deixaria alguém
+  // apontar uma peça aprovada e publicar outro conteúdo por baixo dela — a
+  // aprovação do cliente viraria uma senha, não um consentimento.
+  //
+  // Então o campo é descartado de propósito, e a trava recusa esta rota com a
+  // frase que ensina o caminho certo (agendar a peça e levá-la ao card de
+  // aprovação do cliente). Publicação avulsa no perfil de um cliente não tem
+  // quem a tenha aprovado — por construção, e é o comportamento desejado.
+  const { postId: _descartado, ...semPeca } = body;
+  void _descartado;
+
+  const result = await publishPost(session.workspaceId, semPeca);
   return NextResponse.json(result, { status: result.ok ? 200 : 400 });
 }

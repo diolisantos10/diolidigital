@@ -28,7 +28,7 @@
 // 03/08 — a máquina agindo sozinha na Meta — e daquela vez custou a conta de
 // anúncios da agência.
 //
-// ─── AS DUAS PERGUNTAS, NESTA ORDEM ─────────────────────────────────────────
+// ─── AS TRÊS PERGUNTAS, NESTA ORDEM ─────────────────────────────────────────
 //
 // 1. **ESTE PERFIL É NOSSO DE DIREITO?** O ativo tem de estar na lista que o
 //    DONO marcou (`MetaAtivoAutorizado`). Mesma trava, mesmo mecanismo e mesma
@@ -36,10 +36,55 @@
 //    um segundo mecanismo divergiria, e o incidente voltaria pela porta que
 //    ninguém está olhando.
 //
-// 2. **A CASA ESTÁ AUTORIZADA A PUBLICAR, HOJE?** Pergunta diferente da
-//    primeira, e ela não se responde com dado de banco. Ver abaixo.
+// 2. **O CLIENTE DONO DESTA PEÇA APROVOU ESTA PEÇA?** Acrescentada em
+//    14/08/2026. Ver o bloco da ordem do CEO logo abaixo.
 //
-// ─── POR QUE A PERGUNTA 2 EXISTE (e por que ela é fail-closed) ──────────────
+// 3. **A CASA PUXOU O FREIO DE EMERGÊNCIA?** Pergunta diferente das duas
+//    primeiras, e ela não se responde com dado de banco. Ver mais abaixo.
+//
+// A ordem é do mais ESPECÍFICO para o mais GERAL, de propósito: quando várias
+// barram, o motivo que fala desta peça e deste perfil é mais útil ao operador
+// do que "a casa está parada".
+//
+// ─── A PERGUNTA 2, E A ORDEM QUE A CRIOU (CEO, 14/08/2026) ──────────────────
+//
+//   *"Quem libera, quem aprova, são os clientes. Quem é o dono da CityJobs sou
+//   eu, então eu vou aprovar. Se entrar um cliente novo, quem aprova é ele."*
+//
+// Até esta data a casa tinha DUAS perguntas, e a segunda era um **interruptor
+// geral cego**: com `PUBLICACAO_ORGANICA=liberada`, TODA peça agendada saía
+// sozinha pelo despertador de 5 minutos — aprovada ou não, vista ou não. Era o
+// mesmo formato do quase-incidente narrado aqui em cima: ninguém aperta um
+// botão e seis carrosséis vão ao ar.
+//
+// Um interruptor geral não pode ser a resposta a uma ordem que é "peça por
+// peça". Ele responde *"a casa pode publicar hoje?"*; a ordem pergunta *"ESTE
+// cliente liberou ESTA peça?"*. São perguntas diferentes, e a que decide agora
+// é a segunda.
+//
+// A pergunta 2 mora em `lib/agency/esteira/aprovacao-da-peca.ts`. Ela LÊ o
+// registro de aprovação que a casa já tinha (`ApprovalRequest` +
+// `sourcePostIdsJson` + `reviewedBy` + `reviewedAt`) em vez de inventar um
+// segundo — o cabeçalho daquele arquivo conta por quê, e por que só a decisão
+// tomada no portal do cliente (`reviewedBy` começando em `client:`) conta.
+//
+// Ela é FAIL-CLOSED como as outras duas: sem peça identificada, sem card, com o
+// banco fora do ar ou com o carimbo da agência no lugar do clique do cliente,
+// **não publica**. Ausência de aprovação nunca vira permissão.
+//
+// ─── POR QUE A PERGUNTA 3 CONTINUA EXISTINDO (e o que ela virou) ────────────
+//
+// ⚠️ MUDANÇA DE PAPEL EM 14/08/2026. `PUBLICACAO_ORGANICA` **deixa de ser o
+//    portão que decide** e passa a ser o **FREIO DE EMERGÊNCIA DA CASA**: a
+//    alavanca que a agência puxa quando quer PARAR TUDO de uma vez, sem
+//    depender de reabrir card por card. Quem autoriza uma peça é o cliente dela
+//    (pergunta 2); a chave só serve para a casa poder dizer "ninguém publica
+//    agora", e ela continua fail-closed — desligada, nada sai, mesmo com
+//    aprovação do cliente em dia.
+//
+//    Por que o freio não some junto com a promoção da pergunta 2: as razões
+//    abaixo são da PLATAFORMA, não do cliente. Nenhum cliente pode aprová-las, e
+//    elas seguem valendo mesmo com todo card aprovado.
 //
 // A pergunta 1, sozinha, NÃO teria impedido a publicação das 10:00: `@foocci_`
 // ESTÁ na lista de autorizados. E, mesmo assim, publicar hoje é NÃO PODE — por
@@ -79,15 +124,19 @@
 //     (fonte: docs/plataformas/meta/fontes/termos-da-plataforma.md — a Meta
 //     audita a atividade do app e pune o APP, não só a conta)
 //
-// Nada disso é legível a partir do banco desta casa. É uma DECISÃO, e decisão
-// de publicar em nome de cliente é do CEO. Por isso a pergunta 2 é um
-// interruptor explícito, e por isso ele é FAIL-CLOSED: ausência de decisão
-// nunca vira permissão. Um aviso no log não teria segurado as 10:00 — só uma
-// trava segura. ("Trava, não aviso.")
+// Nada disso é legível a partir do banco desta casa, e nada disso é do cliente:
+// é o estado da PLATAFORMA. Por isso o freio existe, e por isso ele é
+// FAIL-CLOSED: ausência de decisão nunca vira permissão. Um aviso no log não
+// teria segurado as 10:00 — só uma trava segura. ("Trava, não aviso.")
 //
-//     PUBLICACAO_ORGANICA=liberada   → a casa publica
-//     (variável ausente ou qualquer  → NADA vai à Meta, e a recusa é dita
-//      outro valor)                     em português, no painel
+//     PUBLICACAO_ORGANICA=liberada   → o freio está SOLTO; quem decide, então,
+//                                      é o cliente, peça por peça (pergunta 2)
+//     (variável ausente ou qualquer  → freio PUXADO: nada vai à Meta, nem peça
+//      outro valor)                    aprovada, e a recusa é dita em português
+//
+// ⚠️ O freio solto NÃO é autorização para publicar. Ele só devolve a decisão a
+//    quem ela sempre pertenceu — o cliente. Ler `PUBLICACAO_ORGANICA=liberada`
+//    como "pode publicar" é exatamente o erro que esta mudança veio desfazer.
 //
 // ─── AS TRÊS PROPRIEDADES, HERDADAS E NÃO REINVENTADAS ──────────────────────
 //
@@ -95,18 +144,29 @@
 //    do post: vem da própria linha de `MetaConnection` cujo token vai ser
 //    usado (`loadConnectionToken` já devolve `clientId` normalizado). A
 //    pergunta certa é "de quem é ESTE token?", não "de quem o chamador disse".
-// 2. **FAIL-CLOSED.** Sem lista, sem interruptor, ou com o banco fora do ar:
-//    NÃO PUBLICA. `idsAutorizados` já devolve conjunto vazio em erro de banco.
+//    Vale igual para a pergunta 2: o dono da PEÇA vem do `SocialPost`, e o
+//    `postId` é a única coisa que o chamador informa — ele aponta QUAL peça, e
+//    nunca quem a aprovou.
+// 2. **FAIL-CLOSED.** Sem lista, sem aprovação do cliente, com o freio puxado,
+//    ou com o banco fora do ar: NÃO PUBLICA. `idsAutorizados` já devolve
+//    conjunto vazio em erro de banco, e `aprovacaoDaPeca` recusa em erro de
+//    leitura em vez de presumir.
 // 3. **NO CAMINHO ÚNICO.** A conferência mora dentro de `publishPost`, que é
 //    por onde passam os dois chamadores vivos (`esteira/publicacao.ts` e
 //    `app/api/meta/publish/route.ts`) e por onde passará o terceiro, escrito
 //    amanhã por alguém que nunca leu este arquivo.
+//    É por isso que `postId` entrou em `PublishInput` (14/08/2026) em vez de a
+//    conferência de aprovação morar em `esteira/publicacao.ts`: posta ali, ela
+//    cobriria o despertador e deixaria a rota manual descoberta — que é o mesmo
+//    desenho que deixou PUBLICAR de fora da trava de ativos em 06/08. Chamador
+//    que não sabe dizer de que peça se trata não publica, e isso é o desejado.
 //
 // ⛔ A RECUSA ACONTECE ANTES DE QUALQUER CHAMADA DE REDE. Não é "tenta e
 //    desfaz" — publicação é irreversível, e uma tentativa recusada pela Meta
 //    ainda assim conta como tentativa contra a reputação do app.
 
 import { ativoAutorizado, TIPO_POR_PLATAFORMA, donoDe } from "./ativos-autorizados";
+import { aprovacaoDaPeca } from "@/lib/agency/esteira/aprovacao-da-peca";
 
 /** O parecer, no formato da casa: pode, ou não pode COM MOTIVO LEGÍVEL. */
 export type ParecerDePublicacao =
@@ -120,25 +180,31 @@ export const VALOR_QUE_LIBERA = "liberada";
 export const CHAVE_DA_DECISAO = "PUBLICACAO_ORGANICA";
 
 /**
- * A decisão do CEO existe? Lê o ambiente na HORA da chamada, de propósito:
- * uma constante de módulo congelaria o valor no boot, e o interruptor
- * precisa valer quando ele o vira.
+ * O freio de emergência da casa está SOLTO? Lê o ambiente na HORA da chamada,
+ * de propósito: uma constante de módulo congelaria o valor no boot, e o freio
+ * precisa valer quando alguém o puxa.
+ *
+ * ⚠️ Solto ≠ autorizado. Quem autoriza a peça é o cliente dela (pergunta 2).
  */
 export function publicacaoOrganicaLiberada(): boolean {
   return (process.env[CHAVE_DA_DECISAO] ?? "").trim().toLowerCase() === VALOR_QUE_LIBERA;
 }
 
-/** A frase da recusa por falta de decisão. Uma só, para a casa inteira dizer a
- *  mesma coisa — e para ela nunca virar "erro ao publicar", que faria o
+/** A frase da recusa pelo freio de emergência. Uma só, para a casa inteira
+ *  dizer a mesma coisa — e para ela nunca virar "erro ao publicar", que faria o
  *  operador procurar defeito onde há regra. */
 export const FRASE_SEM_DECISAO =
-  "A publicação orgânica está DESLIGADA nesta casa: nada vai ao Instagram ou ao " +
-  "Facebook sem decisão do CEO. As permissões de publicação estão em acesso " +
-  "PADRÃO, que só alcança conta da própria casa — publicar no perfil de um " +
-  "cliente exige acesso avançado, e acesso avançado exige App Review mais a " +
-  "verificação do negócio. Publicar em nome de cliente antes disso é o que a " +
-  "Meta chama de automação fora das regras. " +
-  `Para liberar, o CEO define ${CHAVE_DA_DECISAO}=${VALOR_QUE_LIBERA}.`;
+  "A publicação orgânica está PARADA nesta casa: o freio de emergência " +
+  `(${CHAVE_DA_DECISAO}) está puxado, e com ele puxado nada sai — nem peça já ` +
+  "aprovada pelo cliente. O freio não é quem autoriza a peça (quem autoriza é o " +
+  "cliente dono dela, peça por peça); ele é a alavanca que para tudo de uma vez. " +
+  "Ele está puxado porque as permissões de publicação estão em acesso PADRÃO, que " +
+  "só alcança conta da própria casa — publicar no perfil de um cliente exige acesso " +
+  "avançado, e acesso avançado exige App Review mais a verificação do negócio. " +
+  "Publicar em nome de cliente antes disso é o que a Meta chama de automação fora " +
+  "das regras. " +
+  `Para soltar o freio, a casa define ${CHAVE_DA_DECISAO}=${VALOR_QUE_LIBERA} — e ainda ` +
+  "assim só sai a peça que o cliente dela aprovou.";
 
 /** A frase da recusa por ativo não autorizado. */
 export function fraseAtivoNaoAutorizado(platform: string, externalId: string): string {
@@ -162,6 +228,9 @@ export async function conferirPublicacao(entrada: {
   clientId: string | null;
   platform: string;
   externalId: string;
+  /** QUAL peça (`SocialPost.id`). Aponta o que vai ao ar; nunca diz quem
+   *  aprovou — isso se lê no registro de aprovação. Ausente = recusa. */
+  postId?: string | null;
 }): Promise<ParecerDePublicacao> {
   const { workspaceId, platform, externalId } = entrada;
   const dono = donoDe(entrada.clientId);
@@ -180,9 +249,24 @@ export async function conferirPublicacao(entrada: {
     return { pode: false, motivo: fraseAtivoNaoAutorizado(platform, externalId) };
   }
 
-  // ── 2. A casa está autorizada a publicar hoje? ───────────────────────────
-  // Depois da 1 de propósito: quando as duas barram, o motivo mais específico
-  // ("este perfil não é seu") é mais útil ao operador do que o global.
+  // ── 2. O CLIENTE DONO DESTA PEÇA APROVOU ESTA PEÇA? ─────────────────────
+  // A pergunta do CEO (14/08/2026), e a única que decide peça por peça.
+  // Fail-closed por dentro: sem `postId`, sem card, sem clique do cliente, ou
+  // com o banco fora do ar, ela recusa — nunca presume.
+  const aprovacao = await aprovacaoDaPeca({
+    postId: entrada.postId,
+    // Derivado, nunca comparado: o dono do perfil é o da conexão. Serve para a
+    // aprovação cruzar "a peça é deste cliente mesmo?".
+    donoDaConexao: dono,
+  });
+  if (!aprovacao.aprovada) {
+    return { pode: false, motivo: aprovacao.motivo };
+  }
+
+  // ── 3. A casa puxou o freio de emergência? ──────────────────────────────
+  // Por último de propósito: é o motivo mais GERAL. Quando ele e um dos
+  // anteriores barram, "esta peça não foi aprovada" ou "este perfil não é seu"
+  // dizem ao operador o que fazer; "a casa está parada" só diz que ele espere.
   if (!publicacaoOrganicaLiberada()) {
     return { pode: false, motivo: FRASE_SEM_DECISAO };
   }

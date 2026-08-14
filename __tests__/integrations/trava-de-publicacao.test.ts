@@ -22,6 +22,9 @@ const graphPostJson = vi.hoisted(() => vi.fn());
 const loadConnectionToken = vi.hoisted(() => vi.fn());
 const db = vi.hoisted(() => ({
   metaAtivoAutorizado: { findMany: vi.fn() },
+  // A TERCEIRA pergunta (14/08/2026): quem aprovou ESTA peça?
+  socialPost: { findUnique: vi.fn() },
+  approvalRequest: { findMany: vi.fn() },
 }));
 
 const FakeGraphError = vi.hoisted(() => class FakeGraphError extends Error {
@@ -52,13 +55,42 @@ const CONEXAO_FOOCCI = {
   metaJson: {},
 };
 
+/** A peça, como o despertador a manda: com `postId`, que é o que permite
+ *  perguntar quem a aprovou. */
+const PECA_ID = "sp_carrossel_1";
+
 const POST = {
   connectionId: "mc1",
+  postId: PECA_ID,
   platform: "instagram",
   format: "feed",
   caption: "oi",
   mediaUrl: "https://cdn/a.jpg",
 } as never;
+
+/** A peça pertence ao cliente da conexão — o caso normal. */
+function pecaDoCliente(clientId: string = CONEXAO_FOOCCI.clientId): void {
+  db.socialPost.findUnique.mockResolvedValue({ id: PECA_ID, clientId });
+}
+
+/** UM card de aprovação cobrindo esta peça, com o carimbo informado. */
+function cardDeAprovacao(over: Record<string, unknown> = {}): void {
+  db.approvalRequest.findMany.mockResolvedValue([
+    {
+      id: "ap1",
+      clientId: CONEXAO_FOOCCI.clientId,
+      reviewedBy: "client:Dioli Santos",
+      reviewedAt: new Date("2026-08-14T12:00:00Z"),
+      sourcePostIdsJson: JSON.stringify([PECA_ID]),
+      ...over,
+    },
+  ]);
+}
+
+/** Nenhum card aprovado cobre esta peça. */
+function semAprovacao(): void {
+  db.approvalRequest.findMany.mockResolvedValue([]);
+}
 
 /** Roda a promessa deixando os `setTimeout` internos dispararem na hora. */
 async function semEsperar<T>(p: Promise<T>): Promise<T> {
@@ -87,6 +119,10 @@ beforeEach(() => {
   graphPost.mockResolvedValue({ id: "c1" });
   graphGet.mockResolvedValue({ status_code: "FINISHED", permalink: "https://ig/p/1" });
   process.env[CHAVE_DA_DECISAO] = VALOR_QUE_LIBERA;
+  // O caso feliz da terceira pergunta, para os testes das outras duas medirem o
+  // que eles medem.
+  pecaDoCliente();
+  cardDeAprovacao();
 });
 
 afterEach(() => {
@@ -98,13 +134,167 @@ afterEach(() => {
 // ─── Metade 1: o ativo AUTORIZADO publica ───────────────────────────────────
 
 describe("a metade que PUBLICA", () => {
-  it("ativo autorizado + decisão do CEO: o post vai ao ar", async () => {
+  it("ativo autorizado + peça aprovada pelo cliente + freio solto: o post vai ao ar", async () => {
     autorizar(CONEXAO_FOOCCI.externalId);
 
     const r = await semEsperar(publishPost("w1", POST));
 
     expect(r.ok).toBe(true);
     expect(graphPost).toHaveBeenCalled();
+  });
+});
+
+// ─── A TERCEIRA PERGUNTA — A ORDEM DO CEO DE 14/08/2026 ─────────────────────
+//
+//   *"Quem libera, quem aprova, são os clientes. Quem é o dono da CityJobs sou
+//   eu, então eu vou aprovar. Se entrar um cliente novo, quem aprova é ele."*
+//
+// O que estes testes travam, e por que cada um:
+//   • peça SEM aprovação registrada NÃO publica — ausência nunca vira permissão;
+//   • peça aprovada PELO CLIENTE DONO publica;
+//   • peça "aprovada" por quem NÃO é o cliente dela não publica — carimbo da
+//     agência, ou card de outro cliente, não são consentimento.
+// E as três recusas acontecem ANTES da rede: publicação é irreversível.
+
+describe("quem libera é o CLIENTE, peça por peça", () => {
+  it("peça SEM aprovação registrada não publica — e nem toca a rede", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    semAprovacao();
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/aprovação/i);
+    expect(graphPost).not.toHaveBeenCalled();
+    expect(graphGet).not.toHaveBeenCalled();
+  });
+
+  it("peça aprovada pelo CLIENTE DONO passa", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    cardDeAprovacao();
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(true);
+    expect(graphPost).toHaveBeenCalled();
+  });
+
+  it('"aprovada" pela AGÊNCIA não é aprovação do cliente', async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    cardDeAprovacao({ reviewedBy: "equipe:alguem@dioli.com" });
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    // A recusa carrega a evidência (guardrail 6): diz QUEM carimbou, porque
+    // "ninguém aprovou" e "a agência aprovou por ele" são problemas diferentes.
+    expect(r.error).toContain("equipe:alguem@dioli.com");
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it('o carimbo seco "cliente" (aprovarPacote) não basta — aprovação sem autor não é aprovação', async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    // `marcos.aprovarPacote` grava exatamente isto, e é alcançável por rota de
+    // sessão da AGÊNCIA (`/api/projects/[id]/esteira`). Autoria ambígua não é
+    // autoria — e é justamente aqui que o modelo antigo deixaria passar.
+    cardDeAprovacao({ reviewedBy: "cliente" });
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("card de OUTRO cliente não libera a peça deste", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    // O card existe e está aprovado pelo cliente dele — mas é de outro dono.
+    // A consulta já filtra por `clientId`, então de fato nada volta.
+    db.approvalRequest.findMany.mockResolvedValue([]);
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("card aprovado que NÃO lista esta peça não a libera (peça por peça, não em bloco)", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    cardDeAprovacao({ sourcePostIdsJson: JSON.stringify(["sp_outra_peca"]) });
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("peça de um cliente NÃO vai ao perfil de outro", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    pecaDoCliente("OUTRO_CLIENTE");
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("OUTRO_CLIENTE");
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("sem `postId` não publica: publicação avulsa não tem quem a tenha aprovado", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+
+    const { postId: _ignorado, ...avulso } = POST as Record<string, unknown>;
+    const r = await semEsperar(publishPost("w1", avulso as never));
+
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/sem peça identificada/i);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("banco fora do ar na leitura da aprovação: FAIL-CLOSED", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    db.approvalRequest.findMany.mockRejectedValue(new Error("banco caiu"));
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("peça que não existe no banco não publica", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    db.socialPost.findUnique.mockResolvedValue(null);
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+});
+
+// ─── O FREIO DE EMERGÊNCIA, QUE MUDOU DE PAPEL ──────────────────────────────
+
+describe("o freio de emergência da casa", () => {
+  it("puxado, nem a peça aprovada pelo cliente sai", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    cardDeAprovacao();
+    delete process.env[CHAVE_DA_DECISAO];
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("solto, NÃO substitui a aprovação do cliente — não é ele que autoriza", async () => {
+    autorizar(CONEXAO_FOOCCI.externalId);
+    process.env[CHAVE_DA_DECISAO] = VALOR_QUE_LIBERA;
+    semAprovacao();
+
+    const r = await semEsperar(publishPost("w1", POST));
+
+    // Este é o coração da mudança: antes, o freio solto bastava e TODA peça
+    // agendada saía sozinha pelo despertador de 5 minutos.
+    expect(r.ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
   });
 });
 
@@ -143,14 +333,14 @@ describe("a metade que BARRA", () => {
     expect(graphPost).not.toHaveBeenCalled();
   });
 
-  it("sem a decisão do CEO, nem o ativo autorizado vai ao ar", async () => {
+  it("com o freio puxado, nem o ativo autorizado vai ao ar", async () => {
     autorizar(CONEXAO_FOOCCI.externalId);
     delete process.env[CHAVE_DA_DECISAO];
 
     const r = await semEsperar(publishPost("w1", POST));
 
     expect(r.ok).toBe(false);
-    expect(r.error).toMatch(/DESLIGADA/);
+    expect(r.error).toMatch(/PARADA/);
     expect(r.error).toContain(CHAVE_DA_DECISAO);
     expect(graphPost).not.toHaveBeenCalled();
   });
@@ -169,7 +359,7 @@ describe("a metade que BARRA", () => {
     naoAutorizarNada();
 
     const r = await semEsperar(publishPost("w1", {
-      connectionId: "mc1", platform: "instagram", format: "carousel", caption: "oi",
+      connectionId: "mc1", postId: PECA_ID, platform: "instagram", format: "carousel", caption: "oi",
       mediaUrls: Array.from({ length: 6 }, (_, i) => `https://cdn/${i}.jpg`),
     } as never));
 
@@ -227,7 +417,7 @@ describe("conferirPublicacao — o parecer sozinho", () => {
     autorizar("qualquer");
     for (const platform of ["whatsapp", "user", "tiktok"]) {
       const p = await conferirPublicacao({
-        workspaceId: "w1", clientId: null, platform, externalId: "x",
+        workspaceId: "w1", clientId: null, platform, externalId: "x", postId: PECA_ID,
       });
       expect(p.pode).toBe(false);
     }

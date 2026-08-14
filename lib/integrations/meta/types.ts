@@ -38,6 +38,17 @@ export interface MetaAppCredentials {
 export interface PublishInput {
   // Which connected account to publish through.
   connectionId: string;
+  /** QUAL peça está indo ao ar (`SocialPost.id`).
+   *
+   *  Obrigatório na prática desde 14/08/2026: `conferirPublicacao` pergunta se
+   *  o CLIENTE DONO desta peça a aprovou (ordem do CEO — quem libera é o
+   *  cliente, peça por peça), e essa pergunta não existe sem saber de que peça
+   *  se trata. Continua opcional no TIPO para não fingir que um campo novo
+   *  sempre existiu; ausente, a trava RECUSA — não presume.
+   *
+   *  Ele aponta a peça e só isso. Quem a aprovou se lê no registro de
+   *  aprovação, nunca no que o chamador diz. */
+  postId?: string;
   // instagram | facebook — WhatsApp uses sendWhatsAppMessage instead.
   platform: MetaPlatform;
   // feed | reel | story (Instagram) — Facebook currently supports feed.

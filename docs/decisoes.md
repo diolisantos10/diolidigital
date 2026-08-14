@@ -8,6 +8,64 @@
 
 ---
 
+## QUEM APROVA A PEÇA É O CLIENTE DELA — PEÇA POR PEÇA, NUNCA EM BLOCO
+
+**Decidido em** 2026-08-14 · **por** Dioli (CEO) · **registrado pelo** Diretor ·
+**commit** `b8809bd`
+
+A frase dele, repetida várias vezes até virar ordem:
+
+> *"Quem libera, quem aprova, são os clientes. Quem é o dono da CityJobs sou eu,
+> então eu vou aprovar. Se entrar um cliente novo, quem aprova é ele."*
+
+**O modelo de aprovação da casa passa a ser:** a peça só vai ao ar depois que **o
+cliente daquela peça a aprovou**. Não é aprovação global, não é interruptor de
+dono da agência, e não é o Diretor decidindo por ele.
+
+**O que estava errado.** `trava-de-publicacao.ts` fazia duas perguntas: o perfil
+está na lista de ativos autorizados, e `PUBLICACAO_ORGANICA` está liberada. A
+segunda é um **interruptor geral cego** — ligado, TODA peça agendada sai sozinha
+pelo despertador de 5 minutos, aprovada ou não. Foi esse formato que quase
+publicou os 6 carrosséis da Foocci em 07/08. Um interruptor geral não pode ser a
+resposta a uma ordem que é peça por peça: ele responde *"a casa pode publicar
+hoje?"*, e a ordem pergunta *"ESTE cliente liberou ESTA peça?"*.
+
+**O que mudou:**
+
+1. **Terceira pergunta, fail-closed, antes de qualquer chamada de rede** —
+   `lib/agency/esteira/aprovacao-da-peca.ts`. Sem aprovação registrada do cliente
+   dono, não publica. Ausência de aprovação nunca vira permissão (guardrail 1).
+2. **Reaproveita o registro que já existia**, não cria um segundo:
+   `ApprovalRequest` + `sourcePostIdsJson` (quais peças o card decide) +
+   `reviewedBy` + `reviewedAt`. É o mesmo registro que alimenta o "Aprovações" do
+   painel. Um segundo mecanismo começaria idêntico e divergiria no primeiro
+   ajuste.
+3. **Só conta a decisão tomada no portal do cliente** — `reviewedBy` começando em
+   `client:`, que é o que `/api/portal/approvals` grava depois de conferir a
+   posse do token. O carimbo seco `"cliente"` de `marcos.aprovarPacote` **não
+   vale**: ele não tem autor e é alcançável por rota de sessão da agência
+   (`/api/projects/[id]/esteira`). **Aprovação sem autor não é aprovação**, e
+   carimbo da agência em nome do cliente não é consentimento do cliente.
+4. **`PUBLICACAO_ORGANICA` continua existindo, com outro papel:** deixa de ser o
+   portão que decide e vira o **freio de emergência da casa** — a alavanca que
+   para tudo de uma vez, sem reabrir card por card. **Solto não é autorização:**
+   ele apenas devolve a decisão a quem ela pertence. Puxado, nem peça aprovada
+   sai. Ele segue puxado enquanto o App Review e a verificação do negócio não
+   saírem — essas razões são da plataforma, e nenhum cliente pode aprová-las.
+5. **O diagnóstico acompanhou.** O portão 11 de `prontidao-de-publicacao.ts`
+   dizia "Decisão do CEO (PUBLICACAO_ORGANICA)" e passou a dizer **"Aprovação do
+   cliente (peça por peça)"**, nomeando quem precisa aprovar aquela peça. O freio
+   virou o 12 e as permissões da Meta, o 13. Relatório que descreve o modelo
+   antigo é pior que relatório nenhum: ele é acreditado.
+
+**A consequência que vale dita:** publicação avulsa no perfil de um cliente
+(`/api/meta/publish` com legenda e mídia arbitrárias) **não tem quem a tenha
+aprovado, por construção** — e por isso a rota descarta `postId` de propósito.
+Aceitar a dupla deixaria alguém apontar uma peça aprovada e publicar outra coisa
+por baixo dela, transformando o consentimento do cliente numa senha.
+
+---
+
 ## O QUE TRAVA PUBLICAÇÃO, MEDIÇÃO E TRÁFEGO É **UM** PORTÃO SÓ: ACESSO AVANÇADO
 
 **Decidido em** 2026-08-11 · **apurado pelo** especialista `meta` (parecer

@@ -32,9 +32,23 @@
 //     régua começaria idêntica e divergiria no primeiro ajuste — e um
 //     diagnóstico que discorda do publicador é pior que nenhum, porque ele é
 //     acreditado.
-//   • **Não decide.** Ele diz o estado dos portões; virar a chave
-//     `PUBLICACAO_ORGANICA` continua sendo ato do CEO, e o App Review continua
+//   • **Não decide.** Ele diz o estado dos portões; **aprovar uma peça é ato do
+//     CLIENTE**, no portal dele (ordem do CEO, 14/08/2026), soltar o freio de
+//     emergência (`PUBLICACAO_ORGANICA`) é ato da casa, e o App Review continua
 //     sendo processo da Meta.
+//
+// ─── O QUE MUDOU EM 14/08/2026 ──────────────────────────────────────────────
+//
+// O portão 11 dizia "Decisão do CEO (PUBLICACAO_ORGANICA)" — e passou a mentir
+// no dia em que o CEO disse, com todas as letras, que *"quem libera, quem
+// aprova, são os clientes"*. O que decide agora é a **aprovação do cliente,
+// peça por peça**; a chave virou **freio de emergência** da casa. O diagnóstico
+// acompanhou, porque relatório que descreve o modelo antigo é pior que
+// relatório nenhum: ele é acreditado.
+//
+//   11. Aprovação do cliente          ← POR PEÇA. Quem resolve: o cliente dono.
+//   12. Freio de emergência da casa   ← global. Quem resolve: a casa.
+//   13. Permissões concedidas pela Meta (era 12)
 //
 // ─── OS TRÊS ESTADOS, NUNCA DOIS ────────────────────────────────────────────
 //
@@ -59,6 +73,7 @@ import {
   CHAVE_DA_DECISAO,
   VALOR_QUE_LIBERA,
 } from "@/lib/integrations/meta/trava-de-publicacao";
+import { aprovacaoDaPeca } from "@/lib/agency/esteira/aprovacao-da-peca";
 import {
   permissoesDoToken,
   diagnosticar,
@@ -78,10 +93,15 @@ export type QuemResolve =
   | "casa"
   /** Só o CEO, e só no painel da Meta — não existe API para isto. */
   | "ceo_no_painel_da_meta"
-  /** Decisão de dono do negócio: publicar em nome de cliente. */
-  | "ceo_decide"
+  /** A casa solta (ou puxa) o freio de emergência `PUBLICACAO_ORGANICA`.
+   *  Era "ceo_decide" até 14/08/2026, quando a decisão de publicar uma peça
+   *  deixou de ser da casa e passou a ser do cliente dela. */
+  | "freio_da_casa"
   /** Depende do cliente (reconectar a conta dele, mandar material). */
-  | "cliente";
+  | "cliente"
+  /** Depende do cliente APROVAR a peça, no portal dele. É o portão 11 e é o
+   *  modelo de aprovação da casa desde 14/08/2026 — ninguém aprova por ele. */
+  | "cliente_aprova";
 
 export interface Portao {
   /** A posição real na fila. É a ordem em que o publicador barra, não a ordem
@@ -122,8 +142,10 @@ export interface Prontidao {
    *  não uma falha. */
   agendados: number;
   posts: ProntidaoDeUmPost[];
-  /** Os portões que não dependem de post nenhum (a chave do CEO, as permissões
-   *  do token). Ficam à parte para o relatório não os repetir por post. */
+  /** Os portões que não dependem de post nenhum — hoje, o freio de emergência
+   *  da casa. Ficam à parte para o relatório não os repetir por post.
+   *  ⚠️ A aprovação do cliente NÃO mora aqui, e é o ponto do modelo novo: ela é
+   *  por peça, e uma linha global mentiria sobre um consentimento individual. */
   portoesDaCasa: Portao[];
   /** A frase única, para quem não vai ler a tabela. */
   veredito: string;
@@ -144,36 +166,98 @@ function barrou(ordem: number, nome: string, motivo: string, quem: QuemResolve, 
   return { ordem, nome, estado: "barrou", motivo, quemResolve: quem, comoDestravar: como };
 }
 
+/** O nome do portão 11, num lugar só: `montarVeredito` procura por ele e um
+ *  literal repetido divergiria no primeiro ajuste. */
+export const NOME_DO_PORTAO_DA_APROVACAO = "Aprovação do cliente (peça por peça)";
+
+/** O nome do portão 12, pelo mesmo motivo. */
+export const NOME_DO_PORTAO_DO_FREIO = `Freio de emergência da casa (${CHAVE_DA_DECISAO})`;
+
 /**
- * ── PORTÃO 11: A CHAVE DO CEO ───────────────────────────────────────────────
+ * ── PORTÃO 11: A APROVAÇÃO DO CLIENTE, PEÇA POR PEÇA ────────────────────────
  *
- * Fica em função própria porque não depende de post nenhum e porque a frase
- * dele é a mais importante do relatório inteiro: é a única linha em que a
- * resposta correta pode ser "está barrado E está certo que esteja".
+ * A linha mais importante do relatório desde 14/08/2026. Ela era "Decisão do
+ * CEO (PUBLICACAO_ORGANICA)" e passou a mentir no dia em que ele disse *"quem
+ * libera, quem aprova, são os clientes"*: um interruptor geral não descreve um
+ * modelo que é peça por peça.
+ *
+ * **NOMEIA QUEM PRECISA APROVAR.** Relatório que diz "falta aprovação" sem
+ * dizer de quem é a mão produz a reunião em que todo mundo espera pelo outro —
+ * e aqui a mão nunca é da casa.
+ *
+ * Não reimplementa nada: chama a MESMA `aprovacaoDaPeca` que `publishPost`
+ * chama, com o dono derivado da MESMA forma. Uma segunda régua começaria
+ * idêntica e divergiria no primeiro ajuste.
  */
-export function portaoDaDecisao(): Portao {
-  if (publicacaoOrganicaLiberada()) {
+export async function portaoDaAprovacaoDoCliente(
+  postId: string,
+  /** O dono derivado da conexão carregada — igual ao publicador. Quando não há
+   *  conexão, cai no dono da própria peça: assim o portão ainda responde a
+   *  pergunta que interessa (o cliente aprovou?) em vez de virar "não medi" e
+   *  esconder a única linha que o cliente pode resolver. */
+  donoDaConexao: string | null,
+): Promise<Portao> {
+  const parecer = await aprovacaoDaPeca({ postId, donoDaConexao });
+
+  if (parecer.aprovada) {
     return passou(
       11,
-      "Decisão do CEO (PUBLICACAO_ORGANICA)",
-      `A chave está em "${VALOR_QUE_LIBERA}": a casa está autorizada a publicar.`,
-      "ceo_decide",
+      NOME_DO_PORTAO_DA_APROVACAO,
+      `aprovada por ${parecer.aprovadaPor} (cliente ${parecer.clientId}) em ` +
+        `${parecer.aprovadaEm.toISOString()} — registro ${parecer.approvalRequestId}.`,
+      "cliente_aprova",
     );
   }
+
   return barrou(
     11,
-    "Decisão do CEO (PUBLICACAO_ORGANICA)",
-    "A publicação orgânica está DESLIGADA. É trava fail-closed e é decisão declarada do CEO — " +
-      "ausência de decisão nunca vira permissão.",
-    "ceo_decide",
-    `Definir ${CHAVE_DA_DECISAO}=${VALOR_QUE_LIBERA} no Railway (Variables) e reimplantar. ` +
-      "Enquanto isso não acontecer, nenhuma chamada sai desta casa para a Meta — e nenhuma tentativa " +
-      "é feita, o que é o comportamento desejado.",
+    NOME_DO_PORTAO_DA_APROVACAO,
+    parecer.motivo,
+    "cliente_aprova",
+    "A equipe abre o card das peças em POST /api/social-posts/aprovacao (elas viram UM card visível " +
+      "ao cliente) e o CLIENTE DONO decide no portal dele. A decisão dele grava quem aprovou e " +
+      "quando, e é isso que a trava lê. Ninguém da casa aprova no lugar dele — nem o CEO, salvo " +
+      "quando ele é o dono do cliente (caso CityJobs), e ainda assim pelo portal daquele cliente.",
   );
 }
 
 /**
- * ── PORTÃO 12: O QUE A META CONCEDEU, ATIVO POR ATIVO ───────────────────────
+ * ── PORTÃO 12: O FREIO DE EMERGÊNCIA DA CASA ────────────────────────────────
+ *
+ * Fica em função própria porque não depende de post nenhum. Ele é a única linha
+ * em que a resposta correta pode ser "está barrado E está certo que esteja".
+ *
+ * ⚠️ Ele NÃO autoriza peça nenhuma. Solto, apenas devolve a decisão a quem ela
+ *    pertence — o cliente (portão 11). Puxado, para tudo de uma vez, inclusive
+ *    peça já aprovada. Era o portão 11 e chamava-se "Decisão do CEO".
+ */
+export function portaoDoFreioDeEmergencia(): Portao {
+  if (publicacaoOrganicaLiberada()) {
+    return passou(
+      12,
+      NOME_DO_PORTAO_DO_FREIO,
+      `O freio está SOLTO (a chave está em "${VALOR_QUE_LIBERA}"): a casa não está segurando nada. ` +
+        "Quem decide cada peça, então, é o cliente dela — ver o portão 11.",
+      "freio_da_casa",
+    );
+  }
+  return barrou(
+    12,
+    NOME_DO_PORTAO_DO_FREIO,
+    "O freio de emergência está PUXADO: nada sai desta casa, nem peça já aprovada pelo cliente. " +
+      "É trava fail-closed — ausência de decisão nunca vira permissão.",
+    "freio_da_casa",
+    `Definir ${CHAVE_DA_DECISAO}=${VALOR_QUE_LIBERA} no Railway (Variables) e reimplantar. ` +
+      "Soltar o freio NÃO publica nada sozinho: cada peça continua precisando da aprovação do " +
+      "cliente dela (portão 11). Enquanto o freio estiver puxado, nenhuma chamada sai para a Meta — " +
+      "e nenhuma tentativa é feita, o que é o comportamento desejado.",
+  );
+}
+
+/**
+ * ── PORTÃO 13: O QUE A META CONCEDEU, ATIVO POR ATIVO ───────────────────────
+ * (era 12 até 14/08/2026, quando a aprovação do cliente e o freio da casa
+ *  passaram a ocupar 11 e 12.)
  *
  * Este portão **não existe em código** no caminho de publicação — e é
  * justamente por isso que ele precisa existir aqui. Ele é o portão da Meta, e
@@ -200,7 +284,7 @@ async function portaoDasPermissoes(
 
   if (!medirNaMeta) {
     return naoMedido(
-      12,
+      13,
       nome,
       "não medi: a medição fala com a Meta (leitura `debug_token`) e só roda quando pedida explicitamente.",
       "ceo_no_painel_da_meta",
@@ -209,7 +293,7 @@ async function portaoDasPermissoes(
   }
   if (!connectionId || !igId) {
     return naoMedido(
-      12,
+      13,
       nome,
       "não medi: sem conexão de Instagram gravada não há token para inspecionar.",
       "cliente",
@@ -219,9 +303,9 @@ async function portaoDasPermissoes(
 
   const p = await permissoesDoToken(workspaceId, connectionId);
   const d = diagnosticar(p, PARA_PUBLICAR_NO_INSTAGRAM, igId);
-  if (d.naoMedidas.length > 0) return naoMedido(12, nome, d.resumo, "ceo_no_painel_da_meta", comoDestravar);
-  if (!d.completo) return barrou(12, nome, d.resumo, "ceo_no_painel_da_meta", comoDestravar);
-  return passou(12, nome, d.resumo, "ceo_no_painel_da_meta");
+  if (d.naoMedidas.length > 0) return naoMedido(13, nome, d.resumo, "ceo_no_painel_da_meta", comoDestravar);
+  if (!d.completo) return barrou(13, nome, d.resumo, "ceo_no_painel_da_meta", comoDestravar);
+  return passou(13, nome, d.resumo, "ceo_no_painel_da_meta");
 }
 
 /**
@@ -421,8 +505,20 @@ async function conferirPost(
     }
   }
 
-  // ── 11 e 12: os portões da casa e da Meta ─────────────────────────────────
-  portoes.push(portaoDaDecisao());
+  // ── 11: a aprovação do cliente, DESTA peça ────────────────────────────────
+  // O dono é derivado da conexão carregada, exatamente como `conferirPublicacao`
+  // o faz. Sem conexão, cai no dono da própria peça — assim o portão continua
+  // respondendo "o cliente aprovou?" em vez de virar "não medi" e esconder a
+  // única linha do relatório que o cliente pode resolver sozinho.
+  portoes.push(
+    await portaoDaAprovacaoDoCliente(
+      post.id,
+      carregada ? donoDe(carregada.clientId) : donoDe(post.clientId),
+    ),
+  );
+
+  // ── 12 e 13: o freio da casa e o portão da Meta ───────────────────────────
+  portoes.push(portaoDoFreioDeEmergencia());
   portoes.push(
     await portaoDasPermissoes(post.workspaceId, conexao?.id ?? null, conexao?.externalId ?? null, medirNaMeta),
   );
@@ -481,7 +577,7 @@ export async function conferirProntidao(entrada: EntradaDaProntidao): Promise<Pr
       medidoEm,
       agendados: 0,
       posts: [],
-      portoesDaCasa: [portaoDaDecisao()],
+      portoesDaCasa: [portaoDoFreioDeEmergencia()],
       veredito: "NÃO MEDI: o banco não respondeu. Isto não é 'está tudo certo' nem 'está tudo errado'.",
     };
   }
@@ -511,7 +607,7 @@ export async function conferirProntidao(entrada: EntradaDaProntidao): Promise<Pr
     );
   }
 
-  const portoesDaCasa = [portaoDaDecisao()];
+  const portoesDaCasa = [portaoDoFreioDeEmergencia()];
 
   const veredito = montarVeredito(resultados, portoesDaCasa);
   return { medidoEm, agendados: posts.length, posts: resultados, portoesDaCasa, veredito };
@@ -524,11 +620,11 @@ export async function conferirProntidao(entrada: EntradaDaProntidao): Promise<Pr
  */
 export function montarVeredito(posts: ProntidaoDeUmPost[], portoesDaCasa: Portao[]): string {
   if (posts.length === 0) {
-    const decisao = portoesDaCasa.find((p) => p.nome.startsWith("Decisão do CEO"));
+    const freio = portoesDaCasa.find((p) => p.nome === NOME_DO_PORTAO_DO_FREIO);
     return (
       "Não há NENHUM post agendado (`status: scheduled`) — não é trava da Meta, é que não existe o que publicar. " +
-      (decisao?.estado === "barrou" ? "E a decisão do CEO segue desligada. " : "") +
-      "O calendário precisa ser aprovado antes."
+      (freio?.estado === "barrou" ? "E o freio de emergência da casa segue puxado. " : "") +
+      "O cliente precisa aprovar as peças no portal dele antes — é a aprovação dele que põe a peça no calendário."
     );
   }
 

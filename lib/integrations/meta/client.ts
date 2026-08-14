@@ -235,11 +235,17 @@ export async function publishPost(
   // `esteira/publicacao.ts` já sabe reagir: o post continua `scheduled`, o
   // motivo aparece em `lastError` e sobe ao painel como `publicacao_falhou`.
   // Trabalho pago não é enterrado — fica visível, esperando decisão.
+  // 14/08/2026 — a TERCEIRA pergunta entrou aqui junto: "o cliente dono desta
+  // peça a aprovou?". `input.postId` diz QUAL peça; quem a aprovou é lido do
+  // registro de aprovação, nunca do chamador. Sem `postId` a trava recusa, e é
+  // o comportamento desejado: publicação avulsa no perfil de um cliente não tem
+  // quem a tenha aprovado, por construção.
   const parecer = await conferirPublicacao({
     workspaceId,
     clientId: conn.clientId,
     platform: conn.platform,
     externalId: conn.externalId,
+    postId: input.postId ?? null,
   });
   if (!parecer.pode) return { ok: false, error: parecer.motivo };
 

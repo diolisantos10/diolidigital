@@ -215,3 +215,84 @@ publicar, e aqui nem reagendar acontece: o que muda é o arquivo.
 - Peça cuja foto de fundo sumiu do armazenamento cai em `semFundo` e **não** é
   regerada: regerar exigiria comprar imagem nova e entregaria outra foto num
   calendário já aprovado. Continua sendo decisão que custa, e não é do script.
+## 2026-08-14 · A terceira pergunta: quem aprova a peça é o cliente dela
+
+**Pedido:** transformar em código a ordem do CEO — *"quem libera, quem aprova,
+são os clientes"* — trocando o interruptor geral por um portão peça por peça.
+
+### O que medi antes de escrever (e mudou o desenho)
+
+A casa **já registrava aprovação**, e registrava bem. Achei o mecanismo inteiro
+antes de encostar em qualquer arquivo:
+
+- `ApprovalRequest` (prisma/schema.prisma:1299) — o card que o cliente decide;
+- `sourcePostIdsJson` (schema.prisma:1335) — **quais peças aquele card decide**.
+  Era exatamente a peça que faltava para "peça por peça" existir sem inventar
+  tabela;
+- `app/api/social-posts/aprovacao/route.ts` — a equipe transforma N posts do
+  calendário em UM card, com `clientId` derivado DOS POSTS;
+- `app/api/portal/approvals/route.ts:174` — o cliente decide, e grava
+  `reviewedBy = "client:<nome>"` depois de conferir a posse do token do portal.
+
+**Nada disso era consultado antes de publicar.** O registro existia e o
+publicador não o lia. Não era falta de mecanismo — era falta de pergunta.
+
+### A descoberta que quase me fez escrever a trava errada
+
+`reviewedBy` tem **três grafias vivas**, e elas não valem o mesmo:
+
+| Grafia | Quem grava | Vale? |
+|---|---|---|
+| `client:<nome>` | `/api/portal/approvals` (token do portal) | **sim** |
+| `cliente` (seco) | `marcos.aprovarPacote:394` | **não** |
+| `equipe:<email>` / `internal` | rotas de sessão da agência | **não** |
+
+O `"cliente"` seco parece aprovação do cliente e **não é**: `aprovarPacote` é
+alcançável por `app/api/projects/[id]/esteira/route.ts:76`, que é rota de sessão
+da **agência**. Alguém da casa clicando "aprovar tudo" pelo cliente grava a mesma
+string que o cliente gravaria. Se eu tivesse aceitado essa grafia — e ela é a
+mais óbvia de aceitar, porque literalmente diz "cliente" — a trava passaria a
+carimbar como consentimento do cliente aquilo que a agência decidiu por ele.
+**Autoria ambígua não é autoria.** Há teste travando exatamente esse caso.
+
+### Onde a trava mora, e por que não em `esteira/publicacao.ts`
+
+Pus a conferência dentro de `conferirPublicacao` (o caminho único de
+`publishPost`) e levei `postId` até lá via `PublishInput`. A alternativa fácil
+era conferir em `esteira/publicacao.ts`, onde o post já está na mão — mas isso
+cobriria o despertador e deixaria `/api/meta/publish` descoberta. **É o mesmo
+desenho que deixou PUBLICAR de fora da trava de ativos em 06/08**: a trava na
+rota, e não onde o dado passa.
+
+Efeito colateral que virou decisão: `/api/meta/publish` recebe legenda e mídia
+**arbitrárias**. Aceitar `postId` junto deixaria alguém apontar uma peça aprovada
+e publicar outra coisa por baixo dela — a aprovação do cliente viraria senha, não
+consentimento. Então a rota **descarta `postId` de propósito** e passa a ser
+recusada pela trava, com frase que ensina o caminho certo.
+
+### O que mudou em código
+
+- `lib/agency/esteira/aprovacao-da-peca.ts` (novo) — só LÊ. Nunca aprova nada.
+- `lib/integrations/meta/trava-de-publicacao.ts` — de duas para **três**
+  perguntas, do mais específico ao mais geral. `PUBLICACAO_ORGANICA` reescrita
+  como **freio de emergência**, com a data e a ordem do CEO no cabeçalho.
+- `lib/agency/esteira/prontidao-de-publicacao.ts` — portão 11 vira "Aprovação do
+  cliente (peça por peça)" e **nomeia quem precisa aprovar**; freio vira 12;
+  Meta vira 13. `QuemResolve` ganha `cliente_aprova` e troca `ceo_decide` por
+  `freio_da_casa`.
+- `lib/integrations/meta/{types,client}.ts`, `lib/agency/esteira/publicacao.ts`,
+  `app/api/meta/publish/route.ts` — a fiação do `postId`.
+
+Suíte: **216 arquivos, 3523 verdes**, `tsc --noEmit` limpo. Commit `b8809bd`.
+
+### O que fica aberto (não inventei solução)
+
+- **Ninguém abre o card sozinho.** `/api/social-posts/aprovacao` é rota de sessão
+  master/PM: as peças do CityJobs só chegam ao cliente se alguém da equipe
+  abrir o card. Não existe gatilho automático, e eu não criei um — criar seria
+  decidir que a agência escolhe quando pedir aprovação, o que é desenho de
+  produto, não de trava.
+- **Peça já publicada antes desta mudança** não tem aprovação registrada e
+  também não precisa: a trava só olha para a frente.
+- **O freio segue puxado** por App Review e verificação do negócio — razões da
+  plataforma, que nenhum cliente pode aprovar.
