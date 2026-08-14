@@ -15,29 +15,30 @@
 //   • sourcePostIdsJson = a origem calendário + o que a decisão propaga:
 //     aprovar → posts "approved" · ajuste/recusa → "revision_requested"
 //     (a propagação vive em app/api/portal/approvals/route.ts).
+//
+// ── 14/08/2026: A REGRA SAIU DAQUI, O CONTRATO DESTA ROTA FICOU ──────────────
+//
+// O corpo do card e a triagem das peças moram agora em
+// `lib/agency/esteira/cards-de-aprovacao.ts`, porque o piloto do CityJobs
+// precisou abrir o MESMO card sem sessão de master na mão. Duas cópias da regra
+// divergiriam, e a divergência apareceria no que o CLIENTE lê — o `reviewNote` é
+// renderizado pelo portal.
+//
+// O que NÃO saiu daqui, de propósito: o guard de sessão, a posse por
+// `workspaceId` e o RIGOR. Nesta rota alguém escolheu as peças a dedo, então uma
+// peça inelegível é ERRO HTTP e não uma exclusão silenciosa — quem escolheu
+// precisa saber que uma ficou de fora. Os códigos são os mesmos de antes.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
-
-/** Teto de peças por card. Um card de aprovação com 50 itens não é decisão,
- *  é fadiga — e a spec do Hub (E3) diz que o objeto de aprovação é indivisível. */
-const MAX_PECAS_POR_CARD = 20;
-
-const FORMATO_LEGIVEL: Record<string, string> = {
-  carousel: "Carrossel", carrossel: "Carrossel",
-  reel: "Reels", video: "Reels", story: "Story", feed: "Feed",
-};
-
-function lerLista(bruto: string | null | undefined): string[] {
-  try {
-    const v = JSON.parse(bruto ?? "[]");
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
-  } catch {
-    return [];
-  }
-}
+import {
+  corpoDoCard,
+  lerLista,
+  DEPARTAMENTO,
+  MAX_PECAS_POR_CARD,
+} from "@/lib/agency/esteira/cards-de-aprovacao";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const { session, error } = await requireSession(["master", "project_manager"]);
@@ -118,31 +119,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // ── O corpo do card, no formato que o portal já renderiza ────────────────
-    // Primeira linha = título (AprovacoesDoCliente.tituloDaPeca lê ≤ 90 chars);
-    // o resto é texto corrido com whitespace-pre-wrap.
-    const ordenados = [...posts].sort((a, b) =>
-      (a.scheduledFor?.getTime() ?? 0) - (b.scheduledFor?.getTime() ?? 0));
-    const todosCarrossel = ordenados.every((p) => FORMATO_LEGIVEL[p.format] === "Carrossel");
+    // A régua é `corpoDoCard` e ela é a MESMA do caminho administrativo: título
+    // na primeira linha, peças no resto. Ver o cabeçalho.
+    const { titulo, reviewNote, ordenados } = corpoDoCard(posts);
     const n = ordenados.length;
-    const titulo = todosCarrossel
-      ? `Carrosséis de lançamento — ${n} peça${n === 1 ? "" : "s"}`
-      : `Peças do calendário — ${n} peça${n === 1 ? "" : "s"}`;
-
-    const blocos = ordenados.map((p, i) => {
-      const cenas = lerLista(p.scenesJson);
-      const linhas = [
-        `**${i + 1}. ${primeiraFrase(p.caption) || `Peça ${i + 1}`}**`,
-        `- Formato: ${FORMATO_LEGIVEL[p.format] ?? "Feed"}`,
-      ];
-      if (p.pillar) linhas.push(`- Pilar: ${p.pillar}`);
-      if (p.scheduledFor) {
-        linhas.push(`- Data proposta: ${p.scheduledFor.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`);
-      }
-      if (p.caption.trim()) linhas.push(`- Legenda: ${p.caption.trim()}`);
-      if (cenas.length > 0) linhas.push(`- Telas: ${cenas.map((c, j) => `${j + 1}) ${c}`).join(" · ")}`);
-      return linhas.join("\n");
-    });
-    const reviewNote = [titulo, "", ...blocos].join("\n");
 
     const expiresAt =
       typeof body.expiresAt === "string" && !Number.isNaN(Date.parse(body.expiresAt))
@@ -151,7 +131,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const aprovacao = await createApprovalRequest({
       clientId,
-      department:    "social-media",
+      department:    DEPARTAMENTO,
       // Origem marcada: quem abriu foi a EQUIPE a partir do calendário — não o
       // fluxo Brain. `sourcePostIds` é a outra metade da marca (e a propagação).
       requestedBy:   `equipe:${session.email}`,
@@ -172,11 +152,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error("[social-posts/aprovacao] POST error", e);
     return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   }
-}
-
-/** A primeira frase da legenda, curta o bastante para ser título de item. */
-function primeiraFrase(caption: string): string {
-  const linha = caption.trim().split("\n")[0] ?? "";
-  const frase = linha.split(/(?<=[.!?…])\s/)[0] ?? linha;
-  return frase.length > 80 ? `${frase.slice(0, 77)}…` : frase;
 }
