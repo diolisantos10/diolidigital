@@ -9,7 +9,18 @@ import fs from "node:fs";
 import path from "node:path";
 
 const COMP = fs.readFileSync(path.join(process.cwd(), "components/agency/clients/FichaDeMarca.tsx"), "utf8");
-const PAGINA = fs.readFileSync(path.join(process.cwd(), "app/agency/clients/[id]/page.tsx"), "utf8");
+
+// ⚠️ 14/08/2026 — A MONTAGEM MUDOU DE ARQUIVO, A REGRA NÃO.
+//
+// A página do cliente virou o Client Command Center: `page.tsx` passou a ser
+// servidor (só carrega o dado) e quem monta os blocos dentro das abas é
+// `PaginaDoCliente.tsx`. Este teste seguiu a montagem — se ele apontasse para
+// `page.tsx`, passaria a medir um arquivo onde a ficha nunca mais vai aparecer,
+// e um teste que não pode falhar não é portão, é enfeite.
+const PAGINA = fs.readFileSync(
+  path.join(process.cwd(), "components/agency/command-center/PaginaDoCliente.tsx"),
+  "utf8",
+);
 
 describe("o vazio se anuncia", () => {
   it("campo em lacuna aparece escrito 'não informado'", () => {
@@ -66,6 +77,22 @@ describe("a ficha está na página do cliente", () => {
   });
 
   it("vem ANTES do Brand Hub — a régua antes da descrição", () => {
-    expect(PAGINA.indexOf("<FichaDeMarca")).toBeLessThan(PAGINA.indexOf("Brand Hub</h2>"));
+    // O Brand Hub descreve a marca; a ficha JULGA o que dela já foi declarado.
+    // Quem produz precisa da régua primeiro, senão lê a descrição e conclui que
+    // sabe o suficiente.
+    const iFicha = PAGINA.indexOf("<FichaDeMarca");
+    const iHub = PAGINA.indexOf("<BrandHub");
+    expect(iFicha).toBeGreaterThan(-1);
+    expect(iHub).toBeGreaterThan(-1);
+    expect(iFicha).toBeLessThan(iHub);
+  });
+
+  it("a ficha cai na aba de Branding, e a aba existe", () => {
+    const ABA = fs.readFileSync(
+      path.join(process.cwd(), "components/agency/command-center/ClientCommandCenter.tsx"),
+      "utf8",
+    );
+    expect(ABA).toContain('["branding", "Branding"]');
+    expect(ABA).toContain("blocos.fichaDeMarca");
   });
 });
