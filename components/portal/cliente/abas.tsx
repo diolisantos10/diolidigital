@@ -330,7 +330,14 @@ export function AbaBrandHub({
           <span>
             <small>MARCA DOCUMENTADA</small>
             <b>{brandHub.respondidas} de {brandHub.total} definições</b>
-            <em>{brandHub.perguntas.length > 0 ? `Faltam ${brandHub.perguntas.length} respostas` : "Nada pendente com você"}</em>
+            {/* `perguntas` é a RODADA (a rota entrega no máximo cinco por vez);
+                o que falta é a conta das definições. Chamar a rodada de "o que
+                falta" faria a barra andar e o número não mudar. */}
+            <em>
+              {brandHub.total - brandHub.respondidas > 0
+                ? `Faltam ${brandHub.total - brandHub.respondidas} definições`
+                : "Nada pendente com você"}
+            </em>
           </span>
         </div>
         <div className="cp-brand-pattern"><i /><i /><i /></div>
@@ -341,7 +348,7 @@ export function AbaBrandHub({
         <i><b style={{ width: `${brandHub.percentual}%` }} /></i>
         <p>
           {brandHub.perguntas.length > 0
-            ? `Faltam ${brandHub.perguntas.length} respostas para completar sua marca.`
+            ? `${brandHub.perguntas.length === 1 ? "1 pergunta" : `${brandHub.perguntas.length} perguntas`} para responder agora — leva poucos minutos.`
             : "Todas as definições registradas. Se algo mudar no seu negócio, é só avisar."}
         </p>
         {brandHub.perguntas.length > 0 && (
