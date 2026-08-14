@@ -35,11 +35,11 @@ on:
   workflow_dispatch:
     inputs:
       modo:
-        description: "formato-recusado (peça única) ou carrossel (redesenha as telas)"
+        description: "so-o-arquivo = troca só o contêiner PNG→JPEG (não redesenha, não muda o que o cliente aprovou). carrossel = REDESENHA as telas. formato-recusado = redesenha a peça única."
         required: false
         type: choice
-        options: ["formato-recusado", "carrossel"]
-        default: "formato-recusado"
+        options: ["so-o-arquivo", "formato-recusado", "carrossel"]
+        default: "so-o-arquivo"
       limite:
         description: "Teto de peças nesta passada (vazio = o teto da rota)"
         required: false
@@ -83,8 +83,40 @@ jobs:
           # post e de cliente, e o log de CI fica guardado 90 dias e é copiado
           # para issue sem pensar. O que interessa é o status e a CONTAGEM.
           echo "HTTP $code"
-          jq -c '{quantasRecompostas, modo, recompostas: (.recompostas | length), semFundo: (.semFundo // [] | length), falhas: (.falhas // [] | length)}' /tmp/out.json 2>/dev/null \
+          jq -c '{
+            quantasRecompostas,
+            modo,
+            feitas: ((.recompostas // .convertidas // []) | length),
+            semFundo: ((.semFundo // .semArquivo // []) | length),
+            bloqueadas: ((.bloqueadas // []) | length),
+            falhas: ((.falhas // []) | length),
+            arquivosNovos,
+            caminhos
+          }' /tmp/out.json 2>/dev/null \
             || echo "(resposta não-JSON, $(wc -c < /tmp/out.json) bytes — corpo omitido de propósito)"
+
+          # ── O MOTIVO, SEM OS IDS (14/08/2026) ──────────────────────────────
+          #
+          # A primeira versão deste workflow imprimia só a CONTAGEM de falhas, e
+          # a contagem não diz nada: "falhou nas 6" cabe em pelo menos quatro
+          # causas diferentes (roteiro ausente, navegador ausente, armazenamento
+          # cheio, arquivo sumido) e cada uma leva a um conserto diferente. Uma
+          # passada em produção foi gasta sem responder a pergunta.
+          #
+          # `falhas` é uma lista de `{postId, erro}`. Aqui sai **só o `erro`, e
+          # só os distintos**: o motivo é texto de sistema e não carrega id de
+          # post nem de cliente, então ele pode viver 90 dias num log de CI —
+          # e um motivo repetido 6 vezes vira uma linha, que é como ele deve ser
+          # lido de qualquer forma.
+          echo "— motivos distintos das falhas (sem ids):"
+          jq -r '[.falhas[]?.erro] | unique | .[] | "  · " + .' /tmp/out.json 2>/dev/null \
+            || echo "  (nenhum, ou resposta não-JSON)"
+
+          # `semRenderizador` é o campo que separa "a peça tem defeito" de "a
+          # casa não tem a ferramenta". Ele NÃO aparecia no jq antigo, e sem ele
+          # uma passada sem Chromium é indistinguível de uma passada que não
+          # achou nada: as duas voltam 0/0/0, verdes.
+          jq -r 'if .semRenderizador then "::error::" + .semRenderizador else empty end' /tmp/out.json 2>/dev/null || true
 
           # 503 da NOSSA rota quer dizer uma coisa só: CRON_SECRET não existe no
           # servidor. 503 do edge (deploy em curso) não traz essa frase.
@@ -106,5 +138,13 @@ jobs:
           # duas merecem alguém olhando, e a segunda é defeito.
           n=$(jq -r '.quantasRecompostas // 0' /tmp/out.json 2>/dev/null || echo 0)
           if [ "$n" = "0" ]; then
-            echo "::warning::Nenhuma peça foi recomposta. Se a medição em /api/meta/prontidao ainda acusa PNG, isto é defeito da seleção — não conclua que está tudo certo."
+            echo "::warning::Nenhuma peça foi convertida. Se a medição em /api/meta/prontidao ainda acusa PNG, isto é defeito da seleção — não conclua que está tudo certo. Leia os motivos distintos impressos acima."
+          fi
+
+          # Peça que FALHOU também não pode passar por verde. Ela não é "0
+          # peças, nada a fazer": é trabalho que a casa tentou e não conseguiu,
+          # e o motivo está impresso logo acima.
+          f=$(jq -r '(.falhas // []) | length' /tmp/out.json 2>/dev/null || echo 0)
+          if [ "$f" != "0" ]; then
+            echo "::warning::$f peça(s) falharam na conversão — o motivo distinto está impresso acima. Nada foi gravado nessas peças."
           fi

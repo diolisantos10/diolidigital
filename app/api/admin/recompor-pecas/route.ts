@@ -35,6 +35,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recomporPecas, type SelecaoDeRecomposicao } from "@/lib/agency/execution/artes";
 import { recomporCarrosseis } from "@/lib/agency/execution/recompor-carrossel";
+import { reconverterArquivosParaJpeg } from "@/lib/agency/execution/reconverter-arquivos";
 import { segredoConfere } from "@/lib/security/crypto";
 
 export const dynamic = "force-dynamic";
@@ -75,19 +76,39 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // é o `mimeType` do arquivo, medido pela mesma régua da publicação. Medido em
   // produção em 14/08: 6 posts do CityJobs agendados, os 6 barrados no portão de
   // formato, com o rasterizador de hoje já saindo JPEG há uma semana.
+  //
+  // `?modo=so-o-arquivo` NÃO redesenha nada: troca só o contêiner do arquivo
+  // (PNG → JPEG), mantendo os mesmos pixels. É o modo certo quando a peça já
+  // está aprovada ou já foi vista pelo cliente — desde 14/08 quem aprova é ele,
+  // peça por peça, e a aprovação fica presa ao post e não ao arquivo. Redesenhar
+  // trocaria a imagem sem que a aprovação percebesse.
   const bruto = request.nextUrl.searchParams.get("modo");
   const modo =
-    bruto === "marca-nova" || bruto === "carrossel" || bruto === "formato-recusado"
+    bruto === "marca-nova" ||
+    bruto === "carrossel" ||
+    bruto === "formato-recusado" ||
+    bruto === "so-o-arquivo"
       ? bruto
       : "sem-molde";
 
   // `?modo=carrossel` redesenha as TELAS de um carrossel. O modo normal compõe
   // uma arte por peça, e num carrossel o que vai ao ar são as N telas — recompor
   // por lá escrevia capa nova e deixava as telas quebradas.
-  const r = modo === "carrossel" ? await recomporCarrosseis(limite) : await recomporPecas(limite, modo as SelecaoDeRecomposicao);
+  const r =
+    modo === "carrossel"
+      ? await recomporCarrosseis(limite)
+      : modo === "so-o-arquivo"
+        ? await reconverterArquivosParaJpeg(limite)
+        : await recomporPecas(limite, modo as SelecaoDeRecomposicao);
+
+  // Conclusão primeiro, e com o nome certo de cada modo: "recompor" (a peça foi
+  // redesenhada) e "converter" (só o arquivo mudou) não são a mesma coisa, e
+  // chamar as duas de recomposição faria o relatório mentir sobre o que foi
+  // feito com o trabalho do cliente.
+  const quantas = "recompostas" in r ? r.recompostas.length : r.convertidas.length;
+
   return NextResponse.json({
-    // Conclusão primeiro: quantas peças passaram a ter a marca do cliente.
-    quantasRecompostas: r.recompostas.length,
+    quantasRecompostas: quantas,
     modo,
     ...r,
     em: new Date().toISOString(),

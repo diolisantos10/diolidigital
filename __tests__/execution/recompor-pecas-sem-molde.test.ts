@@ -162,19 +162,33 @@ describe("modo marca-nova — alcança a peça que nasceu antes do logo", () => 
 describe("a rota escolhe o modo, e o padrão é o comportamento antigo", () => {
   it("só os modos NOMEADOS ligam comportamento novo — o resto cai no antigo", () => {
     // 09/08: entrou um terceiro modo (`carrossel`, que redesenha as telas).
-    // 14/08: entrou o quarto (`formato-recusado`, a peça em PNG do rasterizador
-    // velho). A lista continua FECHADA de propósito: modo desconhecido não pode
-    // virar comportamento novo por acidente de digitação.
-    expect(
-      ROTA.includes(
-        'bruto === "marca-nova" || bruto === "carrossel" || bruto === "formato-recusado"',
-      ),
-    ).toBe(true);
-    expect(ROTA.includes(': "sem-molde"')).toBe(true);
+    // 14/08: entrou o quarto (`formato-recusado`) e o quinto (`so-o-arquivo`,
+    // que troca só o contêiner). A lista continua FECHADA de propósito: modo
+    // desconhecido não pode virar comportamento novo por acidente de digitação.
+    //
+    // Conferido por MODO, e não pela linha inteira: a versão anterior deste
+    // teste casava a expressão em uma linha só, e quebrou no dia em que ela
+    // ganhou o quinto modo e o formatador a quebrou em quatro. Teste que
+    // depende de quebra de linha reprova formatação, não comportamento.
+    for (const modo of ["marca-nova", "carrossel", "formato-recusado", "so-o-arquivo"]) {
+      expect(ROTA.includes(`bruto === "${modo}"`), `o modo ${modo} sumiu da lista fechada`).toBe(true);
+    }
+    expect(ROTA.includes(': "sem-molde"'), "o padrão deixou de ser sem-molde").toBe(true);
   });
 
   it("o modo de carrossel chama a função das TELAS, não a da peça única", () => {
-    expect(ROTA.includes('modo === "carrossel" ? await recomporCarrosseis(limite)')).toBe(true);
+    // Sem quebra de linha no meio: o despacho de cada modo é conferido pelo
+    // par (condição → função), que é o comportamento, e não pela formatação.
+    const semEspaco = ROTA.replace(/\s+/g, " ");
+    expect(semEspaco.includes('modo === "carrossel" ? await recomporCarrosseis(limite)')).toBe(true);
+  });
+
+  it("o modo `so-o-arquivo` chama a CONVERSÃO, que não redesenha nada", () => {
+    // Trocar o contêiner e redesenhar a peça são coisas diferentes, e desde
+    // 14/08 a diferença tem dono: quem aprova a peça é o cliente, e a aprovação
+    // fica presa ao post, não ao arquivo. Redesenhar troca o que ele aprovou.
+    const semEspaco = ROTA.replace(/\s+/g, " ");
+    expect(semEspaco.includes('modo === "so-o-arquivo" ? await reconverterArquivosParaJpeg(limite)')).toBe(true);
   });
 
   it("o modo escolhido volta na resposta — quem chamou não fica adivinhando", () => {

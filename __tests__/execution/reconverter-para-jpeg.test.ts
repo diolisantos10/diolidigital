@@ -359,8 +359,24 @@ describe("nada aqui publica — e isso é lido no código, não prometido no com
 
   it("sem --aplicar o script não escreve: o padrão é medir", () => {
     const iAplicar = SCRIPT.indexOf("if (!aplicar)");
-    const iRecompor = SCRIPT.indexOf("await recomporPecas(");
     expect(iAplicar).toBeGreaterThan(-1);
-    expect(iAplicar).toBeLessThan(iRecompor);
+    // TODA chamada que escreve tem de vir depois da porteira, não só a primeira
+    // que alguém lembrou de conferir.
+    for (const escreve of ["await reconverterArquivosParaJpeg(", "await recomporPecas(", "await recomporCarrosseis("]) {
+      const i = SCRIPT.indexOf(escreve);
+      expect(i, `${escreve} sumiu do script`).toBeGreaterThan(-1);
+      expect(iAplicar, `${escreve} é alcançável sem --aplicar`).toBeLessThan(i);
+    }
+  });
+
+  it("o padrão de --aplicar é o gesto MÍNIMO; redesenhar tem de ser pedido", () => {
+    // Redesenhar troca os pixels de uma peça cuja aprovação está presa ao post
+    // (`aprovacao-da-peca.ts`) — a aprovação não percebe a troca. Isso é decisão
+    // sobre o trabalho do cliente, e decisão não pode ser o comportamento padrão
+    // de uma flag chamada "--aplicar".
+    expect(SCRIPT.includes('process.argv.includes("--redesenhar")')).toBe(true);
+    const iConversao = SCRIPT.indexOf("await reconverterArquivosParaJpeg(");
+    const iRedesenho = SCRIPT.indexOf("await recomporPecas(");
+    expect(iConversao, "o redesenho vem antes da conversão — o caminho caro virou o padrão").toBeLessThan(iRedesenho);
   });
 });
