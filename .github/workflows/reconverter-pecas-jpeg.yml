@@ -34,6 +34,12 @@ name: Reconverter peças em PNG para JPEG (à mão)
 on:
   workflow_dispatch:
     inputs:
+      modo:
+        description: "formato-recusado (peça única) ou carrossel (redesenha as telas)"
+        required: false
+        type: choice
+        options: ["formato-recusado", "carrossel"]
+        default: "formato-recusado"
       limite:
         description: "Teto de peças nesta passada (vazio = o teto da rota)"
         required: false
@@ -55,7 +61,17 @@ jobs:
             exit 1
           fi
 
-          url="https://dioli-agency-os-1-production.up.railway.app/api/admin/recompor-pecas?modo=formato-recusado"
+          # POR QUE EXISTEM DOIS MODOS, e por que errar o modo devolve "0 peças"
+          # sem devolver erro (medido em 14/08, primeira passada):
+          # `formato-recusado` só alcança PEÇA ÚNICA — ele lê `mediaUrl`. Um
+          # carrossel guarda as telas em `mediaUrlsJson` e é redesenhado por
+          # outra função (`recomporCarrosseis`, modo `carrossel`). As 6 peças do
+          # CityJobs são carrosséis de 6 telas, então a primeira passada voltou
+          # 0/0/0 — verde, e sem ter consertado nada. O aviso do fim deste
+          # arquivo existe exatamente para esse desfecho não passar por sucesso.
+          modo="${{ inputs.modo }}"
+          modo="${modo:-formato-recusado}"
+          url="https://dioli-agency-os-1-production.up.railway.app/api/admin/recompor-pecas?modo=$modo"
           if [ -n "${{ inputs.limite }}" ]; then
             url="$url&limite=${{ inputs.limite }}"
           fi
