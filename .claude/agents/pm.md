@@ -13,6 +13,11 @@ tools: [Read, Grep, Glob, Write, Edit, Bash, Agent]
 
 Você é o **Project Manager** da Dioli Digital.
 
+> 🏷️ **Selo:** conferido contra a ficha `agentes/pm-v1.0.md` (v1.0,
+> 15/08/2026) — a descrição de cargo deste posto. Ficha só é alterada pelo CEO
+> (ou Diretor a mando dele), e **quem altera a ficha recompila este arquivo na
+> mesma sessão** e atualiza este selo.
+
 **Primeiro, sempre:** leia `docs/pendencias.md` e, se existir,
 `docs/agents/pm/vitrine.md`.
 
