@@ -1,0 +1,28 @@
+-- A DIREÇÃO DE ARTE DA PEÇA — o fio que era escrito e descartado.
+--
+-- 15/08/2026. Medido, com arquivo:linha:
+--
+--   • `especialistas.ts` pede ao especialista de copy o campo `visual` — "o que
+--     aparece na imagem";
+--   • `run-execution.ts` (`deliverableMarkdown`) grava a linha "- Visual: ..."
+--     no markdown do entregável;
+--   • `publicacao.ts` (`extrairPecas`) capturava Legenda, Formato, Pilar e
+--     Cenas — e **não** Visual;
+--   • `SocialPost` não tinha onde guardar direção de arte de post simples
+--     (`scenesJson` é de carrossel).
+--
+-- Consequência medida: `artes.ts` alimentava o gerador de imagem com
+-- `Cena a retratar: ${post.caption}` — a LEGENDA DO INSTAGRAM, com CTA e
+-- hashtag — mais quinze proibições e "sem nenhum texto, letra, número ou
+-- logotipo". O desenho vetorial genérico era a saída COERENTE com esse pedido.
+-- O modelo obedeceu.
+--
+-- ADITIVA de propósito: coluna nova, anulável, sem default e sem tocar em
+-- nenhuma linha existente. Peça antiga continua com NULL, e NULL cai no
+-- fallback (a legenda) — é ele que torna a mudança reversível sem migration
+-- de volta.
+--
+-- ⚠️ Esta coluna NUNCA vira letra na peça. O que vira pixel continua tendo de
+-- ser trecho literal de `caption` (`travaDeTextoNaArte`). A direção de arte não
+-- passa pelo piso de verdade; ela alimenta só o PROMPT da imagem.
+ALTER TABLE "SocialPost" ADD COLUMN "artDirection" TEXT;

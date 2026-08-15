@@ -1238,6 +1238,26 @@ model SocialPost {
   /// arte usa para desenhar CADA tela — sem isso, um carrossel de 5 imagens
   /// sairia com 5 variações da mesma cena.
   scenesJson      String  @default("[]")
+  /// A DIREÇÃO DE ARTE desta peça — o que a IMAGEM tem de mostrar.
+  ///
+  /// Escrita pelo especialista de copy no campo `visual` ("o que aparece na
+  /// imagem", `especialistas.ts`), gravada no markdown do entregável como
+  /// "- Visual: ..." (`run-execution.ts`) e, até 15/08/2026, **descartada ali**:
+  /// `extrairPecas` não a lia e não havia coluna para guardá-la. O gerador de
+  /// imagem recebia a LEGENDA como "Cena a retratar" — legenda de Instagram,
+  /// com CTA e hashtag — e o desenho genérico era a saída coerente com o pedido.
+  ///
+  /// ⚠️ **Este campo NUNCA vira letra na peça.** O que vira pixel tem de ser
+  /// trecho literal de `caption` (`travaDeTextoNaArte`, com `fonteAuditada =
+  /// post.caption`). A direção de arte não passa pelo piso de verdade: ela
+  /// descreve uma cena, não afirma um fato — e por isso só pode alimentar o
+  /// PROMPT da imagem, nunca a camada de texto. Há teste de fonte que reprova
+  /// quem a passar como `fonteAuditada`, `titulo`, `apoio` ou `selo`.
+  ///
+  /// Nulo = peça anterior a 15/08/2026, ou entrega cujo especialista não
+  /// declarou o visual. Nulo cai no fallback (a legenda), que é o comportamento
+  /// de sempre — é ele que torna a mudança reversível.
+  artDirection    String?
   scriptJson      String? // AI video/reel script (hook, scenes, cta, audio)
   /// Contrato de visibilidade do Hub. Nasce "interno" (fail-closed); o fluxo
   /// que agenda para o calendário do cliente (esteira/publicacao.ts) grava

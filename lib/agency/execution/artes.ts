@@ -51,7 +51,8 @@ import {
 import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
 import { cerebroDaMarca } from "@/lib/agency/design/repertorio-registrado";
 import {
-  composicaoParaFuncao, direcaoDeAmplitude, type CerebroCriativo, type Composicao,
+  composicaoParaFuncao, composicaoDoPostSimples, direcaoDeAmplitude,
+  type CerebroCriativo, type Composicao,
 } from "@/lib/agency/design/repertorio";
 import {
   conferirStoryboard, direcaoDaImagem, laudoDoStoryboard, lerStoryboard,
@@ -360,6 +361,11 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       const r = await generateDesign({
         prompt: montarPrompt({
           legenda: post.caption,
+          // ── O QUE O GERADOR PASSA A RECEBER (15/08/2026) ──────────────────
+          // A direção de arte que o especialista escreveu, e que até hoje era
+          // gravada no entregável e descartada na leitura. `null` cai na
+          // legenda — o comportamento de antes, mantido de propósito.
+          direcaoDeArte: post.artDirection,
           pilar: post.pillar,
           negocio: marca.nome,
           segmento: marca.segmento,
@@ -445,24 +451,52 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       }
     }
 
+    // ── A COMPOSIÇÃO DO POST SIMPLES, PELO CÉREBRO DA MARCA (15/08/2026) ────
+    //
+    // `composicaoParaFuncao` existia desde 09/08 e era chamada em TRÊS lugares
+    // — `artes.ts` (duas vezes) e `recompor-carrossel.ts` —, e os três são
+    // CARROSSEL. O post simples, que é o volume da casa (60/mês só no
+    // CityJobs), nunca passava por ela: caía no `peca.composicao ?? "foto-cheia"`
+    // de `molde.ts`. Para o CityJobs isso é a composição que o próprio formato
+    // PROÍBE, com o motivo escrito no registro ("viraria a mesma peça 60 vezes
+    // por mês").
+    //
+    // O papel da peça vem do PILAR, resolvido contra as funções que a marca
+    // declarou — nunca inventado. Marca sem formato registrado continua em
+    // foto-cheia, que é o comportamento de antes.
+    const escolhaDaComposicao = composicaoDoPostSimples(marca.cerebro, post.pillar);
+
     // ── A CAMADA DE TEXTO, POR CÓDIGO ───────────────────────────────────────
     const composta = await comporComMolde({
       formato: formatoDoPost(post.format),
       molde: marca.molde,
       fotoBytes: bytes,
       fotoMime: mimeDaFoto,
+      // ⚠️ `fonteAuditada` é a LEGENDA, e continua sendo só ela. A direção de
+      // arte (`post.artDirection`) alimenta o PROMPT DA IMAGEM e NUNCA esta
+      // linha: ela não passa pelo piso de verdade, e o que vira pixel tem de
+      // ser trecho literal de conteúdo auditado. Há teste de fonte que reprova
+      // quem passar `artDirection` aqui.
       fonteAuditada: post.caption,
       selo: post.pillar,
       assinatura: marca.nome,
       indice: null,
+      composicao: escolhaDaComposicao.composicao,
       // O que aconteceu com o material do cliente — a foto que ENTROU e por
       // quê, ou o que havia e por que nada entrou. Sem isto, "a peça saiu
       // igual" continua sendo invisível de fora.
-      notaDoMaterial: fotoDoCliente
-        ? `[foto do cliente] ${fotoDoCliente.razao}`
-        : escolhaDaFoto && !escolhaDaFoto.usar && escolhaDaFoto.explicacao
-          ? `[material do cliente] ${escolhaDaFoto.explicacao}`
-          : null,
+      notaDoMaterial: [
+        fotoDoCliente
+          ? `[foto do cliente] ${fotoDoCliente.razao}`
+          : escolhaDaFoto && !escolhaDaFoto.usar && escolhaDaFoto.explicacao
+            ? `[material do cliente] ${escolhaDaFoto.explicacao}`
+            : null,
+        // Layout sem procedência é layout que ninguém audita depois. Só sobe
+        // quando NÃO foi o repertório que decidiu — o caminho bom é silencioso.
+        escolhaDaComposicao.origem === "repertorio"
+          ? null
+          : `[composição ${escolhaDaComposicao.composicao}] ${escolhaDaComposicao.porque}`,
+      ].filter(Boolean).join(" ") || null,
     });
     // Molde impossível por falta de ferramenta = a peça não existe. Falha
     // contada como falha, com tentativa gasta, e NADA gravado no post.
@@ -1339,6 +1373,29 @@ export async function montarArteComFotoDoCliente(
  */
 export function montarPrompt(input: {
   legenda: string;
+  /**
+   * A DIREÇÃO DE ARTE da peça — o que a IMAGEM tem de mostrar.
+   *
+   * ── POR QUE ESTE CAMPO NASCEU (15/08/2026) ────────────────────────────────
+   *
+   * Até aqui a "cena a retratar" era `post.caption`: a LEGENDA DO INSTAGRAM,
+   * inteira, com CTA e hashtag. Junto iam quinze proibições e um "sem nenhum
+   * texto, letra, número ou logotipo". O gerador recebia um texto escrito para
+   * ser LIDO e a ordem de não desenhar nada do que ele diz — e devolvia desenho
+   * vetorial genérico. **Não foi desobediência: foi a saída coerente com o
+   * pedido.**
+   *
+   * A direção existia o tempo todo. O especialista de copy a escreve no campo
+   * `visual` ("o que aparece na imagem", `especialistas.ts`), o motor a grava
+   * no markdown ("- Visual: ...", `run-execution.ts`) — e ela morria ali,
+   * porque `extrairPecas` não a lia e `SocialPost` não tinha coluna.
+   *
+   * Vazio cai na legenda, que é o comportamento de sempre. O fallback fica no
+   * código de propósito: é ele que torna esta mudança reversível sem migration
+   * de volta, e é ele que atende as peças anteriores a 15/08 (`artDirection`
+   * nulo).
+   */
+  direcaoDeArte?: string | null;
   pilar: string | null;
   negocio: string;
   segmento: string;
@@ -1370,11 +1427,16 @@ export function montarPrompt(input: {
   amplitude?: string;
 }): string {
   const vertical = input.formato === "story";
+  // A DIREÇÃO manda; a legenda é o FALLBACK. Nesta ordem, e a ordem é a
+  // correção inteira: a legenda é texto para ser lido, a direção é descrição do
+  // que a câmera vê. Direção vazia ou só espaço = não há direção, e aí a peça
+  // sai como saía antes.
+  const cena = (input.direcaoDeArte ?? "").trim() || input.legenda;
   const partes = [
     `Fotografia publicitária profissional para redes sociais, formato ${vertical ? "vertical 9:16 (story de celular)" : "quadrado"}, alta qualidade.`,
     input.segmento ? `Negócio: ${input.segmento}${input.negocio ? ` (${input.negocio})` : ""}.` : "",
     input.pilar ? `Tema da peça: ${input.pilar}.` : "",
-    `Cena a retratar: ${input.legenda.slice(0, 500)}`,
+    `Cena a retratar: ${cena.slice(0, 500)}`,
     input.cores.length > 0 ? `Paleta da marca, para a ambientação e os objetos: ${input.cores.join(", ")}.` : "",
     input.tom ? `Clima: ${input.tom}.` : "",
     // A peça nova precisa parecer do MESMO perfil que as que já estão lá —
