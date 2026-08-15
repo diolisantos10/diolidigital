@@ -1,0 +1,230 @@
+name: Produzir as peças de um cliente (à mão)
+
+# ── O QUE ESTE BOTÃO FAZ (15/08/2026) ────────────────────────────────────────
+#
+# Ele manda a esteira PRODUZIR, para UM cliente, os três trechos na ordem:
+#
+#   1. as entregas do ciclo que ainda não foram escritas;
+#   2. as entregas já liberadas que ainda não viraram PEÇA de calendário;
+#   3. a ARTE das peças sem imagem — que é a parte PAGA.
+#
+# Ele existe porque o trecho 3 não tinha porta nenhuma: `produzirArtesPendentes`
+# só era chamado pelo relógio interno do app. `cron-execute.yml` chama o motor de
+# TEXTO, e só para projeto travado ou falhado — ele não passa perto do gerador de
+# imagem.
+#
+# ── ELE GASTA DINHEIRO. COMECE SEMPRE EM "MOSTRAR" ───────────────────────────
+#
+# O padrão é `mostrar`: leitura pura. Ele lista as peças que esperam arte,
+# QUANTAS IMAGENS elas pedem e QUANTO custam pela tabela pública — e não gasta um
+# centavo. Leia o número, e só então `produzir`.
+#
+# O custo impresso é ESTIMATIVA DE TABELA, não fatura: esta casa não lê o
+# faturamento do provedor.
+#
+# ── O TETO É CONTRA LAÇO, NÃO CONTRA VOLUME ──────────────────────────────────
+#
+# Ordem do CEO, 15/08: *"deixe produzir mais peças"*. O `teto` abaixo nasce em
+# 40 e vai até 200 — está aqui, visível, para poder subir. Ele impede dez mil
+# imagens por engano, não vinte de propósito.
+#
+# Por baixo dele continua valendo o teto de SEGURANÇA da casa: 40 imagens por
+# cliente por dia (`artes.ts`), fail-closed, que este botão não contorna. Peça
+# que não coube volta amanhã, e o placar diz quantas foram.
+#
+# ── NADA PUBLICA ─────────────────────────────────────────────────────────────
+#
+# A peça criada nasce em RASCUNHO — data proposta, sem aval do cliente. Nenhuma
+# chamada a Meta, Google ou TikTok. Nenhuma aprovação muda de estado.
+#
+# ── POR QUE UM WORKFLOW, E NÃO UM TERMINAL ───────────────────────────────────
+#
+# A rota exige `Authorization: Bearer CRON_SECRET`. Esse segredo mora no Railway
+# e nos secrets deste repositório — e em nenhum outro lugar. Mesmo padrão de
+# `reverter-aprovacao-do-pacote.yml` e `abrir-cards-de-aprovacao.yml`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: "Nome do cliente (ex.: CityJobs). UM por vez — nome ambíguo é recusado, nunca adivinhado."
+        required: true
+        default: "CityJobs"
+      acao:
+        description: "mostrar = leitura pura, NADA é pago (comece por aqui). produzir = gasta imagem de verdade."
+        required: true
+        type: choice
+        options: ["mostrar", "produzir"]
+        default: "mostrar"
+      teto:
+        description: "Teto de IMAGENS desta passada (padrão 40, máximo 200). Por baixo continua valendo 40/cliente/dia."
+        required: true
+        default: "40"
+      autor:
+        description: "Quem está mandando produzir. Vai para o registro — passada que gasta sem autor não deixa rastro."
+        required: true
+        default: "Dioli (CEO)"
+      motivo:
+        description: "Por que produzir agora. Vai para o registro."
+        required: true
+        default: "Ordem do CEO: produzir as peças do cliente."
+
+jobs:
+  produzir:
+    runs-on: ubuntu-latest
+    # Cada imagem é uma chamada de modelo que pode levar dezenas de segundos. Um
+    # timeout curto mataria o job COM o dinheiro já gasto e sem placar.
+    timeout-minutes: 25
+    steps:
+      - name: Mostrar a conta ou produzir as peças
+        run: |
+          # Segredo ausente NÃO passa verde. "Pulei" com exit 0 é um workflow que
+          # nunca chamou nada se declarando saudável.
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::CRON_SECRET não está nos secrets do repositório — nada foi produzido."
+            exit 1
+          fi
+
+          cliente="${{ inputs.cliente }}"
+          autor="${{ inputs.autor }}"
+          motivo="${{ inputs.motivo }}"
+          if [ -z "$cliente" ] || [ -z "$autor" ] || [ -z "$motivo" ]; then
+            echo "::error::cliente, autor e motivo são todos obrigatórios. Passada que gasta dinheiro sem autor e sem motivo não deixa rastro que sirva a alguém."
+            exit 1
+          fi
+
+          # Teto fora da faixa é recusado AQUI, e não aparado em silêncio: um
+          # teto digitado errado é exatamente o que o teto existe para pegar.
+          teto="${{ inputs.teto }}"
+          case "$teto" in
+            ''|*[!0-9]*)
+              echo "::error::teto precisa ser um número inteiro. Nada foi chamado."
+              exit 1 ;;
+          esac
+          if [ "$teto" -lt 1 ] || [ "$teto" -gt 200 ]; then
+            echo "::error::teto fora da faixa 1..200 (você pediu $teto). Nada foi chamado."
+            exit 1
+          fi
+
+          url="https://dioli-agency-os-1-production.up.railway.app/api/admin/produzir-pecas"
+          # `--data-urlencode` com `-G`: nome, autor e motivo têm espaço e acento,
+          # e query montada à mão vira URL quebrada com recusa por defeito de aspas.
+          args=(--data-urlencode "cliente=$cliente" --data-urlencode "autor=$autor" \
+                --data-urlencode "motivo=$motivo" --data-urlencode "teto=$teto")
+          if [ "${{ inputs.acao }}" = "produzir" ]; then
+            args+=(--data-urlencode "aplicar=1")
+          fi
+
+          # `--max-time` folgado: produzir 40 imagens é lento por natureza, e
+          # desistir no meio deixaria o dinheiro gasto sem placar.
+          code=$(curl -s --max-time 1200 -o /tmp/producao.json -w "%{http_code}" -G -X POST "$url" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${args[@]}")
+
+          # ⚠️ NÃO despejar o corpo. Ele traz nome de cliente, nome de projeto e
+          # trecho de legenda das peças, e o log de CI fica guardado 90 dias.
+          echo "HTTP $code"
+
+          echo "— a conta ANTES de gravar:"
+          jq -r '"  peças esperando arte: " + ((.pecasSemArte // []) | length | tostring)
+                 + " · imagens que elas pedem: " + ((.imagensPedidas // 0)|tostring)
+                 + " · peças NOVAS previstas: " + ((.pecasNovasPrevistas // 0)|tostring)' \
+            /tmp/producao.json 2>/dev/null || echo "  (resposta não-JSON)"
+          jq -r '"  teto desta passada: " + ((.teto.daPassada // 0)|tostring)
+                 + " · teto do dia por cliente: " + ((.teto.doDiaPorCliente // 0)|tostring)
+                 + " (já usadas hoje: " + ((.teto.gastasHoje // 0)|tostring) + ")"
+                 + " · TETO EFETIVO: " + ((.teto.efetivo // 0)|tostring) + " imagem(ns)"' \
+            /tmp/producao.json 2>/dev/null || true
+          jq -r '"  custo estimado: US$ " + ((.custo.estimadoUsd // 0)|tostring)
+                 + "  (se tudo saísse: US$ " + ((.custo.seTudoSaisseUsd // 0)|tostring) + ")"
+                 + "  — " + (.custo.fonte // "")' \
+            /tmp/producao.json 2>/dev/null || true
+
+          # ── O ESTADO DE CADA PROJETO, COM O PORTÃO QUE BARRA ───────────────
+          # Sem esta lista o operador aperta um botão e recebe zero sem saber se
+          # é "não há o que fazer" ou "o cliente nunca aprovou a direção".
+          echo "— projetos (e o portão que barra, se houver):"
+          jq -r '(.projetos // []) | if length == 0 then "  (nenhum)" else .[] |
+                 "  · " + .projeto
+                 + " — execução: " + (.executionStatus // "?")
+                 + " · ciclo: " + (.cicloAberto // "nenhum")
+                 + " · especialistas faltando: " + ((.especialistasQueFaltam // 0)|tostring)
+                 + (if .portao then " · PORTÃO: " + .portao else " · sem portão barrando" end) end' \
+            /tmp/producao.json 2>/dev/null || echo "  (resposta não-JSON)"
+
+          # ── E O QUE NÃO VAI RECEBER ARTE, COM O MOTIVO ─────────────────────
+          # Esta é a metade que prova que nenhuma trava foi afrouxada.
+          echo "— peças que NÃO recebem imagem, por motivo:"
+          jq -r '(.pecasParadas // []) | if length == 0 then "  (nenhuma)" else .[] |
+                 "  · " + .titulo + " → " + .motivo end' \
+            /tmp/producao.json 2>/dev/null || echo "  (resposta não-JSON)"
+
+          echo "— navegador para aplicar o molde:"
+          jq -r 'if .renderizador.disponivel then "  pronto" else "  AUSENTE — " + (.renderizador.motivo // "") end' \
+            /tmp/producao.json 2>/dev/null || true
+
+          if [ "${{ inputs.acao }}" = "produzir" ]; then
+            echo "— o que a passada FEZ:"
+            jq -r 'if .feito == null then "  (não aplicou)" else
+                   "  peças criadas: " + ((.feito.pecasCriadas // 0)|tostring)
+                   + " · imagens produzidas: " + ((.feito.imagensProduzidas // 0)|tostring)
+                   + " em " + ((.feito.rodadas // 0)|tostring) + " rodada(s)"
+                   + " · ficaram para amanhã (teto do dia): " + ((.feito.semOrcamento // 0)|tostring) end' \
+              /tmp/producao.json 2>/dev/null || true
+            echo "— entregas que NÃO viraram peça:"
+            jq -r '[(.feito.pecasRetidas // [])[]] | if length == 0 then "  (nenhuma)" else .[] |
+                   "  · " + .nome + " → " + .motivo end' \
+              /tmp/producao.json 2>/dev/null || true
+            echo "— falhas da passada:"
+            jq -r '[(.feito.falhas // [])[]] | if length == 0 then "  (nenhuma)" else .[] | "  · " + . end' \
+              /tmp/producao.json 2>/dev/null || true
+          fi
+
+          echo "— veredito:"
+          jq -r '.veredito // .error // "(sem veredito)"' /tmp/producao.json 2>/dev/null | sed 's/^/  /'
+
+          # 503 da NOSSA rota quer dizer uma coisa só: CRON_SECRET não existe no
+          # servidor. 503 do edge (deploy em curso) não traz essa frase.
+          if [ "$code" = "503" ]; then
+            if grep -qiE 'não configurad|not configured' /tmp/producao.json; then
+              echo "::error::A produção respondeu 503: CRON_SECRET não está configurado no servidor."
+              exit 1
+            fi
+            echo "::warning::503 sem ser de configuração (provável deploy em curso). Rode de novo em alguns minutos."
+            exit 1
+          fi
+          if [ "$code" != "200" ]; then
+            echo "::error::A rota respondeu HTTP $code — nada foi produzido."
+            exit 1
+          fi
+
+          situacao=$(jq -r '.situacao // "?"' /tmp/producao.json 2>/dev/null || echo "?")
+
+          case "$situacao" in
+            cliente_nao_existe)
+              echo "::error::Nenhum cliente com esse nome. Confira a grafia — nada foi gravado nem pago."
+              exit 1 ;;
+            nome_ambiguo)
+              echo "::error::O nome casa com mais de um cliente e a rota não adivinha. Repita com o nome completo — nada foi gravado nem pago."
+              exit 1 ;;
+            sem_autor|sem_motivo)
+              echo "::error::Autor e motivo são obrigatórios — nada foi lido, gravado nem pago."
+              exit 1 ;;
+            sem_renderizador)
+              echo "::error::A casa não consegue aplicar o molde neste ambiente. A passada parou ANTES de pagar a primeira imagem — zero gasto. Veja GET /api/capacidades → montar-molde."
+              exit 1 ;;
+          esac
+
+          if [ "${{ inputs.acao }}" = "mostrar" ]; then
+            echo "::notice::Leitura pura — NADA foi pago e nada foi gravado. Leia o número de imagens e o custo estimado acima. Se for isso mesmo, rode de novo com acao=produzir (e suba o teto se quiser mais peças)."
+            exit 0
+          fi
+
+          # Zero produzido não é sucesso silencioso: ou o ciclo já está escrito,
+          # ou o teto do dia estourou, ou um portão barrou. As três merecem
+          # alguém lendo o placar.
+          if [ "$situacao" != "produzido" ]; then
+            echo "::warning::Nada foi produzido (situação: $situacao). Isso pode estar CERTO — ciclo já escrito conta como 'nada a produzir'. Leia o placar e o veredito antes de concluir que é defeito."
+            exit 0
+          fi
+
+          echo "::notice::Produzido. As peças estão em RASCUNHO, com data proposta e sem aval do cliente — nada foi publicado e nenhuma plataforma foi chamada. A passada ficou registrada com autor e motivo."
