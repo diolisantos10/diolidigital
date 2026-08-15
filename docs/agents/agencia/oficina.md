@@ -1094,3 +1094,88 @@ conserto do pacote → 3.
 - **`PUT /api/clients/[id]` descarta campos do corpo em silêncio**
   (`route.ts:39-46`). Consertei o caso que me cabia desviando o `restrictions`
   para o dono certo; a rota continua engolindo o resto sem avisar quem chamou.
+
+---
+
+## 15/08/2026 — a esteira consertada não tinha o que mostrar
+
+**Branch:** `claude/refazer-com-direcao` · `tsc` limpo · **239 arquivos, 3911
+verdes, 1 pulado** (33 testes novos).
+
+### O problema, e por que ele não é um bug
+
+`/api/health` respondia `afb198a`: direção de arte no prompt (`artes.ts:371`),
+composição pelo cérebro da marca (`composicaoDoPostSimples`), portão de pixel no
+fundo cru (`portao-do-fundo.ts`). E a medição de produção dizia **`0 peça(s)
+esperando arte · 0 peça(s) nova(s)`** — verdade, e a pergunta errada.
+`produzirArtesPendentes` procura `mediaUrl: null`; as 10 peças do CityJobs já
+têm arte. **Não há peça esperando; há peça PRONTA PELO CAMINHO ERRADO**, e
+ninguém estava perguntando isso.
+
+### A premissa: NÃO consegui medi-la contra o banco
+
+Nesta sessão não há `DATABASE_URL` nem `CRON_SECRET` — o texto real de um
+`Deliverable.content` do CityJobs **não foi lido**, e dizer que foi seria
+inventar. O que foi medido é o CAMINHO, com git desshallowado:
+
+- `deliverableMarkdown` emite `- Visual: ...` desde **6cca9f0, 24/07/2026**
+  (`run-execution.ts:100`).
+- o prompt do especialista de copy pede `"visual": "o que aparece na imagem"`
+  desde **c64da84, 01/08/2026** (`especialistas.ts:475`).
+
+⚠️ O primeiro `git log -S` deu **13/08** para os dois — porque o clone era
+shallow e 13/08 era o enxerto. *Data de nascimento não se lê em repositório
+raso*; `git fetch --unshallow` mudou a resposta em três semanas.
+
+### O conserto é fail-closed, e é aí que ele não inventa direção
+
+Peça cujo entregável de origem não traz `Visual`/`Direção` **é barrada**, não
+completada com a legenda: refazer sem direção mandaria a peça de volta ao
+fallback, que é o defeito. A leitura pura devolve o par
+`direcaoNoEntregavel: { achou, naoAchou }` — **é ela que responde a premissa**, e
+a primeira passada é de graça.
+
+A peça é reencontrada no entregável **pela legenda exata**, e duas legendas
+iguais não desempatam: recusa. É a lição de 04/08 (`backfill-carrossel-foocci`):
+sobra não é evidência de correspondência.
+
+### Não é um terceiro caminho — e os dois existentes não serviam
+
+`recomporPecas` e `recomporCarrosseis` reaproveitam o `fundo-<postId>.png`
+guardado, e **esse fundo foi comprado com o prompt velho**. Recompor deles
+trocaria o molde por cima do mesmo clipart. **A direção só vira pixel na hora de
+GERAR.** Por isso esta passada custa, e por isso ela é leitura pura por padrão.
+
+O reuso é de uma linha: `RecorteDaRodadaDeArte.refazer` troca `mediaUrl: null`
+por `id: { in: [...] }` em `artes.ts`, e todo o resto do laço — pilar, teto
+diário, foto real antes da gerada, portão do fundo, composição da marca, trava
+de texto, gravação — é o mesmo, byte por byte. `refazer: []` **não** vira a
+rodada global (o teste é `!== undefined`, não `.length > 0`), senão lista vazia
+gastaria imagem paga de quem ninguém autorizou.
+
+**Não é destrutivo:** `mediaUrl` só é reescrito na última linha do laço, depois
+de a imagem ter passado no portão e sido guardada. Falha em qualquer ponto
+deixa a arte velha onde está — há teste travando essa ordem.
+
+### O lote é teto de TEMPO, e a idempotência é pelo DADO
+
+`generateDesign` aborta em 90s por imagem (`design-engine.ts:49`). Lote padrão
+**3**, teto 6. A passada anterior pediu 10, estourou a requisição, e o Actions
+leu como falha depois de o trabalho ter sido feito — falso negativo que quase
+fez pagar duas vezes.
+
+A seleção olha a **data do fundo** contra `MARCO_DA_DIRECAO_NA_IMAGEM`
+(15/08 00:00Z), não uma marca em `lastError`. Consequência que é o ponto:
+**apertar de novo depois de um timeout não repaga o que já saiu.** E o workflow
+trata `curl 28` como *"isto NÃO é 'nada foi feito' — rode em `mostrar` antes"*.
+
+### O que fica aberto
+
+- **Nada disto rodou contra produção.** Quantas das 10 peças têm `Visual` no
+  entregável, só a primeira passada em `mostrar` responde.
+- **`MARCO_DA_DIRECAO_NA_IMAGEM` é meia-noite UTC, não a hora exata do deploy.**
+  Peça gerada em 15/08 antes do deploy fica de fora — não gasta, e aparece
+  barrada com motivo. Conservador no lado do dinheiro, e declarado.
+- **Peça montada sobre a FOTO REAL do cliente é barrada** (`sem_fundo_para_datar`):
+  sem fundo gerado não há como datá-la. Pode estar barrando peça boa; barrar não
+  custa, e adivinhar custaria.

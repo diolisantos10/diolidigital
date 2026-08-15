@@ -1,0 +1,249 @@
+name: Refazer as peças com a direção de arte (à mão)
+
+# ── O QUE ESTE BOTÃO FAZ (15/08/2026) ────────────────────────────────────────
+#
+# Ele faz as peças que JÁ EXISTEM nascerem de novo com a direção de arte que já
+# foi escrita para elas — sem inventar conteúdo, sem mudar a legenda e sem mexer
+# na data marcada.
+#
+# A esteira foi consertada (direção de arte no prompt, composição vinda do
+# cérebro da marca, portão de pixel no fundo cru) e NÃO TEM O QUE MOSTRAR: o
+# estoque do cliente foi produzido antes disso e já tem arte. A rodada normal
+# procura peça SEM arte e mede "0 esperando" — o que é verdade e não é a
+# pergunta. A pergunta é a peça pronta pelo caminho errado.
+#
+# A direção nunca esteve perdida: ela está no markdown do entregável, na linha
+# "- Visual: ...", desde 24/07/2026. Quem não a lia era o leitor que transforma
+# entregável em calendário. Preencher o campo agora é BACKFILL, não geração.
+#
+# ── ELE GASTA DINHEIRO. COMECE SEMPRE EM "MOSTRAR" ───────────────────────────
+#
+# O padrão é `mostrar`: leitura pura. Ele diz quantas peças são elegíveis, em
+# quantas a direção estava mesmo no entregável, quantas foram BARRADAS e por
+# quê, e quanto custa este lote — sem gastar um centavo. Leia o número, e só
+# então `refazer`.
+#
+# Custa porque a direção só vira pixel na hora de GERAR a imagem: o fundo
+# guardado dessas peças foi comprado com o prompt velho (a legenda como cena),
+# então recompor por cima dele trocaria o molde e manteria o mesmo desenho
+# genérico. Os dois consertos que a casa já tem (`recompor-pecas`) fazem isso e
+# são de graça — e por isso mesmo não servem para este defeito.
+#
+# ── LOTE PEQUENO, DE PROPÓSITO ───────────────────────────────────────────────
+#
+# A passada anterior pediu 10 peças de uma vez, estourou o tempo da requisição, e
+# o Actions leu como FALHA depois de o trabalho ter sido feito. Falso negativo
+# que quase fez a casa pagar duas vezes.
+#
+# O gerador de imagem aborta em 90s por imagem, então o lote padrão é 3 (pior
+# caso ~5 min) e o teto é 6. O placar diz QUANTAS FALTAM, e a seleção é
+# idempotente PELO DADO — ela olha a data do fundo de cada peça, não uma memória
+# de quem apertou. Apertar de novo continua de onde parou e não repaga o que já
+# saiu.
+#
+# ── O QUE ELE NÃO FAZ ────────────────────────────────────────────────────────
+#
+#   • Não publica. Nenhuma chamada a Meta, Google ou TikTok.
+#   • Não mexe em `scheduledFor`, `status` nem `caption`. Muda o pixel.
+#   • Não refaz peça que o CLIENTE já aprovou — a aprovação fica presa ao post e
+#     não ao arquivo, e trocar os pixels faria a aprovação dele valer para uma
+#     imagem que ele nunca viu. Barrada, com motivo.
+#   • Não inventa direção de arte. Peça sem Visual/Direção no entregável de
+#     origem é barrada — nunca completada com a legenda.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: "Nome do cliente (ex.: CityJobs). UM por vez — nome ambíguo é recusado, nunca adivinhado."
+        required: true
+        default: "CityJobs"
+      acao:
+        description: "mostrar = leitura pura, NADA é pago (comece por aqui). refazer = gasta imagem de verdade."
+        required: true
+        type: choice
+        options: ["mostrar", "refazer"]
+        default: "mostrar"
+      lote:
+        description: "Peças NESTA chamada (padrão 3, máximo 6). É teto de TEMPO, não de ambição — o placar diz quantas faltam."
+        required: true
+        default: "3"
+      autor:
+        description: "Quem está mandando refazer. Vai para o registro."
+        required: true
+        default: "Dioli (CEO)"
+      motivo:
+        description: "Por que refazer agora. Vai para o registro."
+        required: true
+        default: "As peças foram produzidas antes de a direção de arte chegar ao gerador."
+
+jobs:
+  refazer:
+    runs-on: ubuntu-latest
+    # O lote cabe com folga; o timeout é a rede de segurança, não a expectativa.
+    timeout-minutes: 20
+    steps:
+      - name: Mostrar a conta ou refazer as peças
+        run: |
+          # Segredo ausente NÃO passa verde. "Pulei" com exit 0 é um workflow que
+          # nunca chamou nada se declarando saudável.
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::CRON_SECRET não está nos secrets do repositório — nada foi refeito."
+            exit 1
+          fi
+
+          cliente="${{ inputs.cliente }}"
+          autor="${{ inputs.autor }}"
+          motivo="${{ inputs.motivo }}"
+          if [ -z "$cliente" ] || [ -z "$autor" ] || [ -z "$motivo" ]; then
+            echo "::error::cliente, autor e motivo são todos obrigatórios. Passada que gasta dinheiro sem autor e sem motivo não deixa rastro que sirva a alguém."
+            exit 1
+          fi
+
+          # Lote fora da faixa é RECUSADO aqui, e não aparado em silêncio: um
+          # número digitado errado é exatamente o que o teto existe para pegar.
+          lote="${{ inputs.lote }}"
+          case "$lote" in
+            ''|*[!0-9]*)
+              echo "::error::lote precisa ser um número inteiro. Nada foi chamado."
+              exit 1 ;;
+          esac
+          if [ "$lote" -lt 1 ] || [ "$lote" -gt 6 ]; then
+            echo "::error::lote fora da faixa 1..6 (você pediu $lote). O teto é de TEMPO: o gerador aborta em 90s por imagem, e um lote que não cabe na requisição faz o Actions ler falha depois de o trabalho ter sido feito. Nada foi chamado."
+            exit 1
+          fi
+
+          url="https://dioli-agency-os-1-production.up.railway.app/api/admin/refazer-com-direcao"
+          # `--data-urlencode` com `-G`: nome, autor e motivo têm espaço e acento,
+          # e query montada à mão vira URL quebrada com recusa por defeito de aspas.
+          args=(--data-urlencode "cliente=$cliente" --data-urlencode "autor=$autor" \
+                --data-urlencode "motivo=$motivo" --data-urlencode "lote=$lote")
+          if [ "${{ inputs.acao }}" = "refazer" ]; then
+            args+=(--data-urlencode "aplicar=1")
+          fi
+
+          set +e
+          code=$(curl -s --max-time 900 -o /tmp/refazer.json -w "%{http_code}" -G -X POST "$url" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${args[@]}")
+          curl_rc=$?
+          set -e
+
+          # ── O FALSO NEGATIVO QUE CUSTOU CARO (15/08/2026) ──────────────────
+          # Timeout do curl NÃO quer dizer que nada foi feito: o servidor pode ter
+          # produzido as peças e perdido a resposta. Foi assim que uma passada
+          # anterior quase foi paga duas vezes. A saída aqui diz o que fazer, e o
+          # que fazer NUNCA é apertar "refazer" de novo às cegas.
+          if [ "$curl_rc" = "28" ]; then
+            echo "::error::A requisição estourou o tempo (curl 28). ISTO NÃO É 'nada foi feito' — o servidor pode ter refeito as peças e perdido a resposta. NÃO aperte 'refazer' de novo agora: rode primeiro em 'mostrar' e veja quantas ainda são elegíveis. A seleção olha a data do fundo de cada peça, então o que já saiu não aparece mais."
+            exit 1
+          fi
+          if [ "$curl_rc" != "0" ]; then
+            echo "::error::curl falhou (código $curl_rc) antes de ler a resposta. Rode em 'mostrar' para saber o estado real."
+            exit 1
+          fi
+
+          # ⚠️ NÃO despejar o corpo. Ele traz nome de cliente, trecho de legenda e
+          # trecho da direção de arte, e o log de CI fica guardado 90 dias.
+          echo "HTTP $code"
+
+          echo "— a conta ANTES de gravar:"
+          jq -r '"  peças com arte olhadas: " + ((.olhadas // 0)|tostring)
+                 + " · elegíveis para refazer: " + ((.elegiveis // []) | length | tostring)
+                 + " · neste lote: " + ((.lote.efetivo // 0)|tostring)
+                 + " · faltam depois: " + ((.faltamDepoisDesteLote // 0)|tostring)' \
+            /tmp/refazer.json 2>/dev/null || echo "  (resposta não-JSON)"
+
+          # ── A PERGUNTA QUE DECIDE O CONSERTO ───────────────────────────────
+          # A direção de arte estava mesmo no entregável? Este par de números é a
+          # resposta medida. `naoAchou` alto quer dizer que o conserto é outro —
+          # e NÃO que a casa deva inventar direção de arte.
+          echo "— a direção de arte estava no entregável de origem?"
+          jq -r '"  achei em " + ((.direcaoNoEntregavel.achou // 0)|tostring) + " peça(s)"
+                 + " · NÃO achei em " + ((.direcaoNoEntregavel.naoAchou // 0)|tostring)
+                 + " (essas ficam BARRADAS — refazer sem direção reproduziria o defeito)"' \
+            /tmp/refazer.json 2>/dev/null || true
+
+          jq -r '"  custo estimado deste lote: US$ " + ((.custo.desteLoteUsd // 0)|tostring)
+                 + "  (todas as elegíveis: US$ " + ((.custo.deTodasAsElegiveisUsd // 0)|tostring) + ")"
+                 + "  — " + (.custo.fonte // "")' \
+            /tmp/refazer.json 2>/dev/null || true
+          jq -r '"  teto do dia por cliente: " + ((.teto.doDiaPorCliente // 0)|tostring)
+                 + " · já usadas hoje: " + ((.teto.gastasHoje // 0)|tostring)
+                 + " · restam hoje: " + ((.teto.restamHoje // 0)|tostring)' \
+            /tmp/refazer.json 2>/dev/null || true
+
+          # ── AS BARRADAS, COM O MOTIVO ──────────────────────────────────────
+          # Esta é a metade que prova que nenhuma trava foi afrouxada. Sai só o
+          # MOTIVO e a contagem — nunca o título da peça, que é conteúdo do
+          # cliente.
+          echo "— peças BARRADAS (não são refeitas), por motivo:"
+          jq -r '(.barradas // []) | if length == 0 then "  (nenhuma)" else .[] |
+                 "  · " + (.quantas|tostring) + "× " + .motivo + " → " + .detalhe end' \
+            /tmp/refazer.json 2>/dev/null || echo "  (resposta não-JSON)"
+
+          echo "— navegador para aplicar o molde:"
+          jq -r 'if .renderizador.disponivel then "  pronto" else "  AUSENTE — nada seria composto" end' \
+            /tmp/refazer.json 2>/dev/null || true
+
+          if [ "${{ inputs.acao }}" = "refazer" ]; then
+            echo "— o que a passada FEZ:"
+            jq -r 'if .feito == null then "  (não aplicou)" else
+                   "  direções gravadas no post: " + ((.feito.direcoesGravadas // 0)|tostring)
+                   + " · peças refeitas: " + ((.feito.refeitas // 0)|tostring)
+                   + " · desistiram: " + ((.feito.desistiram // 0)|tostring)
+                   + " · ficaram para amanhã (teto do dia): " + ((.feito.semOrcamento // 0)|tostring) end' \
+              /tmp/refazer.json 2>/dev/null || true
+            echo "— motivos distintos das falhas (sem ids):"
+            jq -r '[(.feito.falhas // [])[]] | unique | if length == 0 then "  (nenhuma)" else .[] | "  · " + . end' \
+              /tmp/refazer.json 2>/dev/null || true
+          fi
+
+          echo "— veredito:"
+          jq -r '.veredito // .error // "(sem veredito)"' /tmp/refazer.json 2>/dev/null | sed 's/^/  /'
+
+          # 503 da NOSSA rota quer dizer uma coisa só: CRON_SECRET não existe no
+          # servidor. 503 do edge (deploy em curso) não traz essa frase.
+          if [ "$code" = "503" ]; then
+            if grep -qiE 'não configurad|not configured' /tmp/refazer.json; then
+              echo "::error::A produção respondeu 503: CRON_SECRET não está configurado no servidor."
+              exit 1
+            fi
+            echo "::warning::503 sem ser de configuração (provável deploy em curso). Rode de novo em alguns minutos."
+            exit 1
+          fi
+          if [ "$code" != "200" ]; then
+            echo "::error::A rota respondeu HTTP $code — nada foi refeito."
+            exit 1
+          fi
+
+          situacao=$(jq -r '.situacao // "?"' /tmp/refazer.json 2>/dev/null || echo "?")
+
+          # Cliente errado, nome ambíguo, autor/motivo em branco: são recusas da
+          # rota, não sucessos silenciosos.
+          case "$situacao" in
+            cliente_nao_existe|nome_ambiguo|sem_autor|sem_motivo|sem_renderizador)
+              echo "::error::A passada não rodou: $situacao. Leia o veredito acima."
+              exit 1 ;;
+          esac
+
+          if [ "${{ inputs.acao }}" = "mostrar" ]; then
+            echo "::notice::Leitura pura — nada foi gravado e nenhuma imagem foi paga. Confira o custo e as barradas acima antes de rodar em 'refazer'."
+            # Zero elegível na leitura NÃO é defeito por si só: pode ser que todas
+            # já tenham sido refeitas. Mas passa como aviso, porque também pode ser
+            # a seleção não achando o que deveria achar — e as duas merecem olho.
+            n=$(jq -r '(.elegiveis // []) | length' /tmp/refazer.json 2>/dev/null || echo 0)
+            if [ "$n" = "0" ]; then
+              echo "::warning::Nenhuma peça elegível. Ou já foram todas refeitas, ou estão todas barradas — leia a lista de motivos acima antes de concluir que está tudo certo."
+            fi
+            exit 0
+          fi
+
+          # Refazendo: zero refeita com elegíveis na fila é defeito, não silêncio.
+          refeitas=$(jq -r '.feito.refeitas // 0' /tmp/refazer.json 2>/dev/null || echo 0)
+          faltam=$(jq -r '.faltamDepoisDesteLote // 0' /tmp/refazer.json 2>/dev/null || echo 0)
+          if [ "$refeitas" = "0" ]; then
+            echo "::warning::Nenhuma peça foi refeita. Leia os motivos distintos impressos acima — não conclua que está tudo certo."
+          fi
+          if [ "$faltam" != "0" ]; then
+            echo "::notice::Faltam $faltam peça(s) elegível(is). Rode este workflow de novo — a seleção olha a data do fundo e não paga duas vezes pela mesma peça."
+          fi

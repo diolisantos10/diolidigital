@@ -212,13 +212,17 @@ export interface RelatorioDaProducao {
 
 // ── A MEDIÇÃO ────────────────────────────────────────────────────────────────
 
-function proporcaoDe(formato: string | null | undefined): "quadrada" | "retrato" {
+/** Exportada para o refazimento com direção (`refazer-com-direcao.ts`) ler o
+ *  MESMO preço pela MESMA régua. Duas cópias divergem no primeiro ajuste. */
+export function proporcaoDe(formato: string | null | undefined): "quadrada" | "retrato" {
   // Espelha `artes.ts:325` — `story` é o único retrato. Se aquela linha mudar,
   // o teste `produzir-agora` que compara as duas fica vermelho.
   return (formato ?? "").toLowerCase() === "story" ? "retrato" : "quadrada";
 }
 
-function imagensDoPost(post: { format: string | null; scenesJson: string | null }): number {
+/** Exportada pelo mesmo motivo de `proporcaoDe`: quem estima o custo de refazer
+ *  tem de contar imagem exatamente como quem estima o custo de produzir. */
+export function imagensDoPost(post: { format: string | null; scenesJson: string | null }): number {
   const f = (post.format ?? "").toLowerCase();
   if (f !== "carousel" && f !== "carrossel") return 1;
   let cenas: string[] = [];
@@ -271,7 +275,7 @@ export function motivoParaNaoReceberArte(post: {
 /** Quantas imagens este cliente já pagou HOJE. Mesma consulta de
  *  `abrirOrcamentoDoDia` em `artes.ts` — se as duas divergirem, o teto que o
  *  operador lê não é o teto que a produção aplica. */
-async function imagensGastasHoje(clientId: string): Promise<number | null> {
+export async function imagensGastasHoje(clientId: string): Promise<number | null> {
   const inicioDoDia = new Date();
   inicioDoDia.setHours(0, 0, 0, 0);
   return prisma.mediaAsset
