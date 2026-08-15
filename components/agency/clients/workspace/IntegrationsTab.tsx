@@ -29,17 +29,28 @@ import { podeAlterarIntegracoes } from "@/lib/agency/clients/workspace/permissoe
 import { type PropsDaAba } from "./props-da-aba";
 import type { IntegrationView } from "@/lib/agency/clients/workspace/vista";
 
-/** Quais agentes consomem cada fonte. Exigência do contrato ("quais agentes
- *  utilizam cada integração"). É mapa de arquitetura, não medição — por isso
- *  não vira número: vira o nome dos agentes que param se a fonte cair. */
+/**
+ * Quais agentes consomem cada fonte. Exigência do contrato ("quais agentes
+ * utilizam cada integração"). É mapa de arquitetura, não medição — por isso não
+ * vira número: vira o nome dos agentes que PARAM se a fonte cair, que é o que
+ * torna o alerta acionável.
+ *
+ * ⚠️ A CHAVE É O GLIFO, não o nome. O nome da conexão é escolhido pelo cliente
+ * ("Perfil principal", "Loja centro") e não diz plataforma nenhuma — casar por
+ * nome deixava a coluna inteira em "—" para conexões reais, que é a tela
+ * afirmando que nenhum agente usa aquilo. O glifo vem do `platform` do banco e
+ * é 1:1 com ele.
+ */
+const AGENTES_POR_GLIFO: Record<string, string[]> = {
+  "◉": ["Agente Social Media", "Agente Design", "Agente Tráfego Pago"], // instagram
+  f: ["Agente Social Media", "Agente Tráfego Pago"],                    // facebook
+  "✆": ["Agente Project Manager"],                                      // whatsapp
+  G: ["Agente Estratégia"],                                             // google
+  "▲": ["Agente Design", "Agente Branding"],                            // drive
+};
+
 function agentesQueUsam(i: IntegrationView): string[] {
-  const n = (i.name + " " + i.scopes).toLowerCase();
-  if (n.includes("instagram") || n.includes("facebook") || n.includes("meta")) {
-    return ["Agente Social Media", "Agente Tráfego Pago", "Agente Design"];
-  }
-  if (n.includes("drive")) return ["Agente Design", "Agente Branding"];
-  if (n.includes("google")) return ["Agente Estratégia"];
-  return [];
+  return AGENTES_POR_GLIFO[i.glyph] ?? [];
 }
 
 export function IntegrationsTab({ view, perms, setTab, onOpenPortal }: PropsDaAba & { onOpenPortal: () => void }) {
@@ -136,19 +147,17 @@ export function IntegrationsTab({ view, perms, setTab, onOpenPortal }: PropsDaAb
                   <strong className={agentes.length === 0 ? "noData" : ""}>
                     {agentes.length === 0 ? "—" : agentes.join(" · ")}
                   </strong>
-                  <em>{x.agencyAccess}</em>
-                  {/* O ÚNICO controle por linha, e ele é de LEITURA. Não existe
-                      "conectar", "reconectar" nem "remover" nesta tela. */}
-                  <Acao
-                    ariaLabel={`Ver impacto de ${x.name}`}
-                    indisponivel={
-                      x.tone === "ok"
-                        ? "Esta conexão está saudável e não pede ação. Qualquer mudança nela — trocar conta, alterar escopo, remover — é do cliente, no portal dele."
-                        : MOTIVO_LEITURA
-                    }
-                  >
-                    →
-                  </Acao>
+                  {/* A COLUNA DE ACESSO É O CONTROLE — e não existe outro.
+                      Havia aqui um "→" desabilitado com o motivo ao lado. Ele
+                      não abria nada: não há detalhe de conexão que a agência
+                      possa ver além do que já está nesta linha. E o motivo,
+                      espremido na última célula de uma grade de sete colunas,
+                      virava uma coluna de UMA PALAVRA POR LINHA que esticava a
+                      linha inteira para ~250px de altura — cinco vezes o espaço
+                      da informação real. Um controle que só existe para ser
+                      recusado, ocupando isso, é ruído, não governança. A
+                      restrição continua dita, no lugar onde ela é lida. */}
+                  <em title={MOTIVO_LEITURA}>{x.agencyAccess}</em>
                 </div>
               );
             })

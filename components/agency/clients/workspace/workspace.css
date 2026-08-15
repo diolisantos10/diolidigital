@@ -5457,3 +5457,21 @@
 .dioliOS.ccTextoLegivel .riskRow button {
   font-size: 11px;
 }
+
+/* ── O MOTIVO NÃO CABE DENTRO DE UMA CÉLULA DE GRADE ────────────────────────
+   Achado abrindo a captura de 1440: um botão desabilitado dentro de uma linha
+   de grade estreita renderizava o motivo com uma palavra por linha, e cada
+   linha da tabela passava a ~250px de altura.
+   
+   No desktop, em linha densa, o motivo fica no `title` — a linha já é curta e
+   o ponteiro alcança. No CELULAR essas linhas viram BLOCO (ver o media query
+   acima) e aí o motivo aparece inteiro, porque no toque não existe tooltip e
+   sumir com a explicação ali deixaria um botão cinza sem resposta. É a mesma
+   regra dos dois lados: o motivo sempre existe; o que muda é onde ele cabe. */
+@media (min-width: 721px) {
+  .dioliOS .integrationRow .motivoIndisponivel,
+  .dioliOS .deliveryRow .motivoIndisponivel,
+  .dioliOS .requestRow .motivoIndisponivel {
+    display: none;
+  }
+}
