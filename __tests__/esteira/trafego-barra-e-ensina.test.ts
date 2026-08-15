@@ -26,7 +26,7 @@ const db = vi.hoisted(() => ({
   project: { findUnique: vi.fn() },
   clientRequestDb: { findUnique: vi.fn() },
   metaConnection: { findFirst: vi.fn(), count: vi.fn() },
-  deliverable: { findFirst: vi.fn() },
+  deliverable: { findFirst: vi.fn(), findMany: vi.fn() },
   socialPost: { findFirst: vi.fn() },
   activityEvent: { create: vi.fn() },
   adCampaign: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
@@ -51,7 +51,7 @@ vi.mock("@/lib/integrations/meta/ads", async (orig) => ({
 
 import {
   prepararCampanha, ligarCampanha, desligarCampanha, guardarAVerba,
-  ONDE_CONECTAR, ONDE_MARCAR_A_CONTA, ONDE_DIZER_A_VERBA, ONDE_LIGAR,
+  ONDE_CONECTAR, ONDE_MARCAR_A_CONTA, ONDE_DIZER_A_VERBA, ONDE_LIGAR, POSSE_NAO_CONFERIDA,
 } from "@/lib/agency/esteira/trafego";
 import { escritasPorJanela, tetoDePontos } from "@/lib/integrations/meta/cota-de-anuncios";
 import { PONTOS_DE_ESCRITA } from "@/lib/integrations/meta/travas";
@@ -81,7 +81,7 @@ beforeEach(() => {
   db.adCampaign.create.mockResolvedValue({ id: "ac1" });
   db.adCampaign.update.mockResolvedValue({});
   db.portalMessage.create.mockResolvedValue({});
-  db.deliverable = { findFirst: vi.fn().mockResolvedValue(null) };
+  db.deliverable = { findFirst: vi.fn().mockResolvedValue(null), findMany: vi.fn().mockResolvedValue([{ id: "d1" }]) };
   db.socialPost = { findFirst: vi.fn().mockResolvedValue({ mediaUrl: "/api/media/m1" }) };
   ads.listarContasDeAnuncio.mockResolvedValue({
     ok: true, dados: [{ id: CONTA, nome: "Principal", moeda: "BRL", status: 1 }],
@@ -166,6 +166,22 @@ describe("toda trava que barra também ensina o caminho", () => {
     expect(r.pendencia).toContain(ONDE_LIGAR);
     expect(r.pendencia).toMatch(/PAUSADA/);
     expect(ads.criarCampanhaPausada).toHaveBeenCalled();
+  });
+
+  it("6. sem projeto de dono conhecido, o anúncio não sai — e a frase é a da posse", async () => {
+    // A sexta trava (15/08/2026), e a única que não fala de conexão nem de
+    // verba: se a casa não consegue dizer DE QUEM é o projeto, ela não escolhe
+    // Página nem arte. Campanha e conjunto ficam pausados, o anúncio não nasce.
+    db.project.findUnique
+      .mockResolvedValueOnce({
+        id: "p1", name: "Tráfego", workspaceId: "ws1", clientId: "cityjobs", clientRequestId: "cr1",
+        client: { name: "City Jobs SP", website: "cityjobs.com.br", phone: "(11) 99999-9999" },
+      })
+      .mockResolvedValueOnce(null); // a leitura de dentro do criativo falha
+    const r = await prepararCampanha("p1");
+    expect(ads.criarAnuncioPausado).not.toHaveBeenCalled();
+    expect(r.pendencia).toBe(POSSE_NAO_CONFERIDA);
+    expect(r.pendencia).not.toMatch(/a Meta recusou/i);
   });
 });
 

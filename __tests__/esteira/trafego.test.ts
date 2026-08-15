@@ -4,7 +4,7 @@ const db = vi.hoisted(() => ({
   project: { findUnique: vi.fn() },
   clientRequestDb: { findUnique: vi.fn() },
   metaConnection: { findFirst: vi.fn(), count: vi.fn() },
-  deliverable: { findFirst: vi.fn() },
+  deliverable: { findFirst: vi.fn(), findMany: vi.fn() },
   socialPost: { findFirst: vi.fn() },
   activityEvent: { create: vi.fn() },
   adCampaign: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
@@ -66,7 +66,10 @@ beforeEach(() => {
   ads.criarAnuncioPausado.mockResolvedValue({ ok: true, dados: { adId: "ad_1", creativeId: "cre_1" } });
   ads.buscarInteresses.mockResolvedValue([]);
   ads.ativarFilhos.mockResolvedValue(undefined);
-  db.deliverable = { findFirst: vi.fn().mockResolvedValue(null) };
+  // `findMany` é a lista de entregas DESTE projeto: desde 15/08/2026 é ela que
+  // define quais peças podem virar arte de anúncio. Sem ela, o criativo caía em
+  // "o post mais recente do banco", que é a peça de outro cliente.
+  db.deliverable = { findFirst: vi.fn().mockResolvedValue(null), findMany: vi.fn().mockResolvedValue([{ id: "d1" }]) };
   db.socialPost = { findFirst: vi.fn().mockResolvedValue({ mediaUrl: "/api/media/m1" }) };
   process.env.PUBLIC_BASE_URL = "https://app.dioli.studio";
   process.env.JWT_SECRET = "test-secret";
@@ -88,6 +91,16 @@ describe("a agência PREPARA a campanha; o cliente é quem liga", () => {
     // Campanha pausada que ninguém sabe que existe é trabalho jogado fora.
     await prepararCampanha("p1");
     expect(db.portalMessage.create.mock.calls[0]![0].data.body).toMatch(/PAUSADA/);
+  });
+
+  it("campanha INCOMPLETA não é anunciada ao cliente — nem para dizer que está pausada", async () => {
+    // A metade oposta da de cima, e ela nasceu do torniquete de 15/08/2026:
+    // enquanto a posse da Página não se provava, a campanha saía sem anúncio.
+    // Avisar "está tudo montado" nessa hora é a casa mentindo sobre trabalho
+    // que não terminou.
+    db.socialPost.findFirst.mockResolvedValue(null);
+    await prepararCampanha("p1");
+    expect(db.portalMessage.create).not.toHaveBeenCalled();
   });
 
   it("sem verba informada no briefing, NENHUMA campanha é criada", async () => {
@@ -229,6 +242,24 @@ describe("a campanha só é anunciada ao cliente quando está COMPLETA", () => {
     expect(d.adSetId).toBe("adset_1");
     expect(d.adId).toBe("ad_1");
     expect(d.lastError).toBeNull();
+  });
+
+  it("sem arte do projeto, o registro diz o que falta — e NÃO culpa a Meta", async () => {
+    // 15/08/2026: toda ausência de anúncio virava "a Meta recusou o criativo".
+    // A Meta não tinha recusado nada — a casa é que não achava (ou não podia
+    // provar) a peça. Culpar a plataforma por defeito nosso apaga o rastro do
+    // defeito e manda o operador esperar por alguém que nunca vem.
+    db.socialPost.findFirst.mockResolvedValue(null);
+    const r = await prepararCampanha("p1");
+    expect(db.adCampaign.create.mock.calls[0]![0].data.adId).toBeNull();
+    expect(r.pendencia).toMatch(/arte public[áa]vel/i);
+    expect(r.pendencia).not.toMatch(/a Meta recusou/i);
+  });
+
+  it("recusa REAL da Meta chega com o texto dela, não com uma frase genérica", async () => {
+    ads.criarAnuncioPausado.mockResolvedValue({ ok: false, motivo: "erro_da_meta", erro: "formato de imagem inválido" });
+    const r = await prepararCampanha("p1");
+    expect(r.pendencia).toMatch(/formato de imagem inválido/);
   });
 
   it("conjunto que a Meta recusou vira pendência visível, não campanha 'pronta'", async () => {

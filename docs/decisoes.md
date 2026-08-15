@@ -8,6 +8,54 @@
 
 ---
 
+## O ANÚNCIO SÓ NASCE COM ATIVO QUE SE PROVA DO DONO — PÁGINA E ARTE
+
+**Decidido em** 2026-08-15 · **por** `seguranca`, a pedido do Diretor ·
+**commits** `209b504` (torniquete) e este · **origem:** auditoria de
+`lib/agency/esteira/trafego.ts`
+
+**O que estava aberto, em produção viva.** `montarCriativo` escolhia a Página
+com `findFirst({ workspaceId, platform: "facebook" })` — **sem `clientId`** — e
+a arte com `findFirst({ mediaUrl: { not: null } })` — **sem dono nenhum**. O
+`pageId` seguia cru para `object_story_spec.page_id` sem passar pela lista de
+ativos autorizados, que desde 06/08 já barrava a conta de anúncios. Num
+workspace com mais de um cliente isso significa: **o anúncio do cliente A nasce
+assinado pela Página do cliente B, com a arte de B**. O gatilho é o cliente
+aprovar o pacote (`lib/agency/esteira/marcos.ts`).
+
+**A decisão, em uma frase: id recebido não é id provado.** Vale para os três
+ativos do criativo, e nenhum deles chega por parâmetro de quem chama:
+
+1. **Página pelo `clientId` do projeto**, derivado do banco dentro de
+   `montarCriativo` — não recebido do chamador.
+2. **Arte pelas peças DESTE projeto** (entregas do projeto ou o pedido que o
+   originou), com `workspaceId` e `clientId` junto. Nunca "o post mais recente
+   do banco". Sem vínculo possível, não se consulta: a resposta certa é "nada".
+3. **A Página passa por `ativoAutorizado(..., "page", ...)` DENTRO de
+   `criarAnuncioPausado`** — onde o id é usado, não no chamador. Conferir no
+   chamador é o que deixou `publishPost` de fora da trava em 06/08. A mesma
+   trava entra na segunda porta do arquivo (`promoted_object.page_id`, objetivo
+   "conversas"), **antes** de existir chamador que a use.
+
+**Consequência aceita, e ela é uma escolha:** cliente cuja Página não estiver
+marcada em `MetaAtivoAutorizado` **não ganha anúncio** — ganha uma pendência que
+diz qual ativo falta e onde marcar. Fail-closed: não conseguir provar a posse
+nunca vira permissão. Preferimos uma campanha sem anúncio a um anúncio assinado
+pela marca de outro cliente, que é dano que nenhum código desfaz.
+
+**E a frase parou de mentir.** Toda ausência de anúncio virava *"a Meta recusou
+o criativo"*. A Meta não recusava nada — era defeito nosso. Recusa real da Meta
+agora chega com o texto dela; recusa nossa se identifica como nossa e ensina o
+gesto.
+
+**Como se mede o passado sem chamar a Meta:**
+`scripts/pericia-posse-do-criativo.mts` — somente leitura, só banco. Reconstrói
+a escolha determinística do código antigo e classifica cada anúncio já criado em
+limpo / nasceu com ativo de outro / ambíguo. **Ambíguo não é limpo — é "não
+medido"**, e vai para conferência à mão no Gerenciador.
+
+---
+
 ## QUEM APROVA A PEÇA É O CLIENTE DELA — PEÇA POR PEÇA, NUNCA EM BLOCO
 
 **Decidido em** 2026-08-14 · **por** Dioli (CEO) · **registrado pelo** Diretor ·

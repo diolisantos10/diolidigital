@@ -47,6 +47,7 @@ import { graphGet, graphPost, GraphApiError } from "./graph";
 import { loadConnectionToken } from "./connections";
 import {
   filtrarAutorizados, ativoAutorizado, normalizarId, FRASE_SEM_AUTORIZACAO,
+  ONDE_MARCAR_OS_ATIVOS,
 } from "./ativos-autorizados";
 import { TIPO_DE_RITMO_DA_CASA } from "./ritmo";
 import { lerDoCacheNoBanco, guardarNoCacheNoBanco, limparCacheNoBanco } from "./cache-no-banco";
@@ -394,6 +395,47 @@ async function recusarContaNaoAutorizada(
 }
 
 /**
+ * A MESMA TRAVA, PARA A PÁGINA (15/08/2026).
+ *
+ * A conta de anúncios passava por `MetaAtivoAutorizado` desde 06/08. A PÁGINA
+ * não passava por nada: ela chegava crua de `montarCriativo` e ia direto para
+ * `object_story_spec.page_id`. Quem assina o anúncio — a marca que aparece para
+ * o público — não era conferida, e o dono do anúncio era. Faltava a metade que
+ * o cliente enxerga.
+ *
+ * A conferência mora AQUI, dentro da função que usa o id, e não no chamador.
+ * Conferir no chamador deixa a próxima porta descoberta — foi assim que a
+ * publicação orgânica (`publishPost`) ficou de fora da trava de ativos em
+ * 06/08/2026, e a lição custou uma auditoria inteira.
+ *
+ * `clientId` é DERIVADO do token que vai ser usado (`conn.clientId`), nunca
+ * recebido de quem chamou: a pergunta é "de quem é ESTE token?", não "de quem o
+ * chamador disse que é". Mesma regra de comparação de id (`normalizarId`) —
+ * duas gramáticas de id na mesma trava é meia trava.
+ */
+async function recusarPaginaNaoAutorizada(
+  workspaceId: string,
+  clientId: string | null,
+  pageId: string | undefined,
+): Promise<ResultadoDeAnuncio<never> | null> {
+  const alvo = normalizarId("page", pageId ?? "");
+  if (!alvo) {
+    return {
+      ok: false,
+      motivo: "sem_autorizacao",
+      erro: "anúncio sem Página não é anúncio: é a Página que assina a peça para o público. Nada foi criado.",
+    };
+  }
+  if (await ativoAutorizado(workspaceId, clientId, "page", alvo)) return null;
+  return {
+    ok: false,
+    motivo: "sem_autorizacao",
+    erro: `A Página ${alvo} não está na lista de ativos que este cliente autorizou — e é ela que assinaria o anúncio. `
+      + `Nada foi criado nem alterado. Onde resolver: ${ONDE_MARCAR_OS_ATIVOS}.`,
+  };
+}
+
+/**
  * Cria a campanha — SEMPRE PAUSADA.
  *
  * `status: "PAUSED"` é literal e não é parâmetro. Uma campanha criada ativa por
@@ -527,6 +569,14 @@ export async function criarConjuntoPausado(
   if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada" };
   const barrado = await recusarContaNaoAutorizada(workspaceId, conn.clientId, input.contaId);
   if (barrado) return barrado;
+  // O objetivo "conversas" injeta `promoted_object.page_id` mais abaixo: é a
+  // segunda porta pela qual uma Página chega à Meta neste arquivo. Hoje nenhum
+  // chamador manda `pageId` aqui — e é justamente por isso que a trava entra
+  // agora, antes de o primeiro chamador aparecer e ninguém lembrar.
+  if (input.pageId) {
+    const paginaBarrada = await recusarPaginaNaoAutorizada(workspaceId, conn.clientId, input.pageId);
+    if (paginaBarrada) return paginaBarrada;
+  }
 
   const p = input.publico;
   const raio = Math.max(RAIO_MIN_KM, Math.min(RAIO_MAX_KM, Math.round(p.raioKm || 10)));
@@ -609,6 +659,11 @@ export async function criarAnuncioPausado(
   if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada" };
   const barrado = await recusarContaNaoAutorizada(workspaceId, conn.clientId, input.contaId);
   if (barrado) return barrado;
+  // A PÁGINA TAMBÉM. Ela vai para `object_story_spec.page_id` logo abaixo — é a
+  // marca que aparece para o público — e até 15/08/2026 era o único ativo desta
+  // função que não passava por lista nenhuma.
+  const paginaBarrada = await recusarPaginaNaoAutorizada(workspaceId, conn.clientId, input.pageId);
+  if (paginaBarrada) return paginaBarrada;
   if (!input.imagemUrl || !input.link) {
     return { ok: false, motivo: "orcamento_invalido", erro: "anúncio sem imagem ou sem destino não é anúncio" };
   }

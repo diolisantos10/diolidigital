@@ -62,6 +62,37 @@ export const ONDE_DIZER_A_VERBA =
 export const ONDE_LIGAR =
   'painel da agência → Desempenho pago → a campanha → "Ligar" (fica gravado quem autorizou)';
 
+// ─── A POSSE DO CRIATIVO (15/08/2026) ───────────────────────────────────────
+//
+// `montarCriativo` escolhia a Página com `findFirst({ workspaceId, platform:
+// "facebook" })` — **sem `clientId`** — e a arte com `findFirst({ mediaUrl: {
+// not: null } })` — **sem dono nenhum**. Num banco com mais de um cliente isso
+// significa, literalmente: o anúncio do cliente A nasce assinado pela Página do
+// cliente B, com a arte do post mais recente da base, seja de quem for. E o
+// `pageId` seguia CRU para `object_story_spec.page_id` (`ads.ts`), sem passar
+// pela lista de ativos autorizados que existe desde 06/08/2026 — a mesma trava
+// que a conta de anúncios já atravessa.
+//
+// A regra desta casa, aplicada aqui: **id recebido não é id provado**. As três
+// peças do criativo passaram a ser DERIVADAS do projeto, e nenhuma delas chega
+// por parâmetro de quem chama:
+//
+//   1. a Página, pelo `clientId` do projeto;
+//   2. a arte, pelas peças DESTE projeto (entrega ou pedido do cliente);
+//   3. a Página de novo, dentro de `criarAnuncioPausado`, contra a lista de
+//      ativos autorizados — a conferência mora onde o id é USADO, porque
+//      conferir no chamador deixa a próxima porta descoberta.
+//
+// O torniquete que ficou aqui entre os dois commits — `POSSE_DO_CRIATIVO_
+// CONFERIDA = false` — saiu junto com o conserto. Torniquete que vira parte da
+// anatomia é gangrena.
+
+/** O motivo honesto quando não dá para provar de quem é o ativo. Não é "a Meta
+ *  recusou": a Meta não recusou nada — nós é que não provamos a posse. */
+export const POSSE_NAO_CONFERIDA =
+  "anúncio não criado — a casa não consegue provar que a Página e a arte são DESTE cliente, "
+  + "e um anúncio assinado pela Página de outro cliente é um dano que não se desfaz.";
+
 /**
  * Prepara a campanha do projeto — criada PAUSADA — e pede o aval do cliente.
  *
@@ -200,21 +231,31 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
   });
 
   // ── O ANÚNCIO ─────────────────────────────────────────────────────────────
-  const criativo = await montarCriativo(projectId, projeto.workspaceId, conexao.id);
+  const criativo = await montarCriativo(projectId, projeto.workspaceId);
   let anuncioId: string | null = null;
-  if (conjunto.ok && conjunto.dados && criativo) {
+  // O motivo começa sendo o do criativo e só é substituído por uma recusa real
+  // da Meta. Antes de 15/08/2026 toda ausência de anúncio virava "a Meta
+  // recusou o criativo" — culpar a plataforma por um defeito nosso apaga o
+  // rastro do defeito e manda o operador esperar por alguém que nunca vem.
+  let porQueSemAnuncio: string | null = criativo.ok ? null : criativo.pendencia;
+  if (conjunto.ok && conjunto.dados && criativo.ok) {
     const anuncio = await criarAnuncioPausado(projeto.workspaceId, conexao.id, {
       contaId: plano.contaId,
       adSetId: conjunto.dados.adSetId,
-      pageId: criativo.pageId,
+      pageId: criativo.criativo.pageId,
       nome: plano.nome,
-      imagemUrl: criativo.imagemUrl,
-      texto: criativo.texto,
-      titulo: criativo.titulo,
-      link: criativo.link,
-      cta: criativo.cta,
+      imagemUrl: criativo.criativo.imagemUrl,
+      texto: criativo.criativo.texto,
+      titulo: criativo.criativo.titulo,
+      link: criativo.criativo.link,
+      cta: criativo.criativo.cta,
     });
-    if (anuncio.ok && anuncio.dados) anuncioId = anuncio.dados.adId;
+    if (anuncio.ok && anuncio.dados) {
+      anuncioId = anuncio.dados.adId;
+      porQueSemAnuncio = null;
+    } else {
+      porQueSemAnuncio = `anúncio não criado — ${anuncio.erro ?? "a Meta recusou o criativo"}`;
+    }
   }
 
   // Campanha incompleta não pode parecer pronta. O que faltou é calculado aqui
@@ -223,7 +264,7 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
   const oQueFaltou = !conjunto.ok
     ? `conjunto não criado: ${conjunto.erro ?? "erro"}`
     : !anuncioId
-      ? (criativo ? "anúncio não criado — a Meta recusou o criativo" : "anúncio não criado — falta arte ou página do Facebook conectada")
+      ? (porQueSemAnuncio ?? "anúncio não criado")
       : null;
 
   const registro = await prisma.adCampaign.create({
@@ -569,31 +610,94 @@ async function lerSegmentacao(
   };
 }
 
+export interface CriativoDoAnuncio {
+  pageId: string; imagemUrl: string; texto: string; titulo: string; link: string; cta?: string;
+}
+
+/** Ou o criativo, ou o MOTIVO de não haver criativo. Devolver `null` seco fazia
+ *  o chamador ter de adivinhar por que — e ele adivinhava errado, em português,
+ *  para o painel de quem trabalha. */
+export type CriativoMontado =
+  | { ok: true; criativo: CriativoDoAnuncio }
+  | { ok: false; pendencia: string };
+
 /**
  * Monta o criativo do anúncio a partir do que a casa já produziu: a arte do
  * Design e a copy do especialista de anúncio.
  *
- * Devolve `null` quando falta arte ou página do Facebook — e isso vira pendência
- * visível, não um anúncio pela metade.
+ * Não devolve criativo quando falta arte, falta Página ou **não se prova de
+ * quem são** — e isso vira pendência visível, não um anúncio pela metade nem um
+ * anúncio com o ativo de outro cliente.
  */
 async function montarCriativo(
   projectId: string,
   workspaceId: string,
-  connectionId: string,
-): Promise<{ pageId: string; imagemUrl: string; texto: string; titulo: string; link: string; cta?: string } | null> {
-  const pagina = await prisma.metaConnection.findFirst({
-    where: { workspaceId, platform: "facebook", status: "connected" },
-    select: { externalId: true },
+): Promise<CriativoMontado> {
+  // ── O DONO, DERIVADO DO PROJETO ─────────────────────────────────────────
+  // Não entra por parâmetro. Quem chama já passou `workspaceId` e poderia
+  // passar um `clientId` junto — e aí a posse seria o que o chamador AFIRMA,
+  // não o que o banco prova. Mesma disciplina de `ativos-autorizados.ts`.
+  const projeto = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      clientId: true, workspaceId: true, clientRequestId: true,
+      client: { select: { website: true, phone: true } },
+    },
   }).catch(() => null);
-  if (!pagina?.externalId) return null;
+  if (!projeto || projeto.workspaceId !== workspaceId || !projeto.clientId) {
+    // Fail-closed: sem projeto, sem workspace batendo ou sem dono, não há de
+    // quem seja o anúncio — e "não sei de quem é" nunca vira "pode usar".
+    return { ok: false, pendencia: POSSE_NAO_CONFERIDA };
+  }
+  const clientId = projeto.clientId;
 
-  const post = await prisma.socialPost.findFirst({
-    where: { mediaUrl: { not: null } },
+  // ── 1. A PÁGINA DO DONO ──────────────────────────────────────────────────
+  // `clientId` no filtro. Sem ele, `findFirst` devolvia a primeira Página
+  // conectada do workspace — que num banco com vários clientes é a de outro.
+  const pagina = await prisma.metaConnection.findFirst({
+    where: { workspaceId, clientId, platform: "facebook", status: "connected" },
+    select: { externalId: true },
+    orderBy: { connectedAt: "desc" },
+  }).catch(() => null);
+  if (!pagina?.externalId) {
+    return {
+      ok: false,
+      pendencia: "anúncio não criado — este cliente não tem Página do Facebook conectada, e a Página de outro cliente não serve. "
+        + `Onde resolver: ${ONDE_CONECTAR}.`,
+    };
+  }
+
+  // ── 2. A ARTE DESTE PROJETO ──────────────────────────────────────────────
+  // `SocialPost` não tem `projectId` (ver schema): o vínculo com o projeto são
+  // as ENTREGAS dele (`deliverableId`) e o pedido que o originou
+  // (`clientRequestId`). Os dois ramos são do projeto; nenhum é "a peça mais
+  // recente do banco". `clientId` e `workspaceId` vão junto como cinto e
+  // suspensório — se um dia uma entrega for movida de projeto, o dono ainda
+  // barra.
+  const entregas = await prisma.deliverable.findMany({
+    where: { projectId },
+    select: { id: true },
+  }).catch(() => [] as Array<{ id: string }>);
+  const daqueleProjeto = [
+    ...(entregas.length > 0 ? [{ deliverableId: { in: entregas.map((e) => e.id) } }] : []),
+    ...(projeto.clientRequestId ? [{ clientRequestId: projeto.clientRequestId }] : []),
+  ];
+  // Sem nenhum vínculo possível, não se consulta o banco: `OR: []` é uma
+  // pergunta cuja única resposta certa é "nada", e escrevê-la explicitamente
+  // impede que uma refatoração futura a transforme em "tudo".
+  const post = daqueleProjeto.length === 0 ? null : await prisma.socialPost.findFirst({
+    where: { workspaceId, clientId, mediaUrl: { not: null }, OR: daqueleProjeto },
     orderBy: { createdAt: "desc" },
     select: { mediaUrl: true },
   }).catch(() => null);
   const imagemUrl = await urlPublica(post?.mediaUrl ?? null);
-  if (!imagemUrl) return null;
+  if (!imagemUrl) {
+    return {
+      ok: false,
+      pendencia: "anúncio não criado — este projeto ainda não tem arte publicável. "
+        + "A peça de outro cliente (ou de outro projeto) não entra no lugar: ela foi paga para outra coisa.",
+    };
+  }
 
   const copy = await prisma.deliverable.findFirst({
     where: { projectId, ownerAgentId: "traffic-copy-anuncio" },
@@ -608,26 +712,27 @@ async function montarCriativo(
     ?? capturarCampo(copy?.content ?? "", "Texto")
     ?? titulo;
 
-  const cliente = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { client: { select: { website: true, phone: true } } },
-  }).catch(() => null);
-  const site = cliente?.client?.website?.trim();
+  const site = projeto.client?.website?.trim();
   // Sem site do cliente, o destino é o WhatsApp dele — que é o que a maioria
   // dos clientes desta casa realmente tem. Sem nenhum dos dois, não há anúncio.
-  const zap = cliente?.client?.phone?.replace(/\D/g, "");
+  const zap = projeto.client?.phone?.replace(/\D/g, "");
   const link = site
     ? (site.startsWith("http") ? site : `https://${site}`)
     : (zap && zap.length >= 10 ? `https://wa.me/55${zap.slice(-11)}` : "");
-  if (!link) return null;
+  if (!link) {
+    return { ok: false, pendencia: "anúncio não criado — o cliente não tem site nem WhatsApp no cadastro, e anúncio sem destino não é anúncio" };
+  }
 
   return {
-    pageId: pagina.externalId,
-    imagemUrl,
-    texto: texto.slice(0, 2000),
-    titulo: titulo.slice(0, 100),
-    link,
-    cta: site ? "LEARN_MORE" : "WHATSAPP_MESSAGE",
+    ok: true,
+    criativo: {
+      pageId: pagina.externalId,
+      imagemUrl,
+      texto: texto.slice(0, 2000),
+      titulo: titulo.slice(0, 100),
+      link,
+      cta: site ? "LEARN_MORE" : "WHATSAPP_MESSAGE",
+    },
   };
 }
 
