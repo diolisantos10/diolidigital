@@ -98,6 +98,9 @@ export const PAGINAS: PaginaInterna[] = [
   // departamento é como a agência vira silo: o Design descobre a promessa do
   // Tráfego pelo cliente reclamando.
   { href: "/agency/approvals",             titulo: "Aprovações",              dono: "project-management", acesso: "todos_internos", noMenu: true  },
+  // V2 (M4): a sala do PM — portfólio canônico, bloqueios, outbox e saúde da
+  // migração. Leitura para todo interno; a ação de escrita (retomar) chega no M6.
+  { href: "/agency/pm-command",            titulo: "PM Command Center",       dono: "project-management", acesso: "todos_internos", noMenu: true  },
   { href: "/agency/projects",              titulo: "Projetos",                dono: "project-management", acesso: "todos_internos", noMenu: true  },
   { href: "/agency/pipeline",              titulo: "Pipeline",                dono: "project-management", acesso: "todos_internos", noMenu: true  },
   { href: "/agency/planner",               titulo: "Planner",                 dono: "project-management", acesso: "todos_internos", noMenu: true  },
