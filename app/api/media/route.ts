@@ -199,6 +199,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     materialDeMarca = reg.ok
       ? { registrado: true, papel: reg.papel }
       : { registrado: false, motivo: reg.erro };
+
+    // ── O BRAND BOOK É LIDO — DEPOIS DE GUARDADO, NUNCA ANTES ──────────────
+    //
+    // A ordem é a garantia: os bytes já estão no disco e a linha de material já
+    // existe quando esta leitura começa. Uma falha do modelo, um timeout ou uma
+    // chave sem crédito custam a ANÁLISE, nunca o arquivo do cliente.
+    //
+    // E não bloqueia a resposta: ler um PDF leva até 90 segundos, e o cliente
+    // não pode ficar com a tela girando por causa disso. O estado fica visível
+    // ("analisando") desde o primeiro instante, gravado ANTES de a chamada sair
+    // — e tem prazo, para nunca virar um estado eterno.
+    //
+    // O que a leitura produz é SUGESTÃO. Ela não toca a ficha de marca: quem
+    // aplica é `POST /api/agency/clients/[id]/marca/do-brand-book`, com revisão
+    // humana e com a trava que impede sobrescrever o que o dono já respondeu.
+    if (reg.ok && reg.papel === "manual_de_marca" && clientId) {
+      const { lerBrandBookRecebido } = await import("@/lib/agency/brand/brand-book-recebido");
+      const dono = { workspaceId, clientId, materialId: reg.driveMaterialId ?? "" };
+      if (dono.materialId) {
+        void lerBrandBookRecebido({
+          ...dono,
+          arquivo: nome,
+          bytes,
+          mimeType: mime,
+        }).catch((e) => console.error("[media] leitura do brand book falhou", e));
+      }
+    }
   }
 
   // ── O ARQUIVO DESTRAVA A ESTEIRA ──────────────────────────────────────────

@@ -19,7 +19,15 @@ function isAllowed(rel: string): boolean {
   return rel.startsWith("lib/ai/") || rel.startsWith("lib/generated/");
 }
 
-/** Dívida pré-portão, CONGELADA. Remover item = progresso; adicionar = proibido. */
+/** Dívida pré-portão, CONGELADA. Remover item = progresso; adicionar = proibido.
+ *
+ *  15/08/2026 — SAIU DAQUI: `app/api/brain/analyze-brand-book/route.ts`. A
+ *  leitura do brand book passou a morar em `lib/ai/leitura-de-marca.ts`, dentro
+ *  do motor, e a rota virou porta HTTP (só decide quem pode entrar).
+ *
+ *  A mudança nasceu de este portão ter REPROVADO a primeira tentativa, que
+ *  punha o analisador em `lib/agency/brand/`. Ele estava certo: a saída não era
+ *  acrescentar uma exceção, era pôr o código no lugar certo. */
 const FROZEN_EXCEPTIONS = new Set<string>([
   "app/api/agents/ads/generate/route.ts",
   "app/api/agents/brand/analyze/route.ts",
@@ -28,7 +36,6 @@ const FROZEN_EXCEPTIONS = new Set<string>([
   "app/api/agents/pm/generate/route.ts",
   "app/api/agents/social/generate/route.ts",
   "app/api/ai-keys/test/route.ts",
-  "app/api/brain/analyze-brand-book/route.ts",
   "app/api/brain/briefing-extract/route.ts",
   "app/api/sdr/chat/route.ts",
   "app/api/sdr/transcribe/route.ts",
