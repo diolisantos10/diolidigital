@@ -181,6 +181,21 @@ export interface FichaDeMarca {
   /** `true` enquanto a marca não sai do dia zero. Gatilho de saída da
    *  constituição, verificável por máquina — não por julgamento. */
   naoConstituida: boolean;
+  /**
+   * O que AINDA FALTA para a publicação deixar de ser barrada, em português de
+   * gente e item por item.
+   *
+   * Existe porque `definidos` e `naoConstituida` respondem perguntas
+   * diferentes, e a tela mostrava só o primeiro. Um campo pode estar
+   * legitimamente `definido` (uma proibição registrada É uma regra, e o piso a
+   * cobra) sem o gatilho estar satisfeito (ele pede três). Enquanto a tela
+   * mostrava "8 de 9" e a porta continuava fechada, ninguém tinha como
+   * descobrir o que faltava sem ler o código do gatilho.
+   *
+   * Vazio = a porta abre. É o mesmo cálculo de `naoConstituida`, escrito por
+   * extenso — nunca uma segunda conta.
+   */
+  oQueFaltaParaPublicar: string[];
 }
 
 function textoDe(v: unknown): string {
@@ -188,17 +203,45 @@ function textoDe(v: unknown): string {
   return "";
 }
 
+/**
+ * O JSON tem CONTEÚDO — não só envelope.
+ *
+ * ── O que esta função contava antes, e por que era o defeito ───────────────
+ *
+ * Ela media `Object.keys(v).length > 0`: contava CHAVE, não resposta. Com isso,
+ * `{"dizemos":"vaga perto de você","naoDizemos":""}` e `{"descricao":""}`
+ * chegavam como campo `definido` — a ficha somava +1, a barra de progresso
+ * andava, e a metade que a régua exige estava em branco.
+ *
+ * **É isto que fazia a tela mostrar progresso com a porta fechada.** O cliente
+ * respondia, o número subia, e `naoConstituida` continuava `true` sem nada na
+ * tela explicar por quê. Número que promete o que a máquina não faz é pior que
+ * número nenhum.
+ *
+ * Agora conta FOLHA com texto: um objeto cujos valores são todos vazios é um
+ * envelope vazio, e envelope vazio não é resposta.
+ */
 function jsonTemConteudo(bruto: string | null | undefined): boolean {
   const s = (bruto ?? "").trim();
   if (!s || s === "{}" || s === "[]" || s === "null") return false;
   try {
-    const v = JSON.parse(s);
-    if (Array.isArray(v)) return v.length > 0;
-    if (v && typeof v === "object") return Object.keys(v).length > 0;
-    return false;
+    return algumaFolhaCheia(JSON.parse(s), 0);
   } catch {
     return false;
   }
+}
+
+/** Fundo máximo da varredura. JSON de ficha é raso; o teto existe para que
+ *  estrutura estranha não vire recursão infinita. */
+const FUNDO_MAXIMO = 4;
+
+function algumaFolhaCheia(v: unknown, fundo: number): boolean {
+  if (fundo > FUNDO_MAXIMO) return false;
+  if (typeof v === "string") return v.trim().length > 0;
+  if (typeof v === "number" || typeof v === "boolean") return true;
+  if (Array.isArray(v)) return v.some((x) => algumaFolhaCheia(x, fundo + 1));
+  if (v && typeof v === "object") return Object.values(v).some((x) => algumaFolhaCheia(x, fundo + 1));
+  return false;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -315,8 +358,11 @@ export async function lerFichaDeMarca(clientId: string): Promise<FichaDeMarca> {
     },
     voz: {
       // O tom sozinho NÃO conta como voz definida: "natural e direto" é adjetivo,
-      // e adjetivo não é verificável. Só os pares de exemplo contam.
-      cheio: jsonTemConteudo(marca?.voicePairsJson),
+      // e adjetivo não é verificável. Só os pares de exemplo contam — e **um par
+      // com uma metade em branco não é um par**. `jsonTemConteudo` contava a
+      // CHAVE, então `{dizemos:"x", naoDizemos:""}` somava +1 na tela enquanto
+      // a régua continuava sem o "nunca falaríamos assim" que permite reprovar.
+      cheio: vozCompleta(marca?.voicePairsJson),
       valor: legivel(marca?.voicePairsJson),
     },
     lexico: { cheio: jsonTemConteudo(marca?.lexiconJson), valor: legivel(marca?.lexiconJson) },
@@ -324,7 +370,12 @@ export async function lerFichaDeMarca(clientId: string): Promise<FichaDeMarca> {
       cheio: temProibicao,
       valor: (proib.itens ?? []).map((i) => i.frase).join(" · ").slice(0, 240),
     },
-    referencias: { cheio: jsonTemConteudo(marca?.referencesJson), valor: legivel(marca?.referencesJson) },
+    // A MESMA função que o gatilho do dia zero consulta, e que
+    // `publicacao.ts:699` obedece. Enquanto a ficha contava por
+    // `jsonTemConteudo` e a porta decidia por `referenciasCompletas`, o campo
+    // aparecia verde na tela com a publicação barrada — dois números para a
+    // mesma pergunta, e o da tela era o mentiroso.
+    referencias: { cheio: referenciasCompletas(marca?.referencesJson), valor: legivel(marca?.referencesJson) },
     atributos_formais: {
       cheio: jsonTemConteudo(marca?.formalTokensJson) || !!textoDe(marca?.primaryColor),
       valor: legivel(marca?.formalTokensJson) || [marca?.primaryColor, marca?.secondaryColor, marca?.typography].filter(Boolean).join(" · "),
@@ -384,12 +435,33 @@ export async function lerFichaDeMarca(clientId: string): Promise<FichaDeMarca> {
   // fechada sem ninguém entender por quê.
   const referenciasSuficientes = referenciasCompletas(marca?.referencesJson);
 
+  // O MESMO cálculo, escrito por extenso. Nunca uma segunda conta: cada item
+  // aqui é uma das três parcelas do gatilho, e a lista vazia é exatamente a
+  // condição de `naoConstituida === false`.
+  const refs = referenciasDeclaradas(marca?.referencesJson);
+  const oQueFaltaParaPublicar = [
+    ...exigidos
+      .filter((c) => campos.find((x) => x.campo === c)?.estado !== "definido")
+      .map((c) => ROTULO[c]),
+    proibicoesSuficientes
+      ? ""
+      : `o que a marca nunca faz — ${(proib.itens ?? []).length} de 3 regras registradas`,
+    referenciasSuficientes
+      ? ""
+      : refs.aprovadas.length === 0 && refs.reprovadas.length === 0
+      ? "um post que é a cara de vocês, e um que não é"
+      : refs.reprovadas.length === 0
+      ? "falta o post que NÃO era a cara de vocês — é ele que me deixa reprovar peça"
+      : "falta o post que É a cara de vocês",
+  ].filter(Boolean);
+
   return {
     clientId,
     campos,
     definidos,
     lacunas,
     naoConstituida: !(temExigidos && proibicoesSuficientes && referenciasSuficientes),
+    oQueFaltaParaPublicar,
   };
 }
 

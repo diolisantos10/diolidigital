@@ -57,6 +57,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     // Conclusão primeiro, para a tela não ter de calcular: onde ele está.
     progresso: { respondidas: ficha.definidos, total: ficha.campos.length },
+    // O que ainda trava a publicação — a régua da PORTA, não a contagem de
+    // campos. As duas divergem por natureza, e mostrar só a contagem é como o
+    // cliente via a barra andar com nada saindo.
+    faltaParaPublicar: ficha.oQueFaltaParaPublicar,
     // Vazio = acabou. A tela mostra "terminou", não uma lista vazia.
     perguntas: perguntas.map(paraATela),
   });

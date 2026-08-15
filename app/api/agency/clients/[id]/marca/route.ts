@@ -37,6 +37,11 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       oQueAFaltaImpede: ficha.naoConstituida
         ? "sem isto a peça sai sem régua de marca, e o portão de entrega barra a publicação"
         : null,
+      // O QUE exatamente falta, item por item. `definidos` conta campo; a porta
+      // decide por outra régua (5 campos + 3 proibições + as duas referências).
+      // A tela mostrava só o primeiro número, então dava para ver "8 de 9" com
+      // a publicação barrada e nada explicando por quê.
+      oQueFaltaParaPublicar: ficha.oQueFaltaParaPublicar,
     },
     proximasPerguntas: proximasPerguntas(ficha),
   });
