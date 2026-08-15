@@ -2161,10 +2161,29 @@ model ExecucaoV2 {
   inicio         DateTime  @default(now())
   fim            DateTime?
   resultado      String?
+  /// Piloto assistido: de que cliente é este trabalho (null = interno).
+  clienteId      String?
+  /// JSON: as entradas efetivamente usadas (rastro completo da regra 6).
+  entradas       String?
 
   @@index([correlationId])
   @@index([departamentoId, funcaoId])
   @@index([ator, inicio])
+  @@index([clienteId, inicio])
+}
+
+/// AUDITORIA DE RECUSAS (piloto assistido): recusa sem rastro é recusa
+/// invisível — cada "não" do motor fica registrado com motivo e contexto.
+model RecusaV2 {
+  id            String   @id @default(cuid())
+  funcaoId      String
+  motivo        String
+  correlationId String
+  clienteId     String?
+  em            DateTime @default(now())
+
+  @@index([funcaoId, em])
+  @@index([correlationId])
 }
 
 /// Toda transição da máquina canônica deixa rastro: quem, quando, origem,

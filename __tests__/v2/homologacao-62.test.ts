@@ -65,8 +65,12 @@ function depsEmMemoria(opcoes?: {
       opcoes?.gravadas?.push(registro);
     },
     async realizar(spec) {
+      // A validação estrutural é real: ficha que pede JSON recebe JSON.
+      const saida = /json/i.test(spec.saida.formato)
+        ? JSON.stringify({ marca: "[SINTÉTICO]", corpo: `saída de ensaio no formato ${spec.saida.formato}` })
+        : `[SINTÉTICO] saída de ensaio no formato ${spec.saida.formato}`;
       return {
-        saida: `[SINTÉTICO] saída de ensaio no formato ${spec.saida.formato}`,
+        saida,
         custoUsd: opcoes?.custoRealUsd?.(spec.teto_custo_usd_execucao) ?? spec.teto_custo_usd_execucao / 2,
       };
     },
@@ -95,15 +99,44 @@ function contextoSintetico(funcaoId: string, sobrescrever?: Partial<ContextoDeEx
 
 // ---- 1. a trava de produção ----------------------------------------------
 
-describe("homologação — produção recusa as 62 enquanto desligadas (trava dupla)", () => {
-  it("modo produção recusa TODAS as funções mesmo com a flag v2_execucao ligada", async () => {
+// A allowlist do piloto assistido (decisão do CEO, 15/08/2026) — as mesmas 6
+// do teste de fichas; se as fichas divergirem desta lista, um dos dois reprova.
+const CADEIA_DO_PILOTO = new Set([
+  "pm-orchestrator",
+  "brand-architect",
+  "social-strategist",
+  "editorial-planner",
+  "copywriter",
+  "graphic-designer",
+]);
+
+describe("homologação — produção respeita a trava dupla: só a cadeia do piloto, e só com flag", () => {
+  it("as funções FORA da cadeia recusam em produção mesmo com a flag v2_execucao ligada", async () => {
     const deps = depsEmMemoria({ flagsLigadas: ["v2_execucao"] });
     for (const f of FUNCOES_V2) {
+      if (CADEIA_DO_PILOTO.has(f.id)) continue;
       const resultado = await executarFuncao(f.id, PERFIL, contextoSintetico(f.id, { modo: "producao" }), ATOR_IA, deps);
       expect(resultado.decisao, f.id).toBe("recusado");
       if (resultado.decisao === "recusado") {
         expect(resultado.motivo, f.id).toContain("DESLIGADA");
       }
+    }
+  });
+
+  it("as 6 da cadeia recusam em produção SEM a flag no escopo — a segunda chave segura sozinha", async () => {
+    const deps = depsEmMemoria(); // nenhuma flag ligada
+    for (const id of CADEIA_DO_PILOTO) {
+      const resultado = await executarFuncao(id, PERFIL, contextoSintetico(id, { modo: "producao" }), ATOR_IA, deps);
+      expect(resultado.decisao, id).toBe("recusado");
+      if (resultado.decisao === "recusado") expect(resultado.motivo, id).toContain("v2_execucao");
+    }
+  });
+
+  it("as 6 da cadeia EXECUTAM em produção com a flag ligada no escopo — as duas chaves juntas abrem", async () => {
+    const deps = depsEmMemoria({ flagsLigadas: ["v2_execucao"] });
+    for (const id of CADEIA_DO_PILOTO) {
+      const resultado = await executarFuncao(id, PERFIL, contextoSintetico(id, { modo: "producao" }), ATOR_IA, deps);
+      expect(resultado.decisao, id).toBe("executado");
     }
   });
 

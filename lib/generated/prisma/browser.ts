@@ -505,6 +505,12 @@ export type MetricaDePost = Prisma.MetricaDePostModel
  */
 export type ExecucaoV2 = Prisma.ExecucaoV2Model
 /**
+ * Model RecusaV2
+ * AUDITORIA DE RECUSAS (piloto assistido): recusa sem rastro é recusa
+ * invisível — cada "não" do motor fica registrado com motivo e contexto.
+ */
+export type RecusaV2 = Prisma.RecusaV2Model
+/**
  * Model TransicaoDeEstado
  * Toda transição da máquina canônica deixa rastro: quem, quando, origem,
  * motivo, versão e correlação (princípio 9 da arquitetura mestra). A chave

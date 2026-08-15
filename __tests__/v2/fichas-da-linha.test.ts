@@ -3,7 +3,9 @@
 // Exigência do CEO (revisão do PR #146): o teste valida o esquema da
 // especificação operacional de cada uma das 62 fichas — campos presentes,
 // tipos certos, valores dentro do vocabulário, golden set com os três tipos
-// obrigatórios e TODA função desligada. Ficha que não parseia, reprova.
+// obrigatórios. Ficha que não parseia, reprova. Desde o piloto assistido
+// (15/08/2026), o estado ligada/desligada é conferido contra a ALLOWLIST da
+// decisão do CEO — nem uma função a mais, nem uma a menos.
 
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
@@ -13,6 +15,19 @@ import { DEPARTAMENTOS_V2, FUNCOES_V2 } from "@/lib/agency/catalogo-v2/catalogo"
 const RAIZ = path.join(process.cwd(), "agentes/linha");
 const AUTONOMIAS = new Set(["A", "B", "C"]); // D não existe nesta casa: "executa e só escala exceção" é exatamente o que o desenho veta hoje
 const TIPOS_DE_CASO = new Set(["normal", "recusa", "escalada"]);
+
+// As ÚNICAS funções autorizadas a estar ligadas — decisão registrada do CEO
+// (15/08/2026, piloto assistido): a cadeia mínima solicitação → PM → branding
+// → social → design. Função fora desta lista com `ativa: true` reprova o CI;
+// ampliar a lista é decisão do dono, nunca efeito de deploy.
+export const LIGADAS_PELO_CEO = new Set([
+  "pm-orchestrator",
+  "brand-architect",
+  "social-strategist",
+  "editorial-planner",
+  "copywriter",
+  "graphic-designer",
+]);
 
 interface SpecOperacional {
   funcao: string;
@@ -55,12 +70,17 @@ function listaPreenchida(valor: unknown, rotulo: string) {
 }
 
 describe("fichas da linha — especificação operacional das 62, validada campo a campo", () => {
-  it("toda função do catálogo tem spec parseável, no departamento certo e DESLIGADA", () => {
+  it("toda função do catálogo tem spec parseável, no departamento certo e no estado DECIDIDO pelo dono", () => {
     for (const f of FUNCOES_V2) {
       const spec = specDaFicha(f.departamentoId, f.id);
       expect(spec.funcao, f.id).toBe(f.id);
       expect(spec.departamento, f.id).toBe(f.departamentoId);
-      expect(spec.ativa, `${f.id}: nenhuma função pode nascer ligada`).toBe(false);
+      expect(
+        spec.ativa,
+        LIGADAS_PELO_CEO.has(f.id)
+          ? `${f.id}: faz parte da cadeia do piloto assistido e deveria estar ligada`
+          : `${f.id}: só a cadeia do piloto assistido pode estar ligada — ligar é decisão registrada do dono`,
+      ).toBe(LIGADAS_PELO_CEO.has(f.id));
     }
   });
 

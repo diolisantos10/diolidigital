@@ -111,6 +111,7 @@ export const ModelName = {
   EmailDoRadar: 'EmailDoRadar',
   MetricaDePost: 'MetricaDePost',
   ExecucaoV2: 'ExecucaoV2',
+  RecusaV2: 'RecusaV2',
   TransicaoDeEstado: 'TransicaoDeEstado',
   BloqueioV2: 'BloqueioV2',
   OutboxV2: 'OutboxV2',
@@ -1232,10 +1233,24 @@ export const ExecucaoV2ScalarFieldEnum = {
   correlationId: 'correlationId',
   inicio: 'inicio',
   fim: 'fim',
-  resultado: 'resultado'
+  resultado: 'resultado',
+  clienteId: 'clienteId',
+  entradas: 'entradas'
 } as const
 
 export type ExecucaoV2ScalarFieldEnum = (typeof ExecucaoV2ScalarFieldEnum)[keyof typeof ExecucaoV2ScalarFieldEnum]
+
+
+export const RecusaV2ScalarFieldEnum = {
+  id: 'id',
+  funcaoId: 'funcaoId',
+  motivo: 'motivo',
+  correlationId: 'correlationId',
+  clienteId: 'clienteId',
+  em: 'em'
+} as const
+
+export type RecusaV2ScalarFieldEnum = (typeof RecusaV2ScalarFieldEnum)[keyof typeof RecusaV2ScalarFieldEnum]
 
 
 export const TransicaoDeEstadoScalarFieldEnum = {

@@ -82,6 +82,15 @@ const OPERACIONAIS: DonoDeChamada[] = [
   { id: "quality-auditor",        label: "Auditoria de qualidade",         departmentId: "quality",            natureza: "operacao" },
   { id: "cerebro-raciocinio",     label: "Raciocínio do Dioli Brain",      departmentId: "project-management", natureza: "operacao" },
 
+  // ── Esteira assistida V2 (piloto por allowlist de cliente, 15/08/2026) ────
+  // Um dono por função LIGADA da cadeia — o gasto de cada passo tem endereço.
+  { id: "v2-pm-orchestrator",     label: "V2 — PM da cadeia assistida",    departmentId: "project-management", natureza: "operacao" },
+  { id: "v2-brand-architect",     label: "V2 — Contexto de marca",         departmentId: "branding",           natureza: "operacao" },
+  { id: "v2-social-strategist",   label: "V2 — Estratégia de social",      departmentId: "social-media",       natureza: "operacao" },
+  { id: "v2-editorial-planner",   label: "V2 — Calendário editorial",      departmentId: "social-media",       natureza: "operacao" },
+  { id: "v2-copywriter",          label: "V2 — Textos da cadeia",          departmentId: "social-media",       natureza: "operacao" },
+  { id: "v2-graphic-designer",    label: "V2 — Especificação de design",   departmentId: "design",             natureza: "operacao" },
+
   // ── As 6 telas de agente da agência (`/api/agents/*`) ─────────────────────
   // Os ids ficam EXATAMENTE como já estão gravados nessas rotas desde 07/08.
   // Renomeá-los para a grafia dos especialistas partiria o histórico do
