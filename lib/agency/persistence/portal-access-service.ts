@@ -143,7 +143,7 @@ export async function donoDoToken(token: string): Promise<DonoDoToken> {
     return { ok: false, motivo: "ponteiro_andou" };
   }
 
-  let clientId = congelado ?? daSolicitacao;
+  const clientId = congelado ?? daSolicitacao;
   if (!clientId) return { ok: false, motivo: "sem_dono" };
 
   // CONGELA na primeira vez. A partir daqui o token não segue mais ponteiro.
