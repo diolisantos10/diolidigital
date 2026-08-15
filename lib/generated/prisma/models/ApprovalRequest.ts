@@ -25,6 +25,7 @@ export type AggregateApprovalRequest = {
 }
 
 export type ApprovalRequestMinAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   clientRequestId: string | null
   clientId: string | null
@@ -45,6 +46,7 @@ export type ApprovalRequestMinAggregateOutputType = {
 }
 
 export type ApprovalRequestMaxAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   clientRequestId: string | null
   clientId: string | null
@@ -65,6 +67,7 @@ export type ApprovalRequestMaxAggregateOutputType = {
 }
 
 export type ApprovalRequestCountAggregateOutputType = {
+  estadoCanonico: number
   id: number
   clientRequestId: number
   clientId: number
@@ -87,6 +90,7 @@ export type ApprovalRequestCountAggregateOutputType = {
 
 
 export type ApprovalRequestMinAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   clientRequestId?: true
   clientId?: true
@@ -107,6 +111,7 @@ export type ApprovalRequestMinAggregateInputType = {
 }
 
 export type ApprovalRequestMaxAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   clientRequestId?: true
   clientId?: true
@@ -127,6 +132,7 @@ export type ApprovalRequestMaxAggregateInputType = {
 }
 
 export type ApprovalRequestCountAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   clientRequestId?: true
   clientId?: true
@@ -220,6 +226,7 @@ export type ApprovalRequestGroupByArgs<ExtArgs extends runtime.Types.Extensions.
 }
 
 export type ApprovalRequestGroupByOutputType = {
+  estadoCanonico: string | null
   id: string
   clientRequestId: string | null
   clientId: string | null
@@ -261,6 +268,7 @@ export type ApprovalRequestWhereInput = {
   AND?: Prisma.ApprovalRequestWhereInput | Prisma.ApprovalRequestWhereInput[]
   OR?: Prisma.ApprovalRequestWhereInput[]
   NOT?: Prisma.ApprovalRequestWhereInput | Prisma.ApprovalRequestWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   id?: Prisma.StringFilter<"ApprovalRequest"> | string
   clientRequestId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   clientId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
@@ -284,6 +292,7 @@ export type ApprovalRequestWhereInput = {
 }
 
 export type ApprovalRequestOrderByWithRelationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
   clientId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -311,6 +320,7 @@ export type ApprovalRequestWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ApprovalRequestWhereInput | Prisma.ApprovalRequestWhereInput[]
   OR?: Prisma.ApprovalRequestWhereInput[]
   NOT?: Prisma.ApprovalRequestWhereInput | Prisma.ApprovalRequestWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   clientRequestId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   clientId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   artifactId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
@@ -333,6 +343,7 @@ export type ApprovalRequestWhereUniqueInput = Prisma.AtLeast<{
 }, "id">
 
 export type ApprovalRequestOrderByWithAggregationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
   clientId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -359,6 +370,7 @@ export type ApprovalRequestScalarWhereWithAggregatesInput = {
   AND?: Prisma.ApprovalRequestScalarWhereWithAggregatesInput | Prisma.ApprovalRequestScalarWhereWithAggregatesInput[]
   OR?: Prisma.ApprovalRequestScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ApprovalRequestScalarWhereWithAggregatesInput | Prisma.ApprovalRequestScalarWhereWithAggregatesInput[]
+  estadoCanonico?: Prisma.StringNullableWithAggregatesFilter<"ApprovalRequest"> | string | null
   id?: Prisma.StringWithAggregatesFilter<"ApprovalRequest"> | string
   clientRequestId?: Prisma.StringNullableWithAggregatesFilter<"ApprovalRequest"> | string | null
   clientId?: Prisma.StringNullableWithAggregatesFilter<"ApprovalRequest"> | string | null
@@ -379,6 +391,7 @@ export type ApprovalRequestScalarWhereWithAggregatesInput = {
 }
 
 export type ApprovalRequestCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId?: string | null
   artifactId?: string | null
@@ -400,6 +413,7 @@ export type ApprovalRequestCreateInput = {
 }
 
 export type ApprovalRequestUncheckedCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   clientId?: string | null
@@ -421,6 +435,7 @@ export type ApprovalRequestUncheckedCreateInput = {
 }
 
 export type ApprovalRequestUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -442,6 +457,7 @@ export type ApprovalRequestUpdateInput = {
 }
 
 export type ApprovalRequestUncheckedUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -463,6 +479,7 @@ export type ApprovalRequestUncheckedUpdateInput = {
 }
 
 export type ApprovalRequestCreateManyInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   clientId?: string | null
@@ -483,6 +500,7 @@ export type ApprovalRequestCreateManyInput = {
 }
 
 export type ApprovalRequestUpdateManyMutationInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -501,6 +519,7 @@ export type ApprovalRequestUpdateManyMutationInput = {
 }
 
 export type ApprovalRequestUncheckedUpdateManyInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -531,6 +550,7 @@ export type ApprovalRequestOrderByRelationAggregateInput = {
 }
 
 export type ApprovalRequestCountOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -551,6 +571,7 @@ export type ApprovalRequestCountOrderByAggregateInput = {
 }
 
 export type ApprovalRequestMaxOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -571,6 +592,7 @@ export type ApprovalRequestMaxOrderByAggregateInput = {
 }
 
 export type ApprovalRequestMinOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -694,6 +716,7 @@ export type ApprovalRequestUpdateOneRequiredWithoutCommentsNestedInput = {
 }
 
 export type ApprovalRequestCreateWithoutDeliverableVersionInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId?: string | null
   artifactId?: string | null
@@ -714,6 +737,7 @@ export type ApprovalRequestCreateWithoutDeliverableVersionInput = {
 }
 
 export type ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   clientId?: string | null
@@ -762,6 +786,7 @@ export type ApprovalRequestScalarWhereInput = {
   AND?: Prisma.ApprovalRequestScalarWhereInput | Prisma.ApprovalRequestScalarWhereInput[]
   OR?: Prisma.ApprovalRequestScalarWhereInput[]
   NOT?: Prisma.ApprovalRequestScalarWhereInput | Prisma.ApprovalRequestScalarWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   id?: Prisma.StringFilter<"ApprovalRequest"> | string
   clientRequestId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   clientId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
@@ -782,6 +807,7 @@ export type ApprovalRequestScalarWhereInput = {
 }
 
 export type ApprovalRequestCreateWithoutClientRequestInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId?: string | null
   artifactId?: string | null
@@ -802,6 +828,7 @@ export type ApprovalRequestCreateWithoutClientRequestInput = {
 }
 
 export type ApprovalRequestUncheckedCreateWithoutClientRequestInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId?: string | null
   artifactId?: string | null
@@ -847,6 +874,7 @@ export type ApprovalRequestUpdateManyWithWhereWithoutClientRequestInput = {
 }
 
 export type ApprovalRequestCreateWithoutCommentsInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId?: string | null
   artifactId?: string | null
@@ -867,6 +895,7 @@ export type ApprovalRequestCreateWithoutCommentsInput = {
 }
 
 export type ApprovalRequestUncheckedCreateWithoutCommentsInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   clientId?: string | null
@@ -903,6 +932,7 @@ export type ApprovalRequestUpdateToOneWithWhereWithoutCommentsInput = {
 }
 
 export type ApprovalRequestUpdateWithoutCommentsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -923,6 +953,7 @@ export type ApprovalRequestUpdateWithoutCommentsInput = {
 }
 
 export type ApprovalRequestUncheckedUpdateWithoutCommentsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -943,6 +974,7 @@ export type ApprovalRequestUncheckedUpdateWithoutCommentsInput = {
 }
 
 export type ApprovalRequestCreateManyDeliverableVersionInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   clientId?: string | null
@@ -962,6 +994,7 @@ export type ApprovalRequestCreateManyDeliverableVersionInput = {
 }
 
 export type ApprovalRequestUpdateWithoutDeliverableVersionInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -982,6 +1015,7 @@ export type ApprovalRequestUpdateWithoutDeliverableVersionInput = {
 }
 
 export type ApprovalRequestUncheckedUpdateWithoutDeliverableVersionInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1002,6 +1036,7 @@ export type ApprovalRequestUncheckedUpdateWithoutDeliverableVersionInput = {
 }
 
 export type ApprovalRequestUncheckedUpdateManyWithoutDeliverableVersionInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1021,6 +1056,7 @@ export type ApprovalRequestUncheckedUpdateManyWithoutDeliverableVersionInput = {
 }
 
 export type ApprovalRequestCreateManyClientRequestInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId?: string | null
   artifactId?: string | null
@@ -1040,6 +1076,7 @@ export type ApprovalRequestCreateManyClientRequestInput = {
 }
 
 export type ApprovalRequestUpdateWithoutClientRequestInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1060,6 +1097,7 @@ export type ApprovalRequestUpdateWithoutClientRequestInput = {
 }
 
 export type ApprovalRequestUncheckedUpdateWithoutClientRequestInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1080,6 +1118,7 @@ export type ApprovalRequestUncheckedUpdateWithoutClientRequestInput = {
 }
 
 export type ApprovalRequestUncheckedUpdateManyWithoutClientRequestInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1130,6 +1169,7 @@ export type ApprovalRequestCountOutputTypeCountCommentsArgs<ExtArgs extends runt
 
 
 export type ApprovalRequestSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   clientRequestId?: boolean
   clientId?: boolean
@@ -1154,6 +1194,7 @@ export type ApprovalRequestSelect<ExtArgs extends runtime.Types.Extensions.Inter
 }, ExtArgs["result"]["approvalRequest"]>
 
 export type ApprovalRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   clientRequestId?: boolean
   clientId?: boolean
@@ -1176,6 +1217,7 @@ export type ApprovalRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
 }, ExtArgs["result"]["approvalRequest"]>
 
 export type ApprovalRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   clientRequestId?: boolean
   clientId?: boolean
@@ -1198,6 +1240,7 @@ export type ApprovalRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
 }, ExtArgs["result"]["approvalRequest"]>
 
 export type ApprovalRequestSelectScalar = {
+  estadoCanonico?: boolean
   id?: boolean
   clientRequestId?: boolean
   clientId?: boolean
@@ -1217,7 +1260,7 @@ export type ApprovalRequestSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ApprovalRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientRequestId" | "clientId" | "artifactId" | "department" | "requestedBy" | "status" | "reviewedBy" | "reviewedAt" | "expiresAt" | "questionOpenedAt" | "reviewNote" | "clientVisible" | "deliverableVersionId" | "sourcePostIdsJson" | "createdAt" | "updatedAt", ExtArgs["result"]["approvalRequest"]>
+export type ApprovalRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "clientRequestId" | "clientId" | "artifactId" | "department" | "requestedBy" | "status" | "reviewedBy" | "reviewedAt" | "expiresAt" | "questionOpenedAt" | "reviewNote" | "clientVisible" | "deliverableVersionId" | "sourcePostIdsJson" | "createdAt" | "updatedAt", ExtArgs["result"]["approvalRequest"]>
 export type ApprovalRequestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   clientRequest?: boolean | Prisma.ApprovalRequest$clientRequestArgs<ExtArgs>
   deliverableVersion?: boolean | Prisma.ApprovalRequest$deliverableVersionArgs<ExtArgs>
@@ -1241,6 +1284,10 @@ export type $ApprovalRequestPayload<ExtArgs extends runtime.Types.Extensions.Int
     comments: Prisma.$ApprovalCommentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+     */
+    estadoCanonico: string | null
     id: string
     /**
      * Nulo para cliente criado DIRETO (sem briefing público). No lançamento da
@@ -1370,8 +1417,8 @@ export interface ApprovalRequestDelegate<ExtArgs extends runtime.Types.Extension
    * // Get first 10 ApprovalRequests
    * const approvalRequests = await prisma.approvalRequest.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const approvalRequestWithIdOnly = await prisma.approvalRequest.findMany({ select: { id: true } })
+   * // Only select the `estadoCanonico`
+   * const approvalRequestWithEstadoCanonicoOnly = await prisma.approvalRequest.findMany({ select: { estadoCanonico: true } })
    * 
    */
   findMany<T extends ApprovalRequestFindManyArgs>(args?: Prisma.SelectSubset<T, ApprovalRequestFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ApprovalRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -1415,9 +1462,9 @@ export interface ApprovalRequestDelegate<ExtArgs extends runtime.Types.Extension
    *   ]
    * })
    * 
-   * // Create many ApprovalRequests and only return the `id`
-   * const approvalRequestWithIdOnly = await prisma.approvalRequest.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many ApprovalRequests and only return the `estadoCanonico`
+   * const approvalRequestWithEstadoCanonicoOnly = await prisma.approvalRequest.createManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -1506,9 +1553,9 @@ export interface ApprovalRequestDelegate<ExtArgs extends runtime.Types.Extension
    *   ]
    * })
    * 
-   * // Update zero or more ApprovalRequests and only return the `id`
-   * const approvalRequestWithIdOnly = await prisma.approvalRequest.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more ApprovalRequests and only return the `estadoCanonico`
+   * const approvalRequestWithEstadoCanonicoOnly = await prisma.approvalRequest.updateManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1713,6 +1760,7 @@ export interface Prisma__ApprovalRequestClient<T, Null = never, ExtArgs extends 
  * Fields of the ApprovalRequest model
  */
 export interface ApprovalRequestFieldRefs {
+  readonly estadoCanonico: Prisma.FieldRef<"ApprovalRequest", 'String'>
   readonly id: Prisma.FieldRef<"ApprovalRequest", 'String'>
   readonly clientRequestId: Prisma.FieldRef<"ApprovalRequest", 'String'>
   readonly clientId: Prisma.FieldRef<"ApprovalRequest", 'String'>

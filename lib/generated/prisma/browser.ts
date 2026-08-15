@@ -497,3 +497,48 @@ export type EmailDoRadar = Prisma.EmailDoRadarModel
  * 
  */
 export type MetricaDePost = Prisma.MetricaDePostModel
+/**
+ * Model ExecucaoV2
+ * Determinação do CEO: toda execução registra se foi humana ou por IA — com
+ * ator, modelo, versão, custo, data e ferramentas. Complementa o AIRunLog
+ * legado (que fica); o backfill do M3 liga os dois pelo correlationId.
+ */
+export type ExecucaoV2 = Prisma.ExecucaoV2Model
+/**
+ * Model TransicaoDeEstado
+ * Toda transição da máquina canônica deixa rastro: quem, quando, origem,
+ * motivo, versão e correlação (princípio 9 da arquitetura mestra). A chave
+ * de idempotência é ÚNICA: a mesma transição nunca acontece duas vezes.
+ */
+export type TransicaoDeEstado = Prisma.TransicaoDeEstadoModel
+/**
+ * Model BloqueioV2
+ * Bloqueio tipado (9 motivos canônicos): dono, SLA, evidência e próxima
+ * ação. Falha não desaparece — ocupa espaço de propósito.
+ */
+export type BloqueioV2 = Prisma.BloqueioV2Model
+/**
+ * Model OutboxV2
+ * Outbox de efeito externo: mensagem, webhook, publicação, aprovação.
+ * Generaliza o padrão que o WhatsAppOutbox já provou. Efeito nunca roda
+ * inline — entra aqui e o relógio processa com retentativa.
+ */
+export type OutboxV2 = Prisma.OutboxV2Model
+/**
+ * Model FlagV2
+ * Feature flags da migração V2. Desligar a flag = rollback de comportamento
+ * sem tocar dado. Toda mudança de flag tem motivo e dono.
+ */
+export type FlagV2 = Prisma.FlagV2Model
+/**
+ * Model ReconciliacaoV2
+ * Relatórios de leitura dupla (M3): derivado × legado, com amostra das
+ * divergências. Divergência nunca vira exceção pro usuário — vira linha aqui.
+ */
+export type ReconciliacaoV2 = Prisma.ReconciliacaoV2Model
+/**
+ * Model HeartbeatDoRelogio
+ * Prova de vida dos relógios (M6): relógio que não bate gera alerta —
+ * ausência de alerta não é ausência de problema.
+ */
+export type HeartbeatDoRelogio = Prisma.HeartbeatDoRelogioModel

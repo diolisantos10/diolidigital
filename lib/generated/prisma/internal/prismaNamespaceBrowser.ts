@@ -109,7 +109,14 @@ export const ModelName = {
   DepartmentLadderRecord: 'DepartmentLadderRecord',
   ConexaoGasta: 'ConexaoGasta',
   EmailDoRadar: 'EmailDoRadar',
-  MetricaDePost: 'MetricaDePost'
+  MetricaDePost: 'MetricaDePost',
+  ExecucaoV2: 'ExecucaoV2',
+  TransicaoDeEstado: 'TransicaoDeEstado',
+  BloqueioV2: 'BloqueioV2',
+  OutboxV2: 'OutboxV2',
+  FlagV2: 'FlagV2',
+  ReconciliacaoV2: 'ReconciliacaoV2',
+  HeartbeatDoRelogio: 'HeartbeatDoRelogio'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -167,6 +174,7 @@ export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof 
 
 
 export const ProjectScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   workspaceId: 'workspaceId',
   clientId: 'clientId',
@@ -309,6 +317,7 @@ export type DriveMaterialScalarFieldEnum = (typeof DriveMaterialScalarFieldEnum)
 
 
 export const CycleScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   projectId: 'projectId',
   reference: 'reference',
@@ -349,6 +358,7 @@ export type ClientNoticeScalarFieldEnum = (typeof ClientNoticeScalarFieldEnum)[k
 
 
 export const DeliverableScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   projectId: 'projectId',
   name: 'name',
@@ -401,6 +411,7 @@ export type MaterialRequestScalarFieldEnum = (typeof MaterialRequestScalarFieldE
 
 
 export const ContentRequestScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   clientId: 'clientId',
   clientRequestId: 'clientRequestId',
@@ -472,6 +483,7 @@ export type StrategyRoomScalarFieldEnum = (typeof StrategyRoomScalarFieldEnum)[k
 
 
 export const BriefingScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   projectId: 'projectId',
   clientId: 'clientId',
@@ -559,6 +571,7 @@ export type ClientAiProviderScalarFieldEnum = (typeof ClientAiProviderScalarFiel
 
 
 export const TaskScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   projectId: 'projectId',
   title: 'title',
@@ -762,6 +775,7 @@ export type BrainVersionScalarFieldEnum = (typeof BrainVersionScalarFieldEnum)[k
 
 
 export const ClientRequestDbScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   workspaceId: 'workspaceId',
   clientId: 'clientId',
@@ -798,6 +812,7 @@ export type PortalMessageScalarFieldEnum = (typeof PortalMessageScalarFieldEnum)
 
 
 export const SocialPostScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   workspaceId: 'workspaceId',
   clientId: 'clientId',
@@ -847,6 +862,7 @@ export type BrainArtifactScalarFieldEnum = (typeof BrainArtifactScalarFieldEnum)
 
 
 export const ApprovalRequestScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   clientRequestId: 'clientRequestId',
   clientId: 'clientId',
@@ -1076,6 +1092,7 @@ export type MediaAssetScalarFieldEnum = (typeof MediaAssetScalarFieldEnum)[keyof
 
 
 export const OportunidadeScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   workspaceId: 'workspaceId',
   plataforma: 'plataforma',
@@ -1199,6 +1216,115 @@ export const MetricaDePostScalarFieldEnum = {
 } as const
 
 export type MetricaDePostScalarFieldEnum = (typeof MetricaDePostScalarFieldEnum)[keyof typeof MetricaDePostScalarFieldEnum]
+
+
+export const ExecucaoV2ScalarFieldEnum = {
+  id: 'id',
+  ator: 'ator',
+  usuarioId: 'usuarioId',
+  modelo: 'modelo',
+  versaoModelo: 'versaoModelo',
+  custoUsd: 'custoUsd',
+  funcaoId: 'funcaoId',
+  departamentoId: 'departamentoId',
+  ferramentas: 'ferramentas',
+  correlationId: 'correlationId',
+  inicio: 'inicio',
+  fim: 'fim',
+  resultado: 'resultado'
+} as const
+
+export type ExecucaoV2ScalarFieldEnum = (typeof ExecucaoV2ScalarFieldEnum)[keyof typeof ExecucaoV2ScalarFieldEnum]
+
+
+export const TransicaoDeEstadoScalarFieldEnum = {
+  id: 'id',
+  entidadeTipo: 'entidadeTipo',
+  entidadeId: 'entidadeId',
+  de: 'de',
+  para: 'para',
+  atorTipo: 'atorTipo',
+  atorId: 'atorId',
+  motivo: 'motivo',
+  origem: 'origem',
+  versaoLida: 'versaoLida',
+  chaveIdempotencia: 'chaveIdempotencia',
+  correlationId: 'correlationId',
+  criadoEm: 'criadoEm'
+} as const
+
+export type TransicaoDeEstadoScalarFieldEnum = (typeof TransicaoDeEstadoScalarFieldEnum)[keyof typeof TransicaoDeEstadoScalarFieldEnum]
+
+
+export const BloqueioV2ScalarFieldEnum = {
+  id: 'id',
+  entidadeTipo: 'entidadeTipo',
+  entidadeId: 'entidadeId',
+  tipo: 'tipo',
+  donoFuncaoId: 'donoFuncaoId',
+  abertoEm: 'abertoEm',
+  slaAte: 'slaAte',
+  evidencia: 'evidencia',
+  acaoRecomendada: 'acaoRecomendada',
+  escalonadoPara: 'escalonadoPara',
+  resolvidoEm: 'resolvidoEm',
+  correlationId: 'correlationId'
+} as const
+
+export type BloqueioV2ScalarFieldEnum = (typeof BloqueioV2ScalarFieldEnum)[keyof typeof BloqueioV2ScalarFieldEnum]
+
+
+export const OutboxV2ScalarFieldEnum = {
+  id: 'id',
+  tipo: 'tipo',
+  payload: 'payload',
+  status: 'status',
+  tentativas: 'tentativas',
+  proximaTentativaEm: 'proximaTentativaEm',
+  chaveIdempotencia: 'chaveIdempotencia',
+  correlationId: 'correlationId',
+  criadoEm: 'criadoEm',
+  enviadoEm: 'enviadoEm',
+  ultimoErro: 'ultimoErro'
+} as const
+
+export type OutboxV2ScalarFieldEnum = (typeof OutboxV2ScalarFieldEnum)[keyof typeof OutboxV2ScalarFieldEnum]
+
+
+export const FlagV2ScalarFieldEnum = {
+  id: 'id',
+  chave: 'chave',
+  escopo: 'escopo',
+  ligada: 'ligada',
+  motivo: 'motivo',
+  decididoPor: 'decididoPor',
+  em: 'em'
+} as const
+
+export type FlagV2ScalarFieldEnum = (typeof FlagV2ScalarFieldEnum)[keyof typeof FlagV2ScalarFieldEnum]
+
+
+export const ReconciliacaoV2ScalarFieldEnum = {
+  id: 'id',
+  entidadeTipo: 'entidadeTipo',
+  execucaoEm: 'execucaoEm',
+  total: 'total',
+  divergentes: 'divergentes',
+  amostra: 'amostra',
+  veredito: 'veredito'
+} as const
+
+export type ReconciliacaoV2ScalarFieldEnum = (typeof ReconciliacaoV2ScalarFieldEnum)[keyof typeof ReconciliacaoV2ScalarFieldEnum]
+
+
+export const HeartbeatDoRelogioScalarFieldEnum = {
+  id: 'id',
+  relogio: 'relogio',
+  ultimaBatida: 'ultimaBatida',
+  alertadoEm: 'alertadoEm'
+} as const
+
+export type HeartbeatDoRelogioScalarFieldEnum = (typeof HeartbeatDoRelogioScalarFieldEnum)[keyof typeof HeartbeatDoRelogioScalarFieldEnum]
 
 
 export const SortOrder = {

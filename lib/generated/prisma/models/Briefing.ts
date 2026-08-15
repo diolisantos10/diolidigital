@@ -25,6 +25,7 @@ export type AggregateBriefing = {
 }
 
 export type BriefingMinAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   projectId: string | null
   clientId: string | null
@@ -40,6 +41,7 @@ export type BriefingMinAggregateOutputType = {
 }
 
 export type BriefingMaxAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   projectId: string | null
   clientId: string | null
@@ -55,6 +57,7 @@ export type BriefingMaxAggregateOutputType = {
 }
 
 export type BriefingCountAggregateOutputType = {
+  estadoCanonico: number
   id: number
   projectId: number
   clientId: number
@@ -72,6 +75,7 @@ export type BriefingCountAggregateOutputType = {
 
 
 export type BriefingMinAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   clientId?: true
@@ -87,6 +91,7 @@ export type BriefingMinAggregateInputType = {
 }
 
 export type BriefingMaxAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   clientId?: true
@@ -102,6 +107,7 @@ export type BriefingMaxAggregateInputType = {
 }
 
 export type BriefingCountAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   clientId?: true
@@ -190,6 +196,7 @@ export type BriefingGroupByArgs<ExtArgs extends runtime.Types.Extensions.Interna
 }
 
 export type BriefingGroupByOutputType = {
+  estadoCanonico: string | null
   id: string
   projectId: string
   clientId: string
@@ -226,6 +233,7 @@ export type BriefingWhereInput = {
   AND?: Prisma.BriefingWhereInput | Prisma.BriefingWhereInput[]
   OR?: Prisma.BriefingWhereInput[]
   NOT?: Prisma.BriefingWhereInput | Prisma.BriefingWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Briefing"> | string | null
   id?: Prisma.StringFilter<"Briefing"> | string
   projectId?: Prisma.StringFilter<"Briefing"> | string
   clientId?: Prisma.StringFilter<"Briefing"> | string
@@ -242,6 +250,7 @@ export type BriefingWhereInput = {
 }
 
 export type BriefingOrderByWithRelationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -262,6 +271,7 @@ export type BriefingWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.BriefingWhereInput | Prisma.BriefingWhereInput[]
   OR?: Prisma.BriefingWhereInput[]
   NOT?: Prisma.BriefingWhereInput | Prisma.BriefingWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Briefing"> | string | null
   projectId?: Prisma.StringFilter<"Briefing"> | string
   clientId?: Prisma.StringFilter<"Briefing"> | string
   goal?: Prisma.StringFilter<"Briefing"> | string
@@ -277,6 +287,7 @@ export type BriefingWhereUniqueInput = Prisma.AtLeast<{
 }, "id">
 
 export type BriefingOrderByWithAggregationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -298,6 +309,7 @@ export type BriefingScalarWhereWithAggregatesInput = {
   AND?: Prisma.BriefingScalarWhereWithAggregatesInput | Prisma.BriefingScalarWhereWithAggregatesInput[]
   OR?: Prisma.BriefingScalarWhereWithAggregatesInput[]
   NOT?: Prisma.BriefingScalarWhereWithAggregatesInput | Prisma.BriefingScalarWhereWithAggregatesInput[]
+  estadoCanonico?: Prisma.StringNullableWithAggregatesFilter<"Briefing"> | string | null
   id?: Prisma.StringWithAggregatesFilter<"Briefing"> | string
   projectId?: Prisma.StringWithAggregatesFilter<"Briefing"> | string
   clientId?: Prisma.StringWithAggregatesFilter<"Briefing"> | string
@@ -313,6 +325,7 @@ export type BriefingScalarWhereWithAggregatesInput = {
 }
 
 export type BriefingCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId: string
   goal: string
@@ -328,6 +341,7 @@ export type BriefingCreateInput = {
 }
 
 export type BriefingUncheckedCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   projectId: string
   clientId: string
@@ -343,6 +357,7 @@ export type BriefingUncheckedCreateInput = {
 }
 
 export type BriefingUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   goal?: Prisma.StringFieldUpdateOperationsInput | string
@@ -358,6 +373,7 @@ export type BriefingUpdateInput = {
 }
 
 export type BriefingUncheckedUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -373,6 +389,7 @@ export type BriefingUncheckedUpdateInput = {
 }
 
 export type BriefingCreateManyInput = {
+  estadoCanonico?: string | null
   id?: string
   projectId: string
   clientId: string
@@ -388,6 +405,7 @@ export type BriefingCreateManyInput = {
 }
 
 export type BriefingUpdateManyMutationInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   goal?: Prisma.StringFieldUpdateOperationsInput | string
@@ -402,6 +420,7 @@ export type BriefingUpdateManyMutationInput = {
 }
 
 export type BriefingUncheckedUpdateManyInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -427,6 +446,7 @@ export type BriefingOrderByRelationAggregateInput = {
 }
 
 export type BriefingCountOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -442,6 +462,7 @@ export type BriefingCountOrderByAggregateInput = {
 }
 
 export type BriefingMaxOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -457,6 +478,7 @@ export type BriefingMaxOrderByAggregateInput = {
 }
 
 export type BriefingMinOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -514,6 +536,7 @@ export type BriefingUncheckedUpdateManyWithoutProjectNestedInput = {
 }
 
 export type BriefingCreateWithoutProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId: string
   goal: string
@@ -528,6 +551,7 @@ export type BriefingCreateWithoutProjectInput = {
 }
 
 export type BriefingUncheckedCreateWithoutProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId: string
   goal: string
@@ -570,6 +594,7 @@ export type BriefingScalarWhereInput = {
   AND?: Prisma.BriefingScalarWhereInput | Prisma.BriefingScalarWhereInput[]
   OR?: Prisma.BriefingScalarWhereInput[]
   NOT?: Prisma.BriefingScalarWhereInput | Prisma.BriefingScalarWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Briefing"> | string | null
   id?: Prisma.StringFilter<"Briefing"> | string
   projectId?: Prisma.StringFilter<"Briefing"> | string
   clientId?: Prisma.StringFilter<"Briefing"> | string
@@ -585,6 +610,7 @@ export type BriefingScalarWhereInput = {
 }
 
 export type BriefingCreateManyProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId: string
   goal: string
@@ -599,6 +625,7 @@ export type BriefingCreateManyProjectInput = {
 }
 
 export type BriefingUpdateWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   goal?: Prisma.StringFieldUpdateOperationsInput | string
@@ -613,6 +640,7 @@ export type BriefingUpdateWithoutProjectInput = {
 }
 
 export type BriefingUncheckedUpdateWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   goal?: Prisma.StringFieldUpdateOperationsInput | string
@@ -627,6 +655,7 @@ export type BriefingUncheckedUpdateWithoutProjectInput = {
 }
 
 export type BriefingUncheckedUpdateManyWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   goal?: Prisma.StringFieldUpdateOperationsInput | string
@@ -643,6 +672,7 @@ export type BriefingUncheckedUpdateManyWithoutProjectInput = {
 
 
 export type BriefingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   clientId?: boolean
@@ -659,6 +689,7 @@ export type BriefingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
 }, ExtArgs["result"]["briefing"]>
 
 export type BriefingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   clientId?: boolean
@@ -675,6 +706,7 @@ export type BriefingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
 }, ExtArgs["result"]["briefing"]>
 
 export type BriefingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   clientId?: boolean
@@ -691,6 +723,7 @@ export type BriefingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
 }, ExtArgs["result"]["briefing"]>
 
 export type BriefingSelectScalar = {
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   clientId?: boolean
@@ -705,7 +738,7 @@ export type BriefingSelectScalar = {
   createdAt?: boolean
 }
 
-export type BriefingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "clientId" | "goal" | "audience" | "keyMessage" | "deliverables" | "deadline" | "successCriteria" | "notes" | "status" | "createdAt", ExtArgs["result"]["briefing"]>
+export type BriefingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "projectId" | "clientId" | "goal" | "audience" | "keyMessage" | "deliverables" | "deadline" | "successCriteria" | "notes" | "status" | "createdAt", ExtArgs["result"]["briefing"]>
 export type BriefingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
 }
@@ -722,6 +755,10 @@ export type $BriefingPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     project: Prisma.$ProjectPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+     */
+    estadoCanonico: string | null
     id: string
     projectId: string
     clientId: string
@@ -817,8 +854,8 @@ export interface BriefingDelegate<ExtArgs extends runtime.Types.Extensions.Inter
    * // Get first 10 Briefings
    * const briefings = await prisma.briefing.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const briefingWithIdOnly = await prisma.briefing.findMany({ select: { id: true } })
+   * // Only select the `estadoCanonico`
+   * const briefingWithEstadoCanonicoOnly = await prisma.briefing.findMany({ select: { estadoCanonico: true } })
    * 
    */
   findMany<T extends BriefingFindManyArgs>(args?: Prisma.SelectSubset<T, BriefingFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BriefingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -862,9 +899,9 @@ export interface BriefingDelegate<ExtArgs extends runtime.Types.Extensions.Inter
    *   ]
    * })
    * 
-   * // Create many Briefings and only return the `id`
-   * const briefingWithIdOnly = await prisma.briefing.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many Briefings and only return the `estadoCanonico`
+   * const briefingWithEstadoCanonicoOnly = await prisma.briefing.createManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -953,9 +990,9 @@ export interface BriefingDelegate<ExtArgs extends runtime.Types.Extensions.Inter
    *   ]
    * })
    * 
-   * // Update zero or more Briefings and only return the `id`
-   * const briefingWithIdOnly = await prisma.briefing.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more Briefings and only return the `estadoCanonico`
+   * const briefingWithEstadoCanonicoOnly = await prisma.briefing.updateManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1158,6 +1195,7 @@ export interface Prisma__BriefingClient<T, Null = never, ExtArgs extends runtime
  * Fields of the Briefing model
  */
 export interface BriefingFieldRefs {
+  readonly estadoCanonico: Prisma.FieldRef<"Briefing", 'String'>
   readonly id: Prisma.FieldRef<"Briefing", 'String'>
   readonly projectId: Prisma.FieldRef<"Briefing", 'String'>
   readonly clientId: Prisma.FieldRef<"Briefing", 'String'>

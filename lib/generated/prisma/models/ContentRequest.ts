@@ -53,6 +53,7 @@ export type ContentRequestSumAggregateOutputType = {
 }
 
 export type ContentRequestMinAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   clientId: string | null
   clientRequestId: string | null
@@ -80,6 +81,7 @@ export type ContentRequestMinAggregateOutputType = {
 }
 
 export type ContentRequestMaxAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   clientId: string | null
   clientRequestId: string | null
@@ -107,6 +109,7 @@ export type ContentRequestMaxAggregateOutputType = {
 }
 
 export type ContentRequestCountAggregateOutputType = {
+  estadoCanonico: number
   id: number
   clientId: number
   clientRequestId: number
@@ -146,6 +149,7 @@ export type ContentRequestSumAggregateInputType = {
 }
 
 export type ContentRequestMinAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   clientId?: true
   clientRequestId?: true
@@ -173,6 +177,7 @@ export type ContentRequestMinAggregateInputType = {
 }
 
 export type ContentRequestMaxAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   clientId?: true
   clientRequestId?: true
@@ -200,6 +205,7 @@ export type ContentRequestMaxAggregateInputType = {
 }
 
 export type ContentRequestCountAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   clientId?: true
   clientRequestId?: true
@@ -314,6 +320,7 @@ export type ContentRequestGroupByArgs<ExtArgs extends runtime.Types.Extensions.I
 }
 
 export type ContentRequestGroupByOutputType = {
+  estadoCanonico: string | null
   id: string
   clientId: string
   clientRequestId: string | null
@@ -364,6 +371,7 @@ export type ContentRequestWhereInput = {
   AND?: Prisma.ContentRequestWhereInput | Prisma.ContentRequestWhereInput[]
   OR?: Prisma.ContentRequestWhereInput[]
   NOT?: Prisma.ContentRequestWhereInput | Prisma.ContentRequestWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   id?: Prisma.StringFilter<"ContentRequest"> | string
   clientId?: Prisma.StringFilter<"ContentRequest"> | string
   clientRequestId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
@@ -392,6 +400,7 @@ export type ContentRequestWhereInput = {
 }
 
 export type ContentRequestOrderByWithRelationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -424,6 +433,7 @@ export type ContentRequestWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ContentRequestWhereInput | Prisma.ContentRequestWhereInput[]
   OR?: Prisma.ContentRequestWhereInput[]
   NOT?: Prisma.ContentRequestWhereInput | Prisma.ContentRequestWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   clientId?: Prisma.StringFilter<"ContentRequest"> | string
   clientRequestId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   projectId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
@@ -451,6 +461,7 @@ export type ContentRequestWhereUniqueInput = Prisma.AtLeast<{
 }, "id">
 
 export type ContentRequestOrderByWithAggregationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -486,6 +497,7 @@ export type ContentRequestScalarWhereWithAggregatesInput = {
   AND?: Prisma.ContentRequestScalarWhereWithAggregatesInput | Prisma.ContentRequestScalarWhereWithAggregatesInput[]
   OR?: Prisma.ContentRequestScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ContentRequestScalarWhereWithAggregatesInput | Prisma.ContentRequestScalarWhereWithAggregatesInput[]
+  estadoCanonico?: Prisma.StringNullableWithAggregatesFilter<"ContentRequest"> | string | null
   id?: Prisma.StringWithAggregatesFilter<"ContentRequest"> | string
   clientId?: Prisma.StringWithAggregatesFilter<"ContentRequest"> | string
   clientRequestId?: Prisma.StringNullableWithAggregatesFilter<"ContentRequest"> | string | null
@@ -513,6 +525,7 @@ export type ContentRequestScalarWhereWithAggregatesInput = {
 }
 
 export type ContentRequestCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   projectId?: string | null
@@ -540,6 +553,7 @@ export type ContentRequestCreateInput = {
 }
 
 export type ContentRequestUncheckedCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId: string
   clientRequestId?: string | null
@@ -567,6 +581,7 @@ export type ContentRequestUncheckedCreateInput = {
 }
 
 export type ContentRequestUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -594,6 +609,7 @@ export type ContentRequestUpdateInput = {
 }
 
 export type ContentRequestUncheckedUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -621,6 +637,7 @@ export type ContentRequestUncheckedUpdateInput = {
 }
 
 export type ContentRequestCreateManyInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId: string
   clientRequestId?: string | null
@@ -648,6 +665,7 @@ export type ContentRequestCreateManyInput = {
 }
 
 export type ContentRequestUpdateManyMutationInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -674,6 +692,7 @@ export type ContentRequestUpdateManyMutationInput = {
 }
 
 export type ContentRequestUncheckedUpdateManyInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -711,6 +730,7 @@ export type ContentRequestOrderByRelationAggregateInput = {
 }
 
 export type ContentRequestCountOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
@@ -743,6 +763,7 @@ export type ContentRequestAvgOrderByAggregateInput = {
 }
 
 export type ContentRequestMaxOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
@@ -770,6 +791,7 @@ export type ContentRequestMaxOrderByAggregateInput = {
 }
 
 export type ContentRequestMinOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
@@ -852,6 +874,7 @@ export type NullableIntFieldUpdateOperationsInput = {
 }
 
 export type ContentRequestCreateWithoutClientInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   projectId?: string | null
@@ -878,6 +901,7 @@ export type ContentRequestCreateWithoutClientInput = {
 }
 
 export type ContentRequestUncheckedCreateWithoutClientInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   projectId?: string | null
@@ -932,6 +956,7 @@ export type ContentRequestScalarWhereInput = {
   AND?: Prisma.ContentRequestScalarWhereInput | Prisma.ContentRequestScalarWhereInput[]
   OR?: Prisma.ContentRequestScalarWhereInput[]
   NOT?: Prisma.ContentRequestScalarWhereInput | Prisma.ContentRequestScalarWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   id?: Prisma.StringFilter<"ContentRequest"> | string
   clientId?: Prisma.StringFilter<"ContentRequest"> | string
   clientRequestId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
@@ -959,6 +984,7 @@ export type ContentRequestScalarWhereInput = {
 }
 
 export type ContentRequestCreateManyClientInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   projectId?: string | null
@@ -985,6 +1011,7 @@ export type ContentRequestCreateManyClientInput = {
 }
 
 export type ContentRequestUpdateWithoutClientInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1011,6 +1038,7 @@ export type ContentRequestUpdateWithoutClientInput = {
 }
 
 export type ContentRequestUncheckedUpdateWithoutClientInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1037,6 +1065,7 @@ export type ContentRequestUncheckedUpdateWithoutClientInput = {
 }
 
 export type ContentRequestUncheckedUpdateManyWithoutClientInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1065,6 +1094,7 @@ export type ContentRequestUncheckedUpdateManyWithoutClientInput = {
 
 
 export type ContentRequestSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   clientId?: boolean
   clientRequestId?: boolean
@@ -1093,6 +1123,7 @@ export type ContentRequestSelect<ExtArgs extends runtime.Types.Extensions.Intern
 }, ExtArgs["result"]["contentRequest"]>
 
 export type ContentRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   clientId?: boolean
   clientRequestId?: boolean
@@ -1121,6 +1152,7 @@ export type ContentRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Type
 }, ExtArgs["result"]["contentRequest"]>
 
 export type ContentRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   clientId?: boolean
   clientRequestId?: boolean
@@ -1149,6 +1181,7 @@ export type ContentRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
 }, ExtArgs["result"]["contentRequest"]>
 
 export type ContentRequestSelectScalar = {
+  estadoCanonico?: boolean
   id?: boolean
   clientId?: boolean
   clientRequestId?: boolean
@@ -1175,7 +1208,7 @@ export type ContentRequestSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ContentRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientId" | "clientRequestId" | "projectId" | "title" | "description" | "objective" | "desiredFor" | "attachmentsJson" | "status" | "scopeDecision" | "quotedPrice" | "quoteNote" | "quoteStatus" | "quoteDecidedAt" | "taskId" | "triagedBy" | "triagedAt" | "promisedFor" | "deliverableId" | "productionAttempts" | "declineReason" | "createdAt" | "updatedAt", ExtArgs["result"]["contentRequest"]>
+export type ContentRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "clientId" | "clientRequestId" | "projectId" | "title" | "description" | "objective" | "desiredFor" | "attachmentsJson" | "status" | "scopeDecision" | "quotedPrice" | "quoteNote" | "quoteStatus" | "quoteDecidedAt" | "taskId" | "triagedBy" | "triagedAt" | "promisedFor" | "deliverableId" | "productionAttempts" | "declineReason" | "createdAt" | "updatedAt", ExtArgs["result"]["contentRequest"]>
 export type ContentRequestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
 }
@@ -1192,6 +1225,10 @@ export type $ContentRequestPayload<ExtArgs extends runtime.Types.Extensions.Inte
     client: Prisma.$ClientPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+     */
+    estadoCanonico: string | null
     id: string
     /**
      * O dono. Vem SEMPRE do token (derivação, nunca comparação — regra da casa
@@ -1392,8 +1429,8 @@ export interface ContentRequestDelegate<ExtArgs extends runtime.Types.Extensions
    * // Get first 10 ContentRequests
    * const contentRequests = await prisma.contentRequest.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const contentRequestWithIdOnly = await prisma.contentRequest.findMany({ select: { id: true } })
+   * // Only select the `estadoCanonico`
+   * const contentRequestWithEstadoCanonicoOnly = await prisma.contentRequest.findMany({ select: { estadoCanonico: true } })
    * 
    */
   findMany<T extends ContentRequestFindManyArgs>(args?: Prisma.SelectSubset<T, ContentRequestFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ContentRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -1437,9 +1474,9 @@ export interface ContentRequestDelegate<ExtArgs extends runtime.Types.Extensions
    *   ]
    * })
    * 
-   * // Create many ContentRequests and only return the `id`
-   * const contentRequestWithIdOnly = await prisma.contentRequest.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many ContentRequests and only return the `estadoCanonico`
+   * const contentRequestWithEstadoCanonicoOnly = await prisma.contentRequest.createManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -1528,9 +1565,9 @@ export interface ContentRequestDelegate<ExtArgs extends runtime.Types.Extensions
    *   ]
    * })
    * 
-   * // Update zero or more ContentRequests and only return the `id`
-   * const contentRequestWithIdOnly = await prisma.contentRequest.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more ContentRequests and only return the `estadoCanonico`
+   * const contentRequestWithEstadoCanonicoOnly = await prisma.contentRequest.updateManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1733,6 +1770,7 @@ export interface Prisma__ContentRequestClient<T, Null = never, ExtArgs extends r
  * Fields of the ContentRequest model
  */
 export interface ContentRequestFieldRefs {
+  readonly estadoCanonico: Prisma.FieldRef<"ContentRequest", 'String'>
   readonly id: Prisma.FieldRef<"ContentRequest", 'String'>
   readonly clientId: Prisma.FieldRef<"ContentRequest", 'String'>
   readonly clientRequestId: Prisma.FieldRef<"ContentRequest", 'String'>
