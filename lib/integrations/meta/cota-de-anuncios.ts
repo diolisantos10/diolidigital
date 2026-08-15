@@ -47,7 +47,7 @@
 //     cego contra limite de taxa é auto-bloqueio ("Quando o limite tiver sido
 //     atingido, pare de fazer chamadas à API" — fontes/graph-api-limites-de-taxa.md).
 
-import { pesoDaOperacao } from "./travas";
+import { pesoDaOperacao, PONTOS_DE_ESCRITA } from "./travas";
 import { tierDeAnunciosObservado } from "./ritmo";
 
 // ─── Os números, e a fonte de cada um ───────────────────────────────────────
@@ -55,7 +55,38 @@ import { tierDeAnunciosObservado } from "./ritmo";
 /** Janela de decaimento da pontuação, em segundos (fonte: cabeçalho). */
 export const JANELA_SEGUNDOS = 300;
 
-/** Pontuação máxima no nível de DESENVOLVIMENTO (acesso limitado). */
+/**
+ * Pontuação máxima no nível de DESENVOLVIMENTO (acesso limitado).
+ *
+ * ─── 🔒 NÃO É PRECAUÇÃO DA CASA. É O NÍVEL DECLARADO DO APP. ────────────────
+ *
+ * **Medido no painel da Meta pelo CEO em 14/08/2026, 21:07** — app
+ * `1824373765214116`, caso de uso `MARKETING_API_ADS_MANAGEMENT`, business
+ * `1052160868862686`: *Marketing API Access Tier = **Acesso limitado***.
+ *
+ * E a fonte traduz esse rótulo sem margem para interpretação:
+ *
+ *   *"Se tiver acesso limitado ao recurso de Nível de acesso à API de
+ *    Marketing, isso significará que você está no nível de desenvolvimento do
+ *    acesso à API de Marketing."*
+ *   — `fontes/marketing-api-limites-de-taxa.md:112`
+ *
+ *   *"Se o app estiver no nível de desenvolvimento da API de Marketing: A
+ *    pontuação máxima é 60. A taxa de decaimento é de 300 segundos. Se atingir
+ *    a pontuação máxima, você passará por 300 segundos de bloqueio."*
+ *   — `fontes/marketing-api-limites-de-taxa.md:43`
+ *
+ *   *"Volumes extremamente limitados por conta de anúncio. Somente para
+ *    desenvolvimento. Não para apps em produção veiculando para anunciantes
+ *    publicados."*
+ *   — `fontes/marketing-api-autorizacao-e-niveis.md` (tabela de níveis)
+ *
+ * ⚠️ **Quem for remover a trava de ritmo por achá-la exagero:** o exagerado
+ * seria o contrário. 60 pontos ÷ 3 por escrita = **20 escritas bloqueiam a
+ * conta por 5 minutos**, e este é o nível em que o app ESTÁ, medido, hoje. O
+ * número só muda quando o painel disser "Acesso total" — e aí quem muda é o
+ * cabeçalho `ads_api_access_tier`, sozinho, sem ninguém editar esta linha.
+ */
 export const TETO_DESENVOLVIMENTO = 60;
 
 /** Pontuação máxima no nível de acesso TOTAL (antigo "standard/advanced"). */
@@ -128,6 +159,23 @@ async function db(): Promise<BancoDaCota> {
 export function tetoDePontos(tier: string | null = tierDeAnunciosObservado()): number {
   const total = tier === "standard_access" || tier === "full_access";
   return Math.floor((total ? TETO_ACESSO_TOTAL : TETO_DESENVOLVIMENTO) * MARGEM_DA_CASA);
+}
+
+/**
+ * O TETO DE ESCRITAS POR JANELA — a pontuação dita em unidade de operação.
+ *
+ * A fonte fala em pontos ("a pontuação máxima é 60", escrita = 3), e ponto é
+ * uma unidade que ninguém confere de cabeça. Em escrita: **20 travam a conta
+ * por 5 minutos**, e com a margem da casa (80%) a nossa parada é em **16**.
+ *
+ * Existe como função exportada porque é o número que o CEO precisa poder
+ * perguntar antes de deixar o caminho ligado — e porque o teste afirma sobre
+ * ele. Preparar uma campanha inteira custa 4 escritas (campanha, conjunto,
+ * criativo, anúncio) e ligá-la custa 3 (campanha, conjunto, anúncio): 7 de 16.
+ * Duas campanhas inteiras na mesma janela já batem no teto, e é o certo.
+ */
+export function escritasPorJanela(tier: string | null = tierDeAnunciosObservado()): number {
+  return Math.floor(tetoDePontos(tier) / PONTOS_DE_ESCRITA);
 }
 
 /** Quanto tempo a Meta bloqueia ao estourar, no nível vigente. */

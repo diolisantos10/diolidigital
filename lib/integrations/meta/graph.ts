@@ -55,6 +55,15 @@ export interface GraphError {
   message: string;
   type?: string;
   code?: number;
+  /**
+   * O subcódigo. **Não é detalhe:** é ele que separa erros que compartilham o
+   * mesmo `code` e pedem gestos opostos — `100/33` é "o usuário não administra
+   * esta conta de anúncios" (gesto de minutos, no Gerenciador de Negócios) e
+   * `100/1487694` é "categoria de direcionamento obsoleta"
+   * (`fontes/marketing-api-erros.md:44,60`). A casa jogava isto fora e depois
+   * adivinhava a causa pelo texto.
+   */
+  error_subcode?: number;
   fbtrace_id?: string;
 }
 

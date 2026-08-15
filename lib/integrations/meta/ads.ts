@@ -17,9 +17,31 @@
 //   3. NENHUMA IA CHEGA AQUI. Este módulo recebe números já decididos. Um
 //      modelo de linguagem não escolhe orçamento nesta casa.
 //
-// `ads_management` e `ads_read` são permissões AVANÇADAS: sem App Review
-// aprovado, a Meta recusa tudo abaixo mesmo com token válido. As funções
-// devolvem esse motivo em português em vez de um erro cru da Graph.
+// ─── ⚠️ 15/08/2026 — O AVISO QUE ESTAVA AQUI ERA FALSO PELA METADE ──────────
+//
+// Esta linha dizia: *"`ads_management` e `ads_read` são permissões AVANÇADAS:
+// sem App Review aprovado, a Meta recusa tudo abaixo mesmo com token válido."*
+//
+// Vale para conta de TERCEIRO. **Não vale para o ativo do próprio dono do app**,
+// e a fonte diz isso com todas as letras:
+//
+//   • *"Administradores ou desenvolvedores de apps podem fazer chamadas à API em
+//     nome de administradores de contas de anúncios ou anunciantes."*
+//     — `fontes/marketing-api-autorizacao-e-niveis.md:48` (acesso LIMITADO)
+//   • *"Caso o app seja utilizado somente por usuários que tiverem uma função
+//     nele, não será necessário fazer a verificação. […] todos os recursos
+//     ficarão sempre ativos."* — `fontes/verificacao-de-negocio.md:21`; a mesma
+//     regra para a análise em `fontes/app-review-processo.md:18`.
+//
+// E a casa já provou isso em produção: em 03/08/2026, com o token do CEO, uma
+// campanha PAUSADA foi criada por API e apagada em seguida
+// (`docs/pendencias.md:3283-3287`). O que quebrou naquele dia **não foi
+// permissão — foi ritmo**, e a conta foi restringida horas depois.
+//
+// Por isso `traduzirErro` abaixo deixou de carimbar "depende do App Review" em
+// qualquer recusa que contenha a palavra "permission". Ele separa três coisas
+// que pedem gestos DIFERENTES, e cada frase carrega a evidência que a produziu
+// (guardrail 6 da casa: alerta sem o caso concreto é ruído).
 
 import { graphGet, graphPost, GraphApiError } from "./graph";
 import { loadConnectionToken } from "./connections";
@@ -36,17 +58,41 @@ export const TETO_DIARIO_ABSOLUTO_BRL = Number(process.env.ADS_TETO_DIARIO_BRL ?
 /** Piso da Meta para orçamento diário. Abaixo disto a campanha nem entrega. */
 export const PISO_DIARIO_BRL = 6;
 
+/**
+ * Por que a recusa aconteceu — e, junto, QUAL GESTO a resolve.
+ *
+ * Os três primeiros eram um só até 15/08/2026 (`sem_permissao`), e por isso a
+ * casa esperou dias por um App Review que não era o problema. Eles pedem coisas
+ * diferentes: reconectar com o escopo · dar acesso ao usuário NA conta · recorrer
+ * da restrição.
+ */
+export type MotivoDeAnuncio =
+  /** O TOKEN não carrega a permissão (`ads_management`/`ads_read`). Gesto:
+   *  reconectar pedindo o escopo. Para conta de TERCEIRO, e só nesse caso, o
+   *  acesso avançado (App Review) entra na conversa. */
+  | "sem_permissao"
+  /** O token está bom; quem o concedeu não administra ESTA conta de anúncios.
+   *  Gesto: dar a função na conta, no Gerenciador de Negócios. Nada de esperar
+   *  plataforma nenhuma. */
+  | "ativo_nao_autorizado"
+  /** A META bloqueou a conta (ou o usuário) para anunciar. Gesto: recorrer —
+   *  ~48 h (`fontes/recorrer-de-restricao.md`). Nenhum código conserta isto. */
+  | "conta_restrita"
+  /** O token morreu ou foi revogado (código 190). Só o dono reconecta. */
+  | "token_invalido"
+  | "sem_conta" | "orcamento_invalido" | "erro_da_meta" | "sem_conexao"
+  /** A CASA freou antes de a Meta reclamar (ver ritmo.ts / cota-de-anuncios.ts).
+   *  Não é defeito nem falta de permissão: é a trava de 03/08 funcionando. */
+  | "ritmo"
+  /** A conta não está na lista que o CLIENTE autorizou (06/08/2026). Trava
+   *  NOSSA, não da Meta — não confundir com `ativo_nao_autorizado`. */
+  | "sem_autorizacao";
+
 export interface ResultadoDeAnuncio<T = unknown> {
   ok: boolean;
   dados?: T;
   erro?: string;
-  /** `sem_permissao` = App Review pendente. É o caso mais comum, e é do CEO.
-   *  `ritmo` = a CASA freou antes de a Meta reclamar (ver ritmo.ts). Não é
-   *  defeito nem falta de permissão: é a trava de 03/08 funcionando. */
-  motivo?:
-    | "sem_permissao" | "sem_conta" | "orcamento_invalido" | "erro_da_meta" | "sem_conexao" | "ritmo"
-    /** A conta não está na lista que o cliente autorizou (06/08/2026). */
-    | "sem_autorizacao";
+  motivo?: MotivoDeAnuncio;
 }
 
 export interface ContaDeAnuncio {
@@ -56,26 +102,185 @@ export interface ContaDeAnuncio {
   status: number;      // 1 = ativa
 }
 
+// ─── OS CÓDIGOS, E A FONTE DE CADA UM ───────────────────────────────────────
+//
+// Todos de `docs/plataformas/meta/fontes/marketing-api-erros.md` (capturado em
+// 07/08/2026), salvo indicação. Estão em constantes exportadas porque o teste
+// afirma sobre eles: uma tabela de códigos que só vive dentro de um `if` é uma
+// tabela que ninguém confere.
+
+/** O TOKEN não carrega o escopo. `294` é literal: *"Para gerenciar anúncios, é
+ *  preciso ter a permissão estendida ads_management"* (`:117`). `200` = *"Erro
+ *  de permissão"* (`:110`). `10` = *"O app não tem permissão para executar essa
+ *  ação"* (`:36`) — este é o único de nível de APP, e é o que de fato aponta
+ *  para acesso avançado. */
+export const CODIGOS_DE_PERMISSAO_AUSENTE = [10, 200, 294];
+
+/** O token está bom; o USUÁRIO não tem função nesta conta de anúncios.
+ *  `1815694` = *"O usuário não tem permissão para executar a ação"* (`:189`);
+ *  `2654`/`1713092` = *"Sem permissão de gravação para esta conta de anúncios"*
+ *  (`:139`); `100`/`33` = *"seu token de acesso não [foi] adicionado como um
+ *  usuário do sistema com permissões adequadas à conta de anúncios"* (`:44`). */
+export const CODIGOS_DE_ATIVO_NAO_AUTORIZADO = [1815694, 2654];
+export const SUBCODIGOS_DE_ATIVO_NAO_AUTORIZADO = [33, 1713092];
+
+/** A META bloqueou. `1404163` = *"Você não tem mais permissão para usar os
+ *  produtos do Facebook a fim de anunciar"* (`:130`); `1404078` = *"Impedimos
+ *  temporariamente você de executar esta ação"* (`:126`); `368` = *"The action
+ *  attempted has been deemed abusive or is otherwise disallowed"*
+ *  (`fontes/marketing-api-referencia-conta-de-anuncios.md:1004`). */
+export const CODIGOS_DE_CONTA_RESTRITA = [368, 1404078, 1404163];
+
+/** *"Token de acesso OAuth 2.0 inválido"* (`:106`). */
+export const CODIGO_DE_TOKEN_INVALIDO = 190;
+
+/**
+ * DE QUEM É A CONTA MUDA A RESPOSTA — e a casa precisava saber dizer isso.
+ *
+ * ─── CONFERIDO CONTRA A FONTE EM 15/08/2026 ────────────────────────────────
+ *
+ * A regra não é "anúncio depende de App Review". Ela é literal e tem duas
+ * metades, na MESMA frase da Meta:
+ *
+ *   *"Caso o app gerencie somente sua conta de anúncios, o acesso padrão e as
+ *    permissões ads_read e ads_management serão suficientes. Se o app gerenciar
+ *    contas de anúncios de outras pessoas, será necessário ter acesso avançado
+ *    e as permissões ads_read e/ou ads_management."*
+ *   — `fontes/marketing-api-autorizacao-e-niveis.md:73`
+ *
+ * E o acesso padrão não se pede, se tem: *"O acesso padrão será aprovado
+ * automaticamente para todas as permissões e todos os recursos disponíveis para
+ * os apps de negócios"* (`:80`). A análise só governa quem está de fora:
+ * *"Somente as permissões aprovadas por meio do processo de análise podem ser
+ * concedidas por usuários que não têm função no app"*
+ * (`fontes/app-review-publicacao.md:27`).
+ *
+ * ⚠️ **O rótulo do painel NÃO está na nossa biblioteca.** O CEO leu "Pronto para
+ * teste" em `ads_management`, `ads_read`, `pages_read_engagement` e
+ * `pages_show_list` (app `1824373765214116`, captura de 14/08/2026 21:07). Esse
+ * texto não aparece em nenhuma fonte capturada, então **não afirmamos aqui que
+ * "Pronto para teste" = acesso padrão**. A conclusão de que a conta própria está
+ * aberta hoje NÃO depende do rótulo: ela se sustenta nas três linhas acima, e
+ * nenhuma permissão apareceu como "Acesso avançado" na captura.
+ */
+export const FRASE_DE_QUEM_E_A_CONTA =
+  "Depois disso, o que vale depende de DE QUEM É A CONTA: se ela é do próprio dono do app (o CEO é administrador), "
+  + "o acesso padrão já basta e é concedido automaticamente — o dono só reconecta pedindo o escopo, e isso leva minutos "
+  + "(fontes/marketing-api-autorizacao-e-niveis.md:73,80). Se a conta é de TERCEIRO, aí sim entra o acesso avançado, "
+  + "que passa pela análise do aplicativo (fontes/app-review-publicacao.md:27).";
+
+/**
+ * A EVIDÊNCIA, colada no fim de toda frase (guardrail 6).
+ *
+ * Sem ela, "a conta não está autorizada" é opinião da casa. Com ela, quem lê
+ * consegue conferir contra a referência da Meta sem abrir o log — e consegue
+ * descobrir que a nossa classificação errou, se ela errar.
+ */
+function evidencia(d: { code?: number; error_subcode?: number } | undefined, msg: string): string {
+  const partes = [
+    d?.code !== undefined ? `código ${d.code}` : null,
+    d?.error_subcode !== undefined ? `subcódigo ${d.error_subcode}` : null,
+  ].filter(Boolean);
+  return ` [a Meta respondeu${partes.length ? ` ${partes.join(", ")}` : ""}: "${msg.slice(0, 200)}"]`;
+}
+
+/**
+ * TRADUZ A RECUSA DA META NO GESTO QUE A RESOLVE.
+ *
+ * ⚠️ A ORDEM DOS TESTES É O DESENHO, não estilo. As mensagens da Meta se
+ * sobrepõem — "not have permission" aparece nos três casos —, então o que é
+ * ESPECÍFICO (código, subcódigo) decide antes do que é genérico (texto). Ler o
+ * texto primeiro foi exatamente o defeito de 11/08-15/08: `/permission/` casava
+ * com tudo e devolvia "espere o App Review" para uma conta própria.
+ */
 function traduzirErro<T>(e: unknown): ResultadoDeAnuncio<T> {
-  if (e instanceof GraphApiError) {
-    const msg = e.detail?.message ?? e.message;
-    // Freio da casa: chega carimbado por ritmo.ts, com a frase já pronta. Vem
-    // ANTES de tudo para não ser confundido com falta de permissão.
-    if (e.detail?.type === TIPO_DE_RITMO_DA_CASA) {
-      return { ok: false, motivo: "ritmo", erro: msg };
-    }
-    // A Meta responde permissão faltando de várias formas; todas significam a
-    // mesma coisa para quem opera: falta o App Review.
-    if (/permission|ads_management|ads_read|not authorized|requires/i.test(msg)) {
-      return {
-        ok: false,
-        motivo: "sem_permissao",
-        erro: "A Meta ainda não liberou as permissões de anúncio deste app (ads_management/ads_read). Isso depende do App Review — não é erro de configuração.",
-      };
-    }
-    return { ok: false, motivo: "erro_da_meta", erro: msg };
+  if (!(e instanceof GraphApiError)) {
+    return { ok: false, motivo: "erro_da_meta", erro: e instanceof Error ? e.message : "erro desconhecido" };
   }
-  return { ok: false, motivo: "erro_da_meta", erro: e instanceof Error ? e.message : "erro desconhecido" };
+  const d = e.detail;
+  const msg = d?.message ?? e.message;
+  const code = d?.code;
+  const sub = d?.error_subcode;
+
+  // Freio da casa: chega carimbado por ritmo.ts/cota-de-anuncios.ts, com a frase
+  // já pronta. Vem ANTES de tudo para não ser confundido com falta de permissão.
+  if (d?.type === TIPO_DE_RITMO_DA_CASA) {
+    return { ok: false, motivo: "ritmo", erro: msg };
+  }
+
+  // 1. CONTA RESTRITA — o mais grave, e o único que nenhum código conserta.
+  if (
+    (code !== undefined && CODIGOS_DE_CONTA_RESTRITA.includes(code))
+    || /restrict|restri[cç]|disabled|desabilitad|abusive|abusiv|deemed abusive|n[aã]o segue nossas regras|banned|blocked from advertising/i.test(msg)
+  ) {
+    return {
+      ok: false,
+      motivo: "conta_restrita",
+      erro:
+        "A Meta BLOQUEOU esta conta de anúncios (ou este usuário) para anunciar — não é permissão que falta, e reconectar não resolve. "
+        + "O caminho é recorrer: Página Inicial do Suporte para Empresas → Visão geral do status da conta → (a conta) → \"O que você pode fazer\" → \"Pedir análise\". "
+        + "A Meta diz que a análise leva ~48 h (fontes/recorrer-de-restricao.md)."
+        + evidencia(d, msg),
+    };
+  }
+
+  // 2. TOKEN MORTO — antes de permissão, senão vira "falta escopo" e a casa
+  //    manda reconfigurar o app em vez de mandar o dono reconectar.
+  if (code === CODIGO_DE_TOKEN_INVALIDO || /error validating access token|session has expired|token de acesso.*inv[aá]lid/i.test(msg)) {
+    return {
+      ok: false,
+      motivo: "token_invalido",
+      erro:
+        "O acesso que este cliente concedeu morreu ou foi revogado. Nenhuma permissão está faltando — só o dono da conta reconecta, "
+        + "pelo portal dele (\"Conexões\" → Conectar Facebook/Instagram). Refresh por API não conserta token morto."
+        + evidencia(d, msg),
+    };
+  }
+
+  // 3. ATIVO NÃO AUTORIZADO — o token vale, a conta é que está fora do alcance
+  //    de quem o concedeu. Gesto humano, no Gerenciador de Negócios, e de
+  //    minutos — nada a ver com plataforma.
+  if (
+    (code !== undefined && CODIGOS_DE_ATIVO_NAO_AUTORIZADO.includes(code))
+    || (sub !== undefined && SUBCODIGOS_DE_ATIVO_NAO_AUTORIZADO.includes(sub))
+    || /adicionad[oa] como um usu[aá]rio do sistema|must be (an )?admin|be admin of the ad account|does not have permission to (this|the) ad ?account|n[aã]o tem acesso a esta conta|sem permiss[aã]o de grava[cç][aã]o/i.test(msg)
+  ) {
+    return {
+      ok: false,
+      motivo: "ativo_nao_autorizado",
+      erro:
+        "O acesso é válido, mas quem o concedeu NÃO administra esta conta de anúncios. Isso não é App Review nem escopo: "
+        + "é dar a função na conta — Gerenciador de Negócios → Configurações do negócio → Contas → Contas de anúncios → (a conta) → Adicionar pessoas → função de administrador. "
+        + "Leva minutos e vale na hora."
+        + evidencia(d, msg),
+    };
+  }
+
+  // 4. PERMISSÃO AUSENTE NO TOKEN — e aqui a frase deixa de mentir. Ela nomeia
+  //    o escopo, manda MEDIR antes de esperar (permissoes-do-token.ts) e só cita
+  //    acesso avançado para o caso em que ele realmente se aplica: conta de
+  //    terceiro.
+  if (/permission|permiss[aã]o|ads_management|ads_read|not authorized|n[aã]o autorizad|requires|estendida/i.test(msg)) {
+    const escopo = /ads_management/i.test(msg)
+      ? "ads_management"
+      : /ads_read/i.test(msg) ? "ads_read" : "ads_management/ads_read";
+    return {
+      ok: false,
+      motivo: "sem_permissao",
+      erro:
+        `O acesso usado não carrega ${escopo}. Antes de esperar qualquer coisa da Meta, MEÇA: \`permissoesDoToken\` + \`diagnosticarConta\` dizem, com uma leitura e sem tentativa contra a conta, se o escopo está no token e se vale para esta conta. `
+        + FRASE_DE_QUEM_E_A_CONTA
+        + evidencia(d, msg),
+    };
+  }
+
+  // Não classificado. A frase é a da própria Meta, crua — e o código/subcódigo
+  // vão junto, porque é com eles que se procura na referência. Inventar uma
+  // tradução para o que não reconhecemos seria o mesmo defeito de novo.
+  const carimbo = d?.code !== undefined || d?.error_subcode !== undefined
+    ? ` (código ${d?.code ?? "?"}${d?.error_subcode !== undefined ? `, subcódigo ${d.error_subcode}` : ""})`
+    : "";
+  return { ok: false, motivo: "erro_da_meta", erro: msg + carimbo };
 }
 
 /** As contas de anúncio que o token alcança. É o primeiro passo de qualquer
