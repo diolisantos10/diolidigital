@@ -39,12 +39,18 @@
 // decisão de QUEM PODE continua em cada porta; o que é comum — ler o arquivo,
 // falar com o modelo, validar o que voltou — mora aqui e não se duplica.
 //
-// ── O QUE ESTA ANÁLISE ALCANÇA, E É MENOS DO QUE PARECE ─────────────────────
+// ── O QUE ESTA ANÁLISE ALCANÇA HOJE, E É MENOS DO QUE A REGRA PEDE ─────────
 //
 // Ela extrai **TEXTO**: paleta, tipografia, tom, público, posicionamento.
 // **Nenhum byte de logo sai de dentro do PDF** — não há biblioteca de PDF neste
 // projeto, e "extrair a imagem do logo do brand book" não é uma coisa que este
 // código faça nem finja fazer.
+//
+// ⚠️ Isto é o ESTADO ATUAL MEDIDO, e desde 15/08/2026 **não é mais o alvo**: o
+// CEO mandou que o upload leia qualquer arquivo na íntegra. O degrau entre a
+// regra e o estado real não fica escondido num comentário — ele sai declarado
+// em `DeclaracaoDeLeitura`, arquivo por arquivo, e chega à tela. Ver o bloco
+// "O QUE FOI LIDO DE DENTRO DO ARQUIVO", abaixo.
 //
 // Medido contra a ficha de marca (`proposta-do-brand-book.ts`): o brand book
 // alcança **3 dos 9 campos**, e nenhum dos três tira a marca do dia zero. Quem
@@ -145,8 +151,39 @@ export function validate(data: unknown): BrandExtraction | null {
   };
 }
 
+// ── O QUE FOI LIDO DE DENTRO DO ARQUIVO — 15/08/2026, ordem do CEO ─────────
+//
+//   > "O dispositivo de upload da agência precisa ser capaz de ler qualquer
+//   >  coisa na íntegra. Essa é a regra."
+//
+// A regra passa a ser ler o arquivo inteiro. Hoje a casa NÃO lê — e o degrau
+// entre a regra e o estado real tem que estar na tela, não num documento.
+//
+// **Arquivo lido pela metade não é dado por lido.** Enquanto a leitura completa
+// não existir, o que existe é esta declaração: o que entrou, o que ficou de
+// fora, e por quê. Sem ela, "aguardando revisão" parece ✓ — e ✓ num arquivo que
+// ninguém abriu inteiro é a mentira que esta casa já pagou caro.
+//
+// A conta é por formato, e é feita AQUI porque é aqui que se sabe o que cada
+// caminho realmente fez com os bytes.
+
+export interface DeclaracaoDeLeitura {
+  /** `true` só quando nada do miolo ficou de fora. Hoje: só imagem. */
+  porInteiro: boolean;
+  /** O que a casa realmente leu, em português. */
+  lido: string[];
+  /** O que ficou de fora, com o motivo. Vazio só quando `porInteiro`. */
+  naoLido: string[];
+}
+
+/** O corte de texto dos formatos que viram string. Declarado como constante
+ *  porque ele é uma LACUNA: acima disto o arquivo não foi lido inteiro, e a
+ *  tela precisa poder dizer isso em vez de fingir. */
+export const CORTE_DE_TEXTO = 15_000;
+export const CORTE_DE_SVG = 10_000;
+
 export type ResultadoDaAnalise =
-  | { ok: true; extraction: BrandExtraction; tipoDoArquivo: string }
+  | { ok: true; extraction: BrandExtraction; tipoDoArquivo: string; leitura: DeclaracaoDeLeitura }
   | { ok: false; erro: string; status: number };
 
 /**
@@ -187,6 +224,9 @@ export async function analisarBrandBook(entrada: {
   const instruction = "Analise este documento e extraia a identidade de marca. Retorne apenas JSON.";
   let content: Block[];
   let tipoDoArquivo: string;
+  // A declaração é montada NO RAMO, junto do código que decide o que entra —
+  // longe dele, ela viraria um comentário desatualizado com cara de verdade.
+  let leitura: DeclaracaoDeLeitura;
 
   if (mime === "application/pdf") {
     content = [
@@ -194,6 +234,13 @@ export async function analisarBrandBook(entrada: {
       { type: "text", text: instruction },
     ];
     tipoDoArquivo = "PDF";
+    leitura = {
+      porInteiro: false,
+      lido: ["o texto do PDF", "o visual das páginas (cores e composição, como quem olha)"],
+      naoLido: [
+        "as imagens embutidas como ARQUIVO — o logo em alta resolução não sai de dentro do PDF por aqui, e é por isso que ele ainda precisa ser enviado na caixa de Logos",
+      ],
+    };
 
   } else if (["image/png", "image/jpeg", "image/webp"].includes(mime)) {
     content = [
@@ -201,11 +248,16 @@ export async function analisarBrandBook(entrada: {
       { type: "text", text: instruction },
     ];
     tipoDoArquivo = "Imagem";
+    // O único caminho que hoje lê o arquivo inteiro: a imagem É o conteúdo.
+    leitura = { porInteiro: true, lido: ["a imagem inteira"], naoLido: [] };
 
   } else if (mime === "image/svg+xml") {
     const svgText = buf.toString("utf8").slice(0, 10_000);
     content = [{ type: "text", text: `${instruction}\n\nArquivo SVG:\n${svgText}` }];
     tipoDoArquivo = "SVG";
+    leitura = buf.length > CORTE_DE_SVG
+      ? { porInteiro: false, lido: [`os primeiros ${CORTE_DE_SVG.toLocaleString("pt-BR")} caracteres do SVG`], naoLido: ["o restante do arquivo, que passou do corte de leitura"] }
+      : { porInteiro: true, lido: ["o SVG inteiro"], naoLido: [] };
 
   } else if (
     mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
@@ -215,6 +267,11 @@ export async function analisarBrandBook(entrada: {
     if (!text) return { ok: false, status: 422, erro: "Não foi possível extrair texto do DOCX." };
     content = [{ type: "text", text: `${instruction}\n\nConteúdo do documento Word:\n${text.slice(0, 15_000)}` }];
     tipoDoArquivo = "DOCX";
+    leitura = {
+      porInteiro: false,
+      lido: [text.length > CORTE_DE_TEXTO ? `os primeiros ${CORTE_DE_TEXTO.toLocaleString("pt-BR")} caracteres do texto` : "o texto do documento"],
+      naoLido: ["as imagens de dentro do documento (elas existem no arquivo e ainda não são extraídas)"],
+    };
 
   } else if (
     mime === "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
@@ -224,11 +281,19 @@ export async function analisarBrandBook(entrada: {
     if (!text) return { ok: false, status: 422, erro: "Não foi possível extrair texto do PPTX." };
     content = [{ type: "text", text: `${instruction}\n\nConteúdo da apresentação PowerPoint:\n${text.slice(0, 15_000)}` }];
     tipoDoArquivo = "PPTX";
+    leitura = {
+      porInteiro: false,
+      lido: [text.length > CORTE_DE_TEXTO ? `os primeiros ${CORTE_DE_TEXTO.toLocaleString("pt-BR")} caracteres do texto dos slides` : "o texto dos slides"],
+      naoLido: ["as imagens de dentro da apresentação (elas existem no arquivo e ainda não são extraídas)"],
+    };
 
   } else {
     const text = buf.toString("utf8").slice(0, 15_000);
     content = [{ type: "text", text: `${instruction}\n\nConteúdo do arquivo:\n${text}` }];
     tipoDoArquivo = "Arquivo";
+    leitura = buf.length > CORTE_DE_TEXTO
+      ? { porInteiro: false, lido: [`os primeiros ${CORTE_DE_TEXTO.toLocaleString("pt-BR")} caracteres`], naoLido: ["o restante do arquivo, que passou do corte de leitura"] }
+      : { porInteiro: true, lido: ["o arquivo inteiro, como texto"], naoLido: [] };
   }
 
   const controller = new AbortController();
@@ -270,7 +335,7 @@ export async function analisarBrandBook(entrada: {
       };
     }
 
-    return { ok: true, extraction, tipoDoArquivo };
+    return { ok: true, extraction, tipoDoArquivo, leitura };
 
   } catch (err) {
     const msg = err instanceof Error && err.name === "AbortError" ? "timeout (90s)" : String(err);

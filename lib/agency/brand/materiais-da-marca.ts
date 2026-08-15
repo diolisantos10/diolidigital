@@ -95,6 +95,10 @@ export interface AnaliseGuardada {
   status: string;
   /** O recado de erro, quando houve. Em português. */
   erro?: string | null;
+  /** O que a leitura NÃO conseguiu abrir de dentro do arquivo. Vazio = leu
+   *  tudo. Isto NUNCA é opcional na prática: é o que impede "aguardando
+   *  revisão" de ser lido como ✓ sobre um arquivo aberto pela metade. */
+  naoLido?: string[] | null;
   atualizadoEm: Date | string;
 }
 
@@ -240,11 +244,18 @@ function estadoDoMaterial(
         ? { estado: "erro", detalhe: RECADO_DA_ANALISE_TRAVADA }
         : { estado: "analisando", detalhe: "Estamos lendo o documento para propor o que dá para preencher da sua ficha." };
     }
-    case "aguardando_revisao":
+    case "aguardando_revisao": {
+      // ── ARQUIVO ABERTO PELA METADE NÃO É DADO POR LIDO (15/08/2026) ──────
+      // Ordem do CEO: o upload tem de ler qualquer arquivo na íntegra. Enquanto
+      // não lê, a tela diz o que ficou de fora — em vez de um "pronto" que
+      // esconde o degrau.
+      const faltou = (analise.naoLido ?? []).filter(Boolean);
+      const base = "Lemos o documento e separamos sugestões. Elas só entram na sua ficha depois que alguém conferir — nada foi sobrescrito.";
       return {
         estado: "aguardando_revisao",
-        detalhe: "Lemos o documento e separamos sugestões. Elas só entram na sua ficha depois que alguém conferir — nada foi sobrescrito.",
+        detalhe: faltou.length > 0 ? `${base} O que ainda não conseguimos tirar de dentro dele: ${faltou.join("; ")}.` : base,
       };
+    }
     case "aplicado":
       return {
         estado: "aplicado",

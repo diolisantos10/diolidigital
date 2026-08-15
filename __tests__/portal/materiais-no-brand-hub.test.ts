@@ -232,6 +232,51 @@ describe('"analisando" tem prazo — não existe estado eterno', () => {
   });
 });
 
+// ─── 5b. ARQUIVO ABERTO PELA METADE NÃO É DADO POR LIDO ────────────────────
+//
+// Ordem do CEO, 15/08/2026: *"o dispositivo de upload precisa ser capaz de ler
+// qualquer coisa na íntegra."* A casa ainda não lê — e enquanto não ler, o
+// degrau tem que estar NA TELA. "Aguardando revisão" sem dizer o que ficou de
+// fora é um ✓ sobre um arquivo que ninguém abriu inteiro.
+
+describe("o que não foi lido de dentro do arquivo aparece", () => {
+  const agora = new Date("2026-08-15T12:00:00Z");
+
+  it("a sugestão diz o que a casa NÃO conseguiu tirar de dentro do arquivo", () => {
+    const [m] = montarMateriaisDaMarca(
+      [linha({ id: "1" })],
+      [{
+        materialId: "1", status: "aguardando_revisao", atualizadoEm: agora,
+        naoLido: ["as imagens embutidas como ARQUIVO — o logo em alta não sai daqui"],
+      }],
+      agora,
+    );
+    expect(m!.estado).toBe("aguardando_revisao");
+    expect(m!.detalhe).toMatch(/ainda não conseguimos tirar de dentro/i);
+    expect(m!.detalhe).toMatch(/logo em alta/i);
+  });
+
+  it("quando nada ficou de fora, a frase não inventa uma lacuna", () => {
+    const [m] = montarMateriaisDaMarca(
+      [linha({ id: "1" })],
+      [{ materialId: "1", status: "aguardando_revisao", atualizadoEm: agora, naoLido: [] }],
+      agora,
+    );
+    expect(m!.detalhe).not.toMatch(/ainda não conseguimos/i);
+    expect(m!.detalhe).toMatch(/nada foi sobrescrito/i);
+  });
+
+  it("o leitor declara, por formato, o que entrou e o que ficou de fora", () => {
+    const fonte = ler("lib/ai/leitura-de-marca.ts");
+    // A declaração é montada NO RAMO de cada formato. Longe dele, ela vira
+    // comentário desatualizado com cara de verdade.
+    expect(fonte).toContain("DeclaracaoDeLeitura");
+    expect(fonte).toContain("porInteiro");
+    // O PDF é o caso que o CEO nomeou: o logo não sai de dentro dele hoje.
+    expect(fonte).toMatch(/o logo em alta resolução não sai de dentro do PDF/i);
+  });
+});
+
 // ─── 6. A TELA NÃO DEIXA O CLIENTE ACHAR QUE O PDF FECHA A FICHA ────────────
 
 describe("a tela diz o que o brand book NÃO resolve", () => {

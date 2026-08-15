@@ -69,7 +69,7 @@ export async function marcarAnaliseComecou(entrada: {
 export async function guardarResultado(
   artefatoId: string,
   resultado:
-    | { ok: true; extracao: unknown; arquivo: string }
+    | { ok: true; extracao: unknown; arquivo: string; naoLido: string[] }
     | { ok: false; erro: string; arquivo: string },
 ): Promise<void> {
   await prisma.brainArtifact.update({
@@ -78,7 +78,16 @@ export async function guardarResultado(
       status: resultado.ok ? "aguardando_revisao" : "erro",
       canvasJson: JSON.stringify(
         resultado.ok
-          ? { arquivo: resultado.arquivo, extracao: resultado.extracao, em: new Date().toISOString() }
+          ? {
+              arquivo: resultado.arquivo,
+              extracao: resultado.extracao,
+              // O QUE NÃO FOI LIDO VIAJA JUNTO DO QUE FOI. Guardar só o
+              // resultado faria "aguardando revisão" parecer ✓ sobre um arquivo
+              // que ninguém abriu inteiro — e é exatamente isso que a regra de
+              // 15/08 proíbe. Fail-closed também na memória.
+              naoLido: resultado.naoLido,
+              em: new Date().toISOString(),
+            }
           // O ERRO CARREGA O CASO CONCRETO. "Algo falhou" é ruído que ninguém
           // investiga; o nome do arquivo e o motivo são o que permite agir.
           : { arquivo: resultado.arquivo, erro: resultado.erro, em: new Date().toISOString() },
@@ -125,7 +134,7 @@ export async function lerBrandBookRecebido(entrada: {
     await guardarResultado(
       artefatoId,
       r.ok
-        ? { ok: true, extracao: r.extraction, arquivo: entrada.arquivo }
+        ? { ok: true, extracao: r.extraction, arquivo: entrada.arquivo, naoLido: r.leitura.naoLido }
         : { ok: false, erro: r.erro, arquivo: entrada.arquivo },
     );
 

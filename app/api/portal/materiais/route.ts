@@ -86,14 +86,18 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   for (const a of analises) {
     if (porMaterial.has(a.canvasId)) continue;
     let erro: string | null = null;
+    let naoLido: string[] = [];
     try {
-      const c = JSON.parse(a.canvasJson || "{}") as { erro?: unknown };
+      const c = JSON.parse(a.canvasJson || "{}") as { erro?: unknown; naoLido?: unknown };
       if (typeof c.erro === "string") erro = c.erro;
+      if (Array.isArray(c.naoLido)) naoLido = c.naoLido.map(String);
     } catch { /* canvas ilegível não pode derrubar a lista do cliente */ }
     porMaterial.set(a.canvasId, {
       materialId: a.canvasId,
       status: a.status,
       erro,
+      // O que a casa não conseguiu abrir de dentro do arquivo vai para a tela.
+      naoLido,
       atualizadoEm: a.createdAt,
     });
   }
