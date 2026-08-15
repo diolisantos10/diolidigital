@@ -232,8 +232,25 @@ export function ClientWorkspaceShell({
 
   const c = view.client;
 
+  // `ccTextoLegivel` LIGADA pelo Diretor em 15/08/2026, aplicando instrução
+  // ESCRITA do CEO no contrato da Central de Trabalho, entregue nesta mesma
+  // noite: *"a única revisão visual solicitada foi o aumento das fontes
+  // pequenas"* e *"manter o tamanho de fonte da versão publicada como piso de
+  // legibilidade"*.
+  //
+  // Por que isto não é decisão estética minha: o pacote aprovado tem 90 regras
+  // de 5px e 79 de 6px de CORPO de texto contra títulos display de 21–24px — é
+  // maquete desenhada em DUAS escalas, não escala pequena de propósito. Corpo a
+  // 5px num painel de trabalho diário é defeito de tela, e defeito de tela o
+  // Diretor conserta e informa, em vez de perguntar.
+  //
+  // A classe desloca +5px só no corpo: preserva a ORDEM dos degraus da
+  // referência (5<6<7<8<9 vira 10<11<12<13<14) e não toca título nenhum. Zoom
+  // uniforme não serviria — levaria os títulos a 40px.
+  //
+  // Reverter é apagar uma palavra desta linha; o bloco de CSS continua opcional.
   return (
-    <div className="dioliOS">
+    <div className="dioliOS ccTextoLegivel">
       <main className="projectPage clientWorkspace">
         <div className="projectHead clientHead">
           <div className="clientTitle">
