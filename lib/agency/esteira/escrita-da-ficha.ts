@@ -34,6 +34,10 @@ import {
   METADES, referenciasDeclaradas, paresDeVoz,
   type CampoDaMarca, type ParDeVoz,
 } from "@/lib/agency/esteira/ficha-de-marca";
+import {
+  registrarProibicoesDeclaradas, DEPARTAMENTO_DAS_PROIBICOES,
+  type OrigemDaProibicao,
+} from "@/lib/agency/esteira/proibicoes";
 
 /** Onde cada campo da ficha mora no banco. **A única cópia deste mapa.**
  *  Proibições não estão aqui e não podem estar — têm dono próprio. */
@@ -55,9 +59,22 @@ export const EH_JSON = new Set([
   "voicePairsJson", "lexiconJson", "referencesJson", "formalTokensJson", "ownerAndHierarchyJson",
 ]);
 
-/** O campo tem porta de resposta no portal do cliente? */
+/**
+ * O campo tem porta de resposta no portal do cliente?
+ *
+ * `proibicoes` tem — e continua **fora** de `COLUNA`. Ela é encaminhada para o
+ * dono dela (`esteira/proibicoes.ts`), nunca copiada para uma coluna de
+ * `BrandBrain`. Ter porta e ter coluna são coisas diferentes, e é a segunda que
+ * criaria a divergência.
+ *
+ * Até 15/08/2026 a pergunta das proibições era filtrada para fora da entrevista
+ * — a lista de perguntas passava por `COLUNA` (`portal/marca/route.ts:66`) e
+ * `proibicoes` não está lá. Como o gatilho do dia zero exige TRÊS proibições
+ * vigentes e `proibicoes` é 1 dos 4 campos do `MODO_MINIMO`, o cliente nunca
+ * era perguntado por aquilo de que a porta mais precisava.
+ */
 export function respondivelPeloCliente(campo: CampoDaMarca): boolean {
-  return !!COLUNA[campo];
+  return !!COLUNA[campo] || campo === "proibicoes";
 }
 
 const TETO_DO_CAMPO = 4000;
@@ -187,8 +204,34 @@ export async function gravarRespostaDeMarca(input: {
   campo: CampoDaMarca;
   /** O que veio da tela: string, objeto de metades, ou objeto cru. */
   entrada: unknown;
+  /** De onde veio a resposta. Só as proibições registram origem hoje, e ela
+   *  importa: `cliente` é o dono falando pelo portal; `equipe` é quem atende
+   *  registrando o que ele disse. Resposta preenchida pela agência não pode se
+   *  passar por resposta do cliente — é a mesma regra do `reviewedBy`. */
+  origem?: OrigemDaProibicao;
 }): Promise<ResultadoDaEscrita> {
   const { clientId, campo } = input;
+
+  // ── AS PROIBIÇÕES NÃO TÊM COLUNA, E NÃO VÃO GANHAR UMA ────────────────────
+  // Elas moram em `BrainArtifact` com dono próprio. Aqui só passam o recado.
+  if (campo === "proibicoes") {
+    const texto = typeof input.entrada === "string" ? input.entrada.trim() : "";
+    if (!texto) return { gravado: false, onde: DEPARTAMENTO_DAS_PROIBICOES, motivo: "sem resposta" };
+    const r = await registrarProibicoesDeclaradas(clientId, texto, input.origem ?? "marca");
+    return {
+      gravado: r.novas.length > 0,
+      onde: DEPARTAMENTO_DAS_PROIBICOES,
+      // Resposta que não virou nenhuma proibição NÃO some calada: sem termo
+      // aproveitável, a regra nunca dispararia e o especialista a leria como se
+      // estivesse valendo.
+      motivo: r.erro
+        ? `não consegui guardar: ${r.erro}`
+        : r.novas.length === 0
+        ? "não consegui transformar isso numa regra que a máquina consiga conferir — vale reescrever citando a palavra, a cor ou o nome exato"
+        : undefined,
+    };
+  }
+
   const coluna = COLUNA[campo];
   if (!coluna) return { gravado: false, onde: "", motivo: "campo sem porta de escrita nesta ficha" };
 

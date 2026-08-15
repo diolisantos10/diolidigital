@@ -59,15 +59,28 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   // metade que permite reprovar (`reprovadas`, `naoDizemos`) nascia vazia.
   // Escritor único é o que impede a próxima cópia de divergir de novo.
   for (const [campo, valor] of Object.entries(entrada)) {
-    if (!COLUNA[campo as CampoDaMarca]) {
+    if (!COLUNA[campo as CampoDaMarca] && campo !== "proibicoes") {
       // Campo desconhecido não é gravado em silêncio: quem chamou precisa saber
       // que a resposta do cliente foi para o lixo.
       ignorados.push(campo);
       continue;
     }
     if (valor === null || valor === undefined || valor === "") continue;
-    const r = await gravarRespostaDeMarca({ clientId: id, campo: campo as CampoDaMarca, entrada: valor });
+    const r = await gravarRespostaDeMarca({
+      clientId: id,
+      campo: campo as CampoDaMarca,
+      entrada: valor,
+      // ── A AUTORIA, e por que ela não é detalhe ──────────────────────────
+      // Esta é a porta de DENTRO: quem escreve aqui é a agência registrando o
+      // que o cliente disse. `equipe` diz exatamente isso, e nunca deixa a
+      // resposta preenchida pela casa se passar por resposta do dono — a
+      // mesma regra do `reviewedBy` que já mordeu esta casa.
+      origem: "equipe",
+    });
     if (r.gravado) gravados.push(r.onde);
+    // Resposta que não virou regra não some: quem preencheu precisa saber que
+    // aquilo não vai barrar nada.
+    else if (r.motivo) ignorados.push(`${campo} (${r.motivo})`);
   }
 
   if (gravados.length === 0) {

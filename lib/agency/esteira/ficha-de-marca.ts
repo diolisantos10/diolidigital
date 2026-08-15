@@ -76,7 +76,19 @@ export const PERGUNTA: Record<CampoDaMarca, string> = {
   publico_e_relacao: "Vocês falam com o cliente como um igual, como especialista, ou como prestador de serviço?",
   voz: "Escreva duas frases: uma do jeito que vocês falariam, e uma do jeito que vocês NUNCA falariam.",
   lexico: "Como o nome se escreve, exatamente? E existe alguma palavra que vocês não usam?",
-  proibicoes: "Tem alguma coisa que a gente nunca deve fazer no material de vocês?",
+  // A redação NÃO é nova: é a da entrevista do painel (`IntakeEngine.tsx:339`),
+  // que já perguntava isto em língua de cliente há meses — e cuja resposta ia
+  // para `updateClient` → `PUT /api/clients/[id]`, uma rota que lê do corpo só
+  // name/industry/email/phone/website e descarta o resto em silêncio. Uma
+  // terceira redação para a mesma pergunta é como as duas verdades nascem.
+  //
+  // O "até três" é o gatilho falando: a constituição pede **três** proibições
+  // vigentes, e pedir uma de cada vez faria o cliente responder três rodadas
+  // para abrir a porta uma vez.
+  proibicoes:
+    "Tem algo que a gente nunca deve fazer, dizer ou mostrar no material de vocês? " +
+    "Pode ser uma palavra, uma cor ou um concorrente que nunca deve ser citado. " +
+    "Escreva até três, uma por linha.",
   referencias: "Manda um exemplo de post que você achou a sua cara — e um que você achou que não era.",
   atributos_formais: "Quais são as cores da marca? Se não souber o código, manda uma foto do logo.",
   limites_de_promessa: "Tem alguma coisa que vocês preferem não prometer, mesmo sendo verdade?",

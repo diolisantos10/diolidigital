@@ -111,6 +111,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     clientId,
     campo,
     entrada: temMetade ? metades : resposta,
+    // Veio DAQUI, então veio dele. É a diferença entre esta rota e a do painel,
+    // e ela fica registrada na proibição — sem isso, daqui a três meses ninguém
+    // sabe se a regra saiu da boca do cliente ou do palpite de quem preencheu.
+    origem: "marca",
   });
 
   const ficha = await lerFichaDeMarca(clientId);
