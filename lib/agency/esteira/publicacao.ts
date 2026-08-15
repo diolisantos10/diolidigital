@@ -353,7 +353,14 @@ export async function agendarPostsDaEntrega(projectId: string): Promise<Agendame
       // Barrar só na hora da arte deixaria a peça no calendário do CLIENTE,
       // com data marcada, para nunca sair — que é a definição de fila morta.
       // Aqui ela simplesmente não nasce, e o fato é registrado.
-      const veredito = conferirPilar(peca.pilar);
+      //
+      // `exigido: true` porque ESTE é o caminho automático: a peça saiu de um
+      // `Deliverable` produzido por especialista, e desde 15/08/2026 o prompt
+      // exige o campo `pillar`, o contrato de saída o confere e o markdown o
+      // emite. Pilar ausente aqui não é "esta casa não usa pilar" — é sinal de
+      // que a corrente arrebentou em algum ponto, e isso não pode significar
+      // liberado. Ver `pilares-bloqueados.ts`, `ComoConferirOPilar.exigido`.
+      const veredito = conferirPilar(peca.pilar, { exigido: true });
       if (veredito.bloqueado) {
         saida.bloqueadasPorPilar.push({ pilar: peca.pilar ?? "", motivo: veredito.motivo ?? "" });
         await prisma.activityEvent.create({

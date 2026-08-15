@@ -197,6 +197,26 @@ function contratoDasLegendas(data: Record<string, unknown>): string[] {
   if (porFormato.semFormato > 0) {
     problemas.push(`${porFormato.semFormato} peça(s) sem o campo "format" — o formato decide como a arte é gerada e onde a peça é publicada.`);
   }
+
+  // ── O PILAR, CONFERIDO ONDE ELE NASCE (15/08/2026) ────────────────────────
+  //
+  // O bloqueio de pilar (`pilares-bloqueados.ts`) foi criado em 07/08 depois de
+  // TRÊS peças saírem com salário inventado dentro dos pixels. Ele lê
+  // `post.pillar` — e na esteira automática `post.pillar` era SEMPRE null,
+  // porque nem o prompt pedia `pillar` nem o markdown emitia a linha "Pilar".
+  // `conferirPilar(null)` devolvia LIBERADO, e o bloqueio nunca disparou no
+  // caminho automático: só quando um humano criava o post pelo Planner.
+  //
+  // Conferir aqui é conferir na ORIGEM, onde o especialista ainda pode refazer.
+  // O fail-closed do calendário (`publicacao.ts`) é a segunda metade: sem as
+  // duas, ou a esteira aprova por omissão, ou ela para sem dizer por quê.
+  const semPilar = itens.filter((it) => !texto(it, "pillar")).length;
+  if (semPilar > 0) {
+    problemas.push(
+      `${semPilar} peça(s) sem o campo "pillar" — o pilar é o que o bloqueio de conteúdo confere antes de a peça virar imagem paga. ` +
+      "Sem ele a trava não roda, e peça sem pilar NÃO entra no calendário do cliente.",
+    );
+  }
   for (const [f, min, max] of [["carrossel", 1, 2], ["story", 2, 3], ["feed", 2, 3]] as const) {
     const n = porFormato[f];
     if (n < min) problemas.push(`só ${n} peça(s) de ${f} — o contrato pede de ${min} a ${max}. Sem a mistura, o mês inteiro sai no mesmo formato.`);
@@ -389,7 +409,9 @@ REGRAS QUE REPROVAM A PEÇA, e são conferidas em código: a primeira tela é se
 - 2 a 3 STORY: assunto do dia, bastidor, enquete. Story é vertical e vive 24h — nada que precise durar.
 - 2 a 3 FEED: o que fica no perfil e representa a marca.
 ${REGRA}
-${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel|carrossel", "headline": "...", "caption": "legenda pronta", "visual": "o que aparece na imagem", "cenas": "só para carrossel: 1) [gancho] tela 1 · 2) [tensao] tela 2 · 3) [acao] ..."`)}`,
+
+O CAMPO "pillar" É OBRIGATÓRIO EM TODA PEÇA. Escreva o pilar de conteúdo a que ela pertence, com as palavras da pauta deste cliente (ex.: "bastidor da região", "institucional — vaga validada"). Ele é conferido em código: peça sem pilar não entra no calendário do cliente. NÃO invente um pilar bonito — use o que a pauta do mês declarou.
+${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel|carrossel", "pillar": "o pilar de conteúdo desta peça", "headline": "...", "caption": "legenda pronta", "visual": "o que aparece na imagem", "cenas": "só para carrossel: 1) [gancho] tela 1 · 2) [tensao] tela 2 · 3) [acao] ..."`)}`,
       },
       {
         id: "social-roteiro-video",

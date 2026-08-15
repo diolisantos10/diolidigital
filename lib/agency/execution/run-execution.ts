@@ -82,7 +82,17 @@ function deliverableMarkdown(data: Record<string, unknown>): string {
     const it = raw as Record<string, unknown>;
     const head = (it.headline ?? it.angle ?? it.direction ?? `Item ${i + 1}`) as string;
     lines.push(`**${i + 1}. ${head}**`);
-    for (const [k, label] of [["format", "Formato"], ["caption", "Legenda"], ["cenas", "Cenas"], ["visual", "Visual"], ["direction", "Direção"], ["palette", "Paleta"], ["cta", "CTA"], ["audience", "Público"], ["note", "Obs"]] as const) {
+    // ⚠️ "Pilar" ESTAVA FALTANDO NESTA LISTA, e a falta era um portão desligado.
+    //
+    // `publicacao.ts` (`extrairPecas`) procura a linha "- Pilar: ..." desde que
+    // o bloqueio de pilar existe (07/08/2026, depois de três peças saírem com
+    // salário inventado nos pixels). Este emissor nunca a escreveu — nem o
+    // prompt do especialista pedia o campo. Resultado: `post.pillar` era
+    // SEMPRE null na esteira automática, `conferirPilar(null)` devolvia
+    // LIBERADO, e o bloqueio de "salário aberto" nunca disparou fora do
+    // Planner. Um portão que existe, tem teste e não roda é pior que portão
+    // nenhum: ele cria confiança falsa.
+    for (const [k, label] of [["format", "Formato"], ["pillar", "Pilar"], ["caption", "Legenda"], ["cenas", "Cenas"], ["visual", "Visual"], ["direction", "Direção"], ["palette", "Paleta"], ["cta", "CTA"], ["audience", "Público"], ["note", "Obs"]] as const) {
       if (typeof it[k] === "string" && (it[k] as string).trim()) lines.push(`- ${label}: ${it[k]}`);
     }
     lines.push("");
