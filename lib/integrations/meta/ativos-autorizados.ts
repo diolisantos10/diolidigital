@@ -192,6 +192,13 @@ export async function filtrarAutorizados<T>(
 export const FRASE_SEM_AUTORIZACAO =
   "Falta autorizar quais contas a agência pode ler. A conexão existe, mas nenhuma conta foi marcada pelo cliente na tela dele — e sem essa marcação nada é lido.";
 
+/** ONDE se resolve. Barrar sem ensinar o gesto é o que trava a casa: quem lê
+ *  "não autorizado" e não sabe onde clicar simplesmente espera. Fica aqui, ao
+ *  lado da trava, para a casa inteira dizer a mesma frase — `trafego.ts` tem a
+ *  variante da conta de anúncios, que é a mesma tela com outro alvo. */
+export const ONDE_MARCAR_OS_ATIVOS =
+  'portal do cliente → "O que a Dioli pode acessar" → marcar o ativo (Página, conta de anúncios) → "Salvar"';
+
 export interface EntradaDeAutorizacao {
   tipo: TipoDeAtivo;
   externalId: string;
