@@ -371,6 +371,32 @@ export interface PecaDoMolde {
   apoio?: string | null;
   /** O chapéu (pilar de conteúdo). É pintado em caixa alta — aplicada em JS. */
   selo?: string | null;
+  /**
+   * OS CHIPS DE BENEFÍCIO — as pílulas com marca de conferido.
+   *
+   * ── POR QUE ESTE CAMPO NASCEU (15/08/2026) ────────────────────────────────
+   *
+   * As peças que o CEO produziu à mão para o CityJobs têm logo em quadro, selo
+   * de região, **três chips com ícone** e **faixa de chamada no pé**. A fábrica
+   * não tinha onde encaixar os dois últimos: `PecaDoMolde` ia até `apoio`, e
+   * `comporComMolde` sequer passava `apoio`. A peça do CEO era **improduzível**
+   * pela própria esteira — o que explica por que a esteira nunca chegaria no
+   * padrão que ele produziu sozinho.
+   *
+   * ⚠️ Cada chip passou por `travaDeRotuloDeBeneficio` antes de chegar aqui, e a
+   * fonte do lastro dele é a FICHA DE MARCA do cliente — não a legenda do post.
+   * Chip afirma o que a marca É; legenda diz o que aquele post diz.
+   */
+  chips?: string[] | null;
+  /**
+   * A FAIXA DE CHAMADA do pé ("SIGA O CITY JOBS").
+   *
+   * Texto MONTADO (`chamadaDaMarca`), não escrito: verbo de uma lista fechada
+   * mais o nome do cliente. A faixa é o lugar mais tentador da peça para alguém
+   * escrever promessa em caixa alta 60 vezes por mês, e a resposta desta casa
+   * para "espaço livre" é não deixá-lo livre.
+   */
+  chamada?: string | null;
   /** Nome do cliente, no rodapé. */
   assinatura?: string | null;
   /** A FOTO. Data URL (`data:image/png;base64,...`) ou caminho `file://`.
@@ -497,6 +523,13 @@ function textosDoMolde(peca: PecaDoMolde): TextoDaPeca[] {
   if (peca.selo?.trim()) fora.push({ papel: "selo", texto: peca.selo.trim().toUpperCase() });
   if (peca.titulo?.trim()) fora.push({ papel: "titulo", texto: peca.titulo.trim() });
   if (peca.apoio?.trim()) fora.push({ papel: "apoio", texto: peca.apoio.trim() });
+  // Os chips entram UM A UM na lista de textos conferidos. Não é detalhe: o
+  // renderizador confere cada string desta lista no DOM, e um chip que não
+  // estivesse aqui seria pixel de texto que ninguém conferiu.
+  for (const chip of peca.chips ?? []) {
+    if (chip.trim()) fora.push({ papel: "chip", texto: chip.trim() });
+  }
+  if (peca.chamada?.trim()) fora.push({ papel: "chamada", texto: peca.chamada.trim().toUpperCase() });
   if (peca.assinatura?.trim()) fora.push({ papel: "assinatura", texto: peca.assinatura.trim() });
   if (peca.indice) fora.push({ papel: "indice", texto: `${peca.indice.atual}/${peca.indice.total}` });
   return fora;
@@ -505,6 +538,11 @@ function textosDoMolde(peca: PecaDoMolde): TextoDaPeca[] {
 /** A faixa do rodapé (assinatura + índice do carrossel), medida a partir do fim
  *  da margem de base. O conteúdo principal começa acima dela. */
 const ALTURA_DO_RODAPE = 76;
+
+/** A faixa de chamada, quando existe. Some inteira quando a peça não tem
+ *  chamada — e aí o conteúdo volta a encostar no rodapé, como sempre encostou.
+ *  Nenhuma peça ganha um vazio reservado para algo que ela não tem. */
+const ALTURA_DA_FAIXA = 92;
 
 /** Tamanho base do título por formato — o renderizador só encolhe a partir daqui. */
 const TITULO_PX: Record<FormatoDaPeca, number> = {
@@ -552,6 +590,31 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
     return `<${tag} class="${classe}" data-papel="${papel}" data-texto-exato="${escaparHtml(t)}">${escaparHtml(t)}</${tag}>`;
   };
 
+  // ── OS CHIPS E A FAIXA ────────────────────────────────────────────────────
+  //
+  // Não passam por `el()` de propósito: `el()` lê de um Map indexado por papel,
+  // e chip é o ÚNICO papel que se repete numa peça — o Map guardaria só o
+  // último. Aqui eles saem da lista, na ordem em que vieram.
+  //
+  // A marca de "conferido" é DESENHADA EM CSS (duas bordas rotacionadas), não é
+  // glifo de fonte. Fonte de ícone é a mesma armadilha do Arial Black do logo
+  // do CityJobs: ela não existe no contêiner, e a peça sai com um retângulo no
+  // lugar sem ninguém medir.
+  const chipsDaPeca = (peca.chips ?? []).map((c) => c.trim()).filter(Boolean);
+  const chipsHtml = chipsDaPeca.length
+    ? `<div class="chips">${chipsDaPeca
+        .map(
+          (c) =>
+            `<span class="chip" data-papel="chip" data-texto-exato="${escaparHtml(c)}"><i class="marca" aria-hidden="true"></i>${escaparHtml(c)}</span>`,
+        )
+        .join("")}</div>`
+    : "";
+
+  const textoDaChamada = textos.get("chamada");
+  const chamadaHtml = textoDaChamada
+    ? `<div class="faixa"><span class="chamada" data-papel="chamada" data-texto-exato="${escaparHtml(textoDaChamada)}">${escaparHtml(textoDaChamada)}</span></div>`
+    : "";
+
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <style>
@@ -596,7 +659,9 @@ ${cssDasFontesEmbutidas()}
     /* O rodapé mora ACIMA da margem de base, e o conteúdo acima do rodapé.
        Nada de texto pode entrar na faixa de ${dim.margemBase}px do pé — é ali
        que a interface do Instagram desenha por cima. */
-    bottom:${dim.margemBase + ALTURA_DO_RODAPE}px;
+       Com FAIXA DE CHAMADA, o conteúdo sobe a altura dela: texto por baixo de
+       faixa sólida é texto que ninguém lê. */
+    bottom:${dim.margemBase + ALTURA_DO_RODAPE + (chamadaHtml ? ALTURA_DA_FAIXA : 0)}px;
     /* Na composição dividida o conteúdo começa DENTRO do painel — nunca em
        cima da foto. É o "campo próprio" da referência: se o texto pudesse
        subir para a área da foto, a divisão seria decorativa. */
@@ -628,6 +693,37 @@ ${cssDasFontesEmbutidas()}
   .apoio {
     font-size:34px; font-weight:400; line-height:1.34; opacity:.92;
     max-width:92%; word-break:break-word;
+  }
+  /* ── OS CHIPS DE BENEFÍCIO ───────────────────────────────────────────────
+     Pílulas em série, com a marca de conferido DESENHADA EM CSS (duas bordas
+     rotacionadas). Ícone de fonte não entra: é a mesma armadilha do Arial
+     Black do logo do CityJobs — a fonte não existe no contêiner e a peça sai
+     com um retângulo, sem ninguém medir. */
+  .chips { display:flex; flex-wrap:wrap; gap:14px; max-width:100%; }
+  .chip {
+    display:inline-flex; align-items:center; gap:14px;
+    padding:12px 24px 12px 20px; border-radius:999px;
+    border:2px solid ${apoioCor};
+    font-size:27px; font-weight:600; line-height:1.1; white-space:nowrap;
+  }
+  .chip .marca {
+    display:block; flex:0 0 auto; width:13px; height:23px; margin-top:-7px;
+    border-right:5px solid ${apoioCor}; border-bottom:5px solid ${apoioCor};
+    transform:rotate(45deg);
+  }
+  /* ── A FAIXA DE CHAMADA ──────────────────────────────────────────────────
+     Mora ACIMA do rodapé e nunca dentro da margem de base. O texto dela é
+     MONTADO (verbo da casa + nome da marca), nunca escrito à mão. */
+  .faixa {
+    position:absolute; left:0; right:0;
+    bottom:${dim.margemBase + ALTURA_DO_RODAPE}px; height:${ALTURA_DA_FAIXA}px;
+    background:${apoioCor};
+    display:flex; align-items:center; justify-content:center;
+  }
+  .chamada {
+    font-size:30px; font-weight:800; letter-spacing:5px;
+    color:${tintaSobre(apoioCor)};
+    padding:0 ${dim.margemLateral}px; text-align:center;
   }
   .rodape {
     position:absolute; left:${dim.margemLateral}px; right:${dim.margemLateral}px;
@@ -674,8 +770,10 @@ ${cssDoMockup({ primaria: molde.primaria, secundaria: apoioCor, tinta })}
     ${el("selo", "div", "selo")}
     ${el("titulo", "h1", "titulo")}
     ${el("apoio", "p", "apoio")}
+    ${chipsHtml}
     ${peca.mockup?.html ?? ""}
   </div>
+  ${chamadaHtml}
   <div class="rodape">
     <div class="lockup">
       <!-- O LOGO REAL TEM PRECEDÊNCIA SOBRE O MONOGRAMA.

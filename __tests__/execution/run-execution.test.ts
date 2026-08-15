@@ -97,15 +97,21 @@ import { planProduction } from "@/lib/agency/execution/pm-conductor";
  * nenhum, que é exatamente o defeito que o CEO apontou. Um fixture que não
  * passa na trava não pode ser o fixture do caminho feliz.
  */
+/* ── 15/08/2026: o enchimento passou a declarar PILAR ───────────────────────
+ * O contrato das legendas passou a exigir o campo `pillar`. Não é burocracia:
+ * o bloqueio de conteúdo (`pilares-bloqueados.ts`) lê `post.pillar`, e como
+ * nem o prompt pedia o campo nem o markdown emitia a linha, `post.pillar` era
+ * sempre null na esteira automática — e a trava que barra "salário aberto"
+ * nunca disparava ali. Um fixture sem pilar deixaria de ser o caminho feliz. */
 function noContrato(data: { title?: string; summary?: string; items?: Array<Record<string, unknown>> }) {
-  const declaradas = (data.items ?? []).map((i) => ({ format: "feed", ...i }));
+  const declaradas = (data.items ?? []).map((i) => ({ format: "feed", pillar: "bastidor", ...i }));
   const conta = (f: string) => declaradas.filter((i) => String(i.format).includes(f)).length;
   const enchimento: Array<Record<string, unknown>> = [];
   for (let i = conta("carrossel"); i < 1; i++) {
-    enchimento.push({ format: "carrossel", headline: `C${i}`, caption: "legenda de carrossel bem completa aqui", cenas: "1) [gancho] o post-it com o pedido anotado no monitor · 2) [tensao] a caixa de mensagens sem resposta há dois dias · 3) [acao] o entregador saindo pela porta com a sacola" });
+    enchimento.push({ format: "carrossel", pillar: "bastidor", headline: `C${i}`, caption: "legenda de carrossel bem completa aqui", cenas: "1) [gancho] o post-it com o pedido anotado no monitor · 2) [tensao] a caixa de mensagens sem resposta há dois dias · 3) [acao] o entregador saindo pela porta com a sacola" });
   }
-  for (let i = conta("story"); i < 2; i++) enchimento.push({ format: "story", headline: `S${i}`, caption: "legenda de story bem completa aqui" });
-  for (let i = conta("feed"); i < 3; i++) enchimento.push({ format: "feed", headline: `F${i}`, caption: "legenda de feed bem completa aqui" });
+  for (let i = conta("story"); i < 2; i++) enchimento.push({ format: "story", pillar: "bastidor", headline: `S${i}`, caption: "legenda de story bem completa aqui" });
+  for (let i = conta("feed"); i < 3; i++) enchimento.push({ format: "feed", pillar: "bastidor", headline: `F${i}`, caption: "legenda de feed bem completa aqui" });
   return { ok: true, data: { title: data.title ?? "T", summary: data.summary ?? "s", items: [...declaradas, ...enchimento] } };
 }
 

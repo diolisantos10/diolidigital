@@ -52,7 +52,20 @@
 export type MotivoDoFundo =
   | "sem_fundo"
   | "vetor_desenhado_em_codigo"
-  | "pobre_demais_para_ser_foto";
+  | "pobre_demais_para_ser_foto"
+  /**
+   * A MEDIDA NÃO SAIU — e isso reprova.
+   *
+   * Nasceu em 15/08/2026, quando este arquivo saiu do laboratório e entrou no
+   * caminho de produção (`portao-do-fundo.ts`). Sem este valor, "não consegui
+   * decodificar a imagem" não teria como ser distinguido de "a imagem passou",
+   * e o portão viraria decoração no primeiro ambiente sem `sharp` — que é
+   * exatamente a forma como os 28 portões de decoração desta casa nasceram.
+   *
+   * É a lei: **sem portão = reprovado.** Esquecer de medir nunca pode significar
+   * aprovado.
+   */
+  | "nao_foi_possivel_medir";
 
 export type VereditoDoFundo =
   | { ok: true }
