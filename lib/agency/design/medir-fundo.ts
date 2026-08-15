@@ -80,3 +80,52 @@ export async function medirFundo(bytes: Buffer): Promise<MedidaDoFundo | null> {
     texturaMedia: paresMedidos === 0 ? 0 : somaDeDiferencas / paresMedidos / 255,
   };
 }
+
+// ── A PERGUNTA QUE SE FAZ ANTES DE PAGAR (15/08/2026) ───────────────────────
+//
+// `medirFundo` devolve `null` por DOIS motivos que nada têm a ver um com o
+// outro, e o `catch` acima achata os dois: "esta imagem não decodifica" (defeito
+// da peça, reprovar está certo) e "não há biblioteca de imagem neste ambiente"
+// (defeito da CASA, e reprovar peça por peça é queimar dinheiro pago).
+//
+// O portão continua fail closed e NÃO é afrouxado por isto: quem não conseguiu
+// medir continua reprovado. O que esta função permite é a fábrica descobrir a
+// segunda causa ANTES da primeira chamada paga do lote e parar de graça — a
+// mesma guarda que `renderizadorDisponivel()` faz para o Chromium desde 08/08.
+//
+// ⚠️ NÃO basta `await import("sharp")` responder. `sharp` é um invólucro fino
+// sobre um binário nativo (`@img/sharp-<plataforma>`) carregado por `require`
+// montado em tempo de execução: o módulo JS pode resolver e o `.node` faltar.
+// Por isso a sonda DECODIFICA uma imagem de verdade — 8×8 pixels, embutida
+// aqui — pelo mesmo caminho que a peça do cliente vai percorrer. Sonda que só
+// confere se o import resolve mediria a metade que nunca foi o problema.
+
+/** PNG 8×8 com 64 cores distintas, gerado uma vez e congelado. Não é fixture de
+ *  teste: é o corpo de prova que viaja DENTRO do pacote de produção. */
+const IMAGEM_DE_PROVA = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAA00lEQVR42gHIADf/" +
+    "AAAAAB1HDTqOGlfVJ3QcNJFjQa6qTsvxWwDoOGgFf3UixoI/DY9cVJx5m6mW4razKcMA0HDQ7bfdCv7qJ0X3RIwEYdMR" +
+    "fhoem2ErALioONXvRfI2Ug99XyzEbEkLeWZShoOZkwCg4KC9J63abrr3tccU/NQxQ+FOiu5r0fsAiBgIpV8VwqYi3+0v" +
+    "/DQ8GXtJNsJWUwljAHBQcI2Xfareiscll+RspAGzsR76vjtBywBYiNh1z+WSFvKvXf/MpAzp6xkGMiYjeTPi1lzhdUSB" +
+    "LAAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+/**
+ * Este ambiente consegue MEDIR pixel? Nunca lança; `false` é a resposta honesta
+ * de "não consegui provar que sim", nunca uma exceção subindo pela fábrica.
+ */
+export async function medidorDeFundoDisponivel(): Promise<{ disponivel: boolean; motivo: string | null }> {
+  try {
+    const medida = await medirFundo(IMAGEM_DE_PROVA);
+    if (!medida) {
+      return {
+        disponivel: false,
+        motivo: "a biblioteca de imagem respondeu, mas não decodificou o corpo de prova de 8×8 embutido",
+      };
+    }
+    return { disponivel: true, motivo: null };
+  } catch (e) {
+    return { disponivel: false, motivo: e instanceof Error ? e.message : "erro desconhecido" };
+  }
+}

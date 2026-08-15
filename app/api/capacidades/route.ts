@@ -19,6 +19,7 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { ffmpegDisponivel } from "@/lib/agency/media/video";
 import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
+import { medidorDeFundoDisponivel } from "@/lib/agency/design/medir-fundo";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
 
 export const dynamic = "force-dynamic";
@@ -27,10 +28,11 @@ export async function GET(): Promise<NextResponse> {
   const { error, session } = await requireSession();
   if (error) return error;
 
-  const [temFfmpeg, chaveImagem, renderizador] = await Promise.all([
+  const [temFfmpeg, chaveImagem, renderizador, medidor] = await Promise.all([
     ffmpegDisponivel().catch(() => false),
     resolveProviderKey("openai", session?.workspaceId).then((r) => !!r).catch(() => false),
     renderizadorDisponivel().catch(() => ({ disponivel: false, caminho: null })),
+    medidorDeFundoDisponivel().catch(() => ({ disponivel: false, motivo: null })),
   ]);
 
   const dominioPublico = Boolean(
@@ -83,6 +85,24 @@ export async function GET(): Promise<NextResponse> {
       depende_de:
         "binário do Chromium no runtime (`railpack.json → deploy.aptPackages`) + o pacote `playwright` chegando INTEIRO ao contêiner (`next.config.ts → outputFileTracingIncludes`, senão falta `playwright-core/browsers.json`)",
       onde_achei_o_navegador: renderizador.caminho,
+    },
+    {
+      // ── MEDIR PIXEL (15/08/2026) ──────────────────────────────────────────
+      // Nasceu do mesmo defeito do `montar-molde`, sete dias depois: `sharp`
+      // não estava em `dependencies` — chegava como dependência OPCIONAL do
+      // `next`, que é justamente a que o npm tem permissão de não instalar.
+      // Sem ela o portão do fundo, que é fail closed, reprova TODA peça com
+      // fundo gerado, e reprova DEPOIS de a imagem ter sido paga.
+      //
+      // Esta linha existe para que a resposta seja medida de dentro do
+      // contêiner, e não deduzida do package.json de quem pergunta.
+      id: "medir-fundo",
+      o_que_faz: "Medir o pixel do fundo gerado para barrar clipart e cor chapada antes de a peça sair",
+      pronta: medidor.disponivel,
+      sem_isso: "o portão do fundo não consegue medir e reprova TODA peça com fundo gerado — depois de a imagem já ter sido paga, três vezes por peça. A produção de arte para de graça na guarda de `produzirArtesPendentes`",
+      depende_de:
+        "`sharp` em `dependencies` (não como dependência opcional do next) + `node_modules/sharp/**/*` e `node_modules/@img/**/*` chegando ao contêiner por `next.config.ts → outputFileTracingIncludes`",
+      por_que_nao: medidor.motivo,
     },
     {
       id: "meta-buscar-midia",

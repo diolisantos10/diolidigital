@@ -583,6 +583,7 @@ export async function produzirAgora(pedido: PedidoDeProducao): Promise<Relatorio
     feito.semOrcamento += r.semOrcamento.length;
     for (const f of r.falhas) feito.falhas.push(f.erro.slice(0, 200));
     if (r.semRenderizador) { feito.falhas.push(r.semRenderizador); break; }
+    if (r.semMedidorDeFundo) { feito.falhas.push(r.semMedidorDeFundo); break; }
     if (r.produzidas === 0) break;
     // ── O RESPIRO ENTRE RODADAS ───────────────────────────────────────────
     // Volume alto não pode virar rajada. Cada imagem já leva dezenas de

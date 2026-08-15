@@ -29,8 +29,37 @@ const nextConfig: NextConfig = {
   // `npm run build`, `.next/standalone/node_modules/playwright-core/browsers.json`
   // tem de existir. `__tests__/plataforma/o-navegador-chega-em-producao.test.ts`
   // reprova quem tirar esta configuração daqui.
+  // ── O MEDIDOR DE PIXEL, PELO MESMO MOTIVO (15/08/2026) ───────────────────
+  //
+  // Sete dias depois do navegador, a MESMA doença num segundo lugar. O portão
+  // de pixel do fundo (`lib/agency/design/portao-do-fundo.ts`) é FAIL CLOSED de
+  // propósito: sem medida, reprova. E quem mede é `sharp`, que até 15/08 NÃO
+  // estava em `dependencies` — chegava só como dependência OPCIONAL do `next`
+  // (`package-lock.json`, `"optional": true`). Dependência opcional é a que o
+  // npm tem PERMISSÃO de não instalar: `--omit=optional`, plataforma sem
+  // binário pré-compilado ou uma poda do instalador e ela some sem erro.
+  //
+  // O estrago, num contêiner sem ela: `await import("sharp")` cai no `catch` de
+  // `medir-fundo.ts:29`, `medirFundo` devolve `null`, o portão vira
+  // `nao_foi_possivel_medir` e reprova 100% das peças com fundo gerado — DEPOIS
+  // de a chamada paga já ter rodado (`artes.ts`, `generateDesign`), três vezes
+  // por peça. Torneira aberta contra balde furado, de novo.
+  //
+  // Duas metades, como no playwright: a declaração em `dependencies` faz o
+  // pacote existir; a inclusão aqui faz ele CHEGAR INTEIRO. `sharp` carrega o
+  // binário nativo por `require` de `@img/sharp-<plataforma>` resolvido em
+  // tempo de execução — o rastreador do `output: "standalone"` segue import,
+  // não string montada, e o pacote viaja sem o `.node` que ele abre.
+  //
+  // `__tests__/plataforma/o-medidor-de-pixel-chega-em-producao.test.ts` reprova
+  // quem tirar qualquer uma das duas metades daqui.
   outputFileTracingIncludes: {
-    "/**": ["node_modules/playwright-core/browsers.json", "node_modules/playwright-core/bin/**/*"],
+    "/**": [
+      "node_modules/playwright-core/browsers.json",
+      "node_modules/playwright-core/bin/**/*",
+      "node_modules/sharp/**/*",
+      "node_modules/@img/**/*",
+    ],
   },
   experimental: {
     serverActions: { bodySizeLimit: "20mb" },

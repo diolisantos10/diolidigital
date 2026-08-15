@@ -363,6 +363,9 @@ export async function baterORelogio(): Promise<{
     // por dias sem ninguém saber, com a única testemunha dentro do `lastError`
     // de cada post. Fila parada conta como entrega não feita.
     if (r.semRenderizador) quebrou("arte", r.semRenderizador);
+    // Mesma regra para a ferramenta de MEDIR: fila parada por falta de `sharp`
+    // é entrega não feita, e a única testemunha seria o `lastError` de cada post.
+    if (r.semMedidorDeFundo) quebrou("arte", r.semMedidorDeFundo);
   } catch (err) {
     quebrou("arte", err);
   }

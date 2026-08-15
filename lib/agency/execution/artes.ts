@@ -52,6 +52,7 @@ import { tituloDaFonte, chamadaDaMarca } from "@/lib/agency/design/trava-de-text
 // O PORTÃO DE PIXEL. Ficou sete dias em `lib/` sem um único chamador — este é
 // o chamador. Ver `portao-do-fundo.ts` para por que ele mede o fundo CRU.
 import { conferirFundoDaPeca, motivoDoFundoEmUmaLinha } from "@/lib/agency/design/portao-do-fundo";
+import { medidorDeFundoDisponivel } from "@/lib/agency/design/medir-fundo";
 // O PRÉ-PORTÃO, de custo zero. Roda ANTES de `generateDesign` e nunca depois:
 // ver o bloco no ponto de chamada e o cabeçalho do arquivo.
 import { conferirDirecaoFotografavel } from "@/lib/agency/design/direcao-fotografavel";
@@ -121,6 +122,13 @@ export interface ArtesFeitas {
    * estava montado. Ver o bloco "O DINHEIRO SAI ANTES DA PORTA FECHAR".
    */
   semRenderizador?: string;
+  /**
+   * A rodada inteira parou antes de gastar um centavo porque a casa não tem
+   * como MEDIR pixel — e o portão do fundo, que é fail closed de propósito,
+   * reprovaria toda peça DEPOIS de paga. Vazio quando o medidor respondeu.
+   * Ver o bloco "O MEDIDOR TAMBÉM É FERRAMENTA".
+   */
+  semMedidorDeFundo?: string;
 }
 
 /**
@@ -206,6 +214,37 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       "não há Chromium para rasterizar o molde neste ambiente — NENHUMA arte foi tentada, e nenhuma imagem de IA foi paga. " +
       "Confira `playwright` em `dependencies` e o pacote `chromium` em `railpack.json → deploy.aptPackages`. " +
       "Diagnóstico ao vivo em GET /api/capacidades → `montar-molde`.";
+    return saida;
+  }
+
+  // ── O MEDIDOR TAMBÉM É FERRAMENTA (15/08/2026) ────────────────────────────
+  //
+  // Exatamente a mesma lição do bloco acima, num segundo lugar que ninguém
+  // tinha olhado. O portão do pixel (`conferirFundoDaPeca`) roda DEPOIS de
+  // `generateDesign` — a imagem já custou — e é fail closed: sem medida,
+  // reprova. Quem mede é `sharp`. Se `sharp` não estiver no contêiner, o
+  // veredito de TODA peça com fundo gerado é `nao_foi_possivel_medir`, e o
+  // laço gasta as três tentativas de cada peça pagando três imagens para
+  // jogar as três fora.
+  //
+  // Isto NÃO afrouxa o portão. Ele continua reprovando por peça quem não
+  // conseguiu medir — é a lei, e a razão dela não mudou. A guarda só antecipa
+  // uma recusa CERTA para antes do caixa, e distingue as duas causas que o
+  // `null` de `medirFundo` achata: peça que não decodifica (defeito da peça)
+  // de casa sem biblioteca (defeito da casa).
+  //
+  // A sonda decodifica uma imagem de verdade, não só confere se o import
+  // resolve — `sharp` carrega binário nativo por caminho montado em tempo de
+  // execução, e o módulo JS pode existir com o `.node` faltando.
+  const medidor = await medidorDeFundoDisponivel().catch(() => ({ disponivel: false, motivo: null }));
+  if (!medidor.disponivel) {
+    saida.semMedidorDeFundo =
+      "não há biblioteca de imagem para MEDIR o fundo neste ambiente — NENHUMA arte foi tentada, e nenhuma imagem de IA foi paga. " +
+      "Sem ela o portão do fundo reprova toda peça por `nao_foi_possivel_medir`, depois de paga. " +
+      "Confira `sharp` em `dependencies` (não vale vir como dependência opcional do next) e a inclusão de " +
+      "`node_modules/sharp/**/*` e `node_modules/@img/**/*` em `next.config.ts → outputFileTracingIncludes`. " +
+      (medidor.motivo ? `A sonda respondeu: ${medidor.motivo}. ` : "") +
+      "Diagnóstico ao vivo em GET /api/capacidades → `medir-fundo`.";
     return saida;
   }
 

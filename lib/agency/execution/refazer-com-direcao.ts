@@ -545,6 +545,7 @@ export async function refazerComDirecao(pedido: PedidoDeRefazimento): Promise<Re
     semOrcamento: feito.semOrcamento.length,
   };
   if (feito.semRenderizador) relatorio.feito.falhas.push(feito.semRenderizador);
+  if (feito.semMedidorDeFundo) relatorio.feito.falhas.push(feito.semMedidorDeFundo);
 
   const faltam = Math.max(0, elegiveis.length - feito.produzidas);
   relatorio.faltamDepoisDesteLote = faltam;
