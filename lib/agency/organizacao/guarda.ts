@@ -33,7 +33,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import { getSession, type SessionPayload } from "@/lib/auth/session";
-import { perfilDoPapel } from "@/lib/agency/roles";
+import { ehPapelDaAgencia, perfilDoPapel } from "@/lib/agency/roles";
 import type { DepartamentoId } from "./departamentos";
 import {
   eInterno,
@@ -50,13 +50,34 @@ export interface AcessoInterno {
   perfil: PerfilOrganizacional;
 }
 
+/** O perfil mais restrito que existe. Toda dúvida termina aqui. */
+const SEM_ACESSO: PerfilOrganizacional = { autoridade: "client", departamentos: [] };
+
 /**
- * O perfil de uma sessão. Sessão nula = cliente/anônimo, e o perfil reflete
- * isso com `client` — nunca com um perfil vazio de autoridade indefinida, que
- * seria a porta para `undefined` cair em algum `if` invertido.
+ * O perfil de uma sessão.
+ *
+ * ⚠️ FECHA POR OMISSÃO, e isto não é estilo — é conserto.
+ *
+ * A primeira versão fazia `return perfilDoPapel(session.role)` direto. Um JWT
+ * com papel fora da tabela (um `"client"` vindo do banco, um papel renomeado
+ * que ficou em biscoito antigo) devolvia `undefined`, e a linha seguinte lia
+ * `.autoridade` de `undefined`: 500 no lugar de 403. Erro 500 numa camada de
+ * autorização é o pior resultado possível — ele não nega, ele quebra, e o
+ * comportamento de quem chama passa a depender de quem trata a exceção.
+ *
+ * Agora papel desconhecido vira o perfil sem acesso nenhum. É a mesma regra do
+ * login (`app/api/auth/signin/route.ts`): papel desconhecido é negado, nunca
+ * promovido. O teste que pegou isto está em
+ * `__tests__/agency/organizacao/url-direta-nao-contorna.test.ts`.
  */
 export function perfilDaSessao(session: SessionPayload | null): PerfilOrganizacional {
-  if (!session) return { autoridade: "client", departamentos: [] };
+  if (!session) return SEM_ACESSO;
+  if (!ehPapelDaAgencia(session.role)) {
+    console.error(
+      `[organizacao/guarda] papel desconhecido "${session.role}" no usuário ${session.userId} — acesso negado`,
+    );
+    return SEM_ACESSO;
+  }
   return perfilDoPapel(session.role);
 }
 
