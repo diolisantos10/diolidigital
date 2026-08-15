@@ -1595,32 +1595,97 @@ export function montarPrompt(input: {
   // sai como saía antes.
   const cena = (input.direcaoDeArte ?? "").trim() || input.legenda;
   const partes = [
-    `Fotografia publicitária profissional para redes sociais, formato ${vertical ? "vertical 9:16 (story de celular)" : "quadrado"}, alta qualidade.`,
+    // ── 1. O QUE É A PEÇA ────────────────────────────────────────────────────
+    // "publicitária" saiu: em 15/08 o portão do pixel reprovou 4 de 6 peças do
+    // CityJobs por "paleta de ilustração, não fotografia" (101, 178, 244 e 432
+    // cores distintas; piso 600). Publicidade é justamente o gênero em que
+    // ilustração vetorial é resposta legítima. O que a casa quer é FOTOGRAFIA,
+    // e isso se pede com as palavras da fotografia.
+    `Fotografia real, feita com câmera, para redes sociais, formato ${vertical ? "vertical 9:16 (story de celular)" : "quadrado"}.`,
+
+    // ── 2. A CENA, LOGO NA ABERTURA — a virada de posição ────────────────────
+    // Antes, esta linha era a 4ª: a única instrução POSITIVA sobre o que
+    // fotografar, na posição 188 de um pedido de 3.158 caracteres, seguida por
+    // 2.295 de amplitude e 3 blocos "NUNCA:". Tudo depois dela era restrição, e
+    // o gerador otimiza para a saída que viola menos regras — que é o desenho.
+    // A direção de arte é o que a casa QUER; ela vem antes do que ela proíbe.
+    `Cena a retratar: ${cena.slice(0, 500)}`,
+
+    // ── 3. COMO SE FOTOGRAFA ISSO ────────────────────────────────────────────
+    // Vem colada na cena de propósito: qualifica O QUE acabou de ser pedido, em
+    // vez de abrir o prompt com um gênero ("publicitária") no qual ilustração
+    // vetorial é resposta legítima.
+    "Luz natural, profundidade de campo real, textura e imperfeição de fotografia — alta qualidade. NÃO é ilustração, NÃO é render 3D, NÃO é arte vetorial, NÃO é flat design.",
+
+    // ── 4. O CONTEXTO CURTO ──────────────────────────────────────────────────
     input.segmento ? `Negócio: ${input.segmento}${input.negocio ? ` (${input.negocio})` : ""}.` : "",
     input.pilar ? `Tema da peça: ${input.pilar}.` : "",
-    `Cena a retratar: ${cena.slice(0, 500)}`,
-    input.cores.length > 0 ? `Paleta da marca, para a ambientação e os objetos: ${input.cores.join(", ")}.` : "",
     input.tom ? `Clima: ${input.tom}.` : "",
+
+    // ── 5. A PALETA DA MARCA NÃO É PEDIDA À CÂMERA ───────────────────────────
+    //
+    // Aqui ficava `Paleta da marca, para a ambientação e os objetos: <hex>`.
+    // Reforçava, com dois hex, a mesma ordem de `repertorio-registrado.ts:305`
+    // — e prender o croma de uma foto a duas ou quatro cores é a receita medida
+    // da reprovação: o mesmo sinal fotográfico cai de 2.844 para 462 cores
+    // distintas quando o croma é preso, e o piso do portão é 600.
+    //
+    // A paleta continua valendo: ela é aplicada DEPOIS, no molde HTML, onde a
+    // cor vem de `corValida(marca.primaryColor)` (`molde.ts:298`) e é exata.
+    // Dizer isso ao gerador é melhor que calar: sem a frase ele inventa uma
+    // paleta de campanha por conta própria.
+    input.cores.length > 0
+      ? "A paleta da marca NÃO é aplicada na foto: ela entra depois, na tipografia e nos campos de cor do layout. A fotografia é de luz natural, com as cores próprias do lugar e dos objetos."
+      : "",
+
+    // ── 6. AS REFERÊNCIAS REAIS, QUE SÃO DIREÇÃO POSITIVA ────────────────────
     // A peça nova precisa parecer do MESMO perfil que as que já estão lá —
     // é o pedido literal do CEO ("os nossos carrosséis têm a ver com os que
     // eles fizeram lá?").
     input.estiloDoFeed ? `Estilo visual observado no feed real deste cliente — a peça deve pertencer à mesma família visual, sem copiar nenhum post: ${input.estiloDoFeed}` : "",
-    input.estiloVisto ? `Leitura das IMAGENS do feed real deste cliente (paleta, enquadramento e luz efetivamente vistos): ${input.estiloVisto}. Siga esta direção fotográfica.` : "",
+    input.estiloVisto ? `Leitura das IMAGENS do feed real deste cliente (enquadramento e luz efetivamente vistos): ${input.estiloVisto}. Siga esta direção fotográfica.` : "",
     // O papel vem antes da amplitude de propósito: ele diz O QUE a imagem tem
     // de provar, e a amplitude só diz em que registro provar.
     input.papelDaTela ? `FUNÇÃO DESTA TELA NA HISTÓRIA — a imagem precisa MOSTRAR isto, e não servir de fundo bonito: ${input.papelDaTela}` : "",
+    // Já chega filtrado: só os eixos de CENA, sem o `porque` e sem as regras de
+    // tipografia, cor e copy, que valem na camada HTML. Ver `direcaoDeAmplitude`.
     input.amplitude ? input.amplitude : "",
-    // O molde escreve por cima da faixa de baixo — e elemento fixo obriga
-    // espaço reservado (DESIGN.md). Sem isto, a IA compõe o assunto exatamente
-    // onde o título vai entrar, e a peça sai com texto sobre o rosto do pão.
-    "COMPOSIÇÃO OBRIGATÓRIA: deixe o terço INFERIOR da imagem visualmente calmo — fundo, sombra ou superfície lisa —, sem assunto importante ali. Esse espaço é reservado para a tipografia, que é aplicada depois.",
+
+    // ── 7. O ESPAÇO DO TÍTULO, SEM PEDIR UMA CHAPA LISA ──────────────────────
+    //
+    // Aqui se lia "deixe o terço INFERIOR visualmente calmo — fundo, sombra ou
+    // SUPERFÍCIE LISA". Um terço de superfície lisa é 33% da imagem numa cor
+    // quase única: sozinho consome 0,330 dos 0,45 de teto de cor dominante do
+    // portão (73%) antes de a cena existir. O espaço continua reservado — o
+    // molde escreve por cima e elemento fixo obriga espaço reservado
+    // (DESIGN.md) —, mas se pede com o vocabulário da câmera: desfoque e
+    // profundidade, não chapa de cor.
+    "COMPOSIÇÃO: nada de importante no terço INFERIOR — chão, calçada, bancada ou fundo em desfoque ocupam esse espaço, reservado para a tipografia que entra depois. Textura e variação de luz ali são bem-vindas; assunto, não.",
     vertical
       // Story é lido de celular na mão, em segundos, e o topo e a base ficam
       // sob os elementos da interface do Instagram.
-      ? "Assunto centralizado no terço do meio, com margem generosa em cima e embaixo. Iluminação natural, composição limpa."
-      : "Iluminação natural, composição limpa, espaço negativo para respiro.",
-    // Repetido de propósito — ver o cabeçalho do arquivo.
-    "IMPORTANTE: a imagem NÃO pode conter nenhum texto, letra, número, palavra, logotipo, marca d'água, placa ou etiqueta escrita. Apenas a cena visual, sem tipografia de nenhum tipo.",
+      ? "Assunto centralizado no terço do meio, com margem generosa em cima e embaixo."
+      : "Composição limpa, com espaço negativo para respiro.",
+
+    // ── 8. A LETRA: A PROIBIÇÃO MUDA DE FORMA, NÃO SOME ──────────────────────
+    //
+    // A frase antiga era "nenhum texto, letra, número, palavra, logotipo, placa
+    // ou etiqueta escrita" — e era a ÚLTIMA do prompt, a posição de maior peso.
+    // Rua de comércio sem placa não existe no mundo; cozinha sem rótulo não
+    // existe; galpão sem sinalização não existe. Pedir isso a uma câmera é
+    // pedir um lugar que não é fotografável — e a saída que viola menos regras
+    // volta a ser a ilustração.
+    //
+    // A RAZÃO da proibição é outra e continua de pé, palavra por palavra (ver o
+    // cabeçalho deste arquivo): preço, telefone e prazo dentro de um pixel
+    // escapam do piso de verdade, que lê texto e não enxerga imagem. O que
+    // importa não é a ausência de letra no mundo: é a ausência de letra
+    // LEGÍVEL, porque letra ilegível não afirma fato nenhum.
+    //
+    // E ela não fica sozinha: `lib/agency/design/trava-de-texto.ts` fecha por
+    // baixo — todo texto que vira pixel na camada HTML é trecho literal de
+    // conteúdo já auditado. Esta frase é o aviso; aquela é a trava.
+    "SEM TEXTO LEGÍVEL: nada que dê para LER na imagem — palavra, número, preço, telefone, data ou logotipo. Placa, letreiro e embalagem só ao longe e desfocados, como o cenário real tem. A tipografia da peça entra depois, por cima.",
   ];
   return partes.filter(Boolean).join(" ");
 }
