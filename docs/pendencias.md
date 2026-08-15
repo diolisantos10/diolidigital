@@ -15,6 +15,197 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 15/08/2026 — O FECHAMENTO DO DIA: O QUE ESTAVA VERDE E NÃO ESTAVA FUNCIONANDO
+
+**A conclusão primeiro, e ela é uma só:** nenhum incidente do dia foi descoberto
+por alarme. Todos foram descobertos por alguém abrir a saída e conferir. O
+padrão que atravessa **cinco** dos sete achados é o mesmo — **rotina verde cuja
+saída ninguém consome**. Painel verde não é evidência de nada; evidência é a
+saída lida por alguém.
+
+O que segue são os registros do dia que ainda não tinham casa. O bloco do cofre
+está logo abaixo, na sua própria seção.
+
+### 1. O cofre — já registrado, não se repete aqui
+
+`CREDENTIALS_SECRET` está em produção, **está seguro, e isso é prova e não
+presunção**: `DATABASE_URL` não é variável do serviço — o `start.sh` a
+auto-deriva do volume, e o log do deploy de 15/08 20:30 imprime
+`file:/data/dioli.db`, exatamente a string que o teste do cofre simula. Chave
+legada e banco vêm do **mesmo endereço**: se a chave tivesse mudado, o banco
+teria sumido junto. A documentação afirmava o contrário em **4 lugares** e foi
+corrigida — **PR #156**.
+
+> ⚠️ **Está tudo escrito na seção seguinte desta página.** Não foi reescrito
+> aqui de propósito: a lição do dia é que **afirmação em quatro lugares é pior
+> que em um**. Repetir a prova aqui seria criar o quinto.
+
+### 2. 🔴 O RAIO-X NUNCA PAROU — E ERA ISSO QUE NINGUÉM VIA
+
+A rotina noturna rodou **8 noites seguidas**, verde, gravando o resultado numa
+**branch morta**. O job passava; ninguém lia. E não foi só ela: **a mesma falha
+atingiu a biblioteca de plataformas** — a captura diária que existe *justamente*
+como defesa depois da restrição da conta de anúncios da Meta de 03/08 — que
+ficou **9 dias defasada com o painel verde**.
+
+**A defesa criada por um incidente foi derrubada pelo mesmo mecanismo que o
+incidente ensinou a temer.** Consertado com trava de CI — **PR #152**
+(`51e784cf`, "As rotinas noturnas voltam a pousar na branch viva").
+
+> 🔑 **A lição, e é ela que vale o registro:** o sinal que a casa olhava era
+> *"o job passou?"*. **Rotina cuja saída ninguém consome fica verde para
+> sempre.** Virou decisão em `docs/decisoes.md`.
+
+### 3. A FILA REPRESADA NÃO DRENARIA NEM COM O RELÓGIO LIGADO
+
+Dois defeitos, o **mesmo** defeito:
+
+| Onde | O que fazia | Consequência |
+|---|---|---|
+| WhatsApp (`meta/notifications.ts`) | `orderBy: timestamp desc, take: 50` **sem excluir o que já está enfileirado** | a janela era sempre as 50 mais novas; **as antigas nunca entravam na vez** |
+| Avaliações (`esteira/avaliacoes.ts`) | `slice(0, MAX_POR_RODADA)` sobre lista ordenada por mais novo | idem — a represada nunca chegava à rodada |
+
+Corrigidos no **PR #157** (`b2592dc8`): o WhatsApp lê em `asc`, paginado, com
+expiração do que está parado há dias; as avaliações fatiam a lista **não
+tratada**, não a lista inteira.
+
+> **Por que isto importa mais do que parece:** o plano do dia era religar o
+> relógio. Se ele tivesse sido religado antes desta correção, a fila represada
+> continuaria represada — **e o relatório diria "0 enviados, nenhum erro"**.
+
+### 4. OS FREIOS DE SAÍDA EXISTEM (PR #157) — E O PORQUÊ É POLÍTICA, NÃO ZELO
+
+`lib/agency/freios-de-saida.ts` — **arquivo que chega com o PR #157; não existe
+na branch do cofre, onde este registro foi escrito** — cria **`WHATSAPP_SAIDA`**
+e **`AVALIACOES_GOOGLE`**, **fail-closed**, no molde de `PUBLICACAO_ORGANICA` (um
+vocabulário só — `liberada` — para não nascer um segundo padrão). Com eles o
+relógio inteiro pode bater e a esteira andar por dentro **sem uma única mensagem
+chegar a cliente**.
+
+Existem por **parecer formal de especialista-trava**, não por precaução:
+
+- **`meta` — NÃO PODE.** A política exige telefone **e** opt-in explícito. Esta
+  casa **não tem onde registrar o opt-in**: não existe coluna, logo não existe
+  prova, logo não existe autorização. A casa já sabia — está escrito em
+  `esteira/recompra.ts` desde antes — e a porta do lado dispararia mesmo assim.
+- **`google` — NÃO PODE.** Resposta em avaliação é **pública, permanente e
+  notifica quem escreveu na hora**; não há tela que registre o consentimento, e
+  o acesso de API não está aprovado.
+
+> ### 🔴 A ASSIMETRIA DESCOBERTA, E ELA CONTINUA ABERTA
+> **`DESPERTADOR` é fail-OPEN.** Em `lib/agency/despertador.ts` a única guarda é
+> `(process.env.DESPERTADOR ?? "").trim().toLowerCase() === "off"` — o relógio
+> desliga **só** com o valor `off`, e **variável ausente = relógio ligado**. Os
+> freios de saída são fail-closed; o relógio que os aciona é fail-open. Numa casa
+> que herda ambiente novo (deploy, réplica, ambiente de teste), **o padrão
+> silencioso é "liga"**. Não foi mexido neste bloco. Ver a fila aberta, abaixo.
+
+### 5. O `OutboxV2` FOI AVALIADO E **REBAIXADO DE P0**
+
+O modelo foi **confirmado**: em `prisma/schema.prisma`, `model OutboxV2` não tem
+coluna de dono (sem `workspaceId`, sem `clientId`). A exploração, porém, foi
+**refutada**: não há escritor de produção, não há executor de saída, e **nada
+agenda aquele relógio**. Trava de CI vigia até a coluna existir.
+
+> 🔑 **O método que separou os dois merece a linha:** a pergunta que rebaixou o
+> achado foi **"quem ESCREVE nesta tabela?"** — não "quem lê". Tabela sem dono é
+> forma de incidente; **tabela sem escritor é forma sem conteúdo**. Ler o
+> schema teria mantido isto como P0 por dias. Virou decisão em `docs/decisoes.md`.
+
+### 6. 🔴 O ACHADO QUE ESTAVA AO LADO E ERA PIOR
+
+Enquanto o `OutboxV2` era rebaixado, o defeito **real** estava no vizinho:
+**`/api/v2/assistido` sem recorte de workspace**, e o **segredo de cron
+reutilizado como segredo de operação**. Quem tivesse o segredo do relógio
+**gastava IA e criava card no portal** — em cliente que não era dele.
+
+Corrigido nos **PR #161** ("O clienteId do corpo deixa de atravessar a casa no
+piloto assistido") e **PR #162** ("O SEGUNDO id do corpo também tem dono").
+
+> **A regra da casa que isto confirma:** *id recebido não é id provado* — e
+> **segredo de máquina não é credencial de operador**. Achado que tem forma de
+> incidente rouba a atenção do achado que é incidente.
+
+### 7. A FILA ABERTA — SEM DONO ATRIBUÍDO
+
+Nada disto foi tocado hoje. Está aqui para **não** depender de alguém lembrar:
+
+- [ ] **os 7 estados mortos** (levantados e não triados).
+- [ ] **`clientRequestId` intra-casa** — **desalinhamento de auditoria, não
+      vazamento.** Registrado com a classificação certa de propósito: chamar de
+      vazamento o que não é gasta o alarme.
+- [ ] **`rollout` com `escopo` vindo do corpo, sem recorte** — mesma família do
+      achado 6, porta diferente.
+- [ ] **os agregados de `observabilidade` / `pm-command`** — sem recorte conferido.
+- [ ] `plataforma` — **coluna de inquilino em `OutboxV2`**: é migration, e
+      `prisma/` é decisão do dono do modelo.
+- [ ] **CEO** — **re-cifragem dos segredos na chave nova.** Reescreve dado de
+      produção; não é decisão de deploy. O censo (`GET /api/admin/censo-do-cofre`)
+      dá o número antes.
+- [ ] **`DESPERTADOR` fail-open** (achado 4) — decidir se o relógio passa a
+      exigir ligação declarada, como os freios.
+
+### 8. 🔴 A CAMADA DO PM ESTÁ CUMPRIDA NO PAPEL E QUEBRADA NA PRÁTICA
+
+**Este é o item maior do dia, e ele não é técnico.**
+
+Em **nove rodadas seguidas hoje**, **todo** agente relatou não ter ferramenta de
+despacho. Cada um fez sozinho o trabalho de cinco especialistas e declarou
+`SEM_AGENTE`. Os pareceres de `meta`, `google` e `seguranca` que sustentam o
+achado 4 **só existem porque o Diretor os despachou por fora — saltando a
+camada que a doutrina 29 torna obrigatória**.
+
+**Este bloco de registro é a décima rodada, e mediu o mesmo.** Quem escreve estas
+linhas é o `pm`, sem ferramenta de despacho, declarando `SEM_AGENTE`.
+
+**Já há QUATRO registros anteriores disto neste arquivo, todos sem dono** — nas
+seções *"O COFRE ESTÁ SEGURO…"* (15/08), *"AS 2 PEÇAS DO CITYJOBS REFEITAS…"*,
+*"O MATERIAL ENVIADO PELO PORTAL CHEGA NA PEÇA…"* e *"99FREELAS: A CASA PASSOU A
+LER O GMAIL…"* (as três de 08/08). Um deles já dizia "quarta rodada seguida com
+a mesma medição". A medição foi repetida cinco vezes e nunca virou trabalho de
+ninguém.
+
+> Citados por **título de seção, não por número de linha**: este arquivo cresce
+> todo dia, e referência por linha apodrece na primeira inserção — inclusive na
+> desta.
+
+> **Por isso isto deixa de ser observação de rodapé e vira FRENTE PRÓPRIA**, e
+> **sobe ao Diretor Geral do Cérebro** (`dioli-brain-kit`), porque a doutrina 29
+> é do kit e vale para todos os produtos.
+>
+> 🔑 **Mecanismo obrigatório que nunca funciona não é dívida técnica — é regra
+> que a casa finge cumprir.** E o custo já é mensurável: a doutrina existe para
+> evitar que uma cabeça só faça o trabalho de cinco lentes diferentes, e é
+> exatamente isso que aconteceu nove vezes hoje.
+
+### 8b. 🔴 O RISCO OPERACIONAL MEDIDO HOJE: VÁRIAS FRENTES NA MESMA ÁRVORE
+
+Isto não é anedota, é medição de três acidentes no mesmo dia:
+
+| O que aconteceu | Quase custou |
+|---|---|
+| Um agente viu **39 testes quebrados** na árvore | quase relatou como seus testes que eram de **outra frente em andamento** |
+| **Dois** blocos travaram ao ver 159 linhas "não commitadas" em `docs/pendencias.md` | **dois blocos parados** — e as linhas **já estavam commitadas e enviadas** (PR #156); era resíduo de árvore compartilhada, conferido com `git hash-object` contra `origin/claude/consertos-do-cofre`, **idêntico byte a byte** |
+
+**O que funcionou, nas três vezes:** `git worktree` isolado + `git add` de
+caminho explícito. **`git add -A` teria commitado a frente inteira de outro
+agente.**
+
+> **Isso vira regra da casa, não anedota:** em árvore compartilhada, portão e
+> commit de agente rodam em worktree próprio, e o agente confere a suspeita
+> contra o remoto **antes** de parar por ela. **Recusa prudente com premissa
+> errada custa o mesmo que erro** — dois blocos do dia foram perdidos assim.
+> Registrado em `docs/decisoes.md`.
+
+### O que este bloco NÃO fez, por ordem
+
+Nada foi ligado: `DESPERTADOR` intocado, nenhuma ficha para `ativa: true`,
+nenhuma flag aberta, nenhuma variável de produção alterada. **Só documentação** —
+nenhum arquivo de código, nada em `prisma/`, e nada no território da outra
+sessão (`portal/messages`, `PortalChat`, `portal/access/[token]`,
+`portal-cookie`).
+
+
 ## 🟢 15/08/2026 — O COFRE ESTÁ SEGURO, A VITRINE MENTIA, E AS 7 APROVAÇÕES ÓRFÃS **NÃO SÃO P0**
 
 **A conclusão primeiro:** nenhum dos quatro achados do bloco do cofre era

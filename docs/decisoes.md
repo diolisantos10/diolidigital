@@ -8,6 +8,175 @@
 
 ---
 
+## ROTINA CUJA SAÍDA NINGUÉM CONSOME FICA VERDE PARA SEMPRE
+
+**Decidido em** 2026-08-15 · **por** `pm`, a mando do Diretor · **PR** #152
+(`51e784cf`) · **atinge** `esteira` · `plataforma` · `meta`/`google`/`tiktok` ·
+`qualidade`
+
+**O que aconteceu.** O raio-x noturno rodou **8 noites seguidas**, verde,
+gravando o resultado numa **branch morta**. A mesma falha atingiu a captura
+diária da biblioteca de plataformas — que existe *justamente* como defesa
+depois da restrição da conta de anúncios da Meta de 03/08 — e ela ficou **9 dias
+defasada**, com o painel verde o tempo todo. **A defesa criada por um incidente
+foi derrubada pelo mesmo mecanismo que o incidente ensinou a temer.**
+
+**A decisão, em uma frase: o sinal de uma rotina não é "o job passou", é "a
+saída chegou onde alguém a lê".** Consequências, e elas atravessam domínios:
+
+1. **Rotina que grava resultado declara ONDE grava, e o CI confere.** Destino
+   inexistente, morto ou fora do alcance de quem lê é **falha da rotina**, não
+   detalhe de configuração.
+2. **Verde sem saída consumida não conta como evidência** em lugar nenhum —
+   nem em vitrine, nem em portão, nem em relato ao CEO.
+3. **Vale em dobro para rotina que é defesa.** Captura de política de
+   plataforma, varredura de segurança e censo existem para serem lidos; parada
+   silenciosa neles devolve a casa ao estado anterior ao incidente que os criou,
+   **sem ninguém perceber**.
+
+> É a mesma família da cicatriz que criou o cargo de PM: trabalho escrito,
+> ninguém avisado, painel verde.
+
+---
+
+## PARA CLASSIFICAR ACHADO EM TABELA SEM DONO, PERGUNTE QUEM **ESCREVE** — NÃO QUEM LÊ
+
+**Decidido em** 2026-08-15 · **por** `pm`, a mando do Diretor · **atinge**
+`plataforma` · `seguranca` · `esteira` · `qualidade`
+
+**As duas metades do mesmo dia.** `model OutboxV2`, em `prisma/schema.prisma`,
+**não tem coluna de dono** — sem `workspaceId`, sem `clientId`. Tem a forma exata de um
+vazamento entre inquilinos, e foi levantado como **P0**. Foi **rebaixado**: não
+há escritor de produção, não há executor de saída, e **nada agenda aquele
+relógio**. Forma de incidente, sem conteúdo.
+
+Enquanto isso, o defeito **real** estava na porta ao lado: `/api/v2/assistido`
+**sem recorte de workspace**, com o **segredo de cron reutilizado como segredo de
+operação** — quem tivesse o segredo do relógio **gastava IA e criava card no
+portal** de cliente alheio. Corrigido nos **PR #161** e **#162**.
+
+**A decisão, em uma frase: schema é forma; escritor é conteúdo.** Ao triar
+achado de posse:
+
+1. **A primeira pergunta é "quem escreve nesta tabela, hoje, em produção?"** —
+   não "o que o schema permite". Ler o schema teria mantido o `OutboxV2` como P0
+   por dias, com o incidente de verdade esperando ao lado.
+2. **Rebaixar exige trava.** O `OutboxV2` fica vigiado por CI até a coluna
+   existir: quem escrever o primeiro escritor amanhã encontra o portão, não este
+   texto.
+3. **Achado com forma de incidente rouba a atenção do achado que é incidente.**
+   Custo de triar errado não é atraso — é o outro achado.
+
+> Corolário que já era regra desta casa e ganhou segunda porta: *id recebido não
+> é id provado*, e **segredo de máquina não é credencial de operador**.
+
+---
+
+## FREIO DE SAÍDA É FAIL-CLOSED — E O RELÓGIO QUE O ACIONA AINDA NÃO É
+
+**Decidido em** 2026-08-15 · **por** `pm`, sobre pareceres formais de `meta` e
+`google` · **PR** #157 (`b2592dc8`) · **atinge** `esteira` · `meta` · `google` ·
+`plataforma`
+
+**Por que os freios existem — é cumprimento de política, não cautela.**
+`lib/agency/freios-de-saida.ts` cria **`WHATSAPP_SAIDA`** e
+**`AVALIACOES_GOOGLE`**, fail-closed, no molde de `PUBLICACAO_ORGANICA` (mesmo
+vocabulário, `liberada`, para não nascer um segundo padrão que o incidente use
+como porta).
+
+| Especialista | Parecer | Fundamento |
+|---|---|---|
+| `meta` | **NÃO PODE** | política exige telefone **e** opt-in explícito; **não existe coluna de opt-in** no schema — sem coluna não há prova, sem prova não há autorização |
+| `google` | **NÃO PODE** | resposta em avaliação é **pública, permanente e notifica quem escreveu**; sem tela que registre o consentimento e sem acesso de API aprovado |
+
+**A casa já sabia da primeira** — está escrito em `esteira/recompra.ts`, que se
+recusa a disparar WhatsApp por esse exato motivo. **E a porta do lado dispararia
+mesmo assim, 100 mensagens na primeira batida.** A decisão que fica: **conclusão
+de política vale para TODAS as portas do mesmo ato, não para a porta onde foi
+descoberta.**
+
+> ### 🔴 A ASSIMETRIA, DECLARADA E AINDA ABERTA
+> **`DESPERTADOR` é fail-OPEN.** Em `lib/agency/despertador.ts`, a única guarda
+> é `(process.env.DESPERTADOR ?? "").trim().toLowerCase() === "off"`: o relógio
+> só desliga com o valor `off` — **variável ausente = relógio ligado**. Os
+> freios de saída são fail-closed; o relógio que os aciona não é. Em ambiente
+> novo — deploy, réplica, ambiente de teste — **o padrão silencioso é "liga"**.
+>
+> **Não foi alterado neste bloco, de propósito:** ligar ou desligar relógio é
+> gesto declarado, e inverter o padrão é decisão do CEO. Fica registrado como
+> pendência com dono a definir, não como detalhe.
+
+---
+
+## EM ÁRVORE COMPARTILHADA, O AGENTE TRABALHA EM WORKTREE PRÓPRIO — E CONFERE A SUSPEITA ANTES DE PARAR POR ELA
+
+**Decidido em** 2026-08-15 · **por** `pm`, a mando do Diretor · **atinge** todos
+os agentes desta casa
+
+**Três acidentes no mesmo dia, todos da mesma causa** — várias frentes vivas na
+mesma árvore de trabalho:
+
+| Acidente | Custo real ou evitado |
+|---|---|
+| Um agente encontrou **39 testes quebrados** | quase relatou como seus testes que eram de **outra frente em andamento** |
+| **Dois blocos** se recusaram a escrever em `docs/pendencias.md` por verem "159 linhas não commitadas de outra frente" | **dois blocos perdidos** — as linhas **já estavam commitadas e enviadas** em `claude/consertos-do-cofre` (PR #156); era resíduo de árvore compartilhada |
+
+**As duas metades da regra:**
+
+1. **Portão e commit de agente rodam em `git worktree` próprio**, com `git add`
+   de **caminho explícito**. `git add -A` em árvore compartilhada commita a
+   frente inteira de outro agente no seu PR. `git stash` para "conferir
+   regressão" traz o trabalho alheio junto.
+2. **Suspeita de trabalho alheio se CONFERE contra o remoto antes de virar
+   motivo para parar.** O gesto é barato e é uma linha:
+   `git hash-object <arquivo>` contra
+   `git rev-parse <branch-remota>:<arquivo>`. Idêntico = resíduo, siga. Diverge
+   = pare **e avise**.
+
+> 🔑 **Recusa prudente com premissa errada custa o mesmo que erro.** Dois blocos
+> do dia foram perdidos por cautela correta em cima de fato falso. Prudência que
+> não se verifica não é prudência, é paralisia — e num dia com seis frentes ela
+> é indistinguível de falha.
+
+---
+
+## 🔴 A CAMADA DO PM É OBRIGATÓRIA E NUNCA FUNCIONOU — VIRA FRENTE PRÓPRIA E SOBE AO KIT
+
+**Decidido em** 2026-08-15 · **por** `pm`, a mando do Diretor · **atinge** toda a
+casa · **escala para** o Diretor Geral do Cérebro (`dioli-brain-kit`, doutrina 29)
+
+**A medição de hoje, que é o registro inteiro:** em **nove rodadas seguidas**,
+**todo** agente relatou não ter ferramenta de despacho e declarou `SEM_AGENTE`.
+Cada um fez sozinho o trabalho de cinco especialistas. Os pareceres de `meta`,
+`google` e `seguranca` que fundamentam os freios de saída **só existem porque o
+Diretor os despachou por fora — saltando a camada**. O bloco que escreveu este
+registro foi a **décima** rodada e mediu o mesmo.
+
+**Já havia QUATRO registros anteriores disto em `docs/pendencias.md`, todos sem
+dono** (seções *"O COFRE ESTÁ SEGURO…"*, *"AS 2 PEÇAS DO CITYJOBS REFEITAS…"*,
+*"O MATERIAL ENVIADO PELO PORTAL CHEGA NA PEÇA…"* e *"99FREELAS: A CASA PASSOU A
+LER O GMAIL…"*). Um deles já dizia "quarta rodada seguida com a mesma medição".
+
+**A decisão:**
+
+1. **Isto deixa de ser observação de rodapé e vira FRENTE PRÓPRIA**, com dono
+   nomeado. Cinco medições idênticas sem dono não são cinco registros — são
+   **zero**.
+2. **Sobe ao Diretor Geral do Cérebro**, porque a doutrina 29 é do kit e vale
+   para todos os produtos Dioli. Esta casa não decide sozinha o que fazer com uma
+   regra do kit que não executa.
+3. **Enquanto não executar, `SEM_AGENTE` continua sendo declarado em todo bloco**
+   — é dado, não perdão, e é a única coisa que mantém o buraco visível.
+
+> 🔑 **Mecanismo obrigatório que nunca funciona não é dívida técnica — é regra
+> que a casa finge cumprir.** É a mesma família de "sem gate = reprovado": uma
+> checagem que não roda não protege nada, e uma camada que não existe não
+> distribui nada. A doutrina 29 existe para impedir que **uma cabeça só** faça o
+> trabalho de cinco lentes diferentes; foi exatamente isso que aconteceu nove
+> vezes num dia.
+
+---
+
 ## O ANÚNCIO SÓ NASCE COM ATIVO QUE SE PROVA DO DONO — PÁGINA E ARTE
 
 **Decidido em** 2026-08-15 · **por** `seguranca`, a pedido do Diretor ·
