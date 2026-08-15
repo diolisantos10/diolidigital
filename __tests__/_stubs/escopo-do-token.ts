@@ -46,18 +46,24 @@ export function escopoFalso(
 
     let clientId = acesso.record.clientId ?? null;
     let workspaceDaSolicitacao: string | null = null;
+    // A solicitação EXISTE? No código real, prospect sem solicitação no banco
+    // é `sem_dono` — e é isso que segura o fail-closed do `/api/social-posts`.
+    // O stub precisa ser tão estrito quanto o real, nunca mais permissivo:
+    // stub frouxo pinta de verde um teste que o código reprovaria.
+    let solicitacaoExiste = !prisma.clientRequestDb?.findUnique;
     if (!clientId && acesso.record.clientRequestId && prisma.clientRequestDb?.findUnique) {
       const sol = (await prisma.clientRequestDb.findUnique({
         where: { id: acesso.record.clientRequestId }, select: { clientId: true, workspaceId: true },
       })) as { clientId?: string | null; workspaceId?: string | null } | null;
       clientId = sol?.clientId ?? null;
       workspaceDaSolicitacao = sol?.workspaceId ?? null;
+      solicitacaoExiste = !!sol;
     }
     // Ramo do PROSPECT: solicitação que ainda não virou cliente tem portal
     // legítimo, e o escopo dele é a própria solicitação.
     if (!clientId) {
       // No código real o workspace do prospect sai da própria solicitação.
-      return acesso.record.clientRequestId
+      return acesso.record.clientRequestId && solicitacaoExiste
         ? {
             ok: true, clientId: null,
             workspaceId: workspaceDaSolicitacao ?? workspacePadrao,

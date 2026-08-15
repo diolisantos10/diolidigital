@@ -85,7 +85,7 @@ function bancoDeDoisInquilinos() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db, { resolvePortalClient }));
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   requireSession.mockResolvedValue({ session: { workspaceId: "ws-A", email: "staff@a.com" }, error: null });
   getSession.mockResolvedValue({ workspaceId: "ws-A", email: "staff@a.com" });
   db.socialPost.findFirst.mockResolvedValue(POST_EXISTENTE);
@@ -181,11 +181,23 @@ describe("GET /api/social-posts com token — o workspace entra no filtro", () =
     expect(where).toMatchObject({ workspaceId: "ws-A", clientRequestId: "cr-A", visibility: "compartilhado" });
   });
 
-  it("workspace não resolvido: lista vazia, nunca consulta larga (fail-closed)", async () => {
+  // ⚠️ 15/08/2026 (rodada 3) — A GARANTIA CONTINUA; O CÓDIGO FICOU MAIS DURO.
+  //
+  // Antes: token apontando para uma solicitação que não existe resolvia um
+  // escopo VAZIO e a rota devolvia `{ posts: [] }`. Agora o `escopoDoToken`
+  // classifica isso como token que não aponta para dono nenhum e a rota
+  // devolve **403**. Os dois são fail-closed; 403 é o mais honesto — não é
+  // "você não tem peças", é "este acesso não vale".
+  //
+  // O que este teste protege é o que sempre protegeu, e segue intacto:
+  // **nenhuma consulta larga**. É essa linha que impede a lista de um cliente
+  // de aparecer para outro.
+  it("solicitação inexistente: acesso negado e NUNCA consulta larga (fail-closed)", async () => {
     validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr-orfa", clientId: null } });
     db.clientRequestDb.findUnique.mockResolvedValue(null);
     const res = await listarPosts(new NextRequest("http://localhost/api/social-posts?token=tok"));
-    expect((await res.json()).posts).toEqual([]);
+    expect(res.status).toBe(403);
+    expect((await res.json()).posts).toBeUndefined();
     expect(db.socialPost.findMany).not.toHaveBeenCalled();
   });
 });

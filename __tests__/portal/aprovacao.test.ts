@@ -13,7 +13,7 @@ import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
   approvalRequest: { findUnique: vi.fn(), update: vi.fn(), count: vi.fn() },
-  clientRequestDb: { findUnique: vi.fn() },
+  clientRequestDb: { findUnique: vi.fn(), findMany: vi.fn() },
   socialPost: { updateMany: vi.fn() },
   project: { findFirst: vi.fn() },
   materialRequest: { create: vi.fn() },
@@ -53,6 +53,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  // ⚠️ 15/08/2026 (rodada 3): a posse deixou de casar pelo `clientRequestId`
+  // escrito no registro do token — o PONTEIRO — e passa pelo ESCOPO CONGELADO
+  // (`escopoDoToken`), que deriva o cliente e as solicitações DELE. Por isso a
+  // solicitação do token agora precisa existir no banco do teste. Foi por este
+  // caminho que o probe do `seguranca` APROVOU uma entrega de outro cliente.
+  db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr1", clientId: "c1", workspaceId: "ws1" });
+  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
   db.approvalRequest.findUnique.mockResolvedValue({ ...APROVACAO });
   db.approvalRequest.update.mockResolvedValue({});
   db.approvalRequest.count.mockResolvedValue(1);

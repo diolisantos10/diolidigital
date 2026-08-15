@@ -131,15 +131,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       clientId: approval.clientId,
       clientRequestClientId: approval.clientRequest?.clientId ?? null,
     };
-    const doCliente =
-      approval.clientId === escopo.clientId
-      || approval.clientRequest?.clientId === escopo.clientId
-      || (!!approval.clientRequestId && escopo.clientRequestIds.includes(approval.clientRequestId));
-    // `pertenceAoToken` (função pura, provada por teste) continua valendo como
-    // a segunda metade — mas agora alimentada só com o escopo congelado.
-    const belongsToToken = doCliente && pertenceAoToken(
+    // `pertenceAoToken` (função pura, provada por teste) continua sendo quem
+    // decide — o que mudou é o que ela RECEBE: só o escopo congelado.
+    //
+    // ⚠️ A chave de solicitação só entra quando ela pertence ao escopo. É
+    // isso que impede a solicitação re-apontada de continuar valendo, sem
+    // precisar de uma segunda regra de posse ao lado desta (duas regras com o
+    // mesmo nome é o defeito nº 2 do incidente do Drive).
+    const requestDoEscopo =
+      approval.clientRequestId && escopo.clientRequestIds.includes(approval.clientRequestId)
+        ? approval.clientRequestId
+        : null;
+    const belongsToToken = pertenceAoToken(
       formaDaAprovacao,
-      { clientRequestId: null, clientId: escopo.clientId },
+      { clientRequestId: requestDoEscopo, clientId: escopo.clientId },
       escopo.clientId,
     );
     if (!belongsToToken) {

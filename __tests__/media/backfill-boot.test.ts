@@ -23,7 +23,6 @@
 //   ✅ o card reaberto guarda o registro da decisão anterior — histórico não
 //      se perde, e o cliente continua com UM card só.
 
-import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { execSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
@@ -41,10 +40,15 @@ const DB_PATH = vi.hoisted(() => {
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const resolvePortalClient = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
-// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
-const escopoDoToken = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({
-  validatePortalAccess, resolvePortalClient, escopoDoToken }));
+// ⚠️ 15/08/2026 (rodada 3): `escopoDoToken` — o ESCOPO CONGELADO — entrou no
+// caminho das rotas de portal. Esta suíte roda contra BANCO DE VERDADE (não há
+// mock de prisma aqui), então o certo é deixar a implementação REAL rodar:
+// stub sobre banco real esconderia justamente a trava que se quer exercitar.
+// Só `validatePortalAccess` e `resolvePortalClient` continuam substituídos.
+vi.mock("@/lib/agency/persistence/portal-access-service", async (original) => ({
+  ...(await original<Record<string, unknown>>()),
+  validatePortalAccess, resolvePortalClient,
+}));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { NextRequest } from "next/server";
@@ -287,7 +291,14 @@ describe("a tarefa de boot, com plano limpo", () => {
   });
 
   it("GET /api/brain/portal-data devolve pecas[].telas com 6 itens — e o card VOLTOU a pendente", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: null, clientId } });
+    // ⚠️ rodada 3: o escopo do portal é derivado do `PortalAccess` REAL (é
+    // nele que o dono fica congelado). Num teste de banco de verdade, o token
+    // tem de existir de verdade — mockar o registro esconderia a trava.
+    await prisma.portalAccess.upsert({
+      where: { token: "tok-foocci" },
+      update: { clientId },
+      create: { token: "tok-foocci", clientId },
+    });
     const res = await portalData(new NextRequest("http://localhost/api/brain/portal-data?token=tok-foocci"));
     const json = await res.json();
     expect(res.status).toBe(200);
@@ -571,7 +582,9 @@ describe("a segunda porta — reabrir o card por decisão da direção", () => {
     expect(historico[1]!.body).toContain("cada um dos 6 carrosséis deste card traz as 6 telas");
 
     // 4. A ponta que interessa: o PORTAL do cliente pede a decisão, com tudo.
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: null, clientId } });
+    await prisma.portalAccess.upsert({
+      where: { token: "tok" }, update: { clientId }, create: { token: "tok", clientId },
+    });
     const res = await portalData(new NextRequest("http://localhost/api/brain/portal-data?token=tok"));
     const json = await res.json();
     const noPortal = json.approvals.find((a: { id: string }) => a.id === approvalId);
