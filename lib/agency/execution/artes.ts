@@ -134,6 +134,36 @@ export interface ArtesFeitas {
 export interface RecorteDaRodadaDeArte {
   /** Só as peças DESTE cliente. `undefined` = todos, como sempre foi. */
   clientId?: string;
+  /**
+   * REFAZER estas peças NOMEADAS — mesmo que elas já tenham `mediaUrl`.
+   *
+   * ── POR QUE ISTO EXISTE (15/08/2026) ──────────────────────────────────────
+   *
+   * A direção de arte passou a chegar ao gerador neste dia, e o portão de pixel
+   * do fundo passou a valer. Só que o estoque do cliente foi produzido ANTES —
+   * com `mediaUrl` preenchido. `mediaUrl: null` (a seleção de sempre) não
+   * alcança nenhuma dessas peças: a esteira consertada não tem o que mostrar,
+   * porque o estoque foi feito pela esteira velha.
+   *
+   * ⚠️ Isto NÃO é um segundo caminho de produção. É o MESMO laço, com a mesma
+   * ordem de portões (pilar → tentativas → teto diário → foto do cliente →
+   * portão do fundo → composição da marca → trava de texto), a mesma gravação e
+   * o mesmo orçamento. O que muda é uma linha de `where` — e tinha de ser
+   * assim: uma cópia deste laço para "refazer" começaria idêntica e divergiria
+   * no primeiro ajuste, que foi exatamente como nasceu o defeito do carrossel
+   * recomposto pela função de peça única.
+   *
+   * ── NÃO É DESTRUTIVO ──────────────────────────────────────────────────────
+   *
+   * A peça continua com a arte velha até a nova ficar pronta: `mediaUrl` só é
+   * reescrito na linha final do laço, depois de a imagem ter sido paga, ter
+   * passado no portão do fundo, ter sido composta e ter sido guardada. Falha em
+   * qualquer ponto deixa a peça exatamente como estava.
+   *
+   * QUEM decide a lista não é esta função — é `refazer-com-direcao.ts`, que
+   * barra peça aprovada pelo cliente e peça sem direção no entregável de origem.
+   */
+  refazer?: string[];
 }
 
 /**
@@ -176,9 +206,18 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
     return saida;
   }
 
+  // A lista NOMEADA vence a seleção por ausência de arte — e só ela. Lista
+  // vazia NÃO vira "pega tudo": `refazer: []` é um pedido de refazer nada, e
+  // transformá-lo na rodada global gastaria imagem paga de quem ninguém
+  // autorizou. Por isso o teste é `!== undefined`, não `.length > 0`.
+  const refazendo = recorte.refazer !== undefined;
+
   const pendentes = await prisma.socialPost.findMany({
     where: {
-      mediaUrl: null,
+      // `mediaUrl: null` cobre o carrossel também: ele só recebe a capa quando
+      // TODAS as telas ficam prontas, então um carrossel pela metade continua
+      // aparecendo como pendente na rodada seguinte.
+      ...(refazendo ? { id: { in: recorte.refazer! } } : { mediaUrl: null }),
       status: { in: ["draft", "scheduled", "approved"] },
       // O recorte por cliente é OPCIONAL e some quando ninguém o pede — sem ele
       // o `where` é idêntico ao de sempre. `clientId: undefined` seria ignorado
@@ -186,11 +225,11 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // ausência seja legível para quem lê, não só para o driver.
       ...(recorte.clientId ? { clientId: recorte.clientId } : {}),
     },
-    // `mediaUrl: null` cobre o carrossel também: ele só recebe a capa quando
-    // TODAS as telas ficam prontas, então um carrossel pela metade continua
-    // aparecendo como pendente na rodada seguinte.
     orderBy: { scheduledFor: "asc" },
-    take: MAX_ARTES_POR_RODADA,
+    // Refazendo, o teto é o TAMANHO DO LOTE que o chamador nomeou — ele já foi
+    // aparado lá, contra o tempo da requisição. `MAX_ARTES_POR_RODADA` continua
+    // mandando na rodada de sempre.
+    take: refazendo ? Math.min(recorte.refazer!.length, MAX_ARTES_POR_RODADA) : MAX_ARTES_POR_RODADA,
   }).catch(() => []);
   if (pendentes.length === 0) return saida;
 
