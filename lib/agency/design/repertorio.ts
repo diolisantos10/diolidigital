@@ -512,17 +512,113 @@ export function composicaoDoPostSimples(
 }
 
 /**
+ * ── EM QUE CAMADA UMA REGRA DA MARCA É EXECUTADA (15/08/2026) ───────────────
+ *
+ * A produção tem DUAS camadas (ver o cabeçalho de `artes.ts`): a FOTO, que sai
+ * do gerador de imagem, e o TEXTO/COR/MARGEM, que sai do molde HTML. Uma regra
+ * de marca vale numa OU noutra — e mandá-la para a errada não é redundância
+ * inofensiva, é sabotagem.
+ *
+ * Medido em 15/08 contra o CityJobs: `repertorio-registrado.ts:305` manda ao
+ * GERADOR DE IMAGEM "paleta creme ou qualquer cor fora de #0D2B4D · #FFFFFF ·
+ * #16A34A · #FFD24D". Um sinal fotográfico com o croma preso a quatro cores cai
+ * de 2.844 para 462 cores distintas — abaixo do piso de 600 do portão do fundo.
+ * A casa pagava US$ 0,167 por tentativa para ser reprovada pela própria regra.
+ *
+ * A regra NÃO é falsa: ela é verdadeira NA OUTRA CAMADA, onde já é executada
+ * por construção — a paleta vem de `corValida(marca.primaryColor)`
+ * (`molde.ts:298`) e a família tipográfica é sans fixa, sem serifada de display
+ * em lugar nenhum (`molde.ts:134` e `molde.ts:159`). Mandá-la ao gerador não
+ * acrescenta trava: só encolhe o croma da foto.
+ *
+ * Por isso a classificação é por ITEM e não por eixo: no eixo "temperatura" do
+ * CityJobs convivem uma proibição de CENA ("estética de escritório de
+ * tecnologia") e quatro de outra camada.
+ *
+ * O default é `"cena"` DE PROPÓSITO. Regra que o classificador não reconhece
+ * continua chegando ao gerador — errar para o lado de mandar demais custa
+ * ruído; errar para o lado de calar uma regra de marca do cliente custa a
+ * regra.
+ */
+export type CamadaDaRegra = "cena" | "cor" | "tipografia" | "copy";
+
+/** Hex literal, ou a fórmula "cor(es) fora de". Régua estreita de propósito:
+ *  "paleta quente" é direção FOTOGRÁFICA legítima e não pode ser sequestrada
+ *  por esta classe. */
+const MARCA_DE_COR = /#[0-9a-fA-F]{3,8}\b|\bcor(?:es)? fora de\b|\bpaleta\b[^.]*#/i;
+
+/** O vocabulário da letra. Nenhum destes termos descreve o que a câmera vê. */
+const MARCA_DE_TIPOGRAFIA = /\btipografi|\bserifad|\bserifa\b|\bfonte\b|\bsans\b|\bhelvetica\b|\barial\b|caixa alta|\bit[áa]lic|\blettering\b/i;
+
+/** O vocabulário do que se ESCREVE — promessa, número, sensacionalismo. É a
+ *  camada do `trava-de-texto.ts` e do pilar bloqueado, não a do gerador. */
+const MARCA_DE_COPY = /\bpromessa\b|sensacionalista|dentro dos pixels|\bsal[áa]rio\b|\bprevis[ãa]o\b|\bcopy\b|\bslogan\b/i;
+
+/** Em que camada esta regra da marca é executada. */
+export function camadaDaRegra(texto: string): CamadaDaRegra {
+  const t = (texto ?? "").trim();
+  if (!t) return "cena";
+  if (MARCA_DE_COR.test(t)) return "cor";
+  if (MARCA_DE_TIPOGRAFIA.test(t)) return "tipografia";
+  if (MARCA_DE_COPY.test(t)) return "copy";
+  return "cena";
+}
+
+/** As regras declaradas desta marca que NÃO são executadas pelo gerador de
+ *  imagem. Existe para ser conferida: há teste que reprova se qualquer uma
+ *  delas reaparecer no prompt da foto. */
+export function regrasDeOutraCamada(
+  cerebro: CerebroCriativo,
+): Array<{ eixo: string; regra: string; camada: CamadaDaRegra }> {
+  const fora: Array<{ eixo: string; regra: string; camada: CamadaDaRegra }> = [];
+  for (const a of cerebro.amplitude) {
+    for (const regra of a.foraDaMarca ?? []) {
+      const camada = camadaDaRegra(regra);
+      if (camada !== "cena") fora.push({ eixo: a.eixo, regra, camada });
+    }
+  }
+  return fora;
+}
+
+/**
  * As instruções de amplitude para o prompt da FOTO.
  *
+ * ── O QUE MUDOU EM 15/08/2026, E POR QUÊ ────────────────────────────────────
+ *
+ * Este texto tinha 2.295 caracteres para o CityJobs e ocupava 72,7% do prompt
+ * inteiro (3.158), com três blocos "NUNCA:" e 872 caracteres só de proibição.
+ * A direção de arte — a única instrução POSITIVA sobre o que fotografar —
+ * ocupava 110 (3,5%). Pedido assim, o gerador entrega a saída que viola menos
+ * regras, e ilustração viola menos regras que fotografia.
+ *
+ * Três cortes, nenhum deles inventando regra nova:
+ *
+ *  1. **O `porque` sai.** Ele é a JUSTIFICATIVA da regra, escrita para o
+ *     humano que audita o cérebro da marca. O gerador não precisa concordar
+ *     com a regra, precisa obedecê-la. Só isso são ~790 caracteres no CityJobs.
+ *  2. **As proibições de outra camada saem** (`camadaDaRegra`). Ver o bloco
+ *     acima: é a linha do hex que derrubava o portão do pixel.
+ *  3. **Eixo cuja lista `NUNCA` inteira é de outra camada sai junto** — é um
+ *     eixo de outra camada. É o caso do "temperatura editorial" da Dioli, que
+ *     é eixo de COPY e nunca teve o que dizer a uma câmera. Eixo SEM proibição
+ *     nenhuma continua entrando: os extremos são direção positiva, e vazio é
+ *     vazio, não é proibido.
+ *
  * Cérebro sem amplitude devolve string vazia — e aí o prompt simplesmente não
- * fala de amplitude. Vazio é vazio.
+ * fala de amplitude. Vazio continua sendo vazio.
  */
 export function direcaoDeAmplitude(cerebro: CerebroCriativo): string {
   if (cerebro.amplitude.length === 0) return "";
-  const linhas = cerebro.amplitude.map((a) => {
-    const fora = (a.foraDaMarca ?? []).length > 0 ? ` NUNCA: ${a.foraDaMarca!.join(", ")}.` : "";
-    return `${a.eixo}: transita de "${a.extremoA}" a "${a.extremoB}" — ${a.porque}${fora}`;
-  });
+  const linhas: string[] = [];
+  for (const a of cerebro.amplitude) {
+    const declaradas = a.foraDaMarca ?? [];
+    const deCena = declaradas.filter((r) => camadaDaRegra(r) === "cena");
+    // Eixo que só proíbe coisa de outra camada É de outra camada.
+    if (declaradas.length > 0 && deCena.length === 0) continue;
+    const fora = deCena.length > 0 ? ` NUNCA: ${deCena.join(", ")}.` : "";
+    linhas.push(`${a.eixo}: transita de "${a.extremoA}" a "${a.extremoB}".${fora}`);
+  }
+  if (linhas.length === 0) return "";
   return `Amplitude declarada desta marca (os extremos são PERMITIDOS e propositais, não desvios): ${linhas.join(" | ")}`;
 }
 

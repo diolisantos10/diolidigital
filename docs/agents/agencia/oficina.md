@@ -1179,3 +1179,97 @@ trata `curl 28` como *"isto NÃO é 'nada foi feito' — rode em `mostrar` antes
 - **Peça montada sobre a FOTO REAL do cliente é barrada** (`sem_fundo_para_datar`):
   sem fundo gerado não há como datá-la. Pode estar barrando peça boa; barrar não
   custa, e adivinhar custaria.
+
+---
+
+## 2026-08-15 — O prompt pedia ilustração e o portão reprovava a obediência
+
+**Medido, não estimado.** CityJobs, com a direção de arte religada e o portão do
+pixel em produção: 6 tentativas, 2 fotos, 4 reprovadas com *"paleta de
+ilustração, não fotografia"* — 101, 178, 244 e 432 cores distintas contra o piso
+de 600 (`lib/agency/design/trava-de-fundo.ts:166`). US$ 0,167 por tentativa.
+
+**A causa não estava no portão. Estava no pedido.** E o achado que vale guardar é
+esse: *o modelo estava obedecendo*. Quando um prompt de 3.199 caracteres tem 181
+de instrução positiva e 1.072 de proibição, incluindo uma proibição impossível
+("nenhuma cor fora de 4 hex" numa fotografia) e outra que não existe no mundo
+("nenhuma placa" numa rua de comércio), a saída que viola menos regras é o
+desenho vetorial. O clipart não era falha do gerador: era a resposta coerente.
+
+### As quatro linhas, com arquivo:linha
+
+1. `lib/agency/design/repertorio-registrado.ts:305` mandava ao **gerador de
+   imagem** "paleta creme ou qualquer cor fora de #0D2B4D · #FFFFFF · #16A34A ·
+   #FFD24D". Medido com `medirFundo` de verdade: o mesmo sinal fotográfico com o
+   croma preso cai de **2.844 → 462 cores** → reprova. `artes.ts:1602` reforçava
+   com mais dois hex.
+2. `artes.ts:1616` pedia "terço inferior … **superfície lisa**": 33% da imagem
+   numa cor quase única consome **0,330 dos 0,45** do teto de cor dominante
+   (73%) antes de a cena existir.
+3. `artes.ts:1623`, **última frase** do prompt (a posição de maior peso):
+   "nenhum texto, letra, número, palavra, logotipo, placa ou etiqueta".
+4. `direcaoDeAmplitude` (`repertorio.ts:520`) ocupava **2.295 de 3.158
+   caracteres (72,7%)**, com 3 blocos `NUNCA:`, misturando regra de CENA com
+   regra de TIPOGRAFIA, COR e COPY — que são executadas na **outra camada**.
+
+### A lei que sai daqui
+
+**Regra de marca vale numa camada, e mandá-la para a errada não é redundância
+inofensiva: é sabotagem.** A produção tem duas camadas desde 05/08 (foto pelo
+gerador; texto/cor/margem pelo molde HTML). A paleta e a tipografia já eram
+executadas por construção no molde — `molde.ts:298` (`corValida(primaryColor)`),
+`molde.ts:134` e `:159` (pilha sans fixa). Mandá-las também ao gerador não
+acrescentava trava nenhuma; só encolhia o croma da foto até abaixo do piso do
+portão. **A casa pagava para ser reprovada pela própria regra.**
+
+Corolário: `camadaDaRegra` (`repertorio.ts`) tem default **`"cena"`** de
+propósito. Errar mandando demais custa ruído; errar calando uma regra da marca do
+cliente custa a regra — e o guardrail 1 do manual de bordo diz que ausência não é
+informação.
+
+### A segunda lei: portão que fala depois de pagar é caro por construção
+
+`conferirFundoDaPeca` é a trava certa e continua onde está, mas ela só pode
+falar depois de a imagem existir — e imagem que existe já custou. O pré-portão
+novo (`lib/agency/design/direcao-fotografavel.ts`) não olha pixel nenhum: lê a
+frase que vira o pedido e pergunta se ela nomeia **sujeito, lugar e luz**. Custa
+zero, roda antes de `generateDesign`, e a falha é `desistiram` (sem tentativa
+gasta, sem orçamento consumido) — o mesmo padrão do pilar bloqueado, pelo mesmo
+motivo: **regerar não conserta uma direção abstrata; quem conserta é quem a
+escreveu.**
+
+Ele é **frouxo de propósito** — basta um sinal de cada família, o gerúndio conta
+como sujeito, nome próprio depois de "em" conta como lugar. Detector que aperta
+demais vira carimbo, e aí o remédio vira a doença. Os dois testes obrigatórios
+estão em `__tests__/design/direcao-fotografavel.test.ts`: barra o conceito
+abstrato **e** deixa passar "galpão em Suzano no fim da tarde, operador
+conferindo caixas" — mais a direção das duas peças que o CEO **aprovou** em
+08/08, que um detector apertado teria barrado.
+
+### O que eu NÃO fiz, e por quê
+
+**Não mexi no piso de 600 nem no teto de cor dominante.** Está medido que o piso
+mede **exposição**, não fotografia: foto noturna legítima pontua abaixo do
+clipart que o portão foi feito para pegar. Mas ele está pegando clipart de
+verdade agora, e trocar a régua é mudança que outros agentes assumem como
+verdade. Subiu para `docs/pendencias.md` com a aritmética e duas saídas.
+
+**A proibição de letra não afrouxou** — mudou de forma. A razão registrada
+(`artes.ts:29-34`: preço, telefone e prazo dentro de um pixel escapam do piso de
+verdade, que lê texto e não enxerga imagem) continua de pé palavra por palavra.
+O que ela protege é a **legibilidade**, não a ausência de letra no mundo: letra
+ilegível não afirma fato nenhum. E `trava-de-texto.ts` continua fechando por
+baixo, com trecho literal de conteúdo auditado.
+
+### Os números, mesma entrada, antes → depois
+
+| | antes | depois |
+|---|---|---|
+| prompt inteiro | 3.199 | 2.606 |
+| `direcaoDeAmplitude` | 2.295 (72,7%) | 1.250 (51,5%) |
+| posição da "Cena a retratar" | 166 | **73** |
+| hex no prompt de imagem | sim | **não** |
+| proibições da marca (blocos NUNCA) | 894 | 588 |
+
+Verificação: `npx tsc --noEmit` limpo, `npx vitest run` 254 arquivos / 4.169
+testes verdes.

@@ -145,25 +145,35 @@ describe("o Design passa a produzir imagem, não descrição de imagem", () => {
 describe("o prompt da arte", () => {
   const base = { legenda: "Pão quentinho saindo do forno", pilar: "Produto", negocio: "Padaria do João", segmento: "Padaria", cores: ["#8B4513"], tom: "acolhedor" };
 
-  it("proíbe texto na imagem — modelo erra letra, e letra errada vai para o perfil do cliente", () => {
+  it("proíbe texto LEGÍVEL na imagem — modelo erra letra, e letra errada vai para o perfil do cliente", () => {
     // Pior ainda: preço e telefone dentro de um pixel escapam do piso de
-    // verdade, que lê texto e não enxerga imagem.
+    // verdade, que lê texto e não enxerga imagem. Em 15/08/2026 a frase deixou
+    // de proibir "placa ou etiqueta" — rua de comércio sem placa não existe, e
+    // pedir um mundo impossível empurrava o gerador para a ilustração. O que
+    // ela protege continua protegido: nada LEGÍVEL, porque letra ilegível não
+    // afirma fato nenhum. Ver `__tests__/design/prompt-que-pede-foto.test.ts`.
     const p = montarPrompt(base);
-    expect(p).toMatch(/NÃO pode conter nenhum texto/);
-    expect(p).toMatch(/sem tipografia/i);
+    expect(p).toMatch(/SEM TEXTO LEGÍVEL/);
+    expect(p).toMatch(/nada que dê para LER na imagem/);
+    expect(p).toContain("preço");
+    expect(p).toContain("telefone");
   });
 
   it("a legenda entra como CENA, nunca como texto a desenhar", () => {
     expect(montarPrompt(base)).toContain("Cena a retratar: Pão quentinho saindo do forno");
   });
 
-  it("usa a paleta da marca quando ela existe", () => {
-    expect(montarPrompt(base)).toContain("#8B4513");
+  it("a paleta da marca NÃO é pedida à câmera — ela é aplicada no molde HTML", () => {
+    // Prender o croma de uma foto à paleta da marca é a receita medida da
+    // reprovação no portão do pixel: 2.844 → 462 cores distintas, piso 600.
+    const p = montarPrompt(base);
+    expect(p).not.toContain("#8B4513");
+    expect(p).toMatch(/paleta da marca NÃO é aplicada na foto/i);
   });
 
-  it("marca sem paleta não inventa cor", () => {
+  it("marca sem paleta não fala de paleta nenhuma — vazio é vazio", () => {
     const p = montarPrompt({ ...base, cores: [] });
-    expect(p).not.toMatch(/Paleta da marca/);
+    expect(p).not.toMatch(/paleta da marca/i);
   });
 
   it("o estilo do feed real entra no prompt quando foi observado", () => {

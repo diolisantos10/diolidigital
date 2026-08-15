@@ -3909,3 +3909,81 @@ portal → cronograma`
 consumido** pela camada Meta (`lib/integrations/meta/notifications.ts` + cron
 `POST /api/meta/dispatch`, com outbox anti-duplicata). Falta só confirmar que o
 cron está agendado de fato e que o telefone chega do briefing.
+
+---
+
+## 🔴 15/08/2026 — O PISO DE 600 CORES MEDE EXPOSIÇÃO, NÃO FOTOGRAFIA — E ISSO É DECISÃO DO CEO
+
+**Não mexi na régua, de propósito.** Ela está pegando clipart de verdade agora, e
+trocar limiar de portão é mudança que os outros agentes assumem como verdade sem
+reconferir. Fica registrada com a aritmética, para quem decidir decidir com o
+número na mão.
+
+### O que foi consertado hoje (e não é isto)
+
+O prompt parou de pedir ilustração — `lib/agency/execution/artes.ts` (`montarPrompt`),
+`lib/agency/design/repertorio.ts` (`direcaoDeAmplitude`) e o pré-portão de custo
+zero em `lib/agency/design/direcao-fotografavel.ts`. **Nenhum limiar foi tocado.**
+
+### A aritmética do piso
+
+`lib/agency/design/trava-de-fundo.ts:166-168`:
+
+```
+PISO_DE_CORES_DISTINTAS = 600
+TETO_DA_COR_DOMINANTE   = 0,45
+PISO_DE_TEXTURA         = 0,012
+```
+
+A medida de `coresDistintas` conta cores distintas depois da quantização de
+`medir-fundo.ts`. Isso é uma medida de **espalhamento do sinal**, e espalhamento
+de sinal é função da EXPOSIÇÃO antes de ser função da natureza da imagem:
+
+| amostra | cores | veredito |
+|---|---|---|
+| clipart reprovado 1 (08/08, real) | 232 | reprova, e **está certo** |
+| clipart reprovado 2 (08/08, real) | 224 | reprova, e **está certo** |
+| foto real da estação de Mogi | 1.958 | passa |
+| foto real da rua do centro | 1.675 | passa |
+| **o mesmo sinal fotográfico com o croma preso a 4 cores** | **462** | **reprova, e está ERRADO** |
+
+Os dois últimos números são a demonstração: **2.844 → 462 cores** é o que
+acontece com uma fotografia quando alguém prende a paleta dela. O sinal
+fotográfico não mudou de natureza; mudou de amplitude. Uma foto noturna, de
+neblina, de contraluz ou de baixa saturação cai na mesma faixa dos 224–232 do
+clipart que o portão foi construído para pegar.
+
+**A consequência prática:** foto noturna legítima do Alto Tietê — que é metade da
+direção declarada do CityJobs ("luz baixa", "fim da tarde", "cabine do caminhão")
+— pontua **abaixo** do clipart. O portão não distingue "pobre porque é desenho"
+de "pobre porque é escura".
+
+### As duas saídas, e qual eu recomendaria
+
+1. **Normalizar antes de medir.** Esticar o histograma do recorte para o alcance
+   cheio e só então contar as cores. Custa uma passada a mais por peça (barato:
+   já se lê o buffer). Elimina o falso negativo da foto escura sem mexer no
+   número 600. Risco: um clipart com degradê suave sobe junto, e o piso passa a
+   pegar menos — mitigado porque `TETO_DA_COR_DOMINANTE` e `PISO_DE_TEXTURA`
+   continuam de pé e são critérios independentes.
+2. **Manter o piso e aceitar o falso negativo.** Foto escura reprova, a peça
+   regera, e o custo é US$ 0,167 por vez. Com o pré-portão de hoje o desperdício
+   já caiu (direção abstrata nem chega a gerar), mas este caso continua pagando.
+
+**Recomendo (1)**, e ela **não foi feita**: é a régua que decide o que sai em
+nome de cliente pagante, e outros agentes já constroem em cima dela.
+
+### O buraco declarado do pré-portão de hoje
+
+`conferirDirecaoFotografavel` **só dispara quando `post.artDirection` está
+escrito**. Peça sem direção continua caindo na legenda — que é o fallback de
+reversibilidade decidido em 15/08 e travado em teste
+(`__tests__/execution/direcao-de-arte-chega-ao-gerador.test.ts`, *"post sem
+direção (peça anterior a 15/08) continua saindo pela legenda"*). Revogá-lo aqui
+congelaria o acervo inteiro anterior a 15/08. O caminho é rodar
+`refazer-com-direcao.ts` (backfill de `artDirection`) e **só então** fechar o
+fallback — nesta ordem, nunca na inversa.
+
+**O carrossel também não passa pelo pré-portão**: `montarCarrossel` gera uma
+imagem por tela, com direção vinda do storyboard, e é estrutura diferente. Cada
+tela continua sendo paga sem conferência prévia de direção.

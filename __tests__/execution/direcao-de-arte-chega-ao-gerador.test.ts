@@ -322,10 +322,21 @@ describe("a direção de arte não atravessa para o pixel", () => {
     }
   });
 
-  it("`artDirection` só é lido no ponto que monta o PROMPT", () => {
+  it("`artDirection` só é lido em DOIS pontos, e os dois são antes do pixel", () => {
+    // Eram dois desde 15/08/2026, e a lista é fechada de propósito: cada leitura
+    // nova de `artDirection` é uma chance de a direção virar letra na peça.
+    //
+    //   1. `direcaoDeArte: post.artDirection` — monta o PROMPT da imagem.
+    //   2. `const direcaoEscrita = (post.artDirection ?? "").trim()` — o
+    //      pré-portão de `direcao-fotografavel.ts`, que decide se a peça chega
+    //      a ser tentada. Ele lê a string e devolve um veredito; não guarda,
+    //      não compõe, não pinta.
+    //
+    // Nenhum dos dois toca o molde. O teste acima é quem prova isso por papel.
     const ocorrencias = corpo.match(/artDirection/g) ?? [];
-    expect(ocorrencias.length).toBe(1);
+    expect(ocorrencias.length).toBe(2);
     expect(corpo).toMatch(/direcaoDeArte:\s*post\.artDirection/);
+    expect(corpo).toMatch(/const direcaoEscrita = \(post\.artDirection \?\? ""\)\.trim\(\)/);
   });
 
   it("a fonte auditada da peça continua sendo a legenda, e só ela", () => {
