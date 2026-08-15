@@ -60,6 +60,7 @@ export interface DonoDeChamada {
 const OPERACIONAIS: DonoDeChamada[] = [
   // ── Esteira: briefing → proposta → projeto → entregável ────────────────────
   { id: "esteira-triagem",        label: "Triagem de pedido do cliente",   departmentId: "client-service-sdr", natureza: "operacao" },
+  { id: "pm-responde",            label: "PM responde o cliente no portal", departmentId: "client-service-sdr", natureza: "operacao" },
   { id: "esteira-refacao",        label: "Refação a pedido do cliente",    departmentId: "quality",            natureza: "operacao" },
   { id: "esteira-pacote-travado", label: "Refação após reprovação",        departmentId: "quality",            natureza: "operacao" },
   { id: "esteira-avaliacoes",     label: "Resposta a avaliação do Google", departmentId: "client-service-sdr", natureza: "operacao" },
