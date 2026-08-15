@@ -72,7 +72,12 @@ async function resolver(
 
   // A4: sem parâmetro do lado da equipe, o cookie httpOnly do portal vale como
   // credencial do cliente.
-  const token = ladoDaEquipe ? null : tokenDoPortal(request, corpo?.token ?? searchParams.get("token"));
+  const explicito = (corpo ? corpo.token : searchParams.get("token"))?.trim() || null;
+  const token = ladoDaEquipe ? null : tokenDoPortal(request, explicito);
+  // Modo cookie: a credencial é o cookie do domínio, que guarda UM cliente para
+  // o navegador inteiro. É o único caminho em que tela e conversa podem
+  // discordar — e por isso é onde o selo da tela é OBRIGATÓRIO.
+  const modoCookie = Boolean(token) && !explicito;
 
   if (token) {
     const r = await conversaDoToken(token);
@@ -93,7 +98,7 @@ async function resolver(
     // derivado do token/cookie; ela só RECUSA quando os dois lados discordam.
     // Recusa = conversa vazia com motivo. Nunca a conversa do outro.
     const declarado = corpo ? corpo.dono : searchParams.get("dono");
-    if (!donoConfere(r.conversa.clientId, declarado)) {
+    if (!donoConfere(r.conversa.clientId, declarado, modoCookie)) {
       return {
         ok: false,
         divergente: true,
@@ -102,7 +107,7 @@ async function resolver(
           podeEnviar: false,
           motivo: "dono-divergente",
           detalhe:
-            "A conversa foi aberta com a credencial de outro cliente. Recarregue o portal pelo link que você recebeu.",
+            "Não consegui confirmar de quem é esta conversa. Abra o portal pelo link que você recebeu da Dioli.",
         }),
       };
     }

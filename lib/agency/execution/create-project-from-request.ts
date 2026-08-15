@@ -15,6 +15,7 @@ import { coletarMaterialDeProduto } from "@/lib/agency/esteira/material-de-produ
 import { sincronizarDoBriefing } from "@/lib/agency/esteira/proibicoes";
 import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
+import { gravarMensagemDoPortal } from "@/lib/agency/portal/mensagem-do-portal";
 
 const DEPT_TO_DEF: Record<string, DepartmentId> = {
   strategy: "strategy", social: "social-media", design: "design",
@@ -126,8 +127,8 @@ export async function createProjectFromRequest(clientRequestId: string, approved
       if (weeks.length) {
         const body = "🗓️ Seu projeto foi aprovado! Aqui está o cronograma de como tudo vai acontecer:\n\n" +
           weeks.map((w) => `*${w.label ?? "Etapa"}*\n${(w.items ?? []).map((i) => `• ${i}`).join("\n")}`).join("\n\n");
-        await prisma.portalMessage.create({
-          data: { clientRequestId, authorRole: "team", authorName: "Equipe Dioli", body, readByTeam: true },
+        await gravarMensagemDoPortal({
+          clientRequestId, authorRole: "team", authorName: "Equipe Dioli", body, readByTeam: true,
         });
       }
     }

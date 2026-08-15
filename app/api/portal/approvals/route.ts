@@ -26,6 +26,7 @@ import { createProjectFromRequest } from "@/lib/agency/execution/create-project-
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { negotiateProposal } from "@/lib/agency/execution/negotiate-proposal";
 import { assessResources } from "@/lib/agency/execution/assess-resources";
+import { gravarMensagemDoPortal } from "@/lib/agency/portal/mensagem-do-portal";
 
 // V2 (M5): as QUATRO decisões do cliente + a dúvida vivem num contrato único
 // (`lib/agency/portal/decisoes-do-portal.ts`) — rota e tela leem a mesma
@@ -308,12 +309,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               await prisma.materialRequest.create({ data: { projectId: created.projectId, type: m.type, description: m.description } });
             }
             const list = gate.missing.map((m) => `• ${m.description}`).join("\n");
-            await prisma.portalMessage.create({
-              data: {
-                clientRequestId: approval.clientRequestId, authorRole: "team", authorName: "Equipe Dioli",
-                body: `Seu projeto foi aprovado! 🎉 Pra gente começar a produzir com qualidade, só precisamos de alguns materiais seus:\n\n${list}\n\nÉ só enviar na aba "Materiais" aqui do portal — assim que chegarem, os agentes começam na hora. 💛`,
-                readByTeam: false,
-              },
+            await gravarMensagemDoPortal({
+              clientRequestId: approval.clientRequestId, authorRole: "team", authorName: "Equipe Dioli",
+              body: `Seu projeto foi aprovado! 🎉 Pra gente começar a produzir com qualidade, só precisamos de alguns materiais seus:\n\n${list}\n\nÉ só enviar na aba "Materiais" aqui do portal — assim que chegarem, os agentes começam na hora. 💛`,
+              readByTeam: false,
             });
           }
         }

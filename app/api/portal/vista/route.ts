@@ -19,7 +19,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
-import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { tokenDoPortal, gravarCookieDoPortal, PORTAL_COOKIE } from "@/lib/agency/persistence/portal-cookie";
 import { lerFichaDeMarca, proximasPerguntas } from "@/lib/agency/esteira/ficha-de-marca";
 import { montarVistaDoCliente } from "@/lib/agency/portal/vista-do-cliente";
 import { donoDaTela } from "@/lib/agency/portal/dono-da-tela";
@@ -27,11 +27,29 @@ import { donoDaTela } from "@/lib/agency/portal/dono-da-tela";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const token = tokenDoPortal(request, new URL(request.url).searchParams.get("token"));
+  const explicito = new URL(request.url).searchParams.get("token")?.trim() || null;
+  const token = tokenDoPortal(request, explicito);
   if (!token) return NextResponse.json({ error: "token é obrigatório" }, { status: 400 });
 
   const dono = await resolvePortalClient(token);
   if (!dono) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+  // ── O COOKIE VELHO MORRE AQUI, DEPOIS DE VALIDAR (15/08/2026, rodada 2) ───
+  //
+  // O cookie `dioli_portal` é UM por navegador (`path:"/"`, 180 dias) e guarda
+  // UM cliente. Quem abre o portal de dois clientes fica com a credencial de um
+  // presa ao domínio inteiro.
+  //
+  // A rodada 1 higienizava isso no `proxy.ts`, ANTES de validar o token do
+  // caminho — e o `seguranca` mostrou que aquilo era **negação de serviço**: um
+  // link para `/portal/access/qualquer-lixo` derrubava a sessão da vítima.
+  //
+  // Aqui o token JÁ foi validado (`resolvePortalClient` acima) e esta é a
+  // PRIMEIRA chamada que a tela do portal faz. Regravar só acontece com token
+  // bom — nunca se apaga sessão por causa de lixo na URL, e nunca se grava
+  // token podre ("um bug que se esconde por 180 dias").
+  const guardado = request.cookies.get(PORTAL_COOKIE)?.value?.trim();
+  const precisaRegravar = Boolean(explicito) && guardado !== explicito;
 
   try {
     const [cliente, projetos, campanhas, posts, ficha, solicitacao] = await Promise.all([
@@ -118,9 +136,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // declaração ao servidor, que a confronta com o dono derivado do
     // token/cookie — é a conferência que faltava, e é ela que impede a
     // conversa de um cliente de aparecer no portal de outro. Não é `clientId`:
-    // id interno não trafega ao navegador nem para em log de proxy. Ver
-    // `lib/agency/portal/dono-da-tela.ts`.
-    return NextResponse.json({ ok: true, dono: donoDaTela(dono.clientId), ...vista });
+    // o id interno do banco não trafega ao navegador. (O digest AINDA para em
+    // log — ver a ressalva honesta em `lib/agency/portal/dono-da-tela.ts`.)
+    const resposta = NextResponse.json({ ok: true, dono: donoDaTela(dono.clientId), ...vista });
+    if (precisaRegravar) gravarCookieDoPortal(resposta, request, explicito!);
+    return resposta;
   } catch {
     return NextResponse.json({ error: "Não consegui carregar agora" }, { status: 503 });
   }

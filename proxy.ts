@@ -25,12 +25,6 @@ const PUBLIC_PATHS = ["/auth/signin", "/auth/signout", "/portal/", "/api/"];
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // ── O COOKIE DE OUTRO CLIENTE MORRE NA PORTA (15/08/2026) ────────────────
-  // Antes do desvio público: `/portal/**` sai daqui na linha seguinte, e é
-  // justamente na porta do portal que o cookie precisa ser higienizado.
-  const higienizado = higienizarCookieDoPortal(request, pathname);
-  if (higienizado) return higienizado;
-
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
@@ -95,46 +89,6 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   }
 
   return NextResponse.next();
-}
-
-// ── O COOKIE DO PORTAL É UM SÓ POR NAVEGADOR (15/08/2026) ───────────────────
-//
-// `dioli_portal` tem `path:"/"` e 180 dias, e guarda UM cliente. Quem abre o
-// portal de dois clientes no mesmo navegador — o CEO abre todos — fica com a
-// credencial de um preso ao domínio inteiro; a partir daí qualquer chamada sem
-// token explícito resolve pelo cliente errado. Foi assim que o painel "Fale com
-// seu PM" de um cliente pôde servir a conversa de outro.
-//
-// A página já trocava o token por cookie (`POST /api/portal/session`), mas isso
-// é best-effort: roda num `useEffect`, a falha é engolida num `catch {}`, e as
-// primeiras cargas de dados já saíram antes. Aqui o cookie velho morre ANTES de
-// a página renderizar — uma camada só, não doze cópias dentro das rotas.
-//
-// ⚠️ APAGA, NUNCA GRAVA. Gravar exigiria validar o token, e gravar sem validar
-// é o defeito que esta casa já documentou em `app/portal/access/route.ts`
-// ("cookie de token podre é um bug que se esconde por 180 dias"). Apagar só
-// pode TIRAR acesso, nunca dar. Quem grava o cookie certo continua sendo
-// `POST /api/portal/session`, que valida.
-//
-// `/portal/access/me` não é tocado: lá o cookie É a credencial, e apagá-lo
-// deslogaria todo cliente a cada visita.
-const PORTAL_COOKIE = "dioli_portal";
-
-function higienizarCookieDoPortal(request: NextRequest, pathname: string): NextResponse | null {
-  const partes = pathname.split("/").filter(Boolean); // ["portal","access","<token>"]
-  if (partes.length !== 3 || partes[0] !== "portal" || partes[1] !== "access") return null;
-
-  const doCaminho = decodeURIComponent(partes[2]!);
-  if (doCaminho === "me") return null;
-
-  const guardado = request.cookies.get(PORTAL_COOKIE)?.value;
-  if (!guardado || guardado === doCaminho) return null;
-
-  const response = NextResponse.next();
-  // `path:"/"` tem de bater com o do cookie original — path errado apaga outro
-  // cookie (ou nenhum) e o velho continua viajando: a trava pareceria funcionar.
-  response.cookies.set(PORTAL_COOKIE, "", { path: "/", maxAge: 0 });
-  return response;
 }
 
 /**

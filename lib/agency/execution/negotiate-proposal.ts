@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db/client";
 import { computeEstimate } from "@/lib/agency/live-calculator";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import { generate } from "@/lib/ai/generate";
+import { gravarMensagemDoPortal } from "@/lib/agency/portal/mensagem-do-portal";
 
 const money = (n: number) => `R$ ${Math.round(n).toLocaleString("pt-BR")}`;
 
@@ -40,8 +41,8 @@ Responda em JSON: {"message":"resposta calorosa e negociadora, 2 a 4 frases, em 
       ? Math.round(data.newTotal)
       : null;
 
-  await prisma.portalMessage.create({
-    data: { clientRequestId, authorRole: "team", authorName: "SDR Dioli", body: message, readByTeam: false },
+  await gravarMensagemDoPortal({
+    clientRequestId, authorRole: "team", authorName: "SDR Dioli", body: message, readByTeam: false,
   });
 
   // Re-open a proposal so the client can approve again — with the negotiated

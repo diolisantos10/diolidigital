@@ -244,6 +244,6 @@ describe("conversaDoCliente", () => {
     db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr-novo" }, { id: "cr-velho" }]);
     const c = await conversaDoCliente("cli1");
     expect(c.ancora).toEqual({ clientId: "cli1", clientRequestId: "cr-novo" });
-    expect(c.clientRequestIds).toEqual(["cr-novo", "cr-velho"]);
+    expect(c.clientRequestIdsDaEscrita).toEqual(["cr-novo", "cr-velho"]);
   });
 });

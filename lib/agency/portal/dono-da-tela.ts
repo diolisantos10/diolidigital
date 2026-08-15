@@ -21,10 +21,18 @@
 // aqui não abre a conversa de ninguém: só fecha a que já estava aberta.
 //
 // ── E por que é um DIGEST, não o `clientId` ──────────────────────────────────
-// Id interno de cliente não tem por que trafegar até o navegador nem parar em
-// log de proxy. O digest é estável entre processos (não tem sal aleatório —
-// dois contêineres precisam calcular o mesmo), não é reversível, e é usado
-// exclusivamente para comparar dois lados que já foram autenticados.
+// Id interno de cliente não tem por que trafegar até o navegador. O digest não
+// é reversível e é estável entre processos (sem sal aleatório — dois
+// contêineres precisam calcular o mesmo).
+//
+// ⚠️ HONESTIDADE SOBRE O QUE ELE **NÃO** RESOLVE (corrigido em 15/08/2026,
+// rodada 2 — a versão anterior deste comentário AFIRMAVA o contrário e estava
+// errada): o digest viaja na QUERY STRING e portanto **para em log de proxy,
+// igual ao id pararia**. E, por ser estável e sem sal, ele é um **pseudônimo**:
+// quem tiver o log correlaciona todo o tráfego de um mesmo cliente por ele.
+// O que ele evita é só o vazamento do identificador INTERNO do banco. Trocar
+// por um selo mintado por sessão fecharia a correlação; não foi feito, e está
+// aberto com dono.
 
 import { createHash } from "node:crypto";
 
@@ -44,14 +52,28 @@ export function donoDaTela(clientId: string): string {
 /**
  * A tela e a conversa estão falando do mesmo cliente?
  *
- * `declarado` ausente = a tela não disse nada (chamada antiga, lado da equipe,
- * teste). Nesse caso não há o que comparar e a conferência não reprova — quem
- * segura o vazamento aí é a cerca de dono na leitura (`conversa.ts`).
- * Declaração PRESENTE e diferente = divergência, e a resposta é vazia.
+ * ── `exigir` (15/08/2026, rodada 2): selo opcional NÃO É TRAVA ──────────────
+ * A primeira versão devolvia `true` quando o selo não vinha — e quem não
+ * mandasse `dono` (um `curl`, um bundle em cache do deploy anterior) nem
+ * acionava a conferência. Trava que se desliga sozinha ao ser omitida é aviso.
+ *
+ * Agora quem chama diz se o selo é OBRIGATÓRIO naquele caminho:
+ *
+ *   • **modo cookie** (`exigir: true`) — a credencial é o cookie do domínio,
+ *     que guarda UM cliente para o navegador inteiro. É exatamente o caminho
+ *     em que tela e conversa podem discordar, e é onde o selo é a única
+ *     conferência possível. Sem selo: **RECUSA**.
+ *   • **token explícito** (`exigir: false`) — o token identifica o cliente sem
+ *     ambiguidade na própria requisição; não há dois lados para divergir.
+ *     Exigir o selo aí quebraria link legítimo sem fechar buraco nenhum.
  */
-export function donoConfere(clientIdDerivado: string | null, declarado: string | null | undefined): boolean {
+export function donoConfere(
+  clientIdDerivado: string | null,
+  declarado: string | null | undefined,
+  exigir = false,
+): boolean {
   const d = declarado?.trim();
-  if (!d) return true;
+  if (!d) return !exigir;
   if (!clientIdDerivado) return false;
   return donoDaTela(clientIdDerivado) === d;
 }

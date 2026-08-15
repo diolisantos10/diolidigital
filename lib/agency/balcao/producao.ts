@@ -92,17 +92,41 @@ export async function produzirPedidoDeBalcao(clientRequestId: string): Promise<R
     workspaceId = todos[0]!.id;
   }
 
-  // ── 1. O CLIENTE. Quem comprou uma vez entra na carteira. ────────────────
+  // ── 1. O CLIENTE ─────────────────────────────────────────────────────────
+  //
+  // 🚨 P0 FECHADO EM 15/08/2026 — A FÁBRICA DE FUSÃO DE FICHAS.
+  //
+  // Isto aqui procurava `Client` por `{ workspaceId, email }` com o e-mail
+  // vindo do FORMULÁRIO DE COMPRA, sem verificação nenhuma, e depois fazia
+  // `clientRequestDb.update({ data: { clientId } })` INCONDICIONALMENTE.
+  //
+  // O ataque, com um cartão e R$ 79: eu digito o e-mail de um cliente existente
+  // no balcão. A minha solicitação é enfiada dentro da FICHA DELE, um projeto
+  // meu nasce sob o `clientId` dele, e o portal dele passa a mostrar o meu
+  // pedido — e, pela união da conversa, a conversa se mistura. É a origem dos
+  // dois furos do portal: quem move o ponteiro `ClientRequestDb.clientId` é
+  // esta função, não o `/api/admin/reset` (que apaga `portalMessage` e
+  // `portalAccess` em TODOS os modos — não sobra mensagem para vazar).
+  //
+  // AS DUAS REGRAS, e as duas são fail-closed:
+  //   1. **E-mail não verificado NÃO funde ficha.** Coincidir e-mail digitado
+  //      não prova ser a mesma pessoa. Sem prova, nasce ficha NOVA — duplicada,
+  //      e duplicada é problema de cadastro; fundida é vazamento. Fundir duas
+  //      fichas continua sendo decisão de gente (precedente da Camila, 08/08).
+  //   2. **Solicitação que JÁ TEM dono nunca é re-apontada** (ver abaixo).
   const email = dados.email.trim().toLowerCase();
   const nome = dados.nome.trim() || pedido.businessName || "Cliente do balcão";
-  let cliente = email
-    ? await prisma.client.findFirst({ where: { workspaceId, email }, select: { id: true } })
-    : null;
+
+  // Se a solicitação já tem dono, é ele e ponto — nada é procurado por e-mail.
+  let cliente: { id: string } | null = pedido.clientId ? { id: pedido.clientId } : null;
+
   if (!cliente) {
     cliente = await prisma.client.create({
       data: {
         workspaceId,
         name: nome,
+        // O e-mail é GRAVADO (é o contato do comprador) mas nunca serve de
+        // chave de identidade enquanto não for verificado.
         email: email || null,
         phone: dados.telefone,
       },
@@ -130,9 +154,18 @@ export async function produzirPedidoDeBalcao(clientRequestId: string): Promise<R
     select: { id: true },
   });
 
+  // REGRA 2: só carimba o dono quando ele AINDA NÃO EXISTE. `updateMany` com
+  // `clientId: null` no WHERE é a trava de verdade — um `update` por id que
+  // decide no código perde a corrida entre duas compras simultâneas; aqui quem
+  // garante é o banco. Solicitação que já tem dono NUNCA é re-apontada.
+  await prisma.clientRequestDb.updateMany({
+    where: { id: pedido.id, clientId: null },
+    data: { clientId: cliente.id, status: "in_progress" },
+  });
+  // Status anda de qualquer jeito — ele não é identidade.
   await prisma.clientRequestDb.update({
     where: { id: pedido.id },
-    data: { clientId: cliente.id, status: "in_progress" },
+    data: { status: "in_progress" },
   });
 
   // ── 3. O ACESSO AO PORTAL. Sem isso a peça fica pronta e ninguém vê. ─────
