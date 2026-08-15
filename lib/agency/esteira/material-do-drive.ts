@@ -103,6 +103,8 @@ export function nomeDeEntrada(papel: Papel, nomeNoDrive: string): string {
   const palavra: Record<Papel, string> = {
     logo: "logo",
     manual_de_marca: "manual-de-marca",
+    fonte: "fonte",
+    video: "video",
     foto_produto: "foto-produto",
     foto_equipe: "foto-equipe",
     foto_local: "foto-local",

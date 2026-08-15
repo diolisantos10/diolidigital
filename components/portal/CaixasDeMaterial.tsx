@@ -40,14 +40,34 @@ interface Caixa {
   ajuda: string;
 }
 
-/** As caixas, na ordem em que um dono de negócio pensa nelas: primeiro a marca,
- *  depois o que ele vende, depois onde ele está, depois quem ele é. */
+// ── 15/08/2026: A CAIXA "MARCA" ARQUIVAVA O BRAND BOOK COMO LOGO ───────────
+//
+// A caixa dizia, com todas as letras, *"Seu logo, e o manual da marca se você
+// tiver"* — e mandava as duas coisas para o destino `logo`. Uma caixa só para
+// dois papéis diferentes, e o papel gravado era sempre o errado para um deles.
+//
+// O estrago não é de etiqueta. `logo` é `entraNaPeca: true`: o PDF do brand book
+// entrava na fila de arquivos que uma arte pode usar como imagem. E, do outro
+// lado, quem procura o manual procura por `manual_de_marca` — que nunca existia.
+// O brand book do cliente ficava guardado num endereço onde ninguém o procura,
+// e disponível num lugar onde ele não deveria estar.
+//
+// Por isso são duas caixas agora, e nunca mais uma. **Brand Book é
+// `manual_de_marca`; logo é `logo`.**
+
+/** As caixas, na ordem em que um dono de negócio pensa nelas: primeiro o que
+ *  DEFINE a marca (o manual, o logo, a fonte), depois o que ele vende, depois
+ *  onde ele está, depois quem ele é, e por último o gosto dele. */
 export const CAIXAS: Caixa[] = [
-  { destino: "logo", icone: "🎨", titulo: "Marca", ajuda: "Seu logo, e o manual da marca se você tiver. Serve PNG, SVG ou PDF." },
-  { destino: "foto_produto", icone: "📸", titulo: "Fotos do produto", ajuda: "O que você vende. Prato, peça, serviço." },
-  { destino: "foto_local", icone: "🏠", titulo: "Fotos do lugar", ajuda: "Fachada, salão, ambiente." },
+  { destino: "manual_de_marca", icone: "📘", titulo: "Brand Book / manual da marca", ajuda: "O documento com as cores, as fontes e as regras da sua marca. PDF, Word ou apresentação." },
+  { destino: "logo", icone: "🎨", titulo: "Logos", ajuda: "Os arquivos do seu logo — de preferência PNG com fundo transparente, SVG ou vetor." },
+  { destino: "fonte", icone: "🔤", titulo: "Fontes", ajuda: "Os arquivos das letras que a sua marca usa: .otf, .ttf ou .woff." },
+  { destino: "foto_produto", icone: "📸", titulo: "Fotos de produto", ajuda: "O que você vende. Prato, peça, serviço." },
+  { destino: "foto_local", icone: "🏠", titulo: "Fotos do local", ajuda: "Fachada, salão, ambiente." },
   { destino: "foto_equipe", icone: "👥", titulo: "Fotos da equipe", ajuda: "Você, sócios, time." },
-  { destino: "referencia", icone: "💡", titulo: "Referências", ajuda: "Posts que você gostou, de qualquer marca. Serve pra gente entender seu gosto." },
+  { destino: "video", icone: "🎬", titulo: "Vídeos", ajuda: "Gravações do produto, do lugar, da equipe ou de um depoimento." },
+  { destino: "referencia", icone: "💡", titulo: "Referências visuais", ajuda: "Posts e anúncios que você gostou, de qualquer marca. Serve pra gente entender seu gosto." },
+  { destino: "outro", icone: "📦", titulo: "Outros", ajuda: "Qualquer outro arquivo que ajude a equipe a conhecer o seu negócio." },
   { destino: NAO_SEI, icone: "❓", titulo: "Não sei o que é", ajuda: "Joga aqui. A gente organiza." },
 ];
 

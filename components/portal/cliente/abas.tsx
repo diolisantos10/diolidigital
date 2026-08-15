@@ -324,13 +324,27 @@ export function AbaTrafegoPago({
   );
 }
 
+// ── 15/08/2026: O ENVIO SAIU DAQUI, E ESSA É A CORREÇÃO ────────────────────
+//
+// Entregas responde UMA pergunta: *o que a agência já me entregou?* O envio de
+// material é o caminho contrário — é o cliente entregando à agência — e estava
+// pregado no fim desta aba desde que as 11 abas nasceram.
+//
+// O efeito prático: quem procurava onde mandar o brand book abria o Brand Hub
+// (o lugar óbvio, o lugar que a documentação nomeia) e não achava nada. Achar
+// dependia de rolar até o fim de uma aba que fala de outra coisa.
+//
+// Fica um ATALHO, não um segundo formulário. Duas telas para a mesma coisa é
+// como nasce a próxima "duas verdades" — e neste caso as duas verdades seriam
+// sobre onde o arquivo do cliente foi parar.
+
 export function AbaEntregas({
-  entregas, simbolo, envio,
+  entregas, simbolo, aoIrParaMarca,
 }: {
   entregas: EntregaView[];
   simbolo: string;
-  /** O envio de material que já existia no portal — não sumiu, mudou de aba. */
-  envio: ReactNode;
+  /** Leva ao Brand Hub, que é onde o envio mora agora. */
+  aoIrParaMarca: () => void;
 }) {
   // O índice por projeto sai das entregas que ELE já pode ver — não é uma
   // árvore de pastas inventada.
@@ -348,7 +362,7 @@ export function AbaEntregas({
         simbolo={simbolo}
         sobretitulo={entregas.length === 1 ? "1 ENTREGA" : `${entregas.length} ENTREGAS`}
         titulo="Entregas"
-        descricao="Tudo o que já foi entregue para você, na versão certa — e o lugar de mandar material para a equipe."
+        descricao="Tudo o que já foi entregue para você, na versão certa."
       />
 
       <div className="cp-two-cols cp-delivery-layout" style={{ marginTop: 13 }}>
@@ -379,10 +393,7 @@ export function AbaEntregas({
           )}
         </article>
 
-        {/* A coluna estreita da referência é um índice, não um formulário. O
-            envio de material é largo por natureza (seis caixas de tipo + área de
-            arrastar) e, espremido em 0,65fr, cada palavra virava uma coluna de
-            uma letra. Aqui fica o índice; o envio vai inteiro, embaixo. */}
+        {/* A coluna estreita da referência é um índice, não um formulário. */}
         <aside className="cp-card cp-folders">
           <TituloDeSecao sobretitulo="ORGANIZAÇÃO" titulo="Por projeto" />
           {porProjeto.length === 0 ? (
@@ -401,22 +412,42 @@ export function AbaEntregas({
         </aside>
       </div>
 
+      {/* O ATALHO. Não é um segundo formulário — é uma porta para o único que
+          existe. Quem chegou aqui procurando onde enviar não sai de mãos
+          vazias, e não descobre um caminho paralelo. */}
       <article className="cp-card" style={{ marginTop: 13 }}>
-        <TituloDeSecao sobretitulo="MANDAR PARA A EQUIPE" titulo="Enviar material" />
-        <div style={{ marginTop: 15 }}>{envio}</div>
+        <TituloDeSecao sobretitulo="MANDAR PARA A EQUIPE" titulo="Seu material de marca fica no Brand Hub" />
+        <p style={{ marginTop: 13, color: "var(--cp-muted)" }}>
+          Brand Book, logos, fontes, fotos e vídeos ficam todos no Brand Hub, junto com o
+          resto da sua marca — em um lugar só, para nada se perder no caminho.
+        </p>
+        <button
+          className="primary"
+          onClick={aoIrParaMarca}
+          style={{ touchAction: "manipulation", marginTop: 13 }}
+        >
+          Enviar material de marca →
+        </button>
       </article>
     </>
   );
 }
 
 export function AbaBrandHub({
-  brandHub, marca, simbolo, aoResponder, aoAbrirChat,
+  brandHub, marca, simbolo, aoResponder, aoAbrirChat, materiais,
 }: {
   brandHub: BrandHubView;
   marca: string;
   simbolo: string;
   aoResponder: () => void;
   aoAbrirChat: () => void;
+  /** A seção de material da marca — brand book, logos, fontes, fotos, vídeos.
+   *
+   *  Entra LOGO DEPOIS do bloco de progresso, e não no fim da aba, porque é a
+   *  única coisa desta tela que o cliente consegue fazer sozinho em trinta
+   *  segundos. A entrevista é longa; mandar o arquivo não é. Pôr o envio abaixo
+   *  do mapa de definições esconderia a ação barata atrás da cara. */
+  materiais: ReactNode;
 }) {
   const comecou = brandHub.respondidas > 0;
   return (
@@ -477,7 +508,9 @@ export function AbaBrandHub({
         )}
       </div>
 
-      <div className="cp-brand-grid">
+      {materiais}
+
+      <div className="cp-brand-grid" style={{ marginTop: 13 }}>
         <article className="cp-card cp-brand-map">
           <TituloDeSecao sobretitulo="DEFINIÇÕES DA MARCA" titulo="O que já está definido" />
           {brandHub.definicoes.length === 0 ? (

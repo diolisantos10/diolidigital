@@ -48,7 +48,7 @@ import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { mensagemDeErro } from "@/components/agency/ui/mensagemDeErro";
 import { CalendarioDoMes } from "@/components/portal/CalendarioDoMes";
 import { ConexoesDoCliente } from "@/components/portal/ConexoesDoCliente";
-import { EnvioDeMaterial } from "@/components/portal/EnvioDeMaterial";
+import { MateriaisDaMarca } from "@/components/portal/cliente/MateriaisDaMarca";
 import {
   AprovacoesDoCliente,
   idDeOrcamento,
@@ -863,7 +863,7 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
             <AbaEntregas
               entregas={vista.entregas}
               simbolo={simbolo}
-              envio={<EnvioDeMaterial token={token} aoEnviar={() => void carregarEsteira()} />}
+              aoIrParaMarca={() => irPara("marca")}
             />
           )}
 
@@ -874,6 +874,9 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
               simbolo={simbolo}
               aoResponder={() => setEntrevista(true)}
               aoAbrirChat={() => setChatAberto(true)}
+              // O ÚNICO ponto de envio de material do portal. Ver o comentário
+              // em `AbaEntregas`: ele morava lá, na aba errada.
+              materiais={<MateriaisDaMarca token={token} />}
             />
           )}
 
