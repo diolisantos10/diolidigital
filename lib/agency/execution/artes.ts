@@ -52,6 +52,9 @@ import { tituloDaFonte, chamadaDaMarca } from "@/lib/agency/design/trava-de-text
 // O PORTÃO DE PIXEL. Ficou sete dias em `lib/` sem um único chamador — este é
 // o chamador. Ver `portao-do-fundo.ts` para por que ele mede o fundo CRU.
 import { conferirFundoDaPeca, motivoDoFundoEmUmaLinha } from "@/lib/agency/design/portao-do-fundo";
+// O PRÉ-PORTÃO, de custo zero. Roda ANTES de `generateDesign` e nunca depois:
+// ver o bloco no ponto de chamada e o cabeçalho do arquivo.
+import { conferirDirecaoFotografavel } from "@/lib/agency/design/direcao-fotografavel";
 import { cerebroDaMarca } from "@/lib/agency/design/repertorio-registrado";
 import {
   composicaoParaFuncao, composicaoDoPostSimples, direcaoDeAmplitude,
@@ -400,6 +403,39 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       bytes = fotoDoCliente.bytes;
       mimeDaFoto = fotoDoCliente.mime;
     } else {
+      // ── O PRÉ-PORTÃO DA DIREÇÃO, ANTES DE PAGAR (15/08/2026) ──────────────
+      //
+      // Última porta antes do dinheiro sair. O portão do pixel
+      // (`conferirFundoDaPeca`, mais abaixo) é a trava certa e continua onde
+      // está — mas ele só pode falar depois de a imagem existir, e imagem que
+      // existe já custou US$ 0,167. Em 15/08 a casa pagou seis vezes para
+      // receber quatro reprovações de "paleta de ilustração".
+      //
+      // Este aqui não olha pixel: olha a FRASE que vira o pedido. Direção que
+      // não nomeia sujeito, lugar e luz não descreve uma foto — descreve um
+      // conceito, e conceito o gerador resolve com símbolo e cor chapada.
+      //
+      // `desistiram`, e não `falhas`, pelo mesmo motivo do pilar bloqueado
+      // (topo deste laço): nenhuma tentativa a mais conserta uma direção
+      // abstrata. Quem conserta é quem a escreveu. Sem tentativa gasta, sem
+      // orçamento consumido, sem imagem gerada.
+      //
+      // ⚠️ SÓ DISPARA COM DIREÇÃO ESCRITA. Peça sem `artDirection` continua
+      // caindo na legenda — é o fallback de reversibilidade decidido no mesmo
+      // dia (`__tests__/execution/direcao-de-arte-chega-ao-gerador.test.ts`,
+      // "post sem direção (peça anterior a 15/08) continua saindo pela
+      // legenda"), e revogá-lo aqui congelaria o acervo inteiro anterior a
+      // 15/08. O buraco está declarado em `docs/pendencias.md`.
+      const direcaoEscrita = (post.artDirection ?? "").trim();
+      if (direcaoEscrita) {
+        const veredito = conferirDirecaoFotografavel(direcaoEscrita);
+        if (!veredito.fotografavel) {
+          saida.desistiram.push(post.id);
+          await marcarErro(post.id, veredito.motivo, null);
+          continue;
+        }
+      }
+
       const r = await generateDesign({
         prompt: montarPrompt({
           legenda: post.caption,

@@ -472,7 +472,15 @@ REGRAS QUE REPROVAM A PEÇA, e são conferidas em código: a primeira tela é se
 ${REGRA}
 
 O CAMPO "pillar" É OBRIGATÓRIO EM TODA PEÇA. Escreva o pilar de conteúdo a que ela pertence, com as palavras da pauta deste cliente (ex.: "bastidor da região", "institucional — vaga validada"). Ele é conferido em código: peça sem pilar não entra no calendário do cliente. NÃO invente um pilar bonito — use o que a pauta do mês declarou.
-${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel|carrossel", "pillar": "o pilar de conteúdo desta peça", "headline": "...", "caption": "legenda pronta", "visual": "o que aparece na imagem", "cenas": "só para carrossel: 1) [gancho] tela 1 · 2) [tensao] tela 2 · 3) [acao] ..."`)}`,
+
+O CAMPO "visual" É A DIREÇÃO DE ARTE, E ELE VIRA O PEDIDO À CÂMERA. Escreva a FOTO que existe, nomeando as três coisas que um fotógrafo precisaria para ir até lá:
+  • SUJEITO — quem ou o quê aparece, e o que essa pessoa está fazendo;
+  • LUGAR — onde, com o nome do lugar ou da cidade;
+  • LUZ — a hora do dia ou a luz da cena.
+Exemplo que passa: "galpão de logística em Suzano no fim da tarde, operador de empilhadeira conferindo caixas, luz baixa entrando pelo portão".
+Exemplo que NÃO passa: "a confiança de quem encontra uma vaga validada" — isso é um conceito, não uma foto. Conceito não tem lugar nem hora, e o gerador de imagem só sabe resolvê-lo com símbolo, ícone e cor chapada: a peça sai desenho vetorial e é reprovada no portão de pixel, depois de já ter sido paga.
+É CONFERIDO EM CÓDIGO, antes de qualquer geração: direção sem os três sinais não vira imagem e volta para você (\`lib/agency/design/direcao-fotografavel.ts\`). Nada de "estilo moderno", "cores vibrantes" ou "transmitindo profissionalismo" — nada disso é fotografável.
+${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel|carrossel", "pillar": "o pilar de conteúdo desta peça", "headline": "...", "caption": "legenda pronta", "visual": "a direção de arte: SUJEITO fazendo algo, no LUGAR, sob a LUZ tal", "cenas": "só para carrossel: 1) [gancho] tela 1 · 2) [tensao] tela 2 · 3) [acao] ..."`)}`,
       },
       {
         id: "social-roteiro-video",
