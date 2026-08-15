@@ -35,9 +35,17 @@ export const ROLE_NAV_ALLOWLIST: Record<AgencyRole, string[] | "all"> = {
   // O Radar de oportunidades é a mesa de trabalho do Comercial — sem esta linha
   // a tela existiria só para master/PM, que não é quem prospecta.
   executivo_comercial: ["/agency/requests", "/agency/oportunidades", "/agency/clients", "/agency/dashboard", "/agency/settings", "/agency/projects"],
-  social_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/planner", "/agency/social-media-agent", "/agency/deliverables", "/agency/settings"],
-  design_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/design-agent",       "/agency/deliverables", "/agency/settings"],
-  ads_staff:           ["/agency/dashboard", "/agency/approvals", "/agency/ads-agent",          "/agency/deliverables", "/agency/settings"],
+  // ⚠️ `/agency/clients` ENTROU PARA OS TRÊS DEPARTAMENTOS EM 15/08/2026.
+  // O contrato do Dashboard Interno do Cliente é explícito: "todos os
+  // departamentos têm acesso de VISUALIZAÇÃO à lista de clientes e a todas as
+  // abas de cada cliente, porque precisam consultar o contexto produzido pelas
+  // outras áreas". Sem esta linha, quem produz a peça não alcançava a página
+  // do cliente para quem produz — e ia buscar o brief por WhatsApp, que é
+  // cópia de informação fora do sistema. Ver quem manda escrever continua
+  // separado: `lib/agency/clients/workspace/permissoes.ts`.
+  social_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/planner", "/agency/social-media-agent", "/agency/deliverables", "/agency/clients", "/agency/settings"],
+  design_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/design-agent",       "/agency/deliverables", "/agency/clients", "/agency/settings"],
+  ads_staff:           ["/agency/dashboard", "/agency/approvals", "/agency/ads-agent",          "/agency/deliverables", "/agency/clients", "/agency/settings"],
 };
 
 export function isNavAllowed(role: AgencyRole, href: string): boolean {
@@ -91,7 +99,8 @@ export const ROLE_PERMISSIONS: Record<AgencyRole, RolePermissions> = {
     canApplyBrandUpdate:   false,
     canViewStrategicNotes: false,
     canViewDiagnostics:    false,
-    canViewAllClients:     false,
+    // VER é de todos (15/08/2026). Ver o comentário do allowlist acima.
+    canViewAllClients:     true,
     canResetStore:         false,
     agentFilter:           ["a3"],
   },
@@ -100,7 +109,7 @@ export const ROLE_PERMISSIONS: Record<AgencyRole, RolePermissions> = {
     canApplyBrandUpdate:   false,
     canViewStrategicNotes: false,
     canViewDiagnostics:    false,
-    canViewAllClients:     false,
+    canViewAllClients:     true,
     canResetStore:         false,
     agentFilter:           ["a2"],
   },
@@ -109,7 +118,7 @@ export const ROLE_PERMISSIONS: Record<AgencyRole, RolePermissions> = {
     canApplyBrandUpdate:   false,
     canViewStrategicNotes: false,
     canViewDiagnostics:    false,
-    canViewAllClients:     false,
+    canViewAllClients:     true,
     canResetStore:         false,
     agentFilter:           ["a4"],
   },

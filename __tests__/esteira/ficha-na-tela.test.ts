@@ -10,6 +10,10 @@ import path from "node:path";
 
 const COMP = fs.readFileSync(path.join(process.cwd(), "components/agency/clients/FichaDeMarca.tsx"), "utf8");
 const PAGINA = fs.readFileSync(path.join(process.cwd(), "app/agency/clients/[id]/page.tsx"), "utf8");
+const MONTAGEM = fs.readFileSync(
+  path.join(process.cwd(), "components/agency/clients/workspace/PaginaDoCliente.tsx"),
+  "utf8",
+);
 
 describe("o vazio se anuncia", () => {
   it("campo em lacuna aparece escrito 'não informado'", () => {
@@ -60,12 +64,27 @@ describe("quem atende é avisado de não responder pelo cliente", () => {
   });
 });
 
+// ⚠️ ESTE BLOCO MUDOU DE ALVO EM 15/08/2026, e a mudança é a razão do teste
+// existir. A página do cliente virou o workspace de doze abas: `page.tsx` é
+// SERVIDOR (lê o Prisma com posse de workspace) e quem monta os blocos da casa
+// dentro das abas certas é `PaginaDoCliente.tsx`. O teste continua perguntando
+// exatamente a mesma coisa — "a ficha de marca não sumiu na migração?" — só que
+// no arquivo onde a montagem passou a acontecer.
+//
+// A ORDEM também continua travada, e o motivo é o mesmo de antes: a régua
+// (`FichaDeMarca`, os nove campos que permitem julgar) vem ANTES da descrição
+// livre (`BrandHub`). Invertida, quem preenche escreve o texto bonito primeiro
+// e acha que já respondeu.
 describe("a ficha está na página do cliente", () => {
-  it("o componente foi montado na ficha", () => {
-    expect(PAGINA).toContain("<FichaDeMarca clientId={id} />");
+  it("o componente foi montado na aba de Branding", () => {
+    expect(MONTAGEM).toContain("<FichaDeMarca clientId={id} />");
   });
 
   it("vem ANTES do Brand Hub — a régua antes da descrição", () => {
-    expect(PAGINA.indexOf("<FichaDeMarca")).toBeLessThan(PAGINA.indexOf("Brand Hub</h2>"));
+    expect(MONTAGEM.indexOf("<FichaDeMarca")).toBeLessThan(MONTAGEM.indexOf("<BrandHub"));
+  });
+
+  it("a rota do cliente monta o workspace, e não uma segunda página", () => {
+    expect(PAGINA).toContain("PaginaDoCliente");
   });
 });
