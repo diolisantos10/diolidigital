@@ -12,6 +12,7 @@
 // que não recebeu nada.
 
 import type { ReactNode } from "react";
+import { carimbar, FUSO_DA_CASA } from "@/lib/carimbo-de-tempo";
 
 export type Tom = "cyan" | "green" | "amber" | "muted";
 
@@ -105,12 +106,18 @@ export function Erro({ titulo, texto, aoTentarDeNovo }: { titulo: string; texto:
   );
 }
 
-/** dd/mm a partir de um ISO. Sem data, sem frase — nunca "Invalid Date". */
+/**
+ * dd/mm a partir de um ISO. Sem data, sem frase — nunca "Invalid Date".
+ *
+ * ⚠️ **Isto NÃO é um carimbo.** Serve para a AGENDA (a data em que uma peça vai
+ * ao ar, dentro de um calendário que já diz o mês). Para dizer *quando algo
+ * aconteceu* use `<Carimbo>` (`components/ui/carimbo.tsx`) — com hora, ano e
+ * idade, como manda a regra de 15/08/2026. A formatação por baixo agora é a
+ * mesma da casa, com fuso fixo: sem isso, o servidor da Railway (UTC) escrevia
+ * um dia e o navegador do cliente escrevia outro.
+ */
 export function dataCurta(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  return carimbar(iso)?.curto ?? null;
 }
 
 /** "agosto de 2026" — para datas de arquivo, onde o ano importa e o dia não. */
@@ -118,7 +125,7 @@ export function mesEAno(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  return d.toLocaleDateString("pt-BR", { timeZone: FUSO_DA_CASA, month: "long", year: "numeric" });
 }
 
 /**

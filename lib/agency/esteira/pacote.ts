@@ -277,6 +277,16 @@ export interface ItemDoPacote {
   id: string;
   /** O nome que o CLIENTE lê. Nunca id de agente, nunca jargão do motor. */
   titulo: string;
+  /**
+   * Desde quando este item está na fila do cliente — o `createdAt` da aprovação.
+   *
+   * ⚠️ É "na fila desde", **não** "ficou pronto em". O banco não guarda o
+   * instante em que a entrega ganhou corpo: `cardTemCorpo` é medido na LEITURA,
+   * a cada requisição, e nunca gravado. Chamar isto de "pronto desde" seria
+   * inventar um carimbo que ninguém escreveu — exatamente o que a regra de
+   * 15/08/2026 proíbe. O que se afirma é o que se sabe.
+   */
+  naFilaDesde: Date | null;
 }
 
 export interface RetratoDoPacote {
@@ -374,6 +384,7 @@ export async function retratoDoPacote(projectId: string): Promise<RetratoDoPacot
       const item: ItemDoPacote = {
         id: ap.id,
         titulo: NOME_PARA_O_CLIENTE[ap.department] ?? ap.department,
+        naFilaDesde: ap.createdAt ?? null,
       };
       if (cardTemCorpo(ap, conteudoDoDepartamento, pecasPorCard.get(ap.id) ?? [])) prontas.push(item);
       else emProducao.push(item);

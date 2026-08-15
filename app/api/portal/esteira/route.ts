@@ -177,6 +177,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       pedeAprovacao: status.pacote.pedeAprovacao,
       prontas: status.pacote.prontas.map((i) => i.titulo),
       emProducao: status.pacote.emProducao.map((i) => i.titulo),
+      // ── A IDADE DO PACOTE (CEO, 15/08/2026) ─────────────────────────────
+      // "1 entrega está pronta para você" não tinha data nenhuma na tela: o
+      // cliente não sabia se aquilo chegou hoje ou fazia duas semanas. Sobe o
+      // item MAIS ANTIGO da fila, porque é ele que mede o atraso — a média
+      // esconderia justamente o que está parado. `null` quando nenhum item tem
+      // carimbo: a tela escreve "sem registro de quando", nunca uma data.
+      naFilaDesde: (() => {
+        const datas = status.pacote.prontas
+          .map((i) => i.naFilaDesde)
+          .filter((d): d is Date => d instanceof Date);
+        if (datas.length === 0) return null;
+        return new Date(Math.min(...datas.map((d) => d.getTime()))).toISOString();
+      })(),
     },
     ciclo: status.ciclo ? { referencia: status.ciclo.referencia, resumo: status.ciclo.resumo } : null,
   });

@@ -202,6 +202,18 @@ function mapearAprovacao(
     id:         ap.id,
     department: CLIENT_SAFE_DEPARTMENTS[ap.department] ?? ap.department,
     status:     ap.status,
+    // ⚠️ 15/08/2026 — "TUDO PRECISA TER HORA E DATA" (CEO).
+    //
+    // O card viajava para a tela SEM `createdAt`, e por isso a aba Aprovações
+    // mostrava "Social Media · sem prazo — decida quando puder" sem nenhuma
+    // data: um card parado há duas semanas e um criado agora eram o mesmo
+    // pixel. O campo sempre existiu no banco (`ApprovalRequest.createdAt`) —
+    // só não era servido. É a IDADE de "aguardando você", e sem ela ninguém
+    // tem como saber que algo travou.
+    createdAt:  ap.createdAt,
+    // A última mexida no card. É o que dá idade a "em produção na Dioli":
+    // quanto tempo faz que essa entrega não anda.
+    updatedAt:  ap.updatedAt,
     reviewedAt: ap.reviewedAt,
     // Prazo do card (spec 1.1, conteúdo obrigatório) — a derivação "expirada"
     // é feita na leitura, nunca gravada (T6).

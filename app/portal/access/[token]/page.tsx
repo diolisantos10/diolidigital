@@ -124,7 +124,13 @@ interface EstadoEsteira {
   oQueEsperamosDeVoce?: string;
   aBolaEstaComVoce?: boolean;
   pendencias?: string[];
-  pacote?: { pedeAprovacao: boolean; prontas: string[]; emProducao: string[] } | null;
+  pacote?: {
+    pedeAprovacao: boolean; prontas: string[]; emProducao: string[];
+    /** Desde quando o item mais antigo do pacote espera (CEO, 15/08/2026).
+     *  Opcional: servidor antigo não manda, e a tela diz "sem registro de
+     *  quando" em vez de inventar uma data para caber no layout. */
+    naFilaDesde?: string | null;
+  } | null;
 }
 
 interface ConexaoView {
@@ -470,6 +476,7 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
           // botão também depende dela, em vez de aprovar um número.
           itens: pacoteDaEsteira.prontas,
           emProducao: pacoteDaEsteira.emProducao,
+          naFilaDesde: pacoteDaEsteira.naFilaDesde ?? null,
           decidir: () => decidirEsteira("aprovar_pacote"),
         }
       : null;

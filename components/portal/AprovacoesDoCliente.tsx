@@ -25,7 +25,9 @@
 // A versão (v1/v2) aparece quando existe vínculo com DeliverableVersion — o
 // "aprovei a v2" que a Fase 1 apontou como não-registrável.
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Carimbo } from "@/components/ui/carimbo";
+import { carimbar, FUSO_DA_CASA, SEM_CARIMBO } from "@/lib/carimbo-de-tempo";
 import { CarrosselDeTelas, rotuloDeFormatoDaPeca, type PecaAberta } from "@/components/portal/DetalheDaPeca";
 import { urlDeMidiaDoPortal } from "@/lib/agency/portal/midia";
 import { juntarTranscricao } from "@/lib/ai/transcricao";
@@ -52,6 +54,21 @@ export interface AprovacaoDoPortal {
   id: string;
   department: string;
   status: string;
+  /**
+   * ── TUDO PRECISA TER HORA E DATA (CEO, 15/08/2026) ────────────────────────
+   *
+   * Quando este card entrou na fila do cliente. Sem ele, "Aguardando sua
+   * decisão" não tem idade — e um card parado há duas semanas ocupa o mesmo
+   * pixel de um que chegou agora. Foi assim que uma peça da CityJobs ficou
+   * dias travada sem ninguém notar.
+   *
+   * Opcional no tipo porque a tela **nunca** pode assumir que o carimbo veio:
+   * ausente = a tela escreve "sem registro de quando", nunca uma data
+   * plausível (guardrail 1 — ausência de informação não é informação).
+   */
+  createdAt?: string | null;
+  /** A última movimentação do card. É o que dá idade a "em produção na Dioli". */
+  updatedAt?: string | null;
   reviewedAt: string | null;
   /** QUEM decidiu. Opcional porque a rota de leitura ainda não devolve o campo
    *  — enquanto não devolver, o nome aparece no histórico do card (o comentário
@@ -141,14 +158,16 @@ function ComNegrito({ texto }: { texto: string }) {
   );
 }
 
-function dataCurta(iso: string | null): string | null {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-}
-
+/** A data de publicação PROGRAMADA de uma peça — futuro, e por extenso, porque
+ *  é agenda ("14 de agosto"), não carimbo de evento. O ano entra: sem ele,
+ *  "14/08" numa peça reprogramada para o ano seguinte lê igual. */
 function dataProposta(iso: string | null): string | null {
   if (!iso) return null;
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("pt-BR", {
+    timeZone: FUSO_DA_CASA, day: "2-digit", month: "long", year: "numeric",
+  });
 }
 
 // ── A peça como o cliente vai vê-la no ar (planner da Meta) ──────────────────
@@ -307,8 +326,8 @@ function DetalheDaAprovacao({
   // Com peças estruturadas, o reviewNote não renderiza: ele é o RESUMO em texto
   // das mesmas legendas — mostrá-lo duplicaria tudo que a peça já mostra.
   const corpo = temPecas ? null : corpoDaPeca(ap);
-  const prazo = dataCurta(ap.expiresAt);
-  const vencida = pendente && !ap.questionOpen && ap.expiresAt != null && new Date(ap.expiresAt) < new Date();
+  const prazo = carimbar(ap.expiresAt);
+  const vencida = pendente && !ap.questionOpen && prazo != null && prazo.passado;
 
   async function enviar() {
     // Trava de UI espelhando o 400 do backend: ajuste/dúvida sem texto não sai.
@@ -344,6 +363,12 @@ function DetalheDaAprovacao({
                   estava nas DUAS telas, e consertar só a lista deixaria metade. */}
               {contextoDaLinha(ap, tituloDaPeca(ap))}
               <TagVersao n={ap.version} />
+            </p>
+            {/* A IDADE DO CARD, no detalhe. Data absoluta (a prova) e idade
+                relativa (o alarme) juntas — e o `title` repete o carimbo
+                inteiro para quem passar o mouse. */}
+            <p className="text-[12px] text-[var(--text-muted)] mt-1">
+              <Carimbo quando={ap.createdAt} prefixo="Chegou para você em " />
             </p>
           </div>
           <Badge status={ap.status} questionOpen={ap.questionOpen} semConteudo={semCorpo} />
@@ -384,18 +409,43 @@ function DetalheDaAprovacao({
             <p className="text-[12px] text-[var(--text-muted)] mt-2">
               Não é problema seu nem falta de ação sua — é a agência que ainda não publicou o material.
             </p>
+            {/* Há QUANTO TEMPO está assim. É a linha que transforma "em
+                produção" de estado sem idade em fato datado — e é o que
+                permite ao cliente perceber que algo travou. */}
+            <p className="text-[12px] text-[var(--text-muted)] mt-1.5">
+              <Carimbo quando={ap.updatedAt ?? ap.createdAt} prefixo="Última movimentação: " />
+            </p>
           </div>
         )}
 
         {pendente && prazo && (
           <div className={`mt-3 rounded-[10px] px-3.5 py-2.5 text-[13px] ${vencida ? "bg-[#FEF2F2] text-[#B91C1C]" : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border)]"}`}>
+            {/* O prazo com HORA e ANO. Antes era "10/08" — sem hora não dá para
+                saber se venceu, e sem ano um prazo do ano passado lê como do
+                mês que vem. A idade relativa ("em 2 dias" / "há 3 dias") vem
+                colada, que é o que faz alguém agir. */}
             {ap.questionOpen ? (
-              <><s>Prazo: {prazo}</s> — pausado enquanto a dúvida está com a agência.</>
+              <><s>Prazo: {prazo?.completo ?? SEM_CARIMBO}</s> — pausado enquanto a dúvida está com a agência.</>
             ) : vencida ? (
-              <><b>O prazo venceu em {prazo}</b> — a entrega está aguardando você. Nada é aprovado sem a sua decisão.</>
+              <><b>O prazo venceu em <Carimbo quando={ap.expiresAt} /></b> — a entrega está aguardando você. Nada é aprovado sem a sua decisão.</>
             ) : (
-              <><b>Prazo: {prazo}.</b> Enquanto você não decide, a próxima etapa fica em espera.</>
+              <><b>Prazo: <Carimbo quando={ap.expiresAt} />.</b> Enquanto você não decide, a próxima etapa fica em espera.</>
             )}
+          </div>
+        )}
+
+        {/* SEM PRAZO CONTINUA SENDO SEM PRAZO — mas não sem data (CEO,
+            15/08/2026). "Decida quando puder" sozinho era o card que o CEO
+            olhou sem conseguir saber se estava ali havia uma hora ou duas
+            semanas. Não se inventa prazo; declara-se a espera, com carimbo. */}
+        {pendente && !prazo && (
+          <div className="mt-3 rounded-[10px] border border-[var(--border)] bg-[var(--bg-elevated)] px-3.5 py-2.5 text-[13px] text-[var(--text-secondary)]">
+            <b>Sem prazo — decida quando puder.</b>{" "}
+            <Carimbo
+              quando={ap.createdAt}
+              prefixo="Aguardando você desde "
+              semRegistro="Não há registro de quando esta entrega chegou até você."
+            />
           </div>
         )}
 
@@ -507,7 +557,9 @@ function DetalheDaAprovacao({
             <b>
               Decisão registrada
               {ap.reviewedBy ? ` por ${ap.reviewedBy}` : ""}
-              {ap.reviewedAt ? ` em ${dataCurta(ap.reviewedAt)}` : ""}.
+              {/* "decidido em 14/08" virou o carimbo inteiro: dia, mês, ANO,
+                  hora e a idade. Registro imutável sem hora não se audita. */}
+              {" em "}<Carimbo quando={ap.reviewedAt} />.
             </b>{" "}
             Registro imutável: os dois lados param de rediscutir o que já foi decidido.
           </div>
@@ -529,7 +581,7 @@ function DetalheDaAprovacao({
                   <div className="min-w-0">
                     <p className="text-[12px] font-semibold text-[var(--text-primary)]">
                       {c.authorRole === "client" ? "Você" : c.authorName || "Dioli Digital"}
-                      <span className="font-normal text-[var(--text-muted)]"> · {dataCurta(c.createdAt)}{KIND_LABEL[c.kind] ?? ""}</span>
+                      <span className="font-normal text-[var(--text-muted)]"> · <Carimbo quando={c.createdAt} />{KIND_LABEL[c.kind] ?? ""}</span>
                     </p>
                     <p className="text-[13px] text-[var(--text-secondary)] mt-0.5 whitespace-pre-wrap">{c.body}</p>
                   </div>
@@ -594,8 +646,8 @@ function DetalheDoOrcamento({
           <div className="min-w-0">
             <h2 className="text-[17px] font-bold text-[var(--text-primary)] leading-snug">{pedido.titulo}</h2>
             <p className="text-[12px] text-[var(--text-secondary)] mt-1">
-              Orçamento · pedido em {dataCurta(pedido.criadoEm)}
-              {pedido.para ? ` · para ${dataCurta(pedido.para)}` : ""}
+              Orçamento · <Carimbo quando={pedido.criadoEm} prefixo="pedido em " />
+              {pedido.para ? <> · <Carimbo quando={pedido.para} prefixo="para " modo="absoluto" /></> : null}
             </p>
           </div>
           <BadgeDoOrcamento pedido={pedido} />
@@ -757,6 +809,13 @@ export interface DecisaoDaEsteira {
   itens: string[];
   /** O que fica DE FORA desta decisão. Some quando vazio. */
   emProducao?: string[];
+  /**
+   * Desde quando o item MAIS ANTIGO deste pacote espera o cliente (CEO,
+   * 15/08/2026 — "1 entrega está pronta para você" não tinha data nenhuma).
+   * O mais antigo, não a média: é ele que mede o atraso. `null`/ausente = o
+   * servidor não tem o carimbo, e a tela diz isso em vez de inventar.
+   */
+  naFilaDesde?: string | null;
   decidir: () => Promise<boolean>;
 }
 
@@ -799,7 +858,18 @@ function DecisaoEmMassa({
   return (
     <div className="rounded-[14px] border border-[var(--border-strong)] bg-white p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
       <h4 className="text-[15px] font-bold text-[var(--text-primary)] leading-snug">{decisao.titulo}</h4>
-      <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed max-w-[62ch]">{decisao.descricao}</p>
+      {/* A IDADE DO PACOTE, logo abaixo do título. Era exatamente este card que
+          dizia "1 entrega está pronta para você" sem uma data sequer — o CEO
+          não tinha como saber se aquilo tinha chegado naquela manhã ou fazia
+          duas semanas. */}
+      <p className="text-[12px] text-[var(--text-muted)] mt-1">
+        <Carimbo
+          quando={decisao.naFilaDesde}
+          prefixo="Na sua fila desde "
+          semRegistro="Sem registro de quando isto entrou na sua fila"
+        />
+      </p>
+      <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 leading-relaxed max-w-[62ch]">{decisao.descricao}</p>
 
       {!confirmando ? (
         <button
@@ -945,7 +1015,11 @@ export function AprovacoesDoCliente({
         <span className="block text-[12px] text-[var(--text-secondary)] mt-0.5">
           Orçamento
           {typeof p.preco === "number" && p.preco > 0 ? ` · ${emReais(p.preco)}` : ""}
-          {` · pedido em ${dataCurta(p.criadoEm)}`}
+        </span>
+        {/* O carimbo em linha própria: no celular, empilhado com preço e
+            título ele empurrava o selo para fora da linha. */}
+        <span className="block text-[12px] text-[var(--text-muted)] mt-0.5">
+          <Carimbo quando={p.criadoEm} prefixo="pedido em " />
         </span>
         <span className="mt-1.5 block sm:hidden"><BadgeDoOrcamento pedido={p} /></span>
       </span>
@@ -966,18 +1040,36 @@ export function AprovacoesDoCliente({
     // espaços de um lado só ("Social Media  · prazo 10/08").
     const meta: string[] = [];
     if (ap.pecas.length > 0) meta.push(`${ap.pecas.length} ${ap.pecas.length === 1 ? "peça" : "peças"}`);
-    // Card sem corpo não anuncia prazo nem "aguardando você": não há decisão a
-    // tomar, e cobrar decisão sobre o nada foi exatamente o defeito.
+
+    // ── A LINHA DO CARIMBO (CEO, 15/08/2026) ────────────────────────────────
+    //
+    // O `meta` acima continua sendo TEXTO puro por um motivo já aprendido (o
+    // separador "·" com gap ganhava dois espaços de um lado só). O carimbo,
+    // porém, não é texto: é um `<time>` com `dateTime` e `title`. Então ele vai
+    // numa TERCEIRA linha da célula, própria, em vez de ser espremido no meio
+    // de um join — e nessa posição ele também fica legível a 375px, onde a
+    // linha de meta já ocupa a largura toda.
+    //
+    // Cada estado tem o seu carimbo, e nenhum deles é inventado:
+    //   • aguardando você → desde quando (`createdAt`);
+    //   • em produção     → última movimentação (`updatedAt`);
+    //   • decidido        → quando foi decidido (`reviewedAt`).
+    const prazo = carimbar(ap.expiresAt);
+    const vencida = ap.status === "pending" && !semCorpo && !ap.questionOpen && prazo != null && prazo.passado;
+    let carimboDaLinha: ReactNode = null;
+
     if (semCorpo && ap.status === "pending") {
       meta.push("material ainda não subiu");
+      carimboDaLinha = <Carimbo quando={ap.updatedAt ?? ap.createdAt} prefixo="última movimentação " />;
     } else if (ap.status === "pending") {
       meta.push(ap.questionOpen
         ? "prazo pausado"
-        : dataCurta(ap.expiresAt)
-          ? `prazo ${dataCurta(ap.expiresAt)}`
+        : prazo
+          ? `prazo ${prazo.absoluto}`
           : "sem prazo — decida quando puder");
-    } else if (dataCurta(ap.reviewedAt)) {
-      meta.push(`decidido em ${dataCurta(ap.reviewedAt)}`);
+      carimboDaLinha = <Carimbo quando={ap.createdAt} prefixo="aguardando você desde " />;
+    } else {
+      carimboDaLinha = <Carimbo quando={ap.reviewedAt} prefixo="decidido em " />;
     }
     return (
       <button
@@ -992,6 +1084,14 @@ export function AprovacoesDoCliente({
           <span className="text-[12px] text-[var(--text-secondary)] flex items-center gap-1.5 mt-0.5 flex-wrap">
             <span>{contexto}{meta.length > 0 ? ` · ${meta.join(" · ")}` : ""}</span>
             <TagVersao n={ap.version} />
+          </span>
+          {/* Item parado grita — mas SÓ onde já existe régua. A única régua
+              desta tela é o `expiresAt`: prazo vencido pinta de vermelho. Para
+              card sem prazo não há limite escrito em lugar nenhum, e inventar
+              um ("vermelho depois de 3 dias") seria criar um SLA que ninguém
+              acordou. Nesses, a idade aparece — e é ela que alarma. */}
+          <span className={`block text-[12px] mt-0.5 ${vencida ? "font-semibold text-[var(--danger)]" : "text-[var(--text-muted)]"}`}>
+            {carimboDaLinha}
           </span>
           {/* No celular o selo desce para baixo do texto — ao lado ele esmaga o
               título até virar reticência. */}
