@@ -401,3 +401,59 @@ nome de gente** — e é a aba onde o CEO vai decidir.
    plataforma, não de tela.
 3. **O funil da referência** volta a caber no dia em que essa leitura existir —
    a classe `cp-funnel-card` está lá, usada só pela metade (o `footer`).
+
+---
+
+## 2026-08-15 · O material de marca no Brand Hub (branch `claude/materiais-no-brand-hub`)
+
+**Pedido:** o cliente não tinha como enviar, consultar ou substituir o Brand Book
+no Brand Hub. O envio existia — no fim da aba Entregas.
+
+### O que eu achei que não estava no despacho
+
+1. **A caixa "Marca" gravava o Brand Book como `logo`.** Ela dizia aceitar "seu
+   logo, e o manual da marca" e mandava os dois para o mesmo destino. Como `logo`
+   é `entraNaPeca: true`, o PDF entrava na fila de arquivos que uma arte pode
+   desenhar — e quem procura o manual procura `manual_de_marca`, que nunca
+   existia. Duas caixas agora, e nunca mais uma.
+
+2. **Duas categorias não tinham onde pousar.** "Fontes" e "Vídeos" não existiam
+   na lista fechada de papéis. Despejá-las em `outro` faria o cliente soltar o
+   .otf em "Fontes" e a lista devolver "Outro material" — a categoria sumindo no
+   momento em que ela vira prova. Viraram papéis próprios.
+
+3. **O recado técnico da equipe vazava para a tela do cliente.** Achado
+   APERTANDO O BOTÃO, não lendo código: subi um PDF com a chave de IA ausente e
+   o cliente leu *"Nenhuma chave Claude conectada. Configure em Integrações."* —
+   uma instrução que só a agência pode executar, ao lado de um arquivo que está
+   guardado e inteiro. Recado de equipe e recado de cliente são dois.
+
+### O erro de tela que só a captura pegou
+
+Agrupei os botões por categoria dentro de uma `<div>`. O V12 estiliza a linha
+por **filho direto** (`.cp-delivery-list>button`), então a linha inteira perdeu o
+desenho: nome, data e etiqueta viraram uma frase corrida. `<Fragment>` resolveu.
+
+E em 375 as linhas se sobrepunham: a linha do V12 tem **altura fixa (68px)** e a
+frase de estado ocupa três linhas no celular. Encurtar a frase consertaria o
+desenho e estragaria o recado — que é o que o cliente precisa ler. A linha
+continua sendo a do V12; a explicação ganhou o espaço dela embaixo.
+
+> **A lição, e ela é do meu cargo:** altura fixa herdada da referência é uma
+> aposta de que o texto cabe. Todo texto que vem do servidor pode não caber. Ou o
+> texto entra na linha, ou sai dela — nunca "provavelmente cabe".
+
+### O portão que me reprovou, e estava certo
+
+Pus a leitura do brand book em `lib/agency/brand/`. O portão do cérebro único
+reprovou: arquivo novo falando com a IA por fora de `lib/ai/`. **A saída não foi
+acrescentar uma exceção** — foi pôr o código onde ele devia estar, ao lado de
+`visao.ts`. A lista congelada de dívida encolheu em um item.
+
+### O que continua aberto (e é caro)
+
+Ordem do CEO no meio do bloco: *"o upload precisa ser capaz de ler qualquer coisa
+na íntegra."* Hoje o PDF entrega texto e visual, e **nenhum byte de imagem**. Não
+tratei como pronto: `DeclaracaoDeLeitura` declara, por formato, o que entrou e o
+que ficou de fora, e isso chega à tela. Arquivo aberto pela metade não é dado por
+lido.
