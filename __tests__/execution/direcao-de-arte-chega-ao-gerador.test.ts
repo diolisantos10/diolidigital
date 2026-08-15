@@ -55,6 +55,14 @@ vi.mock("@/lib/ai/design-engine", () => ({ generateDesign }));
 vi.mock("@/lib/agency/media/armazenamento", () => ({ guardarArquivo, lerArquivo, caminhoPublicoAssinado: vi.fn() }));
 vi.mock("@/lib/agency/media/video", () => ({ editarParaReel: vi.fn() }));
 vi.mock("@/lib/agency/design/peca", () => ({ montarPeca }));
+// O portão de pixel tem régua e caminho vivo provados em
+// `__tests__/design/portao-do-fundo.test.ts`, contra arquivo de verdade. Aqui o
+// assunto é o PROMPT, e o fundo é um PNG de 1×1 de fixture.
+const conferirFundoDaPeca = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/design/portao-do-fundo", () => ({
+  conferirFundoDaPeca,
+  motivoDoFundoEmUmaLinha: () => "",
+}));
 vi.mock("@/lib/agency/execution/leitura-do-cliente", () => ({ estiloVisualPersistido, estiloVistoPersistido }));
 vi.mock("@/lib/integrations/meta/client", () => ({ publishPost: vi.fn() }));
 vi.mock("@/lib/integrations/meta/connections", () => ({ conexaoDoCliente: vi.fn() }));
@@ -271,6 +279,7 @@ describe("produzirArtesPendentes usa a direção gravada no post", () => {
     db.mediaAsset.count.mockResolvedValue(0);
     estiloVisualPersistido.mockResolvedValue("");
     estiloVistoPersistido.mockResolvedValue("");
+    conferirFundoDaPeca.mockResolvedValue({ ok: true });
     montarPeca.mockResolvedValue({
       ok: true, bytes: Buffer.from("peca"), largura: 1080, altura: 1350,
       textosPintados: [], textoRecusado: [], encolheu: false, origemDoMolde: "marca", lacunasDoMolde: [],

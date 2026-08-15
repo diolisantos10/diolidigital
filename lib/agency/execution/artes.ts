@@ -49,6 +49,9 @@ import {
   renderizadorDisponivel, MIME_DA_PECA_RENDERIZADA, type MotivoDeFalhaDeRender,
 } from "@/lib/agency/design/renderizar";
 import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
+// O PORTÃO DE PIXEL. Ficou sete dias em `lib/` sem um único chamador — este é
+// o chamador. Ver `portao-do-fundo.ts` para por que ele mede o fundo CRU.
+import { conferirFundoDaPeca, motivoDoFundoEmUmaLinha } from "@/lib/agency/design/portao-do-fundo";
 import { cerebroDaMarca } from "@/lib/agency/design/repertorio-registrado";
 import {
   composicaoParaFuncao, composicaoDoPostSimples, direcaoDeAmplitude,
@@ -420,6 +423,30 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       bytes = await baixarImagem(r.url).catch(() => null);
       if (!bytes) {
         const erro = "não consegui baixar a imagem gerada";
+        saida.falhas.push({ postId: post.id, erro });
+        await marcarErro(post.id, erro, tentativas + 1);
+        continue;
+      }
+
+      // ── O PORTÃO DE PIXEL, NO FUNDO CRU (15/08/2026) ──────────────────────
+      //
+      // `trava-de-fundo.ts` existe desde 08/08 — escrito depois de o CEO
+      // reprovar duas peças do CityJobs com prédio-retângulo e sol-círculo — e
+      // ficou SETE DIAS sem um único chamador em `lib/`. Teste verde protegendo
+      // uma entrega, não a casa.
+      //
+      // O lugar é aqui e é medido: no fundo CRU a separação entre foto real e
+      // clipart vetorial é de 29×; na peça já composta (com painel sólido,
+      // tipografia e assinatura por cima) cai para 1,2×, e o portão vira
+      // roleta. Por isso ele roda ANTES de guardar e ANTES de compor.
+      //
+      // A imagem JÁ FOI PAGA quando chegamos aqui — o portão não economiza
+      // dinheiro, ele impede que peça amadora saia em nome de um cliente
+      // pagante. Gasta tentativa: regerar É o remédio certo para este caso
+      // (diferente do pilar bloqueado, onde regerar só inventa número novo).
+      const portao = await conferirFundoDaPeca({ bytes, mime: "image/png" });
+      if (!portao.ok) {
+        const erro = motivoDoFundoEmUmaLinha(portao);
         saida.falhas.push({ postId: post.id, erro });
         await marcarErro(post.id, erro, tentativas + 1);
         continue;
@@ -1733,6 +1760,14 @@ async function montarCarrossel(
 
     const bytes = await baixarImagem(r.url).catch(() => null);
     if (!bytes) return { ok: false, gerou, erro: `não consegui baixar a tela ${i + 1}` };
+
+    // O MESMO portão de pixel do post simples, na mesma posição (fundo cru,
+    // antes de compor). Uma tela de clipart contamina o carrossel inteiro: o
+    // cliente receberia cinco fotografias e um desenho no meio.
+    const portaoDaTela = await conferirFundoDaPeca({ bytes, mime: "image/png" });
+    if (!portaoDaTela.ok) {
+      return { ok: false, gerou, erro: `tela ${i + 1}: ${motivoDoFundoEmUmaLinha(portaoDaTela)}` };
+    }
 
     // A IDENTIDADE DA IMAGEM. Hash dos bytes: duas telas com o mesmo hash são,
     // literalmente, a mesma imagem publicada duas vezes — o defeito que o CEO
