@@ -31,6 +31,10 @@ vi.mock("@/lib/agency/esteira/contrato-de-marca", () => marca);
 
 const conn = vi.hoisted(() => ({
   conexaoDoCliente: vi.fn(),
+  // 15/08/2026: o portão 9 passou a usar `carregarTokenDaConexao`, que diz POR
+  // QUE o token não veio. `loadConnectionToken` continua exportada (25
+  // chamadores) e fica no mock para o módulo não perder a forma.
+  carregarTokenDaConexao: vi.fn(),
   loadConnectionToken: vi.fn(),
 }));
 vi.mock("@/lib/integrations/meta/connections", () => conn);
@@ -97,6 +101,10 @@ beforeEach(() => {
   });
   conn.loadConnectionToken.mockResolvedValue({
     token: "tok", externalId: IG_DO_CLIENTE, platform: "instagram", clientId: "cli1", metaJson: {},
+  });
+  conn.carregarTokenDaConexao.mockResolvedValue({
+    ok: true,
+    conexao: { token: "tok", externalId: IG_DO_CLIENTE, platform: "instagram", clientId: "cli1", metaJson: {} },
   });
   ativos.ativoAutorizado.mockResolvedValue(true);
   // O caso FELIZ do portão 11: a peça tem card aprovado PELO CLIENTE dono dela.
@@ -249,11 +257,54 @@ describe("'não medi' nunca vira 'pronto'", () => {
   });
 });
 
+// ── O PORTÃO 9 PAROU DE CONFUNDIR "SEM CONEXÃO" COM "COFRE QUEBRADO" ────────
+//
+// Até 15/08/2026 o portão dizia *"ela some ou o token não decifra"* e mandava o
+// cliente reconectar nos dois casos. São causas OPOSTAS: a segunda é falha
+// NOSSA, e reconectar a esconde — cliente por cliente, sem ninguém perceber que
+// a causa era única. As duas metades:
+describe("portão 9 — token ilegível é falha da CASA, não do cliente", () => {
+  it("⛔ token que o cofre não abre: quem resolve é a CASA, e o conserto é medir o cofre", async () => {
+    conn.carregarTokenDaConexao.mockResolvedValue({ ok: false, falha: "token_ilegivel" });
+
+    const r = await conferirProntidao({ workspaceId: "ws1" });
+    const p = r.posts[0]!.portoes.find((x) => x.nome === "Token carregável pelo publicador")!;
+
+    expect(p.estado).toBe("barrou");
+    expect(p.quemResolve).toBe("casa");
+    expect(p.motivo).toContain("NENHUMA chave do cofre abre");
+    // E NÃO manda reconectar: isso esconderia a causa.
+    expect(p.comoDestravar ?? "").toContain("censo-do-cofre");
+  });
+
+  it("✅ conexão inexistente continua sendo do CLIENTE, com 'reconectar'", async () => {
+    conn.carregarTokenDaConexao.mockResolvedValue({ ok: false, falha: "nao_existe" });
+
+    const r = await conferirProntidao({ workspaceId: "ws1" });
+    const p = r.posts[0]!.portoes.find((x) => x.nome === "Token carregável pelo publicador")!;
+
+    expect(p.estado).toBe("barrou");
+    expect(p.quemResolve).toBe("cliente");
+    expect(p.comoDestravar ?? "").toContain("Reconectar");
+    // A frase antiga colapsava os dois casos; ela não pode voltar.
+    expect(p.motivo).not.toContain("ela some ou o token não decifra");
+  });
+
+  it("✅ token bom continua passando o portão 9", async () => {
+    const r = await conferirProntidao({ workspaceId: "ws1" });
+    const p = r.posts[0]!.portoes.find((x) => x.nome === "Token carregável pelo publicador")!;
+    expect(p.estado).toBe("passou");
+  });
+});
+
 describe("o dono do ativo é DERIVADO da conexão, nunca do post", () => {
   it("consulta a lista com o clientId da linha de conexão", async () => {
-    conn.loadConnectionToken.mockResolvedValue({
-      token: "tok", externalId: IG_DO_CLIENTE, platform: "instagram",
-      clientId: "DONO_DA_CONEXAO", metaJson: {},
+    conn.carregarTokenDaConexao.mockResolvedValue({
+      ok: true,
+      conexao: {
+        token: "tok", externalId: IG_DO_CLIENTE, platform: "instagram",
+        clientId: "DONO_DA_CONEXAO", metaJson: {},
+      },
     });
     await conferirProntidao({ workspaceId: "ws1" });
     const [, dono, tipo, id] = ativos.ativoAutorizado.mock.calls[0]!;

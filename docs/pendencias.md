@@ -15,6 +15,165 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 15/08/2026 — O COFRE ESTÁ SEGURO, A VITRINE MENTIA, E AS 7 APROVAÇÕES ÓRFÃS **NÃO SÃO P0**
+
+**A conclusão primeiro:** nenhum dos quatro achados do bloco do cofre era
+incidente de produção. Dois eram **registro falso** e dois eram **furo de
+instrumento** — a casa não conseguia MEDIR o que precisava medir. Os quatro
+viraram mecanismo.
+
+### 1. 🔴 O REGISTRO QUE MENTIA HÁ NOVE DIAS
+
+`docs/agents/plataforma/vitrine.md` dizia *"NÃO sete `CREDENTIALS_SECRET` agora
+— isso torna o cofre indecifrável. A variável não está setada em produção, de
+propósito."* **As duas frases eram falsas em 15/08.** A variável **está** setada,
+e setá-la foi seguro desde que a leitura com duas chaves entrou em
+`lib/security/crypto.ts` (06/08).
+
+**Por que isso é perigoso e não só desatualizado:** quem lesse concluiria que o
+cofre de produção foi destruído, e o "conserto" óbvio a partir dessa conclusão —
+remover a variável — é **o único gesto capaz de causar o dano descrito**, no dia
+em que houver re-cifragem.
+
+**A prova de que está seguro** (lida do Railway e do log do deploy vivo pelo
+Diretor): `DATABASE_URL` **não é variável do serviço** — o `start.sh` a
+auto-deriva do volume e o log imprime `file:/data/dioli.db`, **exatamente a
+string que o teste simula**. A chave legada continua reconstruível, o que é
+antigo continua abrindo. `__tests__/plataforma/cofre-de-credenciais.test.ts`:
+11/11 verde no commit no ar.
+
+Corrigido nos **quatro** lugares que carregavam a afirmação: a vitrine, o
+cabeçalho de `lib/security/crypto.ts`, a `oficina.md` da plataforma e o
+cabeçalho do próprio teste. Afirmação falsa em quatro lugares é pior que em um.
+
+### 2. O COFRE NÃO TINHA INSTRUMENTO — e esse era o buraco real
+
+`estadoDaChaveDeCredenciais()` e `cifradoComChaveLegada()` foram escritas em
+06/08 *"para o painel dizer a verdade"* e ficaram com **ZERO chamadores**: o
+painel nunca foi construído. Resultado — **ninguém conseguia responder "quantos
+segredos ainda dependem da chave fraca", nem com acesso total.**
+
+**`lib/security/censo-do-cofre.ts` + `GET /api/admin/censo-do-cofre`**
+(`Bearer <CRON_SECRET>`, porta **fechada** sem o segredo, 503). Conta por tipo —
+chave de IA · App Secret da Meta · senha do Gmail · token de cliente na Meta ·
+token do Google · token do Drive — sobre as quatro tabelas com coluna cifrada.
+
+- **Somente leitura, e não devolve o valor de segredo nenhum.** Teste reprova
+  verbo de escrita no arquivo, verbo HTTP que não seja `GET`, e `keyHint`.
+- 🔑 **A separação que quase se perde:** `cifradoComChaveLegada` devolve `false`
+  tanto para "já está na chave nova" quanto para "**nenhuma chave abre**".
+  Contar os dois juntos transformaria um segredo **PERDIDO** na leitura mais
+  tranquilizadora possível. O censo pergunta primeiro se abre — e `ilegiveis` é
+  campo próprio, que sai como **INCIDENTE**, na frente da frase.
+- **A re-cifragem em massa NÃO foi construída.** Ela reescreve dado de produção
+  e é decisão do CEO. Só o instrumento de MEDIR.
+
+### 3. 🔴 O VEREDITO DAS 7 APROVAÇÕES: **NÃO É P0. É CENSO CEGO.**
+
+A coleta mostrou 7 pendentes, todas `clientVisible: true`, e o censo por cliente
+dando **ZERO nos 5 clientes**. Tem a forma exata do defeito de escopo de posse —
+a mesma família do chat do portal servindo o cliente errado. **Não é.**
+
+`ApprovalRequest` tem posse por **DUAS** chaves, no schema desde o lançamento da
+Foocci: `clientRequestId` (fluxo do briefing) **OU** `clientId` (cliente criado
+direto, que sem isso não conseguia aprovar nada). O portal honra as duas —
+`lib/agency/portal/posse-da-aprovacao.ts` é a função pura que decide, e as rotas
+de leitura e de escrita derivam a posse **do token**, nunca da requisição.
+**`lib/raio-x/por-cliente.ts:145` perguntava só a segunda.**
+
+> **O número não estava errado — a pergunta estava.** Censo que não usa a mesma
+> chave de posse do produto não mede o produto; mede a própria consulta.
+
+- `createApprovalRequest` **LANÇA** sem nenhuma das duas chaves: o caminho vivo
+  não escreve card órfão. Mas "é impossível" sem contar é fé, então virou medida.
+- **O censo passou a somar as duas chaves.** Teste com as duas metades: acha os 7
+  · e **não** passa a contar card alheio de carona (o isolamento continua).
+- 🟠 **O órfão DE VERDADE existe e agora é medido:** `ApprovalRequest.clientId`
+  **não tem `@relation` no schema** — só `clientRequest` tem, com
+  `onDelete: Cascade`. Apagar um `Client` deixa o card apontando para o nada,
+  **sem cascata e sem erro**. Balde novo: `aprovacao-com-cliente-apagado`.
+- **Nada foi tocado no território da outra sessão** (`portal/messages`,
+  `PortalChat`, `portal/access/[token]`, `portal-cookie`). Investigado por fora.
+
+### 4. OS DOIS FUROS DE INSTRUMENTO DO RAIO-X
+
+**a) "token ilegível" deixou de ser "sem conexão".** `loadConnectionToken`
+devolvia `null` para **três** fatos: a conexão não existe · é de outro workspace
+· **o token não decifra**. Os dois primeiros são o mundo normal; o terceiro é o
+cofre quebrado, do nosso lado, e saía pela mesma porta calado — um cofre com
+problema faria as conexões Meta dos clientes **sumirem do produto sem uma linha
+de erro**, e o diagnóstico mandaria cada cliente reconectar, um a um, escondendo
+a causa única.
+
+- `carregarTokenDaConexao` devolve `nao_existe` / `fora_do_workspace` /
+  `token_ilegivel`. **Uma implementação, não duas:** `loadConnectionToken`
+  continua existindo com o mesmo contrato (25 chamadores) e virou casca fina.
+- O caso ilegível **grita no log** (`[cofre] token ILEGÍVEL…`) e **é contado** no
+  censo. Aviso sozinho não é trava; log + censo é o mecanismo.
+- O portão 9 de `prontidao-de-publicacao` dizia *"ela some ou o token não
+  decifra"* e mandava reconectar nos dois casos. Agora separa: ilegível é
+  `quemResolve: "casa"` e manda **medir o cofre antes** de falar com o cliente.
+
+**b) As três medidas que faltavam para religar o relógio**, em `lib/raio-x/dados.ts`:
+
+| Balde novo | O que prendia, invisível |
+|---|---|
+| `direcao-aprovada-sem-execucao` | o cliente disse "vai" e a execução ficou `idle`/`failed` |
+| `execucao-pendurada` | pedida há +24h, nem terminou nem falhou |
+| `entregavel-barrado-pela-qualidade` | o freio `quality_flag` funciona e **ninguém contava quantas peças ele segura** |
+| `aviso-ao-cliente-nunca-enviado` | 🔴 `ClientNotice` em `pendente` |
+
+> 🔴 **O último era o grave.** O balde existente conta `WhatsAppOutbox` em
+> `failed` — **outro modelo e outro estado**. "Tentou sair e a Meta recusou" e
+> "nunca foi tentado" são fatos opostos, e o segundo era invisível para o raio-x
+> inteiro. É a forma exata da cicatriz que criou o cargo de PM: trabalho
+> escrito, ninguém avisado, painel verde. Há teste que cai se alguém colapsar os
+> dois num número só.
+
+### Portão
+
+`npx tsc --noEmit` limpo · **4476 testes em 285 arquivos, todos verdes** (43
+novos) · `npm run build` compila. Rodados num **worktree isolado só com os meus
+14 arquivos** — ver o aviso abaixo.
+
+### 🔴 O QUE NÃO FOI FEITO, E POR QUÊ
+
+- [ ] **CEO** — decidir a **re-cifragem em massa** dos segredos ainda presos à
+      chave legada. Ela reescreve dado de produção; não é decisão de deploy.
+      Rodar `GET /api/admin/censo-do-cofre` **em produção** dá o número primeiro.
+- [ ] `plataforma` — **`ApprovalRequest.clientId` sem `@relation`.** O balde novo
+      DETECTA o card que aponta para cliente apagado; a FK que impediria de
+      nascer é migration, e `prisma/` é território de outra frente.
+- [ ] `interface` — `app/agency/integrations/page.tsx:692` ainda diz *"Para
+      reforço extra em produção, defina `CREDENTIALS_SECRET` no Railway"*. Não é
+      afirmação falsa como a da vitrine, mas manda o operador fazer o que já está
+      feito. Não toquei: é tela, e tela tem dono.
+- [ ] **A re-cifragem NÃO existe e o censo não a substitui.** Enquanto ela não
+      rodar, cada segredo migra sozinho só quando for reescrito.
+- ⚠️ **`carregarTokenDaConexao` só está PLUGADA no portão 9.** Os outros ~24
+      chamadores seguem na casca `loadConnectionToken` e continuam sem distinguir
+      as três causas. Migrá-los é frente própria em território `meta` — o log e o
+      censo cobrem o buraco enquanto isso.
+- 🔴 **Nenhum especialista foi despachado como agente** (`seguranca`,
+      `plataforma`, `esteira`, `qualidade`): **não há ferramenta de despacho
+      nesta execução** — quarta rodada seguida com a mesma medição. O trabalho
+      foi feito e auditado pelo `pm` contra as cartas. **Não substitui a passada
+      deles**, em especial `seguranca` na rota nova.
+
+> ### ⚠️ AVISO DE ÁRVORE COMPARTILHADA — aconteceu nesta sessão
+> No meio do trabalho, **outro agente trocou a branch da árvore compartilhada**
+> (`claude/consertos-do-cofre` → `claude/freios-de-saida-bloco-e`) e havia
+> trabalho não commitado dele nos mesmos diretórios (`lib/agency/esteira/`,
+> `lib/raio-x/varreduras/`). Um `git stash` para conferir regressão trouxe os
+> arquivos dele junto — e 39 testes "quebrados" que eu quase relatei como meus
+> eram **dele, em andamento**.
+>
+> **O que salvou:** `git worktree add` num diretório próprio, copiando **só os
+> meus 14 caminhos**. Portão e commit rodaram lá. **`git add -A` teria commitado
+> a frente inteira de outro agente no meu PR.** Fica como regra, não como
+> anedota: em árvore compartilhada, portão de agente roda em worktree próprio.
+
+
 ## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
 
 **Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no

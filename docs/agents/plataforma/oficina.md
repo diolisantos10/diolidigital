@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-08-15 — 🔴 CORREÇÃO: `CREDENTIALS_SECRET` está setada, e a vitrine mentia
+
+**Fato novo, medido no Railway e no log do deploy vivo:**
+
+- `CREDENTIALS_SECRET` **ESTÁ DEFINIDA** no serviço. Nenhum segredo se perdeu.
+- `DATABASE_URL` **não é variável do serviço** — `start.sh` a auto-deriva do
+  volume, e o log do deploy de hoje imprime `file:/data/dioli.db`, **exatamente a
+  string que o teste simula**. A chave LEGADA continua reconstruível, então o que
+  foi cifrado antes continua abrindo.
+- `__tests__/plataforma/cofre-de-credenciais.test.ts` → **11/11 verde** no commit
+  no ar.
+
+**O que estava errado no repositório e foi corrigido hoje:** a entrada da vitrine
+*"NÃO sete `CREDENTIALS_SECRET` agora — isso torna o cofre indecifrável"* e o
+cabeçalho de `lib/security/crypto.ts`, que a citava. Os dois descreviam o mundo
+**anterior** à leitura com duas chaves como se fosse o de hoje. Quem os lesse em
+15/08 concluiria que o cofre da produção tinha sido destruído — e o "conserto"
+óbvio a partir dessa conclusão (remover a variável) é o único gesto capaz de
+causar o dano descrito, no dia em que houver re-cifragem.
+
+> A seção "A decisão — `CREDENTIALS_SECRET` (item 8)" mais abaixo neste arquivo
+> continua **historicamente correta para a data dela** e não foi reescrita. O que
+> ficou obsoleto é só o parágrafo final: *"a vitrine precisa ser atualizada
+> quando isso for resolvido"*. **Foi resolvido, e a vitrine foi atualizada.**
+
+**O buraco que sobra, e é o real:** segredo nunca reescrito desde então continua
+preso à chave fraca. Isso não tinha instrumento —
+`estadoDaChaveDeCredenciais()` e `cifradoComChaveLegada()` existiam com **zero
+chamadores**, escritas "para o painel dizer a verdade" num painel que nunca foi
+construído. Ninguém conseguia responder *"quantos segredos ainda dependem da chave
+fraca"* nem com acesso total.
+
+**Construído hoje:** `lib/security/censo-do-cofre.ts` +
+`GET /api/admin/censo-do-cofre` (`Authorization: Bearer <CRON_SECRET>`, porta
+fechada sem o segredo). Conta por tipo — chave de IA, App Secret da Meta, token de
+cliente da Meta, token do Google, token do Drive. **Somente leitura, e não devolve
+o valor de segredo nenhum.** A re-cifragem **não** foi construída: mexe em dado de
+produção e é decisão do CEO.
+
+---
+
 ## 2026-08-06 · noite — Provedor por cliente, a tela que manda, e a conta de IA
 
 Três defeitos da mesma família, e a família é: **a tela grava e ninguém lê.**
@@ -435,6 +476,10 @@ Enquanto ela não rodar, um segredo nunca reescrito continua protegido pela chav
 fraca. Isso mexe em dado de produção e não é decisão de um deploy. A vitrine
 precisa ser **atualizada** quando isso for resolvido — hoje ela diz "não sete",
 e a razão para não setar deixou de existir.
+
+> ⏱️ **Parágrafo acima ACONTECEU — ver a correção de 2026-08-15 no topo deste
+> arquivo.** A variável foi setada em produção, a vitrine foi corrigida, e o censo
+> do cofre passou a existir. A re-cifragem continua sem ser feita, por decisão.
 
 ### Verificação
 

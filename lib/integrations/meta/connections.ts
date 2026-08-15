@@ -160,41 +160,104 @@ export async function listConnections(workspaceId: string): Promise<MetaConnecti
   return rows.map(toView);
 }
 
-// Loads the decrypted token + externalId + platform for a connection. Returns
-// null if the connection doesn't exist, isn't in this workspace, or the token
-// can't be decrypted.
+// ─── O TOKEN DE UMA CONEXÃO — e POR QUE ele não veio ────────────────────────
+//
+// ⚠️ O FURO DE INSTRUMENTO QUE ISTO FECHA (15/08/2026)
+//
+// Até hoje havia só `loadConnectionToken`, e ela devolvia `null` para TRÊS
+// fatos diferentes: a conexão não existe · ela é de outro workspace · o token
+// não decifra. Os dois primeiros são estado normal do mundo. **O terceiro é o
+// cofre quebrado**, e ele saía pela mesma porta, calado.
+//
+// A consequência que isso produziria: numa troca de chave malfeita, as conexões
+// Meta dos clientes **sumiriam do produto sem uma linha de erro** — o
+// publicador diria "sem conexão", o portal diria "reconecte", o diagnóstico
+// diria "ela some ou o token não decifra" (a frase estava literalmente assim em
+// `prontidao-de-publicacao.ts`), e ninguém saberia que a causa era uma só, do
+// nosso lado, em todos os clientes ao mesmo tempo. Falha de cofre tem que
+// ESCALAR, não sumir — é a mesma lei que fez `por-cliente.ts` separar "é zero"
+// de "não consegui olhar".
+//
+// UMA IMPLEMENTAÇÃO, NÃO DUAS: `loadConnectionToken` continua existindo com o
+// mesmo contrato (25 chamadores) e passou a ser uma casca fina sobre
+// `carregarTokenDaConexao`. Duas cópias da mesma leitura divergem — é o defeito
+// nº 2 do incidente do Drive.
 //
 // ⚠️ `clientId` SAI DAQUI DE PROPÓSITO (06/08/2026). Quem usa um token precisa
 // saber DE QUEM ele é para consultar a lista de ativos autorizados — e a
 // resposta tem que vir da linha da conexão, nunca de um `clientId` que o
 // chamador passou. Trava derivada; trava comparada é trava que a próxima rota
 // contorna sem perceber.
-export async function loadConnectionToken(
-  workspaceId: string,
-  connectionId: string,
-): Promise<{
+
+export interface TokenDaConexao {
   token: string;
   externalId: string;
   platform: MetaPlatform;
   clientId: string | null;
   metaJson: Record<string, unknown>;
-} | null> {
+}
+
+/**
+ * Por que o token não veio.
+ *
+ * - `nao_existe` / `fora_do_workspace` → estado normal. O cliente reconecta.
+ * - `token_ilegivel` → **NOSSO defeito.** Nenhuma das chaves do cofre abre este
+ *   texto cifrado. Reconectar resolve para ESTE cliente e esconde a causa; se
+ *   aparecer em mais de uma conexão, é o cofre, não a conta.
+ */
+export type FalhaDeConexao = "nao_existe" | "fora_do_workspace" | "token_ilegivel";
+
+export type ResultadoDaConexao =
+  | { ok: true; conexao: TokenDaConexao }
+  | { ok: false; falha: FalhaDeConexao };
+
+export async function carregarTokenDaConexao(
+  workspaceId: string,
+  connectionId: string,
+): Promise<ResultadoDaConexao> {
   const row = await prisma.metaConnection.findUnique({ where: { id: connectionId } });
-  if (!row || row.workspaceId !== workspaceId) return null;
+  if (!row) return { ok: false, falha: "nao_existe" };
+  if (row.workspaceId !== workspaceId) return { ok: false, falha: "fora_do_workspace" };
+
   const token = decryptSecret(row.accessTokenEncrypted);
-  if (!token) return null;
+  if (!token) {
+    // O log é o único sinal que atravessa os 25 chamadores sem mudar o contrato
+    // deles. A contagem — "quantos tokens nenhuma chave abre" — mora no censo do
+    // cofre (`lib/security/censo-do-cofre.ts`), que é somente leitura e tem
+    // porta própria. Aviso sozinho não é trava; o par log + censo é o mecanismo.
+    // NÃO imprime o token, o texto cifrado nem a dica: log de produção é lido
+    // por quem tiver acesso ao Railway.
+    console.error(
+      `[cofre] token ILEGÍVEL na conexão ${row.platform} ${connectionId} — nenhuma chave do cofre abre este texto cifrado. ` +
+        "Isto NÃO é 'sem conexão': é falha nossa. Conte os demais em GET /api/admin/censo-do-cofre antes de mandar o cliente reconectar.",
+    );
+    return { ok: false, falha: "token_ilegivel" };
+  }
+
   let metaJson: Record<string, unknown> = {};
   try { metaJson = JSON.parse(row.metaJson) as Record<string, unknown>; } catch { /* ignore */ }
   return {
-    token,
-    externalId: row.externalId,
-    platform: row.platform as MetaPlatform,
-    // Normalizado: a linha pode ter `""` (gravado antes de 06/08/2026). Quem
-    // recebe isto consulta a lista de autorizados — com `""` consultaria o
-    // ramo do CLIENTE para um ativo da agência.
-    clientId: donoDe(row.clientId),
-    metaJson,
+    ok: true,
+    conexao: {
+      token,
+      externalId: row.externalId,
+      platform: row.platform as MetaPlatform,
+      // Normalizado: a linha pode ter `""` (gravado antes de 06/08/2026). Quem
+      // recebe isto consulta a lista de autorizados — com `""` consultaria o
+      // ramo do CLIENTE para um ativo da agência.
+      clientId: donoDe(row.clientId),
+      metaJson,
+    },
   };
+}
+
+/** A casca compatível: mesmo contrato de sempre, uma implementação só. */
+export async function loadConnectionToken(
+  workspaceId: string,
+  connectionId: string,
+): Promise<TokenDaConexao | null> {
+  const r = await carregarTokenDaConexao(workspaceId, connectionId);
+  return r.ok ? r.conexao : null;
 }
 
 // ─── Resolução cliente → conexão ────────────────────────────────────────────

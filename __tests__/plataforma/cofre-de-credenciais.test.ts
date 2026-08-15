@@ -11,13 +11,25 @@
 // ── POR QUE NÃO BASTAVA "EXIGIR A VARIÁVEL E FALHAR ALTO" ───────────────────
 // `lib/auth/secret.ts` pode falhar alto porque a chave dele ASSINA. Esta CIFRA.
 // Definir a variável trocava a chave e tornava indecifrável tudo que já estava
-// no cofre. Está registrado na vitrine da plataforma: "NÃO sete
+// no cofre. A vitrine da plataforma registrava, com todas as letras: "NÃO sete
 // CREDENTIALS_SECRET agora — isso torna o cofre indecifrável".
 //
 // ── O CONSERTO: LEITURA COM DUAS CHAVES ────────────────────────────────────
 // Escrita usa sempre a chave nova; leitura tenta a nova e cai na legada. É isto
 // que este arquivo tranca — porque é isto que transforma "não mexa nessa
 // variável" em "pode definir a variável com segurança".
+//
+// ── O MUNDO DE HOJE (15/08/2026) ───────────────────────────────────────────
+// `CREDENTIALS_SECRET` **ESTÁ DEFINIDA** em produção e nada se perdeu. O aviso
+// da vitrine citado acima é HISTÓRIA, não instrução — foi corrigido em 15/08,
+// depois de meses afirmando um perigo que este arquivo já tinha desarmado.
+//
+// A linha do `beforeEach` abaixo não é decoração: `file:/data/dioli.db` é
+// LITERALMENTE o que o log do deploy vivo imprime, porque `DATABASE_URL` não é
+// variável do serviço e o `start.sh` a monta do caminho do volume. É por isso
+// que a chave legada continua reconstruível em produção e o cofre não virou
+// pedra. Trocar essa string por um valor inventado faria estes testes passarem
+// medindo um mundo que não existe.
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {

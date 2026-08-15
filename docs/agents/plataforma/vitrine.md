@@ -66,19 +66,56 @@ da causa. Sempre `npx prisma migrate dev --name ...` e commite a migração.
 
 ---
 
-## ⚠️ NÃO sete `CREDENTIALS_SECRET` agora — isso torna o cofre indecifrável
+## ✅ `CREDENTIALS_SECRET` **JÁ ESTÁ SETADA** em produção, e setá-la foi seguro
 
-A variável **não está setada em produção, de propósito**.
-`lib/security/crypto.ts` cai num fallback derivado do `DATABASE_URL`.
+> **Esta entrada dizia o contrário até 15/08/2026** — *"NÃO sete
+> `CREDENTIALS_SECRET` agora — isso torna o cofre indecifrável"*. Aquilo deixou de
+> ser verdade quando a leitura com duas chaves entrou em `lib/security/crypto.ts`,
+> e a variável foi definida depois disso. **Ficou meses afirmando um perigo que já
+> não existia**, e quem a lesse hoje concluiria que o cofre da produção foi
+> destruído — e poderia tentar "consertar" removendo a variável, que é o único
+> gesto capaz de causar o dano que a entrada descrevia.
 
-Setá-la agora **muda a chave** e torna indecifrável **tudo que já foi
-criptografado** — chaves de IA e tokens da Meta inclusive. Parece endurecimento de
-segurança e é perda de dado.
+**O estado de hoje, medido:** `CREDENTIALS_SECRET` **definida** no serviço do
+Railway. Nenhum segredo se perdeu.
 
-Se for endurecer: **re-criptografar os segredos existentes** na mesma operação,
-nunca só setar a env.
+**Por que setá-la foi seguro** — `lib/security/crypto.ts` lê com **duas chaves**:
+
+- **escrita** → sempre a chave nova (`CREDENTIALS_SECRET`), quando ela existe;
+- **leitura** → tenta a nova; não abrindo, tenta a **legada** (derivada do
+  `DATABASE_URL`). O GCM autentica, então chave errada não "quase abre": ela falha
+  na verificação do `authTag`. A tentativa extra não enfraquece nada.
+
+**A prova de que a chave legada continua reconstruível** (é ela que abre o que foi
+cifrado antes): `DATABASE_URL` **não é variável do serviço** — `scripts/start.sh`
+a auto-deriva do caminho do volume, e o log do deploy de 15/08/2026 imprime
+`file:/data/dioli.db`, **exatamente a string que o teste simula**.
+`__tests__/plataforma/cofre-de-credenciais.test.ts` roda **11/11 verde** no commit
+no ar, com as duas metades: cifrado-antes continua abrindo depois de a variável
+existir · trocar a chave nova por outra **não** faz o cofre abrir com chave errada.
+
+### 🔴 O que continua ABERTO — e é o buraco real
+
+**Segredo nunca reescrito desde então continua cifrado com a chave FRACA.** A
+chave legada é `file:/data/dioli.db`, uma string adivinhável, e os backups moram
+**no mesmo volume**: quem obtiver um arquivo de backup reconstrói a chave em
+segundos. A migração acontece sozinha, mas só **no ritmo de cada segredo
+reescrito** — um token que ninguém regravar fica preso à chave fraca para sempre.
+
+- **Quantos ainda dependem da chave fraca:** pergunte ao instrumento —
+  `GET /api/admin/censo-do-cofre` (`Authorization: Bearer <CRON_SECRET>`), sobre
+  `lib/security/censo-do-cofre.ts`. Somente leitura, **não devolve o valor de
+  segredo nenhum**.
+- **A re-cifragem em massa NÃO existe, e é decisão do CEO** — ela reescreve dado
+  de produção. Nunca foi construída de propósito.
+
+⚠️ **O que NÃO fazer:** remover `CREDENTIALS_SECRET` do Railway. Enquanto todo
+segredo estiver duplamente legível isso é inócuo; **depois de qualquer re-cifragem
+é destruição de dado** — a chave legada não abre o que nasceu com a nova.
 
 — promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §e.3 (commit `7116cbb`)
+— **corrigido em 2026-08-15 pelo PM** · origem: leitura do Railway e do log do
+deploy vivo pelo Diretor + `lib/security/crypto.ts:21-31`
 
 ---
 
