@@ -50,6 +50,16 @@ const RAIZ = join(__dirname, "..", "..");
 // METADE 1 — A ORIGEM: o pilar passa a ser pedido, conferido e emitido
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** O contexto que todo especialista recebe. Escopo NÃO declarado de propósito:
+ *  este arquivo é sobre o PILAR, e o caso limpo aqui é a régua histórica da
+ *  casa (6 a 8, com mistura). O escopo contratado tem teste próprio. */
+const CTX_TESTE = {
+  businessName: "CityJobs", segment: "plataforma de vagas", targetAudience: "",
+  tone: "", services: [], objectives: [], strategyHeadline: "",
+  hasBrandAssets: false, hasRawMaterial: false, criandoIdentidade: false,
+  materiaisEntregues: [],
+};
+
 const social = DEPARTAMENTOS.find((d) => d.id === "social-media")!;
 const copy = social.especialistas.find((e) => e.id === "social-copy")!;
 
@@ -72,22 +82,17 @@ function pacote(comPilar: boolean) {
 
 describe("a origem: o especialista passa a ser cobrado pelo pilar", () => {
   it("o prompt PEDE o campo pillar — antes ele nem sabia que existia", () => {
-    const texto = copy.prompt({
-      businessName: "CityJobs", segment: "plataforma de vagas", targetAudience: "",
-      tone: "", services: [], objectives: [], strategyHeadline: "",
-      hasBrandAssets: false, hasRawMaterial: false, criandoIdentidade: false,
-      materiaisEntregues: [],
-    });
+    const texto = copy.prompt(CTX_TESTE);
     expect(texto).toContain('"pillar"');
   });
 
   it("o CONTRATO DE SAÍDA reprova o pacote sem pilar — prompt é aviso, código é trava", () => {
-    const problemas = copy.contrato!(pacote(false));
+    const problemas = copy.contrato!(pacote(false), CTX_TESTE);
     expect(problemas.some((p) => p.includes('"pillar"'))).toBe(true);
   });
 
   it("e aprova o mesmo pacote com pilar — a trava não dispara onde não há risco", () => {
-    expect(copy.contrato!(pacote(true))).toEqual([]);
+    expect(copy.contrato!(pacote(true), CTX_TESTE)).toEqual([]);
   });
 
   it("o markdown do entregável EMITE a linha Pilar, que era o elo que faltava", () => {

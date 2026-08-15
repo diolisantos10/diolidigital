@@ -30,6 +30,11 @@ import {
   type VerdadeDoCliente,
 } from "@/lib/agency/execution/piso-de-verdade";
 import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
+// O contrato de SAÍDA passa a derivar do contrato de ENTRADA. Ver
+// `escopo-do-cliente.ts` para por que os números fixos eram o defeito.
+import {
+  lerEscopoDeConteudo, exigenciaDeConteudo, avisoDeCobertura,
+} from "@/lib/agency/execution/escopo-do-cliente";
 import { lerProibicoes, sincronizarDoBriefing } from "@/lib/agency/esteira/proibicoes";
 import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
 import {
@@ -388,7 +393,59 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // a dona do salão GRAVAR os vídeos que ela já tinha, e que ela já tinha
       // dito que tinha. Cada peça passava no seu teste; a junta arrebentava.
       hasRawMaterial: temMaterialProprio(scope),
+      // ── O QUE O CLIENTE COMPROU (15/08/2026) ─────────────────────────────
+      //
+      // Lido do que ELE escreveu — serviços contratados, bloco de escopo do
+      // briefing, contexto bruto — com padrões determinísticos e sem IA. O que
+      // o leitor não acha vira lacuna NOMEADA, nunca número inventado.
+      //
+      // Até hoje o contrato de saída do especialista de copy exigia de todo
+      // cliente "6 a 8 peças, 1-2 carrossel, 2-3 story". O CityJobs EXCLUI
+      // carrossel, story e vídeo e compra 60 posts simples por mês: a trava
+      // mais cara da casa cobrava exatamente o que ele não comprou.
+      escopoContratado: lerEscopoDeConteudo({
+        servicos: services,
+        escopo: JSON.stringify(scope),
+        contextoBruto: req.rawContext ?? "",
+      }),
     };
+
+    // ── A ENTREGA COBRE O MÊS QUE ELE PAGOU? ────────────────────────────────
+    //
+    // O aviso não é parecer para o especialista — ele não resolve isto sozinho.
+    // É registro para gente. Sem ele, o cliente compra 60 peças, recebe 8, e
+    // NADA no sistema sabe dizer que faltou: foi assim até hoje.
+    const cobertura = avisoDeCobertura(
+      exigenciaDeConteudo(context.escopoContratado!),
+      context.businessName,
+    );
+    if (cobertura) {
+      await prisma.activityEvent.create({
+        data: {
+          workspaceId: project.workspaceId,
+          projectId,
+          clientId: project.clientId,
+          type: "entrega_nao_cobre_o_contrato",
+          message: cobertura.slice(0, 900),
+        },
+      }).catch(() => { /* best-effort: o registro não pode derrubar a produção */ });
+    }
+    // As lacunas do contrato do cliente: o que NINGUÉM declarou e por isso caiu
+    // na régua histórica da casa. Sobe como pergunta, não como número inventado.
+    if ((context.escopoContratado?.lacunas.length ?? 0) > 0) {
+      await prisma.activityEvent.create({
+        data: {
+          workspaceId: project.workspaceId,
+          projectId,
+          clientId: project.clientId,
+          type: "escopo_do_cliente_com_lacuna",
+          message:
+            `O contrato deste cliente não diz: ${context.escopoContratado!.lacunas.join(" | ")}. ` +
+            "A produção seguiu com a régua padrão da casa (6 a 8 peças, com mistura de formatos) — " +
+            "que pode não ser o que ele comprou. Isto é pergunta para o cliente, não palpite nosso.",
+        },
+      }).catch(() => { /* best-effort */ });
+    }
 
     // ── A VERDADE ANCORADA DO CLIENTE ────────────────────────────────────────
     // O que a agência SABE. Tudo que a peça afirmar além disto é invenção, e é
@@ -567,7 +624,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // contagem já não é conferível. É a checagem mais barata da casa — não
       // custa uma chamada de IA — e fecha o buraco em que o cliente contratava
       // 8 posts e recebia 3, todos feed, sem ninguém saber.
-      let contrato = conferirContrato(esp, data);
+      let contrato = conferirContrato(esp, data, context);
       let correcoesDeContrato = 0;
       while (!contrato.cumpriu && correcoesDeContrato < MAX_CORRECOES_DE_CONTRATO) {
         const refeito = await generate({
@@ -584,7 +641,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         correcoesDeContrato++;
         if (!refeito.ok) break;
         const novo = refeito.data as Record<string, unknown>;
-        const conferido = conferirContrato(esp, novo);
+        const conferido = conferirContrato(esp, novo, context);
         // Só troca se MELHOROU: uma segunda resposta pior que a primeira não
         // pode ser promovida só por ser a mais recente.
         if (conferido.violacoes.length <= contrato.violacoes.length) {
@@ -665,7 +722,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         // peças para remover um preço inventado resolve uma coisa e quebra
         // outra. Se a versão corrigida deixou de cumprir o contrato, ela não
         // entra — a peça é barrada com o parecer que já está na mão.
-        if (!conferirContrato(esp, novo).cumpriu) break;
+        if (!conferirContrato(esp, novo, context).cumpriu) break;
         data = novo;
         body = corrigido;
         const t = novo.title;
@@ -734,7 +791,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         // Nem a Qualidade pode fazer a entrega encolher abaixo do contratado, e
         // nem pode reintroduzir dado que a agência não sustenta. As duas travas
         // que já rodaram continuam valendo depois da revisão.
-        if (!conferirContrato(esp, corrigido).cumpriu) break;
+        if (!conferirContrato(esp, corrigido, context).cumpriu) break;
         const fixedTitle = typeof corrigido.title === "string" && corrigido.title.trim() ? corrigido.title : title;
         if (!conferirPeca(fixedTitle, fixedBody).aprovado) break;
         data = corrigido;
