@@ -4,6 +4,7 @@ import { useState } from "react";
 import AgencySidebar from "./AgencySidebar";
 import { AgencyTopBar } from "./AgencyTopBar";
 import { useHydrateFromDb } from "@/lib/hooks/useHydrateFromDb";
+import type { PerfilOrganizacional } from "@/lib/agency/organizacao/autoridade";
 
 interface UserInfo {
   name: string;
@@ -16,9 +17,14 @@ const NAV_ID = "agency-nav";
 
 export function AgencyShell({
   userInfo,
+  perfil,
   children,
 }: {
   userInfo: UserInfo;
+  /** Resolvido NO SERVIDOR, a partir do JWT. A casca só repassa — ela não
+   *  calcula permissão, e nenhum componente de cliente pode fabricar este
+   *  objeto para si mesmo. */
+  perfil: PerfilOrganizacional;
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,6 +41,7 @@ export function AgencyShell({
       <AgencySidebar
         id={NAV_ID}
         userInfo={userInfo}
+        perfil={perfil}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
       />

@@ -82,6 +82,9 @@ export const PAGINAS: PaginaInterna[] = [
   { href: "/agency",                       titulo: "Entrada da agência",      dono: "casa",               acesso: "todos_internos", noMenu: false },
   { href: "/agency/dashboard",             titulo: "Central de Trabalho",     dono: "casa",               acesso: "todos_internos", noMenu: true  },
   { href: "/agency/dashboard/operacao",    titulo: "Painel de operação",      dono: "casa",               acesso: "todos_internos", noMenu: true  },
+  // A tela que EXPLICA o barramento precisa ser alcançável por quem foi
+  // barrado — senão o guarda barra a explicação e a pessoa vê um laço.
+  { href: "/agency/sem-permissao",         titulo: "Sem permissão",           dono: "casa",               acesso: "todos_internos", noMenu: false },
 
   // ── Porta da frente — Atendimento ─────────────────────────────────────────
   { href: "/agency/requests",              titulo: "Solicitações",            dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },

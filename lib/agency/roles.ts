@@ -210,6 +210,21 @@ export function getRolePermissions(role: AgencyRole): RolePermissions {
   return ROLE_PERMISSIONS[role];
 }
 
+/**
+ * O texto é um papel conhecido da agência?
+ *
+ * Versão PURA — sem `next/headers`, sem `server-only` — para que componentes de
+ * cliente possam validar o papel que veio da sessão antes de usá-lo como chave.
+ * `isAgencyRole()` em `lib/auth/session.ts` delega para cá: uma lista só.
+ *
+ * Derivar de `ROLE_PERMISSIONS` (que o TypeScript obriga a ter uma entrada por
+ * `AgencyRole`) é o que impede um papel novo de nascer "desconhecido" — o bug
+ * que já entregou JWT de master a `executivo_comercial`.
+ */
+export function ehPapelDaAgencia(role: string): role is AgencyRole {
+  return Object.prototype.hasOwnProperty.call(ROLE_PERMISSIONS, role);
+}
+
 // ─── Portal-safe brand fields ─────────────────────────────────────────────────
 // Subset of BrandBrain fields that clients can view and suggest updates to.
 // strategicNotes is always internal-only.
