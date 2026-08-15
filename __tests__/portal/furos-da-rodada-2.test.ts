@@ -216,6 +216,37 @@ describe("FURO C — em modo cookie o selo é OBRIGATÓRIO", () => {
     expect(await corpos(await lerConversa(get("/api/portal/messages?token=tk-c2")))).toContain(SEGREDO_LEGADO);
   });
 
+  // ── O CENÁRIO DE DUAS ABAS — a divergência REAL (rodada 2) ───────────────
+  //
+  // A rodada 1 afirmou que "tela e chat nunca divergem". A frase estava escopada
+  // em *uma mesma visita*, e o `qualidade` mostrou onde ela não vale:
+  //
+  //   aba 1 fica aberta em `/portal/access/me` (cookie = ALFA);
+  //   aba 2 abre o portal do BETA → o cookie do DOMÍNIO vira BETA;
+  //   a aba 1 continua polindo o chat de 8 em 8 segundos SEM token
+  //   (`PortalChat.tsx`, `setInterval(load, 8000)`) → passa a resolver BETA.
+  //   E `carregarVista` NÃO é repolido, então o selo da aba 1 continua ALFA.
+  //
+  // É o selo velho que salva: ele discorda do cookie novo e a conversa fecha.
+  it("⛔ aba 1 (selo ALFA) com o cookie já trocado para BETA → RECUSA", async () => {
+    await prisma.portalAccess.create({ data: { token: "tk-aba-a", clientId: alfa, clientRequestId: reqAlfa } });
+    await prisma.portalAccess.create({ data: { token: "tk-aba-b", clientId: beta } });
+    await gravarMensagemDoPortal({
+      clientRequestId: reqAlfa, authorRole: "team", authorName: "x", body: SEGREDO_LEGADO,
+    });
+
+    // O selo que a aba 1 carrega é o do ALFA, tirado da vista dela.
+    const seloDaAba1 = (await (await lerVista(get("/api/portal/vista?token=tk-aba-a"))).json()).dono;
+
+    // A aba 2 trocou o cookie do navegador para o BETA. A aba 1 poliu de novo.
+    const res = await lerConversa(get(`/api/portal/messages?dono=${seloDaAba1}`, "tk-aba-b"));
+
+    const bruto = JSON.stringify(await res.json());
+    expect(bruto).toContain("dono-divergente");
+    // E nada do BETA vaza para a tela do ALFA, nem o contrário.
+    expect(bruto).not.toContain("SEGREDO-LEGADO");
+  });
+
   it("a regra, isolada: exigir=true recusa ausência; exigir=false tolera", () => {
     expect(donoConfere(alfa, undefined, true)).toBe(false);
     expect(donoConfere(alfa, undefined, false)).toBe(true);

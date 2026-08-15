@@ -29,12 +29,28 @@ verdadeira e virou trava.
 **O que a leitura dele NÃO alcançava, e é o que reproduz o sintoma exato:**
 a leitura da conversa une duas chaves (`clientId` do dono **e** todas as
 solicitações dele), e **`ClientRequestDb.clientId` não é imutável**.
-`/api/admin/reset` zera o campo; `createProjectFromRequest`
-(`lib/agency/execution/create-project-from-request.ts:51`) e
-`/api/brain/orchestrate/apply` (`:111`) criam um `Client` novo e **re-apontam a
-mesma solicitação**; e `Client` não tem `@@unique(workspaceId, name)` — ficha
-duplicada para o mesmo negócio já é fato registrado nesta casa (a Camila,
-08/08/2026).
+
+> ### 🔴 A CAUSA FOI REESCRITA NA RODADA 2 — a primeira versão acusou os errados
+>
+> `seguranca` e `qualidade`, trabalhando **separados e por caminhos
+> diferentes**, chegaram ao mesmo culpado. Os três sites que esta decisão
+> acusava originalmente estão **inocentes**:
+>
+> | Site acusado | Por que NÃO pode ter produzido o sintoma |
+> |---|---|
+> | `/api/admin/reset` | a MESMA transação roda `tx.portalMessage.deleteMany({})` (`route.ts:177`) em **todos** os modos. Não sobra mensagem para vazar |
+> | `create-project-from-request.ts:51` | está dentro de `if (!clientId)` (`:47`). Só preenche dono **nulo**. Nunca move A→B |
+> | `orchestrate/apply/route.ts:111` | idem, guardado por `if (!clientId)` em `:101` |
+>
+> **O culpado é `lib/agency/balcao/producao.ts` — a ÚNICA sobrescrita
+> incondicional do repositório, e a única que não apaga mensagem nenhuma.** Ele
+> achava `Client` por `{ workspaceId, email }` com o e-mail vindo do
+> **formulário de compra, sem verificação**, e re-apontava a solicitação por
+> cima do dono existente. **Com um cartão e R$ 79** qualquer pessoa digitava o
+> e-mail de um cliente e enfiava a própria solicitação dentro da ficha dele.
+>
+> Documento errado manda o próximo blindar o lugar errado — por isso a correção
+> foi feita nos cinco lugares onde a causa estava escrita.
 
 Quando a solicitação R sai do cliente A e passa para o B, as mensagens antigas
 continuam gravadas com `clientId: A` **E** `clientRequestId: R` — as duas
@@ -83,14 +99,53 @@ engolida num `catch {}`, e as primeiras cargas já saíram. **Apaga, nunca grava
 gravar exigiria validar, e gravar sem validar é o defeito já documentado em
 `app/portal/access/route.ts`. Apagar só pode tirar acesso, nunca dar.
 
+### A RODADA 2 — o que os dois Essenciais derrubaram, e o que entrou
+
+O `seguranca` **barrou o merge** e o `qualidade` **reprovou**. O que mudou:
+
+1. **O TOKEN CONGELA O DONO** (`donoDoToken`). O furo mais grave não era da
+   conversa: era do **portal inteiro**. `resolvePortalClient` e `conversaDoToken`
+   **re-derivavam** o dono a cada chamada lendo o ponteiro mutável — probe real:
+   `/api/portal/vista` com o token de um cliente devolveu a marca de outro. O
+   selo da rodada 1 não pegava nada disso (tela e conversa derivam o **mesmo**
+   cliente errado e concordam). Agora o token aponta para um cliente e só; se o
+   ponteiro andar, **403 `ponteiro_andou`**, com registro em `ActivityEvent`.
+2. **O BALCÃO PARA DE FUNDIR FICHA.** E-mail não verificado não é chave de
+   identidade; solicitação com dono nunca é re-apontada (guarda no `WHERE`, não
+   no código — decidir no código perde a corrida entre duas compras).
+3. **OS SETE ESCRITORES CARIMBAM O DONO** (`gravarMensagemDoPortal`). A cerca
+   era probabilística: conversa 100% legada não tinha carimbo nenhum para a
+   prova de contaminação achar, e atravessava inteira.
+4. **O SELO É OBRIGATÓRIO EM MODO COOKIE.** Selo que se desliga ao ser omitido
+   é aviso, não trava — e havia teste asseverando o fail-open. Corrigidos os dois.
+5. **O RAMO DO PROSPECT GANHOU CERCA.** Era o ramo que PRODUZ as linhas sem
+   dono, e estava aberto 100 linhas abaixo do que a rodada 1 cercou.
+6. **A PORTA DE ENTRADA (F5).** `/portal/access?token=<inválido>` mantinha o
+   cookie antigo e redirecionava para `/me`: **cliente com link expirado caía no
+   portal do cliente anterior**. É o caminho mais banal que existe e não tinha
+   teste. Agora vai para `/portal/invalid` — que **não existia** e foi criada.
+7. **A HIGIENE DE COOKIE SAIU DO `proxy.ts`** — ela apagava o cookie ANTES de
+   validar, então um link com lixo derrubava a sessão da vítima (negação de
+   serviço). Virou regravação **depois** de validar, em `/api/portal/vista`.
+8. **O CORTE DEIXOU DE SER MUDO.** A resposta era `{"messages":[],
+   "podeEnviar":true}` e a tela dizia *"Comece a conversa"* — o cliente não via
+   o histórico encurtar, via a agência ter apagado a conversa dele. Agora vem
+   `motivo`, a **contagem** do que foi escondido, e a tela não convida a
+   escrever no estado divergente.
+
 ### O que NÃO foi feito, e por quê
 
 - **Não se consertou no cliente escondendo a caixa.** A trava é servidor; a tela
   só traduz o motivo.
 - **O token NÃO voltou para a URL.** O achado A4 continua de pé.
-- **A causa raiz — `ClientRequestDb.clientId` mutável — continua aberta.** Esta
-  decisão cerca o efeito na conversa. Enquanto a solicitação puder trocar de
-  dono em silêncio, outros consumidores da mesma união seguem expostos.
+- 🔴 **O número de PRODUÇÃO do histórico escondido NÃO foi medido.** O banco mora
+  num volume dentro do contêiner e este ambiente não tem `CRON_SECRET` nem
+  sessão de admin. A conta existe e roda em um comando
+  (`scripts/censo-de-historico-ambiguo.mts`) ou por
+  `GET /api/admin/censo-de-historico-ambiguo`. **Estimar seria inventar.**
+- 🟠 **O selo é pseudônimo estável e sem sal:** viaja na query string e para em
+  log igual ao id pararia. Quem tem o log correlaciona o tráfego por cliente.
+  Mintar por sessão fecharia isso; não foi feito.
 
 ---
 

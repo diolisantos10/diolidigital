@@ -87,6 +87,9 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
   // A conversa fica vazia (o servidor não devolve mensagem nenhuma) e a caixa
   // de texto sai — enviar aqui gravaria na conversa de outra pessoa.
   const [divergente, setDivergente] = useState(false);
+  // Quantas linhas antigas o servidor não conseguiu atribuir com segurança.
+  // Existe para o cliente NÃO concluir que a agência apagou a conversa dele.
+  const [ocultadas, setOcultadas] = useState(0);
   const [attachOpen, setAttachOpen] = useState(false);
   const [linkDraft, setLinkDraft] = useState("");
   const [suggesting, setSuggesting] = useState(false);
@@ -165,8 +168,11 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
         if (loading) setError("Não foi possível carregar a conversa.");
         return;
       }
-      const data = (await res.json()) as { messages?: ChatMessage[]; podeEnviar?: boolean; motivo?: string };
+      const data = (await res.json()) as {
+        messages?: ChatMessage[]; podeEnviar?: boolean; motivo?: string; ocultadas?: number;
+      };
       setMessages(data.messages ?? []);
+      setOcultadas(data.motivo === "historico-parcial" ? (data.ocultadas ?? 0) : 0);
       // "sem dono" e "dono divergente" são fatos DIFERENTES e a tela precisa
       // dizer qual é: o primeiro é acesso mal emitido (a agência resolve), o
       // segundo é a credencial de outro cliente neste navegador (recarregar
@@ -252,12 +258,39 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
 
   return (
     <div className={`flex flex-col bg-white overflow-hidden ${bare ? "flex-1 min-h-0" : "rounded-[12px] border border-[var(--border)]"}`}>
+      {ocultadas > 0 && !divergente && (
+        <div className="px-4 pt-3" role="status">
+          <div className="rounded-[10px] px-3 py-2" style={{ background: "#FFFBEB" }}>
+            <p className="text-[11.5px] leading-snug" style={{ color: "#9B7B2D" }}>
+              <b>
+                {ocultadas === 1
+                  ? "1 mensagem antiga não está aparecendo aqui."
+                  : `${ocultadas} mensagens antigas não estão aparecendo aqui.`}
+              </b>{" "}
+              Não conseguimos confirmar a qual marca elas pertencem, então preferimos não
+              mostrar. <b>Nada foi apagado</b> — é só pedir à equipe Dioli.
+            </p>
+          </div>
+        </div>
+      )}
       <div
         className="px-4 py-3 overflow-y-auto space-y-3"
         style={bare ? { flex: 1, minHeight: 0 } : { height }}
       >
         {loading ? (
           <p className="text-[12px] text-[var(--text-muted)] text-center py-8">Carregando conversa…</p>
+        ) : divergente ? (
+          // ⚠️ NUNCA "Comece a conversa" aqui. O convite a escrever em cima de
+          // uma conversa que o servidor recusou abrir dizia ao cliente que ele
+          // não tem histórico — quando o que houve foi um barramento nosso.
+          <div className="text-center py-10">
+            <p className="text-[13px] text-[var(--text-secondary)] font-medium">
+              Não consegui abrir esta conversa com segurança
+            </p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-1">
+              Sua conversa está guardada. Abra o portal pelo link que você recebeu da Dioli.
+            </p>
+          </div>
         ) : messages.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-[13px] text-[var(--text-secondary)] font-medium">Comece a conversa</p>

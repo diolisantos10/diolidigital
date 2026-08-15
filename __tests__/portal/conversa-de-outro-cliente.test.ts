@@ -150,7 +150,12 @@ describe("a solicitação muda de dono e leva a conversa junto", () => {
     expect(lidas).toEqual(["recado-da-beta"]);
   });
 
-  it("⛔ e o ALFA também não é servido pelo caminho contrário", async () => {
+  // ⚠️ RÓTULO CORRIGIDO (rodada 2). Isto se chamava "⛔ e o ALFA também não é
+  // servido pelo caminho contrário" e era **estruturalmente incapaz de
+  // falhar**: sem a solicitação, o filtro do ALFA vira `{clientId: alfa}` e
+  // nunca chegou perto do BETA. Controle positivo vestido de barreira engana a
+  // próxima pessoa a ler a suíte. Ele fica — como controle, com o nome certo.
+  it("✅ (controle) o ALFA nunca teve caminho para a conversa do BETA", async () => {
     await prisma.clientRequestDb.update({ where: { id: reqAlfa }, data: { clientId: beta } });
     const lidas = await corpos(await lerConversa(get(`/api/portal/messages?token=${TOKEN_ALFA}`)));
     expect(lidas).not.toContain("recado-da-beta");
@@ -237,9 +242,30 @@ describe("cookie de um cliente, portal de outro, em /portal/access/me", () => {
     expect(bruto).not.toContain("recado-da-beta");
   });
 
-  it("✅ declaração de dono AUSENTE não inventa problema (chamada antiga / lado da equipe)", async () => {
+  // ⚠️ 15/08/2026 (rodada 2) — ESTE TESTE ASSEVERAVA UM FAIL-OPEN.
+  //
+  // Ele se chamava "declaração de dono AUSENTE não inventa problema" e travava
+  // o selo devolvendo `true` quando não vinha nada. Selo que se desliga ao ser
+  // OMITIDO não é trava: `curl` sem o parâmetro, ou um bundle em cache do
+  // deploy anterior, passavam sem nunca acionar a conferência. E o mesmo PR
+  // escrevia "FALHA DE LEITURA FECHA, NÃO ABRE" em `conversa.ts`.
+  //
+  // A regra agora depende do CAMINHO, e a distinção é o ponto:
+  //   • modo COOKIE — a credencial vale para o domínio inteiro e guarda UM
+  //     cliente. É onde tela e conversa podem discordar: **selo obrigatório**.
+  //   • TOKEN explícito — o token identifica o cliente na própria requisição;
+  //     não há dois lados para divergir. Exigir o selo aí quebraria link
+  //     legítimo sem fechar buraco nenhum.
+  it("✅ com TOKEN explícito o selo não é exigido — e é por não haver o que comparar", async () => {
     const lidas = await corpos(await lerConversa(get(`/api/portal/messages?token=${TOKEN_ALFA}`)));
     expect(lidas).toContain(SEGREDO_1);
+  });
+
+  it("⛔ em modo COOKIE o selo ausente RECUSA — a trava não se desliga sendo omitida", async () => {
+    const res = await lerConversa(get("/api/portal/messages", TOKEN_ALFA));
+    const bruto = JSON.stringify(await res.json());
+    expect(bruto).not.toContain("SEGREDO-DO-ALFA");
+    expect(bruto).toContain("dono-divergente");
   });
 
   it("⛔ dono FORJADO não abre a conversa de ninguém — a declaração só recusa", async () => {

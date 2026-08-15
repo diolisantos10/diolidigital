@@ -28,13 +28,39 @@ medido, o que ficou aberto e a resposta forense.
 ### 🔴 A CAUSA REAL — e a leitura de origem estava INCOMPLETA, não errada
 
 Os 4 pontos apontados pelo Diretor Geral existem e estão corretos. O que faltava
-é o mecanismo que reproduz o sintoma **exato**: a leitura da conversa une
-`clientId` + todas as solicitações do cliente, e **`ClientRequestDb.clientId`
-não é imutável** (`/api/admin/reset` zera; `create-project-from-request.ts:51` e
-`orchestrate/apply/route.ts:111` re-apontam; `Client` não tem
-`@@unique(workspaceId, name)`). Solicitação que muda de dono **leva a conversa
-junto**, e os dois portais passam a mostrar as mesmas linhas — cada um com o
-próprio token válido, **sem cookie nenhum envolvido**.
+é o mecanismo: a leitura da conversa une `clientId` + todas as solicitações do
+cliente, e **`ClientRequestDb.clientId` não é imutável**. Solicitação que muda
+de dono **leva a conversa junto**.
+
+> ### 🔴 A CAUSA FOI REESCRITA NA RODADA 2 — a primeira versão acusou os errados
+>
+> `seguranca` e `qualidade`, **separados e por caminhos diferentes**, chegaram
+> ao mesmo culpado. Os três sites acusados na rodada 1 estão **inocentes**:
+> `/api/admin/reset` roda `tx.portalMessage.deleteMany({})` (`route.ts:177`) em
+> **todos** os modos — não sobra mensagem para vazar; e
+> `create-project-from-request.ts:51` e `orchestrate/apply/route.ts:111` estão
+> **dentro de `if (!clientId)`** — só preenchem dono nulo, nunca movem A→B.
+>
+> **O culpado é `lib/agency/balcao/producao.ts`** — a única sobrescrita
+> incondicional do repositório, e a única que não apaga mensagem. Achava
+> `Client` por e-mail **não verificado** do formulário de compra e re-apontava a
+> solicitação por cima do dono. **R$ 79 e um cartão** bastavam.
+
+### 🔴 RODADA 2 — os dois Essenciais reprovaram, e o que entrou
+
+O `seguranca` **barrou o merge**; o `qualidade` **reprovou**. O item nº 1 de
+todos: **o token passou a CONGELAR o dono** (`donoDoToken`). O furo mais grave
+não era da conversa — era do **portal inteiro**: `resolvePortalClient` e
+`conversaDoToken` re-derivavam o dono a cada chamada, e o probe do `seguranca`
+recebeu de `/api/portal/vista` a **marca de outro cliente**. O selo da rodada 1
+não pegava isso (tela e conversa derivam o mesmo cliente errado e concordam).
+
+Também entraram: o balcão parou de fundir ficha; os **sete escritores** legados
+carimbam o dono; o selo virou **obrigatório em modo cookie** (havia teste
+asseverando o fail-open); o **ramo do prospect** ganhou cerca; a **porta de
+entrada** (F5) parou de jogar link expirado dentro do portal do cliente
+anterior; a higiene de cookie **saiu do `proxy.ts`** (era negação de serviço); e
+o corte de histórico **deixou de ser mudo**.
 
 **Provado, não deduzido.** `__tests__/portal/conversa-de-outro-cliente.test.ts`,
 banco de verdade, rotas de verdade: **5 dos 10 testes falham sem o conserto.** A
@@ -62,9 +88,19 @@ cliente.** Mesmo um log de acesso perfeito não marcaria nada de anômalo. Não 
 
 ### 🔴 O QUE FICOU ABERTO
 
-- [ ] `plataforma` — 🔴 **`ClientRequestDb.clientId` é mutável e ninguém registra
-      a troca.** É a causa raiz. Esta frente cercou o EFEITO na conversa; todo
-      outro consumidor da mesma união segue exposto. Sem dono.
+- [ ] `plataforma` — 🟠 **`ClientRequestDb.clientId` continua mutável no schema.**
+      O único re-apontador incondicional foi fechado e o token não segue mais o
+      ponteiro, mas o campo ainda pode andar. Torná-lo imutável (ou exigir um
+      caminho sancionado único) é o conserto de raiz. Sem dono.
+- [ ] 🔴 **O NÚMERO DE PRODUÇÃO do histórico escondido NÃO FOI MEDIDO.** O banco
+      mora num volume dentro do contêiner; este ambiente não tem `CRON_SECRET`
+      nem sessão de admin. A conta roda em um comando
+      (`scripts/censo-de-historico-ambiguo.mts`) ou por
+      `GET /api/admin/censo-de-historico-ambiguo` — **CEO/Diretor**. O script foi
+      validado contra cenário semeado (achou as 2 plantadas). **Estimar seria
+      inventar.**
+- [ ] 🟠 **O selo é pseudônimo estável e sem sal** — viaja na query string e para
+      em log. Mintar por sessão fecha a correlação. Sem dono.
 - [ ] `plataforma` — **`Client` sem `@@unique(workspaceId, name)`** e duas rotas
       criando ficha sem dedup (já aberto desde 08/08 pela Camila duplicada).
 - [ ] `seguranca` — 🔴 **não há registro de acesso do portal.** Enquanto não

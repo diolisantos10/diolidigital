@@ -171,7 +171,26 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       });
     }
 
-    return NextResponse.json({ messages: rows.map((m) => toDTO(m, viewer)), podeEnviar: true });
+    // ── O CORTE É DITO, NÃO ESCONDIDO (15/08/2026, rodada 2) ──────────────
+    // A resposta crua era `{"messages":[],"podeEnviar":true}` — sem motivo,
+    // sem contador, sem flag. Na tela isso vira "Comece a conversa": o cliente
+    // não vê o histórico encurtar, vê a agência ter APAGADO a conversa dele.
+    // Quem esconde, diz que escondeu, e diz QUANTO.
+    const ocultadas = conversa.ocultadasPorAmbiguidade;
+    return NextResponse.json({
+      messages: rows.map((m) => toDTO(m, viewer)),
+      podeEnviar: true,
+      ...(ocultadas > 0
+        ? {
+            motivo: "historico-parcial",
+            ocultadas,
+            detalhe:
+              "Parte do histórico antigo desta conversa está fora do ar porque não conseguimos"
+              + " confirmar a qual marca ele pertence. Nada foi apagado — a equipe Dioli consegue"
+              + " recuperar. As mensagens novas continuam normais.",
+          }
+        : {}),
+    });
   } catch (e) {
     console.error("[portal/messages] GET error", e);
     return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
