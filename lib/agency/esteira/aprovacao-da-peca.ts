@@ -40,22 +40,29 @@
 //
 // ─── POR QUE SÓ `client:` CONTA ─────────────────────────────────────────────
 //
-// `reviewedBy` tem três grafias vivas no repositório, e elas NÃO valem o mesmo:
+// `reviewedBy` tem duas grafias GRAVÁVEIS, e elas NÃO valem o mesmo:
 //
-//   • `client:<nome>` — escrito por `app/api/portal/approvals/route.ts`, e só
-//     por lá. Para chegar ali é preciso um token de portal válido cuja posse foi
-//     conferida contra o dono do card. **É o cliente, e ele tem nome.** VALE.
-//   • `cliente` (seco) — escrito por `marcos.aprovarPacote`. Não tem autor, e
-//     `aprovarPacote` é alcançável por `app/api/projects/[id]/esteira/route.ts`,
-//     que é **rota de sessão da agência**: alguém da casa clicando "aprovar
-//     tudo" pelo cliente grava a mesma string. Autoria ambígua não é autoria.
-//     NÃO VALE para publicar.
-//   • `equipe:<email>` / `internal` — a agência, declaradamente. NÃO VALE.
+//   • `client:<nome>` — escrito quando a decisão vem de um **token de portal
+//     validado**, cuja posse foi conferida contra o dono do card:
+//     `app/api/portal/approvals/route.ts` e `app/api/portal/esteira/route.ts`.
+//     **É o cliente, e ele tem nome.** VALE.
+//   • `equipe:<email>` — a agência, declaradamente, por rota de sessão. NÃO VALE
+//     para publicar, e é exatamente isso que ela deve significar.
 //
-// A consequência é deliberada e vale dita: **o carimbo de `aprovarPacote` não
-// autoriza publicação.** Ele continua abrindo a implementação e o ciclo, que é
-// o trabalho dele; levar a peça ao perfil do cliente exige o clique do próprio
-// cliente, com nome, no card daquela peça. Foi isso que o CEO pediu.
+// ⚠️ E uma TERCEIRA que existe só no PASSADO: `cliente` (seco). Era o que
+//    `marcos.aprovarPacote` gravava até 15/08/2026, por qualquer caminho —
+//    inclusive pela rota de sessão da agência. Autoria ambígua não é autoria, e
+//    a leitura sempre a recusou. O problema é que a ESCRITA continuava,
+//    produzindo linhas que mentiam dos dois lados: o portal mostrava a entrega
+//    aprovada e a publicação recusava a mesma linha. Desde 15/08 essa grafia
+//    **não é mais gravável** (`autoria-da-aprovacao.conferirCarimbo`); a recusa
+//    na leitura permanece, porque as linhas antigas continuam no banco.
+//
+// A consequência é deliberada e vale dita: **carimbo que não seja do portal do
+// cliente não autoriza publicação.** Aprovar o pacote continua abrindo a
+// implementação e o ciclo, que é o trabalho dele; levar a peça ao perfil do
+// cliente exige o clique do próprio cliente, com nome, no card daquela peça.
+// Foi isso que o CEO pediu.
 //
 // ─── FAIL-CLOSED, COMO AS TRAVAS VIZINHAS ───────────────────────────────────
 //
@@ -72,10 +79,14 @@
 
 import { prisma } from "@/lib/db/client";
 import { donoDe } from "@/lib/integrations/meta/ativos-autorizados";
+// A gramática de `reviewedBy` vive num módulo PURO (sem prisma, sem HTTP) —
+// leitura e escrita têm de usar o MESMO prefixo, e duas constantes iguais em
+// arquivos vizinhos divergem no primeiro ajuste. Ver `autoria-da-aprovacao.ts`.
+import { PREFIXO_DO_CLIENTE } from "@/lib/agency/esteira/autoria-da-aprovacao";
 
-/** A marca de que quem decidiu foi o CLIENTE, pelo portal dele. Escrita em
- *  `app/api/portal/approvals/route.ts` como `client:${clientIdentity}`. */
-export const PREFIXO_DO_CLIENTE = "client:";
+/** A marca de que quem decidiu foi o CLIENTE, pelo portal dele. Reexportada
+ *  porque metade da casa já a importava daqui. */
+export { PREFIXO_DO_CLIENTE };
 
 /** O status de `ApprovalRequest` que significa "aprovado". */
 export const STATUS_APROVADO = "approved";

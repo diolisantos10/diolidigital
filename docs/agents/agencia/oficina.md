@@ -582,3 +582,103 @@ testes novos). **Mutação conferida:** zerando `INTERVALO_MINIMO_POR_PERFIL_MS`
 - **A peça adiada não tem testemunha na TELA.** Só no log do servidor. Aqui não
   machuca (a peça sai na rodada seguinte), mas é o mesmo defeito de `ignorados`
   anotado em 14/08.
+
+---
+
+## 2026-08-15 — Desfazer o clique, e consertar o botão que o provocou
+
+**Despacho:** o CEO, dentro do portal da CityJobs, apertou "Aprovar as entregas
+prontas" procurando os criativos. Ele não queria aprovar. Pediu para cancelar.
+Nada foi publicado nesta sessão e nenhuma chamada de plataforma foi feita.
+
+### 1. O caminho de volta que não existia
+
+O marco só andava para frente: `aprovarPacote` grava `clientApprovedAt` e
+carimba os `ApprovalRequest` prontos, e não havia rota nenhuma que desfizesse
+isso. `lib/agency/esteira/reverter-aprovacao-do-pacote.ts` +
+`app/api/admin/reverter-aprovacao-do-pacote/route.ts` +
+`.github/workflows/reverter-aprovacao-do-pacote.yml`, no mesmo padrão de
+`cards-de-aprovacao` (Bearer `CRON_SECRET`, POST, 503 com segredo ausente,
+leitura pura por padrão, corpo nunca no log).
+
+**O alvo tem DUAS coordenadas, e elas têm de bater juntas.** A grafia
+(`reviewedBy` exatamente `"cliente"` — a string seca que só `aprovarPacote`
+gravava) **e** o instante (`reviewedAt` coincidindo com o `clientApprovedAt` do
+projeto: `aprovarPacote` usa o MESMO `Date` nos dois, então são iguais ao
+milissegundo). Uma coordenada sozinha não bastaria: a grafia sozinha varreria
+cliques antigos, o instante sozinho varreria a aprovação legítima que caísse no
+mesmo segundo.
+
+**O carimbo do projeto só cai se nada legítimo o sustentar.** Havendo card
+`client:<nome>` no mesmo instante, o `clientApprovedAt` é DELE — apagá-lo
+desfaria a decisão de quem decidiu de verdade. O relatório reverte só os secos e
+mantém o carimbo, dizendo por quê.
+
+**As duas escritas de cada projeto vão em `$transaction`.** Meio-caminho aqui é
+pior que não desfazer: cards de volta a `pending` com o projeto ainda carimbado
+é um estado que ninguém sabe ler, e que a segunda passada não reconheceria. Com
+a transação, a idempotência é trivial — revertido, `clientApprovedAt` é nulo e o
+projeto não entra mais pela janela.
+
+**Autor e motivo são obrigatórios ANTES do banco.** Reversão sem autor tem
+exatamente o defeito da aprovação sem autor — que é o defeito que esta mesma
+sessão está consertando. O `ActivityEvent` carrega autor, motivo, ids revertidos
+e ids preservados.
+
+### 2. O defeito de fundo: um carimbo que a própria casa recusava
+
+`aprovarPacote` gravava `reviewedBy: "cliente"` em **todos** os caminhos — o do
+portal (token do cliente) e o de sessão da agência. Por isso
+`aprovacao-da-peca.decisaoEhDoCliente` recusava a grafia: ela era ambígua por
+construção. Só que a casa continuava **escrevendo** o que ela mesma não aceitava,
+e o resultado era estar nos dois erros ao mesmo tempo — o portal mostrando
+"aprovado", o publicador vendo "não aprovado".
+
+`lib/agency/esteira/autoria-da-aprovacao.ts` (puro, zero imports) é a gramática:
+token de portal validado ⇒ `client:<nome>`; sessão ⇒ `equipe:<email>`; a string
+seca **deixa de ser gravável**. A trava mora nos DOIS pontos de escrita
+(`updateApprovalStatus`, `decidirIrmaosGenericos`) e `aprovarPacote` passou a
+exigir a autoria como **parâmetro obrigatório sem default** — caminho novo que
+esqueça não compila, que é o único jeito da regra sobreviver a mim.
+
+**Achado não pedido, consertado junto:** `app/api/brain/approvals` aceitava
+`body.reviewedBy` **cru** numa rota de sessão da agência. Bastava mandar
+`"client:Fulano"` e a trava de publicação abriria a porta achando que o cliente
+tinha liberado a peça. Agora o autor vem da sessão, sempre.
+
+### 3. O botão que decidia em massa sem mostrar nada
+
+Conserto mínimo, não redesenho: a lista item a item (onde a arte aparece) passa
+a vir **antes** do card em massa; o botão exige confirmação explícita; e a
+confirmação **nomeia** o que vai ser aprovado, item por item, a partir da mesma
+lista que o servidor mediu (`retratoDoPacote.prontas`). `DecisaoDaEsteira.itens`
+é obrigatório (sem `?`): botão em massa que não sabe o que decide é o defeito de
+hoje esperando para voltar.
+
+### Verificação
+
+`npx tsc --noEmit` limpo. Suíte: **229 arquivos, 3735 verdes, 1 pulado** (53
+testes novos). Mutação conferida: fazendo a reversão aceitar qualquer grafia, 4
+dos testes de reversão ficam vermelhos — inclusive o que prova que aprovação
+`client:` não é tocada.
+
+### O que fica aberto (não decidi sozinho)
+
+- **⚠️ O botão do portal ficou MAIS potente, não menos.** Antes, aprovar o
+  pacote gravava um carimbo que a publicação recusava — mentia, mas não
+  publicava. Agora, vindo do portal, ele grava `client:<nome>`, que é
+  exatamente a grafia que a trava aceita. Como `PUBLICACAO_ORGANICA` está
+  `liberada`, o único freio que sobra entre esse clique e o ar é a confirmação
+  que a tarefa 3 acabou de instalar. Isso está certo em doutrina — quem libera
+  é o cliente — mas é aumento de raio de ação e não podia ficar implícito.
+- **A tela não foi fotografada.** O componente reusa token, tipografia e padrões
+  de botão vizinhos e nenhum primitivo foi inventado, mas o `DESIGN.md` pede
+  375/768/1280 e não há aqui servidor com sessão de portal. Conferir antes de
+  mostrar ao CEO.
+- **A reversão não desfaz o ciclo nem o calendário**, de propósito e declarado
+  no relatório: `abrirCiclo` é idempotente por (projeto, referência) e `stage`
+  não volta porque ninguém guardou qual era antes — inventar um valor trocaria
+  um dado errado por outro.
+- **Linhas antigas com o carimbo seco continuam no banco.** A leitura sabe
+  recusá-las; não houve varredura retroativa, e ela não deveria acontecer sem
+  alguém decidir o que fazer com cada uma.

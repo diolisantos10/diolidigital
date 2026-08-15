@@ -107,10 +107,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const alvo = body.id as string | undefined;
       if (!alvo) return NextResponse.json({ error: "id required" }, { status: 400 });
       if (!(await aprovacaoDoWorkspace(alvo, session.workspaceId))) return naoEncontrado();
+      // ── O AUTOR VEM DA SESSÃO, NÃO DO CORPO (15/08/2026) ────────────────
+      // Isto aceitava `body.reviewedBy` cru. Numa rota de SESSÃO DA AGÊNCIA
+      // isso é a porta para a casa assinar no lugar do cliente: bastava mandar
+      // `"client:Fulano"` e a trava de publicação abriria a porta achando que o
+      // cliente tinha liberado a peça. Quem decidiu por aqui é quem está
+      // logado, e o carimbo diz isso — `equipe:<email>`, que não publica nada.
       const updated = await updateApprovalStatus(
         alvo,
         body.status as ApprovalStatus,
-        body.reviewedBy as string | undefined,
+        `equipe:${session.email}`,
         body.reviewNote as string | undefined,
       );
       return NextResponse.json(updated);

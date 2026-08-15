@@ -750,7 +750,115 @@ export interface DecisaoDaEsteira {
   titulo: string;
   descricao: string;
   rotulo: string;
+  /** O QUE, item por item, este botão vai aprovar. Obrigatório: um botão que
+   *  decide em massa sem nomear o que decide foi exatamente o defeito de
+   *  15/08/2026 (ver `DecisaoEmMassa`). Vazio = decisão que não é de pacote
+   *  (confirmar o caminho do projeto), e aí a confirmação lista o que couber. */
+  itens: string[];
+  /** O que fica DE FORA desta decisão. Some quando vazio. */
+  emProducao?: string[];
   decidir: () => Promise<boolean>;
+}
+
+/**
+ * ── O BOTÃO QUE DECIDIA EM MASSA SEM MOSTRAR NADA (CEO, 15/08/2026) ─────────
+ *
+ * O CEO entrou no portal da CityJobs para VER os criativos, encontrou "Aprovar
+ * as entregas prontas" no topo da aba e apertou. Aprovou tudo sem ter aberto
+ * uma peça. Ele pediu para cancelar.
+ *
+ * Duas coisas estavam erradas e nenhuma é estética:
+ *
+ *   1. **O atalho estava na frente da coisa.** O card em massa vinha ANTES da
+ *      lista item a item — que é onde a arte aparece, onde se abre a peça, onde
+ *      se pede ajuste. Quem chega procurando o trabalho encontra primeiro o
+ *      botão que dispensa olhar o trabalho. Agora a lista vem primeiro e o
+ *      atalho vem depois, que é a ordem em que as duas coisas devem ser
+ *      encontradas.
+ *   2. **Um clique só decidia tudo.** Decisão em massa exige confirmação
+ *      explícita, e a confirmação **nomeia o que vai ser aprovado** — item por
+ *      item, do mesmo jeito que a lista de cima nomeia. "Tem certeza?" sozinho
+ *      não é confirmação: é a mesma decisão às cegas, com um clique a mais.
+ *
+ * O que NÃO mudou, de propósito: nenhum passo novo no caminho de quem decide
+ * item a item (aquele já mostra a peça antes de perguntar), e nenhum redesenho
+ * da tela. Isto é conserto, não reforma.
+ */
+function DecisaoEmMassa({
+  decisao,
+  enviando,
+  erro,
+}: {
+  decisao: DecisaoDaEsteira;
+  enviando: boolean;
+  erro: string | null;
+}) {
+  const [confirmando, setConfirmando] = useState(false);
+  const n = decisao.itens.length;
+
+  return (
+    <div className="rounded-[14px] border border-[var(--border-strong)] bg-white p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+      <h4 className="text-[15px] font-bold text-[var(--text-primary)] leading-snug">{decisao.titulo}</h4>
+      <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed max-w-[62ch]">{decisao.descricao}</p>
+
+      {!confirmando ? (
+        <button
+          disabled={enviando}
+          onClick={() => setConfirmando(true)}
+          style={{ touchAction: "manipulation" }}
+          className="mt-3.5 h-11 px-5 rounded-[10px] text-[14px] font-semibold border border-[var(--border-strong)] bg-white text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-50"
+        >
+          {decisao.rotulo}
+        </button>
+      ) : (
+        // ── A CONFIRMAÇÃO NOMEIA O QUE VAI SER APROVADO ────────────────────
+        // Sem esta lista, confirmar seria só um segundo clique no escuro.
+        <div className="mt-3.5 rounded-[12px] border border-[var(--border-strong)] bg-[var(--bg-elevated)] p-4">
+          <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-snug">
+            {n === 1 ? "Confirma aprovar esta entrega?" : `Confirma aprovar estas ${n} entregas de uma vez?`}
+          </p>
+          {n > 0 && (
+            <ul className="mt-2 space-y-1">
+              {decisao.itens.map((item) => (
+                <li key={item} className="text-[13px] text-[var(--text-primary)] leading-relaxed flex gap-2">
+                  <span aria-hidden className="text-[var(--text-subtle)]">•</span>
+                  <span className="min-w-0">{item}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {decisao.emProducao && decisao.emProducao.length > 0 && (
+            <p className="text-[12px] text-[var(--text-muted)] mt-2 leading-relaxed">
+              Fora desta aprovação (ainda em produção): {decisao.emProducao.join(", ")}.
+            </p>
+          )}
+          <p className="text-[12px] text-[var(--text-muted)] mt-2.5 leading-relaxed max-w-[58ch]">
+            Aprovar libera a publicação. Se você entrou aqui só para ver as peças, feche esta confirmação
+            e abra cada uma na lista acima — lá dá para ver a arte, aprovar uma por uma ou pedir ajustes.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              disabled={enviando}
+              onClick={() => void decisao.decidir().then((ok) => { if (ok) setConfirmando(false); })}
+              style={{ touchAction: "manipulation" }}
+              className="h-11 px-5 rounded-[10px] text-[14px] font-semibold bg-[#070A1F] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {enviando ? "Registrando…" : n === 1 ? "Sim, aprovar esta entrega" : `Sim, aprovar as ${n} entregas`}
+            </button>
+            <button
+              disabled={enviando}
+              onClick={() => setConfirmando(false)}
+              style={{ touchAction: "manipulation" }}
+              className="h-11 px-5 rounded-[10px] text-[14px] font-semibold border border-[var(--border)] bg-white text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-50"
+            >
+              Não, quero ver as peças
+            </button>
+          </div>
+        </div>
+      )}
+      {erro && <p role="alert" className="text-[13px] font-semibold text-[var(--danger)] mt-2">{erro}</p>}
+    </div>
+  );
 }
 
 export function AprovacoesDoCliente({
@@ -914,27 +1022,22 @@ export function AprovacoesDoCliente({
             </p>
           </div>
         ) : (
+          /* ── A ORDEM AQUI É O CONSERTO (CEO, 15/08/2026) ──────────────────
+             A LISTA item a item vem primeiro; o atalho em massa vem depois.
+             Invertido — como estava — a primeira coisa que o cliente encontra
+             ao abrir Aprovações é o botão que dispensa olhar as peças, e foi
+             exatamente assim que o CEO aprovou o pacote da CityJobs procurando
+             os criativos. A arte mora nas linhas; o atalho não pode estar mais
+             acessível do que a coisa que ele decide. */
           <div className="space-y-2.5">
-            {decisaoDaEsteira && (
-              <div className="rounded-[14px] border border-[var(--border-strong)] bg-white p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-                <h4 className="text-[15px] font-bold text-[var(--text-primary)] leading-snug">{decisaoDaEsteira.titulo}</h4>
-                <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed max-w-[62ch]">{decisaoDaEsteira.descricao}</p>
-                <button
-                  disabled={enviando}
-                  onClick={() => void decisaoDaEsteira.decidir()}
-                  style={{ touchAction: "manipulation" }}
-                  className="mt-3.5 h-11 px-5 rounded-[10px] text-[14px] font-semibold bg-[#070A1F] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {enviando ? "Registrando…" : decisaoDaEsteira.rotulo}
-                </button>
-                {erro && <p role="alert" className="text-[13px] font-semibold text-[var(--danger)] mt-2">{erro}</p>}
-              </div>
-            )}
             {(orcamentosPendentes.length > 0 || pendentes.length > 0) && (
               <div className="bg-white rounded-[14px] border border-[var(--border)] overflow-hidden shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
                 {orcamentosPendentes.map(linhaDeOrcamento)}
                 {pendentes.map(linha)}
               </div>
+            )}
+            {decisaoDaEsteira && (
+              <DecisaoEmMassa decisao={decisaoDaEsteira} enviando={enviando} erro={erro} />
             )}
           </div>
         )}

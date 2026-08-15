@@ -17,6 +17,7 @@ import { prisma } from "@/lib/db/client";
 import { runProjectExecution, type ExecutionResult } from "@/lib/agency/execution/run-execution";
 import { avisarCliente, type TipoDeAviso } from "@/lib/agency/esteira/avisos";
 import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
+import { carimboDaAutoria, type AutoriaDaAprovacao } from "@/lib/agency/esteira/autoria-da-aprovacao";
 // A MESMA forma canônica de agente→departamento que a escada usa. Ver o bloco
 // de publicação de cards em `apresentar`.
 import { departamentoDoAgente } from "@/lib/agency/escada/degraus";
@@ -337,8 +338,25 @@ export async function apresentar(projectId: string, opts: { mesmoComRessalva?: b
  * O ciclo é aberto aqui de propósito: é o instante exato em que a relação deixa
  * de ser um projeto com fim e vira operação contínua. Se dependesse de alguém
  * lembrar de abrir depois, a rotina simplesmente não começaria.
+ *
+ * ── `autoria` É OBRIGATÓRIA, E O TIPO É A TRAVA (15/08/2026) ────────────────
+ *
+ * Esta função tinha UM parâmetro e gravava `reviewedBy: "cliente"` em todos os
+ * caminhos — os do portal (token do cliente) e o de sessão da agência. A mesma
+ * string para duas autorias diferentes é o defeito inteiro: o portal mostrava a
+ * entrega aprovada e a trava de publicação recusava a mesma linha, porque não
+ * havia como saber quem tinha carimbado.
+ *
+ * Agora quem chama tem de DIZER de que lado veio a decisão, e não tem como não
+ * dizer: o parâmetro é obrigatório e não tem valor padrão. Um caminho novo que
+ * esqueça não compila — que é o único jeito de essa regra sobreviver a mim.
  */
-export async function aprovarPacote(projectId: string): Promise<ResultadoDoMarco> {
+export async function aprovarPacote(
+  projectId: string,
+  /** De onde veio o sim. Derivada do caminho de AUTENTICAÇÃO (token de portal
+   *  ⇒ cliente; sessão ⇒ equipe), nunca do corpo do pedido. */
+  autoria: AutoriaDaAprovacao,
+): Promise<ResultadoDoMarco> {
   const projeto = await carregar(projectId);
   if (!projeto) return { ok: false, erro: "Projeto não encontrado" };
   if (projeto.clientApprovedAt) return { ok: true, erro: "já aprovado — nada mudou" };
@@ -387,11 +405,25 @@ export async function aprovarPacote(projectId: string): Promise<ResultadoDoMarco
   // A lista vem do MESMO retrato que autorizou o botão, casada por id. O que
   // está em produção continua pendente e volta a pedir decisão quando ganhar
   // corpo — que é o comportamento que o cliente espera de "está em produção".
+  //
+  // ── E O CARIMBO DIZ QUEM FOI (15/08/2026) ─────────────────────────────────
+  //
+  // Era `reviewedBy: "cliente"`, seco, igual nos dois caminhos. O CEO apertou
+  // "Aprovar as entregas prontas" no portal da CityJobs procurando os criativos,
+  // e o que ficou gravado não servia para ninguém: o portal mostrava a entrega
+  // aprovada e `aprovacao-da-peca` recusava a mesma linha, porque aquela string
+  // tanto podia ser o cliente quanto alguém da casa clicando por ele.
+  //
+  // Agora o carimbo vem da AUTORIA declarada por quem chama — `client:<nome>`
+  // pelo portal, `equipe:<email>` por sessão — pela mesma gramática de
+  // `/api/portal/approvals`. A agência não se disfarça mais de cliente, e o
+  // carimbo do cliente vale de verdade.
+  const carimbo = carimboDaAutoria(autoria);
   const idsProntos = pacote.prontas.map((i) => i.id);
   if (idsProntos.length > 0) {
     await prisma.approvalRequest.updateMany({
       where: { id: { in: idsProntos }, status: "pending" },
-      data: { status: "approved", reviewedBy: "cliente", reviewedAt: agora },
+      data: { status: "approved", reviewedBy: carimbo, reviewedAt: agora },
     }).catch(() => { /* best-effort */ });
   }
 

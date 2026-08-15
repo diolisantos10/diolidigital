@@ -73,7 +73,14 @@ export async function POST(request: NextRequest, context: { params: Promise<Para
     }
 
     if (marco === "aprovar_pacote") {
-      const r = await aprovarPacote(id);
+      // ── A AGÊNCIA NÃO SE DISFARÇA DE CLIENTE (15/08/2026) ────────────────
+      // Esta é rota de SESSÃO: quem aperta aqui é alguém da casa. Até hoje o
+      // marco gravava `reviewedBy: "cliente"` também por este caminho, e a
+      // mesma string saía do portal do cliente — duas autorias com um nome só.
+      // Aqui o carimbo diz `equipe:<email>`, que é a verdade, e ele
+      // deliberadamente NÃO libera publicação: levar a peça ao perfil do
+      // cliente continua exigindo o clique dele, no card dele.
+      const r = await aprovarPacote(id, { tipo: "equipe", email: session.email });
       return NextResponse.json({ ...r, status: await statusDoProjeto(id) }, { status: r.ok ? 200 : 409 });
     }
 

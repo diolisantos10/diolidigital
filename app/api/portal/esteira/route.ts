@@ -21,6 +21,47 @@ import { aprovarDirecao, aprovarPacote } from "@/lib/agency/esteira/marcos";
 
 export const maxDuration = 300;
 
+/**
+ * O NOME de quem está decidindo, DERIVADO do token — nunca do corpo.
+ *
+ * ── Por que isto existe (15/08/2026) ─────────────────────────────────────────
+ * `aprovarPacote` gravava `reviewedBy: "cliente"`, seco, e a trava de publicação
+ * recusa essa grafia de propósito (`aprovacao-da-peca.ts`) porque o mesmo marco
+ * é alcançável por rota de sessão da agência. Resultado: o CEO via a entrega
+ * como aprovada e o publicador via a mesma linha como não-aprovada.
+ *
+ * Aqui a decisão vem de um token de portal JÁ VALIDADO — é comprovadamente o
+ * cliente. Então ela grava `client:<nome>`, a mesma gramática de
+ * `/api/portal/approvals`. O nome sai do cadastro do cliente dono do token;
+ * cliente sem nome legível vira `client:portal:<8 chars>…`, que continua sendo
+ * uma autoria do lado do cliente — o que nunca volta é a grafia ambígua.
+ */
+async function nomeDoClienteDoToken(token: string): Promise<string> {
+  const anonimo = `portal:${token.slice(0, 8)}…`;
+  try {
+    // Leitura SEM efeito colateral: `validatePortalAccess` (que já rodou nesta
+    // requisição) incrementa `accessCount`, e a mesma visita não pode contar
+    // duas vezes — é a lição escrita em `conferirTokenDoPortal`.
+    const record = await prisma.portalAccess.findUnique({
+      where: { token }, select: { clientId: true, clientRequestId: true },
+    });
+    let clientId = record?.clientId ?? null;
+    if (!clientId && record?.clientRequestId) {
+      const solicitacao = await prisma.clientRequestDb.findUnique({
+        where: { id: record.clientRequestId }, select: { clientId: true },
+      });
+      clientId = solicitacao?.clientId ?? null;
+    }
+    if (!clientId) return anonimo;
+    const cliente = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
+    return (cliente?.name ?? "").trim() || anonimo;
+  } catch {
+    // Nome é enfeite da autoria; o LADO é que importa. Banco tropeçando não
+    // pode transformar uma decisão do cliente em decisão sem autor.
+    return anonimo;
+  }
+}
+
 /** Resolve a solicitação do cliente a partir do token. Único caminho público. */
 async function solicitacaoDoToken(token: string): Promise<{ id: string } | { erro: string; codigo: number; clientId?: string }> {
   const acesso = await validatePortalAccess(token);
@@ -165,7 +206,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   if (body.decisao === "aprovar_pacote") {
-    const r = await aprovarPacote(projeto.id);
+    // Token de portal validado ⇒ a decisão é COMPROVADAMENTE do cliente, e o
+    // carimbo tem de dizer isso (`client:<nome>`). Ver `nomeDoClienteDoToken`.
+    const r = await aprovarPacote(projeto.id, { tipo: "cliente", nome: await nomeDoClienteDoToken(token) });
     return NextResponse.json({ ok: r.ok, mensagem: r.ok ? "Aprovado! Vamos colocar tudo no ar." : r.erro },
       { status: r.ok ? 200 : 409 });
   }

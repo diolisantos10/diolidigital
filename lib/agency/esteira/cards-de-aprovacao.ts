@@ -306,6 +306,36 @@ export interface RelatorioDeCards {
   candidatos?: number;
 }
 
+/**
+ * QUAL CLIENTE, pelo NOME que o CEO escreve. Nunca por id: quem aperta o botão
+ * administrativo não tem id de banco na mão, e pedir um garantiria o erro de
+ * digitação silencioso que age no cliente errado.
+ *
+ * **Nome ambíguo RECUSA em vez de escolher.** Vale para abrir card (mostra o
+ * trabalho de um cliente a outro) e vale para desfazer aprovação (desfaz a
+ * decisão de quem não pediu). Os dois erros são do tipo que não se conserta
+ * depois — por isso a régua é uma só e mora aqui, não uma cópia por rota
+ * administrativa.
+ *
+ * Busca por conteúdo SEM `mode: insensitive`: o SQLite do Prisma não o suporta e
+ * LANÇA em vez de filtrar. Comparação em memória, igual a `links-do-portal.ts`.
+ */
+export type ClienteEncontrado =
+  | { tipo: "unico"; id: string; nome: string }
+  | { tipo: "nenhum" }
+  | { tipo: "ambiguo"; candidatos: number };
+
+export async function acharClienteUnico(nome: string): Promise<ClienteEncontrado> {
+  const alvo = (nome ?? "").trim();
+  if (!alvo) return { tipo: "nenhum" };
+  const todos = await prisma.client.findMany({ select: { id: true, name: true } });
+  const casam = todos.filter((c) => (c.name ?? "").toLowerCase().includes(alvo.toLowerCase()));
+  if (casam.length === 0) return { tipo: "nenhum" };
+  if (casam.length > 1) return { tipo: "ambiguo", candidatos: casam.length };
+  const c = casam[0]!;
+  return { tipo: "unico", id: c.id, nome: c.name ?? "" };
+}
+
 /** O placar agrupado: um motivo repetido 6 vezes é UMA linha, que é como ele
  *  deve ser lido de qualquer forma. */
 function agruparExclusoes(
@@ -348,13 +378,9 @@ export async function abrirCardsDeAprovacao(pedido: PedidoDeCards): Promise<Rela
     examinadas: 0, elegiveis: 0, excluidas: [], approvalRequestId: null, titulo: null,
   };
 
-  // Busca por conteúdo, sem `mode: insensitive` — o SQLite do Prisma não o
-  // suporta e ele LANÇA em vez de filtrar. Comparação feita em memória, igual a
-  // `links-do-portal.ts`.
-  const todos = await prisma.client.findMany({ select: { id: true, name: true } });
-  const casam = todos.filter((c) => (c.name ?? "").toLowerCase().includes(alvo.toLowerCase()));
+  const achado = await acharClienteUnico(alvo);
 
-  if (alvo.length === 0 || casam.length === 0) {
+  if (achado.tipo === "nenhum") {
     return {
       ...vazio, situacao: "cliente_nao_existe",
       veredito:
@@ -362,18 +388,18 @@ export async function abrirCardsDeAprovacao(pedido: PedidoDeCards): Promise<Rela
         "Nada foi gravado.",
     };
   }
-  if (casam.length > 1) {
+  if (achado.tipo === "ambiguo") {
     return {
-      ...vazio, situacao: "nome_ambiguo", candidatos: casam.length,
+      ...vazio, situacao: "nome_ambiguo", candidatos: achado.candidatos,
       veredito:
-        `${casam.length} clientes casam com "${alvo}". Não escolhi por conta própria: abrir o card do ` +
+        `${achado.candidatos} clientes casam com "${alvo}". Não escolhi por conta própria: abrir o card do ` +
         "cliente errado mostra o trabalho de um cliente a outro, e isso não se desfaz. " +
         "Nada foi gravado — refaça o pedido com o nome completo.",
     };
   }
 
-  const c = casam[0]!;
-  const nome = c.name ?? "";
+  const c = { id: achado.id };
+  const nome = achado.nome;
 
   const pecas = await prisma.socialPost.findMany({
     where: { clientId: c.id, status: { in: estados } },
