@@ -50,7 +50,7 @@ vi.mock("@/lib/integrations/meta/ads", async (orig) => ({
 }));
 
 import {
-  prepararCampanha, ligarCampanha, desligarCampanha, guardarAVerba,
+  prepararCampanha, ligarCampanha, desligarCampanha, guardarAVerba, esquecerRitmoDaGuarda,
   ONDE_CONECTAR, ONDE_MARCAR_A_CONTA, ONDE_DIZER_A_VERBA, ONDE_LIGAR, POSSE_NAO_CONFERIDA,
 } from "@/lib/agency/esteira/trafego";
 import { escritasPorJanela, tetoDePontos } from "@/lib/integrations/meta/cota-de-anuncios";
@@ -70,6 +70,11 @@ const BRIEFING = JSON.stringify({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // O espaçamento de leitura do guardião (15/08/2026) mora em MEMÓRIA de
+  // módulo: sem zerar, o segundo teste que chama `guardarAVerba` acharia a
+  // campanha "lida agora há pouco" e não leria nada. Estado real exige reset
+  // real — mock não alcança memória de módulo.
+  esquecerRitmoDaGuarda();
   db.project.findUnique.mockResolvedValue({
     id: "p1", name: "Tráfego", workspaceId: "ws1", clientId: "cityjobs", clientRequestId: "cr1",
     client: { name: "City Jobs SP", website: "cityjobs.com.br", phone: "(11) 99999-9999" },

@@ -29,7 +29,7 @@ vi.mock("@/lib/integrations/meta/ads", async (orig) => ({
 
 import {
   prepararCampanha, ligarCampanha, desligarCampanha, desempenhoPagoDoPeriodo,
-  guardarAVerba, GASTO_MINIMO_PARA_JULGAR_BRL, CPC_ABSURDO_BRL,
+  guardarAVerba, esquecerRitmoDaGuarda, GASTO_MINIMO_PARA_JULGAR_BRL, CPC_ABSURDO_BRL,
 } from "@/lib/agency/esteira/trafego";
 
 // A padaria vende no bairro dela, e o briefing agora DIZ isso. Antes de
@@ -49,6 +49,10 @@ const BRIEFING = JSON.stringify({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // O espaçamento de leitura do guardião (15/08/2026) mora em MEMÓRIA de
+  // módulo — `clearAllMocks` não a alcança. Sem este reset, o segundo teste
+  // que chama `guardarAVerba` acharia toda campanha "lida agora há pouco".
+  esquecerRitmoDaGuarda();
   db.project.findUnique.mockResolvedValue({
     id: "p1", name: "Tráfego local", workspaceId: "ws1", clientId: "c1", clientRequestId: "cr1",
     client: { name: "Padaria do João", website: null, phone: "(19) 99999-9999" },

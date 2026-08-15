@@ -28,6 +28,7 @@ import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
 import {
   oQueFaltaParaSegmentar, NAO_PERGUNTADO, type AreaDeAtendimento,
 } from "@/lib/agency/comercial/onde-o-negocio-vende";
+import { faltaEsperar } from "@/lib/agency/esteira/ritmo";
 
 /** Fração da verba mensal que vira orçamento diário. Divide por 30 e arredonda
  *  para baixo: preferir gastar de menos a estourar o mês no dia 28. */
@@ -446,19 +447,101 @@ export async function desempenhoPagoDoPeriodo(
 export const GASTO_MINIMO_PARA_JULGAR_BRL = 30;
 export const CPC_ABSURDO_BRL = 5;
 
+// ─── OS TETOS DO GUARDIÃO (15/08/2026, parecer do especialista `meta`) ──────
+//
+// O guardião rodava SEM TETO NENHUM: varria toda campanha ativa e podia pausar
+// TODAS numa única passada. Três números passaram a existir, e cada um responde
+// a um dano diferente.
+//
+// 1. **PAUSAS POR CONTA.** Pausar é escrita e custa 3 pontos na cota da Meta,
+//    que é contada POR CONTA DE ANÚNCIOS. Três cabem folgadas na janela de 300s.
+//    E o argumento que não é de cota: "todas as campanhas do cliente pausadas de
+//    uma vez" nunca é leitura de desempenho — é sintoma de erro NOSSO (chave
+//    trocada, janela errada, insight zerado por atraso da plataforma), e erro
+//    nosso não pode desligar a operação inteira de um cliente numa passada.
+//
+// 2. **PAUSAS NA RODADA.** O mesmo argumento, na casa toda.
+//
+// 3. 🔴 **ESPAÇAMENTO DA LEITURA — o achado que ninguém tinha medido.** O
+//    guardião lia insights de toda campanha ativa **a cada 5 minutos**: 288
+//    leituras por campanha por dia. A Meta atualiza insights a cada ~15 min, ou
+//    seja, **dois terços das chamadas perguntavam um número que não podia ter
+//    mudado** — ritmo de máquina sem ganho nenhum, contra uma conta que esta
+//    casa já viu ser restringida por exatamente isso em 03/08/2026. Passou a ser
+//    no máximo 1 leitura a cada 30 min por campanha: 48 por dia, um sexto.
+export const MAX_PAUSAS_POR_CONTA_POR_RODADA = 3;
+export const MAX_PAUSAS_POR_RODADA = 10;
+export const INTERVALO_MINIMO_DE_LEITURA_MS = 30 * 60_000;
+/** Teto de leituras por rodada. Não é o freio principal (o espaçamento é), mas
+ *  impede que a primeira batida depois de um deploy leia 300 campanhas de uma
+ *  vez — o momento em que a memória do ritmo está vazia. */
+export const MAX_LEITURAS_POR_RODADA = 20;
+/** Teto de campanhas trazidas do banco por rodada. Leitura de banco é barata;
+ *  varredura de tabela inteira dentro do relógio, não. */
+const MAX_ATIVAS_LIDAS = 200;
+
+// ── A MEMÓRIA DO RITMO ──────────────────────────────────────────────────────
+// Mora em MEMÓRIA, e isso é escolha declarada: gravar "quando li pela última
+// vez" exigiria coluna nova, e migration não é o que este bloco veio fazer. O
+// custo é conhecido e é pequeno: um deploy zera a memória e a rodada seguinte
+// relê tudo uma vez (limitada por `MAX_LEITURAS_POR_RODADA`). O custo do
+// caminho contrário — esperar a migration para tirar 240 chamadas/dia/campanha
+// do ar — é maior.
+const ultimaLeitura = new Map<string, Date>();
+
+/** Esquece o ritmo. Existe para o TESTE poder provar as duas metades sem
+ *  depender da ordem em que os testes rodam — e para um processo longo não
+ *  acumular campanha morta na memória para sempre. */
+export function esquecerRitmoDaGuarda(): void {
+  ultimaLeitura.clear();
+}
+
 export interface GuardaFeita {
   pausadas: Array<{ campanhaId: string; motivo: string }>;
   avaliadas: number;
+  /** Não foram lidas porque já haviam sido lidas há menos de 30 min. */
+  adiadasPorRitmo: number;
+  /** Estavam na vez e não couberam no teto de leituras da rodada. */
+  foraDaRodada: number;
+  /** O guardião QUIS pausar e não pausou por causa do teto. Isto é notícia, e
+   *  das grandes: significa campanha ruim seguindo no ar até a próxima rodada —
+   *  e, se for muita, significa que o problema não é a campanha, é a leitura. */
+  pausasAdiadas: Array<{ campanhaId: string; motivo: string }>;
 }
 
 export async function guardarAVerba(hoje: Date = new Date()): Promise<GuardaFeita> {
-  const saida: GuardaFeita = { pausadas: [], avaliadas: 0 };
-  const ativas = await prisma.adCampaign.findMany({ where: { status: "active" } }).catch(() => []);
+  const saida: GuardaFeita = {
+    pausadas: [], avaliadas: 0, adiadasPorRitmo: 0, foraDaRodada: 0, pausasAdiadas: [],
+  };
+  const ativas = await prisma.adCampaign.findMany({
+    where: { status: "active" },
+    orderBy: { createdAt: "asc" },
+    take: MAX_ATIVAS_LIDAS,
+  }).catch(() => []);
 
   const ate = iso(hoje);
   const desde = iso(new Date(hoje.getTime() - 7 * 24 * 60 * 60_000));
 
-  for (const c of ativas) {
+  // Quem está na vez: as que ninguém leu nos últimos 30 min. A rotação é
+  // automática — a campanha lida agora sai da vez e volta ao fim da fila —, e é
+  // por isso que o teto de leituras não cria fome: ninguém fica para sempre
+  // atrás das mesmas 20.
+  const naVez = ativas.filter(
+    (c) => faltaEsperar(ultimaLeitura.get(c.id), hoje, INTERVALO_MINIMO_DE_LEITURA_MS) === 0,
+  );
+  saida.adiadasPorRitmo = ativas.length - naVez.length;
+  const daRodada = naVez.slice(0, MAX_LEITURAS_POR_RODADA);
+  saida.foraDaRodada = naVez.length - daRodada.length;
+
+  /** Quantas pausas já saíram em cada conta NESTA rodada. */
+  const pausasNaConta = new Map<string, number>();
+
+  for (const c of daRodada) {
+    // Marcado ANTES da chamada, de propósito: o que o espaçamento protege é a
+    // COTA, e a cota é gasta na tentativa — inclusive na que falha. Marcar
+    // depois faria a campanha cuja leitura erra ser re-lida a cada 5 minutos,
+    // que é precisamente o ritmo que este freio veio tirar do ar.
+    ultimaLeitura.set(c.id, hoje);
     const r = await lerDesempenho(c.workspaceId, c.connectionId, c.externalId, { desde, ate }, {
       contaId: c.adAccountId,
     });
@@ -482,8 +565,23 @@ export async function guardarAVerba(hoje: Date = new Date()): Promise<GuardaFeit
     }
     if (!motivo) continue;
 
+    // ── OS TETOS DA PAUSA ───────────────────────────────────────────────────
+    // Conferidos ANTES de tocar na Meta: uma pausa recusada pelo teto não pode
+    // custar a escrita. A campanha continua `active`, entra em `pausasAdiadas`
+    // com o motivo, e é pausada na rodada seguinte — nada se perde, só espera.
+    if (saida.pausadas.length >= MAX_PAUSAS_POR_RODADA) {
+      saida.pausasAdiadas.push({ campanhaId: c.id, motivo: `${motivo} — adiada: teto de ${MAX_PAUSAS_POR_RODADA} pausas por rodada` });
+      continue;
+    }
+    const jaNaConta = pausasNaConta.get(c.adAccountId) ?? 0;
+    if (jaNaConta >= MAX_PAUSAS_POR_CONTA_POR_RODADA) {
+      saida.pausasAdiadas.push({ campanhaId: c.id, motivo: `${motivo} — adiada: teto de ${MAX_PAUSAS_POR_CONTA_POR_RODADA} pausas por conta de anúncios por rodada` });
+      continue;
+    }
+
     const p = await pausarCampanha(c.workspaceId, c.connectionId, c.externalId, c.adAccountId);
     if (!p.ok) continue;
+    pausasNaConta.set(c.adAccountId, jaNaConta + 1);
     await prisma.adCampaign.update({
       where: { id: c.id },
       data: { status: "paused", pausedByGuardAt: new Date(), pausedReason: motivo },

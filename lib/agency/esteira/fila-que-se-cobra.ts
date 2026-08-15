@@ -27,7 +27,28 @@
 // Tratar os dois do mesmo jeito é o que produz 288 tentativas por dia contra um
 // número que não existe — e faz o painel ensinar a ser ignorado.
 
+// ── 15/08/2026 — O FREIO, E A CLASSIFICAÇÃO QUE ESTAVA ERRADA ───────────────
+//
+// Esta é a SEGUNDA perna que dispara WhatsApp para cliente real na mesma batida
+// do relógio (a primeira é `lib/integrations/meta/notifications.ts`): 50 lá + 50
+// aqui = 100 mensagens no mesmo minuto depois de dias de silêncio. As duas
+// passaram a ler o MESMO freio, `WHATSAPP_SAIDA`, fechado por padrão — ver
+// `lib/agency/freios-de-saida.ts`.
+//
+// 🔴 E o parecer do especialista `meta` achou um defeito no coração deste
+//    arquivo: a régua do "temporário" casava `janela|24h`. Ou seja, a casa
+//    tratava **"a plataforma disse não"** como **"a rede caiu"** e re-tentava
+//    até 3× contra uma REGRA DE POLÍTICA. Fora da janela de 24h a Meta recusa
+//    texto livre por regra, não por instabilidade: nenhuma tentativa número 3
+//    abre uma janela que a política fechou — e insistir contra a regra é
+//    exatamente o que a Meta chama de automação fora das regras, que já custou
+//    a conta de anúncios desta casa em 03/08/2026.
+//
+//    Recusa por política virou classe PRÓPRIA: não reenvia, aparece com o
+//    conserto escrito, e o conserto é template aprovado ou mão humana.
+
 import { prisma } from "@/lib/db/client";
+import { whatsappLiberado, freioDoWhatsapp, type FreioPuxado } from "@/lib/agency/freios-de-saida";
 
 /** Depois de quanto tempo um aviso parado deixa de ser "recente" e vira
  *  cobrança. Um dia: menos que isso é ansiedade, mais que isso é o cliente
@@ -41,8 +62,17 @@ export const MAX_REENVIOS = 3;
 
 /** Motivos que voltam sozinhos. Tudo que NÃO casa aqui é tratado como
  *  permanente — default-deny, porque insistir contra um defeito permanente é o
- *  erro mais caro dos dois. */
-const TEMPORARIO = /janela|24h|rede|timeout|tempo esgotado|indispon|recusou o envio|rate|limite de envio/i;
+ *  erro mais caro dos dois.
+ *
+ *  ⚠️ `janela`, `24h` e `recusou o envio` SAÍRAM daqui em 15/08/2026 e foram
+ *  para `POLITICA`. Ver o cabeçalho. */
+const TEMPORARIO = /rede|timeout|tempo esgotado|indispon|rate|limite de envio/i;
+
+/** A PLATAFORMA DISSE NÃO. Não é o canal que caiu — é a regra. Re-tentar aqui
+ *  não é insistência inútil como no caso do cadastro: é infração, e a punição é
+ *  no app, não na mensagem. Conferido ANTES de `TEMPORARIO`, porque o texto de
+ *  uma recusa de política pode conter palavra que a outra régua reconheceria. */
+const POLITICA = /janela|24h|template|opt-?in|recusou o envio|n[ãa]o autorizad|pol[íi]tica|policy|#13\d/i;
 
 /** Motivos que só cadastro resolve. Nomeados, porque o alerta tem de dizer o
  *  conserto e não o sintoma. */
@@ -55,7 +85,21 @@ export interface Cobranca {
   /** Avisos que esgotaram o teto de reenvio. Param de tentar e viram trabalho
    *  de gente — declarados, nunca abandonados em silêncio. */
   desistidos: string[];
+  /** Avisos que a PLATAFORMA recusou por regra. Não se re-tenta regra. */
+  barradosPorPolitica: Array<{ avisoId: string; motivo: string; oQueFazer: string }>;
+  /** Ficaram na fila porque o freio da saída de WhatsApp está fechado. NÃO
+   *  foram consumidos: nada enviado, nada marcado, nada escrito. */
+  retidos: number;
+  /** O freio que segurou esta rodada, ou `null` quando ele está solto. */
+  freio: FreioPuxado | null;
 }
+
+/** O que fazer com uma recusa de política. É o conserto, não o sintoma — e é
+ *  trabalho de gente, porque template aprovado leva dias e opt-in é do cliente. */
+const O_QUE_FAZER_COM_POLITICA =
+  "a plataforma recusou por REGRA, não por instabilidade — re-tentar é infração, não insistência. " +
+  "Fora da janela de 24h só sai template aprovado, e esta casa manda texto livre. " +
+  "Resolve-se com template aprovado ou com alguém mandando à mão.";
 
 function oQueFalta(motivo: string): string {
   if (/sem telefone/i.test(motivo)) return "o telefone do cliente não está cadastrado";
@@ -70,7 +114,10 @@ function oQueFalta(motivo: string): string {
  * Nunca lança: uma rodada que falha não pode derrubar o relógio da casa.
  */
 export async function cobrarAFila(workspaceId: string, agora: Date): Promise<Cobranca> {
-  const saida: Cobranca = { reenviados: [], precisamDeCadastro: [], desistidos: [] };
+  const saida: Cobranca = {
+    reenviados: [], precisamDeCadastro: [], desistidos: [],
+    barradosPorPolitica: [], retidos: 0, freio: null,
+  };
 
   const limite = new Date(agora.getTime() - HORAS_ATE_COBRAR * 60 * 60 * 1000);
   const parados = await prisma.clientNotice.findMany({
@@ -78,6 +125,20 @@ export async function cobrarAFila(workspaceId: string, agora: Date): Promise<Cob
     orderBy: { createdAt: "asc" },
     take: 50,
   }).catch(() => []);
+
+  // ── O FREIO, DEPOIS DE MEDIR E ANTES DE AGIR ──────────────────────────────
+  // Fechado, a rodada termina aqui: não reenvia, não marca `retryCount`, não
+  // escreve `failReason`, não desiste de ninguém. A fila fica IDÊNTICA ao que
+  // era — inclusive o contador de tentativas, porque uma tentativa que não
+  // aconteceu não pode gastar uma das três que o aviso tem.
+  //
+  // O que sobra é a contagem, e ela sobe ao pulso: freio silencioso vira fila
+  // morta invisível, que é a cicatriz que esta casa já tem.
+  if (!whatsappLiberado()) {
+    saida.retidos = parados.length;
+    saida.freio = freioDoWhatsapp(parados.length);
+    return saida;
+  }
 
   for (const aviso of parados) {
     const motivo = aviso.failReason ?? "";
@@ -94,6 +155,19 @@ export async function cobrarAFila(workspaceId: string, agora: Date): Promise<Cob
         avisoId: aviso.id,
         cliente: cliente?.name ?? "cliente",
         oQueFalta: oQueFalta(motivo),
+      });
+      continue;
+    }
+
+    // A PLATAFORMA DISSE NÃO — antes da régua do temporário, de propósito.
+    // Não reenvia e não escreve nada: a recusa por regra não é tentativa
+    // gasta, e carimbar o registro a cada 5 minutos só encheria o painel de
+    // ruído sobre um fato que não mudou.
+    if (POLITICA.test(motivo)) {
+      saida.barradosPorPolitica.push({
+        avisoId: aviso.id,
+        motivo,
+        oQueFazer: O_QUE_FAZER_COM_POLITICA,
       });
       continue;
     }

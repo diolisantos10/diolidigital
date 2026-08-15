@@ -34,11 +34,67 @@ import { cobrarAFila } from "@/lib/agency/esteira/fila-que-se-cobra";
 import { resumoDoPortao } from "@/lib/agency/comercial/o-que-espera-no-portao";
 import { cobrarPedidosEsquecidos } from "@/lib/agency/esteira/pedidos";
 import { fazerBackup, estadoDoBackup } from "@/lib/agency/backup";
-import { registrarBatida, type FalhaDaRodada } from "@/lib/agency/pulso";
+import { registrarBatida, type FalhaDaRodada, type FreioNaRodada } from "@/lib/agency/pulso";
 import { vigiarAMadrugada } from "@/lib/agency/vigia-da-madrugada";
 
-/** De quanto em quanto tempo a agência olha se tem trabalho parado. */
-const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5 * 60_000);
+// ─── O INTERVALO ERA UMA ARMADILHA DE UMA LINHA (15/08/2026) ────────────────
+//
+// Estava assim:
+//
+//     const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5*60_000);
+//
+// `??` só pega `undefined` e `null`. Uma variável DEFINIDA e vazia (`""`) vira
+// `Number("")` = **0**; um `"1h"` digitado por quem achou que o campo aceitava
+// unidade vira **NaN**. `setInterval` com 0 ou com NaN não espera nada: o
+// relógio vira **laço quente** — e dentro dele há chamada de IA (que custa por
+// chamada), publicação e disparo de WhatsApp. Um erro de digitação no painel do
+// Railway viraria uma fatura, e nada no sistema diria por quê.
+//
+// Agora o valor é VALIDADO, com piso e teto, e o inválido cai no padrão
+// **gritando** — nunca em silêncio. O silêncio é o que transforma um erro de
+// digitação em mistério de três dias.
+
+/** O padrão da casa: 5 min. */
+export const INTERVALO_PADRAO_MS = 5 * 60_000;
+/** O PISO. Abaixo disto o relógio não está acordando a agência: está batendo na
+ *  porta dela. 60s ainda é rápido demais para uso normal e é o bastante para
+ *  alguém depurar sem transformar a instância num laço. */
+export const INTERVALO_MINIMO_MS = 60_000;
+/** O TETO. Acima de uma hora o relógio deixa de ser relógio — e é mais provável
+ *  que o número tenha sido digitado em segundos por engano. */
+export const INTERVALO_MAXIMO_MS = 60 * 60_000;
+
+/**
+ * Lê o intervalo do ambiente. Pura e exportada: régua que só existe dentro de
+ * uma constante de módulo é régua que ninguém consegue testar — e esta em
+ * particular só falha em produção.
+ *
+ * `aviso` não nulo = alguém escreveu algo que não vale, e isso vai para o log
+ * com todas as letras.
+ */
+export function lerIntervalo(bruto: string | undefined | null): { ms: number; aviso: string | null } {
+  // Variável NÃO DEFINIDA é o caso normal: o padrão da casa, sem barulho.
+  if (bruto === undefined || bruto === null) return { ms: INTERVALO_PADRAO_MS, aviso: null };
+
+  const cru = bruto.trim();
+  const comum = `— usando o padrão de ${INTERVALO_PADRAO_MS / 60_000} min`;
+  // Definida e VAZIA é diferente de ausente: alguém mexeu no painel e apagou o
+  // valor. Isso é engano, e engano se grita. (Era este o caso que virava 0.)
+  if (cru === "") {
+    return { ms: INTERVALO_PADRAO_MS, aviso: `DESPERTADOR_INTERVALO_MS está definida e VAZIA ${comum}` };
+  }
+  const n = Number(cru);
+  if (!Number.isFinite(n)) {
+    return { ms: INTERVALO_PADRAO_MS, aviso: `DESPERTADOR_INTERVALO_MS="${cru}" não é um número (o valor é em MILISSEGUNDOS, sem unidade) ${comum}` };
+  }
+  if (n < INTERVALO_MINIMO_MS) {
+    return { ms: INTERVALO_PADRAO_MS, aviso: `DESPERTADOR_INTERVALO_MS=${n} está abaixo do piso de ${INTERVALO_MINIMO_MS} ms ${comum}` };
+  }
+  if (n > INTERVALO_MAXIMO_MS) {
+    return { ms: INTERVALO_PADRAO_MS, aviso: `DESPERTADOR_INTERVALO_MS=${n} está acima do teto de ${INTERVALO_MAXIMO_MS} ms ${comum}` };
+  }
+  return { ms: n, aviso: null };
+}
 /** Espera antes da primeira batida — deixa o servidor terminar de subir. */
 const ATRASO_INICIAL_MS = 30_000;
 /** Teto por rodada: recuperar 5 projetos de cada vez é recuperação; recuperar
@@ -216,6 +272,11 @@ export async function baterORelogio(): Promise<{
   materiaisRecuperados: number;
   /** Oportunidades NOVAS que entraram pela caixa de e-mail da agência. */
   oportunidadesDaCaixa: number;
+  /** O que ficou atrás dos freios de saída, sem ser consumido. */
+  whatsappRetidos: number;
+  avaliacoesRetidas: number;
+  /** As torneiras que estavam fechadas nesta batida, com motivo e contagem. */
+  freios: FreioNaRodada[];
   backup: boolean;
 }> {
   let retomados = 0;
@@ -229,6 +290,11 @@ export async function baterORelogio(): Promise<{
   let avaliacoes = 0;
   let cobrancasEsquecidas = 0;
   let oportunidadesDaCaixa = 0;
+  /** O que ficou atrás das torneiras fechadas. Ver `freios` logo abaixo. */
+  let whatsappRetidos = 0;
+  let whatsappExpirados = 0;
+  let avaliacoesRetidas = 0;
+  let avaliacoesRepresadas = 0;
   /** Arquivos do Drive que estavam presos e finalmente chegaram ao disco. */
   let materiaisRecuperados = 0;
   let backup = false;
@@ -245,6 +311,24 @@ export async function baterORelogio(): Promise<{
     const erro = err instanceof Error ? err.message : String(err ?? "erro");
     falhas.push({ perna, erro });
     log(`${perna} falhou: ${erro}`);
+  };
+
+  // ── AS TORNEIRAS FECHADAS DESTA RODADA (15/08/2026) ───────────────────────
+  // Freio puxado NÃO é falha — é regra funcionando, e contá-lo como falha faria
+  // o vigia da madrugada alarmar toda noite até o painel ensinar a ser
+  // ignorado. Mas freio SEM TESTEMUNHA é a cicatriz que esta casa já tem: fila
+  // que não anda, ninguém sabe se é freio ou se é morte. Então ele é um terceiro
+  // estado, declarado, com a contagem do que ficou atrás.
+  //
+  // Duas pernas diferentes leem o MESMO freio de WhatsApp; elas somam numa linha
+  // só, porque o que o operador precisa saber é "quanto está retido em
+  // WHATSAPP_SAIDA", não em qual função.
+  const freios: FreioNaRodada[] = [];
+  const anotarFreio = (f: { nome: string; motivo: string; retidos: number } | null): void => {
+    if (!f) return;
+    const igual = freios.find((x) => x.nome === f.nome);
+    if (igual) igual.retidos += f.retidos;
+    else freios.push({ nome: f.nome, motivo: f.motivo, retidos: f.retidos });
   };
 
   // ── A DECISÃO DO DONO, ANTES DE TUDO ──────────────────────────────────────
@@ -390,6 +474,11 @@ export async function baterORelogio(): Promise<{
     const r = await guardarAVerba();
     campanhasFreadas = r.pausadas.length;
     for (const p of r.pausadas) log(`campanha ${p.campanhaId} freada: ${p.motivo}`);
+    // Pausa ADIADA pelo teto é notícia grande: é campanha ruim seguindo no ar
+    // até a próxima rodada. E se for muita de uma vez, o teto está dizendo que
+    // o problema não é a campanha — é a nossa leitura.
+    for (const p of r.pausasAdiadas) quebrou("guardiao-de-verba", `campanha ${p.campanhaId}: ${p.motivo}`);
+    if (r.foraDaRodada > 0) log(`guardião: ${r.foraDaRodada} campanha(s) ficaram para a próxima rodada (teto de leituras)`);
   } catch (err) {
     quebrou("guardiao-de-verba", err);
   }
@@ -399,7 +488,17 @@ export async function baterORelogio(): Promise<{
   try {
     const r = await cuidarDasAvaliacoes();
     avaliacoes = r.respondidas + r.escaladas;
+    avaliacoesRetidas = r.retidas;
+    avaliacoesRepresadas = r.represadas;
+    anotarFreio(r.freio);
     if (r.escaladas > 0) log(`${r.escaladas} avaliação(ões) negativa(s) esperando decisão`);
+    // A fila que não coube na rodada. Sem esta linha, o represamento reporta
+    // "0 tratadas" e parece um dia sem avaliação nenhuma — que foi exatamente
+    // como o defeito do `slice` sobreviveu.
+    if (r.represadas > 0) log(`${r.represadas} avaliação(ões) esperando a próxima rodada`);
+    for (const p of r.semConsentimento) {
+      log(`avaliações de "${p}" NÃO foram lidas: não há consentimento registrado do cliente para resposta automática`);
+    }
     for (const f of r.falhas) quebrou("avaliacoes", f);
   } catch (err) {
     quebrou("avaliacoes", err);
@@ -421,9 +520,17 @@ export async function baterORelogio(): Promise<{
     });
     if (algum) {
       const r = await cobrarAFila(algum.workspaceId, new Date());
+      whatsappRetidos += r.retidos;
+      anotarFreio(r.freio);
       if (r.reenviados.length > 0) log(`${r.reenviados.length} aviso(s) reenviado(s) sozinho(s)`);
       for (const p of r.precisamDeCadastro) {
         log(`aviso parado por CADASTRO — ${p.cliente}: ${p.oQueFalta}`);
+      }
+      // Recusa por POLÍTICA da plataforma. Não se re-tenta regra — e não se
+      // esconde regra: quem lê o painel precisa saber que estes avisos só saem
+      // por template aprovado ou por mão humana.
+      for (const p of r.barradosPorPolitica) {
+        log(`aviso barrado por POLÍTICA da plataforma (${p.motivo}) — ${p.oQueFazer}`);
       }
       if (r.desistidos.length > 0) log(`${r.desistidos.length} aviso(s) esgotaram o reenvio e precisam de gente`);
     }
@@ -522,6 +629,18 @@ export async function baterORelogio(): Promise<{
   try {
     const r = await dispatchWhatsAppNotifications();
     avisos = typeof r?.sent === "number" ? r.sent : 0;
+    whatsappRetidos += typeof r?.retidos === "number" ? r.retidos : 0;
+    whatsappExpirados = typeof r?.expirados === "number" ? r.expirados : 0;
+    anotarFreio(r?.freio ?? null);
+    // Aviso velho demais para sair sozinho. Carimbado, com motivo, e contado
+    // aqui — "não mandei porque estava velho" e "mandei e falhou" são fatos
+    // opostos para quem for investigar depois.
+    if (whatsappExpirados > 0) {
+      log(`${whatsappExpirados} aviso(s) passaram do corte de idade e NÃO foram enviados — estão marcados com o motivo`);
+    }
+    // A fila além do teto de varredura é notícia: foi o silêncio dela que
+    // prendeu o represamento por semanas.
+    if (r?.filaAlemDoTeto) quebrou("avisos", "a fila de WhatsApp é maior do que a varredura de uma rodada alcança");
   } catch (err) {
     quebrou("avisos", err);
   }
@@ -546,14 +665,24 @@ export async function baterORelogio(): Promise<{
   // A BATIDA É GRAVADA SEMPRE — inclusive (e principalmente) a rodada em que
   // nada aconteceu. É a rodada silenciosa que prova que o relógio está vivo, e
   // era exatamente ela que não deixava rastro nenhum.
+  // Freio puxado vira LINHA NO PULSO, sempre — inclusive (e principalmente) na
+  // rodada em que a casa não tinha nada para mandar. É essa linha que responde,
+  // de fora, "a fila parou ou o freio está segurando?".
+  for (const f of freios) log(`FREIO ${f.nome} fechado — ${f.retidos} item(ns) retido(s), nada foi enviado nem consumido`);
+
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
-    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos },
+    moveu: {
+      pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas,
+      avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos,
+      whatsappRetidos, whatsappExpirados, avaliacoesRetidas, avaliacoesRepresadas,
+    },
     falhas,
+    freios,
   });
 
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, backup };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, whatsappRetidos, avaliacoesRetidas, freios, backup };
 }
 
 /**
@@ -568,13 +697,18 @@ export function ligarDespertador(): void {
   }
   ligado = true;
 
-  const minutos = Math.round(INTERVALO_MS / 60_000);
+  // Lido AQUI, e não numa constante de módulo: a constante congelava o valor no
+  // instante do import, antes de qualquer log existir, e engolia o erro.
+  const { ms: intervaloMs, aviso } = lerIntervalo(process.env.DESPERTADOR_INTERVALO_MS);
+  if (aviso) console.error(`[despertador] ⚠️ ${aviso}`);
+
+  const minutos = Math.round(intervaloMs / 60_000);
   log(`ligado — a agência vai olhar se há trabalho parado a cada ${minutos} min`);
 
   const tick = () => { void baterORelogio(); };
   setTimeout(() => {
     tick();
-    const t = setInterval(tick, INTERVALO_MS);
+    const t = setInterval(tick, intervaloMs);
     // Não segura o processo vivo só por causa do relógio: se o servidor está
     // encerrando, ele encerra.
     if (typeof t.unref === "function") t.unref();

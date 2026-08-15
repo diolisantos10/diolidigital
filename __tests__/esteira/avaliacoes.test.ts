@@ -41,8 +41,18 @@ const VERDADE = { businessName: "Padaria do João", telefones: [], emails: [], s
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // ── O FREIO DE SAÍDA (15/08/2026) ─────────────────────────────────────────
+  // `AVALIACOES_GOOGLE` nasce FECHADO: em produção, sem esta linha, a perna
+  // inteira devolve zero sem tocar em nada. Os testes abaixo descrevem o
+  // comportamento com a torneira ABERTA — e as duas metades do próprio freio
+  // moram em `__tests__/esteira/freio-das-avaliacoes.test.ts`.
+  process.env.AVALIACOES_GOOGLE = "liberada";
   db.googleConnection.findMany.mockResolvedValue([{ ...CONEXAO }]);
   db.googleConnection.update.mockResolvedValue({});
+  // A leitura em LOTE do que já foi tratado. Substituiu o `findUnique` por
+  // avaliação: era ele que deixava as 5 fatias da rodada serem gastas com
+  // `continue` enquanto a avaliação represada embaixo nunca era alcançada.
+  db.googleReview.findMany.mockResolvedValue([]);
   db.googleReview.findUnique.mockResolvedValue(null);
   db.googleReview.create.mockResolvedValue({ id: "r1" });
   db.googleReview.update.mockResolvedValue({});
@@ -64,10 +74,20 @@ describe("elogio a agência responde sozinha", () => {
   });
 
   it("avaliação já registrada não é processada de novo", async () => {
-    db.googleReview.findUnique.mockResolvedValue({ id: "r0" });
+    db.googleReview.findMany.mockResolvedValue([{ externalId: "rev1" }]);
     const r = await cuidarDasAvaliacoes();
     expect(r.novas).toBe(0);
     expect(responderAvaliacao).not.toHaveBeenCalled();
+  });
+
+  it("não conseguir LER o que já foi tratado NÃO vira 'nada foi tratado'", async () => {
+    // Fail-closed: sem esta guarda, uma falha de banco faria a casa responder
+    // por cima do que o próprio dono do negócio já respondeu à mão.
+    db.googleReview.findMany.mockRejectedValue(new Error("banco fora do ar"));
+    const r = await cuidarDasAvaliacoes();
+    expect(responderAvaliacao).not.toHaveBeenCalled();
+    expect(db.googleReview.create).not.toHaveBeenCalled();
+    expect(r.falhas[0]).toMatch(/não processo às cegas/);
   });
 
   it("resposta que o dono já deu à mão não é sobrescrita", async () => {
@@ -279,16 +299,37 @@ describe("A TRAVA DE CONSENTIMENTO — política da API do Google", () => {
   // A política do Business Profile proíbe automatizar resposta a avaliação
   // "sem o consentimento prévio e específico do usuário". Achado da auditoria
   // de 03/08/2026: sem esta trava, a única proteção era o 403 do Google.
-  it("sem consentimento registrado, NEM ELOGIO sai sozinho — vira rascunho escalado", async () => {
+  //
+  // ⚠️ ESTE CONTRATO MUDOU EM 15/08/2026, por parecer formal do especialista
+  //    `google`, e o que estava escrito aqui era o DEFEITO virando invariante.
+  //
+  //    A versão anterior afirmava: "sem consentimento, vira rascunho escalado,
+  //    com `reply` preenchido — o trabalho não se perde". Só que produzir esse
+  //    rascunho custava (a) uma chamada de IA paga e (b) a gravação, no banco
+  //    desta casa, do NOME e do TEXTO de quem escreveu a avaliação — gente que
+  //    nunca falou com a Dioli, num perfil que ninguém autorizou a automatizar.
+  //    A trava era conferida DEPOIS das duas coisas: ela protegia o envio e
+  //    chegava tarde para tudo o mais.
+  //
+  //    Agora ela é a PRIMEIRA pergunta do laço, antes até de listar no Google.
+  //    O que se perde está declarado: perfil sem consentimento deixa de receber
+  //    o rascunho. O que NÃO se perde: nada é registrado, então a primeira
+  //    rodada depois do consentimento enxerga a fila inteira e a trata.
+  it("sem consentimento: NADA é lido, NADA é gravado, NADA é gasto", async () => {
     db.googleConnection.findMany.mockResolvedValue([{ ...CONEXAO, autoReplyConsentAt: null }]);
     const r = await cuidarDasAvaliacoes();
-    expect(r.respondidas).toBe(0);
-    expect(r.escaladas).toBe(1);
+
+    expect(listarAvaliacoes, "leu o perfil sem autorização").not.toHaveBeenCalled();
+    expect(generate, "gastou IA sem autorização").not.toHaveBeenCalled();
+    expect(db.googleReview.create, "guardou dado de avaliador sem autorização").not.toHaveBeenCalled();
     expect(responderAvaliacao).not.toHaveBeenCalled();
-    const d = db.googleReview.update.mock.calls[0]![0].data;
-    expect(d.status).toBe("escalada");
-    expect(d.escalatedReason).toMatch(/consentimento/);
-    expect(d.reply).toBeTruthy(); // o trabalho não se perde
+    expect(r.respondidas).toBe(0);
+    expect(r.escaladas).toBe(0);
+  });
+
+  it("e o perfil pulado é DITO, com nome — trava silenciosa vira fila morta invisível", async () => {
+    db.googleConnection.findMany.mockResolvedValue([{ ...CONEXAO, autoReplyConsentAt: null }]);
+    expect((await cuidarDasAvaliacoes()).semConsentimento).toEqual(["Padaria do João"]);
   });
 
   it("com consentimento registrado, o elogio volta a sair sozinho", async () => {
