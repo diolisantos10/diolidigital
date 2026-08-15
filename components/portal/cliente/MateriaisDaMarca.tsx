@@ -1,0 +1,232 @@
+"use client";
+
+// A SEÇÃO "BRAND BOOK E MATERIAIS DA MARCA" — dentro do Brand Hub, e só aqui.
+//
+// ── O QUE ESTAVA ERRADO (15/08/2026) ────────────────────────────────────────
+//
+// O envio de material existia e funcionava — no FIM DA ABA ENTREGAS. Entregas é
+// o que a agência entregou AO cliente; material de marca é o caminho contrário.
+// Quem procurava onde mandar o brand book abria o Brand Hub, via um anel de
+// porcentagem e uma entrevista, e não encontrava nenhuma forma de enviar,
+// consultar ou substituir arquivo nenhum.
+//
+// `docs/branding-na-ficha-do-cliente.md` já tinha decidido: **a aba de Marca
+// absorve o material, e é o único lugar visível.** Esta seção é isso.
+//
+// ── NADA AQUI É COMPONENTE NOVO DE ENVIO ────────────────────────────────────
+//
+// `EnvioDeMaterial` e `CaixasDeMaterial` são os mesmos, com as mesmas caixas e a
+// mesma rota (`POST /api/media`). O que esta tela acrescenta é o que faltava dos
+// dois lados: a lista do que JÁ entrou (que sobrevive ao recarregar) e a frase
+// honesta sobre o que o brand book não resolve.
+
+import { useCallback, useEffect, useState } from "react";
+import { EnvioDeMaterial } from "@/components/portal/EnvioDeMaterial";
+import {
+  O_QUE_O_BRAND_BOOK_ALCANCA,
+  O_QUE_O_BRAND_BOOK_NAO_FECHA,
+  ROTULO_DO_ESTADO,
+  TOM_DO_ESTADO,
+  type MaterialNaTela,
+} from "@/lib/agency/brand/materiais-da-marca";
+import { Carregando, Erro, Etiqueta, Icone, TituloDeSecao, Vazio, dataCurta } from "./pecas";
+
+/** O ícone de cada categoria — o mesmo da caixa onde o cliente soltou. Ver a
+ *  mesma lista em `CaixasDeMaterial`: se um dia divergirem, o cliente vai achar
+ *  que o arquivo mudou de lugar. */
+const ICONE_DA_CATEGORIA: Record<string, string> = {
+  manual_de_marca: "📘",
+  logo: "🎨",
+  fonte: "🔤",
+  foto_produto: "📸",
+  foto_local: "🏠",
+  foto_equipe: "👥",
+  video: "🎬",
+  referencia: "💡",
+  outro: "📦",
+  captura_de_tela: "🖥️",
+};
+
+function tamanhoLegivel(bytes: number): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+export function MateriaisDaMarca({ token }: { token: string }) {
+  const [materiais, setMateriais] = useState<MaterialNaTela[] | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [carregando, setCarregando] = useState(true);
+
+  const carregar = useCallback(async () => {
+    setCarregando(true);
+    setErro(null);
+    try {
+      // A4: sem token na URL quando o cookie httpOnly já autentica.
+      const url = token ? `/api/portal/materiais?token=${encodeURIComponent(token)}` : "/api/portal/materiais";
+      const res = await fetch(url);
+      const dados = (await res.json()) as { materiais?: MaterialNaTela[]; error?: string };
+      if (!res.ok) {
+        // ERRO É ERRO. Cair para lista vazia aqui faria a tela dizer "você ainda
+        // não mandou nada" para quem já mandou — e ele reenviaria tudo.
+        setErro(dados.error ?? "Não consegui listar seus materiais agora.");
+        setMateriais(null);
+        return;
+      }
+      setMateriais(dados.materiais ?? []);
+    } catch {
+      setErro("A conexão caiu ao buscar seus materiais. Eles não se perderam.");
+      setMateriais(null);
+    } finally {
+      setCarregando(false);
+    }
+  }, [token]);
+
+  useEffect(() => { void carregar(); }, [carregar]);
+
+  // Agrupado pela categoria que o próprio cliente escolheu na caixa. A ordem é
+  // a de chegada da lista (mais novo primeiro), então a categoria mexida por
+  // último aparece no topo — que é onde ele espera achar o que acabou de mandar.
+  const grupos: Array<{ categoria: string; papel: string | null; itens: MaterialNaTela[] }> = [];
+  for (const m of materiais ?? []) {
+    const atual = grupos.find((g) => g.categoria === m.categoria);
+    if (atual) atual.itens.push(m);
+    else grupos.push({ categoria: m.categoria, papel: m.papel, itens: [m] });
+  }
+
+  const brandBooks = (materiais ?? []).filter((m) => m.papel === "manual_de_marca");
+
+  return (
+    <>
+      <article className="cp-card" style={{ marginTop: 13 }}>
+        <TituloDeSecao
+          sobretitulo="MATERIAL DA MARCA"
+          titulo="Brand Book e materiais da marca"
+        />
+
+        <p style={{ marginTop: 13, color: "var(--cp-muted)" }}>
+          Este é o único lugar onde o material da sua marca precisa ser enviado — e onde
+          ele fica guardado. Escolha a caixa que descreve o arquivo: a caixa já diz o que
+          ele é, e é isso que permite a equipe usá-lo no que produz para você.
+        </p>
+
+        {/* ── A FRASE QUE IMPEDE A EXPECTATIVA ERRADA ────────────────────────
+            Ela vem ANTES do envio, de propósito. Depois já é tarde: o cliente
+            manda o PDF, vê a ficha andar três pontos, e conclui que o sistema
+            comeu o arquivo dele. Ver `proposta-do-brand-book.ts`. */}
+        <div className="cp-approval-note" style={{ marginTop: 13, borderRadius: 10 }}>
+          <i className="cp-icon" aria-hidden>ⓘ</i>
+          <span>
+            <b>{O_QUE_O_BRAND_BOOK_ALCANCA}</b>
+            <small>{O_QUE_O_BRAND_BOOK_NAO_FECHA}</small>
+          </span>
+        </div>
+
+        <div style={{ marginTop: 15 }}>
+          <EnvioDeMaterial
+            token={token}
+            titulo="Enviar Brand Book, logos e materiais"
+            descricao="Solte cada arquivo na caixa que descreve o que ele é. Aceita imagem, vídeo, PDF e documento, até 120 MB cada."
+            // Chegou material novo: a lista guardada recarrega na hora, para o
+            // cliente ver o arquivo dele no lugar definitivo — e não só no
+            // "recebemos" que some quando ele atualiza a página.
+            aoEnviar={() => void carregar()}
+          />
+        </div>
+      </article>
+
+      <article className="cp-card cp-delivery-list" style={{ marginTop: 13 }}>
+        <TituloDeSecao
+          sobretitulo="GUARDADO COM A EQUIPE"
+          titulo="O que você já enviou"
+          acao={
+            <button onClick={() => void carregar()} style={{ touchAction: "manipulation" }}>
+              Atualizar
+            </button>
+          }
+        />
+
+        {/* Os três estados obrigatórios, nesta ordem. */}
+        {carregando && materiais === null && !erro && (
+          <div style={{ marginTop: 15 }}>
+            <Carregando texto="Buscando o que você já enviou…" />
+          </div>
+        )}
+
+        {erro && (
+          <div style={{ marginTop: 15 }}>
+            <Erro
+              titulo="Não consegui mostrar seus materiais agora"
+              texto={`${erro} Nada do que você enviou foi perdido.`}
+              aoTentarDeNovo={() => void carregar()}
+            />
+          </div>
+        )}
+
+        {!carregando && !erro && materiais !== null && materiais.length === 0 && (
+          <div style={{ marginTop: 15 }}>
+            <Vazio
+              icone="📘"
+              titulo="Você ainda não enviou nenhum material"
+              texto="Comece pelo Brand Book, se você tiver um. Se não tiver, o logo já ajuda — e o resto pode vir depois, aos poucos."
+            />
+          </div>
+        )}
+
+        {!erro && grupos.map((g) => (
+          <div key={g.categoria}>
+            <p
+              style={{
+                marginTop: 15, marginBottom: 4, fontWeight: 700,
+                fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase",
+                color: "var(--cp-muted)",
+              }}
+            >
+              {g.categoria} · {g.itens.length === 1 ? "1 arquivo" : `${g.itens.length} arquivos`}
+            </p>
+            {g.itens.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => { if (m.url) window.open(m.url, "_blank", "noopener,noreferrer"); }}
+                title={m.url ? `Abrir ${m.nome}` : "Este arquivo ainda não está disponível para abrir"}
+                style={{ touchAction: "manipulation", opacity: m.url ? 1 : 0.65 }}
+              >
+                <Icone>{(m.papel && ICONE_DA_CATEGORIA[m.papel]) ?? "▦"}</Icone>
+                <span>
+                  <small>
+                    {m.categoria}
+                    {/* A VERSÃO só é dita onde ela quer dizer alguma coisa: o
+                        brand book é o que se SUBSTITUI. Numerar cinco fotos de
+                        produto como "v1…v5" faria o número parecer histórico de
+                        uma coisa só, que é mentira. */}
+                    {m.papel === "manual_de_marca" && brandBooks.length > 1
+                      ? ` · versão ${m.versao}${m.vigente ? " (atual)" : ""}`
+                      : ""}
+                  </small>
+                  <b>{m.nome}</b>
+                  <em>
+                    {[
+                      dataCurta(m.enviadoEm),
+                      tamanhoLegivel(m.tamanhoBytes),
+                      m.detalhe,
+                    ].filter(Boolean).join(" · ")}
+                  </em>
+                </span>
+                <Etiqueta tom={TOM_DO_ESTADO[m.estado]}>{ROTULO_DO_ESTADO[m.estado]}</Etiqueta>
+              </button>
+            ))}
+          </div>
+        ))}
+
+        {brandBooks.length > 1 && (
+          <p style={{ marginTop: 13, color: "var(--cp-muted)" }}>
+            Você já mandou {brandBooks.length} versões do Brand Book. A mais recente é a que
+            vale — as anteriores continuam aqui, porque histórico de marca não se apaga.
+          </p>
+        )}
+      </article>
+    </>
+  );
+}

@@ -171,11 +171,36 @@ describe("as 11 abas do portal, e nada perdido na mudança", () => {
   it("o que existia antes continua montado — nenhum componente foi perdido", () => {
     for (const componente of [
       "<AprovacoesDoCliente", "<ResultadosDoCliente", "<ConexoesDoCliente",
-      "<EnvioDeMaterial", "<CalendarioDoMes", "<EsteiraDoCliente",
+      "<MateriaisDaMarca", "<CalendarioDoMes", "<EsteiraDoCliente",
       "<SolicitarAlgo", "<MeusPedidos", "<ChatDrawer",
     ]) {
       expect(src, `sumiu do portal: ${componente}`).toContain(componente);
     }
+  });
+
+  // ── 15/08/2026: O ENVIO MUDOU DE CASA, E A GUARDA MUDOU COM ELE ───────────
+  //
+  // `<EnvioDeMaterial` saiu do arquivo da página: ele agora é montado dentro de
+  // `MateriaisDaMarca`, no Brand Hub — que é onde a documentação sempre mandou
+  // o material de marca morar.
+  //
+  // A guarda NÃO foi afrouxada por causa disso. Ela segue o componente até a
+  // casa nova: continua sendo impossível apagar o envio sem reprovar a rodada,
+  // e passa a ser impossível fazer o Brand Hub deixar de montá-lo.
+  it("o envio de material continua existindo — agora no Brand Hub, seu lugar", () => {
+    const secao = ler("components/portal/cliente/MateriaisDaMarca.tsx");
+    expect(secao, "o envio sumiu do Brand Hub").toContain("<EnvioDeMaterial");
+    // E a aba de Marca é quem monta a seção.
+    expect(src).toContain("materiais={<MateriaisDaMarca");
+  });
+
+  it("Entregas aponta para o Brand Hub em vez de manter um segundo formulário", () => {
+    const abas = ler("components/portal/cliente/abas.tsx");
+    // Duas telas para a mesma coisa é como nasce a próxima "duas verdades" —
+    // e aqui as duas verdades seriam sobre onde o arquivo do cliente foi parar.
+    const entregas = abas.slice(abas.indexOf("export function AbaEntregas"), abas.indexOf("export function AbaBrandHub"));
+    expect(entregas.includes("<EnvioDeMaterial"), "voltou um segundo formulário de envio na aba Entregas").toBe(false);
+    expect(entregas).toContain("aoIrParaMarca");
   });
 
   it("Resultados também aponta para Integrações — um nome só para a mesma coisa", () => {

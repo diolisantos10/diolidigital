@@ -56,6 +56,30 @@ export const PAPEIS = {
     ajuda: "O PDF ou documento com as cores, as fontes e as regras da marca.",
     entraNaPeca: false,
   },
+  // ── 15/08/2026: OS DOIS QUE FALTAVAM PARA O BRAND HUB ────────────────────
+  //
+  // O Brand Hub passou a ser o único lugar de material de marca, com as nove
+  // categorias que o CEO pediu. Duas delas — FONTES e VÍDEOS — não tinham papel
+  // nenhum onde pousar, e a saída fácil seria despejá-las em "outro".
+  //
+  // Seria a tela mentindo por omissão: o cliente solta o .otf na caixa "Fontes",
+  // e a lista devolve "Outro material". A categoria some no momento em que ela
+  // mais importa — depois do envio, quando é a única prova do que ele disse.
+  //
+  // Os dois entram com `entraNaPeca: false` porque HOJE nenhum produtor os usa
+  // como arquivo dentro de uma arte. Isso não os torna decoração: eles são
+  // guardados, classificados e visíveis para quem produz. O dia em que houver
+  // consumidor, a chave vira aqui — e só aqui.
+  fonte: {
+    rotulo: "Fonte da marca",
+    ajuda: "O arquivo da fonte que a marca usa — .otf, .ttf ou .woff.",
+    entraNaPeca: false,
+  },
+  video: {
+    rotulo: "Vídeo",
+    ajuda: "Gravação do produto, do lugar, da equipe ou de um depoimento.",
+    entraNaPeca: false,
+  },
   foto_produto: {
     rotulo: "Foto de produto",
     ajuda: "O produto em si — embalagem, prato, peça, o que o cliente vende.",
@@ -132,6 +156,15 @@ export function sugerirPapel(nome: string, mimeType: string): Papel | null {
 
   // Manual de marca em PDF é comum o bastante para valer o palpite pelo tipo.
   if (mimeType === "application/pdf" && /marca|brand/.test(n)) return "manual_de_marca";
+
+  // ── Os dois palpites por EXTENSÃO/TIPO, e por que vêm por último ─────────
+  //
+  // Arquivo de fonte e vídeo são reconhecíveis pelo formato com uma certeza que
+  // imagem nenhuma tem: um .otf é uma fonte, ponto. Mesmo assim eles vêm DEPOIS
+  // dos palpites por nome — "video-da-fachada.mp4" é foto do local para quem
+  // produz, e a palavra que o dono escreveu no nome vale mais que a extensão.
+  if (/\.(otf|ttf|woff2?|eot)$/.test(n)) return "fonte";
+  if (mimeType.startsWith("video/") || /\.(mp4|mov|webm|avi|mkv)$/.test(n)) return "video";
 
   // Nada no nome diz o que é. O cliente decide — e essa é a resposta certa.
   return null;

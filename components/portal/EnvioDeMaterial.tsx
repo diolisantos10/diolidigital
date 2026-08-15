@@ -61,11 +61,22 @@ function tamanhoLegivel(bytes: number): string {
 export function EnvioDeMaterial({
   token,
   aoEnviar,
+  titulo = "Enviar fotos e vídeos",
+  descricao = "Escolha do seu celular ou computador e diga o que é cada arquivo — é assim que ele entra nas suas peças. Aceita foto, vídeo, PDF e documento, até 120 MB cada.",
 }: {
   token: string;
   /** Avisa a tela de fora que chegou material novo — para o portal poder
    *  atualizar a lista de pendências sem o cliente recarregar a página. */
   aoEnviar?: (arquivo: ArquivoEnviado) => void;
+  /** O título e a frase mudam com o LUGAR onde este componente é montado, e só
+   *  isso. No Brand Hub ele fala de brand book e logo; se um dia voltar a haver
+   *  outro ponto de envio, ele fala do que aquele ponto pede.
+   *
+   *  O que NÃO muda com o lugar: as caixas, os papéis e a rota. Duas versões do
+   *  MECANISMO divergiriam — e é assim que o mesmo arquivo passa a ser gravado
+   *  com papel diferente dependendo da porta por onde entrou. */
+  titulo?: string;
+  descricao?: string;
 }) {
   const [enviando, setEnviando] = useState(false);
   const [fila, setFila] = useState<NaFila[]>([]);
@@ -168,11 +179,8 @@ export function EnvioDeMaterial({
 
   return (
     <div className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-      <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">Enviar fotos e vídeos</h3>
-      <p className="mt-1 text-[12px] leading-snug text-[var(--text-secondary)]">
-        Escolha do seu celular ou computador e diga o que é cada arquivo — é assim que ele entra nas suas peças.
-        Aceita foto, vídeo, PDF e documento, até 120 MB cada.
-      </p>
+      <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{titulo}</h3>
+      <p className="mt-1 text-[12px] leading-snug text-[var(--text-secondary)]">{descricao}</p>
 
       {/* ── AS CAIXAS: a caixa onde ele solta JÁ diz o que é ──────────────── */}
       <div className="mt-3">
