@@ -29,7 +29,7 @@ import type { PerfilOrganizacional } from "@/lib/agency/organizacao/autoridade";
 export const maxDuration = 300;
 
 interface Corpo {
-  acao?: "ligar" | "ciclo" | "status";
+  acao?: "ligar" | "ciclo" | "status" | "clientes";
   cliente?: string;
   clienteId?: string;
   solicitacao?: string;
@@ -229,6 +229,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         Object.entries(ciclo.artefatos).map(([f, saida]) => [f, saida.length > 900 ? `${saida.slice(0, 900)}…` : saida]),
       ),
     });
+  }
+
+  if (corpo.acao === "clientes") {
+    // Quem existe na casa, se a chave do piloto já virou para cada um, e se
+    // há pedido REAL do cliente esperando — a esteira nunca inventa demanda.
+    const clientes = await prisma.client.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, workspaceId: true, createdAt: true },
+    });
+    const chaves = await prisma.flagV2.findMany({ where: { chave: FLAGS_V2.execucao } });
+    const ligados = new Set(chaves.filter((c) => c.ligada).map((c) => c.escopo));
+    const linhas = [];
+    for (const cliente of clientes) {
+      const pedidos = await prisma.clientRequestDb.findMany({
+        where: { clientId: cliente.id },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+        select: { id: true, status: true, rawContext: true, source: true, createdAt: true },
+      });
+      const executadas = await prisma.execucaoV2.count({ where: { clienteId: cliente.id } });
+      linhas.push({
+        id: cliente.id,
+        nome: cliente.name,
+        ligado: ligados.has(cliente.id),
+        execucoesV2: executadas,
+        pedidos: pedidos.map((p) => ({
+          id: p.id,
+          status: p.status,
+          source: p.source,
+          resumo: (p.rawContext ?? "").slice(0, 220),
+        })),
+      });
+    }
+    return NextResponse.json({ total: linhas.length, clientes: linhas });
   }
 
   if (corpo.acao === "status") {
