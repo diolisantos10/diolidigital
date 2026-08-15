@@ -209,8 +209,17 @@ export function rotaEmModoDeConsulta(perfil: PerfilOrganizacional, href: string)
   return !perfil.departamentos.includes(pagina.dono);
 }
 
-/** As rotas que este perfil enxerga. Base da navegação — derivada, nunca escrita. */
+/**
+ * As rotas que este perfil enxerga. Base da navegação — derivada, nunca escrita.
+ *
+ * `/agency` fica DE FORA de propósito: os consumidores desta lista casam por
+ * prefixo (`isNavAllowed`), e a raiz casaria com `/agency/qualquer-coisa` —
+ * a lista inteira viraria "tudo liberado" sem ninguém perceber. A raiz é só
+ * um redirecionamento; ela não é destino de navegação.
+ */
 export function rotasVisiveis(perfil: PerfilOrganizacional): string[] {
-  if (eDirecao(perfil.autoridade)) return PAGINAS.map((p) => p.href);
-  return PAGINAS.filter((p) => podeAbrirRota(perfil, p.href)).map((p) => p.href);
+  const fonte = eDirecao(perfil.autoridade)
+    ? PAGINAS
+    : PAGINAS.filter((p) => podeAbrirRota(perfil, p.href));
+  return fonte.map((p) => p.href).filter((href) => href !== "/agency");
 }
