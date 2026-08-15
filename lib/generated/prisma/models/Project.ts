@@ -35,6 +35,7 @@ export type ProjectSumAggregateOutputType = {
 }
 
 export type ProjectMinAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   workspaceId: string | null
   clientId: string | null
@@ -64,6 +65,7 @@ export type ProjectMinAggregateOutputType = {
 }
 
 export type ProjectMaxAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   workspaceId: string | null
   clientId: string | null
@@ -93,6 +95,7 @@ export type ProjectMaxAggregateOutputType = {
 }
 
 export type ProjectCountAggregateOutputType = {
+  estadoCanonico: number
   id: number
   workspaceId: number
   clientId: number
@@ -132,6 +135,7 @@ export type ProjectSumAggregateInputType = {
 }
 
 export type ProjectMinAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   clientId?: true
@@ -161,6 +165,7 @@ export type ProjectMinAggregateInputType = {
 }
 
 export type ProjectMaxAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   clientId?: true
@@ -190,6 +195,7 @@ export type ProjectMaxAggregateInputType = {
 }
 
 export type ProjectCountAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   clientId?: true
@@ -306,6 +312,7 @@ export type ProjectGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
 }
 
 export type ProjectGroupByOutputType = {
+  estadoCanonico: string | null
   id: string
   workspaceId: string
   clientId: string
@@ -358,6 +365,7 @@ export type ProjectWhereInput = {
   AND?: Prisma.ProjectWhereInput | Prisma.ProjectWhereInput[]
   OR?: Prisma.ProjectWhereInput[]
   NOT?: Prisma.ProjectWhereInput | Prisma.ProjectWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Project"> | string | null
   id?: Prisma.StringFilter<"Project"> | string
   workspaceId?: Prisma.StringFilter<"Project"> | string
   clientId?: Prisma.StringFilter<"Project"> | string
@@ -397,6 +405,7 @@ export type ProjectWhereInput = {
 }
 
 export type ProjectOrderByWithRelationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -440,6 +449,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ProjectWhereInput | Prisma.ProjectWhereInput[]
   OR?: Prisma.ProjectWhereInput[]
   NOT?: Prisma.ProjectWhereInput | Prisma.ProjectWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Project"> | string | null
   workspaceId?: Prisma.StringFilter<"Project"> | string
   clientId?: Prisma.StringFilter<"Project"> | string
   clientRequestId?: Prisma.StringNullableFilter<"Project"> | string | null
@@ -478,6 +488,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
 }, "id">
 
 export type ProjectOrderByWithAggregationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -515,6 +526,7 @@ export type ProjectScalarWhereWithAggregatesInput = {
   AND?: Prisma.ProjectScalarWhereWithAggregatesInput | Prisma.ProjectScalarWhereWithAggregatesInput[]
   OR?: Prisma.ProjectScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ProjectScalarWhereWithAggregatesInput | Prisma.ProjectScalarWhereWithAggregatesInput[]
+  estadoCanonico?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
   id?: Prisma.StringWithAggregatesFilter<"Project"> | string
   workspaceId?: Prisma.StringWithAggregatesFilter<"Project"> | string
   clientId?: Prisma.StringWithAggregatesFilter<"Project"> | string
@@ -544,6 +556,7 @@ export type ProjectScalarWhereWithAggregatesInput = {
 }
 
 export type ProjectCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   name: string
@@ -581,6 +594,7 @@ export type ProjectCreateInput = {
 }
 
 export type ProjectUncheckedCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId: string
@@ -618,6 +632,7 @@ export type ProjectUncheckedCreateInput = {
 }
 
 export type ProjectUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -655,6 +670,7 @@ export type ProjectUpdateInput = {
 }
 
 export type ProjectUncheckedUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -692,6 +708,7 @@ export type ProjectUncheckedUpdateInput = {
 }
 
 export type ProjectCreateManyInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId: string
@@ -721,6 +738,7 @@ export type ProjectCreateManyInput = {
 }
 
 export type ProjectUpdateManyMutationInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -748,6 +766,7 @@ export type ProjectUpdateManyMutationInput = {
 }
 
 export type ProjectUncheckedUpdateManyInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -787,6 +806,7 @@ export type ProjectOrderByRelationAggregateInput = {
 }
 
 export type ProjectCountOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -820,6 +840,7 @@ export type ProjectAvgOrderByAggregateInput = {
 }
 
 export type ProjectMaxOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -849,6 +870,7 @@ export type ProjectMaxOrderByAggregateInput = {
 }
 
 export type ProjectMinOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -1102,6 +1124,7 @@ export type ProjectUpdateOneWithoutActivityEventsNestedInput = {
 }
 
 export type ProjectCreateWithoutWorkspaceInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   name: string
@@ -1138,6 +1161,7 @@ export type ProjectCreateWithoutWorkspaceInput = {
 }
 
 export type ProjectUncheckedCreateWithoutWorkspaceInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId: string
   clientRequestId?: string | null
@@ -1202,6 +1226,7 @@ export type ProjectScalarWhereInput = {
   AND?: Prisma.ProjectScalarWhereInput | Prisma.ProjectScalarWhereInput[]
   OR?: Prisma.ProjectScalarWhereInput[]
   NOT?: Prisma.ProjectScalarWhereInput | Prisma.ProjectScalarWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Project"> | string | null
   id?: Prisma.StringFilter<"Project"> | string
   workspaceId?: Prisma.StringFilter<"Project"> | string
   clientId?: Prisma.StringFilter<"Project"> | string
@@ -1231,6 +1256,7 @@ export type ProjectScalarWhereInput = {
 }
 
 export type ProjectCreateWithoutClientInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   name: string
@@ -1267,6 +1293,7 @@ export type ProjectCreateWithoutClientInput = {
 }
 
 export type ProjectUncheckedCreateWithoutClientInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientRequestId?: string | null
@@ -1328,6 +1355,7 @@ export type ProjectUpdateManyWithWhereWithoutClientInput = {
 }
 
 export type ProjectCreateWithoutCyclesInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   name: string
@@ -1364,6 +1392,7 @@ export type ProjectCreateWithoutCyclesInput = {
 }
 
 export type ProjectUncheckedCreateWithoutCyclesInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId: string
@@ -1416,6 +1445,7 @@ export type ProjectUpdateToOneWithWhereWithoutCyclesInput = {
 }
 
 export type ProjectUpdateWithoutCyclesInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1452,6 +1482,7 @@ export type ProjectUpdateWithoutCyclesInput = {
 }
 
 export type ProjectUncheckedUpdateWithoutCyclesInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1488,6 +1519,7 @@ export type ProjectUncheckedUpdateWithoutCyclesInput = {
 }
 
 export type ProjectCreateWithoutDeliverablesInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   name: string
@@ -1524,6 +1556,7 @@ export type ProjectCreateWithoutDeliverablesInput = {
 }
 
 export type ProjectUncheckedCreateWithoutDeliverablesInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId: string
@@ -1576,6 +1609,7 @@ export type ProjectUpdateToOneWithWhereWithoutDeliverablesInput = {
 }
 
 export type ProjectUpdateWithoutDeliverablesInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1612,6 +1646,7 @@ export type ProjectUpdateWithoutDeliverablesInput = {
 }
 
 export type ProjectUncheckedUpdateWithoutDeliverablesInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1648,6 +1683,7 @@ export type ProjectUncheckedUpdateWithoutDeliverablesInput = {
 }
 
 export type ProjectCreateWithoutMaterialRequestsInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   name: string
@@ -1684,6 +1720,7 @@ export type ProjectCreateWithoutMaterialRequestsInput = {
 }
 
 export type ProjectUncheckedCreateWithoutMaterialRequestsInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId: string
@@ -1736,6 +1773,7 @@ export type ProjectUpdateToOneWithWhereWithoutMaterialRequestsInput = {
 }
 
 export type ProjectUpdateWithoutMaterialRequestsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1772,6 +1810,7 @@ export type ProjectUpdateWithoutMaterialRequestsInput = {
 }
 
 export type ProjectUncheckedUpdateWithoutMaterialRequestsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1808,6 +1847,7 @@ export type ProjectUncheckedUpdateWithoutMaterialRequestsInput = {
 }
 
 export type ProjectCreateWithoutStrategyRoomsInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   name: string
@@ -1844,6 +1884,7 @@ export type ProjectCreateWithoutStrategyRoomsInput = {
 }
 
 export type ProjectUncheckedCreateWithoutStrategyRoomsInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId: string
@@ -1896,6 +1937,7 @@ export type ProjectUpdateToOneWithWhereWithoutStrategyRoomsInput = {
 }
 
 export type ProjectUpdateWithoutStrategyRoomsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1932,6 +1974,7 @@ export type ProjectUpdateWithoutStrategyRoomsInput = {
 }
 
 export type ProjectUncheckedUpdateWithoutStrategyRoomsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1968,6 +2011,7 @@ export type ProjectUncheckedUpdateWithoutStrategyRoomsInput = {
 }
 
 export type ProjectCreateWithoutBriefingsInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   name: string
@@ -2004,6 +2048,7 @@ export type ProjectCreateWithoutBriefingsInput = {
 }
 
 export type ProjectUncheckedCreateWithoutBriefingsInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId: string
@@ -2056,6 +2101,7 @@ export type ProjectUpdateToOneWithWhereWithoutBriefingsInput = {
 }
 
 export type ProjectUpdateWithoutBriefingsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2092,6 +2138,7 @@ export type ProjectUpdateWithoutBriefingsInput = {
 }
 
 export type ProjectUncheckedUpdateWithoutBriefingsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2128,6 +2175,7 @@ export type ProjectUncheckedUpdateWithoutBriefingsInput = {
 }
 
 export type ProjectCreateWithoutTasksInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   name: string
@@ -2164,6 +2212,7 @@ export type ProjectCreateWithoutTasksInput = {
 }
 
 export type ProjectUncheckedCreateWithoutTasksInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId: string
@@ -2216,6 +2265,7 @@ export type ProjectUpdateToOneWithWhereWithoutTasksInput = {
 }
 
 export type ProjectUpdateWithoutTasksInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2252,6 +2302,7 @@ export type ProjectUpdateWithoutTasksInput = {
 }
 
 export type ProjectUncheckedUpdateWithoutTasksInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2288,6 +2339,7 @@ export type ProjectUncheckedUpdateWithoutTasksInput = {
 }
 
 export type ProjectCreateWithoutTimelineEventsInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   name: string
@@ -2324,6 +2376,7 @@ export type ProjectCreateWithoutTimelineEventsInput = {
 }
 
 export type ProjectUncheckedCreateWithoutTimelineEventsInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId: string
@@ -2376,6 +2429,7 @@ export type ProjectUpdateToOneWithWhereWithoutTimelineEventsInput = {
 }
 
 export type ProjectUpdateWithoutTimelineEventsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2412,6 +2466,7 @@ export type ProjectUpdateWithoutTimelineEventsInput = {
 }
 
 export type ProjectUncheckedUpdateWithoutTimelineEventsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2448,6 +2503,7 @@ export type ProjectUncheckedUpdateWithoutTimelineEventsInput = {
 }
 
 export type ProjectCreateWithoutActivityEventsInput = {
+  estadoCanonico?: string | null
   id?: string
   clientRequestId?: string | null
   name: string
@@ -2484,6 +2540,7 @@ export type ProjectCreateWithoutActivityEventsInput = {
 }
 
 export type ProjectUncheckedCreateWithoutActivityEventsInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId: string
@@ -2536,6 +2593,7 @@ export type ProjectUpdateToOneWithWhereWithoutActivityEventsInput = {
 }
 
 export type ProjectUpdateWithoutActivityEventsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2572,6 +2630,7 @@ export type ProjectUpdateWithoutActivityEventsInput = {
 }
 
 export type ProjectUncheckedUpdateWithoutActivityEventsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2608,6 +2667,7 @@ export type ProjectUncheckedUpdateWithoutActivityEventsInput = {
 }
 
 export type ProjectCreateManyWorkspaceInput = {
+  estadoCanonico?: string | null
   id?: string
   clientId: string
   clientRequestId?: string | null
@@ -2636,6 +2696,7 @@ export type ProjectCreateManyWorkspaceInput = {
 }
 
 export type ProjectUpdateWithoutWorkspaceInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2672,6 +2733,7 @@ export type ProjectUpdateWithoutWorkspaceInput = {
 }
 
 export type ProjectUncheckedUpdateWithoutWorkspaceInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2708,6 +2770,7 @@ export type ProjectUncheckedUpdateWithoutWorkspaceInput = {
 }
 
 export type ProjectUncheckedUpdateManyWithoutWorkspaceInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2736,6 +2799,7 @@ export type ProjectUncheckedUpdateManyWithoutWorkspaceInput = {
 }
 
 export type ProjectCreateManyClientInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientRequestId?: string | null
@@ -2764,6 +2828,7 @@ export type ProjectCreateManyClientInput = {
 }
 
 export type ProjectUpdateWithoutClientInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -2800,6 +2865,7 @@ export type ProjectUpdateWithoutClientInput = {
 }
 
 export type ProjectUncheckedUpdateWithoutClientInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2836,6 +2902,7 @@ export type ProjectUncheckedUpdateWithoutClientInput = {
 }
 
 export type ProjectUncheckedUpdateManyWithoutClientInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2958,6 +3025,7 @@ export type ProjectCountOutputTypeCountCyclesArgs<ExtArgs extends runtime.Types.
 
 
 export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -2998,6 +3066,7 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
 }, ExtArgs["result"]["project"]>
 
 export type ProjectSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -3029,6 +3098,7 @@ export type ProjectSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
 }, ExtArgs["result"]["project"]>
 
 export type ProjectSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -3060,6 +3130,7 @@ export type ProjectSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
 }, ExtArgs["result"]["project"]>
 
 export type ProjectSelectScalar = {
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -3088,7 +3159,7 @@ export type ProjectSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "clientRequestId" | "name" | "goal" | "type" | "stage" | "priority" | "deadline" | "proposalStatus" | "proposalPricing" | "proposalScope" | "proposalSentAt" | "agents" | "executionStatus" | "executionRequestedAt" | "executionStartedAt" | "executionFinishedAt" | "executionAttempts" | "executionError" | "directionApprovedAt" | "presentedAt" | "clientApprovedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
+export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "clientId" | "clientRequestId" | "name" | "goal" | "type" | "stage" | "priority" | "deadline" | "proposalStatus" | "proposalPricing" | "proposalScope" | "proposalSentAt" | "agents" | "executionStatus" | "executionRequestedAt" | "executionStartedAt" | "executionFinishedAt" | "executionAttempts" | "executionError" | "directionApprovedAt" | "presentedAt" | "clientApprovedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
 export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
@@ -3126,6 +3197,10 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     cycles: Prisma.$CyclePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+     */
+    estadoCanonico: string | null
     id: string
     workspaceId: string
     clientId: string
@@ -3235,8 +3310,8 @@ export interface ProjectDelegate<ExtArgs extends runtime.Types.Extensions.Intern
    * // Get first 10 Projects
    * const projects = await prisma.project.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const projectWithIdOnly = await prisma.project.findMany({ select: { id: true } })
+   * // Only select the `estadoCanonico`
+   * const projectWithEstadoCanonicoOnly = await prisma.project.findMany({ select: { estadoCanonico: true } })
    * 
    */
   findMany<T extends ProjectFindManyArgs>(args?: Prisma.SelectSubset<T, ProjectFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -3280,9 +3355,9 @@ export interface ProjectDelegate<ExtArgs extends runtime.Types.Extensions.Intern
    *   ]
    * })
    * 
-   * // Create many Projects and only return the `id`
-   * const projectWithIdOnly = await prisma.project.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many Projects and only return the `estadoCanonico`
+   * const projectWithEstadoCanonicoOnly = await prisma.project.createManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -3371,9 +3446,9 @@ export interface ProjectDelegate<ExtArgs extends runtime.Types.Extensions.Intern
    *   ]
    * })
    * 
-   * // Update zero or more Projects and only return the `id`
-   * const projectWithIdOnly = await prisma.project.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more Projects and only return the `estadoCanonico`
+   * const projectWithEstadoCanonicoOnly = await prisma.project.updateManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -3585,6 +3660,7 @@ export interface Prisma__ProjectClient<T, Null = never, ExtArgs extends runtime.
  * Fields of the Project model
  */
 export interface ProjectFieldRefs {
+  readonly estadoCanonico: Prisma.FieldRef<"Project", 'String'>
   readonly id: Prisma.FieldRef<"Project", 'String'>
   readonly workspaceId: Prisma.FieldRef<"Project", 'String'>
   readonly clientId: Prisma.FieldRef<"Project", 'String'>

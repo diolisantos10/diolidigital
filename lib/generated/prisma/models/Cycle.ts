@@ -25,6 +25,7 @@ export type AggregateCycle = {
 }
 
 export type CycleMinAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   projectId: string | null
   reference: string | null
@@ -41,6 +42,7 @@ export type CycleMinAggregateOutputType = {
 }
 
 export type CycleMaxAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   projectId: string | null
   reference: string | null
@@ -57,6 +59,7 @@ export type CycleMaxAggregateOutputType = {
 }
 
 export type CycleCountAggregateOutputType = {
+  estadoCanonico: number
   id: number
   projectId: number
   reference: number
@@ -75,6 +78,7 @@ export type CycleCountAggregateOutputType = {
 
 
 export type CycleMinAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   reference?: true
@@ -91,6 +95,7 @@ export type CycleMinAggregateInputType = {
 }
 
 export type CycleMaxAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   reference?: true
@@ -107,6 +112,7 @@ export type CycleMaxAggregateInputType = {
 }
 
 export type CycleCountAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   reference?: true
@@ -196,6 +202,7 @@ export type CycleGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
 }
 
 export type CycleGroupByOutputType = {
+  estadoCanonico: string | null
   id: string
   projectId: string
   reference: string
@@ -233,6 +240,7 @@ export type CycleWhereInput = {
   AND?: Prisma.CycleWhereInput | Prisma.CycleWhereInput[]
   OR?: Prisma.CycleWhereInput[]
   NOT?: Prisma.CycleWhereInput | Prisma.CycleWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Cycle"> | string | null
   id?: Prisma.StringFilter<"Cycle"> | string
   projectId?: Prisma.StringFilter<"Cycle"> | string
   reference?: Prisma.StringFilter<"Cycle"> | string
@@ -250,6 +258,7 @@ export type CycleWhereInput = {
 }
 
 export type CycleOrderByWithRelationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   reference?: Prisma.SortOrder
@@ -272,6 +281,7 @@ export type CycleWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.CycleWhereInput | Prisma.CycleWhereInput[]
   OR?: Prisma.CycleWhereInput[]
   NOT?: Prisma.CycleWhereInput | Prisma.CycleWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Cycle"> | string | null
   projectId?: Prisma.StringFilter<"Cycle"> | string
   reference?: Prisma.StringFilter<"Cycle"> | string
   status?: Prisma.StringFilter<"Cycle"> | string
@@ -288,6 +298,7 @@ export type CycleWhereUniqueInput = Prisma.AtLeast<{
 }, "id" | "projectId_reference">
 
 export type CycleOrderByWithAggregationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   reference?: Prisma.SortOrder
@@ -310,6 +321,7 @@ export type CycleScalarWhereWithAggregatesInput = {
   AND?: Prisma.CycleScalarWhereWithAggregatesInput | Prisma.CycleScalarWhereWithAggregatesInput[]
   OR?: Prisma.CycleScalarWhereWithAggregatesInput[]
   NOT?: Prisma.CycleScalarWhereWithAggregatesInput | Prisma.CycleScalarWhereWithAggregatesInput[]
+  estadoCanonico?: Prisma.StringNullableWithAggregatesFilter<"Cycle"> | string | null
   id?: Prisma.StringWithAggregatesFilter<"Cycle"> | string
   projectId?: Prisma.StringWithAggregatesFilter<"Cycle"> | string
   reference?: Prisma.StringWithAggregatesFilter<"Cycle"> | string
@@ -326,6 +338,7 @@ export type CycleScalarWhereWithAggregatesInput = {
 }
 
 export type CycleCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   reference: string
   status?: string
@@ -342,6 +355,7 @@ export type CycleCreateInput = {
 }
 
 export type CycleUncheckedCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   projectId: string
   reference: string
@@ -358,6 +372,7 @@ export type CycleUncheckedCreateInput = {
 }
 
 export type CycleUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reference?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -374,6 +389,7 @@ export type CycleUpdateInput = {
 }
 
 export type CycleUncheckedUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   reference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -390,6 +406,7 @@ export type CycleUncheckedUpdateInput = {
 }
 
 export type CycleCreateManyInput = {
+  estadoCanonico?: string | null
   id?: string
   projectId: string
   reference: string
@@ -406,6 +423,7 @@ export type CycleCreateManyInput = {
 }
 
 export type CycleUpdateManyMutationInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reference?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -421,6 +439,7 @@ export type CycleUpdateManyMutationInput = {
 }
 
 export type CycleUncheckedUpdateManyInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   reference?: Prisma.StringFieldUpdateOperationsInput | string
@@ -452,6 +471,7 @@ export type CycleProjectIdReferenceCompoundUniqueInput = {
 }
 
 export type CycleCountOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   reference?: Prisma.SortOrder
@@ -468,6 +488,7 @@ export type CycleCountOrderByAggregateInput = {
 }
 
 export type CycleMaxOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   reference?: Prisma.SortOrder
@@ -484,6 +505,7 @@ export type CycleMaxOrderByAggregateInput = {
 }
 
 export type CycleMinOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   reference?: Prisma.SortOrder
@@ -542,6 +564,7 @@ export type CycleUncheckedUpdateManyWithoutProjectNestedInput = {
 }
 
 export type CycleCreateWithoutProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   reference: string
   status?: string
@@ -557,6 +580,7 @@ export type CycleCreateWithoutProjectInput = {
 }
 
 export type CycleUncheckedCreateWithoutProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   reference: string
   status?: string
@@ -600,6 +624,7 @@ export type CycleScalarWhereInput = {
   AND?: Prisma.CycleScalarWhereInput | Prisma.CycleScalarWhereInput[]
   OR?: Prisma.CycleScalarWhereInput[]
   NOT?: Prisma.CycleScalarWhereInput | Prisma.CycleScalarWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Cycle"> | string | null
   id?: Prisma.StringFilter<"Cycle"> | string
   projectId?: Prisma.StringFilter<"Cycle"> | string
   reference?: Prisma.StringFilter<"Cycle"> | string
@@ -616,6 +641,7 @@ export type CycleScalarWhereInput = {
 }
 
 export type CycleCreateManyProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   reference: string
   status?: string
@@ -631,6 +657,7 @@ export type CycleCreateManyProjectInput = {
 }
 
 export type CycleUpdateWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reference?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -646,6 +673,7 @@ export type CycleUpdateWithoutProjectInput = {
 }
 
 export type CycleUncheckedUpdateWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reference?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -661,6 +689,7 @@ export type CycleUncheckedUpdateWithoutProjectInput = {
 }
 
 export type CycleUncheckedUpdateManyWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   reference?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
@@ -678,6 +707,7 @@ export type CycleUncheckedUpdateManyWithoutProjectInput = {
 
 
 export type CycleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   reference?: boolean
@@ -695,6 +725,7 @@ export type CycleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
 }, ExtArgs["result"]["cycle"]>
 
 export type CycleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   reference?: boolean
@@ -712,6 +743,7 @@ export type CycleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
 }, ExtArgs["result"]["cycle"]>
 
 export type CycleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   reference?: boolean
@@ -729,6 +761,7 @@ export type CycleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
 }, ExtArgs["result"]["cycle"]>
 
 export type CycleSelectScalar = {
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   reference?: boolean
@@ -744,7 +777,7 @@ export type CycleSelectScalar = {
   updatedAt?: boolean
 }
 
-export type CycleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "reference" | "status" | "startsOn" | "endsOn" | "planJson" | "resultsJson" | "summary" | "presentedAt" | "closedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["cycle"]>
+export type CycleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "projectId" | "reference" | "status" | "startsOn" | "endsOn" | "planJson" | "resultsJson" | "summary" | "presentedAt" | "closedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["cycle"]>
 export type CycleInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
 }
@@ -761,6 +794,10 @@ export type $CyclePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     project: Prisma.$ProjectPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+     */
+    estadoCanonico: string | null
     id: string
     projectId: string
     /**
@@ -877,8 +914,8 @@ export interface CycleDelegate<ExtArgs extends runtime.Types.Extensions.Internal
    * // Get first 10 Cycles
    * const cycles = await prisma.cycle.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const cycleWithIdOnly = await prisma.cycle.findMany({ select: { id: true } })
+   * // Only select the `estadoCanonico`
+   * const cycleWithEstadoCanonicoOnly = await prisma.cycle.findMany({ select: { estadoCanonico: true } })
    * 
    */
   findMany<T extends CycleFindManyArgs>(args?: Prisma.SelectSubset<T, CycleFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CyclePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -922,9 +959,9 @@ export interface CycleDelegate<ExtArgs extends runtime.Types.Extensions.Internal
    *   ]
    * })
    * 
-   * // Create many Cycles and only return the `id`
-   * const cycleWithIdOnly = await prisma.cycle.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many Cycles and only return the `estadoCanonico`
+   * const cycleWithEstadoCanonicoOnly = await prisma.cycle.createManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -1013,9 +1050,9 @@ export interface CycleDelegate<ExtArgs extends runtime.Types.Extensions.Internal
    *   ]
    * })
    * 
-   * // Update zero or more Cycles and only return the `id`
-   * const cycleWithIdOnly = await prisma.cycle.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more Cycles and only return the `estadoCanonico`
+   * const cycleWithEstadoCanonicoOnly = await prisma.cycle.updateManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1218,6 +1255,7 @@ export interface Prisma__CycleClient<T, Null = never, ExtArgs extends runtime.Ty
  * Fields of the Cycle model
  */
 export interface CycleFieldRefs {
+  readonly estadoCanonico: Prisma.FieldRef<"Cycle", 'String'>
   readonly id: Prisma.FieldRef<"Cycle", 'String'>
   readonly projectId: Prisma.FieldRef<"Cycle", 'String'>
   readonly reference: Prisma.FieldRef<"Cycle", 'String'>

@@ -25,6 +25,7 @@ export type AggregateClientRequestDb = {
 }
 
 export type ClientRequestDbMinAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   workspaceId: string | null
   clientId: string | null
@@ -43,6 +44,7 @@ export type ClientRequestDbMinAggregateOutputType = {
 }
 
 export type ClientRequestDbMaxAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   workspaceId: string | null
   clientId: string | null
@@ -61,6 +63,7 @@ export type ClientRequestDbMaxAggregateOutputType = {
 }
 
 export type ClientRequestDbCountAggregateOutputType = {
+  estadoCanonico: number
   id: number
   workspaceId: number
   clientId: number
@@ -81,6 +84,7 @@ export type ClientRequestDbCountAggregateOutputType = {
 
 
 export type ClientRequestDbMinAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   clientId?: true
@@ -99,6 +103,7 @@ export type ClientRequestDbMinAggregateInputType = {
 }
 
 export type ClientRequestDbMaxAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   clientId?: true
@@ -117,6 +122,7 @@ export type ClientRequestDbMaxAggregateInputType = {
 }
 
 export type ClientRequestDbCountAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   clientId?: true
@@ -208,6 +214,7 @@ export type ClientRequestDbGroupByArgs<ExtArgs extends runtime.Types.Extensions.
 }
 
 export type ClientRequestDbGroupByOutputType = {
+  estadoCanonico: string | null
   id: string
   workspaceId: string | null
   clientId: string | null
@@ -247,6 +254,7 @@ export type ClientRequestDbWhereInput = {
   AND?: Prisma.ClientRequestDbWhereInput | Prisma.ClientRequestDbWhereInput[]
   OR?: Prisma.ClientRequestDbWhereInput[]
   NOT?: Prisma.ClientRequestDbWhereInput | Prisma.ClientRequestDbWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
   id?: Prisma.StringFilter<"ClientRequestDb"> | string
   workspaceId?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
   clientId?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
@@ -270,6 +278,7 @@ export type ClientRequestDbWhereInput = {
 }
 
 export type ClientRequestDbOrderByWithRelationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrderInput | Prisma.SortOrder
   clientId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -297,6 +306,7 @@ export type ClientRequestDbWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ClientRequestDbWhereInput | Prisma.ClientRequestDbWhereInput[]
   OR?: Prisma.ClientRequestDbWhereInput[]
   NOT?: Prisma.ClientRequestDbWhereInput | Prisma.ClientRequestDbWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
   workspaceId?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
   clientId?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
   businessName?: Prisma.StringFilter<"ClientRequestDb"> | string
@@ -319,6 +329,7 @@ export type ClientRequestDbWhereUniqueInput = Prisma.AtLeast<{
 }, "id">
 
 export type ClientRequestDbOrderByWithAggregationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrderInput | Prisma.SortOrder
   clientId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -343,6 +354,7 @@ export type ClientRequestDbScalarWhereWithAggregatesInput = {
   AND?: Prisma.ClientRequestDbScalarWhereWithAggregatesInput | Prisma.ClientRequestDbScalarWhereWithAggregatesInput[]
   OR?: Prisma.ClientRequestDbScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ClientRequestDbScalarWhereWithAggregatesInput | Prisma.ClientRequestDbScalarWhereWithAggregatesInput[]
+  estadoCanonico?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
   id?: Prisma.StringWithAggregatesFilter<"ClientRequestDb"> | string
   workspaceId?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
   clientId?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
@@ -361,6 +373,7 @@ export type ClientRequestDbScalarWhereWithAggregatesInput = {
 }
 
 export type ClientRequestDbCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -384,6 +397,7 @@ export type ClientRequestDbCreateInput = {
 }
 
 export type ClientRequestDbUncheckedCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -407,6 +421,7 @@ export type ClientRequestDbUncheckedCreateInput = {
 }
 
 export type ClientRequestDbUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -430,6 +445,7 @@ export type ClientRequestDbUpdateInput = {
 }
 
 export type ClientRequestDbUncheckedUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -453,6 +469,7 @@ export type ClientRequestDbUncheckedUpdateInput = {
 }
 
 export type ClientRequestDbCreateManyInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -471,6 +488,7 @@ export type ClientRequestDbCreateManyInput = {
 }
 
 export type ClientRequestDbUpdateManyMutationInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -489,6 +507,7 @@ export type ClientRequestDbUpdateManyMutationInput = {
 }
 
 export type ClientRequestDbUncheckedUpdateManyInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -507,6 +526,7 @@ export type ClientRequestDbUncheckedUpdateManyInput = {
 }
 
 export type ClientRequestDbCountOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -525,6 +545,7 @@ export type ClientRequestDbCountOrderByAggregateInput = {
 }
 
 export type ClientRequestDbMaxOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -543,6 +564,7 @@ export type ClientRequestDbMaxOrderByAggregateInput = {
 }
 
 export type ClientRequestDbMinOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -646,6 +668,7 @@ export type ClientRequestDbUpdateOneWithoutPortalAccessNestedInput = {
 }
 
 export type ClientRequestDbCreateWithoutMessagesInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -668,6 +691,7 @@ export type ClientRequestDbCreateWithoutMessagesInput = {
 }
 
 export type ClientRequestDbUncheckedCreateWithoutMessagesInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -706,6 +730,7 @@ export type ClientRequestDbUpdateToOneWithWhereWithoutMessagesInput = {
 }
 
 export type ClientRequestDbUpdateWithoutMessagesInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -728,6 +753,7 @@ export type ClientRequestDbUpdateWithoutMessagesInput = {
 }
 
 export type ClientRequestDbUncheckedUpdateWithoutMessagesInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -750,6 +776,7 @@ export type ClientRequestDbUncheckedUpdateWithoutMessagesInput = {
 }
 
 export type ClientRequestDbCreateWithoutArtifactsInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -772,6 +799,7 @@ export type ClientRequestDbCreateWithoutArtifactsInput = {
 }
 
 export type ClientRequestDbUncheckedCreateWithoutArtifactsInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -810,6 +838,7 @@ export type ClientRequestDbUpdateToOneWithWhereWithoutArtifactsInput = {
 }
 
 export type ClientRequestDbUpdateWithoutArtifactsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -832,6 +861,7 @@ export type ClientRequestDbUpdateWithoutArtifactsInput = {
 }
 
 export type ClientRequestDbUncheckedUpdateWithoutArtifactsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -854,6 +884,7 @@ export type ClientRequestDbUncheckedUpdateWithoutArtifactsInput = {
 }
 
 export type ClientRequestDbCreateWithoutApprovalsInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -876,6 +907,7 @@ export type ClientRequestDbCreateWithoutApprovalsInput = {
 }
 
 export type ClientRequestDbUncheckedCreateWithoutApprovalsInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -914,6 +946,7 @@ export type ClientRequestDbUpdateToOneWithWhereWithoutApprovalsInput = {
 }
 
 export type ClientRequestDbUpdateWithoutApprovalsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -936,6 +969,7 @@ export type ClientRequestDbUpdateWithoutApprovalsInput = {
 }
 
 export type ClientRequestDbUncheckedUpdateWithoutApprovalsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -958,6 +992,7 @@ export type ClientRequestDbUncheckedUpdateWithoutApprovalsInput = {
 }
 
 export type ClientRequestDbCreateWithoutEvidenceItemsInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -980,6 +1015,7 @@ export type ClientRequestDbCreateWithoutEvidenceItemsInput = {
 }
 
 export type ClientRequestDbUncheckedCreateWithoutEvidenceItemsInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -1018,6 +1054,7 @@ export type ClientRequestDbUpdateToOneWithWhereWithoutEvidenceItemsInput = {
 }
 
 export type ClientRequestDbUpdateWithoutEvidenceItemsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1040,6 +1077,7 @@ export type ClientRequestDbUpdateWithoutEvidenceItemsInput = {
 }
 
 export type ClientRequestDbUncheckedUpdateWithoutEvidenceItemsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1062,6 +1100,7 @@ export type ClientRequestDbUncheckedUpdateWithoutEvidenceItemsInput = {
 }
 
 export type ClientRequestDbCreateWithoutPortalAccessInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -1084,6 +1123,7 @@ export type ClientRequestDbCreateWithoutPortalAccessInput = {
 }
 
 export type ClientRequestDbUncheckedCreateWithoutPortalAccessInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId?: string | null
   clientId?: string | null
@@ -1122,6 +1162,7 @@ export type ClientRequestDbUpdateToOneWithWhereWithoutPortalAccessInput = {
 }
 
 export type ClientRequestDbUpdateWithoutPortalAccessInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1144,6 +1185,7 @@ export type ClientRequestDbUpdateWithoutPortalAccessInput = {
 }
 
 export type ClientRequestDbUncheckedUpdateWithoutPortalAccessInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1233,6 +1275,7 @@ export type ClientRequestDbCountOutputTypeCountMessagesArgs<ExtArgs extends runt
 
 
 export type ClientRequestDbSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -1257,6 +1300,7 @@ export type ClientRequestDbSelect<ExtArgs extends runtime.Types.Extensions.Inter
 }, ExtArgs["result"]["clientRequestDb"]>
 
 export type ClientRequestDbSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -1275,6 +1319,7 @@ export type ClientRequestDbSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
 }, ExtArgs["result"]["clientRequestDb"]>
 
 export type ClientRequestDbSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -1293,6 +1338,7 @@ export type ClientRequestDbSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
 }, ExtArgs["result"]["clientRequestDb"]>
 
 export type ClientRequestDbSelectScalar = {
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -1310,7 +1356,7 @@ export type ClientRequestDbSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ClientRequestDbOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "businessName" | "segment" | "services" | "objectives" | "status" | "source" | "rawContext" | "briefingJson" | "sdrHandoffJson" | "attachmentsJson" | "createdAt" | "updatedAt", ExtArgs["result"]["clientRequestDb"]>
+export type ClientRequestDbOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "clientId" | "businessName" | "segment" | "services" | "objectives" | "status" | "source" | "rawContext" | "briefingJson" | "sdrHandoffJson" | "attachmentsJson" | "createdAt" | "updatedAt", ExtArgs["result"]["clientRequestDb"]>
 export type ClientRequestDbInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   artifacts?: boolean | Prisma.ClientRequestDb$artifactsArgs<ExtArgs>
   approvals?: boolean | Prisma.ClientRequestDb$approvalsArgs<ExtArgs>
@@ -1332,6 +1378,10 @@ export type $ClientRequestDbPayload<ExtArgs extends runtime.Types.Extensions.Int
     messages: Prisma.$PortalMessagePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+     */
+    estadoCanonico: string | null
     id: string
     workspaceId: string | null
     clientId: string | null
@@ -1430,8 +1480,8 @@ export interface ClientRequestDbDelegate<ExtArgs extends runtime.Types.Extension
    * // Get first 10 ClientRequestDbs
    * const clientRequestDbs = await prisma.clientRequestDb.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const clientRequestDbWithIdOnly = await prisma.clientRequestDb.findMany({ select: { id: true } })
+   * // Only select the `estadoCanonico`
+   * const clientRequestDbWithEstadoCanonicoOnly = await prisma.clientRequestDb.findMany({ select: { estadoCanonico: true } })
    * 
    */
   findMany<T extends ClientRequestDbFindManyArgs>(args?: Prisma.SelectSubset<T, ClientRequestDbFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClientRequestDbPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -1475,9 +1525,9 @@ export interface ClientRequestDbDelegate<ExtArgs extends runtime.Types.Extension
    *   ]
    * })
    * 
-   * // Create many ClientRequestDbs and only return the `id`
-   * const clientRequestDbWithIdOnly = await prisma.clientRequestDb.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many ClientRequestDbs and only return the `estadoCanonico`
+   * const clientRequestDbWithEstadoCanonicoOnly = await prisma.clientRequestDb.createManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -1566,9 +1616,9 @@ export interface ClientRequestDbDelegate<ExtArgs extends runtime.Types.Extension
    *   ]
    * })
    * 
-   * // Update zero or more ClientRequestDbs and only return the `id`
-   * const clientRequestDbWithIdOnly = await prisma.clientRequestDb.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more ClientRequestDbs and only return the `estadoCanonico`
+   * const clientRequestDbWithEstadoCanonicoOnly = await prisma.clientRequestDb.updateManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1775,6 +1825,7 @@ export interface Prisma__ClientRequestDbClient<T, Null = never, ExtArgs extends 
  * Fields of the ClientRequestDb model
  */
 export interface ClientRequestDbFieldRefs {
+  readonly estadoCanonico: Prisma.FieldRef<"ClientRequestDb", 'String'>
   readonly id: Prisma.FieldRef<"ClientRequestDb", 'String'>
   readonly workspaceId: Prisma.FieldRef<"ClientRequestDb", 'String'>
   readonly clientId: Prisma.FieldRef<"ClientRequestDb", 'String'>

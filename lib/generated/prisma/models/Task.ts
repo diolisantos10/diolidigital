@@ -25,6 +25,7 @@ export type AggregateTask = {
 }
 
 export type TaskMinAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   projectId: string | null
   title: string | null
@@ -38,6 +39,7 @@ export type TaskMinAggregateOutputType = {
 }
 
 export type TaskMaxAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   projectId: string | null
   title: string | null
@@ -51,6 +53,7 @@ export type TaskMaxAggregateOutputType = {
 }
 
 export type TaskCountAggregateOutputType = {
+  estadoCanonico: number
   id: number
   projectId: number
   title: number
@@ -66,6 +69,7 @@ export type TaskCountAggregateOutputType = {
 
 
 export type TaskMinAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   title?: true
@@ -79,6 +83,7 @@ export type TaskMinAggregateInputType = {
 }
 
 export type TaskMaxAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   title?: true
@@ -92,6 +97,7 @@ export type TaskMaxAggregateInputType = {
 }
 
 export type TaskCountAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   title?: true
@@ -178,6 +184,7 @@ export type TaskGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
 }
 
 export type TaskGroupByOutputType = {
+  estadoCanonico: string | null
   id: string
   projectId: string
   title: string
@@ -212,6 +219,7 @@ export type TaskWhereInput = {
   AND?: Prisma.TaskWhereInput | Prisma.TaskWhereInput[]
   OR?: Prisma.TaskWhereInput[]
   NOT?: Prisma.TaskWhereInput | Prisma.TaskWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Task"> | string | null
   id?: Prisma.StringFilter<"Task"> | string
   projectId?: Prisma.StringFilter<"Task"> | string
   title?: Prisma.StringFilter<"Task"> | string
@@ -226,6 +234,7 @@ export type TaskWhereInput = {
 }
 
 export type TaskOrderByWithRelationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   title?: Prisma.SortOrder
@@ -244,6 +253,7 @@ export type TaskWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.TaskWhereInput | Prisma.TaskWhereInput[]
   OR?: Prisma.TaskWhereInput[]
   NOT?: Prisma.TaskWhereInput | Prisma.TaskWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Task"> | string | null
   projectId?: Prisma.StringFilter<"Task"> | string
   title?: Prisma.StringFilter<"Task"> | string
   description?: Prisma.StringNullableFilter<"Task"> | string | null
@@ -257,6 +267,7 @@ export type TaskWhereUniqueInput = Prisma.AtLeast<{
 }, "id">
 
 export type TaskOrderByWithAggregationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   title?: Prisma.SortOrder
@@ -276,6 +287,7 @@ export type TaskScalarWhereWithAggregatesInput = {
   AND?: Prisma.TaskScalarWhereWithAggregatesInput | Prisma.TaskScalarWhereWithAggregatesInput[]
   OR?: Prisma.TaskScalarWhereWithAggregatesInput[]
   NOT?: Prisma.TaskScalarWhereWithAggregatesInput | Prisma.TaskScalarWhereWithAggregatesInput[]
+  estadoCanonico?: Prisma.StringNullableWithAggregatesFilter<"Task"> | string | null
   id?: Prisma.StringWithAggregatesFilter<"Task"> | string
   projectId?: Prisma.StringWithAggregatesFilter<"Task"> | string
   title?: Prisma.StringWithAggregatesFilter<"Task"> | string
@@ -289,6 +301,7 @@ export type TaskScalarWhereWithAggregatesInput = {
 }
 
 export type TaskCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   title: string
   description?: string | null
@@ -302,6 +315,7 @@ export type TaskCreateInput = {
 }
 
 export type TaskUncheckedCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   projectId: string
   title: string
@@ -315,6 +329,7 @@ export type TaskUncheckedCreateInput = {
 }
 
 export type TaskUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -328,6 +343,7 @@ export type TaskUpdateInput = {
 }
 
 export type TaskUncheckedUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -341,6 +357,7 @@ export type TaskUncheckedUpdateInput = {
 }
 
 export type TaskCreateManyInput = {
+  estadoCanonico?: string | null
   id?: string
   projectId: string
   title: string
@@ -354,6 +371,7 @@ export type TaskCreateManyInput = {
 }
 
 export type TaskUpdateManyMutationInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -366,6 +384,7 @@ export type TaskUpdateManyMutationInput = {
 }
 
 export type TaskUncheckedUpdateManyInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -389,6 +408,7 @@ export type TaskOrderByRelationAggregateInput = {
 }
 
 export type TaskCountOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   title?: Prisma.SortOrder
@@ -402,6 +422,7 @@ export type TaskCountOrderByAggregateInput = {
 }
 
 export type TaskMaxOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   title?: Prisma.SortOrder
@@ -415,6 +436,7 @@ export type TaskMaxOrderByAggregateInput = {
 }
 
 export type TaskMinOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   title?: Prisma.SortOrder
@@ -470,6 +492,7 @@ export type TaskUncheckedUpdateManyWithoutProjectNestedInput = {
 }
 
 export type TaskCreateWithoutProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   title: string
   description?: string | null
@@ -482,6 +505,7 @@ export type TaskCreateWithoutProjectInput = {
 }
 
 export type TaskUncheckedCreateWithoutProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   title: string
   description?: string | null
@@ -522,6 +546,7 @@ export type TaskScalarWhereInput = {
   AND?: Prisma.TaskScalarWhereInput | Prisma.TaskScalarWhereInput[]
   OR?: Prisma.TaskScalarWhereInput[]
   NOT?: Prisma.TaskScalarWhereInput | Prisma.TaskScalarWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Task"> | string | null
   id?: Prisma.StringFilter<"Task"> | string
   projectId?: Prisma.StringFilter<"Task"> | string
   title?: Prisma.StringFilter<"Task"> | string
@@ -535,6 +560,7 @@ export type TaskScalarWhereInput = {
 }
 
 export type TaskCreateManyProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   title: string
   description?: string | null
@@ -547,6 +573,7 @@ export type TaskCreateManyProjectInput = {
 }
 
 export type TaskUpdateWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -559,6 +586,7 @@ export type TaskUpdateWithoutProjectInput = {
 }
 
 export type TaskUncheckedUpdateWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -571,6 +599,7 @@ export type TaskUncheckedUpdateWithoutProjectInput = {
 }
 
 export type TaskUncheckedUpdateManyWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -585,6 +614,7 @@ export type TaskUncheckedUpdateManyWithoutProjectInput = {
 
 
 export type TaskSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   title?: boolean
@@ -599,6 +629,7 @@ export type TaskSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
 }, ExtArgs["result"]["task"]>
 
 export type TaskSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   title?: boolean
@@ -613,6 +644,7 @@ export type TaskSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
 }, ExtArgs["result"]["task"]>
 
 export type TaskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   title?: boolean
@@ -627,6 +659,7 @@ export type TaskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
 }, ExtArgs["result"]["task"]>
 
 export type TaskSelectScalar = {
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   title?: boolean
@@ -639,7 +672,7 @@ export type TaskSelectScalar = {
   updatedAt?: boolean
 }
 
-export type TaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "title" | "description" | "agentId" | "status" | "dueDate" | "deliverableId" | "createdAt" | "updatedAt", ExtArgs["result"]["task"]>
+export type TaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "projectId" | "title" | "description" | "agentId" | "status" | "dueDate" | "deliverableId" | "createdAt" | "updatedAt", ExtArgs["result"]["task"]>
 export type TaskInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
 }
@@ -656,6 +689,10 @@ export type $TaskPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     project: Prisma.$ProjectPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+     */
+    estadoCanonico: string | null
     id: string
     projectId: string
     title: string
@@ -749,8 +786,8 @@ export interface TaskDelegate<ExtArgs extends runtime.Types.Extensions.InternalA
    * // Get first 10 Tasks
    * const tasks = await prisma.task.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const taskWithIdOnly = await prisma.task.findMany({ select: { id: true } })
+   * // Only select the `estadoCanonico`
+   * const taskWithEstadoCanonicoOnly = await prisma.task.findMany({ select: { estadoCanonico: true } })
    * 
    */
   findMany<T extends TaskFindManyArgs>(args?: Prisma.SelectSubset<T, TaskFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -794,9 +831,9 @@ export interface TaskDelegate<ExtArgs extends runtime.Types.Extensions.InternalA
    *   ]
    * })
    * 
-   * // Create many Tasks and only return the `id`
-   * const taskWithIdOnly = await prisma.task.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many Tasks and only return the `estadoCanonico`
+   * const taskWithEstadoCanonicoOnly = await prisma.task.createManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -885,9 +922,9 @@ export interface TaskDelegate<ExtArgs extends runtime.Types.Extensions.InternalA
    *   ]
    * })
    * 
-   * // Update zero or more Tasks and only return the `id`
-   * const taskWithIdOnly = await prisma.task.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more Tasks and only return the `estadoCanonico`
+   * const taskWithEstadoCanonicoOnly = await prisma.task.updateManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1090,6 +1127,7 @@ export interface Prisma__TaskClient<T, Null = never, ExtArgs extends runtime.Typ
  * Fields of the Task model
  */
 export interface TaskFieldRefs {
+  readonly estadoCanonico: Prisma.FieldRef<"Task", 'String'>
   readonly id: Prisma.FieldRef<"Task", 'String'>
   readonly projectId: Prisma.FieldRef<"Task", 'String'>
   readonly title: Prisma.FieldRef<"Task", 'String'>

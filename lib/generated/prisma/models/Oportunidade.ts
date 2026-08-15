@@ -54,6 +54,7 @@ export type OportunidadeSumAggregateOutputType = {
 }
 
 export type OportunidadeMinAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   workspaceId: string | null
   plataforma: string | null
@@ -82,6 +83,7 @@ export type OportunidadeMinAggregateOutputType = {
 }
 
 export type OportunidadeMaxAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   workspaceId: string | null
   plataforma: string | null
@@ -110,6 +112,7 @@ export type OportunidadeMaxAggregateOutputType = {
 }
 
 export type OportunidadeCountAggregateOutputType = {
+  estadoCanonico: number
   id: number
   workspaceId: number
   plataforma: number
@@ -152,6 +155,7 @@ export type OportunidadeSumAggregateInputType = {
 }
 
 export type OportunidadeMinAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   plataforma?: true
@@ -180,6 +184,7 @@ export type OportunidadeMinAggregateInputType = {
 }
 
 export type OportunidadeMaxAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   plataforma?: true
@@ -208,6 +213,7 @@ export type OportunidadeMaxAggregateInputType = {
 }
 
 export type OportunidadeCountAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   plataforma?: true
@@ -323,6 +329,7 @@ export type OportunidadeGroupByArgs<ExtArgs extends runtime.Types.Extensions.Int
 }
 
 export type OportunidadeGroupByOutputType = {
+  estadoCanonico: string | null
   id: string
   workspaceId: string
   plataforma: string
@@ -374,6 +381,7 @@ export type OportunidadeWhereInput = {
   AND?: Prisma.OportunidadeWhereInput | Prisma.OportunidadeWhereInput[]
   OR?: Prisma.OportunidadeWhereInput[]
   NOT?: Prisma.OportunidadeWhereInput | Prisma.OportunidadeWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
   id?: Prisma.StringFilter<"Oportunidade"> | string
   workspaceId?: Prisma.StringFilter<"Oportunidade"> | string
   plataforma?: Prisma.StringFilter<"Oportunidade"> | string
@@ -402,6 +410,7 @@ export type OportunidadeWhereInput = {
 }
 
 export type OportunidadeOrderByWithRelationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   plataforma?: Prisma.SortOrder
@@ -435,6 +444,7 @@ export type OportunidadeWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.OportunidadeWhereInput | Prisma.OportunidadeWhereInput[]
   OR?: Prisma.OportunidadeWhereInput[]
   NOT?: Prisma.OportunidadeWhereInput | Prisma.OportunidadeWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
   workspaceId?: Prisma.StringFilter<"Oportunidade"> | string
   plataforma?: Prisma.StringFilter<"Oportunidade"> | string
   urlExterna?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
@@ -462,6 +472,7 @@ export type OportunidadeWhereUniqueInput = Prisma.AtLeast<{
 }, "id" | "workspaceId_impressaoDigital">
 
 export type OportunidadeOrderByWithAggregationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   plataforma?: Prisma.SortOrder
@@ -498,6 +509,7 @@ export type OportunidadeScalarWhereWithAggregatesInput = {
   AND?: Prisma.OportunidadeScalarWhereWithAggregatesInput | Prisma.OportunidadeScalarWhereWithAggregatesInput[]
   OR?: Prisma.OportunidadeScalarWhereWithAggregatesInput[]
   NOT?: Prisma.OportunidadeScalarWhereWithAggregatesInput | Prisma.OportunidadeScalarWhereWithAggregatesInput[]
+  estadoCanonico?: Prisma.StringNullableWithAggregatesFilter<"Oportunidade"> | string | null
   id?: Prisma.StringWithAggregatesFilter<"Oportunidade"> | string
   workspaceId?: Prisma.StringWithAggregatesFilter<"Oportunidade"> | string
   plataforma?: Prisma.StringWithAggregatesFilter<"Oportunidade"> | string
@@ -526,6 +538,7 @@ export type OportunidadeScalarWhereWithAggregatesInput = {
 }
 
 export type OportunidadeCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   plataforma: string
@@ -554,6 +567,7 @@ export type OportunidadeCreateInput = {
 }
 
 export type OportunidadeUncheckedCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   plataforma: string
@@ -582,6 +596,7 @@ export type OportunidadeUncheckedCreateInput = {
 }
 
 export type OportunidadeUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   plataforma?: Prisma.StringFieldUpdateOperationsInput | string
@@ -610,6 +625,7 @@ export type OportunidadeUpdateInput = {
 }
 
 export type OportunidadeUncheckedUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   plataforma?: Prisma.StringFieldUpdateOperationsInput | string
@@ -638,6 +654,7 @@ export type OportunidadeUncheckedUpdateInput = {
 }
 
 export type OportunidadeCreateManyInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   plataforma: string
@@ -666,6 +683,7 @@ export type OportunidadeCreateManyInput = {
 }
 
 export type OportunidadeUpdateManyMutationInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   plataforma?: Prisma.StringFieldUpdateOperationsInput | string
@@ -694,6 +712,7 @@ export type OportunidadeUpdateManyMutationInput = {
 }
 
 export type OportunidadeUncheckedUpdateManyInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   plataforma?: Prisma.StringFieldUpdateOperationsInput | string
@@ -727,6 +746,7 @@ export type OportunidadeWorkspaceIdImpressaoDigitalCompoundUniqueInput = {
 }
 
 export type OportunidadeCountOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   plataforma?: Prisma.SortOrder
@@ -761,6 +781,7 @@ export type OportunidadeAvgOrderByAggregateInput = {
 }
 
 export type OportunidadeMaxOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   plataforma?: Prisma.SortOrder
@@ -789,6 +810,7 @@ export type OportunidadeMaxOrderByAggregateInput = {
 }
 
 export type OportunidadeMinOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   plataforma?: Prisma.SortOrder
@@ -829,6 +851,7 @@ export type NullableBoolFieldUpdateOperationsInput = {
 
 
 export type OportunidadeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   plataforma?: boolean
@@ -857,6 +880,7 @@ export type OportunidadeSelect<ExtArgs extends runtime.Types.Extensions.Internal
 }, ExtArgs["result"]["oportunidade"]>
 
 export type OportunidadeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   plataforma?: boolean
@@ -885,6 +909,7 @@ export type OportunidadeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
 }, ExtArgs["result"]["oportunidade"]>
 
 export type OportunidadeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   plataforma?: boolean
@@ -913,6 +938,7 @@ export type OportunidadeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
 }, ExtArgs["result"]["oportunidade"]>
 
 export type OportunidadeSelectScalar = {
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   plataforma?: boolean
@@ -940,12 +966,16 @@ export type OportunidadeSelectScalar = {
   updatedAt?: boolean
 }
 
-export type OportunidadeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "plataforma" | "urlExterna" | "titulo" | "descricao" | "categoria" | "orcamentoInformado" | "prazoInformado" | "textoBruto" | "impressaoDigital" | "nota" | "servicoSugerido" | "raciocinio" | "status" | "propostaTexto" | "valorSugerido" | "conformidadeOk" | "conformidadeAchados" | "propostaHigienizada" | "precoDetalhe" | "decididoPor" | "decididoEm" | "createdAt" | "updatedAt", ExtArgs["result"]["oportunidade"]>
+export type OportunidadeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "plataforma" | "urlExterna" | "titulo" | "descricao" | "categoria" | "orcamentoInformado" | "prazoInformado" | "textoBruto" | "impressaoDigital" | "nota" | "servicoSugerido" | "raciocinio" | "status" | "propostaTexto" | "valorSugerido" | "conformidadeOk" | "conformidadeAchados" | "propostaHigienizada" | "precoDetalhe" | "decididoPor" | "decididoEm" | "createdAt" | "updatedAt", ExtArgs["result"]["oportunidade"]>
 
 export type $OportunidadePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Oportunidade"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+     */
+    estadoCanonico: string | null
     id: string
     workspaceId: string
     /**
@@ -1125,8 +1155,8 @@ export interface OportunidadeDelegate<ExtArgs extends runtime.Types.Extensions.I
    * // Get first 10 Oportunidades
    * const oportunidades = await prisma.oportunidade.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const oportunidadeWithIdOnly = await prisma.oportunidade.findMany({ select: { id: true } })
+   * // Only select the `estadoCanonico`
+   * const oportunidadeWithEstadoCanonicoOnly = await prisma.oportunidade.findMany({ select: { estadoCanonico: true } })
    * 
    */
   findMany<T extends OportunidadeFindManyArgs>(args?: Prisma.SelectSubset<T, OportunidadeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OportunidadePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -1170,9 +1200,9 @@ export interface OportunidadeDelegate<ExtArgs extends runtime.Types.Extensions.I
    *   ]
    * })
    * 
-   * // Create many Oportunidades and only return the `id`
-   * const oportunidadeWithIdOnly = await prisma.oportunidade.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many Oportunidades and only return the `estadoCanonico`
+   * const oportunidadeWithEstadoCanonicoOnly = await prisma.oportunidade.createManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -1261,9 +1291,9 @@ export interface OportunidadeDelegate<ExtArgs extends runtime.Types.Extensions.I
    *   ]
    * })
    * 
-   * // Update zero or more Oportunidades and only return the `id`
-   * const oportunidadeWithIdOnly = await prisma.oportunidade.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more Oportunidades and only return the `estadoCanonico`
+   * const oportunidadeWithEstadoCanonicoOnly = await prisma.oportunidade.updateManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1465,6 +1495,7 @@ export interface Prisma__OportunidadeClient<T, Null = never, ExtArgs extends run
  * Fields of the Oportunidade model
  */
 export interface OportunidadeFieldRefs {
+  readonly estadoCanonico: Prisma.FieldRef<"Oportunidade", 'String'>
   readonly id: Prisma.FieldRef<"Oportunidade", 'String'>
   readonly workspaceId: Prisma.FieldRef<"Oportunidade", 'String'>
   readonly plataforma: Prisma.FieldRef<"Oportunidade", 'String'>

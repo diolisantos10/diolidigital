@@ -25,6 +25,7 @@ export type AggregateSocialPost = {
 }
 
 export type SocialPostMinAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   workspaceId: string | null
   clientId: string | null
@@ -52,6 +53,7 @@ export type SocialPostMinAggregateOutputType = {
 }
 
 export type SocialPostMaxAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   workspaceId: string | null
   clientId: string | null
@@ -79,6 +81,7 @@ export type SocialPostMaxAggregateOutputType = {
 }
 
 export type SocialPostCountAggregateOutputType = {
+  estadoCanonico: number
   id: number
   workspaceId: number
   clientId: number
@@ -108,6 +111,7 @@ export type SocialPostCountAggregateOutputType = {
 
 
 export type SocialPostMinAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   clientId?: true
@@ -135,6 +139,7 @@ export type SocialPostMinAggregateInputType = {
 }
 
 export type SocialPostMaxAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   clientId?: true
@@ -162,6 +167,7 @@ export type SocialPostMaxAggregateInputType = {
 }
 
 export type SocialPostCountAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   workspaceId?: true
   clientId?: true
@@ -262,6 +268,7 @@ export type SocialPostGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
 }
 
 export type SocialPostGroupByOutputType = {
+  estadoCanonico: string | null
   id: string
   workspaceId: string
   clientId: string | null
@@ -310,6 +317,7 @@ export type SocialPostWhereInput = {
   AND?: Prisma.SocialPostWhereInput | Prisma.SocialPostWhereInput[]
   OR?: Prisma.SocialPostWhereInput[]
   NOT?: Prisma.SocialPostWhereInput | Prisma.SocialPostWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   id?: Prisma.StringFilter<"SocialPost"> | string
   workspaceId?: Prisma.StringFilter<"SocialPost"> | string
   clientId?: Prisma.StringNullableFilter<"SocialPost"> | string | null
@@ -337,6 +345,7 @@ export type SocialPostWhereInput = {
 }
 
 export type SocialPostOrderByWithRelationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -368,6 +377,7 @@ export type SocialPostWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.SocialPostWhereInput | Prisma.SocialPostWhereInput[]
   OR?: Prisma.SocialPostWhereInput[]
   NOT?: Prisma.SocialPostWhereInput | Prisma.SocialPostWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   workspaceId?: Prisma.StringFilter<"SocialPost"> | string
   clientId?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   clientRequestId?: Prisma.StringNullableFilter<"SocialPost"> | string | null
@@ -394,6 +404,7 @@ export type SocialPostWhereUniqueInput = Prisma.AtLeast<{
 }, "id">
 
 export type SocialPostOrderByWithAggregationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -427,6 +438,7 @@ export type SocialPostScalarWhereWithAggregatesInput = {
   AND?: Prisma.SocialPostScalarWhereWithAggregatesInput | Prisma.SocialPostScalarWhereWithAggregatesInput[]
   OR?: Prisma.SocialPostScalarWhereWithAggregatesInput[]
   NOT?: Prisma.SocialPostScalarWhereWithAggregatesInput | Prisma.SocialPostScalarWhereWithAggregatesInput[]
+  estadoCanonico?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
   id?: Prisma.StringWithAggregatesFilter<"SocialPost"> | string
   workspaceId?: Prisma.StringWithAggregatesFilter<"SocialPost"> | string
   clientId?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
@@ -454,6 +466,7 @@ export type SocialPostScalarWhereWithAggregatesInput = {
 }
 
 export type SocialPostCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId?: string | null
@@ -481,6 +494,7 @@ export type SocialPostCreateInput = {
 }
 
 export type SocialPostUncheckedCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId?: string | null
@@ -508,6 +522,7 @@ export type SocialPostUncheckedCreateInput = {
 }
 
 export type SocialPostUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -535,6 +550,7 @@ export type SocialPostUpdateInput = {
 }
 
 export type SocialPostUncheckedUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -562,6 +578,7 @@ export type SocialPostUncheckedUpdateInput = {
 }
 
 export type SocialPostCreateManyInput = {
+  estadoCanonico?: string | null
   id?: string
   workspaceId: string
   clientId?: string | null
@@ -589,6 +606,7 @@ export type SocialPostCreateManyInput = {
 }
 
 export type SocialPostUpdateManyMutationInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -616,6 +634,7 @@ export type SocialPostUpdateManyMutationInput = {
 }
 
 export type SocialPostUncheckedUpdateManyInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -643,6 +662,7 @@ export type SocialPostUncheckedUpdateManyInput = {
 }
 
 export type SocialPostCountOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -670,6 +690,7 @@ export type SocialPostCountOrderByAggregateInput = {
 }
 
 export type SocialPostMaxOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -697,6 +718,7 @@ export type SocialPostMaxOrderByAggregateInput = {
 }
 
 export type SocialPostMinOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
@@ -726,6 +748,7 @@ export type SocialPostMinOrderByAggregateInput = {
 
 
 export type SocialPostSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -753,6 +776,7 @@ export type SocialPostSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
 }, ExtArgs["result"]["socialPost"]>
 
 export type SocialPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -780,6 +804,7 @@ export type SocialPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
 }, ExtArgs["result"]["socialPost"]>
 
 export type SocialPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -807,6 +832,7 @@ export type SocialPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
 }, ExtArgs["result"]["socialPost"]>
 
 export type SocialPostSelectScalar = {
+  estadoCanonico?: boolean
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
@@ -833,12 +859,16 @@ export type SocialPostSelectScalar = {
   updatedAt?: boolean
 }
 
-export type SocialPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "clientRequestId" | "caption" | "networks" | "format" | "pillar" | "mediaUrl" | "mediaUrlsJson" | "scenesJson" | "artDirection" | "scriptJson" | "visibility" | "scheduledFor" | "status" | "deliverableId" | "externalPostId" | "permalink" | "publishedAt" | "publishedBy" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["socialPost"]>
+export type SocialPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "clientId" | "clientRequestId" | "caption" | "networks" | "format" | "pillar" | "mediaUrl" | "mediaUrlsJson" | "scenesJson" | "artDirection" | "scriptJson" | "visibility" | "scheduledFor" | "status" | "deliverableId" | "externalPostId" | "permalink" | "publishedAt" | "publishedBy" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["socialPost"]>
 
 export type $SocialPostPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SocialPost"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+     */
+    estadoCanonico: string | null
     id: string
     workspaceId: string
     clientId: string | null
@@ -991,8 +1021,8 @@ export interface SocialPostDelegate<ExtArgs extends runtime.Types.Extensions.Int
    * // Get first 10 SocialPosts
    * const socialPosts = await prisma.socialPost.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const socialPostWithIdOnly = await prisma.socialPost.findMany({ select: { id: true } })
+   * // Only select the `estadoCanonico`
+   * const socialPostWithEstadoCanonicoOnly = await prisma.socialPost.findMany({ select: { estadoCanonico: true } })
    * 
    */
   findMany<T extends SocialPostFindManyArgs>(args?: Prisma.SelectSubset<T, SocialPostFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SocialPostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -1036,9 +1066,9 @@ export interface SocialPostDelegate<ExtArgs extends runtime.Types.Extensions.Int
    *   ]
    * })
    * 
-   * // Create many SocialPosts and only return the `id`
-   * const socialPostWithIdOnly = await prisma.socialPost.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many SocialPosts and only return the `estadoCanonico`
+   * const socialPostWithEstadoCanonicoOnly = await prisma.socialPost.createManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -1127,9 +1157,9 @@ export interface SocialPostDelegate<ExtArgs extends runtime.Types.Extensions.Int
    *   ]
    * })
    * 
-   * // Update zero or more SocialPosts and only return the `id`
-   * const socialPostWithIdOnly = await prisma.socialPost.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more SocialPosts and only return the `estadoCanonico`
+   * const socialPostWithEstadoCanonicoOnly = await prisma.socialPost.updateManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1331,6 +1361,7 @@ export interface Prisma__SocialPostClient<T, Null = never, ExtArgs extends runti
  * Fields of the SocialPost model
  */
 export interface SocialPostFieldRefs {
+  readonly estadoCanonico: Prisma.FieldRef<"SocialPost", 'String'>
   readonly id: Prisma.FieldRef<"SocialPost", 'String'>
   readonly workspaceId: Prisma.FieldRef<"SocialPost", 'String'>
   readonly clientId: Prisma.FieldRef<"SocialPost", 'String'>

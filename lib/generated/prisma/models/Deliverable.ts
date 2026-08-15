@@ -35,6 +35,7 @@ export type DeliverableSumAggregateOutputType = {
 }
 
 export type DeliverableMinAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   projectId: string | null
   name: string | null
@@ -54,6 +55,7 @@ export type DeliverableMinAggregateOutputType = {
 }
 
 export type DeliverableMaxAggregateOutputType = {
+  estadoCanonico: string | null
   id: string | null
   projectId: string | null
   name: string | null
@@ -73,6 +75,7 @@ export type DeliverableMaxAggregateOutputType = {
 }
 
 export type DeliverableCountAggregateOutputType = {
+  estadoCanonico: number
   id: number
   projectId: number
   name: number
@@ -102,6 +105,7 @@ export type DeliverableSumAggregateInputType = {
 }
 
 export type DeliverableMinAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   name?: true
@@ -121,6 +125,7 @@ export type DeliverableMinAggregateInputType = {
 }
 
 export type DeliverableMaxAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   name?: true
@@ -140,6 +145,7 @@ export type DeliverableMaxAggregateInputType = {
 }
 
 export type DeliverableCountAggregateInputType = {
+  estadoCanonico?: true
   id?: true
   projectId?: true
   name?: true
@@ -246,6 +252,7 @@ export type DeliverableGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
 }
 
 export type DeliverableGroupByOutputType = {
+  estadoCanonico: string | null
   id: string
   projectId: string
   name: string
@@ -288,6 +295,7 @@ export type DeliverableWhereInput = {
   AND?: Prisma.DeliverableWhereInput | Prisma.DeliverableWhereInput[]
   OR?: Prisma.DeliverableWhereInput[]
   NOT?: Prisma.DeliverableWhereInput | Prisma.DeliverableWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   id?: Prisma.StringFilter<"Deliverable"> | string
   projectId?: Prisma.StringFilter<"Deliverable"> | string
   name?: Prisma.StringFilter<"Deliverable"> | string
@@ -309,6 +317,7 @@ export type DeliverableWhereInput = {
 }
 
 export type DeliverableOrderByWithRelationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   name?: Prisma.SortOrder
@@ -334,6 +343,7 @@ export type DeliverableWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.DeliverableWhereInput | Prisma.DeliverableWhereInput[]
   OR?: Prisma.DeliverableWhereInput[]
   NOT?: Prisma.DeliverableWhereInput | Prisma.DeliverableWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   projectId?: Prisma.StringFilter<"Deliverable"> | string
   name?: Prisma.StringFilter<"Deliverable"> | string
   type?: Prisma.StringFilter<"Deliverable"> | string
@@ -354,6 +364,7 @@ export type DeliverableWhereUniqueInput = Prisma.AtLeast<{
 }, "id">
 
 export type DeliverableOrderByWithAggregationInput = {
+  estadoCanonico?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   name?: Prisma.SortOrder
@@ -381,6 +392,7 @@ export type DeliverableScalarWhereWithAggregatesInput = {
   AND?: Prisma.DeliverableScalarWhereWithAggregatesInput | Prisma.DeliverableScalarWhereWithAggregatesInput[]
   OR?: Prisma.DeliverableScalarWhereWithAggregatesInput[]
   NOT?: Prisma.DeliverableScalarWhereWithAggregatesInput | Prisma.DeliverableScalarWhereWithAggregatesInput[]
+  estadoCanonico?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
   id?: Prisma.StringWithAggregatesFilter<"Deliverable"> | string
   projectId?: Prisma.StringWithAggregatesFilter<"Deliverable"> | string
   name?: Prisma.StringWithAggregatesFilter<"Deliverable"> | string
@@ -400,6 +412,7 @@ export type DeliverableScalarWhereWithAggregatesInput = {
 }
 
 export type DeliverableCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   name: string
   type: string
@@ -420,6 +433,7 @@ export type DeliverableCreateInput = {
 }
 
 export type DeliverableUncheckedCreateInput = {
+  estadoCanonico?: string | null
   id?: string
   projectId: string
   name: string
@@ -440,6 +454,7 @@ export type DeliverableUncheckedCreateInput = {
 }
 
 export type DeliverableUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -460,6 +475,7 @@ export type DeliverableUpdateInput = {
 }
 
 export type DeliverableUncheckedUpdateInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -480,6 +496,7 @@ export type DeliverableUncheckedUpdateInput = {
 }
 
 export type DeliverableCreateManyInput = {
+  estadoCanonico?: string | null
   id?: string
   projectId: string
   name: string
@@ -499,6 +516,7 @@ export type DeliverableCreateManyInput = {
 }
 
 export type DeliverableUpdateManyMutationInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -517,6 +535,7 @@ export type DeliverableUpdateManyMutationInput = {
 }
 
 export type DeliverableUncheckedUpdateManyInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -546,6 +565,7 @@ export type DeliverableOrderByRelationAggregateInput = {
 }
 
 export type DeliverableCountOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   name?: Prisma.SortOrder
@@ -569,6 +589,7 @@ export type DeliverableAvgOrderByAggregateInput = {
 }
 
 export type DeliverableMaxOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   name?: Prisma.SortOrder
@@ -588,6 +609,7 @@ export type DeliverableMaxOrderByAggregateInput = {
 }
 
 export type DeliverableMinOrderByAggregateInput = {
+  estadoCanonico?: Prisma.SortOrder
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   name?: Prisma.SortOrder
@@ -672,6 +694,7 @@ export type DeliverableUpdateOneRequiredWithoutVersionsNestedInput = {
 }
 
 export type DeliverableCreateWithoutProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   name: string
   type: string
@@ -691,6 +714,7 @@ export type DeliverableCreateWithoutProjectInput = {
 }
 
 export type DeliverableUncheckedCreateWithoutProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   name: string
   type: string
@@ -738,6 +762,7 @@ export type DeliverableScalarWhereInput = {
   AND?: Prisma.DeliverableScalarWhereInput | Prisma.DeliverableScalarWhereInput[]
   OR?: Prisma.DeliverableScalarWhereInput[]
   NOT?: Prisma.DeliverableScalarWhereInput | Prisma.DeliverableScalarWhereInput[]
+  estadoCanonico?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   id?: Prisma.StringFilter<"Deliverable"> | string
   projectId?: Prisma.StringFilter<"Deliverable"> | string
   name?: Prisma.StringFilter<"Deliverable"> | string
@@ -757,6 +782,7 @@ export type DeliverableScalarWhereInput = {
 }
 
 export type DeliverableCreateWithoutVersionsInput = {
+  estadoCanonico?: string | null
   id?: string
   name: string
   type: string
@@ -776,6 +802,7 @@ export type DeliverableCreateWithoutVersionsInput = {
 }
 
 export type DeliverableUncheckedCreateWithoutVersionsInput = {
+  estadoCanonico?: string | null
   id?: string
   projectId: string
   name: string
@@ -811,6 +838,7 @@ export type DeliverableUpdateToOneWithWhereWithoutVersionsInput = {
 }
 
 export type DeliverableUpdateWithoutVersionsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -830,6 +858,7 @@ export type DeliverableUpdateWithoutVersionsInput = {
 }
 
 export type DeliverableUncheckedUpdateWithoutVersionsInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -849,6 +878,7 @@ export type DeliverableUncheckedUpdateWithoutVersionsInput = {
 }
 
 export type DeliverableCreateManyProjectInput = {
+  estadoCanonico?: string | null
   id?: string
   name: string
   type: string
@@ -867,6 +897,7 @@ export type DeliverableCreateManyProjectInput = {
 }
 
 export type DeliverableUpdateWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -886,6 +917,7 @@ export type DeliverableUpdateWithoutProjectInput = {
 }
 
 export type DeliverableUncheckedUpdateWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -905,6 +937,7 @@ export type DeliverableUncheckedUpdateWithoutProjectInput = {
 }
 
 export type DeliverableUncheckedUpdateManyWithoutProjectInput = {
+  estadoCanonico?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -954,6 +987,7 @@ export type DeliverableCountOutputTypeCountVersionsArgs<ExtArgs extends runtime.
 
 
 export type DeliverableSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   name?: boolean
@@ -976,6 +1010,7 @@ export type DeliverableSelect<ExtArgs extends runtime.Types.Extensions.InternalA
 }, ExtArgs["result"]["deliverable"]>
 
 export type DeliverableSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   name?: boolean
@@ -996,6 +1031,7 @@ export type DeliverableSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
 }, ExtArgs["result"]["deliverable"]>
 
 export type DeliverableSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   name?: boolean
@@ -1016,6 +1052,7 @@ export type DeliverableSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
 }, ExtArgs["result"]["deliverable"]>
 
 export type DeliverableSelectScalar = {
+  estadoCanonico?: boolean
   id?: boolean
   projectId?: boolean
   name?: boolean
@@ -1034,7 +1071,7 @@ export type DeliverableSelectScalar = {
   updatedAt?: boolean
 }
 
-export type DeliverableOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "name" | "type" | "status" | "revisionStatus" | "visibility" | "content" | "clientFeedback" | "lastFeedback" | "ownerAgentId" | "cycleId" | "version" | "revisionHistory" | "createdAt" | "updatedAt", ExtArgs["result"]["deliverable"]>
+export type DeliverableOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "projectId" | "name" | "type" | "status" | "revisionStatus" | "visibility" | "content" | "clientFeedback" | "lastFeedback" | "ownerAgentId" | "cycleId" | "version" | "revisionHistory" | "createdAt" | "updatedAt", ExtArgs["result"]["deliverable"]>
 export type DeliverableInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   versions?: boolean | Prisma.Deliverable$versionsArgs<ExtArgs>
@@ -1054,6 +1091,10 @@ export type $DeliverablePayload<ExtArgs extends runtime.Types.Extensions.Interna
     versions: Prisma.$DeliverableVersionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+     */
+    estadoCanonico: string | null
     id: string
     projectId: string
     name: string
@@ -1166,8 +1207,8 @@ export interface DeliverableDelegate<ExtArgs extends runtime.Types.Extensions.In
    * // Get first 10 Deliverables
    * const deliverables = await prisma.deliverable.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const deliverableWithIdOnly = await prisma.deliverable.findMany({ select: { id: true } })
+   * // Only select the `estadoCanonico`
+   * const deliverableWithEstadoCanonicoOnly = await prisma.deliverable.findMany({ select: { estadoCanonico: true } })
    * 
    */
   findMany<T extends DeliverableFindManyArgs>(args?: Prisma.SelectSubset<T, DeliverableFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DeliverablePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -1211,9 +1252,9 @@ export interface DeliverableDelegate<ExtArgs extends runtime.Types.Extensions.In
    *   ]
    * })
    * 
-   * // Create many Deliverables and only return the `id`
-   * const deliverableWithIdOnly = await prisma.deliverable.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many Deliverables and only return the `estadoCanonico`
+   * const deliverableWithEstadoCanonicoOnly = await prisma.deliverable.createManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -1302,9 +1343,9 @@ export interface DeliverableDelegate<ExtArgs extends runtime.Types.Extensions.In
    *   ]
    * })
    * 
-   * // Update zero or more Deliverables and only return the `id`
-   * const deliverableWithIdOnly = await prisma.deliverable.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more Deliverables and only return the `estadoCanonico`
+   * const deliverableWithEstadoCanonicoOnly = await prisma.deliverable.updateManyAndReturn({
+   *   select: { estadoCanonico: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1508,6 +1549,7 @@ export interface Prisma__DeliverableClient<T, Null = never, ExtArgs extends runt
  * Fields of the Deliverable model
  */
 export interface DeliverableFieldRefs {
+  readonly estadoCanonico: Prisma.FieldRef<"Deliverable", 'String'>
   readonly id: Prisma.FieldRef<"Deliverable", 'String'>
   readonly projectId: Prisma.FieldRef<"Deliverable", 'String'>
   readonly name: Prisma.FieldRef<"Deliverable", 'String'>

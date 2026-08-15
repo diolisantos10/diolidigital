@@ -442,7 +442,14 @@ export const ModelName = {
   DepartmentLadderRecord: 'DepartmentLadderRecord',
   ConexaoGasta: 'ConexaoGasta',
   EmailDoRadar: 'EmailDoRadar',
-  MetricaDePost: 'MetricaDePost'
+  MetricaDePost: 'MetricaDePost',
+  ExecucaoV2: 'ExecucaoV2',
+  TransicaoDeEstado: 'TransicaoDeEstado',
+  BloqueioV2: 'BloqueioV2',
+  OutboxV2: 'OutboxV2',
+  FlagV2: 'FlagV2',
+  ReconciliacaoV2: 'ReconciliacaoV2',
+  HeartbeatDoRelogio: 'HeartbeatDoRelogio'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -458,7 +465,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4828,6 +4835,524 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ExecucaoV2: {
+      payload: Prisma.$ExecucaoV2Payload<ExtArgs>
+      fields: Prisma.ExecucaoV2FieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ExecucaoV2FindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecucaoV2Payload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ExecucaoV2FindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecucaoV2Payload>
+        }
+        findFirst: {
+          args: Prisma.ExecucaoV2FindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecucaoV2Payload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ExecucaoV2FindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecucaoV2Payload>
+        }
+        findMany: {
+          args: Prisma.ExecucaoV2FindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecucaoV2Payload>[]
+        }
+        create: {
+          args: Prisma.ExecucaoV2CreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecucaoV2Payload>
+        }
+        createMany: {
+          args: Prisma.ExecucaoV2CreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ExecucaoV2CreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecucaoV2Payload>[]
+        }
+        delete: {
+          args: Prisma.ExecucaoV2DeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecucaoV2Payload>
+        }
+        update: {
+          args: Prisma.ExecucaoV2UpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecucaoV2Payload>
+        }
+        deleteMany: {
+          args: Prisma.ExecucaoV2DeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ExecucaoV2UpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ExecucaoV2UpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecucaoV2Payload>[]
+        }
+        upsert: {
+          args: Prisma.ExecucaoV2UpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ExecucaoV2Payload>
+        }
+        aggregate: {
+          args: Prisma.ExecucaoV2AggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateExecucaoV2>
+        }
+        groupBy: {
+          args: Prisma.ExecucaoV2GroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExecucaoV2GroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ExecucaoV2CountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ExecucaoV2CountAggregateOutputType> | number
+        }
+      }
+    }
+    TransicaoDeEstado: {
+      payload: Prisma.$TransicaoDeEstadoPayload<ExtArgs>
+      fields: Prisma.TransicaoDeEstadoFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TransicaoDeEstadoFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDeEstadoPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TransicaoDeEstadoFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDeEstadoPayload>
+        }
+        findFirst: {
+          args: Prisma.TransicaoDeEstadoFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDeEstadoPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TransicaoDeEstadoFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDeEstadoPayload>
+        }
+        findMany: {
+          args: Prisma.TransicaoDeEstadoFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDeEstadoPayload>[]
+        }
+        create: {
+          args: Prisma.TransicaoDeEstadoCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDeEstadoPayload>
+        }
+        createMany: {
+          args: Prisma.TransicaoDeEstadoCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TransicaoDeEstadoCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDeEstadoPayload>[]
+        }
+        delete: {
+          args: Prisma.TransicaoDeEstadoDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDeEstadoPayload>
+        }
+        update: {
+          args: Prisma.TransicaoDeEstadoUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDeEstadoPayload>
+        }
+        deleteMany: {
+          args: Prisma.TransicaoDeEstadoDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TransicaoDeEstadoUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TransicaoDeEstadoUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDeEstadoPayload>[]
+        }
+        upsert: {
+          args: Prisma.TransicaoDeEstadoUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDeEstadoPayload>
+        }
+        aggregate: {
+          args: Prisma.TransicaoDeEstadoAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTransicaoDeEstado>
+        }
+        groupBy: {
+          args: Prisma.TransicaoDeEstadoGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TransicaoDeEstadoGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TransicaoDeEstadoCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TransicaoDeEstadoCountAggregateOutputType> | number
+        }
+      }
+    }
+    BloqueioV2: {
+      payload: Prisma.$BloqueioV2Payload<ExtArgs>
+      fields: Prisma.BloqueioV2FieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BloqueioV2FindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BloqueioV2Payload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BloqueioV2FindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BloqueioV2Payload>
+        }
+        findFirst: {
+          args: Prisma.BloqueioV2FindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BloqueioV2Payload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BloqueioV2FindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BloqueioV2Payload>
+        }
+        findMany: {
+          args: Prisma.BloqueioV2FindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BloqueioV2Payload>[]
+        }
+        create: {
+          args: Prisma.BloqueioV2CreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BloqueioV2Payload>
+        }
+        createMany: {
+          args: Prisma.BloqueioV2CreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BloqueioV2CreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BloqueioV2Payload>[]
+        }
+        delete: {
+          args: Prisma.BloqueioV2DeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BloqueioV2Payload>
+        }
+        update: {
+          args: Prisma.BloqueioV2UpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BloqueioV2Payload>
+        }
+        deleteMany: {
+          args: Prisma.BloqueioV2DeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BloqueioV2UpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BloqueioV2UpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BloqueioV2Payload>[]
+        }
+        upsert: {
+          args: Prisma.BloqueioV2UpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BloqueioV2Payload>
+        }
+        aggregate: {
+          args: Prisma.BloqueioV2AggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBloqueioV2>
+        }
+        groupBy: {
+          args: Prisma.BloqueioV2GroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BloqueioV2GroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BloqueioV2CountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BloqueioV2CountAggregateOutputType> | number
+        }
+      }
+    }
+    OutboxV2: {
+      payload: Prisma.$OutboxV2Payload<ExtArgs>
+      fields: Prisma.OutboxV2FieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OutboxV2FindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OutboxV2Payload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OutboxV2FindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OutboxV2Payload>
+        }
+        findFirst: {
+          args: Prisma.OutboxV2FindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OutboxV2Payload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OutboxV2FindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OutboxV2Payload>
+        }
+        findMany: {
+          args: Prisma.OutboxV2FindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OutboxV2Payload>[]
+        }
+        create: {
+          args: Prisma.OutboxV2CreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OutboxV2Payload>
+        }
+        createMany: {
+          args: Prisma.OutboxV2CreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OutboxV2CreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OutboxV2Payload>[]
+        }
+        delete: {
+          args: Prisma.OutboxV2DeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OutboxV2Payload>
+        }
+        update: {
+          args: Prisma.OutboxV2UpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OutboxV2Payload>
+        }
+        deleteMany: {
+          args: Prisma.OutboxV2DeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OutboxV2UpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OutboxV2UpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OutboxV2Payload>[]
+        }
+        upsert: {
+          args: Prisma.OutboxV2UpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OutboxV2Payload>
+        }
+        aggregate: {
+          args: Prisma.OutboxV2AggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOutboxV2>
+        }
+        groupBy: {
+          args: Prisma.OutboxV2GroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OutboxV2GroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OutboxV2CountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OutboxV2CountAggregateOutputType> | number
+        }
+      }
+    }
+    FlagV2: {
+      payload: Prisma.$FlagV2Payload<ExtArgs>
+      fields: Prisma.FlagV2FieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FlagV2FindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FlagV2Payload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FlagV2FindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FlagV2Payload>
+        }
+        findFirst: {
+          args: Prisma.FlagV2FindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FlagV2Payload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FlagV2FindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FlagV2Payload>
+        }
+        findMany: {
+          args: Prisma.FlagV2FindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FlagV2Payload>[]
+        }
+        create: {
+          args: Prisma.FlagV2CreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FlagV2Payload>
+        }
+        createMany: {
+          args: Prisma.FlagV2CreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FlagV2CreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FlagV2Payload>[]
+        }
+        delete: {
+          args: Prisma.FlagV2DeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FlagV2Payload>
+        }
+        update: {
+          args: Prisma.FlagV2UpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FlagV2Payload>
+        }
+        deleteMany: {
+          args: Prisma.FlagV2DeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FlagV2UpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FlagV2UpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FlagV2Payload>[]
+        }
+        upsert: {
+          args: Prisma.FlagV2UpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FlagV2Payload>
+        }
+        aggregate: {
+          args: Prisma.FlagV2AggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFlagV2>
+        }
+        groupBy: {
+          args: Prisma.FlagV2GroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FlagV2GroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FlagV2CountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FlagV2CountAggregateOutputType> | number
+        }
+      }
+    }
+    ReconciliacaoV2: {
+      payload: Prisma.$ReconciliacaoV2Payload<ExtArgs>
+      fields: Prisma.ReconciliacaoV2FieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ReconciliacaoV2FindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReconciliacaoV2Payload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ReconciliacaoV2FindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReconciliacaoV2Payload>
+        }
+        findFirst: {
+          args: Prisma.ReconciliacaoV2FindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReconciliacaoV2Payload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ReconciliacaoV2FindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReconciliacaoV2Payload>
+        }
+        findMany: {
+          args: Prisma.ReconciliacaoV2FindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReconciliacaoV2Payload>[]
+        }
+        create: {
+          args: Prisma.ReconciliacaoV2CreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReconciliacaoV2Payload>
+        }
+        createMany: {
+          args: Prisma.ReconciliacaoV2CreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ReconciliacaoV2CreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReconciliacaoV2Payload>[]
+        }
+        delete: {
+          args: Prisma.ReconciliacaoV2DeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReconciliacaoV2Payload>
+        }
+        update: {
+          args: Prisma.ReconciliacaoV2UpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReconciliacaoV2Payload>
+        }
+        deleteMany: {
+          args: Prisma.ReconciliacaoV2DeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ReconciliacaoV2UpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ReconciliacaoV2UpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReconciliacaoV2Payload>[]
+        }
+        upsert: {
+          args: Prisma.ReconciliacaoV2UpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReconciliacaoV2Payload>
+        }
+        aggregate: {
+          args: Prisma.ReconciliacaoV2AggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateReconciliacaoV2>
+        }
+        groupBy: {
+          args: Prisma.ReconciliacaoV2GroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReconciliacaoV2GroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ReconciliacaoV2CountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReconciliacaoV2CountAggregateOutputType> | number
+        }
+      }
+    }
+    HeartbeatDoRelogio: {
+      payload: Prisma.$HeartbeatDoRelogioPayload<ExtArgs>
+      fields: Prisma.HeartbeatDoRelogioFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.HeartbeatDoRelogioFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HeartbeatDoRelogioPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.HeartbeatDoRelogioFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HeartbeatDoRelogioPayload>
+        }
+        findFirst: {
+          args: Prisma.HeartbeatDoRelogioFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HeartbeatDoRelogioPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.HeartbeatDoRelogioFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HeartbeatDoRelogioPayload>
+        }
+        findMany: {
+          args: Prisma.HeartbeatDoRelogioFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HeartbeatDoRelogioPayload>[]
+        }
+        create: {
+          args: Prisma.HeartbeatDoRelogioCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HeartbeatDoRelogioPayload>
+        }
+        createMany: {
+          args: Prisma.HeartbeatDoRelogioCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.HeartbeatDoRelogioCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HeartbeatDoRelogioPayload>[]
+        }
+        delete: {
+          args: Prisma.HeartbeatDoRelogioDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HeartbeatDoRelogioPayload>
+        }
+        update: {
+          args: Prisma.HeartbeatDoRelogioUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HeartbeatDoRelogioPayload>
+        }
+        deleteMany: {
+          args: Prisma.HeartbeatDoRelogioDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.HeartbeatDoRelogioUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.HeartbeatDoRelogioUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HeartbeatDoRelogioPayload>[]
+        }
+        upsert: {
+          args: Prisma.HeartbeatDoRelogioUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HeartbeatDoRelogioPayload>
+        }
+        aggregate: {
+          args: Prisma.HeartbeatDoRelogioAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateHeartbeatDoRelogio>
+        }
+        groupBy: {
+          args: Prisma.HeartbeatDoRelogioGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.HeartbeatDoRelogioGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.HeartbeatDoRelogioCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.HeartbeatDoRelogioCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -4906,6 +5431,7 @@ export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof 
 
 
 export const ProjectScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   workspaceId: 'workspaceId',
   clientId: 'clientId',
@@ -5048,6 +5574,7 @@ export type DriveMaterialScalarFieldEnum = (typeof DriveMaterialScalarFieldEnum)
 
 
 export const CycleScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   projectId: 'projectId',
   reference: 'reference',
@@ -5088,6 +5615,7 @@ export type ClientNoticeScalarFieldEnum = (typeof ClientNoticeScalarFieldEnum)[k
 
 
 export const DeliverableScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   projectId: 'projectId',
   name: 'name',
@@ -5140,6 +5668,7 @@ export type MaterialRequestScalarFieldEnum = (typeof MaterialRequestScalarFieldE
 
 
 export const ContentRequestScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   clientId: 'clientId',
   clientRequestId: 'clientRequestId',
@@ -5211,6 +5740,7 @@ export type StrategyRoomScalarFieldEnum = (typeof StrategyRoomScalarFieldEnum)[k
 
 
 export const BriefingScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   projectId: 'projectId',
   clientId: 'clientId',
@@ -5298,6 +5828,7 @@ export type ClientAiProviderScalarFieldEnum = (typeof ClientAiProviderScalarFiel
 
 
 export const TaskScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   projectId: 'projectId',
   title: 'title',
@@ -5501,6 +6032,7 @@ export type BrainVersionScalarFieldEnum = (typeof BrainVersionScalarFieldEnum)[k
 
 
 export const ClientRequestDbScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   workspaceId: 'workspaceId',
   clientId: 'clientId',
@@ -5537,6 +6069,7 @@ export type PortalMessageScalarFieldEnum = (typeof PortalMessageScalarFieldEnum)
 
 
 export const SocialPostScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   workspaceId: 'workspaceId',
   clientId: 'clientId',
@@ -5586,6 +6119,7 @@ export type BrainArtifactScalarFieldEnum = (typeof BrainArtifactScalarFieldEnum)
 
 
 export const ApprovalRequestScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   clientRequestId: 'clientRequestId',
   clientId: 'clientId',
@@ -5815,6 +6349,7 @@ export type MediaAssetScalarFieldEnum = (typeof MediaAssetScalarFieldEnum)[keyof
 
 
 export const OportunidadeScalarFieldEnum = {
+  estadoCanonico: 'estadoCanonico',
   id: 'id',
   workspaceId: 'workspaceId',
   plataforma: 'plataforma',
@@ -5938,6 +6473,115 @@ export const MetricaDePostScalarFieldEnum = {
 } as const
 
 export type MetricaDePostScalarFieldEnum = (typeof MetricaDePostScalarFieldEnum)[keyof typeof MetricaDePostScalarFieldEnum]
+
+
+export const ExecucaoV2ScalarFieldEnum = {
+  id: 'id',
+  ator: 'ator',
+  usuarioId: 'usuarioId',
+  modelo: 'modelo',
+  versaoModelo: 'versaoModelo',
+  custoUsd: 'custoUsd',
+  funcaoId: 'funcaoId',
+  departamentoId: 'departamentoId',
+  ferramentas: 'ferramentas',
+  correlationId: 'correlationId',
+  inicio: 'inicio',
+  fim: 'fim',
+  resultado: 'resultado'
+} as const
+
+export type ExecucaoV2ScalarFieldEnum = (typeof ExecucaoV2ScalarFieldEnum)[keyof typeof ExecucaoV2ScalarFieldEnum]
+
+
+export const TransicaoDeEstadoScalarFieldEnum = {
+  id: 'id',
+  entidadeTipo: 'entidadeTipo',
+  entidadeId: 'entidadeId',
+  de: 'de',
+  para: 'para',
+  atorTipo: 'atorTipo',
+  atorId: 'atorId',
+  motivo: 'motivo',
+  origem: 'origem',
+  versaoLida: 'versaoLida',
+  chaveIdempotencia: 'chaveIdempotencia',
+  correlationId: 'correlationId',
+  criadoEm: 'criadoEm'
+} as const
+
+export type TransicaoDeEstadoScalarFieldEnum = (typeof TransicaoDeEstadoScalarFieldEnum)[keyof typeof TransicaoDeEstadoScalarFieldEnum]
+
+
+export const BloqueioV2ScalarFieldEnum = {
+  id: 'id',
+  entidadeTipo: 'entidadeTipo',
+  entidadeId: 'entidadeId',
+  tipo: 'tipo',
+  donoFuncaoId: 'donoFuncaoId',
+  abertoEm: 'abertoEm',
+  slaAte: 'slaAte',
+  evidencia: 'evidencia',
+  acaoRecomendada: 'acaoRecomendada',
+  escalonadoPara: 'escalonadoPara',
+  resolvidoEm: 'resolvidoEm',
+  correlationId: 'correlationId'
+} as const
+
+export type BloqueioV2ScalarFieldEnum = (typeof BloqueioV2ScalarFieldEnum)[keyof typeof BloqueioV2ScalarFieldEnum]
+
+
+export const OutboxV2ScalarFieldEnum = {
+  id: 'id',
+  tipo: 'tipo',
+  payload: 'payload',
+  status: 'status',
+  tentativas: 'tentativas',
+  proximaTentativaEm: 'proximaTentativaEm',
+  chaveIdempotencia: 'chaveIdempotencia',
+  correlationId: 'correlationId',
+  criadoEm: 'criadoEm',
+  enviadoEm: 'enviadoEm',
+  ultimoErro: 'ultimoErro'
+} as const
+
+export type OutboxV2ScalarFieldEnum = (typeof OutboxV2ScalarFieldEnum)[keyof typeof OutboxV2ScalarFieldEnum]
+
+
+export const FlagV2ScalarFieldEnum = {
+  id: 'id',
+  chave: 'chave',
+  escopo: 'escopo',
+  ligada: 'ligada',
+  motivo: 'motivo',
+  decididoPor: 'decididoPor',
+  em: 'em'
+} as const
+
+export type FlagV2ScalarFieldEnum = (typeof FlagV2ScalarFieldEnum)[keyof typeof FlagV2ScalarFieldEnum]
+
+
+export const ReconciliacaoV2ScalarFieldEnum = {
+  id: 'id',
+  entidadeTipo: 'entidadeTipo',
+  execucaoEm: 'execucaoEm',
+  total: 'total',
+  divergentes: 'divergentes',
+  amostra: 'amostra',
+  veredito: 'veredito'
+} as const
+
+export type ReconciliacaoV2ScalarFieldEnum = (typeof ReconciliacaoV2ScalarFieldEnum)[keyof typeof ReconciliacaoV2ScalarFieldEnum]
+
+
+export const HeartbeatDoRelogioScalarFieldEnum = {
+  id: 'id',
+  relogio: 'relogio',
+  ultimaBatida: 'ultimaBatida',
+  alertadoEm: 'alertadoEm'
+} as const
+
+export type HeartbeatDoRelogioScalarFieldEnum = (typeof HeartbeatDoRelogioScalarFieldEnum)[keyof typeof HeartbeatDoRelogioScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -6165,6 +6809,13 @@ export type GlobalOmitConfig = {
   conexaoGasta?: Prisma.ConexaoGastaOmit
   emailDoRadar?: Prisma.EmailDoRadarOmit
   metricaDePost?: Prisma.MetricaDePostOmit
+  execucaoV2?: Prisma.ExecucaoV2Omit
+  transicaoDeEstado?: Prisma.TransicaoDeEstadoOmit
+  bloqueioV2?: Prisma.BloqueioV2Omit
+  outboxV2?: Prisma.OutboxV2Omit
+  flagV2?: Prisma.FlagV2Omit
+  reconciliacaoV2?: Prisma.ReconciliacaoV2Omit
+  heartbeatDoRelogio?: Prisma.HeartbeatDoRelogioOmit
 }
 
 /* Types for Logging */

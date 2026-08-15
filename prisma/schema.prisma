@@ -77,6 +77,8 @@ model Client {
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
 model Project {
+  /// V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+  estadoCanonico String?
   id                   String          @id @default(cuid())
   workspaceId          String
   workspace            AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -398,6 +400,8 @@ model DriveMaterial {
 }
 
 model Cycle {
+  /// V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+  estadoCanonico String?
   id          String    @id @default(cuid())
   projectId   String
   project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -480,6 +484,8 @@ model ClientNotice {
 // ─── Deliverables ─────────────────────────────────────────────────────────────
 
 model Deliverable {
+  /// V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+  estadoCanonico String?
   id              String   @id @default(cuid())
   projectId       String
   project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -590,6 +596,8 @@ model MaterialRequest {
 /// produzir sem inventar: o que, para quando e para qual objetivo. Nada de
 /// formulário longo — o cliente não preenche.
 model ContentRequest {
+  /// V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+  estadoCanonico String?
   id              String    @id @default(cuid())
   /// O dono. Vem SEMPRE do token (derivação, nunca comparação — regra da casa
   /// de 03/08/2026). Cascata porque um pedido sem cliente não significa nada.
@@ -771,6 +779,8 @@ model StrategyRoom {
 // ─── Briefings ─────────────────────────────────────────────────────────────
 
 model Briefing {
+  /// V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+  estadoCanonico String?
   id              String   @id @default(cuid())
   projectId       String
   project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -893,6 +903,8 @@ model ClientAiProvider {
 // ─── Tasks ────────────────────────────────────────────────────────────────────
 
 model Task {
+  /// V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+  estadoCanonico String?
   id            String   @id @default(cuid())
   projectId     String
   project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -1174,6 +1186,8 @@ model BrainVersion {
 // DB-backed client request — source of truth for the real workflow.
 // Zustand localStorage remains as labeled prototype/simulation layer.
 model ClientRequestDb {
+  /// V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+  estadoCanonico String?
   id              String   @id @default(cuid())
   workspaceId     String?
   clientId        String?
@@ -1239,6 +1253,8 @@ model PortalMessage {
 // composed once, targeting many networks, scheduled to a date. Surfaces on the
 // agency planner (edit) and the client portal Social tab (read-only calendar).
 model SocialPost {
+  /// V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+  estadoCanonico String?
   id              String    @id @default(cuid())
   workspaceId     String
   clientId        String?
@@ -1342,6 +1358,8 @@ model BrainArtifact {
 
 // Formal approval flow — one record per department review cycle.
 model ApprovalRequest {
+  /// V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+  estadoCanonico String?
   id              String          @id @default(cuid())
   /// Nulo para cliente criado DIRETO (sem briefing público). No lançamento da
   /// Foocci (03/08/2026) TODA aprovação exigia ClientRequestDb — cliente direto
@@ -1757,6 +1775,8 @@ model MediaAsset {
 /// dentro de prompt como instrução, nunca vai para log (pode carregar contato de
 /// terceiro — PII que não é nossa e que não pedimos).
 model Oportunidade {
+  /// V2 (M3, aditiva): estado canonico derivado — cache auditado, nunca digitado.
+  estadoCanonico String?
   id          String @id @default(cuid())
   workspaceId String
   /// Slug canônico da origem: "99freelas" | "workana" | "upwork" | "guru" |
