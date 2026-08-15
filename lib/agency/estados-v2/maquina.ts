@@ -111,9 +111,27 @@ export async function transicionar(
   }
   // Condições 5 e 6: persistir o evento e enfileirar efeitos — nesta ordem, e
   // efeito jamais inline.
-  await armazem.registrar(pedido);
+  //
+  // A CORRIDA REAL (achado do cenário 1 do 07-CRITERIOS): dois pedidos
+  // SIMULTÂNEOS passam juntos pelo pré-cheque da condição 4 — a barreira final
+  // é a chave ÚNICA no armazém. Quando o registrar estoura nela, o perdedor da
+  // corrida é tratado como o que ele é: idempotência, não erro. Qualquer outra
+  // falha sobe, porque engolir erro de escrita seria transformar falha em fato.
+  try {
+    await armazem.registrar(pedido);
+  } catch (e) {
+    if (await armazem.jaTransicionou(pedido.chaveIdempotencia)) {
+      return { ok: true, idempotente: true };
+    }
+    throw e;
+  }
   for (const efeito of pedido.efeitosExternos ?? []) {
-    await armazem.enfileirar({ ...efeito, correlationId: pedido.correlationId });
+    try {
+      await armazem.enfileirar({ ...efeito, correlationId: pedido.correlationId });
+    } catch (e) {
+      // Mesmo desenho para o efeito: chave repetida na fila = já enfileirado.
+      console.warn(`[estados-v2] efeito ${efeito.chaveIdempotencia} já estava na fila (não-fatal)`, e instanceof Error ? e.message : e);
+    }
   }
   return { ok: true, idempotente: false };
 }
