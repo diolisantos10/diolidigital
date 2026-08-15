@@ -190,7 +190,9 @@ export default function FilaDeAvisos() {
       {medido && aprovacoes && aprovacoes.maisAntigoEmDias != null ? (
         <p className="mt-2 text-[11px] text-[#9A7328]">
           Na fila toda, a aprovação mais antiga espera há {aprovacoes.maisAntigoEmDias} dia(s)
-          {aprovacoes.abandonadas > 0 ? ` · ${aprovacoes.abandonadas} passou do prazo` : ""}.
+          {aprovacoes.abandonadas > 0
+            ? ` · ${aprovacoes.abandonadas} ${aprovacoes.abandonadas === 1 ? "passou" : "passaram"} do prazo`
+            : ""}.
         </p>
       ) : null}
 
