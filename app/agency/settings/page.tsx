@@ -21,6 +21,7 @@ import { PILOT_CLIENT_ID } from "@/lib/agency/system-doctor";
 import { useTranslation } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import { TopDown } from "@/components/agency/TopDown";
 import Button from "@/components/agency/ui/Button";
 import { runSystemDoctor, CHECK_GROUP_ORDER, type DiagnosticReport, type CheckStatus, type CheckSeverity } from "@/lib/agency/system-doctor";
 import { getPilotDataStatus } from "@/lib/agency/readiness";
@@ -311,6 +312,13 @@ export default function SettingsPage() {
       <AgencyHeader title={t.settings.title} subtitle={t.settings.subtitle} />
 
       <div className="max-w-2xl space-y-5">
+
+        {/* ── TOP DOWN: as decisões que só o CEO toma ──────────────────────────
+            Fica no topo de propósito: é o dispositivo que destrava a casa, e
+            um dispositivo desses escondido no rodapé é um dispositivo que
+            ninguém encontra na hora em que ele importa. Some sozinho para
+            quem não é `master` — o portão é no servidor. */}
+        <TopDown />
 
         {/* ── Learning loop: pending Brain updates ─────────────────────────────── */}
         <PendingBrainUpdates />
