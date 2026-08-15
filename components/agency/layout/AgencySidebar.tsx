@@ -2,19 +2,21 @@
 
 import { usePathname } from "next/navigation";
 import { useAgencyStore } from "@/store/agency-store";
-import { AGENCY_ROLE_OPTIONS, isNavAllowed, type AgencyRole } from "@/lib/agency/roles";
+import { AGENCY_ROLE_OPTIONS, ehPapelDaAgencia, perfilDoPapel, type AgencyRole } from "@/lib/agency/roles";
+import { eDirecao, type PerfilOrganizacional } from "@/lib/agency/organizacao/autoridade";
+import { PAGINAS, podeAbrirRota } from "@/lib/agency/organizacao/paginas";
+import { getDepartamento } from "@/lib/agency/organizacao/departamentos";
 import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { DioliLogo } from "@/components/brand/DioliLogo";
 import { useCaixaDeEntrada } from "@/components/agency/portal/useCaixaDeEntrada";
 import RoleGuide, { useRoleGuide } from "@/components/agency/onboarding/RoleGuide";
 
-const ROLE_LABEL: Record<string, string> = {
-  master:          "Master",
-  project_manager: "Project Manager",
-  social_staff:    "Social",
-  design_staff:    "Design",
-  client:          "Cliente",
-};
+// Rótulo humano do papel. Derivado das opções — a versão escrita à mão que
+// estava aqui omitia `executivo_comercial` e `ads_staff`, e o cartão do usuário
+// mostrava o id cru ("ads_staff") para quem tem esses papéis.
+const ROLE_LABEL: Record<string, string> = Object.fromEntries(
+  AGENCY_ROLE_OPTIONS.map((r) => [r.id, r.label]),
+);
 
 interface UserInfo {
   name: string;
@@ -25,6 +27,8 @@ interface UserInfo {
 interface AgencySidebarProps {
   id?: string;
   userInfo?: UserInfo | null;
+  /** Perfil resolvido no servidor. Ausente = trate como o mais restrito. */
+  perfil?: PerfilOrganizacional;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 }
@@ -51,15 +55,40 @@ function useTaskBadgeCount() {
   return criticalHigh + blocked;
 }
 
-export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobileClose }: AgencySidebarProps) {
+export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false, onMobileClose }: AgencySidebarProps) {
   const path = usePathname();
   const { currentRole, setCurrentRole } = useAgencyStore();
+
+  // ── QUEM DECIDE O MENU ────────────────────────────────────────────────────
+  //
+  // ⚠️ Era `currentRole`, do store do Zustand — o valor que o próprio seletor
+  // "Visualizar como" logo abaixo escreve. Qualquer pessoa escolhia "Master" e
+  // o menu inteiro aparecia. Filtro que a pessoa filtrada controla não é
+  // filtro; é decoração.
+  //
+  // Agora o menu segue o perfil da SESSÃO. O seletor continua existindo — o
+  // CEO pediu a ferramenta de demonstração — mas ele só aparece, e só tem
+  // efeito, para quem já vê tudo: master e diretor. Para os demais, trocar o
+  // valor no store não muda uma linha do menu, e a página e a API não olham
+  // esse valor de jeito nenhum (`lib/agency/organizacao/guarda.ts`).
+  const perfilReal: PerfilOrganizacional =
+    perfil ?? { autoridade: "department_member", departamentos: [] };
+  const podeSimular = eDirecao(perfilReal.autoridade);
+  const papelDaSessao: AgencyRole | null =
+    userInfo && ehPapelDaAgencia(userInfo.role) ? userInfo.role : null;
+  // O papel que a interface usa para tudo o que é COSMÉTICO (guia da função,
+  // rótulo). Para permissão, quem manda é `perfilEfetivo` logo abaixo.
+  const papelEfetivo: AgencyRole =
+    podeSimular && ehPapelDaAgencia(currentRole) ? currentRole : (papelDaSessao ?? "social_staff");
+  const perfilEfetivo = podeSimular && ehPapelDaAgencia(currentRole)
+    ? perfilDoPapel(currentRole)
+    : perfilReal;
   const pendingCount = usePendingCount();
   const taskBadgeCount = useTaskBadgeCount();
   const newRequestsCount = useNewRequestsCount();
   const caixa = useCaixaDeEntrada();
   // Role getting-started guide — auto-opens on a role's first visit, re-openable below.
-  const { guideOpen, openGuide, closeGuide } = useRoleGuide(currentRole);
+  const { guideOpen, openGuide, closeGuide } = useRoleGuide(papelEfetivo);
 
   // Lean navigation — organised by PURPOSE, not by accumulation. The old menu
   // listed each department in three parallel sections (Departamentos, Agentes
@@ -149,6 +178,28 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
     },
   ];
 
+  // ── MEU DEPARTAMENTO ──────────────────────────────────────────────────────
+  //
+  // A porta para a PRÓPRIA mesa de trabalho. Ela não existia: o menu foi
+  // enxugado numa reforma passada e as telas de departamento
+  // (`/agency/social-media-agent`, `/agency/design-agent`, …) ficaram sem um
+  // único link. Quem é de Social só chegava na tela de Social digitando a URL —
+  // o mesmo defeito que já tinha deixado o WhatsApp e o Radar invisíveis.
+  //
+  // A lista é DERIVADA do inventário: departamento novo com tela nova aparece
+  // aqui sozinho, sem ninguém editar este arquivo. Direção não recebe a seção
+  // porque ela já enxerga todas as telas nos grupos acima; repetir seria ruído.
+  const meuDepartamento = eDirecao(perfilEfetivo.autoridade)
+    ? []
+    : PAGINAS.filter(
+        (p) =>
+          p.noMenu &&
+          p.dono !== "casa" &&
+          perfilEfetivo.departamentos.includes(p.dono) &&
+          podeAbrirRota(perfilEfetivo, p.href) &&
+          !NAV.some((s) => s.items.some((i) => i.href === p.href)),
+      );
+
   // Dev assertion: every nav href must be a root-relative /agency/ path.
   // Catches misconfigurations (absolute URLs, typos, empty strings) at dev time.
   if (process.env.NODE_ENV === "development") {
@@ -218,8 +269,19 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
 
       {/* ── Nav ──────────────────────────────────────────────────────────────── */}
       <nav className="flex-1 px-3 py-3 space-y-0.5">
-        {NAV.map((section, i) => {
-          const visibleItems = section.items.filter((item) => isNavAllowed(currentRole, item.href));
+        {[
+          ...NAV,
+          ...(meuDepartamento.length > 0
+            ? [{
+                group:
+                  perfilEfetivo.departamentos.length === 1
+                    ? getDepartamento(perfilEfetivo.departamentos[0]).nome
+                    : "Minha área",
+                items: meuDepartamento.map((p) => ({ label: p.titulo, href: p.href, icon: MesaIcon })),
+              }]
+            : []),
+        ].map((section, i) => {
+          const visibleItems = section.items.filter((item) => podeAbrirRota(perfilEfetivo, item.href));
           if (visibleItems.length === 0) return null;
           return (
             <div key={i} className={i > 0 ? "mt-5" : ""}>
@@ -292,6 +354,7 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
           </svg>
           <span className="flex-1 text-left truncate">Guia da função</span>
         </button>
+        {podeSimular ? (<>
         <div className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-1.5 px-1"
              style={{ color: "rgba(255,255,255,0.55)" }}>
           Visualizar como
@@ -315,9 +378,10 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
             </option>
           ))}
         </select>
+        </>) : null}
       </div>
     </aside>
-    <RoleGuide role={currentRole} open={guideOpen} onClose={closeGuide} />
+    <RoleGuide role={papelEfetivo} open={guideOpen} onClose={closeGuide} />
     </>
   );
 }
@@ -514,6 +578,16 @@ function AgentesIcon({ size = 16, className = "" }: { size?: number; className?:
       <circle cx="6" cy="5.5" r="2.3" stroke="currentColor" strokeWidth="1.3" />
       <path d="M2 13.2c0-2.1 1.8-3.4 4-3.4s4 1.3 4 3.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
       <path d="M10.6 3.6a2.3 2.3 0 0 1 0 4.4M11.4 9.9c1.6.3 2.6 1.5 2.6 3.3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** A mesa de trabalho do departamento — o lugar onde a peça é produzida. */
+function MesaIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M2 6.5h12M3.2 6.5 4 3.2A1 1 0 0 1 5 2.5h6a1 1 0 0 1 1 .7l.8 3.3" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+      <path d="M4 6.5v6M12 6.5v6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

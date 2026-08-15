@@ -68,6 +68,18 @@ describe("7. TODO papel interno vê a lista de clientes e as doze abas", () => {
 describe("8. cada papel só escreve na área autorizada", () => {
   const ESPERADO: Record<AgencyRole, string[]> = {
     master: ["overview", "requests", "strategy", "social", "branding", "design", "traffic", "projects", "approvals", "deliveries", "intel"],
+    // `diretor` nasceu no bloco da Central de Trabalho, na mesma madrugada em
+    // que este teste nasceu no bloco do painel interno — os dois se
+    // encontraram só no merge. O contrato do CEO é explícito sobre este papel:
+    // *"Diretores: acesso completo a todas as rotas atuais e futuras; todas as
+    // páginas atuais permanecem abertas; não eliminar telas com base em
+    // preferência presumida."* Logo, escreve onde o master escreve.
+    //
+    // Deixar `diretor` fora desta tabela não daria erro de teste — daria erro
+    // de TIPO, e é só por isso que apareceu. Se `ESPERADO` fosse um objeto
+    // solto em vez de `Record<AgencyRole, …>`, um papel novo entraria na casa
+    // sem nenhuma linha vermelha e sem ninguém decidir o que ele pode.
+    diretor: ["overview", "requests", "strategy", "social", "branding", "design", "traffic", "projects", "approvals", "deliveries", "intel"],
     project_manager: ["overview", "requests", "strategy", "social", "branding", "design", "traffic", "projects", "approvals", "deliveries", "intel"],
     executivo_comercial: ["overview", "requests"],
     social_staff: ["social"],

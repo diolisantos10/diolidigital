@@ -7,6 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./", import.meta.url)),
+      // Ver `__tests__/_stubs/server-only.ts`: sem este apelido, todo módulo
+      // marcado como server-only fica sem teste — e são justamente os que
+      // decidem acesso.
+      "server-only": fileURLToPath(new URL("./__tests__/_stubs/server-only.ts", import.meta.url)),
     },
   },
   test: {

@@ -122,6 +122,7 @@ function stub(role: AgencyRole, title: string, mission: string): RoleGuide {
 
 export const ROLE_GUIDES: Record<AgencyRole, RoleGuide> = {
   master:              { ...PROJECT_MANAGER_GUIDE, role: "master", title: "Guia do Master", mission: "Acesso total à operação. O fluxo do Project Manager abaixo é o seu núcleo de trabalho — você também controla configurações, integrações e reset de dados." },
+  diretor:             { ...PROJECT_MANAGER_GUIDE, role: "diretor", title: "Guia da Direção", mission: "Você enxerga todas as telas da casa, atuais e novas. O fluxo do Project Manager abaixo é o seu núcleo de leitura diária; configurações e integrações também são suas." },
   project_manager:     PROJECT_MANAGER_GUIDE,
   executivo_comercial: stub("executivo_comercial", "Guia do Comercial", "Você cuida das propostas comerciais, negociações e onboarding de novos clientes."),
   social_staff:        stub("social_staff", "Guia do Social", "Você produz e entrega o conteúdo de social media dos clientes."),

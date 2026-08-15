@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { ROLE_PERMISSIONS, type AgencyRole } from "@/lib/agency/roles";
+import { ehPapelDaAgencia, type AgencyRole } from "@/lib/agency/roles";
 import { getAuthSecret } from "./secret";
 
 export interface SessionPayload {
@@ -81,5 +81,5 @@ export async function deleteSession(): Promise<void> {
  * aqui. Não há mais duas listas para manter em sincronia.
  */
 export function isAgencyRole(role: string): role is AgencyRole {
-  return Object.prototype.hasOwnProperty.call(ROLE_PERMISSIONS, role);
+  return ehPapelDaAgencia(role);
 }
