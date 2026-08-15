@@ -22,6 +22,32 @@ const NOME = "porta-aberta";
 const GUARDA =
   /requireSession|verifySession|getSession|requireRole|segredoConfere|CRON_SECRET|portal-guard|portalGuard|PortalAccess|tokenDoPortal|assertPublic|createHmac|timingSafeEqual|signed_request|x-signature/;
 
+/** A GUARDA DA V2 — calibração de 15/08/2026.
+ *
+ *  `lib/agency/organizacao/guarda.ts` nasceu depois da lista acima e é hoje a
+ *  porta das rotas internas: `exigirApiInterna` devolve **401** sem sessão e
+ *  **403** para quem não é interno ou não alcança a rota; `exigirCapacidade` e
+ *  `exigirAdministracao` passam por ela antes de estreitar mais. Negam de
+ *  verdade — foi conferido função a função, não aceito de palavra.
+ *
+ *  A varredura não conhecia esse vocabulário e acusava **6 rotas** de "sem
+ *  guarda", 2 delas "que ESCREVEM no banco". Seis alarmes falsos numa lista de
+ *  onze é o número que ensina o CEO a não ler o relatório. */
+const GUARDA_DA_ORGANIZACAO = /exigirApiInterna|exigirAdministracao|exigirCapacidade|exigirAcessoInterno/;
+
+/** ⚠️ E AQUI ESTÁ A METADE QUE IMPEDE ISTO DE SER AFROUXAMENTO.
+ *
+ *  `exigirApiInterna` **não barra sozinha**: ela devolve `{ acesso, erro }` e
+ *  quem chama tem de fazer `if (erro) return erro`. Uma rota que chama a guarda
+ *  e ignora o `erro` fica indistinguível de uma rota protegida para qualquer
+ *  varredura que só procure o nome da função — e é exatamente esse o jeito mais
+ *  fácil de a proteção sumir numa alteração feita com pressa.
+ *
+ *  Então reconhecer a guarda **exige as duas coisas**: chamá-la e devolver o
+ *  erro. Chamar sem devolver não vira "protegida": vira achado próprio, ALTO,
+ *  porque é pior que não ter guarda nenhuma (parece protegida numa revisão). */
+const DEVOLVE_A_NEGATIVA = /return\s+[A-Za-z_$][\w$]*\.erro\b|return\s+erro\b/;
+
 /** A guarda das rotas que TÊM que ser públicas e mesmo assim gastam: o
  *  `/briefing` chama Claude e Whisper sem login, por desenho. Limite por IP é
  *  guarda de verdade — mas é a MAIS FRACA da casa (o contador vive na memória do
@@ -60,9 +86,30 @@ export function varrerPortaAberta(entrada?: Arquivo[]): ResultadoDeVarredura {
   let semGuarda = 0;
   let apenasComLimite = 0;
   let comLimiteDuravel = 0;
+  let comGuardaDaOrganizacao = 0;
+  let guardaIgnorada = 0;
 
   for (const { caminho, texto } of rotas) {
     if (PUBLICAS_POR_CONTRATO.includes(caminho)) continue;
+
+    // A guarda da V2 é reconhecida SÓ quando o erro dela volta para o cliente.
+    if (GUARDA_DA_ORGANIZACAO.test(texto)) {
+      if (DEVOLVE_A_NEGATIVA.test(texto)) {
+        comGuardaDaOrganizacao++;
+        continue;
+      }
+      guardaIgnorada++;
+      achados.push({
+        padrao: "porta-aberta",
+        chave: `guarda-ignorada:${caminho}`,
+        titulo: "Rota CHAMA a guarda interna e não devolve o erro dela",
+        evidencia: `${caminho} chama exigirApiInterna/exigirCapacidade/exigirAdministracao mas não há "return <guarda>.erro" — a guarda calcula a negativa e ninguém a entrega, então a requisição segue em frente. Parece protegida numa revisão; não está`,
+        local: caminho,
+        gravidade: "alto",
+      });
+      continue;
+    }
+
     if (GUARDA.test(texto)) continue;
 
     const pago = MOTOR_PAGO.test(texto);
@@ -111,6 +158,8 @@ export function varrerPortaAberta(entrada?: Arquivo[]): ResultadoDeVarredura {
       rotasPublicasPagasComLimiteApenas: apenasComLimite,
       rotasPublicasPagasComLimiteNoBanco: comLimiteDuravel,
       rotasSemGuardaQueImportam: achados.length,
+      rotasComGuardaDaOrganizacao: comGuardaDaOrganizacao,
+      rotasQueChamamAGuardaEIgnoram: guardaIgnorada,
     },
   };
 }
