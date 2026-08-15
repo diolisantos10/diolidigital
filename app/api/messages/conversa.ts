@@ -28,6 +28,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { validatePortalAccess, donoDoToken } from "@/lib/agency/persistence/portal-access-service";
+import { solicitacoesQueMudaramDeDono } from "@/lib/agency/portal/solicitacao-que-mudou-de-dono";
 
 /** O filtro Prisma de uma conversa. Objeto simples de propósito: os testes
  *  mockam o prisma e comparam a forma. */
@@ -136,56 +137,34 @@ export async function conversaDoCliente(
   });
   const todosOsIds = solicitacoes.map((s) => s.id);
 
-  // ── SOLICITAÇÃO QUE JÁ FOI DE OUTRO (15/08/2026) ──────────────────────────
+  // ── SOLICITAÇÃO QUE JÁ FOI DE OUTRO ──────────────────────────────────────
   //
   // A cerca de `montarFiltro` barra a linha carimbada para outro cliente. Falta
-  // a linha LEGADA: as 11 escritas antigas gravam só `clientRequestId`, com
-  // `clientId` NULO, e uma linha nula não tem dono escrito — ela pertence a
-  // quem era dono da solicitação NA HORA em que foi escrita, e isso o banco não
-  // guarda. Se a solicitação trocou de dono, essas linhas seguem junto e o
-  // portal novo lê a conversa antiga.
+  // a linha LEGADA: as escritas antigas gravam só `clientRequestId`, com
+  // `clientId` NULO, e uma linha nula não tem dono escrito. Se a solicitação
+  // trocou de dono, essas linhas seguem junto.
   //
-  // Não dá para adivinhar o dono de uma linha nula — e adivinhar é exatamente o
-  // que a lei da casa proíbe. Mas dá para PROVAR que a solicitação já foi de
-  // outro: basta existir, presa a ela, uma linha carimbada com outro clientId.
-  // Onde há essa prova, a solicitação inteira sai da leitura deste cliente: as
-  // linhas nulas dela são ambíguas, e ambiguidade fecha.
+  // ⚠️ RODADA 3: a prova NÃO pode sair só da mensagem. O carimbo começou
+  // agora, e conversa 100% legada não tem carimbo nenhum — não havia o que
+  // provar, e ela atravessava inteira (probe do `qualidade`). A evidência
+  // passou a vir de QUATRO registros independentes que a casa já grava
+  // (`PortalAccess`, `Project`, `ApprovalRequest`, `PortalMessage`) — ver
+  // `lib/agency/portal/solicitacao-que-mudou-de-dono.ts`.
   //
-  // As duas metades: no caso limpo NENHUMA solicitação tem carimbo alheio, nada
-  // é escondido, e o histórico legado continua inteiro.
-  //
-  // ⚠️ FALHA DE LEITURA FECHA, NÃO ABRE. Se esta consulta não responder, não dá
-  // para saber quais solicitações estão limpas — e a resposta segura para
-  // "não sei" é ler só pelo `clientId`, nunca pela união. O cliente vê menos
-  // histórico numa falha de banco; ninguém vê a conversa de outro.
+  // ⚠️ FALHA DE LEITURA FECHA, NÃO ABRE: sem apurar, lê-se só pelo `clientId`.
   const ids = await (async () => {
     if (todosOsIds.length === 0) return [];
-    try {
-      const contaminadas = await prisma.portalMessage.findMany({
-        where: { clientRequestId: { in: todosOsIds }, clientId: { not: null, notIn: [clientId] } },
-        select: { clientRequestId: true },
-        distinct: ["clientRequestId"],
-      });
-      if (!Array.isArray(contaminadas)) return [];
-      const sujas = new Set(contaminadas.map((c) => c.clientRequestId).filter((x): x is string => !!x));
-      if (sujas.size > 0) {
-        // NEGA E REGISTRA. Esconder histórico em silêncio é o defeito que esta
-        // casa chama de "falha de leitura virando afirmação falsa": o cliente
-        // some com a conversa e ninguém fica sabendo que houve barramento.
-        console.error(
-          `[portal] cerca da conversa: cliente ${clientId} teve `
-          + `${sujas.size} solicitação(ões) EXCLUÍDA(S) da leitura por carimbo de outro dono `
-          + `(${[...sujas].join(", ")}). Solicitação que trocou de dono — investigar.`,
-        );
-      }
-      return todosOsIds.filter((id) => !sujas.has(id));
-    } catch (e) {
+    const sujas = await solicitacoesQueMudaramDeDono(clientId, todosOsIds);
+    if (sujas.size > 0) {
+      // NEGA E REGISTRA. Esconder histórico em silêncio é o defeito que esta
+      // casa chama de "falha de leitura virando afirmação falsa".
       console.error(
-        `[portal] cerca da conversa: NÃO consegui apurar contaminação do cliente ${clientId} `
-        + `— lendo só por clientId (fecha, não abre).`, e,
+        `[portal] cerca da conversa: cliente ${clientId} teve `
+        + `${sujas.size} solicitação(ões) EXCLUÍDA(S) da leitura por evidência de outro dono `
+        + `(${[...sujas].join(", ")}). Solicitação que trocou de dono — investigar.`,
       );
-      return [];
     }
+    return todosOsIds.filter((id) => !sujas.has(id));
   })();
 
   // ── A CERCA É DA LEITURA, NÃO DA ESCRITA ──────────────────────────────────

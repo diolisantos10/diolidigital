@@ -64,7 +64,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (!escopo.ok) {
       return NextResponse.json({ error: "Access denied", reason: escopo.motivo }, { status: 403 });
     }
-    let reqId: string | null = escopo.clientRequestIds[0] ?? null;
+    const reqId: string | null = escopo.clientRequestIds[0] ?? null;
     {
       if (!reqId) {
         // Valid token, but no Brain request yet — cliente criado DIRETO.

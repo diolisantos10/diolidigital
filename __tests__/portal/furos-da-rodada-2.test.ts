@@ -30,6 +30,7 @@ import { GET as lerVista } from "@/app/api/portal/vista/route";
 import { donoDoToken, resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { conversaDaSolicitacao, conversaDoCliente } from "@/app/api/messages/conversa";
 import { gravarMensagemDoPortal } from "@/lib/agency/portal/mensagem-do-portal";
+import { censoDeHistoricoAmbiguo } from "@/lib/agency/portal/solicitacao-que-mudou-de-dono";
 import { donoConfere } from "@/lib/agency/portal/dono-da-tela";
 import { PORTAL_COOKIE } from "@/lib/agency/persistence/portal-cookie";
 
@@ -374,5 +375,102 @@ describe("ponteiro andado: TODAS as portas do token fecham", () => {
       }),
     );
     expect(escrita.status).toBe(403);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 ADENDO 1 DO `qualidade` — O FURO A NÃO ESTAVA FECHADO PARA O DADO EXISTENTE
+//
+// O carimbo de `clientId` vale a partir de agora; **nenhuma linha já gravada em
+// produção o tem**. E a cerca só excluía uma solicitação quando havia, presa a
+// ela, uma linha carimbada com OUTRO dono. Logo: conversa **100% legada** não
+// tinha carimbo nenhum, não havia o que provar, e ela atravessava inteira.
+//
+// Este é o probe dele, com o `SEGREDO-LEGADO` no valor original.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("histórico 100% LEGADO numa solicitação re-apontada", () => {
+  it("⛔ não atravessa — mesmo sem UMA linha carimbada para provar nada", async () => {
+    const r = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: alfa, businessName: "ALFA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    // O ALFA tinha portal — é ele a prova documental de que R foi dele.
+    await prisma.portalAccess.create({ data: { token: "tk-leg-a", clientId: alfa, clientRequestId: r.id } });
+    // Conversa inteira SEM carimbo: o formato de tudo que já está em produção.
+    for (const b of [SEGREDO_LEGADO, "legada-b"]) {
+      await prisma.portalMessage.create({
+        data: { clientRequestId: r.id, authorRole: "team", authorName: "x", body: b },
+      });
+    }
+    expect(await prisma.portalMessage.count({ where: { clientRequestId: r.id, clientId: { not: null } } })).toBe(0);
+
+    // O ponteiro anda: R passa a ser do BETA, que abre com o token DELE.
+    await prisma.clientRequestDb.update({ where: { id: r.id }, data: { clientId: beta } });
+    await prisma.portalAccess.create({ data: { token: "tk-leg-b", clientId: beta } });
+
+    const lidas = await corpos(await lerConversa(get("/api/portal/messages?token=tk-leg-b")));
+
+    expect(lidas).not.toContain(SEGREDO_LEGADO);
+    expect(lidas).not.toContain("legada-b");
+  });
+
+  it("✅ e o dono legítimo de uma solicitação que NUNCA mudou lê o legado inteiro", async () => {
+    const r = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: beta, businessName: "BETA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    await prisma.portalMessage.create({
+      data: { clientRequestId: r.id, authorRole: "team", authorName: "x", body: "legado-limpo-do-beta" },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-leg-ok", clientId: beta, clientRequestId: r.id } });
+
+    const lidas = await corpos(await lerConversa(get("/api/portal/messages?token=tk-leg-ok")));
+    expect(lidas).toContain("legado-limpo-do-beta");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 ADENDO 2 — O CENSO TRANQUILIZAVA. Os dois cenários que o `qualidade` mediu.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("censo de histórico ambíguo", () => {
+  it("⛔ enxerga a solicitação re-apontada com histórico 100% LEGADO (achava 0)", async () => {
+    const r = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: alfa, businessName: "ALFA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-censo-a", clientId: alfa, clientRequestId: r.id } });
+    for (const b of ["ambigua-1", "ambigua-2"]) {
+      await prisma.portalMessage.create({
+        data: { clientRequestId: r.id, authorRole: "team", authorName: "x", body: b },
+      });
+    }
+    await prisma.clientRequestDb.update({ where: { id: r.id }, data: { clientId: beta } });
+
+    const censo = await censoDeHistoricoAmbiguo();
+
+    expect(censo.solicitacoesAfetadas).toContain(r.id);
+    expect(censo.mensagensOcultadasPelaCerca).toBeGreaterThanOrEqual(2);
+  });
+
+  it("⛔ publica `semDonoEscrito` — o universo de RISCO, não o custo da cerca", async () => {
+    // `beforeEach` limpa as mensagens; o universo de risco precisa existir
+    // para ser medido.
+    const r = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: alfa, businessName: "ALFA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    await prisma.portalMessage.create({
+      data: { clientRequestId: r.id, authorRole: "team", authorName: "x", body: "sem-dono-escrito" },
+    });
+    const censo = await censoDeHistoricoAmbiguo();
+    // O número principal existe e conta TODA linha sem dono, tenha ou não
+    // evidência de troca. Era ele que faltava no relatório: sem ele, um
+    // `mensagensOcultadasPelaCerca: 0` é lido como "não há contaminação".
+    expect(censo.semDonoEscrito).toBeGreaterThan(0);
+    expect(censo.semDonoEscrito).toBeGreaterThanOrEqual(censo.mensagensOcultadasPelaCerca);
+  });
+
+  it("⛔ conta a solicitação de PROSPECT — o ponto cego do `atual &&`", async () => {
+    await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, businessName: "prospect", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    const censo = await censoDeHistoricoAmbiguo();
+    expect(censo.solicitacoesSemDono).toBeGreaterThan(0);
   });
 });

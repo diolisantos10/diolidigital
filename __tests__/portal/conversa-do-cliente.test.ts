@@ -21,9 +21,16 @@ const db = vi.hoisted(() => ({
   portalMessage: { create: vi.fn(), findMany: vi.fn(), updateMany: vi.fn(), count: vi.fn() },
   clientRequestDb: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
   client: { findFirst: vi.fn(), findUnique: vi.fn() },
+  // ⚠️ rodada 3: a prova de que uma solicitação já foi de outro deixou de
+  // depender só da mensagem — passou a olhar PortalAccess, Project e
+  // ApprovalRequest (ver `solicitacao-que-mudou-de-dono.ts`). Sem estes mocks
+  // a apuração falha e a cerca FECHA (que é o certo), mas a suíte não estaria
+  // exercitando o caminho limpo.
+  project: { findMany: vi.fn() },
+  approvalRequest: { findMany: vi.fn() },
   // ⚠️ 15/08/2026: o dono passou a ser CONGELADO no `PortalAccess`
   // (`donoDoToken`) em vez de re-derivado a cada chamada.
-  portalAccess: { findUnique: vi.fn(), update: vi.fn() },
+  portalAccess: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() },
   activityEvent: { create: vi.fn() },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
@@ -77,6 +84,9 @@ beforeEach(() => {
     return { clientRequestId: a?.record?.clientRequestId ?? null };
   });
   db.portalAccess.update.mockResolvedValue({});
+  db.portalAccess.findMany.mockResolvedValue([]);
+  db.project.findMany.mockResolvedValue([]);
+  db.approvalRequest.findMany.mockResolvedValue([]);
   requireSession.mockResolvedValue({ session: { name: "PM", workspaceId: "ws1", role: "master" }, error: null });
 });
 
@@ -230,6 +240,9 @@ describe("a equipe abre a conversa", () => {
     return { clientRequestId: a?.record?.clientRequestId ?? null };
   });
   db.portalAccess.update.mockResolvedValue({});
+  db.portalAccess.findMany.mockResolvedValue([]);
+  db.project.findMany.mockResolvedValue([]);
+  db.approvalRequest.findMany.mockResolvedValue([]);
     const res = await GET(get("?clientId=cli-foocci"));
     expect(res.status).toBe(200);
     // Mesma cerca do lado da EQUIPE: a caixa de entrada abre a conversa de um

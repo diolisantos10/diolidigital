@@ -16,7 +16,7 @@
 // A mesma conta roda offline em `scripts/censo-de-historico-ambiguo.mts`.
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db/client";
+import { censoDeHistoricoAmbiguo } from "@/lib/agency/portal/solicitacao-que-mudou-de-dono";
 import { requireSession } from "@/lib/auth/api-guard";
 import { segredoConfere } from "@/lib/security/crypto";
 
@@ -39,35 +39,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const solicitacoes = await prisma.clientRequestDb.findMany({ select: { id: true, clientId: true } });
-    const donoAtual = new Map(solicitacoes.map((s) => [s.id, s.clientId]));
-
-    const carimbadas = await prisma.portalMessage.findMany({
-      where: { clientId: { not: null }, clientRequestId: { not: null } },
-      select: { clientRequestId: true, clientId: true },
-      distinct: ["clientRequestId", "clientId"],
-    });
-
-    // Solicitação cujo histórico tem carimbo de quem NÃO é o dono de hoje —
-    // a prova de que o ponteiro andou.
-    const suspeitas = new Set<string>();
-    for (const c of carimbadas) {
-      if (!c.clientRequestId) continue;
-      const atual = donoAtual.get(c.clientRequestId) ?? null;
-      if (atual && c.clientId && c.clientId !== atual) suspeitas.add(c.clientRequestId);
-    }
-
-    const mensagensOcultadasPelaCerca = suspeitas.size === 0 ? 0 : await prisma.portalMessage.count({
-      where: { clientRequestId: { in: [...suspeitas] }, clientId: null },
-    });
-
+    // Fonte ÚNICA, a mesma da cerca — o censo não pode medir uma coisa e a
+    // trava outra. Ver `lib/agency/portal/solicitacao-que-mudou-de-dono.ts`.
+    const censo = await censoDeHistoricoAmbiguo();
     return NextResponse.json({
-      medidoEm: new Date().toISOString(),
-      totalDeMensagens: await prisma.portalMessage.count(),
-      semDonoEscrito: await prisma.portalMessage.count({ where: { clientId: null } }),
-      solicitacoesQueTrocaramDeDono: suspeitas.size,
-      mensagensOcultadasPelaCerca,
-      solicitacoesAfetadas: [...suspeitas],
+      ...censo,
+      leiaAssim: {
+        numeroPrincipal: "semDonoEscrito",
+        oQueEle:
+          "As mensagens que NÃO têm dono escrito. É o universo de risco: toda linha anterior"
+          + " ao carimbo cai aqui. `mensagensOcultadasPelaCerca` é o CUSTO da trava, não o risco.",
+        cuidado:
+          "0 em `mensagensOcultadasPelaCerca` NÃO significa 'não há contaminação' —"
+          + " significa que não há evidência de troca de dono nas solicitações de hoje.",
+      },
     });
   } catch (e) {
     // Falha de leitura NÃO vira zero: "não consegui contar" e "não há nenhuma"
