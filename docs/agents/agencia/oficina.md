@@ -812,3 +812,120 @@ o portão de direção não é pulado.
   de 08/08 ainda aberta: peça sai completa, sem a etiqueta do pilar.
 - **A rota não foi exercitada contra produção.** Ela é leitura pura por padrão,
   então a primeira passada é gratuita — mas ninguém a rodou ainda.
+
+---
+
+## 15/08/2026 — a agência não produzia post bom: cinco elos, todos medidos
+
+**Branch:** `claude/direcao-de-arte-religada` · 5 commits · `tsc` limpo ·
+**236 arquivos, 3856 verdes, 1 pulado** (52 testes novos).
+
+### 1. A direção de arte era escrita e descartada
+
+`especialistas.ts` pedia o campo `visual` ("o que aparece na imagem");
+`run-execution.ts` (`deliverableMarkdown`) gravava "- Visual: ..." no markdown;
+`publicacao.ts` (`extrairPecas`) capturava Legenda, Formato, Pilar e Cenas — **e
+não Visual**; e `SocialPost` não tinha coluna.
+
+O gerador recebia `Cena a retratar: ${post.caption}` — a legenda do Instagram
+inteira, com CTA e oito hashtags — mais quinze proibições e "sem nenhum texto,
+letra, número ou logotipo". **O desenho vetorial genérico era a saída COERENTE
+com esse pedido.** O modelo obedeceu; foi o pedido que estava errado.
+
+`SocialPost.artDirection` (migration aditiva). A legenda vira **fallback**, e o
+fallback fica no código de propósito: é ele que torna a mudança reversível e que
+atende as peças anteriores a hoje.
+
+**A metade perigosa, travada:** a direção **não passa pelo piso de verdade**.
+`fonteAuditada` continua sendo só `post.caption`, há teste de fonte que reprova
+quem passar `artDirection` como fonteAuditada/titulo/apoio/selo, e teste de
+comportamento provando que `travaDeTextoNaArte` a barraria por falta de lastro.
+
+### 2. O post simples nunca passou pelo cérebro da marca
+
+`composicaoParaFuncao` existia desde 09/08 e era chamada em três lugares — os
+**três de carrossel**. O post simples caía em `molde.ts:534` → `"foto-cheia"`,
+que é justamente a composição que o registro do CityJobs **proíbe** ("viraria a
+mesma peça 60 vezes por mês"). 60 peças/mês violando a regra escrita, em
+silêncio.
+
+`composicaoDoPostSimples` resolve o papel pelo **pilar**, contra as funções que a
+marca declarou, e quando o repertório não cobre cai na primeira **permitida** —
+nunca na proibida. Marca sem formato registrado continua em foto-cheia.
+
+### 3. O portão de pixel: sete dias com zero chamadores em `lib/`
+
+`trava-de-fundo.ts` é o único portão da casa que lê pixel. Teste verde, números
+medidos contra as peças que o CEO reprovou, e **nenhum chamador vivo**.
+
+Plugado em `portao-do-fundo.ts`, no **fundo cru, antes de compor** — o lugar é
+medido: 29× de separação no fundo cru contra 1,2× na peça composta, porque o
+molde pinta painel, tipografia e assinatura por cima. Fail-closed: não medir tem
+motivo próprio (`nao_foi_possivel_medir`) e **reprova**.
+
+**Fronteira declarada:** julga a imagem gerada por IA; **não** julga a foto que o
+cliente mandou. Reprovar o material do próprio cliente com régua calibrada
+contra desenho vetorial seria a agência vetando a foto dele.
+
+### 4. O portão de pilar aprovava por omissão — e ninguém tinha medido
+
+O bloqueio nasceu em 07/08 depois de três peças com salário FALSO em pixel.
+Estava ligado em seis pontos. **Nunca disparou na esteira automática**: o prompt
+não pedia `pillar`, o markdown não emitia a linha, `extrairPecas` a procurava e
+nunca achava. `conferirPilar(null)` devolvia LIBERADO — por escolha declarada,
+que estava certa para o Planner e errada para a esteira.
+
+Origem consertada (prompt + contrato de saída + markdown) e `exigido: true` na
+criação do calendário. **Consequência que não é bug:** entrega antiga no banco,
+produzida antes de o markdown emitir a linha, não entra mais no calendário — ela
+nunca passou por este portão. O conserto é reproduzir a entrega.
+
+### 5. A fábrica não conseguia produzir a peça boa
+
+`PecaDoMolde` ia até `apoio`, e `comporComMolde` **sequer passava `apoio`**. As
+peças que o CEO fez à mão têm três chips e faixa de chamada: **improduzíveis**
+pela esteira. E se o slot existisse, `travaDeTextoNaArte` reprovaria 6 de 8 chips
+e 3 de 4 chamadas — por natureza, não por defeito: ela exige trecho literal da
+LEGENDA, e chip afirma o que a **marca** é.
+
+Slot e trava entraram **no mesmo commit**, e a ordem está escrita nos dois
+arquivos: slot sem trava faria o portão barrar exatamente a peça que se quer
+produzir, e é assim que alguém desliga o portão.
+
+**O que NÃO foi afrouxado, e é o que decide se foi conserto ou porta dos
+fundos:** as classes proibidas correm **antes** do lastro e continuam todas
+valendo. Medido: "Sem taxa" (promessa comercial), "Melhor da região"
+(superlativo) e "100% gratuito" continuam fora do pixel **mesmo declarados na
+ficha pelo dono da marca**. O que destrava o chip é a **fonte do lastro**, nunca
+a lista de proibições.
+
+### 6. O contrato do especialista contra o contrato do cliente
+
+Números fixos no código (6–8 peças, 1–2 carrossel, 2–3 story) contra um cliente
+que **exclui carrossel, story e vídeo** e compra **60 posts/mês**. A trava mais
+cara da casa cobrava o que ele não comprou, com teto de 13% do que pagou.
+
+`escopo-do-cliente.ts` lê o contrato dele, sem IA. Achado ao escrever: contrato
+escreve exclusão de **duas formas** — na frase e numa **seção com título e
+lista** — e o CityJobs usou a segunda em três das quatro. Ler só a primeira
+achava uma. E a granularidade decide: varrer a linha inteira de "só post
+simples… Sem carrossel" excluiria o **feed**, que é o que ele comprou.
+
+Onde não há contrato legível, **pergunta-se**: régua histórica mantida e lacuna
+nomeada em `ActivityEvent`.
+
+### O que fica aberto — não decidi sozinho
+
+- **Nada disto foi rodado contra o banco de produção.** O que se sabe é o
+  CAMINHO. Quantas entregas antigas do CityJobs param de entrar no calendário
+  por falta da linha "Pilar" só a leitura do banco responde.
+- **A ficha de marca do CityJobs a 22% continua barrando.** Sem
+  `BrandBrain.artLabelsJson` preenchido, não há chip e não há faixa — a peça sai
+  como saía. Preencher é decisão do dono da marca, e continua sendo.
+- **60 peças/mês não fecham em uma passada.** O teto por entrega é 12, de custo,
+  não de contrato. O mês só fecha com mais passadas, e quem as dispara ainda não
+  existe — hoje há uma entrega por ciclo. O aviso sobe com o número; a máquina
+  de repetir, não.
+- **A direção de arte não passa pelo piso de verdade, e isso é escolha.** Ela
+  descreve cena, não afirma fato. O que a impede de virar letra é a trava de
+  texto, não uma auditoria própria dela.
