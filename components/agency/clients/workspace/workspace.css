@@ -5025,3 +5025,285 @@
   color: var(--navy);
   text-align: center;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   O QUE FOI ACRESCENTADO EM 15/08/2026, E SÓ ISTO.
+   
+   Tudo acima veio da folha aprovada e não foi tocado — nenhum valor de design
+   da referência foi alterado. Abaixo estão os blocos que a referência NÃO
+   tinha, porque as abas a que eles pertencem não existiam nela: Estratégia
+   (nova), Aprovações e Entregas (que o mockup nunca criou).
+   
+   As regras seguem os MESMOS tokens (--navy, --line, --ink, --muted, --cyan) e
+   os mesmos raios e espaçamentos do resto da folha. Nada aqui inventa uma
+   segunda linguagem visual: quem chegar depois não deve conseguir apontar qual
+   aba chegou por último.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── O botão desligado com motivo ────────────────────────────────────────
+   Ele EXISTE, está visivelmente inerte, e carrega a razão do lado. Sumir com
+   o controle ensinaria que a função não existe; um cinza mudo teria a mesma
+   frustração do botão morto, com um passo a mais. */
+.dioliOS button.indisponivel {
+  cursor: not-allowed;
+  opacity: .55;
+  position: relative;
+}
+.dioliOS button.indisponivel:hover { transform: none; }
+.dioliOS .motivoIndisponivel {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.35;
+  font-style: normal;
+  font-weight: 400;
+  color: var(--muted);
+  max-width: 260px;
+  white-space: normal;
+  text-align: left;
+}
+/* Na faixa de ações do topo o motivo ficaria alto demais e empurraria o
+   cabeçalho: ali ele vira só o `title`, e o texto reaparece no card. */
+.dioliOS .tabTitle > div:last-child .motivoIndisponivel,
+.dioliOS .clientHeadActions .motivoIndisponivel { display: none; }
+
+/* ── Estratégia ─────────────────────────────────────────────────────────── */
+.dioliOS .strategyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+.dioliOS .strategyDl { display: grid; gap: 14px; margin: 0; }
+.dioliOS .strategyDl > div {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.dioliOS .strategyDl > div:last-child { border-bottom: 0; padding-bottom: 0; }
+.dioliOS .strategyDl dt {
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.dioliOS .strategyDl dd { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink); }
+.dioliOS .strategyDl small { display: block; margin-top: 4px; font-size: 10px; color: var(--muted); }
+.dioliOS .strategyStatement {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+  margin: 8px 0 0;
+}
+.dioliOS .strategyRelations button,
+.dioliOS .strategyRelations a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  margin-bottom: 8px;
+  text-align: left;
+}
+.dioliOS .strategyRelations button:hover { border-color: var(--cyan); }
+.dioliOS .strategyRelations b { display: block; font-size: 13px; }
+.dioliOS .strategyRelations small { display: block; font-size: 11px; color: var(--muted); }
+.dioliOS .strategyRoom {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dioliOS .strategyRoom:last-child { border-bottom: 0; }
+.dioliOS .strategyRoom header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.dioliOS .strategyRoom p { font-size: 13px; line-height: 1.55; margin: 0 0 10px; }
+.dioliOS .strategyRoom p.noData { color: var(--muted); font-style: italic; }
+.dioliOS .strategyRoom footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.dioliOS .riskRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dioliOS .riskRow:last-child { border-bottom: 0; }
+.dioliOS .riskRow b { display: block; font-size: 13px; }
+.dioliOS .riskRow small { display: block; font-size: 11px; color: var(--muted); }
+.dioliOS .riskRow > span { flex: 1; }
+
+/* ── Aprovações ─────────────────────────────────────────────────────────── */
+.dioliOS .approvalGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.dioliOS .approvalCard {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+/* A cor segue o SIGNIFICADO da decisão, nunca a posição na lista. */
+.dioliOS .approvalCard.d-reprovado { border-left: 3px solid var(--red, #e5484d); }
+.dioliOS .approvalCard.d-ajuste_pedido { border-left: 3px solid var(--amber, #ffb224); }
+.dioliOS .approvalCard.d-aprovado { border-left: 3px solid var(--green, #30a46c); }
+.dioliOS .approvalCard.d-duvida_aberta { border-left: 3px solid var(--cyan); }
+.dioliOS .approvalCard header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.dioliOS .approvalCard header > span:first-child { flex: 1; }
+.dioliOS .approvalCard header b { display: block; font-size: 14px; }
+.dioliOS .approvalCard header small { display: block; font-size: 11px; color: var(--muted); }
+.dioliOS .approvalCard header em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+/* O QUE ESTÁ SENDO DECIDIDO. Este bloco é o conserto do incidente de 14/08. */
+.dioliOS .approvalContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--line);
+}
+.dioliOS .approvalContent > span { flex: 1; }
+.dioliOS .approvalContent b { display: block; font-size: 13px; }
+.dioliOS .approvalContent small { display: block; font-size: 11px; color: var(--muted); }
+/* Card sem peça: vermelho, e sem caminho de decisão. */
+.dioliOS .approvalContent.semConteudo {
+  border-color: var(--red, #e5484d);
+  background: rgba(229,72,77,.07);
+}
+.dioliOS .approvalContent.semConteudo small { line-height: 1.5; }
+.dioliOS .approvalNote {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-left: 2px solid var(--line);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink2, var(--ink));
+}
+.dioliOS .approvalNote small {
+  display: block;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.dioliOS .approvalCard footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+}
+.dioliOS .approvalCard footer > span:first-child { flex: 1; }
+.dioliOS .caminhoDaDecisao {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dioliOS .caminhoDaDecisao:last-child { border-bottom: 0; }
+.dioliOS .caminhoDaDecisao small {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.dioliOS .accessBanner.alerta { border-color: var(--red, #e5484d); }
+.dioliOS .accessBanner.alerta > i { color: var(--red, #e5484d); }
+
+/* ── Entregas ───────────────────────────────────────────────────────────── */
+.dioliOS .deliveryRow {
+  display: grid;
+  grid-template-columns: 8px minmax(0,2.4fr) auto auto auto auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dioliOS .deliveryRow:last-child { border-bottom: 0; }
+.dioliOS .deliveryRow > i {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted);
+}
+.dioliOS .deliveryRow > i.done { background: var(--green, #30a46c); }
+.dioliOS .deliveryRow > i.medium { background: var(--amber, #ffb224); }
+.dioliOS .deliveryRow b { display: block; font-size: 13px; }
+.dioliOS .deliveryRow small { display: block; font-size: 11px; color: var(--muted); }
+.dioliOS .deliveryRow strong { font-size: 12px; white-space: nowrap; }
+.dioliOS .deliveryRow strong em {
+  display: block;
+  font-style: normal;
+  font-size: 10px;
+  color: var(--muted);
+}
+.dioliOS .deliveryRow time { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.dioliOS .deliveryFilters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.dioliOS .deliveryFilters input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  font-family: inherit;
+}
+.dioliOS .deliveryFilters input:focus {
+  outline: 2px solid var(--cyan);
+  outline-offset: 1px;
+  border-color: var(--cyan);
+}
+.dioliOS .deliveryFilters > span { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.dioliOS .deliveryGroups { display: grid; gap: 16px; }
+
+/* ── O celular manda: 375px ──────────────────────────────────────────────
+   A maioria abre isto no telefone. Toda grade de duas colunas desmonta, e a
+   linha de entrega vira bloco — sete colunas em 375px produziriam ou barra de
+   rolagem lateral (proibida) ou texto de 6px. */
+@media (max-width: 900px) {
+  .dioliOS .approvalGrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .dioliOS .strategyGrid { grid-template-columns: 1fr; }
+  .dioliOS .deliveryRow {
+    grid-template-columns: 8px 1fr;
+    row-gap: 6px;
+  }
+  .dioliOS .deliveryRow > *:nth-child(n+3) { grid-column: 2; }
+  .dioliOS .deliveryFilters { flex-wrap: wrap; }
+  .dioliOS .approvalCard header { flex-wrap: wrap; }
+  .dioliOS .approvalCard footer { flex-wrap: wrap; row-gap: 8px; }
+  .dioliOS .strategyRoom footer { flex-wrap: wrap; row-gap: 6px; }
+  .dioliOS .motivoIndisponivel { max-width: 100%; }
+}
