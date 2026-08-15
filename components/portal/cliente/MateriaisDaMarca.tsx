@@ -20,7 +20,7 @@
 // dois lados: a lista do que JÁ entrou (que sobrevive ao recarregar) e a frase
 // honesta sobre o que o brand book não resolve.
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { EnvioDeMaterial } from "@/components/portal/EnvioDeMaterial";
 import {
   O_QUE_O_BRAND_BOOK_ALCANCA,
@@ -174,8 +174,13 @@ export function MateriaisDaMarca({ token }: { token: string }) {
           </div>
         )}
 
+        {/* ── FRAGMENTO, NUNCA <div> — a moldura da referência depende disso ──
+            O V12 estiliza a linha por FILHO DIRETO (`.cp-delivery-list>button`).
+            Agrupar os botões dentro de uma <div> por categoria os tirava dessa
+            seleção e a linha inteira perdia o desenho: nome, data e etiqueta
+            colavam numa frase só. Descoberto na captura de 1280, não no código. */}
         {!erro && grupos.map((g) => (
-          <div key={g.categoria}>
+          <Fragment key={g.categoria}>
             <p
               style={{
                 marginTop: 15, marginBottom: 4, fontWeight: 700,
@@ -194,7 +199,7 @@ export function MateriaisDaMarca({ token }: { token: string }) {
                 style={{ touchAction: "manipulation", opacity: m.url ? 1 : 0.65 }}
               >
                 <Icone>{(m.papel && ICONE_DA_CATEGORIA[m.papel]) ?? "▦"}</Icone>
-                <span>
+                <span style={{ minWidth: 0 }}>
                   <small>
                     {m.categoria}
                     {/* A VERSÃO só é dita onde ela quer dizer alguma coisa: o
@@ -205,19 +210,32 @@ export function MateriaisDaMarca({ token }: { token: string }) {
                       ? ` · versão ${m.versao}${m.vigente ? " (atual)" : ""}`
                       : ""}
                   </small>
-                  <b>{m.nome}</b>
-                  <em>
-                    {[
-                      dataCurta(m.enviadoEm),
-                      tamanhoLegivel(m.tamanhoBytes),
-                      m.detalhe,
-                    ].filter(Boolean).join(" · ")}
-                  </em>
+                  {/* Nome de arquivo não tem espaço para quebrar. Sem isto, um
+                      "brand-book-identidade-2026-final.pdf" estoura a linha e
+                      empurra a etiqueta para fora da tela de 375. */}
+                  <b style={{ overflowWrap: "anywhere" }}>{m.nome}</b>
+                  <em>{[dataCurta(m.enviadoEm), tamanhoLegivel(m.tamanhoBytes)].filter(Boolean).join(" · ")}</em>
                 </span>
                 <Etiqueta tom={TOM_DO_ESTADO[m.estado]}>{ROTULO_DO_ESTADO[m.estado]}</Etiqueta>
               </button>
             ))}
-          </div>
+            {/* ── A EXPLICAÇÃO FICA FORA DA LINHA, E ESSE É O PONTO ──────────
+                A linha do V12 tem ALTURA FIXA (68px). A frase de estado — "seu
+                arquivo está guardado, a leitura não funcionou" — ocupa três
+                linhas num celular de 375, estourava a altura e as linhas se
+                sobrepunham umas às outras.
+                Encurtar a frase resolveria o desenho e estragaria o recado, que
+                é o que o cliente precisa ler. Então a linha continua sendo a
+                linha do V12, e a explicação ganha o espaço dela embaixo. */}
+            {g.itens.filter((m) => m.detalhe).map((m) => (
+              <p
+                key={`${m.id}-detalhe`}
+                style={{ margin: "0 0 4px", paddingLeft: 3, color: "var(--cp-muted)" }}
+              >
+                <b style={{ overflowWrap: "anywhere" }}>{m.nome}</b> — {m.detalhe}
+              </p>
+            ))}
+          </Fragment>
         ))}
 
         {brandBooks.length > 1 && (
