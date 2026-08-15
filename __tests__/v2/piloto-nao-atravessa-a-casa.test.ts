@@ -19,6 +19,15 @@
 // serve para bater heartbeat e ler censo) virava, de carona, segredo de gastar
 // dinheiro e escrever no portal do cliente.
 //
+// ─── O SEGUNDO id, que ficou de fora do primeiro conserto ────────────────────
+//
+// Esta rota aceita DOIS ids do corpo. O conserto da manhã de 15/08 fechou
+// `clienteId` e deixou `clientRequestId` passar — e o cabeçalho da rota já
+// afirmava "TODA ação daqui é recortada por WORKSPACE" enquanto isso era falso.
+// Meia trava que se apresenta como inteira é pior que trava ausente: quem lê
+// acredita e não confere. Este arquivo passou a cobrir os dois ids, porque é
+// ele que existe para fechar esta CLASSE de defeito, não um caso dela.
+//
 // ─── AS DUAS METADES ─────────────────────────────────────────────────────────
 //
 // Metade 1 — BARRA: cliente de outra casa não roda cadeia, não cria pedido e
@@ -45,6 +54,7 @@ const dados = vi.hoisted(() => ({
   execucoes: [] as Linha[],
   recusas: [] as Linha[],
   handoffs: [] as Linha[],
+  pedidos: [] as Linha[],
   pedidosAtualizados: [] as string[],
 }));
 
@@ -90,6 +100,7 @@ const db = vi.hoisted(() => {
     recusaV2: tabela(() => dados.recusas),
     handoffV2: tabela(() => dados.handoffs),
     clientRequestDb: {
+      ...tabela(() => dados.pedidos),
       update: vi.fn(async ({ where }: { where: { id: string } }) => {
         dados.pedidosAtualizados.push(where.id);
         return { id: where.id };
@@ -189,6 +200,11 @@ beforeEach(() => {
     { deDepartamento: "design", paraDepartamento: "social-media", status: "aceito", correlationId: `assistido:${CLIENTE_A}:r1`, criadoEm: new Date("2026-08-15") },
     { deDepartamento: "design", paraDepartamento: "social-media", status: "aceito", correlationId: `assistido:${CLIENTE_B}:r2`, criadoEm: new Date("2026-08-15") },
   ];
+  // Um pedido de entrada em cada casa — o SEGUNDO id que chega pelo corpo.
+  dados.pedidos = [
+    { id: "req-a", workspaceId: CASA_A, clientId: CLIENTE_A, status: "new" },
+    { id: "req-b", workspaceId: CASA_B, clientId: CLIENTE_B, status: "new" },
+  ];
   dados.pedidosAtualizados = [];
 });
 
@@ -226,6 +242,83 @@ describe('acao "ciclo" — o clienteId do corpo não atravessa a casa', () => {
     const res = await POST(pedir({ acao: "ciclo", clienteId: CLIENTE_B, solicitacao: "faz um post" }));
     expect(res.status).toBe(200);
     expect(cadeia.executarCicloAssistido).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─── O SEGUNDO id do corpo — o que sobrou do conserto da manhã ──────────────
+//
+// `clienteId` foi recortado em 15/08 e `clientRequestId` não. O cabeçalho da
+// rota já dizia "TODA ação daqui é recortada por WORKSPACE" enquanto isso era
+// falso — meia trava que se apresenta como inteira.
+//
+// Medido antes do conserto, com o `clienteId` já recortado: diretor da casa A,
+// cliente da casa A, `clientRequestId` da casa B → **200**, correlação
+// `assistido:cli-a:req-b`, o pedido da casa B carimbado `in_progress`, e o
+// ciclo rodando SEM registro de entrada na própria casa.
+
+describe('acao "ciclo" — o clientRequestId do corpo também tem dono', () => {
+  it("⛔ pedido de OUTRA casa: 404, cadeia NÃO roda e o pedido alheio NÃO é carimbado", async () => {
+    const res = await POST(
+      pedir({ acao: "ciclo", clienteId: CLIENTE_A, solicitacao: "retoma", clientRequestId: "req-b" }),
+    );
+    expect(res.status).toBe(404);
+    expect(cadeia.executarCicloAssistido).not.toHaveBeenCalled(); // dinheiro
+    expect(escritores.createApprovalRequest).not.toHaveBeenCalled(); // portal do cliente
+    expect(dados.pedidosAtualizados).toEqual([]); // escrita na ficha alheia
+  });
+
+  it("⛔ a recusa é IGUAL à de id inexistente — a rota não vira oráculo de ids", async () => {
+    const alheio = await POST(
+      pedir({ acao: "ciclo", clienteId: CLIENTE_A, solicitacao: "retoma", clientRequestId: "req-b" }),
+    );
+    const inexistente = await POST(
+      pedir({ acao: "ciclo", clienteId: CLIENTE_A, solicitacao: "retoma", clientRequestId: "req-que-nunca-existiu" }),
+    );
+    expect(alheio.status).toBe(inexistente.status);
+    expect(await alheio.json()).toEqual(await inexistente.json());
+  });
+
+  it("⛔ e a correlação MISTURADA não nasce — era ela o buraco de auditoria", async () => {
+    const res = await POST(
+      pedir({ acao: "ciclo", clienteId: CLIENTE_A, solicitacao: "retoma", clientRequestId: "req-b" }),
+    );
+    const corpo = await res.json();
+    // `assistido:cli-a:req-b` — cliente de uma casa, registro de entrada de
+    // outra. É o rastro que o ciclo carimbava em execução, recusa e handoff.
+    expect(corpo.correlationId).toBeUndefined();
+    expect(JSON.stringify(corpo)).not.toContain("req-b");
+    // E nem retomou o alheio, nem abriu um novo por baixo do pano para seguir.
+    expect(escritores.createClientRequest).not.toHaveBeenCalled();
+  });
+
+  it("✅ o pedido da PRÓPRIA casa continua retomando — a trava não engoliu o caminho legítimo", async () => {
+    const res = await POST(
+      pedir({ acao: "ciclo", clienteId: CLIENTE_A, solicitacao: "retoma", clientRequestId: "req-a" }),
+    );
+    expect(res.status).toBe(200);
+    const corpo = await res.json();
+    expect(corpo.ok).toBe(true);
+    expect(corpo.clientRequestId).toBe("req-a");
+    expect(corpo.correlationId).toBe(`assistido:${CLIENTE_A}:req-a`);
+    // Retomar NÃO abre pedido novo — é o ponto de retomar.
+    expect(escritores.createClientRequest).not.toHaveBeenCalled();
+    expect(cadeia.executarCicloAssistido).toHaveBeenCalledTimes(1);
+    expect(dados.pedidosAtualizados).toEqual(["req-a"]);
+  });
+
+  it("✅ o operador da casa B retoma o pedido da casa B — o recorte separa, não achata", async () => {
+    sessao.atual = { userId: "u-dir-b", workspaceId: CASA_B };
+    const res = await POST(
+      pedir({ acao: "ciclo", clienteId: CLIENTE_B, solicitacao: "retoma", clientRequestId: "req-b" }),
+    );
+    expect(res.status).toBe(200);
+    expect(dados.pedidosAtualizados).toEqual(["req-b"]);
+  });
+
+  it("✅ sem clientRequestId nada muda: o pedido nasce na própria casa, como sempre", async () => {
+    const res = await POST(pedir({ acao: "ciclo", clienteId: CLIENTE_A, solicitacao: "faz um post" }));
+    expect(res.status).toBe(200);
+    expect(escritores.createClientRequest).toHaveBeenCalledTimes(1);
   });
 });
 
