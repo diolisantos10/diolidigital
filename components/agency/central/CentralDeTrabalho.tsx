@@ -397,7 +397,7 @@ export function CentralDeTrabalho({
                         <span className={`priority ${p.urgencia === "alta" ? "high" : p.urgencia === "media" ? "medium" : "normal"}`} />
                         <div className="task-copy">
                           <strong>{p.titulo}</strong>
-                          <small>{p.clienteNome} · {p.motivo}</small>
+                          <small>{p.contexto} · {p.motivo}</small>
                         </div>
                         <span className={`task-status ${p.situacao === "andamento" ? "doing" : p.situacao === "revisao" ? "review" : "waiting"}`}>
                           {p.situacao === "andamento" ? "Em andamento" : p.situacao === "revisao" ? "Revisão" : "Aguardando"}

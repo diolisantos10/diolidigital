@@ -95,6 +95,16 @@ export interface Prioridade {
   id: string;
   titulo: string;
   motivo: string;
+  /**
+   * Onde isto acontece, já resolvido: "Cliente · Projeto", ou só o projeto
+   * quando o nome dele já carrega o do cliente.
+   *
+   * Vem pronto do dado, e não montado na tela, porque montar lá produziu
+   * "City Jobs · City Jobs · Lançamento" — o nome do projeto já começava com o
+   * do cliente. Repetição em linha de prioridade rouba o espaço do que importa.
+   */
+  contexto: string;
+  /** Só o cliente. O herói tem uma linha curta e não comporta o projeto. */
   clienteNome: string;
   urgencia: "alta" | "media" | "normal";
   situacao: "andamento" | "revisao" | "espera";
@@ -309,15 +319,21 @@ const URGENCIA: Record<string, Prioridade["urgencia"]> = {
 };
 
 function prioridadeDeAutoTask(t: AutoTask, clientes: Client[]): Prioridade {
+  const cliente = clientes.find((c) => c.id === t.clientId)?.name ?? "Sem cliente";
+  const projeto = t.projectName ?? "";
+  const contexto = !projeto
+    ? cliente
+    : projeto.toLowerCase().includes(cliente.toLowerCase())
+      ? projeto
+      : `${cliente} · ${projeto}`;
   return {
     id: t.id,
     titulo: t.title,
-    // O NOME DO PROJETO entra aqui, e não é enfeite: a fila real repetia cinco
-    // vezes "Enviar proposta ao cliente" com o mesmo cliente embaixo, porque um
-    // cliente tem mais de um projeto. Cinco linhas idênticas numa lista de
-    // prioridades é o mesmo que nenhuma — ninguém sabe qual clicar.
-    motivo: t.projectName ? `${t.projectName} · ${t.description}` : t.description,
-    clienteNome: clientes.find((c) => c.id === t.clientId)?.name ?? "Sem cliente",
+    contexto,
+    motivo: t.description,
+    clienteNome: cliente,
+    // `clienteNome` continua existindo separado de `contexto`: o herói mostra só
+    // o cliente (a linha é curta), a lista mostra cliente + projeto.
     urgencia: URGENCIA[t.priority] ?? "normal",
     situacao: t.priority === "critical" || t.priority === "high" ? "andamento" : "espera",
     rota: t.route,
