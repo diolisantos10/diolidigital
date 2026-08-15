@@ -62,8 +62,17 @@ const SESSAO = { session: { userId: "u1", email: "m@d", name: "M", role: "master
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
   escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   requireSession.mockResolvedValue(SESSAO);
+  // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+  // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+  // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+  // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+  // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+  // carregam o dono, que é a forma que os links emitidos passam a ter.
+  // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: null, clientId: "cli-foocci" } });
   resolvePortalClient.mockResolvedValue({ clientId: "cli-foocci", workspaceId: "ws1" });
   db.socialPost.findMany.mockResolvedValue([postCarrossel()]);
@@ -89,7 +98,7 @@ describe("GET /api/social-posts — as telas do carrossel saem no DTO", () => {
   });
 
   it("ramo de token (portal): telas presentes, script continua AUSENTE", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
     const res = await listarPosts(new NextRequest("http://localhost/api/social-posts?token=tok-1"));
     const json = await res.json();
     expect(json.posts[0].telas).toEqual(TELAS);
@@ -287,7 +296,7 @@ describe("portal-data — pecas estruturadas a partir de sourcePostIdsJson", () 
   });
 
   it("no ramo COM solicitação (buildPortalData) as pecas saem igual — as duas portas falam a mesma língua", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
     db.clientRequestDb.findUnique.mockResolvedValue({
       id: "cr1", clientId: "cli-foocci", businessName: "Foocci", status: "in_production",
       services: "[]", objectives: "[]", briefingJson: "{}", segment: "", createdAt: new Date(),

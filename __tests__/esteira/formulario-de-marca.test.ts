@@ -32,7 +32,7 @@ describe("só o dono responde", () => {
     // trocou de dono debaixo do token). A garantia que este teste protege é a
     // mesma e ficou MAIOR: sem escopo bom, ninguém vira cliente.
     expect(corpo).toContain("escopoDoToken");
-    expect(corpo).toContain("escopo?.ok ? escopo.clientId : null");
+    expect(corpo).toContain('escopo.tipo === "cliente" ? escopo.clientId : null');
   });
 });
 

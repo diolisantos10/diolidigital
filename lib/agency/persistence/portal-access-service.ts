@@ -143,18 +143,26 @@ export async function donoDoToken(token: string): Promise<DonoDoToken> {
     return { ok: false, motivo: "ponteiro_andou" };
   }
 
-  const clientId = congelado ?? daSolicitacao;
+  // ── 🔴 RODADA 4: `congelado ?? daSolicitacao` ERA O SINTOMA RESSUSCITADO ──
+  //
+  // Um `PortalAccess` LEGADO (clientId nulo) cuja solicitação já andou
+  // congelava no dono **NOVO**. Probe: `/api/portal/vista` com o link legado
+  // do ALFA devolveu `marca.nome = "Loja BETA"`.
+  //
+  // E o furo era estrutural, não de borda: **o congelamento só protege token
+  // validado depois do deploy, e todo token em produção é anterior a ele.**
+  // Era, outra vez, defesa que depende de dado que só existe no futuro.
+  //
+  // A inversão: **`PortalAccess.clientId` é a ÚNICA prova de pertencimento de
+  // um token.** Sem ela não se DERIVA dono nenhum — derivar do ponteiro é
+  // adivinhar, e adivinhar é o que produziu o incidente. O token sem prova é
+  // recusado, e a agência emite um novo (`/api/admin/links-do-portal`).
+  //
+  // O caso do PROSPECT (solicitação que ainda não tem cliente) continua
+  // valendo e é tratado em `escopoDoToken`: lá a identidade É a solicitação,
+  // e não há cliente para confundir com outro.
+  const clientId = congelado;
   if (!clientId) return { ok: false, motivo: "sem_dono" };
-
-  // CONGELA na primeira vez. A partir daqui o token não segue mais ponteiro.
-  if (!congelado) {
-    try {
-      await prisma.portalAccess.update({ where: { token }, data: { clientId } });
-    } catch {
-      // Não conseguir congelar não pode derrubar a visita: o dono desta
-      // requisição já foi decidido acima, e a próxima tentará de novo.
-    }
-  }
 
   const cliente = await prisma.client.findUnique({
     where: { id: clientId },
@@ -189,14 +197,39 @@ export async function resolvePortalClient(
 // Rota que precise de `clientRequestId` tira daqui, e não do registro do token.
 // Assim o id que a rota USA já nasce congelado e conferido.
 
+// ── POR QUE ISTO É UMA UNIÃO DISCRIMINADA, E NÃO UM `clientId: string | null`
+//
+// 🔴 A REGRESSÃO DA RODADA 3, e ela deixou o PR PIOR que não mesclar.
+// `app/api/media/[id]` fazia `escopo.clientId === registro.clientId`. No ramo
+// do PROSPECT `escopo.clientId` é nulo; todo `MediaAsset` legado tem
+// `clientId` nulo. **`null === null` → autorizado**, e o probe atravessou
+// WORKSPACE: inquilino 1 lendo arquivo do inquilino 2. A base tinha o `!!` que
+// eu removi.
+//
+// Consertar aquela linha não bastava: é uma CLASSE de defeito, e o mesmo
+// `null === null` já tinha aparecido em `posse-da-aprovacao` na rodada
+// anterior. Enquanto o tipo permitir `clientId: null`, todo chamador novo pode
+// repeti-lo, e nenhum teste que eu escreva cobre o chamador que ainda não
+// existe.
+//
+// Com a união, **o campo `clientId` NÃO EXISTE no ramo do prospect**: comparar
+// não compila. A trava passa a ser o compilador, não a disciplina de quem lê.
 export type EscopoDoToken =
   | {
       ok: true;
-      /** Nulo SÓ no caso PROSPECT: solicitação de briefing que ainda não virou
-       *  cliente. Quem exige cliente confere e recusa. */
-      clientId: string | null;
-      workspaceId: string | null;
+      tipo: "cliente";
+      clientId: string;
+      workspaceId: string;
+      /** As solicitações que pertencem a este cliente HOJE. */
       clientRequestIds: string[];
+    }
+  | {
+      ok: true;
+      tipo: "prospect";
+      /** Solicitação de briefing que ainda não virou cliente. Não há
+       *  `clientId` — e é justamente por isso que ele não existe aqui. */
+      clientRequestId: string;
+      workspaceId: string | null;
     }
   | { ok: false; motivo: "token_invalido" | "sem_dono" | "ponteiro_andou" };
 
@@ -222,9 +255,9 @@ export async function escopoDoToken(token: string): Promise<EscopoDoToken> {
     if (!solicitacao || solicitacao.clientId) return dono;
     return {
       ok: true,
-      clientId: null,
+      tipo: "prospect",
+      clientRequestId: solicitacao.id,
       workspaceId: solicitacao.workspaceId ?? null,
-      clientRequestIds: [solicitacao.id],
     };
   }
 
@@ -238,6 +271,7 @@ export async function escopoDoToken(token: string): Promise<EscopoDoToken> {
 
   return {
     ok: true,
+    tipo: "cliente",
     clientId: dono.clientId,
     workspaceId: dono.workspaceId,
     clientRequestIds: solicitacoes.map((s) => s.id),

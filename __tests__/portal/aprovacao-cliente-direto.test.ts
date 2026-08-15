@@ -17,7 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const db = vi.hoisted(() => ({
   approvalRequest: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn(), count: vi.fn() },
-  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn() },
+  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   socialPost: { findMany: vi.fn(), updateMany: vi.fn(), update: vi.fn(), findFirst: vi.fn() },
   client: { findUnique: vi.fn() },
   brainArtifact: { findMany: vi.fn() },
@@ -100,6 +100,8 @@ function reqDecisao(body: Record<string, unknown>): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
   escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   requireSession.mockResolvedValue(SESSAO_MASTER);
   db.socialPost.findMany.mockResolvedValue(SEIS_POSTS);
@@ -113,6 +115,13 @@ beforeEach(() => {
   createApprovalRequest.mockResolvedValue({ id: "ap-cal" });
   updateApprovalStatus.mockResolvedValue({ id: "ap-cal", status: "approved", reviewedAt: new Date() });
   addApprovalComment.mockResolvedValue({ id: "cm1" });
+  // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+  // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+  // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+  // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+  // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+  // carregam o dono, que é a forma que os links emitidos passam a ter.
+  // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: null, clientId: "cli-foocci" } });
 });
 
@@ -280,7 +289,7 @@ describe("posse por clientId — dono derivado do token, sem vazamento", () => {
   });
 
   it("portal-data por solicitação inclui o OR por clientId — as duas chaves do mesmo dono", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "cli1" } });
     db.clientRequestDb.findUnique.mockResolvedValue({
       id: "cr1", clientId: "cli-foocci", businessName: "Foocci", status: "in_production",
       services: "[]", objectives: "[]", briefingJson: "{}", segment: "", createdAt: new Date(),

@@ -45,7 +45,8 @@ async function clienteDoToken(request: NextRequest): Promise<string | null> {
   // 🔴 RODADA 3: o dono saía do registro do token. Agora sai do ESCOPO
   // CONGELADO — e `ponteiro_andou` fecha aqui como fecha nas outras.
   const escopo = await escopoDoToken(token).catch(() => null);
-  return escopo?.ok ? escopo.clientId : null;
+  // Marca é do CLIENTE: prospect não tem ficha, e não se inventa uma.
+  return escopo?.ok && escopo.tipo === "cliente" ? escopo.clientId : null;
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {

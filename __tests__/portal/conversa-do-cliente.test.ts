@@ -14,6 +14,7 @@
 //   • acesso sem dono nenhum não é mais 404 mudo: é 409 explicado, e a tela
 //     desliga a caixa de texto em vez de prometer reenvio eterno.
 
+import { donoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -63,22 +64,11 @@ beforeEach(() => {
   });
   db.portalMessage.findMany.mockResolvedValue([]);
   db.portalMessage.updateMany.mockResolvedValue({ count: 0 });
+  db.portalMessage.count.mockResolvedValue(0);
   db.clientRequestDb.findMany.mockResolvedValue([]);
-  // `donoDoToken` é o caminho ÚNICO desde 15/08/2026. Aqui ele IMITA o real:
-  // congela o dono do registro do token e, sem dono no registro, deriva da
-  // solicitação. Mockar um valor fixo esconderia justamente o que mudou.
-  donoDoToken.mockImplementation(async (token: string) => {
-    const a = await validatePortalAccess(token);
-    if (!a?.valid || !a.record) return { ok: false, motivo: "token_invalido" };
-    let id: string | null = a.record.clientId ?? null;
-    if (!id && a.record.clientRequestId) {
-      const sol = await db.clientRequestDb.findUnique({
-        where: { id: a.record.clientRequestId }, select: { clientId: true },
-      });
-      id = sol?.clientId ?? null;
-    }
-    return id ? { ok: true, clientId: id, workspaceId: "ws1" } : { ok: false, motivo: "sem_dono" };
-  });
+  // Espelho do real (rodada 4): `PortalAccess.clientId` é a única prova;
+  // não se deriva do ponteiro, e ponteiro andado recusa.
+  donoDoToken.mockImplementation(donoFalso(validatePortalAccess, db));
   db.portalAccess.findUnique.mockImplementation(async () => {
     const a = await validatePortalAccess("x");
     return { clientRequestId: a?.record?.clientRequestId ?? null };
@@ -113,12 +103,11 @@ describe("cliente criado DIRETO, sem solicitação de briefing", () => {
     // CERCA DO DONO: nenhuma linha carimbada para outro cliente sai, venha por
     // qual chave vier. Ver o cabeçalho de `montarFiltro` em `conversa.ts` e o
     // incidente em `__tests__/portal/conversa-de-outro-cliente.test.ts`.
-    expect(db.portalMessage.findMany.mock.calls.at(-1)![0].where).toEqual({
-      AND: [
-        { clientId: "cli-foocci" },
-        { OR: [{ clientId: "cli-foocci" }, { clientId: null }] },
-      ],
-    });
+    // ⚠️ RODADA 4 — A FORMA MUDOU DE NOVO, e agora é a mais simples possível.
+    // A defesa deixou de procurar prova de CONTAMINAÇÃO para excluir e passou
+    // a exigir prova de PERTENCIMENTO para incluir: só sai a linha com dono
+    // ESCRITO. Ver o cabeçalho de `montarFiltro`.
+    expect(db.portalMessage.findMany.mock.calls.at(-1)![0].where).toEqual({ clientId: "cli-foocci" });
   });
 });
 
@@ -148,12 +137,12 @@ describe("cliente COM solicitação", () => {
     // mas agora dentro da CERCA DO DONO. `clientId: null` continua passando de
     // propósito: é o formato das 11 escritas antigas, e barrá-lo apagaria
     // histórico legítimo do portal. Ver `conversa-de-outro-cliente.test.ts`.
-    expect(db.portalMessage.findMany.mock.calls.at(-1)![0].where).toEqual({
-      AND: [
-        { OR: [{ clientId: "cli1" }, { clientRequestId: { in: ["cr1", "cr0"] } }] },
-        { OR: [{ clientId: "cli1" }, { clientId: null }] },
-      ],
-    });
+    // ⚠️ RODADA 4: a UNIÃO por `clientRequestId` MORREU, e a morte é o
+    // conserto — ela existia para achar linha SEM `clientId`, que é exatamente
+    // a linha sem prova de dono. Era ela que arrastava a conversa antiga para
+    // o dono novo de uma solicitação re-apontada.
+    expect(db.portalMessage.findMany.mock.calls.at(-1)![0].where).toEqual({ clientId: "cli1" });
+    expect(JSON.stringify(db.portalMessage.findMany.mock.calls.at(-1)![0].where)).not.toContain("clientRequestId");
   });
 
   it("ao abrir, marca como lidas as mensagens da EQUIPE — no mesmo escopo unido", async () => {
@@ -164,10 +153,11 @@ describe("cliente COM solicitação", () => {
     // A marcação de lida usa O MESMO filtro da leitura — inclusive a cerca.
     // Se ela divergisse, o cliente novo carimbaria como lida a mensagem do
     // cliente antigo, e o vazamento apagaria o próprio rastro.
-    expect(where.AND).toEqual([
-      { OR: [{ clientId: "cli1" }, { clientRequestId: { in: ["cr1", "cr0"] } }] },
-      { OR: [{ clientId: "cli1" }, { clientId: null }] },
-    ]);
+    // A marcação de lida usa O MESMO filtro da leitura. Se divergisse, o
+    // cliente carimbaria como lida a mensagem de outro, e o vazamento apagaria
+    // o próprio rastro.
+    expect(where.clientId).toBe("cli1");
+    expect(JSON.stringify(where)).not.toContain("clientRequestId");
   });
 });
 
@@ -247,12 +237,11 @@ describe("a equipe abre a conversa", () => {
     expect(res.status).toBe(200);
     // Mesma cerca do lado da EQUIPE: a caixa de entrada abre a conversa de um
     // cliente e não pode trazer linha de outro por tabela de solicitação.
-    expect(db.portalMessage.findMany.mock.calls.at(-1)![0].where).toEqual({
-      AND: [
-        { clientId: "cli-foocci" },
-        { OR: [{ clientId: "cli-foocci" }, { clientId: null }] },
-      ],
-    });
+    // ⚠️ RODADA 4 — A FORMA MUDOU DE NOVO, e agora é a mais simples possível.
+    // A defesa deixou de procurar prova de CONTAMINAÇÃO para excluir e passou
+    // a exigir prova de PERTENCIMENTO para incluir: só sai a linha com dono
+    // ESCRITO. Ver o cabeçalho de `montarFiltro`.
+    expect(db.portalMessage.findMany.mock.calls.at(-1)![0].where).toEqual({ clientId: "cli-foocci" });
     // Ao ver, as mensagens do CLIENTE ficam lidas para a equipe — é o que
     // apaga o badge da caixa de entrada.
     expect(db.portalMessage.updateMany.mock.calls[0]![0].where.readByTeam).toBe(false);

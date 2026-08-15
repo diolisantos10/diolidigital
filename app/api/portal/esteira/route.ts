@@ -73,9 +73,10 @@ async function solicitacaoDoToken(token: string): Promise<{ id: string } | { err
         ? { erro: "Acesso negado", codigo: 403 }
         : { erro: "Acesso sem projeto vinculado", codigo: 404 };
   }
+  if (escopo.tipo === "prospect") return { id: escopo.clientRequestId };
   const primeira = escopo.clientRequestIds[0];
   if (!primeira) {
-    return { erro: "Ainda não há projeto para acompanhar", codigo: 404, clientId: escopo.clientId ?? undefined };
+    return { erro: "Ainda não há projeto para acompanhar", codigo: 404, clientId: escopo.clientId };
   }
   return { id: primeira };
 }

@@ -75,12 +75,13 @@ export async function GET(
     // ESCOPO CONGELADO. Fail-closed continua: token sem dono não abre nada — um
     // `OR: []` no Prisma não filtra, devolveria a peça de qualquer um.
     const esc = await escopoDoToken(token);
-    if (esc.ok) {
-      dono = {
-        tipo: "portal",
-        clientId: esc.clientId,
-        clientRequestId: esc.clientRequestIds[0] ?? null,
-      };
+    // ⚠️ `condicaoDoDono` monta `OR: []` quando os dois campos são nulos — e
+    // um `OR: []` no Prisma NÃO filtra: devolveria a peça de qualquer um. Por
+    // isso cada ramo preenche exatamente UM lado, nunca dois nulos.
+    if (esc.ok && esc.tipo === "cliente") {
+      dono = { tipo: "portal", clientId: esc.clientId, clientRequestId: null };
+    } else if (esc.ok && esc.tipo === "prospect") {
+      dono = { tipo: "portal", clientId: null, clientRequestId: esc.clientRequestId };
     }
   } else {
     const session = await getSession();

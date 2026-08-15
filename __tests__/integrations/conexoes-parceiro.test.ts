@@ -19,7 +19,7 @@ vi.mock("@/lib/db/client", () => ({
       findUnique: (...a: unknown[]) => portalFindUnique(...a),
       update: (...a: unknown[]) => portalUpdate(...a),
     },
-    clientRequestDb: { findUnique: (...a: unknown[]) => clientRequestFindUnique(...a) },
+    clientRequestDb: { findUnique: (...a: unknown[]) => clientRequestFindUnique(...a), findMany: vi.fn() },
     client: { findUnique: (...a: unknown[]) => clientFindUnique(...a) },
     metaConnection: { findMany: (...a: unknown[]) => metaConnectionFindMany(...a) },
   },
@@ -202,14 +202,27 @@ describe("GET /api/portal/conexoes — a lista é SÓ do cliente do token", () =
     expect((await res.json()).conexoes).toEqual([]);
   });
 
-  it("token vinculado só a uma solicitação resolve o cliente por ela", async () => {
+  // ⚠️ RODADA 4 — CONTRATO INVERTIDO. "Resolver o cliente pela solicitação" era
+  // DERIVAR do ponteiro `ClientRequestDb.clientId`, que é mutável: um link
+  // legado do cliente A passava a abrir o portal do cliente B quando a
+  // solicitação mudava de mãos. `PortalAccess.clientId` virou a única prova.
+  it("⛔ token SEM dono escrito é RECUSADO — não se deriva cliente do ponteiro", async () => {
+    // Este é o formato do token LEGADO: só `clientRequestId`. Ele resolvia o
+    // cliente pela solicitação — e `ClientRequestDb.clientId` é MUTÁVEL, então
+    // um link antigo do cliente A passava a abrir o portal do cliente B
+    // quando a solicitação mudava de mãos. `PortalAccess.clientId` virou a
+    // ÚNICA prova de pertencimento de um token.
     portalFindUnique.mockResolvedValue({
       token: TOKEN, clientId: null, clientRequestId: "req-1",
       revokedAt: null, expiresAt: null,
     });
-    clientRequestFindUnique.mockResolvedValue({ clientId: "cli-1" });
+    // A solicitação TEM dono — e mesmo assim não serve de prova para o token.
+    clientRequestFindUnique.mockResolvedValue({ id: "req-1", clientId: "cli-1", workspaceId: "ws-1" });
+
     const res = await listarConexoes(req(`http://localhost/api/portal/conexoes?token=${TOKEN}`));
-    expect(res.status).toBe(200);
-    expect(metaConnectionFindMany.mock.calls[0]![0].where.clientId).toBe("cli-1");
+
+    expect(res.status).toBe(401);
+    // E o banco de conexões não é tocado: fail-closed antes da consulta.
+    expect(metaConnectionFindMany).not.toHaveBeenCalled();
   });
 });

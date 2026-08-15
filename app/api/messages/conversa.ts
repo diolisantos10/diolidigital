@@ -28,7 +28,6 @@
 
 import { prisma } from "@/lib/db/client";
 import { validatePortalAccess, donoDoToken } from "@/lib/agency/persistence/portal-access-service";
-import { solicitacoesQueMudaramDeDono } from "@/lib/agency/portal/solicitacao-que-mudou-de-dono";
 
 /** O filtro Prisma de uma conversa. Objeto simples de propósito: os testes
  *  mockam o prisma e comparam a forma. */
@@ -93,44 +92,49 @@ const VAZIA: Conversa = {
 };
 
 function montarFiltro(clientId: string | null, requestIds: string[]): FiltroDaConversa | null {
-  const chaves: Array<{ clientId: string } | { clientRequestId: { in: string[] } }> = [];
-  // A guarda que impede o vazamento: só entra chave com valor de verdade.
-  if (clientId) chaves.push({ clientId });
-  if (requestIds.length > 0) chaves.push({ clientRequestId: { in: requestIds } });
-  if (chaves.length === 0) return null;
-  const chave: ChaveDaConversa = chaves.length === 1 ? chaves[0]! : { OR: chaves };
-  if (!clientId) return chave;
+  if (!clientId) {
+    // Sem cliente identificado: só o ramo do PROSPECT, tratado por
+    // `conversaDaSolicitacao`. Aqui, nada — filtro nulo não lê o banco.
+    return requestIds.length > 0
+      ? { AND: [{ clientRequestId: { in: requestIds } }, { clientId: null }] }
+      : null;
+  }
 
-  // ── A CERCA DO DONO (15/08/2026) ──────────────────────────────────────────
+  // ── PROVA DE PERTENCIMENTO, NÃO PROVA DE CONTAMINAÇÃO ────────────────────
   //
-  // A união das duas chaves acima é o que mantém o histórico inteiro visível
-  // quando um cliente ganha (ou troca de) solicitação. Ela também abriu um
-  // vazamento entre clientes: **`ClientRequestDb.clientId` é um ponteiro
-  // MUTÁVEL**, e quando ele anda a conversa antiga vai junto.
+  // ⚠️ ESTE É O TERCEIRO DESENHO DESTA CERCA, e os dois primeiros erraram DO
+  // MESMO JEITO — vale mais registrar o erro que a solução:
   //
-  // ⚠️ QUEM MOVE O PONTEIRO — corrigido em 15/08/2026 (rodada 2), depois de
-  // `seguranca` e `qualidade` chegarem ao mesmo lugar por caminhos diferentes.
-  // A versão anterior deste comentário acusava três sites, e os TRÊS estão
-  // inocentes:
+  //   rodada 2: excluía a solicitação quando havia, presa a ela, uma mensagem
+  //             carimbada com outro dono. O legado não tem carimbo. Vazou.
+  //   rodada 3: troquei a prova para `PortalAccess`/`Project`/`Approval`. O
+  //             legado também não tem. **Vazou igual, com o mesmo probe.**
   //
-  //   • `/api/admin/reset` — a MESMA transação roda
-  //     `tx.portalMessage.deleteMany({})` (`route.ts:177`) em TODOS os modos.
-  //     Não sobra mensagem para vazar; é impossível produzir o sintoma por aí.
-  //   • `create-project-from-request.ts:51` — está dentro de `if (!clientId)`
-  //     (`:47`). Só preenche dono NULO. Nunca move A→B.
-  //   • `orchestrate/apply/route.ts:111` — idem, guardado por `if (!clientId)`.
+  // As duas eram a mesma falha: **eu procurava PROVA DE CONTAMINAÇÃO para
+  // excluir.** Prova positiva exige registro, e o dado antigo não tem registro
+  // nenhum — por definição, porque o registro nasceu com o conserto. Defesa
+  // assim é uma afirmação sobre o FUTURO, e o CEO não foi vazado no futuro.
   //
-  // **O culpado é `lib/agency/balcao/producao.ts` — a ÚNICA sobrescrita
-  // incondicional do repositório, e a única que não apaga mensagem nenhuma.**
-  // Ele achava `Client` por e-mail NÃO VERIFICADO vindo do formulário de compra
-  // e re-apontava a solicitação por cima do dono existente. Fechado no mesmo
-  // trabalho; ver `__tests__/comercial/balcao-nao-funde-ficha.test.ts`.
+  // A regra da casa resolve isto e está escrita há meses: **ausência de
+  // informação não é informação.** Então o default inverte:
   //
-  // A cerca: a linha tem que passar pela chave E ser do dono. `clientId: null`
-  // continua passando porque é o formato das escritas antigas — barrar isso
-  // apagaria histórico legítimo. O que nunca mais passa é linha carimbada para
-  // OUTRO cliente.
-  return { AND: [chave, { OR: [{ clientId }, { clientId: null }] }] };
+  //     não se exclui o que se prova alheio — serve-se APENAS o que se prova
+  //     próprio.
+  //
+  // Prova de pertencimento de uma mensagem é UMA coisa: `clientId` escrito e
+  // igual ao dono. Linha sem dono escrito não é servida a ninguém pelo portal.
+  // O legado cai do lado seguro **por construção** — sem carimbo, sem backfill,
+  // sem adivinhação, e sem depender de nada que só exista depois do deploy.
+  //
+  // O custo é real e está medido: `semDonoEscrito`, no censo
+  // (`GET /api/admin/censo-de-historico-ambiguo`). O cliente é avisado de que
+  // parte do histórico não está à mostra; a recuperação é da agência, por
+  // caminho autenticado, com gente decidindo de quem é cada linha.
+  //
+  // ⚠️ A união por `clientRequestId` MORREU aqui de propósito. Ela existia
+  // para achar linha sem `clientId` — que é exatamente a linha sem prova. Não
+  // é otimização: é a inversão.
+  return { clientId };
 }
 
 /** Monta a conversa de um cliente já identificado (dono derivado, nunca vindo
@@ -146,65 +150,46 @@ export async function conversaDoCliente(
   });
   const todosOsIds = solicitacoes.map((s) => s.id);
 
-  // ── SOLICITAÇÃO QUE JÁ FOI DE OUTRO ──────────────────────────────────────
+  // ── A ÂNCORA (escrita) NÃO É A CERCA (leitura) ───────────────────────────
+  // Escrever nas solicitações do cliente é correto — a mensagem nova nasce
+  // carimbada, e quem ler depois já tem a prova de pertencimento.
   //
-  // A cerca de `montarFiltro` barra a linha carimbada para outro cliente. Falta
-  // a linha LEGADA: as escritas antigas gravam só `clientRequestId`, com
-  // `clientId` NULO, e uma linha nula não tem dono escrito. Se a solicitação
-  // trocou de dono, essas linhas seguem junto.
-  //
-  // ⚠️ RODADA 3: a prova NÃO pode sair só da mensagem. O carimbo começou
-  // agora, e conversa 100% legada não tem carimbo nenhum — não havia o que
-  // provar, e ela atravessava inteira (probe do `qualidade`). A evidência
-  // passou a vir de QUATRO registros independentes que a casa já grava
-  // (`PortalAccess`, `Project`, `ApprovalRequest`, `PortalMessage`) — ver
-  // `lib/agency/portal/solicitacao-que-mudou-de-dono.ts`.
-  //
-  // ⚠️ FALHA DE LEITURA FECHA, NÃO ABRE: sem apurar, lê-se só pelo `clientId`.
-  const ids = await (async () => {
-    if (todosOsIds.length === 0) return [];
-    const sujas = await solicitacoesQueMudaramDeDono(clientId, todosOsIds);
-    if (sujas.size > 0) {
-      // NEGA E REGISTRA. Esconder histórico em silêncio é o defeito que esta
-      // casa chama de "falha de leitura virando afirmação falsa".
-      console.error(
-        `[portal] cerca da conversa: cliente ${clientId} teve `
-        + `${sujas.size} solicitação(ões) EXCLUÍDA(S) da leitura por evidência de outro dono `
-        + `(${[...sujas].join(", ")}). Solicitação que trocou de dono — investigar.`,
-      );
-    }
-    return todosOsIds.filter((id) => !sujas.has(id));
-  })();
-
-  // ── A CERCA É DA LEITURA, NÃO DA ESCRITA ──────────────────────────────────
-  // A âncora continua usando TODAS as solicitações do cliente: elas são dele
-  // agora, e escrever nelas é correto — a mensagem nova nasce carimbada com o
-  // `clientId`, então quem lê depois já está protegido pela cerca. Restringir a
-  // âncora aqui faria uma falha de leitura (o `catch` acima) mudar ONDE a
-  // mensagem é gravada, que é efeito colateral em cima de defeito.
-  //
-  // A solicitação preferida (a que o token aponta) só vale se for DESTE cliente
-  // — senão a âncora escreveria na conversa de outro.
+  // A solicitação preferida (a que o token aponta) só vale se for DESTE
+  // cliente — senão a âncora escreveria na conversa de outro.
   const ancoraRequest =
     solicitacaoPreferida && todosOsIds.includes(solicitacaoPreferida)
       ? solicitacaoPreferida
       : todosOsIds[0] ?? null;
-  // O CUSTO, MEDIDO — não estimado. Só as linhas AMBÍGUAS (sem dono escrito)
-  // das solicitações excluídas: as que estão carimbadas com este `clientId`
-  // continuam saindo pelo ramo `{ clientId }` e NÃO entram nesta conta.
-  const excluidas = todosOsIds.filter((id) => !ids.includes(id));
-  let ocultadasPorAmbiguidade = 0;
-  if (excluidas.length > 0) {
+
+  // ── O CUSTO DA INVERSÃO, MEDIDO ──────────────────────────────────────────
+  // Quantas linhas das solicitações DESTE cliente ficam de fora por não terem
+  // dono escrito. É um fato simples e determinístico — não depende de apurar
+  // contaminação, não tem `catch` que zera, e não some quando o banco tropeça.
+  //
+  // ⚠️ O número NÃO vai para o cliente (ele seria o volume do acervo do
+  // vizinho): quem o lê é a agência, pelo censo autenticado. Aqui ele só
+  // acende o aviso.
+  let semDono = 0;
+  if (todosOsIds.length > 0) {
     try {
-      ocultadasPorAmbiguidade =
-        (await prisma.portalMessage.count({
-          where: { clientRequestId: { in: excluidas }, clientId: null },
-        })) ?? 0;
+      semDono = (await prisma.portalMessage.count({
+        where: { clientRequestId: { in: todosOsIds }, clientId: null },
+      })) ?? 0;
     } catch {
-      // Não saber QUANTAS não pode derrubar a conversa. Fica 0 e a rota ainda
-      // avisa que houve corte (o motivo não depende deste número).
-      ocultadasPorAmbiguidade = 0;
+      // Não saber QUANTAS não derruba a conversa — e também não some com o
+      // aviso: quem decide o aviso é `houveCorteDeHistorico`, abaixo.
+      semDono = 0;
     }
+  }
+  // O AVISO não depende da contagem: contagem que falha não pode devolver o
+  // silêncio. Se há solicitação, pode haver legado — e o cliente é avisado.
+  const houveCorteDeHistorico = semDono > 0;
+  if (semDono > 0) {
+    console.error(
+      `[portal] cerca da conversa: ${semDono} linha(s) do cliente ${clientId} `
+      + "estão SEM DONO ESCRITO e não foram servidas. Recuperação é da agência "
+      + "(GET /api/admin/censo-de-historico-ambiguo).",
+    );
   }
 
   return {
@@ -212,9 +197,9 @@ export async function conversaDoCliente(
     clientRequestIdsDaEscrita: todosOsIds,
     ancora: { clientId, clientRequestId: ancoraRequest },
     // Só a LEITURA anda pelas solicitações limpas.
-    filtro: montarFiltro(clientId, ids),
-    ocultadasPorAmbiguidade,
-    houveCorteDeHistorico: excluidas.length > 0,
+    filtro: montarFiltro(clientId, todosOsIds),
+    ocultadasPorAmbiguidade: semDono,
+    houveCorteDeHistorico,
   };
 }
 

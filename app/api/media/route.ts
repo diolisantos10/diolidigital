@@ -84,9 +84,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         ? NextResponse.json({ error: "Este acesso não está ligado a nenhum cliente." }, { status: 409 })
         : NextResponse.json({ error: "Acesso inválido ou expirado", motivo: esc.motivo }, { status: 401 });
     }
-    clientId = esc.clientId;
-    clientRequestId = esc.clientRequestIds[0] ?? null;
-    workspaceId = esc.workspaceId;
+    if (esc.tipo === "cliente") {
+      clientId = esc.clientId;
+      clientRequestId = esc.clientRequestIds[0] ?? null;
+      workspaceId = esc.workspaceId;
+    } else {
+      // Prospect: o arquivo nasce preso à solicitação, sem dono — que é
+      // exatamente o que ele é.
+      clientId = null;
+      clientRequestId = esc.clientRequestId;
+      workspaceId = esc.workspaceId;
+    }
     if (!workspaceId || !clientId) {
       // O DONO COMPLETO vem do token, sempre. Antes, a falta do workspace caía
       // em `agencyWorkspace.findFirst()` — o primeiro workspace do banco, que

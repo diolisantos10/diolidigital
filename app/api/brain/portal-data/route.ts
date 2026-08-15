@@ -64,16 +64,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (!escopo.ok) {
       return NextResponse.json({ error: "Access denied", reason: escopo.motivo }, { status: 403 });
     }
-    const reqId: string | null = escopo.clientRequestIds[0] ?? null;
+    const reqId: string | null = escopo.tipo === "cliente"
+      ? (escopo.clientRequestIds[0] ?? null)
+      : escopo.clientRequestId;
     {
       if (!reqId) {
         // Valid token, but no Brain request yet — cliente criado DIRETO.
         // As aprovações dele vivem por `clientId` (cards do calendário): sem
         // esta busca, o Início dizia "nada depende de você" com 6 peças
         // esperando — a contradição do lançamento da Foocci.
-        // Prospect (solicitação sem cliente) não tem card por `clientId` — o
-        // que ele tem é a própria solicitação, tratada no ramo de baixo.
-        if (!escopo.clientId) {
+        if (escopo.tipo !== "cliente") {
           return NextResponse.json({ error: "Token not linked to a request" }, { status: 404 });
         }
         const client = await prisma.client.findUnique({ where: { id: escopo.clientId } });

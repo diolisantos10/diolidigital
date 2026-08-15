@@ -262,27 +262,46 @@ describe("FURO C — em modo cookie o selo é OBRIGATÓRIO", () => {
 // gate — e o comentário mais importante do arquivo ("falha de leitura FECHA,
 // não abre") passa a ter prova.
 // ═══════════════════════════════════════════════════════════════════════════
-describe("fail-closed da cerca: falha de leitura FECHA, não abre", () => {
-  it("⛔ se a sonda de contaminação FALHA, lê-se só por clientId — nunca pela união", async () => {
-    const espiao = vi.spyOn(prisma.portalMessage, "findMany");
-    // A sonda é a PRIMEIRA chamada de `findMany` da leitura.
-    espiao.mockRejectedValueOnce(new Error("banco tropeçou"));
-
+// ⚠️ RODADA 4 — OS DOIS TESTES DA "SONDA DE CONTAMINAÇÃO" SAÍRAM DAQUI, E A
+// REMOÇÃO É O CONSERTO.
+//
+// Eles provavam que a sonda falhava fechado. A sonda **não existe mais**: ela
+// era a forma errada de defesa — procurar prova de que a linha é ALHEIA para
+// excluí-la. Prova positiva exige registro, e o dado antigo não tem registro
+// nenhum. Testar o fail-closed de um mecanismo que não devia existir é
+// blindar o desenho errado.
+//
+// O que substitui os dois é a classe inteira (A1/A2/A3 acima) e o teste da
+// inversão, abaixo: **serve-se apenas o que se prova próprio.**
+describe("a inversão: só sai o que tem dono ESCRITO", () => {
+  it("⛔ o filtro do cliente é `{ clientId }` e mais nada — sem união por solicitação", async () => {
     const c = await conversaDoCliente(alfa);
-
-    // Sem saber quais solicitações estão limpas, a união NÃO pode ser montada:
-    // o filtro fica preso ao dono. Se este teste cair, o `catch` virou
-    // fail-OPEN e um tropeço de banco vira vazamento entre clientes.
+    // A união por `clientRequestId` era o que arrastava a linha sem dono. Se
+    // ela voltar, este teste cai — e ele é o gate da rodada 4 inteira.
+    expect(c.filtro).toEqual({ clientId: alfa });
     expect(JSON.stringify(c.filtro)).not.toContain("clientRequestId");
-    expect(c.filtro).toEqual({
-      AND: [{ clientId: alfa }, { OR: [{ clientId: alfa }, { clientId: null }] }],
-    });
-    espiao.mockRestore();
   });
 
-  it("✅ e com a sonda respondendo, a união volta (a cerca não é sempre-fechada)", async () => {
-    const c = await conversaDoCliente(alfa);
-    expect(JSON.stringify(c.filtro)).toContain("clientRequestId");
+  it("⛔ linha SEM dono escrito não sai nem para o dono da solicitação", async () => {
+    // O custo declarado da inversão, com todas as letras: o legado fica
+    // parado até alguém dizer de quem é. É a lei da casa — ausência de
+    // informação não é informação — e é o que faz o legado cair do lado
+    // seguro POR CONSTRUÇÃO, sem carimbo e sem backfill.
+    await prisma.portalMessage.create({
+      data: { clientRequestId: reqAlfa, authorRole: "team", authorName: "x", body: "legado-sem-dono" },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-inv", clientId: alfa, clientRequestId: reqAlfa } });
+    const lidas = await corpos(await lerConversa(get("/api/portal/messages?token=tk-inv")));
+    expect(lidas).not.toContain("legado-sem-dono");
+  });
+
+  it("✅ e a linha COM dono escrito sai normalmente — nada quebrou para o dono certo", async () => {
+    await gravarMensagemDoPortal({
+      clientRequestId: reqAlfa, authorRole: "team", authorName: "x", body: "com-dono-escrito",
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-inv2", clientId: alfa, clientRequestId: reqAlfa } });
+    const lidas = await corpos(await lerConversa(get("/api/portal/messages?token=tk-inv2")));
+    expect(lidas).toContain("com-dono-escrito");
   });
 });
 
@@ -389,7 +408,48 @@ describe("ponteiro andado: TODAS as portas do token fecham", () => {
 // Este é o probe dele, com o `SEGREDO-LEGADO` no valor original.
 // ═══════════════════════════════════════════════════════════════════════════
 describe("histórico 100% LEGADO numa solicitação re-apontada", () => {
-  it("⛔ não atravessa — mesmo sem UMA linha carimbada para provar nada", async () => {
+  // ── AS TRÊS VARIANTES DA MESMA CLASSE (rodada 4) ────────────────────────
+  // A rodada 3 fechou A1 (o dono antigo deixou `PortalAccess` PRESO à
+  // solicitação) e deixou A2 e A3 abertas — porque procurava PROVA DE
+  // CONTAMINAÇÃO. A2 é a forma do cliente criado direto pela agência: o
+  // `PortalAccess` dele tem `clientRequestId` NULO. A3 é o dono antigo sem
+  // pegada nenhuma. Nenhuma das três semeia carimbo: é assim que o dado de
+  // produção é.
+  for (const [nome, comAcessoPreso, comPegada] of [
+    ["A1 — dono antigo com PortalAccess preso à solicitação", true, true],
+    ["A2 — dono antigo com PortalAccess de clientRequestId NULO", false, true],
+    ["A3 — dono antigo SEM pegada nenhuma", false, false],
+  ] as const) {
+    it(`⛔ ${nome}: o dono novo NÃO lê o legado`, async () => {
+      const r = await prisma.clientRequestDb.create({
+        data: { workspaceId: ws, clientId: alfa, businessName: "ALFA", services: "[]", objectives: "[]", rawContext: "x" },
+      });
+      if (comPegada) {
+        await prisma.portalAccess.create({
+          data: {
+            token: `tk-${nome.slice(0, 2)}-a`, clientId: alfa,
+            clientRequestId: comAcessoPreso ? r.id : null,
+          },
+        });
+      }
+      // Conversa 100% legada: NENHUM carimbo. Semear um seria semear a
+      // evidência que a produção não tem — o erro das rodadas 2 e 3.
+      await prisma.portalMessage.create({
+        data: { clientRequestId: r.id, authorRole: "team", authorName: "x", body: "SEGREDO-LEGADO-PURO proposta de R$ 12.000" },
+      });
+      expect(await prisma.portalMessage.count({ where: { clientRequestId: r.id, clientId: { not: null } } })).toBe(0);
+
+      await prisma.clientRequestDb.update({ where: { id: r.id }, data: { clientId: beta } });
+      await prisma.portalAccess.create({ data: { token: `tk-${nome.slice(0, 2)}-b`, clientId: beta } });
+
+      const res = await lerConversa(get(`/api/portal/messages?token=tk-${nome.slice(0, 2)}-b`));
+      const bruto = JSON.stringify(await res.json());
+      expect(bruto).not.toContain("SEGREDO-LEGADO-PURO");
+      expect(bruto).not.toContain("12.000");
+    });
+  }
+
+  it("⛔ (o probe original) não atravessa — mesmo sem UMA linha carimbada para provar nada", async () => {
     const r = await prisma.clientRequestDb.create({
       data: { workspaceId: ws, clientId: alfa, businessName: "ALFA", services: "[]", objectives: "[]", rawContext: "x" },
     });
@@ -413,7 +473,17 @@ describe("histórico 100% LEGADO numa solicitação re-apontada", () => {
     expect(lidas).not.toContain("legada-b");
   });
 
-  it("✅ e o dono legítimo de uma solicitação que NUNCA mudou lê o legado inteiro", async () => {
+  // ⚠️ RODADA 4 — ESTE TESTE FOI INVERTIDO, e a inversão é o custo declarado.
+  //
+  // Ele afirmava que o dono legítimo continuava lendo o legado inteiro. Isso
+  // só era verdade enquanto a defesa procurava prova de CONTAMINAÇÃO — e era
+  // exatamente por isso que ela vazava: a mesma linha sem dono que o dono
+  // certo lia, o dono NOVO de uma solicitação re-apontada lia também.
+  //
+  // Não dá para ter as duas. Entre "o cliente vê menos histórico antigo" e "o
+  // cliente vê o preço do vizinho", esta casa escolhe a primeira, avisa na
+  // tela, e mede o resto no censo.
+  it("🟠 (custo declarado) nem o dono legítimo lê o legado sem dono — e a tela AVISA", async () => {
     const r = await prisma.clientRequestDb.create({
       data: { workspaceId: ws, clientId: beta, businessName: "BETA", services: "[]", objectives: "[]", rawContext: "x" },
     });
@@ -422,8 +492,11 @@ describe("histórico 100% LEGADO numa solicitação re-apontada", () => {
     });
     await prisma.portalAccess.create({ data: { token: "tk-leg-ok", clientId: beta, clientRequestId: r.id } });
 
-    const lidas = await corpos(await lerConversa(get("/api/portal/messages?token=tk-leg-ok")));
-    expect(lidas).toContain("legado-limpo-do-beta");
+    const j = await (await lerConversa(get("/api/portal/messages?token=tk-leg-ok"))).json();
+    expect(JSON.stringify(j)).not.toContain("legado-limpo-do-beta");
+    // Esconder em silêncio é o defeito que a casa chama de "falha de leitura
+    // virando afirmação falsa". O corte é DITO.
+    expect(j.motivo).toBe("historico-parcial");
   });
 });
 

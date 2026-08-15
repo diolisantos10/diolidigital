@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
-  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn() },
+  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   client: { findUnique: vi.fn(), findFirst: vi.fn() },
   agencyWorkspace: { findFirst: vi.fn() },
   mediaAsset: { update: vi.fn() },
@@ -48,6 +48,8 @@ function envio(token: string, nome = "logo.png", tipo = "image/png"): NextReques
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
   escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db, { resolvePortalClient }));
   getSession.mockResolvedValue(null);
   guardarArquivo.mockResolvedValue({ ok: true, arquivo: { id: "m1", fileName: "logo.png", sizeBytes: 16, mimeType: "image/png", url: "/api/media/m1" } });
@@ -65,6 +67,13 @@ beforeEach(() => {
 
 describe("o arquivo é arquivado no workspace DO CLIENTE, derivado do token", () => {
   it("cliente direto (token sem solicitação): workspace vem do dono, não do primeiro do banco", async () => {
+    // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+    // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+    // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+    // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+    // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+    // carregam o dono, que é a forma que os links emitidos passam a ter.
+    // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
     validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: null, clientId: "cli-foocci" } });
     resolvePortalClient.mockResolvedValue({ clientId: "cli-foocci", workspaceId: "ws-foocci" });
 
@@ -84,7 +93,7 @@ describe("o arquivo é arquivado no workspace DO CLIENTE, derivado do token", ()
   // Agora sai do ESCOPO CONGELADO (`escopoDoToken` → cliente → workspace).
   // A garantia que este teste protege é a mesma: a casa é a DO DONO.
   it("token com solicitação: o workspace vem do DONO congelado", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
     db.clientRequestDb.findUnique.mockResolvedValue({ workspaceId: "ws-padaria" });
     resolvePortalClient.mockResolvedValue({ clientId: "c1", workspaceId: "ws-padaria" });
 

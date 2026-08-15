@@ -138,15 +138,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // isso que impede a solicitação re-apontada de continuar valendo, sem
     // precisar de uma segunda regra de posse ao lado desta (duas regras com o
     // mesmo nome é o defeito nº 2 do incidente do Drive).
-    const requestDoEscopo =
-      approval.clientRequestId && escopo.clientRequestIds.includes(approval.clientRequestId)
-        ? approval.clientRequestId
-        : null;
-    const belongsToToken = pertenceAoToken(
-      formaDaAprovacao,
-      { clientRequestId: requestDoEscopo, clientId: escopo.clientId },
-      escopo.clientId,
-    );
+    // ── PROVA DE PERTENCIMENTO ────────────────────────────────────────────
+    // 🔴 O `seguranca` aprovou uma entrega de OUTRO cliente por aqui, e nesta
+    // casa entrega aprovada publica. A posse deixou de aceitar a solicitação
+    // como prova: quando há cliente, o CARIMBO tem de bater.
+    const belongsToToken = escopo.tipo === "cliente"
+      ? pertenceAoToken(
+          formaDaAprovacao,
+          { clientRequestId: null, clientId: escopo.clientId },
+          escopo.clientId,
+        )
+      // Prospect: a identidade é a solicitação, e o card não pode ter dono.
+      : approval.clientId == null
+        && approval.clientRequest?.clientId == null
+        && approval.clientRequestId === escopo.clientRequestId;
     if (!belongsToToken) {
       return NextResponse.json({ error: "Approval not accessible with this token" }, { status: 403 });
     }

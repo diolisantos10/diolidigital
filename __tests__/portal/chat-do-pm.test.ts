@@ -12,6 +12,7 @@
 // por `clientRequestDb.findUnique` / `findMany` — e a mensagem sai carimbada
 // com AS DUAS chaves quando as duas existem.
 
+import { donoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -43,28 +44,23 @@ const MSG_CRIADA = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // `donoDoToken` é o caminho ÚNICO desde 15/08/2026. Aqui ele IMITA o real:
-  // congela o dono do registro do token e, sem dono no registro, deriva da
-  // solicitação. Mockar um valor fixo esconderia justamente o que mudou.
-  donoDoToken.mockImplementation(async (token: string) => {
-    const a = await validatePortalAccess(token);
-    if (!a?.valid || !a.record) return { ok: false, motivo: "token_invalido" };
-    let id: string | null = a.record.clientId ?? null;
-    if (!id && a.record.clientRequestId) {
-      const sol = await db.clientRequestDb.findUnique({
-        where: { id: a.record.clientRequestId }, select: { clientId: true },
-      });
-      id = sol?.clientId ?? null;
-    }
-    return id ? { ok: true, clientId: id, workspaceId: "ws1" } : { ok: false, motivo: "sem_dono" };
-  });
+  // Espelho do real (rodada 4): `PortalAccess.clientId` é a única prova;
+  // não se deriva do ponteiro, e ponteiro andado recusa.
+  donoDoToken.mockImplementation(donoFalso(validatePortalAccess, db));
   db.portalAccess.findUnique.mockImplementation(async () => {
     const a = await validatePortalAccess("x");
     return { clientRequestId: a?.record?.clientRequestId ?? null };
   });
   db.portalAccess.update.mockResolvedValue({});
   // Token de uma solicitação que JÁ pertence a um cliente — o caso comum.
-  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+  // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+  // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+  // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+  // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+  // carregam o dono, que é a forma que os links emitidos passam a ter.
+  // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
+  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "cli1" } });
   db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr1", clientId: "cli1" });
   db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr1" }]);
   db.portalMessage.create.mockResolvedValue(MSG_CRIADA);

@@ -98,6 +98,9 @@ async function resolveTokenScope(
   // escopo é o CONGELADO, e a solicitação sai do CLIENTE, nunca do registro.
   const escopo = await escopoDoToken(token);
   if (!escopo.ok) return false;
+  if (escopo.tipo === "prospect") {
+    return { reqId: escopo.clientRequestId, workspaceId: escopo.workspaceId };
+  }
   return { reqId: escopo.clientRequestIds[0] ?? null, workspaceId: escopo.workspaceId };
 }
 

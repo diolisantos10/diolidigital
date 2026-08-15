@@ -1,16 +1,21 @@
 // Stub compartilhado: `escopoDoToken` para as suítes que mockam o
 // `portal-access-service`.
 //
-// ── Por que ele existe (15/08/2026, rodada 3) ───────────────────────────────
-// A trava do ponteiro andado saiu de `donoDoToken` e virou `escopoDoToken` — o
-// escopo CONGELADO (cliente + workspace + solicitações DO CLIENTE), porque a
-// lição da rodada foi: *"a trava vai onde o id é USADO"*. Oito rotas passaram a
-// chamá-la, e treze suítes mockavam o módulo só com `validatePortalAccess`.
+// ── A REGRA DESTE ARQUIVO, e ela já foi quebrada duas vezes ─────────────────
+// **O stub NUNCA pode ser mais permissivo que o código real.** Stub frouxo
+// pinta de verde um teste que o código reprovaria — e, pior, deixa a suíte
+// estruturalmente incapaz de exercitar a trava.
 //
-// Mockar um valor FIXO aqui esconderia justamente o que mudou. Este stub IMITA
-// o real: congela o dono do registro do token e, sem dono no registro, deriva
-// da solicitação — e devolve as solicitações **do cliente**, nunca a do
-// registro. Assim um teste que dependa do comportamento antigo continua caindo.
+// O `seguranca` achou TRÊS defeitos deste tipo aqui, todos meus:
+//   1. reinstalava o ponteiro cru (`ids = [record.clientRequestId]`) — a coisa
+//      que a rodada 3 existia para eliminar. Era por isso que a mutação de
+//      `escopoDoToken` ficava verde;
+//   2. não tinha ramo `ponteiro_andou`, então 13 suítes não conseguiam
+//      exercitar a trava do dono congelado nem se quisessem;
+//   3. presumia que a solicitação existe, enquanto o real devolve `sem_dono`.
+//
+// Esta versão espelha o real linha a linha. Se o real mudar e este não, a
+// diferença aparece como teste vermelho — que é o ponto.
 
 import { vi } from "vitest";
 
@@ -24,66 +29,66 @@ type PrismaFake = Record<string, unknown> & {
   client?: { findUnique?: (a: unknown) => unknown };
 };
 
-/**
- * Constrói o `escopoDoToken` de teste a partir do `validatePortalAccess`
- * mockado da própria suíte.
- */
 export function escopoFalso(
   validatePortalAccess: { (token: string): Promise<unknown> },
   prisma: PrismaFake,
   opcoes: {
-    /** Quando a suíte já mocka `resolvePortalClient`, ele é a fonte do
-     *  workspace — é o que aqueles testes descrevem. */
     resolvePortalClient?: (token: string) => Promise<unknown>;
     workspacePadrao?: string;
   } = {},
 ) {
   const workspacePadrao = opcoes.workspacePadrao ?? "ws1";
+
   return vi.fn(async (token: string) => {
     const acesso = (await validatePortalAccess(token)) as
       { valid?: boolean; record?: RegistroDeAcesso } | null | undefined;
     if (!acesso?.valid || !acesso.record) return { ok: false, motivo: "token_invalido" };
 
-    let clientId = acesso.record.clientId ?? null;
-    let workspaceDaSolicitacao: string | null = null;
-    // A solicitação EXISTE? No código real, prospect sem solicitação no banco
-    // é `sem_dono` — e é isso que segura o fail-closed do `/api/social-posts`.
-    // O stub precisa ser tão estrito quanto o real, nunca mais permissivo:
-    // stub frouxo pinta de verde um teste que o código reprovaria.
-    let solicitacaoExiste = !prisma.clientRequestDb?.findUnique;
-    if (!clientId && acesso.record.clientRequestId && prisma.clientRequestDb?.findUnique) {
-      const sol = (await prisma.clientRequestDb.findUnique({
-        where: { id: acesso.record.clientRequestId }, select: { clientId: true, workspaceId: true },
+    // A solicitação do registro, e o dono dela HOJE.
+    let daSolicitacao: string | null = null;
+    let solicitacao: { clientId?: string | null; workspaceId?: string | null } | null = null;
+    let consultou = false;
+    if (acesso.record.clientRequestId && prisma.clientRequestDb?.findUnique) {
+      consultou = true;
+      solicitacao = (await prisma.clientRequestDb.findUnique({
+        where: { id: acesso.record.clientRequestId },
+        select: { clientId: true, workspaceId: true },
       })) as { clientId?: string | null; workspaceId?: string | null } | null;
-      clientId = sol?.clientId ?? null;
-      workspaceDaSolicitacao = sol?.workspaceId ?? null;
-      solicitacaoExiste = !!sol;
-    }
-    // Ramo do PROSPECT: solicitação que ainda não virou cliente tem portal
-    // legítimo, e o escopo dele é a própria solicitação.
-    if (!clientId) {
-      // No código real o workspace do prospect sai da própria solicitação.
-      return acesso.record.clientRequestId && solicitacaoExiste
-        ? {
-            ok: true, clientId: null,
-            workspaceId: workspaceDaSolicitacao ?? workspacePadrao,
-            clientRequestIds: [acesso.record.clientRequestId],
-          }
-        : { ok: false, motivo: "sem_dono" };
+      daSolicitacao = solicitacao?.clientId ?? null;
     }
 
-    // As solicitações saem do CLIENTE — é esta linha que, no código real,
-    // impede o ponteiro andado de continuar valendo.
+    const congelado = acesso.record.clientId ?? null;
+
+    // (2) O ramo que faltava: ponteiro andou debaixo de um token já emitido.
+    if (congelado && daSolicitacao && congelado !== daSolicitacao) {
+      return { ok: false, motivo: "ponteiro_andou" };
+    }
+
+    // (1) `PortalAccess.clientId` é a ÚNICA prova de pertencimento de um token.
+    // O real NÃO deriva do ponteiro — e este também não.
+    if (!congelado) {
+      // Ramo do PROSPECT: só vale se a solicitação EXISTE e ainda não tem dono.
+      // (3) Sem consultar, não se presume que exista.
+      const existe = consultou ? !!solicitacao : false;
+      if (!acesso.record.clientRequestId || !existe || solicitacao?.clientId) {
+        return { ok: false, motivo: "sem_dono" };
+      }
+      return {
+        ok: true,
+        tipo: "prospect",
+        clientRequestId: acesso.record.clientRequestId,
+        workspaceId: solicitacao?.workspaceId ?? workspacePadrao,
+      };
+    }
+
+    // As solicitações saem do CLIENTE — nunca do registro do token.
     let ids: string[] = [];
     if (prisma.clientRequestDb?.findMany) {
       const linhas = (await prisma.clientRequestDb.findMany({
-        where: { clientId }, orderBy: { createdAt: "desc" }, select: { id: true },
+        where: { clientId: congelado }, orderBy: { createdAt: "desc" }, select: { id: true },
       })) as { id: string }[] | undefined;
       if (Array.isArray(linhas)) ids = linhas.map((l) => l.id);
     }
-    // Suíte que não mocka `findMany` continua valendo a solicitação do
-    // registro — é o comportamento observável que aqueles testes descrevem.
-    if (ids.length === 0 && acesso.record.clientRequestId) ids = [acesso.record.clientRequestId];
 
     let workspaceId = workspacePadrao;
     if (opcoes.resolvePortalClient) {
@@ -92,11 +97,42 @@ export function escopoFalso(
     }
     if (prisma.client?.findUnique) {
       const c = (await prisma.client.findUnique({
-        where: { id: clientId }, select: { id: true, workspaceId: true },
+        where: { id: congelado }, select: { id: true, workspaceId: true },
       })) as { workspaceId?: string } | null;
       if (c?.workspaceId) workspaceId = c.workspaceId;
     }
 
-    return { ok: true, clientId, workspaceId, clientRequestIds: ids };
+    return { ok: true, tipo: "cliente", clientId: congelado, workspaceId, clientRequestIds: ids };
+  });
+}
+
+/**
+ * `donoDoToken` de teste — o mesmo espelho, para as suítes que mockam ELE em
+ * vez de `escopoDoToken`. Mesma regra: nunca mais permissivo que o real.
+ * `PortalAccess.clientId` é a única prova; ponteiro andado recusa.
+ */
+export function donoFalso(
+  validatePortalAccess: { (token: string): Promise<unknown> },
+  prisma: PrismaFake,
+  workspacePadrao = "ws1",
+) {
+  return vi.fn(async (token: string) => {
+    const acesso = (await validatePortalAccess(token)) as
+      { valid?: boolean; record?: RegistroDeAcesso } | null | undefined;
+    if (!acesso?.valid || !acesso.record) return { ok: false, motivo: "token_invalido" };
+
+    let daSolicitacao: string | null = null;
+    if (acesso.record.clientRequestId && prisma.clientRequestDb?.findUnique) {
+      const sol = (await prisma.clientRequestDb.findUnique({
+        where: { id: acesso.record.clientRequestId }, select: { clientId: true },
+      })) as { clientId?: string | null } | null;
+      daSolicitacao = sol?.clientId ?? null;
+    }
+    const congelado = acesso.record.clientId ?? null;
+    if (congelado && daSolicitacao && congelado !== daSolicitacao) {
+      return { ok: false, motivo: "ponteiro_andou" };
+    }
+    if (!congelado) return { ok: false, motivo: "sem_dono" };
+    return { ok: true, clientId: congelado, workspaceId: workspacePadrao };
   });
 }

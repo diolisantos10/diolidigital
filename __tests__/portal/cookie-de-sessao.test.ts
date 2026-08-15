@@ -43,7 +43,14 @@ import { PORTAL_COOKIE } from "@/lib/agency/persistence/portal-cookie";
 beforeEach(() => {
   vi.clearAllMocks();
   escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
-  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+  // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+  // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+  // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+  // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+  // carregam o dono, que é a forma que os links emitidos passam a ter.
+  // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
+  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "cli1" } });
   conferirTokenDoPortal.mockResolvedValue(true);
 });
 

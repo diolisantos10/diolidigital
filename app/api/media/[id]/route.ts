@@ -52,10 +52,25 @@ export async function GET(
     // indisponível no armazenamento") em vez de 403 — ou seja, **AUTORIZOU** o
     // arquivo de outro cliente; só faltou o byte no disco do fixture.
     const escopo = await escopoDoToken(token);
-    if (escopo.ok) {
+    // ── PROVA DE PERTENCIMENTO, NÃO AUSÊNCIA DE PROVA DE CONTAMINAÇÃO ───────
+    //
+    // 🔴 Aqui morava a REGRESSÃO da rodada 3: `escopo.clientId === registro
+    // .clientId` com os dois NULOS autorizava — e atravessava WORKSPACE
+    // (inquilino 1 lendo arquivo do inquilino 2), porque todo `MediaAsset`
+    // legado tem `clientId` nulo. A base tinha o `!!` que eu removi.
+    //
+    // Agora o arquivo só sai com DONO ESCRITO batendo com o dono do token.
+    // Arquivo legado (sem dono) não é servido a ninguém pelo portal — não é
+    // "não achei prova de que é de outro", é "não há prova de que é seu".
+    if (escopo.ok && escopo.tipo === "cliente") {
+      autorizado = !!registro.clientId && registro.clientId === escopo.clientId;
+    } else if (escopo.ok && escopo.tipo === "prospect") {
+      // Prospect não tem cliente: a identidade dele É a solicitação, e o
+      // arquivo tem de estar sem dono E preso àquela solicitação.
       autorizado =
-        escopo.clientId === registro.clientId ||
-        (!!registro.clientRequestId && escopo.clientRequestIds.includes(registro.clientRequestId));
+        registro.clientId == null
+        && !!registro.clientRequestId
+        && registro.clientRequestId === escopo.clientRequestId;
     }
   } else {
     const session = await getSession();
