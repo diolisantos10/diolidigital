@@ -16,13 +16,28 @@
 //   • PUBLICAÇÃO. `permalink`, `publishedAt` e `lastError` viram bloco de
 //     leitura: "Publicado" deixa de ser um estado que alguém marca à mão.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CascaDeModal } from "./CascaDeModal";
 import { StatusPill } from "./Indicadores";
 import {
   NETWORKS, FORMATS, STATUS_ORDEM, STATUS_META, VIDEO_FORMATS, CARROSSEL_FORMATS,
   buildVideoPrompt, type Post, type VideoScript,
 } from "./tipos";
+
+/** O que a rota de pacote descreve — os mesmos nomes que sairão dentro do zip. */
+interface PacoteDaPeca {
+  pacote: string;
+  completo: boolean;
+  arquivos: { ordem: number; nome: string; url: string; nossa: boolean }[];
+}
+
+/** `equipe:ana@dioli.studio` → "à mão, por ana@dioli.studio". */
+function comoFoiPublicado(publishedBy: string | null | undefined): string {
+  if (!publishedBy) return "";
+  if (publishedBy === "esteira") return " · pelo agendamento automático";
+  if (publishedBy.startsWith("equipe:")) return ` · à mão, por ${publishedBy.slice(7)}`;
+  return ` · por ${publishedBy}`;
+}
 
 /** Sobe um arquivo e devolve a URL protegida (/api/media/<id>). */
 async function enviarArquivo(file: File, clientId: string | null): Promise<{ url: string } | { erro: string }> {
@@ -88,6 +103,67 @@ export function Composer({
     const n = Math.max(artes.length, cenas.length);
     return Array.from({ length: n }, (_, i) => ({ arte: artes[i] ?? "", descricao: cenas[i] ?? "" }));
   });
+
+  // ── PUBLICAR À MÃO (14/08/2026) ───────────────────────────────────────────
+  // Enquanto o caminho automático espera a Meta, alguém da casa baixa a peça e
+  // posta no feed com as próprias mãos. As duas metades desse gesto moram aqui:
+  // BAIXAR na ordem certa, e REGISTRAR o que foi publicado.
+  const [pacote, setPacote] = useState<PacoteDaPeca | null>(null);
+  const [erroPacote, setErroPacote] = useState<string | null>(null);
+  const [idExterno, setIdExterno] = useState(post?.externalPostId ?? "");
+  const [linkPublicado, setLinkPublicado] = useState(post?.permalink ?? "");
+  const [registrando, setRegistrando] = useState(false);
+  const [erroRegistro, setErroRegistro] = useState<string | null>(null);
+
+  const postId = post?.id ?? null;
+  const temArte = !!(post?.mediaUrl || (post?.telas?.length ?? 0) > 0);
+  useEffect(() => {
+    if (!postId || !temArte) return;
+    let vivo = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/social-posts/${postId}/download?lista=1`);
+        const json = await res.json().catch(() => ({}));
+        if (!vivo) return;
+        if (!res.ok) { setErroPacote(typeof json.error === "string" ? json.error : "Não consegui listar as telas."); return; }
+        setPacote(json as PacoteDaPeca);
+        setErroPacote(null);
+      } catch {
+        if (vivo) setErroPacote("Falha de rede ao listar as telas.");
+      }
+    })();
+    return () => { vivo = false; };
+  }, [postId, temArte]);
+
+  /** Marca a peça como publicada — escrita no NOSSO banco, e só. Nada aqui fala
+   *  com a plataforma: o post já foi ao ar pelas mãos de alguém. */
+  async function registrarPublicacao() {
+    if (!post) return;
+    setErroRegistro(null);
+    setRegistrando(true);
+    try {
+      const res = await fetch(`/api/social-posts/${post.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "published",
+          externalPostId: idExterno.trim(),
+          permalink: linkPublicado.trim() || null,
+          publishedAt: new Date().toISOString(),
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErroRegistro(typeof json.error === "string" ? json.error : "Não consegui registrar a publicação.");
+        return;
+      }
+      onSaved();
+    } catch {
+      setErroRegistro("Falha de rede ao registrar a publicação.");
+    } finally {
+      setRegistrando(false);
+    }
+  }
 
   const ehCarrossel = CARROSSEL_FORMATS.has(format);
   const semCliente = !clientId;
@@ -273,6 +349,7 @@ export function Composer({
             ) : (
               <p className="text-[12px] font-semibold text-[var(--success)]">
                 Publicado{post.publishedAt ? ` em ${new Date(post.publishedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
+                {comoFoiPublicado(post.publishedBy)}
               </p>
             )}
             {post.permalink && (
@@ -285,6 +362,111 @@ export function Composer({
               >
                 Ver publicação na rede ↗
               </a>
+            )}
+          </div>
+        )}
+
+        {/* ── Publicar à mão ───────────────────────────────────────────────── */}
+        {/* Duas linhas, dois gestos: BAIXAR na ordem e REGISTRAR o que saiu.
+            Existe porque o caminho automático está fechado esperando a Meta — e
+            enquanto isso alguém posta com as próprias mãos. */}
+        {post && (
+          <div className="rounded-[10px] p-3" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+            <p className="text-[12px] font-semibold text-[var(--text-primary)]">Publicar à mão</p>
+
+            {/* 1. Baixar */}
+            {temArte && (
+              <div className="mt-2">
+                {erroPacote ? (
+                  <p className="text-[12px] text-[var(--danger)]">{erroPacote}</p>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={`/api/social-posts/${post.id}/download`}
+                        className="inline-flex h-8 items-center rounded-[8px] px-3 text-[12px] font-semibold text-white"
+                        style={{ background: "var(--primary)" }}
+                      >
+                        ↓ Baixar {pacote ? `${pacote.arquivos.length} ` : ""}
+                        {pacote && pacote.arquivos.length === 1 ? "arte" : "telas"} (.zip)
+                      </a>
+                      <span className="text-[11px] text-[var(--text-muted)]">
+                        Os arquivos saem numerados na ordem de publicação.
+                      </span>
+                    </div>
+                    {pacote && (
+                      <ul className="mt-2 space-y-0.5">
+                        {pacote.arquivos.map((a) => (
+                          <li key={a.ordem} className="text-[11px] text-[var(--text-secondary)]">
+                            {a.nossa ? (
+                              <a href={a.url} download={a.nome} className="hover:underline">
+                                {a.nome} ↓
+                              </a>
+                            ) : (
+                              <span style={{ color: "var(--danger)" }}>
+                                {a.ordem}. arte fora desta casa — não entra no pacote
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            {!temArte && (
+              <p className="mt-1 text-[12px] text-[var(--text-muted)]">
+                Esta peça ainda não tem arte guardada — não há o que baixar.
+              </p>
+            )}
+
+            {/* 2. Registrar */}
+            {post.status !== "published" && (
+              <details className="mt-3">
+                <summary className="cursor-pointer text-[12px] font-semibold text-[#0E5F5A]">
+                  Já publiquei — registrar
+                </summary>
+                <div className="mt-2 space-y-2">
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    O <strong>ID da publicação</strong> é o que o relatório mensal usa para pedir as métricas
+                    à plataforma. Sem ele a peça sai do calendário e nunca aparece na medição.
+                  </p>
+                  <input
+                    value={idExterno}
+                    onChange={(e) => setIdExterno(e.target.value)}
+                    placeholder="ID da publicação na plataforma"
+                    aria-label="ID da publicação na plataforma"
+                    className="h-9 w-full rounded-[8px] px-3 text-[13px] text-[var(--text-primary)] outline-none"
+                    style={{ border: "1px solid var(--border)" }}
+                  />
+                  <input
+                    value={linkPublicado}
+                    onChange={(e) => setLinkPublicado(e.target.value)}
+                    placeholder="Link do post (https://…) — opcional"
+                    aria-label="Link do post publicado"
+                    className="h-9 w-full rounded-[8px] px-3 text-[13px] text-[var(--text-primary)] outline-none"
+                    style={{ border: "1px solid var(--border)" }}
+                  />
+                  {erroRegistro && (
+                    <p role="alert" className="rounded-[8px] px-3 py-2 text-[12px]" style={{ background: "var(--danger-bg)", color: "var(--danger)" }}>
+                      {erroRegistro}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={registrarPublicacao}
+                    disabled={registrando || !idExterno.trim()}
+                    className="h-8 rounded-[8px] px-3 text-[12px] font-semibold text-white disabled:opacity-40"
+                    style={{ background: "var(--primary)" }}
+                  >
+                    {registrando ? "Registrando…" : "Marcar como publicada"}
+                  </button>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    Fica gravado quem registrou e quando. Isto não posta nada — só anota o que você já postou.
+                  </p>
+                </div>
+              </details>
             )}
           </div>
         )}

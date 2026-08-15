@@ -44,6 +44,7 @@ export type SocialPostMinAggregateOutputType = {
   externalPostId: string | null
   permalink: string | null
   publishedAt: Date | null
+  publishedBy: string | null
   lastError: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -69,6 +70,7 @@ export type SocialPostMaxAggregateOutputType = {
   externalPostId: string | null
   permalink: string | null
   publishedAt: Date | null
+  publishedBy: string | null
   lastError: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -94,6 +96,7 @@ export type SocialPostCountAggregateOutputType = {
   externalPostId: number
   permalink: number
   publishedAt: number
+  publishedBy: number
   lastError: number
   createdAt: number
   updatedAt: number
@@ -121,6 +124,7 @@ export type SocialPostMinAggregateInputType = {
   externalPostId?: true
   permalink?: true
   publishedAt?: true
+  publishedBy?: true
   lastError?: true
   createdAt?: true
   updatedAt?: true
@@ -146,6 +150,7 @@ export type SocialPostMaxAggregateInputType = {
   externalPostId?: true
   permalink?: true
   publishedAt?: true
+  publishedBy?: true
   lastError?: true
   createdAt?: true
   updatedAt?: true
@@ -171,6 +176,7 @@ export type SocialPostCountAggregateInputType = {
   externalPostId?: true
   permalink?: true
   publishedAt?: true
+  publishedBy?: true
   lastError?: true
   createdAt?: true
   updatedAt?: true
@@ -269,6 +275,7 @@ export type SocialPostGroupByOutputType = {
   externalPostId: string | null
   permalink: string | null
   publishedAt: Date | null
+  publishedBy: string | null
   lastError: string | null
   createdAt: Date
   updatedAt: Date
@@ -315,6 +322,7 @@ export type SocialPostWhereInput = {
   externalPostId?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   permalink?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"SocialPost"> | Date | string | null
+  publishedBy?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   lastError?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialPost"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialPost"> | Date | string
@@ -340,6 +348,7 @@ export type SocialPostOrderByWithRelationInput = {
   externalPostId?: Prisma.SortOrderInput | Prisma.SortOrder
   permalink?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  publishedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   lastError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -368,6 +377,7 @@ export type SocialPostWhereUniqueInput = Prisma.AtLeast<{
   externalPostId?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   permalink?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   publishedAt?: Prisma.DateTimeNullableFilter<"SocialPost"> | Date | string | null
+  publishedBy?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   lastError?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialPost"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialPost"> | Date | string
@@ -393,6 +403,7 @@ export type SocialPostOrderByWithAggregationInput = {
   externalPostId?: Prisma.SortOrderInput | Prisma.SortOrder
   permalink?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  publishedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   lastError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -424,6 +435,7 @@ export type SocialPostScalarWhereWithAggregatesInput = {
   externalPostId?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
   permalink?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SocialPost"> | Date | string | null
+  publishedBy?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
   lastError?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SocialPost"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"SocialPost"> | Date | string
@@ -449,6 +461,7 @@ export type SocialPostCreateInput = {
   externalPostId?: string | null
   permalink?: string | null
   publishedAt?: Date | string | null
+  publishedBy?: string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -474,6 +487,7 @@ export type SocialPostUncheckedCreateInput = {
   externalPostId?: string | null
   permalink?: string | null
   publishedAt?: Date | string | null
+  publishedBy?: string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -499,6 +513,7 @@ export type SocialPostUpdateInput = {
   externalPostId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   permalink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -524,6 +539,7 @@ export type SocialPostUncheckedUpdateInput = {
   externalPostId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   permalink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -549,6 +565,7 @@ export type SocialPostCreateManyInput = {
   externalPostId?: string | null
   permalink?: string | null
   publishedAt?: Date | string | null
+  publishedBy?: string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -574,6 +591,7 @@ export type SocialPostUpdateManyMutationInput = {
   externalPostId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   permalink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -599,6 +617,7 @@ export type SocialPostUncheckedUpdateManyInput = {
   externalPostId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   permalink?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  publishedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -624,6 +643,7 @@ export type SocialPostCountOrderByAggregateInput = {
   externalPostId?: Prisma.SortOrder
   permalink?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
+  publishedBy?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -649,6 +669,7 @@ export type SocialPostMaxOrderByAggregateInput = {
   externalPostId?: Prisma.SortOrder
   permalink?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
+  publishedBy?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -674,6 +695,7 @@ export type SocialPostMinOrderByAggregateInput = {
   externalPostId?: Prisma.SortOrder
   permalink?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
+  publishedBy?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -701,6 +723,7 @@ export type SocialPostSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   externalPostId?: boolean
   permalink?: boolean
   publishedAt?: boolean
+  publishedBy?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -726,6 +749,7 @@ export type SocialPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   externalPostId?: boolean
   permalink?: boolean
   publishedAt?: boolean
+  publishedBy?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -751,6 +775,7 @@ export type SocialPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   externalPostId?: boolean
   permalink?: boolean
   publishedAt?: boolean
+  publishedBy?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -776,12 +801,13 @@ export type SocialPostSelectScalar = {
   externalPostId?: boolean
   permalink?: boolean
   publishedAt?: boolean
+  publishedBy?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type SocialPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "clientRequestId" | "caption" | "networks" | "format" | "pillar" | "mediaUrl" | "mediaUrlsJson" | "scenesJson" | "scriptJson" | "visibility" | "scheduledFor" | "status" | "deliverableId" | "externalPostId" | "permalink" | "publishedAt" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["socialPost"]>
+export type SocialPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "clientRequestId" | "caption" | "networks" | "format" | "pillar" | "mediaUrl" | "mediaUrlsJson" | "scenesJson" | "scriptJson" | "visibility" | "scheduledFor" | "status" | "deliverableId" | "externalPostId" | "permalink" | "publishedAt" | "publishedBy" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["socialPost"]>
 
 export type $SocialPostPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SocialPost"
@@ -821,6 +847,7 @@ export type $SocialPostPayload<ExtArgs extends runtime.Types.Extensions.Internal
     externalPostId: string | null
     permalink: string | null
     publishedAt: Date | null
+    publishedBy: string | null
     lastError: string | null
     createdAt: Date
     updatedAt: Date
@@ -1266,6 +1293,7 @@ export interface SocialPostFieldRefs {
   readonly externalPostId: Prisma.FieldRef<"SocialPost", 'String'>
   readonly permalink: Prisma.FieldRef<"SocialPost", 'String'>
   readonly publishedAt: Prisma.FieldRef<"SocialPost", 'DateTime'>
+  readonly publishedBy: Prisma.FieldRef<"SocialPost", 'String'>
   readonly lastError: Prisma.FieldRef<"SocialPost", 'String'>
   readonly createdAt: Prisma.FieldRef<"SocialPost", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"SocialPost", 'DateTime'>

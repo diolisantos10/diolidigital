@@ -36,6 +36,9 @@ export interface Post {
   externalPostId: string | null;
   permalink: string | null;
   publishedAt: string | null;
+  /** Quem registrou: `esteira` (o relógio) ou `equipe:<email>` (à mão). Nulo em
+   *  peça publicada antes de 14/08/2026 — e nulo quer dizer "não sabemos". */
+  publishedBy?: string | null;
   lastError: string | null;
 }
 

@@ -54,11 +54,75 @@ import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
 import { conferirFormatoDeMidia, type MidiaConferida } from "@/lib/integrations/meta/formato-de-midia";
 import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
+import { AUTOR_DA_ESTEIRA } from "@/lib/agency/esteira/registro-de-publicacao";
 import { REVISION_STATUS_DA_QUALIDADE } from "@/lib/agency/execution/quality-auditor";
 
 /** Quantos posts publicamos por rodada do relógio. Publicação é irreversível e
  *  a Meta limita chamadas — melhor ir devagar e nunca em enxurrada. */
 const MAX_PUBLICACOES_POR_RODADA = 10;
+
+/**
+ * O ESPAÇAMENTO MÍNIMO ENTRE DUAS PUBLICAÇÕES NO MESMO PERFIL. (14/08/2026)
+ *
+ * ── O risco medido, não hipotético ──────────────────────────────────────────
+ *
+ * As 6 peças do CityJobs estão em `scheduled` com data JÁ VENCIDA, e
+ * `agendarPecasAprovadas` não empurra data de peça em `scheduled` — ela cai em
+ * `ignorados` (ver `cards-de-aprovacao.ts` e o registro da oficina de 14/08).
+ * Com `MAX_PUBLICACOES_POR_RODADA = 10`, no minuto em que o freio for solto o
+ * relógio pegaria **as 6 na mesma rodada**: seis posts no mesmo minuto, no
+ * perfil de um cliente, que é o tipo de coisa que a plataforma pune e que
+ * ninguém pediu.
+ *
+ * ── Por que ESPAÇAMENTO, e não as outras duas saídas ────────────────────────
+ *
+ * Estavam na mesa três:
+ *   (a) teto de N por perfil por rodada — não resolve: com rodada de 5 min, um
+ *       teto de 1 ainda joga as 6 no ar em meia hora, e o teto não sabe nada
+ *       sobre o que já foi publicado ANTES da rodada;
+ *   (b) peça muito vencida não sai sozinha — protege de outra coisa (peça
+ *       velha indo ao ar), não da rajada; e travaria as 6 sem exceção até
+ *       alguém redatar uma a uma;
+ *   (c) espaçamento mínimo por perfil — o que está aqui.
+ *
+ * A (c) é a única que mede o que o problema realmente é: *duas publicações
+ * juntas demais no mesmo perfil*. Ela também é a única que **não briga com o
+ * calendário legítimo**: `promoverParaAgendado` já garante pelo menos 24h entre
+ * peças do mesmo cliente, então nenhuma peça programada por esta casa esbarra
+ * neste freio. Quem esbarra é exatamente o acúmulo que ninguém planejou.
+ *
+ * ── O número, e o que ele custa quando o volume crescer ─────────────────────
+ *
+ * Duas horas: mais longo que qualquer rajada plausível e MUITO mais curto que
+ * as 24h que o calendário promete — de propósito, para o freio nunca virar o
+ * dono da agenda. O custo aparece no acúmulo: uma fila de N peças vencidas do
+ * mesmo perfil leva N × 2h para drenar (as 6 do CityJobs sairiam ao longo de
+ * ~10h, uma a cada duas horas, em vez de todas num minuto). Perfis diferentes
+ * não se atrapalham — o freio é POR PERFIL, e cem clientes publicam no mesmo
+ * minuto sem se ver.
+ *
+ * Fail-closed: não conseguir MEDIR a última publicação não vira permissão.
+ */
+export const INTERVALO_MINIMO_POR_PERFIL_MS = 2 * 60 * 60_000;
+
+/**
+ * Quanto falta esperar antes da próxima publicação deste perfil. `0` = pode ir.
+ *
+ * Exportada para ser provada direto: régua que só existe dentro de um laço de
+ * 200 linhas é régua que ninguém consegue testar.
+ */
+export function faltaEsperar(
+  ultima: Date | null | undefined,
+  agora: Date,
+  intervalo: number = INTERVALO_MINIMO_POR_PERFIL_MS,
+): number {
+  if (!ultima || isNaN(ultima.getTime())) return 0;
+  const decorrido = agora.getTime() - ultima.getTime();
+  // Publicação no futuro (relógio torto, data digitada errada no registro
+  // manual) conta como "acabou de sair" — o freio erra para o lado seguro.
+  if (decorrido < 0) return intervalo;
+  return decorrido >= intervalo ? 0 : intervalo - decorrido;
+}
 
 /** A que horas um post nasce quando ninguém escolheu horário. 10h é começo de
  *  expediente do público da maioria dos clientes desta casa. */
@@ -479,6 +543,17 @@ export async function agendarPecasAprovadas(entrada: {
 export interface PublicacaoFeita {
   publicados: number;
   falhas: Array<{ postId: string; erro: string }>;
+  /**
+   * Peças que a rodada NÃO publicou por espaçamento — e que vão sair sozinhas
+   * numa rodada seguinte.
+   *
+   * Campo próprio, separado de `falhas`, porque não é falha: nada quebrou e
+   * ninguém precisa agir. Escrever isso em `lastError` pintaria a ficha da peça
+   * de vermelho com "A publicação não completou", que é mentira, a cada 5
+   * minutos. Mas também não é silêncio — o despertador imprime, com o post e o
+   * motivo, e fila parada com testemunha é o mínimo desta casa.
+   */
+  adiados: Array<{ postId: string; motivo: string }>;
 }
 
 /**
@@ -487,8 +562,12 @@ export interface PublicacaoFeita {
  * Só toca em `status: "scheduled"` — o que está em `draft` ainda não teve aval.
  */
 export async function publicarAgendados(): Promise<PublicacaoFeita> {
-  const saida: PublicacaoFeita = { publicados: 0, falhas: [] };
+  const saida: PublicacaoFeita = { publicados: 0, falhas: [], adiados: [] };
   const agora = new Date();
+  /** A última publicação de cada perfil, medida uma vez por rodada e atualizada
+   *  a cada post que sai. É o que impede duas peças do MESMO cliente de saírem
+   *  juntas dentro desta mesma passada, onde o banco ainda não sabe da primeira. */
+  const ultimaDoPerfil = new Map<string, Date | null>();
 
   const pendentes = await prisma.socialPost.findMany({
     where: { status: "scheduled", scheduledFor: { lte: agora } },
@@ -546,6 +625,42 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
     // ali seria postar no perfil errado.
     if (!post.clientId) {
       await falhar("post sem cliente definido — não sei em qual perfil postar");
+      continue;
+    }
+
+    // ── O FREIO DE RAJADA, ANTES DE QUALQUER TRABALHO ─────────────────────
+    // Aqui em cima de propósito: barrar depois de montar link assinado e ler
+    // arquivo gastaria trabalho para jogar fora. E antes de qualquer coisa que
+    // se pareça com falar com a plataforma.
+    if (!ultimaDoPerfil.has(post.clientId)) {
+      const medida = await prisma.socialPost
+        .findFirst({
+          where: { clientId: post.clientId, status: "published", publishedAt: { not: null } },
+          orderBy: { publishedAt: "desc" },
+          select: { publishedAt: true },
+        })
+        .then((r) => r?.publishedAt ?? null)
+        // Fail-closed: não conseguir medir não pode virar permissão de publicar.
+        // `undefined` marca "não medi" e é diferente de `null` ("nunca publicou").
+        .catch(() => undefined);
+      if (medida === undefined) {
+        saida.adiados.push({
+          postId: post.id,
+          motivo: "não consegui medir a última publicação deste perfil — na dúvida, não publico",
+        });
+        continue;
+      }
+      ultimaDoPerfil.set(post.clientId, medida);
+    }
+    const espera = faltaEsperar(ultimaDoPerfil.get(post.clientId) ?? null, agora);
+    if (espera > 0) {
+      const minutos = Math.ceil(espera / 60_000);
+      saida.adiados.push({
+        postId: post.id,
+        motivo:
+          `este perfil publicou há pouco — a próxima peça sai em ~${minutos} min. ` +
+          `Seis peças no mesmo minuto não é calendário, é rajada.`,
+      });
       continue;
     }
 
@@ -706,16 +821,24 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
       continue;
     }
 
+    const publicadoEm = new Date();
     await prisma.socialPost.update({
       where: { id: post.id },
       data: {
         status: "published",
-        publishedAt: new Date(),
+        publishedAt: publicadoEm,
+        // QUEM publicou. Sem esta linha, `publishedBy` nulo teria dois
+        // significados ao mesmo tempo — "o relógio" e "não sabemos" — e o
+        // primeiro relatório que separasse manual de automático mentiria.
+        publishedBy: AUTOR_DA_ESTEIRA,
         externalPostId: r.externalPostId ?? null,
         permalink: r.permalink ?? null,
         lastError: null,
       },
     });
+    // O freio de rajada passa a valer para as peças seguintes DESTA rodada: o
+    // banco acabou de saber, o laço tem de saber junto.
+    ultimaDoPerfil.set(post.clientId, publicadoEm);
     saida.publicados++;
 
     await prisma.activityEvent.create({

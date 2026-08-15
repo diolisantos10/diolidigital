@@ -1,0 +1,16 @@
+-- QUEM MARCOU A PUBLICAÇÃO.
+--
+-- 14/08/2026: o CEO vai publicar o primeiro carrossel do CityJobs À MÃO, no
+-- feed, enquanto a máquina automática segue fechada esperando a Meta. Marcar a
+-- peça como publicada tira ela do relógio — e até aqui isso não deixava rastro
+-- de autoria nenhum: o post ficava "published" sem ninguém responder por ele.
+--
+-- É o mesmo defeito que a aprovação sem autor teve, e que virou regra da casa
+-- hoje (`ApprovalRequest.reviewedBy`, `lib/agency/esteira/aprovacao-da-peca.ts`).
+-- A gramática é a mesma de lá, de propósito:
+--   `esteira`        → o relógio publicou sozinho;
+--   `equipe:<email>` → alguém da casa postou à mão e veio registrar.
+--
+-- NULO é o terceiro valor e ele significa "não sabemos" — peça publicada antes
+-- deste campo existir. Não pode ser lido como "publicou sozinho".
+ALTER TABLE "SocialPost" ADD COLUMN "publishedBy" TEXT;

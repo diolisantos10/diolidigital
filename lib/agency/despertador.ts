@@ -340,6 +340,12 @@ export async function baterORelogio(): Promise<{
     const r = await publicarAgendados();
     publicados = r.publicados;
     for (const f of r.falhas) quebrou("publicacao", f.erro);
+    // ADIADO NÃO É FALHA — e também não pode ser silêncio. O freio de rajada
+    // (`INTERVALO_MINIMO_POR_PERFIL_MS`) segura peça que já venceu para ela não
+    // sair junto com as irmãs no mesmo minuto. Sem esta linha, a fila que não
+    // anda seria invisível: o pulso diria "0 publicados, 0 falhas" e ninguém
+    // saberia se o freio está trabalhando ou se a esteira está morta.
+    for (const a of r.adiados) log(`publicação adiada (post ${a.postId}): ${a.motivo}`);
   } catch (err) {
     quebrou("publicacao", err);
   }
