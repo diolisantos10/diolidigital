@@ -205,9 +205,19 @@ export async function conversaDoCliente(
   // das solicitações excluídas: as que estão carimbadas com este `clientId`
   // continuam saindo pelo ramo `{ clientId }` e NÃO entram nesta conta.
   const excluidas = todosOsIds.filter((id) => !ids.includes(id));
-  const ocultadasPorAmbiguidade = excluidas.length === 0 ? 0 : await prisma.portalMessage
-    .count({ where: { clientRequestId: { in: excluidas }, clientId: null } })
-    .catch(() => 0);
+  let ocultadasPorAmbiguidade = 0;
+  if (excluidas.length > 0) {
+    try {
+      ocultadasPorAmbiguidade =
+        (await prisma.portalMessage.count({
+          where: { clientRequestId: { in: excluidas }, clientId: null },
+        })) ?? 0;
+    } catch {
+      // Não saber QUANTAS não pode derrubar a conversa. Fica 0 e a rota ainda
+      // avisa que houve corte (o motivo não depende deste número).
+      ocultadasPorAmbiguidade = 0;
+    }
+  }
 
   return {
     clientId,

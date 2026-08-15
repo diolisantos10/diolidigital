@@ -1,81 +1,144 @@
-// ── O COOKIE DE OUTRO CLIENTE MORRE NA PORTA (15/08/2026) ───────────────────
+// ── O COOKIE DO PORTAL É UM SÓ POR NAVEGADOR ────────────────────────────────
 //
-// `dioli_portal` é UM cookie por navegador, com `path:"/"` e 180 dias, e guarda
-// UM cliente. Quem abre o portal de dois clientes no mesmo navegador — o CEO
-// abre todos — fica com a credencial de um preso ao domínio inteiro. A partir
-// daí qualquer chamada que não leve token explícito resolve pelo cliente
-// errado.
+// `dioli_portal` tem `path:"/"` e 180 dias, e guarda UM cliente. Quem abre o
+// portal de dois clientes no mesmo navegador — o CEO abre todos — fica com a
+// credencial de um preso ao domínio inteiro.
 //
-// A página já trocava o token por cookie (`POST /api/portal/session`), mas isso
-// é best-effort: roda dentro de um `useEffect`, a falha é engolida num
-// `catch {}`, e as primeiras cargas de dados já saíram antes. O cookie velho
-// sobrevive à visita nova.
+// ⚠️ ONDE ESTA TRAVA MORA MUDOU NA RODADA 2, E A MUDANÇA É UM CONSERTO.
+// A rodada 1 higienizava o cookie no `proxy.ts`, ANTES de validar o token do
+// caminho. O `seguranca` mostrou que aquilo era **negação de serviço**: bastava
+// mandar à vítima um link para `/portal/access/qualquer-lixo` para derrubar a
+// sessão dela. Agora:
 //
-// O `proxy.ts` fecha isso na PORTA, antes de a página renderizar. Uma camada
-// só — não doze cópias dentro das rotas, que é o defeito nº 2 do incidente do
-// Drive (ver o fim de `app/api/messages/conversa.ts`).
-//
-// ⚠️ É `proxy.ts`, não `middleware.ts`: no Next.js 16 os dois no mesmo
-// repositório são ERRO DE BUILD ("Please use ./proxy.ts only"). Descoberto
-// construindo, não lendo.
+//   • a regravação acontece em `/api/portal/vista`, DEPOIS de o token ser
+//     validado — token bom regrava, lixo não faz nada;
+//   • o `proxy.ts` não toca em cookie de portal nenhum;
+//   • e a porta de entrada (`/portal/access?token=`) nunca leva um token ruim
+//     para uma sessão que não é dele (F5).
 
-import { describe, it, expect } from "vitest";
-import { NextRequest, type NextResponse } from "next/server";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+const db = vi.hoisted(() => ({
+  client: { findUnique: vi.fn(), findFirst: vi.fn() },
+  project: { findMany: vi.fn() },
+  adCampaign: { findMany: vi.fn() },
+  socialPost: { findMany: vi.fn() },
+  clientRequestDb: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
+  deliverable: { findMany: vi.fn() },
+}));
+const resolvePortalClient = vi.hoisted(() => vi.fn());
+const conferirTokenDoPortal = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/db/client", () => ({ prisma: db }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({
+  resolvePortalClient, conferirTokenDoPortal, validatePortalAccess: vi.fn(), donoDoToken: vi.fn(),
+}));
+vi.mock("@/lib/agency/esteira/ficha-de-marca", () => ({
+  lerFichaDeMarca: vi.fn().mockResolvedValue(null), proximasPerguntas: vi.fn(() => []),
+}));
+
 import { proxy } from "@/proxy";
+import { GET as vistaGET } from "@/app/api/portal/vista/route";
+import { GET as portaGET } from "@/app/portal/access/route";
 import { PORTAL_COOKIE } from "@/lib/agency/persistence/portal-cookie";
 
-function visita(caminho: string, cookie?: string): NextRequest {
-  const r = new NextRequest(`http://localhost${caminho}`);
+function req(url: string, cookie?: string): NextRequest {
+  const r = new NextRequest(`http://localhost${url}`);
   if (cookie) r.cookies.set(PORTAL_COOKIE, cookie);
   return r;
 }
-/** O cookie foi mandado APAGAR? (valor vazio + maxAge 0 no mesmo path). */
-function mandouApagar(res: NextResponse): boolean {
-  const c = res.cookies.get(PORTAL_COOKIE);
-  return !!c && c.value === "" && c.maxAge === 0 && c.path === "/";
-}
 
-describe("token no caminho diferente do cookie", () => {
-  it("⛔ apaga o cookie do OUTRO cliente — ele não atravessa a visita", async () => {
-    const res = await proxy(visita("/portal/access/tok-do-beta", "tok-do-alfa"));
-    expect(mandouApagar(res)).toBe(true);
+beforeEach(() => {
+  vi.clearAllMocks();
+  resolvePortalClient.mockResolvedValue({ clientId: "cli-beta", workspaceId: "ws1" });
+  conferirTokenDoPortal.mockResolvedValue(true);
+  db.client.findUnique.mockResolvedValue({ name: "Loja BETA", industry: null, email: null, phone: null, website: null, createdAt: new Date() });
+  db.project.findMany.mockResolvedValue([]);
+  db.adCampaign.findMany.mockResolvedValue([]);
+  db.socialPost.findMany.mockResolvedValue([]);
+  db.clientRequestDb.findFirst.mockResolvedValue(null);
+  db.deliverable.findMany.mockResolvedValue([]);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A regravação, DEPOIS de validar
+// ═══════════════════════════════════════════════════════════════════════════
+describe("/api/portal/vista regrava o cookie quando o token do link é de outro", () => {
+  it("⛔ cookie do ALFA + link do BETA → o cookie vira o do BETA na mesma resposta", async () => {
+    const res = await vistaGET(req("/api/portal/vista?token=TOKENBETA", "TOKENALFA"));
+    expect(res.status).toBe(200);
+    expect(res.cookies.get(PORTAL_COOKIE)?.value).toBe("TOKENBETA");
+    expect(res.cookies.get(PORTAL_COOKIE)?.httpOnly).toBe(true);
   });
 
-  it("⛔ e apaga no MESMO path do cookie original", async () => {
-    // `path` errado faz o navegador apagar outro cookie (ou nenhum) e o velho
-    // continua viajando — a trava pareceria funcionar e não funcionaria.
-    const res = await proxy(visita("/portal/access/tok-do-beta", "tok-do-alfa"));
-    expect(res.cookies.get(PORTAL_COOKIE)?.path).toBe("/");
+  it("⛔ e só regrava com token que VALIDOU — lixo não vira cookie de 180 dias", async () => {
+    resolvePortalClient.mockResolvedValue(null);
+    const res = await vistaGET(req("/api/portal/vista?token=LIXO", "TOKENALFA"));
+    expect(res.status).toBe(403);
+    expect(res.cookies.get(PORTAL_COOKIE)).toBeUndefined();
+  });
+
+  it("✅ cookie já igual ao token → não reescreve nada", async () => {
+    const res = await vistaGET(req("/api/portal/vista?token=TOKENBETA", "TOKENBETA"));
+    expect(res.cookies.get(PORTAL_COOKIE)).toBeUndefined();
+  });
+
+  it("✅ modo cookie puro (/me) → não mexe no cookie", async () => {
+    const res = await vistaGET(req("/api/portal/vista", "TOKENALFA"));
+    expect(res.status).toBe(200);
+    expect(res.cookies.get(PORTAL_COOKIE)).toBeUndefined();
   });
 });
 
-describe("a outra metade — não inventa problema no caso limpo", () => {
-  it("✅ mesmo token no caminho e no cookie → não mexe em nada", async () => {
-    const res = await proxy(visita("/portal/access/tok-do-alfa", "tok-do-alfa"));
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 F5 — a porta de entrada com token RUIM
+// ═══════════════════════════════════════════════════════════════════════════
+describe("porta de entrada — /portal/access?token=", () => {
+  it("⛔ token INVÁLIDO não cai no portal de quem está no cookie", async () => {
+    // O cenário do incidente, pelo caminho mais banal que existe: o cliente
+    // clica no link DELE, que expirou, num navegador que tem o cookie de
+    // OUTRO cliente. Antes: redirecionava para `/portal/access/me`, onde o
+    // cookie manda — e ele entrava no portal alheio, marca e tudo.
+    conferirTokenDoPortal.mockResolvedValue(false);
+
+    const res = await portaGET(req("/portal/access?token=EXPIRADO", "TOKENALFA"));
+
+    const destino = res.headers.get("location") ?? "";
+    expect(destino).toContain("/portal/invalid");
+    expect(destino).not.toContain("/portal/access/me");
+  });
+
+  it("⛔ e não grava cookie nenhum com token ruim", async () => {
+    conferirTokenDoPortal.mockResolvedValue(false);
+    const res = await portaGET(req("/portal/access?token=EXPIRADO", "TOKENALFA"));
     expect(res.cookies.get(PORTAL_COOKIE)).toBeUndefined();
   });
 
-  it("✅ /portal/access/me NUNCA é tocado — lá o cookie É a credencial", async () => {
-    // Apagar aqui deslogaria todo cliente a cada visita ao portal.
-    const res = await proxy(visita("/portal/access/me", "tok-do-alfa"));
-    expect(res.cookies.get(PORTAL_COOKIE)).toBeUndefined();
+  it("✅ mas NÃO derruba a sessão legítima do navegador — nada de negação de serviço", async () => {
+    // Foi por isso que a higiene saiu do `proxy.ts`: um link com lixo mandado
+    // à vítima não pode expulsá-la da sessão que ela já tinha.
+    conferirTokenDoPortal.mockResolvedValue(false);
+    const res = await portaGET(req("/portal/access?token=lixo-de-atacante", "TOKENALFA"));
+    const c = res.cookies.get(PORTAL_COOKIE);
+    expect(c === undefined || c.maxAge !== 0).toBe(true);
   });
 
-  it("✅ primeira visita, sem cookie nenhum → nada a apagar", async () => {
-    const res = await proxy(visita("/portal/access/tok-do-beta"));
-    expect(res.cookies.get(PORTAL_COOKIE)).toBeUndefined();
+  it("✅ token VÁLIDO continua entrando e gravando o cookie", async () => {
+    const res = await portaGET(req("/portal/access?token=TOKENBETA", "TOKENALFA"));
+    expect(res.headers.get("location") ?? "").toContain("/portal/access/me");
+    expect(res.cookies.get(PORTAL_COOKIE)?.value).toBe("TOKENBETA");
   });
+});
 
-  it("✅ nunca GRAVA cookie — só pode tirar acesso, nunca dar", async () => {
-    // Gravar exigiria validar o token, e gravar sem validar é o bug que esta
-    // casa já documentou: "cookie de token podre se esconde por 180 dias".
-    for (const [caminho, cookie] of [
-      ["/portal/access/tok-do-beta", "tok-do-alfa"],
-      ["/portal/access/tok-do-beta", undefined],
-      ["/portal/access/me", "tok-do-alfa"],
-    ] as const) {
-      const c = (await proxy(visita(caminho, cookie))).cookies.get(PORTAL_COOKIE);
-      expect(c?.value ?? "").toBe("");
+// ═══════════════════════════════════════════════════════════════════════════
+// O proxy não é mais lugar de trava de cookie
+// ═══════════════════════════════════════════════════════════════════════════
+describe("proxy.ts", () => {
+  it("⛔ NÃO apaga cookie de portal — a higiene ali era negação de serviço", async () => {
+    for (const caminho of ["/portal/access/qualquer-lixo", "/portal/access/me", "/portal/access/TOKENBETA"]) {
+      const res = await proxy(req(caminho, "TOKENALFA"));
+      expect(res.cookies.get(PORTAL_COOKIE), caminho).toBeUndefined();
     }
   });
 });

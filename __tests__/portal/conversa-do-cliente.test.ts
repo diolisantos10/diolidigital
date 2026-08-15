@@ -18,15 +18,20 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
-  portalMessage: { create: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
+  portalMessage: { create: vi.fn(), findMany: vi.fn(), updateMany: vi.fn(), count: vi.fn() },
   clientRequestDb: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
-  client: { findFirst: vi.fn() },
+  client: { findFirst: vi.fn(), findUnique: vi.fn() },
+  // ⚠️ 15/08/2026: o dono passou a ser CONGELADO no `PortalAccess`
+  // (`donoDoToken`) em vez de re-derivado a cada chamada.
+  portalAccess: { findUnique: vi.fn(), update: vi.fn() },
+  activityEvent: { create: vi.fn() },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
+const donoDoToken = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, donoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { POST, GET } from "@/app/api/portal/messages/route";
@@ -52,6 +57,26 @@ beforeEach(() => {
   db.portalMessage.findMany.mockResolvedValue([]);
   db.portalMessage.updateMany.mockResolvedValue({ count: 0 });
   db.clientRequestDb.findMany.mockResolvedValue([]);
+  // `donoDoToken` é o caminho ÚNICO desde 15/08/2026. Aqui ele IMITA o real:
+  // congela o dono do registro do token e, sem dono no registro, deriva da
+  // solicitação. Mockar um valor fixo esconderia justamente o que mudou.
+  donoDoToken.mockImplementation(async (token: string) => {
+    const a = await validatePortalAccess(token);
+    if (!a?.valid || !a.record) return { ok: false, motivo: "token_invalido" };
+    let id: string | null = a.record.clientId ?? null;
+    if (!id && a.record.clientRequestId) {
+      const sol = await db.clientRequestDb.findUnique({
+        where: { id: a.record.clientRequestId }, select: { clientId: true },
+      });
+      id = sol?.clientId ?? null;
+    }
+    return id ? { ok: true, clientId: id, workspaceId: "ws1" } : { ok: false, motivo: "sem_dono" };
+  });
+  db.portalAccess.findUnique.mockImplementation(async () => {
+    const a = await validatePortalAccess("x");
+    return { clientRequestId: a?.record?.clientRequestId ?? null };
+  });
+  db.portalAccess.update.mockResolvedValue({});
   requireSession.mockResolvedValue({ session: { name: "PM", workspaceId: "ws1", role: "master" }, error: null });
 });
 
@@ -153,11 +178,24 @@ describe("isolamento entre clientes", () => {
   it("prospect (solicitação SEM cliente) fica preso à própria solicitação — nunca a um clientId nulo", async () => {
     db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr-prospect", clientId: null });
     const prospect = await conversaDaSolicitacao("cr-prospect");
-    expect(prospect.filtro).toEqual({ clientRequestId: { in: ["cr-prospect"] } });
+    // ⚠️ 15/08/2026 — O RAMO DO PROSPECT GANHOU CERCA (furo F1).
+    // Ele é o ramo que PRODUZ as linhas sem `clientId`, e era o único sem
+    // cerca — o `qualidade` leu por ele, pela rota real, a mensagem de um
+    // cliente de verdade (`P1 (token de PROSPECT) → ["SEGREDO-…"]`). Conversa
+    // de prospect é só o que AINDA não tem dono; linha já carimbada pertence a
+    // um cliente e não volta por uma porta de prospect.
+    expect(prospect.filtro).toEqual({
+      AND: [{ clientRequestId: { in: ["cr-prospect"] } }, { clientId: null }],
+    });
     expect(prospect.ancora).toEqual({ clientId: null, clientRequestId: "cr-prospect" });
-    // `{ clientId: null }` casaria com TODA mensagem órfã do banco — vazamento
-    // entre clientes. A chave nula nunca entra no filtro.
-    expect(JSON.stringify(prospect.filtro)).not.toContain("clientId");
+    // ⚠️ A asserção antiga era `not.toContain("clientId")`, e ela dizia uma
+    // coisa VERDADEIRA de um jeito que virou mentira: `clientId` não pode ser
+    // uma CHAVE SOLTA (`{ clientId: null }` sozinho casaria com toda mensagem
+    // órfã do banco). Como EXIGÊNCIA dentro de um AND, ao lado da solicitação,
+    // ele é a cerca — restringe, não amplia. O que continua proibido é a chave
+    // solta, e é isso que se afirma agora.
+    expect(prospect.filtro).not.toEqual({ clientId: null });
+    expect((prospect.filtro as { AND: unknown[] }).AND).toHaveLength(2);
   });
 
   it("cliente sem nada (nem solicitação, nem id) tem filtro NULO — não lê o banco inteiro", async () => {
@@ -172,6 +210,26 @@ describe("a equipe abre a conversa", () => {
   it("por clientId — o caminho que serve o cliente direto", async () => {
     db.client.findFirst.mockResolvedValue({ id: "cli-foocci" });
     db.clientRequestDb.findMany.mockResolvedValue([]);
+  // `donoDoToken` é o caminho ÚNICO desde 15/08/2026. Aqui ele IMITA o real:
+  // congela o dono do registro do token e, sem dono no registro, deriva da
+  // solicitação. Mockar um valor fixo esconderia justamente o que mudou.
+  donoDoToken.mockImplementation(async (token: string) => {
+    const a = await validatePortalAccess(token);
+    if (!a?.valid || !a.record) return { ok: false, motivo: "token_invalido" };
+    let id: string | null = a.record.clientId ?? null;
+    if (!id && a.record.clientRequestId) {
+      const sol = await db.clientRequestDb.findUnique({
+        where: { id: a.record.clientRequestId }, select: { clientId: true },
+      });
+      id = sol?.clientId ?? null;
+    }
+    return id ? { ok: true, clientId: id, workspaceId: "ws1" } : { ok: false, motivo: "sem_dono" };
+  });
+  db.portalAccess.findUnique.mockImplementation(async () => {
+    const a = await validatePortalAccess("x");
+    return { clientRequestId: a?.record?.clientRequestId ?? null };
+  });
+  db.portalAccess.update.mockResolvedValue({});
     const res = await GET(get("?clientId=cli-foocci"));
     expect(res.status).toBe(200);
     // Mesma cerca do lado da EQUIPE: a caixa de entrada abre a conversa de um

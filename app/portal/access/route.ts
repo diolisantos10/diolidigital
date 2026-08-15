@@ -40,12 +40,31 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(urlPublica(request, "/portal/invalid"));
   }
 
-  const response = NextResponse.redirect(urlPublica(request, "/portal/access/me"));
-  // Sem token válido, NADA é gravado — e o cookie que já existir também não é
-  // apagado: quem já tem acesso bom e clica num link velho não pode ser expulso
-  // por isso. O redirecionamento continua igual; a página mostra o erro.
   if (await conferirTokenDoPortal(token)) {
+    const response = NextResponse.redirect(urlPublica(request, "/portal/access/me"));
     gravarCookieDoPortal(response, request, token);
+    return response;
   }
-  return response;
+
+  // ── 🔴 F5 (15/08/2026): TOKEN RUIM NÃO PODE CAIR NO PORTAL DE OUTRO ────────
+  //
+  // Aqui estava escrito que o cookie antigo NÃO era apagado, "para quem já tem
+  // acesso bom e clica num link velho não ser expulso". A intenção era boa e a
+  // consequência é o incidente:
+  //
+  //   o cliente B clica no link DELE, que expirou. O token não valida, nada é
+  //   gravado — e a rota redirecionava assim mesmo para `/portal/access/me`,
+  //   onde o cookie manda. Se aquele navegador tinha o cookie do cliente A
+  //   (o CEO abre o portal de todos), B cai **dentro do portal de A**, marca,
+  //   projetos, conversa e tudo. O selo da tela não dispara: vista e chat leem
+  //   o MESMO cookie e concordam entre si.
+  //
+  // É o caminho mais banal que existe — link expirado — e não tinha teste.
+  //
+  // A regra nova: **token ruim nunca leva a uma sessão que não é dele.** Vai
+  // para a tela de acesso inválido, que explica e não expõe portal nenhum. O
+  // cookie da sessão legítima daquele navegador é PRESERVADO (apagar seria a
+  // negação de serviço que o `seguranca` mostrou no `proxy.ts`): quem tinha
+  // acesso bom continua tendo — só não entra por esta porta, com este token.
+  return NextResponse.redirect(urlPublica(request, "/portal/invalid"));
 }
