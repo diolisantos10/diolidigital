@@ -49,7 +49,15 @@ describe("o básico continua funcionando", () => {
   it("texto adulterado não abre — o GCM autentica, não só cifra", () => {
     const cifrado = encryptSecret("segredo");
     const [iv, tag, dados] = cifrado.split(":");
-    const mexido = `${iv}:${tag}:${dados.slice(0, -2)}ff`;
+    // ⚠️ A adulteração tem que MUDAR o byte de verdade. A versão antiga trocava
+    // o fim por "ff" fixo — e quando o último byte do cifrado JÁ era 0xff
+    // (1 chance em 256, por rodada), o "adulterado" era idêntico ao original,
+    // abria normalmente e o teste reprovava a suíte na loteria. Foi exatamente
+    // assim que a CI do PR #146 falhou com o push do MESMO commit verde.
+    // Byte garantidamente diferente = adulteração garantida, zero flake.
+    const diferente = dados.slice(-2).toLowerCase() === "ff" ? "00" : "ff";
+    const mexido = `${iv}:${tag}:${dados.slice(0, -2)}${diferente}`;
+    expect(mexido).not.toBe(cifrado);
     expect(decryptSecret(mexido)).toBeNull();
   });
 
