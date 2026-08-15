@@ -13,6 +13,13 @@ import { avisarCliente, filaDeAvisos, marcarComoEnviado, dispensar } from "@/lib
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // ── O FREIO DE SAÍDA (15/08/2026) ─────────────────────────────────────────
+  // Esta é a TERCEIRA porta de WhatsApp da casa (o relógio chega aqui por
+  // `marcos.falarComOCliente`), e ela também lê `WHATSAPP_SAIDA` — que nasce
+  // FECHADO. Os testes abaixo descrevem o envio com a torneira ABERTA; as duas
+  // metades do freio nesta porta moram em
+  // `__tests__/esteira/freio-na-terceira-porta.test.ts`.
+  process.env.WHATSAPP_SAIDA = "liberada";
   process.env.NEXT_PUBLIC_APP_URL = "https://app.dioli.studio";
   db.client.findUnique.mockResolvedValue({ phone: "+55 11 99999-8888", portalToken: "tok123" });
   db.metaConnection.findFirst.mockResolvedValue({ id: "conn1" });

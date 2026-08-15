@@ -20,6 +20,41 @@
 // perder o aviso é ruim, perder a entrega é pior.
 
 import { prisma } from "@/lib/db/client";
+import { whatsappLiberado, CHAVE_DO_WHATSAPP } from "@/lib/agency/freios-de-saida";
+
+// ── A TERCEIRA PORTA DO WHATSAPP (15/08/2026) ───────────────────────────────
+//
+// O freio `WHATSAPP_SAIDA` nasceu cobrindo as duas pernas que o relógio chama
+// diretamente (`meta/notifications.ts` e `esteira/fila-que-se-cobra.ts`). Ao
+// conferir a volta, apareceu uma TERCEIRA, e ela é indireta — que é justamente
+// por que ninguém a tinha visto:
+//
+//     despertador → virarOsMesesVencidos  ─┐
+//     despertador → retomarProducao       ─┴→ marcos.falarComOCliente
+//                                            → avisarCliente (este arquivo)
+//                                            → sendWhatsAppMessage
+//
+// Um freio que cobrisse só as duas diretas seria exatamente o desenho que
+// deixou PUBLICAR de fora da trava de ativos em 06/08/2026: a porta que ninguém
+// está olhando é por onde o incidente volta. Por isso a conferência mora AQUI,
+// dentro de `tentarWhatsApp`, que é o ponto único por onde toda mensagem deste
+// caminho passa — e não em cada chamador.
+//
+// ⚠️ Com o freio puxado, o `ClientNotice` CONTINUA sendo registrado. Não é
+//    contradição com "fechado não consome": o registro é o que garante que o
+//    aviso não se perde. O que não acontece é o ENVIO, e nada é marcado como
+//    enviado — o aviso fica `pendente`, aparece na fila de gente, e volta a ser
+//    tentado sozinho quando a torneira abrir.
+
+/** O motivo gravado no aviso que o freio segurou.
+ *
+ *  Escrito de propósito SEM as palavras "janela", "24h", "opt-in" ou "recusou":
+ *  `fila-que-se-cobra.ts` classifica pelo texto do motivo, e qualquer uma delas
+ *  faria este aviso ser lido como recusa de POLÍTICA — que nunca é re-tentada.
+ *  Ele seria abandonado justamente quando o CEO abrisse a torneira. */
+export const MOTIVO_FREIO_FECHADO =
+  `a saída de WhatsApp da casa está FECHADA (${CHAVE_DO_WHATSAPP}) — nada foi enviado; ` +
+  "o aviso está guardado e volta a ser tentado sozinho quando a torneira abrir";
 
 // "recompra" entrou em 06/08/2026 com a régua de 30/60/90 dias
 // (`esteira/recompra.ts`). Ela NÃO usa `avisarCliente` — escreve o
@@ -65,6 +100,9 @@ async function tentarWhatsApp(
   texto: string,
 ): Promise<{ ok: boolean; motivo?: string }> {
   if (!telefone?.trim()) return { ok: false, motivo: "cliente sem telefone cadastrado" };
+
+  // O FREIO, antes de carregar conexão e antes de qualquer chamada de rede.
+  if (!whatsappLiberado()) return { ok: false, motivo: MOTIVO_FREIO_FECHADO };
 
   try {
     const conexao = await prisma.metaConnection.findFirst({

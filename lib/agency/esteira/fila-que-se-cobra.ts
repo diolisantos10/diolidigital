@@ -65,8 +65,14 @@ export const MAX_REENVIOS = 3;
  *  erro mais caro dos dois.
  *
  *  ⚠️ `janela`, `24h` e `recusou o envio` SAÍRAM daqui em 15/08/2026 e foram
- *  para `POLITICA`. Ver o cabeçalho. */
-const TEMPORARIO = /rede|timeout|tempo esgotado|indispon|rate|limite de envio/i;
+ *  para `POLITICA`. Ver o cabeçalho.
+ *
+ *  E `WHATSAPP_SAIDA` ENTROU: o aviso que o freio da própria casa segurou é,
+ *  por definição, temporário — ele passa no instante em que o CEO abre a
+ *  torneira. Sem esta palavra aqui, ele cairia no default-deny e seria
+ *  abandonado como "motivo desconhecido" exatamente quando voltasse a poder
+ *  sair. Freio que descarta trabalho é pior que freio nenhum. */
+const TEMPORARIO = /rede|timeout|tempo esgotado|indispon|rate|limite de envio|WHATSAPP_SAIDA/i;
 
 /** A PLATAFORMA DISSE NÃO. Não é o canal que caiu — é a regra. Re-tentar aqui
  *  não é insistência inútil como no caso do cadastro: é infração, e a punição é
