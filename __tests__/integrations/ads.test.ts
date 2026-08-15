@@ -131,11 +131,24 @@ describe("nada nasce ativo — o dinheiro só sai por decisão com dono", () => 
 });
 
 describe("o erro que o operador vai ver de verdade", () => {
-  it("permissão faltando vira 'depende do App Review', não erro cru da Graph", async () => {
+  // ⚠️ ESTE TESTE MUDOU EM 15/08/2026, E A MUDANÇA É O PONTO.
+  //
+  // Ele afirmava que permissão faltando "vira 'depende do App Review'" — e foi
+  // essa asserção que TRAVOU NO LUGAR a única frase errada do arquivo, por
+  // dias. Para a conta do próprio dono do app a Meta dispensa a análise
+  // (fontes/marketing-api-autorizacao-e-niveis.md:73), e a casa já criou
+  // campanha por API com o token do CEO em 03/08/2026.
+  //
+  // Um teste pode fossilizar um defeito tão bem quanto ele impede um. As três
+  // recusas que se parecem e pedem gestos opostos estão em
+  // `__tests__/integrations/ads-erro-que-ensina.test.ts`.
+  it("permissão faltando vira frase que ENSINA o gesto, não erro cru da Graph", async () => {
     graphGet.mockRejectedValue(new FakeGraphError("(#200) Requires ads_management permission"));
     const r = await listarContasDeAnuncio("ws1", "mc1");
     expect(r.motivo).toBe("sem_permissao");
-    expect(r.erro).toMatch(/App Review/);
+    expect(r.erro).toMatch(/ads_management/);
+    expect(r.erro).toMatch(/pr[oó]prio dono do app/i);
+    expect(r.erro).not.toMatch(/depende do App Review/i);
   });
 
   it("sem conta de anúncio, diz o que o CLIENTE precisa fazer", async () => {

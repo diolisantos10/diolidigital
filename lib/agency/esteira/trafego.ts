@@ -43,6 +43,25 @@ export interface CampanhaPreparada {
   pendencia?: string;
 }
 
+// ─── BARRAR SEM ENSINAR O CAMINHO É O QUE TRAVA A CASA ──────────────────────
+//
+// 15/08/2026. Cinco coisas impedem uma campanha de sair, e nenhuma delas é a
+// Meta: são travas NOSSAS, todas certas, todas fail-closed. O defeito não era a
+// trava — era a frase. "o cliente ainda não conectou a conta Meta dele" é
+// verdade e é inútil: não diz onde se conecta, e quem lê fica esperando.
+//
+// Cada pendência abaixo passou a carregar **o clique**. Elas são constantes, e
+// não texto solto no meio da função, porque a mesma frase precisa aparecer
+// igual no painel, no relatório e aqui — e porque o teste afirma sobre elas.
+export const ONDE_CONECTAR =
+  'portal do cliente → aba "Conexões" → botão "Conectar Facebook/Instagram" (login pessoal do dono, uma vez)';
+export const ONDE_MARCAR_A_CONTA =
+  'portal do cliente → "O que a Dioli pode acessar" → marcar a conta de anúncios → "Salvar"';
+export const ONDE_DIZER_A_VERBA =
+  "briefing do cliente → campo de verba de anúncios (`adsBudget`)";
+export const ONDE_LIGAR =
+  'painel da agência → Desempenho pago → a campanha → "Ligar" (fica gravado quem autorizou)';
+
 /**
  * Prepara a campanha do projeto — criada PAUSADA — e pede o aval do cliente.
  *
@@ -81,7 +100,9 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
   if (!verbaMensal) {
     return {
       ok: false,
-      pendencia: "o cliente não informou a verba de anúncios no briefing — sem teto aprovado, nenhuma campanha é criada",
+      pendencia:
+        "o cliente não informou a verba de anúncios no briefing — sem teto aprovado, nenhuma campanha é criada. "
+        + `Onde resolver: ${ONDE_DIZER_A_VERBA}.`,
     };
   }
 
@@ -99,18 +120,32 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
     const temAlguma = await prisma.metaConnection.count({
       where: { workspaceId: projeto.workspaceId, clientId: projeto.clientId, status: "connected" },
     }).catch(() => 0);
+    // A conexão de NÍVEL AGÊNCIA (clientId vazio) não serve aqui, e isto é
+    // deliberado: usar a credencial da agência para mexer na conta de um cliente
+    // é o dano de 06/08/2026 pela outra ponta. O gesto é o dono conectar no
+    // portal DELE — e é isso que a frase passou a dizer.
     return {
       ok: false,
       pendencia: temAlguma > 0
-        ? "o cliente conectou a Meta antes de o acesso de anúncios existir — precisa reconectar para liberar o tráfego pago"
-        : "o cliente ainda não conectou a conta Meta dele",
+        ? "o cliente conectou a Meta antes de o acesso de anúncios existir — precisa reconectar para liberar o tráfego pago. "
+          + `Onde resolver: ${ONDE_CONECTAR}.`
+        : "o cliente ainda não conectou a conta Meta dele. "
+          + `Onde resolver: ${ONDE_CONECTAR}.`,
     };
   }
 
   const { listarContasDeAnuncio } = await import("@/lib/integrations/meta/ads");
   const contas = await listarContasDeAnuncio(projeto.workspaceId, conexao.id);
   if (!contas.ok || !contas.dados?.length) {
-    return { ok: false, pendencia: contas.erro ?? "não encontrei conta de anúncio nesta conexão" };
+    // `sem_autorizacao` é a nossa lista fail-closed (`MetaAtivoAutorizado`), não
+    // uma recusa da Meta — e as duas pediam gestos diferentes com a mesma cara.
+    const complemento = contas.motivo === "sem_autorizacao"
+      ? ` Onde resolver: ${ONDE_MARCAR_A_CONTA}.`
+      : "";
+    return {
+      ok: false,
+      pendencia: (contas.erro ?? "não encontrei conta de anúncio nesta conexão") + complemento,
+    };
   }
 
   const diario = diarioAPartirDoMensal(verbaMensal);
@@ -229,7 +264,12 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
   return {
     ok: true,
     campanhaId: registro.id,
-    ...(completa ? {} : { pendencia: oQueFaltou }),
+    // Campanha completa não é campanha no ar: ela nasce PAUSADA e o último
+    // passo é humano, com nome. Dizer só "ok: true" já fez a casa achar que
+    // "tráfego pago pronto" significava dinheiro rodando — não significa.
+    ...(completa
+      ? { pendencia: `campanha montada e PAUSADA, esperando a ativação humana. Onde ligar: ${ONDE_LIGAR}.` }
+      : { pendencia: oQueFaltou }),
   };
 }
 
@@ -266,7 +306,20 @@ export async function ligarCampanha(
     };
   }
 
-  const r = await ativarCampanha(c.workspaceId, c.connectionId, c.externalId, autorizadoPor);
+  // ── ⚠️ `c.adAccountId` NÃO É DECORAÇÃO (15/08/2026) ──────────────────────
+  //
+  // A cota da Marketing API é contada POR CONTA DE ANÚNCIOS, e a conta sai da
+  // URL da chamada (`cota-de-anuncios.ts`, `contaDaUrl`). Ativar e pausar são
+  // `POST /{id}` — o `act_...` NÃO aparece na URL. Sem declarar a conta aqui, as
+  // três escritas da ativação caíam num balde `sem_conta:<hash do token>`,
+  // separado do balde da conta que acabou de receber as quatro escritas da
+  // criação. Duas contagens da mesma conta significam teto DOBRADO: 32 escritas
+  // onde a Meta bloqueia em 20 — a assinatura exata do que restringiu uma conta
+  // desta casa em 03/08/2026.
+  //
+  // Passar `c.adAccountId` faz as 7 escritas caírem no mesmo contador, que é
+  // fail-closed (banco fora do ar NEGA a chamada) e atravessa deploy e réplica.
+  const r = await ativarCampanha(c.workspaceId, c.connectionId, c.externalId, autorizadoPor, c.adAccountId);
   if (!r.ok) {
     await prisma.adCampaign.update({ where: { id: campanhaId }, data: { lastError: r.erro ?? null } })
       .catch(() => { /* best-effort */ });
@@ -275,7 +328,9 @@ export async function ligarCampanha(
 
   // Subir os filhos junto: campanha ACTIVE com conjunto PAUSED entrega zero, e
   // a conta parece ligada para quem olha o painel.
-  await ativarFilhos(c.workspaceId, c.connectionId, { adSetId: c.adSetId, adId: c.adId });
+  await ativarFilhos(c.workspaceId, c.connectionId, {
+    adSetId: c.adSetId, adId: c.adId, contaId: c.adAccountId,
+  });
 
   await prisma.adCampaign.update({
     where: { id: campanhaId },
@@ -291,7 +346,10 @@ export async function ligarCampanha(
 export async function desligarCampanha(campanhaId: string): Promise<{ ok: boolean; erro?: string }> {
   const c = await prisma.adCampaign.findUnique({ where: { id: campanhaId } });
   if (!c) return { ok: false, erro: "campanha não encontrada" };
-  const r = await pausarCampanha(c.workspaceId, c.connectionId, c.externalId);
+  // A conta vai declarada aqui também — pausar é escrita e pontua igual (3).
+  // Um freio que não é contado é um freio que pode ser o gesto que estoura a
+  // cota e bloqueia a conta por 5 minutos, justamente quando se quer parar.
+  const r = await pausarCampanha(c.workspaceId, c.connectionId, c.externalId, c.adAccountId);
   if (!r.ok) return { ok: false, erro: r.erro };
   await prisma.adCampaign.update({ where: { id: campanhaId }, data: { status: "paused" } });
   return { ok: true };
@@ -317,7 +375,11 @@ export async function desempenhoPagoDoPeriodo(
     gastoBRL: 0, impressoes: 0, cliques: 0, alcance: 0, cpcBRL: null, campanhas: 0,
   };
   for (const c of campanhas) {
-    const r = await lerDesempenho(c.workspaceId, c.connectionId, c.externalId, periodo);
+    // `contaId` declarado: `{campaign_id}/insights` não traz o `act_...` na URL,
+    // e a leitura precisa cair no MESMO contador da conta (1 ponto cada).
+    const r = await lerDesempenho(c.workspaceId, c.connectionId, c.externalId, periodo, {
+      contaId: c.adAccountId,
+    });
     if (!r.ok || !r.dados) continue;
     soma.gastoBRL += r.dados.gastoBRL;
     soma.impressoes += r.dados.impressoes;
@@ -356,7 +418,9 @@ export async function guardarAVerba(hoje: Date = new Date()): Promise<GuardaFeit
   const desde = iso(new Date(hoje.getTime() - 7 * 24 * 60 * 60_000));
 
   for (const c of ativas) {
-    const r = await lerDesempenho(c.workspaceId, c.connectionId, c.externalId, { desde, ate });
+    const r = await lerDesempenho(c.workspaceId, c.connectionId, c.externalId, { desde, ate }, {
+      contaId: c.adAccountId,
+    });
     // Não consegui medir NÃO é motivo para frear. Pausar por cegueira própria
     // tiraria do ar uma campanha que pode estar indo bem.
     if (!r.ok || !r.dados) continue;
@@ -377,7 +441,7 @@ export async function guardarAVerba(hoje: Date = new Date()): Promise<GuardaFeit
     }
     if (!motivo) continue;
 
-    const p = await pausarCampanha(c.workspaceId, c.connectionId, c.externalId);
+    const p = await pausarCampanha(c.workspaceId, c.connectionId, c.externalId, c.adAccountId);
     if (!p.ok) continue;
     await prisma.adCampaign.update({
       where: { id: c.id },

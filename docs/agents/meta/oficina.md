@@ -137,3 +137,115 @@ análise e verificação, e a casa já provou isso em produção em 03/08."* Ori
 `fontes/marketing-api-autorizacao-e-niveis.md:48,73`,
 `fontes/verificacao-de-negocio.md:21`, `fontes/app-review-processo.md:18`,
 `docs/pendencias.md:3283-3287`. Data: 14/08/2026.
+
+---
+
+## 2026-08-15 · Destravar o tráfego da CityJobs: o que era código nosso, e o que é clique do CEO
+
+Cinco travas, dois defeitos e uma trava de ritmo. **Nenhuma chamada de escrita
+na Meta foi feita** — nada criado, nada ativado.
+
+### O defeito 1: a frase que mandava esperar semanas (`ads.ts`)
+
+`traduzirErro` carimbava *"depende do App Review"* em qualquer recusa com a
+palavra "permission". Agora separa quatro coisas que pedem gestos opostos
+(`ads.ts:196`): **permissão ausente** · **ativo não autorizado** (o token vale,
+quem o deu não administra a conta — gesto de minutos no Gerenciador) · **conta
+restrita** (`:218`, recorrer, ~48 h) · **token morto** (`:232`, só o dono
+reconecta). A ordem é código/subcódigo ANTES de texto: as três mensagens contêm
+"permissão", e ler texto primeiro era o defeito.
+
+Códigos exportados e conferíveis, todos de `fontes/marketing-api-erros.md`:
+10/200/294 · 1815694/2654 + subcódigos 33/1713092 · 368/1404078/1404163 · 190.
+Cada frase carrega código, subcódigo e o texto literal da Meta (guardrail 6).
+
+**E a frase passou a saber DE QUEM É A CONTA** (`ads.ts:166`), porque a regra da
+Meta tem duas metades na mesma linha: *"Caso o app gerencie somente sua conta de
+anúncios, o acesso padrão e as permissões ads_read e ads_management serão
+suficientes. Se o app gerenciar contas de anúncios de outras pessoas, será
+necessário ter acesso avançado"* (`fontes/marketing-api-autorizacao-e-niveis.md:73`);
+e acesso padrão *"será aprovado automaticamente"* (`:80`).
+
+⚠️ **O rótulo "Pronto para teste" NÃO está na nossa biblioteca.** O CEO leu isso
+no painel em 14/08 21:07. Não afirmei que ele significa acesso padrão — a
+conclusão não depende do rótulo, e sim das três linhas de fonte acima.
+
+### O defeito 2: `valeParaOAtivo` comparava id cru (`permissoes-do-token.ts`)
+
+`act_123` × `123` devolvia **"não vale" falso**. Agora usa `mesmoAtivo`
+(`:178`), que **reaproveita `normalizarId` de `ativos-autorizados.ts`** — e só
+entra na forma canônica quando algum dos lados carrega `act_`, para uma Página
+`123` nunca virar a conta `act_123` (falso positivo numa trava é pior).
+
+Fim da cegueira de anúncio: `PARA_GERIR_ANUNCIOS` (`:220`),
+`PARA_MEDIR_ANUNCIOS`, `DEPENDENCIAS_DE_ANUNCIO` e `diagnosticarConta` (`:278`),
+que responde *"esta conta está ao alcance deste token, hoje?"* por `debug_token`
+— leitura contra o APP, que **não é chamada da Marketing API** e por isso não
+gasta pontuação da conta (travado por teste).
+
+**Armadilha achada ao construir:** `pages_read_engagement`/`pages_show_list` são
+dependências declaradas de `ads_management` mas valem **por Página**. Conferi-las
+contra o `act_...` devolveria "não vale" falso — a mesma família do defeito do id
+cru. Por isso são lista separada e só entram quando `diagnosticarConta` recebe o
+`pageId`.
+
+### 🟥 `pages_manage_ads` — declarado como NÃO SABIDO (`:264`)
+
+A captura do painel não trouxe o estado dela. A fonte diz que ela cobre *"anúncios
+de clique para uma superfície de mensagens da empresa"*
+(`fontes/permissoes-referencia.md:733`) — e é exatamente o que a casa monta
+quando o objetivo é `conversas` (`destination_type: MESSENGER`). A fonte **não
+diz** que é obrigatória. Fica fora de toda lista (guardrail 1) e a saída barata é
+subir a primeira campanha como `trafego`, que não encosta nela.
+
+### A trava de ritmo — o buraco real, e ele era nosso
+
+`ativar` e `pausar` são `POST /{id}`: o `act_...` **não aparece na URL**. Sem
+declarar a conta, as escritas da ativação caíam num balde `sem_conta:<hash do
+token>`, **separado** do balde da criação — duas contagens da MESMA conta, teto
+efetivo dobrado: 32 escritas onde a Meta bloqueia em 20. É a assinatura de
+03/08. Corrigido em `trafego.ts:322` e nos outros três caminhos (pausar,
+guardião, leitura de desempenho).
+
+`escritasPorJanela()` (`cota-de-anuncios.ts:177`) diz a pontuação em unidade de
+gente: **16 escritas por 300s**. E `TETO_DESENVOLVIMENTO` agora carrega a
+proveniência da medição do painel (14/08, *Acesso limitado*) + a linha que a
+traduz: *"Se tiver acesso limitado […] isso significará que você está no nível de
+desenvolvimento"* (`fontes/marketing-api-limites-de-taxa.md:112`). **A trava não
+é precaução: é o nível declarado do app.**
+
+### O que era só a FRASE, não a trava
+
+As cinco travas estavam certas e fail-closed. O defeito era barrar sem ensinar.
+`ONDE_CONECTAR`, `ONDE_MARCAR_A_CONTA`, `ONDE_DIZER_A_VERBA` e `ONDE_LIGAR`
+(`trafego.ts:56-62`) agora viajam dentro de cada pendência. E campanha completa
+deixou de devolver só `ok: true`: ela diz que nasceu PAUSADA e onde se liga.
+
+### Medido por leitura de código, a pedido (não por tela verde)
+
+1. **A conexão do portal resolve o ponto 1.** `/api/portal/meta-ativos` só lista
+   ativos quando existe conexão `{workspaceId, clientId, platform:"user",
+   status:"connected"}` — **a cláusula idêntica** à de `trafego.ts:115`. O CEO viu
+   a lista ⇒ a linha existe. **Residual, e é dado, não código:** `Project.clientId`
+   tem de ser o mesmo `Client.id` que o portal resolve.
+2. **"Marcado no portal" É o registro que `ads.ts` consulta.** Portal POST →
+   `aplicarEscolha` → `autorizarAtivos` → `prisma.metaAtivoAutorizado`; e
+   `recusarContaNaoAutorizada` → `ativoAutorizado` → `idsAutorizados` → **a mesma
+   tabela**, com `normalizarId` nos dois lados. Não são tabelas diferentes.
+3. **`act_1355986106660251` passa** por `filtrarAutorizados` e por
+   `recusarContaNaoAutorizada`. **Residual:** `trafego.ts` usa `contas.dados[0]`
+   — com uma conta marcada é ela; se marcarem duas, a escolha vira índice zero.
+
+### Um teste que fossilizava o defeito
+
+`ads.test.ts` afirmava que permissão faltando *"vira 'depende do App Review'"*.
+Era ele que travava a frase errada no lugar. Reescrito, com o porquê no código.
+
+**Proposta de vitrine (quem promove é o Diretor):** *"Recusa de anúncio na Meta
+tem quatro causas que se parecem e pedem gestos opostos — e a que a casa mais
+usava era a única que custa semanas. Classifique por código/subcódigo, nunca por
+texto: as três primeiras contêm a palavra 'permissão'."* Origem:
+`fontes/marketing-api-erros.md`, `fontes/marketing-api-autorizacao-e-niveis.md:73,80`,
+`fontes/app-review-publicacao.md:27`, medição do painel de 14/08/2026.
+
+`npx tsc --noEmit` limpo · 223 arquivos, 3628 testes verdes.
