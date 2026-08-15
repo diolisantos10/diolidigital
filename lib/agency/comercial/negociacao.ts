@@ -35,7 +35,51 @@
 // pedido é sempre o que não custa margem (pagamento à vista, prazo). Quem
 // resolve a contradição no papel é o Diretor com o CEO — está em aberto.
 
-import { precoEmReais } from "../planos";
+import { precoEmReais, PLANOS } from "../planos";
+import { SELF_SERVE_CATALOG } from "../self-serve-catalog";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DE ONDE VEM O PREÇO CHEIO — lido, nunca redigitado
+// ─────────────────────────────────────────────────────────────────────────────
+// Achado em 15/08/2026: esta tabela guardava uma CÓPIA dos preços — Ritmo 297,
+// Presença 790, Conteúdo 1390, Crescimento 2590, e os cinco do balcão. Os
+// números batiam com a fonte por sorte: nada os obrigava.
+//
+// E a cópia não era decorativa. É `TABELA_DE_PISO[k].cheio` que vai para o
+// prompt do agente comercial (`qualificar.ts`) — ou seja, era ESTA cópia que
+// dizia o preço ao prospect, não a fonte. Medido: trocar `cheio` para 349 deixa
+// a casa inteira verde (184 testes), com o plano a R$ 297 e o SDR cotando 349.
+//
+// Vale para preço a mesma regra que `PISO_BALCAO` já aplicava ao piso do balcão:
+// número de preço escrito em dois lugares vira duas verdades no dia em que
+// alguém corrige só um. Aqui ele passa a ser lido.
+//
+// FAIL-CLOSED: id que não existe na fonte estoura na carga do módulo. Preço
+// ausente NÃO pode virar 0 nem `undefined` — os dois autorizariam vender de
+// graça, que é o modo de falhar mais caro desta tabela.
+
+/** Mensalidade cheia de um plano, lida de `PLANOS`. */
+function mensalidadeDoPlano(id: (typeof PLANOS)[number]["id"]): number {
+  const plano = PLANOS.find((p) => p.id === id);
+  if (!plano) throw new Error(`[negociacao] plano "${id}" não existe em PLANOS — preço não pode ser deduzido.`);
+  return plano.preco;
+}
+
+/** Preço cheio de um item do balcão, lido de `SELF_SERVE_CATALOG`. */
+function precoDoBalcao(id: string): number {
+  const item = SELF_SERVE_CATALOG.find((s) => s.id === id);
+  if (!item) throw new Error(`[negociacao] item "${id}" não existe em SELF_SERVE_CATALOG — preço não pode ser deduzido.`);
+  return item.price;
+}
+
+/** Piso de um item do balcão, lido de `SELF_SERVE_CATALOG.precoMinimo`. */
+function pisoDoBalcao(id: string): number {
+  const item = SELF_SERVE_CATALOG.find((s) => s.id === id);
+  if (!item || typeof item.precoMinimo !== "number") {
+    throw new Error(`[negociacao] item "${id}" não declara piso em SELF_SERVE_CATALOG — sem piso não se negocia.`);
+  }
+  return item.precoMinimo;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. FAIXAS DE INVESTIMENTO — o que se oferece para cada bolso
@@ -186,42 +230,58 @@ export interface LinhaDaTabela {
 }
 
 export const TABELA_DE_PISO: Record<ItemNegociavel, LinhaDaTabela> = {
+  // ── Balcão: preço E piso lidos de `SELF_SERVE_CATALOG` ───────────────────
   post: {
-    id: "post", nome: "Post único com arte e legenda", cheio: 79, piso: 49, recorrente: false,
+    id: "post", nome: "Post único com arte e legenda", recorrente: false,
+    cheio: precoDoBalcao("balcao-post-feed"), piso: pisoDoBalcao("balcao-post-feed"),
     versaoMenor: "só a legenda pronta, com a arte por conta dele",
   },
   carrossel: {
-    id: "carrossel", nome: "Carrossel", cheio: 129, piso: 79, recorrente: false,
+    id: "carrossel", nome: "Carrossel", recorrente: false,
+    cheio: precoDoBalcao("balcao-carrossel-5"), piso: pisoDoBalcao("balcao-carrossel-5"),
     versaoMenor: "um post único no lugar do carrossel",
   },
   stories: {
-    id: "stories", nome: "Sequência de stories", cheio: 99, piso: 59, recorrente: false,
+    id: "stories", nome: "Sequência de stories", recorrente: false,
+    cheio: precoDoBalcao("balcao-4-stories"), piso: pisoDoBalcao("balcao-4-stories"),
     versaoMenor: "uma sequência mais curta, com menos telas",
   },
   copy: {
-    id: "copy", nome: "Copy / legenda", cheio: 39, piso: 29, recorrente: false,
+    id: "copy", nome: "Copy / legenda", recorrente: false,
+    cheio: precoDoBalcao("balcao-legenda"), piso: pisoDoBalcao("balcao-legenda"),
     // A copy é o item mais barato da casa: não existe degrau abaixo dela.
     // Aqui a saída é prazo, não escopo — e isso está dito com todas as letras.
     versaoMenor: "sem versão menor: a saída é prazo maior de entrega, não preço",
   },
   auditoria: {
-    id: "auditoria", nome: "Auditoria de perfil", cheio: 149, piso: 99, recorrente: false,
+    id: "auditoria", nome: "Auditoria de perfil", recorrente: false,
+    cheio: precoDoBalcao("balcao-auditoria-perfil"), piso: pisoDoBalcao("balcao-auditoria-perfil"),
     versaoMenor: "uma leitura mais curta, só com o diagnóstico, sem o plano de ação",
   },
+
+  // ── Planos: a mensalidade cheia é lida de `PLANOS` ────────────────────────
+  // O PISO continua declarado aqui, e é de propósito: ele não existe em
+  // `PLANOS` (que é a tabela pública) nem em lugar nenhum executável. Esta é a
+  // ÚNICA declaração dele — `docs/precos.md` só o explica em prosa, e há teste
+  // que compara os dois.
   ritmo: {
-    id: "ritmo", nome: "Plano Ritmo", cheio: 297, piso: 229, recorrente: true,
+    id: "ritmo", nome: "Plano Ritmo", recorrente: true,
+    cheio: mensalidadeDoPlano("ritmo"), piso: 229,
     versaoMenor: "menos peças por mês dentro do próprio Ritmo, ou o Pulso (R$ 49) para começar medindo",
   },
   presenca: {
-    id: "presenca", nome: "Plano Presença", cheio: 790, piso: 690, recorrente: true,
+    id: "presenca", nome: "Plano Presença", recorrente: true,
+    cheio: mensalidadeDoPlano("presenca"), piso: 690,
     versaoMenor: "o Ritmo (R$ 297), em que ele mesmo publica",
   },
   conteudo: {
-    id: "conteudo", nome: "Plano Conteúdo", cheio: 1390, piso: 1190, recorrente: true,
+    id: "conteudo", nome: "Plano Conteúdo", recorrente: true,
+    cheio: mensalidadeDoPlano("conteudo"), piso: 1190,
     versaoMenor: "o Presença (R$ 790), sem stories e sem roteiro de reels",
   },
   crescimento: {
-    id: "crescimento", nome: "Plano Crescimento", cheio: 2590, piso: 2190, recorrente: true,
+    id: "crescimento", nome: "Plano Crescimento", recorrente: true,
+    cheio: mensalidadeDoPlano("crescimento"), piso: 2190,
     versaoMenor: "o Conteúdo (R$ 1.390), sem os criativos de anúncio",
   },
 };
