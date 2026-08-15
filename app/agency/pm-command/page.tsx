@@ -7,14 +7,15 @@
 // rollout do M7, por lotes), as seções explicam o próprio vazio: estado vazio
 // mudo é o cliente — aqui, o PM — achando que não recebeu nada.
 //
-// Não há botão de escrita nesta primeira versão DE PROPÓSITO: "Retomar
-// processo" é entrega do M6, com idempotência e trilha — botão antes do motor
-// seria promessa que o código não cumpre.
+// A única escrita desta sala é "Retomar processo" (M6): idempotente, exclusiva
+// de PM/Diretor, registrada como execução humana — o botão chegou JUNTO com o
+// motor, nunca antes dele.
 
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { prisma } from "@/lib/db/client";
+import RetomarProcesso from "@/components/agency/RetomarProcesso";
 
 export const dynamic = "force-dynamic";
 
@@ -105,7 +106,7 @@ export default async function PmCommandPage() {
             )}
           </p>
           <p className="mt-1 text-[12px] text-[var(--text-muted)]">
-            Mensagem, publicação e webhook da V2 saem por fila com retentativa — nunca inline. O processador entra no M6.
+            Mensagem, publicação e webhook da V2 saem por fila com retentativa — nunca inline. O relógio da V2 (/api/cron/v2) processa a cada batida.
           </p>
         </Cartao>
 
@@ -134,8 +135,8 @@ export default async function PmCommandPage() {
           </p>
         </Cartao>
 
-        <Cartao titulo="Recuperação">
-          <Vazio frase='O botão "Retomar processo" (idempotente, exclusivo de PM/Diretor) chega com o motor de recovery no Marco 6 — botão antes do motor seria promessa sem mecanismo.' />
+        <Cartao titulo="Recuperação — retomar processo (PM/Diretor)">
+          <RetomarProcesso />
         </Cartao>
       </div>
     </div>
