@@ -23,7 +23,11 @@ function aviso(over: Partial<Record<string, unknown>> = {}) {
   return {
     id: "av1", workspaceId: "ws1", clientId: "cli1", projectId: null,
     kind: "material", body: "Precisamos do seu logo.", status: "pendente",
-    channel: "nenhum", failReason: "o WhatsApp recusou o envio",
+    // ⚠️ ERA "o WhatsApp recusou o envio" até 15/08/2026 — e esse motivo mudou
+    //    de classe. Ver o bloco "A PLATAFORMA DISSE NÃO" no fim deste arquivo:
+    //    recusa da plataforma é REGRA, não instabilidade, e o fixture do
+    //    temporário precisa ser algo que de fato volta sozinho.
+    channel: "nenhum", failReason: "o canal ficou indisponível",
     retryCount: 0, createdAt: new Date("2026-08-01T12:00:00Z"),
     ...over,
   };
@@ -31,6 +35,12 @@ function aviso(over: Partial<Record<string, unknown>> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // ── O FREIO DE SAÍDA (15/08/2026) ─────────────────────────────────────────
+  // `WHATSAPP_SAIDA` nasce FECHADO: em produção, sem esta linha, esta perna não
+  // reenvia coisa nenhuma. Os testes abaixo descrevem a fila com a torneira
+  // ABERTA; as duas metades do freio moram em
+  // `__tests__/agency/freio-do-whatsapp.test.ts`.
+  process.env.WHATSAPP_SAIDA = "liberada";
   db.clientNotice.update.mockResolvedValue({});
   db.client.findUnique.mockResolvedValue({ name: "Padaria do João" });
   avisos.avisarCliente.mockResolvedValue({ registrado: true, enviadoAutomaticamente: true, canal: "whatsapp" });
@@ -91,6 +101,61 @@ describe("motivo PERMANENTE não é reenviado — é gritado", () => {
   });
 });
 
+// ── A PLATAFORMA DISSE NÃO ≠ A REDE CAIU (15/08/2026) ───────────────────────
+//
+// Achado do parecer formal do especialista `meta`. A régua do "temporário"
+// casava `janela|24h` — ou seja, a casa tratava uma REGRA DE POLÍTICA como
+// instabilidade e re-tentava até 3× contra ela. Nenhuma tentativa número 3 abre
+// uma janela que a política fechou; o que ela faz é somar tentativa contra a
+// reputação do app, que é o que restringiu a conta desta casa em 03/08/2026.
+//
+// (E o defeito de fundo continua aberto, declarado como proposta no PR: o
+// reenvio manda TEXTO LIVRE, e fora da janela de 24h só sai template aprovado.)
+describe("recusa por POLÍTICA não é falha temporária", () => {
+  const porPolitica = [
+    "fora da janela de 24h",
+    "o WhatsApp recusou o envio",
+    "template não aprovado para este idioma",
+    "usuário não deu opt-in",
+  ];
+
+  for (const motivo of porPolitica) {
+    it(`"${motivo}" NÃO é re-tentado`, async () => {
+      db.clientNotice.findMany.mockResolvedValue([aviso({ failReason: motivo })]);
+      const r = await cobrarAFila("ws1", AGORA);
+      expect(avisos.avisarCliente, "re-tentou contra uma regra da plataforma").not.toHaveBeenCalled();
+      expect(r.reenviados).toEqual([]);
+      expect(r.barradosPorPolitica[0]!.avisoId).toBe("av1");
+    });
+  }
+
+  it("e o alerta carrega o CONSERTO, não o sintoma", async () => {
+    db.clientNotice.findMany.mockResolvedValue([aviso({ failReason: "fora da janela de 24h" })]);
+    const r = await cobrarAFila("ws1", AGORA);
+    expect(r.barradosPorPolitica[0]!.oQueFazer).toMatch(/template aprovado/);
+    expect(r.barradosPorPolitica[0]!.oQueFazer).toMatch(/à mão/);
+  });
+
+  it("não gasta uma das três tentativas do aviso — regra não consome retry", async () => {
+    db.clientNotice.findMany.mockResolvedValue([aviso({ failReason: "fora da janela de 24h" })]);
+    await cobrarAFila("ws1", AGORA);
+    expect(db.clientNotice.update, "carimbou o registro por um fato que não mudou").not.toHaveBeenCalled();
+  });
+
+  it("METADE 2 — o que é MESMO temporário continua voltando sozinho", async () => {
+    // A régua nova não pode ter matado o reenvio legítimo: trava que barra tudo
+    // é tão inútil quanto trava que não barra nada.
+    for (const motivo of ["o canal ficou indisponível", "timeout de rede", "rate limit do provedor"]) {
+      vi.clearAllMocks();
+      avisos.avisarCliente.mockResolvedValue({ registrado: true, enviadoAutomaticamente: true, canal: "whatsapp" });
+      db.clientNotice.update.mockResolvedValue({});
+      db.clientNotice.findMany.mockResolvedValue([aviso({ failReason: motivo })]);
+      const r = await cobrarAFila("ws1", AGORA);
+      expect(r.reenviados, `"${motivo}" deixou de ser re-tentado`).toEqual(["av1"]);
+    }
+  });
+});
+
 describe("só cobra o que já esperou tempo demais", () => {
   it("a janela de espera entra na consulta", async () => {
     db.clientNotice.findMany.mockResolvedValue([]);
@@ -129,7 +194,10 @@ describe("o relógio chama a fila", () => {
 
   it("falhar na cobrança NÃO derruba as outras pernas", () => {
     const i = DESPERTADOR.indexOf("cobrarAFila(");
-    const trecho = DESPERTADOR.slice(Math.max(0, i - 400), i + 700);
+    // A janela cresceu de 700 para 1400 em 15/08/2026: a perna ganhou o relato
+    // do freio e o dos avisos barrados por política, e o `catch` continua ali —
+    // era a régua que ficou curta, não a proteção que sumiu.
+    const trecho = DESPERTADOR.slice(Math.max(0, i - 400), i + 1400);
     expect(trecho).toContain("quebrou(\"fila-que-se-cobra\"");
   });
 

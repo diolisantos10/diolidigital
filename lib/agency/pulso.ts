@@ -41,6 +41,23 @@ export interface FalhaDaRodada {
   erro: string;
 }
 
+/** Uma torneira de saída que estava FECHADA nesta rodada, e o que ficou atrás
+ *  dela. Ver `lib/agency/freios-de-saida.ts`.
+ *
+ *  Por que isto é campo próprio e não uma `falha`: freio puxado não é defeito —
+ *  é regra funcionando. Contá-lo como falha faria o vigia da madrugada alarmar
+ *  toda noite e ensinaria o painel a ser ignorado. E contá-lo como NADA é pior:
+ *  fila retida sem testemunha é fila morta invisível, que é a cicatriz que esta
+ *  casa já tem. Ele é, então, uma terceira coisa: estado declarado. */
+export interface FreioNaRodada {
+  /** O nome da variável de ambiente que solta. */
+  nome: string;
+  /** Em português: o que ficou retido e como se abre. */
+  motivo: string;
+  /** Quanto ficou esperando atrás do freio nesta rodada. */
+  retidos: number;
+}
+
 export interface Batida {
   em: string;
   /** Quanto tempo a rodada levou. Rodada que cresce é rodada que vai estourar. */
@@ -48,6 +65,9 @@ export interface Batida {
   /** O que a rodada MOVEU. Zero em tudo = a casa não tinha trabalho. */
   moveu: Record<string, number>;
   falhas: FalhaDaRodada[];
+  /** As torneiras que estavam fechadas. Opcional de propósito: batidas gravadas
+   *  antes de 15/08/2026 não têm o campo, e o leitor não pode quebrar com elas. */
+  freios?: FreioNaRodada[];
 }
 
 export interface EstadoDoPulso {
@@ -62,6 +82,10 @@ export interface EstadoDoPulso {
   falhas24h: Array<{ perna: string; erro: string; vezes: number; ultimaEm: string }>;
   /** Soma do que a casa moveu nas últimas 24 h. */
   moveu24h: Record<string, number>;
+  /** As torneiras que estavam FECHADAS na última batida, com o que ficou retido
+   *  atrás de cada uma. É a resposta a "a fila parou ou o freio está segurando?"
+   *  — duas coisas que, sem isto, são indistinguíveis de fora. */
+  freios: FreioNaRodada[];
 }
 
 function pasta(): string {
@@ -134,5 +158,10 @@ export async function lerPulso(agora: Date = new Date()): Promise<EstadoDoPulso>
     batidas: todas.length,
     falhas24h: [...porFalha.values()].sort((a, b) => b.vezes - a.vezes),
     moveu24h,
+    // Da ÚLTIMA batida, não das 24 h: freio é estado de agora, e somar 24 h de
+    // retidos daria um número inflado ("288 mensagens retidas" quando são 1
+    // mensagem vista 288 vezes) — que é o jeito mais rápido de a contagem
+    // deixar de ser levada a sério.
+    freios: ultima?.freios ?? [],
   };
 }

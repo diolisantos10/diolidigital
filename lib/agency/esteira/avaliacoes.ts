@@ -19,11 +19,48 @@
 // Então: 4 e 5 estrelas → resposta automática. 1 a 3 → rascunho pronto,
 // escalado para gente decidir. O rascunho é o trabalho; a decisão é do humano.
 
+// ── 15/08/2026 — O PARECER DO ESPECIALISTA `google`: NÃO PODE COMO ESTAVA ───
+//
+// Esta perna recebeu **NÃO PODE** formal. Quatro coisas mudaram, e três delas
+// são defeito, não cautela:
+//
+// 1. **O FREIO (`AVALIACOES_GOOGLE`), FECHADO POR PADRÃO.** Isto escreve em
+//    perfil PÚBLICO, embaixo do nome do cliente, e não sai mais de lá. Com o
+//    freio puxado nada é lido, nada é gravado e nada é publicado — e nada se
+//    perde, porque nada chega a ser registrado. Ver `lib/agency/freios-de-saida.ts`.
+//
+// 2. 🔴 **A ORDEM DAS TRAVAS ESTAVA ERRADA.** O consentimento
+//    (`autoReplyConsentAt`) era conferido DEPOIS da chamada de IA e DEPOIS de
+//    gravar a avaliação no banco. Ou seja: a casa gastava dinheiro de IA e
+//    **armazenava nome e texto de quem avaliou** — gente que nunca falou com a
+//    Dioli — num perfil que ninguém autorizou a automatizar. A trava subiu para
+//    ANTES de tudo, inclusive antes de ler a lista no Google.
+//
+//    ⚠️ CONSEQUÊNCIA DECLARADA, e ela é uma perda: perfil sem consentimento
+//    deixa de receber até o RASCUNHO escalado para gente. Era o comportamento
+//    anterior e ele tinha valor. Mas ele custava exatamente o que o parecer
+//    proibiu, e nada se perde de forma irreversível: sem registro, a rodada
+//    seguinte ao consentimento enxerga a fila inteira do Google e a trata.
+//
+// 3. 🔴 **O REPRESAMENTO NÃO DRENAVA.** `r.dados.slice(0, MAX_POR_RODADA)` pega
+//    as 5 PRIMEIRAS de uma lista que o Google devolve por `updateTime desc` —
+//    isto é, sempre as 5 mais NOVAS. Se as 5 mais novas já estivessem
+//    registradas, as 5 fatias eram gastas com `continue` e a rodada reportava
+//    "0 tratadas", sem erro: a avaliação represada na 6ª posição **nunca era
+//    alcançada**, e ninguém via. Agora as já registradas são excluídas ANTES do
+//    corte, então a fatia é sempre de trabalho de verdade.
+//
+// 4. **ESPAÇAMENTO POR PERFIL**, no molde do `faltaEsperar()` da publicação:
+//    cinco respostas de uma vez no mesmo perfil parecem robô para qualquer um
+//    que olhe. A âncora é `reviewsSyncedAt`, que já existia — sem coluna nova.
+
 import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
 import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { listarAvaliacoes, responderAvaliacao } from "@/lib/integrations/google/client";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
+import { avaliacoesLiberadas, freioDasAvaliacoes, type FreioPuxado } from "@/lib/agency/freios-de-saida";
+import { faltaEsperar } from "@/lib/agency/esteira/ritmo";
 
 /** A partir de quantas estrelas a agência responde sozinha. */
 export const ESTRELAS_PARA_RESPOSTA_AUTOMATICA = 4;
@@ -32,11 +69,30 @@ export const ESTRELAS_PARA_RESPOSTA_AUTOMATICA = 4;
  *  segundos — e isso parece robô para qualquer um que olhe. */
 const MAX_POR_RODADA = 5;
 
+/** De quanto em quanto tempo um MESMO perfil pode ser tocado.
+ *
+ *  30 min: o relógio bate de 5 em 5, e sem espaçamento um perfil com fila
+ *  receberia 5 respostas a cada 5 minutos — 60 por hora, no perfil público de
+ *  um negócio de bairro. Com o espaçamento são 5 a cada meia hora, que ainda
+ *  atende de sobra a régua que dá o valor do serviço (responder em 24h). */
+export const INTERVALO_MINIMO_POR_PERFIL_MS = 30 * 60_000;
+
 export interface RodadaDeAvaliacoes {
   novas: number;
   respondidas: number;
   escaladas: number;
   falhas: string[];
+  /** Perfis que ficaram parados atrás do freio. Nada foi lido nem gravado. */
+  retidas: number;
+  /** O freio que segurou esta rodada, ou `null` quando ele está solto. */
+  freio: FreioPuxado | null;
+  /** Avaliações novas que não couberam no teto da rodada. Sem este número, a
+   *  fila que não drena reporta "0 tratadas" e parece um dia sem avaliação. */
+  represadas: number;
+  /** Perfis pulados por não haver consentimento registrado do cliente. */
+  semConsentimento: string[];
+  /** Perfis pulados por terem sido tocados agora há pouco. */
+  adiadasPorRitmo: number;
 }
 
 /**
@@ -45,14 +101,45 @@ export interface RodadaDeAvaliacoes {
  * Roda no relógio. Idempotente pelo id da avaliação no Google — uma avaliação
  * já registrada nunca é processada de novo, mesmo depois de um restore.
  */
-export async function cuidarDasAvaliacoes(): Promise<RodadaDeAvaliacoes> {
-  const saida: RodadaDeAvaliacoes = { novas: 0, respondidas: 0, escaladas: 0, falhas: [] };
+export async function cuidarDasAvaliacoes(agora: Date = new Date()): Promise<RodadaDeAvaliacoes> {
+  const saida: RodadaDeAvaliacoes = {
+    novas: 0, respondidas: 0, escaladas: 0, falhas: [],
+    retidas: 0, freio: null, represadas: 0, semConsentimento: [], adiadasPorRitmo: 0,
+  };
 
   const conexoes = await prisma.googleConnection.findMany({
     where: { status: "connected" },
   }).catch(() => []);
 
+  // ── O FREIO, ANTES DE QUALQUER LEITURA ────────────────────────────────────
+  // Puxado, a perna termina aqui: não chama o Google, não chama a IA, não grava
+  // avaliação nenhuma. O que sobe é a contagem de PERFIS retidos — freio
+  // silencioso vira fila morta invisível.
+  if (!avaliacoesLiberadas()) {
+    saida.retidas = conexoes.length;
+    saida.freio = freioDasAvaliacoes(conexoes.length);
+    return saida;
+  }
+
   for (const conexao of conexoes) {
+    // ── 1. O CONSENTIMENTO, ANTES DE LER ────────────────────────────────────
+    // Primeira pergunta do laço, e é aqui que ela tem de estar: sem
+    // consentimento registrado do cliente, a casa não lê a avaliação para
+    // dentro, não guarda o nome de quem escreveu, não gasta IA e não responde.
+    // Ver o item 2 do cabeçalho — e a consequência declarada que vem com ele.
+    if (!conexao.autoReplyConsentAt) {
+      saida.semConsentimento.push(conexao.title || conexao.locationName);
+      continue;
+    }
+
+    // ── 2. O RITMO ──────────────────────────────────────────────────────────
+    // Mesmo molde do `faltaEsperar()` da publicação. A âncora é
+    // `reviewsSyncedAt`, gravada no fim desta mesma passada.
+    if (faltaEsperar(conexao.reviewsSyncedAt, agora, INTERVALO_MINIMO_POR_PERFIL_MS) > 0) {
+      saida.adiadasPorRitmo++;
+      continue;
+    }
+
     const r = await listarAvaliacoes(conexao.id);
     if (!r.ok || !r.dados) {
       if (r.erro) saida.falhas.push(`${conexao.title || conexao.locationName}: ${r.erro}`);
@@ -90,16 +177,33 @@ export async function cuidarDasAvaliacoes(): Promise<RodadaDeAvaliacoes> {
       ? (await buildVerdadeOperacional(solicitacao.id).catch(() => null)) ?? undefined
       : undefined;
 
-    for (const a of r.dados.slice(0, MAX_POR_RODADA)) {
+    // ── EXCLUIR O QUE JÁ ESTÁ REGISTRADO **ANTES** DE CORTAR A FATIA ────────
+    //
+    // É o conserto do item 3 do cabeçalho. Antes, a fatia era tirada da lista
+    // crua (`updateTime desc` = mais novas primeiro) e as já registradas
+    // gastavam as cinco vagas com `continue` — a represada da 6ª posição em
+    // diante nunca era alcançada, e a rodada dizia "0 tratadas" sem erro.
+    //
+    // Fail-closed: não conseguir LER o que já está registrado não pode virar
+    // "então nada está registrado" — isso responderia de novo o que o dono do
+    // negócio já respondeu à mão. Sem a leitura, a conexão inteira é pulada.
+    const registradas = await prisma.googleReview.findMany({
+      where: { connectionId: conexao.id, externalId: { in: r.dados.map((a) => a.externalId) } },
+      select: { externalId: true },
+    }).catch(() => null);
+    if (!registradas) {
+      saida.falhas.push(`${conexao.title || conexao.locationName}: não consegui ler o que já foi tratado — não processo às cegas`);
+      continue;
+    }
+    const jaRegistrada = new Set(registradas.map((x) => x.externalId));
+    const naoTratadas = r.dados.filter((a) => !jaRegistrada.has(a.externalId));
+    const daRodada = naoTratadas.slice(0, MAX_POR_RODADA);
+    saida.represadas += naoTratadas.length - daRodada.length;
+
+    for (const a of daRodada) {
       // O Google já diz quando a avaliação tem resposta. Registrar como
       // respondida evita que a agência escreva por cima do que o próprio dono
       // do negócio já respondeu à mão.
-      const jaExiste = await prisma.googleReview.findUnique({
-        where: { connectionId_externalId: { connectionId: conexao.id, externalId: a.externalId } },
-        select: { id: true },
-      }).catch(() => null);
-      if (jaExiste) continue;
-
       saida.novas++;
       const registro = await prisma.googleReview.create({
         data: {
@@ -157,20 +261,11 @@ export async function cuidarDasAvaliacoes(): Promise<RodadaDeAvaliacoes> {
         continue;
       }
 
-      // ── A TRAVA DE CONSENTIMENTO ───────────────────────────────────────────
-      // A política da API do Business Profile proíbe automatizar resposta a
-      // avaliação "sem o consentimento prévio e específico do usuário"
-      // (docs/plataformas/google/fontes/business-profile-api-politicas.md).
-      // Sem a data registrada, NADA sai sozinho — nem elogio. O rascunho vira
-      // escalada, e o motivo diz exatamente o que falta. Achado da auditoria
-      // de 03/08/2026: até então a única coisa entre este código e a violação
-      // era o 403 do Google — proteção por acidente não é proteção.
-      if (!conexao.autoReplyConsentAt) {
-        await escalar(registro.id, texto, a, conexao,
-          "sem consentimento registrado do cliente para resposta automática — exigência da política do Google");
-        saida.escaladas++;
-        continue;
-      }
+      // ⚠️ A TRAVA DE CONSENTIMENTO NÃO MORA MAIS AQUI — e o lugar era o
+      //    defeito. Ela subiu para o TOPO do laço das conexões (item 2 do
+      //    cabeçalho): conferida neste ponto, ela já tinha deixado a casa
+      //    gastar IA e gravar o nome de quem avaliou. Uma trava que só age
+      //    depois do dano protege o registro, não a pessoa.
 
       const envio = await responderAvaliacao(conexao.id, a.externalId, texto);
       if (!envio.ok) {
@@ -191,8 +286,12 @@ export async function cuidarDasAvaliacoes(): Promise<RodadaDeAvaliacoes> {
       saida.respondidas++;
     }
 
+    // A ÂNCORA DO RITMO, além do marcador de sincronia. É esta data que a
+    // passada seguinte lê em `faltaEsperar` — por isso ela é gravada mesmo
+    // quando a rodada não respondeu nada: o que se está marcando é "este perfil
+    // foi tocado agora", não "houve resposta".
     await prisma.googleConnection.update({
-      where: { id: conexao.id }, data: { reviewsSyncedAt: new Date() },
+      where: { id: conexao.id }, data: { reviewsSyncedAt: agora },
     }).catch(() => { /* best-effort */ });
   }
 
