@@ -2269,3 +2269,28 @@ model HeartbeatDoRelogio {
   ultimaBatida DateTime @default(now())
   alertadoEm   DateTime?
 }
+
+/// V2 INTEGRAÇÃO — o contrato de handoff do 03, como tabela. ADITIVA.
+/// Sem aceite do recebedor, a tarefa NÃO some da fila anterior: fica
+/// "aguardando_recebimento" — é a regra literal da esteira integrada.
+model HandoffV2 {
+  id                 String    @id @default(cuid())
+  deDepartamento     String
+  paraDepartamento   String
+  responsavelEntrega String
+  responsavelRecebe  String?
+  entrada            String
+  saida              String
+  versaoArtefato     String
+  criterios          String
+  prazoProximo       DateTime?
+  bloqueios          String    @default("[]")
+  correlationId      String
+  /// aguardando_recebimento | aceito
+  status             String    @default("aguardando_recebimento")
+  criadoEm           DateTime  @default(now())
+  aceitoEm           DateTime?
+
+  @@index([paraDepartamento, status])
+  @@index([correlationId])
+}

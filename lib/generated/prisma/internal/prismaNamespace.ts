@@ -449,7 +449,8 @@ export const ModelName = {
   OutboxV2: 'OutboxV2',
   FlagV2: 'FlagV2',
   ReconciliacaoV2: 'ReconciliacaoV2',
-  HeartbeatDoRelogio: 'HeartbeatDoRelogio'
+  HeartbeatDoRelogio: 'HeartbeatDoRelogio',
+  HandoffV2: 'HandoffV2'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -465,7 +466,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5353,6 +5354,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    HandoffV2: {
+      payload: Prisma.$HandoffV2Payload<ExtArgs>
+      fields: Prisma.HandoffV2FieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.HandoffV2FindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HandoffV2Payload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.HandoffV2FindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HandoffV2Payload>
+        }
+        findFirst: {
+          args: Prisma.HandoffV2FindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HandoffV2Payload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.HandoffV2FindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HandoffV2Payload>
+        }
+        findMany: {
+          args: Prisma.HandoffV2FindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HandoffV2Payload>[]
+        }
+        create: {
+          args: Prisma.HandoffV2CreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HandoffV2Payload>
+        }
+        createMany: {
+          args: Prisma.HandoffV2CreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.HandoffV2CreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HandoffV2Payload>[]
+        }
+        delete: {
+          args: Prisma.HandoffV2DeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HandoffV2Payload>
+        }
+        update: {
+          args: Prisma.HandoffV2UpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HandoffV2Payload>
+        }
+        deleteMany: {
+          args: Prisma.HandoffV2DeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.HandoffV2UpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.HandoffV2UpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HandoffV2Payload>[]
+        }
+        upsert: {
+          args: Prisma.HandoffV2UpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$HandoffV2Payload>
+        }
+        aggregate: {
+          args: Prisma.HandoffV2AggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateHandoffV2>
+        }
+        groupBy: {
+          args: Prisma.HandoffV2GroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.HandoffV2GroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.HandoffV2CountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.HandoffV2CountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -6584,6 +6659,27 @@ export const HeartbeatDoRelogioScalarFieldEnum = {
 export type HeartbeatDoRelogioScalarFieldEnum = (typeof HeartbeatDoRelogioScalarFieldEnum)[keyof typeof HeartbeatDoRelogioScalarFieldEnum]
 
 
+export const HandoffV2ScalarFieldEnum = {
+  id: 'id',
+  deDepartamento: 'deDepartamento',
+  paraDepartamento: 'paraDepartamento',
+  responsavelEntrega: 'responsavelEntrega',
+  responsavelRecebe: 'responsavelRecebe',
+  entrada: 'entrada',
+  saida: 'saida',
+  versaoArtefato: 'versaoArtefato',
+  criterios: 'criterios',
+  prazoProximo: 'prazoProximo',
+  bloqueios: 'bloqueios',
+  correlationId: 'correlationId',
+  status: 'status',
+  criadoEm: 'criadoEm',
+  aceitoEm: 'aceitoEm'
+} as const
+
+export type HandoffV2ScalarFieldEnum = (typeof HandoffV2ScalarFieldEnum)[keyof typeof HandoffV2ScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -6816,6 +6912,7 @@ export type GlobalOmitConfig = {
   flagV2?: Prisma.FlagV2Omit
   reconciliacaoV2?: Prisma.ReconciliacaoV2Omit
   heartbeatDoRelogio?: Prisma.HeartbeatDoRelogioOmit
+  handoffV2?: Prisma.HandoffV2Omit
 }
 
 /* Types for Logging */

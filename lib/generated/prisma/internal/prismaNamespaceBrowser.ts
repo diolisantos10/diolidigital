@@ -116,7 +116,8 @@ export const ModelName = {
   OutboxV2: 'OutboxV2',
   FlagV2: 'FlagV2',
   ReconciliacaoV2: 'ReconciliacaoV2',
-  HeartbeatDoRelogio: 'HeartbeatDoRelogio'
+  HeartbeatDoRelogio: 'HeartbeatDoRelogio',
+  HandoffV2: 'HandoffV2'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1325,6 +1326,27 @@ export const HeartbeatDoRelogioScalarFieldEnum = {
 } as const
 
 export type HeartbeatDoRelogioScalarFieldEnum = (typeof HeartbeatDoRelogioScalarFieldEnum)[keyof typeof HeartbeatDoRelogioScalarFieldEnum]
+
+
+export const HandoffV2ScalarFieldEnum = {
+  id: 'id',
+  deDepartamento: 'deDepartamento',
+  paraDepartamento: 'paraDepartamento',
+  responsavelEntrega: 'responsavelEntrega',
+  responsavelRecebe: 'responsavelRecebe',
+  entrada: 'entrada',
+  saida: 'saida',
+  versaoArtefato: 'versaoArtefato',
+  criterios: 'criterios',
+  prazoProximo: 'prazoProximo',
+  bloqueios: 'bloqueios',
+  correlationId: 'correlationId',
+  status: 'status',
+  criadoEm: 'criadoEm',
+  aceitoEm: 'aceitoEm'
+} as const
+
+export type HandoffV2ScalarFieldEnum = (typeof HandoffV2ScalarFieldEnum)[keyof typeof HandoffV2ScalarFieldEnum]
 
 
 export const SortOrder = {

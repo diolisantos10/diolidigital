@@ -16,6 +16,12 @@ export const FLAGS_V2 = {
   escrita: "v2_escrita",
   /** Liga as superfícies novas do M4+ (Central, PM Command Center…). */
   superficies: "v2_superficies",
+  /**
+   * Liga a EXECUÇÃO de funções da linha em produção. É a segunda trava do
+   * executor: produção só roda com `spec.ativa === true` E esta flag ligada
+   * no escopo — as duas ao mesmo tempo, nunca uma só.
+   */
+  execucao: "v2_execucao",
 } as const;
 
 export interface LinhaDeFlag {

@@ -542,3 +542,10 @@ export type ReconciliacaoV2 = Prisma.ReconciliacaoV2Model
  * ausência de alerta não é ausência de problema.
  */
 export type HeartbeatDoRelogio = Prisma.HeartbeatDoRelogioModel
+/**
+ * Model HandoffV2
+ * V2 INTEGRAÇÃO — o contrato de handoff do 03, como tabela. ADITIVA.
+ * Sem aceite do recebedor, a tarefa NÃO some da fila anterior: fica
+ * "aguardando_recebimento" — é a regra literal da esteira integrada.
+ */
+export type HandoffV2 = Prisma.HandoffV2Model
