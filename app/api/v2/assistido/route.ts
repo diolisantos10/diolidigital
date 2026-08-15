@@ -11,8 +11,23 @@
 //     execuções e recusas (auditoria).
 //
 // Autenticação: direção logada (mesmo portão do rollout) OU o segredo de
-// operação (`Bearer` com PILOTO_SECRET/CRON_SECRET) — o caminho do operador
-// da sala de controle. Sem segredo configurado, o caminho por token nem abre.
+// operação (`Bearer` com PILOTO_SECRET) — o caminho do operador da sala de
+// controle. Sem segredo configurado, o caminho por token nem abre.
+//
+// ⚠️ TODA ação daqui é recortada por WORKSPACE, e é o ponto desta rota.
+// `clienteId` vem do CORPO da requisição; sem o recorte, quem tem a porta
+// aberta escolhe o cliente de qualquer casa e a consequência é real: `ciclo`
+// roda a cadeia de IA inteira (gasta dinheiro), cria `ClientRequest` e termina
+// em `createApprovalRequest({ clientVisible: true })` — card no portal do
+// cliente. `status` despejava execução, recusa e handoff de todo mundo.
+//
+// 🔴 O SEGREDO DO RELÓGIO NÃO ABRE ESTA PORTA — e isso é conserto, não estilo.
+// Até 15/08/2026 o fallback era `PILOTO_SECRET || CRON_SECRET`: quem tivesse o
+// segredo do cron (que serve para bater relógio e ler censo) ganhava de carona
+// o poder de gastar dinheiro de IA e escrever no portal do cliente. Credencial
+// sem escopo é credencial que cresce sozinha. A trava em si continua
+// fail-closed — sem `PILOTO_SECRET` no ambiente, o caminho por token não abre
+// e sobra a sessão de direção.
 
 import { NextRequest, NextResponse } from "next/server";
 import { exigirAdministracao } from "@/lib/agency/organizacao/guarda";
@@ -38,15 +53,31 @@ interface Corpo {
   clientRequestId?: string;
 }
 
-async function autenticar(request: NextRequest): Promise<{ quem: string } | { erro: NextResponse }> {
+/** Quem entrou e — sempre — de que casa. Nenhuma ação roda sem as duas. */
+interface Autenticado {
+  quem: string;
+  workspaceId: string;
+}
+
+async function autenticar(request: NextRequest): Promise<Autenticado | { erro: NextResponse }> {
   const cabecalho = request.headers.get("authorization") ?? "";
-  const segredo = process.env.PILOTO_SECRET || process.env.CRON_SECRET;
+  // SÓ o segredo do piloto. `CRON_SECRET` foi retirado de propósito: ver o
+  // cabeçalho deste arquivo. Segredo de relógio não abre porta de operação.
+  const segredo = process.env.PILOTO_SECRET;
   if (segredo && cabecalho === `Bearer ${segredo}`) {
-    return { quem: "operacao:sala-de-controle" };
+    // O operador da sala de controle não tem sessão, logo não tem workspace no
+    // JWT: ele opera a CASA — o workspace mais antigo da base, exatamente o que
+    // `ligar` já escolhia. Sem casa aberta, não há o que operar.
+    const casa = await prisma.agencyWorkspace.findFirst({ orderBy: { createdAt: "asc" } });
+    if (!casa) {
+      return { erro: NextResponse.json({ error: "nenhum workspace na base — a casa não abriu ainda" }, { status: 409 }) };
+    }
+    return { quem: "operacao:sala-de-controle", workspaceId: casa.id };
   }
   const guarda = await exigirAdministracao("/agency/pm-command");
   if (guarda.erro) return { erro: guarda.erro };
-  return { quem: `direcao:${guarda.acesso.session.userId}` };
+  // O workspace vem do JWT, NUNCA do corpo da requisição.
+  return { quem: `direcao:${guarda.acesso.session.userId}`, workspaceId: guarda.acesso.session.workspaceId };
 }
 
 function armazemDeFlags(): ArmazemDeFlags {
@@ -77,11 +108,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (corpo.acao === "ligar") {
     const nome = corpo.cliente?.trim();
     if (!nome) return NextResponse.json({ error: "cliente é obrigatório" }, { status: 400 });
-    const workspace = await prisma.agencyWorkspace.findFirst({ orderBy: { createdAt: "asc" } });
-    if (!workspace) return NextResponse.json({ error: "nenhum workspace na base — a casa não abriu ainda" }, { status: 409 });
-    let cliente = await prisma.client.findFirst({ where: { workspaceId: workspace.id, name: nome } });
+    // O cliente nasce na casa de QUEM PEDIU — a mesma que `ciclo` e `status`
+    // usam para recortar. Duas origens de workspace na mesma rota fariam
+    // `ligar` criar a ficha numa casa e `ciclo` procurá-la noutra.
+    const workspaceId = auth.workspaceId;
+    let cliente = await prisma.client.findFirst({ where: { workspaceId, name: nome } });
     if (!cliente) {
-      cliente = await prisma.client.create({ data: { workspaceId: workspace.id, name: nome } });
+      cliente = await prisma.client.create({ data: { workspaceId, name: nome } });
     }
     const resultado = await virarChaveDoPiloto(
       {
@@ -101,7 +134,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     );
     if (!resultado.ok) return NextResponse.json({ error: resultado.motivo }, { status: 400 });
-    return NextResponse.json({ ok: true, clienteId: cliente.id, cliente: cliente.name, workspaceId: workspace.id });
+    return NextResponse.json({ ok: true, clienteId: cliente.id, cliente: cliente.name, workspaceId });
   }
 
   if (corpo.acao === "ciclo") {
@@ -110,7 +143,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!clienteId || !solicitacao) {
       return NextResponse.json({ error: "clienteId e solicitacao são obrigatórios" }, { status: 400 });
     }
-    const cliente = await prisma.client.findUnique({ where: { id: clienteId } });
+    // 🔒 O RECORTE. `clienteId` chega do corpo; a casa vem de quem entrou.
+    // Cliente de outro workspace responde igual a cliente inexistente — de
+    // propósito: mensagem diferente conta a quem tenta que o id existe.
+    const cliente = await prisma.client.findFirst({ where: { id: clienteId, workspaceId: auth.workspaceId } });
     if (!cliente) return NextResponse.json({ error: "cliente não existe — ligue o piloto primeiro" }, { status: 404 });
 
     // A chave TEM que estar virada no escopo do cliente — a cadeia não abre exceção.
@@ -232,10 +268,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   if (corpo.acao === "status") {
-    const chaves = await prisma.flagV2.findMany({ where: { chave: FLAGS_V2.execucao } });
-    const execucoes = await prisma.execucaoV2.findMany({ orderBy: { inicio: "desc" }, take: 20 });
-    const recusas = await prisma.recusaV2.findMany({ orderBy: { em: "desc" }, take: 20 });
-    const handoffs = await prisma.handoffV2.findMany({ orderBy: { criadoEm: "desc" }, take: 20 });
+    // 🔒 O RECORTE DA AUDITORIA. Sem ele, este endpoint era um dump de
+    // execução, recusa e handoff de TODOS os clientes de TODAS as casas —
+    // nome de cliente, função, custo e correlação de quem não é seu.
+    const clientes = await prisma.client.findMany({
+      where: { workspaceId: auth.workspaceId },
+      select: { id: true },
+    });
+    const idsDosClientes = clientes.map((c) => c.id);
+    // Casa sem cliente não tem status — e devolver vazio é mais honesto do que
+    // devolver tudo. (Um `in: []` do Prisma já não casaria nada; o retorno
+    // explícito é para que ninguém dependa desse detalhe.)
+    if (idsDosClientes.length === 0) {
+      return NextResponse.json({ chaves: [], execucoes: [], recusas: [], handoffs: [] });
+    }
+    // `HandoffV2` NÃO tem coluna de cliente, e `ExecucaoV2.clienteId` é nulo no
+    // trabalho interno. O que alcança os dois é a correlação, cujo formato é
+    // `assistido:<clienteId>:<registroId>` (docs/raio-x/README.md).
+    const porCorrelacao = idsDosClientes.map((id) => ({
+      correlationId: { startsWith: `assistido:${id}:` },
+    }));
+    const doWorkspace = { OR: [{ clienteId: { in: idsDosClientes } }, ...porCorrelacao] };
+
+    const chaves = await prisma.flagV2.findMany({
+      where: { chave: FLAGS_V2.execucao, escopo: { in: [...idsDosClientes, auth.workspaceId, "global"] } },
+    });
+    const execucoes = await prisma.execucaoV2.findMany({ where: doWorkspace, orderBy: { inicio: "desc" }, take: 20 });
+    const recusas = await prisma.recusaV2.findMany({ where: doWorkspace, orderBy: { em: "desc" }, take: 20 });
+    const handoffs = await prisma.handoffV2.findMany({
+      where: { OR: porCorrelacao },
+      orderBy: { criadoEm: "desc" },
+      take: 20,
+    });
     return NextResponse.json({
       chaves: chaves.map((c) => ({ escopo: c.escopo, ligada: c.ligada, motivo: c.motivo, decididoPor: c.decididoPor })),
       execucoes: execucoes.map((e) => ({
