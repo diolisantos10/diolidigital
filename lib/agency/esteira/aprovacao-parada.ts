@@ -46,6 +46,17 @@ export const DIAS_ATE_VIRAR_ABANDONO = 3;
 export interface AprovacaoParada {
   id: string;
   departamento: string;
+  /** DE QUEM É O CARD. Sem isto não há a quem endereçar a cobrança — e foi
+   *  exatamente por não carregar o dono que este módulo ficou sem consumidor:
+   *  ele contava a fila e não sabia dizer para qual cliente. */
+  clientId: string | null;
+  clientRequestId: string | null;
+  /** Quando o card foi aberto. Cru, para quem precisa aplicar o prazo do
+   *  contrato (dias ÚTEIS) em vez de dias corridos. */
+  abertoEm: Date;
+  /** A primeira linha da `reviewNote` — o que o cliente vê como assunto. Nulo
+   *  quando o card não tem corpo próprio; nunca inventado. */
+  titulo: string | null;
   /** Dias desde que o card foi aberto. CALCULADO — nunca digitado. */
   diasParado: number;
   /** O prazo do card passou. `false` também quando não há prazo definido —
@@ -96,9 +107,16 @@ export async function aprovacoesParadas(workspaceId: string, agora: Date): Promi
     // coisas são diferentes, e chamar ausência de prazo de prazo estourado
     // seria inventar um compromisso que ninguém assumiu.
     const prazoVencido = c.expiresAt != null && c.expiresAt.getTime() < agora.getTime();
+    const primeiraLinha = (c.reviewNote ?? "").split("\n")[0]?.trim() ?? "";
     return {
       id: c.id,
       departamento: c.department,
+      clientId: c.clientId ?? null,
+      clientRequestId: c.clientRequestId ?? null,
+      abertoEm: c.createdAt,
+      // Vazio vira NULO, nunca string vazia: "" na tela parece título perdido,
+      // e null diz que este card não tem assunto próprio.
+      titulo: primeiraLinha || null,
       diasParado: dias,
       prazoVencido,
       bolaConosco,
