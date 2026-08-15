@@ -29,13 +29,14 @@ flowchart TD
     PM --> BR["Branding"]
     PM --> SM["Social Media"]
     PM --> DS["Design"]
+    PM --> PT["Produto & Tecnologia"]
     PM --> TR["Tráfego Pago"]
     PM --> AN["Analytics"]
     PM --> QA["Qualidade e Compliance"]
     PM --> FI["Financeiro e Administrativo"]
 ```
 
-O organograma representa coordenação operacional, não subordinação técnica. Qualidade pode bloquear entregas; Financeiro pode bloquear contratação ou publicação com custo; Operações pode pausar automações inseguras.
+O organograma representa coordenação operacional, não subordinação técnica. Qualidade pode bloquear entregas; Financeiro pode bloquear contratação ou publicação com custo; Produto & Tecnologia responde pela construção da plataforma; Operações pode pausar automações inseguras.
 
 ## Regra de comunicação
 
@@ -69,4 +70,4 @@ O cliente não coordena departamentos. Um especialista pode participar de reuni�
 | D-05 | Máquina de estados é única para portal e painel interno, mudando apenas a linguagem |
 | D-06 | Correção volta ao responsável; aprendizado volta a Analytics, Estratégia e Branding |
 | D-07 | O novo modelo é migrado por compatibilidade, nunca por exclusão direta de dados |
-
+| D-08 | Design cria comunicação visual; Produto & Tecnologia cria e modifica interfaces, sistemas e produtos digitais |

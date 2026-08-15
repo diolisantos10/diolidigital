@@ -38,11 +38,13 @@ import { areaDaAba } from "@/components/agency/clients/workspace/client-workspac
  *  não monta nenhuma tela deste diretório. */
 export const PAPEIS_INTERNOS: readonly AgencyRole[] = [
   "master",
+  "diretor",
   "project_manager",
   "executivo_comercial",
   "social_staff",
   "design_staff",
   "ads_staff",
+  "tech_staff",
 ] as const;
 
 /**
@@ -55,16 +57,16 @@ export const PAPEIS_INTERNOS: readonly AgencyRole[] = [
 const ESCRITA_POR_AREA: Record<ClientWorkspaceArea, readonly AgencyRole[]> = {
   // Cadastro, solicitações e a conversa com o cliente. O Comercial entra
   // porque intake, proposta e onboarding são dele.
-  relacionamento: ["master", "project_manager", "executivo_comercial"],
-  estrategia:     ["master", "project_manager"],
-  social:         ["master", "project_manager", "social_staff"],
+  relacionamento: ["master", "diretor", "project_manager", "executivo_comercial"],
+  estrategia:     ["master", "diretor", "project_manager"],
+  social:         ["master", "diretor", "project_manager", "social_staff"],
   // Branding e Design se consultam (Brand Hub, Brand Book, moodboard, Creative
   // Review) — mas consultar é leitura, e leitura é de todos. A escrita da
   // marca é do Branding; nesta casa o papel que a carrega é o PM.
-  branding:       ["master", "project_manager", "design_staff"],
-  design:         ["master", "project_manager", "design_staff"],
-  trafego:        ["master", "project_manager", "ads_staff"],
-  operacao:       ["master", "project_manager"],
+  branding:       ["master", "diretor", "project_manager", "design_staff"],
+  design:         ["master", "diretor", "project_manager", "design_staff"],
+  trafego:        ["master", "diretor", "project_manager", "ads_staff"],
+  operacao:       ["master", "diretor", "project_manager"],
   "somente-leitura": [],
 };
 

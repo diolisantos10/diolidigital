@@ -1,5 +1,10 @@
 # Relatório de Prontidão — Homologação da Integração V2
 
+> **Atualização de catálogo — 15/08/2026:** Produto & Tecnologia entrou como o
+> 12º departamento, com sete funções desligadas por padrão. O catálogo atual
+> contém 69 funções. As contagens de 62/372 abaixo preservam a evidência da
+> homologação anterior e não substituem a nova validação estrutural.
+
 > Ordem do CEO (15/08/2026): "inicie imediatamente o rollout técnico de
 > construção e integração da nova arquitetura. Mantenha os 62 agentes
 > desligados para produção. Construa todos os departamentos, handoffs,

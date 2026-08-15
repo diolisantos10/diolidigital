@@ -12,7 +12,7 @@
 <body><main>
   <section class="hero"><span class="eyebrow">Dioli Agency OS · Arquitetura V2</span><h1>Uma agência conectada por handoffs, não por departamentos isolados.</h1><p>O Project Manager coordena; especialistas executam; Qualidade protege; Analytics devolve aprendizado. IA e pessoas ocupam as mesmas funções e seguem as mesmas regras.</p></section>
   <section class="rule"><div class="card">Cliente<br><small>briefa, fornece e decide</small></div><div class="arrow">↔</div><div class="card">Project Manager<br><small>uma voz e dono do fluxo</small></div><div class="arrow">↔</div><div class="card">Departamentos<br><small>executam e devolvem ao PM</small></div></section>
-  <h2>11 departamentos, uma arquitetura</h2>
+  <h2>12 departamentos, uma arquitetura</h2>
   <section class="departments" id="departments"></section>
   <h2>Esteira ponta a ponta</h2>
   <section class="flow" id="flow"></section>
@@ -23,17 +23,17 @@
   <div class="footer">Fonte de verdade: docs/arquitetura-operacional-v2 · Dioli Digital</div>
 <script>
 const departments=[
-["Atendimento e SDR","Capta, qualifica e estrutura a entrada."],["Project Management","Orquestra projeto, handoffs, SLA e cliente."],["Estratégia","Define caminho, público, oferta e objetivos."],["Branding","Constrói, documenta e evolui a marca."],["Social Media","Planeja, produz e opera redes sociais."],["Design e Criativo","Materializa estratégia e marca."],["Tráfego Pago","Opera mídia, tracking, verba e otimização."],["Analytics","Unifica dados e devolve decisões."],["Qualidade","Audita briefing, marca, fatos e risco."],["Financeiro","Protege preço, contrato, cobrança e margem."],["Operações e Sistemas","Mantém integrações, segurança e continuidade."]];
+["Atendimento e SDR","Capta, qualifica e estrutura a entrada."],["Project Management","Orquestra projeto, handoffs, SLA e cliente."],["Estratégia","Define caminho, público, oferta e objetivos."],["Branding","Constrói, documenta e evolui a marca."],["Social Media","Planeja, produz e opera redes sociais."],["Design e Criativo","Materializa estratégia e marca em peças."],["Tráfego Pago","Opera mídia, tracking, verba e otimização."],["Analytics","Unifica dados e devolve decisões."],["Qualidade","Audita briefing, marca, fatos e risco."],["Financeiro","Protege preço, contrato, cobrança e margem."],["Operações e Sistemas","Publica, monitora e recupera a infraestrutura."],["Produto & Tecnologia","Desenha e constrói interfaces, APIs e sistemas."]];
 const steps=[
 {n:"01",t:"Contato e qualificação",o:"Atendimento e SDR",s:"Oportunidade qualificada",d:"A demanda entra, é compreendida e só consome a estrutura se houver aderência.",a:["Prospecção","SDR Conversacional","Qualificação"]},
 {n:"02",t:"Briefing e diagnóstico",o:"SDR + Estratégia + Branding",s:"Briefing estruturado",d:"Lacunas não viram suposição: geram entrevista e pedido de material.",a:["Diagnóstico Inicial","Pesquisa de Mercado","Entrevistador de Marca"]},
 {n:"03",t:"Escopo e proposta",o:"Estratégia + Financeiro",s:"Escopo aceito",d:"Entregáveis, ordem, capacidade, prazo, preço e margem são definidos antes do projeto.",a:["Escopo e Proposta","Precificação e Margem","Contratos"]},
-{n:"04",t:"Direção aprovada",o:"Project Manager",s:"Direção avalizada",d:"O cliente aprova o caminho antes de começar a produção cara.",a:["PM Orquestrador","Estrategista","Brand Architect","Diretor Criativo"]},
-{n:"05",t:"Produção coordenada",o:"Departamentos contratados",s:"Pacote interno completo",d:"Especialistas executam na ordem definida, preservando contexto e dependências.",a:["Branding","Social","Design","Tráfego","Analytics"]},
+{n:"04",t:"Direção aprovada",o:"Project Manager",s:"Direção avalizada",d:"O cliente aprova o caminho antes de começar a produção cara. Se houver interface ou sistema, Produto & Tecnologia recebe uma OS com critérios de aceite.",a:["PM Orquestrador","Estrategista","Brand Architect","Diretor Criativo","Orquestrador de Tecnologia"]},
+{n:"05",t:"Produção coordenada",o:"Departamentos contratados",s:"Pacote interno completo",d:"Especialistas executam na ordem definida. Entrega digital percorre UX/UI → arquitetura → engenharia antes do portão de Qualidade.",a:["Branding","Social","Design","Tráfego","Analytics","Produto & Tecnologia"]},
 {n:"06",t:"Portão de materiais",o:"Área + PM",s:"Liberado ou bloqueado",d:"Falta de arquivo, informação ou credencial bloqueia somente o que depende dela.",a:["Brand Book e Assets","Dependências e SLA","PM Orquestrador"]},
 {n:"07",t:"Qualidade audita",o:"Qualidade",s:"Aprovação interna",d:"Briefing, marca, conteúdo, fatos, técnica e políticas são verificados.",a:["QA Orquestrador","Brand Compliance","Revisor de Fatos","Approval Gate"]},
 {n:"08",t:"Apresentação e decisão",o:"Project Manager",s:"Decisão registrada",d:"O PM apresenta o pacote; o cliente aprova, ajusta, recusa/refaz ou cancela.",a:["PM Orquestrador","Comunicação com Cliente","Approval Gate"]},
-{n:"09",t:"Implementação e ciclo",o:"PM + Analytics + Estratégia",s:"Aprendizado e próximo ciclo",d:"A entrega é implementada, medida e transforma o próximo mês.",a:["Integração de Dados","BI","Insights","Brand Evolution"]}];
+{n:"09",t:"Implementação e ciclo",o:"PM + área responsável",s:"Aprendizado e próximo ciclo",d:"A entrega é implementada e medida. No digital, Operações controla deploy, observabilidade e recuperação.",a:["Produto & Tecnologia","Operações","Integração de Dados","BI","Insights","Brand Evolution"]}];
 document.querySelector('#departments').innerHTML=departments.map((d,i)=>`<article class="department ${i===1?'pm':''}"><span class="pill">${String(i+1).padStart(2,'0')}</span><b>${d[0]}</b><small>${d[1]}</small></article>`).join('');
 const flow=document.querySelector('#flow'),detail=document.querySelector('#detail');
 function select(i){document.querySelectorAll('.step').forEach((e,j)=>e.classList.toggle('active',i===j));const x=steps[i];detail.innerHTML=`<div><span class="pill">Responsável: ${x.o}</span><h3>${x.t}</h3><p>${x.d}</p></div><div><b>Saída obrigatória</b><p>${x.s}</p><b>Agentes envolvidos</b><ul>${x.a.map(a=>`<li>${a}</li>`).join('')}</ul></div>`}

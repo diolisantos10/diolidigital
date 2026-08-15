@@ -23,12 +23,14 @@ describe("podeExecutarFuncao — negar por padrão", () => {
     expect(podeExecutarFuncao(PERFIL_DO_PAPEL.social_staff, "copywriter").permitido).toBe(true);
     expect(podeExecutarFuncao(PERFIL_DO_PAPEL.ads_staff, "campaign-builder").permitido).toBe(true);
     expect(podeExecutarFuncao(PERFIL_DO_PAPEL.executivo_comercial, "conversational-sdr").permitido).toBe(true);
+    expect(podeExecutarFuncao(PERFIL_DO_PAPEL.tech_staff, "frontend-engineer").permitido).toBe(true);
   });
 
   it("staff NÃO executa função de outro departamento — o caso plantado barra", () => {
     expect(podeExecutarFuncao(PERFIL_DO_PAPEL.social_staff, "graphic-designer").permitido).toBe(false);
     expect(podeExecutarFuncao(PERFIL_DO_PAPEL.ads_staff, "billing").permitido).toBe(false);
     expect(podeExecutarFuncao(PERFIL_DO_PAPEL.executivo_comercial, "credentials-and-access").permitido).toBe(false);
+    expect(podeExecutarFuncao(PERFIL_DO_PAPEL.tech_staff, "graphic-designer").permitido).toBe(false);
   });
 
   it("design_staff alcança branding pelo adaptador (brand-hub → branding)", () => {

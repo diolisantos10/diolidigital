@@ -41,9 +41,9 @@ const { ProjectsTab } = await import("@/components/agency/clients/workspace/Proj
 const { render, texto, vistaCheia, permsDe } = await import("./_fixture");
 
 describe("7. TODO papel interno vê a lista de clientes e as doze abas", () => {
-  it("são seis papéis internos — `client` é do portal e não está aqui", () => {
+  it("são oito papéis internos — `client` é do portal e não está aqui", () => {
     expect([...PAPEIS_INTERNOS].sort()).toEqual(
-      ["ads_staff", "design_staff", "executivo_comercial", "master", "project_manager", "social_staff"].sort(),
+      ["ads_staff", "design_staff", "diretor", "executivo_comercial", "master", "project_manager", "social_staff", "tech_staff"].sort(),
     );
   });
 
@@ -85,6 +85,7 @@ describe("8. cada papel só escreve na área autorizada", () => {
     social_staff: ["social"],
     design_staff: ["branding", "design"],
     ads_staff: ["traffic"],
+    tech_staff: [],
   };
 
   for (const role of PAPEIS_INTERNOS) {

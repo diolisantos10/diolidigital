@@ -1,5 +1,9 @@
 # Relatório Final — Arquitetura Operacional V2 construída
 
+> **Atualização de catálogo — 15/08/2026:** este relatório preserva as
+> contagens históricas do fechamento original. O catálogo vigente passou a 12
+> departamentos e 69 funções com a inclusão de Produto & Tecnologia.
+
 > Entrega exigida pela autorização do CEO (15/08/2026): "ao concluir o Marco 7,
 > entregue um relatório final com tudo o que foi construído, testes executados,
 > migrações, divergências corrigidas, riscos remanescentes, rollback e
