@@ -186,6 +186,32 @@ describe('"analisando" tem prazo — não existe estado eterno', () => {
     expect(m!.detalhe).toMatch(/não precisa reenviar/i);
   });
 
+  // ── ACHADO APERTANDO O BOTÃO (15/08/2026) ────────────────────────────────
+  //
+  // Subi um PDF de teste no portal com a chave de IA ausente. O que apareceu na
+  // tela DO CLIENTE, ao lado do brand book dele:
+  //
+  //   "Nenhuma chave Claude conectada. Configure em Integrações."
+  //
+  // Dois defeitos numa frase. Manda o dono do negócio fazer o que ele não tem
+  // como fazer (Integrações é tela da agência), e deixa ele concluir que o
+  // ARQUIVO deu problema — quando o arquivo está guardado e inteiro.
+  it("o cliente NUNCA lê o recado técnico da equipe", () => {
+    const [m] = montarMateriaisDaMarca(
+      [linha({ id: "1" })],
+      [{
+        materialId: "1", status: "erro", atualizadoEm: agora,
+        erro: "Nenhuma chave Claude conectada. Configure em Integrações.",
+      }],
+      agora,
+    );
+    expect(m!.estado).toBe("erro");
+    expect(m!.detalhe, "o recado da equipe vazou para a tela do cliente").not.toMatch(/Claude|Integrações|HTTP|timeout/i);
+    // E a primeira coisa que ele lê é que o arquivo dele está a salvo.
+    expect(m!.detalhe).toMatch(/guardado/i);
+    expect(m!.detalhe).toMatch(/não precisa reenviar/i);
+  });
+
   it("os cinco estados do ciclo aparecem como o CEO pediu", () => {
     const casos: Array<[string, string]> = [
       ["analisando", "analisando"],

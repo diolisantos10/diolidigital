@@ -131,6 +131,18 @@ export const PRAZO_DA_ANALISE_MS = 10 * 60_000;
 export const RECADO_DA_ANALISE_TRAVADA =
   "A leitura do documento não terminou. Seu arquivo está guardado e a equipe vai tentar de novo — não precisa reenviar.";
 
+/**
+ * O que o CLIENTE lê quando a leitura automática falha.
+ *
+ * Fixo de propósito: o motivo real ("chave sem crédito", "timeout", "HTTP 502")
+ * é recado de equipe. Repassá-lo ao dono do negócio manda ele resolver o que
+ * não é dele e sugere que o arquivo se perdeu — as duas coisas erradas.
+ *
+ * A primeira frase é a que importa e vem primeiro: **o arquivo está guardado.**
+ */
+export const RECADO_DA_LEITURA_QUE_FALHOU =
+  "Seu arquivo está guardado com a equipe. A leitura automática não funcionou desta vez — alguém da equipe vai olhar. Você não precisa reenviar.";
+
 function emIso(v: Date | string): string {
   return v instanceof Date ? v.toISOString() : new Date(v).toISOString();
 }
@@ -239,7 +251,20 @@ function estadoDoMaterial(
         detalhe: "O que este documento trouxe já está na sua ficha de marca, com a origem registrada.",
       };
     case "erro":
-      return { estado: "erro", detalhe: analise.erro ?? "Não consegui ler este documento. Seu arquivo está guardado." };
+      // ── O RECADO DO CLIENTE NÃO É O RECADO DA EQUIPE (15/08/2026) ────────
+      //
+      // Achado apertando o botão: com a chave de IA ausente, o motivo gravado é
+      // "Nenhuma chave Claude conectada. Configure em Integrações." — e isso ia
+      // parar na tela do CLIENTE, ao lado do brand book dele.
+      //
+      // São dois defeitos numa frase só. Ela manda o dono do negócio fazer uma
+      // coisa que ele não tem como fazer (Integrações é tela da agência), e ela
+      // deixa ele achar que o ARQUIVO deu problema — quando o arquivo está
+      // guardado e inteiro; o que falhou foi a leitura automática.
+      //
+      // O motivo técnico não se perde: continua no `canvasJson` do artefato,
+      // que é onde a equipe olha. O que muda é quem lê o quê.
+      return { estado: "erro", detalhe: RECADO_DA_LEITURA_QUE_FALHOU };
     default:
       return { estado: "recebido", detalhe: null };
   }
