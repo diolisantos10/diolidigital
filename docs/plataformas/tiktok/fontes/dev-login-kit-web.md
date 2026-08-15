@@ -1,7 +1,7 @@
 ---
 titulo: "Login Kit for Web — fluxo de autorização no servidor (redirect, code, state)"
 url: https://developers.tiktok.com/doc/login-kit-web
-capturado_em: 2026-08-14
+capturado_em: 2026-08-15
 hash: b7f55824ce17072d
 ---
 

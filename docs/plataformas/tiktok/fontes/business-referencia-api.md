@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — API Reference (índice completo dos endpoints v1.3)"
 url: https://business-api.tiktok.com/portal/docs/api-reference/v1.3
-capturado_em: 2026-08-14
-hash: 5d4b43db3b98bd79
+capturado_em: 2026-08-15
+hash: bb469dcb7851fc62
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -68,6 +68,7 @@ Identity
 Images
 Leads
 Media Mix Modeling
+MCP Authorization
 Mentions
 Music
 Negative Keywords
@@ -101,10 +102,15 @@ List of available endpoints
 API Reference
 Request URL format
 
-Request URLs are in the format of <base_url>/<api_version>/<endpoint>.
+For non-MCP endpoints, request URLs are in the format of <base_url>/<api_version>/<endpoint>.
 
 base_url: https://business-api.tiktok.com/open_api
 api_version: The current version is "v1.3".
+endpoint: Endpoints that are shown in the table below and referred to in our API docs.
+
+For MCP endpoints, request URLs are in the format of <base_url>/<endpoint>.
+
+base_url: https://business-api.tiktok.com
 endpoint: Endpoints that are shown in the table below and referred to in our API docs.
 List of available endpoints
 Category	Endpoint	Description	Scope of permission
@@ -3389,6 +3395,78 @@ Reporting > MMM Data Report
 Get the MMM data request history.
 	
 Reporting > MMM Data Report
+
+MCP Authorization
+	
+-
+	
+-
+	
+-
+
+-
+	
+/open_mcp/{server}/oauth/.well-known/openid-configuration/
+	
+Get authorization server metadata.
+	
+N/A
+
+-
+	
+/.well-known/oauth-protected-resource/open_mcp/{server}/
+	
+Discover authorization servers.
+	
+N/A
+
+-
+	
+/open_mcp/{server}/oauth/register/
+	
+Register a client application.
+	
+N/A
+
+-
+	
+/portal/mcp-tt4b-authorize/
+	
+Request user authorization.
+	
+N/A
+
+-
+	
+/open_mcp/{server}/oauth/token/
+	
+Exchange an MCP authorization code for tokens.
+	
+N/A
+
+-
+	
+/open_mcp/{server}/oauth/token/
+	
+Refresh an MCP access token.
+	
+N/A
+
+-
+	
+/open_mcp/{server}/oauth/revoke/
+	
+Revoke an MCP token.
+	
+N/A
+
+-
+	
+/open_mcp/{server}/
+	
+Use MCP tools.
+	
+N/A
 
 Mentions
 	

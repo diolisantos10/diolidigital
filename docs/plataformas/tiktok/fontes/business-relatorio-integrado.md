@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /report/integrated/get/ (relatórios: dimensões, métricas, filtros)"
 url: https://business-api.tiktok.com/portal/docs?id=1740302848100353
-capturado_em: 2026-08-14
-hash: ec531537737dd47f
+capturado_em: 2026-08-15
+hash: 7a2e611bb053efb4
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -68,6 +68,7 @@ Identity
 Images
 Leads
 Media Mix Modeling
+MCP Authorization
 Mentions
 Music
 Negative Keywords

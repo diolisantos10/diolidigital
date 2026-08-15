@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — estratégias de lance e orçamento"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/bidding/overview
-capturado_em: 2026-08-14
+capturado_em: 2026-08-15
 hash: 9b1f732d596f8e27
 ---
 

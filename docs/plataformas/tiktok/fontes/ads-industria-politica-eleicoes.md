@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok Advertising Policies — Politics, Governments, and Elections"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-politics-government-and-elections
-capturado_em: 2026-08-14
+capturado_em: 2026-08-15
 hash: 23c90a71108882a4
 ---
 

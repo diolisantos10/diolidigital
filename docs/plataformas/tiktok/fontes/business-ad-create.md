@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /ad/create/ (criativo do anúncio: vídeo, texto, CTA, identidade)"
 url: https://business-api.tiktok.com/portal/docs?id=1739953377508354
-capturado_em: 2026-08-14
-hash: 032005a89ec6b792
+capturado_em: 2026-08-15
+hash: 38e9ca9cd6769ff3
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -72,6 +72,7 @@ Identity
 Images
 Leads
 Media Mix Modeling
+MCP Authorization
 Mentions
 Music
 Negative Keywords

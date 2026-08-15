@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /identity/music/authorization/ (autorização de música em anúncio)"
 url: https://business-api.tiktok.com/portal/docs?id=1740218495869954
-capturado_em: 2026-08-14
-hash: 06b45d123a365a85
+capturado_em: 2026-08-15
+hash: 2aaeca21140a56ed
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -76,6 +76,7 @@ Get info about TikTok posts
 Images
 Leads
 Media Mix Modeling
+MCP Authorization
 Mentions
 Music
 Negative Keywords
