@@ -721,6 +721,23 @@ model BrandBrain {
   referencesJson    String  @default("{}")
   /// JSON: tokens invariáveis expressos como VALORES, nunca como adjetivos.
   formalTokensJson  String  @default("{}")
+  /// JSON: os RÓTULOS DE BENEFÍCIO que esta marca autoriza na ARTE — os chips
+  /// ("Vagas conferidas", "Perto de casa", "Alto Tietê").
+  ///
+  /// Existe desde 15/08/2026, quando o molde ganhou o slot de chip e a trava
+  /// ganhou a forma de rótulo de benefício. Por que é uma coluna e não texto
+  /// derivado: chip é o que a marca AFIRMA de si dentro do pixel, e pixel
+  /// publicado não se corrige — se corrige apagando o post. Quem declara isso é
+  /// o dono da marca, uma vez, e não o modelo a cada peça.
+  ///
+  /// Vazio é o estado normal e honesto: peça sem chip é a peça de antes de
+  /// 15/08. Nenhum cliente ganha chip por padrão — e a faixa de chamada só é
+  /// emitida para quem declarou rótulos aqui, porque é este campo que registra
+  /// que a marca quer este estilo de peça.
+  ///
+  /// Cada rótulo ainda passa por `travaDeRotuloDeBeneficio` antes de virar
+  /// pixel: preencher aqui é declarar, não é liberar.
+  artLabelsJson  String  @default("[]")
   /// O que a marca não pode afirmar sobre si AINDA QUE SEJA VERDADE
   /// (superlativo, garantia, comparação com terceiro). É a fronteira exata com
   /// o `qualidade`: ele julga se é verdade, isto julga se pode ser dito.

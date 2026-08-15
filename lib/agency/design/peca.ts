@@ -19,7 +19,8 @@ import { FORMATOS, montarHtmlDaPeca, textosDaPeca, type FormatoDaPeca, type Mold
 import type { Composicao } from "./repertorio";
 import { renderizarHtml, type MotivoDeFalhaDeRender } from "./renderizar";
 import {
-  travaDeTextoNaArte, travaDeRotuloNaArte, FORMA_DO_SELO, FORMA_DA_ASSINATURA,
+  travaDeTextoNaArte, travaDeRotuloNaArte, travaDeRotuloDeBeneficio, travaDeChamadaNaArte,
+  FORMA_DO_SELO, FORMA_DA_ASSINATURA,
   type MotivoDaTrava,
 } from "./trava-de-texto";
 
@@ -39,6 +40,24 @@ export interface PedidoDePeca {
   /** O conteúdo JÁ AUDITADO de onde o texto tem de ser trecho literal
    *  (legenda do post, ou a cena descrita do carrossel). */
   fonteAuditada: string;
+  /**
+   * Os CHIPS de benefício pretendidos. Cada um passa por
+   * `travaDeRotuloDeBeneficio`, cujo lastro é a FICHA DE MARCA — não a
+   * `fonteAuditada`. São duas fontes diferentes de propósito: chip afirma o que
+   * a marca É, título afirma o que este post diz.
+   */
+  chips?: string[] | null;
+  /**
+   * A ficha de marca do cliente, montada NO SERVIDOR (`fichaParaRotulo`).
+   *
+   * Vazia = nenhum chip é pintado. É a leitura conservadora, e é declarada:
+   * sem a ficha, nada distingue um benefício que o cliente declarou de um
+   * adjetivo que a agência inventou em nome dele.
+   */
+  fichaDaMarca?: string | null;
+  /** A FAIXA DE CHAMADA do pé. Passa por `travaDeChamadaNaArte`, que exige
+   *  verbo da lista da casa + o nome desta marca. */
+  chamada?: string | null;
   /** A composição desta tela — decidida pelo cérebro criativo da marca a partir
    *  do PAPEL que a tela cumpre na história (`repertorio.ts`). Ausente =
    *  `foto-cheia`, o layout histórico. */
@@ -46,7 +65,7 @@ export interface PedidoDePeca {
 }
 
 export interface TextoRecusado {
-  papel: "titulo" | "apoio" | "selo" | "assinatura";
+  papel: "titulo" | "apoio" | "selo" | "assinatura" | "chip" | "chamada";
   motivo: MotivoDaTrava;
   detalhe: string;
 }
@@ -123,6 +142,36 @@ export async function montarPeca(p: PedidoDePeca): Promise<ResultadoDaPeca> {
   const selo = passarRotulo("selo", p.selo, FORMA_DO_SELO);
   const assinatura = passarRotulo("assinatura", p.assinatura, FORMA_DA_ASSINATURA);
 
+  // ── CHIPS E FAIXA: A OUTRA METADE DO SLOT (15/08/2026) ────────────────────
+  //
+  // A ordem é obrigatória e está escrita porque ela é o risco: se a fábrica
+  // ganhasse o slot SEM estas duas travas, o portão passaria a barrar
+  // exatamente a peça que se quer produzir — e é assim que alguém desliga o
+  // portão. As duas metades entram juntas.
+  //
+  // Chip reprovado NÃO derruba a peça: ela sai sem aquele chip, e o motivo vai
+  // em `textoRecusado`. É a mesma regra do título desde sempre.
+  const chips: string[] = [];
+  for (const bruto of p.chips ?? []) {
+    const t = (bruto ?? "").trim();
+    if (!t) continue;
+    const v = travaDeRotuloDeBeneficio(t, p.fichaDaMarca ?? "");
+    if (v.ok) chips.push(v.texto);
+    else recusados.push({ papel: "chip", motivo: v.motivo, detalhe: v.detalhe });
+  }
+
+  const chamada = (() => {
+    const t = (p.chamada ?? "").trim();
+    if (!t) return null;
+    // A faixa se confere contra o NOME DA MARCA — e o nome é `p.assinatura`,
+    // que é o mesmo campo que assina o rodapé. Uma segunda fonte de "como esta
+    // marca se chama" divergiria da primeira no primeiro cliente renomeado.
+    const v = travaDeChamadaNaArte(t, p.assinatura ?? "");
+    if (v.ok) return v.texto;
+    recusados.push({ papel: "chamada", motivo: v.motivo, detalhe: v.detalhe });
+    return null;
+  })();
+
   const mime = p.fundoMime ?? "image/png";
   const fundo =
     p.fundoBytes && p.fundoBytes.length > 0 && MIMES_DE_FUNDO.has(mime)
@@ -134,6 +183,8 @@ export async function montarPeca(p: PedidoDePeca): Promise<ResultadoDaPeca> {
     titulo: titulo ?? "",
     apoio,
     selo,
+    chips,
+    chamada,
     assinatura,
     indice: p.indice ?? null,
     fundo,

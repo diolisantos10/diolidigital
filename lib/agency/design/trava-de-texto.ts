@@ -616,6 +616,19 @@ export function classeProibida(texto: string): string | null {
 
 export type MotivoDaTrava =
   | "sem_lastro_no_conteudo_auditado"
+  /**
+   * O rótulo de benefício não é trecho literal da FICHA DE MARCA do cliente.
+   *
+   * Motivo próprio, e não `sem_lastro_no_conteudo_auditado`, porque a fonte é
+   * outra: o chip de benefício não sai da legenda daquele post — ele afirma o
+   * que a marca É, e isso o cliente declarou uma vez, na ficha. Confundir as
+   * duas fontes numa mensagem só mandaria quem conserta procurar no lugar
+   * errado. Ver `travaDeRotuloDeBeneficio`.
+   */
+  | "sem_lastro_na_ficha_de_marca"
+  /** A chamada não é uma chamada: o verbo não é da lista da casa, ou o que vem
+   *  depois dele não é o nome da marca. Ver `travaDeChamadaNaArte`. */
+  | "chamada_fora_de_forma"
   | "classe_de_fato_proibida"
   | "rotulo_fora_de_forma"
   | "vazio";
@@ -678,10 +691,18 @@ export interface FormaDeRotulo {
 export const FORMA_DO_SELO: FormaDeRotulo = { maxCaracteres: 28, maxPalavras: 3, permiteDigito: false };
 export const FORMA_DA_ASSINATURA: FormaDeRotulo = { maxCaracteres: 40, maxPalavras: 6, permiteDigito: true };
 
-export function travaDeRotuloNaArte(texto: string, forma: FormaDeRotulo): VereditoDaTrava {
-  const t = higienizar(texto).replace(/\s+/g, " ").trim();
-  if (!t) return { ok: false, motivo: "vazio", detalhe: "nada a pintar" };
-
+/**
+ * A FORMA, conferida — o pedaço que `travaDeRotuloNaArte`,
+ * `travaDeRotuloDeBeneficio` e `travaDeChamadaNaArte` compartilham.
+ *
+ * Extraído em 15/08/2026, quando o chip de benefício e a faixa de chamada
+ * ganharam régua própria. Uma segunda cópia de "isto ainda é um rótulo?"
+ * começaria idêntica e divergiria no primeiro ajuste — e é assim que duas
+ * travas passam a discordar sobre a mesma peça.
+ *
+ * Devolve `null` quando a forma está boa.
+ */
+function conferirForma(t: string, forma: FormaDeRotulo): VereditoDaTrava | null {
   if (t.length > forma.maxCaracteres) {
     return {
       ok: false,
@@ -710,11 +731,193 @@ export function travaDeRotuloNaArte(texto: string, forma: FormaDeRotulo): Veredi
       detalhe: "rótulo com caractere que não é de rótulo (número, símbolo, pontuação de frase ou letra de outro alfabeto)",
     };
   }
+  return null;
+}
+
+export function travaDeRotuloNaArte(texto: string, forma: FormaDeRotulo): VereditoDaTrava {
+  const t = higienizar(texto).replace(/\s+/g, " ").trim();
+  if (!t) return { ok: false, motivo: "vazio", detalhe: "nada a pintar" };
+
+  const forada = conferirForma(t, forma);
+  if (forada) return forada;
 
   const classe = classeProibida(t);
   if (classe) return { ok: false, motivo: "classe_de_fato_proibida", detalhe: DETALHE_DE_CLASSE(classe) };
 
   return { ok: true, texto: t };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// O RÓTULO DE BENEFÍCIO — a forma que a fábrica não tinha (15/08/2026)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ── O PROBLEMA, MEDIDO ──────────────────────────────────────────────────────
+//
+// As peças que o CEO produziu à mão para o CityJobs têm TRÊS CHIPS com ícone
+// ("Vagas conferidas", "Perto de casa", "Alto Tietê") e uma FAIXA DE CHAMADA
+// ("SIGA O CITY JOBS"). Medido contra legenda auditada real, `travaDeTextoNaArte`
+// reprovava **6 de 8 chips e 3 de 4 chamadas** desse estilo — e não por defeito
+// da trava: por natureza. Ela exige TRECHO LITERAL DA LEGENDA, e chip não é
+// trecho de legenda. Chip é RÓTULO: ele afirma o que a marca É, não o que
+// aquele post diz.
+//
+// ── A SAÍDA É A MESMA QUE A CASA JÁ USOU UMA VEZ ────────────────────────────
+//
+// Quando o SELO (o pilar) teve o mesmo problema, a resposta não foi afrouxar a
+// trava: foi dar ao selo uma FORMA PRÓPRIA (`travaDeRotuloNaArte`,
+// `FORMA_DO_SELO`). Aqui é a mesma jogada com a peça que faltava: forma própria
+// **mais fonte de lastro própria**. O chip precisa ter lastro — só que na FICHA
+// DE MARCA do cliente (`BrandBrain.purposeAndPromise`, tagline, léxico
+// obrigatório), que é onde ele declarou o que a marca entrega.
+//
+// ⚠️ **A ORDEM É OBRIGATÓRIA e está escrita aqui de propósito:** se a fábrica
+// ganhar chip e faixa SEM esta trava, o portão passa a barrar exatamente a peça
+// que se quer produzir — e é assim que alguém desliga o portão. As duas metades
+// entram juntas ou nenhuma entra.
+//
+// ── O QUE **NÃO** FOI AFROUXADO, e é a metade que importa ───────────────────
+//
+// As classes proibidas continuam TODAS valendo. Medido, com o texto real:
+//
+//   • "Sem taxa"        → classe de FATO ("promessa comercial"). Continua fora
+//     do pixel. É promessa comercial: se ela mudar, corrigir significa APAGAR o
+//     post publicado. Fica na legenda, onde o piso de verdade a confere.
+//   • "100% gratuito"   → "percentual" + "superlativo não sustentável".
+//     Continua fora.
+//   • "Vagas conferidas", "Perto de casa", "Alto Tietê", "Cadastro rápido" →
+//     nenhuma classe pega. Elas eram barradas SÓ por falta de lastro na
+//     legenda — e é exatamente essa a fonte errada.
+//
+// Ou seja: o que destrava o chip é a FONTE DO LASTRO, nunca a lista de
+// proibições. Nada saiu dela.
+
+/** Chip de benefício: cabe numa pílula, ao lado de outras duas. */
+export const FORMA_DO_BENEFICIO: FormaDeRotulo = { maxCaracteres: 24, maxPalavras: 3, permiteDigito: false };
+
+/**
+ * O rótulo de benefício — chip.
+ *
+ * `fichaDaMarca` é o que o CLIENTE declarou sobre a própria marca, montado pelo
+ * servidor (`fichaParaRotulo`), nunca por quem chama. Ficha vazia REPROVA: sem
+ * ela, nada distingue "Vagas conferidas" de um adjetivo que a agência inventou
+ * — e inventar benefício em nome do cliente é o dano que esta trava existe para
+ * impedir.
+ */
+export function travaDeRotuloDeBeneficio(texto: string, fichaDaMarca: string): VereditoDaTrava {
+  const t = higienizar(texto).replace(/\s+/g, " ").trim();
+  if (!t) return { ok: false, motivo: "vazio", detalhe: "nada a pintar" };
+
+  const forada = conferirForma(t, FORMA_DO_BENEFICIO);
+  if (forada) return forada;
+
+  // As classes vêm ANTES do lastro de propósito: uma ficha de marca que
+  // contivesse "100% gratuito" não pode servir de licença para pintá-lo.
+  // O que o cliente declarou é a fonte do lastro, não uma exceção às regras.
+  const classe = classeProibida(t);
+  if (classe) return { ok: false, motivo: "classe_de_fato_proibida", detalhe: DETALHE_DE_CLASSE(classe) };
+
+  if (!temLastroLiteral(t, fichaDaMarca)) {
+    return {
+      ok: false,
+      motivo: "sem_lastro_na_ficha_de_marca",
+      detalhe:
+        `"${t}" não é trecho literal da ficha de marca deste cliente. Chip de benefício afirma o que a MARCA entrega, ` +
+        "e quem declara isso é o cliente (promessa, tagline e léxico obrigatório do BrandBrain) — não a agência, " +
+        "e não a legenda deste post.",
+    };
+  }
+
+  return { ok: true, texto: t };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A FAIXA DE CHAMADA — texto DERIVADO, não texto escrito
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// A faixa de baixo ("SIGA O CITY JOBS") não pede lastro em lugar nenhum, porque
+// ela não AFIRMA nada sobre o negócio: é um pedido de ação. O risco dela é
+// outro — é virar espaço livre onde alguém escreve promessa em caixa alta no
+// rodapé de 60 peças por mês.
+//
+// A resposta é não deixá-la ser texto livre. A chamada tem de ser
+// **verbo da casa + nome da marca**, e o verbo sai de uma lista fechada de
+// verbos que não prometem coisa nenhuma. Nada aqui é autoria: é montagem.
+
+/** Os verbos que a casa aceita numa faixa de chamada. Nenhum deles promete
+ *  resultado — todos pedem uma ação que a pessoa executa no aplicativo. */
+export const VERBOS_DE_CHAMADA = [
+  "siga", "acompanhe", "salve", "compartilhe", "marque", "envie", "veja",
+] as const;
+
+/** A faixa cabe numa linha do pé da peça, em caixa alta. */
+export const FORMA_DA_CHAMADA: FormaDeRotulo = { maxCaracteres: 32, maxPalavras: 5, permiteDigito: false };
+
+/** Artigos que separam o verbo do nome. Removidos antes de conferir o lastro —
+ *  "SIGA O CITY JOBS" e "SIGA CITY JOBS" são a mesma chamada. */
+const ARTIGOS = new Set(["o", "a", "os", "as"]);
+
+/**
+ * A chamada é uma chamada?
+ *
+ * `nomeDaMarca` é a assinatura do cliente, lida do banco. O que vem depois do
+ * verbo tem de ser ele — comparado sem espaços, porque "City Jobs" e "CityJobs"
+ * são a mesma marca escrita de dois jeitos, e nenhum dos dois é uma afirmação.
+ */
+export function travaDeChamadaNaArte(texto: string, nomeDaMarca: string): VereditoDaTrava {
+  const t = higienizar(texto).replace(/\s+/g, " ").trim();
+  if (!t) return { ok: false, motivo: "vazio", detalhe: "nada a pintar" };
+
+  const forada = conferirForma(t, FORMA_DA_CHAMADA);
+  if (forada) return forada;
+
+  const classe = classeProibida(t);
+  if (classe) return { ok: false, motivo: "classe_de_fato_proibida", detalhe: DETALHE_DE_CLASSE(classe) };
+
+  const palavras = normalizar(t).split(" ").filter(Boolean);
+  const verbo = palavras[0] ?? "";
+  if (!(VERBOS_DE_CHAMADA as readonly string[]).includes(verbo)) {
+    return {
+      ok: false,
+      motivo: "chamada_fora_de_forma",
+      detalhe:
+        `a faixa começa com "${verbo || "(nada)"}", que não é um verbo de chamada da casa. ` +
+        `Aceitos: ${VERBOS_DE_CHAMADA.join(", ")}. A faixa do pé não é espaço livre — é pedido de ação, e ` +
+        "espaço livre em 60 peças por mês vira promessa em caixa alta no rodapé.",
+    };
+  }
+
+  const resto = palavras.slice(1).filter((p) => !ARTIGOS.has(p) && p !== "no" && p !== "na");
+  // Sem espaço nenhum dos dois lados: "City Jobs" e "CityJobs" são a mesma
+  // marca escrita de dois jeitos, e nenhum dos dois afirma coisa alguma.
+  // `desespacar` NÃO serve aqui — ele só colapsa corridas de letra solta
+  // ("G R A T I S"), e "city jobs" não é isso.
+  const semEspaco = (x: string) => x.replace(/\s+/g, "");
+  const marca = semEspaco(normalizar(nomeDaMarca));
+  if (!marca) {
+    return {
+      ok: false,
+      motivo: "chamada_fora_de_forma",
+      detalhe: "este cliente não tem nome de marca gravado — sem ele, não há como conferir o que a faixa manda seguir.",
+    };
+  }
+  if (semEspaco(resto.join(" ")) !== marca) {
+    return {
+      ok: false,
+      motivo: "chamada_fora_de_forma",
+      detalhe:
+        `depois do verbo a faixa diz "${resto.join(" ") || "(nada)"}", e o esperado é o nome da marca ("${nomeDaMarca.trim()}"). ` +
+        "A faixa é montada, não escrita: verbo da casa + nome do cliente, e nada mais.",
+    };
+  }
+
+  return { ok: true, texto: t };
+}
+
+/** A faixa padrão desta marca — montada, e por isso sempre aprovada pela própria
+ *  trava. Existe para que ninguém precise escrever a chamada à mão. */
+export function chamadaDaMarca(nomeDaMarca: string): string {
+  const n = higienizar(nomeDaMarca).replace(/\s+/g, " ").trim();
+  return n ? `Siga o ${n}` : "";
 }
 
 /**

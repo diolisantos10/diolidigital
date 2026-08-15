@@ -48,7 +48,7 @@ import { montarPeca } from "@/lib/agency/design/peca";
 import {
   renderizadorDisponivel, MIME_DA_PECA_RENDERIZADA, type MotivoDeFalhaDeRender,
 } from "@/lib/agency/design/renderizar";
-import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
+import { tituloDaFonte, chamadaDaMarca } from "@/lib/agency/design/trava-de-texto";
 // O PORTÃO DE PIXEL. Ficou sete dias em `lib/` sem um único chamador — este é
 // o chamador. Ver `portao-do-fundo.ts` para por que ele mede o fundo CRU.
 import { conferirFundoDaPeca, motivoDoFundoEmUmaLinha } from "@/lib/agency/design/portao-do-fundo";
@@ -509,6 +509,19 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       assinatura: marca.nome,
       indice: null,
       composicao: escolhaDaComposicao.composicao,
+      // ── OS CHIPS E A FAIXA (15/08/2026) ───────────────────────────────────
+      //
+      // A peça que o CEO produziu à mão tem três chips e uma faixa de chamada;
+      // a fábrica não tinha onde encaixar nenhum dos dois. Agora tem — e com a
+      // trava junto, na mesma passada, porque slot sem trava faria o portão
+      // barrar exatamente a peça que se quer produzir.
+      //
+      // A FAIXA só sai para quem DECLAROU rótulos. Não é economia de código: é
+      // a regra de que nenhuma peça muda de cara sem alguém pedir. Preencher
+      // `BrandBrain.artLabelsJson` é o pedido.
+      chips: marca.rotulos,
+      fichaDaMarca: marca.ficha,
+      chamada: marca.rotulos.length > 0 ? chamadaDaMarca(marca.nome) : null,
       // O que aconteceu com o material do cliente — a foto que ENTROU e por
       // quê, ou o que havia e por que nada entrou. Sem isto, "a peça saiu
       // igual" continua sendo invisível de fora.
@@ -646,6 +659,27 @@ interface MarcaDaPeca {
   /** AS FOTOS REAIS que o cliente deu, já autorizadas pela trava do Drive.
    *  Vazio = ele não deu nenhuma, e vazio NUNCA vira "invente". */
   fotosReais: FotoCandidata[];
+  /**
+   * OS RÓTULOS DE BENEFÍCIO que esta marca declarou para a ARTE — os chips.
+   *
+   * Lidos de `BrandBrain.artLabelsJson`, que o dono da marca preenche uma vez.
+   * Vazio é o estado normal e honesto: a peça sai como saía antes de 15/08.
+   * Nenhum chip é inventado pela agência — e cada um ainda passa por
+   * `travaDeRotuloDeBeneficio` antes de virar pixel.
+   */
+  rotulos: string[];
+  /**
+   * A FICHA DE MARCA em texto, montada NO SERVIDOR — o lastro dos chips.
+   *
+   * É a metade que faltava para o chip existir sem mentir: `travaDeTextoNaArte`
+   * exige trecho literal da LEGENDA, e chip não é trecho de legenda. Ele afirma
+   * o que a marca É, e quem declarou isso foi o cliente, na ficha (promessa,
+   * tagline, posicionamento, valores e léxico).
+   *
+   * ⚠️ Montada aqui, a partir do banco. Nunca recebida de quem chama — é a
+   * mesma regra da verdade do cliente: leitura de servidor, não parâmetro.
+   */
+  ficha: string;
 }
 
 /**
@@ -707,7 +741,7 @@ async function lerMaterialReal(clientId: string | null): Promise<{
 
 export async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
   const vazio: MarcaDaPeca = {
-    nome: "", segmento: "", cores: [], tom: "",
+    nome: "", segmento: "", cores: [], tom: "", rotulos: [], ficha: "",
     // Sem cliente não há logo e não há foto — e o molde declara a falta do logo
     // do mesmo jeito, porque a peça REALMENTE sai sem ele.
     molde: moldeComLogo(moldeDoCliente(null), null),
@@ -749,7 +783,54 @@ export async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
     // declarado; emprestar o repertório de um cliente a outro seria dar a
     // identidade de um a outro.
     cerebro: cerebroDaMarca(c.name),
+    rotulos: rotulosDeclarados(b?.artLabelsJson),
+    ficha: fichaParaRotulo(b ?? null),
   };
+}
+
+/** Os rótulos que a marca autorizou na arte. JSON quebrado devolve lista vazia:
+ *  campo ilegível é campo ausente, e ausente NUNCA vira "pinte o que achar". */
+function rotulosDeclarados(bruto: string | null | undefined): string[] {
+  try {
+    const v = JSON.parse(bruto ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && !!x.trim()).slice(0, 4) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * A FICHA DE MARCA em texto — o lastro do chip de benefício.
+ *
+ * Junta o que o cliente DECLAROU sobre a própria marca. Não é resumo nem
+ * interpretação: é concatenação, porque `temLastroLiteral` compara substring da
+ * forma normalizada, e qualquer reescrita quebraria o lastro que ela procura.
+ *
+ * Os `artLabelsJson` entram na ficha de propósito — declarar o rótulo É
+ * declará-lo. O que a declaração NÃO faz é liberar as classes proibidas: a
+ * trava as confere ANTES do lastro, então "100% gratuito" continua fora do
+ * pixel mesmo escrito aqui pelo dono da marca.
+ */
+function fichaParaRotulo(b: {
+  purposeAndPromise?: string | null; tagline?: string | null;
+  positioning?: string | null; values?: string | null;
+  lexiconJson?: string | null; artLabelsJson?: string | null;
+} | null): string {
+  if (!b) return "";
+  const legivel = (s: string | null | undefined): string => {
+    const t = (s ?? "").trim();
+    if (!t) return "";
+    try {
+      const v = JSON.parse(t);
+      if (Array.isArray(v)) return v.map((x) => (typeof x === "string" ? x : "")).join(" · ");
+      if (v && typeof v === "object") return Object.values(v).map((x) => (typeof x === "string" ? x : "")).join(" · ");
+    } catch { /* não era JSON: é texto puro */ }
+    return t;
+  };
+  return [
+    b.purposeAndPromise ?? "", b.tagline ?? "", b.positioning ?? "",
+    legivel(b.values), legivel(b.lexiconJson), legivel(b.artLabelsJson),
+  ].filter((s) => s.trim()).join(" · ");
 }
 
 /** O nome do arquivo da FOTO de uma peça. Fixo por post (e por tela, no
@@ -807,6 +888,14 @@ interface PedidoDeComposicao {
   /** A composição escolhida pelo cérebro criativo a partir do papel da tela.
    *  Ausente = `foto-cheia`, o layout histórico. */
   composicao?: Composicao | null;
+  /** Os CHIPS de benefício que a marca declarou (`BrandBrain.artLabelsJson`).
+   *  Vazio = peça sem chip, que é a peça de antes de 15/08/2026. */
+  chips?: string[] | null;
+  /** A FICHA DE MARCA em texto — o lastro dos chips, montada no servidor.
+   *  Vazia = nenhum chip é pintado. */
+  fichaDaMarca?: string | null;
+  /** A FAIXA DE CHAMADA do pé. Montada (`chamadaDaMarca`), nunca escrita. */
+  chamada?: string | null;
   /**
    * O QUE ACONTECEU COM O MATERIAL DO CLIENTE nesta peça.
    *
@@ -941,6 +1030,13 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
     indice: p.indice,
     fonteAuditada: p.fonteAuditada,
     composicao: p.composicao ?? null,
+    // A outra metade do slot. `montarPeca` passa cada chip por
+    // `travaDeRotuloDeBeneficio` (lastro na FICHA, não na legenda) e a faixa por
+    // `travaDeChamadaNaArte` (verbo da casa + nome da marca). Chip reprovado não
+    // derruba a peça: ela sai sem aquele chip, com o motivo em `textoRecusado`.
+    chips: p.chips ?? null,
+    fichaDaMarca: p.fichaDaMarca ?? null,
+    chamada: p.chamada ?? null,
   }).catch((e) => ({ ok: false as const, motivo: "erro_do_navegador" as const, erro: e instanceof Error ? e.message : "erro" }));
 
   if (!r.ok) {

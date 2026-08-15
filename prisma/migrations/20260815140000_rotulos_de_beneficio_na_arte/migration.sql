@@ -1,0 +1,27 @@
+-- OS RÓTULOS DE BENEFÍCIO DA ARTE — o slot que faltava, com a trava junto.
+--
+-- 15/08/2026. Medido: as peças que o CEO produziu à mão para o CityJobs têm
+-- logo em quadro, selo de região, TRÊS CHIPS com ícone e FAIXA DE CHAMADA no
+-- pé. `PecaDoMolde` (`lib/agency/design/molde.ts`) ia até `apoio`, e
+-- `comporComMolde` sequer passava `apoio`. A fábrica não tinha onde encaixar os
+-- dois últimos: **a peça do CEO era improduzível pela própria esteira.**
+--
+-- E se tivesse o slot, o portão barraria: medido contra legenda auditada real,
+-- `travaDeTextoNaArte` reprova 6 de 8 chips e 3 de 4 chamadas desse estilo. Não
+-- por defeito da trava — por natureza: ela exige TRECHO LITERAL DA LEGENDA, e
+-- chip não é trecho de legenda. Chip é rótulo, e afirma o que a marca É.
+--
+-- A saída é a mesma que a casa já usou para o selo: forma própria
+-- (`travaDeRotuloDeBeneficio`) MAIS fonte de lastro própria — esta coluna e o
+-- resto da ficha de marca. As duas metades entraram no mesmo commit, de
+-- propósito: slot sem trava faria o portão barrar exatamente a peça que se quer
+-- produzir, e é assim que alguém desliga o portão.
+--
+-- ADITIVA: coluna nova com default '[]'. Nenhum cliente ganha chip por isso, e
+-- nenhuma peça muda de cara sem alguém declarar. Vazio é o estado normal.
+--
+-- O que NÃO foi afrouxado: as classes proibidas continuam todas valendo.
+-- "Sem taxa" (promessa comercial) e "100% gratuito" (percentual + superlativo)
+-- continuam FORA do pixel, mesmo declarados aqui. O que destrava o chip é a
+-- FONTE DO LASTRO, nunca a lista de proibições.
+ALTER TABLE "BrandBrain" ADD COLUMN "artLabelsJson" TEXT NOT NULL DEFAULT '[]';
