@@ -4,7 +4,8 @@ import { usePathname } from "next/navigation";
 import { useAgencyStore } from "@/store/agency-store";
 import { AGENCY_ROLE_OPTIONS, ehPapelDaAgencia, perfilDoPapel, type AgencyRole } from "@/lib/agency/roles";
 import { eDirecao, type PerfilOrganizacional } from "@/lib/agency/organizacao/autoridade";
-import { podeAbrirRota } from "@/lib/agency/organizacao/paginas";
+import { PAGINAS, podeAbrirRota } from "@/lib/agency/organizacao/paginas";
+import { getDepartamento } from "@/lib/agency/organizacao/departamentos";
 import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { DioliLogo } from "@/components/brand/DioliLogo";
 import { useCaixaDeEntrada } from "@/components/agency/portal/useCaixaDeEntrada";
@@ -177,6 +178,28 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
     },
   ];
 
+  // ── MEU DEPARTAMENTO ──────────────────────────────────────────────────────
+  //
+  // A porta para a PRÓPRIA mesa de trabalho. Ela não existia: o menu foi
+  // enxugado numa reforma passada e as telas de departamento
+  // (`/agency/social-media-agent`, `/agency/design-agent`, …) ficaram sem um
+  // único link. Quem é de Social só chegava na tela de Social digitando a URL —
+  // o mesmo defeito que já tinha deixado o WhatsApp e o Radar invisíveis.
+  //
+  // A lista é DERIVADA do inventário: departamento novo com tela nova aparece
+  // aqui sozinho, sem ninguém editar este arquivo. Direção não recebe a seção
+  // porque ela já enxerga todas as telas nos grupos acima; repetir seria ruído.
+  const meuDepartamento = eDirecao(perfilEfetivo.autoridade)
+    ? []
+    : PAGINAS.filter(
+        (p) =>
+          p.noMenu &&
+          p.dono !== "casa" &&
+          perfilEfetivo.departamentos.includes(p.dono) &&
+          podeAbrirRota(perfilEfetivo, p.href) &&
+          !NAV.some((s) => s.items.some((i) => i.href === p.href)),
+      );
+
   // Dev assertion: every nav href must be a root-relative /agency/ path.
   // Catches misconfigurations (absolute URLs, typos, empty strings) at dev time.
   if (process.env.NODE_ENV === "development") {
@@ -246,7 +269,18 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
 
       {/* ── Nav ──────────────────────────────────────────────────────────────── */}
       <nav className="flex-1 px-3 py-3 space-y-0.5">
-        {NAV.map((section, i) => {
+        {[
+          ...NAV,
+          ...(meuDepartamento.length > 0
+            ? [{
+                group:
+                  perfilEfetivo.departamentos.length === 1
+                    ? getDepartamento(perfilEfetivo.departamentos[0]).nome
+                    : "Minha área",
+                items: meuDepartamento.map((p) => ({ label: p.titulo, href: p.href, icon: MesaIcon })),
+              }]
+            : []),
+        ].map((section, i) => {
           const visibleItems = section.items.filter((item) => podeAbrirRota(perfilEfetivo, item.href));
           if (visibleItems.length === 0) return null;
           return (
@@ -544,6 +578,16 @@ function AgentesIcon({ size = 16, className = "" }: { size?: number; className?:
       <circle cx="6" cy="5.5" r="2.3" stroke="currentColor" strokeWidth="1.3" />
       <path d="M2 13.2c0-2.1 1.8-3.4 4-3.4s4 1.3 4 3.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
       <path d="M10.6 3.6a2.3 2.3 0 0 1 0 4.4M11.4 9.9c1.6.3 2.6 1.5 2.6 3.3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** A mesa de trabalho do departamento — o lugar onde a peça é produzida. */
+function MesaIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M2 6.5h12M3.2 6.5 4 3.2A1 1 0 0 1 5 2.5h6a1 1 0 0 1 1 .7l.8 3.3" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+      <path d="M4 6.5v6M12 6.5v6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

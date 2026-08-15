@@ -312,7 +312,11 @@ function prioridadeDeAutoTask(t: AutoTask, clientes: Client[]): Prioridade {
   return {
     id: t.id,
     titulo: t.title,
-    motivo: t.description,
+    // O NOME DO PROJETO entra aqui, e não é enfeite: a fila real repetia cinco
+    // vezes "Enviar proposta ao cliente" com o mesmo cliente embaixo, porque um
+    // cliente tem mais de um projeto. Cinco linhas idênticas numa lista de
+    // prioridades é o mesmo que nenhuma — ninguém sabe qual clicar.
+    motivo: t.projectName ? `${t.projectName} · ${t.description}` : t.description,
     clienteNome: clientes.find((c) => c.id === t.clientId)?.name ?? "Sem cliente",
     urgencia: URGENCIA[t.priority] ?? "normal",
     situacao: t.priority === "critical" || t.priority === "high" ? "andamento" : "espera",
