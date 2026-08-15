@@ -1,55 +1,41 @@
 # Agentes da casa — as descrições de cargo
 
-> Ordem do CEO, 15/08/2026, executada pelo Diretor Geral (Control Room):
-> cada produto ganha a pasta de agentes com a **descrição de cargo** de cada um,
-> no formato do **template mestre de agentes** (Control Room,
-> `template-agentes/`, decisão D-003).
+> Ordem do CEO, 15/08/2026, executada pelo Agente de Fichas (Control Room):
+> cada função que opera nesta casa tem descrição de cargo no formato do
+> template mestre (D-003, simplificada). O rollout da V2 só começa com as
+> fichas completas — e completude aqui é TESTE, não promessa
+> (`__tests__/v2/fichas-da-linha.test.ts`).
 
-## O que é o quê — não confundir os três lugares
+## O que é o quê
 
 | Lugar | O que é | Quem lê |
 |---|---|---|
-| **`agentes/` (esta pasta)** | A **ficha** — descrição de cargo completa: mandato, limites, métricas, governança. | **Humanos.** É onde o CEO tira dúvida do que o agente pode ou não fazer, e onde se audita. |
-| **`.claude/agents/*.md` e `CLAUDE.md`** | O **crachá** — o prompt operacional que o agente carrega em toda sessão, automaticamente. | **O agente.** Curto, compilado da ficha. |
-| **`docs/agents/`** | Histórico e material de trabalho de cada especialista. | Quem opera a casa. |
+| **`agentes/*.md`** (14 fichas) | A OBRA — a equipe de engenharia que constrói e mantém o sistema | Humanos; crachás em `.claude/agents/` com selo |
+| **`agentes/linha/`** (11 + 62 fichas) | A LINHA — os funcionários da agência do catálogo canônico V2: 11 fichas de departamento (blocos comuns) + 62 fichas de função | Humanos; o "crachá" da linha é o catálogo (`lib/agency/catalogo-v2/`) + o motor de cada função |
+| **`.claude/agents/`** | Crachás da obra (o que o agente de engenharia veste) | Os agentes |
 
-**A regra que amarra os três:** a ficha nunca é colada como prompt; o crachá é
-derivado dela; e quando a ficha muda, o crachá se recompila — **nunca o
-contrário**. Papel dizendo uma coisa e agente fazendo outra é o defeito que
-esta pasta existe para impedir.
-
-## Nota honesta sobre a primeira ficha
-
-O cargo de Diretor nasceu **antes** da ficha (`.claude/agents/diretor.md`,
-14/08/2026 — a "constituição do cargo"). Aqui a ordem foi inversa ao fluxo
-padrão: o crachá existia, e a ficha foi **compilada dele e dos registros da
-casa** (`ESTADO-REAL-08-08.md`, `QUEM-APROVA.md`, `modelo-de-negocio.md`,
-doutrinas 18, 24 e 29). Nada na ficha foi inventado; campo sem fonte está
-marcado como pendente.
-
-A partir de agora vale a ordem certa: **mudança de cargo começa pela ficha**
-(corrigida pelo dono de negócio), e o crachá se ajusta a ela com versão nova.
+**Obra separada da linha por determinação do CEO (15/08).** A obra constrói a
+fábrica; a linha trabalha nela.
 
 ## O dispositivo de atualização (decisão do CEO, 15/08/2026 — simples de propósito)
 
 1. **Só o CEO altera ficha** — ou um Diretor, a mando dele.
-2. **Quem altera a ficha recompila o crachá na mesma sessão.** Uma ordem, dois
-   arquivos, sempre juntos. Sessão que mexeu na ficha e não recompilou o crachá
-   não terminou o trabalho.
-3. **Todo crachá carrega o selo** — *"conferido contra a ficha vX.Y"* — então
-   qualquer sessão enxerga na hora se os dois estão casados.
+2. **Quem altera a ficha recompila o crachá na mesma sessão.** Na obra: o
+   arquivo em `.claude/agents/` + selo. Na linha: o catálogo/manifesto — e o
+   teste de contrato + o teste de cobertura reprovam divergência sozinhos.
+3. **Todo crachá carrega o selo** da versão da ficha que o sustenta.
 
-Sem fila de aprovação, sem vigia, sem burocracia. É isso.
+## Fichas da OBRA (14 — todas em vigor)
 
-## Fichas da casa
+`diretor`, `pm`, `seguranca`, `qualidade`, `cerebro`, `interface`,
+`experiencia`, `esteira`, `departamentos`, `plataforma`, `meta`, `google`,
+`tiktok`, `branding` — v1.0, seladas nos crachás em 15/08/2026.
 
-| Ficha | Status |
-|---|---|
-| `diretor-v1.0.md` | ✅ EM VIGOR — avaliador: o Diretor Geral (decisão do CEO, 15/08/2026) |
-| `pm-v1.0.md` | ✅ EM VIGOR — retrato do crachá em operação (15/08/2026) |
-| `seguranca`, `qualidade`, `cerebro`, `interface`, `experiencia`, `esteira`, `departamentos`, `plataforma`, `meta`, `google`, `tiktok`, `branding` (v1.0) | ✅ EM VIGOR — aprovadas pelo CEO em 15/08/2026, selo nos 12 crachás |
+## Fichas da LINHA (11 departamentos, 62 funções — todas em vigor)
 
-Medição da rodada completa: `antes-depois.md`.
+Uma pasta por departamento canônico em `linha/`, com `_departamento.md`
+(blocos comuns) + uma ficha por função. Cobertura garantida por CI: função
+nova no manifesto sem ficha reprova a rodada; ficha órfã também.
 
-Os demais cargos (`pm`, especialistas) ganham ficha conforme a necessidade —
-começando pelos que têm mais poder de causar dano.
+Toda função da linha NASCE DESLIGADA no catálogo — ligar/expor é decisão
+registrada (escada sombra → allowlist → wide), nunca efeito de deploy.
