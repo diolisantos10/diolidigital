@@ -7,16 +7,40 @@
 
 ---
 
-## A conclusão em quatro linhas
+## A conclusão em cinco linhas
 
 1. **Você estava certo.** Existem **duas listas de cinco planos** no código, e
    **nenhum dos cinco nomes de uma aparece na outra**.
-2. A lista oficial (`docs/precos.md`) alimenta **uma única tela**: a página
-   pública de planos.
+2. A lista oficial (Pulso…Crescimento) alimenta a página pública `/planos` **e
+   mais três lugares** — a correção está logo abaixo.
 3. A **outra** lista alimenta **a proposta que o cliente lê no portal**, o
    dossiê do lead e os painéis internos.
 4. A trava criada em 08/08 é **real e funciona**, mas protege só a primeira
    lista. Ela **não enxerga** a segunda.
+5. **O sistema PODE cotar as duas famílias de preço. Se já cotou para um cliente
+   real, ninguém nesta casa consegue dizer** — não existe registro imutável do
+   que foi enviado. Todo este documento fala do que o sistema **pode** fazer,
+   nunca do que ele fez.
+
+> ### ⚠️ Correção de uma frase que estava neste documento e era FALSA
+>
+> A versão anterior dizia: *"a lista oficial alimenta **uma única tela**: a
+> página pública `/planos`"*. **Não é verdade**, e a culpa é de uma mudança feita
+> por nós mesmos, ontem, nesta mesma frente.
+>
+> Ao eliminar a duplicata de preço (a régua do SDR guardava uma cópia dos
+> valores, e passou a **ler** a fonte), os preços da sua tabela passaram a
+> alimentar **mais três caminhos**:
+>
+> | Onde | O que o preço da sua tabela faz lá |
+> |---|---|
+> | Agente comercial de marketplace | entra no texto que orienta o robô a montar proposta em plataforma de freelancer |
+> | Cálculo de piso no 99Freelas | é o chão de preço de proposta enviada a terceiros |
+> | Régua de recompra (portal) | é o número que aparece na mensagem ao cliente do balcão |
+>
+> **Nenhum preço mudou de valor** — mudou de onde ele é lido. Mas a frase
+> "alimenta uma tela só" deixou de ser verdadeira **no momento em que a
+> corrigimos**, e ficou escrita como se ainda fosse. Está corrigida aqui.
 
 > **Correção honesta de uma leitura anterior:** concluiu-se em 08/08 que a
 > "segunda tabela" era o **balcão** (post R$ 79, carrossel R$ 129) e que,
@@ -63,9 +87,17 @@ concorrente**, e é ela que o aparelho comercial usa.
 | 4 | **Conteúdo** — R$ 1.390/mês | **Plano Pro** — R$ 2.500 a R$ 4.000/mês |
 | 5 | **Crescimento** — R$ 2.590/mês | **Plano Premium** — R$ 4.000 a R$ 6.500/mês |
 
-**Nenhum nome coincide. Nenhum preço coincide. O degrau de entrada da segunda
-lista (R$ 600) é mais caro que o terceiro degrau da sua (R$ 790 é o terceiro, e
-R$ 600 já passa Pulso e Ritmo inteiros).**
+**Nenhum dos cinco nomes coincide, e nenhuma das faixas da segunda lista existe
+como faixa de plano na sua.** O degrau de entrada da segunda lista (R$ 600) é
+mais caro que o segundo degrau da sua, e já passa Pulso e Ritmo inteiros.
+
+> **Precisão que faltava na versão anterior deste documento.** Estava escrito
+> que "nenhum preço coincide". Sobre **planos**, é verdade. Sobre **números**,
+> não: `R$ 2.400` e `R$ 1.500` **aparecem** na sua tabela de preços — mas em
+> itens sem relação nenhuma com plano (`R$ 2.400` é o pacote de 4 vídeos de IA e
+> a landing page; `R$ 1.500` é o diagnóstico de presença, preço interno). Um
+> número igual por coincidência não é uma lista igual, e dizer "nenhum preço
+> coincide" era mais forte do que os fatos aguentam.
 
 ### As três diferenças que mudam o negócio, não só o número
 
@@ -91,11 +123,12 @@ conversa, não a tabela.
 
 | Lista | Onde ela aparece |
 |---|---|
-| **Oficial** (Pulso…Crescimento) | **Só** a página pública `/planos` |
-| **A outra** (Essencial…Premium) | **A proposta que o cliente lê no portal** · o dossiê do lead ("Quem procurou") · o painel interno "Catálogo de Planos & Preços" · a sala de briefing da equipe · a simulação do SDR |
+| **Oficial** (Pulso…Crescimento) | a página pública `/planos` · o **texto que orienta o robô comercial** em plataforma de freelancer · o **piso de preço** de proposta enviada a terceiros no 99Freelas · a **mensagem de recompra** que chega ao cliente do balcão no portal |
+| **A outra** (Essencial…Premium) | **A proposta que o cliente lê no portal** · o dossiê do lead ("Quem procurou") · o painel interno "Catálogo de Planos & Preços" · a sala de briefing da equipe |
 
 **É esta a linha mais importante do documento.** A sua tabela é a que está
-publicada; a outra é a que chega escrita ao cliente.
+publicada e a que sai para **fora** (marketplace e recompra); a outra é a que
+chega escrita ao **cliente do portal**, que é quem paga.
 
 ### O caso concreto, ponta a ponta
 
@@ -118,13 +151,80 @@ Total: R$ 1.500 a R$ 2.400 / mês
 escrito, gravado como proposta aprovável e mostrado ao cliente **sem ninguém
 revisar** — a casa roda 100% IA.
 
-> **Duas coisas que eu achava e conferi que estavam erradas, e vale registrar:**
-> na página pública de briefing, os dois blocos que mostrariam **preço** ao
-> interessado (a "estimativa" e o "cartão de proposta") **estão no código mas
-> nunca são exibidos** — código morto, já anotado pela casa em 08/08. O
-> interessado vê o **nome** do plano ("Plano Growth"), não o valor. A exposição
-> de preço acontece **no portal**, com cliente já dentro, no caminho descrito
-> acima. Menos gente vê do que eu supus; quem vê é quem mais importa.
+### Quem dispara isso — e é aqui que a acusação encolhe
+
+**Nenhum caminho automático cria a PRIMEIRA proposta.** Ela nasce de dois
+lugares, e os dois exigem gente:
+
+- um comando de administração da agência, que só roda com sessão de dono ou com
+  uma senha de servidor;
+- um pedido feito de dentro do painel, também com sessão.
+
+**O cliente não dispara nada do zero.** Não existe "entrou no site e recebeu uma
+proposta com preço" sem que alguém da casa tenha começado. **Vivo, sim;
+auto-servido, não.** Sem essa linha, o problema parece maior do que a evidência
+sustenta — e problema exagerado é problema que se para de acreditar.
+
+**Mas o que vem depois é automático.** Uma vez que a primeira proposta existe, o
+cliente clicando em "recusar" ou "pedir revisão" **no portal dele** faz a casa
+escrever e publicar a proposta nova sozinha, sem ninguém no meio.
+
+### A diferença entre a primeira proposta e a renegociada — e ela é grande
+
+A **primeira** proposta já leva os números da segunda lista ao cliente. Mas ela
+os apresenta com uma ressalva escrita, no fim do texto:
+
+> *"Como é uma parceria, esse valor fica por nossa conta — os números acima são a
+> referência do quanto o serviço vale no mercado."*
+
+A **renegociada apaga essa ressalva**. Ela escreve `Total: R$ X a R$ Y / mês` e
+fecha com *"é só aprovar aqui embaixo que a gente começa"*.
+
+**É a renegociação que transforma referência de mercado em preço a aprovar.** O
+mesmo número muda de natureza entre uma tela e a seguinte, e ninguém decidiu que
+mudasse.
+
+> ### ⚠️ O que eu conferi hoje e **NÃO** é verdade — apesar de ter sido afirmado
+>
+> Duas acusações chegaram até mim nesta rodada e **as duas não se sustentam na
+> medição**. Registro porque documento que aumenta o problema para parecer
+> vigilante é documento que, descoberto, derruba junto o que era verdade.
+>
+> 1. **"O prospect vê `R$ 600 – R$ 900/mês` na tela pública de briefing."**
+>    **Não vê.** Os dois blocos que mostrariam preço ali (a "estimativa" e o
+>    "cartão de proposta") existem no código e **nunca são colocados na tela** —
+>    é código morto, e a casa já tinha anotado isso em 08/08. Conferido de novo
+>    hoje, nos dois componentes de briefing que existem: num deles os blocos não
+>    são chamados, e no outro, que os chama, **o componente inteiro não é usado
+>    em página nenhuma**. O interessado vê o **nome** do plano ("Plano Growth"),
+>    nunca o valor.
+> 2. **"A conversa do briefing público cota Ritmo R$ 297 ao mesmo prospect."**
+>    **Não cota.** O texto que orienta o robô dessa conversa **não contém nome
+>    nem preço de plano nenhum** — medido, não lido. Os únicos números que ele
+>    carrega são os quatro limites de faixa (R$ 150, R$ 500, R$ 1.500, R$ 5.000),
+>    que servem para **perguntar** quanto a pessoa pode gastar, não para cotar.
+>
+> **Portanto não existe "duas cotações na mesma sessão do mesmo prospect".** A
+> colisão entre as duas famílias de planos é real **no código** e é o assunto
+> deste documento; ela **não** acontece na mesma tela, para a mesma pessoa, ao
+> mesmo tempo.
+>
+> Existe, sim, prosa com "Plano Ritmo (R$ 297/mês)" e "Plano Presença
+> (R$ 790/mês)" escrita dentro da régua de negociação. **Ela não chega a
+> ninguém**: a função que a leria não é chamada em lugar nenhum do sistema, só em
+> teste. É texto parado — e texto parado perto de um caminho vivo é dívida, não
+> incidente.
+
+> ### 🔴 E o que **não** dá para saber, e não vou fingir que dá
+>
+> **Não existe nesta casa um registro imutável do que foi enviado a cliente.** A
+> proposta é gravada como um cartão que pode ser reescrito, e a conversa do
+> portal não guarda a versão original de nada.
+>
+> Por isso este documento diz, em todo lugar, que o sistema **pode** cotar por
+> estes caminhos — e **nunca** que ele cotou. Afirmar que uma cotação chegou a
+> um cliente real exigiria um registro que não existe. **Criar esse registro é
+> frente própria e não tem dono.**
 
 ---
 
@@ -169,6 +269,27 @@ permanência** que a sua tabela exige do Ritmo.
 > cobrança automática. Se a intenção era assinatura, ela não existe; se a
 > intenção era um mês avulso, a palavra "mensal" na vitrine promete o que não
 > acontece.
+
+> ### 🔴 E ISSO JÁ ESTAVA SAINDO PARA CLIENTE, SOZINHO, TODO DIA
+>
+> Achado hoje, e é o defeito mais grave deste documento. A régua que reabre a
+> conversa com quem comprou no balcão escrevia, **direto na conversa do portal
+> do cliente, sem aprovação de ninguém**, puxada por uma rotina que roda **todo
+> dia contra o sistema no ar**:
+>
+> > *"Existe o pacote do mês (R$ 297,00 **por mês**): 8 peças **por mês**…"*
+>
+> **A frase promete uma cobrança mensal que a casa não faz.** Quem a lesse
+> entenderia que estava assinando algo.
+>
+> **Corrigido hoje, sem tocar em preço nenhum.** O R$ 297 continua igual; o que
+> saiu foi a promessa de que ele volta todo mês. A mensagem agora diz o que é
+> verdade: *"É compra única, para um mês de conteúdo — nada fica sendo cobrado
+> depois."* E virou **trava**, não revisão de texto: qualquer mensagem futura
+> desta régua que prometa assinatura, mensalidade ou cobrança automática é
+> **barrada antes de sair**, inclusive como rascunho.
+>
+> **A rotina diária não foi desligada** — o problema era a frase, não o horário.
 
 **Este é o único caminho da casa em que um valor sai direto para o cartão do
 cliente**, sem ninguém no meio: a vitrine manda o preço do item para o Mercado
@@ -231,7 +352,13 @@ Uma delas tem de deixar de existir no código.
 **Pergunta 2 — o "Pacote mês — 8 peças" de R$ 297 continua à venda?**
 Se sim, ele precisa entrar na tabela oficial com o nome, o preço e a condição
 (com ou sem implantação, com ou sem permanência). Se não, sai da vitrine.
-E a palavra "mensal" precisa virar verdade ou sair da tela.
+
+> ⚠️ **Metade disso foi consertada hoje e metade depende de você.** A mensagem
+> que ia ao cliente prometendo cobrança mensal **foi corrigida** (seção 3). Mas a
+> palavra **"mensal" continua na vitrine pública**, ao lado do item, e continua
+> prometendo o que a casa não faz. **Não a mudei de propósito:** tirar "mensal"
+> dali é decidir o que o produto é, e produto é seu. É a decisão mais barata
+> desta lista e a que está exposta em página pública.
 
 **Pergunta 3 — identidade visual custa R$ 2.900, R$ 1.200–2.500 ou R$ 480?**
 Três números para o mesmo serviço, em três telas diferentes.
@@ -243,6 +370,8 @@ quem não decide preço.** Apagar uma das listas é escolher um preço, e preço
 
 ## 6. O que já foi feito, sem tocar em número nenhum
 
+**Nenhum preço foi criado, alterado ou apagado em nada do que está abaixo.**
+
 - A trava de 08/08 foi **conferida na prática** e reprova de verdade.
 - Foi eliminada **uma duplicata de preço** que ninguém tinha visto: a régua de
   negociação do SDR redigitava à mão os preços dos planos e do balcão. Ela agora
@@ -251,7 +380,38 @@ quem não decide preço.** Apagar uma das listas é escolher um preço, e preço
 - Foi criada uma trava nova que reprova a build se alguém voltar a redigitar
   preço de plano nessa régua.
 
+### E mais três defeitos consertados hoje, achados por auditoria
+
+**1. A promessa de cobrança mensal que a casa não cumpre.** Descrita no quadro
+vermelho da seção 3. Saiu a promessa, ficou o preço, e virou trava.
+
+**2. "Total: R$ 0 a R$ 0 / mês" no cartão do cliente.** Quando o cliente pedia
+revisão de uma proposta **sem escopo fechado** — o caso de quem comprou no balcão
+—, a proposta nova saía cotando **zero**, com o convite "é só aprovar aqui
+embaixo". Pior: com o valor em zero, o **piso de preço deixava de existir**, e
+qualquer valor acima de zero passava a ser aceitável para a máquina.
+
+Agora, **sem escopo não se cota**: o cartão não escreve linha de preço nenhuma,
+não cota zero, e pede o que falta. E o piso passa a recusar tudo, em vez de
+aceitar tudo. **A negociação legítima, com escopo de verdade, continua igual** —
+isso está provado dos dois lados.
+
+**3. O portão de preço olhava o nome, não o número.** A checagem que garantia que
+"o balcão não tem os cinco planos" comparava **rótulo com rótulo**. Por isso o
+"Pacote mês — 8 peças" — **R$ 297, o preço exato do Ritmo, com o escopo exato do
+Ritmo** — passava batido pela checagem escrita justamente para pegar isso.
+
+O portão agora compara **preço com preço**. Item vendável cujo valor coincida com
+a mensalidade de um plano **derruba a build**, a menos que esteja declarado, num
+único lugar, como exceção conhecida e com o motivo escrito. Hoje há **uma**
+exceção declarada: o "Pacote mês", **com o preço intacto**. A partir de agora, o
+próximo caso não declarado para a build em vez de passar em silêncio.
+
 **O que ainda não tem trava, e é deliberado:** a segunda lista de planos
 (Essencial…Premium) continua no código, porque removê-la exige a sua resposta à
 pergunta 1. Criar uma trava para ela hoje quebraria a build sem que ninguém
 pudesse consertá-la — a única saída seria uma decisão sua.
+
+**E uma coisa que eu deliberadamente NÃO fiz:** não decidi se o "Pacote mês"
+continua à venda, nem por qual preço, nem se ele passa a cobrar implantação ou
+permanência. **Isso é seu, e é a pergunta 2 da seção 5.**

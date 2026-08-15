@@ -183,6 +183,49 @@ export function temPromessaDeResultado(texto: string): boolean {
   return typeof texto === "string" && PROMESSA_DE_RESULTADO.test(texto);
 }
 
+// ── A SEGUNDA TRAVA DE LINGUAGEM: NÃO SE PROMETE COBRANÇA QUE NÃO EXISTE ─────
+//
+// Achado em 15/08/2026, em auditoria adversarial. O toque de 60 dias dizia, ao
+// cliente, dentro da conversa do portal, puxado por cron DIÁRIO contra
+// produção e SEM aprovação de gente:
+//
+//     "Existe o pacote do mês (R$ 297,00 POR MÊS): 8 peças POR MÊS…"
+//
+// **A frase é falsa.** Esta casa não tem cobrança recorrente em lugar nenhum:
+// não há `preapproval` nem assinatura em nenhum provedor, e a única chamada ao
+// Mercado Pago é preferência AVULSA (`app/api/self-serve/order/route.ts`). O
+// comprador paga uma vez e recebe um mês. Quem lesse a mensagem entenderia que
+// estava assinando algo — e prometer cobrança que a casa não executa é pior que
+// errar o preço: o preço se corrige, a expectativa de assinatura vira briga.
+//
+// O preço NÃO mudou e não muda aqui: R$ 297 é o que está no catálogo. O que saiu
+// foi a promessa de RECORRÊNCIA. Se o "Pacote mês" continua à venda, e por qual
+// preço, é decisão do CEO e está na lista dele.
+//
+// Por que é TRAVA e não revisão de texto: o molde tem lacunas (rótulo do item,
+// nome do cliente). No dia em que alguém cadastrar "Plano mensal — assinatura",
+// a promessa entra pelo dado, não pelo texto. Mesma lógica da trava de resultado.
+
+/** Palavras que afirmam cobrança que se repete sozinha. */
+const COBRANCA_RECORRENTE =
+  /(assinatura|mensalidade|(?:cobran[çc]|cobrad|cobrar)\w*(?:\s+\S{1,6}){0,2}\s+(?:recorrente|autom[áa]tic\w+|mensa\w+)|renova\w*(?:\s+\S{1,6}){0,2}\s+autom[áa]tic\w+|d[ée]bit\w*(?:\s+\S{1,6}){0,2}\s+autom[áa]tic\w+|todo\s+m[êe]s|todos\s+os\s+meses|mensalmente)/i;
+
+/** Um valor em reais colado a uma cadência — "R$ 297 por mês", "R$ 297/mês". */
+const VALOR_COM_CADENCIA =
+  /R\$\s*[\d.,]+\s*(?:\/\s*m[êe]s|por\s+m[êe]s|ao\s+m[êe]s|mensa\w*)/i;
+
+/**
+ * `true` quando o texto promete ao cliente uma cobrança que se repete.
+ *
+ * As duas metades vivem em `__tests__/esteira/recompra.test.ts`: barra o texto
+ * que promete, e NÃO barra o texto legítimo (que cita o mesmo R$ 297 sem
+ * prometer que ele volta).
+ */
+export function prometeCobrancaRecorrente(texto: string): boolean {
+  if (typeof texto !== "string") return false;
+  return COBRANCA_RECORRENTE.test(texto) || VALOR_COM_CADENCIA.test(texto);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. A âncora — o que ele comprou e recebeu DE VERDADE
 // ─────────────────────────────────────────────────────────────────────────────
@@ -254,12 +297,16 @@ export function redigirToque(marco: Marco, a: Ancora): ToqueRedigido {
     // cliente — e é o tipo de erro que a pessoa percebe na hora.
     if (a.compras >= 2) {
       const plano = precoParaOferecer("balcao-pacote-mes");
-      const valorPlano = plano.valor !== null ? ` (${plano.texto} por mês)` : "";
+      const valorPlano = plano.valor !== null ? ` (${plano.texto})` : "";
+      // O valor entra SEM cadência, de propósito: R$ 297 é o preço de UM mês de
+      // conteúdo comprado de uma vez, não uma mensalidade. Ver a trava
+      // `prometeCobrancaRecorrente` acima e o incidente de 15/08/2026.
       return {
         valorCitado: plano.valor,
         corpo:
           `Oi, ${primeiroNome}. Já são ${a.compras} peças que você pediu avulsas aqui — a última foi seu ${a.itemLabel.toLowerCase()}. ` +
-          `Existe o pacote do mês${valorPlano}: 8 peças por mês, você aprova pelo portal e publica quando quiser. ` +
+          `Existe o pacote do mês${valorPlano}: pauta, 8 peças e calendário, com aprovação peça a peça no portal. ` +
+          `É compra única, para um mês de conteúdo — nada fica sendo cobrado depois; quando quiser outro, é só me pedir. ` +
           `Se quiser que eu te explique o que entra, é só responder.`,
       };
     }
@@ -354,6 +401,18 @@ export async function registrarToque(a: Ancora, marco: Marco): Promise<Resultado
     return {
       ok: false,
       motivo: `texto barrado pela trava de promessa de resultado (marco ${marco}, cliente ${a.clientId})`,
+    };
+  }
+
+  if (prometeCobrancaRecorrente(toque.corpo)) {
+    // Fail-closed pelo mesmo motivo: a casa NÃO tem cobrança recorrente, então
+    // nenhuma frase que a prometa pode sair — nem para o cliente, nem como
+    // rascunho na fila da equipe.
+    return {
+      ok: false,
+      motivo:
+        `texto barrado pela trava de cobrança recorrente (marco ${marco}, cliente ${a.clientId}): ` +
+        `a casa não executa cobrança que se repete e não pode prometer uma.`,
     };
   }
 

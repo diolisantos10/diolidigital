@@ -22,6 +22,7 @@ const {
   marcoDevido,
   precoParaOferecer,
   temPromessaDeResultado,
+  prometeCobrancaRecorrente,
   redigirToque,
   idDoToque,
   registrarToque,
@@ -129,7 +130,7 @@ describe("a mensagem é ancorada no que ele comprou de verdade", () => {
 
     const varias = redigirToque(60, ancora({ compras: 4 })).corpo;
     expect(varias).toContain("4 peças que você pediu avulsas");
-    expect(varias).toContain("8 peças por mês");
+    expect(varias).toContain("8 peças");
   });
 
   it("o toque de 90 dias avisa que é o último", () => {
@@ -144,6 +145,85 @@ describe("a mensagem é ancorada no que ele comprou de verdade", () => {
         expect(temPromessaDeResultado(redigirToque(m, ancora({ compras })).corpo)).toBe(false);
       }
     }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A CASA NÃO COBRA RECORRENTE — ENTÃO NENHUM TOQUE PODE PROMETER QUE COBRA
+//
+// Achado em 15/08/2026: o toque de 60 dias escrevia "Existe o pacote do mês
+// (R$ 297,00 POR MÊS): 8 peças POR MÊS" e entrava SOZINHO na conversa do portal,
+// puxado por cron diário contra produção. Não existe `preapproval`, assinatura
+// nem débito automático em lugar nenhum desta casa — a única chamada ao Mercado
+// Pago é preferência avulsa. A frase era falsa quando saía.
+//
+// O PREÇO NÃO MUDOU. R$ 297 continua sendo o valor do catálogo. O que saiu foi a
+// promessa de que ele volta todo mês.
+describe("nenhum toque promete cobrança que a casa não executa", () => {
+  it("o toque de 60 dias cita o R$ 297 SEM prometer que ele se repete", () => {
+    const corpo = redigirToque(60, ancora({ compras: 4 })).corpo;
+
+    // O preço continua lá — o conserto não foi apagar o número.
+    expect(corpo).toMatch(/R\$\s297/);
+    // E o escopo continua descrito.
+    expect(corpo).toContain("8 peças");
+
+    // Mas nenhuma cadência de cobrança colada ao valor.
+    expect(corpo).not.toMatch(/R\$\s*[\d.,]+\s*(?:\/\s*m[êe]s|por\s+m[êe]s|ao\s+m[êe]s)/i);
+    expect(corpo).not.toMatch(/assinatura|mensalidade|todo m[êe]s|mensalmente/i);
+    expect(prometeCobrancaRecorrente(corpo)).toBe(false);
+
+    // E diz, com todas as letras, o que é verdade: paga uma vez.
+    expect(corpo).toMatch(/compra única/i);
+  });
+
+  it("NENHUM dos três textos promete recorrência, em nenhuma contagem de compras", () => {
+    for (const m of MARCOS) {
+      for (const compras of [1, 2, 5, 12]) {
+        const { corpo } = redigirToque(m, ancora({ compras }));
+        expect(prometeCobrancaRecorrente(corpo), `marco ${m}, ${compras} compras: "${corpo}"`).toBe(false);
+      }
+    }
+  });
+
+  // ── METADE 1: a trava BARRA de verdade ─────────────────────────────────────
+  it("a trava reconhece as formas em que a promessa aparece", () => {
+    expect(prometeCobrancaRecorrente("O pacote sai por R$ 297,00 por mês.")).toBe(true);
+    expect(prometeCobrancaRecorrente("R$ 297/mês, 8 peças.")).toBe(true);
+    expect(prometeCobrancaRecorrente("R$ 297 mensais")).toBe(true);
+    expect(prometeCobrancaRecorrente("É uma assinatura simples.")).toBe(true);
+    expect(prometeCobrancaRecorrente("A mensalidade entra no cartão.")).toBe(true);
+    expect(prometeCobrancaRecorrente("A cobrança é automática.")).toBe(true);
+    expect(prometeCobrancaRecorrente("Você recebe peças todo mês.")).toBe(true);
+    expect(prometeCobrancaRecorrente("Renova automaticamente.")).toBe(true);
+  });
+
+  // ── METADE 2: NÃO barra o texto legítimo ───────────────────────────────────
+  it("a trava NÃO barra frase honesta que fala de um mês de conteúdo", () => {
+    expect(prometeCobrancaRecorrente("Existe o pacote do mês (R$ 297): pauta, 8 peças e calendário.")).toBe(false);
+    expect(prometeCobrancaRecorrente("É compra única, para um mês de conteúdo.")).toBe(false);
+    expect(prometeCobrancaRecorrente("Faz 30 dias que entreguei seu carrossel. Eu produzo por R$ 129.")).toBe(false);
+  });
+
+  // ── E É TRAVA, NÃO AVISO: fail-closed no registro ──────────────────────────
+  it("promessa que entrar pela lacuna do dado NÃO vira rascunho nem mensagem", async () => {
+    // O caso real: alguém cadastra um item chamado assim, e o molde limpo o
+    // carrega para dentro sem ninguém escrever nada errado.
+    const r = await registrarToque(ancora({ itemLabel: "Plano com mensalidade" }), 30);
+    expect(r.ok).toBe(false);
+    expect(!r.ok && r.motivo).toMatch(/cobran[çc]a recorrente/i);
+    expect(db.clientNotice.create).not.toHaveBeenCalled();
+    expect(avisarCliente).not.toHaveBeenCalled();
+  });
+
+  it("o toque legítimo de 60 dias continua entrando na fila e no portal", async () => {
+    const r = await registrarToque(ancora({ compras: 4 }), 60);
+    expect(r.ok).toBe(true);
+    expect(db.clientNotice.create).toHaveBeenCalledOnce();
+    expect(avisarCliente).toHaveBeenCalledOnce();
+    const enviado = avisarCliente.mock.calls[0]![1] as string;
+    expect(enviado).toMatch(/R\$\s297/);
+    expect(prometeCobrancaRecorrente(enviado)).toBe(false);
   });
 });
 
