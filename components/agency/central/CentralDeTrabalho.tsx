@@ -105,7 +105,6 @@ export function CentralDeTrabalho({
   const [tentativa, setTentativa] = useState(0);
   const [busca, setBusca] = useState("");
   const [clienteAberto, setClienteAberto] = useState<CartaoDeCliente | null>(null);
-  const [chatAberto, setChatAberto] = useState(false);
   const [mapaAberto, setMapaAberto] = useState(false);
   // Relógio só depois de montar: hora do servidor e do navegador divergem, e a
   // saudação renderizada nos dois lados precisa bater na primeira pintura.
@@ -159,33 +158,26 @@ export function CentralDeTrabalho({
 
   return (
     <div className="central-de-trabalho">
-      {/* ── Barra de ação ─────────────────────────────────────────────────── */}
-      <header className="topbar">
-        <div className="search-box">
-          <Icone nome="search" tamanho={17} />
-          <input
-            aria-label="Buscar cliente"
-            placeholder="Buscar cliente ou segmento..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-        <div className="top-actions">
-          <span className="client-filter">
-            <span className="filter-dot" />
-            Todos os clientes
-            <span className="count">{leitura ? leitura.totalDeClientes : "—"}</span>
-          </span>
-          <button className="pm-chat" onClick={() => setChatAberto(true)}>
-            <Icone nome="message" tamanho={16} /> Falar com o PM
-          </button>
-          <Link className="icon-button" href="/agency/approvals" aria-label="Aprovações pendentes">
-            <Icone nome="bell" tamanho={18} />
-            {numeroOuNulo(leitura?.metricas.find((m) => m.chave === "revisao")?.valor ?? { estado: "zeroMedido" }) ? <i /> : null}
-          </Link>
-        </div>
-      </header>
-
+      {/* ── A barra de ação SAIU ──────────────────────────────────────────────
+       *
+       * Pedido do CEO (15/08/2026): ela era a primeira coisa da área de
+       * conteúdo e, no celular, a SEGUNDA barra empilhada — a do `AgencyShell`
+       * (logo + menu) já ocupa o topo. Duas faixas antes da trilha de navegação
+       * empurravam o título para fora da primeira dobra.
+       *
+       * Onde foi parar cada peça, e por que nada ficou sem porta:
+       *   • busca de cliente → desceu para o cabeçalho da seção "Clientes da
+       *     agência", que é a lista que ela filtra. Controle ao lado do que ele
+       *     controla;
+       *   • "Todos os clientes · N" → era um `<span>` sem clique: parecia filtro
+       *     e não filtrava nada. O número já vive na métrica "Clientes visíveis",
+       *     logo acima da lista;
+       *   • sino → apontava para `/agency/approvals`, que é item fixo do menu
+       *     lateral ("Aprovações", com badge) para todo perfil interno;
+       *   • "Falar com o PM" → abria uma gaveta cujo próprio conteúdo dizia que
+       *     o canal interno NÃO existe e mandava para a Caixa de entrada, que é
+       *     item do menu lateral. Porta para sala vazia não é porta.
+       * ────────────────────────────────────────────────────────────────────── */}
       <main className="main-content">
         <div className="breadcrumb">
           <span>Central de Trabalho</span><b>/</b><strong>Início</strong>
@@ -307,11 +299,25 @@ export function CentralDeTrabalho({
                   <h2>Clientes da agência</h2>
                   <p>Todos enxergam o panorama completo. A edição respeita a área de cada agente.</p>
                 </div>
-                <div className="read-access">
-                  <Icone nome="eye" tamanho={16} />
-                  <span>
-                    <strong>Leitura global</strong> para todos os departamentos
-                  </span>
+                {/* A busca mora AQUI desde 15/08/2026: ela filtra esta lista e
+                    mais nada. No topo da página ela parecia busca do painel
+                    inteiro — promessa que ela nunca cumpriu. */}
+                <div className="section-tools">
+                  <div className="search-box">
+                    <Icone nome="search" tamanho={17} />
+                    <input
+                      aria-label="Buscar cliente por nome ou segmento"
+                      placeholder="Buscar cliente ou segmento..."
+                      value={busca}
+                      onChange={(e) => setBusca(e.target.value)}
+                    />
+                  </div>
+                  <div className="read-access">
+                    <Icone nome="eye" tamanho={16} />
+                    <span>
+                      <strong>Leitura global</strong> para todos os departamentos
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -535,49 +541,13 @@ export function CentralDeTrabalho({
         </div>
       ) : null}
 
-      {/* ── Conversa com o PM ───────────────────────────────────────────── */}
-      {chatAberto ? (
-        <div className="drawer-backdrop" onMouseDown={() => setChatAberto(false)}>
-          <aside className="chat-drawer" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-label="Conversa com o Project Manager">
-            <div className="chat-head">
-              <div className="pm-avatar">PM</div>
-              <div>
-                <strong>Project Manager</strong>
-                <span><i /> Operação ativa</span>
-              </div>
-              <button onClick={() => setChatAberto(false)} aria-label="Fechar"><Icone nome="close" tamanho={20} /></button>
-            </div>
-
-            <div className="chat-context">
-              <Icone nome="briefcase" tamanho={16} />
-              <span>Conversa interna · Todos os clientes</span>
-            </div>
-
-            <div className="chat-body">
-              {/* ⚠️ ESTADO VAZIO HONESTO, e não uma conversa de mentira.
-                  O protótipo trazia duas mensagens escritas à mão. O canal
-                  interno de mensagem NÃO EXISTE no banco hoje — o que existe é
-                  a conversa com o CLIENTE (`/agency/inbox`). Encher isto com
-                  texto fabricado seria a tela mentindo sobre uma capacidade
-                  que a casa não tem. */}
-              <div className="ct-vazio">
-                <strong>O canal interno ainda não está ligado</strong>
-                <span>
-                  As mensagens que existem hoje são as trocadas com o cliente, e elas moram
-                  na Caixa de entrada. Quando o canal interno entrar, a conversa com o
-                  Project Manager aparece aqui, presa à tarefa que a originou.
-                </span>
-                <Link href="/agency/inbox">Abrir Caixa de entrada</Link>
-              </div>
-            </div>
-
-            <div className="chat-composer">
-              <textarea placeholder="Canal interno indisponível — use a Caixa de entrada" disabled />
-              <button aria-label="Enviar" disabled><Icone nome="send" tamanho={18} /></button>
-            </div>
-          </aside>
-        </div>
-      ) : null}
+      {/* A gaveta "Falar com o PM" saiu junto com a barra (15/08/2026). Ela era
+       *  alcançável SÓ por aquele botão, e o que ela mostrava era o estado vazio
+       *  honesto "o canal interno ainda não está ligado — use a Caixa de
+       *  entrada". Sem a barra, restava um caminho de dois toques para uma
+       *  mensagem que a Caixa de entrada (item do menu lateral) já dá em um.
+       *  Quando o canal interno existir de verdade, ele nasce como tela, não
+       *  como gaveta pendurada num cabeçalho. */}
 
       {/* ── Mapa da agência ─────────────────────────────────────────────── */}
       {mapaAberto && leitura ? (
