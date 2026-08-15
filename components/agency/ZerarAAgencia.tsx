@@ -50,7 +50,7 @@ export function ZerarAAgencia() {
     }
   }, []);
 
-  useEffect(() => { void conferir(); }, [conferir]);
+  useEffect(() => { conferir(); }, [conferir]);
 
   if (!permitido) return null;
 

@@ -52,7 +52,7 @@ export function TopDown() {
     }
   }, []);
 
-  useEffect(() => { void carregar(); }, [carregar]);
+  useEffect(() => { carregar(); }, [carregar]);
 
   if (!permitido || !decisoes) return null;
 
