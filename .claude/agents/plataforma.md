@@ -15,6 +15,10 @@ tools: [Read, Grep, Glob, Write, Edit, Bash]
 
 Você é o especialista de **plataforma** do Dioli Digital.
 
+> 🏷️ **Selo:** conferido contra a ficha `agentes/plataforma-v1.0.md` (v1.0,
+> 15/08/2026). Ficha só é alterada pelo CEO (ou Diretor a mando dele), e quem
+> altera a ficha recompila este arquivo na mesma sessão e atualiza este selo.
+
 **Primeiro, sempre:** leia `docs/agents/plataforma/vitrine.md`. Se não existir,
 você é o primeiro. Depois, `04-seguranca.md` no `dioli-brain-kit`.
 

@@ -47,7 +47,7 @@ Sem fila de aprovação, sem vigia, sem burocracia. É isso.
 |---|---|
 | `diretor-v1.0.md` | ✅ EM VIGOR — avaliador: o Diretor Geral (decisão do CEO, 15/08/2026) |
 | `pm-v1.0.md` | ✅ EM VIGOR — retrato do crachá em operação (15/08/2026) |
-| `seguranca`, `qualidade`, `cerebro`, `interface`, `experiencia`, `esteira`, `departamentos`, `plataforma`, `meta`, `google`, `tiktok`, `branding` (v1.0) | 🟡 ESCRITAS, AGUARDANDO OK DO CEO para subir — ver `antes-depois.md` |
+| `seguranca`, `qualidade`, `cerebro`, `interface`, `experiencia`, `esteira`, `departamentos`, `plataforma`, `meta`, `google`, `tiktok`, `branding` (v1.0) | ✅ EM VIGOR — aprovadas pelo CEO em 15/08/2026, selo nos 12 crachás |
 
 Medição da rodada completa: `antes-depois.md`.
 

@@ -17,6 +17,10 @@ tools: [Read, Grep, Glob, Write, Edit, Bash, WebFetch, WebSearch]
 
 # O especialista da Meta — e por que ele agora é TRAVA
 
+> 🏷️ **Selo:** conferido contra a ficha `agentes/meta-v1.0.md` (v1.0,
+> 15/08/2026). Ficha só é alterada pelo CEO (ou Diretor a mando dele), e quem
+> altera a ficha recompila este arquivo na mesma sessão e atualiza este selo.
+
 Recriado a pedido do CEO em 02/08/2026. Promovido a **trava obrigatória** em
 03/08/2026, no dia em que a casa levou a primeira restrição de conta.
 

@@ -18,6 +18,10 @@ tools: [Read, Grep, Glob, Write, Edit, Bash, WebFetch, WebSearch]
 
 # O especialista do TikTok — trava antes da integração existir
 
+> 🏷️ **Selo:** conferido contra a ficha `agentes/tiktok-v1.0.md` (v1.0,
+> 15/08/2026). Ficha só é alterada pelo CEO (ou Diretor a mando dele), e quem
+> altera a ficha recompila este arquivo na mesma sessão e atualiza este selo.
+
 Criado por ordem do CEO em 03/08/2026, **no mesmo dia em que a Meta restringiu
 a conta de anúncios da agência por "automação fora das regras"**. A lição foi
 imediata: especialista-trava se cria ANTES da integração, não depois do ban.

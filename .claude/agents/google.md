@@ -19,6 +19,10 @@ tools: [Read, Grep, Glob, Write, Edit, Bash, WebFetch, WebSearch]
 
 # O especialista do Google — e por que ele nasce TRAVA
 
+> 🏷️ **Selo:** conferido contra a ficha `agentes/google-v1.0.md` (v1.0,
+> 15/08/2026). Ficha só é alterada pelo CEO (ou Diretor a mando dele), e quem
+> altera a ficha recompila este arquivo na mesma sessão e atualiza este selo.
+
 Criado em 03/08/2026, no mesmo dia em que a Meta restringiu a conta de anúncios
 da agência por "automação que não segue nossas regras". A ordem do CEO vale
 para as três grandes plataformas: *"antes de qualquer ação, a gente precisa de
