@@ -33,6 +33,9 @@ export function ZerarAAgencia() {
   const [ocupado, setOcupado]     = useState(false);
   const [pronto, setPronto]       = useState<Contagem | null>(null);
   const [liberadoNoAmbiente, setLiberadoNoAmbiente] = useState<boolean | null>(null);
+  const [copia, setCopia]         = useState<{ horasDesdeOUltimo: number | null; ultimo?: string | null } | null>(null);
+  const [copiando, setCopiando]   = useState(false);
+  const [copiaFeita, setCopiaFeita] = useState<string | null>(null);
 
   const conferir = useCallback(async () => {
     try {
@@ -45,6 +48,12 @@ export function ZerarAAgencia() {
       // evita o CEO digitar a frase, clicar, e so entao descobrir que faltava
       // uma chave que ele nao ve.
       setLiberadoNoAmbiente(corpo.resetEnabled === true);
+
+      // A idade da ultima copia entra na MESMA tela do botao que apaga. Ver
+      // "ultima copia ha 4h" ao lado de "isto nao tem volta" e o que
+      // transforma um clique em decisao.
+      const b = await fetch("/api/backup");
+      if (b.ok) setCopia(await b.json());
     } catch {
       setPermitido(false);
     }
@@ -57,6 +66,22 @@ export function ZerarAAgencia() {
   const linhas = Object.entries(antes ?? {})
     .filter(([, v]) => typeof v === "number" && v > 0)
     .sort((a, b) => Number(b[1]) - Number(a[1]));
+
+  async function fazerCopia() {
+    setCopiando(true);
+    setErro(null);
+    try {
+      const r = await fetch("/api/backup", { method: "POST" });
+      const corpo = await r.json().catch(() => ({}));
+      if (!r.ok) { setErro(corpo?.error ?? "não foi possível fazer a cópia"); setCopiando(false); return; }
+      setCopiaFeita(corpo?.arquivo ?? "cópia feita agora");
+      setCopiando(false);
+      await conferir();
+    } catch {
+      setErro("não foi possível falar com o servidor");
+      setCopiando(false);
+    }
+  }
 
   async function zerar() {
     setOcupado(true);
@@ -128,6 +153,30 @@ export function ZerarAAgencia() {
           Agência zerada. Pode começar pelo SDR.
         </p>
       )}
+
+      {/* A COPIA VEM ANTES DO BOTAO, na ordem em que se faz. Zerar sem copia
+          fresca e o unico erro desta tela que nao tem conserto. */}
+      <div className="mt-4 border border-[var(--border)] rounded-[10px] p-4">
+        <div className="text-[13px] font-medium text-[var(--text-primary)]">
+          Cópia de segurança
+        </div>
+        <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+          {copiaFeita
+            ? "Cópia feita agora — o estado deste minuto está guardado."
+            : copia?.horasDesdeOUltimo == null
+              ? "Não há cópia registrada. Faça uma antes de zerar."
+              : copia.horasDesdeOUltimo >= 1
+                ? `Última cópia há ${Math.round(copia.horasDesdeOUltimo)}h — tudo que entrou depois dela NÃO está guardado.`
+                : "Última cópia há menos de 1h."}
+        </p>
+        <button
+          onClick={fazerCopia}
+          disabled={copiando}
+          className="mt-3 text-[13px] px-3.5 py-2 rounded-[8px] border border-[var(--border)] text-[var(--text-primary)] disabled:opacity-40"
+        >
+          {copiando ? "Copiando…" : "Fazer cópia agora"}
+        </button>
+      </div>
 
       <button
         onClick={() => { setAberto(true); setErro(null); }}
