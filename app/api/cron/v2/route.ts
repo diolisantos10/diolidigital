@@ -7,21 +7,15 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { processarOutbox, type ArmazemDeOutbox, type Executor } from "@/lib/agency/v2-recovery/processador-outbox";
+import { processarOutbox, type ArmazemDeOutbox } from "@/lib/agency/v2-recovery/processador-outbox";
+import { EXECUTORES_DE_SAIDA } from "@/lib/agency/v2-recovery/executores-de-saida";
 import { detectarAusencias, RELOGIOS_ESPERADOS } from "@/lib/agency/v2-recovery/heartbeat";
 import { detectarParados, type ItemMonitorado } from "@/lib/agency/v2-recovery/detector-de-parados";
 
-/** Executores por tipo de efeito. Tipo sem executor vira falha declarada →
- *  retry → fila morta: efeito novo só nasce quando o executor dele existir. */
-const EXECUTORES: Record<string, Executor> = {
-  // O primeiro executor real: um registro de log estruturado — usado pelos
-  // testes de ponta e pelo piloto sintético do M7. Efeitos com consequência
-  // externa (mensagem, publicação) ganham executor quando o fluxo que os
-  // enfileira for ligado por flag, nunca antes.
-  registro_de_teste: async (payload, correlationId) => {
-    console.log("[cron/v2] efeito de teste processado", { payload, correlationId });
-  },
-};
+// Os executores por tipo de efeito moram em `lib/agency/v2-recovery/
+// executores-de-saida.ts` — registro ÚNICO, exportado, para que a trava de CI
+// leia o mapa EFETIVO em vez de adivinhar chaves no código-fonte. Não declare
+// um segundo mapa aqui: há teste que reprova.
 
 function armazemDePrisma(): ArmazemDeOutbox {
   return {
@@ -67,7 +61,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   });
 
   // 2. O outbox.
-  const outbox = await processarOutbox(EXECUTORES, armazemDePrisma(), agora);
+  const outbox = await processarOutbox(EXECUTORES_DE_SAIDA, armazemDePrisma(), agora);
 
   // 3. Relógios ausentes.
   const batidas = await prisma.heartbeatDoRelogio.findMany();

@@ -15,11 +15,26 @@
 // controle. Sem segredo configurado, o caminho por token nem abre.
 //
 // ⚠️ TODA ação daqui é recortada por WORKSPACE, e é o ponto desta rota.
-// `clienteId` vem do CORPO da requisição; sem o recorte, quem tem a porta
-// aberta escolhe o cliente de qualquer casa e a consequência é real: `ciclo`
-// roda a cadeia de IA inteira (gasta dinheiro), cria `ClientRequest` e termina
-// em `createApprovalRequest({ clientVisible: true })` — card no portal do
-// cliente. `status` despejava execução, recusa e handoff de todo mundo.
+// Esta rota aceita DOIS ids vindos do CORPO da requisição, e os DOIS têm dono:
+//
+//   • `clienteId`        → `prisma.client.findFirst({ id, workspaceId })`;
+//   • `clientRequestId`  → `solicitacaoDoWorkspace()`, a política única da casa
+//                          (`lib/auth/posse-de-workspace.ts`).
+//
+// Sem o recorte, quem tem a porta aberta escolhe o registro de qualquer casa e
+// a consequência é real: `ciclo` roda a cadeia de IA inteira (gasta dinheiro),
+// cria `ClientRequest` e termina em `createApprovalRequest({ clientVisible:
+// true })` — card no portal do cliente. `status` despejava execução, recusa e
+// handoff de todo mundo.
+//
+// 🔴 O SEGUNDO id ficou de fora do conserto de 15/08 pela manhã, e a frase
+// acima já afirmava "TODA ação" enquanto isso era falso. Medido em cópia
+// isolada, com o `clienteId` já recortado: diretor da casa A + cliente da casa
+// A + `clientRequestId` da casa B respondia **200**, correlação
+// `assistido:cli-a:req-da-casa-b`, o pedido da casa B carimbado `in_progress`
+// — e o ciclo rodando SEM registro de entrada na própria casa, que é buraco de
+// auditoria além de escrita alheia. Afirmação falsa em comentário é o que
+// produz o defeito seguinte: quem lê acredita e não confere.
 //
 // 🔴 O SEGREDO DO RELÓGIO NÃO ABRE ESTA PORTA — e isso é conserto, não estilo.
 // Até 15/08/2026 o fallback era `PILOTO_SECRET || CRON_SECRET`: quem tivesse o
@@ -39,6 +54,7 @@ import { realizarComIA } from "@/lib/agency/esteira-assistida/adaptador-de-ia";
 import { armazemDeHandoffsNoBanco } from "@/lib/agency/handoff-v2/armazem-prisma";
 import { createClientRequest } from "@/lib/agency/persistence/client-request-service";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
+import { solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import type { PerfilOrganizacional } from "@/lib/agency/organizacao/autoridade";
 
 export const maxDuration = 300;
@@ -157,16 +173,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // A solicitação entra pelo caminho oficial (rastro desde a porta) — ou
     // retoma a que já entrou, quando o operador está continuando um ciclo.
-    const registroDeEntrada = corpo.clientRequestId
-      ? { id: corpo.clientRequestId }
-      : await createClientRequest({
-          workspaceId: cliente.workspaceId,
-          clientId: cliente.id,
-          businessName: cliente.name,
-          rawContext: solicitacao,
-          source: "esteira-assistida",
-          status: "new",
-        });
+    //
+    // 🔒 O SEGUNDO RECORTE. `clientRequestId` também chega do corpo e também é
+    // um id global. Sem esta conferência, retomar era o caminho para carimbar
+    // `in_progress` no pedido de outra casa e para rodar o ciclo inteiro sem
+    // registro de entrada na própria — escrita alheia e buraco de auditoria no
+    // mesmo gesto.
+    //
+    // A política é a que JÁ EXISTE (`solicitacaoDoWorkspace`), não uma segunda:
+    // ela trata a solicitação órfã (`workspaceId` nulo, legítima em briefing
+    // público antigo) pela regra única da casa, em vez de fechar por acidente
+    // ou abrir por descuido. E a recusa é a MESMA de id inexistente, de
+    // propósito: mensagem diferente conta a quem tenta que o id existe.
+    let registroDeEntrada: { id: string };
+    if (corpo.clientRequestId) {
+      const daCasa = await solicitacaoDoWorkspace(corpo.clientRequestId, auth.workspaceId);
+      if (!daCasa) {
+        return NextResponse.json({ error: "clientRequestId não existe" }, { status: 404 });
+      }
+      registroDeEntrada = { id: corpo.clientRequestId };
+    } else {
+      registroDeEntrada = await createClientRequest({
+        workspaceId: cliente.workspaceId,
+        clientId: cliente.id,
+        businessName: cliente.name,
+        rawContext: solicitacao,
+        source: "esteira-assistida",
+        status: "new",
+      });
+    }
 
     const correlationId = `assistido:${cliente.id}:${registroDeEntrada.id}`;
 
