@@ -214,7 +214,14 @@ export function ApprovalsTab({ view, perms, setTab }: PropsDaAba) {
         </article>
 
         <aside>
-          <article className="card permissionMap">
+          {/* ⚠️ NÃO usar a classe `permissionMap` aqui, por mais que o card
+              pareça o mesmo. A folha aprovada trava `.permissionMap > div` em
+              `height: 34px; display: flex` — que é certo para uma linha de
+              "quem pode o quê", e errado para um parágrafo. Reaproveitar a
+              classe pela aparência fez o texto dos quatro caminhos vazar por
+              cima da etiqueta. A explicação de "reprovar e refazer" tem três
+              linhas de propósito; ela não cabe numa linha de tabela. */}
+          <article className="card caminhosDaDecisao">
             <Head over="OS QUATRO CAMINHOS" title="E o que cada um faz de diferente" />
             {CAMINHOS.map((c) => (
               <div className="caminhoDaDecisao" key={c.rotulo}>

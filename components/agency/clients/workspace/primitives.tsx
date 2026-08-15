@@ -50,9 +50,15 @@ export type AcaoProps =
 export function Acao(props: AcaoProps) {
   const { children, className = "", ariaLabel } = props;
 
+  // ⚠️ `acaoLink` NÃO É DECORAÇÃO. Sem ela, o `<Link>` sai com o tamanho de
+  // fonte padrão do navegador (14px) enquanto o `<button>` ao lado sai com 6px,
+  // porque a folha reseta `font: inherit` só para `button` e `textarea`. Medido:
+  // "Abrir →" saía 2,3× maior que "Ver aprovações" na mesma linha. Duas ações
+  // do mesmo peso com tamanhos diferentes leem-se como hierarquia, e não havia
+  // hierarquia nenhuma ali.
   if ("href" in props && props.href) {
     return (
-      <Link className={className} href={props.href} aria-label={ariaLabel}>
+      <Link className={("acaoLink " + className).trim()} href={props.href} aria-label={ariaLabel}>
         {children}
       </Link>
     );

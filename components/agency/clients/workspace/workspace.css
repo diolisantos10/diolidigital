@@ -5053,7 +5053,7 @@
 .dioliOS .motivoIndisponivel {
   display: block;
   margin-top: 4px;
-  font-size: 10px;
+  font-size: 5px;
   line-height: 1.35;
   font-style: normal;
   font-weight: 400;
@@ -5080,16 +5080,16 @@
 }
 .dioliOS .strategyDl > div:last-child { border-bottom: 0; padding-bottom: 0; }
 .dioliOS .strategyDl dt {
-  font-size: 10px;
+  font-size: 5px;
   letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 4px;
 }
-.dioliOS .strategyDl dd { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink); }
-.dioliOS .strategyDl small { display: block; margin-top: 4px; font-size: 10px; color: var(--muted); }
+.dioliOS .strategyDl dd { margin: 0; font-size: 8px; line-height: 1.5; color: var(--ink); }
+.dioliOS .strategyDl small { display: block; margin-top: 4px; font-size: 5px; color: var(--muted); }
 .dioliOS .strategyStatement {
-  font-size: 15px;
+  font-size: 10px;
   line-height: 1.6;
   color: var(--ink);
   margin: 8px 0 0;
@@ -5109,8 +5109,15 @@
   text-align: left;
 }
 .dioliOS .strategyRelations button:hover { border-color: var(--cyan); }
-.dioliOS .strategyRelations b { display: block; font-size: 13px; }
-.dioliOS .strategyRelations small { display: block; font-size: 11px; color: var(--muted); }
+/* ⚠️ ESCOPADO NO `button` DE PROPÓSITO.
+   Escrito como `.strategyRelations small`, este bloco tinha a MESMA
+   especificidade de `.head small` e vinha depois na folha — então vencia, e o
+   "RELAÇÃO COM AS OUTRAS ÁREAS" do cabeçalho do card saía com 11px enquanto
+   "NORTE DO CLIENTE", ao lado, saía com 5px. Dois cabeçalhos do mesmo tipo com
+   tamanhos diferentes na mesma tela. Achado medindo `getComputedStyle`, não
+   olhando: a 5px a diferença passa por "acho que está igual". */
+.dioliOS .strategyRelations button b { display: block; font-size: 8px; }
+.dioliOS .strategyRelations button small { display: block; font-size: 6px; color: var(--muted); }
 .dioliOS .strategyRoom {
   padding: 14px 0;
   border-bottom: 1px solid var(--line);
@@ -5122,13 +5129,13 @@
   gap: 10px;
   margin-bottom: 8px;
 }
-.dioliOS .strategyRoom p { font-size: 13px; line-height: 1.55; margin: 0 0 10px; }
+.dioliOS .strategyRoom p { font-size: 8px; line-height: 1.55; margin: 0 0 10px; }
 .dioliOS .strategyRoom p.noData { color: var(--muted); font-style: italic; }
 .dioliOS .strategyRoom footer {
   display: flex;
   align-items: center;
   gap: 14px;
-  font-size: 11px;
+  font-size: 6px;
   color: var(--muted);
 }
 .dioliOS .riskRow {
@@ -5139,8 +5146,8 @@
   border-bottom: 1px solid var(--line);
 }
 .dioliOS .riskRow:last-child { border-bottom: 0; }
-.dioliOS .riskRow b { display: block; font-size: 13px; }
-.dioliOS .riskRow small { display: block; font-size: 11px; color: var(--muted); }
+.dioliOS .riskRow b { display: block; font-size: 8px; }
+.dioliOS .riskRow small { display: block; font-size: 6px; color: var(--muted); }
 .dioliOS .riskRow > span { flex: 1; }
 
 /* ── Aprovações ─────────────────────────────────────────────────────────── */
@@ -5168,11 +5175,11 @@
   margin-bottom: 12px;
 }
 .dioliOS .approvalCard header > span:first-child { flex: 1; }
-.dioliOS .approvalCard header b { display: block; font-size: 14px; }
-.dioliOS .approvalCard header small { display: block; font-size: 11px; color: var(--muted); }
+.dioliOS .approvalCard header b { display: block; font-size: 9px; }
+.dioliOS .approvalCard header small { display: block; font-size: 6px; color: var(--muted); }
 .dioliOS .approvalCard header em {
   font-style: normal;
-  font-size: 11px;
+  font-size: 6px;
   color: var(--muted);
   white-space: nowrap;
 }
@@ -5187,8 +5194,8 @@
   border: 1px solid var(--line);
 }
 .dioliOS .approvalContent > span { flex: 1; }
-.dioliOS .approvalContent b { display: block; font-size: 13px; }
-.dioliOS .approvalContent small { display: block; font-size: 11px; color: var(--muted); }
+.dioliOS .approvalContent b { display: block; font-size: 8px; }
+.dioliOS .approvalContent small { display: block; font-size: 6px; color: var(--muted); }
 /* Card sem peça: vermelho, e sem caminho de decisão. */
 .dioliOS .approvalContent.semConteudo {
   border-color: var(--red, #e5484d);
@@ -5199,13 +5206,13 @@
   margin: 10px 0 0;
   padding: 10px 12px;
   border-left: 2px solid var(--line);
-  font-size: 12px;
+  font-size: 7px;
   line-height: 1.55;
   color: var(--ink2, var(--ink));
 }
 .dioliOS .approvalNote small {
   display: block;
-  font-size: 10px;
+  font-size: 5px;
   letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -5218,11 +5225,19 @@
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid var(--line);
-  font-size: 11px;
+  font-size: 6px;
   color: var(--muted);
 }
 .dioliOS .approvalCard footer > span:first-child { flex: 1; }
+/* Card próprio, e não `permissionMap`: aqui cada item é um PARÁGRAFO, não uma
+   linha de tabela de 34px. Ver o comentário em `ApprovalsTab.tsx`. */
+.dioliOS .caminhosDaDecisao > div:not(.head) {
+  display: block;
+  height: auto;
+}
 .dioliOS .caminhoDaDecisao {
+  display: block;
+  height: auto;
   padding: 10px 0;
   border-bottom: 1px solid var(--line);
 }
@@ -5230,7 +5245,7 @@
 .dioliOS .caminhoDaDecisao small {
   display: block;
   margin-top: 6px;
-  font-size: 11px;
+  font-size: 6px;
   line-height: 1.5;
   color: var(--muted);
 }
@@ -5253,16 +5268,16 @@
 }
 .dioliOS .deliveryRow > i.done { background: var(--green, #30a46c); }
 .dioliOS .deliveryRow > i.medium { background: var(--amber, #ffb224); }
-.dioliOS .deliveryRow b { display: block; font-size: 13px; }
-.dioliOS .deliveryRow small { display: block; font-size: 11px; color: var(--muted); }
-.dioliOS .deliveryRow strong { font-size: 12px; white-space: nowrap; }
+.dioliOS .deliveryRow b { display: block; font-size: 8px; }
+.dioliOS .deliveryRow small { display: block; font-size: 6px; color: var(--muted); }
+.dioliOS .deliveryRow strong { font-size: 7px; white-space: nowrap; }
 .dioliOS .deliveryRow strong em {
   display: block;
   font-style: normal;
-  font-size: 10px;
+  font-size: 5px;
   color: var(--muted);
 }
-.dioliOS .deliveryRow time { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.dioliOS .deliveryRow time { font-size: 6px; color: var(--muted); white-space: nowrap; }
 .dioliOS .deliveryFilters {
   display: flex;
   align-items: center;
@@ -5276,7 +5291,7 @@
   border-radius: 10px;
   background: transparent;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 7px;
   font-family: inherit;
 }
 .dioliOS .deliveryFilters input:focus {
@@ -5284,7 +5299,7 @@
   outline-offset: 1px;
   border-color: var(--cyan);
 }
-.dioliOS .deliveryFilters > span { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.dioliOS .deliveryFilters > span { font-size: 6px; color: var(--muted); white-space: nowrap; }
 .dioliOS .deliveryGroups { display: grid; gap: 16px; }
 
 /* ── O celular manda: 375px ──────────────────────────────────────────────
@@ -5306,4 +5321,139 @@
   .dioliOS .approvalCard footer { flex-wrap: wrap; row-gap: 8px; }
   .dioliOS .strategyRoom footer { flex-wrap: wrap; row-gap: 6px; }
   .dioliOS .motivoIndisponivel { max-width: 100%; }
+}
+
+
+/* ── O ESPELHO LEGÍVEL DOS BLOCOS NOVOS ─────────────────────────────────────
+   As regras acima seguem a ESCALA DA REFERÊNCIA (5–9px de corpo), e não a
+   escala que eu teria escolhido. É de propósito: um produto com Estratégia,
+   Aprovações e Entregas em 13px e as outras nove abas em 6px não é "as novas
+   mais legíveis" — é a mesma tela desenhada em duas escalas, e o olho lê isso
+   como defeito antes de ler como melhoria.
+
+   O bloco `ccTextoLegivel` acima é a PROPOSTA que espera decisão do CEO. Estas
+   regras existem para que, no dia em que ele decidir, o interruptor mova as
+   DOZE abas juntas — inclusive as três que nasceram aqui. Sem elas, aprovar a
+   escala legível deixaria as novas para trás, e o defeito só apareceria depois.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.dioliOS.ccTextoLegivel .motivoIndisponivel {
+  font-size: 10px;
+}
+.dioliOS.ccTextoLegivel .strategyDl dt {
+  font-size: 10px;
+}
+.dioliOS.ccTextoLegivel .strategyDl dd {
+  font-size: 13px;
+}
+.dioliOS.ccTextoLegivel .strategyDl small {
+  font-size: 10px;
+}
+.dioliOS.ccTextoLegivel .strategyStatement {
+  font-size: 15px;
+}
+.dioliOS.ccTextoLegivel .strategyRelations button b {
+  font-size: 13px;
+}
+.dioliOS.ccTextoLegivel .strategyRelations button small {
+  font-size: 11px;
+}
+.dioliOS.ccTextoLegivel .strategyRoom p {
+  font-size: 13px;
+}
+.dioliOS.ccTextoLegivel .strategyRoom footer {
+  font-size: 11px;
+}
+.dioliOS.ccTextoLegivel .riskRow b {
+  font-size: 13px;
+}
+.dioliOS.ccTextoLegivel .riskRow small {
+  font-size: 11px;
+}
+.dioliOS.ccTextoLegivel .approvalCard header b {
+  font-size: 14px;
+}
+.dioliOS.ccTextoLegivel .approvalCard header small {
+  font-size: 11px;
+}
+.dioliOS.ccTextoLegivel .approvalCard header em {
+  font-size: 11px;
+}
+.dioliOS.ccTextoLegivel .approvalContent b {
+  font-size: 13px;
+}
+.dioliOS.ccTextoLegivel .approvalContent small {
+  font-size: 11px;
+}
+.dioliOS.ccTextoLegivel .approvalNote {
+  font-size: 12px;
+}
+.dioliOS.ccTextoLegivel .approvalNote small {
+  font-size: 10px;
+}
+.dioliOS.ccTextoLegivel .approvalCard footer {
+  font-size: 11px;
+}
+.dioliOS.ccTextoLegivel .caminhoDaDecisao small {
+  font-size: 11px;
+}
+.dioliOS.ccTextoLegivel .deliveryRow b {
+  font-size: 13px;
+}
+.dioliOS.ccTextoLegivel .deliveryRow small {
+  font-size: 11px;
+}
+.dioliOS.ccTextoLegivel .deliveryRow strong {
+  font-size: 12px;
+}
+.dioliOS.ccTextoLegivel .deliveryRow strong em {
+  font-size: 10px;
+}
+.dioliOS.ccTextoLegivel .deliveryRow time {
+  font-size: 11px;
+}
+.dioliOS.ccTextoLegivel .deliveryFilters input {
+  font-size: 12px;
+}
+.dioliOS.ccTextoLegivel .deliveryFilters > span {
+  font-size: 11px;
+}
+
+/* O link de ação recebe o MESMO reset que a folha dá ao botão, e o MESMO
+   tamanho das ações vizinhas dentro de cada bloco novo.
+   
+   `font: inherit` sozinho NÃO resolvia: as linhas destes blocos não declaram
+   font-size, então o link herdava os 14px da raiz enquanto o botão ao lado
+   ficava em 6px por regra própria. Medido com `getComputedStyle` — a olho, a
+   esta escala, a diferença passa por "acho que está igual". */
+.dioliOS .acaoLink {
+  font: inherit;
+  color: inherit;
+}
+.dioliOS .deliveryRow .acaoLink,
+.dioliOS .deliveryRow button,
+.dioliOS .approvalCard footer .acaoLink,
+.dioliOS .approvalCard footer button,
+.dioliOS .approvalContent .acaoLink,
+.dioliOS .approvalContent button,
+.dioliOS .strategyRoom footer .acaoLink,
+.dioliOS .strategyRoom footer button,
+.dioliOS .strategyRelations button,
+.dioliOS .riskRow .acaoLink,
+.dioliOS .riskRow button {
+  font-size: 6px;
+  font-weight: 700;
+}
+.dioliOS.ccTextoLegivel .deliveryRow .acaoLink,
+.dioliOS.ccTextoLegivel .deliveryRow button,
+.dioliOS.ccTextoLegivel .approvalCard footer .acaoLink,
+.dioliOS.ccTextoLegivel .approvalCard footer button,
+.dioliOS.ccTextoLegivel .approvalContent .acaoLink,
+.dioliOS.ccTextoLegivel .approvalContent button,
+.dioliOS.ccTextoLegivel .strategyRoom footer .acaoLink,
+.dioliOS.ccTextoLegivel .strategyRoom footer button,
+.dioliOS.ccTextoLegivel .strategyRelations button,
+.dioliOS.ccTextoLegivel .riskRow .acaoLink,
+.dioliOS.ccTextoLegivel .riskRow button {
+  font-size: 11px;
 }

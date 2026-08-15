@@ -106,7 +106,11 @@ export function DesignTab({ view, perms, setTab }: PropsDaAba) {
         />
       ) : (
         <>
-          <Kpis items={view.areaMetrics.design} className="designKpis" />
+          {/* ⚠️ SEM a classe `designKpis`. Na folha aprovada ela veste uma GRADE
+              DE CARDS (`.designKpis > article.card`), não a faixa de KPI — e
+              aplicada aqui punha o número desta aba em 20px enquanto as outras
+              onze ficavam em 15px. Medido, não olhado. */}
+          <Kpis items={view.areaMetrics.design} />
           <div className="designFullGrid">
             <article className="card designBoard">
               <Head over="PRODUÇÃO CRIATIVA" title="Peças deste cliente" action={{ rotulo: "Ver entregas", onClick: () => setTab("deliveries") }} />
