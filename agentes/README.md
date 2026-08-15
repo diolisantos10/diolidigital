@@ -34,7 +34,7 @@ A partir de agora vale a ordem certa: **mudança de cargo começa pela ficha**
 
 | Ficha | Status |
 |---|---|
-| `diretor-v0.1.md` | 🟡 RASCUNHO — aguarda correção do dono de negócio (CEO) |
+| `diretor-v1.0.md` | ✅ EM VIGOR — avaliador: o Diretor Geral (decisão do CEO, 15/08/2026) |
 
 Os demais cargos (`pm`, especialistas) ganham ficha conforme a necessidade —
 começando pelos que têm mais poder de causar dano.

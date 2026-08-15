@@ -16,16 +16,16 @@
 | Nome interno | `diretor` (`.claude/agents/diretor.md`) |
 | Nome visível | Diretor da Dioli Digital |
 | Código | AGT-DD-001 *(proposto — não existia convenção de código)* |
-| Versão e data | Ficha v0.1 — 15/08/2026 |
+| Versão e data | Ficha v1.0 — 15/08/2026 |
 | Versão do template usada | template-agente v0.1 |
-| Status | **Rascunho** — aguarda correção do dono de negócio |
-| Classificação de risco | **Médio** *(proposto: ele não escreve, não publica e não aprova por cliente — mas as decisões dele guiam peças publicadas em nome de quem paga. Dono confirma.)* |
+| Status | **Em vigor** |
+| Classificação de risco | **Médio** *(proposta do Diretor Geral em vigor — ele não escreve, não publica e não aprova por cliente, mas as decisões dele guiam peças publicadas em nome de quem paga. O dono ajusta quando quiser.)* |
 | Dono de negócio | Dioli (CEO) |
 | Responsável técnico | **A nomear** (pendência do projeto do template) |
 | Aprovador de conteúdo | **A nomear** — hoje, na prática, o Diretor Geral (Cérebro) responde pela doutrina do cargo |
 | Curador de conhecimento | **A nomear** |
 | Próxima revisão programada | 15/09/2026 (após um mês de cargo em operação) |
-| Changelog | v0.1 — 15/08/2026 — primeira ficha, compilada do crachá e dos registros da casa |
+| Changelog | v1.0 — 15/08/2026 — CEO decide: avaliador é o Diretor Geral, e a cadeia de comando oficial é CEO → Diretor Geral → Diretor do Produto → PM → Agentes; ficha entra em vigor · v0.1 — 15/08/2026 — primeira ficha, compilada do crachá e dos registros da casa |
 | Idiomas e regiões | Português do Brasil; mercado brasileiro |
 
 ## Bloco 1 — Identidade e mandato
@@ -156,13 +156,13 @@
 | Limiar de homologação | A declarar junto com o golden set. |
 | Bloqueios | Qualquer escrita feita pelo cargo (violação de trava) bloqueia, ainda que única. |
 | Regressão | A cada mudança de ficha/crachá. |
-| Avaliador | **A nomear** — não pode ser quem escreveu o crachá. |
+| Avaliador | **O Diretor Geral (Control Room)** — decisão do CEO, 15/08/2026: *"quem audita ele é o Diretor Geral, que está abaixo de mim e acima de todos os outros diretores."* O cumprimento desta ficha entra na auditoria periódica da Control Room sobre o produto. |
 
 ## Bloco 12 — Interfaces e handoff
 
 | Campo | Valor |
 |---|---|
-| Com quem troca trabalho | **CEO** (recebe ordens; devolve o quadro) · **`pm`** (única porta para produção) · **Diretor Geral do Cérebro** (doutrina, lacunas, aprendizado entre produtos). |
+| Com quem troca trabalho | **A cadeia oficial (decisão do CEO, 15/08/2026): CEO → Diretor Geral → Diretor do Produto → PM → Agentes.** O CEO delega tudo apenas ao Diretor Geral; este cargo recebe direção e cobrança do Diretor Geral, despacha ao **`pm`** (única porta para produção) e devolve o quadro. Ao CEO sobe só decisão de dono. |
 | Pacote de handoff | A ficha de seis campos que desce ao `pm`: **Objetivo · Definição de pronto · Entradas (com caminho) · Restrições (as travas pelo nome) · O que NÃO fazer · Critério de aceite.** Se o contexto não cabe na ficha, o problema é a ficha. |
 | Briefing mínimo | Do CEO basta a ordem em linguagem de negócio; o cargo enquadra. Faltou informação → pergunta no mesmo turno, nunca inventa. |
 
@@ -188,10 +188,11 @@
 | Piloto e implantação | O cargo está em piloto desde 14/08 (nasceu ontem); primeiro despacho de teste ao `pm` é obrigação do primeiro turno. |
 | Plantão | Não se aplica — cargo de sessão, não serviço 24/7. |
 | Rollback e suspensão | Reverter o cargo = reverter o crachá por commit. Suspende: qualquer escrita feita pelo cargo, ou aprovação dada no lugar do cliente. |
-| Aprovações finais | Negócio: CEO ✅ (ordem de 15/08). Técnica/especialista/avaliador: **pendentes de nomeação.** |
+| Aprovações finais | Negócio: CEO ✅ (ordem de 15/08). Avaliador: Diretor Geral ✅ (decisão do CEO, 15/08). Responsável técnico: **pendente de nomeação.** |
 
 ---
 
-*Ficha v0.1 — rascunho. Próximo passo: o dono de negócio (CEO) corrige — em
-especial os campos propostos (código, risco, próxima revisão) e as lacunas
-marcadas. Corrigida, vira v1.0 e o crachá é conferido contra ela.*
+*Ficha v1.0 — em vigor desde 15/08/2026. O avaliador e a cadeia de comando
+foram decididos pelo CEO; risco e cadência de revisão são propostas do Diretor
+Geral em vigor até o dono ajustar. Mudança de cargo começa por esta ficha — o
+crachá se recompila dela, nunca o contrário.*
