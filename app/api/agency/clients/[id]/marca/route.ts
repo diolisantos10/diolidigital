@@ -16,28 +16,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
-import { lerFichaDeMarca, proximasPerguntas, CAMPOS_DA_MARCA, type CampoDaMarca } from "@/lib/agency/esteira/ficha-de-marca";
+import {
+  lerFichaDeMarca, proximasPerguntas, CAMPOS_DA_MARCA,
+  COLUNA_DA_FICHA as COLUNA, COLUNA_EH_JSON as EH_JSON,
+  type CampoDaMarca,
+} from "@/lib/agency/esteira/ficha-de-marca";
 
 export const dynamic = "force-dynamic";
-
-/** Onde cada campo da ficha mora no banco. As proibições NÃO estão aqui: elas
- *  têm dono próprio (`esteira/proibicoes.ts`) e escrever por dois caminhos é
- *  como nasce a divergência. */
-const COLUNA: Partial<Record<CampoDaMarca, string>> = {
-  proposito_e_promessa: "purposeAndPromise",
-  publico_e_relacao: "audienceRelation",
-  voz: "voicePairsJson",
-  lexico: "lexiconJson",
-  referencias: "referencesJson",
-  atributos_formais: "formalTokensJson",
-  limites_de_promessa: "promiseLimits",
-  hierarquia_e_dono: "ownerAndHierarchyJson",
-};
-
-/** Campos guardados como JSON. Texto puro que chega para eles é embrulhado, em
- *  vez de gravado cru — senão a leitura seguinte quebra e o campo inteiro
- *  desaparece da ficha sem ninguém perceber. */
-const EH_JSON = new Set(["voicePairsJson", "lexiconJson", "referencesJson", "formalTokensJson", "ownerAndHierarchyJson"]);
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }): Promise<NextResponse> {
   const sessao = await getSession();

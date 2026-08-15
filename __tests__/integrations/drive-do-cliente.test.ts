@@ -32,6 +32,7 @@ import {
   ESCOPO_DRIVE,
   type ConexaoParaDecidir,
   type MaterialParaDecidir,
+  type MaterialNoRetrato,
 } from "@/lib/integrations/google/escolha-de-material";
 
 const AGORA = new Date("2026-08-07T12:00:00Z");
@@ -44,13 +45,17 @@ const CONEXAO_BOA: ConexaoParaDecidir = {
   temRefresh: true,
 };
 
-function material(over: Partial<MaterialParaDecidir> = {}): MaterialParaDecidir {
+function material(over: Partial<MaterialNoRetrato> = {}): MaterialNoRetrato {
   return {
     fileId: "file-1",
     nome: "logo-foocci.png",
     ehPasta: false,
     papel: "logo",
     papelConfirmadoEm: AGORA,
+    // 15/08/2026: `importado` passou a ser OBRIGATÓRIO no retrato. O padrão
+    // aqui é `true` porque a maioria destes casos fala da trava, não da
+    // importação — os casos de "declarado e não chegou" pedem `false` na mão.
+    importado: true,
     ...over,
   };
 }

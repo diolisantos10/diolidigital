@@ -93,6 +93,32 @@ export interface CampoNaFicha {
   pergunta: string | null;
 }
 
+/** Onde cada campo da ficha mora no banco.
+ *
+ *  Morava dentro de `app/api/agency/clients/[id]/marca/route.ts` e subiu para cá
+ *  em 15/08/2026, quando a aplicação do brand book passou a precisar do mesmo
+ *  mapa. Duas cópias divergem — uma ganha campo novo, a outra não, e a resposta
+ *  do cliente cai no lixo pelo caminho que ninguém olhou.
+ *
+ *  As PROIBIÇÕES não estão aqui: têm dono próprio (`esteira/proibicoes.ts`). */
+export const COLUNA_DA_FICHA: Partial<Record<CampoDaMarca, string>> = {
+  proposito_e_promessa: "purposeAndPromise",
+  publico_e_relacao: "audienceRelation",
+  voz: "voicePairsJson",
+  lexico: "lexiconJson",
+  referencias: "referencesJson",
+  atributos_formais: "formalTokensJson",
+  limites_de_promessa: "promiseLimits",
+  hierarquia_e_dono: "ownerAndHierarchyJson",
+};
+
+/** Colunas guardadas como JSON. Texto puro que chega para elas é embrulhado, em
+ *  vez de gravado cru — senão a leitura seguinte quebra e o campo inteiro some
+ *  da ficha sem ninguém perceber. */
+export const COLUNA_EH_JSON = new Set([
+  "voicePairsJson", "lexiconJson", "referencesJson", "formalTokensJson", "ownerAndHierarchyJson",
+]);
+
 export interface FichaDeMarca {
   clientId: string;
   campos: CampoNaFicha[];

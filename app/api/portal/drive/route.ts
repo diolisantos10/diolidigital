@@ -110,6 +110,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     materiais.map((m) => ({
       fileId: m.fileId, nome: m.nome, ehPasta: m.ehPasta,
       papel: m.papel, papelConfirmadoEm: m.papelConfirmadoEm,
+      // 15/08/2026: sem esta linha o retrato contava como "pronto para a equipe
+      // usar" o arquivo que a trava autorizou e que NUNCA chegou ao disco —
+      // enquanto `materiaisDeMarca` exige `mediaAssetId` para entregar
+      // qualquer coisa a uma peça. A tela dizia pronto; a peça saía sem o logo.
+      importado: !!m.mediaAssetId,
     })),
   );
 
