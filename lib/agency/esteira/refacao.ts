@@ -42,7 +42,7 @@ import { prisma } from "@/lib/db/client";
 import { renderizarEntrega, ESQUEMA_DA_ENTREGA } from "@/lib/agency/esteira/renderizar-entrega";
 import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { generate } from "@/lib/ai/generate";
-import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
+import { TODOS_OS_ESPECIALISTAS, conferirContrato } from "@/lib/agency/execution/especialistas";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import { lerProibicoes, registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
@@ -327,6 +327,24 @@ export async function refazerPorPedidoDoCliente(input: {
     if (corpo.length < 60) {
       saida.escalado = true;
       saida.motivo = "a refação saiu vazia";
+      continue;
+    }
+
+    // ── O CONTRATO DE SAÍDA VALE AQUI TAMBÉM ────────────────────────────────
+    //
+    // Este caminho tinha o piso e NÃO tinha o contrato. A diferença aparece no
+    // caso mais comum da refação: o cliente pede "muda só o gancho do primeiro"
+    // e o modelo devolve UM item — os outros dois somem. O piso aprova (nada
+    // foi inventado), o cliente pediu a mudança (não há árbitro), e a peça é
+    // gravada com um terço do que ele comprou.
+    //
+    // "O cliente mandou" vale para o CONTEÚDO, não para a contagem: ninguém
+    // pediu para receber menos. Encolheu, não grava — a versão que ele está
+    // vendo continua de pé e o caso vira decisão de gente, com o motivo.
+    const contrato = esp ? conferirContrato(esp, dados) : { cumpriu: true, violacoes: [] as string[] };
+    if (!contrato.cumpriu) {
+      saida.escalado = true;
+      saida.motivo = `a refação saiu fora do formato contratado (${contrato.violacoes.join("; ")})`;
       continue;
     }
 
