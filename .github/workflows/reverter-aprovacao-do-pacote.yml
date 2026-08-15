@@ -1,0 +1,175 @@
+name: Desfazer a aprovação do pacote (à mão)
+
+# ── O QUE ESTE BOTÃO FAZ (15/08/2026) ────────────────────────────────────────
+#
+# Ele **desfaz** o clique em "Aprovar as entregas prontas" no portal do cliente:
+# o carimbo `clientApprovedAt` do projeto volta a nulo e os cards que aquele
+# clique aprovou voltam a PENDENTE, sem autor e sem data. O cliente volta a ter
+# a decisão na mão, e a agência volta a esperar por ela.
+#
+# ── O QUE ELE NÃO TOCA ───────────────────────────────────────────────────────
+#
+# Aprovação de VERDADE do cliente (`client:<nome>`, tomada card a card no portal)
+# e carimbo de equipe (`equipe:<email>`) **ficam como estão**. O alvo é só a
+# grafia seca `"cliente"`, e só no MESMO INSTANTE do carimbo do projeto — as duas
+# coordenadas têm de bater. Desfazer demais apaga a assinatura de quem assinou.
+#
+# Ele também não mexe em peça: nenhum `SocialPost` muda de status, nada é
+# publicado, nenhuma plataforma é chamada.
+#
+# ── COMECE SEMPRE EM "MOSTRAR" ───────────────────────────────────────────────
+#
+# O padrão é `mostrar`: leitura pura. Ele lista, projeto por projeto e card por
+# card, o que MUDARIA — e o que ele se recusa a tocar, com o motivo de cada um.
+# Um "desfazer" que só diz quantas linhas mudou é o mesmo tipo de botão que criou
+# este problema. Leia a lista, e só então `aplicar`.
+#
+# ── POR QUE UM WORKFLOW, E NÃO UM TERMINAL ───────────────────────────────────
+#
+# A rota exige `Authorization: Bearer CRON_SECRET`. Esse segredo mora no Railway
+# e nos secrets deste repositório — e em nenhum outro lugar. Mesmo padrão de
+# `abrir-cards-de-aprovacao.yml`.
+#
+# ── IDEMPOTENTE ──────────────────────────────────────────────────────────────
+#
+# O projeto entra pela janela do `clientApprovedAt`; revertido, o carimbo é nulo
+# e ele não entra mais. Rodar duas vezes devolve "nada a reverter". As duas
+# escritas de cada projeto vão em transação — não existe meio-caminho.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: "Nome do cliente (ex.: CityJobs). UM por vez — nome ambíguo é recusado, nunca adivinhado."
+        required: true
+        default: "CityJobs"
+      acao:
+        description: "mostrar = leitura pura, nada é gravado (comece por aqui). aplicar = desfaz de verdade."
+        required: true
+        type: choice
+        options: ["mostrar", "aplicar"]
+        default: "mostrar"
+      autor:
+        description: "Quem está desfazendo. Vai para o registro — reversão sem autor não é reversão."
+        required: true
+        default: "Dioli (CEO)"
+      motivo:
+        description: "Por que se está desfazendo. Vai para o registro."
+        required: true
+        default: "Clique acidental no portal: o botão foi apertado para VER as peças, não para aprovar."
+      janela:
+        description: "Minutos para trás (padrão 240, teto 7 dias). Só entra aprovação carimbada nessa janela."
+        required: false
+        default: "240"
+
+jobs:
+  reverter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Mostrar ou desfazer a aprovação do pacote
+        run: |
+          # Segredo ausente NÃO passa verde. "Pulei" com exit 0 é um workflow que
+          # nunca chamou nada se declarando saudável.
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::CRON_SECRET não está nos secrets do repositório — nada foi desfeito."
+            exit 1
+          fi
+
+          cliente="${{ inputs.cliente }}"
+          autor="${{ inputs.autor }}"
+          motivo="${{ inputs.motivo }}"
+          if [ -z "$cliente" ] || [ -z "$autor" ] || [ -z "$motivo" ]; then
+            echo "::error::cliente, autor e motivo são todos obrigatórios. Reversão sem autor e sem motivo não deixa rastro que sirva a alguém."
+            exit 1
+          fi
+
+          url="https://dioli-agency-os-1-production.up.railway.app/api/admin/reverter-aprovacao-do-pacote"
+          # `--data-urlencode` com `-G`: nome, autor e motivo têm espaço e acento,
+          # e query montada à mão vira URL quebrada com recusa por defeito de aspas.
+          args=(--data-urlencode "cliente=$cliente" --data-urlencode "autor=$autor" --data-urlencode "motivo=$motivo")
+          if [ -n "${{ inputs.janela }}" ]; then
+            args+=(--data-urlencode "janela=${{ inputs.janela }}")
+          fi
+          if [ "${{ inputs.acao }}" = "aplicar" ]; then
+            args+=(--data-urlencode "aplicar=1")
+          fi
+
+          code=$(curl -s -o /tmp/reversao.json -w "%{http_code}" -G -X POST "$url" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${args[@]}")
+
+          # ⚠️ NÃO despejar o corpo. Ele traz id de projeto, id de card e nome de
+          # cliente, e o log de CI fica guardado 90 dias.
+          echo "HTTP $code"
+          jq -c '{situacao, cardsRevertidos, carimbosLimpos, janelaMinutos}' /tmp/reversao.json 2>/dev/null \
+            || echo "(resposta não-JSON, $(wc -c < /tmp/reversao.json) bytes — corpo omitido de propósito)"
+
+          # ── O QUE VAI MUDAR, PROJETO POR PROJETO ───────────────────────────
+          # Sem esta lista o operador aprova um número. Nome do projeto e
+          # departamento do card não são segredo — id, sim, e id não é impresso.
+          echo "— o que muda (por projeto):"
+          jq -r '(.projetos // []) | if length == 0 then "  (nenhum)" else .[] |
+                 "  · " + .projeto
+                 + " — carimbo do projeto: " + (if .limpaCarimboDoProjeto then "APAGA" else "mantém" end)
+                 + " · cards de volta a pendente: " + ((.reverte|length)|tostring)
+                 + " (" + ((.reverte | map(.department) | join(", ")) // "") + ")" end' \
+            /tmp/reversao.json 2>/dev/null || echo "  (resposta não-JSON)"
+
+          # ── E O QUE NÃO SE TOCA, COM O MOTIVO ──────────────────────────────
+          # Esta é a metade que prova que a reversão é estreita. Sem ela, "não
+          # varri aprovação legítima" é promessa; com ela, é evidência.
+          echo "— preservado (NÃO revertido), por motivo:"
+          jq -r '[(.projetos // [])[].preserva[]?] | if length == 0 then "  (nenhum carimbo do mesmo instante além do alvo)" else .[] |
+                 "  · " + .department + " [" + .leitura + "]: " + .motivo end' \
+            /tmp/reversao.json 2>/dev/null || echo "  (resposta não-JSON)"
+
+          echo "— peças deste cliente com aprovação client: (as únicas publicáveis):"
+          jq -r 'if .pecasLiberadasParaPublicar == null then "  (não consegui medir — e não sei nunca vira zero)" else "  " + (.pecasLiberadasParaPublicar|tostring) end' \
+            /tmp/reversao.json 2>/dev/null || echo "  (resposta não-JSON)"
+
+          echo "— veredito:"
+          jq -r '.veredito // .error // "(sem veredito)"' /tmp/reversao.json 2>/dev/null | sed 's/^/  /'
+
+          # 503 da NOSSA rota quer dizer uma coisa só: CRON_SECRET não existe no
+          # servidor. 503 do edge (deploy em curso) não traz essa frase.
+          if [ "$code" = "503" ]; then
+            if grep -qiE 'não configurad|not configured' /tmp/reversao.json; then
+              echo "::error::A produção respondeu 503: CRON_SECRET não está configurado no servidor."
+              exit 1
+            fi
+            echo "::warning::503 sem ser de configuração (provável deploy em curso). Rode de novo em alguns minutos."
+            exit 1
+          fi
+          if [ "$code" != "200" ]; then
+            echo "::error::A rota respondeu HTTP $code — nada foi desfeito."
+            exit 1
+          fi
+
+          situacao=$(jq -r '.situacao // "?"' /tmp/reversao.json 2>/dev/null || echo "?")
+
+          case "$situacao" in
+            cliente_nao_existe)
+              echo "::error::Nenhum cliente com esse nome. Confira a grafia — nada foi gravado."
+              exit 1 ;;
+            nome_ambiguo)
+              echo "::error::O nome casa com mais de um cliente e a rota não adivinha. Repita com o nome completo — nada foi gravado."
+              exit 1 ;;
+            sem_autor|sem_motivo)
+              echo "::error::Autor e motivo são obrigatórios — nada foi lido nem gravado."
+              exit 1 ;;
+          esac
+
+          if [ "${{ inputs.acao }}" = "mostrar" ]; then
+            echo "::notice::Leitura pura — NADA foi gravado. Confira a lista acima, item por item. Se for isso mesmo, rode de novo com acao=aplicar."
+            exit 0
+          fi
+
+          # Zero revertido não é sucesso silencioso: ou a reversão já rodou, ou a
+          # janela não alcança o clique, ou o carimbo não era o do pacote. As três
+          # merecem alguém lendo o placar.
+          if [ "$situacao" != "revertido" ]; then
+            echo "::warning::Nada foi desfeito (situação: $situacao). Isso pode estar CERTO — reversão já aplicada conta como 'nada a reverter'. Leia o placar e o veredito antes de concluir que é defeito."
+            exit 0
+          fi
+
+          echo "::notice::Desfeito. Os cards voltaram a PENDENTE (sem autor, sem data) e o projeto voltou a esperar a decisão do cliente. A reversão ficou registrada com autor e motivo. Nada foi publicado."

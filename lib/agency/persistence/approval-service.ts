@@ -1,4 +1,11 @@
 import { prisma } from "@/lib/db/client";
+// ── A GRAMÁTICA DE `reviewedBy` É TRAVA, NÃO CONVENÇÃO (15/08/2026) ──────────
+// Este arquivo tem os DOIS pontos por onde uma decisão vira linha no banco
+// (`updateApprovalStatus` e `decidirIrmaosGenericos`). Conferir aqui é o que
+// impede que a próxima rota escrita amanhã invente uma terceira grafia — ou
+// repita o `"cliente"` seco que mentia dos dois lados. Prompt é aviso; código é
+// trava (guardrail 4).
+import { exigirCarimbo } from "@/lib/agency/esteira/autoria-da-aprovacao";
 
 export type ApprovalStatus =
   | "pending"
@@ -153,9 +160,12 @@ export async function decidirIrmaosGenericos(input: {
   });
   const alvos = irmaos.filter(cardGenerico).map((a) => a.id);
   if (alvos.length === 0) return 0;
+  // A duplicata fecha com o MESMO carimbo do card original — e passa pela mesma
+  // régua. Sem isto, a grafia recusada entraria por esta porta lateral.
+  const carimbo = input.status === "pending" ? null : exigirCarimbo(input.reviewedBy);
   const r = await prisma.approvalRequest.updateMany({
     where: { id: { in: alvos } },
-    data: { status: input.status, reviewedBy: input.reviewedBy, reviewedAt: new Date() },
+    data: { status: input.status, reviewedBy: carimbo, reviewedAt: new Date() },
   });
   return r.count;
 }
@@ -166,11 +176,18 @@ export async function updateApprovalStatus(
   reviewedBy?: string,
   reviewNote?: string,
 ) {
+  // ── QUEM DECIDIU, OU NÃO GRAVA ────────────────────────────────────────────
+  // Só "pending" pode ficar sem autor — é o estado de card REABERTO, e ali a
+  // ausência é a informação certa. Qualquer outro status é uma decisão, e
+  // decisão sem autor não é decisão. `exigirCarimbo` LANÇA em vez de gravar em
+  // silêncio: um caminho novo que esqueça a regra quebra alto.
+  const carimbo = status === "pending" ? null : exigirCarimbo(reviewedBy);
+
   return prisma.approvalRequest.update({
     where: { id },
     data: {
       status,
-      reviewedBy: reviewedBy ?? null,
+      reviewedBy: carimbo,
       reviewedAt: new Date(),
       // Sem nota nova, a existente FICA: no card de calendário o reviewNote é o
       // corpo que o cliente leu — apagá-lo no "aprovar" deixaria a decisão

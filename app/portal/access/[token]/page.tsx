@@ -447,6 +447,10 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
         titulo: "Confirme o caminho do projeto",
         descricao: "A equipe montou a direção do trabalho a partir do seu briefing. Com o seu sim, a produção começa; se algo não fizer sentido, fale com seu PM antes de aprovar.",
         rotulo: "Aprovar e começar",
+        // Direção não tem "itens": o que se aprova é o caminho, não um pacote
+        // de peças. A confirmação continua existindo — o que ela não faz é
+        // inventar uma lista que não existe.
+        itens: [],
         decidir: () => decidirEsteira("aprovar_direcao"),
       }
     : pacoteDaEsteira?.pedeAprovacao
@@ -459,8 +463,13 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
             + (pacoteDaEsteira.emProducao.length > 0
                 ? `Ainda em produção, e fora desta aprovação: ${pacoteDaEsteira.emProducao.join(", ")}. `
                 : "")
-            + "Aprovar libera a publicação do calendário. Você pode decidir item por item nas linhas abaixo, ou aprovar de uma vez.",
+            + "Aprovar libera a publicação do calendário. Você pode decidir item por item nas linhas acima, ou aprovar de uma vez.",
           rotulo: pacoteDaEsteira.prontas.length === 1 ? "Aprovar esta entrega" : "Aprovar as entregas prontas",
+          // A MESMA lista que o servidor mediu (`retratoDoPacote.prontas`) —
+          // é ela que a confirmação nomeia. O texto acima já a citava; agora o
+          // botão também depende dela, em vez de aprovar um número.
+          itens: pacoteDaEsteira.prontas,
+          emProducao: pacoteDaEsteira.emProducao,
           decidir: () => decidirEsteira("aprovar_pacote"),
         }
       : null;

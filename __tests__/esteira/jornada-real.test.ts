@@ -279,7 +279,7 @@ describe("a esteira, de ponta a ponta, com banco real", () => {
 
     // TRAVA, NÃO AVISO: a rota do portal é pública por token. Esconder o botão
     // não impede um link antigo de chegar aqui.
-    const recusa = await aprovarPacote(projectId);
+    const recusa = await aprovarPacote(projectId, { tipo: "cliente", nome: "Padaria do João" });
     expect(recusa.ok).toBe(false);
     const projeto = await prisma.project.findUnique({ where: { id: projectId } });
     expect(projeto?.clientApprovedAt).toBeNull();
@@ -306,7 +306,7 @@ describe("a esteira, de ponta a ponta, com banco real", () => {
   });
 
   it("8. o aval do cliente abre o ciclo mensal — a rotina começa sozinha", async () => {
-    const r = await aprovarPacote(projectId);
+    const r = await aprovarPacote(projectId, { tipo: "cliente", nome: "Padaria do João" });
     expect(r.ok).toBe(true);
 
     const ciclos = await prisma.cycle.findMany({ where: { projectId } });

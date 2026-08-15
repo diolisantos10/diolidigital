@@ -343,7 +343,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             });
             if (projeto && !projeto.clientApprovedAt) {
               const { aprovarPacote } = await import("@/lib/agency/esteira/marcos");
-              await aprovarPacote(projeto.id);
+              // A MESMA identidade que acabou de decidir o card — derivada do
+              // token do portal, e gravada com a MESMA grafia (`client:<nome>`)
+              // que `updateApprovalStatus` acabou de escrever três blocos acima.
+              await aprovarPacote(projeto.id, { tipo: "cliente", nome: clientIdentity });
             } else if (projeto) {
               // ── DO MÊS 2 EM DIANTE (05/08/2026) ─────────────────────────────
               // `aprovarPacote` aborta de saída quando `clientApprovedAt` já

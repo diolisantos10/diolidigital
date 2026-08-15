@@ -17,7 +17,13 @@ vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution }));
 
 import { pedirDirecao, aprovarDirecao, apresentar, aprovarPacote } from "@/lib/agency/esteira/marcos";
+import { decisaoEhDoCliente } from "@/lib/agency/esteira/aprovacao-da-peca";
+import type { AutoriaDaAprovacao } from "@/lib/agency/esteira/autoria-da-aprovacao";
 import { escadaToda } from "../_escada";
+
+/** O caso comum destes testes: o CLIENTE decidindo no portal dele. A autoria é
+ *  obrigatória desde 15/08/2026 — ver `aprovarPacote`. */
+const CLIQUE_DO_CLIENTE: AutoriaDaAprovacao = { tipo: "cliente", nome: "Padaria do João" };
 
 const PROJETO = {
   id: "p1", name: "Padaria do João", clientRequestId: "cr1",
@@ -179,11 +185,45 @@ describe("MARCO 2 — apresentar, de uma vez", () => {
 describe("MARCO 3 — o aval do cliente abre a rotina", () => {
   it("carimba, aprova as pendências e abre o primeiro ciclo", async () => {
     db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date(), presentedAt: new Date() });
-    const r = await aprovarPacote("p1");
+    const r = await aprovarPacote("p1", CLIQUE_DO_CLIENTE);
     expect(r.ok).toBe(true);
     expect(db.project.update.mock.calls[0][0].data.clientApprovedAt).toBeInstanceOf(Date);
     expect(db.approvalRequest.updateMany.mock.calls[0][0].data.status).toBe("approved");
     expect(db.cycle.create).toHaveBeenCalled();
+  });
+
+  // ── O CARIMBO DIZ QUEM FOI (CEO, 15/08/2026) ─────────────────────────────
+  //
+  // Era `reviewedBy: "cliente"`, seco, IGUAL nos dois caminhos — o do portal
+  // (token do cliente) e o de sessão da agência. Essa string mentia dos dois
+  // lados: o portal mostrava a entrega aprovada e `aprovacao-da-peca` recusava
+  // a mesma linha, porque não havia como saber quem tinha carimbado. Foi o que
+  // o CEO encontrou depois de apertar "Aprovar as entregas prontas" no portal
+  // da CityJobs procurando os criativos.
+  it("clique do PORTAL grava `client:<nome>` — a grafia que a trava de publicação aceita", async () => {
+    db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date(), presentedAt: new Date() });
+    await aprovarPacote("p1", { tipo: "cliente", nome: "CityJobs" });
+    expect(db.approvalRequest.updateMany.mock.calls[0][0].data.reviewedBy).toBe("client:CityJobs");
+  });
+
+  it("clique da AGÊNCIA grava `equipe:<email>` e NÃO se disfarça de cliente", async () => {
+    db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date(), presentedAt: new Date() });
+    await aprovarPacote("p1", { tipo: "equipe", email: "pm@dioli.com.br" });
+    const gravado = db.approvalRequest.updateMany.mock.calls[0][0].data.reviewedBy;
+    expect(gravado).toBe("equipe:pm@dioli.com.br");
+    expect(decisaoEhDoCliente(gravado)).toBe(false);
+  });
+
+  it('a grafia seca "cliente" não é mais gravável por caminho nenhum', async () => {
+    db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date(), presentedAt: new Date() });
+    // Cliente SEM nome é o pior caso: era exatamente aqui que a string seca
+    // nascia. Ela não pode voltar nem por falta de dado.
+    await aprovarPacote("p1", { tipo: "cliente", nome: "" });
+    const gravado = db.approvalRequest.updateMany.mock.calls[0][0].data.reviewedBy;
+    expect(gravado).not.toBe("cliente");
+    // E continua sendo uma autoria DO LADO DO CLIENTE — o lado é a pergunta
+    // que a trava de publicação faz; o nome é enfeite.
+    expect(decisaoEhDoCliente(gravado)).toBe(true);
   });
 
   // ── PACOTE SEM CORPO NÃO PEDE, E NÃO ACEITA, APROVAÇÃO ────────────────────
@@ -205,7 +245,7 @@ describe("MARCO 3 — o aval do cliente abre a rotina", () => {
     );
     db.deliverable.findMany.mockResolvedValue([]);
 
-    const r = await aprovarPacote("p1");
+    const r = await aprovarPacote("p1", CLIQUE_DO_CLIENTE);
 
     expect(r.ok).toBe(false);
     expect(r.erro).toContain("em produção");
@@ -226,7 +266,7 @@ describe("MARCO 3 — o aval do cliente abre a rotina", () => {
     ]);
     db.deliverable.findMany.mockResolvedValue([]);
 
-    const r = await aprovarPacote("p1");
+    const r = await aprovarPacote("p1", CLIQUE_DO_CLIENTE);
 
     expect(r.ok).toBe(true);
     // A entrega que o cliente nunca viu continua pendente. Carimbá-la
@@ -239,7 +279,7 @@ describe("MARCO 3 — o aval do cliente abre a rotina", () => {
     db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date(), presentedAt: new Date() });
     db.approvalRequest.findMany.mockRejectedValue(new Error("banco fora do ar"));
 
-    const r = await aprovarPacote("p1");
+    const r = await aprovarPacote("p1", CLIQUE_DO_CLIENTE);
 
     // "Não sei" e "não há" são coisas diferentes — mas do lado da ESCRITA as
     // duas param igual: carimbar aprovação sobre o que não se conseguiu ler é
@@ -251,14 +291,14 @@ describe("MARCO 3 — o aval do cliente abre a rotina", () => {
 
   it("não aprova o que nunca foi apresentado", async () => {
     db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date() });
-    const r = await aprovarPacote("p1");
+    const r = await aprovarPacote("p1", CLIQUE_DO_CLIENTE);
     expect(r.ok).toBe(false);
     expect(db.cycle.create).not.toHaveBeenCalled();
   });
 
   it("aprovar de novo não abre um segundo ciclo", async () => {
     db.project.findUnique.mockResolvedValue({ ...PROJETO, presentedAt: new Date(), clientApprovedAt: new Date() });
-    await aprovarPacote("p1");
+    await aprovarPacote("p1", CLIQUE_DO_CLIENTE);
     expect(db.cycle.create).not.toHaveBeenCalled();
   });
 });
