@@ -1254,6 +1254,14 @@ model SocialPost {
   externalPostId  String?
   permalink       String?
   publishedAt     DateTime?
+  /// QUEM registrou a publicação. Mesma gramática do `ApprovalRequest.reviewedBy`,
+  /// e pelo mesmo motivo: registro sem autor não é registro.
+  ///   • `esteira`          — o relógio publicou sozinho (publicacao.ts);
+  ///   • `equipe:<email>`   — alguém da casa postou À MÃO e veio marcar aqui.
+  /// Nulo = peça anterior a 14/08/2026, quando o campo passou a existir. Nulo
+  /// NÃO quer dizer "publicou sozinho" — quer dizer "não sabemos", e as duas
+  /// coisas não podem virar a mesma no relatório.
+  publishedBy     String?
   // Último motivo de falha, em linguagem de gente. Fica visível ao time em vez
   // de morrer no log do servidor.
   lastError       String?

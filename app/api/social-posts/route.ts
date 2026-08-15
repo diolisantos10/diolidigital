@@ -16,7 +16,7 @@ interface DbPost {
   visibility?: string;
   scheduledFor: Date | null; status: string;
   externalPostId?: string | null; permalink?: string | null;
-  publishedAt?: Date | null; lastError?: string | null;
+  publishedAt?: Date | null; publishedBy?: string | null; lastError?: string | null;
   createdAt: Date; updatedAt: Date;
 }
 
@@ -62,6 +62,10 @@ function toDTO(p: DbPost) {
     externalPostId: p.externalPostId ?? null,
     permalink: p.permalink ?? null,
     publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
+    // QUEM registrou a publicação (`esteira` = o relógio · `equipe:<email>` =
+    // alguém da casa postou à mão). Fica na vista da AGÊNCIA e fora do portal:
+    // é registro de operação nossa, não informação do cliente.
+    publishedBy: p.publishedBy ?? null,
     lastError: p.lastError ?? null,
   };
 }

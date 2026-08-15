@@ -5555,6 +5555,7 @@ export const SocialPostScalarFieldEnum = {
   externalPostId: 'externalPostId',
   permalink: 'permalink',
   publishedAt: 'publishedAt',
+  publishedBy: 'publishedBy',
   lastError: 'lastError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

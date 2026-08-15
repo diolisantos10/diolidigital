@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
+import { autorDaEquipe, lerRegistroDePublicacao } from "@/lib/agency/esteira/registro-de-publicacao";
 
 type Params = { id: string };
 
@@ -108,8 +109,39 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<Params>
   if (body.scheduledFor === null) data.scheduledFor = null;
   else if (typeof body.scheduledFor === "string" && body.scheduledFor) data.scheduledFor = new Date(body.scheduledFor);
 
+  // ── O REGISTRO DA PUBLICAÇÃO FEITA À MÃO (14/08/2026) ─────────────────────
+  // A régua vive em `lib/agency/esteira/registro-de-publicacao.ts` — aqui só a
+  // fiação. Ela recusa marcar "publicado" sem o `externalPostId` (o post
+  // fantasma do relatório) e carimba QUEM registrou.
+  //
+  // Nada aqui chama a plataforma: o post já foi ao ar pelas mãos de alguém, e
+  // uma chamada à Meta neste caminho publicaria a peça uma segunda vez.
+  const registro = lerRegistroDePublicacao({
+    body,
+    statusPedido: typeof data.status === "string" ? data.status : null,
+    atual: { status: existing.status, externalPostId: existing.externalPostId },
+    autor: autorDaEquipe(session.email),
+  });
+  if (registro.erro) return NextResponse.json({ error: registro.erro }, { status: 400 });
+  Object.assign(data, registro.dados);
+
   try {
     const post = await prisma.socialPost.update({ where: { id }, data });
+    if (registro.marcandoPublicado) {
+      // A testemunha. Sem ela, "quem marcou" só existiria dentro do post — e a
+      // linha do tempo do cliente mostraria a peça no ar sem nunca dizer que a
+      // publicação foi manual.
+      await prisma.activityEvent.create({
+        data: {
+          workspaceId: existing.workspaceId,
+          clientId: existing.clientId,
+          type: "post_publicado_a_mao",
+          message:
+            `Publicação registrada À MÃO por ${data.publishedBy} — id na plataforma ` +
+            `${data.externalPostId ?? existing.externalPostId}: ${existing.caption.slice(0, 120)}`,
+        },
+      }).catch(() => { /* best-effort: o registro não pode desfazer a marcação */ });
+    }
     return NextResponse.json({ ok: true, id: post.id });
   } catch (e) {
     console.error("[social-posts] PATCH error", e);

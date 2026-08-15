@@ -470,3 +470,115 @@ sendo usado por peça em `scheduled`.
 - **`ignorados` só vai para `console.error`.** Peça aprovada que não vira
   calendário fica visível apenas no log do servidor. Aqui não machuca (a peça já
   está `scheduled`), mas o alerta não tem testemunha.
+
+---
+
+## 2026-08-14 (3) — O caminho manual: baixar na ordem, marcar sem mentir, e o freio da rajada
+
+**Despacho:** o CEO publica o primeiro carrossel do CityJobs à mão, hoje, com a
+máquina automática fechada esperando a Meta. Três peças faltavam.
+
+### 1. Baixar o carrossel na ordem
+
+`/api/media/<id>` serve `inline`, uma tela por vez, com o nome que o navegador
+inventar. Para um carrossel de 6 telas isso é salvar 6 arquivos e lembrar a
+sequência de cabeça — e **a ordem é o único erro que não se conserta depois de
+publicado**.
+
+Zip **sem dependência nova**: `adm-zip` já é dependência declarada desta casa
+(`app/api/sdr/upload`, `app/api/brain/analyze-brand-book`). Conferido em disco
+antes de escrever uma linha. Sem compressão, de propósito — JPEG já está
+comprimido e o zip aqui é contêiner, não economia.
+
+- `lib/agency/esteira/pacote-da-peca.ts` — a régua de nome e o empacotador. Não
+  lê banco e não decide dono.
+- `app/api/social-posts/[id]/download/route.ts` — `?lista=1` descreve, sem
+  parâmetro entrega o zip.
+
+**A posse é conferida DUAS vezes, e a segunda é a que importa.**
+`SocialPost.mediaUrlsJson` é texto livre: quem conseguisse escrever ali o id de
+uma mídia de outro cliente transformaria esta rota num leitor de arquivo alheio
+se ela confiasse no post. O segundo `where` — o mesmo de `app/api/media/[id]` —
+fecha isso. Derivação nos dois, 404 nos dois.
+
+**Fail-closed com custo declarado:** tela faltando recusa o pacote **inteiro**
+(409), em vez de entregar um carrossel com buraco no meio. O CEO prefere saber
+que faltou a 3 a descobrir depois de publicado.
+
+### 2. Marcar "publicado" sem criar fantasma
+
+O PATCH já aceitava `{"status":"published"}` e isso tira a peça do relógio. Só
+que sem `externalPostId` a peça **existe no calendário e não existe na medição**
+— `MetricaDePost.externalPostId` é a chave que o relatório mensal usa para pedir
+métrica à plataforma. Marcar publicado sem esse campo é criar um post fantasma
+no nosso próprio relatório, e os dois números nunca são olhados juntos.
+
+`lib/agency/esteira/registro-de-publicacao.ts` — a régua, pura. Recusa a
+transição para "published" sem o id; recusa link que não seja `https:` (um
+`javascript:` gravado ali vira o `href` que a equipe clica na ficha da peça);
+recusa data no futuro; e **carimba o autor**, com a mesma gramática de
+`reviewedBy` (`equipe:<email>`). O relógio passa a carimbar `esteira` —
+sem isso `publishedBy` nulo teria dois significados ao mesmo tempo ("o relógio"
+e "não sabemos"), e o primeiro relatório que separasse manual de automático
+mentiria.
+
+**Nada chama a plataforma, e é o FONTE que prova**: teste que lê os quatro
+arquivos, tira comentários, e reprova se aparecer `publishPost`,
+`graph.facebook`, `trava-de-publicacao` ou `PUBLICACAO_ORGANICA`. Mock não prova
+ausência de caminho que nem foi importado.
+
+### 3. A rajada — e por que ESPAÇAMENTO e não as outras duas
+
+As 6 peças estão `scheduled` com data vencida e `MAX_PUBLICACOES_POR_RODADA` é
+10: no minuto em que o freio for solto, as 6 saem na mesma rodada.
+
+Três saídas na mesa:
+- **teto por perfil por rodada** — não resolve: com rodada de 5 min, teto 1 ainda
+  joga as 6 no ar em meia hora, e o teto não sabe nada do que foi publicado
+  ANTES da rodada;
+- **peça muito vencida não sai sozinha** — protege de outra coisa (peça velha
+  indo ao ar), não da rajada, e travaria as 6 sem exceção;
+- **espaçamento mínimo por perfil** — escolhida.
+
+Ela é a única que mede o que o problema é (*duas publicações juntas demais no
+mesmo perfil*) e a única que **não briga com o calendário legítimo**:
+`promoverParaAgendado` já garante ≥24h entre peças do mesmo cliente, então
+nenhuma peça programada por esta casa esbarra no freio. Quem esbarra é o acúmulo
+que ninguém planejou. Duas horas — mais longo que qualquer rajada plausível,
+muito mais curto que as 24h, para o freio nunca virar dono da agenda.
+
+**Custo quando o volume crescer:** fila de N peças vencidas do mesmo perfil leva
+N × 2h para drenar. As 6 do CityJobs sairiam ao longo de ~10h. Perfis diferentes
+não se veem — o freio é por perfil.
+
+`adiados` é campo próprio, separado de `falhas`: escrever em `lastError` pintaria
+a ficha de vermelho com "A publicação não completou" a cada 5 minutos, e isso é
+mentira. Mas também não é silêncio — o despertador imprime post e motivo.
+
+**Convergência que não estava no despacho:** a publicação registrada à mão conta
+para o espaçamento, porque a medida procura `status: "published"` com
+`publishedAt`. O CEO postar o carrossel hoje já segura a peça seguinte.
+
+### Verificação
+
+`npx tsc --noEmit` limpo. Suíte: **223 arquivos, 3640 verdes, 1 pulado** (51
+testes novos). **Mutação conferida:** zerando `INTERVALO_MINIMO_POR_PERFIL_MS`,
+6 dos 14 testes de rajada ficam vermelhos.
+
+### O que fica aberto (não decidi sozinho)
+
+- **A tela nova não foi fotografada.** O bloco reusa token, `Field` e os padrões
+  de botão vizinhos, e nenhum componente foi inventado — mas o `DESIGN.md` pede
+  screenshot em 375/768/1280 e eu não tenho servidor com sessão aqui. É conferir
+  antes de mostrar ao CEO.
+- **O portal do cliente não ganhou botão de baixar.** A rota aceita token de
+  portal do cliente dono (com teste), mas quem tem o botão é o Planner. Não
+  inventei tela no portal: o CEO vai estar na sessão da casa, e "rota construída
+  sem botão não existe" vale nos dois sentidos — botão que ninguém pediu também.
+- **O diagnóstico (`prontidao-de-publicacao.ts`) não conhece o freio novo.** Ele
+  continua com 13 portões e diria `pronto:true` para uma peça que o espaçamento
+  vai adiar. Não é bloqueio, é atraso — mas é uma divergência entre o que o
+  diagnóstico promete e o que a rodada faz.
+- **A peça adiada não tem testemunha na TELA.** Só no log do servidor. Aqui não
+  machuca (a peça sai na rodada seguinte), mas é o mesmo defeito de `ignorados`
+  anotado em 14/08.
