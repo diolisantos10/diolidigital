@@ -40,10 +40,32 @@ const PROVA_DE_POSSE =
  *  "confira", não "está furado". */
 const POSSE_DELEGADA = /session\.workspaceId|guard\.session\.workspaceId|workspaceId\s*,/;
 
+/** POSSE DELEGADA PELA GUARDA DA V2 — calibração de 15/08/2026, mesmo precedente.
+ *
+ *  `/api/v2/retomar` recebe `correlationId` e não filtra nada no arquivo…
+ *  porque chama `retomarProcesso(correlationId, guarda.acesso.perfil,
+ *  guarda.acesso.session.userId, …)`: a **identidade da sessão viaja junto com
+ *  o id**, e quem decidiria o recorte é a camada de baixo. É a situação exata de
+ *  `/api/meta/publish` em 05/08 — e a resposta é a mesma: a varredura declara o
+ *  que sabe ("confira a função de destino"), em vez de gritar "rota aceita id
+ *  sem login", que é **falso** e desmoraliza a lista inteira.
+ *
+ *  ⚠️ Médio não é absolvição — é uma pergunta com endereço. Para `/api/v2/retomar`
+ *  a pergunta foi feita nesta mesma rodada e a resposta está em
+ *  `docs/raio-x/README.md`: a camada de baixo **não** filtra. O achado continua
+ *  na lista todas as noites até alguém fechar. */
+const POSSE_DELEGADA_PELA_GUARDA = /guarda\.acesso\.(session|perfil)|acesso\.session\.userId|\bperfil\s*,/;
+
 /** Autenticação não é posse. Fica listado para o relatório poder dizer
  *  "a rota exige login E MESMO ASSIM não confere dono" — que é pior, não melhor:
- *  é a rota que passa despercebida numa revisão. */
-const APENAS_AUTENTICACAO = /requireSession|verifySession|getSession|requireRole/;
+ *  é a rota que passa despercebida numa revisão.
+ *
+ *  A família `exigir*` de `lib/agency/organizacao/guarda.ts` entra AQUI, e não
+ *  em `PROVA_DE_POSSE`, de propósito: ela responde "você é interno e alcança
+ *  esta mesa", nunca "este id é seu". Confundir as duas é o erro que esta
+ *  varredura inteira existe para não cometer. */
+const APENAS_AUTENTICACAO =
+  /requireSession|verifySession|getSession|requireRole|exigirApiInterna|exigirAdministracao|exigirCapacidade|exigirAcessoInterno/;
 
 export function varrerIdSemDono(entrada?: Arquivo[]): ResultadoDeVarredura {
   const rotas = (entrada ?? fontesDoProjeto(["app"])).filter((f) => /route\.tsx?$/.test(f.caminho));
@@ -69,21 +91,32 @@ export function varrerIdSemDono(entrada?: Arquivo[]): ResultadoDeVarredura {
     if (PROVA_DE_POSSE.test(texto)) continue;
 
     const soLogin = APENAS_AUTENTICACAO.test(texto);
-    const delegada = POSSE_DELEGADA.test(texto);
+    const comWorkspace = POSSE_DELEGADA.test(texto);
+    // O que viaja com o id muda o que se deve conferir lá embaixo — e escrever
+    // "repassa o workspaceId" numa rota que repassa o USUÁRIO manda o revisor
+    // procurar um filtro que não existe. Ausência de informação não é informação.
+    const comSessao = !comWorkspace && POSSE_DELEGADA_PELA_GUARDA.test(texto);
+    const delegada = comWorkspace || comSessao;
     if (delegada) delegadas++;
     else semNada++;
+
+    const listaDeIds = [...ids].sort().join(", ");
 
     achados.push({
       padrao: "id-sem-dono",
       chave: `id-sem-dono:${caminho}`,
       titulo: delegada
-        ? "Posse delegada: o workspace viaja com o id, mas quem confere está uma camada abaixo"
+        ? comWorkspace
+          ? "Posse delegada: o workspace viaja com o id, mas quem confere está uma camada abaixo"
+          : "Posse delegada: a sessão viaja com o id, mas o recorte é decidido uma camada abaixo"
         : soLogin
           ? "Rota exige login mas não confere de quem é o id"
           : "Rota aceita id sem login e sem conferir dono",
       evidencia: delegada
-        ? `${caminho} recebe ${[...ids].sort().join(", ")} e repassa o workspaceId adiante — confira se a função de destino filtra por ele`
-        : `${caminho} recebe ${[...ids].sort().join(", ")} e não passa por nenhuma prova de posse`,
+        ? comWorkspace
+          ? `${caminho} recebe ${listaDeIds} e repassa o workspaceId adiante — confira se a função de destino filtra por ele`
+          : `${caminho} recebe ${listaDeIds}, é fechada pela guarda interna (exigir*) e repassa perfil/usuário da sessão à função de domínio — o id em si NÃO é filtrado aqui. Confira se a camada de destino recorta por dono`
+        : `${caminho} recebe ${listaDeIds} e não passa por nenhuma prova de posse`,
       local: caminho,
       gravidade: delegada ? "medio" : "alto",
     });
