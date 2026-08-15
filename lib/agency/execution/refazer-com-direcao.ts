@@ -97,13 +97,30 @@ import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
  * esse falso negativo — o Actions lendo timeout como falha depois de o trabalho
  * ter sido feito — que quase fez a casa pagar duas vezes em 15/08.
  *
- * O valor é o dia em que a direção passou a atravessar a porta da imagem
+ * O valor é o instante em que a direção passou a atravessar a porta da imagem
  * (`SocialPost.artDirection` + `artes.ts:371`, commits `dd286a2`/`afb198a`).
- * Meia-noite UTC é conservador de propósito: peça gerada no dia do deploy, mas
- * antes dele, fica de fora da seleção — e ficar de fora não gasta nada e
- * aparece no relatório com motivo, enquanto entrar por engano gastaria.
+ *
+ * ── CORRIGIDO DE MEIA-NOITE PARA A HORA DO DEPLOY (Diretor, 15/08/2026) ─────
+ *
+ * O valor era `T00:00:00Z`, com a justificativa de ser conservador para o lado
+ * do dinheiro: peça feita no dia do deploy mas antes dele ficaria de fora, e
+ * ficar de fora não gasta. O raciocínio está certo e o caso real o derrubou.
+ *
+ * **Medido na primeira passada, contra produção:** 7 peças do CityJobs foram
+ * produzidas em 15/08 às 02:11 e ~04:50 UTC — depois da meia-noite e ANTES do
+ * deploy das 05:08. Elas nasceram pelo caminho VELHO, com a legenda no lugar da
+ * cena, e a régua as classificou como `ja_refeita_com_direcao`. O relatório
+ * dizia "0 elegíveis" com a frase mais perigosa que existe aqui: *ou já foram
+ * todas refeitas, ou estão todas barradas*.
+ *
+ * Ser conservador com dinheiro barato (US$ 0,167 por imagem) escondeu o
+ * trabalho que era o objetivo da noite. A economia possível era de US$ 1,17; o
+ * custo era o CEO abrir a tela de manhã e ver a peça velha.
+ *
+ * O marco passa a ser o instante do deploy **confirmado em `/api/health`**, não
+ * o começo do dia. A conta continua sendo duas datas e nenhuma memória.
  */
-export const MARCO_DA_DIRECAO_NA_IMAGEM = new Date("2026-08-15T00:00:00.000Z");
+export const MARCO_DA_DIRECAO_NA_IMAGEM = new Date("2026-08-15T05:20:00.000Z");
 
 /**
  * TETO POR CHAMADA, e ele é sobre TEMPO — não sobre volume.
