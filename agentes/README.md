@@ -47,11 +47,9 @@ Sem fila de aprovação, sem vigia, sem burocracia. É isso.
 |---|---|
 | `diretor-v1.0.md` | ✅ EM VIGOR — avaliador: o Diretor Geral (decisão do CEO, 15/08/2026) |
 | `pm-v1.0.md` | ✅ EM VIGOR — retrato do crachá em operação (15/08/2026) |
+| `seguranca`, `qualidade`, `cerebro`, `interface`, `experiencia`, `esteira`, `departamentos`, `plataforma`, `meta`, `google`, `tiktok`, `branding` (v1.0) | 🟡 ESCRITAS, AGUARDANDO OK DO CEO para subir — ver `antes-depois.md` |
 
-Próximos cargos a fichar (ordem por poder de causar dano): os cinco essenciais
-(`seguranca`, `qualidade`, `cerebro`, `interface`, `experiencia`), depois os de
-domínio (`esteira`, `departamentos`, `plataforma`, `meta`, `google`, `tiktok`,
-`branding`).
+Medição da rodada completa: `antes-depois.md`.
 
 Os demais cargos (`pm`, especialistas) ganham ficha conforme a necessidade —
 começando pelos que têm mais poder de causar dano.
