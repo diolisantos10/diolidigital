@@ -92,12 +92,19 @@ dado. Consertar só o que a leitura original apontava deixaria o vazamento de p�
 > 03/08/2026: derivação, nunca comparação). Selo forjado não abre a conversa de
 > ninguém — há teste que prova.
 
-**E uma quarta, na porta:** `proxy.ts` apaga o cookie do portal quando o token
-no caminho é de outro cliente. A página já fazia isso via
-`POST /api/portal/session`, mas é best-effort — roda num `useEffect`, a falha é
-engolida num `catch {}`, e as primeiras cargas já saíram. **Apaga, nunca grava:**
-gravar exigiria validar, e gravar sem validar é o defeito já documentado em
-`app/portal/access/route.ts`. Apagar só pode tirar acesso, nunca dar.
+**E uma quarta, na porta.** ⚠️ **ESTE PARÁGRAFO DESCREVIA UM MECANISMO QUE FOI
+REMOVIDO NA MESMA RODADA, e ficou aqui contradizendo o que se lê 40 linhas
+abaixo.** É a mesma falha pela qual esta decisão corrigiu cinco documentos —
+viva dentro do documento que a corrige. Achado pelo `qualidade`.
+
+A versão original apagava o cookie no `proxy.ts` quando o token do caminho era
+de outro cliente. O `seguranca` mostrou que aquilo era **negação de serviço**:
+o cookie morria ANTES de o token ser validado, então bastava mandar à vítima um
+link para `/portal/access/qualquer-lixo` para derrubar a sessão dela.
+
+**O que vale hoje:** a regravação acontece em `/api/portal/vista`, **depois** de
+o token ser validado — token bom regrava, lixo não faz nada, e sessão legítima
+nunca é derrubada. O `proxy.ts` não toca em cookie de portal.
 
 ### A RODADA 2 — o que os dois Essenciais derrubaram, e o que entrou
 

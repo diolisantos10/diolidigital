@@ -98,6 +98,7 @@ async function resolver(
     // derivado do token/cookie; ela só RECUSA quando os dois lados discordam.
     // Recusa = conversa vazia com motivo. Nunca a conversa do outro.
     const declarado = corpo ? corpo.dono : searchParams.get("dono");
+    // `modoCookie` decide: com token explícito não há dois lados para divergir.
     if (!donoConfere(r.conversa.clientId, declarado, modoCookie)) {
       return {
         ok: false,
@@ -187,7 +188,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // A régua: o CLIENTE lê uma frase sobre a conversa DELE; a AGÊNCIA lê o
     // número, pelo censo (`GET /api/admin/censo-de-historico-ambiguo`), que é
     // autenticado. Nenhum número de linha alheia atravessa esta fronteira.
-    const houveCorte = conversa.ocultadasPorAmbiguidade > 0;
+    // ⚠️ O MOTIVO NÃO DEPENDE DA CONTAGEM (rodada 3). Antes ele só saía com
+    // `ocultadas > 0`, e a contagem zera no `catch` — contagem que falha
+    // devolvia o SILÊNCIO de volta, justamente no dia em que o banco tropeça.
+    // Agora quem manda é o fato "houve corte", que vem do próprio filtro.
+    const houveCorte = conversa.houveCorteDeHistorico;
     return NextResponse.json({
       messages: rows.map((m) => toDTO(m, viewer)),
       podeEnviar: true,

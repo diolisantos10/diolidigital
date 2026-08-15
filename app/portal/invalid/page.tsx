@@ -26,7 +26,8 @@ export default function LinkInvalido() {
             style={{
               width: 52, height: 52, borderRadius: "50%", margin: "0 auto 18px",
               display: "flex", alignItems: "center", justifyContent: "center",
-              background: "#FEF3C7", color: "#9B7B2D", fontSize: 24,
+              // Tokens do DESIGN.md, não hex na mão.
+              background: "var(--accent)", color: "var(--text-secondary)", fontSize: 24,
             }}
           >
             !
@@ -40,8 +41,41 @@ export default function LinkInvalido() {
             você a área de outra marca.
           </p>
           <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "var(--text-secondary)", marginTop: 12 }}>
-            Fale com a equipe Dioli e peça um link novo — leva um minuto.
+            Peça um link novo à equipe Dioli — leva um minuto.
           </p>
+
+          {/* ⚠️ TELA DE ERRO SEM CAMINHO DE AÇÃO É BECO. A versão anterior
+              mandava "fale com a equipe" sem dizer COMO — e quem chega aqui é
+              justamente quem perdeu o único caminho que tinha. */}
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 20, flexWrap: "wrap" }}>
+            {/* O número é o MESMO do resto do site (`app/page.tsx`,
+                `app/contato`, `self-serve/order`) — não um inventado aqui. */}
+            <a
+              href="https://wa.me/5511989400692?text=Oi%2C%20meu%20link%20de%20acesso%20ao%20portal%20da%20Dioli%20n%C3%A3o%20est%C3%A1%20abrindo."
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                height: 40, padding: "0 18px", borderRadius: 999, display: "inline-flex",
+                alignItems: "center", background: "var(--text-primary)", color: "#fff",
+                fontSize: 13.5, fontWeight: 600, textDecoration: "none",
+              }}
+            >
+              Pedir link novo no WhatsApp
+            </a>
+            <a
+              // O e-mail é o MESMO das outras telas públicas (`/privacidade`,
+              // `/exclusao-de-dados`) — inventar endereço de contato é entregar um
+              // beco com cara de saída.
+              href="mailto:agenciadioli@gmail.com?subject=Link%20de%20acesso%20ao%20portal"
+              style={{
+                height: 40, padding: "0 18px", borderRadius: 999, display: "inline-flex",
+                alignItems: "center", background: "var(--accent)", color: "var(--text-primary)",
+                fontSize: 13.5, fontWeight: 600, textDecoration: "none",
+              }}
+            >
+              Pedir por e-mail
+            </a>
+          </div>
         </div>
       </main>
     </div>

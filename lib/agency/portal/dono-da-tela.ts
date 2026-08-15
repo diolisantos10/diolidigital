@@ -63,14 +63,18 @@ export function donoDaTela(clientId: string): string {
  *     que guarda UM cliente para o navegador inteiro. É exatamente o caminho
  *     em que tela e conversa podem discordar, e é onde o selo é a única
  *     conferência possível. Sem selo: **RECUSA**.
- *   • **token explícito** (`exigir: false`) — o token identifica o cliente sem
+ * ⚠️ O DEFAULT **FECHA** (rodada 3): quem esquecer a flag ganha a versão
+ * estrita, não a permissiva. Default aberto é o F3 esperando o próximo
+ * chamador — e o próximo chamador sempre chega.
+ *
+ *   • **token explícito** (`exigir: false`, EXPLÍCITO) — o token identifica o cliente sem
  *     ambiguidade na própria requisição; não há dois lados para divergir.
  *     Exigir o selo aí quebraria link legítimo sem fechar buraco nenhum.
  */
 export function donoConfere(
   clientIdDerivado: string | null,
   declarado: string | null | undefined,
-  exigir = false,
+  exigir = true,
 ): boolean {
   const d = declarado?.trim();
   if (!d) return !exigir;

@@ -73,6 +73,14 @@ export interface Conversa {
    * falsa". Quem esconde, diz que escondeu.
    */
   ocultadasPorAmbiguidade: number;
+  /**
+   * Houve corte? — INDEPENDENTE da contagem.
+   *
+   * A contagem pode falhar (e zera no `catch`). Se o aviso ao cliente
+   * dependesse dela, um tropeço de banco traria o silêncio de volta — e o
+   * silêncio é o defeito que este campo existe para matar.
+   */
+  houveCorteDeHistorico: boolean;
 }
 
 const VAZIA: Conversa = {
@@ -81,6 +89,7 @@ const VAZIA: Conversa = {
   ancora: { clientId: null, clientRequestId: null },
   filtro: null,
   ocultadasPorAmbiguidade: 0,
+  houveCorteDeHistorico: false,
 };
 
 function montarFiltro(clientId: string | null, requestIds: string[]): FiltroDaConversa | null {
@@ -205,6 +214,7 @@ export async function conversaDoCliente(
     // Só a LEITURA anda pelas solicitações limpas.
     filtro: montarFiltro(clientId, ids),
     ocultadasPorAmbiguidade,
+    houveCorteDeHistorico: excluidas.length > 0,
   };
 }
 
@@ -239,6 +249,7 @@ export async function conversaDaSolicitacao(clientRequestId: string): Promise<Co
       ],
     },
     ocultadasPorAmbiguidade: 0,
+    houveCorteDeHistorico: false,
   };
 }
 

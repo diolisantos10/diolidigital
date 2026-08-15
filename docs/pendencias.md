@@ -86,6 +86,31 @@ travada assim mesmo; o que produz o sintoma observado é a âncora.
 cliente.** Mesmo um log de acesso perfeito não marcaria nada de anômalo. Não é
 "provavelmente não" — é **não há como saber**.
 
+### 🔴 RODADA 3 — `seguranca` e `qualidade` reprovaram de novo. O que entrou.
+
+**A trava vai onde o id é USADO.** Converter a função central não converteu
+quem não a chama: **8 rotas** liam o ponteiro cru (a varredura achou 8, não as
+4 apontadas). A pior não era leitura — `/api/portal/approvals` **aprovou uma
+entrega de outro cliente**, e nesta casa entrega aprovada publica. Todas passam
+agora por `escopoDoToken`, o escopo congelado.
+
+**O FURO A não estava fechado para o dado que já existe.** O carimbo de dono
+vale para o futuro; nenhuma linha de produção o tem. A cerca só excluía
+solicitação com carimbo alheio — conversa **100% legada** não tinha o que
+provar e atravessava inteira. A evidência passou a vir de **quatro** registros
+independentes (`PortalAccess`, `Project`, `ApprovalRequest`, `PortalMessage`).
+
+**O censo tranquilizava** — media o CUSTO da cerca, não o RISCO, e em produção
+tenderia a `0/0`. Agora usa a mesma fonte da cerca e publica `semDonoEscrito`
+como número principal.
+
+**A contagem `ocultadas` saiu da resposta ao cliente:** ela era a contagem
+exata do acervo do vizinho, e a tela ainda mandava "é só pedir à equipe Dioli"
+— engenharia social contra o próprio suporte.
+
+**O segundo re-apontador vivo foi fechado:** `PATCH /api/brain/client-requests`
+re-apontava A→B incondicionalmente. Carimbar dono nulo pode; **trocar dono não**.
+
 ### 🔴 O QUE FICOU ABERTO
 
 - [ ] `plataforma` — 🟠 **`ClientRequestDb.clientId` continua mutável no schema.**
@@ -99,6 +124,35 @@ cliente.** Mesmo um log de acesso perfeito não marcaria nada de anômalo. Não 
       `GET /api/admin/censo-de-historico-ambiguo` — **CEO/Diretor**. O script foi
       validado contra cenário semeado (achou as 2 plantadas). **Estimar seria
       inventar.**
+- [ ] 🟠 **Balcão: efeito comercial declarado.** Como e-mail não verificado
+      deixou de fundir ficha, quem compra a **segunda vez** pelo balcão ganha
+      **ficha nova** — carteira fragmentada, um portal por ficha. A direção está
+      certa ("duplicada é cadastro, fundida é vazamento"), mas alguém tem de
+      fundir depois. **Sem dono.**
+- [ ] 🟠 **Balcão não é idempotente sob concorrência.** A guarda de identidade
+      venceu a corrida, mas o resto de `produzirPedidoDeBalcao` não é
+      transacional: duas execuções do mesmo pedido produziram **2 Client, 2
+      Project, 2 PortalAccess**, e o token do perdedor devolve `ponteiro_andou`
+      → **portal morto para quem pagou**. O comentário em `producao.ts:19-21`
+      afirma o contrário — **comentário que mente é pior que ausente**. Sem dono.
+- [ ] 🔴 **Sequestro de cookie por token válido de terceiro** (pré-existente):
+      token válido na query sobrescreve o cookie da vítima por 180 dias. Custo do
+      ataque: um token de balcão de R$ 39. Efeito: a vítima vê o portal do
+      atacante e **o que ela digitar cai na conversa dele**. Não é regressão
+      desta frente e não cabe neste PR — **item próprio, e é P0.**
+- [ ] 🟠 **Não existe camada única de conferência de token** — cada rota é
+      conferida à mão, "foi assim que 4 ficaram para trás nesta rodada, e será
+      assim na próxima". `escopoDoToken` reduz para uma chamada, mas nada obriga
+      a chamá-la. Proposta: teste de arquitetura que reprove rota sob
+      `app/api/portal/**` que importe `validatePortalAccess` direto.
+- [ ] 🟠 **`create-project-from-request:52` e `orchestrate/apply:111` decidem no
+      CÓDIGO, não no `WHERE`** — mesma corrida que foi fechada no balcão. São
+      first-assignment (não re-apontam), então o risco é duplicação, não troca
+      de dono. Uniformizar.
+- [ ] 🟠 **Falso positivo no dia do deploy:** aba aberta em `/portal/access/me`
+      com bundle antigo não manda `dono` ⇒ recusa até recarregar. Portão que
+      reprova o legítimo é metade do problema. Mitigação possível: tolerar a
+      ausência do selo por uma janela curta após o deploy.
 - [ ] 🟠 **O selo é pseudônimo estável e sem sal** — viaja na query string e para
       em log. Mintar por sessão fecha a correlação. Sem dono.
 - [ ] `plataforma` — **`Client` sem `@@unique(workspaceId, name)`** e duas rotas

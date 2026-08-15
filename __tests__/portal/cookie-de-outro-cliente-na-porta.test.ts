@@ -72,7 +72,10 @@ describe("/api/portal/vista regrava o cookie quando o token do link é de outro"
     expect(res.cookies.get(PORTAL_COOKIE)?.httpOnly).toBe(true);
   });
 
-  it("⛔ e só regrava com token que VALIDOU — lixo não vira cookie de 180 dias", async () => {
+  // ⚠️ RÓTULO HONESTO (rodada 3): este passa TAMBÉM no código não consertado —
+  // a rota nunca gravou cookie nenhum antes. É CONTROLE de que a regravação
+  // nova não passou a gravar lixo, não uma barreira que já existia.
+  it("✅ (controle) só regrava com token que VALIDOU — lixo não vira cookie de 180 dias", async () => {
     resolvePortalClient.mockResolvedValue(null);
     const res = await vistaGET(req("/api/portal/vista?token=LIXO", "TOKENALFA"));
     expect(res.status).toBe(403);
@@ -109,7 +112,8 @@ describe("porta de entrada — /portal/access?token=", () => {
     expect(destino).not.toContain("/portal/access/me");
   });
 
-  it("⛔ e não grava cookie nenhum com token ruim", async () => {
+    // Idem: controle. O que MUDOU nesta rodada é o destino (acima), não isto.
+  it("✅ (controle) não grava cookie nenhum com token ruim", async () => {
     conferirTokenDoPortal.mockResolvedValue(false);
     const res = await portaGET(req("/portal/access?token=EXPIRADO", "TOKENALFA"));
     expect(res.cookies.get(PORTAL_COOKIE)).toBeUndefined();
@@ -135,7 +139,10 @@ describe("porta de entrada — /portal/access?token=", () => {
 // O proxy não é mais lugar de trava de cookie
 // ═══════════════════════════════════════════════════════════════════════════
 describe("proxy.ts", () => {
-  it("⛔ NÃO apaga cookie de portal — a higiene ali era negação de serviço", async () => {
+  // ⚠️ CONTROLE, não barreira: o `proxy.ts` da BASE também não tocava em cookie
+  // de portal. Ele existe para travar a REMOÇÃO feita nesta rodada — que a
+  // higiene com DoS não volte por distração.
+  it("✅ (controle) NÃO apaga cookie de portal — a higiene ali era negação de serviço", async () => {
     for (const caminho of ["/portal/access/qualquer-lixo", "/portal/access/me", "/portal/access/TOKENBETA"]) {
       const res = await proxy(req(caminho, "TOKENALFA"));
       expect(res.cookies.get(PORTAL_COOKIE), caminho).toBeUndefined();

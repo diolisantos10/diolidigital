@@ -291,6 +291,37 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
               Sua conversa está guardada. Abra o portal pelo link que você recebeu da Dioli.
             </p>
           </div>
+        ) : messages.length === 0 && historicoParcial ? (
+          // ⚠️ NUNCA "Comece a conversa" quando houve corte: o cliente TEM
+          // conversa, ela é que não pôde ser exibida. Dizer o contrário é a
+          // agência afirmando que ele nunca falou com ela.
+          <div className="text-center py-10">
+            <p className="text-[13px] text-[var(--text-secondary)] font-medium">
+              Sua conversa está guardada
+            </p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-1">
+              O histórico antigo não pôde ser exibido agora. Pode escrever aqui normalmente —
+              a equipe Dioli continua vendo tudo.
+            </p>
+          </div>
+        ) : messages.length === 0 && error ? (
+          // Erro de carga NÃO é conversa vazia. Antes o corpo dizia "Comece a
+          // conversa" e o erro saía numa linha de 10px no rodapé.
+          <div className="text-center py-10">
+            <p className="text-[13px] text-[var(--danger)] font-medium">
+              Não consegui carregar sua conversa
+            </p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-1">
+              Isso é um problema nosso, não seu. Tente de novo em instantes — nada foi perdido.
+            </p>
+            <button
+              onClick={() => { setError(null); setLoading(true); void load(); }}
+              className="mt-3 h-8 px-3 rounded-full text-[12px] font-semibold"
+              style={{ background: "var(--accent)", color: "var(--text-primary)" }}
+            >
+              Tentar de novo
+            </button>
+          </div>
         ) : messages.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-[13px] text-[var(--text-secondary)] font-medium">Comece a conversa</p>
