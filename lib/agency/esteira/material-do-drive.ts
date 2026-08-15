@@ -189,10 +189,19 @@ export interface ImportacaoEmLote {
 /**
  * Importa tudo o que o cliente já declarou e ainda não foi buscado.
  *
- * Chamada quando o cliente confirma os papéis no portal, e de novo pelo
- * despertador. Sem teto artificial de rodada: são arquivos que o próprio dono
- * escolheu, um por um — não é varredura de conta alheia, que é o padrão que a
- * casa evita desde 03/08/2026.
+ * Chamada quando o cliente confirma os papéis no portal. O material que JÁ foi
+ * declarado e falhou é responsabilidade de `reimportarFalhados` (abaixo), que o
+ * despertador chama — esta aqui só olha o que nunca foi tentado.
+ *
+ * Sem teto artificial de rodada: são arquivos que o próprio dono escolheu, um
+ * por um — não é varredura de conta alheia, que é o padrão que a casa evita
+ * desde 03/08/2026.
+ *
+ * ⚠️ Este comentário dizia, até 15/08/2026, "e de novo pelo despertador".
+ * **Não era verdade**: não havia nenhum chamador no cron — o `PATCH` do portal
+ * era o único do repositório. Um arquivo que falhava ficava preso até o cliente
+ * declarar o papel de algum outro. Comentário que promete um chamador que não
+ * existe é pior que comentário nenhum: alguém lê, acredita, e para de procurar.
  */
 export async function importarPendentesDoCliente(clientId: string): Promise<ImportacaoEmLote> {
   const saida: ImportacaoEmLote = { importados: 0, falhas: [], aguardandoCliente: 0 };
@@ -211,6 +220,114 @@ export async function importarPendentesDoCliente(clientId: string): Promise<Impo
     const r = await importarMaterialDoDrive(m.id);
     if (r.ok) saida.importados++;
     else saida.falhas.push({ nome: m.nome, erro: r.erro ?? "falha desconhecida" });
+  }
+
+  return saida;
+}
+
+// ─── O ERRO QUE NÃO ENVELHECE — 15/08/2026 ──────────────────────────────────
+//
+// ── O QUE O CEO VIU NA TELA, SETE DIAS DEPOIS DO CONSERTO ─────────────────
+//
+// O portal do CityJobs mostrava, hoje, ao lado de dois logos:
+//   "Não aceitamos arquivo SVG enviado de fora. Mande em PNG, JPG ou PDF."
+//
+// Essa frase **não existe mais no código**. Ela foi apagada em 09/08/2026,
+// quando a porta abriu e `limparSvg` passou a higienizar o SVG na entrada
+// (`lib/agency/media/armazenamento.ts`). O que o CEO leu foi um `erro` GRAVADO
+// no banco (linha 155 acima) numa tentativa antiga, renderizado desde então
+// pelo portal (`components/portal/DriveDoCliente.tsx:387`) como se fosse o
+// estado de hoje.
+//
+// ── POR QUE ELE NUNCA SAIU SOZINHO ────────────────────────────────────────
+//
+// `importarPendentesDoCliente` só era chamada de UM lugar no repositório
+// inteiro: o `PATCH /api/portal/drive` (route.ts:269) — ou seja, **só quando o
+// cliente declara o papel de algum arquivo**. Quem já tinha declarado tudo não
+// tinha mais nenhum gesto capaz de disparar uma nova tentativa. O arquivo ficava
+// preso, com um recado falso ao lado, para sempre.
+//
+// (O comentário de `importarPendentesDoCliente` dizia "e de novo pelo
+// despertador". Não dizia a verdade: não havia chamador no cron. Corrigido lá.)
+//
+// ── A REGRA QUE FICA: TODO "FALHOU" TEM PRAZO ─────────────────────────────
+//
+// Nenhum estado pode prender um arquivo para sempre. Retentativa precisa de
+// **prazo e teto** — sem teto, um erro permanente vira laço infinito contra a
+// cota do Google; sem prazo, um erro temporário vira sentença.
+//
+//   • TETO: `TETO_POR_RODADA` arquivos por chamada. O despertador volta.
+//   • PRAZO: a tentativa só se repete depois de `INTERVALO_ENTRE_TENTATIVAS_MS`.
+//     Não é enfeite — sem ele, duas rodadas seguidas do cron gastariam cota
+//     repetindo a mesma falha permanente em segundos.
+//   • E o RECADO ENVELHECE JUNTO: toda tentativa reescreve o `erro` com a data.
+//     Um recado ao lado do arquivo passa a ser sempre o da última tentativa, e
+//     nunca mais o de uma versão do sistema que já não existe.
+
+/** Quantos arquivos falhados uma rodada tenta. O despertador volta. */
+export const TETO_POR_RODADA = 20;
+
+/** O prazo entre duas tentativas do MESMO arquivo. Uma hora: curto o bastante
+ *  para o cliente não esperar um dia, longo o bastante para uma falha
+ *  permanente não queimar cota do Google em laço. */
+export const INTERVALO_ENTRE_TENTATIVAS_MS = 60 * 60_000;
+
+export interface Reimportacao {
+  /** Quantos passaram a existir no disco nesta rodada. */
+  recuperados: number;
+  /** Quantos continuam falhando, com o motivo ATUAL — nunca o antigo. */
+  aindaFalhando: Array<{ nome: string; erro: string }>;
+  /** Quantos ficaram para a próxima rodada por causa do prazo ou do teto. */
+  adiados: number;
+}
+
+/**
+ * Tenta de novo o material que o cliente JÁ DECLAROU e que não chegou ao disco.
+ *
+ * Não depende de o cliente clicar em nada — é esse o ponto. E não apaga o `erro`
+ * antes de tentar: apagar primeiro deixaria o arquivo sem explicação nenhuma na
+ * tela durante a janela da tentativa, que é pior que uma explicação velha.
+ */
+export async function reimportarFalhados(
+  clientId: string,
+  agora: Date = new Date(),
+): Promise<Reimportacao> {
+  const saida: Reimportacao = { recuperados: 0, aindaFalhando: [], adiados: 0 };
+
+  const candidatos = await prisma.driveMaterial.findMany({
+    where: {
+      clientId,
+      mediaAssetId: null,
+      papelConfirmadoEm: { not: null },
+    },
+    orderBy: { updatedAt: "asc" },
+    take: TETO_POR_RODADA,
+  }).catch(() => []);
+
+  for (const m of candidatos) {
+    // O PRAZO. `updatedAt` é reescrito por toda tentativa (o `update` do erro),
+    // então ele é a data da última — não a da escolha.
+    const desdeUltima = agora.getTime() - new Date(m.updatedAt).getTime();
+    if (m.erro && desdeUltima < INTERVALO_ENTRE_TENTATIVAS_MS) {
+      saida.adiados++;
+      continue;
+    }
+
+    const r = await importarMaterialDoDrive(m.id);
+    if (r.ok) {
+      saida.recuperados++;
+      continue;
+    }
+
+    const motivo = r.erro ?? "não consegui buscar este arquivo";
+    saida.aindaFalhando.push({ nome: m.nome, erro: motivo });
+    // O recado envelhece junto com a tentativa. `importarMaterialDoDrive` já
+    // grava o motivo; o que se acrescenta aqui é a DATA, para que ninguém volte
+    // a ler no portal uma frase de uma versão do sistema que não existe mais.
+    await prisma.driveMaterial.update({
+      where: { id: m.id },
+      data: { erro: `${motivo} (última tentativa: ${agora.toLocaleDateString("pt-BR")})`.slice(0, 300) },
+    }).catch(() => { /* best-effort: a tentativa é o que importa */ });
   }
 
   return saida;

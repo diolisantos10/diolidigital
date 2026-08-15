@@ -387,11 +387,44 @@ export function vereditoDaEscolha(
 
 // ─── O retrato para a tela ──────────────────────────────────────────────────
 
+/**
+ * O que o RETRATO precisa saber, e a trava não.
+ *
+ * ── 15/08/2026: A TELA DIZIA "PRONTO" PARA ARQUIVO QUE NUNCA CHEGOU ────────
+ *
+ * `materialAutorizado` responde "a casa PODE usar este arquivo?". Ela não
+ * pergunta se os bytes já estão no disco — e não deve: `baixarMaterial` a chama
+ * ANTES de importar, quando `mediaAssetId` é nulo por definição. Se a trava
+ * exigisse importação, nada seria importado nunca.
+ *
+ * Só que o retrato usava a trava sozinha e concluía "N material(is) prontos para
+ * a equipe usar" a partir dela. Enquanto isso `materiaisDeMarca`
+ * (`esteira/material-do-drive.ts`) exige `mediaAssetId: { not: null }` para
+ * entregar qualquer coisa a uma peça.
+ *
+ * Resultado medido no CityJobs: os logos tinham papel declarado e conexão viva —
+ * a trava dizia `pode: true` — mas a importação havia falhado e `mediaAssetId`
+ * continuava nulo. A tela dizia "prontos para usar"; a peça recebia lista vazia
+ * e saía assinada com monograma. É a mesma classe do "0 gravado devolvendo 200
+ * verde" que esta casa já pagou em 08/08.
+ *
+ * Por isso `importado` é OBRIGATÓRIO aqui, e não opcional: campo opcional é
+ * campo que o próximo chamador esquece, e o esquecimento voltaria a contar como
+ * "pronto". O `tsc` passa a cobrar de todo mundo — prompt é aviso, tipo é trava.
+ */
+export interface MaterialNoRetrato extends MaterialParaDecidir {
+  /** `true` só quando os bytes já estão no volume da casa (`mediaAssetId`). */
+  importado: boolean;
+}
+
 export interface RetratoDaEscolha {
   /** Total de itens que o cliente já escolheu no seletor do Google. */
   escolhidos: number;
   /** Quantos ainda esperam o cliente dizer o que são. */
   faltaDizerOQueE: number;
+  /** Autorizados pela trava e que MESMO ASSIM não chegaram ao disco. Contados
+   *  à parte porque são o estado que a tela mais escondia. */
+  naoChegaram: number;
   /** Quantos são pasta (e por isso não valem como material). */
   pastas: number;
   /** Os papéis já confirmados, com quantos arquivos cada um. */
@@ -419,17 +452,22 @@ export const FRASE_ZERO_MATERIAL =
  */
 export function retratoDaEscolha(
   conexao: ConexaoParaDecidir | null | undefined,
-  materiais: MaterialParaDecidir[],
+  materiais: MaterialNoRetrato[],
   agora: Date = new Date(),
 ): RetratoDaEscolha {
   const porPapel: Partial<Record<Papel, number>> = {};
   let faltaDizerOQueE = 0;
   let pastas = 0;
   let utilizaveis = 0;
+  let naoChegaram = 0;
 
   for (const m of materiais) {
     const v = materialAutorizado(conexao, m, agora);
     if (v.pode && v.papel) {
+      // Autorizado NÃO é o mesmo que disponível. Só entra em `porPapel` — que é
+      // a contagem que a tela mostra como "pronto" — o que a peça conseguiria
+      // usar de verdade.
+      if (!m.importado) { naoChegaram++; continue; }
       porPapel[v.papel] = (porPapel[v.papel] ?? 0) + 1;
       utilizaveis++;
       continue;
@@ -460,11 +498,20 @@ export function retratoDaEscolha(
     frase = FRASE_ZERO_MATERIAL;
   } else if (faltaDizerOQueE > 0) {
     frase = `Falta dizer o que é: ${faltaDizerOQueE} de ${escolhidos} arquivo(s) escolhido(s).`;
-  } else if (pastas > 0 && utilizaveis === 0) {
+  } else if (pastas > 0 && utilizaveis === 0 && naoChegaram === 0) {
     frase = `Você escolheu ${pastas} pasta(s). Precisamos dos arquivos de dentro — abra a pasta no seletor e escolha os arquivos.`;
+  } else if (naoChegaram > 0) {
+    // ── A FRASE QUE FALTAVA (15/08/2026) ────────────────────────────────────
+    // Antes, estes arquivos entravam na conta de "prontos para a equipe usar" e
+    // a peça saía sem eles. A falha é NOSSA e a frase diz isso: o cliente já fez
+    // a parte dele — escolheu e declarou. Culpar quem já respondeu é o jeito
+    // mais rápido de ele parar de responder.
+    frase = utilizaveis > 0
+      ? `${utilizaveis} material(is) prontos. Outros ${naoChegaram} você já declarou, mas ainda não chegaram até nós — a falha é nossa, estamos tentando de novo.`
+      : `Você já declarou ${naoChegaram} arquivo(s), mas nenhum chegou até nós ainda — a falha é nossa, não sua. Estamos tentando de novo; se demorar, avise a equipe.`;
   } else {
     frase = `${utilizaveis} material(is) prontos para a equipe usar.`;
   }
 
-  return { escolhidos, faltaDizerOQueE, pastas, porPapel, frase, utilizavel: utilizaveis > 0 };
+  return { escolhidos, faltaDizerOQueE, naoChegaram, pastas, porPapel, frase, utilizavel: utilizaveis > 0 };
 }

@@ -281,7 +281,7 @@ describe("Drive: conectado sem arquivo é ZERO MATERIAL, e a tela diz isso", () 
 
   it("A METADE LIMPA: com material declarado, a frase volta a ser a boa", () => {
     const r = retratoDaEscolha(CONEXAO_VIVA, [
-      { fileId: "1", nome: "logo.png", ehPasta: false, papel: "logo", papelConfirmadoEm: new Date() },
+      { fileId: "1", nome: "logo.png", ehPasta: false, papel: "logo", papelConfirmadoEm: new Date(), importado: true },
     ]);
     expect(r.utilizavel).toBe(true);
     expect(r.frase).not.toBe(FRASE_ZERO_MATERIAL);
