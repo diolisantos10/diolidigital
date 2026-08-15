@@ -51,7 +51,7 @@ vi.mock("@/lib/integrations/meta/ads", async (orig) => ({
 
 import {
   prepararCampanha, ligarCampanha, desligarCampanha, guardarAVerba,
-  ONDE_CONECTAR, ONDE_MARCAR_A_CONTA, ONDE_DIZER_A_VERBA, ONDE_LIGAR,
+  ONDE_CONECTAR, ONDE_MARCAR_A_CONTA, ONDE_DIZER_A_VERBA, POSSE_NAO_CONFERIDA,
 } from "@/lib/agency/esteira/trafego";
 import { escritasPorJanela, tetoDePontos } from "@/lib/integrations/meta/cota-de-anuncios";
 import { PONTOS_DE_ESCRITA } from "@/lib/integrations/meta/travas";
@@ -157,15 +157,20 @@ describe("toda trava que barra também ensina o caminho", () => {
     expect(r.pendencia).toMatch(/onde este neg[oó]cio vende/i);
   });
 
-  it("5. campanha COMPLETA não se anuncia como pronta: ela diz onde se LIGA", async () => {
-    // "ok: true" já fez esta casa achar que "tráfego pago pronto" significava
-    // dinheiro rodando. Não significa: ela nasce PAUSADA e o último passo é
-    // humano, com nome.
+  it("5. 🩹 com o torniquete no lugar, o anúncio NÃO sai — e o motivo é nosso, não da Meta", async () => {
+    // 15/08/2026. Este teste afirmava `pendencia).toContain(ONDE_LIGAR)`, isto
+    // é: campanha COMPLETA. Ela deixou de ser completa de propósito — enquanto
+    // a casa não provar que a Página e a arte são deste cliente, o anúncio não
+    // é criado (ver POSSE_NAO_CONFERIDA em trafego.ts).
+    //
+    // Campanha e conjunto continuam nascendo pausados: são trabalho
+    // aproveitável e não tocam ativo de terceiro nenhum.
     const r = await prepararCampanha("p1");
-    expect(r.ok).toBe(true);
-    expect(r.pendencia).toContain(ONDE_LIGAR);
-    expect(r.pendencia).toMatch(/PAUSADA/);
     expect(ads.criarCampanhaPausada).toHaveBeenCalled();
+    expect(ads.criarConjuntoPausado).toHaveBeenCalled();
+    expect(ads.criarAnuncioPausado).not.toHaveBeenCalled();
+    expect(r.pendencia).toBe(POSSE_NAO_CONFERIDA);
+    expect(r.pendencia).not.toMatch(/a Meta recusou/i);
   });
 });
 

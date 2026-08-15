@@ -84,10 +84,13 @@ describe("a agência PREPARA a campanha; o cliente é quem liga", () => {
     expect(dados.approvedCapBRL).toBe(30);
   });
 
-  it("avisa o cliente de que existe campanha esperando o dedo dele", async () => {
-    // Campanha pausada que ninguém sabe que existe é trabalho jogado fora.
+  it("🩹 campanha INCOMPLETA não é anunciada ao cliente — nem para dizer que está pausada", async () => {
+    // Este teste afirmava o contrário até 15/08/2026, e estava certo enquanto o
+    // anúncio saía. Com o torniquete da posse no lugar (POSSE_NAO_CONFERIDA), a
+    // campanha nasce sem anúncio — e avisar "está tudo montado" seria a casa
+    // mentindo para o cliente sobre trabalho que não terminou.
     await prepararCampanha("p1");
-    expect(db.portalMessage.create.mock.calls[0]![0].data.body).toMatch(/PAUSADA/);
+    expect(db.portalMessage.create).not.toHaveBeenCalled();
   });
 
   it("sem verba informada no briefing, NENHUMA campanha é criada", async () => {
@@ -223,12 +226,17 @@ describe("desempenho pago no relatório: 'não medi' nunca vira zero", () => {
 });
 
 describe("a campanha só é anunciada ao cliente quando está COMPLETA", () => {
-  it("conjunto e anúncio criados são gravados junto da campanha", async () => {
+  it("🩹 o conjunto é gravado; o anúncio fica pendente enquanto a posse não se prova", async () => {
+    // Até 15/08/2026 este teste esperava `adId: "ad_1"`. O torniquete da posse
+    // (trafego.ts, POSSE_NAO_CONFERIDA) tirou o anúncio do caminho: o registro
+    // guarda o conjunto e diz, em português, o que falta — em vez de deixar o
+    // time descobrir depois de ligar e ver a conta gastando zero.
     await prepararCampanha("p1");
     const d = db.adCampaign.create.mock.calls[0]![0].data;
     expect(d.adSetId).toBe("adset_1");
-    expect(d.adId).toBe("ad_1");
-    expect(d.lastError).toBeNull();
+    expect(d.adId).toBeNull();
+    expect(d.lastError).toMatch(/prova/i);
+    expect(d.lastError).not.toMatch(/a Meta recusou/i);
   });
 
   it("conjunto que a Meta recusou vira pendência visível, não campanha 'pronta'", async () => {

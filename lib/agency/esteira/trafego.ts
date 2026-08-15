@@ -62,6 +62,34 @@ export const ONDE_DIZER_A_VERBA =
 export const ONDE_LIGAR =
   'painel da agência → Desempenho pago → a campanha → "Ligar" (fica gravado quem autorizou)';
 
+// ─── 🩹 TORNIQUETE: O CRIATIVO NÃO PROVA DE QUEM É (15/08/2026) ─────────────
+//
+// `montarCriativo` escolhia a Página com `findFirst({ workspaceId, platform:
+// "facebook" })` — **sem `clientId`** — e a arte com `findFirst({ mediaUrl: {
+// not: null } })` — **sem dono nenhum**. Num banco com mais de um cliente isso
+// significa, literalmente: o anúncio do cliente A nasce assinado pela Página do
+// cliente B, com a arte do post mais recente da base, seja de quem for. E o
+// `pageId` seguia CRU para `object_story_spec.page_id` (`ads.ts`), sem passar
+// pela lista de ativos autorizados que existe desde 06/08/2026 — a mesma trava
+// que a conta de anúncios já atravessa.
+//
+// Enquanto a posse não for CONFERIDA, nenhum anúncio é criado. Campanha e
+// conjunto continuam nascendo pausados (é trabalho aproveitável e não toca
+// ativo de terceiro), e o que falta aparece no painel com o motivo verdadeiro.
+//
+// PONTO DE REVERSÃO: uma constante. `POSSE_DO_CRIATIVO_CONFERIDA = true`
+// devolve o comportamento anterior — e é por isso que ela some no commit
+// seguinte, que é o conserto de verdade. Torniquete que vira parte da anatomia
+// é gangrena.
+const POSSE_DO_CRIATIVO_CONFERIDA: boolean = false;
+
+/** O motivo honesto. Não é "a Meta recusou": a Meta não recusou nada — nós é
+ *  que não conseguimos provar de quem é a Página e a arte. */
+export const POSSE_NAO_CONFERIDA =
+  "anúncio não criado — a casa ainda não consegue provar que a Página e a arte são DESTE cliente, "
+  + "e um anúncio assinado pela Página de outro cliente é um dano que não se desfaz. "
+  + "Campanha e conjunto estão criados e PAUSADOS; falta só o anúncio.";
+
 /**
  * Prepara a campanha do projeto — criada PAUSADA — e pede o aval do cliente.
  *
@@ -202,19 +230,29 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
   // ── O ANÚNCIO ─────────────────────────────────────────────────────────────
   const criativo = await montarCriativo(projectId, projeto.workspaceId, conexao.id);
   let anuncioId: string | null = null;
-  if (conjunto.ok && conjunto.dados && criativo) {
+  // O motivo começa sendo o do criativo e só é substituído por uma recusa real
+  // da Meta. Antes de 15/08/2026 toda ausência de anúncio virava "a Meta
+  // recusou o criativo" — culpar a plataforma por um defeito nosso apaga o
+  // rastro do defeito e manda o operador esperar por alguém que nunca vem.
+  let porQueSemAnuncio: string | null = criativo.ok ? null : criativo.pendencia;
+  if (conjunto.ok && conjunto.dados && criativo.ok) {
     const anuncio = await criarAnuncioPausado(projeto.workspaceId, conexao.id, {
       contaId: plano.contaId,
       adSetId: conjunto.dados.adSetId,
-      pageId: criativo.pageId,
+      pageId: criativo.criativo.pageId,
       nome: plano.nome,
-      imagemUrl: criativo.imagemUrl,
-      texto: criativo.texto,
-      titulo: criativo.titulo,
-      link: criativo.link,
-      cta: criativo.cta,
+      imagemUrl: criativo.criativo.imagemUrl,
+      texto: criativo.criativo.texto,
+      titulo: criativo.criativo.titulo,
+      link: criativo.criativo.link,
+      cta: criativo.criativo.cta,
     });
-    if (anuncio.ok && anuncio.dados) anuncioId = anuncio.dados.adId;
+    if (anuncio.ok && anuncio.dados) {
+      anuncioId = anuncio.dados.adId;
+      porQueSemAnuncio = null;
+    } else {
+      porQueSemAnuncio = `anúncio não criado — ${anuncio.erro ?? "a Meta recusou o criativo"}`;
+    }
   }
 
   // Campanha incompleta não pode parecer pronta. O que faltou é calculado aqui
@@ -223,7 +261,7 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
   const oQueFaltou = !conjunto.ok
     ? `conjunto não criado: ${conjunto.erro ?? "erro"}`
     : !anuncioId
-      ? (criativo ? "anúncio não criado — a Meta recusou o criativo" : "anúncio não criado — falta arte ou página do Facebook conectada")
+      ? (porQueSemAnuncio ?? "anúncio não criado")
       : null;
 
   const registro = await prisma.adCampaign.create({
@@ -569,23 +607,40 @@ async function lerSegmentacao(
   };
 }
 
+export interface CriativoDoAnuncio {
+  pageId: string; imagemUrl: string; texto: string; titulo: string; link: string; cta?: string;
+}
+
+/** Ou o criativo, ou o MOTIVO de não haver criativo. Devolver `null` seco fazia
+ *  o chamador ter de adivinhar por que — e ele adivinhava errado, em português,
+ *  para o painel de quem trabalha. */
+export type CriativoMontado =
+  | { ok: true; criativo: CriativoDoAnuncio }
+  | { ok: false; pendencia: string };
+
 /**
  * Monta o criativo do anúncio a partir do que a casa já produziu: a arte do
  * Design e a copy do especialista de anúncio.
  *
- * Devolve `null` quando falta arte ou página do Facebook — e isso vira pendência
- * visível, não um anúncio pela metade.
+ * Não devolve criativo quando falta arte, falta Página ou **não se prova de
+ * quem são** — e isso vira pendência visível, não um anúncio pela metade nem um
+ * anúncio com o ativo de outro cliente.
  */
 async function montarCriativo(
   projectId: string,
   workspaceId: string,
   connectionId: string,
-): Promise<{ pageId: string; imagemUrl: string; texto: string; titulo: string; link: string; cta?: string } | null> {
+): Promise<CriativoMontado> {
+  // 🩹 TORNIQUETE — ver o bloco no topo do arquivo.
+  if (!POSSE_DO_CRIATIVO_CONFERIDA) return { ok: false, pendencia: POSSE_NAO_CONFERIDA };
+
   const pagina = await prisma.metaConnection.findFirst({
     where: { workspaceId, platform: "facebook", status: "connected" },
     select: { externalId: true },
   }).catch(() => null);
-  if (!pagina?.externalId) return null;
+  if (!pagina?.externalId) {
+    return { ok: false, pendencia: "anúncio não criado — falta a Página do Facebook conectada. " + `Onde resolver: ${ONDE_CONECTAR}.` };
+  }
 
   const post = await prisma.socialPost.findFirst({
     where: { mediaUrl: { not: null } },
@@ -593,7 +648,7 @@ async function montarCriativo(
     select: { mediaUrl: true },
   }).catch(() => null);
   const imagemUrl = await urlPublica(post?.mediaUrl ?? null);
-  if (!imagemUrl) return null;
+  if (!imagemUrl) return { ok: false, pendencia: "anúncio não criado — nenhuma arte publicável para este projeto" };
 
   const copy = await prisma.deliverable.findFirst({
     where: { projectId, ownerAgentId: "traffic-copy-anuncio" },
@@ -619,15 +674,20 @@ async function montarCriativo(
   const link = site
     ? (site.startsWith("http") ? site : `https://${site}`)
     : (zap && zap.length >= 10 ? `https://wa.me/55${zap.slice(-11)}` : "");
-  if (!link) return null;
+  if (!link) {
+    return { ok: false, pendencia: "anúncio não criado — o cliente não tem site nem WhatsApp no cadastro, e anúncio sem destino não é anúncio" };
+  }
 
   return {
-    pageId: pagina.externalId,
-    imagemUrl,
-    texto: texto.slice(0, 2000),
-    titulo: titulo.slice(0, 100),
-    link,
-    cta: site ? "LEARN_MORE" : "WHATSAPP_MESSAGE",
+    ok: true,
+    criativo: {
+      pageId: pagina.externalId,
+      imagemUrl,
+      texto: texto.slice(0, 2000),
+      titulo: titulo.slice(0, 100),
+      link,
+      cta: site ? "LEARN_MORE" : "WHATSAPP_MESSAGE",
+    },
   };
 }
 
