@@ -31,10 +31,16 @@ import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-ser
 
 /** O filtro Prisma de uma conversa. Objeto simples de propósito: os testes
  *  mockam o prisma e comparam a forma. */
-export type FiltroDaConversa =
+export type ChaveDaConversa =
   | { clientId: string }
   | { clientRequestId: { in: string[] } }
   | { OR: Array<{ clientId: string } | { clientRequestId: { in: string[] } }> };
+
+/** A cerca: nenhuma linha carimbada para OUTRO cliente sai, venha por qual
+ *  chave vier. Ver `montarFiltro`. */
+export type FiltroDaConversa =
+  | ChaveDaConversa
+  | { AND: [ChaveDaConversa, { OR: [{ clientId: string }, { clientId: null }] }] };
 
 export interface Conversa {
   /** O dono. Nulo só quando a conversa é de um PROSPECT (solicitação de
@@ -61,8 +67,35 @@ function montarFiltro(clientId: string | null, requestIds: string[]): FiltroDaCo
   if (clientId) chaves.push({ clientId });
   if (requestIds.length > 0) chaves.push({ clientRequestId: { in: requestIds } });
   if (chaves.length === 0) return null;
-  if (chaves.length === 1) return chaves[0]!;
-  return { OR: chaves };
+  const chave: ChaveDaConversa = chaves.length === 1 ? chaves[0]! : { OR: chaves };
+  if (!clientId) return chave;
+
+  // ── A CERCA DO DONO (15/08/2026) ──────────────────────────────────────────
+  //
+  // A união das duas chaves acima é o que mantém o histórico inteiro visível
+  // quando um cliente ganha (ou troca de) solicitação. Ela também abriu um
+  // vazamento entre clientes que ninguém tinha medido:
+  //
+  //   `ClientRequestDb.clientId` NÃO é imutável. `/api/admin/reset` zera o
+  //   campo (`clientId: null`), `createProjectFromRequest` e
+  //   `/api/brain/orchestrate/apply` criam um Client novo e RE-APONTAM a mesma
+  //   solicitação — e `Client` não tem `@@unique(workspaceId, name)`, então
+  //   ficha duplicada para o mesmo negócio é fato registrado nesta casa
+  //   (a Camila, em 08/08).
+  //
+  //   Quando a solicitação R sai do cliente A e passa para o cliente B, as
+  //   mensagens antigas continuam gravadas com `clientId: A` E
+  //   `clientRequestId: R` — as DUAS chaves, como esta casa passou a carimbar.
+  //   A partir daí o portal de B lê aquelas mensagens pelo ramo
+  //   `clientRequestId in [R]`, e o portal de A continua lendo pelo ramo
+  //   `clientId: A`. **Os dois portais mostram a mesma conversa, com os mesmos
+  //   horários** — que é exatamente o que o CEO viu em produção.
+  //
+  // A cerca: a linha tem que passar pela chave E ser do dono. `clientId: null`
+  // continua passando porque é o formato das 11 escritas antigas (que só
+  // conhecem `clientRequestId`) — barrar isso apagaria histórico legítimo. O
+  // que nunca mais passa é linha carimbada para OUTRO cliente.
+  return { AND: [chave, { OR: [{ clientId }, { clientId: null }] }] };
 }
 
 /** Monta a conversa de um cliente já identificado (dono derivado, nunca vindo
@@ -76,17 +109,64 @@ export async function conversaDoCliente(
     orderBy: { createdAt: "desc" },
     select: { id: true },
   });
-  const ids = solicitacoes.map((s) => s.id);
+  const todosOsIds = solicitacoes.map((s) => s.id);
+
+  // ── SOLICITAÇÃO QUE JÁ FOI DE OUTRO (15/08/2026) ──────────────────────────
+  //
+  // A cerca de `montarFiltro` barra a linha carimbada para outro cliente. Falta
+  // a linha LEGADA: as 11 escritas antigas gravam só `clientRequestId`, com
+  // `clientId` NULO, e uma linha nula não tem dono escrito — ela pertence a
+  // quem era dono da solicitação NA HORA em que foi escrita, e isso o banco não
+  // guarda. Se a solicitação trocou de dono, essas linhas seguem junto e o
+  // portal novo lê a conversa antiga.
+  //
+  // Não dá para adivinhar o dono de uma linha nula — e adivinhar é exatamente o
+  // que a lei da casa proíbe. Mas dá para PROVAR que a solicitação já foi de
+  // outro: basta existir, presa a ela, uma linha carimbada com outro clientId.
+  // Onde há essa prova, a solicitação inteira sai da leitura deste cliente: as
+  // linhas nulas dela são ambíguas, e ambiguidade fecha.
+  //
+  // As duas metades: no caso limpo NENHUMA solicitação tem carimbo alheio, nada
+  // é escondido, e o histórico legado continua inteiro.
+  //
+  // ⚠️ FALHA DE LEITURA FECHA, NÃO ABRE. Se esta consulta não responder, não dá
+  // para saber quais solicitações estão limpas — e a resposta segura para
+  // "não sei" é ler só pelo `clientId`, nunca pela união. O cliente vê menos
+  // histórico numa falha de banco; ninguém vê a conversa de outro.
+  const ids = await (async () => {
+    if (todosOsIds.length === 0) return [];
+    try {
+      const contaminadas = await prisma.portalMessage.findMany({
+        where: { clientRequestId: { in: todosOsIds }, clientId: { not: null, notIn: [clientId] } },
+        select: { clientRequestId: true },
+        distinct: ["clientRequestId"],
+      });
+      if (!Array.isArray(contaminadas)) return [];
+      const sujas = new Set(contaminadas.map((c) => c.clientRequestId).filter((x): x is string => !!x));
+      return todosOsIds.filter((id) => !sujas.has(id));
+    } catch {
+      return [];
+    }
+  })();
+
+  // ── A CERCA É DA LEITURA, NÃO DA ESCRITA ──────────────────────────────────
+  // A âncora continua usando TODAS as solicitações do cliente: elas são dele
+  // agora, e escrever nelas é correto — a mensagem nova nasce carimbada com o
+  // `clientId`, então quem lê depois já está protegido pela cerca. Restringir a
+  // âncora aqui faria uma falha de leitura (o `catch` acima) mudar ONDE a
+  // mensagem é gravada, que é efeito colateral em cima de defeito.
+  //
   // A solicitação preferida (a que o token aponta) só vale se for DESTE cliente
   // — senão a âncora escreveria na conversa de outro.
   const ancoraRequest =
-    solicitacaoPreferida && ids.includes(solicitacaoPreferida)
+    solicitacaoPreferida && todosOsIds.includes(solicitacaoPreferida)
       ? solicitacaoPreferida
-      : ids[0] ?? null;
+      : todosOsIds[0] ?? null;
   return {
     clientId,
-    clientRequestIds: ids,
+    clientRequestIds: todosOsIds,
     ancora: { clientId, clientRequestId: ancoraRequest },
+    // Só a LEITURA anda pelas solicitações limpas.
     filtro: montarFiltro(clientId, ids),
   };
 }

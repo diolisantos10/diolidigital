@@ -30,6 +30,15 @@ interface PortalChatProps {
   /** Team side: abre a conversa PELO CLIENTE — o caminho que funciona também
    *  para cliente criado direto (sem solicitação). Requer sessão. */
   clientId?: string;
+  /** Portal do cliente: a identidade OPACA do dono da TELA, como o servidor a
+   *  derivou em `/api/portal/vista`. Viaja em toda leitura e todo envio para o
+   *  servidor conferir que o cliente da tela e o cliente da credencial desta
+   *  conversa são o mesmo — em `/portal/access/me` o chat autentica pelo
+   *  cookie `dioli_portal`, que é UM por navegador e guarda UM cliente, e até
+   *  15/08/2026 ninguém conferia se batia com a tela. NÃO concede acesso: o
+   *  dono continua derivado do token/cookie; isto só faz a conversa fechar
+   *  quando os dois lados discordam. */
+  dono?: string | null;
   /** Team side: when set, shows an "✨ Sugerir mensagem" button that drafts a
    *  reply with AI, biased by this situation hint (e.g. "escopo aprovado"). */
   suggestContext?: string;
@@ -65,7 +74,7 @@ function LinkifiedBody({ text, mine }: { text: string; mine: boolean }) {
   );
 }
 
-export function PortalChat({ token, clientRequestId, clientId, suggestContext, authorName, height = 360, bare = false }: PortalChatProps) {
+export function PortalChat({ token, clientRequestId, clientId, dono, suggestContext, authorName, height = 360, bare = false }: PortalChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -74,6 +83,10 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
   // Conversa sem dono (acesso mal emitido): a caixa de texto some e a tela diz
   // o motivo, em vez de aceitar o texto e falhar no envio para sempre.
   const [semDono, setSemDono] = useState(false);
+  // A credencial deste navegador aponta para OUTRO cliente que não o da tela.
+  // A conversa fica vazia (o servidor não devolve mensagem nenhuma) e a caixa
+  // de texto sai — enviar aqui gravaria na conversa de outra pessoa.
+  const [divergente, setDivergente] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [linkDraft, setLinkDraft] = useState("");
   const [suggesting, setSuggesting] = useState(false);
@@ -132,13 +145,18 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
 
   // A ordem importa: clientId (o caminho que serve cliente direto) vem antes de
   // clientRequestId, que fica como entrada legada das telas de projeto.
-  const query = token
+  // `dono` acompanha SEMPRE o lado do cliente — inclusive (e principalmente) no
+  // modo cookie, onde não há token nenhum na requisição e o servidor não teria
+  // com o que comparar.
+  const selo = !clientId && !clientRequestId && dono ? `dono=${encodeURIComponent(dono)}` : "";
+  const credencial = token
     ? `token=${encodeURIComponent(token)}`
     : clientId
       ? `clientId=${encodeURIComponent(clientId)}`
       : clientRequestId
         ? `clientRequestId=${encodeURIComponent(clientRequestId)}`
         : ""; // A4: modo cookie — o httpOnly do portal autentica sozinho
+  const query = [credencial, selo].filter(Boolean).join("&");
 
   const load = useCallback(async () => {
     try {
@@ -147,9 +165,15 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
         if (loading) setError("Não foi possível carregar a conversa.");
         return;
       }
-      const data = (await res.json()) as { messages?: ChatMessage[]; podeEnviar?: boolean };
+      const data = (await res.json()) as { messages?: ChatMessage[]; podeEnviar?: boolean; motivo?: string };
       setMessages(data.messages ?? []);
-      setSemDono(data.podeEnviar === false);
+      // "sem dono" e "dono divergente" são fatos DIFERENTES e a tela precisa
+      // dizer qual é: o primeiro é acesso mal emitido (a agência resolve), o
+      // segundo é a credencial de outro cliente neste navegador (recarregar
+      // pelo link resolve). Tratar os dois com o mesmo texto mandaria o cliente
+      // pedir um link novo que ele já tem.
+      setDivergente(data.motivo === "dono-divergente");
+      setSemDono(data.podeEnviar === false && data.motivo !== "dono-divergente");
       setError(null);
     } catch {
       if (loading) setError("Não foi possível carregar a conversa.");
@@ -189,7 +213,7 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
       const res = await fetch("/api/portal/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, clientRequestId, clientId, body: text, authorName }),
+        body: JSON.stringify({ token, clientRequestId, clientId, dono: dono ?? undefined, body: text, authorName }),
       });
       if (!res.ok) {
         setMessages((m) => m.filter((x) => x.id !== optimistic.id));
@@ -203,7 +227,10 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
             ? detalhe.error
             : "Não foi possível enviar. Tente novamente.",
         );
-        if (res.status === 409) setSemDono(true);
+        if (res.status === 409) {
+          if (detalhe && (detalhe as { motivo?: string }).motivo === "dono-divergente") setDivergente(true);
+          else setSemDono(true);
+        }
       } else {
         await load();
       }
@@ -266,7 +293,15 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
         <p className="text-[10px] text-[var(--danger)] px-4 pb-1">{error}</p>
       )}
 
-      {semDono ? (
+      {divergente ? (
+        <div className="border-t border-[var(--border)] px-4 py-4 bg-[#FFFBEB]">
+          <p className="text-[12.5px] font-semibold text-[#9B7B2D]">Não consegui abrir esta conversa com segurança</p>
+          <p className="text-[11.5px] text-[#B08D3E] mt-0.5 leading-snug">
+            Este navegador está com o acesso de outra marca guardado. Abra o portal pelo link que
+            você recebeu da Dioli e a conversa volta. Nada foi enviado.
+          </p>
+        </div>
+      ) : semDono ? (
         <div className="border-t border-[var(--border)] px-4 py-4 bg-[#FFFBEB]">
           <p className="text-[12.5px] font-semibold text-[#9B7B2D]">Esta conversa ainda não tem dono</p>
           <p className="text-[11.5px] text-[#B08D3E] mt-0.5 leading-snug">

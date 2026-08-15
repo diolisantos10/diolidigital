@@ -15,6 +15,125 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 15/08/2026 — O PORTAL DE UM CLIENTE MOSTRAVA A CONVERSA DE OUTRO (P0)
+
+**A consequência, primeiro:** a conversa do PM — que carrega briefing, valores e
+combinação comercial — aparecia no portal de quem não é dono. O CEO viu em
+produção: portal de um cliente, painel "Fale com seu PM" com as mensagens de
+outro, **mesmos horários**.
+
+**A decisão e o desenho das travas: `docs/decisoes.md`.** Aqui fica o que foi
+medido, o que ficou aberto e a resposta forense.
+
+### 🔴 A CAUSA REAL — e a leitura de origem estava INCOMPLETA, não errada
+
+Os 4 pontos apontados pelo Diretor Geral existem e estão corretos. O que faltava
+é o mecanismo que reproduz o sintoma **exato**: a leitura da conversa une
+`clientId` + todas as solicitações do cliente, e **`ClientRequestDb.clientId`
+não é imutável** (`/api/admin/reset` zera; `create-project-from-request.ts:51` e
+`orchestrate/apply/route.ts:111` re-apontam; `Client` não tem
+`@@unique(workspaceId, name)`). Solicitação que muda de dono **leva a conversa
+junto**, e os dois portais passam a mostrar as mesmas linhas — cada um com o
+próprio token válido, **sem cookie nenhum envolvido**.
+
+**Provado, não deduzido.** `__tests__/portal/conversa-de-outro-cliente.test.ts`,
+banco de verdade, rotas de verdade: **5 dos 10 testes falham sem o conserto.** A
+reprodução também foi andada em NAVEGADOR real (Playwright, dois clientes
+semeados, nenhum dado real) — e foi ela que **refutou** duas hipóteses da
+investigação: o `history.replaceState` para `/portal/access/me` **não** troca o
+`params.token` da página, e com o código de hoje tela e chat **nunca** divergem
+dentro de uma mesma visita. A divergência tela × cookie é real **na rota** e foi
+travada assim mesmo; o que produz o sintoma observado é a âncora.
+
+### 🔴 A PERGUNTA FORENSE: "algum cliente real chegou a ver conversa de outro?"
+
+**NÃO HÁ COMO SABER.** O motivo, item a item:
+
+| Registro | O que permite | O que NÃO permite |
+|---|---|---|
+| `PortalAccess.lastAccessedAt` / `accessCount` | que um token foi usado, e quando | de qual navegador, e **o que a resposta continha**. É contador de CHAMADA (todo `validatePortalAccess`), não de visita |
+| `PortalMessage.readByClient` / `readByTeam` | que alguém do lado do cliente abriu | **quem**. O próprio dono legítimo vira o mesmo campo — os dois casos são indistinguíveis |
+| Tabela de auditoria do portal | — | **não existe.** Não há modelo de log de acesso no schema |
+| Log de aplicação | — | `/api/portal/messages` **não loga acesso** (só erro). E produção estava **502** durante esta apuração |
+
+**E o mais importante: no caminho da âncora o token usado é LEGÍTIMO do próprio
+cliente.** Mesmo um log de acesso perfeito não marcaria nada de anômalo. Não é
+"provavelmente não" — é **não há como saber**.
+
+### 🔴 O QUE FICOU ABERTO
+
+- [ ] `plataforma` — 🔴 **`ClientRequestDb.clientId` é mutável e ninguém registra
+      a troca.** É a causa raiz. Esta frente cercou o EFEITO na conversa; todo
+      outro consumidor da mesma união segue exposto. Sem dono.
+- [ ] `plataforma` — **`Client` sem `@@unique(workspaceId, name)`** e duas rotas
+      criando ficha sem dedup (já aberto desde 08/08 pela Camila duplicada).
+- [ ] `seguranca` — 🔴 **não há registro de acesso do portal.** Enquanto não
+      houver, toda pergunta forense sobre o portal termina em "não há como
+      saber". Sem dono.
+- [ ] **CEO/Diretor** — 🔴 **PRODUÇÃO ESTAVA FORA DO AR (HTTP 502,
+      `x-railway-fallback: true`) durante esta apuração**, em `/api/health` e em
+      todas as rotas. Não foi causado por esta frente (o trabalho todo foi
+      local). **Nada foi medido em produção por causa disso.**
+- [ ] 🟠 **Mensagem legada (`clientId` nulo) presa a solicitação que trocou de
+      dono some da conversa do dono NOVO.** É a escolha declarada: entre
+      esconder histórico ambíguo e mostrar conversa de outro, esconde-se.
+      Fundir fichas duplicadas continua sendo decisão de negócio.
+
+### O ITEM DO DOMÍNIO OFICIAL — o que ficou pronto e o que é do CEO
+
+**Varredura completa: 11 lugares montam URL absoluta.** 8 já estavam certos
+(passam por `origemPublica`/`urlPublica`, que lê `x-forwarded-host`, ou pelo
+`HOST_PADRAO` que já é `www.diolidigital.com.br`). **3 estavam errados e foram
+consertados** — os três que falam com o cliente fora de uma requisição:
+
+| Onde | Estava | Ficou |
+|---|---|---|
+| `lib/agency/esteira/avisos.ts` (link do portal no WhatsApp) | string **VAZIA** sem env → `/portal/access/<token>` relativo, que **não abre nada** numa mensagem | `baseDeLink()` |
+| `app/api/self-serve/order/route.ts` (retorno do Mercado Pago) | string **VAZIA** → comprador voltava para lugar nenhum | `baseDeLink()` |
+| `lib/integrations/meta/notifications.ts` (aviso de proposta) | Railway **escrito à mão** | `baseDeLink()` |
+
+`baseDeLink()` mora em `lib/http/endereco-publico.ts`, **um lugar só**, e
+**nunca devolve vazio**. O padrão continua sendo o endereço de HOJE
+(`up.railway.app`) de propósito: o domínio oficial ainda **não atende**
+(`targetPort` vazio), e apontar para porta fechada é pior que link feio.
+
+- **O que depende do CEO, no Railway (não foi tocado):** definir o `targetPort`
+  (8080) em `diolidigital.com.br` e `www.diolidigital.com.br`, e o DNS.
+- **Depois disso, a troca é UMA variável:** `NEXT_PUBLIC_APP_URL`. Nenhum código
+  muda. Travado por teste.
+- ⚠️ **EFEITO COLATERAL QUE O CLIENTE MERECE SABER ANTES:** o cookie do portal
+  tem escopo de **domínio**. Trocar o domínio **DERRUBA todas as sessões abertas**
+  em `up.railway.app` — quem estiver logado precisa reabrir pelo link de acesso.
+
+### Portão
+
+`npx tsc --noEmit` **limpo** · **4.450 testes em 283 arquivos, todos verdes** ·
+`npm run build` compila · `npm run lint` **falha com 65 erros e 143 avisos —
+número IDÊNTICO ao da branch base**, medido antes e depois com `git stash`;
+nenhum arquivo desta frente aparece na lista. O lint desta casa está vermelho
+desde antes desta frente, e isso é pendência de outra pessoa.
+
+🔴 **ACHADO DE PASSAGEM: o cliente Prisma commitado estava INCOMPLETO.** Num
+checkout limpo, `npx tsc --noEmit` acusava **4 erros** em
+`app/api/v2/assistido/route.ts` — não era código ruim, era
+`lib/generated/prisma/models/RecusaV2.ts` **faltando no repositório**, embora o
+modelo exista no schema (`prisma/schema.prisma:2177`) e a pasta seja commitada
+de propósito ("para o Railway não precisar de `prisma generate`"). O arquivo
+entra neste PR e o tsc fica limpo. **Quem gerou o cliente da última vez não
+commitou tudo** — e o build do Railway vinha se salvando porque roda
+`prisma generate`.
+
+⚠️ **`middleware.ts` NÃO EXISTE NO NEXT 16 DESTA CASA.** A primeira versão da
+trava de porta foi escrita como `middleware.ts` e o **build reprovou**: *"Both
+middleware file and proxy file are detected. Please use ./proxy.ts only."*
+A trava mora em `proxy.ts`. Descoberto construindo, não lendo — é o que
+`AGENTS.md` manda fazer.
+
+⚠️ **4 testes antigos foram REESCRITOS, não afrouxados.** Eles fixavam a forma
+do filtro **sem a cerca** — o defeito virando invariante, o mesmo padrão já
+registrado em 08/08. A forma nova está anotada com o porquê.
+
+
 ## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
 
 **Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no

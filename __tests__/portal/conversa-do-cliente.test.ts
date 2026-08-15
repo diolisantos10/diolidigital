@@ -73,9 +73,24 @@ describe("cliente criado DIRETO, sem solicitação de briefing", () => {
 
   it("a leitura filtra só por clientId — sem chave de solicitação sobrando", async () => {
     await GET(get("?token=tok"));
-    expect(db.portalMessage.findMany.mock.calls[0]![0].where).toEqual({ clientId: "cli-foocci" });
+    // ⚠️ 15/08/2026 — A FORMA MUDOU, E A MUDANÇA É O CONSERTO.
+    // A chave continua sendo `clientId` e só. O que envolve tudo agora é a
+    // CERCA DO DONO: nenhuma linha carimbada para outro cliente sai, venha por
+    // qual chave vier. Ver o cabeçalho de `montarFiltro` em `conversa.ts` e o
+    // incidente em `__tests__/portal/conversa-de-outro-cliente.test.ts`.
+    expect(db.portalMessage.findMany.mock.calls.at(-1)![0].where).toEqual({
+      AND: [
+        { clientId: "cli-foocci" },
+        { OR: [{ clientId: "cli-foocci" }, { clientId: null }] },
+      ],
+    });
   });
 });
+
+// ⚠️ `findMany.mock.calls.at(-1)` e não `[0]`: desde 15/08/2026 a leitura da
+// conversa faz ANTES uma consulta de contaminação — quais solicitações deste
+// cliente já foram de outro (ver `conversaDoCliente`). A chamada que interessa
+// aqui é sempre a ÚLTIMA: a leitura das mensagens.
 
 // ── METADE 2: o cliente que veio do briefing ─────────────────────────────────
 describe("cliente COM solicitação", () => {
@@ -94,8 +109,15 @@ describe("cliente COM solicitação", () => {
 
   it("a leitura UNE as duas chaves — o histórico das 11 escritas antigas continua visível", async () => {
     await GET(get("?token=tok"));
-    expect(db.portalMessage.findMany.mock.calls[0]![0].where).toEqual({
-      OR: [{ clientId: "cli1" }, { clientRequestId: { in: ["cr1", "cr0"] } }],
+    // A união continua de pé (é ela que impede o histórico de partir em duas),
+    // mas agora dentro da CERCA DO DONO. `clientId: null` continua passando de
+    // propósito: é o formato das 11 escritas antigas, e barrá-lo apagaria
+    // histórico legítimo do portal. Ver `conversa-de-outro-cliente.test.ts`.
+    expect(db.portalMessage.findMany.mock.calls.at(-1)![0].where).toEqual({
+      AND: [
+        { OR: [{ clientId: "cli1" }, { clientRequestId: { in: ["cr1", "cr0"] } }] },
+        { OR: [{ clientId: "cli1" }, { clientId: null }] },
+      ],
     });
   });
 
@@ -104,7 +126,13 @@ describe("cliente COM solicitação", () => {
     const where = db.portalMessage.updateMany.mock.calls[0]![0].where;
     expect(where.authorRole).toBe("team");
     expect(where.readByClient).toBe(false);
-    expect(where.OR).toEqual([{ clientId: "cli1" }, { clientRequestId: { in: ["cr1", "cr0"] } }]);
+    // A marcação de lida usa O MESMO filtro da leitura — inclusive a cerca.
+    // Se ela divergisse, o cliente novo carimbaria como lida a mensagem do
+    // cliente antigo, e o vazamento apagaria o próprio rastro.
+    expect(where.AND).toEqual([
+      { OR: [{ clientId: "cli1" }, { clientRequestId: { in: ["cr1", "cr0"] } }] },
+      { OR: [{ clientId: "cli1" }, { clientId: null }] },
+    ]);
   });
 });
 
@@ -146,7 +174,14 @@ describe("a equipe abre a conversa", () => {
     db.clientRequestDb.findMany.mockResolvedValue([]);
     const res = await GET(get("?clientId=cli-foocci"));
     expect(res.status).toBe(200);
-    expect(db.portalMessage.findMany.mock.calls[0]![0].where).toEqual({ clientId: "cli-foocci" });
+    // Mesma cerca do lado da EQUIPE: a caixa de entrada abre a conversa de um
+    // cliente e não pode trazer linha de outro por tabela de solicitação.
+    expect(db.portalMessage.findMany.mock.calls.at(-1)![0].where).toEqual({
+      AND: [
+        { clientId: "cli-foocci" },
+        { OR: [{ clientId: "cli-foocci" }, { clientId: null }] },
+      ],
+    });
     // Ao ver, as mensagens do CLIENTE ficam lidas para a equipe — é o que
     // apaga o badge da caixa de entrada.
     expect(db.portalMessage.updateMany.mock.calls[0]![0].where.readByTeam).toBe(false);

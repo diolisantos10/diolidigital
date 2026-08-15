@@ -8,6 +8,92 @@
 
 ---
 
+## A CONVERSA DO PORTAL É CERCADA PELO DONO, E A TELA DECLARA QUEM ELA MOSTRA
+
+**Decidido em** 2026-08-15 · **por** `pm`, a pedido do Diretor (P0) ·
+**origem:** o CEO abriu o portal de um cliente em produção e o painel "Fale com
+seu PM" trouxe a conversa de OUTRO cliente — mesmas mensagens, mesmos horários.
+
+**O fato, sem suavizar.** A conversa do PM carrega briefing, valores e
+combinação comercial. Ela apareceu no portal de quem não é dono.
+
+### A leitura de causa do Diretor Geral estava CERTA no diagnóstico e INCOMPLETA no mecanismo
+
+Os quatro pontos que ele apontou existem no código e estão descritos com
+precisão: `modoCookie` zera o token em `/me`; a chamada sai sem `token=`; a rota
+cai no cookie; e o cookie é **um só por navegador, `path:"/"`, 180 dias, um
+cliente**. A frase-síntese dele — *"o cliente da tela e o cliente da conversa
+são resolvidos por caminhos diferentes e ninguém confere se são o mesmo"* — é
+verdadeira e virou trava.
+
+**O que a leitura dele NÃO alcançava, e é o que reproduz o sintoma exato:**
+a leitura da conversa une duas chaves (`clientId` do dono **e** todas as
+solicitações dele), e **`ClientRequestDb.clientId` não é imutável**.
+`/api/admin/reset` zera o campo; `createProjectFromRequest`
+(`lib/agency/execution/create-project-from-request.ts:51`) e
+`/api/brain/orchestrate/apply` (`:111`) criam um `Client` novo e **re-apontam a
+mesma solicitação**; e `Client` não tem `@@unique(workspaceId, name)` — ficha
+duplicada para o mesmo negócio já é fato registrado nesta casa (a Camila,
+08/08/2026).
+
+Quando a solicitação R sai do cliente A e passa para o B, as mensagens antigas
+continuam gravadas com `clientId: A` **E** `clientRequestId: R` — as duas
+chaves, como esta casa passou a carimbar em 05/08. A partir daí o portal de B lê
+aquelas linhas pelo ramo da solicitação e o de A continua lendo pelo ramo do
+cliente: **os dois portais mostram a mesma conversa, com os mesmos horários,
+cada um com o seu próprio token válido e nenhum cookie envolvido.**
+
+**Isso importa porque a conferência tela × cookie, sozinha, NÃO teria pego.**
+Nesse caminho a credencial está perfeitamente correta; o que está errado é o
+dado. Consertar só o que a leitura original apontava deixaria o vazamento de pé.
+
+### A decisão, em uma frase: a conversa é cercada pelo DONO, e a cerca é da leitura
+
+**Três travas, cada uma numa camada só:**
+
+1. **A cerca do dono** (`app/api/messages/conversa.ts`, o lugar já declarado
+   como dono da âncora e do filtro). Nenhuma linha carimbada para outro cliente
+   sai, venha por qual chave vier. `clientId: null` continua passando **de
+   propósito** — é o formato das 11 escritas antigas, e barrá-lo apagaria
+   histórico legítimo do portal.
+2. **A solicitação que já foi de outro sai da leitura.** Linha legada
+   (`clientId` nulo) não tem dono escrito, e adivinhar é o que a lei da casa
+   proíbe. Mas dá para **provar** que a solicitação já foi de outro: basta
+   existir, presa a ela, uma linha carimbada com outro `clientId`. Onde há essa
+   prova, a solicitação inteira sai da leitura daquele cliente. Falha de leitura
+   dessa consulta **fecha, não abre**.
+3. **A conferência tela × credencial** (o que o Diretor exigiu, no formato que
+   funciona). `/api/portal/vista` devolve `dono` — a identidade **opaca**
+   (sha256 truncado, não o `clientId`) do cliente que a tela está mostrando. A
+   conversa devolve esse selo ao servidor em toda leitura e todo envio;
+   divergiu, a resposta é **vazia com motivo** (`dono-divergente`) no GET e
+   **409** no POST. Sem isso não havia como comparar: em `/portal/access/me` o
+   chat não manda token nenhum, o cookie É a credencial, e o servidor não tinha
+   com o que confrontar.
+
+> **A regra que impede o selo de virar buraco novo: ele NUNCA concede, só
+> recusa.** O dono continua **derivado** do token/cookie (regra da casa de
+> 03/08/2026: derivação, nunca comparação). Selo forjado não abre a conversa de
+> ninguém — há teste que prova.
+
+**E uma quarta, na porta:** `proxy.ts` apaga o cookie do portal quando o token
+no caminho é de outro cliente. A página já fazia isso via
+`POST /api/portal/session`, mas é best-effort — roda num `useEffect`, a falha é
+engolida num `catch {}`, e as primeiras cargas já saíram. **Apaga, nunca grava:**
+gravar exigiria validar, e gravar sem validar é o defeito já documentado em
+`app/portal/access/route.ts`. Apagar só pode tirar acesso, nunca dar.
+
+### O que NÃO foi feito, e por quê
+
+- **Não se consertou no cliente escondendo a caixa.** A trava é servidor; a tela
+  só traduz o motivo.
+- **O token NÃO voltou para a URL.** O achado A4 continua de pé.
+- **A causa raiz — `ClientRequestDb.clientId` mutável — continua aberta.** Esta
+  decisão cerca o efeito na conversa. Enquanto a solicitação puder trocar de
+  dono em silêncio, outros consumidores da mesma união seguem expostos.
+
+---
+
 ## O ANÚNCIO SÓ NASCE COM ATIVO QUE SE PROVA DO DONO — PÁGINA E ARTE
 
 **Decidido em** 2026-08-15 · **por** `seguranca`, a pedido do Diretor ·

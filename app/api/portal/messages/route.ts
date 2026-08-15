@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { donoConfere } from "@/lib/agency/portal/dono-da-tela";
 import { requireSession } from "@/lib/auth/api-guard";
 import {
   conversaDoToken,
@@ -49,14 +50,21 @@ function toDTO(
 
 type Resolucao =
   | { ok: true; conversa: Conversa; viewer: "client" | "team"; nomeDaSessao: string | null }
-  | { ok: false; response: NextResponse };
+  | { ok: false; response: NextResponse }
+  // A tela declarou um cliente e a credencial desta requisição resolveu outro.
+  // Não é erro de acesso — é confusão de identidade — e a resposta é VAZIA com
+  // motivo, nunca a conversa do outro.
+  | { ok: false; divergente: true; response: NextResponse };
 
 /**
  * Quem está falando e com qual conversa. Um só lugar para os dois verbos —
  * GET e POST divergirem na resolução foi exatamente o que produziu o defeito
  * (o GET devolvia conversa vazia em silêncio; o POST devolvia 404).
  */
-async function resolver(request: NextRequest, corpo?: { token?: string; clientRequestId?: string; clientId?: string }): Promise<Resolucao> {
+async function resolver(
+  request: NextRequest,
+  corpo?: { token?: string; clientRequestId?: string; clientId?: string; dono?: string },
+): Promise<Resolucao> {
   const { searchParams } = new URL(request.url);
   const requestIdExplicito = corpo ? corpo.clientRequestId : searchParams.get("clientRequestId");
   const clientIdExplicito  = corpo ? corpo.clientId        : searchParams.get("clientId");
@@ -71,6 +79,34 @@ async function resolver(request: NextRequest, corpo?: { token?: string; clientRe
     if (!r.ok) {
       return { ok: false, response: NextResponse.json({ error: "Access denied", reason: r.reason }, { status: r.status }) };
     }
+
+    // ── A CONFERÊNCIA NO SERVIDOR (15/08/2026) ─────────────────────────────
+    //
+    // O cliente da TELA e o cliente da CONVERSA são resolvidos por caminhos
+    // diferentes: a tela pode ter vindo por token no caminho, e o chat em
+    // `/portal/access/me` vem pelo cookie `dioli_portal` — que é UM por
+    // navegador, para o domínio inteiro, guardando UM cliente por 180 dias.
+    // Até aqui **ninguém conferia se os dois eram o mesmo**.
+    //
+    // `dono` é a identidade OPACA que `/api/portal/vista` devolveu para a tela
+    // que está desenhada agora. Ela nunca CONCEDE nada — o dono continua sendo
+    // derivado do token/cookie; ela só RECUSA quando os dois lados discordam.
+    // Recusa = conversa vazia com motivo. Nunca a conversa do outro.
+    const declarado = corpo ? corpo.dono : searchParams.get("dono");
+    if (!donoConfere(r.conversa.clientId, declarado)) {
+      return {
+        ok: false,
+        divergente: true,
+        response: NextResponse.json({
+          messages: [],
+          podeEnviar: false,
+          motivo: "dono-divergente",
+          detalhe:
+            "A conversa foi aberta com a credencial de outro cliente. Recarregue o portal pelo link que você recebeu.",
+        }),
+      };
+    }
+
     return { ok: true, conversa: r.conversa, viewer: "client", nomeDaSessao: null };
   }
 
@@ -139,7 +175,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 // ── POST: enviar ────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  let body: { token?: string; clientRequestId?: string; clientId?: string; body?: string; authorName?: string };
+  let body: { token?: string; clientRequestId?: string; clientId?: string; body?: string; authorName?: string; dono?: string };
   try {
     body = await request.json();
   } catch {
@@ -154,8 +190,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     token: body.token,
     clientRequestId: typeof body.clientRequestId === "string" ? body.clientRequestId : undefined,
     clientId: typeof body.clientId === "string" ? body.clientId : undefined,
+    dono: typeof body.dono === "string" ? body.dono : undefined,
   });
-  if (!r.ok) return r.response;
+  if (!r.ok) {
+    // Divergência de dono no ENVIO não pode virar 200 mudo: a mensagem seria
+    // gravada na conversa do outro cliente. 409 é o mesmo código que a tela já
+    // sabe tratar (acesso sem dono) e o texto explica o que fazer.
+    if ("divergente" in r) {
+      return NextResponse.json(
+        {
+          error:
+            "Esta conversa foi aberta com a credencial de outro cliente. Recarregue o portal pelo link que você recebeu antes de enviar.",
+          motivo: "dono-divergente",
+        },
+        { status: 409 },
+      );
+    }
+    return r.response;
+  }
   const { conversa, viewer } = r;
 
   const { clientId, clientRequestId } = conversa.ancora;

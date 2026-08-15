@@ -22,6 +22,7 @@ import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-serv
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { lerFichaDeMarca, proximasPerguntas } from "@/lib/agency/esteira/ficha-de-marca";
 import { montarVistaDoCliente } from "@/lib/agency/portal/vista-do-cliente";
+import { donoDaTela } from "@/lib/agency/portal/dono-da-tela";
 
 export const dynamic = "force-dynamic";
 
@@ -112,7 +113,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         : null,
     });
 
-    return NextResponse.json({ ok: true, ...vista });
+    // ── QUEM ESTA TELA ESTÁ MOSTRANDO (15/08/2026) ─────────────────────────
+    // Identidade OPACA do dono desta tela. A conversa do PM devolve essa mesma
+    // declaração ao servidor, que a confronta com o dono derivado do
+    // token/cookie — é a conferência que faltava, e é ela que impede a
+    // conversa de um cliente de aparecer no portal de outro. Não é `clientId`:
+    // id interno não trafega ao navegador nem para em log de proxy. Ver
+    // `lib/agency/portal/dono-da-tela.ts`.
+    return NextResponse.json({ ok: true, dono: donoDaTela(dono.clientId), ...vista });
   } catch {
     return NextResponse.json({ error: "Não consegui carregar agora" }, { status: 503 });
   }
