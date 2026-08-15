@@ -23,15 +23,24 @@ let executablePath;
 for (const e of EXECS) if (existsSync(e)) { executablePath = e; break; }
 
 const browser = await chromium.launch({ executablePath, args: ["--no-sandbox"] });
+
+// UM login só, reusado nos três tamanhos. Um login por viewport estoura o teto
+// de tentativas do próprio app (5 por e-mail / 5 min) e as capturas seguintes
+// saem DESLOGADAS com HTTP 200 — verde por fora, tela errada por dentro.
+const login = await browser.newContext();
+const rl = await login.request.post(`${base}/api/auth/signin`, {
+  data: { email: "master@dioli.studio", password: "dev-local-only-9x" },
+});
+if (!rl.ok()) console.log(`  login HTTP ${rl.status()} — ${(await rl.text()).slice(0, 160)}`);
+const cookies = await login.cookies();
+await login.close();
+if (cookies.length === 0) throw new Error("login não devolveu cookie — as capturas sairiam deslogadas");
+
 try {
   for (const { device, width, height } of DEVICES) {
     const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2 });
+    await ctx.addCookies(cookies);
     const page = await ctx.newPage();
-
-    const r = await page.request.post(`${base}/api/auth/signin`, {
-      data: { email: "master@dioli.studio", password: "dev-local-only-9x" },
-    });
-    if (!r.ok()) console.log(`  login HTTP ${r.status()} — ${(await r.text()).slice(0, 160)}`);
 
     // O guia de onboarding cobre a tela no primeiro acesso — marcá-lo como
     // visto é o estado normal de quem já usa o painel.
