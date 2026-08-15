@@ -9,10 +9,12 @@ import { prisma } from "@/lib/db/client";
 import { sendWhatsAppMessage, sendWhatsAppDirect } from "./client";
 import { resolveWhatsAppEnv } from "./config";
 import { PROPOSAL_SENT_TEMPLATE } from "./templates";
+import { baseDeLink } from "@/lib/http/endereco-publico";
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-  "https://dioli-agency-os-1-production.up.railway.app";
+// Base única (`lib/http/endereco-publico.ts`). O endereço do Railway estava
+// escrito à mão aqui — no dia da troca de domínio, este seria um dos lugares a
+// esquecer, e o esquecimento sai no WhatsApp do cliente.
+const BASE_URL = baseDeLink();
 
 interface NotifyPayload {
   kind?: string;
