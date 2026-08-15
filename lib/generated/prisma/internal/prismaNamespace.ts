@@ -444,6 +444,7 @@ export const ModelName = {
   EmailDoRadar: 'EmailDoRadar',
   MetricaDePost: 'MetricaDePost',
   ExecucaoV2: 'ExecucaoV2',
+  RecusaV2: 'RecusaV2',
   TransicaoDeEstado: 'TransicaoDeEstado',
   BloqueioV2: 'BloqueioV2',
   OutboxV2: 'OutboxV2',
@@ -466,7 +467,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4910,6 +4911,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RecusaV2: {
+      payload: Prisma.$RecusaV2Payload<ExtArgs>
+      fields: Prisma.RecusaV2FieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RecusaV2FindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecusaV2Payload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RecusaV2FindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecusaV2Payload>
+        }
+        findFirst: {
+          args: Prisma.RecusaV2FindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecusaV2Payload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RecusaV2FindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecusaV2Payload>
+        }
+        findMany: {
+          args: Prisma.RecusaV2FindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecusaV2Payload>[]
+        }
+        create: {
+          args: Prisma.RecusaV2CreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecusaV2Payload>
+        }
+        createMany: {
+          args: Prisma.RecusaV2CreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RecusaV2CreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecusaV2Payload>[]
+        }
+        delete: {
+          args: Prisma.RecusaV2DeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecusaV2Payload>
+        }
+        update: {
+          args: Prisma.RecusaV2UpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecusaV2Payload>
+        }
+        deleteMany: {
+          args: Prisma.RecusaV2DeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RecusaV2UpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RecusaV2UpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecusaV2Payload>[]
+        }
+        upsert: {
+          args: Prisma.RecusaV2UpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RecusaV2Payload>
+        }
+        aggregate: {
+          args: Prisma.RecusaV2AggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRecusaV2>
+        }
+        groupBy: {
+          args: Prisma.RecusaV2GroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RecusaV2GroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RecusaV2CountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RecusaV2CountAggregateOutputType> | number
+        }
+      }
+    }
     TransicaoDeEstado: {
       payload: Prisma.$TransicaoDeEstadoPayload<ExtArgs>
       fields: Prisma.TransicaoDeEstadoFieldRefs
@@ -6563,10 +6638,24 @@ export const ExecucaoV2ScalarFieldEnum = {
   correlationId: 'correlationId',
   inicio: 'inicio',
   fim: 'fim',
-  resultado: 'resultado'
+  resultado: 'resultado',
+  clienteId: 'clienteId',
+  entradas: 'entradas'
 } as const
 
 export type ExecucaoV2ScalarFieldEnum = (typeof ExecucaoV2ScalarFieldEnum)[keyof typeof ExecucaoV2ScalarFieldEnum]
+
+
+export const RecusaV2ScalarFieldEnum = {
+  id: 'id',
+  funcaoId: 'funcaoId',
+  motivo: 'motivo',
+  correlationId: 'correlationId',
+  clienteId: 'clienteId',
+  em: 'em'
+} as const
+
+export type RecusaV2ScalarFieldEnum = (typeof RecusaV2ScalarFieldEnum)[keyof typeof RecusaV2ScalarFieldEnum]
 
 
 export const TransicaoDeEstadoScalarFieldEnum = {
@@ -6906,6 +6995,7 @@ export type GlobalOmitConfig = {
   emailDoRadar?: Prisma.EmailDoRadarOmit
   metricaDePost?: Prisma.MetricaDePostOmit
   execucaoV2?: Prisma.ExecucaoV2Omit
+  recusaV2?: Prisma.RecusaV2Omit
   transicaoDeEstado?: Prisma.TransicaoDeEstadoOmit
   bloqueioV2?: Prisma.BloqueioV2Omit
   outboxV2?: Prisma.OutboxV2Omit

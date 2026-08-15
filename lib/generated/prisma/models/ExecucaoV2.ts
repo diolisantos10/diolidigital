@@ -50,6 +50,8 @@ export type ExecucaoV2MinAggregateOutputType = {
   inicio: Date | null
   fim: Date | null
   resultado: string | null
+  clienteId: string | null
+  entradas: string | null
 }
 
 export type ExecucaoV2MaxAggregateOutputType = {
@@ -66,6 +68,8 @@ export type ExecucaoV2MaxAggregateOutputType = {
   inicio: Date | null
   fim: Date | null
   resultado: string | null
+  clienteId: string | null
+  entradas: string | null
 }
 
 export type ExecucaoV2CountAggregateOutputType = {
@@ -82,6 +86,8 @@ export type ExecucaoV2CountAggregateOutputType = {
   inicio: number
   fim: number
   resultado: number
+  clienteId: number
+  entradas: number
   _all: number
 }
 
@@ -108,6 +114,8 @@ export type ExecucaoV2MinAggregateInputType = {
   inicio?: true
   fim?: true
   resultado?: true
+  clienteId?: true
+  entradas?: true
 }
 
 export type ExecucaoV2MaxAggregateInputType = {
@@ -124,6 +132,8 @@ export type ExecucaoV2MaxAggregateInputType = {
   inicio?: true
   fim?: true
   resultado?: true
+  clienteId?: true
+  entradas?: true
 }
 
 export type ExecucaoV2CountAggregateInputType = {
@@ -140,6 +150,8 @@ export type ExecucaoV2CountAggregateInputType = {
   inicio?: true
   fim?: true
   resultado?: true
+  clienteId?: true
+  entradas?: true
   _all?: true
 }
 
@@ -243,6 +255,8 @@ export type ExecucaoV2GroupByOutputType = {
   inicio: Date
   fim: Date | null
   resultado: string | null
+  clienteId: string | null
+  entradas: string | null
   _count: ExecucaoV2CountAggregateOutputType | null
   _avg: ExecucaoV2AvgAggregateOutputType | null
   _sum: ExecucaoV2SumAggregateOutputType | null
@@ -282,6 +296,8 @@ export type ExecucaoV2WhereInput = {
   inicio?: Prisma.DateTimeFilter<"ExecucaoV2"> | Date | string
   fim?: Prisma.DateTimeNullableFilter<"ExecucaoV2"> | Date | string | null
   resultado?: Prisma.StringNullableFilter<"ExecucaoV2"> | string | null
+  clienteId?: Prisma.StringNullableFilter<"ExecucaoV2"> | string | null
+  entradas?: Prisma.StringNullableFilter<"ExecucaoV2"> | string | null
 }
 
 export type ExecucaoV2OrderByWithRelationInput = {
@@ -298,6 +314,8 @@ export type ExecucaoV2OrderByWithRelationInput = {
   inicio?: Prisma.SortOrder
   fim?: Prisma.SortOrderInput | Prisma.SortOrder
   resultado?: Prisma.SortOrderInput | Prisma.SortOrder
+  clienteId?: Prisma.SortOrderInput | Prisma.SortOrder
+  entradas?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type ExecucaoV2WhereUniqueInput = Prisma.AtLeast<{
@@ -317,6 +335,8 @@ export type ExecucaoV2WhereUniqueInput = Prisma.AtLeast<{
   inicio?: Prisma.DateTimeFilter<"ExecucaoV2"> | Date | string
   fim?: Prisma.DateTimeNullableFilter<"ExecucaoV2"> | Date | string | null
   resultado?: Prisma.StringNullableFilter<"ExecucaoV2"> | string | null
+  clienteId?: Prisma.StringNullableFilter<"ExecucaoV2"> | string | null
+  entradas?: Prisma.StringNullableFilter<"ExecucaoV2"> | string | null
 }, "id">
 
 export type ExecucaoV2OrderByWithAggregationInput = {
@@ -333,6 +353,8 @@ export type ExecucaoV2OrderByWithAggregationInput = {
   inicio?: Prisma.SortOrder
   fim?: Prisma.SortOrderInput | Prisma.SortOrder
   resultado?: Prisma.SortOrderInput | Prisma.SortOrder
+  clienteId?: Prisma.SortOrderInput | Prisma.SortOrder
+  entradas?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ExecucaoV2CountOrderByAggregateInput
   _avg?: Prisma.ExecucaoV2AvgOrderByAggregateInput
   _max?: Prisma.ExecucaoV2MaxOrderByAggregateInput
@@ -357,6 +379,8 @@ export type ExecucaoV2ScalarWhereWithAggregatesInput = {
   inicio?: Prisma.DateTimeWithAggregatesFilter<"ExecucaoV2"> | Date | string
   fim?: Prisma.DateTimeNullableWithAggregatesFilter<"ExecucaoV2"> | Date | string | null
   resultado?: Prisma.StringNullableWithAggregatesFilter<"ExecucaoV2"> | string | null
+  clienteId?: Prisma.StringNullableWithAggregatesFilter<"ExecucaoV2"> | string | null
+  entradas?: Prisma.StringNullableWithAggregatesFilter<"ExecucaoV2"> | string | null
 }
 
 export type ExecucaoV2CreateInput = {
@@ -373,6 +397,8 @@ export type ExecucaoV2CreateInput = {
   inicio?: Date | string
   fim?: Date | string | null
   resultado?: string | null
+  clienteId?: string | null
+  entradas?: string | null
 }
 
 export type ExecucaoV2UncheckedCreateInput = {
@@ -389,6 +415,8 @@ export type ExecucaoV2UncheckedCreateInput = {
   inicio?: Date | string
   fim?: Date | string | null
   resultado?: string | null
+  clienteId?: string | null
+  entradas?: string | null
 }
 
 export type ExecucaoV2UpdateInput = {
@@ -405,6 +433,8 @@ export type ExecucaoV2UpdateInput = {
   inicio?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fim?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   resultado?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  entradas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ExecucaoV2UncheckedUpdateInput = {
@@ -421,6 +451,8 @@ export type ExecucaoV2UncheckedUpdateInput = {
   inicio?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fim?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   resultado?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  entradas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ExecucaoV2CreateManyInput = {
@@ -437,6 +469,8 @@ export type ExecucaoV2CreateManyInput = {
   inicio?: Date | string
   fim?: Date | string | null
   resultado?: string | null
+  clienteId?: string | null
+  entradas?: string | null
 }
 
 export type ExecucaoV2UpdateManyMutationInput = {
@@ -453,6 +487,8 @@ export type ExecucaoV2UpdateManyMutationInput = {
   inicio?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fim?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   resultado?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  entradas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ExecucaoV2UncheckedUpdateManyInput = {
@@ -469,6 +505,8 @@ export type ExecucaoV2UncheckedUpdateManyInput = {
   inicio?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   fim?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   resultado?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  entradas?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ExecucaoV2CountOrderByAggregateInput = {
@@ -485,6 +523,8 @@ export type ExecucaoV2CountOrderByAggregateInput = {
   inicio?: Prisma.SortOrder
   fim?: Prisma.SortOrder
   resultado?: Prisma.SortOrder
+  clienteId?: Prisma.SortOrder
+  entradas?: Prisma.SortOrder
 }
 
 export type ExecucaoV2AvgOrderByAggregateInput = {
@@ -505,6 +545,8 @@ export type ExecucaoV2MaxOrderByAggregateInput = {
   inicio?: Prisma.SortOrder
   fim?: Prisma.SortOrder
   resultado?: Prisma.SortOrder
+  clienteId?: Prisma.SortOrder
+  entradas?: Prisma.SortOrder
 }
 
 export type ExecucaoV2MinOrderByAggregateInput = {
@@ -521,6 +563,8 @@ export type ExecucaoV2MinOrderByAggregateInput = {
   inicio?: Prisma.SortOrder
   fim?: Prisma.SortOrder
   resultado?: Prisma.SortOrder
+  clienteId?: Prisma.SortOrder
+  entradas?: Prisma.SortOrder
 }
 
 export type ExecucaoV2SumOrderByAggregateInput = {
@@ -543,6 +587,8 @@ export type ExecucaoV2Select<ExtArgs extends runtime.Types.Extensions.InternalAr
   inicio?: boolean
   fim?: boolean
   resultado?: boolean
+  clienteId?: boolean
+  entradas?: boolean
 }, ExtArgs["result"]["execucaoV2"]>
 
 export type ExecucaoV2SelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -559,6 +605,8 @@ export type ExecucaoV2SelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   inicio?: boolean
   fim?: boolean
   resultado?: boolean
+  clienteId?: boolean
+  entradas?: boolean
 }, ExtArgs["result"]["execucaoV2"]>
 
 export type ExecucaoV2SelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -575,6 +623,8 @@ export type ExecucaoV2SelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   inicio?: boolean
   fim?: boolean
   resultado?: boolean
+  clienteId?: boolean
+  entradas?: boolean
 }, ExtArgs["result"]["execucaoV2"]>
 
 export type ExecucaoV2SelectScalar = {
@@ -591,9 +641,11 @@ export type ExecucaoV2SelectScalar = {
   inicio?: boolean
   fim?: boolean
   resultado?: boolean
+  clienteId?: boolean
+  entradas?: boolean
 }
 
-export type ExecucaoV2Omit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ator" | "usuarioId" | "modelo" | "versaoModelo" | "custoUsd" | "funcaoId" | "departamentoId" | "ferramentas" | "correlationId" | "inicio" | "fim" | "resultado", ExtArgs["result"]["execucaoV2"]>
+export type ExecucaoV2Omit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ator" | "usuarioId" | "modelo" | "versaoModelo" | "custoUsd" | "funcaoId" | "departamentoId" | "ferramentas" | "correlationId" | "inicio" | "fim" | "resultado" | "clienteId" | "entradas", ExtArgs["result"]["execucaoV2"]>
 
 export type $ExecucaoV2Payload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "ExecucaoV2"
@@ -618,6 +670,14 @@ export type $ExecucaoV2Payload<ExtArgs extends runtime.Types.Extensions.Internal
     inicio: Date
     fim: Date | null
     resultado: string | null
+    /**
+     * Piloto assistido: de que cliente é este trabalho (null = interno).
+     */
+    clienteId: string | null
+    /**
+     * JSON: as entradas efetivamente usadas (rastro completo da regra 6).
+     */
+    entradas: string | null
   }, ExtArgs["result"]["execucaoV2"]>
   composites: {}
 }
@@ -1054,6 +1114,8 @@ export interface ExecucaoV2FieldRefs {
   readonly inicio: Prisma.FieldRef<"ExecucaoV2", 'DateTime'>
   readonly fim: Prisma.FieldRef<"ExecucaoV2", 'DateTime'>
   readonly resultado: Prisma.FieldRef<"ExecucaoV2", 'String'>
+  readonly clienteId: Prisma.FieldRef<"ExecucaoV2", 'String'>
+  readonly entradas: Prisma.FieldRef<"ExecucaoV2", 'String'>
 }
     
 

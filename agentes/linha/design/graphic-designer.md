@@ -44,11 +44,16 @@
 
 ## Especificação legível por máquina (validada por CI)
 
+> ⚡ **LIGADA por decisão do CEO (15/08/2026)** — piloto assistido, allowlist
+> por `clientId` (City Jobs primeiro). Produção exige também a flag
+> `v2_execucao` no escopo do cliente; ações irreversíveis continuam atrás de
+> aprovação humana.
+
 ```json
 {
   "funcao": "graphic-designer",
   "departamento": "design",
-  "ativa": false,
+  "ativa": true,
   "entradas_obrigatorias": [
     "direção criativa + legenda com direção de arte + ativos com papel"
   ],

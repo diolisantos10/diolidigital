@@ -25,6 +25,10 @@ export interface RegistroDeExecucao {
   inicio: Date;
   fim?: Date;
   resultado?: string;
+  /** Piloto assistido (regra 6): de que cliente é o trabalho; ausente = interno. */
+  clienteId?: string;
+  /** As entradas efetivamente usadas — o rastro completo, não só o resultado. */
+  entradas?: Record<string, string>;
 }
 
 export type ValidacaoDeRegistro = { valido: true } | { valido: false; motivo: string };

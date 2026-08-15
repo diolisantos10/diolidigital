@@ -44,11 +44,16 @@
 
 ## Especificação legível por máquina (validada por CI)
 
+> ⚡ **LIGADA por decisão do CEO (15/08/2026)** — piloto assistido, allowlist
+> por `clientId` (City Jobs primeiro). Produção exige também a flag
+> `v2_execucao` no escopo do cliente; ações irreversíveis continuam atrás de
+> aprovação humana.
+
 ```json
 {
   "funcao": "copywriter",
   "departamento": "social-media",
-  "ativa": false,
+  "ativa": true,
   "entradas_obrigatorias": [
     "pauta do calendário + tom de voz + glossário do cliente"
   ],
