@@ -141,12 +141,31 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Entrega:** serviços disponíveis, integrações saudáveis, alertas e recuperação comprovada.
 
+## 12. Produto & Tecnologia
+
+**Missão:** transformar necessidades da agência e dos clientes em produtos digitais seguros, claros, testáveis e sustentáveis.
+
+- Agente Orquestrador de Tecnologia
+- Agente Arquiteto de Software
+- Agente Product Designer UX/UI
+- Agente Engenheiro de Design System
+- Agente Engenheiro Frontend
+- Agente Engenheiro Backend
+- Agente Engenheiro Full Stack
+
+**Entrega:** fluxo validado, especificação de UX/UI, decisão de arquitetura, código versionado, testes e pacote técnico pronto para Qualidade e Operações.
+
+**Entrada obrigatória:** OS aprovada pelo Project Manager, problema a resolver, usuário afetado, critérios de aceite e limites de escopo.
+
+**Não faz:** campanha, peça publicitária, alteração de marca, merge sem CI verde ou publicação direta em produção.
+
 ## Fronteiras obrigatórias
 
 - Estratégia decide **o que e por quê**; PM decide **ordem, dono e prazo**.
 - Branding define regras; Design aplica e materializa.
+- Design cria peças e comunicação visual; Product Designer desenha a experiência de interfaces e o Design System transforma essa experiência em componentes reutilizáveis.
+- Produto & Tecnologia constrói e modifica interfaces, APIs e sistemas; Operações publica, monitora e recupera a infraestrutura.
 - Social Media define operação orgânica; Tráfego define distribuição paga.
 - Analytics mede; não altera campanha sem criar recomendação ou autorização prevista.
 - Qualidade valida; não reescreve silenciosamente o trabalho do especialista.
 - Operações recupera infraestrutura; não aprova conteúdo ou direção de marca.
-

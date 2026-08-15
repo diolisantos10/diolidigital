@@ -22,7 +22,7 @@ describe("fonte canônica de departamentos", () => {
     expect(new Set(DEPARTAMENTO_IDS).size).toBe(DEPARTAMENTO_IDS.length);
   });
 
-  it("cobre os onze departamentos que o CEO nomeou em 14/08/2026", () => {
+  it("cobre os doze departamentos definidos pelo CEO", () => {
     // A lista do contrato, em português, batida contra os nomes de exibição.
     // Se alguém renomear um departamento na interface, este teste avisa — não
     // porque o nome seja sagrado, mas porque renomear em silêncio é como as
@@ -38,6 +38,7 @@ describe("fonte canônica de departamentos", () => {
         "Financeiro",
         "Gestão de Projetos",
         "Operações & Sistema",
+        "Produto & Tecnologia",
         "Qualidade",
         "Social Media",
         "Tráfego Pago",
@@ -47,9 +48,9 @@ describe("fonte canônica de departamentos", () => {
 
   it("nenhum componente pode fixar a quantidade — ela cresce por configuração", () => {
     // O teste não trava o NÚMERO de propósito: ele trava que o número venha do
-    // registro. Fixar 11 aqui seria repetir o defeito num arquivo de teste.
+    // registro. Fixar o número em componentes repetiria o defeito original.
     expect(DEPARTAMENTOS.length).toBe(DEPARTAMENTO_IDS.length);
-    expect(DEPARTAMENTOS.length).toBeGreaterThanOrEqual(11);
+    expect(DEPARTAMENTOS.length).toBeGreaterThanOrEqual(12);
   });
 });
 

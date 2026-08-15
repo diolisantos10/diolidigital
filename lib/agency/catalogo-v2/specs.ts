@@ -1,6 +1,6 @@
 // SPECS OPERACIONAIS — a ficha da linha lida por máquina, não só por gente.
 //
-// Integração V2 (ordem do CEO, 15/08/2026): cada uma das 62 fichas de
+// Integração V2: cada uma das 69 fichas de
 // `agentes/linha/` carrega um bloco ```json com a especificação operacional
 // (entradas, saída, ferramentas, dados, handoff, SLA, custo, autonomia,
 // golden set). O CI já valida a ESTRUTURA (`fichas-da-linha.test.ts`); este

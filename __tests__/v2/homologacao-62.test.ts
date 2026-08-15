@@ -2,7 +2,7 @@
 //
 // Ordem do CEO (15/08/2026): "execute a homologação completa com dados
 // fictícios e apresente o relatório de prontidão antes da ativação do
-// primeiro piloto". Este arquivo É a homologação: passa as 62 funções pelo
+// primeiro piloto". Este arquivo É a homologação: passa as 69 funções pelo
 // motor real (`executor.ts`) com as specs reais das fichas, nos três casos do
 // golden set (normal, recusa, escalada), e PROVA que produção recusa as 62
 // enquanto estiverem desligadas — a trava dupla em funcionamento.
@@ -161,9 +161,9 @@ describe("homologação — produção respeita a trava dupla: só a cadeia do p
   });
 });
 
-// ---- 2. o golden set das 62 ----------------------------------------------
+// ---- 2. o golden set das 69 ----------------------------------------------
 
-describe("homologação — as 62 funções passam pelos três casos do golden set", () => {
+describe("homologação — as 69 funções passam pelos três casos do golden set", () => {
   it("caso NORMAL: executa, registra no banco real e fica dentro do teto", async () => {
     const deps: DependenciasDoExecutor = {
       ...depsEmMemoria(),
@@ -394,7 +394,7 @@ describe("homologação — handoff entre departamentos na tabela HandoffV2 real
     expect(await prisma.handoffV2.count()).toBe(antes);
   });
 
-  it("as specs das 62 fecham um grafo de handoff sem ponta solta (recebe_de/entrega_para conhecidos)", () => {
+  it("as specs das 69 fecham um grafo de handoff sem ponta solta (recebe_de/entrega_para conhecidos)", () => {
     // A validação fina de alvo já roda em fichas-da-linha.test.ts; aqui a
     // homologação confirma que TODA função declara os dois lados do bastão.
     for (const f of FUNCOES_V2) {

@@ -23,6 +23,7 @@ export type DepartmentId = Extract<
   | "design"
   | "paid-traffic"
   | "operations"
+  | "product-technology"
 >;
 
 export interface DepartmentDef {
@@ -383,6 +384,48 @@ Regras:
     generatorRoute: "/agency/settings",
     generatorLabel: "Abrir System Doctor",
   },
+  {
+    id: "product-technology",
+    name: "Produto & Tecnologia",
+    mission: "Transformar necessidades aprovadas em interfaces, integrações e sistemas seguros, testáveis e sustentáveis.",
+    responsibilities: [
+      "Pesquisa, fluxo e interface de produto",
+      "Arquitetura de software e dados",
+      "Design System e acessibilidade",
+      "Engenharia frontend, backend e full stack",
+      "Testes técnicos e handoff para publicação",
+    ],
+    primaryAgentId: "technology-orchestrator",
+    agentName: "Technology Orchestrator",
+    defaultPrompt: `Você é o Orquestrador de Tecnologia da Dioli. Receba somente Ordens de Serviço aprovadas pelo Project Manager e coordene Product Design, Arquitetura e Engenharia.
+
+Regras:
+- Preserve o escopo e os critérios de aceite aprovados
+- Não confunda Design de campanha com Design de produto
+- Nenhuma mudança chega à produção sem testes, Qualidade e Operações
+- Bloqueio técnico deve ter causa, responsável, impacto e próxima ação`,
+    aiProvider: "rule_based",
+    model: "rule_based",
+    connectedToolIds: [],
+    ownedDeliverableTypes: ["planning", "document"],
+    ownedTaskSources: [],
+    rules: [
+      "Toda demanda técnica precisa de OS aprovada pelo PM",
+      "Toda alteração precisa de versão, testes e critérios de aceite",
+      "Deploy pertence a Operações e exige Qualidade aprovada",
+    ],
+    forbiddenActions: [
+      "Alterar escopo sem aprovação do PM",
+      "Fazer merge com CI vermelho",
+      "Publicar diretamente em produção",
+    ],
+    escalationRules: [
+      "Risco de segurança, perda de dados ou indisponibilidade → bloquear e escalar para Direção",
+    ],
+    color: "#4F46E5",
+    accentBg: "#EEF2FF",
+    iconKey: "product",
+  },
 ];
 
 /**
@@ -426,4 +469,5 @@ export const DEPT_TASK_OWNER_MAP: Record<DepartmentId, string> = {
   design: "Design",
   "paid-traffic": "Ads",
   operations: "",
+  "product-technology": "",
 };

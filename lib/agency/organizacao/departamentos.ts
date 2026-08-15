@@ -74,7 +74,8 @@ export type DepartamentoId =
   | "analytics"
   | "quality"
   | "financeiro"
-  | "operations";
+  | "operations"
+  | "product-technology";
 
 export type IconeDeDepartamento =
   | "atendimento"
@@ -87,7 +88,8 @@ export type IconeDeDepartamento =
   | "analytics"
   | "quality"
   | "financeiro"
-  | "system";
+  | "system"
+  | "product";
 
 export const DEPARTAMENTOS: Departamento[] = [
   {
@@ -177,6 +179,14 @@ export const DEPARTAMENTOS: Departamento[] = [
     icone: "system",
     cor: "#4B5563",
     temSuperficie: true,
+  },
+  {
+    id: "product-technology",
+    nome: "Produto & Tecnologia",
+    resumo: "UX/UI, arquitetura e engenharia da plataforma",
+    icone: "product",
+    cor: "#4F46E5",
+    temSuperficie: false,
   },
 ];
 

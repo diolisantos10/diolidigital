@@ -48,6 +48,7 @@ const TRACOS: Record<NomeDeIcone, React.ReactNode> = {
   quality: <><path d="m12 3 7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></>,
   financeiro: <><rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><circle cx="12" cy="12" r="3"/><path d="M6 9v6m12-6v6"/></>,
   system: <><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21m6.4-15.4-1.8 1.8M7.4 16.6l-1.8 1.8M21 12h-2.5M5.5 12H3m15.4 6.4-1.8-1.8M7.4 7.4 5.6 5.6"/></>,
+  product: <><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M8 14l2 2-2 2m5 0h3"/></>,
 };
 
 export function Icone({ nome, tamanho = 18 }: { nome: NomeDeIcone; tamanho?: number }) {

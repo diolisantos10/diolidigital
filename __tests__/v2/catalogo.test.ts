@@ -19,13 +19,13 @@ import {
 } from "@/lib/agency/catalogo-v2/catalogo";
 
 describe("catálogo canônico V2 — contrato com o manifesto", () => {
-  it("tem exatamente 11 departamentos, na ordem do manifesto", () => {
+  it("tem exatamente 12 departamentos, na ordem do manifesto", () => {
     expect(DEPARTAMENTOS_V2.map((d) => d.id)).toEqual(manifesto.departments.map((d) => d.id));
-    expect(DEPARTAMENTOS_V2).toHaveLength(11);
+    expect(DEPARTAMENTOS_V2).toHaveLength(12);
   });
 
-  it("tem exatamente 62 funções executoras — determinação do CEO", () => {
-    expect(FUNCOES_V2).toHaveLength(62);
+  it("tem exatamente 69 funções executoras", () => {
+    expect(FUNCOES_V2).toHaveLength(69);
   });
 
   it("cada função do manifesto existe no catálogo, no departamento certo", () => {

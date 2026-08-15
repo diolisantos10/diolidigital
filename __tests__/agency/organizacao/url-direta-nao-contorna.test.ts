@@ -73,7 +73,7 @@ describe("a URL direta não contorna a permissão", () => {
   });
 
   it("a Central de Trabalho continua aberta para todo mundo de dentro", async () => {
-    for (const papel of ["master", "diretor", "project_manager", "social_staff", "design_staff", "ads_staff", "executivo_comercial"]) {
+    for (const papel of ["master", "diretor", "project_manager", "social_staff", "design_staff", "ads_staff", "executivo_comercial", "tech_staff"]) {
       expect(foiBarrado(await pedir("/agency/dashboard", papel)), `${papel} barrado no dashboard`).toBe(false);
     }
   });

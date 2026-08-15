@@ -24,17 +24,18 @@
     {"id":"analytics","name":"Analytics e Inteligência","agents":["data-integration","bi-analyst","insights","attribution-and-funnel","forecast-and-alerts"]},
     {"id":"quality","name":"Qualidade e Compliance","agents":["qa-orchestrator","brief-adherence","brand-compliance","content-and-fact-review","policy-and-technical-risk","approval-gate"]},
     {"id":"finance","name":"Financeiro e Administrativo","agents":["pricing-and-margin","commercial-proposal","contracts-and-documents","billing","collection","client-profitability"]},
-    {"id":"operations","name":"Operações, Sistemas e Segurança","agents":["integration-manager","credentials-and-access","scheduler-and-recovery","observability","security-and-audit","backup-and-continuity"]}
+    {"id":"operations","name":"Operações, Sistemas e Segurança","agents":["integration-manager","credentials-and-access","scheduler-and-recovery","observability","security-and-audit","backup-and-continuity"]},
+    {"id":"product-technology","name":"Produto & Tecnologia","agents":["technology-orchestrator","software-architect","product-designer","design-system-engineer","frontend-engineer","backend-engineer","fullstack-engineer"]}
   ],
   "workflow": [
     {"id":"contact","owner":"client-service-sdr","requiredOutput":"qualified-opportunity"},
     {"id":"briefing","owner":"client-service-sdr","contributors":["strategy","branding"],"requiredOutput":"structured-briefing"},
     {"id":"proposal","owner":"strategy","contributors":["finance"],"requiredOutput":"accepted-scope"},
-    {"id":"direction","owner":"project-management","contributors":["strategy","branding","design"],"requiredOutput":"approved-direction"},
-    {"id":"production","owner":"project-management","contributors":["branding","social-media","design","paid-traffic","analytics"],"requiredOutput":"complete-internal-package"},
+    {"id":"direction","owner":"project-management","contributors":["strategy","branding","design","product-technology"],"requiredOutput":"approved-direction"},
+    {"id":"production","owner":"project-management","contributors":["branding","social-media","design","paid-traffic","analytics","product-technology"],"requiredOutput":"complete-internal-package"},
     {"id":"quality","owner":"quality","requiredOutput":"internal-approval"},
     {"id":"client-approval","owner":"project-management","requiredOutput":"recorded-client-decision"},
-    {"id":"implementation","owner":"project-management","contributors":["social-media","design","paid-traffic","operations"],"requiredOutput":"implemented-delivery"},
+    {"id":"implementation","owner":"project-management","contributors":["social-media","design","paid-traffic","product-technology","operations"],"requiredOutput":"implemented-delivery"},
     {"id":"measurement-cycle","owner":"analytics","contributors":["project-management","strategy","branding"],"requiredOutput":"learning-and-next-cycle"}
   ],
   "clientDecisions": ["approve","request-adjustments","reject-and-redo","cancel-with-reason"],

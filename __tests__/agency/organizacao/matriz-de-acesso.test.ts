@@ -24,6 +24,7 @@ const social = PERFIL_DO_PAPEL.social_staff;
 const design = PERFIL_DO_PAPEL.design_staff;
 const trafego = PERFIL_DO_PAPEL.ads_staff;
 const atendimento = PERFIL_DO_PAPEL.executivo_comercial;
+const tecnologia = PERFIL_DO_PAPEL.tech_staff;
 const cliente: PerfilOrganizacional = { autoridade: "client", departamentos: [] };
 
 const TODAS = PAGINAS.map((p) => p.href);
@@ -109,6 +110,7 @@ describe("cada departamento edita a sua área e consulta as demais", () => {
     ["Design", design, "design", ["social-media", "paid-traffic", "client-service-sdr"]],
     ["Tráfego Pago", trafego, "paid-traffic", ["social-media", "design", "brand-hub"]],
     ["Atendimento", atendimento, "client-service-sdr", ["design", "paid-traffic", "social-media"]],
+    ["Produto & Tecnologia", tecnologia, "product-technology", ["design", "operations", "brand-hub"]],
   ];
 
   for (const [nome, perfil, propria, alheias] of casos) {
@@ -146,6 +148,7 @@ describe("todo departamento alcança a lista completa de clientes", () => {
     ["Design", design],
     ["Tráfego", trafego],
     ["Atendimento", atendimento],
+    ["Produto & Tecnologia", tecnologia],
   ] as const) {
     it(`${nome} abre /agency/clients e o detalhe de qualquer cliente`, () => {
       expect(podeVerTodosOsClientes(perfil)).toBe(true);
@@ -196,7 +199,7 @@ describe("a mesa de trabalho alheia fica fechada — e a tela diz por quê", () 
   });
 
   it("nenhum departamento chega às configurações do sistema", () => {
-    for (const perfil of [social, design, trafego, atendimento]) {
+    for (const perfil of [social, design, trafego, atendimento, tecnologia]) {
       expect(podeAbrirRota(perfil, "/agency/settings")).toBe(false);
       expect(podeAbrirRota(perfil, "/agency/integrations")).toBe(false);
       expect(podeAbrirRota(perfil, "/agency/brain")).toBe(false);
