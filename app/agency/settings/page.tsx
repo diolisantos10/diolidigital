@@ -22,6 +22,7 @@ import { useTranslation } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { TopDown } from "@/components/agency/TopDown";
+import { ZerarAAgencia } from "@/components/agency/ZerarAAgencia";
 import Button from "@/components/agency/ui/Button";
 import { runSystemDoctor, CHECK_GROUP_ORDER, type DiagnosticReport, type CheckStatus, type CheckSeverity } from "@/lib/agency/system-doctor";
 import { getPilotDataStatus } from "@/lib/agency/readiness";
@@ -319,6 +320,9 @@ export default function SettingsPage() {
             ninguém encontra na hora em que ele importa. Some sozinho para
             quem não é `master` — o portão é no servidor. */}
         <TopDown />
+
+        {/* A inauguração. Some para quem não é `master`; o portão é no servidor. */}
+        <ZerarAAgencia />
 
         {/* ── Learning loop: pending Brain updates ─────────────────────────────── */}
         <PendingBrainUpdates />
