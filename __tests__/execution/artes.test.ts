@@ -24,6 +24,20 @@ vi.mock("@/lib/agency/execution/leitura-do-cliente", () => ({ estiloVisualPersis
 // quem, com o quê, e o que acontece quando o molde não pode ser aplicado.
 const montarPeca = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/agency/design/peca", () => ({ montarPeca }));
+// ── O PORTÃO DE PIXEL (15/08/2026) ───────────────────────────────────────────
+// `conferirFundoDaPeca` entrou no caminho vivo e mede PIXEL. As fixtures deste
+// arquivo são PNGs de 1×1 inventados para exercitar a FIAÇÃO — e um PNG de 1×1
+// é, corretamente, reprovado por um portão que exige riqueza de fotografia.
+// Aqui ele é mockado como aprovado, e a régua dele é exercitada contra os
+// ARQUIVOS DE VERDADE (as peças que o CEO reprovou e as fotos que entraram nas
+// refeitas) em `__tests__/design/portao-do-fundo.test.ts`, que também prova que
+// ele está no caminho vivo. Mockar aqui é separar fiação de régua, não afrouxar.
+const conferirFundoDaPeca = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/design/portao-do-fundo", () => ({
+  conferirFundoDaPeca,
+  motivoDoFundoEmUmaLinha: (v: { ok: boolean; motivo?: string; detalhe?: string }) =>
+    v.ok ? "" : `fundo reprovado (${v.motivo}) — ${v.detalhe}`,
+}));
 
 import { produzirArtesPendentes, montarPrompt, nomeDoFundo, reRenderizarTexto, montarArteComFotoDoCliente } from "@/lib/agency/execution/artes";
 
@@ -67,6 +81,7 @@ beforeEach(() => {
   db.mediaAsset.count.mockResolvedValue(0);
   estiloVisualPersistido.mockResolvedValue("");
   estiloVistoPersistido.mockResolvedValue("");
+  conferirFundoDaPeca.mockResolvedValue({ ok: true });
   montarPeca.mockResolvedValue({
     ok: true, bytes: Buffer.from("peca-com-texto"), largura: 1080, altura: 1350,
     textosPintados: ["PRODUTO", "Pão saindo do forno às 6 da manhã"], textoRecusado: [],

@@ -353,7 +353,14 @@ export async function agendarPostsDaEntrega(projectId: string): Promise<Agendame
       // Barrar só na hora da arte deixaria a peça no calendário do CLIENTE,
       // com data marcada, para nunca sair — que é a definição de fila morta.
       // Aqui ela simplesmente não nasce, e o fato é registrado.
-      const veredito = conferirPilar(peca.pilar);
+      //
+      // `exigido: true` porque ESTE é o caminho automático: a peça saiu de um
+      // `Deliverable` produzido por especialista, e desde 15/08/2026 o prompt
+      // exige o campo `pillar`, o contrato de saída o confere e o markdown o
+      // emite. Pilar ausente aqui não é "esta casa não usa pilar" — é sinal de
+      // que a corrente arrebentou em algum ponto, e isso não pode significar
+      // liberado. Ver `pilares-bloqueados.ts`, `ComoConferirOPilar.exigido`.
+      const veredito = conferirPilar(peca.pilar, { exigido: true });
       if (veredito.bloqueado) {
         saida.bloqueadasPorPilar.push({ pilar: peca.pilar ?? "", motivo: veredito.motivo ?? "" });
         await prisma.activityEvent.create({
@@ -378,6 +385,10 @@ export async function agendarPostsDaEntrega(projectId: string): Promise<Agendame
           networks: JSON.stringify(["instagram"]),
           format: peca.formato,
           pillar: peca.pilar,
+          // A direção de arte chega ao POST — e é daqui que ela alcança o
+          // gerador de imagem (`artes.ts`). Antes de 15/08/2026 ela parava no
+          // markdown do entregável.
+          artDirection: peca.direcaoDeArte,
           scenesJson: JSON.stringify(peca.cenas),
           scheduledFor: new Date(cursor),
           // "draft", não "scheduled": a data está proposta, e quem aprova o
@@ -1008,6 +1019,23 @@ interface PecaExtraida {
   legenda: string;
   formato: string;
   pilar: string | null;
+  /**
+   * A DIREÇÃO DE ARTE — o que a IMAGEM desta peça tem de mostrar.
+   *
+   * Sai do campo `visual` do especialista de copy (`especialistas.ts`), que o
+   * markdown grava como "- Visual: ..." (`run-execution.ts`,
+   * `deliverableMarkdown`). Até 15/08/2026 este leitor NÃO a capturava: a
+   * direção era escrita, gravada no entregável, e morria ali — e o gerador de
+   * imagem recebia a LEGENDA como cena.
+   *
+   * "- Direção: ..." é o mesmo campo com outro rótulo: o markdown emite os dois
+   * (`direction` para as peças de design, `visual` para as de copy), e ler só um
+   * deixaria o outro no chão. Visual ganha quando os dois existem, porque é o
+   * campo que o especialista de copy — o que produz post — preenche.
+   *
+   * ⚠️ NUNCA vira letra na peça. Ver `SocialPost.artDirection` no schema.
+   */
+  direcaoDeArte: string | null;
   /** As telas do carrossel, uma por item. Vazio nos outros formatos. */
   cenas: string[];
 }
@@ -1044,7 +1072,22 @@ export function extrairPecas(conteudo: string, tipo: string): PecaExtraida[] {
     // Carrossel sem telas suficientes não é carrossel — vira feed, em vez de
     // ser publicado com uma imagem só e o nome errado.
     const formatoFinal = formato === "carousel" && cenas.length < 2 ? "feed" : formato;
-    pecas.push({ legenda: legenda.slice(0, 2000), formato: formatoFinal, pilar: capturar(bloco, "Pilar"), cenas });
+    // A direção de arte: "Visual" primeiro, "Direção" como o mesmo campo com
+    // outro rótulo. Peça que confessa falta de dado NA DIREÇÃO não derruba a
+    // peça (a legenda está boa) — ela cai no fallback, porque mandar
+    // "PRECISO CONFIRMAR: ..." para o gerador de imagem desenharia a confissão.
+    const direcaoBruta = capturar(bloco, "Visual") ?? capturar(bloco, "Direção") ?? capturar(bloco, "Direcao");
+    const direcaoDeArte =
+      direcaoBruta && direcaoBruta.length >= 10 && !/PRECISO CONFIRMAR/i.test(direcaoBruta)
+        ? direcaoBruta.slice(0, 1200)
+        : null;
+    pecas.push({
+      legenda: legenda.slice(0, 2000),
+      formato: formatoFinal,
+      pilar: capturar(bloco, "Pilar"),
+      direcaoDeArte,
+      cenas,
+    });
   }
   return pecas;
 }

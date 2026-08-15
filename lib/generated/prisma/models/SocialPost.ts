@@ -36,6 +36,7 @@ export type SocialPostMinAggregateOutputType = {
   mediaUrl: string | null
   mediaUrlsJson: string | null
   scenesJson: string | null
+  artDirection: string | null
   scriptJson: string | null
   visibility: string | null
   scheduledFor: Date | null
@@ -62,6 +63,7 @@ export type SocialPostMaxAggregateOutputType = {
   mediaUrl: string | null
   mediaUrlsJson: string | null
   scenesJson: string | null
+  artDirection: string | null
   scriptJson: string | null
   visibility: string | null
   scheduledFor: Date | null
@@ -88,6 +90,7 @@ export type SocialPostCountAggregateOutputType = {
   mediaUrl: number
   mediaUrlsJson: number
   scenesJson: number
+  artDirection: number
   scriptJson: number
   visibility: number
   scheduledFor: number
@@ -116,6 +119,7 @@ export type SocialPostMinAggregateInputType = {
   mediaUrl?: true
   mediaUrlsJson?: true
   scenesJson?: true
+  artDirection?: true
   scriptJson?: true
   visibility?: true
   scheduledFor?: true
@@ -142,6 +146,7 @@ export type SocialPostMaxAggregateInputType = {
   mediaUrl?: true
   mediaUrlsJson?: true
   scenesJson?: true
+  artDirection?: true
   scriptJson?: true
   visibility?: true
   scheduledFor?: true
@@ -168,6 +173,7 @@ export type SocialPostCountAggregateInputType = {
   mediaUrl?: true
   mediaUrlsJson?: true
   scenesJson?: true
+  artDirection?: true
   scriptJson?: true
   visibility?: true
   scheduledFor?: true
@@ -267,6 +273,7 @@ export type SocialPostGroupByOutputType = {
   mediaUrl: string | null
   mediaUrlsJson: string
   scenesJson: string
+  artDirection: string | null
   scriptJson: string | null
   visibility: string
   scheduledFor: Date | null
@@ -314,6 +321,7 @@ export type SocialPostWhereInput = {
   mediaUrl?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   mediaUrlsJson?: Prisma.StringFilter<"SocialPost"> | string
   scenesJson?: Prisma.StringFilter<"SocialPost"> | string
+  artDirection?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   scriptJson?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   visibility?: Prisma.StringFilter<"SocialPost"> | string
   scheduledFor?: Prisma.DateTimeNullableFilter<"SocialPost"> | Date | string | null
@@ -340,6 +348,7 @@ export type SocialPostOrderByWithRelationInput = {
   mediaUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   mediaUrlsJson?: Prisma.SortOrder
   scenesJson?: Prisma.SortOrder
+  artDirection?: Prisma.SortOrderInput | Prisma.SortOrder
   scriptJson?: Prisma.SortOrderInput | Prisma.SortOrder
   visibility?: Prisma.SortOrder
   scheduledFor?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -369,6 +378,7 @@ export type SocialPostWhereUniqueInput = Prisma.AtLeast<{
   mediaUrl?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   mediaUrlsJson?: Prisma.StringFilter<"SocialPost"> | string
   scenesJson?: Prisma.StringFilter<"SocialPost"> | string
+  artDirection?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   scriptJson?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   visibility?: Prisma.StringFilter<"SocialPost"> | string
   scheduledFor?: Prisma.DateTimeNullableFilter<"SocialPost"> | Date | string | null
@@ -395,6 +405,7 @@ export type SocialPostOrderByWithAggregationInput = {
   mediaUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   mediaUrlsJson?: Prisma.SortOrder
   scenesJson?: Prisma.SortOrder
+  artDirection?: Prisma.SortOrderInput | Prisma.SortOrder
   scriptJson?: Prisma.SortOrderInput | Prisma.SortOrder
   visibility?: Prisma.SortOrder
   scheduledFor?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -427,6 +438,7 @@ export type SocialPostScalarWhereWithAggregatesInput = {
   mediaUrl?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
   mediaUrlsJson?: Prisma.StringWithAggregatesFilter<"SocialPost"> | string
   scenesJson?: Prisma.StringWithAggregatesFilter<"SocialPost"> | string
+  artDirection?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
   scriptJson?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
   visibility?: Prisma.StringWithAggregatesFilter<"SocialPost"> | string
   scheduledFor?: Prisma.DateTimeNullableWithAggregatesFilter<"SocialPost"> | Date | string | null
@@ -453,6 +465,7 @@ export type SocialPostCreateInput = {
   mediaUrl?: string | null
   mediaUrlsJson?: string
   scenesJson?: string
+  artDirection?: string | null
   scriptJson?: string | null
   visibility?: string
   scheduledFor?: Date | string | null
@@ -479,6 +492,7 @@ export type SocialPostUncheckedCreateInput = {
   mediaUrl?: string | null
   mediaUrlsJson?: string
   scenesJson?: string
+  artDirection?: string | null
   scriptJson?: string | null
   visibility?: string
   scheduledFor?: Date | string | null
@@ -505,6 +519,7 @@ export type SocialPostUpdateInput = {
   mediaUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mediaUrlsJson?: Prisma.StringFieldUpdateOperationsInput | string
   scenesJson?: Prisma.StringFieldUpdateOperationsInput | string
+  artDirection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -531,6 +546,7 @@ export type SocialPostUncheckedUpdateInput = {
   mediaUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mediaUrlsJson?: Prisma.StringFieldUpdateOperationsInput | string
   scenesJson?: Prisma.StringFieldUpdateOperationsInput | string
+  artDirection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -557,6 +573,7 @@ export type SocialPostCreateManyInput = {
   mediaUrl?: string | null
   mediaUrlsJson?: string
   scenesJson?: string
+  artDirection?: string | null
   scriptJson?: string | null
   visibility?: string
   scheduledFor?: Date | string | null
@@ -583,6 +600,7 @@ export type SocialPostUpdateManyMutationInput = {
   mediaUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mediaUrlsJson?: Prisma.StringFieldUpdateOperationsInput | string
   scenesJson?: Prisma.StringFieldUpdateOperationsInput | string
+  artDirection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -609,6 +627,7 @@ export type SocialPostUncheckedUpdateManyInput = {
   mediaUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   mediaUrlsJson?: Prisma.StringFieldUpdateOperationsInput | string
   scenesJson?: Prisma.StringFieldUpdateOperationsInput | string
+  artDirection?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   scriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   scheduledFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -635,6 +654,7 @@ export type SocialPostCountOrderByAggregateInput = {
   mediaUrl?: Prisma.SortOrder
   mediaUrlsJson?: Prisma.SortOrder
   scenesJson?: Prisma.SortOrder
+  artDirection?: Prisma.SortOrder
   scriptJson?: Prisma.SortOrder
   visibility?: Prisma.SortOrder
   scheduledFor?: Prisma.SortOrder
@@ -661,6 +681,7 @@ export type SocialPostMaxOrderByAggregateInput = {
   mediaUrl?: Prisma.SortOrder
   mediaUrlsJson?: Prisma.SortOrder
   scenesJson?: Prisma.SortOrder
+  artDirection?: Prisma.SortOrder
   scriptJson?: Prisma.SortOrder
   visibility?: Prisma.SortOrder
   scheduledFor?: Prisma.SortOrder
@@ -687,6 +708,7 @@ export type SocialPostMinOrderByAggregateInput = {
   mediaUrl?: Prisma.SortOrder
   mediaUrlsJson?: Prisma.SortOrder
   scenesJson?: Prisma.SortOrder
+  artDirection?: Prisma.SortOrder
   scriptJson?: Prisma.SortOrder
   visibility?: Prisma.SortOrder
   scheduledFor?: Prisma.SortOrder
@@ -715,6 +737,7 @@ export type SocialPostSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   mediaUrl?: boolean
   mediaUrlsJson?: boolean
   scenesJson?: boolean
+  artDirection?: boolean
   scriptJson?: boolean
   visibility?: boolean
   scheduledFor?: boolean
@@ -741,6 +764,7 @@ export type SocialPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   mediaUrl?: boolean
   mediaUrlsJson?: boolean
   scenesJson?: boolean
+  artDirection?: boolean
   scriptJson?: boolean
   visibility?: boolean
   scheduledFor?: boolean
@@ -767,6 +791,7 @@ export type SocialPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   mediaUrl?: boolean
   mediaUrlsJson?: boolean
   scenesJson?: boolean
+  artDirection?: boolean
   scriptJson?: boolean
   visibility?: boolean
   scheduledFor?: boolean
@@ -793,6 +818,7 @@ export type SocialPostSelectScalar = {
   mediaUrl?: boolean
   mediaUrlsJson?: boolean
   scenesJson?: boolean
+  artDirection?: boolean
   scriptJson?: boolean
   visibility?: boolean
   scheduledFor?: boolean
@@ -807,7 +833,7 @@ export type SocialPostSelectScalar = {
   updatedAt?: boolean
 }
 
-export type SocialPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "clientRequestId" | "caption" | "networks" | "format" | "pillar" | "mediaUrl" | "mediaUrlsJson" | "scenesJson" | "scriptJson" | "visibility" | "scheduledFor" | "status" | "deliverableId" | "externalPostId" | "permalink" | "publishedAt" | "publishedBy" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["socialPost"]>
+export type SocialPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "clientRequestId" | "caption" | "networks" | "format" | "pillar" | "mediaUrl" | "mediaUrlsJson" | "scenesJson" | "artDirection" | "scriptJson" | "visibility" | "scheduledFor" | "status" | "deliverableId" | "externalPostId" | "permalink" | "publishedAt" | "publishedBy" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["socialPost"]>
 
 export type $SocialPostPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SocialPost"
@@ -833,6 +859,28 @@ export type $SocialPostPayload<ExtArgs extends runtime.Types.Extensions.Internal
      * sairia com 5 variações da mesma cena.
      */
     scenesJson: string
+    /**
+     * A DIREÇÃO DE ARTE desta peça — o que a IMAGEM tem de mostrar.
+     * 
+     * Escrita pelo especialista de copy no campo `visual` ("o que aparece na
+     * imagem", `especialistas.ts`), gravada no markdown do entregável como
+     * "- Visual: ..." (`run-execution.ts`) e, até 15/08/2026, **descartada ali**:
+     * `extrairPecas` não a lia e não havia coluna para guardá-la. O gerador de
+     * imagem recebia a LEGENDA como "Cena a retratar" — legenda de Instagram,
+     * com CTA e hashtag — e o desenho genérico era a saída coerente com o pedido.
+     * 
+     * ⚠️ **Este campo NUNCA vira letra na peça.** O que vira pixel tem de ser
+     * trecho literal de `caption` (`travaDeTextoNaArte`, com `fonteAuditada =
+     * post.caption`). A direção de arte não passa pelo piso de verdade: ela
+     * descreve uma cena, não afirma um fato — e por isso só pode alimentar o
+     * PROMPT da imagem, nunca a camada de texto. Há teste de fonte que reprova
+     * quem a passar como `fonteAuditada`, `titulo`, `apoio` ou `selo`.
+     * 
+     * Nulo = peça anterior a 15/08/2026, ou entrega cujo especialista não
+     * declarou o visual. Nulo cai no fallback (a legenda), que é o comportamento
+     * de sempre — é ele que torna a mudança reversível.
+     */
+    artDirection: string | null
     scriptJson: string | null
     /**
      * Contrato de visibilidade do Hub. Nasce "interno" (fail-closed); o fluxo
@@ -847,6 +895,15 @@ export type $SocialPostPayload<ExtArgs extends runtime.Types.Extensions.Internal
     externalPostId: string | null
     permalink: string | null
     publishedAt: Date | null
+    /**
+     * QUEM registrou a publicação. Mesma gramática do `ApprovalRequest.reviewedBy`,
+     * e pelo mesmo motivo: registro sem autor não é registro.
+     * • `esteira`          — o relógio publicou sozinho (publicacao.ts);
+     * • `equipe:<email>`   — alguém da casa postou À MÃO e veio marcar aqui.
+     * Nulo = peça anterior a 14/08/2026, quando o campo passou a existir. Nulo
+     * NÃO quer dizer "publicou sozinho" — quer dizer "não sabemos", e as duas
+     * coisas não podem virar a mesma no relatório.
+     */
     publishedBy: string | null
     lastError: string | null
     createdAt: Date
@@ -1285,6 +1342,7 @@ export interface SocialPostFieldRefs {
   readonly mediaUrl: Prisma.FieldRef<"SocialPost", 'String'>
   readonly mediaUrlsJson: Prisma.FieldRef<"SocialPost", 'String'>
   readonly scenesJson: Prisma.FieldRef<"SocialPost", 'String'>
+  readonly artDirection: Prisma.FieldRef<"SocialPost", 'String'>
   readonly scriptJson: Prisma.FieldRef<"SocialPost", 'String'>
   readonly visibility: Prisma.FieldRef<"SocialPost", 'String'>
   readonly scheduledFor: Prisma.FieldRef<"SocialPost", 'DateTime'>

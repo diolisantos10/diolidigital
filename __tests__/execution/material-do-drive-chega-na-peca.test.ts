@@ -37,6 +37,18 @@ const POST = {
 vi.mock("@/lib/ai/design-engine", () => ({ generateDesign }));
 vi.mock("@/lib/agency/media/armazenamento", () => ({ guardarArquivo, lerArquivo }));
 vi.mock("@/lib/agency/design/peca", () => ({ montarPeca }));
+// ── O PORTÃO DE PIXEL (15/08/2026) ──────────────────────────────────────────
+// `conferirFundoDaPeca` entrou no caminho vivo de `artes.ts` e mede PIXEL. As
+// fixtures deste arquivo são imagens mínimas, feitas para exercitar a FIAÇÃO —
+// e um PNG de poucos pixels é, corretamente, reprovado por um portão que exige
+// riqueza de fotografia. A régua dele roda contra ARQUIVO DE VERDADE (as peças
+// que o CEO reprovou e as fotos que entraram nas refeitas), e o caminho vivo é
+// provado, em `__tests__/design/portao-do-fundo.test.ts`. Mockar aqui separa
+// fiação de régua; não afrouxa nenhuma das duas.
+vi.mock("@/lib/agency/design/portao-do-fundo", () => ({
+  conferirFundoDaPeca: async () => ({ ok: true }),
+  motivoDoFundoEmUmaLinha: () => "",
+}));
 vi.mock("@/lib/agency/esteira/material-do-drive", () => ({ fotosReaisDoCliente, logoDoCliente }));
 vi.mock("@/lib/agency/execution/leitura-do-cliente", () => ({
   estiloVisualPersistido: vi.fn().mockResolvedValue(""),

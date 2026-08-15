@@ -5,6 +5,13 @@ const db = vi.hoisted(() => ({
   deliverable: { findMany: vi.fn(), update: vi.fn() },
   clientRequestDb: { findUnique: vi.fn() },
   activityEvent: { create: vi.fn() },
+  // O cliente e a gaveta das PROIBIÇÕES. Desde 15/08 este caminho tem PISO DE
+  // VERDADE — era o único dos quatro motores que refazia peça sem conferir dado
+  // inventado, justamente o caminho de CONSERTO. Gaveta vazia = "este cliente
+  // não proibiu nada", que é o caso limpo; leitura que FALHA reprova a peça, e
+  // isso é fail-closed de propósito.
+  client: { findUnique: vi.fn() },
+  brainArtifact: { findFirst: vi.fn(() => Promise.resolve(null)), create: vi.fn(() => Promise.resolve({})) },
 }));
 const generate = vi.hoisted(() => vi.fn());
 const auditDeliverable = vi.hoisted(() => vi.fn());
@@ -33,10 +40,22 @@ beforeEach(() => {
   db.deliverable.findMany.mockResolvedValue([{ ...reprovada }]);
   db.deliverable.update.mockResolvedValue({});
   db.clientRequestDb.findUnique.mockResolvedValue({ businessName: "Dioli Digital Studio" });
+  db.client.findUnique.mockResolvedValue({ phone: null, email: null });
   db.activityEvent.create.mockResolvedValue({});
   generate.mockResolvedValue({
     ok: true,
-    data: { title: "Plano de Medição v2", summary: "Agora com fontes e cadência definidas.", items: [{ headline: "Alcance", note: "medido no Instagram, semanal" }] },
+    // TRÊS indicadores: é o que o contrato de `a5` exige (3 a 8). O fixture
+    // tinha UM e passava porque este caminho não conferia o contrato de saída —
+    // a peça podia voltar do conserto com um terço do que tinha.
+    data: {
+      title: "Plano de Medição v2",
+      summary: "Agora com fontes e cadência definidas.",
+      items: [
+        { headline: "Alcance", note: "medido no Instagram, semanal" },
+        { headline: "Salvamentos", note: "medido no Instagram, semanal" },
+        { headline: "Mensagens recebidas", note: "medido na caixa de entrada, semanal" },
+      ],
+    },
   });
   auditDeliverable.mockResolvedValue({ verdict: "aprovado", issues: [], note: "ficou boa" });
 });

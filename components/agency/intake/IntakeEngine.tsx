@@ -777,6 +777,32 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
       updateClient(clientId, updates);
       setProfileSaved(true);
     }
+
+    // ── O FIO QUE FALTAVA: `restrictions` vira PROIBIÇÃO de verdade ─────────
+    //
+    // Esta entrevista pergunta "tem algo que você definitivamente não quer —
+    // uma palavra, uma cor, um concorrente que nunca deve ser citado?" desde
+    // sempre. A resposta ia para `updateClient`, que grava no estado do
+    // navegador e faz `PUT /api/clients/[id]` — rota que lê do corpo **só**
+    // name, industry, email, phone e website (`route.ts:39-46`) e descarta o
+    // resto sem erro, sem log e sem teste vermelho. `Client.restrictions` nem
+    // existe no schema.
+    //
+    // Ou seja: **a pergunta era feita e a resposta ia para o lixo.** É a
+    // variante mais cara de "campo sem leitor", porque quem paga o custo é o
+    // cliente, com a paciência dele.
+    //
+    // Agora ela entra pelo dono das proibições, com origem `equipe`: foi a
+    // agência que digitou, em conversa com o cliente. Nunca `marca`, que é o
+    // carimbo de resposta dada pelo próprio dono no portal.
+    const restricoes = currentAnswers["restrictions"];
+    if (typeof restricoes === "string" && restricoes.trim() && clientId.length > 12) {
+      void fetch(`/api/agency/clients/${clientId}/marca`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campos: { proibicoes: restricoes } }),
+      }).catch(() => { /* best-effort: o perfil já foi salvo; isto é o extra */ });
+    }
   };
 
   const availableModes: IntakeMode[] =

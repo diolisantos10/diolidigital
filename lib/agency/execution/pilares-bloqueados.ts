@@ -142,17 +142,66 @@ function normalizar(s: string): string {
     .trim();
 }
 
+/** Onde a peça está nascendo — e é isso que decide se pilar ausente reprova. */
+export interface ComoConferirOPilar {
+  /**
+   * A peça vem da ESTEIRA AUTOMÁTICA (um `Deliverable` produzido por
+   * especialista)? Então o pilar é obrigatório, e a ausência dele REPROVA.
+   *
+   * ── POR QUE ESTE PARÂMETRO EXISTE (15/08/2026) ──────────────────────────
+   *
+   * Este arquivo dizia, com todas as letras, que pilar ausente é LIBERADO — e
+   * declarava isso como escolha consciente. A escolha estava certa para o post
+   * que um humano digita no Planner (lá o campo é opcional e há gente olhando).
+   * Ela estava ERRADA para a esteira, e a diferença ninguém tinha medido:
+   *
+   *   • o prompt do especialista de copy NÃO pedia o campo `pillar`;
+   *   • `deliverableMarkdown` (`run-execution.ts`) NÃO emitia a linha "Pilar";
+   *   • `extrairPecas` (`publicacao.ts`) a procurava e nunca a achava.
+   *
+   * Logo `post.pillar` era **sempre null** na esteira automática, e o bloqueio
+   * de "salário aberto" — criado em 07/08 depois de três peças saírem com
+   * salário FALSO em pixel — **nunca disparou** ali. O portão existia, tinha
+   * teste, e aprovava por omissão. Isso é pior que não ter portão: cria
+   * confiança falsa.
+   *
+   * A origem foi consertada (prompt + markdown + contrato de saída). Este
+   * parâmetro é a outra metade: com a origem emitindo o pilar, ausência não
+   * quer mais dizer "esta casa não usa pilar" — quer dizer "alguma coisa se
+   * perdeu no caminho", e isso não pode virar liberação.
+   */
+  exigido?: boolean;
+}
+
 /**
  * Este pilar pode virar peça hoje?
  *
- * Pilar ausente (`null`, vazio) **não** é bloqueio: a maioria das peças desta
- * casa nunca teve pilar, e reprová-las seria parar a agência inteira para
- * proteger um cliente. É uma escolha declarada, não um esquecimento — o que
- * protege o caso sem pilar continua sendo o piso de verdade.
+ * `exigido: false` (o padrão) mantém o comportamento histórico: pilar ausente
+ * é LIBERADO, porque o post que um humano digita no Planner pode legitimamente
+ * não ter pilar, e reprová-lo pararia a agência para proteger um cliente. Quem
+ * protege esse caso continua sendo o piso de verdade.
+ *
+ * `exigido: true` fecha o fail-open onde o pilar É emitido — a esteira
+ * automática. Ver `ComoConferirOPilar.exigido`.
  */
-export function conferirPilar(pilar: string | null | undefined): VereditoDoPilar {
+export function conferirPilar(
+  pilar: string | null | undefined,
+  como: ComoConferirOPilar = {},
+): VereditoDoPilar {
   if (conferenciaDePixelDisponivel()) return LIBERADO;
-  if (!pilar || !pilar.trim()) return LIBERADO;
+  if (!pilar || !pilar.trim()) {
+    if (!como.exigido) return LIBERADO;
+    return {
+      bloqueado: true,
+      chave: "pilar-ausente",
+      motivo:
+        "esta peça veio da esteira automática SEM pilar de conteúdo. O pilar é o que o bloqueio confere antes de a " +
+        "peça virar imagem paga — sem ele, a trava que barra 'salário aberto', 'vagas por setor' e 'candidatura " +
+        "rápida' simplesmente não roda, e a peça passaria por não ter sido conferida. Sem portão = reprovado. " +
+        "Conserto: o especialista precisa devolver o campo \"pillar\" (o prompt o exige e o contrato de saída o " +
+        "confere desde 15/08/2026) — reproduza a entrega e ela volta a entrar no calendário.",
+    };
+  }
 
   const alvo = normalizar(pilar);
   for (const regra of PILARES_BLOQUEADOS) {

@@ -21,6 +21,24 @@ const ACCENT = "#0E7C75"; // orange — Brand Hub color
 type AgentState = "idle" | "generating" | "output_ready";
 type OutputTab = "overview" | "strengths" | "gaps" | "suggestions";
 
+/** O que a rota `marca/do-brand-book` devolve. `aindaFalta` NÃO é opcional na
+ *  leitura desta tela: é ele que impede a tela de dar a entender que mandar o
+ *  PDF fecha a ficha. */
+interface AplicacaoDoBrandBook {
+  ok: boolean;
+  aplicados: { campo: string; rotulo: string; deOnde: string }[];
+  naoTocados: { campo: string; rotulo: string }[];
+  foraDoAlcance: { campo: string; rotulo: string; porque: string }[];
+  recado: string;
+  andou?: { de: number; para: number; total: number };
+  aindaFalta: {
+    definidos: number;
+    total: number;
+    aindaNoDiaZero: boolean;
+    proximasPerguntas: { campo: string; pergunta: string | null }[];
+  };
+}
+
 interface BrandAnalysis {
   healthScore: number;
   healthLabel: string;
@@ -101,6 +119,12 @@ export default function BrandHubAgentPage() {
   const [bbFile, setBbFile] = useState<File | null>(null);
   const [bbUploading, setBbUploading] = useState(false);
   const [bbExtraction, setBbExtraction] = useState<BrandExtraction | null>(null);
+  // ── A EXTRAÇÃO APLICADA À FICHA (15/08/2026) ─────────────────────────────
+  // Até aqui a extração morria neste estado: a tela mostrava paleta, tom e
+  // público, e nada disso chegava ao `BrandBrain`. O CEO mandou o brand book do
+  // CityJobs, viu a análise e a ficha continuou em 22%.
+  const [bbAplicando, setBbAplicando] = useState(false);
+  const [bbResultado, setBbResultado] = useState<AplicacaoDoBrandBook | null>(null);
   const [bbError, setBbError] = useState<string | null>(null);
   const bbInputRef = useRef<HTMLInputElement>(null);
 
@@ -197,6 +221,7 @@ export default function BrandHubAgentPage() {
     setBbFile(file);
     setBbError(null);
     setBbExtraction(null);
+    setBbResultado(null);
     setBbUploading(true);
     const fd = new FormData();
     fd.append("file", file);
@@ -212,6 +237,35 @@ export default function BrandHubAgentPage() {
       setBbError("Erro de rede ao enviar o arquivo.");
     } finally {
       setBbUploading(false);
+    }
+  }
+
+  /**
+   * Aplica a extração à ficha de marca do cliente.
+   *
+   * A rota é separada do `PUT` de propósito: aqui a extração PROPÕE. Campo que
+   * o dono já respondeu volta em `naoTocados` e não é sobrescrito.
+   */
+  async function aplicarBrandBookNaFicha() {
+    if (!linkedClientId || !bbExtraction || !bbFile) return;
+    setBbAplicando(true);
+    setBbResultado(null);
+    try {
+      const res = await fetch(`/api/agency/clients/${linkedClientId}/marca/do-brand-book`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extracao: bbExtraction, arquivo: bbFile.name }),
+      });
+      const data = (await res.json()) as AplicacaoDoBrandBook & { error?: string };
+      if (!res.ok) {
+        setBbError(data.error ?? "Não consegui aplicar à ficha.");
+        return;
+      }
+      setBbResultado(data);
+    } catch {
+      setBbError("Erro de rede ao aplicar à ficha.");
+    } finally {
+      setBbAplicando(false);
     }
   }
 
@@ -371,6 +425,61 @@ export default function BrandHubAgentPage() {
 
                 {bbExtraction.summary && (
                   <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">{bbExtraction.summary}</p>
+                )}
+
+                {/* ── APLICAR À FICHA ──────────────────────────────────────
+                    Sem este botão a análise acima é decoração: ela some quando
+                    a aba fecha. E o texto ao lado diz, ANTES do clique, que o
+                    PDF não fecha a ficha — para o CEO não aplicar esperando
+                    100% e receber 33%. */}
+                {!bbResultado && (
+                  <div className="flex items-start gap-3 pt-1">
+                    <button
+                      onClick={aplicarBrandBookNaFicha}
+                      disabled={!linkedClientId || bbAplicando}
+                      className="shrink-0 px-3 py-1.5 rounded-[8px] text-[12px] font-semibold bg-[var(--accent-strong,#0B3D91)] text-white disabled:opacity-50 transition-opacity"
+                    >
+                      {bbAplicando ? "Aplicando…" : "Aplicar à ficha de marca"}
+                    </button>
+                    <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                      {linkedClientId
+                        ? "Preenche cor, tipografia, público e posicionamento. O que você já respondeu não é sobrescrito — e os campos de voz, palavras proibidas e quem aprova continuam faltando, porque não vêm de brand book nenhum."
+                        : "Escolha o cliente antes de aplicar."}
+                    </p>
+                  </div>
+                )}
+
+                {bbResultado && (
+                  <div className="rounded-[8px] border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 space-y-2">
+                    <p className="text-[12px] font-semibold text-[var(--text-primary)]">
+                      {bbResultado.andou
+                        ? `Ficha de marca: ${bbResultado.andou.de} → ${bbResultado.andou.para} de ${bbResultado.andou.total} campos.`
+                        : "Nada foi aplicado."}
+                    </p>
+                    {bbResultado.aplicados.length > 0 && (
+                      <p className="text-[11px] text-[var(--text-secondary)]">
+                        Aplicados: {bbResultado.aplicados.map((a) => a.rotulo).join(" · ")}
+                      </p>
+                    )}
+                    {bbResultado.naoTocados.length > 0 && (
+                      <p className="text-[11px] text-[var(--text-secondary)]">
+                        Não tocados (você já tinha respondido): {bbResultado.naoTocados.map((n) => n.rotulo).join(" · ")}
+                      </p>
+                    )}
+                    {/* A parte que a tela NÃO pode omitir. */}
+                    <div className="pt-1 border-t border-[var(--border)]">
+                      <p className="text-[11px] font-semibold text-[var(--text-primary)] mt-2">
+                        O brand book não fecha a ficha — faltam {bbResultado.aindaFalta.total - bbResultado.aindaFalta.definidos} campo(s), e eles são decisão sua:
+                      </p>
+                      <ul className="mt-1 space-y-1">
+                        {bbResultado.foraDoAlcance.map((f) => (
+                          <li key={f.campo} className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                            <span className="text-[var(--text-secondary)]">{f.rotulo}</span> — {f.porque}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 )}
               </div>
             )}

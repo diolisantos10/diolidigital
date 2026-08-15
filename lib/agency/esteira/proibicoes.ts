@@ -276,7 +276,23 @@ export async function registrarProibicoes(
 ): Promise<RegistroDeProibicoes> {
   const encontradas = extrairProibicoes(texto, origem);
   if (encontradas.length === 0) return { novas: [], total: 0 };
+  return await gravarProibicoes(clientId, encontradas, origem);
+}
 
+/**
+ * A GRAVAÇÃO — a metade de banco, uma só para os dois caminhos de leitura
+ * (a extração por negação e a resposta declarada).
+ *
+ * Separada de `registrarProibicoes` em 15/08/2026 e a razão é a lição da
+ * mesma noite: a ficha de marca tinha DUAS cópias do mesmo `envelopar`, e foi
+ * a divergência entre elas que fechou a esteira inteira. Dedup, versão e teto
+ * moram aqui, uma vez.
+ */
+async function gravarProibicoes(
+  clientId: string,
+  encontradas: Proibicao[],
+  origem: OrigemDaProibicao,
+): Promise<RegistroDeProibicoes> {
   try {
     const atual = await prisma.brainArtifact.findFirst({
       where: { clientId, department: DEPARTAMENTO_DAS_PROIBICOES },
@@ -318,6 +334,83 @@ export async function registrarProibicoes(
     console.warn(`[proibicoes] não consegui gravar as proibições de ${clientId}: ${erro}`);
     return { novas: [], total: 0, erro };
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A PROIBIÇÃO DECLARADA — quando a pergunta já É "o que a gente nunca deve fazer"
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// `extrairProibicoes` procura a NEGAÇÃO no texto ("não use", "nunca cite",
+// "evite") porque ela lê texto corrido, onde a proibição está misturada com
+// tudo o mais. Numa resposta à pergunta *"o que a gente nunca deve fazer no
+// material de vocês?"* a negação está na PERGUNTA — e o cliente que responde
+// "fotos de banco de imagem" fica sem nenhuma proibição registrada.
+//
+// Isso não é hipótese: era o que acontecia com o campo `restrictions` da
+// entrevista do painel (`IntakeEngine.tsx:339`), cuja resposta ia para
+// `updateClient` → `PUT /api/clients/[id]`, que lê do corpo **só** name,
+// industry, email, phone e website (`route.ts:39-46`). A casa perguntava e
+// jogava a resposta fora.
+//
+// O que NÃO muda: os TERMOS continuam saindo do mesmo `termosDoObjeto`, com o
+// mesmo piso de 4 letras, a mesma lista de palavras vazias e o mesmo teto de 4
+// termos. Falso positivo aqui é uma palavra que a agência perde para sempre
+// naquele cliente — e a régua de derivação é a parte cara de acertar, não o
+// gatilho.
+
+/** Teto de proibições por resposta. O cliente lista o que quiser; três linhas
+ *  é o que o gatilho do dia zero pede, e uma resposta que virasse vinte
+ *  proibições transformaria a trava num freio que reprova tudo. */
+export const MAX_PROIBICOES_POR_RESPOSTA = 3;
+
+/**
+ * Uma proibição a partir de uma linha em que o cliente JÁ está respondendo o
+ * que não pode. Devolve `null` quando não sobra termo aproveitável — proibição
+ * sem termo é regra que nunca dispara e que o especialista lê como se
+ * estivesse valendo.
+ */
+export function proibicaoDeclarada(linha: string, origem: OrigemDaProibicao): Proibicao | null {
+  const frase = minusculas(linha ?? "").trim();
+  if (!frase) return null;
+  const termos = termosDoObjeto(frase);
+  if (termos.length === 0) return null;
+  return { frase: frase.slice(0, 160), termos, origem, registradaEm: new Date().toISOString() };
+}
+
+/**
+ * Registra o que o cliente respondeu a uma pergunta que já é sobre proibição.
+ *
+ * Cada LINHA é uma proibição. A quebra é por linha e por ponto-e-vírgula, nunca
+ * por vírgula: "não cite Catho, Indeed nem Vagas" é UMA proibição com três
+ * termos, e quebrá-la por vírgula viraria três regras, cada uma com o resto da
+ * frase de sobra.
+ *
+ * A negação explícita continua tendo prioridade: se a linha já traz "nunca
+ * use X", quem manda é `extrairProibicoes`, que sabe separar o OBJETO do
+ * verbo. A leitura declarada só entra onde ela não achou nada.
+ */
+export async function registrarProibicoesDeclaradas(
+  clientId: string,
+  texto: string,
+  origem: OrigemDaProibicao,
+): Promise<RegistroDeProibicoes> {
+  const linhas = (texto ?? "")
+    .split(/[\n;]+/)
+    .map((l) => l.replace(/^\s*[-–—•*\d.)]+\s*/, "").trim())
+    .filter((l) => l.length >= 3)
+    .slice(0, MAX_PROIBICOES_POR_RESPOSTA);
+  if (linhas.length === 0) return { novas: [], total: 0 };
+
+  const declaradas: Proibicao[] = [];
+  for (const linha of linhas) {
+    // A negação explícita manda: ela nomeia o objeto sem o verbo junto.
+    const comNegacao = extrairProibicoes(linha, origem);
+    if (comNegacao.length > 0) { declaradas.push(...comNegacao); continue; }
+    const p = proibicaoDeclarada(linha, origem);
+    if (p) declaradas.push(p);
+  }
+  if (declaradas.length === 0) return { novas: [], total: 0 };
+  return await gravarProibicoes(clientId, declaradas.slice(0, MAX_PROIBICOES_POR_RESPOSTA), origem);
 }
 
 /**

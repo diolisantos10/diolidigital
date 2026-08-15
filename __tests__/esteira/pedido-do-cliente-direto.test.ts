@@ -113,7 +113,19 @@ describe("cliente direto COM projeto — a refação de verdade roda por clientI
     }]);
     generate.mockResolvedValue({
       ok: true,
-      data: { title: "Pauta do mês", summary: "Ajustada.", items: [{ headline: "Novo", caption: "Legenda nova, mais curta e direta para o feed." }] },
+      data: {
+        title: "Pauta do mês",
+        summary: "Ajustada.",
+        // O calendário INTEIRO (4 a 8 semanas, `contratoDaPauta`). O fixture
+        // tinha UMA e passava porque a refação não conferia o contrato de
+        // saída: ela podia devolver um terço do que o cliente comprou.
+        items: [
+          { headline: "Novo", caption: "Legenda nova, mais curta e direta para o feed." },
+          { headline: "A fornada das seis", caption: "Todo dia às seis sai a primeira." },
+          { headline: "Quem faz o seu pão", caption: "O time chega às quatro da manhã." },
+          { headline: "O bolo do fim de semana", caption: "Sábado tem bolo de fubá quente." },
+        ],
+      },
     });
   });
 

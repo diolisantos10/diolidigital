@@ -54,6 +54,11 @@ const db = vi.hoisted(() => ({
   clientRequestDb: { findUnique: vi.fn(async () => ({ businessName: "Padaria do João", segment: "alimentação", services: "[]", objectives: "[]" })) },
   activityEvent: { create: vi.fn(async () => ({})) },
   materialRequest: { count: vi.fn(async () => 0) },
+  // O cliente e a gaveta das PROIBIÇÕES. Desde 15/08 o destravamento do pacote
+  // tem PISO DE VERDADE — ele era o único dos quatro motores que refazia peça
+  // sem conferir dado inventado, justamente no caminho de CONSERTO.
+  client: { findUnique: vi.fn(async () => ({ phone: null, email: null })) },
+  brainArtifact: { findFirst: vi.fn(async () => null), create: vi.fn(async () => ({})) },
   approvalRequest: { updateMany: vi.fn(async () => ({ count: 0 })) },
   portalMessage: { create: vi.fn(async () => ({})) },
   deliverableVersion: { create: vi.fn(async () => ({ id: "v1" })), findFirst: vi.fn(async () => null) },
@@ -95,7 +100,17 @@ beforeEach(() => {
   };
   generate.mockResolvedValue({
     ok: true,
-    data: { title: "Plano de Conteúdo v2", summary: "Sem promessa de resultado, com cadência semanal definida.", items: [{ headline: "Bastidores", note: "3x por semana" }] },
+    data: {
+      title: "Plano de Conteúdo v2",
+      summary: "Sem promessa de resultado, com cadência semanal definida.",
+      // TRÊS indicadores: o contrato de `a5` pede 3 a 8. Com UM, o conserto
+      // devolveria um terço da peça — e nada conferia isso neste caminho.
+      items: [
+        { headline: "Bastidores", note: "3x por semana" },
+        { headline: "Alcance", note: "medido no Instagram, semanal" },
+        { headline: "Mensagens recebidas", note: "medido na caixa de entrada, semanal" },
+      ],
+    },
   });
 });
 

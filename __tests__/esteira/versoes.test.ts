@@ -49,7 +49,19 @@ beforeEach(() => {
   db.activityEvent.create.mockResolvedValue({});
   generate.mockResolvedValue({
     ok: true,
-    data: { title: "Calendário de conteúdo", summary: "Tom mais próximo do bairro.", items: [{ headline: "Pão quentinho", caption: "Saiu do forno agora." }] },
+    data: {
+      title: "Calendário de conteúdo",
+      summary: "Tom mais próximo do bairro.",
+      // O calendário INTEIRO (4 a 8 semanas, `contratoDaPauta`). O fixture
+      // tinha UMA e passava porque a refação não conferia o contrato de
+      // saída: ela podia devolver um terço do que o cliente comprou.
+      items: [
+        { headline: "Pão quentinho", caption: "Saiu do forno agora." },
+        { headline: "A fornada das seis", caption: "Todo dia às seis sai a primeira." },
+        { headline: "Quem faz o seu pão", caption: "O time chega às quatro da manhã." },
+        { headline: "O bolo do fim de semana", caption: "Sábado tem bolo de fubá quente." },
+      ],
+    },
   });
 });
 

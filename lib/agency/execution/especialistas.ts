@@ -28,6 +28,12 @@ import type { InsightDomain } from "@/lib/agency/radar/library";
 import {
   conferirStoryboard, lerStoryboardDoCampo, REGUA_CARROSSEL_DE_VENDA,
 } from "@/lib/agency/design/storyboard";
+// O contrato de SAÍDA deriva do contrato de ENTRADA. Ver `escopo-do-cliente.ts`
+// para por que os números fixos daqui eram o defeito, e não a calibragem deles.
+import {
+  exigenciaDeConteudo, escopoNaoDeclarado,
+  type EscopoDeConteudo, type ExigenciaDeConteudo, type FormatoContratado,
+} from "@/lib/agency/execution/escopo-do-cliente";
 
 /** O contexto do cliente que todo especialista recebe. Verdade ancorada: campo
  *  vazio é campo vazio — nenhum prompt aqui manda preencher por inferência. */
@@ -82,6 +88,21 @@ export interface Ctx {
    *  Quem já respondeu não é cobrado outra vez: o especialista trabalha com o
    *  que tem e marca o que faltar como "PRECISO CONFIRMAR". */
   materiaisEntregues: string[];
+  /**
+   * O QUE O CLIENTE COMPROU — volume e formatos, lidos do que ele escreveu.
+   *
+   * Existe desde 15/08/2026, e nasceu de um conflito medido: o contrato de saída
+   * do especialista de copy exigia de TODO cliente "6 a 8 peças, com 1 a 2
+   * carrossel e 2 a 3 story", enquanto o contrato do CityJobs
+   * (`docs/projetos/cityjobs-orcamento.md`) EXCLUI carrossel, story e vídeo e
+   * compra 60 posts simples por mês. A trava mais cara da casa cobrava
+   * exatamente o que o cliente não comprou.
+   *
+   * Ausente = o motor não conseguiu ler o contrato daquele cliente. Aí a régua
+   * histórica continua valendo, com a lacuna NOMEADA — nunca um número
+   * inventado no lugar do dele.
+   */
+  escopoContratado?: EscopoDeConteudo;
 }
 
 /** Qual IA faz melhor este trabalho. Vazio = a preferência global da casa. */
@@ -104,7 +125,7 @@ export interface Especialista {
    * Devolve a lista de violações em português, pronta para virar parecer. Lista
    * vazia = cumpriu.
    */
-  contrato?: (data: Record<string, unknown>) => string[];
+  contrato?: (data: Record<string, unknown>, c: Ctx) => string[];
 }
 
 // ── POR QUE ISTO EXISTE (05/08/2026) ─────────────────────────────────────────
@@ -184,9 +205,21 @@ function contratoDaPauta(data: Record<string, unknown>): string[] {
  * a MISTURA de formatos (senão sai tudo feed) e o tamanho do carrossel (que é
  * conta de imagem paga, não gosto).
  */
-function contratoDasLegendas(data: Record<string, unknown>): string[] {
+function contratoDasLegendas(data: Record<string, unknown>, c?: Ctx): string[] {
   const itens = itensDe(data);
-  const problemas = exigirQuantidade(data, 6, 8, "peças de conteúdo");
+
+  // ── A EXIGÊNCIA VEM DO CONTRATO DO CLIENTE (15/08/2026) ───────────────────
+  //
+  // Era "6 a 8 peças, 1-2 carrossel, 2-3 story, 2-3 feed" — no código, igual
+  // para todo mundo. O contrato do CityJobs exclui carrossel, story e vídeo e
+  // compra 60 posts simples por mês. A trava mais cara da casa cobrava
+  // exatamente o que o cliente NÃO comprou, com um teto de 13% do que ele pagou.
+  //
+  // Sem contrato legível, `escopoNaoDeclarado()` devolve a régua histórica com
+  // a lacuna nomeada — parar todo cliente cujo briefing não escreveu o volume
+  // trocaria um dano por um maior.
+  const exigencia: ExigenciaDeConteudo = exigenciaDeConteudo(c?.escopoContratado ?? escopoNaoDeclarado());
+  const problemas = exigirQuantidade(data, exigencia.min, exigencia.max, "peças de conteúdo");
 
   const porFormato = { carrossel: 0, story: 0, feed: 0, reel: 0, semFormato: 0 };
   for (const it of itens) {
@@ -197,10 +230,58 @@ function contratoDasLegendas(data: Record<string, unknown>): string[] {
   if (porFormato.semFormato > 0) {
     problemas.push(`${porFormato.semFormato} peça(s) sem o campo "format" — o formato decide como a arte é gerada e onde a peça é publicada.`);
   }
-  for (const [f, min, max] of [["carrossel", 1, 2], ["story", 2, 3], ["feed", 2, 3]] as const) {
-    const n = porFormato[f];
-    if (n < min) problemas.push(`só ${n} peça(s) de ${f} — o contrato pede de ${min} a ${max}. Sem a mistura, o mês inteiro sai no mesmo formato.`);
-    else if (n > max) problemas.push(`${n} peças de ${f} — o contrato pede no máximo ${max}.`);
+
+  // ── O PILAR, CONFERIDO ONDE ELE NASCE (15/08/2026) ────────────────────────
+  //
+  // O bloqueio de pilar (`pilares-bloqueados.ts`) foi criado em 07/08 depois de
+  // TRÊS peças saírem com salário inventado dentro dos pixels. Ele lê
+  // `post.pillar` — e na esteira automática `post.pillar` era SEMPRE null,
+  // porque nem o prompt pedia `pillar` nem o markdown emitia a linha "Pilar".
+  // `conferirPilar(null)` devolvia LIBERADO, e o bloqueio nunca disparou no
+  // caminho automático: só quando um humano criava o post pelo Planner.
+  //
+  // Conferir aqui é conferir na ORIGEM, onde o especialista ainda pode refazer.
+  // O fail-closed do calendário (`publicacao.ts`) é a segunda metade: sem as
+  // duas, ou a esteira aprova por omissão, ou ela para sem dizer por quê.
+  const semPilar = itens.filter((it) => !texto(it, "pillar")).length;
+  if (semPilar > 0) {
+    problemas.push(
+      `${semPilar} peça(s) sem o campo "pillar" — o pilar é o que o bloqueio de conteúdo confere antes de a peça virar imagem paga. ` +
+      "Sem ele a trava não roda, e peça sem pilar NÃO entra no calendário do cliente.",
+    );
+  }
+  // ── FORMATO FORA DO ESCOPO É QUEBRA DE CONTRATO, NÃO VARIEDADE ────────────
+  //
+  // O cliente escreveu "sem carrossel" e recebia carrossel porque a régua era
+  // de código. Entregar o que ele excluiu é entregar outra coisa: ele paga por
+  // 60 posts simples e recebe 6 peças, duas delas de um formato que ele recusou.
+  for (const f of ["carrossel", "story", "feed", "reel"] as const) {
+    if (exigencia.permitidos.includes(f as FormatoContratado)) continue;
+    if (porFormato[f] > 0) {
+      problemas.push(
+        `${porFormato[f]} peça(s) de ${f} — este cliente EXCLUIU ${f} do escopo contratado. ` +
+        "Formato que ele não comprou não é variedade: é entrega errada.",
+      );
+    }
+  }
+
+  // ── A MISTURA, SÓ ENTRE O QUE ELE COMPROU ─────────────────────────────────
+  //
+  // A mistura existe para o mês não sair inteiro no mesmo formato — e isso só
+  // faz sentido quando há mais de um formato no escopo. Cliente de UM formato
+  // só (o CityJobs: post simples de feed) não tem mistura para fazer, e exigi-la
+  // é o defeito que este bloco corrige.
+  const misturaBase = { carrossel: [1, 2], story: [2, 3], feed: [2, 3] } as const;
+  const daMistura = (["carrossel", "story", "feed"] as const).filter((f) =>
+    exigencia.permitidos.includes(f as FormatoContratado),
+  );
+  if (daMistura.length > 1) {
+    for (const f of daMistura) {
+      const [min, max] = misturaBase[f];
+      const n = porFormato[f];
+      if (n < min) problemas.push(`só ${n} peça(s) de ${f} — o contrato pede de ${min} a ${max}. Sem a mistura, o mês inteiro sai no mesmo formato.`);
+      else if (n > max) problemas.push(`${n} peças de ${f} — o contrato pede no máximo ${max}.`);
+    }
   }
 
   itens.forEach((it, i) => {
@@ -389,7 +470,9 @@ REGRAS QUE REPROVAM A PEÇA, e são conferidas em código: a primeira tela é se
 - 2 a 3 STORY: assunto do dia, bastidor, enquete. Story é vertical e vive 24h — nada que precise durar.
 - 2 a 3 FEED: o que fica no perfil e representa a marca.
 ${REGRA}
-${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel|carrossel", "headline": "...", "caption": "legenda pronta", "visual": "o que aparece na imagem", "cenas": "só para carrossel: 1) [gancho] tela 1 · 2) [tensao] tela 2 · 3) [acao] ..."`)}`,
+
+O CAMPO "pillar" É OBRIGATÓRIO EM TODA PEÇA. Escreva o pilar de conteúdo a que ela pertence, com as palavras da pauta deste cliente (ex.: "bastidor da região", "institucional — vaga validada"). Ele é conferido em código: peça sem pilar não entra no calendário do cliente. NÃO invente um pilar bonito — use o que a pauta do mês declarou.
+${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel|carrossel", "pillar": "o pilar de conteúdo desta peça", "headline": "...", "caption": "legenda pronta", "visual": "o que aparece na imagem", "cenas": "só para carrossel: 1) [gancho] tela 1 · 2) [tensao] tela 2 · 3) [acao] ..."`)}`,
       },
       {
         id: "social-roteiro-video",
@@ -633,6 +716,15 @@ for (const e of TODOS_OS_ESPECIALISTAS) {
   vistos.add(e.id);
 }
 
+/** Um contexto MÍNIMO, para quem confere um contrato fora do motor (testes,
+ *  ferramentas). Escopo não declarado = a régua histórica com a lacuna dita. */
+const CTX_SEM_CONTRATO: Ctx = {
+  businessName: "", segment: "", targetAudience: "", tone: "",
+  services: [], objectives: [], strategyHeadline: "",
+  hasBrandAssets: false, hasRawMaterial: false, criandoIdentidade: false,
+  materiaisEntregues: [], escopoContratado: escopoNaoDeclarado(),
+};
+
 /**
  * O contrato de saída deste especialista foi cumprido?
  *
@@ -643,11 +735,15 @@ for (const e of TODOS_OS_ESPECIALISTAS) {
 export function conferirContrato(
   esp: Pick<Especialista, "contrato">,
   data: Record<string, unknown>,
+  /** O contexto do cliente. É por ele que o contrato de SAÍDA passa a derivar do
+   *  contrato de ENTRADA (`Ctx.escopoContratado`). Ausente = a régua histórica
+   *  da casa, com a lacuna nomeada — nunca um número inventado. */
+  c?: Ctx,
 ): { cumpriu: boolean; violacoes: string[] } {
   if (!esp.contrato) return { cumpriu: true, violacoes: [] };
   let violacoes: string[];
   try {
-    violacoes = esp.contrato(data);
+    violacoes = esp.contrato(data, c ?? CTX_SEM_CONTRATO);
   } catch {
     // Um contrato que explode não pode derrubar a produção — mas também não
     // pode virar "cumpriu". Vira violação declarada.

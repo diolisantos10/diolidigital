@@ -212,6 +212,8 @@ export async function baterORelogio(): Promise<{
   pedidos: number;
   /** Pedidos de MATERIAL que estavam presos e finalmente foram ao cliente. */
   cobrancasEsquecidas: number;
+  /** Arquivos do Drive que estavam presos e chegaram ao disco nesta rodada. */
+  materiaisRecuperados: number;
   /** Oportunidades NOVAS que entraram pela caixa de e-mail da agência. */
   oportunidadesDaCaixa: number;
   backup: boolean;
@@ -227,6 +229,8 @@ export async function baterORelogio(): Promise<{
   let avaliacoes = 0;
   let cobrancasEsquecidas = 0;
   let oportunidadesDaCaixa = 0;
+  /** Arquivos do Drive que estavam presos e finalmente chegaram ao disco. */
+  let materiaisRecuperados = 0;
   let backup = false;
 
   // ── A TESTEMUNHA DA RODADA (06/08/2026) ───────────────────────────────────
@@ -315,6 +319,35 @@ export async function baterORelogio(): Promise<{
     destravadas = await destravarPacotesBarrados();
   } catch (err) {
     quebrou("destravamento-de-pacote", err);
+  }
+
+  // ── O MATERIAL PRESO — 15/08/2026 ────────────────────────────────────────
+  //
+  // Vem ANTES da arte de propósito: é material que a peça precisa. O arquivo que
+  // o cliente já declarou e cuja importação falhou ficava preso PARA SEMPRE,
+  // porque a única retentativa do repositório era o `PATCH` do portal — ou seja,
+  // dependia de o cliente clicar em alguma coisa de novo. O CityJobs tinha dois
+  // logos nesse estado, com um recado de erro de uma versão do sistema que não
+  // existe mais desde 09/08.
+  //
+  // Falhar aqui NÃO pode derrubar a rodada: é recuperação, não caminho principal.
+  try {
+    const { reimportarFalhados } = await import("@/lib/agency/esteira/material-do-drive");
+    const comMaterialPreso = await prisma.driveMaterial.findMany({
+      where: { mediaAssetId: null, papelConfirmadoEm: { not: null } },
+      select: { clientId: true },
+      distinct: ["clientId"],
+      take: 50,
+    });
+    for (const { clientId } of comMaterialPreso) {
+      const r = await reimportarFalhados(clientId);
+      materiaisRecuperados += r.recuperados;
+      // Evidência junto do fato: o alerta carrega o caso concreto, nunca só
+      // "algo falhou". Sem o nome do arquivo ninguém investiga.
+      for (const f of r.aindaFalhando) quebrou("material-do-drive", `${f.nome} — ${f.erro}`);
+    }
+  } catch (err) {
+    quebrou("material-do-drive", err);
   }
 
   // A arte vem ANTES da publicação, e por um motivo prático: o Instagram exige
@@ -516,11 +549,11 @@ export async function baterORelogio(): Promise<{
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
-    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, avisos },
+    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos },
     falhas,
   });
 
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, backup };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, backup };
 }
 
 /**

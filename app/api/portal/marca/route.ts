@@ -21,29 +21,18 @@
 //   • **Salva a cada resposta.** Ele responde três no ponto de ônibus e volta
 //     depois.
 //   • **Cinco por rodada.** Questionário longo é questionário abandonado.
+//   • **Campo de par pede as DUAS metades.** "Um post que é a sua cara" e "um
+//     que não era" chegam juntos, porque é o segundo que permite reprovar peça.
+//     Até 15/08/2026 esta rota gravava `reprovadas: []` fixo, e por isso
+//     NENHUM cliente conseguia publicar. Ver `esteira/escrita-da-ficha.ts`.
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
-import { lerFichaDeMarca, proximasPerguntas, type CampoDaMarca } from "@/lib/agency/esteira/ficha-de-marca";
+import { lerFichaDeMarca, proximasPerguntas, type CampoDaMarca, type CampoNaFicha } from "@/lib/agency/esteira/ficha-de-marca";
+import { gravarRespostaDeMarca, respondivelPeloCliente } from "@/lib/agency/esteira/escrita-da-ficha";
 
 export const dynamic = "force-dynamic";
-
-/** Onde cada resposta é gravada. Espelha o mapa da rota do painel de propósito:
- *  duas portas, um destino. Proibições ficam de fora — têm dono próprio. */
-const COLUNA: Partial<Record<CampoDaMarca, string>> = {
-  proposito_e_promessa: "purposeAndPromise",
-  publico_e_relacao: "audienceRelation",
-  voz: "voicePairsJson",
-  lexico: "lexiconJson",
-  referencias: "referencesJson",
-  atributos_formais: "formalTokensJson",
-  limites_de_promessa: "promiseLimits",
-  hierarquia_e_dono: "ownerAndHierarchyJson",
-};
-
-const EH_JSON = new Set(["voicePairsJson", "lexiconJson", "referencesJson", "formalTokensJson", "ownerAndHierarchyJson"]);
 
 /** O que "não sei" grava: NADA. O campo continua em lacuna, e é isso mesmo.
  *  Gravar "não sei" como valor transformaria uma pergunta aberta numa resposta
@@ -63,30 +52,57 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!clientId) return NextResponse.json({ error: "token inválido" }, { status: 401 });
 
   const ficha = await lerFichaDeMarca(clientId);
-  const perguntas = proximasPerguntas(ficha).filter((c) => COLUNA[c.campo]);
+  const perguntas = proximasPerguntas(ficha).filter((c) => respondivelPeloCliente(c.campo));
 
   return NextResponse.json({
     // Conclusão primeiro, para a tela não ter de calcular: onde ele está.
     progresso: { respondidas: ficha.definidos, total: ficha.campos.length },
+    // O que ainda trava a publicação — a régua da PORTA, não a contagem de
+    // campos. As duas divergem por natureza, e mostrar só a contagem é como o
+    // cliente via a barra andar com nada saindo.
+    faltaParaPublicar: ficha.oQueFaltaParaPublicar,
     // Vazio = acabou. A tela mostra "terminou", não uma lista vazia.
-    perguntas: perguntas.map((c) => ({ campo: c.campo, pergunta: c.pergunta, rotulo: c.rotulo })),
+    perguntas: perguntas.map(paraATela),
   });
+}
+
+/** A pergunta como a tela precisa dela — com as METADES quando o campo é par.
+ *  Sem isto a tela desenha um campo de texto só, e a segunda metade (a que
+ *  permite reprovar) não tem por onde entrar. */
+function paraATela(c: CampoNaFicha) {
+  return {
+    campo: c.campo,
+    pergunta: c.pergunta,
+    rotulo: c.rotulo,
+    metades: c.metadesQueFaltam,
+  };
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const clientId = await clienteDoToken(request);
   if (!clientId) return NextResponse.json({ error: "token inválido" }, { status: 401 });
 
-  const corpo = (await request.json().catch(() => ({}))) as { campo?: string; resposta?: string };
+  // `resposta` é a forma antiga (texto único) e continua valendo. `metades` é a
+  // forma nova: o campo de par chega com as DUAS partes, porque é a segunda
+  // delas que permite reprovar peça — e ela nascia vazia por literal.
+  const corpo = (await request.json().catch(() => ({}))) as {
+    campo?: string;
+    resposta?: string;
+    metades?: Record<string, string>;
+  };
   const campo = corpo.campo as CampoDaMarca | undefined;
   const resposta = (corpo.resposta ?? "").trim();
+  const metades = corpo.metades ?? null;
 
-  const coluna = campo ? COLUNA[campo] : undefined;
-  if (!coluna) return NextResponse.json({ error: "campo desconhecido" }, { status: 400 });
+  if (!campo || !respondivelPeloCliente(campo)) {
+    return NextResponse.json({ error: "campo desconhecido" }, { status: 400 });
+  }
+
+  const temMetade = !!metades && Object.values(metades).some((v) => (v ?? "").trim());
 
   // "Não sei" é resposta válida e NÃO grava nada. O campo segue em lacuna, que
   // é a verdade — e a próxima rodada não pergunta de novo na frente das outras.
-  if (!resposta || resposta === NAO_SEI) {
+  if ((!resposta || resposta === NAO_SEI) && !temMetade) {
     const ficha = await lerFichaDeMarca(clientId);
     return NextResponse.json({
       gravado: false,
@@ -95,31 +111,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
   }
 
-  const valor = EH_JSON.has(coluna) ? envelopar(coluna, resposta) : resposta.slice(0, 4000);
-  await prisma.brandBrain.upsert({
-    where: { clientId },
-    update: { [coluna]: valor },
-    create: { clientId, [coluna]: valor },
+  const r = await gravarRespostaDeMarca({
+    clientId,
+    campo,
+    entrada: temMetade ? metades : resposta,
+    // Veio DAQUI, então veio dele. É a diferença entre esta rota e a do painel,
+    // e ela fica registrada na proibição — sem isso, daqui a três meses ninguém
+    // sabe se a regra saiu da boca do cliente ou do palpite de quem preencheu.
+    origem: "marca",
   });
 
   const ficha = await lerFichaDeMarca(clientId);
   return NextResponse.json({
-    gravado: true,
+    gravado: r.gravado,
+    ...(r.gravado ? {} : { motivo: r.motivo }),
     progresso: { respondidas: ficha.definidos, total: ficha.campos.length },
-    proximas: proximasPerguntas(ficha).filter((c) => COLUNA[c.campo]).map((c) => ({
-      campo: c.campo, pergunta: c.pergunta, rotulo: c.rotulo,
-    })),
+    proximas: proximasPerguntas(ficha).filter((c) => respondivelPeloCliente(c.campo)).map(paraATela),
   });
-}
-
-/** O cliente escreve texto; alguns campos guardam estrutura. Embrulhar preserva
- *  a resposta dele — recusar a perderia, e gravar cru quebraria a leitura. */
-function envelopar(coluna: string, texto: string): string {
-  const t = texto.slice(0, 4000);
-  if (coluna === "voicePairsJson") return JSON.stringify([{ dizemos: t, naoDizemos: "" }]);
-  if (coluna === "lexiconJson") return JSON.stringify({ nome: t });
-  if (coluna === "referencesJson") return JSON.stringify({ aprovadas: [t], reprovadas: [] });
-  if (coluna === "formalTokensJson") return JSON.stringify({ descricao: t });
-  if (coluna === "ownerAndHierarchyJson") return JSON.stringify({ dono: t });
-  return JSON.stringify({ valor: t });
 }

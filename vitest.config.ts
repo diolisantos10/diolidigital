@@ -15,7 +15,19 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["__tests__/**/*.test.ts"],
+    // ⚠️ `.tsx` ENTROU EM 15/08/2026, e não é conveniência.
+    //
+    // Até aqui todo teste de tela desta casa era leitura do CÓDIGO-FONTE do
+    // componente (`expect(COMP).toContain("não informado")`). Isso pega texto
+    // que sumiu, mas NÃO pega o que mais dói: a aba que não renderiza, o card
+    // que quebra com lista vazia, o botão que aparece habilitado para quem não
+    // pode. Fonte casa com a expectativa e a tela não monta — e o teste segue
+    // verde.
+    //
+    // Os testes do workspace do cliente RENDERIZAM de verdade, com
+    // `react-dom/server`, que já está no projeto. Nenhuma dependência nova foi
+    // instalada (o `node_modules` é compartilhado com outros worktrees).
+    include: ["__tests__/**/*.test.ts", "__tests__/**/*.test.tsx"],
     globals: true,
     // ── POR QUE ESTES TIMEOUTS SÃO MAIORES QUE O PADRÃO ──────────────────────
     // Em 02/08/2026 a suíte ficou vermelha duas vezes SEM nenhuma mudança de

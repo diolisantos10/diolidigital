@@ -102,6 +102,27 @@ export function donosDoDepartamento(dept: DepartamentoId): AgencyRole[] {
 // DERIVADA. Não edite este objeto: para mudar o que um papel vê, mude o perfil
 // acima ou o inventário em `organizacao/paginas.ts`.
 
+// ── CONFLITO RESOLVIDO PELO DIRETOR EM 15/08/2026 ──────────────────────────
+//
+// Dois blocos da mesma madrugada mexeram nesta constante sem se ver:
+//
+//   • o Dashboard Interno do Cliente ACRESCENTOU `/agency/clients` às três
+//     listas de departamento à mão, para cumprir a exigência do contrato de
+//     que todo departamento consulte o contexto produzido pelos outros;
+//   • a Central de Trabalho APAGOU as listas à mão e passou a DERIVAR tudo de
+//     `PERFIL_DO_PAPEL` + `organizacao/paginas.ts`, para cumprir a exigência do
+//     contrato de que exista uma fonte canônica e nenhuma contagem fixa.
+//
+// Ficou a versão derivada — é a estruturalmente certa e é a que o contrato
+// pede. **Mas ela só vale se o direito que o outro bloco acrescentou continuar
+// existindo depois da derivação**, e isso eu não presumi: conferi.
+// `/agency/clients` está declarada `acesso: "todos_internos"`
+// (`organizacao/paginas.ts:110`), então os três departamentos continuam
+// alcançando a página do cliente. O direito sobreviveu à troca de mecanismo.
+//
+// Se tivesse ficado de fora, o merge teria apagado uma exigência de contrato
+// em silêncio, sem conflito visível e com a suíte verde — que é exatamente o
+// defeito que esta casa passou a noite inteira caçando.
 export const ROLE_NAV_ALLOWLIST: Record<AgencyRole, string[] | "all"> = Object.fromEntries(
   (Object.keys(PERFIL_DO_PAPEL) as AgencyRole[]).map((role) => {
     const perfil = PERFIL_DO_PAPEL[role];

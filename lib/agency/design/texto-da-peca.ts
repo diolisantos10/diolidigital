@@ -14,7 +14,15 @@
  *  entrou na arte sem passar por conferência nenhuma. */
 export interface TextoDaPeca {
   /** Identificador do papel no layout. */
-  papel: "titulo" | "apoio" | "selo" | "assinatura" | "indice";
+  papel:
+    | "titulo" | "apoio" | "selo" | "assinatura" | "indice"
+    /** Um chip de benefício. Aparecem em série (dois ou três), então este papel
+     *  é o único que se repete numa peça — quem indexar textos por papel precisa
+     *  saber disso. Ver `travaDeRotuloDeBeneficio`. */
+    | "chip"
+    /** A faixa de chamada do pé ("SIGA O CITY JOBS"). Texto MONTADO (verbo da
+     *  casa + nome da marca), nunca escrito. Ver `travaDeChamadaNaArte`. */
+    | "chamada";
   /** O texto EXATO. É este string que o renderizador confere no DOM. */
   texto: string;
 }

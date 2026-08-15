@@ -48,10 +48,14 @@ import { montarPeca } from "@/lib/agency/design/peca";
 import {
   renderizadorDisponivel, MIME_DA_PECA_RENDERIZADA, type MotivoDeFalhaDeRender,
 } from "@/lib/agency/design/renderizar";
-import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
+import { tituloDaFonte, chamadaDaMarca } from "@/lib/agency/design/trava-de-texto";
+// O PORTÃO DE PIXEL. Ficou sete dias em `lib/` sem um único chamador — este é
+// o chamador. Ver `portao-do-fundo.ts` para por que ele mede o fundo CRU.
+import { conferirFundoDaPeca, motivoDoFundoEmUmaLinha } from "@/lib/agency/design/portao-do-fundo";
 import { cerebroDaMarca } from "@/lib/agency/design/repertorio-registrado";
 import {
-  composicaoParaFuncao, direcaoDeAmplitude, type CerebroCriativo, type Composicao,
+  composicaoParaFuncao, composicaoDoPostSimples, direcaoDeAmplitude,
+  type CerebroCriativo, type Composicao,
 } from "@/lib/agency/design/repertorio";
 import {
   conferirStoryboard, direcaoDaImagem, laudoDoStoryboard, lerStoryboard,
@@ -130,6 +134,36 @@ export interface ArtesFeitas {
 export interface RecorteDaRodadaDeArte {
   /** Só as peças DESTE cliente. `undefined` = todos, como sempre foi. */
   clientId?: string;
+  /**
+   * REFAZER estas peças NOMEADAS — mesmo que elas já tenham `mediaUrl`.
+   *
+   * ── POR QUE ISTO EXISTE (15/08/2026) ──────────────────────────────────────
+   *
+   * A direção de arte passou a chegar ao gerador neste dia, e o portão de pixel
+   * do fundo passou a valer. Só que o estoque do cliente foi produzido ANTES —
+   * com `mediaUrl` preenchido. `mediaUrl: null` (a seleção de sempre) não
+   * alcança nenhuma dessas peças: a esteira consertada não tem o que mostrar,
+   * porque o estoque foi feito pela esteira velha.
+   *
+   * ⚠️ Isto NÃO é um segundo caminho de produção. É o MESMO laço, com a mesma
+   * ordem de portões (pilar → tentativas → teto diário → foto do cliente →
+   * portão do fundo → composição da marca → trava de texto), a mesma gravação e
+   * o mesmo orçamento. O que muda é uma linha de `where` — e tinha de ser
+   * assim: uma cópia deste laço para "refazer" começaria idêntica e divergiria
+   * no primeiro ajuste, que foi exatamente como nasceu o defeito do carrossel
+   * recomposto pela função de peça única.
+   *
+   * ── NÃO É DESTRUTIVO ──────────────────────────────────────────────────────
+   *
+   * A peça continua com a arte velha até a nova ficar pronta: `mediaUrl` só é
+   * reescrito na linha final do laço, depois de a imagem ter sido paga, ter
+   * passado no portão do fundo, ter sido composta e ter sido guardada. Falha em
+   * qualquer ponto deixa a peça exatamente como estava.
+   *
+   * QUEM decide a lista não é esta função — é `refazer-com-direcao.ts`, que
+   * barra peça aprovada pelo cliente e peça sem direção no entregável de origem.
+   */
+  refazer?: string[];
 }
 
 /**
@@ -172,9 +206,18 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
     return saida;
   }
 
+  // A lista NOMEADA vence a seleção por ausência de arte — e só ela. Lista
+  // vazia NÃO vira "pega tudo": `refazer: []` é um pedido de refazer nada, e
+  // transformá-lo na rodada global gastaria imagem paga de quem ninguém
+  // autorizou. Por isso o teste é `!== undefined`, não `.length > 0`.
+  const refazendo = recorte.refazer !== undefined;
+
   const pendentes = await prisma.socialPost.findMany({
     where: {
-      mediaUrl: null,
+      // `mediaUrl: null` cobre o carrossel também: ele só recebe a capa quando
+      // TODAS as telas ficam prontas, então um carrossel pela metade continua
+      // aparecendo como pendente na rodada seguinte.
+      ...(refazendo ? { id: { in: recorte.refazer! } } : { mediaUrl: null }),
       status: { in: ["draft", "scheduled", "approved"] },
       // O recorte por cliente é OPCIONAL e some quando ninguém o pede — sem ele
       // o `where` é idêntico ao de sempre. `clientId: undefined` seria ignorado
@@ -182,11 +225,11 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // ausência seja legível para quem lê, não só para o driver.
       ...(recorte.clientId ? { clientId: recorte.clientId } : {}),
     },
-    // `mediaUrl: null` cobre o carrossel também: ele só recebe a capa quando
-    // TODAS as telas ficam prontas, então um carrossel pela metade continua
-    // aparecendo como pendente na rodada seguinte.
     orderBy: { scheduledFor: "asc" },
-    take: MAX_ARTES_POR_RODADA,
+    // Refazendo, o teto é o TAMANHO DO LOTE que o chamador nomeou — ele já foi
+    // aparado lá, contra o tempo da requisição. `MAX_ARTES_POR_RODADA` continua
+    // mandando na rodada de sempre.
+    take: refazendo ? Math.min(recorte.refazer!.length, MAX_ARTES_POR_RODADA) : MAX_ARTES_POR_RODADA,
   }).catch(() => []);
   if (pendentes.length === 0) return saida;
 
@@ -360,6 +403,11 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       const r = await generateDesign({
         prompt: montarPrompt({
           legenda: post.caption,
+          // ── O QUE O GERADOR PASSA A RECEBER (15/08/2026) ──────────────────
+          // A direção de arte que o especialista escreveu, e que até hoje era
+          // gravada no entregável e descartada na leitura. `null` cai na
+          // legenda — o comportamento de antes, mantido de propósito.
+          direcaoDeArte: post.artDirection,
           pilar: post.pillar,
           negocio: marca.nome,
           segmento: marca.segmento,
@@ -419,6 +467,30 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
         continue;
       }
 
+      // ── O PORTÃO DE PIXEL, NO FUNDO CRU (15/08/2026) ──────────────────────
+      //
+      // `trava-de-fundo.ts` existe desde 08/08 — escrito depois de o CEO
+      // reprovar duas peças do CityJobs com prédio-retângulo e sol-círculo — e
+      // ficou SETE DIAS sem um único chamador em `lib/`. Teste verde protegendo
+      // uma entrega, não a casa.
+      //
+      // O lugar é aqui e é medido: no fundo CRU a separação entre foto real e
+      // clipart vetorial é de 29×; na peça já composta (com painel sólido,
+      // tipografia e assinatura por cima) cai para 1,2×, e o portão vira
+      // roleta. Por isso ele roda ANTES de guardar e ANTES de compor.
+      //
+      // A imagem JÁ FOI PAGA quando chegamos aqui — o portão não economiza
+      // dinheiro, ele impede que peça amadora saia em nome de um cliente
+      // pagante. Gasta tentativa: regerar É o remédio certo para este caso
+      // (diferente do pilar bloqueado, onde regerar só inventa número novo).
+      const portao = await conferirFundoDaPeca({ bytes, mime: "image/png" });
+      if (!portao.ok) {
+        const erro = motivoDoFundoEmUmaLinha(portao);
+        saida.falhas.push({ postId: post.id, erro });
+        await marcarErro(post.id, erro, tentativas + 1);
+        continue;
+      }
+
       // ── A FOTO GERADA É GUARDADA À PARTE ──────────────────────────────────
       // Custa um arquivo a mais por peça, e paga isso na primeira correção de
       // texto: com o fundo em disco, trocar a chamada da arte é rasterização
@@ -445,24 +517,65 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       }
     }
 
+    // ── A COMPOSIÇÃO DO POST SIMPLES, PELO CÉREBRO DA MARCA (15/08/2026) ────
+    //
+    // `composicaoParaFuncao` existia desde 09/08 e era chamada em TRÊS lugares
+    // — `artes.ts` (duas vezes) e `recompor-carrossel.ts` —, e os três são
+    // CARROSSEL. O post simples, que é o volume da casa (60/mês só no
+    // CityJobs), nunca passava por ela: caía no `peca.composicao ?? "foto-cheia"`
+    // de `molde.ts`. Para o CityJobs isso é a composição que o próprio formato
+    // PROÍBE, com o motivo escrito no registro ("viraria a mesma peça 60 vezes
+    // por mês").
+    //
+    // O papel da peça vem do PILAR, resolvido contra as funções que a marca
+    // declarou — nunca inventado. Marca sem formato registrado continua em
+    // foto-cheia, que é o comportamento de antes.
+    const escolhaDaComposicao = composicaoDoPostSimples(marca.cerebro, post.pillar);
+
     // ── A CAMADA DE TEXTO, POR CÓDIGO ───────────────────────────────────────
     const composta = await comporComMolde({
       formato: formatoDoPost(post.format),
       molde: marca.molde,
       fotoBytes: bytes,
       fotoMime: mimeDaFoto,
+      // ⚠️ `fonteAuditada` é a LEGENDA, e continua sendo só ela. A direção de
+      // arte (`post.artDirection`) alimenta o PROMPT DA IMAGEM e NUNCA esta
+      // linha: ela não passa pelo piso de verdade, e o que vira pixel tem de
+      // ser trecho literal de conteúdo auditado. Há teste de fonte que reprova
+      // quem passar `artDirection` aqui.
       fonteAuditada: post.caption,
       selo: post.pillar,
       assinatura: marca.nome,
       indice: null,
+      composicao: escolhaDaComposicao.composicao,
+      // ── OS CHIPS E A FAIXA (15/08/2026) ───────────────────────────────────
+      //
+      // A peça que o CEO produziu à mão tem três chips e uma faixa de chamada;
+      // a fábrica não tinha onde encaixar nenhum dos dois. Agora tem — e com a
+      // trava junto, na mesma passada, porque slot sem trava faria o portão
+      // barrar exatamente a peça que se quer produzir.
+      //
+      // A FAIXA só sai para quem DECLAROU rótulos. Não é economia de código: é
+      // a regra de que nenhuma peça muda de cara sem alguém pedir. Preencher
+      // `BrandBrain.artLabelsJson` é o pedido.
+      chips: marca.rotulos,
+      fichaDaMarca: marca.ficha,
+      chamada: marca.rotulos.length > 0 ? chamadaDaMarca(marca.nome) : null,
       // O que aconteceu com o material do cliente — a foto que ENTROU e por
       // quê, ou o que havia e por que nada entrou. Sem isto, "a peça saiu
       // igual" continua sendo invisível de fora.
-      notaDoMaterial: fotoDoCliente
-        ? `[foto do cliente] ${fotoDoCliente.razao}`
-        : escolhaDaFoto && !escolhaDaFoto.usar && escolhaDaFoto.explicacao
-          ? `[material do cliente] ${escolhaDaFoto.explicacao}`
-          : null,
+      notaDoMaterial: [
+        fotoDoCliente
+          ? `[foto do cliente] ${fotoDoCliente.razao}`
+          : escolhaDaFoto && !escolhaDaFoto.usar && escolhaDaFoto.explicacao
+            ? `[material do cliente] ${escolhaDaFoto.explicacao}`
+            : null,
+        // Layout sem procedência é layout que ninguém audita depois. Só sobe
+        // quando NÃO foi o repertório que decidiu — o caminho bom é silencioso.
+        escolhaDaComposicao.origem === "repertorio"
+          ? null
+          : `[composição ${escolhaDaComposicao.composicao}] ${escolhaDaComposicao.porque}`,
+      ].filter(Boolean).join(" ") || null,
     });
     // Molde impossível por falta de ferramenta = a peça não existe. Falha
     // contada como falha, com tentativa gasta, e NADA gravado no post.
@@ -585,6 +698,27 @@ interface MarcaDaPeca {
   /** AS FOTOS REAIS que o cliente deu, já autorizadas pela trava do Drive.
    *  Vazio = ele não deu nenhuma, e vazio NUNCA vira "invente". */
   fotosReais: FotoCandidata[];
+  /**
+   * OS RÓTULOS DE BENEFÍCIO que esta marca declarou para a ARTE — os chips.
+   *
+   * Lidos de `BrandBrain.artLabelsJson`, que o dono da marca preenche uma vez.
+   * Vazio é o estado normal e honesto: a peça sai como saía antes de 15/08.
+   * Nenhum chip é inventado pela agência — e cada um ainda passa por
+   * `travaDeRotuloDeBeneficio` antes de virar pixel.
+   */
+  rotulos: string[];
+  /**
+   * A FICHA DE MARCA em texto, montada NO SERVIDOR — o lastro dos chips.
+   *
+   * É a metade que faltava para o chip existir sem mentir: `travaDeTextoNaArte`
+   * exige trecho literal da LEGENDA, e chip não é trecho de legenda. Ele afirma
+   * o que a marca É, e quem declarou isso foi o cliente, na ficha (promessa,
+   * tagline, posicionamento, valores e léxico).
+   *
+   * ⚠️ Montada aqui, a partir do banco. Nunca recebida de quem chama — é a
+   * mesma regra da verdade do cliente: leitura de servidor, não parâmetro.
+   */
+  ficha: string;
 }
 
 /**
@@ -646,7 +780,7 @@ async function lerMaterialReal(clientId: string | null): Promise<{
 
 export async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
   const vazio: MarcaDaPeca = {
-    nome: "", segmento: "", cores: [], tom: "",
+    nome: "", segmento: "", cores: [], tom: "", rotulos: [], ficha: "",
     // Sem cliente não há logo e não há foto — e o molde declara a falta do logo
     // do mesmo jeito, porque a peça REALMENTE sai sem ele.
     molde: moldeComLogo(moldeDoCliente(null), null),
@@ -688,7 +822,54 @@ export async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
     // declarado; emprestar o repertório de um cliente a outro seria dar a
     // identidade de um a outro.
     cerebro: cerebroDaMarca(c.name),
+    rotulos: rotulosDeclarados(b?.artLabelsJson),
+    ficha: fichaParaRotulo(b ?? null),
   };
+}
+
+/** Os rótulos que a marca autorizou na arte. JSON quebrado devolve lista vazia:
+ *  campo ilegível é campo ausente, e ausente NUNCA vira "pinte o que achar". */
+function rotulosDeclarados(bruto: string | null | undefined): string[] {
+  try {
+    const v = JSON.parse(bruto ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && !!x.trim()).slice(0, 4) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * A FICHA DE MARCA em texto — o lastro do chip de benefício.
+ *
+ * Junta o que o cliente DECLAROU sobre a própria marca. Não é resumo nem
+ * interpretação: é concatenação, porque `temLastroLiteral` compara substring da
+ * forma normalizada, e qualquer reescrita quebraria o lastro que ela procura.
+ *
+ * Os `artLabelsJson` entram na ficha de propósito — declarar o rótulo É
+ * declará-lo. O que a declaração NÃO faz é liberar as classes proibidas: a
+ * trava as confere ANTES do lastro, então "100% gratuito" continua fora do
+ * pixel mesmo escrito aqui pelo dono da marca.
+ */
+function fichaParaRotulo(b: {
+  purposeAndPromise?: string | null; tagline?: string | null;
+  positioning?: string | null; values?: string | null;
+  lexiconJson?: string | null; artLabelsJson?: string | null;
+} | null): string {
+  if (!b) return "";
+  const legivel = (s: string | null | undefined): string => {
+    const t = (s ?? "").trim();
+    if (!t) return "";
+    try {
+      const v = JSON.parse(t);
+      if (Array.isArray(v)) return v.map((x) => (typeof x === "string" ? x : "")).join(" · ");
+      if (v && typeof v === "object") return Object.values(v).map((x) => (typeof x === "string" ? x : "")).join(" · ");
+    } catch { /* não era JSON: é texto puro */ }
+    return t;
+  };
+  return [
+    b.purposeAndPromise ?? "", b.tagline ?? "", b.positioning ?? "",
+    legivel(b.values), legivel(b.lexiconJson), legivel(b.artLabelsJson),
+  ].filter((s) => s.trim()).join(" · ");
 }
 
 /** O nome do arquivo da FOTO de uma peça. Fixo por post (e por tela, no
@@ -746,6 +927,14 @@ interface PedidoDeComposicao {
   /** A composição escolhida pelo cérebro criativo a partir do papel da tela.
    *  Ausente = `foto-cheia`, o layout histórico. */
   composicao?: Composicao | null;
+  /** Os CHIPS de benefício que a marca declarou (`BrandBrain.artLabelsJson`).
+   *  Vazio = peça sem chip, que é a peça de antes de 15/08/2026. */
+  chips?: string[] | null;
+  /** A FICHA DE MARCA em texto — o lastro dos chips, montada no servidor.
+   *  Vazia = nenhum chip é pintado. */
+  fichaDaMarca?: string | null;
+  /** A FAIXA DE CHAMADA do pé. Montada (`chamadaDaMarca`), nunca escrita. */
+  chamada?: string | null;
   /**
    * O QUE ACONTECEU COM O MATERIAL DO CLIENTE nesta peça.
    *
@@ -880,6 +1069,13 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
     indice: p.indice,
     fonteAuditada: p.fonteAuditada,
     composicao: p.composicao ?? null,
+    // A outra metade do slot. `montarPeca` passa cada chip por
+    // `travaDeRotuloDeBeneficio` (lastro na FICHA, não na legenda) e a faixa por
+    // `travaDeChamadaNaArte` (verbo da casa + nome da marca). Chip reprovado não
+    // derruba a peça: ela sai sem aquele chip, com o motivo em `textoRecusado`.
+    chips: p.chips ?? null,
+    fichaDaMarca: p.fichaDaMarca ?? null,
+    chamada: p.chamada ?? null,
   }).catch((e) => ({ ok: false as const, motivo: "erro_do_navegador" as const, erro: e instanceof Error ? e.message : "erro" }));
 
   if (!r.ok) {
@@ -1339,6 +1535,29 @@ export async function montarArteComFotoDoCliente(
  */
 export function montarPrompt(input: {
   legenda: string;
+  /**
+   * A DIREÇÃO DE ARTE da peça — o que a IMAGEM tem de mostrar.
+   *
+   * ── POR QUE ESTE CAMPO NASCEU (15/08/2026) ────────────────────────────────
+   *
+   * Até aqui a "cena a retratar" era `post.caption`: a LEGENDA DO INSTAGRAM,
+   * inteira, com CTA e hashtag. Junto iam quinze proibições e um "sem nenhum
+   * texto, letra, número ou logotipo". O gerador recebia um texto escrito para
+   * ser LIDO e a ordem de não desenhar nada do que ele diz — e devolvia desenho
+   * vetorial genérico. **Não foi desobediência: foi a saída coerente com o
+   * pedido.**
+   *
+   * A direção existia o tempo todo. O especialista de copy a escreve no campo
+   * `visual` ("o que aparece na imagem", `especialistas.ts`), o motor a grava
+   * no markdown ("- Visual: ...", `run-execution.ts`) — e ela morria ali,
+   * porque `extrairPecas` não a lia e `SocialPost` não tinha coluna.
+   *
+   * Vazio cai na legenda, que é o comportamento de sempre. O fallback fica no
+   * código de propósito: é ele que torna esta mudança reversível sem migration
+   * de volta, e é ele que atende as peças anteriores a 15/08 (`artDirection`
+   * nulo).
+   */
+  direcaoDeArte?: string | null;
   pilar: string | null;
   negocio: string;
   segmento: string;
@@ -1370,11 +1589,16 @@ export function montarPrompt(input: {
   amplitude?: string;
 }): string {
   const vertical = input.formato === "story";
+  // A DIREÇÃO manda; a legenda é o FALLBACK. Nesta ordem, e a ordem é a
+  // correção inteira: a legenda é texto para ser lido, a direção é descrição do
+  // que a câmera vê. Direção vazia ou só espaço = não há direção, e aí a peça
+  // sai como saía antes.
+  const cena = (input.direcaoDeArte ?? "").trim() || input.legenda;
   const partes = [
     `Fotografia publicitária profissional para redes sociais, formato ${vertical ? "vertical 9:16 (story de celular)" : "quadrado"}, alta qualidade.`,
     input.segmento ? `Negócio: ${input.segmento}${input.negocio ? ` (${input.negocio})` : ""}.` : "",
     input.pilar ? `Tema da peça: ${input.pilar}.` : "",
-    `Cena a retratar: ${input.legenda.slice(0, 500)}`,
+    `Cena a retratar: ${cena.slice(0, 500)}`,
     input.cores.length > 0 ? `Paleta da marca, para a ambientação e os objetos: ${input.cores.join(", ")}.` : "",
     input.tom ? `Clima: ${input.tom}.` : "",
     // A peça nova precisa parecer do MESMO perfil que as que já estão lá —
@@ -1671,6 +1895,14 @@ async function montarCarrossel(
 
     const bytes = await baixarImagem(r.url).catch(() => null);
     if (!bytes) return { ok: false, gerou, erro: `não consegui baixar a tela ${i + 1}` };
+
+    // O MESMO portão de pixel do post simples, na mesma posição (fundo cru,
+    // antes de compor). Uma tela de clipart contamina o carrossel inteiro: o
+    // cliente receberia cinco fotografias e um desenho no meio.
+    const portaoDaTela = await conferirFundoDaPeca({ bytes, mime: "image/png" });
+    if (!portaoDaTela.ok) {
+      return { ok: false, gerou, erro: `tela ${i + 1}: ${motivoDoFundoEmUmaLinha(portaoDaTela)}` };
+    }
 
     // A IDENTIDADE DA IMAGEM. Hash dos bytes: duas telas com o mesmo hash são,
     // literalmente, a mesma imagem publicada duas vezes — o defeito que o CEO

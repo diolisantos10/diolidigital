@@ -42,6 +42,7 @@ export type BrandBrainMinAggregateOutputType = {
   lexiconJson: string | null
   referencesJson: string | null
   formalTokensJson: string | null
+  artLabelsJson: string | null
   promiseLimits: string | null
   ownerAndHierarchyJson: string | null
   fieldStatesJson: string | null
@@ -66,6 +67,7 @@ export type BrandBrainMaxAggregateOutputType = {
   lexiconJson: string | null
   referencesJson: string | null
   formalTokensJson: string | null
+  artLabelsJson: string | null
   promiseLimits: string | null
   ownerAndHierarchyJson: string | null
   fieldStatesJson: string | null
@@ -90,6 +92,7 @@ export type BrandBrainCountAggregateOutputType = {
   lexiconJson: number
   referencesJson: number
   formalTokensJson: number
+  artLabelsJson: number
   promiseLimits: number
   ownerAndHierarchyJson: number
   fieldStatesJson: number
@@ -116,6 +119,7 @@ export type BrandBrainMinAggregateInputType = {
   lexiconJson?: true
   referencesJson?: true
   formalTokensJson?: true
+  artLabelsJson?: true
   promiseLimits?: true
   ownerAndHierarchyJson?: true
   fieldStatesJson?: true
@@ -140,6 +144,7 @@ export type BrandBrainMaxAggregateInputType = {
   lexiconJson?: true
   referencesJson?: true
   formalTokensJson?: true
+  artLabelsJson?: true
   promiseLimits?: true
   ownerAndHierarchyJson?: true
   fieldStatesJson?: true
@@ -164,6 +169,7 @@ export type BrandBrainCountAggregateInputType = {
   lexiconJson?: true
   referencesJson?: true
   formalTokensJson?: true
+  artLabelsJson?: true
   promiseLimits?: true
   ownerAndHierarchyJson?: true
   fieldStatesJson?: true
@@ -261,6 +267,7 @@ export type BrandBrainGroupByOutputType = {
   lexiconJson: string
   referencesJson: string
   formalTokensJson: string
+  artLabelsJson: string
   promiseLimits: string | null
   ownerAndHierarchyJson: string
   fieldStatesJson: string
@@ -306,6 +313,7 @@ export type BrandBrainWhereInput = {
   lexiconJson?: Prisma.StringFilter<"BrandBrain"> | string
   referencesJson?: Prisma.StringFilter<"BrandBrain"> | string
   formalTokensJson?: Prisma.StringFilter<"BrandBrain"> | string
+  artLabelsJson?: Prisma.StringFilter<"BrandBrain"> | string
   promiseLimits?: Prisma.StringNullableFilter<"BrandBrain"> | string | null
   ownerAndHierarchyJson?: Prisma.StringFilter<"BrandBrain"> | string
   fieldStatesJson?: Prisma.StringFilter<"BrandBrain"> | string
@@ -331,6 +339,7 @@ export type BrandBrainOrderByWithRelationInput = {
   lexiconJson?: Prisma.SortOrder
   referencesJson?: Prisma.SortOrder
   formalTokensJson?: Prisma.SortOrder
+  artLabelsJson?: Prisma.SortOrder
   promiseLimits?: Prisma.SortOrderInput | Prisma.SortOrder
   ownerAndHierarchyJson?: Prisma.SortOrder
   fieldStatesJson?: Prisma.SortOrder
@@ -359,6 +368,7 @@ export type BrandBrainWhereUniqueInput = Prisma.AtLeast<{
   lexiconJson?: Prisma.StringFilter<"BrandBrain"> | string
   referencesJson?: Prisma.StringFilter<"BrandBrain"> | string
   formalTokensJson?: Prisma.StringFilter<"BrandBrain"> | string
+  artLabelsJson?: Prisma.StringFilter<"BrandBrain"> | string
   promiseLimits?: Prisma.StringNullableFilter<"BrandBrain"> | string | null
   ownerAndHierarchyJson?: Prisma.StringFilter<"BrandBrain"> | string
   fieldStatesJson?: Prisma.StringFilter<"BrandBrain"> | string
@@ -384,6 +394,7 @@ export type BrandBrainOrderByWithAggregationInput = {
   lexiconJson?: Prisma.SortOrder
   referencesJson?: Prisma.SortOrder
   formalTokensJson?: Prisma.SortOrder
+  artLabelsJson?: Prisma.SortOrder
   promiseLimits?: Prisma.SortOrderInput | Prisma.SortOrder
   ownerAndHierarchyJson?: Prisma.SortOrder
   fieldStatesJson?: Prisma.SortOrder
@@ -414,6 +425,7 @@ export type BrandBrainScalarWhereWithAggregatesInput = {
   lexiconJson?: Prisma.StringWithAggregatesFilter<"BrandBrain"> | string
   referencesJson?: Prisma.StringWithAggregatesFilter<"BrandBrain"> | string
   formalTokensJson?: Prisma.StringWithAggregatesFilter<"BrandBrain"> | string
+  artLabelsJson?: Prisma.StringWithAggregatesFilter<"BrandBrain"> | string
   promiseLimits?: Prisma.StringNullableWithAggregatesFilter<"BrandBrain"> | string | null
   ownerAndHierarchyJson?: Prisma.StringWithAggregatesFilter<"BrandBrain"> | string
   fieldStatesJson?: Prisma.StringWithAggregatesFilter<"BrandBrain"> | string
@@ -437,6 +449,7 @@ export type BrandBrainCreateInput = {
   lexiconJson?: string
   referencesJson?: string
   formalTokensJson?: string
+  artLabelsJson?: string
   promiseLimits?: string | null
   ownerAndHierarchyJson?: string
   fieldStatesJson?: string
@@ -462,6 +475,7 @@ export type BrandBrainUncheckedCreateInput = {
   lexiconJson?: string
   referencesJson?: string
   formalTokensJson?: string
+  artLabelsJson?: string
   promiseLimits?: string | null
   ownerAndHierarchyJson?: string
   fieldStatesJson?: string
@@ -485,6 +499,7 @@ export type BrandBrainUpdateInput = {
   lexiconJson?: Prisma.StringFieldUpdateOperationsInput | string
   referencesJson?: Prisma.StringFieldUpdateOperationsInput | string
   formalTokensJson?: Prisma.StringFieldUpdateOperationsInput | string
+  artLabelsJson?: Prisma.StringFieldUpdateOperationsInput | string
   promiseLimits?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAndHierarchyJson?: Prisma.StringFieldUpdateOperationsInput | string
   fieldStatesJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -510,6 +525,7 @@ export type BrandBrainUncheckedUpdateInput = {
   lexiconJson?: Prisma.StringFieldUpdateOperationsInput | string
   referencesJson?: Prisma.StringFieldUpdateOperationsInput | string
   formalTokensJson?: Prisma.StringFieldUpdateOperationsInput | string
+  artLabelsJson?: Prisma.StringFieldUpdateOperationsInput | string
   promiseLimits?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAndHierarchyJson?: Prisma.StringFieldUpdateOperationsInput | string
   fieldStatesJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -534,6 +550,7 @@ export type BrandBrainCreateManyInput = {
   lexiconJson?: string
   referencesJson?: string
   formalTokensJson?: string
+  artLabelsJson?: string
   promiseLimits?: string | null
   ownerAndHierarchyJson?: string
   fieldStatesJson?: string
@@ -557,6 +574,7 @@ export type BrandBrainUpdateManyMutationInput = {
   lexiconJson?: Prisma.StringFieldUpdateOperationsInput | string
   referencesJson?: Prisma.StringFieldUpdateOperationsInput | string
   formalTokensJson?: Prisma.StringFieldUpdateOperationsInput | string
+  artLabelsJson?: Prisma.StringFieldUpdateOperationsInput | string
   promiseLimits?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAndHierarchyJson?: Prisma.StringFieldUpdateOperationsInput | string
   fieldStatesJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -581,6 +599,7 @@ export type BrandBrainUncheckedUpdateManyInput = {
   lexiconJson?: Prisma.StringFieldUpdateOperationsInput | string
   referencesJson?: Prisma.StringFieldUpdateOperationsInput | string
   formalTokensJson?: Prisma.StringFieldUpdateOperationsInput | string
+  artLabelsJson?: Prisma.StringFieldUpdateOperationsInput | string
   promiseLimits?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAndHierarchyJson?: Prisma.StringFieldUpdateOperationsInput | string
   fieldStatesJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -610,6 +629,7 @@ export type BrandBrainCountOrderByAggregateInput = {
   lexiconJson?: Prisma.SortOrder
   referencesJson?: Prisma.SortOrder
   formalTokensJson?: Prisma.SortOrder
+  artLabelsJson?: Prisma.SortOrder
   promiseLimits?: Prisma.SortOrder
   ownerAndHierarchyJson?: Prisma.SortOrder
   fieldStatesJson?: Prisma.SortOrder
@@ -634,6 +654,7 @@ export type BrandBrainMaxOrderByAggregateInput = {
   lexiconJson?: Prisma.SortOrder
   referencesJson?: Prisma.SortOrder
   formalTokensJson?: Prisma.SortOrder
+  artLabelsJson?: Prisma.SortOrder
   promiseLimits?: Prisma.SortOrder
   ownerAndHierarchyJson?: Prisma.SortOrder
   fieldStatesJson?: Prisma.SortOrder
@@ -658,6 +679,7 @@ export type BrandBrainMinOrderByAggregateInput = {
   lexiconJson?: Prisma.SortOrder
   referencesJson?: Prisma.SortOrder
   formalTokensJson?: Prisma.SortOrder
+  artLabelsJson?: Prisma.SortOrder
   promiseLimits?: Prisma.SortOrder
   ownerAndHierarchyJson?: Prisma.SortOrder
   fieldStatesJson?: Prisma.SortOrder
@@ -713,6 +735,7 @@ export type BrandBrainCreateWithoutClientInput = {
   lexiconJson?: string
   referencesJson?: string
   formalTokensJson?: string
+  artLabelsJson?: string
   promiseLimits?: string | null
   ownerAndHierarchyJson?: string
   fieldStatesJson?: string
@@ -736,6 +759,7 @@ export type BrandBrainUncheckedCreateWithoutClientInput = {
   lexiconJson?: string
   referencesJson?: string
   formalTokensJson?: string
+  artLabelsJson?: string
   promiseLimits?: string | null
   ownerAndHierarchyJson?: string
   fieldStatesJson?: string
@@ -775,6 +799,7 @@ export type BrandBrainUpdateWithoutClientInput = {
   lexiconJson?: Prisma.StringFieldUpdateOperationsInput | string
   referencesJson?: Prisma.StringFieldUpdateOperationsInput | string
   formalTokensJson?: Prisma.StringFieldUpdateOperationsInput | string
+  artLabelsJson?: Prisma.StringFieldUpdateOperationsInput | string
   promiseLimits?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAndHierarchyJson?: Prisma.StringFieldUpdateOperationsInput | string
   fieldStatesJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -798,6 +823,7 @@ export type BrandBrainUncheckedUpdateWithoutClientInput = {
   lexiconJson?: Prisma.StringFieldUpdateOperationsInput | string
   referencesJson?: Prisma.StringFieldUpdateOperationsInput | string
   formalTokensJson?: Prisma.StringFieldUpdateOperationsInput | string
+  artLabelsJson?: Prisma.StringFieldUpdateOperationsInput | string
   promiseLimits?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAndHierarchyJson?: Prisma.StringFieldUpdateOperationsInput | string
   fieldStatesJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -824,6 +850,7 @@ export type BrandBrainSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   lexiconJson?: boolean
   referencesJson?: boolean
   formalTokensJson?: boolean
+  artLabelsJson?: boolean
   promiseLimits?: boolean
   ownerAndHierarchyJson?: boolean
   fieldStatesJson?: boolean
@@ -849,6 +876,7 @@ export type BrandBrainSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   lexiconJson?: boolean
   referencesJson?: boolean
   formalTokensJson?: boolean
+  artLabelsJson?: boolean
   promiseLimits?: boolean
   ownerAndHierarchyJson?: boolean
   fieldStatesJson?: boolean
@@ -874,6 +902,7 @@ export type BrandBrainSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   lexiconJson?: boolean
   referencesJson?: boolean
   formalTokensJson?: boolean
+  artLabelsJson?: boolean
   promiseLimits?: boolean
   ownerAndHierarchyJson?: boolean
   fieldStatesJson?: boolean
@@ -899,13 +928,14 @@ export type BrandBrainSelectScalar = {
   lexiconJson?: boolean
   referencesJson?: boolean
   formalTokensJson?: boolean
+  artLabelsJson?: boolean
   promiseLimits?: boolean
   ownerAndHierarchyJson?: boolean
   fieldStatesJson?: boolean
   updatedAt?: boolean
 }
 
-export type BrandBrainOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientId" | "brandName" | "tagline" | "primaryColor" | "secondaryColor" | "typography" | "tone" | "values" | "targetAudience" | "positioning" | "purposeAndPromise" | "audienceRelation" | "voicePairsJson" | "lexiconJson" | "referencesJson" | "formalTokensJson" | "promiseLimits" | "ownerAndHierarchyJson" | "fieldStatesJson" | "updatedAt", ExtArgs["result"]["brandBrain"]>
+export type BrandBrainOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientId" | "brandName" | "tagline" | "primaryColor" | "secondaryColor" | "typography" | "tone" | "values" | "targetAudience" | "positioning" | "purposeAndPromise" | "audienceRelation" | "voicePairsJson" | "lexiconJson" | "referencesJson" | "formalTokensJson" | "artLabelsJson" | "promiseLimits" | "ownerAndHierarchyJson" | "fieldStatesJson" | "updatedAt", ExtArgs["result"]["brandBrain"]>
 export type BrandBrainInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
 }
@@ -962,6 +992,25 @@ export type $BrandBrainPayload<ExtArgs extends runtime.Types.Extensions.Internal
      * JSON: tokens invariáveis expressos como VALORES, nunca como adjetivos.
      */
     formalTokensJson: string
+    /**
+     * JSON: os RÓTULOS DE BENEFÍCIO que esta marca autoriza na ARTE — os chips
+     * ("Vagas conferidas", "Perto de casa", "Alto Tietê").
+     * 
+     * Existe desde 15/08/2026, quando o molde ganhou o slot de chip e a trava
+     * ganhou a forma de rótulo de benefício. Por que é uma coluna e não texto
+     * derivado: chip é o que a marca AFIRMA de si dentro do pixel, e pixel
+     * publicado não se corrige — se corrige apagando o post. Quem declara isso é
+     * o dono da marca, uma vez, e não o modelo a cada peça.
+     * 
+     * Vazio é o estado normal e honesto: peça sem chip é a peça de antes de
+     * 15/08. Nenhum cliente ganha chip por padrão — e a faixa de chamada só é
+     * emitida para quem declarou rótulos aqui, porque é este campo que registra
+     * que a marca quer este estilo de peça.
+     * 
+     * Cada rótulo ainda passa por `travaDeRotuloDeBeneficio` antes de virar
+     * pixel: preencher aqui é declarar, não é liberar.
+     */
+    artLabelsJson: string
     /**
      * O que a marca não pode afirmar sobre si AINDA QUE SEJA VERDADE
      * (superlativo, garantia, comparação com terceiro). É a fronteira exata com
@@ -1421,6 +1470,7 @@ export interface BrandBrainFieldRefs {
   readonly lexiconJson: Prisma.FieldRef<"BrandBrain", 'String'>
   readonly referencesJson: Prisma.FieldRef<"BrandBrain", 'String'>
   readonly formalTokensJson: Prisma.FieldRef<"BrandBrain", 'String'>
+  readonly artLabelsJson: Prisma.FieldRef<"BrandBrain", 'String'>
   readonly promiseLimits: Prisma.FieldRef<"BrandBrain", 'String'>
   readonly ownerAndHierarchyJson: Prisma.FieldRef<"BrandBrain", 'String'>
   readonly fieldStatesJson: Prisma.FieldRef<"BrandBrain", 'String'>

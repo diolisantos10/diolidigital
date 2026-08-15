@@ -49,6 +49,8 @@ import {
 } from "@/lib/agency/execution/quality-auditor";
 import { comoTexto, MINIMO_DE_CONTEUDO, temSubstancia } from "@/lib/agency/esteira/conteudo";
 import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
+import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
 import { TRAVA_MS, pararComMotivo, avisarCliente } from "@/lib/agency/esteira/triagem";
 import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
 
@@ -175,7 +177,45 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   const objectives = lerLista(req?.objectives);
   const brand = cliente.brandBrain;
 
+  // ── AS TRÊS COISAS QUE ESTE MOTOR NÃO ENXERGAVA ───────────────────────────
+  //
+  // `Ctx` tem três campos que existiam só no motor grande, e `ctxBlock` os
+  // descarta em silêncio quando vêm vazios (`especialistas.ts:283`). Resultado:
+  // pedido feito pelo portal, pelo WhatsApp ou pelo balcão produzia CEGO.
+  //
+  //   • `feedRealDoCliente` — o único setter era `run-execution.ts:370`. E
+  //     como `sinteseDoFeedDoCliente` só era chamada de `run-execution.ts:328`,
+  //     o cliente que só passa por aqui NUNCA tinha síntese gravada — então a
+  //     ARTE dele também nascia cega, porque o caminho das artes lê a síntese
+  //     persistida. Era literalmente o pedido do CEO ("entrar na rede social,
+  //     ver o que está acontecendo e já fazer o post") funcionando em metade
+  //     da casa.
+  //   • `contratoDeMarca` — a régua da marca ANTES de produzir. Sem ela, quem
+  //     produz é pego pelo piso depois, nunca avisado antes.
+  //   • `materiaisEntregues` — estava `[]` FIXO, o que reproduz o laço cruel:
+  //     o cliente manda o logo, a produção retoma, o campo continua vazio e o
+  //     especialista pede o logo de novo. Ele é cobrado para sempre por algo
+  //     que já enviou.
+  //
+  // As três leituras são best-effort e NENHUMA derruba a produção: contrato que
+  // falha vira `undefined`, feed sem conexão vira degradação declarada (que é
+  // instrução tanto quanto a síntese: "não descreva o que ninguém viu").
+  // `reguaDaMarca` e não `contrato`: neste arquivo `contrato` já é o CONTRATO
+  // DE SAÍDA (contagem e formato). Dois sentidos para o mesmo nome no mesmo
+  // arquivo é como se lê a trava errada seis meses depois.
+  const [reguaDaMarca, feedDoCliente, materiaisResolvidos] = await Promise.all([
+    contratoDeMarca(pedido.clientId).catch(() => null),
+    sinteseDoFeedDoCliente(projeto.workspaceId, pedido.clientId, projeto.clientRequestId)
+      .catch(() => null),
+    prisma.materialRequest
+      .findMany({ where: { projectId, status: { not: "pending" } }, select: { type: true } })
+      .catch(() => [] as { type: string }[]),
+  ]);
+
   const contexto: Ctx = {
+    contratoDeMarca: reguaDaMarca?.texto,
+    feedRealDoCliente: feedDoCliente?.texto,
+    materiaisEntregues: [...new Set(materiaisResolvidos.map((m) => m.type))],
     businessName: req?.businessName || cliente.name,
     segment: req?.segment || cliente.industry || "",
     targetAudience: typeof scope.targetAudience === "string" ? scope.targetAudience : (brand?.targetAudience ?? ""),
@@ -189,7 +229,6 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     // não pressupõe material que talvez não exista.
     hasRawMaterial: scope.hasRawMaterial === true || (scope.social as Record<string, unknown> | undefined)?.hasPhotos === true,
     criandoIdentidade: esp.id === "a2",
-    materiaisEntregues: [],
   };
 
   // ── A VERDADE ANCORADA ────────────────────────────────────────────────────

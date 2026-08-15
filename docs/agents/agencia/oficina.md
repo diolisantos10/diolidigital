@@ -812,3 +812,370 @@ o portão de direção não é pulado.
   de 08/08 ainda aberta: peça sai completa, sem a etiqueta do pilar.
 - **A rota não foi exercitada contra produção.** Ela é leitura pura por padrão,
   então a primeira passada é gratuita — mas ninguém a rodou ainda.
+
+---
+
+## 15/08/2026 — a agência não produzia post bom: cinco elos, todos medidos
+
+**Branch:** `claude/direcao-de-arte-religada` · 5 commits · `tsc` limpo ·
+**236 arquivos, 3856 verdes, 1 pulado** (52 testes novos).
+
+### 1. A direção de arte era escrita e descartada
+
+`especialistas.ts` pedia o campo `visual` ("o que aparece na imagem");
+`run-execution.ts` (`deliverableMarkdown`) gravava "- Visual: ..." no markdown;
+`publicacao.ts` (`extrairPecas`) capturava Legenda, Formato, Pilar e Cenas — **e
+não Visual**; e `SocialPost` não tinha coluna.
+
+O gerador recebia `Cena a retratar: ${post.caption}` — a legenda do Instagram
+inteira, com CTA e oito hashtags — mais quinze proibições e "sem nenhum texto,
+letra, número ou logotipo". **O desenho vetorial genérico era a saída COERENTE
+com esse pedido.** O modelo obedeceu; foi o pedido que estava errado.
+
+`SocialPost.artDirection` (migration aditiva). A legenda vira **fallback**, e o
+fallback fica no código de propósito: é ele que torna a mudança reversível e que
+atende as peças anteriores a hoje.
+
+**A metade perigosa, travada:** a direção **não passa pelo piso de verdade**.
+`fonteAuditada` continua sendo só `post.caption`, há teste de fonte que reprova
+quem passar `artDirection` como fonteAuditada/titulo/apoio/selo, e teste de
+comportamento provando que `travaDeTextoNaArte` a barraria por falta de lastro.
+
+### 2. O post simples nunca passou pelo cérebro da marca
+
+`composicaoParaFuncao` existia desde 09/08 e era chamada em três lugares — os
+**três de carrossel**. O post simples caía em `molde.ts:534` → `"foto-cheia"`,
+que é justamente a composição que o registro do CityJobs **proíbe** ("viraria a
+mesma peça 60 vezes por mês"). 60 peças/mês violando a regra escrita, em
+silêncio.
+
+`composicaoDoPostSimples` resolve o papel pelo **pilar**, contra as funções que a
+marca declarou, e quando o repertório não cobre cai na primeira **permitida** —
+nunca na proibida. Marca sem formato registrado continua em foto-cheia.
+
+### 3. O portão de pixel: sete dias com zero chamadores em `lib/`
+
+`trava-de-fundo.ts` é o único portão da casa que lê pixel. Teste verde, números
+medidos contra as peças que o CEO reprovou, e **nenhum chamador vivo**.
+
+Plugado em `portao-do-fundo.ts`, no **fundo cru, antes de compor** — o lugar é
+medido: 29× de separação no fundo cru contra 1,2× na peça composta, porque o
+molde pinta painel, tipografia e assinatura por cima. Fail-closed: não medir tem
+motivo próprio (`nao_foi_possivel_medir`) e **reprova**.
+
+**Fronteira declarada:** julga a imagem gerada por IA; **não** julga a foto que o
+cliente mandou. Reprovar o material do próprio cliente com régua calibrada
+contra desenho vetorial seria a agência vetando a foto dele.
+
+### 4. O portão de pilar aprovava por omissão — e ninguém tinha medido
+
+O bloqueio nasceu em 07/08 depois de três peças com salário FALSO em pixel.
+Estava ligado em seis pontos. **Nunca disparou na esteira automática**: o prompt
+não pedia `pillar`, o markdown não emitia a linha, `extrairPecas` a procurava e
+nunca achava. `conferirPilar(null)` devolvia LIBERADO — por escolha declarada,
+que estava certa para o Planner e errada para a esteira.
+
+Origem consertada (prompt + contrato de saída + markdown) e `exigido: true` na
+criação do calendário. **Consequência que não é bug:** entrega antiga no banco,
+produzida antes de o markdown emitir a linha, não entra mais no calendário — ela
+nunca passou por este portão. O conserto é reproduzir a entrega.
+
+### 5. A fábrica não conseguia produzir a peça boa
+
+`PecaDoMolde` ia até `apoio`, e `comporComMolde` **sequer passava `apoio`**. As
+peças que o CEO fez à mão têm três chips e faixa de chamada: **improduzíveis**
+pela esteira. E se o slot existisse, `travaDeTextoNaArte` reprovaria 6 de 8 chips
+e 3 de 4 chamadas — por natureza, não por defeito: ela exige trecho literal da
+LEGENDA, e chip afirma o que a **marca** é.
+
+Slot e trava entraram **no mesmo commit**, e a ordem está escrita nos dois
+arquivos: slot sem trava faria o portão barrar exatamente a peça que se quer
+produzir, e é assim que alguém desliga o portão.
+
+**O que NÃO foi afrouxado, e é o que decide se foi conserto ou porta dos
+fundos:** as classes proibidas correm **antes** do lastro e continuam todas
+valendo. Medido: "Sem taxa" (promessa comercial), "Melhor da região"
+(superlativo) e "100% gratuito" continuam fora do pixel **mesmo declarados na
+ficha pelo dono da marca**. O que destrava o chip é a **fonte do lastro**, nunca
+a lista de proibições.
+
+### 6. O contrato do especialista contra o contrato do cliente
+
+Números fixos no código (6–8 peças, 1–2 carrossel, 2–3 story) contra um cliente
+que **exclui carrossel, story e vídeo** e compra **60 posts/mês**. A trava mais
+cara da casa cobrava o que ele não comprou, com teto de 13% do que pagou.
+
+`escopo-do-cliente.ts` lê o contrato dele, sem IA. Achado ao escrever: contrato
+escreve exclusão de **duas formas** — na frase e numa **seção com título e
+lista** — e o CityJobs usou a segunda em três das quatro. Ler só a primeira
+achava uma. E a granularidade decide: varrer a linha inteira de "só post
+simples… Sem carrossel" excluiria o **feed**, que é o que ele comprou.
+
+Onde não há contrato legível, **pergunta-se**: régua histórica mantida e lacuna
+nomeada em `ActivityEvent`.
+
+### O que fica aberto — não decidi sozinho
+
+- **Nada disto foi rodado contra o banco de produção.** O que se sabe é o
+  CAMINHO. Quantas entregas antigas do CityJobs param de entrar no calendário
+  por falta da linha "Pilar" só a leitura do banco responde.
+- **A ficha de marca do CityJobs a 22% continua barrando.** Sem
+  `BrandBrain.artLabelsJson` preenchido, não há chip e não há faixa — a peça sai
+  como saía. Preencher é decisão do dono da marca, e continua sendo.
+- **60 peças/mês não fecham em uma passada.** O teto por entrega é 12, de custo,
+  não de contrato. O mês só fecha com mais passadas, e quem as dispara ainda não
+  existe — hoje há uma entrega por ciclo. O aviso sobe com o número; a máquina
+  de repetir, não.
+- **A direção de arte não passa pelo piso de verdade, e isso é escolha.** Ela
+  descreve cena, não afirma fato. O que a impede de virar letra é a trava de
+  texto, não uma auditoria própria dela.
+## 2026-08-15 — A porta que nunca abriu: `reprovadas: []` fixo fechava a esteira inteira
+
+**Despacho:** P0 do Diretor, seis tarefas em ordem de valor. Nada foi publicado,
+nenhuma chamada de plataforma foi feita, `PUBLICACAO_ORGANICA` não foi tocada.
+Branch `claude/porta-que-nunca-abre`, seis commits.
+
+### 1. O achado, e por que 3.770 testes verdes não o pegaram
+
+`publicacao.ts:699` recusa todo post de cliente com `marca.naoConstituida`. A
+marca só sai de não-constituída com uma referência **aprovada e uma reprovada**
+(`ficha-de-marca.ts:220`). Os dois únicos escritores de produção da ficha —
+`app/api/portal/marca/route.ts:121` e
+`app/api/agency/clients/[id]/marca/route.ts:110` — gravavam:
+
+```
+if (coluna === "referencesJson") return JSON.stringify({ aprovadas: [t], reprovadas: [] });
+if (coluna === "voicePairsJson") return JSON.stringify([{ dizemos: t, naoDizemos: "" }]);
+```
+
+`reprovadas: []` e `naoDizemos: ""` **fixos, nos dois**. `naoConstituida` era
+`true` para sempre. **Nenhum cliente conseguia publicar, nunca, por mais que
+respondesse tudo.** Não era a Meta, não era token, não era conexão.
+
+A entrada de 15/08 deste mesmo arquivo diz, sobre a CityJobs a 22%: *"Não é
+defeito; é a trava certa disparando."* **Estava errado, e o erro é meu.** A
+trava estava certa; a porta é que não tinha maçaneta. Fica registrado aqui em
+vez de corrigido lá, porque a oficina é append-only e apagar o engano apagaria a
+lição.
+
+**Por que a suíte era verde:** `ficha-de-marca.test.ts:25` montava
+`{aprovadas:["post-1"], reprovadas:["post-9"]}` **à mão** — uma forma que
+escritor nenhum desta casa produzia — e `publicacao.test.ts:60` mockava
+`contratoDeMarca` inteiro. É a corrente arrebentada na junta, de novo: cada peça
+com o seu teste, todos passando, e o caminho de ponta a ponta sem ninguém.
+
+**A forma do teste virou regra deste bloco:** a prova entra pela ROTA de
+produção, contra um banco de mentira que **guarda o que recebe**. Mock que
+devolve constante nunca pegaria este defeito, porque o defeito é o que o
+escritor grava.
+
+### 2. O que eu medi antes de escrever, e mudou a decisão
+
+O Diretor mandou, no meio do bloco, que `what_fails` do `IntakeEngine` era
+"literalmente" o contraexemplo da ficha, e que o conserto seria ligar o fio.
+**Medi e não é.** `IntakeEngine.tsx:253-270`:
+
+| pergunta | o que ela é de verdade |
+|---|---|
+| `what_fails` | desempenho de mídia — placeholders são "ROAS <1,5x", "Google Ads sem estratégia, orçamento desperdiçado" |
+| `referencias.reprovadas` | contraexemplo **editorial**: "um post que você achou que não era a sua cara" |
+
+São perguntas diferentes. Ligar uma na outra faria a marca se constituir — e
+`naoConstituida: false` **autoriza publicar em nome do cliente** — com a
+resposta a outra pergunta. É a "resposta qualquer vira regra falsa" que a
+própria rota já nomeia. **Não liguei, e disse por quê.** Mesmo raciocínio para
+`brand_tone` → `voicePairsJson`: `ficha-de-marca.ts:163` já declara que adjetivo
+não conta como voz.
+
+**`restrictions` bate exato**, e aí o achado do Diretor rendeu: a pergunta *"uma
+palavra, uma cor, um concorrente que nunca deve ser citado"* existe em
+`IntakeEngine.tsx:339` desde sempre, e a resposta ia para `updateClient` →
+`PUT /api/clients/[id]`, que lê do corpo **só** name/industry/email/phone/website
+(`route.ts:39-46`). `Client.restrictions` **não existe no schema**. A casa
+perguntava e jogava a resposta no lixo. Reusei a redação em vez de escrever uma
+terceira — três redações para a mesma pergunta é como nascem duas verdades.
+
+### 3. O padrão que apareceu três vezes na mesma noite
+
+**Cópia da mesma lista, divergindo em silêncio.**
+
+- duas cópias de `envelopar` → a publicação inteira fechada;
+- três cópias da lista de campos (`run-execution.ts:85`, `refacao.ts:490`,
+  `pacote-travado.ts:266`, as duas últimas sem `["cenas","Cenas"]`) → carrossel
+  refeito rebaixado para feed em `publicacao.ts:1046`. O cliente compra 5 telas
+  e recebe uma imagem;
+- os dois comentários das cópias afirmavam *"mesmo formato de texto que o motor
+  usa"*. **Comentário dizendo "igual ao motor" não é mecanismo; import é.**
+
+E o renderizador sozinho não resolvia: os dois prompts de conserto pediam ao
+modelo um esquema JSON **sem `cenas`**. Os dois lados da conversa — o que se
+pede e o que se lê — agora moram no mesmo arquivo
+(`esteira/renderizar-entrega.ts`).
+
+### 4. O contador que mentia sobre si mesmo
+
+`jsonTemConteudo` media `Object.keys(v).length > 0`: contava **chave**, não
+resposta. `{"dizemos":"x","naoDizemos":""}` chegava como campo `definido`. É
+isto que fazia a ficha mostrar progresso com a porta fechada — o cliente
+respondia, a barra andava, e nada explicava por quê.
+
+Conserto: conta folha com texto, `referencias` passa a contar pela **mesma**
+`referenciasCompletas` que o gatilho consulta, e nasceu
+`FichaDeMarca.oQueFaltaParaPublicar` — o gatilho escrito por extenso. Ele existe
+porque `definidos` e `naoConstituida` respondem perguntas **legitimamente
+diferentes**: uma proibição registrada É uma regra (o piso a cobra), e mesmo
+assim o gatilho pede três. Há teste travando que a lista fica vazia
+**exatamente** quando `naoConstituida` é falso, em cinco cenários — nunca uma
+segunda conta.
+
+### 5. O pedido que produzia cego
+
+`ctxBlock` (`especialistas.ts:283`) é um `.filter(Boolean)`: campo vazio é
+descartado **sem erro e sem log**. `feedRealDoCliente`, `contratoDeMarca` e
+`materiaisEntregues` só eram preenchidos por `run-execution.ts`. Pedido pelo
+portal, pelo WhatsApp ou pelo balcão produzia cego — e como
+`sinteseDoFeedDoCliente` só era chamada de `run-execution.ts:328`, esse cliente
+**nunca tinha síntese gravada**, então a arte dele também nascia cega.
+
+O pedido do CEO ("entrar na rede social, ver o que está acontecendo e já fazer o
+post") funcionava em metade da casa. As três leituras entraram como
+best-effort, com teste para cada uma provando que nenhuma derruba a produção.
+
+### 6. O que eu me recusei a fazer, e por quê
+
+**A quarta lacuna da tabela — auditoria em `refacao.ts` — não foi fechada.**
+Aquela ausência é **decidida**, com o argumento escrito no próprio arquivo: ali
+o árbitro é o CLIENTE, que pediu a mudança com as palavras dele; um auditor que
+reprovasse o que ele pediu poria a máquina contra o dono do briefing. E o estado
+**não mente**: grava `nao_auditado`, não "aprovado". Fechar essa lacuna é
+decisão de produto, não conserto — subiu ao Diretor com duas saídas, não foi
+resolvida em silêncio.
+
+O contrato de saída, esse sim, entrou na refação: o caso comum é o cliente pedir
+"muda só o gancho do primeiro" e o modelo devolver UM item. O piso aprova (nada
+inventado), não há árbitro, e a peça é gravada com um terço do que ele comprou.
+**"O cliente mandou" vale para o conteúdo, não para a contagem — ninguém pede
+para receber menos.**
+
+Descoberta de brinde: **cinco suítes tinham fixture de 1 item onde o contrato
+pede 4 a 8.** Elas passavam justamente porque estes caminhos não conferiam
+contagem. Fixture irreal é como a trava que falta fica invisível.
+
+### Verificação
+
+`npx tsc --noEmit` limpo. Suíte: **236 arquivos, 3832 verdes, 1 pulado** (+50
+testes). **Mutação conferida em cada tarefa**, e é o que dá valor aos números:
+(a) reinstalando `reprovadas: []` → 4 vermelhos; (b) devolvendo o filtro por
+`COLUNA` na lista de perguntas → 5; (c) devolvendo o contador por chave → 3;
+(d) devolvendo o `Ctx` cego → 3; (e) tirando `["cenas","Cenas"]` da fonte única
+→ 2, inclusive o que roda a corrente até `extrairPecas`; (f) tirando o piso do
+conserto do pacote → 3.
+
+### O que fica aberto (não decidi sozinho)
+
+- **A auditoria na refação** — decisão de produto, duas saídas no relatório.
+- **A ficha da CityJobs não foi medida.** Sem acesso a Postgres nesta rodada. A
+  inferência do Diretor (2/9 bate com o que a rota legada
+  `/api/clients/[id]/brand-brain` produz sozinha, logo a entrevista do portal
+  nunca rodou para ela) é forte e **não é medição**. O gesto que confirma é
+  `GET /api/agency/clients/<id>/marca` com sessão, e agora ele devolve
+  `oQueFaltaParaPublicar` item por item.
+- **Termo derivado de proibição declarada continua podendo ser largo demais.**
+  "fotos de banco de imagem" vira termo `imagem`, e o piso barra toda peça que
+  contenha a palavra. O risco é **anterior** a este bloco (o caminho por negação
+  explícita já fazia isso, com a mesma `termosDoObjeto`) e eu não o aumentei:
+  mesmo piso de 4 letras, mesmas palavras vazias, mesmo teto de 4 termos, mais
+  um teto novo de 3 proibições por resposta. Mas com o portal perguntando, o
+  volume sobe — vale uma passada específica.
+- **`what_works` / `what_fails` / `brand_existing` continuam sem escritor.** São
+  perguntas feitas ao cliente cuja resposta morre no navegador. Não inventei
+  casa para elas: `Client.whatWorks` e irmãs não existem no schema, e criar
+  coluna para dado sem leitor é o defeito do outro lado.
+- **`PUT /api/clients/[id]` descarta campos do corpo em silêncio**
+  (`route.ts:39-46`). Consertei o caso que me cabia desviando o `restrictions`
+  para o dono certo; a rota continua engolindo o resto sem avisar quem chamou.
+
+---
+
+## 15/08/2026 — a esteira consertada não tinha o que mostrar
+
+**Branch:** `claude/refazer-com-direcao` · `tsc` limpo · **239 arquivos, 3911
+verdes, 1 pulado** (33 testes novos).
+
+### O problema, e por que ele não é um bug
+
+`/api/health` respondia `afb198a`: direção de arte no prompt (`artes.ts:371`),
+composição pelo cérebro da marca (`composicaoDoPostSimples`), portão de pixel no
+fundo cru (`portao-do-fundo.ts`). E a medição de produção dizia **`0 peça(s)
+esperando arte · 0 peça(s) nova(s)`** — verdade, e a pergunta errada.
+`produzirArtesPendentes` procura `mediaUrl: null`; as 10 peças do CityJobs já
+têm arte. **Não há peça esperando; há peça PRONTA PELO CAMINHO ERRADO**, e
+ninguém estava perguntando isso.
+
+### A premissa: NÃO consegui medi-la contra o banco
+
+Nesta sessão não há `DATABASE_URL` nem `CRON_SECRET` — o texto real de um
+`Deliverable.content` do CityJobs **não foi lido**, e dizer que foi seria
+inventar. O que foi medido é o CAMINHO, com git desshallowado:
+
+- `deliverableMarkdown` emite `- Visual: ...` desde **6cca9f0, 24/07/2026**
+  (`run-execution.ts:100`).
+- o prompt do especialista de copy pede `"visual": "o que aparece na imagem"`
+  desde **c64da84, 01/08/2026** (`especialistas.ts:475`).
+
+⚠️ O primeiro `git log -S` deu **13/08** para os dois — porque o clone era
+shallow e 13/08 era o enxerto. *Data de nascimento não se lê em repositório
+raso*; `git fetch --unshallow` mudou a resposta em três semanas.
+
+### O conserto é fail-closed, e é aí que ele não inventa direção
+
+Peça cujo entregável de origem não traz `Visual`/`Direção` **é barrada**, não
+completada com a legenda: refazer sem direção mandaria a peça de volta ao
+fallback, que é o defeito. A leitura pura devolve o par
+`direcaoNoEntregavel: { achou, naoAchou }` — **é ela que responde a premissa**, e
+a primeira passada é de graça.
+
+A peça é reencontrada no entregável **pela legenda exata**, e duas legendas
+iguais não desempatam: recusa. É a lição de 04/08 (`backfill-carrossel-foocci`):
+sobra não é evidência de correspondência.
+
+### Não é um terceiro caminho — e os dois existentes não serviam
+
+`recomporPecas` e `recomporCarrosseis` reaproveitam o `fundo-<postId>.png`
+guardado, e **esse fundo foi comprado com o prompt velho**. Recompor deles
+trocaria o molde por cima do mesmo clipart. **A direção só vira pixel na hora de
+GERAR.** Por isso esta passada custa, e por isso ela é leitura pura por padrão.
+
+O reuso é de uma linha: `RecorteDaRodadaDeArte.refazer` troca `mediaUrl: null`
+por `id: { in: [...] }` em `artes.ts`, e todo o resto do laço — pilar, teto
+diário, foto real antes da gerada, portão do fundo, composição da marca, trava
+de texto, gravação — é o mesmo, byte por byte. `refazer: []` **não** vira a
+rodada global (o teste é `!== undefined`, não `.length > 0`), senão lista vazia
+gastaria imagem paga de quem ninguém autorizou.
+
+**Não é destrutivo:** `mediaUrl` só é reescrito na última linha do laço, depois
+de a imagem ter passado no portão e sido guardada. Falha em qualquer ponto
+deixa a arte velha onde está — há teste travando essa ordem.
+
+### O lote é teto de TEMPO, e a idempotência é pelo DADO
+
+`generateDesign` aborta em 90s por imagem (`design-engine.ts:49`). Lote padrão
+**3**, teto 6. A passada anterior pediu 10, estourou a requisição, e o Actions
+leu como falha depois de o trabalho ter sido feito — falso negativo que quase
+fez pagar duas vezes.
+
+A seleção olha a **data do fundo** contra `MARCO_DA_DIRECAO_NA_IMAGEM`
+(15/08 00:00Z), não uma marca em `lastError`. Consequência que é o ponto:
+**apertar de novo depois de um timeout não repaga o que já saiu.** E o workflow
+trata `curl 28` como *"isto NÃO é 'nada foi feito' — rode em `mostrar` antes"*.
+
+### O que fica aberto
+
+- **Nada disto rodou contra produção.** Quantas das 10 peças têm `Visual` no
+  entregável, só a primeira passada em `mostrar` responde.
+- **`MARCO_DA_DIRECAO_NA_IMAGEM` é meia-noite UTC, não a hora exata do deploy.**
+  Peça gerada em 15/08 antes do deploy fica de fora — não gasta, e aparece
+  barrada com motivo. Conservador no lado do dinheiro, e declarado.
+- **Peça montada sobre a FOTO REAL do cliente é barrada** (`sem_fundo_para_datar`):
+  sem fundo gerado não há como datá-la. Pode estar barrando peça boa; barrar não
+  custa, e adivinhar custaria.

@@ -390,6 +390,128 @@ export function composicaoParaFuncao(
 }
 
 /**
+ * O ID do formato "post simples de feed" no cérebro de uma marca.
+ *
+ * É o contrato entre o registro (`repertorio-registrado.ts`) e o motor
+ * (`artes.ts`). Uma constante, e não uma string solta em dois arquivos, porque
+ * foi exatamente essa desconexão que produziu o defeito de 15/08: o CityJobs
+ * declara `post-simples-de-feed → composicoesPermitidas: ["dividido-reto"]`,
+ * com o comentário de que foto-cheia "viraria a mesma peça 60 vezes por mês", e
+ * o post simples continuava saindo em `foto-cheia` — a proibida — porque
+ * `composicaoParaFuncao` só era chamada nos três caminhos de CARROSSEL
+ * (`artes.ts`, `recompor-carrossel.ts`).
+ */
+export const ID_DO_POST_SIMPLES = "post-simples-de-feed";
+
+/**
+ * O PAPEL que um pilar de conteúdo cumpre, resolvido contra o repertório DA
+ * MARCA — nunca inventado.
+ *
+ * O pilar é texto livre de LLM ("bastidor da região", "chamada de comunidade"),
+ * e o repertório declara funções curtas ("bastidor", "comunidade"). Casar os
+ * dois por igualdade estrita nunca casaria nada. Casar por SUBSTRING da forma
+ * normalizada casa — e só casa com função que a marca DECLAROU, o que é o
+ * limite que importa: a agência não inventa papel nenhum, ela reconhece o que o
+ * cliente já registrou.
+ *
+ * Devolve `null` quando nada casa. Null é null: quem chama declara que caiu no
+ * padrão, em vez de escolher um papel "que combina".
+ */
+export function funcaoDeclaradaParaPilar(
+  cerebro: CerebroCriativo,
+  pilar: string | null | undefined,
+): string | null {
+  const alvo = (pilar ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  if (!alvo) return null;
+
+  const declaradas = [...new Set(cerebro.repertorio.flatMap((p) => p.funcoes))];
+  // A mais LONGA primeiro: "comunidade" antes de "dica", para que um pilar que
+  // contenha duas funções resolva pela mais específica em vez de pela ordem em
+  // que alguém escreveu o repertório.
+  declaradas.sort((a, b) => b.length - a.length);
+  for (const f of declaradas) {
+    const n = f
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .trim();
+    if (!n) continue;
+    if (new RegExp(`(?:^| )${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$| )`).test(alvo)) return f;
+  }
+  return null;
+}
+
+/** Como a composição de uma peça foi decidida. Sobe junto com a peça: layout
+ *  sem procedência é layout que ninguém consegue auditar depois. */
+export type OrigemDaComposicao =
+  /** Uma entrada de repertório da marca cobriu o papel desta peça. */
+  | "repertorio"
+  /** O repertório não cobriu o papel, mas o FORMATO declara o que é permitido —
+   *  e a peça sai na primeira permitida, não na proibida. */
+  | "formato"
+  /** A marca não registrou formato nenhum: `foto-cheia`, como sempre foi. */
+  | "padrao-da-casa";
+
+export interface EscolhaDeComposicaoDeclarada extends EscolhaDeComposicao {
+  origem: OrigemDaComposicao;
+}
+
+/**
+ * A composição de um POST SIMPLES — o formato que é o volume da casa.
+ *
+ * ── POR QUE ELA NÃO PODE SER `composicaoParaFuncao` DIRETO ──────────────────
+ *
+ * `composicaoParaFuncao` devolve `null` quando o repertório não cobre o papel, e
+ * os três chamadores de carrossel caem em `"foto-cheia"` declarando que caíram.
+ * No post simples esse fallback é o BUG: para o CityJobs, `foto-cheia` é
+ * justamente a composição que o formato PROÍBE. Cair no default aqui é violar a
+ * regra escrita da marca em silêncio, 60 vezes por mês.
+ *
+ * Então a ordem é: (1) o repertório, pelo papel; (2) o que o FORMATO permite;
+ * (3) só então o padrão da casa — e só quando a marca não declarou formato
+ * nenhum, que é o caso em que não há regra para violar.
+ */
+export function composicaoDoPostSimples(
+  cerebro: CerebroCriativo,
+  pilar: string | null | undefined,
+): EscolhaDeComposicaoDeclarada {
+  const formato = cerebro.formatos.find((f) => f.id === ID_DO_POST_SIMPLES);
+  const funcao = funcaoDeclaradaParaPilar(cerebro, pilar);
+
+  const doRepertorio = composicaoParaFuncao(cerebro, funcao, ID_DO_POST_SIMPLES);
+  if (doRepertorio) return { ...doRepertorio, origem: "repertorio" };
+
+  const permitida = formato?.composicoesPermitidas[0];
+  if (permitida) {
+    return {
+      composicao: permitida,
+      bloco: null,
+      porque:
+        `o repertório desta marca não cobre o pilar "${(pilar ?? "").trim() || "(não declarado)"}", ` +
+        `mas o formato "${formato!.id}" só permite ${formato!.composicoesPermitidas.join(", ")} — ` +
+        "a peça sai na primeira permitida, e nunca numa que o formato proíbe.",
+      fonte: formato!.id,
+      origem: "formato",
+    };
+  }
+
+  return {
+    composicao: "foto-cheia",
+    bloco: null,
+    porque:
+      "esta marca não registrou o formato de post simples: a peça sai na composição base da casa (foto cheia), " +
+      "que é o comportamento anterior a 15/08/2026.",
+    fonte: "",
+    origem: "padrao-da-casa",
+  };
+}
+
+/**
  * As instruções de amplitude para o prompt da FOTO.
  *
  * Cérebro sem amplitude devolve string vazia — e aí o prompt simplesmente não
