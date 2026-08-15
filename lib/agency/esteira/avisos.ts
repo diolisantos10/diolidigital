@@ -20,7 +20,6 @@
 // perder o aviso é ruim, perder a entrega é pior.
 
 import { prisma } from "@/lib/db/client";
-import { baseDeLink } from "@/lib/http/endereco-publico";
 
 // "recompra" entrou em 06/08/2026 com a régua de 30/60/90 dias
 // (`esteira/recompra.ts`). Ela NÃO usa `avisarCliente` — escreve o
@@ -48,10 +47,8 @@ export interface ResultadoDoAviso {
 
 /** O endereço do portal deste cliente — o link que resolve o aviso. */
 function linkDoPortal(portalToken: string): string {
-  // Base única (`lib/http/endereco-publico.ts`). Antes isto caía em string
-  // VAZIA sem a variável de ambiente, e o cliente recebia no WhatsApp um
-  // caminho relativo — `/portal/access/<token>` — que não abre nada.
-  return `${baseDeLink()}/portal/access/${portalToken}`;
+  const base = (process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "").replace(/\/+$/, "");
+  return `${base}/portal/access/${portalToken}`;
 }
 
 /**

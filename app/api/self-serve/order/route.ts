@@ -35,7 +35,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { baseDeLink } from "@/lib/http/endereco-publico";
 import { SELF_SERVE_CATALOG } from "@/lib/agency/self-serve-catalog";
 import { consumirVaga, respostaDeRecusa } from "@/lib/security/limite-no-banco";
 import { clientIp } from "@/lib/security/rate-limit";
@@ -70,10 +69,7 @@ function limpar(v: unknown, max: number): string {
 
 const AGENCY_WHATSAPP = "5511989400692";
 const MP_PREFERENCES_URL = "https://api.mercadopago.com/checkout/preferences";
-// Base única (`lib/http/endereco-publico.ts`). Era string VAZIA sem a
-// variável: o Mercado Pago recebia `/vitrine/sucesso` como URL de retorno
-// e o comprador voltava para lugar nenhum depois de pagar.
-const APP_URL = baseDeLink();
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "";
 
 export interface OrderBody {
   serviceId: string;
