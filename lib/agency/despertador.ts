@@ -30,6 +30,7 @@ import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
 import { guardarAVerba } from "@/lib/agency/esteira/trafego";
 import { cuidarDasAvaliacoes } from "@/lib/agency/esteira/avaliacoes";
+import { responderMensagensDeClientes } from "@/lib/agency/esteira/pm-responde";
 import { cobrarAFila } from "@/lib/agency/esteira/fila-que-se-cobra";
 import { resumoDoPortao } from "@/lib/agency/comercial/o-que-espera-no-portao";
 import { cobrarPedidosEsquecidos } from "@/lib/agency/esteira/pedidos";
@@ -221,6 +222,7 @@ export async function baterORelogio(): Promise<{
   let retomados = 0;
   let pedidos = 0;
   let avisos = 0;
+  let respondidas = 0;
   let destravadas = 0;
   let publicados = 0;
   let mesesVirados = 0;
@@ -524,6 +526,29 @@ export async function baterORelogio(): Promise<{
     avisos = typeof r?.sent === "number" ? r.sent : 0;
   } catch (err) {
     quebrou("avisos", err);
+  }
+
+  // ── O PM RESPONDE ─────────────────────────────────────────────────────────
+  // O portal PERGUNTA ao cliente ("Preciso confirmar uma coisa com você") e,
+  // até 15/08/2026, não havia canal de volta: o cliente escrevia no chat e
+  // nenhuma linha de código lia. A casa falava e não ouvia — e o cargo que
+  // estava mudo era justamente "a ponte com todos os departamentos".
+  //
+  // Mora aqui porque a resposta tem de acontecer SEM ninguém abrir tela. Uma
+  // caixa de entrada que depende de alguém olhar é a mesma promessa que já
+  // falhou: o cliente escreve à noite e a resposta não pode esperar alguém
+  // lembrar.
+  try {
+    const r = await responderMensagensDeClientes();
+    respondidas = r.respondidas;
+    if (r.respondidas > 0) log(`PM respondeu ${r.respondidas} mensagem(ns) de cliente`);
+    // Sem IA a mensagem FICA na fila para um humano — mas isso é notícia, não
+    // rotina: cliente esperando em silêncio é o defeito que este bloco existe
+    // para acabar.
+    if (r.semIA > 0) quebrou("pm-responde", `${r.semIA} mensagem(ns) sem resposta automática — aguardando gente`);
+    for (const f of r.falhas) quebrou("pm-responde", f);
+  } catch (err) {
+    quebrou("pm-responde", err);
   }
 
   // ── O VIGIA DA MADRUGADA ──────────────────────────────────────────────────
