@@ -8,6 +8,84 @@
 
 ---
 
+## O QUE O CLIENTE LÊ NÃO CARREGA O QUE A AGÊNCIA PAGOU
+
+**Decidido em** 2026-08-15 · **por** o Diretor, a pedido do Diretor Geral ·
+**origem:** o card de aprovação do City Jobs, em produção, no merge `a9bd36c`
+
+**O que estava aberto, em produção viva.** O ciclo assistido terminava criando um
+`ApprovalRequest` com `clientVisible: true` cujo corpo era uma interpolação de
+uma linha: `departamentoId/funcaoId: decisao ($custoUsd)`. Na tela do City Jobs,
+na aba Aprovações, o cliente leu o **custo em dólar de cada agente da casa** —
+`$0.0085`, `$0.0060`, `$0.0193` —, o `correlationId` com dois `cuid` dentro e os
+slugs `pm-orchestrator`, `editorial-planner`, `graphic-designer`. E o card pedia
+decisão sobre uma entrega de Design **sem mostrar a peça**.
+
+**A decisão, em uma frase: campo visível ao cliente e rastro da equipe são dois
+campos, e a régua mora no caminho de escrita.**
+
+1. **Dois textos, dois leitores.** `corpoParaOCliente` (o que foi produzido, em
+   português de gente, com a peça dentro) e `resumoParaAEquipe` (passos, custo,
+   `correlationId`) — este último em comentário interno do card
+   (`isClientVisible: false`), onde sempre deveria ter estado. O rastro é uma
+   necessidade real da operação; ele só não pode ser lido por quem compra.
+2. **É trava, não cuidado.** `createApprovalRequest`, `addApprovalComment` e
+   `setApprovalVisibility` LANÇAM quando o conteúdo marcado como visível ao
+   cliente carrega valor em dólar, `cuid`, `correlationId` ou slug do catálogo
+   V2 (`lib/agency/esteira/vazamento-ao-cliente.ts`). Prompt é aviso; código é
+   trava — guardrail 4.
+3. **Dólar é custo, real é preço.** A casa cobra em R$ e paga o provedor de IA em
+   US$. `R$ 3.500` numa proposta é o que o cliente TEM que ler; `$0.0085` é a
+   margem dela. A distinção é a moeda, e é confiável neste negócio.
+4. **Saída de modelo é redigida na entrada.** O artefato pode citar o próprio id
+   da função; higiene na composição impede que a trava derrube uma entrega por
+   motivo cosmético.
+
+**A perícia, medida.** Nos logs de proxy do Railway, cobrindo a vida inteira do
+defeito (a rota nasceu no deploy das 20:04 UTC): **5 POST em `/api/v2/assistido`**
+(um 401, um 499), todos de `curl` da sala de controle — logo **no máximo 5 cards**.
+Todo acesso ao portal no período veio de **um único IP**, o mesmo que fez 216
+requisições ao **dashboard interno da agência** (que exige login da casa).
+**Nenhum outro navegador abriu o portal.** O número exato de cards e o veredito
+por cliente saem de `GET /api/admin/pericia-do-piloto-assistido`, que roda onde o
+banco está.
+
+---
+
+## CLIENTE É ÚNICO POR NOME NORMALIZADO — E A TRAVA É NO BANCO
+
+**Decidido em** 2026-08-15 · **por** o Diretor, a pedido do Diretor Geral ·
+**origem:** o City Jobs duplicado pela mesma rota
+
+**O que estava aberto.** `findFirst({ workspaceId, name })` seguido de `create`.
+Nome exato: "City Jobs", "city jobs", "City  Jobs" e "CityJobs" eram quatro
+clientes. E `Client.name` não tinha unicidade nenhuma — mesmo com a comparação
+certa, duas chamadas simultâneas leem "não existe" e as duas criam.
+
+**A decisão: três camadas, nesta ordem, num caminho só
+(`lib/agency/clients/garantir-cliente.ts`).**
+
+1. **Reconhecer** — chave agressiva (só letra e número, sem acento) acha
+   "CityJobs" a partir de "City Jobs". Ela NÃO vira restrição: "Casa Nova" e
+   "Casanova" são dois clientes legítimos.
+2. **Travar** — `Client.nameKey` (lower + trim + espaço colapsado) com
+   `@@unique([workspaceId, nameKey])`. **A trava é no banco**, porque guarda em
+   código perde a corrida por construção. A fórmula NÃO dobra acento de
+   propósito: a migration reproduz o backfill em SQL puro e SQLite não dobra
+   acento sem ICU — chave que o código calcula diferente do banco é pior que
+   chave nenhuma.
+3. **Sobreviver à corrida** — `upsert` pela chave; se o único barrar, busca o
+   vencedor em vez de estourar.
+
+**Nada foi apagado.** A migration DESEMPATA as duplicatas que já existem (a mais
+antiga fica com a chave limpa, as outras recebem `chave#id`) e o caminho novo
+converge sempre para a mais antiga. **A fusão é decisão do dono do negócio:**
+apagar cliente com projeto, aprovação decidida e conversa pendurados é
+irreversível. A lista do que existe e do que está pendurado em cada linha sai da
+mesma rota de perícia.
+
+---
+
 ## O ANÚNCIO SÓ NASCE COM ATIVO QUE SE PROVA DO DONO — PÁGINA E ARTE
 
 **Decidido em** 2026-08-15 · **por** `seguranca`, a pedido do Diretor ·

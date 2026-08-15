@@ -88,7 +88,13 @@ beforeAll(async () => {
   // passou a servir a consulta do log pela coluna líder, e o teste acusou
   // SEARCH onde deveria haver SCAN — um falso negativo que faria alguém
   // "consertar" a asserção em vez de entender a causa.
-  for (const i of ["AIRunLog_workspaceId_clientId_createdAt_idx"]) {
+  //
+  // Em 15/08/2026 aconteceu de novo, e pelo mesmo motivo: a trava da duplicata
+  // de cliente (`@@unique([workspaceId, nameKey])`) tem `workspaceId` como
+  // coluna LÍDER, então ela serve "clientes do workspace" e o "antes" virou
+  // SEARCH. O índice novo é legítimo e fica; quem sai é ele do banco de
+  // comparação — a asserção continua intocada.
+  for (const i of ["AIRunLog_workspaceId_clientId_createdAt_idx", "Client_workspaceId_nameKey_key"]) {
     await semIndices.execute(`DROP INDEX IF EXISTS "${i}"`);
   }
 }, 120_000);

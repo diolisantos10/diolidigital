@@ -54,6 +54,25 @@ model Client {
   workspaceId String
   workspace   AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   name        String
+  /// O nome NORMALIZADO — minúsculas, ponta aparada, espaço colapsado. É o que
+  /// TRAVA a duplicata: em 15/08/2026 o City Jobs virou dois clientes porque a
+  /// rota do piloto assistido buscava por nome exato (`findFirst({ name })`) e
+  /// criava em silêncio quando não achava. "City Jobs" e "city jobs" eram dois.
+  ///
+  /// A guarda no `if` sozinha ainda perderia a corrida — duas chamadas juntas
+  /// leem "não existe" e ambas criam. Por isso a trava é ESTA restrição, no
+  /// banco. Quem escreve cliente usa `clients/garantir-cliente.ts`, que faz o
+  /// upsert por esta chave.
+  ///
+  /// Nulo é permitido de propósito (SQLite aceita vários NULL num índice único):
+  /// fixture e teste que criam cliente direto não precisam calcular a chave. Os
+  /// caminhos de produção calculam — e é neles que a corrida acontece.
+  ///
+  /// A fórmula é `lower + trim + colapso de espaço` e NÃO dobra acento porque a
+  /// migration precisa reproduzi-la em SQL puro, e SQLite não dobra acento sem
+  /// ICU. Ver `lib/agency/clients/chave-do-nome.ts` para as duas chaves e o
+  /// porquê de serem duas.
+  nameKey     String?
   industry    String?
   email       String?
   phone       String?
@@ -72,6 +91,8 @@ model Client {
   /// Toda listagem de cliente é por inquilino. Sem isto, cada tela de clientes
   /// varre a tabela inteira — e numa SQLite em volume, varredura segura lock.
   @@index([workspaceId])
+  /// A TRAVA da duplicata de cliente (15/08/2026). Ver `nameKey` acima.
+  @@unique([workspaceId, nameKey])
 }
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
