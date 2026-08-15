@@ -43,7 +43,16 @@ beforeEach(() => {
     data: {
       title: "Calendário de conteúdo",
       summary: "Ajustado para um tom mais próximo do bairro.",
-      items: [{ headline: "Pão quentinho", caption: "Saiu do forno agora, passa aqui que a gente te espera." }],
+      // QUATRO semanas: é o que `contratoDaPauta` exige de `a3` (4 a 8). O
+      // fixture tinha UMA, e passava porque este caminho não conferia o
+      // contrato de saída — a refação podia encolher o calendário do mês
+      // inteiro para um post e ninguém ficava vermelho.
+      items: [
+        { headline: "Pão quentinho", caption: "Saiu do forno agora, passa aqui que a gente te espera." },
+        { headline: "A fornada das seis", caption: "Todo dia às seis sai a primeira fornada, e o cheiro toma a rua." },
+        { headline: "Quem faz o seu pão", caption: "O time da casa chega às quatro para o pão estar pronto quando você acorda." },
+        { headline: "O bolo do fim de semana", caption: "Sábado tem bolo de fubá saindo quente durante toda a manhã." },
+      ],
     },
   });
 });
@@ -188,7 +197,19 @@ describe("o que a máquina NÃO deve tentar adivinhar", () => {
   it("refação que inventa telefone não chega ao cliente", async () => {
     generate.mockResolvedValue({
       ok: true,
-      data: { title: "X", summary: "Novo texto do calendário do mês para a padaria.", items: [{ headline: "Contato", note: "Ligue (11) 98888-7777 agora mesmo para reservar o seu." }] },
+      // O calendário INTEIRO (o contrato de saída é conferido antes do piso),
+      // com um telefone inventado numa das semanas: o que está sob teste é o
+      // PISO, e ele não pode ser mascarado por uma reprovação de formato.
+      data: {
+        title: "X",
+        summary: "Novo texto do calendário do mês para a padaria.",
+        items: [
+          { headline: "Contato", note: "Ligue (11) 98888-7777 agora mesmo para reservar o seu." },
+          { headline: "A fornada das seis", note: "Todo dia às seis sai a primeira fornada da casa." },
+          { headline: "Quem faz o seu pão", note: "O time chega às quatro para o pão estar pronto cedo." },
+          { headline: "O bolo do fim de semana", note: "Sábado tem bolo de fubá saindo quente de manhã." },
+        ],
+      },
     });
     const r = await refazerPorPedidoDoCliente({ clientRequestId: "cr1", department: "social-media", comentario: "põe contato" });
     expect(r.refeitas).toHaveLength(0);

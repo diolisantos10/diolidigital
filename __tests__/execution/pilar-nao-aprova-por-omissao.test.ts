@@ -96,10 +96,23 @@ describe("a origem: o especialista passa a ser cobrado pelo pilar", () => {
   });
 
   it("o markdown do entregável EMITE a linha Pilar, que era o elo que faltava", () => {
-    // `deliverableMarkdown` não é exportado (é detalhe do motor). O que se
-    // prova aqui é o par de chaves que ele varre — a lista onde "Pilar" não
-    // estava, e é a ausência dela que deixava `post.pillar` sempre nulo.
-    const fonte = readFileSync(join(RAIZ, "lib/agency/execution/run-execution.ts"), "utf8");
+    // O que se prova aqui é o par de chaves que o renderizador varre — a lista
+    // onde "Pilar" não estava, e é a ausência dela que deixava `post.pillar`
+    // sempre nulo.
+    //
+    // ⚠️ O ALVO MUDOU DE ARQUIVO EM 15/08, e a mudança é a razão de este teste
+    // valer a pena. A lista morava em `run-execution.ts`, em cópia — havia três
+    // delas, e as duas dos caminhos de conserto estavam sem `Cenas`, o que
+    // rebaixava carrossel refeito para feed. Elas viraram uma fonte só,
+    // `renderizar-entrega.ts`, no mesmo dia em que "Pilar" foi acrescentado à
+    // cópia antiga por outro conserto.
+    //
+    // O merge automático das duas correções escolheria a fonte única — a
+    // mudança estruturalmente certa — e levaria "Pilar" junto, em silêncio, sem
+    // conflito e com a suíte verde, se este teste não estivesse aqui. Foi ele
+    // que ficou vermelho e denunciou. Apontá-lo para a fonte única é o conserto;
+    // apagá-lo seria devolver a casa ao estado que ele acabou de flagrar.
+    const fonte = readFileSync(join(RAIZ, "lib/agency/esteira/renderizar-entrega.ts"), "utf8");
     expect(fonte).toContain('["pillar", "Pilar"]');
   });
 

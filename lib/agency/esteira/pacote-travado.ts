@@ -19,8 +19,14 @@
 // juiz, e sem juiz a peça continua barrada. Ver o bloco no meio do laço.
 
 import { prisma } from "@/lib/db/client";
+import { renderizarEntrega, ESQUEMA_DA_ENTREGA } from "@/lib/agency/esteira/renderizar-entrega";
 import { generate } from "@/lib/ai/generate";
-import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
+import { TODOS_OS_ESPECIALISTAS, conferirContrato } from "@/lib/agency/execution/especialistas";
+import {
+  conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente,
+} from "@/lib/agency/execution/piso-de-verdade";
+import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import {
   auditDeliverable, revisionStatusDoVeredito,
@@ -86,6 +92,42 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
       })
     : null;
   const negocio = req?.businessName ?? "o cliente";
+
+  // ── O PISO DE VERDADE, QUE NÃO EXISTIA NESTE CAMINHO ──────────────────────
+  //
+  // Este arquivo refaz EXATAMENTE as peças que a Qualidade reprovou — e era o
+  // único dos quatro motores que não conferia dado inventado. O caminho de
+  // CONSERTO era o menos guardado da casa: o modelo recebia "a Qualidade
+  // reprovou, refaça" e podia trocar um problema de tom por um preço, um prazo
+  // ou um telefone que a agência não sustenta, e isso ia direto para o
+  // `Deliverable` — porque o veredito do árbitro, logo abaixo, julga tom e
+  // aderência, não dado.
+  //
+  // O piso roda em código, sem IA e sem rede: por isso ele nunca fica
+  // "indisponível" e pode ser exigido aqui sem risco de travar a operação.
+  const cliente = projeto.clientId
+    ? await prisma.client.findUnique({
+        where: { id: projeto.clientId },
+        select: { phone: true, email: true },
+      }).catch(() => null)
+    : null;
+  const verdade: VerdadeDoCliente = {
+    businessName: negocio,
+    telefones: [cliente?.phone].filter((v): v is string => !!v),
+    emails: [cliente?.email].filter((v): v is string => !!v),
+    servicos: lerLista(req?.services),
+    valores: [],
+    // Sem a solicitação não há verdade operacional para conferir, e aí o piso
+    // volta a ser fail-closed para essas classes — que é o comportamento certo
+    // quando a verdade não existe. Mesmo desenho de `refacao.ts`.
+    operacao: projeto.clientRequestId
+      ? (await buildVerdadeOperacional(projeto.clientRequestId).catch(() => null)) ?? undefined
+      : undefined,
+    // A metade NEGATIVA, e ela pesa aqui: a peça está sendo reescrita, e
+    // reescrever violando o que o cliente já proibiu é o pior desfecho deste
+    // caminho. Leitura fail-closed — não conseguir ler REPROVA.
+    proibicoes: await lerProibicoes(projeto.clientId),
+  };
   // O contexto que o árbitro recebe. Não é o mesmo bloco riquíssimo do motor
   // (aquele nasce do `AIRunContext`, que só existe dentro da execução) — é o
   // que dá para reconstruir aqui, e é o suficiente para as perguntas que
@@ -118,7 +160,12 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
         `O QUE A QUALIDADE APONTOU: ${entrega.lastFeedback ?? "qualidade insuficiente"}`,
         "",
         'Refaça corrigindo exatamente esses pontos. Onde faltar informação do cliente, escreva "PRECISO CONFIRMAR: <o quê>" — nunca invente para preencher.',
-        'Responda JSON: {"title":"...","summary":"1 frase","items":[{"headline":"...","note":"...","caption":"...","visual":"...","direction":"...","audience":"...","cta":"..."}]}',
+        // `cenas` NÃO é opcional aqui, e a razão não é de formato: se o item
+        // tinha telas e volta sem elas, `extrairPecas` lê `cenas=[]` e
+        // `publicacao.ts:1046` REBAIXA o carrossel para feed. O cliente comprou
+        // 5 telas e recebe uma imagem, sem ninguém ficar vermelho.
+        ESQUEMA_DA_ENTREGA,
+        "Se o item já tinha CENAS (telas de carrossel), devolva TODAS elas no mesmo formato numerado. Carrossel que volta sem telas deixa de ser carrossel.",
       ].join("\n"),
       maxTokens: 1800,
       workspaceId: projeto.workspaceId,
@@ -144,13 +191,42 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
       continue;
     }
 
+    const novoCorpo = renderizar(dados);
+    const novoTitulo = typeof dados.title === "string" && dados.title.trim() ? dados.title : entrega.name;
+
+    // ── FREIO 1 · CONTRATO DE SAÍDA ─────────────────────────────────────────
+    // A refação não pode ENCOLHER a entrega. O modelo que recebe "refaça
+    // corrigindo" costuma devolver menos itens do que tinha — e uma peça com
+    // metade das telas passa no árbitro (o tom está bom) e chega ao cliente
+    // faltando o que ele comprou. `conferirContrato` conta e confere formato,
+    // em código, sem IA. É o MESMO objeto do motor grande.
+    const esperado = esp ? conferirContrato(esp, dados) : { cumpriu: true, violacoes: [] as string[] };
+    if (!esperado.cumpriu) {
+      saida.persistentes.push(entrega.name);
+      await registrarRecusa(projeto, negocio, entrega.name, `contrato de saída: ${esperado.violacoes.join("; ")}`);
+      continue;
+    }
+
+    // ── FREIO 2 · PISO DE VERDADE ───────────────────────────────────────────
+    // Título junto com o corpo: o título vira o `name` do `Deliverable`, o
+    // primeiro campo que o cliente lê, e conferir só o corpo já deixou passar
+    // preço e prazo inventados no título.
+    //
+    // Reprovada aqui, a peça NÃO é gravada — nem como refeita, nem como
+    // reprovada de novo. Ela fica como está, com a reprovação anterior de pé, e
+    // a próxima passada tenta outra vez até o teto. Gravar o texto com dado
+    // inventado "para não perder" seria colocar a invenção no lugar do original.
+    const piso = conferirPisoDeVerdade(`${novoTitulo}\n\n${novoCorpo}`, verdade);
+    if (!piso.aprovado) {
+      saida.persistentes.push(entrega.name);
+      await registrarRecusa(projeto, negocio, entrega.name, `piso de verdade: ${resumirViolacoes(piso.violacoes)}`);
+      continue;
+    }
+
     // Antes de sobrescrever, a versão reprovada vira registro imutável — mesmo
     // uma versão que o cliente nunca viu faz parte da história da peça
     // ("quantas vezes a Qualidade barrou isto?" só é respondível com o registro).
     await preservarVersaoAtual(entrega);
-
-    const novoCorpo = renderizar(dados);
-    const novoTitulo = typeof dados.title === "string" && dados.title.trim() ? dados.title : entrega.name;
 
     // ── O ÁRBITRO VOLTA A OLHAR — a porta dos fundos que a auditoria de
     //    04/08/2026 encontrou fechada aqui ──────────────────────────────────
@@ -241,6 +317,33 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
   return saida;
 }
 
+/** A recusa de um freio determinístico deixa rastro com o CASO na frente. O
+ *  alerta carrega a própria evidência: "algo falhou" sem o motivo é ruído que
+ *  ninguém investiga. */
+async function registrarRecusa(
+  projeto: { workspaceId: string; id: string; clientId: string | null },
+  negocio: string,
+  peca: string,
+  motivo: string,
+): Promise<void> {
+  await prisma.activityEvent.create({
+    data: {
+      workspaceId: projeto.workspaceId,
+      projectId: projeto.id,
+      clientId: projeto.clientId,
+      type: "refacao_barrada_no_conserto",
+      message: `${negocio} · "${peca}": a versão refeita foi BARRADA antes de gravar — ${motivo}. A reprovação anterior continua valendo.`.slice(0, 900),
+    },
+  }).catch(() => { /* best-effort: o registro não pode derrubar o destravamento */ });
+}
+
+/** Uma lista JSON-em-string vira array. Campo ilegível vira vazio — nunca um
+ *  item inventado. */
+function lerLista(bruto: string | null | undefined): string[] {
+  try { const v = JSON.parse(bruto ?? "[]"); return Array.isArray(v) ? (v as string[]) : []; }
+  catch { return []; }
+}
+
 /** Os campos JSON-em-string do briefing viram texto legível para o árbitro.
  *  Campo ilegível vira vazio — nunca um rótulo inventado. */
 function listar(bruto: string | null | undefined): string {
@@ -253,23 +356,12 @@ function listar(bruto: string | null | undefined): string {
   }
 }
 
-/** Mesmo formato de texto que o motor usa — o cliente não pode receber duas
- *  aparências diferentes da mesma peça só porque uma foi refeita. */
-function renderizar(data: Record<string, unknown>): string {
-  const items = Array.isArray(data.items) ? data.items : [];
-  const linhas: string[] = [];
-  if (typeof data.summary === "string") linhas.push(data.summary, "");
-  items.forEach((raw, i) => {
-    const it = raw as Record<string, unknown>;
-    const head = (it.headline ?? it.angle ?? it.direction ?? `Item ${i + 1}`) as string;
-    linhas.push(`**${i + 1}. ${head}**`);
-    for (const [k, label] of [["format", "Formato"], ["caption", "Legenda"], ["visual", "Visual"], ["direction", "Direção"], ["palette", "Paleta"], ["cta", "CTA"], ["audience", "Público"], ["note", "Obs"]] as const) {
-      if (typeof it[k] === "string" && (it[k] as string).trim()) linhas.push(`- ${label}: ${it[k]}`);
-    }
-    linhas.push("");
-  });
-  return linhas.join("\n").trim();
-}
+/** O markdown que o cliente lê. Era uma CÓPIA que se declarava "mesmo
+ *  formato de texto que o motor usa" e NÃO era: faltava a linha
+ *  `["cenas","Cenas"]`, e sem ela o carrossel refeito perdia as telas,
+ *  `extrairPecas` lia `cenas=[]` e `publicacao.ts:1046` rebaixava a peça
+ *  para feed. Comentário dizendo "igual ao motor" não é mecanismo; import é. */
+const renderizar = renderizarEntrega;
 
 /** Os pacotes que estão travados agora — o que o painel do Diretor precisa ver. */
 export async function pacotesTravados(workspaceId?: string) {

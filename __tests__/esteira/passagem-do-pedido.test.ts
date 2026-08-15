@@ -103,6 +103,11 @@ const db = {
     update: vi.fn(() => Promise.resolve({})),
   },
   deliverable: { create: vi.fn((_args: { data: Registro }) => Promise.resolve({ id: "del-1" })) },
+  // O que o cliente JÁ entregou. Vazio aqui é o caso limpo: ele não mandou
+  // material. Existe no mock porque desde 15/08 a produção do pedido lê isto —
+  // antes gravava `materiaisEntregues: []` FIXO, o que fazia o especialista
+  // pedir de novo o logo que o cliente já tinha mandado.
+  materialRequest: { findMany: vi.fn(() => Promise.resolve([] as { type: string }[])) },
   approvalRequest: { findFirst: vi.fn(() => Promise.resolve(null)) },
   timelineEvent: { create: vi.fn(() => Promise.resolve({})) },
   activityEvent: { create: vi.fn(() => Promise.resolve({})) },

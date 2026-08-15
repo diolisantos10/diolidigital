@@ -42,6 +42,12 @@ function ficha(definidos: CampoDaMarca[] = []) {
       estado: (definidos.includes(campo) ? "definido" : "lacuna") as EstadoDoCampo,
       valor: definidos.includes(campo) ? "resposta que o DONO deu" : "",
       pergunta: null,
+      // Campo acrescentado a `CampoNaFicha` em 15/08, no bloco que abriu a
+      // porta da publicação: diz QUAL METADE de uma resposta de duas partes
+      // ainda falta (o contraexemplo, o "nunca falaríamos"). Aqui vai vazio de
+      // propósito — este teste mede o alcance do brand book, e brand book não
+      // responde metade nenhuma dessas: elas são pergunta ao dono da marca.
+      metadesQueFaltam: [],
     })),
   };
 }

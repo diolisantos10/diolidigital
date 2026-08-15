@@ -929,3 +929,168 @@ nomeada em `ActivityEvent`.
 - **A direção de arte não passa pelo piso de verdade, e isso é escolha.** Ela
   descreve cena, não afirma fato. O que a impede de virar letra é a trava de
   texto, não uma auditoria própria dela.
+## 2026-08-15 — A porta que nunca abriu: `reprovadas: []` fixo fechava a esteira inteira
+
+**Despacho:** P0 do Diretor, seis tarefas em ordem de valor. Nada foi publicado,
+nenhuma chamada de plataforma foi feita, `PUBLICACAO_ORGANICA` não foi tocada.
+Branch `claude/porta-que-nunca-abre`, seis commits.
+
+### 1. O achado, e por que 3.770 testes verdes não o pegaram
+
+`publicacao.ts:699` recusa todo post de cliente com `marca.naoConstituida`. A
+marca só sai de não-constituída com uma referência **aprovada e uma reprovada**
+(`ficha-de-marca.ts:220`). Os dois únicos escritores de produção da ficha —
+`app/api/portal/marca/route.ts:121` e
+`app/api/agency/clients/[id]/marca/route.ts:110` — gravavam:
+
+```
+if (coluna === "referencesJson") return JSON.stringify({ aprovadas: [t], reprovadas: [] });
+if (coluna === "voicePairsJson") return JSON.stringify([{ dizemos: t, naoDizemos: "" }]);
+```
+
+`reprovadas: []` e `naoDizemos: ""` **fixos, nos dois**. `naoConstituida` era
+`true` para sempre. **Nenhum cliente conseguia publicar, nunca, por mais que
+respondesse tudo.** Não era a Meta, não era token, não era conexão.
+
+A entrada de 15/08 deste mesmo arquivo diz, sobre a CityJobs a 22%: *"Não é
+defeito; é a trava certa disparando."* **Estava errado, e o erro é meu.** A
+trava estava certa; a porta é que não tinha maçaneta. Fica registrado aqui em
+vez de corrigido lá, porque a oficina é append-only e apagar o engano apagaria a
+lição.
+
+**Por que a suíte era verde:** `ficha-de-marca.test.ts:25` montava
+`{aprovadas:["post-1"], reprovadas:["post-9"]}` **à mão** — uma forma que
+escritor nenhum desta casa produzia — e `publicacao.test.ts:60` mockava
+`contratoDeMarca` inteiro. É a corrente arrebentada na junta, de novo: cada peça
+com o seu teste, todos passando, e o caminho de ponta a ponta sem ninguém.
+
+**A forma do teste virou regra deste bloco:** a prova entra pela ROTA de
+produção, contra um banco de mentira que **guarda o que recebe**. Mock que
+devolve constante nunca pegaria este defeito, porque o defeito é o que o
+escritor grava.
+
+### 2. O que eu medi antes de escrever, e mudou a decisão
+
+O Diretor mandou, no meio do bloco, que `what_fails` do `IntakeEngine` era
+"literalmente" o contraexemplo da ficha, e que o conserto seria ligar o fio.
+**Medi e não é.** `IntakeEngine.tsx:253-270`:
+
+| pergunta | o que ela é de verdade |
+|---|---|
+| `what_fails` | desempenho de mídia — placeholders são "ROAS <1,5x", "Google Ads sem estratégia, orçamento desperdiçado" |
+| `referencias.reprovadas` | contraexemplo **editorial**: "um post que você achou que não era a sua cara" |
+
+São perguntas diferentes. Ligar uma na outra faria a marca se constituir — e
+`naoConstituida: false` **autoriza publicar em nome do cliente** — com a
+resposta a outra pergunta. É a "resposta qualquer vira regra falsa" que a
+própria rota já nomeia. **Não liguei, e disse por quê.** Mesmo raciocínio para
+`brand_tone` → `voicePairsJson`: `ficha-de-marca.ts:163` já declara que adjetivo
+não conta como voz.
+
+**`restrictions` bate exato**, e aí o achado do Diretor rendeu: a pergunta *"uma
+palavra, uma cor, um concorrente que nunca deve ser citado"* existe em
+`IntakeEngine.tsx:339` desde sempre, e a resposta ia para `updateClient` →
+`PUT /api/clients/[id]`, que lê do corpo **só** name/industry/email/phone/website
+(`route.ts:39-46`). `Client.restrictions` **não existe no schema**. A casa
+perguntava e jogava a resposta no lixo. Reusei a redação em vez de escrever uma
+terceira — três redações para a mesma pergunta é como nascem duas verdades.
+
+### 3. O padrão que apareceu três vezes na mesma noite
+
+**Cópia da mesma lista, divergindo em silêncio.**
+
+- duas cópias de `envelopar` → a publicação inteira fechada;
+- três cópias da lista de campos (`run-execution.ts:85`, `refacao.ts:490`,
+  `pacote-travado.ts:266`, as duas últimas sem `["cenas","Cenas"]`) → carrossel
+  refeito rebaixado para feed em `publicacao.ts:1046`. O cliente compra 5 telas
+  e recebe uma imagem;
+- os dois comentários das cópias afirmavam *"mesmo formato de texto que o motor
+  usa"*. **Comentário dizendo "igual ao motor" não é mecanismo; import é.**
+
+E o renderizador sozinho não resolvia: os dois prompts de conserto pediam ao
+modelo um esquema JSON **sem `cenas`**. Os dois lados da conversa — o que se
+pede e o que se lê — agora moram no mesmo arquivo
+(`esteira/renderizar-entrega.ts`).
+
+### 4. O contador que mentia sobre si mesmo
+
+`jsonTemConteudo` media `Object.keys(v).length > 0`: contava **chave**, não
+resposta. `{"dizemos":"x","naoDizemos":""}` chegava como campo `definido`. É
+isto que fazia a ficha mostrar progresso com a porta fechada — o cliente
+respondia, a barra andava, e nada explicava por quê.
+
+Conserto: conta folha com texto, `referencias` passa a contar pela **mesma**
+`referenciasCompletas` que o gatilho consulta, e nasceu
+`FichaDeMarca.oQueFaltaParaPublicar` — o gatilho escrito por extenso. Ele existe
+porque `definidos` e `naoConstituida` respondem perguntas **legitimamente
+diferentes**: uma proibição registrada É uma regra (o piso a cobra), e mesmo
+assim o gatilho pede três. Há teste travando que a lista fica vazia
+**exatamente** quando `naoConstituida` é falso, em cinco cenários — nunca uma
+segunda conta.
+
+### 5. O pedido que produzia cego
+
+`ctxBlock` (`especialistas.ts:283`) é um `.filter(Boolean)`: campo vazio é
+descartado **sem erro e sem log**. `feedRealDoCliente`, `contratoDeMarca` e
+`materiaisEntregues` só eram preenchidos por `run-execution.ts`. Pedido pelo
+portal, pelo WhatsApp ou pelo balcão produzia cego — e como
+`sinteseDoFeedDoCliente` só era chamada de `run-execution.ts:328`, esse cliente
+**nunca tinha síntese gravada**, então a arte dele também nascia cega.
+
+O pedido do CEO ("entrar na rede social, ver o que está acontecendo e já fazer o
+post") funcionava em metade da casa. As três leituras entraram como
+best-effort, com teste para cada uma provando que nenhuma derruba a produção.
+
+### 6. O que eu me recusei a fazer, e por quê
+
+**A quarta lacuna da tabela — auditoria em `refacao.ts` — não foi fechada.**
+Aquela ausência é **decidida**, com o argumento escrito no próprio arquivo: ali
+o árbitro é o CLIENTE, que pediu a mudança com as palavras dele; um auditor que
+reprovasse o que ele pediu poria a máquina contra o dono do briefing. E o estado
+**não mente**: grava `nao_auditado`, não "aprovado". Fechar essa lacuna é
+decisão de produto, não conserto — subiu ao Diretor com duas saídas, não foi
+resolvida em silêncio.
+
+O contrato de saída, esse sim, entrou na refação: o caso comum é o cliente pedir
+"muda só o gancho do primeiro" e o modelo devolver UM item. O piso aprova (nada
+inventado), não há árbitro, e a peça é gravada com um terço do que ele comprou.
+**"O cliente mandou" vale para o conteúdo, não para a contagem — ninguém pede
+para receber menos.**
+
+Descoberta de brinde: **cinco suítes tinham fixture de 1 item onde o contrato
+pede 4 a 8.** Elas passavam justamente porque estes caminhos não conferiam
+contagem. Fixture irreal é como a trava que falta fica invisível.
+
+### Verificação
+
+`npx tsc --noEmit` limpo. Suíte: **236 arquivos, 3832 verdes, 1 pulado** (+50
+testes). **Mutação conferida em cada tarefa**, e é o que dá valor aos números:
+(a) reinstalando `reprovadas: []` → 4 vermelhos; (b) devolvendo o filtro por
+`COLUNA` na lista de perguntas → 5; (c) devolvendo o contador por chave → 3;
+(d) devolvendo o `Ctx` cego → 3; (e) tirando `["cenas","Cenas"]` da fonte única
+→ 2, inclusive o que roda a corrente até `extrairPecas`; (f) tirando o piso do
+conserto do pacote → 3.
+
+### O que fica aberto (não decidi sozinho)
+
+- **A auditoria na refação** — decisão de produto, duas saídas no relatório.
+- **A ficha da CityJobs não foi medida.** Sem acesso a Postgres nesta rodada. A
+  inferência do Diretor (2/9 bate com o que a rota legada
+  `/api/clients/[id]/brand-brain` produz sozinha, logo a entrevista do portal
+  nunca rodou para ela) é forte e **não é medição**. O gesto que confirma é
+  `GET /api/agency/clients/<id>/marca` com sessão, e agora ele devolve
+  `oQueFaltaParaPublicar` item por item.
+- **Termo derivado de proibição declarada continua podendo ser largo demais.**
+  "fotos de banco de imagem" vira termo `imagem`, e o piso barra toda peça que
+  contenha a palavra. O risco é **anterior** a este bloco (o caminho por negação
+  explícita já fazia isso, com a mesma `termosDoObjeto`) e eu não o aumentei:
+  mesmo piso de 4 letras, mesmas palavras vazias, mesmo teto de 4 termos, mais
+  um teto novo de 3 proibições por resposta. Mas com o portal perguntando, o
+  volume sobe — vale uma passada específica.
+- **`what_works` / `what_fails` / `brand_existing` continuam sem escritor.** São
+  perguntas feitas ao cliente cuja resposta morre no navegador. Não inventei
+  casa para elas: `Client.whatWorks` e irmãs não existem no schema, e criar
+  coluna para dado sem leitor é o defeito do outro lado.
+- **`PUT /api/clients/[id]` descarta campos do corpo em silêncio**
+  (`route.ts:39-46`). Consertei o caso que me cabia desviando o `restrictions`
+  para o dono certo; a rota continua engolindo o resto sem avisar quem chamou.
