@@ -30,6 +30,17 @@ marcado como pendente.
 A partir de agora vale a ordem certa: **mudança de cargo começa pela ficha**
 (corrigida pelo dono de negócio), e o crachá se ajusta a ela com versão nova.
 
+## O dispositivo de atualização (decisão do CEO, 15/08/2026 — simples de propósito)
+
+1. **Só o CEO altera ficha** — ou um Diretor, a mando dele.
+2. **Quem altera a ficha recompila o crachá na mesma sessão.** Uma ordem, dois
+   arquivos, sempre juntos. Sessão que mexeu na ficha e não recompilou o crachá
+   não terminou o trabalho.
+3. **Todo crachá carrega o selo** — *"conferido contra a ficha vX.Y"* — então
+   qualquer sessão enxerga na hora se os dois estão casados.
+
+Sem fila de aprovação, sem vigia, sem burocracia. É isso.
+
 ## Fichas da casa
 
 | Ficha | Status |
