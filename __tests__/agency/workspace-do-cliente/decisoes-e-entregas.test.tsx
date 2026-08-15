@@ -146,11 +146,18 @@ describe("11. peça reprovada volta para rascunho e perde o agendamento", () => 
   });
 
   it("o caminho do CLIENTE também reprova de verdade: recusa vira revision_requested", () => {
+    // V2 (M5): a tabela de decisões saiu da rota e virou contrato único em
+    // decisoes-do-portal.ts (rota e tela leem a mesma fonte). A verificação
+    // segue os dois: o contrato carrega as ações; a rota carrega o contrato.
+    const contrato = fs.readFileSync(path.join(process.cwd(), "lib/agency/portal/decisoes-do-portal.ts"), "utf8");
+    expect(contrato).toContain("request_revision");
+    expect(contrato).toContain("reject");
+    expect(contrato).toContain("cancel");
     const rota = fs.readFileSync(path.join(process.cwd(), "app/api/portal/approvals/route.ts"), "utf8");
-    expect(rota).toContain("request_revision");
-    expect(rota).toContain("reject");
+    expect(rota).toContain("decisoes-do-portal");
     expect(rota).toContain("ACTION_QUESTION");
     expect(rota).toContain("ACTIONS_REQUIRING_COMMENT");
+    expect(rota).toContain("revision_requested"); // a recusa continua virando revisão de verdade
   });
 });
 

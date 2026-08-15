@@ -15,24 +15,25 @@ import {
   decidirIrmaosGenericos,
   type ApprovalStatus,
 } from "@/lib/agency/persistence/approval-service";
+import { pertenceAoToken } from "@/lib/agency/portal/posse-da-aprovacao";
+import {
+  DECISAO_PARA_STATUS,
+  DECISAO_PARA_ESTADO_CANONICO,
+  DECISOES_QUE_EXIGEM_COMENTARIO,
+  ACAO_DUVIDA,
+} from "@/lib/agency/portal/decisoes-do-portal";
 import { createProjectFromRequest } from "@/lib/agency/execution/create-project-from-request";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { negotiateProposal } from "@/lib/agency/execution/negotiate-proposal";
 import { assessResources } from "@/lib/agency/execution/assess-resources";
 
-const ACTION_TO_STATUS: Record<string, ApprovalStatus> = {
-  approve:          "approved",
-  request_revision: "revision_requested",
-  reject:           "rejected",
-};
-
-// "Tenho uma dúvida" (Fase 2, caminho C) não está no mapa acima de propósito:
-// dúvida NÃO é decisão — o status permanece "pending" e o prazo pausa.
-const ACTION_QUESTION = "question";
-
-// Ajuste e rejeição sem comentário não ensinam nada à refação — a spec manda
-// 400 no backend (Fase 2, T3/T4). "Tenho uma dúvida" sem texto é um card mudo.
-const ACTIONS_REQUIRING_COMMENT = new Set(["request_revision", "reject", ACTION_QUESTION]);
+// V2 (M5): as QUATRO decisões do cliente + a dúvida vivem num contrato único
+// (`lib/agency/portal/decisoes-do-portal.ts`) — rota e tela leem a mesma
+// tabela. `cancel` encerra a entrega com ressalva e auditoria; nada apaga
+// versão anterior.
+const ACTION_TO_STATUS = DECISAO_PARA_STATUS;
+const ACTION_QUESTION = ACAO_DUVIDA;
+const ACTIONS_REQUIRING_COMMENT = DECISOES_QUE_EXIGEM_COMENTARIO;
 
 /** Lê os ids de post de um card de calendário. JSON quebrado vira lista vazia —
  *  nunca exceção: um campo corrompido não pode engolir a decisão do cliente. */
@@ -108,20 +109,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // (fluxo Brain) ou pelo CLIENTE direto (`ApprovalRequest.clientId` —
     // caso Foocci, sem ClientRequestDb). Dono sempre derivado do token; a
     // derivação por clientId só roda quando a chave de solicitação não bateu.
+    // V2 (M5): a posse virou função PURA (posse-da-aprovacao.ts) para o gate
+    // de isolamento ser provado por teste — o comportamento é o mesmo de
+    // sempre, INCLUSIVE a preguiça: a solicitação do token só é buscada quando
+    // a checagem direta não bastou (o caminho quente não paga a consulta).
     const tokenRequestId = access.record.clientRequestId;
-    let belongsToToken = !!tokenRequestId && approval.clientRequestId === tokenRequestId;
-    if (!belongsToToken) {
-      let tokenClientId = access.record.clientId;
-      if (!tokenClientId && tokenRequestId) {
-        const solicitacao = await prisma.clientRequestDb.findUnique({
-          where: { id: tokenRequestId }, select: { clientId: true },
-        });
-        tokenClientId = solicitacao?.clientId ?? null;
-      }
-      belongsToToken = !!tokenClientId && (
-        approval.clientId === tokenClientId ||
-        approval.clientRequest?.clientId === tokenClientId
-      );
+    const formaDaAprovacao = {
+      clientRequestId: approval.clientRequestId,
+      clientId: approval.clientId,
+      clientRequestClientId: approval.clientRequest?.clientId ?? null,
+    };
+    const formaDoToken = { clientRequestId: tokenRequestId, clientId: access.record.clientId };
+    let belongsToToken = pertenceAoToken(formaDaAprovacao, formaDoToken, null);
+    if (!belongsToToken && !access.record.clientId && tokenRequestId) {
+      const solicitacao = await prisma.clientRequestDb.findUnique({
+        where: { id: tokenRequestId }, select: { clientId: true },
+      });
+      belongsToToken = pertenceAoToken(formaDaAprovacao, formaDoToken, solicitacao?.clientId ?? null);
     }
     if (!belongsToToken) {
       return NextResponse.json({ error: "Approval not accessible with this token" }, { status: 403 });
@@ -177,6 +181,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       `client:${clientIdentity}`,
       postsDoCard.length > 0 ? undefined : (body.comment?.trim() || undefined),
     );
+
+    // 3a-V2. ── TODA DECISÃO DEIXA RASTRO CANÔNICO ─────────────────────────
+    // TransicaoDeEstado com chave idempotente: a mesma decisão nunca audita
+    // duas vezes, e auditoria NUNCA derruba a decisão do cliente (best-effort
+    // declarado). client_approval → estado do mapa das quatro decisões.
+    try {
+      await prisma.transicaoDeEstado.create({
+        data: {
+          entidadeTipo: "ApprovalRequest",
+          entidadeId: approvalRequestId,
+          de: "client_approval",
+          para: DECISAO_PARA_ESTADO_CANONICO[action] ?? "revision",
+          atorTipo: "humano",
+          atorId: `cliente:${clientIdentity}`,
+          motivo: body.comment?.trim() || `decisão do cliente: ${action}`,
+          origem: "portal",
+          versaoLida: 0,
+          chaveIdempotencia: `portal:${approvalRequestId}:decisao`,
+          correlationId: approval.clientRequestId ?? approval.clientId ?? approvalRequestId,
+        },
+      });
+    } catch (e) {
+      // Chave repetida (decisão reprocessada) ou falha de escrita: registrada, nunca fatal.
+      console.warn("[portal/approvals] rastro canônico não gravado (não-fatal)", e instanceof Error ? e.message : e);
+    }
 
     // 3b. ── A DUPLICATA FECHA JUNTO ──────────────────────────────────────────
     // Card genérico (sem nota, sem versão, sem posts) tem irmãos genéricos do
@@ -248,9 +277,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
         } catch (e) { console.error("[portal/approvals] agendamento das peças falhou", e); }
       } else {
+        // V2 (M5): cancelar ENCERRA — a peça sai do caminho do relógio
+        // ("cancelled" é inerte para publicarAgendados) e nenhuma versão é
+        // apagada. Ajuste/recusa seguem para revisão, como sempre.
+        const statusDosPosts = status === "cancelled" ? "cancelled" : "revision_requested";
         await prisma.socialPost.updateMany({
           where: { id: { in: postsDoCard }, clientId: approval.clientId },
-          data: { status: "revision_requested" },
+          data: { status: statusDosPosts },
         }).catch((e) => console.error("[portal/approvals] propagação aos posts falhou", e));
       }
     }

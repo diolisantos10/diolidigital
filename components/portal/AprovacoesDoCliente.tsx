@@ -79,7 +79,10 @@ export interface AprovacaoDoPortal {
   }>;
 }
 
-export type AcaoDeAprovacao = "approve" | "request_revision" | "question";
+// V2 (M5): as QUATRO decisões da arquitetura + a dúvida. "reject" devolve por
+// desalinhamento relevante (refazer); "cancel" encerra com ressalva — e nenhuma
+// das duas apaga versão anterior (contrato em decisoes-do-portal.ts).
+export type AcaoDeAprovacao = "approve" | "request_revision" | "reject" | "cancel" | "question";
 
 /** As TRÊS saídas do cartão de orçamento. `ajustar` é a terceira, aberta em
  *  07/08/2026: devolver a proposta com apontamentos (prazo, escopo ou preço)
@@ -91,6 +94,7 @@ const STATUS_APROVACAO: Record<string, { rotulo: string; cor: string; fundo: str
   approved:           { rotulo: "Aprovado por você",      cor: "#16A34A", fundo: "#DCFCE7" },
   revision_requested: { rotulo: "Ajustes solicitados",    cor: "#2563EB", fundo: "#EFF6FF" },
   rejected:           { rotulo: "Recusado por você",      cor: "#DC2626", fundo: "#FEF2F2" },
+  cancelled:          { rotulo: "Cancelado por você",     cor: "#6B7280", fundo: "#F3F4F6" },
 };
 
 const KIND_LABEL: Record<string, string> = {
@@ -287,7 +291,7 @@ function DetalheDaAprovacao({
   onDecidir: (acao: AcaoDeAprovacao, comentario?: string) => Promise<boolean>;
   onVoltar: () => void;
 }) {
-  const [modo, setModo] = useState<"ajuste" | "duvida" | null>(null);
+  const [modo, setModo] = useState<"ajuste" | "duvida" | "refazer" | "cancelar" | null>(null);
   const [texto, setTexto] = useState("");
   const [erroLocal, setErroLocal] = useState<string | null>(null);
 
@@ -310,18 +314,28 @@ function DetalheDaAprovacao({
   const prazo = dataCurta(ap.expiresAt);
   const vencida = pendente && !ap.questionOpen && ap.expiresAt != null && new Date(ap.expiresAt) < new Date();
 
+  const ACAO_DO_MODO: Record<string, AcaoDeAprovacao> = {
+    ajuste: "request_revision",
+    duvida: "question",
+    refazer: "reject",
+    cancelar: "cancel",
+  };
+
+  const AVISO_SEM_TEXTO: Record<string, string> = {
+    ajuste: "Escreva o que precisa mudar — é este comentário que orienta a nova versão.",
+    duvida: "Escreva a dúvida antes de enviar.",
+    refazer: "Conte o que desalinhou — a equipe refaz a partir da sua justificativa.",
+    cancelar: "Escreva a ressalva do cancelamento — ela fica registrada com a decisão.",
+  };
+
   async function enviar() {
-    // Trava de UI espelhando o 400 do backend: ajuste/dúvida sem texto não sai.
+    // Trava de UI espelhando o 400 do backend: decisão com texto obrigatório não sai muda.
     if (!texto.trim()) {
-      setErroLocal(
-        modo === "ajuste"
-          ? "Escreva o que precisa mudar — é este comentário que orienta a nova versão."
-          : "Escreva a dúvida antes de enviar.",
-      );
+      setErroLocal(AVISO_SEM_TEXTO[modo ?? "ajuste"] ?? AVISO_SEM_TEXTO.ajuste!);
       return;
     }
     setErroLocal(null);
-    const ok = await onDecidir(modo === "ajuste" ? "request_revision" : "question", texto.trim());
+    const ok = await onDecidir(ACAO_DO_MODO[modo ?? "duvida"] ?? "question", texto.trim());
     if (ok) {
       setModo(null);
       setTexto("");
@@ -437,10 +451,39 @@ function DetalheDaAprovacao({
           </div>
         )}
 
+        {/* V2 (M5): os dois caminhos que a arquitetura garante e ninguém quer
+            usar — discretos DE PROPÓSITO (destrutivos não disputam peso com os
+            três principais), mas presentes: recusar sem poder cancelar prende
+            o cliente num ciclo de refação que ele não pediu. */}
+        {pendente && modo === null && (
+          <div className="mt-2 flex items-center justify-center gap-4 text-[12px]">
+            <button
+              disabled={enviando}
+              onClick={() => { setModo("refazer"); setErroLocal(null); }}
+              style={{ touchAction: "manipulation" }}
+              className="text-[var(--text-muted)] underline underline-offset-2 hover:text-[#DC2626] disabled:opacity-50"
+            >
+              Recusar e pedir refação
+            </button>
+            <span aria-hidden className="text-[var(--text-muted)]">·</span>
+            <button
+              disabled={enviando}
+              onClick={() => { setModo("cancelar"); setErroLocal(null); }}
+              style={{ touchAction: "manipulation" }}
+              className="text-[var(--text-muted)] underline underline-offset-2 hover:text-[#DC2626] disabled:opacity-50"
+            >
+              Cancelar esta entrega
+            </button>
+          </div>
+        )}
+
         {pendente && modo !== null && (
           <div className="mt-4">
             <label htmlFor="texto-decisao" className="block text-[13px] font-semibold text-[var(--text-primary)] mb-1.5">
-              {modo === "ajuste" ? "Descreva o ajuste" : "Escreva sua dúvida"}
+              {modo === "ajuste" ? "Descreva o ajuste"
+                : modo === "refazer" ? "Por que esta entrega desalinhou?"
+                : modo === "cancelar" ? "Ressalva do cancelamento"
+                : "Escreva sua dúvida"}
             </label>
             <textarea
               id="texto-decisao"
@@ -448,6 +491,10 @@ function DetalheDaAprovacao({
               onChange={(e) => { setTexto(e.target.value); if (erroLocal) setErroLocal(null); }}
               placeholder={modo === "ajuste"
                 ? "O que precisa mudar? Seja específico — a equipe refaz a partir disto."
+                : modo === "refazer"
+                ? "O que saiu do combinado? A equipe refaz do zero a partir da sua justificativa."
+                : modo === "cancelar"
+                ? "Por que esta entrega não segue? A ressalva fica registrada; nenhuma versão é apagada."
                 : "Qual é a sua dúvida sobre esta peça?"}
               rows={3}
               autoFocus
