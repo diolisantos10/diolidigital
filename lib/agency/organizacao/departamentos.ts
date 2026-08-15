@@ -186,7 +186,7 @@ export const DEPARTAMENTOS: Departamento[] = [
     resumo: "UX/UI, arquitetura e engenharia da plataforma",
     icone: "product",
     cor: "#4F46E5",
-    temSuperficie: false,
+    temSuperficie: true,
   },
 ];
 
