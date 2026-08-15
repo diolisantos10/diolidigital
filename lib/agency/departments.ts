@@ -2,15 +2,28 @@
 // Pure data + types — no store access, no side effects.
 
 import type { AgencyRole } from "@/lib/agency/roles";
+import { donosDoDepartamento } from "@/lib/agency/roles";
+import type { DepartamentoId } from "@/lib/agency/organizacao/departamentos";
 
-export type DepartmentId =
+// ⚠️ Os ids NÃO se declaram aqui — eles são um RECORTE da fonte canônica em
+// `lib/agency/organizacao/departamentos.ts`. `Extract` faz o TypeScript
+// reprovar id que não exista lá, que é a trava contra a terceira lista
+// paralela de departamento nascer de novo neste arquivo.
+//
+// Este recorte é o subconjunto que tem carga OPERACIONAL (prompt do agente,
+// ferramentas, tipos de entrega). Departamento canônico fora daqui existe na
+// organização e ainda não tem mesa de trabalho no produto — Atendimento,
+// Analytics, Qualidade e Financeiro são esse caso hoje.
+export type DepartmentId = Extract<
+  DepartamentoId,
   | "project-management"
   | "strategy"
   | "brand-hub"
   | "social-media"
   | "design"
   | "paid-traffic"
-  | "operations";
+  | "operations"
+>;
 
 export interface DepartmentDef {
   id: DepartmentId;
@@ -38,7 +51,8 @@ export interface DepartmentDef {
   generatorLabel?: string;
 }
 
-export const DEPARTMENT_DEFS: DepartmentDef[] = [
+/** As definições sem `ownerRoles` — ele é derivado logo abaixo, nunca escrito. */
+const DEPARTMENT_DEFS_BASE: Omit<DepartmentDef, "ownerRoles">[] = [
   {
     id: "project-management",
     name: "Gestão de Projetos",
@@ -69,7 +83,6 @@ Regras:
     connectedToolIds: ["int-notion", "int-slack"],
     ownedDeliverableTypes: ["planning", "document"],
     ownedTaskSources: ["proposal_gate", "strategy_gate", "material_follow_up", "dependency_violation", "deadline_risk"],
-    ownerRoles: ["master", "project_manager"],
     rules: [
       "Projetos sem proposta aprovada bloqueiam a execução",
       "Strategy Room deve ser gerado antes do início da produção",
@@ -119,7 +132,6 @@ Regras:
     connectedToolIds: [],
     ownedDeliverableTypes: ["planning", "document"],
     ownedTaskSources: ["strategy_gate"],
-    ownerRoles: ["master", "project_manager"],
     rules: [
       "Strategy Room deve ser gerado antes de qualquer execução",
       "Briefings estratégicos devem referenciar o Brand Brain",
@@ -166,7 +178,6 @@ Regras:
     connectedToolIds: [],
     ownedDeliverableTypes: ["design", "document"],
     ownedTaskSources: [],
-    ownerRoles: ["master", "project_manager", "design_staff"],
     rules: [
       "Brand Brain deve estar completo antes da execução",
       "Atualizações de marca precisam de aprovação interna",
@@ -215,7 +226,6 @@ Regras:
     connectedToolIds: ["int-meta-ads", "int-google-analytics"],
     ownedDeliverableTypes: ["social_post", "copy", "planning"],
     ownedTaskSources: ["revision_queue", "execution_gap", "review_pending"],
-    ownerRoles: ["master", "project_manager", "social_staff"],
     rules: [
       "Todo post deve referenciar a voz da marca",
       "Calendário deve ser aprovado antes de agendamento",
@@ -263,7 +273,6 @@ Regras:
     connectedToolIds: ["int-canva", "int-openai-images"],
     ownedDeliverableTypes: ["design", "document"],
     ownedTaskSources: ["revision_queue", "execution_gap", "review_pending"],
-    ownerRoles: ["master", "project_manager", "design_staff"],
     rules: [
       "Design deve seguir Brand Brain rigorosamente",
       "Todo entregável deve ser aprovado pelo PM antes de envio ao cliente",
@@ -311,7 +320,6 @@ Regras:
     connectedToolIds: ["int-meta-ads", "int-google-ads"],
     ownedDeliverableTypes: ["ads", "copy", "document"],
     ownedTaskSources: ["revision_queue", "execution_gap"],
-    ownerRoles: ["master", "project_manager", "ads_staff"],
     rules: [
       "Toda campanha precisa de Strategy Room ativa",
       "Budget mínimo deve ser definido antes do início",
@@ -359,7 +367,6 @@ Regras:
     connectedToolIds: ["int-openai-images"],
     ownedDeliverableTypes: [],
     ownedTaskSources: [],
-    ownerRoles: ["master"],
     rules: [
       "Alertas críticos têm prioridade máxima",
       "Integrações devem ser verificadas antes de onboarding de novo cliente",
@@ -377,6 +384,19 @@ Regras:
     generatorLabel: "Abrir System Doctor",
   },
 ];
+
+/**
+ * ⚠️ `ownerRoles` é DERIVADO de `PERFIL_DO_PAPEL`, não escrito à mão.
+ *
+ * Eram sete arrays literais que precisavam ser editados em conjunto a cada
+ * papel novo. Papel novo entra hoje em UM lugar (`lib/agency/roles.ts`) e
+ * aparece aqui sozinho — que é o que impede a divergência silenciosa entre
+ * "quem o menu deixa entrar" e "quem o departamento reconhece como dono".
+ */
+export const DEPARTMENT_DEFS: DepartmentDef[] = DEPARTMENT_DEFS_BASE.map((d) => ({
+  ...d,
+  ownerRoles: donosDoDepartamento(d.id),
+}));
 
 export function getDepartmentDef(id: DepartmentId): DepartmentDef | undefined {
   return DEPARTMENT_DEFS.find((d) => d.id === id);

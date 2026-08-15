@@ -1,15 +1,34 @@
 // ─── Agency Role Model ────────────────────────────────────────────────────────
 //
-// Defines the five internal roles and one portal role (client).
-// No real auth — roles are simulated via a store selector ("Visualizar como")
-// in the sidebar. This is a testing/preview tool for V1.
+// O papel é o que vem no JWT da sessão (`lib/auth/session.ts`) e no campo
+// `User.role` do banco. Ele NÃO é mais a régua de permissão — é a chave que
+// traduz uma pessoa (ou um agente) para os dois eixos que decidem tudo:
+// AUTORIDADE × DEPARTAMENTO, em `lib/agency/organizacao/`.
 //
-// "client" is always the portal-only role — it never appears in the
-// internal role selector.
+// ── O que mudou, e por quê ──────────────────────────────────────────────────
+//
+// `ROLE_NAV_ALLOWLIST` era uma tabela de URLs escrita à mão, papel por papel.
+// Ela tinha dois defeitos que só apareciam com o tempo:
+//   1. tela nova nascia invisível para quase todo mundo, porque acrescentar a
+//      URL em seis listas é fácil de esquecer e não quebra teste nenhum;
+//   2. ela filtrava só o MENU. A URL digitada na barra de endereço entrava.
+// Hoje ela é DERIVADA do inventário de páginas, e as três camadas (menu,
+// página e API) leem a mesma regra. Ver `organizacao/paginas.ts`.
+//
+// "client" é o papel do portal e NUNCA aparece no seletor interno — ele nem
+// chega a existir como `AgencyRole`, o que é a razão de `isAgencyRole()`
+// (derivado de `ROLE_PERMISSIONS`) recusar o login de um usuário-cliente na
+// área da agência.
 // ─────────────────────────────────────────────────────────────────────────────
+
+import type { DepartamentoId } from "@/lib/agency/organizacao/departamentos";
+import type { Autoridade, PerfilOrganizacional } from "@/lib/agency/organizacao/autoridade";
+import { eDirecao } from "@/lib/agency/organizacao/autoridade";
+import { rotasVisiveis } from "@/lib/agency/organizacao/paginas";
 
 export type AgencyRole =
   | "master"
+  | "diretor"
   | "project_manager"
   | "executivo_comercial"
   | "social_staff"
@@ -18,27 +37,79 @@ export type AgencyRole =
 
 export const AGENCY_ROLE_OPTIONS: { id: AgencyRole; label: string; description: string }[] = [
   { id: "master",              label: "Master",          description: "Acesso total — todas as seções e ações." },
-  { id: "project_manager",     label: "Project Manager", description: "Operações de projeto e Brand Hub." },
-  { id: "executivo_comercial", label: "Comercial",       description: "Proposta comercial, negociação e onboarding de clientes." },
-  { id: "social_staff",        label: "Social",          description: "Social Media Agent + entregas próprias." },
-  { id: "design_staff",        label: "Design",          description: "Design Agent + entregas próprias." },
-  { id: "ads_staff",           label: "Ads",             description: "Ads Agent + entregas próprias." },
+  { id: "diretor",             label: "Diretor",         description: "Direção da agência — todas as telas, atuais e novas." },
+  { id: "project_manager",     label: "Project Manager", description: "Visão transversal: distribui, conecta e cobra entrega." },
+  { id: "executivo_comercial", label: "Atendimento",     description: "Porta da frente: solicitação, qualificação e onboarding." },
+  { id: "social_staff",        label: "Social Media",    description: "Opera Social Media; consulta as demais áreas." },
+  { id: "design_staff",        label: "Design",          description: "Opera Design e Branding; consulta as demais áreas." },
+  { id: "ads_staff",           label: "Tráfego Pago",    description: "Opera Tráfego Pago; consulta as demais áreas." },
 ];
+
+// ─── Papel → os dois eixos ────────────────────────────────────────────────────
+//
+// ⚠️ É A ÚNICA TABELA QUE UM PAPEL NOVO PRECISA TOCAR.
+//
+// `Record<AgencyRole, …>` faz o TypeScript reprovar papel novo sem perfil —
+// que é exatamente o buraco que entregou JWT de master a `executivo_comercial`
+// quando ele existia em `roles.ts` e faltava na lista copiada de `session.ts`.
+//
+// `departamentos` = onde o papel ESCREVE. Ler é global para todo perfil
+// interno e não se declara aqui.
+
+export const PERFIL_DO_PAPEL: Record<AgencyRole, PerfilOrganizacional> = {
+  master:  { autoridade: "master",   departamentos: [] },
+  diretor: { autoridade: "director", departamentos: [] },
+  // O PM coordena a casa inteira, e responde tecnicamente por Gestão de
+  // Projetos, Estratégia e Branding — que é exatamente o que `ownerRoles`
+  // dizia nas definições de departamento antes desta consolidação.
+  project_manager:     { autoridade: "project_manager", departamentos: ["project-management", "strategy", "brand-hub"] },
+  executivo_comercial: { autoridade: "department_member", departamentos: ["client-service-sdr"] },
+  social_staff:        { autoridade: "department_member", departamentos: ["social-media"] },
+  // Design responde também pelo Brand Hub desde que ele nasceu. Tirar
+  // "brand-hub" daqui removeria acesso que existe hoje.
+  design_staff:        { autoridade: "department_member", departamentos: ["design", "brand-hub"] },
+  ads_staff:           { autoridade: "department_member", departamentos: ["paid-traffic"] },
+};
+
+export function perfilDoPapel(role: AgencyRole): PerfilOrganizacional {
+  return PERFIL_DO_PAPEL[role];
+}
+
+export function autoridadeDoPapel(role: AgencyRole): Autoridade {
+  return PERFIL_DO_PAPEL[role].autoridade;
+}
+
+/**
+ * Os papéis que respondem por um departamento.
+ *
+ * Substitui os `ownerRoles` escritos à mão em `departments.ts` — sete arrays
+ * que precisavam ser editados juntos a cada papel novo, e que já divergiam.
+ */
+export function donosDoDepartamento(dept: DepartamentoId): AgencyRole[] {
+  return (Object.keys(PERFIL_DO_PAPEL) as AgencyRole[]).filter((role) => {
+    const perfil = PERFIL_DO_PAPEL[role];
+    // Gestão responde por tudo: master e diretor por autoridade, o PM porque é
+    // ele quem cobra a entrega de qualquer área.
+    if (eDirecao(perfil.autoridade) || perfil.autoridade === "project_manager") return true;
+    return perfil.departamentos.includes(dept);
+  });
+}
 
 // ─── Nav allowlist ────────────────────────────────────────────────────────────
 // "all" = every nav href is visible. An array = only those hrefs are visible
 // (prefix-matched — /agency/deliverables matches /agency/deliverables/*).
+//
+// DERIVADA. Não edite este objeto: para mudar o que um papel vê, mude o perfil
+// acima ou o inventário em `organizacao/paginas.ts`.
 
-export const ROLE_NAV_ALLOWLIST: Record<AgencyRole, string[] | "all"> = {
-  master:              "all",
-  project_manager:     "all",
-  // O Radar de oportunidades é a mesa de trabalho do Comercial — sem esta linha
-  // a tela existiria só para master/PM, que não é quem prospecta.
-  executivo_comercial: ["/agency/requests", "/agency/oportunidades", "/agency/clients", "/agency/dashboard", "/agency/settings", "/agency/projects"],
-  social_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/planner", "/agency/social-media-agent", "/agency/deliverables", "/agency/settings"],
-  design_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/design-agent",       "/agency/deliverables", "/agency/settings"],
-  ads_staff:           ["/agency/dashboard", "/agency/approvals", "/agency/ads-agent",          "/agency/deliverables", "/agency/settings"],
-};
+export const ROLE_NAV_ALLOWLIST: Record<AgencyRole, string[] | "all"> = Object.fromEntries(
+  (Object.keys(PERFIL_DO_PAPEL) as AgencyRole[]).map((role) => {
+    const perfil = PERFIL_DO_PAPEL[role];
+    // Master e Diretor alcançam rota que ainda nem foi registrada — "all" é
+    // literal, não atalho.
+    return [role, eDirecao(perfil.autoridade) ? "all" : rotasVisiveis(perfil)];
+  }),
+) as Record<AgencyRole, string[] | "all">;
 
 export function isNavAllowed(role: AgencyRole, href: string): boolean {
   const list = ROLE_NAV_ALLOWLIST[role];
@@ -60,6 +131,17 @@ export interface RolePermissions {
 
 export const ROLE_PERMISSIONS: Record<AgencyRole, RolePermissions> = {
   master: {
+    canEditBrandHub:       true,
+    canApplyBrandUpdate:   true,
+    canViewStrategicNotes: true,
+    canViewDiagnostics:    true,
+    canViewAllClients:     true,
+    canResetStore:         true,
+    agentFilter:           "all",
+  },
+  // Direção. O contrato do CEO é explícito: "acesso completo a todas as rotas
+  // atuais e futuras em /agency/**". Mesma amplitude do master.
+  diretor: {
     canEditBrandHub:       true,
     canApplyBrandUpdate:   true,
     canViewStrategicNotes: true,
@@ -91,7 +173,10 @@ export const ROLE_PERMISSIONS: Record<AgencyRole, RolePermissions> = {
     canApplyBrandUpdate:   false,
     canViewStrategicNotes: false,
     canViewDiagnostics:    false,
-    canViewAllClients:     false,
+    // ⚠️ Era `false`. O CEO decidiu em 14/08/2026 que TODOS os departamentos
+    // enxergam TODOS os clientes — a edição é que fica presa à área. Ver
+    // `podeVerTodosOsClientes()` em organizacao/autoridade.ts, que é a régua.
+    canViewAllClients:     true,
     canResetStore:         false,
     agentFilter:           ["a3"],
   },
@@ -100,7 +185,10 @@ export const ROLE_PERMISSIONS: Record<AgencyRole, RolePermissions> = {
     canApplyBrandUpdate:   false,
     canViewStrategicNotes: false,
     canViewDiagnostics:    false,
-    canViewAllClients:     false,
+    // ⚠️ Era `false`. O CEO decidiu em 14/08/2026 que TODOS os departamentos
+    // enxergam TODOS os clientes — a edição é que fica presa à área. Ver
+    // `podeVerTodosOsClientes()` em organizacao/autoridade.ts, que é a régua.
+    canViewAllClients:     true,
     canResetStore:         false,
     agentFilter:           ["a2"],
   },
@@ -109,7 +197,10 @@ export const ROLE_PERMISSIONS: Record<AgencyRole, RolePermissions> = {
     canApplyBrandUpdate:   false,
     canViewStrategicNotes: false,
     canViewDiagnostics:    false,
-    canViewAllClients:     false,
+    // ⚠️ Era `false`. O CEO decidiu em 14/08/2026 que TODOS os departamentos
+    // enxergam TODOS os clientes — a edição é que fica presa à área. Ver
+    // `podeVerTodosOsClientes()` em organizacao/autoridade.ts, que é a régua.
+    canViewAllClients:     true,
     canResetStore:         false,
     agentFilter:           ["a4"],
   },
