@@ -32,6 +32,7 @@ import {
 import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
 import { lerProibicoes, sincronizarDoBriefing } from "@/lib/agency/esteira/proibicoes";
 import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
+import { renderizarEntrega } from "@/lib/agency/esteira/renderizar-entrega";
 import {
   VERSAO_DA_MEDICAO, versaoDaMedicao,
   type MedicaoDoMes,
@@ -74,21 +75,11 @@ const TRAVA_DE_EXECUCAO_MS = 10 * 60_000;
  */
 const MARCA_DE_RECUSA = "[recusa]";
 
-function deliverableMarkdown(data: Record<string, unknown>): string {
-  const items = Array.isArray(data.items) ? data.items : [];
-  const lines: string[] = [];
-  if (typeof data.summary === "string") lines.push(data.summary, "");
-  items.forEach((raw, i) => {
-    const it = raw as Record<string, unknown>;
-    const head = (it.headline ?? it.angle ?? it.direction ?? `Item ${i + 1}`) as string;
-    lines.push(`**${i + 1}. ${head}**`);
-    for (const [k, label] of [["format", "Formato"], ["caption", "Legenda"], ["cenas", "Cenas"], ["visual", "Visual"], ["direction", "Direção"], ["palette", "Paleta"], ["cta", "CTA"], ["audience", "Público"], ["note", "Obs"]] as const) {
-      if (typeof it[k] === "string" && (it[k] as string).trim()) lines.push(`- ${label}: ${it[k]}`);
-    }
-    lines.push("");
-  });
-  return lines.join("\n").trim();
-}
+/** O markdown que o cliente lê. A implementação mora em
+ *  `esteira/renderizar-entrega.ts` — fonte ÚNICA para os três motores. Este
+ *  arquivo tinha a versão CERTA e as outras duas eram cópias sem a linha
+ *  `["cenas","Cenas"]`, o que rebaixava carrossel refeito para feed. */
+const deliverableMarkdown = renderizarEntrega;
 
 /**
  * O pedido de REFAÇÃO — com o texto anterior na frente do modelo.

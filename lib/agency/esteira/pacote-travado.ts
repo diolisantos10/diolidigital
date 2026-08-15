@@ -19,6 +19,7 @@
 // juiz, e sem juiz a peça continua barrada. Ver o bloco no meio do laço.
 
 import { prisma } from "@/lib/db/client";
+import { renderizarEntrega, ESQUEMA_DA_ENTREGA } from "@/lib/agency/esteira/renderizar-entrega";
 import { generate } from "@/lib/ai/generate";
 import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
@@ -118,7 +119,12 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
         `O QUE A QUALIDADE APONTOU: ${entrega.lastFeedback ?? "qualidade insuficiente"}`,
         "",
         'Refaça corrigindo exatamente esses pontos. Onde faltar informação do cliente, escreva "PRECISO CONFIRMAR: <o quê>" — nunca invente para preencher.',
-        'Responda JSON: {"title":"...","summary":"1 frase","items":[{"headline":"...","note":"...","caption":"...","visual":"...","direction":"...","audience":"...","cta":"..."}]}',
+        // `cenas` NÃO é opcional aqui, e a razão não é de formato: se o item
+        // tinha telas e volta sem elas, `extrairPecas` lê `cenas=[]` e
+        // `publicacao.ts:1046` REBAIXA o carrossel para feed. O cliente comprou
+        // 5 telas e recebe uma imagem, sem ninguém ficar vermelho.
+        ESQUEMA_DA_ENTREGA,
+        "Se o item já tinha CENAS (telas de carrossel), devolva TODAS elas no mesmo formato numerado. Carrossel que volta sem telas deixa de ser carrossel.",
       ].join("\n"),
       maxTokens: 1800,
       workspaceId: projeto.workspaceId,
@@ -253,23 +259,12 @@ function listar(bruto: string | null | undefined): string {
   }
 }
 
-/** Mesmo formato de texto que o motor usa — o cliente não pode receber duas
- *  aparências diferentes da mesma peça só porque uma foi refeita. */
-function renderizar(data: Record<string, unknown>): string {
-  const items = Array.isArray(data.items) ? data.items : [];
-  const linhas: string[] = [];
-  if (typeof data.summary === "string") linhas.push(data.summary, "");
-  items.forEach((raw, i) => {
-    const it = raw as Record<string, unknown>;
-    const head = (it.headline ?? it.angle ?? it.direction ?? `Item ${i + 1}`) as string;
-    linhas.push(`**${i + 1}. ${head}**`);
-    for (const [k, label] of [["format", "Formato"], ["caption", "Legenda"], ["visual", "Visual"], ["direction", "Direção"], ["palette", "Paleta"], ["cta", "CTA"], ["audience", "Público"], ["note", "Obs"]] as const) {
-      if (typeof it[k] === "string" && (it[k] as string).trim()) linhas.push(`- ${label}: ${it[k]}`);
-    }
-    linhas.push("");
-  });
-  return linhas.join("\n").trim();
-}
+/** O markdown que o cliente lê. Era uma CÓPIA que se declarava "mesmo
+ *  formato de texto que o motor usa" e NÃO era: faltava a linha
+ *  `["cenas","Cenas"]`, e sem ela o carrossel refeito perdia as telas,
+ *  `extrairPecas` lia `cenas=[]` e `publicacao.ts:1046` rebaixava a peça
+ *  para feed. Comentário dizendo "igual ao motor" não é mecanismo; import é. */
+const renderizar = renderizarEntrega;
 
 /** Os pacotes que estão travados agora — o que o painel do Diretor precisa ver. */
 export async function pacotesTravados(workspaceId?: string) {
