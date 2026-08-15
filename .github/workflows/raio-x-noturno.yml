@@ -19,10 +19,16 @@ name: Raio-X noturno (coleta das duas metades)
 # de problema) — cabe ao agendamento transformar esse "NÃO SEI" em alarme.
 
 on:
-  schedule:
-    # 06:00 UTC = 03:00 BRT — de madrugada, para o relatório estar coletado
-    # quando o CEO acordar.
-    - cron: "0 6 * * *"
+# ⏸ PARADA GERAL — ordem do CEO, 15/08/2026: "quero tudo parado para ser
+#   redesenhado" / "nenhuma atividade funcionando". O gatilho `schedule`
+#   abaixo está COMENTADO, não apagado: o redesenho vai decidir se ele volta
+#   como estava, com outro horário, ou não volta. `workflow_dispatch` fica —
+#   disparo à mão continua possível e é sempre um gesto humano deliberado.
+#   Para religar: descomente o bloco. Nada mais precisa ser mexido.
+#  schedule:
+#    # 06:00 UTC = 03:00 BRT — de madrugada, para o relatório estar coletado
+#    # quando o CEO acordar.
+#    - cron: "0 6 * * *"
   workflow_dispatch: {}
 
 permissions:

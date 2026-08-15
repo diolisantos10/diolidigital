@@ -21,8 +21,14 @@ name: Cron — recuperar produção travada
 # que ele dispara a cada 10 minutos.
 
 on:
-  schedule:
-    - cron: "*/10 * * * *"
+# ⏸ PARADA GERAL — ordem do CEO, 15/08/2026: "quero tudo parado para ser
+#   redesenhado" / "nenhuma atividade funcionando". O gatilho `schedule`
+#   abaixo está COMENTADO, não apagado: o redesenho vai decidir se ele volta
+#   como estava, com outro horário, ou não volta. `workflow_dispatch` fica —
+#   disparo à mão continua possível e é sempre um gesto humano deliberado.
+#   Para religar: descomente o bloco. Nada mais precisa ser mexido.
+#  schedule:
+#    - cron: "*/10 * * * *"
   workflow_dispatch: {}
 
 jobs:

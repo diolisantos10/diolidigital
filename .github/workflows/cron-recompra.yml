@@ -18,10 +18,16 @@ name: Cron — régua de recompra (30/60/90)
 # plataforma, ver CLAUDE.md.
 
 on:
-  schedule:
-    # 10:00 UTC = 07:00 BRT — depois da recaptura da biblioteca (06:00 BRT),
-    # para que a fila de toques já esteja na tela quando a equipe abrir o dia.
-    - cron: "0 10 * * *"
+# ⏸ PARADA GERAL — ordem do CEO, 15/08/2026: "quero tudo parado para ser
+#   redesenhado" / "nenhuma atividade funcionando". O gatilho `schedule`
+#   abaixo está COMENTADO, não apagado: o redesenho vai decidir se ele volta
+#   como estava, com outro horário, ou não volta. `workflow_dispatch` fica —
+#   disparo à mão continua possível e é sempre um gesto humano deliberado.
+#   Para religar: descomente o bloco. Nada mais precisa ser mexido.
+#  schedule:
+#    # 10:00 UTC = 07:00 BRT — depois da recaptura da biblioteca (06:00 BRT),
+#    # para que a fila de toques já esteja na tela quando a equipe abrir o dia.
+#    - cron: "0 10 * * *"
   workflow_dispatch: {}
 
 jobs:
