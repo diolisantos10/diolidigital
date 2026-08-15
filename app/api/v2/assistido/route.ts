@@ -23,7 +23,9 @@ import { executarCicloAssistido, type DependenciasDoCiclo } from "@/lib/agency/e
 import { realizarComIA } from "@/lib/agency/esteira-assistida/adaptador-de-ia";
 import { armazemDeHandoffsNoBanco } from "@/lib/agency/handoff-v2/armazem-prisma";
 import { createClientRequest } from "@/lib/agency/persistence/client-request-service";
-import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
+import { addApprovalComment, createApprovalRequest } from "@/lib/agency/persistence/approval-service";
+import { garantirClientePorNome } from "@/lib/agency/clients/garantir-cliente";
+import { corpoParaOCliente, resumoParaAEquipe } from "@/lib/agency/esteira-assistida/card-do-cliente";
 import type { PerfilOrganizacional } from "@/lib/agency/organizacao/autoridade";
 
 export const maxDuration = 300;
@@ -79,10 +81,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!nome) return NextResponse.json({ error: "cliente é obrigatório" }, { status: 400 });
     const workspace = await prisma.agencyWorkspace.findFirst({ orderBy: { createdAt: "asc" } });
     if (!workspace) return NextResponse.json({ error: "nenhum workspace na base — a casa não abriu ainda" }, { status: 409 });
-    let cliente = await prisma.client.findFirst({ where: { workspaceId: workspace.id, name: nome } });
-    if (!cliente) {
-      cliente = await prisma.client.create({ data: { workspaceId: workspace.id, name: nome } });
-    }
+    // Achar-ou-criar cliente NÃO se escreve à mão: em 15/08/2026 o `findFirst`
+    // por nome exato que morava aqui duplicou o City Jobs. As três camadas
+    // (reconhecer grafia, travar no banco, sobreviver à corrida) moram em
+    // `garantirClientePorNome`.
+    const garantido = await garantirClientePorNome({ workspaceId: workspace.id, nome });
+    const cliente = garantido.cliente;
     const resultado = await virarChaveDoPiloto(
       {
         escopo: cliente.id,
@@ -101,7 +105,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     );
     if (!resultado.ok) return NextResponse.json({ error: resultado.motivo }, { status: 400 });
-    return NextResponse.json({ ok: true, clienteId: cliente.id, cliente: cliente.name, workspaceId: workspace.id });
+    return NextResponse.json({
+      ok: true,
+      clienteId: cliente.id,
+      cliente: cliente.name,
+      workspaceId: workspace.id,
+      // O operador precisa saber que a grafia dele encontrou um cliente que já
+      // existia com outro nome — em silêncio, isso é exatamente como a duplicata
+      // passou despercebida da primeira vez.
+      criouCliente: garantido.criado,
+      ...(garantido.reusadoDe ? { reusouClienteExistente: garantido.reusadoDe } : {}),
+    });
   }
 
   if (corpo.acao === "ciclo") {
@@ -201,17 +215,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let approvalId: string | null = null;
     if (ciclo.ok) {
       // O fim da cadeia é GENTE: card de aprovação humana, nada publica sozinho.
-      const resumo = ciclo.passos
-        .map((p) => `${p.departamentoId}/${p.funcaoId}: ${p.decisao} ($${(p.custoUsd ?? 0).toFixed(4)})`)
-        .join(" · ");
+      //
+      // ── DOIS TEXTOS, DOIS LEITORES (15/08/2026) ────────────────────────────
+      // Até hoje esta linha montava UMA frase — passos, slugs de agente,
+      // correlationId e o custo em dólar de cada passo — e a punha no campo que
+      // o CLIENTE lê. O rastro é necessário; o leitor é que estava errado.
+      //   • corpo do card  → o que foi produzido, com a peça dentro;
+      //   • comentário interno → o rastro técnico, do lado da equipe.
+      const corpo = corpoParaOCliente({
+        nomeDoCliente: cliente.name,
+        solicitacao,
+        artefatos: ciclo.artefatos,
+      });
       const approval = await createApprovalRequest({
         clientId: cliente.id,
         department: "design",
         requestedBy: "esteira-assistida",
         clientVisible: true,
-        reviewNote: `Ciclo assistido ${correlationId} — pacote da cadeia completa aguardando aprovação humana. ${resumo}`,
+        reviewNote: corpo.reviewNote,
       });
       approvalId = approval.id;
+
+      // O rastro continua existindo — só que onde ele sempre deveria ter estado.
+      // Falha aqui não derruba o ciclo: perder a auditoria é ruim, perder a
+      // entrega que o cliente está esperando é pior.
+      await addApprovalComment({
+        approvalRequestId: approval.id,
+        authorName: "esteira-assistida",
+        authorRole: "internal",
+        isClientVisible: false,
+        body: resumoParaAEquipe({
+          correlationId,
+          passos: ciclo.passos,
+          custoTotalUsd: ciclo.custoTotalUsd,
+          pecasIncluidas: corpo.pecasIncluidas,
+        }),
+      }).catch(() => undefined);
       await prisma.clientRequestDb
         .update({ where: { id: registroDeEntrada.id }, data: { status: "in_progress" } })
         .catch(() => undefined); // status é rastro, não portão: falha aqui não derruba o ciclo

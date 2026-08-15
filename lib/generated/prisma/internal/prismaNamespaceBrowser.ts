@@ -163,6 +163,7 @@ export const ClientScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
   name: 'name',
+  nameKey: 'nameKey',
   industry: 'industry',
   email: 'email',
   phone: 'phone',
