@@ -34,6 +34,8 @@ interface Corpo {
   clienteId?: string;
   solicitacao?: string;
   motivo?: string;
+  /** Retomar um ciclo já iniciado (o trabalho pago não se repete). */
+  clientRequestId?: string;
 }
 
 async function autenticar(request: NextRequest): Promise<{ quem: string } | { erro: NextResponse }> {
@@ -117,17 +119,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: `v2_execucao desligada para ${cliente.name} — allowlist primeiro` }, { status: 403 });
     }
 
-    // A solicitação entra pelo caminho oficial (rastro desde a porta).
-    const registroDeEntrada = await createClientRequest({
-      workspaceId: cliente.workspaceId,
-      clientId: cliente.id,
-      businessName: cliente.name,
-      rawContext: solicitacao,
-      source: "esteira-assistida",
-      status: "new",
-    });
+    // A solicitação entra pelo caminho oficial (rastro desde a porta) — ou
+    // retoma a que já entrou, quando o operador está continuando um ciclo.
+    const registroDeEntrada = corpo.clientRequestId
+      ? { id: corpo.clientRequestId }
+      : await createClientRequest({
+          workspaceId: cliente.workspaceId,
+          clientId: cliente.id,
+          businessName: cliente.name,
+          rawContext: solicitacao,
+          source: "esteira-assistida",
+          status: "new",
+        });
 
     const correlationId = `assistido:${cliente.id}:${registroDeEntrada.id}`;
+
+    // O que já foi pago neste ciclo volta do registro, não do provedor.
+    const jaGravadas = await prisma.execucaoV2.findMany({
+      where: { correlationId, resultado: { not: null } },
+      orderBy: { inicio: "asc" },
+      select: { funcaoId: true, resultado: true },
+    });
+    const jaFeitos: Record<string, string> = {};
+    for (const linha of jaGravadas) {
+      if (linha.resultado) jaFeitos[linha.funcaoId] = linha.resultado;
+    }
     const deps: DependenciasDoCiclo = {
       executor: {
         flagLigada: (chaveFlag, escopos) => flagLigada(chaveFlag, escopos, armazemDeFlags()),
@@ -177,6 +193,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         solicitacao,
         nomeDoCliente: cliente.name,
         correlationId,
+        jaFeitos,
       },
       deps,
     );
@@ -195,10 +212,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         reviewNote: `Ciclo assistido ${correlationId} — pacote da cadeia completa aguardando aprovação humana. ${resumo}`,
       });
       approvalId = approval.id;
-      await prisma.clientRequestDb.update({
-        where: { id: registroDeEntrada.id },
-        data: { status: "in_progress" },
-      });
+      await prisma.clientRequestDb
+        .update({ where: { id: registroDeEntrada.id }, data: { status: "in_progress" } })
+        .catch(() => undefined); // status é rastro, não portão: falha aqui não derruba o ciclo
     }
 
     return NextResponse.json({
@@ -216,12 +232,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   if (corpo.acao === "status") {
-    const [chaves, execucoes, recusas, handoffs] = await Promise.all([
-      prisma.flagV2.findMany({ where: { chave: FLAGS_V2.execucao } }),
-      prisma.execucaoV2.findMany({ orderBy: { inicio: "desc" }, take: 20 }),
-      prisma.recusaV2.findMany({ orderBy: { em: "desc" }, take: 20 }),
-      prisma.handoffV2.findMany({ orderBy: { criadoEm: "desc" }, take: 20 }),
-    ]);
+    const chaves = await prisma.flagV2.findMany({ where: { chave: FLAGS_V2.execucao } });
+    const execucoes = await prisma.execucaoV2.findMany({ orderBy: { inicio: "desc" }, take: 20 });
+    const recusas = await prisma.recusaV2.findMany({ orderBy: { em: "desc" }, take: 20 });
+    const handoffs = await prisma.handoffV2.findMany({ orderBy: { criadoEm: "desc" }, take: 20 });
     return NextResponse.json({
       chaves: chaves.map((c) => ({ escopo: c.escopo, ligada: c.ligada, motivo: c.motivo, decididoPor: c.decididoPor })),
       execucoes: execucoes.map((e) => ({

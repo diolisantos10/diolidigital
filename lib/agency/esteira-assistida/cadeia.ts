@@ -40,12 +40,19 @@ export interface PedidoDeCiclo {
   solicitacao: string;
   nomeDoCliente: string;
   correlationId: string;
+  /**
+   * Passos já executados neste correlationId (funcaoId → saída gravada).
+   * Retomada idempotente: trabalho pago uma vez não se paga duas. O ciclo
+   * reaproveita a saída e segue de onde parou — a conexão do operador pode
+   * cair, o trabalho da casa não recomeça do zero.
+   */
+  jaFeitos?: Record<string, string>;
 }
 
 export interface PassoExecutado {
   funcaoId: string;
   departamentoId: string;
-  decisao: ResultadoDaExecucao["decisao"];
+  decisao: ResultadoDaExecucao["decisao"] | "reaproveitado";
   motivo?: string;
   custoUsd?: number;
   handoffId?: string;
@@ -109,6 +116,17 @@ export async function executarCicloAssistido(
       };
     }
     const spec = resultadoSpec.spec;
+
+    // Retomada: passo já pago neste correlationId volta do registro, não da IA.
+    const jaFeito = pedido.jaFeitos?.[funcaoId];
+    if (jaFeito) {
+      artefatos[funcaoId] = jaFeito;
+      dossie[`artefato de ${funcaoId} (${spec.departamento})`] = jaFeito;
+      passos.push({ funcaoId, departamentoId: spec.departamento, decisao: "reaproveitado", duracaoMs: 0 });
+      // O bastão daquele passo já correu quando ele executou de verdade.
+      handoffPendente = undefined;
+      continue;
+    }
 
     // Aceite do bastão anterior — quem recebe é a função do destino.
     if (handoffPendente) {
