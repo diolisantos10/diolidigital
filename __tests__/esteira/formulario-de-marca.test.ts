@@ -25,8 +25,14 @@ describe("só o dono responde", () => {
 
   it("token inválido não vira cliente nenhum — nem o primeiro da lista", () => {
     const i = SRC.indexOf("async function clienteDoToken");
-    const corpo = SRC.slice(i, i + 400);
-    expect(corpo).toContain("if (!acesso?.valid || !acesso.record) return null;");
+    const corpo = SRC.slice(i, i + 600);
+    // ⚠️ 15/08/2026 (rodada 3): a resolução do dono saiu de
+    // `validatePortalAccess` e virou `escopoDoToken` — o ESCOPO CONGELADO, que
+    // além de token inválido também recusa `ponteiro_andou` (a solicitação
+    // trocou de dono debaixo do token). A garantia que este teste protege é a
+    // mesma e ficou MAIOR: sem escopo bom, ninguém vira cliente.
+    expect(corpo).toContain("escopoDoToken");
+    expect(corpo).toContain("escopo?.ok ? escopo.clientId : null");
   });
 });
 

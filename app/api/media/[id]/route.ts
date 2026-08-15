@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { lerArquivo, assinaturaValida } from "@/lib/agency/media/armazenamento";
 
@@ -47,12 +47,15 @@ export async function GET(
   if (sig && assinaturaValida(id, exp, sig)) {
     autorizado = true;
   } else if (token) {
-    const v = await validatePortalAccess(token);
-    if (v.valid && v.record) {
-      const acesso = v.record;
+    // 🔴 RODADA 3: casava por `acesso.clientRequestId` — o ponteiro cru. Com a
+    // solicitação re-apontada, o probe do `seguranca` recebeu 410 ("arquivo
+    // indisponível no armazenamento") em vez de 403 — ou seja, **AUTORIZOU** o
+    // arquivo de outro cliente; só faltou o byte no disco do fixture.
+    const escopo = await escopoDoToken(token);
+    if (escopo.ok) {
       autorizado =
-        (!!acesso.clientRequestId && acesso.clientRequestId === registro.clientRequestId) ||
-        (!!acesso.clientId && acesso.clientId === registro.clientId);
+        escopo.clientId === registro.clientId ||
+        (!!registro.clientRequestId && escopo.clientRequestIds.includes(registro.clientRequestId));
     }
   } else {
     const session = await getSession();

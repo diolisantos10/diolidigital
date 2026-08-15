@@ -25,6 +25,7 @@
 // Por isso a redação foi REUSADA, não reescrita: três redações para a mesma
 // pergunta é como nascem duas verdades sobre a mesma regra.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import fs from "node:fs";
@@ -46,8 +47,10 @@ const db = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
-const portal = vi.hoisted(() => ({ validatePortalAccess: vi.fn() }));
+const portal = vi.hoisted(() => ({ validatePortalAccess: vi.fn(), escopoDoToken: vi.fn() }));
 vi.mock("@/lib/agency/persistence/portal-access-service", () => portal);
+// `escopoDoToken` (rodada 3) imita o real — ver `__tests__/_stubs/escopo-do-token.ts`.
+portal.escopoDoToken.mockImplementation(escopoFalso(portal.validatePortalAccess, db));
 vi.mock("@/lib/agency/persistence/portal-cookie", () => ({ tokenDoPortal: () => "tok" }));
 
 import { GET as perguntar, POST as responder } from "@/app/api/portal/marca/route";

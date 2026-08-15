@@ -2,7 +2,7 @@
 // Strips internal fields (promptSummary, cognitiveFlow, etc.) before sending.
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { requireSession } from "@/lib/auth/api-guard";
 // A política de posse (inclusive a da solicitação órfã) mora inteira em
@@ -52,26 +52,32 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // Token-based access — the only public path. Everything else needs a session.
   if (token) {
-    const access = await validatePortalAccess(token);
-    if (!access.valid) {
-      return NextResponse.json({ error: "Access denied", reason: access.reason }, { status: 403 });
+    // 🔴 RODADA 3 — ESTA ROTA ESTAVA FORA DA TRAVA, E O CONSERTO DA RODADA 2
+    // CITAVA O NOME DELA NO PRÓPRIO COMENTÁRIO.
+    //
+    // Ela lia `access.record.clientRequestId` — o ponteiro cru. Com a
+    // solicitação re-apontada, o probe do `seguranca` recebeu 200 com a razão
+    // social, o pipeline, as aprovações, as peças **e as URLs de mídia** de
+    // outro cliente. Agora o escopo é o CONGELADO: cliente e solicitações
+    // derivados do dono do token, nunca do registro dele.
+    const escopo = await escopoDoToken(token);
+    if (!escopo.ok) {
+      return NextResponse.json({ error: "Access denied", reason: escopo.motivo }, { status: 403 });
     }
-    let reqId = access.record?.clientRequestId ?? null;
-    // Token issued for a client (not a specific request): resolve the most
-    // recent Brain request for that client at view time.
-    if (!reqId && access.record?.clientId) {
-      const latest = await prisma.clientRequestDb.findFirst({
-        where: { clientId: access.record.clientId },
-        orderBy: { createdAt: "desc" },
-      });
-      reqId = latest?.id ?? null;
+    let reqId: string | null = escopo.clientRequestIds[0] ?? null;
+    {
       if (!reqId) {
         // Valid token, but no Brain request yet — cliente criado DIRETO.
         // As aprovações dele vivem por `clientId` (cards do calendário): sem
         // esta busca, o Início dizia "nada depende de você" com 6 peças
         // esperando — a contradição do lançamento da Foocci.
-        const client = await prisma.client.findUnique({ where: { id: access.record.clientId } });
-        const approvals = semDuplicatas(await buscarAprovacoes({ clientId: access.record.clientId, clientVisible: true }));
+        // Prospect (solicitação sem cliente) não tem card por `clientId` — o
+        // que ele tem é a própria solicitação, tratada no ramo de baixo.
+        if (!escopo.clientId) {
+          return NextResponse.json({ error: "Token not linked to a request" }, { status: 404 });
+        }
+        const client = await prisma.client.findUnique({ where: { id: escopo.clientId } });
+        const approvals = semDuplicatas(await buscarAprovacoes({ clientId: escopo.clientId, clientVisible: true }));
         const pecasPorCard = await montarPecas(approvals);
         return NextResponse.json({
           id: null, businessName: client?.name ?? "Cliente", status: "new",

@@ -172,6 +172,78 @@ export async function resolvePortalClient(
   return dono.ok ? { clientId: dono.clientId, workspaceId: dono.workspaceId } : null;
 }
 
+// ── O ESCOPO CONGELADO (15/08/2026, rodada 3) ───────────────────────────────
+//
+// A lição da rodada 3, nas palavras do `seguranca`: **"a trava vai onde o id é
+// USADO — converter a função central não converte quem não a chama."**
+//
+// A rodada 2 congelou o dono em `donoDoToken` e converteu 5 rotas. Ficaram 4
+// lendo `access.record.clientRequestId` direto do registro do token — o
+// ponteiro cru — e nelas o furo continuou aberto. Uma delas, `/api/portal/
+// approvals`, **não é leitura: o probe APROVOU uma entrega de outro cliente**.
+// E o cabeçalho do próprio conserto da rodada 2 citava `portal-data` como
+// parte do alcance, sem convertê-la.
+//
+// Por isso isto aqui não devolve só o dono: devolve **o escopo inteiro** que
+// uma rota de portal pode precisar — cliente, workspace e as solicitações DELE.
+// Rota que precise de `clientRequestId` tira daqui, e não do registro do token.
+// Assim o id que a rota USA já nasce congelado e conferido.
+
+export type EscopoDoToken =
+  | {
+      ok: true;
+      /** Nulo SÓ no caso PROSPECT: solicitação de briefing que ainda não virou
+       *  cliente. Quem exige cliente confere e recusa. */
+      clientId: string | null;
+      workspaceId: string | null;
+      clientRequestIds: string[];
+    }
+  | { ok: false; motivo: "token_invalido" | "sem_dono" | "ponteiro_andou" };
+
+export async function escopoDoToken(token: string): Promise<EscopoDoToken> {
+  const dono = await donoDoToken(token);
+
+  // ── O PROSPECT (rodada 3) ────────────────────────────────────────────────
+  // Solicitação de briefing que ainda NÃO virou cliente tem portal legítimo —
+  // é por ele que a proposta é lida e aprovada. `donoDoToken` devolve
+  // `sem_dono` nesse caso, e tratar isso como recusa quebraria a porta de
+  // entrada comercial inteira. O escopo dele é a PRÓPRIA solicitação, e só
+  // vale enquanto ela continuar sem dono: no instante em que ganha um cliente,
+  // o caminho de cima assume e o congelamento passa a valer.
+  if (!dono.ok) {
+    if (dono.motivo !== "sem_dono") return dono;
+    const registro = await prisma.portalAccess.findUnique({
+      where: { token }, select: { clientRequestId: true },
+    }).catch(() => null);
+    if (!registro?.clientRequestId) return dono;
+    const solicitacao = await prisma.clientRequestDb.findUnique({
+      where: { id: registro.clientRequestId }, select: { id: true, clientId: true, workspaceId: true },
+    }).catch(() => null);
+    if (!solicitacao || solicitacao.clientId) return dono;
+    return {
+      ok: true,
+      clientId: null,
+      workspaceId: solicitacao.workspaceId ?? null,
+      clientRequestIds: [solicitacao.id],
+    };
+  }
+
+  // As solicitações saem do CLIENTE congelado — nunca do registro do token.
+  // É esta linha que impede o ponteiro andado de continuar valendo.
+  const solicitacoes = await prisma.clientRequestDb.findMany({
+    where: { clientId: dono.clientId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  }).catch(() => []);
+
+  return {
+    ok: true,
+    clientId: dono.clientId,
+    workspaceId: dono.workspaceId,
+    clientRequestIds: solicitacoes.map((s) => s.id),
+  };
+}
+
 export async function revokePortalAccess(token: string) {
   return prisma.portalAccess.update({
     where: { token },

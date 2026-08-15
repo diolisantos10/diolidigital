@@ -176,18 +176,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // sem contador, sem flag. Na tela isso vira "Comece a conversa": o cliente
     // não vê o histórico encurtar, vê a agência ter APAGADO a conversa dele.
     // Quem esconde, diz que escondeu, e diz QUANTO.
-    const ocultadas = conversa.ocultadasPorAmbiguidade;
+    // ── 🔴 O NÚMERO NÃO SAI DAQUI (rodada 3) ──────────────────────────────
+    //
+    // A rodada 2 devolvia `ocultadas: <n>` para o cliente. O probe do
+    // `seguranca` plantou 1 carimbada + 4 legadas do outro cliente e recebeu
+    // `"ocultadas": 4` — **a contagem exata do acervo do vizinho**. Eu tinha
+    // pedido que o corte parasse de ser mudo; devolver o VOLUME do que é de
+    // outro é vazamento de metadado, e foi eu quem o criou.
+    //
+    // A régua: o CLIENTE lê uma frase sobre a conversa DELE; a AGÊNCIA lê o
+    // número, pelo censo (`GET /api/admin/censo-de-historico-ambiguo`), que é
+    // autenticado. Nenhum número de linha alheia atravessa esta fronteira.
+    const houveCorte = conversa.ocultadasPorAmbiguidade > 0;
     return NextResponse.json({
       messages: rows.map((m) => toDTO(m, viewer)),
       podeEnviar: true,
-      ...(ocultadas > 0
+      ...(houveCorte
         ? {
             motivo: "historico-parcial",
-            ocultadas,
             detalhe:
-              "Parte do histórico antigo desta conversa está fora do ar porque não conseguimos"
-              + " confirmar a qual marca ele pertence. Nada foi apagado — a equipe Dioli consegue"
-              + " recuperar. As mensagens novas continuam normais.",
+              "Parte do histórico antigo desta conversa não está sendo exibida porque não"
+              + " conseguimos confirmar a origem dela. Nada foi apagado — fale com a equipe"
+              + " Dioli. As mensagens novas continuam normais.",
           }
         : {}),
     });

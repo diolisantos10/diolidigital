@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 
 interface DbPost {
@@ -94,25 +94,11 @@ function toPortalDTO(p: DbPost) {
 async function resolveTokenScope(
   token: string,
 ): Promise<{ reqId: string | null; workspaceId: string | null } | false> {
-  const access = await validatePortalAccess(token);
-  if (!access.valid || !access.record) return false;
-  if (access.record.clientRequestId) {
-    const req = await prisma.clientRequestDb.findUnique({
-      where: { id: access.record.clientRequestId }, select: { id: true, workspaceId: true },
-    });
-    return { reqId: req?.id ?? null, workspaceId: req?.workspaceId ?? null };
-  }
-  if (access.record.clientId) {
-    const cliente = await prisma.client.findUnique({
-      where: { id: access.record.clientId }, select: { workspaceId: true },
-    });
-    const latest = await prisma.clientRequestDb.findFirst({
-      where: { clientId: access.record.clientId }, orderBy: { createdAt: "desc" },
-      select: { id: true, workspaceId: true },
-    });
-    return { reqId: latest?.id ?? null, workspaceId: cliente?.workspaceId ?? latest?.workspaceId ?? null };
-  }
-  return { reqId: null, workspaceId: null };
+  // 🔴 RODADA 3: lia `access.record.clientRequestId` — o ponteiro cru. Agora o
+  // escopo é o CONGELADO, e a solicitação sai do CLIENTE, nunca do registro.
+  const escopo = await escopoDoToken(token);
+  if (!escopo.ok) return false;
+  return { reqId: escopo.clientRequestIds[0] ?? null, workspaceId: escopo.workspaceId };
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {

@@ -6,6 +6,7 @@
 //   2. /api/portal/session só grava cookie de token VÁLIDO;
 //   3. as rotas de dados aceitam o cookie ALÉM do parâmetro (compatibilidade).
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -22,9 +23,11 @@ const validatePortalAccess = vi.hoisted(() => vi.fn());
 const conferirTokenDoPortal = vi.hoisted(() => vi.fn());
 const updateApprovalStatus = vi.hoisted(() => vi.fn());
 const addApprovalComment = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, conferirTokenDoPortal }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, conferirTokenDoPortal, escopoDoToken }));
 vi.mock("@/lib/agency/persistence/approval-service", () => ({ updateApprovalStatus, addApprovalComment }));
 vi.mock("@/lib/agency/execution/create-project-from-request", () => ({ createProjectFromRequest: vi.fn() }));
 vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution: vi.fn() }));
@@ -39,6 +42,7 @@ import { PORTAL_COOKIE } from "@/lib/agency/persistence/portal-cookie";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
   conferirTokenDoPortal.mockResolvedValue(true);
 });

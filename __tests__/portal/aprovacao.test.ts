@@ -7,6 +7,7 @@
 //    presa ao card e o prazo PAUSA — o relógio não corre contra o cliente
 //    enquanto a bola está com a agência (T5/T5b da tabela de transições).
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -23,13 +24,15 @@ const updateApprovalStatus = vi.hoisted(() => vi.fn());
 const addApprovalComment = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, escopoDoToken }));
 vi.mock("@/lib/agency/persistence/approval-service", () => ({ updateApprovalStatus, addApprovalComment }));
 vi.mock("@/lib/agency/execution/create-project-from-request", () => ({ createProjectFromRequest: vi.fn() }));
 vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution: vi.fn() }));
 vi.mock("@/lib/agency/execution/negotiate-proposal", () => ({ negotiateProposal: vi.fn() }));
 vi.mock("@/lib/agency/execution/assess-resources", () => ({ assessResources: vi.fn() }));
 const refazer = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/agency/esteira/refacao", () => ({ refazerPorPedidoDoCliente: refazer }));
 
 import { POST } from "@/app/api/portal/approvals/route";
@@ -48,6 +51,7 @@ function req(body: Record<string, unknown>): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
   db.approvalRequest.findUnique.mockResolvedValue({ ...APROVACAO });
   db.approvalRequest.update.mockResolvedValue({});

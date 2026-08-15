@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import {
   updateApprovalStatus,
@@ -90,10 +90,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // 1. Validate the portal token.
-  const access = await validatePortalAccess(token);
-  if (!access.valid || !access.record) {
-    return NextResponse.json({ error: "Access denied", reason: access.reason }, { status: 403 });
+  // 1. Validate the portal token — pelo ESCOPO CONGELADO.
+  //
+  // 🔴 RODADA 3: aqui estava `validatePortalAccess` cru, e a posse casava por
+  // `access.record.clientRequestId` — o ponteiro. Com a solicitação re-apontada,
+  // o probe do `seguranca` **APROVOU UMA ENTREGA DE OUTRO CLIENTE** com um
+  // token alheio: `200 {"status":"approved"}`. Nesta casa entrega aprovada
+  // publica — não é leitura indevida, é ESCRITA no negócio de terceiro.
+  const escopo = await escopoDoToken(token);
+  if (!escopo.ok) {
+    return NextResponse.json(
+      { error: "Access denied", reason: escopo.motivo },
+      { status: 403 },
+    );
   }
 
   try {
@@ -114,20 +123,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // de isolamento ser provado por teste — o comportamento é o mesmo de
     // sempre, INCLUSIVE a preguiça: a solicitação do token só é buscada quando
     // a checagem direta não bastou (o caminho quente não paga a consulta).
-    const tokenRequestId = access.record.clientRequestId;
+    // A posse agora casa contra o ESCOPO CONGELADO: o cliente que o token
+    // aponta desde o primeiro uso, e as solicitações DESSE cliente — nunca a
+    // solicitação escrita no registro do token, que pode ter mudado de dono.
     const formaDaAprovacao = {
       clientRequestId: approval.clientRequestId,
       clientId: approval.clientId,
       clientRequestClientId: approval.clientRequest?.clientId ?? null,
     };
-    const formaDoToken = { clientRequestId: tokenRequestId, clientId: access.record.clientId };
-    let belongsToToken = pertenceAoToken(formaDaAprovacao, formaDoToken, null);
-    if (!belongsToToken && !access.record.clientId && tokenRequestId) {
-      const solicitacao = await prisma.clientRequestDb.findUnique({
-        where: { id: tokenRequestId }, select: { clientId: true },
-      });
-      belongsToToken = pertenceAoToken(formaDaAprovacao, formaDoToken, solicitacao?.clientId ?? null);
-    }
+    const doCliente =
+      approval.clientId === escopo.clientId
+      || approval.clientRequest?.clientId === escopo.clientId
+      || (!!approval.clientRequestId && escopo.clientRequestIds.includes(approval.clientRequestId));
+    // `pertenceAoToken` (função pura, provada por teste) continua valendo como
+    // a segunda metade — mas agora alimentada só com o escopo congelado.
+    const belongsToToken = doCliente && pertenceAoToken(
+      formaDaAprovacao,
+      { clientRequestId: null, clientId: escopo.clientId },
+      escopo.clientId,
+    );
     if (!belongsToToken) {
       return NextResponse.json({ error: "Approval not accessible with this token" }, { status: 403 });
     }

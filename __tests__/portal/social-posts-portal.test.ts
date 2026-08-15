@@ -5,6 +5,7 @@
 // instrução interna ou observação sobre o cliente, chegava nele.
 // Visibilidade: post "interno" nunca sai por rota de portal — fail-closed.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -17,9 +18,11 @@ const db = vi.hoisted(() => ({
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, escopoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { GET } from "@/app/api/social-posts/route";
@@ -40,6 +43,7 @@ function req(url: string): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
   db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr1", workspaceId: "ws1" });
   db.client.findUnique.mockResolvedValue({ workspaceId: "ws1" });

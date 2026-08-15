@@ -28,6 +28,7 @@
 // publicação consulta. Se um dia alguém puser `reprovadas: []` de volta em
 // qualquer um dos escritores, é aqui que fica vermelho.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -60,8 +61,10 @@ const proib = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/agency/esteira/proibicoes", () => proib);
 
-const portal = vi.hoisted(() => ({ validatePortalAccess: vi.fn() }));
+const portal = vi.hoisted(() => ({ validatePortalAccess: vi.fn(), escopoDoToken: vi.fn() }));
 vi.mock("@/lib/agency/persistence/portal-access-service", () => portal);
+// `escopoDoToken` (rodada 3) imita o real — ver `__tests__/_stubs/escopo-do-token.ts`.
+portal.escopoDoToken.mockImplementation(escopoFalso(portal.validatePortalAccess, db));
 vi.mock("@/lib/agency/persistence/portal-cookie", () => ({ tokenDoPortal: () => "tok" }));
 
 import { GET as perguntar, POST as responder } from "@/app/api/portal/marca/route";

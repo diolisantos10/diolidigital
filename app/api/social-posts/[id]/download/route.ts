@@ -30,7 +30,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { lerArquivo } from "@/lib/agency/media/armazenamento";
 import {
@@ -71,16 +71,16 @@ export async function GET(
   // ── Quem está pedindo ─────────────────────────────────────────────────────
   let dono: FiltroDeDono | null = null;
   if (token) {
-    const v = await validatePortalAccess(token);
-    if (v.valid && v.record) {
+    // 🔴 RODADA 3: o dono vinha do REGISTRO do token (o ponteiro). Agora vem do
+    // ESCOPO CONGELADO. Fail-closed continua: token sem dono não abre nada — um
+    // `OR: []` no Prisma não filtra, devolveria a peça de qualquer um.
+    const esc = await escopoDoToken(token);
+    if (esc.ok) {
       dono = {
         tipo: "portal",
-        clientId: v.record.clientId ?? null,
-        clientRequestId: v.record.clientRequestId ?? null,
+        clientId: esc.clientId,
+        clientRequestId: esc.clientRequestIds[0] ?? null,
       };
-      // Token válido que não aponta para dono nenhum não abre nada. Fail-closed:
-      // um `OR: []` no Prisma não filtra — devolveria a peça de qualquer um.
-      if (!v.record.clientId && !v.record.clientRequestId) dono = null;
     }
   } else {
     const session = await getSession();

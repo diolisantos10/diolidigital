@@ -87,9 +87,11 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
   // A conversa fica vazia (o servidor não devolve mensagem nenhuma) e a caixa
   // de texto sai — enviar aqui gravaria na conversa de outra pessoa.
   const [divergente, setDivergente] = useState(false);
-  // Quantas linhas antigas o servidor não conseguiu atribuir com segurança.
-  // Existe para o cliente NÃO concluir que a agência apagou a conversa dele.
-  const [ocultadas, setOcultadas] = useState(0);
+  // O servidor cortou parte do histórico antigo por não conseguir atribuí-lo.
+  // É um SIM/NÃO de propósito: o número diria ao cliente o volume de mensagens
+  // de outra marca. Existe para ele NÃO concluir que a agência apagou a
+  // conversa dele.
+  const [historicoParcial, setHistoricoParcial] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [linkDraft, setLinkDraft] = useState("");
   const [suggesting, setSuggesting] = useState(false);
@@ -169,10 +171,12 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
         return;
       }
       const data = (await res.json()) as {
-        messages?: ChatMessage[]; podeEnviar?: boolean; motivo?: string; ocultadas?: number;
+        messages?: ChatMessage[]; podeEnviar?: boolean; motivo?: string;
       };
       setMessages(data.messages ?? []);
-      setOcultadas(data.motivo === "historico-parcial" ? (data.ocultadas ?? 0) : 0);
+      // Sem número: a contagem do que foi cortado é do lado da AGÊNCIA (censo).
+      // Devolvê-la ao cliente entregava o volume do acervo de outro.
+      setHistoricoParcial(data.motivo === "historico-parcial");
       // "sem dono" e "dono divergente" são fatos DIFERENTES e a tela precisa
       // dizer qual é: o primeiro é acesso mal emitido (a agência resolve), o
       // segundo é a credencial de outro cliente neste navegador (recarregar
@@ -258,16 +262,12 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
 
   return (
     <div className={`flex flex-col bg-white overflow-hidden ${bare ? "flex-1 min-h-0" : "rounded-[12px] border border-[var(--border)]"}`}>
-      {ocultadas > 0 && !divergente && (
+      {historicoParcial && !divergente && (
         <div className="px-4 pt-3" role="status">
           <div className="rounded-[10px] px-3 py-2" style={{ background: "#FFFBEB" }}>
             <p className="text-[11.5px] leading-snug" style={{ color: "#9B7B2D" }}>
-              <b>
-                {ocultadas === 1
-                  ? "1 mensagem antiga não está aparecendo aqui."
-                  : `${ocultadas} mensagens antigas não estão aparecendo aqui.`}
-              </b>{" "}
-              Não conseguimos confirmar a qual marca elas pertencem, então preferimos não
+              <b>Parte do histórico antigo não está aparecendo aqui.</b>{" "}
+              Não conseguimos confirmar a origem dessas mensagens, então preferimos não
               mostrar. <b>Nada foi apagado</b> — é só pedir à equipe Dioli.
             </p>
           </div>

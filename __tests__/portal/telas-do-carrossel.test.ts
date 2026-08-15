@@ -14,6 +14,7 @@
 //     (nunca lido até hoje) vira peça com URLs /api/media/<id>;
 //   • PATCH aceita mediaUrlsJson como array de strings, normalizado.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -30,9 +31,11 @@ const db = vi.hoisted(() => ({
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const resolvePortalClient = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, resolvePortalClient }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, resolvePortalClient, escopoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { GET as listarPosts } from "@/app/api/social-posts/route";
@@ -59,6 +62,7 @@ const SESSAO = { session: { userId: "u1", email: "m@d", name: "M", role: "master
 
 beforeEach(() => {
   vi.clearAllMocks();
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   requireSession.mockResolvedValue(SESSAO);
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: null, clientId: "cli-foocci" } });
   resolvePortalClient.mockResolvedValue({ clientId: "cli-foocci", workspaceId: "ws1" });

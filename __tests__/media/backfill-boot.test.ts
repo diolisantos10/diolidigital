@@ -23,6 +23,7 @@
 //   ✅ o card reaberto guarda o registro da decisão anterior — histórico não
 //      se perde, e o cliente continua com UM card só.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { execSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
@@ -40,9 +41,10 @@ const DB_PATH = vi.hoisted(() => {
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const resolvePortalClient = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/agency/persistence/portal-access-service", () => ({
-  validatePortalAccess, resolvePortalClient,
-}));
+  validatePortalAccess, resolvePortalClient, escopoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { NextRequest } from "next/server";

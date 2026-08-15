@@ -12,6 +12,7 @@
 //      (carrossel com buraco no meio é pior que carrossel nenhum);
 //   ⛔ a rota não escreve nada e não fala com plataforma nenhuma.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import AdmZip from "adm-zip";
@@ -23,13 +24,14 @@ const db = vi.hoisted(() => ({
 const getSession = vi.hoisted(() => vi.fn());
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const lerArquivo = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/auth/session", () => ({ getSession }));
 vi.mock("@/lib/agency/persistence/portal-access-service", () => ({
   validatePortalAccess,
-  resolvePortalClient: vi.fn(),
-}));
+  resolvePortalClient: vi.fn(), escopoDoToken }));
 // `MIMES_ACEITOS` continua sendo o de verdade: a extensão do arquivo tem de sair
 // da MESMA tabela que o upload usou, e um mock aqui esconderia justamente a
 // divergência que esse compartilhamento existe para impedir.
@@ -62,6 +64,7 @@ const ctx = { params: Promise.resolve({ id: "sp1" }) };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   getSession.mockResolvedValue(SESSAO);
   validatePortalAccess.mockResolvedValue({ valid: false });
   // O mock honra o `where` como o Prisma faria: se a rota esquecer o dono, o

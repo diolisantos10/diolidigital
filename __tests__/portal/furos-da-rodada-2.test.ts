@@ -28,7 +28,7 @@ import { prisma } from "@/lib/db/client";
 import { GET as lerConversa } from "@/app/api/portal/messages/route";
 import { GET as lerVista } from "@/app/api/portal/vista/route";
 import { donoDoToken, resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
-import { conversaDaSolicitacao } from "@/app/api/messages/conversa";
+import { conversaDaSolicitacao, conversaDoCliente } from "@/app/api/messages/conversa";
 import { gravarMensagemDoPortal } from "@/lib/agency/portal/mensagem-do-portal";
 import { donoConfere } from "@/lib/agency/portal/dono-da-tela";
 import { PORTAL_COOKIE } from "@/lib/agency/persistence/portal-cookie";
@@ -250,5 +250,129 @@ describe("FURO C — em modo cookie o selo é OBRIGATÓRIO", () => {
   it("a regra, isolada: exigir=true recusa ausência; exigir=false tolera", () => {
     expect(donoConfere(alfa, undefined, true)).toBe(false);
     expect(donoConfere(alfa, undefined, false)).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 RODADA 3 — AS DUAS METADES QUE NÃO TINHAM GATE NENHUM
+//
+// O `seguranca` mutou duas guardas e a suíte INTEIRA passou (4488 verdes, zero
+// falhas). "Sem gate = reprovado" é doutrina desta casa. Estes testes são o
+// gate — e o comentário mais importante do arquivo ("falha de leitura FECHA,
+// não abre") passa a ter prova.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("fail-closed da cerca: falha de leitura FECHA, não abre", () => {
+  it("⛔ se a sonda de contaminação FALHA, lê-se só por clientId — nunca pela união", async () => {
+    const espiao = vi.spyOn(prisma.portalMessage, "findMany");
+    // A sonda é a PRIMEIRA chamada de `findMany` da leitura.
+    espiao.mockRejectedValueOnce(new Error("banco tropeçou"));
+
+    const c = await conversaDoCliente(alfa);
+
+    // Sem saber quais solicitações estão limpas, a união NÃO pode ser montada:
+    // o filtro fica preso ao dono. Se este teste cair, o `catch` virou
+    // fail-OPEN e um tropeço de banco vira vazamento entre clientes.
+    expect(JSON.stringify(c.filtro)).not.toContain("clientRequestId");
+    expect(c.filtro).toEqual({
+      AND: [{ clientId: alfa }, { OR: [{ clientId: alfa }, { clientId: null }] }],
+    });
+    espiao.mockRestore();
+  });
+
+  it("✅ e com a sonda respondendo, a união volta (a cerca não é sempre-fechada)", async () => {
+    const c = await conversaDoCliente(alfa);
+    expect(JSON.stringify(c.filtro)).toContain("clientRequestId");
+  });
+});
+
+describe("o corte deixou de ser mudo — e não conta o acervo do vizinho", () => {
+  it("⛔ com corte, a rota manda MOTIVO e NENHUM número", async () => {
+    // 1 carimbada do BETA + 2 legadas, na solicitação que trocou de dono:
+    // é o cenário exato do probe do `seguranca`.
+    const r = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: alfa, businessName: "x", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    await prisma.portalMessage.create({
+      data: { clientRequestId: r.id, clientId: beta, authorRole: "team", authorName: "x", body: "do-beta" },
+    });
+    for (const b of ["legada-1", "legada-2"]) {
+      await prisma.portalMessage.create({
+        data: { clientRequestId: r.id, authorRole: "team", authorName: "x", body: b },
+      });
+    }
+    await prisma.portalAccess.create({ data: { token: "tk-corte", clientId: alfa, clientRequestId: reqAlfa } });
+
+    const j = await (await lerConversa(get("/api/portal/messages?token=tk-corte"))).json();
+
+    expect(j.motivo).toBe("historico-parcial");
+    expect(typeof j.detalhe).toBe("string");
+    // 🔴 O NÚMERO NÃO PODE SAIR: `ocultadas: 2` seria a contagem do acervo do
+    // outro cliente. Volume é metadado, e metadado vaza.
+    expect(j.ocultadas).toBeUndefined();
+    expect(JSON.stringify(j)).not.toMatch(/"ocultadas"/);
+    // E nada do BETA atravessa junto.
+    expect(JSON.stringify(j)).not.toContain("do-beta");
+  });
+
+  it("✅ sem corte, NÃO inventa aviso — conversa limpa sai limpa", async () => {
+    await prisma.portalAccess.create({ data: { token: "tk-limpo", clientId: beta } });
+    const j = await (await lerConversa(get("/api/portal/messages?token=tk-limpo"))).json();
+    expect(j.motivo).toBeUndefined();
+    expect(j.podeEnviar).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 RODADA 3 — FURO B FECHOU EM 5 ROTAS E FICOU ABERTO EM 4
+//
+// A lição, nas palavras do `seguranca`: **"a trava vai onde o id é USADO —
+// converter a função central não converte quem não a chama."**
+//
+// A rodada 2 converteu `donoDoToken` e 5 rotas. Quatro continuaram lendo
+// `access.record.clientRequestId` — o ponteiro cru — e nelas o furo seguiu
+// aberto. A pior não era leitura: `/api/portal/approvals` **APROVOU uma
+// entrega de outro cliente** com token alheio (`200 {"status":"approved"}`), e
+// nesta casa entrega aprovada publica.
+//
+// Este bloco cobre TODAS as portas que a varredura achou (8), não só as 4
+// nomeadas — o mesmo erro de "converter só o que apontaram" não se repete.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("ponteiro andado: TODAS as portas do token fecham", () => {
+  it("⛔ nenhuma rota de portal serve o cliente novo com o token antigo", async () => {
+    const { GET: portalData } = await import("@/app/api/brain/portal-data/route");
+    const { POST: decidirAprovacao } = await import("@/app/api/portal/approvals/route");
+    const { GET: esteiraGET } = await import("@/app/api/portal/esteira/route");
+    const { GET: socialPosts } = await import("@/app/api/social-posts/route");
+    const { GET: marcaGET } = await import("@/app/api/portal/marca/route");
+
+    // O token do ALFA, congelado. Depois o ponteiro anda para o BETA.
+    await prisma.portalAccess.create({ data: { token: "tk-r3", clientId: alfa, clientRequestId: reqAlfa } });
+    await lerVista(get("/api/portal/vista?token=tk-r3")); // congela
+    await prisma.clientRequestDb.update({ where: { id: reqAlfa }, data: { clientId: beta } });
+
+    const portas: [string, Response][] = [
+      ["portal-data", await portalData(get("/api/brain/portal-data?token=tk-r3"))],
+      ["esteira", await esteiraGET(get("/api/portal/esteira?token=tk-r3"))],
+      ["social-posts", await socialPosts(get("/api/social-posts?token=tk-r3"))],
+      ["marca", await marcaGET(get("/api/portal/marca?token=tk-r3"))],
+      ["vista", await lerVista(get("/api/portal/vista?token=tk-r3"))],
+      ["messages", await lerConversa(get("/api/portal/messages?token=tk-r3"))],
+    ];
+
+    for (const [nome, res] of portas) {
+      const bruto = JSON.stringify(await res.json().catch(() => ({})));
+      // Nem 200 com dado do BETA, nem o nome dele em lugar nenhum.
+      expect(res.status, `${nome} devolveu ${res.status}`).toBeGreaterThanOrEqual(400);
+      expect(bruto, `${nome} vazou o nome do BETA`).not.toContain("Loja BETA");
+    }
+
+    // A pior de todas: ESCRITA. Ela não pode nem chegar a decidir.
+    const escrita = await decidirAprovacao(
+      new NextRequest("http://localhost/api/portal/approvals", {
+        method: "POST",
+        body: JSON.stringify({ token: "tk-r3", approvalRequestId: "qualquer", action: "approve" }),
+      }),
+    );
+    expect(escrita.status).toBe(403);
   });
 });

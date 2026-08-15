@@ -18,6 +18,7 @@
 // E o ramo de PORTAL do GET: `clientRequestId` sozinho é um id global. Filtrar
 // só por ele é apostar que nenhum id de outro inquilino jamais encosta ali.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -31,14 +32,15 @@ const requireSession = vi.hoisted(() => vi.fn());
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const getSession = vi.hoisted(() => vi.fn());
 const guardarArquivo = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 vi.mock("@/lib/auth/session", () => ({ getSession }));
 vi.mock("@/lib/agency/persistence/portal-access-service", () => ({
   validatePortalAccess,
-  resolvePortalClient: vi.fn(),
-}));
+  resolvePortalClient: vi.fn(), escopoDoToken }));
 vi.mock("@/lib/agency/media/armazenamento", () => ({
   guardarArquivo,
   MAX_BYTES_POR_ARQUIVO: 25 * 1024 * 1024,
@@ -83,6 +85,7 @@ function bancoDeDoisInquilinos() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db, { resolvePortalClient }));
   requireSession.mockResolvedValue({ session: { workspaceId: "ws-A", email: "staff@a.com" }, error: null });
   getSession.mockResolvedValue({ workspaceId: "ws-A", email: "staff@a.com" });
   db.socialPost.findFirst.mockResolvedValue(POST_EXISTENTE);

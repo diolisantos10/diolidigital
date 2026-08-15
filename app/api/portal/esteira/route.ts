@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { statusPelaSolicitacao } from "@/lib/agency/esteira/retrato";
 import { aprovarDirecao, aprovarPacote } from "@/lib/agency/esteira/marcos";
@@ -45,13 +45,10 @@ async function nomeDoClienteDoToken(token: string): Promise<string> {
     const record = await prisma.portalAccess.findUnique({
       where: { token }, select: { clientId: true, clientRequestId: true },
     });
-    let clientId = record?.clientId ?? null;
-    if (!clientId && record?.clientRequestId) {
-      const solicitacao = await prisma.clientRequestDb.findUnique({
-        where: { id: record.clientRequestId }, select: { clientId: true },
-      });
-      clientId = solicitacao?.clientId ?? null;
-    }
+    // 🔴 RODADA 3: aqui se RE-DERIVAVA o dono do ponteiro
+    // (`record.clientRequestId` → `clientId`), e era esse nome que ia parar na
+    // AUTORIA da aprovação. Só o `clientId` CONGELADO no registro vale.
+    const clientId = record?.clientId ?? null;
     if (!clientId) return anonimo;
     const cliente = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
     return (cliente?.name ?? "").trim() || anonimo;
@@ -64,22 +61,23 @@ async function nomeDoClienteDoToken(token: string): Promise<string> {
 
 /** Resolve a solicitação do cliente a partir do token. Único caminho público. */
 async function solicitacaoDoToken(token: string): Promise<{ id: string } | { erro: string; codigo: number; clientId?: string }> {
-  const acesso = await validatePortalAccess(token);
-  if (!acesso.valid) return { erro: "Acesso negado", codigo: 403 };
-
-  const direto = acesso.record?.clientRequestId;
-  if (direto) return { id: direto };
-
-  const clientId = acesso.record?.clientId;
-  if (!clientId) return { erro: "Acesso sem projeto vinculado", codigo: 404 };
-
-  const ultima = await prisma.clientRequestDb.findFirst({
-    where: { clientId },
-    orderBy: { createdAt: "desc" },
-    select: { id: true },
-  });
-  if (!ultima) return { erro: "Ainda não há projeto para acompanhar", codigo: 404, clientId };
-  return { id: ultima.id };
+  // 🔴 RODADA 3 — ESTA ROTA "FECHAVA POR SORTE DO ESTADO, NÃO POR TRAVA"
+  // (palavras do `seguranca`): ela devolvia 200 onde as convertidas devolviam
+  // 403, porque pegava `acesso.record.clientRequestId` — o ponteiro — antes de
+  // olhar o dono. Agora o escopo é o CONGELADO e a solicitação sai do CLIENTE.
+  const escopo = await escopoDoToken(token);
+  if (!escopo.ok) {
+    return escopo.motivo === "ponteiro_andou"
+      ? { erro: "Acesso negado", codigo: 403 }
+      : escopo.motivo === "token_invalido"
+        ? { erro: "Acesso negado", codigo: 403 }
+        : { erro: "Acesso sem projeto vinculado", codigo: 404 };
+  }
+  const primeira = escopo.clientRequestIds[0];
+  if (!primeira) {
+    return { erro: "Ainda não há projeto para acompanhar", codigo: 404, clientId: escopo.clientId ?? undefined };
+  }
+  return { id: primeira };
 }
 
 /**

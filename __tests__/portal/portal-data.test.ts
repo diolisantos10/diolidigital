@@ -6,6 +6,7 @@
 // A1: o filtro de preço era uma regex que "USD 500" e "3k" atravessavam.
 // Visibilidade: entrega "interno" nunca abastece card de portal.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -19,9 +20,11 @@ const db = vi.hoisted(() => ({
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, escopoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { GET } from "@/app/api/brain/portal-data/route";
@@ -46,6 +49,7 @@ function req(): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
   db.clientRequestDb.findUnique.mockResolvedValue({ ...SOLICITACAO });
   db.brainArtifact.findMany.mockResolvedValue([]);

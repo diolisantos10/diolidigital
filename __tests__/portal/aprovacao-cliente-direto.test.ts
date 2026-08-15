@@ -11,6 +11,7 @@
 //   4. A4 fechado até o DOM: em modo cookie a URL de mídia sai SEM ?token=,
 //      e a rota de mídia autentica pelo cookie httpOnly.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -34,9 +35,11 @@ const addApprovalComment = vi.hoisted(() => vi.fn());
 const getSession = vi.hoisted(() => vi.fn());
 const lerArquivo = vi.hoisted(() => vi.fn());
 const assinaturaValida = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, escopoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 vi.mock("@/lib/auth/session", () => ({ getSession }));
 vi.mock("@/lib/agency/media/armazenamento", () => ({ lerArquivo, assinaturaValida }));
@@ -97,6 +100,7 @@ function reqDecisao(body: Record<string, unknown>): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   requireSession.mockResolvedValue(SESSAO_MASTER);
   db.socialPost.findMany.mockResolvedValue(SEIS_POSTS);
   db.socialPost.updateMany.mockResolvedValue({ count: 6 });
