@@ -67,12 +67,12 @@ import { postsComFormatoRecusado } from "@/lib/agency/execution/reconversao-de-f
 
 /** Quantas artes por rodada. Cada uma é uma chamada cara de modelo de imagem —
  *  um calendário de 12 posts custaria 12 de uma vez se não houvesse teto. */
-const MAX_ARTES_POR_RODADA = 6;
+export const MAX_ARTES_POR_RODADA = 6;
 
 /** Depois disto, a peça para de tentar sozinha. Modelo de imagem falha por
  *  motivos que não melhoram com insistência (conteúdo recusado, conta sem
  *  acesso), e cada tentativa custa. */
-const MAX_TENTATIVAS_POR_PECA = 3;
+export const MAX_TENTATIVAS_POR_PECA = 3;
 
 /**
  * ── O TETO DIÁRIO DE IMAGENS POR CLIENTE ────────────────────────────────────
@@ -92,13 +92,13 @@ const MAX_TENTATIVAS_POR_PECA = 3;
  * É teto de SEGURANÇA, não orçamento comercial — orçamento por cliente e por
  * contrato ainda não existe nesta casa, e este número não o substitui.
  */
-const MAX_IMAGENS_POR_CLIENTE_POR_DIA = 40;
+export const MAX_IMAGENS_POR_CLIENTE_POR_DIA = 40;
 
 /** Teto de telas de um carrossel. Cada tela é UMA geração paga — carrossel de
  *  12 telas custa 12 imagens. O contrato de saída do especialista (3 a 6) é
  *  conferido em `especialistas.ts`; aqui é o cinto, porque a peça pode ter
  *  nascido antes daquela trava existir. */
-const MAX_TELAS_POR_CARROSSEL = 6;
+export const MAX_TELAS_POR_CARROSSEL = 6;
 
 export interface ArtesFeitas {
   produzidas: number;
@@ -117,13 +117,29 @@ export interface ArtesFeitas {
 }
 
 /**
+ * O recorte OPCIONAL de uma rodada de arte.
+ *
+ * Existe por uma razão de DINHEIRO, não de comodidade: a rodada é global (pega
+ * as 6 peças mais antigas da casa inteira), e um botão que diz "produz as peças
+ * da CityJobs" chamando-a sem recorte gastaria imagem paga de Foocci, Camila e
+ * de quem mais tivesse peça na fila. O operador autorizaria um cliente e pagaria
+ * por quatro.
+ *
+ * Ausente = a rodada de sempre, byte por byte. É isso que o despertador chama.
+ */
+export interface RecorteDaRodadaDeArte {
+  /** Só as peças DESTE cliente. `undefined` = todos, como sempre foi. */
+  clientId?: string;
+}
+
+/**
  * Produz a arte que falta nos posts já agendados.
  *
  * Só toca em post SEM mídia. Post com foto do cliente não é sobrescrito: a foto
  * real da padaria dele vale mais que qualquer imagem gerada, e trocá-la seria a
  * agência decidindo que sabe melhor.
  */
-export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
+export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}): Promise<ArtesFeitas> {
   const saida: ArtesFeitas = { produzidas: 0, falhas: [], desistiram: [], semOrcamento: [] };
 
   // ── O DINHEIRO SAI ANTES DA PORTA FECHAR (08/08/2026) ─────────────────────
@@ -157,7 +173,15 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
   }
 
   const pendentes = await prisma.socialPost.findMany({
-    where: { mediaUrl: null, status: { in: ["draft", "scheduled", "approved"] } },
+    where: {
+      mediaUrl: null,
+      status: { in: ["draft", "scheduled", "approved"] },
+      // O recorte por cliente é OPCIONAL e some quando ninguém o pede — sem ele
+      // o `where` é idêntico ao de sempre. `clientId: undefined` seria ignorado
+      // pelo Prisma de qualquer forma; a condicional está aqui para que a
+      // ausência seja legível para quem lê, não só para o driver.
+      ...(recorte.clientId ? { clientId: recorte.clientId } : {}),
+    },
     // `mediaUrl: null` cobre o carrossel também: ele só recebe a capa quando
     // TODAS as telas ficam prontas, então um carrossel pela metade continua
     // aparecendo como pendente na rodada seguinte.
@@ -541,7 +565,7 @@ function abrirOrcamentoDoDia(): OrcamentoDeImagens {
 
 /** Quantas vezes esta peça já falhou. O contador mora no próprio `lastError`
  *  para não inventar mais uma coluna que um dia diverge do que aconteceu. */
-function contarTentativas(lastError: string | null): number {
+export function contarTentativas(lastError: string | null): number {
   const m = lastError?.match(/^\[arte (\d+)\//);
   return m ? Number(m[1]) : 0;
 }

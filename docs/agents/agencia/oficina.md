@@ -682,3 +682,133 @@ dos testes de reversão ficam vermelhos — inclusive o que prova que aprovaçã
 - **Linhas antigas com o carimbo seco continuam no banco.** A leitura sabe
   recusá-las; não houve varredura retroativa, e ela não deveria acontecer sem
   alguém decidir o que fazer com cada uma.
+
+---
+
+## 2026-08-15 — "Produz as peças": a esteira não tinha o botão de produzir
+
+**Despacho:** ordem do CEO, *"produz as peças"* para a CityJobs, corrigida no
+meio para *"deixe produzir mais peças"*. Nada foi publicado nesta sessão e
+nenhuma chamada de plataforma foi feita.
+
+### 1. O que dispara produção, medido
+
+A produção tem TRÊS trechos e **nenhum deles tinha porta de entrada por HTTP**:
+
+| Trecho | Função | Quem chama hoje |
+|---|---|---|
+| escrever a entrega | `runProjectExecution` (`lib/agency/execution/run-execution.ts:209`) | `/api/cron/execute` (só `running` travado e `failed`) e o despertador (também `pending`) |
+| a entrega virar PEÇA com data | `agendarPostsDaEntrega` (`lib/agency/esteira/publicacao.ts:278`) | só `marcos.apresentar:328`, `mes.apresentarCiclo:790` e `escada/repescagem:175` |
+| a IMAGEM — a parte PAGA | `produzirArtesPendentes` (`lib/agency/execution/artes.ts:126`) | **só `despertador.ts:324`. Zero rotas, zero workflows, zero scripts.** |
+
+**O achado central:** apertar `cron-execute` não produz criativo, e nunca ia
+produzir. Aquela rota chama só o motor de TEXTO, e ainda por cima **não recolhe
+projeto `pending` nem `idle`** — `route.ts:47-59` filtra `running` travado ou
+`failed`, e o despertador (`despertador.ts:67-81`) é o único que pega `pending`.
+Duas redes de segurança com peneiras diferentes para o mesmo problema.
+
+Os três trechos também são desalinhados no tempo: `agendarPostsDaEntrega` é
+idempotente por entrega e só roda em EVENTOS (apresentação, virada de ciclo,
+repescagem). Entrega liberada **depois** que esses eventos passaram fica no banco
+sem nunca virar peça — e ninguém sabe, porque cada peça tem o seu teste e todos
+passam. É a corrente arrebentada de novo, no mesmo lugar de sempre: a junta.
+
+### 2. O botão: `/api/admin/produzir-pecas` + `produzir-pecas.yml`
+
+Padrão da casa, sem inventar um segundo: Bearer `CRON_SECRET`, POST, segredo
+ausente → 503, corpo nunca no log, **leitura pura por padrão** e `?aplicar=1`
+para gravar. Um cliente por chamada — nome ambíguo recusa.
+
+**A conta vem antes da gravação, e é o ponto do módulo.** A leitura pura devolve
+quantas peças esperam arte, **quantas imagens** elas pedem (carrossel conta uma
+por tela), **quanto custam** e quanto do teto do dia já foi usado. Sem isso, o
+botão seria "aperte e descubra na fatura".
+
+**O custo é rotulado como estimativa em todo lugar onde aparece.** Esta casa não
+lê o faturamento do provedor; `PRECO_DE_TABELA_USD` diz `NÃO é fatura medida` no
+próprio campo que vai à resposta. Batizar tabela de medição é o defeito nº 1 do
+incidente do Drive numa quarta roupa.
+
+**O teto é contra laço, não contra volume** (correção do CEO no meio do
+despacho). Padrão 40, máximo 200, **visível no botão** para poder subir. Ele foi
+deliberadamente igualado ao teto DIÁRIO da casa (`MAX_IMAGENS_POR_CLIENTE_POR_DIA`,
+40) para que este botão nunca seja o freio mais estreito — quem freia continua
+sendo a trava de segurança que já existia, e há teste que fica vermelho se
+alguém subir aquele 40 "para deixar produzir mais".
+
+**Três travas de laço, e cada uma pega um caso diferente:** o teto efetivo
+(imagens), `MAX_RODADAS_DE_ARTE` (rodadas) e **parar na primeira rodada sem
+progresso**. A terceira é a que importa: peça que desistiu continua com
+`mediaUrl: null`, volta na consulta seguinte e é pulada — sem ela, uma fila
+morta viraria laço a girar de graça.
+
+**Respiro de 2s entre rodadas.** Não muda o tempo total (cada imagem já leva
+dezenas de segundos), e existe para que volume alto nunca vire lote em ritmo de
+máquina — o formato exato do incidente de 03/08.
+
+### 3. O recorte por cliente, que é sobre dinheiro
+
+`produzirArtesPendentes` é **global**: pega as 6 peças mais antigas da casa
+inteira. Um botão que diz "produz as peças da CityJobs" chamando-a sem recorte
+gastaria imagem paga de Foocci e Camila — o operador autorizaria um cliente e
+pagaria por quatro. Daí `RecorteDaRodadaDeArte { clientId? }`, opcional, com o
+`where` idêntico ao de sempre quando ninguém o pede. O despertador continua
+chamando sem argumento, e há teste lendo o FONTE dos dois para provar isso.
+
+### 4. Nenhuma trava foi afrouxada — e o arquivo não decide nada
+
+`produzir-agora.ts` não julga qualidade, verdade, escada nem pilar. Ele chama as
+MESMAS funções do despertador e obedece: sem `directionApprovedAt` o motor recusa
+e o relatório **nomeia o portão**; entrega que a escada não liberou não vira peça
+(`motivoParaNaoVirarCalendario`); pilar bloqueado não vira peça nem imagem; sem
+Chromium a passada para **antes** de pagar a primeira imagem.
+
+`motivoParaNaoReceberArte` espelha em LEITURA as três recusas de
+`produzirArtesPendentes`, lendo os mesmos objetos. Uma régua própria diria "vai
+sair" para peça que a produção recusa — e número que promete o que a máquina não
+faz é pior que número nenhum.
+
+**Não publica, e é o FONTE que prova**: teste que lê os dois arquivos novos, tira
+comentários, e reprova se aparecer `publishPost`, `graph.facebook`,
+`publicarAgendados`, `trava-de-publicacao`, `PUBLICACAO_ORGANICA`, `aprovarPacote`
+ou `updateApprovalStatus`. Mock não prova ausência de caminho que nem foi
+importado.
+
+### 5. A ficha de marca da CityJobs a 22% — o que isso custa, medido
+
+Não é estética. São duas consequências de código:
+
+- **`marca.naoConstituida` BARRA A PUBLICAÇÃO** (`publicacao.ts:699`): *"este
+  cliente não declarou nenhuma regra de marca — publicar em nome dele agora é a
+  agência escolhendo a marca por ele"*. As peças produzidas ficam prontas e **não
+  saem**, por construção. Não é defeito; é a trava certa disparando.
+- **Sem arquivo de logo**, `moldeComLogo` assina com o **monograma das iniciais**
+  e declara `LACUNA_DO_LOGO` (`molde.ts:333`). A marca que assina é derivada pela
+  agência.
+
+O que NÃO piora, e vale dizer porque é a metade que costuma ser esquecida: o
+**cérebro criativo** do CityJobs está registrado (`repertorio-registrado.ts:263`),
+então a lista `NUNCA` dele chega ao gerador de imagem. E as **proibições do
+briefing** sobrevivem à ficha vazia — são lidas do banco e sincronizadas em
+`run-execution.ts:423`.
+
+### Verificação
+
+`npx tsc --noEmit` limpo. Suíte: **230 arquivos, 3770 verdes, 1 pulado** (35
+testes novos). **Mutação conferida:** (a) trocando o fail-closed do contador
+diário por `?? 0`, 1 teste fica vermelho; (b) fazendo a passada executar TODO
+projeto em vez de só os sem portão, 2 ficam vermelhos — inclusive o que prova que
+o portão de direção não é pulado.
+
+### O que fica aberto (não decidi sozinho)
+
+- **O estado da CityJobs no banco NÃO foi medido.** Não há acesso a Postgres de
+  produção nesta rodada. O que se sabe pelo código é o CAMINHO; quantas peças
+  esperam arte hoje só a leitura pura do botão responde — e ela não gasta nada.
+- **A ficha de marca em 22% barra a publicação.** Preencher é decisão do dono do
+  negócio (é a marca dele), não minha. Enquanto isso, produzir é seguro e
+  publicar é impossível — o que é o desenho correto, não um bug.
+- **O selo dos pilares do CityJobs continua sem caber em 3 palavras.** Pendência
+  de 08/08 ainda aberta: peça sai completa, sem a etiqueta do pilar.
+- **A rota não foi exercitada contra produção.** Ela é leitura pura por padrão,
+  então a primeira passada é gratuita — mas ninguém a rodou ainda.
