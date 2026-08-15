@@ -61,6 +61,37 @@ import {
 } from "@/lib/agency/esteira/operacoes";
 import { registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
 
+/**
+ * O que o cliente já anexou, dito ao modelo em uma linha.
+ *
+ * Sem isto a máquina pede o briefing que está anexado — foi o defeito de
+ * 15/08/2026. Guardar arquivo e não mencioná-lo é o mesmo que não tê-lo.
+ */
+export function listarAnexos(attachmentsJson: string | null | undefined): string {
+  let urls: unknown;
+  try {
+    urls = JSON.parse(attachmentsJson || "[]");
+  } catch {
+    // JSON quebrado não pode virar "não tem anexo": isso reintroduz o defeito.
+    return "ANEXOS: o cliente enviou material, mas não consegui listá-lo aqui. NÃO peça a ele o que já foi enviado — escale para a equipe.";
+  }
+  if (!Array.isArray(urls) || urls.length === 0) return "ANEXOS: nenhum.";
+
+  const nomes = urls
+    .filter((u): u is string => typeof u === "string")
+    .map((u) => u.split("/").pop() || u)
+    .slice(0, 10);
+
+  return [
+    `ANEXOS: o cliente enviou ${nomes.length} arquivo(s) — ${nomes.join(", ")}.`,
+    "Você NÃO consegue ler o conteúdo deles. Considere que a informação pode estar ali:",
+    "NUNCA peça ao cliente para descrever o que ele já anexou. Se o anexo for necessário",
+    "para classificar, escale para a equipe dizendo que o material está anexado e precisa",
+    "ser lido por alguém.",
+  ].join("\n");
+}
+
+
 /** Depois disto, `em_triagem`/`em_producao` quer dizer "o processo morreu no
  *  meio". Mesmo valor que o motor de produção usa para a trava dele — e é o que
  *  impede a trava de virar armadilha. */
@@ -513,6 +544,20 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     `O que ele quer: ${pedido.description}`.slice(0, 4000),
     `Para qual objetivo: ${pedido.objective}`.slice(0, 600),
     pedido.desiredFor ? `Data que ele pediu: ${comoDataDeTarefa(pedido.desiredFor)}` : "Data: não informada.",
+    // ── O ANEXO EXISTE, E A MÁQUINA NÃO SABIA ────────────────────────────
+    // O CEO subiu um projeto com o briefing inteiro em PDF e a triagem
+    // respondeu "sem acesso ao documento, é impossível identificar o
+    // atendimento" — perguntando o que já estava anexado. A causa era esta
+    // linha não existir: o prompt levava só `description` e `objective`, e o
+    // anexo ficava guardado em `attachmentsJson` sem nunca ser mencionado.
+    //
+    // Dizer QUE existe anexo não é o mesmo que LER o anexo, e a diferença
+    // importa: com esta linha o modelo para de pedir o que já foi enviado e
+    // passa a poder classificar contando com o material. Ler o conteúdo do
+    // PDF é o passo seguinte — enquanto não existe, o pedido com anexo cai
+    // em `precisa_decisao` COM o anexo declarado, e não como se o cliente
+    // não tivesse mandado nada.
+    listarAnexos(pedido.attachmentsJson),
     "──────── FIM DO PEDIDO ────────",
   ].join("\n");
 

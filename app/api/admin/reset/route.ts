@@ -24,8 +24,15 @@
 //     solicitações, desligadas de qualquer cliente. É o zero de quem vai
 //     recomeçar a operação A PARTIR das solicitações que já chegaram.
 //
-//   "everything" — apaga as solicitações também. Zero absoluto, sem porta de
-//     entrada. Só faça isto se as solicitações atuais forem lixo de teste.
+//   "everything" — apaga as solicitações também. Zero absoluto do que a esteira
+//     produziu e cadastrou, sem porta de entrada.
+//
+//   "inauguracao" — o `everything` MAIS a periferia do cliente: o que ele
+//     conectou (Meta, Google, Drive, chaves de IA dele), o que ele enviou
+//     (mídias, materiais), o que a casa mediu sobre ele (métricas, campanhas,
+//     lançamentos) e o login de portal dele. A agência fica de pé: workspace,
+//     equipe, chaves da casa e a conta da Meta DA AGÊNCIA continuam intactas.
+//     É o "como se estivéssemos inaugurando".
 //
 // O que NENHUM dos modos toca: workspace, usuários e login, chaves de IA e
 // integrações, contas conectadas da Meta, o Radar de mercado, a governança do
@@ -39,9 +46,9 @@ import { getSession } from "@/lib/auth/session";
 
 const CONFIRM_PHRASE = "DELETE_ALL_OPERATIONAL_DATA";
 
-type Mode = "keep-clients" | "keep-requests" | "everything";
+type Mode = "keep-clients" | "keep-requests" | "everything" | "inauguracao";
 
-const MODES: Mode[] = ["keep-clients", "keep-requests", "everything"];
+const MODES: Mode[] = ["keep-clients", "keep-requests", "everything", "inauguracao"];
 
 /** Contagem do que é dado de cliente/projeto — o que o reset alcança. */
 async function countOperational() {
@@ -202,9 +209,58 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       await tx.client.deleteMany({});
     }
 
-    if (mode === "everything") {
+    if (mode === "everything" || mode === "inauguracao") {
       await tx.clientRequestDb.deleteMany({});
-    } else {
+    }
+
+    // ── MODO INAUGURAÇÃO ────────────────────────────────────────────────────
+    // Ordem do CEO (15/08/2026): *"a gente vai zerar a agência, como se a gente
+    // tivesse inaugurando, sem nenhum cliente (...) não quero nenhum resquício
+    // (...) configuração, integração, senha, tudo"*. O motivo é operacional, não
+    // capricho: ele vai percorrer a esteira etapa por etapa a partir do SDR, e
+    // resto de cliente antigo faz a máquina responder sobre coisa que não existe
+    // mais — corrige-se um defeito que era só fantasma.
+    //
+    // `everything` já zerava o que é PRODUÇÃO e CADASTRO. O que sobrevivia a ele
+    // era a periferia do cliente: o que ele conectou, o que ele enviou e o que a
+    // casa mediu sobre ele. Cada uma dessas linhas é um resquício que
+    // reapareceria numa tela.
+    //
+    // A FRONTEIRA, e ela é a razão de o modo existir separado: sai o que é DO
+    // CLIENTE; fica o que é DA CASA. Por isso as conexões e os ativos da Meta
+    // são apagados apenas quando têm `clientId` — a conta da própria agência
+    // (clientId nulo) é infraestrutura da casa, e derrubá-la exigiria reconectar
+    // tudo à mão para publicar o primeiro post.
+    if (mode === "inauguracao") {
+      // O que o cliente conectou.
+      await tx.metaConnection.deleteMany({ where: { NOT: { clientId: null } } });
+      await tx.metaAtivoAutorizado.deleteMany({ where: { NOT: { clientId: null } } });
+      await tx.googleConnection.deleteMany({ where: { NOT: { clientId: null } } });
+      await tx.googleDriveConnection.deleteMany({});
+      await tx.googleReview.deleteMany({});
+      await tx.clientAiProvider.deleteMany({});
+
+      // O que o cliente enviou, e o que a casa gerou para ele.
+      await tx.driveMaterial.deleteMany({});
+      await tx.mediaAsset.deleteMany({});
+
+      // O que a casa mediu ou anotou sobre ele.
+      await tx.metricaDePost.deleteMany({});
+      await tx.adCampaign.deleteMany({});
+      await tx.lancamentoFinanceiro.deleteMany({ where: { NOT: { clientId: null } } });
+      await tx.departmentLadderRecord.deleteMany({ where: { NOT: { clientId: null } } });
+
+      // Sobras de tabelas que não caem por cascata porque a mãe já se foi.
+      await tx.briefing.deleteMany({});
+      await tx.strategyRoom.deleteMany({});
+
+      // Usuário de PORTAL (o login do cliente) sai; a equipe da casa fica. Sem
+      // isto, a senha de um cliente que não existe mais continuaria abrindo
+      // porta — que é exatamente o "senha, tudo" da ordem.
+      await tx.user.deleteMany({ where: { NOT: { clientId: null } } });
+    }
+
+    if (mode !== "everything" && mode !== "inauguracao") {
       // A porta de entrada fica de pé, de volta ao começo da esteira. No modo
       // que apaga clientes, o vínculo também cai — apontaria para um fantasma.
       await tx.clientRequestDb.updateMany({

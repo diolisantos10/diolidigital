@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbClients } from "@/lib/hooks/useDbClients";
+import { AcoesDoCliente } from "@/components/agency/clients/AcoesDoCliente";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
@@ -26,7 +27,7 @@ function SourceBadge({ source }: { source: "db" | "local" }) {
 
 export default function ClientsPage() {
   const { projects, createClient } = useAgencyStore();
-  const { clients, source, loading } = useDbClients();
+  const { clients, source, loading, refetch } = useDbClients();
 
   const [search, setSearch]           = useState("");
   const [statusFilter, setStatusFilter] = useState<ClientStatus | "all">("all");
@@ -142,6 +143,7 @@ export default function ClientsPage() {
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Status</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Projetos</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Desde</th>
+                <th className="text-right px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -173,6 +175,15 @@ export default function ClientsPage() {
                   </td>
                   <td className="px-5 py-3.5 text-[13px] text-[var(--text-secondary)] mono-num">{getProjectCount(client.id)}</td>
                   <td className="px-5 py-3.5 text-[13px] text-[var(--text-muted)]">{client.createdAt.slice(0, 7)}</td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex justify-end">
+                      <AcoesDoCliente
+                        cliente={{ id: client.id, name: client.name }}
+                        outros={clients.filter((o) => o.id !== client.id).map((o) => ({ id: o.id, name: o.name }))}
+                        aoConcluir={refetch}
+                      />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
