@@ -36,7 +36,7 @@
  * pousa sempre no mesmo lugar.
  */
 
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -54,6 +54,11 @@ import { lerReivindicacoesDoDisco } from "../lib/coordenacao/leitura-do-registro
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PASTA_REIVINDICACOES = join(RAIZ, "reivindicacoes");
+
+/** Onde a identidade da sessão mora — DENTRO do worktree, nunca em
+ *  ".git/config" (ver o bloco "Identidade da sessão" abaixo, e o incidente
+ *  de 16/08/2026 que forçou esta mudança). */
+const CAMINHO_IDENTIDADE = join(RAIZ, ".dioli-quem");
 
 /** A branch que TODAS as sessões — inclusive as de worktree — compartilham.
  *  Ver o bloco "DECISÃO DE DESENHO" no cabeçalho do arquivo. */
@@ -198,7 +203,22 @@ function commitarEEmpurrar(
   git(["add", caminhoRelativo]);
   git(["commit", "-m", mensagem]);
 
-  const tentarPush = () => execFileSync("git", ["push", "origin", `HEAD:${branch}`], { cwd: RAIZ, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  // `--no-verify` É DELIBERADO — não é atalho, é o CONSERTO do deadlock medido
+  // em 16/08/2026. Sem ele, este push aciona o gancho pre-push, que roda
+  // "conferir", que por sua vez lê a MESMA responsabilidade que este comando
+  // acabou de gravar/encerrar — e pode barrar o push PELA PRÓPRIA
+  // reivindicação que ele está tentando empurrar. Isto já aconteceu: um "pm"
+  // fez tudo certo (abriu antes de trabalhar) e ficou trancado, porque
+  // "encerrar" só sai por push, e o push estava barrado pelo gancho que o
+  // próprio "encerrar" ia disparar.
+  //   A conferência de colisão contra o remoto já rodou, linhas acima
+  // (`conferirColisao` em `abrir`, ou a leitura de `existentes` em
+  // `encerrar`) — pedir para o gancho conferir de NOVO é conferência dupla, e
+  // conferência dupla contra o próprio commit que a gente está tentando subir
+  // só pode dar falso positivo. `abrir` já recusou colisão ANTES de escrever
+  // qualquer coisa; `encerrar` só REMOVE reivindicação, nunca adiciona risco.
+  // Nenhum dos dois precisa do gancho para se auto-policiar.
+  const tentarPush = () => execFileSync("git", ["push", "--no-verify", "origin", `HEAD:${branch}`], { cwd: RAIZ, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
   try {
     tentarPush();
@@ -242,65 +262,132 @@ function commitarEEmpurrar(
 // Identidade da sessão — persistida LOCAL, nunca versionada
 // ─────────────────────────────────────────────────────────────────────────
 //
-// MEDIÇÃO REAL (16/08/2026): o gancho pre-push chama "conferir" SEM --quem,
-// porque o gancho não sabe quem é a sessão. Sem saber "quem sou eu",
-// "conferir" não tem como distinguir "isto é a MINHA PRÓPRIA reivindicação"
-// de "isto é de outra sessão" — e passou a barrar pm-a27b5772 pela reivindicação
-// que pm-a27b5772 MESMO tinha aberto, corretamente, antes de trabalhar. Uma
-// trava que pune quem a obedeceu ensina a próxima pessoa a usar --no-verify,
-// e a partir daí o portão para de proteger qualquer coisa.
+// MEDIÇÃO REAL (16/08/2026, DUAS RODADAS):
 //
-// A saída: quando "abrir" grava uma reivindicação com sucesso, ele também
-// grava a identidade em ".git/config" (`git config --local dioli.quem <id>`).
-// Por quê ali, e não em algum arquivo do repositório:
-//   • ".git/config" é LOCAL por natureza — nunca é versionado, nunca vai para
-//     o remoto, nunca aparece em "git status". A identidade da sessão é um
-//     fato sobre ESTA MÁQUINA/ESTE CHECKOUT, não sobre o código, e não tem
-//     por que disputar merge com ninguém.
-//   • worktrees de agente compartilham o "git-common-dir" (é de lá que
-//     "instalar-gancho" já lê os hooks) — gravar a identidade ali faz ela
-//     valer para a sessão inteira, mesmo que ela troque de worktree no meio
-//     do trabalho, sem precisar de um arquivo extra para sincronizar.
-// "conferir" resolve "quem" nesta ordem: (a) a flag --quem, se foi dada —
-// quem digitou sabe melhor que qualquer cache; (b) "git config --get
-// dioli.quem", gravado por um "abrir" anterior desta mesma sessão; (c) se
-// nenhum dos dois existir, o comando NÃO FINGE que sabe quem é — inventar uma
-// identidade aqui seria pior que admitir a lacuna, porque uma identidade
-// errada faz a PRÓPRIA reivindicação da sessão parecer alheia (exatamente o
-// bug medido acima). Em vez disso ele avisa, claramente, que a identidade é
-// desconhecida e que reivindicações próprias não serão distinguidas — e
-// segue conferindo mesmo assim, porque falhar fechado por falta de identidade
-// bloquearia até quem nunca reivindicou nada.
+// Rodada 1: o gancho pre-push chama "conferir" SEM --quem, porque o gancho
+// não sabe quem é a sessão. Sem saber "quem sou eu", "conferir" não tem como
+// distinguir "isto é a MINHA PRÓPRIA reivindicação" de "isto é de outra
+// sessão" — e passou a barrar uma sessão pela reivindicação que ELA MESMA
+// tinha aberto, corretamente, antes de trabalhar.
+//
+// O conserto da rodada 1 foi gravar a identidade em ".git/config"
+// (`git config --local dioli.quem <id>`) — e essa escolha tinha um defeito
+// que só apareceu quando o rodou dentro de um WORKTREE de agente:
+//
+// Rodada 2, causa raiz MEDIDA (não suposta):
+//   git rev-parse --git-dir         -> .../.git/worktrees/agent-<hash>
+//   git rev-parse --git-common-dir  -> .../.git   (o repo PRINCIPAL)
+//   grep dioli .git/config (no repo principal) -> a chave [dioli] estava lá
+// "git config --local", dentro de um worktree, grava no GIT-COMMON-DIR — que
+// é COMPARTILHADO por todos os worktrees. Isto produzia dois defeitos:
+//   (1) o arquivo fica FORA do worktree isolado, então a gravação é recusada
+//       ao agente sandboxed — e o antigo "catch {}" silencioso escondia isso;
+//   (2) o common-dir é o MESMO para todos os worktrees: duas sessões
+//       gravando "dioli.quem" se SOBRESCREVEM, e uma sessão pode herdar a
+//       identidade de outra. Identidade ERRADA é pior que identidade
+//       AUSENTE — com ela, a trava passa a APROVAR o que deveria BARRAR.
+//
+// A saída: a identidade passa a morar em ".dioli-quem", um arquivo comum na
+// RAIZ do próprio worktree (a constante CAMINHO_IDENTIDADE, acima) — não em
+// ".git/config". É o único lugar que:
+//   • o agente isolado alcança com certeza, porque está DENTRO do worktree
+//     em que ele já lê e escreve;
+//   • NÃO colide entre worktrees, porque cada worktree tem a sua própria
+//     cópia do arquivo (nunca versionado — ver o ".gitignore").
+//
+// "conferir" resolve "quem" nesta ordem, do mais para o menos confiável:
+//   (a) a flag --quem, se foi dada — quem digitou sabe melhor que qualquer
+//       cache;
+//   (b) o arquivo ".dioli-quem" DESTE worktree, gravado por um "abrir"
+//       anterior desta mesma sessão;
+//   (c) "git config --get dioli.quem", só como COMPATIBILIDADE com uma
+//       identidade gravada pelo código ANTIGO antes deste conserto — e,
+//       quando é essa a única fonte, o comando AVISA que ela é compartilhada
+//       entre worktrees e pode pertencer a outra sessão;
+//   (d) nenhum dos três: o comando NÃO FINGE que sabe quem é — inventar uma
+//       identidade aqui seria pior que admitir a lacuna, porque uma
+//       identidade errada faz a PRÓPRIA reivindicação da sessão parecer
+//       alheia (o bug da rodada 1). Ele avisa, claramente, e segue
+//       conferindo mesmo assim — falhar fechado por falta de identidade
+//       bloquearia até quem nunca reivindicou nada.
 // ─────────────────────────────────────────────────────────────────────────
 
-/** Grava "quem sou eu" localmente após "abrir" ter sucesso. Falha aqui é
- *  conveniência perdida, não erro: a reivindicação em si já foi gravada e
- *  empurrada — um "git config" que não pegou (permissão, git-common-dir
- *  somente-leitura) não pode fazer o comando "abrir" reportar erro. */
+/** De onde a identidade resolvida veio — usado só para decidir QUE aviso
+ *  mostrar, nunca para lógica de negócio. */
+type OrigemDaIdentidade = "flag" | "arquivo-do-worktree" | "git-config-compatibilidade";
+
+/** A linha exata, pronta para copiar e colar, que resolve "identidade
+ *  desconhecida". Existe em função própria para nunca divergir entre os
+ *  vários lugares que a mostram (5º conserto — nenhum caminho termina em
+ *  beco sem saída). */
+function linhaParaGravarIdentidade(quemSugerido: string): string {
+  return `npm run reivindicar -- abrir --quem ${quemSugerido} --frente "<retomando>" --responsabilidade <slug> --arquivos <a,b,c>`;
+}
+
+/** Grava "quem sou eu" localmente — em "abrir", após o push ter sucesso; em
+ *  "conferir", sempre que a identidade foi resolvida (ver CONSERTO 1,
+ *  16/08/2026, no comentário de `comandoConferir`) — no arquivo
+ *  ".dioli-quem" NA RAIZ DESTE WORKTREE (nunca em ".git/config" — ver o
+ *  bloco acima). Falha aqui NUNCA MAIS é silenciosa: se a identidade não
+ *  pôde ser salva localmente (permissão, disco somente-leitura), a pessoa
+ *  fica sabendo NA HORA, com a linha exata que resolve — porque foi
+ *  exatamente esse silêncio que produziu o deadlock de 16/08/2026: ninguém
+ *  sabia que a identidade não tinha sido gravada até o push já estar
+ *  trancado. */
 function gravarIdentidadeLocal(quem: string): void {
   try {
-    git(["config", "--local", "dioli.quem", quem]);
-  } catch {
-    // intencionalmente silencioso — ver o comentário da função.
+    writeFileSync(CAMINHO_IDENTIDADE, `${quem}\n`, "utf8");
+  } catch (e) {
+    console.error(
+      `⚠️  Reivindicação gravada e empurrada com sucesso, MAS não consegui salvar a identidade em ` +
+        `"${CAMINHO_IDENTIDADE}" (${e instanceof Error ? e.message : String(e)}). ` +
+        `Sem isto, "conferir" (inclusive o gancho pre-push) não vai reconhecer suas PRÓPRIAS reivindicações ` +
+        `como suas. Resolva com uma das opções abaixo:`,
+    );
+    console.error(`   - repita o "conferir" com a flag:  --quem ${quem}`);
+    console.error(`   - ou grave a identidade à mão:  echo "${quem}" > "${CAMINHO_IDENTIDADE}"`);
   }
 }
 
-/** Lê a identidade gravada por um "abrir" anterior desta sessão. `git config
- *  --get` sai com código != 0 quando a chave não existe — por isso usamos
- *  `gitOuNulo`, que já trata "comando falhou" como "não sei", em vez de `git`,
- *  que lançaria. */
-function lerIdentidadeLocal(): string | null {
+/** Lê a identidade gravada por um "abrir" anterior desta sessão, do arquivo
+ *  ".dioli-quem" deste worktree. */
+function lerIdentidadeDoArquivo(): string | null {
+  if (!existsSync(CAMINHO_IDENTIDADE)) return null;
+  try {
+    const conteudo = readFileSync(CAMINHO_IDENTIDADE, "utf8").trim();
+    return conteudo || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Só para COMPATIBILIDADE com identidade gravada pelo código ANTIGO (antes
+ *  deste conserto), em ".git/config" via "git config --local dioli.quem".
+ *  Nunca é a primeira fonte — ver a ordem de resolução no bloco acima. `git
+ *  config --get` sai com código != 0 quando a chave não existe, por isso
+ *  `gitOuNulo` em vez de `git`. */
+function lerIdentidadeGitConfigCompatibilidade(): string | null {
   const v = gitOuNulo(["config", "--get", "dioli.quem"]);
   return v && v.trim() ? v.trim() : null;
 }
 
-/** A ordem de resolução descrita no bloco acima: flag > cache local > "não
- *  sei" (nunca um palpite). Devolve `null` no caso (c) de propósito — quem
- *  chama decide como avisar, esta função só recusa adivinhar. */
-function resolverQuemParaConferir(argv: string[]): string | null {
+/** A ordem de resolução descrita no bloco acima: flag > arquivo do worktree
+ *  > "git config" só como compatibilidade > "não sei" (nunca um palpite).
+ *  Devolve `null` no caso (d) de propósito — quem chama decide como avisar,
+ *  esta função só recusa adivinhar. A `origem` devolvida é o que permite ao
+ *  chamador avisar, especificamente, quando a fonte é a compatibilidade
+ *  compartilhada entre worktrees. */
+function resolverQuemParaConferir(argv: string[]): { quem: string; origem: OrigemDaIdentidade } | null {
   const daFlag = pegarArg(argv, "quem");
-  if (daFlag) return daFlag;
-  return lerIdentidadeLocal();
+  if (daFlag) return { quem: daFlag, origem: "flag" };
+
+  const doArquivo = lerIdentidadeDoArquivo();
+  if (doArquivo) return { quem: doArquivo, origem: "arquivo-do-worktree" };
+
+  const doGitConfig = lerIdentidadeGitConfigCompatibilidade();
+  if (doGitConfig) return { quem: doGitConfig, origem: "git-config-compatibilidade" };
+
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -550,17 +637,45 @@ function avisosDeVizinhanca(arquivosDaSessao: string[], quem: string, existentes
 
 function comandoConferir(argv: string[]): void {
   const branch = branchAlvo(argv);
-  const quemResolvido = resolverQuemParaConferir(argv);
-  if (!quemResolvido) {
+  const resolvida = resolverQuemParaConferir(argv);
+
+  if (!resolvida) {
     console.warn(
-      '⚠️  Identidade da sessão desconhecida (sem --quem e sem "git config dioli.quem" gravado por um "abrir" ' +
-        "anterior). Reivindicações da PRÓPRIA sessão não serão distinguidas das de outras sessões — pode gerar " +
-        'falso positivo. Rode "npm run reivindicar -- abrir" ao menos uma vez nesta sessão para gravar a identidade, ' +
-        "ou repita com --quem <id>. Seguindo a conferência mesmo assim — falhar fechado por falta de identidade " +
-        "bloquearia até quem nunca reivindicou nada.",
+      `⚠️  Identidade da sessão desconhecida (sem --quem, sem "${CAMINHO_IDENTIDADE}" e sem "git config dioli.quem" ` +
+        "de compatibilidade). Reivindicações da PRÓPRIA sessão não serão distinguidas das de outras sessões — pode " +
+        "gerar falso positivo, inclusive contra uma frente que VOCÊ MESMO abriu. Para resolver:",
     );
+    console.warn(`   - repita este comando com:  --quem <id>`);
+    console.warn(`   - ou rode "npm run reivindicar -- abrir ..." uma vez, que grava a identidade automaticamente`);
+    console.warn("   Seguindo a conferência mesmo assim — falhar fechado por falta de identidade bloquearia até quem nunca reivindicou nada.");
+  } else if (resolvida.origem === "git-config-compatibilidade") {
+    console.warn(
+      `⚠️  Identidade resolvida via "git config dioli.quem" (${resolvida.quem}) — esta é a fonte de COMPATIBILIDADE, ` +
+        "compartilhada por TODOS os worktrees que apontam para o mesmo git-common-dir, e pode pertencer a OUTRA " +
+        `sessão. Para ter certeza, grave a identidade DESTE worktree em "${CAMINHO_IDENTIDADE}":`,
+    );
+    console.warn(`   ${linhaParaGravarIdentidade(resolvida.quem)}`);
   }
-  const quem = quemResolvido ?? "(sessão sem --quem)";
+
+  // ── CONSERTO 1 (16/08/2026) — O CAMINHO HONESTO NÃO PODE SER MAIS CARO
+  // QUE O ATALHO, SENÃO A TRAVA MORRE. Medido: antes deste conserto,
+  // "conferir --quem <id>" resolvia a identidade só PARA ESTA CHAMADA e
+  // nunca gravava — só "abrir" gravava em ".dioli-quem". Consequência: quem
+  // era barrado por falta de identidade lia "repita este comando com --quem
+  // <id>", repetia, funcionava… e na PRÓXIMA vez precisava repetir de novo,
+  // para sempre. Enquanto isso, "--no-verify" resolve de uma vez só. Um
+  // caminho honesto que cobra TODA VEZ perde, sempre, para um atalho que
+  // cobra UMA VEZ — é a economia do atalho que decide se uma trava
+  // sobrevive, não a boa vontade de quem a usa. Por isso "conferir" passa a
+  // gravar a identidade exatamente como "abrir" já fazia: é a MESMA sessão
+  // se identificando de novo, não há razão para exigir que ela repita. Com
+  // isto, o caminho honesto também passa a custar UMA vez, e o atalho deixa
+  // de compensar.
+  if (resolvida) {
+    gravarIdentidadeLocal(resolvida.quem);
+  }
+
+  const quem = resolvida?.quem ?? "<seu-id>";
 
   console.log(`Buscando origin/${branch}…`);
   const busca = buscarRemoto(branch);
@@ -613,6 +728,46 @@ function comandoConferir(argv: string[]): void {
   if (resultado.colide) {
     console.error("🚫 O que você alterou pisa em frente reivindicada por outra sessão:");
     for (const m of resultado.motivos) console.error(`   - ${m}`);
+
+    // 5º CONSERTO — NENHUM CAMINHO TERMINA EM BECO SEM SAÍDA. Foi o silêncio
+    // aqui, mais o "encerrar" só saindo por push, mais o push barrado pelo
+    // próprio gancho, que fechou o deadlock de 16/08/2026. Toda vez que
+    // "conferir" BARRA, a saída termina com as opções concretas e copiáveis.
+    //
+    // Quando o que barrou é, na verdade, uma reivindicação com o MESMO "quem"
+    // resolvido agora — sinal de que a identidade gravada no JSON e a
+    // identidade resolvida nesta chamada não bateram por um detalhe de
+    // formatação (espaço, caixa) — isto quase certamente é a PRÓPRIA sessão
+    // sendo barrada pela PRÓPRIA reivindicação. Diz isso com todas as letras.
+    if (resolvida) {
+      const normalizar = (s: string) => s.trim().toLowerCase();
+      const provavelmenteEuMesmo = existentes.some(
+        (r) => estaViva(r, new Date()) === "viva" && normalizar(r.quem) === normalizar(resolvida.quem) && r.quem !== resolvida.quem,
+      );
+      if (provavelmenteEuMesmo) {
+        console.error(
+          `   ⚠️  Uma das reivindicações acima tem "quem" quase igual ao seu ("${resolvida.quem}") — provavelmente é a ` +
+            "SUA PRÓPRIA identidade gravada com uma diferença de formatação (espaço, caixa), não outra sessão. " +
+            `Confira "${CAMINHO_IDENTIDADE}" e, se for o caso, regrave com:`,
+        );
+        console.error(`      ${linhaParaGravarIdentidade(resolvida.quem)}`);
+      }
+    }
+
+    console.error("Para seguir, uma destas opções:");
+    // CONSERTO 2 (16/08/2026) — quando NÃO HÁ identidade gravada, o caso mais
+    // comum (esta MESMA sessão sendo barrada por não ter identidade) tem uma
+    // saída mais curta que abrir uma reivindicação nova: "conferir --quem
+    // <id>" agora GRAVA a identidade (ver CONSERTO 1, acima) e já reconfere
+    // na mesma chamada. Por resolver o caso mais comum com menos digitação,
+    // ela entra em PRIMEIRO lugar na lista — não depois de opções mais raras.
+    if (!resolvida) {
+      console.error(`   - grave sua identidade e reconfira:  npm run reivindicar -- conferir --quem <seu-id>     (grava a identidade e reconfere)`);
+    }
+    console.error(`   - se o bloqueio é a SUA PRÓPRIA reivindicação sem identidade gravada:  ${linhaParaGravarIdentidade(quem)}`);
+    console.error(`   - se a frente já terminou, encerre-a:  npm run reivindicar -- encerrar --responsabilidade <slug-da-frente-listada-acima>`);
+    console.error(`   - se precisa seguir apesar da colisão, force com motivo:  npm run reivindicar -- abrir --quem ${quem} --frente "<...>" --responsabilidade <slug> --arquivos <a,b,c> --forcar --motivo "<por quê>"`);
+    console.error(`   - para ver todas as reivindicações vivas e escolher:  npm run reivindicar -- listar`);
     process.exit(1);
   }
 

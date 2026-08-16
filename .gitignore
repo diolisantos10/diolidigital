@@ -89,3 +89,10 @@ scratchpad/
 # isso publicaria uma credencial viva num repositório. A pasta inteira fica de
 # fora, e é por isso, não por peso.
 .shots/
+
+# Identidade da sessão de "npm run reivindicar" (scripts/reivindicar.mts).
+# É LOCAL e POR-WORKTREE de propósito: cada worktree de agente precisa da
+# sua própria cópia, nunca compartilhada e nunca versionada — gravar isto no
+# repositório faria a identidade de uma sessão vazar para outra (ou para o
+# histórico do git). Ver o bloco "Identidade da sessão" em reivindicar.mts.
+.dioli-quem
