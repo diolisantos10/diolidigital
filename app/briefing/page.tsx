@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAgencyStore } from "@/store/agency-store";
 import { PublicBriefingRoom } from "@/components/agency/briefing/PublicBriefingRoom";
 import type { PublicBriefingRoomSubmitData } from "@/components/agency/briefing/PublicBriefingRoom";
+import { LeadNaPorta, type ContatoDaPorta } from "@/components/agency/briefing/LeadNaPorta";
 
 export default function BriefingPage() {
   const { addClientRequest } = useAgencyStore();
@@ -13,9 +14,20 @@ export default function BriefingPage() {
   // Prometer retorno para quem não deixou endereço é a mentira mais fácil desta
   // tela — e a que faz a pessoa esperar por uma ligação que não existe.
   const [temContato, setTemContato] = useState(true);
+  // ── O CONTATO É PEDIDO NA PORTA, NÃO NO MEIO DA CONVERSA ──────────────────
+  // Ordem do CEO em 16/08 depois de esperar a noite inteira por um orçamento
+  // que não chegava: a casa não sabia como falar com ele. Perguntar no meio da
+  // conversa depende de o modelo lembrar e de o cliente responder; perguntar na
+  // porta acontece sempre. `entrou` guarda se o visitante já passou por lá —
+  // inclusive quando escolheu não deixar contato (aí vale `null`).
+  const [entrou, setEntrou] = useState(false);
+  const [contatoDaPorta, setContatoDaPorta] = useState<ContatoDaPorta>(null);
 
   async function handleSubmit(data: PublicBriefingRoomSubmitData) {
-    setTemContato(data.contato !== null);
+    // O contato da PORTA manda: ele é o que o visitante declarou antes de
+    // começar. O da conversa só completa o que ficou em branco.
+    const contato = contatoDaPorta ?? data.contato;
+    setTemContato(contato !== null);
     const id = addClientRequest({
       clientId: `prospect-${Date.now()}`,
       source: "public_briefing",
@@ -29,9 +41,9 @@ export default function BriefingPage() {
       conversationTranscript: data.conversationTranscript,
       v2Scope: data.v2Scope,
       v2Estimate: data.v2Estimate,
-      prospectName: data.prospectName,
-      prospectEmail: data.prospectEmail,
-      prospectPhone: data.prospectPhone,
+      prospectName: contatoDaPorta?.nome || data.prospectName,
+      prospectEmail: contatoDaPorta?.email || data.prospectEmail,
+      prospectPhone: contatoDaPorta?.whatsapp || data.prospectPhone,
       sdrHandoff: data.sdrHandoff,
     });
 
@@ -41,7 +53,7 @@ export default function BriefingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          businessName:   data.prospectName ?? data.title,
+          businessName:   data.prospectName ?? contatoDaPorta?.nome ?? data.title,
           segment:        data.extractedSummary.segment,
           services:       data.extractedSummary.services,
           objectives:     data.extractedSummary.objectives,
@@ -50,7 +62,7 @@ export default function BriefingPage() {
           // O contato vai como CAMPO PRÓPRIO, não enterrado no escopo. Quem
           // decide o que fazer com ele (proposta ou lead incompleto) é o
           // servidor — a tela só entrega o fato.
-          contato:        data.contato,
+          contato,
           briefingJson:   { transcript: data.conversationTranscript, scope: data.v2Scope, estimate: data.v2Estimate },
           sdrHandoffJson: data.sdrHandoff ?? null,
           attachmentsJson: data.attachments.map((a) => ({
@@ -123,6 +135,14 @@ export default function BriefingPage() {
           <p className="mt-6 text-[10px] text-[var(--text-subtle)]">Referência: {submittedId}</p>
         )}
       </div>
+    );
+  }
+
+  if (!entrou) {
+    return (
+      <LeadNaPorta
+        aoEntrar={(c) => { setContatoDaPorta(c); setEntrou(true); }}
+      />
     );
   }
 
