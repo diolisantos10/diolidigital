@@ -45,6 +45,12 @@ const SOCIAL_ROWS: Row[] = [
   { label: "Gestão de comunidade", render: (p) => COMMUNITY_LABEL[p.community] },
 ];
 
+// TIPOGRAFIA, 16/08/2026: os dois "/mês" e "/projeto" estavam em **9px** — a
+// violação nomeada na dívida I-21 do DESIGN.md ("rótulos em 9px e 9,5px"), e
+// justamente a unidade que diz se o número é mensal ou de projeto. Subiram para
+// o piso de 12px da §3. Os rótulos de 10–11px (cabeçalho de coluna, selos)
+// ficaram: são a mesma drift que a casa vem subindo aos poucos, e mexer neles
+// muda a largura das colunas — está registrado para o PM, não esquecido.
 function SocialPlansTable() {
   return (
     <div className="overflow-x-auto">
@@ -65,7 +71,7 @@ function SocialPlansTable() {
                 <div className="text-[11px] font-semibold text-[var(--navy)] mt-1">
                   {faixaDePreco(p.minPrice, p.maxPrice, brl)}
                 </div>
-                <div className="text-[9px] text-[var(--text-muted)]">/mês</div>
+                <div className="text-[12px] text-[var(--text-muted)]">/mês</div>
               </th>
             ))}
           </tr>
@@ -108,7 +114,7 @@ export default function CatalogPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">{social.name}</h2>
-                <span className="h-5 px-2 rounded-full bg-[var(--cyan)]/30 text-[var(--navy)] text-[10px] font-semibold flex items-center">
+                <span className="h-5 shrink-0 whitespace-nowrap px-2 rounded-full bg-[var(--cyan)]/30 text-[var(--navy)] text-[10px] font-semibold flex items-center">
                   Carro-chefe
                 </span>
               </div>
@@ -122,8 +128,13 @@ export default function CatalogPage() {
         </section>
       )}
 
-      {/* Add-on departments */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* O corte é `lg`, não `md` — e o motivo é a aritmética da §6.3 do
+          DESIGN.md: a partir de `md` a sidebar volta a ocupar 224px, então um
+          tablet de 768px fica com ~544px de conteúdo. Em duas colunas isso dá
+          ~260px por cartão, e a 768px "Gestão de Tráfego Pago" quebrava em três
+          linhas ao lado do preço. Uma coluna até `lg` é mais legível que duas
+          espremidas. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {addonDepts.map((dept) => (
           <section
             key={dept.id}
@@ -132,7 +143,7 @@ export default function CatalogPage() {
             <div className="px-5 py-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-2">
                 <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">{dept.name}</h2>
-                <span className="h-5 px-2 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px] font-semibold flex items-center">
+                <span className="h-5 shrink-0 whitespace-nowrap px-2 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px] font-semibold flex items-center">
                   {dept.pricingModel === "project" ? "Por projeto" : "Adicional mensal"}
                 </span>
               </div>
@@ -149,7 +160,7 @@ export default function CatalogPage() {
                     <div className="text-[13px] font-bold text-[var(--navy)]">
                       {brl(a.minPrice)}–{brl(a.maxPrice)}
                     </div>
-                    <div className="text-[9px] text-[var(--text-muted)]">/{a.unit}</div>
+                    <div className="text-[12px] text-[var(--text-muted)]">/{a.unit}</div>
                   </div>
                 </div>
               ))}

@@ -181,7 +181,16 @@ export default function PlanosPage() {
               {/* corpo: inclui | não inclui */}
               <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr]">
                 <div className="px-6 py-6 md:px-8">
-                  <p className="text-[12px] font-bold uppercase tracking-[0.13em] text-[var(--azure)]">O que está incluído</p>
+                  {/* `--azure` aqui dava 2,34:1 sobre o cartão — e o DESIGN.md
+                      §2 diz com todas as letras que ele é acento de TÍTULO
+                      DISPLAY ("só texto grande — baixo contraste"). Este é o
+                      rótulo de 12px que organiza a ficha inteira. `--navy` é o
+                      primário da marca, passa AA folgado e mantém o par com o
+                      "não está incluído" em `--text-muted` ao lado: o lado que
+                      vende fica forte, o que ressalva fica discreto. Borda e
+                      anel de destaque continuam em azure — lá ele é superfície,
+                      não texto. */}
+                  <p className="text-[12px] font-bold uppercase tracking-[0.13em] text-[var(--navy)]">O que está incluído</p>
                   <ol className="mt-4 space-y-3">
                     {p.inclui.map((item, i) => (
                       <li key={item} className="flex items-start gap-3 text-[14px] leading-relaxed text-[var(--text-primary)]">
@@ -261,7 +270,9 @@ export default function PlanosPage() {
               href={zap("Olá! Quero um orçamento de um serviço fora do plano (vídeo, marca ou site).")}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-[var(--azure)] underline underline-offset-4"
+              // Mesmo motivo do rótulo da ficha: `--azure` em 14px é 2,34:1.
+              // Aqui é pior, porque é o LINK — o alvo clicável da seção.
+              className="font-semibold text-[var(--navy)] underline underline-offset-4"
             >
               Peça um orçamento
             </a>{" "}

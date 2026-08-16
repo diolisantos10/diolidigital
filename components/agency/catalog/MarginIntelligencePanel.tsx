@@ -74,7 +74,7 @@ function Row({
         <div className="text-[13px] font-medium text-white">{label}</div>
         <div className="text-[10px] text-[var(--text-on-dark)]">{detail}</div>
       </td>
-      <td className="p-3 text-center text-[12px] text-[var(--text-secondary)] mono-num">
+      <td className="p-3 text-center text-[12px] text-[var(--text-secondary)] mono-num whitespace-nowrap">
         {profile.costBasis === null ? (
           // Mesma ausência da pílula "sem custo" ao lado — e agora com a mesma
           // aparência. Em texto solto ela era `--warning` sobre o escuro: 3,6:1,
@@ -90,9 +90,9 @@ function Row({
           brl(profile.costBasis)
         )}
       </td>
-      <td className="p-3 text-center text-[12px] font-semibold text-[var(--danger)] mono-num">{brl(profile.floorPrice)}</td>
-      <td className="p-3 text-center text-[12px] text-[var(--text-primary)] mono-num">{brl(list)}</td>
-      <td className="p-3 text-center text-[12px] text-[var(--navy)] mono-num">{brl(profile.targetPrice)}</td>
+      <td className="p-3 text-center text-[12px] font-semibold text-[var(--danger)] mono-num whitespace-nowrap">{brl(profile.floorPrice)}</td>
+      <td className="p-3 text-center text-[12px] text-[var(--text-primary)] mono-num whitespace-nowrap">{brl(list)}</td>
+      <td className="p-3 text-center text-[12px] text-[var(--navy)] mono-num whitespace-nowrap">{brl(profile.targetPrice)}</td>
       <td className="p-3 text-center"><MarginBadge pct={marginAtList} /></td>
       <td className="p-3 text-center"><MarginBadge pct={marginAtTarget} /></td>
     </tr>
@@ -125,10 +125,17 @@ export default function MarginIntelligencePanel() {
           a §6.3 do DESIGN.md: container de tabela precisa de `min-w` explícito.
           (A dívida maior — abaixo de `lg` isto deveria ser lista de cartões —
           está registrada para o PM; aqui ficou a rolagem funcionando.) */}
+      {/* Os cinzas deste painel eram hex na mão calibrados para fundo CLARO:
+          `#6B7280` dava 3,98:1 e `#4B5563` 1,89:1 sobre o #0B0E1A daqui — os
+          dois abaixo de AA. Agora usam `--text-on-dark`, que é o token do
+          DESIGN.md §2.2 para apoio sobre superfície escura.
+          (Segue aberto: este painel ainda escreve em 10px, abaixo do piso de
+          12px da §3 — I-21. Fica para o PM, porque mexe na largura das sete
+          colunas.) */}
       <div className="p-2 overflow-x-auto">
-        <table className="w-full min-w-[760px] border-collapse text-[12px]">
+        <table className="w-full min-w-[820px] border-collapse text-[12px]">
           <thead>
-            <tr className="text-[10px] uppercase tracking-[0.05em] text-[#6B7280]">
+            <tr className="text-[10px] uppercase tracking-[0.05em] text-[var(--text-on-dark)]">
               <th className="text-left p-3 font-semibold w-[200px]">Serviço</th>
               <th className="p-3 font-semibold text-center">Custo</th>
               <th className="p-3 font-semibold text-center">Piso</th>
@@ -189,7 +196,7 @@ export default function MarginIntelligencePanel() {
 
       {/* Discount levers */}
       <div className="px-5 py-4 border-t border-[#1F2433]">
-        <div className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-[0.05em] mb-2.5">
+        <div className="text-[10px] font-semibold text-[var(--text-on-dark)] uppercase tracking-[0.05em] mb-2.5">
           Alavancas de desconto do SDR — só com contrapartida
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -202,11 +209,11 @@ export default function MarginIntelligencePanel() {
                 </span>
               </div>
               <p className="text-[10px] text-[#8B92A8] mt-1">Requer: {l.requires}</p>
-              <p className="text-[10px] text-[#6B7280] mt-0.5 italic">{l.internalNote}</p>
+              <p className="text-[10px] text-[var(--text-on-dark)] mt-0.5 italic">{l.internalNote}</p>
             </div>
           ))}
         </div>
-        <p className="text-[10px] text-[#4B5563] mt-3">
+        <p className="text-[10px] text-[var(--text-on-dark)] mt-3">
           As alavancas somam, mas o sistema corta automaticamente qualquer desconto que ultrapasse o piso. O SDR nunca vende abaixo do piso.
         </p>
       </div>
