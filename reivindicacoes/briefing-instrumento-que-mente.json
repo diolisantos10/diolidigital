@@ -1,0 +1,11 @@
+{
+  "id": "briefing/instrumento-que-mente",
+  "quem": "pm-9ab49074",
+  "frente": "instrumento que mente: script de captura le alerta vazio a 375",
+  "responsabilidade": "briefing/instrumento-que-mente",
+  "arquivos": [
+    "scripts/foto-barrado-e-quebrado.mjs"
+  ],
+  "abertaEm": "2026-08-16T19:08:09.407Z",
+  "encerradaEm": null
+}
