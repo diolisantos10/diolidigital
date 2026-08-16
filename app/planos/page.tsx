@@ -14,11 +14,12 @@ import Link from "next/link";
 import { DioliLogo } from "@/components/brand/DioliLogo";
 import { OrbitMotif } from "@/components/brand/OrbitMotif";
 import { PLANOS, FORA_DE_TODO_PLANO, precoEmReais } from "@/lib/agency/planos";
+import { linkDoWhatsApp } from "@/lib/agency/comercial/link-do-whatsapp";
 
-const WHATSAPP = "5511989400692";
-function zap(msg: string): string {
-  return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
-}
+// O número e a montagem da URL vêm de `comercial/link-do-whatsapp.ts`. Estavam
+// repetidos em oito arquivos: no dia em que o WhatsApp da agência mudar, uma
+// cópia esquecida manda cliente para um número que não é mais da casa.
+const zap = linkDoWhatsApp;
 
 export const metadata: Metadata = {
   title: "Planos e preços — Dioli Digital",

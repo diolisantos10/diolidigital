@@ -92,7 +92,21 @@ describe("a confirmação do briefing devolve a pessoa AO SITE, não ao briefing
 
   it("a saída pelo WhatsApp continua na tela", () => {
     expect(FONTE).toContain("Falar com a Dioli no WhatsApp");
-    expect(FONTE).toContain("https://wa.me/5511989400692");
+    // ⚠️ O NÚMERO NÃO É MAIS PROCURADO AQUI, e a troca é deliberada.
+    //
+    // Até 16/08/2026 esta linha exigia o literal `https://wa.me/5511989400692`
+    // dentro da página. O número estava repetido em OITO arquivos, e no mesmo
+    // dia descobriu-se que este botão abria o WhatsApp **sem texto nenhum** —
+    // a pessoa acabava de contar o negócio inteiro ao SDR e caía numa caixa
+    // vazia. O conserto passou o link para a fonte única
+    // (`comercial/link-do-whatsapp.ts`), que monta número E mensagem.
+    //
+    // Exigir o literal aqui teria travado exatamente o conserto: um teste que
+    // fixa a IMPLEMENTAÇÃO em vez do COMPORTAMENTO vira cadeado contra a
+    // melhoria. O que esta tela deve garantir é que a saída existe e leva o
+    // contexto — quem prova o número e o texto é
+    // `__tests__/briefing/whatsapp-comeca-a-conversa.test.ts`.
+    expect(FONTE).toContain("linkDoBriefing");
   });
 
   it("o par de cor do botão do WhatsApp continua sendo token, não hex na mão", () => {
