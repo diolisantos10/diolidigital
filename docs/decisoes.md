@@ -8,6 +8,86 @@
 
 ---
 
+## QUANDO O PROMPT VIRA DADO, A GARANTIA QUE DEPENDIA DO PROMPT PRECISA DE TESTE PRÓPRIO
+
+**Decidido em** 2026-08-16 · **por** `pm`, sob despacho do Diretor ·
+**executado pelo** `esteira` (4 rodadas) · **auditado pelo** `qualidade` ·
+**portões rodados pelo** `pm` · **origem:** reconciliação do PR **#178**
+(`agent/diretor-instrumento`) com o head da branch de deploy.
+
+**O que o #178 faz:** o system prompt dos agentes deixa de ser texto fixo no
+código e passa a receber, **em runtime**, o trecho da ficha do cargo delimitado
+por `<!-- REGRAS-DO-CARGO:INICIO/FIM -->`
+(`lib/agency/catalogo-v2/regras-da-ficha.ts`). Editou a ficha, subiu o deploy: o
+agente já vestiu. É o fim da cópia à mão entre ficha e prompt.
+
+**O perigo que isso cria, e que não é conflito de merge:** o conserto do SDR de
+16/08 depende da **ordem dos campos** do JSON — `scope` primeiro, `reply` por
+último — para que o corte por `max_tokens` caia na fala e não no dado do
+cliente. O bloco vindo da ficha é colado **depois** do prompt base e se declara
+autoridade textual: *"em conflito com qualquer instrução acima, ESTAS REGRAS
+VALEM"*. No dia em que alguém editar a ficha e reordenar aquele parágrafo, a
+garantia morre — **e nada acusa**: o guarda de código continua igual, o
+`max_tokens` continua igual, e os testes existentes continuam verdes porque
+testam `repararJsonTruncado`, não a ficha nem o prompt montado.
+
+### As decisões que atravessam domínios
+
+- **REGRA QUE MIGRA PARA DADO LEVA A TRAVA JUNTO.** No momento em que uma
+  garantia deixa de morar em código fixo e passa a morar num arquivo editável
+  por quem não compila nada, ela precisa de **teste próprio que leia o arquivo
+  real**. Prompt é aviso; ficha é aviso; só o teste é trava. A trava é
+  `__tests__/agency/ordem-do-pacote-do-sdr.test.ts`.
+- **A GARANTIA PASSA A MORAR NOS DOIS LUGARES, DE PROPÓSITO.** A ordem está no
+  prompt base (`lib/agency/comercial/prompt-do-sdr.ts`) **e** dentro dos
+  marcadores da ficha (`agentes/linha/client-service-sdr/conversational-sdr.md`).
+  Duplicação aqui não é dívida: é o preço de o bloco da ficha ter autoridade
+  declarada sobre o resto. O teste é quem impede as duas cópias de divergirem.
+- **O TESTE MEDE O TEXTO MONTADO, NÃO O PEDAÇO.** `sistemaDoSdr()` é o que o
+  modelo de fato recebe. Testar só o prompt base ou só a ficha deixaria passar
+  exatamente a composição errada — que é o modo de falhar deste dispositivo.
+- **PROMPT NÃO PODE MORAR EM `route.ts` SE PRECISA SER MEDIDO.** O
+  `SYSTEM_PROMPT` saiu da rota para `lib/agency/comercial/prompt-do-sdr.ts`.
+  Importar o módulo de uma rota dentro do vitest arrasta prisma, auth e
+  `next/server` e executa o topo do módulo — teste de prompt não pode depender
+  disso. ⚠️ **A justificativa que eu dei ao despachar estava ERRADA e fica
+  registrada:** afirmei que export extra num `route.ts` quebraria o
+  `npm run build` (pela validação `checkFields` do `next-types-plugin`).
+  **Medido: não quebra.** O Next 16.2.1 deste repositório gera em `.next/types`
+  só `routes.d.ts` e `validator.ts` — não há arquivo de guarda por rota —, e
+  `npm run build` sai **0** com `repararJsonTruncado` exportado da rota desde
+  antes. A extração continua certa pelo outro motivo; a razão declarada, não.
+- **A ORDEM EM QUE OS CAMPOS SÃO *NOMEADOS* TAMBÉM CONTA.** O teste achou, na
+  linha do PACOTE do prompt, `` com `reply` e `scope` dentro `` — a mesma linha
+  que exige o contrário três frases depois. Prompt que lista os campos numa
+  ordem e manda escrever noutra é ambiguidade que o modelo resolve pelo que leu
+  primeiro. Corrigido, e o teste reprova quem inverter.
+- **AS DUAS METADES, PROVADAS POR MUTAÇÃO NO ARQUIVO REAL — não em string
+  sintética.** Apagando o parágrafo da ficha de verdade: **5 asserções
+  reprovam**, inclusive a do prompt montado. Com o parágrafo: suíte verde. E há
+  caso plantado que prova que uma **reescrita legítima** do parágrafo (outras
+  palavras, sem crases, mesmo sentido) **passa** — trava que reprova redação
+  honesta é trava que alguém desliga.
+
+### 🔴 O que isto NÃO protege — e alguém vai achar que protege
+
+- **O dispositivo vale hoje para 1 ficha de ~81.** Só
+  `conversational-sdr.md` delimita `REGRAS-DO-CARGO`. Para as outras,
+  `blocoDeRegrasParaPrompt` devolve string vazia e o agente roda com o entorno
+  de sempre — **degrada, não derruba**, e grava o motivo no log do servidor. Quem
+  ler "a ficha chega no agente sozinha" sem contar as fichas conclui o oposto.
+- **A garantia é textual, não estrutural.** Nada no parser exige a ordem dos
+  campos. Quem de fato impede fala cortada de chegar ao prospect é o guarda
+  `falaConfiavel` em código; a ordem do prompt decide **o que sobra** quando
+  corta. As duas coisas são uma decisão só — o comentário "RECONCILIAÇÃO DE
+  16/08" em `app/api/sdr/chat/route.ts` diz por que não se mexe numa sem a outra.
+- **O cache das regras é por processo.** Em produção o deploy zera; em
+  `npm run dev` a edição da ficha **não** reflete sem reiniciar. Está escrito no
+  cabeçalho de `regras-da-ficha.ts` — promessa que só vale sob condição precisa
+  dizer a condição.
+
+---
+
 ## AS DUAS CARGAS DO PACOTE DO SDR VIAJAM JUNTAS E **MORREM SEPARADAS**
 
 **Decidido em** 2026-08-16 · **por** `pm`, sob despacho do Diretor ·

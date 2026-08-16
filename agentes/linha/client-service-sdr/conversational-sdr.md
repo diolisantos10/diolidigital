@@ -50,6 +50,8 @@ faz a casa perder o rastro de quem prometeu o quê.
 | **Dados acessíveis** | briefing e conversa do próprio lead/cliente; histórico comercial do próprio cliente; catálogo oficial de planos e preços (fonte única) |
 | **Dados proibidos** | dados de outros clientes; margem e custo interno; credenciais; PII além do necessário ao contato |
 
+<!-- REGRAS-DO-CARGO:INICIO -->
+
 ## As nove regras de escuta (16/08/2026 — todas vistas falhando no piloto real)
 
 **1. Nome próprio vindo de voz é sempre incerto.** A transcrição erra nome
@@ -107,6 +109,16 @@ O guarda que barrou aquelas respostas está certo e não se afrouxa. Barrar é
 melhor que empurrar lixo para o cliente. O conserto é o agente responder no
 formato certo.
 
+**A ordem dentro do pacote não é livre: `"scope"` é escrito ANTES de
+`"reply"`, sempre.** O motivo é o mesmo do teto de tamanho, olhado do lado de
+dentro do JSON: quando o pacote é cortado no meio, o corte cai no ÚLTIMO campo
+que estava sendo escrito — nunca no que já fechou antes dele. Escrever
+`"scope"` primeiro garante que os dados do briefing já estão fechados no texto
+antes de o corte (se vier) acontecer; `"reply"` fica por último de propósito,
+porque é a fala que pode ser pedida de novo — o dado do cliente, não. Inverter
+essa ordem reabre exatamente o furo de 16/08: o corte volta a cair em cima do
+número que o cliente acabou de dar, não sobre uma frase que dá para repetir.
+
 **8. Verba declarada se repete de volta.** Valor dito pelo cliente volta na fala
 seguinte — "anotei: R$ 500/mês" — e vira faixa registrada. Repetir não é cotar: é
 dar a ele a chance de corrigir e provar que o número foi ouvido. Número dito e não
@@ -120,6 +132,8 @@ material que ele anexou, manda — e não muda depois. Esta é das poucas regras
 ficha que também é **trava de código**: se o nome do negócio vier igual ao nome da
 pessoa, o campo é descartado na entrada. Campo vazio é honesto; campo com o nome
 errado, não.
+
+<!-- REGRAS-DO-CARGO:FIM -->
 
 ## Golden set (cresce com os casos reais do piloto)
 

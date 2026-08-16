@@ -25,7 +25,20 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const PROMPT = readFileSync(join(process.cwd(), "app/api/sdr/chat/route.ts"), "utf8");
+// O SYSTEM_PROMPT saiu de `app/api/sdr/chat/route.ts` e foi para
+// `lib/agency/comercial/prompt-do-sdr.ts` (despacho `esteira`, 16/08 —
+// segunda rodada: rota do Next só admite os exports que o framework
+// reconhece, e a montagem do prompt precisava ser medível por teste sem
+// arrastar prisma/auth/next-server). O texto é byte a byte o mesmo — só o
+// arquivo que este teste lê mudou, não a regra que ele prova.
+const PROMPT = readFileSync(
+  join(process.cwd(), "lib/agency/comercial/prompt-do-sdr.ts"),
+  "utf8",
+);
+// A TRAVA DE CÓDIGO (fail-closed, não texto de prompt) continua morando na
+// rota — só a montagem do texto do prompt se mudou de arquivo. O teste
+// "a regra é TRAVA, não aviso" mede o código, então lê daqui.
+const ROTA = readFileSync(join(process.cwd(), "app/api/sdr/chat/route.ts"), "utf8");
 const FICHA = readFileSync(
   join(process.cwd(), "agentes/linha/client-service-sdr/conversational-sdr.md"),
   "utf8",
@@ -214,8 +227,9 @@ describe("SDR — nome da pessoa não é nome do negócio", () => {
 
   it("a regra é TRAVA, não aviso: o campo é descartado quando repete a pessoa", () => {
     // Prompt é aviso; código é trava. A instrução já existia e não bastou.
-    expect(PROMPT).toContain("businessName igual ao prospectName — descartado");
-    expect(PROMPT).toContain("delete scopePatch.businessName");
+    // Trava vive na rota (aplicarTravasDeEscopo), não no texto do prompt.
+    expect(ROTA).toContain("businessName igual ao prospectName — descartado");
+    expect(ROTA).toContain("delete scopePatch.businessName");
   });
 
   it("a ficha declara que esta regra também é trava de código", () => {
