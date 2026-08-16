@@ -14,6 +14,16 @@
 Alto — é dinheiro; número sem fonte não entra (preço tem fonte única). O risco individual de cada função está na ficha dela; o
 dono de negócio (CEO) ajusta quando quiser.
 
+## A hierarquia, para não restar dúvida
+
+```
+CEO → Diretor → Gerente Geral → **Gerente de Financeiro e Administrativo** (`manager-financeiro`) → funções desta pasta
+```
+
+Toda demanda deste departamento entra pelo **Gerente de Financeiro e Administrativo**, que recebe do Gerente
+Geral e distribui aqui dentro. Nenhuma função desta pasta recebe demanda
+de fora nem fala com o cliente.
+
 ## Blocos comuns (4 a 14) — valem para toda função desta pasta
 
 - **Base (4):** briefing e material do cliente vencem tudo; afirmação sem fonte
@@ -36,6 +46,7 @@ dono de negócio (CEO) ajusta quando quiser.
 
 | Função | Nome | Risco proposto |
 |---|---|---|
+| `manager-financeiro` | Gerente de Financeiro e Administrativo | Médio |
 | `pricing-and-margin` | Agente de Precificação e Margem | Alto |
 | `commercial-proposal` | Agente de Propostas Comerciais | Alto |
 | `contracts-and-documents` | Agente de Contratos e Documentos | Alto |

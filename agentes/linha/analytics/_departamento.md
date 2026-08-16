@@ -14,6 +14,16 @@
 Médio — número errado orienta decisão errada; distingue-se 'não medi' de 'deu zero'. O risco individual de cada função está na ficha dela; o
 dono de negócio (CEO) ajusta quando quiser.
 
+## A hierarquia, para não restar dúvida
+
+```
+CEO → Diretor → Gerente Geral → **Gerente de Analytics e Inteligência** (`manager-analytics`) → funções desta pasta
+```
+
+Toda demanda deste departamento entra pelo **Gerente de Analytics e Inteligência**, que recebe do Gerente
+Geral e distribui aqui dentro. Nenhuma função desta pasta recebe demanda
+de fora nem fala com o cliente.
+
 ## Blocos comuns (4 a 14) — valem para toda função desta pasta
 
 - **Base (4):** briefing e material do cliente vencem tudo; afirmação sem fonte
@@ -36,6 +46,7 @@ dono de negócio (CEO) ajusta quando quiser.
 
 | Função | Nome | Risco proposto |
 |---|---|---|
+| `manager-analytics` | Gerente de Analytics e Inteligência | Médio |
 | `data-integration` | Agente de Integração de Dados | Médio |
 | `bi-analyst` | Agente Analista de BI | Médio |
 | `insights` | Agente de Insights | Baixo |

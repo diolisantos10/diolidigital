@@ -14,6 +14,16 @@
 CRÍTICO quando soltar — gasta verba real e escreve em plataforma (sombra na escada, de propósito). O risco individual de cada função está na ficha dela; o
 dono de negócio (CEO) ajusta quando quiser.
 
+## A hierarquia, para não restar dúvida
+
+```
+CEO → Diretor → Gerente Geral → **Gerente de Tráfego Pago e Performance** (`manager-trafego`) → funções desta pasta
+```
+
+Toda demanda deste departamento entra pelo **Gerente de Tráfego Pago e Performance**, que recebe do Gerente
+Geral e distribui aqui dentro. Nenhuma função desta pasta recebe demanda
+de fora nem fala com o cliente.
+
 ## Blocos comuns (4 a 14) — valem para toda função desta pasta
 
 - **Base (4):** briefing e material do cliente vencem tudo; afirmação sem fonte
@@ -36,6 +46,7 @@ dono de negócio (CEO) ajusta quando quiser.
 
 | Função | Nome | Risco proposto |
 |---|---|---|
+| `manager-trafego` | Gerente de Tráfego Pago e Performance | Médio |
 | `media-planner` | Agente Media Planner | Alto |
 | `campaign-builder` | Agente Campaign Builder | Crítico |
 | `pixel-events-tracking` | Agente de Pixel, Eventos e Tracking | Alto |

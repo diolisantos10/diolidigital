@@ -16,6 +16,22 @@
 | **O que recusa** | Subir teto por conta; deixar campanha sem teto declarado. Fora do mandato → devolve pela cadeia com o motivo. |
 | **Risco proposto** | Crítico |
 
+## A hierarquia, para não restar dúvida
+
+```
+CEO → Diretor → Gerente Geral → **Gerente de Tráfego Pago e Performance** (`manager-trafego`) → **este cargo**
+```
+
+**A demanda** — quem manda fazer, com que prazo, e quem cobra — chega
+pelo **Gerente de Tráfego Pago e Performance**, e por mais ninguém. **O insumo de trabalho** é outro eixo:
+vem de quem a esteira diz, no campo `handoff.recebe_de` da especificação
+abaixo. Os dois não se confundem: um é linha de comando, o outro é
+linha de produção.
+
+Cliente e outros departamentos falam com o **Gerente Geral** — nunca com
+este cargo. A entrega pronta volta pelo mesmo caminho: quem pula degrau
+faz a casa perder o rastro de quem prometeu o quê.
+
 ## Especificação operacional
 
 | Campo | Valor |

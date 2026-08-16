@@ -1,7 +1,7 @@
 // FICHA PARA TODA FUNÇÃO — validação ESTRUTURAL, não busca de palavras.
 //
 // Exigência do CEO (revisão do PR #146): o teste valida o esquema da
-// especificação operacional de cada uma das 69 fichas — campos presentes,
+// especificação operacional de cada uma das 81 fichas — campos presentes,
 // tipos certos, valores dentro do vocabulário, golden set com os três tipos
 // obrigatórios. Ficha que não parseia, reprova. Desde o piloto assistido
 // (15/08/2026), o estado ligada/desligada é conferido contra a ALLOWLIST da
@@ -69,7 +69,7 @@ function listaPreenchida(valor: unknown, rotulo: string) {
   }
 }
 
-describe("fichas da linha — especificação operacional das 69, validada campo a campo", () => {
+describe("fichas da linha — especificação operacional das 81, validada campo a campo", () => {
   it("toda função do catálogo tem spec parseável, no departamento certo e no estado DECIDIDO pelo dono", () => {
     for (const f of FUNCOES_V2) {
       const spec = specDaFicha(f.departamentoId, f.id);

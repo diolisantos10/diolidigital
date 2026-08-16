@@ -14,6 +14,16 @@
 Médio — plano vai ao PM/cliente como proposta, não chega direto ao ar. O risco individual de cada função está na ficha dela; o
 dono de negócio (CEO) ajusta quando quiser.
 
+## A hierarquia, para não restar dúvida
+
+```
+CEO → Diretor → Gerente Geral → **Gerente de Estratégia** (`manager-estrategia`) → funções desta pasta
+```
+
+Toda demanda deste departamento entra pelo **Gerente de Estratégia**, que recebe do Gerente
+Geral e distribui aqui dentro. Nenhuma função desta pasta recebe demanda
+de fora nem fala com o cliente.
+
 ## Blocos comuns (4 a 14) — valem para toda função desta pasta
 
 - **Base (4):** briefing e material do cliente vencem tudo; afirmação sem fonte
@@ -36,6 +46,7 @@ dono de negócio (CEO) ajusta quando quiser.
 
 | Função | Nome | Risco proposto |
 |---|---|---|
+| `manager-estrategia` | Gerente de Estratégia | Médio |
 | `marketing-strategist` | Agente Estrategista de Marketing | Médio |
 | `market-and-competitor-research` | Agente de Pesquisa de Mercado e Concorrência | Médio |
 | `audience-journey-personas` | Agente de Público, Jornada e Personas | Baixo |

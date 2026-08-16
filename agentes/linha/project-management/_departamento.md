@@ -14,6 +14,16 @@
 Alto — é a voz única com o cliente e o dono do fluxo. O risco individual de cada função está na ficha dela; o
 dono de negócio (CEO) ajusta quando quiser.
 
+## A hierarquia, para não restar dúvida
+
+```
+CEO → Diretor → **Gerente Geral** (`gerente-geral`) → funções desta pasta
+```
+
+O **Gerente Geral** é a porta única do cliente e a ponte entre os doze
+departamentos. Ele manda nos **gerentes de departamento**, não nos
+agentes deles.
+
 ## Blocos comuns (4 a 14) — valem para toda função desta pasta
 
 - **Base (4):** briefing e material do cliente vencem tudo; afirmação sem fonte
@@ -36,6 +46,7 @@ dono de negócio (CEO) ajusta quando quiser.
 
 | Função | Nome | Risco proposto |
 |---|---|---|
+| `gerente-geral` | Gerente Geral | Alto |
 | `pm-orchestrator` | Agente PM Orquestrador | Alto |
 | `planning-and-scope` | Agente de Planejamento e Escopo | Alto |
 | `dependencies-and-sla` | Agente de Dependências e SLA | Médio |
