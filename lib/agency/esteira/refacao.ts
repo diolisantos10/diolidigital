@@ -165,7 +165,7 @@ export async function refazerPorPedidoDoCliente(input: {
       `as peças estão marcadas "em ajuste" no calendário e esperam alguém da equipe`,
       comentario ?? "(sem descrição)");
     const avisou = await escreverNoPortal(ancora, comentario
-      ? "Recebi seu pedido de ajuste e já passei para a equipe olhar. Te retorno em breve com a mudança feita. 💛"
+      ? "Recebi seu pedido de ajuste e já passei para a equipe olhar. Você é avisado por aqui assim que a mudança estiver feita. 💛"
       : "Recebi seu pedido de ajuste! Só me conta em uma frase o que você quer diferente — assim a equipe já refaz certo. 💛");
     return { ...saida, escalado: true, avisouCliente: avisou, motivo: "projeto não encontrado" };
   }
@@ -239,7 +239,7 @@ export async function refazerPorPedidoDoCliente(input: {
     );
     const avisou = await escreverNoPortal(ancora, tudoBarrado
       ? "Recebi seu pedido de ajuste! Essa entrega ainda está em revisão aqui com a equipe — vou juntar o que você pediu na versão nova e te aviso assim que ela ficar pronta. 💛"
-      : "Recebi seu pedido de ajuste e já passei para a equipe olhar. Te retorno em breve com a mudança feita. 💛");
+      : "Recebi seu pedido de ajuste e já passei para a equipe olhar. Você é avisado por aqui assim que a mudança estiver feita. 💛");
     return { ...saida, escalado: true, motivo, avisouCliente: avisou };
   }
 
@@ -439,7 +439,7 @@ export async function refazerPorPedidoDoCliente(input: {
     await escalar(dono, negocio, saida.motivo ?? "refação não concluída", comentario);
     if (saida.refeitas.length === 0) {
       saida.avisouCliente = await escreverNoPortal(ancora,
-        "Recebi seu pedido e já estou olhando com atenção. Te retorno em breve com o ajuste. 💛");
+        "Recebi seu pedido e já passei para a equipe. Você é avisado por aqui assim que o ajuste estiver feito. 💛");
     }
   }
 

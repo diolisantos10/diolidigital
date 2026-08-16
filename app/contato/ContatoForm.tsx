@@ -49,7 +49,7 @@ export function ContatoForm() {
         </div>
         <h2 className="mt-4 text-[20px] font-bold text-[var(--navy)]">Mensagem enviada! 🎉</h2>
         <p className="mt-2 text-[14.5px] leading-relaxed text-[var(--text-secondary)]">
-          Obrigado pelo contato. A gente responde rápido — normalmente em poucas horas úteis.
+          Obrigado pelo contato. A gente lê tudo que chega e responde pelo canal que você deixar.
         </p>
         <button
           onClick={() => setEstado("idle")}

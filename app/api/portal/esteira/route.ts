@@ -147,7 +147,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       ok: true, temProjeto: false,
       titulo: "Ainda estamos organizando tudo",
-      agora: "Seu projeto está sendo preparado. Em breve você acompanha tudo por aqui.",
+      // Sem "em breve" (16/08/2026). Nada aqui mede quando o projeto aparece,
+      // então prometer que ele aparece logo é promessa sem quem a garanta — o
+      // mesmo defeito do "1 dia útil" da tela de briefing. O que é verdade: o
+      // projeto ainda não foi montado, e esta tela mostra assim que ele for.
+      agora: "Seu projeto ainda não foi montado. Assim que ele existir, ele aparece aqui.",
     });
   }
 

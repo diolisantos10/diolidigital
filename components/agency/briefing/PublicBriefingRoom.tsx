@@ -714,8 +714,12 @@ function ProposalCard({
       {/* Próximos passos */}
       <div className="bg-[var(--bg)] rounded-[8px] px-3 py-2.5">
         <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Próximos passos</div>
+        {/* Sem prazo (16/08/2026). Dizia "entra em contato em até 24h úteis" —
+            a mesma promessa da tela de confirmação, feita ANTES do envio, e sem
+            nada no código que a garantisse. O que fica é a sequência real, que
+            a pessoa acompanha na tela seguinte. */}
         <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
-          Após o envio, nossa equipe revisa o escopo, prepara uma proposta formal e entra em contato em até 24h úteis.
+          Após o envio, montamos o escopo e preparamos a proposta. Você acompanha cada etapa na próxima tela.
         </p>
       </div>
 
