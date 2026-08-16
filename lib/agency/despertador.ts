@@ -31,6 +31,7 @@ import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
 import { guardarAVerba } from "@/lib/agency/esteira/trafego";
 import { cuidarDasAvaliacoes } from "@/lib/agency/esteira/avaliacoes";
 import { responderMensagensDeClientes } from "@/lib/agency/esteira/pm-responde";
+import { entregarOrcamentosPendentes } from "@/lib/agency/esteira/orcamento-do-briefing";
 import { cobrarAFila } from "@/lib/agency/esteira/fila-que-se-cobra";
 import { resumoDoPortao } from "@/lib/agency/comercial/o-que-espera-no-portao";
 import { cobrarPedidosEsquecidos } from "@/lib/agency/esteira/pedidos";
@@ -223,6 +224,7 @@ export async function baterORelogio(): Promise<{
   let pedidos = 0;
   let avisos = 0;
   let respondidas = 0;
+  let orcamentos = 0;
   let destravadas = 0;
   let publicados = 0;
   let mesesVirados = 0;
@@ -526,6 +528,26 @@ export async function baterORelogio(): Promise<{
     avisos = typeof r?.sent === "number" ? r.sent : 0;
   } catch (err) {
     quebrou("avisos", err);
+  }
+
+  // ── O ORÇAMENTO SAI DA GAVETA ─────────────────────────────────────────────
+  // 16/08/2026, com o CEO na tela: ele entregou briefing, a tela prometeu
+  // orçamento "em breve" e ele esperou horas. O orçamento JÁ ESTAVA CALCULADO
+  // — a sala de briefing deriva o número ao vivo e grava junto no pedido.
+  // Ninguém entregava. Não faltava calcular; faltava a seta.
+  //
+  // Mora aqui porque tem de acontecer sem ninguém abrir tela: quem entrega
+  // briefing de madrugada não espera alguém lembrar dele de manhã.
+  try {
+    const r = await entregarOrcamentosPendentes();
+    orcamentos = r.entregues;
+    if (r.entregues > 0) log(`${r.entregues} orçamento(s) entregue(s) ao cliente`);
+    // Briefing sem número derivado NÃO ganha número inventado — vai para gente,
+    // e isso é notícia: é cliente esperando com a casa sem resposta.
+    if (r.semOrcamento > 0) quebrou("orcamento", `${r.semOrcamento} briefing(s) sem orçamento calculado — aguardando gente`);
+    for (const f of r.falhas) quebrou("orcamento", f);
+  } catch (err) {
+    quebrou("orcamento", err);
   }
 
   // ── O PM RESPONDE ─────────────────────────────────────────────────────────
