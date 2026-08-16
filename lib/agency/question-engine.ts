@@ -7,6 +7,7 @@
 import type { ConvState, ConvMessage, BriefingScope, SocialScope } from "./briefing-conversation";
 import { emptyBrandingScope, emptyScope, emptyEstimate } from "./briefing-conversation";
 import { computeEstimate } from "./live-calculator";
+import { ehAvisoDeAnexo } from "./anexo-nao-e-resposta";
 import { lerAreaDeAtendimento } from "./comercial/onde-o-negocio-vende";
 
 // ── Text helpers ──────────────────────────────────────────────────────────────
@@ -569,7 +570,17 @@ export function processClientMessage(text: string, state: ConvState): ConvState 
   let newAnswered: string[];
   let negotiationReply: string | null = null;
 
-  if (state.isFirstMessage) {
+  // Mesma trava do `prospect-engine`: o recado automático de anexo não é
+  // resposta e não pode encostar em campo de escopo (16/08/2026 — o nome de um
+  // PDF ocupou o campo Orçamento na tela do CEO). A regra vive nos DOIS motores
+  // porque a sala V2 tem upload próprio; deixar só um protegido é deixar o
+  // defeito escolher a porta. Ver `anexo-nao-e-resposta.ts`.
+  const avisoDeAnexo = ehAvisoDeAnexo(text);
+
+  if (avisoDeAnexo) {
+    newScope    = state.scope;
+    newAnswered = state.answeredQIds;
+  } else if (state.isFirstMessage) {
     const delta = parseInitialMessage(text);
     newScope    = mergeScopeDelta(emptyScope(), delta);
     newAnswered = inferAnsweredQIds(newScope);
@@ -597,7 +608,9 @@ export function processClientMessage(text: string, state: ConvState): ConvState 
     ...withClient,
     scope: newScope,
     answeredQIds: newAnswered,
-    isFirstMessage: false,
+    // Anexo não consome a primeira fala — quem se apresenta é a mensagem que a
+    // pessoa ainda vai digitar.
+    isFirstMessage: avisoDeAnexo ? state.isFirstMessage : false,
     estimate: state.estimate,
     canSubmit: false,
   };

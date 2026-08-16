@@ -4183,3 +4183,42 @@ A** e as oito seriam recusadas. Trava nova que reprova o que já roda não é tr
   exatamente o motivo de o diário ter passado a ler `ExecucaoV2`).
 - **A sala `/agency/produto-tecnologia` não mostra nada disso.** Hoje só o
   diário e a rota `status` respondem.
+
+---
+
+## 16/08/2026 — o painel do briefing lia nome de arquivo como resposta
+
+Piloto ao vivo do CEO em `/briefing`. Dois defeitos no mesmo print, os dois
+consertados com trava em código e teste que falha sem o conserto:
+
+1. **Anexo virava resposta.** O recado automático ("Enviei meu briefing: X")
+   seguia pelo mesmo caminho de uma frase digitada e virava a resposta da
+   pergunta aberta. No campo Orçamento o nome do PDF ocupou tudo e **tirou a
+   pergunta da fila** — o SDR nunca mais perguntava o orçamento, e o que descia
+   para dossiê e proposta era um nome de arquivo. A regra agora vive nos dois
+   motores (`anexo-nao-e-resposta.ts`), não na tela.
+2. **Markdown cru na tela do cliente.** O balão de chat converte `**`; o painel
+   de escopo não convertia. A limpeza passou a morar na borda de renderização
+   (`texto-sem-marcacao.ts`), porque quem preenche os campos é um modelo e
+   modelo escreve markdown por hábito — consertar só a origem do dia deixaria a
+   próxima em pé.
+
+### 🔴 Achado no caminho, NÃO consertado — precisa de diagnóstico próprio
+
+**O e-mail do visitante está sendo gravado como nome do negócio.** Reproduzido
+nos três tamanhos: respondido `dioli@cityjobs.com.br` à pergunta do negócio, o
+painel exibe `Negócio: dioli@cityjobs.com.br`. Sai no título da proposta
+(`buildTitle`) e no dossiê. É outro defeito, com outra causa — a captura de
+identidade em `prospect-engine` —, e não foi tocado nesta peça.
+
+### ⚪ Reportado pelo CEO e NÃO reproduzido — nenhum conserto foi inventado
+
+- **"Na tela do SDR ele não vê o que o agente está falando enquanto digita ou
+  manda áudio."** O código tem indicador de digitação e rolagem automática
+  disparando em `[conv.messages, aiThinking]`, nas duas telas
+  (`PublicBriefingRoom`, `SDRSimulator`). **Não reproduzi.** Falta ao CEO dizer
+  QUAL tela e em que aparelho — sem isso, qualquer mexida aqui é chute.
+- **"Barra branca no topo atrapalhando as telas" (15/08).** O cabeçalho de
+  `/briefing` é `#070A1F` (escuro) e o layout raiz não tem barra. Screenshot nos
+  três tamanhos: nenhuma barra branca. **Não reproduzi nesta tela** — pode ser
+  outra rota.
