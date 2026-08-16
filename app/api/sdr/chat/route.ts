@@ -26,13 +26,27 @@ import { NextRequest, NextResponse } from "next/server";
 // de graça, numa rota pública que gasta chave de IA PAGA. `limiteExcedido` conta
 // no volume, é atômico e é fail-closed: contador fora do ar recusa, não libera.
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
+// ⚠️ O TETO DE RITMO NÃO É TETO DE TAMANHO — e até 16/08/2026 esta rota só tinha
+// o primeiro. `limiteExcedido` conta REQUISIÇÕES por IP; `MAX_HISTORY` conta
+// TURNOS. O tamanho de cada `messages[].text` e do `currentMessage` era
+// ilimitado, numa porta pública sem login que gasta a chave paga da agência
+// (~US$ 18/min por IP, medido). O teto que existia morava num componente React,
+// e atacante nenhum executa React. Ver `lib/security/teto-do-turno-publico.ts`.
+import {
+  MAX_TURNOS,
+  TETO_DA_MENSAGEM,
+  apararTexto,
+  contextoInternoSerializado,
+  corpoGrandeDemais,
+  historicoParaOModelo,
+} from "@/lib/security/teto-do-turno-publico";
 import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 import { blocoDeNegociacaoParaPrompt, ehPerguntaDeFaixa, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
 const MODEL       = "claude-sonnet-4-6";
 const TIMEOUT_MS  = 30_000;
-const MAX_HISTORY = 18; // conversation turns sent to the model
+const MAX_HISTORY = MAX_TURNOS; // conversation turns sent to the model
 
 interface ConvMsg { role: string; text: string }
 
@@ -193,23 +207,27 @@ FORMATO — retorne SOMENTE JSON válido, sem texto fora:
   }
 }`;
 
-function buildClaudeMessages(messages: ConvMsg[], currentMessage: string, scope: Record<string, unknown> | undefined) {
-  const history = messages
-    .filter((m) => m.role !== "system")
-    .slice(-MAX_HISTORY)
-    .map((m) => ({
-      role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
-      content: m.text,
-    }));
+/**
+ * O que sobe ao modelo — e TUDO que sobe passa por teto.
+ *
+ * Três entradas do navegador, três tetos, todos no SERVIDOR:
+ *   • o histórico (quantidade E soma dos tamanhos, cortando o turno mais antigo);
+ *   • a mensagem do turno (que carrega o dossiê dos anexos colado);
+ *   • o contexto interno (`scope`), que também vem do navegador e também é colado.
+ */
+function buildClaudeMessages(messages: unknown[], currentMessage: string, scope: unknown) {
+  const { turnos } = historicoParaOModelo(messages, undefined, MAX_HISTORY);
 
-  const scopeNote =
-    scope && Object.keys(scope).length > 0
-      ? `\n\n[Contexto interno — dados já captados: ${JSON.stringify(scope)}. Não repita perguntas já respondidas. Lembre-se: NUNCA cote preço e nunca peça e-mail. Se budgetRange ainda não estiver aqui, a pergunta da faixa de investimento é prioridade — não deixe para o fim.]`
-      : "";
+  const contexto = contextoInternoSerializado(scope);
+  const scopeNote = contexto.json
+    ? `\n\n[Contexto interno — dados já captados: ${contexto.json}. Não repita perguntas já respondidas. Lembre-se: NUNCA cote preço e nunca peça e-mail. Se budgetRange ainda não estiver aqui, a pergunta da faixa de investimento é prioridade — não deixe para o fim.]`
+    : "";
+
+  const mensagem = apararTexto(currentMessage, TETO_DA_MENSAGEM).texto;
 
   return [
-    ...history,
-    { role: "user" as const, content: currentMessage + scopeNote },
+    ...turnos,
+    { role: "user" as const, content: mensagem + scopeNote },
   ];
 }
 
@@ -226,6 +244,14 @@ function extractJson(text: string): Record<string, unknown> | null {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // O portão MAIS BARATO vem primeiro, e ele acontece antes de o corpo ser
+  // lido: `req.json()` de um corpo de 500 MB já é o dano, e nenhum teto de
+  // depois do parse chega a tempo. Os tetos de conteúdo (abaixo, em
+  // `buildClaudeMessages`) seguem valendo para corpo sem `content-length`.
+  if (corpoGrandeDemais(req.headers)) {
+    return NextResponse.json({ ok: false, reason: "too_large" }, { status: 413 });
+  }
+
   const barrado = await limiteExcedido(req, "sdr-chat", 30, 60_000);
   if (barrado) return barrado as NextResponse;
 
