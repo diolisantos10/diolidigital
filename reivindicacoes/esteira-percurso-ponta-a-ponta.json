@@ -1,0 +1,11 @@
+{
+  "id": "esteira/percurso-ponta-a-ponta",
+  "quem": "wt-4a7642478e",
+  "frente": "percorrer a esteira ponta a ponta com o caso do CEO (2 posts/dia, R$ 500/mes) e mapear onde quebra",
+  "responsabilidade": "esteira/percurso-ponta-a-ponta",
+  "arquivos": [
+    "scripts/percurso-da-esteira.mts"
+  ],
+  "abertaEm": "2026-08-16T19:26:22.291Z",
+  "encerradaEm": null
+}
