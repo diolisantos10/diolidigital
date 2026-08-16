@@ -86,14 +86,39 @@ fi
 # com valores que só aquela pessoa tem, e apagá-lo destruiria trabalho de
 # forma irreversível — o tipo de dano que uma "conveniência" automática nunca
 # pode causar.
+# ⚠️ O CAMINHO DO BANCO É ABSOLUTO, E ISSO NÃO É FRESCURA — custou um falso
+# alarme em 16/08/2026.
+#
+# Com `DATABASE_URL="file:./dev.db"` (relativo), DOIS componentes resolvem o
+# mesmo texto para arquivos DIFERENTES:
+#   • o Prisma Client rodando dentro do Next resolve relativo ao CWD  → <raiz>/dev.db
+#   • o Prisma CLI e qualquer script via tsx resolvem relativo ao DIRETÓRIO DO
+#     SCHEMA (`prisma.config.ts` declara schema: "prisma/schema.prisma")
+#                                                                    → <raiz>/prisma/dev.db
+#
+# Medido no dia: `dev.db` na raiz com 1,29 MB (onde o servidor escrevia) e
+# `prisma/dev.db` com 0 BYTES (o que os scripts liam). Um percurso ponta a ponta
+# reportou "no such table" e acusou a esteira de quebrada quando o defeito era
+# o caminho. DUAS VERDADES SOBRE ONDE MORA O BANCO, no mesmo repositório.
+#
+# Caminho absoluto faz os dois resolverem para o MESMO arquivo, sempre.
 if [ ! -f ".env" ]; then
-  if { echo 'DATABASE_URL="file:./dev.db"'; echo 'JWT_SECRET=dev-secret-local-only'; } > .env; then
-    echo "[session-start] .env criado com valores de desenvolvimento local."
+  if { echo "DATABASE_URL=\"file:$(pwd)/dev.db\""; echo 'JWT_SECRET=dev-secret-local-only'; } > .env; then
+    echo "[session-start] .env criado (banco em caminho absoluto: $(pwd)/dev.db)."
   else
     FALHAS+=("não consegui escrever .env. Crie à mão — a receita está no CLAUDE.md.")
   fi
 else
   echo "[session-start] .env já existe — não mexo nele."
+  # `.env` existente NUNCA é sobrescrito (é regra desta casa, e ela é boa).
+  # Mas quem já tem um `.env` com caminho relativo continua com a ambiguidade
+  # acima, e ela falha em SILÊNCIO — o script lê um banco vazio e conclui que o
+  # sistema está quebrado. Então aqui não se conserta: avisa-se, com a linha
+  # pronta para copiar.
+  if grep -q 'DATABASE_URL="file:\./' .env 2>/dev/null; then
+    echo "[session-start] ⚠️  Seu .env usa caminho RELATIVO para o banco. O servidor e os scripts vão ler ARQUIVOS DIFERENTES (medido em 16/08: 1,29 MB contra 0 byte). Para alinhar:"
+    echo "[session-start]     sed -i 's|file:./dev.db|file:$(pwd)/dev.db|' .env"
+  fi
 fi
 
 # `prisma db push` + semente são o passo mais caro e o mais dispensável: quem

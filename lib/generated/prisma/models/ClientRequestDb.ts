@@ -20,8 +20,18 @@ export type ClientRequestDbModel = runtime.Types.Result.DefaultSelection<Prisma.
 
 export type AggregateClientRequestDb = {
   _count: ClientRequestDbCountAggregateOutputType | null
+  _avg: ClientRequestDbAvgAggregateOutputType | null
+  _sum: ClientRequestDbSumAggregateOutputType | null
   _min: ClientRequestDbMinAggregateOutputType | null
   _max: ClientRequestDbMaxAggregateOutputType | null
+}
+
+export type ClientRequestDbAvgAggregateOutputType = {
+  avisoOrcamentoTentativas: number | null
+}
+
+export type ClientRequestDbSumAggregateOutputType = {
+  avisoOrcamentoTentativas: number | null
 }
 
 export type ClientRequestDbMinAggregateOutputType = {
@@ -42,6 +52,10 @@ export type ClientRequestDbMinAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   chaveDoProspect: string | null
+  avisoOrcamentoStatus: string | null
+  avisoOrcamentoDetalhe: string | null
+  avisoOrcamentoEm: Date | null
+  avisoOrcamentoTentativas: number | null
 }
 
 export type ClientRequestDbMaxAggregateOutputType = {
@@ -62,6 +76,10 @@ export type ClientRequestDbMaxAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   chaveDoProspect: string | null
+  avisoOrcamentoStatus: string | null
+  avisoOrcamentoDetalhe: string | null
+  avisoOrcamentoEm: Date | null
+  avisoOrcamentoTentativas: number | null
 }
 
 export type ClientRequestDbCountAggregateOutputType = {
@@ -82,9 +100,21 @@ export type ClientRequestDbCountAggregateOutputType = {
   createdAt: number
   updatedAt: number
   chaveDoProspect: number
+  avisoOrcamentoStatus: number
+  avisoOrcamentoDetalhe: number
+  avisoOrcamentoEm: number
+  avisoOrcamentoTentativas: number
   _all: number
 }
 
+
+export type ClientRequestDbAvgAggregateInputType = {
+  avisoOrcamentoTentativas?: true
+}
+
+export type ClientRequestDbSumAggregateInputType = {
+  avisoOrcamentoTentativas?: true
+}
 
 export type ClientRequestDbMinAggregateInputType = {
   estadoCanonico?: true
@@ -104,6 +134,10 @@ export type ClientRequestDbMinAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   chaveDoProspect?: true
+  avisoOrcamentoStatus?: true
+  avisoOrcamentoDetalhe?: true
+  avisoOrcamentoEm?: true
+  avisoOrcamentoTentativas?: true
 }
 
 export type ClientRequestDbMaxAggregateInputType = {
@@ -124,6 +158,10 @@ export type ClientRequestDbMaxAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   chaveDoProspect?: true
+  avisoOrcamentoStatus?: true
+  avisoOrcamentoDetalhe?: true
+  avisoOrcamentoEm?: true
+  avisoOrcamentoTentativas?: true
 }
 
 export type ClientRequestDbCountAggregateInputType = {
@@ -144,6 +182,10 @@ export type ClientRequestDbCountAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   chaveDoProspect?: true
+  avisoOrcamentoStatus?: true
+  avisoOrcamentoDetalhe?: true
+  avisoOrcamentoEm?: true
+  avisoOrcamentoTentativas?: true
   _all?: true
 }
 
@@ -185,6 +227,18 @@ export type ClientRequestDbAggregateArgs<ExtArgs extends runtime.Types.Extension
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: ClientRequestDbAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: ClientRequestDbSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: ClientRequestDbMinAggregateInputType
@@ -215,6 +269,8 @@ export type ClientRequestDbGroupByArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   _count?: ClientRequestDbCountAggregateInputType | true
+  _avg?: ClientRequestDbAvgAggregateInputType
+  _sum?: ClientRequestDbSumAggregateInputType
   _min?: ClientRequestDbMinAggregateInputType
   _max?: ClientRequestDbMaxAggregateInputType
 }
@@ -237,7 +293,13 @@ export type ClientRequestDbGroupByOutputType = {
   createdAt: Date
   updatedAt: Date
   chaveDoProspect: string | null
+  avisoOrcamentoStatus: string | null
+  avisoOrcamentoDetalhe: string | null
+  avisoOrcamentoEm: Date | null
+  avisoOrcamentoTentativas: number
   _count: ClientRequestDbCountAggregateOutputType | null
+  _avg: ClientRequestDbAvgAggregateOutputType | null
+  _sum: ClientRequestDbSumAggregateOutputType | null
   _min: ClientRequestDbMinAggregateOutputType | null
   _max: ClientRequestDbMaxAggregateOutputType | null
 }
@@ -278,6 +340,10 @@ export type ClientRequestDbWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
   chaveDoProspect?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  avisoOrcamentoStatus?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  avisoOrcamentoDetalhe?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  avisoOrcamentoEm?: Prisma.DateTimeNullableFilter<"ClientRequestDb"> | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFilter<"ClientRequestDb"> | number
   artifacts?: Prisma.BrainArtifactListRelationFilter
   approvals?: Prisma.ApprovalRequestListRelationFilter
   evidenceItems?: Prisma.EvidenceItemListRelationFilter
@@ -303,6 +369,10 @@ export type ClientRequestDbOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   chaveDoProspect?: Prisma.SortOrderInput | Prisma.SortOrder
+  avisoOrcamentoStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  avisoOrcamentoDetalhe?: Prisma.SortOrderInput | Prisma.SortOrder
+  avisoOrcamentoEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  avisoOrcamentoTentativas?: Prisma.SortOrder
   artifacts?: Prisma.BrainArtifactOrderByRelationAggregateInput
   approvals?: Prisma.ApprovalRequestOrderByRelationAggregateInput
   evidenceItems?: Prisma.EvidenceItemOrderByRelationAggregateInput
@@ -331,6 +401,10 @@ export type ClientRequestDbWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
   chaveDoProspect?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  avisoOrcamentoStatus?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  avisoOrcamentoDetalhe?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  avisoOrcamentoEm?: Prisma.DateTimeNullableFilter<"ClientRequestDb"> | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFilter<"ClientRequestDb"> | number
   artifacts?: Prisma.BrainArtifactListRelationFilter
   approvals?: Prisma.ApprovalRequestListRelationFilter
   evidenceItems?: Prisma.EvidenceItemListRelationFilter
@@ -356,9 +430,15 @@ export type ClientRequestDbOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   chaveDoProspect?: Prisma.SortOrderInput | Prisma.SortOrder
+  avisoOrcamentoStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  avisoOrcamentoDetalhe?: Prisma.SortOrderInput | Prisma.SortOrder
+  avisoOrcamentoEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  avisoOrcamentoTentativas?: Prisma.SortOrder
   _count?: Prisma.ClientRequestDbCountOrderByAggregateInput
+  _avg?: Prisma.ClientRequestDbAvgOrderByAggregateInput
   _max?: Prisma.ClientRequestDbMaxOrderByAggregateInput
   _min?: Prisma.ClientRequestDbMinOrderByAggregateInput
+  _sum?: Prisma.ClientRequestDbSumOrderByAggregateInput
 }
 
 export type ClientRequestDbScalarWhereWithAggregatesInput = {
@@ -382,6 +462,10 @@ export type ClientRequestDbScalarWhereWithAggregatesInput = {
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ClientRequestDb"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ClientRequestDb"> | Date | string
   chaveDoProspect?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
+  avisoOrcamentoStatus?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
+  avisoOrcamentoDetalhe?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
+  avisoOrcamentoEm?: Prisma.DateTimeNullableWithAggregatesFilter<"ClientRequestDb"> | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntWithAggregatesFilter<"ClientRequestDb"> | number
 }
 
 export type ClientRequestDbCreateInput = {
@@ -402,6 +486,10 @@ export type ClientRequestDbCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
@@ -427,6 +515,10 @@ export type ClientRequestDbUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
@@ -452,6 +544,10 @@ export type ClientRequestDbUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
@@ -477,6 +573,10 @@ export type ClientRequestDbUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -502,6 +602,10 @@ export type ClientRequestDbCreateManyInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
 }
 
 export type ClientRequestDbUpdateManyMutationInput = {
@@ -522,6 +626,10 @@ export type ClientRequestDbUpdateManyMutationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type ClientRequestDbUncheckedUpdateManyInput = {
@@ -542,6 +650,10 @@ export type ClientRequestDbUncheckedUpdateManyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type ClientRequestDbCountOrderByAggregateInput = {
@@ -562,6 +674,14 @@ export type ClientRequestDbCountOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   chaveDoProspect?: Prisma.SortOrder
+  avisoOrcamentoStatus?: Prisma.SortOrder
+  avisoOrcamentoDetalhe?: Prisma.SortOrder
+  avisoOrcamentoEm?: Prisma.SortOrder
+  avisoOrcamentoTentativas?: Prisma.SortOrder
+}
+
+export type ClientRequestDbAvgOrderByAggregateInput = {
+  avisoOrcamentoTentativas?: Prisma.SortOrder
 }
 
 export type ClientRequestDbMaxOrderByAggregateInput = {
@@ -582,6 +702,10 @@ export type ClientRequestDbMaxOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   chaveDoProspect?: Prisma.SortOrder
+  avisoOrcamentoStatus?: Prisma.SortOrder
+  avisoOrcamentoDetalhe?: Prisma.SortOrder
+  avisoOrcamentoEm?: Prisma.SortOrder
+  avisoOrcamentoTentativas?: Prisma.SortOrder
 }
 
 export type ClientRequestDbMinOrderByAggregateInput = {
@@ -602,6 +726,14 @@ export type ClientRequestDbMinOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   chaveDoProspect?: Prisma.SortOrder
+  avisoOrcamentoStatus?: Prisma.SortOrder
+  avisoOrcamentoDetalhe?: Prisma.SortOrder
+  avisoOrcamentoEm?: Prisma.SortOrder
+  avisoOrcamentoTentativas?: Prisma.SortOrder
+}
+
+export type ClientRequestDbSumOrderByAggregateInput = {
+  avisoOrcamentoTentativas?: Prisma.SortOrder
 }
 
 export type ClientRequestDbNullableScalarRelationFilter = {
@@ -707,6 +839,10 @@ export type ClientRequestDbCreateWithoutMessagesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
@@ -731,6 +867,10 @@ export type ClientRequestDbUncheckedCreateWithoutMessagesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
@@ -771,6 +911,10 @@ export type ClientRequestDbUpdateWithoutMessagesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
@@ -795,6 +939,10 @@ export type ClientRequestDbUncheckedUpdateWithoutMessagesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -819,6 +967,10 @@ export type ClientRequestDbCreateWithoutArtifactsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessCreateNestedManyWithoutClientRequestInput
@@ -843,6 +995,10 @@ export type ClientRequestDbUncheckedCreateWithoutArtifactsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessUncheckedCreateNestedManyWithoutClientRequestInput
@@ -883,6 +1039,10 @@ export type ClientRequestDbUpdateWithoutArtifactsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUpdateManyWithoutClientRequestNestedInput
@@ -907,6 +1067,10 @@ export type ClientRequestDbUncheckedUpdateWithoutArtifactsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -931,6 +1095,10 @@ export type ClientRequestDbCreateWithoutApprovalsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessCreateNestedManyWithoutClientRequestInput
@@ -955,6 +1123,10 @@ export type ClientRequestDbUncheckedCreateWithoutApprovalsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessUncheckedCreateNestedManyWithoutClientRequestInput
@@ -995,6 +1167,10 @@ export type ClientRequestDbUpdateWithoutApprovalsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUpdateManyWithoutClientRequestNestedInput
@@ -1019,6 +1195,10 @@ export type ClientRequestDbUncheckedUpdateWithoutApprovalsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -1043,6 +1223,10 @@ export type ClientRequestDbCreateWithoutEvidenceItemsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessCreateNestedManyWithoutClientRequestInput
@@ -1067,6 +1251,10 @@ export type ClientRequestDbUncheckedCreateWithoutEvidenceItemsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessUncheckedCreateNestedManyWithoutClientRequestInput
@@ -1107,6 +1295,10 @@ export type ClientRequestDbUpdateWithoutEvidenceItemsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUpdateManyWithoutClientRequestNestedInput
@@ -1131,6 +1323,10 @@ export type ClientRequestDbUncheckedUpdateWithoutEvidenceItemsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -1155,6 +1351,10 @@ export type ClientRequestDbCreateWithoutPortalAccessInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
@@ -1179,6 +1379,10 @@ export type ClientRequestDbUncheckedCreateWithoutPortalAccessInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   chaveDoProspect?: string | null
+  avisoOrcamentoStatus?: string | null
+  avisoOrcamentoDetalhe?: string | null
+  avisoOrcamentoEm?: Date | string | null
+  avisoOrcamentoTentativas?: number
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
@@ -1219,6 +1423,10 @@ export type ClientRequestDbUpdateWithoutPortalAccessInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
@@ -1243,6 +1451,10 @@ export type ClientRequestDbUncheckedUpdateWithoutPortalAccessInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoOrcamentoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  avisoOrcamentoTentativas?: Prisma.IntFieldUpdateOperationsInput | number
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -1334,6 +1546,10 @@ export type ClientRequestDbSelect<ExtArgs extends runtime.Types.Extensions.Inter
   createdAt?: boolean
   updatedAt?: boolean
   chaveDoProspect?: boolean
+  avisoOrcamentoStatus?: boolean
+  avisoOrcamentoDetalhe?: boolean
+  avisoOrcamentoEm?: boolean
+  avisoOrcamentoTentativas?: boolean
   artifacts?: boolean | Prisma.ClientRequestDb$artifactsArgs<ExtArgs>
   approvals?: boolean | Prisma.ClientRequestDb$approvalsArgs<ExtArgs>
   evidenceItems?: boolean | Prisma.ClientRequestDb$evidenceItemsArgs<ExtArgs>
@@ -1360,6 +1576,10 @@ export type ClientRequestDbSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   createdAt?: boolean
   updatedAt?: boolean
   chaveDoProspect?: boolean
+  avisoOrcamentoStatus?: boolean
+  avisoOrcamentoDetalhe?: boolean
+  avisoOrcamentoEm?: boolean
+  avisoOrcamentoTentativas?: boolean
 }, ExtArgs["result"]["clientRequestDb"]>
 
 export type ClientRequestDbSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1380,6 +1600,10 @@ export type ClientRequestDbSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   createdAt?: boolean
   updatedAt?: boolean
   chaveDoProspect?: boolean
+  avisoOrcamentoStatus?: boolean
+  avisoOrcamentoDetalhe?: boolean
+  avisoOrcamentoEm?: boolean
+  avisoOrcamentoTentativas?: boolean
 }, ExtArgs["result"]["clientRequestDb"]>
 
 export type ClientRequestDbSelectScalar = {
@@ -1400,9 +1624,13 @@ export type ClientRequestDbSelectScalar = {
   createdAt?: boolean
   updatedAt?: boolean
   chaveDoProspect?: boolean
+  avisoOrcamentoStatus?: boolean
+  avisoOrcamentoDetalhe?: boolean
+  avisoOrcamentoEm?: boolean
+  avisoOrcamentoTentativas?: boolean
 }
 
-export type ClientRequestDbOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "clientId" | "businessName" | "segment" | "services" | "objectives" | "status" | "source" | "rawContext" | "briefingJson" | "sdrHandoffJson" | "attachmentsJson" | "createdAt" | "updatedAt" | "chaveDoProspect", ExtArgs["result"]["clientRequestDb"]>
+export type ClientRequestDbOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "clientId" | "businessName" | "segment" | "services" | "objectives" | "status" | "source" | "rawContext" | "briefingJson" | "sdrHandoffJson" | "attachmentsJson" | "createdAt" | "updatedAt" | "chaveDoProspect" | "avisoOrcamentoStatus" | "avisoOrcamentoDetalhe" | "avisoOrcamentoEm" | "avisoOrcamentoTentativas", ExtArgs["result"]["clientRequestDb"]>
 export type ClientRequestDbInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   artifacts?: boolean | Prisma.ClientRequestDb$artifactsArgs<ExtArgs>
   approvals?: boolean | Prisma.ClientRequestDb$approvalsArgs<ExtArgs>
@@ -1465,6 +1693,58 @@ export type $ClientRequestDbPayload<ExtArgs extends runtime.Types.Extensions.Int
      * é a inferência que esta casa proíbe.
      */
     chaveDoProspect: string | null
+    /**
+     * ── O AVISO DE ORÇAMENTO QUE FALHA NUNCA MAIS SOME (16/08/2026, aditiva) ──
+     * 
+     * Motivo completo em `lib/agency/esteira/orcamento-do-briefing.ts`. Resumo:
+     * sem `RESEND_FROM` configurado no Railway, todo aviso de orçamento falha
+     * no dia do deploy — e até aqui a falha só existia como `console.warn`,
+     * apagado no redeploy seguinte. Estas três colunas dão à falha um lugar que
+     * SOBREVIVE à rodada, e que autoriza um reenvio sem duplicar o e-mail de
+     * quem já foi avisado com sucesso.
+     * 
+     * Só são escritas DEPOIS que o orçamento já foi entregue no portal — mesma
+     * regra de `avisarPorEmail`: nunca antes da transação que tira o pedido de
+     * `new`. Os valores possíveis de `avisoOrcamentoStatus`, e cada um é um FATO
+     * diferente — nunca achatados em "deu certo" / "deu errado":
+     * • "avisado"   — o e-mail saiu. O reenvio NUNCA busca este estado — é
+     * isso que impede o cliente de receber o orçamento 2x.
+     * • "falhou"    — o Resend recusou o envio. É o que o reenvio busca.
+     * • "skipped"   — `RESEND_API_KEY` ausente. Configuração da casa, não do
+     * pedido — mas reenviável assim que a chave existir, e por
+     * isso o reenvio também busca este estado.
+     * • "sem_canal" — o lead não declarou e-mail. NÃO é falha, e o reenvio
+     * NUNCA busca este estado: não há para onde reenviar.
+     * 
+     * E o quinto fato, que não é um valor gravado aqui — é a AUSÊNCIA dele:
+     * • NULL — "não sabemos". `a2d06fb1` (versão anterior deste arquivo) já
+     * estava em produção antes de esta coluna existir: todo pedido que o
+     * relógio processou naquela janela saiu de `new` sem gravar nada.
+     * NULL não é "falhou" (reenviar por padrão arriscaria duplicata para
+     * quem, por acaso, já recebeu) nem "avisado" (garantiria silêncio para
+     * quem não recebeu). Por isso vira um balde à parte — "legado"
+     * (`contarAvisosLegados` / `reenviarAvisosLegados`) — nunca um sexto
+     * valor gravado por palpite, e o reenvio dele é sempre opt-in
+     * explícito, nunca o padrão. Ver "O BALDE DOS LEGADOS" em
+     * `lib/agency/esteira/orcamento-do-briefing.ts`.
+     */
+    avisoOrcamentoStatus: string | null
+    /**
+     * O motivo em texto — a resposta do Resend, ou "RESEND_API_KEY ausente".
+     * Nunca guarda dado do cliente: é sempre o lado da casa que falhou.
+     */
+    avisoOrcamentoDetalhe: string | null
+    /**
+     * Quando este status foi gravado. Atualizada a cada tentativa — inclusive
+     * nos reenvios — para a fila de reenvio priorizar quem espera há mais tempo.
+     */
+    avisoOrcamentoEm: Date | null
+    /**
+     * Quantas vezes a casa tentou avisar este pedido (entrega original +
+     * reenvios). Existe para o painel dizer "já tentamos 3x" em vez de deixar
+     * parecer que o reenvio nunca rodou.
+     */
+    avisoOrcamentoTentativas: number
   }, ExtArgs["result"]["clientRequestDb"]>
   composites: {}
 }
@@ -1910,6 +2190,10 @@ export interface ClientRequestDbFieldRefs {
   readonly createdAt: Prisma.FieldRef<"ClientRequestDb", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ClientRequestDb", 'DateTime'>
   readonly chaveDoProspect: Prisma.FieldRef<"ClientRequestDb", 'String'>
+  readonly avisoOrcamentoStatus: Prisma.FieldRef<"ClientRequestDb", 'String'>
+  readonly avisoOrcamentoDetalhe: Prisma.FieldRef<"ClientRequestDb", 'String'>
+  readonly avisoOrcamentoEm: Prisma.FieldRef<"ClientRequestDb", 'DateTime'>
+  readonly avisoOrcamentoTentativas: Prisma.FieldRef<"ClientRequestDb", 'Int'>
 }
     
 

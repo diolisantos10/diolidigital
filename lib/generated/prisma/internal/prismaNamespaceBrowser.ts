@@ -793,7 +793,11 @@ export const ClientRequestDbScalarFieldEnum = {
   attachmentsJson: 'attachmentsJson',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  chaveDoProspect: 'chaveDoProspect'
+  chaveDoProspect: 'chaveDoProspect',
+  avisoOrcamentoStatus: 'avisoOrcamentoStatus',
+  avisoOrcamentoDetalhe: 'avisoOrcamentoDetalhe',
+  avisoOrcamentoEm: 'avisoOrcamentoEm',
+  avisoOrcamentoTentativas: 'avisoOrcamentoTentativas'
 } as const
 
 export type ClientRequestDbScalarFieldEnum = (typeof ClientRequestDbScalarFieldEnum)[keyof typeof ClientRequestDbScalarFieldEnum]
