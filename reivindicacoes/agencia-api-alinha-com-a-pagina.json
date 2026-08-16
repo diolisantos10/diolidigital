@@ -1,0 +1,12 @@
+{
+  "id": "agencia/api-alinha-com-a-pagina",
+  "quem": "pm-9ab49074",
+  "frente": "alinhar a API de avisos-de-orcamento a pagina: exigirApiInterna, fim da divergencia papel-pagina-vs-API",
+  "responsabilidade": "agencia/api-alinha-com-a-pagina",
+  "arquivos": [
+    "app/api/agency/avisos-de-orcamento/route.ts",
+    "__tests__/agency/avisos-de-orcamento"
+  ],
+  "abertaEm": "2026-08-16T19:00:35.650Z",
+  "encerradaEm": null
+}
