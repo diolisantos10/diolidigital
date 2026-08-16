@@ -180,7 +180,14 @@ const P = {
 // `undefined`**. Volume zero, negativo, NaN ou fora de tipo são todos a mesma
 // coisa — o dado não chegou. Quem preenche o buraco por inferência inventa o
 // pedido do cliente, e nesta casa não há revisor humano depois disto.
-function volumeDeclarado(s: SocialScope | undefined): number | null {
+//
+// EXPORTADA (laudo do `qualidade`, 16/08/2026): o mesmo zero que passou pelo
+// preço também passava pelo gate de qualificação do SDR e pelo dossiê do lead
+// — `sdr-agent.ts` testava `postsPerWeek !== undefined`, a mesma cópia da
+// regra errada que existia aqui antes deste comentário. É esta função, e só
+// ela, que decide "isto é um volume declarado utilizável?" em toda a casa —
+// nenhum outro lugar reimplementa a checagem.
+export function volumeDeclarado(s: SocialScope | undefined): number | null {
   const v = s?.postsPerWeek;
   if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return null;
   return v;

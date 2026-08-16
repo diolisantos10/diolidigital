@@ -5,6 +5,7 @@
 
 import type { BriefingScope, ConvState, LiveEstimate } from "./briefing-conversation";
 import { remainingRequiredQuestions } from "./question-engine";
+import { volumeDeclarado } from "./live-calculator";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -435,13 +436,20 @@ export function runSDRQualityGate(conv: ConvState, sdr: SDRAgentState): SDRQuali
         : sdr.objection.types.length > 0 ? `${sdr.objection.types.length} objeção(ões) resolvida(s).` : "Sem objeções registradas.",
     },
     {
+      // Diego, City Jobs, 16/08/2026: descreveu "14 posts por semana" e o
+      // quadro mostrou "0 posts por mês" — o gate dava PASS porque testava
+      // `postsPerWeek !== undefined`, e 0 é definido. Zero não é escopo
+      // completo, é campo que ninguém preencheu de verdade: usa-se
+      // `volumeDeclarado`, a mesma função que trava o preço em
+      // live-calculator.ts, para que ausente e zero sejam a MESMA falha em
+      // todo lugar que perguntar "isto é um volume utilizável?".
       id: "social_scope",
       label: "Escopo de Social Media completo",
       status: !s.wantsSocialMedia ? "PASS"
-        : s.social?.postsPerWeek !== undefined ? "PASS" : "WARNING",
+        : volumeDeclarado(s.social) !== null ? "PASS" : "WARNING",
       detail: !s.wantsSocialMedia ? "Social Media não selecionado."
-        : s.social?.postsPerWeek !== undefined
-          ? `${s.social.postsPerWeek * 4} posts/mês definidos.`
+        : volumeDeclarado(s.social) !== null
+          ? `${volumeDeclarado(s.social)! * 4} posts/mês definidos.`
           : "Frequência de posts não definida.",
     },
     {
@@ -621,7 +629,10 @@ export function buildBrainReasoningOutput(
   if (services.length > 0) knownFacts.push(`Serviços: ${services.join(", ")}`);
   if (s.objectives.length > 0) knownFacts.push(`Objetivos: ${s.objectives.join(", ")}`);
   if (sdr.budgetSignal.amount !== undefined) knownFacts.push(`Budget: R$ ${sdr.budgetSignal.amount.toLocaleString("pt-BR")}`);
-  if (s.social?.postsPerWeek !== undefined) knownFacts.push(`${s.social.postsPerWeek * 4} posts/mês`);
+  // Mesma trava do gate acima: zero nunca é fato declarado pelo cliente — é
+  // ausência disfarçada de dado. `volumeDeclarado` é a única fonte da regra.
+  const volumeSocial = volumeDeclarado(s.social);
+  if (volumeSocial !== null) knownFacts.push(`${volumeSocial * 4} posts/mês`);
   if (s.serviceMode) knownFacts.push(`Modalidade: ${engagementLabel(s.serviceMode)}`);
 
   const unknownFacts = [...e.missingForEstimate];
