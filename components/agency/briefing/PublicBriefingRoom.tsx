@@ -15,6 +15,14 @@ import {
   cortarNomeDeArquivo,
   cortarRotuloDeTipo,
 } from "@/lib/agency/comercial/nome-de-anexo";
+import {
+  aberturaDeAnexo,
+  conteudoParaCerca,
+  fechamentoDeAnexo,
+  instrucaoDaMarca,
+  nomeParaCerca,
+  novaMarcaDeCerca,
+} from "@/lib/agency/comercial/cerca-de-anexo";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
 
 // ── Public types ───────────────────────────────────────────────────────────────
@@ -789,14 +797,79 @@ interface UploadItem {
  *  espremer a conversa para caber seria trocar um defeito por outro. */
 export const ALTURA_MINIMA_DO_CARTAO = 320;
 
-/** Quanto o cartão da conversa pode ter, dado o tamanho da janela e quanto de
- *  página existe ACIMA dele.
+/**
+ * O mínimo de CONVERSA que precisa sobrar depois de cabeçalho e rodapé.
  *
- *  Existe como função pura porque era um NÚMERO CHUTADO (`calc(100dvh-7rem)`,
- *  isto é, 112px de reserva) e o chute errava por quase o dobro no celular. */
-export function tetoDoCartaoDaConversa(alturaDaJanela: number, topoDoCartao: number): number {
+ * Não é estética: abaixo disto o cartão deixa de responder "o que ele falou?",
+ * que é a pergunta que ele existe para responder. Uma bolha de mensagem tem
+ * ~40px; 88 garante duas linhas e a sombra da terceira.
+ */
+export const PISO_DA_CONVERSA = 88;
+
+/**
+ * Quanto o cartão da conversa pode ter, dado o tamanho da janela, quanto de
+ * página existe ACIMA dele e quanto os EXTREMOS (cabeçalho + rodapé) medem.
+ *
+ * Existe como função pura porque era um NÚMERO CHUTADO (`calc(100dvh-7rem)`,
+ * isto é, 112px de reserva) e o chute errava por quase o dobro no celular.
+ *
+ * ⚠️ 16/08/2026 (B1) — `extremos` é novo, e é a metade que faltava. O piso de
+ * 320px era cego para o rodapé: a 375×600, com o painel de materiais aberto, o
+ * cartão media 371px e o rodapé (Falar / Anexar) caía em 620–652, **fora** de um
+ * cartão que termina em 584 e é `overflow-hidden`. Recortado não é rolável —
+ * o CEO perdia o microfone e o único jeito de fechar o painel, porque o
+ * alternador é o próprio botão recortado.
+ *
+ * Quando a janela é curta demais, o cartão passa a ser MAIOR que a sobra e a
+ * **página volta a rolar** — e isso é o certo: rolar é recuperável, recortar
+ * não é. "Se não couber, algo cede de forma visível."
+ */
+export function tetoDoCartaoDaConversa(
+  alturaDaJanela: number,
+  topoDoCartao: number,
+  extremos = 0,
+): number {
   const RESPIRO = 16;
-  return Math.round(Math.max(ALTURA_MINIMA_DO_CARTAO, alturaDaJanela - topoDoCartao - RESPIRO));
+  const piso = Math.max(ALTURA_MINIMA_DO_CARTAO, Math.round(extremos) + PISO_DA_CONVERSA);
+  return Math.round(Math.max(piso, alturaDaJanela - topoDoCartao - RESPIRO));
+}
+
+/**
+ * As alturas das DUAS regiões flexíveis do cartão (conversa e materiais).
+ *
+ * É a função que prova o B1: a soma de tudo cabe no cartão, sempre, para
+ * qualquer entrada. A regra ANTERIOR era CSS — `min-h-[120px]` na conversa E
+ * `min-h-[120px]` nos materiais, num cartão `overflow-hidden` —, e ela não é
+ * expressável como "a soma cabe": com 371px de cartão, 72 de cabeçalho e 110 de
+ * rodapé, os pisos exigiam 422px. Os 51px que sobravam eram cortados em
+ * silêncio, e o que estava por último era o rodapé.
+ *
+ * ── A REPARTIÇÃO, e por que não é a proporção 2:1 de antes ─────────────────
+ * `flex-[2] / flex-[1]` reparte por porcentagem, e porcentagem erra nas duas
+ * pontas: a 375×600 dava 63px aos materiais (a zona de arrastar sozinha pede
+ * ~110 e ficava pela metade), e no desktop dava 330px a um painel que nunca
+ * precisa de mais que ~190 — meia tela de espaço vazio roubada da conversa.
+ *
+ * A ordem passa a ser declarada, não proporcional:
+ *   1. a CONVERSA recebe o piso primeiro — é a queixa original do CEO
+ *      ("não consigo enxergar o que ele está falando");
+ *   2. os MATERIAIS recebem até o que precisam, nunca mais;
+ *   3. o que sobrar é da conversa.
+ */
+export const ALTURA_UTIL_DOS_MATERIAIS = 190;
+
+export function alturasDasRegioes(entrada: {
+  cartao: number;
+  cabecalho: number;
+  rodape: number;
+  materiaisAbertos: boolean;
+}): { conversa: number; materiais: number } {
+  const sobra = Math.max(0, Math.round(entrada.cartao - entrada.cabecalho - entrada.rodape));
+  if (!entrada.materiaisAbertos) return { conversa: sobra, materiais: 0 };
+  const materiais = Math.min(ALTURA_UTIL_DOS_MATERIAIS, Math.max(0, sobra - PISO_DA_CONVERSA));
+  // A sobra do arredondamento fica com a conversa: um pixel a mais nos
+  // materiais é um pixel a menos no cartão, e é assim que volta a estourar.
+  return { conversa: sobra - materiais, materiais };
 }
 
 const TETO_DO_DOSSIE = 12_000;
@@ -834,21 +907,40 @@ const NOMES_LISTADOS = 10;
 
 /** "a.pdf, b.pdf e mais 38" — nunca a lista inteira, e nunca o nome inteiro:
  *  dez nomes sem teto individual são dez vezes o tamanho que o atacante quiser. */
-function nomesResumidos(items: { attachment: { fileName: string } }[]): string {
-  const nomes = items.slice(0, NOMES_LISTADOS).map((it) => cortarNomeDeArquivo(it.attachment.fileName));
+function nomesResumidos(items: { attachment: { fileName: string } }[], marca: string): string {
+  // Nome de arquivo numa lista é tão bom lugar para forjar linha quanto a
+  // cerca: `nomeParaCerca` (não `cortarNomeDeArquivo`) é o que lava os dois.
+  const nomes = items.slice(0, NOMES_LISTADOS).map((it) => nomeParaCerca(it.attachment.fileName, marca));
   const resto = items.length - nomes.length;
   return resto > 0 ? `${nomes.join(", ")} e mais ${resto}` : nomes.join(", ");
 }
 
-export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" | "texto" | "lido">[]): string {
+export function dossieDosAnexos(
+  items: Pick<UploadItem, "attachment" | "status" | "texto" | "lido">[],
+  marca: string = novaMarcaDeCerca(),
+): string {
   const validos = items.filter((it) => it.status !== "error");
   if (validos.length === 0) return "";
 
-  const lidos = validos.filter((it) => it.lido && (it.texto ?? "").trim());
-  const opacos = validos.filter((it) => !(it.lido && (it.texto ?? "").trim()));
+  // ── OS TRÊS ESTADOS (B6, 16/08/2026) ──────────────────────────────────────
+  // `opacos` era `!(lido && texto)` e engolia o arquivo AINDA SUBINDO: item com
+  // `status: "uploading"` tem `lido === undefined`, então bastava o cliente
+  // digitar enquanto o PDF subia — em 4G, dezenas de segundos — para o SDR ler
+  // "ARQUIVOS QUE VOCÊ NÃO CONSEGUIU LER: BrandBook.pdf" sobre um arquivo que
+  // chegaria dois segundos depois, e pedir a ele que contasse o conteúdo.
+  // "não deu para ler" e "ainda estou lendo" são fatos opostos.
+  const subindo = validos.filter((it) => it.status === "uploading");
+  const concluidos = validos.filter((it) => it.status !== "uploading");
+  const lidos = concluidos.filter((it) => it.lido && (it.texto ?? "").trim());
+  const opacos = concluidos.filter((it) => !(it.lido && (it.texto ?? "").trim()));
 
   const linhas: string[] = [
-    "──────── MATERIAL ANEXADO PELO CLIENTE ────────",
+    `──────── MATERIAL ANEXADO PELO CLIENTE #${marca} ────────`,
+    // ⚠️ B4 — a cerca precisa carregar uma MARCA sorteada por montagem. Sem ela,
+    // um `.txt` cujo corpo contenha a linha de fechamento emenda instrução
+    // própria FORA do anexo, na posição em que o modelo espera o sistema
+    // falando. Ver `lib/agency/comercial/cerca-de-anexo.ts`.
+    instrucaoDaMarca(marca),
     // ⚠️ A CERCA. `blocoDeAnexos` (lib/agency/esteira/anexos-do-pedido.ts) avisa
     // o modelo desde 16/08 que instrução dentro de anexo é conteúdo suspeito.
     // ESTE módulo, do mesmo dia, não tinha o equivalente — e é o da porta
@@ -889,8 +981,11 @@ export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" 
     const dentro: { it: (typeof lidos)[number]; nome: string }[] = [];
     let gastoEmCabecalhos = 0;
     for (const it of lidos) {
-      const nome = cortarNomeDeArquivo(it.attachment.fileName);
-      const custo = `--- ${nome} ---`.length + 1; // +1 pela quebra de linha
+      const nome = nomeParaCerca(it.attachment.fileName, marca);
+      // A cerca é DUAS linhas agora (abertura com nome, fechamento sem), e as
+      // duas entram na conta do teto — cabeçalho fora da conta foi o furo de
+      // mais cedo hoje.
+      const custo = aberturaDeAnexo(nome, marca).length + fechamentoDeAnexo(marca).length + 2;
       const quantos = dentro.length + 1;
       if (gastoEmCabecalhos + custo + COTA_MINIMA_POR_ANEXO * quantos > TETO_DO_DOSSIE) break;
       gastoEmCabecalhos += custo;
@@ -900,18 +995,19 @@ export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" 
     // seria a perda silenciosa que este bloco existe para impedir.
     if (dentro.length === 0) {
       const it = lidos[0];
-      dentro.push({ it, nome: cortarNomeDeArquivo(it.attachment.fileName) });
+      dentro.push({ it, nome: nomeParaCerca(it.attachment.fileName, marca) });
       gastoEmCabecalhos = 0;
     }
     const sobraram = lidos.slice(dentro.length);
     const cota = Math.max(1, Math.floor((TETO_DO_DOSSIE - gastoEmCabecalhos) / dentro.length));
 
     for (const { it, nome } of dentro) {
-      const t = (it.texto ?? "").trim();
+      const t = conteudoParaCerca((it.texto ?? "").trim(), marca);
       const corte = t.length > cota;
       linhas.push(
-        `--- ${nome} ---`,
+        aberturaDeAnexo(nome, marca),
         corte ? t.slice(0, cota) + "\n[…trecho cortado por tamanho — peça à equipe se precisar do resto]" : t,
+        fechamentoDeAnexo(marca),
       );
     }
     linhas.push(
@@ -922,7 +1018,7 @@ export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" 
     // — e o SDR precisa saber a diferença para não afirmar que viu.
     if (sobraram.length > 0) {
       linhas.push(
-        `ARQUIVOS LIDOS QUE NÃO COUBERAM NESTE RESUMO: ${nomesResumidos(sobraram)}.`,
+        `ARQUIVOS LIDOS QUE NÃO COUBERAM NESTE RESUMO: ${nomesResumidos(sobraram, marca)}.`,
         "Eles existem e foram recebidos. NÃO diga que leu o conteúdo deles.",
       );
     }
@@ -930,13 +1026,24 @@ export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" 
 
   if (opacos.length > 0) {
     linhas.push(
-      `ARQUIVOS QUE VOCÊ NÃO CONSEGUIU LER: ${nomesResumidos(opacos)}.`,
+      `ARQUIVOS QUE VOCÊ NÃO CONSEGUIU LER: ${nomesResumidos(opacos, marca)}.`,
       "NÃO invente o que há neles e NÃO diga que leu. Se o conteúdo deles for necessário,",
       "peça ao cliente para contar o essencial em uma frase — reconhecendo que ele já enviou o arquivo.",
     );
   }
 
-  linhas.push("──────── FIM DO MATERIAL ────────", FECHO_DE_ANEXO);
+  // O TERCEIRO ESTADO. Ele tem bloco próprio porque a AÇÃO é oposta à dos
+  // opacos: com o arquivo ainda subindo, pedir ao cliente que conte o conteúdo
+  // é fazê-lo trabalhar por algo que já está a caminho.
+  if (subindo.length > 0) {
+    linhas.push(
+      `ARQUIVOS QUE AINDA ESTÃO CHEGANDO: ${nomesResumidos(subindo, marca)}.`,
+      "Eles ainda estão subindo NESTE MOMENTO. NÃO diga que leu, NÃO diga que não conseguiu ler",
+      "e NÃO peça ao cliente para descrever o conteúdo: diga que está recebendo e siga a conversa.",
+    );
+  }
+
+  linhas.push(`──────── FIM DO MATERIAL #${marca} ────────`, FECHO_DE_ANEXO);
 
   const bloco = linhas.join("\n");
   // A DEFESA 2: o teto duro, que vale para qualquer entrada. A divisão acima
@@ -954,6 +1061,175 @@ interface UploadResult {
   sizeBytes: number;
   mimeType: string;
   extractedText: string;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ARQUIVO QUE CHEGA É **EVENTO**, NÃO FALA DO CLIENTE (B2/B3, 16/08/2026)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ── B2, e é regressão desta rodada ──────────────────────────────────────────
+// `handleFilesPicked` passou a chamar `runTurn` para TODO arquivo, e `runTurn`
+// entrega a fala visível a `processProspectMessage`. A fala visível do anexo é
+// a bolha `📎 Enviei meu briefing: **brandbook.pdf**` — então o motor de regras
+// tratava o NOME DO ARQUIVO como a resposta à pergunta pendente. Medido no
+// painel "O que você está pedindo":
+//
+//     Objetivos = 📎 Enviei meu briefing: **brandbook.pdf**
+//
+// Com 5 arquivos, 5 perguntas do SDR consumidas por nome de arquivo — e isso
+// sobe para `ClientRequestDb` e para a proposta. A mesma linha é a regressão de
+// custo: 5 anexos = 5 chamadas de IA em sequência, cada uma carregando o dossiê
+// inteiro, numa porta pública sem login.
+//
+// ── B3 ──────────────────────────────────────────────────────────────────────
+// A instrução de recuperação ("reconheça que o arquivo chegou, NÃO finja que
+// leu") só viajava dentro do `sdrText`, isto é, PELA IA. Sem chave,
+// `/api/sdr/chat` responde 200 com `ok:false`, cai no motor de regras — que não
+// sabe nada de anexo — e o prospect ouve *"Vai querer stories também?"* depois
+// de mandar três arquivos ilegíveis. **A mensagem de falha nunca pode depender
+// do sistema que falhou.**
+//
+// O conserto tem as duas partes: o aviso é pintado na conversa por caminho
+// determinístico (nenhuma rede, nenhuma chave), e o lote inteiro gasta NO
+// MÁXIMO UM turno de IA — que não passa pelo motor de regras e por isso não
+// consome pergunta nenhuma.
+
+/** Uma mensagem que nasce NESTA tela: nem do motor de regras, nem da IA. */
+function mensagemLocal(role: ConvMessage["role"], text: string): ConvMessage {
+  return {
+    id: "loc" + Math.random().toString(36).slice(2, 10),
+    role,
+    text,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+export interface AnexoChegado { nome: string; lido: boolean }
+
+/**
+ * O aviso que a pessoa lê NA CONVERSA sobre cada arquivo.
+ *
+ * Determinístico, sem rede e sem chave. Os três estados são distintos e o que
+ * falhou carrega o PRÓXIMO PASSO — aviso sem saída é só má notícia.
+ */
+export function avisoDeChegada(nome: string, estado: "lido" | "opaco" | "falhou"): string {
+  if (estado === "lido") return `📎 ${nome} — recebido e lido.`;
+  if (estado === "opaco") {
+    return (
+      `📎 ${nome} — recebido, mas NÃO consegui ler o conteúdo. ` +
+      `Tente enviar de novo (PDF com texto ou DOCX costumam funcionar) ou me conte o essencial em uma frase aqui.`
+    );
+  }
+  return `📎 ${nome} — o arquivo NÃO chegou até nós. Tente enviar de novo, ou me conte o essencial em uma frase aqui.`;
+}
+
+/**
+ * A resposta da consultora quando a IA está fora do ar.
+ *
+ * Não é enfeite: é o que o prospect ouve no lugar de "Vai querer stories
+ * também?". Ela nunca afirma ter lido nada.
+ */
+export function respostaSemIa(chegados: AnexoChegado[], falharam: string[]): string {
+  const lidos = chegados.filter((c) => c.lido).map((c) => c.nome);
+  const opacos = chegados.filter((c) => !c.lido).map((c) => c.nome);
+  const partes: string[] = [];
+
+  if (lidos.length > 0) {
+    partes.push(`Recebi ${lidos.join(", ")} e guardei o conteúdo com o seu pedido.`);
+  }
+  if (opacos.length > 0 || falharam.length > 0) {
+    const nomes = [...opacos, ...falharam].join(", ");
+    partes.push(
+      `Sobre ${nomes}: o arquivo está com a gente, mas NÃO consegui ler o conteúdo agora — ` +
+        `não vou inventar o que há nele. Me conte em uma frase o essencial (o que você faz e o que precisa), ` +
+        `ou tente enviar de novo. A equipe também vai abrir o arquivo do lado de cá.`,
+    );
+  }
+  if (partes.length === 0) partes.push("Recebi o material e guardei com o seu pedido.");
+  return partes.join(" ");
+}
+
+/** O que o SDR é informado sobre o lote. UMA instrução, para UM turno. */
+export function instrucaoDeAnexosParaOSdr(chegados: AnexoChegado[]): string {
+  const lidos = chegados.filter((c) => c.lido).map((c) => c.nome);
+  const opacos = chegados.filter((c) => !c.lido).map((c) => c.nome);
+  const partes: string[] = [
+    "EVENTO DO SISTEMA (não é fala do cliente e não responde à sua pergunta pendente):",
+    `o cliente acabou de anexar ${chegados.length} arquivo(s).`,
+  ];
+  if (lidos.length > 0) {
+    partes.push(
+      `Foi possível LER: ${lidos.join(", ")}. O conteúdo vem no material anexado abaixo — use-o,`,
+      "extraia o que for relevante (negócio, segmento, serviços, quantidades, prazos, contato) e",
+      "confirme em uma frase o que entendeu.",
+    );
+  }
+  if (opacos.length > 0) {
+    partes.push(
+      `NÃO foi possível ler: ${opacos.join(", ")}. Reconheça que chegou, NÃO finja que leu,`,
+      "NÃO invente o conteúdo e peça o essencial em uma frase.",
+    );
+  }
+  partes.push(
+    "Depois disso, RETOME de onde a conversa estava: a pergunta que você já tinha feito continua",
+    "sem resposta, e o nome do arquivo NÃO é a resposta dela.",
+  );
+  return partes.join(" ");
+}
+
+/**
+ * O lote inteiro de anexos, do primeiro byte ao turno único.
+ *
+ * Mora FORA do componente e recebe tudo por injeção porque é aqui que estão as
+ * duas garantias que precisam de prova: **um turno de IA por lote** (não por
+ * arquivo) e **o aviso entregue mesmo com a IA morta**. Dentro do componente
+ * isso só seria verificável renderizando a tela — e nenhum teste desta casa
+ * renderiza `PublicBriefingRoom`.
+ */
+export async function processarLoteDeAnexos(dep: {
+  files: File[];
+  novoId: () => string;
+  enviar: (f: File) => Promise<UploadResult | null>;
+  aoComecar: (id: string, file: File) => void;
+  aoTerminar: (id: string, r: UploadResult | null) => void;
+  avisar: (msgs: ConvMessage[]) => void;
+  turnoDeEvento: (sdrText: string, reserva: string) => Promise<void>;
+}): Promise<void> {
+  const chegados: AnexoChegado[] = [];
+  const falharam: string[] = [];
+
+  for (const file of dep.files) {
+    const id = dep.novoId();
+    dep.aoComecar(id, file);
+
+    const r = await dep.enviar(file).catch(() => null);
+    dep.aoTerminar(id, r);
+
+    if (!r) {
+      const nome = cortarNomeDeArquivo(file.name);
+      falharam.push(nome);
+      dep.avisar([mensagemLocal("system", avisoDeChegada(nome, "falhou"))]);
+      continue;
+    }
+
+    const nome = cortarNomeDeArquivo(r.fileName);
+    const lido = r.extractedText.trim().length > 0;
+    chegados.push({ nome, lido });
+    dep.avisar([mensagemLocal("system", avisoDeChegada(nome, lido ? "lido" : "opaco"))]);
+  }
+
+  if (chegados.length === 0 && falharam.length === 0) return;
+
+  // Nenhum arquivo entrou: não há o que mandar ao modelo, e a pessoa já foi
+  // avisada pelo caminho que não depende dele.
+  if (chegados.length === 0) return;
+
+  try {
+    await dep.turnoDeEvento(instrucaoDeAnexosParaOSdr(chegados), respostaSemIa(chegados, falharam));
+  } catch {
+    // O turno de IA é o EXTRA. Ele quebrar não pode apagar o aviso que já foi
+    // pintado — é literalmente o defeito B3 com outra roupa.
+  }
 }
 
 async function fetchUpload(file: File): Promise<UploadResult | null> {
@@ -1358,18 +1634,50 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   // de página existe acima do cartão e faz-se o cartão terminar no fim da
   // janela. Piso de 320px para que um cabeçalho gigante não esprema a conversa
   // até virar tira — aí a página volta a rolar, e isso é o certo.
+  //
+  // ── 16/08/2026 · B1: O PISO CEGO AO RODAPÉ ────────────────────────────────
+  // O piso de 320px não sabia o tamanho dos EXTREMOS. Com o painel de materiais
+  // aberto a 375×600, o cartão media 371px e os pisos das regiões somavam 422 —
+  // os 51px que sobravam saíam pelo rodapé e o `overflow-hidden` os cortava.
+  // Agora cabeçalho e rodapé são MEDIDOS e entram na conta do teto, e as duas
+  // regiões flexíveis recebem altura calculada (`alturasDasRegioes`) em vez de
+  // pisos de CSS que não sabem quanto espaço existe.
+  const cabecalhoDaConversa = useRef<HTMLDivElement>(null);
   const [tetoDoCartao, setTetoDoCartao] = useState<string | undefined>(undefined);
+  const [regioes, setRegioes] = useState<{ conversa: number; materiais: number } | null>(null);
+
   useEffect(() => {
     const medir = () => {
       const el = cartaoDaConversa.current;
       if (!el) return;
       const topoNoDocumento = el.getBoundingClientRect().top + window.scrollY;
-      setTetoDoCartao(`${tetoDoCartaoDaConversa(window.innerHeight, topoNoDocumento)}px`);
+      const cabecalho = cabecalhoDaConversa.current?.getBoundingClientRect().height ?? 0;
+      const rodape = rodapeDaConversa.current?.getBoundingClientRect().height ?? 0;
+      const teto = tetoDoCartaoDaConversa(window.innerHeight, topoNoDocumento, cabecalho + rodape);
+      setTetoDoCartao(`${teto}px`);
+      const novas = alturasDasRegioes({ cartao: teto, cabecalho, rodape, materiaisAbertos: showMaterials });
+      // Objeto novo a cada medição re-renderiza sem motivo — e re-render dentro
+      // de `ResizeObserver` é como se constrói um laço sem querer.
+      setRegioes((antes) =>
+        antes && antes.conversa === novas.conversa && antes.materiais === novas.materiais ? antes : novas,
+      );
     };
     medir();
     window.addEventListener("resize", medir);
-    return () => window.removeEventListener("resize", medir);
-  }, []);
+    // O rodapé cresce sozinho: a caixa de digitar vira duas linhas, a linha de
+    // erro do microfone aparece. Sem observá-lo, a conta certa de agora é a
+    // conta errada de daqui a um segundo — e o que estoura é sempre o rodapé.
+    const alvos = [cabecalhoDaConversa.current, rodapeDaConversa.current].filter(Boolean) as Element[];
+    let obs: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== "undefined" && alvos.length > 0) {
+      obs = new ResizeObserver(() => medir());
+      for (const a of alvos) obs.observe(a);
+    }
+    return () => {
+      window.removeEventListener("resize", medir);
+      obs?.disconnect();
+    };
+  }, [showMaterials]);
 
   // Quando o rodapé muda de altura — a caixa de digitar cresce, o painel de
   // materiais abre, a linha de erro do microfone aparece — a conversa encolhe
@@ -1484,10 +1792,11 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   // and a scope patch; the rule-based engine runs underneath for state tracking
   // and as the universal fallback (Lei 2) if Claude is unavailable.
   const runTurn = useCallback(
-    // `text` is what the prospect sees in their bubble. `sdrText` (optional) is
-    // what Claude actually reads — used to feed an uploaded briefing's extracted
-    // content to the SDR without dumping the whole document into the chat.
-    async (text: string, sdrText?: string) => {
+    // `text` é o que o prospect vê E o que o motor de regras trata como resposta
+    // à pergunta pendente. Por isso ele é só para FALA DE GENTE: arquivo que
+    // chega tem caminho próprio (`turnoDeEvento`), e foi misturar os dois que
+    // fez o nome do arquivo virar resposta e subir para a proposta (B2).
+    async (text: string) => {
       const prevState = stateRef.current;
       const priorMessages = prevState.conv.messages;
       const fileNames = attachmentsRef.current.map((a) => a.fileName);
@@ -1507,7 +1816,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       // ("📎 Enviei meu briefing: X.pdf"), que não tem uma linha do documento —
       // sem esta remontagem o brand book do cliente é lido uma vez e esquecido.
       const dossie = dossieDosAnexos(itensDosAnexosRef.current);
-      const paraOSdr = dossie ? `${sdrText ?? text}\n\n${dossie}` : (sdrText ?? text);
+      const paraOSdr = dossie ? `${text}\n\n${dossie}` : text;
 
       const claude = await fetchSdrReply(priorMessages, paraOSdr, ruleResult.conv.scope);
       setAiThinking(false);
@@ -1535,83 +1844,111 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     [fireAiExtract],
   );
 
+  /** Pinta mensagens locais na conversa. Não passa pelo motor de regras: nada
+   *  aqui responde pergunta nenhuma. */
+  const avisarNaConversa = useCallback((novas: ConvMessage[]) => {
+    if (novas.length === 0) return;
+    setState((prev) => ({
+      ...prev,
+      conv: { ...prev.conv, messages: [...prev.conv.messages, ...novas] },
+    }));
+  }, []);
+
+  /**
+   * O TURNO DE EVENTO — o irmão do `runTurn` que NÃO consome pergunta.
+   *
+   * `processProspectMessage` não é chamado aqui de propósito: é ele que casa a
+   * fala com a pergunta pendente, e evento não é fala. Escopo e estimativa
+   * continuam sendo aproveitados quando o modelo extrai algo do documento — o
+   * que se perde é só o casamento indevido com a pergunta.
+   */
+  const turnoDeEvento = useCallback(async (sdrText: string, reserva: string) => {
+    const prev = stateRef.current;
+    const priorMessages = prev.conv.messages;
+    setAiThinking(true);
+    const dossie = dossieDosAnexos(itensDosAnexosRef.current);
+    const paraOSdr = dossie ? `${sdrText}\n\n${dossie}` : sdrText;
+    const claude = await fetchSdrReply(priorMessages, paraOSdr, prev.conv.scope);
+    setAiThinking(false);
+
+    if (!claude) {
+      // A IA caiu. O aviso vai pela conversa mesmo assim — e é ele, não o motor
+      // de regras, que fala do arquivo. (B3)
+      avisarNaConversa([mensagemLocal("assistant", reserva)]);
+      return;
+    }
+
+    setState((atual) => {
+      const mergedScope = mergeScopeGaps(atual.conv.scope, claude.scope);
+      const newConv: ConvState = {
+        ...atual.conv,
+        scope: mergedScope,
+        estimate: computeEstimate(mergedScope),
+        messages: [...atual.conv.messages, mensagemLocal("assistant", claude.reply)],
+      };
+      return { ...atual, conv: { ...newConv, canSubmit: canSubmitProposal(newConv, atual.sdr) } };
+    });
+  }, [avisarNaConversa]);
+
   // ── File upload (briefing documents) ──────────────────────────────────────
-  // Uploads each picked file, extracts its text server-side, and — when text is
-  // found — feeds the briefing to Claude so it reads the document and continues
-  // the conversation. The file is always listed as an attachment.
+  // A ORQUESTRAÇÃO mora em `processarLoteDeAnexos`, no topo do arquivo: um
+  // turno de IA por LOTE (não por arquivo) e o aviso pintado sem depender da
+  // IA. Aqui ficam só os efeitos de tela.
   const uid = () => "up" + Math.random().toString(36).slice(2, 10);
 
   const handleFilesPicked = useCallback(
     async (files: File[]) => {
-      for (const file of files) {
-        const id = uid();
-        // O nome já entra CORTADO na tela e no anexo que sobe com o pedido — a
-        // rota corta o dela, e este é o caminho otimista, que nasce antes da
-        // resposta e não era alcançado por aquele corte.
-        const nomeCurto = cortarNomeDeArquivo(file.name);
-        const optimistic: RequestAttachment = {
-          id,
-          clientId: tempClientId,
-          fileName: nomeCurto,
-          fileType: cortarRotuloDeTipo(nomeCurto.split(".").pop()),
-          mimeType: file.type,
-          sizeBytes: file.size,
-          source: "briefing_room",
-          createdAt: new Date().toISOString(),
-          storageStatus: "local_only",
-        };
-        setFileItems((prev) => [...prev, { id, attachment: optimistic, status: "uploading" }]);
-
-        const result = await fetchUpload(file);
-
-        if (!result) {
-          setFileItems((prev) => prev.map((it) => (it.id === id ? { ...it, status: "error" } : it)));
-          continue;
-        }
-
-        const texto = result.extractedText.trim();
-        const lido  = texto.length > 0;
-
-        const marcarComoLido = (prev: UploadItem[]): UploadItem[] =>
-          prev.map((it) =>
-            it.id === id
-              ? {
-                  ...it,
-                  status: "done" as const,
-                  texto,
-                  lido,
-                  attachment: { ...it.attachment, fileType: result.fileType, mimeType: result.mimeType },
-                }
-              : it,
-          );
-        setFileItems(marcarComoLido);
-        // O ref é atualizado À MÃO, e não pelo render seguinte: o `runTurn` logo
-        // abaixo lê o dossiê deste mesmo ref, e depender do ciclo de render aqui
-        // mandaria o turno sem o arquivo que acabou de chegar.
-        itensDosAnexosRef.current = marcarComoLido(itensDosAnexosRef.current);
-
-        // ── O TURNO ACONTECE COM OU SEM TEXTO ──────────────────────────────
-        // Antes, `if (extractedText.trim())` fazia o arquivo ilegível passar em
-        // silêncio: nenhum turno, nada dito ao SDR, e "Anexado" verde na tela.
-        // Extração falha por falta de chave, timeout ou PDF só-imagem é o caso
-        // COMUM, não o raro — e era exatamente ele que produzia o SDR pedindo o
-        // briefing que já estava anexado.
-        //
-        // `await` e não `void`: com dois arquivos, dois turnos disparados juntos
-        // liam o mesmo `stateRef` e um sobrescrevia a resposta do outro.
-        const visible = `📎 Enviei meu briefing: **${result.fileName}**`;
-        const sdrText = lido
-          ? `O cliente anexou um arquivo de briefing chamado "${result.fileName}". ` +
-            `Leia o conteúdo (ele vem no material anexado abaixo), extraia tudo que for relevante ` +
-            `(negócio, segmento, serviços, objetivos, quantidades, prazos, contato) para o scope e ` +
-            `dê continuidade à conversa de forma natural, confirmando os pontos principais que entendeu.`
-          : `O cliente anexou o arquivo "${result.fileName}" e NÃO foi possível ler o conteúdo dele. ` +
-            `Reconheça que o arquivo chegou, NÃO finja que leu, NÃO invente o que há nele e peça a ele ` +
-            `o essencial em uma frase.`;
-        await runTurn(visible, sdrText);
-      }
+      await processarLoteDeAnexos({
+        files,
+        novoId: uid,
+        enviar: fetchUpload,
+        avisar: avisarNaConversa,
+        turnoDeEvento,
+        aoComecar: (id, file) => {
+          // O nome já entra CORTADO na tela e no anexo que sobe com o pedido — a
+          // rota corta o dela, e este é o caminho otimista, que nasce antes da
+          // resposta e não era alcançado por aquele corte.
+          const nomeCurto = cortarNomeDeArquivo(file.name);
+          const optimistic: RequestAttachment = {
+            id,
+            clientId: tempClientId,
+            fileName: nomeCurto,
+            fileType: cortarRotuloDeTipo(nomeCurto.split(".").pop()),
+            mimeType: file.type,
+            sizeBytes: file.size,
+            source: "briefing_room",
+            createdAt: new Date().toISOString(),
+            storageStatus: "local_only",
+          };
+          const item: UploadItem = { id, attachment: optimistic, status: "uploading" };
+          setFileItems((prev) => [...prev, item]);
+          // O ref é atualizado À MÃO, e não pelo render seguinte: quem digitar
+          // enquanto o arquivo sobe monta o dossiê a partir DESTE ref, e é
+          // exatamente aí que o terceiro estado ("ainda subindo") precisa
+          // existir — sem isto, o item nem aparece como subindo. (B6)
+          itensDosAnexosRef.current = [...itensDosAnexosRef.current, item];
+        },
+        aoTerminar: (id, result) => {
+          const aplicar = (prev: UploadItem[]): UploadItem[] =>
+            prev.map((it) =>
+              it.id === id
+                ? result
+                  ? {
+                      ...it,
+                      status: "done" as const,
+                      texto: result.extractedText.trim(),
+                      lido: result.extractedText.trim().length > 0,
+                      attachment: { ...it.attachment, fileType: result.fileType, mimeType: result.mimeType },
+                    }
+                  : { ...it, status: "error" as const }
+                : it,
+            );
+          setFileItems(aplicar);
+          itensDosAnexosRef.current = aplicar(itensDosAnexosRef.current);
+        },
+      });
     },
-    [tempClientId, runTurn],
+    [tempClientId, avisarNaConversa, turnoDeEvento],
   );
 
   const removeFileItem = useCallback((id: string) => {
@@ -1725,7 +2062,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       >
 
         {/* Chat header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
+        <div ref={cabecalhoDaConversa} className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
           <div>
             <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Consultora de Orçamento</div>
             <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">Conversa com a Dioli Studio</div>
@@ -1743,9 +2080,17 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
             `max-h-[480px]` de antes era teto FIXO: no desktop desperdiçava meia
             tela, e no celular não impedia nada, porque quem crescia era o
             cartão inteiro. */}
+        {/* ⚠️ B1 — `min-h-[120px]` SAIU, e a saída dele é o conserto.
+            Num cartão `overflow-hidden` de 371px com cabeçalho de 72 e rodapé de
+            110, dois pisos de 120px exigem 422px: os 51 que sobram são cortados
+            em silêncio, e quem está por último é o rodapé com "Falar" e
+            "Anexar". `min-h-0` deixa a região encolher (ela ROLA por dentro,
+            então encolher não perde conteúdo) e a altura vem medida de
+            `alturasDasRegioes` — a conta que sabe que o rodapé existe. */}
         <div
           ref={areaDasMensagens}
-          className="px-5 py-4 space-y-3 overflow-y-auto flex-[2_1_0%] min-h-[120px]"
+          style={regioes ? { flex: "0 0 auto", height: `${regioes.conversa}px` } : undefined}
+          className="px-5 py-4 space-y-3 overflow-y-auto flex-[2_1_0%] min-h-0"
         >
           {conv.messages.map((msg) => (
             <MessageBubble key={msg.id} msg={msg} />
@@ -1777,7 +2122,10 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
             a soma dos dois estourava o cartão e o `overflow-hidden` cortava a
             conversa por baixo, que é o mesmo defeito com outra cara. */}
         {showMaterials && (
-          <div className="px-5 pb-3 border-t border-[var(--border)] pt-3 space-y-4 flex-[1_1_0%] min-h-[120px] overflow-y-auto">
+          <div
+            style={regioes ? { flex: "0 0 auto", height: `${regioes.materiais}px` } : undefined}
+            className="px-5 pb-3 border-t border-[var(--border)] pt-3 space-y-4 flex-[1_1_0%] min-h-0 overflow-y-auto"
+          >
             {/* File upload */}
             <div>
               <div className="text-[11px] font-semibold text-[var(--text-primary)] mb-2">Enviar arquivo do briefing</div>
