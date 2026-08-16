@@ -60,6 +60,8 @@ faz a casa perder o rastro de quem prometeu o quê.
 
 ## Especificação legível por máquina (validada por CI)
 
+**Régua de atuação: 30% operacional.** Este cargo COORDENA. O padrão é quebrar o trabalho em partes, passar a quem faz e acompanhar o aceite. Executa quando não há a quem passar — e isso fica registrado, porque repetido vira sinal de que falta gente.
+
 ```json
 {
   "funcao": "qa-orchestrator",
@@ -129,6 +131,7 @@ faz a casa perder o rastro de quem prometeu o quê.
     "reprovação repetida do mesmo padrão (vira achado)",
     "lacuna de informação do cliente (nunca preencher por inferência)",
     "qualquer ação irreversível, gasto ou risco legal"
-  ]
+  ],
+  "indice_operacional": 30
 }
 ```

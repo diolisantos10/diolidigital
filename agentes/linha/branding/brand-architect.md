@@ -65,6 +65,8 @@ faz a casa perder o rastro de quem prometeu o quê.
 > `v2_execucao` no escopo do cliente; ações irreversíveis continuam atrás de
 > aprovação humana.
 
+**Régua de atuação: 40% operacional.** Este cargo COORDENA. O padrão é quebrar o trabalho em partes, passar a quem faz e acompanhar o aceite. Executa quando não há a quem passar — e isso fica registrado, porque repetido vira sinal de que falta gente.
+
 ```json
 {
   "funcao": "brand-architect",
@@ -137,6 +139,7 @@ faz a casa perder o rastro de quem prometeu o quê.
     "evolução de marca (só o dono aprova)",
     "lacuna de informação do cliente (nunca preencher por inferência)",
     "qualquer ação irreversível, gasto ou risco legal"
-  ]
+  ],
+  "indice_operacional": 40
 }
 ```

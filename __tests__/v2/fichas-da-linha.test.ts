@@ -49,6 +49,7 @@ interface SpecOperacional {
   teto_custo_usd_execucao: number;
   autonomia: string;
   gatilhos_humanos: string[];
+  indice_operacional: number;
 }
 
 function specDaFicha(depId: string, funcaoId: string): SpecOperacional {
@@ -173,5 +174,52 @@ describe("fichas da linha — especificação operacional das 81, validada campo
     for (const d of DEPARTAMENTOS_V2) {
       expect(fs.existsSync(path.join(RAIZ, d.id, "_departamento.md")), `sem _departamento.md: ${d.id}`).toBe(true);
     }
+  });
+  it("régua de atuação — toda ficha declara o índice, na faixa certa, e EXPLICA o que ele significa", () => {
+    // Decisão do CEO (15/08/2026): de 0 a 100, quanto o cargo é operacional.
+    // É orientação, não trava — mas a ORIENTAÇÃO tem de existir e tem de ser
+    // legível. Número sozinho não orienta ninguém: a ficha carrega a frase.
+    const FAIXAS: Array<[number, number, string]> = [
+      [0, 25, "DIRIGE"],
+      [26, 45, "COORDENA"],
+      [46, 60, "DECIDE E FAZ"],
+      [61, 80, "FAZ E INTERPRETA"],
+      [81, 100, "FAZ"],
+    ];
+    for (const f of FUNCOES_V2) {
+      const spec = specDaFicha(f.departamentoId, f.id);
+      const i = spec.indice_operacional;
+      expect(typeof i, `${f.id}: índice operacional ausente`).toBe("number");
+      expect(Number.isInteger(i), `${f.id}: índice tem de ser inteiro`).toBe(true);
+      expect(i, `${f.id}: índice abaixo de 0`).toBeGreaterThanOrEqual(0);
+      expect(i, `${f.id}: índice acima de 100`).toBeLessThanOrEqual(100);
+
+      // A frase em português precisa estar na ficha, e precisa bater com a faixa.
+      const conteudo = fs.readFileSync(path.join(RAIZ, f.departamentoId, `${f.id}.md`), "utf8");
+      expect(conteudo, `${f.id}: ficha sem a frase da régua`).toContain("Régua de atuação");
+      expect(conteudo, `${f.id}: a frase não mostra o número`).toContain(`${i}% operacional`);
+      const faixa = FAIXAS.find(([min, max]) => i >= min && i <= max)!;
+      expect(conteudo, `${f.id}: frase da régua não bate com a faixa do índice ${i}`).toContain(faixa[2]);
+    }
+  });
+
+  it("a régua é coerente com a hierarquia — quem coordena distribui mais que quem produz", () => {
+    // O caso plantado desta trava: um orquestrador com índice de executor
+    // passaria despercebido na revisão e viraria um coordenador que coda.
+    const indice = (id: string) => {
+      const f = FUNCOES_V2.find((x) => x.id === id)!;
+      return specDaFicha(f.departamentoId, f.id).indice_operacional;
+    };
+    for (const orquestrador of ["pm-orchestrator", "qa-orchestrator", "technology-orchestrator"]) {
+      expect(indice(orquestrador), `${orquestrador}: quem coordena não pode ter índice de executor`).toBeLessThanOrEqual(45);
+    }
+    for (const executor of ["copywriter", "graphic-designer", "frontend-engineer", "backend-engineer"]) {
+      expect(indice(executor), `${executor}: quem produz não pode ter índice de coordenador`).toBeGreaterThanOrEqual(81);
+    }
+    // E o desenho tem de ter as duas pontas: se um dia tudo virar 70, a régua
+    // deixou de dizer alguma coisa.
+    const todos = FUNCOES_V2.map((f) => specDaFicha(f.departamentoId, f.id).indice_operacional);
+    expect(Math.min(...todos), "nenhum cargo estratégico no catálogo").toBeLessThanOrEqual(30);
+    expect(Math.max(...todos), "nenhum cargo operacional no catálogo").toBeGreaterThanOrEqual(90);
   });
 });

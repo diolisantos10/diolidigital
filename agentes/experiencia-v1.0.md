@@ -54,6 +54,7 @@
 | Atualização (9) | Constituição no kit; dispositivo do CEO para a ficha. |
 | Avaliação (11) | Golden set não existe (lacuna); gatilho anti-enfeite herdado: nunca propôs eliminar = deixou de cumprir o papel. |
 | Interfaces (12) | Tela é sempre dois despachos (com `interface`); devolve ao PM. |
+| **Régua de atuação** | **75% operacional.** **Faz e interpreta** — produção na maior parte do tempo; sobe o que exige decisão de cima. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 

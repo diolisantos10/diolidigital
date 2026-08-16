@@ -218,6 +218,8 @@ export async function baterORelogio(): Promise<{
   materiaisRecuperados: number;
   /** Oportunidades NOVAS que entraram pela caixa de e-mail da agência. */
   oportunidadesDaCaixa: number;
+  /** Pontos parados que o PM cobrou nesta rodada (handoff sem aceite, SLA, sem dono). */
+  pmCobrancas: number;
   backup: boolean;
 }> {
   let retomados = 0;
@@ -236,6 +238,8 @@ export async function baterORelogio(): Promise<{
   /** Arquivos do Drive que estavam presos e finalmente chegaram ao disco. */
   let materiaisRecuperados = 0;
   let backup = false;
+  /** Pontos parados que o PM cobrou nesta rodada. */
+  let pmCobrancas = 0;
 
   // ── A TESTEMUNHA DA RODADA (06/08/2026) ───────────────────────────────────
   // Cada perna abaixo engole o próprio erro para não derrubar as outras — isso
@@ -542,6 +546,16 @@ export async function baterORelogio(): Promise<{
     const r = await entregarOrcamentosPendentes();
     orcamentos = r.entregues;
     if (r.entregues > 0) log(`${r.entregues} orçamento(s) entregue(s) ao cliente`);
+    // 16/08/2026, pergunta do CEO: *"nada ainda via e-mail. O que aconteceu?"*
+    // Entregar no portal e ficar mudo é o que produziu a pergunta. Estes dois
+    // números existem para que "entregou" e "avisou" nunca mais sejam lidos
+    // como a mesma coisa no relato da rodada.
+    if (r.avisados > 0) log(`${r.avisados} cliente(s) avisado(s) por e-mail`);
+    if (r.semCanal > 0) log(`${r.semCanal} entregue(s) só pelo portal — sem canal de contato declarado`);
+    // Aviso que não saiu é cliente com orçamento pronto e sem saber. Vira
+    // notícia, e não linha de log: ele NÃO é retentado (retentar é como se
+    // manda o mesmo orçamento duas vezes), então quem resolve é gente.
+    for (const a of r.avisosQueFalharam) quebrou("orcamento", a);
     // Briefing sem número derivado NÃO ganha número inventado — vai para gente,
     // e isso é notícia: é cliente esperando com a casa sem resposta.
     if (r.semOrcamento > 0) quebrou("orcamento", `${r.semOrcamento} briefing(s) sem orçamento calculado — aguardando gente`);
@@ -586,6 +600,78 @@ export async function baterORelogio(): Promise<{
     quebrou("vigia-da-madrugada", err);
   }
 
+  // ── A VARREDURA DO PM (15/08/2026) ────────────────────────────────────────
+  //
+  // Entra porque o CEO mediu o sintoma e nomeou: "ele era o que deveria estar
+  // mais correndo entre os departamentos, está parado". Estava — e não por
+  // culpa do agente: a ficha dele só tinha entrada REATIVA, e este relógio,
+  // que bate de 5 em 5 minutos fazendo uma dúzia de coisas, nunca o chamava.
+  //
+  // Esta perna é o chamado que faltava. Ela não despacha nem decide: OLHA e
+  // registra o que está parado com nome, tempo e o que fazer. Handoff entregue
+  // e nunca aceito é o caso clássico que morria em silêncio — para quem
+  // entregou "já foi", para quem recebe "não chegou", e a esteira parada no
+  // meio sem ninguém sentir falta.
+  try {
+    const { varrerOQueEstaParado, frazeDaVarredura } = await import("@/lib/agency/pm/varredura");
+    const agora = new Date();
+    const [handoffsAbertos, tarefas] = await Promise.all([
+      prisma.handoffV2.findMany({
+        where: { status: "aguardando_recebimento" },
+        orderBy: { criadoEm: "asc" },
+        take: 200,
+      }),
+      prisma.task.findMany({
+        where: { estadoCanonico: { not: null }, status: { in: ["pending", "in_progress", "in_review"] } },
+        orderBy: { updatedAt: "asc" },
+        take: 300,
+        select: { id: true, estadoCanonico: true, updatedAt: true, agentId: true },
+      }),
+    ]);
+    const { departamentoDoAgente } = await import("@/lib/agency/escada/degraus");
+    const { deSlugLegado } = await import("@/lib/agency/catalogo-v2/adaptadores");
+    const varredura = varrerOQueEstaParado(
+      {
+        handoffs: handoffsAbertos.map((h) => ({
+          id: h.id,
+          deDepartamento: h.deDepartamento,
+          paraDepartamento: h.paraDepartamento,
+          responsavelEntrega: h.responsavelEntrega,
+          criadoEm: h.criadoEm,
+          cobradoEm: h.cobradoEm,
+        })),
+        trabalhos: tarefas.map((t) => {
+          const legado = t.agentId ? departamentoDoAgente(t.agentId) : null;
+          return {
+            id: t.id,
+            entidadeTipo: "Task",
+            estadoCanonico: t.estadoCanonico,
+            atualizadoEm: t.updatedAt,
+            donoDepartamento: legado ? (deSlugLegado(legado) ?? legado) : null,
+          };
+        }),
+      },
+      agora,
+    );
+    pmCobrancas = varredura.totalParado;
+    if (varredura.totalParado > 0) {
+      log(`PM: ${frazeDaVarredura(varredura)}`);
+      for (const c of varredura.cobrancas) log(`PM cobra → ${c.pedido}`);
+      // Cobrar é ato, e ato deixa marca: sem carimbar, a próxima rodada
+      // cobraria tudo de novo daqui a 5 minutos e o alerta viraria ruído.
+      const idsDeHandoff = varredura.cobrancas
+        .filter((c) => c.motivo === "handoff_sem_aceite")
+        .map((c) => c.referencia);
+      if (idsDeHandoff.length > 0) {
+        await prisma.handoffV2.updateMany({ where: { id: { in: idsDeHandoff } }, data: { cobradoEm: agora } });
+      }
+    }
+    // Estado sem prazo é lugar onde trabalho dorme para sempre: sobe declarado.
+    for (const e of varredura.estadosSemRegua) quebrou("pm-varredura", `estado sem régua de SLA: ${e}`);
+  } catch (err) {
+    quebrou("pm-varredura", err);
+  }
+
   if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
     log(`rodada: ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
   }
@@ -596,11 +682,11 @@ export async function baterORelogio(): Promise<{
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
-    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos },
+    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas },
     falhas,
   });
 
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, backup };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, backup };
 }
 
 /**

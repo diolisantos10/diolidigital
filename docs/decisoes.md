@@ -1365,3 +1365,98 @@ intenção do chamador — assume a menor, e quem prepara declara que prepara.
 cadeia futura, não só para Produto & Tecnologia. Toda coluna que uma ficha
 declara e que o motor não lê é uma promessa que a casa faz e não cumpre; a
 pergunta "quem lê isto em runtime?" passa a valer para cada campo novo de ficha.
+
+---
+
+## Zero não é resposta — e verba declarada se responde na cara
+
+**16/08/2026.** No piloto ao vivo, o CityJobs pediu **2 posts estáticos por dia**
+e disse a verba com todas as letras: *"estamos pensando algo em torno de R$ 500
+por mês"*. Quarenta e oito segundos depois a casa devolveu **R$ 1.800 a
+R$ 3.400** — 3,6× o declarado — cotando um "Plano Essencial" de **3 posts por
+semana** para quem tinha pedido catorze. Sem uma palavra sobre a diferença.
+
+**A causa, lida e não deduzida:** o painel mostrava "0 posts/mês" durante a
+conversa; o CEO avisou na hora e a conversa seguiu. Esse zero atravessou o
+sistema inteiro porque **todo guardião testava `postsPerWeek === undefined`, e
+`0` é definido**. `0 * 4 = 0` entrou em `detectPackage(0)`, que devolve
+"essencial" porque `0 <= 14`. A estimativa saiu com `missingForEstimate: []` e
+`confidence: "high"` — confiança máxima sobre um campo vazio.
+
+**As três regras que viraram mecanismo:**
+
+1. **Falso-por-omissão passa em teste de `undefined`.** Volume `0`, negativo,
+   `NaN` ou fora de tipo são o mesmo estado: o dado não chegou. Vale para todo
+   campo numérico que ESCOLHE alguma coisa, não só para posts.
+2. **Estimativa quebrada não vira número.** A trava (`travadaPor`) é perigosa
+   justamente porque a estimativa travada TEM número — R$ 1.800 é maior que zero
+   e passava por toda conferência de "tem estimativa?". Ela agora vale como
+   ausência de orçamento: o pedido fica parado e **contado** em `semOrcamento`.
+3. **Verba declarada é confrontada por código, não por prompt.** A faixa já
+   estava capturada e guardada; o que faltava era alguém COMPARAR. O confronto é
+   calculado junto do número, viaja gravado com ele, e o texto nomeia a
+   diferença e oferece o que cabe — Pulso (R$ 49) e Ritmo (R$ 297), filtrados da
+   tabela do conselho. **Nenhum preço nasce nesse caminho:** se o Pulso mudar de
+   preço, a oferta muda sozinha, porque ela nunca soube o número.
+
+**Por que é decisão de corredor:** a #1 é uma regra de leitura de dado que vale
+para a esteira inteira, e a #3 estabelece que **limite declarado pelo cliente é
+dado de trava, não enfeite de painel**. Confiança calculada só sobre o que
+alguém lembrou de contar como faltante mente exatamente quando mais custa.
+---
+
+## Entregar não é avisar — e a seta seguinte é sempre a que dói amanhã
+
+**16/08/2026.** Pergunta do CEO, com o piloto no ar: *"nada ainda via e-mail. O
+que aconteceu?"*
+
+O orçamento tinha sido calculado, o texto escrito e a conversa do portal
+recebido tudo — e ninguém avisou o destinatário.
+`lib/agency/esteira/orcamento-do-briefing.ts` criava um `portalMessage` e mais
+nada: não havia uma linha de e-mail no arquivo inteiro. A casa já mandava e-mail
+na **confirmação** do briefing e ficava muda justamente na hora da coisa que o
+cliente estava esperando.
+
+**É o D-003 outra vez, um degrau adiante: caixa certa, seta faltando.** Na
+véspera o CEO esperou a noite inteira por uma seta (`lead_incompleto` fora da
+vista de tudo); hoje esperou de novo pela seta seguinte. Consertar uma seta por
+vez, no dia em que ela dói, é como se chega ao terceiro dia de espera.
+
+**As quatro regras que passam a valer para todo aviso da casa:**
+
+- **O e-mail AVISA; ele não substitui o portal.** A conversa continua sendo a
+  fonte da verdade. O e-mail leva o essencial e o link para ver — mandar a
+  mensagem inteira criaria uma segunda verdade, que diverge no primeiro ajuste
+  de escopo.
+- **Sem canal de contato, nada trava.** Faltar contato impede **avisar**, nunca
+  **atender**. Briefing que entrou sem e-mail segue sendo atendido pelo portal.
+  Mesma lei que fez `lead_incompleto` entrar na busca de entrega.
+- **O aviso vem DEPOIS da transação, e não volta para dentro dela.** É aí que
+  mora a garantia de não duplicar: o que impede o cliente de receber o mesmo
+  orçamento a cada cinco minutos é o pedido já ter saído da fila quando o envio
+  acontece. Se o e-mail saísse antes e a transação falhasse, o relógio mandaria
+  de novo. E de novo. **Falha de e-mail não se retenta aqui — retentar é
+  exatamente como se manda duas vezes.** Aviso que não saiu vira notícia no
+  despertador, para gente resolver.
+- **Um caminho de e-mail só.** Reaproveita `lib/email/send.ts` e um template
+  irmão do de confirmação. Um segundo mecanismo significaria dois lugares para
+  configurar remetente e dois para descobrir que a chave sumiu.
+
+**A regra de valor mudou de forma, não de rigor.** O cabeçalho de
+`lib/email/templates.ts` dizia que template de prospect *nunca* leva preço,
+porque a agência revisava o escopo antes. Essa premissa morreu no dia em que a
+casa passou a entregar a estimativa sozinha. Agora: **antes de existir número,
+nenhum valor** (inventar seria alucinar preço); **depois, exatamente a faixa
+derivada que já está no portal**, formatada por um formatador só — dois
+formatadores arredondam diferente e o cliente lê dois valores para o mesmo
+orçamento.
+
+**E nenhum dos dois promete prazo.** Ordem do CEO no mesmo dia: *"em relação à
+confirmação de promessa, de orçamento em um dia, não autorizei nada disso."*
+Consertar só o texto que aparece no print deixa a promessa viva na caixa de
+entrada do cliente.
+
+**Por que é decisão de corredor:** vale para todo toque no ombro que a casa dá —
+material, entrega, ciclo, recompra —, não só para o orçamento. A pergunta
+"quem avisa o destinatário?" passa a ser parte de toda caixa nova, junto com
+"quem escreve na caixa?".

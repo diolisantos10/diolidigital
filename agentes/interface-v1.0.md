@@ -54,6 +54,7 @@
 | Atualização (9) | Constituição no kit; `DESIGN.md` evolui com registro; dispositivo do CEO para a ficha. |
 | Avaliação (11) | Golden set não existe (lacuna); a auto-nota com piso 8 é a régua vigente. |
 | Interfaces (12) | Recebe do PM; tela é sempre DOIS despachos (ele + `experiencia`). |
+| **Régua de atuação** | **85% operacional.** **Faz** — produz com as próprias mãos; sobe dúvida e bloqueio, não trabalho. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 

@@ -42,6 +42,14 @@ export interface SpecOperacional {
   teto_custo_usd_execucao: number;
   autonomia: "A" | "B" | "C";
   gatilhos_humanos: string[];
+  /**
+   * A RÉGUA DE ATUAÇÃO (decisão do CEO, 15/08/2026): de 0 a 100, o quanto este
+   * cargo é operacional. 0 = puro estratégico (distribui); 100 = puro
+   * operacional (faz). É ORIENTAÇÃO, não trava — nenhum cargo está proibido de
+   * executar, porque travar isso quebraria justamente quando falta gente. A
+   * exceção é livre e deixa rastro. Ver `agentes/REGUA-DE-ATUACAO.md`.
+   */
+  indice_operacional: number;
 }
 
 export type ResultadoDeSpec =

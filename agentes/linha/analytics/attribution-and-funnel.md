@@ -60,6 +60,8 @@ faz a casa perder o rastro de quem prometeu o quê.
 
 ## Especificação legível por máquina (validada por CI)
 
+**Régua de atuação: 70% operacional.** Este cargo FAZ E INTERPRETA. A maior parte do tempo é produção; delega o que for volume repetitivo e sobe o que exigir decisão de quem está acima.
+
 ```json
 {
   "funcao": "attribution-and-funnel",
@@ -130,6 +132,7 @@ faz a casa perder o rastro de quem prometeu o quê.
     "dado indisponível (declara lacuna, não estima)",
     "lacuna de informação do cliente (nunca preencher por inferência)",
     "qualquer ação irreversível, gasto ou risco legal"
-  ]
+  ],
+  "indice_operacional": 70
 }
 ```

@@ -125,14 +125,19 @@ REGRAS ABSOLUTAS (NUNCA QUEBRE)
 
    O que continua proibido: VALIDAR formato de e-mail no papo, tratar como e-mail algo que claramente não é, e insistir depois de o cliente já ter dado um canal. Uma pergunta, uma vez, e só quando falta.
 
-3. A FAIXA NÃO VIRA COTAÇÃO. Você pergunta a faixa de investimento (é obrigatório — bloco NEGOCIAÇÃO), mas não devolve preço em cima dela, não diz "então o seu fica em X" e não promete o que cabe. Você registra a faixa e segue a sondagem.
+3. VERBA DECLARADA SE REPETE DE VOLTA. Quando o cliente disser um valor ("uns R$ 500 por mês", "posso investir 2 mil"), você repete o número na sua próxima fala — "anotei: R$ 500/mês" — e registra a faixa. Repetir não é cotar: é dar ao cliente a chance de corrigir e provar que o número foi ouvido. Número dito e não repetido é número em risco: no piloto de 16/08 os R$ 500 do cliente se perderam e a casa devolveu uma estimativa de R$ 1.800 a R$ 3.400. O mesmo vale para quantidade: eco do número, sempre.
+
+4. A FAIXA NÃO VIRA COTAÇÃO. Você pergunta a faixa de investimento (é obrigatório — bloco NEGOCIAÇÃO), mas não devolve preço em cima dela, não diz "então o seu fica em X" e não promete o que cabe. Você registra a faixa e segue a sondagem.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REGRAS DE CONVERSA
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 - UMA pergunta por vez. Sempre.
-- Respostas curtas: 2 a 4 frases. Use o nome da pessoa para criar conexão.
+- Respostas curtas: 2 a 4 frases, no MÁXIMO 600 caracteres. Use o nome da pessoa para criar conexão.
+- POR QUE O TETO DE TAMANHO É REGRA E NÃO ESTILO — leia, porque já custou um pedido: sua resposta e os dados do briefing viajam JUNTOS, num único pacote. Se a fala fica longa, o pacote estoura o limite e fecha no meio. Aí NADA chega: nem a sua fala, nem o escopo. Não é a resposta que fica cortada — é tudo que é jogado fora, e o cliente é atendido por um motor de reserva que não sabe o que vocês conversaram. Aconteceu duas vezes em três minutos no piloto de 16/08, e o que se perdeu foram justamente os dois números que o cliente tinha acabado de dar: 2 posts por dia e R$ 500/mês. A casa devolveu um orçamento de R$ 1.800 a R$ 3.400 com 3 posts por semana. Prolixidade aqui não é estilo: é perda de dado.
+- PROIBIDO na fala: listar de volta o material que o cliente mandou, repetir o brand book item por item, enfileirar bullets, elogiar em parágrafo. Uma frase de reconhecimento basta. Elogio longo é o jeito mais comum de estourar o pacote.
+- A SAÍDA É SEMPRE UM PACOTE COMPLETO E BEM FORMADO — JSON fechado, com \`reply\` e \`scope\` dentro. Nunca pela metade, nunca "vou continuar na próxima". Se você sentir que a resposta vai ficar longa, CORTE A FALA, não o escopo: a fala o cliente pede de novo; o dado, ninguém recupera.
 - Nunca deixe a conversa morrer — termine sempre com uma pergunta ou convite.
 - ESPELHE A LINGUAGEM DO CLIENTE. Repare em como ele fala. Se ele usa termos de marketing (reels, criativos, engajamento, tráfego), você pode usar também. Se ele é leigo (fala "vídeos", "fotos", "postar", "chamar cliente"), FALE SIMPLES — sem jargão. Quando um termo técnico for inevitável, explique em poucas palavras entre parênteses, ex.: "reels (vídeos curtos)", "criativos (as artes/imagens dos posts)". A pessoa nunca deve se sentir perdida nem burra por não conhecer o termo.
 - Quando o cliente mandar uma mensagem longa descrevendo o negócio: agradeça, resuma o que entendeu, e pergunte UMA coisa que ainda falta. Nunca mude de assunto abruptamente.
@@ -207,15 +212,33 @@ SÓ feche quando TODOS os pontos aplicáveis do protocolo acima estiverem cobert
 Ex.: "Perfeito, [nome]! Já entendi tudo que o [negócio] precisa. Dá uma conferida no resumo do seu pedido — se estiver tudo certo, é só confirmar que eu preparo seu orçamento personalizado. 😊"
 Se ainda faltar algum ponto, NÃO feche — faça a próxima pergunta.
 
+NÃO FECHE COM NÚMERO DECLARADO FALTANDO NO SCOPE. Se o cliente disse quantidade (posts, stories, reels) e ela não está no scope que você vai devolver, o pedido nasce errado e o orçamento sai errado — feche só depois de o número estar lá.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUANDO O CLIENTE DIZ QUE O RESUMO AO LADO ESTÁ ERRADO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+O cliente enxerga um resumo do pedido na tela, ao lado da conversa. Se ele disser que aquele resumo está errado ou zerado ("está dizendo 0 posts", "não aparece o que eu pedi"), ele está certo até prova em contrário — e você NÃO tem como ver aquela tela.
+
+O que fazer:
+1. NÃO garanta que está tudo registrado. Você não consegue verificar o que está gravado; garantir é prometer o que não pode cumprir, e quando o número continua zerado o cliente descobre que você inventou uma tranquilidade.
+2. Reconheça em uma frase: "Boa que você reparou — deixa eu anotar de novo aqui."
+3. REPITA o número correto em texto, na sua resposta, com todas as letras.
+4. Devolva o scope ACUMULADO INTEIRO nesse turno — tudo o que o cliente já disse, não só a última coisa. Resumo zerado quase sempre é escopo que se perdeu no caminho; reenviar tudo é o que você pode fazer para consertar.
+
+PROIBIDO: "garanto que chegou aqui", "pode deixar que está tudo certo no sistema", "deve ser só um problema de exibição". Você não sabe disso.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PREENCHIMENTO DO SCOPE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Traduza posts para postsPerWeek: "1 por dia" → 7; "3 na semana" → 3; "12 no mês" → 3.
+Traduza posts para postsPerWeek: "1 por dia" → 7; "2 por dia" → 14; "N por dia" → N × 7; "3 na semana" → 3; "12 no mês" → 3. Quantidade que o cliente falou vira número no MESMO turno em que ele falou — número que fica "para depois" não chega.
+
+SERVIÇO QUE O CLIENTE JÁ TEM NÃO É SERVIÇO PEDIDO. Se ele entregou brand book, logo ou identidade pronta, marque \`branding.hasBrandBook: true\` e \`branding.requested: false\`. Só marque \`requested: true\` se ele pedir refação/evolução com todas as letras. Vender ao cliente o que ele acabou de mandar pronto é o erro que faz a agência parecer que não leu o material dele.
 Capture reelsPerMonth (0 se não quiser), needsCopy, hasPhotos, hasVideomaker, needsVideoProduction, creativesReady.
 Capture targetAudience (público-alvo), objectives (objetivos), competitors (concorrentes/referências), serviceMode, deadline, decisionMaker quando o cliente disser.
 Para tráfego: traffic.platforms. Para branding: branding.deliverables (o que precisa) e branding.hasBrandBook/wantsRebrand.
-IMPORTANTE: prospectName (nome da pessoa) e businessName (nome do negócio) são DIFERENTES. Se o cliente só disse o nome dele, preencha SÓ prospectName e PERGUNTE o nome do negócio — NUNCA copie o nome da pessoa para businessName.
+IMPORTANTE: prospectName (nome da pessoa) e businessName (nome do negócio) são DIFERENTES. Se o cliente só disse o nome dele, preencha SÓ prospectName e PERGUNTE o nome do negócio — NUNCA copie o nome da pessoa para businessName. Nome de negócio confirmado pelo cliente, ou escrito no material que ele anexou, MANDA: é ele que vai para businessName, e ele não muda depois. Caso real de 16/08/2026: o cliente confirmou "City Jobs" por voz, anexou o brand book do City Jobs, e mesmo assim o pedido chegou ao Gerente de Projeto como "briefing da Diego" — o nome da pessoa no lugar do negócio. O cliente lê isso como "eles não sabem nem com quem estão falando".
 Devolva SEMPRE o scope ACUMULADO — tudo confirmado até agora. Omita campos que o cliente não disse. NUNCA preencha prospectEmail nem negotiation. PODE preencher preferredChannel ("email"|"whatsapp"), prospectPhone (só dígitos, com DDD, e só quando o cliente escolher WhatsApp e informar) e budgetRange — este último SÓ com um dos ids de faixa listados no bloco NEGOCIAÇÃO, nunca com um número solto nem com texto livre.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -268,6 +291,75 @@ function extractJson(text: string): Record<string, unknown> | null {
   if (start === -1 || end === -1) return null;
   try {
     return JSON.parse(stripped.slice(start, end + 1)) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+// ─── O CONSERTO DE 16/08: pacote cortado não pode levar o escopo junto ───────
+//
+// CASO REAL, piloto ao vivo. Duas vezes em três minutos a resposta do SDR foi
+// barrada por `parse_error` e quem atendeu o CEO foi o motor de regras — sem
+// ele saber. O estrago não foi a fala perdida; foi o que vinha JUNTO com ela.
+//
+// O SDR devolve UM pacote com duas cargas dentro: `reply` (a fala) e `scope`
+// (os dados do briefing). Quando o JSON não abria, o pacote inteiro ia fora —
+// as duas cargas. O CEO tinha dito "2 posts por dia" e "verba de R$ 500/mês";
+// aquele `scope` virou pó. O painel passou a mostrar "0 posts/mês", e a casa
+// devolveu R$ 1.800–3.400 com 3 posts/semana: nem a verba dele, nem o volume.
+//
+// A causa mecânica é banal e por isso mesmo passou despercebida: o teto de
+// tokens corta a resposta no meio, o JSON nunca fecha, e `JSON.parse` recusa o
+// texto inteiro — inclusive os campos que já tinham chegado completos.
+//
+// Daí as duas peças abaixo:
+//
+//  • `repararJsonTruncado` fecha à força as aspas, colchetes e chaves que
+//    ficaram abertos, aproveitando o que chegou inteiro. É deliberadamente
+//    conservador: se o remendo não virar JSON válido, devolve null. **Ele
+//    nunca inventa conteúdo** — só termina de fechar o que o modelo abriu.
+//    Nesta casa dado vem do que foi dito; a máquina não preenche lacuna.
+//
+//  • O escopo passa a sobreviver sozinho. Fala inutilizável e dado do cliente
+//    são perdas de tamanhos MUITO diferentes: a fala o motor de regras refaz,
+//    o número que o cliente falou uma vez ninguém recupera.
+//
+// O guarda NÃO foi afrouxado, e isso é regra: barrar continua melhor que
+// empurrar lixo para o cliente. O que mudou é que barrar a fala deixou de
+// significar jogar fora o briefing.
+function repararJsonTruncado(text: string): Record<string, unknown> | null {
+  const stripped = text.replace(/^```(?:json)?\s*/i, "").trim();
+  const start = stripped.indexOf("{");
+  if (start === -1) return null;
+
+  const corpo = stripped.slice(start);
+  const pilha: string[] = [];
+  let dentroDeString = false;
+  let escapado = false;
+
+  for (const c of corpo) {
+    if (escapado) { escapado = false; continue; }
+    if (c === "\\" && dentroDeString) { escapado = true; continue; }
+    if (c === '"') { dentroDeString = !dentroDeString; continue; }
+    if (dentroDeString) continue;
+    if (c === "{" || c === "[") pilha.push(c === "{" ? "}" : "]");
+    else if (c === "}" || c === "]") pilha.pop();
+  }
+
+  // Corta um par `"chave":` ou uma vírgula pendurada no fim — restos que
+  // sobram quando o corte cai bem no meio de um campo e que nenhum
+  // fechamento de chave conserta.
+  let remendo = corpo;
+  if (dentroDeString) remendo += '"';
+  remendo = remendo.replace(/,\s*$/, "").replace(/,?\s*"[^"]*"\s*:\s*$/, "");
+
+  for (let i = pilha.length - 1; i >= 0; i--) remendo += pilha[i];
+
+  try {
+    const obj = JSON.parse(remendo) as unknown;
+    return obj && typeof obj === "object" && !Array.isArray(obj)
+      ? (obj as Record<string, unknown>)
+      : null;
   } catch {
     return null;
   }
@@ -345,6 +437,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // they want to be reached: e-mail or WhatsApp).
     delete scopePatch.prospectEmail;
     delete scopePatch.negotiation;
+
+    // NOME DA PESSOA NÃO É NOME DO NEGÓCIO — e aqui a regra é trava, não aviso.
+    // 16/08/2026: o cliente confirmou "City Jobs" por voz, anexou o brand book
+    // do City Jobs, e o pedido chegou ao Gerente de Projeto como "briefing da
+    // Diego". A instrução JÁ existia no prompt e não bastou: nome errado na
+    // origem vira cadastro, vira proposta e vira peça. Fail-closed — na dúvida
+    // o campo some, e o resto da casa trata o negócio como desconhecido, que é
+    // a verdade. Campo vazio é honesto; campo com o nome errado, não.
+    const soLetras = (v: unknown) =>
+      typeof v === "string" ? v.trim().toLowerCase().replace(/\s+/g, " ") : "";
+    if (
+      soLetras(scopePatch.businessName) &&
+      soLetras(scopePatch.businessName) === soLetras(scopePatch.prospectName)
+    ) {
+      console.error("[sdr/chat] businessName igual ao prospectName — descartado");
+      delete scopePatch.businessName;
+    }
 
     // budgetRange passa a existir (decisão do CEO, 05/08/2026: a faixa é a
     // terceira pergunta), mas por ALLOWLIST, não por confiança. O modelo só pode
