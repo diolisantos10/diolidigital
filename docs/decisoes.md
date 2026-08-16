@@ -8,6 +8,80 @@
 
 ---
 
+## ALARME QUE MENTE SOBRE A CAUSA É PIOR QUE ALARME AUSENTE
+
+**Decidido em** 2026-08-16 · **por** `pm` (frente do portão de deploy) ·
+**origem:** o sentinela do deploy gritou falso positivo no meio da própria
+janela de trabalho, medido às 19:00Z de 16/08.
+
+**O fato:** em 16/08/2026 o sentinela do deploy acusou "A produção está
+servindo c52aff2 e NÃO existe CI verde para esse commit (nenhum run foi
+criado)". O alarme era falso. O commit
+`c52aff29347a614c1bc09cb9cf7efa016472848e` **tem** run do workflow CI, evento
+push, `completed`/`success`, criado 18:32:11Z:
+https://github.com/diolisantos10/diolidigital/actions/runs/31964881543
+E o próprio sentinela, rodando no GitHub Actions com credencial válida,
+fechou `success` às 18:46:32Z:
+https://github.com/diolisantos10/diolidigital/actions/runs/31965590314
+
+**A causa, em arquivo:linha:**
+- `lib/plataforma/consulta-de-ci.ts:60` — `if (!rc.ok) return vazio;`
+- `lib/plataforma/consulta-de-ci.ts:72` — `if (!rr.ok) return { ...vazio, shaCompleto };`
+- `lib/plataforma/consulta-de-ci.ts:62` e `:89-91` — os dois `catch { return vazio }`
+- o texto que sai disso: `lib/plataforma/sentinela-do-deploy.ts:152` e
+  `:234-235` — "nenhum run foi criado"
+- Reprodução: neste ambiente o fetch do Node recebe 403 sem token e 401 com o
+  `GITHUB_TOKEN` local; pelo `curl`, que passa pelo proxy, a mesma API
+  responde 200 com o run verde.
+
+**O coração da decisão:** `houveRun: false` significa "NÃO CONSEGUI
+PERGUNTAR" e está sendo impresso como "O MUNDO NÃO TEM RUN". São dois estados
+diferentes, com ações diferentes. Falar pelo lado seguro (o comentário em
+`consulta-de-ci.ts:46-47` já assume isso de propósito) resolve a
+**gravidade** — ausência nunca vira aprovação, e isso está certo e continua
+valendo — mas **não** resolve a **ação impressa**: mandar "Disparar a CI
+neste commit" quando a CI já passou treina a casa a ignorar alarme. Numa casa
+que roda 100% IA sem revisão humana, alarme que mente é pior que alarme
+ausente: o ausente deixa a dúvida viva, o mentiroso a mata.
+
+**O buraco de teste** (laudo do `qualidade`, somente leitura): cobertura
+**zero** do caminho HTTP não-ok. Não existe teste que toque
+`olharCI`/`olharPlataforma`; `sentinela-do-deploy.test.ts` e
+`porta-de-emergencia.test.ts` montam `ci: { houveRun, conclusao }` à mão e
+nunca passam pelo fetch. Não é teste fraco: é ausência total.
+
+**O conserto proposto**, e que não afrouxa portão nenhum: um código de
+veredito novo (`SEM_RESPOSTA_DO_GITHUB`) carregando o status HTTP no texto,
+mantendo gravidade não-ok e saída `!= 0`, com ação "conferir
+credencial/rede — até lá a produção está NÃO VERIFICADA" em vez de "disparar
+a CI". O `switch` de `julgarDeploy` não tem `default` e o `tsconfig` é
+`strict`: o compilador **obriga** quem adicionar o código novo a tratar o
+caso — e por isso ninguém deve adicionar um `default` "conveniente". Segunda
+metade da trava: o conserto só nasce pronto com teste cobrindo 401, 403, 404,
+429, 5xx e timeout.
+
+**Quem executa:** a execução está com a reivindicação `distancia-do-deploy`
+(`pm-distancia-deploy`, aberta 16/08 18:44:10Z), que já detém
+`lib/plataforma/consulta-de-ci.ts`. É por **reivindicação**, não por mérito.
+Ninguém deve reabrir isto como frente nova.
+
+**O achado irmão, medido, item próprio** — o `concurrency:
+cancel-in-progress: true` do workflow CI está deixando a produção para trás.
+Números medidos às 19:00Z de 16/08: HEAD da branch `844abde4`; último commit
+com CI verde `c52aff29` (18:32Z); 21 commits desde o último verde, **todos**
+`cancelled` ou sem run; produção servindo `c52aff2`, ou seja 21 commits atrás
+do head, mas **com** prova verde. A cadência de push (~1,3 min entre commits)
+é menor que o portão (~8 min), então todo run é cancelado antes de terminar e
+nenhum commit novo consegue ficar verde. O que desarma metade do susto: dos
+35 commits sem run nenhum na janela de 120, 21 são commits que não eram a
+ponta do push (o GitHub só cria run para a ponta) — isso **não** é buraco de
+cobertura, porque o conteúdo deles está na árvore da ponta. A saída **não** é
+remover o `cancel-in-progress` sem prova, porque ele existe para apagar o
+ruído vermelho que esta casa já pagou para apagar (o comentário em
+`.github/workflows/ci.yml:23-38` conta o caso).
+
+---
+
 ## MECANISMO NÃO EXERCITADO NÃO É MECANISMO PRONTO — E TRÊS REGRAS QUE SAÍRAM DISSO
 
 **Decidido em** 2026-08-16 · **por** três `pm`s em frentes separadas, consolidado
