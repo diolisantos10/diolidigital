@@ -8,13 +8,15 @@
 // recusou o texto inteiro, inclusive os campos que já tinham chegado
 // completos.
 //
-// Este arquivo guarda as quatro coisas que fecham esse buraco:
+// Este arquivo guarda o que fecha esse buraco:
 //
 //   1. `stop_reason: "max_tokens"` (a própria API dizendo que cortou) é
 //      distinguido de um JSON que terminou de ser escrito e ainda assim não
-//      é JSON válido — motivos diferentes, ações diferentes.
+//      é JSON válido — motivos diferentes, ações diferentes ("truncado" vs
+//      "malformado").
 //   2. `extractJson` falhando não é mais o fim da linha: o servidor tenta
-//      fechar à força o que ficou aberto antes de desistir.
+//      fechar à força o que ficou aberto antes de desistir
+//      (`repararJsonTruncado`).
 //   3. Quando isso recupera um `scope` mas não uma `reply` confiável, o
 //      escopo viaja mesmo com `ok: false` — o número que o cliente falou uma
 //      vez, ninguém recupera; a fala, o motor de regras refaz.
@@ -24,6 +26,21 @@
 // O guarda NÃO afrouxa: pacote genuinamente ilegível continua sem soltar
 // nada, e pacote limpo continua passando inteiro, sem o reparo inventar
 // problema onde não há.
+//
+// ── RECONCILIAÇÃO DE 16/08 ──────────────────────────────────────────────────
+// Três sessões consertaram este mesmo defeito em paralelo. Este arquivo, no
+// merge do `pm`, ganhou mais dois achados que a base acima não tinha:
+//
+//   5. TETO_DO_REPARO — parecer do `seguranca`: teto de tamanho fixo DENTRO
+//      de `repararJsonTruncado`, que não depende do `max_tokens` do
+//      chamador (rota pública, sem sessão, com dois `.replace()` O(n²)).
+//   6. Valor BARE truncado (número, true/false/null) — parecer do
+//      `qualidade`: um dígito cortado não tem marca de truncamento nenhuma e
+//      sobrevivia como um número plausível-e-errado (`1` no lugar de `14`).
+//
+// Este arquivo NÃO repete a cobertura de
+// `__tests__/comercial/pacote-cortado-nao-leva-o-escopo.test.ts` (que continua
+// a fonte da verdade para "pacote cortado não leva o escopo junto").
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
@@ -43,9 +60,15 @@ vi.mock("@/lib/db/client", () => ({ prisma: db }));
 const chaveDeRotaPublica = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/ai/chave-publica", () => ({ chaveDeRotaPublica }));
 
-import { POST } from "@/app/api/sdr/chat/route";
+import { POST, repararJsonTruncado } from "@/app/api/sdr/chat/route";
 
-type LinhaGravada = { authorRole: string; authorName: string; body: string };
+type LinhaGravada = {
+  clientId?: string;
+  clientRequestId?: string;
+  authorRole: string;
+  authorName: string;
+  body: string;
+};
 const gravadas = (): LinhaGravada[] =>
   (db.portalMessage.create.mock.calls as unknown as Array<[{ data: LinhaGravada }]>).map((c) => c[0].data);
 
@@ -287,5 +310,217 @@ describe("o escopo recuperado passa pelas MESMAS travas de sempre", () => {
     // também não é generosa demais: só descarta o que precisa descartar.
     expect(corpo.scope.prospectName).toBe("Ana");
     expect(corpo.scope.social.postsPerWeek).toBe(14);
+  });
+});
+
+// ── ENXERTO 1 — TETO_DO_REPARO ───────────────────────────────────────────────
+
+describe("TETO_DO_REPARO — parecer do `seguranca`", () => {
+  it("entrada absurdamente grande é descartada pelo teto de tamanho, sem varrer nada", () => {
+    const enorme = '{"scope":{"x":"' + "a".repeat(25_000);
+    expect(repararJsonTruncado(enorme)).toBeNull();
+  });
+
+  it("entrada dentro do teto continua sendo reparada normalmente", () => {
+    const dentroDoTeto = '{"scope":{"businessName":"Ana Doces"';
+    const reparado = repararJsonTruncado(dentroDoTeto);
+    expect(reparado).not.toBeNull();
+    expect((reparado!.scope as Record<string, unknown>).businessName).toBe("Ana Doces");
+  });
+
+  it("o teto não depende do max_tokens do chamador — vale mesmo se a rota subir de novo", () => {
+    // O teto mora na função (20_000), bem acima do max_tokens atual (3000)
+    // mas fixo por si só: não é um múltiplo nem uma fração de max_tokens.
+    const textoDe19999Chars = '{"scope":{"x":"' + "a".repeat(19_960);
+    expect(textoDe19999Chars.length).toBeLessThan(20_000);
+    // Não é bem formado (string nunca fecha em chave real), mas passa do teto
+    // e chega a tentar o reparo — não é descartado ANTES de olhar o conteúdo.
+    const resultado = repararJsonTruncado(textoDe19999Chars);
+    expect(resultado).not.toBeNull();
+  });
+});
+
+// ── ENXERTO 2 — valor BARE truncado ──────────────────────────────────────────
+
+describe("repararJsonTruncado — valor bare truncado não sobrevive como número plausível-e-errado", () => {
+  it("número cortado no MEIO (1 de 14, sem delimitador depois) descarta o campo inteiro", () => {
+    // Corte exatamente como o incidente real: depois do PRIMEIRO dígito de 14.
+    const cortado = '{"scope":{"social":{"postsPerWeek":1';
+    const reparado = repararJsonTruncado(cortado);
+
+    expect(reparado).not.toBeNull();
+    const social = (reparado!.scope as Record<string, unknown>).social as Record<string, unknown>;
+    // O campo some inteiro — nunca vira 1, nunca vira 14 adivinhado.
+    expect(Object.hasOwn(social, "postsPerWeek")).toBe(false);
+  });
+
+  it("número COMPLETO, seguido de delimitador que o próprio modelo escreveu (}), sobrevive intacto", () => {
+    // O "}" que fecha `social` já veio na resposta: prova que o 14 terminou
+    // ali. Esta é a metade que NÃO pode virar baixa.
+    const completo = '{"scope":{"social":{"postsPerWeek":14}';
+    const reparado = repararJsonTruncado(completo);
+
+    expect(reparado).not.toBeNull();
+    const social = (reparado!.scope as Record<string, unknown>).social as Record<string, unknown>;
+    expect(social.postsPerWeek).toBe(14);
+  });
+
+  it("true/false/null cortados no fim, sem delimitador depois, também descartam o campo", () => {
+    const cortadoTrue = '{"scope":{"decisionMaker":tru';
+    const cortadoFalse = '{"scope":{"branding":{"requested":fals';
+    const cortadoNull = '{"scope":{"deadline":nul';
+
+    const rTrue = repararJsonTruncado(cortadoTrue);
+    expect(rTrue).not.toBeNull();
+    expect(Object.hasOwn(rTrue!.scope as Record<string, unknown>, "decisionMaker")).toBe(false);
+
+    const rFalse = repararJsonTruncado(cortadoFalse);
+    expect(rFalse).not.toBeNull();
+    const branding = (rFalse!.scope as Record<string, unknown>).branding as Record<string, unknown>;
+    expect(Object.hasOwn(branding, "requested")).toBe(false);
+
+    const rNull = repararJsonTruncado(cortadoNull);
+    expect(rNull).not.toBeNull();
+    expect(Object.hasOwn(rNull!.scope as Record<string, unknown>, "deadline")).toBe(false);
+  });
+
+  it("true/false/null COMPLETOS, seguidos de delimitador do próprio modelo, sobrevivem intactos", () => {
+    const completoTrue = '{"scope":{"decisionMaker":true}';
+    const completoFalse = '{"scope":{"branding":{"requested":false}}';
+    const completoNull = '{"scope":{"deadline":null}';
+
+    expect((repararJsonTruncado(completoTrue)!.scope as Record<string, unknown>).decisionMaker).toBe(true);
+    const branding = (repararJsonTruncado(completoFalse)!.scope as Record<string, unknown>).branding as Record<
+      string,
+      unknown
+    >;
+    expect(branding.requested).toBe(false);
+    expect((repararJsonTruncado(completoNull)!.scope as Record<string, unknown>).deadline).toBeNull();
+  });
+
+  it("via POST: o corte real do incidente (1 de 14) some do scope devolvido, não vira 1 chutado", async () => {
+    const textoCortado = '{"scope":{"prospectName":"Ana","social":{"postsPerWeek":1';
+    vi.stubGlobal("fetch", vi.fn(async () => respostaBruta(textoCortado, "max_tokens")));
+
+    const res = await chamar({ messages: [], currentMessage: "2 posts por dia", sessionId: "s-bare-1" });
+    const corpo = await res.json();
+
+    expect(corpo.ok).toBe(false);
+    expect(corpo.scope.prospectName).toBe("Ana");
+    expect((corpo.scope.social as Record<string, unknown> | undefined)?.postsPerWeek).toBeUndefined();
+  });
+});
+
+// ── ENXERTO 3 — o desfecho do escopo aparece no diário ───────────────────────
+//
+// REGRA DERRUBADA NA RECONCILIAÇÃO DE 16/08: a base original destes testes
+// media o desfecho por um SUFIXO no `motivoDaRecusa` gravado
+// (`parse_error_truncado_escopo_salvo` / `_escopo_perdido`), produzido por uma
+// função `comDesfechoDoEscopo` que só era chamada nos dois returns de
+// `parse_error`. O `pm`, na reconciliação, escolheu manter o campo
+// ESTRUTURADO que já existia no lado vencedor — `escopoFoiSalvo?: boolean` em
+// `TurnoDoSdr` — e removeu `comDesfechoDoEscopo` por ser, a partir daí, código
+// sem chamador (D-003). Os testes abaixo foram reescritos para medir o que o
+// código faz de verdade: a frase em português que `registro-da-conversa.ts`
+// acrescenta ao corpo gravado quando `escopoFoiSalvo` é `true`, e o `reason`
+// devolvido ao cliente nos rótulos canônicos (`truncado`/`malformado`, sem
+// prefixo `parse_error_`). Também corrigido: o campo é aplicado pelo MESMO
+// mecanismo em QUALQUER guarda que tenha escopo à mão (`truncado`,
+// `malformado`, `email_hallucination`, `price_leak`) — não só nos dois
+// motivos de parse, que era a suposição do teste original.
+
+const FRASE_ESCOPO_SALVO = "O escopo (o que o cliente já tinha dito) foi salvo mesmo assim.";
+
+describe("o desfecho do escopo aparece no diário como frase, não como sufixo de motivo", () => {
+  it("scope recuperado com conteúdo mas reply vazia grava a frase de escopo salvo — nos dois motivos de parse", async () => {
+    const textoReplyVazia = JSON.stringify({
+      reply: "",
+      needsClarification: false,
+      scope: { prospectName: "Ana Paula", social: { postsPerWeek: 14 } },
+    });
+
+    // Variante truncado (stop_reason max_tokens).
+    vi.stubGlobal("fetch", vi.fn(async () => respostaBruta(textoReplyVazia, "max_tokens")));
+    const resTruncado = await chamar({ messages: [], currentMessage: "2 posts por dia", sessionId: "s-salvo-truncado" });
+    const corpoTruncado = await resTruncado.json();
+
+    expect(corpoTruncado.ok).toBe(false);
+    expect(corpoTruncado.reason).toBe("truncado"); // rótulo canônico, sem prefixo nem sufixo
+    expect(corpoTruncado.scope.social).toMatchObject({ postsPerWeek: 14 });
+    const linhaTruncado = gravadas().find((l) => l.body.includes("truncado"));
+    expect(linhaTruncado?.body).toContain(FRASE_ESCOPO_SALVO);
+
+    vi.clearAllMocks();
+    chaveDeRotaPublica.mockResolvedValue({ apiKey: "chave", source: "db", model: null });
+    db.portalMessage.create.mockResolvedValue({});
+    db.portalMessage.findFirst.mockResolvedValue(null);
+    db.clientRequestDb.findUnique.mockResolvedValue(null);
+
+    // Mesmo pacote, variante formato (stop_reason que não é max_tokens) — cai
+    // no rótulo "malformado", não "formato" (a casa só tem os dois rótulos).
+    vi.stubGlobal("fetch", vi.fn(async () => respostaBruta(textoReplyVazia, "end_turn")));
+    const resFormato = await chamar({ messages: [], currentMessage: "2 posts por dia", sessionId: "s-salvo-formato" });
+    const corpoFormato = await resFormato.json();
+
+    expect(corpoFormato.reason).toBe("malformado");
+    const linhaFormato = gravadas().find((l) => l.body.includes("malformado"));
+    expect(linhaFormato?.body).toContain(FRASE_ESCOPO_SALVO);
+  });
+
+  it("corte dentro da FALA, antes de `scope` sequer existir, NÃO grava a frase — não há dado nenhum para salvar", async () => {
+    // Aqui sim o corte é real: nada depois de `reply` chegou a abrir.
+    const textoSemEscopo = '{"reply":"Perfeito! Me conta mais sobre o seu neg';
+    vi.stubGlobal("fetch", vi.fn(async () => respostaBruta(textoSemEscopo, "max_tokens")));
+    const res = await chamar({ messages: [], currentMessage: "quero social media", sessionId: "s-desfecho-perdido" });
+    const corpo = await res.json();
+
+    expect(corpo.reason).toBe("truncado");
+    expect(corpo.reply).toBeUndefined();
+    const linha = gravadas().find((l) => l.body.includes("truncado"));
+    expect(linha?.body).not.toContain(FRASE_ESCOPO_SALVO);
+  });
+
+  it("scope existe mas o guarda (prospectEmail) descarta por completo: sem a frase de escopo salvo", async () => {
+    // Desfecho tem de refletir o que SOBROU do saneamento, não o que chegou
+    // bruto no `scope` — por isso reply vazia + único campo é o que o guarda
+    // sempre apaga.
+    const textoSoFiltrado = JSON.stringify({
+      reply: "",
+      needsClarification: false,
+      scope: { prospectEmail: "ana@exemplo.com" },
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => respostaBruta(textoSoFiltrado, "end_turn")));
+    await chamar({ messages: [], currentMessage: "meu email é ana@exemplo.com", sessionId: "s-desfecho-filtrado" });
+
+    const linha = gravadas().find((l) => l.body.includes("malformado"));
+    expect(linha?.body).not.toContain(FRASE_ESCOPO_SALVO);
+  });
+
+  it("nenhum objeto sequer se formou (parsed === null): sempre sem a frase de escopo salvo", async () => {
+    const textoQuebrado = '{"reply" "sem dois pontos"}';
+    vi.stubGlobal("fetch", vi.fn(async () => respostaBruta(textoQuebrado, "end_turn")));
+    await chamar({ messages: [], currentMessage: "oi", sessionId: "s-desfecho-sem-parse" });
+
+    const linha = gravadas().find((l) => l.body.includes("malformado"));
+    expect(linha?.body).not.toContain(FRASE_ESCOPO_SALVO);
+  });
+
+  it("motivos que NÃO são de parse (price_leak) também ganham a frase quando há escopo salvo — o mecanismo é o mesmo em qualquer guarda", async () => {
+    // JSON válido, com fala vazando preço: cai no guarda de preço, não no de
+    // parse. A suposição original era que só os dois returns de parse_error
+    // ganhavam o sufixo; o campo estruturado não faz essa distinção — ele
+    // reflete se sobrou escopo utilizável, ponto, e isso é uma correção
+    // deliberada em relação ao comportamento antigo.
+    const textoComPreco = JSON.stringify({
+      reply: "Fechado! Fica R$ 500 por mês.",
+      needsClarification: false,
+      scope: { prospectName: "Ana" },
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => respostaBruta(textoComPreco, "end_turn")));
+    await chamar({ messages: [], currentMessage: "quanto custa?", sessionId: "s-price-leak-desfecho" });
+
+    const linha = gravadas().find((l) => l.body.includes("price_leak"));
+    expect(linha?.body).toContain("price_leak");
+    expect(linha?.body).toContain(FRASE_ESCOPO_SALVO);
   });
 });

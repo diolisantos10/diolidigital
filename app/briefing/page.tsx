@@ -124,19 +124,44 @@ export default function BriefingPage() {
             ))}
           </ol>
         </div>
+        {/* A REFERÊNCIA VEM ANTES DOS BOTÕES, e a ordem é o mecanismo. Um dos
+            botões agora TIRA a pessoa desta página; referência impressa depois
+            da saída é referência que ninguém lê. */}
+        {submittedId && (
+          <p className="mb-6 text-[12px] text-[var(--text-subtle)]">Referência: {submittedId}</p>
+        )}
         <div className="flex items-center justify-center gap-3 flex-wrap">
-          {/* Este botão dizia "Voltar ao início" e voltava ao MESMO formulário
-              que a pessoa acabou de enviar (só desfazia `submitted`) — quem tinha
-              acabado de mandar o briefing era jogado de volta a preenchê-lo de
-              novo. "Início" que a pessoa lê aqui é o site da agência, não o
-              formulário; o destino agora é a raiz do app (`/`), e o rótulo diz
-              "site" com todas as letras para não prometer de novo o que não
-              entrega. Ordem do CEO em 16/08: "não faz o menor sentido". */}
+          {/* ── O BOTÃO QUE DEVOLVIA A PESSOA AO PRÓPRIO BRIEFING ──────────────
+              Até 16/08/2026 este era um <button> com `setSubmitted(false)`, sob
+              o rótulo "Voltar ao início". O CEO, com todas as letras: *"não faz
+              o menor sentido."*
+
+              E o estrago era maior que o rótulo. `entrou` e `contatoDaPorta`
+              NÃO eram resetados junto, então a porta de contato era pulada e o
+              visitante caía num chat EM BRANCO, sob o mesmo cadastro, logo
+              depois de ler "Recebemos seu briefing". Duas leituras possíveis, as
+              duas ruins: achar que o envio falhou e refazer tudo — segundo
+              briefing, cadastro-irmão e SEGUNDA fatura de IA, no defeito que
+              `docs/pendencias.md` (16/08) registra como "dinheiro real, sem
+              dono" —, ou sair confuso e a equipe herdar conversa duplicada.
+
+              Navegar para fora fecha esse caminho em vez de mudá-lo de lugar:
+              não existe mais formulário vazio para onde voltar, e o briefing já
+              está gravado — não há trabalho do visitante a perder aqui.
+
+              ⛔ O destino é `/`, NUNCA `/#hero`. O `id="hero"` de
+              `app/page.tsx:194` é do SVG decorativo `OrbitMotif`, dentro do
+              mockup: ancorar nele pousaria no MEIO da seção e cortaria o título
+              no celular. O Hero é o topo da home — `/` já chega nele.
+
+              O rótulo nomeia o DESTINO, não um "início" que não se sabe de quê:
+              o início do formulário ou o do site? Rótulo que promete o que o
+              botão não entrega é o mesmo defeito com outra roupa. */}
           <Link
             href="/"
             className="h-9 px-5 rounded-[8px] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] text-[13px] font-medium transition-colors inline-flex items-center"
           >
-            Voltar ao site
+            Voltar para o site da Dioli
           </Link>
           <a
             href="https://wa.me/5511989400692"
@@ -158,9 +183,6 @@ export default function BriefingPage() {
             Falar com a Dioli no WhatsApp
           </a>
         </div>
-        {submittedId && (
-          <p className="mt-6 text-[10px] text-[var(--text-subtle)]">Referência: {submittedId}</p>
-        )}
       </div>
     );
   }

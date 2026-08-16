@@ -28,21 +28,39 @@ briefing saiu com **R$ 1.800–3.400 e 3 posts/semana**. O escopo morreu junto c
 a fala.
 
 **Portão rodado pelo `pm`:** `npx tsc --noEmit` → **0 erros** ·
-**4837 testes em 312 arquivos, 1 pulado, todos verdes** (piso antes da rodada:
+**4872 testes em 314 arquivos, 1 pulado, todos verdes** (piso antes da rodada:
 4818 em 309).
 
-### 🔴 DUAS SESSÕES CONSERTARAM O MESMO DEFEITO, NO MESMO DIA, COM 6 MINUTOS DE DIFERENÇA
+### 🔴 **TRÊS** SESSÕES CONSERTARAM O MESMO DEFEITO, NO MESMO DIA, EM MENOS DE 20 MINUTOS
 
-O `push` foi recusado: `171014e` — *"SDR: pacote cortado não leva mais o escopo
-do cliente junto"*, de outra sessão (`session_01KTHqzi8cXMLtKCpQeeTctA`) — já
-estava no remoto, **commitado às 16:23**; este trabalho fechou às 16:29. Mesmo
-incidente do piloto, mesmo arquivo, mesma função ressuscitada.
+O `push` foi recusado **duas vezes**. No remoto já estavam:
 
-**As duas versões não eram equivalentes, e a diferença é a que importa:** a outra
-mexeu em **dois arquivos** (`route.ts` + um teste) e **não tocou no cliente**.
-Sem `PublicBriefingRoom.tsx`, o escopo continuava morrendo em
-`if (!data.ok …) return null` — **o conserto do servidor não chegaria à tela**.
-É o defeito D-003 de novo, um andar acima, dentro do conserto do D-003.
+| commit | sessão | o que mexeu |
+|---|---|---|
+| `171014e` 16:23 | `…KTHqzi8c` | `route.ts` + 1 teste — **só o servidor** |
+| `70e6c7d` · `2323cac` | idem | o botão do briefing · verba vs. estimativa |
+| `a18df6e` 16:39 | `…6NZQcLpa` | enxerto sobre `171014e`: número cortado, teto do reparo |
+
+Este trabalho fechou às 16:29. **Mesmo incidente do piloto, mesmo arquivo, mesma
+função ressuscitada, três vezes.** Duas das três também consertaram o botão
+"Voltar ao início" do BLOCO 2 — e nenhuma sabia das outras.
+
+**As versões não eram equivalentes, e é aí que está a lição:** a primeira mexeu
+em **dois arquivos** e **não tocou no cliente**. Sem `PublicBriefingRoom.tsx`, o
+escopo continuava morrendo em `if (!data.ok …) return null` — **o conserto do
+servidor não chegaria à tela**. É o defeito D-003 de novo, um andar acima, dentro
+do conserto do D-003.
+
+**E a terceira achou algo MELHOR que as outras duas, que foi preservado inteiro:**
+`{"scope":{"social":{"postsPerWeek":1` — corte depois do primeiro dígito de `14`
+— virava `postsPerWeek: 1`, e o `JSON.parse` **aceitava**. É pior que o defeito
+original porque é **silencioso**: string truncada tem marca ("Ana Doces e Bolos
+Personaliza" salta aos olhos), número truncado não tem nenhuma. Regra que ficou:
+valor bare que é o último caractere do texto sai da mesa inteiro; valor seguido de
+delimitador escrito pelo próprio modelo sobrevive intacto — **trava que apagasse
+todo número seria pior que o furo**. Junto veio `TETO_DO_REPARO = 20.000` (do
+`seguranca`): as duas `.replace()` do fim de `repararJsonTruncado` não são
+ancoradas e custam O(n²) numa rota **pública sem sessão**.
 
 **A reconciliação, e as três decisões (registradas em `docs/decisoes.md`):**
 
@@ -65,10 +83,19 @@ porquê no comentário, e todas as asserções sobre o `scope` continuam palavra
 palavra. Teste que trava a regra velha faz a regra nova parecer o bug; esta casa
 já pagou isso três vezes.
 
-- [ ] 🔴 **CEO/Diretor — não há nada que impeça duas sessões de trabalharem o
-      mesmo defeito ao mesmo tempo.** Custou uma rodada inteira de especialista
-      hoje, e só não custou mais porque o `git push` bateu. Com seis projetos ao
-      mesmo tempo isso não é acidente, é rotina. **Sem dono, e sem mecanismo.**
+- [ ] 🔴 **CEO/Diretor — não há NADA que impeça três sessões de trabalharem o
+      mesmo defeito ao mesmo tempo.** Custou, hoje, **três rodadas de especialista
+      e três reconciliações de merge à mão**, e só não custou mais porque o
+      `git push` bateu duas vezes. Com seis projetos ao mesmo tempo isso não é
+      acidente, é rotina. O que salvou o resultado foi as três terem escrito **o
+      porquê** dentro do código — foi lendo o comentário da outra que deu para
+      saber qual regra ainda era verdadeira. **Sem dono, e sem mecanismo.**
+- [ ] 🔴 **A reconciliação é onde o dano mora, e ela é invisível.** A heurística
+      da sessão `…KTHqzi8c` (*"escopo presente prova que a fala fechou antes do
+      corte"*) **era verdadeira quando ela a escreveu** e deixou de ser quando
+      esta sessão inverteu a ordem do JSON no prompt. Duas mudanças corretas,
+      isoladamente, produzem uma terceira errada. **Nenhum teste pegaria isso** —
+      cada lado passava no próprio. Pegou porque alguém leu os dois comentários.
 
 ### O que ficou PROTEGIDO daqui para a frente
 

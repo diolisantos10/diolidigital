@@ -315,6 +315,52 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
             <p className="text-[12px] text-[var(--text-muted)] mt-3 leading-relaxed">{lead.notaDaFaixa}</p>
           </Bloco>
 
+          {/* ── A DIFERENÇA ENTRE O QUE ELE DISSE QUE TEM E O QUE PEDIU ────────
+              Em 16/08/2026, no piloto ao vivo, o CEO declarou R$ 500/mês e a
+              casa devolveu R$ 1.800–3.400 **sem uma palavra sobre a
+              diferença**. Os dois números já estavam neste mesmo cartão, um
+              embaixo do outro — a "Faixa de investimento" que ele declarou e a
+              faixa da tabela da casa — e ninguém os comparava.
+
+              O bloco só existe quando há desencontro real (ver
+              `verba-vs-estimativa.ts`): aviso que aparece em todo cartão deixa
+              de ser lido, e aí o dia em que ele importa passa junto com os
+              outros.
+
+              ⚠️ Âmbar (`--warning`), não vermelho: isto **não é defeito do
+              lead** nem urgência — é uma conversa que precisa acontecer. O
+              vermelho desta tela já tem dono, e é "não há como falar com esta
+              pessoa". Dois vermelhos com pesos diferentes achatam os dois. */}
+          {lead.acimaDaVerba && (
+            <Bloco titulo="O pedido passa da verba que ele declarou">
+              <div className="rounded-[10px] border border-[var(--warning)] bg-[var(--warning-bg)] px-4 py-3 space-y-2">
+                <p className="text-[13px] text-[var(--warning)] font-medium leading-relaxed">
+                  {lead.acimaDaVerba.diferenca}
+                </p>
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                  {lead.acimaDaVerba.oQueCabe}
+                </p>
+                <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
+                  {lead.acimaDaVerba.oCaminhoQueContinua}
+                </p>
+              </div>
+              {/* O que o degrau de entrada NÃO faz, na mesma tela em que ele é
+                  oferecido. Oferecer o plano barato escondendo o corte é a
+                  briga do terceiro mês — e quem vai falar com o lead precisa
+                  ler isso ANTES de prometer. */}
+              {lead.acimaDaVerba.planosQueCabem.map((p) => (
+                <div key={p.id} className="mt-3">
+                  <p className="text-[12px] font-medium text-[var(--text-primary)]">{p.nome} não inclui</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {p.naoInclui.map((n, i) => (
+                      <li key={i} className="text-[12px] text-[var(--text-muted)] leading-relaxed">• {n}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </Bloco>
+          )}
+
           {lead.precisoConfirmar.length > 0 && (
             <Bloco titulo="Preciso confirmar">
               <ul className="space-y-1">

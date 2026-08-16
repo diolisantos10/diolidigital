@@ -33,6 +33,7 @@ import {
   type PistaDeContato,
 } from "./contato-do-lead";
 import type { RepeticaoDoProspect } from "./chave-do-prospect";
+import { verbaVsEstimativa, type VerbaVsEstimativa } from "./verba-vs-estimativa";
 
 export type FonteDaFaixa =
   /** O escopo gravado bastou: a tabela foi aplicada sobre a cadência declarada. */
@@ -94,6 +95,23 @@ export type DossieDoLead = {
   fonteDaFaixa: FonteDaFaixa;
   /** Por que a faixa é o que é — vai para a tela, sempre. */
   notaDaFaixa: string;
+
+  /**
+   * **A ESTIMATIVA PASSOU DA VERBA QUE ELE DECLAROU?** (16/08/2026)
+   *
+   * `null` na maioria dos casos, e isso é o comportamento certo: só é
+   * preenchido quando o lead declarou uma faixa, essa faixa tem teto, e o
+   * **piso** do que a casa calculou já passa desse teto.
+   *
+   * Por que existe: em 16/08/2026, no piloto ao vivo, o CEO declarou
+   * **R$ 500/mês** e a casa devolveu **R$ 1.800 – R$ 3.400** sem dizer uma
+   * palavra sobre a diferença. Os dois números já viviam neste mesmo dossiê,
+   * lado a lado, e ninguém os comparava — a pessoa disse quanto tinha e a casa
+   * seguiu como se não tivesse ouvido.
+   *
+   * A regra mora em `verba-vs-estimativa.ts`; aqui ela só é chamada.
+   */
+  acimaDaVerba: VerbaVsEstimativa | null;
 
   /** O que só uma conversa resolve. Nunca preenchido por inferência. */
   precisoConfirmar: string[];
@@ -258,6 +276,12 @@ export function montarDossie(
 
   const contato = lerContato(entrada);
 
+  // A comparação que faltava. Sem faixa calculada não há o que comparar — e
+  // faixa ausente é fato declarado neste dossiê, nunca um zero disfarçado.
+  const acimaDaVerba = faixa
+    ? verbaVsEstimativa(gravado?.budgetRange, { totalMin: faixa.minimo, totalMax: faixa.maximo })
+    : null;
+
   const precisoConfirmar: string[] = [];
   if (!contato.temComoFalar) precisoConfirmar.push("Como falar com esta pessoa (nome + WhatsApp ou e-mail) — não há nada gravado, e nada foi deduzido do texto");
   if (!entrada.segment) precisoConfirmar.push("Segmento do negócio");
@@ -282,6 +306,7 @@ export function montarDossie(
     faixa,
     fonteDaFaixa,
     notaDaFaixa,
+    acimaDaVerba,
     precisoConfirmar,
   };
 }

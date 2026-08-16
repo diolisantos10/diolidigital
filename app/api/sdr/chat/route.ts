@@ -354,7 +354,17 @@ function extractJson(text: string): Record<string, unknown> | null {
 // O guarda NÃO foi afrouxado, e isso é regra: barrar continua melhor que
 // empurrar lixo para o cliente. O que mudou é que barrar a fala deixou de
 // significar jogar fora o briefing.
-function repararJsonTruncado(text: string): Record<string, unknown> | null {
+// TETO DO REPARO — parecer do `seguranca`, 16/08/2026, PODE COM AJUSTE.
+// As duas `.replace()` no fim desta função não são ancoradas e custam O(n²)
+// em entrada grande; a rota é PÚBLICA, sem sessão. O teto tem de morar NA
+// FUNÇÃO, não depender do `max_tokens` do chamador — que este mesmo dia já
+// subiu duas vezes (1280 → 2600 → 3000). Teto amarrado a outro número é teto
+// que alguém destrava sem perceber.
+const TETO_DO_REPARO = 20_000;
+
+export function repararJsonTruncado(text: string): Record<string, unknown> | null {
+  if (typeof text !== "string" || text.length > TETO_DO_REPARO) return null;
+
   const stripped = text.replace(/^```(?:json)?\s*/i, "").trim();
   const start = stripped.indexOf("{");
   if (start === -1) return null;
@@ -379,6 +389,30 @@ function repararJsonTruncado(text: string): Record<string, unknown> | null {
   let remendo = corpo;
   if (dentroDeString) remendo += '"';
   remendo = remendo.replace(/,\s*$/, "").replace(/,?\s*"[^"]*"\s*:\s*$/, "");
+
+  // FURO DO `qualidade`, 16/08/2026 — valor BARE pendurado no fim (número,
+  // `true`, `false`, `null`) é o buraco que as trocas acima não cobriam. String
+  // truncada tem marca ("Ana Doces e Bolos Personaliza" salta aos olhos); chave
+  // pendurada sem valor já é removida acima. Um dígito cortado NÃO tem marca
+  // nenhuma: `postsPerWeek:1` cortado de `14` parece tão válido quanto `1` de
+  // verdade — e alimenta painel, dossiê do lead e detecção de pacote/preço sem
+  // nenhum limite de sanidade no caminho. É exatamente o campo do incidente: o
+  // SYSTEM_PROMPT manda traduzir "2 posts por dia" em `postsPerWeek: 14`.
+  //
+  // A regra, e por que ela não tem meio-termo: um valor bare no MEIO do texto,
+  // seguido de `,`/`}`/`]` que o próprio modelo escreveu, está PROVADAMENTE
+  // terminado — esse delimitador não é nosso, veio da resposta, e por isso
+  // sobrevive intacto (a regex só olha o FIM do texto). Mas um valor bare que é
+  // o ÚLTIMO caractere do texto — sem vírgula, sem fecha-chave, sem
+  // fecha-colchete depois — é ambíguo por construção: não há como saber, só
+  // olhando o texto, se `1` é o valor inteiro ou se era `14` e o corte caiu no
+  // meio. Não se adivinha; o campo sai da mesa inteiro, igual à chave pendurada
+  // sem valor duas linhas acima. Vale para número, `true`, `false`, `null` e
+  // para um `nul` cortado também — nem chega a ser JSON válido, mas cai na
+  // mesma vala.
+  if (!dentroDeString) {
+    remendo = remendo.replace(/,?\s*"[^"]*"\s*:\s*[+\-.\w]+\s*$/, "");
+  }
 
   for (let i = pilha.length - 1; i >= 0; i--) remendo += pilha[i];
 
@@ -446,6 +480,18 @@ function aplicarTravasDeEscopo(bruto: Record<string, unknown>): Record<string, u
 
   return scopePatch;
 }
+
+// RECONCILIAÇÃO DE 16/08: a outra sessão resolvia esta mesma pergunta — "o
+// escopo sobreviveu ao corte?" — com uma função `comDesfechoDoEscopo` que
+// sufixava o motivo do diário (`truncado_escopo_salvo` / `_escopo_perdido`).
+// Esta versão responde à mesma pergunta com um campo ESTRUTURADO,
+// `escopoFoiSalvo` (`TurnoDoSdr`, em `registro-da-conversa.ts`), que o diário
+// já lê e transforma na frase em português "O escopo (o que o cliente já
+// tinha dito) foi salvo mesmo assim." — sem depender de `.includes()` num
+// texto costurado. Campo estruturado > sufixo de string, e a função só era
+// chamada de dentro do bloco de conflito que perdeu: mantê-la seria plantar
+// código morto (D-003) no mesmo commit que existe para matar código morto.
+// Removida de propósito — não reintroduza.
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const barrado = await limiteExcedido(req, "sdr-chat", 30, 60_000);
