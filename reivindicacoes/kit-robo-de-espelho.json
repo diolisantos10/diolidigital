@@ -1,0 +1,12 @@
+{
+  "id": "kit/robo-de-espelho",
+  "quem": "pm-a27b5772",
+  "frente": "robo de espelho do kit + carimbo que diz a verdade sobre si",
+  "responsabilidade": "kit/robo-de-espelho",
+  "arquivos": [
+    ".github/workflows/kit-espelho.yml",
+    "scripts/espelhar-kit.mts"
+  ],
+  "abertaEm": "2026-08-16T18:23:42.037Z",
+  "encerradaEm": null
+}
