@@ -1,0 +1,13 @@
+{
+  "id": "seguranca/freio-por-sessao-no-sdr",
+  "quem": "pm-9ab49074",
+  "frente": "freio por sessionId no SDR: o custo esta por mensagem, nao por briefing",
+  "responsabilidade": "seguranca/freio-por-sessao-no-sdr",
+  "arquivos": [
+    "app/api/sdr/chat/route.ts",
+    "lib/security/limite-no-banco.ts",
+    "__tests__/seguranca"
+  ],
+  "abertaEm": "2026-08-16T17:50:46.519Z",
+  "encerradaEm": null
+}
