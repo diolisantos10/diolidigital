@@ -1,0 +1,18 @@
+{
+  "id": "deploy/distancia-nao-achata",
+  "quem": "wt-a5f1fd2e59",
+  "frente": "distancia do deploy deixa de achatar: enxergar deploy EM VOO no Railway, separar COMMIT_DESCONHECIDO em dois, e fonte unica de olharProducao",
+  "responsabilidade": "deploy/distancia-nao-achata",
+  "arquivos": [
+    "lib/plataforma/distancia-do-deploy.ts",
+    "lib/plataforma/leitura-da-distancia.ts",
+    "scripts/distancia-do-deploy.mts",
+    "__tests__/plataforma/distancia-do-deploy.test.ts",
+    "lib/plataforma/sentinela-do-deploy.ts",
+    "scripts/sentinela-do-deploy.mts",
+    "lib/plataforma/consulta-de-ci.ts"
+  ],
+  "abertaEm": "2026-08-16T19:32:50.962Z",
+  "encerradaEm": null,
+  "rotulo": "pm-deploy-em-voo"
+}
