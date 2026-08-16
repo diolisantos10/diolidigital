@@ -1,0 +1,13 @@
+{
+  "id": "esteira-orcamento-fila",
+  "quem": "wt-259836449a",
+  "frente": "conserto do entupimento da fila de orcamento (elo 9): raia separada por quem tem estimativa",
+  "responsabilidade": "esteira-orcamento-fila",
+  "arquivos": [
+    "lib/agency/esteira/orcamento-do-briefing.ts",
+    "__tests__/esteira"
+  ],
+  "abertaEm": "2026-08-16T20:21:32.946Z",
+  "encerradaEm": null,
+  "rotulo": "elo9-fila"
+}
