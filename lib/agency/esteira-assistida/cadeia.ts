@@ -164,6 +164,11 @@ export async function executarCicloAssistido(
       deps.perfil,
       {
         modo: "producao",
+        // Declarado desde 16/08, quando a autonomia da ficha virou trava: esta
+        // cadeia PREPARA. O pacote dela termina em card de aprovação humana —
+        // publicação, verba e mensagem externa continuam atrás de gente, e
+        // agora isso é conferido pelo motor contra a letra de cada ficha.
+        efeito: "preparar",
         entradas,
         ferramentasPrevistas: [...spec.ferramentas_permitidas],
         custoPrevistoUsd: Math.min(0.05, spec.teto_custo_usd_execucao / 2),

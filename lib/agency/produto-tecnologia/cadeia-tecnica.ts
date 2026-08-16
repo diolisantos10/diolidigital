@@ -299,6 +299,11 @@ export async function executarCadeiaTecnica(
       {
         modo: "homologacao",
         sintetico: true,
+        // Declarado em voz alta: esta cadeia PREPARA. As sete fichas são
+        // autonomia B, e B não publica — o patch é proposta, e proposta é
+        // preparação. Se algum dia um passo daqui precisar de efeito externo,
+        // a trava de autonomia do executor escala em vez de deixar passar.
+        efeito: "preparar",
         entradas,
         ferramentasPrevistas: [...spec.ferramentas_permitidas],
         custoPrevistoUsd: Math.min(0.05, spec.teto_custo_usd_execucao / 2),
