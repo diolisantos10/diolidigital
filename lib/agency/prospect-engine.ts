@@ -20,7 +20,7 @@ import {
   emptySdrState, parseBudgetAmount, detectObjectionTypes,
   isRestaurantSegment, evaluateBudgetFit, detectNegotiationStage,
   buildPriceObjectionReply, buildConsultativeFrequencyQuestion,
-  buildBudgetQuestion, canSubmitProposal, computeQualificationScore,
+  buildBudgetQuestion, canSubmitProposal, getSubmissionBlockReason, computeQualificationScore,
   type SDRAgentState, type BudgetSignal,
 } from "./sdr-agent";
 
@@ -342,7 +342,34 @@ export function processProspectMessage(
         // This prevents (a) losing the person's name when only the business was
         // parsed, and (b) storing an invalid e-mail/phone as if it were valid.
         // Non-identity questions keep the original "asked = answered" behavior.
-        const stillPending = isIdentity && currentQ.when({ ...conv, scope: newScope });
+        //
+        // ── `detect_service` ENTRA NA MESMA REGRA (16/08/2026) ───────────────
+        //
+        // "Perguntada = respondida" é aceitável para uma pergunta de cor de
+        // logo. É catastrófico para a que colhe QUAL SERVIÇO o cliente quer —
+        // porque é justamente esse campo que o portão de envio exige
+        // (`canSubmitProposal`: `wantsSocialMedia || wantsPaidTraffic ||
+        // branding.requested`).
+        //
+        // O percurso medido, 8 turnos reais no Playwright: à pergunta "gestão de
+        // redes, tráfego ou identidade?" o visitante respondeu **"Somos de
+        // estética."** — que não nomeia serviço nenhum. A pergunta foi marcada
+        // como respondida assim mesmo. No turno seguinte ele disse "Quero social
+        // media: 5 posts por semana", mas a pergunta da vez já era outra
+        // (`main_objective`), e a frase virou OBJETIVO. Resultado: `services`
+        // vazio, escopo sem serviço, e a entrevista seguiu até o fim.
+        //
+        // No fim, `nextQ === null` (nada mais a perguntar) e o SDR anunciou
+        // *"Tenho todas as informações que preciso"* — enquanto o portão
+        // respondia "Conte o que você precisa para montarmos seu pedido". O
+        // visitante fez o briefing inteiro e ficou sem botão para clicar.
+        //
+        // A regra desta casa já dizia o que fazer: **ausência de informação não
+        // é informação.** Uma pergunta só se fecha quando colhe o dado que ela
+        // existe para colher — o `when` dela é quem sabe disso. Repetir a
+        // pergunta é barato; perder o lead no último passo, não.
+        const exigeDadoParaFechar = isIdentity || currentQ.id === "detect_service";
+        const stillPending = exigeDadoParaFechar && currentQ.when({ ...conv, scope: newScope });
         if (stillPending) {
           newAnswered = [...new Set([...conv.answeredQIds, ...inferred])];
         } else {
@@ -477,7 +504,34 @@ export function processProspectMessage(
     }
 
   } else {
-    replyText = "Perfeito! Tenho todas as informações que preciso. Confira o resumo do seu pedido e confirme para eu preparar seu orçamento personalizado.";
+    // ── QUEM DIZ QUE A ENTREVISTA ACABOU É O PORTÃO, NÃO A FALA ─────────────
+    //
+    // Até 16/08/2026 esta linha anunciava o fim sempre que não sobrava pergunta
+    // a fazer (`nextQ === null`). Mas "não tenho mais o que perguntar" e "o
+    // pedido está completo" são fatos DIFERENTES, e nesse dia eles se
+    // separaram: o SDR dizia *"Tenho todas as informações que preciso. Confira
+    // o resumo e confirme"* enquanto `canSubmitProposal` continuava falso — e o
+    // CTA de envio, travado por `canSubmit`, nunca aparecia.
+    //
+    // O visitante lia uma ordem para confirmar e não tinha o que clicar. Fez o
+    // briefing inteiro e não virou pedido: o funil arrebentado no último passo,
+    // em piloto ao vivo.
+    //
+    // Duas cabeças respondendo à mesma pergunta discordam — é a lição que esta
+    // casa já pagou três vezes no mesmo dia. Aqui a hierarquia é explícita: o
+    // **portão** é determinístico e é o dono da verdade; a fala se subordina a
+    // ele. O portão NÃO foi afrouxado para destravar a tela — afrouxar trocaria
+    // um funil quebrado por um pedido incompleto chegando ao cliente, que é
+    // pior e mais caro.
+    //
+    // E o beco sem saída em silêncio é o pior estado de uma tela: quando o
+    // portão está fechado, o visitante lê O QUE FALTA, na frase que
+    // `getSubmissionBlockReason` já escrevia — e que até aqui nunca chegava a
+    // ele.
+    const bloqueio = getSubmissionBlockReason({ ...mid, scope: newScope }, newSdr);
+    replyText = bloqueio
+      ? `${bloqueio}\n\nMe conta isso e eu já fecho o seu orçamento.`
+      : "Perfeito! Tenho todas as informações que preciso. Confira o resumo do seu pedido e confirme para eu preparar seu orçamento personalizado.";
   }
 
   // ── Finalise SDR state ────────────────────────────────────────────────────
