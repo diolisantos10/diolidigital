@@ -3987,3 +3987,82 @@ fallback — nesta ordem, nunca na inversa.
 **O carrossel também não passa pelo pré-portão**: `montarCarrossel` gera uma
 imagem por tela, com direção vinda do storyboard, e é estrutura diferente. Cada
 tela continua sendo paga sem conferência prévia de direção.
+
+---
+
+## 🟢 16/08/2026 — PRODUTO & TECNOLOGIA GANHA MÃOS: A CADEIA TÉCNICA LIGADA, EM HOMOLOGAÇÃO
+
+**Ordem do CEO, olhando o organograma:** *"olha o tanto de agente que tem nesse
+lugar que pode fazer isso"* — e depois, com todas as letras: *"delega isso pro
+departamento de tecnologia e produto corrigir imediatamente."*
+
+**O defeito, medido:** o 12º departamento nasceu em 15/08 com sete fichas em
+`agentes/linha/product-technology/`, sala própria e permissões travadas no
+servidor (`lib/agency/produto-tecnologia/permissoes.ts`). O `backend-engineer`
+já declarava `"saida": {"formato": "git-patch"}`. **Nada no sistema convertia a
+saída daquelas sete fichas em trabalho** — a caixa desenhada, a seta inexistente.
+Era o defeito D-003 da casa apontado para dentro de casa.
+
+### O que passou a existir
+
+| Peça | O que faz |
+|---|---|
+| `lib/agency/produto-tecnologia/cadeia-tecnica.ts` | orquestrador → arquiteto → engenheiro, pelo executor V2, com todas as travas dele |
+| `lib/agency/produto-tecnologia/guarda-de-patch.ts` | julga a saída `git-patch` **sem aplicar nada** |
+| `lib/agency/produto-tecnologia/adaptador-tecnico.ts` | o `realizar` real; sem provedor, **declara a falta** em vez de fabricar rascunho |
+| `POST /api/produto-tecnologia/cadeia` | a chave: dispara e devolve artefatos + propostas |
+| diário do piloto | passa a ler `ExecucaoV2` e `RecusaV2` |
+| executor V2 | a `autonomia` da ficha vira trava (`efeito`: informar/preparar/externo) |
+
+**A ordem dos passos não foi inventada:** ela é a que as próprias fichas declaram
+em `handoff.recebe_de`, e `ordemRespeitaAsFichas()` reprova no CI quem reordenar
+à mão. Cadeia escrita à mão envelhece calada.
+
+### 🔴 AS DUAS RECUSAS QUE VALEM MAIS QUE AS OUTRAS
+
+1. **O agente não edita a própria ficha** (`agentes/linha/**`). É lá que moram a
+   autonomia dele, o teto de custo dele e o que o obriga a escalar. Agente que
+   reescreve o próprio contrato não tem contrato.
+2. **O agente não desarma o guarda** (`guarda-de-patch.ts`, `permissoes.ts`).
+   Quem é vigiado não altera o vigia.
+
+E a terceira, que protege o cliente: **a cadeia recusa em código qualquer pedido
+com `clienteId`**. A engenharia conserta a casa; não encosta no material de
+cliente, e o custo dela é da casa (`donos.ts`, todos em `product-technology`).
+
+### 🔴 OS DOIS DEFEITOS QUE SÓ APARECERAM RODANDO
+
+Achados na primeira rodada de verdade contra o banco local — não em revisão:
+
+1. **A cadeia marchava produzindo nada.** Sem provedor de IA, o adaptador
+   devolveu a falta declarada nos três passos. O engenheiro parou na guarda (que
+   exige diff), mas orquestrador e arquiteto saíram marcados `"executado"`
+   carregando `entregue: false` no corpo. **A guarda de patch cobria uma ficha em
+   três.** Virou contrato de não-entrega, para as sete.
+2. **A cadeia parava calada.** O executor grava as recusas dele; as paradas da
+   cadeia não gravavam nada — a agência pararia por um bom motivo num lugar que
+   o CEO não enxerga. Toda parada passa a gravar `RecusaV2`.
+
+E um terceiro, quase cometido: a trava de autonomia nasceu com padrão
+`"preparar"` e a suíte derrubou em minutos — **oito das 69 fichas são autonomia
+A** e as oito seriam recusadas. Trava nova que reprova o que já roda não é trava,
+é incidente. O padrão virou `"informar"`, o menor efeito.
+
+### 🔴 O QUE NÃO FOI FEITO, E POR QUÊ — não vender piloto como pronto
+
+- **Nada aplica patch.** A seta termina em PROPOSTA revisável. Nenhum módulo
+  chama `git apply`, `exec` ou escreve em disco, e o teste cobra cada nome.
+  Aplicar é a próxima peça e é a mais perigosa: é ela que precisa de decisão.
+- **As sete fichas continuam `ativa: false`**, então a cadeia roda em
+  **homologação**. Ligar em produção é decisão registrada do dono — o CI
+  (`fichas-da-linha.test.ts`) reprova quem ligar função fora da allowlist do CEO,
+  e isso é a regra funcionando, não obstáculo.
+- **A cadeia para no engenheiro, não na Qualidade.** As fichas dizem
+  `entrega_para: quality` e esse elo ainda não existe.
+- **Saída real de IA não foi provada:** o ambiente de verificação não tem
+  provedor configurado. O que ficou provado foi o encanamento e as recusas —
+  a cadeia rodou os três passos, parou honesta e apareceu no diário
+  (`execucoes_da_linha: 4, recusas_da_linha: 1`, com `chamadas_de_ia: 0`, que é
+  exatamente o motivo de o diário ter passado a ler `ExecucaoV2`).
+- **A sala `/agency/produto-tecnologia` não mostra nada disso.** Hoje só o
+  diário e a rota `status` respondem.

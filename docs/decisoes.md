@@ -1103,3 +1103,34 @@ tela do cliente.** Não basta não perder — tem que ser impossível perder cal
 **Por que é decisão de corredor:** o Drive é onde doeu, mas a classe é toda
 escrita nascida de um ato do cliente — envio de material, aprovação, resposta de
 briefing, pedido. Falha calada é o defeito, mesmo quando a causa é outra.
+
+## A letra da ficha só vale se o motor a lê
+
+**16/08/2026.** As 69 fichas da linha declaram `autonomia: A | B | C` desde que
+nasceram, com a semântica escrita na tabela de cada uma: **A** só informa,
+**B** recomenda/prepara e o passo externo exige aprovação, **C** executa com log.
+Até esta data o CI conferia **uma** coisa sobre essa coluna: que a letra
+estivesse entre as três. O motor de execução nunca a lia.
+
+Ou seja: as sete fichas do 12º departamento nasceram `B` e nada no código
+impedia uma delas de fazer o que só `C` poderia. **A letra era decoração** — e
+decoração é exatamente o que o guardrail 4 da casa proíbe ("prompt é aviso,
+código é trava"). O teto de custo, na mesma ficha, sempre foi trava de verdade;
+a autonomia era um adjetivo ao lado dele.
+
+**O mecanismo:** o contexto de execução passa a declarar o `efeito` pretendido
+(`informar` · `preparar` · `externo`) e o executor compara com a letra da ficha.
+`B` diante de efeito externo **escala em vez de recusar** — a ficha diz "exige
+aprovação", não "nunca", e o pacote de escalada É o pedido de aprovação.
+
+**O padrão é `informar`, e a razão é um incidente evitado por pouco.** O primeiro
+desenho usava `preparar` como padrão, por parecer o que toda chamada já fazia. A
+suíte derrubou em minutos: **oito das 69 fichas são autonomia A**, e as oito
+passariam a ser recusadas por uma trava que ninguém pediu para elas. **Trava nova
+que reprova o que já roda não é trava, é incidente.** O motor não adivinha a
+intenção do chamador — assume a menor, e quem prepara declara que prepara.
+
+**Por que é decisão de corredor:** vale para as 69 funções da linha e para toda
+cadeia futura, não só para Produto & Tecnologia. Toda coluna que uma ficha
+declara e que o motor não lê é uma promessa que a casa faz e não cumpre; a
+pergunta "quem lê isto em runtime?" passa a valer para cada campo novo de ficha.
