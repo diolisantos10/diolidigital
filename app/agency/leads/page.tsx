@@ -22,6 +22,7 @@ import { useCallback, useEffect, useState } from "react";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import EmptyState from "@/components/agency/ui/EmptyState";
 import type { DossieDoLead } from "@/lib/agency/comercial/dossie-do-lead";
+import { NEGOCIO_NAO_INFORMADO } from "@/lib/agency/comercial/negocio-do-lead";
 
 type Resposta =
   | { estado: "carregando" }
@@ -125,7 +126,21 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[15px] font-semibold text-[var(--text-primary)] truncate">{lead.negocio}</p>
+            {/* Ausência declarada, nunca buraco branco: `lead.negocio` é `null`
+                quando o briefing não trouxe nome do negócio — ver
+                `negocio-do-lead.ts`. A forma é a MESMA que esta casa já usa em
+                `MarketingIntelligence.tsx:70,152,188` para "não informado":
+                `text-[13px]`, `--text-subtle`, itálico e **sem `font-semibold`**.
+                O peso importa: mantendo 15px/semibold — o peso do nome real — a
+                frase lê como se o negócio SE CHAMASSE "Negócio não informado",
+                ou seja, ausência disfarçada de conteúdo, que é exatamente o
+                defeito que este conserto existe para fechar. Achado pelo
+                especialista `interface` em 16/08/2026. */}
+            {lead.negocio ? (
+              <p className="text-[15px] font-semibold text-[var(--text-primary)] truncate">{lead.negocio}</p>
+            ) : (
+              <p className="text-[13px] text-[var(--text-subtle)] italic truncate">{NEGOCIO_NAO_INFORMADO}</p>
+            )}
             <p className="text-[13px] text-[var(--text-muted)] mt-0.5">
               {lead.segmento ?? "segmento não informado"} · parado há {lead.diasParado} dia{lead.diasParado === 1 ? "" : "s"}
             </p>

@@ -46,6 +46,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { lerContato, pistasDeContato, type PistaDeContato } from "@/lib/agency/comercial/contato-do-lead";
+import { lerNegocio } from "@/lib/agency/comercial/negocio-do-lead";
 
 /** A partir de quantos dias sem resposta a espera vira negligência. Dois dias:
  *  quem preencheu um briefing inteiro espera retorno rápido, e no terceiro dia
@@ -58,7 +59,9 @@ const AINDA_NA_PORTA = ["new", "triaged", "qualifying"];
 
 export interface NaPorta {
   id: string;
-  negocio: string;
+  /** `null` quando o briefing não trouxe nome do negócio. Ausência de
+   *  informação não é informação — nunca string vazia. Ver `negocio-do-lead.ts`. */
+  negocio: string | null;
   /** Dias desde que a pessoa entrou. CALCULADO — nunca digitado. */
   diasEsperando: number;
   /** `true` quando existe canal declarado. Nome sozinho não conta. */
@@ -90,7 +93,7 @@ export async function quemBateuNaPorta(workspaceId: string, agora: Date): Promis
     const dias = Math.floor((agora.getTime() - p.createdAt.getTime()) / 86_400_000);
     return {
       id: p.id,
-      negocio: p.businessName,
+      negocio: lerNegocio(p.businessName),
       diasEsperando: dias,
       temComoFalar: contato.temComoFalar,
       porQueNaoDaParaFalar: contato.temComoFalar ? null : contato.motivo,

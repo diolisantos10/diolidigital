@@ -34,6 +34,7 @@ import {
 } from "./contato-do-lead";
 import type { RepeticaoDoProspect } from "./chave-do-prospect";
 import { verbaVsEstimativa, type VerbaVsEstimativa } from "./verba-vs-estimativa";
+import { lerNegocio } from "./negocio-do-lead";
 
 export type FonteDaFaixa =
   /** O escopo gravado bastou: a tabela foi aplicada sobre a cadência declarada. */
@@ -54,7 +55,10 @@ export type LinhaDeEscopo = {
 
 export type DossieDoLead = {
   id: string;
-  negocio: string;
+  /** `null` quando o briefing não trouxe nome do negócio. Ausência de
+   *  informação não é informação — nunca string vazia. Ver `negocio-do-lead.ts`.
+   *  Some ausente daqui e entra em `precisoConfirmar`. */
+  negocio: string | null;
   segmento: string | null;
   paradoDesde: string;
   diasParado: number;
@@ -282,8 +286,11 @@ export function montarDossie(
     ? verbaVsEstimativa(gravado?.budgetRange, { totalMin: faixa.minimo, totalMax: faixa.maximo })
     : null;
 
+  const negocio = lerNegocio(entrada.businessName);
+
   const precisoConfirmar: string[] = [];
   if (!contato.temComoFalar) precisoConfirmar.push("Como falar com esta pessoa (nome + WhatsApp ou e-mail) — não há nada gravado, e nada foi deduzido do texto");
+  if (!negocio) precisoConfirmar.push("Nome do negócio");
   if (!entrada.segment) precisoConfirmar.push("Segmento do negócio");
   if (fonteDaFaixa !== "escopo_declarado") precisoConfirmar.push("Volume contratado (posts por semana, verba de mídia, escopo da identidade)");
   if (!gravado?.budgetRange) precisoConfirmar.push("Faixa de investimento que o lead tem em mente");
@@ -291,7 +298,7 @@ export function montarDossie(
 
   return {
     id: entrada.id,
-    negocio: entrada.businessName,
+    negocio,
     segmento: entrada.segment?.trim() || null,
     paradoDesde: criadoEm.toISOString(),
     diasParado: Math.floor((agora.getTime() - criadoEm.getTime()) / DIA),
