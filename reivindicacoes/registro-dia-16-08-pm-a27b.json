@@ -1,0 +1,17 @@
+{
+  "id": "registro/dia-16-08-pm-a27b",
+  "quem": "wt-4a7642478e",
+  "frente": "registro do dia: identidade derivada, falso negativo provado, fila e espelho",
+  "responsabilidade": "registro/dia-16-08-pm-a27b",
+  "arquivos": [
+    "docs/decisoes.md",
+    "docs/pendencias.md"
+  ],
+  "abertaEm": "2026-08-16T19:24:26.859Z",
+  "encerradaEm": null,
+  "forcadaPor": {
+    "quem": "wt-4a7642478e",
+    "motivo": "docs/decisoes.md e diario aditivo e compartilhado; a frente de pm-9ab49074 e outro registro, nao a mesma responsabilidade. Secoes distintas no topo; conflito possivel e textual e o rebase expoe. Nao uso --no-verify nem force no git.",
+    "em": "2026-08-16T19:24:26.859Z"
+  }
+}
