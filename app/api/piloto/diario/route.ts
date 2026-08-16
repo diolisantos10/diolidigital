@@ -88,7 +88,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   };
 
-  const [pedidos, mensagens, conteudos, clientes, execucoes] = await Promise.all([
+  const [pedidos, mensagens, conteudos, clientes, execucoes, execucoesV2, recusasV2] = await Promise.all([
     seguro("solicitacoes", prisma.clientRequestDb.findMany({
       orderBy: { createdAt: "desc" }, take: limite,
       select: { id: true, businessName: true, status: true, source: true, createdAt: true, updatedAt: true, attachmentsJson: true, briefingJson: true },
@@ -108,6 +108,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     seguro("chamadas_de_ia", prisma.aIRunLog.findMany({
       orderBy: { createdAt: "desc" }, take: limite,
       select: { id: true, departmentId: true, status: true, fallbackUsed: true, fallbackReason: true, outputSummary: true, createdAt: true },
+    }), []),
+    // ─── A CADEIA DA LINHA (V2) E SUAS RECUSAS ────────────────────────────
+    //
+    // Acrescentado em 16/08/2026, junto com as mãos do 12º departamento. Sem
+    // isto, uma cadeia que rodasse sem provedor de IA configurado não escreveria
+    // uma linha em `AIRunLog` e ficaria INVISÍVEL aqui — a agência passaria a
+    // trabalhar sozinha num lugar que o CEO não enxerga, que é exatamente o
+    // problema que este diário existe para não ter.
+    //
+    // A recusa entra junto com a execução, e de propósito: "o agente rodou" e
+    // "o agente se recusou a rodar, por este motivo" são a mesma história. Só a
+    // primeira metade seria um diário que só conta o que deu certo.
+    seguro("execucoes_da_linha", prisma.execucaoV2.findMany({
+      orderBy: { inicio: "desc" }, take: limite,
+      select: { id: true, funcaoId: true, departamentoId: true, ator: true, modelo: true, custoUsd: true, correlationId: true, inicio: true, fim: true },
+    }), []),
+    seguro("recusas_da_linha", prisma.recusaV2.findMany({
+      orderBy: { em: "desc" }, take: limite,
+      select: { id: true, funcaoId: true, motivo: true, correlationId: true, em: true },
     }), []),
   ]);
 
@@ -153,6 +172,26 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       estado: a.status,
       id: a.id,
     })),
+    ...execucoesV2.map((e) => ({
+      em: e.inicio.toISOString(),
+      tipo: "função da linha executou",
+      quem: `${e.departamentoId}/${e.funcaoId}`,
+      o_que: [
+        e.fim ? `terminou em ${Math.round((e.fim.getTime() - e.inicio.getTime()) / 1000)}s` : "não registrou fim",
+        `custo US$ ${(e.custoUsd ?? 0).toFixed(4)}`,
+        `por ${e.ator}${e.modelo ? ` (${e.modelo})` : ""}`,
+        e.correlationId,
+      ].join(" · "),
+      id: e.id,
+    })),
+    ...recusasV2.map((r) => ({
+      em: r.em.toISOString(),
+      tipo: "função da linha RECUSOU",
+      quem: r.funcaoId,
+      o_que: corta(r.motivo, 400),
+      estado: r.correlationId,
+      id: r.id,
+    })),
   ].sort((a, b) => (a.em < b.em ? 1 : -1)).slice(0, limite * 2);
 
   return NextResponse.json({
@@ -165,6 +204,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       mensagens: mensagens.length,
       pedidos_de_conteudo: conteudos.length,
       chamadas_de_ia: execucoes.length,
+      execucoes_da_linha: execucoesV2.length,
+      recusas_da_linha: recusasV2.length,
     },
     // Cegueira declarada em vez de silêncio: tabela que não pôde ser lida
     // aparece aqui com o motivo. Ausência de informação não é informação.

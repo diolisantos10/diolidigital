@@ -83,3 +83,29 @@ describe("cegueira é declarada, nunca silenciosa", () => {
     expect(ROTA).toMatch(/SEM orçamento calculado/);
   });
 });
+
+describe("o que a agência faz sozinha também aparece", () => {
+  // Acrescentado em 16/08, junto com as mãos do 12º departamento. Uma cadeia
+  // que roda sem provedor de IA configurado não escreve linha em `AIRunLog`:
+  // sem estas leituras, a agência passaria a trabalhar sozinha num lugar que o
+  // CEO não enxerga — o problema que este diário existe para não ter.
+  it("lê as execuções da linha (ExecucaoV2), não só as chamadas de IA", () => {
+    expect(ROTA).toContain("prisma.execucaoV2.findMany");
+    expect(ROTA).toContain("função da linha executou");
+  });
+
+  it("lê também as RECUSAS — diário que só conta o que deu certo é propaganda", () => {
+    expect(ROTA).toContain("prisma.recusaV2.findMany");
+    expect(ROTA).toContain("função da linha RECUSOU");
+  });
+
+  it("conta as duas no `quantos`, que é onde se responde 'existe ou não existe'", () => {
+    expect(ROTA).toMatch(/execucoes_da_linha: /);
+    expect(ROTA).toMatch(/recusas_da_linha: /);
+  });
+
+  it("as duas leituras novas passam pelo `seguro` — uma tabela ausente não derruba o diário", () => {
+    expect(ROTA).toContain('seguro("execucoes_da_linha"');
+    expect(ROTA).toContain('seguro("recusas_da_linha"');
+  });
+});
