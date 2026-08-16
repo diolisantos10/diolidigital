@@ -1,0 +1,11 @@
+{
+  "id": "plataforma/rota-de-diagnostico",
+  "quem": "pm-a6e16be",
+  "frente": "rota de diagnostico somente leitura: medir producao sem credencial de terminal",
+  "responsabilidade": "plataforma/rota-de-diagnostico",
+  "arquivos": [
+    "app/api/piloto/diagnostico/route.ts"
+  ],
+  "abertaEm": "2026-08-16T18:22:51.351Z",
+  "encerradaEm": null
+}
