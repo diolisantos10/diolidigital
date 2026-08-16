@@ -1,0 +1,13 @@
+{
+  "id": "seguranca/reset-habilitado-denuncia",
+  "quem": "wt-09f81bb764",
+  "frente": "variavel que apaga a producao passa a se denunciar sozinha no relogio",
+  "responsabilidade": "seguranca/reset-habilitado-denuncia",
+  "arquivos": [
+    "lib/agency/despertador.ts",
+    "__tests__/seguranca/reset-habilitado-denuncia.test.ts"
+  ],
+  "abertaEm": "2026-08-16T19:46:11.262Z",
+  "encerradaEm": null,
+  "rotulo": "pm-9ab49074"
+}
