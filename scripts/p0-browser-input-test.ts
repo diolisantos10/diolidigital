@@ -244,7 +244,18 @@ async function main() {
         totalMin: 2200,
         totalMax: 3200,
         items: [
-          { label: "Social Media — Plano Growth (12 posts + 20 stories + 2 reels)", minPrice: 1400, maxPrice: 2000, unit: "mês" },
+          // ⛔ ERA `"Social Media — Plano Growth (…)"` até 16/08/2026 (quarta
+          // passada). "Growth" é um dos cinco rótulos-fantasma do
+          // `live-calculator` — nome de produto que esta casa NÃO tem em
+          // `lib/agency/planos.ts`. E este script não é rascunho: ele **POSTa em
+          // `/api/brain/client-requests`**, com `BASE_URL=…railway.app` sugerido
+          // no próprio cabeçalho. Caminho de persistência real, rodado à mão,
+          // sem portão nenhum no meio — o plano fantasma entrando pela porta dos
+          // scripts no dia seguinte a ter morrido na fonte.
+          //
+          // O portão que impede a volta varre TODO script que POSTa numa rota de
+          // persistência: `__tests__/comercial/o-plano-fantasma-nao-chega-na-tela`.
+          { label: "Social Media — 12 posts + 20 stories + 2 reels", minPrice: 1400, maxPrice: 2000, unit: "mês" },
           { label: "Identidade Visual — Direção visual completa", minPrice: 800, maxPrice: 1200, unit: "projeto" },
         ],
         included: ["Gestão de perfil Instagram", "12 posts/mês", "20 stories/mês", "2 reels editados", "Copywriting", "Direção visual"],

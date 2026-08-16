@@ -325,7 +325,7 @@ describe("o eco do cliente escolhe o fallback — sem afrouxar a trava", () => {
 
   it("a rota alimenta o eco SÓ com o que o cliente falou", () => {
     const rota = readFileSync(path.join(process.cwd(), "app/api/sdr/chat/route.ts"), "utf8");
-    const bloco = rota.slice(rota.indexOf("const eco = ecoDoCliente("));
+    const bloco = rota.slice(rota.indexOf("ecoDoCliente(replyText"));
     const chamada = bloco.slice(0, bloco.indexOf("]);"));
     expect(chamada).toContain("body.currentMessage");
     expect(chamada).toContain("body.messages.filter");
@@ -422,12 +422,34 @@ describe("escopo que encolhe não some da tela", () => {
     );
     // Calculado UMA vez, antes de escolher o caminho.
     expect(tela).toContain("const corte = resumoDoCorte(prevState.conv.scope, ruleResult.conv.scope)");
-    // E aplicado nos três: trava de preço, resposta do modelo, fallback do motor.
+    // E aplicado nos QUATRO: o quadro otimista (antes do `await`), o ramo da
+    // trava de preço, a resposta do modelo e o fallback do motor.
     const usos = [...tela.matchAll(/\.\.\.notaDoCorte/g)].length;
     expect(
       usos,
-      "o aviso do corte voltou a existir em menos de três caminhos — B4 reabre por onde faltar",
-    ).toBe(3);
+      "o aviso do corte voltou a existir em menos de quatro caminhos — B4 reabre por onde faltar",
+    ).toBe(4);
+  });
+
+  // ── O EFEITO TRANSITÓRIO (16/08/2026, quarta passada, `qualidade`) ──────────
+  //
+  // O painel era atualizado com o escopo já cortado ANTES do `await fetchSdrReply`
+  // e a nota só entrava depois. Durante o "digitando" — o tempo de uma chamada de
+  // modelo — o prospect via o escopo cair sem uma palavra. B4 em miniatura.
+  it("🔴 o aviso entra no MESMO quadro do corte — nada de escopo menor em silêncio", () => {
+    const tela = readFileSync(
+      path.join(process.cwd(), "components/agency/briefing/PublicBriefingRoom.tsx"),
+      "utf8",
+    );
+    const corpo = tela.slice(tela.indexOf("const runTurn = useCallback("));
+    const posCorte = corpo.indexOf("const corte = resumoDoCorte(");
+    const posAwait = corpo.indexOf("await fetchSdrReply(");
+    const posOtimista = corpo.indexOf("messages: [...userVisible, ...notaDoCorte] }");
+    expect(posCorte, "`resumoDoCorte` sumiu do turno").toBeGreaterThan(-1);
+    expect(posOtimista, "o quadro otimista voltou a mostrar `userVisible` sem a nota").toBeGreaterThan(-1);
+    // A ordem é o mecanismo: calcular → pintar → só então esperar o servidor.
+    expect(posCorte, "o corte voltou a ser calculado depois da ida ao servidor").toBeLessThan(posAwait);
+    expect(posOtimista, "o quadro otimista voltou a ser pintado antes de a nota existir").toBeLessThan(posAwait);
   });
 
   it("🔴 e o aviso RENDERIZA — a nota `system` vira texto na tela, não linha em array", () => {

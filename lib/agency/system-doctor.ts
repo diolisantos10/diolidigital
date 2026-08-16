@@ -67,8 +67,10 @@ const PILOT_AGENTS: { id: string; label: string }[] = [
 ];
 
 // ─── Weight table ─────────────────────────────────────────────────────────────
-// info checks are unscored (weight 0). All others count toward the score.
-// pass = full weight, warning = ½ weight, fail = 0.
+// TODA checagem conta no denominador, inclusive `info`.
+// pass = full weight, warning = ½ weight, fail = 0, info = 0.
+// `info` significa "ainda não conferi", e não conferir não pode render ponto:
+// ver o bloco do score, no fim de `runSystemDoctor`.
 
 const SEVERITY_WEIGHT: Record<CheckSeverity, number> = {
   critical: 10,
@@ -1411,17 +1413,39 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
 
   // ── Score ─────────────────────────────────────────────────────────────────
 
+  // ── ⛔ "NÃO SEI" VALIA PONTO NA NOTA (16/08/2026, quarta passada) ───────────
+  //
+  // Aqui estava `if (c.status === "info") continue; // unscored`: a checagem não
+  // conferida saía do DENOMINADOR, e sair do denominador é ganhar. Medido, mesma
+  // árvore, mudando uma única entrada:
+  //
+  //   canal de e-mail MEDIDO e DESLIGADO  → score 56
+  //   canal de e-mail NÃO CONFERIDO       → score 58
+  //
+  // **Não medir valia +2 pontos.** No limite, uma casa em que nada foi conferido
+  // caía em `totalWeight === 0 → score 100` e a tela do CEO dizia "Sistema
+  // saudável" com zero coisa medida. É a doutrina da casa invertida: *ausência de
+  // informação não é informação* — e aqui a ausência era informação boa.
+  //
+  // A régua nova: **`info` conta no denominador e não ganha ponto.** Assim
+  //
+  //   medido e bom (w) > medido e mais ou menos (w/2) > medido e ruim (0) = não medido (0)
+  //
+  // e a única forma de subir a nota é CONFERIR. Isto derruba a nota desta casa —
+  // é para derrubar: a nota anterior media o que alguém tinha olhado, não o que
+  // o sistema é.
   let totalWeight = 0;
   let earnedPoints = 0;
   for (const c of checks) {
-    if (c.status === "info") continue; // unscored
     const w = SEVERITY_WEIGHT[c.severity];
     totalWeight += w;
     if (c.status === "pass") earnedPoints += w;
     else if (c.status === "warning") earnedPoints += Math.floor(w / 2);
-    // fail = 0
+    // fail = 0 · info = 0 (não conferido não pontua)
   }
-  const score = totalWeight === 0 ? 100 : Math.round((earnedPoints / totalWeight) * 100);
+  // Sem checagem nenhuma a resposta honesta é ZERO, não 100. "Nada foi medido"
+  // nunca mais sai desta função como "está tudo bem".
+  const score = totalWeight === 0 ? 0 : Math.round((earnedPoints / totalWeight) * 100);
 
   const pass = checks.filter((c) => c.status === "pass").length;
   const warning = checks.filter((c) => c.status === "warning").length;

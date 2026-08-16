@@ -210,17 +210,44 @@ export function falaSegura(texto: string, nome?: string | null): FalaAprovada {
 // carregar identidade — o PADRÃO que disparou (uma etiqueta de lista fechada) e,
 // no máximo, o VALOR monetário casado por um regex estreito.
 
+// ── ⛔ E A MARCA FICOU FALANDO A RÉGUA VELHA (16/08/2026, quarta passada) ────
+//
+// Os padrões acima eram os quatro ramos do regex ANTIGO da trava. A trava passou
+// a barrar duas classes que aquele regex nunca viu — **preço implícito** ("Sai
+// por 1.200.") e **nome de plano fora do catálogo** ("Posso ajustar para o Plano
+// Turbo.") —, e a classificação continuou perguntando à régua aposentada.
+// Medido:
+//
+//   trava=true | padrao=desconhecido valor=null | "Sai por 1.200."
+//   trava=true | padrao=desconhecido valor=null | "Posso ajustar para o Plano Turbo."
+//
+// A trava dispara e o log não diz por quê. Instrumento que não distingue as
+// classes que ele deveria contar é decoração: a equipe olha "desconhecido" e não
+// sabe se ajusta o prompt, o catálogo ou a régua.
+//
+// A classificação passou a sair do MESMO leitor que a trava consulta. A proteção
+// de PII do C1 fica intacta e fica mais forte: nada aqui recorta texto livre —
+// `padrao` é lista fechada, e `valor` é ou o casamento de um regex estreitíssimo
+// ou o número já normalizado pelo leitor, que é uma sequência de dígitos por
+// construção e não tem como carregar nome de pessoa ou de negócio.
+
 export type PadraoDeVazamento =
   | "rs_com_numero"
   | "numero_com_reais"
+  /** Preço sem cifrão e sem "reais" — "Sai por 1.200.", "1.850 mensais". */
+  | "preco_implicito"
+  /** Nome de plano que o catálogo não tem — "Plano Turbo", "volto pro Starter". */
+  | "plano_fora_do_catalogo"
+  /** "R$ ..,.." — o fail-closed do parser. Vale saber que foi ele que disparou. */
+  | "valor_ilegivel"
   | "desconto"
   | "plano_com_rs"
   | "desconhecido";
 
 export interface MarcaDoVazamento {
-  /** Qual alternativa da trava disparou. Lista fechada — nunca texto do cliente. */
+  /** Qual classe da trava disparou. Lista fechada — nunca texto do cliente. */
   padrao: PadraoDeVazamento;
-  /** SÓ o padrão monetário ("R$ 500", "800 reais"). `null` quando não há número. */
+  /** SÓ o padrão monetário ("R$ 500", "800 reais", "1200"). `null` sem número. */
   valor: string | null;
 }
 
@@ -236,16 +263,34 @@ const SO_O_VALOR = /r\$\s*\d[\d.,]*|\b\d[\d.,]*\s*(?:reais|\/m[êe]s)/i;
  */
 export function marcaDoVazamento(fala: string): MarcaDoVazamento {
   const texto = typeof fala === "string" ? fala : "";
+
+  // ── O VALOR ────────────────────────────────────────────────────────────────
+  // 1ª escolha: o casamento monetário explícito, que já vinha do C1.
+  // 2ª escolha: o número que o LEITOR extraiu, impresso como dígitos. É por aqui
+  // que "Sai por 1.200." deixa de chegar ao log com `valor=null`.
   const achado = texto.match(SO_O_VALOR);
   // O ponto final da frase entra no `[\d.,]*` ("R$ 500." em vez de "R$ 500") —
   // pontuação de fim de frase não é parte do valor.
-  const valor = achado ? achado[0].trim().replace(/[.,]+$/, "").slice(0, 24) : null;
+  const lidos = valoresMonetarios(texto);
+  const primeiroNumero = lidos.find((v) => Number.isFinite(v.valor));
+  const valor = achado
+    ? achado[0].trim().replace(/[.,]+$/, "").slice(0, 24)
+    : primeiroNumero
+    ? String(primeiroNumero.valor).slice(0, 24)
+    : null;
 
+  // ── O PADRÃO ───────────────────────────────────────────────────────────────
+  // A ordem é a da EVIDÊNCIA mais específica para a mais genérica, e as duas
+  // classes novas entram ANTES de `desconhecido` — que volta a significar o que
+  // o nome diz: "a trava disparou por algo que este classificador não modela".
   const padrao: PadraoDeVazamento =
-    /r\$\s*\d/i.test(texto)                    ? "rs_com_numero"
-    : /\d+\s*(?:reais|\/m[êe]s\b)/i.test(texto) ? "numero_com_reais"
-    : /desconto/i.test(texto)                   ? "desconto"
-    : /\bplano\b[\s\S]*\bR\$/i.test(texto)      ? "plano_com_rs"
+    /r\$\s*\d/i.test(texto)                          ? "rs_com_numero"
+    : /\d+\s*(?:reais|\/m[êe]s\b)/i.test(texto)      ? "numero_com_reais"
+    : lidos.some((v) => v.grafia === "ilegivel")     ? "valor_ilegivel"
+    : lidos.some((v) => v.grafia === "implicito")    ? "preco_implicito"
+    : nomesDePlanoForaDoCatalogo(texto).length > 0   ? "plano_fora_do_catalogo"
+    : /desconto/i.test(texto)                        ? "desconto"
+    : /\bplano\b[\s\S]*\bR\$/i.test(texto)           ? "plano_com_rs"
     : "desconhecido";
 
   return { padrao, valor };

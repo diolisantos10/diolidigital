@@ -982,13 +982,6 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       const userVisible = ruleMessages.slice(0, -1); // prior + user msg, no reply yet
       const ruleAssistant = ruleMessages[ruleMessages.length - 1];
 
-      // Show the user's message immediately with a typing indicator.
-      setState({ ...ruleResult, conv: { ...ruleResult.conv, messages: userVisible } });
-      setAiThinking(true);
-
-      const resultado = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope);
-      setAiThinking(false);
-
       // ── B4, FECHADO NO CAMINHO PRINCIPAL (16/08/2026, terceira passada) ─────
       //
       // A rodada anterior fechou B4 só dentro do ramo `price_leak` — o ramo raro.
@@ -1012,6 +1005,16 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       // foi o corte — foi o silêncio. Esta nota é determinística (sai da
       // comparação antes/depois), não cita preço nem nome de plano, e entra em
       // TODOS os caminhos, inclusive quando quem fala é o modelo.
+      // ── ⚠️ E ELE É CALCULADO ANTES DO `await` (16/08/2026, quarta passada) ──
+      //
+      // Efeito transitório apontado por `qualidade`: o painel era atualizado com
+      // o escopo JÁ CORTADO e a nota do corte só entrava depois que o servidor
+      // respondia. Durante o "digitando" — que dura o tempo de uma chamada de
+      // modelo, não um piscar — o prospect via o escopo cair **sem uma palavra**.
+      // Não era o B4 de volta (a nota chegava), mas era o B4 em miniatura, e o
+      // conserto é barato: `resumoDoCorte` só depende de `prevState` e de
+      // `ruleResult`, os dois disponíveis aqui. O corte e a frase que o explica
+      // passam a aparecer no MESMO quadro.
       const corte = resumoDoCorte(prevState.conv.scope, ruleResult.conv.scope);
       const notaDoCorte: ConvMessage[] = corte
         ? [{
@@ -1021,6 +1024,14 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
             createdAt: new Date().toISOString(),
           }]
         : [];
+
+      // Show the user's message immediately with a typing indicator — já com a
+      // nota do corte, nunca com o escopo menor em silêncio.
+      setState({ ...ruleResult, conv: { ...ruleResult.conv, messages: [...userVisible, ...notaDoCorte] } });
+      setAiThinking(true);
+
+      const resultado = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope);
+      setAiThinking(false);
 
       if (!ehResposta(resultado) && resultado.motivo === "price_leak") {
         // ── A TRAVA DE PREÇO DISPAROU — e a resposta depende de POR QUÊ ────────

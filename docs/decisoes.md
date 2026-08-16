@@ -8,6 +8,82 @@
 
 ---
 
+## TROCAR UM REGEX DE PROTEÇÃO EXIGE O TESTE QUE RODA O REGEX ANTIGO
+
+**Decidido em** 2026-08-16 · **por** o CEO, sobre achado de `qualidade` ·
+**origem:** a regressão de `977f276` na trava de preço do SDR
+
+**O que aconteceu.** A trava de preço do SDR era um regex escrito à mão. Ele foi
+trocado por um leitor melhor (`falaEmDinheiro`), e o commit escreveu no código,
+com todas as letras: *"A trava NÃO foi afrouxada: tudo que ela barrava antes
+continua barrado."* **Era falso.** O regex antigo tinha `\d+\s*\/m[êe]s\b`
+como gatilho próprio; o leitor novo não o repôs, e `<número>/mês` — **a forma
+canônica de cotar preço mensal em português** — passou a atravessar o único
+portão que existia na fala do modelo. Medido: `"1.200/mês fecha pra você?"`,
+`"Ficaria em 890/mês."`, `"Consigo 1.200/mês pra você."` — todas passavam.
+
+A afirmação sobreviveu a **três** auditorias porque não havia como conferi-la:
+não existia execução que comparasse as duas réguas.
+
+**A decisão, em uma frase: quem troca um regex de proteção por um leitor
+"melhor" entrega, no mesmo commit, um teste de não-regressão que RODA o regex
+antigo contra um corpus e exige que a régua nova barre tudo que ele barrava.**
+
+- O regex antigo é **preservado literalmente** no arquivo de teste, com uma
+  asserção sobre o próprio `source` — ele não é a régua da casa, é a
+  **testemunha** do que a casa já protegia. "Melhorar" a testemunha é apagá-la.
+- O corpus é **gerado** (moldura × grafia × valor), não escolhido a dedo:
+  escolher as falas à mão é escolher o resultado. A rodada anterior tinha oito
+  casos de cotação e nenhum na forma que regrediu.
+- O teste declara quantas falas do corpus a régua antiga barra, para não virar
+  vácuo no dia em que o corpus encolher.
+- **Sem esse teste, "ampliar" e "afrouxar" são indistinguíveis** — e o commit que
+  apaga o regex apaga a única testemunha do que ele cobria.
+
+**Onde vive:** `__tests__/comercial/a-trava-nova-barra-tudo-que-a-antiga-barrava.test.ts`.
+
+---
+
+## PORTÃO QUE LISTA IDENTIFICADORES DENTRO DE UMA CHAMADA JÁ ESTÁ DERROTADO
+
+**Decidido em** 2026-08-16 · **por** o CEO, sobre achado de `qualidade` ·
+**origem:** o portão de log da rota `/api/sdr/chat`
+
+**O que aconteceu.** O portão que impede a fala do cliente de entrar no log varria
+toda chamada `console.*` procurando identificadores proibidos **dentro** dela.
+Uma linha derruba o portão inteiro:
+
+```
+const t = body.currentMessage;  console.warn("x", t);   → PASSA VERDE
+```
+
+E o sinal estava no próprio código: o autor precisou **içar uma constante para
+fora da chamada de log** para o código dele passar, e escreveu o motivo ali. Ele
+usou a saída de emergência do próprio portão.
+
+**A decisão, em duas partes:**
+
+1. **Quando o autor precisa da saída de emergência do próprio portão para o
+   código dele passar, o portão já está medido.** Isso é sinal de projeto errado,
+   não de contorno esperto — e a hora de reprojetar é essa, não a próxima
+   auditoria.
+2. **O conserto não é engrossar a lista de identificadores: é seguir o rastro.**
+   O portão passa a ser de **contágio transitivo** (`res` → `json` → `text` →
+   `parsed` → `replyText`, sem nenhum desses nomes numa lista), e a única isenção
+   é **estrutural, verificada pelo compilador**: o valor contaminado só entra num
+   log se declarar explicitamente um tipo incapaz de carregar texto livre
+   (`boolean`, `number`, `MarcaDoVazamento`). "Hoje é booleano; amanhã é string"
+   deixa de ser risco: amanhã, ou a anotação muda e o portão reprova, ou o `tsc`
+   reprova.
+
+**Corolário que vale para todo portão de fonte:** ele lê **código, não prosa**.
+Portão que acusa o exemplo do defeito escrito num comentário ensina a apagar a
+documentação do incidente para o teste passar — que é a troca errada.
+
+**Onde vive:** `__tests__/comercial/o-log-da-trava-nao-carrega-cliente.test.ts`.
+
+---
+
 ## O ANÚNCIO SÓ NASCE COM ATIVO QUE SE PROVA DO DONO — PÁGINA E ARTE
 
 **Decidido em** 2026-08-15 · **por** `seguranca`, a pedido do Diretor ·

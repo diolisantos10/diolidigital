@@ -258,3 +258,81 @@ describe("a tela de diagnóstico usa as regras, não uma cópia delas", () => {
     expect(pagina).toContain("NÃO conseguiu conferir");
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ⛔ "NÃO SEI" VALIA PONTO NA NOTA — a mesma doença do D4, na tela do CEO
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Medido pelo CEO em 16/08/2026 (quarta passada), mesma árvore, mudando uma
+// única entrada do Doctor:
+//
+//   canal de e-mail MEDIDO e DESLIGADO  → score 56
+//   canal de e-mail NÃO CONFERIDO       → score 58
+//
+// **Não medir valia +2 pontos.** A causa era uma linha —
+// `if (c.status === "info") continue; // unscored` — que tirava a não-conferida
+// do DENOMINADOR, e sair do denominador é ganhar. No limite,
+// `totalWeight === 0 → score 100`: "Sistema saudável" com zero coisa medida.
+//
+// É a doutrina da casa invertida — *ausência de informação não é informação* —,
+// e está na tela que o CEO abre.
+
+describe("não conferir NUNCA rende ponto", () => {
+  function nota(entrada: object) {
+    return runSystemDoctor({ ...(VAZIO as object), ...entrada } as never);
+  }
+
+  const NAO_CONFERIDO = nota({});
+  const MEDIDO_DESLIGADO = nota({ canalDeEmail: { ligado: false, resumo: "off", comoResolver: "x" } });
+  const MEDIDO_LIGADO = nota({ canalDeEmail: { ligado: true, resumo: "ok", comoResolver: "" } });
+
+  it("o caso está montado: o canal sai de `info` para `fail` de verdade", () => {
+    const id = (r: typeof NAO_CONFERIDO) => r.checks.find((c) => c.id.includes("email"))?.status;
+    expect(NAO_CONFERIDO.info, "o não conferido deixou de ter uma checagem a mais em `info`")
+      .toBeGreaterThan(MEDIDO_DESLIGADO.info);
+    expect(id(MEDIDO_DESLIGADO), "medir o canal desligado deixou de reprovar").not.toBe("info");
+  });
+
+  it("🔴 METADE 1: NÃO conferir não pode valer mais que conferir e achar ruim", () => {
+    expect(
+      NAO_CONFERIDO.score,
+      `não medir voltou a valer ponto: não conferido=${NAO_CONFERIDO.score} · ` +
+        `medido e desligado=${MEDIDO_DESLIGADO.score}`,
+    ).toBeLessThanOrEqual(MEDIDO_DESLIGADO.score);
+  });
+
+  it("METADE 2: e conferir e achar BOM continua subindo a nota", () => {
+    // Sem isto, `score = 0` sempre passaria na metade 1 e a nota viraria enfeite.
+    expect(MEDIDO_LIGADO.score).toBeGreaterThan(MEDIDO_DESLIGADO.score);
+    expect(MEDIDO_LIGADO.score).toBeGreaterThan(NAO_CONFERIDO.score);
+  });
+
+  it("🔴 'nada medido' nunca sai daqui como 100 — o sentinela era o pior caso", () => {
+    // Sem comentários: o bloco que documenta o defeito cita a linha antiga de
+    // propósito, e portão que não separa código de prosa ensina a apagar a prosa.
+    const fonte = readFileSync(path.join(process.cwd(), "lib/agency/system-doctor.ts"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^[ \t]*\/\/.*$/gm, "");
+    expect(
+      fonte.includes("totalWeight === 0 ? 100"),
+      "o sentinela voltou a devolver nota cheia para uma casa em que nada foi conferido",
+    ).toBe(false);
+    expect(fonte).toContain("totalWeight === 0 ? 0");
+    // E a linha que tirava a não-conferida do denominador não voltou.
+    expect(
+      fonte.includes('if (c.status === "info") continue'),
+      "`info` voltou a sair do denominador — não medir volta a render ponto",
+    ).toBe(false);
+  });
+
+  it("a nota nunca passa da fração do peso REALMENTE conferido", () => {
+    for (const [nome, entrada] of ENTRADAS) {
+      const r = nota(entrada);
+      const PESO = { critical: 10, high: 7, medium: 4, low: 2 } as const;
+      const total = r.checks.reduce((s, c) => s + PESO[c.severity], 0);
+      const conferido = r.checks.filter((c) => c.status !== "info").reduce((s, c) => s + PESO[c.severity], 0);
+      const teto = Math.round((conferido / total) * 100);
+      expect(r.score, `"${nome}": nota ${r.score} acima do teto de cobertura ${teto}`).toBeLessThanOrEqual(teto);
+    }
+  });
+});

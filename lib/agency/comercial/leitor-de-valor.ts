@@ -64,14 +64,60 @@ const EXPLICITO = /r\$\s*([\d.,]+)|(\d[\d.,]*)\s*reais\b/gi;
 const QUALQUER_NUMERO = /\d[\d.,]*/g;
 
 /**
+ * `<número>/mês` COLADO — dinheiro por construção, sem precisar de pista.
+ *
+ * ── A REGRESSÃO QUE ESTE REGEX REPÕE (16/08/2026, quarta passada) ────────────
+ *
+ * A trava antiga tinha `\d+\s*\/m[êe]s\b` como **gatilho próprio**. Ao trocá-la
+ * pelo leitor, `/mês` não foi reposto em lugar nenhum: ele não é pista de preço
+ * (`PISTA_DE_PRECO` não o tem) e a passada implícita só lê número solto quando
+ * há pista na mesma frase. Resultado medido, com o commit `977f276`:
+ *
+ *   "1.200/mês fecha pra você?"      → a trava antiga BARRAVA · a nova PASSAVA
+ *   "Ficaria em 890/mês."            → a trava antiga BARRAVA · a nova PASSAVA
+ *   "Ficamos com 1.500/mês?"         → a trava antiga BARRAVA · a nova PASSAVA
+ *   "Consigo 1.200/mês pra você."    → a trava antiga BARRAVA · a nova PASSAVA
+ *
+ * `<número>/mês` é **a forma canônica de cotar preço mensal em português**, e a
+ * fala do modelo não passa por `falaSegura` (exceção declarada em
+ * `PublicBriefingRoom.tsx`): a trava da rota era o único portão ali.
+ *
+ * Por que ele NÃO confunde quantidade: exige o `/` colado no número, com no
+ * máximo espaço no meio. "20 posts/mês", "8 stories/mês" e "2 reels/mês" têm o
+ * substantivo entre o número e a barra — nenhum deles casa aqui.
+ *
+ * Por que ele NÃO respeita `PISO_DO_IMPLICITO`: a trava antiga também não
+ * respeitava. Repor com piso deixaria "40/mês" passando onde antes barrava, e
+ * "não afrouxei" voltaria a ser meia verdade.
+ *
+ * ⚠️ POR QUE ELE VIVE EM `falaEmDinheiro` E **NÃO** EM `valoresMonetarios`.
+ * Medido ao repô-lo no leitor compartilhado: o motor de regras escreve
+ * "Feito! Ajustei para 2 posts por semana (8/mês)." e `resumoDoCorte` escreve
+ * "posts de 20 para 8/mês" — as duas passariam a ser lidas como o preço de
+ * R$ 8, e `falaSegura` **substituiria a fala legítima** pela fala honesta de
+ * preço. O regex antigo nunca esteve ali: ele era a trava da ROTA, sobre a fala
+ * do MODELO, e é aí que ele volta. O leitor de valor — que alimenta o portão do
+ * catálogo e a exceção da pergunta de faixa — continua exigindo pista.
+ */
+const NUMERO_POR_MES = /\d[\d.,]*\s*\/\s*m[êe]s\b/i;
+
+/**
  * As pistas de que a frase está falando de DINHEIRO.
  *
  * Lista deliberadamente curta e concreta: cada entrada é uma forma de dizer
  * preço que já apareceu numa fala desta casa. "por mês" NÃO está aqui — sozinho
  * ele acompanha posts, stories e reels muito mais vezes do que acompanha preço.
+ *
+ * ⚠️ AS CONJUGAÇÕES SÃO ABERTAS DE PROPÓSITO (16/08/2026, quarta passada).
+ * A lista trazia `fica\s+(?:em|por)` e `fecha\s+(?:em|por)` — só a 3ª pessoa do
+ * presente. Medido: "Fecho em 1.200." e "Fica assim: 1.200 por mês." passavam.
+ * `fic\w*` / `fech\w*` cobrem a classe inteira (fico, ficaria, ficamos, fechei,
+ * fecharia). O custo é o falso positivo em "ficou por isso mesmo" — e falso
+ * positivo aqui troca uma fala nossa por outra fala nossa, enquanto o falso
+ * negativo põe preço errado na tela do cliente.
  */
 const PISTA_DE_PRECO =
-  /r\$|reais|pre[çc]o|custa|custo|quanto\s+fica|fica\s+(?:em|por)|sai\s+(?:por|a)|fecha\s+(?:em|por)|valor(?:es)?\b|invest\w*|or[çc]amento|mensalidade|mensa(?:l|is)\b|cobr\w*|pag(?:o|a|ar|am|ando)\b|desconto|verba|gast\w*|a partir de|por apenas|de entrada/i;
+  /r\$|reais|pre[çc]o|custa|custo|quanto\s+fica|fic\w*\s+(?:em|por|assim)|sa(?:i|ir)\w*\s+(?:por|a)\b|fech\w*\s+(?:em|por)|valor(?:es)?\b|invest\w*|or[çc]amento|mensalidade|mensa(?:l|is)\b|cobr\w*|pag(?:o|a|ar|am|ando)\b|desconto|verba|gast\w*|a partir de|por apenas|de entrada/i;
 
 /**
  * As unidades que transformam um número em QUANTIDADE, não em dinheiro.
@@ -95,15 +141,30 @@ const UNIDADE_DEPOIS =
  */
 const PISO_DO_IMPLICITO = 50;
 
-/** As frases da fala, para o teste da pista rodar por FRASE e não pelo texto
- *  inteiro. Sem isso, uma pista no primeiro parágrafo transformaria todo número
- *  do terceiro em dinheiro. */
+/**
+ * As frases da fala, para o teste da pista rodar por FRASE e não pelo texto
+ * inteiro. Sem isso, uma pista no primeiro parágrafo transformaria todo número
+ * do terceiro em dinheiro.
+ *
+ * ⚠️ O `(?!\d)` NÃO É DETALHE: sem ele, "R$ 1.000" vira duas frases ("R$ 1." e
+ * "000"), o valor é lido como **1** e o portão passa a autorizar mil reais
+ * achando que leu um. Foi exatamente o que aconteceu na primeira versão deste
+ * arquivo, e o teste `os valores são lidos em pt-BR` pegou.
+ *
+ * ⚠️ `:` `;` e a QUEBRA DE LINHA SAÍRAM DA LISTA (16/08/2026, quarta passada).
+ * Eles cortavam a pista do número que ela anunciava — que é justamente o que
+ * dois-pontos faz em português: ele APRESENTA o valor. Medido:
+ *
+ *   "Fica assim: 1.200 por mês."            → pista em "Fica assim", número na
+ *   "Investimento estimado:\n1.200 a 1.800"   frase seguinte → passava
+ *
+ * Só ponto final, exclamação e interrogação separam frases aqui. O risco de a
+ * pista vazar por cima de um `;` existe e é aceito: quantidade continua barrada
+ * pelo `UNIDADE_DEPOIS` e pelo `PISO_DO_IMPLICITO`, e o custo do falso positivo
+ * é uma fala nossa no lugar de outra fala nossa.
+ */
 function frases(texto: string): string[] {
-  // ⚠️ O `(?!\d)` NÃO É DETALHE: sem ele, "R$ 1.000" vira duas frases ("R$ 1." e
-  // "000"), o valor é lido como **1** e o portão passa a autorizar mil reais
-  // achando que leu um. Foi exatamente o que aconteceu na primeira versão deste
-  // arquivo, e o teste `os valores são lidos em pt-BR` pegou.
-  return texto.split(/(?<=[.!?;:\n])(?!\d)/);
+  return texto.split(/(?<=[.!?])(?!\d)/);
 }
 
 /**
@@ -231,6 +292,11 @@ export function nomesDePlanoForaDoCatalogo(texto: string): string[] {
 export function falaEmDinheiro(texto: string): boolean {
   if (typeof texto !== "string" || !texto) return false;
   if (/desconto/i.test(texto)) return true;
+  // ⚠️ `<número>/mês` COLADO é gatilho próprio — repõe o `\d+\s*\/m[êe]s\b` que a
+  // trava antiga tinha e que a troca pelo leitor não repôs. Ver `NUMERO_POR_MES`.
+  // O teste de não-regressão que prova isto é
+  // `__tests__/comercial/a-trava-nova-barra-tudo-que-a-antiga-barrava.test.ts`.
+  if (NUMERO_POR_MES.test(texto)) return true;
   if (valoresMonetarios(texto).length > 0) return true;
   return nomesDePlanoForaDoCatalogo(texto).length > 0;
 }

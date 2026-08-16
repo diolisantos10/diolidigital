@@ -66,12 +66,24 @@ describe("a marca nova NÃO carrega identidade", () => {
 
   it("nenhuma letra além do padrão monetário sobrevive ao campo `valor`", () => {
     // Trava de forma, não de conteúdo: o campo só pode ter cifrão, dígito,
-    // separador, espaço e as palavras "reais"/"mês". Qualquer outra coisa é
-    // texto livre voltando pela porta dos fundos.
-    for (const frase of [COM_NOME, COM_NOME_2, "Consigo 20% de desconto para o Joao", "Fica em 800 reais para a Pizzaria do Marcelo"]) {
+    // separador, espaço e as palavras "reais"/"mês" — ou o número puro que o
+    // leitor extraiu. Qualquer outra coisa é texto livre voltando pela porta dos
+    // fundos.
+    const FORMA = /^(?:R\$\s*[\d.,]+|[\d.,]+\s*(?:reais|\/m[êe]s)|\d+)$/i;
+    for (const frase of [
+      COM_NOME,
+      COM_NOME_2,
+      "Consigo 20% de desconto para o Joao",
+      "Fica em 800 reais para a Pizzaria do Marcelo",
+      // As classes NOVAS entram aqui: é nelas que o campo passou a ser
+      // preenchido pelo leitor, e é nelas que um recorte de texto livre voltaria.
+      "Fechando com a Pizzaria do Joao Silva, sai por 1.200.",
+      "Para a Clinica da Camila Pereira fica assim: 1.850 por mês.",
+      "Posso ajustar para o Plano Turbo do Marcelo.",
+    ]) {
       const v = marcaDoVazamento(frase).valor;
       if (v === null) continue;
-      expect(v, `valor com texto livre: "${v}"`).toMatch(/^(?:R\$\s*[\d.,]+|[\d.,]+\s*(?:reais|\/m[êe]s))$/i);
+      expect(v, `valor com texto livre: "${v}"`).toMatch(FORMA);
     }
   });
 
@@ -86,6 +98,42 @@ describe("a marca nova NÃO carrega identidade", () => {
     expect(marcaDoVazamento("Fica em torno de 1.500 reais por mês.").padrao).toBe("numero_com_reais");
     expect(marcaDoVazamento("Consigo um desconto especial hoje.").padrao).toBe("desconto");
     expect(marcaDoVazamento("Consigo um desconto especial hoje.").valor).toBeNull();
+  });
+
+  // ── ⛔ A MARCA FALAVA A RÉGUA VELHA (16/08/2026, quarta passada) ────────────
+  //
+  // A trava passou a barrar duas classes que o regex antigo nunca viu — preço
+  // implícito e nome de plano fora do catálogo — e o classificador continuou
+  // perguntando à régua aposentada. Medido pelo CEO:
+  //
+  //   trava=true | padrao=desconhecido valor=null | "Sai por 1.200."
+  //   trava=true | padrao=desconhecido valor=null | "Posso ajustar para o Plano Turbo."
+  //
+  // A trava dispara e ninguém sabe por quê. `desconhecido` volta a significar o
+  // que o nome diz, e para isso as classes novas precisam ter nome próprio.
+  it("🔴 as classes que a trava GANHOU chegam ao log com padrão e valor", () => {
+    const implicito = marcaDoVazamento("Sai por 1.200.");
+    expect(implicito.padrao, "preço sem cifrão continua chegando como `desconhecido`").toBe("preco_implicito");
+    expect(implicito.valor, "preço sem cifrão continua chegando sem valor").toBe("1200");
+
+    const plano = marcaDoVazamento("Posso ajustar para o Plano Turbo.");
+    expect(plano.padrao, "nome de plano fantasma continua chegando como `desconhecido`").toBe("plano_fora_do_catalogo");
+
+    // O fail-closed do parser também tem nome — saber que foi ELE que disparou
+    // é a diferença entre ajustar o prompt e ajustar o leitor.
+    expect(marcaDoVazamento("fica em R$ ..,.. por mês").padrao).toBe("valor_ilegivel");
+  });
+
+  it("e o valor novo é dígito puro — PII-free por construção, não por regex", () => {
+    // Quando não há casamento monetário explícito, o campo passa a receber o
+    // número que o LEITOR extraiu, já normalizado. Um `number` impresso não tem
+    // como carregar nome de pessoa nem de negócio: a garantia é do tipo.
+    const comNome = marcaDoVazamento("Fechando com a Pizzaria do Joao Silva, sai por 1.200.");
+    expect(comNome.valor).toBe("1200");
+    for (const nome of IDENTIDADES) {
+      expect(JSON.stringify(comNome)).not.toContain(nome);
+    }
+    expect(comNome.valor!).toMatch(/^\d+$/);
   });
 
   it("fala sem dinheiro nenhum não inventa valor", () => {
@@ -174,6 +222,155 @@ describe("a rota grava a marca, e não o recorte", () => {
     const chamadas = chamadasDeLog(plantado);
     expect(chamadas).toHaveLength(1);
     expect(PROIBIDOS.some((p) => chamadas[0]!.includes(p))).toBe(true);
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ⛔ O PORTÃO ERA EVADÍVEL POR UMA VARIÁVEL LOCAL — e o autor usou a saída
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Achado por `qualidade` em 16/08/2026 (quarta passada), em uma frase:
+  //
+  //     const t = body.currentMessage;  console.warn("x", t);   → PASSA VERDE
+  //
+  // A varredura acima procura identificadores **dentro** da chamada `console.*`.
+  // Içar o valor para uma constante uma linha antes derrota o portão inteiro — e
+  // foi exatamente o que a rota precisou fazer (`pareciaPerguntaDeFaixa`), com o
+  // motivo escrito no código. **Quando o autor precisa da saída de emergência do
+  // próprio portão para o código dele passar, o portão já está medido.**
+  //
+  // A REGRA QUE O CEO ADOTOU (`docs/decisoes.md`, 16/08/2026): portão que lista
+  // identificadores proibidos dentro de uma chamada é derrotado por uma variável
+  // local. O conserto não é engrossar a lista: é **seguir o rastro**.
+  //
+  // A varredura nova é de CONTÁGIO. Toda constante da rota cujo inicializador
+  // menciona uma fonte proibida fica contaminada, e o contágio é TRANSITIVO —
+  // ele segue `res` → `json` → `text` → `parsed` → `replyText` sem que nenhum
+  // desses nomes precise estar numa lista.
+  //
+  // ⚠️ E A ISENÇÃO NÃO É UM NOME NA LISTA — É UMA ANOTAÇÃO DE TIPO.
+  //
+  // Um valor contaminado só entra no log se for declarado com anotação
+  // explícita de um tipo que **não tem como carregar texto livre**: `boolean`,
+  // `number`, ou `MarcaDoVazamento` (cujo `padrao` é união fechada e cujo
+  // `valor` tem a forma travada pelos testes acima, neste mesmo arquivo).
+  //
+  // Isto responde ao "hoje é booleano; amanhã é string" com mecanismo, não com
+  // confiança: quem trocar o tipo tem de trocar a anotação, e trocar a anotação
+  // ou derruba este portão ou derruba o `tsc`. A régua deixou de ser "o autor
+  // lembrou de não logar texto" e passou a ser "o compilador não deixa".
+  const TIPOS_SEGUROS = ["boolean", "number", "MarcaDoVazamento"];
+
+  /**
+   * O código sem os comentários.
+   *
+   * Não é higiene: sem isto, o portão acusa o EXEMPLO DO DEFEITO escrito num
+   * comentário — e o preço disso é a documentação do incidente sair do código
+   * para o portão passar, que é a troca errada. Portão que não sabe distinguir
+   * código de prosa ensina a apagar a prosa.
+   */
+  function semComentarios(fonte: string): string {
+    return fonte.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+  }
+
+  /** `const X: T = <expr>;` — nome, anotação (se houver) e inicializador. */
+  function constantes(fonte: string): { nome: string; tipo: string | null; init: string }[] {
+    const saida: { nome: string; tipo: string | null; init: string }[] = [];
+    for (const m of fonte.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*(?::\s*([^=;]+?)\s*)?=\s*/g)) {
+      const inicio = m.index + m[0].length;
+      let i = inicio;
+      let prof = 0;
+      while (i < fonte.length) {
+        const c = fonte[i]!;
+        if (c === "(" || c === "[" || c === "{") prof++;
+        else if (c === ")" || c === "]" || c === "}") {
+          if (prof === 0) break;
+          prof--;
+        } else if (c === ";" && prof === 0) break;
+        i++;
+      }
+      saida.push({ nome: m[1]!, tipo: m[2] ?? null, init: fonte.slice(inicio, i) });
+    }
+    return saida;
+  }
+
+  /**
+   * Os nomes contaminados que NÃO podem entrar num log: a constante cujo
+   * inicializador toca uma fonte proibida (ou outra contaminada) e que não
+   * declara um dos tipos provadamente incapazes de carregar texto.
+   *
+   * Quem declara o tipo seguro para de propagar também — de um `boolean` não sai
+   * a fala do cliente.
+   */
+  function contaminadas(fonte: string): string[] {
+    const consts = constantes(fonte);
+    const sujas = new Set<string>();
+    for (let passada = 0; passada < 6; passada++) {
+      for (const { nome, tipo, init } of consts) {
+        if (sujas.has(nome)) continue;
+        if (tipo && TIPOS_SEGUROS.includes(tipo.trim())) continue;
+        const tocaFonte =
+          PROIBIDOS.some((p) => init.includes(p)) || [...sujas].some((s) => new RegExp(`\\b${s}\\b`).test(init));
+        if (tocaFonte) sujas.add(nome);
+      }
+    }
+    return [...sujas];
+  }
+
+  it("🔴 nem por VARIÁVEL LOCAL: o texto do cliente não chega ao log por rastro", () => {
+    const codigo = semComentarios(rota);
+    const sujas = contaminadas(codigo);
+    expect(sujas.length, "não contaminei nada — a varredura virou fachada").toBeGreaterThan(0);
+    const chamadas = chamadasDeLog(codigo);
+    expect(chamadas.length, "não achei chamada de log nenhuma").toBeGreaterThan(0);
+    for (const chamada of chamadas) {
+      for (const suja of sujas) {
+        expect(
+          new RegExp(`\\b${suja}\\b`).test(chamada),
+          `log com valor derivado de texto livre (\`${suja}\`): ${chamada.replace(/\s+/g, " ").slice(0, 160)}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("a varredura de contágio PEGA a evasão que `qualidade` descreveu", () => {
+    const plantado = `
+      const t = body.currentMessage;
+      const u = t.slice(0, 40);
+      console.warn("[sdr/chat] algo", JSON.stringify({ turno: 3, msg: u }));
+    `;
+    // A varredura ANTIGA passava verde nisto — é este o defeito.
+    const chamadas = chamadasDeLog(plantado);
+    expect(PROIBIDOS.some((p) => chamadas[0]!.includes(p)), "o caso não reproduz a evasão").toBe(false);
+    // A nova segue o rastro em dois saltos.
+    const sujas = contaminadas(plantado);
+    expect(sujas).toContain("t");
+    expect(sujas, "o contágio parou no primeiro salto").toContain("u");
+    expect(sujas.some((s) => new RegExp(`\\b${s}\\b`).test(chamadas[0]!))).toBe(true);
+  });
+
+  it("e NÃO acusa o valor DECLARADO como booleano — a isenção é o tipo", () => {
+    const limpo = `
+      const pareciaPerguntaDeFaixa: boolean = /investir|faixa/i.test(replyText);
+      console.warn("[sdr/chat] price-leak", JSON.stringify({ pareciaPerguntaDeFaixa }));
+    `;
+    expect(contaminadas(limpo)).toEqual([]);
+  });
+
+  it("🔴 'hoje é booleano, amanhã é string' — o portão pega o amanhã", () => {
+    // Sem anotação nenhuma: contaminado, mesmo sendo boolean de fato hoje.
+    const semAnotacao = `
+      const pareciaPerguntaDeFaixa = /investir|faixa/i.test(replyText);
+      console.warn("[sdr/chat] x", JSON.stringify({ pareciaPerguntaDeFaixa }));
+    `;
+    expect(contaminadas(semAnotacao)).toContain("pareciaPerguntaDeFaixa");
+
+    // E o dia em que o valor vira texto: a anotação teria de mudar junto, ou o
+    // `tsc` reprova. Aqui ela mudou — e o portão reprova.
+    const amanha = `
+      const pareciaPerguntaDeFaixa: string = replyText.slice(0, 40);
+      console.warn("[sdr/chat] x", JSON.stringify({ pareciaPerguntaDeFaixa }));
+    `;
+    expect(contaminadas(amanha)).toContain("pareciaPerguntaDeFaixa");
   });
 
   it("a linha da trava continua sendo a marca, e só ela", () => {

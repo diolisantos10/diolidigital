@@ -35,6 +35,8 @@
 // ele aparece aqui.
 
 import { describe, it, expect } from "vitest";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ScopeSection, buildTitle } from "@/components/agency/briefing/PublicBriefingRoom";
@@ -167,6 +169,78 @@ describe("A FONTE — quem NOMEIA produto nesta casa é `planos.ts`, e só ele",
     // E frases com "plano" que não são nome de produto continuam livres.
     expect(nomesDePlanoForaDoCatalogo("Quero um plano mais simples e barato")).toEqual([]);
     expect(nomesDePlanoForaDoCatalogo("O plano de medição entra no Conteúdo.")).toEqual([]);
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ⛔ E A PORTA DOS SCRIPTS FICOU ABERTA (16/08/2026, quarta passada)
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // O plano fantasma morreu na fonte (`live-calculator`) e continuou vivo em
+  // `scripts/p0-browser-input-test.ts`, num `v2Estimate` com
+  // `"Social Media — Plano Growth (…)"` que o script **POSTa em
+  // `/api/brain/client-requests`** — com `BASE_URL=…railway.app` sugerido no
+  // cabeçalho dele. Caminho de persistência real, rodado à mão, sem portão.
+  //
+  // O portão anterior olhava a tela e o `buildTitle`. Script não é tela: é a
+  // mesma escrita, por outra porta. Este varre TODO script que POSTa numa rota
+  // de persistência — não o arquivo de que alguém lembrou.
+  describe("nem pela porta dos SCRIPTS — o que POSTa também é escrita", () => {
+    const ROTAS_QUE_PERSISTEM = ["/api/brain/client-requests", "/api/brain/deliverables", "/api/brain/projects"];
+
+    function scriptsQuePersistem(): { arquivo: string; fonte: string }[] {
+      const dir = path.join(process.cwd(), "scripts");
+      return readdirSync(dir)
+        .filter((f) => f.endsWith(".ts") || f.endsWith(".mts"))
+        .map((f) => ({ arquivo: f, fonte: readFileSync(path.join(dir, f), "utf8") }))
+        .filter(({ fonte }) => ROTAS_QUE_PERSISTEM.some((r) => fonte.includes(r)) && /method:\s*"POST"/.test(fonte));
+    }
+
+    it("a varredura ACHA scripts — ela não pode virar lista vazia", () => {
+      const achados = scriptsQuePersistem();
+      expect(
+        achados.length,
+        "nenhum script de persistência encontrado — o portão virou fachada",
+      ).toBeGreaterThanOrEqual(3);
+    });
+
+    /**
+     * O que o script escreve como NOME DE COISA — `label`, `title`, `name`.
+     *
+     * ⚠️ O ESCOPO É ESTE, E O LIMITE É DECLARADO. A primeira versão varria o
+     * arquivo inteiro e acusou `copyTone: "Premium, apetitoso, direto"` em
+     * `scripts/pilot-sushi-cazza.ts` — "Premium" ali é adjetivo de tom de voz,
+     * não nome de produto. Portão que acusa onde não há risco é portão que
+     * alguém desliga, e o preço teria sido reescrever o tom de voz para o teste
+     * passar. O que persiste como NOME é o que é vigiado.
+     */
+    function nomesEscritos(fonte: string): { chave: string; valor: string }[] {
+      const codigo = fonte.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+      return [...codigo.matchAll(/\b(label|title|name|nome|produto|plano|pkgLabel)\s*:\s*["'`]([^"'`]*)["'`]/g)].map(
+        (m) => ({ chave: m[1]!, valor: m[2]! }),
+      );
+    }
+
+    it("🔴 NENHUM script que POSTa nomeia plano fora do catálogo", () => {
+      for (const { arquivo, fonte } of scriptsQuePersistem()) {
+        for (const { chave, valor } of nomesEscritos(fonte)) {
+          expect(
+            nomesDePlanoForaDoCatalogo(valor),
+            `scripts/${arquivo} persiste plano fantasma em \`${chave}: "${valor}"\``,
+          ).toEqual([]);
+        }
+      }
+    });
+
+    it("e o portão MORDE — o rótulo exato do incidente é pego", () => {
+      const plantado = `{ label: "Social Media — Plano Growth (12 posts + 20 stories + 2 reels)", minPrice: 1400 }`;
+      const achados = nomesEscritos(plantado);
+      expect(achados, "a extração de nomes não achou o rótulo plantado").toHaveLength(1);
+      expect(nomesDePlanoForaDoCatalogo(achados[0]!.valor)).toContain("Growth");
+    });
+
+    it("e NÃO acusa o que não é nome de produto — 'Premium' como tom de voz passa", () => {
+      expect(nomesEscritos(`{ copyTone: "Premium, apetitoso, direto." }`)).toEqual([]);
+    });
   });
 
   it("a cadência detectada continua batendo com a tabela (o rename não mexeu na régua)", () => {

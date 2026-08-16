@@ -28,7 +28,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
 import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 import { blocoDeNegociacaoParaPrompt, ehPerguntaDeFaixa, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
-import { marcaDoVazamento, ecoDoCliente } from "@/lib/agency/comercial/resposta-de-preco";
+import { marcaDoVazamento, ecoDoCliente, type MarcaDoVazamento } from "@/lib/agency/comercial/resposta-de-preco";
 import { falaEmDinheiro } from "@/lib/agency/comercial/leitor-de-valor";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
@@ -274,7 +274,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     if (!res.ok) {
-      console.error(`[sdr/chat] Claude HTTP ${res.status}`);
+      // `status` é `number` por anotação explícita, e a anotação é o que
+      // autoriza um valor contaminado (`res` carrega o corpo enviado ao
+      // modelo) a entrar num log. Ver `o-log-da-trava-nao-carrega-cliente`.
+      const status: number = res.status;
+      console.error(`[sdr/chat] Claude HTTP ${status}`);
       return NextResponse.json({ ok: false, reason: "provider_error" });
     }
 
@@ -345,8 +349,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // pergunta de faixa usa: trava e exceção enxergando a mesma coisa é o que
     // impede a trava nova de matar a pergunta certa.
     //
-    // A trava NÃO foi afrouxada: tudo que ela barrava antes continua barrado —
-    // o que mudou é o que ela passou a ENXERGAR.
+    // ⛔ E ESTE COMENTÁRIO MENTIU (16/08/2026, quarta passada). Ele dizia:
+    //
+    //     "A trava NÃO foi afrouxada: tudo que ela barrava antes continua
+    //      barrado — o que mudou é o que ela passou a ENXERGAR."
+    //
+    // **Era falso, e ninguém tinha como saber, porque nada testava a
+    // afirmação.** O regex antigo tinha `\d+\s*\/m[êe]s\b` como gatilho próprio
+    // e a troca não o repôs: `/mês` não é pista de preço, e a passada implícita
+    // do leitor só lê número solto quando há pista na mesma frase. Medido:
+    //
+    //     PASSA | "1.200/mês fecha pra você?"    ← a trava antiga BARRAVA
+    //     PASSA | "Ficaria em 890/mês."          ← a trava antiga BARRAVA
+    //     PASSA | "Consigo 1.200/mês pra você."  ← a trava antiga BARRAVA
+    //
+    // `<número>/mês` é a forma canônica de cotar preço mensal em português, e a
+    // fala do modelo não passa por `falaSegura`: esta trava era o único portão.
+    //
+    // O QUE VALE AGORA, e o que o autoriza a estar escrito aqui: a não-regressão
+    // deixou de ser afirmação e virou execução. `falaEmDinheiro` repôs o gatilho
+    // `<número>/mês`, e
+    // `__tests__/comercial/a-trava-nova-barra-tudo-que-a-antiga-barrava.test.ts`
+    // roda o **regex antigo, preservado literalmente**, contra um corpus gerado
+    // de 584 falas e exige que a régua nova barre tudo que ele barra. Sem o
+    // gatilho, esse teste reprova 48 falas.
+    //
+    // ⚠️ A REGRA DA CASA QUE NASCEU DISTO (`docs/decisoes.md`, 16/08/2026):
+    // **trocar um regex de proteção por um leitor "melhor" exige o teste de
+    // não-regressão que rode o regex antigo.** Sem ele, "ampliar" e "afrouxar"
+    // são indistinguíveis — e o commit que apaga o regex apaga a única
+    // testemunha do que ele cobria. Comentário que afirma uma propriedade que
+    // ninguém testa é como este defeito nasceu.
     if (falaEmDinheiro(replyText) && !ehPerguntaDeFaixa(replyText)) {
       // ── O INSTRUMENTO (16/08/2026) ──────────────────────────────────────────
       // O log anterior era uma frase sem dado: "price-leak detected". Ele prova
@@ -365,7 +398,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // é `marcaDoVazamento` — uma etiqueta de lista fechada e, no máximo, o
       // padrão monetário casado por regex estreito. Ver
       // `lib/agency/comercial/resposta-de-preco.ts`, seção 4.
-      const clienteFalouEmDinheiro = /r\$|reais|or[çc]amento|investir|gastar|pre[çc]o|custa|valor/i.test(
+      const clienteFalouEmDinheiro: boolean = /r\$|reais|or[çc]amento|investir|gastar|pre[çc]o|custa|valor/i.test(
         body.currentMessage,
       );
 
@@ -388,28 +421,42 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       //
       // A fonte do "dito pelo cliente" passou a ser **só o que o cliente
       // realmente falou**: a mensagem deste turno e as mensagens dele.
-      const eco = ecoDoCliente(replyText, [
+      const eco: boolean = ecoDoCliente(replyText, [
         body.currentMessage,
         ...body.messages.filter((m) => m.role !== "assistant" && m.role !== "system").map((m) => m.text),
       ]);
 
-      const marca = marcaDoVazamento(replyText);
+      const marca: MarcaDoVazamento = marcaDoVazamento(replyText);
       // A pergunta de faixa é a ÚNICA exceção legítima. Quando ela é falsa e a
       // fala PARECE a pergunta da faixa, o que reprovou foi a regra dos 3
       // limites — e isso é ajuste de prompt, não afrouxamento de trava.
       //
-      // ⚠️ Calculado AQUI, fora da chamada de log, de propósito: o portão
-      // `o-log-da-trava-nao-carrega-cliente` varre toda chamada `console.*` da
-      // rota e reprova qualquer uma que MENCIONE `replyText`. Ele não distingue
-      // "usa o texto para produzir um booleano" de "grava o texto" — e é bom que
-      // não distinga: a exceção de hoje é a porta de amanhã.
-      const pareciaPerguntaDeFaixa = /investir|investimento|or[çc]amento|verba|gastar|faixa/i.test(replyText);
+      // ⚠️ A ANOTAÇÃO `: boolean` NÃO É ENFEITE — ELA É O QUE AUTORIZA O LOG.
+      //
+      // A versão anterior içava esta constante para fora da chamada de log
+      // porque o portão só olhava DENTRO do `console.*`, e escrevia isso no
+      // código como quem descreve um contorno. `qualidade` leu o contorno pelo
+      // que ele era: **o autor precisou da saída de emergência do próprio portão
+      // para o código dele passar** — e `const t = body.currentMessage;
+      // console.warn("x", t)` passava verde do mesmo jeito.
+      //
+      // O portão agora segue o RASTRO (`res` → `json` → `text` → `parsed` →
+      // `replyText`) e só deixa entrar no log o valor contaminado que declara um
+      // tipo incapaz de carregar texto: `boolean`, `number`, `MarcaDoVazamento`.
+      // Hoje isto é booleano; no dia em que virar `string`, ou a anotação muda —
+      // e o portão reprova — ou o `tsc` reprova. A régua deixou de depender de
+      // alguém ter reparado.
+      const pareciaPerguntaDeFaixa: boolean = /investir|investimento|or[çc]amento|verba|gastar|faixa/i.test(replyText);
+      // `claudeMessages` carrega o histórico do cliente: o portão exige que o
+      // que entra no log seja DECLARADO `number`, e não que o autor tenha
+      // reparado que `.length` é um número.
+      const turno: number = claudeMessages.length;
       console.warn(
         "[sdr/chat] price-leak",
         JSON.stringify({
           padrao: marca.padrao,
           valor: marca.valor,
-          turno: claudeMessages.length,
+          turno,
           clienteFalouEmDinheiro,
           eco,
           pareciaPerguntaDeFaixa,

@@ -15,6 +15,173 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — A QUARTA PASSADA: EU AFROUXEI A TRAVA E ESCREVI NO CÓDIGO QUE NÃO TINHA AFROUXADO
+
+**Branch `claude/piloto-rodada2-trava-e-confirmacao`. `qualidade` deu SÓ SE em
+`977f276`. O primeiro item é uma REGRESSÃO MINHA, e é o pior tipo desta frente.**
+
+### 🔴 F1 — `<número>/mês` DEIXOU DE SER BARRADO, e o commit dizia o contrário
+
+`app/api/sdr/chat/route.ts` afirmava: *"A trava NÃO foi afrouxada: tudo que ela
+barrava antes continua barrado."* **Falso.** O regex antigo tinha
+`\d+\s*\/m[êe]s\b` como **gatilho próprio**; a troca pelo leitor não o repôs
+(`/mês` não é pista de preço, e a passada implícita exige pista na mesma frase).
+
+Reproduzido nesta árvore, régua antiga × régua nova:
+
+| fala | antiga | nova (antes) | nova (agora) |
+|---|---|---|---|
+| `"1.200/mês fecha pra você?"` | BARRA | **passa** | BARRA |
+| `"Ficaria em 890/mês."` | BARRA | **passa** | BARRA |
+| `"Ficamos com 1.500/mês, combinado?"` | BARRA | **passa** | BARRA |
+| `"Consigo 1.200/mês pra você."` | BARRA | **passa** | BARRA |
+| `"Fica em 1.200/mês."` | BARRA | BARRA | BARRA |
+| `"Sai por 1.200."` | passa | BARRA | BARRA |
+
+Grave por três razões: `<número>/mês` é **a forma canônica de cotar preço mensal
+em português**; atinge a fala do MODELO, que por exceção declarada **não passa
+por `falaSegura`** — a trava da rota era o único portão ali; e a afirmação
+sobreviveu a três auditorias porque **nada a testava**.
+
+**O conserto.** `NUMERO_POR_MES` volta como gatilho próprio **em
+`falaEmDinheiro`, não em `valoresMonetarios`** — e a distinção foi medida: pôr o
+gatilho no leitor compartilhado faz `resumoDoCorte` ("posts de 20 para 8/mês") e
+a fala do motor ("2 posts por semana (8/mês)") virarem "o preço de R$ 8", e
+`falaSegura` **substituiria a fala legítima**. O regex antigo nunca esteve ali.
+
+Junto, a cobertura menor da mesma família: o separador (`:`, `;`, quebra de
+linha) deixou de cortar a pista da frase, e as conjugações de `ficar`/`fechar`
+abriram. `"Fica assim: 1.200 por mês."`, `"Investimento estimado:\n1.200 a 1.800
+por mês."` e `"Fecho em 1.200."` passam a ser barradas.
+
+**Os dois lados, medidos:**
+- **Falso negativo:** `0` regressões em corpus gerado de **584 falas**
+  (16 molduras × 6 grafias × 6 valores + 8 casos nomeados). Sem o gatilho, esse
+  mesmo teste reprova **48**.
+- **Falso positivo:** `0/15` em corpus limpo (a antiga dava 1/15) e **0/69** em
+  falas REAIS do motor passando por `falaSegura` — nenhuma fala legítima foi
+  substituída.
+
+**O teste que não existia:**
+`__tests__/comercial/a-trava-nova-barra-tudo-que-a-antiga-barrava.test.ts` roda o
+**regex antigo, preservado letra por letra** (com asserção sobre o próprio
+`source`), contra o corpus, e exige que a régua nova barre tudo que ele barra.
+O comentário mentiroso da rota foi substituído pelo registro do defeito.
+
+### 🔴 F2 — A telemetria falava a régua velha
+
+`marcaDoVazamento` classificava pelos quatro ramos do regex aposentado, então as
+duas classes que a trava **ganhou** chegavam ao log como `desconhecido`/`null`.
+Medido antes → depois:
+
+| fala | antes | agora |
+|---|---|---|
+| `"Sai por 1.200."` | `desconhecido` · `null` | `preco_implicito` · `1200` |
+| `"Posso ajustar para o Plano Turbo."` | `desconhecido` · `null` | `plano_fora_do_catalogo` |
+| `"fica em R$ ..,.. por mês"` | `desconhecido` | `valor_ilegivel` |
+
+A proteção de PII do C1 ficou **mais** forte, não igual: nada recorta texto
+livre. `padrao` é união fechada; `valor` é o casamento de um regex estreito ou o
+número já normalizado pelo leitor — **dígito puro, PII-free pelo tipo**.
+
+### F3 — "Não sei" valia ponto na nota do diagnóstico
+
+`if (c.status === "info") continue` tirava a não-conferida do **denominador**, e
+sair do denominador é ganhar. Medido nesta árvore:
+
+| canal de e-mail | antes | agora |
+|---|---|---|
+| **não conferido** | 58 | 46 |
+| **medido e desligado** | 56 | 46 |
+| **medido e ligado** | 60 | 49 |
+
+Não medir valia **+2**. Agora `info` conta no denominador e não ganha ponto: a
+única forma de subir a nota é **conferir**. E `totalWeight === 0` devolve **0**,
+nunca mais 100 com "Sistema saudável" e zero coisa medida. **A nota desta casa
+caiu de 58 para 46 — é para cair: a nota anterior media o que alguém tinha
+olhado, não o que o sistema é.** São 15 checagens `info` de 50.
+
+### F4 — O portão de log era evadível, e eu usei a saída
+
+`const t = body.currentMessage; console.warn("x", t)` passava verde. O portão
+passa a ser de **contágio transitivo** (`res` → `json` → `text` → `parsed` →
+`replyText`, sem nenhum desses nomes numa lista) e a única isenção é
+**estrutural, cobrada pelo `tsc`**: valor contaminado só entra em log se declarar
+`boolean`, `number` ou `MarcaDoVazamento`. O portão obrigou quatro anotações
+novas na rota, e **achou um caminho que ninguém tinha citado** (`res.status`,
+`claudeMessages.length`).
+
+### F5 — Duas erratas no registro, corrigidas
+
+- **O cartão de estimativa NÃO saiu do painel nesta rodada.** Conferido por
+  `git show` em `6cc2788`, `a328167`, `ef96035`, `977f276` e `d01b91a`:
+  `EstimateSection`/`ProposalCard` **nunca** tiveram sítio de render. O buraco é
+  mais velho que a frente e ela **não o agravou**.
+- **4636 → 4637** na linha do portão da rodada anterior.
+- E o D8: *"a contagem de avisos oscila"* foi apresentado como fato medido e não
+  sobreviveu à medição de `qualidade` (6·6·6). **Medi de novo aqui: 6 em build
+  limpo e 6 em três incrementais.** A afirmação saiu; o invariante ficou.
+
+### F6 — O script que persistia plano fantasma
+
+`scripts/p0-browser-input-test.ts` carregava `"Social Media — Plano Growth"` num
+`v2Estimate` que ele **POSTa em `/api/brain/client-requests`**, com
+`BASE_URL=…railway.app` sugerido no cabeçalho. Limpo. O portão novo varre **todo
+script que POSTa numa rota de persistência**, não o arquivo de que alguém
+lembrou — e o escopo dele é declarado (`label`/`title`/`name`), porque a primeira
+versão, varrendo o arquivo inteiro, acusou `copyTone: "Premium, apetitoso"` em
+`pilot-sushi-cazza.ts`, que é adjetivo de tom de voz e não nome de produto.
+
+### F7 — O efeito transitório, declarado e consertado
+
+O painel era pintado com o escopo já cortado **antes** do `await fetchSdrReply`,
+e a nota do corte só entrava depois: durante o "digitando" o prospect via o
+escopo cair sem uma palavra. B4 em miniatura. `resumoDoCorte` só depende de
+`prevState` e `ruleResult` — passou a ser calculado **antes** do `await`, e o
+corte e a frase que o explica aparecem no mesmo quadro. São **quatro** caminhos
+com a nota agora, não três.
+
+### 📏 As duas regras que o CEO adotou (em `docs/decisoes.md`)
+
+1. **Trocar um regex de proteção por um leitor "melhor" exige teste de
+   não-regressão que rode o regex antigo** — preservado literalmente. Sem ele,
+   "ampliar" e "afrouxar" são indistinguíveis.
+2. **Portão que lista identificadores proibidos dentro de uma chamada é derrotado
+   por uma variável local.** E quando o autor precisa da saída de emergência do
+   próprio portão para o código dele passar, o portão já está medido.
+
+### Portão
+
+`npx tsc --noEmit` limpo · **4684 testes em 293 arquivos, todos verdes** ·
+`npm run build` sai **0** · avisos de build: **6**, medidos em build limpo e em
+três incrementais (`instrumentation.ts` e o NFT de `next.config.ts` — **nenhum
+arquivo desta frente em trace**).
+
+### ⚠️ SUPERFÍCIE DE BRIEFING TOCADA — declarada, como combinado
+
+`components/agency/briefing/PublicBriefingRoom.tsx` ·
+`app/api/sdr/chat/route.ts` · `lib/agency/comercial/leitor-de-valor.ts` ·
+`lib/agency/comercial/resposta-de-preco.ts` · `scripts/p0-browser-input-test.ts`.
+Fora do briefing: `lib/agency/system-doctor.ts`.
+**`app/briefing/`, `lib/agency/esteira/triagem.ts` e `lib/agency/top-down.ts` não
+foram tocados.**
+
+### 🔴 O QUE CONTINUA ABERTO
+
+- [ ] **CEO/`qualidade`** — o `live-calculator` continua sendo uma TERCEIRA
+      TABELA DE PREÇO: o nome fantasma morreu, os **valores** (600–900,
+      900–1.400…) continuam sem lastro em `planos.ts`. Preço é decisão de dono do
+      negócio, não de portão.
+- [ ] **CEO** — as três portas de preço no prompt (B8) e a régua de faixas.
+- [ ] `experiencia` — `app/briefing/page.tsx:133` promete "estimativa de
+      investimento" que o sistema não entrega. **Buraco anterior a esta frente**
+      (ver errata F5). Área de outra sessão.
+- [ ] `plataforma` — a nota do diagnóstico caiu para **46** porque 15 de 50
+      checagens são `info`. Cada `info` que virar medição é ponto de volta — e
+      hoje ninguém sabe quantas delas dá para conferir.
+
+---
+
 ## 🟢 16/08/2026 — TERCEIRA PASSADA: `qualidade` REPROVOU O AR E OS 8 VOLTARAM
 
 **Branch `claude/piloto-rodada2-trava-e-confirmacao`. Veredito da rodada anterior
@@ -149,19 +316,26 @@ faixa escrito por esta casa**. Cliente diz 300, o rótulo traz 500, e uma fala c
 R$ 500 virava eco. Saiu, junto com `traffic.monthlyAdBudget` (quem preenche é o
 modelo). A fonte passou a ser **só a mensagem do cliente e o histórico dele**.
 
-### ⚠️ D8 — O NÚMERO DE AVISOS DO BUILD NÃO É UM NÚMERO
+### ⚠️ D8 — O NÚMERO DE AVISOS DO BUILD
 
-Medido nesta rodada, mesma árvore, mesmo comando: **7** em build limpo
-(`rm -rf .next`), **8 · 6 · 5** em três builds incrementais seguidos. `qualidade`
-mediu 4 e 5; a rodada anterior relatou 7. **Ninguém contou errado — a contagem do
-Turbopack oscila entre execuções.** O invariante que vale relatar é outro, e esse
-é estável: **os avisos são todos de `instrumentation.ts` →
+> ⚠️ **ERRATA (16/08/2026, quarta passada).** Este bloco afirmava que *"a contagem
+> do Turbopack oscila entre execuções"* e apresentava isso como **fato medido**.
+> `qualidade` rodou um build limpo e dois incrementais na mesma árvore e mediu
+> **6 · 6 · 6**: a oscilação **não se reproduziu**. Não é que a contagem anterior
+> estivesse errada — é que *"a contagem oscila"* foi relatado como medição e não
+> sobreviveu à medição de outra pessoa.
+>
+> **A regra que fica: não se afirma como medido o que não foi medido duas vezes.**
+
+O que sobreviveu à conferência dela é o invariante, e é ele que vale relatar:
+**os avisos são todos de `instrumentation.ts` →
 `lib/agency/media/armazenamento.ts` → `app/api/media/route.ts` e do NFT de
 `next.config.ts`; nenhum arquivo desta frente aparece em trace nenhum.**
 
 ### Portão
 
-`npx tsc --noEmit` limpo · **4636 testes em 292 arquivos, todos verdes** ·
+`npx tsc --noEmit` limpo · **4637 testes em 292 arquivos, todos verdes**
+(a linha anterior dizia 4636 — errata de `qualidade`, conferida) ·
 `npm run build` sai **0** (`.next/standalone` presente, então o `skipIf` do
 navegador RODOU).
 
@@ -191,8 +365,18 @@ foram tocados.**
 - [ ] `plataforma` — solicitação órfã (sem workspace) some da caixa de entrada.
 - [ ] `experiencia` — `app/briefing/page.tsx:133` promete "estimativa de
       investimento" que o sistema não entrega. **Área de outra sessão: só
-      relatado, não tocado** — e agora com um agravante, porque o cartão de
-      estimativa saiu do painel público nesta rodada.
+      relatado, não tocado.**
+      > ⚠️ **ERRATA (16/08/2026, quarta passada).** Esta linha dizia que o cartão
+      > de estimativa *"saiu do painel público nesta rodada"*, agravando a
+      > promessa. **É falso, e a prova é `git show` nos quatro commits:**
+      > `EstimateSection` e `ProposalCard` eram declarações **sem sítio de
+      > render** já em `6cc2788` e em `d01b91a` — não existe `<EstimateSection`
+      > nem `<ProposalCard` em commit nenhum da frente. O buraco é mais velho que
+      > a rodada e **a rodada não o agravou**.
+      >
+      > Ficar registrado dói e é para doer: a lição desta frente inteira é **não
+      > afirmar sobre render sem abrir o render**, e o registro dela guardava
+      > exatamente uma afirmação sobre render feita sem abrir o render.
 - [ ] `plataforma` — **a contagem de avisos do build oscila entre execuções.**
       Enquanto oscilar, ela não serve como portão de nada.
 
