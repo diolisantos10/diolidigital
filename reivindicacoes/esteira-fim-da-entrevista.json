@@ -1,0 +1,13 @@
+{
+  "id": "esteira/fim-da-entrevista",
+  "quem": "pm-a6e16be",
+  "frente": "SDR anuncia fim que o portao nao deu: uma fonte so decide se a entrevista acabou",
+  "responsabilidade": "esteira/fim-da-entrevista",
+  "arquivos": [
+    "lib/agency/prospect-engine.ts",
+    "lib/agency/sdr-agent.ts",
+    "lib/agency/question-engine.ts"
+  ],
+  "abertaEm": "2026-08-16T17:47:27.438Z",
+  "encerradaEm": null
+}
