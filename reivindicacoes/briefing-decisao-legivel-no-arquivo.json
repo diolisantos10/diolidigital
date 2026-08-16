@@ -1,0 +1,11 @@
+{
+  "id": "briefing/decisao-legivel-no-arquivo",
+  "quem": "pm-9ab49074",
+  "frente": "codigo desligado de proposito passa a dizer que foi de proposito",
+  "responsabilidade": "briefing/decisao-legivel-no-arquivo",
+  "arquivos": [
+    "components/agency/briefing/PublicBriefingRoom.tsx"
+  ],
+  "abertaEm": "2026-08-16T17:34:46.164Z",
+  "encerradaEm": null
+}
