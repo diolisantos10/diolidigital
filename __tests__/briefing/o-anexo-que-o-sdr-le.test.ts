@@ -99,3 +99,82 @@ describe("o dossiê dos anexos — o que o SDR recebe a cada turno", () => {
     expect(d).toMatch(/NÃO invente/i);
   });
 });
+
+/**
+ * ── AUDITORIA ADVERSARIAL DO PRÓPRIO DOSSIÊ (16/08/2026) ────────────────────
+ *
+ * A rodada 1 construiu o dossiê e a rodada 1 o auditou — mesma mão nas duas
+ * pontas, que não vale nesta casa. Na conferência de fora apareceu isto:
+ *
+ *     const cota = Math.max(1_200, Math.floor(TETO_DO_DOSSIE / lidos.length));
+ *
+ * O piso de 1.200 passava POR CIMA do teto de 12.000 assim que os arquivos
+ * passavam de dez — e NÃO HÁ limite de quantidade em lugar nenhum: o input é
+ * `multiple`, o arrastar-e-soltar aceita o que vier, e `handleFilesPicked`
+ * percorre a lista inteira.
+ *
+ *     10 arquivos → 12.000 (no teto) · 20 → 24.000 (2×) · 50 → 60.000 (5×)
+ *
+ * Como o dossiê é remontado e colado em CADA turno, isso não é um estouro: é um
+ * multiplicador de custo em porta PÚBLICA, sem login, na conta de IA da agência.
+ */
+describe("o teto do dossiê é teto de verdade — em porta pública isso é dinheiro", () => {
+  function lidos(n: number, tamanho = 50_000) {
+    return Array.from({ length: n }, (_, i) =>
+      anexo({ fileName: `arquivo-${i + 1}.pdf`, lido: true, texto: "x".repeat(tamanho) }),
+    );
+  }
+
+  // ⛔ A metade que reprova o código anterior.
+  it.each([[10], [20], [50], [200]])(
+    "com %i arquivos grandes, o dossiê NÃO passa do teto declarado",
+    (n) => {
+      const d = dossieDosAnexos(lidos(n));
+      // Folga para o cabeçalho, os nomes e as instruções — o que trava é a
+      // ordem de grandeza, não o caractere exato.
+      expect(d.length).toBeLessThan(12_000 + 4_000);
+    },
+  );
+
+  it("50 arquivos não produzem 5× o teto, que era o número medido antes", () => {
+    expect(dossieDosAnexos(lidos(50)).length).toBeLessThan(60_000 / 2);
+  });
+
+  // ✅ A metade que impede o conserto de virar perda silenciosa.
+  it("o que não coube é DECLARADO pelo nome — sumir seria dizer que não existe", () => {
+    const d = dossieDosAnexos(lidos(14));
+    expect(d).toContain("ARQUIVOS LIDOS QUE NÃO COUBERAM");
+    expect(d).toContain("arquivo-14.pdf");
+    // E o SDR é proibido de afirmar que leu o que não recebeu.
+    expect(d).toMatch(/NÃO diga que leu o conteúdo deles/);
+  });
+
+  it("o caso normal não foi estragado: poucos arquivos continuam entrando inteiros", () => {
+    const d = dossieDosAnexos([
+      anexo({ fileName: "resumo.pdf", lido: true, texto: "A CityJobs conecta vagas do Alto Tietê." }),
+      anexo({ fileName: "marca.pdf", lido: true, texto: "Verde institucional, sem serifa." }),
+    ]);
+    expect(d).toContain("A CityJobs conecta vagas do Alto Tietê.");
+    expect(d).toContain("Verde institucional, sem serifa.");
+    expect(d).not.toContain("NÃO COUBERAM");
+    expect(d).not.toContain("trecho cortado por tamanho");
+  });
+
+  it("um arquivo só continua podendo usar o teto inteiro", () => {
+    const d = dossieDosAnexos([anexo({ fileName: "unico.pdf", lido: true, texto: "y".repeat(11_000) })]);
+    expect(d).toContain("y".repeat(11_000));
+    expect(d).not.toContain("trecho cortado por tamanho");
+  });
+});
+
+describe("a lista de nomes não é despejo — nome de arquivo é PII", () => {
+  it("com 200 anexos opacos, o prompt não carrega 200 nomes", () => {
+    const d = dossieDosAnexos(
+      Array.from({ length: 200 }, (_, i) => anexo({ fileName: `orcamento-cliente-${i + 1}.pdf` })),
+    );
+    const citados = (d.match(/orcamento-cliente-\d+\.pdf/g) ?? []).length;
+    expect(citados).toBeLessThanOrEqual(10);
+    // Mas o TOTAL continua dito — 200 arquivos não viram "alguns arquivos".
+    expect(d).toContain("e mais 190");
+  });
+});

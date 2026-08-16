@@ -780,6 +780,27 @@ interface UploadItem {
  */
 const TETO_DO_DOSSIE = 12_000;
 
+/** O mínimo que um arquivo precisa receber para valer a pena aparecer. Abaixo
+ *  disto o trecho é curto demais para o SDR concluir qualquer coisa — melhor
+ *  declarar o arquivo como "não coube" do que fingir que ele entrou. */
+export const COTA_MINIMA_POR_ANEXO = 1_200;
+
+/** Quantos NOMES de arquivo são listados quando há mais do que cabe.
+ *
+ *  Duas razões, e as duas importam. A lista de nomes também cresce sem limite —
+ *  com 200 anexos ela sozinha passava dos 3.000 caracteres, estourando o teto
+ *  pelo lado que ninguém olhava. E nome de arquivo é **PII em potencial**
+ *  (`orcamento-joao-silva.pdf`; está dito assim no schema do `MediaAsset`):
+ *  despejar duzentos deles num prompt é vazar uma lista de pessoas de graça. */
+const NOMES_LISTADOS = 10;
+
+/** "a.pdf, b.pdf e mais 38" — nunca a lista inteira. */
+function nomesResumidos(items: { attachment: { fileName: string } }[]): string {
+  const nomes = items.slice(0, NOMES_LISTADOS).map((it) => it.attachment.fileName);
+  const resto = items.length - nomes.length;
+  return resto > 0 ? `${nomes.join(", ")} e mais ${resto}` : nomes.join(", ");
+}
+
 export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" | "texto" | "lido">[]): string {
   const validos = items.filter((it) => it.status !== "error");
   if (validos.length === 0) return "";
@@ -792,8 +813,29 @@ export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" 
   if (lidos.length > 0) {
     // O teto é dividido entre os arquivos para que o último anexado não fique
     // sempre de fora — o brand book costuma ser o segundo.
-    const cota = Math.max(1_200, Math.floor(TETO_DO_DOSSIE / lidos.length));
-    for (const it of lidos) {
+    //
+    // ⚠️ 16/08/2026 — O TETO NÃO ERA TETO. A conta era
+    // `Math.max(1_200, TETO / lidos.length)`, e o piso de 1.200 passava POR CIMA
+    // do teto assim que os arquivos passavam de dez:
+    //
+    //     10 arquivos → 1.200 cada → 12.000  (no teto)
+    //     20 arquivos → 1.200 cada → 24.000  (2× o teto)
+    //     50 arquivos → 1.200 cada → 60.000  (5× o teto)
+    //
+    // E não há limite de quantidade em lugar nenhum: o input é `multiple`, o
+    // arrastar-e-soltar aceita o que vier e `handleFilesPicked` percorre tudo.
+    // Como o dossiê é remontado e colado em CADA turno, trinta arquivos fariam
+    // toda mensagem da conversa carregar dezenas de milhares de caracteres — numa
+    // porta PÚBLICA, sem login, com a conta de IA da agência pagando.
+    //
+    // Agora o teto manda. O piso vira o que ele sempre deveria ter sido: o
+    // critério de QUANTOS arquivos cabem, não uma licença para estourar.
+    const cabem = Math.max(1, Math.floor(TETO_DO_DOSSIE / COTA_MINIMA_POR_ANEXO));
+    const dentro = lidos.slice(0, cabem);
+    const sobraram = lidos.slice(cabem);
+    const cota = Math.max(COTA_MINIMA_POR_ANEXO, Math.floor(TETO_DO_DOSSIE / dentro.length));
+
+    for (const it of dentro) {
       const t = (it.texto ?? "").trim();
       const corte = t.length > cota;
       linhas.push(
@@ -804,11 +846,20 @@ export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" 
     linhas.push(
       "Use o que está escrito acima. Se o cliente já respondeu algo aqui, NÃO pergunte de novo.",
     );
+
+    // Some da lista seria dizer que não existe. O arquivo foi lido, só não coube
+    // — e o SDR precisa saber a diferença para não afirmar que viu.
+    if (sobraram.length > 0) {
+      linhas.push(
+        `ARQUIVOS LIDOS QUE NÃO COUBERAM NESTE RESUMO: ${nomesResumidos(sobraram)}.`,
+        "Eles existem e foram recebidos. NÃO diga que leu o conteúdo deles.",
+      );
+    }
   }
 
   if (opacos.length > 0) {
     linhas.push(
-      `ARQUIVOS QUE VOCÊ NÃO CONSEGUIU LER: ${opacos.map((it) => it.attachment.fileName).join(", ")}.`,
+      `ARQUIVOS QUE VOCÊ NÃO CONSEGUIU LER: ${nomesResumidos(opacos)}.`,
       "NÃO invente o que há neles e NÃO diga que leu. Se o conteúdo deles for necessário,",
       "peça ao cliente para contar o essencial em uma frase — reconhecendo que ele já enviou o arquivo.",
     );
