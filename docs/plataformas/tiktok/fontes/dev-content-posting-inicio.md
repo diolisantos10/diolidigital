@@ -1,7 +1,7 @@
 ---
 titulo: "Content Posting API — Get Started (TikTok for Developers)"
 url: https://developers.tiktok.com/doc/content-posting-api-get-started
-capturado_em: 2026-08-15
+capturado_em: 2026-08-16
 hash: ea542d4d532c093f
 ---
 

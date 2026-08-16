@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — lista de escopos OAuth 2.0 das APIs"
 url: https://developers.google.com/identity/protocols/oauth2/scopes?hl=pt-br
-capturado_em: 2026-08-15
-hash: 731c8c5bf5ff2e4c
+capturado_em: 2026-08-16
+hash: 899ffd77ad511cac
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -679,11 +679,11 @@ Escopo	Descrição
 https://www.googleapis.com/auth/drive.activity	Veja e adicione ao registro de atividades de arquivos no seu Google Drive
 https://www.googleapis.com/auth/drive.activity.readonly	Veja o registro de atividades de arquivos no seu Google Drive
 API Drive Labels, v2
-Escopo	Descrição
-https://www.googleapis.com/auth/drive.admin.labels	Ver, editar, criar e excluir todos os marcadores do Google Drive na sua organização, além de ver as políticas de administrador relacionadas a eles
-https://www.googleapis.com/auth/drive.admin.labels.readonly	Ver todos os marcadores do Google Drive e as políticas de administrador relacionadas a eles na sua organização.
-https://www.googleapis.com/auth/drive.labels	Ver, editar, criar e excluir seus marcadores do Google Drive
-https://www.googleapis.com/auth/drive.labels.readonly	Ver seus marcadores do Google Drive
+Scope	Description
+https://www.googleapis.com/auth/drive.admin.labels	See, edit, create, and delete all Google Drive labels in your organization, and see your organization's label-related admin policies
+https://www.googleapis.com/auth/drive.admin.labels.readonly	See all Google Drive labels and label-related admin policies in your organization
+https://www.googleapis.com/auth/drive.labels	See, edit, create, and delete your Google Drive labels
+https://www.googleapis.com/auth/drive.labels.readonly	See your Google Drive labels
 API Enterprise License Manager, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/apps.licensing	Visualizar e gerenciar licenças do Google Workspace para seu domínio

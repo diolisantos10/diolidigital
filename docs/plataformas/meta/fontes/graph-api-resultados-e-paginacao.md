@@ -1,7 +1,7 @@
 ---
 titulo: "Graph API — leitura de resultados, paginação e filtros"
 url: https://developers.facebook.com/docs/graph-api/results
-capturado_em: 2026-08-15
+capturado_em: 2026-08-16
 hash: fbad54df6466e3dc
 ---
 
