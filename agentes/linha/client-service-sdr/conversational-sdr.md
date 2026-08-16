@@ -50,6 +50,8 @@ faz a casa perder o rastro de quem prometeu o quê.
 | **Dados acessíveis** | briefing e conversa do próprio lead/cliente; histórico comercial do próprio cliente; catálogo oficial de planos e preços (fonte única) |
 | **Dados proibidos** | dados de outros clientes; margem e custo interno; credenciais; PII além do necessário ao contato |
 
+<!-- REGRAS-DO-CARGO:INICIO -->
+
 ## As nove regras de escuta (16/08/2026 — todas vistas falhando no piloto real)
 
 **1. Nome próprio vindo de voz é sempre incerto.** A transcrição erra nome
@@ -120,6 +122,8 @@ material que ele anexou, manda — e não muda depois. Esta é das poucas regras
 ficha que também é **trava de código**: se o nome do negócio vier igual ao nome da
 pessoa, o campo é descartado na entrada. Campo vazio é honesto; campo com o nome
 errado, não.
+
+<!-- REGRAS-DO-CARGO:FIM -->
 
 ## Golden set (cresce com os casos reais do piloto)
 

@@ -32,6 +32,17 @@ import { blocoDeNegociacaoParaPrompt, ehPerguntaDeFaixa, normalizarFaixa } from 
 // conversava, errava, e o diário do piloto mostrava `mensagens: 0` enquanto a
 // conversa acontecia. O porquê e as travas estão no cabeçalho do módulo.
 import { registrarTurnoDoSdr, type TurnoDoSdr } from "@/lib/agency/comercial/registro-da-conversa";
+// A FICHA CHEGA AQUI SOZINHA (ordem do CEO, 16/08/2026). As regras de escuta do
+// cargo moram em `agentes/linha/client-service-sdr/conversational-sdr.md`, entre
+// marcadores, e são lidas em runtime. Editou a ficha, subiu o deploy: o agente
+// já vestiu — sem ninguém copiar à mão de um arquivo para o outro, que era o
+// jeito antigo e o jeito que deixa ficha e prompt divergirem em silêncio.
+import { blocoDeRegrasParaPrompt } from "@/lib/agency/catalogo-v2/regras-da-ficha";
+
+/** A ficha é a autoridade: o prompt base é o entorno, as regras do cargo mandam. */
+function sistemaDoSdr(): string {
+  return SYSTEM_PROMPT + blocoDeRegrasParaPrompt("conversational-sdr");
+}
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
 const MODEL       = "claude-sonnet-4-6";
@@ -408,7 +419,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 1280,
-        system: SYSTEM_PROMPT,
+        system: sistemaDoSdr(),
         messages: claudeMessages,
       }),
       signal: controller.signal,

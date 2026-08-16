@@ -11,6 +11,11 @@ import { generate, anyProviderConfigured } from "@/lib/ai/generate";
 import { estimarCusto } from "@/lib/ai/precos";
 import type { ContextoDeExecucao, DependenciasDoExecutor } from "@/lib/agency/execucao-v2/executor";
 import type { SpecOperacional } from "@/lib/agency/catalogo-v2/specs";
+// A ficha do cargo chega ao agente sozinha (ordem do CEO, 16/08/2026): as
+// regras escritas na ficha entram no system prompt em runtime, para as 81
+// funções de uma vez. Ficha sem o bloco delimitado devolve string vazia e o
+// agente roda com o entorno de sempre — degrada, nunca derruba (Lei 2).
+import { blocoDeRegrasParaPrompt } from "@/lib/agency/catalogo-v2/regras-da-ficha";
 
 function blocoDeEntradas(contexto: ContextoDeExecucao): string {
   return Object.entries(contexto.entradas)
@@ -115,6 +120,7 @@ export function realizarComIA(opcoes: OpcoesDoAdaptador): DependenciasDoExecutor
         `Formato de saída exigido pela ficha: ${spec.saida.formato}. Esquema: ${spec.saida.esquema}.`,
         `Você entrega para: ${spec.handoff.entrega_para}. Produza trabalho completo e utilizável, não um esboço.`,
         reguaDeAtuacao(spec),
+        blocoDeRegrasParaPrompt(spec.funcao),
         `Responda SOMENTE com JSON válido, sem texto fora do JSON.`,
       ].join("\n"),
       user: blocoDeEntradas(contexto),
