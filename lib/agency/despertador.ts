@@ -546,6 +546,16 @@ export async function baterORelogio(): Promise<{
     const r = await entregarOrcamentosPendentes();
     orcamentos = r.entregues;
     if (r.entregues > 0) log(`${r.entregues} orçamento(s) entregue(s) ao cliente`);
+    // 16/08/2026, pergunta do CEO: *"nada ainda via e-mail. O que aconteceu?"*
+    // Entregar no portal e ficar mudo é o que produziu a pergunta. Estes dois
+    // números existem para que "entregou" e "avisou" nunca mais sejam lidos
+    // como a mesma coisa no relato da rodada.
+    if (r.avisados > 0) log(`${r.avisados} cliente(s) avisado(s) por e-mail`);
+    if (r.semCanal > 0) log(`${r.semCanal} entregue(s) só pelo portal — sem canal de contato declarado`);
+    // Aviso que não saiu é cliente com orçamento pronto e sem saber. Vira
+    // notícia, e não linha de log: ele NÃO é retentado (retentar é como se
+    // manda o mesmo orçamento duas vezes), então quem resolve é gente.
+    for (const a of r.avisosQueFalharam) quebrou("orcamento", a);
     // Briefing sem número derivado NÃO ganha número inventado — vai para gente,
     // e isso é notícia: é cliente esperando com a casa sem resposta.
     if (r.semOrcamento > 0) quebrou("orcamento", `${r.semOrcamento} briefing(s) sem orçamento calculado — aguardando gente`);

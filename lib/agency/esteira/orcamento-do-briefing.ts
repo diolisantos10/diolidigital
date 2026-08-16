@@ -31,12 +31,46 @@
 //   sobre o "em 1 dia" que a tela prometia. Aqui não se promete data nenhuma.
 // • **Não fala duas vezes.** O pedido sai de `new` na mesma transação da
 //   mensagem; se uma falhar, nenhuma vale.
+//
+// ─── A SETA SEGUINTE, 16/08/2026 ────────────────────────────────────────────
+//
+// Pergunta do CEO, com o piloto no ar: *"nada ainda via e-mail. O que
+// aconteceu?"*
+//
+// O que aconteceu: este arquivo criava o `portalMessage` — **e só isso**. Não
+// havia uma linha de e-mail nele. O orçamento ficava esperando dentro do portal
+// alguém voltar para olhar. A casa já mandava e-mail na CONFIRMAÇÃO do briefing
+// e ficava muda na hora da coisa que o cliente estava esperando.
+//
+// É o defeito D-003 outra vez, um degrau adiante: **caixa certa, seta
+// faltando.** Na véspera o CEO esperou a noite inteira por uma seta; hoje ele
+// esperou de novo pela seta seguinte. Consertar uma seta de cada vez, no dia em
+// que ela dói, é como se chega ao terceiro dia de espera.
+//
+// AS QUATRO REGRAS DO AVISO, e nenhuma é decorativa:
+//
+// 1. **É o caminho de e-mail que já existe** (`lib/email/send.ts` + um template
+//    irmão do de confirmação). Um segundo mecanismo de envio significaria dois
+//    lugares para configurar remetente, dois para descobrir que a chave sumiu.
+// 2. **O e-mail AVISA, não substitui o portal.** A conversa continua sendo a
+//    fonte da verdade; o e-mail leva o essencial e o link para ver.
+// 3. **Sem canal, não trava nada.** Briefing que entrou sem e-mail continua
+//    sendo atendido pelo portal. Faltar contato impede AVISAR, nunca ATENDER —
+//    é a mesma lei que fez `lead_incompleto` entrar na busca lá embaixo.
+// 4. **Falha de e-mail não desfaz nem repete a entrega.** O envio acontece
+//    DEPOIS da transação e nunca é retentado. Ver o bloco de comentário em
+//    `avisarPorEmail`: essa ordem é a garantia de que ninguém recebe o mesmo
+//    orçamento duas vezes.
 
 import { prisma } from "@/lib/db/client";
 import {
   textoDaVerbaEstourada,
   type ConfrontoDeVerba,
 } from "@/lib/agency/comercial/verba-declarada";
+import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
+import { HOST_PADRAO } from "@/lib/agency/esteira/links-do-portal";
+import { sendEmail } from "@/lib/email/send";
+import { orcamentoProntoEmail } from "@/lib/email/templates";
 
 /** Teto por rodada. O relógio bate de 5 em 5 min; enxurrada nunca. */
 const MAX_POR_RODADA = 5;
@@ -44,6 +78,12 @@ const MAX_POR_RODADA = 5;
 export type ResultadoDoOrcamento = {
   entregues: number;
   semOrcamento: number;
+  /** Quantos clientes receberam o toque no ombro por e-mail. */
+  avisados: number;
+  /** Entregues pelo portal para quem não deixou canal. Não é falha: é fato. */
+  semCanal: number;
+  /** O e-mail não saiu, mas a entrega valeu. Vira notícia no despertador. */
+  avisosQueFalharam: string[];
   falhas: string[];
 };
 
@@ -90,6 +130,111 @@ function estimativaDe(briefingJson: string | null): EstimativaGuardada | null {
 
 const real = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+
+/**
+ * A faixa em uma linha, para o assunto de e-mail e para o cartão do aviso.
+ *
+ * Sai DAQUI e não do template: o e-mail nunca formata número por conta própria.
+ * Um segundo formatador acaba arredondando diferente do portal, e o cliente lê
+ * dois valores para o mesmo orçamento — que é como se perde a confiança em um
+ * número que estava certo nos dois lugares.
+ */
+export function faixaDoOrcamento(e: EstimativaGuardada): string {
+  const min = e.totalMin ?? 0;
+  const max = e.totalMax ?? 0;
+  return min === max
+    ? `${real(min)} por mês`
+    : `${real(min)} a ${real(max)} por mês`;
+}
+
+/** Onde a conversa deste pedido mora. `null` quando não há token — e aí o
+ *  e-mail sai sem botão, em vez de não sair.
+ *
+ *  O host é `HOST_PADRAO`, fixo, e NÃO sai de variável de ambiente: um host de
+ *  hospedagem na caixa de entrada do cliente ABRE — carrega a página inteira —
+ *  e por isso ninguém percebe que não é o endereço da marca. Ordem do CEO em
+ *  16/08/2026; a trava que cobra isso é `__tests__/http/endereco-da-casa`. */
+async function linkDaConversa(clientRequestId: string): Promise<string | null> {
+  try {
+    const acesso = await prisma.portalAccess.findFirst({
+      where: { clientRequestId, revokedAt: null },
+      orderBy: { grantedAt: "desc" },
+      select: { token: true },
+    });
+    return acesso ? `${HOST_PADRAO}/portal/access/${acesso.token}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/** O que aconteceu com o toque no ombro. `sem_canal` NÃO é falha. */
+type ResultadoDoAviso = "avisado" | "sem_canal" | "falhou";
+
+/**
+ * Avisa por e-mail que o orçamento ficou pronto.
+ *
+ * ── A ORDEM DAS COISAS É A GARANTIA, NÃO UM DETALHE ─────────────────────────
+ *
+ * Esta função só é chamada **depois** que a transação (mensagem + saída de
+ * `new`) já foi confirmada, e o resultado dela **nunca** volta para dentro da
+ * transação. As duas metades disso são propositais:
+ *
+ *   • **Depois**, porque se o e-mail saísse antes e a transação falhasse, o
+ *     pedido continuaria na fila e a próxima batida do relógio — cinco minutos
+ *     — mandaria o mesmo orçamento de novo. E de novo. O que impede o cliente
+ *     de receber o mesmo e-mail a cada cinco minutos é o pedido já ter saído de
+ *     `new` quando o envio acontece.
+ *   • **Sem volta**, porque desfazer a entrega por causa de um e-mail seria
+ *     trocar um problema pequeno (o cliente não foi avisado) por um grande (o
+ *     orçamento sumiu do portal). E-mail que falha **não se retenta aqui**:
+ *     retentar é exatamente como se manda duas vezes.
+ *
+ * Nunca lança. Quem chama está no meio de uma rodada com outros clientes na
+ * fila, e o próximo não pode pagar pelo anterior.
+ */
+async function avisarPorEmail(
+  pedido: { id: string; businessName: string | null; briefingJson: string | null; sdrHandoffJson: string | null },
+  e: EstimativaGuardada,
+): Promise<ResultadoDoAviso> {
+  try {
+    const contato = lerContato({
+      briefingJson: pedido.briefingJson,
+      sdrHandoffJson: pedido.sdrHandoffJson,
+    });
+
+    // Sem e-mail declarado não há a quem avisar — e isso não é problema deste
+    // arquivo resolver. O orçamento JÁ está no portal, entregue. Ver a regra 3
+    // do cabeçalho: faltar contato impede avisar, nunca impede atender.
+    if (!contato.email) return "sem_canal";
+
+    const { subject, html } = orcamentoProntoEmail({
+      prospectName: contato.nome ?? undefined,
+      businessName: pedido.businessName ?? undefined,
+      faixa: faixaDoOrcamento(e),
+      // Sinalizador, não conta: o e-mail reconhece que a faixa passou da verba
+      // declarada e manda ler a conversa, onde a diferença é nomeada e o que
+      // cabe é oferecido. Repetir a conta aqui criaria duas versões dela.
+      verbaEstourada: Boolean(e.confrontoDeVerba),
+      portalLink: (await linkDaConversa(pedido.id)) ?? undefined,
+    });
+
+    const r = await sendEmail({ to: contato.email, subject, html });
+    if (r.ok) return "avisado";
+
+    // `skipped` é a casa sem RESEND_API_KEY — configuração, não defeito do
+    // pedido. Distinguir os dois no log evita mandar alguém caçar bug onde
+    // falta variável de ambiente.
+    console.warn(
+      r.skipped
+        ? `[orcamento] aviso não enviado (RESEND_API_KEY ausente) — pedido ${pedido.id}`
+        : `[orcamento] aviso falhou — pedido ${pedido.id}: ${r.error ?? "sem detalhe"}`,
+    );
+    return "falhou";
+  } catch (err) {
+    console.error("[orcamento] aviso lançou — a entrega segue valendo:", err);
+    return "falhou";
+  }
+}
 
 /**
  * O texto que o cliente lê. Escrito para quem NÃO trabalha na agência: sem id,
@@ -163,7 +308,14 @@ export function textoDoOrcamento(negocio: string, e: EstimativaGuardada): string
  * cliente não pode pagar pelo anterior.
  */
 export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcamento> {
-  const resultado: ResultadoDoOrcamento = { entregues: 0, semOrcamento: 0, falhas: [] };
+  const resultado: ResultadoDoOrcamento = {
+    entregues: 0,
+    semOrcamento: 0,
+    avisados: 0,
+    semCanal: 0,
+    avisosQueFalharam: [],
+    falhas: [],
+  };
 
   // ── POR QUE `lead_incompleto` ENTRA AQUI ──────────────────────────────────
   // 16/08/2026, sete horas depois de este arquivo subir: ele não tinha
@@ -233,7 +385,25 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
         }),
       ]);
 
+      // A ENTREGA ESTÁ FEITA AQUI. O que vem depois é aviso, e aviso não
+      // desfaz entrega. Contar `entregues` antes do e-mail não é descuido de
+      // ordem: é a afirmação de que o orçamento chegou ao portal e nada abaixo
+      // desta linha pode voltar atrás nisso.
       resultado.entregues += 1;
+
+      switch (await avisarPorEmail(pedido, e)) {
+        case "avisado":
+          resultado.avisados += 1;
+          break;
+        case "sem_canal":
+          resultado.semCanal += 1;
+          break;
+        case "falhou":
+          resultado.avisosQueFalharam.push(
+            `pedido ${pedido.id} (${pedido.businessName ?? "sem nome"}): orçamento entregue no portal, mas o e-mail não saiu`,
+          );
+          break;
+      }
     } catch (err) {
       resultado.falhas.push(err instanceof Error ? err.message : String(err));
     }

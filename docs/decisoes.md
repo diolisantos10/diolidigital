@@ -1253,3 +1253,60 @@ sistema inteiro porque **todo guardião testava `postsPerWeek === undefined`, e
 para a esteira inteira, e a #3 estabelece que **limite declarado pelo cliente é
 dado de trava, não enfeite de painel**. Confiança calculada só sobre o que
 alguém lembrou de contar como faltante mente exatamente quando mais custa.
+---
+
+## Entregar não é avisar — e a seta seguinte é sempre a que dói amanhã
+
+**16/08/2026.** Pergunta do CEO, com o piloto no ar: *"nada ainda via e-mail. O
+que aconteceu?"*
+
+O orçamento tinha sido calculado, o texto escrito e a conversa do portal
+recebido tudo — e ninguém avisou o destinatário.
+`lib/agency/esteira/orcamento-do-briefing.ts` criava um `portalMessage` e mais
+nada: não havia uma linha de e-mail no arquivo inteiro. A casa já mandava e-mail
+na **confirmação** do briefing e ficava muda justamente na hora da coisa que o
+cliente estava esperando.
+
+**É o D-003 outra vez, um degrau adiante: caixa certa, seta faltando.** Na
+véspera o CEO esperou a noite inteira por uma seta (`lead_incompleto` fora da
+vista de tudo); hoje esperou de novo pela seta seguinte. Consertar uma seta por
+vez, no dia em que ela dói, é como se chega ao terceiro dia de espera.
+
+**As quatro regras que passam a valer para todo aviso da casa:**
+
+- **O e-mail AVISA; ele não substitui o portal.** A conversa continua sendo a
+  fonte da verdade. O e-mail leva o essencial e o link para ver — mandar a
+  mensagem inteira criaria uma segunda verdade, que diverge no primeiro ajuste
+  de escopo.
+- **Sem canal de contato, nada trava.** Faltar contato impede **avisar**, nunca
+  **atender**. Briefing que entrou sem e-mail segue sendo atendido pelo portal.
+  Mesma lei que fez `lead_incompleto` entrar na busca de entrega.
+- **O aviso vem DEPOIS da transação, e não volta para dentro dela.** É aí que
+  mora a garantia de não duplicar: o que impede o cliente de receber o mesmo
+  orçamento a cada cinco minutos é o pedido já ter saído da fila quando o envio
+  acontece. Se o e-mail saísse antes e a transação falhasse, o relógio mandaria
+  de novo. E de novo. **Falha de e-mail não se retenta aqui — retentar é
+  exatamente como se manda duas vezes.** Aviso que não saiu vira notícia no
+  despertador, para gente resolver.
+- **Um caminho de e-mail só.** Reaproveita `lib/email/send.ts` e um template
+  irmão do de confirmação. Um segundo mecanismo significaria dois lugares para
+  configurar remetente e dois para descobrir que a chave sumiu.
+
+**A regra de valor mudou de forma, não de rigor.** O cabeçalho de
+`lib/email/templates.ts` dizia que template de prospect *nunca* leva preço,
+porque a agência revisava o escopo antes. Essa premissa morreu no dia em que a
+casa passou a entregar a estimativa sozinha. Agora: **antes de existir número,
+nenhum valor** (inventar seria alucinar preço); **depois, exatamente a faixa
+derivada que já está no portal**, formatada por um formatador só — dois
+formatadores arredondam diferente e o cliente lê dois valores para o mesmo
+orçamento.
+
+**E nenhum dos dois promete prazo.** Ordem do CEO no mesmo dia: *"em relação à
+confirmação de promessa, de orçamento em um dia, não autorizei nada disso."*
+Consertar só o texto que aparece no print deixa a promessa viva na caixa de
+entrada do cliente.
+
+**Por que é decisão de corredor:** vale para todo toque no ombro que a casa dá —
+material, entrega, ciclo, recompra —, não só para o orçamento. A pergunta
+"quem avisa o destinatário?" passa a ser parte de toda caixa nova, junto com
+"quem escreve na caixa?".

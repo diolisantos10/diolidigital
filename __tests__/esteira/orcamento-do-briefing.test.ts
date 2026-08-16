@@ -11,11 +11,23 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const db = vi.hoisted(() => ({
   clientRequestDb: { findMany: vi.fn(), update: vi.fn() },
   portalMessage: { create: vi.fn() },
+  portalAccess: { findFirst: vi.fn() },
   $transaction: vi.fn(async (ops: unknown[]) => ops),
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
-import { entregarOrcamentosPendentes, textoDoOrcamento } from "@/lib/agency/esteira/orcamento-do-briefing";
+const email = vi.hoisted(() => ({ sendEmail: vi.fn() }));
+vi.mock("@/lib/email/send", () => email);
+
+import {
+  entregarOrcamentosPendentes,
+  textoDoOrcamento,
+  faixaDoOrcamento,
+} from "@/lib/agency/esteira/orcamento-do-briefing";
+import { orcamentoProntoEmail } from "@/lib/email/templates";
+
+/** O contato DECLARADO, no formato canônico que o gate de 08/08 grava. */
+const CONTATO = { nome: "Dioli", email: "ceo@cityjobs.com.br", whatsapp: null };
 
 function pedido(over: Record<string, unknown> = {}) {
   return {
@@ -24,18 +36,35 @@ function pedido(over: Record<string, unknown> = {}) {
     businessName: "CityJobs",
     status: "new",
     createdAt: new Date("2026-08-16T01:12:00Z"),
+    sdrHandoffJson: null,
     briefingJson: JSON.stringify({
+      contato: CONTATO,
       estimate: { totalMin: 1390, totalMax: 2590, items: [{ label: "Social media", detail: "3 posts/semana" }] },
     }),
     ...over,
   };
 }
 
+/** O mesmo pedido, mas do jeito que o do CEO entrou em 16/08: sem canal. */
+function pedidoSemContato(over: Record<string, unknown> = {}) {
+  return pedido({
+    status: "lead_incompleto",
+    briefingJson: JSON.stringify({
+      estimate: { totalMin: 1390, totalMax: 2590 },
+    }),
+    ...over,
+  });
+}
+
 beforeEach(() => {
   db.clientRequestDb.findMany.mockReset();
   db.clientRequestDb.update.mockReset();
   db.portalMessage.create.mockReset();
+  db.portalAccess.findFirst.mockReset();
+  db.portalAccess.findFirst.mockResolvedValue({ token: "tok123" });
   db.$transaction.mockClear();
+  email.sendEmail.mockReset();
+  email.sendEmail.mockResolvedValue({ ok: true, id: "em_1" });
 });
 
 describe("entrega o número que já estava calculado", () => {
@@ -214,5 +243,217 @@ describe("estimativa travada nao vira orcamento — o CityJobs de 16/08", () => 
     // Sem `proposal_pending`: o pedido nao avanca para uma fila que promete um
     // numero que ele nao tem.
     expect(db.clientRequestDb.update).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A SETA SEGUINTE — 16/08/2026
+//
+// Pergunta do CEO, com o piloto no ar: *"nada ainda via e-mail. O que
+// aconteceu?"*. Tinha acontecido que este arquivo criava o `portalMessage` e
+// mais nada: o orçamento esperava dentro do portal alguém voltar para olhar.
+// Caixa certa, seta faltando — de novo, um degrau adiante.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("o cliente FICA SABENDO que o orçamento ficou pronto", () => {
+  it("manda e-mail pelo canal que o cliente declarou", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    const r = await entregarOrcamentosPendentes();
+
+    expect(r.entregues).toBe(1);
+    expect(r.avisados).toBe(1);
+    expect(email.sendEmail).toHaveBeenCalledTimes(1);
+    expect(email.sendEmail.mock.calls[0][0].to).toBe("ceo@cityjobs.com.br");
+  });
+
+  it("o e-mail leva o link do portal, no domínio da casa", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    await entregarOrcamentosPendentes();
+
+    const html = email.sendEmail.mock.calls[0][0].html as string;
+    // Ordem do CEO em 16/08: *"está tudo ainda com o domínio, é pra estar
+    // diolidigital.com.br."* Link de `*.up.railway.app` na caixa de entrada do
+    // cliente não é o endereço da casa — e ainda quebra o OAuth do Drive.
+    expect(html).toContain("https://www.diolidigital.com.br/portal/access/tok123");
+    expect(html).not.toMatch(/up\.railway\.app/);
+  });
+
+  it("o e-mail AVISA, não substitui o portal — a conversa segue sendo a verdade", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    await entregarOrcamentosPendentes();
+
+    const html = email.sendEmail.mock.calls[0][0].html as string;
+    // Mandar a mensagem inteira por e-mail criaria uma segunda verdade, que
+    // diverge do portal no primeiro ajuste de escopo. O e-mail leva o
+    // essencial (a faixa) e o caminho de ver o resto.
+    expect(html).toMatch(/conversa/i);
+    expect(html).toContain("Ver o orçamento completo");
+    expect(html).not.toContain("O que NÃO está incluído");
+  });
+
+  it("sem token de portal o e-mail sai assim mesmo, sem botão que não leva a lugar nenhum", async () => {
+    db.portalAccess.findFirst.mockResolvedValue(null);
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    const r = await entregarOrcamentosPendentes();
+
+    expect(r.avisados).toBe(1);
+    const html = email.sendEmail.mock.calls[0][0].html as string;
+    expect(html).not.toContain("Ver o orçamento completo");
+    // E continua dizendo por onde responder: aviso sem saída é aviso pela metade.
+    expect(html).toMatch(/responder/i);
+  });
+});
+
+describe("faltar contato impede AVISAR, nunca impede ATENDER", () => {
+  it("briefing sem e-mail é entregue no portal e NÃO tenta enviar nada", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedidoSemContato()]);
+    const r = await entregarOrcamentosPendentes();
+
+    // A causa raiz da noite de 16/08 foi tratar "sem contato" como "sem
+    // pedido". O portal não precisa de e-mail para funcionar: o cliente
+    // escreveu, anexou material e está com a conversa aberta.
+    expect(r.entregues).toBe(1);
+    expect(db.portalMessage.create).toHaveBeenCalledTimes(1);
+    expect(r.semCanal).toBe(1);
+    expect(r.avisados).toBe(0);
+    expect(email.sendEmail).not.toHaveBeenCalled();
+    // Sem canal NÃO é falha — é fato. Contá-lo como falha ensinaria a casa a
+    // ignorar o alarme que importa.
+    expect(r.avisosQueFalharam).toEqual([]);
+    expect(r.falhas).toEqual([]);
+  });
+});
+
+describe("falha de e-mail não desfaz nem repete a entrega", () => {
+  it("e-mail que falha deixa a entrega de pé e vira notícia", async () => {
+    email.sendEmail.mockResolvedValue({ ok: false, error: "resend_422: domínio não verificado" });
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    const r = await entregarOrcamentosPendentes();
+
+    // Desfazer a entrega por causa de um e-mail trocaria um problema pequeno
+    // (o cliente não foi avisado) por um grande (o orçamento sumiu do portal).
+    expect(r.entregues).toBe(1);
+    expect(db.clientRequestDb.update.mock.calls[0][0].data.status).toBe("proposal_pending");
+    expect(r.avisados).toBe(0);
+    expect(r.avisosQueFalharam).toHaveLength(1);
+    expect(r.falhas).toEqual([]);
+  });
+
+  it("e-mail que LANÇA não derruba a rodada nem o pedido seguinte", async () => {
+    email.sendEmail.mockRejectedValueOnce(new Error("rede caiu"));
+    db.clientRequestDb.findMany.mockResolvedValue([pedido({ id: "req1" }), pedido({ id: "req2" })]);
+    const r = await entregarOrcamentosPendentes();
+
+    expect(r.entregues).toBe(2);
+    expect(r.avisados).toBe(1);
+    expect(r.avisosQueFalharam).toHaveLength(1);
+  });
+
+  it("um e-mail por orçamento, e só depois de o pedido sair da fila", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    await entregarOrcamentosPendentes();
+
+    // ESTA É A GARANTIA DE NÃO DUPLICAR, e ela é de ORDEM, não de contador.
+    // O que tira o pedido de `new` é a transação; enquanto ele estiver lá, a
+    // próxima batida do relógio (cinco minutos) o pega de novo. Se o e-mail
+    // saísse ANTES da transação, um banco que falhasse produziria um e-mail a
+    // cada cinco minutos com o mesmo orçamento.
+    expect(email.sendEmail).toHaveBeenCalledTimes(1);
+    const ordemDaTransacao = db.$transaction.mock.invocationCallOrder[0];
+    const ordemDoEmail = email.sendEmail.mock.invocationCallOrder[0];
+    expect(ordemDoEmail).toBeGreaterThan(ordemDaTransacao);
+  });
+
+  it("transação que falha NÃO manda e-mail — senão o cliente recebe de novo na próxima rodada", async () => {
+    db.$transaction.mockRejectedValueOnce(new Error("banco travou"));
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    const r = await entregarOrcamentosPendentes();
+
+    expect(r.entregues).toBe(0);
+    expect(r.falhas).toHaveLength(1);
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe("o texto do e-mail entra na MESMA regra do texto do orçamento", () => {
+  const pronto = () =>
+    orcamentoProntoEmail({
+      prospectName: "Dioli",
+      businessName: "CityJobs",
+      faixa: "R$ 1.390 a R$ 2.590 por mês",
+      portalLink: "https://www.diolidigital.com.br/portal/access/tok123",
+    });
+
+  it("NÃO promete prazo — ordem do CEO em 16/08", () => {
+    // *"em relação à confirmação de promessa, de orçamento em um dia, não
+    // autorizei nada disso."* O e-mail é irmão da tela e do texto do portal:
+    // consertar só o que aparece no print deixa a promessa viva na caixa de
+    // entrada do cliente.
+    const { subject, html } = pronto();
+    for (const t of [subject, html]) {
+      expect(t).not.toMatch(/\b1 dia\b|\bum dia\b|\b24 horas\b|\bat[ée] \d+ dias?\b|\bem breve\b/i);
+    }
+  });
+
+  it("diz que é estimativa, não proposta fechada", () => {
+    expect(pronto().html).toMatch(/estimativa/i);
+    expect(pronto().html).toMatch(/não a proposta final/i);
+  });
+
+  it("mostra a faixa que veio pronta e não inventa número nenhum", () => {
+    const { html } = pronto();
+    expect(html).toMatch(/1\.390/);
+    expect(html).toMatch(/2\.590/);
+
+    // Sem faixa não aparece valor: o template NÃO calcula. Se quem chama não
+    // derivou número, número não existe — nesta casa valor vem de cálculo.
+    const sem = orcamentoProntoEmail({ businessName: "CityJobs" });
+    expect(sem.html).not.toMatch(/R\$/);
+  });
+
+  it("o valor sai de um formatador só, o mesmo do portal", () => {
+    // Dois formatadores arredondam diferente, e o cliente lê dois valores para
+    // o mesmo orçamento — que é como se perde a confiança num número certo.
+    // (O `\s` das expressões é o espaço inquebrável que o `pt-BR` insere depois
+    // do `R$` — comparar com espaço comum reprovaria um texto correto.)
+    expect(faixaDoOrcamento({ totalMin: 1390, totalMax: 2590 })).toMatch(/^R\$\s1\.390 a R\$\s2\.590 por mês$/);
+    expect(faixaDoOrcamento({ totalMin: 990, totalMax: 990 })).toMatch(/^R\$\s990 por mês$/);
+    expect(textoDoOrcamento("CityJobs", { totalMin: 1390, totalMax: 2590 })).toMatch(/R\$\s1\.390/);
+  });
+
+  it("não vaza vocabulário de máquina para a caixa do cliente", () => {
+    expect(pronto().html).not.toMatch(/clientRequestId|lead_incompleto|proposal_pending|resend_/i);
+  });
+
+  it("faixa acima da verba declarada não chega NUA na caixa de entrada", () => {
+    // O CityJobs disse *"algo em torno de R$ 500 por mês"* e recebeu
+    // R$ 1.800–3.400. O portal passou a nomear a diferença; o e-mail é onde o
+    // cliente lê o valor PRIMEIRO — mostrar só a faixa devolveria o silêncio
+    // que a casa acabou de tirar da conversa.
+    db.clientRequestDb.findMany.mockResolvedValue([
+      pedido({
+        briefingJson: JSON.stringify({
+          contato: CONTATO,
+          estimate: {
+            totalMin: 1800,
+            totalMax: 3400,
+            confrontoDeVerba: { teto: 500, rotulo: "R$ 500", diferenca: 2900, cabemNaVerba: [] },
+          },
+        }),
+      }),
+    ]);
+    return entregarOrcamentosPendentes().then(() => {
+      const html = email.sendEmail.mock.calls[0][0].html as string;
+      expect(html).toMatch(/verba menor/i);
+      // Reconhecimento, não conta. Quem nomeia a diferença e oferece o que cabe
+      // é a conversa — duas versões da mesma conta divergem no primeiro ajuste.
+      expect(html).not.toMatch(/2\.900|R\$\s?500\b/);
+    });
+  });
+
+  it("sem confronto de verba o e-mail não inventa ressalva nenhuma", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    await entregarOrcamentosPendentes();
+    expect(email.sendEmail.mock.calls[0][0].html as string).not.toMatch(/verba menor/i);
   });
 });
