@@ -14,15 +14,24 @@
 // pega é uma regra que roda. **Sem gate = reprovado.**
 //
 // ── A REGRA ────────────────────────────────────────────────────────────────
-// Nenhum arquivo da superfície do portal resolve credencial de portal por
+// **Nenhum arquivo de `app/` ou `lib/`** resolve credencial de portal por
 // conta própria. Quem resolve é `lib/agency/persistence/portal-access-service`
 // (`escopoDoToken` / `donoDoToken` / `resolvePortalClient`) — e mais ninguém.
 //
-// Concretamente, na superfície listada é PROIBIDO:
+// Concretamente, em TODO o repositório é PROIBIDO:
 //   • importar `validatePortalAccess` ou `conferirTokenDoPortal`;
-//   • tocar em `prisma.portalAccess` (findUnique/findFirst/findMany/update…).
+//   • LER `prisma.portalAccess` (find*/count/aggregate/groupBy);
+//   • alcançar a tabela por colchete ou apelidar o cliente do Prisma.
 //
-// A allowlist é curta, nominal e justificada. Arquivo novo nasce coberto.
+// As duas allowlists são nominais, curtas e com motivo escrito. **Arquivo novo
+// nasce coberto** — e agora isso é verdade literal, não intenção: não há lista
+// de pastas de onde ele possa nascer de fora.
+//
+// 🔴 O QUE A INVERSÃO ACHOU NA PRIMEIRA VEZ QUE RODOU:
+// `lib/integrations/meta/notifications.ts` resolvia token por conta própria,
+// num arquivo que ninguém associava ao portal — e o destino ali é um
+// **telefone**. Ver o comentário na linha consertada. Uma varredura por lista
+// de pastas nunca teria encontrado, porque a pasta não estava na lista.
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -30,23 +39,30 @@ import { join, relative } from "node:path";
 
 const RAIZ = process.cwd();
 
-/** A superfície que fala com o cliente por token de portal. */
-const SUPERFICIE = [
-  "app/api/portal",
-  "app/api/brain/portal-data",
-  "app/api/media",
-  "app/api/social-posts",
-  "app/portal",
-  // O resolvedor da CONVERSA mora aqui e é chamado pelas rotas do portal —
-  // foi exatamente por estar fora da lista que ele divergiu na rodada 4.
-  "app/api/messages/conversa.ts",
-  // ⚠️ `lib/agency/portal/**` entrou na rodada 6: é onde moram os helpers de
-  // POSSE que as rotas chamam, e a varredura não o via. `qualidade` mostrou
-  // que `solicitacao-que-mudou-de-dono.ts` já lia `prisma.portalAccess` sem
-  // ser varrido — helper fora da varredura é rota fora da varredura com outro
-  // nome.
-  "lib/agency/portal",
-];
+// ── 🔴 RODADA 10: O DEFAULT FOI INVERTIDO ───────────────────────────────────
+//
+// Até aqui a varredura tinha uma LISTA DE LUGARES VIGIADOS (`SUPERFICIE`), e o
+// `qualidade` mostrou três fugas que passavam por ela:
+//
+//   1. **arquivo fora da lista** — bastava resolver token em qualquer pasta
+//      não listada;
+//   2. **`prisma["portalAccess"]`** — colchete no lugar do ponto;
+//   3. **`where: { token }` a mais de 120 caracteres** do nome da tabela — a
+//      janela da expressão regular era o limite.
+//
+// Lista de lugares vigiados é a mesma forma de erro que este arquivo existe
+// para conter: *"a trava vai onde o id é USADO — converter a função central
+// não converte quem não a chama."* Uma lista de pastas nunca acompanha o
+// código; **o default é que precisa mudar de lado.**
+//
+// Agora varre-se **o repositório inteiro** (`app/` e `lib/`), e o que pode
+// LER a tabela de credencial é uma lista **nominal, curta e com motivo
+// escrito**. A janela de 120 caracteres morreu junto: não se procura mais
+// "portalAccess perto de token" — qualquer LEITURA da tabela fora da lista é
+// violação, e não há distância que escape disso.
+const VARREDURA = ["app", "lib"];
+/** Gerado pelo Prisma — não é código desta casa. */
+const FORA_DA_VARREDURA = ["lib/generated"];
 
 /**
  * Quem pode resolver por conta própria, e POR QUÊ. Toda linha aqui é uma
@@ -65,9 +81,50 @@ const SUPERFICIE = [
 //
 // A rota passou a usar o resolvedor único, e a exceção deixou de ser
 // necessária. Exceção que some é melhor que exceção justificada.
-const PERMITIDOS: Record<string, string> = {};
+const PERMITIDOS: Record<string, string> = {
+  // ⚠️ Isto NÃO é uma exceção à regra: é o arquivo onde a regra mora. Ele passa
+  // a aparecer na varredura porque o default virou "o repositório inteiro" —
+  // pedir que o resolvedor único não use as próprias funções seria pedir que
+  // ele não exista. Vigiá-lo é papel dos testes de comportamento
+  // (`reconferencia-do-dono`), não de uma varredura de texto.
+  "lib/agency/persistence/portal-access-service.ts":
+    "É O RESOLVEDOR ÚNICO — o arquivo onde a regra mora, não um cliente dela.",
+};
+
+/**
+ * Quem pode LER `PortalAccess`, e por quê. Nenhuma destas resolve
+ * credencial: nenhuma delas procura por `token`. Elas leem a tabela por
+ * `clientId` ou por `clientRequestId`, para EMITIR, para CONTAR ou como
+ * EVIDÊNCIA. Cada linha é uma exceção declarada; lista que cresce sem motivo
+ * escrito é trava virando decoração.
+ */
+const PODEM_LER_A_TABELA: Record<string, string> = {
+  "lib/agency/persistence/portal-access-service.ts":
+    "É O RESOLVEDOR ÚNICO. É o único lugar do repositório onde token vira dono.",
+  "lib/agency/esteira/links-do-portal.ts":
+    "EMITE e reaproveita link, buscando por `clientId` (nunca por token). É quem "
+    + "responde 'qual o link do cliente X', a pergunta oposta de 'de quem é este token'.",
+  "lib/agency/portal/solicitacao-que-mudou-de-dono.ts":
+    "Lê por `clientRequestId` como EVIDÊNCIA de troca de dono. Não resolve credencial: "
+    + "responde 'esta pasta já serviu outro cliente?'.",
+  "lib/agency/portal/backfill-de-carimbo.ts":
+    "Lê por `clientRequestId` como uma das três provas do carimbo retroativo, offline.",
+  "app/api/brain/portal-access/route.ts":
+    "Rota de ADMIN (sessão de equipe, não token de portal): lista credenciais por "
+    + "`clientId`/`clientRequestId` para a agência. Não há token na consulta.",
+  "app/api/admin/reset-request/route.ts":
+    "Ferramenta de ADMIN: apaga e reemite o acesso de uma solicitação. Busca por "
+    + "`clientRequestId`, nunca por token.",
+  "app/api/admin/reset/route.ts":
+    "CONTA linhas (`count()`) para o inventário de reset. Não lê registro nenhum: "
+    + "um número de linhas não resolve credencial de ninguém.",
+  "lib/agency/balcao/producao.ts":
+    "Antes de EMITIR, confere por `clientId` se o cliente já tem acesso vivo — é o que "
+    + "impede o balcão de criar um token novo a cada compra. Não há token na consulta.",
+};
 
 function arquivosDe(alvo: string): string[] {
+  if (FORA_DA_VARREDURA.some((f) => alvo === f || alvo.startsWith(`${f}/`))) return [];
   const caminho = join(RAIZ, alvo);
   let st: ReturnType<typeof statSync>;
   try { st = statSync(caminho); } catch { return []; }
@@ -82,7 +139,15 @@ function codigo(fonte: string): string {
     .split("\n").filter((l) => !l.trimStart().startsWith("//")).join("\n");
 }
 
-const PROIBIDOS: { nome: string; re: RegExp; porque: string }[] = [
+interface Proibicao {
+  nome: string;
+  re: RegExp;
+  porque: string;
+  /** Exceções NOMINAIS desta proibição, cada uma com o motivo escrito. */
+  liberadosPor?: Record<string, string>;
+}
+
+const PROIBIDOS: Proibicao[] = [
   {
     nome: "validatePortalAccess",
     re: /\bvalidatePortalAccess\b/,
@@ -94,17 +159,32 @@ const PROIBIDOS: { nome: string; re: RegExp; porque: string }[] = [
     porque: "confere existência/validade e NÃO confere dono",
   },
   {
-    // ⚠️ A REGRA É "RESOLVER POR TOKEN", NÃO "TOCAR NA TABELA".
+    // ⚠️ A JANELA DE 120 CARACTERES MORREU (rodada 10).
     //
-    // A primeira versão proibia `prisma.portalAccess` inteiro, e acusou
-    // `solicitacao-que-mudou-de-dono.ts` — que lê a tabela por
-    // `clientRequestId` como EVIDÊNCIA de troca de dono, não para resolver
-    // credencial nenhuma. Proibição larga demais se paga com exceção, e
-    // exceção é onde o furo volta a morar. A busca POR TOKEN é que é
-    // resolução, e é ela que fica proibida.
-    nome: "prisma.portalAccess … { token",
-    re: /prisma\s*\.\s*portalAccess[\s\S]{0,120}?\btoken\b\s*[,:}]/,
-    porque: "buscar o registro PELO TOKEN é resolver credencial — isso é do resolvedor único",
+    // A versão anterior procurava `prisma.portalAccess` **perto** de `token` —
+    // e o `qualidade` mostrou que bastava afastar a cláusula `where` para
+    // passar. Distância nunca foi a regra; era só o que a expressão alcançava.
+    //
+    // Agora: **qualquer LEITURA da tabela de credencial** conta, com ponto ou
+    // com colchete, em qualquer arquivo de `app/` e `lib/`. Quem pode ler está
+    // em `PODEM_LER_A_TABELA`, nominalmente e com motivo. `create`, `update` e
+    // `delete` ficam de fora desta regra: emitir e apagar não é resolver, e
+    // proibição larga demais se paga com exceção — exceção é onde o furo mora.
+    nome: "leitura de PortalAccess fora do resolvedor",
+    // A aspa e o colchete OPCIONAIS no meio são o que fecha a fuga nº 2: a
+    // forma `["portalAccess"].findFirst` tem `"` e `]` entre o nome e o ponto,
+    // e a versão sem eles deixava passar — medido com a fuga plantada.
+    re: /\bportalAccess\b\s*["'`]?\s*\]?\s*\.\s*(findUnique|findFirst|findMany|count|aggregate|groupBy)/,
+    porque: "quem lê a tabela de credencial resolve credencial — isso é do resolvedor único",
+    liberadosPor: PODEM_LER_A_TABELA,
+  },
+  {
+    // Colchete no lugar do ponto — a fuga nº 2 do `qualidade`. A regra acima já
+    // pega o `.findFirst` que vem depois; esta pega a INTENÇÃO de escapar da
+    // varredura por nome, que é sinal por si só.
+    nome: "prisma com colchete",
+    re: /prisma\s*\[\s*["'`]portalAccess/,
+    porque: "acessar a tabela por colchete só serve para escapar de varredura por nome",
   },
   {
     // A fuga que o `qualidade` provou passar: apelidar o cliente do Prisma.
@@ -115,11 +195,18 @@ const PROIBIDOS: { nome: string; re: RegExp; porque: string }[] = [
 ];
 
 describe("um resolvedor só para credencial de portal", () => {
-  const alvos = SUPERFICIE.flatMap(arquivosDe);
+  const alvos = VARREDURA.flatMap(arquivosDe);
 
-  it("a superfície do portal existe e está sendo varrida de verdade", () => {
+  it("o repositório está sendo varrido de verdade, e não uma lista de pastas", () => {
     // Varredura que não acha arquivo nenhum passa sempre — e não protege nada.
-    expect(alvos.length).toBeGreaterThan(15);
+    // O número é alto de propósito: se alguém trocar a varredura por uma lista
+    // curta de novo, esta linha cai antes de a trava virar decoração.
+    expect(alvos.length).toBeGreaterThan(400);
+    // E as três fugas da rodada 9 têm de estar cobertas: arquivo FORA da antiga
+    // lista de pastas precisa ser varrido.
+    const rel = alvos.map((c) => relative(RAIZ, c));
+    expect(rel).toContain("lib/integrations/meta/notifications.ts");
+    expect(rel).toContain("lib/agency/balcao/producao.ts");
   });
 
   it("⛔ nenhuma rota resolve token de portal fora do resolvedor único", () => {
@@ -130,6 +217,7 @@ describe("um resolvedor só para credencial de portal", () => {
       if (PERMITIDOS[rel]) continue;
       const fonte = codigo(readFileSync(caminho, "utf8"));
       for (const p of PROIBIDOS) {
+        if (p.liberadosPor?.[rel]) continue;
         if (p.re.test(fonte)) violacoes.push(`${rel} → usa \`${p.nome}\` (${p.porque})`);
       }
     }
@@ -139,6 +227,16 @@ describe("um resolvedor só para credencial de portal", () => {
     expect(violacoes, `\n${violacoes.join("\n")}\n`).toEqual([]);
   });
 
+  it("⛔ quem pode LER a tabela de credencial é nominal, e cada um tem motivo", () => {
+    for (const [arquivo, motivo] of Object.entries(PODEM_LER_A_TABELA)) {
+      expect(motivo.length, `${arquivo} sem motivo escrito`).toBeGreaterThan(40);
+      // Exceção para arquivo que não existe mais é exceção que ninguém revisou.
+      expect(() => statSync(join(RAIZ, arquivo)), `${arquivo} não existe`).not.toThrow();
+    }
+    // Se esta conta subir, alguém abriu exceção — e vai ter de explicar aqui.
+    expect(Object.keys(PODEM_LER_A_TABELA)).toHaveLength(8);
+  });
+
   it("⛔ a allowlist não cresce em silêncio — cada exceção tem motivo escrito", () => {
     for (const [arquivo, motivo] of Object.entries(PERMITIDOS)) {
       expect(motivo.length, `${arquivo} sem motivo`).toBeGreaterThan(20);
@@ -146,6 +244,6 @@ describe("um resolvedor só para credencial de portal", () => {
     // Se esta conta subir, alguém abriu exceção — e vai ter de explicar aqui.
     // 2 → 1 → 0. A última caiu quando `POST /api/portal/session` passou pelo
     // resolvedor: a justificativa dela citava um teste que não a exercitava.
-    expect(Object.keys(PERMITIDOS)).toHaveLength(0);
+    expect(Object.keys(PERMITIDOS)).toHaveLength(1);
   });
 });

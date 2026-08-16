@@ -6,6 +6,7 @@
 // app/api/meta/dispatch/route.ts.
 
 import { prisma } from "@/lib/db/client";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { sendWhatsAppMessage, sendWhatsAppDirect } from "./client";
 import { resolveWhatsAppEnv } from "./config";
 import { PROPOSAL_SENT_TEMPLATE } from "./templates";
@@ -50,15 +51,37 @@ async function resolveRecipient(
     ? await prisma.clientRequestDb.findUnique({ where: { id: payload.clientRequestId } })
     : null;
 
-  // 1b. Deterministic without a producer change: the portalPath carries the
-  //     PortalAccess token (/portal/access/<token>), and that row links to the
-  //     clientRequestId. This is how the current producer's events resolve.
+  // ── 1b. O TOKEN DO `portalPath` PASSA PELO RESOLVEDOR ÚNICO ───────────────
+  //
+  // 🔴 Achado da rodada 10, quando o teste de arquitetura passou a varrer o
+  // repositório inteiro em vez de uma lista de pastas: **esta linha resolvia
+  // credencial de portal por conta própria**, fora da vigilância, num arquivo
+  // que ninguém associava ao portal.
+  //
+  // `prisma.portalAccess.findFirst({ where: { token } })` lia o ponteiro
+  // MUTÁVEL `clientRequestId` do registro do token — o mesmo ponteiro que
+  // produziu o P0 da conversa. Aqui o efeito é pior que ler: o destino é um
+  // **telefone**. Solicitação re-apontada = mensagem de WhatsApp sobre a
+  // proposta de um cliente indo para o celular de outro, com o link do portal
+  // dentro. Não há tela para o cliente perceber e fechar.
+  //
+  // Agora quem resolve é `escopoDoToken`, e ele CONGELA o dono: token cujo
+  // ponteiro andou é recusado, e recusa aqui vira **nenhuma notificação** —
+  // que é o certo. Ausência de informação não é informação; não se manda
+  // WhatsApp por palpite.
   if (!req && payload.portalPath) {
     const token = payload.portalPath.split("/").filter(Boolean).pop();
     if (token) {
-      const access = await prisma.portalAccess.findFirst({ where: { token } });
-      if (access?.clientRequestId) {
-        req = await prisma.clientRequestDb.findUnique({ where: { id: access.clientRequestId } });
+      const escopo = await escopoDoToken(token);
+      if (escopo.ok && escopo.tipo === "prospect") {
+        req = await prisma.clientRequestDb.findUnique({ where: { id: escopo.clientRequestId } });
+      } else if (escopo.ok) {
+        // Cliente identificado: a solicitação sai do DONO congelado, nunca do
+        // registro do token. Sem solicitação dele, não há telefone a inferir.
+        req = await prisma.clientRequestDb.findFirst({
+          where: { id: { in: escopo.clientRequestIds } },
+          orderBy: { createdAt: "desc" },
+        });
       }
     }
   }
