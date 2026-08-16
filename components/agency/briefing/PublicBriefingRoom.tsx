@@ -269,6 +269,38 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
 }
 
 // ── Estimate section ──────────────────────────────────────────────────────────
+//
+// ⚠️ DESLIGADA DE PROPÓSITO — nenhum caller neste arquivo. Antes de apagar,
+// leia isto até o fim: quem já quase religou por achar isto esquecimento foi
+// ver menos da metade da história.
+//
+// 1. Desde `155aefbb` (26/06/2026), mensagem literal: "Removes all price
+//    display from the confirmation panel — estimate is generated only after
+//    Google login." A tela foi redesenhada para NÃO mostrar preço no painel
+//    de confirmação; este componente é o que sobrou de antes do redesign.
+// 2. É a MESMA regra do guarda `PRICE_LEAK` em `app/api/sdr/chat/route.ts`
+//    (~linha 687) — o SDR nunca cota preço em texto na conversa. Este
+//    componente cotaria preço na tela, mid-conversa, antes da hora. Uma
+//    regra, dois lugares.
+// 3. Para onde o prospect REALMENTE recebe o preço:
+//    `lib/agency/esteira/orcamento-do-briefing.ts`, acionado pelo relógio
+//    (`lib/agency/despertador.ts`), lendo a MESMA estimativa que este
+//    formulário já calcula e grava no submit (`v2Estimate`, ~linha 1414,
+//    via `computeEstimate()` ~linha 1287) — escreve no portal e dispara
+//    e-mail (`entregarOrcamentosPendentes`). O prospect não fica sem preço;
+//    ele recebe depois, por canal único e controlado, revisado antes de
+//    chegar.
+// 4. Doutrina registrada em `docs/decisoes.md` (~1402-1409): "antes de
+//    existir número, nenhum valor; depois, exatamente a faixa derivada que
+//    já está no portal, formatada por um formatador só."
+//
+// O problema nunca foi o DADO — o cálculo está certo, e `031831c6` (16/08)
+// já fechou o caso de "zero virando orçamento" na trava de `orcamento-do-
+// briefing.ts`. O problema é o MOMENTO: mid-conversa, pré-contato, sem
+// revisão. Religar isto reabre exatamente o que `155aefbb` fechou.
+//
+// `ProposalCard` (~616) e `EmailFallbackForm` (~485) estão desligados pela
+// mesma razão — remissão a este bloco, não repetição.
 
 const CONFIDENCE_CFG = {
   none:   { label: "",                     bg: "",               text: "" },
@@ -481,6 +513,16 @@ function GoogleSignInButton({
 }
 
 // ── Email fallback (used inside ProposalCard) ─────────────────────────────────
+//
+// ⚠️ DESLIGADO DE PROPÓSITO — órfão POR TABELA: só é chamado de dentro de
+// `ProposalCard` (~linha 616 abaixo), que por sua vez não tem caller neste
+// arquivo. Motivo e histórico completos no comentário de `EstimateSection`
+// (~linha 271) — não repetido aqui.
+//
+// A tela viva NÃO ficou sem formulário de contato: quem está no ar é
+// `FormularioDeContato` (~linha 1704), outro componente, sem relação com
+// este. Não confunda os dois nem "restaure" este achando que o de contato
+// sumiu.
 
 function EmailFallbackForm({ onSubmit, loading }: { onSubmit: (email: string) => void; loading: boolean }) {
   const [email, setEmail] = useState("");
@@ -612,6 +654,10 @@ function FormularioDeContato({
 }
 
 // ── Proposal card ─────────────────────────────────────────────────────────────
+//
+// ⚠️ DESLIGADO DE PROPÓSITO — sem caller neste arquivo (a chamada que existe é
+// em `BriefingRoomV2.tsx`, outro componente). Motivo e histórico completos no
+// comentário de `EstimateSection` (~linha 271) — não repetido aqui.
 
 function ProposalCard({
   scope,
