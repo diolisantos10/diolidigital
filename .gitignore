@@ -70,6 +70,12 @@ scratch-*
 # Testes de rascunho de auditoria (não versionar)
 __tests__/_scratch/
 
+# Scripts de medição de rascunho (`scripts/_*`). Nascem numa rodada para medir
+# uma tela e morrem nela. Não versionar: 16/08/2026 um deles chegou ao topo da
+# árvore com uma senha de login local escrita na mão dentro. Ferramenta que vale
+# para a casa entra sem o `_` e sem credencial no corpo (ex.: `scripts/shot.mjs`).
+scripts/_*
+
 # Evidência de tela (screenshots de auto-revisão). Prova de trabalho, não
 # entregável: nasce a cada rodada, pesa, e o que importa dela já foi relatado.
 scratchpad/
