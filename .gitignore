@@ -67,6 +67,12 @@ next-env.d.ts
 # Arquivos de rascunho de sessão (não versionar)
 scratch-*
 
+# Ferramenta descartável de uma rodada só: o agente escreve para medir uma tela
+# ou conferir um número, e ela morre com a rodada. Versionar rascunho enche o
+# repositório de script que ninguém mantém e que ninguém sabe se ainda funciona.
+tmp-*
+scripts/tmp-*
+
 # Testes de rascunho de auditoria (não versionar)
 __tests__/_scratch/
 
