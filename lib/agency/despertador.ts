@@ -217,6 +217,10 @@ export async function baterORelogio(): Promise<{
   materiaisRecuperados: number;
   /** Oportunidades NOVAS que entraram pela caixa de e-mail da agência. */
   oportunidadesDaCaixa: number;
+  /** Briefings que estavam parados na porta e ANDARAM até a proposta. */
+  briefingsQueAndaram: number;
+  /** Bastões no chão: handoffs sem aceite com prazo estourado, cobrados. */
+  handoffsCobrados: number;
   backup: boolean;
 }> {
   let retomados = 0;
@@ -231,6 +235,8 @@ export async function baterORelogio(): Promise<{
   let avaliacoes = 0;
   let cobrancasEsquecidas = 0;
   let oportunidadesDaCaixa = 0;
+  let briefingsQueAndaram = 0;
+  let handoffsCobrados = 0;
   /** Arquivos do Drive que estavam presos e finalmente chegaram ao disco. */
   let materiaisRecuperados = 0;
   let backup = false;
@@ -474,6 +480,46 @@ export async function baterORelogio(): Promise<{
     quebrou("cobranca-esquecida", err);
   }
 
+  // ── A PORTA DA FRENTE ACIONA A ESTEIRA (16/08/2026) ───────────────────────
+  // O briefing do CityJobs entrou pelo formulário público com dois PDFs, virou
+  // uma linha em `ClientRequestDb` e PAROU. A tela tinha prometido "em breve
+  // você saberá o orçamento". Não havia bug: não havia CORREIA — o ciclo
+  // assistido só rodava quando alguém chamava a rota à mão, e ninguém chamava.
+  //
+  // Esta é a correia. Teto por rodada, fail-closed na autorização, reserva
+  // antes de gastar, e toda recusa vira LINHA VISÍVEL com motivo em português
+  // (o silêncio era o defeito, não a recusa).
+  try {
+    const { varrerAPortaNoBanco } = await import("@/lib/agency/esteira-assistida/varredura-no-banco");
+    const r = await varrerAPortaNoBanco();
+    briefingsQueAndaram = r.andaram;
+    if (r.andaram > 0) log(`${r.andaram} briefing(s) saíram da porta e chegaram à proposta`);
+    // Recusa NÃO é falha da rodada: é decisão explicada, e já virou linha na
+    // tela. Falha seria a recusa que ninguém consegue ler.
+    for (const d of r.detalhe) {
+      if (d.desfecho === "recusada") log(`briefing de ${d.negocio} não andou: ${d.motivo}`);
+      if (d.desfecho === "parou") quebrou("esteira-da-porta", `${d.negocio}: ${d.motivo}`);
+    }
+  } catch (err) {
+    quebrou("esteira-da-porta", err);
+  }
+
+  // ── O GAVIÃO DOS BASTÕES NO CHÃO (16/08/2026) ─────────────────────────────
+  // A regra do 03-ESTEIRA já dizia que sem aceite a tarefa não sai da fila
+  // anterior, e `handoff.ts` já a cumpria. O que faltava era ALGUÉM OLHANDO:
+  // handoff ficava `aguardando_recebimento` para sempre e ninguém perguntava
+  // por quê. Agora o relógio pergunta, e o atraso vira linha com dono e idade.
+  try {
+    const { cobrarOsBastoesNoChao } = await import("@/lib/agency/esteira-assistida/vigilancia-no-banco");
+    const r = await cobrarOsBastoesNoChao();
+    handoffsCobrados = r.atrasados;
+    if (r.atrasados > 0) {
+      log(`${r.atrasados} handoff(s) sem aceite com prazo estourado — cobrados (${r.subiramAoCeo} sobem ao CEO)`);
+    }
+  } catch (err) {
+    quebrou("gaviao-de-handoff", err);
+  }
+
   // ── A CAIXA DE ENTRADA DA AGÊNCIA ─────────────────────────────────────────
   // A terceira porta do Radar: em vez de esperar alguém colar o projeto ou
   // configurar um encaminhador, a casa LÊ a caixa da agência e ingere sozinha.
@@ -574,11 +620,11 @@ export async function baterORelogio(): Promise<{
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
-    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos },
+    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, briefingsQueAndaram, handoffsCobrados, avisos },
     falhas,
   });
 
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, backup };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, briefingsQueAndaram, handoffsCobrados, backup };
 }
 
 /**

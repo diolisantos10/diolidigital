@@ -97,6 +97,63 @@ A regra de 03/08 exige parecer do especialista `meta` antes de qualquer escrita.
 
 ---
 
+## 2.5 🟢 16/08/2026 — A ESTEIRA COMERCIAL PASSOU A ANDAR SOZINHA
+
+**A consequência, primeiro:** briefing que entra pela porta pública é levado à
+cadeia **pelo relógio**, sem ninguém empurrar, e termina em card de aprovação
+humana. Enquanto não anda, ele **aparece** — com motivo em português, dono e
+idade — em vez de sumir.
+
+**O que estava quebrado, e as duas causas eram silenciosas:** a allowlist de
+execução era por `clientId` e morria no reset; e **não existia correia** entre
+`POST /api/brain/client-requests` e `executarCicloAssistido` — o motor só
+rodava por chamada à mão. Registro completo em `docs/decisoes.md`.
+
+**O que passou a existir:**
+
+| Frente | Onde |
+|---|---|
+| Autorização por AGÊNCIA (sobrevive ao reset e a cliente novo) | `lib/agency/esteira-assistida/autorizacao.ts` |
+| A porta aciona a esteira, a cada passada do relógio | `varredura.ts` + `varredura-no-banco.ts`, perna nova no `despertador.ts` |
+| Recusa com motivo, dono e idade — inclusive antes de o motor abrir | `recusa-visivel.ts`, `RecusaV2`, e a sala do PM |
+| Handoff com PRAZO (da ficha de quem recebe) e cobrança do que estourou | `cadeia.ts` + `vigilancia-de-handoff.ts` + `vigilancia-no-banco.ts` |
+| A ficha inteira chega ao agente em execução (inclusive os gatilhos humanos) | `adaptador-de-ia.ts` → `fichaComoPrompt` |
+| O interruptor virou BOTÃO, não `curl` | `components/agency/LigarAEsteira.tsx` |
+
+**As travas de dinheiro, porque isto gasta sozinho:** teto por rodada ·
+fail-closed na autorização · reserva condicional antes de gastar (`updateMany`
+com `status: "new"` no filtro, não ler-e-depois-escrever) · retomada
+idempotente pelo registro · recusa repetida não regrava (regravar zeraria a
+idade, que é a informação).
+
+**Teste de aceite, rodado ponta a ponta contra banco de verdade:** o briefing
+do CityJobs sai de `ClientRequestDb`, atravessa
+`pm-orchestrator → brand-architect → social-strategist → editorial-planner →
+copywriter → graphic-designer`, cria os handoffs com prazo e chega ao card de
+aprovação. Na **mesma passada**, o Sushi Cazza (sem canal, 51 dias) é
+**recusado sem gastar nada**, com o motivo escrito.
+
+### 🔴 O QUE NÃO FOI FEITO, E POR QUÊ
+
+- 🔴 **O briefing do CityJobs em PRODUÇÃO não foi movido.** Daqui só há HTTP e
+  `POST /api/v2/assistido` responde **401** (medido). Não há `CRON_SECRET` nem
+  sessão de admin neste ambiente. **É o mesmo padrão do último metro** já
+  registrado cinco vezes — a diferença é que agora o último metro é **um clique
+  no botão da sala do PM**, não um `curl`.
+- 🔴 **A esteira nasce DESLIGADA, e isso é deliberado.** Ligar é decisão
+  registrada do dono. Enquanto o CEO não clicar, o deploy **não muda
+  comportamento nenhum** — a fila só passa a ser visível.
+- ⚠️ **A qualidade do artefato depende de provedor de IA.** Sem chave, o
+  adaptador degrada para o rascunho determinístico declarado (Lei 2). Neste
+  ambiente não há chave, então o aceite provou **o caminho**, não o texto final.
+- ⚠️ **Aceite de handoff continua sendo do recebedor.** O gavião **cobra**; ele
+  não aceita no lugar de ninguém (há teste que reprova quem lhe der o verbo).
+- ⚠️ **`Client` continua sem `@@unique(workspaceId, name)`.** A varredura
+  deduplica por nome em código — melhor que as duas rotas que não deduplicam
+  nada —, mas a trava de banco continua sem dono.
+
+---
+
 ## 3. AS OITO FRENTES DESTA RODADA
 
 Ordem de execução decidida pelo CEO. **Na ordem, 1 a 8.**

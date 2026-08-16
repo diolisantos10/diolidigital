@@ -216,6 +216,12 @@ export async function executarCicloAssistido(
             saida: `Artefato de ${funcaoId}: ${spec.saida.formato}`,
             versaoArtefato: `v1-ciclo-${pedido.correlationId}`,
             criterios: spec.metrica_sucesso,
+            // O PRAZO SAI DA FICHA DE QUEM RECEBE, não de quem entrega
+            // (16/08/2026). `sla_horas` é o compromisso do recebedor: é ele
+            // que promete devolver em tanto tempo, e é ele que o gavião do
+            // relógio vai cobrar quando estourar. Handoff sem prazo é handoff
+            // que nunca atrasa — e o que nunca atrasa nunca é cobrado.
+            prazoProximo: new Date(deps.agora().getTime() + proximaSpec.spec.sla_horas * 3_600_000),
             correlationId: pedido.correlationId,
           },
           deps.handoffs,

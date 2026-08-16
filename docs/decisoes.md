@@ -8,6 +8,60 @@
 
 ---
 
+## A ESTEIRA É AUTORIZADA POR AGÊNCIA, NÃO PELO ID DO CLIENTE
+
+**Decidido em** 2026-08-16 · **por** o `pm`, por ordem do Diretor ·
+**origem:** o briefing do CityJobs parado em `ClientRequestDb`, sem uma palavra
+de explicação em lugar nenhum.
+
+**O que aconteceu, na ordem.** O CEO zerou a agência (modo inauguração) e
+recadastrou o CityJobs. Um briefing entrou pela porta pública com dois PDFs; a
+tela prometeu *"em breve você saberá o orçamento"*. O registro virou linha no
+banco e **parou**. Nenhuma execução de cadeia no log — só `sdr/chat`, o pedido,
+e silêncio. O CEO passou meia hora achando que o produto tinha um defeito.
+
+**Não tinha.** Havia **duas** causas empilhadas, e as duas eram silenciosas:
+
+1. **A allowlist morria junto com o cliente.** `v2_execucao` era ligada no
+   escopo do `clientId` (regra 3 da ativação, 15/08). `POST /api/admin/reset`
+   apaga `Client` e `ClientRequestDb`, e **não** apaga `AgencyWorkspace` nem
+   `FlagV2` — a chave continuou virada apontando para um cliente que deixou de
+   existir, e o CityJobs recadastrado nasceu com id novo, fora dela.
+2. **Não existia correia entre a porta e o motor.** `executarCicloAssistido`
+   só rodava quando alguém chamava `POST /api/v2/assistido` à mão. Nada no
+   relógio o chamava. O motor estava montado e desconectado da porta da frente.
+
+**A decisão, em uma frase: a autorização da esteira é da AGÊNCIA, porque a
+agência sobrevive ao ciclo de vida do cliente e o `clientId` não.**
+
+- **O escopo por cliente NÃO morreu** — continua sendo a camada mais
+  específica, e é por ela que se faz o oposto: **desligar um cliente sozinho**
+  sem desligar a casa (`false` no cliente vence `true` na agência).
+- **`global` continua proibido em código** (regra 3 de pé, com teste).
+- **Ligar continua sendo decisão registrada do dono, nunca efeito de deploy.**
+  A flag grava `decididoPor`. Um deploy que ligasse a esteira poria a casa a
+  gastar IA sem ninguém ter decidido nada e sem nome para responder por isso.
+  Por isso o interruptor virou **botão na sala do PM**, e não um `curl`: o
+  padrão desta casa é o último metro exigir uma credencial que ninguém tem.
+
+**O corolário que vale para o resto do produto: recusa sem tela é recusa
+invisível, e recusa invisível parece defeito.** Todo "não" do motor passa a
+gravar linha com **motivo em português, dono e idade** — inclusive os "não" que
+acontecem **antes** de o motor abrir (o 403 da rota e a solicitação que nem
+chega a ser levada). Dono e idade são **derivados**, não colunas: dono gravado
+congelaria a organização do dia em que a recusa nasceu, e idade em coluna é um
+número que envelhece errado.
+
+**O que a prova ao vivo mudou no desenho.** Na primeira passada num servidor
+de verdade, a varredura processou uma linha antiga em `new` **sem contato** —
+pagou seis funções de IA para produzir uma proposta sem para onde ir. É o caso
+do Sushi Cazza (51 dias na porta, nenhum canal). A regra de 08/08 — *sem canal
+não há proposta* — passou a valer também aqui: o lead **não** é descartado,
+fica na porta, visível, com a idade correndo e o motivo escrito. **Esse achado
+saiu da tela, não da leitura.**
+
+---
+
 ## O ANÚNCIO SÓ NASCE COM ATIVO QUE SE PROVA DO DONO — PÁGINA E ARTE
 
 **Decidido em** 2026-08-15 · **por** `seguranca`, a pedido do Diretor ·

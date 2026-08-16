@@ -5,6 +5,9 @@
 //
 //   { acao: "ligar",  cliente: "<nome>" }        → garante o Client e vira a
 //     chave v2_execucao SÓ no escopo dele (global é recusado em código).
+//   { acao: "ligar_agencia" }                    → vira a chave no escopo do
+//     WORKSPACE. É a forma que sobrevive ao reset e a cliente novo — ver
+//     `lib/agency/esteira-assistida/autorizacao.ts` para o porquê inteiro.
 //   { acao: "ciclo",  clienteId, solicitacao }   → roda a cadeia assistida
 //     inteira e termina em card de APROVAÇÃO HUMANA — nada é publicado.
 //   { acao: "status" }                           → chaves viradas + últimas
@@ -19,6 +22,8 @@ import { exigirAdministracao } from "@/lib/agency/organizacao/guarda";
 import { prisma } from "@/lib/db/client";
 import { flagLigada, FLAGS_V2, type ArmazemDeFlags } from "@/lib/agency/flags-v2/flags";
 import { virarChaveDoPiloto } from "@/lib/agency/esteira-assistida/piloto";
+import { esteiraAutorizada } from "@/lib/agency/esteira-assistida/autorizacao";
+import { registrarRecusaVisivel, AUTORIZACAO_DA_ESTEIRA } from "@/lib/agency/esteira-assistida/recusa-visivel";
 import { executarCicloAssistido, type DependenciasDoCiclo } from "@/lib/agency/esteira-assistida/cadeia";
 import { realizarComIA } from "@/lib/agency/esteira-assistida/adaptador-de-ia";
 import { armazemDeHandoffsNoBanco } from "@/lib/agency/handoff-v2/armazem-prisma";
@@ -29,11 +34,13 @@ import type { PerfilOrganizacional } from "@/lib/agency/organizacao/autoridade";
 export const maxDuration = 300;
 
 interface Corpo {
-  acao?: "ligar" | "ciclo" | "status";
+  acao?: "ligar" | "ligar_agencia" | "ciclo" | "status";
   cliente?: string;
   clienteId?: string;
   solicitacao?: string;
   motivo?: string;
+  /** Só em `ligar_agencia`: `false` DESLIGA a esteira da casa (o rollback). */
+  ligar?: boolean;
   /** Retomar um ciclo já iniciado (o trabalho pago não se repete). */
   clientRequestId?: string;
 }
@@ -104,6 +111,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: true, clienteId: cliente.id, cliente: cliente.name, workspaceId: workspace.id });
   }
 
+  // ─── LIGAR A ESTEIRA DA AGÊNCIA INTEIRA ──────────────────────────────────
+  //
+  // A allowlist por `clientId` quebrava a cada reset e a cada cliente novo, e
+  // quebrava CALADA: o CityJobs foi recadastrado com id novo, nasceu fora da
+  // lista e o motor recusou em silêncio. O escopo do WORKSPACE sobrevive ao
+  // ciclo de vida do cliente — o reset não apaga `AgencyWorkspace` nem
+  // `FlagV2`. O motivo completo mora em `esteira-assistida/autorizacao.ts`.
+  if (corpo.acao === "ligar_agencia") {
+    const workspace = await prisma.agencyWorkspace.findFirst({ orderBy: { createdAt: "asc" } });
+    if (!workspace) return NextResponse.json({ error: "nenhum workspace na base — a casa não abriu ainda" }, { status: 409 });
+    const resultado = await virarChaveDoPiloto(
+      {
+        escopo: workspace.id,
+        motivo: corpo.motivo?.trim() || "Esteira automática da agência ligada — a autorização passa a ser por agência (16/08/2026)",
+        decididoPor: auth.quem,
+        ligar: corpo.ligar === false ? false : true,
+      },
+      {
+        async gravar(chave, escopo, ligada, motivo, decididoPor) {
+          await prisma.flagV2.upsert({
+            where: { chave_escopo: { chave, escopo } },
+            update: { ligada, motivo, decididoPor, em: new Date() },
+            create: { chave, escopo, ligada, motivo, decididoPor },
+          });
+        },
+      },
+    );
+    if (!resultado.ok) return NextResponse.json({ error: resultado.motivo }, { status: 400 });
+    return NextResponse.json({ ok: true, escopo: "agencia", workspaceId: workspace.id, ligada: corpo.ligar !== false });
+  }
+
   if (corpo.acao === "ciclo") {
     const clienteId = corpo.clienteId?.trim();
     const solicitacao = corpo.solicitacao?.trim();
@@ -113,10 +151,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const cliente = await prisma.client.findUnique({ where: { id: clienteId } });
     if (!cliente) return NextResponse.json({ error: "cliente não existe — ligue o piloto primeiro" }, { status: 404 });
 
-    // A chave TEM que estar virada no escopo do cliente — a cadeia não abre exceção.
-    const chave = await flagLigada(FLAGS_V2.execucao, [clienteId], armazemDeFlags());
-    if (!chave) {
-      return NextResponse.json({ error: `v2_execucao desligada para ${cliente.name} — allowlist primeiro` }, { status: 403 });
+    // A chave TEM que estar virada — no cliente OU na agência. A cadeia não
+    // abre exceção; o que mudou é o ESCOPO que vale (16/08/2026).
+    //
+    // ⚠️ E a recusa DEIXOU DE SER MUDA. Antes, este 403 devolvia HTTP e não
+    // gravava nada: o sistema sabia exatamente o motivo e não contava a
+    // ninguém. Custou meia hora do CEO achando que era defeito do produto.
+    const autorizacao = await esteiraAutorizada(
+      { clienteId, workspaceId: cliente.workspaceId, nomeDoCliente: cliente.name },
+      armazemDeFlags(),
+    );
+    if (!autorizacao.autorizada) {
+      await registrarRecusaVisivel(
+        { criar: (dados) => prisma.recusaV2.create({ data: { ...dados, clienteId: dados.clienteId ?? null } }) },
+        {
+          funcaoId: AUTORIZACAO_DA_ESTEIRA,
+          motivo: autorizacao.motivo,
+          correlationId: `porta:${clienteId}`,
+          clienteId,
+          em: new Date(),
+        },
+      );
+      return NextResponse.json({ error: autorizacao.motivo }, { status: 403 });
     }
 
     // A solicitação entra pelo caminho oficial (rastro desde a porta) — ou

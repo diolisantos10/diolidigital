@@ -51,6 +51,66 @@ export function rascunhoRuleBased(
   };
 }
 
+/** O que "autonomia" quer dizer para quem está executando, em uma frase. */
+const AUTONOMIA_EM_PORTUGUES: Record<string, string> = {
+  A: "Autonomia A — você decide e executa sozinho dentro da sua alçada.",
+  B: "Autonomia B — você executa, mas o resultado passa por revisão antes de valer.",
+  C: "Autonomia C — você PROPÕE; nada seu vale sem decisão humana registrada.",
+};
+
+/**
+ * A FICHA CHEGA AO AGENTE EM EXECUÇÃO — não só ao motor.
+ *
+ * ─── Por que isto mudou (16/08/2026) ────────────────────────────────────────
+ * As 69 fichas da V2 carregam `handoff.recebe_de`, `handoff.entrega_para`,
+ * `sla_horas`, `autonomia`, `gatilhos_humanos` e as listas de ferramentas e
+ * dados proibidos. O motor lia tudo isso e USAVA para decidir — mas o prompt
+ * mandava ao modelo apenas função, departamento, métrica, formato e para quem
+ * entrega. O agente executava sem saber DE QUEM recebeu, sem saber o que era
+ * proibido tocar e, principalmente, SEM SABER QUANDO CHAMAR UM HUMANO.
+ *
+ * Isso não é detalhe de prompt. A trava dos gatilhos humanos no executor só
+ * dispara com `gatilhosDetectados` vindos do chamador; se o próprio agente
+ * não souber quais são, ele nunca declara o gatilho — e a decisão que devia
+ * subir é executada por conta própria, em silêncio. Contar ao agente é a
+ * primeira metade; a trava do motor continua sendo a segunda.
+ *
+ * O que o prompt NÃO faz: não vira permissão. Um modelo que ignore o texto
+ * continua barrado por `ferramentas_proibidas`, pelo teto de custo e pelo
+ * fail-closed da ficha ausente. Prompt é aviso; a trava é o motor.
+ */
+export function fichaComoPrompt(spec: SpecOperacional): string {
+  const linhas: string[] = [
+    `Você é a função executora "${spec.funcao}" do departamento "${spec.departamento}" da agência Dioli Digital.`,
+    `Sua métrica de sucesso, pela ficha do cargo: ${spec.metrica_sucesso}.`,
+    AUTONOMIA_EM_PORTUGUES[spec.autonomia] ?? `Autonomia ${spec.autonomia}.`,
+    `Você RECEBE de: ${spec.handoff.recebe_de || "a porta de entrada da agência"}.`,
+    `Você ENTREGA para: ${spec.handoff.entrega_para || "o PM da esteira"}. Produza trabalho completo e utilizável, não um esboço — quem recebe trabalha em cima do seu artefato.`,
+    `Prazo do seu passo (SLA da ficha): ${spec.sla_horas} h. Handoff sem aceite não sai da fila de quem entregou.`,
+    `Formato de saída exigido pela ficha: ${spec.saida.formato}. Esquema: ${spec.saida.esquema}.`,
+  ];
+
+  if (spec.gatilhos_humanos.length > 0) {
+    linhas.push(
+      `CHAME UM HUMANO — não decida sozinho — se qualquer um destes aparecer: ${spec.gatilhos_humanos.join("; ")}. ` +
+        `Nesse caso, escreva no campo do artefato que a decisão precisa subir, e diga qual gatilho bateu.`,
+    );
+  }
+  if (spec.ferramentas_proibidas.length > 0) {
+    linhas.push(`Ferramentas PROIBIDAS para você: ${spec.ferramentas_proibidas.join(", ")}.`);
+  }
+  if (spec.dados_proibidos.length > 0) {
+    linhas.push(`Dados que você NÃO pode acessar nem citar: ${spec.dados_proibidos.join(", ")}.`);
+  }
+
+  linhas.push(
+    `Lei da casa: ausência de informação NÃO é informação. Se um dado do cliente não veio nas entradas, escreva "preciso confirmar" — nunca preencha por inferência, nunca invente número, nome, prazo ou promessa comercial.`,
+    `Responda SOMENTE com JSON válido, sem texto fora do JSON.`,
+  );
+
+  return linhas.join("\n");
+}
+
 export interface OpcoesDoAdaptador {
   workspaceId?: string;
   clienteId?: string | null;
@@ -83,13 +143,7 @@ export function realizarComIA(opcoes: OpcoesDoAdaptador): DependenciasDoExecutor
       return rascunhoRuleBased(spec, contexto, "nenhum provedor de IA configurado no ambiente");
     }
     const resultado = await generate({
-      system: [
-        `Você é a função executora "${spec.funcao}" do departamento "${spec.departamento}" da agência Dioli Digital.`,
-        `Sua métrica de sucesso, pela ficha do cargo: ${spec.metrica_sucesso}.`,
-        `Formato de saída exigido pela ficha: ${spec.saida.formato}. Esquema: ${spec.saida.esquema}.`,
-        `Você entrega para: ${spec.handoff.entrega_para}. Produza trabalho completo e utilizável, não um esboço.`,
-        `Responda SOMENTE com JSON válido, sem texto fora do JSON.`,
-      ].join("\n"),
+      system: fichaComoPrompt(spec),
       user: blocoDeEntradas(contexto),
       maxTokens: 1800,
       workspaceId: opcoes.workspaceId,
