@@ -8,6 +8,15 @@ import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
+import {
+  ESTADO_INICIAL,
+  FRASE_SEM_CONTATO,
+  contatoDaCaptura,
+  lerResposta,
+  perguntaDoTurno,
+  turnosDaCaptura,
+  type EstadoDaCaptura,
+} from "@/lib/agency/comercial/captura-conversacional";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
 
@@ -501,105 +510,156 @@ function EmailFallbackForm({ onSubmit, loading }: { onSubmit: (email: string) =>
   );
 }
 
-// ── Formulário de contato ─────────────────────────────────────────────────────
+// ── A captura conversacional de contato ───────────────────────────────────────
 //
-// Nome + PELO MENOS UM canal. O WhatsApp entra na frente do e-mail, e a ordem
-// não é estética: é por onde o cliente brasileiro responde. O formulário
-// anterior aceitava **só** e-mail — e o e-mail que o Google devolve é a caixa
-// que a pessoa não abre.
+// ⚠️ ISTO ERA UM FORMULÁRIO DE TRÊS CAMPOS ATÉ 16/08/2026, e a troca tem motivo.
 //
-// O momento do pedido é o FIM da conversa, com a proposta na tela, e isso é
-// escolha declarada: pedir contato na primeira mensagem cobra antes de entregar
-// e espanta quem só está olhando; pedir depois de a pessoa já ter contado o
-// negócio inteiro é a hora em que o pedido é natural — ela investiu, quer o
-// resultado, e o contato é o que faz o resultado chegar até ela.
+// Nome, WhatsApp e e-mail empilhados, com o botão APAGADO até tudo estar
+// preenchido, é um formulário — e formulário no fim de uma conversa quebra o
+// único registro que ela tinha. A pessoa acabou de contar o negócio dela
+// conversando; a última tela pedia que ela virasse cadastro.
+//
+// Agora é UMA PERGUNTA POR VEZ, com pular sempre disponível e sem botão apagado
+// esperando que a pessoa adivinhe o que falta. A ordem, os textos e a leitura
+// das respostas moram em `lib/agency/comercial/captura-conversacional.ts` — puro,
+// testável, sem IA. Este componente só desenha o que aquele módulo decide.
+//
+// ── O QUE **NÃO** MUDOU, E É O QUE PROTEGE A CASA ─────────────────────────────
+//
+//   • O pedido continua no PASSO DE CONFIRMAÇÃO, nunca na descoberta. Pedir
+//     contato no meio da conversa foi o que produziu o incidente do "só isso" —
+//     `__tests__/briefing/identity-capture.test.ts` continua valendo inteiro.
+//   • Nenhuma pergunta daqui passa pelo `/api/sdr/chat`. Não há modelo nenhum
+//     nesta captura, e por isso a trava `EMAIL_HALLUCINATION` daquela rota
+//     continua de pé, intacta: lá, quem pede e-mail é o modelo alucinando; aqui,
+//     quem pede é código que a casa escreveu, noutra tela, noutro passo.
+//   • Recusar continua permitido e continua gravando `lead_incompleto`.
 
-const RE_EMAIL_UI = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const digitos = (v: string) => v.replace(/\D/g, "");
-const zapValido = (v: string) => digitos(v).length >= 10 && digitos(v).length <= 13;
-
-function FormularioDeContato({
+// Exportado para poder ser RENDERIZADO em teste. Até 15/08 os testes de tela
+// desta casa liam o código-fonte do componente — o que pega texto que sumiu e
+// não pega a tela que não monta.
+export function CapturaDeContato({
+  nomeConhecido,
   onSubmit,
   onSemContato,
   loading,
 }: {
+  nomeConhecido?: string | null;
   onSubmit: (contato: { nome: string; email: string; whatsapp: string }) => void;
   onSemContato: () => void;
   loading: boolean;
 }) {
-  const [nome, setNome]         = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
-  const [email, setEmail]       = useState("");
+  const turnos = turnosDaCaptura(!!nomeConhecido?.trim());
+  const [indice, setIndice] = useState(0);
+  const [estado, setEstado] = useState<EstadoDaCaptura>({
+    ...ESTADO_INICIAL,
+    nome: nomeConhecido?.trim() ?? "",
+  });
+  const [rascunho, setRascunho] = useState("");
+  const [recado, setRecado] = useState<string | null>(null);
 
-  const zapOk   = zapValido(whatsapp);
-  const emailOk = RE_EMAIL_UI.test(email);
-  const temCanal = zapOk || emailOk;
-  const nomeOk  = nome.trim().length >= 2;
-  const valido  = nomeOk && temCanal;
+  const campo = turnos[indice];
+  const pergunta = perguntaDoTurno(campo, estado, estado.nome ? estado.nome.split(" ")[0] : null);
+  const ultimo = indice === turnos.length - 1;
 
-  // O motivo do bloqueio é ESCRITO. Botão apagado sem dizer o porquê é o mesmo
-  // que não ter botão — a pessoa não descobre o que falta e fecha a aba.
-  const oQueFalta = !nomeOk
-    ? "Escreva seu nome."
-    : !temCanal
-    ? "Preencha o WhatsApp ou o e-mail — precisamos de pelo menos um."
-    : null;
+  function avancar(estadoNovo: EstadoDaCaptura) {
+    setRascunho("");
+    setRecado(null);
+    if (ultimo) {
+      // Fim da captura. Sem canal nenhum, isto vira EXATAMENTE o mesmo caminho
+      // de quem recusou: um envio só, sem contato, e o servidor decide. Chamar
+      // os dois caminhos aqui mandaria o briefing duas vezes — o prospect
+      // apareceria duplicado na fila, que é a Camila de 08/08 de novo.
+      const contato = contatoDaCaptura(estadoNovo);
+      if (contato) onSubmit(contato);
+      else onSemContato();
+      return;
+    }
+    setEstado(estadoNovo);
+    setIndice(indice + 1);
+  }
+
+  function responder() {
+    if (loading) return;
+    const { valor, recado: aviso } = lerResposta(campo, rascunho);
+    if (!valor) {
+      // Não deu para entender: um recado curto, UMA vez, e a pessoa continua
+      // podendo seguir pelo mesmo botão de sempre. Nada é recusado e a pergunta
+      // não se repete em laço — foi o laço que travou o prospect no incidente.
+      if (aviso && !recado) { setRecado(aviso); return; }
+      avancar(estado);
+      return;
+    }
+    avancar({ ...estado, [campo]: valor });
+  }
+
+  const enviaAgora = ultimo;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
+      {/* A pergunta, escrita como fala — não como rótulo de campo. */}
+      <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{pergunta.texto}</p>
+
       <input
-        type="text"
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
-        placeholder="Seu nome"
-        autoComplete="name"
+        type={pergunta.tipo}
+        inputMode={pergunta.tipo === "tel" ? "tel" : pergunta.tipo === "email" ? "email" : "text"}
+        autoComplete={pergunta.campo === "nome" ? "name" : pergunta.campo === "whatsapp" ? "tel" : "email"}
+        value={rascunho}
+        onChange={(e) => setRascunho(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); responder(); } }}
+        placeholder={pergunta.placeholder}
         className="w-full px-3 py-2.5 border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] transition-colors"
         style={{ fontSize: "16px" }}
       />
-      <input
-        type="tel"
-        inputMode="tel"
-        value={whatsapp}
-        onChange={(e) => setWhatsapp(e.target.value)}
-        placeholder="WhatsApp com DDD"
-        autoComplete="tel"
-        className="w-full px-3 py-2.5 border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] transition-colors"
-        style={{ fontSize: "16px" }}
-      />
-      <input
-        type="email"
-        inputMode="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="seu@email.com"
-        autoComplete="email"
-        className="w-full px-3 py-2.5 border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] transition-colors"
-        style={{ fontSize: "16px" }}
-      />
+
+      {/* O botão NUNCA fica apagado por falta de resposta. Botão apagado sem
+          dizer o porquê é o mesmo que não ter botão — e aqui não há nada a
+          exigir: seguir sem responder é caminho legítimo. */}
       <button
-        onClick={() => valido && onSubmit({ nome: nome.trim(), email: emailOk ? email.trim() : "", whatsapp: zapOk ? whatsapp.trim() : "" })}
-        disabled={!valido || loading}
+        onClick={responder}
+        disabled={loading}
         style={{ touchAction: "manipulation" }}
         className="w-full h-11 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors"
       >
-        {loading ? "Enviando…" : "Receber minha proposta →"}
+        {loading ? "Enviando…" : `${pergunta.acao} →`}
       </button>
-      {oQueFalta && (
-        <p className="text-[12px] text-[var(--text-muted)] text-center leading-relaxed">{oQueFalta}</p>
+
+      {recado && (
+        <p className="text-[12px] text-[var(--text-muted)] text-center leading-relaxed">{recado}</p>
+      )}
+
+      {/* Pular é um turno respondido, não uma desistência — e aparece em TODOS
+          os turnos que não são o último. Dizer no código que "pular sempre pode"
+          e não mostrar o caminho na tela é a mesma coisa que não poder: quem não
+          vê a saída escreve qualquer coisa no campo para se livrar dele, e aí a
+          casa ganha um telefone inventado em vez de um lead honesto sem canal. */}
+      {!enviaAgora && (
+        <button
+          onClick={() => !loading && avancar(estado)}
+          disabled={loading}
+          style={{ touchAction: "manipulation" }}
+          className="w-full h-9 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors disabled:opacity-40"
+        >
+          Pular
+        </button>
       )}
 
       {/* A saída honesta. Sem ela, quem não quer dar contato fecha a aba e a
           conversa inteira — a melhor matéria-prima que esta agência recebe —
           desaparece sem deixar registro. Com ela, o briefing fica gravado e
-          aparece na fila com o motivo. O que ela NÃO faz é gerar proposta. */}
-      <button
-        onClick={() => !loading && onSemContato()}
-        disabled={loading}
-        style={{ touchAction: "manipulation" }}
-        className="w-full h-9 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] underline underline-offset-2 transition-colors disabled:opacity-40"
-      >
-        Prefiro não deixar contato agora
-      </button>
+          aparece na fila com o motivo. O que ela NÃO faz é gerar proposta.
+          A frase acima dela existe para a tela não prometer o que não cumpre. */}
+      <div className="pt-1 border-t border-[var(--border)]">
+        <p className="text-[11px] text-[var(--text-subtle)] leading-relaxed pt-2">{FRASE_SEM_CONTATO}</p>
+        <button
+          onClick={() => !loading && onSemContato()}
+          disabled={loading}
+          style={{ touchAction: "manipulation" }}
+          className="w-full h-9 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] underline underline-offset-2 transition-colors disabled:opacity-40"
+        >
+          Prefiro não deixar contato agora
+        </button>
+      </div>
     </div>
   );
 }
@@ -1611,7 +1671,8 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 <span className="text-[12px] text-[var(--text-subtle)]">ou</span>
                 <div className="flex-1 h-px bg-[var(--accent)]" />
               </div>
-              <FormularioDeContato
+              <CapturaDeContato
+                nomeConhecido={scope.prospectName}
                 onSubmit={(c) => handleSubmitWithContact(c)}
                 onSemContato={() => handleSubmitWithContact(null)}
                 loading={submitting}
