@@ -1,0 +1,11 @@
+{
+  "id": "briefing-tela-do-sdr",
+  "quem": "pm-defeitos-do-ceo",
+  "frente": "a fala do agente que o visitante nao enxerga na tela do SDR enquanto digita ou grava audio",
+  "responsabilidade": "briefing-tela-do-sdr",
+  "arquivos": [
+    "components/agency/briefing/PublicBriefingRoom.tsx"
+  ],
+  "abertaEm": "2026-08-16T18:52:45.052Z",
+  "encerradaEm": null
+}
