@@ -7,10 +7,54 @@ import {
   solicitacaoDoWorkspace,
 } from "@/lib/auth/posse-de-workspace";
 import { runAutoScope } from "@/lib/dioli-brain/run-auto-scope";
-import { rateLimited } from "@/lib/security/rate-limit";
+import { limiteExcedido } from "@/lib/security/limite-no-banco";
 import { sendEmail } from "@/lib/email/send";
 import { briefingConfirmationEmail } from "@/lib/email/templates";
 import { lerContato, montarContato } from "@/lib/agency/comercial/contato-do-lead";
+
+// ── OS TETOS DA ÚNICA PORTA PÚBLICA DE GRAVAÇÃO (raio-x de 16/08/2026) ────────
+//
+// Esta rota é a única de ESCRITA que responde sem sessão — é o submit do
+// formulário `/briefing`, e isso é por desenho. O que NÃO era por desenho: ela
+// gravava qualquer coisa, de qualquer tamanho, quantas vezes coubesse.
+//
+// O `bodySizeLimit: "20mb"` do `next.config.ts` NÃO cobre isto: aquele número
+// vale só para Server Actions. Route handler não tem teto nenhum de fábrica —
+// `await request.json()` engole o que vier. Com o SQLite morando num volume de
+// tamanho fixo, o caminho mais curto para derrubar a casa inteira era um POST
+// com um corpo gigante, repetido: enche o disco, e disco cheio não é "briefing
+// perdido", é login quebrado, deploy travado e portal fora do ar.
+//
+// A CALIBRAGEM É DELIBERADAMENTE FOLGADA. O alvo é abuso, não cliente. Um
+// briefing de verdade — conversa inteira do SDR, escopo e estimativa — vive na
+// casa das dezenas de KB. 1 MB é uma ordem de grandeza acima do maior briefing
+// que já entrou aqui. Errar a mão para baixo bloquearia o próprio CEO, que está
+// em piloto e manda briefing hoje; errar para cima só devolve o buraco.
+const TETO_DO_CORPO      = 1_000_000; // ~1 MB do POST inteiro
+const TETO_DO_RAW_CONTEXT = 200_000;  // ~200 mil caracteres de texto corrido
+const TETO_DE_JSON        = 400_000;  // cada um: briefingJson e sdrHandoffJson
+
+// Alinhado ao `MAX_FILES` de `components/agency/briefing/FileUploadZone.tsx`.
+// Regra de tela NÃO é trava: um POST direto passa por cima de qualquer
+// `disabled` de botão — é a mesma lição que produziu o gate de contato abaixo.
+const TETO_DE_ANEXOS = 10;
+
+/** Bytes reais do texto (não `length`, que conta caracteres: um emoji do
+ *  briefing ocupa 4 bytes no disco e 2 no `length`). */
+function bytesDe(texto: string): number {
+  return new TextEncoder().encode(texto).length;
+}
+
+/** O 413 desta casa: em português, dizendo o que fazer, sem revelar o teto
+ *  exato — número publicado é número que o abusador usa para chegar rente. */
+function corpoGrandeDemais(oQue: string): NextResponse {
+  return NextResponse.json(
+    {
+      error: `Envio grande demais (${oQue}). Reduza o conteúdo e tente de novo — se precisar mandar arquivos, use os anexos do briefing.`,
+    },
+    { status: 413 },
+  );
+}
 
 // Fire-and-forget prospect confirmation. O endereço sai do leitor único de
 // contato (`lerContato`) — não de um `?.scope?.prospectEmail` reinventado aqui.
@@ -82,15 +126,61 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  // Public + fires the AI auto-scope pipeline — cap it tightly per IP.
-  const limited = rateLimited(request, "client-requests", 8, 60_000);
-  if (limited) return limited as NextResponse;
+  // ── TETO DE RITMO NO BANCO, não na memória ──────────────────────────────────
+  //
+  // Aqui rodava `rateLimited`, o contador que mora num `Map` do processo. As
+  // duas consequências estão escritas no próprio `lib/security/rate-limit.ts`:
+  // todo deploy ZERA os baldes (num abuso em curso, qualquer push desta casa
+  // devolve a cota inteira ao abusador), e com duas réplicas o teto real vira
+  // 2 × o número. As quatro rotas públicas pagas migraram para o contador do
+  // banco em 06/08; ESTA — a única pública que GRAVA — ficou para trás e só foi
+  // notada no raio-x de 16/08.
+  //
+  // 20 em 10 minutos é folga de sobra para gente de verdade: ninguém preenche
+  // vinte briefings em dez minutos. E é mais apertado que o anterior no que
+  // importa — 8/minuto autorizava 480 registros por hora; isto autoriza 120.
+  const barrado = await limiteExcedido(request, "client-requests", 20, 10 * 60_000);
+  if (barrado) return barrado as NextResponse;
+
+  // O teto de tamanho vem ANTES do parse, e em duas camadas. O `content-length`
+  // é a barata: recusa sem ler um byte do corpo. Mas ele é declarado pelo
+  // CHAMADOR — pode faltar (`Transfer-Encoding: chunked`) ou simplesmente
+  // mentir. Por isso o texto é medido de novo depois de lido: a primeira camada
+  // economiza, a segunda é a que de fato trava.
+  const declarado = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declarado) && declarado > TETO_DO_CORPO) {
+    return corpoGrandeDemais("o envio inteiro");
+  }
+
+  let bruto: string;
+  try {
+    bruto = await request.text();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  if (bytesDe(bruto) > TETO_DO_CORPO) return corpoGrandeDemais("o envio inteiro");
 
   let body: Record<string, unknown>;
   try {
-    body = await request.json();
+    body = JSON.parse(bruto) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  if (body == null || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  // Os dois campos-baú do briefing. Não dá para truncar uma ESTRUTURA pela
+  // metade sem gravar um objeto quebrado que ninguém consegue ler depois —
+  // então estes se recusam, com o mesmo 413 e a mesma instrução em português.
+  for (const [campo, rotulo] of [
+    ["briefingJson", "as respostas do briefing"],
+    ["sdrHandoffJson", "o resumo da conversa"],
+  ] as const) {
+    const valor = body[campo];
+    if (valor != null && bytesDe(JSON.stringify(valor)) > TETO_DE_JSON) {
+      return corpoGrandeDemais(rotulo);
+    }
   }
 
   const { businessName } = body;
@@ -130,6 +220,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const contato = lerContato({ briefingJson, sdrHandoffJson: body.sdrHandoffJson });
 
+  // `rawContext` é texto corrido, e texto corrido SE TRUNCA — aqui a escolha é
+  // deliberada e segue a mesma regra do gate de contato logo acima: o que a
+  // pessoa já contou não se perde. Recusar o briefing inteiro por causa do fim
+  // de um texto jogaria fora um lead legítimo; cortar com marca deixa o começo
+  // (que é onde o prospect diz o que quer) intacto e visível para o PM.
+  const rawContextBruto = typeof body.rawContext === "string" ? body.rawContext : "";
+  const rawContext =
+    rawContextBruto.length > TETO_DO_RAW_CONTEXT
+      ? `${rawContextBruto.slice(0, TETO_DO_RAW_CONTEXT)}\n\n[…texto cortado no limite de tamanho do servidor]`
+      : rawContextBruto;
+
+  // Mesma escolha para os anexos: aqui só entra METADADO (nome, tipo, tamanho —
+  // o arquivo em si não passa por esta rota), então cortar o excedente custa
+  // pouco e nunca derruba um briefing honesto. A tela já para em 10; passar de
+  // 10 significa que não foi a tela que mandou.
+  const anexosBrutos = Array.isArray(body.attachmentsJson) ? (body.attachmentsJson as object[]) : [];
+  const attachmentsJson = anexosBrutos.slice(0, TETO_DE_ANEXOS);
+  if (anexosBrutos.length > TETO_DE_ANEXOS) {
+    console.warn(
+      `[client-requests] ${anexosBrutos.length} anexos recebidos — cortado em ${TETO_DE_ANEXOS} (limite do servidor)`,
+    );
+  }
+
   try {
     const record = await createClientRequest({
       status: contato.temComoFalar ? "new" : "lead_incompleto",
@@ -137,7 +250,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       segment:         typeof body.segment        === "string"   ? body.segment          : undefined,
       services:        Array.isArray(body.services)              ? body.services as string[] : [],
       objectives:      Array.isArray(body.objectives)            ? body.objectives as string[] : [],
-      rawContext:      typeof body.rawContext      === "string"   ? body.rawContext        : "",
+      rawContext,
       source:          typeof body.source         === "string"   ? body.source            : "briefing",
       // `workspaceId`/`clientId` do CORPO não entram mais: esta rota é pública
       // (é o submit do formulário /briefing) e aceitá-los deixava qualquer
@@ -149,7 +262,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // nunca informado.
       briefingJson,
       sdrHandoffJson:  body.sdrHandoffJson  != null              ? body.sdrHandoffJson as object : undefined,
-      attachmentsJson: Array.isArray(body.attachmentsJson)       ? body.attachmentsJson as object[] : [],
+      attachmentsJson,
     });
 
     if (contato.temComoFalar) {
