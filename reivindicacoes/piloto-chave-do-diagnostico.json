@@ -1,0 +1,12 @@
+{
+  "id": "piloto/chave-do-diagnostico",
+  "quem": "ses-f46a552271",
+  "frente": "chave propria para a rota de diagnostico do piloto: DIAGNOSTICO_SECRET somando ao PILOTO_SECRET, fail-closed, escopo minimo",
+  "responsabilidade": "piloto/chave-do-diagnostico",
+  "arquivos": [
+    "app/api/piloto/diagnostico/route.ts"
+  ],
+  "abertaEm": "2026-08-16T20:54:51.380Z",
+  "encerradaEm": null,
+  "rotulo": "pm-chave-do-diagnostico"
+}
