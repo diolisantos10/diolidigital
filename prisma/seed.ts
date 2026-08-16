@@ -78,115 +78,134 @@ async function main() {
 
   console.log(`✓ Users: master@dioli.studio + 3 staff (password: dioli2025 / staff2025)`);
 
-  // ── Pilot Client: Dioli Digital (c4) ─────────────────────────────────────
-  const pilotClient = await prisma.client.upsert({
-    where:  { portalToken: "dioli-digital-portal-token" },
-    update: {},
-    create: {
-      id:          "c4",   // match mock data ID for backwards compat
-      workspaceId: workspace.id,
-      name:        "Dioli Digital",
-      industry:    "Marketing Digital",
-      email:       "contato@diolidigital.com.br",
-      portalToken: "dioli-digital-portal-token",
-    },
-  });
-  console.log(`✓ Client: ${pilotClient.name} (token: ${pilotClient.portalToken})`);
-
-  // Client user for portal access
-  await prisma.user.upsert({
-    where:  { email: "cliente@diolidigital.com.br" },
-    update: {},
-    create: {
-      email:        "cliente@diolidigital.com.br",
-      name:         "Dioli Digital",
-      passwordHash: await hash("cliente2025", 12),
-      role:         "client",
-      workspaceId:  workspace.id,
-      clientId:     pilotClient.id,
-    },
-  });
-
-  // Brand Brain
-  await prisma.brandBrain.upsert({
-    where:  { clientId: pilotClient.id },
-    update: {},
-    create: {
-      clientId:      pilotClient.id,
-      brandName:     "Dioli Digital",
-      tagline:       "A agência que trabalha enquanto você dorme",
-      primaryColor:  "#5B5BD6",
-      secondaryColor: "#1C1C1A",
-      typography:    "Geist Sans",
-      tone:          "Profissional e próximo",
-      values:        JSON.stringify(["Inovação", "Resultado", "Transparência"]),
-      targetAudience: "Empresas de médio porte que querem escalar presença digital",
-      positioning:   "Agência full-service com IA integrada",
-    },
-  });
-
-  // ── Pilot Project: Lançamento Dioli Agência (p7) ──────────────────────────
-  const pilotProject = await prisma.project.upsert({
-    where:  { id: "p7" },
-    update: {},
-    create: {
-      id:              "p7",   // match mock data ID
-      workspaceId:     workspace.id,
-      clientId:        pilotClient.id,
-      name:            "Lançamento Dioli Agência",
-      goal:            "Lançar a Dioli Agência com posicionamento premium no mercado digital",
-      type:            "launch",
-      stage:           "execution",
-      priority:        "high",
-      deadline:        "2025-08-31",
-      proposalStatus:  "approved",
-      proposalPricing: "R$ 4.500 / mês",
-      proposalScope:   "Social media, design, tráfego pago, estratégia",
-      agents:          JSON.stringify(["a2", "a3", "a4"]),
-    },
-  });
-  console.log(`✓ Project: ${pilotProject.name}`);
-
-  // ── Deliverables ──────────────────────────────────────────────────────────
-  const deliverables = [
-    { id: "d1",  name: "Identidade visual",              type: "design",      status: "approved",   ownerAgentId: "a2" },
-    { id: "d2",  name: "Manual da marca",                type: "document",    status: "in_review",  ownerAgentId: "a2" },
-    { id: "d3",  name: "Posts de lançamento (Pack 10)",  type: "social_post", status: "approved",   ownerAgentId: "a3" },
-    { id: "d4",  name: "Stories de lançamento",          type: "social_post", status: "in_review",  ownerAgentId: "a3" },
-    { id: "d5",  name: "Campanha Meta Ads — Awareness",  type: "ads",         status: "draft",      ownerAgentId: "a4" },
-    { id: "d6",  name: "Copy para anúncios — 5 variações", type: "copy",      status: "approved",   ownerAgentId: "a4" },
-    { id: "d7",  name: "Apresentação de posicionamento", type: "document",    status: "approved",   ownerAgentId: "a2" },
-    { id: "d8",  name: "Bio e descrição de perfil",      type: "copy",        status: "approved",   ownerAgentId: "a3" },
-    { id: "d9",  name: "Calendário editorial — Mês 1",   type: "planning",    status: "approved",   ownerAgentId: "a3" },
-    { id: "d10", name: "Relatório de estratégia digital", type: "document",   status: "in_review",  ownerAgentId: "a2" },
-    { id: "d11", name: "Campanha Google Ads — Search",   type: "ads",         status: "draft",      ownerAgentId: "a4" },
-    { id: "d12", name: "Landing page — copy e estrutura", type: "copy",       status: "in_review",  ownerAgentId: "a3" },
-  ];
-
-  for (const d of deliverables) {
-    await prisma.deliverable.upsert({
-      where:  { id: d.id },
+  // ── DADO DE PILOTO: SÓ QUANDO ALGUÉM PEDE ────────────────────────────────
+  //
+  // 15/08/2026: o CEO zerou a agência para começar do zero pelo SDR, e no
+  // restart seguinte reapareceram um cliente, um projeto e DOZE entregas. Não
+  // era resquício do reset: era este bloco, que roda a cada deploy e recriava
+  // "Dioli Digital", "Lançamento Dioli Agência" e a lista de entregáveis.
+  //
+  // Seed que inventa cliente em produção é o mesmo defeito que o reset veio
+  // resolver, com outro nome: uma segunda fonte de verdade sobre quem é
+  // cliente da casa. Agora ele só roda quando alguém PEDE, com SEED_PILOTO=true
+  // — e a ausência da variável significa não, como toda trava desta casa.
+  //
+  // O que continua rodando sempre: workspace, equipe e configuração de
+  // integração. Isso é a agência; sem eles ninguém entra.
+  if (process.env.SEED_PILOTO === "true") {
+    // ── Pilot Client: Dioli Digital (c4) ─────────────────────────────────────
+    const pilotClient = await prisma.client.upsert({
+      where:  { portalToken: "dioli-digital-portal-token" },
       update: {},
       create: {
-        ...d,
-        projectId: pilotProject.id,
+        id:          "c4",   // match mock data ID for backwards compat
+        workspaceId: workspace.id,
+        name:        "Dioli Digital",
+        industry:    "Marketing Digital",
+        email:       "contato@diolidigital.com.br",
+        portalToken: "dioli-digital-portal-token",
       },
     });
-  }
-  console.log(`✓ Deliverables: ${deliverables.length}`);
+    console.log(`✓ Client: ${pilotClient.name} (token: ${pilotClient.portalToken})`);
 
-  // ── Material Requests ─────────────────────────────────────────────────────
-  await prisma.materialRequest.upsert({
-    where:  { id: "mr1" },
-    update: {},
-    create: {
-      id:          "mr1",
-      projectId:   pilotProject.id,
-      type:        "logo",
-      description: "Logo em vetor (SVG/AI) para aplicações digitais e impressas",
-      status:      "pending",
-    },
-  });
+    // Client user for portal access
+    await prisma.user.upsert({
+      where:  { email: "cliente@diolidigital.com.br" },
+      update: {},
+      create: {
+        email:        "cliente@diolidigital.com.br",
+        name:         "Dioli Digital",
+        passwordHash: await hash("cliente2025", 12),
+        role:         "client",
+        workspaceId:  workspace.id,
+        clientId:     pilotClient.id,
+      },
+    });
+
+    // Brand Brain
+    await prisma.brandBrain.upsert({
+      where:  { clientId: pilotClient.id },
+      update: {},
+      create: {
+        clientId:      pilotClient.id,
+        brandName:     "Dioli Digital",
+        tagline:       "A agência que trabalha enquanto você dorme",
+        primaryColor:  "#5B5BD6",
+        secondaryColor: "#1C1C1A",
+        typography:    "Geist Sans",
+        tone:          "Profissional e próximo",
+        values:        JSON.stringify(["Inovação", "Resultado", "Transparência"]),
+        targetAudience: "Empresas de médio porte que querem escalar presença digital",
+        positioning:   "Agência full-service com IA integrada",
+      },
+    });
+
+    // ── Pilot Project: Lançamento Dioli Agência (p7) ──────────────────────────
+    const pilotProject = await prisma.project.upsert({
+      where:  { id: "p7" },
+      update: {},
+      create: {
+        id:              "p7",   // match mock data ID
+        workspaceId:     workspace.id,
+        clientId:        pilotClient.id,
+        name:            "Lançamento Dioli Agência",
+        goal:            "Lançar a Dioli Agência com posicionamento premium no mercado digital",
+        type:            "launch",
+        stage:           "execution",
+        priority:        "high",
+        deadline:        "2025-08-31",
+        proposalStatus:  "approved",
+        proposalPricing: "R$ 4.500 / mês",
+        proposalScope:   "Social media, design, tráfego pago, estratégia",
+        agents:          JSON.stringify(["a2", "a3", "a4"]),
+      },
+    });
+    console.log(`✓ Project: ${pilotProject.name}`);
+
+    // ── Deliverables ──────────────────────────────────────────────────────────
+    const deliverables = [
+      { id: "d1",  name: "Identidade visual",              type: "design",      status: "approved",   ownerAgentId: "a2" },
+      { id: "d2",  name: "Manual da marca",                type: "document",    status: "in_review",  ownerAgentId: "a2" },
+      { id: "d3",  name: "Posts de lançamento (Pack 10)",  type: "social_post", status: "approved",   ownerAgentId: "a3" },
+      { id: "d4",  name: "Stories de lançamento",          type: "social_post", status: "in_review",  ownerAgentId: "a3" },
+      { id: "d5",  name: "Campanha Meta Ads — Awareness",  type: "ads",         status: "draft",      ownerAgentId: "a4" },
+      { id: "d6",  name: "Copy para anúncios — 5 variações", type: "copy",      status: "approved",   ownerAgentId: "a4" },
+      { id: "d7",  name: "Apresentação de posicionamento", type: "document",    status: "approved",   ownerAgentId: "a2" },
+      { id: "d8",  name: "Bio e descrição de perfil",      type: "copy",        status: "approved",   ownerAgentId: "a3" },
+      { id: "d9",  name: "Calendário editorial — Mês 1",   type: "planning",    status: "approved",   ownerAgentId: "a3" },
+      { id: "d10", name: "Relatório de estratégia digital", type: "document",   status: "in_review",  ownerAgentId: "a2" },
+      { id: "d11", name: "Campanha Google Ads — Search",   type: "ads",         status: "draft",      ownerAgentId: "a4" },
+      { id: "d12", name: "Landing page — copy e estrutura", type: "copy",       status: "in_review",  ownerAgentId: "a3" },
+    ];
+
+    for (const d of deliverables) {
+      await prisma.deliverable.upsert({
+        where:  { id: d.id },
+        update: {},
+        create: {
+          ...d,
+          projectId: pilotProject.id,
+        },
+      });
+    }
+    console.log(`✓ Deliverables: ${deliverables.length}`);
+
+    // ── Material Requests ─────────────────────────────────────────────────────
+    await prisma.materialRequest.upsert({
+      where:  { id: "mr1" },
+      update: {},
+      create: {
+        id:          "mr1",
+        projectId:   pilotProject.id,
+        type:        "logo",
+        description: "Logo em vetor (SVG/AI) para aplicações digitais e impressas",
+        status:      "pending",
+      },
+    });
+
+  } else {
+    console.log("✓ Piloto NÃO semeado (SEED_PILOTO ausente) — agência começa sem cliente.");
+  }
 
   // ── Integration Configs ───────────────────────────────────────────────────
   await prisma.dbIntegrationConfig.upsert({
@@ -209,8 +228,6 @@ async function main() {
   console.log(`\n📋 Access info:`);
   console.log(`   Agency:  http://localhost:3000/agency/dashboard`);
   console.log(`   Login:   master@dioli.studio / dioli2025`);
-  console.log(`   Portal:  http://localhost:3000/portal/access?token=dioli-digital-portal-token`);
-  console.log(`   Legacy:  http://localhost:3000/portal/client/c4`);
 }
 
 main()

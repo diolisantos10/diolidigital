@@ -1866,23 +1866,40 @@ export const useAgencyStore = create<AgencyState>()(
         }
       },
       partialize: (s) => ({
-        clients: s.clients,
-        projects: s.projects,
-        tasks: s.tasks,
-        deliverables: s.deliverables,
-        briefings: s.briefings,
-        activity: s.activity,
-        materialRequests: s.materialRequests,
+        // ── DADO DE CLIENTE NÃO MORA MAIS NO NAVEGADOR ────────────────────
+        // 15/08/2026: o CEO zerou a agência e continuou vendo clientes em
+        // Projetos, Tarefas, Entregas e Aprovações. O banco estava vazio de
+        // verdade — a cópia sobrevivente era ESTA, no localStorage do
+        // navegador dele. As telas caem no store quando a busca ao banco
+        // falha, e o store devolvia o retrato de antes.
+        //
+        // Isso não é cache ruim: é uma SEGUNDA VERDADE sobre dado de cliente,
+        // fora do alcance de qualquer reset do servidor. Nenhum botão de
+        // "zerar" jamais alcançaria o navegador de quem estivesse com a aba
+        // aberta — e o defeito reaparece a cada F5.
+        //
+        // Fica guardado só o que é PREFERÊNCIA de quem usa (idioma, papel
+        // escolhido, configuração de tela). Tudo que descreve cliente,
+        // projeto ou trabalho vem do banco, sempre — vazio no banco passa a
+        // significar vazio na tela.
         locale: s.locale,
-        testRuns: s.testRuns,
-        strategyRooms: s.strategyRooms,
         currentRole: s.currentRole,
-        brandUpdates: s.brandUpdates,
-        clientRequests: s.clientRequests,
         integrationConfigs: s.integrationConfigs,
         departmentConfigs: s.departmentConfigs,
-        aiRunLogs: s.aiRunLogs,
       }),
+      // Guardado antes tem a lista antiga dentro. Subir a versão faz o Zustand
+      // DESCARTAR o que estava salvo em vez de misturar — sem isto, quem já
+      // tem a aba aberta continuaria vendo o retrato de ontem para sempre.
+      version: 3,
+      migrate: (guardado: unknown) => {
+        const p = (guardado ?? {}) as Record<string, unknown>;
+        return {
+          locale: p.locale,
+          currentRole: p.currentRole,
+          integrationConfigs: p.integrationConfigs,
+          departmentConfigs: p.departmentConfigs,
+        } as never;
+      },
     }
   )
 );
