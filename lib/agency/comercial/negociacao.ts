@@ -594,6 +594,35 @@ export function faixaValida(valor: unknown): valor is FaixaId {
 }
 
 /**
+ * O TETO da faixa que o cliente declarou, em reais — ou `null` quando não dá
+ * para saber.
+ *
+ * Existe por causa do CityJobs (16/08/2026). O cliente disse, com todas as
+ * letras, *"estamos pensando algo em torno de R$ 500 por mês"*. A faixa foi
+ * capturada e guardada certinho em `budgetRange`. E aí ninguém mais olhou para
+ * ela: a estimativa saiu em R$ 1.800–3.400 — 3,6× o que ele disse poder pagar —
+ * sem uma linha reconhecendo a diferença.
+ *
+ * Faixa que só serve para aparecer no painel não é trava, é enfeite. Para o
+ * número ser CONFRONTADO com a verba, alguém precisa conseguir transformar
+ * "entre R$ 150 e R$ 500" de volta num número — e é isto aqui.
+ *
+ * Aceita o id e o rótulo pelo mesmo motivo que `normalizarFaixa`: o que fica
+ * gravado no escopo é o rótulo, não o id.
+ *
+ * `null` para qualquer outra coisa, e `null` significa "não sei a verba" — que
+ * é diferente de "a verba é zero" e de "a verba é infinita". Ausência de
+ * informação não é informação.
+ */
+export function tetoDaFaixa(valor: unknown): number | null {
+  if (typeof valor !== "string") return null;
+  const limpo = valor.trim().toLowerCase();
+  if (!limpo) return null;
+  const achou = FAIXAS.find((f) => f.faixa === limpo || f.rotulo.toLowerCase() === limpo);
+  return achou ? achou.ate : null;
+}
+
+/**
  * Converte o que o modelo escreveu em `budgetRange` no RÓTULO que o cliente lê.
  * Devolve `null` para qualquer outra coisa — e `null` significa "some com o
  * campo", não "chuta uma faixa".

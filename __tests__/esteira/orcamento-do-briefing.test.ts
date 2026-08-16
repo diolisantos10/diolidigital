@@ -168,3 +168,51 @@ describe("briefing SEM contato tambem e atendido — a causa raiz da noite de 16
     expect(db.portalMessage.create).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("estimativa travada nao vira orcamento — o CityJobs de 16/08", () => {
+  // O cliente pediu 2 posts estaticos por DIA. O volume chegou ZERADO ao
+  // calculo, atravessou os guardioes (que testavam `=== undefined`, e zero e
+  // definido), virou "Plano Essencial" de 3 posts/semana por tabela e saiu como
+  // R$ 1.800 a R$ 3.400 — com `confidence: "high"`.
+  //
+  // O que torna esse caso perigoso, e o motivo deste teste existir: a
+  // estimativa travada TEM numero. R$ 1.800 e maior que zero e passaria por
+  // toda conferencia de "tem estimativa?" que existia neste arquivo.
+  const travada = JSON.stringify({
+    estimate: {
+      totalMin: 1800,
+      totalMax: 3400,
+      items: [{ label: "Plano Essencial", detail: "3 posts + 5 stories/semana" }],
+      travadaPor: "O volume de posts nao chegou no pedido, e e ele que define o plano.",
+    },
+  });
+
+  it("nao manda mensagem nenhuma ao cliente", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedido({ briefingJson: travada })]);
+    const r = await entregarOrcamentosPendentes();
+
+    // Numero que nao se sustenta nao vira preco nesta casa. Nesta casa valor
+    // vem de calculo, e a IA nunca inventa.
+    expect(r.entregues).toBe(0);
+    expect(db.portalMessage.create).not.toHaveBeenCalled();
+  });
+
+  it("conta como semOrcamento — o pedido fica parado, mas nunca em silencio", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedido({ briefingJson: travada })]);
+    const r = await entregarOrcamentosPendentes();
+
+    // `semOrcamento` e o numero que faz gente olhar. Travar sem contar seria
+    // trocar um orcamento errado por um pedido desaparecido — e o CEO ja
+    // esperou uma noite inteira por um pedido que o sistema tratava como lixo.
+    expect(r.semOrcamento).toBe(1);
+    expect(r.falhas).toHaveLength(0);
+  });
+
+  it("deixa o pedido de pe, no estado em que estava", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedido({ briefingJson: travada })]);
+    await entregarOrcamentosPendentes();
+    // Sem `proposal_pending`: o pedido nao avanca para uma fila que promete um
+    // numero que ele nao tem.
+    expect(db.clientRequestDb.update).not.toHaveBeenCalled();
+  });
+});

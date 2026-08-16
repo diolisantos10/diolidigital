@@ -4,8 +4,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { AreaDeAtendimento } from "./comercial/onde-o-negocio-vende";
+import type { ConfrontoDeVerba } from "./comercial/verba-declarada";
 
-export type { AreaDeAtendimento };
+export type { AreaDeAtendimento, ConfrontoDeVerba };
 
 // ── Message ───────────────────────────────────────────────────────────────────
 export interface ConvMessage {
@@ -130,6 +131,27 @@ export interface LiveEstimate {
   discountReason?: string;
   discountedMin?: number;
   discountedMax?: number;
+
+  /** Preenchido quando a estimativa passa da verba que o cliente DECLAROU.
+   *  Viaja gravado junto com o número para que quem entrega o orçamento não
+   *  precise refazer a conta — nem possa "esquecer" de olhar. Ver
+   *  `comercial/verba-declarada.ts` e o caso CityJobs. */
+  confrontoDeVerba?: ConfrontoDeVerba;
+
+  /** Quando presente, esta estimativa NÃO VIRA ORÇAMENTO para o cliente: é um
+   *  número que não se sustenta, e o texto diz por quê.
+   *
+   *  Nasceu do CityJobs (16/08/2026): o volume de posts chegou ZERADO no
+   *  escopo, atravessou todos os guardiões (que testavam `=== undefined`, e
+   *  zero é definido), virou "Plano Essencial" por tabela e saiu como
+   *  R$ 1.800–3.400 com `confidence: "high"` e `missingForEstimate: []`.
+   *  Confiança máxima num número construído sobre um campo vazio.
+   *
+   *  Esta casa não deixa estimativa quebrada virar número — o pedido fica
+   *  parado e CONTADO, para gente olhar. Mesmo princípio já escrito em
+   *  `esteira/orcamento-do-briefing.ts`: valor vem de cálculo, e a IA nunca
+   *  inventa. */
+  travadaPor?: string;
 }
 
 // ── Conversation state ────────────────────────────────────────────────────────

@@ -33,6 +33,10 @@
 //   mensagem; se uma falhar, nenhuma vale.
 
 import { prisma } from "@/lib/db/client";
+import {
+  textoDaVerbaEstourada,
+  type ConfrontoDeVerba,
+} from "@/lib/agency/comercial/verba-declarada";
 
 /** Teto por rodada. O relógio bate de 5 em 5 min; enxurrada nunca. */
 const MAX_POR_RODADA = 5;
@@ -50,6 +54,8 @@ type EstimativaGuardada = {
   included?: string[];
   notIncluded?: string[];
   missingForEstimate?: string[];
+  confrontoDeVerba?: ConfrontoDeVerba;
+  travadaPor?: string;
 };
 
 /** Lê a estimativa que a sala de briefing gravou. Nunca lança: briefing com
@@ -62,6 +68,20 @@ function estimativaDe(briefingJson: string | null): EstimativaGuardada | null {
     const e = corpo?.estimate;
     if (!e || typeof e.totalMin !== "number" || typeof e.totalMax !== "number") return null;
     if (e.totalMin <= 0 && e.totalMax <= 0) return null;
+
+    // ── A TRAVA DO CityJobs (16/08/2026) ────────────────────────────────────
+    // Estimativa travada TEM número — e é justamente por isso que ela é
+    // perigosa. Naquele briefing o volume de posts chegou zerado, virou "Plano
+    // Essencial" por tabela e produziu R$ 1.800–3.400: um total maior que zero,
+    // que passaria por todas as conferências acima e chegaria ao cliente como
+    // se fosse conta.
+    //
+    // Aqui ela vale como AUSÊNCIA de orçamento, não como orçamento. O pedido
+    // fica de pé onde está e entra na contagem de `semOrcamento` — que é o
+    // número que faz gente olhar. Número que não se sustenta não vira preço
+    // nesta casa, e o silêncio dele é contado, nunca silencioso.
+    if (typeof e.travadaPor === "string" && e.travadaPor.trim()) return null;
+
     return e;
   } catch {
     return null;
@@ -88,6 +108,18 @@ export function textoDoOrcamento(negocio: string, e: EstimativaGuardada): string
       ? `Pelo que você descreveu, a estimativa é de ${real(min)} por mês.`
       : `Pelo que você descreveu, a estimativa fica entre ${real(min)} e ${real(max)} por mês.`,
   );
+
+  // ── A VERBA DECLARADA, DITA NA CARA — e dita AQUI ────────────────────────────
+  // Colada no número de propósito. No CityJobs (16/08/2026) o cliente tinha
+  // acabado de dizer *"algo em torno de R$ 500 por mês"* e recebeu
+  // R$ 1.800–3.400 sem uma palavra sobre a diferença. Enterrar o
+  // reconhecimento cinco parágrafos abaixo seria uma versão mais educada do
+  // mesmo erro: quem lê o número e não vê a própria verba citada na linha
+  // seguinte já entendeu que não estavam escutando, e fecha a conversa ali.
+  if (e.confrontoDeVerba) {
+    linhas.push("");
+    linhas.push(...textoDaVerbaEstourada(e.confrontoDeVerba));
+  }
 
   const itens = (e.items ?? []).filter((i) => i?.label);
   if (itens.length > 0) {

@@ -1215,3 +1215,41 @@ intenção do chamador — assume a menor, e quem prepara declara que prepara.
 cadeia futura, não só para Produto & Tecnologia. Toda coluna que uma ficha
 declara e que o motor não lê é uma promessa que a casa faz e não cumpre; a
 pergunta "quem lê isto em runtime?" passa a valer para cada campo novo de ficha.
+
+---
+
+## Zero não é resposta — e verba declarada se responde na cara
+
+**16/08/2026.** No piloto ao vivo, o CityJobs pediu **2 posts estáticos por dia**
+e disse a verba com todas as letras: *"estamos pensando algo em torno de R$ 500
+por mês"*. Quarenta e oito segundos depois a casa devolveu **R$ 1.800 a
+R$ 3.400** — 3,6× o declarado — cotando um "Plano Essencial" de **3 posts por
+semana** para quem tinha pedido catorze. Sem uma palavra sobre a diferença.
+
+**A causa, lida e não deduzida:** o painel mostrava "0 posts/mês" durante a
+conversa; o CEO avisou na hora e a conversa seguiu. Esse zero atravessou o
+sistema inteiro porque **todo guardião testava `postsPerWeek === undefined`, e
+`0` é definido**. `0 * 4 = 0` entrou em `detectPackage(0)`, que devolve
+"essencial" porque `0 <= 14`. A estimativa saiu com `missingForEstimate: []` e
+`confidence: "high"` — confiança máxima sobre um campo vazio.
+
+**As três regras que viraram mecanismo:**
+
+1. **Falso-por-omissão passa em teste de `undefined`.** Volume `0`, negativo,
+   `NaN` ou fora de tipo são o mesmo estado: o dado não chegou. Vale para todo
+   campo numérico que ESCOLHE alguma coisa, não só para posts.
+2. **Estimativa quebrada não vira número.** A trava (`travadaPor`) é perigosa
+   justamente porque a estimativa travada TEM número — R$ 1.800 é maior que zero
+   e passava por toda conferência de "tem estimativa?". Ela agora vale como
+   ausência de orçamento: o pedido fica parado e **contado** em `semOrcamento`.
+3. **Verba declarada é confrontada por código, não por prompt.** A faixa já
+   estava capturada e guardada; o que faltava era alguém COMPARAR. O confronto é
+   calculado junto do número, viaja gravado com ele, e o texto nomeia a
+   diferença e oferece o que cabe — Pulso (R$ 49) e Ritmo (R$ 297), filtrados da
+   tabela do conselho. **Nenhum preço nasce nesse caminho:** se o Pulso mudar de
+   preço, a oferta muda sozinha, porque ela nunca soube o número.
+
+**Por que é decisão de corredor:** a #1 é uma regra de leitura de dado que vale
+para a esteira inteira, e a #3 estabelece que **limite declarado pelo cliente é
+dado de trava, não enfeite de painel**. Confiança calculada só sobre o que
+alguém lembrou de contar como faltante mente exatamente quando mais custa.

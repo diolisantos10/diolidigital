@@ -9,7 +9,8 @@
 // plans + the estimate math the briefing room renders in real time.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { BriefingScope, LiveEstimate, EstimateItem, EstimateConfidence } from "./briefing-conversation";
+import type { BriefingScope, LiveEstimate, EstimateItem, EstimateConfidence, SocialScope } from "./briefing-conversation";
+import { confrontoDeVerba } from "./comercial/verba-declarada";
 
 // ── Social Media Plans ────────────────────────────────────────────────────────
 
@@ -160,6 +161,31 @@ const P = {
   brandingFull: { min: 2000, max: 4000 }, // full brand book / rebrand
 };
 
+// ── O volume declarado — zero não é resposta, zero é campo faltando ───────────
+//
+// CityJobs, 16/08/2026, piloto ao vivo. O cliente pediu **2 posts estáticos por
+// dia** (~60/mês) e o SDR repetiu de volta que tinha entendido. O painel de
+// escopo, porém, mostrava **"0 posts/mês"** durante a conversa inteira. O CEO
+// viu e avisou na hora — *"só tá dizendo que são 0 posts por mês, não sei se é
+// algum problema"* — e a conversa seguiu em frente.
+//
+// O que aconteceu com esse zero: NADA o barrou. Todo guardião deste sistema
+// testava `postsPerWeek === undefined`, e `0` é definido. Então `0 * 4 = 0`
+// entrou em `detectPackage(0)`, que devolve "essencial" porque `0 <= 14`, e a
+// casa cotou um Plano Essencial de 3 posts/semana para quem tinha pedido 14 —
+// R$ 1.800 a R$ 3.400, com `missingForEstimate: []` e `confidence: "high"`.
+// Confiança máxima sobre um campo vazio.
+//
+// A lição não é sobre posts: é que **falso-por-omissão passa em teste de
+// `undefined`**. Volume zero, negativo, NaN ou fora de tipo são todos a mesma
+// coisa — o dado não chegou. Quem preenche o buraco por inferência inventa o
+// pedido do cliente, e nesta casa não há revisor humano depois disto.
+function volumeDeclarado(s: SocialScope | undefined): number | null {
+  const v = s?.postsPerWeek;
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return null;
+  return v;
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function computeEstimate(scope: BriefingScope): LiveEstimate {
@@ -169,15 +195,23 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
   const missing: string[]     = [];
   let totalMin = 0;
   let totalMax = 0;
+  let travadaPor: string | undefined;
 
   // ── Social Media (flagship department) ──────────────────────────────────────
   if (scope.wantsSocialMedia) {
     const s = scope.social;
+    const postsPerWeek = volumeDeclarado(s);
 
-    if (s?.postsPerWeek === undefined) {
+    if (postsPerWeek === null) {
       missing.push("Frequência de posts por semana");
+      // O volume é o campo que ESCOLHE o plano — sem ele não existe estimativa
+      // de social media, existe chute com aparência de conta. Travar aqui é o
+      // que impede o zero do CityJobs de virar preço outra vez.
+      travadaPor =
+        "O volume de posts não chegou no pedido, e é ele que define o plano. " +
+        "Sem esse número não montamos preço — preferimos perguntar a você a chutar.";
     } else {
-      const postsPerMonth = s.postsPerWeek * 4;
+      const postsPerMonth = postsPerWeek * 4;
       const pkgId = detectPackage(postsPerMonth);
       const pkg   = getPackageDef(pkgId);
 
@@ -203,11 +237,11 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
         included.push(pkg.community === "full" ? "Gestão de comunidade completa" : "Gestão de comunidade (básica)");
 
       // Client-side overrides
-      if (s.needsCopy === false) notIncluded.push("Copy — fornecida pelo cliente");
-      if (s.hasPhotos === false) notIncluded.push("Produção fotográfica (orçar separado)");
+      if (s?.needsCopy === false) notIncluded.push("Copy — fornecida pelo cliente");
+      if (s?.hasPhotos === false) notIncluded.push("Produção fotográfica (orçar separado)");
 
       // Extra reels beyond what the plan includes → add-on
-      if (s.reelsPerMonth !== undefined && s.reelsPerMonth > pkg.reelsPerMonth) {
+      if (s?.reelsPerMonth !== undefined && s.reelsPerMonth > pkg.reelsPerMonth) {
         const extra = s.reelsPerMonth - pkg.reelsPerMonth;
         const rMin  = extra * P.reel.min;
         const rMax  = extra * P.reel.max;
@@ -266,8 +300,12 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
   }
 
   // ── Confidence ────────────────────────────────────────────────────────────
+  // Estimativa travada é "none" e ponto. No CityJobs a conta saiu `high` porque
+  // a lista de faltantes estava vazia — e estava vazia porque o zero passou
+  // pelo guardião. Confiança calculada só sobre o que ALGUÉM LEMBROU de contar
+  // como faltante é confiança que mente exatamente quando mais custa.
   let confidence: EstimateConfidence = "none";
-  if (totalMin > 0) {
+  if (totalMin > 0 && !travadaPor) {
     if (missing.length === 0)     confidence = "high";
     else if (missing.length <= 2) confidence = "medium";
     else                           confidence = "low";
@@ -288,9 +326,21 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
     discountedMax = Math.round(totalMax * (1 - discountPct / 100));
   }
 
+  // ── A verba que o cliente DECLAROU ──────────────────────────────────────────
+  // Confrontado aqui, junto do cálculo, e não na hora de escrever o texto: o
+  // confronto viaja gravado com o número (`briefingJson.estimate`), então quem
+  // entrega o orçamento não refaz a conta nem pode deixar de olhar. No CityJobs
+  // a faixa estava capturada e guardada — o que faltou foi alguém CONFRONTAR.
+  //
+  // Compara contra o valor que o cliente realmente pagaria: se houve desconto
+  // negociado, é o preço com desconto que precisa caber na verba dele.
+  const confronto = confrontoDeVerba(scope.budgetRange, discountedMin ?? totalMin);
+
   return {
     items, totalMin, totalMax, confidence,
     missingForEstimate: missing, included, notIncluded,
     discountPct, discountReason, discountedMin, discountedMax,
+    confrontoDeVerba: confronto ?? undefined,
+    travadaPor,
   };
 }
