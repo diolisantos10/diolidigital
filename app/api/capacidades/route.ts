@@ -20,6 +20,7 @@ import { requireSession } from "@/lib/auth/api-guard";
 import { ffmpegDisponivel } from "@/lib/agency/media/video";
 import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
+import { estadoDoCanalDeEmail } from "@/lib/email/estado-do-canal";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export async function GET(): Promise<NextResponse> {
     process.env.PUBLIC_BASE_URL?.trim() || process.env.RAILWAY_PUBLIC_DOMAIN?.trim(),
   );
   const podeAssinarLink = Boolean(process.env.AUTH_SECRET?.trim() || process.env.JWT_SECRET?.trim());
+  const canalDeEmail = estadoDoCanalDeEmail();
 
   const capacidades = [
     {
@@ -83,6 +85,25 @@ export async function GET(): Promise<NextResponse> {
       depende_de:
         "binário do Chromium no runtime (`railpack.json → deploy.aptPackages`) + o pacote `playwright` chegando INTEIRO ao contêiner (`next.config.ts → outputFileTracingIncludes`, senão falta `playwright-core/browsers.json`)",
       onde_achei_o_navegador: renderizador.caminho,
+    },
+    {
+      // ── 16/08/2026 — O SILÊNCIO DO E-MAIL VIRA ACHADO ─────────────────────
+      // No piloto, `/api/brain/client-requests` registrou "confirmation e-mail
+      // skipped — RESEND_API_KEY not set" e nada mais aconteceu. Um cliente real
+      // mandaria briefing + PDFs e ficaria sem sinal nenhum.
+      //
+      // A chave é do CEO e não é assunto de código. O que ERA assunto de código
+      // é o estado morar só num log rotativo: aqui ele passa a ser uma linha
+      // deste registro, que é onde a casa pergunta "e consigo trabalhar?".
+      id: "avisar-cliente-por-email",
+      o_que_faz: "Confirmar por e-mail que o briefing do cliente chegou, e avisá-lo dos próximos passos",
+      pronta: canalDeEmail.ligado,
+      sem_isso:
+        "quem manda briefing pelo site não recebe confirmação por e-mail. O briefing NÃO se perde (ele é " +
+        "gravado e confirmado na conversa do portal), mas o cliente fica sem sinal na caixa dele",
+      depende_de: canalDeEmail.oQueConfigurar,
+      resumo: canalDeEmail.resumo,
+      remetente_compartilhado: canalDeEmail.remetenteCompartilhado,
     },
     {
       id: "meta-buscar-midia",

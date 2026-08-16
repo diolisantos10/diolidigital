@@ -5,6 +5,7 @@ import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/
 import { initProspectConvState, processProspectMessage, type ProspectConvState } from "@/lib/agency/prospect-engine";
 import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from "@/lib/agency/sdr-agent";
 import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live-calculator";
+import { respostaHonestaDePreco } from "@/lib/agency/comercial/resposta-de-preco";
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
@@ -743,6 +744,23 @@ function ProposalCard({
 
 interface SdrReply { reply: string; scope: Record<string, unknown> }
 
+// ── 16/08/2026 — O MOTIVO DA RECUSA DEIXA DE SER DESCARTADO ────────────────────
+//
+// `fetchSdrReply` devolvia `null` para TODA falha: timeout, chave ausente, JSON
+// quebrado e — o caso que apareceu no piloto do CEO — `price_leak`, a trava que
+// impede o SDR de cotar preço na conversa.
+//
+// Os quatro casos são diferentes para o cliente. Nos três primeiros o motor de
+// regras é a resposta certa: a máquina caiu e a conversa segue. No `price_leak`
+// NÃO É: a pessoa perguntou quanto custa e recebeu a próxima pergunta do roteiro
+// sobre reels. Do lado dela isso não parece uma regra comercial — parece um robô
+// que travou e mudou de assunto.
+//
+// A trava continua intacta (ela é o que impede a agência de prometer preço
+// errado). O que mudou é só o que se DIZ quando ela dispara.
+type FalhaDoSdr = { motivo: string | null };
+
+
 // An uploaded briefing file and its processing status.
 interface UploadItem {
   id: string;
@@ -782,7 +800,7 @@ async function fetchSdrReply(
   priorMessages: ConvMessage[],
   currentMessage: string,
   scope: BriefingScope,
-): Promise<SdrReply | null> {
+): Promise<SdrReply | FalhaDoSdr> {
   try {
     const res = await fetch("/api/sdr/chat", {
       method: "POST",
@@ -793,16 +811,22 @@ async function fetchSdrReply(
         scope,
       }),
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown };
-    if (!data.ok || typeof data.reply !== "string" || !data.reply.trim()) return null;
+    if (!res.ok) return { motivo: null };
+    const data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown };
+    if (!data.ok || typeof data.reply !== "string" || !data.reply.trim()) {
+      return { motivo: typeof data.reason === "string" ? data.reason : null };
+    }
     return {
       reply: data.reply.trim(),
       scope: data.scope && typeof data.scope === "object" ? (data.scope as Record<string, unknown>) : {},
     };
   } catch {
-    return null;
+    return { motivo: null };
   }
+}
+
+function ehResposta(r: SdrReply | FalhaDoSdr): r is SdrReply {
+  return typeof (r as SdrReply).reply === "string";
 }
 
 function asNum(v: unknown): number | undefined {
@@ -1191,10 +1215,34 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       setState({ ...ruleResult, conv: { ...ruleResult.conv, messages: userVisible } });
       setAiThinking(true);
 
-      const claude = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope);
+      const resultado = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope);
       setAiThinking(false);
 
-      if (claude) {
+      if (!ehResposta(resultado) && resultado.motivo === "price_leak") {
+        // ── A TRAVA DE PREÇO DISPAROU — e a resposta passa a ser HONESTA ───────
+        //
+        // O estado do motor de regras continua valendo (é ele que sabe em que
+        // ponto da sondagem a conversa está); o que NÃO vale é a fala dele, que
+        // aqui seria a próxima pergunta do roteiro — mudança de assunto na cara
+        // de quem acabou de perguntar o preço.
+        //
+        // A trava não foi tocada. O que ela recusou continua recusado; só a
+        // frase que ocupa o lugar deixou de fingir que a pergunta não existiu.
+        const honesta = respostaHonestaDePreco(ruleResult.conv.scope.prospectName);
+        const conv: ConvState = {
+          ...ruleResult.conv,
+          messages: [...userVisible, { ...ruleAssistant, text: honesta.texto }],
+        };
+        setState({
+          conv: { ...conv, canSubmit: canSubmitProposal(conv, ruleResult.sdr) },
+          sdr: ruleResult.sdr,
+        });
+        void fireAiExtract(text, priorMessages);
+        return;
+      }
+
+      if (ehResposta(resultado)) {
+        const claude = resultado;
         const mergedScope = mergeScopeGaps(ruleResult.conv.scope, claude.scope);
         const estimate = computeEstimate(mergedScope);
         const assistantMsg: ConvMessage = { ...ruleAssistant, text: claude.reply };

@@ -119,12 +119,46 @@ export interface DoctorInput {
   departmentConfigs?: { departmentId: string; aiProvider: string }[];
   // Client requests from portal Briefing Room
   clientRequests?: ClientRequest[];
+  // ── O canal de e-mail ao cliente (16/08/2026) ──────────────────────────────
+  // Vem de `GET /api/capacidades`, porque a verdade é variável de ambiente do
+  // servidor e esta função é pura. `undefined` = ainda não resolvido, e é
+  // tratado como "não conferi" — nunca como "está ligado".
+  canalDeEmail?: { ligado: boolean; resumo: string; comoResolver: string };
 }
 
 export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
-  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs = [], aiRunLogSource, openaiConfigured, departmentConfigs = [], clientRequests = [] } = input;
+  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs = [], aiRunLogSource, openaiConfigured, departmentConfigs = [], clientRequests = [], canalDeEmail } = input;
 
   const checks: DiagnosticCheck[] = [];
+
+  // ── O CLIENTE SABE QUE O BRIEFING DELE CHEGOU? (16/08/2026) ────────────────
+  //
+  // Nasceu do piloto do CEO: `[client-requests] confirmation e-mail skipped —
+  // RESEND_API_KEY not set`. Um cliente real mandaria briefing e anexos e não
+  // receberia nada na caixa dele, e a equipe não tinha onde ver isso.
+  //
+  // É `high`, não `critical`, e a diferença é honesta: desde 16/08 a confirmação
+  // também é gravada na CONVERSA DO PORTAL, que não depende de e-mail nenhum. O
+  // briefing não se perde mais em silêncio — o que falta é o aviso chegar à
+  // caixa de e-mail de quem ainda não abriu o portal.
+  checks.push({
+    id: "aviso-por-email-ao-cliente",
+    group: "Comunicação com o cliente",
+    label: "Avisos por e-mail ao cliente",
+    status: canalDeEmail === undefined ? "info" : canalDeEmail.ligado ? "pass" : "fail",
+    severity: "high",
+    explanation:
+      canalDeEmail === undefined
+        ? "Ainda não consegui conferir o canal de e-mail (GET /api/capacidades não respondeu). Isto NÃO quer dizer que está tudo certo."
+        : canalDeEmail.resumo,
+    action:
+      canalDeEmail === undefined
+        ? "Recarregue a página. Se persistir, abra GET /api/capacidades e procure `avisar-cliente-por-email`."
+        : canalDeEmail.ligado
+          ? "Nenhuma ação necessária."
+          : canalDeEmail.comoResolver,
+    route: "/agency/settings",
+  });
 
   // ── Group 1: Dados do Piloto ──────────────────────────────────────────────
 

@@ -441,8 +441,12 @@ export function detectNegotiation(text: string, state: ConvState): NegotiationRe
     if (s.wantsSocialMedia && posts && posts > 8) {
       return {
         scopeDelta: { social: { ...soc, postsPerWeek: 2, storiesPerWeek: 2, reelsPerMonth: 0 }, wantsPaidTraffic: false },
+        // 16/08/2026: citava "Plano Starter, faixa de R$ 1.200–1.800/mês" — um
+        // plano e um preço que não existem em `lib/agency/planos.ts`. Esta fala
+        // chega ao prospect no briefing público. Ver o cabeçalho de
+        // `lib/agency/comercial/resposta-de-preco.ts`.
         replyText:
-          "Entendido! Posso ajustar para o **Plano Starter** — 8 posts + 8 stories/mês, sem reels e sem tráfego, faixa de **R$ 1.200–1.800/mês**.\n\nIso serve como ponto de partida. Quando o negócio crescer, a gente escala.",
+          "Entendido! Posso ajustar para um ritmo mais enxuto — 8 posts + 8 stories/mês, sem reels e sem tráfego pago.\n\nIsso serve como ponto de partida. Quando o negócio crescer, a gente escala.",
       };
     }
     return {
@@ -459,7 +463,7 @@ export function detectNegotiation(text: string, state: ConvState): NegotiationRe
         wantsPaidTraffic: false,
       },
       replyText:
-        "Feito! Ajustei para o **Plano Starter** — 8 posts + 8 stories/mês, sem reels e sem tráfego pago. Faixa de **R$ 1.200–1.800/mês**.\n\nQuando quiser escalar, é só dizer.",
+        "Feito! Ajustei para um pacote mais enxuto — 8 posts + 8 stories/mês, sem reels e sem tráfego pago.\n\nO valor exato sai no orçamento, depois que você confirmar o resumo. Quando quiser escalar, é só dizer.",
     };
   }
 

@@ -242,28 +242,42 @@ export function buildPriceObjectionReply(
   estimate: LiveEstimate,
   parsedBudget?: number,
 ): string {
+  // ── 16/08/2026 — O PLANO FANTASMA SAIU DAQUI ────────────────────────────────
+  //
+  // Estas falas chegam ao PROSPECT: `prospect-engine.ts:418` as usa como resposta
+  // do briefing público sempre que o motor de regras assume — inclusive quando
+  // quem entrega o microfone a ele é a trava de preço de `/api/sdr/chat`.
+  //
+  // Elas cotavam **"Plano Starter (R$ 1.200–1.800/mês)"**. Esse plano não existe:
+  // o catálogo desta casa é `lib/agency/planos.ts`, casado com `docs/precos.md`
+  // pelo teste `preco-uma-fonte-so`, e nele há Pulso 49, Ritmo 297, Presença 790,
+  // Conteúdo 1390 e Crescimento 2590. **Não há Starter e não há 1.200.**
+  //
+  // Ou seja: a trava calava o modelo — certíssimo — e passava a palavra para um
+  // script que cotava um preço sem lastro nenhum. Preço inventado é pior que
+  // preço nenhum: o cliente ancora nele, e quem tem de desdizer é o CEO.
+  //
+  // A regra que ficou: **este arquivo não cita valor.** Quem trata escopo trata
+  // ESCOPO; número sai do orçamento, depois do login, pela tabela de verdade. O
+  // portão que prova isso é `precosForaDoCatalogo` — ver
+  // `lib/agency/comercial/resposta-de-preco.ts`.
   const biz = scope.businessName ?? "seu negócio";
   const isResto = isRestaurantSegment(scope);
   const restoTip = isResto
-    ? "\n\nPara restaurantes, o **Plano Starter** com foco em Instagram já gera bons resultados — fotos de pratos, stories de cardápio e promoções semanais."
+    ? "\n\nPara restaurantes, o que costuma render mais é focar no Instagram — fotos de pratos, stories de cardápio e promoções semanais."
     : "";
 
   if (parsedBudget !== undefined) {
-    const budgetStr = `R$ ${parsedBudget.toLocaleString("pt-BR")}`;
-    if (parsedBudget < 1200) {
-      return `Entendo — ${budgetStr} é o limite que você tem em mente.\n\nNosso plano de entrada começa em **R$ 1.200/mês** (Plano Starter: 8 posts + 8 stories/mês). Com ${budgetStr}, ficamos fora do nosso padrão mínimo, mas posso apresentar o que é possível dentro dessa faixa.${restoTip}\n\nQuer explorar o **Plano Starter** como ponto de partida para o **${biz}**, ou prefere me contar qual é a prioridade máxima?`;
-    }
     if (estimate.totalMin > 0 && parsedBudget < estimate.totalMin) {
-      const gap = estimate.totalMin - parsedBudget;
-      return `Entendo — ${budgetStr} é o orçamento que você tem em mente para o **${biz}**.\n\nO escopo atual está em **R$ ${estimate.totalMin.toLocaleString("pt-BR")}–${estimate.totalMax.toLocaleString("pt-BR")}/mês** — uma diferença de R$ ${gap.toLocaleString("pt-BR")}. Posso ajustar para o **Plano Starter (R$ 1.200–1.800/mês)** — 8 posts + 8 stories/mês — que fica mais próximo.${restoTip}\n\nQuer que eu faça esse ajuste?`;
+      return `Entendi o que você tem em mente para o **${biz}** — anotado, e isso guia a proposta.\n\nO escopo que desenhamos até aqui é maior do que isso, então dá para ajustar: menos peças por mês, ou deixar o tráfego pago para uma segunda etapa.${restoTip}\n\nQuer que eu enxugue o escopo por esse caminho?`;
     }
-    return `Entendido — ${budgetStr}/mês está dentro do que planejamos para o **${biz}**. Podemos seguir com o escopo atual.`;
+    return `Anotado — isso cabe no que desenhamos para o **${biz}**. Podemos seguir com o escopo atual, e o valor exato sai no orçamento.`;
   }
 
   // Generic price objection
   const postsPerMonth = (scope.social?.postsPerWeek ?? 0) * 4;
   if (postsPerMonth > 8) {
-    return `Entendo a preocupação com o investimento. O plano atual inclui **${postsPerMonth} posts/mês** — um volume que entrega resultados consistentes para o **${biz}**.\n\nSe preferir começar menor, posso ajustar para o **Plano Starter (R$ 1.200–1.800/mês)** — 8 posts + 8 stories/mês. Qual faixa de orçamento você tem em mente?`;
+    return `Entendo a preocupação com o investimento. O escopo atual inclui **${postsPerMonth} posts/mês** — um volume que entrega resultados consistentes para o **${biz}**.\n\nSe preferir começar menor, dá para reduzir a cadência e deixar reels e tráfego para depois. Qual faixa de investimento você tem em mente?`;
   }
   return `Entendo. Qual é a faixa de investimento que você tem em mente para o **${biz}**? Com esse número, ajusto o escopo para encaixar.`;
 }

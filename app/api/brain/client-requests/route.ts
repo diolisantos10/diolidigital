@@ -14,6 +14,27 @@ import { lerContato, montarContato } from "@/lib/agency/comercial/contato-do-lea
 
 // Fire-and-forget prospect confirmation. O endereço sai do leitor único de
 // contato (`lerContato`) — não de um `?.scope?.prospectEmail` reinventado aqui.
+//
+// ── 16/08/2026 — O SILÊNCIO DEIXA DE SER O CAMINHO PADRÃO ────────────────────
+//
+// No piloto do CEO, esta função registrou:
+//   [client-requests] confirmation e-mail skipped — RESEND_API_KEY not set
+//
+// **O defeito não é a chave ausente** — a chave é do CEO e não é assunto de
+// código. O defeito é que o aviso morria num `console.warn`: o cliente mandava
+// briefing e anexos e não recebia sinal nenhum de que chegou, e a equipe não
+// tinha onde ver que o canal estava desligado.
+//
+// Duas coisas mudaram, e nenhuma delas é "avise melhor no log":
+//   1. A confirmação passa a ser gravada na CONVERSA DO PORTAL da solicitação
+//      (`registrarConfirmacaoNoPortal`, abaixo). Ela não depende de e-mail, não
+//      depende de chave e não depende de o prospect já ser cliente — a
+//      `PortalMessage` aceita `clientRequestId`, que é justamente a âncora de
+//      quem ainda não tem ficha. A mensagem aparece na caixa de entrada da
+//      agência na mesma hora, e na tela do cliente quando ele ganha acesso.
+//   2. A falta da chave vira ACHADO VISÍVEL em `GET /api/capacidades`
+//      (`avisar-cliente-por-email`), que é o registro de "o que esta instância
+//      consegue fazer de verdade" — não uma linha de log rotativo.
 function sendBriefingConfirmation(body: Record<string, unknown>, briefingJson: unknown): void {
   if (body.source !== "briefing") return;
   const contato = lerContato({ briefingJson, sdrHandoffJson: body.sdrHandoffJson });
@@ -33,6 +54,56 @@ function sendBriefingConfirmation(body: Record<string, unknown>, briefingJson: u
       else if (!r.ok) console.error("[client-requests] confirmation e-mail failed:", r.error);
     })
     .catch((e) => console.error("[client-requests] confirmation e-mail threw:", e));
+}
+
+/**
+ * A confirmação que NÃO depende de e-mail: uma mensagem da equipe na conversa
+ * do portal daquela solicitação, dizendo o que chegou.
+ *
+ * Best-effort de propósito: falhar aqui **não pode** derrubar o 201. Perder a
+ * confirmação é ruim; perder o briefing inteiro por causa dela seria pior — é o
+ * mesmo raciocínio de `falarComOCliente` em `lib/agency/esteira/marcos.ts`, e o
+ * `authorName` é o mesmo para a conversa não trocar de voz no meio.
+ *
+ * O texto NÃO promete retorno quando não há canal de contato: quem sobe sem
+ * WhatsApp nem e-mail não pode ler "entramos em contato" — foi essa promessa
+ * vazia que produziu os 51 dias do Sushi Cazza.
+ */
+async function registrarConfirmacaoNoPortal(input: {
+  clientRequestId: string;
+  businessName: string;
+  services: string[];
+  anexos: number;
+  temComoFalar: boolean;
+}): Promise<void> {
+  const linhas = [
+    `Recebemos o briefing do ${input.businessName}. Está tudo aqui com a gente. ✅`,
+    "",
+    "O que chegou:",
+    `• A conversa completa do briefing`,
+    ...(input.services.length > 0 ? [`• Serviços pedidos: ${input.services.join(", ")}`] : []),
+    ...(input.anexos > 0
+      ? [`• ${input.anexos} arquivo(s) anexado(s)`]
+      : ["• Nenhum arquivo anexado (se quiser mandar algo, é só responder por aqui)"]),
+    "",
+    input.temComoFalar
+      ? "Vamos montar sua proposta e retornar pelo canal que você informou. Qualquer coisa, responda por aqui mesmo."
+      : "Para preparar a proposta precisamos de um WhatsApp ou e-mail seu — sem isso não temos como te enviar nada. Pode deixar aqui na conversa.",
+  ];
+
+  const { prisma } = await import("@/lib/db/client");
+  await prisma.portalMessage.create({
+    data: {
+      clientRequestId: input.clientRequestId,
+      authorRole: "team",
+      authorName: "Gerente de projeto",
+      body: linhas.join("\n"),
+      // `readByTeam: true` porque a equipe não precisa "ler" a própria mensagem;
+      // marcá-la como não lida inflaria o badge da caixa de entrada com o eco
+      // do próprio sistema e treinaria a equipe a ignorar o badge.
+      readByTeam: true,
+    },
+  });
 }
 
 // GET (list) and PATCH (mutate) are internal — session required.
@@ -151,6 +222,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       sdrHandoffJson:  body.sdrHandoffJson  != null              ? body.sdrHandoffJson as object : undefined,
       attachmentsJson: Array.isArray(body.attachmentsJson)       ? body.attachmentsJson as object[] : [],
     });
+
+    // ── A CONFIRMAÇÃO QUE SEMPRE ACONTECE ────────────────────────────────────
+    //
+    // Fora do `if` de propósito: quem sobe SEM contato é justamente quem mais
+    // precisa de sinal de que chegou, porque para ele não sai e-mail nenhum por
+    // definição. Antes, esse caminho só produzia um `console.warn` e silêncio
+    // absoluto do lado de fora.
+    if (typeof body.source !== "string" || body.source === "briefing") {
+      registrarConfirmacaoNoPortal({
+        clientRequestId: record.id,
+        businessName,
+        services: Array.isArray(body.services) ? (body.services as string[]) : [],
+        anexos: Array.isArray(body.attachmentsJson) ? body.attachmentsJson.length : 0,
+        temComoFalar: contato.temComoFalar,
+      }).catch((e) => {
+        console.error("[client-requests] confirmação no portal falhou para", record.id, e);
+      });
+    }
 
     if (contato.temComoFalar) {
       // Automatically generate the full scope as soon as the briefing lands —

@@ -329,8 +329,34 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // inteira de faixas (decisão do CEO, 05/08/2026). `ehPerguntaDeFaixa` é
     // estreita de propósito — ver `lib/agency/comercial/negociacao.ts`.
     const PRICE_LEAK = /r\$\s*\d|\d+\s*(reais|\/m[êe]s\b)|desconto|\bplano\b.*\bR\$/i;
-    if (PRICE_LEAK.test(replyText) && !ehPerguntaDeFaixa(replyText)) {
-      console.warn("[sdr/chat] price-leak detected, falling back");
+    const vazamento = replyText.match(PRICE_LEAK);
+    if (vazamento && !ehPerguntaDeFaixa(replyText)) {
+      // ── O INSTRUMENTO (16/08/2026) ──────────────────────────────────────────
+      // O log anterior era uma frase sem dado: "price-leak detected". Ele prova
+      // que a trava disparou e não responde NENHUMA das perguntas que a equipe
+      // faz depois — com que frequência, em que turno, e de onde saiu o número.
+      // Sem isso, "dispara em quase toda conversa" era palpite dos dois lados.
+      //
+      // O que entra na linha: o TRECHO que casou (até 40 caracteres), o número
+      // do turno e se o próprio cliente já tinha falado em dinheiro. O que NÃO
+      // entra: a fala inteira do SDR e a mensagem do cliente — elas carregam
+      // nome de pessoa e de negócio, e log de container não é lugar de dado de
+      // cliente. O trecho é o mínimo que permite separar as causas.
+      const clienteFalouEmDinheiro = /r\$|reais|or[çc]amento|investir|gastar|pre[çc]o|custa|valor/i.test(
+        body.currentMessage,
+      );
+      console.warn(
+        "[sdr/chat] price-leak",
+        JSON.stringify({
+          trecho: vazamento[0].slice(0, 40),
+          turno: claudeMessages.length,
+          clienteFalouEmDinheiro,
+          // A pergunta de faixa é a ÚNICA exceção legítima. Quando ela é falsa e
+          // a fala PARECE a pergunta da faixa, o que reprovou foi a regra dos 3
+          // limites — e isso é ajuste de prompt, não afrouxamento de trava.
+          pareciaPerguntaDeFaixa: /investir|investimento|or[çc]amento|verba|gastar|faixa/i.test(replyText),
+        }),
+      );
       return NextResponse.json({ ok: false, reason: "price_leak" });
     }
 

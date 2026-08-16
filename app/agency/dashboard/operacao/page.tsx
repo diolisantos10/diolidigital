@@ -135,9 +135,44 @@ export default function DashboardPage() {
   // between SSR and client hydration. Gate them so the first client render matches
   // the server, then swap to live values after mount.
   const [mounted, setMounted] = useState(false);
+
+  // ── 16/08/2026 — O CANAL DE E-MAIL AO CLIENTE APARECE AQUI ─────────────────
+  //
+  // No piloto do CEO, "os avisos por e-mail ao cliente estão desligados" existia
+  // apenas como `console.warn` dentro de `/api/brain/client-requests`. Log de
+  // container é rotativo e ninguém o abre — na prática, o estado era invisível.
+  //
+  // A verdade é do SERVIDOR (variável de ambiente), então ela não pode ser
+  // calculada aqui: vem de `GET /api/capacidades`, o registro que já responde
+  // "o que esta instância consegue fazer de verdade". `undefined` enquanto não
+  // resolve — e `undefined` NÃO vira "está tudo bem": o System Doctor trata o
+  // não-resolvido como não-resolvido, que é a única leitura honesta.
+  const [canalDeEmail, setCanalDeEmail] = useState<{ ligado: boolean; resumo: string; comoResolver: string } | undefined>(undefined);
+
   useEffect(() => {
     setMounted(true);
     try { setPersisted(!!window.localStorage.getItem("agency-os-v1")); } catch { /* */ }
+
+    let vivo = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/capacidades");
+        if (!res.ok) return;
+        const data = (await res.json()) as { capacidades?: Array<Record<string, unknown>> };
+        const linha = data.capacidades?.find((c) => c.id === "avisar-cliente-por-email");
+        if (!linha || !vivo) return;
+        setCanalDeEmail({
+          ligado: linha.pronta === true,
+          resumo: typeof linha.resumo === "string" ? linha.resumo : "",
+          comoResolver: typeof linha.depende_de === "string" ? linha.depende_de : "",
+        });
+      } catch {
+        // Falha de leitura NÃO vira "ligado". Fica indefinido, e o Doctor diz
+        // que não conseguiu conferir — "não sei" e "está tudo certo" são fatos
+        // opostos, e confundi-los é como este buraco nasceu.
+      }
+    })();
+    return () => { vivo = false; };
   }, []);
 
   const ops = t.dashboard.ops;
@@ -190,7 +225,7 @@ export default function DashboardPage() {
   const totalAttention = Object.values(attentionCounts).reduce((a, b) => a + b, 0);
 
   // ── System Doctor (automatic diagnostics, computed from store) ────────────
-  const doctorReport = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted, aiRunLogs, clientRequests });
+  const doctorReport = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted, aiRunLogs, clientRequests, canalDeEmail });
   const docMeta = DOCTOR_STATUS_COLOR[doctorReport.overallStatus];
 
   // ── Action execution ──────────────────────────────────────────────────────
