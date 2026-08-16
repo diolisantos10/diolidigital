@@ -1,0 +1,16 @@
+{
+  "id": "seguranca/csrf-faixa1-origin",
+  "quem": "wt-69548b43db",
+  "frente": "Origin/Referer na faixa 1 do CSRF: 27 rotas de efeito externo irreversivel, so as autenticadas por cookie",
+  "responsabilidade": "seguranca/csrf-faixa1-origin",
+  "arquivos": [
+    "lib/security/navegacao-cross-site.ts",
+    "app/api/meta",
+    "app/api/agents",
+    "app/api/campanhas",
+    "app/api/portal/approvals"
+  ],
+  "abertaEm": "2026-08-16T19:37:20.377Z",
+  "encerradaEm": null,
+  "rotulo": "pm-avisos"
+}
