@@ -129,6 +129,106 @@ async function estourarBaldeDeIp(page) {
   return contagem;
 }
 
+// ── O CONSERTO de 16/08 ──────────────────────────────────────────────────
+// O relatório acusava `alerta: ""` no PRIMEIRO quadro (mobile/375) e só
+// nele. Duas hipóteses foram DESCARTADAS por leitura do componente, não por
+// suposição:
+//   1. Seletor ambíguo (dois `role="alert"` juntos): não é o caso aqui —
+//      os outros dois candidatos do arquivo (`it.motivo`, upload; `micError`,
+//      microfone) só entram no DOM com upload de arquivo ou uso do
+//      microfone, e este script não faz nenhum dos dois.
+//   2. `avisoConversa` nascer com `texto: ""` e ser preenchido depois: não
+//      existe esse caminho — `setAvisoConversa(avisoParaResultadoSdr(outcome))`
+//      é uma escrita ATÔMICA (PublicBriefingRoom.tsx ~1532), e
+//      `avisoParaResultadoSdr` sempre devolve o objeto INTEIRO com `texto`
+//      preenchido, nunca um objeto parcial.
+// Sobrou a hipótese 3, a do próprio script: `locator.waitFor({state:
+// "visible"})` espera o elemento ficar visível — presença + caixa não-vazia
+// — e NÃO espera o texto. Numa página fresca (o mobile é o PRIMEIRO
+// contexto/navegação de todo o processo do Chromium neste script — a
+// ordem em `DEVICES` põe 375 primeiro de propósito), é exatamente onde uma
+// leitura de `textContent()` pode colher um instantâneo do DOM tirado antes
+// do commit do texto terminar de se propagar para o snapshot que o
+// Playwright usa — corrida real, mesmo com escrita atômica do React do lado
+// de dentro. Não fica provado por execução (ambiente sem servidor no ar
+// nesta rodada); fica DESCARTADO por eliminação e CORRIGIDO pela forma
+// certa em qualquer um dos três casos: esperar o TEXTO, não a presença.
+//
+// `waitForAlertText` espera até existir `[role="alert"]` com texto
+// NÃO-VAZIO (poll via `waitForFunction`, sem `waitForTimeout` cego) e
+// devolve TODOS os textos não-vazios encontrados — se vier mais de um, é
+// ambiguidade real e o chamador denuncia.
+async function waitForAlertText(page, timeout = 20000) {
+  await page.waitForFunction(
+    () => {
+      const els = Array.from(document.querySelectorAll('[role="alert"]'));
+      return els.some((el) => (el.textContent ?? "").trim().length > 0);
+    },
+    { timeout },
+  );
+  return page.evaluate(() =>
+    Array.from(document.querySelectorAll('[role="alert"]'))
+      .map((el) => (el.textContent ?? "").trim())
+      .filter((t) => t.length > 0),
+  );
+}
+
+// ── Auto-teste: o script prova a si mesmo antes de provar a tela ──────────
+// Roda ANTES das capturas reais, numa página em branco, sem depender do
+// dev server. Três casos, os três precisam passar ou a corrida INTEIRA é
+// marcada como não confiável:
+//   1. Texto chega ATRASADO (a mesma corrida do bug de hoje, simulada) —
+//      `waitForAlertText` tem de aguentar e devolver o texto certo, não "".
+//   2. Dois `[role="alert"]` ao mesmo tempo, um vazio e um com texto — tem
+//      de devolver só o não-vazio, sem se enganar pelo vazio.
+//   3. Estado SABIDAMENTE ERRADO (texto que não é o esperado) — a
+//      comparação usada nos casos reais tem de ACUSAR a divergência. Sem
+//      este caso, um "conserto" poderia só ter ensinado o script a nunca
+//      mais reclamar — o mesmo defeito do portão que reprovava por acaso,
+//      de roupa nova.
+async function autoTeste() {
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const page = await ctx.newPage();
+
+  await page.setContent("<!doctype html><html><body></body></html>");
+  await page.evaluate(() => {
+    const p = document.createElement("p");
+    p.setAttribute("role", "alert");
+    document.body.appendChild(p);
+    setTimeout(() => { p.textContent = "texto chegou atrasado"; }, 120);
+  });
+  const casoAtraso = await waitForAlertText(page, 2000);
+  const okAtraso = casoAtraso.length === 1 && casoAtraso[0] === "texto chegou atrasado";
+
+  await page.setContent(
+    '<!doctype html><html><body><p role="alert"></p><p role="alert">texto real</p></body></html>',
+  );
+  const casoAmbiguo = await waitForAlertText(page, 2000);
+  const okAmbiguo = casoAmbiguo.length === 1 && casoAmbiguo[0] === "texto real";
+
+  await page.setContent(
+    '<!doctype html><html><body><p role="alert">isto não é o aviso esperado</p></body></html>',
+  );
+  const casoErrado = await waitForAlertText(page, 2000);
+  const okAcusa = casoErrado[0] !== TEXTO_AVISO_BARRADO; // tem de DIVERGIR — é o ponto do teste
+
+  await ctx.close();
+
+  const passou = okAtraso && okAmbiguo && okAcusa;
+  log(
+    `[auto-teste] texto atrasado: ${okAtraso ? "OK" : "FALHOU"} · ` +
+    `ambiguidade resolvida: ${okAmbiguo ? "OK" : "FALHOU"} · ` +
+    `acusa estado errado: ${okAcusa ? "OK" : "FALHOU"}`,
+  );
+  if (!passou) {
+    falhas.push(
+      "auto-teste do script FALHOU — a ferramenta de prova não está confiável " +
+      `(atraso=${okAtraso} ambiguidade=${okAmbiguo} acusa=${okAcusa}). Não confie no relatório abaixo.`,
+    );
+  }
+  return passou;
+}
+
 // Verifica se sobrou número de segundos ou código HTTP cru na tela — é
 // defeito, e o script precisa denunciar, não só fotografar.
 function conferirTextoLimpo(texto, contexto) {
@@ -169,9 +269,14 @@ async function capturarBarrado({ device, width, height }) {
 
     await enviarMensagem(page, textarea, "quero 2 posts por dia, verba de R$ 500 por mês");
 
-    const alerta = page.locator('[role="alert"]');
-    await alerta.first().waitFor({ state: "visible", timeout: 20000 });
-    const textoAlerta = (await alerta.first().textContent())?.trim() ?? "";
+    // Espera pelo TEXTO, não pela presença do elemento — ver "O CONSERTO de
+    // 16/08" acima. `waitFor(visible)` + leitura imediata é o que produziu
+    // o falso alarme de hoje.
+    const textosAlerta = await waitForAlertText(page, 20000);
+    if (textosAlerta.length > 1) {
+      falhas.push(`barrado/${device}: ${textosAlerta.length} elementos [role="alert"] com texto não-vazio ao mesmo tempo — seletor ambíguo. Textos: ${JSON.stringify(textosAlerta)}`);
+    }
+    const textoAlerta = textosAlerta[0] ?? "";
     conferirTextoLimpo(textoAlerta, `barrado/${device}`);
     if (textoAlerta !== TEXTO_AVISO_BARRADO) {
       falhas.push(`barrado/${device}: texto do aviso é DIFERENTE do TEXTO_AVISO_BARRADO esperado.\n  esperado: "${TEXTO_AVISO_BARRADO}"\n  na tela:  "${textoAlerta}"`);
@@ -213,9 +318,11 @@ async function capturarQuebrado({ device, width, height }) {
     const textarea = await abrirNoBriefing(page);
     await enviarMensagem(page, textarea, "Meu nome é Diego, meu negócio é City Jobs");
 
-    const alerta = page.locator('[role="alert"]');
-    await alerta.first().waitFor({ state: "visible", timeout: 20000 });
-    const textoAlerta = (await alerta.first().textContent())?.trim() ?? "";
+    const textosAlerta = await waitForAlertText(page, 20000);
+    if (textosAlerta.length > 1) {
+      falhas.push(`quebrado/${device}: ${textosAlerta.length} elementos [role="alert"] com texto não-vazio ao mesmo tempo — seletor ambíguo. Textos: ${JSON.stringify(textosAlerta)}`);
+    }
+    const textoAlerta = textosAlerta[0] ?? "";
     conferirTextoLimpo(textoAlerta, `quebrado/${device}`);
     if (textoAlerta !== TEXTO_AVISO_QUEBRADO) {
       falhas.push(`quebrado/${device}: texto do aviso é DIFERENTE do TEXTO_AVISO_QUEBRADO esperado.\n  esperado: "${TEXTO_AVISO_QUEBRADO}"\n  na tela:  "${textoAlerta}"`);
@@ -235,6 +342,10 @@ async function capturarQuebrado({ device, width, height }) {
 }
 
 try {
+  // Prova a si mesmo ANTES de provar a tela — se isto falhar, o resto do
+  // relatório não é confiável e não deve ser lido como veredito.
+  await autoTeste();
+
   // 375 PRIMEIRO, sempre — é onde a faixa pode empurrar conteúdo para fora da
   // dobra, e é onde a maioria das pessoas está.
   for (const d of DEVICES) await capturarBarrado(d);
