@@ -301,3 +301,86 @@ existir um Diretor Geral de verdade, ele soma coletores como este por produto
   (`lib/generated/prisma/models/*.ts`) — nomes de coluna, tipos, nulabilidade
   — mas isto não substitui `npx tsc --noEmit && npm test`. Quem retomar
   precisa rodar os dois antes de considerar isto fechado.
+
+---
+
+## 2026-08-16 · "O visitante não vê o agente falar" — script escrito, NÃO REPRODUZIDO por leitura, execução pendente do PM
+
+**O pedido:** ficha de despacho, defeito 2 — descobrir, MEDINDO com o app de
+pé, se existe caminho em que o SDR "fala" e o visitante do `/briefing` não vê
+nada, cobrindo os quatro motivos possíveis (guarda barra a fala, teto de
+tokens, 429, provedor de IA fora do ar/`reply === null`).
+
+**O que entrou**
+
+- `scripts/repro-fala-que-nao-aparece.mjs` — Playwright, 375×812, entra pela
+  porta (`LeadNaPorta`), manda uma mensagem na sala, conta balões do agente
+  (`div.justify-start` dentro do container de mensagens — exclui de propósito
+  o indicador de "digitando" e o balão do próprio visitante) antes/depois do
+  envio, amarra isso à resposta HTTP real de `/api/sdr/chat` (status + corpo),
+  tira 1 screenshot de viewport e imprime veredito literal.
+
+**O que NÃO pude fazer, e por quê:** rodar o script. Todo `npm`, `npx`, `node`
+(inclusive `node --check`, sem rede nenhuma) devolveu *"This command requires
+approval"* neste turno — o mesmo bloqueio que as duas entradas de 16/08 acima
+já registram para `tsc`/`vitest`. **Isto é esperado para este cargo** (ver
+`CLAUDE.md`: "o subagente não executa npm, npx, node nem git commit — o
+especialista ESCREVE; o portão... é do PM"), não uma falha minha — mas
+significa que o veredito abaixo é de **leitura de código**, não de tela real.
+
+**O rastro que fiz no lugar da execução — cada um dos 4 motivos da ficha:**
+
+1. **Guarda barra a fala** (`email_hallucination`/`price_leak`,
+   `app/api/sdr/chat/route.ts:577-629`): devolve `ok:false`, `reply` ausente,
+   e esses dois motivos **não** entram em `MOTIVOS_COM_ESCOPO_APROVEITAVEL`
+   (`PublicBriefingRoom.tsx:966-969`) — então `fetchSdrReply` devolve
+   `{kind:"sem_novidade"}`.
+2. **Teto de tokens estourado** (`stop_reason:"max_tokens"`,
+   `route.ts:474-547`): `reason:"truncado"`, que **está** na allowlist — se
+   sobrou `scope`, vira `{kind:"resposta", reply:null}`; se não sobrou,
+   `{kind:"sem_novidade"}`.
+3. **429** (`limite-no-banco.ts`, já tratado por `468cc735`): `fetchSdrReply`
+   devolve `{kind:"barrado"}` quando `res.status===429`
+   (`PublicBriefingRoom.tsx:1001-1006`) — confirmei que a peça de `468cc735`
+   está de pé no disco, não land em cima dela.
+4. **Provedor de IA não responde** — o único que ESTE ambiente reproduz de
+   graça: `.env` só tem `DATABASE_URL`/`JWT_SECRET`, `chaveDeRotaPublica`
+   (`lib/ai/chave-publica.ts:47`) devolve `null`, a rota responde
+   `{ok:false, reason:"not_configured"}` com HTTP 200 — que também cai em
+   `{kind:"sem_novidade"}`.
+
+**Em TODOS os quatro, `runTurn` (`PublicBriefingRoom.tsx:1473-1537`) cai no
+mesmo lugar:** ou `outcome.kind==="resposta"` com `reply:null` → usa
+`ruleAssistant` (a resposta do motor de regras); ou qualquer outro `kind` →
+`setState(ruleResult)`, que **já contém** `ruleAssistant` — porque
+`processProspectMessage` (`lib/agency/prospect-engine.ts:270-520`) **sempre**
+atribui uma string a `replyText`, em todo ramo que percorri (primeira
+mensagem, objeção, negociação, próxima pergunta, tudo respondido). Não achei
+nenhum ramo que deixe `conv.messages` sem a fala nova. O diário do servidor
+corrobora a intenção: `registro-da-conversa.ts:186` grava, quando a IA é
+barrada, "quem respondeu ao visitante foi o motor de regras" — o desenho
+pressupõe que ALGUÉM sempre fala.
+
+**Veredito: NÃO REPRODUZIDO por leitura, em nenhum dos 4 caminhos da ficha —
+mas isto é diferente de CONFIRMADO.** Só a execução do script prova a tela de
+verdade (React state, timing, re-render). **Não escrevi PEÇA 2 (conserto)**
+— a regra da ficha é clara: sem reprodução, não se inventa conserto.
+
+**O que ficou aberto, para o PM (ou quem tiver a aprovação de rodar `npm`):**
+
+1. Subir o app (`npm run dev`) e rodar
+   `node scripts/repro-fala-que-nao-aparece.mjs` — teto de ~30s, sai com
+   `exit 1` se reproduzir, `0` se não.
+2. Se reproduzir apesar da leitura acima: o ponto mais provável para olhar
+   primeiro é uma exceção não capturada DEPOIS de `setAiThinking(false)` mas
+   ANTES do `setState` final dentro do ramo `"resposta"` de `runTurn`
+   (ex.: `computeEstimate(mergedScope)` lançando para um `scope` malformado)
+   — isso apagaria o indicador de "digitando" sem nunca gravar a fala de
+   fallback. **Não persegui esse fio**: é hipótese não testada, fora dos 4
+   motivos que a ficha pediu para cobrir, e cutucar `computeEstimate` sem
+   reprodução seria inventar conserto para o que não vi.
+3. `docs/pendencias.md:4682-4688` já tinha este mesmo relato como "reportado
+   pelo CEO e NÃO reproduzido" (16/08, sessão anterior) por falta de
+   informação (qual tela, qual aparelho). Esta rodada troca "chute" por
+   rastro citável — mas a régua da casa é execução, não leitura, e a linha
+   de pendências só deve fechar depois do item 1.

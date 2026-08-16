@@ -9,6 +9,7 @@ import { emptyBrandingScope, emptyScope, emptyEstimate } from "./briefing-conver
 import { computeEstimate } from "./live-calculator";
 import { ehAvisoDeAnexo } from "./anexo-nao-e-resposta";
 import { lerAreaDeAtendimento } from "./comercial/onde-o-negocio-vende";
+import { NUMERO_POR_EXTENSO, normalizar as normalizarSemAcento } from "./esteira/leitura-do-pedido";
 
 // ── Text helpers ──────────────────────────────────────────────────────────────
 
@@ -23,6 +24,26 @@ export function isNo(t: string): boolean {
 function extractNumber(t: string): number | undefined {
   const m = t.match(/\b(\d+)\b/);
   return m ? parseInt(m[1], 10) : undefined;
+}
+
+/**
+ * O NÚMERO POR EXTENSO ("dois", "quatorze"...), reaproveitando o vocabulário
+ * de `leitura-do-pedido.ts` — não uma quarta lista da mesma coisa nesta casa.
+ *
+ * ⚠️ De propósito NÃO entra dentro de `extractNumber`/`volumeNaUnidade`: essa
+ * dupla, para texto por extenso, precisa continuar devolvendo ausência — é o
+ * comportamento travado por regressão em
+ * `__tests__/esteira/o-quadro-nunca-mostra-zero.test.ts` (bloco "na unidade
+ * crua"). Quem PRECISA do número por extenso usa a porta de baixo,
+ * `volumeNaUnidadeComExtenso` / `frequenciaSemanalComExtenso`.
+ */
+function extractNumberPorExtenso(t: string): number | undefined {
+  // Reaproveita a mesma função de `leitura-do-pedido.ts` que tira acento —
+  // "três" e "tres" têm de cair na mesma chave do dicionário.
+  const normalizado = normalizarSemAcento(t);
+  const re = new RegExp(`\\b(${Object.keys(NUMERO_POR_EXTENSO).join("|")})\\b`);
+  const m = normalizado.match(re);
+  return m ? NUMERO_POR_EXTENSO[m[1] as keyof typeof NUMERO_POR_EXTENSO] : undefined;
 }
 
 /**
@@ -68,6 +89,22 @@ function unidadeDaResposta(t: string): keyof typeof POR_SEMANA | null {
   return null;
 }
 
+/** O núcleo da conversão, já com o número em mãos — dígito ou por extenso, não
+ *  importa mais daqui pra frente. Compartilhado pelas duas portas de entrada
+ *  abaixo (`volumeNaUnidade` e `volumeNaUnidadeComExtenso`) para a conta nunca
+ *  divergir entre elas. */
+function converterParaUnidade(n: number, texto: string, destino: UnidadeDeVolume): number {
+  const unidade = unidadeDaResposta(texto.toLowerCase());
+  // Sem unidade declarada, vale a da PERGUNTA. Ausência de unidade é diferente
+  // de unidade contrária: quem responde "5" a "quantas por semana?" está
+  // respondendo por semana, e supor o contrário seria inventar o pedido.
+  if (unidade === null) return n;
+
+  const porSemana = n * POR_SEMANA[unidade];
+  const convertido = destino === "semana" ? porSemana : porSemana * 4;
+  return Math.max(1, Math.ceil(convertido));
+}
+
 /**
  * O NÚMERO QUE A PESSOA DISSE, NA UNIDADE QUE O CAMPO GUARDA.
  *
@@ -91,22 +128,42 @@ function unidadeDaResposta(t: string): keyof typeof POR_SEMANA | null {
 export function volumeNaUnidade(texto: string, destino: UnidadeDeVolume): number | undefined {
   const n = extractNumber(texto);
   if (n === undefined) return undefined;
-
-  const unidade = unidadeDaResposta(texto.toLowerCase());
-  // Sem unidade declarada, vale a da PERGUNTA. Ausência de unidade é diferente
-  // de unidade contrária: quem responde "5" a "quantas por semana?" está
-  // respondendo por semana, e supor o contrário seria inventar o pedido.
-  if (unidade === null) return n;
-
-  const porSemana = n * POR_SEMANA[unidade];
-  const convertido = destino === "semana" ? porSemana : porSemana * 4;
-  return Math.max(1, Math.ceil(convertido));
+  return converterParaUnidade(n, texto, destino);
 }
 
 /** Atalho para o destino mais comum. Mantido porque é o nome que o incidente do
  *  CEO batizou e que os testes daquele dia usam. */
 export function frequenciaSemanal(texto: string): number | undefined {
   return volumeNaUnidade(texto, "semana");
+}
+
+/**
+ * MESMA conversão de `volumeNaUnidade`, mas também lê o número quando ele vem
+ * POR EXTENSO ("dois posts por dia"), não só em dígito.
+ *
+ * ─── O INCIDENTE (16/08/2026, Diego, City Jobs) ───────────────────────────
+ *
+ * A primeira fala de Diego foi "dois posts estáticos por dia" — sem dígito
+ * algum. `volumeNaUnidade`/`frequenciaSemanal` (função acima) devolviam
+ * ausência para ela, o que É o comportamento certo NAQUELE nível: uma função
+ * que não entende a palavra deve dizer "não sei", nunca chutar. O defeito
+ * real morava um andar acima, em quem lia essa ausência e a trocava por um
+ * palpite plausível (`?? 3`) — ver `posts_per_week`/`stories`/`reels` em
+ * `QUESTIONS` abaixo, e o relato do incidente no cabeçalho do arquivo de
+ * teste `__tests__/esteira/o-quadro-nunca-mostra-zero.test.ts`.
+ *
+ * Esta função é a peça que faltava para quem PRECISA do número de verdade,
+ * não um substituto de `volumeNaUnidade` — por isso é uma porta nova, e não
+ * uma mudança na porta antiga.
+ */
+export function volumeNaUnidadeComExtenso(texto: string, destino: UnidadeDeVolume): number | undefined {
+  const n = extractNumber(texto) ?? extractNumberPorExtenso(texto);
+  if (n === undefined) return undefined;
+  return converterParaUnidade(n, texto, destino);
+}
+
+export function frequenciaSemanalComExtenso(texto: string): number | undefined {
+  return volumeNaUnidadeComExtenso(texto, "semana");
 }
 
 export function detectPlatforms(t: string): string[] {
@@ -306,10 +363,18 @@ const QUESTIONS: QuestionDef[] = [
     id: "posts_per_week",
     when: (s) => s.scope.wantsSocialMedia && s.scope.social?.postsPerWeek === undefined,
     text: () => "Quantas postagens por semana você imagina para o feed? (3 por semana é um ritmo consistente para começar)",
-    // `frequenciaSemanal`, e não `extractNumber`: "2 posts por dia" são 14 por
-    // semana, não 2. Ver o incidente no cabeçalho da função — foi assim que a
-    // casa devolveu 3/semana a quem pediu 2/dia.
-    parse: (answer, s) => ({ social: { ...social(s), postsPerWeek: frequenciaSemanal(answer) ?? 3 } }),
+    // `frequenciaSemanalComExtenso`, e não `extractNumber`: "2 posts por dia"
+    // (ou "dois posts por dia", por extenso) são 14 por semana, não 2. Ver o
+    // incidente no cabeçalho da função — foi assim que a casa devolveu
+    // 3/semana a quem pediu 2/dia.
+    //
+    // SEM `?? 3`: ausência de informação não é informação. Quando a conversão
+    // falha, o campo fica `undefined` — ausência declarada, que trava a
+    // estimativa em `live-calculator.ts` (`volumeDeclarado`/`travadaPor`) — e
+    // NUNCA um palpite plausível como "3", que parece resposta de verdade e
+    // ninguém questiona de novo. Incidente de 16/08 (Diego, City Jobs):
+    // "dois posts estáticos por dia" virava silenciosamente 3/semana.
+    parse: (answer, s) => ({ social: { ...social(s), postsPerWeek: frequenciaSemanalComExtenso(answer) } }),
   },
 
   // Q4 — stories
@@ -318,9 +383,13 @@ const QUESTIONS: QuestionDef[] = [
     when: (s) => s.scope.wantsSocialMedia && s.scope.social?.storiesPerWeek === undefined,
     text: () => "Vai querer stories também? Se sim, quantas publicações por semana?",
     // Mesma unidade, mesmo defeito, mesmo conserto: "3 stories por dia" são 21
-    // por semana. (`reels` pergunta POR MÊS e por isso NÃO entra aqui — a
-    // conversão dele é outra, e aplicar esta faria o erro inverso.)
-    parse: (answer, s) => ({ social: { ...social(s), storiesPerWeek: isNo(answer) ? 0 : (frequenciaSemanal(answer) ?? 3) } }),
+    // por semana, e "três stories por dia" também — por extenso ou dígito.
+    // (`reels` pergunta POR MÊS e por isso NÃO entra aqui — a conversão dele é
+    // outra, e aplicar esta faria o erro inverso.)
+    //
+    // SEM `?? 3`: mesma trava da pergunta anterior — quando não dá para ler o
+    // número, o campo fica ausente, nunca um palpite disfarçado de resposta.
+    parse: (answer, s) => ({ social: { ...social(s), storiesPerWeek: isNo(answer) ? 0 : frequenciaSemanalComExtenso(answer) } }),
   },
 
   // Q5 — reels
@@ -329,8 +398,12 @@ const QUESTIONS: QuestionDef[] = [
     when: (s) => s.scope.wantsSocialMedia && s.scope.social?.reelsPerMonth === undefined,
     text: () => "Vai precisar de reels ou vídeos? Se sim, quantos por mês? (Roteiro e edição inclusos — filmagem não é incluída por padrão)",
     // Destino "mes": este campo é `reelsPerMonth`. "2 reels por semana" são 8
-    // por mês — e a conversão semanal daria 2, o erro inverso com cara de conserto.
-    parse: (answer, s) => ({ social: { ...social(s), reelsPerMonth: isNo(answer) ? 0 : (volumeNaUnidade(answer, "mes") ?? 4) } }),
+    // por mês — e a conversão semanal daria 2, o erro inverso com cara de
+    // conserto. `volumeNaUnidadeComExtenso` também lê "dois reels por mês".
+    //
+    // SEM `?? 4`: mesma trava das duas perguntas acima — ausência declarada,
+    // nunca um palpite.
+    parse: (answer, s) => ({ social: { ...social(s), reelsPerMonth: isNo(answer) ? 0 : volumeNaUnidadeComExtenso(answer, "mes") } }),
   },
 
   // Q5.1 — video production (only when reels/videos are in scope)

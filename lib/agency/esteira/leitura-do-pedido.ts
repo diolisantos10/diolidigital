@@ -54,7 +54,11 @@ const PECAS = "(?:reels?|videos?|filmes?|posts?|carross(?:el|eis)|stor(?:y|ies)|
 /** Só as formas plurais — usadas para saber se ele falou de UMA ou de VÁRIAS. */
 const PECAS_PLURAL = "(?:reels|videos|filmes|posts|carrosseis|stories|artes|banners|criativos|logotipos|logos|campanhas|anuncios|pecas|flyers|roteiros|scripts|legendas|textos)";
 
-const NUMERO_POR_EXTENSO: Record<string, number> = {
+// Exportada (16/08/2026): `question-engine.ts` precisava ler número por
+// extenso ("dois posts por dia") e a casa já tinha ESTA lista pronta — a
+// mesma doença do dia (número inventado) seria repetida em código se aqui
+// nascesse uma quarta lista da mesma coisa. Uma lista, duas pontas.
+export const NUMERO_POR_EXTENSO: Record<string, number> = {
   um: 1, uma: 1, dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5, seis: 6,
   sete: 7, oito: 8, nove: 9, dez: 10, onze: 11, doze: 12,
 };

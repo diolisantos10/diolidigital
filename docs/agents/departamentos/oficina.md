@@ -5,6 +5,58 @@
 
 ---
 
+## 2026-08-16 · medição — a verba de Diego já é reconhecida, mas faltava prova ponta a ponta
+
+Despacho: provar se a verba declarada abaixo da estimativa (caso Diego, City
+Jobs, 12:40–12:44) é reconhecida na fala que o cliente lê, ou ignorada em
+silêncio.
+
+**Veredito da medição: a regra JÁ EXISTE e JÁ CHEGA ao cliente — no código
+ATUAL desta branch.** Rastreei a cadeia completa:
+
+`confrontoDeVerba` (`lib/agency/comercial/verba-declarada.ts:115`) →
+calculado dentro de `computeEstimate` (`lib/agency/live-calculator.ts:337`) →
+gravado no `briefingJson.estimate` → lido por `estimativaDe`
+(`lib/agency/esteira/orcamento-do-briefing.ts:190`) → impresso por
+`textoDoOrcamento` (`orcamento-do-briefing.ts:406-409`, logo depois da faixa
+em reais, de propósito) → gravado como `portalMessage.body`
+(`orcamento-do-briefing.ts:509-519`) — **essa `body` é literalmente a
+mensagem que o cliente lê na conversa**. O e-mail de aviso
+(`lib/email/templates.ts:183-191`) só sinaliza e manda ler a conversa; não
+duplica a conta.
+
+Achado estrutural, e por que o pipeline não vaza preço antes da hora:
+`EstimateSection`/`ProposalCard` em `PublicBriefingRoom.tsx` estão
+**deliberadamente desligados** (comentário na linha ~272) desde `155aefbb` —
+nenhum preço aparece mid-conversa, só depois do login, pelo canal único
+(`orcamento-do-briefing.ts`). Isso significa que o "48 segundos depois" do
+caso real é a entrega assíncrona (relógio de 5 em 5 min), não uma resposta
+do SDR — e essa entrega já carrega o confronto.
+
+**O buraco real não era no mecanismo — era na cobertura de teste.** Duas
+suítes já travavam o comportamento no nível de função pura, com os mesmos
+números do caso (`verba-declarada-o-que-cabe.test.ts`,
+`verba-e-volume-do-briefing.test.ts`), e uma terceira testava o pipeline de
+entrega ponta a ponta mas **sem nunca alimentar um `confrontoDeVerba`**
+(`__tests__/esteira/orcamento-do-briefing.test.ts`, bloco "o texto que o
+cliente lê"). Ninguém tinha provado, com o banco mockado e
+`entregarOrcamentosPendentes()` de verdade, que o reconhecimento da verba
+sobrevive até a `body` gravada.
+
+- Fechado: `__tests__/comercial/verba-declarada-nao-passa-em-silencio.test.ts`
+  — roda o pipeline completo com o pedido de Diego (R$ 500 declarado, R$
+  1.800–3.400 de estimativa), confere que a `body` grava a diferença nomeada
+  e os degraus que cabem, confere a contraprova (sem confronto, sem
+  reconhecimento inventado) e confere que o e-mail aponta para a conversa
+  sem duplicar o número.
+- Não escrevi terceira cópia de módulo nem repeti as asserções de função
+  pura já existentes — só o elo de integração que faltava.
+- **Não rodei o portão** (`npm test`) — sem permissão nesta rodada. Fica
+  para o PM confirmar que o arquivo novo passa.
+- Nada para consertar: não há gap de código a fechar nesta rodada.
+
+---
+
 ## 2026-08-05 · madrugada — o raio-x do Brain, 9 achados
 
 Território: `lib/agency/execution/` (artes, run-execution, quality-auditor,
