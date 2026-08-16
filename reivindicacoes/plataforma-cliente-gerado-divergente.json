@@ -1,0 +1,12 @@
+{
+  "id": "plataforma/cliente-gerado-divergente",
+  "quem": "wt-4a7642478e",
+  "frente": "cliente Prisma gerado como segunda fonte da verdade: regenerar e travar",
+  "responsabilidade": "plataforma/cliente-gerado-divergente",
+  "arquivos": [
+    "lib/generated/prisma",
+    "__tests__/plataforma/cliente-gerado.test.ts"
+  ],
+  "abertaEm": "2026-08-16T19:51:55.167Z",
+  "encerradaEm": null
+}
