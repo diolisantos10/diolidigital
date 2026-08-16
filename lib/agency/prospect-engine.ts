@@ -10,6 +10,7 @@ import type { ConvState, ConvMessage, BriefingScope } from "./briefing-conversat
 import { emptyScope, emptyEstimate } from "./briefing-conversation";
 import { computeEstimate } from "./live-calculator";
 import { ehAvisoDeAnexo } from "./anexo-nao-e-resposta";
+import { emailValido, whatsappValido } from "./comercial/contato-do-lead";
 import {
   isYes, parseInitialMessage, inferAnsweredQIds, mergeScopeDelta,
   buildAcknowledgment, detectNegotiation, getNextQuestion,
@@ -31,6 +32,22 @@ export interface ProspectConvState {
 }
 
 // ── Identity helpers ──────────────────────────────────────────────────────────
+
+// 16/08/2026: quando a resposta à pergunta de identidade não bate nenhum
+// padrão de nome/negócio (ex.: a pessoa cola um e-mail), o parser antigo
+// gravava a resposta CRUA como businessName/prospectName — um e-mail virava
+// "nome do negócio" na tela do CEO. Ausência de informação não é informação:
+// se a resposta é claramente um canal de contato (e-mail, @arroba, telefone),
+// ela nunca deve ser usada como identidade. Ver `contato-do-lead.ts` — o
+// leitor único de contato — para os mesmos validadores.
+function respostaEhCanalDeContato(texto: string): boolean {
+  const t = texto.trim();
+  if (!t) return false;
+  if (emailValido(t)) return true;
+  if (/^@/.test(t)) return true;
+  if (/^[\d\s()+.-]+$/.test(t) && whatsappValido(t)) return true;
+  return false;
+}
 
 function parseProspectNameBiz(text: string): { prospectName?: string; businessName?: string } {
   let prospectName: string | undefined;
@@ -184,15 +201,21 @@ const IDENTITY_QUESTIONS: QuestionDef[] = [
         prospectName = businessName;
         businessName = undefined;
       }
+      // 16/08/2026: se a resposta crua é um canal de contato (e-mail, @arroba,
+      // telefone), ela NUNCA vira identidade — nem nome, nem negócio. Ver
+      // `respostaEhCanalDeContato` acima e o incidente no cabeçalho deste bloco.
+      const naoUsarComoIdentidade = respostaEhCanalDeContato(answer);
       return {
         ...(prospectName ? { prospectName } : {}),
         ...(businessName
           ? { businessName }
           // If we already know the businessName and only asked for a person name,
-          // treat the raw answer as the prospect name rather than the business name.
-          : s.scope.businessName
+          // treat the raw answer as the prospect name rather than the business name
+          // — a não ser que a resposta seja um canal de contato (e-mail/@/telefone):
+          // aí não vira nome nenhum, e a pergunta continua pendente.
+          : s.scope.businessName && !naoUsarComoIdentidade
           ? { prospectName: prospectName ?? answer.trim() }
-          : !prospectName
+          : !prospectName && !naoUsarComoIdentidade
           ? { businessName: answer.trim() }
           : {}),
       };
