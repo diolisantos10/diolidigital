@@ -328,13 +328,21 @@ ninguém sabe qual versão vale.
 > deste repositório — uma sessão só enxerga os repos anexados **na abertura**, e o
 > kit é repo separado e privado. Pasta **gerada**: não edite nada lá.
 >
-> ⚠️ **Este espelho está congelado e é preciso saber disso antes de confiar nele.**
-> Ele foi gerado **uma vez**, em 09/08/2026 (kit `6782942`), e **não há robô que o
-> renove** aqui — o Foocci tem um (`.github/workflows/kit-espelho.yml`) e esta casa
-> não. Conferido em 13/08: o espelho para na **doutrina 24**; as doutrinas **25,
-> 26, 26a, 27, 28 e 29 não estão nele**. Espelho velho que se apresenta como atual
-> é pior que espelho ausente. Enquanto o robô não existir aqui, o carimbo em
-> `docs/kit/ESPELHO.json` é a única coisa que diz o quanto ele atrasou.
+> ⚠️ **O robô existe agora, mas ainda não espelhou nada — e é preciso saber
+> por quê antes de confiar nesta pasta.** Esta casa tem `.github/workflows/kit-espelho.yml`
+> e `scripts/espelhar-kit.mts`, iguais ao do Foocci, rodando diariamente e sob
+> demanda. Mas o kit é repositório separado e privado, e o `GITHUB_TOKEN` que o
+> GitHub Actions injeta só alcança este repositório — o robô precisa do segredo
+> `KIT_REPO_TOKEN`, e **esse segredo ainda não existe**. 🔴 **Enquanto o CEO não
+> provisionar `KIT_REPO_TOKEN`, o robô não espelha e esta pasta continua parada.**
+> Isso é pendência de gente, não de código — não deixe virar entrelinha. Quando
+> falha, ele falha visível na aba Actions e grava o motivo em
+> `docs/kit/ESPELHO.json` (`ultimaTentativaEm`, `ultimoErro`, `estado`) em vez
+> de deixar o carimbo envelhecer em silêncio. Medido em 16/08/2026, o espelho
+> ainda para na **doutrina 24**; as doutrinas **25, 26, 26a, 27, 28 e 29 não
+> estão nele**. Espelho velho que se apresenta como atual é pior que espelho
+> ausente. A idade corrente está em `docs/kit/LEIA-PRIMEIRO.md` (gerado) e sai
+> a qualquer momento com `npm run kit:carimbo`.
 
 Leitura obrigatória antes de mexer em `lib/dioli-brain/`:
 
