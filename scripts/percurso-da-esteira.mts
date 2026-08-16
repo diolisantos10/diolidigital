@@ -112,9 +112,17 @@ async function tentarLogin(): Promise<void> {
     return;
   }
   try {
+    // `Origin: BASE_URL` em toda chamada de mutação daqui em diante: medido em
+    // 16/08/2026 (`lib/security/navegacao-cross-site.ts`,
+    // `deveBloquearMutacaoCrossSite`) que a FAIXA 1 do CSRF é fail-CLOSED —
+    // sem `Sec-Fetch-Site` (este script não roda em navegador) e sem `Origin`,
+    // a ausência dos três sinais é tratada como requisição forjada e a rota
+    // devolve 403. A guarda está CERTA; é a ferramenta interna que se
+    // identifica. Sem isto a esteira inteira quebra na primeira rota da
+    // FAIXA 1 (hoje: `/api/brain/orchestrate/apply`, etapa 8).
     const res = await fetch(`${BASE_URL}/api/auth/signin`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Origin: BASE_URL },
       body: JSON.stringify({ email: MASTER_EMAIL, password: MASTER_PASSWORD }),
     });
     const cookie = res.headers.get("set-cookie")?.split(";")[0] ?? "";
@@ -130,7 +138,10 @@ async function tentarLogin(): Promise<void> {
 }
 
 function headersComSessao(): Record<string, string> {
-  return { "Content-Type": "application/json", ...(sessionCookie ? { Cookie: sessionCookie } : {}) };
+  // `Origin` sempre junto: ver o comentário em `tentarLogin()` — a trava
+  // fail-closed da FAIXA 1 (`deveBloquearMutacaoCrossSite`) exige que
+  // ferramenta interna se identifique, e sem isso a esteira devolve 403.
+  return { "Content-Type": "application/json", Origin: BASE_URL, ...(sessionCookie ? { Cookie: sessionCookie } : {}) };
 }
 
 // ─── Espera curta com poll (para o auto-scope rodar em background) ─────────
@@ -185,7 +196,8 @@ async function main(): Promise<void> {
     };
     const res = await fetch(`${BASE_URL}/api/sdr/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // `Origin`: ver o comentário em `tentarLogin()`.
+      headers: { "Content-Type": "application/json", Origin: BASE_URL },
       body: JSON.stringify(body),
     });
     const json = await res.json().catch(() => ({}));
@@ -318,7 +330,8 @@ async function main(): Promise<void> {
     };
     const res = await fetch(`${BASE_URL}/api/brain/client-requests`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // `Origin`: ver o comentário em `tentarLogin()`.
+      headers: { "Content-Type": "application/json", Origin: BASE_URL },
       body: JSON.stringify(bodySemContato),
     });
     const json = (await res.json().catch(() => ({}))) as {
@@ -368,7 +381,8 @@ async function main(): Promise<void> {
     };
     const res = await fetch(`${BASE_URL}/api/brain/client-requests`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // `Origin`: ver o comentário em `tentarLogin()`.
+      headers: { "Content-Type": "application/json", Origin: BASE_URL },
       body: JSON.stringify(bodyComContato),
     });
     const json = (await res.json().catch(() => ({}))) as {
@@ -391,7 +405,8 @@ async function main(): Promise<void> {
     if (leadComContatoId) {
       const res2 = await fetch(`${BASE_URL}/api/brain/client-requests`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        // `Origin`: ver o comentário em `tentarLogin()`.
+        headers: { "Content-Type": "application/json", Origin: BASE_URL },
         body: JSON.stringify({
           ...bodyComContato,
           rawContext: `${textoCru} (segundo pedido de teste — mesmo contato, prova de reaproveitamento)`,

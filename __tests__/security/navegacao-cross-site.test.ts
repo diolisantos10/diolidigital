@@ -22,7 +22,7 @@ describe("ehNavegacaoCrossSite", () => {
     expect(ehNavegacaoCrossSite(req("same-site"))).toBe(false);
   });
 
-  it("ausente (navegador sem Fetch Metadata) → false, risco aceito e declarado", () => {
+  it("ausente (navegador sem Fetch Metadata) → false — risco MEDIDO em 16/08/2026 (Chromium, não só lido na spec); ver o cabeçalho de lib/security/navegacao-cross-site.ts e __tests__/security/guarda-de-origem-no-navegador.test.ts", () => {
     expect(ehNavegacaoCrossSite(req(undefined))).toBe(false);
   });
 });

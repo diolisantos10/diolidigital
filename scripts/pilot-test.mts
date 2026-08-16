@@ -8,6 +8,13 @@ async function api(method: string, path: string, body?: unknown, cookie?: string
     method,
     headers: {
       "Content-Type": "application/json",
+      // `Origin`: este script faz POST em rotas guardadas pela FAIXA 1 do
+      // CSRF (`/api/brain/approvals`, `/api/portal/approvals` — ver
+      // `lib/security/navegacao-cross-site.ts`, `deveBloquearMutacaoCrossSite`).
+      // A trava é fail-CLOSED: sem `Sec-Fetch-Site` (script, não navegador) e
+      // sem `Origin`, a ausência dos três sinais vira 403 — a ferramenta
+      // interna se identifica, a guarda não muda.
+      Origin: BASE,
       ...(cookie ? { Cookie: cookie } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
