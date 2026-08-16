@@ -1,0 +1,11 @@
+{
+  "id": "esteira/pedido-nao-vira-orcamento",
+  "quem": "wt-4a7642478e",
+  "frente": "medir por que o pedido nao vira orcamento (scope_ready parado) - somente leitura",
+  "responsabilidade": "esteira/pedido-nao-vira-orcamento",
+  "arquivos": [
+    "docs/medicoes/elo-9-orcamento.md"
+  ],
+  "abertaEm": "2026-08-16T20:13:26.294Z",
+  "encerradaEm": null
+}
