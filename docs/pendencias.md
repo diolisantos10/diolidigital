@@ -14,6 +14,31 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🔴 16/08/2026 — PEDIDO SEM ORÇAMENTO NUNCA SAI DA FRENTE DA FILA, E ISSO ENTOPE OS QUE JÁ TÊM ORÇAMENTO PRONTO
+
+**Sem dono.** Medição completa: `docs/medicoes/elo-9-orcamento.md`.
+
+- **A pergunta:** por que o pedido não vira orçamento?
+- **A resposta:** a rodada processa no máximo 5 por vez, dos mais antigos para
+  os mais novos, e quem nunca gera orçamento **também nunca muda de estado** —
+  então ocupa uma das 5 vagas para sempre e barra até quem já tem estimativa
+  pronta atrás dele na fila.
+- **Onde:** `lib/agency/esteira/orcamento-do-briefing.ts:162` (`MAX_POR_RODADA
+  = 5`), `:491-496` (janela por `createdAt ASC` + `take` fixo) e `:504-508`
+  (`continue` sem trocar status quando a estimativa vem nula).
+- **Provado, não suposto:** mesmo pedido, mesma estimativa válida — com 6
+  pedidos velhos sem estimativa na frente, `entregues=0`; sem eles na frente,
+  `entregues=1`. Nada apagado; estado original devolvido depois do teste.
+- **Acontece em produção:** não depende de IA nem de rede, é aritmética de
+  fila. Há candidatos reais já registrados aqui: os leads parados há 51, 29 e
+  28 dias sem contato — eles entram na janela e, sem estimativa, nunca saem.
+- **Falha silenciosa:** a rodada devolve `entregues=0, semOrcamento=5` todo
+  ciclo, e esse número parece estável — nada distingue "não há o que
+  entregar" de "há, mas nunca chego nele".
+- **O que precisa decisão** (arquivo tem dono em voo, decisão não é minha):
+  dar estado terminal a quem nunca gera orçamento; **ou** paginar por cursor
+  em vez de `take` fixo; **ou** separar a fila de quem tem estimativa da de
+  quem não tem.
 
 ## 🟢 16/08/2026 — A TRAVA APROVOU O QUE DEVIA BARRAR (provado, não suposto); A FILA GANHOU CONTAGEM DE VERDADE; O ESPELHO DO KIT NASCEU
 
