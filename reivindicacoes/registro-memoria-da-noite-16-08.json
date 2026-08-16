@@ -8,7 +8,7 @@
     "docs/pendencias.md"
   ],
   "abertaEm": "2026-08-16T20:46:16.777Z",
-  "encerradaEm": "2026-08-16T20:55:25.673Z",
+  "encerradaEm": "2026-08-16T20:55:35.730Z",
   "forcadaPor": {
     "quem": "ses-e83d64678d",
     "motivo": "docs/decisoes.md e diario ADITIVO e compartilhado; a frente docs-alarme-que-mente e de pm-ci-do-deploy e trata de OUTRO assunto. Secoes distintas no topo. O Diretor mandou resolver conflito MANTENDO os dois registros, nunca substituindo - e e o que farei no rebase. Sem --no-verify e sem force no git.",
