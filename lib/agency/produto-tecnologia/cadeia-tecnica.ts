@@ -176,6 +176,34 @@ function entregaPatch(spec: SpecOperacional): boolean {
   return /git-patch/i.test(spec.saida.formato);
 }
 
+/**
+ * O CONTRATO DA NÃO-ENTREGA: quem realiza o trabalho pode dizer "não entreguei,
+ * e este é o motivo" devolvendo um JSON com `entregue: false` e `motivo`.
+ *
+ * POR QUE ISTO EXISTE, e o caso é de 16/08/2026, na primeira rodada de verdade
+ * desta cadeia: sem provedor de IA no ambiente, o adaptador devolveu a falta
+ * declarada nos três passos. O engenheiro parou na guarda, porque a guarda
+ * exige diff — mas o orquestrador e o arquiteto saíram marcados "executado",
+ * carregando um corpo que dizia `entregue: false`. Ou seja: a cadeia marcharia
+ * inteira produzindo nada e chamando isso de sucesso, e só não chamou porque um
+ * dos três tinha guarda.
+ *
+ * A guarda de patch cobria uma ficha em três. Este contrato cobre as sete.
+ */
+export function naoEntregou(saida: string): string | null {
+  try {
+    const corpo = JSON.parse(saida) as { entregue?: unknown; motivo?: unknown };
+    if (corpo?.entregue === false) {
+      return typeof corpo.motivo === "string" && corpo.motivo.trim()
+        ? corpo.motivo
+        : "quem executou declarou não-entrega sem dizer o motivo";
+    }
+  } catch {
+    // Saída que não é JSON não fala este contrato — quem julga é a ficha.
+  }
+  return null;
+}
+
 export async function executarCadeiaTecnica(
   demanda: DemandaTecnica,
   deps: DependenciasDaCadeiaTecnica,
@@ -185,18 +213,26 @@ export async function executarCadeiaTecnica(
   const propostas: ResultadoDaCadeiaTecnica["propostas"] = [];
   let custoTotalUsd = 0;
 
-  const parar = (funcaoId: string, decisao: string, motivo: string): ResultadoDaCadeiaTecnica => ({
-    ok: false,
-    passos,
-    artefatos,
-    propostas,
-    custoTotalUsd,
-    parouEm: { funcaoId, decisao, motivo },
-  });
+  /**
+   * Para a cadeia DEIXANDO RASTRO. O executor grava as recusas dele; as paradas
+   * daqui (cliente, ordem inválida, guarda de patch, não-entrega) são recusas
+   * da cadeia, e sem esta gravação elas não apareceriam no diário do piloto —
+   * a agência teria parado por um bom motivo num lugar que o CEO não enxerga,
+   * que é a mesma cegueira que custou a noite de 15/08.
+   */
+  const parar = async (funcaoId: string, decisao: string, motivo: string): Promise<ResultadoDaCadeiaTecnica> => {
+    await deps.executor.gravarRecusa?.({
+      funcaoId,
+      motivo,
+      correlationId: demanda.correlationId,
+      em: deps.agora(),
+    });
+    return { ok: false, passos, artefatos, propostas, custoTotalUsd, parouEm: { funcaoId, decisao, motivo } };
+  };
 
   // A recusa que protege o cliente vem antes de qualquer trabalho.
   if (demanda.clienteId) {
-    return parar(
+    return await parar(
       "cadeia-tecnica",
       "recusado",
       "a cadeia técnica não roda sobre cliente — ela conserta o sistema, e ensaio com dado real é proibido pela regra do CEO",
@@ -210,7 +246,7 @@ export async function executarCadeiaTecnica(
   // três passos produzindo três artefatos sobre nada, e custando por isso.
   const vazias = (["demanda", "contexto", "criteriosDeAceite"] as const).filter((c) => !demanda[c]?.trim());
   if (vazias.length > 0) {
-    return parar(
+    return await parar(
       "cadeia-tecnica",
       "recusado",
       `demanda incompleta: ${vazias.join(", ")} — ausência de informação não é informação`,
@@ -219,7 +255,7 @@ export async function executarCadeiaTecnica(
 
   const cadeia = demanda.cadeia ?? CADEIA_TECNICA_MINIMA;
   const ordem = ordemRespeitaAsFichas(cadeia);
-  if (!ordem.ok) return parar("cadeia-tecnica", "recusado", ordem.motivo);
+  if (!ordem.ok) return await parar("cadeia-tecnica", "recusado", ordem.motivo);
 
   // O dossiê cresce a cada passo: o arquiteto vê o plano do orquestrador, o
   // engenheiro vê o plano E o ADR. Sem isso cada passo trabalharia às cegas.
@@ -231,11 +267,11 @@ export async function executarCadeiaTecnica(
 
   for (const funcaoId of cadeia) {
     const resultadoSpec = specDaFuncao(funcaoId);
-    if (!resultadoSpec.ok) return parar(funcaoId, "recusado", resultadoSpec.motivo);
+    if (!resultadoSpec.ok) return await parar(funcaoId, "recusado", resultadoSpec.motivo);
     const spec = resultadoSpec.spec;
 
     if (spec.departamento !== DEPARTAMENTO) {
-      return parar(funcaoId, "recusado", `"${funcaoId}" é de ${spec.departamento} — esta cadeia só despacha o próprio departamento`);
+      return await parar(funcaoId, "recusado", `"${funcaoId}" é de ${spec.departamento} — esta cadeia só despacha o próprio departamento`);
     }
 
     const jaFeito = demanda.jaFeitos?.[funcaoId];
@@ -277,11 +313,21 @@ export async function executarCadeiaTecnica(
     if (resultado.decisao !== "executado") {
       const motivo = resultado.decisao === "recusado" ? resultado.motivo : resultado.pacote.motivo;
       passos.push({ funcaoId, decisao: resultado.decisao, motivo, duracaoMs });
-      return parar(funcaoId, resultado.decisao, motivo);
+      return await parar(funcaoId, resultado.decisao, motivo);
     }
 
     custoTotalUsd += resultado.custoUsd;
     artefatos[funcaoId] = resultado.saida;
+
+    // Não-entrega declarada PARA a cadeia. O passo seguinte trabalharia em cima
+    // de um dossiê que anuncia não ter conteúdo — e entregaria, ele também,
+    // nada com cara de alguma coisa.
+    const falta = naoEntregou(resultado.saida);
+    if (falta) {
+      passos.push({ funcaoId, decisao: "recusado", motivo: falta, custoUsd: resultado.custoUsd, duracaoMs });
+      return await parar(funcaoId, "recusado", `${funcaoId} não entregou: ${falta}`);
+    }
+
     dossie[`artefato de ${funcaoId}`] = resultado.saida;
 
     // A GUARDA. Ficha que promete patch tem a saída julgada ANTES de virar
@@ -293,7 +339,7 @@ export async function executarCadeiaTecnica(
       if (guarda.veredito === "aceito") {
         propostas.push({ funcaoId, patch: resultado.saida, guarda });
       } else {
-        return parar(funcaoId, guarda.veredito, guarda.motivo);
+        return await parar(funcaoId, guarda.veredito, guarda.motivo);
       }
       continue;
     }

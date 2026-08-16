@@ -183,6 +183,37 @@ describe("a cadeia técnica roda de ponta a ponta", () => {
 });
 
 describe("a cadeia técnica para onde tem que parar", () => {
+  it("toda parada da cadeia deixa rastro — parar calado é parar num lugar que o CEO não enxerga", async () => {
+    // O executor grava as recusas DELE. As paradas da cadeia (cliente, ordem
+    // inválida, guarda de patch, não-entrega) são recusas da cadeia, e sem
+    // gravação não apareceriam no diário do piloto — a mesma cegueira que
+    // custou a noite de 15/08, só que com a agência decidindo sozinha.
+    const paradas: Array<[string, Record<string, string>]> = [
+      ["cliente", { clienteId: "cli_1" }],
+      ["ordem inválida", { cadeia: ["backend-engineer", "software-architect"] } as unknown as Record<string, string>],
+    ];
+    for (const [nome, extra] of paradas) {
+      const espiao = espiaoNovo();
+      await executarCadeiaTecnica({ ...DEMANDA, ...extra }, deps({}, espiao));
+      expect(espiao.recusas, nome).toHaveLength(1);
+      expect(espiao.recusas[0], nome).toContain("cadeia-tecnica");
+    }
+  });
+
+  it("a parada na guarda de patch também é gravada, com o motivo da guarda", async () => {
+    const espiao = espiaoNovo();
+    const comSegredo = [
+      "diff --git a/.env b/.env",
+      "+++ b/.env",
+      "@@ -0,0 +1 @@",
+      "+CHAVE=123",
+    ].join("\n");
+    await executarCadeiaTecnica(DEMANDA, deps({ "backend-engineer": comSegredo }, espiao));
+
+    expect(espiao.recusas.join(" ")).toContain("backend-engineer");
+    expect(espiao.recusas.join(" ")).toContain("segredo não entra em patch de agente");
+  });
+
   it("recusa em código qualquer pedido com cliente — a engenharia não encosta no material do cliente", async () => {
     const espiao = espiaoNovo();
     const resultado = await executarCadeiaTecnica({ ...DEMANDA, clienteId: "cli_123" }, deps({}, espiao));
@@ -205,6 +236,49 @@ describe("a cadeia técnica para onde tem que parar", () => {
     expect(resultado.ok).toBe(false);
     expect(resultado.parouEm?.decisao).toBe("escalado");
     expect(resultado.propostas).toHaveLength(0);
+  });
+
+  it("para no primeiro passo que declara não-entrega, em vez de marchar produzindo nada", async () => {
+    // O CASO REAL, 16/08/2026, primeira rodada de verdade desta cadeia: sem
+    // provedor de IA o adaptador devolveu a falta declarada nos três passos. O
+    // engenheiro parou na guarda (que exige diff), mas o orquestrador e o
+    // arquiteto saíram marcados "executado" carregando `entregue: false`. A
+    // guarda de patch cobria uma ficha em três; este contrato cobre as sete.
+    const espiao = espiaoNovo();
+    const falta = JSON.stringify({ entregue: false, motivo: "nenhum provedor de IA configurado no ambiente" });
+    const resultado = await executarCadeiaTecnica(DEMANDA, deps({ "technology-orchestrator": falta }, espiao));
+
+    expect(resultado.ok).toBe(false);
+    expect(resultado.parouEm?.funcaoId).toBe("technology-orchestrator");
+    expect(resultado.parouEm?.motivo).toContain("nenhum provedor de IA");
+    // Parou de verdade: o arquiteto nem foi chamado.
+    expect(espiao.chamadas).toEqual(["technology-orchestrator"]);
+  });
+
+  it("a não-entrega sem motivo também para — e diz que o motivo faltou", async () => {
+    const espiao = espiaoNovo();
+    const resultado = await executarCadeiaTecnica(
+      DEMANDA,
+      deps({ "technology-orchestrator": JSON.stringify({ entregue: false, conteudo: "algo" }) }, espiao),
+    );
+    expect(resultado.ok).toBe(false);
+    expect(resultado.parouEm?.motivo).toContain("sem dizer o motivo");
+  });
+
+  it("`entregue: true` e saída sem o campo seguem em frente — o contrato não é armadilha", async () => {
+    const espiao = espiaoNovo();
+    const resultado = await executarCadeiaTecnica(
+      DEMANDA,
+      deps(
+        {
+          "technology-orchestrator": JSON.stringify({ entregue: true, plano: "plano de verdade, com corpo" }),
+          "backend-engineer": PATCH_LIMPO,
+        },
+        espiao,
+      ),
+    );
+    expect(resultado.ok).toBe(true);
+    expect(espiao.chamadas).toEqual([...CADEIA_TECNICA_MINIMA]);
   });
 
   it("recusa a cadeia inteira quando a ordem pedida contraria as fichas", async () => {
