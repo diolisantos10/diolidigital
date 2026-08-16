@@ -21,12 +21,33 @@
 // separação que `porta-de-emergencia.ts` já usa nesta casa (regra testável,
 // I/O num script fino por cima).
 
+import { createHash } from "node:crypto";
+
 /** Uma reivindicação de frente de trabalho, como grava em `reivindicacoes/*.json`. */
 export type Reivindicacao = {
   /** Slug da responsabilidade, ex.: "comercial/verba-vs-estimativa". */
   id: string;
-  /** Identificação da sessão que abriu, ex.: "pm-a27b5772". */
+  /**
+   * Identidade da sessão que abriu — a partir de 16/08/2026 (rodada 4),
+   * SEMPRE DERIVADA do caminho absoluto do worktree (ver `identidadeDaSessao`
+   * em `scripts/reivindicar.mts`), nunca digitada por quem chama o comando.
+   * Formato: "wt-" + 10 dígitos hex de sha256(caminho do worktree). Ex.:
+   * "wt-3f2a91bc4d".
+   *
+   * Reivindicações gravadas ANTES da rodada 4 têm este campo no formato
+   * ANTIGO, declarado à mão (ex.: "pm-a27b5772") — isto é esperado e
+   * INOFENSIVO: uma identidade derivada nunca vai bater, por acaso, com uma
+   * string digitada por gente, então essas reivindicações antigas
+   * simplesmente nunca serão reconhecidas como "minhas" por ninguém. É o
+   * lado SEGURO do não-reconhecimento — ele barra, nunca aprova por engano.
+   */
   quem: string;
+  /**
+   * Rótulo LEGÍVEL, opcional, só para gente ler ("pm do bloco do espelho").
+   * NUNCA decide posse — só `quem` (a identidade derivada) decide isso. Ver
+   * `pegarRotulo` em `scripts/reivindicar.mts`.
+   */
+  rotulo?: string;
   /** Uma frase: o que está sendo feito. */
   frente: string;
   /** A PERGUNTA que o código responde, normalizada. */
@@ -63,6 +84,22 @@ export type ResultadoDoRegistro = {
  *  a frente para sempre (guardrail 5: a proteção não pode ser mais destrutiva
  *  que o problema que ela existe para evitar). */
 export const TETO_HORAS_PADRAO = 24;
+
+/** A função PURA por trás da identidade da sessão: recebe um caminho absoluto
+ *  (o RAIZ de um worktree) e devolve a identidade derivada dele. Mora aqui —
+ *  no módulo puro, sem I/O e sem rede — porque é exatamente isso que ela é:
+ *  nenhuma chamada a git, disco ou rede, só hash de string. Fica testável com
+ *  múltiplos caminhos na mesma máquina, o que "três identidades diferentes na
+ *  mesma máquina" exige (a derivação não pode depender de uma constante fixa
+ *  no processo). Determinística (mesma entrada, mesma saída sempre),
+ *  impossível de herdar (caminho diferente leva a hash diferente) e
+ *  impossível de digitar errado (ninguém digita). Ver o bloco "RODADA 4" em
+ *  `scripts/reivindicar.mts` para o incidente que forçou esta escolha —
+ *  `identidadeDaSessao()`, ali, só chama esta função com `RAIZ`. */
+export function derivarIdentidade(caminhoAbsoluto: string): string {
+  const hash = createHash("sha256").update(caminhoAbsoluto, "utf8").digest("hex");
+  return "wt-" + hash.slice(0, 10);
+}
 
 /**
  * minúsculas, sem acento, separador único "/".
@@ -272,6 +309,12 @@ export function validarReivindicacao(dado: unknown, origem: string): Reivindicac
   if (d.encerradaEm !== null && !ehDataIsoValida(d.encerradaEm)) {
     throw new Error(`${origem}: "encerradaEm" tem que ser null ou data ISO-8601 válida.`);
   }
+  // "rotulo" é OPCIONAL e nunca decide posse (ver o comentário no tipo
+  // `Reivindicacao`) — mas, se vier, tem que ser string, para não deixar
+  // lixo de tipo entrar no registro sem ninguém notar.
+  if (d.rotulo !== undefined && typeof d.rotulo !== "string") {
+    throw new Error(`${origem}: "rotulo", se presente, tem que ser string.`);
+  }
 
   const reivindicacao: Reivindicacao = {
     id: d.id,
@@ -282,6 +325,7 @@ export function validarReivindicacao(dado: unknown, origem: string): Reivindicac
     abertaEm: d.abertaEm,
     encerradaEm: (d.encerradaEm as string | null) ?? null,
   };
+  if (typeof d.rotulo === "string") reivindicacao.rotulo = d.rotulo;
 
   if (d.forcadaPor !== undefined) {
     const f = d.forcadaPor;

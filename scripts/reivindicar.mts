@@ -1,10 +1,11 @@
 /**
  * A trava de reivindicação — a CLI que descobre ANTES do `git pull --rebase`.
  *
- *     npm run reivindicar -- abrir --quem <id> --frente "<frase>" \
+ *     npm run reivindicar -- abrir --frente "<frase>" \
  *       --responsabilidade <slug> --arquivos <a,b,c> \
+ *       [--rotulo "<apelido-legível>"] \
  *       [--forcar --motivo "<texto>"] [--mesmo-com-trabalho-em-andamento]
- *     npm run reivindicar -- conferir [--quem <id>]
+ *     npm run reivindicar -- conferir
  *     npm run reivindicar -- encerrar --responsabilidade <slug>
  *     npm run reivindicar -- listar
  *     npm run reivindicar -- instalar-gancho [--silencioso]
@@ -34,6 +35,30 @@
  * O HEAD local só é usado para o COMMIT em si (`git commit`) e para o
  * `git push origin HEAD:<branch>` — o commit nasce onde a sessão está, mas
  * pousa sempre no mesmo lugar.
+ *
+ * ── FALSO NEGATIVO MEDIDO EM 16/08/2026 (RODADA 4) — IDENTIDADE PASSA A SER
+ * DERIVADA, NUNCA DECLARADA ──────────────────────────────────────────────────
+ * As três rodadas anteriores (ver o bloco "Identidade da sessão", abaixo)
+ * tentaram consertar identidade DECLARADA — `--quem <id>` digitado, gravado
+ * em arquivo ou em `git config`, e OBEDECIDO. Isso quebrou de um jeito pior
+ * do que qualquer bug anterior: uma sessão copiou, sem pensar, o `--quem
+ * pm-XXXX` sugerido pela PRÓPRIA mensagem de aviso do comando para "confirmar
+ * identidade herdada" — e o "pm-XXXX" era de OUTRA sessão. O comando passou a
+ * tratar essa identidade alheia como CONFIÁVEL, e `conferir` aprovou ("✅ Sem
+ * colisão…") uma mudança que pisava em cima de uma reivindicação VIVA de
+ * outra sessão. Falso positivo (barrar por engano) é barulhento e barato —
+ * quem lê o erro perde um minuto. FALSO NEGATIVO (aprovar por engano) é
+ * SILENCIOSO: ninguém percebe até o `git pull --rebase` de outra sessão
+ * encontrar o estrago, exatamente o caso que esta trava existe para matar.
+ *
+ * A causa raiz, em uma frase: um ID digitado é uma DECLARAÇÃO NÃO VERIFICADA,
+ * e o código antigo passava a CONFIAR nela só porque alguém a escreveu. A
+ * partir de agora a identidade não é mais escrita por ninguém — é CALCULADA
+ * a partir do caminho absoluto do worktree (`identidadeDaSessao`, abaixo).
+ * Ninguém digita, então ninguém digita errado; dois worktrees têm caminhos
+ * diferentes, então não há como herdar a identidade de outro. `--quem` (e o
+ * arquivo `.dioli-quem`) sobrevivem só como RÓTULO legível para gente — nunca
+ * mais como prova de posse. Detalhe completo no bloco abaixo.
  */
 
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -43,6 +68,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   conferirColisao,
+  derivarIdentidade,
   estaViva,
   nomeDoArquivo,
   normalizarCaminho,
@@ -55,12 +81,14 @@ import { lerReivindicacoesDoDisco } from "../lib/coordenacao/leitura-do-registro
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PASTA_REIVINDICACOES = join(RAIZ, "reivindicacoes");
 
-/** Onde a identidade da sessão mora — DENTRO do worktree, nunca em
- *  ".git/config" (ver o bloco "Identidade da sessão" abaixo, e o incidente
- *  de 16/08/2026 que forçou esta mudança). Formato: duas linhas — a
- *  identidade, e o CAMINHO ABSOLUTO deste worktree (rodada 3, mesmo dia —
- *  é o que permite detectar identidade herdada de outro worktree ou de um
- *  arquivo escrito antes desta regra). */
+/** Onde o RÓTULO (não a identidade — ver o bloco "Identidade da sessão",
+ *  abaixo) fica em cache, DENTRO do worktree. A partir da rodada 4
+ *  (16/08/2026) este arquivo não decide mais posse de nada: a identidade é
+ *  sempre CALCULADA por `identidadeDaSessao()`, nunca lida daqui. Formato
+ *  NOVO, uma linha só — o rótulo. Se o arquivo estiver no formato ANTIGO
+ *  (duas linhas: identidade declarada + caminho do worktree, das rodadas 2 e
+ *  3), ele é reconhecido, IGNORADO para qualquer decisão e o motivo é
+ *  avisado — nunca lido como se ainda valesse. */
 const CAMINHO_IDENTIDADE = join(RAIZ, ".dioli-quem");
 
 /** A branch que TODAS as sessões — inclusive as de worktree — compartilham.
@@ -262,197 +290,151 @@ function commitarEEmpurrar(
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Identidade da sessão — persistida LOCAL, nunca versionada
+// Identidade da sessão — DERIVADA, não persistida, não declarada
 // ─────────────────────────────────────────────────────────────────────────
 //
-// MEDIÇÃO REAL (16/08/2026, DUAS RODADAS):
+// HISTÓRICO CURTO (16/08/2026, três rodadas de conserto — todas em cima de
+// identidade DECLARADA):
+//   Rodada 1 — gravar "quem sou eu" em `git config --local dioli.quem`.
+//   Rodada 2 — `git config` é compartilhado por TODOS os worktrees do mesmo
+//     git-common-dir; a gravação migrou para ".dioli-quem", um arquivo DENTRO
+//     de cada worktree.
+//   Rodada 3 — mesmo ".dioli-quem" podia conter identidade de OUTRO worktree
+//     (copiado, herdado, ou escrito por código anterior à marca de origem);
+//     a leitura passou a exigir que o caminho gravado batesse com o worktree
+//     atual, e tratava qualquer coisa que não batesse como "suspeita".
 //
-// Rodada 1: o gancho pre-push chama "conferir" SEM --quem, porque o gancho
-// não sabe quem é a sessão. Sem saber "quem sou eu", "conferir" não tem como
-// distinguir "isto é a MINHA PRÓPRIA reivindicação" de "isto é de outra
-// sessão" — e passou a barrar uma sessão pela reivindicação que ELA MESMA
-// tinha aberto, corretamente, antes de trabalhar.
+// RODADA 4 (o falso negativo que matou a abordagem inteira): mesmo com toda
+// a suspeita da rodada 3, o comando ainda IMPRIMIA a linha
+// "--quem pm-XXXX" como sugestão de "confirme se isto é você" — e uma
+// sessão colou essa linha sem checar de quem era o "pm-XXXX". Ao fazer isso,
+// ela GRAVOU a identidade de outra sessão como CONFIÁVEL, e "conferir" passou
+// a comparar colisão usando o "quem" ERRADO: aprovou ("Sem colisão…") uma
+// mudança que pisava numa reivindicação VIVA de outra sessão. Nenhuma
+// quantidade de aviso resolve isto, porque o defeito não está no AVISO — está
+// em existir, em algum lugar do sistema, um caminho onde uma STRING DIGITADA
+// vira "prova de quem eu sou". Enquanto esse caminho existir, alguém vai
+// segui-lo sem pensar, e a trava vai aprovar o que devia barrar — em
+// silêncio, que é o pior jeito de falhar aqui: falso positivo (barrar por
+// engano) custa um minuto relendo o erro; falso negativo (aprovar por
+// engano) só aparece quando a OUTRA sessão descobre o estrago no próprio
+// "git pull --rebase".
 //
-// O conserto da rodada 1 foi gravar a identidade em ".git/config"
-// (`git config --local dioli.quem <id>`) — e essa escolha tinha um defeito
-// que só apareceu quando o rodou dentro de um WORKTREE de agente:
+// A SAÍDA: a identidade deixa de ser QUALQUER FORMA de declaração — digitada,
+// gravada em arquivo ou em git config — e passa a ser CALCULADA, sempre, a
+// partir do único dado que já identifica a sessão sem que ninguém precise
+// dizer nada: o CAMINHO ABSOLUTO deste worktree (RAIZ). Ver
+// `identidadeDaSessao()`, logo abaixo. Três propriedades, todas consequência
+// direta de ser uma função pura de RAIZ, nenhuma delas alcançável por
+// declaração:
+//   • DETERMINÍSTICA — o mesmo worktree sempre calcula o mesmo valor, então
+//     "conferir" enxerga como "minhas" exatamente as reivindicações que EU
+//     abri, sem precisar de cache, arquivo nem flag para isso funcionar;
+//   • IMPOSSÍVEL DE HERDAR — dois worktrees têm RAIZ diferente por
+//     definição (é o próprio conceito de worktree), logo o hash é diferente;
+//     não existe "copiar a identidade de outra sessão" quando não existe
+//     campo nenhum para copiar PARA;
+//   • IMPOSSÍVEL DE DIGITAR ERRADO — ninguém digita. Não há flag que defina
+//     "quem", não há arquivo que precise bater formato, não há "confirme se
+//     isto é você" para copiar sem ler.
 //
-// Rodada 2, causa raiz MEDIDA (não suposta):
-//   git rev-parse --git-dir         -> .../.git/worktrees/agent-<hash>
-//   git rev-parse --git-common-dir  -> .../.git   (o repo PRINCIPAL)
-//   grep dioli .git/config (no repo principal) -> a chave [dioli] estava lá
-// "git config --local", dentro de um worktree, grava no GIT-COMMON-DIR — que
-// é COMPARTILHADO por todos os worktrees. Isto produzia dois defeitos:
-//   (1) o arquivo fica FORA do worktree isolado, então a gravação é recusada
-//       ao agente sandboxed — e o antigo "catch {}" silencioso escondia isso;
-//   (2) o common-dir é o MESMO para todos os worktrees: duas sessões
-//       gravando "dioli.quem" se SOBRESCREVEM, e uma sessão pode herdar a
-//       identidade de outra. Identidade ERRADA é pior que identidade
-//       AUSENTE — com ela, a trava passa a APROVAR o que deveria BARRAR.
+// O que sobra de "--quem" e de ".dioli-quem" é só CONVENIÊNCIA PARA GENTE
+// LER — um RÓTULO ("rotulo"), gravado ao lado da identidade na reivindicação,
+// jamais comparado por "conferirColisao". Rótulo errado no pior caso confunde
+// quem LÊ o "listar"; identidade errada no pior caso derruba a trava inteira.
+// São problemas de gravidade completamente diferentes, e por isso só um dos
+// dois precisa de mecanismo — o outro (o rótulo) pode continuar sendo texto
+// livre, sem verificação nenhuma, porque o pior que ele causa é cosmético.
 //
-// A saída da rodada 2: a identidade passa a morar em ".dioli-quem", um
-// arquivo comum na RAIZ do próprio worktree (a constante CAMINHO_IDENTIDADE,
-// acima) — não em ".git/config". É o único lugar que:
-//   • o agente isolado alcança com certeza, porque está DENTRO do worktree
-//     em que ele já lê e escreve;
-//   • NÃO colide entre worktrees, porque cada worktree tem a sua própria
-//     cópia do arquivo (nunca versionado — ver o ".gitignore").
+// "git config dioli.quem" (rodada 1) e o formato ANTIGO de ".dioli-quem"
+// (rodadas 2 e 3, duas linhas: identidade + caminho do worktree) continuam
+// podendo existir em disco, escritos por sessões de antes desta rodada. Os
+// dois são só VESTÍGIO agora: nenhum dos dois é lido para decidir posse —
+// "avisarSeGitConfigVestigio()" e "lerRotuloDoCache()", abaixo, tratam os
+// dois como texto morto, e avisam (sem apagar sozinhos: o vestígio pode
+// pertencer a uma sessão ainda viva).
 //
-// Rodada 3, causa raiz MEDIDA por outro PM, no WORKTREE PRINCIPAL — que É o
-// git-common-dir, não um worktree isolado de agente:
-//   git config dioli.quem  ->  "pm-a27b5772" (identidade de OUTRA sessão,
-//     gravada pelo código ANTIGO da rodada 1, de ANTES da migração para
-//     ".dioli-quem" — o worktree principal nunca tinha o arquivo novo,
-//     porque nenhuma sessão pós-rodada-2 tinha rodado "abrir" nele ainda)
-//   "npm run reivindicar -- conferir --quem pm-9ab49074" (a identidade
-//     verdadeira, passada na mão) -> SEM colisão
-//   "npm run reivindicar -- conferir" (sem --quem, resolvendo sozinho) ->
-//     caía no fallback de "git config", achava que sabia quem era, e
-//     BARRAVA a própria sessão pelas PRÓPRIAS reivindicações — o "quem"
-//     usado na conferência era o de OUTRA sessão.
-//
-// O DEFEITO DE DESENHO da rodada 2, que a rodada 3 expôs: "conferir" tratava
-// QUALQUER identidade resolvida (arquivo OU git config) como igualmente
-// confiável — bastava achar UM valor, de qualquer fonte, para OBEDECER esse
-// valor como "quem eu sou". Faltava a pergunta seguinte: "esse valor prova
-// que fui EU que escrevi, ou só prova que ALGUÉM escreveu, algum dia, em
-// ALGUM worktree que compartilha este git-common-dir?"
-//
-// A SAÍDA (CONSERTO 2 e 3, 16/08/2026): ".dioli-quem" passa a gravar, numa
-// segunda linha, o CAMINHO ABSOLUTO do worktree em que foi escrito. Na
-// leitura:
-//   • o caminho bate com o worktree atual -> CONFIÁVEL, foi ESTE worktree
-//     que gravou;
-//   • o caminho NÃO bate, OU o arquivo está no formato LEGADO de uma linha
-//     só (escrito antes desta regra, sem caminho nenhum), OU a única fonte é
-//     "git config" (sempre compartilhado entre worktrees) -> SUSPEITA DE
-//     HERANÇA. A identidade encontrada é MOSTRADA — para quem lê saber o que
-//     foi achado e de onde veio — mas NUNCA OBEDECIDA para decidir "esta
-//     reivindicação é minha".
-//
-// A ASSIMETRIA QUE JUSTIFICA A ESCOLHA: diante de identidade duvidosa, há
-// dois jeitos de errar. BARRAR por engano (tratar uma reivindicação própria
-// como se fosse de outra sessão) é o erro BENIGNO — a pessoa lê o aviso, vê
-// a linha para corrigir, roda de novo, perde um minuto. APROVAR por engano
-// (obedecer uma identidade herdada e passar a comparar colisão com o "quem"
-// ERRADO — reconhecendo como próprias reivindicações de outra sessão, ou
-// pior, fazendo a PRÓPRIA reivindicação da sessão parecer alheia) é o erro
-// CARO e SILENCIOSO — ninguém percebe até o dano estar feito, exatamente o
-// que aconteceu na rodada 3. Diante de identidade duvidosa, a trava sempre
-// escolhe o lado que faz barulho.
-//
-// "conferir" resolve "quem" nesta ordem, do mais para o menos confiável:
-//   (a) a flag --quem, se foi dada — sempre CONFIÁVEL: quem digitou sabe
-//       melhor que qualquer cache, e é a única fonte que também CORRIGE o
-//       arquivo do worktree (ver CONSERTO 1, em `gravarIdentidadeLocal`, e
-//       CONSERTO 3 logo abaixo);
-//   (b) o arquivo ".dioli-quem" DESTE worktree, no formato NOVO (duas
-//       linhas: quem + caminho absoluto), com o caminho batendo com este
-//       worktree — CONFIÁVEL, foi este worktree que gravou;
-//   (c) o mesmo arquivo, mas com o caminho DIVERGENTE, ou no formato LEGADO
-//       de uma linha só (sem caminho, escrito antes desta regra) — SUSPEITO
-//       DE HERANÇA. Mostrado, nunca obedecido;
-//   (d) "git config --get dioli.quem" — SEMPRE suspeito, porque mora no
-//       git-common-dir e é visto por TODOS os worktrees que o compartilham.
-//       Mostrado, nunca obedecido, e acompanhado da linha que LIMPA a chave
-//       (CONSERTO 3) — sem executar a limpeza sozinho, porque a chave pode
-//       ser de outra sessão viva;
-//   (e) nenhuma das anteriores: o comando NÃO FINGE que sabe quem é —
-//       inventar uma identidade aqui seria pior que admitir a lacuna, porque
-//       uma identidade errada faz a PRÓPRIA reivindicação da sessão parecer
-//       alheia (o bug da rodada 1). Ele avisa, claramente, e segue
-//       conferindo mesmo assim — falhar fechado por falta de identidade
-//       bloquearia até quem nunca reivindicou nada.
-//
-// Em (c) e (d) o valor encontrado NÃO é usado para decidir "isto é meu" — a
-// conferência de colisão roda como se a identidade fosse desconhecida (o
-// mesmo caminho de (e)), só que a MENSAGEM é mais específica: mostra o valor
-// achado, de onde veio, por que não está sendo obedecido, e a linha exata
-// para CONFIRMAR (se for mesmo esta sessão) ou CORRIGIR (se não for).
+// E as reivindicações JÁ GRAVADAS no remoto, no formato ANTIGO de "quem"
+// (ex.: "pm-a27b5772", declarado à mão) não quebram nada: uma identidade
+// DERIVADA (ex.: "wt-3f2a91bc4d") nunca vai, por acaso, ser igual a uma
+// string que uma pessoa digitou — então essas reivindicações antigas
+// simplesmente nunca serão reconhecidas como "minhas" por ninguém. Isto é o
+// lado SEGURO do não-reconhecimento: ele faz a trava BARRAR uma colisão que
+// talvez já não exista de verdade (falso positivo, barulhento e barato),
+// nunca APROVAR uma que existe (falso negativo, silencioso e caro — o
+// próprio bug desta rodada). Nenhum erro de leitura, nenhuma migração
+// necessária: o formato antigo é só um "quem" que não bate com nada.
 // ─────────────────────────────────────────────────────────────────────────
 
-/** De onde a identidade resolvida veio — usado para decidir QUE aviso
- *  mostrar E se a identidade é CONFIÁVEL (ver `confiavel` em
- *  `resolverQuemParaConferir`). "arquivo-do-worktree" é a única fonte
- *  automática confiável; as outras duas são SUSPEITAS DE HERANÇA (CONSERTO
- *  2, 16/08/2026, rodada 3) — mostradas, nunca obedecidas. */
-type OrigemDaIdentidade =
-  | "flag"
-  | "arquivo-do-worktree"
-  | "arquivo-do-worktree-suspeito"
-  | "git-config-compatibilidade";
-
-/** A linha exata, pronta para copiar e colar, que resolve "identidade
- *  desconhecida" (ou suspeita — CONFIRMAR com --quem é o mesmo comando que
- *  CORRIGIR com --quem, a flag sempre vence). Existe em função própria para
- *  nunca divergir entre os vários lugares que a mostram (regra de "nenhum
- *  caminho termina em beco sem saída" — CONSERTO 4, 16/08/2026). */
-function linhaParaGravarIdentidade(quemSugerido: string): string {
-  return `npm run reivindicar -- abrir --quem ${quemSugerido} --frente "<retomando>" --responsabilidade <slug> --arquivos <a,b,c>`;
+/** A identidade da sessão — CALCULADA, sempre, a partir do caminho absoluto
+ *  deste worktree (RAIZ). Nunca lida de arquivo, nunca lida de "git config",
+ *  nunca aceita flag. A função pura por trás do cálculo (`derivarIdentidade`)
+ *  mora em `lib/coordenacao/reivindicacoes.ts` — módulo puro, sem I/O — e é
+ *  reexportada de lá para quem precisa testá-la isoladamente. */
+function identidadeDaSessao(): string {
+  return derivarIdentidade(RAIZ);
 }
 
-/** A linha que LIMPA "git config dioli.quem" — CONSERTO 3 (16/08/2026,
- *  rodada 3). Só é IMPRESSA, nunca EXECUTADA por este script: a chave mora
- *  no git-common-dir e é vista por TODOS os worktrees que o compartilham —
- *  pode pertencer a uma sessão ainda viva, e apagar estado alheio sem pedir
- *  não é o tipo de conveniência que esta casa aceita. Quem decide apagar é
- *  sempre a pessoa, lendo o aviso. */
+/** A linha que LIMPA "git config dioli.quem" — vestígio da rodada 1. Só é
+ *  IMPRESSA, nunca EXECUTADA por este script: a chave mora no
+ *  git-common-dir e é vista por TODOS os worktrees que o compartilham — pode
+ *  pertencer a uma sessão ainda viva, e apagar estado alheio sem pedir não é
+ *  o tipo de conveniência que esta casa aceita. Quem decide apagar é sempre
+ *  a pessoa, lendo o aviso. */
 function linhaParaLimparGitConfig(): string {
   return "git config --unset dioli.quem";
 }
 
-/** Grava "quem sou eu" localmente — no arquivo ".dioli-quem" NA RAIZ DESTE
- *  WORKTREE (nunca em ".git/config" — ver o bloco acima). Formato NOVO,
- *  DUAS linhas: a identidade, e o CAMINHO ABSOLUTO deste worktree — é essa
- *  segunda linha que permite à PRÓXIMA leitura confirmar que foi ESTE
- *  worktree que escreveu (CONSERTO 2, 16/08/2026, rodada 3), em vez de um
- *  valor herdado de qualquer lugar.
- *
- *  QUANDO isto é chamado — CONSERTO 1 (16/08/2026, rodada 3), em
- *  `comandoAbrir`: a identidade é gravada assim que "quem" é conhecido e
- *  VALIDADO, ANTES da primeira tentativa de push — não depois dele ter dado
- *  certo. O código antigo gravava só DEPOIS do push, com o argumento de que
- *  "reivindicação que não chegou ao remoto não deve ensinar 'conferir' a se
- *  reconhecer como dona de nada". Esse raciocínio estava ERRADO: quem eu sou
- *  é um fato da SESSÃO, não da reivindicação, e não depende do push ter tido
- *  sucesso. O efeito prático do erro: quando o push falhava — exatamente
- *  quando a pessoa mais precisa que "conferir" e "encerrar" funcionem para
- *  desembolar a situação — a sessão ficava SEM identidade gravada, e caía no
- *  mesmo impasse que a mudança de 16/08 tinha acabado de resolver. Gravar
- *  cedo custa uma escrita em disco a mais no caminho feliz (o push dá certo
- *  do mesmo jeito); gravar tarde custa a identidade inteira no caminho
- *  infeliz.
- *
- *  Falha aqui NUNCA é silenciosa: se a identidade não pôde ser salva
- *  localmente (permissão, disco somente-leitura), a pessoa fica sabendo NA
- *  HORA, com a linha exata que resolve — porque foi exatamente esse silêncio
- *  que produziu o deadlock de 16/08/2026: ninguém sabia que a identidade não
- *  tinha sido gravada até o push já estar trancado. */
-function gravarIdentidadeLocal(quem: string): void {
-  try {
-    writeFileSync(CAMINHO_IDENTIDADE, `${quem}\n${RAIZ}\n`, "utf8");
-  } catch (e) {
-    console.error(
-      `⚠️  Não consegui salvar a identidade em ` +
-        `"${CAMINHO_IDENTIDADE}" (${e instanceof Error ? e.message : String(e)}). ` +
-        `Sem isto, "conferir" (inclusive o gancho pre-push) não vai reconhecer suas PRÓPRIAS reivindicações ` +
-        `como suas. Resolva com uma das opções abaixo:`,
-    );
-    console.error(`   - repita o comando com a flag:  --quem ${quem}`);
-    console.error(`   - ou grave a identidade à mão (duas linhas — identidade e caminho absoluto deste worktree):`);
-    console.error(`        printf '%s\\n%s\\n' "${quem}" "${RAIZ}" > "${CAMINHO_IDENTIDADE}"`);
-  }
+/** Se "git config dioli.quem" (rodada 1, vestígio) ainda existir, avisa —
+ *  uma vez, curto — que ela não é mais lida para NADA: a identidade agora é
+ *  sempre derivada (identidadeDaSessao()). Não apaga sozinho: pode ser de
+ *  outra sessão viva. Chamado no início de todo subcomando que faz sentido
+ *  avisar (abrir e conferir — os dois que decidem posse). */
+function avisarSeGitConfigVestigio(): void {
+  const v = gitOuNulo(["config", "--get", "dioli.quem"]);
+  if (!v || !v.trim()) return;
+  console.warn(
+    "⚠️  Achei \"git config dioli.quem\" = \"" + v.trim() + "\" — vestígio de um mecanismo antigo de identidade " +
+      "DECLARADA. Ele não é mais lido para nada: a identidade agora é sempre DERIVADA do caminho do worktree. Se " +
+      "tiver certeza de que não pertence a uma sessão ainda viva, limpe com:",
+  );
+  console.warn("   " + linhaParaLimparGitConfig());
 }
 
-/** Lê a identidade gravada em ".dioli-quem" deste worktree, e diz se ela é
- *  CONFIÁVEL. Formato NOVO (duas linhas: quem + caminho absoluto do
- *  worktree que escreveu) — confiável só quando o caminho gravado bate com
- *  este worktree (`RAIZ`). Formato LEGADO (uma linha só, sem caminho —
- *  escrito por código de ANTES deste conserto) — SEMPRE suspeito, por
- *  definição: foi escrito antes de existir a marca de origem, e pode ter
- *  vindo de qualquer worktree que compartilhava o mesmo mecanismo antigo
- *  (CONSERTO 2, 16/08/2026, rodada 3). */
-function lerIdentidadeDoArquivo(): { quem: string; confiavel: boolean } | null {
+/**
+ * O RÓTULO — texto livre, só para gente ler, nunca comparado para decidir
+ * posse (ver o bloco acima). Resolvido nesta ordem:
+ *   (a) "--rotulo <texto>", se foi dado;
+ *   (b) "--quem <texto>" (nome ANTIGO da flag, de antes da rodada 4) —
+ *       aceito por compatibilidade, mas avisa que deixou de definir
+ *       identidade e vira só rótulo;
+ *   (c) nenhum dos dois: null — reivindicar sem rótulo é válido, a
+ *       identidade sozinha (identidadeDaSessao()) já basta para tudo que
+ *       importa de verdade.
+ */
+function pegarRotulo(argv: string[]): string | null {
+  const doRotulo = pegarArg(argv, "rotulo");
+  if (doRotulo) return doRotulo;
+
+  const doQuemLegado = pegarArg(argv, "quem");
+  if (doQuemLegado) {
+    console.warn(
+      "⚠️  \"--quem\" não define mais identidade (ver \"Identidade da sessão\", no topo deste arquivo) — a " +
+        "identidade agora é sempre DERIVADA do caminho do worktree. Usando \"" + doQuemLegado + "\" como RÓTULO " +
+        "legível, não como posse. Prefira \"--rotulo\" a partir de agora.",
+    );
+    return doQuemLegado;
+  }
+
+  return null;
+}
+
+/** Lê o RÓTULO em cache de ".dioli-quem", se houver. Formato NOVO (uma linha
+ *  só) é lido direto. Formato ANTIGO (duas linhas: identidade declarada +
+ *  caminho do worktree, das rodadas 2 e 3) é reconhecido, IGNORADO — não
+ *  virou rótulo automaticamente, o formato é ambíguo demais para reaproveitar
+ *  sem risco — e avisado como vestígio, uma vez. */
+function lerRotuloDoCache(): string | null {
   if (!existsSync(CAMINHO_IDENTIDADE)) return null;
   try {
     const linhas = readFileSync(CAMINHO_IDENTIDADE, "utf8")
@@ -460,54 +442,31 @@ function lerIdentidadeDoArquivo(): { quem: string; confiavel: boolean } | null {
       .map((l) => l.trim())
       .filter(Boolean);
     if (linhas.length === 0) return null;
-    const quem = linhas[0]!;
-    if (linhas.length < 2) {
-      // Formato legado (uma linha só) — sem caminho gravado, não há como
-      // confirmar que foi ESTE worktree que escreveu. SUSPEITO por
-      // definição.
-      return { quem, confiavel: false };
+    if (linhas.length >= 2) {
+      console.warn(
+        "⚠️  \"" + CAMINHO_IDENTIDADE + "\" está no formato ANTIGO (identidade declarada + caminho do worktree, " +
+          "das rodadas 2 e 3) — não decide mais posse nem vira rótulo automaticamente. Ignorando. Pode apagar o " +
+          "arquivo à vontade.",
+      );
+      return null;
     }
-    const caminhoGravado = linhas[1]!;
-    return { quem, confiavel: caminhoGravado === RAIZ };
+    return linhas[0]!;
   } catch {
     return null;
   }
 }
 
-/** Só para COMPATIBILIDADE com identidade gravada pelo código ANTIGO (antes
- *  da rodada 2), em ".git/config" via "git config --local dioli.quem". SEMPRE
- *  suspeita — nunca é a primeira fonte, e nunca é obedecida sozinha (ver a
- *  ordem de resolução no bloco acima, e CONSERTO 2/3). `git config --get`
- *  sai com código != 0 quando a chave não existe, por isso `gitOuNulo` em
- *  vez de `git`. */
-function lerIdentidadeGitConfigCompatibilidade(): string | null {
-  const v = gitOuNulo(["config", "--get", "dioli.quem"]);
-  return v && v.trim() ? v.trim() : null;
-}
-
-/** A ordem de resolução descrita no bloco acima: flag > arquivo do worktree
- *  (confiável) > arquivo do worktree suspeito / git config (SUSPEITOS,
- *  nunca obedecidos) > "não sei" (nunca um palpite). Devolve `null` só no
- *  último caso — quem chama decide como avisar, esta função só recusa
- *  adivinhar. `confiavel` é o campo que os chamadores usam para decidir SE
- *  obedecem o valor (CONSERTO 2) — `origem` é só para a MENSAGEM. */
-function resolverQuemParaConferir(argv: string[]): { quem: string; origem: OrigemDaIdentidade; confiavel: boolean } | null {
-  const daFlag = pegarArg(argv, "quem");
-  if (daFlag) return { quem: daFlag, origem: "flag", confiavel: true };
-
-  const doArquivo = lerIdentidadeDoArquivo();
-  if (doArquivo) {
-    return {
-      quem: doArquivo.quem,
-      origem: doArquivo.confiavel ? "arquivo-do-worktree" : "arquivo-do-worktree-suspeito",
-      confiavel: doArquivo.confiavel,
-    };
+/** Grava o RÓTULO em cache — conveniência pura, nunca fonte de posse. Falha
+ *  aqui (permissão, disco somente-leitura) NUNCA precisa travar nem avisar
+ *  alto: o pior resultado possível é "o próximo listar mostra o worktree
+ *  sem apelido", nunca "a trava aprovou uma colisão real" — a diferença de
+ *  gravidade que justifica todo este conserto (ver o bloco acima). */
+function gravarRotuloDoCache(rotulo: string): void {
+  try {
+    writeFileSync(CAMINHO_IDENTIDADE, rotulo + "\n", "utf8");
+  } catch {
+    // silencioso de propósito — ver o comentário da função.
   }
-
-  const doGitConfig = lerIdentidadeGitConfigCompatibilidade();
-  if (doGitConfig) return { quem: doGitConfig, origem: "git-config-compatibilidade", confiavel: false };
-
-  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -531,7 +490,16 @@ function arquivosNaoCommitados(caminhoIgnorado: string): string[] {
 
 function comandoAbrir(argv: string[]): void {
   const branch = branchAlvo(argv);
-  const quem = (pegarArg(argv, "quem") || "").trim();
+  // A identidade NUNCA é lida de flag, arquivo ou git config — é sempre
+  // CALCULADA (ver o bloco "Identidade da sessão", acima). Não há mais como
+  // "abrir" receber um "quem" errado: não existe entrada para isso.
+  const quem = identidadeDaSessao();
+  // `lerRotuloDoCache()` roda SEMPRE (não só quando o valor dela é usado) —
+  // é ela quem avisa se ".dioli-quem" está no formato ANTIGO (das rodadas 2
+  // e 3), e esse aviso precisa aparecer mesmo quando "--rotulo"/"--quem" já
+  // resolveu o valor por outra via.
+  const rotuloDoCache = lerRotuloDoCache();
+  const rotulo = pegarRotulo(argv) ?? rotuloDoCache ?? undefined;
   const frente = (pegarArg(argv, "frente") || "").trim();
   const responsabilidade = (pegarArg(argv, "responsabilidade") || "").trim();
   const arquivosBrutos = (pegarArg(argv, "arquivos") || "").trim();
@@ -539,8 +507,10 @@ function comandoAbrir(argv: string[]): void {
   const motivo = (pegarArg(argv, "motivo") || "").trim();
   const mesmoComTrabalhoEmAndamento = temFlag(argv, "mesmo-com-trabalho-em-andamento");
 
-  if (!quem || !frente || !responsabilidade || !arquivosBrutos) {
-    console.error("Uso: npm run reivindicar -- abrir --quem <id> --frente \"<frase>\" --responsabilidade <slug> --arquivos <a,b,c>");
+  if (!frente || !responsabilidade || !arquivosBrutos) {
+    console.error(
+      'Uso: npm run reivindicar -- abrir --frente "<frase>" --responsabilidade <slug> --arquivos <a,b,c> [--rotulo "<apelido>"]',
+    );
     process.exit(1);
   }
   if (forcar && !motivo) {
@@ -548,11 +518,10 @@ function comandoAbrir(argv: string[]): void {
     process.exit(1);
   }
 
-  // CONSERTO 1 (16/08/2026, rodada 3) — grava a identidade AQUI, assim que
-  // "quem" foi validado (não-vazio, ver o `if` acima), e ANTES de qualquer
-  // tentativa de push. Ver o comentário completo em `gravarIdentidadeLocal`
-  // sobre por que gravar só depois do push era o próprio bug.
-  gravarIdentidadeLocal(quem);
+  avisarSeGitConfigVestigio();
+  // O rótulo é conveniência pura — grava em cache para o próximo comando
+  // reaproveitar sem precisar repetir "--rotulo". Nunca decide posse.
+  if (rotulo) gravarRotuloDoCache(rotulo);
 
   // O caminho que este comando está PRESTES a escrever — calculado cedo só
   // para poder ser ignorado na conferência de terreno abaixo.
@@ -628,6 +597,7 @@ function comandoAbrir(argv: string[]): void {
     abertaEm: agora.toISOString(),
     encerradaEm: null,
   };
+  if (rotulo) reivindicacao.rotulo = rotulo;
   if (resultado.colide && forcar) {
     reivindicacao.forcadaPor = { quem, motivo, em: agora.toISOString() };
   }
@@ -643,13 +613,11 @@ function comandoAbrir(argv: string[]): void {
     process.exit(1);
   }
 
-  // A identidade já foi gravada ANTES da primeira tentativa de push — ver o
-  // CONSERTO 1, no início desta função. Nada a gravar de novo aqui.
-
   if (resultado.colide && forcar) {
     console.log(`🚨 REIVINDICAÇÃO FORÇADA por ${quem}, apesar da colisão. Motivo registrado: "${motivo}"`);
   }
-  console.log(`✅ Reivindicado: "${responsabilidade}" por ${quem} — ${caminhoRelativo}, empurrado para ${branch}.`);
+  const identificacao = rotulo ? `${quem} (rótulo: ${rotulo})` : quem;
+  console.log(`✅ Reivindicado: "${responsabilidade}" por ${identificacao} — ${caminhoRelativo}, empurrado para ${branch}.`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -761,66 +729,17 @@ function avisosDeVizinhanca(arquivosDaSessao: string[], quem: string, existentes
 
 function comandoConferir(argv: string[]): void {
   const branch = branchAlvo(argv);
-  const resolvida = resolverQuemParaConferir(argv);
 
-  if (!resolvida) {
-    console.warn(
-      `⚠️  Identidade da sessão desconhecida (sem --quem, sem "${CAMINHO_IDENTIDADE}" e sem "git config dioli.quem" ` +
-        "de compatibilidade). Reivindicações da PRÓPRIA sessão não serão distinguidas das de outras sessões — pode " +
-        "gerar falso positivo, inclusive contra uma frente que VOCÊ MESMO abriu. Para resolver:",
-    );
-    console.warn(`   - repita este comando com:  --quem <id>`);
-    console.warn(`   - ou rode "npm run reivindicar -- abrir ..." uma vez, que grava a identidade automaticamente`);
-    console.warn("   Seguindo a conferência mesmo assim — falhar fechado por falta de identidade bloquearia até quem nunca reivindicou nada.");
-  } else if (!resolvida.confiavel) {
-    // CONSERTO 2 (16/08/2026, rodada 3) — identidade ENCONTRADA, mas
-    // SUSPEITA DE HERANÇA: ou veio de ".dioli-quem" sem o caminho deste
-    // worktree bater (formato legado ou gravada por outro worktree), ou veio
-    // só de "git config", que é sempre compartilhado. Nos dois casos, o
-    // valor é MOSTRADO — para quem lê saber o que foi achado e de onde veio
-    // — mas NUNCA OBEDECIDO para decidir "esta reivindicação é minha" (por
-    // isso `quem`, abaixo, cai para "<seu-id>" como se nada tivesse sido
-    // encontrado). Aprovar por engano é o erro caro e silencioso; a trava
-    // escolhe o lado que faz barulho.
-    const origemDescrita =
-      resolvida.origem === "git-config-compatibilidade"
-        ? '"git config dioli.quem" — a chave de COMPATIBILIDADE, que mora no git-common-dir e é COMPARTILHADA por todos os worktrees'
-        : `"${CAMINHO_IDENTIDADE}" — mas no formato legado (sem caminho gravado), ou com o caminho de OUTRO worktree`;
-    console.warn(
-      `⚠️  Encontrei uma identidade — "${resolvida.quem}" — vinda de ${origemDescrita}. ` +
-        "NÃO estou obedecendo esse valor: nada garante que foi ESTA sessão que o escreveu por último, e obedecer " +
-        "identidade herdada foi exatamente o que trocou reivindicações de sessões diferentes em 16/08/2026. Esta " +
-        "conferência segue como se a identidade fosse DESCONHECIDA. Para resolver:",
-    );
-    console.warn(`   - se "${resolvida.quem}" for VOCÊ MESMO, confirme e grave a identidade deste worktree:  ${linhaParaGravarIdentidade(resolvida.quem)}`);
-    console.warn(`   - se NÃO for você, grave a sua identidade correta:  npm run reivindicar -- abrir --quem <seu-id-verdadeiro> --frente "<...>" --responsabilidade <slug> --arquivos <a,b,c>`);
-    if (resolvida.origem === "git-config-compatibilidade") {
-      console.warn(
-        `   - a chave "git config dioli.quem" pode pertencer a OUTRA sessão viva — não apago sozinho. Se você tiver ` +
-          "certeza de que não é mais necessária, limpe-a à mão:",
-      );
-      console.warn(`        ${linhaParaLimparGitConfig()}`);
-    }
-  }
+  // A identidade é sempre CALCULADA — nunca lida de flag, arquivo ou git
+  // config (ver "Identidade da sessão", acima). Não existe mais estado
+  // "desconhecido" nem "suspeito": o mesmo worktree calcula sempre o mesmo
+  // valor, então "conferir" SEMPRE sabe distinguir "minha reivindicação" de
+  // "reivindicação de outra sessão" — inclusive na primeira chamada, sem
+  // precisar de "abrir" ter rodado antes, e inclusive dentro do gancho
+  // pre-push, que não passa nenhuma flag.
+  const quem = identidadeDaSessao();
 
-  // ── CONSERTO 1 (16/08/2026, rodada 2) — O CAMINHO HONESTO NÃO PODE SER MAIS
-  // CARO QUE O ATALHO, SENÃO A TRAVA MORRE. Medido: antes deste conserto,
-  // "conferir --quem <id>" resolvia a identidade só PARA ESTA CHAMADA e
-  // nunca gravava — só "abrir" gravava em ".dioli-quem". Consequência: quem
-  // era barrado por falta de identidade lia "repita este comando com --quem
-  // <id>", repetia, funcionava… e na PRÓXIMA vez precisava repetir de novo,
-  // para sempre. Por isso "conferir" grava a identidade exatamente como
-  // "abrir" já fazia — MAS só quando ela é CONFIÁVEL (CONSERTO 2, rodada 3):
-  // gravar uma identidade SUSPEITA aqui fossilizaria um valor herdado como
-  // se fosse confirmado, o oposto do que este conserto existe para evitar.
-  if (resolvida && resolvida.confiavel) {
-    gravarIdentidadeLocal(resolvida.quem);
-  }
-
-  // Identidade suspeita (rodada 3) NÃO é obedecida — cai no mesmo "<seu-id>"
-  // de quando nada foi encontrado. Só uma identidade CONFIÁVEL (flag, ou
-  // arquivo deste worktree com o caminho batendo) decide "isto é meu".
-  const quem = resolvida?.confiavel ? resolvida.quem : "<seu-id>";
+  avisarSeGitConfigVestigio();
 
   console.log(`Buscando origin/${branch}…`);
   const busca = buscarRemoto(branch);
@@ -874,49 +793,15 @@ function comandoConferir(argv: string[]): void {
     console.error("🚫 O que você alterou pisa em frente reivindicada por outra sessão:");
     for (const m of resultado.motivos) console.error(`   - ${m}`);
 
-    // 5º CONSERTO — NENHUM CAMINHO TERMINA EM BECO SEM SAÍDA. Foi o silêncio
-    // aqui, mais o "encerrar" só saindo por push, mais o push barrado pelo
-    // próprio gancho, que fechou o deadlock de 16/08/2026. Toda vez que
-    // "conferir" BARRA, a saída termina com as opções concretas e copiáveis.
-    //
-    // Quando o que barrou é, na verdade, uma reivindicação com o MESMO "quem"
-    // resolvido agora — sinal de que a identidade gravada no JSON e a
-    // identidade resolvida nesta chamada não bateram por um detalhe de
-    // formatação (espaço, caixa) — isto quase certamente é a PRÓPRIA sessão
-    // sendo barrada pela PRÓPRIA reivindicação. Diz isso com todas as letras.
-    // Só roda com identidade CONFIÁVEL (ver CONSERTO 2, rodada 3) — uma
-    // identidade SUSPEITA não serve nem para este diagnóstico, porque pode
-    // ser literalmente a identidade de OUTRA sessão.
-    if (resolvida && resolvida.confiavel) {
-      const normalizar = (s: string) => s.trim().toLowerCase();
-      const provavelmenteEuMesmo = existentes.some(
-        (r) => estaViva(r, new Date()) === "viva" && normalizar(r.quem) === normalizar(resolvida.quem) && r.quem !== resolvida.quem,
-      );
-      if (provavelmenteEuMesmo) {
-        console.error(
-          `   ⚠️  Uma das reivindicações acima tem "quem" quase igual ao seu ("${resolvida.quem}") — provavelmente é a ` +
-            "SUA PRÓPRIA identidade gravada com uma diferença de formatação (espaço, caixa), não outra sessão. " +
-            `Confira "${CAMINHO_IDENTIDADE}" e, se for o caso, regrave com:`,
-        );
-        console.error(`      ${linhaParaGravarIdentidade(resolvida.quem)}`);
-      }
-    }
-
+    // NENHUM CAMINHO TERMINA EM BECO SEM SAÍDA — toda vez que "conferir"
+    // BARRA, a saída termina com as opções concretas e copiáveis. A partir
+    // da rodada 4, "gravar identidade" NÃO é mais uma delas: a identidade é
+    // sempre a mesma para este worktree (`identidadeDaSessao()`), então, se
+    // isto está barrando, é porque a reivindicação em cima é MESMO de outra
+    // sessão — não há "confirmar que sou eu" para tentar de novo.
     console.error("Para seguir, uma destas opções:");
-    // CONSERTO 2 (16/08/2026) — quando NÃO HÁ identidade CONFIÁVEL — nem
-    // resolvida (rodada 2), nem uma resolvida mas SUSPEITA DE HERANÇA
-    // (rodada 3, ver acima) — o caso mais comum (esta MESMA sessão sendo
-    // barrada por falta de identidade confiável) tem uma saída mais curta
-    // que abrir uma reivindicação nova: "conferir --quem <id>" agora GRAVA a
-    // identidade (ver CONSERTO 1, acima) e já reconfere na mesma chamada.
-    // Por resolver o caso mais comum com menos digitação, ela entra em
-    // PRIMEIRO lugar na lista — não depois de opções mais raras.
-    if (!resolvida || !resolvida.confiavel) {
-      console.error(`   - grave sua identidade e reconfira:  npm run reivindicar -- conferir --quem <seu-id>     (grava a identidade e reconfere)`);
-    }
-    console.error(`   - se o bloqueio é a SUA PRÓPRIA reivindicação sem identidade gravada:  ${linhaParaGravarIdentidade(quem)}`);
     console.error(`   - se a frente já terminou, encerre-a:  npm run reivindicar -- encerrar --responsabilidade <slug-da-frente-listada-acima>`);
-    console.error(`   - se precisa seguir apesar da colisão, force com motivo:  npm run reivindicar -- abrir --quem ${quem} --frente "<...>" --responsabilidade <slug> --arquivos <a,b,c> --forcar --motivo "<por quê>"`);
+    console.error(`   - se precisa seguir apesar da colisão, force com motivo:  npm run reivindicar -- abrir --frente "<...>" --responsabilidade <slug> --arquivos <a,b,c> --forcar --motivo "<por quê>"`);
     console.error(`   - para ver todas as reivindicações vivas e escolher:  npm run reivindicar -- listar`);
     process.exit(1);
   }
@@ -965,7 +850,8 @@ function comandoEncerrar(argv: string[]): void {
     process.exit(1);
   }
 
-  console.log(`✅ Encerrada: "${alvo.responsabilidade}" (era de ${alvo.quem}).`);
+  const identificacao = alvo.rotulo ? `${alvo.quem} (rótulo: ${alvo.rotulo})` : alvo.quem;
+  console.log(`✅ Encerrada: "${alvo.responsabilidade}" (era de ${identificacao}).`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -1002,9 +888,9 @@ function comandoListar(argv: string[]): void {
   console.log(`Reivindicações em ${origem}:\n`);
   for (const r of existentes.sort((a, b) => a.abertaEm.localeCompare(b.abertaEm))) {
     const estado = estaViva(r, agora);
-    const rotulo = estado === "encerrada" ? "ENCERRADA" : estado === "velha" ? "VELHA (não bloqueia)" : "VIVA";
-    console.log(`── [${rotulo}] ${r.responsabilidade}`);
-    console.log(`   quem ......... ${r.quem}`);
+    const estadoRotulo = estado === "encerrada" ? "ENCERRADA" : estado === "velha" ? "VELHA (não bloqueia)" : "VIVA";
+    console.log(`── [${estadoRotulo}] ${r.responsabilidade}`);
+    console.log(`   quem ......... ${r.quem}${r.rotulo ? ` (rótulo: ${r.rotulo})` : ""}`);
     console.log(`   frente ....... ${r.frente}`);
     console.log(`   arquivos ..... ${r.arquivos.join(", ")}`);
     console.log(`   aberta em .... ${r.abertaEm}`);
