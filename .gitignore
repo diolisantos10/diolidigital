@@ -43,6 +43,16 @@ next-env.d.ts
 # Claude Code
 .claude/*
 !.claude/agents/
+# O gancho de sessão e o settings PRECISAM ser versionados, e isto quase passou
+# batido: com apenas `.claude/*` ignorado, o gancho ficaria só na máquina de
+# quem o escreveu — e gancho que não chega às outras sessões não existe, que é
+# exatamente o defeito que ele foi construído para matar. `!.claude/hooks/`
+# vem antes por necessidade do git: diretório ignorado não é percorrido, então
+# sem desingorar a PASTA nenhum arquivo dentro dela poderia ser resgatado.
+!.claude/settings.json
+!.claude/hooks/
+# `settings.local.json` continua ignorado de propósito (cai no `.claude/*`):
+# é a preferência pessoal de cada máquina, não regra da casa.
 
 # Prisma generated client — committed so Railway build has it without needing prisma generate
 # Run: prisma generate (already in npm run build) to regenerate after schema changes
