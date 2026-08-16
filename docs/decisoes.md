@@ -232,10 +232,44 @@ mutação prova que continua certo amanhã. As duas, sempre.**
   `session` e `approvals`). É um oráculo: quem sonda distingue "token inválido"
   de "token válido de outro dono". Não fechado nesta rodada — fechar exige
   separar o motivo interno (log) do motivo externo (tela), em quatro rotas.
-- 🟠 **O teste de arquitetura tem duas exceções sem contra-prova:** a lista de
-  caminhos `SUPERFICIE` e a janela de 120 caracteres da expressão. Três fugas
-  passam por ali (rota fora da lista, `prisma["portalAccess"]`, `where: { token }`
-  a mais de 120 caracteres). A allowlist é **zero**, mas a exceção mudou de nome.
+- 🟢 **As três fugas do teste de arquitetura fecharam na rodada 10** — e o
+  conserto foi inverter o default, não tapar as três. Ver abaixo.
+
+### 🔴 A RODADA 10 — o gate de arquitetura inverteu o default, e achou um telefone
+
+O `qualidade` nomeou três fugas no gate: rota fora da lista de pastas,
+`prisma["portalAccess"]` com colchete, e `where: { token }` a mais de 120
+caracteres do nome da tabela. **Eram a mesma fuga.**
+
+O defeito era a **forma**: o gate tinha uma LISTA DE LUGARES VIGIADOS
+(`SUPERFICIE`) — que é exatamente o erro que o próprio arquivo existe para
+conter: *"a trava vai onde o id é USADO — converter a função central não
+converte quem não a chama."* Lista de pastas nunca acompanha o código.
+
+**Agora varre-se `app/` e `lib/` inteiros**, e quem pode LER a tabela de
+credencial é lista nominal com motivo escrito, conferida contra o disco
+(exceção para arquivo que não existe mais é exceção que ninguém revisou). A
+janela de 120 caracteres morreu junto.
+
+> #### O que a inversão achou na primeira vez que rodou
+>
+> `lib/integrations/meta/notifications.ts` resolvia credencial por conta
+> própria — `prisma.portalAccess.findFirst({ where: { token } })` — lendo o
+> ponteiro **mutável** `clientRequestId`, o mesmo que produziu o P0 da conversa.
+>
+> **E ali o destino é um telefone.** Solicitação re-apontada = WhatsApp sobre a
+> proposta de um cliente indo para o celular de outro, com o link do portal
+> dentro — e sem tela onde o cliente perceba e feche. Passou a usar
+> `escopoDoToken`: ponteiro que andou é recusado, e recusa vira **nenhuma
+> notificação**. Não se manda WhatsApp por palpite.
+>
+> Nenhuma varredura por lista de pastas acharia isto: a pasta não estava na
+> lista, e ninguém associava `integrations/meta` ao portal.
+
+**A lição de método, e ela custou uma tentativa:** o primeiro conserto da fuga
+do colchete **não pegava** — a expressão exigia `prisma` colado ao colchete, e
+a forma real tem um *cast* no meio. Só apareceu porque plantei a fuga em vez de
+raciocinar sobre ela. **Fuga que não foi plantada não foi fechada.**
 
 ---
 
