@@ -52,6 +52,33 @@ chega a ser levada). Dono e idade são **derivados**, não colunas: dono gravado
 congelaria a organização do dia em que a recusa nasceu, e idade em coluna é um
 número que envelhece errado.
 
+**A revisão adversarial derrubou três declarações minhas, e a lição é uma só:
+eu provei contra a base que eu mesmo montei.** O `seguranca` achou que a fila
+**não andava** — dois leads velhos sem contato ocupavam os dois lugares de toda
+passada, e nenhum briefing novo chegava ao motor. Meu aceite passou porque rodou
+contra base zerada, com exatamente as duas linhas do roteiro. **Aceite montado
+por quem escreveu o código não é aceite: é ensaio.** O `experiencia` achou o
+irmão desse defeito uma camada acima — a sala que eu construí **não estava em
+nenhum menu**: refazendo a noite do incidente, o CEO continuaria sem descobrir
+nada. *"Ninguém varre a fila"* tinha virado *"ninguém acha a tela"*.
+
+**Três consertos que mudam desenho, não linha:**
+
+1. **Orçamento conta o que GASTA, não o que examina.** Recusar é de graça, então
+   recusa não consome cota e não tira o lugar de ninguém na fila.
+2. **O pacote para num humano DA AGÊNCIA** (`clientVisible: false`). Eu tinha
+   escrito "o fim da cadeia é gente" — era gente, mas era o CLIENTE, e o resumo
+   levava o custo de IA passo a passo para dentro do portal dele.
+3. **Provedor de IA fora do ar NEGA.** O rascunho determinístico deixou de ser
+   entregável: sem chave, a cadeia marcava seis passos "executado", custo zero,
+   e abria um card cujo conteúdo era o eco do briefing do próprio cliente. A Lei
+   2 ("degrada, nunca derruba") vale para o SERVIÇO, não para o artefato — a
+   esteira não cai, ela para e diz por quê.
+
+**E uma regra que eu inventei foi removida:** `HORAS_ATE_SUBIR_AO_CEO = 48` e o
+selo "sobe ao CEO" não existem em `03-ESTEIRA-E-HANDOFFS.md`. Tratei invenção
+minha como contrato da casa; há teste que agora guarda a ausência dela.
+
 **O que a prova ao vivo mudou no desenho.** Na primeira passada num servidor
 de verdade, a varredura processou uma linha antiga em `new` **sem contato** —
 pagou seis funções de IA para produzir uma proposta sem para onde ir. É o caso

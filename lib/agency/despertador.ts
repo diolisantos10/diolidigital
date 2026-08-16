@@ -490,7 +490,19 @@ export async function baterORelogio(): Promise<{
   // antes de gastar, e toda recusa vira LINHA VISÍVEL com motivo em português
   // (o silêncio era o defeito, não a recusa).
   try {
-    const { varrerAPortaNoBanco } = await import("@/lib/agency/esteira-assistida/varredura-no-banco");
+    const { varrerAPortaNoBanco, destravarReservasMortas } = await import("@/lib/agency/esteira-assistida/varredura-no-banco");
+
+    // PRIMEIRO devolve quem morreu reservado, DEPOIS varre. A ordem é o
+    // mecanismo: a reserva grava `in_progress` antes de gastar, e uma cadeia
+    // que caiu (exceção, reinício de contêiner, deploy no meio) deixava a
+    // linha ali PARA SEMPRE — some da porta, some de `/agency/leads`, não é
+    // `precisa_decisao`. Sumia das quatro listas: o incidente do CityJobs de
+    // novo, com outra roupa. Destravando antes, a mesma passada já reprocessa.
+    const destravadas = await destravarReservasMortas();
+    if (destravadas.devolvidas > 0) {
+      log(`${destravadas.devolvidas} briefing(s) presos em processamento devolvidos à fila`);
+    }
+
     const r = await varrerAPortaNoBanco();
     briefingsQueAndaram = r.andaram;
     if (r.andaram > 0) log(`${r.andaram} briefing(s) saíram da porta e chegaram à proposta`);
@@ -514,7 +526,7 @@ export async function baterORelogio(): Promise<{
     const r = await cobrarOsBastoesNoChao();
     handoffsCobrados = r.atrasados;
     if (r.atrasados > 0) {
-      log(`${r.atrasados} handoff(s) sem aceite com prazo estourado — cobrados (${r.subiramAoCeo} sobem ao CEO)`);
+      log(`${r.atrasados} handoff(s) sem aceite com prazo estourado — cobrados`);
     }
   } catch (err) {
     quebrou("gaviao-de-handoff", err);

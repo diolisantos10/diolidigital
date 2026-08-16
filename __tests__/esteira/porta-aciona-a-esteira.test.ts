@@ -14,7 +14,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import {
-  varrerAPorta, MAX_POR_RODADA, correlationDaPorta,
+  varrerAPorta, MAX_POR_RODADA, JANELA_DE_CANDIDATOS, correlationDaPorta,
   type DependenciasDaVarredura, type SolicitacaoNaPorta,
 } from "@/lib/agency/esteira-assistida/varredura";
 import { AUTORIZACAO_DA_ESTEIRA, PORTA_DA_ESTEIRA } from "@/lib/agency/esteira-assistida/recusa-visivel";
@@ -163,12 +163,17 @@ describe("🔒 as travas de dinheiro e de concorrência", () => {
     expect(r.detalhe[0]!.desfecho).toBe("reservada-por-outro");
   });
 
-  it("o teto por rodada é REAL — a fila não vira enxurrada de cadeias de IA", async () => {
+  // ⚠️ ESTE TESTE ESTAVA ERRADO, e o erro dele É o defeito G-2. Ele exigia
+  // que a passada BUSCASSE só `MAX_POR_RODADA` linhas — que é exatamente o que
+  // deixava dois leads velhos entupindo a fila para sempre. O teto certo é o
+  // de cadeias INICIADAS; ver `__tests__/esteira/a-fila-nao-entope.test.ts`.
+  it("o teto de GASTO é real — 40 briefings não viram 40 cadeias de IA", async () => {
     const pedidos = Array.from({ length: 40 }, (_, i) => briefing({ id: `req${i}` }));
     const { deps } = montar({ solicitacoesNaPorta: vi.fn(async (limite: number) => pedidos.slice(0, limite)) });
     const r = await varrerAPorta(deps);
-    expect(deps.solicitacoesNaPorta).toHaveBeenCalledWith(MAX_POR_RODADA);
-    expect(r.olhadas).toBeLessThanOrEqual(MAX_POR_RODADA);
+    expect(deps.solicitacoesNaPorta).toHaveBeenCalledWith(JANELA_DE_CANDIDATOS);
+    expect(r.andaram).toBeLessThanOrEqual(MAX_POR_RODADA);
+    expect((deps.rodarCiclo as ReturnType<typeof vi.fn>).mock.calls.length).toBe(MAX_POR_RODADA);
   });
 
   it("o trabalho já pago volta do registro, não do provedor", async () => {

@@ -15,7 +15,7 @@ export function dependenciasDoGaviaoNoBanco(agora: () => Date = () => new Date()
         orderBy: { criadoEm: "asc" },
         take: 100,
         select: {
-          id: true, deDepartamento: true, paraDepartamento: true,
+          id: true, deDepartamento: true, paraDepartamento: true, workspaceId: true,
           responsavelEntrega: true, correlationId: true, prazoProximo: true, criadoEm: true,
         },
       });
@@ -31,6 +31,7 @@ export function dependenciasDoGaviaoNoBanco(agora: () => Date = () => new Date()
           motivo: dados.motivo,
           correlationId: dados.correlationId,
           clienteId: null,
+          workspaceId: dados.workspaceId ?? null,
           em: dados.em,
         },
       });

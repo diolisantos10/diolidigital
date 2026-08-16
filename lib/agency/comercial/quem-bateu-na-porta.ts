@@ -52,9 +52,24 @@ import { lerContato, pistasDeContato, type PistaDeContato } from "@/lib/agency/c
  *  ele já falou com outra agência. */
 export const DIAS_ATE_VIRAR_DESLEIXO = 2;
 
-/** Status que significam "ainda não foi atendido". Um pedido já convertido em
- *  projeto saiu da porta e não é mais fila de entrada. */
-const AINDA_NA_PORTA = ["new", "triaged", "qualifying"];
+/**
+ * Status que significam "ainda não foi atendido". Um pedido já convertido em
+ * projeto saiu da porta e não é mais fila de entrada.
+ *
+ * ⚠️ ESTA É A LISTA ÚNICA, e virou única em 16/08/2026. Havia DUAS verdades
+ * sobre a mesma fila, e a segunda foi achada pelo `experiencia`:
+ * `/api/agency/leads` lia `"new,lead_incompleto"` enquanto esta função lia
+ * `new/triaged/qualifying`. Consequência: `lead_incompleto` — quem entrou e
+ * recusou deixar contato — **nunca aparecia na sala do PM**, e `triaged`/
+ * `qualifying` nunca apareciam em "Quem procurou". Cada tela tinha uma fila
+ * diferente, e nenhuma tinha a fila.
+ *
+ * `lead_incompleto` ENTRA aqui porque ele é literalmente o caso que esta
+ * função já modela melhor que qualquer outra: `temComoFalar: false`, contado
+ * no balde `semCaminho`, separado de quem espera resposta. Ele não é lixo — é
+ * a matéria-prima que esta agência mais desperdiça.
+ */
+export const AINDA_NA_PORTA = ["new", "triaged", "qualifying", "lead_incompleto"];
 
 export interface NaPorta {
   id: string;

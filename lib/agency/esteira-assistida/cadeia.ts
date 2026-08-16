@@ -223,6 +223,7 @@ export async function executarCicloAssistido(
             // que nunca atrasa — e o que nunca atrasa nunca é cobrado.
             prazoProximo: new Date(deps.agora().getTime() + proximaSpec.spec.sla_horas * 3_600_000),
             correlationId: pedido.correlationId,
+            workspaceId: pedido.workspaceId ?? null,
           },
           deps.handoffs,
           deps.agora,

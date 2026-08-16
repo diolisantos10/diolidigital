@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import {
-  cobrancasDeHandoff, cobrarOsBastoesNoChao, PRAZO_PADRAO_HORAS, HORAS_ATE_SUBIR_AO_CEO,
+  cobrancasDeHandoff, cobrarOsBastoesNoChao, PRAZO_PADRAO_HORAS,
   type HandoffParado, type DependenciasDoGaviao,
 } from "@/lib/agency/esteira-assistida/vigilancia-de-handoff";
 import { HANDOFF_DA_ESTEIRA } from "@/lib/agency/esteira-assistida/recusa-visivel";
@@ -46,11 +46,24 @@ describe("⛔ o atrasado é cobrado, com dono e idade", () => {
     expect(cobrancasDeHandoff([velho], AGORA)[0]!.atrasado).toBe(true);
   });
 
-  it("o que ninguém pega por tempo demais SOBE AO CEO, e a frase diz isso", () => {
-    const abandonado = h({ criadoEm: new Date(AGORA.getTime() - (HORAS_ATE_SUBIR_AO_CEO + 1) * 3_600_000) });
-    const [c] = cobrancasDeHandoff([abandonado], AGORA);
-    expect(c!.sobeAoCeo).toBe(true);
-    expect(c!.motivo).toMatch(/sobe para o CEO/i);
+  // ⚠️ AQUI HAVIA UM TESTE DE UMA REGRA INVENTADA POR MIM, e ele foi trocado
+  // por este. `HORAS_ATE_SUBIR_AO_CEO = 48` e o selo "sobe ao CEO" não existem
+  // em `03-ESTEIRA-E-HANDOFFS.md` — eu tratei invenção minha como contrato da
+  // casa. Este teste agora GUARDA A AUSÊNCIA: se alguém reintroduzir a regra
+  // sem o CEO ter decidido, ele reprova.
+  it("⛔ a esteira NÃO inventa escalonamento que o contrato não tem", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const fonte = fs.readFileSync(
+      path.join(process.cwd(), "lib/agency/esteira-assistida/vigilancia-de-handoff.ts"), "utf8",
+    );
+    const doc = fs.readFileSync(
+      path.join(process.cwd(), "docs/arquitetura-operacional-v2/03-ESTEIRA-E-HANDOFFS.md"), "utf8",
+    );
+    // A fonte da regra não fala em subir ao CEO — então o código não fala.
+    expect(doc).not.toMatch(/sobe (para )?o CEO/i);
+    expect(fonte).not.toMatch(/export const HORAS_ATE_SUBIR_AO_CEO/);
+    expect(cobrancasDeHandoff([h()], AGORA)[0]).not.toHaveProperty("sobeAoCeo");
   });
 });
 
@@ -62,7 +75,6 @@ describe("✅ a metade limpa — o gavião não inventa problema", () => {
     });
     const [c] = cobrancasDeHandoff([novo], AGORA);
     expect(c!.atrasado).toBe(false);
-    expect(c!.sobeAoCeo).toBe(false);
     expect(c!.motivo).toContain("Dentro do prazo");
   });
 
@@ -74,7 +86,7 @@ describe("✅ a metade limpa — o gavião não inventa problema", () => {
       agora: () => AGORA,
     };
     const r = await cobrarOsBastoesNoChao(deps);
-    expect(r).toMatchObject({ aguardando: 0, atrasados: 0, subiramAoCeo: 0 });
+    expect(r).toMatchObject({ aguardando: 0, atrasados: 0 });
     expect(deps.registrarCobranca).not.toHaveBeenCalled();
   });
 

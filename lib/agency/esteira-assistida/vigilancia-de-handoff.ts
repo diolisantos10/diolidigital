@@ -29,8 +29,21 @@ import { departamentoV2 } from "@/lib/agency/catalogo-v2/catalogo";
 /** Prazo ausente não é prazo infinito. Depois disto, cobra-se do mesmo jeito. */
 export const PRAZO_PADRAO_HORAS = 24;
 
-/** Acima disto ninguém pegou: sobe para o CEO em vez de ficar rodando. */
-export const HORAS_ATE_SUBIR_AO_CEO = 48;
+// ⚠️ AQUI HAVIA UMA REGRA QUE EU INVENTEI, e ela foi REMOVIDA (16/08/2026).
+//
+// A primeira versão desta frente criou `HORAS_ATE_SUBIR_AO_CEO = 48` e um selo
+// vermelho "sobe ao CEO". O `experiencia` conferiu contra a fonte:
+// `03-ESTEIRA-E-HANDOFFS.md` diz "sem aceite, a tarefa não some da fila
+// anterior" e **não diz uma palavra sobre subir ao CEO**. Eu tratei invenção
+// minha como contrato da casa — que é o defeito que esta agência já pagou
+// caro, com outro nome.
+//
+// E era escalonamento de mentira: o selo ficava DENTRO da mesma lista de onde
+// deveria sair, não virava aviso e nem entrava na frase de resumo do topo.
+// Escalonamento que fica na mesma lista é adjetivo, não escalonamento.
+//
+// O que fica: prazo, dono, idade e cobrança — tudo isso ESTÁ no documento.
+// Escalar para o CEO volta como PROPOSTA ao Diretor, não como código.
 
 export interface HandoffParado {
   id: string;
@@ -38,6 +51,7 @@ export interface HandoffParado {
   paraDepartamento: string;
   responsavelEntrega: string;
   correlationId: string;
+  workspaceId?: string | null;
   prazoProximo: Date | null;
   criadoEm: Date;
 }
@@ -49,12 +63,11 @@ export interface CobrancaDeHandoff {
   deDepartamento: string;
   paraDepartamento: string;
   correlationId: string;
+  workspaceId?: string | null;
   idadeHoras: number;
   idade: string;
   /** Estourou o prazo do contrato? */
   atrasado: boolean;
-  /** Ninguém pegou por tempo demais — isto sobe. */
-  sobeAoCeo: boolean;
   motivo: string;
 }
 
@@ -75,15 +88,13 @@ export function cobrancasDeHandoff(parados: HandoffParado[], agora: Date): Cobra
     const idadeHoras = idadeEmHoras(h.criadoEm, agora);
     const prazo = h.prazoProximo ?? new Date(h.criadoEm.getTime() + PRAZO_PADRAO_HORAS * 3_600_000);
     const atrasado = agora.getTime() > prazo.getTime();
-    const sobeAoCeo = idadeHoras >= HORAS_ATE_SUBIR_AO_CEO;
     const dono = nomeDoDepartamento(h.paraDepartamento);
     const origem = nomeDoDepartamento(h.deDepartamento);
 
     const motivo = atrasado
       ? `${origem} entregou para ${dono} e ninguém de ${dono} aceitou o recebimento. ` +
         `O prazo do contrato venceu ${idadeEmPortugues(prazo, agora)} e a tarefa continua na fila de ${origem} — ` +
-        `sem aceite ela não sai de lá, por regra.` +
-        (sobeAoCeo ? ` Parada ${idadeEmPortugues(h.criadoEm, agora)}: isto sobe para o CEO.` : "")
+        `sem aceite ela não sai de lá, por regra.`
       : `${origem} → ${dono}, aguardando recebimento ${idadeEmPortugues(h.criadoEm, agora)}. Dentro do prazo.`;
 
     return {
@@ -92,10 +103,10 @@ export function cobrancasDeHandoff(parados: HandoffParado[], agora: Date): Cobra
       deDepartamento: h.deDepartamento,
       paraDepartamento: h.paraDepartamento,
       correlationId: h.correlationId,
+      workspaceId: h.workspaceId ?? null,
       idadeHoras,
       idade: idadeEmPortugues(h.criadoEm, agora),
       atrasado,
-      sobeAoCeo,
       motivo,
     };
   });
@@ -109,6 +120,7 @@ export interface DependenciasDoGaviao {
     funcaoId: string;
     motivo: string;
     correlationId: string;
+    workspaceId?: string | null;
     em: Date;
   }): Promise<void>;
   agora(): Date;
@@ -120,7 +132,6 @@ export const JANELA_DA_COBRANCA_HORAS = 12;
 export interface ResultadoDoGaviao {
   aguardando: number;
   atrasados: number;
-  subiramAoCeo: number;
   cobrancas: CobrancaDeHandoff[];
 }
 
@@ -138,6 +149,7 @@ export async function cobrarOsBastoesNoChao(deps: DependenciasDoGaviao): Promise
       funcaoId: HANDOFF_DA_ESTEIRA,
       motivo: c.motivo,
       correlationId,
+      workspaceId: c.workspaceId,
       em: agora,
     });
   }
@@ -145,7 +157,6 @@ export async function cobrarOsBastoesNoChao(deps: DependenciasDoGaviao): Promise
   return {
     aguardando: cobrancas.length,
     atrasados: atrasadas.length,
-    subiramAoCeo: cobrancas.filter((c) => c.sobeAoCeo).length,
     cobrancas,
   };
 }

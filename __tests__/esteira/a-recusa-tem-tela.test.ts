@@ -54,11 +54,19 @@ describe("🔑 gravar o motivo NUNCA pode derrubar quem já estava recusando", (
 describe("a sala do PM mostra o que está parado — e lê a fila de UM lugar só", () => {
   const pagina = fs.readFileSync(path.join(process.cwd(), "app/agency/pm-command/page.tsx"), "utf8");
 
-  it("mostra recusa, bastão no chão, briefing na porta e o que pede decisão", () => {
-    expect(pagina).toMatch(/Por que não andou/);
+  // A sala foi reduzida de 10 cartões para 2 (mandato do `experiencia`): a
+  // recusa deixou de ser LISTA e virou ATRIBUTO da linha do lead, porque a
+  // mesma pessoa aparecia duas vezes na mesma tela.
+  it("mostra a fila com dono, idade e motivo — numa lista só", () => {
+    expect(pagina).toMatch(/A fila — quem está esperando/);
     expect(pagina).toMatch(/Bastões no chão/);
-    expect(pagina).toMatch(/Parados na porta/);
-    expect(pagina).toMatch(/Pedindo DECISÃO SUA/);
+    expect(pagina).toContain("montarFilaDaSala");
+    expect(pagina).toContain("leituraDaSala");
+  });
+
+  it("⛔ e NÃO tem mais duas listas sobre as mesmas pessoas", () => {
+    expect(pagina).not.toMatch(/Parados na porta/);
+    expect(pagina).not.toMatch(/Por que não andou/);
   });
 
   it("⛔ NÃO relê a fila da porta por conta própria — usa o leitor único", () => {

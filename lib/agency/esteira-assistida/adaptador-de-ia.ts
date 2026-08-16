@@ -131,16 +131,48 @@ const DONO_POR_FUNCAO: Record<string, string> = {
   "graphic-designer": "v2-graphic-designer",
 };
 
+/**
+ * Erro de indisponibilidade de IA. Existe como CLASSE porque o executor
+ * distingue "trabalho que falhou" de "trabalho que saiu ruim": lançado, ele cai
+ * no laço de retentativas da ficha e, esgotadas, ESCALA com o motivo — que a
+ * varredura transforma em linha visível.
+ */
+export class IaIndisponivel extends Error {
+  constructor(motivo: string) {
+    super(motivo);
+    this.name = "IaIndisponivel";
+  }
+}
+
 /** Fábrica do `realizar` real — generate() com dono de gasto registrado. */
 export function realizarComIA(opcoes: OpcoesDoAdaptador): DependenciasDoExecutor["realizar"] {
   return async (spec, contexto) => {
+    // ─── 🔴 PROVEDOR FORA DO AR NEGA; NÃO ENTREGA ────────────────────────────
+    //
+    // Achado G-6 do `seguranca` na PR #166. A primeira versão devolvia
+    // `rascunhoRuleBased` nos três casos abaixo — e o rascunho é uma saída
+    // VÁLIDA para o executor. Consequência medida: sem chave de provedor, a
+    // cadeia inteira marcava seis passos "executado", custo zero, e abria um
+    // card de aprovação **cujo conteúdo é o eco do briefing do próprio
+    // cliente**, embrulhado em JSON. Uma agência entregando de volta o que o
+    // cliente escreveu, com cara de trabalho feito.
+    //
+    // O fallback continua existindo (`rascunhoRuleBased` é exportado e usado
+    // em ensaio), mas ele NÃO É MAIS ENTREGÁVEL DE PRODUÇÃO. Lei 2 da casa —
+    // "degrada, nunca derruba" — vale para o SERVIÇO, não para o artefato: a
+    // esteira não cai, ela para e diz por quê. Entregar rascunho como se fosse
+    // peça é exatamente o "sem gate = reprovado" com outra roupa.
     const dono = DONO_POR_FUNCAO[spec.funcao];
     if (!dono) {
-      return rascunhoRuleBased(spec, contexto, `função "${spec.funcao}" sem dono de gasto registrado — IA não é chamada sem endereço de custo`);
+      throw new IaIndisponivel(
+        `função "${spec.funcao}" não tem dono de gasto registrado — IA não é chamada sem endereço de custo, e rascunho não vira entregável`,
+      );
     }
     const temProvedor = opcoes.workspaceId ? await anyProviderConfigured(opcoes.workspaceId) : await anyProviderConfigured();
     if (!temProvedor) {
-      return rascunhoRuleBased(spec, contexto, "nenhum provedor de IA configurado no ambiente");
+      throw new IaIndisponivel(
+        "nenhum provedor de IA configurado nesta agência — a esteira PARA aqui em vez de entregar rascunho com cara de peça. Configure a chave em Integrações",
+      );
     }
     const resultado = await generate({
       system: fichaComoPrompt(spec),
@@ -152,7 +184,7 @@ export function realizarComIA(opcoes: OpcoesDoAdaptador): DependenciasDoExecutor
       agentId: dono,
     });
     if (!resultado.ok) {
-      return rascunhoRuleBased(spec, contexto, `provedor de IA falhou (${resultado.error})`);
+      throw new IaIndisponivel(`o provedor de IA falhou (${resultado.error}) — a esteira para e cobra, não entrega rascunho`);
     }
     const custo = estimarCusto(
       resultado.model,

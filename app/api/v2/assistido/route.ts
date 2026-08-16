@@ -25,6 +25,7 @@ import { virarChaveDoPiloto } from "@/lib/agency/esteira-assistida/piloto";
 import { esteiraAutorizada } from "@/lib/agency/esteira-assistida/autorizacao";
 import { registrarRecusaVisivel, AUTORIZACAO_DA_ESTEIRA } from "@/lib/agency/esteira-assistida/recusa-visivel";
 import { executarCicloAssistido, type DependenciasDoCiclo } from "@/lib/agency/esteira-assistida/cadeia";
+import { resumoDoPacote } from "@/lib/agency/esteira-assistida/varredura";
 import { realizarComIA } from "@/lib/agency/esteira-assistida/adaptador-de-ia";
 import { armazemDeHandoffsNoBanco } from "@/lib/agency/handoff-v2/armazem-prisma";
 import { createClientRequest } from "@/lib/agency/persistence/client-request-service";
@@ -45,15 +46,39 @@ interface Corpo {
   clientRequestId?: string;
 }
 
-async function autenticar(request: NextRequest): Promise<{ quem: string } | { erro: NextResponse }> {
+/**
+ * ⚠️ A AUTENTICAÇÃO DEVOLVE A AGÊNCIA, e isso é conserto do G-4.
+ *
+ * As três ações operavam sobre `agencyWorkspace.findFirst({ orderBy:
+ * createdAt asc })` — a agência MAIS ANTIGA DA BASE, não a de quem está
+ * logado. Numa base com duas agências, o PM da segunda ligava a esteira da
+ * primeira, e a leitura de status mostrava a fila da primeira.
+ *
+ * O caminho por SEGREDO (a sala de controle) não tem sessão, e por isso ele
+ * continua caindo na agência mais antiga — mas agora isso está DECLARADO, e a
+ * resposta diz sobre qual agência agiu. Ambiguidade escrita é diferente de
+ * ambiguidade silenciosa.
+ */
+async function autenticar(
+  request: NextRequest,
+): Promise<{ quem: string; workspaceId: string | null } | { erro: NextResponse }> {
   const cabecalho = request.headers.get("authorization") ?? "";
   const segredo = process.env.PILOTO_SECRET || process.env.CRON_SECRET;
   if (segredo && cabecalho === `Bearer ${segredo}`) {
-    return { quem: "operacao:sala-de-controle" };
+    return { quem: "operacao:sala-de-controle", workspaceId: null };
   }
   const guarda = await exigirAdministracao("/agency/pm-command");
   if (guarda.erro) return { erro: guarda.erro };
-  return { quem: `direcao:${guarda.acesso.session.userId}` };
+  return {
+    quem: `direcao:${guarda.acesso.session.userId}`,
+    workspaceId: guarda.acesso.session.workspaceId,
+  };
+}
+
+/** A agência de quem pediu. Sessão manda; segredo cai na mais antiga, declarado. */
+async function agenciaDoPedido(auth: { workspaceId: string | null }) {
+  if (auth.workspaceId) return prisma.agencyWorkspace.findUnique({ where: { id: auth.workspaceId } });
+  return prisma.agencyWorkspace.findFirst({ orderBy: { createdAt: "asc" } });
 }
 
 function armazemDeFlags(): ArmazemDeFlags {
@@ -84,7 +109,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (corpo.acao === "ligar") {
     const nome = corpo.cliente?.trim();
     if (!nome) return NextResponse.json({ error: "cliente é obrigatório" }, { status: 400 });
-    const workspace = await prisma.agencyWorkspace.findFirst({ orderBy: { createdAt: "asc" } });
+    const workspace = await agenciaDoPedido(auth);
     if (!workspace) return NextResponse.json({ error: "nenhum workspace na base — a casa não abriu ainda" }, { status: 409 });
     let cliente = await prisma.client.findFirst({ where: { workspaceId: workspace.id, name: nome } });
     if (!cliente) {
@@ -119,7 +144,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ciclo de vida do cliente — o reset não apaga `AgencyWorkspace` nem
   // `FlagV2`. O motivo completo mora em `esteira-assistida/autorizacao.ts`.
   if (corpo.acao === "ligar_agencia") {
-    const workspace = await prisma.agencyWorkspace.findFirst({ orderBy: { createdAt: "asc" } });
+    const workspace = await agenciaDoPedido(auth);
     if (!workspace) return NextResponse.json({ error: "nenhum workspace na base — a casa não abriu ainda" }, { status: 409 });
     const resultado = await virarChaveDoPiloto(
       {
@@ -149,7 +174,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "clienteId e solicitacao são obrigatórios" }, { status: 400 });
     }
     const cliente = await prisma.client.findUnique({ where: { id: clienteId } });
-    if (!cliente) return NextResponse.json({ error: "cliente não existe — ligue o piloto primeiro" }, { status: 404 });
+    // POSSE, não só existência (G-4): um `clienteId` de outra agência rodava a
+    // cadeia inteira — gasto de IA numa base alheia e um card lá dentro. Erro
+    // idêntico ao de cliente inexistente, de propósito: dizer "existe, mas não
+    // é seu" confirma para quem sondou que o id é válido.
+    if (!cliente || (auth.workspaceId && cliente.workspaceId !== auth.workspaceId)) {
+      return NextResponse.json({ error: "cliente não existe — ligue o piloto primeiro" }, { status: 404 });
+    }
 
     // A chave TEM que estar virada — no cliente OU na agência. A cadeia não
     // abre exceção; o que mudou é o ESCOPO que vale (16/08/2026).
@@ -169,6 +200,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           motivo: autorizacao.motivo,
           correlationId: `porta:${clienteId}`,
           clienteId,
+          workspaceId: cliente.workspaceId,
           em: new Date(),
         },
       );
@@ -257,15 +289,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let approvalId: string | null = null;
     if (ciclo.ok) {
       // O fim da cadeia é GENTE: card de aprovação humana, nada publica sozinho.
-      const resumo = ciclo.passos
-        .map((p) => `${p.departamentoId}/${p.funcaoId}: ${p.decisao} ($${(p.custoUsd ?? 0).toFixed(4)})`)
-        .join(" · ");
+      // Mesmo conserto do caminho automático (B-1/G-1): o pacote para num
+      // humano DA AGÊNCIA, e a nota não leva custo nem id interno. Este
+      // caminho também levava o `correlationId` para dentro do card.
       const approval = await createApprovalRequest({
         clientId: cliente.id,
         department: "design",
         requestedBy: "esteira-assistida",
-        clientVisible: true,
-        reviewNote: `Ciclo assistido ${correlationId} — pacote da cadeia completa aguardando aprovação humana. ${resumo}`,
+        clientVisible: false,
+        reviewNote: `Esteira assistida — pacote aguardando revisão da AGÊNCIA antes de ir ao cliente. ${resumoDoPacote(ciclo.passos)}`,
       });
       approvalId = approval.id;
       await prisma.clientRequestDb
@@ -288,10 +320,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   if (corpo.acao === "status") {
-    const chaves = await prisma.flagV2.findMany({ where: { chave: FLAGS_V2.execucao } });
-    const execucoes = await prisma.execucaoV2.findMany({ orderBy: { inicio: "desc" }, take: 20 });
-    const recusas = await prisma.recusaV2.findMany({ orderBy: { em: "desc" }, take: 20 });
-    const handoffs = await prisma.handoffV2.findMany({ orderBy: { criadoEm: "desc" }, take: 20 });
+    // ESCOPADO (G-5): o motivo de uma recusa carrega o nome do negócio do lead.
+    // Sem filtro, esta rota entregava a fila comercial de todas as agências da
+    // base a quem tivesse sessão em qualquer uma delas.
+    const ws = auth.workspaceId;
+    const doEscopo = ws ? { workspaceId: ws } : {};
+    const chaves = await prisma.flagV2.findMany({
+      where: { chave: FLAGS_V2.execucao, ...(ws ? { escopo: ws } : {}) },
+    });
+    const idsDaCasa = ws
+      ? (await prisma.client.findMany({ where: { workspaceId: ws }, select: { id: true } })).map((c) => c.id)
+      : null;
+    const execucoes = await prisma.execucaoV2.findMany({
+      where: idsDaCasa ? { clienteId: { in: idsDaCasa } } : {},
+      orderBy: { inicio: "desc" }, take: 20,
+    });
+    const recusas = await prisma.recusaV2.findMany({ where: doEscopo, orderBy: { em: "desc" }, take: 20 });
+    const handoffs = await prisma.handoffV2.findMany({ where: doEscopo, orderBy: { criadoEm: "desc" }, take: 20 });
     return NextResponse.json({
       chaves: chaves.map((c) => ({ escopo: c.escopo, ligada: c.ligada, motivo: c.motivo, decididoPor: c.decididoPor })),
       execucoes: execucoes.map((e) => ({

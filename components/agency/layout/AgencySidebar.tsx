@@ -99,6 +99,22 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
       group: null,
       items: [
         { label: "Início", href: "/agency/dashboard", icon: HomeIcon },
+        // 🔴 A SALA DO PM NÃO TINHA PORTA, e o defeito era o do próprio
+        // incidente que ela existe para resolver. Ela foi construída em
+        // 15/08/2026, ganhou a fila da esteira em 16/08 — e NUNCA esteve em
+        // nenhum grupo deste menu. Conferido ao vivo pelo `experiencia`,
+        // logado como master: 23 links na barra, nenhum era ele.
+        //
+        // Refazendo a noite do incidente do CityJobs, o CEO continuaria sem
+        // descobrir nada: a resposta estava numa URL que ele teria de digitar
+        // de cor. "Ninguém varre a fila" tinha virado "ninguém acha a tela" —
+        // o mesmo defeito, uma camada acima. É o quarto caso desta casa
+        // (Radar, WhatsApp, Desempenho pago e agora este): feature completa,
+        // funcional e sem porta na interface.
+        //
+        // Fica ANTES de "Solicitações" porque é a sala de quem despacha: a
+        // primeira pergunta do dia é "o que está parado?".
+        { label: "Sala do PM", href: "/agency/pm-command", icon: ColumnsIcon },
         { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
         // "Quem procurou a Dioli" — a fila da PORTA DA FRENTE, lida do BANCO.
         // Ela existe porque "Solicitações", logo acima, lê o store do navegador:

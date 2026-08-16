@@ -1247,6 +1247,7 @@ export const RecusaV2ScalarFieldEnum = {
   motivo: 'motivo',
   correlationId: 'correlationId',
   clienteId: 'clienteId',
+  workspaceId: 'workspaceId',
   em: 'em'
 } as const
 
@@ -1356,6 +1357,7 @@ export const HandoffV2ScalarFieldEnum = {
   prazoProximo: 'prazoProximo',
   bloqueios: 'bloqueios',
   correlationId: 'correlationId',
+  workspaceId: 'workspaceId',
   status: 'status',
   criadoEm: 'criadoEm',
   aceitoEm: 'aceitoEm'

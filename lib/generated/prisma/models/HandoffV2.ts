@@ -39,6 +39,7 @@ export type HandoffV2MinAggregateOutputType = {
   prazoProximo: Date | null
   bloqueios: string | null
   correlationId: string | null
+  workspaceId: string | null
   status: string | null
   criadoEm: Date | null
   aceitoEm: Date | null
@@ -57,6 +58,7 @@ export type HandoffV2MaxAggregateOutputType = {
   prazoProximo: Date | null
   bloqueios: string | null
   correlationId: string | null
+  workspaceId: string | null
   status: string | null
   criadoEm: Date | null
   aceitoEm: Date | null
@@ -75,6 +77,7 @@ export type HandoffV2CountAggregateOutputType = {
   prazoProximo: number
   bloqueios: number
   correlationId: number
+  workspaceId: number
   status: number
   criadoEm: number
   aceitoEm: number
@@ -95,6 +98,7 @@ export type HandoffV2MinAggregateInputType = {
   prazoProximo?: true
   bloqueios?: true
   correlationId?: true
+  workspaceId?: true
   status?: true
   criadoEm?: true
   aceitoEm?: true
@@ -113,6 +117,7 @@ export type HandoffV2MaxAggregateInputType = {
   prazoProximo?: true
   bloqueios?: true
   correlationId?: true
+  workspaceId?: true
   status?: true
   criadoEm?: true
   aceitoEm?: true
@@ -131,6 +136,7 @@ export type HandoffV2CountAggregateInputType = {
   prazoProximo?: true
   bloqueios?: true
   correlationId?: true
+  workspaceId?: true
   status?: true
   criadoEm?: true
   aceitoEm?: true
@@ -222,6 +228,7 @@ export type HandoffV2GroupByOutputType = {
   prazoProximo: Date | null
   bloqueios: string
   correlationId: string
+  workspaceId: string | null
   status: string
   criadoEm: Date
   aceitoEm: Date | null
@@ -261,6 +268,7 @@ export type HandoffV2WhereInput = {
   prazoProximo?: Prisma.DateTimeNullableFilter<"HandoffV2"> | Date | string | null
   bloqueios?: Prisma.StringFilter<"HandoffV2"> | string
   correlationId?: Prisma.StringFilter<"HandoffV2"> | string
+  workspaceId?: Prisma.StringNullableFilter<"HandoffV2"> | string | null
   status?: Prisma.StringFilter<"HandoffV2"> | string
   criadoEm?: Prisma.DateTimeFilter<"HandoffV2"> | Date | string
   aceitoEm?: Prisma.DateTimeNullableFilter<"HandoffV2"> | Date | string | null
@@ -279,6 +287,7 @@ export type HandoffV2OrderByWithRelationInput = {
   prazoProximo?: Prisma.SortOrderInput | Prisma.SortOrder
   bloqueios?: Prisma.SortOrder
   correlationId?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
   aceitoEm?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -300,6 +309,7 @@ export type HandoffV2WhereUniqueInput = Prisma.AtLeast<{
   prazoProximo?: Prisma.DateTimeNullableFilter<"HandoffV2"> | Date | string | null
   bloqueios?: Prisma.StringFilter<"HandoffV2"> | string
   correlationId?: Prisma.StringFilter<"HandoffV2"> | string
+  workspaceId?: Prisma.StringNullableFilter<"HandoffV2"> | string | null
   status?: Prisma.StringFilter<"HandoffV2"> | string
   criadoEm?: Prisma.DateTimeFilter<"HandoffV2"> | Date | string
   aceitoEm?: Prisma.DateTimeNullableFilter<"HandoffV2"> | Date | string | null
@@ -318,6 +328,7 @@ export type HandoffV2OrderByWithAggregationInput = {
   prazoProximo?: Prisma.SortOrderInput | Prisma.SortOrder
   bloqueios?: Prisma.SortOrder
   correlationId?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
   aceitoEm?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -342,6 +353,7 @@ export type HandoffV2ScalarWhereWithAggregatesInput = {
   prazoProximo?: Prisma.DateTimeNullableWithAggregatesFilter<"HandoffV2"> | Date | string | null
   bloqueios?: Prisma.StringWithAggregatesFilter<"HandoffV2"> | string
   correlationId?: Prisma.StringWithAggregatesFilter<"HandoffV2"> | string
+  workspaceId?: Prisma.StringNullableWithAggregatesFilter<"HandoffV2"> | string | null
   status?: Prisma.StringWithAggregatesFilter<"HandoffV2"> | string
   criadoEm?: Prisma.DateTimeWithAggregatesFilter<"HandoffV2"> | Date | string
   aceitoEm?: Prisma.DateTimeNullableWithAggregatesFilter<"HandoffV2"> | Date | string | null
@@ -360,6 +372,7 @@ export type HandoffV2CreateInput = {
   prazoProximo?: Date | string | null
   bloqueios?: string
   correlationId: string
+  workspaceId?: string | null
   status?: string
   criadoEm?: Date | string
   aceitoEm?: Date | string | null
@@ -378,6 +391,7 @@ export type HandoffV2UncheckedCreateInput = {
   prazoProximo?: Date | string | null
   bloqueios?: string
   correlationId: string
+  workspaceId?: string | null
   status?: string
   criadoEm?: Date | string
   aceitoEm?: Date | string | null
@@ -396,6 +410,7 @@ export type HandoffV2UpdateInput = {
   prazoProximo?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bloqueios?: Prisma.StringFieldUpdateOperationsInput | string
   correlationId?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aceitoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -414,6 +429,7 @@ export type HandoffV2UncheckedUpdateInput = {
   prazoProximo?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bloqueios?: Prisma.StringFieldUpdateOperationsInput | string
   correlationId?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aceitoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -432,6 +448,7 @@ export type HandoffV2CreateManyInput = {
   prazoProximo?: Date | string | null
   bloqueios?: string
   correlationId: string
+  workspaceId?: string | null
   status?: string
   criadoEm?: Date | string
   aceitoEm?: Date | string | null
@@ -450,6 +467,7 @@ export type HandoffV2UpdateManyMutationInput = {
   prazoProximo?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bloqueios?: Prisma.StringFieldUpdateOperationsInput | string
   correlationId?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aceitoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -468,6 +486,7 @@ export type HandoffV2UncheckedUpdateManyInput = {
   prazoProximo?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   bloqueios?: Prisma.StringFieldUpdateOperationsInput | string
   correlationId?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aceitoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -486,6 +505,7 @@ export type HandoffV2CountOrderByAggregateInput = {
   prazoProximo?: Prisma.SortOrder
   bloqueios?: Prisma.SortOrder
   correlationId?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
   aceitoEm?: Prisma.SortOrder
@@ -504,6 +524,7 @@ export type HandoffV2MaxOrderByAggregateInput = {
   prazoProximo?: Prisma.SortOrder
   bloqueios?: Prisma.SortOrder
   correlationId?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
   aceitoEm?: Prisma.SortOrder
@@ -522,6 +543,7 @@ export type HandoffV2MinOrderByAggregateInput = {
   prazoProximo?: Prisma.SortOrder
   bloqueios?: Prisma.SortOrder
   correlationId?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
   aceitoEm?: Prisma.SortOrder
@@ -542,6 +564,7 @@ export type HandoffV2Select<ExtArgs extends runtime.Types.Extensions.InternalArg
   prazoProximo?: boolean
   bloqueios?: boolean
   correlationId?: boolean
+  workspaceId?: boolean
   status?: boolean
   criadoEm?: boolean
   aceitoEm?: boolean
@@ -560,6 +583,7 @@ export type HandoffV2SelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   prazoProximo?: boolean
   bloqueios?: boolean
   correlationId?: boolean
+  workspaceId?: boolean
   status?: boolean
   criadoEm?: boolean
   aceitoEm?: boolean
@@ -578,6 +602,7 @@ export type HandoffV2SelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   prazoProximo?: boolean
   bloqueios?: boolean
   correlationId?: boolean
+  workspaceId?: boolean
   status?: boolean
   criadoEm?: boolean
   aceitoEm?: boolean
@@ -596,12 +621,13 @@ export type HandoffV2SelectScalar = {
   prazoProximo?: boolean
   bloqueios?: boolean
   correlationId?: boolean
+  workspaceId?: boolean
   status?: boolean
   criadoEm?: boolean
   aceitoEm?: boolean
 }
 
-export type HandoffV2Omit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deDepartamento" | "paraDepartamento" | "responsavelEntrega" | "responsavelRecebe" | "entrada" | "saida" | "versaoArtefato" | "criterios" | "prazoProximo" | "bloqueios" | "correlationId" | "status" | "criadoEm" | "aceitoEm", ExtArgs["result"]["handoffV2"]>
+export type HandoffV2Omit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deDepartamento" | "paraDepartamento" | "responsavelEntrega" | "responsavelRecebe" | "entrada" | "saida" | "versaoArtefato" | "criterios" | "prazoProximo" | "bloqueios" | "correlationId" | "workspaceId" | "status" | "criadoEm" | "aceitoEm", ExtArgs["result"]["handoffV2"]>
 
 export type $HandoffV2Payload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "HandoffV2"
@@ -619,6 +645,10 @@ export type $HandoffV2Payload<ExtArgs extends runtime.Types.Extensions.InternalA
     prazoProximo: Date | null
     bloqueios: string
     correlationId: string
+    /**
+     * De qual AGÊNCIA é este bastão (mesma razão da `RecusaV2`).
+     */
+    workspaceId: string | null
     /**
      * aguardando_recebimento | aceito
      */
@@ -1060,6 +1090,7 @@ export interface HandoffV2FieldRefs {
   readonly prazoProximo: Prisma.FieldRef<"HandoffV2", 'DateTime'>
   readonly bloqueios: Prisma.FieldRef<"HandoffV2", 'String'>
   readonly correlationId: Prisma.FieldRef<"HandoffV2", 'String'>
+  readonly workspaceId: Prisma.FieldRef<"HandoffV2", 'String'>
   readonly status: Prisma.FieldRef<"HandoffV2", 'String'>
   readonly criadoEm: Prisma.FieldRef<"HandoffV2", 'DateTime'>
   readonly aceitoEm: Prisma.FieldRef<"HandoffV2", 'DateTime'>

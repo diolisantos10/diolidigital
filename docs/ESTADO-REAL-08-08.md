@@ -133,8 +133,58 @@ copywriter → graphic-designer`, cria os handoffs com prazo e chega ao card de
 aprovação. Na **mesma passada**, o Sushi Cazza (sem canal, 51 dias) é
 **recusado sem gastar nada**, com o motivo escrito.
 
+### 🔴 A REVISÃO DO `seguranca` E DO `experiencia` REPROVOU A PRIMEIRA VERSÃO
+
+**A mais grave era que a esteira NÃO ANDAVA.** A varredura buscava
+`take: MAX_POR_RODADA` sobre `status: "new"` ordenado por idade, e a recusa não
+mudava o status: os **dois leads velhos sem contato ocupavam os dois lugares de
+toda passada, para sempre**. Nenhum briefing novo chegava ao motor — inclusive
+o CityJobs. **O teste de aceite passou porque foi rodado contra base zerada**,
+com exatamente as duas linhas do roteiro; contra a fila real ele reprovaria. A
+metade que faltou foi a do caso limpo ("o novo passa com velhos na frente"), e
+é sempre essa metade que falta.
+
+| Achado | Conserto |
+|---|---|
+| **G-2** fila entupida | orçamento passa a contar **cadeias iniciadas**, não linhas examinadas (`JANELA_DE_CANDIDATOS` = 60 × `MAX_POR_RODADA` = 2). Recusar é de graça e não tira o lugar de ninguém |
+| **B-1 (P0)** custo de IA no portal do cliente | `resumoDoPacote()` sem cifrão, sem `funcaoId`, sem `correlationId` |
+| **G-1** pacote ia à mesa do CLIENTE | `clientVisible: false` nos dois caminhos — o pacote para num humano **da agência** |
+| **G-3** anônimo criava `Client` com a esteira desligada | autorização **antes** de qualquer escrita; segunda passada com o id real honra o desligamento individual |
+| **G-6** provedor caído virava entregável | `IaIndisponivel` lançado — a cadeia **para e cobra** em vez de entregar o eco do briefing com cara de peça |
+| **G-4** rota agia sobre a agência **mais antiga** | escopo pela sessão + posse do cliente conferida |
+| **G-5** sala do PM lia a base inteira | migration `20260816120000`: `workspaceId` em `RecusaV2` e `HandoffV2`, leitura estrita |
+| **Sala sem porta** (achado-mãe do `experiencia`) | **item "Sala do PM" na barra lateral** — ela existia e não estava em nenhum menu |
+| **Reserva morta** | `destravarReservasMortas()` no relógio: `in_progress` preso >20 min volta à fila com a espera original |
+| **Contato perdido** | o canal do lead viaja para a ficha do `Client` na criação |
+| **10 cartões → 2** | recusa virou **atributo da linha do lead**, não segunda lista; nome do negócio no título; linha com link |
+| **Botão sem preço** | declara o gasto acumulado em US$ e diz, em vermelho, que **não existe teto diário** |
+| **Duas filas** | `AINDA_NA_PORTA` virou lista única e `/api/agency/leads` a importa (`lead_incompleto` entrou) |
+
+🔴 **E UMA REGRA QUE EU INVENTEI FOI REMOVIDA.** `HORAS_ATE_SUBIR_AO_CEO = 48`
+e o selo "sobe ao CEO" **não existem** em `03-ESTEIRA-E-HANDOFFS.md` — tratei
+invenção minha como contrato da casa. Saiu do código, e há teste que reprova
+quem a reintroduzir sem decisão do CEO.
+
 ### 🔴 O QUE NÃO FOI FEITO, E POR QUÊ
 
+- 🔴 **NÃO EXISTE TETO DIÁRIO DE GASTO DE IA em lugar nenhum da casa.** Há teto
+      por execução (`executor.ts`); o caminho novo comporta ~576 cadeias/dia.
+      Hoje o único freio é o botão, e a tela **diz isso em vermelho**. Frente
+      própria — **sem dono**.
+- 🔴 **A PROMESSA PÚBLICA CONTINUA SEM SER CUMPRIDA.** `/briefing` promete
+      "entramos em contato em até 1 dia útil" e **nada nesta frente fala com o
+      lead** — nem no sucesso, nem na recusa. A **causa raiz** foi consertada (o
+      contato agora viaja para a ficha do `Client`, então já existe para onde
+      mandar), mas **o envio não existe**. Frente própria — **sem dono**.
+- ⚠️ **A flag de autorização não tem prazo nem renovação.** Ligada uma vez, fica
+      ligada para sempre. Sem dono.
+- ⚠️ **Linhas legadas de `RecusaV2`/`HandoffV2` têm `workspaceId` nulo e deixam
+      de aparecer na tela.** Escolha declarada: não mostrar nada é melhor que
+      mostrar o lead de outra agência, e adivinhar o dono seria inventar.
+- ⚠️ **O caminho completo da cadeia não é mais exercitável neste ambiente** — e
+      isso agora é *correto*. Sem chave de IA, a esteira **para com motivo**
+      (antes ela "completava" com rascunho). O aceite prova a porta, a fila, a
+      recusa e a parada; **não prova o artefato final**.
 - 🔴 **O briefing do CityJobs em PRODUÇÃO não foi movido.** Daqui só há HTTP e
   `POST /api/v2/assistido` responde **401** (medido). Não há `CRON_SECRET` nem
   sessão de admin neste ambiente. **É o mesmo padrão do último metro** já

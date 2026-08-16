@@ -119,6 +119,7 @@ export interface RegistradorDeRecusa {
     motivo: string;
     correlationId: string;
     clienteId?: string | null;
+    workspaceId?: string | null;
     em: Date;
   }): Promise<unknown>;
 }
@@ -133,7 +134,7 @@ export interface RegistradorDeRecusa {
  */
 export async function registrarRecusaVisivel(
   registrador: RegistradorDeRecusa,
-  dados: { funcaoId: string; motivo: string; correlationId: string; clienteId?: string | null; em: Date },
+  dados: { funcaoId: string; motivo: string; correlationId: string; clienteId?: string | null; workspaceId?: string | null; em: Date },
 ): Promise<{ gravada: boolean }> {
   try {
     await registrador.criar(dados);

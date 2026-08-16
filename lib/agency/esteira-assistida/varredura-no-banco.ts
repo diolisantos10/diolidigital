@@ -7,7 +7,8 @@
 // passa por aqui.
 
 import { prisma } from "@/lib/db/client";
-import { varrerAPorta, type DependenciasDaVarredura, type ResultadoDaVarredura, type SolicitacaoNaPorta, type ClienteResolvido } from "./varredura";
+import { varrerAPorta, correlationDaSolicitacao, type DependenciasDaVarredura, type ResultadoDaVarredura, type SolicitacaoNaPorta, type ClienteResolvido } from "./varredura";
+import { PORTA_DA_ESTEIRA } from "./recusa-visivel";
 import { executarCicloAssistido, type DependenciasDoCiclo } from "./cadeia";
 import { realizarComIA } from "./adaptador-de-ia";
 import { armazemDeHandoffsNoBanco } from "@/lib/agency/handoff-v2/armazem-prisma";
@@ -73,9 +74,80 @@ async function resolverCliente(s: SolicitacaoNaPorta): Promise<ClienteResolvido 
     return achado;
   }
 
-  const criado = await prisma.client.create({ data: { workspaceId: s.workspaceId, name: nome } });
+  // 🔴 O CONTATO VIAJA COM A FICHA (achado do `experiencia`, 16/08/2026).
+  //
+  // A primeira versão criava o `Client` com `{ workspaceId, name }` e mais
+  // nada. O contato que fez o lead PASSAR NO PORTÃO — o WhatsApp ou o e-mail —
+  // ficava para trás, dentro do `briefingJson` da solicitação. Resultado: a
+  // agência abria um card no portal de um cliente para quem **não tinha como
+  // mandar o link de acesso**, e a promessa da tela pública ("entramos em
+  // contato pelo canal informado em até 1 dia útil") ficava impossível de
+  // cumprir por construção. Perder o único dado que permite responder, no ato
+  // de criar a ficha de quem se quer responder, é o pior lugar para perdê-lo.
+  const criado = await prisma.client.create({
+    data: {
+      workspaceId: s.workspaceId,
+      name: nome,
+      ...(s.contatoEmail ? { email: s.contatoEmail } : {}),
+      ...(s.contatoWhatsapp ? { phone: s.contatoWhatsapp } : {}),
+    },
+  });
   await prisma.clientRequestDb.update({ where: { id: s.id }, data: { clientId: criado.id } }).catch(() => undefined);
   return { id: criado.id, workspaceId: criado.workspaceId, name: criado.name };
+}
+
+/**
+ * 🔴 O INCIDENTE RENASCIDO — briefing reservado que morre em `in_progress`.
+ *
+ * `reservar()` grava `in_progress` ANTES de gastar (é a trava anti-corrida, e
+ * ela está certa). Mas se a cadeia lançar exceção, ou o contêiner reiniciar
+ * num deploy no meio dela, a linha fica em `in_progress` **para sempre**: some
+ * de `AINDA_NA_PORTA` (`new/triaged/qualifying`), não é `precisa_decisao`, e
+ * some de `/agency/leads`. **Some das quatro listas** — que é exatamente o
+ * incidente do CityJobs de novo, com outra roupa.
+ *
+ * `ContentRequest` tem varredura de travado de 10 minutos; `ClientRequestDb`
+ * não tinha nenhuma. Esta é ela. Devolve a linha para a fila com a idade
+ * ORIGINAL correndo (`createdAt` não é tocado — a espera do lead é a espera
+ * dele, não a do nosso retry).
+ */
+export const MINUTOS_ATE_DESTRAVAR = 20;
+
+export async function destravarReservasMortas(agora: Date = new Date()): Promise<{ devolvidas: number }> {
+  const limite = new Date(agora.getTime() - MINUTOS_ATE_DESTRAVAR * 60_000);
+  const presas = await prisma.clientRequestDb.findMany({
+    where: { status: "in_progress", source: { in: ORIGENS_DA_PORTA }, updatedAt: { lt: limite } },
+    select: { id: true, businessName: true, clientId: true, workspaceId: true },
+    take: 50,
+  });
+  let devolvidas = 0;
+  for (const p of presas) {
+    // Escrita CONDICIONAL, como a reserva: se outro processo mexeu no meio, não
+    // se atropela. E o motivo vira LINHA VISÍVEL — desaparecer em silêncio é o
+    // defeito que esta função existe para matar.
+    const r = await prisma.clientRequestDb.updateMany({
+      where: { id: p.id, status: "in_progress" },
+      data: { status: "new" },
+    });
+    if (r.count !== 1) continue;
+    devolvidas += 1;
+    await prisma.recusaV2
+      .create({
+        data: {
+          funcaoId: PORTA_DA_ESTEIRA,
+          motivo:
+            `"${p.businessName}" ficou preso em processamento por mais de ${MINUTOS_ATE_DESTRAVAR} min — ` +
+            `a cadeia caiu no meio (falha, reinício de servidor ou deploy). Devolvido à fila com a espera original ` +
+            `correndo; a próxima passada retoma de onde parou, sem repagar o que já foi feito.`,
+          correlationId: correlationDaSolicitacao(p.id),
+          clienteId: p.clientId,
+          workspaceId: p.workspaceId,
+          em: agora,
+        },
+      })
+      .catch(() => undefined);
+  }
+  return { devolvidas };
 }
 
 export function dependenciasNoBanco(agora: () => Date = () => new Date()): DependenciasDaVarredura {
@@ -101,6 +173,8 @@ export function dependenciasNoBanco(agora: () => Date = () => new Date()): Depen
           ...resto,
           temComoFalar: contato.temComoFalar,
           porQueNaoDaParaFalar: contato.temComoFalar ? null : contato.motivo,
+          contatoEmail: contato.email ?? null,
+          contatoWhatsapp: contato.whatsapp ?? null,
         };
       });
     },
@@ -120,6 +194,9 @@ export function dependenciasNoBanco(agora: () => Date = () => new Date()): Depen
           motivo: dados.motivo,
           correlationId: dados.correlationId,
           clienteId: dados.clienteId ?? null,
+          // O motivo carrega o NOME DO NEGÓCIO do lead. Sem dono de agência,
+          // o PM de uma casa lia a fila comercial da outra (G-5).
+          workspaceId: dados.workspaceId ?? null,
           em: dados.em,
         },
       });
@@ -191,6 +268,7 @@ export function dependenciasNoBanco(agora: () => Date = () => new Date()): Depen
                 motivo: recusa.motivo,
                 correlationId: recusa.correlationId,
                 clienteId: recusa.clienteId,
+                workspaceId: pedido.workspaceId,
                 em: recusa.em,
               },
             });
@@ -205,14 +283,36 @@ export function dependenciasNoBanco(agora: () => Date = () => new Date()): Depen
       return executarCicloAssistido(pedido, deps);
     },
 
+    /**
+     * 🔴 O PACOTE PARA NUM HUMANO DA AGÊNCIA — não na mesa do cliente.
+     *
+     * Achados G-1 e B-1 do `seguranca` na PR #166, e os dois eram meus:
+     *
+     *   • `clientVisible: true` faz o portal marcar `decidesIt: "Cliente"`.
+     *     Numa casa 100% IA, sem revisor humano, minha cadeia de seis funções
+     *     ia do briefing anônimo DIRETO para a mesa do cliente pagante. Eu
+     *     tinha escrito "o fim da cadeia é GENTE" — é gente, mas era a pessoa
+     *     errada, e a diferença é a diferença inteira.
+     *   • O `reviewNote` levava `funcaoId` e `custoUsd` passo a passo, e o
+     *     portal renderiza a nota como CORPO do card. O cliente veria quanto a
+     *     agência gastou de IA com ele.
+     *
+     * `clientVisible: false` conserta os dois de uma vez, e o resumo passou a
+     * ser limpo de qualquer jeito (`resumoDoPacote`) — defesa em profundidade,
+     * porque uma linha futura que virasse a visibilidade não pode reabrir o
+     * vazamento de custo junto.
+     *
+     * O que passa a acontecer no lugar: o card nasce na fila de aprovação DA
+     * AGÊNCIA. Um humano daqui revisa e, aí sim, decide o que vai ao cliente.
+     */
     async abrirAprovacao({ clienteId, solicitacaoId, resumo }) {
       const approval = await createApprovalRequest({
         clientId: clienteId,
         clientRequestId: solicitacaoId,
         department: "design",
         requestedBy: "esteira-automatica",
-        clientVisible: true,
-        reviewNote: `Esteira automática — escopo/proposta da cadeia completa aguardando aprovação humana. ${resumo}`,
+        clientVisible: false,
+        reviewNote: `Esteira automática — pacote aguardando revisão da AGÊNCIA antes de ir ao cliente. ${resumo}`,
       });
       return { id: approval.id };
     },

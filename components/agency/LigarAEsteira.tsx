@@ -22,7 +22,28 @@
 
 import { useState } from "react";
 
-export default function LigarAEsteira({ ligada }: { ligada: boolean }) {
+/**
+ * 🔴 O BOTÃO DIZ QUANTO CUSTA (achado do `experiencia`, 16/08/2026).
+ *
+ * A primeira versão falava de escopo, reset e rollback e **não dizia uma
+ * palavra sobre dinheiro** — num botão cujo clique autoriza a casa a gastar
+ * IA sozinha, a cada 5 minutos, sem ninguém olhando. `ExecucaoV2` grava
+ * `custoUsd` em toda linha e a tela mostrava a CONTAGEM ("6 por IA"), nunca a
+ * CONTA. Autorização de gasto sem o número é assinatura em papel em branco.
+ *
+ * ⚠️ E o que ainda NÃO existe está dito com todas as letras aqui na tela: há
+ * teto por execução, e **não há teto diário agregado em lugar nenhum** da
+ * casa. Enquanto não houver, o freio é este botão.
+ */
+export default function LigarAEsteira({
+  ligada,
+  gastoUsd,
+  execucoes,
+}: {
+  ligada: boolean;
+  gastoUsd: number;
+  execucoes: number;
+}) {
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<string | null>(null);
   const [ligadaAgora, setLigadaAgora] = useState(ligada);
@@ -74,9 +95,22 @@ export default function LigarAEsteira({ ligada }: { ligada: boolean }) {
         </button>
       </div>
       {resultado && <p className="mt-2 text-[12px] text-[var(--text-secondary)]">{resultado}</p>}
+
+      <p className="mt-2 text-[13px] text-[var(--text-primary)]">
+        Já gasto de IA nesta agência: <span className="font-semibold">US$ {gastoUsd.toFixed(2)}</span>{" "}
+        <span className="text-[var(--text-muted)]">em {execucoes} execução(ões) registrada(s)</span>
+      </p>
+      <p className="mt-1 text-[12px] text-[var(--text-muted)]">
+        <span className="font-medium text-[var(--text-primary)]">O que este botão autoriza:</span> até 2 cadeias por
+        passada do relógio (a cada 5 min), 6 funções por cadeia. Existe teto por execução;{" "}
+        <span className="font-medium" style={{ color: "#991B1B" }}>
+          ainda NÃO existe teto diário agregado
+        </span>{" "}
+        — enquanto não existir, o freio é este botão, e desligar tem efeito imediato.
+      </p>
       <p className="mt-1.5 text-[12px] text-[var(--text-muted)]">
         A autorização é da AGÊNCIA, não de um cliente: ela sobrevive ao reset e a cliente novo — era a lista por cliente
-        que quebrava calada. Fica registrado quem ligou e quando. Desligar é o rollback, e é imediato.
+        que quebrava calada. Fica registrado quem ligou e quando.
       </p>
     </div>
   );
