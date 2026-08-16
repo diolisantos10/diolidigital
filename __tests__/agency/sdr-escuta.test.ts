@@ -94,3 +94,62 @@ describe("SDR — oferta de material interrompe o roteiro", () => {
     expect(FICHA).toContain("posso mandar pra adiantar");
   });
 });
+
+// ── SEGUNDO PILOTO, 16/08/2026 — mais três defeitos, todos de escopo ────────
+//
+// 1. O cliente disse "dois posts estáticos por dia" e o quadro do pedido ficou
+//    em 0 posts. O orçamento saiu calculado sobre um pedido que ninguém fez.
+// 2. O cliente entregou o brand book do CityJobs e o orçamento devolveu
+//    "Criação de identidade visual" — vender de volta o que ele mandou pronto.
+// 3. Ele avisou que o quadro mostrava 0 e ouviu "garanto que o briefing
+//    completo chegou para mim aqui". Continuou zerado depois da garantia.
+//
+// O terceiro é o mais grave dos três em natureza, ainda que o menor em
+// dinheiro: é o agente afirmando um estado que ele não tem como observar.
+
+describe("SDR — número declarado vira número no mesmo turno", () => {
+  it("o prompt traduz 'N por dia' e proíbe adiar a captura do número", () => {
+    expect(PROMPT).toContain('"2 por dia" → 14');
+    expect(PROMPT).toContain('"N por dia" → N × 7');
+    expect(PROMPT).toContain("no MESMO turno em que ele falou");
+  });
+
+  it("o prompt proíbe fechar a sondagem com número declarado fora do scope", () => {
+    expect(PROMPT).toContain("NÃO FECHE COM NÚMERO DECLARADO FALTANDO NO SCOPE");
+  });
+
+  it("a ficha carrega a regra e o caso real", () => {
+    expect(FICHA).toContain("Número que o cliente falou vira número no mesmo turno");
+    expect(FICHA).toContain("dois posts estáticos");
+  });
+});
+
+describe("SDR — serviço que o cliente já tem não é serviço pedido", () => {
+  it("o prompt manda marcar hasBrandBook e NÃO marcar requested", () => {
+    expect(PROMPT).toContain("SERVIÇO QUE O CLIENTE JÁ TEM NÃO É SERVIÇO PEDIDO");
+    expect(PROMPT).toContain("branding.hasBrandBook: true");
+    expect(PROMPT).toContain("branding.requested: false");
+  });
+
+  it("a ficha registra o caso do brand book devolvido como oferta", () => {
+    expect(FICHA).toContain("Serviço que o cliente já tem não é serviço pedido");
+    expect(FICHA).toContain("Criação de identidade visual");
+  });
+});
+
+describe("SDR — o agente não garante o que não consegue verificar", () => {
+  it("o prompt trata a divergência apontada pelo cliente, e proíbe a garantia", () => {
+    expect(PROMPT).toContain("QUANDO O CLIENTE DIZ QUE O RESUMO AO LADO ESTÁ ERRADO");
+    expect(PROMPT).toContain("NÃO garanta que está tudo registrado");
+    expect(PROMPT).toContain("garanto que chegou aqui");
+  });
+
+  it("o prompt manda reenviar o escopo ACUMULADO — a única coisa ao alcance do agente", () => {
+    expect(PROMPT).toContain("Devolva o scope ACUMULADO INTEIRO nesse turno");
+  });
+
+  it("a ficha registra a frase real que o agente não podia ter dito", () => {
+    expect(FICHA).toContain("O agente não garante o que não pode verificar");
+    expect(FICHA).toContain("garanto que o briefing");
+  });
+});
