@@ -349,6 +349,13 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
               pessoa". Dois vermelhos com pesos diferentes achatam os dois. */}
           {lead.acimaDaVerba && (
             <Bloco titulo="O pedido passa da verba que ele declarou">
+              {/* Sem esta legenda, o "você" da primeira frase parece dirigido a
+                  quem está lendo o painel. É a fala do CLIENTE, e dizer isso
+                  evita que alguém reescreva a mensagem por conta própria — a
+                  divergência que a fonte única veio fechar. */}
+              <p className="text-[12px] text-[var(--text-muted)] mb-2 leading-relaxed">
+                O texto abaixo é o que ele recebe no orçamento — palavra por palavra.
+              </p>
               <div className="rounded-[10px] border border-[var(--warning)] bg-[var(--warning-bg)] px-4 py-3">
                 {/* ESTA TELA MOSTRA A MESMA FRASE QUE O CLIENTE RECEBE, gerada
                     pela MESMA função (`textoDaVerbaEstourada`) que o orçamento

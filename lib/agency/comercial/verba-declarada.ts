@@ -162,7 +162,12 @@ export function textoDaVerbaEstourada(c: ConfrontoDeVerba): string[] {
   const linhas: string[] = [];
 
   linhas.push(
-    `Sobre a sua verba: você comentou que pensa em investir ${c.rotulo.toLowerCase()} por mês, ` +
+    // ⚠️ O RÓTULO ENTRA COMO ESTÁ, sem `toLowerCase()`. Ele já nasce em
+    // minúscula em `FAIXAS` ("entre R$ 150 e R$ 500", "até R$ 150", "acima de
+    // R$ 5.000"), então minusculizar não ajudava a encaixar a frase — só
+    // derrubava a única coisa maiúscula que importava, a sigla da moeda. O
+    // cliente lia *"pensa em investir entre r$ 150 e r$ 500 por mês"*.
+    `Sobre a sua verba: você comentou que pensa em investir ${c.rotulo} por mês, ` +
       `e a estimativa acima passa disso — são cerca de ${precoEmReais(c.diferenca)} a mais, no melhor caso. ` +
       `Preferimos te dizer isso agora do que mandar um número que não cabe no seu momento.`,
   );
