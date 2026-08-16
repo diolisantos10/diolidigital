@@ -4,7 +4,8 @@
  *     npm run reivindicar -- abrir --frente "<frase>" \
  *       --responsabilidade <slug> --arquivos <a,b,c> \
  *       [--rotulo "<apelido-legível>"] \
- *       [--forcar --motivo "<texto>"] [--mesmo-com-trabalho-em-andamento]
+ *       [--forcar --motivo "<texto>"] [--mesmo-com-trabalho-em-andamento] \
+ *       [--aceitar-identidade-degradada --motivo-identidade-degradada "<texto>"]
  *     npm run reivindicar -- conferir
  *     npm run reivindicar -- encerrar --responsabilidade <slug>
  *     npm run reivindicar -- listar
@@ -54,7 +55,8 @@
  * A causa raiz, em uma frase: um ID digitado é uma DECLARAÇÃO NÃO VERIFICADA,
  * e o código antigo passava a CONFIAR nela só porque alguém a escreveu. A
  * partir de agora a identidade não é mais escrita por ninguém — é CALCULADA
- * a partir do caminho absoluto do worktree (`identidadeDaSessao`, abaixo).
+ * a partir do caminho absoluto do worktree (`descobrirAncoraDeSessao` +
+ * `derivarIdentidade`, abaixo).
  * Ninguém digita, então ninguém digita errado; dois worktrees têm caminhos
  * diferentes, então não há como herdar a identidade de outro. `--quem` (e o
  * arquivo `.dioli-quem`) sobrevivem só como RÓTULO legível para gente — nunca
@@ -67,6 +69,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  calcularAncoraDeSessao,
   conferirColisao,
   derivarIdentidade,
   estaViva,
@@ -74,6 +77,7 @@ import {
   normalizarCaminho,
   normalizarResponsabilidade,
   validarReivindicacao,
+  type AncoraDeSessao,
   type Reivindicacao,
 } from "../lib/coordenacao/reivindicacoes.ts";
 import { lerReivindicacoesDoDisco } from "../lib/coordenacao/leitura-do-registro.ts";
@@ -84,7 +88,7 @@ const PASTA_REIVINDICACOES = join(RAIZ, "reivindicacoes");
 /** Onde o RÓTULO (não a identidade — ver o bloco "Identidade da sessão",
  *  abaixo) fica em cache, DENTRO do worktree. A partir da rodada 4
  *  (16/08/2026) este arquivo não decide mais posse de nada: a identidade é
- *  sempre CALCULADA por `identidadeDaSessao()`, nunca lida daqui. Formato
+ *  sempre CALCULADA (`descobrirAncoraDeSessao()` + `derivarIdentidade()`), nunca lida daqui. Formato
  *  NOVO, uma linha só — o rótulo. Se o arquivo estiver no formato ANTIGO
  *  (duas linhas: identidade declarada + caminho do worktree, das rodadas 2 e
  *  3), ele é reconhecido, IGNORADO para qualquer decisão e o motivo é
@@ -178,14 +182,21 @@ type ErroDeProcesso = { message?: string; stdout?: string; stderr?: string };
  *  virava "provável outra sessão pegou a mesma responsabilidade", mesmo
  *  quando a causa era trivial (working tree sujo no PRÓPRIO worktree, sem
  *  nenhuma outra sessão envolvida). Trava que diagnostica errado ensina quem
- *  lê a desconfiar dela — e trava em que ninguém confia é trava que some. */
-function diagnosticarFalhaDoRebase(erro: unknown, branch: string): string {
+ *  lê a desconfiar dela — e trava em que ninguém confia é trava que some.
+ *
+ *  `comandoParaRepetir` é a linha EXATA, pronta para colar, que refaz o
+ *  comando que estava rodando quando o rebase falhou — FURO 3, ponto 1, do
+ *  laudo de qualidade da rodada 5: antes, esta mensagem sempre dizia "rode
+ *  'npm run reivindicar -- abrir' de novo", inclusive quando quem estava
+ *  rodando era `encerrar` — mandando quem estava ENCERRANDO para o comando
+ *  ERRADO. Quem chama (`commitarEEmpurrar`) já sabe se é `abrir` ou
+ *  `encerrar`; é ela quem decide o texto certo. */
+function diagnosticarFalhaDoRebase(erro: unknown, branch: string, comandoParaRepetir: string): string {
   const bruto = erro as ErroDeProcesso;
   const saida = `${bruto.stderr ?? ""}\n${bruto.stdout ?? ""}`.trim();
   const detalhe = saida || (erro instanceof Error ? erro.message : String(erro));
   const comumATodas =
-    `O commit local ainda existe; resolva à mão ("git rebase --abort" desfaz) e rode ` +
-    `"npm run reivindicar -- abrir" de novo depois.`;
+    `O commit local ainda existe; resolva à mão ("git rebase --abort" desfaz) e rode "${comandoParaRepetir}" de novo depois.`;
 
   // (a) O git recusa "pull --rebase" com working tree sujo — isto acontece no
   // PRÓPRIO worktree, sem nenhuma outra sessão por perto. É a causa mais
@@ -193,7 +204,7 @@ function diagnosticarFalhaDoRebase(erro: unknown, branch: string): string {
   if (/cannot pull with rebase/i.test(detalhe) || /you have unstaged changes/i.test(detalhe) || /error: your local changes/i.test(detalhe)) {
     return (
       `"git pull --rebase origin ${branch}" falhou porque HÁ TRABALHO NÃO COMMITADO no seu próprio worktree — ` +
-      `isto NÃO é colisão com outra sessão. Commite (ou "git stash") o que está solto e rode "npm run reivindicar -- abrir" de novo. ` +
+      `isto NÃO é colisão com outra sessão. Commite (ou "git stash") o que está solto e rode "${comandoParaRepetir}" de novo. ` +
       `Detalhe: ${detalhe}`
     );
   }
@@ -230,6 +241,10 @@ function commitarEEmpurrar(
   // seria barrada na retentativa mesmo tendo decidido, com motivo registrado,
   // seguir apesar da colisão — o force perderia efeito no pior momento.
   permitirColisaoNaReconferencia = false,
+  // A linha EXATA para colar caso o rebase falhe — ver o comentário grande em
+  // `diagnosticarFalhaDoRebase` (FURO 3, ponto 1): `abrir` e `encerrar`
+  // precisam de comandos DIFERENTES aqui, e só quem chamou sabe qual é.
+  comandoParaRepetir: string,
 ): void {
   git(["add", caminhoRelativo]);
   git(["commit", "-m", mensagem]);
@@ -261,7 +276,7 @@ function commitarEEmpurrar(
   try {
     execFileSync("git", ["pull", "--rebase", "origin", branch], { cwd: RAIZ, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   } catch (e) {
-    throw new Error(diagnosticarFalhaDoRebase(e, branch));
+    throw new Error(diagnosticarFalhaDoRebase(e, branch, comandoParaRepetir));
   }
 
   // Depois do rebase, reconfere contra o remoto ATUALIZADO — de novo, `git
@@ -324,7 +339,7 @@ function commitarEEmpurrar(
 // gravada em arquivo ou em git config — e passa a ser CALCULADA, sempre, a
 // partir do único dado que já identifica a sessão sem que ninguém precise
 // dizer nada: o CAMINHO ABSOLUTO deste worktree (RAIZ). Ver
-// `identidadeDaSessao()`, logo abaixo. Três propriedades, todas consequência
+// `derivarIdentidade()`, logo abaixo. Três propriedades, todas consequência
 // direta de ser uma função pura de RAIZ, nenhuma delas alcançável por
 // declaração:
 //   • DETERMINÍSTICA — o mesmo worktree sempre calcula o mesmo valor, então
@@ -365,14 +380,109 @@ function commitarEEmpurrar(
 // próprio bug desta rodada). Nenhum erro de leitura, nenhuma migração
 // necessária: o formato antigo é só um "quem" que não bate com nada.
 // ─────────────────────────────────────────────────────────────────────────
+//
+// ── RODADA 5 (16/08/2026) — A RODADA 4 RESOLVEU WORKTREE. FALTAVA SESSÃO. ──
+// A rodada 4 derivava a identidade só de RAIZ (o caminho absoluto do
+// worktree). Isso resolve "dois worktrees não se confundem" — mas esta casa
+// roda VÁRIAS SESSÕES no MESMO worktree (o worktree principal,
+// "/home/user/diolidigital", é compartilhado por várias conversas ao mesmo
+// tempo). Medido em disco em 16/08/2026, no MESMO dia da rodada 4:
+//
+//   - reivindicacoes/seguranca-reset-habilitado-denuncia.json, aberta
+//     19:46, quem = "wt-09f81bb764";
+//   - reivindicacoes/coordenacao-identidade-por-sessao.json, aberta 20:03,
+//     de uma sessão DIFERENTE, quem = "wt-09f81bb764" — o MESMO valor.
+//
+// Duas sessões distintas, identidade idêntica: o falso negativo que o
+// próprio cabeçalho deste arquivo já chamava de "pior caso" — elas não
+// colidiriam entre si e construiriam a mesma frente em dobro, exatamente o
+// estrago que fez esta trava nascer. E, pelo lado oposto, às 19:37 uma
+// sessão foi BARRADA pela PRÓPRIA reivindicação ("já reivindicado por
+// pm-defeitos-do-ceo", sendo ELA MESMA pm-defeitos-do-ceo) porque
+// ".dioli-quem" — arquivo ÚNICO no worktree — tinha sido sobrescrito por
+// OUTRA sessão no mesmo disco. As duas faces são o mesmo defeito: a
+// identidade da rodada 4 enxergava o WORKTREE, não a SESSÃO.
+//
+// A SAÍDA: sem voltar a aceitar nada DECLARADO (isso já matou as rodadas
+// 1-3 — ver acima), soma-se à derivação uma ÂNCORA DE SESSÃO descoberta no
+// ambiente, nunca digitada por ninguém:
+//
+//   1. CLAUDE_CODE_SESSION_ID (variável de ambiente, uuid) — estável
+//      durante a sessão inteira. Fonte preferida: já é a identidade da
+//      sessão, ninguém precisa inventar nada em cima dela.
+//   2. Se ausente: CLAUDE_PID (o PID do processo da sessão) combinado com
+//      o starttime (campo 22 de "/proc/<pid>/stat") do MESMO processo — o
+//      starttime carimba o PID contra reuso (um PID pode ser reciclado
+//      pelo SO depois que o processo morre; sem o carimbo, uma sessão nova
+//      que reaproveitasse o mesmo PID de uma sessão antiga já encerrada
+//      herdaria a identidade dela por acidente).
+//   3. Se nenhum dos dois existir (rodando fora do Claude Code — CI, dev
+//      humano no terminal): NÃO HÁ como distinguir sessões neste ambiente.
+//      A identidade cai para o modo DEGRADADO da rodada 4 (só RAIZ, prefixo
+//      "wt-") — mas a degradação é sempre AVISADA em voz alta na saída do
+//      comando, nunca silenciosa (ver "descobrirAncoraDeSessao", abaixo, e
+//      "comandoAbrir"/"comandoConferir", que decidem o que fazer com o
+//      aviso — ver o laudo de qualidade da rodada 5, FURO 1). Silêncio aqui
+//      reintroduziria o falso negativo desta rodada sem ninguém saber que
+//      voltou.
+//
+// A função PURA ("derivarIdentidade", em "lib/coordenacao/reivindicacoes.ts")
+// só recebe a âncora já pronta — nenhuma leitura de env, "/proc" ou git
+// dentro dela. A régua que INTERPRETA env/`/proc` já lidos ("calcularAncoraDeSessao")
+// também é pura e mora no mesmo módulo — só a LEITURA de fato (I/O) fica
+// aqui, em "descobrirAncoraDeSessao" e "starttimeDoProcesso". O prefixo do
+// resultado ("ses-" com âncora, "wt-" sem) deixa o modo visível em qualquer
+// "listar" — nunca é preciso adivinhar qual dos dois foi usado.
+// ─────────────────────────────────────────────────────────────────────────
 
-/** A identidade da sessão — CALCULADA, sempre, a partir do caminho absoluto
- *  deste worktree (RAIZ). Nunca lida de arquivo, nunca lida de "git config",
- *  nunca aceita flag. A função pura por trás do cálculo (`derivarIdentidade`)
- *  mora em `lib/coordenacao/reivindicacoes.ts` — módulo puro, sem I/O — e é
- *  reexportada de lá para quem precisa testá-la isoladamente. */
-function identidadeDaSessao(): string {
-  return derivarIdentidade(RAIZ);
+// `AncoraDeSessao` e a régua que decide os três ramos (sessão / pid+starttime
+// / degradado) moram em `lib/coordenacao/reivindicacoes.ts`
+// (`calcularAncoraDeSessao`) — módulo puro, testável sem processo real. Este
+// arquivo só faz a LEITURA de I/O (env, `/proc`) e repassa para a régua. Ver
+// FURO 4 do laudo de qualidade da rodada 5: antes desta separação, nenhum
+// teste exercitava os três ramos porque a leitura e a régua estavam
+// misturadas na mesma função.
+
+/** Campo 22 de `/proc/<pid>/stat` (starttime), contando os campos como o
+ *  kernel documenta. O formato do arquivo é
+ *  "<pid> (<comm>) <state> <ppid> ... <starttime> ..." — e `<comm>` (o nome
+ *  do processo) PODE conter espaços e até parênteses, então não dá para
+ *  simplesmente fazer `split(" ")` no conteúdo inteiro: corta-se depois do
+ *  ÚLTIMO ")", que é sempre o fim de `<comm>` por definição do próprio
+ *  kernel (ele escapa parênteses internos do nome do processo). Depois do
+ *  corte, o campo 3 (`state`) vira o índice 0; o campo 22 (`starttime`) cai
+ *  no índice 19 (22 − 3). Devolve `null` se o arquivo não existir, não for
+ *  legível (SO sem `/proc`, ex.: macOS/Windows) ou tiver formato inesperado —
+ *  nunca lança, porque isto é só UMA das fontes possíveis de âncora, não a
+ *  única, e quem chama já sabe cair para o modo degradado se isto faltar. */
+function starttimeDoProcesso(pid: number): string | null {
+  try {
+    const conteudo = readFileSync(`/proc/${pid}/stat`, "utf8");
+    const apósComm = conteudo.slice(conteudo.lastIndexOf(")") + 2);
+    const campos = apósComm.trim().split(/\s+/);
+    const starttime = campos[19];
+    return starttime && starttime.length > 0 ? starttime : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Descobre a âncora de SESSÃO no ambiente — a peça que faltava na rodada 4
+ *  (que só olhava para `RAIZ`, o worktree). Casca fina de I/O: lê
+ *  `process.env` e repassa `starttimeDoProcesso` (a única leitura de `/proc`)
+ *  para `calcularAncoraDeSessao` (a régua, pura, em
+ *  `lib/coordenacao/reivindicacoes.ts`) decidir os três ramos. Chamar esta
+ *  função várias vezes na MESMA sessão sempre devolve o MESMO valor, porque
+ *  nem o env nem o `/proc/<pid>/stat` do próprio processo mudam durante a
+ *  vida da sessão — é essa propriedade que faz "abrir", "conferir" e
+ *  "encerrar", chamados em momentos diferentes, reconhecerem a mesma
+ *  reivindicação como "minha". */
+function descobrirAncoraDeSessao(): AncoraDeSessao {
+  return calcularAncoraDeSessao({
+    sessionId: process.env.CLAUDE_CODE_SESSION_ID ?? null,
+    pidBruto: process.env.CLAUDE_PID ?? null,
+    starttimeDoPid: starttimeDoProcesso,
+  });
 }
 
 /** A linha que LIMPA "git config dioli.quem" — vestígio da rodada 1. Só é
@@ -387,7 +497,7 @@ function linhaParaLimparGitConfig(): string {
 
 /** Se "git config dioli.quem" (rodada 1, vestígio) ainda existir, avisa —
  *  uma vez, curto — que ela não é mais lida para NADA: a identidade agora é
- *  sempre derivada (identidadeDaSessao()). Não apaga sozinho: pode ser de
+ *  sempre derivada (`descobrirAncoraDeSessao()` + `derivarIdentidade()`). Não apaga sozinho: pode ser de
  *  outra sessão viva. Chamado no início de todo subcomando que faz sentido
  *  avisar (abrir e conferir — os dois que decidem posse). */
 function avisarSeGitConfigVestigio(): void {
@@ -409,7 +519,7 @@ function avisarSeGitConfigVestigio(): void {
  *       aceito por compatibilidade, mas avisa que deixou de definir
  *       identidade e vira só rótulo;
  *   (c) nenhum dos dois: null — reivindicar sem rótulo é válido, a
- *       identidade sozinha (identidadeDaSessao()) já basta para tudo que
+ *       identidade sozinha (`descobrirAncoraDeSessao()` + `derivarIdentidade()`) já basta para tudo que
  *       importa de verdade.
  */
 function pegarRotulo(argv: string[]): string | null {
@@ -470,6 +580,69 @@ function gravarRotuloDoCache(rotulo: string): void {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// FURO 2 do laudo de qualidade (rodada 5) — "isto pode ser sua própria
+// reivindicação sob esquema antigo"
+// ─────────────────────────────────────────────────────────────────────────
+//
+// No minuto em que a identidade por sessão ("ses-…") passa a valer, TODA
+// reivindicação viva gravada sob um esquema ANTIGO — "wt-…" (por worktree,
+// rodada 4, sem âncora) ou uma string DIGITADA à mão tipo "pm-defeitos-do-
+// ceo" (de antes da rodada 4) — passa a parecer "de outra sessão" para quem
+// a abriu: a identidade dela mudou de baixo dos pés, e "conferirColisao" só
+// enxerga "quem" bater ou não bater, nunca "é a mesma pessoa sob outro
+// esquema". Sem esta mensagem, o dono de cada uma seria barrado pela
+// PRÓPRIA reivindicação — exatamente o sintoma que a rodada 5 existe para
+// matar, repetido no ato de corrigi-lo.
+//
+// "encerrar" não confere `quem` (ver `comandoEncerrar`, abaixo) — a saída já
+// existe: encerrar sob o nome antigo, reabrir sob o novo. O que faltava era
+// a MENSAGEM dizer isso, com o comando pronto para colar.
+
+/** Reconhece o ESQUEMA de uma identidade `quem` já gravada no registro —
+ *  usado só para MENSAGEM, nunca para decidir posse (isso continua sendo só
+ *  `conferirColisao`). Devolve `null` quando o esquema já é o atual
+ *  ("ses-…") — aí sim é outra sessão de verdade, sem nada a explicar. */
+function explicarEsquemaAntigo(quemExistente: string): string | null {
+  if (quemExistente.startsWith("ses-")) return null;
+  const esquema = quemExistente.startsWith("wt-")
+    ? 'identidade por WORKTREE ("wt-…", rodada 4, 16/08/2026 — sem âncora de sessão)'
+    : 'identidade DECLARADA (formato pré-rodada-4, digitada à mão via "--quem")';
+  return (
+    `"${quemExistente}" é ${esquema}. PODE SER A SUA PRÓPRIA SESSÃO sob o esquema antigo — sua identidade hoje é ` +
+    "CALCULADA (nunca digitada) e mudou de valor com a chegada da identidade por sessão. Se a frente listada " +
+    'acima é sua, não precisa recomeçar do zero: "encerrar" não confere quem abriu (só o slug da responsabilidade), ' +
+    "então dá para encerrar sob o nome antigo e reabrir sob a identidade nova:"
+  );
+}
+
+/** Monta, para cada `quem` bloqueante que NÃO está no esquema atual, o
+ *  parágrafo de `explicarEsquemaAntigo` seguido do par de comandos colável
+ *  (encerrar + reabrir) — usando o slug, a frente e os arquivos REAIS da
+ *  reivindicação de origem (achada em `existentes`), não da tentativa nova.
+ *  Devolve `[]` quando nenhum dos bloqueantes está em esquema antigo. */
+function avisosDeEsquemaAntigo(quemColidiu: string[], existentes: Reivindicacao[]): string[] {
+  const linhas: string[] = [];
+  for (const quem of quemColidiu) {
+    const explicacao = explicarEsquemaAntigo(quem);
+    if (!explicacao) continue;
+    const origem = existentes.find((r) => r.quem === quem && !r.encerradaEm);
+    linhas.push(explicacao);
+    if (origem) {
+      linhas.push(`   npm run reivindicar -- encerrar --responsabilidade ${origem.responsabilidade}`);
+      linhas.push(
+        `   npm run reivindicar -- abrir --frente "${origem.frente}" --responsabilidade ${origem.responsabilidade} --arquivos ${origem.arquivos.join(",")}`,
+      );
+    } else {
+      // Não deveria acontecer (o `quem` veio de uma colisão contra
+      // `existentes` viva) — mas se acontecer, nunca inventa um slug: aponta
+      // "listar" em vez de um comando que pode estar errado.
+      linhas.push(`   npm run reivindicar -- listar   (para achar o slug exato dessa reivindicação)`);
+    }
+  }
+  return linhas;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // abrir
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -490,10 +663,6 @@ function arquivosNaoCommitados(caminhoIgnorado: string): string[] {
 
 function comandoAbrir(argv: string[]): void {
   const branch = branchAlvo(argv);
-  // A identidade NUNCA é lida de flag, arquivo ou git config — é sempre
-  // CALCULADA (ver o bloco "Identidade da sessão", acima). Não há mais como
-  // "abrir" receber um "quem" errado: não existe entrada para isso.
-  const quem = identidadeDaSessao();
   // `lerRotuloDoCache()` roda SEMPRE (não só quando o valor dela é usado) —
   // é ela quem avisa se ".dioli-quem" está no formato ANTIGO (das rodadas 2
   // e 3), e esse aviso precisa aparecer mesmo quando "--rotulo"/"--quem" já
@@ -506,6 +675,8 @@ function comandoAbrir(argv: string[]): void {
   const forcar = temFlag(argv, "forcar");
   const motivo = (pegarArg(argv, "motivo") || "").trim();
   const mesmoComTrabalhoEmAndamento = temFlag(argv, "mesmo-com-trabalho-em-andamento");
+  const aceitarIdentidadeDegradada = temFlag(argv, "aceitar-identidade-degradada");
+  const motivoIdentidadeDegradada = (pegarArg(argv, "motivo-identidade-degradada") || "").trim();
 
   if (!frente || !responsabilidade || !arquivosBrutos) {
     console.error(
@@ -515,8 +686,51 @@ function comandoAbrir(argv: string[]): void {
   }
   if (forcar && !motivo) {
     console.error('--forcar exige --motivo "<texto>" não vazio. Forçar sem motivo é desligar a trava sem deixar rastro.');
+    console.error(`Comando completo:  npm run reivindicar -- abrir --frente "${frente}" --responsabilidade ${responsabilidade} --arquivos ${arquivosBrutos} --forcar --motivo "<por quê>"`);
     process.exit(1);
   }
+
+  // ── FURO 1 do laudo de qualidade (rodada 5): "abrir" em modo DEGRADADO
+  // (sem âncora de sessão no ambiente) RECUSA por padrão. "abrir" é TOMAR
+  // POSSE — e posse com uma identidade que já produziu os dois falsos
+  // negativos medidos em 16/08/2026 (ver o bloco "RODADA 5", acima) não é
+  // posse com risco, é posse que não protege nada. Custo de recusar aqui é
+  // baixo: quem chama "abrir" ainda não escreveu uma linha — recomeçar não
+  // perde trabalho (mesma lógica da assimetria "sem rede", abaixo).
+  const infoAncora = descobrirAncoraDeSessao();
+  if (infoAncora.degradado && !aceitarIdentidadeDegradada) {
+    console.error("🚫 Identidade DEGRADADA neste ambiente — não abro por padrão:");
+    console.error(`   ${infoAncora.motivo}`);
+    console.error(
+      "Abrir em modo degradado significa TOMAR POSSE com uma identidade que já causou falso negativo medido " +
+        "(duas sessões, mesmo worktree, mesma identidade — ver o cabeçalho deste arquivo). Se você sabe o que " +
+        "está fazendo e aceita o risco, repita com o motivo escrito:",
+    );
+    console.error(
+      `   npm run reivindicar -- abrir --frente "${frente}" --responsabilidade ${responsabilidade} --arquivos ${arquivosBrutos} --aceitar-identidade-degradada --motivo-identidade-degradada "<por quê>"`,
+    );
+    process.exit(1);
+  }
+  if (aceitarIdentidadeDegradada && !motivoIdentidadeDegradada) {
+    console.error('--aceitar-identidade-degradada exige --motivo-identidade-degradada "<texto>" não vazio. Destravar sem motivo é desligar a proteção sem deixar rastro.');
+    console.error(`Comando completo:  npm run reivindicar -- abrir --frente "${frente}" --responsabilidade ${responsabilidade} --arquivos ${arquivosBrutos} --aceitar-identidade-degradada --motivo-identidade-degradada "<por quê>"`);
+    process.exit(1);
+  }
+  if (infoAncora.degradado && aceitarIdentidadeDegradada) {
+    console.warn(`⚠️  Seguindo em modo DEGRADADO por decisão explícita. Motivo: "${motivoIdentidadeDegradada}"`);
+  }
+  // A identidade NUNCA é lida de flag, arquivo ou git config — é sempre
+  // CALCULADA (ver o bloco "Identidade da sessão", acima). O único jeito de
+  // mudar o RESULTADO é o ambiente oferecer (ou não) uma âncora de sessão —
+  // nunca digitar um valor.
+  const quem = derivarIdentidade(RAIZ, infoAncora.ancora);
+
+  // A linha EXATA para repetir este mesmo "abrir" — usada tanto na mensagem
+  // de colisão quanto se o rebase do push falhar (FURO 3, ponto 1). Monta os
+  // MESMOS argumentos usados agora, nunca um comando genérico.
+  let comandoParaRepetir = `npm run reivindicar -- abrir --frente "${frente}" --responsabilidade ${responsabilidade} --arquivos ${arquivosBrutos}`;
+  if (forcar) comandoParaRepetir += ` --forcar --motivo "${motivo}"`;
+  if (aceitarIdentidadeDegradada) comandoParaRepetir += ` --aceitar-identidade-degradada --motivo-identidade-degradada "${motivoIdentidadeDegradada}"`;
 
   avisarSeGitConfigVestigio();
   // O rótulo é conveniência pura — grava em cache para o próximo comando
@@ -581,7 +795,10 @@ function comandoAbrir(argv: string[]): void {
       console.error("   (avisos, não bloqueiam):");
       for (const a of resultado.avisos) console.error(`   - ${a}`);
     }
-    console.error('Se ainda assim precisa seguir, repita com --forcar --motivo "<por quê>".');
+    // FURO 2 do laudo de qualidade (rodada 5) — ver o comentário grande
+    // acima de `explicarEsquemaAntigo`.
+    for (const linha of avisosDeEsquemaAntigo(resultado.quemColidiu, existentes)) console.error(linha);
+    console.error(`Se ainda assim precisa seguir, repita com:  npm run reivindicar -- abrir --frente "${frente}" --responsabilidade ${responsabilidade} --arquivos ${arquivosBrutos} --forcar --motivo "<por quê>".`);
     process.exit(1);
   }
 
@@ -601,13 +818,16 @@ function comandoAbrir(argv: string[]): void {
   if (resultado.colide && forcar) {
     reivindicacao.forcadaPor = { quem, motivo, em: agora.toISOString() };
   }
+  if (infoAncora.degradado && aceitarIdentidadeDegradada) {
+    reivindicacao.degradadaPor = { motivo: motivoIdentidadeDegradada, em: agora.toISOString() };
+  }
 
   mkdirSync(PASTA_REIVINDICACOES, { recursive: true });
   const caminhoAbsoluto = join(PASTA_REIVINDICACOES, nomeArquivo);
   writeFileSync(caminhoAbsoluto, `${JSON.stringify(reivindicacao, null, 2)}\n`, "utf8");
 
   try {
-    commitarEEmpurrar(caminhoRelativo, `reivindica: ${frente}`, branch, nova, forcar);
+    commitarEEmpurrar(caminhoRelativo, `reivindica: ${frente}`, branch, nova, forcar, comandoParaRepetir);
   } catch (e) {
     console.error(`🚫 ${e instanceof Error ? e.message : String(e)}`);
     process.exit(1);
@@ -737,7 +957,22 @@ function comandoConferir(argv: string[]): void {
   // "reivindicação de outra sessão" — inclusive na primeira chamada, sem
   // precisar de "abrir" ter rodado antes, e inclusive dentro do gancho
   // pre-push, que não passa nenhuma flag.
-  const quem = identidadeDaSessao();
+  const infoAncora = descobrirAncoraDeSessao();
+  const quem = derivarIdentidade(RAIZ, infoAncora.ancora);
+
+  // ── FURO 1 do laudo de qualidade (rodada 5): "conferir" CONTINUA rodando
+  // em modo degradado (é leitura, e é o que o gancho pre-push chama —
+  // travar o push de todo mundo seria proteção mais destrutiva que o
+  // problema). Mas a degradação deixa de ser um "console.warn" perdido no
+  // meio da saída: vira um BLOCO DESTACADO logo aqui (sempre que degradado,
+  // não importa o desfecho) — e uma linha na CONCLUSÃO final, abaixo, seja
+  // ela "sem colisão" ou "colide".
+  if (infoAncora.degradado) {
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.error("⚠️  IDENTIDADE DEGRADADA — não distingo SESSÕES neste ambiente (só o worktree).");
+    console.error(`   ${infoAncora.motivo}`);
+    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  }
 
   avisarSeGitConfigVestigio();
 
@@ -793,20 +1028,32 @@ function comandoConferir(argv: string[]): void {
     console.error("🚫 O que você alterou pisa em frente reivindicada por outra sessão:");
     for (const m of resultado.motivos) console.error(`   - ${m}`);
 
+    // FURO 2 do laudo de qualidade (rodada 5) — ver o comentário grande
+    // acima de `explicarEsquemaAntigo`: pode ser a PRÓPRIA sessão, sob um
+    // "quem" que mudou de esquema.
+    for (const linha of avisosDeEsquemaAntigo(resultado.quemColidiu, existentes)) console.error(linha);
+
     // NENHUM CAMINHO TERMINA EM BECO SEM SAÍDA — toda vez que "conferir"
-    // BARRA, a saída termina com as opções concretas e copiáveis. A partir
-    // da rodada 4, "gravar identidade" NÃO é mais uma delas: a identidade é
-    // sempre a mesma para este worktree (`identidadeDaSessao()`), então, se
-    // isto está barrando, é porque a reivindicação em cima é MESMO de outra
+    // BARRA, a saída termina com as opções concretas e copiáveis. Desde a
+    // rodada 4, "gravar identidade" NÃO é mais uma delas: a identidade é
+    // sempre a mesma para a MESMA sessão (calculada por worktree + sessão,
+    // não só por worktree), então, se isto está barrando E o "quem" já está
+    // no esquema atual ("ses-…"), a reivindicação em cima é MESMO de outra
     // sessão — não há "confirmar que sou eu" para tentar de novo.
     console.error("Para seguir, uma destas opções:");
     console.error(`   - se a frente já terminou, encerre-a:  npm run reivindicar -- encerrar --responsabilidade <slug-da-frente-listada-acima>`);
     console.error(`   - se precisa seguir apesar da colisão, force com motivo:  npm run reivindicar -- abrir --frente "<...>" --responsabilidade <slug> --arquivos <a,b,c> --forcar --motivo "<por quê>"`);
     console.error(`   - para ver todas as reivindicações vivas e escolher:  npm run reivindicar -- listar`);
+    if (infoAncora.degradado) {
+      console.error("⚠️  CONCLUSÃO: identidade degradada — não distingo sessões neste ambiente. Esta checagem só enxerga o worktree, não a sessão.");
+    }
     process.exit(1);
   }
 
   console.log("✅ Sem colisão com reivindicações vivas de outras sessões.");
+  if (infoAncora.degradado) {
+    console.log("⚠️  CONCLUSÃO: identidade degradada — não distingo sessões neste ambiente. Esta checagem só enxerga o worktree, não a sessão.");
+  }
   process.exit(0);
 }
 
@@ -823,10 +1070,15 @@ function comandoEncerrar(argv: string[]): void {
   }
   const id = normalizarResponsabilidade(responsabilidade);
 
+  // A linha EXATA para repetir este "encerrar" — usada abaixo (FURO 3,
+  // pontos 2 e 3) e se o rebase do push falhar (FURO 3, ponto 1).
+  const comandoParaRepetir = `npm run reivindicar -- encerrar --responsabilidade ${responsabilidade}`;
+
   console.log(`Buscando origin/${branch}…`);
   const busca = buscarRemoto(branch);
   if (!busca.ok) {
     console.error(`Não consegui alcançar o remoto (${busca.erro}). Nada foi encerrado.`);
+    console.error(`Confira a conexão e rode de novo:  ${comandoParaRepetir}`);
     process.exit(1);
   }
 
@@ -834,6 +1086,7 @@ function comandoEncerrar(argv: string[]): void {
   const alvo = existentes.find((r) => r.id === id && !r.encerradaEm);
   if (!alvo) {
     console.error(`Nenhuma reivindicação VIVA com responsabilidade "${responsabilidade}" (normalizada: "${id}") em origin/${branch}.`);
+    console.error(`Para ver o slug exato de cada reivindicação viva:  npm run reivindicar -- listar`);
     process.exit(1);
   }
 
@@ -844,7 +1097,7 @@ function comandoEncerrar(argv: string[]): void {
   writeFileSync(join(RAIZ, caminhoRelativo), `${JSON.stringify(encerrada, null, 2)}\n`, "utf8");
 
   try {
-    commitarEEmpurrar(caminhoRelativo, `encerra: ${alvo.frente}`, branch, { quem: alvo.quem, responsabilidade: alvo.responsabilidade, arquivos: alvo.arquivos });
+    commitarEEmpurrar(caminhoRelativo, `encerra: ${alvo.frente}`, branch, { quem: alvo.quem, responsabilidade: alvo.responsabilidade, arquivos: alvo.arquivos }, false, comandoParaRepetir);
   } catch (e) {
     console.error(`🚫 ${e instanceof Error ? e.message : String(e)}`);
     process.exit(1);

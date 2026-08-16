@@ -111,6 +111,7 @@ describe("⛔ conferirColisao — BARRA os três casos reais de 16/08/2026", () 
     expect(r.colide).toBe(true);
     expect(r.motivos.join(" ")).toMatch(/responsabilidade/);
     expect(r.motivos.join(" ")).toContain("sessao-a");
+    expect(r.quemColidiu).toEqual(["sessao-a"]);
   });
 
   it("caso 2: duas frentes tocando app/api/sdr/chat/route.ts — colide por arquivo", () => {
@@ -182,6 +183,7 @@ describe("✅ conferirColisao — NÃO INVENTA problema no caso limpo (três PMs
     const r = conferirColisao(nova, existentes, AGORA);
     expect(r.colide).toBe(false);
     expect(r.motivos).toHaveLength(0);
+    expect(r.quemColidiu).toHaveLength(0);
   });
 
   it("reivindicação ENCERRADA não bloqueia ninguém", () => {

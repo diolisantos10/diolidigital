@@ -28,11 +28,33 @@ export type Reivindicacao = {
   /** Slug da responsabilidade, ex.: "comercial/verba-vs-estimativa". */
   id: string;
   /**
-   * Identidade da sessão que abriu — a partir de 16/08/2026 (rodada 4),
-   * SEMPRE DERIVADA do caminho absoluto do worktree (ver `identidadeDaSessao`
-   * em `scripts/reivindicar.mts`), nunca digitada por quem chama o comando.
-   * Formato: "wt-" + 10 dígitos hex de sha256(caminho do worktree). Ex.:
-   * "wt-3f2a91bc4d".
+   * Identidade da sessão que abriu — SEMPRE DERIVADA, nunca digitada por
+   * quem chama o comando. Dois formatos possíveis, e a diferença importa:
+   *
+   *   • "ses-" + 10 hex de sha256(caminho do worktree + "|" + âncora de
+   *     sessão) — RODADA 5 (16/08/2026): quando o ambiente oferece um sinal
+   *     de SESSÃO (`CLAUDE_CODE_SESSION_ID` ou PID+starttime — ver
+   *     `descobrirAncoraDeSessao` em `scripts/reivindicar.mts`), a
+   *     identidade distingue SESSÕES dentro do MESMO worktree. Ex.:
+   *     "ses-7c1a9e4f02". (Prefixo era "id-" na primeira versão da rodada 5;
+   *     trocado para "ses-" no laudo de qualidade que reprovou aquela
+   *     versão — "id-" é ruim de ler num arquivo onde todo objeto já tem um
+   *     campo "id" ao lado.)
+   *   • "wt-" + 10 hex de sha256(caminho do worktree) — RODADA 4
+   *     (16/08/2026), preservado como o modo DEGRADADO: sem sinal de
+   *     sessão, a identidade cai para o worktree inteiro (várias sessões no
+   *     mesmo worktree ficam indistinguíveis — o script AVISA em voz alta
+   *     quando cai neste modo, nunca em silêncio). Ex.: "wt-3f2a91bc4d".
+   *
+   * Por que a rodada 4 não bastou: esta casa roda VÁRIAS sessões no MESMO
+   * worktree (o worktree principal é compartilhado). Medido em disco em
+   * 16/08/2026: duas sessões diferentes, mesmo worktree, calcularam a
+   * MESMA identidade "wt-09f81bb764" — um FALSO NEGATIVO (a trava não
+   * reconheceria a colisão entre elas). O mesmo defeito, pelo lado oposto,
+   * barrou uma sessão pela PRÓPRIA reivindicação: o rótulo em
+   * ".dioli-quem" (arquivo único no worktree) foi sobrescrito por outra
+   * sessão no mesmo disco. A saída é acrescentar, à derivação, uma âncora
+   * que distingue SESSÕES — não só worktrees.
    *
    * Reivindicações gravadas ANTES da rodada 4 têm este campo no formato
    * ANTIGO, declarado à mão (ex.: "pm-a27b5772") — isto é esperado e
@@ -40,6 +62,9 @@ export type Reivindicacao = {
    * string digitada por gente, então essas reivindicações antigas
    * simplesmente nunca serão reconhecidas como "minhas" por ninguém. É o
    * lado SEGURO do não-reconhecimento — ele barra, nunca aprova por engano.
+   * A mesma lógica vale entre "wt-" e "ses-": espaços de valores disjuntos
+   * por construção (prefixo diferente), então uma reivindicação "wt-"
+   * antiga nunca é confundida com uma "ses-" nova, e vice-versa.
    */
   quem: string;
   /**
@@ -58,6 +83,17 @@ export type Reivindicacao = {
   abertaEm: string;
   encerradaEm: string | null;
   forcadaPor?: { quem: string; motivo: string; em: string };
+  /**
+   * Presente quando esta reivindicação foi aberta em modo DEGRADADO (sem
+   * âncora de sessão no ambiente — ver `descobrirAncoraDeSessao` em
+   * `scripts/reivindicar.mts`) e a sessão decidiu seguir mesmo assim, via
+   * `--aceitar-identidade-degradada --motivo-identidade-degradada "<texto>"`.
+   * Mesmo desenho de `forcadaPor`: a decisão de aceitar o risco fica
+   * registrada, com motivo, nunca silenciosa. Ver FURO 1 do laudo de
+   * qualidade da rodada 5 — `abrir` recusa modo degradado por padrão;
+   * este campo é o rastro de quem escolheu destravar de propósito.
+   */
+  degradadaPor?: { motivo: string; em: string };
 };
 
 /** Só o que `conferirColisao` precisa para julgar uma reivindicação nova —
@@ -72,6 +108,18 @@ export type ResultadoDeColisao = {
   motivos: string[];
   /** Avisos que NÃO bloqueiam — reivindicação velha (>= teto de horas). */
   avisos: string[];
+  /**
+   * O `quem` de cada reivindicação que BLOQUEOU (dedup, na ordem em que
+   * apareceu) — separado de `motivos` (texto para gente ler) porque quem
+   * CHAMA (`scripts/reivindicar.mts`) precisa do valor estruturado para
+   * reconhecer o ESQUEMA da identidade que bloqueou (FURO 2 do laudo de
+   * qualidade da rodada 5: uma reivindicação viva sob esquema ANTIGO
+   * — "wt-…" por worktree, ou uma string declarada à mão tipo "pm-…" —
+   * pode ser a PRÓPRIA sessão, sob identidade que mudou de baixo dos pés
+   * com a chegada da identidade por sessão). Parsear isto de dentro de
+   * `motivos` (texto livre) seria frágil; melhor devolver estruturado.
+   */
+  quemColidiu: string[];
 };
 
 export type ResultadoDoRegistro = {
@@ -85,20 +133,120 @@ export type ResultadoDoRegistro = {
  *  que o problema que ela existe para evitar). */
 export const TETO_HORAS_PADRAO = 24;
 
-/** A função PURA por trás da identidade da sessão: recebe um caminho absoluto
- *  (o RAIZ de um worktree) e devolve a identidade derivada dele. Mora aqui —
- *  no módulo puro, sem I/O e sem rede — porque é exatamente isso que ela é:
- *  nenhuma chamada a git, disco ou rede, só hash de string. Fica testável com
- *  múltiplos caminhos na mesma máquina, o que "três identidades diferentes na
- *  mesma máquina" exige (a derivação não pode depender de uma constante fixa
- *  no processo). Determinística (mesma entrada, mesma saída sempre),
- *  impossível de herdar (caminho diferente leva a hash diferente) e
- *  impossível de digitar errado (ninguém digita). Ver o bloco "RODADA 4" em
- *  `scripts/reivindicar.mts` para o incidente que forçou esta escolha —
- *  `identidadeDaSessao()`, ali, só chama esta função com `RAIZ`. */
-export function derivarIdentidade(caminhoAbsoluto: string): string {
-  const hash = createHash("sha256").update(caminhoAbsoluto, "utf8").digest("hex");
-  return "wt-" + hash.slice(0, 10);
+/** O que "achar um sinal de SESSÃO no ambiente" devolve — não só de
+ *  worktree. `ancora` é o valor a somar à derivação (`null` = não achei
+ *  nenhum sinal). `degradado` é verdadeiro exatamente quando `ancora` é
+ *  `null`, e carrega o motivo em `motivo` para quem chama AVISAR em voz
+ *  alta — nunca decidir isto em silêncio (ver a RODADA 5 no cabeçalho de
+ *  `derivarIdentidade`, abaixo). */
+export type AncoraDeSessao = { ancora: string | null; degradado: boolean; motivo?: string };
+
+/**
+ * As três leituras cruas de que `calcularAncoraDeSessao` precisa — cada uma
+ * já resolvida por quem chama (o script, que fala com `process.env` e
+ * `/proc`). Esta função nunca lê env nem `/proc` diretamente: é por isso que
+ * ela é testável sem processo real (FURO 4 do laudo de qualidade da rodada
+ * 5 — "descobrirAncoraDeSessao" não era exercitada por nenhum teste, porque
+ * a leitura de I/O estava misturada com a régua).
+ */
+export type FonteDeAncora = {
+  /** `process.env.CLAUDE_CODE_SESSION_ID`, ou `null` se ausente/vazia. */
+  sessionId: string | null;
+  /** `process.env.CLAUDE_PID`, ou `null` se ausente/vazia (ainda como texto — o parse de número é regra, não I/O, e mora aqui dentro). */
+  pidBruto: string | null;
+  /** Lê o starttime (campo 22 de `/proc/<pid>/stat`) do PID dado — `null` se
+   *  não existir/não for legível. Injetada, nunca chamada por esta função
+   *  diretamente: é a única peça que ainda depende do SO, e fica isolada
+   *  atrás de uma função para o teste poder fabricar qualquer um dos três
+   *  ramos sem `/proc` de verdade. */
+  starttimeDoPid: (pid: number) => string | null;
+};
+
+/**
+ * A régua PURA por trás de `descobrirAncoraDeSessao` (em
+ * `scripts/reivindicar.mts`) — mesma separação que `derivarIdentidade` já
+ * usa: nenhuma leitura de env/`/proc`/git/disco/rede aqui, só interpretação
+ * do que já foi lido. Três ramos, na mesma ordem de preferência da RODADA 5
+ * (ver o cabeçalho de `derivarIdentidade`, abaixo):
+ *
+ *   (a) `sessionId` presente → usa direto, `degradado: false`;
+ *   (b) `sessionId` ausente, `pidBruto` presente e `starttimeDoPid(pid)`
+ *       devolve algo → `pid:<pid>:<starttime>`, `degradado: false`;
+ *   (c) nenhum dos dois → `ancora: null`, `degradado: true`, com o motivo
+ *       pronto para quem chama avisar em voz alta.
+ */
+export function calcularAncoraDeSessao(fonte: FonteDeAncora): AncoraDeSessao {
+  const sessionId = fonte.sessionId?.trim();
+  if (sessionId) {
+    return { ancora: sessionId, degradado: false };
+  }
+
+  const pidTexto = fonte.pidBruto?.trim();
+  if (pidTexto) {
+    const pid = Number.parseInt(pidTexto, 10);
+    if (Number.isFinite(pid) && pid > 0) {
+      const starttime = fonte.starttimeDoPid(pid);
+      if (starttime) {
+        return { ancora: `pid:${pid}:${starttime}`, degradado: false };
+      }
+    }
+  }
+
+  return {
+    ancora: null,
+    degradado: true,
+    motivo:
+      'não consegui achar "CLAUDE_CODE_SESSION_ID" nem "CLAUDE_PID" (com "/proc/<pid>/stat" legível) neste ' +
+      "ambiente — não dá para distinguir SESSÕES dentro do mesmo worktree aqui. A identidade caiu para o " +
+      'worktree inteiro (prefixo "wt-", como na rodada 4): duas sessões neste MESMO caminho vão calcular a ' +
+      "MESMA identidade, e a trava não vai enxergar colisão entre elas. Se isto é CI ou um terminal fora do " +
+      "Claude Code, é esperado — mas fique ciente do risco.",
+  };
+}
+
+/**
+ * A função PURA por trás da identidade da sessão: recebe um caminho absoluto
+ * (o RAIZ de um worktree) e uma ÂNCORA DE SESSÃO opcional, e devolve a
+ * identidade derivada dos dois. Mora aqui — no módulo puro, sem I/O e sem
+ * rede — porque é exatamente isso que ela é: nenhuma chamada a env, `/proc`,
+ * git, disco ou rede, só hash de string. Toda DESCOBERTA da âncora (ler
+ * `CLAUDE_CODE_SESSION_ID`, ler `/proc/<pid>/stat`) é I/O e mora em
+ * `scripts/reivindicar.mts` (`descobrirAncoraDeSessao`) — esta função só
+ * recebe o resultado já pronto como argumento.
+ *
+ * Dois modos, e o prefixo do resultado DIZ qual foi usado:
+ *
+ *   • `ancoraDeSessao` presente (RODADA 5, 16/08/2026): a identidade passa a
+ *     depender de `caminhoAbsoluto + "|" + ancoraDeSessao`, prefixo "ses-".
+ *     Isto é o que faltava na rodada 4 — duas sessões no MESMO worktree
+ *     (o caso normal desta casa: o worktree principal é compartilhado)
+ *     calculavam a MESMA identidade só de `caminhoAbsoluto`, o que já
+ *     produziu um falso negativo medido em disco (duas sessões distintas,
+ *     ambas "wt-09f81bb764") e, pelo lado oposto, uma sessão barrada pela
+ *     PRÓPRIA reivindicação porque o rótulo em cache (arquivo único no
+ *     worktree) foi sobrescrito por outra sessão. Com a âncora, sessões
+ *     distintas no mesmo worktree divergem sem que ninguém precise digitar
+ *     nada — a mesma garantia da rodada 4 (determinística, impossível de
+ *     herdar, impossível de digitar errado), agora por SESSÃO.
+ *   • `ancoraDeSessao` ausente/vazia (o modo DEGRADADO, preservado da
+ *     rodada 4, prefixo "wt-"): sem sinal de sessão no ambiente, a
+ *     identidade cai para o worktree inteiro — sessões diferentes no mesmo
+ *     worktree voltam a ficar indistinguíveis entre si. Isto é seguro só
+ *     porque quem chama (`comandoAbrir`/`comandoConferir`, em
+ *     `scripts/reivindicar.mts`) AVISA em voz alta sempre que cai aqui —
+ *     nunca em silêncio (ver `descobrirAncoraDeSessao` e `calcularAncoraDeSessao`).
+ *
+ * Os dois espaços de valores ("ses-" e "wt-") são disjuntos por construção
+ * (prefixo diferente): uma identidade "wt-" (degradada, ou de antes da
+ * rodada 5) nunca é confundida com uma "ses-" (com âncora de sessão).
+ */
+export function derivarIdentidade(caminhoAbsoluto: string, ancoraDeSessao?: string | null): string {
+  if (!ancoraDeSessao) {
+    const hash = createHash("sha256").update(caminhoAbsoluto, "utf8").digest("hex");
+    return "wt-" + hash.slice(0, 10);
+  }
+  const hash = createHash("sha256").update(`${caminhoAbsoluto}|${ancoraDeSessao}`, "utf8").digest("hex");
+  return "ses-" + hash.slice(0, 10);
 }
 
 /**
@@ -199,6 +347,7 @@ export function conferirColisao(
 ): ResultadoDeColisao {
   const motivos: string[] = [];
   const avisos: string[] = [];
+  const quemColidiu: string[] = [];
 
   const respostaDaNova = normalizarResponsabilidade(nova.responsabilidade);
   const arquivosDaNova = nova.arquivos.map(normalizarCaminho);
@@ -223,10 +372,11 @@ export function conferirColisao(
       avisos.push(`[reivindicação velha, não bloqueia] ${motivo} — aberta em ${existente.abertaEm}.`);
     } else {
       motivos.push(motivo);
+      if (!quemColidiu.includes(existente.quem)) quemColidiu.push(existente.quem);
     }
   }
 
-  return { colide: motivos.length > 0, motivos, avisos };
+  return { colide: motivos.length > 0, motivos, avisos, quemColidiu };
 }
 
 /**
@@ -340,6 +490,20 @@ export function validarReivindicacao(dado: unknown, origem: string): Reivindicac
     }
     const ff = f as { quem: string; motivo: string; em: string };
     reivindicacao.forcadaPor = { quem: ff.quem, motivo: ff.motivo, em: ff.em };
+  }
+
+  if (d.degradadaPor !== undefined) {
+    const g = d.degradadaPor;
+    if (
+      typeof g !== "object" ||
+      g === null ||
+      typeof (g as Record<string, unknown>).motivo !== "string" ||
+      typeof (g as Record<string, unknown>).em !== "string"
+    ) {
+      throw new Error(`${origem}: "degradadaPor" presente mas malformado (precisa de motivo/em, ambos string).`);
+    }
+    const gg = g as { motivo: string; em: string };
+    reivindicacao.degradadaPor = { motivo: gg.motivo, em: gg.em };
   }
 
   return reivindicacao;
