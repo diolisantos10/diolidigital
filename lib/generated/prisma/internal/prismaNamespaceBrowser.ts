@@ -1359,7 +1359,8 @@ export const HandoffV2ScalarFieldEnum = {
   correlationId: 'correlationId',
   status: 'status',
   criadoEm: 'criadoEm',
-  aceitoEm: 'aceitoEm'
+  aceitoEm: 'aceitoEm',
+  cobradoEm: 'cobradoEm'
 } as const
 
 export type HandoffV2ScalarFieldEnum = (typeof HandoffV2ScalarFieldEnum)[keyof typeof HandoffV2ScalarFieldEnum]
