@@ -33,7 +33,28 @@
 // lugar do cliente é falsificar o consentimento dele, e é o único erro da lista
 // que não tem desfazer. Ela CONTA e APONTA.
 
+// ── 🔴 O QUE A AUDITORIA DE 16/08 ACHOU AQUI ──────────────────────────────
+//
+// **A faixa somava os dois baldes e cobrava o cliente pelo atraso da casa.**
+// Ela imprimia `resumo.paradas` sob o rótulo "esperando a decisão dele" — e
+// `paradas` é o TOTAL, que inclui `bolaConosco`. Medido: 3 cards, 2 com dúvida
+// aberta → a faixa mostrava "2 ele perguntou e não respondemos" **e** "3
+// esperando a decisão dele — a mais antiga há 6 dias", quando só **1** esperava
+// o cliente e os 6 dias eram de um card cujo relógio o schema declara PAUSADO.
+//
+// É literalmente o alarme que o cabeçalho acima jura impedir. **A separação
+// estava feita na prosa e não estava feita no número** — e o aviso de não-soma
+// ficava entre `abandonadas` e `paradas`, que não era o par que se sobrepunha.
+//
+// A conta passou a morar no servidor (`esperandoOCliente`, em
+// `lib/agency/esteira/aprovacao-parada.ts`): tela que faz conta é a segunda
+// cópia da regra, e cópia diverge.
+
 import { useCallback, useEffect, useState } from "react";
+import {
+  Carregando, CartaoDeErro, Numero, Placar, TituloDeFila, dias, esperaHa, paradaHa, contagem,
+} from "@/components/agency/ui/fila/pecas";
+import { departamentoEmPortugues } from "@/lib/agency/organizacao/nome-do-departamento";
 
 interface Parada {
   id: string;
@@ -45,20 +66,38 @@ interface Parada {
 }
 
 interface Resumo {
+  /** O TOTAL. Cliente e casa somados — nunca sob um rótulo que fale de um dos
+   *  dois. */
   paradas: number;
   abandonadas: number;
+  /** A bola é NOSSA. */
   bolaConosco: number;
+  /** A bola é DELE: `paradas − bolaConosco`. Calculado no servidor. */
+  esperandoOCliente: number;
   maisAntigoEmDias: number | null;
+  /** O mais antigo em que a bola é DELE. Datar a espera do cliente com o
+   *  relógio de um card pausado foi o segundo defeito desta faixa. */
+  maisAntigoDeleEmDias: number | null;
+  maisAntigoNossoEmDias: number | null;
+  listados: number;
+  amostrada: boolean;
 }
 
 type Estado =
   | { estado: "carregando" }
-  | { estado: "ok"; resumo: Resumo; fila: Parada[]; semDono: number; abandono: number }
+  | {
+      estado: "ok";
+      resumo: Resumo;
+      fila: Parada[];
+      /** `null` = **não dá para atribuir**, e isso não é zero. Ver o cabeçalho
+       *  da rota: com mais de um inquilino, card órfão não tem dono. */
+      semDono: number | null;
+      motivoDoSemDono: string | null;
+      abandono: number;
+    }
   /** "não consegui olhar" tem tela própria. Fila vazia por falha de leitura é
    *  exatamente como esta fila ficou invisível desde sempre. */
   | { estado: "nao_medido"; motivo: string };
-
-const dias = (n: number) => `${n} dia${n === 1 ? "" : "s"}`;
 
 /** Quantos nomes a faixa mostra antes de virar enxurrada. O teto vale para a
  *  LISTA, nunca para a contagem — truncar a contagem mentiria sobre o tamanho
@@ -96,7 +135,10 @@ async function lerAFila(): Promise<Estado> {
       estado: "ok",
       resumo: body.resumo,
       fila: body.fila ?? [],
-      semDono: body.semDono ?? 0,
+      // `?? null`, e nunca `?? 0`: "não medi" e "não há" são fatos opostos, e é
+      // a distinção que esta faixa inteira existe para marcar.
+      semDono: body.semDono ?? null,
+      motivoDoSemDono: body.motivoDoSemDono ?? null,
       abandono: body.diasAteVirarAbandono ?? 3,
     };
   } catch {
@@ -112,7 +154,10 @@ async function lerAFila(): Promise<Estado> {
 function quantosPendentes(e: Estado): number | null {
   if (e.estado !== "ok") return null;
   // O órfão entra na conta: ele é peça pronta esperando decisão igual às
-  // outras — só que sem fila que o mostre.
+  // outras — só que sem fila que o mostre. Quando ele é NULO (mais de um
+  // inquilino), a conta inteira vira "não medido": somar zero seria afirmar que
+  // não há órfão nenhum.
+  if (e.semDono === null) return null;
   return e.resumo.paradas + e.semDono;
 }
 
@@ -140,34 +185,33 @@ export default function EsperandoOCliente({ onContagem }: { onContagem?: (n: num
   }, []);
 
   if (dados.estado === "carregando") {
-    return <div className="h-[92px] rounded-[12px] border border-[var(--border)] bg-[var(--bg)] animate-pulse mb-8" />;
+    // O esqueleto ANUNCIA que está carregando (§7.1). Uma barra cinza pulsando
+    // não diz nada a quem usa leitor de tela, e a conclusão razoável de um
+    // silêncio numa tela de fila é "a fila está vazia".
+    return <Carregando blocos={1} etiqueta="Lendo o que espera decisão do cliente…" />;
   }
 
   if (dados.estado === "nao_medido") {
+    // A MESMA peça da tela irmã, com `role="alert"` (§7.3) e o botão da casa.
+    // Este bloco era uma cópia byte a byte do de `/agency/leads`, com um
+    // `<button>` refeito à mão.
     return (
-      <div className="mb-8 rounded-[12px] border border-[var(--danger)] bg-[var(--danger-bg)] px-4 sm:px-5 py-4">
-        <p className="text-[13px] font-semibold text-[var(--danger)]">
-          Não consegui ler o que espera decisão do cliente
-        </p>
-        <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed">{dados.motivo}</p>
-        <p className="text-[12px] text-[var(--text-muted)] mt-2 leading-relaxed">
-          Isto <strong>não</strong> quer dizer que a fila está vazia. Quer dizer que ela não foi medida agora.
-        </p>
-        <button
-          onClick={carregar}
-          className="mt-3 h-9 px-4 rounded-[8px] border border-[var(--border)] bg-white text-[13px] font-medium text-[var(--text-primary)]"
-        >
-          Tentar de novo
-        </button>
-      </div>
+      <CartaoDeErro
+        titulo="Não consegui ler o que espera decisão do cliente"
+        motivo={dados.motivo}
+        aoTentarDeNovo={carregar}
+      />
     );
   }
 
-  const { resumo, fila, semDono, abandono } = dados;
+  const { resumo, fila, semDono, motivoDoSemDono, abandono } = dados;
 
   // Fila vazia é boa notícia — e diz isso numa linha, em vez de sumir. Sumir
   // deixaria quem lê sem saber se a fila está vazia ou se ninguém olhou, que é
   // a diferença que esta faixa inteira existe para marcar.
+  //
+  // `semDono === 0` e não `!semDono`: com o órfão NULO (não medido) esta faixa
+  // não pode dizer "boa notícia".
   if (resumo.paradas === 0 && semDono === 0) {
     return (
       <p className="mb-8 text-[13px] text-[var(--text-muted)] leading-relaxed">
@@ -181,62 +225,97 @@ export default function EsperandoOCliente({ onContagem }: { onContagem?: (n: num
 
   return (
     <div className="mb-8">
-      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">
-        Esperando decisão no portal do cliente · {resumo.paradas}
-      </p>
+      <TituloDeFila>Esperando decisão no portal do cliente · {resumo.paradas}</TituloDeFila>
       <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
         Peça pronta que já foi para o cliente e ninguém decidiu. Esta faixa <strong>só conta</strong> —
         ninguém é aprovado, reprovado nem cobrado por máquina.
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      <Placar>
         {/* A DÍVIDA NOSSA VEM PRIMEIRO. É a única vermelha, e é a única em que
             o conserto é uma pessoa desta casa responder. */}
         <Numero
           valor={resumo.bolaConosco}
           rotulo="ele perguntou e não respondemos"
-          nota="a vez é NOSSA — e o prazo dele está pausado"
-          tom={resumo.bolaConosco > 0 ? "danger" : "neutro"}
+          nota={
+            resumo.maisAntigoNossoEmDias !== null
+              ? `a vez é NOSSA — a mais velha ${esperaHa(resumo.maisAntigoNossoEmDias)}, e o prazo dele está pausado`
+              : "a vez é NOSSA — e o prazo dele fica pausado enquanto isso"
+          }
+          tom={resumo.bolaConosco > 0 ? "nossa" : "deles"}
         />
+        {/* 🔴 `esperandoOCliente`, e NÃO `paradas`. O total inclui a dívida
+            nossa: imprimi-lo aqui cobrava o cliente pelo atraso da casa, e o
+            aviso de não-soma estava no cartão errado. */}
         <Numero
-          valor={resumo.paradas}
+          valor={resumo.esperandoOCliente}
           rotulo="esperando a decisão dele"
           nota={
-            resumo.maisAntigoEmDias !== null
-              ? `a mais antiga há ${dias(resumo.maisAntigoEmDias)}`
+            resumo.maisAntigoDeleEmDias !== null
+              ? `a mais antiga ${esperaHa(resumo.maisAntigoDeleEmDias)} — não some com o número ao lado`
               : "ninguém nessa situação"
           }
-          tom="neutro"
+          tom="deles"
         />
         <Numero
           valor={resumo.abandonadas}
           rotulo={`passaram do prazo ou de ${dias(abandono)}`}
-          nota="parte do número ao lado — não some os dois"
-          tom={resumo.abandonadas > 0 ? "warning" : "neutro"}
+          nota="parte dos dois números ao lado — não some com eles"
+          tom={resumo.abandonadas > 0 ? "atencao" : "deles"}
         />
-      </div>
+      </Placar>
 
-      {semDono > 0 && (
+      {/* Os dois de cima somam o total, e o total aparece no título. Dizê-lo
+          aqui é o que impede alguém de somar de novo os três cartões. */}
+      <p className="mt-2 text-[12px] text-[var(--text-muted)] leading-relaxed">
+        {contagem(resumo.bolaConosco, "é dívida nossa", "são dívida nossa")} e{" "}
+        {contagem(resumo.esperandoOCliente, "espera o cliente", "esperam o cliente")}:{" "}
+        <strong>{contagem(resumo.paradas, "card parado", "cards parados")}</strong> ao todo.
+      </p>
+
+      {semDono !== null && semDono > 0 && (
         <p className="mt-2.5 text-[12px] text-[var(--warning)] leading-relaxed">
-          <strong>{semDono} card(s) pendentes sem dono</strong> — sem solicitação e sem cliente
-          ligados, eles não entram em nenhuma fila por workspace e não estão contados acima.
-          Consertar isso é decisão de gente.
+          <strong>{contagem(semDono, "card pendente sem dono", "cards pendentes sem dono")}</strong> —
+          sem solicitação e sem cliente ligados, eles não entram em nenhuma fila por workspace e não
+          estão contados acima. Consertar isso é decisão de gente.
+        </p>
+      )}
+
+      {/* NÃO MEDIDO não é ZERO, e a faixa diz qual dos dois é. */}
+      {semDono === null && motivoDoSemDono && (
+        <p className="mt-2.5 text-[12px] text-[var(--text-muted)] leading-relaxed">
+          <strong>Cards sem dono: não medidos.</strong> {motivoDoSemDono}.
         </p>
       )}
 
       {mostrados.length > 0 && (
         <ul className="mt-3 space-y-1.5">
-          {mostrados.map((c) => (
+          {mostrados.map((c) => {
+            const dep = departamentoEmPortugues(c.departamento);
+            return (
             <li
               key={c.id}
-              className={`rounded-[8px] border px-3 py-2 bg-white ${
+              className={`rounded-[8px] border px-3 py-2 bg-[var(--card)] ${
                 c.bolaConosco ? "border-[var(--danger)]" : "border-[var(--border)]"
               }`}
             >
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-[13px] font-medium text-[var(--text-primary)]">{c.departamento}</span>
+                {/* 🔴 "social-media" e "paid-traffic" saíam CRUS aqui. Pior:
+                    duas linhas do mesmo departamento ficavam indistinguíveis, e
+                    a faixa não diz de que CLIENTE é a peça — ninguém conseguia
+                    ir responder. O código do card é o localizador enquanto o
+                    nome do cliente não for decidido (ver o LEIA-ME da entrega). */}
+                <span className="text-[13px] font-medium text-[var(--text-primary)]">
+                  {dep.nome}
+                  {!dep.conhecido && (
+                    <span className="text-[12px] font-normal text-[var(--text-muted)]"> (chave não cadastrada)</span>
+                  )}
+                </span>
+                <span className="text-[12px] text-[var(--text-muted)] tabular-nums select-all">
+                  #{c.id.slice(-6)}
+                </span>
                 <span className="text-[12px] text-[var(--text-muted)] tabular-nums">
-                  parada há {dias(c.diasParado)}
+                  {paradaHa(c.diasParado)}
                 </span>
                 {c.prazoVencido && (
                   <span className="text-[12px] font-semibold text-[var(--warning)]">passou do prazo</span>
@@ -250,36 +329,23 @@ export default function EsperandoOCliente({ onContagem }: { onContagem?: (n: num
                 {c.deQuemEAVez}
               </p>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 
-      {fila.length > mostrados.length && (
+      {/* 🔴 A FRASE ERA VERDADEIRA SOBRE A LISTA E FALSA SOBRE A CONTAGEM.
+          Ela afirmava "a contagem acima não tem teto" enquanto `paradas` saía
+          de `fila.length` sobre um `take: 200`. Agora a contagem é consulta
+          própria — e a frase só aparece com o número que o servidor mediu. */}
+      {resumo.paradas > mostrados.length && (
         <p className="mt-2 text-[12px] text-[var(--text-muted)]">
-          e mais {fila.length - mostrados.length} — a lista tem teto, a contagem acima não.
+          A fila tem <strong>{resumo.paradas}</strong> e esta faixa lista {mostrados.length}.{" "}
+          {resumo.amostrada
+            ? `Os números do placar valem sobre os ${resumo.listados} mais antigos lidos — são piso, não total.`
+            : "A lista tem teto; a contagem acima não."}
         </p>
       )}
-    </div>
-  );
-}
-
-function Numero({
-  valor, rotulo, nota, tom,
-}: { valor: number; rotulo: string; nota: string; tom: "danger" | "warning" | "neutro" }) {
-  const cor =
-    tom === "danger" ? "text-[var(--danger)]" : tom === "warning" ? "text-[var(--warning)]" : "text-[var(--text-primary)]";
-  const borda =
-    tom === "danger" ? "border-[var(--danger)]" : tom === "warning" ? "border-[var(--warning)]" : "border-[var(--border)]";
-  return (
-    // No celular cada número é uma LINHA — três blocos altos empurrariam a
-    // primeira fila real para longe da dobra, e quem abre esta tela vem
-    // decidir, não contar. A partir de `sm` volta a ser cartão.
-    <div className={`rounded-[12px] border ${borda} bg-white px-4 py-3`}>
-      <div className="flex items-baseline gap-2.5 sm:block">
-        <p className={`text-[24px] sm:text-[26px] font-semibold leading-none tabular-nums shrink-0 ${cor}`}>{valor}</p>
-        <p className="text-[13px] font-medium text-[var(--text-primary)] sm:mt-1.5 leading-snug">{rotulo}</p>
-      </div>
-      <p className="text-[12px] text-[var(--text-muted)] mt-1 leading-relaxed">{nota}</p>
     </div>
   );
 }

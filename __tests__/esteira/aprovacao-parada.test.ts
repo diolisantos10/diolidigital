@@ -13,13 +13,16 @@ import fs from "node:fs";
 import path from "node:path";
 
 const db = vi.hoisted(() => ({
-  approvalRequest: { findMany: vi.fn() },
+  // `count` entrou em 16/08: a CONTAGEM virou consulta própria, porque a lista
+  // tem teto e ela não.
+  approvalRequest: { findMany: vi.fn(), count: vi.fn() },
   client: { findMany: vi.fn() },
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
 import {
-  aprovacoesParadas, resumoDasAprovacoes, DIAS_ATE_VIRAR_ABANDONO,
+  aprovacoesParadas, resumoDasAprovacoes, lerAsAprovacoesParadas,
+  DIAS_ATE_VIRAR_ABANDONO, TETO_DA_LISTA,
 } from "@/lib/agency/esteira/aprovacao-parada";
 
 const AGORA = new Date("2026-08-12T12:00:00Z");
@@ -33,14 +36,22 @@ function card(over: Record<string, unknown> = {}) {
   };
 }
 
+/** Põe a fila no banco de mentira. Contagem e lista concordam por padrão; quem
+ *  mede o teto passa `total` diferente de propósito. */
+function naFila(cards: ReturnType<typeof card>[], total = cards.length) {
+  db.approvalRequest.findMany.mockResolvedValue(cards);
+  db.approvalRequest.count.mockResolvedValue(total);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   db.client.findMany.mockResolvedValue([{ id: "c1" }]);
+  naFila([]);
 });
 
 describe("conta a peça pronta que morre esperando um clique", () => {
   it("só olha o que ainda está pendente — decidido saiu da fila", async () => {
-    db.approvalRequest.findMany.mockResolvedValue([]);
+    naFila([]);
     await aprovacoesParadas("ws1", AGORA);
     const where = db.approvalRequest.findMany.mock.calls[0]![0].where;
     expect(where.status).toBe("pending");
@@ -49,7 +60,7 @@ describe("conta a peça pronta que morre esperando um clique", () => {
   it("o inquilino é resolvido pelos DOIS caminhos de posse", async () => {
     // `ApprovalRequest` não tem workspaceId: a posse é clientRequestId OU
     // clientId. Ler só um dos dois esconderia metade da fila.
-    db.approvalRequest.findMany.mockResolvedValue([]);
+    naFila([]);
     await aprovacoesParadas("ws1", AGORA);
     const ramos = db.approvalRequest.findMany.mock.calls[0]![0].where.OR;
     expect(ramos).toContainEqual({ clientRequest: { workspaceId: "ws1" } });
@@ -60,7 +71,7 @@ describe("conta a peça pronta que morre esperando um clique", () => {
     // `{ clientId: null }` casaria com todo card sem dono do banco — vazamento
     // entre clientes pela porta dos fundos.
     db.client.findMany.mockResolvedValue([]);
-    db.approvalRequest.findMany.mockResolvedValue([]);
+    naFila([]);
     await aprovacoesParadas("ws1", AGORA);
     const ramos = db.approvalRequest.findMany.mock.calls[0]![0].where.OR;
     expect(ramos).toHaveLength(1);
@@ -68,14 +79,14 @@ describe("conta a peça pronta que morre esperando um clique", () => {
   });
 
   it("os dias são CALCULADOS, nunca digitados", async () => {
-    db.approvalRequest.findMany.mockResolvedValue([
+    naFila([
       card({ createdAt: new Date("2026-08-05T12:00:00Z") }),
     ]);
     expect((await aprovacoesParadas("ws1", AGORA))[0]!.diasParado).toBe(7);
   });
 
   it("a metade oposta: card de ontem ainda não é abandono", async () => {
-    db.approvalRequest.findMany.mockResolvedValue([card()]);
+    naFila([card()]);
     const r = await resumoDasAprovacoes("ws1", AGORA);
     expect(r.paradas).toBe(1);
     expect(r.abandonadas).toBe(0);
@@ -87,12 +98,12 @@ describe("prazo AUSENTE não é prazo vencido", () => {
   it("card sem prazo não é marcado como vencido", async () => {
     // Chamar ausência de prazo de prazo estourado inventaria um compromisso que
     // ninguém assumiu.
-    db.approvalRequest.findMany.mockResolvedValue([card({ expiresAt: null })]);
+    naFila([card({ expiresAt: null })]);
     expect((await aprovacoesParadas("ws1", AGORA))[0]!.prazoVencido).toBe(false);
   });
 
   it("card com prazo passado é vencido", async () => {
-    db.approvalRequest.findMany.mockResolvedValue([
+    naFila([
       card({ expiresAt: new Date("2026-08-11T00:00:00Z") }),
     ]);
     expect((await aprovacoesParadas("ws1", AGORA))[0]!.prazoVencido).toBe(true);
@@ -100,7 +111,7 @@ describe("prazo AUSENTE não é prazo vencido", () => {
 
   it("mas card velho sem prazo ainda conta como abandonado", async () => {
     // Senão bastaria não pôr prazo para a peça sumir do radar para sempre.
-    db.approvalRequest.findMany.mockResolvedValue([
+    naFila([
       card({ createdAt: new Date("2026-08-01T12:00:00Z"), expiresAt: null }),
     ]);
     expect((await resumoDasAprovacoes("ws1", AGORA)).abandonadas).toBe(1);
@@ -109,7 +120,7 @@ describe("prazo AUSENTE não é prazo vencido", () => {
 
 describe("dúvida aberta é atraso NOSSO, não do cliente", () => {
   it("card com pergunta do cliente aponta para a agência", async () => {
-    db.approvalRequest.findMany.mockResolvedValue([
+    naFila([
       card({ questionOpenedAt: new Date("2026-08-11T13:00:00Z") }),
     ]);
     const r = (await aprovacoesParadas("ws1", AGORA))[0]!;
@@ -119,14 +130,14 @@ describe("dúvida aberta é atraso NOSSO, não do cliente", () => {
   });
 
   it("sem pergunta, a vez é do cliente", async () => {
-    db.approvalRequest.findMany.mockResolvedValue([card()]);
+    naFila([card()]);
     const r = (await aprovacoesParadas("ws1", AGORA))[0]!;
     expect(r.bolaConosco).toBe(false);
     expect(r.deQuemEAVez).toMatch(/decisão do cliente/i);
   });
 
   it("o resumo conta as duas separadas — nunca somadas", async () => {
-    db.approvalRequest.findMany.mockResolvedValue([
+    naFila([
       card({ id: "a", questionOpenedAt: new Date("2026-08-11T13:00:00Z") }),
       card({ id: "b" }),
       card({ id: "c" }),
@@ -135,11 +146,83 @@ describe("dúvida aberta é atraso NOSSO, não do cliente", () => {
     expect(r.paradas).toBe(3);
     expect(r.bolaConosco).toBe(1);
   });
+
+  // ── ⛔ O NÚMERO QUE COBRAVA O CLIENTE PELO ATRASO DA CASA ────────────────
+  //
+  // A faixa da tela imprimia `paradas` sob o rótulo "esperando a decisão dele",
+  // e `paradas` inclui `bolaConosco`. Este é o campo que faltava — e o teste
+  // usa o CASO MEDIDO: 3 cards, 2 com dúvida aberta.
+  it("⛔ `esperandoOCliente` é a bola DELE, e nunca o total", async () => {
+    naFila([
+      card({ id: "nosso-1", questionOpenedAt: new Date("2026-08-11T13:00:00Z") }),
+      card({ id: "nosso-2", questionOpenedAt: new Date("2026-08-11T13:00:00Z") }),
+      card({ id: "dele" }),
+    ]);
+    const r = await resumoDasAprovacoes("ws1", AGORA);
+    expect(r.paradas).toBe(3);
+    expect(r.bolaConosco).toBe(2);
+    // A tela dizia 3 aqui. Só 1 espera o cliente.
+    expect(r.esperandoOCliente).toBe(1);
+    // E os dois somam o total — a separação é exaustiva, não aproximada.
+    expect(r.bolaConosco + r.esperandoOCliente).toBe(r.paradas);
+  });
+
+  it("⛔ o relógio da espera DELE ignora o card cujo prazo está pausado", async () => {
+    // 6 dias no card com dúvida aberta, 1 dia no card que espera o cliente:
+    // "a mais antiga há 6 dias" ao lado de "esperando a decisão dele" datava a
+    // espera do cliente com um relógio que o schema declara PAUSADO.
+    naFila([
+      card({ id: "nosso", createdAt: new Date("2026-08-06T12:00:00Z"), questionOpenedAt: new Date() }),
+      card({ id: "dele", createdAt: new Date("2026-08-11T12:00:00Z") }),
+    ]);
+    const r = await resumoDasAprovacoes("ws1", AGORA);
+    expect(r.maisAntigoEmDias).toBe(6);       // o mais velho de qualquer lado
+    expect(r.maisAntigoNossoEmDias).toBe(6);  // a dívida mais velha da casa
+    expect(r.maisAntigoDeleEmDias).toBe(1);   // ← o que a tela mostra ao lado "dele"
+  });
+
+  it("sem ninguém de um dos lados, o relógio daquele lado é NULO — nunca zero", async () => {
+    naFila([card({ id: "so-nosso", questionOpenedAt: new Date() })]);
+    const r = await resumoDasAprovacoes("ws1", AGORA);
+    expect(r.esperandoOCliente).toBe(0);
+    expect(r.maisAntigoDeleEmDias).toBeNull();
+  });
+});
+
+// ── ⛔ A LISTA TEM TETO E A CONTAGEM NÃO ─────────────────────────────────────
+
+describe("⛔ contar e listar são duas coisas", () => {
+  it("com 250 parados e 200 lidos, `paradas` é 250 e a fila é declarada amostra", async () => {
+    naFila(Array.from({ length: TETO_DA_LISTA }, (_, i) => card({ id: `c${i}` })), 250);
+    const r = await resumoDasAprovacoes("ws1", AGORA);
+    // A tela imprimia "a lista tem teto, a contagem acima não" enquanto a
+    // contagem saía de `fila.length`. Afirmação que o dado não sustentava.
+    expect(r.paradas).toBe(250);
+    expect(r.listados).toBe(200);
+    expect(r.amostrada).toBe(true);
+    expect(db.approvalRequest.findMany.mock.calls[0]![0].take).toBe(TETO_DA_LISTA);
+  });
+
+  it("a metade oposta: fila que cabe não é chamada de amostra", async () => {
+    naFila([card()]);
+    const r = await resumoDasAprovacoes("ws1", AGORA);
+    expect(r.amostrada).toBe(false);
+  });
+
+  it("contar e listar olham EXATAMENTE o mesmo conjunto", async () => {
+    // Duas cópias da cláusula de posse divergiriam no dia em que alguém
+    // consertasse só uma — e a divergência apareceria como "201 parados, 200
+    // listados" numa fila de 200, que ninguém relacionaria à causa.
+    await lerAsAprovacoesParadas("ws1", AGORA);
+    const doFindMany = db.approvalRequest.findMany.mock.calls[0]![0].where;
+    const doCount = db.approvalRequest.count.mock.calls[0]![0].where;
+    expect(doCount).toEqual(doFindMany);
+  });
 });
 
 describe("o resumo não mente sobre fila vazia", () => {
   it("sem cards, o mais antigo é NULO — nunca zero", async () => {
-    db.approvalRequest.findMany.mockResolvedValue([]);
+    naFila([]);
     const r = await resumoDasAprovacoes("ws1", AGORA);
     expect(r.paradas).toBe(0);
     expect(r.maisAntigoEmDias).toBeNull();

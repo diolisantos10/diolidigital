@@ -18,6 +18,9 @@ const sessaoMock = vi.hoisted(() => ({ atual: null as unknown }));
 const db = vi.hoisted(() => ({
   approvalRequest: { findMany: vi.fn(), count: vi.fn() },
   client: { findMany: vi.fn() },
+  // A rota passou a perguntar quantos inquilinos existem antes de decidir se o
+  // card órfão pode ser atribuído a alguém. Ver o comentário do `semDono`.
+  agencyWorkspace: { findMany: vi.fn() },
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -40,6 +43,7 @@ beforeEach(() => {
   db.client.findMany.mockResolvedValue([{ id: "c1" }]);
   db.approvalRequest.findMany.mockResolvedValue([]);
   db.approvalRequest.count.mockResolvedValue(0);
+  db.agencyWorkspace.findMany.mockResolvedValue([{ id: "w1" }]);
 });
 
 describe("GET /api/agency/aprovacoes-paradas", () => {
@@ -73,6 +77,9 @@ describe("GET /api/agency/aprovacoes-paradas", () => {
       { id: "velho-deles", department: "social", createdAt: new Date(Date.now() - 30 * DIA), expiresAt: null, questionOpenedAt: null, clientId: "c1", clientRequestId: null },
       { id: "novo-nosso", department: "design", createdAt: new Date(Date.now() - 2 * DIA), expiresAt: null, questionOpenedAt: new Date(), clientId: "c1", clientRequestId: null },
     ]);
+    db.approvalRequest.count.mockImplementation(async (args: { where?: Record<string, unknown> }) =>
+      args?.where?.clientRequestId === null ? 0 : 2,
+    );
     const { GET } = await import("@/app/api/agency/aprovacoes-paradas/route");
     const body = await (await GET()).json();
 
@@ -88,7 +95,11 @@ describe("GET /api/agency/aprovacoes-paradas", () => {
   });
 
   it("o card SEM DONO é contado à parte, nunca engolido", async () => {
-    db.approvalRequest.count.mockResolvedValue(4);
+    // A contagem de órfão é a que leva `clientRequestId: null`; a outra é a da
+    // fila do inquilino.
+    db.approvalRequest.count.mockImplementation(async (args: { where?: Record<string, unknown> }) =>
+      args?.where?.clientRequestId === null ? 4 : 0,
+    );
     const { GET } = await import("@/app/api/agency/aprovacoes-paradas/route");
     const body = await (await GET()).json();
     expect(body.semDono).toBe(4);
@@ -97,8 +108,62 @@ describe("GET /api/agency/aprovacoes-paradas", () => {
     expect(body.resumo.paradas).toBe(0);
   });
 
+  // ── ⛔ O ÓRFÃO DO BANCO INTEIRO SERVIDO A UM INQUILINO ───────────────────
+  //
+  // A rota contava `approvalRequest` órfão do banco inteiro e devolvia o número
+  // para qualquer inquilino — três linhas abaixo de um comentário dizendo que
+  // varrer órfão alheio é vazamento entre clientes. Com dois inquilinos, o A
+  // lia o órfão do B como se fosse dele.
+  it("⛔ com MAIS DE UM inquilino, o órfão vira NULO com motivo — nunca zero, nunca do vizinho", async () => {
+    db.agencyWorkspace.findMany.mockResolvedValue([{ id: "w1" }, { id: "w2" }]);
+    db.approvalRequest.count.mockImplementation(async (args: { where?: Record<string, unknown> }) =>
+      args?.where?.clientRequestId === null ? 7 : 0,
+    );
+    const { GET } = await import("@/app/api/agency/aprovacoes-paradas/route");
+    const body = await (await GET()).json();
+    // Nem 7 (seria vazamento) nem 0 (seria afirmar que não há nenhum).
+    expect(body.semDono).toBeNull();
+    expect(body.motivoDoSemDono).toContain("mais de um inquilino");
+  });
+
+  it("⛔ a contagem separa o que LISTA do que CONTA, e a tela recebe o aviso", async () => {
+    db.approvalRequest.findMany.mockResolvedValue([
+      { id: "a", department: "design", createdAt: new Date(), expiresAt: null, questionOpenedAt: null, clientId: "c1", clientRequestId: null },
+    ]);
+    db.approvalRequest.count.mockImplementation(async (args: { where?: Record<string, unknown> }) =>
+      args?.where?.clientRequestId === null ? 0 : 250,
+    );
+    const { GET } = await import("@/app/api/agency/aprovacoes-paradas/route");
+    const body = await (await GET()).json();
+    expect(body.resumo.paradas).toBe(250);
+    expect(body.resumo.amostrada).toBe(true);
+  });
+
+  // ── ⛔ O NÚMERO QUE COBRAVA O CLIENTE PELO ATRASO DA CASA ────────────────
+  it("⛔ a rota devolve `esperandoOCliente` separado do total, e os relógios separados", async () => {
+    const DIA6 = new Date(Date.now() - 6 * DIA);
+    const DIA1 = new Date(Date.now() - 1 * DIA);
+    db.approvalRequest.findMany.mockResolvedValue([
+      { id: "nosso", department: "design", createdAt: DIA6, expiresAt: null, questionOpenedAt: new Date(), clientId: "c1", clientRequestId: null },
+      { id: "nosso2", department: "design", createdAt: DIA6, expiresAt: null, questionOpenedAt: new Date(), clientId: "c1", clientRequestId: null },
+      { id: "dele", department: "social", createdAt: DIA1, expiresAt: null, questionOpenedAt: null, clientId: "c1", clientRequestId: null },
+    ]);
+    db.approvalRequest.count.mockImplementation(async (args: { where?: Record<string, unknown> }) =>
+      args?.where?.clientRequestId === null ? 0 : 3,
+    );
+    const { GET } = await import("@/app/api/agency/aprovacoes-paradas/route");
+    const body = await (await GET()).json();
+    expect(body.resumo.paradas).toBe(3);
+    expect(body.resumo.bolaConosco).toBe(2);
+    // A faixa imprimia 3 aqui, sob o rótulo "esperando a decisão dele".
+    expect(body.resumo.esperandoOCliente).toBe(1);
+    // E datava a espera dele com o relógio de um card PAUSADO.
+    expect(body.resumo.maisAntigoDeleEmDias).toBe(1);
+    expect(body.resumo.maisAntigoNossoEmDias).toBe(6);
+  });
+
   it("⛔ falha de leitura NÃO vira fila vazia: 503 dizendo que não foi medida", async () => {
-    db.approvalRequest.count.mockRejectedValue(new Error("db down"));
+    db.approvalRequest.findMany.mockRejectedValue(new Error("db down"));
     const { GET } = await import("@/app/api/agency/aprovacoes-paradas/route");
     const res = await GET();
     expect(res.status).toBe(503);

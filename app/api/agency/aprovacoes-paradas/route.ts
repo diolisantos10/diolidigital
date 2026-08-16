@@ -24,10 +24,10 @@ import { NextResponse } from "next/server";
 import { exigirApiInterna } from "@/lib/agency/organizacao/guarda";
 import { prisma } from "@/lib/db/client";
 import {
-  aprovacoesParadas,
-  resumoDasAprovacoes,
+  lerAsAprovacoesParadas,
   DIAS_ATE_VIRAR_ABANDONO,
 } from "@/lib/agency/esteira/aprovacao-parada";
+import { todosOsInquilinos } from "@/lib/agency/varredura/inquilinos";
 
 export async function GET(): Promise<NextResponse> {
   // A permissão vem da MESMA linha do inventário que decide a tela — e não de
@@ -39,28 +39,50 @@ export async function GET(): Promise<NextResponse> {
 
   try {
     const agora = new Date();
-    const [resumo, fila, semDono] = await Promise.all([
-      resumoDasAprovacoes(session.workspaceId, agora),
-      aprovacoesParadas(session.workspaceId, agora),
-      // O card pendente sem `clientRequestId` E sem `clientId` fica de fora da
-      // fila por workspace — corretamente, porque varrer órfão de outro
-      // inquilino é vazamento entre clientes. Mas "fora da conta" não é "não
-      // existe": é peça pronta esperando decisão que nenhuma tela mostra.
-      prisma.approvalRequest.count({
-        where: { status: "pending", clientRequestId: null, clientId: null },
-      }),
-    ]);
+    // UMA leitura, uma regra: `lerAsAprovacoesParadas` devolve o resumo e a
+    // fila da mesma consulta. Chamar as duas funções em paralelo, como esta
+    // rota fazia, lia o banco duas vezes para responder uma pergunta — e virava
+    // quatro leituras quando a contagem ganhou consulta própria.
+    const { resumo, fila } = await lerAsAprovacoesParadas(session.workspaceId, agora);
+
+    // ── O ÓRFÃO, E POR QUE ELE NÃO É SIMPLESMENTE CONTADO (16/08) ──────────
+    //
+    // O card pendente sem `clientRequestId` E sem `clientId` fica de fora da
+    // fila por workspace — corretamente, porque varrer órfão de outro inquilino
+    // é vazamento entre clientes. Mas "fora da conta" não é "não existe": é peça
+    // pronta esperando decisão que nenhuma tela mostra.
+    //
+    // 🔴 A versão anterior contava **o banco inteiro** e devolvia o número para
+    // qualquer inquilino, três linhas abaixo de um comentário que dizia que
+    // varrer órfão alheio é vazamento. Com dois inquilinos, o A leria o órfão do
+    // B como se fosse dele.
+    //
+    // Órfão não tem inquilino **por definição** — `workspaceId` é justamente o
+    // que falta —, então não existe recorte correto. O que existe é uma
+    // pergunta honesta: **a casa tem um inquilino só?** Se sim, "o banco
+    // inteiro" e "este inquilino" são o mesmo conjunto e o número vale. Se não,
+    // o número é `null` **com o motivo**, e não zero: "não dá para atribuir" e
+    // "não há nenhum" são fatos opostos.
+    const inquilinos = await todosOsInquilinos();
+    const semDono = inquilinos.length <= 1
+      ? await prisma.approvalRequest.count({
+          where: { status: "pending", clientRequestId: null, clientId: null },
+        })
+      : null;
 
     return NextResponse.json({
       medido: true,
       resumo,
+      semDono,
+      motivoDoSemDono: semDono === null
+        ? "há mais de um inquilino nesta instalação, e card órfão não tem dono — atribuí-lo a qualquer um seria vazamento entre clientes"
+        : null,
       // A dívida NOSSA em cima e, dentro de cada grupo, o mais antigo primeiro.
       // A fila que se lê de cima para baixo tem de começar pelo que é culpa da
       // casa — ler a cobrança do cliente antes da própria é ler ao contrário.
       fila: [...fila].sort(
         (a, b) => Number(b.bolaConosco) - Number(a.bolaConosco) || b.diasParado - a.diasParado,
       ),
-      semDono,
       diasAteVirarAbandono: DIAS_ATE_VIRAR_ABANDONO,
     });
   } catch (e) {

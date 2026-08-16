@@ -43,6 +43,11 @@ import { prisma } from "@/lib/db/client";
  *  não tem prazo próprio. Três dias: o cliente que ia responder já respondeu. */
 export const DIAS_ATE_VIRAR_ABANDONO = 3;
 
+/** Quantos a LISTA carrega. A contagem NÃO tem teto — ver
+ *  `contarAprovacoesParadas`. Truncar a contagem mente sobre o tamanho da fila;
+ *  truncar a lista é só não despejar 250 linhas numa faixa de tela. */
+export const TETO_DA_LISTA = 200;
+
 export interface AprovacaoParada {
   id: string;
   departamento: string;
@@ -78,6 +83,44 @@ export interface AprovacaoParada {
  * `quebrou("aprovacao-parada")`, e a rota devolve 503 dizendo *"esta fila NÃO é
  * zero, é desconhecida"*. Falha de leitura e fila vazia são fatos opostos.
  */
+/**
+ * Quantos cards estão parados neste inquilino. **Sem teto.**
+ *
+ * É a metade que faltava da separação entre CONTAR e LISTAR: até 16/08 o resumo
+ * derivava `paradas` do tamanho de uma lista com `take: 200`, e a tela imprimia
+ * "a lista tem teto, a contagem acima não" — afirmação que o dado não
+ * sustentava.
+ */
+export async function contarAprovacoesParadas(workspaceId: string): Promise<number> {
+  return prisma.approvalRequest.count({ where: await ondeMoraAFila(workspaceId) });
+}
+
+/**
+ * A cláusula de posse, escrita UMA vez.
+ *
+ * Contar e listar têm de olhar exatamente o mesmo conjunto. Duas cópias desta
+ * cláusula divergem no dia em que alguém consertar só uma — e a divergência
+ * apareceria como "201 parados, 200 listados" numa fila de 200, que ninguém
+ * relacionaria à causa.
+ */
+async function ondeMoraAFila(workspaceId: string) {
+  // Sem `.catch`: engolir o erro aqui devolveria lista vazia de donos, o ramo do
+  // `clientId` sairia da consulta e a fila voltaria MENOR do que é — um número
+  // errado para menos, em silêncio, que é pior que erro nenhum.
+  const donos = await prisma.client.findMany({ where: { workspaceId }, select: { id: true } });
+  const idsDoWorkspace = donos.map((c) => c.id);
+  return {
+    status: "pending",
+    OR: [
+      { clientRequest: { workspaceId } },
+      // Sem clientes no workspace, este ramo é omitido de propósito:
+      // `{ clientId: { in: [] } }` casa com nada, mas `{ clientId: null }`
+      // casaria com TODO card órfão do banco.
+      ...(idsDoWorkspace.length > 0 ? [{ clientId: { in: idsDoWorkspace } }] : []),
+    ],
+  };
+}
+
 export async function aprovacoesParadas(workspaceId: string, agora: Date): Promise<AprovacaoParada[]> {
   // ── DE QUEM É O CARD ──────────────────────────────────────────────────────
   // `ApprovalRequest` NÃO tem `workspaceId`: a posse é `clientRequestId` OU
@@ -88,24 +131,10 @@ export async function aprovacoesParadas(workspaceId: string, agora: Date): Promi
   // Sem `.catch`: engolir o erro aqui devolveria lista vazia de donos, o ramo
   // do `clientId` sairia da consulta e a fila voltaria MENOR do que é — um
   // número errado para menos, em silêncio, que é pior que erro nenhum.
-  const donos = await prisma.client.findMany({
-    where: { workspaceId }, select: { id: true },
-  });
-  const idsDoWorkspace = donos.map((c) => c.id);
-
   const cards = await prisma.approvalRequest.findMany({
-    where: {
-      status: "pending",
-      OR: [
-        { clientRequest: { workspaceId } },
-        // Sem clientes no workspace, este ramo é omitido de propósito:
-        // `{ clientId: { in: [] } }` casa com nada, mas `{ clientId: null }`
-        // casaria com TODO card órfão do banco.
-        ...(idsDoWorkspace.length > 0 ? [{ clientId: { in: idsDoWorkspace } }] : []),
-      ],
-    },
+    where: await ondeMoraAFila(workspaceId),
     orderBy: { createdAt: "asc" },
-    take: 200,
+    take: TETO_DA_LISTA,
   });
 
   return cards.map((c) => {
@@ -129,25 +158,90 @@ export async function aprovacoesParadas(workspaceId: string, agora: Date): Promi
 }
 
 export interface ResumoDasAprovacoes {
+  /** **O total. Cliente e casa somados.** Nunca use este número sob um rótulo
+   *  que fale de um dos dois — ver `esperandoOCliente`. */
   paradas: number;
   /** Passou do prazo do próprio card, ou do horizonte de abandono. */
   abandonadas: number;
   /** Cards em que a agência é que deve resposta. **É o número que cobra a casa,
    *  e o que tem urgência maior — porque é o atraso que é nosso.** */
   bolaConosco: number;
-  /** Dias do card mais antigo parado. Nulo em fila vazia — nunca zero. */
+  /**
+   * A bola é **DELE**: `paradas − bolaConosco`.
+   *
+   * ── 🔴 POR QUE ESTE CAMPO EXISTE (16/08/2026) ────────────────────────────
+   *
+   * A faixa da tela imprimia `paradas` sob o rótulo **"esperando a decisão
+   * dele"** — e `paradas` inclui `bolaConosco`. Medido: 3 cards, 2 com dúvida
+   * aberta → a tela dizia *"2 ele perguntou e não respondemos"* **e** *"3
+   * esperando a decisão dele"*, quando só **1** esperava o cliente.
+   *
+   * É o alarme que o cabeçalho deste arquivo jura impedir: **um que cobra o
+   * cliente pelo atraso da própria casa.** A separação estava feita na prosa e
+   * não estava feita no número — e o aviso de não-soma da tela ficava entre
+   * `abandonadas` e `paradas`, que não era o par que se sobrepunha.
+   *
+   * A conta mora aqui, e não na tela, porque tela que faz conta é a segunda
+   * cópia da regra.
+   */
+  esperandoOCliente: number;
+  /** Dias do card mais antigo parado, **de qualquer lado**. */
   maisAntigoEmDias: number | null;
+  /**
+   * Dias do mais antigo em que a bola é **DELE**. Nulo quando não há nenhum.
+   *
+   * Separado de `maisAntigoEmDias` pelo mesmo motivo: com 3 cards em que o mais
+   * velho tem dúvida aberta, "a mais antiga há 6 dias" ao lado de "esperando a
+   * decisão dele" datava a espera do cliente com o relógio de um card que o
+   * schema declara **pausado**.
+   */
+  maisAntigoDeleEmDias: number | null;
+  /** Dias do mais antigo em que a bola é **NOSSA**. É a dívida mais velha da
+   *  casa, e é a que devia doer primeiro. */
+  maisAntigoNossoEmDias: number | null;
+  /** Quantos couberam na lista que gerou os números acima. */
+  listados: number;
+  /** `true` quando `listados < paradas`: os baldes são **piso**, não total. */
+  amostrada: boolean;
 }
 
-/** O resumo que sobe para quem olha a casa. Conclusão primeiro. */
+/**
+ * O resumo que sobe para quem olha a casa. Conclusão primeiro.
+ *
+ * A CONTAGEM é consulta própria e **não tem teto**; a lista tem. Derivar
+ * `paradas` de `fila.length`, como esta função fazia até 16/08, fazia 250 cards
+ * virarem "200 parados" sem marcador nenhum — enquanto a tela imprimia, com
+ * todas as letras, *"a lista tem teto, a contagem acima não"*.
+ */
 export async function resumoDasAprovacoes(workspaceId: string, agora: Date): Promise<ResumoDasAprovacoes> {
+  return (await lerAsAprovacoesParadas(workspaceId, agora)).resumo;
+}
+
+/** A fila e o resumo dela, numa leitura só. É o que a rota usa. */
+export async function lerAsAprovacoesParadas(
+  workspaceId: string,
+  agora: Date,
+): Promise<{ resumo: ResumoDasAprovacoes; fila: AprovacaoParada[] }> {
   const fila = await aprovacoesParadas(workspaceId, agora);
-  return {
-    paradas: fila.length,
+  const total = await contarAprovacoesParadas(workspaceId);
+  const nossos = fila.filter((f) => f.bolaConosco);
+  const deles = fila.filter((f) => !f.bolaConosco);
+  const maior = (xs: AprovacaoParada[]) =>
+    xs.length === 0 ? null : Math.max(...xs.map((f) => f.diasParado));
+
+  const resumo: ResumoDasAprovacoes = {
+    paradas: total,
+    listados: fila.length,
+    amostrada: fila.length < total,
     abandonadas: fila.filter((f) => f.prazoVencido || f.diasParado >= DIAS_ATE_VIRAR_ABANDONO).length,
-    bolaConosco: fila.filter((f) => f.bolaConosco).length,
+    bolaConosco: nossos.length,
+    // A conta que a tela fazia errado, feita aqui uma vez.
+    esperandoOCliente: deles.length,
     // Nulo, e não zero: zero afirmaria "o mais antigo espera há zero dias" sobre
     // uma fila que não existe.
-    maisAntigoEmDias: fila.length === 0 ? null : Math.max(...fila.map((f) => f.diasParado)),
+    maisAntigoEmDias: maior(fila),
+    maisAntigoDeleEmDias: maior(deles),
+    maisAntigoNossoEmDias: maior(nossos),
   };
+  return { resumo, fila };
 }

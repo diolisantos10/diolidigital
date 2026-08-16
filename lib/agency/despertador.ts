@@ -583,30 +583,25 @@ export async function baterORelogio(): Promise<{
   //     NOSSA, o prazo dele está pausado, e esta é a urgente.
   // Somadas, viram um alarme que cobra o cliente pelo atraso da própria casa.
   try {
-    // A ÂNCORA SAI DO PRÓPRIO CARD PARADO, e isto é diferente das irmãs de
-    // propósito. `ApprovalRequest` não tem `workspaceId`: a posse é
-    // `clientRequestId` OU `clientId`. Pegar "o primeiro cliente que existir no
-    // banco" leria a fila do inquilino errado — ou leria vazio com a fila
-    // cheia, que é exatamente a invisibilidade que esta perna existe para
-    // acabar. Sem card pendente nenhum, a passada termina aqui sem segunda
-    // consulta.
-    const card = await prisma.approvalRequest.findFirst({
-      where: { status: "pending" },
-      orderBy: { createdAt: "asc" },
-      select: { clientId: true, clientRequest: { select: { workspaceId: true } } },
-    });
-    let ws = card?.clientRequest?.workspaceId ?? null;
-    if (!ws && card?.clientId) {
-      const dono = await prisma.client.findFirst({
-        where: { id: card.clientId }, select: { workspaceId: true },
-      });
-      ws = dono?.workspaceId ?? null;
-    }
-
-    if (ws) {
-      const agora = new Date();
+    // ── 🔴 A ÂNCORA ELEGIA UM INQUILINO PARA SEMPRE (corrigido em 16/08) ────
+    //
+    // A versão anterior tirava o workspace do **card `pending` mais antigo** e
+    // varria só ele. O argumento era bom — `ApprovalRequest` não tem
+    // `workspaceId`, e pegar "o primeiro cliente do banco" leria a fila do
+    // inquilino errado. O desfecho é que era pior que sorteio:
+    //
+    // **esta perna não tira card de pending** (ela só CONTA, e isso é de
+    // propósito — expirar por robô é reprovar com outro nome). Então o card
+    // mais antigo continua sendo o mais antigo na rodada seguinte, e na
+    // seguinte, e na seguinte. **O mesmo inquilino é eleito para sempre**, e os
+    // outros nunca saem em log nenhum. Fome determinística, não azar.
+    //
+    // Agora enumera-se a casa e passa-se por todos, como a irmã da porta da
+    // frente. Ver `lib/agency/varredura/inquilinos.ts`.
+    const agora = new Date();
+    for (const ws of await todosOsInquilinos()) {
       const r = await resumoDasAprovacoes(ws, agora);
-      paradasNaAprovacao = r.paradas;
+      paradasNaAprovacao += r.paradas;
 
       // A NOSSA DÍVIDA VEM PRIMEIRO. Ler "12 aprovações paradas" antes de
       // "3 delas somos nós que devemos resposta" é ler a cobrança do cliente
@@ -614,12 +609,22 @@ export async function baterORelogio(): Promise<{
       if (r.bolaConosco > 0) {
         log(`${r.bolaConosco} cliente(s) PERGUNTARAM e ainda não foram respondidos — a bola é NOSSA, e o prazo deles está pausado`);
       }
-      if (r.paradas > 0) {
-        log(`${r.paradas} aprovação(ões) sem decisão` +
-            (r.maisAntigoEmDias !== null ? ` — a mais antiga há ${r.maisAntigoEmDias} dia(s)` : ""));
+      // 🔴 A ESPERA DO CLIENTE É `esperandoOCliente`, NÃO `paradas` (16/08).
+      // `paradas` é o total e INCLUI a dívida nossa. Dizer "N sem decisão" logo
+      // depois de "M perguntaram e não respondemos" fazia os dois números se
+      // sobreporem em silêncio — e datava a espera do cliente com o relógio de
+      // um card que o schema declara PAUSADO.
+      if (r.esperandoOCliente > 0) {
+        log(`${r.esperandoOCliente} aprovação(ões) esperando a decisão do cliente` +
+            (r.maisAntigoDeleEmDias !== null ? ` — a mais antiga há ${r.maisAntigoDeleEmDias} dia(s)` : ""));
       }
       if (r.abandonadas > 0) {
         log(`${r.abandonadas} aprovação(ões) passaram do prazo ou de ${DIAS_ATE_VIRAR_ABANDONO} dia(s) sem decisão — peça pronta parada`);
+      }
+      // A lista tem teto e a contagem não: quem lê precisa saber que os baldes
+      // acima são piso quando a fila foi amostrada.
+      if (r.amostrada) {
+        log(`aprovação parada — fila de ${r.paradas}, ${r.listados} lidos: os números acima são PISO, não total`);
       }
 
       // Nome só para o que já virou abandono ou é dívida nossa, e no máximo
@@ -645,11 +650,14 @@ export async function baterORelogio(): Promise<{
     // "corretamente fora da conta" não é "não existe": ele é uma peça pronta
     // esperando decisão que nenhuma fila mostra. Vira LOG, não falha da rodada,
     // porque o conserto é de dado e é decisão de gente.
+    // Ele é do BANCO INTEIRO, e o log diz isso: órfão não tem inquilino por
+    // definição, e apresentá-lo dentro do laço acima o faria parecer de um
+    // inquilino específico — contado N vezes, de quebra. Por isso mora fora.
     const orfaos = await prisma.approvalRequest.count({
       where: { status: "pending", clientRequestId: null, clientId: null },
     });
     if (orfaos > 0) {
-      log(`aprovação parada — ${orfaos} card(s) pendentes SEM dono: invisíveis para toda fila por workspace`);
+      log(`aprovação parada — ${orfaos} card(s) pendentes SEM dono no banco inteiro: invisíveis para toda fila por workspace`);
     }
   } catch (err) {
     quebrou("aprovacao-parada", err);
@@ -780,7 +788,7 @@ export async function baterORelogio(): Promise<{
     // 24 h, e somar nível daria "864 pessoas na porta" para uma fila de 3. Ver
     // `Batida.filas` em `lib/agency/pulso.ts`. Sem este campo, `naPorta` era
     // medido a cada 5 minutos e não tinha consumidor nenhum além do console.
-    filas: { naPorta },
+    filas: { naPorta, paradasNaAprovacao },
     falhas,
   });
 

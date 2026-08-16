@@ -17,6 +17,16 @@
 // Este script ESCREVE no banco e se recusa a rodar contra qualquer coisa que
 // não seja um SQLite local. Aviso em cabeçalho não barra ninguém.
 //
+// ── 🔴 OS IDS TÊM A FORMA QUE A PRODUÇÃO GRAVA (16/08/2026) ───────────────
+//
+// Eles eram `fx_ap_duvida2`, `fx_ap_velho`. A faixa mostra os **últimos 6
+// caracteres** do id como localizador do card (é o que distingue duas linhas
+// "Social Media"), e com id legível a captura saía com "#uvida2" e "#_velho" —
+// pedaços de palavra que não existem em produção nenhuma, onde o id é um cuid.
+//
+// É a mesma lição do fixture da porta da frente, no mesmo dia: **fixture que
+// produz o que a produção não produz valida o desenho e esconde o produto.**
+//
 // Uso:  node scripts/fixture-aprovacao-parada.mjs
 
 import { createClient } from "@libsql/client";
@@ -54,14 +64,14 @@ await db.execute({
 const cards = [
   // A DÍVIDA NOSSA: ele perguntou e ninguém respondeu. O prazo dele está
   // pausado, e por isso este é o card urgente mesmo sendo o mais novo.
-  { id: "fx_ap_duvida", dept: "design", dias: 2, expira: null, perguntou: quando(1) },
-  { id: "fx_ap_duvida2", dept: "social-media", dias: 5, expira: null, perguntou: quando(3) },
+  { id: "cmfx0000ap0004duvida5", dept: "design", dias: 2, expira: null, perguntou: quando(1) },
+  { id: "cmfx0000ap0003duvid24", dept: "social-media", dias: 5, expira: null, perguntou: quando(3) },
   // Esperando o cliente, sem prazo próprio: passou de 3 dias, virou abandono.
-  { id: "fx_ap_velho", dept: "social-media", dias: 12, expira: null, perguntou: null },
+  { id: "cmfx0000ap0001velhozz2", dept: "social-media", dias: 12, expira: null, perguntou: null },
   // Prazo próprio ESTOURADO — "passou do prazo" é diferente de "sem prazo".
-  { id: "fx_ap_vencido", dept: "paid-traffic", dias: 6, expira: quando(2), perguntou: null },
+  { id: "cmfx0000ap0002vencid3", dept: "paid-traffic", dias: 6, expira: quando(2), perguntou: null },
   // Novo em folha: não é abandono, e a faixa não pode chamá-lo de atraso.
-  { id: "fx_ap_novo", dept: "design", dias: 0, expira: null, perguntou: null },
+  { id: "cmfx0000ap0005novozz6", dept: "design", dias: 0, expira: null, perguntou: null },
 ];
 
 for (const c of cards) {
@@ -85,7 +95,7 @@ await db.execute({
     (id, clientId, clientRequestId, department, requestedBy, status, expiresAt,
      questionOpenedAt, clientVisible, sourcePostIdsJson, createdAt, updatedAt)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-  args: ["fx_ap_orfao", null, null, "design", "internal", "pending", null, null, 1, "[]", quando(20), quando(20)],
+  args: ["cmfx0000ap0000orfaozz1", null, null, "design", "internal", "pending", null, null, 1, "[]", quando(20), quando(20)],
 });
 
 const r = await db.execute(`SELECT id, department, status FROM ApprovalRequest ORDER BY createdAt`);
