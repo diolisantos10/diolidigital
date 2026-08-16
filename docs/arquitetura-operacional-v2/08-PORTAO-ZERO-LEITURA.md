@@ -10,7 +10,7 @@ Criar um documento chamado `RELATORIO-DE-ENTENDIMENTO.md` contendo:
 
 1. explicação do projeto com suas próprias palavras;
 2. desenho do fluxo ponta a ponta, do contato ao ciclo mensal;
-3. papel de cada um dos 11 departamentos;
+3. papel de cada um dos 12 departamentos;
 4. lista dos agentes e fronteiras que não devem ser misturadas;
 5. explicação do PM como única voz com o cliente;
 6. diferença entre cliente, projeto, campanha, tarefa, entrega e ciclo;
@@ -40,4 +40,3 @@ O arquiteto deve conseguir responder, sem copiar frases dos documentos:
 O CEO responde explicitamente: **“Entendimento aprovado. Pode iniciar o Marco 1.”**
 
 Qualquer outra resposta mantém a implementação bloqueada. Após a autorização, cada marco seguinte continua exigindo evidência e aceite definidos no backlog.
-

@@ -9,6 +9,7 @@
 import type { ConvState, ConvMessage, BriefingScope } from "./briefing-conversation";
 import { emptyScope, emptyEstimate } from "./briefing-conversation";
 import { computeEstimate } from "./live-calculator";
+import { ehAvisoDeAnexo } from "./anexo-nao-e-resposta";
 import {
   isYes, parseInitialMessage, inferAnsweredQIds, mergeScopeDelta,
   buildAcknowledgment, detectNegotiation, getNextQuestion,
@@ -264,7 +265,18 @@ export function processProspectMessage(
   let negotiationReply: string | null = null;
   let negotiationHappened = false;
 
-  if (conv.isFirstMessage) {
+  // ── Anexar arquivo não responde pergunta nenhuma ──────────────────────────
+  // 16/08/2026: o recado automático de anexo entrava aqui como se fosse frase
+  // digitada e virava a resposta da pergunta aberta — o nome de um PDF ocupou o
+  // campo Orçamento inteiro na tela do CEO. Ver `anexo-nao-e-resposta.ts`.
+  // O escopo fica intacto e a pergunta continua na fila: o conteúdo do
+  // documento entra pelo caminho do SDR, que é quem sabe ler documento.
+  const avisoDeAnexo = ehAvisoDeAnexo(text);
+
+  if (avisoDeAnexo) {
+    newScope    = conv.scope;
+    newAnswered = conv.answeredQIds;
+  } else if (conv.isFirstMessage) {
     const serviceDelta = parseInitialMessage(text);
     let { prospectName, businessName: bizFromText } = parseProspectNameBiz(text);
     // Negócio ≠ Nome: a bare person name (no business keyword) must not be
@@ -321,8 +333,12 @@ export function processProspectMessage(
   }
 
   // ── SDR intelligence layer ─────────────────────────────────────────────────
-  const objectionTypes = conv.isFirstMessage ? [] : detectObjectionTypes(text);
-  const parsedBudget   = conv.isFirstMessage ? undefined : parseBudgetAmount(text);
+  // O recado de anexo também não é objeção nem sinal de verba: "…_v1.pdf" tem
+  // número dentro, e ler número de nome de arquivo como orçamento do cliente é
+  // o mesmo defeito de 16/08 entrando por outra porta.
+  const ignoraLeitura  = conv.isFirstMessage || avisoDeAnexo;
+  const objectionTypes = ignoraLeitura ? [] : detectObjectionTypes(text);
+  const parsedBudget   = ignoraLeitura ? undefined : parseBudgetAmount(text);
   const newEstimate    = computeEstimate(newScope);
 
   let newSdr: SDRAgentState = { ...sdr };
@@ -385,7 +401,11 @@ export function processProspectMessage(
     ...withClient,
     scope: newScope,
     answeredQIds: newAnswered,
-    isFirstMessage: false,
+    // Anexo não consome a primeira fala. Se o visitante começa a conversa
+    // subindo o briefing, quem se apresenta ainda é a mensagem que ele vai
+    // digitar — senão a apresentação (nome, negócio, serviço) se perde no
+    // recado do arquivo e nunca mais é lida.
+    isFirstMessage: avisoDeAnexo ? conv.isFirstMessage : false,
     estimate: newEstimate,
     canSubmit: false,
   };

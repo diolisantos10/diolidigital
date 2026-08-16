@@ -33,7 +33,8 @@ export type AgencyRole =
   | "executivo_comercial"
   | "social_staff"
   | "design_staff"
-  | "ads_staff";
+  | "ads_staff"
+  | "tech_staff";
 
 export const AGENCY_ROLE_OPTIONS: { id: AgencyRole; label: string; description: string }[] = [
   { id: "master",              label: "Master",          description: "Acesso total — todas as seções e ações." },
@@ -43,6 +44,7 @@ export const AGENCY_ROLE_OPTIONS: { id: AgencyRole; label: string; description: 
   { id: "social_staff",        label: "Social Media",    description: "Opera Social Media; consulta as demais áreas." },
   { id: "design_staff",        label: "Design",          description: "Opera Design e Branding; consulta as demais áreas." },
   { id: "ads_staff",           label: "Tráfego Pago",    description: "Opera Tráfego Pago; consulta as demais áreas." },
+  { id: "tech_staff",          label: "Produto & Tecnologia", description: "Constrói interfaces e sistemas; consulta o contexto das demais áreas." },
 ];
 
 // ─── Papel → os dois eixos ────────────────────────────────────────────────────
@@ -69,6 +71,7 @@ export const PERFIL_DO_PAPEL: Record<AgencyRole, PerfilOrganizacional> = {
   // "brand-hub" daqui removeria acesso que existe hoje.
   design_staff:        { autoridade: "department_member", departamentos: ["design", "brand-hub"] },
   ads_staff:           { autoridade: "department_member", departamentos: ["paid-traffic"] },
+  tech_staff:          { autoridade: "department_member", departamentos: ["product-technology"] },
 };
 
 export function perfilDoPapel(role: AgencyRole): PerfilOrganizacional {
@@ -224,6 +227,15 @@ export const ROLE_PERMISSIONS: Record<AgencyRole, RolePermissions> = {
     canViewAllClients:     true,
     canResetStore:         false,
     agentFilter:           ["a4"],
+  },
+  tech_staff: {
+    canEditBrandHub:       false,
+    canApplyBrandUpdate:   false,
+    canViewStrategicNotes: false,
+    canViewDiagnostics:    false,
+    canViewAllClients:     true,
+    canResetStore:         false,
+    agentFilter:           [],
   },
 };
 

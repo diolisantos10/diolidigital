@@ -167,6 +167,7 @@
 
 import { ativoAutorizado, TIPO_POR_PLATAFORMA, donoDe } from "./ativos-autorizados";
 import { aprovacaoDaPeca } from "@/lib/agency/esteira/aprovacao-da-peca";
+import { topDownLigado } from "@/lib/agency/top-down";
 
 /** O parecer, no formato da casa: pode, ou não pode COM MOTIVO LEGÍVEL. */
 export type ParecerDePublicacao =
@@ -188,6 +189,29 @@ export const CHAVE_DA_DECISAO = "PUBLICACAO_ORGANICA";
  */
 export function publicacaoOrganicaLiberada(): boolean {
   return (process.env[CHAVE_DA_DECISAO] ?? "").trim().toLowerCase() === VALOR_QUE_LIBERA;
+}
+
+/**
+ * O freio está solto — pelo ambiente OU por decisão TOP DOWN registrada na
+ * tela? Esta é a pergunta que o caminho de publicação faz de verdade.
+ *
+ * POR QUE OS DOIS, E POR QUE "OU": o TOP DOWN (`lib/agency/top-down.ts`) nasceu
+ * em 15/08/2026 porque uma decisão do CEO não pode morar numa variável de
+ * ambiente — lá ela não tem dono, não tem data, não tem porquê, e trocar exige
+ * redeploy. A variável continua valendo como caminho de emergência de quem tem
+ * o Railway e não tem a tela.
+ *
+ * Quando os dois falam, quem manda é quem LIBERA: um freio que ignorasse o
+ * operador que acabou de soltá-lo seria uma surpresa no pior momento possível.
+ *
+ * Continua FAIL-CLOSED: `topDownLigado` devolve false sem linha no banco e
+ * também em erro de leitura. Ausência de decisão nunca vira permissão.
+ *
+ * ⚠️ Solto ≠ autorizado. Quem autoriza a peça é o cliente dela (pergunta 2).
+ */
+export async function freioSolto(): Promise<boolean> {
+  if (publicacaoOrganicaLiberada()) return true;
+  return topDownLigado("publicacao_organica");
 }
 
 /** A frase da recusa pelo freio de emergência. Uma só, para a casa inteira
@@ -267,7 +291,7 @@ export async function conferirPublicacao(entrada: {
   // Por último de propósito: é o motivo mais GERAL. Quando ele e um dos
   // anteriores barram, "esta peça não foi aprovada" ou "este perfil não é seu"
   // dizem ao operador o que fazer; "a casa está parada" só diz que ele espere.
-  if (!publicacaoOrganicaLiberada()) {
+  if (!(await freioSolto())) {
     return { pode: false, motivo: FRASE_SEM_DECISAO };
   }
 

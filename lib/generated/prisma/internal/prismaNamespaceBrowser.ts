@@ -792,7 +792,8 @@ export const ClientRequestDbScalarFieldEnum = {
   sdrHandoffJson: 'sdrHandoffJson',
   attachmentsJson: 'attachmentsJson',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  chaveDoProspect: 'chaveDoProspect'
 } as const
 
 export type ClientRequestDbScalarFieldEnum = (typeof ClientRequestDbScalarFieldEnum)[keyof typeof ClientRequestDbScalarFieldEnum]

@@ -130,6 +130,12 @@ export const PAGINAS: PaginaInterna[] = [
   { href: "/agency/orchestrator",          titulo: "Strategy Room",           dono: "strategy",           acesso: "dono_e_gestao",  noMenu: false },
   { href: "/agency/pm-agent",              titulo: "Gestão de Projetos",      dono: "project-management", acesso: "dono_e_gestao",  noMenu: false },
   { href: "/agency/operations-agent",      titulo: "Operações",               dono: "operations",         acesso: "dono_e_gestao",  noMenu: false },
+
+  // ── Produto & Tecnologia (12º departamento, 15/08/2026) ───────────────────
+  // `todos_internos` de propósito: a determinação do CEO diz "demais
+  // departamentos: visualização". Quem ESCREVE cada coisa é decidido no
+  // servidor por `lib/agency/produto-tecnologia/permissoes.ts` — abrir ≠ editar.
+  { href: "/agency/produto-tecnologia",    titulo: "Produto & Tecnologia",    dono: "product-technology", acesso: "todos_internos", noMenu: false },
   { href: "/agency/radar",                 titulo: "Radar do mercado",        dono: "analytics",          acesso: "dono_e_gestao",  noMenu: true  },
 
   // ── Casa e sistema ────────────────────────────────────────────────────────

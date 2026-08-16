@@ -572,7 +572,24 @@ export interface PublicacaoFeita {
  *
  * Só toca em `status: "scheduled"` — o que está em `draft` ainda não teve aval.
  */
-export async function publicarAgendados(): Promise<PublicacaoFeita> {
+/**
+ * Opções da rodada. Existem por UMA necessidade concreta: publicar uma peça
+ * específica na hora, sem esperar o relógio — o botão "Publicar agora" do
+ * Planner (e o vídeo de demonstração exigido pelo App Review da Meta, que
+ * precisa MOSTRAR a publicação acontecendo).
+ *
+ * Repare no que isto NÃO é: um segundo caminho de publicação. É a MESMA
+ * rodada, com a peça filtrada — todas as travas continuam na frente dela
+ * (aprovação do cliente peça por peça, freio de emergência, ativo autorizado,
+ * formato do arquivo, ritmo do perfil). Uma segunda porta seria uma segunda
+ * porta para auditar, e esta casa já pagou por essa lição.
+ */
+export interface OpcoesDaRodada {
+  /** Publica SÓ esta peça — e ainda assim só se ela estiver agendada e vencida. */
+  apenasPostId?: string;
+}
+
+export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<PublicacaoFeita> {
   const saida: PublicacaoFeita = { publicados: 0, falhas: [], adiados: [] };
   const agora = new Date();
   /** A última publicação de cada perfil, medida uma vez por rodada e atualizada
@@ -581,7 +598,11 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
   const ultimaDoPerfil = new Map<string, Date | null>();
 
   const pendentes = await prisma.socialPost.findMany({
-    where: { status: "scheduled", scheduledFor: { lte: agora } },
+    where: {
+      status: "scheduled",
+      scheduledFor: { lte: agora },
+      ...(opcoes.apenasPostId ? { id: opcoes.apenasPostId } : {}),
+    },
     orderBy: { scheduledFor: "asc" },
     take: MAX_PUBLICACOES_POR_RODADA,
   });

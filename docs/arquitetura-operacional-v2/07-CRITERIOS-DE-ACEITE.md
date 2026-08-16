@@ -2,7 +2,7 @@
 
 ## Condições de aprovação
 
-- [ ] Existe um único catálogo importável de 11 departamentos.
+- [ ] Existe um único catálogo importável de 12 departamentos.
 - [ ] Todo agente pertence a um departamento e possui capacidades declaradas.
 - [ ] Todos os papéis e permissões são negados por padrão.
 - [ ] Master/Diretor acessam todas as páginas existentes.
@@ -48,4 +48,3 @@
 ## Validação de qualidade
 
 A construção não termina ao “abrir a tela”. O marco só é concluído quando código, teste, observabilidade, migração e documentação estão juntos.
-

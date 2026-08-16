@@ -128,6 +128,7 @@ export const ROLE_GUIDES: Record<AgencyRole, RoleGuide> = {
   social_staff:        stub("social_staff", "Guia do Social", "Você produz e entrega o conteúdo de social media dos clientes."),
   design_staff:        stub("design_staff", "Guia do Design", "Você produz e entrega as peças de design dos clientes."),
   ads_staff:           stub("ads_staff", "Guia de Ads", "Você cuida das campanhas de tráfego pago dos clientes."),
+  tech_staff:          stub("tech_staff", "Guia de Produto & Tecnologia", "Você transforma necessidades aprovadas em interfaces, integrações e sistemas seguros e testáveis."),
 };
 
 export function getRoleGuide(role: AgencyRole): RoleGuide {

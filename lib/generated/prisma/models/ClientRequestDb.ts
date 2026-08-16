@@ -41,6 +41,7 @@ export type ClientRequestDbMinAggregateOutputType = {
   attachmentsJson: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  chaveDoProspect: string | null
 }
 
 export type ClientRequestDbMaxAggregateOutputType = {
@@ -60,6 +61,7 @@ export type ClientRequestDbMaxAggregateOutputType = {
   attachmentsJson: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  chaveDoProspect: string | null
 }
 
 export type ClientRequestDbCountAggregateOutputType = {
@@ -79,6 +81,7 @@ export type ClientRequestDbCountAggregateOutputType = {
   attachmentsJson: number
   createdAt: number
   updatedAt: number
+  chaveDoProspect: number
   _all: number
 }
 
@@ -100,6 +103,7 @@ export type ClientRequestDbMinAggregateInputType = {
   attachmentsJson?: true
   createdAt?: true
   updatedAt?: true
+  chaveDoProspect?: true
 }
 
 export type ClientRequestDbMaxAggregateInputType = {
@@ -119,6 +123,7 @@ export type ClientRequestDbMaxAggregateInputType = {
   attachmentsJson?: true
   createdAt?: true
   updatedAt?: true
+  chaveDoProspect?: true
 }
 
 export type ClientRequestDbCountAggregateInputType = {
@@ -138,6 +143,7 @@ export type ClientRequestDbCountAggregateInputType = {
   attachmentsJson?: true
   createdAt?: true
   updatedAt?: true
+  chaveDoProspect?: true
   _all?: true
 }
 
@@ -230,6 +236,7 @@ export type ClientRequestDbGroupByOutputType = {
   attachmentsJson: string
   createdAt: Date
   updatedAt: Date
+  chaveDoProspect: string | null
   _count: ClientRequestDbCountAggregateOutputType | null
   _min: ClientRequestDbMinAggregateOutputType | null
   _max: ClientRequestDbMaxAggregateOutputType | null
@@ -270,6 +277,7 @@ export type ClientRequestDbWhereInput = {
   attachmentsJson?: Prisma.StringFilter<"ClientRequestDb"> | string
   createdAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
+  chaveDoProspect?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
   artifacts?: Prisma.BrainArtifactListRelationFilter
   approvals?: Prisma.ApprovalRequestListRelationFilter
   evidenceItems?: Prisma.EvidenceItemListRelationFilter
@@ -294,6 +302,7 @@ export type ClientRequestDbOrderByWithRelationInput = {
   attachmentsJson?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  chaveDoProspect?: Prisma.SortOrderInput | Prisma.SortOrder
   artifacts?: Prisma.BrainArtifactOrderByRelationAggregateInput
   approvals?: Prisma.ApprovalRequestOrderByRelationAggregateInput
   evidenceItems?: Prisma.EvidenceItemOrderByRelationAggregateInput
@@ -321,6 +330,7 @@ export type ClientRequestDbWhereUniqueInput = Prisma.AtLeast<{
   attachmentsJson?: Prisma.StringFilter<"ClientRequestDb"> | string
   createdAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
+  chaveDoProspect?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
   artifacts?: Prisma.BrainArtifactListRelationFilter
   approvals?: Prisma.ApprovalRequestListRelationFilter
   evidenceItems?: Prisma.EvidenceItemListRelationFilter
@@ -345,6 +355,7 @@ export type ClientRequestDbOrderByWithAggregationInput = {
   attachmentsJson?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  chaveDoProspect?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ClientRequestDbCountOrderByAggregateInput
   _max?: Prisma.ClientRequestDbMaxOrderByAggregateInput
   _min?: Prisma.ClientRequestDbMinOrderByAggregateInput
@@ -370,6 +381,7 @@ export type ClientRequestDbScalarWhereWithAggregatesInput = {
   attachmentsJson?: Prisma.StringWithAggregatesFilter<"ClientRequestDb"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ClientRequestDb"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ClientRequestDb"> | Date | string
+  chaveDoProspect?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
 }
 
 export type ClientRequestDbCreateInput = {
@@ -389,6 +401,7 @@ export type ClientRequestDbCreateInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
@@ -413,6 +426,7 @@ export type ClientRequestDbUncheckedCreateInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
@@ -437,6 +451,7 @@ export type ClientRequestDbUpdateInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
@@ -461,6 +476,7 @@ export type ClientRequestDbUncheckedUpdateInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -485,6 +501,7 @@ export type ClientRequestDbCreateManyInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
 }
 
 export type ClientRequestDbUpdateManyMutationInput = {
@@ -504,6 +521,7 @@ export type ClientRequestDbUpdateManyMutationInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ClientRequestDbUncheckedUpdateManyInput = {
@@ -523,6 +541,7 @@ export type ClientRequestDbUncheckedUpdateManyInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ClientRequestDbCountOrderByAggregateInput = {
@@ -542,6 +561,7 @@ export type ClientRequestDbCountOrderByAggregateInput = {
   attachmentsJson?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  chaveDoProspect?: Prisma.SortOrder
 }
 
 export type ClientRequestDbMaxOrderByAggregateInput = {
@@ -561,6 +581,7 @@ export type ClientRequestDbMaxOrderByAggregateInput = {
   attachmentsJson?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  chaveDoProspect?: Prisma.SortOrder
 }
 
 export type ClientRequestDbMinOrderByAggregateInput = {
@@ -580,6 +601,7 @@ export type ClientRequestDbMinOrderByAggregateInput = {
   attachmentsJson?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  chaveDoProspect?: Prisma.SortOrder
 }
 
 export type ClientRequestDbNullableScalarRelationFilter = {
@@ -684,6 +706,7 @@ export type ClientRequestDbCreateWithoutMessagesInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
@@ -707,6 +730,7 @@ export type ClientRequestDbUncheckedCreateWithoutMessagesInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
@@ -746,6 +770,7 @@ export type ClientRequestDbUpdateWithoutMessagesInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
@@ -769,6 +794,7 @@ export type ClientRequestDbUncheckedUpdateWithoutMessagesInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -792,6 +818,7 @@ export type ClientRequestDbCreateWithoutArtifactsInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessCreateNestedManyWithoutClientRequestInput
@@ -815,6 +842,7 @@ export type ClientRequestDbUncheckedCreateWithoutArtifactsInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessUncheckedCreateNestedManyWithoutClientRequestInput
@@ -854,6 +882,7 @@ export type ClientRequestDbUpdateWithoutArtifactsInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUpdateManyWithoutClientRequestNestedInput
@@ -877,6 +906,7 @@ export type ClientRequestDbUncheckedUpdateWithoutArtifactsInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -900,6 +930,7 @@ export type ClientRequestDbCreateWithoutApprovalsInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessCreateNestedManyWithoutClientRequestInput
@@ -923,6 +954,7 @@ export type ClientRequestDbUncheckedCreateWithoutApprovalsInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessUncheckedCreateNestedManyWithoutClientRequestInput
@@ -962,6 +994,7 @@ export type ClientRequestDbUpdateWithoutApprovalsInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUpdateManyWithoutClientRequestNestedInput
@@ -985,6 +1018,7 @@ export type ClientRequestDbUncheckedUpdateWithoutApprovalsInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -1008,6 +1042,7 @@ export type ClientRequestDbCreateWithoutEvidenceItemsInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessCreateNestedManyWithoutClientRequestInput
@@ -1031,6 +1066,7 @@ export type ClientRequestDbUncheckedCreateWithoutEvidenceItemsInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessUncheckedCreateNestedManyWithoutClientRequestInput
@@ -1070,6 +1106,7 @@ export type ClientRequestDbUpdateWithoutEvidenceItemsInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUpdateManyWithoutClientRequestNestedInput
@@ -1093,6 +1130,7 @@ export type ClientRequestDbUncheckedUpdateWithoutEvidenceItemsInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -1116,6 +1154,7 @@ export type ClientRequestDbCreateWithoutPortalAccessInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
@@ -1139,6 +1178,7 @@ export type ClientRequestDbUncheckedCreateWithoutPortalAccessInput = {
   attachmentsJson?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  chaveDoProspect?: string | null
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
@@ -1178,6 +1218,7 @@ export type ClientRequestDbUpdateWithoutPortalAccessInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
@@ -1201,6 +1242,7 @@ export type ClientRequestDbUncheckedUpdateWithoutPortalAccessInput = {
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  chaveDoProspect?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -1291,6 +1333,7 @@ export type ClientRequestDbSelect<ExtArgs extends runtime.Types.Extensions.Inter
   attachmentsJson?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  chaveDoProspect?: boolean
   artifacts?: boolean | Prisma.ClientRequestDb$artifactsArgs<ExtArgs>
   approvals?: boolean | Prisma.ClientRequestDb$approvalsArgs<ExtArgs>
   evidenceItems?: boolean | Prisma.ClientRequestDb$evidenceItemsArgs<ExtArgs>
@@ -1316,6 +1359,7 @@ export type ClientRequestDbSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   attachmentsJson?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  chaveDoProspect?: boolean
 }, ExtArgs["result"]["clientRequestDb"]>
 
 export type ClientRequestDbSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1335,6 +1379,7 @@ export type ClientRequestDbSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   attachmentsJson?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  chaveDoProspect?: boolean
 }, ExtArgs["result"]["clientRequestDb"]>
 
 export type ClientRequestDbSelectScalar = {
@@ -1354,9 +1399,10 @@ export type ClientRequestDbSelectScalar = {
   attachmentsJson?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  chaveDoProspect?: boolean
 }
 
-export type ClientRequestDbOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "clientId" | "businessName" | "segment" | "services" | "objectives" | "status" | "source" | "rawContext" | "briefingJson" | "sdrHandoffJson" | "attachmentsJson" | "createdAt" | "updatedAt", ExtArgs["result"]["clientRequestDb"]>
+export type ClientRequestDbOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "clientId" | "businessName" | "segment" | "services" | "objectives" | "status" | "source" | "rawContext" | "briefingJson" | "sdrHandoffJson" | "attachmentsJson" | "createdAt" | "updatedAt" | "chaveDoProspect", ExtArgs["result"]["clientRequestDb"]>
 export type ClientRequestDbInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   artifacts?: boolean | Prisma.ClientRequestDb$artifactsArgs<ExtArgs>
   approvals?: boolean | Prisma.ClientRequestDb$approvalsArgs<ExtArgs>
@@ -1397,6 +1443,28 @@ export type $ClientRequestDbPayload<ExtArgs extends runtime.Types.Extensions.Int
     attachmentsJson: string
     createdAt: Date
     updatedAt: Date
+    /**
+     * QUEM MANDOU ESTE BRIEFING, em forma comparável (16/08/2026).
+     * 
+     * Pergunta do CEO: *"se entrar um cliente com o mesmo e-mail e fizer cinco
+     * briefings um atrás do outro, o que acontece com o sistema?"*. Acontecia
+     * que os cinco viravam cinco linhas anônimas: o contato mora dentro de
+     * `briefingJson`, que é um blob de texto, e **não dá para indexar nem
+     * agrupar por dentro de um JSON no SQLite**. Sem chave gravada, a caixa de
+     * entrada não tinha como dizer "esta é a 3ª vez que esta pessoa escreve".
+     * 
+     * Derivada, nunca digitada — mesmo padrão de `Oportunidade.impressaoDigital`
+     * e `EmailDoRadar.mensagemId`. Quem calcula é
+     * `lib/agency/comercial/chave-do-prospect.ts`, a partir do contato
+     * DECLARADO: `email:<minúsculas>` de preferência, senão
+     * `whatsapp:<só dígitos>`.
+     * 
+     * **Nula quando o briefing chegou sem canal** (`lead_incompleto`). Nulo aqui
+     * significa "esta linha não se junta a ninguém" — nunca "junta com as outras
+     * sem chave". Deduzir identidade de arroba de Instagram ou de nome de negócio
+     * é a inferência que esta casa proíbe.
+     */
+    chaveDoProspect: string | null
   }, ExtArgs["result"]["clientRequestDb"]>
   composites: {}
 }
@@ -1841,6 +1909,7 @@ export interface ClientRequestDbFieldRefs {
   readonly attachmentsJson: Prisma.FieldRef<"ClientRequestDb", 'String'>
   readonly createdAt: Prisma.FieldRef<"ClientRequestDb", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ClientRequestDb", 'DateTime'>
+  readonly chaveDoProspect: Prisma.FieldRef<"ClientRequestDb", 'String'>
 }
     
 

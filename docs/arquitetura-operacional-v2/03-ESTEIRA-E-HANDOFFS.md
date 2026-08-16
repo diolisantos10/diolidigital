@@ -10,7 +10,10 @@ flowchart TD
     C -->|negociação| C
     D -->|aprovada| E["5. Produção coordenada"]
     D -->|ajuste| D
-    E --> F{"Materiais completos?"}
+    E --> T{"Inclui interface, portal ou sistema?"}
+    T -->|sim| U["Produto & Tecnologia<br/>UX/UI → Arquitetura → Engenharia"]
+    T -->|não| F{"Materiais completos?"}
+    U --> F
     F -->|não| G["Bloqueio e pedido consolidado"]
     G --> E
     F -->|sim| H["6. Qualidade"]
@@ -18,7 +21,8 @@ flowchart TD
     H -->|aprovado| I["7. PM apresenta pacote"]
     I -->|ajuste ou recusa| E
     I -->|aprovado| J["8. Implementação"]
-    J --> K["9. Medição e ciclo seguinte"]
+    J --> O["Operações<br/>deploy e observabilidade quando digital"]
+    O --> K["9. Medição e ciclo seguinte"]
     K --> D
 ```
 
@@ -30,10 +34,10 @@ flowchart TD
 | Briefing e diagnóstico | SDR + Estratégia + Branding | oportunidade qualificada | briefing estruturado e lacunas | aguarda cliente |
 | Escopo e proposta | Estratégia + Financeiro | briefing suficiente | escopo, preço, prazo e aceite | negociação/recusa |
 | Direção | PM | aceite comercial | plano, ordem, entregas e aval do cliente | ajuste de direção |
-| Produção | Departamentos contratados | direção aprovada | pacote interno versionado | bloqueio material/técnico |
+| Produção | Departamentos contratados, incluindo Produto & Tecnologia quando houver entrega digital | direção aprovada | pacote interno versionado | bloqueio material/técnico |
 | Qualidade | Qualidade | pacote completo | aprovado ou devolvido com motivo | exceção de Diretor auditada |
 | Apresentação | PM | pacote aprovado internamente | decisão do cliente | ajuste, recusa ou cancelamento |
-| Implementação | Área responsável | aprovação do cliente | publicação/ativação/entrega final | falha operacional |
+| Implementação | Área responsável + Produto & Tecnologia + Operações, quando digital | aprovação do cliente | publicação/ativação/entrega final | falha operacional |
 | Medição e ciclo | Analytics + PM + Estratégia | implementação registrada | relatório, aprendizado e próximo plano | dados indisponíveis |
 
 ## Regra dos handoffs
@@ -69,3 +73,15 @@ Toda entrega admite quatro decisões:
 
 Recusar e cancelar nunca apagam versões anteriores.
 
+## Subfluxo de interface, portal ou sistema
+
+```mermaid
+flowchart LR
+    OS["OS aprovada pelo PM"] --> UX["Product Designer<br/>fluxo e interface"]
+    UX --> ARQ["Arquiteto de Software<br/>dados, integração e segurança"]
+    ARQ --> ENG["Engenharia<br/>frontend, backend ou full stack"]
+    ENG --> QA["Qualidade<br/>testes e aceite"]
+    QA --> OPS["Operações<br/>deploy, monitoramento e recuperação"]
+```
+
+O PM é a ponte com o solicitante e preserva o escopo. Produto & Tecnologia é responsável pela solução técnica. Qualidade impede a passagem de defeitos e Operações controla a publicação e a saúde do ambiente.

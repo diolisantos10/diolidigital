@@ -13,7 +13,7 @@ Sua primeira tarefa é executar integralmente o `08-PORTAO-ZERO-LEITURA.md`. Lei
 Depois, crie `RELATORIO-DE-ENTENDIMENTO.md` com:
 
 - sua explicação do modelo ponta a ponta;
-- a função dos 11 departamentos e seus agentes;
+- a função dos 12 departamentos e seus agentes;
 - o papel do Project Manager;
 - os handoffs, estados, aprovações, recusas, bloqueios e recuperações;
 - o modelo de permissões;
@@ -38,4 +38,3 @@ Durante a implementação:
 O trabalho não está concluído quando a tela parece correta; está concluído quando fluxo, dados, permissões, falhas, testes, observabilidade e rollback funcionam juntos.
 
 ---
-

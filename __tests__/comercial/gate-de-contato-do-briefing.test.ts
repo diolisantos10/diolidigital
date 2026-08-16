@@ -33,7 +33,7 @@ vi.mock("@/lib/agency/persistence/client-request-service", () => ({
   deleteClientRequest: vi.fn(),
 }));
 vi.mock("@/lib/dioli-brain/run-auto-scope", () => ({ runAutoScope: autoScope }));
-vi.mock("@/lib/security/rate-limit", () => ({ rateLimited: () => null }));
+vi.mock("@/lib/security/limite-no-banco", () => ({ limiteExcedido: async () => null }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession: vi.fn() }));
 vi.mock("@/lib/email/send", () => ({ sendEmail: enviarEmail }));
 

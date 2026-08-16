@@ -22,7 +22,7 @@ Esta pasta é a fonte de verdade para reconstruir a departamentalização da Dio
 | Arquivo | Função |
 |---|---|
 | `01-ARQUITETURA-MESTRA.md` | Princípios, organograma e decisões não negociáveis |
-| `02-DEPARTAMENTOS-E-AGENTES.md` | 11 departamentos, agentes e fronteiras de responsabilidade |
+| `02-DEPARTAMENTOS-E-AGENTES.md` | 12 departamentos, agentes e fronteiras de responsabilidade |
 | `03-ESTEIRA-E-HANDOFFS.md` | Conexão entre a esteira e os departamentos |
 | `04-PERMISSOES-RBAC.md` | Acessos por departamento e papel |
 | `05-ESTADOS-E-RECUPERACAO.md` | Máquina de estados, bloqueios, retentativas e auditoria |
@@ -42,4 +42,3 @@ Em caso de conflito: decisão escrita nesta pasta → `architecture.manifest.jso
 ## Resultado esperado
 
 Uma única arquitetura, um único catálogo de departamentos, uma única máquina de estados, uma única política de permissões e o Project Manager como voz central entre cliente e especialistas.
-

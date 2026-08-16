@@ -13,6 +13,7 @@ import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
 import { pedirDirecao } from "@/lib/agency/esteira/marcos";
 import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
+import { resolverOuCriarCliente, registrarReaproveitamento } from "@/lib/agency/execution/cliente-do-briefing";
 
 const AGENCY_ROLES = ["master", "project_manager"] as const;
 // Reasoning departments accepted in a proposal. "analytics" is a reasoning dept
@@ -96,22 +97,43 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const req = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
     if (!req) return NextResponse.json({ error: "ClientRequest not found" }, { status: 404 });
 
-    // Resolve (or create) the Client this project belongs to. A request may not be
-    // linked to a Client yet — create one from the briefing's businessName.
+    // ── O CLIENTE: REAPROVEITADO QUANDO O CONTATO BATE (16/08/2026) ─────────
+    //
+    // Esta é a SEGUNDA porta que criava `Client` a partir de uma solicitação —
+    // a outra é `execution/create-project-from-request.ts`. As duas faziam
+    // `prisma.client.create` olhando só `req.clientId == null`, e nenhuma
+    // perguntava se aquele contato já era cliente da casa.
+    //
+    // Pergunta do CEO em 16/08: *"se entrar um cliente com o mesmo e-mail e
+    // fizer cinco briefings um atrás do outro, o que acontece?"*. Por aqui a
+    // resposta era a mesma: cinco cadastros homônimos.
+    //
+    // Consertar só a outra porta deixaria esta vazando em silêncio, então a
+    // regra mora num lugar só (`execution/cliente-do-briefing.ts`) e as duas
+    // portas a chamam. Duas cópias da mesma regra divergem — é o defeito nº 2
+    // do incidente do Drive, e não se repete aqui.
     let clientId = req.clientId ?? undefined;
     if (!clientId) {
-      const client = await prisma.client.create({
-        data: {
-          workspaceId: session.workspaceId,
-          name: req.businessName,
-          industry: req.segment || null,
-        },
+      const resolvido = await resolverOuCriarCliente({
+        workspaceId: session.workspaceId,
+        businessName: req.businessName,
+        segment: req.segment,
+        briefingJson: req.briefingJson,
+        sdrHandoffJson: req.sdrHandoffJson,
       });
-      clientId = client.id;
+      clientId = resolvido.clientId;
       await prisma.clientRequestDb.update({
         where: { id: clientRequestId },
         data: { clientId, workspaceId: session.workspaceId },
       });
+      if (resolvido.reaproveitado) {
+        await registrarReaproveitamento({
+          workspaceId: session.workspaceId,
+          clientId,
+          clientRequestId,
+          motivo: resolvido.motivo,
+        });
+      }
     }
 
     const project = await prisma.project.create({

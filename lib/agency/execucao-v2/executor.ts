@@ -42,7 +42,58 @@ export interface ContextoDeExecucao {
   escopos: string[];
   /** De que cliente é este trabalho (regra 6 do piloto; ausente = interno). */
   clienteId?: string;
+  /**
+   * QUE EFEITO esta execução pretende ter no mundo. É o que torna a
+   * `autonomia` da ficha uma trava em vez de um adjetivo — ver
+   * `AUTONOMIA_PERMITE` abaixo.
+   *
+   * Ausente = `"informar"`, o menor efeito que existe, e a escolha tem história
+   * de meia hora: o primeiro desenho usava `"preparar"` como padrão e a suíte
+   * denunciou na hora — **oito das 69 fichas são autonomia A**, e todas as oito
+   * passariam a ser recusadas por uma trava que ninguém pediu para elas. Trava
+   * nova que reprova o que já roda não é trava, é incidente.
+   *
+   * O motor não tem como adivinhar a intenção do chamador; então ele assume a
+   * menor delas. Quem PREPARA artefato ou toca o mundo diz isso em voz alta —
+   * e é aí que a letra da ficha passa a valer.
+   */
+  efeito?: EfeitoDaExecucao;
 }
+
+/**
+ * O efeito pretendido, nas três formas que a casa reconhece.
+ *
+ * `informar`  — produz leitura, análise, parecer. Não prepara ação.
+ * `preparar`  — produz artefato que alguém adiante aplica (plano, ADR, patch,
+ *               peça). Nada sai da casa por conta disto.
+ * `externo`   — o passo TOCA o mundo: publica, envia, gasta, altera terceiro.
+ */
+export type EfeitoDaExecucao = "informar" | "preparar" | "externo";
+
+/**
+ * A TRAVA DA AUTONOMIA — a coluna que as 69 fichas declaram e que, até
+ * 16/08/2026, o motor não lia.
+ *
+ * A semântica é literal, copiada da tabela das próprias fichas:
+ *
+ *   A — só informa/analisa
+ *   B — recomenda/prepara; passo externo exige aprovação
+ *   C — executa com log; irreversível continua vetado
+ *
+ * POR QUE VIROU CÓDIGO: as sete fichas do 12º departamento nasceram `"autonomia":
+ * "B"` e o CI conferia só que a letra estivesse entre A, B e C. Nada impedia uma
+ * função B de fazer o que só C poderia — a letra era decoração, e decoração é
+ * exatamente o que o guardrail 4 da casa proíbe ("prompt é aviso, código é
+ * trava"). Efeito não permitido pela letra da ficha PARA aqui.
+ *
+ * B com efeito externo ESCALA em vez de recusar: a ficha não diz "nunca", diz
+ * "exige aprovação" — e o pacote de escalada é justamente o pedido de aprovação.
+ */
+export const AUTONOMIA_PERMITE: Record<"A" | "B" | "C", EfeitoDaExecucao[]> = {
+  A: ["informar"],
+  B: ["informar", "preparar"],
+  C: ["informar", "preparar", "externo"],
+};
 
 export interface AtorDaExecucao {
   ator: "humano" | "ia";
@@ -187,6 +238,23 @@ export async function executarFuncao(
   const gatilhos = (contexto.gatilhosDetectados ?? []).filter((g) => spec.gatilhos_humanos.includes(g));
   if (gatilhos.length > 0) {
     return escalar("gatilho humano da ficha detectado — decisão sobe, não se executa", gatilhos);
+  }
+
+  // 6b. A autonomia da ficha — a letra que existia sem valer nada até 16/08/2026.
+  const efeito: EfeitoDaExecucao = contexto.efeito ?? "informar";
+  const permitidos = AUTONOMIA_PERMITE[spec.autonomia] ?? [];
+  if (!permitidos.includes(efeito)) {
+    // B diante de efeito externo não é "não": é "não sem aprovação" — e o
+    // pacote de escalada É o pedido de aprovação.
+    if (spec.autonomia === "B" && efeito === "externo") {
+      return escalar(
+        `autonomia B: passo externo exige aprovação — "${funcaoId}" prepara, não publica`,
+        ["qualquer ação irreversível, gasto ou risco legal"],
+      );
+    }
+    return recusar(
+      `autonomia ${spec.autonomia} da ficha não permite efeito "${efeito}" (permitido: ${permitidos.join(", ") || "nada"})`,
+    );
   }
 
   // 7. Teto de custo ANTES de gastar.

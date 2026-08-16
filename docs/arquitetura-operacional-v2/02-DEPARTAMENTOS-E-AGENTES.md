@@ -2,10 +2,27 @@
 
 Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou combinação das duas. Nem todo agente precisa ser ativado na primeira versão, mas todos devem existir no catálogo canônico.
 
+## A camada de gerência (reforma de 16/08/2026)
+
+Ordem do CEO: *"cada departamento terá um gerente, o chefe do departamento, que
+vai receber a demanda e vai distribuir pros agentes de acordo com cada função.
+O PM vira gerente geral, que é o que se reporta ao Diretor."*
+
+```
+CEO → Diretor → Gerente Geral → gerente de departamento → agentes
+                     ↕
+                  cliente
+```
+
+O **Gerente Geral** é a porta única do cliente e a ponte entre os doze
+departamentos: ele manda nos **gerentes**, nunca nos agentes deles. Cada
+departamento abaixo abre com o seu gerente — o primeiro nome da lista.
+
 ## 1. Atendimento e SDR
 
 **Missão:** captar, qualificar e transformar demanda em contexto confiável.
 
+- **Gerente de Atendimento e SDR** (`manager-atendimento`) — gerente do departamento
 - Agente de Prospecção
 - Agente SDR Conversacional
 - Agente de Qualificação
@@ -18,6 +35,7 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Missão:** transformar a demanda em projeto executável e coordenar toda a esteira.
 
+- **Gerente Geral** (`gerente-geral`) — gerente do departamento
 - Agente PM Orquestrador
 - Agente de Planejamento e Escopo
 - Agente de Dependências e SLA
@@ -30,6 +48,7 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Missão:** decidir o caminho antes da produção.
 
+- **Gerente de Estratégia** (`manager-estrategia`) — gerente do departamento
 - Agente Estrategista de Marketing
 - Agente de Pesquisa de Mercado e Concorrência
 - Agente de Público, Jornada e Personas
@@ -42,6 +61,7 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Missão:** construir, documentar, proteger e evoluir a marca.
 
+- **Gerente de Branding** (`manager-branding`) — gerente do departamento
 - Agente Brand Architect
 - Agente Entrevistador de Marca
 - Agente de Brand Book e Assets
@@ -55,6 +75,7 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Missão:** planejar, produzir, distribuir e aprender com a presença social.
 
+- **Gerente de Social Media** (`manager-social`) — gerente do departamento
 - Agente Social Strategist
 - Agente de Planner Editorial
 - Agente Copywriter
@@ -68,6 +89,7 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Missão:** transformar estratégia e marca em peças visuais e audiovisuais.
 
+- **Gerente de Design e Produção Criativa** (`manager-design`) — gerente do departamento
 - Agente Diretor Criativo
 - Agente Designer Gráfico
 - Agente Motion Designer
@@ -81,6 +103,7 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Missão:** planejar, configurar, operar e otimizar mídia paga.
 
+- **Gerente de Tráfego Pago e Performance** (`manager-trafego`) — gerente do departamento
 - Agente Media Planner
 - Agente Campaign Builder
 - Agente de Pixel, Eventos e Tracking
@@ -94,6 +117,7 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Missão:** unificar dados e transformá-los em decisão.
 
+- **Gerente de Analytics e Inteligência** (`manager-analytics`) — gerente do departamento
 - Agente de Integração de Dados
 - Agente Analista de BI
 - Agente de Insights
@@ -106,6 +130,7 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Missão:** impedir que erro, desalinhamento ou risco chegue ao cliente.
 
+- **Gerente de Qualidade e Compliance** (`manager-qualidade`) — gerente do departamento
 - Agente QA Orquestrador
 - Agente de Aderência ao Briefing
 - Agente de Brand Compliance
@@ -119,6 +144,7 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Missão:** proteger margem, contrato, cobrança e sustentabilidade.
 
+- **Gerente de Financeiro e Administrativo** (`manager-financeiro`) — gerente do departamento
 - Agente de Precificação e Margem
 - Agente de Propostas Comerciais
 - Agente de Contratos e Documentos
@@ -132,6 +158,7 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Missão:** manter integrações, automações, credenciais, segurança e continuidade.
 
+- **Gerente de Operações, Sistemas e Segurança** (`manager-operacoes`) — gerente do departamento
 - Agente Gestor de Integrações
 - Agente de Credenciais e Acessos
 - Agente Scheduler e Recovery
@@ -141,12 +168,32 @@ Agente significa uma função executora. Ela pode ser operada por IA, pessoa ou 
 
 **Entrega:** serviços disponíveis, integrações saudáveis, alertas e recuperação comprovada.
 
+## 12. Produto & Tecnologia
+
+**Missão:** transformar necessidades da agência e dos clientes em produtos digitais seguros, claros, testáveis e sustentáveis.
+
+- **Gerente de Produto & Tecnologia** (`manager-produto-tecnologia`) — gerente do departamento
+- Agente Orquestrador de Tecnologia
+- Agente Arquiteto de Software
+- Agente Product Designer UX/UI
+- Agente Engenheiro de Design System
+- Agente Engenheiro Frontend
+- Agente Engenheiro Backend
+- Agente Engenheiro Full Stack
+
+**Entrega:** fluxo validado, especificação de UX/UI, decisão de arquitetura, código versionado, testes e pacote técnico pronto para Qualidade e Operações.
+
+**Entrada obrigatória:** OS aprovada pelo Project Manager, problema a resolver, usuário afetado, critérios de aceite e limites de escopo.
+
+**Não faz:** campanha, peça publicitária, alteração de marca, merge sem CI verde ou publicação direta em produção.
+
 ## Fronteiras obrigatórias
 
 - Estratégia decide **o que e por quê**; PM decide **ordem, dono e prazo**.
 - Branding define regras; Design aplica e materializa.
+- Design cria peças e comunicação visual; Product Designer desenha a experiência de interfaces e o Design System transforma essa experiência em componentes reutilizáveis.
+- Produto & Tecnologia constrói e modifica interfaces, APIs e sistemas; Operações publica, monitora e recupera a infraestrutura.
 - Social Media define operação orgânica; Tráfego define distribuição paga.
 - Analytics mede; não altera campanha sem criar recomendação ou autorização prevista.
 - Qualidade valida; não reescreve silenciosamente o trabalho do especialista.
 - Operações recupera infraestrutura; não aprova conteúdo ou direção de marca.
-

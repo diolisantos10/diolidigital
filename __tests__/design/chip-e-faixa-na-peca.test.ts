@@ -18,6 +18,12 @@
 // portão barrar exatamente a peça que se quer produzir, e é assim que alguém
 // desliga o portão. Slot e trava entram juntos ou nenhum entra.
 
+// ⏱️ Os testes que RENDERIZAM (`montarPeca`) carregam fonte e canvas de
+// verdade. Local levam ~1s; em CI, com os workers disputando CPU, a primeira
+// renderização já estourou os 30s padrão do vitest — no MESMO commit em que a
+// outra rodada passou (PR #154, 15/08/2026). Eles têm prazo explícito de 120s.
+// Prazo não é assertiva: nenhuma verificação foi afrouxada, só a paciência.
+
 import { describe, it, expect } from "vitest";
 import {
   travaDeRotuloDeBeneficio, travaDeChamadaNaArte, chamadaDaMarca,
@@ -224,7 +230,7 @@ describe("montarPeca produz a peça com chip e faixa, e a trava decide o que ent
       expect(r.textosPintados).toContain(chip);
     }
     expect(r.textosPintados).toContain("SIGA O CITYJOBS");
-  });
+  }, 120_000);
 
   it("o chip sem lastro NÃO entra — e a peça sai assim mesmo, com o motivo dito", async () => {
     const r = await montarPeca({
@@ -239,7 +245,7 @@ describe("montarPeca produz a peça com chip e faixa, e a trava decide o que ent
     const recusado = r.textoRecusado.find((t) => t.papel === "chip");
     expect(recusado?.motivo).toBe("sem_lastro_na_ficha_de_marca");
     expect(recusado?.detalhe).toContain("Vagas exclusivas");
-  });
+  }, 120_000);
 
   it("promessa na faixa não vira pixel — a peça sai sem faixa nenhuma", async () => {
     const r = await montarPeca({ ...base, chips: [], chamada: "GARANTA SUA VAGA HOJE" });
@@ -247,5 +253,5 @@ describe("montarPeca produz a peça com chip e faixa, e a trava decide o que ent
     if (!r.ok) return;
     expect(r.textosPintados).not.toContain("GARANTA SUA VAGA HOJE");
     expect(r.textoRecusado.some((t) => t.papel === "chamada")).toBe(true);
-  });
+  }, 120_000);
 });

@@ -66,7 +66,12 @@ export function briefingConfirmationEmail(input: BriefingConfirmationInput): {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#3A3A38;line-height:1.6">
             <tr><td style="padding:2px 0">1. Analisamos o escopo que você enviou</td></tr>
             <tr><td style="padding:2px 0">2. Preparamos uma proposta formal detalhada</td></tr>
-            <tr><td style="padding:2px 0">3. Entramos em contato por este e-mail em até 1 dia útil</td></tr>
+            <!-- ⛔ SEM PRAZO. Ordem do CEO em 16/08/2026: *"em relação à
+                 confirmação de promessa, de orçamento em um dia, não autorizei
+                 nada disso."* Este e-mail é a IRMÃ da tela de confirmação: as
+                 duas nasceram do mesmo texto, e consertar só a que aparece no
+                 print deixa a promessa viva na caixa de entrada do cliente. -->
+            <tr><td style="padding:2px 0">3. Entramos em contato por este e-mail</td></tr>
           </table>
         </td></tr>
         <tr><td style="padding:24px 32px 28px">

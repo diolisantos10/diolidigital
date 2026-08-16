@@ -3,10 +3,29 @@ import "./globals.css";
 
 export const viewport: Viewport = {
   themeColor: "#070A1F",
+  // ⛔ A TRAVA CONTRA O TEMA ESCURO QUE NÃO É NOSSO. 16/08/2026: o CEO abriu a
+  // confirmação do briefing no celular e não conseguiu ler o botão do WhatsApp
+  // — *"está preto sobre preto."*
+  //
+  // Página que não declara `color-scheme` autoriza o Chrome do Android a
+  // escurecê-la por conta própria: ele inverte o que é claro e deixa quieto o
+  // que já é escuro, e o resultado é botão escuro sobre fundo que virou escuro.
+  // Some SÓ no celular — que é onde está a maioria dos visitantes e onde
+  // nenhum de nós olha antes de subir.
+  //
+  // Isto vira `<meta name="color-scheme">`, que é o que o navegador lê. A regra
+  // equivalente em CSS mora em `globals.css`; as duas dizem a mesma coisa de
+  // propósito, porque o CSS pode ser reescrito pelo compilador e a meta não.
+  colorScheme: "light",
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://diolidigital.com.br"),
+  // O ENDEREÇO DA CASA É `www`. Ordem do CEO em 16/08/2026: *"está tudo ainda
+  // com o domínio, é pra estar diolidigital.com.br."* O `metadataBase` é o que
+  // o Next usa para transformar caminho relativo em URL absoluta — canônica,
+  // Open Graph, imagem de compartilhamento. Errar aqui não quebra tela nenhuma:
+  // vaza calado para o Google e para o card que o cliente vê no WhatsApp.
+  metadataBase: new URL("https://www.diolidigital.com.br"),
   title: {
     default: "Dioli Digital — Estúdio digital com IA",
     template: "%s · Dioli Digital",
@@ -20,7 +39,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
     siteName: "Dioli Digital",
-    url: "https://diolidigital.com.br",
+    url: "https://www.diolidigital.com.br",
   },
 };
 

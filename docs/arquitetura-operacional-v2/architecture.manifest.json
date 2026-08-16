@@ -14,32 +14,279 @@
     "no-code-before-readback-approval"
   ],
   "departments": [
-    {"id":"client-service-sdr","name":"Atendimento e SDR","agents":["prospecting","conversational-sdr","qualification","initial-diagnosis","opportunity-crm"]},
-    {"id":"project-management","name":"Project Management","agents":["pm-orchestrator","planning-and-scope","dependencies-and-sla","client-communication","cycles-and-retention"]},
-    {"id":"strategy","name":"Estratégia","agents":["marketing-strategist","market-and-competitor-research","audience-journey-personas","offer-and-positioning","campaign-planning"]},
-    {"id":"branding","name":"Branding","agents":["brand-architect","brand-interviewer","brandbook-and-assets","tone-of-voice","moodboard-and-identity","brand-audit-and-evolution"]},
-    {"id":"social-media","name":"Social Media","agents":["social-strategist","editorial-planner","copywriter","community-and-sac","trends-and-radar","publishing-and-distribution"]},
-    {"id":"design","name":"Design e Produção Criativa","agents":["creative-director","graphic-designer","motion-designer","video-editor","adaptation-and-resizing","creative-library"]},
-    {"id":"paid-traffic","name":"Tráfego Pago e Performance","agents":["media-planner","campaign-builder","pixel-events-tracking","campaign-optimizer","budget-guardian","creative-performance-analysis"]},
-    {"id":"analytics","name":"Analytics e Inteligência","agents":["data-integration","bi-analyst","insights","attribution-and-funnel","forecast-and-alerts"]},
-    {"id":"quality","name":"Qualidade e Compliance","agents":["qa-orchestrator","brief-adherence","brand-compliance","content-and-fact-review","policy-and-technical-risk","approval-gate"]},
-    {"id":"finance","name":"Financeiro e Administrativo","agents":["pricing-and-margin","commercial-proposal","contracts-and-documents","billing","collection","client-profitability"]},
-    {"id":"operations","name":"Operações, Sistemas e Segurança","agents":["integration-manager","credentials-and-access","scheduler-and-recovery","observability","security-and-audit","backup-and-continuity"]}
+    {
+      "id": "client-service-sdr",
+      "name": "Atendimento e SDR",
+      "agents": [
+        "manager-atendimento",
+        "prospecting",
+        "conversational-sdr",
+        "qualification",
+        "initial-diagnosis",
+        "opportunity-crm"
+      ]
+    },
+    {
+      "id": "project-management",
+      "name": "Project Management",
+      "agents": [
+        "gerente-geral",
+        "pm-orchestrator",
+        "planning-and-scope",
+        "dependencies-and-sla",
+        "client-communication",
+        "cycles-and-retention"
+      ]
+    },
+    {
+      "id": "strategy",
+      "name": "Estratégia",
+      "agents": [
+        "manager-estrategia",
+        "marketing-strategist",
+        "market-and-competitor-research",
+        "audience-journey-personas",
+        "offer-and-positioning",
+        "campaign-planning"
+      ]
+    },
+    {
+      "id": "branding",
+      "name": "Branding",
+      "agents": [
+        "manager-branding",
+        "brand-architect",
+        "brand-interviewer",
+        "brandbook-and-assets",
+        "tone-of-voice",
+        "moodboard-and-identity",
+        "brand-audit-and-evolution"
+      ]
+    },
+    {
+      "id": "social-media",
+      "name": "Social Media",
+      "agents": [
+        "manager-social",
+        "social-strategist",
+        "editorial-planner",
+        "copywriter",
+        "community-and-sac",
+        "trends-and-radar",
+        "publishing-and-distribution"
+      ]
+    },
+    {
+      "id": "design",
+      "name": "Design e Produção Criativa",
+      "agents": [
+        "manager-design",
+        "creative-director",
+        "graphic-designer",
+        "motion-designer",
+        "video-editor",
+        "adaptation-and-resizing",
+        "creative-library"
+      ]
+    },
+    {
+      "id": "paid-traffic",
+      "name": "Tráfego Pago e Performance",
+      "agents": [
+        "manager-trafego",
+        "media-planner",
+        "campaign-builder",
+        "pixel-events-tracking",
+        "campaign-optimizer",
+        "budget-guardian",
+        "creative-performance-analysis"
+      ]
+    },
+    {
+      "id": "analytics",
+      "name": "Analytics e Inteligência",
+      "agents": [
+        "manager-analytics",
+        "data-integration",
+        "bi-analyst",
+        "insights",
+        "attribution-and-funnel",
+        "forecast-and-alerts"
+      ]
+    },
+    {
+      "id": "quality",
+      "name": "Qualidade e Compliance",
+      "agents": [
+        "manager-qualidade",
+        "qa-orchestrator",
+        "brief-adherence",
+        "brand-compliance",
+        "content-and-fact-review",
+        "policy-and-technical-risk",
+        "approval-gate"
+      ]
+    },
+    {
+      "id": "finance",
+      "name": "Financeiro e Administrativo",
+      "agents": [
+        "manager-financeiro",
+        "pricing-and-margin",
+        "commercial-proposal",
+        "contracts-and-documents",
+        "billing",
+        "collection",
+        "client-profitability"
+      ]
+    },
+    {
+      "id": "operations",
+      "name": "Operações, Sistemas e Segurança",
+      "agents": [
+        "manager-operacoes",
+        "integration-manager",
+        "credentials-and-access",
+        "scheduler-and-recovery",
+        "observability",
+        "security-and-audit",
+        "backup-and-continuity"
+      ]
+    },
+    {
+      "id": "product-technology",
+      "name": "Produto & Tecnologia",
+      "agents": [
+        "manager-produto-tecnologia",
+        "technology-orchestrator",
+        "software-architect",
+        "product-designer",
+        "design-system-engineer",
+        "frontend-engineer",
+        "backend-engineer",
+        "fullstack-engineer"
+      ]
+    }
   ],
   "workflow": [
-    {"id":"contact","owner":"client-service-sdr","requiredOutput":"qualified-opportunity"},
-    {"id":"briefing","owner":"client-service-sdr","contributors":["strategy","branding"],"requiredOutput":"structured-briefing"},
-    {"id":"proposal","owner":"strategy","contributors":["finance"],"requiredOutput":"accepted-scope"},
-    {"id":"direction","owner":"project-management","contributors":["strategy","branding","design"],"requiredOutput":"approved-direction"},
-    {"id":"production","owner":"project-management","contributors":["branding","social-media","design","paid-traffic","analytics"],"requiredOutput":"complete-internal-package"},
-    {"id":"quality","owner":"quality","requiredOutput":"internal-approval"},
-    {"id":"client-approval","owner":"project-management","requiredOutput":"recorded-client-decision"},
-    {"id":"implementation","owner":"project-management","contributors":["social-media","design","paid-traffic","operations"],"requiredOutput":"implemented-delivery"},
-    {"id":"measurement-cycle","owner":"analytics","contributors":["project-management","strategy","branding"],"requiredOutput":"learning-and-next-cycle"}
+    {
+      "id": "contact",
+      "owner": "client-service-sdr",
+      "requiredOutput": "qualified-opportunity"
+    },
+    {
+      "id": "briefing",
+      "owner": "client-service-sdr",
+      "contributors": [
+        "strategy",
+        "branding"
+      ],
+      "requiredOutput": "structured-briefing"
+    },
+    {
+      "id": "proposal",
+      "owner": "strategy",
+      "contributors": [
+        "finance"
+      ],
+      "requiredOutput": "accepted-scope"
+    },
+    {
+      "id": "direction",
+      "owner": "project-management",
+      "contributors": [
+        "strategy",
+        "branding",
+        "design",
+        "product-technology"
+      ],
+      "requiredOutput": "approved-direction"
+    },
+    {
+      "id": "production",
+      "owner": "project-management",
+      "contributors": [
+        "branding",
+        "social-media",
+        "design",
+        "paid-traffic",
+        "analytics",
+        "product-technology"
+      ],
+      "requiredOutput": "complete-internal-package"
+    },
+    {
+      "id": "quality",
+      "owner": "quality",
+      "requiredOutput": "internal-approval"
+    },
+    {
+      "id": "client-approval",
+      "owner": "project-management",
+      "requiredOutput": "recorded-client-decision"
+    },
+    {
+      "id": "implementation",
+      "owner": "project-management",
+      "contributors": [
+        "social-media",
+        "design",
+        "paid-traffic",
+        "product-technology",
+        "operations"
+      ],
+      "requiredOutput": "implemented-delivery"
+    },
+    {
+      "id": "measurement-cycle",
+      "owner": "analytics",
+      "contributors": [
+        "project-management",
+        "strategy",
+        "branding"
+      ],
+      "requiredOutput": "learning-and-next-cycle"
+    }
   ],
-  "clientDecisions": ["approve","request-adjustments","reject-and-redo","cancel-with-reason"],
-  "canonicalStates": ["intake","qualified","briefing_incomplete","briefing_ready","proposal","negotiation","accepted","direction_pending","direction_revision","direction_approved","production","blocked_materials","internal_review","client_approval","revision","implementation","measurement","cycle_closed","cancelled","closed"],
-  "blockingReasons": ["missing_client_information","missing_asset","missing_credential","integration_unavailable","quality_rejected","client_decision_pending","financial_hold","policy_or_security_risk","technical_failure"],
+  "clientDecisions": [
+    "approve",
+    "request-adjustments",
+    "reject-and-redo",
+    "cancel-with-reason"
+  ],
+  "canonicalStates": [
+    "intake",
+    "qualified",
+    "briefing_incomplete",
+    "briefing_ready",
+    "proposal",
+    "negotiation",
+    "accepted",
+    "direction_pending",
+    "direction_revision",
+    "direction_approved",
+    "production",
+    "blocked_materials",
+    "internal_review",
+    "client_approval",
+    "revision",
+    "implementation",
+    "measurement",
+    "cycle_closed",
+    "cancelled",
+    "closed"
+  ],
+  "blockingReasons": [
+    "missing_client_information",
+    "missing_asset",
+    "missing_credential",
+    "integration_unavailable",
+    "quality_rejected",
+    "client_decision_pending",
+    "financial_hold",
+    "policy_or_security_risk",
+    "technical_failure"
+  ],
   "approvalGate": {
     "document": "RELATORIO-DE-ENTENDIMENTO.md",
     "requiredPhrase": "Entendimento aprovado. Pode iniciar o Marco 1."

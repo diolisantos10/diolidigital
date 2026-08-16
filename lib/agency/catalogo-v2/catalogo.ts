@@ -7,7 +7,8 @@
 // `architecture.manifest.json` e o expõe tipado. Quem quiser mudar o catálogo
 // muda o manifesto (decisão registrada), e o teste de contrato
 // (`__tests__/v2/catalogo.test.ts`) reprova qualquer divergência entre o que
-// este módulo expõe e o que o manifesto diz — inclusive a conta de 62 funções,
+// este módulo expõe e o que o manifesto diz — inclusive a conta de 81 funções
+// (as 69 executoras mais os 12 gerentes da reforma de 16/08/2026),
 // que é determinação literal do CEO.
 //
 // As CINCO definições legadas de departamento (BRAIN_DEPARTMENTS,
@@ -70,10 +71,10 @@ function construir() {
 
 const catalogo = construir();
 
-/** Os 11 departamentos canônicos, na ordem do manifesto. */
+/** Os 12 departamentos canônicos, na ordem do manifesto. */
 export const DEPARTAMENTOS_V2: readonly DepartamentoCanonico[] = catalogo.departamentos;
 
-/** As 62 funções executoras (determinação do CEO: o catálogo possui 62). */
+/** As 81 funções do catálogo canônico — 69 executoras + os 12 gerentes. */
 export const FUNCOES_V2: readonly FuncaoExecutora[] = catalogo.funcoes;
 
 /** Os 9 marcos do fluxo, com dono e contribuintes canônicos. */

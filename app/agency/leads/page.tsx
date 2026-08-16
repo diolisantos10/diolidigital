@@ -62,9 +62,9 @@ export default function LeadsPage() {
         subtitle="Briefings que chegaram pela porta pública e ainda não viraram cliente. O mais antigo em cima."
         meta={
           r.estado === "ok" && r.semContato > 0 ? (
-            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-[6px] bg-[var(--danger-bg)] text-[var(--danger)] text-[12px] font-semibold">
-              {r.semContato} sem forma de contato
-            </span>
+            // Mesmo `Selo` dos cartões: duas cópias da mesma pílula no mesmo
+            // arquivo divergem na primeira vez que alguém ajustar uma delas.
+            <Selo tom="danger">{r.semContato} sem forma de contato</Selo>
           ) : undefined
         }
       />
@@ -133,16 +133,40 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
           <span className="text-[12px] text-[var(--text-muted)] shrink-0 pt-1">{aberto ? "fechar" : "abrir"}</span>
         </div>
 
-        {/* A pergunta que decide tudo vem primeiro, e o "não" é vermelho. */}
-        <div className="mt-3">
+        {/* 🔴 A ORDEM DESTA FILEIRA É A REGRA DA TELA, NÃO ARRUMAÇÃO.
+            O cabeçalho deste arquivo declara: "a pergunta que decide tudo vem
+            primeiro". Quando o carimbo de repetição entrou (16/08), ele entrou
+            ACIMA do selo de contato e quebrou justamente isso — numa coluna de
+            seis cartões, a resposta de "dá para falar com ele?" deixava de
+            estar sempre no mesmo lugar, porque só alguns cartões têm carimbo.
+            Contato SEMPRE primeiro; a repetição vem depois, na mesma fileira.
+
+            ESTE CONTATO JÁ ESCREVEU ANTES (16/08/2026). Pergunta do CEO: "cinco
+            briefings do mesmo e-mail, o que acontece?". Acontecia que apareciam
+            cinco cartões idênticos e nada dizia que eram a mesma pessoa. O
+            carimbo NÃO afirma que é pedido repetido — pode ser um segundo
+            projeto legítimo. Ele diz o fato e deixa a leitura para quem abre. */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           {semContato ? (
-            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-[6px] bg-[var(--danger-bg)] text-[var(--danger)] text-[12px] font-semibold">
-              Sem como falar com esta pessoa
-            </span>
+            <Selo tom="danger">Sem como falar com esta pessoa</Selo>
           ) : (
-            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-[6px] bg-[var(--success-bg)] text-[var(--success)] text-[12px] font-semibold">
+            <Selo tom="success">
               {lead.contato.canais.map((c) => (c.tipo === "whatsapp" ? "WhatsApp" : "E-mail")).join(" · ")}
-            </span>
+            </Selo>
+          )}
+
+          {/* 🔴 TOM DE INFORMAÇÃO, NÃO DE ALERTA — e a troca é deliberada.
+              Este selo nasceu em `--warning`/`--warning-bg` (âmbar). Âmbar nesta
+              casa quer dizer "algo saiu do trilho", e escrever cinco vezes não
+              é erro do cliente: pode ser exatamente o que a agência quer, um
+              cliente insistindo em contratar. Numa coluna de cinco cartões,
+              cinco pílulas âmbar liam como cinco problemas e disputavam o olho
+              com o vermelho de "sem como falar", que é o único alarme legítimo
+              desta tela. `--info` diz o fato sem acusar ninguém. */}
+          {lead.repeticao && (
+            <Selo tom="info">
+              {lead.repeticao.ordem}º briefing deste mesmo contato (de {lead.repeticao.vezes})
+            </Selo>
           )}
         </div>
 
@@ -200,6 +224,47 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
               </ul>
             )}
           </Bloco>
+
+          {lead.repeticao && (
+            <Bloco titulo="Este contato já escreveu antes">
+              <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                São <strong>{lead.repeticao.vezes} briefings</strong> do mesmo contato, e este é o{" "}
+                <strong>{lead.repeticao.ordem}º</strong>. O primeiro chegou em{" "}
+                {new Date(lead.repeticao.primeiroEm).toLocaleDateString("pt-BR")}.
+              </p>
+              <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">
+                <strong>Nenhum deles foi juntado nem descartado</strong> — cada briefing está inteiro,
+                com o texto que a pessoa escreveu. Pode ser o mesmo pedido reenviado, ou um{" "}
+                <strong>segundo projeto</strong> que ela quer contratar: quem lê os dois decide, não o
+                sistema.
+              </p>
+              {/* 🔴 ID DE BANCO NÃO É INFORMAÇÃO. Até 16/08 esta lista saía como
+                  `outro briefing: 0083d663-4ee0-4e8f-b9b5-acd13858f0cf` — quatro
+                  linhas de monospace que eram o elemento mais pesado do bloco e
+                  não respondiam a pergunta pela qual o bloco existe. Data, nome
+                  do negócio e o que foi pedido respondem: é assim que se vê que
+                  dois briefings viraram "unidade Pinheiros" e falam de outro
+                  projeto. Tudo dado gravado — nada aqui é resumo de IA. */}
+              <ul className="mt-2.5 space-y-2">
+                {lead.repeticao.irmaos.map((irmao) => (
+                  <li key={irmao.id} className="text-[13px] border-l-2 border-[var(--border)] pl-3">
+                    <p className="text-[var(--text-primary)]">
+                      <span className="tabular-nums">
+                        {new Date(irmao.em).toLocaleDateString("pt-BR")}
+                      </span>
+                      {irmao.negocio ? <> · {irmao.negocio}</> : null}
+                    </p>
+                    <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
+                      {/* Ausência de informação não é informação: briefing sem
+                          serviço e sem texto diz que não tem descrição, e nunca
+                          some da lista por isso. */}
+                      {irmao.pedido ?? "sem descrição gravada neste briefing"}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </Bloco>
+          )}
 
           {lead.servicosPedidos.length > 0 && (
             <Bloco titulo="O que ele pediu">
@@ -262,6 +327,33 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * A pílula de estado do cartão — uma geometria só para os três tons.
+ *
+ * 🔴 **POR QUE A ALTURA DEIXOU DE SER FIXA.** As três nasceram com `h-6`, altura
+ * travada em 24px. Medido a 375px, o carimbo mais longo de hoje ocupa 240px dos
+ * 309px disponíveis e **não estoura** — mas altura fixa é uma aposta em que ele
+ * nunca vá crescer, e o modo de falhar dela é o pior que existe: o texto sai
+ * POR FORA do fundo colorido, em cima do que estiver embaixo, sem quebrar nada
+ * que um teste perceba. Basta um `12º briefing (de 15)`, uma tradução mais
+ * longa ou o zoom de fonte do sistema. `min-h` + `py` deixa o fundo crescer com
+ * o texto; `max-w-full` impede que a pílula ultrapasse o cartão.
+ */
+function Selo({ tom, children }: { tom: "danger" | "success" | "info"; children: React.ReactNode }) {
+  const cor = {
+    danger:  "bg-[var(--danger-bg)] text-[var(--danger)]",
+    success: "bg-[var(--success-bg)] text-[var(--success)]",
+    info:    "bg-[var(--info-bg)] text-[var(--info)]",
+  }[tom];
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 min-h-6 max-w-full px-2.5 py-1 rounded-[6px] text-[12px] font-semibold leading-tight ${cor}`}
+    >
+      {children}
+    </span>
   );
 }
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/client";
 import { apenasDoWorkspace, workspaceUnico } from "@/lib/auth/posse-de-workspace";
+import { chaveDaSolicitacao } from "@/lib/agency/comercial/chave-do-prospect";
 
 // ── Normalization ─────────────────────────────────────────────────────────────
 // SQLite (via Prisma) stores JSON fields as raw strings. This normalizer parses
@@ -117,8 +118,29 @@ export async function resolverWorkspacePublico(informado?: string): Promise<stri
 
 export async function createClientRequest(input: CreateClientRequestInput): Promise<NormalizedClientRequest> {
   const workspaceId = await resolverWorkspacePublico(input.workspaceId);
+
+  // ── A CHAVE DO PROSPECT (16/08/2026) ───────────────────────────────────────
+  //
+  // Pergunta do CEO: *"se entrar um cliente com o mesmo e-mail e fizer cinco
+  // briefings um atrás do outro, o que acontece com o sistema?"*
+  //
+  // Acontecia que este `create` puro produzia cinco linhas **anônimas**: o
+  // contato mora dentro de `briefingJson`, e não dá para indexar nem agrupar por
+  // dentro de um JSON no SQLite. A caixa de entrada não tinha como dizer "esta é
+  // a 3ª vez que esta pessoa escreve".
+  //
+  // ⚠️ Continua sendo `create`, NUNCA `upsert`. Um `upsert` por contato
+  // sobrescreveria o briefing anterior — e **perder o que o cliente escreveu é
+  // pior que ter duplicata**. Cada briefing continua sendo sua própria linha,
+  // inteira; o que muda é que agora ela carrega de quem é.
+  const chaveDoProspect = chaveDaSolicitacao({
+    briefingJson:   input.briefingJson,
+    sdrHandoffJson: input.sdrHandoffJson,
+  });
+
   const raw = await prisma.clientRequestDb.create({
     data: {
+      chaveDoProspect,
       businessName:    input.businessName,
       segment:         input.segment         ?? "",
       services:        JSON.stringify(input.services    ?? []),

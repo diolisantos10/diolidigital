@@ -37,6 +37,7 @@ const DE_LEGADO: Record<string, string> = {
   quality: "quality",
   finance: "finance",
   operations: "operations",
+  "product-technology": "product-technology",
 };
 
 /**

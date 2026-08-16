@@ -8,6 +8,85 @@
 
 ---
 
+## MESMO CONTATO, VÁRIOS BRIEFINGS: DEDUP DE **CADASTRO**, NUNCA DE **PEDIDO**
+
+**Decidido em** 2026-08-16 · **por** Diretor, a partir de pergunta do CEO ·
+**registrado pelo** `pm` · **commits** `4cbba4b` (o conserto) e `57eb2f1` (a tela
+conferida) · **origem:** `lib/agency/comercial/chave-do-prospect.ts`,
+`lib/agency/execution/cliente-do-briefing.ts`,
+`prisma/migrations/20260816120000_chave_do_prospect/migration.sql`
+
+**A pergunta que gerou tudo**, do CEO, em 16/08:
+
+> *"se entrar um cliente com o mesmo e-mail e fizer cinco briefings um atrás do
+> outro, o que acontece com o sistema?"*
+
+**A resposta medida: não dava pane — dava bagunça cara.** Na entrada,
+`createClientRequest` era `create` puro e os cinco briefings viravam **cinco
+linhas anônimas** na fila, sem nada dizendo que eram a mesma pessoa. O estrago
+grande vinha na **aprovação**: `create-project-from-request.ts` era idempotente
+**por solicitação**, e a linha seguinte fazia `prisma.client.create` sempre que
+`req.clientId` estava nulo. Aprovar as cinco criava **cinco `Client` homônimos,
+cinco portais, cinco históricos** do mesmo negócio. Não é hipótese: a **Camila
+Pereira está duplicada em produção desde 08/08/2026** por esse caminho exato, e a
+fusão dela ainda espera decisão do CEO.
+
+### As decisões que atravessam domínios — e por isso moram aqui
+
+- **MARCA, NÃO FUNDE.** Cinco briefings do mesmo e-mail podem ser reenvio **ou**
+  um segundo projeto legítimo, e **nenhum código distingue os dois**. Fundir
+  trataria o segundo caso como erro e apagaria um pedido de serviço que o cliente
+  fez de verdade. Cada briefing continua sendo sua própria linha, inteira, e ganha
+  o carimbo *"3ª vez que este contato escreve — veja as outras 2"*. A máquina
+  mostra o fato e escala a decisão para gente.
+- **DEDUP DE CADASTRO, NUNCA DE PEDIDO.** A idempotência da aprovação continua
+  sendo por **solicitação** (`IDEMPOTENCIA_E_POR_SOLICITACAO`). Trocá-la por "já
+  existe projeto para este cliente?" faria o segundo pedido legítimo devolver
+  silenciosamente o projeto antigo — o cliente teria **pago** por um trabalho que
+  o sistema se recusou a criar, sem um erro na tela. Duplicar cadastro é o
+  defeito; duplicar pedido é o negócio funcionando.
+- **NOME NUNCA VIRA CHAVE.** Dois "Camila Pereira" podem ser duas pessoas, e
+  fundir por homonímia **entregaria o portal de um cliente a outro** — dano pior e
+  irreversível, contra uma duplicata que é chata e reversível. Só contato
+  declarado vira identidade; arroba de Instagram e telefone soltos no `rawContext`
+  seguem sendo **pista**, para uma pessoa ler.
+- **LEAD SEM CANAL NÃO TEM CHAVE, e nulo não junta com nulo.** É a lei de
+  *ausência de informação não é informação* aplicada à identidade: adivinhar que
+  dois leads anônimos são a mesma pessoa é exatamente a inferência que esta casa
+  proíbe. A linha existe, aparece inteira na fila, e não se junta a ninguém.
+- **ÍNDICE NÃO-ÚNICO, e é deliberado.** `@@unique` faria o segundo pedido legítimo
+  **falhar na gravação** e, pior, um `CREATE UNIQUE INDEX` sobre os duplicados
+  vivos no volume do Railway **derrubaria o deploy inteiro** — migração não pode
+  ser mecanismo de limpeza. A dedup mora na **aplicação** porque a pergunta que
+  ela responde ("reenviou ou contratou outra coisa?") é de negócio, não de
+  restrição de coluna.
+- **CONTINUA `create`, NUNCA `upsert`.** Um `upsert` por contato sobrescreveria o
+  briefing anterior, e **perder o que o cliente escreveu é pior que ter
+  duplicata.**
+
+### A lição que talvez sirva a outros produtos — **proposta, não escrita no kit**
+
+> **Dedup cujo lado de escrita não persiste a chave é decoração: passa nos testes
+> e não funciona na vida real.**
+
+O `Client` nascido de briefing **nunca teve `email` nem `phone` gravados**. A
+correção óbvia — "procure um `Client` com este e-mail" — teria "funcionado" sem
+funcionar: a busca jamais casaria, porque não havia e-mail em ficha nenhuma. Toda
+dedup tem **duas metades** (procurar pela chave **e** persistir a chave em quem
+nasce), e a segunda é a que se esquece, porque a primeira é a que aparece no
+diff. É a mesma família de *toda trava precisa das duas metades*, aplicada a
+identidade.
+
+**Vai como proposta ao Diretor Geral do Cérebro** — nada foi escrito no
+`dioli-brain-kit`, conforme a regra da casa.
+
+### O que esta decisão explicitamente **não** resolve
+
+As duplicatas que **já existem** em produção não foram fundidas — o mecanismo
+impede duplicata **nova**, não limpa a velha. O merge manual
+(`app/api/clients/[id]/fundir/route.ts`) continua sendo o caminho, e qual ficha
+fica com o histórico continua sendo **decisão do CEO**.
+
 ## O PREÇO PASSA A TER UMA FONTE SÓ, COM SEIS PLANOS — E O PERFORMANCE NÃO É VENDÁVEL
 
 **Decidido em** 2026-08-16 · **por** CEO, executado pelo `pm` a mando do Diretor ·
@@ -1255,3 +1334,34 @@ tela do cliente.** Não basta não perder — tem que ser impossível perder cal
 **Por que é decisão de corredor:** o Drive é onde doeu, mas a classe é toda
 escrita nascida de um ato do cliente — envio de material, aprovação, resposta de
 briefing, pedido. Falha calada é o defeito, mesmo quando a causa é outra.
+
+## A letra da ficha só vale se o motor a lê
+
+**16/08/2026.** As 69 fichas da linha declaram `autonomia: A | B | C` desde que
+nasceram, com a semântica escrita na tabela de cada uma: **A** só informa,
+**B** recomenda/prepara e o passo externo exige aprovação, **C** executa com log.
+Até esta data o CI conferia **uma** coisa sobre essa coluna: que a letra
+estivesse entre as três. O motor de execução nunca a lia.
+
+Ou seja: as sete fichas do 12º departamento nasceram `B` e nada no código
+impedia uma delas de fazer o que só `C` poderia. **A letra era decoração** — e
+decoração é exatamente o que o guardrail 4 da casa proíbe ("prompt é aviso,
+código é trava"). O teto de custo, na mesma ficha, sempre foi trava de verdade;
+a autonomia era um adjetivo ao lado dele.
+
+**O mecanismo:** o contexto de execução passa a declarar o `efeito` pretendido
+(`informar` · `preparar` · `externo`) e o executor compara com a letra da ficha.
+`B` diante de efeito externo **escala em vez de recusar** — a ficha diz "exige
+aprovação", não "nunca", e o pacote de escalada É o pedido de aprovação.
+
+**O padrão é `informar`, e a razão é um incidente evitado por pouco.** O primeiro
+desenho usava `preparar` como padrão, por parecer o que toda chamada já fazia. A
+suíte derrubou em minutos: **oito das 69 fichas são autonomia A**, e as oito
+passariam a ser recusadas por uma trava que ninguém pediu para elas. **Trava nova
+que reprova o que já roda não é trava, é incidente.** O motor não adivinha a
+intenção do chamador — assume a menor, e quem prepara declara que prepara.
+
+**Por que é decisão de corredor:** vale para as 69 funções da linha e para toda
+cadeia futura, não só para Produto & Tecnologia. Toda coluna que uma ficha
+declara e que o motor não lê é uma promessa que a casa faz e não cumpre; a
+pergunta "quem lê isto em runtime?" passa a valer para cada campo novo de ficha.

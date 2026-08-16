@@ -72,6 +72,22 @@ model Client {
   /// Toda listagem de cliente é por inquilino. Sem isto, cada tela de clientes
   /// varre a tabela inteira — e numa SQLite em volume, varredura segura lock.
   @@index([workspaceId])
+
+  /// A BUSCA QUE IMPEDE O CADASTRO HOMÔNIMO (16/08/2026).
+  ///
+  /// `resolverOuCriarCliente` procura por aqui antes de criar ficha nova —
+  /// era a ausência dessa busca que fazia cinco briefings do mesmo e-mail
+  /// virarem cinco `Client`, cinco portais e cinco históricos (a Camila Pereira
+  /// duplicada em produção). O balcão (`balcao/producao.ts:97`) já fazia esta
+  /// consulta desde sempre, sem índice.
+  ///
+  /// ⚠️ **NÃO-ÚNICO, de propósito.** `email` é opcional e há fichas duplicadas
+  /// **agora** no volume de produção, esperando decisão de fusão do CEO:
+  /// `CREATE UNIQUE INDEX` sobre elas falharia na migração e derrubaria o
+  /// deploy. Além disso, `@@unique` não deixaria mais ninguém consertar dado
+  /// legado sem antes fundir tudo à mão. A trava é na aplicação; aqui é só a
+  /// velocidade da busca.
+  @@index([workspaceId, email])
 }
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
@@ -1205,11 +1221,48 @@ model ClientRequestDb {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  /// QUEM MANDOU ESTE BRIEFING, em forma comparável (16/08/2026).
+  ///
+  /// Pergunta do CEO: *"se entrar um cliente com o mesmo e-mail e fizer cinco
+  /// briefings um atrás do outro, o que acontece com o sistema?"*. Acontecia
+  /// que os cinco viravam cinco linhas anônimas: o contato mora dentro de
+  /// `briefingJson`, que é um blob de texto, e **não dá para indexar nem
+  /// agrupar por dentro de um JSON no SQLite**. Sem chave gravada, a caixa de
+  /// entrada não tinha como dizer "esta é a 3ª vez que esta pessoa escreve".
+  ///
+  /// Derivada, nunca digitada — mesmo padrão de `Oportunidade.impressaoDigital`
+  /// e `EmailDoRadar.mensagemId`. Quem calcula é
+  /// `lib/agency/comercial/chave-do-prospect.ts`, a partir do contato
+  /// DECLARADO: `email:<minúsculas>` de preferência, senão
+  /// `whatsapp:<só dígitos>`.
+  ///
+  /// **Nula quando o briefing chegou sem canal** (`lead_incompleto`). Nulo aqui
+  /// significa "esta linha não se junta a ninguém" — nunca "junta com as outras
+  /// sem chave". Deduzir identidade de arroba de Instagram ou de nome de negócio
+  /// é a inferência que esta casa proíbe.
+  chaveDoProspect String?
+
   artifacts     BrainArtifact[]
   approvals     ApprovalRequest[]
   evidenceItems EvidenceItem[]
   portalAccess  PortalAccess[]
   messages      PortalMessage[]
+
+  /// ⚠️ **NÃO-ÚNICO, e a escolha é deliberada — por DOIS motivos.**
+  ///
+  /// 1. **Seria uma prisão.** Um cliente PODE legitimamente mandar um segundo
+  ///    briefing: outra campanha, outro produto. `@@unique` aqui faria o segundo
+  ///    pedido real do cliente **falhar na gravação** — a agência recusaria
+  ///    trabalho novo por causa de uma trava de higiene. Não duplicar CADASTRO
+  ///    é o objetivo; bloquear PEDIDO nunca foi.
+  /// 2. **Quebraria o deploy.** O banco é SQLite num volume do Railway com dados
+  ///    de piloto vivos, e já existem briefings repetidos lá (a Camila Pereira
+  ///    duplicada, 08/08/2026). `CREATE UNIQUE INDEX` sobre dado já duplicado
+  ///    falha na migração e derruba a subida inteira.
+  ///
+  /// A dedup mora na aplicação, onde ela pode distinguir "reenviou" de "pediu
+  /// outra coisa" — que é uma pergunta de negócio, não de restrição de coluna.
+  @@index([workspaceId, chaveDoProspect])
 }
 
 // Client ↔ team conversation. A thread belongs to um CLIENTE — não a uma

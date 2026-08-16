@@ -65,7 +65,13 @@
   --warning-bg:   #FEF3C7;
   --danger:       #B91C1C;   /* 6.09:1 · 5.91:1 */
   --danger-bg:    #FEF2F2;
-  --info:         #2563EB;
+  /* O par de INFORMAÇÃO — o único que tinha entrado sem medida. Medido em
+     16/08/2026, quando o selo "3º briefing deste mesmo contato" saiu de --warning
+     para cá: repetição de briefing não é erro do cliente, e âmbar nesta casa quer
+     dizer "algo saiu do trilho". A medição agora RODA, em
+     __tests__/design/tokens-semanticos.test.ts — comentário em CSS não reprova
+     ninguém quando alguém clareia a tinta. */
+  --info:         #2563EB;   /* 4.75:1 sobre --info-bg · 4.86:1 sobre --bg */
   --info-bg:      #EFF6FF;
 
   /* Shadows */
@@ -118,6 +124,22 @@
 }
 
 * { box-sizing: border-box; }
+
+/* ── DIZER AO NAVEGADOR QUAL É O TEMA, PORQUE SE NÃO DISSERMOS ELE INVENTA ───
+   16/08/2026: o CEO abriu a confirmação do briefing no celular e não conseguiu
+   ler o botão do WhatsApp — *"está preto sobre preto."*
+
+   Página que não declara `color-scheme` autoriza o Chrome do Android a aplicar
+   o escurecimento automático dele: o navegador escurece o que é claro e deixa
+   quieto o que já é escuro. Um botão grafite (#1F2937) num fundo que acabou de
+   virar preto some — e some SÓ no celular, que é justamente onde está a maioria
+   dos nossos visitantes e onde nenhum de nós testa.
+
+   Declarar não é desistir do tema escuro: é dizer a verdade. As telas públicas
+   desta casa são claras hoje, e `.dark` assume o escuro quando for a vez dele.
+   O navegador para de adivinhar nos dois casos. */
+:root { color-scheme: light; }
+.dark { color-scheme: dark; }
 
 html { scroll-behavior: smooth; }
 

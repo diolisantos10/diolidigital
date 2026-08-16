@@ -60,6 +60,7 @@ export interface DonoDeChamada {
 const OPERACIONAIS: DonoDeChamada[] = [
   // ── Esteira: briefing → proposta → projeto → entregável ────────────────────
   { id: "esteira-triagem",        label: "Triagem de pedido do cliente",   departmentId: "client-service-sdr", natureza: "operacao" },
+  { id: "pm-responde",            label: "PM responde o cliente no portal", departmentId: "client-service-sdr", natureza: "operacao" },
   { id: "esteira-refacao",        label: "Refação a pedido do cliente",    departmentId: "quality",            natureza: "operacao" },
   { id: "esteira-pacote-travado", label: "Refação após reprovação",        departmentId: "quality",            natureza: "operacao" },
   { id: "esteira-avaliacoes",     label: "Resposta a avaliação do Google", departmentId: "client-service-sdr", natureza: "operacao" },
@@ -90,6 +91,19 @@ const OPERACIONAIS: DonoDeChamada[] = [
   { id: "v2-editorial-planner",   label: "V2 — Calendário editorial",      departmentId: "social-media",       natureza: "operacao" },
   { id: "v2-copywriter",          label: "V2 — Textos da cadeia",          departmentId: "social-media",       natureza: "operacao" },
   { id: "v2-graphic-designer",    label: "V2 — Especificação de design",   departmentId: "design",             natureza: "operacao" },
+
+  // ── Cadeia técnica do 12º departamento (16/08/2026) ───────────────────────
+  // O gasto de a agência consertar a si mesma é gasto da CASA, não de cliente:
+  // a cadeia recusa em código qualquer pedido com clienteId. Sem estas linhas
+  // o adaptador não chama IA nenhuma — dono de custo ausente é fail-closed,
+  // não exceção.
+  { id: "pt-technology-orchestrator", label: "P&T — Plano da entrega técnica", departmentId: "product-technology", natureza: "operacao" },
+  { id: "pt-software-architect",      label: "P&T — ADR de arquitetura",       departmentId: "product-technology", natureza: "operacao" },
+  { id: "pt-product-designer",        label: "P&T — Fluxo e telas",            departmentId: "product-technology", natureza: "operacao" },
+  { id: "pt-design-system-engineer",  label: "P&T — Tokens e componentes",     departmentId: "product-technology", natureza: "operacao" },
+  { id: "pt-backend-engineer",        label: "P&T — Patch de backend",         departmentId: "product-technology", natureza: "operacao" },
+  { id: "pt-frontend-engineer",       label: "P&T — Patch de frontend",        departmentId: "product-technology", natureza: "operacao" },
+  { id: "pt-fullstack-engineer",      label: "P&T — Patch integrado",          departmentId: "product-technology", natureza: "operacao" },
 
   // ── As 6 telas de agente da agência (`/api/agents/*`) ─────────────────────
   // Os ids ficam EXATAMENTE como já estão gravados nessas rotas desde 07/08.

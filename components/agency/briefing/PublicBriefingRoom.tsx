@@ -5,6 +5,8 @@ import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/
 import { initProspectConvState, processProspectMessage, type ProspectConvState } from "@/lib/agency/prospect-engine";
 import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from "@/lib/agency/sdr-agent";
 import { detectPackage, getPackageDef, computeEstimate, faixaDePreco } from "@/lib/agency/live-calculator";
+import { montarAvisoDeAnexo } from "@/lib/agency/anexo-nao-e-resposta";
+import { semMarcacao } from "@/lib/agency/texto-sem-marcacao";
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
@@ -251,10 +253,15 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
           </span>
         </div>
       )}
+      {/* `semMarcacao` na BORDA, não na origem: quem preenche estes campos é o
+          SDR (um modelo), e modelo escreve `**` por hábito. Este painel não tem
+          conversor de markdown como o balão de chat — em 16/08/2026 o asterisco
+          chegou cru na tela, no print do CEO. Limpar aqui protege todo campo,
+          venha de onde vier. */}
       {rows.map((r, i) => (
         <div key={i} className="flex items-start gap-2 text-[11px]">
           <span className="text-[var(--text-muted)] shrink-0 w-[68px]">{r.label}</span>
-          <span className={r.dim ? "text-[var(--text-subtle)]" : "text-[var(--text-primary)] font-medium"}>{r.value}</span>
+          <span className={r.dim ? "text-[var(--text-subtle)]" : "text-[var(--text-primary)] font-medium"}>{semMarcacao(r.value)}</span>
         </div>
       ))}
     </div>
@@ -787,6 +794,10 @@ async function fetchSdrReply(
   priorMessages: ConvMessage[],
   currentMessage: string,
   scope: BriefingScope,
+  // O fio da conversa. Sem ele, cada turno vira uma conversa órfã no registro e
+  // ninguém consegue ler a história de ponta a ponta — que é o motivo de o
+  // registro existir. O servidor prefixa e higieniza; aqui é só o carimbo.
+  sessionId: string,
 ): Promise<SdrReply | null> {
   try {
     const res = await fetch("/api/sdr/chat", {
@@ -796,6 +807,7 @@ async function fetchSdrReply(
         messages: priorMessages.map((m) => ({ role: m.role, text: m.text })),
         currentMessage,
         scope,
+        sessionId,
       }),
     });
     if (!res.ok) return null;
@@ -1196,7 +1208,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       setState({ ...ruleResult, conv: { ...ruleResult.conv, messages: userVisible } });
       setAiThinking(true);
 
-      const claude = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope);
+      const claude = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope, tempClientId);
       setAiThinking(false);
 
       if (claude) {
@@ -1219,7 +1231,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         void fireAiExtract(text, priorMessages);
       }
     },
-    [fireAiExtract],
+    [fireAiExtract, tempClientId],
   );
 
   // ── File upload (briefing documents) ──────────────────────────────────────
@@ -1266,7 +1278,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
         // If we extracted briefing content, let the SDR read it.
         if (result.extractedText.trim()) {
-          const visible = `📎 Enviei meu briefing: **${result.fileName}**`;
+          const visible = montarAvisoDeAnexo(result.fileName);
           const sdrText =
             `O cliente anexou um arquivo de briefing chamado "${result.fileName}". ` +
             `Leia o conteúdo abaixo, extraia tudo que for relevante (negócio, segmento, serviços, ` +
