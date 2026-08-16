@@ -28,6 +28,19 @@
 // comportamento ANTIGO (pacote descartado) e prova que ele produz 0 de
 // verdade — sem isso, nenhuma versão deste teste distingue "o conserto
 // funciona" de "o número sempre veio de outro lugar".
+//
+// CORREÇÃO DE 16/08/2026, segunda rodada, medida contra o servidor pós-merge
+// `5d806a60` ("Reconcilia TRÊS consertos paralelos"): os fixtures abaixo
+// usavam `parse_error_truncado`/`parse_error_formato`, nomes que a rota NÃO
+// emite mais — hoje ela emite `truncado`/`malformado` (ver
+// `app/api/sdr/chat/route.ts:580` e `:607`). A allowlist do cliente
+// (`MOTIVOS_COM_ESCOPO_APROVEITAVEL` em `PublicBriefingRoom.tsx`) e este
+// arquivo mockavam a mesma ficção e concordavam entre si — nenhum dos dois
+// conferia contra o servidor real, então nada aqui acusava o desalinhamento.
+// Trocados para os nomes reais; a trava contra essa mesma deriva acontecer de
+// novo, sem quebrar teste nenhum, é
+// `__tests__/esteira/allowlist-bate-com-o-servidor.test.ts` — ele chama a
+// rota de verdade.
 
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { fetchSdrReply, mergeScopeGaps } from "@/components/agency/briefing/PublicBriefingRoom";
@@ -45,14 +58,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("recusa por corte (parse_error_truncado) com escopo salvo — o número sobrevive", () => {
+describe("recusa por corte (truncado) com escopo salvo — o número sobrevive", () => {
   it("fetchSdrReply devolve o escopo mesmo sem fala", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
         respostaFake({
           ok: false,
-          reason: "parse_error_truncado",
+          reason: "truncado",
           scope: { wantsSocialMedia: true, social: { postsPerWeek: 14, platforms: ["instagram"] } },
         }),
       ),
@@ -71,7 +84,7 @@ describe("recusa por corte (parse_error_truncado) com escopo salvo — o número
       vi.fn(async () =>
         respostaFake({
           ok: false,
-          reason: "parse_error_truncado",
+          reason: "truncado",
           scope: { wantsSocialMedia: true, social: { postsPerWeek: 14, platforms: ["instagram"] } },
         }),
       ),
@@ -111,13 +124,12 @@ describe("recusa por corte (parse_error_truncado) com escopo salvo — o número
 
   it("CONTRAFACTUAL: sem o resgate, o defeito volta — a mesma fórmula dá 0, o estimador trava", async () => {
     // Simula o comportamento ANTIGO: antes do resgate existir, QUALQUER
-    // `ok:false` — inclusive `parse_error_truncado`, o motivo real do piloto
-    // — fazia `fetchSdrReply` devolver `null` e o pacote inteiro (fala +
-    // escopo) ir para o lixo. Hoje `parse_error_truncado` está na allowlist
-    // e É resgatado (teste acima); aqui usamos um motivo FORA da allowlist
-    // para reproduzir o mesmo efeito de descarte total que todo `ok:false`
-    // tinha antes do resgate — é o comportamento que este teste prova que
-    // não volta.
+    // `ok:false` — inclusive `truncado`, o motivo real do piloto — fazia
+    // `fetchSdrReply` devolver `null` e o pacote inteiro (fala + escopo) ir
+    // para o lixo. Hoje `truncado` está na allowlist e É resgatado (teste
+    // acima); aqui usamos um motivo FORA da allowlist para reproduzir o mesmo
+    // efeito de descarte total que todo `ok:false` tinha antes do resgate —
+    // é o comportamento que este teste prova que não volta.
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -216,7 +228,7 @@ describe("recusa sem escopo nenhum — comportamento de hoje, intacto", () => {
   it("ok:false, reason resgatável, mas sem escopo (ou escopo vazio) continua descartando tudo", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => respostaFake({ ok: false, reason: "parse_error_truncado", scope: {} })),
+      vi.fn(async () => respostaFake({ ok: false, reason: "truncado", scope: {} })),
     );
 
     const claude = await fetchSdrReply([], "x", emptyScope(), "sess-1");

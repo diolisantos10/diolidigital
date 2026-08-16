@@ -792,6 +792,42 @@ async function fetchUpload(file: File): Promise<UploadResult | null> {
   }
 }
 
+// Motivos de `ok:false` cujo `scope` é SEGURO aproveitar: o pacote só não
+// chegou inteiro por corte de tamanho ou formato quebrado — o escopo que veio
+// é bom e incompleto, não suspeito. `email_hallucination` e `price_leak` NÃO
+// entram aqui: ali o modelo estava comprovadamente fora do roteiro (inventou
+// e-mail ou vazou preço) no MESMO turno que produziu aquele `scope`, e não há
+// como provar que o campo recuperado não é parte do mesmo desvio. Corte é bom
+// e incompleto; guarda é suspeito — são fatos opostos, não cabem no mesmo balde.
+//
+// A lista é ALLOWLIST, não denylist, de propósito: um motivo que ninguém
+// previu ainda cai fora por omissão (fail-closed), nunca dentro por omissão.
+// Isso importa porque hoje `app/api/sdr/chat/route.ts` MANDA `scope` também
+// junto de `email_hallucination`/`price_leak` (o guarda barra a FALA, não o
+// dado) — não há mais "ausência do campo" te protegendo por acidente. A
+// decisão de descartar esses dois mora só aqui, na allowlist.
+//
+// ⚠️ OS NOMES MUDARAM NO MERGE DE 16/08 ("Reconcilia TRÊS consertos
+// paralelos", `5d806a60`). Antes a rota emitia `parse_error_truncado` /
+// `parse_error_formato`; hoje emite `truncado` / `malformado` (ver
+// `app/api/sdr/chat/route.ts:580` e `:607`). Esta allowlist ficou apontando
+// para os nomes mortos por algumas horas — fail-closed segurou (nada vazou),
+// mas o resgate do dia (R$ 500/mês, 2 posts/dia) teria ficado DESLIGADO em
+// produção, em silêncio, porque nenhum teste comparava os dois lados. É por
+// isso que existe `__tests__/esteira/allowlist-bate-com-o-servidor.test.ts`:
+// ele exercita a rota de verdade e confere o `reason` real contra esta
+// constante, para que renomear de novo quebre um teste em vez de desligar o
+// resgate sem ninguém notar.
+// Exportada (16/08, segunda rodada) para que
+// `__tests__/esteira/allowlist-bate-com-o-servidor.test.ts` a importe em vez
+// de repetir os nomes como string literal — é a trava contra a allowlist
+// divergir do servidor de novo, em silêncio, na próxima vez que alguém
+// renomear um `reason`.
+export const MOTIVOS_COM_ESCOPO_APROVEITAVEL: ReadonlySet<string> = new Set([
+  "truncado",
+  "malformado",
+]);
+
 // Exportada para teste direto (16/08): o contrato "scope sobrevive quando a
 // fala não sobrevive" é lógica, não prosa de prompt — e lógica se testa
 // chamando a função, não lendo o arquivo como texto.
@@ -816,20 +852,30 @@ export async function fetchSdrReply(
       }),
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown };
+    const data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown };
 
     // O contrato mudou em 16/08 (caso do R$ 500 / 2 posts por dia): `ok: false`
-    // deixou de significar "nada aproveitável". Quando a fala é barrada — corte
-    // no meio do pacote, formato quebrado, ou um guarda de preço/e-mail —, o
-    // servidor ainda pode devolver o `scope` que sobreviveu. Jogar fora a
-    // resposta inteira só porque `ok` é false jogaria fora de novo o dado que
-    // este conserto existe para salvar: o número que o cliente falou uma vez,
-    // ninguém recupera. `reply` só é aceito quando `ok: true`; `scope` é lido
-    // dos dois lados, sempre que vier.
+    // deixou de significar "nada aproveitável". Quando a fala é barrada por
+    // CORTE — pacote truncado, formato quebrado —, o servidor ainda pode
+    // devolver o `scope` que sobreviveu, e ele é bom e incompleto: aproveita-se.
+    // Jogar fora a resposta inteira só porque `ok` é false jogaria fora de novo
+    // o dado que este conserto existe para salvar: o número que o cliente falou
+    // uma vez, ninguém recupera.
+    //
+    // Mas ORDEM DO DIRETOR, 16/08: "não afrouxe nada" — `email_hallucination` e
+    // `price_leak` continuam descartando o pacote INTEIRO, porque ali o escopo
+    // não é incompleto, é SUSPEITO: o modelo estava comprovadamente fora do
+    // roteiro (inventou e-mail ou vazou preço) no mesmo turno em que produziu
+    // aquele `scope`. Corte e guarda são fatos opostos; só o motivo (`reason`,
+    // que o servidor já manda) distingue um do outro — por isso o aproveitamento
+    // do `scope` passa pela allowlist abaixo, não por "veio `scope`, aproveita".
+    // `reply` só é aceito quando `ok: true`.
     const replyUsavel =
       data.ok === true && typeof data.reply === "string" && data.reply.trim() ? data.reply.trim() : null;
+    const motivoAprovaEscopo =
+      data.ok === true || (typeof data.reason === "string" && MOTIVOS_COM_ESCOPO_APROVEITAVEL.has(data.reason));
     const scopeRecuperado =
-      data.scope && typeof data.scope === "object" ? (data.scope as Record<string, unknown>) : {};
+      motivoAprovaEscopo && data.scope && typeof data.scope === "object" ? (data.scope as Record<string, unknown>) : {};
 
     // Nem fala nem scope: não há nada aqui que valha a pena carregar — cai no
     // fallback inteiro do motor de regras, como sempre foi.
