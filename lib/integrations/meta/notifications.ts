@@ -10,9 +10,18 @@ import { sendWhatsAppMessage, sendWhatsAppDirect } from "./client";
 import { resolveWhatsAppEnv } from "./config";
 import { PROPOSAL_SENT_TEMPLATE } from "./templates";
 
+// O ENDEREÇO DA CASA É `www.diolidigital.com.br`. Ordem do CEO em 16/08/2026:
+// *"está tudo ainda com o domínio, é pra estar diolidigital.com.br."*
+//
+// POR QUE ESTE FALLBACK É O MAIS CARO DA CASA: ele monta o link do portal que
+// vai DENTRO da mensagem de WhatsApp do cliente. Fallback é código que só roda
+// quando alguém esqueceu a variável — ou seja, exatamente no dia ruim. E o
+// endereço do Railway funciona, o que é pior que quebrar: o cliente recebe um
+// link que abre, com um domínio que não é o da marca, e ninguém descobre até
+// alguém reparar no print. Endereço de infraestrutura nunca é endereço público.
 const BASE_URL =
   process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-  "https://dioli-agency-os-1-production.up.railway.app";
+  "https://www.diolidigital.com.br";
 
 interface NotifyPayload {
   kind?: string;

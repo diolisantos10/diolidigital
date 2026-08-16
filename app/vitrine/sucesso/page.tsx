@@ -21,7 +21,11 @@ function SuccessContent() {
         <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-6">
           {pending
             ? "Seu pagamento está sendo processado. Assim que confirmado, nossa equipe entrará em contato pelo WhatsApp."
-            : "Recebemos seu pedido. Nossa equipe vai entrar em contato pelo WhatsApp em até 2h úteis para iniciar a produção."}
+            // ⛔ SEM PRAZO — mesma ordem do CEO de 16/08/2026 que tirou o "1 dia
+            // útil" da confirmação do briefing: *"não autorizei nada disso."* O
+            // "2h úteis" daqui é a mesma dívida em outra caixa, e ninguém do
+            // outro lado se comprometeu a cumpri-la.
+            : "Recebemos seu pedido. Nossa equipe vai entrar em contato pelo WhatsApp para iniciar a produção."}
         </p>
         <a
           href="/vitrine"

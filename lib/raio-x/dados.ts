@@ -284,10 +284,14 @@ export async function varrerDadosPresos(agora: Date = new Date()): Promise<Resul
     // com dinheiro na mão, e o painel não tinha uma linha vermelha.
     //
     // POR QUE O HORIZONTE É 24h, E NÃO MAIS:
-    // a própria tela de confirmação do briefing promete ao prospect *"entramos
-    // em contato pelo e-mail informado em até 1 dia útil"*. Alarme que só toca
-    // em 48h ou 72h toca **depois de a promessa já estar quebrada** — ele
-    // registra o dano, não o previne. E 24h é o mesmo horizonte de todos os
+    // este alarme nasceu quando a tela de confirmação ainda prometia retorno
+    // "em até 1 dia útil". Em 16/08/2026 o CEO mandou tirar a promessa (*"não
+    // autorizei nada disso"*), e o horizonte FICA — de propósito. Sem promessa
+    // ao prospect, 24h deixa de ser o prazo que a casa deve cumprir e passa a
+    // ser o prazo que a casa QUER cumprir: alarme interno é meta nossa, não
+    // dívida com quem está do lado de fora. Baixar a régua junto com a promessa
+    // seria usar a ordem do CEO como desculpa para atender mais devagar.
+    // E 24h é o mesmo horizonte de todos os
     // outros baldes deste arquivo: um segundo relógio na mesma varredura é uma
     // segunda regra para alguém esquecer. O custo de um alarme que aparece num
     // sábado é uma linha a mais num relatório noturno; o custo de errar para o

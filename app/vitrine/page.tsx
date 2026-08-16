@@ -108,7 +108,11 @@ function OrderModal({
               <div className="bg-[#DCFCE7] border border-[#86EFAC] rounded-[10px] px-4 py-4">
                 <p className="text-[13px] font-semibold text-[#15803D]">Pedido recebido! ✓</p>
                 <p className="text-[12px] text-[#166534] mt-1 leading-relaxed">
-                  Clique no botão abaixo para nos enviar seu pedido via WhatsApp. Nossa equipe vai confirmar em até 2h úteis e enviar os dados de pagamento (Pix).
+                  {/* ⛔ SEM PRAZO — ordem do CEO em 16/08/2026: *"não autorizei
+                      nada disso."* O "2h úteis" daqui prometia confirmação de um
+                      PEDIDO PAGO, que é a promessa mais cara de todas: quem já
+                      decidiu comprar fica olhando o relógio. */}
+                  Clique no botão abaixo para nos enviar seu pedido via WhatsApp. Nossa equipe vai confirmar e enviar os dados de pagamento (Pix).
                 </p>
               </div>
               <a

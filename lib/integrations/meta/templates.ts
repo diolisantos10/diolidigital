@@ -27,7 +27,10 @@ export const PROPOSAL_SENT_TEMPLATE: TemplateDefinition = {
   category: "UTILITY",
   bodyText:
     "Oi {{1}}! Sua proposta da Dioli já está pronta no seu portal. É só abrir e conferir: {{2}} 💛",
-  example: ["Marina", "https://dioli-agency-os-1-production.up.railway.app/portal/access/abc123"],
+  // O exemplo vai para a REVISÃO DA META junto com o modelo. Um endereço de
+  // infraestrutura aqui mostra o domínio errado a um revisor externo — e é o
+  // domínio da casa que o CEO mandou usar em 16/08/2026.
+  example: ["Marina", "https://www.diolidigital.com.br/portal/access/abc123"],
 };
 
 export const ALL_TEMPLATES: TemplateDefinition[] = [PROPOSAL_SENT_TEMPLATE];

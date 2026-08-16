@@ -10,9 +10,9 @@ export default function BriefingPage() {
   const { addClientRequest } = useAgencyStore();
   const [submitted, setSubmitted] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
-  // Quem sobe sem contato NÃO pode ver "entramos em contato em até 1 dia útil".
-  // Prometer retorno para quem não deixou endereço é a mentira mais fácil desta
-  // tela — e a que faz a pessoa esperar por uma ligação que não existe.
+  // Quem sobe sem contato NÃO pode ver "entramos em contato pelo canal
+  // informado". Prometer retorno para quem não deixou endereço é a mentira mais
+  // fácil desta tela — e a que faz a pessoa esperar por uma ligação que não existe.
   const [temContato, setTemContato] = useState(true);
   // ── O CONTATO É PEDIDO NA PORTA, NÃO NO MEIO DA CONVERSA ──────────────────
   // Ordem do CEO em 16/08 depois de esperar a noite inteira por um orçamento
@@ -100,7 +100,13 @@ export default function BriefingPage() {
               ? [
                   "Nossa equipe analisa o escopo enviado",
                   "Preparamos uma proposta formal detalhada",
-                  "Entramos em contato pelo canal informado em até 1 dia útil",
+                  // ⛔ SEM PRAZO, e isto é ordem, não estilo. Em 16/08/2026 o CEO,
+                  // com todas as letras: *"em relação à confirmação de promessa,
+                  // de orçamento em um dia, não autorizei nada disso."* A tela
+                  // prometia "em até 1 dia útil" para um retorno que ninguém se
+                  // comprometeu a dar — e prazo prometido sem dono é dívida que a
+                  // casa contrai em nome de quem não foi consultado.
+                  "Entramos em contato pelo canal informado",
                 ]
               : [
                   "Seu briefing fica guardado com tudo que você contou",
@@ -126,7 +132,20 @@ export default function BriefingPage() {
           </button>
           <a
             href="https://wa.me/5511989400692"
-            className="h-9 px-5 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[13px] font-medium transition-colors inline-flex items-center"
+            // PAR DE COR QUE VIRA JUNTO. O CEO, em 16/08/2026, não conseguiu ler
+            // este botão: *"está preto sobre preto."*
+            //
+            // A causa não era este botão — era o par escolhido. `--text-primary`
+            // é cor de TEXTO usada como FUNDO, e o tema escuro da casa redefine
+            // `--background` sem redefinir `--text-primary`. Resultado medido:
+            // fundo do botão #1F2937 sobre página #070A1F = **1,33:1**. O botão
+            // deixa de existir. Um token que não vira junto com o tema é uma
+            // cor fixa com nome de token.
+            //
+            // `--primary`/`--primary-foreground` são o par que a casa mantém
+            // invertido nos dois temas (navy+branco no claro, cyan+navy no
+            // escuro) — por isso o par, e não um hex novo aqui.
+            className="h-9 px-5 rounded-[8px] bg-[var(--primary)] hover:opacity-90 text-[var(--primary-foreground)] text-[13px] font-medium transition-opacity inline-flex items-center"
           >
             Falar com a Dioli no WhatsApp
           </a>

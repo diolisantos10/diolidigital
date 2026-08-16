@@ -181,7 +181,11 @@ export default function SitePage() {
               <Link href="/briefing" className={btnGhostLight}>Fazer briefing gratuito →</Link>
             </div>
             <p className="mt-6 text-[13px] font-medium text-[var(--text-muted)]">
-              Clareza para decidir. Dados para crescer. · Resposta em até 2h úteis
+              {/* ⛔ SEM PRAZO. Mesma ordem do CEO de 16/08/2026 que tirou o "1 dia
+                  útil" da confirmação do briefing: *"não autorizei nada disso."*
+                  Aqui a promessa era pior: na HOME, lida antes de o visitante
+                  sequer virar lead. */}
+              Clareza para decidir. Dados para crescer.
             </p>
           </div>
 

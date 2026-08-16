@@ -125,6 +125,22 @@
 
 * { box-sizing: border-box; }
 
+/* ── DIZER AO NAVEGADOR QUAL É O TEMA, PORQUE SE NÃO DISSERMOS ELE INVENTA ───
+   16/08/2026: o CEO abriu a confirmação do briefing no celular e não conseguiu
+   ler o botão do WhatsApp — *"está preto sobre preto."*
+
+   Página que não declara `color-scheme` autoriza o Chrome do Android a aplicar
+   o escurecimento automático dele: o navegador escurece o que é claro e deixa
+   quieto o que já é escuro. Um botão grafite (#1F2937) num fundo que acabou de
+   virar preto some — e some SÓ no celular, que é justamente onde está a maioria
+   dos nossos visitantes e onde nenhum de nós testa.
+
+   Declarar não é desistir do tema escuro: é dizer a verdade. As telas públicas
+   desta casa são claras hoje, e `.dark` assume o escuro quando for a vez dele.
+   O navegador para de adivinhar nos dois casos. */
+:root { color-scheme: light; }
+.dark { color-scheme: dark; }
+
 html { scroll-behavior: smooth; }
 
 body {
