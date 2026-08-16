@@ -1,0 +1,16 @@
+{
+  "id": "esteira-escopo-e-preco",
+  "quem": "pm-verba-e-volume",
+  "frente": "volume declarado chegando zero e verba declarada ignorada na estimativa",
+  "responsabilidade": "esteira-escopo-e-preco",
+  "arquivos": [
+    "lib/agency/question-engine.ts",
+    "lib/agency/prospect-engine.ts",
+    "lib/agency/live-calculator.ts",
+    "lib/agency/comercial/verba-declarada.ts",
+    "lib/agency/comercial/prompt-do-sdr.ts",
+    "lib/agency/esteira/orcamento-do-briefing.ts"
+  ],
+  "abertaEm": "2026-08-16T18:51:16.429Z",
+  "encerradaEm": null
+}
