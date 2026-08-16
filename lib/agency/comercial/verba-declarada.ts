@@ -40,7 +40,8 @@
 // ─── ESTE MÓDULO É FONTE ÚNICA, E ISSO FOI PAGO PARA SE APRENDER ─────────────
 //
 // Em 16/08/2026 duas frentes construíram esta MESMA regra no mesmo dia, sem uma
-// saber da outra: este arquivo e um `verba-vs-estimativa.ts`, cada um servindo
+// saber da outra: este arquivo e um `verba-vs-estimativa.ts` (APAGADO no mesmo
+// dia — não procure, ele não existe mais em disco), cada um servindo
 // uma superfície — este, o caminho do PROSPECT (`live-calculator`,
 // `briefing-conversation`, `orcamento-do-briefing`); o outro, o caminho da CASA
 // (o dossiê do lead e a fila `/agency/leads`).

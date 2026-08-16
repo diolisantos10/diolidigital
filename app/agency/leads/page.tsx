@@ -339,7 +339,7 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
               faixa da tabela da casa — e ninguém os comparava.
 
               O bloco só existe quando há desencontro real (ver
-              `verba-vs-estimativa.ts`): aviso que aparece em todo cartão deixa
+              `comercial/verba-declarada.ts`): aviso que aparece em todo cartão deixa
               de ser lido, e aí o dia em que ele importa passa junto com os
               outros.
 

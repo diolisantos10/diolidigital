@@ -19,7 +19,8 @@ import { PLANOS } from "@/lib/agency/planos";
 //
 // ⚠️ ELE APONTA PARA `verba-declarada.ts`, E ISSO TEM HISTÓRIA. No mesmo dia,
 // duas frentes escreveram esta regra em dobro — este teste nasceu contra um
-// `verba-vs-estimativa.ts` que servia só o painel da casa, enquanto
+// `verba-vs-estimativa.ts` — APAGADO no mesmo dia, não procure o arquivo — que
+// servia só o painel da casa, enquanto
 // `verba-declarada.ts` já servia o caminho do prospect. O segundo módulo foi
 // apagado e o teste veio junto para a fonte única: **duas implementações do
 // mesmo julgamento comercial divergem no dia em que alguém mexe numa só**, e o
