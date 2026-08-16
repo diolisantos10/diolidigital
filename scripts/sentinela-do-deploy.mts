@@ -18,30 +18,25 @@
  */
 
 import { julgarDeploy } from "../lib/plataforma/sentinela-do-deploy.ts";
-import { comTempoLimite, olharCI, olharPlataforma, REPO_PADRAO } from "../lib/plataforma/consulta-de-ci.ts";
+import { olharCI, olharPlataforma, REPO_PADRAO } from "../lib/plataforma/consulta-de-ci.ts";
+import { olharProducao } from "../lib/plataforma/consulta-da-producao.ts";
 
 const PRODUCAO = process.env.SENTINELA_URL ?? "https://dioli-agency-os-1-production.up.railway.app";
 const REPO = process.env.SENTINELA_REPO ?? REPO_PADRAO;
 
-/** 1. A produção: está de pé, e qual versão? */
-async function olharProducao(): Promise<{ noAr: boolean; commit: string | null }> {
-  try {
-    const r = await comTempoLimite(`${PRODUCAO}/api/health`);
-    if (!r.ok) return { noAr: false, commit: null };
-    const j = (await r.json()) as { status?: string; commit?: string | null };
-    return { noAr: j.status === "ok", commit: j.commit ?? null };
-  } catch {
-    return { noAr: false, commit: null };
-  }
-}
-
+// 1. A produção (está de pé, e qual versão?) saiu daqui e virou
+//    `lib/plataforma/consulta-da-producao.ts` — a distância do deploy
+//    precisa da MESMA pergunta, e as duas cópias já tinham divergido: só a
+//    outra capturava o MOTIVO da falha. `.falha` não é usado aqui, mas a
+//    chamada de rede e o parse do JSON são um código só.
+//
 // 2. A CI daquele commit e 3. o estado do Actions saíram daqui e viraram
 //    `lib/plataforma/consulta-de-ci.ts` — a porta de emergência precisa das
 //    MESMAS perguntas, e duas cópias é como um dos lados volta a ler ausência
 //    como aprovação.
 
 async function main(): Promise<void> {
-  const [producao, plataforma] = await Promise.all([olharProducao(), olharPlataforma()]);
+  const [producao, plataforma] = await Promise.all([olharProducao(PRODUCAO), olharPlataforma()]);
   const ci = producao.commit
     ? await olharCI(producao.commit, REPO)
     : { houveRun: false, conclusao: null, url: null, shaCompleto: null };

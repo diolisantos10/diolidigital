@@ -7,16 +7,20 @@
  * O `sentinela-do-deploy.ts` responde "o que está no ar tem CI verde?". Ele
  * não responde DISTÂNCIA — um commit com CI verde ainda pode estar 48 commits
  * atrás do topo da branch. Este script pergunta à produção qual commit está
- * servindo, pergunta ao git o histórico da branch, e cruza as duas respostas.
+ * servindo, pergunta ao git o histórico da branch, pergunta ao Railway se há
+ * um deploy em voo, e cruza as três respostas.
  *
- * Sai 0 só quando a produção está em dia com o topo da branch.
- * "Não consegui olhar" sai com código PIOR que "atrasada" (2, contra 1): é o
- * estado que hoje se confunde com "está tudo bem", e foi essa confusão —
- * silêncio lido como sinal verde — que deixou 48 commits se acumularem sem
- * ninguém notar em 16/08/2026.
+ * "Atrasada" sozinha não basta: em 16/08/2026 "produção 47 commits atrás" foi
+ * lido como "ninguém disparou deploy" quando havia um BUILDING e três WAITING
+ * no Railway — a produção estava ALCANÇANDO, não parada. Por isso o exit code
+ * não é mais função só do código do veredito: ATRASADA_PUBLICANDO sai 0
+ * (a esteira está se resolvendo sozinha) e só ATRASADA_PARADA pede gente.
+ * "Não consegui olhar" (fila ou histórico) continua sendo pior que "atrasada
+ * mas publicando" — silêncio nunca pode virar sinal verde.
  */
 
-import { historicoDaBranch, olharProducao } from "../lib/plataforma/leitura-da-distancia.ts";
+import { historicoDaBranch, olharFilaDeDeploy } from "../lib/plataforma/leitura-da-distancia.ts";
+import { olharProducao } from "../lib/plataforma/consulta-da-producao.ts";
 import { julgarDistancia, type VereditoDaDistancia } from "../lib/plataforma/distancia-do-deploy.ts";
 import path from "node:path";
 
@@ -24,13 +28,17 @@ const PRODUCAO = process.env.SENTINELA_URL ?? "https://dioli-agency-os-1-product
 const BRANCH = process.env.DISTANCIA_BRANCH ?? "claude/dioli-agency-os-architecture-kk7kp";
 
 export async function medirDistancia(): Promise<VereditoDaDistancia> {
-  const [producao, historico] = await Promise.all([
+  const [producao, historico, fila] = await Promise.all([
     olharProducao(PRODUCAO),
     Promise.resolve(historicoDaBranch(BRANCH)),
+    olharFilaDeDeploy(),
   ]);
 
   // Qualquer uma das duas falhando já é "não consegui olhar" — o veredito não
-  // distingue QUAL lado falhou, só que a medição não é confiável.
+  // distingue QUAL lado falhou, só que a medição não é confiável. A fila NÃO
+  // entra nesta soma: "não consegui olhar a fila" é um fato mais específico
+  // (ATRASADA_SEM_SABER), não o mesmo "não consegui medir nada" que produção
+  // ou histórico falhos produzem.
   const falhaAoOlhar = producao.falha ?? historico.falha ?? null;
 
   // `avisoDeFetch` viaja DENTRO do veredito, não mais como `console.error` à
@@ -42,15 +50,27 @@ export async function medirDistancia(): Promise<VereditoDaDistancia> {
     historico: historico.historico,
     falhaAoOlhar,
     ressalva: historico.avisoDeFetch,
+    historicoBateuNoLimite: historico.bateuNoLimite,
+    fila,
   });
 }
 
+/**
+ * O mapeamento não é 1:1 com o código do veredito — ATRASADA_PUBLICANDO é
+ * tratado à parte em `codigoDeSaida`. Aqui ele aparece com 0 só para deixar
+ * claro, olhando a tabela, que ele NÃO é o mesmo alarme que ATRASADA_PARADA:
+ * um deploy em voo é a esteira se resolvendo sozinha, e sair diferente de 0
+ * para isso seria alarmar quem já está fazendo a coisa certa — o erro do dia.
+ */
 const CODIGO_DE_SAIDA: Record<VereditoDaDistancia["codigo"], number> = {
   EM_DIA: 0,
-  ATRASADA: 1,
+  ATRASADA_PUBLICANDO: 0,
+  ATRASADA_PARADA: 1,
+  ATRASADA_SEM_SABER: 2,
   PRODUCAO_FORA: 2,
   PRODUCAO_SEM_VERSAO: 2,
-  COMMIT_DESCONHECIDO: 2,
+  COMMIT_ALEM_DO_LIMITE: 2,
+  COMMIT_FORA_DA_BRANCH: 2,
   NAO_CONSEGUI_OLHAR: 2,
 };
 

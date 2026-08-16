@@ -5,9 +5,30 @@
 // estavam verdes e ninguém conferia o deploy. Se alguém um dia "simplificar"
 // o veredito para "não é PRODUCAO_FORA, então está tudo bem", é aqui que a
 // simplificação bate.
+//
+// E fixam o incidente SEGUINTE, no mesmo dia: o PM leu "47 commits atrás" e
+// relatou ao Diretor "ninguém disparou deploy" — quando havia um deploy
+// BUILDING e três WAITING no Railway. "Atrasada e publicando" (esperar) e
+// "atrasada e parada" (agir) são fatos opostos; achatar os dois num alarme
+// só foi o erro do dia. Se alguém um dia voltar a tratar "atrasada" como um
+// código só, é aqui que essa simplificação bate também.
 
 import { describe, expect, it } from "vitest";
-import { julgarDistancia, type CommitDaBranch } from "@/lib/plataforma/distancia-do-deploy";
+import { julgarDistancia, type CommitDaBranch, type EstadoDaFila } from "@/lib/plataforma/distancia-do-deploy";
+
+/** Fila consultada com sucesso, N implantações em voo, sem status desconhecido. */
+function filaConsultada(emVoo: number, statusMaisRecente: string | null): EstadoDaFila {
+  return { consultei: true, emVoo, statusMaisRecente, statusDesconhecido: null, falha: null };
+}
+
+const filaParada = filaConsultada(0, "SUCCESS");
+const filaNaoConsultada: EstadoDaFila = {
+  consultei: false,
+  emVoo: 0,
+  statusMaisRecente: null,
+  statusDesconhecido: null,
+  falha: "RAILWAY_TOKEN não está no ambiente",
+};
 
 const historicoDoIncidente: CommitDaBranch[] = [
   { commitCurto: "aaa0048", assunto: "conserta o funil que não avançava" },
@@ -23,22 +44,101 @@ const historicoDoIncidente: CommitDaBranch[] = [
 ];
 
 describe("o caso real: 48 commits atrás e ninguém notando", () => {
-  it("acusa a distância exata, com gravidade grave e o resumo citando os assuntos", () => {
+  it("sem informação sobre a fila, a distância sozinha vira ATRASADA_SEM_SABER — nunca um alarme que a fila poderia desmentir", () => {
     const v = julgarDistancia({
       producao: { noAr: true, commit: "0000001" },
       historico: historicoDoIncidente,
     });
 
-    expect(v.codigo).toBe("ATRASADA");
+    expect(v.codigo).toBe("ATRASADA_SEM_SABER");
     expect(v.medido).toBe(true);
     expect(v.commitsAtras).toBe(48);
-    expect(v.gravidade).toBe("grave");
+    expect(v.gravidade).toBe("atencao");
     expect(v.faltando).toHaveLength(48);
     expect(v.resumo).toMatch(/48/);
     expect(v.resumo).toMatch(/conserta o funil que não avançava/);
     expect(v.resumo).toMatch(/corrige cotação 7x abaixo do pedido/);
     expect(v.resumo).toMatch(/e mais 43/);
     expect(v.acao).not.toBe("");
+  });
+});
+
+// O incidente SEGUINTE, no mesmo dia: 47 commits atrás, mas com um deploy já
+// subindo. Historico dedicado (em vez de reaproveitar `historicoDoIncidente`,
+// que tem 48) para casar com o número exato que o PM leu errado.
+const historicoDeHoje: CommitDaBranch[] = [
+  ...Array.from({ length: 47 }, (_, i) => ({
+    commitCurto: `b${String(47 - i).padStart(4, "0")}`,
+    assunto: `commit ${47 - i}`,
+  })),
+  { commitCurto: "0000001", assunto: "commit que a produção está servindo" },
+];
+
+describe("o caso real de hoje: 47 commits atrás, mas o deploy já está subindo", () => {
+  it("producao 47 commits atras COM deploy BUILDING e tres WAITING => ATRASADA_PUBLICANDO, gravidade atencao, acao de ESPERAR, e o resumo NAO soa como alarme de producao parada", () => {
+    const v = julgarDistancia({
+      producao: { noAr: true, commit: "0000001" },
+      historico: historicoDeHoje,
+      fila: filaConsultada(4, "BUILDING"), // 1 BUILDING + 3 WAITING
+    });
+
+    expect(v.codigo).toBe("ATRASADA_PUBLICANDO");
+    expect(v.commitsAtras).toBe(47);
+    expect(v.gravidade).toBe("atencao");
+    expect(v.acao.toLowerCase()).toMatch(/esperar/);
+    // O texto tem que deixar claro que a esteira está funcionando — não pode
+    // soar como o mesmo alarme de uma produção parada, que foi exatamente a
+    // leitura errada do PM hoje.
+    expect(v.resumo).toMatch(/em andamento/);
+    expect(v.resumo).not.toMatch(/nenhum deploy está em andamento/);
+    expect(v.fila?.emVoo).toBe(4);
+  });
+
+  it("producao 47 atras e fila consultada, NADA em voo => ATRASADA_PARADA, grave, acao de agir agora", () => {
+    const v = julgarDistancia({
+      producao: { noAr: true, commit: "0000001" },
+      historico: historicoDeHoje,
+      fila: filaParada,
+    });
+
+    expect(v.codigo).toBe("ATRASADA_PARADA");
+    expect(v.commitsAtras).toBe(47);
+    expect(v.gravidade).toBe("grave");
+    expect(v.acao.toLowerCase()).toMatch(/agora/);
+  });
+
+  it("producao 47 atras e fila NAO consultada (sem token) => ATRASADA_SEM_SABER, atencao, resumo diz que a fila nao foi olhada", () => {
+    const v = julgarDistancia({
+      producao: { noAr: true, commit: "0000001" },
+      historico: historicoDeHoje,
+      fila: filaNaoConsultada,
+    });
+
+    expect(v.codigo).toBe("ATRASADA_SEM_SABER");
+    expect(v.commitsAtras).toBe(47);
+    expect(v.gravidade).toBe("atencao");
+    expect(v.resumo).toMatch(/não foi possível checar/);
+  });
+
+  it("status desconhecido do Railway não vira 'parado' silenciosamente", () => {
+    const filaComStatusNovo: EstadoDaFila = {
+      consultei: true,
+      emVoo: 0,
+      statusMaisRecente: "SOMETHING_NEW",
+      statusDesconhecido: "SOMETHING_NEW",
+      falha: null,
+    };
+
+    const v = julgarDistancia({
+      producao: { noAr: true, commit: "0000001" },
+      historico: historicoDeHoje,
+      fila: filaComStatusNovo,
+    });
+
+    expect(v.codigo).toBe("ATRASADA_SEM_SABER");
+    expect(v.codigo).not.toBe("ATRASADA_PARADA");
+    expect(v.gravidade).toBe("atencao");
+    expect(v.resumo).toMatch(/SOMETHING_NEW/);
   });
 });
 
@@ -102,17 +202,35 @@ describe("produção sem versão", () => {
   });
 });
 
-describe("commit desconhecido", () => {
-  it("commit em produção que não está no histórico é COMMIT_DESCONHECIDO, não EM_DIA nem ATRASADA", () => {
+describe("commit desconhecido se desdobra em dois fatos com ações diferentes", () => {
+  it("historico veio PARCIAL (vimos a branch inteira) e commit ausente => COMMIT_FORA_DA_BRANCH", () => {
     const v = julgarDistancia({
       producao: { noAr: true, commit: "ffffff0" },
       historico: historicoDoIncidente,
+      historicoBateuNoLimite: false,
     });
 
-    expect(v.codigo).toBe("COMMIT_DESCONHECIDO");
+    expect(v.codigo).toBe("COMMIT_FORA_DA_BRANCH");
+    expect(v.codigo).not.toBe("EM_DIA");
     expect(v.medido).toBe(false);
     expect(v.commitsAtras).toBeNull();
     expect(v.gravidade).toBe("atencao");
+    expect(v.acao).toMatch(/branch/);
+  });
+
+  it("historico veio CHEIO (== limite) e commit ausente => COMMIT_ALEM_DO_LIMITE", () => {
+    const v = julgarDistancia({
+      producao: { noAr: true, commit: "ffffff0" },
+      historico: historicoDoIncidente,
+      historicoBateuNoLimite: true,
+    });
+
+    expect(v.codigo).toBe("COMMIT_ALEM_DO_LIMITE");
+    expect(v.codigo).not.toBe("COMMIT_FORA_DA_BRANCH");
+    expect(v.medido).toBe(false);
+    expect(v.commitsAtras).toBeNull();
+    expect(v.gravidade).toBe("atencao");
+    expect(v.acao).toMatch(/limite/);
   });
 });
 
@@ -168,14 +286,14 @@ describe("ressalva — medição parcial não pode se passar por sinal verde", (
     expect(v.ressalva).toBeNull();
   });
 
-  it("a ressalva sobrevive em ATRASADA", () => {
+  it("a ressalva sobrevive em ATRASADA_SEM_SABER", () => {
     const v = julgarDistancia({
       producao: { noAr: true, commit: "0000001" },
       historico: historicoDoIncidente,
       ressalva: "git fetch falhou",
     });
 
-    expect(v.codigo).toBe("ATRASADA");
+    expect(v.codigo).toBe("ATRASADA_SEM_SABER");
     expect(v.ressalva).toBe("git fetch falhou");
   });
 
@@ -190,14 +308,14 @@ describe("ressalva — medição parcial não pode se passar por sinal verde", (
     expect(v.ressalva).toBe("git fetch falhou");
   });
 
-  it("a ressalva sobrevive em COMMIT_DESCONHECIDO", () => {
+  it("a ressalva sobrevive em COMMIT_FORA_DA_BRANCH", () => {
     const v = julgarDistancia({
       producao: { noAr: true, commit: "ffffff0" },
       historico: historicoDoIncidente,
       ressalva: "git fetch falhou",
     });
 
-    expect(v.codigo).toBe("COMMIT_DESCONHECIDO");
+    expect(v.codigo).toBe("COMMIT_FORA_DA_BRANCH");
     expect(v.ressalva).toBe("git fetch falhou");
   });
 
@@ -214,7 +332,11 @@ describe("ressalva — medição parcial não pode se passar por sinal verde", (
   });
 });
 
-describe("o corte de gravidade em 3 commits atrás", () => {
+describe("a gravidade de ATRASADA depende do estado da fila, não da contagem de commits", () => {
+  // Antes deste bloco, a gravidade vinha de um corte em 3 commits atrás —
+  // exatamente o tipo de número que não distingue "atrasada e publicando" de
+  // "atrasada e parada". Estes testes documentam a troca: 1 commit atrás
+  // parado já é grave, e 47 atrás publicando continua sendo só atenção.
   const historicoCurto: CommitDaBranch[] = [
     { commitCurto: "c0004", assunto: "quarto commit" },
     { commitCurto: "c0003", assunto: "terceiro commit" },
@@ -222,30 +344,25 @@ describe("o corte de gravidade em 3 commits atrás", () => {
     { commitCurto: "c0001", assunto: "primeiro commit" },
   ];
 
-  it("1 commit atrás é atenção", () => {
+  it("1 commit atrás com a fila parada já é grave — o corte por contagem não existe mais", () => {
     const v = julgarDistancia({
       producao: { noAr: true, commit: "c0003" },
       historico: historicoCurto,
+      fila: filaParada,
     });
     expect(v.commitsAtras).toBe(1);
-    expect(v.gravidade).toBe("atencao");
+    expect(v.codigo).toBe("ATRASADA_PARADA");
+    expect(v.gravidade).toBe("grave");
   });
 
-  it("2 commits atrás é atenção", () => {
-    const v = julgarDistancia({
-      producao: { noAr: true, commit: "c0002" },
-      historico: historicoCurto,
-    });
-    expect(v.commitsAtras).toBe(2);
-    expect(v.gravidade).toBe("atencao");
-  });
-
-  it("3 commits atrás já é grave — uma tarde de trabalho fora do ar", () => {
+  it("3 commits atrás com um deploy em voo é só atenção — a fila manda, não a contagem", () => {
     const v = julgarDistancia({
       producao: { noAr: true, commit: "c0001" },
       historico: historicoCurto,
+      fila: filaConsultada(1, "DEPLOYING"),
     });
     expect(v.commitsAtras).toBe(3);
-    expect(v.gravidade).toBe("grave");
+    expect(v.codigo).toBe("ATRASADA_PUBLICANDO");
+    expect(v.gravidade).toBe("atencao");
   });
 });

@@ -20,6 +20,16 @@
 // informação. Uma falha de rede ou de git NUNCA pode sair como "tudo certo" —
 // e é exatamente esse desvio, silencioso e repetido, que deixou 48 commits
 // se acumularem sem ninguém notar.
+//
+// EM 16/08/2026, DE NOVO: o PM leu "produção 47 commits atrás" e relatou ao
+// Diretor "ninguém disparou deploy". Errado — havia um deploy BUILDING e três
+// WAITING no Railway naquele instante; com quatro PMs empurrando peça, a
+// produção fica PERPETUAMENTE atrás não por estar parada, mas porque a
+// esteira publica mais devagar do que a casa entrega. "Atrasada e publicando"
+// (esperar) e "atrasada e parada" (agir) são fatos opostos, com ações
+// opostas, e o número de commits sozinho não distingue os dois. É por isso
+// que `ATRASADA` virou três códigos, e a fila do Railway (`EstadoDaFila`)
+// entrou no julgamento.
 
 /** O que /api/health devolve sobre o que está no ar agora. */
 export type EstadoDaProducao = {
@@ -35,15 +45,47 @@ export type CommitDaBranch = {
   assunto: string;
 };
 
+/**
+ * O que se sabe sobre a fila de implantações do Railway no instante da
+ * medição, ou por que não se sabe.
+ *
+ * Existe porque, em 16/08/2026, "produção 47 commits atrás" foi lido como
+ * "produção parada" quando na verdade havia um deploy BUILDING e três
+ * WAITING — a esteira estava funcionando, só mais devagar que o ritmo de
+ * quatro PMs empurrando peça. O número de commits sozinho não distingue
+ * "atrasada e publicando" (esperar) de "atrasada e parada" (agir) — são
+ * fatos opostos, e só a fila responde qual dos dois é.
+ */
+export type EstadoDaFila = {
+  /** true = a consulta ao Railway respondeu (mesmo que emVoo seja 0). */
+  consultei: boolean;
+  /** Quantas implantações estão em andamento agora (BUILDING, WAITING, ...). */
+  emVoo: number;
+  /** Status bruto da implantação mais recente, tal como o Railway devolveu. */
+  statusMaisRecente: string | null;
+  /**
+   * Preenchido quando alguma implantação tem status que este medidor não
+   * reconhece (nem EM_VOO, nem PARADO). Um status novo NUNCA pode ser
+   * classificado como "parado" por omissão — isso produziria de volta o
+   * alarme falso que este módulo existe para matar.
+   */
+  statusDesconhecido: string | null;
+  /** Motivo pelo qual não foi possível consultar (sem token, API fora, timeout). */
+  falha: string | null;
+};
+
 export type Gravidade = "ok" | "atencao" | "grave";
 
 export type VereditoDaDistancia = {
   codigo:
     | "EM_DIA"
-    | "ATRASADA"
+    | "ATRASADA_PUBLICANDO"
+    | "ATRASADA_PARADA"
+    | "ATRASADA_SEM_SABER"
     | "PRODUCAO_FORA"
     | "PRODUCAO_SEM_VERSAO"
-    | "COMMIT_DESCONHECIDO"
+    | "COMMIT_ALEM_DO_LIMITE"
+    | "COMMIT_FORA_DA_BRANCH"
     | "NAO_CONSEGUI_OLHAR";
   /** true só quando a distância foi de fato medida contra o histórico. */
   medido: boolean;
@@ -67,6 +109,8 @@ export type VereditoDaDistancia = {
    * sinal verde.
    */
   ressalva: string | null;
+  /** O que foi apurado sobre a fila de deploy — quem consome `--json` precisa disto. */
+  fila: EstadoDaFila | null;
 };
 
 /** Quantos commits, a contar do topo, até achar `alvo` (por prefixo, sem diferenciar maiúsculas). Null se não achar. */
@@ -100,9 +144,21 @@ export function julgarDistancia(input: {
   historico: CommitDaBranch[];
   falhaAoOlhar?: string | null;
   ressalva?: string | null;
+  /**
+   * true = `historico` veio com exatamente o limite pedido, então pode haver
+   * mais commits além dele. Distingue "não achei o commit dentro da janela
+   * que consultei" (COMMIT_ALEM_DO_LIMITE) de "vi a branch inteira e ele não
+   * está nela" (COMMIT_FORA_DA_BRANCH) — dois fatos com ações diferentes que
+   * hoje se achatam num "COMMIT_DESCONHECIDO" só.
+   */
+  historicoBateuNoLimite?: boolean;
+  /** O que se sabe sobre a fila de deploy do Railway — ver `EstadoDaFila`. */
+  fila?: EstadoDaFila | null;
 }): VereditoDaDistancia {
   const { producao, historico, falhaAoOlhar } = input;
   const ressalva = input.ressalva ?? null;
+  const historicoBateuNoLimite = input.historicoBateuNoLimite ?? false;
+  const fila = input.fila ?? null;
 
   // 1. Não deu para olhar (rede caiu, git falhou) não é a mesma coisa que "em
   //    dia" — são fatos opostos. Foi essa confusão, em outra forma, que deixou
@@ -118,6 +174,7 @@ export function julgarDistancia(input: {
       resumo: `Não foi possível medir a distância do deploy: ${falhaAoOlhar}`,
       acao: "Repetir a checagem. Até ela responder, tratar a distância como desconhecida — nunca como em dia.",
       ressalva,
+      fila,
     };
   }
 
@@ -133,6 +190,7 @@ export function julgarDistancia(input: {
       resumo: "A produção não está respondendo — não há como medir distância.",
       acao: "Abrir o painel do Railway e olhar o log do último deploy agora.",
       ressalva,
+      fila,
     };
   }
 
@@ -148,25 +206,45 @@ export function julgarDistancia(input: {
       resumo: "A produção está no ar, mas não diz qual versão está servindo.",
       acao: "Conferir se RAILWAY_GIT_COMMIT_SHA chega ao build (app/api/health/route.ts).",
       ressalva,
+      fila,
     };
   }
 
   const posicao = posicaoNoHistorico(producao.commit, historico);
 
-  // 4. O commit da produção não aparece no histórico: pode ser um fetch velho
-  //    (a branch já andou e a cópia local está desatualizada) ou a produção
-  //    servindo o commit de OUTRA branch. Nos dois casos não sabemos a
-  //    distância de verdade — fingir que sabemos é o defeito, não o alívio.
+  // 4. O commit da produção não aparece no histórico consultado. Isso cobria,
+  //    achatado num "COMMIT_DESCONHECIDO" só, dois fatos com ação diferente:
+  //      • o histórico veio CHEIO (bateu no limite de leitura) — o commit pode
+  //        estar mais atrás do que fomos olhar. Ação: aumentar o limite.
+  //      • o histórico veio PARCIAL (vimos a branch inteira) e mesmo assim o
+  //        commit não está nela — não é questão de limite, é produção servindo
+  //        outra branch, ou fetch local desatualizado. Ação: conferir a branch.
+  //    Achatar os dois numa resposta só é a mesma doença do dia: o `null` que
+  //    engolia três motivos, o selo "Falhou" para quatro causas.
   if (posicao === null) {
+    if (historicoBateuNoLimite) {
+      return {
+        codigo: "COMMIT_ALEM_DO_LIMITE",
+        medido: false,
+        commitsAtras: null,
+        faltando: [],
+        gravidade: "atencao",
+        resumo: `O commit em produção (${producao.commit}) não aparece nos ${historico.length} commits mais recentes consultados — pode estar mais atrás do que o limite de leitura.`,
+        acao: "Refazer a checagem com um limite maior de histórico.",
+        ressalva,
+        fila,
+      };
+    }
     return {
-      codigo: "COMMIT_DESCONHECIDO",
+      codigo: "COMMIT_FORA_DA_BRANCH",
       medido: false,
       commitsAtras: null,
       faltando: [],
       gravidade: "atencao",
-      resumo: `O commit em produção (${producao.commit}) não aparece no histórico consultado.`,
-      acao: "Atualizar o histórico local (git fetch) e checar se a produção está numa branch diferente da esperada.",
+      resumo: `O commit em produção (${producao.commit}) não aparece no histórico — e já vimos a branch inteira (${historico.length} commits), não é questão de limite.`,
+      acao: "Conferir se a produção está apontando para a branch esperada, e rodar git fetch para descartar histórico local velho.",
       ressalva,
+      fila,
     };
   }
 
@@ -181,23 +259,80 @@ export function julgarDistancia(input: {
       resumo: "A produção está em dia com a branch.",
       acao: "",
       ressalva,
+      fila,
     };
   }
 
   // 6. Atrás: a distância é a posição, e o que falta é tudo que veio depois
   //    (os `posicao` primeiros do histórico, do mais novo para o mais antigo).
-  //    3 commits atrás já é uma tarde de trabalho fora do ar — daí o corte de
-  //    gravidade em 3, não em algum número maior que soaria mais confortável.
+  //    A PARTIR DAQUI o número sozinho não decide mais nada — foi achatar
+  //    "atrasada e publicando" e "atrasada e parada" num alarme só que
+  //    produziu o susto de 16/08/2026 sobre um deploy que estava, na
+  //    verdade, em andamento. Quem decide é a fila.
   const commitsAtras = posicao;
   const faltando = historico.slice(0, posicao);
+  const distancia = resumoDeAtraso(commitsAtras, faltando);
+
+  // 6a. Não sei se há deploy em voo — nem porque a consulta falhou, nem
+  //     porque um status que este medidor não reconhece apareceu na fila.
+  //     Nos dois casos, "não sei" continua sendo pior que "atrasada mas
+  //     publicando" e melhor que alarmar "parada" sem prova.
+  if (!fila || !fila.consultei) {
+    const motivo = fila?.falha ?? "a fila de implantações não foi consultada";
+    return {
+      codigo: "ATRASADA_SEM_SABER",
+      medido: true,
+      commitsAtras,
+      faltando,
+      gravidade: "atencao",
+      resumo: `${distancia} A distância foi medida, mas não foi possível checar se um deploy já está subindo (${motivo}).`,
+      acao: "Conferir o painel do Railway a mão para saber se há deploy em andamento.",
+      ressalva,
+      fila,
+    };
+  }
+
+  if (fila.statusDesconhecido) {
+    return {
+      codigo: "ATRASADA_SEM_SABER",
+      medido: true,
+      commitsAtras,
+      faltando,
+      gravidade: "atencao",
+      resumo: `${distancia} A fila do Railway tem um status que este medidor não reconhece ("${fila.statusDesconhecido}") — não dá para confirmar se há deploy em andamento.`,
+      acao: "Conferir o painel do Railway a mão: o status é novo e ainda não está classificado aqui.",
+      ressalva,
+      fila,
+    };
+  }
+
+  // 6b. Atrasada, mas publicando: a esteira está funcionando, só mais devagar
+  //     que o ritmo de quem empurra peça. Isto pede ESPERAR, não alarmar.
+  if (fila.emVoo > 0) {
+    return {
+      codigo: "ATRASADA_PUBLICANDO",
+      medido: true,
+      commitsAtras,
+      faltando,
+      gravidade: "atencao",
+      resumo: `${distancia} Mas há ${fila.emVoo} implantação${fila.emVoo === 1 ? "" : "ões"} em andamento no Railway (status mais recente: ${fila.statusMaisRecente ?? "?"}) — a produção deve alcançar sozinha.`,
+      acao: "Esperar a fila de deploy processar; conferir de novo em alguns minutos.",
+      ressalva,
+      fila,
+    };
+  }
+
+  // 6c. Atrasada e parada: a fila foi consultada, nada está em voo. Este é o
+  //     único caso que merece o alarme vermelho — pede agir agora.
   return {
-    codigo: "ATRASADA",
+    codigo: "ATRASADA_PARADA",
     medido: true,
     commitsAtras,
     faltando,
-    gravidade: commitsAtras >= 3 ? "grave" : "atencao",
-    resumo: resumoDeAtraso(commitsAtras, faltando),
+    gravidade: "grave",
+    resumo: `${distancia} E nenhum deploy está em andamento no Railway agora.`,
     acao: "Disparar (ou destravar) o deploy da branch em produção agora — não esperar o próximo push.",
     ressalva,
+    fila,
   };
 }
