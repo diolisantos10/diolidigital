@@ -239,6 +239,71 @@ function commitarEEmpurrar(
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Identidade da sessão — persistida LOCAL, nunca versionada
+// ─────────────────────────────────────────────────────────────────────────
+//
+// MEDIÇÃO REAL (16/08/2026): o gancho pre-push chama "conferir" SEM --quem,
+// porque o gancho não sabe quem é a sessão. Sem saber "quem sou eu",
+// "conferir" não tem como distinguir "isto é a MINHA PRÓPRIA reivindicação"
+// de "isto é de outra sessão" — e passou a barrar pm-a27b5772 pela reivindicação
+// que pm-a27b5772 MESMO tinha aberto, corretamente, antes de trabalhar. Uma
+// trava que pune quem a obedeceu ensina a próxima pessoa a usar --no-verify,
+// e a partir daí o portão para de proteger qualquer coisa.
+//
+// A saída: quando "abrir" grava uma reivindicação com sucesso, ele também
+// grava a identidade em ".git/config" (`git config --local dioli.quem <id>`).
+// Por quê ali, e não em algum arquivo do repositório:
+//   • ".git/config" é LOCAL por natureza — nunca é versionado, nunca vai para
+//     o remoto, nunca aparece em "git status". A identidade da sessão é um
+//     fato sobre ESTA MÁQUINA/ESTE CHECKOUT, não sobre o código, e não tem
+//     por que disputar merge com ninguém.
+//   • worktrees de agente compartilham o "git-common-dir" (é de lá que
+//     "instalar-gancho" já lê os hooks) — gravar a identidade ali faz ela
+//     valer para a sessão inteira, mesmo que ela troque de worktree no meio
+//     do trabalho, sem precisar de um arquivo extra para sincronizar.
+// "conferir" resolve "quem" nesta ordem: (a) a flag --quem, se foi dada —
+// quem digitou sabe melhor que qualquer cache; (b) "git config --get
+// dioli.quem", gravado por um "abrir" anterior desta mesma sessão; (c) se
+// nenhum dos dois existir, o comando NÃO FINGE que sabe quem é — inventar uma
+// identidade aqui seria pior que admitir a lacuna, porque uma identidade
+// errada faz a PRÓPRIA reivindicação da sessão parecer alheia (exatamente o
+// bug medido acima). Em vez disso ele avisa, claramente, que a identidade é
+// desconhecida e que reivindicações próprias não serão distinguidas — e
+// segue conferindo mesmo assim, porque falhar fechado por falta de identidade
+// bloquearia até quem nunca reivindicou nada.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Grava "quem sou eu" localmente após "abrir" ter sucesso. Falha aqui é
+ *  conveniência perdida, não erro: a reivindicação em si já foi gravada e
+ *  empurrada — um "git config" que não pegou (permissão, git-common-dir
+ *  somente-leitura) não pode fazer o comando "abrir" reportar erro. */
+function gravarIdentidadeLocal(quem: string): void {
+  try {
+    git(["config", "--local", "dioli.quem", quem]);
+  } catch {
+    // intencionalmente silencioso — ver o comentário da função.
+  }
+}
+
+/** Lê a identidade gravada por um "abrir" anterior desta sessão. `git config
+ *  --get` sai com código != 0 quando a chave não existe — por isso usamos
+ *  `gitOuNulo`, que já trata "comando falhou" como "não sei", em vez de `git`,
+ *  que lançaria. */
+function lerIdentidadeLocal(): string | null {
+  const v = gitOuNulo(["config", "--get", "dioli.quem"]);
+  return v && v.trim() ? v.trim() : null;
+}
+
+/** A ordem de resolução descrita no bloco acima: flag > cache local > "não
+ *  sei" (nunca um palpite). Devolve `null` no caso (c) de propósito — quem
+ *  chama decide como avisar, esta função só recusa adivinhar. */
+function resolverQuemParaConferir(argv: string[]): string | null {
+  const daFlag = pegarArg(argv, "quem");
+  if (daFlag) return daFlag;
+  return lerIdentidadeLocal();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // abrir
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -365,6 +430,11 @@ function comandoAbrir(argv: string[]): void {
     process.exit(1);
   }
 
+  // Só grava a identidade local DEPOIS do push ter dado certo — ver o bloco
+  // "Identidade da sessão" acima. Reivindicação que não chegou ao remoto não
+  // deve ensinar "conferir" a se reconhecer como dona de nada.
+  gravarIdentidadeLocal(quem);
+
   if (resultado.colide && forcar) {
     console.log(`🚨 REIVINDICAÇÃO FORÇADA por ${quem}, apesar da colisão. Motivo registrado: "${motivo}"`);
   }
@@ -433,7 +503,19 @@ function avisosDeVizinhanca(arquivosDaSessao: string[], quem: string, existentes
     return i === -1 ? "." : norm.slice(0, i);
   };
 
-  const meusDiretorios = new Set(arquivosDaSessao.map(dirDe));
+  // A RAIZ do repositório NUNCA gera aviso de vizinhança. Um arquivo solto na
+  // raiz (ex.: "vitest.config.ts") tem diretório ".", e "." é o diretório de
+  // TODO arquivo de primeiro nível — package.json, README.md, tsconfig.json,
+  // AGENTS.md, CLAUDE.md, dezenas deles, sem relação nenhuma entre si além de
+  // estarem no mesmo nível de pasta. Tratar "." como vizinhança real faria
+  // QUALQUER mudança na raiz soar vizinha de QUALQUER outra — um aviso que
+  // dispara sempre é um aviso que vira ruído de fundo e que ninguém lê mais
+  // (o próprio comentário desta função já diz: vizinhança é indício, não
+  // prova — mas na raiz nem indício é, porque não distingue nada). Só
+  // diretório de verdade (um subdiretório nomeado) carrega indício.
+  const ehDiretorioRaiz = (dir: string): boolean => dir === "." || dir === "" || dir === "./";
+
+  const meusDiretorios = new Set(arquivosDaSessao.map(dirDe).filter((d) => !ehDiretorioRaiz(d)));
   const meusArquivosNormalizados = new Set(arquivosDaSessao.map(normalizarCaminho));
 
   // Um aviso por PAR (outra sessão × responsabilidade dela) — não um por
@@ -468,7 +550,17 @@ function avisosDeVizinhanca(arquivosDaSessao: string[], quem: string, existentes
 
 function comandoConferir(argv: string[]): void {
   const branch = branchAlvo(argv);
-  const quem = pegarArg(argv, "quem") || "(sessão sem --quem)";
+  const quemResolvido = resolverQuemParaConferir(argv);
+  if (!quemResolvido) {
+    console.warn(
+      '⚠️  Identidade da sessão desconhecida (sem --quem e sem "git config dioli.quem" gravado por um "abrir" ' +
+        "anterior). Reivindicações da PRÓPRIA sessão não serão distinguidas das de outras sessões — pode gerar " +
+        'falso positivo. Rode "npm run reivindicar -- abrir" ao menos uma vez nesta sessão para gravar a identidade, ' +
+        "ou repita com --quem <id>. Seguindo a conferência mesmo assim — falhar fechado por falta de identidade " +
+        "bloquearia até quem nunca reivindicou nada.",
+    );
+  }
+  const quem = quemResolvido ?? "(sessão sem --quem)";
 
   console.log(`Buscando origin/${branch}…`);
   const busca = buscarRemoto(branch);
