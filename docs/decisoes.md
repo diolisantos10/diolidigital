@@ -8,6 +8,32 @@
 
 ---
 
+## QUEM ESCREVE O CONSERTO NÃO ESCREVE O CORPUS QUE O MEDE
+
+**Decidido em** 2026-08-16 · **por** o CEO, sobre achado de `qualidade` ·
+**origem:** os "0 em 84" da quarta passada, que viraram "5 em 50" na medição dela
+
+**O que aconteceu.** A quarta passada da trava de preço mediu o falso positivo
+em **0 de 84 falas** e deu o assunto por fechado. `qualidade` escreveu o corpus
+de fala comercial real que faltava e mediu **5 de 50** na mesma régua. O corpus
+de 84 **não tinha ano, CNPJ, telefone, endereço nem métrica de rede social** —
+que eram exatamente as cinco classes onde a régua errava.
+
+**A regra.** Corpus escrito pelo autor do conserto mede o que o autor já pensou:
+ele é uma lista das defesas dele, não um teste delas. **Medição de falso positivo
+que valha como portão é escrita por quem não escreveu o código.** Quando isso não
+for possível, o corpus do autor entra **declarado como suplemento**, e a lacuna
+vai no relato — nunca como número de aprovação.
+
+**Corolário medido no mesmo dia:** o custo de um falso positivo tem de ser
+*traçado até a tela*, não presumido. O código afirmava que ele "troca uma fala
+nossa por outra fala nossa"; `qualidade` seguiu o caminho e mostrou que o
+prospect ouvia *"sobre valor: quem fecha número aqui é a nossa equipe"* depois de
+perguntar **onde fica a agência**. Custo presumido errado inverte a instrução que
+se dá ao próximo — e foi o que aconteceu aqui.
+
+---
+
 ## TROCAR UM REGEX DE PROTEÇÃO EXIGE O TESTE QUE RODA O REGEX ANTIGO
 
 **Decidido em** 2026-08-16 · **por** o CEO, sobre achado de `qualidade` ·

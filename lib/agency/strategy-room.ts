@@ -282,7 +282,14 @@ function buildDebate(project: Project, client: Client, specialists: StrategyRoom
       specialistName: "Agency CEO",
       type: "addition",
       replyTo: "paid",
-      content: `Correto. Setup técnico entra na semana 1 como pré-requisito. Além disso, quero endereçar o escopo comercial: ${hasFullBrandBrain ? `Brand Brain completo é vantagem — podemos oferecer o pacote Growth (R$ 4.500/mês) com confiança.` : `Brand Brain incompleto significa que vamos precisar de uma sessão de diagnóstico paga antes do retainer. Isso protege a agência de executar às cegas.`} Proponho timeline de 3 meses iniciais com cláusula de renovação após milestone de 30 dias.`,
+      // ⛔ 16/08/2026 (5ª passada): dizia "podemos oferecer o pacote Growth
+      // (R$ 4.500/mês)". "Growth" é um dos cinco rótulos-fantasma e R$ 4.500 é
+      // um valor que `lib/agency/planos.ts` não conhece — o último resto da
+      // terceira tabela de preço nesta tela. É tela INTERNA da agência, não do
+      // prospect, mas número inventado numa tela interna é o texto de onde sai a
+      // proposta que o prospect lê. Trocado por linguagem de ESCOPO, sem preço:
+      // quem diz preço nesta casa é `planos.ts`, e ele não é chamado aqui.
+      content: `Correto. Setup técnico entra na semana 1 como pré-requisito. Além disso, quero endereçar o escopo comercial: ${hasFullBrandBrain ? `Brand Brain completo é vantagem — podemos propor o escopo cheio (social + design + tráfego pago) com confiança. O valor sai da tabela da casa, não daqui.` : `Brand Brain incompleto significa que vamos precisar de uma sessão de diagnóstico paga antes do retainer. Isso protege a agência de executar às cegas.`} Proponho timeline de 3 meses iniciais com cláusula de renovação após milestone de 30 dias.`,
     },
     // 7. Brand Strategist synthesizes
     {

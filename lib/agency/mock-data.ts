@@ -75,37 +75,20 @@ export interface ProjectProposal {
   rejectionReason?: string;
 }
 
-export interface ServicePackage {
-  id: string;
-  name: string;
-  description: string;
-  includes: string[];
-  pricing: string;
-}
-
-export const SERVICE_PACKAGES: ServicePackage[] = [
-  {
-    id: "starter",
-    name: "Starter",
-    description: "Focused single-service engagement for brands with a clear, contained objective.",
-    includes: ["1 core service", "Monthly reporting", "2 revision rounds"],
-    pricing: "€2,500 / month",
-  },
-  {
-    id: "growth",
-    name: "Growth",
-    description: "Multi-channel execution for brands actively scaling their digital presence.",
-    includes: ["2–3 services", "Bi-weekly syncs", "3 revision rounds", "Brand Brain integration"],
-    pricing: "€4,500 / month",
-  },
-  {
-    id: "full_service",
-    name: "Full Service",
-    description: "Complete agency partnership — strategy, execution, and optimization across all channels.",
-    includes: ["4+ services", "Weekly syncs", "Unlimited revisions", "Brand Brain integration", "Creative direction"],
-    pricing: "€7,500 / month",
-  },
-];
+// ⛔ `ServicePackage` E `SERVICE_PACKAGES` FORAM REMOVIDOS (16/08/2026, 5ª passada).
+//
+// Eram uma QUARTA tabela de preço desta casa — depois de `planos.ts`,
+// `docs/precos.md` e do `live-calculator` — e a mais fora da realidade das
+// quatro: `"Starter"` / `"Growth"` / `"Full Service"` cotados em **€2.500,
+// €4.500 e €7.500 por mês**, em euro, com dois dos três nomes na lista de
+// rótulos-fantasma que esta frente inteira passou quatro rodadas apagando.
+//
+// Conferido antes de remover: **zero consumidores.** `SERVICE_PACKAGES` e
+// `ServicePackage` não eram importados por nenhum arquivo do repositório — só
+// declarados aqui. Export sem chamador não é "só um mock": é uma tabela de preço
+// esperando o primeiro `import` de quem não souber que ela é ficção.
+//
+// Quem nomeia produto e diz preço nesta casa é `lib/agency/planos.ts`, e só ele.
 
 export interface Project {
   id: string;

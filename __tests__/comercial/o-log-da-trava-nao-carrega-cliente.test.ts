@@ -272,10 +272,19 @@ describe("a rota grava a marca, e não o recorte", () => {
     return fonte.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
   }
 
-  /** `const X: T = <expr>;` — nome, anotação (se houver) e inicializador. */
+  /**
+   * `const X: T = <expr>;` — nome, anotação (se houver) e inicializador.
+   *
+   * ⛔ `let` E `var` ENTRARAM EM 16/08/2026 (quinta passada). O contágio seguia
+   * só `const`, então `let x = replyText; console.warn(x)` passava verde — a
+   * mesma evasão de uma variável local que produziu o portão, com outra palavra
+   * na frente. Hoje a rota tem um `let` só (`let body: ChatRequest;`, sem
+   * inicializador), então não havia exposição real; fechar antes de haver custa
+   * uma alternância no regex, e é este o momento barato.
+   */
   function constantes(fonte: string): { nome: string; tipo: string | null; init: string }[] {
     const saida: { nome: string; tipo: string | null; init: string }[] = [];
-    for (const m of fonte.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*(?::\s*([^=;]+?)\s*)?=\s*/g)) {
+    for (const m of fonte.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::\s*([^=;]+?)\s*)?=\s*/g)) {
       const inicio = m.index + m[0].length;
       let i = inicio;
       let prof = 0;
@@ -330,6 +339,21 @@ describe("a rota grava a marca, e não o recorte", () => {
         ).toBe(false);
       }
     }
+  });
+
+  it("🔴 nem por `let` nem por `var` — a evasão de uma palavra a menos", () => {
+    // O portão anterior seguia SÓ `const`. Estas três linhas passavam verde.
+    expect(contaminadas(`let x = replyText; console.warn("x", x);`)).toContain("x");
+    expect(contaminadas(`var y = body.currentMessage; console.warn("y", y);`)).toContain("y");
+    // E o contágio transitivo atravessa a mistura de declarações.
+    const misturado = `
+      let bruto = body.currentMessage;
+      const derivado = bruto.slice(0, 40);
+      console.warn("[sdr/chat] x", JSON.stringify({ derivado }));
+    `;
+    expect(contaminadas(misturado)).toEqual(expect.arrayContaining(["bruto", "derivado"]));
+    // A isenção continua sendo o TIPO, não a palavra-chave.
+    expect(contaminadas(`let ok: boolean = /faixa/i.test(replyText); console.warn("x", ok);`)).toEqual([]);
   });
 
   it("a varredura de contágio PEGA a evasão que `qualidade` descreveu", () => {

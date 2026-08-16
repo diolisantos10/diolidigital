@@ -149,6 +149,26 @@ describe("a régua nova não afrouxou a antiga — provado, não afirmado", () =
     ).toEqual([]);
   });
 
+  // ⛔ E O CORPUS INTEIRO, NÃO SÓ O QUE A ANTIGA JÁ PEGAVA (16/08, 5ª passada).
+  //
+  // A asserção acima compara a régua nova com a ANTIGA — ela não vê o que
+  // NENHUMA das duas barrava. Instrumentado nesta passada: **24 das 584** falas
+  // do corpus passavam pelas duas. São as molduras sem palavra de preço nenhuma
+  // ("Ficamos com …", "… fecha pra você?", "Consigo … pra você.") na grafia
+  // `<número> por mês` — cotação legítima, silenciosa nos dois lados.
+  //
+  // O corpus é 100% cotação por construção: **toda** fala dele tem de barrar, e
+  // é isto que esta asserção passa a exigir. Sem ela, o buraco continuaria
+  // invisível por ser invisível para a testemunha também.
+  it("🔴 o corpus é só cotação — TODAS as 584 barram, não só as que a antiga via", () => {
+    const passaram = CORPUS.filter((f) => !travaDispara(f));
+    expect(
+      passaram,
+      `${passaram.length} cotações atravessaram a trava (nem a régua antiga as via):\n` +
+        passaram.slice(0, 12).map((f) => `  · ${JSON.stringify(f)}`).join("\n"),
+    ).toEqual([]);
+  });
+
   // A CLASSE que produziu a regressão, nomeada, para não se esconder na massa.
   it.each([
     "1.200/mês fecha pra você?",

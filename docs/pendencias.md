@@ -15,6 +15,126 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — QUINTA PASSADA: O MEU CORPUS MEDIA AS MINHAS DEFESAS
+
+**Branch `claude/piloto-rodada2-trava-e-confirmacao`. `qualidade` deu SIM para o
+ar em `fe7f14a`. Este é o residual — e o achado dele é sobre COMO EU MEÇO.**
+
+### 🔴 H1 — "0 em 84" era 5 em 50, e as duas mitigações que escrevi eram falsas
+
+Medi o falso positivo da trava em **0 de 84** e fechei o assunto. `qualidade`
+escreveu o corpus que faltava e mediu **5 de 50**. O meu corpus **não tinha ano,
+CNPJ, telefone, endereço nem métrica de Instagram** — as cinco classes onde a
+régua errava. Corpus do autor mede as defesas do autor.
+
+**As duas coisas que ela refutou, e as duas eram comentário no meu código:**
+
+1. **`leitor-de-valor.ts:159-162` descrevia uma proteção inexistente.** Ele
+   justificava a saída do separador dizendo que *"quantidade continua barrada
+   pelo `UNIDADE_DEPOIS` e pelo `PISO_DO_IMPLICITO`"*. **Ano, CNPJ, CEP e
+   telefone não são quantidade e não estão abaixo de 50.** Terceira vez nesta
+   frente que um comentário afirma uma trava que o código não tem.
+2. **`:116` errava o CUSTO** — dizia *"troca uma fala nossa por outra fala
+   nossa"*. Ela traçou: `ecoDoCliente` compara **números**, então
+   `"…desde 2018."` dá `eco=false`, `corte=null` e cai em
+   `respostaHonestaDePreco`. **O prospect pergunta onde fica a agência e ouve
+   "sobre valor: quem fecha número aqui é a nossa equipe, não eu".** Não-sequitur
+   na primeira impressão comercial. Os dois comentários foram reescritos.
+
+**O conserto: FORMATO TEM ESTRUTURA — usa-se a estrutura, não lista de número.**
+`trechosQueNaoSaoDinheiro()` desliga **só a passada implícita** (`R$ 2018` e
+`2018 reais` continuam dinheiro) sobre CNPJ, CPF, CEP, telefone com e sem
+máscara, corrida de 10+ dígitos, data, número de logradouro, métrica de rede
+social e ano.
+
+**O ano exigiu QUATRO condições, e nenhuma é dispensável** — ano e preço de
+quatro dígitos são o mesmo símbolo: (1) 4 dígitos **crus**, 1900–2099 — preço em
+pt-BR leva separador; (2) sem prefixo/sufixo monetário colado; (3) evidência de
+data na frase (`desde`, `fundada`, `no mercado`, dois anos ligados por "ou"/"a");
+(4) sem pista **forte** de preço. Sem a (3), `"Fica em 2000."` e `"Sai por 2000."`
+virariam data — medido ao escrever a regra. Com as quatro, continuam **barradas**.
+
+> ⚠️ **`posts`, `stories` e `reels` ficaram FORA da lista de métrica de propósito:**
+> são o vocabulário de escopo desta casa, e *"Para 20 stories, fica em 1.200 por
+> mês."* é cotação. Pôr entregável ali trocaria falso positivo por falso negativo.
+
+**Os dois lados, medidos antes e depois:**
+
+| | antes | depois |
+|---|---|---|
+| **falso negativo** · regressões contra a régua antiga (584 falas) | 0 | **0** |
+| **falso negativo** · corpus de 584 **inteiro** (é 100% cotação) | **24 passavam** | **0** |
+| falso positivo · as 9 falas de `qualidade` | **9/9 barradas** | **0/9** |
+| falso positivo · corpus gerado das 5 classes (82 falas) | **50/82 barradas** | **0/82** |
+
+### 🔴 O FALSO NEGATIVO QUE APARECEU AO INSTRUMENTAR — 24 de 584
+
+Ao medir, o corpus de não-regressão acusou **24 cotações que NENHUMA das duas
+réguas barrava** — as molduras sem palavra de preço nenhuma ("Ficamos com …",
+"… fecha pra você?", "Consigo … pra você.") na grafia `<número> por mês`. Não era
+regressão: era buraco anterior a esta frente, **invisível porque a testemunha
+também não o via**. `<número> por mês` **colado** entrou em `PISTA_DE_PRECO` (o
+substantivo no meio protege "8 posts por mês"), e a asserção do corpus deixou de
+ser "tudo que a antiga barrava" e passou a ser **"todas as 584 barram"**.
+
+### O PORTÃO — e a declaração de autoria que ele carrega
+
+`__tests__/comercial/o-leitor-nao-le-ano-cnpj-nem-telefone-como-dinheiro.test.ts`
+traz as **9 falas de `qualidade` verbatim**, marcadas com autoria e com "não
+edite para o teste passar". A metade 2 roda o preço **com forma de ano** e as
+quatro condições uma a uma; a metade 3 trava as 24.
+
+> ⚠️ **SÃO 9 DAS 68 FALAS DELA.** As outras 59 não estão no repositório — o
+> despacho trouxe só as nomeadas. O bloco cartesiano das cinco classes é
+> **suplemento meu, declarado como tal**: enquanto as 59 não forem importadas, a
+> cobertura é a que o autor do conserto imaginou. É a lição do turno aplicada ao
+> próprio conserto dela.
+
+### 🟠 H2 — os três restos
+
+- **`SERVICE_PACKAGES` REMOVIDO.** Era uma **quarta** tabela de preço — Starter /
+  Growth / Full Service a **€2.500, €4.500 e €7.500/mês**, em euro, com dois dos
+  três nomes na lista de rótulos-fantasma. Conferido: **zero importadores** no
+  repositório inteiro. Export sem chamador não é mock, é tabela esperando o
+  primeiro `import` de quem não souber que é ficção.
+- **`strategy-room.ts:285`** — *"pacote Growth (R$ 4.500/mês)"* limpo. Tela
+  interna, mas é dela que sai o texto da proposta que o prospect lê.
+- **O portão de PII fechou para `let` e `var`.** Seguia só `const`, então
+  `let x = replyText; console.warn(x)` passava verde. Hoje a rota tem um `let` só
+  (`let body: ChatRequest;`, sem inicializador) — **não havia exposição real**, e
+  fechar antes de haver custou uma alternância no regex. Caso plantado nos dois.
+
+### Portão
+
+`npx tsc --noEmit` limpo · **4722 testes em 294 arquivos, todos verdes** ·
+`npm run build` sai **0** · avisos: **6**, os mesmos de sempre
+(`instrumentation.ts` e o NFT de `next.config.ts`) — nenhum arquivo desta frente
+em trace.
+
+### ⚠️ SUPERFÍCIE DE BRIEFING TOCADA — declarada
+
+`lib/agency/comercial/leitor-de-valor.ts`.
+Fora do briefing: `lib/agency/mock-data.ts` · `lib/agency/strategy-room.ts`.
+Testes: o portão novo, `a-trava-nova-barra-tudo-que-a-antiga-barrava.test.ts`,
+`o-log-da-trava-nao-carrega-cliente.test.ts`.
+**`app/briefing/`, `lib/agency/esteira/triagem.ts` e `lib/agency/top-down.ts` não
+foram tocados.** Sem deploy, sem segredo, sem env.
+
+### 🔴 O QUE CONTINUA ABERTO
+
+- [ ] `qualidade` — **importar as 59 falas restantes do corpus dela.** Sem elas o
+      "0/82" mede o suplemento do autor, não a régua dela.
+- [ ] **Risco residual declarado do ano:** preço de 4 dígitos crus entre 1900 e
+      2099, **sem** separador, **sem** cifrão/"reais"/"por mês", numa frase que
+      carregue evidência de data e nenhuma pista forte de preço, passa. Não achei
+      construção plausível — as quatro condições simultâneas exigem uma frase que
+      fale de fundação e cote preço ao mesmo tempo, sem nomear dinheiro.
+- [ ] **CEO/`qualidade`** — o `live-calculator` continua sendo a terceira tabela
+      de preço: valores (600–900, 900–1.400…) sem lastro em `planos.ts`.
+- [ ] **CEO** — as três portas de preço no prompt (B8) e a régua de faixas.
+
+---
+
 ## 🟢 16/08/2026 — A QUARTA PASSADA: EU AFROUXEI A TRAVA E ESCREVI NO CÓDIGO QUE NÃO TINHA AFROUXADO
 
 **Branch `claude/piloto-rodada2-trava-e-confirmacao`. `qualidade` deu SÓ SE em
