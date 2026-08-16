@@ -86,7 +86,15 @@ export async function quemBateuNaPorta(workspaceId: string, agora: Date): Promis
   }).catch(() => []);
 
   return pedidos.map((p) => {
-    const contato = lerContato({ briefingJson: p.briefingJson, sdrHandoffJson: p.sdrHandoffJson });
+    // As colunas `contato*` vão junto do blob: `lerContato` prefere a coluna
+    // (16/08/2026) e cai para o `briefingJson` nos registros antigos.
+    const contato = lerContato({
+      contatoNome: p.contatoNome,
+      contatoEmail: p.contatoEmail,
+      contatoWhatsapp: p.contatoWhatsapp,
+      briefingJson: p.briefingJson,
+      sdrHandoffJson: p.sdrHandoffJson,
+    });
     const dias = Math.floor((agora.getTime() - p.createdAt.getTime()) / 86_400_000);
     return {
       id: p.id,

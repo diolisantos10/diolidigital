@@ -9,20 +9,31 @@
 //
 // Nenhuma escrita, nenhuma chamada de IA, nenhum contato inventado.
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { listClientRequests } from "@/lib/agency/persistence/client-request-service";
 import { montarDossie } from "@/lib/agency/comercial/dossie-do-lead";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const { session, error } = await requireSession();
   if (error) return error;
+
+  // `?contato=sim|nao` — o recorte que a COLUNA destravou (16/08/2026). É o que
+  // o aviso do orçamento precisa perguntar: "quais destes eu consigo responder?".
+  // Sem parâmetro, a fila vem inteira, que continua sendo o padrão.
+  //
+  // ⚠️ O filtro roda no BANCO e por isso enxerga só o que está na coluna. Está
+  // dito na resposta (`filtro.apenasColuna`), porque um recorte que esconde
+  // registro antigo sem avisar é como esta fila ficou invisível por sete semanas.
+  const pedido = new URL(request.url).searchParams.get("contato");
+  const comContato = pedido === "sim" ? true : pedido === "nao" ? false : undefined;
 
   try {
     const registros = await listClientRequests({
       workspaceId: session.workspaceId,
       status: "new,lead_incompleto",
       limit: 200,
+      comContato,
     });
 
     const agora = new Date();
@@ -40,6 +51,11 @@ export async function GET(): Promise<NextResponse> {
             rawContext: r.rawContext,
             briefingJson: r.briefingJson,
             sdrHandoffJson: r.sdrHandoffJson,
+            // A coluna primeiro (16/08/2026); o blob continua atrás dela para
+            // quem entrou antes de ela existir.
+            contatoNome: r.contatoNome,
+            contatoEmail: r.contatoEmail,
+            contatoWhatsapp: r.contatoWhatsapp,
           },
           agora,
         ),
@@ -52,6 +68,9 @@ export async function GET(): Promise<NextResponse> {
       medido: true,
       total: dossies.length,
       semContato: dossies.filter((d) => !d.contato.temComoFalar).length,
+      filtro: comContato === undefined
+        ? null
+        : { contato: pedido, apenasColuna: true },
       leads: dossies,
     });
   } catch (e) {

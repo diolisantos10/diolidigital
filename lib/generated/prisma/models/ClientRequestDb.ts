@@ -39,6 +39,10 @@ export type ClientRequestDbMinAggregateOutputType = {
   briefingJson: string | null
   sdrHandoffJson: string | null
   attachmentsJson: string | null
+  contatoNome: string | null
+  contatoEmail: string | null
+  contatoWhatsapp: string | null
+  contatoEm: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -58,6 +62,10 @@ export type ClientRequestDbMaxAggregateOutputType = {
   briefingJson: string | null
   sdrHandoffJson: string | null
   attachmentsJson: string | null
+  contatoNome: string | null
+  contatoEmail: string | null
+  contatoWhatsapp: string | null
+  contatoEm: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -77,6 +85,10 @@ export type ClientRequestDbCountAggregateOutputType = {
   briefingJson: number
   sdrHandoffJson: number
   attachmentsJson: number
+  contatoNome: number
+  contatoEmail: number
+  contatoWhatsapp: number
+  contatoEm: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -98,6 +110,10 @@ export type ClientRequestDbMinAggregateInputType = {
   briefingJson?: true
   sdrHandoffJson?: true
   attachmentsJson?: true
+  contatoNome?: true
+  contatoEmail?: true
+  contatoWhatsapp?: true
+  contatoEm?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -117,6 +133,10 @@ export type ClientRequestDbMaxAggregateInputType = {
   briefingJson?: true
   sdrHandoffJson?: true
   attachmentsJson?: true
+  contatoNome?: true
+  contatoEmail?: true
+  contatoWhatsapp?: true
+  contatoEm?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -136,6 +156,10 @@ export type ClientRequestDbCountAggregateInputType = {
   briefingJson?: true
   sdrHandoffJson?: true
   attachmentsJson?: true
+  contatoNome?: true
+  contatoEmail?: true
+  contatoWhatsapp?: true
+  contatoEm?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -228,6 +252,10 @@ export type ClientRequestDbGroupByOutputType = {
   briefingJson: string | null
   sdrHandoffJson: string | null
   attachmentsJson: string
+  contatoNome: string | null
+  contatoEmail: string | null
+  contatoWhatsapp: string | null
+  contatoEm: Date | null
   createdAt: Date
   updatedAt: Date
   _count: ClientRequestDbCountAggregateOutputType | null
@@ -268,6 +296,10 @@ export type ClientRequestDbWhereInput = {
   briefingJson?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
   sdrHandoffJson?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
   attachmentsJson?: Prisma.StringFilter<"ClientRequestDb"> | string
+  contatoNome?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  contatoEmail?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  contatoWhatsapp?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  contatoEm?: Prisma.DateTimeNullableFilter<"ClientRequestDb"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
   artifacts?: Prisma.BrainArtifactListRelationFilter
@@ -292,6 +324,10 @@ export type ClientRequestDbOrderByWithRelationInput = {
   briefingJson?: Prisma.SortOrderInput | Prisma.SortOrder
   sdrHandoffJson?: Prisma.SortOrderInput | Prisma.SortOrder
   attachmentsJson?: Prisma.SortOrder
+  contatoNome?: Prisma.SortOrderInput | Prisma.SortOrder
+  contatoEmail?: Prisma.SortOrderInput | Prisma.SortOrder
+  contatoWhatsapp?: Prisma.SortOrderInput | Prisma.SortOrder
+  contatoEm?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   artifacts?: Prisma.BrainArtifactOrderByRelationAggregateInput
@@ -319,6 +355,10 @@ export type ClientRequestDbWhereUniqueInput = Prisma.AtLeast<{
   briefingJson?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
   sdrHandoffJson?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
   attachmentsJson?: Prisma.StringFilter<"ClientRequestDb"> | string
+  contatoNome?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  contatoEmail?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  contatoWhatsapp?: Prisma.StringNullableFilter<"ClientRequestDb"> | string | null
+  contatoEm?: Prisma.DateTimeNullableFilter<"ClientRequestDb"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ClientRequestDb"> | Date | string
   artifacts?: Prisma.BrainArtifactListRelationFilter
@@ -343,6 +383,10 @@ export type ClientRequestDbOrderByWithAggregationInput = {
   briefingJson?: Prisma.SortOrderInput | Prisma.SortOrder
   sdrHandoffJson?: Prisma.SortOrderInput | Prisma.SortOrder
   attachmentsJson?: Prisma.SortOrder
+  contatoNome?: Prisma.SortOrderInput | Prisma.SortOrder
+  contatoEmail?: Prisma.SortOrderInput | Prisma.SortOrder
+  contatoWhatsapp?: Prisma.SortOrderInput | Prisma.SortOrder
+  contatoEm?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ClientRequestDbCountOrderByAggregateInput
@@ -368,6 +412,10 @@ export type ClientRequestDbScalarWhereWithAggregatesInput = {
   briefingJson?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
   sdrHandoffJson?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
   attachmentsJson?: Prisma.StringWithAggregatesFilter<"ClientRequestDb"> | string
+  contatoNome?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
+  contatoEmail?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
+  contatoWhatsapp?: Prisma.StringNullableWithAggregatesFilter<"ClientRequestDb"> | string | null
+  contatoEm?: Prisma.DateTimeNullableWithAggregatesFilter<"ClientRequestDb"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ClientRequestDb"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ClientRequestDb"> | Date | string
 }
@@ -387,6 +435,10 @@ export type ClientRequestDbCreateInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
@@ -411,6 +463,10 @@ export type ClientRequestDbUncheckedCreateInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
@@ -435,6 +491,10 @@ export type ClientRequestDbUpdateInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
@@ -459,6 +519,10 @@ export type ClientRequestDbUncheckedUpdateInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -483,6 +547,10 @@ export type ClientRequestDbCreateManyInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -502,6 +570,10 @@ export type ClientRequestDbUpdateManyMutationInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -521,6 +593,10 @@ export type ClientRequestDbUncheckedUpdateManyInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -540,6 +616,10 @@ export type ClientRequestDbCountOrderByAggregateInput = {
   briefingJson?: Prisma.SortOrder
   sdrHandoffJson?: Prisma.SortOrder
   attachmentsJson?: Prisma.SortOrder
+  contatoNome?: Prisma.SortOrder
+  contatoEmail?: Prisma.SortOrder
+  contatoWhatsapp?: Prisma.SortOrder
+  contatoEm?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -559,6 +639,10 @@ export type ClientRequestDbMaxOrderByAggregateInput = {
   briefingJson?: Prisma.SortOrder
   sdrHandoffJson?: Prisma.SortOrder
   attachmentsJson?: Prisma.SortOrder
+  contatoNome?: Prisma.SortOrder
+  contatoEmail?: Prisma.SortOrder
+  contatoWhatsapp?: Prisma.SortOrder
+  contatoEm?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -578,6 +662,10 @@ export type ClientRequestDbMinOrderByAggregateInput = {
   briefingJson?: Prisma.SortOrder
   sdrHandoffJson?: Prisma.SortOrder
   attachmentsJson?: Prisma.SortOrder
+  contatoNome?: Prisma.SortOrder
+  contatoEmail?: Prisma.SortOrder
+  contatoWhatsapp?: Prisma.SortOrder
+  contatoEm?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -682,6 +770,10 @@ export type ClientRequestDbCreateWithoutMessagesInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
@@ -705,6 +797,10 @@ export type ClientRequestDbUncheckedCreateWithoutMessagesInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
@@ -744,6 +840,10 @@ export type ClientRequestDbUpdateWithoutMessagesInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
@@ -767,6 +867,10 @@ export type ClientRequestDbUncheckedUpdateWithoutMessagesInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -790,6 +894,10 @@ export type ClientRequestDbCreateWithoutArtifactsInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
@@ -813,6 +921,10 @@ export type ClientRequestDbUncheckedCreateWithoutArtifactsInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
@@ -852,6 +964,10 @@ export type ClientRequestDbUpdateWithoutArtifactsInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
@@ -875,6 +991,10 @@ export type ClientRequestDbUncheckedUpdateWithoutArtifactsInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -898,6 +1018,10 @@ export type ClientRequestDbCreateWithoutApprovalsInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
@@ -921,6 +1045,10 @@ export type ClientRequestDbUncheckedCreateWithoutApprovalsInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
@@ -960,6 +1088,10 @@ export type ClientRequestDbUpdateWithoutApprovalsInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
@@ -983,6 +1115,10 @@ export type ClientRequestDbUncheckedUpdateWithoutApprovalsInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -1006,6 +1142,10 @@ export type ClientRequestDbCreateWithoutEvidenceItemsInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
@@ -1029,6 +1169,10 @@ export type ClientRequestDbUncheckedCreateWithoutEvidenceItemsInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
@@ -1068,6 +1212,10 @@ export type ClientRequestDbUpdateWithoutEvidenceItemsInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
@@ -1091,6 +1239,10 @@ export type ClientRequestDbUncheckedUpdateWithoutEvidenceItemsInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -1114,6 +1266,10 @@ export type ClientRequestDbCreateWithoutPortalAccessInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
@@ -1137,6 +1293,10 @@ export type ClientRequestDbUncheckedCreateWithoutPortalAccessInput = {
   briefingJson?: string | null
   sdrHandoffJson?: string | null
   attachmentsJson?: string
+  contatoNome?: string | null
+  contatoEmail?: string | null
+  contatoWhatsapp?: string | null
+  contatoEm?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
@@ -1176,6 +1336,10 @@ export type ClientRequestDbUpdateWithoutPortalAccessInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
@@ -1199,6 +1363,10 @@ export type ClientRequestDbUncheckedUpdateWithoutPortalAccessInput = {
   briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  contatoNome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoWhatsapp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contatoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
@@ -1289,6 +1457,10 @@ export type ClientRequestDbSelect<ExtArgs extends runtime.Types.Extensions.Inter
   briefingJson?: boolean
   sdrHandoffJson?: boolean
   attachmentsJson?: boolean
+  contatoNome?: boolean
+  contatoEmail?: boolean
+  contatoWhatsapp?: boolean
+  contatoEm?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   artifacts?: boolean | Prisma.ClientRequestDb$artifactsArgs<ExtArgs>
@@ -1314,6 +1486,10 @@ export type ClientRequestDbSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   briefingJson?: boolean
   sdrHandoffJson?: boolean
   attachmentsJson?: boolean
+  contatoNome?: boolean
+  contatoEmail?: boolean
+  contatoWhatsapp?: boolean
+  contatoEm?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["clientRequestDb"]>
@@ -1333,6 +1509,10 @@ export type ClientRequestDbSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   briefingJson?: boolean
   sdrHandoffJson?: boolean
   attachmentsJson?: boolean
+  contatoNome?: boolean
+  contatoEmail?: boolean
+  contatoWhatsapp?: boolean
+  contatoEm?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["clientRequestDb"]>
@@ -1352,11 +1532,15 @@ export type ClientRequestDbSelectScalar = {
   briefingJson?: boolean
   sdrHandoffJson?: boolean
   attachmentsJson?: boolean
+  contatoNome?: boolean
+  contatoEmail?: boolean
+  contatoWhatsapp?: boolean
+  contatoEm?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ClientRequestDbOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "clientId" | "businessName" | "segment" | "services" | "objectives" | "status" | "source" | "rawContext" | "briefingJson" | "sdrHandoffJson" | "attachmentsJson" | "createdAt" | "updatedAt", ExtArgs["result"]["clientRequestDb"]>
+export type ClientRequestDbOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "clientId" | "businessName" | "segment" | "services" | "objectives" | "status" | "source" | "rawContext" | "briefingJson" | "sdrHandoffJson" | "attachmentsJson" | "contatoNome" | "contatoEmail" | "contatoWhatsapp" | "contatoEm" | "createdAt" | "updatedAt", ExtArgs["result"]["clientRequestDb"]>
 export type ClientRequestDbInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   artifacts?: boolean | Prisma.ClientRequestDb$artifactsArgs<ExtArgs>
   approvals?: boolean | Prisma.ClientRequestDb$approvalsArgs<ExtArgs>
@@ -1395,6 +1579,35 @@ export type $ClientRequestDbPayload<ExtArgs extends runtime.Types.Extensions.Int
     briefingJson: string | null
     sdrHandoffJson: string | null
     attachmentsJson: string
+    /**
+     * ── COMO SE FALA COM QUEM PEDIU (16/08/2026) ───────────────────────────────
+     * 
+     * Até aqui o contato morava DENTRO de `briefingJson`, um blob de texto. Foi
+     * escolha declarada em 08/08 (o `prisma/` estava com outro agente), e o preço
+     * dela estava escrito: **enquanto não for coluna, não dá para filtrar nem
+     * indexar por contato no banco** — e é exatamente disso que depende o aviso
+     * do orçamento, que precisa perguntar "quais pedidos têm para onde responder?"
+     * sem carregar e desserializar a fila inteira.
+     * 
+     * ⚠️ ESTAS COLUNAS SÃO PROJEÇÃO, NÃO ENTRADA. Ninguém as digita: elas são
+     * escritas pelo serviço de persistência a partir de `lerContato`, o leitor
+     * único (`lib/agency/comercial/contato-do-lead.ts`), no mesmo ato da
+     * gravação. Duas verdades adjacentes sobre o mesmo fato foi o defeito nº 2 do
+     * incidente do Drive; aqui a segunda verdade é derivada da primeira, sempre.
+     * 
+     * NULO significa "não há canal declarado" — nunca "ainda não olhamos". Valor
+     * aqui é sempre validado (e-mail com forma de e-mail, WhatsApp com 10 a 13
+     * dígitos, já normalizado); o que não passa não é gravado, porque telefone
+     * inventado desliga o alarme sem dar para onde ligar.
+     */
+    contatoNome: string | null
+    contatoEmail: string | null
+    contatoWhatsapp: string | null
+    /**
+     * Quando o canal foi declarado. Nulo em registro antigo cujo contato só
+     * existe no `briefingJson` — ausência de informação não é informação.
+     */
+    contatoEm: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["clientRequestDb"]>
@@ -1839,6 +2052,10 @@ export interface ClientRequestDbFieldRefs {
   readonly briefingJson: Prisma.FieldRef<"ClientRequestDb", 'String'>
   readonly sdrHandoffJson: Prisma.FieldRef<"ClientRequestDb", 'String'>
   readonly attachmentsJson: Prisma.FieldRef<"ClientRequestDb", 'String'>
+  readonly contatoNome: Prisma.FieldRef<"ClientRequestDb", 'String'>
+  readonly contatoEmail: Prisma.FieldRef<"ClientRequestDb", 'String'>
+  readonly contatoWhatsapp: Prisma.FieldRef<"ClientRequestDb", 'String'>
+  readonly contatoEm: Prisma.FieldRef<"ClientRequestDb", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"ClientRequestDb", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ClientRequestDb", 'DateTime'>
 }

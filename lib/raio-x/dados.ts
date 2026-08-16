@@ -313,7 +313,14 @@ export async function varrerDadosPresos(agora: Date = new Date()): Promise<Resul
     const TETO_DE_CLASSIFICACAO = 200;
     const paradas = await prisma.clientRequestDb.findMany({
       where: { status: { in: ABERTAS }, createdAt: { lt: limite } },
-      select: { id: true, businessName: true, status: true, createdAt: true, briefingJson: true, sdrHandoffJson: true },
+      // As colunas `contato*` entram no `select` porque `lerContato` as prefere
+      // (16/08/2026). Omiti-las faria o raio-x ler só o blob e discordar da tela
+      // do operador no dia em que os dois formatos divergissem.
+      select: {
+        id: true, businessName: true, status: true, createdAt: true,
+        briefingJson: true, sdrHandoffJson: true,
+        contatoNome: true, contatoEmail: true, contatoWhatsapp: true,
+      },
       orderBy: { createdAt: "asc" },
       take: TETO_DE_CLASSIFICACAO,
     });

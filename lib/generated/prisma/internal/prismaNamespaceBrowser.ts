@@ -791,6 +791,10 @@ export const ClientRequestDbScalarFieldEnum = {
   briefingJson: 'briefingJson',
   sdrHandoffJson: 'sdrHandoffJson',
   attachmentsJson: 'attachmentsJson',
+  contatoNome: 'contatoNome',
+  contatoEmail: 'contatoEmail',
+  contatoWhatsapp: 'contatoWhatsapp',
+  contatoEm: 'contatoEm',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
