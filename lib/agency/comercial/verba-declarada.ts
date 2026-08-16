@@ -37,14 +37,48 @@
 // R$ 49, esta oferta muda sozinha — porque ela nunca soube o número, só sabe
 // perguntar à tabela. Preço inventado por IA não chega ao cliente desta casa.
 
+// ─── ESTE MÓDULO É FONTE ÚNICA, E ISSO FOI PAGO PARA SE APRENDER ─────────────
+//
+// Em 16/08/2026 duas frentes construíram esta MESMA regra no mesmo dia, sem uma
+// saber da outra: este arquivo e um `verba-vs-estimativa.ts` (APAGADO no mesmo
+// dia — não procure, ele não existe mais em disco), cada um servindo
+// uma superfície — este, o caminho do PROSPECT (`live-calculator`,
+// `briefing-conversation`, `orcamento-do-briefing`); o outro, o caminho da CASA
+// (o dossiê do lead e a fila `/agency/leads`).
+//
+// Duas implementações do mesmo julgamento comercial não ficam iguais: elas
+// divergem no dia em que alguém mexe numa só. E o jeito que esta casa
+// descobriria a divergência é o pior possível — **o cliente ouvindo uma coisa na
+// conversa e lendo outra na proposta**. Por isso o outro arquivo foi APAGADO, e
+// não deixado "para compatibilidade": arquivo órfão que ninguém lê é dívida que
+// envelhece calada.
+//
+// O que veio de lá e vale a pena saber que é deliberado:
+//   • a IMPLANTAÇÃO viaja na mesma frase do preço (ver `textoDaVerbaEstourada`);
+//   • o que cada degrau NÃO inclui viaja junto da oferta;
+//   • o rótulo mostrado ao cliente é normalizado (ver `confrontoDeVerba`).
+// A régua de disparo já era a mesma nos dois — piso da estimativa contra teto da
+// verba —, o que é a única razão de a consolidação ter sido barata.
+
 import { PLANOS, precoEmReais } from "../planos";
-import { tetoDaFaixa } from "./negociacao";
+import { normalizarFaixa, tetoDaFaixa } from "./negociacao";
 
 /** Um degrau da tabela do conselho que cabe no que o cliente declarou. */
 export interface PlanoQueCabe {
   nome: string;
   preco: number;
   paraQuem: string;
+  /** Cobrada uma vez, na entrada. `null` = isenta.
+   *
+   *  Viaja no objeto, e não só no texto, para que NENHUMA superfície consiga
+   *  oferecer o degrau escondendo o custo de entrada. Dizer "cabe nos seus
+   *  R$ 500" calando os R$ 390 do Ritmo é a mesma desonestidade que este módulo
+   *  veio corrigir, com o sinal trocado. */
+  implantacao: number | null;
+  /** O que este degrau NÃO faz. É esta lista que evita a briga do terceiro mês:
+   *  oferecer o plano barato escondendo o corte fecha a venda e perde o
+   *  cliente. */
+  naoInclui: string[];
 }
 
 export interface ConfrontoDeVerba {
@@ -90,11 +124,27 @@ export function confrontoDeVerba(
 
   const cabemNaVerba = PLANOS.filter((p) => p.preco <= teto)
     .sort((a, b) => a.preco - b.preco)
-    .map((p) => ({ nome: p.nome, preco: p.preco, paraQuem: p.paraQuem }));
+    .map((p) => ({
+      nome: p.nome,
+      preco: p.preco,
+      paraQuem: p.paraQuem,
+      implantacao: p.implantacao,
+      naoInclui: p.naoInclui,
+    }));
+
+  // O RÓTULO É NORMALIZADO ANTES DE VOLTAR PARA A CARA DO CLIENTE.
+  //
+  // `budgetRange` chega ora como rótulo ("entre R$ 150 e R$ 500"), ora como o
+  // id da faixa ("pacote") — `tetoDaFaixa` aceita os dois de propósito, porque
+  // o modelo devolve o que viu no escopo acumulado. Sem esta linha, o id cru
+  // vazava para o texto e o cliente lia *"você comentou que pensa em investir
+  // pacote por mês"*. O fallback preserva a frase original: normalizar nunca
+  // pode APAGAR o que a pessoa disse.
+  const rotulo = normalizarFaixa(faixaDeclarada) ?? String(faixaDeclarada).trim();
 
   return {
     teto,
-    rotulo: String(faixaDeclarada).trim(),
+    rotulo,
     diferenca: totalMin - teto,
     cabemNaVerba,
   };
@@ -113,7 +163,12 @@ export function textoDaVerbaEstourada(c: ConfrontoDeVerba): string[] {
   const linhas: string[] = [];
 
   linhas.push(
-    `Sobre a sua verba: você comentou que pensa em investir ${c.rotulo.toLowerCase()} por mês, ` +
+    // ⚠️ O RÓTULO ENTRA COMO ESTÁ, sem `toLowerCase()`. Ele já nasce em
+    // minúscula em `FAIXAS` ("entre R$ 150 e R$ 500", "até R$ 150", "acima de
+    // R$ 5.000"), então minusculizar não ajudava a encaixar a frase — só
+    // derrubava a única coisa maiúscula que importava, a sigla da moeda. O
+    // cliente lia *"pensa em investir entre r$ 150 e r$ 500 por mês"*.
+    `Sobre a sua verba: você comentou que pensa em investir ${c.rotulo} por mês, ` +
       `e a estimativa acima passa disso — são cerca de ${precoEmReais(c.diferenca)} a mais, no melhor caso. ` +
       `Preferimos te dizer isso agora do que mandar um número que não cabe no seu momento.`,
   );
@@ -122,7 +177,19 @@ export function textoDaVerbaEstourada(c: ConfrontoDeVerba): string[] {
     linhas.push("");
     linhas.push(`O que cabe em até ${precoEmReais(c.teto)} por mês:`);
     for (const p of c.cabemNaVerba) {
-      linhas.push(`• ${p.nome} — ${precoEmReais(p.preco)}/mês — ${p.paraQuem}`);
+      // A IMPLANTAÇÃO ENTRA NA MESMA LINHA DO PREÇO, nunca num rodapé.
+      // Quem lê "cabe no meu bolso" precisa ler o custo de entrada no mesmo
+      // fôlego: o Ritmo é R$ 297/mês MAIS R$ 390 na entrada, e omitir isso
+      // faria a conversa recomeçar do zero no dia do boleto.
+      const entrada = p.implantacao
+        ? `, mais ${precoEmReais(p.implantacao)} de implantação na entrada`
+        : ", sem taxa de entrada";
+      linhas.push(`• ${p.nome} — ${precoEmReais(p.preco)}/mês${entrada} — ${p.paraQuem}`);
+      // E o que o degrau NÃO faz vai junto da oferta. Vender o plano barato
+      // escondendo o corte fecha a venda e perde o cliente no terceiro mês.
+      if (p.naoInclui.length > 0) {
+        linhas.push(`  Fora deste plano: ${p.naoInclui.join(" · ")}.`);
+      }
     }
     linhas.push("");
     linhas.push(

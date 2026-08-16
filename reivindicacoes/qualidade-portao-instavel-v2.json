@@ -1,0 +1,13 @@
+{
+  "id": "qualidade/portao-instavel-v2",
+  "quem": "pm-9ab49074",
+  "frente": "portao instavel do v2: passa isolado, falha na suite cheia",
+  "responsabilidade": "qualidade/portao-instavel-v2",
+  "arquivos": [
+    "__tests__/v2",
+    "vitest.config.ts",
+    "__tests__/setup"
+  ],
+  "abertaEm": "2026-08-16T17:34:36.484Z",
+  "encerradaEm": null
+}

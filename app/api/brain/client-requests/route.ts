@@ -183,8 +183,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  // ── O NOME DO NEGÓCIO PODE FALTAR; O BRIEFING NÃO PODE SE PERDER ───────────
+  //
+  // Até 16/08/2026 esta guarda era `if (!businessName …)`, e string vazia caía
+  // nela: **o briefing inteiro voltava 400 e sumia**. E ele sumia calado, porque
+  // a tela grava no store local e trata a falha do POST como não-fatal
+  // (`app/briefing/page.tsx`, o `catch` do dual-write). Ou seja: a conversa
+  // inteira do prospect era perdida por causa de um campo DESCRITIVO.
+  //
+  // Perder o briefing é o dano caro — é a mesma família do Sushi Cazza, que
+  // esperou 51 dias porque a fila era invisível. Não saber o nome do negócio é
+  // o dano barato: os leitores desta casa já tratam ausência
+  // (`lerNegocio` → `null` → "Negócio não informado" na tela).
+  //
+  // ⚠️ A validação NÃO foi afrouxada: o campo continua **obrigatório na
+  // presença e no tipo**. O que passou a ser aceito é a ausência DECLARADA —
+  // `""` —, e ela é aceita justamente porque a casa inteira já sabe lê-la.
+  // Aceitar `undefined` deixaria passar quem simplesmente esqueceu o campo.
   const { businessName } = body;
-  if (!businessName || typeof businessName !== "string") {
+  if (typeof businessName !== "string") {
     return NextResponse.json({ error: "businessName required" }, { status: 400 });
   }
 

@@ -86,6 +86,92 @@ testam `repararJsonTruncado`, não a ficha nem o prompt montado.
   cabeçalho de `regras-da-ficha.ts` — promessa que só vale sob condição precisa
   dizer a condição.
 
+> 🔗 **Leia junto com a decisão seguinte, "A COORDENAÇÃO ENTRE SESSÕES DEIXA DE
+> SER PROMPT E VIRA MECANISMO".** As duas nasceram no mesmo dia, em sessões
+> cegas uma à outra, e dizem a mesma coisa em dois planos: regra que vira dado
+> precisa de trava própria; e quem mexe em quê precisa estar no remoto, não na
+> memória de quem despachou. Esta reconciliação foi empurrada **antes** de a
+> trava de reivindicação existir localmente — a colisão apareceu, de novo, no
+> `push` recusado.
+
+---
+
+## A COORDENAÇÃO ENTRE SESSÕES DEIXA DE SER PROMPT E VIRA MECANISMO
+
+**Decidido em** 2026-08-16 · **por** Diretor, a partir de três frentes construídas
+em dobro no mesmo dia · **registrado pelo** `esteira` · **commits** `f9e3663e` (a
+trava), `503f41af` (as regras de despacho no `CLAUDE.md`), e os do incidente que a
+motivou: `171014e4`, `a18df6ee`, `5d806a60`, `031831c6`, `2323cacb`, `6ab3fe59`,
+`a2d06fb1` · **origem:** `reivindicacoes/`, `CLAUDE.md`
+
+**O caso, medido hoje:** três frentes foram construídas em dobro na mesma branch
+`claude/dioli-agency-os-architecture-kk7kp`, por conversas diferentes, cegas umas
+às outras. Em todos os casos a colisão só apareceu no `git pull --rebase`, **depois**
+de o trabalho estar pronto:
+
+- O `parse_error` do SDR — `171014e4` e `a18df6ee`, ~3h cada, e um terceiro
+  conserto paralelo reconciliado em `5d806a60` ("Reconcilia TRÊS consertos
+  paralelos do mesmo defeito do SDR" — foram três, não dois).
+- A regra de "verba declarada vs. estimativa" — dois módulos com a mesma
+  responsabilidade, o mesmo caso real e a mesma fonte de preço, com **nomes de
+  arquivo diferentes**: `verba-declarada.ts` (`031831c6`) e
+  `verba-vs-estimativa.ts` (`2323cacb`). Fundidos em `6ab3fe59`; custo medido no
+  diff: 157 linhas de módulo e 151 de teste descartadas, além do retrabalho de
+  fundir e reapontar consumidores.
+- O e-mail de "orçamento pronto" — colisão em 4 arquivos com `a2d06fb1`; uma
+  implementação inteira foi para o lixo.
+
+A doutrina já mandava reivindicar antes de começar (`docs/kit/13-quem-esta-vivo.md`
+§3, desde 02/08/2026), e as três colisões aconteceram **com a regra escrita**.
+Prompt é sugestão; por isso virou mecanismo.
+
+### As decisões de desenho que atravessam domínios
+
+- **UM ARQUIVO JSON POR FRENTE, NUNCA UM SÓ.** Um registro único com todas as
+  reivindicações faria o próprio mecanismo de coordenação virar fonte de
+  conflito de merge — o defeito que ele existe para curar.
+- **COLISÃO POR RESPONSABILIDADE, NÃO SÓ POR CAMINHO.** É o único ângulo que
+  pegaria o caso da verba: nomes de arquivo diferentes, a mesma pergunta
+  respondida duas vezes. Colisão só por caminho não veria nada de errado.
+- **REIVINDICAÇÃO COM MAIS DE 24H NÃO BLOQUEIA — VIRA AVISO.** Afrouxado de
+  propósito: sessão que morre sem encerrar travaria a frente para sempre, e
+  proteção mais destrutiva que o problema é proteção que se arranca por fora.
+- **`--forcar` EXISTE, E FICA REGISTRADO.** Exige motivo escrito, gravado no
+  próprio JSON. Trava sem saída de emergência é trava que alguém desliga por
+  fora; saída registrada é dado que a casa pode auditar depois.
+- **`conferir` FALHA ABERTO SEM REDE; `abrir` FALHA FECHADO.** Portão que barra
+  push por falta de rede ensina todo mundo a usar `--no-verify`. Reivindicar às
+  cegas é pior que não reivindicar — por isso as duas metades falham em direções
+  opostas, cada uma para o lado menos destrutivo.
+- **A VIZINHANÇA É AVISO, NUNCA TRAVA.** Nenhum mecanismo automático prova que
+  dois arquivos de nomes diferentes respondem à mesma pergunta — só quem declara
+  sabe. O que o sistema garante é a pergunta na cara de quem toca a pasta alheia;
+  a resposta continua sendo humana.
+
+### A regra do despacho
+
+**Três project managers mediram, de forma independente, o mesmo defeito de
+mecanismo, e cada um perdeu uma frente inteira.** Subagente lançado por
+`claude --agent <nome> -p` não escreve em disco sem `--permission-mode
+acceptEdits` — volta com diagnóstico perfeito e zero linha aplicada. Mesmo com a
+permissão, o subagente não executa comando: medido hoje com o Essencial
+`qualidade`, `npx tsc --noEmit` e `npm test` devolveram a mensagem exata *"This
+command requires approval"*, com e sem `dangerouslyDisableSandbox`. **A decisão
+que fica:** o especialista escreve; o portão (`tsc`, testes) e o commit são do
+PM. O subagente também é isolado no worktree e não lê `/tmp` — a ficha de
+despacho precisa estar dentro do worktree, ou ele não a encontra.
+
+O custo já pago: rodadas anteriores declararam a exceção `SEM_AGENTE` por não
+terem medido a flag — o que faltava não era agente, era `--permission-mode
+acceptEdits`.
+
+> **Proposta ao Diretor Geral do Cérebro** — nada foi escrito no
+> `dioli-brain-kit`. A doutrina 13 do kit (`13-quem-esta-vivo.md` §3) já
+> descrevia a reivindicação em prosa e não tinha mecanismo — e falhou três vezes
+> num dia só, neste projeto, com a regra escrita e lida. Isto serve a mais de um
+> produto Dioli: quem promove o mecanismo (`reivindicacoes/` + gancho + sentinela
+> no `npm test`) a regra de companhia é o Diretor Geral, com aval do CEO.
+
 ---
 
 ## AS DUAS CARGAS DO PACOTE DO SDR VIAJAM JUNTAS E **MORREM SEPARADAS**

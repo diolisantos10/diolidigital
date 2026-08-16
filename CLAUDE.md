@@ -125,6 +125,7 @@ prévio do especialista da plataforma** (`meta`, `google`, `tiktok`). O parecer
 | `BACKLOG.md` | O diagnóstico do pipeline e o que falta |
 | `DESIGN.md` | O design system |
 | `docs/arquivo/` | Chats exportados e já minerados — **perícia, não leitura** |
+| `reivindicacoes/` | Quem está mexendo em que, agora |
 
 ### 🥇 REGRA DE OURO DO RELATO — como se fala com o CEO
 
@@ -175,6 +176,41 @@ escrito um relatório bonito, achar que é um bom momento para o CEO conferir.
   sessão principal é sala de comando.
 - **Ao encerrar um bloco:** atualizar `docs/pendencias.md`, promover as vitrines
   propostas, registrar decisão nova em `docs/decisoes.md`, commitar e dar push.
+
+### 🔒 REGRA DA REIVINDICAÇÃO — decidida em 16/08/2026
+
+**Antes da primeira linha de código de um bloco, reivindique.** Conversas
+diferentes na mesma branch não se enxergam — só o remoto é comum às duas.
+
+- **Registro:** `reivindicacoes/`, um arquivo JSON **por frente**. Nunca um
+  arquivo único com todas — arquivo único faria o próprio registro de
+  coordenação virar fonte de conflito de merge.
+- **Abrir:** `npm run reivindicar -- abrir --quem <id> --frente "<frase>"
+  --responsabilidade <slug> --arquivos a,b,c`. Ele busca o **remoto** antes de
+  qualquer coisa. Colidiu, recusa e diz quem pegou, desde quando e por quê.
+  Não colidiu, grava, commita e empurra **na hora** — reivindicação que não
+  está no remoto não coordena ninguém.
+- **Conferir:** `npm run reivindicar -- conferir` é o comando de **abertura de
+  turno**, e é o que o gancho pré-push chama.
+- **Encerrar:** `npm run reivindicar -- encerrar` quando a frente acaba.
+  Reivindicação eterna vira ruído que todo mundo aprende a ignorar.
+- **Expira em 24h:** depois disso vira aviso, não bloqueio. Sessão que morre
+  sem encerrar não pode travar a casa para sempre.
+- **Colisão é por responsabilidade, não só por arquivo.** Foi assim que a
+  verba declarada passou batido: nomes de arquivo diferentes, a mesma
+  pergunta respondida duas vezes.
+- O gancho pré-push se instala sozinho no `npm install`. O sentinela roda
+  dentro do `npm test`: duas reivindicações vivas com a mesma responsabilidade,
+  ou com o mesmo arquivo, deixam a suíte **vermelha**.
+- Saída de emergência: `--forcar`, exige motivo escrito, e fica registrado.
+
+> Por que virou regra: em 16/08/2026 três frentes foram construídas **em
+> dobro** no mesmo dia, por conversas cegas umas às outras, na mesma branch —
+> o conserto do `parse_error` do SDR (duas rodadas de ~3h, uma jogada fora), a
+> regra de verba declarada vs. estimativa (virou dois módulos com a mesma
+> responsabilidade e nomes de arquivo diferentes) e o e-mail de orçamento
+> (colisão em quatro arquivos). Em todos, a colisão só apareceu no `git pull
+> --rebase`, **depois** do trabalho pronto.
 
 ### O que NÃO delegar — e a lista FECHOU em 13/08/2026
 
@@ -250,6 +286,33 @@ agentes disponíveis, **2 usados**, camada do PM cumprida **zero** vezes num dia
 > e **nunca tinha sido carregado**: cumprir a camada era *impossível*, não caro, e
 > ninguém sabia porque ninguém tinha tentado. Mecanismo obrigatório nunca
 > exercitado é mecanismo cuja existência ninguém conferiu.
+
+#### Como se despacha de verdade — o comando, e por que ele leva essa flag
+
+```
+claude --agent <nome> --permission-mode acceptEdits -p "<a ficha>"
+```
+
+**Sem `--permission-mode acceptEdits` o especialista LÊ, PENSA e RESPONDE, e não
+escreve uma linha** — o despacho volta bonito e o disco continua igual.
+
+Mesmo com a permissão de escrita, o subagente não executa `npm`, `npx`, `node`
+nem `git commit` — a recusa vem com a mensagem exata *"This command requires
+approval"*, com ou sem `dangerouslyDisableSandbox`. Daí a divisão: **o
+especialista ESCREVE; o portão (`tsc`, testes) e o commit são do PM.**
+
+O subagente também é isolado no worktree e não lê `/tmp` — a ficha de despacho
+precisa estar **dentro do worktree**, ou ele não a encontra.
+
+> Por que virou regra: em 16/08, três PMs, em conversas separadas, mediram o
+> mesmo defeito de forma independente e cada um perdeu uma frente inteira —
+> diagnóstico perfeito, zero linha aplicada, por despachar sem a permissão de
+> escrita. Foi esse mesmo buraco que produziu a declaração errada de
+> `SEM_AGENTE` em rodadas anteriores: a casa concluiu que faltava agente quando
+> faltava a flag.
+
+Quem declarar `SEM_AGENTE` precisa colar a saída do comando que falhou —
+exceção baseada em suposição contamina a régua da casa.
 
 ---
 

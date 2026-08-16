@@ -15,7 +15,109 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
-## 🟢 16/08/2026 — O ESCOPO PASSA A SOBREVIVER À FALA + A SETA DO DISPOSITIVO DO DIRETOR
+## 🟢 16/08/2026 — A REIVINDICAÇÃO VIROU TRAVA: TRÊS FRENTES CONSTRUÍDAS EM DOBRO NO MESMO DIA (`f9e3663e`, `503f41af`)
+
+**A conclusão em uma frase:** conversas diferentes na mesma branch construíram o
+mesmo defeito três vezes no mesmo dia — a única coisa que todas compartilham é o
+repositório, e o `git pull --rebase` avisava tarde demais; a partir de hoje,
+reivindicar antes de começar deixou de ser prosa (`docs/kit/13-quem-esta-vivo.md`
+§3, escrita desde 02/08) e virou mecanismo que recusa colisão na hora.
+
+### As três construções em dobro
+
+- **O `parse_error` do SDR.** Commits `171014e4` e `a18df6ee`, ~3h cada — e o
+  estrago era maior do que parecia: o commit de reconciliação `5d806a60`
+  ("Reconcilia TRÊS consertos paralelos do mesmo defeito do SDR") mostra que
+  foram **três**, não dois.
+- **A regra de "verba declarada vs. estimativa".** Dois módulos com a mesma
+  responsabilidade, o mesmo caso real e a mesma fonte de preço, e **nomes de
+  arquivo diferentes** — `lib/agency/comercial/verba-declarada.ts` (`031831c6`) e
+  `lib/agency/comercial/verba-vs-estimativa.ts` (`2323cacb`), com consumidores
+  diferentes. Colisão por caminho não pegaria este caso. Fusão paga hoje em
+  `6ab3fe59` ("uma fonte só para a regra da verba — o módulo em dobro foi
+  apagado"): custo medido no diff, **157 linhas de módulo e 151 de teste
+  descartadas**, além do retrabalho de fundir e reapontar consumidores.
+- **O e-mail de "orçamento pronto".** Colisão em 4 arquivos com `a2d06fb1`. Uma
+  implementação inteira foi para o lixo.
+
+### O que ficou PROTEGIDO daqui para a frente (commit `f9e3663e`)
+
+- **`reivindicacoes/`** — registro versionado, **um arquivo JSON por frente**.
+  Arquivo único com todas faria o próprio registro de coordenação virar fonte de
+  conflito de merge.
+- **`npm run reivindicar -- abrir`** busca o **remoto** antes de qualquer coisa —
+  é a única coisa que duas conversas isoladas compartilham. Colidiu: recusa e
+  nomeia quem pegou, desde quando e por quê. Não colidiu: grava, commita e
+  empurra na hora.
+- **`conferir`** (abertura de turno e gancho pre-push) · **`encerrar`** ·
+  **`listar`**.
+- **Colisão por RESPONSABILIDADE, não só por caminho** — o único ângulo que pega
+  o caso da verba.
+- **O sentinela dentro do `npm test`:** duas reivindicações vivas com a mesma
+  responsabilidade, ou o mesmo arquivo, deixam a suíte vermelha.
+- **O gancho pre-push se instala sozinho no `npm install`** (script `prepare`) e
+  nunca derruba a instalação: falhou, sai 0 calado.
+- **O que foi deliberadamente afrouxado, com todas as letras:**
+  - Reivindicação com **mais de 24h não bloqueia** — vira aviso. Sessão que morre
+    sem encerrar travaria a frente para sempre.
+  - **`--forcar` existe**, exige motivo escrito e fica gravado no JSON.
+  - **`conferir` falha ABERTO sem rede** (senão ensina todo mundo a usar
+    `--no-verify`); **`abrir` falha FECHADO** (reivindicar às cegas é pior que não
+    reivindicar).
+  - **O aviso de vizinhança é aviso, não bloqueio.** Nenhum mecanismo automático
+    prova que dois arquivos de nomes diferentes respondem à mesma pergunta — só
+    quem declara sabe.
+
+### A regra do despacho, com a medição (commit `503f41af`)
+
+Três project managers mediram, de forma independente, o mesmo defeito de
+mecanismo, e cada um perdeu uma frente inteira:
+
+- Subagente lançado por `claude --agent <nome> -p` **não escreve em disco** sem
+  `--permission-mode acceptEdits`. Volta com diagnóstico perfeito e zero linha
+  aplicada.
+- **Mesmo com a permissão, o subagente não executa.** Medido hoje com o
+  Essencial `qualidade`: `npx tsc --noEmit` e `npm test` devolveram a mensagem
+  exata **"This command requires approval"**, com e sem
+  `dangerouslyDisableSandbox`; `node --version` e `git status` rodaram.
+  **Consequência: o especialista escreve; o portão e o commit são do PM.**
+- **O subagente é isolado no worktree e não lê `/tmp`** — a primeira tentativa de
+  despacho de hoje voltou dizendo, corretamente, que não achava a ficha. Ficha de
+  despacho mora dentro do worktree.
+- **O custo já pago:** rodadas anteriores declararam a exceção `SEM_AGENTE` e
+  produziram na mão acreditando que a camada de delegação não existia — o que
+  faltava não era agente, era a flag.
+
+### O achado técnico do dia — vale mais que o conserto original
+
+**O reparo de JSON truncado fechava string e chave, mas não protegia valor cru
+cortado.** `postsPerWeek: 14` cortado no dígito vira `postsPerWeek: 1` — e
+**número truncado não tem marca**, ao contrário de string: `"Ana Doces e Bolos
+Personaliza"` salta aos olhos de quem lê. O número não. Isso reproduzia o
+incidente original em silêncio, sem o "0 posts/mês" berrante para denunciar, e já
+estava no remoto quando foi achado. **A trava:** valor cru no fim absoluto do
+texto sai inteiro; valor seguido de delimitador que o próprio modelo escreveu
+sobrevive.
+
+### 🔴 O QUE CONTINUA ABERTO — com todas as letras
+
+- [ ] 🔴 **`RESEND_FROM` ausente em produção.** O e-mail falha para todos,
+      **calado** — cliente não recebe confirmação nem aviso, e ninguém na casa é
+      avisado de que falhou.
+- [ ] 🔴 **O custo de IA por briefing repetido**, agravado pelo **teto de tokens
+      que subiu de 1280 para 3000 numa rota pública.** Cada briefing é uma
+      fatura, e a rota não exige login — qualquer um pode repetir o gasto à
+      vontade.
+- [ ] 🔴 **As fichas duplicadas em produção esperando decisão do CEO desde
+      08/08.** A Camila Pereira segue com duas fichas. Qual delas fica com o
+      histórico é decisão de dono de negócio, não de código.
+- [ ] 🔴 **`EstimateSection` e `ProposalCard` estão mortos em
+      `components/agency/briefing/PublicBriefingRoom.tsx`** — sem chamador. A
+      consequência de negócio: **o prospect não vê valor em R$ na tela
+      pública**, o que enfraquece a conversão antes mesmo de chegar à proposta.
+- [ ] 🔴 **O botão de WhatsApp da confirmação abre sem texto pré-preenchido.** O
+      cliente chega à conversa sem contexto, e a agência perde a chance de
+      abrir o atendimento já no assunto certo.
 
 **A consequência, primeiro:** quando o SDR tem a fala barrada, **o briefing do
 cliente não vai mais junto para o lixo**. E o dispositivo que o CEO mandou

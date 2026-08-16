@@ -5,6 +5,7 @@ import { OrbitMotif } from "@/components/brand/OrbitMotif";
 import { AppMockup } from "@/components/brand/AppMockup";
 import { PlannerMockup } from "@/components/brand/PlannerMockup";
 import { PipelineMockup } from "@/components/brand/PipelineMockup";
+import { linkDoWhatsApp } from "@/lib/agency/comercial/link-do-whatsapp";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ⚙️  EDITE AQUI — seus dados de contato (troque os valores entre aspas)
@@ -18,7 +19,11 @@ const CONTATO = {
   site: "https://diolidigital.com.br",
 };
 const WHATS_MSG = "Olá! Vim pelo site da Dioli Digital e quero saber mais sobre os serviços.";
-const whatsappUrl = `https://wa.me/${CONTATO.whatsapp}?text=${encodeURIComponent(WHATS_MSG)}`;
+// A montagem da URL sai de `comercial/link-do-whatsapp.ts` — a mesma que a
+// confirmação do briefing usa. Era esta tela que já mandava contexto enquanto a
+// confirmação abria a caixa vazia; a fonte única é o que impede a próxima
+// divergência entre as duas.
+const whatsappUrl = linkDoWhatsApp(WHATS_MSG, CONTATO.whatsapp);
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
 export const metadata: Metadata = {

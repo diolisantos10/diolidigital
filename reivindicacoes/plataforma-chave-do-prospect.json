@@ -1,0 +1,12 @@
+{
+  "id": "plataforma/chave-do-prospect",
+  "quem": "pm-a27b5772",
+  "frente": "chaveDoProspect: coluna gravada que ninguem le - decidir entre ler de verdade ou remover",
+  "responsabilidade": "plataforma/chave-do-prospect",
+  "arquivos": [
+    "lib/agency/comercial/chave-do-prospect.ts",
+    "app/api/agency/leads/route.ts"
+  ],
+  "abertaEm": "2026-08-16T17:35:38.619Z",
+  "encerradaEm": null
+}

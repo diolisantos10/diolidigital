@@ -1,0 +1,13 @@
+{
+  "id": "briefing/apagar-briefingroomv2",
+  "quem": "pm-9ab49074",
+  "frente": "apagar BriefingRoomV2, arquivo morto de 760 linhas",
+  "responsabilidade": "briefing/apagar-briefingroomv2",
+  "arquivos": [
+    "components/agency/briefing/BriefingRoomV2.tsx",
+    "lib/dioli-brain/knowledge-map.ts",
+    "lib/dioli-brain/current-system-map.ts"
+  ],
+  "abertaEm": "2026-08-16T17:34:50.753Z",
+  "encerradaEm": null
+}

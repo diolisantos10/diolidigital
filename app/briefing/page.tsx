@@ -6,6 +6,8 @@ import { useAgencyStore } from "@/store/agency-store";
 import { PublicBriefingRoom } from "@/components/agency/briefing/PublicBriefingRoom";
 import type { PublicBriefingRoomSubmitData } from "@/components/agency/briefing/PublicBriefingRoom";
 import { LeadNaPorta, type ContatoDaPorta } from "@/components/agency/briefing/LeadNaPorta";
+import { lerNegocio } from "@/lib/agency/comercial/negocio-do-lead";
+import { linkDoBriefing, type ContextoDaConversa } from "@/lib/agency/comercial/link-do-whatsapp";
 
 export default function BriefingPage() {
   const { addClientRequest } = useAgencyStore();
@@ -23,6 +25,12 @@ export default function BriefingPage() {
   // inclusive quando escolheu não deixar contato (aí vale `null`).
   const [entrou, setEntrou] = useState(false);
   const [contatoDaPorta, setContatoDaPorta] = useState<ContatoDaPorta>(null);
+  // ── O QUE A PESSOA CONTOU, GUARDADO PARA A MENSAGEM DE WHATSAPP ───────────
+  // Achado do `experiencia` em 16/08: a confirmação abria o WhatsApp numa caixa
+  // VAZIA, logo depois de a pessoa ter contado o negócio inteiro ao SDR. Ela
+  // recomeçava do zero. Este estado existe só para que a mensagem já vá escrita
+  // — e guarda apenas o que ela mesma disse, nunca o que a casa deduziu.
+  const [contextoDaConversa, setContextoDaConversa] = useState<ContextoDaConversa>({});
 
   async function handleSubmit(data: PublicBriefingRoomSubmitData) {
     // O contato da PORTA manda: ele é o que o visitante declarou antes de
@@ -54,7 +62,25 @@ export default function BriefingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          businessName:   data.prospectName ?? contatoDaPorta?.nome ?? data.title,
+          // ── O CAMPO DO NEGÓCIO RECEBE O NEGÓCIO, NÃO A PESSOA ──────────────
+          //
+          // Até 16/08/2026 esta linha era
+          // `data.prospectName ?? contatoDaPorta?.nome ?? data.title` — ou seja,
+          // mandava o nome de QUEM preencheu no campo do NEGÓCIO. O `businessName`
+          // já vinha pronto no submit (`PublicBriefingRoom.tsx:1344`, do escopo
+          // acumulado da conversa) e simplesmente não era usado.
+          //
+          // É o irmão do bug que `74810b75` fechou no `prospect-engine` (o e-mail
+          // virando nome do negócio): **duas portas gravavam o mesmo campo, e
+          // consertar uma deixava a outra vazando em silêncio** — o padrão que
+          // esta casa já pagou em 16/08 com as duas rotas que criavam cadastro.
+          //
+          // Sem negócio informado, o campo NÃO cai no nome da pessoa: vai vazio,
+          // e vazio aqui é a ausência que `lerNegocio` (`negocio-do-lead.ts`) já
+          // sabe ler — a tela mostra "Negócio não informado". Ausência de
+          // informação não é informação, e sem revisor humano um nome deduzido
+          // vira dado inventado no cadastro do cliente.
+          businessName:   lerNegocio(data.businessName) ?? "",
           segment:        data.extractedSummary.segment,
           services:       data.extractedSummary.services,
           objectives:     data.extractedSummary.objectives,
@@ -75,6 +101,16 @@ export default function BriefingPage() {
       // DB write failure is non-fatal — local store is the fallback
       console.warn("[briefing] DB dual-write failed — request saved locally only");
     }
+
+    // Só o que a PESSOA declarou. `lerNegocio` devolve `null` quando o negócio
+    // não foi informado, e `null` some da mensagem — nunca vira "não informado"
+    // num texto que ela vai enviar em nome próprio.
+    setContextoDaConversa({
+      nome: contato?.nome ?? data.prospectName,
+      negocio: lerNegocio(data.businessName),
+      servicos: data.extractedSummary.services,
+      referencia: id,
+    });
 
     setSubmittedId(id);
     setSubmitted(true);
@@ -164,7 +200,14 @@ export default function BriefingPage() {
             Voltar para o site da Dioli
           </Link>
           <a
-            href="https://wa.me/5511989400692"
+            // ── A CONVERSA COMEÇA JÁ COMEÇADA ───────────────────────────────
+            // Até 16/08 este `href` era `wa.me/5511989400692` cru: a pessoa
+            // contava tudo ao SDR e caía numa caixa VAZIA, tendo de recomeçar.
+            // Na home o mesmo botão já mandava contexto — era inconsistência,
+            // não falta de capacidade. O texto (e o número) agora vêm de
+            // `comercial/link-do-whatsapp.ts`, fonte única: o número estava
+            // repetido em oito arquivos e o texto, em nenhum.
+            href={linkDoBriefing(contextoDaConversa)}
             // PAR DE COR QUE VIRA JUNTO. O CEO, em 16/08/2026, não conseguiu ler
             // este botão: *"está preto sobre preto."*
             //

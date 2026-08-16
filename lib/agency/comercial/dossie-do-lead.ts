@@ -33,7 +33,7 @@ import {
   type PistaDeContato,
 } from "./contato-do-lead";
 import type { RepeticaoDoProspect } from "./chave-do-prospect";
-import { verbaVsEstimativa, type VerbaVsEstimativa } from "./verba-vs-estimativa";
+import { confrontoDeVerba, type ConfrontoDeVerba } from "./verba-declarada";
 import { lerNegocio } from "./negocio-do-lead";
 
 export type FonteDaFaixa =
@@ -113,9 +113,13 @@ export type DossieDoLead = {
    * lado a lado, e ninguém os comparava — a pessoa disse quanto tinha e a casa
    * seguiu como se não tivesse ouvido.
    *
-   * A regra mora em `verba-vs-estimativa.ts`; aqui ela só é chamada.
+   * A regra mora em `verba-declarada.ts` — **a mesma** que o prospect ouve na
+   * conversa (`live-calculator`) e lê no orçamento. É de propósito: em 16/08
+   * duas frentes construíram esta regra em dobro no mesmo dia, e duas fontes do
+   * mesmo julgamento comercial divergem no dia em que alguém mexe numa só. O
+   * jeito de descobrir seria o cliente ouvindo uma coisa e lendo outra.
    */
-  acimaDaVerba: VerbaVsEstimativa | null;
+  acimaDaVerba: ConfrontoDeVerba | null;
 
   /** O que só uma conversa resolve. Nunca preenchido por inferência. */
   precisoConfirmar: string[];
@@ -282,9 +286,7 @@ export function montarDossie(
 
   // A comparação que faltava. Sem faixa calculada não há o que comparar — e
   // faixa ausente é fato declarado neste dossiê, nunca um zero disfarçado.
-  const acimaDaVerba = faixa
-    ? verbaVsEstimativa(gravado?.budgetRange, { totalMin: faixa.minimo, totalMax: faixa.maximo })
-    : null;
+  const acimaDaVerba = faixa ? confrontoDeVerba(gravado?.budgetRange, faixa.minimo) : null;
 
   const negocio = lerNegocio(entrada.businessName);
 
