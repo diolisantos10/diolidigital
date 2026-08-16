@@ -10,6 +10,15 @@
 //
 // Este teste chama a função de verdade — não lê o arquivo como texto — porque
 // é lógica, e lógica se prova rodando, não citando.
+//
+// ATUALIZADO 16/08 (terceiro beco sem saída em silêncio): `fetchSdrReply`
+// deixou de devolver `null` — devolve `SdrOutcome`, um `kind` por motivo
+// (`resposta` / `barrado` / `quebrado` / `sem_novidade`). `null` achatava
+// "recusado por limite", "sistema fora do ar" e "sem novidade da IA" no
+// mesmo valor, e o chamador não conseguia avisar a pessoa do motivo certo —
+// ela via a próxima pergunta do roteiro como se fosse resposta normal da SDR.
+// Os casos de 429/503/rede ganharam arquivo próprio:
+// `escopo-sobrevive-a-recusa.test.ts`.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fetchSdrReply, mergeScopeGaps } from "@/components/agency/briefing/PublicBriefingRoom";
@@ -35,23 +44,24 @@ describe("fetchSdrReply — ok:false não é mais 'nada aproveitável'", () => {
 
     const resultado = await fetchSdrReply([], "quero 2 posts por dia, uns R$ 500 por mês", emptyScope(), "s1");
 
-    // null é a fala barrada, não "nada chegou" — a diferença é o que o
-    // chamador faz: cair no motor de regras para a FALA, mas ainda aplicar
-    // o scope.
-    expect(resultado).not.toBeNull();
-    expect(resultado?.reply).toBeNull();
-    expect(resultado?.scope.budgetRange).toBe("entre R$ 150 e R$ 500");
-    expect((resultado?.scope.social as Record<string, unknown>).postsPerWeek).toBe(14);
+    // `kind: "resposta"` com `reply: null` é a fala barrada, não "nada
+    // chegou" — a diferença é o que o chamador faz: cair no motor de regras
+    // para a FALA, mas ainda aplicar o scope.
+    expect(resultado.kind).toBe("resposta");
+    if (resultado.kind !== "resposta") throw new Error("unreachable");
+    expect(resultado.reply).toBeNull();
+    expect(resultado.scope.budgetRange).toBe("entre R$ 150 e R$ 500");
+    expect((resultado.scope.social as Record<string, unknown>).postsPerWeek).toBe(14);
   });
 
-  it("ok:false SEM scope nenhum: nada aproveitável, cai no fallback inteiro", async () => {
+  it("ok:false SEM scope nenhum: nada aproveitável, cai no fallback inteiro (sem_novidade)", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => ({ ok: true, json: async () => ({ ok: false, reason: "malformado" }) })),
     );
 
     const resultado = await fetchSdrReply([], "oi", emptyScope(), "s2");
-    expect(resultado).toBeNull();
+    expect(resultado).toEqual({ kind: "sem_novidade" });
   });
 
   it("ok:true continua devolvendo a fala normalmente", async () => {
@@ -64,14 +74,16 @@ describe("fetchSdrReply — ok:false não é mais 'nada aproveitável'", () => {
     );
 
     const resultado = await fetchSdrReply([], "oi, sou da City Jobs", emptyScope(), "s3");
-    expect(resultado?.reply).toBe("Oi! Me conta mais.");
-    expect(resultado?.scope.businessName).toBe("City Jobs");
+    expect(resultado.kind).toBe("resposta");
+    if (resultado.kind !== "resposta") throw new Error("unreachable");
+    expect(resultado.reply).toBe("Oi! Me conta mais.");
+    expect(resultado.scope.businessName).toBe("City Jobs");
   });
 
-  it("falha de rede: null, como sempre — é o motor de regras que responde", async () => {
+  it("falha de rede: 'quebrado', como sempre — é o motor de regras que responde", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network down"); }));
     const resultado = await fetchSdrReply([], "oi", emptyScope(), "s4");
-    expect(resultado).toBeNull();
+    expect(resultado).toEqual({ kind: "quebrado" });
   });
 });
 

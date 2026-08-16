@@ -41,15 +41,36 @@
 // novo, sem quebrar teste nenhum, é
 // `__tests__/esteira/allowlist-bate-com-o-servidor.test.ts` — ele chama a
 // rota de verdade.
+//
+// CORREÇÃO DE 16/08/2026, TERCEIRA RODADA — o beco sem saída em silêncio:
+// `fetchSdrReply` deixou de devolver `null`/`{reply,scope}` — devolve
+// `SdrOutcome`, um `kind` por motivo (`resposta`/`barrado`/`quebrado`/
+// `sem_novidade`). O achado do `experiencia`: um `null` achatado não vira
+// "sem falha visível" — vira a PRÓXIMA PERGUNTA DO ROTEIRO (motor de regras,
+// calculado ANTES da rede), cronologicamente coerente, como se fosse a SDR
+// respondendo. Pior que tela em branco: tela em branco a pessoa questiona,
+// esta ela acredita. Os testes deste arquivo que mediam `toBeNull()` para
+// 429/503/rede foram reescritos para medir o `kind` certo, e ganharam a
+// prova que faltava: que `avisoParaResultadoSdr(outcome)` — a função que
+// alimenta o estado visível na tela — produz um aviso, não `null`, para os
+// dois motivos de erro, com textos que não se misturam.
 
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { fetchSdrReply, mergeScopeGaps } from "@/components/agency/briefing/PublicBriefingRoom";
+import {
+  fetchSdrReply,
+  mergeScopeGaps,
+  avisoParaResultadoSdr,
+  TEXTO_AVISO_BARRADO,
+  TEXTO_AVISO_QUEBRADO,
+} from "@/components/agency/briefing/PublicBriefingRoom";
 import { emptyScope } from "@/lib/agency/briefing-conversation";
 import { computeEstimate } from "@/lib/agency/live-calculator";
+import { initProspectConvState, processProspectMessage } from "@/lib/agency/prospect-engine";
 
-function respostaFake(body: unknown, ok = true) {
+function respostaFake(body: unknown, ok = true, status?: number) {
   return {
     ok,
+    status: status ?? (ok ? 200 : 500),
     json: async () => body,
   } as Response;
 }
@@ -73,9 +94,10 @@ describe("recusa por corte (truncado) com escopo salvo — o número sobrevive",
 
     const claude = await fetchSdrReply([], "quero 2 posts por dia", emptyScope(), "sess-1");
 
-    expect(claude).not.toBeNull();
-    expect(claude!.reply).toBeNull(); // sem fala — a fala o motor de regras refaz
-    expect(claude!.scope).toMatchObject({ social: { postsPerWeek: 14 } });
+    expect(claude.kind).toBe("resposta");
+    if (claude.kind !== "resposta") throw new Error("unreachable");
+    expect(claude.reply).toBeNull(); // sem fala — a fala o motor de regras refaz
+    expect(claude.scope).toMatchObject({ social: { postsPerWeek: 14 } });
   });
 
   it("o escopo resgatado funde e recomputa a estimativa: 14 postsPerWeek → 56/mês, não 0", async () => {
@@ -92,9 +114,10 @@ describe("recusa por corte (truncado) com escopo salvo — o número sobrevive",
 
     const baseScope = emptyScope(); // painel "vazio" — o estado do defeito real
     const claude = await fetchSdrReply([], "quero 2 posts por dia", baseScope, "sess-1");
-    expect(claude).not.toBeNull();
+    expect(claude.kind).toBe("resposta");
+    if (claude.kind !== "resposta") throw new Error("unreachable");
 
-    const mergedScope = mergeScopeGaps(baseScope, claude!.scope);
+    const mergedScope = mergeScopeGaps(baseScope, claude.scope);
     expect(mergedScope.social?.postsPerWeek).toBe(14);
     expect(mergedScope.wantsSocialMedia).toBe(true);
 
@@ -145,10 +168,12 @@ describe("recusa por corte (truncado) com escopo salvo — o número sobrevive",
     const claude = await fetchSdrReply([], "quero 2 posts por dia", baseScope, "sess-1");
 
     // O pacote inteiro foi descartado — exatamente o que o código antigo
-    // fazia sempre, para qualquer `ok:false`.
-    expect(claude).toBeNull();
+    // fazia sempre, para qualquer `ok:false`. Hoje isso é "sem_novidade": o
+    // servidor respondeu 200, só não havia nada aproveitável — não é erro,
+    // não gera aviso, mas também não resgata nada.
+    expect(claude).toEqual({ kind: "sem_novidade" });
 
-    // Sem `claude`, o componente nunca chega a chamar `mergeScopeGaps` — é
+    // Sem `scope` resgatado, o componente nunca chega a chamar `mergeScopeGaps` — é
     // esse o defeito real: a porta seguinte nem tenta resgatar. O escopo que
     // sobrevive é o `baseScope` intocado, com `social` ausente.
     expect(baseScope.social).toBeUndefined();
@@ -188,7 +213,7 @@ describe("recusa por email_hallucination / price_leak — o escopo NÃO é aprov
     );
 
     const claude = await fetchSdrReply([], "meu email é...", emptyScope(), "sess-1");
-    expect(claude).toBeNull();
+    expect(claude).toEqual({ kind: "sem_novidade" });
   });
 
   it("price_leak também descarta, allowlist é fail-closed", async () => {
@@ -204,7 +229,7 @@ describe("recusa por email_hallucination / price_leak — o escopo NÃO é aprov
     );
 
     const claude = await fetchSdrReply([], "quanto custa mesmo?", emptyScope(), "sess-1");
-    expect(claude).toBeNull();
+    expect(claude).toEqual({ kind: "sem_novidade" });
   });
 
   it("motivo desconhecido (nunca previsto) também descarta — por omissão, não por lista de exclusão", async () => {
@@ -220,7 +245,7 @@ describe("recusa por email_hallucination / price_leak — o escopo NÃO é aprov
     );
 
     const claude = await fetchSdrReply([], "x", emptyScope(), "sess-1");
-    expect(claude).toBeNull();
+    expect(claude).toEqual({ kind: "sem_novidade" });
   });
 });
 
@@ -232,18 +257,18 @@ describe("recusa sem escopo nenhum — comportamento de hoje, intacto", () => {
     );
 
     const claude = await fetchSdrReply([], "x", emptyScope(), "sess-1");
-    expect(claude).toBeNull();
+    expect(claude).toEqual({ kind: "sem_novidade" });
   });
 
   it("ok:false sem reason nem escopo continua descartando tudo", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => respostaFake({ ok: false })));
 
     const claude = await fetchSdrReply([], "x", emptyScope(), "sess-1");
-    expect(claude).toBeNull();
+    expect(claude).toEqual({ kind: "sem_novidade" });
   });
 });
 
-describe("caminho feliz (ok:true) — não regride", () => {
+describe("caminho feliz (ok:true) — não regride, e SEM aviso nenhum", () => {
   it("fala e escopo chegam juntos, como sempre", async () => {
     vi.stubGlobal(
       "fetch",
@@ -257,18 +282,24 @@ describe("caminho feliz (ok:true) — não regride", () => {
     );
 
     const claude = await fetchSdrReply([], "quero 14 posts por semana", emptyScope(), "sess-1");
-    expect(claude).not.toBeNull();
-    expect(claude!.reply).toBe("Perfeito, anotei 14 posts por semana!");
-    expect(claude!.scope).toMatchObject({ social: { postsPerWeek: 14 } });
+    expect(claude.kind).toBe("resposta");
+    if (claude.kind !== "resposta") throw new Error("unreachable");
+    expect(claude.reply).toBe("Perfeito, anotei 14 posts por semana!");
+    expect(claude.scope).toMatchObject({ social: { postsPerWeek: 14 } });
+
+    // A METADE MAIS FÁCIL DE QUEBRAR (mandado pela ficha): sem erro, nenhum
+    // aviso aparece. Se alguém trocar o `if` por um `switch` desatento e
+    // vazar um `default` que produz aviso, este teste acusa.
+    expect(avisoParaResultadoSdr(claude)).toBeNull();
   });
 
-  it("res.ok HTTP falso (rede) continua descartando tudo, como sempre", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => respostaFake({}, false)));
+  it("res.ok HTTP falso, status genérico (não 429): 'quebrado', não mais um `null` sem motivo", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => respostaFake({}, false, 500)));
     const claude = await fetchSdrReply([], "x", emptyScope(), "sess-1");
-    expect(claude).toBeNull();
+    expect(claude).toEqual({ kind: "quebrado" });
   });
 
-  it("fetch que lança (rede fora do ar) continua descartando tudo, como sempre", async () => {
+  it("fetch que lança (rede fora do ar): 'quebrado' — mesma família do 503, o SISTEMA falhou", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {
@@ -276,6 +307,104 @@ describe("caminho feliz (ok:true) — não regride", () => {
       }),
     );
     const claude = await fetchSdrReply([], "x", emptyScope(), "sess-1");
-    expect(claude).toBeNull();
+    expect(claude).toEqual({ kind: "quebrado" });
+  });
+});
+
+// ── TERCEIRO BECO SEM SAÍDA EM SILÊNCIO (16/08) ─────────────────────────────
+//
+// O achado do `experiencia`: `if (!res.ok) return null;` não produzia "sem
+// aviso" — produzia um aviso FALSO. A pessoa não via uma falha; via a
+// próxima pergunta do roteiro (motor de regras, calculado ANTES da rede,
+// cronologicamente coerente) e ACREDITAVA que era a SDR respondendo. Pior
+// que tela em branco.
+//
+// Os dois blocos abaixo provam as DUAS METADES exigidas pela ficha:
+//   1. o `kind` certo sai da rede (429 → barrado, 503/rede → quebrado);
+//   2. esse `kind` PRODUZ um aviso de verdade (`avisoParaResultadoSdr`), não
+//      só um valor diferente por baixo do pano — é essa função que alimenta
+//      o estado visível na tela (`avisoConversa` em `PublicBriefingRoom`).
+
+describe("barrado (429) — recusado por limite, não por falha do sistema", () => {
+  it("fetchSdrReply distingue 429 de qualquer outro status", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => respostaFake({ error: "Muitas requisições em pouco tempo." }, false, 429)));
+    const outcome = await fetchSdrReply([], "quero 2 posts por dia", emptyScope(), "sess-1");
+    expect(outcome).toEqual({ kind: "barrado" });
+  });
+
+  it("o aviso produzido é o texto de ESPERA, exatamente o combinado — sem código de erro, sem contagem", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => respostaFake({}, false, 429)));
+    const barrado = await fetchSdrReply([], "x", emptyScope(), "sess-1");
+
+    const aviso = avisoParaResultadoSdr(barrado);
+    // NENHUM DOS DOIS SOME EM SILÊNCIO: é um objeto de verdade, não `null`.
+    expect(aviso).not.toBeNull();
+    expect(aviso?.tipo).toBe("barrado");
+    expect(aviso?.texto).toBe(TEXTO_AVISO_BARRADO);
+    expect(aviso?.texto).toBe(
+      "Você está mandando mensagens rápido demais. Espere alguns segundos e continue — sua conversa não foi perdida.",
+    );
+    // Sem código de erro nem número de segundos assustador na tela.
+    expect(aviso?.texto).not.toMatch(/429/);
+    expect(aviso?.texto).not.toMatch(/\d+\s*segundos?/i);
+  });
+
+  it("escopo já capturado antes do barramento NÃO se perde — o motor de regras roda independente da rede", () => {
+    // Simula uma conversa que JÁ tinha confirmado volume numa pergunta
+    // estruturada anterior (o jeito real do motor de regras capturar
+    // `postsPerWeek`, ver `question-engine.ts`) — o estado que chega ao
+    // turno seguinte, o que seria barrado por 429.
+    const estadoComScopeConfirmado = {
+      conv: {
+        ...initProspectConvState().conv,
+        scope: { ...emptyScope(), wantsSocialMedia: true, social: { platforms: ["instagram"], postsPerWeek: 14 } },
+        isFirstMessage: false,
+      },
+      sdr: initProspectConvState().sdr,
+    };
+
+    // `processProspectMessage` — a linha de base que roda ANTES da rede
+    // (comentário original: ":1337") — é chamada com o estado anterior como
+    // ponto de partida, exatamente como `runTurn` faz. O resultado carrega o
+    // scope confirmado adiante, e é ESTE resultado (`ruleResult`) que o
+    // componente aplica quando o outcome da rede é "barrado" — nunca um
+    // scope vazio, porque a rede nunca participou desse cálculo.
+    const ruleResult = processProspectMessage("mais alguma coisa", estadoComScopeConfirmado, []);
+
+    expect(ruleResult.conv.scope.social?.postsPerWeek).toBe(14);
+    expect(ruleResult.conv.scope.wantsSocialMedia).toBe(true);
+  });
+});
+
+describe("quebrado (503 / erro de rede) — o SISTEMA falhou, fato oposto ao barrado", () => {
+  it("503 produz 'quebrado', com o aviso de sistema fora do ar — texto diferente do de limite", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => respostaFake({ error: "Serviço temporariamente indisponível." }, false, 503)),
+    );
+    const quebrado = await fetchSdrReply([], "x", emptyScope(), "sess-1");
+    expect(quebrado).toEqual({ kind: "quebrado" });
+
+    const aviso = avisoParaResultadoSdr(quebrado);
+    expect(aviso).not.toBeNull();
+    expect(aviso?.tipo).toBe("quebrado");
+    expect(aviso?.texto).toBe(TEXTO_AVISO_QUEBRADO);
+    expect(aviso?.texto).not.toMatch(/503/);
+
+    // Os dois avisos NUNCA são a mesma frase — são fatos opostos (ritmo da
+    // pessoa vs. falha do sistema) e não podem se misturar.
+    expect(aviso?.texto).not.toBe(TEXTO_AVISO_BARRADO);
+  });
+
+  it("erro de rede (fetch lança) produz o MESMO aviso que 503 — mesma família de falha", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network down"); }));
+    const quebrado = await fetchSdrReply([], "x", emptyScope(), "sess-1");
+    expect(avisoParaResultadoSdr(quebrado)?.texto).toBe(TEXTO_AVISO_QUEBRADO);
+  });
+});
+
+describe("sem_novidade — não é erro, não gera aviso nenhum", () => {
+  it("avisoParaResultadoSdr devolve null para sem_novidade, igual ao caminho feliz", () => {
+    expect(avisoParaResultadoSdr({ kind: "sem_novidade" })).toBeNull();
   });
 });

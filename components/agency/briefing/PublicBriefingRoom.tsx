@@ -790,17 +790,64 @@ function ProposalCard({
 
 // ── Claude SDR integration ─────────────────────────────────────────────────────
 // The conversational brain. Calls /api/sdr/chat for a natural reply + scope
-// patch. Returns null on any failure so the caller falls back to the rule-based
-// engine (Lei 2). The patch only FILLS gaps in the rule-based scope — it never
-// overwrites confirmed data, so the live estimate machinery stays stable.
+// patch. Devolve `SdrOutcome` — o MOTIVO de qualquer falha, nunca só um
+// `null` — para o chamador cair no motor de regras (Lei 2) e, quando o
+// motivo for de rede (barrado/quebrado), avisar a pessoa. O patch de scope
+// só PREENCHE lacunas do scope do motor de regras — nunca sobrescreve dado
+// confirmado, para a estimativa ao vivo ficar estável.
 
-interface SdrReply {
-  /** null quando a fala do modelo foi barrada — corte no meio do pacote,
-   *  formato quebrado, ou um guarda de preço/e-mail. O motor de regras
-   *  responde no lugar dela. `scope`, se sobreviveu, chega do mesmo jeito:
-   *  ver o comentário em `fetchSdrReply`. */
-  reply: string | null;
-  scope: Record<string, unknown>;
+// ⚠️ 16/08, terceiro beco: `fetchSdrReply` e `fetchUpload` achatavam TRÊS
+// fatos opostos no mesmo `null` — "recusado por limite" (429), "sistema fora
+// do ar" (503) e "sem novidade da IA" (200, nada usável). Achatado em `null`,
+// o chamador não consegue avisar a pessoa do motivo certo, e o "aviso" que
+// existia era zero: a próxima pergunta do roteiro (motor de regras) aparecia
+// no lugar, cronologicamente coerente, como se fosse a SDR respondendo — a
+// pessoa não vê uma falha, ela ACREDITA numa resposta normal. Pior que tela
+// em branco: tela em branco a pessoa questiona, esta ela não questiona.
+// A trava: `SdrOutcome`/`UploadOutcome` abaixo devolvem o MOTIVO, nunca só
+// um booleano/null. Ver `avisoParaResultadoSdr` e `causaDaFalhaDeUpload` —
+// são os únicos dois lugares que traduzem motivo em texto, para não haver
+// dois textos divergentes para o mesmo fato em pontos diferentes da tela.
+export type SdrOutcome =
+  /** Passou pela rede e pelo parser: `reply` pode ainda ser `null` — é o caso
+   *  já existente de fala barrada por CORTE (truncado/malformado) com
+   *  `scope` resgatável (ver `MOTIVOS_COM_ESCOPO_APROVEITAVEL`). Isso não é
+   *  erro de rede; o motor de regras sempre soube responder aqui. */
+  | { kind: "resposta"; reply: string | null; scope: Record<string, unknown> }
+  /** HTTP 429 — `limite-no-banco.ts` recusou porque a PESSOA está mandando
+   *  rápido demais. Não é falha do sistema; é ritmo dela. */
+  | { kind: "barrado" }
+  /** HTTP 503, erro de rede (fetch lançou), ou corpo ilegível — o SISTEMA
+   *  que falhou, não o ritmo dela. Fato oposto ao anterior: nunca cabe na
+   *  mesma frase. */
+  | { kind: "quebrado" }
+  /** 200 mas nada aproveitável (sem fala usável, sem scope resgatável) — o
+   *  silêncio de sempre (Lei 2, motor de regras responde). NÃO é erro: não
+   *  gera aviso nenhum na tela. */
+  | { kind: "sem_novidade" };
+
+// Textos prontos — não reescrever. Decisão do `experiencia` (16/08): sem
+// código de erro na tela, sem contagem de `Retry-After` (pode vir um número
+// grande e assustador para quem caiu no balde compartilhado por culpa de
+// outra pessoa na mesma rede — "aguarde alguns segundos" resolve a ansiedade
+// sem mentir).
+export const TEXTO_AVISO_BARRADO =
+  "Você está mandando mensagens rápido demais. Espere alguns segundos e continue — sua conversa não foi perdida.";
+export const TEXTO_AVISO_QUEBRADO =
+  "Não conseguimos falar com a consultora agora. Continue digitando — sua mensagem foi salva, e você pode tentar de novo em instantes.";
+
+export interface AvisoDeConversa {
+  tipo: "barrado" | "quebrado";
+  texto: string;
+}
+
+/** A ÚNICA função que traduz `SdrOutcome` em aviso visível. Pura e exportada
+ *  de propósito: é o que prova, em teste, que o estado de aviso É produzido —
+ *  não só que `fetchSdrReply` devolveu um `kind` diferente por baixo do pano. */
+export function avisoParaResultadoSdr(outcome: SdrOutcome): AvisoDeConversa | null {
+  if (outcome.kind === "barrado")  return { tipo: "barrado",  texto: TEXTO_AVISO_BARRADO };
+  if (outcome.kind === "quebrado") return { tipo: "quebrado", texto: TEXTO_AVISO_QUEBRADO };
+  return null;
 }
 
 // An uploaded briefing file and its processing status.
@@ -808,6 +855,10 @@ interface UploadItem {
   id: string;
   attachment: RequestAttachment;
   status: "uploading" | "done" | "error";
+  /** Causa em português, só quando `status === "error"` — a doença idêntica
+   *  à de `fetchSdrReply`: um selo "Falhou" igual para 429/503/formato ruim
+   *  não diz se a pessoa espera 5s ou troca de arquivo. */
+  motivo?: string;
 }
 
 interface UploadResult {
@@ -818,23 +869,66 @@ interface UploadResult {
   extractedText: string;
 }
 
-async function fetchUpload(file: File): Promise<UploadResult | null> {
+export type UploadOutcome =
+  | { kind: "concluido"; result: UploadResult }
+  | { kind: "barrado" }   // 429 — freio próprio do upload (12/60s, ver route.ts)
+  | { kind: "quebrado" }  // 503, erro de rede, ou corpo ilegível
+  | { kind: "rejeitado"; motivo: string }; // 400 — too_large, bad_request etc.
+
+/** Espelha `avisoParaResultadoSdr`: única tradutora de motivo → texto para o
+ *  item de upload. `rejeitado` chega com o `reason` cru do servidor (ex.:
+ *  `"too_large"`) — a tradução para português mora só aqui. */
+export function causaDaFalhaDeUpload(outcome: UploadOutcome): string | null {
+  switch (outcome.kind) {
+    case "barrado":
+      return "Muitas mensagens em pouco tempo — espere alguns segundos e envie de novo.";
+    case "quebrado":
+      return "Não conseguimos ler o arquivo agora — tente de novo em instantes.";
+    case "rejeitado":
+      return outcome.motivo === "too_large"
+        ? "Arquivo muito grande (máx. 20 MB) — envie um arquivo menor."
+        : "Não conseguimos ler este arquivo — tente outro formato.";
+    default:
+      return null;
+  }
+}
+
+async function fetchUpload(file: File): Promise<UploadOutcome> {
+  let res: Response;
   try {
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch("/api/sdr/upload", { method: "POST", body: form });
-    if (!res.ok) return null;
+    res = await fetch("/api/sdr/upload", { method: "POST", body: form });
+  } catch {
+    return { kind: "quebrado" };
+  }
+
+  if (!res.ok) {
+    if (res.status === 429) return { kind: "barrado" };
+    if (res.status === 503) return { kind: "quebrado" };
+    try {
+      const body = (await res.json()) as { reason?: unknown };
+      return { kind: "rejeitado", motivo: typeof body.reason === "string" ? body.reason : "desconhecido" };
+    } catch {
+      return { kind: "rejeitado", motivo: "desconhecido" };
+    }
+  }
+
+  try {
     const data = (await res.json()) as { ok?: boolean } & Partial<UploadResult>;
-    if (!data.ok) return null;
+    if (!data.ok) return { kind: "rejeitado", motivo: "desconhecido" };
     return {
-      fileName:      data.fileName ?? file.name,
-      fileType:      data.fileType ?? "FILE",
-      sizeBytes:     data.sizeBytes ?? file.size,
-      mimeType:      data.mimeType ?? file.type,
-      extractedText: data.extractedText ?? "",
+      kind: "concluido",
+      result: {
+        fileName:      data.fileName ?? file.name,
+        fileType:      data.fileType ?? "FILE",
+        sizeBytes:     data.sizeBytes ?? file.size,
+        mimeType:      data.mimeType ?? file.type,
+        extractedText: data.extractedText ?? "",
+      },
     };
   } catch {
-    return null;
+    return { kind: "quebrado" };
   }
 }
 
@@ -885,9 +979,10 @@ export async function fetchSdrReply(
   // ninguém consegue ler a história de ponta a ponta — que é o motivo de o
   // registro existir. O servidor prefixa e higieniza; aqui é só o carimbo.
   sessionId: string,
-): Promise<SdrReply | null> {
+): Promise<SdrOutcome> {
+  let res: Response;
   try {
-    const res = await fetch("/api/sdr/chat", {
+    res = await fetch("/api/sdr/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -897,40 +992,56 @@ export async function fetchSdrReply(
         sessionId,
       }),
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown };
-
-    // O contrato mudou em 16/08 (caso do R$ 500 / 2 posts por dia): `ok: false`
-    // deixou de significar "nada aproveitável". Quando a fala é barrada por
-    // CORTE — pacote truncado, formato quebrado —, o servidor ainda pode
-    // devolver o `scope` que sobreviveu, e ele é bom e incompleto: aproveita-se.
-    // Jogar fora a resposta inteira só porque `ok` é false jogaria fora de novo
-    // o dado que este conserto existe para salvar: o número que o cliente falou
-    // uma vez, ninguém recupera.
-    //
-    // Mas ORDEM DO DIRETOR, 16/08: "não afrouxe nada" — `email_hallucination` e
-    // `price_leak` continuam descartando o pacote INTEIRO, porque ali o escopo
-    // não é incompleto, é SUSPEITO: o modelo estava comprovadamente fora do
-    // roteiro (inventou e-mail ou vazou preço) no mesmo turno em que produziu
-    // aquele `scope`. Corte e guarda são fatos opostos; só o motivo (`reason`,
-    // que o servidor já manda) distingue um do outro — por isso o aproveitamento
-    // do `scope` passa pela allowlist abaixo, não por "veio `scope`, aproveita".
-    // `reply` só é aceito quando `ok: true`.
-    const replyUsavel =
-      data.ok === true && typeof data.reply === "string" && data.reply.trim() ? data.reply.trim() : null;
-    const motivoAprovaEscopo =
-      data.ok === true || (typeof data.reason === "string" && MOTIVOS_COM_ESCOPO_APROVEITAVEL.has(data.reason));
-    const scopeRecuperado =
-      motivoAprovaEscopo && data.scope && typeof data.scope === "object" ? (data.scope as Record<string, unknown>) : {};
-
-    // Nem fala nem scope: não há nada aqui que valha a pena carregar — cai no
-    // fallback inteiro do motor de regras, como sempre foi.
-    if (replyUsavel === null && Object.keys(scopeRecuperado).length === 0) return null;
-
-    return { reply: replyUsavel, scope: scopeRecuperado };
   } catch {
-    return null;
+    // Rede fora do ar antes de qualquer resposta HTTP — mesma família do 503:
+    // o sistema falhou, não o ritmo da pessoa.
+    return { kind: "quebrado" };
   }
+
+  if (!res.ok) {
+    // 429 = balde estourado (`limite-no-banco.ts`, motivo "estourou"): ritmo
+    // dela. Qualquer outro status (503 = contador indisponível, ou algo
+    // inesperado) é "quebrado": o sistema que falhou. Os dois são fatos
+    // opostos e não cabem na mesma frase (ver `avisoParaResultadoSdr`).
+    return res.status === 429 ? { kind: "barrado" } : { kind: "quebrado" };
+  }
+
+  let data: { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown };
+  try {
+    data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown };
+  } catch {
+    return { kind: "quebrado" };
+  }
+
+  // O contrato mudou em 16/08 (caso do R$ 500 / 2 posts por dia): `ok: false`
+  // deixou de significar "nada aproveitável". Quando a fala é barrada por
+  // CORTE — pacote truncado, formato quebrado —, o servidor ainda pode
+  // devolver o `scope` que sobreviveu, e ele é bom e incompleto: aproveita-se.
+  // Jogar fora a resposta inteira só porque `ok` é false jogaria fora de novo
+  // o dado que este conserto existe para salvar: o número que o cliente falou
+  // uma vez, ninguém recupera.
+  //
+  // Mas ORDEM DO DIRETOR, 16/08: "não afrouxe nada" — `email_hallucination` e
+  // `price_leak` continuam descartando o pacote INTEIRO, porque ali o escopo
+  // não é incompleto, é SUSPEITO: o modelo estava comprovadamente fora do
+  // roteiro (inventou e-mail ou vazou preço) no mesmo turno em que produziu
+  // aquele `scope`. Corte e guarda são fatos opostos; só o motivo (`reason`,
+  // que o servidor já manda) distingue um do outro — por isso o aproveitamento
+  // do `scope` passa pela allowlist abaixo, não por "veio `scope`, aproveita".
+  // `reply` só é aceito quando `ok: true`.
+  const replyUsavel =
+    data.ok === true && typeof data.reply === "string" && data.reply.trim() ? data.reply.trim() : null;
+  const motivoAprovaEscopo =
+    data.ok === true || (typeof data.reason === "string" && MOTIVOS_COM_ESCOPO_APROVEITAVEL.has(data.reason));
+  const scopeRecuperado =
+    motivoAprovaEscopo && data.scope && typeof data.scope === "object" ? (data.scope as Record<string, unknown>) : {};
+
+  // Nem fala nem scope: não há nada aqui que valha a pena carregar — cai no
+  // fallback inteiro do motor de regras, como sempre foi. Isto NÃO é erro
+  // (o servidor respondeu 200): "sem novidade da IA", nenhum aviso na tela.
+  if (replyUsavel === null && Object.keys(scopeRecuperado).length === 0) return { kind: "sem_novidade" };
+
+  return { kind: "resposta", reply: replyUsavel, scope: scopeRecuperado };
 }
 
 function asNum(v: unknown): number | undefined {
@@ -1138,6 +1249,14 @@ function BriefingFileUpload({
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{it.attachment.fileName}</p>
                 <p className="text-[10px] text-[var(--text-muted)]">{fmtBytes(it.attachment.sizeBytes)}</p>
+                {/* Uma linha de causa junto do item — mesma doença de
+                    `fetchSdrReply`, mesmo remédio: "Falhou" sozinho não diz
+                    se a pessoa espera 5s (429/503) ou troca de arquivo
+                    (rejeitado). `role="alert"` porque é a mesma família de
+                    aviso do `micError`/`avisoConversa`. */}
+                {it.status === "error" && it.motivo && (
+                  <p role="alert" className="text-[10px] text-[var(--danger)] mt-0.5">{it.motivo}</p>
+                )}
               </div>
               {it.status === "uploading" && (
                 <span className="h-4 px-1.5 rounded-[3px] bg-[var(--warning-bg)] text-[9px] font-semibold text-[var(--warning)] shrink-0 whitespace-nowrap">
@@ -1192,6 +1311,16 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const [linkAtts,       setLinkAtts]       = useState<RequestAttachment[]>([]);
   const [fileItems,      setFileItems]      = useState<UploadItem[]>([]);
   const [aiThinking,     setAiThinking]     = useState(false);
+  // Terceiro beco sem saída em silêncio (16/08): barrado (429) e quebrado
+  // (503/rede) viravam `null` e a próxima pergunta do roteiro — motor de
+  // regras — parecia resposta normal da SDR. `avisoConversa` é o estado que
+  // prova que a falha É comunicada; `enviarEsfriando` estende o mesmo
+  // `disabled` que `aiThinking` já usa, por alguns segundos após um 429, para
+  // a pessoa compor a próxima frase sem martelar o botão — a conversa NÃO
+  // morre, só espera.
+  const [avisoConversa,  setAvisoConversa]  = useState<AvisoDeConversa | null>(null);
+  const [enviarEsfriando, setEnviarEsfriando] = useState(false);
+  const esfriamentoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Combined attachment list (uploaded files first, then shared links).
   const attachments: RequestAttachment[] = [
@@ -1224,6 +1353,23 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conv.messages, aiThinking]);
+
+  // "Alguns segundos" (item 5 da ficha): tempo para compor a próxima frase
+  // enquanto o balde (60/30min) ainda não liberou, sem travar o textarea
+  // inteiro. Limpa o timer anterior a cada novo 429 — nunca dois timers
+  // correndo, nunca o botão liberando cedo demais por um timer velho.
+  const ESFRIAMENTO_MS = 6000;
+  const iniciarEsfriamentoDeEnvio = useCallback(() => {
+    setEnviarEsfriando(true);
+    if (esfriamentoRef.current) clearTimeout(esfriamentoRef.current);
+    esfriamentoRef.current = setTimeout(() => setEnviarEsfriando(false), ESFRIAMENTO_MS);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (esfriamentoRef.current) clearTimeout(esfriamentoRef.current);
+    };
+  }, []);
 
   // Append transcribed text to input (never auto-submits; user reviews before sending)
   const handleTranscript = useCallback((text: string) => {
@@ -1343,18 +1489,23 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       setState({ ...ruleResult, conv: { ...ruleResult.conv, messages: userVisible } });
       setAiThinking(true);
 
-      const claude = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope, tempClientId);
+      const outcome = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope, tempClientId);
       setAiThinking(false);
 
-      if (claude) {
-        // O scope aplica o gap-fill mesmo quando a fala foi barrada — é a
-        // metade que sobrevive quando a outra não sobrevive (caso do R$ 500 /
-        // 2 posts por dia, 16/08). Sem fala usável, quem responde ao visitante
-        // é o motor de regras — nunca uma frase cortada no meio.
-        const mergedScope = mergeScopeGaps(ruleResult.conv.scope, claude.scope);
+      if (outcome.kind === "resposta") {
+        // Turno saudável — se havia aviso de uma tentativa anterior, ele sai
+        // da tela agora. Não deixar preso depois que o freio libera: a
+        // pessoa desiste antes de descobrir que já pode mandar de novo.
+        setAvisoConversa(null);
+
+        // O scope aplica o gap-fill mesmo quando a fala foi barrada por CORTE
+        // — é a metade que sobrevive quando a outra não sobrevive (caso do
+        // R$ 500 / 2 posts por dia, 16/08). Sem fala usável, quem responde ao
+        // visitante é o motor de regras — nunca uma frase cortada no meio.
+        const mergedScope = mergeScopeGaps(ruleResult.conv.scope, outcome.scope);
         const estimate = computeEstimate(mergedScope);
-        const assistantMsg: ConvMessage = claude.reply
-          ? { ...ruleAssistant, text: claude.reply }
+        const assistantMsg: ConvMessage = outcome.reply
+          ? { ...ruleAssistant, text: outcome.reply }
           : ruleAssistant;
         const newConv: ConvState = {
           ...ruleResult.conv,
@@ -1367,12 +1518,22 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           sdr: ruleResult.sdr,
         });
       } else {
-        // Fallback: rule-based reply + the lighter extraction pass.
+        // Fallback: rule-based reply + the lighter extraction pass — igual a
+        // sempre, para os três motivos (barrado, quebrado, sem_novidade).
+        // `fireAiExtract` não muda: seu silêncio é fallback de segundo plano,
+        // correto, e não é aqui que o defeito mora.
         setState(ruleResult);
         void fireAiExtract(text, priorMessages);
+
+        // `avisoParaResultadoSdr` devolve `null` para "sem_novidade" (não é
+        // erro, servidor respondeu 200) — o aviso, se havia, some junto.
+        // Um aviso só; se o motivo mudou (barrado → quebrado), o texto troca
+        // em vez de empilhar.
+        setAvisoConversa(avisoParaResultadoSdr(outcome));
+        if (outcome.kind === "barrado") iniciarEsfriamentoDeEnvio();
       }
     },
-    [fireAiExtract, tempClientId],
+    [fireAiExtract, tempClientId, iniciarEsfriamentoDeEnvio],
   );
 
   // ── File upload (briefing documents) ──────────────────────────────────────
@@ -1398,13 +1559,19 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         };
         setFileItems((prev) => [...prev, { id, attachment: optimistic, status: "uploading" }]);
 
-        const result = await fetchUpload(file);
+        const outcome = await fetchUpload(file);
 
-        if (!result) {
-          setFileItems((prev) => prev.map((it) => (it.id === id ? { ...it, status: "error" } : it)));
+        if (outcome.kind !== "concluido") {
+          // Mesma doença de `fetchSdrReply`, mesmo remédio: 429, 503 e "tipo
+          // não suportado" viravam o mesmo selo "Falhou", sem dizer se a
+          // pessoa espera 5 segundos ou troca de arquivo. `causaDaFalhaDeUpload`
+          // é a única tradutora — uma linha de causa junto do item.
+          const motivo = causaDaFalhaDeUpload(outcome) ?? undefined;
+          setFileItems((prev) => prev.map((it) => (it.id === id ? { ...it, status: "error", motivo } : it)));
           continue;
         }
 
+        const result = outcome.result;
         setFileItems((prev) =>
           prev.map((it) =>
             it.id === id
@@ -1439,14 +1606,14 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
   function handleSend() {
     const text = inputText.trim();
-    if (!text || aiThinking) return;
+    if (!text || aiThinking || enviarEsfriando) return;
     setInputText("");
     void runTurn(text);
     setTimeout(() => textareaRef.current?.focus(), 0);
   }
 
   function sendAction(text: string) {
-    if (aiThinking) return;
+    if (aiThinking || enviarEsfriando) return;
     void runTurn(text);
   }
 
@@ -1572,6 +1739,19 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
         {/* Input */}
         <div className="border-t border-[var(--border)] px-4 py-3">
+          {/* ── Faixa acima do campo: barrado/quebrado, NUNCA em balão de conversa ──
+              Mesmo lugar e padrão do aviso do microfone abaixo (`role="alert"`,
+              texto em `--danger`) — reuso, não invenção. Fica DENTRO do
+              container do input, que continua visível quando a área de
+              mensagens rola e some (teclado aberto, 375px). Um balão de
+              conversa pareceria fala da SDR — é exatamente essa confusão de
+              autoria que fazia o prospect acreditar que estava tudo bem
+              enquanto a IA tinha sido cortada (16/08). */}
+          {avisoConversa && (
+            <p role="alert" className="text-[12px] text-[var(--danger)] mb-2">
+              {avisoConversa.texto}
+            </p>
+          )}
           <div className="flex gap-2">
             <textarea
               ref={textareaRef}
@@ -1589,7 +1769,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
             />
             <button
               onClick={handleSend}
-              disabled={!inputText.trim() || aiThinking}
+              disabled={!inputText.trim() || aiThinking || enviarEsfriando}
               className="w-[52px] rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shrink-0"
               style={{ touchAction: "manipulation" }}
               aria-label="Enviar"
