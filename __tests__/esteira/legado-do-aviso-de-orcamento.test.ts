@@ -140,10 +140,13 @@ describe("✅ com o opt-in ligado, o legado É reenviado — e a ambiguidade se 
     expect(email.sendEmail).toHaveBeenCalledTimes(1);
     expect(email.sendEmail.mock.calls[0][0].to).toBe("ceo@cityjobs.com.br");
 
-    // A gravação usa o MESMO `gravarResultadoDoAviso` da entrega original —
-    // sem um segundo caminho de escrita para o legado.
-    expect(db.$executeRawUnsafe).toHaveBeenCalledTimes(1);
-    expect(db.$executeRawUnsafe.mock.calls[0][1]).toBe("avisado");
+    // Duas escritas: (1) a RESERVA atômica com marca PRÓPRIA deste balde
+    // (`'enviando_legado'`, nunca `'enviando'` — ver `reservarParaLegado`),
+    // (2) a gravação final via o MESMO `gravarResultadoDoAviso` da entrega
+    // original — sem um segundo caminho de escrita para o legado.
+    expect(db.$executeRawUnsafe).toHaveBeenCalledTimes(2);
+    expect(db.$executeRawUnsafe.mock.calls[0][0]).toMatch(/avisoOrcamentoStatus = 'enviando_legado'/);
+    expect(db.$executeRawUnsafe.mock.calls[1][1]).toBe("avisado");
   });
 
   it("depois de reenviado, o pedido some do balde — status deixou de ser NULL", async () => {
@@ -161,6 +164,43 @@ describe("✅ com o opt-in ligado, o legado É reenviado — e a ambiguidade se 
 
     expect(balde.total).toBe(0);
     // Só o e-mail da primeira tentativa existiu.
+    expect(email.sendEmail).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("🔴 SÉRIO 1 (16/08/2026, devolução do `seguranca`): a corrida vale igual para o balde de legados", () => {
+  it("⛔ duas chamadas concorrentes sobre o MESMO legado mandam UM e-mail só", async () => {
+    roteiaPorSql({ legados: [legadoComEmail()] });
+
+    // Mesmo CAS de `reservarParaLegado`: a marca `'enviando_legado'` só
+    // reserva a linha na PRIMEIRA tentativa; a segunda, sobre o mesmo id,
+    // afeta 0 linhas — no banco real porque `avisoOrcamentoStatus` já
+    // deixou de ser `NULL`.
+    const reservadas = new Set<string>();
+    db.$executeRawUnsafe.mockImplementation((sql: string, ...params: unknown[]) => {
+      if (sql.includes("avisoOrcamentoStatus = 'enviando_legado'") && sql.includes("SET ")) {
+        const id = params[1] as string;
+        if (reservadas.has(id)) return Promise.resolve(0);
+        reservadas.add(id);
+        return Promise.resolve(1);
+      }
+      return Promise.resolve(1);
+    });
+
+    const [primeira, segunda] = await Promise.all([
+      reenviarAvisosLegados(CASA_INTEIRA),
+      reenviarAvisosLegados(CASA_INTEIRA),
+    ]);
+
+    expect(primeira.reenviados + segunda.reenviados).toBe(1);
+    expect(email.sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("✅ passada única continua reenviando o legado normalmente — não regride", async () => {
+    roteiaPorSql({ legados: [legadoComEmail()] });
+    const r = await reenviarAvisosLegados(CASA_INTEIRA);
+
+    expect(r.reenviados).toBe(1);
     expect(email.sendEmail).toHaveBeenCalledTimes(1);
   });
 });

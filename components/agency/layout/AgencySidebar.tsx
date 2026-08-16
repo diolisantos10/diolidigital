@@ -107,6 +107,12 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
         // de Solicitações, não em "Inteligência": é fila de decisão diária —
         // abordar ou não —, o mesmo gesto da vizinhança.
         { label: "Quem procurou", href: "/agency/leads", icon: TargetIcon },
+        // "Avisos de orçamento" — a fila de e-mails que avisam o prospect de
+        // orçamento pronto e que FICARAM PRESOS (RESEND_FROM ausente no
+        // Railway fez isso falhar para todo mundo). Mesma família de "Quem
+        // procurou": prospect que a casa não avisou. Antes só existia por
+        // `curl`; rota que só se aciona por terminal não é acionada.
+        { label: "Avisos de orçamento", href: "/agency/avisos-de-orcamento", icon: MailAlertIcon },
         // Radar de oportunidades entra AQUI, no bloco de entrada, e não em
         // "Inteligência": ele não é relatório, é fila de decisão diária — chega
         // um projeto de plataforma de freela, o Diretor aprova ou recusa. Mesmo
@@ -444,6 +450,15 @@ function ChartIcon({ size = 16, className = "" }: { size?: number; className?: s
   );
 }
 
+function MailAlertIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M2 4.5a1 1 0 011-1h7a1 1 0 011 1v6a1 1 0 01-1 1H3a1 1 0 01-1-1v-6z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+      <path d="M2.3 5l4.7 3.4L11.7 5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="13" cy="3.3" r="1.7" fill="currentColor"/>
+    </svg>
+  );
+}
 function BellIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>

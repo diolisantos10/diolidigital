@@ -49,10 +49,16 @@ describe("a rota não abre sem autenticação", () => {
 });
 
 describe("a visibilidade e o reenvio miram a MESMA lista", () => {
-  it("o GET busca exatamente os dois estados que o reenvio busca — falhou e skipped, nunca avisado nem sem_canal", () => {
+  it("o GET busca exatamente os dois estados que o reenvio busca — falhou e skipped, nunca avisado", () => {
     expect(ROTA).toMatch(/avisoOrcamentoStatus IN \('falhou', 'skipped'\)/);
     expect(ROTA).not.toMatch(/'avisado'/);
-    expect(ROTA).not.toMatch(/'sem_canal'/);
+    // `sem_canal` PASSA a aparecer na rota (16/08/2026, tela): a rota agora
+    // também CONTA esse balde para a tela mostrar como contexto. O que a
+    // rota nunca pode fazer é misturá-lo na consulta que alimenta
+    // `pendentes`/o reenvio — por isso a trava é sobre o `IN (...)`, não
+    // sobre a string inteira.
+    expect(ROTA).not.toMatch(/IN\s*\([^)]*'sem_canal'[^)]*\)/);
+    expect(ROTA).toMatch(/avisoOrcamentoStatus = 'sem_canal'/);
   });
 
   it("o POST reenvia através da função da esteira — não existe um segundo caminho de envio aqui", () => {

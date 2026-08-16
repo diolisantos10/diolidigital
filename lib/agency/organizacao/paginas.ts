@@ -89,6 +89,10 @@ export const PAGINAS: PaginaInterna[] = [
   // ── Porta da frente — Atendimento ─────────────────────────────────────────
   { href: "/agency/requests",              titulo: "Solicitações",            dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/leads",                 titulo: "Quem procurou",           dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
+  // Fila de e-mails de orçamento que ficaram presos (RESEND_FROM ausente etc.)
+  // — mesma família de pergunta de "Quem procurou": prospect que a casa não
+  // avisou. Ver `app/agency/avisos-de-orcamento/page.tsx`.
+  { href: "/agency/avisos-de-orcamento",   titulo: "Avisos de orçamento",     dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/oportunidades",         titulo: "Oportunidades",           dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/inbox",                 titulo: "Caixa de entrada",        dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/whatsapp",              titulo: "WhatsApp",                dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },

@@ -35,6 +35,24 @@
 // (`Bearer` com `PILOTO_SECRET`/`CRON_SECRET`). Sem segredo configurado, o
 // caminho por token nem abre — ausência de chave nunca vira porta aberta.
 //
+// ── A PÁGINA É MAIS RESTRITA QUE ESTA API, E ISSO É DECISÃO, NÃO DESCUIDO
+// (16/08/2026, medido pelo `seguranca`) ──────────────────────────────────────
+// Esta rota (`requireSession()`, sem `allowedRoles`) aceita QUALQUER papel
+// interno autenticado — inclusive papéis operacionais como `social_staff`,
+// que podem chamá-la direto por `fetch`/`curl`. A TELA que a consome
+// (`/agency/avisos-de-orcamento/page.tsx`) é mais estreita: `proxy.ts` +
+// `lib/agency/organizacao/paginas.ts` (`acesso: "dono_e_gestao"`) só deixam
+// gestão e `client-service-sdr` renderizarem a página — qualquer outro papel
+// nem chega a ver o botão. AS DUAS DIVERGEM DE PROPÓSITO, E ISSO É
+// CONHECIDO: o Diretor decidiu em 16/08/2026 MANTER a API na amplitude atual
+// por ora, para não apertar papel de equipe no meio de um piloto ao vivo sem
+// antes medir o custo operacional de restringir por papel — a mesma decisão
+// já registrada em `page.tsx` sobre a visibilidade da lista. O mecanismo
+// para fechar essa divergência, no dia em que se decidir fechar, JÁ EXISTE e
+// não precisa ser inventado: `exigirApiInterna("/agency/avisos-de-orcamento")`
+// (`lib/agency/organizacao/guarda.ts`) reusa a MESMA `podeAbrirRota` que a
+// página já usa — bastaria trocar `requireSession()` por ele aqui.
+//
 // ── A FRONTEIRA DO WORKSPACE (16/08/2026, devolução do `seguranca`) ─────────
 // `autenticar()` respondia SÓ "existe sessão?" — nunca "esta sessão é dona
 // deste dado?". As três consultas abaixo não tinham `workspaceId` nenhum:
@@ -196,7 +214,48 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       };
     }
 
-    return NextResponse.json({ medido: true, total: pendentes.length, pendentes, legados });
+    // O quarto balde (16/08/2026, tela): `sem_canal` já é gravado por
+    // `orcamento-do-briefing.ts` — o prospect não deixou e-mail, o portal
+    // JÁ atendeu (ver a regra 3 do cabeçalho de lá), e não há para onde
+    // reenviar. Não é falha; é fato. Por isso nunca entrou no `WHERE` de
+    // `pendentes` acima nem no do reenvio — e é exatamente por isso que a
+    // tela precisa dele separado: sem esta contagem, "sem e-mail" e
+    // "silenciosamente ignorado" ficam indistinguíveis para quem olha o
+    // painel. Mesma fronteira de workspace em duas camadas das outras duas
+    // consultas desta rota; falha aqui não derruba `pendentes` nem `legados`,
+    // que já estão de pé.
+    const AMBIGUIDADE_SEM_CANAL =
+      "avisoOrcamentoStatus = 'sem_canal' não é falha — é fato: o prospect não " +
+      "declarou e-mail. O orçamento já foi entregue no portal. Não há botão de " +
+      "reenviar aqui porque não há para onde mandar.";
+    let semCanal: { medido: boolean; total: number; ambiguidade: string; motivo?: string };
+    try {
+      const cruSemCanal =
+        "casaInteira" in auth.escopo
+          ? await prisma.$queryRawUnsafe<{ id: string; workspaceId: string | null; clientId: string | null }[]>(
+              `SELECT id, workspaceId, clientId FROM ClientRequestDb WHERE avisoOrcamentoStatus = 'sem_canal' LIMIT 500`,
+            )
+          : await prisma.$queryRawUnsafe<{ id: string; workspaceId: string | null; clientId: string | null }[]>(
+              `SELECT id, workspaceId, clientId FROM ClientRequestDb
+                WHERE avisoOrcamentoStatus = 'sem_canal'
+                  AND (workspaceId = ? OR workspaceId IS NULL)
+                LIMIT 500`,
+              auth.escopo.workspaceId,
+            );
+      const filtradoSemCanal =
+        "casaInteira" in auth.escopo ? cruSemCanal : await apenasDoWorkspace(cruSemCanal, auth.escopo.workspaceId);
+      semCanal = { medido: true, total: filtradoSemCanal.length, ambiguidade: AMBIGUIDADE_SEM_CANAL };
+    } catch (e3) {
+      console.error("[agency/avisos-de-orcamento] GET (sem_canal) error", e3);
+      semCanal = {
+        medido: false,
+        total: 0,
+        ambiguidade: AMBIGUIDADE_SEM_CANAL,
+        motivo: "o banco não respondeu — este balde NÃO é zero, é desconhecido",
+      };
+    }
+
+    return NextResponse.json({ medido: true, total: pendentes.length, pendentes, legados, semCanal });
   } catch (e) {
     console.error("[agency/avisos-de-orcamento] GET error", e);
     // Falha de leitura NÃO vira lista vazia — mesma lei de `/api/agency/leads`:

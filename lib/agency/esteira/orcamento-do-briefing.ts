@@ -614,18 +614,116 @@ async function filtradoPeloEscopo<T extends { workspaceId: string | null; client
   return apenasDoWorkspace(linhas, escopo.workspaceId);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// A RESERVA — o CAS que fecha a corrida de duas chamadas concorrentes
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// 16/08/2026, devolução do `seguranca` sobre a tela que acabou de nascer
+// (`/agency/avisos-de-orcamento`): antes desta tela, disparar reenvio duas
+// vezes exigia um script deliberado. Agora é um botão que um humano clica —
+// e duas abas, dois operadores, ou um retry de rede enquanto o primeiro lote
+// ainda roda liam a MESMA lista de candidatos (o `SELECT` abaixo) antes de
+// qualquer linha ser marcada, e mandavam o MESMO orçamento duas vezes ao
+// MESMO prospect. É o defeito que o cabeçalho deste arquivo chama de o pior
+// desta casa — mandar duas vezes é pior que não mandar.
+//
+// O conserto: cada linha é RESERVADA atomicamente, uma por vez, ANTES de
+// mandar o e-mail — o mesmo padrão de `reservarNaJanelaDoBanco` em
+// `lib/integrations/meta/ritmo-no-banco.ts`. O teste de elegibilidade vai
+// DENTRO do `UPDATE` (no `WHERE`), não numa leitura separada: não existe
+// intervalo entre "ler quem está livre" e "marcar como minha" em que duas
+// chamadas concorrentes caibam. Quem afetar 0 linhas perdeu a corrida — a
+// outra chamada chegou primeiro — e pula para o próximo candidato sem mandar
+// nada.
+//
+// A MARCA DE RESERVA NUNCA É UM QUINTO STATUS PERMANENTE. `'enviando'` (fila
+// normal) e `'enviando_legado'` (balde de legados) só existem ENTRE a
+// reserva e a gravação final (`gravarResultadoDoAviso`, chamada sempre
+// depois — sucesso ou falha) — que sobrescreve com um dos quatro valores de
+// `ResultadoDoAviso`. DUAS marcas, uma por balde, DE PROPÓSITO: uma reserva
+// que nasceu do balde de legados (opt-in, `incluirLegados: true`) só pode
+// ser reclamada de volta pelo MESMO balde — nunca vaza para o reenvio
+// automático, que roda sem pedir permissão a ninguém. Se as duas
+// compartilhassem uma marca, um processo que morresse no meio de um reenvio
+// de legado devolveria a linha para a fila AUTOMÁTICA na próxima rodada —
+// exatamente o vazamento de consentimento que o opt-in existe para impedir.
+//
+// A LINHA QUE MORRE RESERVADA SE AUTOLIBERA. Se o processo cair entre
+// reservar e gravar o resultado final — o servidor reinicia no meio, o
+// worker é morto — a linha fica presa em `'enviando'`/`'enviando_legado'`
+// com o timestamp DA RESERVA em `avisoOrcamentoEm`. Isso NÃO é para sempre:
+// passados `RESERVA_TRAVADA_POR_MS`, a MESMA condição usada tanto para
+// reservar quanto para SELECIONAR candidatos (abaixo, nas duas consultas)
+// volta a aceitar essa marca como elegível — a próxima chamada da MESMA fila
+// destrava a linha sozinha, sem intervenção manual. O prazo é generoso o
+// bastante para um envio de e-mail real terminar (rede lenta, Resend
+// respondendo devagar) e curto o bastante para não deixar um prospect preso
+// por horas se o processo cair no meio.
+const RESERVA_TRAVADA_POR_MS = 5 * 60 * 1000; // 5 minutos
+
+/** Reserva uma linha do balde normal (`falhou`/`skipped`) — ou recupera uma
+ *  reserva morta e velha do MESMO balde. `true` = a linha é sua, pode mandar
+ *  o e-mail. `false` = outra chamada já está com ela (ou a reservou há pouco
+ *  tempo, dentro da janela); não manda nada. */
+async function reservarParaReenvio(id: string): Promise<boolean> {
+  const agora = new Date();
+  const travadaDesde = new Date(agora.getTime() - RESERVA_TRAVADA_POR_MS).toISOString();
+  const linhas = await prisma.$executeRawUnsafe(
+    `UPDATE ClientRequestDb
+        SET avisoOrcamentoStatus = 'enviando', avisoOrcamentoEm = ?
+      WHERE id = ?
+        AND (avisoOrcamentoStatus IN ('falhou', 'skipped')
+             OR (avisoOrcamentoStatus = 'enviando' AND avisoOrcamentoEm < ?))`,
+    agora.toISOString(),
+    id,
+    travadaDesde,
+  );
+  return linhas === 1;
+}
+
+/** A mesma reserva, para o balde de legados (`avisoOrcamentoStatus IS
+ *  NULL`) — marca PRÓPRIA (`'enviando_legado'`) para nunca vazar para o
+ *  reenvio automático (ver o porquê no comentário acima). */
+async function reservarParaLegado(id: string): Promise<boolean> {
+  const agora = new Date();
+  const travadaDesde = new Date(agora.getTime() - RESERVA_TRAVADA_POR_MS).toISOString();
+  const linhas = await prisma.$executeRawUnsafe(
+    `UPDATE ClientRequestDb
+        SET avisoOrcamentoStatus = 'enviando_legado', avisoOrcamentoEm = ?
+      WHERE id = ?
+        AND (avisoOrcamentoStatus IS NULL
+             OR (avisoOrcamentoStatus = 'enviando_legado' AND avisoOrcamentoEm < ?))`,
+    agora.toISOString(),
+    id,
+    travadaDesde,
+  );
+  return linhas === 1;
+}
+
 /**
  * O corpo da tentativa, compartilhado entre o reenvio normal e o reenvio de
- * legados: lê a estimativa JÁ gravada (nunca recalcula), tenta o e-mail e
- * grava o resultado — sucesso incluído, que é o que faz o balde de origem
- * (falhou/skipped, ou legado) deixar de conter o pedido na próxima leitura.
+ * legados: RESERVA a linha (o CAS acima), lê a estimativa JÁ gravada (nunca
+ * recalcula), tenta o e-mail e grava o resultado — sucesso incluído, que é o
+ * que faz o balde de origem (falhou/skipped, ou legado) deixar de conter o
+ * pedido na próxima leitura.
+ *
+ * `reservar` é o CAS específico do balde de origem (`reservarParaReenvio` ou
+ * `reservarParaLegado`) — nunca compartilhado entre os dois, ver o porquê no
+ * bloco de comentário acima de `RESERVA_TRAVADA_POR_MS`.
  */
 async function tentarReenviosEmLote(
   candidatos: LinhaParaReenviar[],
   resultado: ResultadoDoReenvio,
+  reservar: (id: string) => Promise<boolean>,
 ): Promise<void> {
   for (const pedido of candidatos) {
     try {
+      // A RESERVA é o que fecha a corrida — ver o bloco de comentário acima
+      // de `RESERVA_TRAVADA_POR_MS`. 0 linhas afetadas não é erro: é a outra
+      // chamada concorrente tendo chegado primeiro nesta MESMA linha.
+      const reservou = await reservar(pedido.id);
+      if (!reservou) continue;
+
       // A estimativa é lida DE NOVO do briefing gravado — nunca recalculada.
       // O reenvio manda o MESMO número que já está escrito na conversa do
       // portal; se o briefing não tiver mais estimativa utilizável (JSON
@@ -635,6 +733,16 @@ async function tentarReenviosEmLote(
       const e = estimativaDe(pedido.briefingJson);
       if (!e) {
         resultado.falhas.push(`pedido ${pedido.id}: sem estimativa gravada — não reenviado`);
+        // A reserva não pode esperar `RESERVA_TRAVADA_POR_MS` para se soltar
+        // quando já sabemos, agora, que não há número seguro para reenviar:
+        // grava o motivo real e libera a linha imediatamente — 'falhou' é
+        // estado elegível para reenvio futuro nos dois baldes de origem
+        // possíveis (já era 'falhou'/'skipped', ou era o primeiro toque num
+        // legado NULL).
+        await gravarResultadoDoAviso(pedido.id, {
+          tipo: "falhou",
+          detalhe: "sem estimativa gravada no briefing",
+        });
         continue;
       }
 
@@ -686,6 +794,14 @@ async function tentarReenviosEmLote(
 export async function reenviarAvisosQueFalharam(escopo: EscopoDoAviso): Promise<ResultadoDoReenvio> {
   const resultado: ResultadoDoReenvio = { reenviados: 0, aindaFalhando: 0, falhas: [] };
 
+  // A cláusula `OR (avisoOrcamentoStatus = 'enviando' AND avisoOrcamentoEm <
+  // ?)` é o que faz uma reserva morta (processo caiu entre reservar e
+  // gravar o resultado final) VOLTAR a aparecer aqui depois de
+  // `RESERVA_TRAVADA_POR_MS` — sem ela, uma linha travada por um crash
+  // nunca mais seria candidata a nada. Ver o bloco de comentário acima de
+  // `RESERVA_TRAVADA_POR_MS`.
+  const travadaDesde = new Date(Date.now() - RESERVA_TRAVADA_POR_MS).toISOString();
+
   let candidatos: LinhaParaReenviar[];
   try {
     const linhas =
@@ -693,18 +809,22 @@ export async function reenviarAvisosQueFalharam(escopo: EscopoDoAviso): Promise<
         ? await prisma.$queryRawUnsafe<LinhaParaReenviar[]>(
             `SELECT id, businessName, briefingJson, sdrHandoffJson, workspaceId, clientId
                FROM ClientRequestDb
-              WHERE avisoOrcamentoStatus IN ('falhou', 'skipped')
+              WHERE (avisoOrcamentoStatus IN ('falhou', 'skipped')
+                     OR (avisoOrcamentoStatus = 'enviando' AND avisoOrcamentoEm < ?))
               ORDER BY avisoOrcamentoEm ASC
               LIMIT ?`,
+            travadaDesde,
             MAX_REENVIOS_POR_CHAMADA,
           )
         : await prisma.$queryRawUnsafe<LinhaParaReenviar[]>(
             `SELECT id, businessName, briefingJson, sdrHandoffJson, workspaceId, clientId
                FROM ClientRequestDb
-              WHERE avisoOrcamentoStatus IN ('falhou', 'skipped')
+              WHERE (avisoOrcamentoStatus IN ('falhou', 'skipped')
+                     OR (avisoOrcamentoStatus = 'enviando' AND avisoOrcamentoEm < ?))
                 AND (workspaceId = ? OR workspaceId IS NULL)
               ORDER BY avisoOrcamentoEm ASC
               LIMIT ?`,
+            travadaDesde,
             escopo.workspaceId,
             MAX_REENVIOS_POR_CHAMADA,
           );
@@ -714,7 +834,11 @@ export async function reenviarAvisosQueFalharam(escopo: EscopoDoAviso): Promise<
     return resultado;
   }
 
-  await tentarReenviosEmLote(candidatos, resultado);
+  // Cada linha ainda é RESERVADA individualmente dentro de
+  // `tentarReenviosEmLote` (`reservarParaReenvio`) — esta lista é só a
+  // PROPOSTA de candidatos; duas chamadas concorrentes podem propor a mesma
+  // linha, e só uma vence a reserva.
+  await tentarReenviosEmLote(candidatos, resultado, reservarParaReenvio);
   return resultado;
 }
 
@@ -747,23 +871,33 @@ export type LegadoDeAviso = {
  *  um workspace; `filtradoPeloEscopo` reaplica a política completa (órfã com
  *  cliente incluída) em memória. */
 async function candidatosLegados(limite: number, escopo: EscopoDoAviso): Promise<LinhaParaReenviar[]> {
+  // Mesma cláusula de recuperação de reserva morta do balde normal (ver o
+  // comentário acima de `RESERVA_TRAVADA_POR_MS`), com a marca PRÓPRIA deste
+  // balde (`'enviando_legado'`) — nunca a marca do reenvio automático.
+  const travadaDesde = new Date(Date.now() - RESERVA_TRAVADA_POR_MS).toISOString();
   const linhas =
     "casaInteira" in escopo
       ? await prisma.$queryRawUnsafe<LinhaParaReenviar[]>(
           `SELECT id, businessName, briefingJson, sdrHandoffJson, workspaceId, clientId
              FROM ClientRequestDb
-            WHERE status = 'proposal_pending' AND avisoOrcamentoStatus IS NULL
+            WHERE status = 'proposal_pending'
+              AND (avisoOrcamentoStatus IS NULL
+                   OR (avisoOrcamentoStatus = 'enviando_legado' AND avisoOrcamentoEm < ?))
             ORDER BY createdAt ASC
             LIMIT ?`,
+          travadaDesde,
           limite,
         )
       : await prisma.$queryRawUnsafe<LinhaParaReenviar[]>(
           `SELECT id, businessName, briefingJson, sdrHandoffJson, workspaceId, clientId
              FROM ClientRequestDb
-            WHERE status = 'proposal_pending' AND avisoOrcamentoStatus IS NULL
+            WHERE status = 'proposal_pending'
+              AND (avisoOrcamentoStatus IS NULL
+                   OR (avisoOrcamentoStatus = 'enviando_legado' AND avisoOrcamentoEm < ?))
               AND (workspaceId = ? OR workspaceId IS NULL)
             ORDER BY createdAt ASC
             LIMIT ?`,
+          travadaDesde,
           escopo.workspaceId,
           limite,
         );
@@ -843,6 +977,9 @@ export async function reenviarAvisosLegados(escopo: EscopoDoAviso): Promise<Resu
     return resultado;
   }
 
-  await tentarReenviosEmLote(candidatos, resultado);
+  // `reservarParaLegado` — marca PRÓPRIA (`'enviando_legado'`), nunca a
+  // marca do reenvio automático. Ver o porquê no comentário acima de
+  // `RESERVA_TRAVADA_POR_MS`.
+  await tentarReenviosEmLote(candidatos, resultado, reservarParaLegado);
   return resultado;
 }

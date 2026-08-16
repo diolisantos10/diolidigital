@@ -92,11 +92,16 @@ describe("o reenvio FAZ SAIR o que ficou preso", () => {
     expect(email.sendEmail).toHaveBeenCalledTimes(1);
     expect(email.sendEmail.mock.calls[0][0].to).toBe("ceo@cityjobs.com.br");
 
-    // A marca de sucesso É gravada — é ela que tira o pedido da fila de
-    // reenvio na PRÓXIMA chamada (ver o teste seguinte).
-    expect(db.$executeRawUnsafe).toHaveBeenCalledTimes(1);
-    const args = db.$executeRawUnsafe.mock.calls[0];
-    expect(args[1]).toBe("avisado");
+    // Duas escritas por envio bem-sucedido, nesta ordem: (1) a RESERVA
+    // atômica (`avisoOrcamentoStatus = 'enviando'`, o CAS que impede a
+    // corrida — ver `reservarParaReenvio`), (2) a marca de sucesso final,
+    // que é o que tira o pedido da fila de reenvio na PRÓXIMA chamada (ver
+    // o teste seguinte).
+    expect(db.$executeRawUnsafe).toHaveBeenCalledTimes(2);
+    const reserva = db.$executeRawUnsafe.mock.calls[0];
+    expect(reserva[0]).toMatch(/avisoOrcamentoStatus = 'enviando'/);
+    const gravacaoFinal = db.$executeRawUnsafe.mock.calls[1];
+    expect(gravacaoFinal[1]).toBe("avisado");
   });
 
   it("manda a MESMA faixa que já está escrita no portal — nunca recalcula", async () => {
@@ -127,7 +132,8 @@ describe("o reenvio FAZ SAIR o que ficou preso", () => {
 
     expect(r.reenviados).toBe(0);
     expect(r.aindaFalhando).toBe(1);
-    const args = db.$executeRawUnsafe.mock.calls[0];
+    // calls[0] é a reserva; calls[1] é a gravação final do resultado.
+    const args = db.$executeRawUnsafe.mock.calls[1];
     expect(args[1]).toBe("falhou");
     expect(args[2]).toMatch(/fora do ar/);
   });
@@ -151,6 +157,58 @@ describe("e-mail que já saiu NÃO sai duas vezes, nem pelo reenvio", () => {
     // Só o e-mail da primeira chamada existiu — a segunda não tentou mandar
     // nada porque não havia mais candidato.
     expect(email.sendEmail).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("🔴 SÉRIO 1 (16/08/2026, devolução do `seguranca`): duas chamadas concorrentes não mandam dois e-mails", () => {
+  it("⛔ a SEGUNDA chamada encontra a linha já reservada pela primeira e não manda nada — UM e-mail só", async () => {
+    // Duas abas, dois operadores, ou um retry de rede: as DUAS chamadas fazem
+    // o MESMO `SELECT` (mockado para devolver a mesma linha presa nas duas),
+    // exatamente como duas réplicas concorrentes veriam o mesmo banco antes
+    // de qualquer reserva acontecer.
+    db.$queryRawUnsafe.mockResolvedValue([linhaPresa()]);
+
+    // O `$executeRawUnsafe` mockado simula o CAS de verdade: a MESMA linha só
+    // é reservada (afeta 1 linha) na PRIMEIRA vez; a segunda tentativa sobre
+    // o mesmo id afeta 0 linhas, porque no banco real o `WHERE` da reserva já
+    // não bate mais (`avisoOrcamentoStatus` deixou de ser 'falhou'/'skipped').
+    const reservadas = new Set<string>();
+    db.$executeRawUnsafe.mockImplementation((sql: string, ...params: unknown[]) => {
+      if (sql.includes("SET avisoOrcamentoStatus = 'enviando',")) {
+        const id = params[1] as string;
+        if (reservadas.has(id)) return Promise.resolve(0);
+        reservadas.add(id);
+        return Promise.resolve(1);
+      }
+      // A gravação final do resultado nunca é o que decide a corrida — só a
+      // reserva é.
+      return Promise.resolve(1);
+    });
+
+    const [primeira, segunda] = await Promise.all([
+      reenviarAvisosQueFalharam(CASA_INTEIRA),
+      reenviarAvisosQueFalharam(CASA_INTEIRA),
+    ]);
+
+    // Não importa qual das duas "ganhou" — o total somado é UM, nunca dois.
+    expect(primeira.reenviados + segunda.reenviados).toBe(1);
+    expect(email.sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("✅ passada única continua enviando normalmente — o caso limpo não regride", async () => {
+    db.$queryRawUnsafe.mockResolvedValue([linhaPresa()]);
+    const r = await reenviarAvisosQueFalharam(CASA_INTEIRA);
+
+    expect(r.reenviados).toBe(1);
+    expect(email.sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("⛔ a condição de partida da reserva nunca inclui 'avisado' — quem já foi avisado não vira elegível pela reserva", async () => {
+    db.$queryRawUnsafe.mockResolvedValue([linhaPresa()]);
+    await reenviarAvisosQueFalharam(CASA_INTEIRA);
+
+    const reserva = db.$executeRawUnsafe.mock.calls[0];
+    expect(reserva[0]).not.toMatch(/'avisado'/);
   });
 });
 
