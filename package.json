@@ -28,7 +28,9 @@
     "reconverter:jpeg": "tsx scripts/reconverter-pecas-para-jpeg.mts",
     "check:production-safety": "tsx scripts/check-production-safety.ts",
     "diagnose:railway": "tsx scripts/diagnose-railway-env.ts",
-    "reivindicar": "tsx scripts/reivindicar.mts"
+    "reivindicar": "tsx scripts/reivindicar.mts",
+    "kit:espelhar": "tsx scripts/espelhar-kit.mts espelhar",
+    "kit:carimbo": "tsx scripts/espelhar-kit.mts carimbo"
   },
   "prisma": {
     "seed": "node scripts/seed-db.mjs"

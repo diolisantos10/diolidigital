@@ -1,0 +1,141 @@
+name: Espelho do Kit
+
+# O robô que copia doutrina de `dioli-brain-kit` para `docs/kit/` — e diz a
+# verdade quando não consegue.
+#
+# ── O PROBLEMA QUE ESTE WORKFLOW RESOLVE (achado em 16/08/2026) ────────────
+# `docs/kit/ESPELHO.json` carimbava 09/08/2026, sete dias parado, sem nada na
+# pasta que denunciasse isso. O `CLAUDE.md` já admitia em prosa que as
+# doutrinas 25 a 29 não estavam espelhadas — inclusive a 29, que rege a
+# camada de delegação que esta casa cumpre todo dia — mas prosa não se
+# atualiza sozinha, e nenhum dos 12 workflows desta casa espelhava nada.
+#
+# ── POR QUE PRECISA DE UM SEGREDO PRÓPRIO, E NÃO DO GITHUB_TOKEN PADRÃO ─────
+# `dioli-brain-kit` é um repositório PRIVADO e SEPARADO deste. O
+# `GITHUB_TOKEN` que o Actions injeta sozinho só alcança o próprio
+# repositório onde o workflow roda — ele não lê outro repo privado. Medido
+# nesta sessão, sem token nenhum:
+#
+#   $ git ls-remote https://github.com/diolisantos10/dioli-brain-kit HEAD
+#   fatal: could not read Username for 'https://github.com': terminal prompts disabled
+#   (exit 128)
+#
+# Por isso este workflow depende do segredo `KIT_REPO_TOKEN` (um PAT com
+# leitura no `dioli-brain-kit`) — e ele nasce SEM esse segredo configurado.
+# Isso não é bug deste arquivo: é o achado que a ficha de despacho pediu para
+# registrar, não contornar. Enquanto ninguém cadastrar o segredo em
+# Settings → Secrets → Actions, o robô roda em modo "carimbo" (ver abaixo) e
+# TERMINA VERMELHO de propósito, para o alarme aparecer na aba Actions em vez
+# de o espelho continuar envelhecendo em silêncio.
+#
+# ── POR QUE FALHAR É MELHOR QUE FICAR VERDE SEM ESPELHAR ────────────────────
+# O defeito original não era o espelho estar velho — era estar velho SEM QUE
+# NADA DENUNCIASSE. Um workflow que roda, não encontra o segredo e termina
+# verde teria o mesmo defeito com uma camada extra de "está tudo automatizado
+# aqui, dorme tranquilo". Vermelho é o único jeito honesto de dizer "isto
+# ainda depende de alguém cadastrar um segredo".
+
+on:
+  schedule:
+    # 06:17 UTC — horário morto, longe do topo da hora onde a maioria dos
+    # crons de terceiros dispara, e longe do horário comercial do Brasil
+    # (03:17 em horário de Brasília) para não competir por runner com CI de
+    # gente empurrando código.
+    - cron: "17 6 * * *"
+  workflow_dispatch: {}
+
+# Sem isto, o GITHUB_TOKEN automático não tem permissão de `git push` de
+# volta para este mesmo repositório quando o robô tem algo novo para
+# commitar (o carimbo de sucesso ou o carimbo de falha).
+permissions:
+  contents: write
+
+jobs:
+  espelhar:
+    runs-on: ubuntu-latest
+    # Clonar um repo pequeno + copiar alguns .md não deveria passar de
+    # minutos. Teto explícito pela mesma razão do CI principal: se travar,
+    # morre rápido em vez de segurar runner e apodrecer devagar.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      # `secrets.*` não pode entrar direto numa condição `if:` de step de
+      # forma legível/testável — passar pelo `GITHUB_OUTPUT` deixa a decisão
+      # explícita e visível no log, em vez de escondida dentro de uma
+      # expressão de `if`.
+      - name: Verifica se KIT_REPO_TOKEN existe
+        id: segredo
+        env:
+          KIT_REPO_TOKEN: ${{ secrets.KIT_REPO_TOKEN }}
+        run: |
+          if [ -n "$KIT_REPO_TOKEN" ]; then
+            echo "existe=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "existe=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::KIT_REPO_TOKEN não está cadastrado — o robô vai rodar em modo carimbo (sem espelhar nada) e este job vai terminar vermelho de propósito."
+          fi
+
+      # Só clona quando o segredo existe. O script `espelhar-kit.mts` NÃO
+      # clona e NÃO lida com credencial de propósito — separação de
+      # responsabilidade: quem fala com o git remoto e guarda o token é o
+      # workflow; o script só sabe ler um diretório local e escrever em
+      # `docs/kit/`.
+      - name: Clona o dioli-brain-kit
+        if: steps.segredo.outputs.existe == 'true'
+        env:
+          KIT_REPO_TOKEN: ${{ secrets.KIT_REPO_TOKEN }}
+        run: |
+          git clone --depth 1 \
+            "https://x-access-token:${KIT_REPO_TOKEN}@github.com/diolisantos10/dioli-brain-kit.git" \
+            /tmp/dioli-brain-kit
+
+      - name: Espelha docs/kit/ a partir do kit clonado
+        if: steps.segredo.outputs.existe == 'true'
+        run: npm run kit:espelhar -- --kit /tmp/dioli-brain-kit
+
+      # Sem segredo: NÃO tenta contornar. Regenera só o carimbo, registrando
+      # a falha em docs/kit/ESPELHO.json (estado "falhou" + ultimoErro) para
+      # que o repositório fique com a verdade escrita mesmo sem espelhar nada
+      # de novo.
+      - name: Carimba a falha (sem segredo)
+        if: steps.segredo.outputs.existe == 'false'
+        run: |
+          npm run kit:carimbo -- --falhou "KIT_REPO_TOKEN ausente neste repositório. O GITHUB_TOKEN padrão do Actions não alcança dioli-brain-kit (repo privado separado) — ver o comentário no topo de .github/workflows/kit-espelho.yml. git ls-remote sem token: fatal: could not read Username for 'https://github.com': terminal prompts disabled (exit 128)."
+
+      # Commita SÓ se algo mudou de verdade — commit vazio todo dia é ruído
+      # que ensina quem lê o histórico a ignorar. `always()` porque tanto o
+      # carimbo de sucesso quanto o de falha precisam ser gravados no
+      # repositório: é assim que a verdade sobre o robô sobrevive ao job.
+      - name: Commita o espelho (só se mudou)
+        if: always()
+        run: |
+          git config user.name "kit-espelho[bot]"
+          git config user.email "kit-espelho-bot@users.noreply.github.com"
+          git add docs/kit/
+          if git diff --cached --quiet; then
+            echo "Nada mudou em docs/kit/ — sem commit."
+          else
+            git commit -m "chore(kit): atualiza espelho do dioli-brain-kit"
+            git push
+          fi
+
+      # O ÚLTIMO PASSO: termina o job vermelho quando não havia segredo.
+      # Todos os passos acima, sem segredo, TERMINAM COM SUCESSO de propósito
+      # (o modo carimbo é um caminho válido, não um erro de script) — então
+      # sem este passo o job inteiro ficaria verde, e verde é exatamente a
+      # mentira que este workflow existe para acabar. O alarme precisa
+      # aparecer na aba Actions, não só dentro de um arquivo que ninguém abre.
+      - name: Falha visivelmente quando não há segredo
+        if: steps.segredo.outputs.existe == 'false'
+        run: |
+          echo "::error::KIT_REPO_TOKEN ausente — cadastre um Personal Access Token com leitura em diolisantos10/dioli-brain-kit em Settings > Secrets and variables > Actions. Até lá, docs/kit/ fica sem espelhar e este job falha todo dia de propósito."
+          exit 1

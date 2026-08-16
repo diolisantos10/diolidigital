@@ -120,6 +120,31 @@ else
   echo "[session-start] dev.db já existe — pulando provisionamento."
 fi
 
+# ── PASSO 2.5 — a idade do espelho da doutrina, dita na abertura ────────────
+# `docs/kit/` se apresenta como a fonte da doutrina e é um ESPELHO gerado. Em
+# 16/08/2026 ele estava 7 dias parado, e as doutrinas 25 a 29 — inclusive a 29,
+# que rege a camada de delegação que esta casa cumpre todo dia — não estavam
+# nele. Ninguém percebia, porque espelho velho não avisa que é velho.
+#
+# O aviso mora aqui porque é AQUI que a pessoa lê: na abertura do turno, antes
+# de ir procurar doutrina na pasta. Um arquivo dentro de `docs/kit/` só é lido
+# por quem já abriu a pasta acreditando nela.
+#
+# Nunca falha e nunca bloqueia: se o carimbo não puder ser lido, segue calado.
+# Sessão não pode morrer por causa de um aviso sobre documentação.
+if [ -f "docs/kit/ESPELHO.json" ]; then
+  IDADE_DO_ESPELHO="$(node -e '
+    try {
+      const c = JSON.parse(require("fs").readFileSync("docs/kit/ESPELHO.json", "utf8"));
+      const d = Math.floor((Date.now() - Date.parse(c.espelhadoEm)) / 86400000);
+      if (Number.isFinite(d) && d > 3) console.log(d);
+    } catch {}
+  ' 2>/dev/null || true)"
+  if [ -n "${IDADE_DO_ESPELHO:-}" ]; then
+    echo "[session-start] ⚠️  docs/kit/ está parado há ${IDADE_DO_ESPELHO} dias — pode estar ATRÁS do kit. Doutrina ausente lá não significa doutrina inexistente. Confira: docs/kit/LEIA-PRIMEIRO.md"
+  fi
+fi
+
 # ── PASSO 3 — o relato, nunca o silêncio ────────────────────────────────────
 # Dizer o que falhou é metade do valor deste gancho: quem abre a sessão
 # precisa saber que o ambiente está incompleto, senão volta a achar que o
