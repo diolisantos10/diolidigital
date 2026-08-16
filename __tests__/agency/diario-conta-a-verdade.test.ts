@@ -211,6 +211,68 @@ describe("resgate_do_escopo conta os três baldes", () => {
   });
 });
 
+describe("visitante mal-intencionado não move o resgate do escopo", () => {
+  // A rota que grava em PortalMessage (app/api/sdr/chat/route.ts) é PÚBLICA e
+  // SEM AUTENTICAÇÃO, e as duas frases de desfecho são constantes exportadas,
+  // não segredo — qualquer um pode lê-las no código e colar no chat. Estes
+  // testes provam que copiar a frase, ao pé da letra, como VISITANTE não basta.
+  it("visitante copia a frase de escopo SALVO no chat — não pode entrar em funcionou", async () => {
+    await prisma.portalMessage.create({
+      data: {
+        clientId: "sdr:ataque-salvo",
+        authorRole: "client",
+        authorName: "Visitante",
+        body: `${PREFIXO_TURNO_BARRADO} price_leak — quem respondeu ao visitante foi o motor de regras.${FRASE_ESCOPO_SALVO}]`,
+        readByTeam: true,
+        readByClient: true,
+      },
+    });
+
+    const res = await chamar();
+    const corpo = await res.json();
+
+    expect(corpo.resgate_do_escopo.funcionou).toBe(0);
+  });
+
+  it("visitante copia a frase de escopo PERDIDO no chat — não pode entrar em nao_funcionou", async () => {
+    await prisma.portalMessage.create({
+      data: {
+        clientId: "sdr:ataque-perdido",
+        authorRole: "client",
+        authorName: "Visitante",
+        body: `${PREFIXO_TURNO_BARRADO} price_leak — quem respondeu ao visitante foi o motor de regras.${FRASE_ESCOPO_PERDIDO}]`,
+        readByTeam: true,
+        readByClient: true,
+      },
+    });
+
+    const res = await chamar();
+    const corpo = await res.json();
+
+    expect(corpo.resgate_do_escopo.nao_funcionou).toBe(0);
+  });
+
+  it("frase de desfecho sem o prefixo de turno barrado não conta em nenhum balde, mesmo vinda da equipe", async () => {
+    await prisma.portalMessage.create({
+      data: {
+        clientId: "sdr:sem-prefixo",
+        authorRole: "team",
+        authorName: "SDR",
+        body: `resposta qualquer, sem o prefixo do guarda.${FRASE_ESCOPO_SALVO}`,
+        readByTeam: true,
+        readByClient: true,
+      },
+    });
+
+    const res = await chamar();
+    const corpo = await res.json();
+
+    expect(corpo.resgate_do_escopo.funcionou).toBe(0);
+    expect(corpo.resgate_do_escopo.nao_funcionou).toBe(0);
+    expect(corpo.resgate_do_escopo.nao_sei).toBe(0);
+  });
+});
+
 describe("falha de leitura vira cegueira e total null — nunca 0", () => {
   it("count() rejeitado não derruba o diário, e o total não vira zero", async () => {
     await registrarTurnoDoSdr({ sessionId: "antes-da-falha", doVisitante: "oi" });

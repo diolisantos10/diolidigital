@@ -180,15 +180,40 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // texto redigitado aqui divergiria do texto gravado no banco no dia em que
   // alguém alterasse um dos dois lados e esquecesse o outro, e a contagem
   // silenciosamente passaria a contar zero.
+  // `authorRole: "team"` + o prefixo de turno barrado entram nos TRÊS baldes,
+  // não só em "não sei", porque `app/api/sdr/chat/route.ts` — a rota que grava
+  // em `PortalMessage` — é PÚBLICA e SEM AUTENTICAÇÃO, e `body` guarda também
+  // a fala do VISITANTE (`authorRole: "client"`). As duas frases de desfecho
+  // são constantes exportadas, não segredo: sem o filtro de autor, bastava um
+  // visitante digitar a frase de escopo salvo no chat para mover o número que
+  // o CEO usa para saber se o conserto do dia está segurando. E sem o prefixo
+  // de turno barrado, a frase por si só não prova que um guarda de fato bloqueou
+  // a fala — só que ela apareceu em algum texto.
   const [resgateFuncionou, resgateNaoFuncionou, resgateNaoSei] = await Promise.all([
     seguro<number | null>(
       "resgate_do_escopo.funcionou",
-      prisma.portalMessage.count({ where: { body: { contains: FRASE_ESCOPO_SALVO } } }),
+      prisma.portalMessage.count({
+        where: {
+          authorRole: "team",
+          AND: [
+            { body: { contains: PREFIXO_TURNO_BARRADO } },
+            { body: { contains: FRASE_ESCOPO_SALVO } },
+          ],
+        },
+      }),
       null,
     ),
     seguro<number | null>(
       "resgate_do_escopo.nao_funcionou",
-      prisma.portalMessage.count({ where: { body: { contains: FRASE_ESCOPO_PERDIDO } } }),
+      prisma.portalMessage.count({
+        where: {
+          authorRole: "team",
+          AND: [
+            { body: { contains: PREFIXO_TURNO_BARRADO } },
+            { body: { contains: FRASE_ESCOPO_PERDIDO } },
+          ],
+        },
+      }),
       null,
     ),
     // "não sei" é TODO turno barrado que não afirma nenhum dos dois lados —
@@ -202,6 +227,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       "resgate_do_escopo.nao_sei",
       prisma.portalMessage.count({
         where: {
+          authorRole: "team",
           AND: [
             { body: { contains: PREFIXO_TURNO_BARRADO } },
             { NOT: { body: { contains: FRASE_ESCOPO_SALVO } } },
