@@ -1,14 +1,14 @@
 {
   "id": "coordenacao/identidade-por-sessao",
-  "quem": "wt-09f81bb764",
-  "frente": "identidade da trava passa a ser unica por SESSAO, nao por worktree: N sessoes no mesmo disco calculavam o mesmo wt-hash",
+  "quem": "ses-bb01c09bbc",
+  "frente": "identidade da trava unica por SESSAO, nao por worktree",
   "responsabilidade": "coordenacao/identidade-por-sessao",
   "arquivos": [
     "lib/coordenacao/reivindicacoes.ts",
     "scripts/reivindicar.mts",
     "__tests__/coordenacao"
   ],
-  "abertaEm": "2026-08-16T20:03:30.910Z",
-  "encerradaEm": "2026-08-16T20:40:28.791Z",
+  "abertaEm": "2026-08-16T20:40:31.423Z",
+  "encerradaEm": null,
   "rotulo": "pm-identidade-de-sessao"
 }
