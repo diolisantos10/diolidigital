@@ -58,6 +58,57 @@ function log(msg: string): void {
   console.log(`[despertador] ${msg}`);
 }
 
+/** Nome da variável que abre as rotas de apagar a produção inteira. Vive aqui
+ *  como constante nomeada, e não espalhada em string solta, porque é a MESMA
+ *  variável que as rotas de reset conferem — se o nome divergir de um lado, o
+ *  alarme para de proteger e não avisa que parou de proteger. */
+export const VARIAVEL_DO_RESET = "ALLOW_PRODUCTION_RESET";
+
+/**
+ * A DENÚNCIA DA PORTA DE RESET (16/08/2026).
+ *
+ * O Diretor perguntou: "alguém consegue apagar a produção inteira?" O
+ * especialista `seguranca` mediu e respondeu: não é P0 confirmado por
+ * exploração — é P0 de PROCESSO. A única coisa que separa "a rota de apagar
+ * tudo existe" de "não existe" é esta variável de ambiente, e NINGUÉM
+ * CONSEGUE LER O VALOR DELA DE FORA: `/api/admin/reset`, `/api/capacidades` e
+ * `/api/piloto/diagnostico` respondem 401 para quem não tem sessão — certo
+ * para a rota, péssimo para a auditoria, porque também esconde o estado de
+ * quem deveria conferir. O único registro de que ela já esteve ligada é uma
+ * frase em `docs/pendencias.md`, de 01/08/2026 — "foi ligada para a operação
+ * e desligada em seguida" — e por ser TEXTO, não medição, envelheceu sem
+ * ninguém perceber: quinze dias depois, ninguém sabe se ela está ligada
+ * agora. Ela liga e desliga à mão, sem prazo, sem alerta — depende só de
+ * alguém lembrar de desligar. E três rotas dependem dela (admin/reset,
+ * admin/limpar-producao, e a família de reset-request).
+ *
+ * Função PURA de propósito — só olha o valor da env var, nada de banco, rede
+ * ou relógio — para o teste poder provar as duas metades sem depender de
+ * infraestrutura nenhuma.
+ *
+ * Retorna a mensagem de alarme (em português, para gente, com o que fazer) se
+ * a porta estiver aberta; `null` se estiver fechada — e "fechada" inclui
+ * ausente, vazia, "false", "1" ou qualquer coisa que não seja exatamente
+ * "true". Alarme que dispara onde não há risco é alarme que quem lê desliga,
+ * e aí ele para de proteger o caso real.
+ */
+// A assinatura pede só o que a função de fato usa — um mapa de nome para valor —
+// e não `NodeJS.ProcessEnv` inteiro. Exigir o tipo cheio forçava todo chamador de
+// teste a um `as NodeJS.ProcessEnv` sobre um objeto de uma chave só, e `as` que
+// mente para o compilador é a porta por onde entra o erro que ninguém vê.
+export function portaDeResetAberta(
+  env: Record<string, string | undefined> = process.env,
+): string | null {
+  if ((env[VARIAVEL_DO_RESET] ?? "").trim() !== "true") return null;
+  return (
+    `A PORTA DE APAGAR A PRODUÇÃO INTEIRA ESTÁ ABERTA. A variável de ambiente ` +
+    `${VARIAVEL_DO_RESET} está "true" e libera as rotas de reset ` +
+    `(admin/reset, admin/limpar-producao, e a família reset-request). ` +
+    `Se não há uma operação de reset em andamento AGORA, desligue ` +
+    `${VARIAVEL_DO_RESET} nas variáveis de ambiente do Railway.`
+  );
+}
+
 /**
  * Retoma a produção que parou sozinha:
  *   • travada em "running" há mais de 10 min (o processo caiu no meio);
@@ -254,6 +305,16 @@ export async function baterORelogio(): Promise<{
     falhas.push({ perna, erro });
     log(`${perna} falhou: ${erro}`);
   };
+
+  // ── A PORTA DE APAGAR A PRODUÇÃO, ANTES DE QUALQUER OUTRA COISA ───────────
+  // Denuncia a cada batida enquanto estiver ligada — de propósito, não é
+  // ausência de espaçamento: a variável ligada não é um EVENTO, é um ESTADO
+  // ANORMAL CONTÍNUO, e um alarme que dispara uma vez e depois cala é
+  // exatamente o silêncio que este bloco existe para acabar (ver o porquê em
+  // `portaDeResetAberta`, acima). Vem primeiro porque é o único alarme desta
+  // rodada capaz de custar a produção inteira — as outras pernas esperam.
+  const alarmeDeReset = portaDeResetAberta();
+  if (alarmeDeReset) quebrou("reset-de-producao", alarmeDeReset);
 
   // ── A DECISÃO DO DONO, ANTES DE TUDO ──────────────────────────────────────
   // Vem primeiro na rodada porque ela decide se a peça produzida logo abaixo
