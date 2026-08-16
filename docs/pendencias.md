@@ -15,6 +15,101 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — A APROVAÇÃO PARADA: O MESMO DEFEITO, O ARQUIVO AO LADO
+
+**A consequência, primeiro:** o relógio da agência passou a contar a peça pronta
+que morre esperando um clique do cliente, e a conta virou faixa no topo do
+**Centro de Aprovações**.
+
+**O defeito, e ele também não era um bug:**
+`lib/agency/esteira/aprovacao-parada.ts` existia **completo, correto e testado**
+— e o único importador do repositório inteiro era o próprio teste. É o **segundo
+caso confirmado no mesmo dia** do padrão "peça verde, junta rompida".
+
+Esta é a fila mais cara que a casa tem: a peça já foi produzida, a IA já foi
+paga, o relógio já foi gasto. Do lado de fora parece que a agência não entregou;
+do lado de dentro parece que entregou.
+
+### 1. O RELÓGIO OLHA A APROVAÇÃO (`despertador.ts`, perna `aprovacao-parada`)
+
+No molde da irmã: `try/catch` próprio com `quebrou("aprovacao-parada")`, teto por
+rodada nos NOMES e nunca na contagem.
+
+**Ela CONTA e faz `log`. Não aprova, não reprova, não expira card e não manda
+mensagem** — aprovar no lugar do cliente é falsificar o consentimento dele, e
+**expirar por robô é reprovar com outro nome**. Há teste que reprova quem plugar
+verbo de decisão, de escrita ou de envio no bloco.
+
+- **Os dois baldes sobem separados, e a NOSSA dívida vem primeiro:**
+  `bolaConosco` (ele perguntou e não respondemos — o prazo dele está PAUSADO) e
+  "esperando a decisão dele". Somados, viram um alarme que cobra o cliente pelo
+  atraso da própria casa.
+- **A âncora do workspace sai do PRÓPRIO card parado**, não de uma linha
+  qualquer do banco — `ApprovalRequest` não tem `workspaceId`, e a posse é
+  `clientRequestId` OU `clientId`. Pegar "o primeiro cliente que existir" leria
+  a fila do inquilino errado, ou leria vazio com a fila cheia.
+- **O card pendente SEM DONO é contado à parte.** Ele fica fora de toda fila por
+  workspace — corretamente, porque varrer órfão de outro inquilino é vazamento
+  entre clientes —, e por isso mesmo precisa aparecer em algum lugar.
+
+### 2. A CONTA VIRA TELA (faixa em `/agency/approvals` + `GET /api/agency/aprovacoes-paradas`)
+
+**Log do Railway não é tela.** Fila que só existe se alguém lembrar de abrir o
+console é a mesma fila morta de sempre, com um arquivo bonito ao lado — é a
+lição literal da porta da frente, uma camada acima.
+
+Ficou na tela que já existia, enxertada acima das quatro filas internas: as de
+baixo são trabalho que espera a CASA; esta é trabalho pronto que já saiu da casa.
+
+### 🔴 O TESTE QUE TRANCAVA O DEFEITO COMO CONTRATO
+
+`aprovacoesParadas` fazia `.catch(() => [])` nas duas consultas, e havia teste
+exigindo isso (*"banco fora do ar não derruba quem consulta"* → `paradas === 0`).
+Enquanto a função não tinha chamador, era teoria. No dia em que ganhou tela,
+virou **"Nenhuma peça esperando decisão do cliente. Isto é boa notícia."**
+impresso em cima de um banco que piscou.
+
+É o mesmo padrão que esta casa já pagou três vezes: **o defeito virando
+invariante.** As duas consultas voltaram a lançar; quem trata é quem chama — a
+perna com `quebrou(...)` e a rota com 503 e *"esta fila NÃO é zero, é
+desconhecida"*.
+
+### 🔴 O CABEÇALHO QUE DESMENTIA A PRÓPRIA TELA
+
+Com a faixa posta, o Centro de Aprovações dizia **"Nenhum item pendente — tudo em
+dia"** com cinco peças paradas listadas logo abaixo — o cabeçalho contava só as
+filas internas. É o defeito do cartão do Drive de 07/08 outra vez. Ele passou a
+receber a contagem da faixa, e **`null` (não medido) é tratado como diferente de
+zero**.
+
+**Portão:** `npx tsc --noEmit` limpo · **290 arquivos de teste, 4.549 testes
+verdes** · `npm run lint` com **exatamente os mesmos 212 problemas (67 erros)**
+da base, medido com e sem. Conferido em 375/768/1440 nos três estados —
+`docs/entregas/aprovacao-16-08/`.
+
+### 🔴 O QUE FICOU ABERTO
+
+- [ ] **A faixa não mostra NOME DE CLIENTE** — `aprovacoesParadas` devolve
+      departamento, dias e de quem é a vez, e nada mais. Para decidir "vou
+      cobrar quem?", falta o cliente. Acrescentá-lo é mexer no leitor e reabre a
+      pergunta de PII em tela; **não foi feito, e é despacho próprio.**
+- [ ] **`ApprovalRequest` sem `workspaceId`** é o mesmo buraco do
+      `ClientRequestDb`: a posse é indireta e o card órfão não é de ninguém. A
+      perna e a tela passaram a **contar** os órfãos; consertar o dado é decisão
+      de gente. **Sem dono.**
+- [ ] **A varredura de aprovação assume UM workspace por rodada**, como todas as
+      irmãs do despertador. Com dois inquilinos ativos, a segunda fila não é
+      lida. Dívida antiga do arquivo inteiro, não desta frente.
+- [ ] **Nenhum especialista foi despachado como agente** (`interface`,
+      `experiencia`, `qualidade`, `seguranca`): **não há ferramenta de despacho
+      nesta execução** — o `pm` desta rodada NÃO tem `Task`/`Agent`, conferido
+      contra a lista de ferramentas disponíveis. O trabalho foi auditado pelo
+      `pm` contra as quatro cartas em `.claude/agents/`, e essa passada produziu
+      quatro consertos (a guarda das rotas, o teste que dava falsa sensação, o
+      cabeçalho que se desmentia e a falha virando fila zero). **Não substitui a
+      passada deles.**
+
+---
 ## 🟢 16/08/2026 — A AUDITORIA DA PORTA DA FRENTE: A FILA NÃO CONTINHA AS PESSOAS QUE ELA EXISTE PARA MOSTRAR
 
 **A consequência, primeiro:** a fila que a agência acabara de ligar mostrava, em

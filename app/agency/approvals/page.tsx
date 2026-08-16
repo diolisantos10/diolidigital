@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import EsperandoOCliente from "@/components/agency/approvals/EsperandoOCliente";
 import { useAgencyStore, type BrandUpdate } from "@/store/agency-store";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { useDbMaterialRequests } from "@/lib/hooks/useDbMaterialRequests";
@@ -84,12 +85,35 @@ export default function ApprovalsPage() {
       (d.status === "draft" || d.revisionStatus === "revision_requested" || d.revisionStatus === "in_revision")
   );
 
-  const totalPending =
+  const internosPendentes =
     sentProposals.length +
     inReviewDeliverables.length +
     pendingBrandUpdates.length +
     pendingMaterials.length +
     deliverablesNeedingRevision.length;
+
+  // ── O CABEÇALHO NÃO PODE DESMENTIR A TELA (16/08/2026) ────────────────────
+  // Ele dizia "Nenhum item pendente — tudo em dia" contando só as quatro filas
+  // internas. Com a faixa de aprovações do cliente logo abaixo, a tela passou a
+  // afirmar duas coisas opostas ao mesmo tempo — o defeito do cartão do Drive
+  // de 07/08, de novo. `null` = ainda não medido, que **não** é zero: dizer
+  // "tudo em dia" sobre fila que não foi lida é a pior das três respostas.
+  const [esperandoCliente, setEsperandoCliente] = useState<number | null>(null);
+  const [mediuCliente, setMediuCliente] = useState(false);
+  const anotarFilaDoCliente = useCallback((n: number | null) => {
+    setEsperandoCliente(n);
+    setMediuCliente(true);
+  }, []);
+
+  const totalPending = internosPendentes + (esperandoCliente ?? 0);
+  const filaDoClienteDesconhecida = mediuCliente && esperandoCliente === null;
+  const subtituloDoCentro = filaDoClienteDesconhecida
+    ? `${internosPendentes} item(ns) interno(s) aguardando ação — a fila do cliente NÃO pôde ser medida agora`
+    : totalPending > 0
+    ? `${totalPending} item(ns) aguardando ação`
+    : mediuCliente
+    ? "Nenhum item pendente — tudo em dia"
+    : "Conferindo o que está pendente…";
 
   const getClient = (clientId?: string) => clients.find((c) => c.id === clientId);
   const getProject = (projectId?: string) => projects.find((p) => p.id === projectId);
@@ -99,11 +123,7 @@ export default function ApprovalsPage() {
       {/* Header */}
       <AgencyHeader
         title="Centro de Aprovações"
-        subtitle={
-          totalPending > 0
-            ? `${totalPending} item(ns) aguardando ação`
-            : "Nenhum item pendente — tudo em dia"
-        }
+        subtitle={subtituloDoCentro}
         actions={
           totalPending > 0 ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] text-[12px] font-semibold">
@@ -113,6 +133,14 @@ export default function ApprovalsPage() {
           ) : undefined
         }
       />
+
+      {/* ── 0. O QUE ESPERA O CLIENTE DECIDIR (16/08/2026) ────────────────
+          Vem ANTES das quatro filas internas de propósito: as de baixo são
+          trabalho que espera a CASA, e esta é trabalho pronto que já saiu da
+          casa e morre esperando um clique lá fora. Ela é a única em que o
+          custo já foi todo pago. Lê o banco (as demais leem o store do
+          navegador — dívida anterior a este trabalho, registrada). */}
+      <EsperandoOCliente onContagem={anotarFilaDoCliente} />
 
       <div className="space-y-10">
         {/* ── 1. Proposals ────────────────────────────────────────────────── */}

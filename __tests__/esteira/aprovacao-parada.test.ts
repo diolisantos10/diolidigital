@@ -145,9 +145,29 @@ describe("o resumo não mente sobre fila vazia", () => {
     expect(r.maisAntigoEmDias).toBeNull();
   });
 
-  it("banco fora do ar não derruba quem consulta", async () => {
+  // ⚠️ ESTE TESTE FOI INVERTIDO EM 16/08/2026, e o motivo importa mais que ele.
+  //
+  // Ele dizia "banco fora do ar não derruba quem consulta" e exigia
+  // `paradas === 0`. Ou seja: trancava como CONTRATO que uma falha de leitura
+  // vira a afirmação "não há peça esperando o cliente". Enquanto esta função
+  // não tinha chamador, era teoria. No dia em que ganhou tela, virou a frase
+  // *"Nenhuma peça esperando decisão do cliente. Isto é boa notícia."* impressa
+  // em cima de um banco que piscou.
+  //
+  // É o mesmo padrão que esta casa já pagou três vezes: **o defeito virando
+  // invariante**. Quem trata a falha agora é quem chama — a perna do relógio
+  // com `quebrou("aprovacao-parada")`, e a rota com 503 e "NÃO é zero".
+  it("🔴 banco fora do ar GRITA — nunca vira fila zero", async () => {
     db.approvalRequest.findMany.mockRejectedValue(new Error("db down"));
-    expect((await resumoDasAprovacoes("ws1", AGORA)).paradas).toBe(0);
+    await expect(resumoDasAprovacoes("ws1", AGORA)).rejects.toThrow("db down");
+    await expect(aprovacoesParadas("ws1", AGORA)).rejects.toThrow("db down");
+  });
+
+  it("🔴 e a leitura dos DONOS falhando também grita — senão a fila voltaria menor, em silêncio", async () => {
+    // Sem os donos, o ramo do `clientId` sai da consulta e o card de cliente
+    // direto some da fila. Número errado para menos é pior que erro nenhum.
+    db.client.findMany.mockRejectedValue(new Error("db down"));
+    await expect(aprovacoesParadas("ws1", AGORA)).rejects.toThrow("db down");
   });
 });
 

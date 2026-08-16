@@ -60,7 +60,23 @@ export interface AprovacaoParada {
 /**
  * Os cards de aprovação que ninguém decidiu.
  *
- * Nunca lança: uma leitura que falha não pode esconder a fila.
+ * ⚠️ **LANÇA quando o banco não responde, e isso mudou em 16/08/2026.**
+ *
+ * A versão anterior prometia "nunca lança: uma leitura que falha não pode
+ * esconder a fila" e fazia `.catch(() => [])` nas duas consultas — que é
+ * exatamente esconder a fila, com a agravante de ser em silêncio. O resultado
+ * prático, quando esta função ganhou tela: banco piscando → `paradas: 0` →
+ * a tela imprimindo *"Nenhuma peça esperando decisão do cliente. Isto é boa
+ * notícia."* Uma afirmação sobre o cliente construída em cima de um erro de
+ * infraestrutura, com cara de fato conferido.
+ *
+ * Havia um TESTE trancando esse comportamento como invariante ("banco fora do
+ * ar não derruba quem consulta"). É o mesmo padrão que esta casa já pagou três
+ * vezes: **o defeito virando contrato.**
+ *
+ * Quem chama trata: a perna do relógio tem `try/catch` próprio com
+ * `quebrou("aprovacao-parada")`, e a rota devolve 503 dizendo *"esta fila NÃO é
+ * zero, é desconhecida"*. Falha de leitura e fila vazia são fatos opostos.
  */
 export async function aprovacoesParadas(workspaceId: string, agora: Date): Promise<AprovacaoParada[]> {
   // ── DE QUEM É O CARD ──────────────────────────────────────────────────────
@@ -69,9 +85,12 @@ export async function aprovacoesParadas(workspaceId: string, agora: Date): Promi
   // direto). Então o inquilino se resolve pelos dois caminhos, e **card sem
   // nenhum dos dois fica de fora** — ele não tem dono, e varrer órfão de outro
   // inquilino é vazamento entre clientes.
+  // Sem `.catch`: engolir o erro aqui devolveria lista vazia de donos, o ramo
+  // do `clientId` sairia da consulta e a fila voltaria MENOR do que é — um
+  // número errado para menos, em silêncio, que é pior que erro nenhum.
   const donos = await prisma.client.findMany({
     where: { workspaceId }, select: { id: true },
-  }).catch(() => []);
+  });
   const idsDoWorkspace = donos.map((c) => c.id);
 
   const cards = await prisma.approvalRequest.findMany({
@@ -87,7 +106,7 @@ export async function aprovacoesParadas(workspaceId: string, agora: Date): Promi
     },
     orderBy: { createdAt: "asc" },
     take: 200,
-  }).catch(() => []);
+  });
 
   return cards.map((c) => {
     const dias = Math.floor((agora.getTime() - c.createdAt.getTime()) / 86_400_000);
