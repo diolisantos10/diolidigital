@@ -49,6 +49,51 @@ describe("pulso — a testemunha do relógio", () => {
     expect(velho.haMinutos).toBe(ATRASO_QUE_ALARMA_MIN + 1);
   });
 
+  // ── 🔴 FILA É NÍVEL, E NÍVEL NÃO SE SOMA (16/08/2026) ────────────────────
+  //
+  // `naPorta` e `paradasNaAprovacao` foram medidos a cada 5 minutos e ficaram
+  // **sem consumidor nenhum**: não entravam em `registrarBatida`, não chegavam
+  // ao `/api/pulso` e o único destino era `console.log` — que as próprias rotas
+  // daquele dia chamam de "log do Railway não é tela".
+  //
+  // A tentação era pôr em `moveu`. Seria pior que não pôr: `moveu24h` SOMA, e
+  // uma fila de 3 pessoas medida em 288 rodadas viraria **864 pessoas na
+  // porta**. Número inflado com cara de fato é pior que número ausente.
+  describe("as filas chegam ao pulso — e NÃO são somadas", () => {
+    it("a fila da última batida aparece em `filasAgora`", async () => {
+      const { registrarBatida, lerPulso } = await import("@/lib/agency/pulso");
+      await registrarBatida({
+        em: new Date().toISOString(), ms: 4, moveu: {}, filas: { naPorta: 3 }, falhas: [],
+      });
+      const p = await lerPulso();
+      expect(p.filasAgora.naPorta).toBe(3);
+    });
+
+    it("⛔ três batidas com 3 na porta continuam sendo 3 — nunca 9", async () => {
+      const { registrarBatida, lerPulso } = await import("@/lib/agency/pulso");
+      const base = new Date("2026-08-16T06:00:00.000Z").getTime();
+      for (let i = 0; i < 3; i++) {
+        await registrarBatida({
+          em: new Date(base + i * 60_000).toISOString(),
+          ms: 4, moveu: { artes: 1 }, filas: { naPorta: 3 }, falhas: [],
+        });
+      }
+      const p = await lerPulso(new Date(base + 3 * 60_000));
+      // O que MOVEU soma (3 artes produzidas em 3 rodadas são 3 artes).
+      expect(p.moveu24h.artes).toBe(3);
+      // O que ESPERA não soma. É a mesma fila, lida três vezes.
+      expect(p.filasAgora.naPorta).toBe(3);
+      // E a fila não vazou para dentro do que se soma.
+      expect(p.moveu24h.naPorta).toBeUndefined();
+    });
+
+    it("batida sem fila medida devolve vazio, não zero — não medi ≠ não há", async () => {
+      const { registrarBatida, lerPulso } = await import("@/lib/agency/pulso");
+      await registrarBatida({ em: new Date().toISOString(), ms: 4, moveu: {}, falhas: [] });
+      expect((await lerPulso()).filasAgora).toEqual({});
+    });
+  });
+
   it("a rodada SILENCIOSA também deixa rastro — é ela que prova que o relógio vive", async () => {
     const { registrarBatida, lerPulso } = await import("@/lib/agency/pulso");
     await registrarBatida({ em: new Date().toISOString(), ms: 3, moveu: { pedidos: 0, artes: 0 }, falhas: [] });

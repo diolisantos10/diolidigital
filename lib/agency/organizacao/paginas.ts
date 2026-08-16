@@ -88,7 +88,7 @@ export const PAGINAS: PaginaInterna[] = [
 
   // ── Porta da frente — Atendimento ─────────────────────────────────────────
   { href: "/agency/requests",              titulo: "Solicitações",            dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
-  { href: "/agency/leads",                 titulo: "Quem procurou",           dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
+  { href: "/agency/leads",                 titulo: "Quem bateu na porta",     dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/oportunidades",         titulo: "Oportunidades",           dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/inbox",                 titulo: "Caixa de entrada",        dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/whatsapp",              titulo: "WhatsApp",                dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },

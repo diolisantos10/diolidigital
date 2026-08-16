@@ -73,3 +73,6 @@ __tests__/_scratch/
 # Evidência de tela (screenshots de auto-revisão). Prova de trabalho, não
 # entregável: nasce a cada rodada, pesa, e o que importa dela já foi relatado.
 scratchpad/
+
+# Capturas locais do scripts/shot.mjs (padrão novo, 16/08/2026).
+.shots/

@@ -21,6 +21,7 @@ import {
   pistasDeContato,
   emailValido,
   whatsappValido,
+  whatsappComoSeLe,
   MOTIVO_SEM_CONTATO,
 } from "@/lib/agency/comercial/contato-do-lead";
 
@@ -160,5 +161,42 @@ describe("montarContato — o que o gate grava", () => {
     expect(c!.whatsapp).toBe("5511989400692");
     expect(c!.email).toBeNull();
     expect(typeof c!.informadoEm).toBe("string");
+  });
+});
+
+// ── O TELEFONE COMO SE LÊ — 16/08/2026 ────────────────────────────────────
+//
+// `/agency/leads` mostrava `11987654321` numa linha só. A tela existe para uma
+// pessoa DISCAR esse número, e onze dígitos colados são onze dígitos contados
+// com o dedo. As duas metades desta trava:
+//
+//   ✅ formata o que TEM forma de telefone brasileiro;
+//   ⛔ e **não encosta** no que não tem — porque contato adulterado na exibição
+//      é pior que contato feio: ninguém confere o que a tela já arrumou.
+describe("whatsappComoSeLe — formatar é de EXIBIÇÃO, e recusa é a regra principal", () => {
+  it("celular de 11 dígitos vira (DD) 9NNNN-NNNN", () => {
+    expect(whatsappComoSeLe("11987654321")).toBe("(11) 98765-4321");
+  });
+
+  it("fixo de 10 dígitos vira (DD) NNNN-NNNN", () => {
+    expect(whatsappComoSeLe("1133334444")).toBe("(11) 3333-4444");
+  });
+
+  it("⛔ com o 55 na frente NÃO é reformatado — sai como está gravado", () => {
+    // 13 dígitos. Cortar o 55 para "caber" no molde de 11 produziria um número
+    // diferente do que o cliente escreveu, na tela onde alguém vai ligar.
+    expect(whatsappComoSeLe("5511989400692")).toBe("5511989400692");
+  });
+
+  it("⛔ o que não tem forma de telefone sai INTACTO, nunca remendado", () => {
+    for (const cru of ["12", "", "não informado", "+1 202 555 0143", "119876543219999"]) {
+      expect(whatsappComoSeLe(cru)).toBe(cru);
+    }
+  });
+
+  it("não perde nem inventa dígito: os dígitos de saída são os de entrada", () => {
+    for (const cru of ["11987654321", "1133334444", "5511989400692", "12"]) {
+      expect(whatsappComoSeLe(cru).replace(/\D/g, "")).toBe(cru.replace(/\D/g, ""));
+    }
   });
 });

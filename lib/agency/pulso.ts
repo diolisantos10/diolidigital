@@ -47,6 +47,26 @@ export interface Batida {
   ms: number;
   /** O que a rodada MOVEU. Zero em tudo = a casa não tinha trabalho. */
   moveu: Record<string, number>;
+  /**
+   * O TAMANHO das filas nesta batida — quantos estão esperando agora.
+   *
+   * ── POR QUE UM CAMPO PRÓPRIO, E NÃO MAIS UMA CHAVE EM `moveu` (16/08/2026) ─
+   *
+   * `moveu` é somado nas 24 h (`moveu24h`). Isso está certo para CONTADOR — 3
+   * peças produzidas + 2 = 5 peças produzidas. E está errado, de um jeito que
+   * ninguém percebe, para NÍVEL: uma fila de 3 pessoas, medida em 288 rodadas
+   * por dia, apareceria no painel como **864 pessoas na porta**. Número inflado
+   * com cara de fato é pior que número ausente.
+   *
+   * Filas não se somam, se **leem na última batida**. `lerPulso` devolve as
+   * desta batida em `filasAgora`, sem tocar em `moveu24h`.
+   *
+   * A cicatriz: `naPorta` e `paradasNaAprovacao` foram medidos em 16/08 e
+   * ficaram sem consumidor nenhum — não chegavam a `/api/health`, não chegavam
+   * ao raio-x, e o único destino era `console.log`, que as próprias rotas
+   * daquele dia chamam de *"log do Railway não é tela"*.
+   */
+  filas?: Record<string, number>;
   falhas: FalhaDaRodada[];
 }
 
@@ -62,6 +82,9 @@ export interface EstadoDoPulso {
   falhas24h: Array<{ perna: string; erro: string; vezes: number; ultimaEm: string }>;
   /** Soma do que a casa moveu nas últimas 24 h. */
   moveu24h: Record<string, number>;
+  /** O tamanho das filas na ÚLTIMA batida. Não é soma de nada: fila é nível.
+   *  Vazio quando a última batida não mediu fila nenhuma. */
+  filasAgora: Record<string, number>;
 }
 
 function pasta(): string {
@@ -134,5 +157,8 @@ export async function lerPulso(agora: Date = new Date()): Promise<EstadoDoPulso>
     batidas: todas.length,
     falhas24h: [...porFalha.values()].sort((a, b) => b.vezes - a.vezes),
     moveu24h,
+    // Da ÚLTIMA batida, e só dela. Somar nível ao longo do dia multiplicaria a
+    // fila pelo número de rodadas — ver o comentário em `Batida.filas`.
+    filasAgora: ultima?.filas ?? {},
   };
 }
