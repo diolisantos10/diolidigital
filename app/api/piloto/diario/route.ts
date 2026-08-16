@@ -31,6 +31,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { segredoConfere } from "@/lib/security/crypto";
+import {
+  PREFIXO_TURNO_BARRADO,
+  FRASE_ESCOPO_SALVO,
+  FRASE_ESCOPO_PERDIDO,
+} from "@/lib/agency/comercial/registro-da-conversa";
 
 export const dynamic = "force-dynamic";
 
@@ -130,6 +135,84 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }), []),
   ]);
 
+  // ─── OS TOTAIS DE VERDADE, SEPARADOS DA AMOSTRA ────────────────────────────
+  //
+  // Achado em 16/08/2026, medido com banco real: as sete linhas de `quantos`
+  // abaixo eram `pedidos.length` etc — o TAMANHO DA PÁGINA (`take: limite`,
+  // padrão 40), não quantas linhas existem. Com 55 mensagens plantadas o
+  // diário dizia "40". O CEO lê um número e acredita nele; um `.length` de
+  // consulta paginada é uma mentira silenciosa, não um bug visível.
+  //
+  // `count()` é leitura, não escrita — não fura o "somente leitura" desta
+  // rota. Cada total passa pelo MESMO `seguro(...)` do resto do arquivo: se a
+  // contagem falhar, o total vira `null` (não `0`) e o motivo entra em
+  // `cegueiras` — `0` é um fato ("não há nenhum"), `null` é outro ("não
+  // consegui contar"), e confundir os dois é a mesma doença que motivou este
+  // conserto inteiro.
+  const [
+    solicitacoesTotal,
+    mensagensTotal,
+    conteudosTotal,
+    clientesTotal,
+    chamadasTotal,
+    execucoesV2Total,
+    recusasV2Total,
+  ] = await Promise.all([
+    seguro<number | null>("solicitacoes_total", prisma.clientRequestDb.count(), null),
+    seguro<number | null>("mensagens_total", prisma.portalMessage.count(), null),
+    seguro<number | null>("pedidos_de_conteudo_total", prisma.contentRequest.count(), null),
+    seguro<number | null>("clientes_total", prisma.client.count(), null),
+    seguro<number | null>("chamadas_de_ia_total", prisma.aIRunLog.count(), null),
+    seguro<number | null>("execucoes_da_linha_total", prisma.execucaoV2.count(), null),
+    seguro<number | null>("recusas_da_linha_total", prisma.recusaV2.count(), null),
+  ]);
+
+  // ─── O RESGATE DO ESCOPO — o conserto que abriu o dia de 16/08, medido ────
+  //
+  // A pergunta que o Diretor quer respondida sem intérprete: quantas vezes o
+  // resgate do escopo (salvar o que o cliente já tinha dito quando a fala do
+  // SDR foi barrada por um guarda) FUNCIONOU e quantas NÃO. Antes de hoje essa
+  // resposta não existia — nem como número, nem como frase — porque `false` e
+  // `undefined` gravavam o MESMO texto (ver `registro-da-conversa.ts`).
+  //
+  // As três frases usadas nos filtros abaixo são IMPORTADAS de
+  // `lib/agency/comercial/registro-da-conversa.ts`, nunca copiadas à mão: um
+  // texto redigitado aqui divergiria do texto gravado no banco no dia em que
+  // alguém alterasse um dos dois lados e esquecesse o outro, e a contagem
+  // silenciosamente passaria a contar zero.
+  const [resgateFuncionou, resgateNaoFuncionou, resgateNaoSei] = await Promise.all([
+    seguro<number | null>(
+      "resgate_do_escopo.funcionou",
+      prisma.portalMessage.count({ where: { body: { contains: FRASE_ESCOPO_SALVO } } }),
+      null,
+    ),
+    seguro<number | null>(
+      "resgate_do_escopo.nao_funcionou",
+      prisma.portalMessage.count({ where: { body: { contains: FRASE_ESCOPO_PERDIDO } } }),
+      null,
+    ),
+    // "não sei" é TODO turno barrado que não afirma nenhum dos dois lados —
+    // registro gravado ANTES de a frase existir, ou turno em que o guarda não
+    // tinha escopo à mão para tentar salvar. Enquanto houver registros de
+    // ANTES deste conserto no banco, este número será grande, e isso é
+    // ESPERADO, não defeito: é o passado que nunca foi afirmado. Ele encolhe
+    // sozinho conforme conversas NOVAS acontecem, todas já no formato de três
+    // estados.
+    seguro<number | null>(
+      "resgate_do_escopo.nao_sei",
+      prisma.portalMessage.count({
+        where: {
+          AND: [
+            { body: { contains: PREFIXO_TURNO_BARRADO } },
+            { NOT: { body: { contains: FRASE_ESCOPO_SALVO } } },
+            { NOT: { body: { contains: FRASE_ESCOPO_PERDIDO } } },
+          ],
+        },
+      }),
+      null,
+    ),
+  ]);
+
   // A LINHA DO TEMPO é o ponto do diário: o CEO faz uma coisa e quer ver a
   // resposta da máquina ao lado, na ordem em que aconteceu — não em cinco
   // tabelas que ele teria de cruzar de cabeça.
@@ -198,14 +281,31 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     agora: new Date().toISOString(),
     // Contagem antes da lista: é o número que responde "existe ou não existe",
     // que foi a pergunta que ninguem conseguia responder na noite de 15/08.
+    //
+    // `total` é a verdade da tabela inteira (`count()`); `mostrando` é só o
+    // tamanho da amostra que veio na `linha_do_tempo` (`take: limite`, corte
+    // de página). Os dois nunca podem ser lidos como o mesmo número — foi
+    // exatamente essa confusão que fez o diário mentir "40" com 55 mensagens
+    // no banco.
     quantos: {
-      solicitacoes: pedidos.length,
-      clientes: clientes.length,
-      mensagens: mensagens.length,
-      pedidos_de_conteudo: conteudos.length,
-      chamadas_de_ia: execucoes.length,
-      execucoes_da_linha: execucoesV2.length,
-      recusas_da_linha: recusasV2.length,
+      solicitacoes: { total: solicitacoesTotal, mostrando: pedidos.length },
+      clientes: { total: clientesTotal, mostrando: clientes.length },
+      mensagens: { total: mensagensTotal, mostrando: mensagens.length },
+      pedidos_de_conteudo: { total: conteudosTotal, mostrando: conteudos.length },
+      chamadas_de_ia: { total: chamadasTotal, mostrando: execucoes.length },
+      execucoes_da_linha: { total: execucoesV2Total, mostrando: execucoesV2.length },
+      recusas_da_linha: { total: recusasV2Total, mostrando: recusasV2.length },
+    },
+    // O conserto de 16/08 (resgatar o escopo quando um guarda barra a fala do
+    // SDR) medido em produção, não em teoria — ver o comentário acima de onde
+    // estes três números são contados.
+    resgate_do_escopo: {
+      funcionou: resgateFuncionou,
+      nao_funcionou: resgateNaoFuncionou,
+      nao_sei: resgateNaoSei,
+      nota:
+        "nao_sei é registro de ANTES do conserto de 16/08 ou turno sem escopo " +
+        "à mão — não é escopo perdido. Não some com nao_funcionou.",
     },
     // Cegueira declarada em vez de silêncio: tabela que não pôde ser lida
     // aparece aqui com o motivo. Ausência de informação não é informação.

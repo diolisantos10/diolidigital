@@ -126,13 +126,29 @@ export type TurnoDoSdr = {
    *  que se audita; repetir a fala proibida seria gravar exatamente o que o
    *  guarda impediu de sair. */
   motivoDaRecusa?: string;
-  /** true quando a fala foi barrada mas o ESCOPO (o que o cliente já tinha
-   *  dito) sobreviveu e foi devolvido ao cliente mesmo assim — caso de
-   *  16/08/2026: barrar a fala TENDO SALVO o briefing é um fato diferente de
-   *  perder tudo, e o diário precisa mostrar essa diferença, não só o motivo
-   *  da recusa. */
+  /** Três estados, três significados — não confundir `false` com `undefined`:
+   *  `true`  — a fala foi barrada mas o ESCOPO (o que o cliente já tinha dito)
+   *            sobreviveu e foi devolvido ao cliente mesmo assim.
+   *  `false` — o resgate foi TENTADO e FALHOU: o que o cliente já tinha
+   *            contado se perdeu neste turno. Quem chama (`app/api/sdr/chat/
+   *            route.ts`) sempre manda um booleano aqui — nunca `undefined`.
+   *  `undefined` — não se aplica ("não sei"), e só sobra esse significado
+   *            porque os outros dois agora se afirmam por conta própria. */
   escopoFoiSalvo?: boolean;
 };
+
+/** Prefixo de TODO turno barrado — usado pelo diário do piloto para achar,
+ *  com `contains`, o universo de turnos barrados sem depender de outra
+ *  cópia do texto. */
+export const PREFIXO_TURNO_BARRADO = "[resposta barrada pelo guarda:";
+
+/** As duas frases exportadas para o diário (`app/api/piloto/diario/route.ts`)
+ *  contar por `contains` sem duplicar o texto — duplicar seria a mesma
+ *  doença que este arquivo existe para curar: duas fontes da mesma verdade
+ *  que um dia divergem e ninguém percebe. */
+export const FRASE_ESCOPO_SALVO = " O escopo (o que o cliente já tinha dito) foi salvo mesmo assim.";
+export const FRASE_ESCOPO_PERDIDO =
+  " O escopo (o que o cliente já tinha dito) NÃO foi salvo — o que ele já tinha contado até aqui se perdeu neste turno, e ele terá de repetir.";
 
 /** Motivo cru → explicação curta, pt-BR, sem jargão de código — para quem lê
  *  o diário sem conhecer os nomes internos dos guardas. O motivo cru continua
@@ -176,14 +192,32 @@ export async function registrarTurnoDoSdr(turno: TurnoDoSdr): Promise<number> {
     linhas.push({ authorRole: "team", authorName: "SDR", body: doSdr });
   } else if (turno.motivoDaRecusa) {
     const explicacao = EXPLICACAO_DA_RECUSA[turno.motivoDaRecusa];
-    const salvouEscopo = turno.escopoFoiSalvo
-      ? " O escopo (o que o cliente já tinha dito) foi salvo mesmo assim."
-      : "";
+    // `escopoFoiSalvo` chega SEMPRE como booleano de `app/api/sdr/chat/route.ts`
+    // — nunca `undefined` neste ramo. Antes deste conserto (16/08/2026) o
+    // `false` e o `undefined` caíam no mesmo `? :` e viravam a MESMA string
+    // vazia: a informação de que o resgate do escopo FALHOU chegava até aqui e
+    // era jogada fora. Com 55 turnos barrados no banco, 37 não tinham a frase
+    // de "salvo" — e misturavam três fatos que o diário não distinguia:
+    // escopo perdido de verdade, registro gravado ANTES desta frase existir, e
+    // turno em que o guarda nem tinha escopo à mão. "Perdido" e "não sei"
+    // viravam a mesma coisa aos olhos do CEO, que é exatamente a doença que
+    // ele mandou matar: ausência de informação não pode parecer zero.
+    //
+    // Por isso os três estados são tratados em separado, e só dois afirmam
+    // algo: `true` (frase de salvo), `false` (frase nova, de perda — este
+    // conserto) e `undefined` (nenhuma frase — continua significando "não
+    // sei", e só significa isso porque os outros dois agora falam por si).
+    const salvouEscopo =
+      turno.escopoFoiSalvo === true
+        ? FRASE_ESCOPO_SALVO
+        : turno.escopoFoiSalvo === false
+          ? FRASE_ESCOPO_PERDIDO
+          : "";
     linhas.push({
       authorRole: "team",
       authorName: "SDR",
       body:
-        `[resposta barrada pelo guarda: ${turno.motivoDaRecusa}` +
+        `${PREFIXO_TURNO_BARRADO} ${turno.motivoDaRecusa}` +
         `${explicacao ? ` — ${explicacao}` : ""}` +
         ` — quem respondeu ao visitante foi o motor de regras.${salvouEscopo}]`,
     });
