@@ -49,6 +49,11 @@ export async function GET(): Promise<NextResponse> {
     // irmão na tela** — nome de negócio continua proibido como identidade (ver
     // a lei em `chave-do-prospect.ts`). Sem eles, a lista de irmãos saía em id
     // cru de banco, que não responde "é o mesmo pedido ou é outro projeto?".
+    //
+    // `chaveDoProspect` (16/08/2026): a coluna gravada em `createClientRequest`
+    // era escrita e nunca lida — este era o leitor de produção que faltava.
+    // `agruparPorProspect` usa a coluna quando ela existe e cai no recálculo em
+    // memória (o comportamento de sempre) para as linhas legadas de coluna nula.
     const repeticoes = agruparPorProspect(
       registros.map((r) => ({
         id: r.id,
@@ -58,6 +63,7 @@ export async function GET(): Promise<NextResponse> {
         businessName: r.businessName,
         services: r.services,
         rawContext: r.rawContext,
+        chaveDoProspect: r.chaveDoProspect,
       })),
     );
 

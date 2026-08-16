@@ -181,6 +181,19 @@ export type RepeticaoDoProspect = {
   irmaos: IrmaoDoProspect[];
   /** Quando o primeiro briefing deste contato chegou. */
   primeiroEm: Date;
+  /**
+   * De onde veio a chave usada para agrupar ESTA linha (16/08/2026 —
+   * `docs/pendencias.md`, "coluna gravada e nunca lida").
+   *
+   * `"coluna"`: leu `ClientRequestDb.chaveDoProspect` já gravada.
+   * `"recalculada"`: a coluna estava nula/vazia (linha legada, ou lead sem
+   * canal que nem chega a entrar aqui) e a rede de `chavesDoContato` cobriu.
+   *
+   * Campo aditivo — existe só para medir quanto a rede ainda carrega. Sem ele
+   * o backfill (`scripts/chave-do-prospect-backfill.mts`) vira ato de fé: é
+   * este número que diz se ainda vale a pena rodá-lo.
+   */
+  procedencia: "coluna" | "recalculada";
 };
 
 type EntradaParaAgrupar = {
@@ -193,6 +206,20 @@ type EntradaParaAgrupar = {
   /** Idem. Ver a lei no cabeçalho: nome de negócio NUNCA vira identidade. */
   services?: string[] | null;
   rawContext?: string | null;
+  /**
+   * A chave já calculada e gravada em `ClientRequestDb.chaveDoProspect`
+   * (ver `client-request-service.ts:136,143`). Quando presente e não vazia,
+   * ELA VENCE o recálculo abaixo — é a leitura de produção que faltava
+   * (16/08/2026, medição do Essencial `qualidade`: escrita sem leitor).
+   *
+   * Quando ausente, nula ou `""` (linha legada gravada antes da coluna
+   * existir, ou lead sem canal), o recálculo em memória de `chavesDoContato`
+   * continua sendo a REDE — é o que impede regressão silenciosa nas linhas
+   * antigas, que hoje só se agrupam por causa dele. A rede encolhe sozinha
+   * conforme o backfill (armado, não disparado) for rodado; até lá os dois
+   * caminhos coexistem de propósito.
+   */
+  chaveDoProspect?: string | null;
 };
 
 /** Quanto do texto do cliente cabe numa linha de lista sem virar parágrafo. */
@@ -275,6 +302,11 @@ export function agruparPorProspect(
   const absorvidoPor = new Map<string, string>();
   let proximoGrupo = 0;
 
+  // id → de onde veio a chave usada para agrupar aquela linha. Aditivo (ver
+  // `RepeticaoDoProspect.procedencia`) — só para medir a rede, nunca para
+  // decidir o agrupamento em si.
+  const procedenciaPorId = new Map<string, "coluna" | "recalculada">();
+
   const raiz = (g: string): string => {
     let atual = g;
     while (absorvidoPor.has(atual)) atual = absorvidoPor.get(atual)!;
@@ -282,10 +314,24 @@ export function agruparPorProspect(
   };
 
   for (const entrada of ordenadas) {
-    const chaves = chavesDoContato(lerContato(entrada));
+    // A COLUNA VENCE, QUANDO ELA EXISTE E NÃO É VAZIA (16/08/2026). Ela já
+    // nasce na forma canônica de `chaveCanonicaDoContato` (ver
+    // `client-request-service.ts:136`), então usá-la crua é seguro — mesmo
+    // prefixo (`email:`/`whatsapp:`) que o recálculo produziria. `""` NÃO é
+    // chave válida: é ausência disfarçada, e cai no recálculo como se a
+    // coluna não existisse.
+    //
+    // O recálculo é a REDE, não o caminho normal: existe só para as linhas
+    // legadas que nasceram com a coluna nula (a migration declara isso). Sem
+    // ele essas linhas parariam de se agrupar — regressão silenciosa. Não
+    // reescreve `chavesDoContato` nem `lerContato`: chama exatamente como
+    // antes.
+    const colValor = typeof entrada.chaveDoProspect === "string" ? entrada.chaveDoProspect.trim() : "";
+    const chaves = colValor ? [colValor] : chavesDoContato(lerContato(entrada));
     // Sem chave = sem grupo. A linha existe, aparece na fila inteira, e
     // simplesmente não se junta a ninguém. Ver o cabeçalho do arquivo.
     if (chaves.length === 0) continue;
+    procedenciaPorId.set(entrada.id, colValor ? "coluna" : "recalculada");
 
     const gruposTocados = [
       ...new Set(
@@ -333,6 +379,7 @@ export function agruparPorProspect(
             pedido: pedidoDoBriefing(o),
           })),
         primeiroEm,
+        procedencia: procedenciaPorId.get(m.id)!,
       });
     });
   }
