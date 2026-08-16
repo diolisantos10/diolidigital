@@ -414,6 +414,42 @@ export function conferirRegistro(reivindicacoes: Reivindicacao[], agora: Date, t
   return { ok: problemas.length === 0, problemas };
 }
 
+/**
+ * Extrai os CAMINHOS de linhas CRUAS de `git status --porcelain` — cada
+ * elemento do array é UMA linha, exatamente como veio de `String.split("\n")`
+ * sobre a saída bruta, **sem** a string inteira ter passado por `.trim()`
+ * antes de dividir.
+ *
+ * ── DEFEITO 2 (medido em 16/08/2026, EXERCITANDO "npm run reivindicar --
+ * abrir" com o working tree sujo, não lendo o código) ───────────────────────
+ * A implementação antiga lia a saída de "git status --porcelain" assim:
+ * `execFileSync(...).trim().split("\n")`. O formato porcelain v1 é
+ * "XY CAMINHO" (dois caracteres de status + um espaço = 3 de prefixo) — e o
+ * código de status de um arquivo modificado e NÃO staged é " M" (o "X" é um
+ * ESPAÇO). Quando essa é a PRIMEIRA linha da saída, `.trim()` na string
+ * INTEIRA remove esse espaço aí — só dali, porque `.trim()` só mexe nas
+ * pontas da string toda, não em cada linha. O resultado: a primeira linha
+ * perdia um caractere ANTES do `slice(3)` rodar, e
+ * "__tests__/coordenacao/reivindicacoes.test.ts" virava
+ * "_tests__/coordenacao/reivindicacoes.test.ts" — um caminho que não existe
+ * em disco e não é colável em lugar nenhum. Só a primeira linha sofria;
+ * exatamente o padrão observado no exercício real do comando.
+ *
+ * A correção estrutural: quem LÊ o processo (`scripts/reivindicar.mts`) nunca
+ * mais aplica `.trim()` na saída inteira antes de dividir por linha — só
+ * remove o '\r' de fim de linha (CRLF) e linhas totalmente vazias, aqui
+ * dentro, DEPOIS de já estar dividida. Esta função é pura por isso: dá para
+ * testar o parsing sem precisar de um `git status` de verdade.
+ */
+export function caminhosDoStatusPorcelain(linhasCruas: string[]): string[] {
+  return linhasCruas
+    .map((l) => l.replace(/\r$/, ""))
+    .filter((l) => l.length > 0)
+    .map((l) => l.slice(3).trim()) // "XY CAMINHO" — os 2 primeiros chars são o código de status, +1 de separador
+    .filter(Boolean)
+    .map((l) => (l.includes(" -> ") ? l.split(" -> ")[1]! : l)); // renomeios: "de -> para"
+}
+
 /** Os campos que TODO JSON de `reivindicacoes/` precisa ter. Usado pelo
  *  sentinela para reprovar arquivo malformado, e citado aqui — não duplicado —
  *  para o teste e a validação nunca divergirem sobre o que é "obrigatório". */

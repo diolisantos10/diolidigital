@@ -70,6 +70,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   calcularAncoraDeSessao,
+  caminhosDoStatusPorcelain,
   conferirColisao,
   derivarIdentidade,
   estaViva,
@@ -245,6 +246,40 @@ function commitarEEmpurrar(
   // `diagnosticarFalhaDoRebase` (FURO 3, ponto 1): `abrir` e `encerrar`
   // precisam de comandos DIFERENTES aqui, e só quem chamou sabe qual é.
   comandoParaRepetir: string,
+  // ── DEFEITO 1 (medido em 16/08/2026, EXERCITANDO o comando de verdade —
+  // não lendo o código) ────────────────────────────────────────────────────
+  // A mensagem de colisão por esquema antigo (`explicarEsquemaAntigo`, acima)
+  // manda quem foi barrado rodar "encerrar" e depois "abrir" de novo, NO MEIO
+  // do próprio trabalho. Isso é correto — mas quando o `git push` direto é
+  // recusado (a branch andou) e este passo tenta `git pull --rebase`, o git
+  // RECUSA rebasear com o working tree sujo, mesmo que a sujeira não tenha
+  // NADA a ver com o arquivo da reivindicação. `abrir` já tem um escape
+  // explícito para isso (`--mesmo-com-trabalho-em-andamento`, conferido ANTES
+  // de escrever qualquer coisa) — `encerrar` não tinha NENHUM, e por
+  // definição quem chama "encerrar" está no meio do trabalho: a saída
+  // recomendada batia numa segunda parede, exatamente para o único público
+  // que ela existe para ajudar.
+  //   A escolha de desenho: NÃO copiar o escape explícito do `abrir`
+  // (`--algo-em-andamento`) para o `encerrar`. "Encerrar" não toma posse nem
+  // escreve código — é o ato MENOS perigoso do comando inteiro (só REMOVE uma
+  // reivindicação já registrada); pedir uma flag de confirmação para o ato
+  // menos arriscado reintroduz a MESMA fricção que se está consertando, só
+  // adiada por um passo — e ninguém além do próprio autor da reivindicação
+  // consegue encerrá-la de qualquer forma (`comandoEncerrar` só localiza pelo
+  // slug da responsabilidade). Em vez disso, o `git pull --rebase` deste
+  // passo roda com `rebase.autoStash=true` quando `autostashNoRebase` é
+  // verdadeiro: o git GUARDA (stash) o que está solto, rebaseia, e DEVOLVE
+  // (pop) automaticamente — sem exigir tree limpo e sem perder nada do
+  // trabalho em andamento. Isto ataca a CAUSA (rebase exige tree limpo) em
+  // vez de pedir para quem chama provar, de novo, que sabe o que está
+  // fazendo.
+  //   Só `encerrar` passa `true` aqui — `abrir` nunca passa, e continua
+  // exigindo tree limpo (ou `--mesmo-com-trabalho-em-andamento` explícito)
+  // ANTES de commitar: `abrir` está TOMANDO POSSE de uma frente nova, e é lá
+  // que o rigor pertence. Isto não afrouxa a COLISÃO em si — a reconferência
+  // contra o remoto atualizado, logo abaixo, roda exatamente igual, com ou
+  // sem autostash.
+  autostashNoRebase = false,
 ): void {
   git(["add", caminhoRelativo]);
   git(["commit", "-m", mensagem]);
@@ -274,7 +309,13 @@ function commitarEEmpurrar(
   }
 
   try {
-    execFileSync("git", ["pull", "--rebase", "origin", branch], { cwd: RAIZ, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    // Ver o comentário grande no parâmetro `autostashNoRebase`, acima
+    // (DEFEITO 1): só `encerrar` pede autostash — `abrir` continua exigindo
+    // tree limpo antes de chegar até aqui.
+    const argsDoRebase = autostashNoRebase
+      ? ["-c", "rebase.autoStash=true", "pull", "--rebase", "origin", branch]
+      : ["pull", "--rebase", "origin", branch];
+    execFileSync("git", argsDoRebase, { cwd: RAIZ, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   } catch (e) {
     throw new Error(diagnosticarFalhaDoRebase(e, branch, comandoParaRepetir));
   }
@@ -646,19 +687,32 @@ function avisosDeEsquemaAntigo(quemColidiu: string[], existentes: Reivindicacao[
 // abrir
 // ─────────────────────────────────────────────────────────────────────────
 
+/** `git status --porcelain`, devolvendo as LINHAS CRUAS — nunca a saída
+ *  inteira passada por `.trim()` antes de dividir por linha (ver DEFEITO 2,
+ *  medido em 16/08/2026, e o comentário grande em
+ *  `caminhosDoStatusPorcelain`, em `lib/coordenacao/reivindicacoes.ts`:
+ *  `.trim()` na string INTEIRA comia o primeiro caractere da PRIMEIRA linha
+ *  sempre que o código de status dela começava com espaço — " M", " D" — e
+ *  "__tests__/..." virava "_tests__/...", um caminho colável em lugar
+ *  nenhum). Aqui só se descarta o '\r' de CRLF e linhas vazias — a régua de
+ *  parsing de verdade (o `slice(3)`, o tratamento de renomeio) é pura e mora
+ *  em `caminhosDoStatusPorcelain`, testável sem processo de git nenhum. */
+function linhasCruasDoStatus(): string[] {
+  try {
+    const bruto = execFileSync("git", ["status", "--porcelain"], { cwd: RAIZ, encoding: "utf8" });
+    return bruto.split("\n");
+  } catch {
+    return [];
+  }
+}
+
 /** O que está solto no working tree AGORA — staged, unstaged ou untracked —
  *  ignorando `caminhoIgnorado` (o próprio arquivo de reivindicação que
  *  `abrir` está prestes a escrever; sem o filtro, o comando acusaria a
  *  mudança que ELE MESMO vai fazer). Mesma leitura de `git status
  *  --porcelain` que `arquivosNoWorkingTree` usa para o gancho pre-push. */
 function arquivosNaoCommitados(caminhoIgnorado: string): string[] {
-  const status = gitOuNulo(["status", "--porcelain"]) ?? "";
-  return status
-    .split("\n")
-    .map((l) => l.slice(3).trim()) // "XY caminho" — os dois primeiros chars são o código de status
-    .filter(Boolean)
-    .map((l) => (l.includes(" -> ") ? l.split(" -> ")[1]! : l)) // renomeios: "de -> para"
-    .filter((caminho) => caminho !== caminhoIgnorado);
+  return caminhosDoStatusPorcelain(linhasCruasDoStatus()).filter((caminho) => caminho !== caminhoIgnorado);
 }
 
 function comandoAbrir(argv: string[]): void {
@@ -798,7 +852,19 @@ function comandoAbrir(argv: string[]): void {
     // FURO 2 do laudo de qualidade (rodada 5) — ver o comentário grande
     // acima de `explicarEsquemaAntigo`.
     for (const linha of avisosDeEsquemaAntigo(resultado.quemColidiu, existentes)) console.error(linha);
-    console.error(`Se ainda assim precisa seguir, repita com:  npm run reivindicar -- abrir --frente "${frente}" --responsabilidade ${responsabilidade} --arquivos ${arquivosBrutos} --forcar --motivo "<por quê>".`);
+    // ── DEFEITO 3 (medido em 16/08/2026, EXERCITANDO o comando de verdade)──
+    // A mensagem antiga oferecia SÓ "--forcar", sozinha — a única porta
+    // mostrada era a de emergência, e porta de emergência oferecida sozinha
+    // ensina a usar a porta de emergência. Mesmo padrão de `comandoConferir`
+    // (que já lista as opções, uma por linha, antes de propor forçar): as
+    // opções que RESOLVEM a colisão sem contorná-la vêm primeiro
+    // ("encerre a frente antiga" e "veja o que está reivindicado"); a que
+    // ignora a trava ("--forcar") vem por ÚLTIMO. A colisão em si não muda
+    // — nada aqui afrouxa o bloqueio, só a ordem em que as saídas aparecem.
+    console.error("Para seguir, uma destas opções:");
+    console.error(`   - se a frente já terminou, encerre-a:  npm run reivindicar -- encerrar --responsabilidade <slug-da-frente-listada-acima>`);
+    console.error(`   - para ver todas as reivindicações vivas e escolher:  npm run reivindicar -- listar`);
+    console.error(`   - se ainda assim precisa seguir apesar da colisão, force com motivo:  npm run reivindicar -- abrir --frente "${frente}" --responsabilidade ${responsabilidade} --arquivos ${arquivosBrutos} --forcar --motivo "<por quê>"`);
     process.exit(1);
   }
 
@@ -858,12 +924,7 @@ function comandoAbrir(argv: string[]): void {
  *     momento em que ele precisa enxergar.
  */
 function arquivosNoWorkingTree(branch: string): string[] {
-  const status = gitOuNulo(["status", "--porcelain"]) ?? "";
-  const doStatus = status
-    .split("\n")
-    .map((l) => l.slice(3).trim()) // "XY caminho" — os dois primeiros chars são o código de status
-    .filter(Boolean)
-    .map((l) => (l.includes(" -> ") ? l.split(" -> ")[1]! : l)); // renomeios: "de -> para"
+  const doStatus = caminhosDoStatusPorcelain(linhasCruasDoStatus());
 
   const doDiff = (gitOuNulo(["diff", "--name-only", `origin/${branch}...HEAD`]) ?? "")
     .split("\n")
@@ -1097,7 +1158,11 @@ function comandoEncerrar(argv: string[]): void {
   writeFileSync(join(RAIZ, caminhoRelativo), `${JSON.stringify(encerrada, null, 2)}\n`, "utf8");
 
   try {
-    commitarEEmpurrar(caminhoRelativo, `encerra: ${alvo.frente}`, branch, { quem: alvo.quem, responsabilidade: alvo.responsabilidade, arquivos: alvo.arquivos }, false, comandoParaRepetir);
+    // `autostashNoRebase: true` — só "encerrar" passa isto (ver DEFEITO 1 no
+    // parâmetro `autostashNoRebase` de `commitarEEmpurrar`): encerrar não
+    // toma posse nem escreve código, então não há por que exigir tree limpo
+    // dele quando o rebase precisa rodar.
+    commitarEEmpurrar(caminhoRelativo, `encerra: ${alvo.frente}`, branch, { quem: alvo.quem, responsabilidade: alvo.responsabilidade, arquivos: alvo.arquivos }, false, comandoParaRepetir, true);
   } catch (e) {
     console.error(`🚫 ${e instanceof Error ? e.message : String(e)}`);
     process.exit(1);
