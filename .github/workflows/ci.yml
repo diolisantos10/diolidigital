@@ -34,10 +34,29 @@ on:
 #
 # Com o bloco, o cancelamento é DELIBERADO: o run superado fecha como
 # `cancelled` (que o GitHub não manda por e-mail) e o runner sobra para o
-# commit que interessa. O run do commit mais novo — o único que pode ir para
-# produção — nunca é cancelado, porque só o mais novo sobrevive ao grupo.
+# commit que interessa.
+#
+# Em 06/08/2026 isso bastava porque o grupo era por BRANCH — só o commit mais
+# novo daquela branch sobrevivia. Mas em 16/08/2026 essa mesma regra CONGELOU
+# a entrega: a produção ficou travada em c52aff2 (18:32:07Z) com 21 commits
+# represados atrás dela. As sessões empurravam a cada ~1,3 min e o portão leva
+# ~8 min para terminar — agrupado por branch, todo run era cancelado pelo push
+# seguinte antes de fechar. Nenhum commit novo ficava verde, e o "Wait for CI"
+# do Railway — funcionando exatamente como projetado — não tinha run verde
+# nenhum para promover. Produção serviu código 21 commits atrás, incluindo
+# consertos de segurança já fechados. Numa urgência real, um conserto não
+# conseguiria subir.
+#
+# Por isso o grupo agora é por COMMIT (`github.sha`), não por branch. Um
+# re-push do MESMO commit continua cancelando o run anterior — o ruído
+# vermelho de run supersedido do incidente de 06/08 continua apagado. O que
+# muda é que um commit NOVO nunca cancela o run de um commit DIFERENTE: cada
+# commit recebe o seu próprio veredito, e o Railway sempre tem um verde
+# recente para promover. O preço, aceito conscientemente: mais runs
+# simultâneos (~6 na cadência atual de pushes). É mais barato que entrega
+# congelada.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
