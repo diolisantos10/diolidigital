@@ -7,7 +7,7 @@
     "lib/agency/esteira/orcamento-do-briefing.ts"
   ],
   "abertaEm": "2026-08-16T18:58:10.021Z",
-  "encerradaEm": null,
+  "encerradaEm": "2026-08-16T18:58:39.874Z",
   "forcadaPor": {
     "quem": "pm-9ab49074",
     "motivo": "Responsabilidade DIFERENTE da frente esteira-escopo-e-preco, que responde a estimativa/volume/verba. Esta responde a corrida de envio duplicado no reenvio, achada pelo seguranca no botao novo. Ja fiz pull --rebase sobre o trabalho deles e a suite inteira esta verde (343 arquivos, 5138 passados) - evidencia de que nao ha conflito semantico. Erro meu declarado: minha reivindicacao original nao listava este arquivo, e o escopo cresceu quando o laudo do seguranca me empurrou para ele; eu deveria ter atualizado a reivindicacao na hora.",
