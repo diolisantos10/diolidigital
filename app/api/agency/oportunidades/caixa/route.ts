@@ -12,8 +12,20 @@
 //            diz isso.
 //
 // ── QUEM PODE ────────────────────────────────────────────────────────────────
-// Ler: sessão. Escrever: `master`, e a conferência é no SERVIDOR — esconder o
-// botão no menu é aparência, e aparência não é trava.
+// Escrever: `master`, e a conferência é no SERVIDOR — esconder o botão no menu
+// é aparência, e aparência não é trava.
+//
+// **Ler era "qualquer sessão", e isso era um esquecimento (consertado em
+// 16/08/2026).** `POST` e `DELETE` já estavam trancados em `master`; o `GET`
+// ficou para trás — e é ele que devolve o endereço da caixa da agência, a lista
+// de remetentes vigiados e o histórico de remetente + assunto das últimas 20
+// mensagens lidas. Assunto de e-mail de terceiro é PII que ninguém autorizou a
+// casa inteira a ler. Agora ele responde pela MESMA linha do inventário que a
+// tela que serve — `/agency/oportunidades`, `dono_e_gestao` do Atendimento.
+//
+// A escrita continua `master` de propósito, e NÃO virou `exigirAdministracao`:
+// isso alargaria a chave da caixa de e-mail da agência para o diretor sem
+// ninguém ter decidido isso. Alargar sem ordem é o inverso do trabalho de hoje.
 //
 // ⚠️ Esta rota mexe numa credencial que dá acesso de LEITURA À CAIXA INTEIRA da
 // agência. O GET diz isso com todas as letras, em `avisoDeAlcance`, e a tela o
@@ -23,6 +35,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
+import { exigirApiInterna } from "@/lib/agency/organizacao/guarda";
 import {
   apagarCredencial,
   credencialDoAmbienteAtiva,
@@ -46,8 +59,9 @@ const O_QUE_A_ROTINA_FAZ_COM_A_CAIXA = {
 };
 
 export async function GET(): Promise<NextResponse> {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { acesso, erro } = await exigirApiInterna("/agency/oportunidades");
+  if (erro) return erro;
+  const { session } = acesso;
 
   const estado = await estadoDaCaixa(session.workspaceId);
 

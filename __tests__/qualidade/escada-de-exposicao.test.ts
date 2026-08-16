@@ -14,6 +14,9 @@ const db = vi.hoisted(() => ({
   departmentLadder: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
   departmentLadderRecord: { findMany: vi.fn(), create: vi.fn() },
   deliverable: { findMany: vi.fn() },
+  // `liberarCliente` passou a conferir de QUEM é o `clientId` antes de gravá-lo
+  // na allowlist (16/08/2026) — ele vem do corpo da requisição.
+  client: { findFirst: vi.fn() },
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
@@ -44,6 +47,9 @@ beforeEach(() => {
   db.departmentLadder.update.mockResolvedValue({});
   db.departmentLadderRecord.findMany.mockResolvedValue([]);
   db.deliverable.findMany.mockResolvedValue([]);
+  // Por padrão o cliente É desta casa: estes testes são sobre EVIDÊNCIA, não
+  // sobre posse. A posse tem prova própria, logo abaixo.
+  db.client.findFirst.mockResolvedValue({ id: "c2" });
 });
 
 // ── METADE 1 — o que NÃO pode chegar ─────────────────────────────────────────
@@ -311,6 +317,43 @@ describe("subir e descer são assimétricos de propósito", () => {
     const r = await liberarCliente({ workspaceId: "w1", departmentId: "design", clientId: "c2", quem: "diretor" });
     expect(r.ok).toBe(true);
     expect(JSON.parse(db.departmentLadder.update.mock.calls[0]![0].data.clientesLiberados).sort()).toEqual(["c1", "c2"]);
+  });
+
+  // ── A POSSE DO `clientId`, que vem do CORPO da requisição (16/08/2026) ─────
+  //
+  // Achado do especialista de segurança: `liberarCliente` gravava na allowlist o
+  // id que recebesse, sem nunca perguntar de quem ele era. Impacto baixo hoje —
+  // a lista só vale dentro do próprio inquilino —, mas é o mesmo defeito de
+  // posse do resto da frente, e ele suja a lista com ids que ninguém explica.
+
+  it("⛔ id de cliente que não é desta casa NÃO entra na allowlist, mesmo com evidência de sobra", async () => {
+    db.departmentLadder.findUnique.mockResolvedValue({ degrau: "allowlist", clientesLiberados: '["c1"]' });
+    db.departmentLadderRecord.findMany.mockResolvedValue(registros(8, "aprovada"));
+    db.client.findFirst.mockResolvedValue(null); // o id é de outro inquilino
+
+    const r = await liberarCliente({ workspaceId: "w1", departmentId: "design", clientId: "do-vizinho", quem: "diretor" });
+    expect(r.ok).toBe(false);
+    expect(db.departmentLadder.update).not.toHaveBeenCalled();
+  });
+
+  it("a conferência de posse é escopada pelo workspace da CHAMADA, nunca só pelo id", async () => {
+    db.departmentLadder.findUnique.mockResolvedValue({ degrau: "allowlist", clientesLiberados: "[]" });
+    db.departmentLadderRecord.findMany.mockResolvedValue(registros(8, "aprovada"));
+
+    await liberarCliente({ workspaceId: "w1", departmentId: "design", clientId: "c2", quem: "diretor" });
+    expect(db.client.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "c2", workspaceId: "w1" } }),
+    );
+  });
+
+  it("banco fora do ar na conferência de posse NÃO libera — a dúvida fecha, não abre", async () => {
+    db.departmentLadder.findUnique.mockResolvedValue({ degrau: "allowlist", clientesLiberados: "[]" });
+    db.departmentLadderRecord.findMany.mockResolvedValue(registros(8, "aprovada"));
+    db.client.findFirst.mockRejectedValue(new Error("banco fora do ar"));
+
+    const r = await liberarCliente({ workspaceId: "w1", departmentId: "design", clientId: "c2", quem: "diretor" });
+    expect(r.ok).toBe(false);
+    expect(db.departmentLadder.update).not.toHaveBeenCalled();
   });
 });
 

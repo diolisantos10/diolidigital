@@ -25,6 +25,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
+import { clienteOuNulo } from "@/lib/agency/esteira/posse-do-cliente";
 import {
   lerFichaDeMarca, proximasPerguntas, CAMPOS_DA_MARCA,
   COLUNA_DA_FICHA, COLUNA_EH_JSON,
@@ -36,33 +37,12 @@ import type { BrandExtraction } from "@/lib/types/brand-extraction";
 
 export const dynamic = "force-dynamic";
 
-/**
- * O cliente existe E é desta sessão? 404 quando não — NUNCA 403.
- *
- * A diferença não é estética: 403 confirma que o id existe e pertence a outra
- * conta, e essa confirmação já é vazamento. 404 não distingue "não existe" de
- * "não é seu", e é por isso que é a resposta certa nas duas situações.
- *
- * ── O ESCOPO VAI NO `where`, NUNCA NUMA COMPARAÇÃO DEPOIS ─────────────────
- *
- * Buscar por id e comparar `achado.workspaceId === sessao.workspaceId` num `if`
- * funciona até alguém acrescentar um caminho de saída antes do `if`. Derivar
- * dentro da consulta faz o isolamento não depender de ninguém lembrar.
- *
- * E a sessão do PORTAL carrega `clientId`: ela só alcança o próprio cliente.
- * Sem esta linha, um token de portal legítimo leria a ficha de marca de
- * qualquer outro cliente do mesmo workspace.
- */
-async function clienteOuNulo(
-  id: string,
-  sessao: { workspaceId: string; clientId?: string },
-): Promise<{ id: string } | null> {
-  if (sessao.clientId && sessao.clientId !== id) return null;
-  return prisma.client.findFirst({
-    where: { id, workspaceId: sessao.workspaceId },
-    select: { id: true },
-  }).catch(() => null);
-}
+// ⚠️ `clienteOuNulo` MORAVA AQUI, e era a única cópia certa da regra na casa.
+// Em 16/08/2026 descobriu-se que o arquivo ao lado (`../route.ts`) não tinha
+// posse nenhuma. Ela subiu para `lib/agency/esteira/posse-do-cliente.ts` e as
+// duas rotas passaram a usar a MESMA função — copiá-la seria criar a segunda
+// versão que diverge no dia em que alguém consertar só uma. O comportamento
+// aqui não mudou: mesmo `where`, mesmo 404, mesma regra do token de portal.
 
 function extracaoDoCorpo(bruto: unknown): BrandExtraction | null {
   if (!bruto || typeof bruto !== "object") return null;
