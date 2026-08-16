@@ -28,6 +28,11 @@
 //   W=1440 H=900 node scripts/medir-a-vista-do-briefing.mjs
 //   SHOT=docs/entregas/x/375x600.png node scripts/medir-a-vista-do-briefing.mjs
 //
+// Três estados, três variáveis, e cada foto sai NO estado que o nome afirma:
+//   SHOT        → lista FECHADA (como a tela abre)
+//   SHOT_ABERTA → lista ABERTA, no instante do toque   ← nada de rolagem antes
+//   SHOT_FIM    → lista aberta, painel rolado até o fim
+//
 // O cenário é o do relato: 5 anexos que CHEGARAM e NÃO PUDERAM ser lidos
 // (`extractedText` vazio), a IA fora do ar (`/api/sdr/chat` devolve `ok:false`),
 // e o painel de materiais aberto. É o pior caso honesto: nada foi forjado.
@@ -168,6 +173,16 @@ if (process.env.SHOT) await p.screenshot({ path: process.env.SHOT, fullPage: fal
 await p.locator("summary").first().click();
 await p.waitForTimeout(400);
 const comAListaAberta = await medir();
+// ⚠️ A FOTO SAI AQUI, E O LUGAR DELA É UMA CORREÇÃO DE 16/08/2026.
+// Ela estava LÁ EMBAIXO, depois do bloco que força `scrollTop = scrollHeight`.
+// Resultado: os quatro `*-lista-aberta.png` entregues como prova mostravam o
+// FUNDO do painel (o campo de link) — o oposto do estado que o nome afirma —
+// e custaram uma rodada inteira de auditoria contra um conserto que estava
+// certo. O script que MEDE e o que FOTOGRAFA são o mesmo: se a medição
+// `comAListaAberta` é o instante do toque, a foto tem de ser tirada nesse
+// instante, antes de qualquer rolagem que dedo nenhum deu.
+// REGRA: captura entregue como prova é tirada NO estado que ela afirma.
+if (process.env.SHOT_ABERTA) await p.screenshot({ path: process.env.SHOT_ABERTA, fullPage: false });
 
 // O painel rolado até o FIM: é onde o auditor mediu a dropzone.
 await p.evaluate(() => {
@@ -176,7 +191,7 @@ await p.evaluate(() => {
 });
 await p.waitForTimeout(300);
 const noFim = await medir();
-if (process.env.SHOT_ABERTA) await p.screenshot({ path: process.env.SHOT_ABERTA, fullPage: false });
+if (process.env.SHOT_FIM) await p.screenshot({ path: process.env.SHOT_FIM, fullPage: false });
 
 const px = (r) => (r ? `${String(r.alturaPintada).padStart(3)}/${String(r.alturaTotal).padEnd(3)}` : "  —    ");
 const linha = (rot, r) => `  ${rot.padEnd(26)} ${px(r)}  ${r && r.alturaPintada === 0 ? "⛔ ZERO PIXEL" : r?.inteiro ? "✅ inteiro" : "⚠️ parcial"}`;

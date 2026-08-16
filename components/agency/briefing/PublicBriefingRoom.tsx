@@ -1741,7 +1741,21 @@ function BriefingFileUpload({
   // arrastar exigem. Então o AVISO subiu para a linha do resumo, que mede 30px
   // e foi medida INTEIRA nos quatro tamanhos — e a lista voltou a ser o detalhe
   // que se abre com um toque. Trocamos "0 de 5 selos e nenhuma zona de soltar"
-  // por "o fato agregado sempre na tela, e a zona de soltar sempre na tela".
+  // por "o fato agregado sempre na tela, e a zona de soltar na tela COM A LISTA
+  // FECHADA — que é como a tela abre".
+  //
+  // ⚠️ A CONDIÇÃO NÃO É DETALHE, E ELA JÁ FOI OMITIDA UMA VEZ AQUI (16/08/2026).
+  // Este comentário dizia "a zona de soltar SEMPRE na tela". É falso com a lista
+  // ABERTA: medida no instante do toque, a dropzone pinta **0/120 a 375×600,
+  // 0/120 a 375×812, 0/105 a 768×1024 e 0/105 a 1440×900** — zero pixel nos
+  // quatro, exatamente o defeito que a abertura automática causava. O que a
+  // troca compra é a zona na tela no estado PADRÃO (lista fechada); abrir a
+  // lista continua custando a zona, e é por isso que abrir é escolha da pessoa
+  // e não do componente.
+  //
+  // É a mesma doença diagnosticada no item 5 desta rodada — "piso cuja
+  // justificativa venceu é um número, não um piso". Afirmação sem a condição é
+  // o que faz o próximo apagar a proteção achando que ela é redundante.
   const { naoLidos, falhados, lendo } = resumoDosAnexos(items);
   const [aberto, setAberto] = useState(false);
 

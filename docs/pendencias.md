@@ -149,9 +149,17 @@ Os cinco consertos, e nenhum é redesenho:
 > Então o AVISO subiu para a linha do resumo — que mede 26px e foi medida
 > **inteira nos quatro tamanhos** — e a lista voltou a ser o detalhe que se abre
 > com um toque. **Trocamos "0 de 5 selos e nenhuma zona de soltar" por "o fato
-> agregado sempre na tela, e a zona de soltar sempre na tela".** Com a lista
-> aberta por um toque: 1 de 5 selos a 375×600, 3 de 5 a 375×812 e 768×1024, 4 de
-> 5 a 1440×900.
+> agregado sempre na tela, e a zona de soltar na tela COM A LISTA FECHADA — que
+> é como a tela abre".** Com a lista aberta por um toque: 1 de 5 selos a 375×600,
+> 3 de 5 a 375×812 e 768×1024, 4 de 5 a 1440×900.
+>
+> ⚠️ **A condição foi acrescentada em 16/08, depois de `experiencia` medir:** o
+> texto original dizia "a zona de soltar **sempre** na tela", e isso é falso com
+> a lista aberta — medida no instante do toque, a dropzone pinta **0/120
+> (375×600), 0/120 (375×812), 0/105 (768×1024), 0/105 (1440×900)**. Zero pixel
+> nos quatro. Vale com a lista **fechada**, que é o padrão. Afirmação sem a
+> condição vira premissa, e premissa errada é o que faz o próximo apagar a
+> proteção achando que ela é redundante — a mesma doença do item 5 acima.
 
 ---
 
@@ -165,6 +173,17 @@ Os cinco consertos, e nenhum é redesenho:
 - [ ] `experiencia` — **selo POR ARQUIVO pinta 0px com a lista fechada**, que é
       como a tela abre. É escolha declarada (o agregado está no resumo), não
       esquecimento — mas quem quiser o detalhe dá um toque.
+- [ ] 🟠 `experiencia` (16/08, próxima rodada) — **com o painel FECHADO o âmbar
+      some da tela.** Só a bolha da conversa carrega o fato "5 não lidos", e ela
+      rola embora conforme a conversa anda: em dez mensagens o aviso não existe
+      mais em lugar nenhum. **O chip `5 anexos` do rodapé é o lugar natural do
+      aviso persistente** — hoje ele é a TERCEIRA repetição da mesma contagem na
+      mesma tela, e devia carregar o âmbar em vez de repetir o número.
+- [ ] `experiencia` (16/08) — **a 375 de largura, com o painel aberto, a linha 0
+      da bolha que NOMEIA os arquivos pinta 7 de 11px.** Cura-se sozinha ao
+      fechar o painel (um toque, que é o que a pessoa faz para voltar a
+      conversar), por isso é dívida e não bloqueante. **Se alguém for gastar 4px
+      nesta tela, gaste nessa linha.**
 - [ ] `experiencia` — **a 375×600 a zona de arrastar pinta 57 de 120px**: a seta
       e a frase cabem, as duas linhas de formato e tamanho não. Não há de onde
       tirar sem furar o piso útil da conversa.
