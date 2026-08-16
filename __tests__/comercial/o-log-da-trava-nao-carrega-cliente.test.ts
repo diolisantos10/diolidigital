@@ -111,10 +111,75 @@ describe("a rota grava a marca, e não o recorte", () => {
     expect(rota).toContain("valor: marca.valor");
   });
 
-  it("a fala do SDR e a mensagem do cliente continuam fora da linha", () => {
-    const linha = rota.slice(rota.indexOf('"[sdr/chat] price-leak"'), rota.indexOf("return NextResponse.json({ ok: false, reason: \"price_leak\""));
-    expect(linha).not.toContain("replyText,");
-    expect(linha).not.toContain("body.currentMessage,");
-    expect(linha).not.toContain("currentMessage:");
+  // ── ⛔ O PORTÃO ANTIGO FATIAVA SÓ O BLOCO DA TRAVA (16/08, terceira passada)
+  //
+  // Ele lia da linha `"[sdr/chat] price-leak"` até o `return`, e só. `qualidade`
+  // mostrou o furo em uma frase: **um `console.warn` com `body.currentMessage`
+  // em OUTRO ponto da rota passava verde.** A rota tem quatro pontos de log e o
+  // portão vigiava um.
+  //
+  // A varredura abaixo lê TODA chamada de `console.*` do arquivo, com os
+  // parênteses balanceados, e reprova qualquer uma que carregue texto livre —
+  // a fala do modelo, a mensagem do cliente ou o escopo (que traz nome de
+  // pessoa e de negócio dentro).
+
+  /** Toda chamada `console.x(...)` do arquivo, com o argumento inteiro. */
+  function chamadasDeLog(fonte: string): string[] {
+    const achadas: string[] = [];
+    const re = /console\.(?:log|warn|error|info|debug|trace)\s*\(/g;
+    for (const m of fonte.matchAll(re)) {
+      let i = m.index + m[0].length;
+      let profundidade = 1;
+      while (i < fonte.length && profundidade > 0) {
+        const c = fonte[i]!;
+        if (c === "(") profundidade++;
+        else if (c === ")") profundidade--;
+        i++;
+      }
+      achadas.push(fonte.slice(m.index, i));
+    }
+    return achadas;
+  }
+
+  /** Os identificadores que carregam texto do cliente ou do modelo. */
+  const PROIBIDOS = [
+    "replyText",
+    "currentMessage",
+    "body.messages",
+    "body.scope",
+    "scopePatch",
+    "escopoAtual",
+    "parsed.reply",
+    "claudeMessages[",
+    "vazamento[",
+  ];
+
+  it("🔴 NENHUM `console.*` da rota inteira carrega texto livre — não só o da trava", () => {
+    const chamadas = chamadasDeLog(rota);
+    expect(chamadas.length, "não achei chamada de log nenhuma — o portão virou fachada").toBeGreaterThan(0);
+    for (const chamada of chamadas) {
+      for (const proibido of PROIBIDOS) {
+        expect(
+          chamada.includes(proibido),
+          `log com texto livre (\`${proibido}\`): ${chamada.replace(/\s+/g, " ").slice(0, 160)}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it("a varredura PEGA o log que vaza — a metade que prova que ela morde", () => {
+    const plantado = `
+      console.warn("[sdr/chat] algo", JSON.stringify({ turno: 3, msg: body.currentMessage }));
+    `;
+    const chamadas = chamadasDeLog(plantado);
+    expect(chamadas).toHaveLength(1);
+    expect(PROIBIDOS.some((p) => chamadas[0]!.includes(p))).toBe(true);
+  });
+
+  it("a linha da trava continua sendo a marca, e só ela", () => {
+    const daTrava = chamadasDeLog(rota).find((c) => c.includes("price-leak"));
+    expect(daTrava, "a linha de log da trava sumiu").toBeDefined();
+    expect(daTrava).toContain("marca.padrao");
+    expect(daTrava).toContain("marca.valor");
   });
 });

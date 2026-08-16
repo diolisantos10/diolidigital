@@ -36,6 +36,7 @@
 // resolve a contradição no papel é o Diretor com o CEO — está em aberto.
 
 import { precoEmReais } from "../planos";
+import { valoresMonetarios } from "./leitor-de-valor";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. FAIXAS DE INVESTIMENTO — o que se oferece para cada bolso
@@ -566,21 +567,27 @@ export function blocoDeNegociacaoParaPrompt(): string {
 // escolha é conhecido: se o modelo abreviar as opções e citar só dois limites com
 // R$, o turno é descartado e cai no motor de regras. Descartar de vez em quando a
 // pergunta certa é barato; deixar passar uma cotação, não.
-const LIMITES_DE_FAIXA = new Set(["150", "500", "1500", "5000"]);
-const VALOR_MONETARIO = /r\$\s*([\d.,]+)|(\d[\d.,]*)\s*reais/gi;
+//
+// ⚠️ O LEITOR DE VALOR DAQUI ERA O SEGUNDO DA CASA, e isso virou defeito.
+// Ele e o de `resposta-de-preco.ts` só enxergavam `R$` e "reais". Quando a trava
+// da rota passou a enxergar grafia sem cifrão (16/08/2026, terceira passada),
+// manter o leitor estreito AQUI derrubaria a pergunta certa: o modelo que
+// abreviasse para "até 150, entre 150 e 500, entre 500 e 1.500..." passaria a
+// disparar a trava e não seria mais reconhecido como pergunta de faixa. **A
+// exceção e a trava têm de enxergar exatamente a mesma coisa** — por isso as
+// duas leem `leitor-de-valor.ts`. Este é o contrafactual que a auditoria pediu,
+// e ele roda em `__tests__/comercial/trava-de-preco-do-sdr.test.ts`.
+const LIMITES_DE_FAIXA = new Set([150, 500, 1500, 5000]);
 
 export function ehPerguntaDeFaixa(reply: string): boolean {
   if (typeof reply !== "string") return false;
   if (/desconto/i.test(reply)) return false; // desconto não se negocia nesta conversa
   if (!/investir|investimento|or[çc]amento|verba|gastar|faixa/i.test(reply)) return false;
 
-  const citados = new Set<string>();
-  for (const m of reply.matchAll(VALOR_MONETARIO)) {
-    // Normaliza "1.500" e "1.500,00" para "1500": em pt-BR o ponto é separador
-    // de milhar, e centavos não mudam a faixa.
-    const bruto = (m[1] ?? m[2] ?? "").replace(/,\d{1,2}$/, "").replace(/[.,]/g, "");
-    if (!LIMITES_DE_FAIXA.has(bruto)) return false; // valor fora da régua = cotação
-    citados.add(bruto);
+  const citados = new Set<number>();
+  for (const v of valoresMonetarios(reply)) {
+    if (!LIMITES_DE_FAIXA.has(v.valor)) return false; // valor fora da régua = cotação
+    citados.add(v.valor);
   }
   return citados.size >= 3;
 }

@@ -67,9 +67,9 @@ const PERSONA_TONES = [
 const BUDGET_PROFILES = [
   { id: "very_low",     label: "Muito baixo (≤ R$700)",   answer: "tenho uns 600 reais por mês",              range: { min: 600,  max: 700  }, objectionMsg: "600 reais é tudo que tenho" },
   { id: "below_min",    label: "Abaixo mínimo (R$800–1k)", answer: "meu orçamento é uns 900 reais",            range: { min: 800,  max: 1000 }, objectionMsg: "900 reais é o máximo" },
-  { id: "starter",      label: "Starter (R$1.2k–1.8k)",   answer: "posso investir até 1.500 reais por mês",   range: { min: 1200, max: 1800 }, objectionMsg: "tá um pouco acima do meu orçamento" },
+  { id: "starter",      label: "Faixa R$1.2k–1.8k",       answer: "posso investir até 1.500 reais por mês",   range: { min: 1200, max: 1800 }, objectionMsg: "tá um pouco acima do meu orçamento" },
   { id: "medium",       label: "Médio (R$2k–3k)",         answer: "tenho uns 2.500 reais disponíveis",        range: { min: 2000, max: 3000 }, objectionMsg: undefined },
-  { id: "premium",      label: "Premium (R$4k+)",         answer: "invisto em torno de 5 mil por mês",        range: { min: 4000, max: 6000 }, objectionMsg: undefined },
+  { id: "premium",      label: "Faixa R$4k+",             answer: "invisto em torno de 5 mil por mês",        range: { min: 4000, max: 6000 }, objectionMsg: undefined },
   { id: "undisclosed",  label: "Não informa",             answer: "não sei dizer ainda, depende da proposta", range: undefined,               objectionMsg: "não sei quanto custa isso" },
   { id: "contradiction",label: "Contraditório",           answer: "depende do que vocês entregam mesmo",      range: { min: 1000, max: 1500 }, objectionMsg: "achei mais caro do que esperava" },
 ] as const;

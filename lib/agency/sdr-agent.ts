@@ -282,20 +282,20 @@ export function buildPriceObjectionReply(
   return `Entendo. Qual é a faixa de investimento que você tem em mente para o **${biz}**? Com esse número, ajusto o escopo para encaixar.`;
 }
 
-export function buildScopeAdjustmentConfirmation(
-  scope: BriefingScope,
-  estimate: LiveEstimate,
-  budgetSignal: BudgetSignal,
-): string {
-  const biz = scope.businessName ?? "seu projeto";
-  const totalStr = estimate.totalMin > 0
-    ? ` **R$ ${estimate.totalMin.toLocaleString("pt-BR")}–${estimate.totalMax.toLocaleString("pt-BR")}/mês**`
-    : "";
-  if (budgetSignal.fitStatus === "fits") {
-    return `Ótimo! O escopo ajustado fica em${totalStr} — dentro do orçamento para o **${biz}**. Está tudo certo para enviar?`;
-  }
-  return `Ajustei o escopo para${totalStr}. Isso está mais próximo do que você tem em mente para o **${biz}**?`;
-}
+// ⛔ `buildScopeAdjustmentConfirmation` FOI REMOVIDA EM 16/08/2026 (D6).
+//
+// Ela imprimia `R$ {totalMin}–{totalMax}` do `live-calculator` — a TERCEIRA
+// tabela de preço desta casa, que nenhum portão compara com `planos.ts`. E tinha
+// **zero chamadas em caminho de execução**: só o teste a importava.
+//
+// O teste que a cobria afirmava, no texto, *"Ela chega ao prospect"*. **Não
+// chegava.** Teste protegendo caminho que não existe é pior que teste nenhum:
+// ele consome atenção e produz a sensação de cobertura onde não há caminho.
+//
+// A decisão foi REMOVER, não corrigir a afirmação: uma função sem chamador que
+// cota a tabela fantasma é uma arma carregada esperando o primeiro `import`.
+// Se a confirmação de ajuste voltar a ser necessária, ela nasce citando escopo,
+// nunca valor — quem diz valor é o orçamento, depois do login.
 
 export function buildConsultativeGoalQuestion(scope: BriefingScope): string {
   const biz = scope.businessName;

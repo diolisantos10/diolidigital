@@ -50,7 +50,7 @@ function SocialPlansTable() {
             </th>
             {SOCIAL_PACKAGES.map((p) => (
               <th key={p.id} className="p-3 text-center border-l border-[var(--border)] min-w-[120px]">
-                <div className="text-[13px] font-bold text-[var(--text-primary)]">{p.label.replace("Plano ", "")}</div>
+                <div className="text-[13px] font-bold text-[var(--text-primary)]">{p.label}</div>
                 <div className="text-[11px] font-semibold text-[var(--navy)] mt-1">
                   {brl(p.minPrice)}–{brl(p.maxPrice)}
                 </div>

@@ -5,7 +5,8 @@ import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/
 import { initProspectConvState, processProspectMessage, type ProspectConvState } from "@/lib/agency/prospect-engine";
 import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from "@/lib/agency/sdr-agent";
 import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live-calculator";
-import { respostaHonestaDePreco, falaSegura, escopoEncolheu } from "@/lib/agency/comercial/resposta-de-preco";
+import { respostaHonestaDePreco, falaSegura, resumoDoCorte } from "@/lib/agency/comercial/resposta-de-preco";
+import { ACOES_DE_ESCOPO } from "@/lib/agency/comercial/acoes-do-escopo";
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
@@ -43,12 +44,6 @@ interface PublicBriefingRoomProps {
   onSubmit: (data: PublicBriefingRoomSubmitData) => void;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function fmtBRL(n: number) {
-  return "R$ " + n.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
-}
-
 function buildRawText(messages: ConvMessage[]): string {
   return messages
     .filter((m) => m.role !== "system")
@@ -82,14 +77,21 @@ function buildExtractedSummary(scope: BriefingScope): ExtractedRequestSummary {
   };
 }
 
-function buildTitle(scope: BriefingScope): string {
+// Exportado para o PORTÃO DE PERSISTÊNCIA: é este `title` que vai para
+// `ClientRequestDb`, para a caixa de entrada da equipe e para o portal.
+export function buildTitle(scope: BriefingScope): string {
   const biz = scope.businessName ?? "Prospect";
   const services: string[] = [];
   if (scope.wantsSocialMedia) {
     const postsPerMonth = (scope.social?.postsPerWeek ?? 0) * 4;
     if (postsPerMonth > 0) {
+      // ⚠️ ISTO PERSISTE. O `title` vai para `ClientRequestDb`, para a caixa de
+      // entrada da equipe e para o portal — e até 16/08/2026 ele saía como
+      // "Orçamento — <negócio> — Plano Starter", carimbando um plano que não
+      // existe no registro do pedido. O rótulo é CADÊNCIA; o serviço é dito por
+      // extenso, que é a informação que a equipe precisa ler.
       const pkg = getPackageDef(detectPackage(postsPerMonth));
-      services.push(pkg.label);
+      services.push(`Social Media — ${pkg.label}`);
     } else {
       services.push("Social Media");
     }
@@ -128,7 +130,10 @@ function MsgText({ text }: { text: string }) {
 
 // ── Message bubble ─────────────────────────────────────────────────────────────
 
-function MessageBubble({ msg }: { msg: ConvMessage }) {
+// Exportado para o PORTÃO DE RENDER do aviso de corte (B4): o teste monta esta
+// bolha com uma mensagem `system` e confere que o texto SAI no HTML. Provar
+// que a nota entra no array não prova que a pessoa a lê.
+export function MessageBubble({ msg }: { msg: ConvMessage }) {
   if (msg.role === "system") {
     return (
       <div className="text-center">
@@ -161,7 +166,13 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
   );
 }
 
-// ── Package badge ─────────────────────────────────────────────────────────────
+// ── Selo de CADÊNCIA (era "Plano", e o nome era o defeito) ────────────────────
+//
+// 16/08/2026: este selo dizia **"Plano · Plano Starter"** — nome de produto que
+// o catálogo desta casa não tem, desenhado na tela de qualquer prospect com 15
+// a 24 posts/mês. O rótulo vem de `live-calculator`, que descreve CADÊNCIA, não
+// produto; quem nomeia produto é `lib/agency/planos.ts`. O selo passa a dizer o
+// que ele realmente mede.
 
 const PKG_STYLE: Record<string, { bg: string; text: string }> = {
   essencial: { bg: "bg-[var(--accent)]", text: "text-[var(--text-secondary)]" },
@@ -173,7 +184,10 @@ const PKG_STYLE: Record<string, { bg: string; text: string }> = {
 
 // ── Scope section ─────────────────────────────────────────────────────────────
 
-function ScopeSection({ scope }: { scope: BriefingScope }) {
+// Exportado para o PORTÃO DE RENDER: `o-plano-fantasma-nao-chega-na-tela.test.ts`
+// monta esta seção com `renderToStaticMarkup` e varre o HTML de verdade. Portão
+// que lê o código-fonte protege a grafia de hoje; este lê o que a pessoa vê.
+export function ScopeSection({ scope }: { scope: BriefingScope }) {
   let pkgLabel: string | null = null;
   let pkgStyle: { bg: string; text: string } | null = null;
 
@@ -246,7 +260,7 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
     <div className="space-y-2">
       {pkgLabel && pkgStyle && (
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Plano</span>
+          <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Cadência</span>
           <span className={`h-5 px-2.5 rounded-full text-[10px] font-semibold ${pkgStyle.bg} ${pkgStyle.text}`}>
             {pkgLabel}
           </span>
@@ -261,131 +275,6 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
     </div>
   );
 }
-
-// ── Estimate section ──────────────────────────────────────────────────────────
-
-const CONFIDENCE_CFG = {
-  none:   { label: "",                     bg: "",               text: "" },
-  low:    { label: "Estimativa inicial",   bg: "bg-[var(--warning-bg)]",  text: "text-[var(--warning)]" },
-  medium: { label: "Estimativa aprox.",    bg: "bg-[var(--accent-light)]",  text: "text-[var(--navy)]" },
-  high:   { label: "Estimativa confiável", bg: "bg-[var(--success-bg)]",  text: "text-[var(--success)]" },
-};
-
-function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
-  const cfg = CONFIDENCE_CFG[estimate.confidence];
-  return (
-    <div className="border-t border-[var(--border)] pt-3 space-y-1.5">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Estimativa mensal</span>
-        {estimate.confidence !== "none" && (
-          <span className={`h-4 px-1.5 rounded-[3px] text-[9px] font-semibold ${cfg.bg} ${cfg.text}`}>
-            {cfg.label}
-          </span>
-        )}
-      </div>
-      {estimate.items.map((item, i) => (
-        <div key={i} className="flex items-start gap-2 text-[11px]">
-          <span className="text-[var(--text-muted)] flex-1 leading-relaxed">{item.label}</span>
-          <span className="text-[var(--text-secondary)] shrink-0 text-right">
-            {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}
-            <span className="text-[var(--text-subtle)]">/{item.unit}</span>
-          </span>
-        </div>
-      ))}
-      {estimate.discountPct && estimate.discountedMin !== undefined ? (
-        <>
-          <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border)]">
-            <span className="text-[10px] text-[var(--text-muted)]">Subtotal</span>
-            <span className="text-[11px] text-[var(--text-muted)] line-through">
-              {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-medium text-[var(--success)]">
-              Desconto {estimate.discountPct}%{estimate.discountReason ? ` · ${estimate.discountReason}` : ""}
-            </span>
-          </div>
-          <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]">
-            <span className="text-[11px] font-semibold text-[var(--text-primary)]">Total com desconto</span>
-            <span className="text-[13px] font-bold text-[var(--success)]">
-              {fmtBRL(estimate.discountedMin)} – {fmtBRL(estimate.discountedMax ?? estimate.discountedMin)}
-            </span>
-          </div>
-        </>
-      ) : (
-        <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border)]">
-          <span className="text-[11px] font-semibold text-[var(--text-primary)]">Total</span>
-          <span className="text-[13px] font-bold text-[var(--text-primary)]">
-            {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Quick action buttons ───────────────────────────────────────────────────────
-
-interface QuickAction {
-  label: string;
-  text: string;
-  show: (scope: BriefingScope) => boolean;
-}
-
-// ⚠️ O TEXTO DESTES BOTÕES É ENTRADA DE MÁQUINA, NÃO SÓ FRASE DE TELA.
-//
-// Medido em 16/08/2026: **4 dos 6** textos daqui não casavam com nenhum ramo de
-// `detectNegotiation` — "Pode tirar os reels por enquanto" não bate com
-// `tira os reels?` (o "tirar" tem um "r" a mais), "Quero adicionar 2 reels por
-// mês" não bate com `adicionar reels?` (o número entra no meio). O prospect
-// clicava no botão de ajustar o escopo e o motor de regras respondia com a
-// próxima pergunta do roteiro, sem ajustar nada. O caminho do modelo escondia o
-// defeito porque o modelo entende qualquer frase — o motor, que é o fallback,
-// não entendia nenhuma destas.
-//
-// O portão que impede a volta está em `trava-de-preco-do-sdr.test.ts`: todo
-// texto desta lista tem de ser reconhecido por `detectNegotiation`.
-const QUICK_ACTIONS: QuickAction[] = [
-  {
-    // ⚠️ 16/08/2026 — ACHADO NESTA PASSADA, e este é RENDERIZADO de verdade.
-    // O rótulo era "Plano Starter": um plano que não existe em
-    // `lib/agency/planos.ts` nem em `docs/precos.md`, virando BOTÃO na tela
-    // pública do prospect (ver o `visibleActions.map` no rodapé do painel).
-    // Diferente do `ProposalCard`, que é código morto, este tem caminho de
-    // render. O texto enviado continua o mesmo — é ele que aciona o ramo de
-    // enxugar escopo em `detectNegotiation`.
-    label: "Começar menor",
-    text: "Quero começar com um plano mais simples e barato",
-    show: (s) => s.wantsSocialMedia && (s.social?.postsPerWeek ?? 0) * 4 > 8,
-  },
-  {
-    label: "Tirar reels",
-    text: "Sem os reels por enquanto",
-    show: (s) => s.wantsSocialMedia && (s.social?.reelsPerMonth ?? 0) > 0,
-  },
-  {
-    label: "Adicionar reels",
-    text: "Quero adicionar reels",
-    show: (s) => s.wantsSocialMedia && s.social?.postsPerWeek !== undefined && (s.social?.reelsPerMonth === 0 || s.social?.reelsPerMonth === undefined),
-  },
-  {
-    label: "Sem tráfego pago",
-    text: "Sem tráfego pago por enquanto",
-    show: (s) => !!s.wantsPaidTraffic,
-  },
-  {
-    label: "Incluir tráfego pago",
-    text: "Quero incluir tráfego pago",
-    show: (s) => s.wantsSocialMedia && s.wantsPaidTraffic === false && s.social?.postsPerWeek !== undefined,
-  },
-  {
-    label: "Menos posts",
-    text: "Quero reduzir posts",
-    show: (s) => s.wantsSocialMedia && (s.social?.postsPerWeek ?? 0) > 2,
-  },
-];
-
-// ── Proposal card ─────────────────────────────────────────────────────────────
 
 // ── Google sign-in button ─────────────────────────────────────────────────────
 
@@ -494,34 +383,6 @@ function GoogleSignInButton({
   );
 }
 
-// ── Email fallback (used inside ProposalCard) ─────────────────────────────────
-
-function EmailFallbackForm({ onSubmit, loading }: { onSubmit: (email: string) => void; loading: boolean }) {
-  const [email, setEmail] = useState("");
-  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
-
-  return (
-    <div className="space-y-2">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="seu@email.com"
-        className="w-full px-3 py-2.5 border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] transition-colors"
-        style={{ fontSize: "16px" }}
-      />
-      <button
-        onClick={() => valid && onSubmit(email)}
-        disabled={!valid || loading}
-        style={{ touchAction: "manipulation" }}
-        className="w-full h-11 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors"
-      >
-        {loading ? "Enviando…" : "Enviar proposta para análise →"}
-      </button>
-    </div>
-  );
-}
-
 // ── Formulário de contato ─────────────────────────────────────────────────────
 //
 // Nome + PELO MENOS UM canal. O WhatsApp entra na frente do e-mail, e a ordem
@@ -621,135 +482,6 @@ function FormularioDeContato({
       >
         Prefiro não deixar contato agora
       </button>
-    </div>
-  );
-}
-
-// ── Proposal card ─────────────────────────────────────────────────────────────
-
-function ProposalCard({
-  scope,
-  estimate,
-  onGoogleSuccess,
-  onEmailSubmit,
-  submitting,
-}: {
-  scope: BriefingScope;
-  estimate: LiveEstimate;
-  onGoogleSuccess: (result: GoogleAuthResult) => void;
-  onEmailSubmit: (email: string) => void;
-  submitting: boolean;
-}) {
-  const [useFallback, setUseFallback] = useState(false);
-
-  let pkgDesc: string | null = null;
-  if (scope.wantsSocialMedia && scope.social?.postsPerWeek !== undefined) {
-    const ppm = scope.social.postsPerWeek * 4;
-    const pkg = getPackageDef(detectPackage(ppm));
-    pkgDesc = pkg.description;
-  }
-
-  const timeline = scope.serviceMode === "one_off" ? "A definir por escopo" : "Início imediato após aprovação";
-  const incl = estimate.included.slice(0, 6);
-  const excl = estimate.notIncluded.slice(0, 3);
-
-  return (
-    <div className="space-y-3">
-      {/* Banner */}
-      <div className="bg-[var(--success-bg)] border border-[#86EFAC] rounded-[8px] px-3 py-2.5">
-        <p className="text-[11px] font-semibold text-[#166534]">Proposta inicial pronta para revisão</p>
-        <p className="text-[10px] text-[var(--success)] mt-0.5">
-          Revise o escopo abaixo e envie para análise da Dioli.
-        </p>
-      </div>
-
-      {/* Plano recomendado */}
-      {pkgDesc && (
-        <div>
-          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Plano recomendado</div>
-          <p className="text-[11px] text-[var(--text-primary)] font-medium">{pkgDesc}</p>
-        </div>
-      )}
-
-      {/* Investimento */}
-      {estimate.totalMin > 0 && (
-        <div>
-          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Investimento estimado</div>
-          {estimate.discountPct && estimate.discountedMin !== undefined ? (
-            <>
-              <p className="text-[11px] text-[var(--text-muted)] line-through">
-                {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}/mês
-              </p>
-              <p className="text-[14px] font-bold text-[var(--success)]">
-                {fmtBRL(estimate.discountedMin)} – {fmtBRL(estimate.discountedMax ?? estimate.discountedMin)}
-                <span className="text-[11px] font-normal text-[var(--text-muted)] ml-1">/mês</span>
-              </p>
-              <p className="text-[9px] text-[var(--success)] mt-0.5">
-                {estimate.discountPct}% de desconto{estimate.discountReason ? ` · ${estimate.discountReason}` : ""}
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-[14px] font-bold text-[var(--text-primary)]">
-                {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
-                <span className="text-[11px] font-normal text-[var(--text-muted)] ml-1">/mês</span>
-              </p>
-              <p className="text-[9px] text-[var(--text-subtle)] mt-0.5">*Sujeito a detalhamento no escopo final</p>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Prazo */}
-      <div>
-        <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Prazo de início</div>
-        <p className="text-[11px] text-[var(--text-primary)]">{scope.deadline ?? timeline}</p>
-      </div>
-
-      {/* Incluso */}
-      {incl.length > 0 && (
-        <div>
-          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">O que está incluso</div>
-          {incl.map((item, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-[10px] text-[var(--text-primary)] py-0.5">
-              <span className="text-[var(--success)] shrink-0 font-bold">✓</span>
-              {item}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Não incluso */}
-      {excl.length > 0 && (
-        <div>
-          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Não incluso</div>
-          {excl.map((item, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-[10px] text-[var(--text-muted)] py-0.5">
-              <span className="shrink-0">–</span>
-              {item}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Próximos passos */}
-      <div className="bg-[var(--bg)] rounded-[8px] px-3 py-2.5">
-        <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Próximos passos</div>
-        <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
-          Após o envio, nossa equipe revisa o escopo, prepara uma proposta formal e entra em contato em até 24h úteis.
-        </p>
-      </div>
-
-      {/* CTA — Google sign-in or email fallback */}
-      {useFallback ? (
-        <EmailFallbackForm onSubmit={onEmailSubmit} loading={submitting} />
-      ) : (
-        <GoogleSignInButton
-          onSuccess={onGoogleSuccess}
-          onFallback={() => setUseFallback(true)}
-          loading={submitting}
-        />
-      )}
     </div>
   );
 }
@@ -1257,6 +989,39 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       const resultado = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope);
       setAiThinking(false);
 
+      // ── B4, FECHADO NO CAMINHO PRINCIPAL (16/08/2026, terceira passada) ─────
+      //
+      // A rodada anterior fechou B4 só dentro do ramo `price_leak` — o ramo raro.
+      // `escopoEncolheu` tinha UM call site, ali dentro. No caminho NORMAL (o
+      // modelo responde) o front mantinha `ruleResult.conv.scope` **já cortado**,
+      // mostrava a fala do modelo e descartava `ruleAssistant.text`, que era a
+      // única frase que descrevia o corte.
+      //
+      // Medido: o prospect clica em "Começar menor" → `detectNegotiation` corta
+      // posts para 2, stories para 2, reels para 0 e desliga o tráfego pago → o
+      // modelo responde sem citar preço → o painel cai de 20 para 8 posts/mês
+      // **sem uma palavra na tela**.
+      //
+      // A justificativa da rodada anterior para não desfazer o corte era FALSA e
+      // isto ficou registrado: `prospect-engine.ts` roda `detectNegotiation` e
+      // `currentQ.parse` em ramos `if/else` — quando a negociação casa, a
+      // extração não roda. Não havia extração a perder.
+      //
+      // A escolha aqui é AVISAR, não desfazer: quem clicou em "Começar menor"
+      // PEDIU o corte, e desfazê-lo tornaria o botão decorativo. O defeito nunca
+      // foi o corte — foi o silêncio. Esta nota é determinística (sai da
+      // comparação antes/depois), não cita preço nem nome de plano, e entra em
+      // TODOS os caminhos, inclusive quando quem fala é o modelo.
+      const corte = resumoDoCorte(prevState.conv.scope, ruleResult.conv.scope);
+      const notaDoCorte: ConvMessage[] = corte
+        ? [{
+            id: `corte-${ruleAssistant.id}`,
+            role: "system" as const,
+            text: corte,
+            createdAt: new Date().toISOString(),
+          }]
+        : [];
+
       if (!ehResposta(resultado) && resultado.motivo === "price_leak") {
         // ── A TRAVA DE PREÇO DISPAROU — e a resposta depende de POR QUÊ ────────
         //
@@ -1277,8 +1042,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         // A trava não foi tocada em nenhum dos três: o turno do modelo continua
         // descartado, e o texto dele nunca chega ao navegador.
         const honesta = respostaHonestaDePreco(ruleResult.conv.scope.prospectName);
-        const encolheu = escopoEncolheu(prevState.conv.scope, ruleResult.conv.scope);
-        const segueAConversa = resultado.eco === true || encolheu;
+        const segueAConversa = resultado.eco === true || corte !== null;
         const escolhida = segueAConversa ? ruleAssistant.text : honesta.texto;
         // O PORTÃO DE RUNTIME: a fala do motor é escrita à mão e pode voltar a
         // citar preço sem lastro (foi o que aconteceu com o "Plano Starter
@@ -1286,7 +1050,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         const aprovada = falaSegura(escolhida, ruleResult.conv.scope.prospectName);
         const conv: ConvState = {
           ...ruleResult.conv,
-          messages: [...userVisible, { ...ruleAssistant, text: aprovada.texto }],
+          messages: [...userVisible, ...notaDoCorte, { ...ruleAssistant, text: aprovada.texto }],
         };
         setState({
           conv: { ...conv, canSubmit: canSubmitProposal(conv, ruleResult.sdr) },
@@ -1313,7 +1077,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           ...ruleResult.conv,
           scope: mergedScope,
           estimate,
-          messages: [...userVisible, assistantMsg],
+          messages: [...userVisible, ...notaDoCorte, assistantMsg],
         };
         setState({
           conv: { ...newConv, canSubmit: canSubmitProposal(newConv, ruleResult.sdr) },
@@ -1327,17 +1091,13 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         // prospect. É o caminho por onde o "Plano Starter (R$ 1.200–1.800/mês)"
         // chegou ao cliente por meses. `falaSegura` é o portão que faltava.
         const aprovada = falaSegura(ruleAssistant.text, ruleResult.conv.scope.prospectName);
-        setState(
-          aprovada.substituida
-            ? {
-                ...ruleResult,
-                conv: {
-                  ...ruleResult.conv,
-                  messages: [...userVisible, { ...ruleAssistant, text: aprovada.texto }],
-                },
-              }
-            : ruleResult,
-        );
+        setState({
+          ...ruleResult,
+          conv: {
+            ...ruleResult.conv,
+            messages: [...userVisible, ...notaDoCorte, { ...ruleAssistant, text: aprovada.texto }],
+          },
+        });
         void fireAiExtract(text, priorMessages);
       }
     },
@@ -1473,7 +1233,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const canSubmit    = canSubmitProposal(conv, sdr);
   const blockReason  = getSubmissionBlockReason(conv, sdr);
 
-  const visibleActions = QUICK_ACTIONS.filter((qa) => qa.show(scope));
+  const visibleActions = ACOES_DE_ESCOPO.filter((qa) => qa.show(scope));
 
   // A barra fixa de conversão cobre o FIM do conteúdo se ninguém reservar o
   // espaço — é a §6.1 do DESIGN.md, que nasceu no portal, foi levada ao painel

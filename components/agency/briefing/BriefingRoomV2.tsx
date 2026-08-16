@@ -284,7 +284,7 @@ interface QuickAction {
 
 const QUICK_ACTIONS: QuickAction[] = [
   {
-    label: "Plano Starter",
+    label: "Começar menor",
     text: "Quero começar com um plano mais simples e barato",
     show: (s) => s.wantsSocialMedia && (s.social?.postsPerWeek ?? 0) * 4 > 8,
   },

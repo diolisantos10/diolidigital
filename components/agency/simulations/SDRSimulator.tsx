@@ -39,7 +39,7 @@ const PRESETS: Preset[] = [
       "A Dioli faz os textos",
       "Não quero tráfego pago agora",
       "Esse valor está muito acima. Tenho R$ 1.000 para gestão.",
-      "Então pode reduzir para o Plano Starter",
+      "Então pode reduzir para um pacote mais enxuto",
     ],
   },
   {
@@ -172,7 +172,7 @@ function CartPanel({
   if (scope.branding?.hasBrandBook) rows.push({ label: "Brand Book", value: "Disponível" });
 
   const QUICK_ACTIONS = [
-    { label: "Plano Starter", text: "Quero começar com um plano mais simples e barato", show: scope.wantsSocialMedia && (scope.social?.postsPerWeek ?? 0) * 4 > 8 },
+    { label: "Começar menor", text: "Quero começar com um plano mais simples e barato", show: scope.wantsSocialMedia && (scope.social?.postsPerWeek ?? 0) * 4 > 8 },
     { label: "Tirar reels",   text: "Pode tirar os reels por enquanto",                 show: scope.wantsSocialMedia && (scope.social?.reelsPerMonth ?? 0) > 0 },
     { label: "Adicionar reels", text: "Quero adicionar 2 reels por mês",                show: scope.wantsSocialMedia && scope.social?.postsPerWeek !== undefined && (scope.social?.reelsPerMonth ?? -1) <= 0 },
     { label: "Sem tráfego",   text: "Pode tirar o tráfego pago",                        show: !!scope.wantsPaidTraffic },

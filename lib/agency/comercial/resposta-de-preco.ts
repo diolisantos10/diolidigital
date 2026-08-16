@@ -32,6 +32,17 @@
 
 import { PLANOS, PECA_EXTRA } from "../planos";
 import { FAIXAS } from "./negociacao";
+import {
+  valoresMonetarios,
+  valoresCitados as valoresCitadosNoTexto,
+  nomesDePlanoForaDoCatalogo,
+} from "./leitor-de-valor";
+
+// O leitor de valor MORA EM UM LUGAR SÓ (`leitor-de-valor.ts`) desde 16/08/2026,
+// terceira passada. Antes havia dois — um aqui, outro em `negociacao.ts` — e os
+// dois só enxergavam `R$` e "reais": `falaSegura("...fica em 1.200 por mês.")`
+// devolvia `{ substituida: false }`. Reexportado para quem já lia daqui.
+export { valoresMonetarios, nomesDePlanoForaDoCatalogo } from "./leitor-de-valor";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. A RESPOSTA HONESTA
@@ -92,17 +103,6 @@ export function valoresAutorizados(): Set<number> {
   return autorizados;
 }
 
-/** "R$ 1.200" e "1.200,00" e "1200 reais" → 1200. Em pt-BR o ponto é separador
- *  de milhar, e centavos não mudam a identidade do preço. */
-function aNumero(bruto: string): number | null {
-  const limpo = bruto.replace(/,\d{1,2}$/, "").replace(/[.,\s]/g, "");
-  if (!/^\d+$/.test(limpo)) return null;
-  const n = Number(limpo);
-  return Number.isFinite(n) ? n : null;
-}
-
-const VALOR_NA_FALA = /r\$\s*([\d.,]+)|(\d[\d.,]*)\s*reais/gi;
-
 /**
  * Os valores citados num texto que NÃO existem no catálogo da casa.
  *
@@ -111,21 +111,23 @@ const VALOR_NA_FALA = /r\$\s*([\d.,]+)|(\d[\d.,]*)\s*reais/gi;
  * — e é isso que produz "Plano Starter R$ 1.200/mês" na tela de um prospect.
  *
  * FAIL-CLOSED de propósito: valor que este leitor não consegue interpretar
- * **entra na lista**. Número ilegível numa fala comercial é exatamente o caso
- * que ninguém quer deixar passar por omissão do parser.
+ * **entra na lista** (como `NaN`). Número ilegível numa fala comercial é
+ * exatamente o caso que ninguém quer deixar passar por omissão do parser.
+ *
+ * ⚠️ Desde 16/08/2026 (terceira passada) ele enxerga **grafia sem `R$`**:
+ * "fica em 1.200 por mês" e "em torno de 1.850 mensais" eram invisíveis aqui e
+ * na trava do servidor. Ver `leitor-de-valor.ts`.
  */
 export function precosForaDoCatalogo(texto: string): number[] {
   if (typeof texto !== "string" || !texto) return [];
   const autorizados = valoresAutorizados();
   const fora: number[] = [];
-  for (const m of texto.matchAll(VALOR_NA_FALA)) {
-    const n = aNumero(m[1] ?? m[2] ?? "");
-    if (n === null) {
-      // Ilegível: sinaliza com NaN em vez de sumir em silêncio.
+  for (const v of valoresMonetarios(texto)) {
+    if (Number.isNaN(v.valor)) {
       fora.push(Number.NaN);
       continue;
     }
-    if (!autorizados.has(n)) fora.push(n);
+    if (!autorizados.has(v.valor)) fora.push(v.valor);
   }
   return fora;
 }
@@ -133,6 +135,19 @@ export function precosForaDoCatalogo(texto: string): number[] {
 /** Atalho de leitura para o portão. */
 export function citaPrecoInventado(texto: string): boolean {
   return precosForaDoCatalogo(texto).length > 0;
+}
+
+/**
+ * A fala cita alguma coisa que a casa não pratica — preço OU nome de plano.
+ *
+ * ⚠️ O NOME É METADE DO PORTÃO, e por dois anos ele não foi olhado. Medido por
+ * `qualidade` em 16/08: `falaSegura("Plano Starter: R$ 790/mês.")` **passava
+ * intacta**, porque 790 é do catálogo. Um portão que só confere número deixa o
+ * incidente original — o plano fantasma — voltar com um preço legítimo colado
+ * nele, que é a forma mais convincente possível de mentir.
+ */
+export function foraDoCatalogo(texto: string): { precos: number[]; planos: string[] } {
+  return { precos: precosForaDoCatalogo(texto), planos: nomesDePlanoForaDoCatalogo(texto) };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -155,16 +170,25 @@ export function citaPrecoInventado(texto: string): boolean {
 
 export interface FalaAprovada {
   texto: string;
-  /** true = o texto original foi RECUSADO por citar preço fora do catálogo. */
+  /** true = o texto original foi RECUSADO por citar preço OU plano fora do catálogo. */
   substituida: boolean;
   /** Os valores sem lastro que causaram a recusa — para o log, nunca para a tela. */
   valoresSemLastro: number[];
+  /** Os nomes de plano sem lastro. Lista fechada de nomes, nunca frase do cliente. */
+  planosSemLastro: string[];
 }
 
 export function falaSegura(texto: string, nome?: string | null): FalaAprovada {
-  const fora = precosForaDoCatalogo(texto);
-  if (fora.length === 0) return { texto, substituida: false, valoresSemLastro: [] };
-  return { texto: respostaHonestaDePreco(nome).texto, substituida: true, valoresSemLastro: fora };
+  const { precos, planos } = foraDoCatalogo(texto);
+  if (precos.length === 0 && planos.length === 0) {
+    return { texto, substituida: false, valoresSemLastro: [], planosSemLastro: [] };
+  }
+  return {
+    texto: respostaHonestaDePreco(nome).texto,
+    substituida: true,
+    valoresSemLastro: precos,
+    planosSemLastro: planos,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -253,13 +277,7 @@ export function marcaDoVazamento(fala: string): MarcaDoVazamento {
 
 /** Todo valor monetário citado num texto, já normalizado a número. */
 export function valoresCitados(texto: string): number[] {
-  if (typeof texto !== "string" || !texto) return [];
-  const valores: number[] = [];
-  for (const m of texto.matchAll(VALOR_NA_FALA)) {
-    const n = aNumero(m[1] ?? m[2] ?? "");
-    if (n !== null) valores.push(n);
-  }
-  return valores;
+  return valoresCitadosNoTexto(texto).filter((n) => !Number.isNaN(n));
 }
 
 /**
@@ -269,6 +287,20 @@ export function valoresCitados(texto: string): number[] {
  * desconto, que não é eco de coisa alguma) e quando qualquer um dos números não
  * tem origem no que o cliente disse. Fail-closed na direção certa: a dúvida cai
  * na fala honesta, que é a resposta segura.
+ *
+ * ⚠️ **`ditoPeloCliente` é O QUE O CLIENTE FALOU, e nada além disso.**
+ *
+ * ── O falso positivo de 16/08/2026, terceira passada (`qualidade`) ───────────
+ * A rota alimentava esta função com `scope.budgetRange` — que **não é fala do
+ * cliente**: é o RÓTULO da faixa, escrito por esta casa em `negociacao.ts`
+ * ("entre R$ 500 e R$ 1.500"). Medido: o cliente diz 300, o rótulo traz 500, e
+ * uma fala do SDR com "R$ 500" é carimbada como eco. Custo real: quem perguntou
+ * o preço ouve a próxima pergunta do roteiro em vez da fala honesta.
+ *
+ * Limite conhecido do número dito pelo cliente e AINDA aceito: `monthlyAdBudget`
+ * também saiu da lista, porque quem o preenche é o modelo — é leitura do que o
+ * cliente disse, não o que ele disse. Quando o cliente informa a verba, o número
+ * está no histórico de mensagens do mesmo jeito, que é a fonte que ficou.
  */
 export function ecoDoCliente(falaRecusada: string, ditoPeloCliente: (string | null | undefined)[]): boolean {
   const daFala = valoresCitados(falaRecusada);
@@ -312,10 +344,52 @@ interface EscopoComparavel {
 
 /** Alguma cadência caiu, ou o tráfego pago foi desligado, entre antes e depois. */
 export function escopoEncolheu(antes: EscopoComparavel, depois: EscopoComparavel): boolean {
-  const caiu = (a?: number, d?: number) => typeof a === "number" && typeof d === "number" && d < a;
-  if (caiu(antes.social?.postsPerWeek, depois.social?.postsPerWeek)) return true;
-  if (caiu(antes.social?.storiesPerWeek, depois.social?.storiesPerWeek)) return true;
-  if (caiu(antes.social?.reelsPerMonth, depois.social?.reelsPerMonth)) return true;
-  if (antes.wantsPaidTraffic === true && depois.wantsPaidTraffic === false) return true;
-  return false;
+  return resumoDoCorte(antes, depois) !== null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. O AVISO DO CORTE — a frase que a casa DEVE ao cliente quando encolhe
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// ── B4 REABERTO em 16/08/2026, terceira passada (`qualidade`) ────────────────
+//
+// A rodada anterior fechou B4 **só no ramo `price_leak`** — o ramo raro.
+// `escopoEncolheu` tinha UM call site, dentro dele. No caminho PRINCIPAL (o
+// modelo responde) o front mantinha `ruleResult.conv.scope` **já cortado**,
+// mostrava a fala do modelo e descartava `ruleAssistant.text`, que era a única
+// frase que descrevia o corte.
+//
+// Caso concreto e comum: o prospect clica em "Começar menor", o motor corta
+// posts para 2, stories para 2, reels para 0 e desliga o tráfego pago, o modelo
+// responde sem citar preço — e o painel cai de 20 para 8 posts/mês **sem uma
+// palavra na tela**.
+//
+// ⚠️ A justificativa da rodada anterior para não desfazer o corte ERA FALSA, e
+// isso está registrado: `prospect-engine.ts` roda `detectNegotiation` e
+// `currentQ.parse` em ramos `if/else` — quando a negociação casa, a extração
+// **não roda**. Não havia extração a perder.
+//
+// ── POR QUE AVISAR, E NÃO DESFAZER ──────────────────────────────────────────
+// Quem clicou em "Começar menor" PEDIU o corte. Desfazê-lo tornaria o botão
+// decorativo. O defeito nunca foi o corte: foi o silêncio. Esta função devolve a
+// frase determinística que descreve o que mudou — **sem preço, sem nome de
+// plano, sem inferência** — e o front a renderiza como nota de sistema em TODOS
+// os caminhos, inclusive quando quem fala é o modelo.
+
+/** Uma linha por coisa que encolheu, em linguagem de cliente. `null` = nada caiu. */
+export function resumoDoCorte(antes: EscopoComparavel, depois: EscopoComparavel): string | null {
+  const partes: string[] = [];
+  const porMes = (a: number | undefined, d: number | undefined, nome: string, fator: number) => {
+    if (typeof a !== "number" || typeof d !== "number" || d >= a) return;
+    if (d === 0) partes.push(`${nome} saíram do escopo`);
+    else partes.push(`${nome} de ${a * fator} para ${d * fator}/mês`);
+  };
+  porMes(antes.social?.postsPerWeek, depois.social?.postsPerWeek, "posts", 4);
+  porMes(antes.social?.storiesPerWeek, depois.social?.storiesPerWeek, "stories", 4);
+  porMes(antes.social?.reelsPerMonth, depois.social?.reelsPerMonth, "reels", 1);
+  if (antes.wantsPaidTraffic === true && depois.wantsPaidTraffic === false) {
+    partes.push("tráfego pago saiu do escopo");
+  }
+  if (partes.length === 0) return null;
+  return `Escopo ajustado: ${partes.join(" · ")}.`;
 }

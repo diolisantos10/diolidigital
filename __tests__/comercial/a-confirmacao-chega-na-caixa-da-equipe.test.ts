@@ -117,3 +117,70 @@ describe("a confirmação do briefing na caixa de entrada da equipe", () => {
     expect(conversas[0].total).toBe(1);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ⛔ O LADO QUE FALTAVA: O GRAVADOR (16/08/2026, terceira passada)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// `qualidade` desmontou o portão acima em uma frase: **ele mocka o prisma
+// inteiro.** Toda a prova é sobre o LEITOR (`GET /api/messages` consulta por
+// `clientRequestId`) — e o leitor consulta o que o teste mandou o mock devolver.
+//
+// Consequência medida: **trocar o gravador de `clientRequestId` para `clientId`
+// deixa o teste verde e a mensagem some da caixa.** A âncora é justamente o que
+// torna a confirmação visível, porque no instante do briefing ainda não existe
+// ficha de cliente — `clientId` é NULO.
+//
+// A prova abaixo é sobre o PAYLOAD QUE VAI PARA O BANCO, e ela fecha a volta:
+// o campo que o gravador escreve é o mesmo campo pelo qual o leitor pergunta.
+
+describe("o GRAVADOR ancora a confirmação em `clientRequestId` — e é isso que a torna visível", () => {
+  it("🔴 grava com `clientRequestId`, `clientId` ausente, e como mensagem da EQUIPE", async () => {
+    const create = vi.fn().mockResolvedValue({ id: "pm1" });
+    vi.doMock("@/lib/db/client", () => ({ prisma: { portalMessage: { create } } }));
+    vi.resetModules();
+
+    // O gravador mora em `lib/` (e não dentro do `route.ts`) justamente para
+    // este portão poder importá-lo: arquivo de rota do App Router não pode
+    // exportar função que não seja verbo HTTP.
+    const { registrarConfirmacaoNoPortal } = await import("@/lib/agency/comercial/confirmacao-no-portal");
+    await registrarConfirmacaoNoPortal({
+      clientRequestId: "cr-lead",
+      services: ["Social Media"],
+      anexos: 0,
+      temComoFalar: true,
+    });
+
+    expect(create).toHaveBeenCalledTimes(1);
+    const dados = create.mock.calls[0]![0].data as Record<string, unknown>;
+
+    // A ÂNCORA. Se isto virar `clientId`, a mensagem some da caixa da equipe.
+    expect(dados.clientRequestId, "a confirmação deixou de ser ancorada na solicitação").toBe("cr-lead");
+    expect(dados.clientId, "gravar `clientId` no briefing público é inventar ficha que não existe").toBeUndefined();
+    expect(dados.authorRole).toBe("team");
+    expect(String(dados.body)).toContain("Recebemos seu briefing");
+
+    vi.doUnmock("@/lib/db/client");
+    vi.resetModules();
+  });
+
+  it("gravador e leitor perguntam pelo MESMO campo — a volta fecha", async () => {
+    // O leitor: já provado acima (`groupBy` com `{ clientRequestId: { in: [...] } }`).
+    // Aqui a prova é textual e barata, e existe para nomear o par: se um dos dois
+    // mudar de campo sem o outro, a confirmação vira linha invisível no banco.
+    const { readFileSync } = await import("node:fs");
+    const path = await import("node:path");
+    const gravador = readFileSync(
+      path.join(process.cwd(), "app/api/brain/client-requests/route.ts"),
+      "utf8",
+    );
+    const leitor = readFileSync(path.join(process.cwd(), "app/api/messages/route.ts"), "utf8");
+    const modulo = readFileSync(
+      path.join(process.cwd(), "lib/agency/comercial/confirmacao-no-portal.ts"),
+      "utf8",
+    );
+    expect(modulo).toContain("clientRequestId: input.clientRequestId");
+    expect(gravador).toContain("registrarConfirmacaoNoPortal({");
+    expect(leitor).toContain("clientRequestId");
+  });
+});

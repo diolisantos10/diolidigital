@@ -23,22 +23,44 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { runSystemDoctor, CHECK_GROUP_ORDER } from "@/lib/agency/system-doctor";
+import { seloDoGrupo } from "@/lib/agency/diagnostico/selo-do-grupo";
 
 const VAZIO = {
   clients: [], projects: [], deliverables: [], materialRequests: [],
   strategyRooms: [], persisted: false,
 } as never;
 
-/** O MESMO recorte que a tela faz: `CHECK_GROUP_ORDER.map().filter()`. */
+/** O MESMO recorte que a tela faz: `CHECK_GROUP_ORDER.map().filter()`.
+ *
+ *  ⚠️ Isto REIMPLEMENTA o recorte, e por isso não basta sozinho: apagar o bloco
+ *  de render da tela deixaria tudo verde aqui. O teste
+ *  `a tela desenha pelo `CHECK_GROUP_ORDER`` (mais abaixo) é a metade que
+ *  afirma que a tela usa a regra — sem ele esta função é fachada. */
 function oQueATelaDesenha(entrada: object) {
   const { checks } = runSystemDoctor({ ...(VAZIO as object), ...entrada } as never);
   return CHECK_GROUP_ORDER.flatMap((grupo) => checks.filter((c) => c.group === grupo));
 }
 
+/** As entradas que produzem estados DIFERENTES do Doctor. O teste de grupo
+ *  órfão rodava só com `VAZIO` — e grupo condicional só aparece com a entrada
+ *  que o liga, então o órfão de amanhã pode nascer justamente fora do vazio. */
+const ENTRADAS = [
+  ["agência zerada", {}],
+  ["com sincronização de dados", { dbSyncStatus: { clients: "db", projects: "db" } }],
+  ["com canal de e-mail LIGADO", { canalDeEmail: { ligado: true, resumo: "ok", comoResolver: "" } }],
+  ["com canal de e-mail DESLIGADO", { canalDeEmail: { ligado: false, resumo: "off", comoResolver: "x" } }],
+  ["com sessão e banco vivos", { dbAvailable: true, authMode: "real", sessionActive: true, sessionUser: "a@b.c" }],
+  ["com tudo junto", {
+    dbSyncStatus: { clients: "db", projects: "db" },
+    canalDeEmail: { ligado: true, resumo: "ok", comoResolver: "" },
+    dbAvailable: true, authMode: "real", sessionActive: true,
+  }],
+] as const;
+
 describe("nenhuma checagem fica fora da tela", () => {
   // ── A CLASSE INTEIRA DO DEFEITO ───────────────────────────────────────────
-  it("todo grupo EMITIDO está na ordem de renderização", () => {
-    const { checks } = runSystemDoctor({ ...(VAZIO as object), canalDeEmail: undefined } as never);
+  it.each(ENTRADAS)("todo grupo EMITIDO está na ordem de renderização — %s", (_caso, entrada) => {
+    const { checks } = runSystemDoctor({ ...(VAZIO as object), ...(entrada as object) } as never);
     const emitidos = [...new Set(checks.map((c) => c.group))];
     const orfaos = emitidos.filter((g) => !CHECK_GROUP_ORDER.includes(g));
     expect(
@@ -143,5 +165,96 @@ describe("a tela de diagnóstico lê o canal de e-mail de verdade", () => {
       "utf8",
     );
     expect(operacao).toContain('c.id === "avisar-cliente-por-email"');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ⛔ "NÃO SEI" PINTADO DE VERDE — o bloqueante D4
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// `app/agency/settings/page.tsx` calculava a cor do cabeçalho do grupo com
+// `fail` e `warn` apenas — senão, "pass". Com o `fetch` de `/api/capacidades`
+// falhando, a checagem do canal de e-mail vira `info` ("não consegui conferir")
+// e o grupo aparecia com **bolinha verde e selo "0 ok"**, colapsado. A frase
+// que explica que ninguém mediu ficava atrás de um clique, sob um verde.
+//
+// O portão anterior não pegava isso: ele só conferia que o `catch` do fetch não
+// chamava `setCanalDeEmail`. Confere a ENTRADA da informação, não a SAÍDA na
+// tela — e o defeito estava na saída.
+
+describe("o diagnóstico não pinta 'não consegui conferir' de verde", () => {
+  // ── METADE 1: O ESTADO DO BLOQUEANTE, REPRODUZIDO ─────────────────────────
+  it("🔴 grupo com só `info` NÃO é verde, e o selo diz que não foi conferido", () => {
+    const selo = seloDoGrupo([{ status: "info" }]);
+    expect(selo.status, "'não sei' voltou a ser pintado de aprovado").toBe("info");
+    expect(selo.status).not.toBe("pass");
+    expect(selo.selos.map((s) => s.texto)).toEqual(["1 não conferido"]);
+    // O selo "0 ok" — a frase exata do defeito — não pode existir.
+    expect(selo.selos.some((s) => s.texto.startsWith("0 "))).toBe(false);
+  });
+
+  it("🔴 o estado EXATO da tela quando o fetch falha: e-mail `info`, grupo não verde", () => {
+    const { checks } = runSystemDoctor({ ...(VAZIO as object), canalDeEmail: undefined } as never);
+    const doGrupo = checks.filter((c) => c.group === "Comunicação com o cliente");
+    expect(doGrupo.length).toBeGreaterThan(0);
+    expect(doGrupo.some((c) => c.id === "aviso-por-email-ao-cliente" && c.status === "info")).toBe(true);
+    expect(seloDoGrupo(doGrupo).status).not.toBe("pass");
+  });
+
+  it("`info` misturado com `pass` continua fora do verde, e os DOIS selos aparecem", () => {
+    const selo = seloDoGrupo([{ status: "pass" }, { status: "pass" }, { status: "info" }]);
+    expect(selo.status).toBe("info");
+    expect(selo.selos.map((s) => s.texto)).toEqual(["1 não conferido", "2 ok"]);
+  });
+
+  // ── METADE 2: O VERDE CONTINUA EXISTINDO ONDE ELE É VERDADE ───────────────
+  it("grupo medido e são continua VERDE — a regra não achata a tela", () => {
+    const selo = seloDoGrupo([{ status: "pass" }, { status: "pass" }]);
+    expect(selo.status).toBe("pass");
+    expect(selo.selos).toEqual([{ tom: "pass", texto: "2 ok" }]);
+  });
+
+  it("falha e atenção continuam vencendo o 'não conferido'", () => {
+    expect(seloDoGrupo([{ status: "fail" }, { status: "info" }]).status).toBe("fail");
+    expect(seloDoGrupo([{ status: "warning" }, { status: "info" }]).status).toBe("warning");
+  });
+
+  it("grupo vazio não inventa selo nenhum", () => {
+    expect(seloDoGrupo([]).selos).toEqual([]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A TELA USA A REGRA — a metade que o portão anterior não tinha
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// `qualidade`: *"o teste REIMPLEMENTA o filtro em vez de afirmar que a tela
+// chama `CHECK_GROUP_ORDER.map` — apagar o bloco de render deixa o teste
+// verde."* Estava certa. Estas asserções são sobre a TELA, não sobre uma cópia
+// da lógica dela.
+
+describe("a tela de diagnóstico usa as regras, não uma cópia delas", () => {
+  const pagina = readFileSync(path.join(process.cwd(), "app/agency/settings/page.tsx"), "utf8");
+
+  it("desenha os grupos por `CHECK_GROUP_ORDER.map` — apagar o bloco quebra aqui", () => {
+    expect(pagina).toContain("CHECK_GROUP_ORDER.map(");
+    // E o resultado é realmente percorrido no JSX.
+    expect(pagina).toContain("grouped.map(");
+  });
+
+  it("a cor e o selo do grupo saem de `seloDoGrupo`, não de um ternário local", () => {
+    expect(pagina).toContain('import { seloDoGrupo } from "@/lib/agency/diagnostico/selo-do-grupo"');
+    expect(pagina).toContain("const selo = seloDoGrupo(gChecks)");
+    expect(pagina).toContain("selo.selos.map(");
+    // O ternário do bloqueante não voltou.
+    expect(
+      pagina.includes('groupWarn > 0 ? "warning" : "pass"'),
+      "o ternário que pintava `info` de verde voltou para a tela",
+    ).toBe(false);
+  });
+
+  it("o resumo do topo declara o que NÃO foi conferido — não fica atrás de um clique", () => {
+    expect(pagina).toContain("{info > 0 && (");
+    expect(pagina).toContain("NÃO conseguiu conferir");
   });
 });

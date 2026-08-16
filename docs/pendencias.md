@@ -15,6 +15,189 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — TERCEIRA PASSADA: `qualidade` REPROVOU O AR E OS 8 VOLTARAM
+
+**Branch `claude/piloto-rodada2-trava-e-confirmacao`. Veredito da rodada anterior
+(`ef96035`): NÃO vai ao ar. Dois consertos pareciam consertados e não eram, e o
+achado maior ninguém tinha visto.**
+
+> ### 🔴 A LIÇÃO DA RODADA, E ELA É DO `pm`
+>
+> O botão "Plano Starter" foi consertado, o comentário do código afirmou que ele
+> "tem caminho de render" — e o **selo com o mesmo nome, na mesma tela, na mesma
+> árvore de componentes**, vindo de outro arquivo, ficou de pé. O portão grepava
+> `QUICK_ACTIONS`; o defeito morava em `live-calculator.ts`.
+>
+> **Portão que vigia onde você olhou não é portão — é a sua atenção com nome de
+> mecanismo.** A régua desta rodada passou a ser: portão sobre o que
+> **RENDERIZA** e o que **PERSISTE**, nunca sobre o que se digita.
+
+### 🔴 D1 — O PLANO FANTASMA ESTAVA DESENHADO NA TELA DO PROSPECT
+
+`live-calculator.ts:61` definia `label: "Plano Starter"`; `PublicBriefingRoom`
+fazia `pkgLabel = pkg.label` e desenhava um selo rotulado **"Plano"** dentro de
+`ScopeSection`. **Disparava para qualquer prospect com 15–24 posts/mês.** E
+viajava para o registro: `buildTitle` empurrava o rótulo para o `title`, e
+"Orçamento — <negócio> — Plano Starter" chegava à caixa da equipe e ao portal.
+
+**Conserto na FONTE:** os cinco rótulos de `SOCIAL_PACKAGES` deixaram de nomear
+produto e passaram a descrever **cadência** ("5 posts/semana"). Quem nomeia
+produto é `lib/agency/planos.ts`, e só ele. O selo da tela virou "Cadência".
+
+**Portão novo — `__tests__/comercial/o-plano-fantasma-nao-chega-na-tela.test.ts`:**
+monta `ScopeSection` com `renderToStaticMarkup` para **as 20 cadências
+possíveis**, monta `buildTitle` e `computeEstimate`, e varre a SAÍDA com
+`nomesDePlanoForaDoCatalogo`. Pega nome que ninguém previu ("Plano Turbo"), e
+**não** derruba os cinco planos de verdade nem "plano mais simples".
+
+### 🔴 D2 — B4 CONTINUAVA ABERTO NO CAMINHO PRINCIPAL
+
+`escopoEncolheu` tinha **um único call site**, dentro do ramo `price_leak` — o
+ramo raro. No caminho normal o front mantinha o escopo já cortado, mostrava a
+fala do modelo e descartava a única frase que descrevia o corte. O prospect
+clicava em "Começar menor" e o painel caía de 20 para 8 posts/mês **sem uma
+palavra**.
+
+⚠️ **A justificativa da rodada anterior para não desfazer o corte era FALSA.**
+`prospect-engine.ts:293-299` é `if/else`: quando `detectNegotiation` casa,
+`currentQ.parse` **não roda**. Não havia extração a perder. O registro fica
+travado em teste para que a próxima decisão seja tomada sobre o mecanismo.
+
+**Escolha: AVISAR, não desfazer** — quem clicou em "Começar menor" PEDIU o corte;
+desfazê-lo tornaria o botão decorativo. `resumoDoCorte()` produz a frase
+determinística ("Escopo ajustado: posts de 20 para 8/mês · reels saíram do
+escopo · tráfego pago saiu do escopo."), sem preço e sem nome de plano, e ela
+entra nos **três** caminhos do turno. **Caminho de render provado:** o teste
+monta `MessageBubble` com a nota e confere o texto no HTML.
+
+### 🔴 D3 — O LEITOR DE VALOR ERA CEGO, NOS DOIS LADOS
+
+Medido antes: `falaSegura("...fica em 1.200 por mês.")` → `substituida: false`.
+`falaSegura("Plano Starter: R$ 790/mês.")` → passava (790 é do catálogo, e **o
+nome ninguém olhava**). E a trava do servidor tinha a mesma cegueira: "Fica em
+1.200 por mês." e "Fica em torno de 1.850 mensais." **não disparavam** —
+atravessavam o servidor e, por exceção declarada, não passam por `falaSegura`.
+
+**`lib/agency/comercial/leitor-de-valor.ts` é o leitor ÚNICO** (havia dois, e
+divergiram). Ele lê grafia sem `R$` (número solto com pista de preço na mesma
+frase, com piso de 50 e lista de unidades que barram "20 posts") e lê **nome de
+plano**. A trava da rota deixou de ser regex à mão e passa a chamar
+`falaEmDinheiro` — a MESMA função da exceção da faixa.
+
+Medido depois — os quatro casos da auditoria:
+
+| fala | `falaSegura` | trava do servidor |
+|---|---|---|
+| "…Plano Starter, que fica em 1.200 por mês." | substituída (preço 1200 · plano Starter) | dispara |
+| "Plano Starter: R$ 790/mês." | substituída (**plano Starter**) | dispara |
+| "Fica em 1.200 por mês." | substituída (1200) | dispara |
+| "Fica em torno de 1.850 mensais." | substituída (1850) | dispara |
+
+**O CONTRAFACTUAL QUE NÃO TINHA EXECUTADO, agora executa e está verde:** a
+pergunta da faixa **sem cifrão** ("até 150, entre 150 e 500, …") é reconhecida
+por `ehPerguntaDeFaixa` (`true`) e **não** derruba a trava. Foi para isso que os
+dois leitores viraram um: ampliar a trava sem ampliar a exceção teria matado a
+terceira pergunta da conversa. Cotação sem cifrão continua barrada.
+
+### 🔴 D4 — A TELA DE DIAGNÓSTICO PINTAVA "NÃO SEI" DE VERDE
+
+`groupSummaryStatus` era `fail ? … : warn ? … : "pass"`. Com o `fetch` de
+`/api/capacidades` falhando, a checagem vira `info` e o grupo aparecia com
+**bolinha verde e selo "0 ok"**, colapsado. A regra da casa violada na tela que
+existe para aplicá-la.
+
+Conserto: `lib/agency/diagnostico/selo-do-grupo.ts` — precedência **falha >
+atenção > não conferido > ok**, selo "N não conferidos", e o selo "0 ok" deixou
+de poder existir. O "não conseguimos conferir" subiu para o **resumo do topo**,
+fora do clique.
+
+### 🔴 D5 — OS CINCO PORTÕES FROUXOS, REFEITOS
+
+- **Botões:** `QUICK_ACTIONS` saiu do `.tsx` e virou `ACOES_DE_ESCOPO`
+  (`lib/agency/comercial/acoes-do-escopo.ts`). O portão **importa o mesmo array
+  que a tela renderiza** (fim do regex de aspas duplas fatiando até um
+  comentário) e cada botão declara o `efeito` prometido — a asserção é sobre o
+  **escopo resultante**, não sobre `!== null`. Há caso plantado que prova que o
+  portão pega o botão que faz o oposto do rótulo.
+- **Plano fantasma:** o `not.toContain` em recorte de 2000 caracteres virou o
+  portão de render/persistência de D1.
+- **Diagnóstico:** deixou de reimplementar o filtro — afirma que a tela chama
+  `CHECK_GROUP_ORDER.map` e `seloDoGrupo`; o teste de grupo órfão roda com
+  **seis entradas**, não só `VAZIO`.
+- **Confirmação:** o gravador saiu do `route.ts` para
+  `lib/agency/comercial/confirmacao-no-portal.ts` (rota do App Router não exporta
+  função que não é verbo HTTP) e o portão passa a afirmar o **payload que vai ao
+  banco**: `clientRequestId` presente, `clientId` ausente, `authorRole: "team"`.
+  Trocar a âncora agora quebra.
+- **Log da trava:** o portão varre **toda** chamada `console.*` da rota, com
+  parênteses balanceados, e reprova qualquer uma que carregue texto livre. O
+  `pareciaPerguntaDeFaixa` foi calculado fora da chamada de log de propósito.
+
+### 🟠 D6 · D7 — O CÓDIGO MORTO QUE COTAVA A TERCEIRA TABELA
+
+`buildScopeAdjustmentConfirmation` **não chegava ao prospect** (zero call sites)
+e o teste afirmava que chegava. **Removida.** Removidos também `EstimateSection`,
+`ProposalCard` e `EmailFallbackForm` do briefing público — sem chamador, e os
+dois últimos imprimiam os totais do `live-calculator`. Restos do fantasma
+limpos em `strategy-room.ts`, `training/dynamic-scenario-generator.ts` e nos dois
+componentes sem chamador (`BriefingRoomV2`, `SDRSimulator`).
+
+### 🟢 C3 — O ECO DEIXOU DE CONTAR O RÓTULO DA CASA COMO FALA DO CLIENTE
+
+A rota alimentava `ecoDoCliente` com `scope.budgetRange` — que é o **rótulo da
+faixa escrito por esta casa**. Cliente diz 300, o rótulo traz 500, e uma fala com
+R$ 500 virava eco. Saiu, junto com `traffic.monthlyAdBudget` (quem preenche é o
+modelo). A fonte passou a ser **só a mensagem do cliente e o histórico dele**.
+
+### ⚠️ D8 — O NÚMERO DE AVISOS DO BUILD NÃO É UM NÚMERO
+
+Medido nesta rodada, mesma árvore, mesmo comando: **7** em build limpo
+(`rm -rf .next`), **8 · 6 · 5** em três builds incrementais seguidos. `qualidade`
+mediu 4 e 5; a rodada anterior relatou 7. **Ninguém contou errado — a contagem do
+Turbopack oscila entre execuções.** O invariante que vale relatar é outro, e esse
+é estável: **os avisos são todos de `instrumentation.ts` →
+`lib/agency/media/armazenamento.ts` → `app/api/media/route.ts` e do NFT de
+`next.config.ts`; nenhum arquivo desta frente aparece em trace nenhum.**
+
+### Portão
+
+`npx tsc --noEmit` limpo · **4636 testes em 292 arquivos, todos verdes** ·
+`npm run build` sai **0** (`.next/standalone` presente, então o `skipIf` do
+navegador RODOU).
+
+### ⚠️ SUPERFÍCIE DE BRIEFING TOCADA — declarada, como combinado
+
+`components/agency/briefing/PublicBriefingRoom.tsx` ·
+`components/agency/briefing/BriefingRoomV2.tsx` (sem chamador) ·
+`lib/agency/comercial/acoes-do-escopo.ts` (novo) ·
+`lib/agency/comercial/confirmacao-no-portal.ts` (novo) ·
+`app/api/brain/client-requests/route.ts` · `app/api/sdr/chat/route.ts` ·
+`lib/agency/live-calculator.ts` · `lib/agency/comercial/resposta-de-preco.ts` ·
+`lib/agency/comercial/negociacao.ts` · `lib/agency/sdr-agent.ts`.
+**`app/briefing/`, `lib/agency/esteira/triagem.ts` e `lib/agency/top-down.ts` não
+foram tocados.**
+
+### 🔴 O QUE CONTINUA ABERTO
+
+- [ ] **CEO** — as três portas de preço no prompt (B8) e a régua de faixas.
+- [ ] **CEO/`qualidade`** — 🔴 **o `live-calculator` continua sendo uma TERCEIRA
+      TABELA DE PREÇO.** O NOME fantasma morreu; os **valores** (600–900,
+      900–1.400, …) continuam sem lastro em `planos.ts`. Não os alinhei porque
+      **preço é decisão de dono do negócio, não de portão** — inventar o
+      alinhamento seria repetir o erro em outra direção. Hoje eles não chegam à
+      tela do prospect (o painel de estimativa foi removido), mas **persistem**
+      em `v2Estimate` e alimentam o dossiê interno de `/agency/leads`.
+- [ ] `esteira` — briefing novo não acende badge nenhum.
+- [ ] `plataforma` — solicitação órfã (sem workspace) some da caixa de entrada.
+- [ ] `experiencia` — `app/briefing/page.tsx:133` promete "estimativa de
+      investimento" que o sistema não entrega. **Área de outra sessão: só
+      relatado, não tocado** — e agora com um agravante, porque o cartão de
+      estimativa saiu do painel público nesta rodada.
+- [ ] `plataforma` — **a contagem de avisos do build oscila entre execuções.**
+      Enquanto oscilar, ela não serve como portão de nada.
+
+---
+
 ## 🟢 16/08/2026 — A PASSADA ADVERSARIAL DE `qualidade` REPROVOU 4 COISAS DA RODADA 2, E AS 4 VOLTARAM CONSERTADAS
 
 **Branch `claude/piloto-rodada2-trava-e-confirmacao`. O commit anterior (`a328167`)

@@ -26,6 +26,7 @@ import { ZerarAAgencia } from "@/components/agency/ZerarAAgencia";
 import Button from "@/components/agency/ui/Button";
 import { runSystemDoctor, CHECK_GROUP_ORDER, type DiagnosticReport, type CheckStatus, type CheckSeverity } from "@/lib/agency/system-doctor";
 import { getPilotDataStatus } from "@/lib/agency/readiness";
+import { seloDoGrupo } from "@/lib/agency/diagnostico/selo-do-grupo";
 
 // ─── Status / severity display maps ──────────────────────────────────────────
 
@@ -384,6 +385,20 @@ export default function SettingsPage() {
                     <span className="font-semibold text-[var(--navy)]">{info}</span> info
                   </span>
                 </div>
+                {/* "Não consegui conferir" sobe para o RESUMO, não fica atrás de
+                    um clique. Sem isto, uma tela com 12 checagens não medidas
+                    parece uma tela sem problema nenhum. */}
+                {info > 0 && (
+                  <div className="flex items-start gap-2 bg-[var(--accent-light)] rounded-[7px] px-3 py-2 mb-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--navy)] shrink-0 mt-[5px]" />
+                    <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed flex-1">
+                      <span className="font-medium text-[var(--text-primary)]">
+                        {info} checagem{info > 1 ? "s" : ""} que a casa NÃO conseguiu conferir.
+                      </span>{" "}
+                      Isto não quer dizer que está tudo certo — quer dizer que ninguém mediu.
+                    </p>
+                  </div>
+                )}
                 {(fail > 0 || warning > 0) && (
                   <div className="flex items-start gap-2 bg-[var(--bg)] rounded-[7px] px-3 py-2">
                     <svg className="w-3.5 h-3.5 text-[var(--warning)] shrink-0 mt-0.5" viewBox="0 0 16 16" fill="none">
@@ -403,11 +418,14 @@ export default function SettingsPage() {
           <div className="divide-y divide-[var(--border)]">
             {grouped.map(({ group, checks: gChecks }) => {
               const isOpen = expandedGroup === group;
-              const groupFail = gChecks.filter((c) => c.status === "fail").length;
-              const groupWarn = gChecks.filter((c) => c.status === "warning").length;
-              const groupPass = gChecks.filter((c) => c.status === "pass").length;
-              const groupSummaryStatus: CheckStatus =
-                groupFail > 0 ? "fail" : groupWarn > 0 ? "warning" : "pass";
+              // ── A COR E OS SELOS SAEM DE `seloDoGrupo`, não de um ternário
+              //    escrito aqui (16/08/2026, terceira passada) ────────────────
+              //
+              // O ternário anterior era `fail ? ... : warn ? ... : "pass"`, e o
+              // `info` — "não consegui conferir" — caía no `else` e virava
+              // VERDE, com selo "0 ok". Ver `lib/agency/diagnostico/selo-do-grupo.ts`.
+              const selo = seloDoGrupo(gChecks);
+              const groupSummaryStatus: CheckStatus = selo.status;
 
               return (
                 <div key={group}>
@@ -418,21 +436,14 @@ export default function SettingsPage() {
                     <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_COLOR[groupSummaryStatus].dot}`} />
                     <span className="flex-1 text-[13px] font-medium text-[var(--text-primary)]">{group}</span>
                     <div className="flex items-center gap-1.5">
-                      {groupFail > 0 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[#FEE2E2] text-[var(--danger)]">
-                          {groupFail} falha{groupFail > 1 ? "s" : ""}
+                      {selo.selos.map((sl) => (
+                        <span
+                          key={sl.tom}
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${STATUS_COLOR[sl.tom].badge}`}
+                        >
+                          {sl.texto}
                         </span>
-                      )}
-                      {groupWarn > 0 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[var(--warning-bg)] text-[var(--warning)]">
-                          {groupWarn} atenção
-                        </span>
-                      )}
-                      {groupFail === 0 && groupWarn === 0 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[var(--success-bg)] text-[var(--success)]">
-                          {groupPass} ok
-                        </span>
-                      )}
+                      ))}
                     </div>
                     <svg
                       width="12" height="12" viewBox="0 0 12 12" fill="none"

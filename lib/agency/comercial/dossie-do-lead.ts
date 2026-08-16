@@ -187,7 +187,7 @@ export function montarDossie(entrada: Entrada, agora: Date = new Date()): Dossie
         escopo.push({
           departamento: cat.name,
           item: "Plano de Social Media (a definir)",
-          detalhe: `Do ${SOCIAL_PACKAGES[0].label} ao ${SOCIAL_PACKAGES[SOCIAL_PACKAGES.length - 1].label} — a cadência não foi declarada`,
+          detalhe: `Da menor cadência (${SOCIAL_PACKAGES[0].label}) à maior (${SOCIAL_PACKAGES[SOCIAL_PACKAGES.length - 1].label}) — a cadência não foi declarada`,
           minimo: min,
           maximo: max,
           unidade: "mês",

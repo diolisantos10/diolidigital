@@ -21,6 +21,9 @@
 // passava o microfone para um script que inventava número.
 
 import { describe, it, expect } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MessageBubble } from "@/components/agency/briefing/PublicBriefingRoom";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { ehPerguntaDeFaixa } from "@/lib/agency/comercial/negociacao";
@@ -37,16 +40,26 @@ import {
   escopoEncolheu,
 } from "@/lib/agency/comercial/resposta-de-preco";
 import { PLANOS } from "@/lib/agency/planos";
-import { buildPriceObjectionReply, buildScopeAdjustmentConfirmation } from "@/lib/agency/sdr-agent";
+import { FAIXAS } from "@/lib/agency/comercial/negociacao";
+import { buildPriceObjectionReply } from "@/lib/agency/sdr-agent";
 import { detectNegotiation } from "@/lib/agency/question-engine";
 import { initConvState } from "@/lib/agency/question-engine";
+import { falaEmDinheiro } from "@/lib/agency/comercial/leitor-de-valor";
+import { resumoDoCorte } from "@/lib/agency/comercial/resposta-de-preco";
+import { ACOES_DE_ESCOPO } from "@/lib/agency/comercial/acoes-do-escopo";
 
-// O MESMO regex da rota. Copiado de propósito, com o teste que prova que é o
-// mesmo — assim afrouxar a rota quebra aqui em vez de passar despercebido.
-const PRICE_LEAK = /r\$\s*\d|\d+\s*(reais|\/m[êe]s\b)|desconto|\bplano\b.*\bR\$/i;
-
+// ⚠️ A TRAVA DEIXOU DE SER UM REGEX COPIADO (16/08/2026, terceira passada).
+//
+// Antes, este arquivo mantinha uma CÓPIA do regex da rota e um teste provando
+// que as duas grafias eram iguais. A cópia era fiel — e as duas eram CEGAS do
+// mesmo jeito: "Fica em 1.200 por mês." e "Fica em torno de 1.850 mensais."
+// atravessavam o servidor inteiro. Prova textual de igualdade não diz nada sobre
+// o que a régua enxerga.
+//
+// Agora o teste chama a MESMA FUNÇÃO que a rota chama. Não há cópia para
+// divergir, e ampliar (ou afrouxar) a régua muda os dois lados de uma vez.
 function travaDispara(fala: string): boolean {
-  return PRICE_LEAK.test(fala) && !ehPerguntaDeFaixa(fala);
+  return falaEmDinheiro(fala) && !ehPerguntaDeFaixa(fala);
 }
 
 describe("a trava de preço do SDR", () => {
@@ -58,16 +71,25 @@ describe("a trava de preço do SDR", () => {
       ["desconto",              "Consigo um desconto especial para você fechar hoje."],
       ["o plano fantasma",      "Posso ajustar para o Plano Starter (R$ 1.200–1.800/mês)."],
       ["dois limites só",       "Você investe até R$ 150 ou acima de R$ 500 por mês?"],
+      // ── AS DUAS CEGUEIRAS MEDIDAS POR `qualidade` EM 16/08 ─────────────────
+      // As duas ATRAVESSAVAM o servidor. E, por exceção declarada, a fala do
+      // modelo não passa por `falaSegura`: elas chegavam ao prospect sem portão
+      // nenhum no meio.
+      ["preço SEM cifrão",      "Posso ajustar para o plano mais simples, que fica em 1.200 por mês."],
+      ["preço por extenso",     "Fica em torno de 1.850 mensais."],
+      ["nome de plano fantasma","Plano Starter: R$ 790/mês."],
     ])("recusa: %s", (_caso, fala) => {
       expect(travaDispara(fala)).toBe(true);
     });
 
-    it("o regex da rota é ESTE regex — afrouxar lá quebra aqui", () => {
+    it("a rota chama ESTA função — não há segunda régua para divergir", () => {
       const rota = readFileSync(
         path.join(process.cwd(), "app/api/sdr/chat/route.ts"),
         "utf8",
       );
-      expect(rota).toContain(PRICE_LEAK.source);
+      expect(rota).toContain("falaEmDinheiro(replyText)");
+      // O regex escrito à mão não voltou pela porta dos fundos.
+      expect(rota).not.toContain("const PRICE_LEAK");
       // E a exceção continua sendo a estreita, não um `|| true` novo.
       expect(rota).toContain("ehPerguntaDeFaixa(replyText)");
     });
@@ -83,8 +105,49 @@ describe("a trava de preço do SDR", () => {
       expect(travaDispara(fala)).toBe(false);
     });
 
+    // ── O CONTRAFACTUAL QUE `qualidade` COBROU, E ELE AGORA EXECUTA ──────────
+    //
+    // Ampliar a trava para enxergar número SEM cifrão tinha um risco concreto e
+    // nomeado: derrubar a PERGUNTA DA FAIXA — a terceira pergunta da conversa,
+    // por decisão do CEO (05/08) — quando o modelo a escreve sem "R$".
+    //
+    // Antes desta rodada essa fala não disparava a trava por acidente (não tinha
+    // cifrão) e, se disparasse, `ehPerguntaDeFaixa` NÃO a reconheceria: o leitor
+    // dele também só via "R$" e "reais", então contava ZERO limites e reprovava.
+    // Ampliar a trava sem ampliar a exceção teria matado a pergunta certa.
+    //
+    // Resultado medido: as duas grafias passam, porque trava e exceção leem o
+    // MESMO `leitor-de-valor`.
+    it("a pergunta da faixa SEM cifrão também passa — a exceção acompanhou a trava", () => {
+      const fala =
+        "Pra eu montar a proposta certa: quanto você pensa em investir por mês — " +
+        "até 150, entre 150 e 500, entre 500 e 1.500, entre 1.500 e 5.000, ou acima disso?";
+      expect(ehPerguntaDeFaixa(fala), "a exceção deixou de reconhecer a pergunta da faixa").toBe(true);
+      expect(travaDispara(fala), "a trava nova derrubou a pergunta da faixa").toBe(false);
+    });
+
+    it("mas a COTAÇÃO sem cifrão continua barrada — ampliar não é afrouxar", () => {
+      // Um único valor, fora da régua: é cotação, não pergunta.
+      expect(travaDispara("Para o seu escopo o investimento fica em 1.200 por mês.")).toBe(true);
+      // Régua incompleta (dois limites) continua sendo cotação disfarçada.
+      expect(travaDispara("Você investe até 150 ou acima de 500 por mês?")).toBe(true);
+    });
+
     it("conversa de sondagem sem dinheiro nenhum passa", () => {
       expect(travaDispara("Quantos posts por semana você imagina para o Instagram?")).toBe(false);
+    });
+
+    // ── A METADE QUE IMPEDE A TRAVA DE VIRAR RUÍDO ──────────────────────────
+    // O leitor novo lê número solto. Se ele confundisse quantidade com preço, a
+    // conversa inteira do SDR cairia na fala honesta — e portão que dispara onde
+    // não há risco é portão que alguém desliga.
+    it.each([
+      "Fechamos em 100 posts por mês para o seu perfil?",
+      "Vamos com 60 stories por mês e 12 reels?",
+      "O plano de medição prevê 90 dias de acompanhamento.",
+      "Já atendemos 200 negócios com esse formato.",
+    ])("quantidade NÃO é dinheiro: %s", (fala) => {
+      expect(travaDispara(fala), `a trava confundiu quantidade com preço: "${fala}"`).toBe(false);
     });
   });
 });
@@ -196,25 +259,20 @@ describe("nenhuma fala ao cliente cita preço fora do catálogo", () => {
       expect(precosForaDoCatalogo(r!.replyText), `"${dito}" → "${r!.replyText}"`).toEqual([]);
     });
 
-    // ── A FALA QUE TINHA FICADO DE FORA ─────────────────────────────────────
-    // `buildScopeAdjustmentConfirmation` imprime "R$ {totalMin}–{totalMax}" do
-    // `live-calculator` — a TERCEIRA tabela de preço desta casa, que nenhum
-    // portão comparava com `planos.ts`. Ela chega ao prospect.
-    it("buildScopeAdjustmentConfirmation — o preço do live-calculator tem lastro?", () => {
-      const estimativa = { totalMin: 1500, totalMax: 2400, confidence: "medium", items: [], included: [] } as never;
-      for (const fitStatus of ["fits", "above_budget"] as const) {
-        const fala = buildScopeAdjustmentConfirmation(escopo, estimativa, { fitStatus } as never);
-        const fora = precosForaDoCatalogo(fala);
-        // ⚠️ FALHA CONHECIDA, DECLARADA E COM DONO — não é um teste frouxo.
-        // O `live-calculator` compõe faixas por serviço; os totais dele não são
-        // (e não têm por que ser) valores de `planos.ts`. Enquanto a terceira
-        // tabela existir, esta fala cita número que o portão do catálogo não
-        // reconhece. O que este teste garante HOJE é que a fala está mapeada e
-        // que o portão de runtime (`falaSegura`) a intercepta antes da tela.
-        if (fora.length > 0) {
-          expect(falaSegura(fala).substituida, "a fala com preço sem lastro passaria para a tela").toBe(true);
-        }
-      }
+    // ── ⛔ O TESTE QUE PROTEGIA UM CAMINHO QUE NÃO EXISTE (D6) ──────────────
+    //
+    // Aqui havia um caso sobre `buildScopeAdjustmentConfirmation`, afirmando no
+    // texto: *"Ela chega ao prospect"*. **Não chegava.** A função tinha ZERO
+    // chamadas em caminho de execução — só este arquivo a importava. Teste
+    // protegendo caminho inexistente consome atenção e produz sensação de
+    // cobertura onde não há caminho.
+    //
+    // A função foi REMOVIDA de `sdr-agent.ts` em 16/08/2026 (ela imprimia os
+    // totais do `live-calculator`, a terceira tabela de preço da casa). O que
+    // fica no lugar é a prova de que ela não voltou por importação nenhuma.
+    it("`buildScopeAdjustmentConfirmation` não existe mais — nem como export órfão", () => {
+      const agente = readFileSync(path.join(process.cwd(), "lib/agency/sdr-agent.ts"), "utf8");
+      expect(agente).not.toContain("export function buildScopeAdjustmentConfirmation");
     });
   });
 });
@@ -243,10 +301,37 @@ describe("o eco do cliente escolhe o fallback — sem afrouxar a trava", () => {
   });
 
   it("METADE 2: e as duas são reconhecidas como ECO do que o cliente disse", () => {
-    // Caso 1: o número veio do escopo (`traffic.monthlyAdBudget`).
-    expect(ecoDoCliente(ECO_1, ["R$ 1.000"])).toBe(true);
-    // Caso 2: o número veio da mensagem do cliente.
+    expect(ecoDoCliente(ECO_1, ["posso colocar R$ 1.000 por mês em anúncio"])).toBe(true);
     expect(ecoDoCliente(ECO_2, ["tenho uns R$ 800 por mês pra investir"])).toBe(true);
+  });
+
+  // ── C3: A FONTE DO "DITO PELO CLIENTE" ERA CONTAMINADA ────────────────────
+  //
+  // Medido por `qualidade`: a rota alimentava `ecoDoCliente` com
+  // `scope.budgetRange`, que **não é fala do cliente** — é o RÓTULO da faixa,
+  // escrito por esta casa em `negociacao.ts` ("entre R$ 500 e R$ 1.500"). O
+  // cliente diz 300, o rótulo traz 500, e uma fala do SDR com R$ 500 era
+  // carimbada como eco. Custo real: quem perguntou o preço ouve a próxima
+  // pergunta do roteiro em vez da fala honesta.
+  it("🔴 o RÓTULO DA FAIXA não é fala do cliente — e não pode virar eco", () => {
+    const rotuloDaCasa = FAIXAS.find((f) => f.faixa === "presenca")!.rotulo; // "entre R$ 500 e R$ 1.500"
+    expect(rotuloDaCasa).toContain("500");
+    // O cliente disse 300. A fala do SDR diz 500. Isso NÃO é eco.
+    expect(
+      ecoDoCliente("Fica em R$ 500 por mês.", ["consigo uns R$ 300 por mês"]),
+      "o rótulo da casa voltou a contar como fala do cliente",
+    ).toBe(false);
+  });
+
+  it("a rota alimenta o eco SÓ com o que o cliente falou", () => {
+    const rota = readFileSync(path.join(process.cwd(), "app/api/sdr/chat/route.ts"), "utf8");
+    const bloco = rota.slice(rota.indexOf("const eco = ecoDoCliente("));
+    const chamada = bloco.slice(0, bloco.indexOf("]);"));
+    expect(chamada).toContain("body.currentMessage");
+    expect(chamada).toContain("body.messages.filter");
+    // As duas fontes que NÃO são fala do cliente.
+    expect(chamada, "`budgetRange` (rótulo da casa) voltou para a fonte do eco").not.toContain("budgetRange");
+    expect(chamada, "`monthlyAdBudget` (preenchido pelo modelo) voltou para a fonte do eco").not.toContain("monthlyAdBudget");
   });
 
   it("a cotação de verdade NÃO é eco — a fala honesta continua valendo", () => {
@@ -306,13 +391,89 @@ describe("escopo que encolhe não some da tela", () => {
     expect(escopoEncolheu({}, { social: { postsPerWeek: 2 }, wantsPaidTraffic: false })).toBe(false);
   });
 
-  it("o front usa o corte para decidir quem fala — e a decisão está no código", () => {
+  // ── B4 REABERTO E FECHADO NO CAMINHO PRINCIPAL (16/08, terceira passada) ──
+  //
+  // `escopoEncolheu` tinha UM call site: dentro do ramo `price_leak`, o ramo
+  // RARO. No caminho normal (o modelo responde) o front mantinha o escopo já
+  // cortado, mostrava a fala do modelo e descartava a única frase que descrevia
+  // o corte. O prospect clicava em "Começar menor" e o painel caía de 20 para 8
+  // posts/mês **sem uma palavra**.
+  it("o AVISO do corte é uma frase determinística, sem preço e sem nome de plano", () => {
+    const depois = { social: { postsPerWeek: 2, storiesPerWeek: 2, reelsPerMonth: 0 }, wantsPaidTraffic: false };
+    const nota = resumoDoCorte(antes, depois);
+    expect(nota, "o corte deixou de produzir aviso").not.toBeNull();
+    expect(nota).toContain("20");   // posts/mês antes
+    expect(nota).toContain("8");    // posts/mês depois
+    expect(nota).toContain("reels");
+    expect(nota).toContain("tráfego pago");
+    expect(nota).not.toMatch(/R\$/);
+    expect(precosForaDoCatalogo(nota!)).toEqual([]);
+  });
+
+  it("turno sem corte NÃO produz aviso (o painel não vira alarme falso)", () => {
+    expect(resumoDoCorte(antes, antes)).toBeNull();
+    expect(resumoDoCorte(antes, { ...antes, social: { ...antes.social, postsPerWeek: 7 } })).toBeNull();
+  });
+
+  it("🔴 o aviso entra nos TRÊS caminhos do turno, não só no ramo raro", () => {
     const tela = readFileSync(
       path.join(process.cwd(), "components/agency/briefing/PublicBriefingRoom.tsx"),
       "utf8",
     );
-    expect(tela).toContain("escopoEncolheu(prevState.conv.scope, ruleResult.conv.scope)");
-    expect(tela).toContain("resultado.eco === true || encolheu");
+    // Calculado UMA vez, antes de escolher o caminho.
+    expect(tela).toContain("const corte = resumoDoCorte(prevState.conv.scope, ruleResult.conv.scope)");
+    // E aplicado nos três: trava de preço, resposta do modelo, fallback do motor.
+    const usos = [...tela.matchAll(/\.\.\.notaDoCorte/g)].length;
+    expect(
+      usos,
+      "o aviso do corte voltou a existir em menos de três caminhos — B4 reabre por onde faltar",
+    ).toBe(3);
+  });
+
+  it("🔴 e o aviso RENDERIZA — a nota `system` vira texto na tela, não linha em array", () => {
+    // "Prove o caminho de render." Entrar no array de mensagens não é chegar aos
+    // olhos do prospect: quem desenha é `MessageBubble`, e uma mensagem de papel
+    // `system` cai num ramo próprio dele. Aqui a bolha é montada de verdade.
+    const nota = resumoDoCorte(antes, { social: { postsPerWeek: 2, storiesPerWeek: 2, reelsPerMonth: 0 }, wantsPaidTraffic: false })!;
+    const html = renderToStaticMarkup(
+      createElement(MessageBubble, {
+        msg: { id: "corte-1", role: "system" as const, text: nota, createdAt: "2026-08-16T00:00:00.000Z" },
+      }),
+    );
+    expect(html, "a bolha de sistema não desenhou o aviso do corte").toContain("Escopo ajustado");
+    expect(html).toContain("8/mês");
+    // E a lista de mensagens da tela desenha TODA mensagem, sem filtrar `system`.
+    const tela = readFileSync(
+      path.join(process.cwd(), "components/agency/briefing/PublicBriefingRoom.tsx"),
+      "utf8",
+    );
+    expect(tela).toContain("conv.messages.map((msg) => (");
+    expect(tela).toContain("<MessageBubble key={msg.id} msg={msg} />");
+  });
+
+  it("a decisão de QUEM FALA no ramo da trava continua usando o corte", () => {
+    const tela = readFileSync(
+      path.join(process.cwd(), "components/agency/briefing/PublicBriefingRoom.tsx"),
+      "utf8",
+    );
+    expect(tela).toContain("resultado.eco === true || corte !== null");
+  });
+
+  // ── A JUSTIFICATIVA FALSA QUE NÃO PODE SE REPETIR ─────────────────────────
+  //
+  // A rodada anterior recusou desfazer o corte alegando que `processProspectMessage`
+  // "aplica extração e negociação no mesmo passo". **É falso**, e a prova é
+  // estrutural: os dois são ramos `if/else`. Quando `detectNegotiation` casa,
+  // `currentQ.parse` NÃO roda — não há extração a perder.
+  //
+  // O registro fica travado aqui para que a próxima decisão sobre B4 (desfazer
+  // ou avisar) seja tomada sobre o mecanismo real, não sobre uma lembrança.
+  it("negociação e extração são ramos EXCLUSIVOS — não há extração a perder", () => {
+    const motor = readFileSync(path.join(process.cwd(), "lib/agency/prospect-engine.ts"), "utf8");
+    const bloco = motor.slice(motor.indexOf("const negotiation = detectNegotiation(text, conv);"));
+    const ateOElse = bloco.slice(0, bloco.indexOf("currentQ.parse"));
+    expect(ateOElse).toContain("} else {");
+    expect(ateOElse.indexOf("if (negotiation) {")).toBeLessThan(ateOElse.indexOf("} else {"));
   });
 });
 
@@ -352,47 +513,107 @@ describe("nenhuma fala com preço sem lastro é RENDERIZADA", () => {
     expect(tela).toContain("falaSegura(ruleAssistant.text, ruleResult.conv.scope.prospectName)");
   });
 
-  it("TODO botão de ajuste da tela pública é entendido pelo motor de regras", () => {
-    // Medido em 16/08/2026: 4 dos 6 textos não casavam com ramo nenhum de
-    // `detectNegotiation`. O prospect clicava em "Tirar reels" e o motor
-    // respondia com a próxima pergunta do roteiro, sem tirar reels nenhum.
-    const tela = readFileSync(
-      path.join(process.cwd(), "components/agency/briefing/PublicBriefingRoom.tsx"),
-      "utf8",
-    );
-    const bloco = tela.slice(tela.indexOf("const QUICK_ACTIONS"), tela.indexOf("// ── Main component"));
-    const textos = [...bloco.matchAll(/text: "([^"]+)"/g)].map((m) => m[1]!);
-    expect(textos.length, "não achei os textos dos botões — o teste virou fachada").toBeGreaterThanOrEqual(6);
-
-    const estado = initConvState();
-    estado.scope = {
-      wantsSocialMedia: true,
-      wantsPaidTraffic: true,
-      social: { platforms: ["Instagram"], postsPerWeek: 5, reelsPerMonth: 2 },
-    } as never;
-    for (const t of textos) {
-      // "Quero incluir tráfego pago" só faz sentido com o tráfego DESLIGADO —
-      // o botão só aparece nesse estado. Testa cada um no estado em que ele é
-      // oferecido.
-      const local = initConvState();
-      local.scope = /incluir tr[áa]fego|quero tr[áa]fego/i.test(t)
-        ? ({ ...(estado.scope as object), wantsPaidTraffic: false } as never)
-        : estado.scope;
-      expect(
-        detectNegotiation(t, local),
-        `o botão "${t}" não casa com nenhum ramo de detectNegotiation — clicar nele não ajusta nada`,
-      ).not.toBeNull();
+  // ══════════════════════════════════════════════════════════════════════════
+  // O PORTÃO DOS BOTÕES — reescrito em 16/08/2026, terceira passada
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // A versão anterior tinha DUAS fraquezas, as duas nomeadas por `qualidade`:
+  //
+  //   1. **Lia os textos por regex de aspas duplas** num recorte do `.tsx`,
+  //      fatiando até um COMENTÁRIO (`// ── Main component`). Aspas simples,
+  //      template literal ou constante ficavam invisíveis, e renomear o
+  //      comentário esvaziava a lista em silêncio.
+  //   2. **Exigia só `detectNegotiation(t) !== null`, não o RAMO CERTO.** Um
+  //      botão `label: "Adicionar reels"` com `text: "sem reels"` passava verde
+  //      fazendo exatamente o oposto do que o rótulo promete ao prospect.
+  //
+  // Agora a lista é um MÓDULO (`lib/agency/comercial/acoes-do-escopo.ts`), o
+  // teste importa o mesmo array que a tela renderiza, e cada botão declara o
+  // `efeito` que o rótulo promete. A asserção é sobre o ESCOPO RESULTANTE.
+  describe("todo botão de ajuste faz o que o rótulo promete", () => {
+    /** O escopo em que cada botão é oferecido de verdade (o `show` dele). */
+    function estadoOndeApareceu(acao: (typeof ACOES_DE_ESCOPO)[number]) {
+      const base = {
+        wantsSocialMedia: true,
+        wantsPaidTraffic: acao.efeito === "adicionar_trafego" ? false : true,
+        social: {
+          platforms: ["Instagram"],
+          postsPerWeek: 5,
+          storiesPerWeek: 5,
+          reelsPerMonth: acao.efeito === "adicionar_reels" ? 0 : 2,
+        },
+      } as never;
+      const estado = initConvState();
+      estado.scope = base;
+      return estado;
     }
+
+    it("a lista NÃO está vazia — o portão não vira fachada por lista sumida", () => {
+      expect(ACOES_DE_ESCOPO.length).toBeGreaterThanOrEqual(6);
+      // E é a MESMA lista que a tela monta: importada, não lida por regex.
+      const tela = readFileSync(
+        path.join(process.cwd(), "components/agency/briefing/PublicBriefingRoom.tsx"),
+        "utf8",
+      );
+      expect(tela).toContain('import { ACOES_DE_ESCOPO } from "@/lib/agency/comercial/acoes-do-escopo"');
+      expect(tela).toContain("ACOES_DE_ESCOPO.filter((qa) => qa.show(scope))");
+    });
+
+    it.each(ACOES_DE_ESCOPO.map((a) => [a.label, a] as const))(
+      '"%s" — o motor entende E faz o que o rótulo diz',
+      (_label, acao) => {
+        const estado = estadoOndeApareceu(acao);
+        const antesDoClique = estado.scope.social!;
+        const r = detectNegotiation(acao.text, estado);
+
+        // 1. O motor reconhece (o defeito de 16/08: 4 dos 6 não casavam).
+        expect(
+          r,
+          `o botão "${acao.label}" não casa com ramo nenhum — clicar nele não ajusta nada`,
+        ).not.toBeNull();
+
+        // 2. E o ramo reconhecido é o QUE O RÓTULO PROMETE.
+        const d = r!.scopeDelta;
+        const social = (d.social ?? {}) as { postsPerWeek?: number; reelsPerMonth?: number };
+        const erro = `o botão "${acao.label}" (efeito ${acao.efeito}) produziu ${JSON.stringify(d)}`;
+        switch (acao.efeito) {
+          case "encolher_escopo":
+            expect(social.postsPerWeek!, erro).toBeLessThan(antesDoClique.postsPerWeek!);
+            expect(d.wantsPaidTraffic, erro).toBe(false);
+            break;
+          case "remover_reels":
+            expect(social.reelsPerMonth, erro).toBe(0);
+            break;
+          case "adicionar_reels":
+            expect(social.reelsPerMonth!, erro).toBeGreaterThan(0);
+            break;
+          case "remover_trafego":
+            expect(d.wantsPaidTraffic, erro).toBe(false);
+            break;
+          case "adicionar_trafego":
+            expect(d.wantsPaidTraffic, erro).toBe(true);
+            break;
+          case "reduzir_posts":
+            expect(social.postsPerWeek!, erro).toBeLessThan(antesDoClique.postsPerWeek!);
+            break;
+        }
+
+        // 3. E a fala que volta não cita preço sem lastro.
+        expect(precosForaDoCatalogo(r!.replyText), `"${acao.text}" → "${r!.replyText}"`).toEqual([]);
+      },
+    );
+
+    // ── A METADE QUE PROVA QUE O PORTÃO MORDE ────────────────────────────────
+    // O caso concreto que a auditora descreveu: rótulo prometendo uma coisa,
+    // texto fazendo a oposta. O portão antigo passava verde nisto.
+    it("PEGA o botão que faz o oposto do que promete", () => {
+      const acaoTorta = { label: "Adicionar reels", text: "sem reels", efeito: "adicionar_reels" as const, show: () => true };
+      const estado = estadoOndeApareceu(acaoTorta);
+      const r = detectNegotiation(acaoTorta.text, estado);
+      expect(r, "o motor não entendeu nem o texto torto — o caso não prova nada").not.toBeNull();
+      // O ramo que casou REMOVE reels; o rótulo prometia adicionar.
+      expect(r!.scopeDelta.social?.reelsPerMonth).toBe(0);
+    });
   });
 
-  it("o botão da tela pública não oferece um plano que não existe", () => {
-    const tela = readFileSync(
-      path.join(process.cwd(), "components/agency/briefing/PublicBriefingRoom.tsx"),
-      "utf8",
-    );
-    // Achado desta passada: `QUICK_ACTIONS` RENDERIZA um botão, e ele se chamava
-    // "Plano Starter" — o plano fantasma virando elemento de tela do prospect.
-    const acoes = tela.slice(tela.indexOf("const QUICK_ACTIONS"), tela.indexOf("const QUICK_ACTIONS") + 2000);
-    expect(acoes).not.toContain('label: "Plano Starter"');
-  });
 });

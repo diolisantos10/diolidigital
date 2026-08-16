@@ -18,8 +18,37 @@ export type SocialPackage = "essencial" | "starter" | "growth" | "pro" | "premiu
 export type ReportLevel = "none" | "basic" | "advanced";
 export type CommunityLevel = "none" | "basic" | "full";
 
+// ─── ⛔ ESTA TABELA NÃO NOMEIA PLANO, E ISSO É TRAVA — 16/08/2026 ─────────────
+//
+// Ela nomeava. `label: "Plano Starter"`, `"Plano Growth"`, `"Plano Pro"`,
+// `"Plano Premium"`, `"Plano Essencial"` — cinco planos que **não existem** em
+// `lib/agency/planos.ts` nem em `docs/precos.md` (o catálogo é Pulso, Ritmo,
+// Presença, Conteúdo e Crescimento).
+//
+// E não era só nome interno. Medido por `qualidade` em 16/08, com o caminho de
+// render provado ponta a ponta:
+//
+//   live-calculator:61  label: "Plano Starter"
+//     → PublicBriefingRoom:181  pkgLabel = pkg.label
+//     → PublicBriefingRoom:247  <span>Plano</span> <span>{pkgLabel}</span>
+//     → ScopeSection montado em :1750, na tela pública do prospect
+//
+// Disparava para **qualquer prospect com 15 a 24 posts/mês**. E viajava para o
+// registro: `buildTitle` empurrava o mesmo rótulo para o `title`, e
+// "Orçamento — <negócio> — Plano Starter" chegava à caixa da equipe e ao portal.
+//
+// O incidente original desta rodada inteira, vivo, num widget que ninguém tinha
+// olhado — porque o portão da rodada anterior grepava `QUICK_ACTIONS`, que é
+// onde alguém já tinha olhado. **Portão que vigia onde você olhou não é portão.**
+//
+// A regra que fica: `label` aqui descreve **CADÊNCIA**, não produto. Quem nomeia
+// produto é `planos.ts`, e só ele. O portão que impede a volta roda sobre o que
+// RENDERIZA e o que PERSISTE:
+// `__tests__/comercial/o-plano-fantasma-nao-chega-na-tela.test.ts`.
 export interface PackageDef {
   id: SocialPackage;
+  /** A CADÊNCIA, em linguagem de cliente. **Nunca um nome de plano** — ver o
+   *  bloco acima. `nomesDePlanoForaDoCatalogo` reprova qualquer invenção. */
   label: string;
   postsPerWeek: number;    // primary cadence shown to clients
   storiesPerWeek: number;
@@ -41,7 +70,7 @@ export interface PackageDef {
 export const SOCIAL_PACKAGES: PackageDef[] = [
   {
     id: "essencial",
-    label: "Plano Essencial",
+    label: "3 posts/semana",
     postsPerWeek: 3,
     storiesPerWeek: 5,
     postsPerMonth: 12,
@@ -58,7 +87,7 @@ export const SOCIAL_PACKAGES: PackageDef[] = [
   },
   {
     id: "starter",
-    label: "Plano Starter",
+    label: "5 posts/semana",
     postsPerWeek: 5,
     storiesPerWeek: 7,
     postsPerMonth: 20,
@@ -75,7 +104,7 @@ export const SOCIAL_PACKAGES: PackageDef[] = [
   },
   {
     id: "growth",
-    label: "Plano Growth",
+    label: "7 posts/semana",
     postsPerWeek: 7,
     storiesPerWeek: 10,
     postsPerMonth: 28,
@@ -92,7 +121,7 @@ export const SOCIAL_PACKAGES: PackageDef[] = [
   },
   {
     id: "pro",
-    label: "Plano Pro",
+    label: "10 posts/semana",
     postsPerWeek: 10,
     storiesPerWeek: 14,
     postsPerMonth: 40,
@@ -109,7 +138,7 @@ export const SOCIAL_PACKAGES: PackageDef[] = [
   },
   {
     id: "premium",
-    label: "Plano Premium",
+    label: "15 posts/semana",
     postsPerWeek: 15,
     storiesPerWeek: 21,
     postsPerMonth: 60,

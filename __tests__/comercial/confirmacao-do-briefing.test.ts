@@ -123,13 +123,24 @@ describe("a confirmação no portal não depende de e-mail", () => {
     path.join(process.cwd(), "app/api/brain/client-requests/route.ts"),
     "utf8",
   );
+  // ⚠️ O GRAVADOR MUDOU DE ARQUIVO em 16/08/2026 (terceira passada): ele saiu
+  // de dentro do `route.ts` para `lib/agency/comercial/confirmacao-no-portal.ts`
+  // porque o portão que prova o PAYLOAD precisa importá-lo, e arquivo de rota do
+  // App Router não pode exportar função que não seja verbo HTTP. A rota continua
+  // sendo quem o CHAMA — e é isso que os testes de ordem abaixo conferem.
+  const gravador = readFileSync(
+    path.join(process.cwd(), "lib/agency/comercial/confirmacao-no-portal.ts"),
+    "utf8",
+  );
 
   it("grava PortalMessage na âncora do PROSPECT (clientRequestId)", () => {
     // `clientId` não existe no instante do briefing — quem manda briefing ainda
     // não tem ficha de cliente. `clientRequestId` é a âncora que existe.
-    expect(rota).toContain("prisma.portalMessage.create");
-    expect(rota).toContain("clientRequestId: input.clientRequestId");
-    expect(rota).toContain('authorRole: "team"');
+    expect(gravador).toContain("prisma.portalMessage.create");
+    expect(gravador).toContain("clientRequestId: input.clientRequestId");
+    expect(gravador).toContain('authorRole: "team"');
+    // E a rota continua sendo quem chama — o gravador não virou órfão.
+    expect(rota).toContain("registrarConfirmacaoNoPortal({");
   });
 
   it("acontece TAMBÉM para quem sobe sem contato — é quem mais precisa", () => {
@@ -146,8 +157,8 @@ describe("a confirmação no portal não depende de e-mail", () => {
   it("NÃO promete retorno a quem não deixou canal de contato", () => {
     // A promessa vazia é o defeito de 08/08 (51 dias do Sushi Cazza) voltando
     // por outra porta.
-    expect(rota).toContain("input.temComoFalar");
-    expect(rota).toMatch(/precisamos de um WhatsApp ou e-mail/);
+    expect(gravador).toContain("input.temComoFalar");
+    expect(gravador).toMatch(/precisamos de um WhatsApp ou e-mail/);
   });
 
   it("NÃO chama a PESSOA de negócio — o campo `businessName` desta rota é ambíguo", () => {
@@ -157,11 +168,11 @@ describe("a confirmação no portal não depende de e-mail", () => {
     // o cliente lia "Recebemos o briefing do João." — a pessoa tratada como
     // empresa, na primeira frase que a agência lhe escreve. E "do"/"da" é um
     // segundo palpite errado embutido.
-    const corpo = rota.slice(rota.indexOf("const linhas = ["), rota.indexOf("const { prisma } = await import"));
+    const corpo = gravador.slice(gravador.indexOf("const linhas = ["), gravador.indexOf("const { prisma } = await import"));
     expect(corpo).not.toMatch(/\$\{input\.businessName\}/);
     expect(corpo).toContain("Recebemos seu briefing");
     // E o campo saiu da assinatura: o que não se usa não se recebe.
-    const assinatura = rota.slice(rota.indexOf("async function registrarConfirmacaoNoPortal(input: {"), rota.indexOf("}): Promise<void>"));
+    const assinatura = gravador.slice(gravador.indexOf("export async function registrarConfirmacaoNoPortal(input: {"), gravador.indexOf("}): Promise<void>"));
     expect(assinatura).not.toContain("businessName");
   });
 

@@ -158,7 +158,7 @@ export function computeDealFloor(args: {
 
   if (args.socialPackage) {
     const pkg = SOCIAL_PACKAGES.find((p) => p.id === args.socialPackage);
-    add(pkg?.label ?? "Plano Social", SOCIAL_MARGINS[args.socialPackage]);
+    add(pkg?.label ?? "Social Media", SOCIAL_MARGINS[args.socialPackage]);
   }
   // Extra reels: thin-margin add-on (~R$120 cost each, floor ~R$200).
   if (args.extraReels && args.extraReels > 0) {

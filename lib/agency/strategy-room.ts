@@ -329,7 +329,9 @@ function buildConsensus(project: Project, client: Client, specialists: StrategyR
       "Primeiro cliente da agência — chance de construir case de referência com atenção máxima da equipe",
       "Escopo faseado reduz risco de ambos os lados e facilita renovação",
     ],
-    recommendedPackage: hasFullBrandBrain ? "Growth (Social + Design + Tráfego Pago — 3 meses)" : "Starter (Social + Design — 3 meses, expandir após diagnóstico)",
+    // 16/08/2026: dizia "Growth"/"Starter" — nomes de plano que o catálogo desta
+    // casa não tem (`lib/agency/planos.ts`). Trocado por linguagem de ESCOPO.
+    recommendedPackage: hasFullBrandBrain ? "Social + Design + Tráfego Pago — 3 meses" : "Social + Design — 3 meses, expandir após diagnóstico",
     recommendedChannels: channels,
     recommendedDeliverables: allDeliverables,
   };

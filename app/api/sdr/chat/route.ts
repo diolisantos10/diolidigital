@@ -29,6 +29,7 @@ import { limiteExcedido } from "@/lib/security/limite-no-banco";
 import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 import { blocoDeNegociacaoParaPrompt, ehPerguntaDeFaixa, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
 import { marcaDoVazamento, ecoDoCliente } from "@/lib/agency/comercial/resposta-de-preco";
+import { falaEmDinheiro } from "@/lib/agency/comercial/leitor-de-valor";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
 const MODEL       = "claude-sonnet-4-6";
@@ -329,9 +330,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // ÚNICA exceção: a pergunta da faixa de investimento, que cita a régua
     // inteira de faixas (decisão do CEO, 05/08/2026). `ehPerguntaDeFaixa` é
     // estreita de propósito — ver `lib/agency/comercial/negociacao.ts`.
-    const PRICE_LEAK = /r\$\s*\d|\d+\s*(reais|\/m[êe]s\b)|desconto|\bplano\b.*\bR\$/i;
-    const vazamento = replyText.match(PRICE_LEAK);
-    if (vazamento && !ehPerguntaDeFaixa(replyText)) {
+    //
+    // ⚠️ O REGEX ESCRITO À MÃO SAIU DAQUI EM 16/08/2026 (terceira passada).
+    // Ele era `/r\$\s*\d|\d+\s*(reais|\/m[êe]s\b)|desconto|\bplano\b.*\bR\$/i` e
+    // tinha DUAS cegueiras medidas por `qualidade`:
+    //
+    //   "Fica em 1.200 por mês."           → NÃO disparava
+    //   "Fica em torno de 1.850 mensais."  → NÃO disparava
+    //
+    // Preço fora do catálogo atravessava o servidor inteiro e — por exceção
+    // declarada, a fala do modelo não passa por `falaSegura` — chegava ao
+    // prospect **sem portão nenhum no meio**. `falaEmDinheiro` é o leitor único
+    // (`lib/agency/comercial/leitor-de-valor.ts`), o MESMO que a exceção da
+    // pergunta de faixa usa: trava e exceção enxergando a mesma coisa é o que
+    // impede a trava nova de matar a pergunta certa.
+    //
+    // A trava NÃO foi afrouxada: tudo que ela barrava antes continua barrado —
+    // o que mudou é o que ela passou a ENXERGAR.
+    if (falaEmDinheiro(replyText) && !ehPerguntaDeFaixa(replyText)) {
       // ── O INSTRUMENTO (16/08/2026) ──────────────────────────────────────────
       // O log anterior era uma frase sem dado: "price-leak detected". Ele prova
       // que a trava disparou e não responde NENHUMA das perguntas que a equipe
@@ -358,16 +374,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // viajar para o navegador. O que viaja é um booleano — ele não carrega
       // texto, número nem nome. Com ele o front escolhe o fallback certo sem
       // nunca ver o que a trava recusou.
-      const escopoAtual = (body.scope ?? {}) as Record<string, unknown>;
-      const trafego = escopoAtual.traffic as { monthlyAdBudget?: unknown } | undefined;
+      //
+      // ⛔ O QUE SAIU DAQUI EM 16/08/2026 (terceira passada), e por quê:
+      //
+      //   • `scope.budgetRange` — **não é fala do cliente.** É o RÓTULO da faixa,
+      //     escrito por esta casa em `negociacao.ts` ("entre R$ 500 e R$ 1.500").
+      //     Medido por `qualidade`: cliente diz 300, o rótulo traz 500, e uma
+      //     fala com R$ 500 era carimbada como eco. Custo: quem perguntou o
+      //     preço ouvia a próxima pergunta do roteiro em vez da fala honesta.
+      //   • `traffic.monthlyAdBudget` — quem preenche é o MODELO. É leitura do
+      //     que o cliente disse, não o que ele disse. Quando o cliente informa a
+      //     verba, o número está no histórico do mesmo jeito.
+      //
+      // A fonte do "dito pelo cliente" passou a ser **só o que o cliente
+      // realmente falou**: a mensagem deste turno e as mensagens dele.
       const eco = ecoDoCliente(replyText, [
         body.currentMessage,
         ...body.messages.filter((m) => m.role !== "assistant" && m.role !== "system").map((m) => m.text),
-        typeof escopoAtual.budgetRange === "string" ? escopoAtual.budgetRange : null,
-        typeof trafego?.monthlyAdBudget === "string" ? trafego.monthlyAdBudget : null,
       ]);
 
       const marca = marcaDoVazamento(replyText);
+      // A pergunta de faixa é a ÚNICA exceção legítima. Quando ela é falsa e a
+      // fala PARECE a pergunta da faixa, o que reprovou foi a regra dos 3
+      // limites — e isso é ajuste de prompt, não afrouxamento de trava.
+      //
+      // ⚠️ Calculado AQUI, fora da chamada de log, de propósito: o portão
+      // `o-log-da-trava-nao-carrega-cliente` varre toda chamada `console.*` da
+      // rota e reprova qualquer uma que MENCIONE `replyText`. Ele não distingue
+      // "usa o texto para produzir um booleano" de "grava o texto" — e é bom que
+      // não distinga: a exceção de hoje é a porta de amanhã.
+      const pareciaPerguntaDeFaixa = /investir|investimento|or[çc]amento|verba|gastar|faixa/i.test(replyText);
       console.warn(
         "[sdr/chat] price-leak",
         JSON.stringify({
@@ -376,10 +412,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           turno: claudeMessages.length,
           clienteFalouEmDinheiro,
           eco,
-          // A pergunta de faixa é a ÚNICA exceção legítima. Quando ela é falsa e
-          // a fala PARECE a pergunta da faixa, o que reprovou foi a regra dos 3
-          // limites — e isso é ajuste de prompt, não afrouxamento de trava.
-          pareciaPerguntaDeFaixa: /investir|investimento|or[çc]amento|verba|gastar|faixa/i.test(replyText),
+          pareciaPerguntaDeFaixa,
         }),
       );
       return NextResponse.json({ ok: false, reason: "price_leak", eco });
