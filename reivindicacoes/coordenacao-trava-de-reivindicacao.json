@@ -1,0 +1,17 @@
+{
+  "id": "coordenacao/trava-de-reivindicacao",
+  "quem": "pm-a27b5772",
+  "frente": "trava de reivindicacao entre chats + regra do despacho no CLAUDE.md",
+  "responsabilidade": "coordenacao/trava-de-reivindicacao",
+  "arquivos": [
+    "lib/coordenacao",
+    "scripts/reivindicar.mts",
+    "__tests__/coordenacao",
+    "reivindicacoes",
+    "CLAUDE.md",
+    "docs/decisoes.md",
+    "docs/pendencias.md"
+  ],
+  "abertaEm": "2026-08-16T17:09:19.507Z",
+  "encerradaEm": null
+}
