@@ -1,0 +1,17 @@
+{
+  "id": "registro/memoria-da-noite-16-08",
+  "quem": "ses-e83d64678d",
+  "frente": "memoria da noite: registro em decisoes e pendencias",
+  "responsabilidade": "registro/memoria-da-noite-16-08",
+  "arquivos": [
+    "docs/decisoes.md",
+    "docs/pendencias.md"
+  ],
+  "abertaEm": "2026-08-16T20:46:16.777Z",
+  "encerradaEm": null,
+  "forcadaPor": {
+    "quem": "ses-e83d64678d",
+    "motivo": "docs/decisoes.md e diario ADITIVO e compartilhado; a frente docs-alarme-que-mente e de pm-ci-do-deploy e trata de OUTRO assunto. Secoes distintas no topo. O Diretor mandou resolver conflito MANTENDO os dois registros, nunca substituindo - e e o que farei no rebase. Sem --no-verify e sem force no git.",
+    "em": "2026-08-16T20:46:16.777Z"
+  }
+}
