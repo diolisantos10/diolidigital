@@ -44,9 +44,14 @@ const RELATORIO = {
   solicitacoes: 3,
   carimbadas: 2,
   deixadasDeFora: 1,
+  comAtencao: 1,
   totalDeLinhasCarimbadas: 41,
   linhas: [
-    { clientRequestId: "req-foocci", clientId: "cli-foocci", carimbadas: { mensagens: 40, aprovacoes: 1, artefatos: 0, pecas: 0 } },
+    {
+      clientRequestId: "req-foocci", clientId: "cli-foocci",
+      carimbadas: { mensagens: 40, aprovacoes: 1, artefatos: 0, pecas: 0 },
+      atencao: "esta solicitação tem token de portal SEM dono escrito — confirme antes de aplicar.",
+    },
     { clientRequestId: "req-city", clientId: "cli-city", carimbadas: { mensagens: 0, aprovacoes: 0, artefatos: 0, pecas: 0 } },
     {
       clientRequestId: "req-ambigua", clientId: "cli-b", carimbadas: { mensagens: 0, aprovacoes: 0, artefatos: 0, pecas: 0 },
@@ -122,6 +127,11 @@ describe("✅ METADE 2 — com credencial, o relatório sai de verdade", () => {
     const fora = corpo.linhas.find((l: { clientRequestId: string }) => l.clientRequestId === "req-ambigua");
     expect(fora.deixadaDeFora).toContain("decisão humana");
     expect(corpo.leiaAssim.numeroPrincipal).toBe("deixadasDeFora");
+    // A ressalva também não some: é ela que faz a curadoria existir. Sem esta
+    // asserção, a rota podia devolver `comAtencao` e nunca dizer o que fazer
+    // com ele — número sem instrução é número que ninguém usa.
+    expect(corpo.comAtencao).toBe(1);
+    expect(corpo.leiaAssim.antesDeAplicar).toContain("atencao");
   });
 
   it("sessão master (sem segredo) também abre — é o caminho do CEO no navegador", async () => {

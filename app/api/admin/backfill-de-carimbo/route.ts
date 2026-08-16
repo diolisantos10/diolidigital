@@ -75,6 +75,10 @@ async function responder(request: NextRequest, aplicar: boolean): Promise<NextRe
         cuidado:
           "`carimbadas` não é 'consertadas': é 'religadas com prova'. O que ficou de fora"
           + " continua no banco e continua invisível no portal até alguém decidir.",
+        antesDeAplicar:
+          "Leia as linhas com `atencao` (`comAtencao`): são as solicitações que já serviram"
+          + " um portal SEM dono escrito — a forma do incidente. Elas SERÃO carimbadas com o"
+          + " dono atual; se algum desses donos estiver errado, é aqui que se pega, e só aqui.",
         comoAplicar: aplicar
           ? "APLICADO. Rodar de novo é inofensivo: o WHERE exige `clientId` nulo."
           : "ENSAIO — nada foi gravado. Repita a chamada com POST para aplicar.",

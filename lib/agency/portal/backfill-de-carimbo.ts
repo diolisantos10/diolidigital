@@ -31,6 +31,29 @@
 //
 // Falhou qualquer uma: **não carimba, e diz por quê.** Não sabido fecha.
 //
+// ── 🟠 O RESÍDUO IRREDUTÍVEL — medido, não suposto ──────────────────────────
+// **Se o ponteiro andou sem deixar NENHUM rastro, este backfill carimba o dono
+// ATUAL — que pode ser o errado.** Medido com a sonda A/B (o cenário do ALFA
+// cujas linhas ficaram presas à solicitação hoje do BETA, sem carimbo alheio e
+// sem `PortalAccess` do dono antigo): as três linhas saem carimbadas para o
+// BETA. As três provas são DOCUMENTAIS; sem documento, não há o que provar.
+//
+// Isto não tem conserto em código, e escrever uma heurística para adivinhar
+// seria preencher por inferência — o que esta casa proíbe. O que o contém:
+//
+//   1. **Re-apontar virou impossível** (o balcão parou de fundir ficha por
+//      e-mail não verificado, rodada 2). A população afetada é FECHADA: só o
+//      que já estava no banco antes do conserto.
+//   2. **O critério 2 pega o caso que importa** — o dono antigo que TINHA
+//      portal. Quem nunca teve portal não tem portal onde a linha possa vazar.
+//   3. **O ensaio marca com `atencao` toda solicitação que já serviu um portal
+//      sem dono escrito** — a forma do incidente. É por essa lista que a
+//      conferência humana começa, e é o que faz a curadoria ser trabalho e não
+//      carimbo de borracha.
+//
+// Quem aplicar sem ler o ensaio está pulando a curadoria, e a curadoria é
+// metade do conserto.
+//
 // ⚠️ **Este é o ÚNICO lugar do repositório onde carimbo retroativo pode
 // acontecer** — offline, com relatório, sob decisão de gente. No caminho
 // quente ele é proibido: `cardGenericoJaPendente` fazia isso e **fabricava
@@ -45,6 +68,12 @@ export interface LinhaDoBackfill {
   carimbadas: { mensagens: number; aprovacoes: number; artefatos: number; pecas: number };
   /** Preenchido quando NÃO carimbou. */
   deixadaDeFora?: string;
+  /**
+   * Carimbou, MAS esta linha merece olho humano antes do `POST`. Ver o
+   * "RESÍDUO IRREDUTÍVEL" no cabeçalho: é a lista curta que transforma a
+   * curadoria em trabalho real em vez de carimbo de borracha.
+   */
+  atencao?: string;
 }
 
 export interface RelatorioDoBackfill {
@@ -53,6 +82,8 @@ export interface RelatorioDoBackfill {
   solicitacoes: number;
   carimbadas: number;
   deixadasDeFora: number;
+  /** Carimbadas COM ressalva. É esta a fila de conferência humana. */
+  comAtencao: number;
   totalDeLinhasCarimbadas: number;
   linhas: LinhaDoBackfill[];
 }
@@ -120,6 +151,20 @@ export async function backfillDeCarimbo(aplicar = false): Promise<RelatorioDoBac
       continue;
     }
 
+    // ── A RESSALVA: esta solicitação já serviu um portal SEM dono escrito ────
+    // Não é prova de nada — é a FORMA do incidente. `PortalAccess` legado
+    // preso à solicitação é o que o cliente antigo tinha na mão. Não barra o
+    // carimbo (barrar excluiria quase todo o acervo e devolveria a tela vazia),
+    // mas sai marcado no ensaio para que a conferência humana comece por aqui.
+    const acessoLegado = await prisma.portalAccess.findFirst({
+      where: { clientRequestId: s.id, clientId: null },
+      select: { id: true },
+    });
+    const atencao = acessoLegado
+      ? "esta solicitação tem token de portal SEM dono escrito — é a forma do incidente. "
+        + "Confirme com o CEO de quem é esta pasta antes de aplicar."
+      : undefined;
+
     const orfa = { clientRequestId: s.id, clientId: null };
     if (!aplicar) {
       const [m, a, ar, p] = await Promise.all([
@@ -130,7 +175,7 @@ export async function backfillDeCarimbo(aplicar = false): Promise<RelatorioDoBac
       ]);
       const c = { mensagens: m, aprovacoes: a, artefatos: ar, pecas: p };
       totalDeLinhasCarimbadas += m + a + ar + p;
-      linhas.push({ clientRequestId: s.id, clientId, carimbadas: c });
+      linhas.push({ clientRequestId: s.id, clientId, carimbadas: c, atencao });
       continue;
     }
 
@@ -146,7 +191,7 @@ export async function backfillDeCarimbo(aplicar = false): Promise<RelatorioDoBac
       artefatos: ar?.count ?? 0, pecas: p?.count ?? 0,
     };
     totalDeLinhasCarimbadas += c.mensagens + c.aprovacoes + c.artefatos + c.pecas;
-    linhas.push({ clientRequestId: s.id, clientId, carimbadas: c });
+    linhas.push({ clientRequestId: s.id, clientId, carimbadas: c, atencao });
   }
 
   return {
@@ -155,6 +200,7 @@ export async function backfillDeCarimbo(aplicar = false): Promise<RelatorioDoBac
     solicitacoes: solicitacoes.length,
     carimbadas: linhas.filter((l) => !l.deixadaDeFora).length,
     deixadasDeFora: linhas.filter((l) => l.deixadaDeFora).length,
+    comAtencao: linhas.filter((l) => !l.deixadaDeFora && l.atencao).length,
     totalDeLinhasCarimbadas,
     linhas,
   };
