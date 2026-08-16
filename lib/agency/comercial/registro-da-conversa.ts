@@ -127,13 +127,17 @@ export type TurnoDoSdr = {
    *  guarda impediu de sair. */
   motivoDaRecusa?: string;
   /** Três estados, três significados — não confundir `false` com `undefined`:
-   *  `true`  — a fala foi barrada mas o ESCOPO (o que o cliente já tinha dito)
-   *            sobreviveu e foi devolvido ao cliente mesmo assim.
-   *  `false` — o resgate foi TENTADO e FALHOU: o que o cliente já tinha
-   *            contado se perdeu neste turno. Quem chama (`app/api/sdr/chat/
-   *            route.ts`) sempre manda um booleano aqui — nunca `undefined`.
-   *  `undefined` — não se aplica ("não sei"), e só sobra esse significado
-   *            porque os outros dois agora se afirmam por conta própria. */
+   *  `true`  — o modelo extraiu escopo NESTE turno e ele sobreviveu às travas:
+   *            o resgate FUNCIONOU.
+   *  `false` — o modelo extraiu escopo NESTE turno e as travas descartaram
+   *            tudo: houve perda REAL de um dado que existia.
+   *  `undefined` — o modelo NÃO extraiu nada neste turno: não há o que
+   *            resgatar, e "não havia nada a salvar" não é a mesma coisa que
+   *            "perdeu o que havia" (mesma distinção que separa `sem_canal`
+   *            de `falhou` no aviso de orçamento). Quem chama (`app/api/sdr/
+   *            chat/route.ts`) só afirma `true`/`false` quando o `scope`
+   *            bruto do modelo tinha algum campo — do contrário manda
+   *            `undefined` de propósito. */
   escopoFoiSalvo?: boolean;
 };
 
@@ -147,8 +151,14 @@ export const PREFIXO_TURNO_BARRADO = "[resposta barrada pelo guarda:";
  *  doença que este arquivo existe para curar: duas fontes da mesma verdade
  *  que um dia divergem e ninguém percebe. */
 export const FRASE_ESCOPO_SALVO = " O escopo (o que o cliente já tinha dito) foi salvo mesmo assim.";
+// CONSERTO DE 16/08 (`esteira`, rodada de "não havia nada a salvar"): esta
+// frase só é gravada quando o modelo EXTRAIU algo neste turno e as travas de
+// escopo descartaram tudo — nunca mais quando não havia nada a extrair (ver
+// `haviaEscopo` em `app/api/sdr/chat/route.ts`). Por isso o texto não fala
+// mais em "o que ele já tinha contado até aqui": não é a conversa inteira que
+// se perde, é o dado deste turno específico que não pôde ser aproveitado.
 export const FRASE_ESCOPO_PERDIDO =
-  " O escopo (o que o cliente já tinha dito) NÃO foi salvo — o que ele já tinha contado até aqui se perdeu neste turno, e ele terá de repetir.";
+  " O escopo (o que o cliente disse neste turno) NÃO pôde ser aproveitado — o dado se perdeu, e ele terá de repetir.";
 
 /** Motivo cru → explicação curta, pt-BR, sem jargão de código — para quem lê
  *  o diário sem conhecer os nomes internos dos guardas. O motivo cru continua
@@ -192,16 +202,20 @@ export async function registrarTurnoDoSdr(turno: TurnoDoSdr): Promise<number> {
     linhas.push({ authorRole: "team", authorName: "SDR", body: doSdr });
   } else if (turno.motivoDaRecusa) {
     const explicacao = EXPLICACAO_DA_RECUSA[turno.motivoDaRecusa];
-    // `escopoFoiSalvo` chega SEMPRE como booleano de `app/api/sdr/chat/route.ts`
-    // — nunca `undefined` neste ramo. Antes deste conserto (16/08/2026) o
-    // `false` e o `undefined` caíam no mesmo `? :` e viravam a MESMA string
-    // vazia: a informação de que o resgate do escopo FALHOU chegava até aqui e
-    // era jogada fora. Com 55 turnos barrados no banco, 37 não tinham a frase
-    // de "salvo" — e misturavam três fatos que o diário não distinguia:
-    // escopo perdido de verdade, registro gravado ANTES desta frase existir, e
-    // turno em que o guarda nem tinha escopo à mão. "Perdido" e "não sei"
-    // viravam a mesma coisa aos olhos do CEO, que é exatamente a doença que
-    // ele mandou matar: ausência de informação não pode parecer zero.
+    // `escopoFoiSalvo` chega de `app/api/sdr/chat/route.ts` como `true`/`false`
+    // só quando o modelo extraiu ALGO neste turno — `undefined` quando não
+    // extraiu nada, porque "não havia dado a salvar" e "o dado se perdeu" são
+    // fatos diferentes e não podem gravar a mesma frase. Antes deste conserto
+    // (16/08/2026) o `false` e o `undefined` caíam no mesmo `? :` e viravam a
+    // MESMA string vazia: a informação de que o resgate do escopo FALHOU
+    // chegava até aqui e era jogada fora. Com 55 turnos barrados no banco, 37
+    // não tinham a frase de "salvo" — e misturavam três fatos que o diário não
+    // distinguia: escopo perdido de verdade, registro gravado ANTES desta
+    // frase existir, e turno em que o guarda nem tinha escopo à mão. "Perdido"
+    // e "não sei" viravam a mesma coisa aos olhos do CEO, que é exatamente a
+    // doença que ele mandou matar: ausência de informação não pode parecer
+    // zero — e, na rodada seguinte (mesmo dia), o próprio `false` também
+    // podia mentir para cima quando não havia nada a extrair.
     //
     // Por isso os três estados são tratados em separado, e só dois afirmam
     // algo: `true` (frase de salvo), `false` (frase nova, de perda — este

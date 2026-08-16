@@ -512,6 +512,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const scopePatch = aplicarTravasDeEscopo(scopePatchBruto);
     const temScopeUtil = Object.keys(scopePatch).length > 0;
 
+    // `temScopeUtil` sozinho não basta para os guardas abaixo: ele confunde
+    // "nada sobrou depois das travas" com "não havia nada para começar" — e
+    // são fatos diferentes. `haviaEscopo` olha o `scope` ANTES das travas
+    // (`scopePatchBruto`, calculado acima): se o modelo não extraiu NENHUM
+    // campo, não houve perda nenhuma, só ausência de dado — a mesma regra que
+    // separa `sem_canal` de `falhou` no aviso de orçamento. Só quando o
+    // modelo extraiu algo E as travas descartaram tudo é que existe perda de
+    // verdade para afirmar ao diário.
+    const haviaEscopo = Object.keys(scopePatchBruto).length > 0;
+    const escopoFoiSalvo = haviaEscopo ? temScopeUtil : undefined;
+
     // A FALA SÓ É CONFIÁVEL QUANDO O JSON FECHOU SOZINHO. Um JSON que só
     // fechou porque NÓS forçamos o fechamento (`repararJsonTruncado`) pode ter
     // fechado uma frase bem no meio de uma palavra — o remendo garante um JSON
@@ -533,7 +544,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         ...fio,
         doVisitante: body.currentMessage,
         motivoDaRecusa: motivo,
-        escopoFoiSalvo: temScopeUtil,
+        escopoFoiSalvo,
       });
       // O item 3 do despacho: a fala o motor de regras refaz; o número que o
       // cliente falou uma vez, ninguém recupera. Se sobrou escopo utilizável,
@@ -590,7 +601,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         ...fio,
         doVisitante: body.currentMessage,
         motivoDaRecusa: "email_hallucination",
-        escopoFoiSalvo: temScopeUtil,
+        escopoFoiSalvo,
       });
       return NextResponse.json({
         ok: false,
@@ -619,7 +630,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         ...fio,
         doVisitante: body.currentMessage,
         motivoDaRecusa: "price_leak",
-        escopoFoiSalvo: temScopeUtil,
+        escopoFoiSalvo,
       });
       return NextResponse.json({
         ok: false,
