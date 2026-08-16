@@ -8,7 +8,7 @@
     "docs/pendencias.md"
   ],
   "abertaEm": "2026-08-16T19:24:26.859Z",
-  "encerradaEm": null,
+  "encerradaEm": "2026-08-16T19:24:47.907Z",
   "forcadaPor": {
     "quem": "wt-4a7642478e",
     "motivo": "docs/decisoes.md e diario aditivo e compartilhado; a frente de pm-9ab49074 e outro registro, nao a mesma responsabilidade. Secoes distintas no topo; conflito possivel e textual e o rebase expoe. Nao uso --no-verify nem force no git.",
