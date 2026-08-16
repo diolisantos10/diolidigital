@@ -11,15 +11,18 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execSync } from "node:child_process";
-import { rmSync } from "node:fs";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@/lib/generated/prisma/client";
 import { backfillDeEntidade, type ArmazemDeBackfill } from "@/lib/agency/estados-v2/backfill";
 import { derivarDeSocialPost } from "@/lib/agency/estados-v2/derivar";
 import { reconciliar } from "@/lib/agency/estados-v2/leitura-dupla";
 import { flagLigada, FLAGS_V2, type ArmazemDeFlags } from "@/lib/agency/flags-v2/flags";
+import { caminhoDeBancoDescartavel, limparArquivosDoBanco } from "./_infra/banco-descartavel";
 
-const CAMINHO_DB = "/tmp/v2-ensaio-geral.db";
+// Caminho ÚNICO por processo — ver `_infra/banco-descartavel.ts`: um caminho
+// fixo em /tmp colide entre sessões de agente diferentes rodando `npm test`
+// na mesma máquina ao mesmo tempo.
+const CAMINHO_DB = caminhoDeBancoDescartavel("v2-ensaio-geral");
 let prisma: PrismaClient;
 
 function armazemDeFlagsNoBanco(): ArmazemDeFlags {
@@ -50,7 +53,7 @@ function armazemDeBackfillNoBanco(): ArmazemDeBackfill {
 const derivador = (legado: Record<string, unknown>) => derivarDeSocialPost(legado as { status: string });
 
 beforeAll(() => {
-  rmSync(CAMINHO_DB, { force: true });
+  limparArquivosDoBanco(CAMINHO_DB);
   execSync(`npx prisma migrate deploy`, {
     env: { ...process.env, DATABASE_URL: `file:${CAMINHO_DB}` },
     stdio: "pipe",
@@ -61,7 +64,7 @@ beforeAll(() => {
 
 afterAll(async () => {
   await prisma?.$disconnect();
-  rmSync(CAMINHO_DB, { force: true });
+  limparArquivosDoBanco(CAMINHO_DB);
 });
 
 describe("ensaio geral: migração aditiva → backfill → reconciliação → rollback", () => {

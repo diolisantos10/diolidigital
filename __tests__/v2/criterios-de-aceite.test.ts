@@ -6,7 +6,6 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execSync } from "node:child_process";
-import { rmSync } from "node:fs";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@/lib/generated/prisma/client";
 import { transicionar, type ArmazemDeTransicoes, type PedidoDeTransicao } from "@/lib/agency/estados-v2/maquina";
@@ -15,12 +14,18 @@ import { executarRollout, type FontesDoRollout } from "@/lib/agency/estados-v2/r
 import { podeExecutarFuncao } from "@/lib/agency/catalogo-v2/capacidades";
 import { pertenceAoToken } from "@/lib/agency/portal/posse-da-aprovacao";
 import { PERFIL_DO_PAPEL } from "@/lib/agency/roles";
+import { caminhoDeBancoDescartavel, limparArquivosDoBanco } from "./_infra/banco-descartavel";
 
-const CAMINHO_DB = "/tmp/v2-criterios.db";
+// Caminho ÚNICO por processo — ver `_infra/banco-descartavel.ts` para o
+// porquê (achado do portão instável, 16/08/2026): um caminho fixo em /tmp
+// colide entre sessões de agente diferentes rodando `npm test` na mesma
+// máquina ao mesmo tempo, e é ISSO que produzia contagem de falha variável
+// na suíte cheia mesmo com 14/14 passando em isolamento.
+const CAMINHO_DB = caminhoDeBancoDescartavel("v2-criterios");
 let db: PrismaClient;
 
 beforeAll(() => {
-  rmSync(CAMINHO_DB, { force: true });
+  limparArquivosDoBanco(CAMINHO_DB);
   execSync("npx prisma migrate deploy", {
     env: { ...process.env, DATABASE_URL: `file:${CAMINHO_DB}` },
     stdio: "pipe",
@@ -31,7 +36,7 @@ beforeAll(() => {
 
 afterAll(async () => {
   await db?.$disconnect();
-  rmSync(CAMINHO_DB, { force: true });
+  limparArquivosDoBanco(CAMINHO_DB);
 });
 
 function armazemReal(): ArmazemDeTransicoes {

@@ -12,7 +12,6 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execSync } from "node:child_process";
-import { rmSync } from "node:fs";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@/lib/generated/prisma/client";
 import { FUNCOES_V2 } from "@/lib/agency/catalogo-v2/catalogo";
@@ -27,12 +26,16 @@ import {
 import type { RegistroDeExecucao } from "@/lib/agency/execucao-v2/registro";
 import { criarHandoff, aceitarHandoff, type ArmazemDeHandoffs } from "@/lib/agency/handoff-v2/handoff";
 import { armazemDeHandoffsNoBanco } from "@/lib/agency/handoff-v2/armazem-prisma";
+import { caminhoDeBancoDescartavel, limparArquivosDoBanco } from "./_infra/banco-descartavel";
 
-const CAMINHO_DB = "/tmp/v2-homologacao.db";
+// Caminho ÚNICO por processo — ver `_infra/banco-descartavel.ts`: um caminho
+// fixo em /tmp colide entre sessões de agente diferentes rodando `npm test`
+// na mesma máquina ao mesmo tempo.
+const CAMINHO_DB = caminhoDeBancoDescartavel("v2-homologacao");
 let prisma: PrismaClient;
 
 beforeAll(() => {
-  rmSync(CAMINHO_DB, { force: true });
+  limparArquivosDoBanco(CAMINHO_DB);
   execSync(`npx prisma migrate deploy`, {
     env: { ...process.env, DATABASE_URL: `file:${CAMINHO_DB}` },
     stdio: "pipe",
@@ -43,7 +46,7 @@ beforeAll(() => {
 
 afterAll(async () => {
   await prisma.$disconnect();
-  rmSync(CAMINHO_DB, { force: true });
+  limparArquivosDoBanco(CAMINHO_DB);
 });
 
 // ---- utilidades do ensaio ------------------------------------------------
