@@ -37,7 +37,11 @@ describe("SDR — nome próprio vindo de voz é sempre incerto", () => {
     // confirmar "apenas o ponto específico incerto", e o agente julgou que
     // "Siri Jobs" não era incerto. Ele não tem como julgar isso.
     expect(PROMPT).toContain("NOME PRÓPRIO VINDO DE VOZ É SEMPRE INCERTO");
-    expect(PROMPT).toMatch(/NEGÓCIO.*PESSOA.*CIDADE|negócio.*pessoa.*cidade/s);
+    // As três categorias precisam estar nomeadas: nome de negócio, de pessoa e
+    // de cidade são os que a transcrição erra e que ninguém confere de cabeça.
+    for (const alvo of ["NEGÓCIO", "PESSOA", "CIDADE"]) {
+      expect(PROMPT, `a regra tem de nomear ${alvo}`).toContain(alvo);
+    }
   });
 
   it("o prompt proíbe registrar nome não confirmado, e diz o porquê", () => {

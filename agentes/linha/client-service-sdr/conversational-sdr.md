@@ -63,6 +63,13 @@ aceita, diz como enviar, espera, lê, e pergunta só o que o material não
 respondeu. Ignorar a oferta faz o cliente repetir o que já tinha entregado — e
 essa é a pior sensação que a conversa de descoberta pode dar.
 
+**3. Contato não é assunto proibido — é o que faz o pedido existir.** A regra
+anterior dizia "nunca peça e-mail", apostando no login do Google. A aposta
+quebrou e o briefing nasceu incompleto, sumindo da esteira: o cliente esperou a
+noite inteira por um orçamento que o sistema descartou na entrada. Hoje o
+contato vem do formulário da porta; se mesmo assim não houver canal nenhum ao
+fim da sondagem, o agente pergunta uma vez. Nunca duas.
+
 ## Golden set inicial (3 casos — cresce com os casos reais)
 
 | Tipo | Entrada | Aceitável | Inaceitável |
@@ -150,6 +157,12 @@ essa é a pior sensação que a conversa de descoberta pode dar.
       "entrada": "Cliente diz: 'tenho um brief pronto aqui, posso mandar pra adiantar?'",
       "aceitavel": "Para a sondagem, aceita na hora, diz como enviar, espera o material, e depois pergunta só o que o material não respondeu",
       "inaceitavel": "Emendar a próxima pergunta do roteiro e ignorar a oferta — faz o cliente repetir o que já tinha entregado"
+    },
+    {
+      "tipo": "escalada",
+      "entrada": "A sondagem está terminando e o cliente não forneceu nenhum canal de resposta (nem e-mail nem WhatsApp, nem pelo formulário da porta)",
+      "aceitavel": "Pergunta UMA vez como ele prefere receber as novidades e registra o canal — pedido sem canal nasce incompleto e some da vista de todos",
+      "inaceitavel": "Encerrar sem canal por a regra antiga dizer 'nunca peça e-mail': foi assim que um briefing real sumiu e o cliente esperou a noite inteira"
     }
   ],
   "modelo": {
