@@ -30,9 +30,26 @@
 // determinístico (`lib/agency/comercial/dossie-do-lead.ts`): nenhuma linha aqui
 // é escrita por IA sobre um cliente que ninguém conferiu.
 
+// ── O QUE MUDOU DE NOVO EM 16/08/2026, DEPOIS DA AUDITORIA ────────────────
+//
+// A tela tinha uma seção própria, "Não fecharam o briefing", montada a partir
+// dos dossiês com `status: "lead_incompleto"` — com um comentário explicando
+// que eles "NÃO estão na porta pela conta da varredura". Estavam de fora porque
+// `AINDA_NA_PORTA` **não os listava**, o que era o defeito, não a regra. O
+// resultado eram duas verdades na mesma tela: o placar dizia `semCaminho: 0` e
+// logo abaixo havia cartões dizendo "sem como falar com esta pessoa".
+//
+// Agora `lead_incompleto` está na fila, `semCaminho` o conta, e a seção
+// separada saiu: quem não deixou contato aparece **uma vez**, na fila "Sem
+// forma de contato", que é onde ele sempre pertenceu.
+
 import { useCallback, useEffect, useState } from "react";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import EmptyState from "@/components/agency/ui/EmptyState";
+import {
+  Carregando, CartaoDeErro, Numero, Placar as GradeDoPlacar, Selo, TituloDeFila,
+  dias, esperaHa, contagem,
+} from "@/components/agency/ui/fila/pecas";
 import { whatsappComoSeLe } from "@/lib/agency/comercial/contato-do-lead";
 import type { DossieDoLead } from "@/lib/agency/comercial/dossie-do-lead";
 import type { NaPorta, ResumoDaPorta } from "@/lib/agency/comercial/quem-bateu-na-porta";
@@ -52,12 +69,10 @@ type Dossies =
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-const dias = (n: number) => `${n} dia${n === 1 ? "" : "s"}`;
-
-/** "esperando há 0 dias" é uma frase que ninguém fala. Quem entrou hoje entrou
- *  hoje — e a diferença entre hoje e ontem é a diferença entre tudo certo e
- *  alguém começando a esperar. */
-const espera = (n: number) => (n === 0 ? "entrou hoje" : `esperando há ${dias(n)}`);
+/** "esperando há 0 dias" é uma frase que ninguém fala. A regra mora em
+ *  `components/agency/ui/fila/pecas.tsx`, junto com a da tela irmã — escrita
+ *  duas vezes ela já divergiu uma. */
+const espera = (n: number) => (n === 0 ? "entrou hoje" : `esperando ${esperaHa(n)}`);
 
 /** O contato como se lê em voz alta. A regra mora no leitor único de contato
  *  (`contato-do-lead.ts`), não aqui — e ela recusa formatar o que não tem forma
@@ -110,16 +125,9 @@ export default function LeadsPage() {
   const porId = new Map<string, DossieDoLead>(
     dossies.estado === "ok" ? dossies.leads.map((l) => [l.id, l]) : [],
   );
-  // Quem recusou deixar contato no fim do briefing. NÃO está "na porta" pela
-  // conta da varredura (o status é outro), e por isso aparece em seção própria
-  // em vez de inflar o placar — número que mistura duas coisas é número que
-  // ninguém sabe atender.
-  const desistentes = dossies.estado === "ok"
-    ? dossies.leads.filter((l) => l.status === "lead_incompleto")
-    : [];
 
   const carregando = porta.estado === "carregando";
-  const vazio = porta.estado === "ok" && porta.fila.length === 0 && desistentes.length === 0;
+  const vazio = porta.estado === "ok" && porta.resumo.naPorta === 0;
   const alcancaveis = porta.estado === "ok" ? porta.fila.filter((p) => p.temComoFalar) : [];
   const semCaminho = porta.estado === "ok" ? porta.fila.filter((p) => !p.temComoFalar) : [];
 
@@ -131,29 +139,14 @@ export default function LeadsPage() {
         subtitle="Briefings que chegaram pela porta pública e ainda não foram atendidos. Quem dá para atender vem primeiro; dentro de cada fila, o mais antigo em cima."
       />
 
-      {carregando && (
-        <div className="space-y-3">
-          <div className="h-[104px] rounded-[12px] border border-[var(--border)] bg-[var(--bg)] animate-pulse" />
-          {[0, 1].map((i) => (
-            <div key={i} className="h-[112px] rounded-[12px] border border-[var(--border)] bg-[var(--bg)] animate-pulse" />
-          ))}
-        </div>
-      )}
+      {carregando && <Carregando etiqueta="Lendo quem está esperando na porta…" />}
 
       {porta.estado === "nao_medido" && (
-        <div className="mb-5 rounded-[12px] border border-[var(--danger)] bg-[var(--danger-bg)] px-4 sm:px-5 py-4">
-          <p className="text-[13px] font-semibold text-[var(--danger)]">Não consegui ler a fila da porta</p>
-          <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed">{porta.motivo}</p>
-          <p className="text-[12px] text-[var(--text-muted)] mt-2 leading-relaxed">
-            Isto <strong>não</strong> quer dizer que a fila está vazia. Quer dizer que ela não foi medida agora.
-          </p>
-          <button
-            onClick={() => void carregar()}
-            className="mt-3 h-9 px-4 rounded-[8px] border border-[var(--border)] bg-white text-[13px] font-medium text-[var(--text-primary)]"
-          >
-            Tentar de novo
-          </button>
-        </div>
+        <CartaoDeErro
+          titulo="Não consegui ler a fila da porta"
+          motivo={porta.motivo}
+          aoTentarDeNovo={() => void carregar()}
+        />
       )}
 
       {/* Placar de três zeros em cima de "ninguém esperando" é o mesmo fato
@@ -169,9 +162,11 @@ export default function LeadsPage() {
         />
       )}
 
-      {/* O dossiê fora do ar não some com a fila — só com o detalhe dela. */}
+      {/* O dossiê fora do ar não some com a fila — só com o detalhe dela.
+          `role="alert"` porque é falha parcial, e o §7.3 do DESIGN.md não abre
+          exceção para "só um pedaço quebrou". */}
       {porta.estado === "ok" && porta.fila.length > 0 && dossies.estado === "nao_medido" && (
-        <div className="mb-3 rounded-[10px] border border-[var(--warning)] bg-[var(--warning-bg)] px-4 py-3">
+        <div role="alert" className="mb-3 rounded-[10px] border border-[var(--warning)] bg-[var(--warning-bg)] px-4 py-3">
           <p className="text-[13px] text-[var(--warning)] leading-relaxed">
             A fila abaixo está correta, mas <strong>o escopo e a faixa de preço não puderam ser lidos</strong>:{" "}
             {dossies.motivo}
@@ -208,26 +203,16 @@ export default function LeadsPage() {
         />
       )}
 
-      {desistentes.length > 0 && (
-        <Fila
-          titulo="Não fecharam o briefing"
-          descricao="Contaram o negócio e escolheram não deixar contato. Não entram na fila de atendimento nem no placar: cobrar resposta para quem não deu por onde responder seria cobrar o impossível."
-          itens={desistentes.map((l) => ({
-            id: l.id,
-            negocio: l.negocio,
-            diasEsperando: l.diasParado,
-            temComoFalar: l.contato.temComoFalar,
-            porQueNaoDaParaFalar: l.contato.temComoFalar ? null : l.contato.motivo,
-            pistas: l.pistas,
-            // Não é desleixo por definição: sem canal, ninguém podia ter
-            // respondido. A regra é de `quem-bateu-na-porta.ts` e não é
-            // recalculada aqui.
-            desleixo: false,
-          }))}
-          porId={porId}
-          aberto={aberto}
-          setAberto={setAberto}
-        />
+      {/* A LISTA TEM TETO E A CONTAGEM NÃO — e a tela diz qual dos dois está
+          olhando. Afirmar "a contagem acima não tem teto" sem que fosse verdade
+          foi o defeito de 16/08 na tela irmã; aqui a frase só aparece quando o
+          servidor diz que amostrou. */}
+      {porta.estado === "ok" && porta.resumo.amostrada && (
+        <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
+          A fila tem <strong>{porta.resumo.naPorta}</strong> pessoas e esta tela lista as{" "}
+          {porta.resumo.listados} mais antigas. Os números do placar valem sobre essas{" "}
+          {porta.resumo.listados} — são <strong>piso</strong>, não total.
+        </p>
       )}
     </div>
   );
@@ -245,9 +230,7 @@ function Fila({
 }) {
   return (
     <div className="mb-7">
-      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">
-        {titulo} · {itens.length}
-      </p>
+      <TituloDeFila>{titulo} · {itens.length}</TituloDeFila>
       <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">{descricao}</p>
       <div className="space-y-3">
         {itens.map((p) => (
@@ -274,10 +257,15 @@ function Fila({
  * conserto é ruído que se aprende a ignorar.
  */
 function Placar({ resumo, prazo }: { resumo: ResumoDaPorta; prazo: number }) {
-  const cobra = resumo.esperandoResposta > 0;
   return (
     <div className="mb-5">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      <GradeDoPlacar>
+        {/* OS TRÊS DEGRAUS, na mesma semântica da tela irmã de aprovações —
+            `nossa` é a bola da casa, `atencao` é buraco de dado ou prazo
+            estourado. Até 16/08 esta tela pintava "passaram do prazo" com o
+            MESMO vermelho de "ninguém falou", achatando dois degraus em um,
+            enquanto a de aprovações usava três. Copiar o componente não
+            sincronizava a semântica; agora ela mora num lugar só. */}
         <Numero
           valor={resumo.esperandoResposta}
           rotulo="dá para falar, e ninguém falou"
@@ -286,47 +274,27 @@ function Placar({ resumo, prazo }: { resumo: ResumoDaPorta; prazo: number }) {
               ? `o mais antigo espera há ${dias(resumo.maisAntigoEmDias)}`
               : "ninguém nessa situação"
           }
-          tom={cobra ? "danger" : "neutro"}
+          tom={resumo.esperandoResposta > 0 ? "nossa" : "deles"}
         />
         <Numero
           valor={resumo.desleixo}
           rotulo={`passaram de ${dias(prazo)}`}
           nota="parte do número ao lado — não some os dois"
-          tom={resumo.desleixo > 0 ? "danger" : "neutro"}
+          tom={resumo.desleixo > 0 ? "atencao" : "deles"}
         />
         <Numero
           valor={resumo.semCaminho}
           rotulo="sem forma de contato"
           nota="buraco de dado, não desleixo: falar é impossível"
-          tom={resumo.semCaminho > 0 ? "warning" : "neutro"}
+          tom={resumo.semCaminho > 0 ? "atencao" : "deles"}
         />
-      </div>
+      </GradeDoPlacar>
       {resumo.naPorta > 0 && (
         <p className="text-[12px] text-[var(--text-muted)] mt-2 leading-relaxed">
-          {resumo.naPorta} na porta ao todo. Esta tela só conta — <strong>ninguém é abordado por máquina</strong>.
+          {contagem(resumo.naPorta, "pessoa na porta", "pessoas na porta")} ao todo. Esta tela só
+          conta — <strong>ninguém é abordado por máquina</strong>.
         </p>
       )}
-    </div>
-  );
-}
-
-function Numero({
-  valor, rotulo, nota, tom,
-}: { valor: number; rotulo: string; nota: string; tom: "danger" | "warning" | "neutro" }) {
-  const cor =
-    tom === "danger" ? "text-[var(--danger)]" : tom === "warning" ? "text-[var(--warning)]" : "text-[var(--text-primary)]";
-  const borda =
-    tom === "danger" ? "border-[var(--danger)]" : tom === "warning" ? "border-[var(--warning)]" : "border-[var(--border)]";
-  return (
-    // No celular o placar é uma LINHA por número — três blocos altos empurravam
-    // o primeiro nome da fila para 600px de rolagem, e quem abre esta tela vem
-    // ver gente, não contador. A partir de `sm` ele volta a ser cartão.
-    <div className={`rounded-[12px] border ${borda} bg-white px-4 py-3`}>
-      <div className="flex items-baseline gap-2.5 sm:block">
-        <p className={`text-[24px] sm:text-[26px] font-semibold leading-none tabular-nums shrink-0 ${cor}`}>{valor}</p>
-        <p className="text-[13px] font-medium text-[var(--text-primary)] sm:mt-1.5 leading-snug">{rotulo}</p>
-      </div>
-      <p className="text-[12px] text-[var(--text-muted)] mt-1 leading-relaxed">{nota}</p>
     </div>
   );
 }
@@ -337,8 +305,11 @@ function Cartao({
   const semContato = !porta.temComoFalar;
 
   return (
+    // `bg-[var(--card)]`, e não `bg-white`: existe token, e no modo escuro
+    // `--card` vira navy. Cartão branco fixo dentro de tela escura era o
+    // resultado literal de seis `bg-white` escritos à mão nestas duas telas.
     <div
-      className={`rounded-[12px] border bg-white overflow-hidden ${
+      className={`rounded-[12px] border bg-[var(--card)] overflow-hidden ${
         porta.desleixo ? "border-[var(--danger)]" : semContato ? "border-[var(--warning)]" : "border-[var(--border)]"
       }`}
     >
@@ -350,7 +321,12 @@ function Cartao({
       <button
         onClick={onToggle}
         aria-expanded={aberto}
-        aria-controls={`detalhe-${porta.id}`}
+        // `aria-controls` SÓ quando o painel existe no DOM. Fechado, o detalhe
+        // não é renderizado e o atributo apontava para um id inexistente —
+        // IDREF pendurado, que alguns leitores de tela anunciam como controle
+        // quebrado e outros ignoram em silêncio. `aria-expanded` sozinho já diz
+        // o que precisa ser dito enquanto está fechado.
+        aria-controls={aberto ? `detalhe-${porta.id}` : undefined}
         style={{ touchAction: "manipulation" }}
         className="w-full text-left px-4 sm:px-5 py-4 hover:bg-[var(--bg)] transition-colors"
       >
@@ -369,20 +345,23 @@ function Cartao({
             "está sendo ignorado". */}
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {semContato ? (
-            <Selo tom="warning">Sem como falar com esta pessoa</Selo>
+            <Selo tom="atencao">Sem como falar com esta pessoa</Selo>
           ) : (
-            <Selo tom="success">
+            <Selo tom="ok">
               {dossie
                 ? dossie.contato.canais.map((c) => (c.tipo === "whatsapp" ? "WhatsApp" : "E-mail")).join(" · ")
                 : "Tem canal de contato"}
             </Selo>
           )}
-          {porta.desleixo && <Selo tom="danger">Passou do prazo — ninguém respondeu</Selo>}
+          {porta.desleixo && <Selo tom="nossa">Passou do prazo — ninguém respondeu</Selo>}
         </div>
 
         {dossie && (
+          // 14px, abaixo dos 15px do nome do negócio. Estava 16px: o preço
+          // saía MAIOR que o nome de quem está esperando, e o que se vem
+          // decidir aqui é falar com uma pessoa, não olhar uma tabela.
           <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-[16px] font-semibold text-[var(--text-primary)]">
+            <span className="text-[14px] font-semibold text-[var(--text-primary)]">
               {dossie.faixa ? `${brl(dossie.faixa.minimo)} – ${brl(dossie.faixa.maximo)}` : "faixa a definir"}
             </span>
             <span className="text-[12px] text-[var(--text-muted)]">
@@ -444,9 +423,15 @@ function Cartao({
           </Bloco>
 
           {!dossie && (
+            // Desde 16/08 a fila e os dossiês leem o MESMO conjunto de status
+            // (`AINDA_NA_PORTA`), então este caso deixou de ser rotina e passou
+            // a ser sinal: as duas leituras discordaram. A frase antiga
+            // ("já saiu da caixa de entrada") explicava um comportamento que
+            // não existe mais e mandaria a pessoa procurar no lugar errado.
             <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
-              Esta solicitação já saiu da caixa de entrada (está em triagem), então o dossiê de escopo e
-              faixa não é montado para ela.
+              O escopo e a faixa desta solicitação não vieram nesta leitura. Ela está na fila, mas o
+              dossiê dela não foi montado — <strong>abra a ficha da solicitação</strong> para ver o
+              detalhe.
             </p>
           )}
 
@@ -516,24 +501,11 @@ function Cartao({
   );
 }
 
-function Selo({ tom, children }: { tom: "danger" | "warning" | "success"; children: React.ReactNode }) {
-  const cor =
-    tom === "danger"
-      ? "bg-[var(--danger-bg)] text-[var(--danger)]"
-      : tom === "warning"
-      ? "bg-[var(--warning-bg)] text-[var(--warning)]"
-      : "bg-[var(--success-bg)] text-[var(--success)]";
-  return (
-    <span className={`inline-flex items-center gap-1.5 h-6 px-2.5 rounded-[6px] text-[12px] font-semibold ${cor}`}>
-      {children}
-    </span>
-  );
-}
-
 function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">{titulo}</p>
+      {/* 12px: o piso da §3 do DESIGN.md. Estava 11px. */}
+      <h3 className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">{titulo}</h3>
       {children}
     </div>
   );

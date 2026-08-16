@@ -15,6 +15,181 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — A AUDITORIA DA PORTA DA FRENTE: A FILA NÃO CONTINHA AS PESSOAS QUE ELA EXISTE PARA MOSTRAR
+
+**A consequência, primeiro:** a fila que a agência acabara de ligar mostrava, em
+produção, **só quem o auto-escopo tinha falhado ou ainda estava rodando**. Quatro
+especialistas passaram na entrega da manhã e o veredito foi *não passa*. O que
+segue é o conserto, com o defeito de cada item provado por teste que fica
+**vermelho quando o conserto é revertido**.
+
+### 🔴 1. A LISTA DE STATUS PROCURAVA POR DOIS ESTADOS QUE NÃO EXISTEM
+
+`AINDA_NA_PORTA` era `["new", "triaged", "qualifying"]`. **`triaged` e
+`qualifying` não existem em `ClientRequestDbStatus`** — nunca existiram, e
+nenhuma linha do repositório os escreve. Sobrava `new`, que dura **segundos**:
+
+- briefing **com** contato nasce `new` e `runAutoScope` dispara na hora; ao
+  terminar grava **`scope_ready`** → o lead com proposta pronta e ninguém que
+  falou com ele **caía fora da fila**. É a definição de "bateu na porta e não foi
+  atendido", e era o caso que sumia;
+- briefing **sem** contato nasce **`lead_incompleto`** → **nunca esteve na
+  fila**. `semCaminho` era **estruturalmente zero** em produção enquanto a tela
+  listava cartões "sem como falar" vindos de uma segunda leitura. Duas verdades
+  na mesma tela.
+
+A régua nova está escrita no cabeçalho da lista: **sai da fila o estado em que
+alguém AGIU**, nunca o estado em que a máquina terminou. E a trava é dupla — há
+teste que confere cada status contra o vocabulário do banco **e** teste que
+reprova status novo sem lado declarado. O defeito não volta por omissão.
+
+Consequência de tela: a seção "Não fecharam o briefing", que existia só porque
+esses leads estavam fora da fila, **saiu**. Quem não deixou contato aparece uma
+vez, em "Sem forma de contato".
+
+### 🔴 2. FALHA DE BANCO IMPRIMIA "TODO BRIEFING QUE CHEGOU JÁ FOI ATENDIDO"
+
+`quemBateuNaPorta` fazia `.catch(() => [])` e a docstring prometia *"nunca
+lança"*. Medido: com o banco caindo a rota devolvia **200 · `medido: true` ·
+`fila: []`**, a tela imprimia o estado vazio de boa notícia, e o `catch` da rota
+que diz *"esta fila NÃO é zero, é desconhecida"* era **inalcançável**. O relógio
+também não registrava — não passava por `quebrou()`, não entrava no pulso.
+
+O conserto é o mesmo que a irmã `aprovacao-parada.ts` recebeu horas antes, com o
+motivo escrito. E **o teste que trancava o oposto foi INVERTIDO, não apagado**:
+ele prometia "nunca em silêncio" no título e assertava `naPorta === 0` sem olhar
+uma linha de log. Quinto caso registrado nesta casa do padrão **defeito virando
+invariante**.
+
+Faltava também o teste de 503 da rota — a rota irmã tinha desde o primeiro dia.
+`__tests__/comercial/porta-rota.test.ts` nasceu daí. **`catch` sem teste é
+`catch` que ninguém sabe se roda.**
+
+### 🔴 3. NOME DE PESSOA FÍSICA IA PARA O LOG, A CADA 5 MINUTOS
+
+A perna do relógio logava `p.negocio`. Em **2 dos 3 casos reais medidos**, esse
+campo é nome de pessoa física — o negócio da pessoa é ela mesma. Ia para a
+retenção do Railway sem prazo e sem dono: o mesmo vazamento que saiu dos PNGs no
+mesmo dia, uma linha ao lado. Agora sai o `id`; quem vai falar com a pessoa abre
+a tela, que é onde o nome pode estar, atrás de sessão.
+
+### 🔴 4. O FIXTURE PROVAVA O DESENHO E ESCONDIA O DEFEITO
+
+`fixture-porta-da-frente.mjs` plantava `status: "new"` **sem contato** — uma
+combinação que a rota pública **não sabe produzir**. As nove capturas ficaram
+bonitas mostrando um estado que produção nenhuma tem, e nenhuma mostrava o que a
+fila exibia de verdade. Era o próprio fixture escondendo o defeito nº 1.
+
+Agora **o status é DERIVADO do briefing**, pela mesma pergunta que o servidor
+faz, e o script **para** se alguém declarar estado impossível. As capturas foram
+refeitas (terceira leva), com `scope_ready` incluído, e o `LEIA-ME` declara **o
+método de cada estado** — quais vieram do banco de verdade e quais vieram de
+interceptação HTTP, com o que cada um prova e o que não prova.
+
+### 🔴 5. A VARREDURA MEDIA UM INQUILINO E REPORTAVA COMO SE FOSSE A CASA
+
+`findFirst` elegia um workspace e só ele era varrido, enquanto `naPorta` está
+declarado no tipo de retorno como a fila da casa. Com 40 esperando numa conta e
+12 noutra, **uma das duas não saía em log nenhum**. O idioma certo já existia
+aqui (`varrerTodasAsCaixas`): enumerar e passar por todos. Virou
+`lib/agency/varredura/inquilinos.ts`.
+
+Hoje há ~1 workspace e o dano real é baixo — **é por isso que foi consertado
+agora, enquanto é barato.**
+
+### 🔴 6. O TETO DE 200 CORTAVA A CONTAGEM
+
+`naPorta` saía de `fila.length` sobre um `take: 200`: com 250 na fila, a tela
+afirmava 200, sem marcador. Agora a **contagem é consulta própria** (sem teto), a
+lista continua com teto, e o resumo carrega `listados` e `amostrada` — a tela e o
+log dizem, com todas as letras, que os baldes são **piso** quando a fila foi
+amostrada.
+
+### 7. OS NÚMEROS GANHARAM CONSUMIDOR — e fila NÃO entrou em `moveu`
+
+`naPorta` era medido a cada 5 minutos e não chegava a lugar nenhum além do
+`console.log`, que as próprias rotas do dia chamam de *"log do Railway não é
+tela"*. Entrou no pulso em **campo próprio** (`Batida.filas` → `filasAgora`), e
+não em `moveu`: `moveu24h` **soma**, e uma fila de 3 pessoas medida em 288
+rodadas viraria **864 pessoas na porta**. Fila é nível, nível não se soma.
+
+> ⚠️ **Não foi para `/api/health` de propósito.** Aquela rota é a sonda de
+> liveness do Railway e é declaradamente sem banco e sempre-200: uma leitura de
+> fila ali faria um soluço de banco parecer container caído. O destino é
+> `/api/pulso`, que já é a rota protegida do "a agência está trabalhando?".
+
+### 8. A TRAVA DE ESCRITA ERRAVA DOS DOIS LADOS — virou allowlist
+
+A lista de palavras proibidas **deixava passar** `await import(...)` (o idioma da
+própria função, 7 ocorrências no arquivo), `$transaction`, `updateMany (` com
+espaço e escrita por função de terceiro módulo; e **reprovava o legítimo** —
+`log("…precisa decidir…")` ficava vermelho por uma palavra dentro de uma string.
+Detector que reprova o certo ensina o time a editar a lista, e lista editável é
+carimbo.
+
+`__tests__/_ajuda/detector-de-escrita.ts` inverte a pergunta: **o que esta perna
+chama que ninguém declarou?** Comentário e texto de string saem antes da
+varredura; toda chamada que sobra é comparada com a lista declarada; as portas de
+fuga (`import(`, `$transaction`, SQL cru) continuam barradas por nome. E há teste
+que prova que o detector detecta — sem ele, detector quebrado fica verde para
+sempre. O guarda de runtime também deixou de olhar um modelo: `escritasNoBanco()`
+varre **todos**.
+
+### 9. FORMA — o que os quatro acharam, e o que virou peça comum
+
+`role="alert"` e `role="status"`: **zero ocorrências** nas telas novas, contra
+§7.1/§7.3 literais do `DESIGN.md`. Nenhum `<h2>`, enquanto a vizinha usa. Seis
+`bg-white` onde existe `--card` (branco no modo escuro). `text-[11px]` abaixo do
+piso de 12px. `sm:grid-cols-3` que deveria ser `lg:` — a 768px a barra lateral
+come 224px. `aria-controls` apontando para elemento fora do DOM. Preço maior que
+o nome do negócio. "1 card(s)", "parada há 0 dias".
+
+E o achado que vale mais que a soma: **`--danger` e `--warning` queriam dizer
+coisas opostas nas duas telas.** A de aprovações tinha três degraus; a de leads
+achatava dois num só. **Copiar o componente não sincroniza a semântica** — e o
+`Numero` era byte a byte idêntico nos dois arquivos, com o cartão de erro
+copiado, `dias()` duplicado e um `Selo` refazendo o `Badge` da casa.
+
+`components/agency/ui/fila/pecas.tsx` passa a ser a implementação única, com os
+três degraus **declarados uma vez**: `nossa` (a bola é da casa) · `deles` (a bola
+é do cliente) · `atencao` (prazo ou buraco de dado). A cor sai de quem tem a
+bola, nunca da vontade de destacar.
+
+### 10. NENHUM TESTE RENDERIZAVA AS TELAS NOVAS
+
+O que existia era leitura de código-fonte, que pega texto apagado e não pega o
+número errado sob o rótulo certo nem a lista duplicada — foi por esse buraco que
+passaram os dois defeitos de tela do dia. `porta-na-tela.test.tsx` renderiza.
+
+### Portão
+
+`npx tsc --noEmit` **limpo**, medido com e sem · **291 arquivos, 4.585 testes
+verdes, 1 pulado** · `npm run lint` com **exatamente os mesmos 212 problemas (67
+erros)** da base, medido com e sem.
+
+**As duas metades, e a prova de que elas provam:** cada bloqueante foi
+**revertido** e a suíte foi rodada — status inventado (3 vermelhos), `.catch(()
+=> [])` (5), nome no log (3), `findFirst` de um inquilino (4), teto cortando a
+contagem (4). Teste que passa nos dois estados não prova nada.
+
+Capturas em **375 / 768 / 1440**, nos **quatro** estados incluindo **carregando**.
+Notas a 375px: hierarquia **9** · tipografia **9** · espaçamento **8,5** ·
+consistência **9**.
+
+### 🔴 O QUE NÃO FOI FEITO, POR ORDEM EXPRESSA
+
+- **Não** foi construído o `wa.me`/`mailto:` no cartão do lead — decisão do CEO,
+  pendente.
+- **Não** foi construída a perna de volta ("falei com ele"), que é o que faz o
+  número descer. Recomendada ao Diretor, **sem resposta do CEO** — silêncio não é
+  autorização.
+- **Não** foi consertado o `workspaceId` nulo de `ClientRequestDb` — decisão do
+  CEO. O órfão continua contado à parte, e o log agora diz **"no banco inteiro"**,
+  porque órfão não tem inquilino por definição e apresentá-lo dentro do laço o
+  faria parecer de um inquilino específico, contado N vezes.
+- **`GuardaDeRota` continua não existindo.** 42 páginas sem trava de rota,
+  `motivoDeBloqueio()` com zero chamadores. Frente própria, registrada abaixo.
+
 ## 🟢 16/08/2026 — O ALARME DA PORTA DA FRENTE ESTAVA CONSTRUÍDO E DESLIGADO
 
 **A consequência, primeiro:** o relógio da agência passou a varrer a fila de

@@ -23,7 +23,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const sessaoMock = vi.hoisted(() => ({ atual: null as unknown }));
 const db = vi.hoisted(() => ({
-  clientRequestDb: { findMany: vi.fn() },
+  // `count` entrou em 16/08: a CONTAGEM da fila virou consulta própria, porque
+  // a lista tem teto e ela não. Sem este mock a rota cai no 503 e o teste de
+  // permissão passa a medir outra coisa.
+  clientRequestDb: { findMany: vi.fn(), count: vi.fn() },
 }));
 const listClientRequests = vi.hoisted(() => vi.fn());
 
@@ -44,6 +47,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   comSessao(null);
   db.clientRequestDb.findMany.mockResolvedValue([]);
+  db.clientRequestDb.count.mockResolvedValue(0);
   listClientRequests.mockResolvedValue([]);
 });
 

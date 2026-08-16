@@ -31,11 +31,7 @@
 
 import { NextResponse } from "next/server";
 import { exigirApiInterna } from "@/lib/agency/organizacao/guarda";
-import {
-  quemBateuNaPorta,
-  resumoDaPorta,
-  DIAS_ATE_VIRAR_DESLEIXO,
-} from "@/lib/agency/comercial/quem-bateu-na-porta";
+import { lerAPorta, DIAS_ATE_VIRAR_DESLEIXO } from "@/lib/agency/comercial/quem-bateu-na-porta";
 
 export async function GET(): Promise<NextResponse> {
   const { acesso, erro } = await exigirApiInterna("/agency/leads");
@@ -44,16 +40,12 @@ export async function GET(): Promise<NextResponse> {
 
   try {
     const agora = new Date();
-    // DUAS leituras, de propósito. A alternativa seria recontar o resumo aqui —
-    // uma segunda cópia da mesma regra, que é exatamente o defeito que já deixou
-    // duas telas discordando sobre a mesma fila nesta casa. Divergência entre as
-    // duas leituras só existiria se alguém preenchesse um briefing no
-    // milissegundo entre elas, e some no refresh seguinte; regra duplicada
-    // diverge para sempre.
-    const [resumo, fila] = await Promise.all([
-      resumoDaPorta(session.workspaceId, agora),
-      quemBateuNaPorta(session.workspaceId, agora),
-    ]);
+    // UMA leitura, uma regra. A versão de 16/08 chamava `resumoDaPorta` e
+    // `quemBateuNaPorta` em paralelo para não recontar aqui — o argumento
+    // estava certo (regra duplicada diverge para sempre) e a solução era
+    // `lerAPorta`, que devolve as duas coisas do mesmo `findMany`. Sem isso, a
+    // contagem separada da lista teria transformado 2 consultas em 4.
+    const { resumo, fila } = await lerAPorta(session.workspaceId, agora);
 
     return NextResponse.json({
       medido: true,
