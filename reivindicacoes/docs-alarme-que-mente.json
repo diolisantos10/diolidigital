@@ -1,0 +1,11 @@
+{
+  "id": "docs-alarme-que-mente",
+  "quem": "pm-ci-do-deploy",
+  "frente": "registro da decisao: alarme que mente sobre a causa e pior que alarme ausente",
+  "responsabilidade": "docs-alarme-que-mente",
+  "arquivos": [
+    "docs/decisoes.md"
+  ],
+  "abertaEm": "2026-08-16T19:02:42.054Z",
+  "encerradaEm": null
+}
