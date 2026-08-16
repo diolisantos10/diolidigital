@@ -77,6 +77,34 @@ export function normalizarWhatsapp(v: string): string {
   return v.replace(/\D/g, "");
 }
 
+/**
+ * O telefone escrito como se lê em voz alta. **Só para EXIBIR.**
+ *
+ * O dado gravado continua sendo só dígitos (é o que `normalizarWhatsapp` diz na
+ * linha acima) — mas `11987654321` numa linha só é onze dígitos que quem vai
+ * ligar tem de contar com o dedo, e a tela de `/agency/leads` existe para uma
+ * pessoa DISCAR esse número.
+ *
+ * A regra que importa é a de recusa: só formata o que tem forma de telefone
+ * brasileiro (10 ou 11 dígitos). Qualquer outra coisa — 13 dígitos com o 55 na
+ * frente, número curto, lixo — sai **exatamente como está gravada**. Contato
+ * adulterado na exibição é pior que contato feio, porque ninguém confere o que
+ * a tela já apresentou arrumado.
+ *
+ * 🔴 O `+` É PARADA OBRIGATÓRIA, e quem achou isso foi o teste, não a leitura.
+ * `+1 202 555 0143` tem ONZE dígitos depois de tirar a pontuação e passava
+ * direto pelo molde de celular brasileiro: a tela exibiria `(12) 02555-0143`,
+ * um número que não existe, com cara de número conferido, na linha em que
+ * alguém vai discar. Valor com `+` é declaração de código de país e sai intacto.
+ */
+export function whatsappComoSeLe(valor: string): string {
+  if (valor.includes("+")) return valor;
+  const d = valor.replace(/\D/g, "");
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return valor;
+}
+
 function texto(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v.trim() : null;
 }

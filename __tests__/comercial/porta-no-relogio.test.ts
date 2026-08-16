@@ -187,16 +187,46 @@ describe("a perna CONTA. ela não fala com ninguém e não escreve nada", () => 
     expect(src.includes("export async function GET")).toBe(true);
   });
 
+  // ── ESTE TESTE DAVA FALSA SENSAÇÃO, E FOI CONSERTADO EM 16/08/2026 ───────
+  //
+  // A primeira versão recortava o bloco entre o título desta perna e o título
+  // da perna SEGUINTE ("A PERGUNTA QUE NUNCA CHEGOU AO CLIENTE"). Dois furos,
+  // e o primeiro é o que envenena:
+  //
+  //   1. mover esta perna para DEPOIS daquela fazia `f < i`, `slice(i, f)`
+  //      devolvia STRING VAZIA — e as sete asserções passavam **sem olhar uma
+  //      linha de código**. Verde, mudo, e protegendo nada. É a "peça verde,
+  //      junta rompida" dentro do próprio teste que existe para achá-la;
+  //   2. a âncora era a perna do VIZINHO. Renomear a perna de baixo (trabalho
+  //      de outro agente, em outra frente) quebrava esta trava sem que ninguém
+  //      relacionasse as duas coisas.
+  //
+  // Agora as duas âncoras são desta perna: o título dela e o `quebrou()` do
+  // catch dela. Ela pode mudar de lugar no arquivo que a trava continua de pé,
+  // e se qualquer uma das duas sumir o teste fica VERMELHO em vez de vazio.
   it("o código da passada não importa nenhum caminho de envio", async () => {
     const fs = await import("node:fs");
     const path = await import("node:path");
     const bruto = fs.readFileSync(path.join(process.cwd(), "lib/agency/despertador.ts"), "utf8");
-    // Só o bloco da porta da frente — o resto do relógio envia, e deve enviar.
     const i = bruto.indexOf("QUEM BATEU NA PORTA E NINGUÉM ATENDEU");
-    const f = bruto.indexOf("A PERGUNTA QUE NUNCA CHEGOU AO CLIENTE");
+    const f = bruto.indexOf('quebrou("porta-da-frente", err)');
+    expect(i, "a perna da porta sumiu do despertador").toBeGreaterThan(0);
+    expect(f, "o catch da perna da porta sumiu — o recorte ficaria vazio e o teste, cego").toBeGreaterThan(i);
+
     const bloco = bruto.slice(i, f).replace(/^\s*\/\/.*$/gm, "");
-    expect(i).toBeGreaterThan(0);
-    for (const p of ["sendWhatsApp", "avisarCliente", "enviarEmail", "notif", "generate(", "update(", "create("]) {
+    // Recorte minúsculo é recorte errado, e recorte errado passa em tudo.
+    expect(bloco.length, "o recorte encolheu — verifique as âncoras antes de confiar no verde").toBeGreaterThan(400);
+
+    // A lista era curta demais: `update(` não pega `updateMany(`, e `create(`
+    // não pega `createMany(` nem `upsert(`. Quem plugasse escrita em massa
+    // passava direto pela trava que existe para barrar escrita.
+    const PROIBIDOS = [
+      "sendWhatsApp", "avisarCliente", "enviarEmail", "notif", "dispatch", "fetch(",
+      "generate(", "runProjectExecution",
+      "update(", "updateMany(", "create(", "createMany(", "upsert(",
+      "delete(", "deleteMany(", "$executeRaw", "$queryRaw",
+    ];
+    for (const p of PROIBIDOS) {
       expect(bloco.includes(p), `a passada da porta passou a ${p} — ela era para CONTAR`).toBe(false);
     }
   });

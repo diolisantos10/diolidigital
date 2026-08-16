@@ -14,8 +14,23 @@
 // Nada é escrito, nada é enviado, ninguém é abordado. Ver o cabeçalho de
 // `quem-bateu-na-porta.ts` — e a ordem do CEO de 10/08/2026.
 
+// ── POR QUE A GUARDA É `exigirApiInterna`, E NÃO `requireSession` (16/08) ──
+//
+// A primeira versão desta rota usava `requireSession()` — "tem biscoito válido,
+// entra". A TELA que ela alimenta é `dono_e_gestao` no inventário
+// (`organizacao/paginas.ts`): Atendimento, master, diretor e PM. Com a guarda
+// larga, quem fosse de Design, Social, Tráfego ou Tecnologia via a fila inteira
+// — nome de negócio, dias de espera e canal de contato — bastando um `curl`.
+// O menu escondia; a API servia. É textualmente o defeito que `guarda.ts`
+// existe para não deixar acontecer de novo, e ele voltou por descuido de quem
+// escreveu esta rota (o PM, em 16/08).
+//
+// `exigirApiInterna("/agency/leads")` prende a permissão da API à MESMA linha
+// do inventário que decide a tela. Muda o `acesso` daquela linha e as duas
+// mudam juntas — que é o ponto inteiro de haver uma só tabela.
+
 import { NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth/api-guard";
+import { exigirApiInterna } from "@/lib/agency/organizacao/guarda";
 import {
   quemBateuNaPorta,
   resumoDaPorta,
@@ -23,8 +38,9 @@ import {
 } from "@/lib/agency/comercial/quem-bateu-na-porta";
 
 export async function GET(): Promise<NextResponse> {
-  const { session, error } = await requireSession();
-  if (error) return error;
+  const { acesso, erro } = await exigirApiInterna("/agency/leads");
+  if (erro) return erro;
+  const { session } = acesso;
 
   try {
     const agora = new Date();

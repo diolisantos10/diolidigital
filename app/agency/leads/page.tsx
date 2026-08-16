@@ -33,6 +33,7 @@
 import { useCallback, useEffect, useState } from "react";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import EmptyState from "@/components/agency/ui/EmptyState";
+import { whatsappComoSeLe } from "@/lib/agency/comercial/contato-do-lead";
 import type { DossieDoLead } from "@/lib/agency/comercial/dossie-do-lead";
 import type { NaPorta, ResumoDaPorta } from "@/lib/agency/comercial/quem-bateu-na-porta";
 
@@ -57,6 +58,12 @@ const dias = (n: number) => `${n} dia${n === 1 ? "" : "s"}`;
  *  hoje — e a diferença entre hoje e ontem é a diferença entre tudo certo e
  *  alguém começando a esperar. */
 const espera = (n: number) => (n === 0 ? "entrou hoje" : `esperando há ${dias(n)}`);
+
+/** O contato como se lê em voz alta. A regra mora no leitor único de contato
+ *  (`contato-do-lead.ts`), não aqui — e ela recusa formatar o que não tem forma
+ *  de telefone, em vez de arrumar por cima. */
+const comoSeLe = (tipo: string, valor: string) =>
+  tipo === "whatsapp" ? whatsappComoSeLe(valor) : valor;
 
 export default function LeadsPage() {
   const [porta, setPorta] = useState<Porta>({ estado: "carregando" });
@@ -335,8 +342,15 @@ function Cartao({
         porta.desleixo ? "border-[var(--danger)]" : semContato ? "border-[var(--warning)]" : "border-[var(--border)]"
       }`}
     >
+      {/* O cartão é um DISCLOSURE, e precisava dizer isso a quem não enxerga a
+          seta: sem `aria-expanded` o leitor de tela anuncia "botão, Portal de
+          Vagas" e não conta que existe conteúdo escondido nem se ele já está
+          aberto — a pessoa clica no escuro. O `abrir/fechar` visível já dizia
+          isso para quem vê. */}
       <button
         onClick={onToggle}
+        aria-expanded={aberto}
+        aria-controls={`detalhe-${porta.id}`}
         style={{ touchAction: "manipulation" }}
         className="w-full text-left px-4 sm:px-5 py-4 hover:bg-[var(--bg)] transition-colors"
       >
@@ -383,7 +397,7 @@ function Cartao({
       </button>
 
       {aberto && (
-        <div className="border-t border-[var(--border)] px-4 sm:px-5 py-4 space-y-5">
+        <div id={`detalhe-${porta.id}`} className="border-t border-[var(--border)] px-4 sm:px-5 py-4 space-y-5">
           <Bloco titulo="Como falar">
             {semContato ? (
               <>
@@ -416,7 +430,8 @@ function Cartao({
                 )}
                 {dossie.contato.canais.map((c) => (
                   <li key={c.tipo} className="text-[13px] text-[var(--text-primary)]">
-                    <span className="text-[var(--text-muted)]">{c.tipo === "whatsapp" ? "WhatsApp" : "e-mail"}:</span> {c.valor}
+                    <span className="text-[var(--text-muted)]">{c.tipo === "whatsapp" ? "WhatsApp" : "e-mail"}:</span>{" "}
+                    <span className="tabular-nums select-all">{comoSeLe(c.tipo, c.valor)}</span>
                   </li>
                 ))}
               </ul>

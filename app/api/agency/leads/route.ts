@@ -8,15 +8,24 @@
 // banco de produção não aparecia. Três leads ficaram 51, 29 e 28 dias assim.
 //
 // Nenhuma escrita, nenhuma chamada de IA, nenhum contato inventado.
+//
+// ⚠️ A GUARDA MUDOU EM 16/08/2026, e a rota é anterior a essa data.
+// Ela usava `requireSession()` — qualquer pessoa logada da casa. A tela que ela
+// serve (`/agency/leads`) é `dono_e_gestao` no inventário de páginas, então
+// Design, Social, Tráfego e Tecnologia liam por `curl` o dossiê inteiro (nome,
+// segmento, o que a pessoa contou, e-mail e WhatsApp) de quem só falou com a
+// porta pública. `exigirApiInterna("/agency/leads")` prende a API à MESMA linha
+// que decide a tela.
 
 import { NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth/api-guard";
+import { exigirApiInterna } from "@/lib/agency/organizacao/guarda";
 import { listClientRequests } from "@/lib/agency/persistence/client-request-service";
 import { montarDossie } from "@/lib/agency/comercial/dossie-do-lead";
 
 export async function GET(): Promise<NextResponse> {
-  const { session, error } = await requireSession();
-  if (error) return error;
+  const { acesso, erro } = await exigirApiInterna("/agency/leads");
+  if (erro) return erro;
+  const { session } = acesso;
 
   try {
     const registros = await listClientRequests({
