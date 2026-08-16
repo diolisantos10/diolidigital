@@ -1,0 +1,12 @@
+{
+  "id": "piloto/desfecho-do-escopo-gravado",
+  "quem": "wt-a5f1fd2e59",
+  "frente": "o desfecho do escopo deixa de ser gravado pela metade: escopoFoiSalvo false vira fato afirmado, nao ausencia",
+  "responsabilidade": "piloto/desfecho-do-escopo-gravado",
+  "arquivos": [
+    "lib/agency/comercial/registro-da-conversa.ts"
+  ],
+  "abertaEm": "2026-08-16T19:56:35.229Z",
+  "encerradaEm": null,
+  "rotulo": "pm-diario-do-piloto"
+}
