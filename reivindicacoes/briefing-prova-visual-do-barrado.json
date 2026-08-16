@@ -1,0 +1,12 @@
+{
+  "id": "briefing/prova-visual-do-barrado",
+  "quem": "pm-9ab49074",
+  "frente": "prova visual do 429: barrado e quebrado a 375/768/1440",
+  "responsabilidade": "briefing/prova-visual-do-barrado",
+  "arquivos": [
+    "scripts/foto-barrado-e-quebrado.mjs",
+    "docs/entregas/barrado-16-08"
+  ],
+  "abertaEm": "2026-08-16T18:55:02.954Z",
+  "encerradaEm": null
+}
