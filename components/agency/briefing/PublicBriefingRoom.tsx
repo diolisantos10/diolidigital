@@ -17,8 +17,10 @@ import {
 } from "@/lib/agency/comercial/nome-de-anexo";
 import {
   aberturaDeAnexo,
+  aberturaDoMaterial,
   conteudoParaCerca,
   fechamentoDeAnexo,
+  fechamentoDoMaterial,
   instrucaoDaMarca,
   nomeParaCerca,
   novaMarcaDeCerca,
@@ -824,9 +826,34 @@ export const PISO_DA_CONVERSA = 88;
 export const PISO_UTIL_DA_CONVERSA = 160;
 
 /**
- * O mínimo em que o painel de materiais ainda SERVE: a zona de arrastar com a
- * seta E a frase, mais a primeira linha da lista de anexos. Abaixo disto o
- * painel vira meia seta sem texto — visível e inútil, que é pior que fechado.
+ * O mínimo em que o painel de materiais ainda SERVE.
+ *
+ * ⚠️ E3, 16/08/2026 — **A JUSTIFICATIVA DESTE NÚMERO TINHA VENCIDO.** Ele estava
+ * documentado como *"a zona de arrastar com a seta E a frase, mais a primeira
+ * linha da lista de anexos"* — uma conta feita ANTES de o C5 inverter a ordem
+ * das duas coisas. Depois da inversão, 96px não compravam nem uma nem outra: a
+ * lista aberta media ~250px e a zona de arrastar caía no offset 361, fora de
+ * qualquer painel. **A constante ficou; o que ela comprava mudou.** Piso cuja
+ * justificativa venceu é um número, não um piso.
+ *
+ * REMEDIDO no navegador, com a lista fechada (que passou a ser o padrão) e o
+ * rótulo redundante fora:
+ *
+ *     respiro do topo do painel                     8px
+ *     linha de resumo ("5 anexos · 5 não lidos")    26px
+ *     respiro entre ela e a zona de arrastar         6px
+ *     zona de arrastar: borda + seta + A FRASE      57px   ← o que a torna um alvo
+ *     ─────────────────────────────────────────────────
+ *                                                   97px
+ *
+ * Medido no navegador a 375×600, com 5 anexos e o painel aberto (o painel recebe
+ * 97px ali). O número não mudou, e isso é coincidência aritmética — o que mudou
+ * é que ele **compra o que diz comprar**, e a medição existe:
+ * `node scripts/medir-a-vista-do-briefing.mjs`.
+ *
+ * ⚠️ Baixar este número volta a cortar a frase "Arraste ou clique para enviar", e
+ * seta sem frase é exatamente a "meia seta sem texto" que ele existe para
+ * impedir. Quem mexer aqui roda a medição antes.
  */
 export const PISO_DOS_MATERIAIS = 96;
 
@@ -903,6 +930,23 @@ export function tetoDoCartaoDaConversa(
  * ⚠️ C5 — o passo 1 usava `PISO_DA_CONVERSA` (88, o fundo do poço) como alvo, e
  * por isso a conversa era o RESTO: a 375×600 ela ficava com exatamente 88px e o
  * painel com 73. As duas quebradas ao mesmo tempo, e o teste passando.
+ *
+ * ⚠️ E3 — **A ORDEM DECLARADA ACIMA NÃO É A QUE DECIDE A 375×600, e isto agora
+ * está escrito.** Quando `sobra < PISO_UTIL_DA_CONVERSA + PISO_DOS_MATERIAIS`
+ * (232 a 375×600, contra 160+96 = 256), quem governa é o passo 4 — o piso dos
+ * MATERIAIS —, e a conversa fica com `sobra − 96`. O passo 1 só manda quando há
+ * folga. A conta continua certa; o comentário é que dizia outra coisa.
+ */
+
+/**
+ * O que o painel precisa quando NINGUÉM mediu o conteúdo dele.
+ *
+ * ⚠️ E3 — 190 era "o painel nunca precisa de mais que ~190", medido antes de a
+ * lista de anexos subir para dentro dele. Com anexos, o conteúdo real mede
+ * ~280px fechado e ~640 aberto, e o teto fixo escondia a segunda metade do
+ * painel até no desktop — é por isso que "Ou compartilhar por link" só aparecia
+ * rolando, com 1440×900 de tela. Agora este número é só o palpite de partida:
+ * quem manda é `precisaDosMateriais`, medido no navegador.
  */
 export const ALTURA_UTIL_DOS_MATERIAIS = 190;
 
@@ -911,14 +955,22 @@ export function alturasDasRegioes(entrada: {
   cabecalho: number;
   rodape: number;
   materiaisAbertos: boolean;
+  /** O que o conteúdo do painel MEDE (`scrollHeight`). Ausente = o palpite. */
+  precisaDosMateriais?: number;
 }): { conversa: number; materiais: number } {
   const sobra = Math.max(0, Math.round(entrada.cartao - entrada.cabecalho - entrada.rodape));
   if (!entrada.materiaisAbertos) return { conversa: sobra, materiais: 0 };
 
   // 1. a conversa recebe o piso ÚTIL, e ele vem antes de tudo.
   const paraAConversa = Math.min(sobra, PISO_UTIL_DA_CONVERSA);
-  // 2 e 3. os materiais recebem até o que precisam, do que sobrou.
-  let materiais = Math.min(ALTURA_UTIL_DOS_MATERIAIS, Math.max(0, sobra - paraAConversa));
+  // 2 e 3. os materiais recebem até o que precisam, do que sobrou. "O que
+  //    precisam" passou a ser MEDIDO quando alguém mede — teto fixo é chute, e
+  //    chute erra nas duas pontas (foi o argumento contra `flex-[2]/flex-[1]`).
+  const precisa = Math.max(
+    PISO_DOS_MATERIAIS,
+    Math.round(entrada.precisaDosMateriais ?? ALTURA_UTIL_DOS_MATERIAIS),
+  );
+  let materiais = Math.min(precisa, Math.max(0, sobra - paraAConversa));
   // 4. painel visível e inútil é pior que painel fechado: aí ele empresta da
   //    conversa, e só até o piso DURO.
   if (materiais < PISO_DOS_MATERIAIS) {
@@ -1049,7 +1101,8 @@ export function dossieDosAnexos(
   const opacos = concluidos.filter((it) => !(it.lido && (it.texto ?? "").trim()));
 
   const linhas: string[] = [
-    `──────── MATERIAL ANEXADO PELO CLIENTE #${marca} ────────`,
+    // ⚠️ E2 — a linha nasce no DONO DA CERCA, não aqui. Ver `aberturaDoMaterial`.
+    aberturaDoMaterial(marca),
     // ⚠️ B4 — a cerca precisa carregar uma MARCA sorteada por montagem. Sem ela,
     // um `.txt` cujo corpo contenha a linha de fechamento emenda instrução
     // própria FORA do anexo, na posição em que o modelo espera o sistema
@@ -1169,7 +1222,7 @@ export function dossieDosAnexos(
     );
   }
 
-  linhas.push(`──────── FIM DO MATERIAL #${marca} ────────`, FECHO_DE_ANEXO);
+  linhas.push(fechamentoDoMaterial(marca), FECHO_DE_ANEXO);
 
   const bloco = linhas.join("\n");
   // A DEFESA 2: o teto duro, que vale para qualquer entrada. A divisão acima
@@ -1277,22 +1330,29 @@ export function avisoDoLote(chegados: AnexoChegado[], falharam: string[]): strin
  * ⚠️ Ela NÃO repete a lista de nomes nem o diagnóstico arquivo a arquivo: isso
  * já foi dito, uma vez só, por `avisoDoLote`, na bolha imediatamente acima.
  * Dizer duas vezes em sequência é o que empurrava a conversa para fora da tela.
+ *
+ * ── E3, 16/08/2026, e o número que produziu este corte ─────────────────────
+ * Medido por `experiencia` a 375×600 com 5 anexos: a bolha do `avisoDoLote`
+ * — a boa, que NOMEIA os arquivos e diz o que houve — ficava em 95–163, e a
+ * janela da conversa é 214–350. **Ela pintava ZERO pixel.** Quem ocupava os
+ * 136px era esta resposta, com **147px** para repetir a mesma coisa de forma
+ * vaga ("parte do material"), e cuja única informação NOVA eram seis palavras:
+ * *"Está tudo registrado com o seu pedido."*
+ *
+ * A pessoa lia só a versão vaga e nunca via os nomes. Aqui ficou **só o fato
+ * novo**; o resto está na bolha de cima, e o próximo passo já foi pedido lá.
  */
 export function respostaSemIa(chegados: AnexoChegado[], falharam: string[]): string {
   if (chegados.length === 0 && falharam.length > 0) {
-    return (
-      "Não consegui receber seus arquivos — a falha foi do nosso lado. Tente enviar de novo, " +
-      "ou me conte em uma frase o que você faz e o que precisa, que eu sigo daqui."
-    );
+    // Nada chegou: não há o que estar guardado, e dizer o contrário seria a
+    // meia-verdade que esta casa passou a rodada inteira fechando.
+    return "Nada ficou guardado com o seu pedido ainda. Sigo daqui com você.";
   }
   const algoOpaco = chegados.some((c) => !c.lido) || falharam.length > 0;
   if (algoOpaco) {
-    return (
-      "Está tudo registrado com o seu pedido. Como nem tudo deu para ler, me conte em uma frase " +
-      "o que você faz e o que precisa — NÃO consegui ler parte do material e não vou inventar o que há nele."
-    );
+    return "O que chegou está registrado com o seu pedido. Sigo daqui.";
   }
-  return "Recebi e li o material, e guardei com o seu pedido. Me conte em uma frase o que você precisa, para eu seguir.";
+  return "Recebi e li o material, e guardei com o seu pedido. Sigo daqui.";
 }
 
 /**
@@ -1301,6 +1361,16 @@ export function respostaSemIa(chegados: AnexoChegado[], falharam: string[]): str
  * ⚠️ C4 — `falharam` é o segundo parâmetro e ele é a metade que faltava. Sem
  * ele, 3 arquivos com 1 falha viravam "o cliente anexou 2" e o terceiro
  * desaparecia da conversa para sempre.
+ *
+ * ⚠️ E3, 16/08/2026 — **ELE SABE O RESULTADO E NÃO O REPETE.** A instrução
+ * mandava, com todas as letras, "reconheça que chegou … peça o essencial em uma
+ * frase" — exatamente o que `avisoDoLote` já tinha pintado na tela uma linha
+ * acima. A duplicação estava desenhada nos DOIS caminhos (com IA e sem IA), e o
+ * preço dela foi medido: a bolha que nomeia os arquivos pintava zero pixel a
+ * 375×600 porque a repetição vaga ocupava a janela inteira da conversa.
+ *
+ * O modelo continua **sabendo** o estado de cada arquivo — é disso que ele
+ * precisa para não inventar conteúdo. O que ele não faz mais é anunciá-lo.
  */
 export function instrucaoDeAnexosParaOSdr(chegados: AnexoChegado[], falharam: string[] = []): string {
   const lidos = chegados.filter((c) => c.lido).map((c) => c.nome);
@@ -1308,29 +1378,31 @@ export function instrucaoDeAnexosParaOSdr(chegados: AnexoChegado[], falharam: st
   const partes: string[] = [
     "EVENTO DO SISTEMA (não é fala do cliente e não responde à sua pergunta pendente):",
     `o cliente acabou de tentar enviar ${chegados.length + falharam.length} arquivo(s).`,
+    "O CLIENTE JÁ FOI INFORMADO, pelo sistema e na tela, do que aconteceu com CADA arquivo,",
+    "e já foi convidado a contar o essencial em uma frase. NÃO REPITA esse aviso, NÃO liste os",
+    "nomes de novo e NÃO peça de novo o essencial: seria a mesma frase duas vezes seguidas.",
   ];
   if (lidos.length > 0) {
     partes.push(
-      `Foi possível LER: ${lidos.join(", ")}. O conteúdo vem no material anexado abaixo — use-o,`,
-      "extraia o que for relevante (negócio, segmento, serviços, quantidades, prazos, contato) e",
-      "confirme em uma frase o que entendeu.",
+      `Foi possível LER: ${lidos.join(", ")}. O conteúdo vem no material anexado abaixo — use-o e`,
+      "extraia o que for relevante (negócio, segmento, serviços, quantidades, prazos, contato).",
     );
   }
   if (opacos.length > 0) {
     partes.push(
-      `NÃO foi possível ler: ${opacos.join(", ")}. Reconheça que chegou, NÃO finja que leu,`,
-      "NÃO invente o conteúdo e peça o essencial em uma frase.",
+      `NÃO foi possível ler: ${opacos.join(", ")}. Você NÃO viu o conteúdo deles: não finja que leu`,
+      "e não invente o que há neles.",
     );
   }
   if (falharam.length > 0) {
     partes.push(
-      `NÃO CHEGOU até nós: ${falharam.join(", ")}. O envio falhou do NOSSO lado — reconheça a falha,`,
-      "NÃO diga que recebeu, e peça para tentar de novo ou o essencial em uma frase.",
+      `NÃO CHEGOU até nós: ${falharam.join(", ")}. O envio falhou do NOSSO lado — não diga que recebeu.`,
     );
   }
   partes.push(
-    "Depois disso, RETOME de onde a conversa estava: a pergunta que você já tinha feito continua",
-    "sem resposta, e o nome do arquivo NÃO é a resposta dela.",
+    "SUA FALA NESTE TURNO É UMA SÓ: RETOME de onde a conversa estava. A pergunta que você já tinha",
+    "feito continua sem resposta, e o nome do arquivo NÃO é a resposta dela. Se ainda não havia",
+    "pergunta pendente, faça a próxima da sondagem.",
   );
   return partes.join(" ");
 }
@@ -1416,9 +1488,22 @@ async function fetchUpload(file: File): Promise<UploadResult | null> {
   }
 }
 
+/**
+ * ⚠️ E1, 16/08/2026 — DOIS CAMPOS, E ESTA É A METADE DO NAVEGADOR.
+ *
+ * `currentMessage` levava `${texto da pessoa}\n\n${dossiê dos anexos}` colados.
+ * No servidor, a guarda `msgHasAt` perguntava "a pessoa escreveu arroba?" sobre
+ * esse campo inteiro — e um e-mail no rodapé de um PDF a desarmava **pelo resto
+ * da conversa**, porque o dossiê é remontado a cada turno.
+ *
+ * Agora `currentMessage` é SÓ o que a pessoa digitou e `materialAnexado` é o que
+ * o sistema colou. Toda guarda futura sobre "o que a pessoa disse" tem, a partir
+ * daqui, um campo em que perguntar isso sem herdar o defeito.
+ */
 async function fetchSdrReply(
   priorMessages: ConvMessage[],
   currentMessage: string,
+  materialAnexado: string,
   scope: BriefingScope,
 ): Promise<SdrReply | null> {
   try {
@@ -1428,6 +1513,7 @@ async function fetchSdrReply(
       body: JSON.stringify({
         messages: priorMessages.map((m) => ({ role: m.role, text: m.text })),
         currentMessage,
+        materialAnexado,
         scope,
       }),
     });
@@ -1590,6 +1676,34 @@ function fmtBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * A CONTA DA LINHA DE RESUMO — os quatro estados, agregados.
+ *
+ * Função pura e exportada porque é ela que carrega a honestidade da tela quando
+ * a lista está fechada, e nenhum teste desta casa renderiza este componente.
+ * Enquanto isso morava dentro do JSX, o ramo "não lido" simplesmente não existia
+ * e ninguém tinha como perceber: `<summary>` dizia "5 anexos" com os cinco
+ * ilegíveis (E3, 16/08/2026).
+ *
+ * Os quatro estados são os mesmos de `dossieDosAnexos` — lido · não pôde ser
+ * lido · ainda chegando · falhou ao subir —, e é de propósito: duas contagens
+ * diferentes para o mesmo fato é o defeito nº 2 do incidente do Drive.
+ */
+export function resumoDosAnexos(
+  items: Pick<UploadItem, "status" | "lido">[],
+): { total: number; lendo: number; naoLidos: number; falhados: number; pedeAtencao: boolean } {
+  const lendo = items.filter((it) => it.status === "uploading").length;
+  const naoLidos = items.filter((it) => it.status === "done" && !it.lido).length;
+  const falhados = items.filter((it) => it.status === "error").length;
+  return {
+    total: items.length,
+    lendo,
+    naoLidos,
+    falhados,
+    pedeAtencao: naoLidos + falhados > 0,
+  };
+}
+
 function BriefingFileUpload({
   items,
   onPick,
@@ -1612,13 +1726,24 @@ function BriefingFileUpload({
   // arrastar (quem já enviou quer conferir, não enviar de novo), e o `<details>`
   // abre sozinho quando algum arquivo pede atenção. Continua sendo `<details>`:
   // abre sem JavaScript e é acessível por teclado de fábrica.
-  const pedeAtencao = items.some(
-    (it) => it.status === "error" || (it.status === "done" && !it.lido),
-  );
+  //
+  // ── E3, 16/08/2026 · A ABERTURA AUTOMÁTICA FOI RETIRADA, E ESTA É A CONTA ──
+  // Medido com 5 anexos não lidos, nos QUATRO tamanhos: com a lista aberta ela
+  // custa ~250px e empurra a zona de arrastar para o offset 361 dentro do
+  // painel. O painel vale 96px a 375×600 e 190px acima disso — então **a zona
+  // de arrastar pintava ZERO pixel em todos eles, inclusive a 1440×900**. Quem
+  // queria anexar o sexto arquivo não tinha onde soltar. E os selos, que a
+  // abertura existia para mostrar, pintavam 0 de 5 a 375×600 e 2 de 5 nos
+  // outros — a lista aberta não estava entregando nem o que prometia.
+  //
+  // A conta não fecha para os dois ao mesmo tempo: com a conversa no piso útil
+  // (160), nem o desktop tem os ~470px que a lista aberta MAIS a zona de
+  // arrastar exigem. Então o AVISO subiu para a linha do resumo, que mede 30px
+  // e foi medida INTEIRA nos quatro tamanhos — e a lista voltou a ser o detalhe
+  // que se abre com um toque. Trocamos "0 de 5 selos e nenhuma zona de soltar"
+  // por "o fato agregado sempre na tela, e a zona de soltar sempre na tela".
+  const { naoLidos, falhados, lendo } = resumoDosAnexos(items);
   const [aberto, setAberto] = useState(false);
-  useEffect(() => {
-    if (pedeAtencao) setAberto(true);
-  }, [pedeAtencao]);
 
   const lista = items.length > 0 && (
     <details
@@ -1626,16 +1751,30 @@ function BriefingFileUpload({
       open={aberto}
       onToggle={(e) => setAberto((e.currentTarget as HTMLDetailsElement).open)}
     >
-      <summary className="cursor-pointer select-none list-none flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] py-1.5">
+      <summary className="cursor-pointer select-none list-none flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] py-1">
         <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden className="transition-transform group-open:rotate-90 shrink-0">
           <path d="M3 1.5L7 5L3 8.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
         {items.length} anexo{items.length !== 1 ? "s" : ""}
-        {items.some((it) => it.status === "uploading") && (
+        {lendo > 0 && (
           <span className="text-[var(--text-muted)] font-normal">· lendo…</span>
         )}
-        {items.some((it) => it.status === "error") && (
-          <span className="text-[var(--danger)] font-normal">· 1 ou mais falharam</span>
+        {/* ⚠️ E3 — O RAMO QUE FALTAVA: "não lido".
+            Havia ramo para "lendo…" e para "falharam", e NENHUM para o arquivo
+            que chegou e não pôde ser lido. Com cinco ilegíveis a pessoa lia
+            "5 anexos", seco, e a única honestidade da tela — o selo por arquivo
+            — ficava atrás de um toque. Esta linha mede 30px e foi medida
+            INTEIRA nos quatro tamanhos: é a única que sempre cabe, então é ela
+            que carrega o aviso. */}
+        {naoLidos > 0 && (
+          <span className="text-[var(--warning)] font-normal">
+            · {naoLidos} não {naoLidos !== 1 ? "lidos" : "lido"}
+          </span>
+        )}
+        {falhados > 0 && (
+          <span className="text-[var(--danger)] font-normal">
+            · {falhados} {falhados !== 1 ? "falharam" : "falhou"}
+          </span>
         )}
       </summary>
       <div className="space-y-1.5 mt-1.5">
@@ -1690,14 +1829,23 @@ function BriefingFileUpload({
   );
 
   return (
-    <div className="space-y-2">
+    // `space-y-1.5`: no painel de 96px do celular, 2px de respiro a
+    // menos entre a lista e a zona de arrastar são 2px de frase a mais.
+    <div className="space-y-1.5">
       {lista}
       <div
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); onPick(Array.from(e.dataTransfer.files)); }}
-        className={`border-2 border-dashed rounded-[10px] px-4 py-5 text-center cursor-pointer transition-all select-none ${
+        // ⚠️ E3 — `py-5` (40px de folga) é o certo quando a zona é a ÚNICA coisa
+        // no painel: é ela que a pessoa tem de reconhecer como alvo. Com anexos
+        // já na lista, esses 16px a mais são o que faz a frase "Arraste ou
+        // clique para enviar" cair fora dos 96px do painel a 375×600 — e alvo
+        // sem a frase é meia seta, que é o que este piso existe para impedir.
+        className={`border-2 border-dashed rounded-[10px] px-4 text-center cursor-pointer transition-all select-none ${
+          items.length > 0 ? "py-3" : "py-5"
+        } ${
           dragOver ? "border-[var(--navy)] bg-[var(--accent-light)]" : "border-[var(--border)] bg-white hover:border-[var(--text-muted)] hover:bg-[var(--bg)]"
         }`}
       >
@@ -1831,6 +1979,11 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   // barata que existe nesta tela, e vale SÓ em janela curta: em tela alta a
   // orientação não custa nada.
   const cabecalhoDaConversa = useRef<HTMLDivElement>(null);
+  // ⚠️ E3 — o painel passou a ser MEDIDO, não estimado. `ALTURA_UTIL_DOS_MATERIAIS`
+  // (190) foi calibrada antes de a lista de anexos morar dentro dele, e o teto
+  // fixo escondia metade do painel até a 1440×900 — a "Ou compartilhar por link"
+  // só aparecia rolando, com tela de sobra. Ver `alturasDasRegioes`.
+  const painelDeMateriais = useRef<HTMLDivElement>(null);
   const [tetoDoCartao, setTetoDoCartao] = useState<string | undefined>(undefined);
   const [regioes, setRegioes] = useState<{ conversa: number; materiais: number } | null>(null);
   const [cabecalhoAparece, setCabecalhoAparece] = useState(true);
@@ -1851,7 +2004,17 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       const rodape = rodapeDaConversa.current?.getBoundingClientRect().height ?? 0;
       const teto = tetoDoCartaoDaConversa(window.innerHeight, topoNoDocumento, cabecalho + rodape);
       setTetoDoCartao(`${teto}px`);
-      const novas = alturasDasRegioes({ cartao: teto, cabecalho, rodape, materiaisAbertos: showMaterials });
+      const novas = alturasDasRegioes({
+        cartao: teto,
+        cabecalho,
+        rodape,
+        materiaisAbertos: showMaterials,
+        // `scrollHeight` é o conteúdo real do painel — a lista, a zona de
+        // arrastar e o campo de link. Ele nunca é menor que a altura que já
+        // demos, então a conta só cresce até o conteúdo e para. Sem alvo (painel
+        // fechado) fica o palpite, e o palpite não é usado.
+        precisaDosMateriais: painelDeMateriais.current?.scrollHeight,
+      });
       // Objeto novo a cada medição re-renderiza sem motivo — e re-render dentro
       // de `ResizeObserver` é como se constrói um laço sem querer.
       setRegioes((antes) =>
@@ -1863,7 +2026,13 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     // O rodapé cresce sozinho: a caixa de digitar vira duas linhas, a linha de
     // erro do microfone aparece. Sem observá-lo, a conta certa de agora é a
     // conta errada de daqui a um segundo — e o que estoura é sempre o rodapé.
-    const alvos = [cabecalhoDaConversa.current, rodapeDaConversa.current].filter(Boolean) as Element[];
+    // O painel entra na lista de observados porque o conteúdo dele muda sozinho:
+    // um arquivo a mais, a lista que abre, o campo de link que cresce.
+    const alvos = [
+      cabecalhoDaConversa.current,
+      rodapeDaConversa.current,
+      painelDeMateriais.current,
+    ].filter(Boolean) as Element[];
     let obs: ResizeObserver | undefined;
     if (typeof ResizeObserver !== "undefined" && alvos.length > 0) {
       obs = new ResizeObserver(() => medir());
@@ -2014,10 +2183,13 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       // enviado. O histórico que vai ao modelo carrega apenas a bolha visível
       // ("📎 Enviei meu briefing: X.pdf"), que não tem uma linha do documento —
       // sem esta remontagem o brand book do cliente é lido uma vez e esquecido.
+      //
+      // ⚠️ E1 — o dossiê NÃO é colado em `text`. Ele viaja no campo do material,
+      // para que o servidor consiga perguntar "o que a PESSOA digitou?" sem
+      // receber o conteúdo dos arquivos junto na resposta.
       const dossie = dossieDosAnexos(itensDosAnexosRef.current);
-      const paraOSdr = dossie ? `${text}\n\n${dossie}` : text;
 
-      const claude = await fetchSdrReply(priorMessages, paraOSdr, ruleResult.conv.scope);
+      const claude = await fetchSdrReply(priorMessages, text, dossie, ruleResult.conv.scope);
       setAiThinking(false);
 
       if (claude) {
@@ -2065,9 +2237,14 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     const prev = stateRef.current;
     const priorMessages = prev.conv.messages;
     setAiThinking(true);
+    // ⚠️ E1 — turno de EVENTO: a pessoa não digitou nada. `sdrText` é instrução
+    // da casa e o dossiê é conteúdo de arquivo; os dois vão no campo do
+    // MATERIAL, e o campo do que a pessoa digitou vai vazio — que é a verdade.
+    // (Nome de arquivo entra em `sdrText`: `contato@fornecedor.pdf` desarmaria a
+    // guarda do e-mail se isto contasse como fala da pessoa.)
     const dossie = dossieDosAnexos(itensDosAnexosRef.current);
-    const paraOSdr = dossie ? `${sdrText}\n\n${dossie}` : sdrText;
-    const claude = await fetchSdrReply(priorMessages, paraOSdr, prev.conv.scope);
+    const material = dossie ? `${sdrText}\n\n${dossie}` : sdrText;
+    const claude = await fetchSdrReply(priorMessages, "", material, prev.conv.scope);
     setAiThinking(false);
 
     if (!claude) {
@@ -2327,12 +2504,18 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
             conversa por baixo, que é o mesmo defeito com outra cara. */}
         {showMaterials && (
           <div
+            ref={painelDeMateriais}
             style={regioes ? { flex: "0 0 auto", height: `${regioes.materiais}px` } : undefined}
-            className="px-5 pb-3 border-t border-[var(--border)] pt-3 space-y-4 flex-[1_1_0%] min-h-0 overflow-y-auto"
+            className="px-5 pb-3 border-t border-[var(--border)] pt-2 space-y-3 flex-[1_1_0%] min-h-0 overflow-y-auto"
           >
             {/* File upload */}
+            {/* ⚠️ E3 — O RÓTULO SAIU, e o motivo é aritmético, não estético.
+                "Enviar arquivo do briefing" era a TERCEIRA vez que a mesma coisa
+                era dita na mesma tela: o botão que a pessoa acabou de apertar se
+                chama "Anexar", e a própria zona diz "Arraste ou clique para
+                enviar". Custava 17px de linha + 8 de margem numa faixa que vale
+                96px no celular. */}
             <div>
-              <div className="text-[11px] font-semibold text-[var(--text-primary)] mb-2">Enviar arquivo do briefing</div>
               <BriefingFileUpload items={fileItems} onPick={handleFilesPicked} onRemove={removeFileItem} />
             </div>
             {/* Cloud links */}
@@ -2354,12 +2537,20 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               onChange={(e) => setInputText(e.target.value)}
               onFocus={ancorarConversa}
               onKeyDown={handleKeyDown}
+              /* Com uma linha só, o texto de 48 caracteres quebrava em duas e a
+                 segunda ficava cortada dentro do próprio campo — placeholder
+                 pela metade é pior que placeholder curto. */
               placeholder={
                 conv.isFirstMessage
-                  ? "Diga seu nome e o nome do seu negócio para começar…"
+                  ? "Seu nome e seu negócio…"
                   : "Digite sua resposta…"
               }
-              rows={2}
+              /* ⚠️ E3 — `rows={2}` gastava 26px com uma SEGUNDA LINHA VAZIA num
+                 campo `resize-none`, dentro do rodapé de 139px que é o item mais
+                 caro do cartão. Uma linha basta para começar a digitar, e é o
+                 rodapé que empurrava a conversa para 136px quando o piso útil é
+                 160. O texto longo continua cabendo: a área rola. */
+              rows={1}
               className="flex-1 px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] focus:bg-white transition-all resize-none leading-relaxed placeholder:text-[var(--text-subtle)]"
               style={{ fontSize: "16px", touchAction: "manipulation" }}
             />

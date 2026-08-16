@@ -203,12 +203,27 @@ describe("a conversa REAL e cheia passa inteira — o teto tem folga de propósi
 describe("a rota pública USA o teto — módulo puro sem chamador é decoração", () => {
   const ROTA = readFileSync("app/api/sdr/chat/route.ts", "utf8");
 
-  it("`/api/sdr/chat` importa e aplica os três tetos e o do corpo", () => {
+  it("`/api/sdr/chat` importa e aplica os quatro tetos e o do corpo", () => {
+    // ⚠️ E1, 16/08/2026 — `apararTexto(currentMessage, TETO_DA_MENSAGEM)` deixou
+    // de existir aqui, e a troca é o conserto, não uma regressão: a mensagem do
+    // turno passou a ser montada de DOIS campos (o que a pessoa digitou e o
+    // material que o sistema colou), cada um com o seu teto, e a soma continua
+    // presa em `TETO_DA_MENSAGEM` dentro de `montarMensagemDoTurno`. Enquanto os
+    // dois eram um campo só, a guarda do e-mail lia o conteúdo dos anexos.
     expect(ROTA).toContain("@/lib/security/teto-do-turno-publico");
     expect(ROTA).toMatch(/historicoParaOModelo\(/);
-    expect(ROTA).toMatch(/apararTexto\(currentMessage, TETO_DA_MENSAGEM\)/);
+    expect(ROTA).toMatch(/montarMensagemDoTurno\(/);
+    expect(ROTA).toMatch(/separarMaterialColado\(/);
     expect(ROTA).toMatch(/contextoInternoSerializado\(/);
     expect(ROTA).toMatch(/corpoGrandeDemais\(req\.headers\)/);
+  });
+
+  it("🔑 E1 · a guarda do e-mail NÃO lê o campo que carrega o anexo", () => {
+    // Esta é a asserção que mata a volta do defeito. `body.currentMessage`
+    // continua existindo (é o campo do que a pessoa digitou), mas a guarda tem
+    // de perguntar sobre `digitado` — o resultado da montagem, já separado.
+    expect(ROTA).toMatch(/const msgHasAt = digitado\.includes\("@"\)/);
+    expect(ROTA).not.toMatch(/msgHasAt = body\.currentMessage\.includes/);
   });
 
   it("o histórico NÃO volta a ser montado à mão na rota", () => {

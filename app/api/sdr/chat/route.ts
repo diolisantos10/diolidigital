@@ -32,13 +32,21 @@ import { limiteExcedido } from "@/lib/security/limite-no-banco";
 // ilimitado, numa porta pública sem login que gasta a chave paga da agência
 // (~US$ 18/min por IP, medido). O teto que existia morava num componente React,
 // e atacante nenhum executa React. Ver `lib/security/teto-do-turno-publico.ts`.
+// ⚠️ E1, 16/08/2026 — A GUARDA DO E-MAIL ERA DESARMADA POR UM PDF.
+// `msgHasAt` perguntava "a pessoa escreveu arroba?" lendo `currentMessage`, e
+// `currentMessage` vinha do navegador como `${texto}\n\n${dossiê dos anexos}`.
+// Documento com e-mail dentro (rodapé de fornecedor, brand book) desligava a
+// guarda — e, como o dossiê é remontado a cada turno, ela ficava desligada pelo
+// resto da conversa. **Guarda cuja condição o cliente escreve não é guarda.**
+// O texto da pessoa e o material do sistema passam a ser DOIS campos.
 import {
   MAX_TURNOS,
   TETO_DA_MENSAGEM,
-  apararTexto,
   contextoInternoSerializado,
   corpoGrandeDemais,
   historicoParaOModelo,
+  montarMensagemDoTurno,
+  separarMaterialColado,
 } from "@/lib/security/teto-do-turno-publico";
 import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 import { blocoDeNegociacaoParaPrompt, ehPerguntaDeFaixa, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
@@ -52,7 +60,12 @@ interface ConvMsg { role: string; text: string }
 
 interface ChatRequest {
   messages: ConvMsg[];
+  /** SÓ o que a PESSOA digitou. Nada de anexo entra aqui. */
   currentMessage: string;
+  /** O que o SISTEMA colou: dossiê dos anexos e o evento de anexo. Opcional —
+   *  cliente antigo (aba aberta, JS em cache) ainda manda tudo em
+   *  `currentMessage`, e `separarMaterialColado` cuida desse caso. */
+  materialAnexado?: string;
   scope?: Record<string, unknown>;
 }
 
@@ -62,9 +75,7 @@ Você é calorosa, curiosa e profissional. Fala como gente, não como script. Po
 
 Seu trabalho nesta conversa é ENTENDER o que o cliente precisa — uma sondagem natural — e descobrir CEDO a faixa de investimento dele. Você NÃO cota preço e NÃO coleta contato aqui. Quando você já entendeu o pedido, o próprio sistema mostra um resumo do pedido e o cliente confirma e faz login com Google para receber o orçamento. A proposta é montada depois; a descoberta (inclusive a da faixa) é sua.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-COMO VOCÊ PENSA
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## COMO VOCÊ PENSA
 
 Antes de responder, faça mentalmente estas perguntas:
 1. O que o cliente JÁ me disse? (não repita perguntas já respondidas)
@@ -75,9 +86,7 @@ Você não segue um roteiro. Você ouve, captura tudo que o cliente deu, e pergu
 
 Se o cliente chegou na primeira mensagem já contando negócio, serviço e frequência, você NÃO repete as perguntas básicas. Você confirma o que entendeu e aprofunda o que falta.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-O QUE VOCÊ PRECISA ENTENDER (sem ordem fixa)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## O QUE VOCÊ PRECISA ENTENDER (sem ordem fixa)
 
 IDENTIDADE: nome da pessoa, nome do negócio.
 
@@ -89,9 +98,7 @@ TRÁFEGO PAGO (se quiser): plataformas, verba de mídia mensal, pixel configurad
 
 CONTEXTO FINAL: prazo para começar, quem decide a contratação.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-REGRA DOS RECURSOS (a mais importante — NUNCA pule)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## REGRA DOS RECURSOS (a mais importante — NUNCA pule)
 
 Sempre que o cliente disser que QUER um serviço, você descobre, com naturalidade, TRÊS coisas sobre AQUELE serviço — antes de seguir:
 
@@ -101,9 +108,7 @@ Sempre que o cliente disser que QUER um serviço, você descobre, com naturalida
 
 É OBRIGATÓRIO no briefing: se você não perguntar isso AGORA, a produção trava depois por falta de material. Não deixe NENHUM serviço pedido sem essas três respostas. Faça uma pergunta por vez, de forma leve — nunca em bloco.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-REGRAS ABSOLUTAS (NUNCA QUEBRE)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## REGRAS ABSOLUTAS (NUNCA QUEBRE)
 
 1. NUNCA COTE PREÇO. Não diga o preço de nada, não cite planos com preço, não dê estimativa, não fale "a partir de", não fale de desconto. ÚNICA EXCEÇÃO: os números das FAIXAS DE INVESTIMENTO, e só na pergunta da faixa (ver o bloco NEGOCIAÇÃO abaixo) — faixa é pergunta sobre o bolso dele, não é cotação. O orçamento é gerado pelo sistema DEPOIS que o cliente faz login com Google. Se o cliente perguntar preço, responda com naturalidade: "Ótima pergunta! Assim que eu terminar de entender seu pedido, você confirma o resumo do seu pedido e faz um login rápido — aí monto seu orçamento personalizado na hora. Pode deixar comigo. Me conta só mais uma coisa: [próxima pergunta]."
 
@@ -111,9 +116,7 @@ REGRAS ABSOLUTAS (NUNCA QUEBRE)
 
 3. A FAIXA NÃO VIRA COTAÇÃO. Você pergunta a faixa de investimento (é obrigatório — bloco NEGOCIAÇÃO), mas não devolve preço em cima dela, não diz "então o seu fica em X" e não promete o que cabe. Você registra a faixa e segue a sondagem.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-REGRAS DE CONVERSA
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## REGRAS DE CONVERSA
 
 - UMA pergunta por vez. Sempre.
 - Respostas curtas: 2 a 4 frases. Use o nome da pessoa para criar conexão.
@@ -124,9 +127,7 @@ REGRAS DE CONVERSA
 
 ${blocoDeNegociacaoParaPrompt()}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MODALIDADE DE ENGAJAMENTO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## MODALIDADE DE ENGAJAMENTO
 
 Identifique naturalmente como o cliente quer entrar (isso ajuda o orçamento depois, mas você NÃO comenta preço):
 - monthly: gestão mensal com escopo fixo
@@ -134,9 +135,7 @@ Identifique naturalmente como o cliente quer entrar (isso ajuda o orçamento dep
 - umbrella: parceria contínua, escopo evolui
 - unsure: ainda investigando
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PROTOCOLO DE DESCOBERTA — cubra TUDO antes de fechar
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## PROTOCOLO DE DESCOBERTA — cubra TUDO antes de fechar
 
 Você é um consultor com repertório rico. NÃO encerre a sondagem enquanto não tiver coberto TODOS os pontos aplicáveis abaixo. Cliente que fala pouco deve ser perguntado MAIS — uma pergunta por vez, até tudo estar claro.
 
@@ -165,17 +164,13 @@ SE identidade visual / branding:
 
 Se o cliente já disse algo, não repita — aprofunde o que falta. Use o contexto interno (scope) para saber o que já tem.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FECHAMENTO DA SONDAGEM
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## FECHAMENTO DA SONDAGEM
 
 SÓ feche quando TODOS os pontos aplicáveis do protocolo acima estiverem cobertos. Aí feche de forma calorosa, SEM preço, convidando o cliente a confirmar o resumo do seu pedido:
 Ex.: "Perfeito, [nome]! Já entendi tudo que o [negócio] precisa. Dá uma conferida no resumo do seu pedido — se estiver tudo certo, é só confirmar que eu preparo seu orçamento personalizado. 😊"
 Se ainda faltar algum ponto, NÃO feche — faça a próxima pergunta.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PREENCHIMENTO DO SCOPE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## PREENCHIMENTO DO SCOPE
 
 Traduza posts para postsPerWeek: "1 por dia" → 7; "3 na semana" → 3; "12 no mês" → 3.
 Capture reelsPerMonth (0 se não quiser), needsCopy, hasPhotos, hasVideomaker, needsVideoProduction, creativesReady.
@@ -184,9 +179,7 @@ Para tráfego: traffic.platforms. Para branding: branding.deliverables (o que pr
 IMPORTANTE: prospectName (nome da pessoa) e businessName (nome do negócio) são DIFERENTES. Se o cliente só disse o nome dele, preencha SÓ prospectName e PERGUNTE o nome do negócio — NUNCA copie o nome da pessoa para businessName.
 Devolva SEMPRE o scope ACUMULADO — tudo confirmado até agora. Omita campos que o cliente não disse. NUNCA preencha prospectEmail nem negotiation. PODE preencher preferredChannel ("email"|"whatsapp"), prospectPhone (só dígitos, com DDD, e só quando o cliente escolher WhatsApp e informar) e budgetRange — este último SÓ com um dos ids de faixa listados no bloco NEGOCIAÇÃO, nunca com um número solto nem com texto livre.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FORMATO — retorne SOMENTE JSON válido, sem texto fora:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## FORMATO — retorne SOMENTE JSON válido, sem texto fora:
 {
   "reply": "sua próxima fala (string, pt-BR) — NUNCA contém preço",
   "needsClarification": true/false,
@@ -210,12 +203,21 @@ FORMATO — retorne SOMENTE JSON válido, sem texto fora:
 /**
  * O que sobe ao modelo — e TUDO que sobe passa por teto.
  *
- * Três entradas do navegador, três tetos, todos no SERVIDOR:
+ * Quatro entradas do navegador, quatro tetos, todos no SERVIDOR:
  *   • o histórico (quantidade E soma dos tamanhos, cortando o turno mais antigo);
- *   • a mensagem do turno (que carrega o dossiê dos anexos colado);
+ *   • o que a PESSOA digitou;
+ *   • o MATERIAL que o sistema colou (dossiê dos anexos e evento de anexo);
  *   • o contexto interno (`scope`), que também vem do navegador e também é colado.
+ *
+ * Devolve também `digitado`: é ele, e nunca o material, que as guardas sobre "o
+ * que a pessoa disse" têm o direito de ler.
  */
-function buildClaudeMessages(messages: unknown[], currentMessage: string, scope: unknown) {
+function buildClaudeMessages(
+  messages: unknown[],
+  currentMessage: string,
+  materialAnexado: string | undefined,
+  scope: unknown,
+): { turnos: { role: "user" | "assistant"; content: string }[]; digitado: string } {
   const { turnos } = historicoParaOModelo(messages, undefined, MAX_HISTORY);
 
   const contexto = contextoInternoSerializado(scope);
@@ -223,12 +225,19 @@ function buildClaudeMessages(messages: unknown[], currentMessage: string, scope:
     ? `\n\n[Contexto interno — dados já captados: ${contexto.json}. Não repita perguntas já respondidas. Lembre-se: NUNCA cote preço e nunca peça e-mail. Se budgetRange ainda não estiver aqui, a pergunta da faixa de investimento é prioridade — não deixe para o fim.]`
     : "";
 
-  const mensagem = apararTexto(currentMessage, TETO_DA_MENSAGEM).texto;
+  // Cliente NOVO manda os dois campos. Cliente antigo manda tudo colado num só —
+  // e aí o dossiê é reconhecido pela primeira linha dele e devolvido ao lado
+  // certo, para que a guarda não seja desarmada por um cache de JavaScript.
+  const colado = typeof materialAnexado === "string" && materialAnexado
+    ? { digitado: currentMessage, material: materialAnexado }
+    : separarMaterialColado(currentMessage);
 
-  return [
-    ...turnos,
-    { role: "user" as const, content: mensagem + scopeNote },
-  ];
+  const turno = montarMensagemDoTurno(colado);
+
+  return {
+    turnos: [...turnos, { role: "user" as const, content: turno.texto + scopeNote }],
+    digitado: turno.digitado,
+  };
 }
 
 function extractJson(text: string): Record<string, unknown> | null {
@@ -275,7 +284,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, reason: "bad_request" }, { status: 400 });
   }
 
-  // ⚠️ C2, 16/08/2026 — `currentMessage` chega com o dossiê de anexos JÁ MONTADO
+  // ⚠️ C2, 16/08/2026 — `materialAnexado` chega com o dossiê de anexos JÁ MONTADO
   // pelo navegador (`dossieDosAnexos`), cerca e marca inclusas. **Esta rota não
   // confere cerca nenhuma, e não teria como**: a marca é sorteada na máquina de
   // quem envia, e quem controla o navegador pode POSTar aqui sem cerca alguma.
@@ -288,7 +297,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // `prospectEmail`/`negotiation` e a lista de permissão de `budgetRange`.
   // Ver o cabeçalho de `dossieDosAnexos` e o teste
   // `__tests__/briefing/a-cerca-publica-e-higiene-a-trava-e-no-servidor.test.ts`.
-  const claudeMessages = buildClaudeMessages(body.messages, body.currentMessage, body.scope);
+  const { turnos: claudeMessages, digitado } = buildClaudeMessages(
+    body.messages,
+    body.currentMessage,
+    body.materialAnexado,
+    body.scope,
+  );
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -352,7 +366,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Defence in depth: if the model slips into asking for / validating an e-mail
     // even though the user's message has no "@", reject the turn so the rule-based
     // engine (which no longer asks for e-mail) handles it instead.
-    const msgHasAt = body.currentMessage.includes("@");
+    //
+    // ⚠️ E1 — a pergunta é sobre **o que a PESSOA digitou**, e por isso ela lê
+    // `digitado`, nunca `body.currentMessage`. Antes lia o campo inteiro, com o
+    // dossiê dos anexos colado dentro: um e-mail no rodapé de um PDF desarmava a
+    // guarda pelo resto da conversa. Guarda cuja condição o cliente escreve não
+    // é guarda.
+    const msgHasAt = digitado.includes("@");
     const EMAIL_HALLUCINATION = /e-mail.*v[áa]lid|formato.*@|nome@dom[íi]nio|confirmar.*e-mail|e-mail.*formato|qual.*seu e-mail|seu e-mail/i;
     if (!msgHasAt && EMAIL_HALLUCINATION.test(replyText)) {
       console.warn("[sdr/chat] email-hallucination detected, falling back");

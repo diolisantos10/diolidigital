@@ -292,11 +292,84 @@ describe("B3 · o aviso não viaja pelo canal que caiu", () => {
     expect(ordem).toEqual(["aviso", "ia"]);
   });
 
-  it("a resposta de reserva nunca afirma ter lido, e diz o que fazer", () => {
+  /**
+   * ⚠️ E3, 16/08/2026 — **ESTE TESTE FOI INVERTIDO, e o motivo fica aqui.**
+   *
+   * Ele exigia, por escrito, que a resposta de reserva repetisse "NÃO consegui
+   * ler" e pedisse de novo "o essencial em uma frase" — as duas coisas que
+   * `avisoDoLote` já diz na bolha imediatamente acima. É o **quinto caso do
+   * mesmo padrão nesta casa**: o defeito virando invariante (`identity-capture`,
+   * `jornada-real`, `anexo-do-pedido-lido`, `o-anexo-que-o-sdr-le`).
+   *
+   * O preço, medido por `experiencia` a 375×600 com 5 anexos: a bolha que
+   * NOMEIA os arquivos ficava em 95–163 numa janela de conversa de 214–350 —
+   * **zero pixel** —, e os 136px visíveis eram ocupados pelos 147px desta
+   * resposta repetindo a mesma coisa de forma vaga. A pessoa lia só a versão
+   * vaga e nunca via os nomes.
+   *
+   * O que o teste cobra agora é o que a resposta É: o fato NOVO, sem repetir o
+   * diagnóstico e sem nunca afirmar ter lido o que não leu.
+   */
+  it("a resposta de reserva traz o fato NOVO e não repete o aviso de cima", () => {
     const r = respostaSemIa([{ nome: "brandbook.pdf", lido: false }], []);
-    expect(r).toMatch(/NÃO consegui ler/i);
+    // O fato novo: o material ficou junto do pedido.
+    expect(r).toMatch(/registrado com o seu pedido/i);
+    // Nunca afirma ter lido.
     expect(r).not.toMatch(/li o (seu )?arquivo|conforme o documento/i);
-    expect(r).toMatch(/em uma frase|enviar de novo/i);
+    // E NÃO repete o que a bolha de cima já disse — nem os nomes, nem o pedido
+    // do "essencial em uma frase", nem o diagnóstico por arquivo.
+    expect(r).not.toMatch(/brandbook\.pdf/);
+    expect(r).not.toMatch(/em uma frase/i);
+    expect(r).not.toMatch(/não consegui ler/i);
+    // A bolha de cima é que carrega tudo isso, e ela existe.
+    const aviso = avisoDoLote([{ nome: "brandbook.pdf", lido: false }], []);
+    expect(aviso).toMatch(/brandbook\.pdf/);
+    expect(aviso).toMatch(/em uma frase/i);
+  });
+
+  it("🔑 E3 · quando ALGO deu errado, a reserva é mais curta que o aviso que a precede", () => {
+    // A régua em uma linha: a bolha determinística NOMEIA os arquivos e diz o
+    // próximo passo; a de reserva só continua a conversa. Se a segunda voltar a
+    // ser a maior, é a vaga que ocupa a tela de novo — foi assim que a bolha com
+    // os nomes pintou zero pixel a 375×600.
+    //
+    // ⚠️ Vale para os casos em que ALGO deu errado, e é aí que a duplicação
+    // doía: no caso "tudo lido" o aviso é uma linha só ("📎 1 arquivo: li a.pdf")
+    // e não há diagnóstico nenhum para repetir. Cobrar a mesma proporção lá seria
+    // exigir uma reserva de duas palavras, sem defeito que justifique.
+    const casos: [Parameters<typeof respostaSemIa>[0], string[]][] = [
+      [[{ nome: "a.pdf", lido: false }], []],
+      [[], ["a.pdf"]],
+      [[{ nome: "a.pdf", lido: true }, { nome: "b.pdf", lido: false }], ["c.pdf"]],
+    ];
+    for (const [chegados, falharam] of casos) {
+      expect(respostaSemIa(chegados, falharam).length).toBeLessThan(
+        avisoDoLote(chegados, falharam).length,
+      );
+    }
+    // E a reserva do caso limpo nunca é um diagnóstico: ela não nomeia arquivo.
+    expect(respostaSemIa([{ nome: "a.pdf", lido: true }], [])).not.toMatch(/a\.pdf/);
+  });
+
+  it("🔑 E3 · a instrução ao SDR manda ele SABER e NÃO repetir", () => {
+    // A duplicação estava desenhada nos DOIS caminhos: sem IA (`respostaSemIa`)
+    // e com IA (esta instrução mandava "reconheça que chegou … peça o essencial
+    // em uma frase", que é a mesma frase da bolha de cima).
+    const s = instrucaoDeAnexosParaOSdr(
+      [{ nome: "lido.pdf", lido: true }, { nome: "opaco.pdf", lido: false }],
+      ["falhou.pdf"],
+    );
+    // Ele SABE o estado de cada arquivo — é disso que depende não inventar.
+    expect(s).toMatch(/lido\.pdf/);
+    expect(s).toMatch(/opaco\.pdf/);
+    expect(s).toMatch(/falhou\.pdf/);
+    // E é mandado NÃO repetir o aviso, com todas as letras.
+    expect(s).toMatch(/NÃO REPITA esse aviso/);
+    expect(s).toMatch(/RETOME de onde a conversa estava/);
+    // O que sumiu: a ordem de pedir de novo o essencial em uma frase.
+    // A ORDEM de pedir sumiu; a PROIBIÇÃO de pedir ficou. O `(?<!NÃO )` é o que
+    // separa as duas, e sem ele o teste reprovaria a própria trava.
+    expect(s).not.toMatch(/(?<!NÃO )peça (de novo )?o essencial/i);
   });
 
   it("os quatro estados do lote são textos DIFERENTES", () => {

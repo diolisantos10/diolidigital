@@ -473,10 +473,30 @@ describe("⛔ D1 · o ANÚNCIO DE TERCEIRO — ninguém desta casa escreveu um b
 //
 // ── COMO O CONJUNTO É DESCOBERTO (varredura, nunca lista fixa) ──────────────
 // Lista fixa envelhece no primeiro arquivo novo. O conjunto é derivado do
-// código: **todo arquivo que importa `@/lib/ai/generate`** (é ele quem fala com
-// o modelo) **mais um salto dos imports locais desses arquivos** (é onde moram
-// os montadores de bloco, como `cerca-de-anexo.ts` e `radar/library.ts`).
-// Módulo de prompt novo entra sozinho no dia em que nascer.
+// código, por TRÊS critérios — e um salto dos imports locais de cada achado,
+// que é onde moram os montadores de bloco (`cerca-de-anexo.ts`,
+// `radar/library.ts`). Módulo de prompt novo entra sozinho no dia em que nascer.
+//
+// ⚠️ E3, 16/08/2026 — **A VARREDURA TINHA DOIS BURACOS, E OS DOIS ERAM A PORTA
+// PÚBLICA.** O critério era um só ("importa `@/lib/ai/generate`") e por isso não
+// alcançava:
+//
+//   • `app/api/sdr/chat/route.ts`, que fala com a Anthropic pela mão, sem passar
+//     pelo cliente da casa — e cujo system prompt tinha VINTE linhas `━━━`;
+//   • `components/agency/briefing/PublicBriefingRoom.tsx`, que monta o dossiê do
+//     briefing **no navegador** e não importa `generate` nenhum.
+//
+// Os dois são a porta sem login. Varredura que não alcança a porta pública mede
+// o que já estava seguro. Os critérios passaram a ser:
+//
+//   1. importa `@/lib/ai/generate` — o cliente de modelo da casa;
+//   2. **nomeia um endereço de provedor** (`api.anthropic.com`, `api.openai.com`,
+//      `generativelanguage.googleapis.com`) — quem fala com o modelo por fora;
+//   3. importa `@/lib/agency/comercial/cerca-de-anexo` — quem MONTA cerca, rode
+//      onde rodar, inclusive no navegador.
+//
+// O critério 3 é o que fecha a classe inteira em vez de um arquivo: a cerca tem
+// um dono só, então quem a usa é descoberto por quem a importa.
 //
 // ── A REGRA, EM UMA FRASE ──────────────────────────────────────────────────
 // Módulo de prompt não desenha cerca. Ou a linha nasce em
@@ -484,19 +504,19 @@ describe("⛔ D1 · o ANÚNCIO DE TERCEIRO — ninguém desta casa escreveu um b
 // pode PARECER cerca — porque `instrucaoDaMarca` declara ao modelo que linha
 // sem marca é CONTEÚDO do cliente, e decoração da casa vestida de estrutura
 // ensina exatamente a lição que o atacante quer.
-//
-// ── O QUE ESTA VARREDURA AINDA NÃO ALCANÇA, e está declarado ───────────────
-// `app/api/sdr/chat/route.ts` **não importa `@/lib/ai/generate`** e por isso
-// está fora do conjunto — o system prompt dele tem títulos desenhados com
-// `━━━`. E a montagem do briefing público acontece no NAVEGADOR
-// (`components/agency/briefing/PublicBriefingRoom.tsx`), que também não entra.
-// Os dois estão registrados em `docs/pendencias.md`; nenhum dos dois foi tocado
-// nesta rodada por ordem do despacho.
 const DONO_DA_CERCA = "lib/agency/comercial/cerca-de-anexo.ts";
+const CERCA_IMPORTADA = 'from "@/lib/agency/comercial/cerca-de-anexo"';
+const PROVEDOR_DE_MODELO = /api\.anthropic\.com|api\.openai\.com|generativelanguage\.googleapis\.com/;
 
 /** Um run de 3+ dos caracteres com que esta casa desenha cerca. */
 const RUN = /[─━═]{3,}/;
-const COMENTARIO = /^\s*(\/\/|\*|\/\*)/;
+/**
+ * ⚠️ `{/*` entrou aqui em 16/08/2026 e é comentário de JSX, não brecha: as seis
+ * linhas que a varredura acusou em `PublicBriefingRoom.tsx` eram cabeçalhos
+ * decorados DENTRO de `{/* … *​/}`. Sem isto, estender o alcance teria produzido
+ * seis falsos positivos — e falso positivo é como um portão é desligado.
+ */
+const COMENTARIO = /^\s*(\/\/|\*|\/\*|\{\/\*)/;
 
 /** O PREDICADO. Linhas de um fonte que desenham cerca sem carregar a marca. */
 function cercasSemMarca(fonte: string): string[] {
@@ -519,8 +539,22 @@ async function modulosDePrompt(): Promise<string[]> {
     return acc;
   };
 
+  // Os três critérios são lidos sobre o CÓDIGO, com os comentários fora: um
+  // arquivo que só CITA `api.anthropic.com` num comentário histórico (há vários)
+  // não fala com modelo nenhum, e arrastá-lo para dentro do conjunto seria
+  // engordar a varredura sem aumentar o que ela protege.
+  const semComentario = (fonte: string) =>
+    fonte.split("\n").filter((l) => !COMENTARIO.test(l)).join("\n");
+
   const todos = ["lib", "app", "components"].flatMap((d) => varrer(path.join(raiz, d)));
-  const falamComOModelo = todos.filter((f) => readFileSync(f, "utf8").includes('from "@/lib/ai/generate"'));
+  const falamComOModelo = todos.filter((f) => {
+    const codigo = semComentario(readFileSync(f, "utf8"));
+    return (
+      codigo.includes('from "@/lib/ai/generate"') ||
+      PROVEDOR_DE_MODELO.test(codigo) ||
+      codigo.includes(CERCA_IMPORTADA)
+    );
+  });
 
   const resolver = (imp: string, de: string): string | null => {
     let base: string;
@@ -559,6 +593,32 @@ describe("⛔ D2 · NENHUM módulo de prompt desenha cerca sem a marca", () => {
     ]) {
       expect(modulos).toContain(esperado);
     }
+  });
+
+  it("🔑 E3 · e alcança as DUAS montagens da porta PÚBLICA, que ficavam de fora", async () => {
+    // A metade que este bloco existe para provar. Se alguém estreitar os
+    // critérios de volta a "importa `generate`", estes dois somem do conjunto e
+    // ESTE teste é que reprova — não a próxima auditoria, seis commits depois.
+    const modulos = await modulosDePrompt();
+    // Fala com a Anthropic pela mão; não importa o cliente da casa.
+    expect(modulos).toContain("app/api/sdr/chat/route.ts");
+    // Monta o dossiê do briefing NO NAVEGADOR.
+    expect(modulos).toContain("components/agency/briefing/PublicBriefingRoom.tsx");
+    // E a rota irmã, que tem o mesmo desenho e ninguém tinha olhado.
+    expect(modulos).toContain("app/api/brain/briefing-extract/route.ts");
+  });
+
+  it("🔑 E3 · cada um dos TRÊS critérios sozinho acha alguém — nenhum é decorativo", async () => {
+    // Critério que não acha nada é linha morta que dá a impressão de cobertura.
+    const { readFileSync } = await import("node:fs");
+    const raiz = new URL("../../", import.meta.url).pathname;
+    const semComentario = (f: string) =>
+      f.split("\n").filter((l) => !COMENTARIO.test(l)).join("\n");
+    const codigo = (rel: string) => semComentario(readFileSync(raiz + rel, "utf8"));
+
+    expect(codigo("lib/agency/esteira/triagem.ts")).toContain('from "@/lib/ai/generate"');
+    expect(PROVEDOR_DE_MODELO.test(codigo("app/api/sdr/chat/route.ts"))).toBe(true);
+    expect(codigo("components/agency/briefing/PublicBriefingRoom.tsx")).toContain(CERCA_IMPORTADA);
   });
 
   it("🔑 e NENHUM deles tem linha de cerca sem a marca", async () => {

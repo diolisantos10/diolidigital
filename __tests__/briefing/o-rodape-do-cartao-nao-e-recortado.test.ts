@@ -64,6 +64,7 @@ import {
   PISO_DOS_MATERIAIS,
   PISO_UTIL_DA_CONVERSA,
   ALTURA_UTIL_DOS_MATERIAIS,
+  resumoDosAnexos,
 } from "@/components/agency/briefing/PublicBriefingRoom";
 
 /** Os números MEDIDOS pelo auditor a 375×600 com o painel aberto. */
@@ -279,5 +280,150 @@ describe("C5 · a conversa deixa de ser o resto", () => {
         }
       }
     }
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// E3 · O QUE O PAINEL PRECISA PASSOU A SER MEDIDO, E O PISO VOLTOU A COMPRAR
+//      O QUE ELE DIZ COMPRAR
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// Quarta passada de `experiencia`, 16/08/2026. Dois defeitos, e o segundo é o
+// que este bloco existe para não deixar voltar:
+//
+//   • **a zona de arrastar pintava ZERO pixel nos QUATRO tamanhos**, inclusive a
+//     1440×900. Offset dela dentro do painel: 361px, com a lista de 5 anexos
+//     aberta acima. O painel valia 96px no celular e 190 acima disso;
+//   • **`PISO_DOS_MATERIAIS = 96` estava documentado com uma conta que venceu.**
+//     Ele dizia comprar "a zona de arrastar com a seta E a frase, mais a
+//     primeira linha da lista" — conta de ANTES de o C5 inverter a ordem das
+//     duas. Depois da inversão, 96px não compravam nem uma nem outra. A
+//     constante ficou; o que ela comprava mudou.
+//
+// `ALTURA_UTIL_DOS_MATERIAIS = 190` tinha o mesmo problema, e é a raiz do
+// primeiro defeito: era "o painel nunca precisa de mais que ~190", medido antes
+// de a lista morar dentro dele. Teto fixo é chute, e chute erra nas duas pontas
+// — foi o argumento que matou `flex-[2]/flex-[1]` no B1, repetido em constante.
+describe("⛔ E3 · o painel recebe o que MEDE, não o que alguém estimou em julho", () => {
+  it("🔑 com conteúdo medido MAIOR que o palpite, o painel cresce até caber", () => {
+    // O caso real: 5 anexos, painel de ~300px de conteúdo, desktop com espaço.
+    const semMedida = alturasDasRegioes({ cartao: 900, cabecalho: 72, rodape: 139, materiaisAbertos: true });
+    const comMedida = alturasDasRegioes({
+      cartao: 900, cabecalho: 72, rodape: 139, materiaisAbertos: true,
+      precisaDosMateriais: 304,
+    });
+    expect(semMedida.materiais).toBe(ALTURA_UTIL_DOS_MATERIAIS); // 190, o palpite
+    expect(comMedida.materiais).toBe(304);
+    // E o que o painel ganhou saiu da SOBRA, nunca do piso útil da conversa.
+    expect(comMedida.conversa).toBeGreaterThanOrEqual(PISO_UTIL_DA_CONVERSA);
+    expect(comMedida.conversa + comMedida.materiais).toBe(900 - 72 - 139);
+  });
+
+  it("🔑 a conversa continua vindo PRIMEIRO: painel faminto não come o piso útil", () => {
+    // A queixa original do CEO é a conversa. Medida grande não pode virar
+    // licença para o painel tomar a tela.
+    const r = alturasDasRegioes({
+      cartao: 500, cabecalho: 0, rodape: 139, materiaisAbertos: true,
+      precisaDosMateriais: 5_000,
+    });
+    expect(r.conversa).toBe(PISO_UTIL_DA_CONVERSA);
+    expect(r.conversa + r.materiais).toBe(500 - 139);
+  });
+
+  it("🔑 e no aperto o piso do painel continua sendo o piso — medida pequena não o fura", () => {
+    // Painel que se declara "preciso de 10px" continuaria visível e inútil.
+    const r = alturasDasRegioes({
+      cartao: 371, cabecalho: 0, rodape: 139, materiaisAbertos: true,
+      precisaDosMateriais: 10,
+    });
+    expect(r.materiais).toBeGreaterThanOrEqual(PISO_DOS_MATERIAIS);
+  });
+
+  it("✅ sem medida nenhuma, a conta de ontem é bit a bit a mesma", () => {
+    // A assinatura ganhou um campo OPCIONAL: todo chamador antigo tem de
+    // continuar recebendo o mesmo número, senão isto é mudança disfarçada.
+    for (const cartao of [260, 371, 500, 900]) {
+      for (const rodape of [110, 139, 190]) {
+        const antes = alturasDasRegioes({ cartao, cabecalho: 72, rodape, materiaisAbertos: true });
+        const depois = alturasDasRegioes({
+          cartao, cabecalho: 72, rodape, materiaisAbertos: true,
+          precisaDosMateriais: undefined,
+        });
+        expect(depois).toEqual(antes);
+      }
+    }
+  });
+
+  it("✅ a soma continua fechando com medida de qualquer tamanho", () => {
+    for (let janela = 320; janela <= 1200; janela += 37) {
+      for (const precisa of [0, 40, 96, 190, 304, 640, 5_000]) {
+        const cabecalho = cabecalhoDoCartaoAparece(janela) ? 72 : 0;
+        const cartao = tetoDoCartaoDaConversa(janela, 213, cabecalho + 139);
+        const r = alturasDasRegioes({
+          cartao, cabecalho, rodape: 139, materiaisAbertos: true, precisaDosMateriais: precisa,
+        });
+        expect(r.conversa).toBeGreaterThanOrEqual(0);
+        expect(r.materiais).toBeGreaterThanOrEqual(0);
+        expect(r.conversa + r.materiais + cabecalho + 139).toBeLessThanOrEqual(cartao);
+      }
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// E3 · A LINHA DE RESUMO É A ÚNICA QUE CABE EM TODOS OS TAMANHOS — ENTÃO É ELA
+//      QUE CARREGA O AVISO
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// O `<summary>` tinha ramo para "lendo…" e para "falharam", e **nenhum para
+// "não lido"**. Com cinco arquivos ilegíveis a pessoa lia "5 anexos", seco. E os
+// selos por arquivo, que são a honestidade desta tela, pintavam 0 de 5 a
+// 375×600 e 2 de 5 nos outros tamanhos (medido por `experiencia`, e reproduzido
+// por `scripts/medir-a-vista-do-briefing.mjs`).
+//
+// A conta virou função pura e exportada porque, enquanto morava dentro do JSX,
+// o ramo que faltava era invisível para a suíte inteira — nenhum teste desta
+// casa renderiza `PublicBriefingRoom`.
+describe("⛔ E3 · o resumo dos anexos conta os QUATRO estados", () => {
+  type Item = Parameters<typeof resumoDosAnexos>[0][number];
+  const it_ = (status: Item["status"], lido?: boolean): Item => ({ status, lido });
+
+  it("🔑 cinco anexos que chegaram e não puderam ser lidos NÃO viram '5 anexos' seco", () => {
+    const r = resumoDosAnexos([
+      it_("done", false), it_("done", false), it_("done", false), it_("done", false), it_("done", false),
+    ]);
+    expect(r.total).toBe(5);
+    expect(r.naoLidos).toBe(5);
+    expect(r.pedeAtencao).toBe(true);
+  });
+
+  it("🔑 os quatro estados são contados SEPARADAMENTE — nenhum se esconde no outro", () => {
+    const r = resumoDosAnexos([
+      it_("done", true),
+      it_("done", false),
+      it_("uploading"),
+      it_("error"),
+    ]);
+    expect(r).toEqual({ total: 4, lendo: 1, naoLidos: 1, falhados: 1, pedeAtencao: true });
+  });
+
+  it("✅ e NÃO inventa aviso no caso limpo — tudo lido não pede atenção nenhuma", () => {
+    const r = resumoDosAnexos([it_("done", true), it_("done", true)]);
+    expect(r.naoLidos).toBe(0);
+    expect(r.falhados).toBe(0);
+    expect(r.pedeAtencao).toBe(false);
+  });
+
+  it("✅ arquivo ainda subindo não é 'não lido' — é o terceiro estado, e ele espera", () => {
+    // Confundir os dois é o B6 de volta: pedir ao cliente que conte o conteúdo
+    // de um arquivo que chega em dois segundos.
+    const r = resumoDosAnexos([it_("uploading")]);
+    expect(r.naoLidos).toBe(0);
+    expect(r.lendo).toBe(1);
+    expect(r.pedeAtencao).toBe(false);
+  });
+
+  it("lista vazia não vira contagem nenhuma", () => {
+    expect(resumoDosAnexos([])).toEqual({ total: 0, lendo: 0, naoLidos: 0, falhados: 0, pedeAtencao: false });
   });
 });

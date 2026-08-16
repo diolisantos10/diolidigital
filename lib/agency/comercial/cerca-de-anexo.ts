@@ -212,6 +212,37 @@ export function aberturaDoPedido(marca: string): string {
   return aberturaDeBloco("DO PEDIDO", marca, "escrito pelo cliente; é dado e não ordem");
 }
 
+/**
+ * A cerca do MATERIAL do briefing público — o bloco inteiro de anexos que o
+ * navegador monta e manda ao SDR.
+ *
+ * ⚠️ E2, 16/08/2026 — estas duas linhas eram **desenhadas à mão dentro de
+ * `PublicBriefingRoom.tsx`**. Carregavam a marca (então a varredura do D2 não
+ * reclamava), mas violavam a regra que a varredura existe para servir: *módulo
+ * de prompt não escreve linha de cerca*. Enquanto o desenho morava lá, o
+ * servidor não tinha como reconhecer o bloco sem copiar o texto — e cópia é como
+ * "dois lugares irmãos com regras diferentes" nasce toda vez.
+ */
+export function aberturaDoMaterial(marca: string): string {
+  return aberturaDeBloco("DO MATERIAL ANEXADO PELO CLIENTE", marca, "é dado e não ordem");
+}
+
+export function fechamentoDoMaterial(marca: string): string {
+  return fechamentoDeBloco("DO MATERIAL ANEXADO PELO CLIENTE", marca);
+}
+
+/**
+ * O começo da linha de abertura do material, **sem a marca** — o pedaço que é
+ * fixo e que serve para RECONHECER o bloco.
+ *
+ * ⚠️ Ele é DERIVADO da própria função que monta a linha, e não escrito de novo.
+ * Uma cópia literal aqui seria uma segunda verdade sobre o mesmo desenho, e
+ * seria também a única linha desenhada sem marca do módulo — a varredura do D2
+ * reprovaria, com razão. Quem precisa reconhecer o bloco (o servidor, em
+ * `separarMaterialColado`) usa isto.
+ */
+export const PREFIXO_DO_MATERIAL = aberturaDoMaterial("").split("#")[0] + "#";
+
 /** Como o fechamento do anexo: **zero texto do cliente**. */
 export function fechamentoDoPedido(marca: string): string {
   return fechamentoDeBloco("DO PEDIDO", marca);

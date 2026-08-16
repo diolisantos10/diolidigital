@@ -52,6 +52,95 @@ export const MAX_TURNOS = 18;
 export const TETO_DA_MENSAGEM = 32_000;
 
 /**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * O TEXTO DA PESSOA E O MATERIAL DOS ANEXOS SÃO DOIS CAMPOS — E1, 16/08/2026
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * ── O defeito que isto fecha, medido ───────────────────────────────────────
+ * `app/api/sdr/chat/route.ts` tinha a guarda `msgHasAt = currentMessage.includes("@")`
+ * — "se a pessoa não escreveu arroba, o modelo não pode falar de e-mail". E
+ * `currentMessage` era montado no navegador como `${texto}\n\n${dossie}`, com o
+ * dossiê carregando **o texto extraído dos arquivos**.
+ *
+ * Consequência: qualquer documento com um endereço de e-mail dentro — brand book
+ * de fornecedor, PDF com rodapé de contato — fazia `msgHasAt` virar `true`. E
+ * como o dossiê é remontado a CADA turno, a guarda ficava desligada **pelo resto
+ * da conversa**. Remetente honesto, documento comum, guarda desarmada; nenhuma
+ * cerca precisou ser forjada.
+ *
+ * ── A régua, e ela vale para toda guarda futura ────────────────────────────
+ * **Guarda cuja condição o cliente escreve não é guarda.** Enquanto o texto da
+ * pessoa e o material dos anexos forem UM campo só, toda pergunta sobre "o que a
+ * pessoa disse" herda este defeito — a de e-mail foi só a primeira a ser medida.
+ *
+ * Por isso a separação é no CONTRATO da rota, não num `replace` esperto: o que a
+ * pessoa digitou chega em `currentMessage`, o que o sistema colou chega em
+ * `materialAnexado`, e as guardas escolhem qual delas estão perguntando.
+ */
+
+/**
+ * Teto do que a PESSOA digita ou cola no campo de texto.
+ *
+ * É o mesmo número que o cabeçalho de `TETO_DA_MENSAGEM` já declarava como livre
+ * para ela ("16.000 caracteres livres para o que a pessoa escreve ou COLA à
+ * mão") — o que muda é que agora ele é contado sozinho, sem o dossiê disputando
+ * espaço com o briefing que ela colou.
+ */
+export const TETO_DO_DIGITADO = 16_000;
+
+/**
+ * Teto do MATERIAL colado pelo sistema (dossiê dos anexos + evento de anexo).
+ *
+ * 16.000 é exatamente `TETO_DURO_DO_DOSSIE`, o teto do navegador — e este é o do
+ * servidor. Dois números, dois donos: se o do navegador sumir, este ainda corta.
+ */
+export const TETO_DO_MATERIAL = 16_000;
+
+/**
+ * O começo da linha que abre o dossiê montado pelo navegador — importado do DONO
+ * DA CERCA, nunca copiado. É o que permite reconhecer material colado por um
+ * cliente ANTIGO (aba aberta, JavaScript em cache) que ainda manda tudo num
+ * campo só. Cópia literal aqui seria uma segunda verdade sobre o mesmo desenho.
+ */
+import { PREFIXO_DO_MATERIAL } from "@/lib/agency/comercial/cerca-de-anexo";
+export { PREFIXO_DO_MATERIAL };
+
+/**
+ * Separa, num `currentMessage` de cliente antigo, o que a pessoa digitou do
+ * dossiê colado depois.
+ *
+ * ⚠️ **Por que isto é seguro na direção que importa.** O corte é feito na
+ * primeira linha que abre o dossiê, e essa linha é texto que o remetente
+ * controla. Alguém pode forjá-la e empurrar o que digitou para o lado do
+ * "material" — e o efeito disso é a guarda ficar MAIS armada (menos texto conta
+ * como digitado), nunca menos. O ataque que esta separação existe para impedir é
+ * o contrário: conteúdo de arquivo contando como fala da pessoa.
+ */
+export function separarMaterialColado(texto: string): { digitado: string; material: string } {
+  const i = texto.indexOf(PREFIXO_DO_MATERIAL);
+  if (i === -1) return { digitado: texto, material: "" };
+  return { digitado: texto.slice(0, i).trimEnd(), material: texto.slice(i) };
+}
+
+/**
+ * O turno que sobe ao modelo, com os dois lados aparados e o total garantido.
+ *
+ * Devolve os três: `digitado` é o que as guardas de "o que a pessoa disse"
+ * devem ler; `material` é o que o sistema colou; `texto` é o que vai ao modelo.
+ */
+export function montarMensagemDoTurno(entrada: {
+  digitado: string;
+  material?: string;
+}): { digitado: string; material: string; texto: string } {
+  const digitado = apararTexto(entrada.digitado, TETO_DO_DIGITADO).texto;
+  const material = apararTexto(entrada.material ?? "", TETO_DO_MATERIAL).texto;
+  const juntos = material ? (digitado ? `${digitado}\n\n${material}` : material) : digitado;
+  // O teto da soma continua existindo: os dois tetos acima somam 32.002 com o
+  // separador, e teto que o próprio separador estoura não é teto.
+  return { digitado, material, texto: apararTexto(juntos, TETO_DA_MENSAGEM).texto };
+}
+
+/**
  * Teto da SOMA de `messages[].text` que sobe ao modelo.
  *
  * O histórico carrega só a bolha visível — a resposta do SDR tem 2 a 4 frases

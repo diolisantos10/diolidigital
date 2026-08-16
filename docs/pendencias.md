@@ -15,6 +15,174 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — E1, E2 e E3, A QUARTA PASSADA (branch `claude/rodada-1-defeitos-do-piloto`, SEM PR)
+
+**Origem:** quarta passada de `qualidade` + `experiencia`. O D1/D2 foi conferido
+e ficou de pé; três defeitos novos, e o primeiro derruba uma das travas de
+servidor que o C2 citava como prova de contenção.
+
+**Portão:** `npx tsc --noEmit` limpo · **4704 testes em 296 arquivos, todos
+verdes** (+27) · `npm run build` compila (os avisos continuam sendo **todos** de
+`instrumentation.ts`, anteriores a este trabalho).
+
+### 🔴 E1 — a guarda do servidor era desarmada por um e-mail dentro de um PDF
+
+`app/api/sdr/chat/route.ts:355` perguntava *"a pessoa escreveu arroba?"* lendo
+`body.currentMessage` — e `currentMessage` era montado no navegador como
+`` `${texto}\n\n${dossiê}` ``, com o dossiê carregando **o texto extraído dos
+arquivos**. Qualquer documento com e-mail dentro (brand book de fornecedor, PDF
+com rodapé de contato) fazia `msgHasAt` virar `true`; e como o dossiê é
+remontado **a cada turno**, a guarda ficava desligada **pelo resto da conversa**.
+Remetente honesto, documento comum, guarda desarmada — sem forjar cerca nenhuma.
+
+> **Régua adotada como regra da casa:** *guarda cuja condição o cliente escreve
+> não é guarda.* É irmã da doutrina do teto — teto que mora no navegador não é
+> teto.
+
+**O conserto é de CONTRATO, não um `replace` esperto:** `currentMessage` passa a
+ser só o que a pessoa digitou e `materialAnexado` é o que o sistema colou
+(`montarMensagemDoTurno`, em `lib/security/teto-do-turno-publico.ts`). Cada campo
+tem teto próprio e a soma continua presa em `TETO_DA_MENSAGEM`. **Enquanto eram
+um campo só, toda guarda futura sobre "o que a pessoa disse" herdava o defeito** —
+a do e-mail foi só a primeira a ser medida. Turno de EVENTO manda `digitado: ""`:
+`contato@fornecedor.pdf` é nome de arquivo, não fala de gente.
+
+**Cliente antigo (aba aberta, JS em cache) também fica protegido:**
+`separarMaterialColado` reconhece o bloco pelo prefixo que vem do **dono da
+cerca**, nunca copiado. Conserto que só vale para quem recarregou a página é
+conserto pela metade.
+
+**A prova:** `__tests__/briefing/a-guarda-do-email-nao-se-desarma-por-anexo.test.ts`
+— a guarda de `2030ca6` está guardada em `__tests__/_fixtures/legado/` e é
+**executada** com o mesmo adversário: ela deixa passar, a de hoje recusa. E a
+outra metade: quem **digita** um e-mail continua desarmando a guarda (senão a
+trava vira mordaça) e o material continua chegando inteiro ao modelo.
+
+### 🔴 E2 — a varredura do D2 não alcançava a porta PÚBLICA
+
+Os dois buracos declarados no D2 eram justamente as duas montagens sem login. O
+critério era um só ("importa `@/lib/ai/generate`") e passaram a ser **três**,
+todos descobertos pelo código:
+
+1. importa `@/lib/ai/generate`;
+2. **nomeia endereço de provedor** (`api.anthropic.com`, `api.openai.com`,
+   `generativelanguage.googleapis.com`) — quem fala com o modelo por fora;
+3. importa `@/lib/agency/comercial/cerca-de-anexo` — quem **monta** cerca, rode
+   onde rodar, inclusive no navegador.
+
+O conjunto foi de **94 para 121 arquivos**. O critério 3 fecha a classe inteira
+em vez de um arquivo: a cerca tem um dono só, então quem a usa é descoberto por
+quem a importa. Há teste para cada critério achar alguém sozinho — critério que
+não acha nada é linha morta com cara de cobertura.
+
+**O que a varredura pegou ao ser estendida:** as **20 linhas `━━━`** do
+`SYSTEM_PROMPT` de `app/api/sdr/chat/route.ts`, agora títulos `##` — mesma classe
+do que foi consertado em `negociacao.ts`. E `COMENTARIO` ganhou `{/*`, porque as
+seis linhas acusadas em `PublicBriefingRoom.tsx` eram cabeçalho de comentário
+JSX; falso positivo é como um portão é desligado.
+
+> **E a varredura reprovou uma linha DESTE trabalho, com razão.** O prefixo que o
+> servidor usa para reconhecer o dossiê nasceu como literal em
+> `teto-do-turno-publico.ts`. Ele foi para `cerca-de-anexo.ts` como
+> `PREFIXO_DO_MATERIAL`, **derivado da própria função que monta a linha**. No
+> mesmo gesto, as duas linhas de cerca do material — que eram desenhadas à mão
+> dentro do componente — viraram `aberturaDoMaterial` / `fechamentoDoMaterial`.
+
+### 🔴 E3 — três coisas pintavam ZERO pixel, e a régua antiga não enxergava
+
+**Primeiro, o erro de MÉTODO, porque ele é o achado.** A medição do C5 usava
+`getBoundingClientRect` contra a janela, e `getBoundingClientRect` **não sabe que
+um ancestral está recortando**. É o mesmo erro do B1 (*"recortado não é
+rolável"*), um commit depois, com outra cara.
+
+`scripts/medir-a-vista-do-briefing.mjs` (novo) sobe a cadeia de ancestrais e
+interseta **todo** ancestral com `overflow` diferente de `visible`, antes de
+cortar pela janela. **E uma segunda armadilha, achada medindo:** conteúdo dentro
+de `<details>` FECHADO continua devolvendo retângulo com altura — o Chromium o
+esconde por `content-visibility`, não por `display:none`. A primeira versão desta
+régua declarou "16 de 16 pintados" para cinco selos que ninguém enxergava.
+`checkVisibility` é o que sabe disso.
+
+**Medido a 375×600 · 375×812 · 768×1024 · 1440×900, com 5 anexos ilegíveis, IA
+fora do ar e painel aberto** (telas em `docs/entregas/briefing-e3-16-08/`):
+
+| | ANTES | DEPOIS |
+|---|---|---|
+| linha de resumo, com o aviso | "5 anexos", seco | **"5 anexos · 5 não lidos"**, 26/26px nos 4 tamanhos |
+| zona de arrastar | **0px nos 4** | 57/120 a 375×600 (seta + a frase) · **inteira nos outros 3** |
+| bolha que NOMEIA os arquivos | **0px** a 375×600 e 375×812 | 58/68 nos dois · inteira no tablet e no desktop |
+| bolha vaga (`respostaSemIa`) | 147px repetindo | 42px, só o fato novo |
+| rodapé recortado / `scrollY` | — | **`false` e 0 nos quatro** — o B1 não reabriu |
+
+Os cinco consertos, e nenhum é redesenho:
+
+1. **`respostaSemIa` encolheu ao único fato novo** ("O que chegou está registrado
+   com o seu pedido. Sigo daqui.") e **`instrucaoDeAnexosParaOSdr` manda o SDR
+   SABER e NÃO repetir** — a duplicação estava desenhada nos **dois** caminhos.
+2. **O rótulo "Enviar arquivo do briefing" saiu**: era a terceira vez que a mesma
+   coisa era dita (o botão "Anexar", o rótulo, e o texto da zona).
+3. **`rows={2}` → `rows={1}`** — 26px de segunda linha vazia num campo
+   `resize-none`. O placeholder encurtou junto: com uma linha, o texto de 48
+   caracteres ficava cortado dentro do próprio campo.
+4. **O `<summary>` ganhou o ramo "não lido"**, e a conta virou função pura
+   exportada (`resumoDosAnexos`) — enquanto morava no JSX, o ramo que faltava era
+   invisível para a suíte inteira.
+5. **`PISO_DOS_MATERIAIS` foi REMEDIDO** e o comentário passou a dizer a verdade:
+   ele estava documentado com uma conta feita **antes** de o C5 inverter a ordem
+   da lista e da zona de arrastar. O número não mudou (96 ≈ 97 medidos); o que
+   mudou é que ele **compra o que diz comprar**, e há medição que reprova quem o
+   baixar. **`ALTURA_UTIL_DOS_MATERIAIS` (190) tinha o mesmo defeito** e virou só
+   o palpite de partida: `alturasDasRegioes` passou a aceitar
+   `precisaDosMateriais`, medido no navegador (`scrollHeight`). Teto fixo é
+   chute, e chute erra nas duas pontas — é o argumento que matou
+   `flex-[2]/flex-[1]` no B1, repetido em constante.
+
+> ### ⚠️ A ABERTURA AUTOMÁTICA DA LISTA FOI RETIRADA — divergência do despacho, declarada
+>
+> O despacho pedia (2) a lista aberta com o selo do `a.pdf` legível **e** (5) a
+> zona de arrastar comprável. **A conta não fecha para os dois.** Com a lista
+> aberta ela custa ~250px e empurra a zona para o offset 361; a conversa no piso
+> útil (160) deixa **419px** de sobra no desktop, e a lista aberta mais a zona
+> exigem ~470. Nem o 1440×900 tem. Foi por isso que a zona pintava 0px nos
+> **quatro**.
+>
+> Então o AVISO subiu para a linha do resumo — que mede 26px e foi medida
+> **inteira nos quatro tamanhos** — e a lista voltou a ser o detalhe que se abre
+> com um toque. **Trocamos "0 de 5 selos e nenhuma zona de soltar" por "o fato
+> agregado sempre na tela, e a zona de soltar sempre na tela".** Com a lista
+> aberta por um toque: 1 de 5 selos a 375×600, 3 de 5 a 375×812 e 768×1024, 4 de
+> 5 a 1440×900.
+
+---
+
+## 🟠 A DÍVIDA DA QUARTA PASSADA — registrada, NÃO consertada (ordem do despacho)
+
+- [ ] 🔴 `qualidade` — **`producao-de-pedido.ts` passa `businessName`, `segment`,
+      `targetAudience`, `feedRealDoCliente` e `contratoDeMarca` a
+      `esp.prompt(contexto)` SEM CERCA.** A varredura acha **linha de cerca**;
+      ela não acha interpolação de texto de cliente **sem cerca nenhuma**. Frente
+      própria, sem dono.
+- [ ] `experiencia` — **selo POR ARQUIVO pinta 0px com a lista fechada**, que é
+      como a tela abre. É escolha declarada (o agregado está no resumo), não
+      esquecimento — mas quem quiser o detalhe dá um toque.
+- [ ] `experiencia` — **a 375×600 a zona de arrastar pinta 57 de 120px**: a seta
+      e a frase cabem, as duas linhas de formato e tamanho não. Não há de onde
+      tirar sem furar o piso útil da conversa.
+- [ ] `experiencia` — **primeira pintura a 375×600 corta 43px do topo** e começa
+      em "Studio." (fecha a 375×812 e acima). Não medido nesta passada.
+- [ ] `experiencia` — **o "● Online" é fixo, sem nada medindo presença.** Morreu
+      na janela curta (o cabeçalho sai) e **continua vivo a 375×812 e acima**: o
+      mesmo produto afirma "Online" num celular alto e cala num baixo.
+- [ ] 🔴 `experiencia` — **caminho com IA VIVA não observado.** Toda a medição
+      desta passada caiu em `respostaSemIa`. Teclado de software real e a rolagem
+      de 95px com o dedo, idem — segue valendo o item aberto do iOS.
+- [ ] `qualidade` — **`separarMaterialColado` corta pelo prefixo, e o prefixo é
+      texto que o remetente controla.** É seguro na direção que importa (empurrar
+      texto para o lado do "material" deixa a guarda MAIS armada), e está escrito
+      no código — mas é heurística, e vale só para o cliente antigo.
+
+---
+
 ## 🟢 16/08/2026 — D1 e D2, A TERCEIRA PASSADA (branch `claude/rodada-1-defeitos-do-piloto`, SEM PR)
 
 **Origem:** terceira passada de `qualidade`. C4 passou limpo, a medição do C3 foi
@@ -81,14 +249,12 @@ quer. Os dois viraram título `##`. **Total: 5 módulos, não 3.**
 
 ### ⚠️ O QUE A VARREDURA AINDA NÃO ALCANÇA — declarado, não escondido
 
-- [ ] 🔴 `seguranca` — **`app/api/sdr/chat/route.ts` NÃO importa
-      `@/lib/ai/generate`** e por isso fica fora do conjunto. O system prompt
-      dele tem títulos desenhados com `━━━` (linhas 115-135 e adiante) — mesma
-      classe do que foi consertado em `negociacao.ts`. **Não tocado por ordem do
-      despacho** (vai com C5).
-- [ ] 🔴 `seguranca` — **a montagem do briefing público acontece no NAVEGADOR**
-      (`components/agency/briefing/PublicBriefingRoom.tsx`), que também não entra
-      na varredura. Já é o assunto do C2/C5. **Não tocado por ordem do despacho.**
+- [x] 🟢 `seguranca` — **`app/api/sdr/chat/route.ts` fora do conjunto.**
+      FECHADO no E3 (16/08): a varredura ganhou o critério "nomeia endereço de
+      provedor" e as 20 linhas `━━━` do system prompt viraram títulos `##`.
+- [x] 🟢 `seguranca` — **a montagem do briefing público no NAVEGADOR.** FECHADO
+      no E3: a varredura ganhou o critério "importa o dono da cerca", e as duas
+      linhas de cerca do material saíram do componente para `cerca-de-anexo.ts`.
 - [ ] `qualidade` — a varredura acha **linha de cerca**; ela **não** acha
       interpolação de texto de cliente **sem** cerca nenhuma. Exemplo vivo:
       `producao-de-pedido.ts` passa `businessName`, `segment`, `targetAudience`,
