@@ -1,0 +1,11 @@
+{
+  "id": "esteira/unidade-de-volume",
+  "quem": "pm-a6e16be",
+  "frente": "unidade de volume: reels e a varredura das perguntas que leem numero com unidade",
+  "responsabilidade": "esteira/unidade-de-volume",
+  "arquivos": [
+    "lib/agency/question-engine.ts"
+  ],
+  "abertaEm": "2026-08-16T18:11:56.310Z",
+  "encerradaEm": null
+}
