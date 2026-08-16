@@ -1,0 +1,14 @@
+{
+  "id": "layout-barra-do-topo",
+  "quem": "pm-defeitos-do-ceo",
+  "frente": "barra branca no topo atrapalhando as telas (relato do CEO, 15/08)",
+  "responsabilidade": "layout-barra-do-topo",
+  "arquivos": [
+    "app/briefing/layout.tsx",
+    "app/layout.tsx",
+    "app/globals.css",
+    "components/agency/layout/AgencyShell.tsx"
+  ],
+  "abertaEm": "2026-08-16T18:52:37.526Z",
+  "encerradaEm": null
+}
