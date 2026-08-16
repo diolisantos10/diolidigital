@@ -31,6 +31,7 @@ export type RecusaV2MinAggregateOutputType = {
   motivo: string | null
   correlationId: string | null
   clienteId: string | null
+  workspaceId: string | null
   em: Date | null
 }
 
@@ -40,6 +41,7 @@ export type RecusaV2MaxAggregateOutputType = {
   motivo: string | null
   correlationId: string | null
   clienteId: string | null
+  workspaceId: string | null
   em: Date | null
 }
 
@@ -49,6 +51,7 @@ export type RecusaV2CountAggregateOutputType = {
   motivo: number
   correlationId: number
   clienteId: number
+  workspaceId: number
   em: number
   _all: number
 }
@@ -60,6 +63,7 @@ export type RecusaV2MinAggregateInputType = {
   motivo?: true
   correlationId?: true
   clienteId?: true
+  workspaceId?: true
   em?: true
 }
 
@@ -69,6 +73,7 @@ export type RecusaV2MaxAggregateInputType = {
   motivo?: true
   correlationId?: true
   clienteId?: true
+  workspaceId?: true
   em?: true
 }
 
@@ -78,6 +83,7 @@ export type RecusaV2CountAggregateInputType = {
   motivo?: true
   correlationId?: true
   clienteId?: true
+  workspaceId?: true
   em?: true
   _all?: true
 }
@@ -160,6 +166,7 @@ export type RecusaV2GroupByOutputType = {
   motivo: string
   correlationId: string
   clienteId: string | null
+  workspaceId: string | null
   em: Date
   _count: RecusaV2CountAggregateOutputType | null
   _min: RecusaV2MinAggregateOutputType | null
@@ -190,6 +197,7 @@ export type RecusaV2WhereInput = {
   motivo?: Prisma.StringFilter<"RecusaV2"> | string
   correlationId?: Prisma.StringFilter<"RecusaV2"> | string
   clienteId?: Prisma.StringNullableFilter<"RecusaV2"> | string | null
+  workspaceId?: Prisma.StringNullableFilter<"RecusaV2"> | string | null
   em?: Prisma.DateTimeFilter<"RecusaV2"> | Date | string
 }
 
@@ -199,6 +207,7 @@ export type RecusaV2OrderByWithRelationInput = {
   motivo?: Prisma.SortOrder
   correlationId?: Prisma.SortOrder
   clienteId?: Prisma.SortOrderInput | Prisma.SortOrder
+  workspaceId?: Prisma.SortOrderInput | Prisma.SortOrder
   em?: Prisma.SortOrder
 }
 
@@ -211,6 +220,7 @@ export type RecusaV2WhereUniqueInput = Prisma.AtLeast<{
   motivo?: Prisma.StringFilter<"RecusaV2"> | string
   correlationId?: Prisma.StringFilter<"RecusaV2"> | string
   clienteId?: Prisma.StringNullableFilter<"RecusaV2"> | string | null
+  workspaceId?: Prisma.StringNullableFilter<"RecusaV2"> | string | null
   em?: Prisma.DateTimeFilter<"RecusaV2"> | Date | string
 }, "id">
 
@@ -220,6 +230,7 @@ export type RecusaV2OrderByWithAggregationInput = {
   motivo?: Prisma.SortOrder
   correlationId?: Prisma.SortOrder
   clienteId?: Prisma.SortOrderInput | Prisma.SortOrder
+  workspaceId?: Prisma.SortOrderInput | Prisma.SortOrder
   em?: Prisma.SortOrder
   _count?: Prisma.RecusaV2CountOrderByAggregateInput
   _max?: Prisma.RecusaV2MaxOrderByAggregateInput
@@ -235,6 +246,7 @@ export type RecusaV2ScalarWhereWithAggregatesInput = {
   motivo?: Prisma.StringWithAggregatesFilter<"RecusaV2"> | string
   correlationId?: Prisma.StringWithAggregatesFilter<"RecusaV2"> | string
   clienteId?: Prisma.StringNullableWithAggregatesFilter<"RecusaV2"> | string | null
+  workspaceId?: Prisma.StringNullableWithAggregatesFilter<"RecusaV2"> | string | null
   em?: Prisma.DateTimeWithAggregatesFilter<"RecusaV2"> | Date | string
 }
 
@@ -244,6 +256,7 @@ export type RecusaV2CreateInput = {
   motivo: string
   correlationId: string
   clienteId?: string | null
+  workspaceId?: string | null
   em?: Date | string
 }
 
@@ -253,6 +266,7 @@ export type RecusaV2UncheckedCreateInput = {
   motivo: string
   correlationId: string
   clienteId?: string | null
+  workspaceId?: string | null
   em?: Date | string
 }
 
@@ -262,6 +276,7 @@ export type RecusaV2UpdateInput = {
   motivo?: Prisma.StringFieldUpdateOperationsInput | string
   correlationId?: Prisma.StringFieldUpdateOperationsInput | string
   clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   em?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -271,6 +286,7 @@ export type RecusaV2UncheckedUpdateInput = {
   motivo?: Prisma.StringFieldUpdateOperationsInput | string
   correlationId?: Prisma.StringFieldUpdateOperationsInput | string
   clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   em?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -280,6 +296,7 @@ export type RecusaV2CreateManyInput = {
   motivo: string
   correlationId: string
   clienteId?: string | null
+  workspaceId?: string | null
   em?: Date | string
 }
 
@@ -289,6 +306,7 @@ export type RecusaV2UpdateManyMutationInput = {
   motivo?: Prisma.StringFieldUpdateOperationsInput | string
   correlationId?: Prisma.StringFieldUpdateOperationsInput | string
   clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   em?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -298,6 +316,7 @@ export type RecusaV2UncheckedUpdateManyInput = {
   motivo?: Prisma.StringFieldUpdateOperationsInput | string
   correlationId?: Prisma.StringFieldUpdateOperationsInput | string
   clienteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   em?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -307,6 +326,7 @@ export type RecusaV2CountOrderByAggregateInput = {
   motivo?: Prisma.SortOrder
   correlationId?: Prisma.SortOrder
   clienteId?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   em?: Prisma.SortOrder
 }
 
@@ -316,6 +336,7 @@ export type RecusaV2MaxOrderByAggregateInput = {
   motivo?: Prisma.SortOrder
   correlationId?: Prisma.SortOrder
   clienteId?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   em?: Prisma.SortOrder
 }
 
@@ -325,6 +346,7 @@ export type RecusaV2MinOrderByAggregateInput = {
   motivo?: Prisma.SortOrder
   correlationId?: Prisma.SortOrder
   clienteId?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   em?: Prisma.SortOrder
 }
 
@@ -336,6 +358,7 @@ export type RecusaV2Select<ExtArgs extends runtime.Types.Extensions.InternalArgs
   motivo?: boolean
   correlationId?: boolean
   clienteId?: boolean
+  workspaceId?: boolean
   em?: boolean
 }, ExtArgs["result"]["recusaV2"]>
 
@@ -345,6 +368,7 @@ export type RecusaV2SelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   motivo?: boolean
   correlationId?: boolean
   clienteId?: boolean
+  workspaceId?: boolean
   em?: boolean
 }, ExtArgs["result"]["recusaV2"]>
 
@@ -354,6 +378,7 @@ export type RecusaV2SelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   motivo?: boolean
   correlationId?: boolean
   clienteId?: boolean
+  workspaceId?: boolean
   em?: boolean
 }, ExtArgs["result"]["recusaV2"]>
 
@@ -363,10 +388,11 @@ export type RecusaV2SelectScalar = {
   motivo?: boolean
   correlationId?: boolean
   clienteId?: boolean
+  workspaceId?: boolean
   em?: boolean
 }
 
-export type RecusaV2Omit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "funcaoId" | "motivo" | "correlationId" | "clienteId" | "em", ExtArgs["result"]["recusaV2"]>
+export type RecusaV2Omit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "funcaoId" | "motivo" | "correlationId" | "clienteId" | "workspaceId" | "em", ExtArgs["result"]["recusaV2"]>
 
 export type $RecusaV2Payload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "RecusaV2"
@@ -377,6 +403,12 @@ export type $RecusaV2Payload<ExtArgs extends runtime.Types.Extensions.InternalAr
     motivo: string
     correlationId: string
     clienteId: string | null
+    /**
+     * De qual AGÊNCIA é esta recusa. O motivo carrega o nome do negócio do
+     * lead — sem escopo, o PM de uma agência lia a fila comercial da outra
+     * (achado do `seguranca`, 16/08/2026). Nulo = linha legada, não aparece.
+     */
+    workspaceId: string | null
     em: Date
   }, ExtArgs["result"]["recusaV2"]>
   composites: {}
@@ -806,6 +838,7 @@ export interface RecusaV2FieldRefs {
   readonly motivo: Prisma.FieldRef<"RecusaV2", 'String'>
   readonly correlationId: Prisma.FieldRef<"RecusaV2", 'String'>
   readonly clienteId: Prisma.FieldRef<"RecusaV2", 'String'>
+  readonly workspaceId: Prisma.FieldRef<"RecusaV2", 'String'>
   readonly em: Prisma.FieldRef<"RecusaV2", 'DateTime'>
 }
     

@@ -2180,10 +2180,15 @@ model RecusaV2 {
   motivo        String
   correlationId String
   clienteId     String?
+  /// De qual AGÊNCIA é esta recusa. O motivo carrega o nome do negócio do
+  /// lead — sem escopo, o PM de uma agência lia a fila comercial da outra
+  /// (achado do `seguranca`, 16/08/2026). Nulo = linha legada, não aparece.
+  workspaceId   String?
   em            DateTime @default(now())
 
   @@index([funcaoId, em])
   @@index([correlationId])
+  @@index([workspaceId, em])
 }
 
 /// Toda transição da máquina canônica deixa rastro: quem, quando, origem,
@@ -2305,6 +2310,8 @@ model HandoffV2 {
   prazoProximo       DateTime?
   bloqueios          String    @default("[]")
   correlationId      String
+  /// De qual AGÊNCIA é este bastão (mesma razão da `RecusaV2`).
+  workspaceId        String?
   /// aguardando_recebimento | aceito
   status             String    @default("aguardando_recebimento")
   criadoEm           DateTime  @default(now())
@@ -2312,4 +2319,5 @@ model HandoffV2 {
 
   @@index([paraDepartamento, status])
   @@index([correlationId])
+  @@index([workspaceId, status])
 }

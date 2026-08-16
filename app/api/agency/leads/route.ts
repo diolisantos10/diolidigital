@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { listClientRequests } from "@/lib/agency/persistence/client-request-service";
 import { montarDossie } from "@/lib/agency/comercial/dossie-do-lead";
+import { AINDA_NA_PORTA } from "@/lib/agency/comercial/quem-bateu-na-porta";
 
 export async function GET(): Promise<NextResponse> {
   const { session, error } = await requireSession();
@@ -21,7 +22,9 @@ export async function GET(): Promise<NextResponse> {
   try {
     const registros = await listClientRequests({
       workspaceId: session.workspaceId,
-      status: "new,lead_incompleto",
+      // A LISTA ÚNICA da fila da porta — importada, nunca redigitada. Duas
+      // telas com listas de status diferentes é o defeito nº 2 do Drive.
+      status: AINDA_NA_PORTA.join(","),
       limit: 200,
     });
 

@@ -26,6 +26,9 @@ export interface PedidoDeHandoff {
   prazoProximo?: Date;
   bloqueios?: string[];
   correlationId: string;
+  /** De qual AGÊNCIA é este bastão. Sem ele, a sala do PM de uma casa lista
+   *  o trabalho da outra (achado G-5 do `seguranca`, 16/08/2026). */
+  workspaceId?: string | null;
 }
 
 export interface LinhaDeHandoff extends Omit<PedidoDeHandoff, "bloqueios"> {
