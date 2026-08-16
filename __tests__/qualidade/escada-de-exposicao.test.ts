@@ -371,3 +371,52 @@ describe("semeadura: a escada entra sem parar a casa e sem inventar degrau", () 
     expect(db.deliverable.findMany).not.toHaveBeenCalled();
   });
 });
+
+// ── O 12º DEPARTAMENTO — PRODUTO & TECNOLOGIA NÃO FICA FORA DA ESCADA ────────
+//
+// POR QUE ESTE BLOCO EXISTE: `product-technology` é o departamento mais
+// perigoso da casa — ele edita CÓDIGO e fichas de agente (`guarda-de-patch.ts`
+// existe exatamente por isso: ele poderia reescrever a própria autonomia, o
+// próprio teto de custo e o próprio gatilho de escalada). Ele produz
+// `ExecucaoV2`/`RecusaV2`, não `Deliverable` — por isso nunca herdaria degrau
+// por `departamentoDoAgente` (que só resolve a partir de `DEPARTAMENTOS` e
+// `EXECUTORES_AVULSOS`). Sem entrar em `DEPARTAMENTOS_SEM_ESPECIALISTA_DE_ENTREGAVEL`,
+// ele nasceria SEM linha na escada — fail-closed por acidente (nunca teria
+// `DepartmentLadder`, então `estado === null` em toda decisão), e não por
+// mecanismo declarado em código. As DUAS metades: ele aparece (não é
+// invisível) e nasce contido (não herda liberação de ninguém).
+describe("o 12º departamento (produto & tecnologia) tem degrau declarado, não invisível", () => {
+  it("aparece na união de departamentos da casa", () => {
+    expect(departamentosDaCasa()).toContain("product-technology");
+  });
+
+  it("nasce em SOMBRA na semeadura, mesmo quando OUTRO departamento tem histórico de entrega", async () => {
+    db.departmentLadder.findMany.mockResolvedValue([]);
+    // Histórico real de entrega — mas de social-media (`a3`), nunca de
+    // product-technology, que não produz `Deliverable`. Confirma que ele não
+    // herda liberação por estar simplesmente presente na varredura.
+    db.deliverable.findMany.mockResolvedValue([
+      { ownerAgentId: "a3", project: { clientId: "c1" } },
+    ]);
+
+    await garantirEscada("w1");
+    const criados = db.departmentLadder.create.mock.calls.map((c) => c[0].data);
+    const tecnologia = criados.find((d) => d.departmentId === "product-technology")!;
+    expect(tecnologia).toBeDefined();
+    expect(tecnologia.degrau).toBe("sombra");
+    expect(JSON.parse(tecnologia.clientesLiberados)).toEqual([]);
+  });
+
+  it("sem linha declarada, uma peça dele fica retida — fail-closed, nunca 'passa por não ter dono'", () => {
+    const v = decidirEntrega(null, "c1");
+    expect(v.chega).toBe(false);
+    expect(v.motivo).toMatch(/fail-closed/);
+  });
+
+  it("com a linha semeada em sombra, a peça é produzida e retida — igual a qualquer outro departamento", () => {
+    const v = decidirEntrega({ departmentId: "product-technology", degrau: "sombra", clientesLiberados: [] }, "c1");
+    expect(v.chega).toBe(false);
+    expect(v.motivo).toMatch(/product-technology/);
+    expect(v.motivo).toMatch(/SOMBRA/);
+  });
+});
