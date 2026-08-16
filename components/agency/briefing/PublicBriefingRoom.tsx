@@ -782,6 +782,10 @@ async function fetchSdrReply(
   priorMessages: ConvMessage[],
   currentMessage: string,
   scope: BriefingScope,
+  // O fio da conversa. Sem ele, cada turno vira uma conversa órfã no registro e
+  // ninguém consegue ler a história de ponta a ponta — que é o motivo de o
+  // registro existir. O servidor prefixa e higieniza; aqui é só o carimbo.
+  sessionId: string,
 ): Promise<SdrReply | null> {
   try {
     const res = await fetch("/api/sdr/chat", {
@@ -791,6 +795,7 @@ async function fetchSdrReply(
         messages: priorMessages.map((m) => ({ role: m.role, text: m.text })),
         currentMessage,
         scope,
+        sessionId,
       }),
     });
     if (!res.ok) return null;
@@ -1191,7 +1196,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       setState({ ...ruleResult, conv: { ...ruleResult.conv, messages: userVisible } });
       setAiThinking(true);
 
-      const claude = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope);
+      const claude = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope, tempClientId);
       setAiThinking(false);
 
       if (claude) {
@@ -1214,7 +1219,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         void fireAiExtract(text, priorMessages);
       }
     },
-    [fireAiExtract],
+    [fireAiExtract, tempClientId],
   );
 
   // ── File upload (briefing documents) ──────────────────────────────────────

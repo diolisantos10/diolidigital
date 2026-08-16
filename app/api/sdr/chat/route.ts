@@ -28,6 +28,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
 import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 import { blocoDeNegociacaoParaPrompt, ehPerguntaDeFaixa, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
+// ATÉ 16/08/2026 ESTA ROTA NÃO ESCREVIA NADA. Zero chamadas a `prisma.`: o SDR
+// conversava, errava, e o diário do piloto mostrava `mensagens: 0` enquanto a
+// conversa acontecia. O porquê e as travas estão no cabeçalho do módulo.
+import { registrarTurnoDoSdr, type TurnoDoSdr } from "@/lib/agency/comercial/registro-da-conversa";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
 const MODEL       = "claude-sonnet-4-6";
@@ -40,6 +44,26 @@ interface ChatRequest {
   messages: ConvMsg[];
   currentMessage: string;
   scope?: Record<string, unknown>;
+  /** Fio da conversa, criado pela sala de briefing e estável na sessão. Texto
+   *  sujo: o servidor prefixa e higieniza antes de qualquer escrita. */
+  sessionId?: unknown;
+  /** O briefing, quando já existe. Conferido antes de virar vínculo. */
+  clientRequestId?: unknown;
+}
+
+/**
+ * Grava o turno e NUNCA deixa isso chegar ao cliente.
+ *
+ * A ordem é essa de propósito: o registro é nosso, a conversa é dele. Um erro de
+ * banco não pode transformar uma resposta pronta em tela de erro para o
+ * prospect. Falhou? Fica no log do servidor e a conversa segue.
+ */
+async function registrar(turno: TurnoDoSdr): Promise<void> {
+  try {
+    await registrarTurnoDoSdr(turno);
+  } catch (err) {
+    console.error(`[sdr/chat] conversa não registrada: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
 const SYSTEM_PROMPT = `Você é a Consultora de Briefing da Dioli Digital — agência de marketing com inteligência artificial. Posicionamento: "Estratégia humana. Execução inteligente."
@@ -267,6 +291,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, reason: "bad_request" }, { status: 400 });
   }
 
+  // As duas chaves que amarram a conversa, resolvidas uma vez por turno.
+  const fio = { sessionId: body.sessionId, clientRequestId: body.clientRequestId };
+
   const claudeMessages = buildClaudeMessages(body.messages, body.currentMessage, body.scope);
 
   const controller = new AbortController();
@@ -291,6 +318,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     if (!res.ok) {
       console.error(`[sdr/chat] Claude HTTP ${res.status}`);
+      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: "provider_error" });
       return NextResponse.json({ ok: false, reason: "provider_error" });
     }
 
@@ -299,6 +327,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const parsed = extractJson(text);
 
     if (!parsed || typeof parsed.reply !== "string" || !parsed.reply.trim()) {
+      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: "parse_error" });
       return NextResponse.json({ ok: false, reason: "parse_error" });
     }
 
@@ -335,6 +364,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const EMAIL_HALLUCINATION = /e-mail.*v[áa]lid|formato.*@|nome@dom[íi]nio|confirmar.*e-mail|e-mail.*formato|qual.*seu e-mail|seu e-mail/i;
     if (!msgHasAt && EMAIL_HALLUCINATION.test(replyText)) {
       console.warn("[sdr/chat] email-hallucination detected, falling back");
+      // Turno barrado é o que MAIS interessa auditar — foi um erro do agente.
+      // Grava a fala do visitante e o motivo, nunca o texto barrado.
+      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: "email_hallucination" });
       return NextResponse.json({ ok: false, reason: "email_hallucination" });
     }
 
@@ -349,8 +381,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const PRICE_LEAK = /r\$\s*\d|\d+\s*(reais|\/m[êe]s\b)|desconto|\bplano\b.*\bR\$/i;
     if (PRICE_LEAK.test(replyText) && !ehPerguntaDeFaixa(replyText)) {
       console.warn("[sdr/chat] price-leak detected, falling back");
+      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: "price_leak" });
       return NextResponse.json({ ok: false, reason: "price_leak" });
     }
+
+    await registrar({ ...fio, doVisitante: body.currentMessage, doSdr: replyText });
 
     return NextResponse.json({
       ok: true,
@@ -361,6 +396,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } catch (err) {
     const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : "network_error";
     console.error(`[sdr/chat] ${reason}`);
+    // Timeout e queda de rede também são história: sem esta linha, a fala do
+    // visitante some justamente nos turnos em que o sistema falhou com ele.
+    await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: reason });
     return NextResponse.json({ ok: false, reason });
   } finally {
     clearTimeout(timeout);
