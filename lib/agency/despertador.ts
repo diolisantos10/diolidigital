@@ -33,6 +33,7 @@ import { cuidarDasAvaliacoes } from "@/lib/agency/esteira/avaliacoes";
 import { responderMensagensDeClientes } from "@/lib/agency/esteira/pm-responde";
 import { cobrarAFila } from "@/lib/agency/esteira/fila-que-se-cobra";
 import { resumoDoPortao } from "@/lib/agency/comercial/o-que-espera-no-portao";
+import { quemBateuNaPorta, resumoDaPorta } from "@/lib/agency/comercial/quem-bateu-na-porta";
 import { cobrarPedidosEsquecidos } from "@/lib/agency/esteira/pedidos";
 import { fazerBackup, estadoDoBackup } from "@/lib/agency/backup";
 import { registrarBatida, type FalhaDaRodada } from "@/lib/agency/pulso";
@@ -217,6 +218,9 @@ export async function baterORelogio(): Promise<{
   materiaisRecuperados: number;
   /** Oportunidades NOVAS que entraram pela caixa de e-mail da agência. */
   oportunidadesDaCaixa: number;
+  /** Quantos bateram na porta da frente e continuam sem atendimento.
+   *  **NÃO é trabalho movido — é medida.** Esta perna não aborda ninguém. */
+  naPorta: number;
   backup: boolean;
 }> {
   let retomados = 0;
@@ -231,6 +235,8 @@ export async function baterORelogio(): Promise<{
   let avaliacoes = 0;
   let cobrancasEsquecidas = 0;
   let oportunidadesDaCaixa = 0;
+  /** Quem está parado na porta da frente. Medida, não movimento. */
+  let naPorta = 0;
   /** Arquivos do Drive que estavam presos e finalmente chegaram ao disco. */
   let materiaisRecuperados = 0;
   let backup = false;
@@ -454,6 +460,77 @@ export async function baterORelogio(): Promise<{
     quebrou("portao-comercial", err);
   }
 
+  // ── QUEM BATEU NA PORTA E NINGUÉM ATENDEU (16/08/2026) ───────────────────
+  // A cicatriz: o briefing do CityJobs, entregue pelo próprio CEO, ficou parado
+  // na fila da porta da frente sem NINGUÉM saber. Não foi negligência de
+  // pessoa: `quem-bateu-na-porta.ts` estava escrito, completo e testado desde
+  // 08/08 — e **nenhuma linha de produção o chamava**. Havia alarme construído
+  // e nenhum fio ligando o alarme ao relógio. Fila que só existe se alguém
+  // lembrar de olhar é a mesma fila morta de sempre, com um arquivo bonito ao
+  // lado.
+  //
+  // Esta perna CONTA e faz `log`. Ponto. Não manda mensagem, não escreve no
+  // banco e não aborda ninguém — os dois motivos estão no cabeçalho de
+  // `quem-bateu-na-porta.ts`, e o segundo é **ordem do CEO de 10/08/2026**
+  // (nenhuma demanda de cliente até a agência estar pronta). Uma varredura que
+  // dispara mensagem violaria a ordem no dia em que fosse ligada, sem ninguém
+  // decidir isso. Quem aborda lead é gente.
+  //
+  // Os DOIS números sobem separados de propósito: `esperandoResposta` cobra a
+  // casa (dá para falar e ninguém falou) e `semCaminho` é buraco de dado
+  // (falar é impossível). Somados viram um alarme que ninguém sabe atender.
+  try {
+    // O workspace sai de uma linha existente, como as irmãs fazem: sem
+    // solicitação nenhuma não há porta a varrer, e a perna termina sem
+    // encostar no banco de novo. `workspaceId` é NULO no schema, então a linha
+    // que serve de âncora tem de ser uma que o tenha — pedir a primeira
+    // qualquer devolveria `null` e a varredura leria uma fila vazia achando que
+    // leu a fila inteira.
+    const algum = await prisma.clientRequestDb.findFirst({
+      where: { workspaceId: { not: null } },
+      select: { workspaceId: true },
+    });
+    const ws = algum?.workspaceId;
+    if (ws) {
+      const agora = new Date();
+      const r = await resumoDaPorta(ws, agora);
+      naPorta = r.naPorta;
+      if (r.esperandoResposta > 0) {
+        log(`${r.esperandoResposta} pessoa(s) bateram na porta, dá para falar com elas e ninguém falou` +
+            (r.maisAntigoEmDias !== null ? ` — a mais antiga espera há ${r.maisAntigoEmDias} dia(s)` : ""));
+      }
+      // Buraco de DADO, contado à parte: cobrar alguém por não ter ligado para
+      // quem não deixou telefone é cobrar o impossível.
+      if (r.semCaminho > 0) {
+        log(`${r.semCaminho} briefing(s) na porta SEM forma de contato — não é desleixo, é dado que falta`);
+      }
+      // Nome só quando já virou desleixo, e no máximo MAX_POR_RODADA nomes: o
+      // teto por rodada das irmãs, aplicado ao que esta perna produz (linhas de
+      // log). Truncar a CONTAGEM seria mentir sobre o tamanho da fila; truncar
+      // a lista de nomes é só não transformar o log em enxurrada. A segunda
+      // leitura só acontece quando há alguém a nomear.
+      if (r.desleixo > 0) {
+        const fila = await quemBateuNaPorta(ws, agora);
+        for (const p of fila.filter((f) => f.desleixo).slice(0, MAX_POR_RODADA)) {
+          log(`porta da frente — ${p.negocio} espera há ${p.diasEsperando} dia(s) e DÁ para falar com ele`);
+        }
+      }
+    }
+
+    // O ÓRFÃO DE WORKSPACE, que ninguém enxerga. A fila é lida POR workspace —
+    // aqui e na tela. Solicitação gravada sem `workspaceId` não aparece em
+    // nenhuma das duas e não é contada por ninguém: é a invisibilidade que esta
+    // perna existe para acabar, só que uma camada mais abaixo. Fica como LOG e
+    // não como falha da rodada porque o conserto é de dado e é decisão de
+    // gente — mas o número tem de existir em algum lugar.
+    const orfaos = await prisma.clientRequestDb.count({ where: { workspaceId: null } });
+    if (orfaos > 0) {
+      log(`porta da frente — ${orfaos} solicitação(ões) SEM workspace: invisíveis para a fila e para a tela`);
+    }
+  } catch (err) {
+    quebrou("porta-da-frente", err);
+  }
+
   // ── A PERGUNTA QUE NUNCA CHEGOU AO CLIENTE ────────────────────────────────
   // Medido na produção em 08/08/2026: um pedido de material aberto há mais de
   // um dia com `askedClientAt` vazio. O agente travou esperando algo que o
@@ -578,7 +655,7 @@ export async function baterORelogio(): Promise<{
     falhas,
   });
 
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, backup };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, naPorta, backup };
 }
 
 /**

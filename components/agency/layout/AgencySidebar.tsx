@@ -106,7 +106,10 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
         // 51, 29 e 28 dias invisíveis por causa disso (08/08/2026). Fica ao lado
         // de Solicitações, não em "Inteligência": é fila de decisão diária —
         // abordar ou não —, o mesmo gesto da vizinhança.
-        { label: "Quem procurou", href: "/agency/leads", icon: TargetIcon },
+        // O rótulo é o MESMO título da tela. Menu que chama de um jeito e
+        // página que se apresenta de outro faz a pessoa duvidar se chegou no
+        // lugar certo.
+        { label: "Quem bateu na porta", href: "/agency/leads", icon: TargetIcon },
         // Radar de oportunidades entra AQUI, no bloco de entrada, e não em
         // "Inteligência": ele não é relatório, é fila de decisão diária — chega
         // um projeto de plataforma de freela, o Diretor aprova ou recusa. Mesmo

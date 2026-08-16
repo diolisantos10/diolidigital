@@ -15,6 +15,95 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — O ALARME DA PORTA DA FRENTE ESTAVA CONSTRUÍDO E DESLIGADO
+
+**A consequência, primeiro:** o relógio da agência passou a varrer a fila de
+quem entrou pelo briefing público, e a fila virou tela em `/agency/leads`.
+
+**O defeito, e ele não era um bug:** `lib/agency/comercial/quem-bateu-na-porta.ts`
+existia **completo, correto e testado** desde 08/08 — e **nenhuma linha de
+produção o chamava**. O único importador no repositório inteiro era o próprio
+teste. Havia alarme e não havia fio. Foi assim que o briefing do CityJobs,
+entregue pelo próprio CEO, ficou parado sem ninguém saber.
+
+> **O padrão, porque ele não é isolado:** peça pronta, testada, sem chamador. É
+> a "peça verde, junta rompida" — o teste passa porque exercita a função, e a
+> função nunca roda. **Confirmado no mesmo dia em outro arquivo:**
+> `lib/agency/esteira/aprovacao-parada.ts` tem exatamente o mesmo estado (zero
+> chamadores de produção). **Não foi consertado aqui** — é despacho próprio.
+
+### 1. O RELÓGIO OLHA A PORTA (`despertador.ts`, perna `porta-da-frente`)
+
+No molde exato das irmãs: `try/catch` próprio com `quebrou("porta-da-frente")`,
+âncora de workspace por `findFirst` numa linha existente, teto por rodada.
+
+**Ela CONTA e faz `log`. Não manda mensagem, não escreve no banco, não aborda
+ninguém** — ordem do CEO de 10/08/2026, e há teste que reprova quem plugar um
+verbo de envio ou de escrita no bloco.
+
+- Os **dois baldes sobem separados**: `esperandoResposta` (dá para falar e
+  ninguém falou — cobra a casa) e `semCaminho` (buraco de dado — falar é
+  impossível). Somados viram alarme que ninguém sabe atender.
+- **O teto vale para os NOMES, nunca para a contagem.** Truncar a contagem
+  mentiria sobre o tamanho da fila; truncar a lista de nomes é só não virar
+  enxurrada de log.
+- **Rodou de verdade**, não só em teste — no relógio local, a cada 5 min:
+  ```
+  [despertador] 2 pessoa(s) bateram na porta, dá para falar com elas e ninguém falou — a mais antiga espera há 6 dia(s)
+  [despertador] 2 briefing(s) na porta SEM forma de contato — não é desleixo, é dado que falta
+  [despertador] porta da frente — CityJobs espera há 6 dia(s) e DÁ para falar com ele
+  ```
+
+### 2. A FILA VIRA TELA (`/agency/leads` + `GET /api/agency/porta`)
+
+**Ficou na tela que já existia, de propósito.** É a que a equipe abre a caminho
+de vender; fila em rota nova é fila que continua invisível — foi assim que a
+caixa de `/agency/requests` deixou de ser lida. A fila passou a ser a **espinha**
+da tela e o dossiê virou o detalhe de cada linha.
+
+- **Placar de três números**, com os dois baldes explicitamente não somados.
+- **As duas filas não se misturam.** Numa lista só, ordenada por idade, as
+  primeiras linhas eram justamente as que ninguém pode atender: a primeira ação
+  possível ficava na terceira linha. Agora "dá para falar" vem primeiro e, dentro
+  de cada fila, o mais antigo em cima.
+- **Pista continua não sendo contato:** `@sushicazzaoficial` aparece rotulado
+  como pista, com o motivo de não haver contato escrito por cima.
+- **Falha de leitura tem tela própria** — "esta fila NÃO é zero, é desconhecida".
+  E o dossiê fora do ar **não apaga a fila**: as duas leituras falham separadas.
+- **Vazio é boa notícia e o texto diz isso.** Com fila vazia o placar de zeros
+  some: três zeros em cima de "ninguém esperando" é o mesmo fato duas vezes, a
+  segunda com cara de painel quebrado.
+- O rótulo do menu virou **"Quem bateu na porta"**, igual ao título da tela.
+
+**Portão:** `npx tsc --noEmit` limpo · **288 arquivos de teste, todos verdes**
+(11 novos) · `npm run lint` com **exatamente os mesmos 212 problemas (67 erros)
+de antes desta frente** — medido com e sem o trabalho aplicado; **nenhum é meu**,
+e a base já estava vermelha. Conferido em 375/768/1440 nos três estados
+obrigatórios. Notas a 375px: hierarquia **8,5** · tipografia **9** ·
+espaçamento **8,5** · consistência **9**.
+
+### 🔴 O QUE FICOU ABERTO
+
+- [ ] **`lib/agency/esteira/aprovacao-parada.ts` não tem chamador de produção.**
+      Confirmado por grep: só o próprio teste importa. **Mesmo defeito, outro
+      despacho.**
+- [ ] **`ClientRequestDb.workspaceId` é NULO no schema, e a fila é lida POR
+      workspace** — aqui e na tela. Briefing gravado sem workspace **não é
+      contado por ninguém e não aparece em tela nenhuma**. A perna do relógio
+      passou a **contar e nomear** esses órfãos no log; consertar o dado é
+      decisão de gente. Sem dono.
+- [ ] **Nenhum especialista foi despachado como agente** (`interface`,
+      `experiencia`, `qualidade`, `seguranca`): **não há ferramenta de despacho
+      nesta execução** — o `pm` desta rodada não tem `Task`. A tela foi julgada
+      pelo próprio `pm` contra o `DESIGN.md` e contra a carta de `experiencia`,
+      e essa passada **produziu dois consertos** (a ordem das filas e o placar
+      compacto no celular). **Não substitui a passada deles.**
+- [ ] **`/agency/requests` continua lendo o store do navegador** enquanto
+      `/agency/leads` lê o banco. Duas verdades adjacentes sobre a mesma fila —
+      aberto desde 08/08, ainda sem dono.
+
+---
+
 ## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
 
 **Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no
