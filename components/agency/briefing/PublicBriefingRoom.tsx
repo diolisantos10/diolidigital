@@ -9,6 +9,12 @@ import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone"
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
+import {
+  CERCA_DE_ANEXO,
+  FECHO_DE_ANEXO,
+  cortarNomeDeArquivo,
+  cortarRotuloDeTipo,
+} from "@/lib/agency/comercial/nome-de-anexo";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
 
 // ── Public types ───────────────────────────────────────────────────────────────
@@ -795,6 +801,23 @@ export function tetoDoCartaoDaConversa(alturaDaJanela: number, topoDoCartao: num
 
 const TETO_DO_DOSSIE = 12_000;
 
+/**
+ * O TETO DURO do bloco inteiro — cabeçalhos, listas de nomes e instruções
+ * inclusos.
+ *
+ * ⚠️ 16/08/2026, achado do especialista de segurança: `TETO_DO_DOSSIE` dividia
+ * 12.000 caracteres entre os CONTEÚDOS, e tudo o mais ficava fora da conta. Dez
+ * anexos com nome de 50.000 caracteres produziam **501.310 caracteres**, 41× o
+ * teto declarado — colados em CADA turno, na conta de IA da agência.
+ *
+ * Agora há duas defesas, e a segunda é a que se consegue provar para QUALQUER
+ * entrada: os cabeçalhos entram na divisão do teto (defesa 1) e o bloco inteiro
+ * passa por este corte no fim (defesa 2). 16.000 é 12.000 de conteúdo + a folga
+ * medida das instruções fixas (~800) e das duas listas de até 10 nomes de 120
+ * caracteres (~2.600).
+ */
+export const TETO_DURO_DO_DOSSIE = 16_000;
+
 /** O mínimo que um arquivo precisa receber para valer a pena aparecer. Abaixo
  *  disto o trecho é curto demais para o SDR concluir qualquer coisa — melhor
  *  declarar o arquivo como "não coube" do que fingir que ele entrou. */
@@ -809,9 +832,10 @@ export const COTA_MINIMA_POR_ANEXO = 1_200;
  *  despejar duzentos deles num prompt é vazar uma lista de pessoas de graça. */
 const NOMES_LISTADOS = 10;
 
-/** "a.pdf, b.pdf e mais 38" — nunca a lista inteira. */
+/** "a.pdf, b.pdf e mais 38" — nunca a lista inteira, e nunca o nome inteiro:
+ *  dez nomes sem teto individual são dez vezes o tamanho que o atacante quiser. */
 function nomesResumidos(items: { attachment: { fileName: string } }[]): string {
-  const nomes = items.slice(0, NOMES_LISTADOS).map((it) => it.attachment.fileName);
+  const nomes = items.slice(0, NOMES_LISTADOS).map((it) => cortarNomeDeArquivo(it.attachment.fileName));
   const resto = items.length - nomes.length;
   return resto > 0 ? `${nomes.join(", ")} e mais ${resto}` : nomes.join(", ");
 }
@@ -823,7 +847,17 @@ export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" 
   const lidos = validos.filter((it) => it.lido && (it.texto ?? "").trim());
   const opacos = validos.filter((it) => !(it.lido && (it.texto ?? "").trim()));
 
-  const linhas: string[] = ["──────── MATERIAL ANEXADO PELO CLIENTE ────────"];
+  const linhas: string[] = [
+    "──────── MATERIAL ANEXADO PELO CLIENTE ────────",
+    // ⚠️ A CERCA. `blocoDeAnexos` (lib/agency/esteira/anexos-do-pedido.ts) avisa
+    // o modelo desde 16/08 que instrução dentro de anexo é conteúdo suspeito.
+    // ESTE módulo, do mesmo dia, não tinha o equivalente — e é o da porta
+    // PÚBLICA, sem login, que cola o conteúdo do arquivo DEPOIS da mensagem do
+    // cliente, na posição de maior peso, a cada turno. Dois módulos irmãos com
+    // regras diferentes é o defeito nº 2 do incidente do Drive; a frase mora
+    // numa constante só (`CERCA_DE_ANEXO`) para não voltar a divergir.
+    CERCA_DE_ANEXO,
+  ];
 
   if (lidos.length > 0) {
     // O teto é dividido entre os arquivos para que o último anexado não fique
@@ -845,16 +879,38 @@ export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" 
     //
     // Agora o teto manda. O piso vira o que ele sempre deveria ter sido: o
     // critério de QUANTOS arquivos cabem, não uma licença para estourar.
-    const cabem = Math.max(1, Math.floor(TETO_DO_DOSSIE / COTA_MINIMA_POR_ANEXO));
-    const dentro = lidos.slice(0, cabem);
-    const sobraram = lidos.slice(cabem);
-    const cota = Math.max(COTA_MINIMA_POR_ANEXO, Math.floor(TETO_DO_DOSSIE / dentro.length));
+    //
+    // ⚠️ E o CABEÇALHO entra na conta (16/08, segunda passada do especialista).
+    // A conta anterior dividia o teto entre os CONTEÚDOS e deixava
+    // `--- <nome do arquivo> ---` fora dela — com nome de 50.000 caracteres, o
+    // que mandava no tamanho do bloco era o nome, não o teto. Um arquivo só é
+    // admitido se, DEPOIS do cabeçalho dele, ainda sobrar a cota mínima para
+    // todos os já admitidos.
+    const dentro: { it: (typeof lidos)[number]; nome: string }[] = [];
+    let gastoEmCabecalhos = 0;
+    for (const it of lidos) {
+      const nome = cortarNomeDeArquivo(it.attachment.fileName);
+      const custo = `--- ${nome} ---`.length + 1; // +1 pela quebra de linha
+      const quantos = dentro.length + 1;
+      if (gastoEmCabecalhos + custo + COTA_MINIMA_POR_ANEXO * quantos > TETO_DO_DOSSIE) break;
+      gastoEmCabecalhos += custo;
+      dentro.push({ it, nome });
+    }
+    // Um arquivo sempre entra: dossiê com zero conteúdo e uma lista de nomes
+    // seria a perda silenciosa que este bloco existe para impedir.
+    if (dentro.length === 0) {
+      const it = lidos[0];
+      dentro.push({ it, nome: cortarNomeDeArquivo(it.attachment.fileName) });
+      gastoEmCabecalhos = 0;
+    }
+    const sobraram = lidos.slice(dentro.length);
+    const cota = Math.max(1, Math.floor((TETO_DO_DOSSIE - gastoEmCabecalhos) / dentro.length));
 
-    for (const it of dentro) {
+    for (const { it, nome } of dentro) {
       const t = (it.texto ?? "").trim();
       const corte = t.length > cota;
       linhas.push(
-        `--- ${it.attachment.fileName} ---`,
+        `--- ${nome} ---`,
         corte ? t.slice(0, cota) + "\n[…trecho cortado por tamanho — peça à equipe se precisar do resto]" : t,
       );
     }
@@ -880,8 +936,16 @@ export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" 
     );
   }
 
-  linhas.push("──────── FIM DO MATERIAL ────────");
-  return linhas.join("\n");
+  linhas.push("──────── FIM DO MATERIAL ────────", FECHO_DE_ANEXO);
+
+  const bloco = linhas.join("\n");
+  // A DEFESA 2: o teto duro, que vale para qualquer entrada. A divisão acima
+  // conta o que ela conhece; este corte é o que se consegue PROVAR — e é dele
+  // que sai a frase "o teto manda", que antes não era verdade.
+  if (bloco.length <= TETO_DURO_DO_DOSSIE) return bloco;
+  const aviso = "\n[…material cortado por tamanho — peça à equipe se precisar do resto]";
+  // O aviso entra DENTRO do teto: teto que o próprio aviso estoura não é teto.
+  return bloco.slice(0, TETO_DURO_DO_DOSSIE - aviso.length) + aviso;
 }
 
 interface UploadResult {
@@ -1481,11 +1545,15 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     async (files: File[]) => {
       for (const file of files) {
         const id = uid();
+        // O nome já entra CORTADO na tela e no anexo que sobe com o pedido — a
+        // rota corta o dela, e este é o caminho otimista, que nasce antes da
+        // resposta e não era alcançado por aquele corte.
+        const nomeCurto = cortarNomeDeArquivo(file.name);
         const optimistic: RequestAttachment = {
           id,
           clientId: tempClientId,
-          fileName: file.name,
-          fileType: (file.name.split(".").pop()?.toUpperCase() ?? "FILE"),
+          fileName: nomeCurto,
+          fileType: cortarRotuloDeTipo(nomeCurto.split(".").pop()),
           mimeType: file.type,
           sizeBytes: file.size,
           source: "briefing_room",
