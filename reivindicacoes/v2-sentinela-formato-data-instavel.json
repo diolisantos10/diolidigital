@@ -1,0 +1,12 @@
+{
+  "id": "v2/sentinela-formato-data-instavel",
+  "quem": "wt-a5f1fd2e59",
+  "frente": "sentinela do formato de data ficou vermelho por depender do relogio: agora+4h cruza a meia-noite e o dia mascara o separador",
+  "responsabilidade": "v2/sentinela-formato-data-instavel",
+  "arquivos": [
+    "__tests__/v2/formato-de-data-do-outbox.test.ts"
+  ],
+  "abertaEm": "2026-08-16T20:16:07.629Z",
+  "encerradaEm": null,
+  "rotulo": "pm-sentinela-data-vermelho"
+}
