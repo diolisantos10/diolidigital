@@ -73,3 +73,7 @@ __tests__/_scratch/
 # Evidência de tela (screenshots de auto-revisão). Prova de trabalho, não
 # entregável: nasce a cada rodada, pesa, e o que importa dela já foi relatado.
 scratchpad/
+# Mesma regra, outro destino: `SHOT_DIR=.shots` cai aqui. A captura que vira
+# entregável é promovida à mão para `docs/entregas/<frente>/`; o resto é rascunho
+# e não pode entrar num PR por acidente de `git add -A`.
+.shots/
