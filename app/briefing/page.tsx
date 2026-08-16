@@ -6,6 +6,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { PublicBriefingRoom } from "@/components/agency/briefing/PublicBriefingRoom";
 import type { PublicBriefingRoomSubmitData } from "@/components/agency/briefing/PublicBriefingRoom";
 import { LeadNaPorta, type ContatoDaPorta } from "@/components/agency/briefing/LeadNaPorta";
+import { lerNegocio } from "@/lib/agency/comercial/negocio-do-lead";
 
 export default function BriefingPage() {
   const { addClientRequest } = useAgencyStore();
@@ -54,7 +55,25 @@ export default function BriefingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          businessName:   data.prospectName ?? contatoDaPorta?.nome ?? data.title,
+          // ── O CAMPO DO NEGÓCIO RECEBE O NEGÓCIO, NÃO A PESSOA ──────────────
+          //
+          // Até 16/08/2026 esta linha era
+          // `data.prospectName ?? contatoDaPorta?.nome ?? data.title` — ou seja,
+          // mandava o nome de QUEM preencheu no campo do NEGÓCIO. O `businessName`
+          // já vinha pronto no submit (`PublicBriefingRoom.tsx:1344`, do escopo
+          // acumulado da conversa) e simplesmente não era usado.
+          //
+          // É o irmão do bug que `74810b75` fechou no `prospect-engine` (o e-mail
+          // virando nome do negócio): **duas portas gravavam o mesmo campo, e
+          // consertar uma deixava a outra vazando em silêncio** — o padrão que
+          // esta casa já pagou em 16/08 com as duas rotas que criavam cadastro.
+          //
+          // Sem negócio informado, o campo NÃO cai no nome da pessoa: vai vazio,
+          // e vazio aqui é a ausência que `lerNegocio` (`negocio-do-lead.ts`) já
+          // sabe ler — a tela mostra "Negócio não informado". Ausência de
+          // informação não é informação, e sem revisor humano um nome deduzido
+          // vira dado inventado no cadastro do cliente.
+          businessName:   lerNegocio(data.businessName) ?? "",
           segment:        data.extractedSummary.segment,
           services:       data.extractedSummary.services,
           objectives:     data.extractedSummary.objectives,
