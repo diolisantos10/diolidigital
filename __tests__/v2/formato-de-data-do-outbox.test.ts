@@ -30,6 +30,17 @@
 // no formato com espaço sempre que um INSERT cru omitir a coluna. O conserto
 // da causa raiz exige migration nova (a aplicada não se reescreve) — por ora
 // o que protege é a trava: as três metades abaixo.
+//
+// ACHADO 16/08/2026, medido com banco real por volta das 20:15 UTC: este
+// arquivo usava `new Date()` (o relógio real) para `agora`/`futuro`, e a
+// comparação lexicográfica do defeito só aparece quando os dois carimbos
+// caem no MESMO DIA. `agora + 4h` cruzou a meia-noite na medição, e a
+// diferença do dígito do DIA decidiu a comparação antes de chegar ao
+// separador (espaço vs "T") que é o defeito de verdade — a linha crua não
+// foi colhida e a METADE (a) ficou VERDE por acidente, não porque o defeito
+// tivesse sumido. Por isso os carimbos abaixo agora são literais fixos, e a
+// METADE (a) ganhou um caso novo provando exatamente essa fronteira: o
+// defeito É intermitente por natureza, não o teste que o mede.
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execSync } from "node:child_process";
@@ -72,8 +83,12 @@ function comoEspaco(d: Date): string {
 
 describe("METADE (a) — o defeito medido: SQL cru engana o filtro `lte` do cron", () => {
   it("linha gravada com ESPAÇO no futuro é colhida agora; a do Prisma, no MESMO instante, não é", async () => {
-    const agora = new Date();
-    const futuro = new Date(agora.getTime() + 4 * 60 * 60 * 1000); // 4h à frente — nenhuma das duas deveria ser colhida agora
+    // Carimbos FIXOS, no MESMO dia — de propósito: a comparação lexicográfica
+    // que produz o defeito só se manifesta dentro do mesmo dia (ver ACHADO
+    // 16/08/2026 no topo do arquivo). Com `new Date()` este caso ficava
+    // VERDE por acidente entre ~20h e meia-noite UTC.
+    const agora = new Date("2026-08-16T12:00:00.000Z");
+    const futuro = new Date(agora.getTime() + 4 * 60 * 60 * 1000); // 16:00 do MESMO dia — nenhuma das duas deveria ser colhida agora
 
     await db.$executeRawUnsafe(
       `INSERT INTO "OutboxV2" ("id","tipo","payload","status","tentativas","proximaTentativaEm","chaveIdempotencia","correlationId") VALUES (?,?,?,?,?,?,?,?)`,
@@ -112,11 +127,52 @@ describe("METADE (a) — o defeito medido: SQL cru engana o filtro `lte` do cron
       "outbox-prisma-futuro",
     );
   });
+
+  it("quando o agendamento cruza a virada do dia, o defeito SOME — propriedade do defeito, não do teste", async () => {
+    // Isto não é o defeito "consertado" — é o defeito MASCARADO, e é PIOR,
+    // não melhor: um defeito que desaparece perto da meia-noite e reaparece
+    // de manhã é o tipo que ninguém consegue reproduzir quando vai
+    // investigar. Mecanismo (ver ACHADO 16/08/2026 no topo do arquivo): a
+    // comparação lexicográfica esbarra primeiro no dígito do DIA, que já
+    // decide o resultado, e nunca chega ao separador (espaço vs "T") que é
+    // o defeito de verdade.
+    //
+    // E ele fica ativo quase sempre, não raramente: o backoff real do
+    // outbox (processador-outbox.ts) vai de 1 minuto a 1 hora, então na
+    // esmagadora maioria dos agendamentos `agora` e `futuro` caem no MESMO
+    // dia. É só esta janela estreita — perto da virada — que mascara.
+    const agora = new Date("2026-08-16T23:00:00.000Z");
+    const futuro = new Date(agora.getTime() + 4 * 60 * 60 * 1000); // cruza para 2026-08-17
+
+    await db.$executeRawUnsafe(
+      `INSERT INTO "OutboxV2" ("id","tipo","payload","status","tentativas","proximaTentativaEm","chaveIdempotencia","correlationId") VALUES (?,?,?,?,?,?,?,?)`,
+      "outbox-cru-futuro-vira-dia",
+      "registro_de_teste",
+      "{}",
+      "pending",
+      0,
+      comoEspaco(futuro),
+      "cru-futuro-vira-dia",
+      "c-formato-data-vira-dia",
+    );
+
+    const colhidos = await pendentesProntosComoOCron(agora, "c-formato-data-vira-dia");
+    const ids = colhidos.map((c) => c.id);
+
+    expect(
+      ids,
+      "com a virada do dia entre agora e futuro, o dígito do DIA decide a comparação antes do separador — o mesmo defeito medido acima não aparece aqui",
+    ).not.toContain("outbox-cru-futuro-vira-dia");
+  });
 });
 
 describe("METADE (b) — caminho limpo: só o Prisma escrevendo, o agendamento funciona", () => {
   it("item vencido é colhido; item futuro não é — os dois gravados pelo Prisma", async () => {
-    const agora = new Date();
+    // Carimbo FIXO pelo mesmo motivo da METADE (a) — ver ACHADO 16/08/2026 no
+    // topo do arquivo. Aqui os dois lados são gravados pelo Prisma (formato
+    // consistente), então o risco latente é a mesma virada de dia, só que na
+    // direção oposta.
+    const agora = new Date("2026-08-16T12:00:00.000Z");
     const vencido = new Date(agora.getTime() - 5 * 60_000);
     const futuro = new Date(agora.getTime() + 4 * 60 * 60 * 1000);
 
