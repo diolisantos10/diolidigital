@@ -258,3 +258,49 @@ describe("M1 — `donoConfere` fecha por padrão", () => {
     expect(donoConfere(beta, undefined)).toBe(false);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A QUEBRA PERMANENTE QUE EU NÃO TINHA DECLARADO — prospect que vira cliente
+//
+// O ramo do prospect grava `clientId: null` por construção. Com a inversão,
+// todo prospect que virasse cliente DEPOIS do deploy perderia a conversa
+// inteira do briefing — para sempre. Base **lê**, PR **não lia**. E o briefing
+// é a porta comercial desta casa.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("prospect que vira cliente leva o histórico junto", () => {
+  it("⛔ a conversa do briefing NÃO some quando a solicitação ganha dono", async () => {
+    const { carimbarHistoricoDoProspect } = await import("@/lib/agency/portal/carimbar-historico-do-prospect");
+
+    const prospect = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, businessName: "Vai virar cliente", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    // Como o prospect escreve: sem dono, porque dono ainda não existe.
+    await prisma.portalMessage.create({
+      data: { clientRequestId: prospect.id, authorRole: "client", authorName: "prospect", body: "quero um site" },
+    });
+
+    // A conversão: a casa DECIDE o dono — não se está inferindo nada.
+    const novo = await prisma.client.create({ data: { workspaceId: ws, name: "Vai virar cliente" } });
+    await prisma.clientRequestDb.update({ where: { id: prospect.id }, data: { clientId: novo.id } });
+    await carimbarHistoricoDoProspect(prospect.id, novo.id);
+
+    await prisma.portalAccess.create({ data: { token: "tk-convertido", clientId: novo.id } });
+    const { GET } = await import("@/app/api/portal/messages/route");
+    const res = await GET(get("/api/portal/messages?token=tk-convertido"));
+
+    expect(await res.text()).toContain("quero um site");
+  });
+
+  it("⛔ e o carimbo NUNCA sobrescreve linha que já tem dono", async () => {
+    // Se sobrescrevesse, isto viraria o re-apontador que a frente inteira
+    // existiu para fechar.
+    const { carimbarHistoricoDoProspect } = await import("@/lib/agency/portal/carimbar-historico-do-prospect");
+    const msg = await prisma.portalMessage.create({
+      data: { clientRequestId: reqCompartilhada, clientId: beta, authorRole: "team", authorName: "x", body: "do beta" },
+    });
+
+    await carimbarHistoricoDoProspect(reqCompartilhada, alfa);
+
+    expect((await prisma.portalMessage.findUnique({ where: { id: msg.id } }))?.clientId).toBe(beta);
+  });
+});

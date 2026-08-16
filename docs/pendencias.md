@@ -184,10 +184,14 @@ re-apontava A→B incondicionalmente. Carimbar dono nulo pode; **trocar dono nã
       `x-railway-fallback: true`) durante esta apuração**, em `/api/health` e em
       todas as rotas. Não foi causado por esta frente (o trabalho todo foi
       local). **Nada foi medido em produção por causa disso.**
-- [ ] 🟠 **Mensagem legada (`clientId` nulo) presa a solicitação que trocou de
-      dono some da conversa do dono NOVO.** É a escolha declarada: entre
-      esconder histórico ambíguo e mostrar conversa de outro, esconde-se.
-      Fundir fichas duplicadas continua sendo decisão de negócio.
+- [ ] 🔴 **O CUSTO REAL, corrigido: NÃO é "o histórico legado".** `montarFiltro`
+      devolve `{ clientId }`, e nenhuma linha anterior ao carimbo tem dono
+      escrito — então, **no dia 1, 100% das mensagens anteriores ao deploy somem
+      para 100% dos clientes**. Todo cliente abre "Fale com seu PM" e vê a
+      tarja com a conversa vazia. A minha declaração anterior ("o histórico
+      legado") minimizava isso e vai ao CEO com estas palavras.
+      **[DONO: Diretor decide (é escolha de negócio: aceitar o dia 1 assim, ou
+      fazer um backfill curado antes) · antes do deploy]**
 
 ### O ITEM DO DOMÍNIO OFICIAL — o que ficou pronto e o que é do CEO
 

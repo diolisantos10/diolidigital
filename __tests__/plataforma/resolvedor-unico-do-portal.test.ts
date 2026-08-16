@@ -52,7 +52,6 @@ const PERMITIDOS: Record<string, string> = {
   // porque é ela que decide se grava a credencial. Continua obrigada a exigir
   // dono — provado em `__tests__/portal/cookie-de-outro-cliente-na-porta`.
   "app/api/portal/session/route.ts": "mint do cookie: confere o token cru por definição",
-  "app/portal/access/route.ts": "porta de entrada: mesma razão do mint",
 };
 
 function arquivosDe(alvo: string): string[] {
@@ -118,6 +117,8 @@ describe("um resolvedor só para credencial de portal", () => {
       expect(motivo.length, `${arquivo} sem motivo`).toBeGreaterThan(20);
     }
     // Se esta conta subir, alguém abriu exceção — e vai ter de explicar aqui.
-    expect(Object.keys(PERMITIDOS)).toHaveLength(2);
+    // Encolheu de 2 para 1 na rodada 5: `app/portal/access` passou a usar o
+    // resolvedor único (antes conferia só validade, nunca dono).
+    expect(Object.keys(PERMITIDOS)).toHaveLength(1);
   });
 });

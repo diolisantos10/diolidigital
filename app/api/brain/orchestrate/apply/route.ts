@@ -13,6 +13,7 @@ import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
 import { pedirDirecao } from "@/lib/agency/esteira/marcos";
 import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
+import { carimbarHistoricoDoProspect } from "@/lib/agency/portal/carimbar-historico-do-prospect";
 
 const AGENCY_ROLES = ["master", "project_manager"] as const;
 // Reasoning departments accepted in a proposal. "analytics" is a reasoning dept
@@ -112,6 +113,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         where: { id: clientRequestId },
         data: { clientId, workspaceId: session.workspaceId },
       });
+      // O prospect virou cliente aqui também: o histórico do briefing ganha
+      // dono no MESMO instante. Ver `carimbar-historico-do-prospect.ts`.
+      await carimbarHistoricoDoProspect(clientRequestId, clientId);
     }
 
     const project = await prisma.project.create({

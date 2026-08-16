@@ -22,7 +22,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { gravarCookieDoPortal } from "@/lib/agency/persistence/portal-cookie";
-import { conferirTokenDoPortal } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 
 /** Atrás do proxy do Railway, `request.url` carrega o host INTERNO
  *  (0.0.0.0:8080) — um redirect montado com ele manda o cliente para um
@@ -40,7 +40,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(urlPublica(request, "/portal/invalid"));
   }
 
-  if (await conferirTokenDoPortal(token)) {
+  // ── 🔴 RODADA 5: CONFERIR VALIDADE NÃO É CONFERIR DONO ────────────────────
+  //
+  // Isto usava `conferirTokenDoPortal`, que confere existência, revogação e
+  // prazo — e **nunca o dono**. Medido em navegador real: token legado (sem
+  // dono escrito) recebia `307 → /portal/access/me` **com
+  // `Set-Cookie: dioli_portal=...; Max-Age=15552000`** — o cookie podre de 180
+  // dias que o cabeçalho DESTE arquivo diz que não pode acontecer. E a
+  // `/portal/invalid`, que tem contato clicável, ficava inalcançável.
+  //
+  // Agora quem decide é o resolvedor único: sem dono, não entra e não grava.
+  if ((await escopoDoToken(token)).ok) {
     const response = NextResponse.redirect(urlPublica(request, "/portal/access/me"));
     gravarCookieDoPortal(response, request, token);
     return response;

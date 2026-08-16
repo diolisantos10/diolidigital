@@ -16,6 +16,7 @@ import { sincronizarDoBriefing } from "@/lib/agency/esteira/proibicoes";
 import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
 import { gravarMensagemDoPortal } from "@/lib/agency/portal/mensagem-do-portal";
+import { carimbarHistoricoDoProspect } from "@/lib/agency/portal/carimbar-historico-do-prospect";
 
 const DEPT_TO_DEF: Record<string, DepartmentId> = {
   strategy: "strategy", social: "social-media", design: "design",
@@ -50,6 +51,16 @@ export async function createProjectFromRequest(clientRequestId: string, approved
     const client = await prisma.client.create({ data: { workspaceId, name: req.businessName, industry: req.segment || null } });
     clientId = client.id;
     await prisma.clientRequestDb.update({ where: { id: clientRequestId }, data: { clientId, workspaceId } });
+    // O prospect virou cliente: o histórico do briefing ganha dono AGORA, no
+    // instante em que o dono passa a existir. Sem isto, a conversa inteira do
+    // briefing sumiria da tela dele — quebra PERMANENTE, não custo de legado.
+    const carimbadas = await carimbarHistoricoDoProspect(clientRequestId, clientId);
+    if (carimbadas.mensagens > 0 || carimbadas.aprovacoes > 0) {
+      console.log(
+        `[projeto] histórico do briefing carimbado: ${carimbadas.mensagens} mensagem(ns), `
+        + `${carimbadas.aprovacoes} aprovação(ões).`,
+      );
+    }
   }
 
   // O CÉREBRO DE MARCA NASCE AQUI. Antes disto, o cliente contava cor, tom de
