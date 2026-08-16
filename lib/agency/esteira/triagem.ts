@@ -60,37 +60,14 @@ import {
   lerOperacao, executarOperacaoDeCalendario, contarAoCliente, OPERACOES,
 } from "@/lib/agency/esteira/operacoes";
 import { registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { lerAnexosDoPedido, blocoDeAnexos } from "@/lib/agency/esteira/anexos-do-pedido";
 
-/**
- * O que o cliente já anexou, dito ao modelo em uma linha.
- *
- * Sem isto a máquina pede o briefing que está anexado — foi o defeito de
- * 15/08/2026. Guardar arquivo e não mencioná-lo é o mesmo que não tê-lo.
- */
-export function listarAnexos(attachmentsJson: string | null | undefined): string {
-  let urls: unknown;
-  try {
-    urls = JSON.parse(attachmentsJson || "[]");
-  } catch {
-    // JSON quebrado não pode virar "não tem anexo": isso reintroduz o defeito.
-    return "ANEXOS: o cliente enviou material, mas não consegui listá-lo aqui. NÃO peça a ele o que já foi enviado — escale para a equipe.";
-  }
-  if (!Array.isArray(urls) || urls.length === 0) return "ANEXOS: nenhum.";
-
-  const nomes = urls
-    .filter((u): u is string => typeof u === "string")
-    .map((u) => u.split("/").pop() || u)
-    .slice(0, 10);
-
-  return [
-    `ANEXOS: o cliente enviou ${nomes.length} arquivo(s) — ${nomes.join(", ")}.`,
-    "Você NÃO consegue ler o conteúdo deles. Considere que a informação pode estar ali:",
-    "NUNCA peça ao cliente para descrever o que ele já anexou. Se o anexo for necessário",
-    "para classificar, escale para a equipe dizendo que o material está anexado e precisa",
-    "ser lido por alguém.",
-  ].join("\n");
-}
-
+// `listarAnexos` morava aqui e saiu em 16/08/2026. Ela montava a lista pelo
+// NOME tirado da URL e afirmava ao modelo "você NÃO consegue ler o conteúdo
+// deles" — o que deixou de ser verdade. Quem monta o bloco agora é
+// `blocoDeAnexos`, em `anexos-do-pedido.ts`, junto do código que de fato abre o
+// arquivo. Duas descrições do mesmo anexo em módulos diferentes é como a linha
+// do anexo ficou meses sem existir.
 
 /** Depois disto, `em_triagem`/`em_producao` quer dizer "o processo morreu no
  *  meio". Mesmo valor que o motor de produção usa para a trava dele — e é o que
@@ -551,13 +528,16 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     // linha não existir: o prompt levava só `description` e `objective`, e o
     // anexo ficava guardado em `attachmentsJson` sem nunca ser mencionado.
     //
-    // Dizer QUE existe anexo não é o mesmo que LER o anexo, e a diferença
-    // importa: com esta linha o modelo para de pedir o que já foi enviado e
-    // passa a poder classificar contando com o material. Ler o conteúdo do
-    // PDF é o passo seguinte — enquanto não existe, o pedido com anexo cai
-    // em `precisa_decisao` COM o anexo declarado, e não como se o cliente
-    // não tivesse mandado nada.
-    listarAnexos(pedido.attachmentsJson),
+    // ── 16/08/2026 — E AGORA O CONTEÚDO CHEGA JUNTO ──────────────────────
+    // Dizer QUE existe anexo não é o mesmo que LER o anexo. `.txt`, `.csv`,
+    // `.docx` e `.pptx` passam a ir TRANSCRITOS no prompt; PDF, imagem, áudio
+    // e vídeo continuam declarados sem conteúdo, COM o motivo e com a ordem
+    // de escalar. Ver `anexos-do-pedido.ts` — em especial por que a string do
+    // cliente vira id e o caminho do arquivo sai do banco.
+    blocoDeAnexos(await lerAnexosDoPedido({
+      attachmentsJson: pedido.attachmentsJson,
+      clientId: pedido.clientId,
+    })),
     "──────── FIM DO PEDIDO ────────",
   ].join("\n");
 
