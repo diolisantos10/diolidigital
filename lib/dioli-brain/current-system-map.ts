@@ -16,7 +16,7 @@ export const CURRENT_SYSTEM_MAP: SystemModuleMapping[] = [
   {
     moduleId: "briefing_room",
     label: "Briefing Room",
-    currentPath: "/briefing + components/agency/briefing/BriefingRoomV2.tsx",
+    currentPath: "/briefing + components/agency/briefing/PublicBriefingRoom.tsx",
     brainLayer: "intake",
     brainDepartmentId: "client-service-sdr",
     status: "mapped",

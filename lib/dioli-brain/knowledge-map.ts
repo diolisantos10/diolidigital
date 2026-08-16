@@ -33,7 +33,7 @@ export const KNOWLEDGE_SOURCES: KnowledgeSource[] = [
     allowedDepartments: ["client-service-sdr", "strategy", "social-media", "design", "paid-traffic", "project-management"],
     sensitivity: "confidential",
     updateTrigger: ["briefing_submitted", "human_edit"],
-    currentSystemMapping: "prisma: Briefing + /briefing route + BriefingRoomV2 component",
+    currentSystemMapping: "prisma: Briefing + /briefing route + PublicBriefingRoom component",
   },
   {
     sourceId: "client_requests",

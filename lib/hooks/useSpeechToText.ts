@@ -1,5 +1,6 @@
 // ─── useSpeechToText ─────────────────────────────────────────────────────────
-// O microfone do BRIEFING PÚBLICO, do `BriefingRoomV2` e do chat do portal.
+// O microfone do BRIEFING PÚBLICO (`PublicBriefingRoom`) e do chat do portal
+// (`PortalChat`).
 // A interface antiga continua inteira (`isListening` · `isTranscribing` ·
 // `isSupported` · `error` · `startListening` · `stopListening`); o que entrou é
 // aditivo (`modo` · `segundos`), então nenhuma tela precisou mudar para
