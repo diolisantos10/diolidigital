@@ -1,0 +1,12 @@
+{
+  "id": "seguranca/csrf-rotas-de-escrita",
+  "quem": "pm-9ab49074",
+  "frente": "CSRF nas rotas de escrita interna: medir alcance e dar parecer (a casa depende so de SameSite=lax)",
+  "responsabilidade": "seguranca/csrf-rotas-de-escrita",
+  "arquivos": [
+    "lib/auth/session.ts",
+    "lib/agency/organizacao/guarda.ts"
+  ],
+  "abertaEm": "2026-08-16T19:00:44.831Z",
+  "encerradaEm": null
+}
