@@ -1,0 +1,16 @@
+{
+  "id": "guarda-de-origem-navegacao-cross-site",
+  "quem": "wt-91e4589eb3",
+  "frente": "medir em navegador de verdade a guarda de origem (Sec-Fetch-Site/Origin/Referer) do GET que marca como lida",
+  "responsabilidade": "guarda-de-origem-navegacao-cross-site",
+  "arquivos": [
+    "lib/security/navegacao-cross-site.ts",
+    "__tests__/security/navegacao-cross-site.test.ts",
+    "__tests__/security/guarda-de-origem-no-navegador.test.ts",
+    "__tests__/portal/csrf-marcar-lida.test.ts",
+    "app/api/portal/messages/route.ts"
+  ],
+  "abertaEm": "2026-08-16T20:17:14.841Z",
+  "encerradaEm": null,
+  "rotulo": "pm-guarda-de-origem"
+}
