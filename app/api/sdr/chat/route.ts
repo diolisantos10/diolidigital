@@ -31,7 +31,15 @@ import { ehPerguntaDeFaixa, normalizarFaixa } from "@/lib/agency/comercial/negoc
 // ATÉ 16/08/2026 ESTA ROTA NÃO ESCREVIA NADA. Zero chamadas a `prisma.`: o SDR
 // conversava, errava, e o diário do piloto mostrava `mensagens: 0` enquanto a
 // conversa acontecia. O porquê e as travas estão no cabeçalho do módulo.
-import { registrarTurnoDoSdr, type TurnoDoSdr } from "@/lib/agency/comercial/registro-da-conversa";
+// `fioDaConversa` é reaproveitada aqui (16/08, despacho `seguranca/freio-por-
+// sessao-no-sdr`) como identificador do SEGUNDO freio, o de sessão — ver o
+// bloco logo antes de `POST`. Ela já higieniza o id vindo do navegador; não
+// escreva uma segunda limpeza.
+import {
+  registrarTurnoDoSdr,
+  fioDaConversa,
+  type TurnoDoSdr,
+} from "@/lib/agency/comercial/registro-da-conversa";
 // A MONTAGEM DO PROMPT (SYSTEM_PROMPT + a ficha do cargo, via
 // `sistemaDoSdr()`) saiu daqui e foi para `lib/agency/comercial/
 // prompt-do-sdr.ts` (despacho `esteira`, 16/08 — segunda rodada). Motivo:
@@ -323,6 +331,85 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!Array.isArray(body.messages) || typeof body.currentMessage !== "string") {
     return NextResponse.json({ ok: false, reason: "bad_request" }, { status: 400 });
   }
+
+  // ─── FREIO POR `sessionId` — parecer do `seguranca`, 16/08/2026 ────────────
+  //
+  // SOMADO ao freio de IP lá em cima, NUNCA no lugar dele: são defesas contra
+  // ataques diferentes. O de IP pega a rajada disparada de UMA máquina. Este
+  // pega o LAÇO QUE TROCA DE IP mas mantém o mesmo `sessionId` — ex.: um pool
+  // de proxies atrás do mesmo script, em que cada IP novo abre uma cota de IP
+  // inteira e intocada. Tirar um para pôr o outro é trocar de buraco.
+  //
+  // LIMITE E JANELA — a conta, não o gosto. Uma conversa de briefing real tem
+  // 8 a 12 turnos (medida da casa). Cada turno "de verdade" pode custar mais
+  // de UMA chamada a esta rota: comentário sobre anexo, áudio transcrito e
+  // reenviado como mensagem, e reenvio depois de um turno barrado por um dos
+  // guardas (`truncado`, `malformado`, `email_hallucination`, `price_leak`)
+  // não avançam a conversa mas batem na rota de novo. Um fator de até 3x por
+  // turno cobre isso: 12 × 3 = 36. O teto vai a 60, não a 36, porque o item 3
+  // do despacho manda caber "com folga" — barrar cliente pagante no meio da
+  // conversa é pior que a fatura, e 60 ainda é uma fração pequena do teto de
+  // IP (1.800/hora). Janela de 30 minutos: tempo real de uma conversa de
+  // briefing, com pausas para ler/pensar/anexar, cabe folgado aí dentro; e
+  // mesmo assim um laço preso a este `sessionId` fica limitado a, no máximo,
+  // 120 chamadas por hora — bem abaixo do pior caso por IP.
+  const SESSAO_LIMITE = 60;
+  const SESSAO_JANELA_MS = 30 * 60_000;
+
+  // DECISÃO SOBRE `sdr:sem-sessao` (o fallback de `fioDaConversa` quando não
+  // há id utilizável): quem chega sem `sessionId` cai TODO MUNDO no MESMO
+  // balde, de propósito — um teto GLOBAL para tráfego anônimo, não "não
+  // conta". A sala de briefing (`PublicBriefingRoom.tsx`) sempre cria um
+  // `sessionId` ao montar; chegar sem ele é bug do cliente OU é ferramenta de
+  // abuso que pulou o navegador — os dois casos pedem um teto MAIS apertado,
+  // compartilhado, não um passe livre com bucket próprio. O efeito colateral
+  // é real (dois visitantes sem sessão ao mesmo tempo dividem cota), mas é
+  // raro (a sala sempre gera `sessionId`) e pesa menos que abrir uma porta
+  // sem contagem nenhuma.
+  const barradoPorSessao = await limiteExcedido(
+    req,
+    "sdr-chat-sessao",
+    SESSAO_LIMITE,
+    SESSAO_JANELA_MS,
+    fioDaConversa(body.sessionId),
+  );
+  if (barradoPorSessao) return barradoPorSessao as NextResponse;
+
+  // ⚠️ O QUE ESTA TRAVA NÃO PEGA — leia antes de confiar nela.
+  //
+  // `sessionId` vem do CORPO da requisição, do CLIENTE — e o cliente escreve
+  // o que quiser. Quem quer abusar de verdade gera um `sessionId` novo (um
+  // `crypto.randomUUID()` de uma linha) a CADA requisição: cada uma cai num
+  // balde vazio e este freio nunca estoura para ela. Ele NÃO prova
+  // identidade, NÃO prova retorno, e sozinho NÃO impede um laço que já sabe
+  // trocar `sessionId` a cada chamada — trava que se acredita mais forte do
+  // que é vale menos que trava nenhuma, porque produz confiança falsa.
+  //
+  // O que ele PEGA: o script (ou aba) que reusa — ou simplesmente esquece de
+  // trocar — o mesmo `sessionId`, incluindo o caso citado no parecer do
+  // `seguranca`: um pool de IPs atrás do MESMO cliente/sessão, que hoje
+  // escapa do freio de IP porque cada IP novo abre cota de IP nova. E pega,
+  // por construção, todo tráfego que chega sem `sessionId` nenhum (o balde
+  // global `sdr:sem-sessao`, acima).
+  //
+  // AVALIADO E NÃO FEITO NESTA FRENTE: ancorar a sessão em algo que o
+  // SERVIDOR controla — um cookie httpOnly assinado, atribuído no primeiro
+  // `Set-Cookie` e só então usado como chave do balde — fecharia o buraco do
+  // `sessionId` livremente forjável para um script ingênuo (que não trata
+  // cookies cairia sempre no balde anônimo, em vez de escolher um balde
+  // vazio à vontade). Mas não fecha para quem TRATA cookies (um `fetch` com
+  // cookie jar próprio simplesmente descarta o que veio e recomeça do zero,
+  // igual ao `sessionId` hoje). Fora do escopo desta frente porque exigiria o
+  // MESMO tratamento em `/api/sdr/upload` e `/api/sdr/transcribe` — que
+  // gastam a mesma chave paga e estão fora da lista de arquivos fechada
+  // deste despacho — e porque a lista fechada já dita o mecanismo (item 1:
+  // `fioDaConversa(body.sessionId)`). Registrado para o próximo parecer do
+  // `seguranca` sobre este mesmo ponto, não decidido sozinho aqui.
+  //
+  // A defesa real contra o laço que troca `sessionId` E IP ao mesmo tempo
+  // continua sendo o freio de IP (trocar IP tem custo de infraestrutura de
+  // verdade) e, no limite, autenticação — que esta rota não tem porque é a
+  // PRIMEIRA porta, antes do login.
 
   // As duas chaves que amarram a conversa, resolvidas uma vez por turno.
   const fio = { sessionId: body.sessionId, clientRequestId: body.clientRequestId };
