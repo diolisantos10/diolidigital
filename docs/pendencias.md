@@ -15,6 +15,92 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — TRÊS DEFEITOS SÓ APARECERAM PORQUE A FERRAMENTA FOI EXERCITADA, NÃO PORQUE UM TESTE FICOU VERMELHO
+
+**A conclusão primeiro:** o ambiente de sessão nascia quebrado toda vez, a trava
+de reivindicação prendia quem a obedecia (deadlock no primeiro dia de uso), e
+`chaveDoProspect` saiu do limbo — fica na tabela e passa a ser lida. Nos três
+casos, um teste verde não teria pego nada: só apareceu porque alguém rodou o
+mecanismo de verdade, no modo em que ele vive.
+
+### A — O AMBIENTE NASCIA QUEBRADO EM TODA SESSÃO NOVA
+
+- Um container subiu sem `node_modules`; `npx tsc --noEmit` devolvia milhares de
+  erros, `zustand` ausente. Um `npm install` zerou o typecheck na hora. **Três
+  `pm` diferentes chegaram a concluir que o repositório estava quebrado** — não
+  estava; faltava provisionar.
+- Não havia `.claude/settings.json` nem `.claude/hooks/` neste repositório. Nada
+  provisionava nada.
+- **Conserto:** gancho `SessionStart` síncrono — instala dependências se
+  faltarem, gera cliente do Prisma se faltar, só então cria `.env` de
+  desenvolvimento e provisiona o banco. Nunca sobrescreve `.env` existente.
+  Nenhum segredo de produção. Sempre sai `0`.
+- Provado três vezes: do zero (~36s); segunda rodada com ambiente pronto (não
+  reinstala nada); e com `PATH` sem `npm`/`npx`, saiu `0` nomeando as três falhas
+  sob o título "O AMBIENTE FICOU INCOMPLETO. Isto não é o código quebrado".
+- **Dois defeitos só achados por exercitar:** `.gitignore` ignorava `.claude/*`
+  e o gancho **não seria versionado** (gancho que não chega às outras sessões
+  não existe); e o bit de execução só foi confirmado conferindo o índice do git
+  (`100755` — em `100644` não rodaria na máquina de mais ninguém).
+
+### B — A TRAVA DE REIVINDICAÇÃO PRENDEU QUEM A OBEDECEU: DEADLOCK NO PRIMEIRO DIA
+
+- Um `pm` fez tudo certo e o gancho pré-push o barrou pela **própria**
+  reivindicação dele. `encerrar` também não passava, porque a reivindicação só
+  sai por push e o push estava barrado por ela. Deadlock fechado — ele não usou
+  `--no-verify` nem `--forcar`; gravou a identidade à mão.
+- **Causa raiz medida:** `git config --local` num worktree grava no
+  `GIT-COMMON-DIR` (`.git/config`) — compartilhado por **todos** os worktrees.
+  Dois defeitos daí: (1) a gravação estava **fora** do worktree isolado e era
+  recusada, com um `catch` vazio **silencioso**; (2) por ser compartilhado, dois
+  `pm`s se sobrescrevem e um pode herdar a identidade do outro — a trava
+  passaria a **aprovar** o que deveria **barrar**. Identidade errada é pior que
+  identidade ausente.
+- **Conserto:** identidade passa a morar em `.dioli-quem` na raiz do worktree
+  (ignorado pelo git, um por worktree, nunca colide); falha de gravação nunca
+  mais é silenciosa; `abrir` e `encerrar` empurram com `--no-verify` porque o
+  script já conferiu a colisão linhas antes; nenhum caminho termina em beco sem
+  saída — toda vez que `conferir` barra, lista as opções concretas e coláveis.
+- **O defeito que mais importava, achado por exercitar:** `conferir --quem`
+  passava limpo mas **não gravava** a identidade — a pessoa teria que repetir a
+  flag para sempre, enquanto `--no-verify` resolve de uma vez. **Quando o
+  atalho é mais barato que o caminho honesto, todo mundo pega o atalho e a
+  trava morre** — e aí o errado é a trava, não a pessoa. Agora `conferir --quem`
+  grava, e o caminho honesto custa uma vez só.
+
+### C — `chaveDoProspect` SAIU DO LIMBO
+
+- Era gravada e nunca lida em produção. Decisão: a coluna **fica** e passa a
+  ser **lida**.
+- Não removida porque `DROP COLUMN` em SQLite exige reconstrução de tabela
+  sobre o volume do Railway (custo que a casa já pagou para evitar no
+  `DriveMaterial`), e porque a coluna é a única porta para tirar o agrupamento
+  da memória — pendência aberta, já que a fila lê no máximo 200 e um irmão fora
+  das 200 não aparece como repetição.
+- **A rede:** linha de chave nula continua pelo recálculo. Trocar o recálculo
+  pela coluna pura seria **regressão silenciosa**, porque as linhas legadas são
+  nulas e hoje só são agrupadas por causa do recálculo. Cada grupo carrega a
+  **procedência** da chave (coluna ou recalculada), senão o backfill vira ato
+  de fé.
+- **Backfill entregue armado, não disparado:** mede por padrão, exige flag e
+  confirmação para escrever, nunca sobrescreve chave existente, idempotente,
+  recusa banco remoto sem flag explícita. **Não foi rodado.** Escrita em dado
+  real de cliente é do CEO.
+
+### D — O QUE CONTINUA ABERTO E SEM DONO
+
+- [ ] `RESEND_FROM` ausente em produção: o e-mail falha para todos, calado.
+- [ ] O custo de IA por briefing repetido, agravado pelo teto de tokens que
+      subiu de 1.280 para 3.000 numa rota pública.
+- [ ] As fichas duplicadas em produção esperando decisão do CEO desde 08/08.
+- [ ] O backfill da `chaveDoProspect` esperando o CEO decidir rodar.
+- [ ] O agrupamento da fila ainda lê no máximo 200 solicitações; irmão fora das
+      200 não aparece como repetição.
+
+> A lição atravessa os três casos, e está registrada em `docs/decisoes.md`: teste
+> verde com ferramenta quebrada é a peça verde de junta rompida. Ver a decisão
+> "MECANISMO NÃO EXERCITADO NÃO É MECANISMO PRONTO".
+
 ## 🟢 16/08/2026 — O PR #178 RECONCILIADO: A FICHA VIRA FONTE DO PROMPT, E A ORDEM DO PACOTE GANHA TRAVA
 
 **A consequência, primeiro:** o system prompt do SDR passa a ser montado em

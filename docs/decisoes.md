@@ -8,6 +8,73 @@
 
 ---
 
+## MECANISMO NÃO EXERCITADO NÃO É MECANISMO PRONTO — E TRÊS REGRAS QUE SAÍRAM DISSO
+
+**Decidido em** 2026-08-16 · **por** três `pm`s em frentes separadas, consolidado
+pelo `esteira` · **origem:** provisionamento de sessão, trava de reivindicação
+(deadlock do primeiro dia de uso) e o destino de `chaveDoProspect`.
+
+**A lição que atravessa os três casos:** um defeito só apareceu, nas três
+frentes, porque alguém **exercitou** o mecanismo no modo em que ele vive de
+verdade — não porque um teste ficou vermelho. Teste verde com ferramenta
+quebrada é a peça verde de junta rompida. Mecanismo novo tem que ser usado de
+verdade antes de ser dado como pronto.
+
+### As decisões que atravessam domínios
+
+- **O AMBIENTE DE SESSÃO VIROU MECANISMO, NÃO CONVENÇÃO.** Sessão nova podia
+  nascer sem `node_modules` e sem `.env`, e três `pm`s diferentes concluíram
+  "repositório quebrado" quando faltava provisionar. Agora há gancho
+  `SessionStart` síncrono que instala dependências, gera o cliente do Prisma e
+  só então provisiona `.env`/banco de desenvolvimento — nunca sobrescreve
+  `.env` existente, nenhum segredo de produção, sempre sai `0`. Só foi
+  considerado pronto depois de provado em três condições distintas (do zero,
+  ambiente já pronto, `PATH` sem `npm`/`npx`) — e só depois disso apareceram os
+  dois defeitos que faltavam: `.gitignore` ignorava `.claude/*` (gancho não
+  versionado não existe para ninguém) e o bit de execução precisou ser
+  conferido no índice do git (`100755`, não `100644`).
+- **IDENTIDADE DE REIVINDICAÇÃO MORA POR WORKTREE, NUNCA NO COMMON-DIR.** A
+  trava de reivindicação (decisão anterior, "A COORDENAÇÃO ENTRE SESSÕES...")
+  prendeu quem a obedeceu no primeiro dia de uso real: `git config --local`
+  grava em `GIT-COMMON-DIR`, compartilhado por todos os worktrees — a gravação
+  era recusada fora do worktree isolado, silenciosamente, e o mesmo arquivo
+  compartilhado podia fazer um `pm` herdar a identidade de outro, o que faria a
+  trava **aprovar** o que deveria **barrar**. Identidade errada é pior que
+  identidade ausente. Conserto: identidade em `.dioli-quem`, na raiz de cada
+  worktree, ignorado pelo git, um por worktree.
+- **CRITÉRIO DE ACEITE DE TODA TRAVA DESTA CASA: O CAMINHO HONESTO PRECISA SER
+  MAIS BARATO QUE O ATALHO.** Achado no mesmo incidente: `conferir --quem`
+  passava limpo mas não gravava identidade — quem obedecesse teria que repetir
+  a flag para sempre, enquanto `--no-verify` resolvia de uma vez. Quando o
+  atalho é mais barato, todo mundo pega o atalho e a trava morre — e aí o
+  errado é a trava, não quem desviou dela. Vale para qualquer trava futura
+  desta casa, não só esta.
+- **`chaveDoProspect` FICA NA TABELA E PASSA A SER LIDA — não removida, não
+  ignorada.** Era gravada e nunca lida em produção. Não é removida porque
+  `DROP COLUMN` em SQLite reconstrói a tabela sobre o volume do Railway (o
+  mesmo custo já evitado no `DriveMaterial`), e porque é a única porta para
+  tirar o agrupamento de duplicados da memória. A rede declarada: linhas
+  legadas têm chave nula e hoje só se agrupam pelo recálculo; substituir o
+  recálculo pela coluna pura seria regressão silenciosa. Cada grupo passa a
+  carregar a **procedência** da chave (coluna ou recalculada). Um backfill foi
+  entregue **armado, não disparado** — mede por padrão, exige flag e
+  confirmação para escrever, nunca sobrescreve chave existente, idempotente,
+  recusa banco remoto sem flag explícita. Rodar é decisão do CEO: é escrita em
+  dado real de cliente.
+- **A proposta de doutrina ao Diretor Geral do Cérebro sobre a trava de
+  reivindicação continua sendo proposta.** Nada foi escrito no
+  `dioli-brain-kit` a partir de hoje — o que muda aqui é local, neste
+  repositório, até o Diretor decidir se sobe.
+
+### O que continua aberto, sem dono, fora do fluxo de hoje
+
+- `RESEND_FROM` ausente em produção.
+- Fichas duplicadas em produção esperando decisão do CEO desde 08/08.
+- Backfill de `chaveDoProspect` esperando o CEO decidir rodar.
+- Agrupamento da fila ainda lê no máximo 200 solicitações.
+
+---
+
 ## QUANDO O PROMPT VIRA DADO, A GARANTIA QUE DEPENDIA DO PROMPT PRECISA DE TESTE PRÓPRIO
 
 **Decidido em** 2026-08-16 · **por** `pm`, sob despacho do Diretor ·
