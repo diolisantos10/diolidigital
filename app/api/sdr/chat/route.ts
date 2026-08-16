@@ -47,8 +47,18 @@ const MAX_HISTORY = 18; // conversation turns sent to the model
 // folga do modelo "pensar" a frase antes de fechar a última chave (~250
 // tokens de gordura) e o piso real já passa de 1.000. 1.280 não tinha
 // margem nenhuma — foi o que cortou os R$ 500/mês e os 2 posts/dia do
-// piloto de 16/08. 2.000 dá a mesma conta com folga de quase 2×.
-const MAX_TOKENS = 2_000;
+// piloto de 16/08.
+//
+// O número é 3.000 e não 2.000 por decisão de reconciliação do `pm` em 16/08:
+// duas sessões consertaram este mesmo defeito em paralelo e chegaram a tetos
+// diferentes. Vale o MAIOR, e o motivo é assimetria de custo — `max_tokens` é
+// TETO, não gasto: só se paga o que o modelo escreve de fato. Um teto folgado
+// não custa nada nos turnos normais e evita o único modo de falha que importa
+// aqui, que é perder o dado do cliente. O freio do tamanho da fala continua
+// sendo o limite de 600 caracteres do prompt, nunca o teto de tokens — e um
+// turno em que o cliente conta muita coisa de uma vez produz pacote grande
+// por mérito, não por prolixidade.
+const MAX_TOKENS = 3_000;
 
 interface ConvMsg { role: string; text: string }
 
@@ -391,6 +401,8 @@ function repararJsonTruncado(text: string): Record<string, unknown> | null {
 // não ganha passe livre por ter vindo de um caminho diferente. Duas cópias da
 // mesma regra é como esta casa historicamente deixa uma delas ficar velha
 // enquanto a outra muda — por isso a extração, não por estética.
+//
+// Guarda que existe em um caminho e não no outro é guarda que não existe.
 function aplicarTravasDeEscopo(bruto: Record<string, unknown>): Record<string, unknown> {
   const scopePatch = { ...bruto };
 
@@ -566,6 +578,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const replyText = replyBruta;
+
+    // ⚠️ RECONCILIAÇÃO DE 16/08 — DUAS SESSÕES CONSERTARAM ESTE DEFEITO EM
+    // PARALELO, E A REGRA DA OUTRA DEIXOU DE VALER POR CAUSA DESTA.
+    //
+    // A outra versão decidia a confiança na fala assim:
+    //     const falaConfiavel = doParseNormal !== null || "scope" in parsed;
+    // com o raciocínio: "o formato manda `reply` ANTES de `scope`, então escopo
+    // presente prova que a fala já tinha fechado antes do corte".
+    //
+    // O raciocínio estava certo para o formato ANTIGO. Este conserto inverteu a
+    // ordem do JSON no prompt de propósito — `scope` primeiro, `reply` por
+    // último —, justamente para que o corte caia na fala e não no dado. Sob a
+    // ordem nova, escopo presente **não prova nada** sobre a fala: prova o
+    // contrário, que a fala é o que estava sendo escrito quando o teto bateu.
+    // Manter aquela linha entregaria meia frase ao prospect exatamente nos
+    // turnos em que ela é mais provável.
+    //
+    // Por isso vale o guarda estrito acima: fala vinda de remendo é sempre
+    // barrada. Nunca reintroduza a heurística sem antes desfazer a ordem do
+    // JSON no prompt — as duas coisas são uma só decisão.
 
     // ── Email guardrail ──────────────────────────────────────────────────────
     // Defence in depth: if the model slips into asking for / validating an e-mail

@@ -58,9 +58,29 @@ inclusive os campos que já tinham chegado completos.
   dizer qual das duas era o dia a dia do piloto. O diário mostra os dois com
   frase em português e diz **quando o escopo foi salvo mesmo com a fala barrada**
   — barrar tendo salvo o briefing é fato diferente de perder tudo.
-- **O TETO SUBIU DE 1.280 PARA 2.000 TOKENS**, com a conta comentada no código
-  (fala ~240 + escopo cheio ~500 + folga de formatação ~250). O teto antigo não
-  tinha margem nenhuma.
+- **O TETO SUBIU DE 1.280 PARA 3.000 TOKENS**, com a conta comentada no código
+  (fala ~240 + escopo cheio ~500 + folga de formatação ~250 — o piso real já
+  passava de 1.000). `max_tokens` é **teto, não gasto**: só se paga o que o
+  modelo escreve. Teto folgado não custa nada no turno normal e evita o único
+  modo de falha que importa aqui.
+
+### A reconciliação de duas sessões paralelas — e por que a heurística da outra caiu
+
+Duas sessões consertaram este mesmo defeito com **6 minutos de diferença**
+(`171014e` e este commit). A outra mexeu só no servidor e **não tocou no
+cliente** — sem isso o escopo continuava morrendo em `PublicBriefingRoom.tsx`.
+
+A regra dela para confiar na fala remendada era
+`falaConfiavel = doParseNormal !== null || "scope" in parsed`, com o raciocínio
+*"o formato manda `reply` antes de `scope`, logo escopo presente prova que a fala
+fechou antes do corte"*. **Isso era verdade no formato antigo e deixou de ser:**
+este conserto inverteu a ordem do JSON no prompt — `scope` primeiro — justamente
+para o corte cair na fala. Sob a ordem nova, escopo presente prova o contrário.
+
+**A decisão de corredor que fica:** ordem do JSON no prompt e regra de confiança
+na fala são **uma decisão só**, não duas. Quem mexer numa reabre a outra — está
+escrito dentro de `app/api/sdr/chat/route.ts`, no bloco "RECONCILIAÇÃO DE 16/08",
+porque regra que só mora em documento não é lida por quem edita o arquivo.
 
 ---
 

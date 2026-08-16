@@ -28,8 +28,47 @@ briefing saiu com **R$ 1.800–3.400 e 3 posts/semana**. O escopo morreu junto c
 a fala.
 
 **Portão rodado pelo `pm`:** `npx tsc --noEmit` → **0 erros** ·
-**4831 testes em 311 arquivos, 1 pulado, todos verdes** (piso antes da rodada:
+**4837 testes em 312 arquivos, 1 pulado, todos verdes** (piso antes da rodada:
 4818 em 309).
+
+### 🔴 DUAS SESSÕES CONSERTARAM O MESMO DEFEITO, NO MESMO DIA, COM 6 MINUTOS DE DIFERENÇA
+
+O `push` foi recusado: `171014e` — *"SDR: pacote cortado não leva mais o escopo
+do cliente junto"*, de outra sessão (`session_01KTHqzi8cXMLtKCpQeeTctA`) — já
+estava no remoto, **commitado às 16:23**; este trabalho fechou às 16:29. Mesmo
+incidente do piloto, mesmo arquivo, mesma função ressuscitada.
+
+**As duas versões não eram equivalentes, e a diferença é a que importa:** a outra
+mexeu em **dois arquivos** (`route.ts` + um teste) e **não tocou no cliente**.
+Sem `PublicBriefingRoom.tsx`, o escopo continuava morrendo em
+`if (!data.ok …) return null` — **o conserto do servidor não chegaria à tela**.
+É o defeito D-003 de novo, um andar acima, dentro do conserto do D-003.
+
+**A reconciliação, e as três decisões (registradas em `docs/decisoes.md`):**
+
+| ponto | as duas versões | o que ficou | por quê |
+|---|---|---|---|
+| teto de tokens | 2.000 · 3.000 | **3.000** | `max_tokens` é TETO, não gasto: teto folgado não custa nada nos turnos normais |
+| rótulo do diário | `truncado`/`malformado` · `parse_error_*` | **`truncado`/`malformado`** | `EXPLICACAO_DA_RECUSA` já indexa por eles, e `parse_error_` é jargão numa linha que o CEO lê |
+| confiar na fala remendada | estrito · `"scope" in parsed` | **estrito** | ver abaixo — a heurística deles **deixou de ser verdadeira** |
+
+🔑 **A heurística da outra sessão não foi rejeitada por gosto: ela virou falsa.**
+Ela dizia *"o formato manda `reply` ANTES de `scope`, logo escopo presente prova
+que a fala fechou antes do corte"*. Esta versão **inverteu a ordem do JSON no
+prompt de propósito** — `scope` primeiro — para o corte cair na fala. Sob a ordem
+nova, escopo presente prova o **contrário**. Mantê-la entregaria meia frase ao
+prospect exatamente nos turnos em que isso é mais provável. O motivo está escrito
+dentro de `route.ts` ("RECONCILIAÇÃO DE 16/08"), não só aqui.
+
+**Nenhum teste da outra sessão foi apagado** — 4 asserções foram reescritas com o
+porquê no comentário, e todas as asserções sobre o `scope` continuam palavra por
+palavra. Teste que trava a regra velha faz a regra nova parecer o bug; esta casa
+já pagou isso três vezes.
+
+- [ ] 🔴 **CEO/Diretor — não há nada que impeça duas sessões de trabalharem o
+      mesmo defeito ao mesmo tempo.** Custou uma rodada inteira de especialista
+      hoje, e só não custou mais porque o `git push` bateu. Com seis projetos ao
+      mesmo tempo isso não é acidente, é rotina. **Sem dono, e sem mecanismo.**
 
 ### O que ficou PROTEGIDO daqui para a frente
 
