@@ -25,6 +25,55 @@ function extractNumber(t: string): number | undefined {
   return m ? parseInt(m[1], 10) : undefined;
 }
 
+/**
+ * O NÚMERO NA UNIDADE QUE A PESSOA USOU, convertido para POR SEMANA.
+ *
+ * ─── O INCIDENTE (16/08/2026) ─────────────────────────────────────────────
+ *
+ * A queixa do CEO que abriu o dia: ele declarou **"2 posts por dia"**, o painel
+ * mostrou **"0 posts/mês"** e a casa devolveu **3 posts por semana**. O dia
+ * inteiro isso foi tratado como consequência de um pacote truncado.
+ *
+ * **Não era só isso.** Medido turno a turno: a pergunta é *"quantas postagens
+ * por semana?"*, e o parse fazia `extractNumber(answer)` — que lê **o número e
+ * ignora a unidade**. "2 posts por dia" virava `postsPerWeek: 2`.
+ *
+ * Sete vezes MENOS do que a pessoa pediu, em silêncio, num campo que define
+ * quanto ela paga e quanto recebe. E ninguém percebe: 2 é um número plausível
+ * para a pergunta feita, então nada denuncia — a mesma doença do dia, "parece
+ * respondido, não está".
+ *
+ * ─── POR QUE CONVERTER, E NÃO REPERGUNTAR ─────────────────────────────────
+ *
+ * Porque a pessoa RESPONDEU, e respondeu com clareza: ela disse o número E a
+ * unidade. Repergunta aqui seria a casa fingindo que não entendeu português
+ * para não ter de fazer uma conta. O que não se pode é **assumir** a unidade da
+ * pergunta quando a resposta traz outra.
+ *
+ * Sem unidade declarada, vale a da pergunta (semana) — aí sim a pessoa está
+ * respondendo no ritmo que lhe foi perguntado, e supor o contrário seria
+ * inventar. Ausência de unidade é diferente de unidade contrária.
+ */
+export function frequenciaSemanal(texto: string): number | undefined {
+  const n = extractNumber(texto);
+  if (n === undefined) return undefined;
+  const t = texto.toLowerCase();
+
+  // "por dia", "ao dia", "diários", "todo dia", "diariamente"
+  if (/\b(por|ao|todo|cada)\s*dia\b|\bdi[áa]ri[ao]s?\b|\bdiariamente\b/.test(t)) return n * 7;
+
+  // "por mês", "ao mês", "mensais", "mensalmente"
+  // Arredonda para CIMA: 10 posts/mês é 2,5/semana, e entregar 2 seria devolver
+  // menos do que foi contratado. Na dúvida, a favor de quem paga.
+  if (/\b(por|ao|no|cada)\s*m[êe]s\b|\bmensa(l|is)\b|\bmensalmente\b/.test(t)) return Math.ceil(n / 4);
+
+  // "por quinzena", "quinzenal" — a cada duas semanas.
+  if (/\bquinzena(l|is)?\b/.test(t)) return Math.ceil(n / 2);
+
+  // Sem unidade, ou "por semana": vale a unidade da pergunta.
+  return n;
+}
+
 export function detectPlatforms(t: string): string[] {
   const p: string[] = [];
   if (/instagram/i.test(t)) p.push("Instagram");
@@ -222,7 +271,10 @@ const QUESTIONS: QuestionDef[] = [
     id: "posts_per_week",
     when: (s) => s.scope.wantsSocialMedia && s.scope.social?.postsPerWeek === undefined,
     text: () => "Quantas postagens por semana você imagina para o feed? (3 por semana é um ritmo consistente para começar)",
-    parse: (answer, s) => ({ social: { ...social(s), postsPerWeek: extractNumber(answer) ?? 3 } }),
+    // `frequenciaSemanal`, e não `extractNumber`: "2 posts por dia" são 14 por
+    // semana, não 2. Ver o incidente no cabeçalho da função — foi assim que a
+    // casa devolveu 3/semana a quem pediu 2/dia.
+    parse: (answer, s) => ({ social: { ...social(s), postsPerWeek: frequenciaSemanal(answer) ?? 3 } }),
   },
 
   // Q4 — stories
@@ -230,7 +282,10 @@ const QUESTIONS: QuestionDef[] = [
     id: "stories",
     when: (s) => s.scope.wantsSocialMedia && s.scope.social?.storiesPerWeek === undefined,
     text: () => "Vai querer stories também? Se sim, quantas publicações por semana?",
-    parse: (answer, s) => ({ social: { ...social(s), storiesPerWeek: isNo(answer) ? 0 : (extractNumber(answer) ?? 3) } }),
+    // Mesma unidade, mesmo defeito, mesmo conserto: "3 stories por dia" são 21
+    // por semana. (`reels` pergunta POR MÊS e por isso NÃO entra aqui — a
+    // conversão dele é outra, e aplicar esta faria o erro inverso.)
+    parse: (answer, s) => ({ social: { ...social(s), storiesPerWeek: isNo(answer) ? 0 : (frequenciaSemanal(answer) ?? 3) } }),
   },
 
   // Q5 — reels
