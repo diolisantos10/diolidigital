@@ -174,12 +174,30 @@ describe("metade 2 — a decisão não vira porta dos fundos", () => {
     expect(r.mudancas).toHaveLength(1);
   });
 
-  it("ZERO cliente resolvido NÃO conta como aplicada — vira aviso", async () => {
+  // ── AS DUAS METADES DO RUÍDO DE 16/08/2026 ────────────────────────────────
+  // A agência zerada gritava `decisao-do-dono falhou` a cada 5 minutos porque
+  // "não há cliente com projeto" saía no MESMO canal de "a decisão está errada".
+  // Separar os canais só vale se o canal do erro continuar gritando.
+
+  it("ZERO cliente por escopo DINÂMICO não é falha — sai em semAlvo, fora dos avisos", async () => {
     db.client.findMany.mockResolvedValue([]);
     const r = await aplicarDecisoesDoDono(W, [decisao()]);
     expect(r.aplicadas).toBe(0);
     expect(db.departmentLadder.update).not.toHaveBeenCalled();
+    // Continua NOMEADO — ninguém apagou o fato, ele só mudou de canal.
+    expect(r.semAlvo.join(" ")).toMatch(/nenhum cliente/i);
+    expect(r.avisos).toEqual([]);
+  });
+
+  it("ZERO cliente por NOME que não existe CONTINUA sendo aviso — é erro de quem escreveu", async () => {
+    db.client.findMany.mockResolvedValue([]);
+    const r = await aplicarDecisoesDoDono(W, [
+      decisao({ escopo: { tipo: "nomes", nomes: ["Cliente Que Não Existe"] } }),
+    ]);
+    expect(r.aplicadas).toBe(0);
+    expect(db.departmentLadder.update).not.toHaveBeenCalled();
     expect(r.avisos.join(" ")).toMatch(/nenhum cliente/i);
+    expect(r.semAlvo).toEqual([]);
   });
 
   it("banco fora do ar NÃO lança e NÃO solta nada — o relógio não pode morrer aqui", async () => {

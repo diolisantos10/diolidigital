@@ -268,6 +268,14 @@ export async function baterORelogio(): Promise<{
     // que não aplica e não avisa é a peça presa de novo, com outra roupa.
     for (const x of r.recusadas) quebrou("decisao-do-dono", `${x.id}: ${x.motivo}`);
     for (const a of r.avisos) quebrou("decisao-do-dono", a);
+    // ── SEM ALVO NÃO É FALHA (16/08/2026) ───────────────────────────────────
+    // Decisão válida cujo escopo dinâmico não achou ninguém é a casa zerada —
+    // o estado em que a agência DEVE estar depois de zerada. Isso gritava
+    // `decisao-do-dono falhou` a cada 5 minutos e enchia `/api/health` de uma
+    // falha que não era falha. Continua VISÍVEL no log (ninguém apagou o fato),
+    // mas fora do canal de quebra: log que grita sempre é onde o defeito de
+    // verdade se esconde.
+    for (const s of r.semAlvo) log(`decisao-do-dono: ${s} (sem alvo — não é falha)`);
   } catch (err) {
     quebrou("decisao-do-dono", err);
   }
