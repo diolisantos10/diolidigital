@@ -88,8 +88,19 @@ const EXECUTORES_AVULSOS: Record<string, string> = {
  * entregável em `DEPARTAMENTOS`. Sem esta lista, `prospeccao` não teria linha
  * na escada — e "sem linha" é invisível na tela, mesmo estando fail-closed.
  * É o mesmo motivo pelo qual o financeiro entrou em `departamentosDaCasa`.
+ *
+ * `product-technology` (12º departamento, nascido em 15/08/2026) entrou em
+ * 16/08/2026 pelo mesmo motivo: a cadeia técnica (`cadeia-tecnica.ts`) produz
+ * `ExecucaoV2`/`RecusaV2`, não `Deliverable` — nunca herdaria degrau por
+ * `departamentoDoAgente`, que só resolve executor→departamento a partir de
+ * `DEPARTAMENTOS` e `EXECUTORES_AVULSOS`. Sem esta linha ele nascia sem
+ * `DepartmentLadder` nenhum: invisível na tela da escada e fora do alcance de
+ * `decidirEntrega` — fail-closed por acidente (nunca teria linha, então
+ * `estado === null`), não por mecanismo declarado. A lei "sombra → allowlist →
+ * wide" vale para TODO departamento novo, e "vale por comentário" não é
+ * mecanismo.
  */
-const DEPARTAMENTOS_SEM_ESPECIALISTA_DE_ENTREGAVEL = ["prospeccao"];
+const DEPARTAMENTOS_SEM_ESPECIALISTA_DE_ENTREGAVEL = ["prospeccao", "product-technology"];
 
 const AGENTE_PARA_DEPARTAMENTO: Map<string, string> = (() => {
   const m = new Map<string, string>();
