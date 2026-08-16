@@ -30,28 +30,37 @@
 // sessão) ou `curl` com o segredo de operação — o mesmo padrão de
 // `app/api/produto-tecnologia/cadeia/route.ts`.
 //
-// Autenticação: sessão de equipe (qualquer papel — isto é operação interna,
-// sem dado que um cliente possa ver) OU o segredo de operação
-// (`Bearer` com `PILOTO_SECRET`/`CRON_SECRET`). Sem segredo configurado, o
-// caminho por token nem abre — ausência de chave nunca vira porta aberta.
+// Autenticação: sessão de equipe restrita a gestão (master/diretor/PM) e ao
+// departamento `client-service-sdr` — a MESMA regra da tela, ver a seção "A
+// DIVERGÊNCIA FECHADA" abaixo — OU o segredo de operação (`Bearer` com
+// `PILOTO_SECRET`/`CRON_SECRET`). Sem segredo configurado, o caminho por
+// token nem abre — ausência de chave nunca vira porta aberta.
 //
-// ── A PÁGINA É MAIS RESTRITA QUE ESTA API, E ISSO É DECISÃO, NÃO DESCUIDO
-// (16/08/2026, medido pelo `seguranca`) ──────────────────────────────────────
-// Esta rota (`requireSession()`, sem `allowedRoles`) aceita QUALQUER papel
-// interno autenticado — inclusive papéis operacionais como `social_staff`,
-// que podem chamá-la direto por `fetch`/`curl`. A TELA que a consome
-// (`/agency/avisos-de-orcamento/page.tsx`) é mais estreita: `proxy.ts` +
-// `lib/agency/organizacao/paginas.ts` (`acesso: "dono_e_gestao"`) só deixam
-// gestão e `client-service-sdr` renderizarem a página — qualquer outro papel
-// nem chega a ver o botão. AS DUAS DIVERGEM DE PROPÓSITO, E ISSO É
-// CONHECIDO: o Diretor decidiu em 16/08/2026 MANTER a API na amplitude atual
-// por ora, para não apertar papel de equipe no meio de um piloto ao vivo sem
-// antes medir o custo operacional de restringir por papel — a mesma decisão
-// já registrada em `page.tsx` sobre a visibilidade da lista. O mecanismo
-// para fechar essa divergência, no dia em que se decidir fechar, JÁ EXISTE e
-// não precisa ser inventado: `exigirApiInterna("/agency/avisos-de-orcamento")`
-// (`lib/agency/organizacao/guarda.ts`) reusa a MESMA `podeAbrirRota` que a
-// página já usa — bastaria trocar `requireSession()` por ele aqui.
+// ── A DIVERGÊNCIA FECHADA — A API AGORA DIZ O MESMO QUE A PÁGINA
+// (medida pelo `seguranca` em 16/08/2026, fechada pelo Diretor no mesmo dia) ─
+// Até aqui esta rota usava `requireSession()` sem `allowedRoles` — aceitava
+// QUALQUER papel interno autenticado, inclusive papéis operacionais como
+// `social_staff`, que podiam chamá-la direto por `fetch`/`curl` e disparar
+// reenvio de e-mail real a prospect. A TELA que a consome
+// (`/agency/avisos-de-orcamento/page.tsx`) sempre foi mais estreita:
+// `proxy.ts` + `lib/agency/organizacao/paginas.ts` (`acesso: "dono_e_gestao"`)
+// só deixam gestão e `client-service-sdr` renderizarem a página — qualquer
+// outro papel nunca via o botão. O Diretor tinha decidido, também em
+// 16/08/2026, MANTER a API na amplitude antiga por ora — não apertar papel de
+// equipe no meio de um piloto ao vivo sem medir o custo operacional antes.
+//
+// Ele reabriu essa decisão no MESMO DIA, com o custo medido: é ZERO. A única
+// porta para esta rota é a tela, e a tela já era restrita — manter a API mais
+// aberta que a única coisa que a chama não protegia operação nenhuma, só
+// deixava uma porta lateral que ninguém usa e que a próxima auditoria teria
+// de investigar de novo. Por isso `autenticar()` agora chama
+// `exigirApiInterna("/agency/avisos-de-orcamento")`
+// (`lib/agency/organizacao/guarda.ts`) no lugar de `requireSession()` —
+// reusa a MESMA `podeAbrirRota` que a página já usava, então as duas não têm
+// como voltar a divergir sem que alguém mude as duas de propósito. O
+// caminho por segredo de operação (`PILOTO_SECRET`/`CRON_SECRET`) não muda:
+// ele não tem sessão nem papel, continua entrando ANTES desta checagem, e
+// segue sendo `{ casaInteira: true }` por decisão própria (ver acima).
 //
 // ── A FRONTEIRA DO WORKSPACE (16/08/2026, devolução do `seguranca`) ─────────
 // `autenticar()` respondia SÓ "existe sessão?" — nunca "esta sessão é dona
@@ -78,7 +87,7 @@
 // status gravado por palpite.
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth/api-guard";
+import { exigirApiInterna } from "@/lib/agency/organizacao/guarda";
 import { prisma } from "@/lib/db/client";
 import { segredoConfere } from "@/lib/security/crypto";
 import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
@@ -93,6 +102,11 @@ import { apenasDoWorkspace } from "@/lib/auth/posse-de-workspace";
 
 export const dynamic = "force-dynamic";
 
+// A mesma chave de `paginas.ts` — a rota e a tela leem a MESMA regra
+// (`podeAbrirRota`, via `exigirApiInterna`). Ver a seção "A DIVERGÊNCIA
+// FECHADA" no cabeçalho deste arquivo.
+const ROTA = "/agency/avisos-de-orcamento";
+
 type Autenticado = { quem: string; escopo: EscopoDoAviso };
 
 async function autenticar(request: NextRequest): Promise<Autenticado | { erro: NextResponse }> {
@@ -103,11 +117,13 @@ async function autenticar(request: NextRequest): Promise<Autenticado | { erro: N
     // Decisão escrita, não implícita: o segredo de operação não tem sessão,
     // logo não tem workspace — e é "casa inteira" DE PROPÓSITO. O motivo
     // completo (e por que é seguro) está no cabeçalho de
-    // `orcamento-do-briefing.ts`.
+    // `orcamento-do-briefing.ts`. Este caminho continua ANTES da checagem de
+    // papel abaixo — ele não tem sessão nem papel, e não pode passar por ela.
     return { quem: "operacao:sala-de-controle", escopo: { casaInteira: true } };
   }
-  const { session, error } = await requireSession();
-  if (error) return { erro: error };
+  const guarda = await exigirApiInterna(ROTA);
+  if (guarda.erro) return { erro: guarda.erro };
+  const { session } = guarda.acesso;
   return { quem: `direcao:${session.userId}`, escopo: { workspaceId: session.workspaceId } };
 }
 

@@ -482,28 +482,25 @@ function CartaoPendente({ p }: { p: PendenteAviso }) {
             <p className="text-[13px] text-[var(--text-subtle)] italic truncate">{NEGOCIO_NAO_INFORMADO}</p>
           )}
           {/* DECISÃO DO DIRETOR (16/08/2026), registrada aqui porque é aqui
-              que a lista monta e-mail de prospect. O texto anterior deste
-              comentário estava IMPRECISO — dizia que esta lista era "visível
-              a QUALQUER papel interno logado", o que é falso para a TELA:
-              medido pelo `seguranca`, `proxy.ts` + `paginas.ts` (`acesso:
-              "dono_e_gestao"`) só deixam gestão e `client-service-sdr`
-              chegarem a esta página — qualquer outro papel nunca renderiza
-              este componente. A API que a alimenta
-              (`app/api/agency/avisos-de-orcamento/route.ts`, `requireSession`
-              sem `allowedRoles`) é que aceita QUALQUER papel interno — ou
-              seja, PÁGINA e API DIVERGEM: a página é mais estreita que a rota
-              que ela consome. O Essencial `seguranca` classificou isso como
-              OBSERVAÇÃO, não vulnerabilidade: é dado de prospect, não de
-              cliente pagante. O Diretor decidiu em 16/08/2026 MANTER ASSIM
-              POR ORA — não apertar papel de equipe no meio de um piloto ao
-              vivo sem antes medir o custo operacional de restringir por
-              papel. O mecanismo para fechar a divergência, no dia em que se
-              decidir fechar, já existe:
+              que a lista monta e-mail de prospect. Histórico do dia: o
+              Essencial `seguranca` mediu que esta TELA (`proxy.ts` +
+              `paginas.ts`, `acesso: "dono_e_gestao"` — só gestão e
+              `client-service-sdr` chegam aqui) sempre foi mais estreita que a
+              API que a alimenta (`app/api/agency/avisos-de-orcamento/route.ts`,
+              então em `requireSession()` sem `allowedRoles`, aceitando
+              QUALQUER papel interno). O Diretor primeiro decidiu MANTER a API
+              mais aberta por ora, para não apertar papel de equipe no meio de
+              um piloto ao vivo sem medir o custo. Ele reabriu a decisão NO
+              MESMO DIA, com o custo medido: ZERO — a única porta para a API é
+              esta tela, e esta tela já era restrita; manter a API mais aberta
+              não protegia operação nenhuma, só deixava porta lateral para a
+              próxima auditoria reencontrar. A API foi FECHADA na mesma sessão:
+              `autenticar()` agora chama
               `exigirApiInterna("/agency/avisos-de-orcamento")`
-              (`lib/agency/organizacao/guarda.ts`), que reusa a MESMA
-              `podeAbrirRota` já usada pela página. Isto não é esquecimento:
-              é decisão datada, e a próxima auditoria que ler este trecho
-              encontra o porquê aqui, não um buraco. */}
+              (`lib/agency/organizacao/guarda.ts`), a MESMA `podeAbrirRota`
+              que esta página já usava — TELA e API dizem a mesma coisa agora,
+              e não têm como voltar a divergir sem alguém mudar as duas de
+              propósito. */}
           <p className="text-[13px] text-[var(--text-muted)] mt-0.5">
             {p.contatoEmail ?? "e-mail não lido"} · {tempo} · tentado {p.tentativas}×
           </p>
