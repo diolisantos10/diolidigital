@@ -14,6 +14,125 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🔴 16/08/2026 (noite) — A COLHEITA DA NOITE: MÉTRICA MANIPULÁVEL, RESET TRAVADO PELO DIRETOR, E A JUNTA ENTRE DUAS REGRAS CERTAS
+
+**Por que este registro existe:** decisão tomada em conversa vira registro na
+mesma sessão — a colheita da noite é grande e precisa ficar de pé antes do
+próximo turno.
+
+### 1. 🔴 A fila de orçamento entope, e a lição é sobre a JUNTA entre duas decisões certas
+
+Ver seção logo abaixo (já registrada), com a medição completa em
+`docs/medicoes/elo-9-orcamento.md`. **Conserto em curso por outro `pm`** — não é
+pendência sem dono.
+
+- **A lição estrutural, e ela é a mais importante da noite:** duas decisões
+  CERTAS produziram o defeito na JUNTA entre elas — manter lead sem contato na
+  fila (decidido em 08/08: "faltar contato não é faltar pedido") e não inventar
+  número sem dado ("sem número derivado não se inventa número"). Nenhuma das
+  duas está errada sozinha; juntas, um pedido que nunca gera orçamento ocupa a
+  vaga para sempre e barra quem já tem orçamento pronto atrás dele.
+
+### 2. 🔴 O número mais importante do diário era manipulável por qualquer visitante
+
+- A contagem de `resgate_do_escopo` **não filtrava quem escreveu**, e a fala do
+  visitante mora na **mesma tabela**, gravada por **rota pública sem
+  autenticação**. Bastava digitar a frase no chat para inflar o resultado.
+- **Fechado, e provado por plantio e reversão** (não suposto).
+- A consequência, com todas as letras: **o CEO teria lido, como métrica da
+  casa, um número escrito por um estranho.**
+
+### 3. 🔴 Decisão do Diretor — `ALLOW_PRODUCTION_RESET` definida como `"false"` em produção
+
+**Decisão do Diretor**, não medição de agente — registrada com nome porque foi
+ele quem decidiu.
+
+- Conferido: a variável é avaliada por comparação **estrita** (`!== "true"`) em
+  duas rotas.
+- **O Diretor definiu o valor como `"false"` em produção**, pelo cofre do
+  Railway.
+- **Motivo:** o estado da variável estava **desconhecido havia 15 dias**, e
+  nesta casa "não medido conta como reprovação". Mudar a variável é
+  **reversível em trinta segundos** e anda na direção segura.
+- ⚠️ **NÃO alcança `reset-request`**, que usa outro segredo e **continua
+  aberto** — não foi coberto por esta decisão.
+- **O CEO pode reverter em uma linha**, no cofre do Railway.
+
+### 4. O teste que era verde às 20h e vermelho às 4h
+
+- Dependia do relógio.
+- **O achado contraintuitivo:** defeito que some perto da meia-noite é PIOR,
+  não melhor — deixa de ser reproduzível justamente quando alguém investiga.
+
+### 5. A varredura de segurança fechada (42/42, 14/14, ~47)
+
+- **O achado que importa, ainda aberto:** segredo comparado com `===` **vaza
+  pelo tempo de resposta**. Sem dono.
+
+### 6. A trava do cliente Prisma gerado
+
+- `schema.prisma` e `lib/generated/prisma` eram **duas fontes da mesma
+  verdade** e já tinham divergido em silêncio.
+- **A inspeção humana achou 1 campo; o mecanismo achou 4.**
+- A frase que fica: a diferença entre inspeção humana e mecanismo não é
+  diligência — é que o mecanismo não se cansa nem se convence de que já viu o
+  suficiente.
+
+### 7. As três verdades sobre onde mora o banco
+
+- `.env` relativo (Next resolve pelo **cwd**) · Prisma CLI resolve pelo
+  **diretório do schema** · `prisma.config.ts` tem **fallback próprio**, e
+  scripts via `tsx` não carregam `.env`.
+- **O SQLite CRIA UM BANCO VAZIO EM SILÊNCIO** em vez de dizer "não achei" —
+  por isso o erro aparece como "no such table", e por isso um percurso ponta a
+  ponta chegou a acusar a esteira inteira de quebrada quando o problema era só
+  qual `.env` estava sendo lido.
+
+### 8. A trava de reivindicação, e o que ela provou sobre si mesma
+
+- Foi **usada por várias sessões** no mesmo dia, e **barrou o próprio autor**
+  mais de uma vez — a melhor prova de que pegou.
+- Chegou a **APROVAR o que devia barrar** (falso negativo provado por caso
+  montado), já registrado e já corrigido nesta mesma página (identidade
+  derivada, nunca declarada).
+- **A identidade evoluiu de "por worktree" para "por SESSÃO"**, por revisão de
+  **outra sessão** — que reivindicou a frente corretamente antes de trabalhar.
+  A limitação (duas sessões sequenciais no mesmo worktree compartilhavam
+  identidade) tinha sido **declarada pelo autor** e foi fechada por terceiro.
+- **As duas réguas de trava que a casa passou a usar esta noite:** se o
+  **atalho fica mais barato que o caminho honesto**, a trava está errada, não a
+  pessoa · **barrar por engano é o modo benigno; aprovar por engano é o que
+  mata o mecanismo.**
+
+### O que segue aberto desta rodada — dono ou sem dono, explícito
+
+- 🔴 `RESEND_FROM` ausente em produção — e-mail falha para todos, calado. **Sem
+  dono.**
+- 🔴 **DNS do domínio sem `www` no REGISTRADOR** — medido: a raiz não conecta;
+  os dois domínios estão registrados no Railway. É ação de gente, no
+  registrador. **Sem dono — depende do CEO.**
+- 🔴 `PILOTO_SECRET` — falta para a medição de produção pela rota de
+  diagnóstico. **Sem dono.**
+- 🔴 `KIT_REPO_TOKEN` — sem ele o robô de espelho não espelha, e `docs/kit/`
+  segue parado. **Sem dono — depende do CEO provisionar.** (já registrado
+  acima, nesta mesma página)
+- 🔴 **Cópia de segurança NUNCA RESTAURADA**, e **apagamento não exige cópia
+  recente**. Cópia que ninguém restaurou não é cópia, é esperança. **Sem
+  dono.**
+- 🔴 `reset-request` **sem sessão e sem escopo** — não foi alcançado pela
+  decisão do item 3 acima. **Sem dono.**
+- 🔴 Migration do `DATETIME`. **Sem dono.**
+- 🔴 Fichas duplicadas em produção, esperando decisão do CEO **desde 08/08**.
+  **Sem dono — decisão é do CEO.**
+- 🔴 Backfill da `chaveDoProspect` — armado, não disparado, esperando o CEO.
+  **Sem dono — decisão é do CEO.** (já registrado acima, nesta mesma página)
+- A tela da fila ainda não mostra o "irmão fora da janela" que a API já
+  devolve — **tem dono**, outro `pm` em voo.
+- A limitação da identidade por worktree — **frente de outra sessão**, já em
+  curso.
+
+---
+
 ## 🔴 16/08/2026 — PEDIDO SEM ORÇAMENTO NUNCA SAI DA FRENTE DA FILA, E ISSO ENTOPE OS QUE JÁ TÊM ORÇAMENTO PRONTO
 
 **Sem dono.** Medição completa: `docs/medicoes/elo-9-orcamento.md`.

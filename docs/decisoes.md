@@ -8,6 +8,87 @@
 
 ---
 
+## A JUNTA ENTRE DUAS DECISÕES CERTAS ENTOPE A FILA DE ORÇAMENTO; UM NÚMERO PÚBLICO ERA MANIPULÁVEL; O DIRETOR TRAVOU O RESET DE PRODUÇÃO
+
+**Decidido em** 2026-08-16 (noite) · **por** `esteira`, a pedido do Diretor ·
+**origem:** medição de produção da fila de orçamento
+(`docs/medicoes/elo-9-orcamento.md`), auditoria da contagem de
+`resgate_do_escopo`, e decisão direta do Diretor sobre `ALLOW_PRODUCTION_RESET`.
+
+**A conclusão primeiro:** o achado mais grave da noite não é um bug isolado — é
+que **duas regras corretas, tomadas em datas diferentes por motivos bons**,
+produzem um defeito de produção só na junta entre elas. Junto disso, uma
+métrica que o CEO lê como termômetro da casa estava aberta a qualquer
+visitante do site, e o Diretor tomou uma decisão reversível para fechar um
+risco medido como "desconhecido há 15 dias".
+
+### As decisões que atravessam domínios
+
+- **A LIÇÃO ESTRUTURAL: DECISÕES CERTAS PODEM PRODUZIR DEFEITO NA JUNTA ENTRE
+  ELAS.** A fila de orçamento processa 5 pedidos por rodada, dos mais antigos
+  para os mais novos, e quem nunca gera orçamento também nunca muda de estado
+  — então ocupa uma vaga para sempre e barra quem já tem orçamento pronto atrás
+  dele. Isso nasce do encontro de duas regras certas tomadas isoladamente: manter
+  lead sem contato na fila ("faltar contato não é faltar pedido", 08/08) e não
+  inventar número sem dado ("sem número derivado não se inventa número").
+  Nenhuma das duas está errada sozinha. Medição completa e provada (não
+  suposta) em `docs/medicoes/elo-9-orcamento.md`; conserto em curso por outro
+  `pm`, com decisão pendente sobre dar estado terminal a quem nunca gera
+  orçamento, paginar por cursor, ou separar as duas filas.
+- **A CONTAGEM DE `resgate_do_escopo` ERA MANIPULÁVEL POR QUALQUER
+  VISITANTE.** Não filtrava quem escreveu a frase, e a fala do visitante mora
+  na mesma tabela, gravada por rota pública sem autenticação — bastava digitar
+  a frase no chat para inflar o número que o CEO lê como métrica da casa.
+  **Fechado, e provado por plantio e reversão.**
+- **O DIRETOR TRAVOU `ALLOW_PRODUCTION_RESET` EM `"false"` EM PRODUÇÃO —
+  DECISÃO DELE, NÃO MEDIÇÃO DE AGENTE.** A variável é lida por comparação
+  estrita (`!== "true"`) em duas rotas, e seu estado estava desconhecido havia
+  15 dias — "não medido conta como reprovação" nesta casa. Mudar a variável é
+  reversível em trinta segundos e anda na direção segura; **o CEO reverte em
+  uma linha, no cofre do Railway.** ⚠️ A decisão **não alcança**
+  `reset-request`, que usa outro segredo e segue aberto.
+- **OUTROS ACHADOS DA MESMA RODADA, JÁ NO DIÁRIO
+  (`docs/pendencias.md`):** um teste que era verde às 20h e vermelho às 4h
+  (dependia do relógio — defeito que some perto da meia-noite é pior, não
+  melhor, porque deixa de ser reproduzível justo quando alguém investiga);
+  varredura de segurança fechada, com um achado ainda aberto (segredo
+  comparado com `===` vaza pelo tempo de resposta); `schema.prisma` e
+  `lib/generated/prisma` já haviam divergido em silêncio, e o mecanismo achou
+  4 campos onde a inspeção humana achou 1; três verdades sobre onde mora o
+  banco local (`.env` relativo por `cwd`, Prisma CLI por diretório do schema,
+  `prisma.config.ts` com fallback próprio) e o SQLite cria banco vazio em
+  silêncio em vez de dizer "não achei"; e a trava de reivindicação foi usada
+  por várias sessões no mesmo dia, chegou a aprovar o que devia barrar (falso
+  negativo provado por caso montado, já fechado nesta mesma seção do corredor
+  — ver "IDENTIDADE DE TRAVA VIRA DERIVADA" abaixo) e barrou o próprio autor
+  mais de uma vez, a melhor prova de que pegou.
+
+### O que continua aberto, sem dono, fora do fluxo de hoje
+
+- 🔴 Fila de orçamento entupida — conserto em voo por outro `pm`, não é
+  pendência sem dono.
+- 🔴 `RESEND_FROM` ausente em produção — e-mail falha para todos, calado. Sem
+  dono.
+- 🔴 DNS do domínio sem `www` no registrador — ação de gente, no registrador.
+  Sem dono, depende do CEO.
+- 🔴 `PILOTO_SECRET` ausente — sem dono.
+- 🔴 `KIT_REPO_TOKEN` não provisionado — bloqueia o espelho do kit. Sem dono,
+  depende do CEO.
+- 🔴 Cópia de segurança nunca restaurada, e apagamento não exige cópia
+  recente. Sem dono.
+- 🔴 `reset-request` sem sessão e sem escopo — não alcançado pela decisão do
+  Diretor acima. Sem dono.
+- 🔴 Migration do `DATETIME`. Sem dono.
+- 🔴 Fichas duplicadas em produção, esperando decisão do CEO desde 08/08. Sem
+  dono, decisão é do CEO.
+- 🔴 Backfill da `chaveDoProspect` — armado, não disparado, esperando o CEO.
+  Sem dono, decisão é do CEO.
+- Tela da fila ainda não mostra o "irmão fora da janela" que a API já devolve
+  — tem dono, outro `pm` em voo.
+- Limitação da identidade por worktree — frente de outra sessão, já em curso.
+
+---
+
 ## BARRAR POR ENGANO É BENIGNO; APROVAR POR ENGANO MATA O MECANISMO — IDENTIDADE DE TRAVA VIRA DERIVADA, NUNCA DECLARADA
 
 **Decidido em** 2026-08-16 · **por** `esteira`, sob despacho do Diretor ·
@@ -561,6 +642,15 @@ acceptEdits`.
 > num dia só, neste projeto, com a regra escrita e lida. Isto serve a mais de um
 > produto Dioli: quem promove o mecanismo (`reivindicacoes/` + gancho + sentinela
 > no `npm test`) a regra de companhia é o Diretor Geral, com aval do CEO.
+>
+> **Soma-se a esta proposta, medida na noite de 16/08:** a lição de que
+> **decisões certas produzem defeito na JUNTA entre elas**, não cada uma
+> isolada. O caso é o da fila de orçamento (`docs/medicoes/elo-9-orcamento.md`)
+> — manter lead sem contato na fila (08/08) e não inventar número sem dado são
+> regras corretas tomadas em datas diferentes, por motivos bons, e juntas param
+> a esteira. ⚠️ **É proposta, não escrita** — nada foi alterado em
+> `docs/kit/` ou no `dioli-brain-kit`; promover é ato do Diretor Geral, com
+> aval do CEO.
 
 ---
 
