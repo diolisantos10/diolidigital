@@ -23,6 +23,7 @@ import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import EmptyState from "@/components/agency/ui/EmptyState";
 import type { DossieDoLead } from "@/lib/agency/comercial/dossie-do-lead";
 import { NEGOCIO_NAO_INFORMADO } from "@/lib/agency/comercial/negocio-do-lead";
+import { textoDaVerbaEstourada } from "@/lib/agency/comercial/verba-declarada";
 
 type Resposta =
   | { estado: "carregando" }
@@ -348,31 +349,30 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
               pessoa". Dois vermelhos com pesos diferentes achatam os dois. */}
           {lead.acimaDaVerba && (
             <Bloco titulo="O pedido passa da verba que ele declarou">
-              <div className="rounded-[10px] border border-[var(--warning)] bg-[var(--warning-bg)] px-4 py-3 space-y-2">
-                <p className="text-[13px] text-[var(--warning)] font-medium leading-relaxed">
-                  {lead.acimaDaVerba.diferenca}
-                </p>
-                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-                  {lead.acimaDaVerba.oQueCabe}
-                </p>
-                <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
-                  {lead.acimaDaVerba.oCaminhoQueContinua}
-                </p>
+              <div className="rounded-[10px] border border-[var(--warning)] bg-[var(--warning-bg)] px-4 py-3">
+                {/* ESTA TELA MOSTRA A MESMA FRASE QUE O CLIENTE RECEBE, gerada
+                    pela MESMA função (`textoDaVerbaEstourada`) que o orçamento
+                    do briefing usa. Não é economia de código: é a garantia de
+                    que quem for falar com este lead diz exatamente o que a casa
+                    já disse a ele. Um segundo texto aqui seria a divergência que
+                    esta consolidação veio fechar. */}
+                {textoDaVerbaEstourada(lead.acimaDaVerba).map((linha, i) =>
+                  linha === "" ? (
+                    <div key={i} className="h-2" />
+                  ) : (
+                    <p
+                      key={i}
+                      className={
+                        linha.startsWith("  ")
+                          ? "text-[12px] text-[var(--text-muted)] leading-relaxed pl-3"
+                          : "text-[13px] text-[var(--text-secondary)] leading-relaxed"
+                      }
+                    >
+                      {linha.trim()}
+                    </p>
+                  ),
+                )}
               </div>
-              {/* O que o degrau de entrada NÃO faz, na mesma tela em que ele é
-                  oferecido. Oferecer o plano barato escondendo o corte é a
-                  briga do terceiro mês — e quem vai falar com o lead precisa
-                  ler isso ANTES de prometer. */}
-              {lead.acimaDaVerba.planosQueCabem.map((p) => (
-                <div key={p.id} className="mt-3">
-                  <p className="text-[12px] font-medium text-[var(--text-primary)]">{p.nome} não inclui</p>
-                  <ul className="mt-1 space-y-0.5">
-                    {p.naoInclui.map((n, i) => (
-                      <li key={i} className="text-[12px] text-[var(--text-muted)] leading-relaxed">• {n}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
             </Bloco>
           )}
 
