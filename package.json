@@ -21,6 +21,7 @@
     "db:seed": "node scripts/seed-db.mjs",
     "db:studio": "prisma studio",
     "sentinela": "tsx scripts/sentinela-do-deploy.mts",
+    "distancia": "tsx scripts/distancia-do-deploy.mts",
     "portao": "tsx scripts/portao-do-deploy.mts",
     "deploy:emergencia": "tsx scripts/deploy-de-emergencia.mts",
     "raio-x": "tsx scripts/raio-x.ts",
