@@ -73,7 +73,7 @@ async function cardGenericoJaPendente(input: CreateApprovalRequestInput) {
   const dono = input.clientRequestId
     ? { clientRequestId: input.clientRequestId }
     : { clientId: input.clientId! };
-  return prisma.approvalRequest.findFirst({
+  const reusavel = await prisma.approvalRequest.findFirst({
     where: {
       ...dono,
       department: input.department,
@@ -83,6 +83,29 @@ async function cardGenericoJaPendente(input: CreateApprovalRequestInput) {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  // ── 🔴 REUSO NÃO PODE DEIXAR O CARD SEM DONO (16/08/2026) ─────────────────
+  //
+  // Esta função devolve um card EXISTENTE e o `create` abaixo nem roda — logo,
+  // o carimbo que `createApprovalRequest` passou a gravar **não acontecia no
+  // caminho do reuso**. Card antigo, órfão, continuava órfão para sempre; e
+  // card órfão só é decidível pela regra de exceção (solicitação limpa), que é
+  // a mais frágil das duas metades.
+  //
+  // O reuso agora carimba, pela MESMA derivação da criação: dono lido do banco
+  // no instante da escrita. Só carimba o que está sem dono — nunca sobrescreve.
+  if (reusavel && !reusavel.clientId && input.clientRequestId) {
+    const solicitacao = await prisma.clientRequestDb
+      .findUnique({ where: { id: input.clientRequestId }, select: { clientId: true } })
+      .catch(() => null);
+    if (solicitacao?.clientId) {
+      await prisma.approvalRequest
+        .updateMany({ where: { id: reusavel.id, clientId: null }, data: { clientId: solicitacao.clientId } })
+        .catch(() => null);
+      return { ...reusavel, clientId: solicitacao.clientId };
+    }
+  }
+  return reusavel;
 }
 
 export async function createApprovalRequest(input: CreateApprovalRequestInput) {

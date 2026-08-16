@@ -515,3 +515,106 @@ describe("M2 — apuração que falha FECHA", () => {
     espiao.mockRestore();
   });
 });
+
+describe("M18 — o prospect só decide card SEM dono", () => {
+  it("⛔ token de prospect não decide card CARIMBADO preso à mesma solicitação", async () => {
+    // A mutação que passava: o ramo do prospect deixar de exigir que o card
+    // esteja sem dono. Aí um card já carimbado para um cliente de verdade
+    // ficaria decidível por quem entrou pela porta do briefing.
+    const prospect = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, businessName: "prospect", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    const card = await prisma.approvalRequest.create({
+      data: {
+        clientRequestId: prospect.id, clientId: beta, department: "proposal",
+        status: "pending", clientVisible: true, requestedBy: "agencia",
+        reviewNote: "Card do BETA", sourcePostIdsJson: "[]",
+      },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-m18", clientRequestId: prospect.id } });
+
+    const { POST } = await import("@/app/api/portal/approvals/route");
+    const res = await POST(new NextRequest("http://localhost/api/portal/approvals", {
+      method: "POST",
+      body: JSON.stringify({ token: "tk-m18", approvalRequestId: card.id, action: "approve" }),
+    }));
+
+    expect(res.status).toBe(403);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card.id } }))?.status).toBe("pending");
+  });
+
+  it("⛔ e o reuso de card genérico CARIMBA — card órfão não fica órfão para sempre", async () => {
+    const { createApprovalRequest } = await import("@/lib/agency/persistence/approval-service");
+    // Card antigo, genérico e SEM dono: o formato do acervo pré-carimbo.
+    const antigo = await prisma.approvalRequest.create({
+      data: {
+        clientRequestId: reqCompartilhada, clientId: null, department: "analytics",
+        status: "pending", clientVisible: true, requestedBy: "agencia", sourcePostIdsJson: "[]",
+      },
+    });
+
+    // O reuso devolve o card existente — e o `create` nem roda, que era por
+    // onde o carimbo escapava.
+    const devolvido = await createApprovalRequest({
+      clientRequestId: reqCompartilhada, department: "analytics",
+      requestedBy: "agencia", clientVisible: true,
+    });
+
+    expect(devolvido.id).toBe(antigo.id);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: antigo.id } }))?.clientId).toBe(beta);
+  });
+});
+
+// ── AS PORTAS QUE FALTAVAM ─────────────────────────────────────────────────
+// O bloco do topo cobre dez. `seguranca` listou as que ficaram de fora — e
+// entre elas está a ESCRITA (`approvals` POST) por token nu, que é a pior.
+describe("as outras portas com token nu (sem dono escrito)", () => {
+  async function chamar(mod: string, verbo: "GET" | "POST", caminho: string, corpo?: unknown) {
+    const m = (await import(/* @vite-ignore */ mod)) as Record<string, unknown>;
+    const fn = m[verbo] as ((r: NextRequest, ctx?: unknown) => Promise<Response>) | undefined;
+    if (!fn) return null;
+    const req = corpo
+      ? new NextRequest(`http://localhost${caminho}`, { method: "POST", body: JSON.stringify(corpo) })
+      : new NextRequest(`http://localhost${caminho}`);
+    return fn(req, { params: Promise.resolve({ id: "qualquer" }) });
+  }
+
+  it("⛔ nenhuma delas abre com token nu — e nenhuma vaza o nome do BETA", async () => {
+    await prisma.portalAccess.create({ data: { token: "tk-nu", clientRequestId: reqCompartilhada } });
+
+    const portas: [string, "GET" | "POST", string, unknown?][] = [
+      ["@/app/api/portal/conexoes/route", "GET", "/api/portal/conexoes?token=tk-nu"],
+      ["@/app/api/portal/meta-ativos/route", "GET", "/api/portal/meta-ativos?token=tk-nu"],
+      ["@/app/api/portal/drive/route", "GET", "/api/portal/drive?token=tk-nu"],
+      ["@/app/api/portal/drive/conectar/route", "GET", "/api/portal/drive/conectar?token=tk-nu"],
+      ["@/app/api/portal/drive/token-do-seletor/route", "GET", "/api/portal/drive/token-do-seletor?token=tk-nu"],
+      ["@/app/api/media/[id]/route", "GET", "/api/media/qualquer?token=tk-nu"],
+      ["@/app/api/social-posts/[id]/download/route", "GET", "/api/social-posts/x/download?token=tk-nu"],
+      ["@/app/api/portal/transcricao/route", "GET", "/api/portal/transcricao?token=tk-nu"],
+      // A ESCRITA — a pior delas.
+      ["@/app/api/portal/approvals/route", "POST", "/api/portal/approvals",
+        { token: "tk-nu", approvalRequestId: "x", action: "approve" }],
+      ["@/app/api/portal/pedidos/orcamento/route", "POST", "/api/portal/pedidos/orcamento",
+        { token: "tk-nu", pedidoId: "x", decisao: "aprovar" }],
+      ["@/app/api/portal/session/route", "POST", "/api/portal/session", { token: "tk-nu" }],
+    ];
+
+    for (const [mod, verbo, caminho, corpo] of portas) {
+      const res = await chamar(mod, verbo, caminho, corpo);
+      if (!res) continue;
+      expect(res.status, `${mod} ABRIU com token nu`).toBeGreaterThanOrEqual(400);
+      const bruto = await res.text().catch(() => "");
+      expect(bruto, `${mod} vazou o nome do BETA`).not.toContain("Loja BETA");
+    }
+  });
+
+  it("⛔ e `session` não grava cookie de 180 dias com token nu", async () => {
+    await prisma.portalAccess.create({ data: { token: "tk-nu2", clientRequestId: reqCompartilhada } });
+    const { POST } = await import("@/app/api/portal/session/route");
+    const res = await POST(new NextRequest("http://localhost/api/portal/session", {
+      method: "POST", body: JSON.stringify({ token: "tk-nu2" }),
+    }));
+    expect(res.status).toBe(403);
+    expect(res.cookies.get("dioli_portal")).toBeUndefined();
+  });
+});

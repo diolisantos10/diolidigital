@@ -36,12 +36,24 @@ até alguém religar cada peça ao dono.
 
 ### As duas opções, com preço
 
-**A) Subir assim, e religar depois.**
-- *Custo:* todo cliente ativo precisa receber um link novo (é um comando só,
-  feito pela agência); e o histórico antigo de conversa fica fora do ar até a
-  religação. Alguns clientes vão perguntar.
+**A) Subir, reemitir e avisar — NO MESMO DIA, como um bloco só.**
+
+⚠️ **A não é "publicar e resolver depois".** São três gestos, nesta ordem, e o
+plano só vale com os três:
+
+1. **Avisar o cliente ANTES** — uma mensagem curta: *"hoje à tarde o acesso ao
+   seu portal muda; você vai receber um link novo, e o histórico antigo da
+   conversa fica fora do ar por alguns dias."* Cliente avisado acha normal;
+   cliente surpreendido acha que quebrou.
+2. **Subir.**
+3. **Reemitir os links no mesmo dia** — é um comando só, feito pela agência.
+   Sem isso o cliente bate em "Este link não está mais valendo" sem ter o novo
+   na mão, e aí o conserto vira o problema.
+
+- *Custo:* o aviso + o comando de reemissão, no mesmo turno. O histórico antigo
+  de conversa fica fora do ar até a religação.
 - *Risco:* baixo e conhecido. Nada de errado aparece para ninguém.
-- *Prazo:* imediato.
+- *Prazo:* imediato — mas o bloco inteiro no mesmo dia, não em dias diferentes.
 
 **B) Religar antes de subir.**
 - *Custo:* alguém da agência confere, cliente por cliente, de quem é cada
@@ -59,8 +71,9 @@ perda de cliente. E a opção B pede uma decisão de "de quem é esta linha" que
 ninguém consegue tomar com segurança para as linhas antigas — que é exatamente
 a raiz do problema.
 
-**O que preciso de você:** o "pode subir", e cinco minutos depois do deploy
-para rodar o comando que reemite os links dos clientes ativos.
+**O que preciso de você:** o "pode subir" **para o bloco inteiro** — o aviso
+antes, o deploy, e a reemissão no mesmo dia. Subir sem os outros dois é a única
+forma de A dar errado.
 
 ---
 
@@ -233,6 +246,13 @@ re-apontava A→B incondicionalmente. Carimbar dono nulo pode; **trocar dono nã
       `x-railway-fallback: true`) durante esta apuração**, em `/api/health` e em
       todas as rotas. Não foi causado por esta frente (o trabalho todo foi
       local). **Nada foi medido em produção por causa disso.**
+- [ ] 🟢 **FECHADO nesta rodada — o filho legado (bloqueante 3 do `seguranca`).**
+      `portal-data` e `social-posts` perguntavam **de qual solicitação** é a
+      linha, não **de quem** ela é: filho sem carimbo de solicitação
+      re-apontada saía para o dono novo (`card(reviewNote)`, `canvas(pipeline)`,
+      `peca(caption)`). A mesma inversão de `montarFiltro` foi aplicada aos
+      filhos. A/B provado revertendo a cerca — os dois testes caem.
+      **[DONO: `pm` · fechado 16/08]**
 - [ ] 🔴 **DECISÃO DO CEO — o dia da virada do portal. Texto próprio abaixo, na
       seção "⚠️ DECISÃO DO CEO".** **[DONO: CEO · antes do deploy]**
 

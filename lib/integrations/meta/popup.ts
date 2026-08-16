@@ -46,6 +46,8 @@ export function paginaDePopup(opts: {
   /** O que o cliente pode fazer agora. Erro sem saída é erro pela metade. */
   oQueFazer?: string;
   carga: CargaDoPopup;
+  /** HTTP a devolver quando `ok: false`. Ver o comentário abaixo. */
+  status?: number;
 }): Response {
   const json = JSON.stringify(opts.carga).replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
   const cor = opts.ok ? "#0E9E96" : "#B91C1C";
@@ -70,7 +72,16 @@ try {
 } catch (e) {}
 </script>
 </body></html>`,
-    { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } },
+    {
+      // ── RECUSA DEVOLVE CÓDIGO DE RECUSA (16/08/2026) ──────────────────────
+      // Esta página é bonita e explica bem — e saía com **HTTP 200** mesmo
+      // quando o motivo era "seu acesso não vale". Um teste que varre portas
+      // por status lia 200 e concluía "porta aberta"; e monitoramento nenhum
+      // enxerga uma recusa disfarçada de sucesso. O HTML para o cliente
+      // continua idêntico; o que muda é o que a máquina lê.
+      status: opts.ok ? 200 : (opts.status ?? 403),
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+    },
   );
 }
 
