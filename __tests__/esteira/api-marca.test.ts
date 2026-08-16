@@ -23,16 +23,45 @@ const ESCRITOR = semComentario(
   fs.readFileSync(path.join(process.cwd(), "lib/agency/esteira/escrita-da-ficha.ts"), "utf8"),
 );
 
-describe("ninguém escreve na ficha sem estar autenticado", () => {
+// ── ESTE BLOCO MUDOU EM 16/08/2026, E O MOTIVO IMPORTA ─────────────────────
+//
+// Ele exigia a string literal `await getSession()` no corpo de cada método. A
+// intenção era certa — "ninguém mexe na ficha sem estar autenticado" —, mas o
+// que ficou preso foi o MECANISMO, não a garantia. E o mecanismo era fraco: uma
+// sessão qualquer da casa bastava, e o `workspaceId` não aparecia uma vez no
+// arquivo inteiro. `design_staff` do workspace A lia e escrevia a ficha de marca
+// de um cliente do workspace B, com 200 nas duas, e este teste ficava verde.
+//
+// Teste que trava a implementação impede o conserto e não impede o furo. Agora
+// ele exige as DUAS perguntas que a rota tem de responder — quem é você, e este
+// cliente é seu — e a prova de comportamento (401 · 403 · 404 com o banco nunca
+// tocado, nos dois métodos e em todo papel da casa) mora em
+// `__tests__/seguranca/a-ficha-de-marca-tem-dono.test.ts`.
+describe("ninguém mexe na ficha sem estar autenticado E sem ser dono do cliente", () => {
   for (const metodo of ["GET", "PUT"]) {
-    it(`${metodo} exige sessão`, () => {
+    it(`${metodo} passa pela guarda da casa E confere a posse do cliente`, () => {
       const i = SRC.indexOf(`export async function ${metodo}`);
       expect(i, `${metodo} sumiu da rota`).toBeGreaterThan(-1);
-      const corpo = SRC.slice(i, i + 400);
-      expect(corpo).toContain("await getSession()");
-      expect(corpo).toContain("401");
+      const corpo = SRC.slice(i, i + 600);
+      expect(corpo, `${metodo} deixou de perguntar QUEM está chamando`).toContain("exigirApiInterna(");
+      expect(corpo, `${metodo} deixou de perguntar DE QUEM é o cliente`).toContain("clienteOuNulo(");
     });
   }
+
+  it("a posse é conferida ANTES de a ficha ser lida ou gravada, nos dois métodos", () => {
+    // A ordem é a trava. Conferir depois de ler já vazou; conferir depois de
+    // gravar já estragou a régua de entrega daquele cliente.
+    for (const [metodo, alvo] of [["GET", "lerFichaDeMarca(id)"], ["PUT", "gravarRespostaDeMarca({"]] as const) {
+      const i = SRC.indexOf(`export async function ${metodo}`);
+      const fim = metodo === "GET" ? SRC.indexOf("export async function PUT") : SRC.length;
+      const corpo = SRC.slice(i, fim);
+      expect(corpo.indexOf("clienteOuNulo("), `${metodo}: a posse sumiu`).toBeGreaterThan(-1);
+      expect(
+        corpo.indexOf("clienteOuNulo("),
+        `${metodo}: a posse passou a ser conferida DEPOIS de ${alvo}`,
+      ).toBeLessThan(corpo.indexOf(alvo));
+    }
+  });
 });
 
 describe("as proibições não têm porta aqui — elas já têm dono", () => {

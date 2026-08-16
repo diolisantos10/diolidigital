@@ -15,6 +15,116 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — DOIS FUROS DE POSSE E TRÊS DE LARGURA, PROVADOS POR TESTE EXECUTADO
+
+**A consequência, primeiro:** a ficha de marca de um cliente deixou de ser
+legível e gravável por qualquer funcionário de qualquer inquilino, e a escada de
+exposição deixou de poder ser derrubada por quem não é da direção.
+
+**Nenhum dos dois é alcançável da internet.** É escalada lateral entre
+funcionários autenticados, não invasão — a urgência foi calibrada por isso.
+
+### 1. `/api/agency/clients/[id]/marca` não tinha posse NENHUMA
+
+`GET` e `PUT` pegavam o `id` da URL, conferiam só que existia sessão, e iam
+direto para `lerFichaDeMarca(id)` e `gravarRespostaDeMarca({ clientId: id })`.
+**`workspaceId` não aparecia uma vez no arquivo inteiro.** Provado: sessão
+`design_staff` do workspace A **leu e escreveu** a ficha de marca de um cliente
+do workspace B — 200 nas duas.
+
+**Por que dói:** a ficha de marca é o que o **portão de entrega** consulta. Quem
+escreve nela move o portão de publicação de qualquer cliente. É a régua da
+entrega, não um dado de cadastro.
+
+O remédio já existia uma pasta abaixo (`do-brand-book/route.ts`) e subiu para
+**`lib/agency/esteira/posse-do-cliente.ts`** — as duas rotas passaram a usar a
+MESMA função. Copiá-la seria criar a segunda versão que diverge no dia em que
+alguém consertar só uma. Escopo dentro do `where`, **404 e nunca 403**.
+
+### 2. `POST /api/agency/escada` escrevia sem gate de direção
+
+Provado: `design_staff` executou `acao: "descer"` em `social-media` (200), e
+`social_staff` executou `liberar_cliente` com um `clientId` arbitrário do corpo
+(200). **`descer` é imediato e não exige evidência** — qualquer funcionário
+derrubava um departamento para sombra e parava a entrega ao cliente.
+
+A régua saiu do **inventário**, não de palpite: `/agency/escada` é
+`acesso: "gestao"` **e** `administrativa: true`, e a doutrina do próprio
+inventário diz que `administrativa` fecha o botão, não a porta. Daí `GET` →
+`exigirApiInterna` (gestão lê) e `POST` → `exigirAdministracao` (só a direção
+escreve — o PM fica de fora, e isso é `podeAdministrar()` funcionando).
+
+**Bônus do mesmo padrão:** `liberarCliente` gravava na allowlist o `clientId` do
+corpo sem conferir de quem era. Fechado no mesmo commit, com fail-closed em
+falha de banco.
+
+### 3. A largura antiga, onde ela ainda existia
+
+`requireSession()`/`getSession()` sozinhos em rotas cuja tela é `dono_e_gestao`
+do Atendimento. O caro é o `PATCH`, que **aprova, recusa e marca como enviada**
+— e "enviada" gasta conexão paga do 99Freelas, que não volta. `design_staff`
+fazia tudo isso.
+
+| rota | antes | agora |
+|---|---|---|
+| `GET /oportunidades` | `requireSession()` | `exigirApiInterna("/agency/oportunidades")` |
+| `POST /oportunidades` | `requireSession()` | `exigirCapacidade("criar", …)` |
+| `PATCH /oportunidades/[id]` | `requireSession()` | `exigirCapacidade("aprovar", …)` |
+| `GET /oportunidades/caixa` | `getSession()` | `exigirApiInterna(...)` |
+
+A posse já estava certa nas quatro; o buraco era só a largura. A escrita da
+credencial da caixa **continuou `master`** e NÃO virou `exigirAdministracao`:
+isso alargaria a chave da caixa de e-mail da agência para o diretor sem ninguém
+ter decidido. Alargar sem ordem é o inverso deste trabalho.
+
+### 🔴 O TESTE QUE TRANCAVA A IMPLEMENTAÇÃO E NÃO O FURO
+
+`__tests__/esteira/api-marca.test.ts` exigia a string literal
+`await getSession()` no corpo de cada método. A intenção era certa; o que ficou
+preso foi o **mecanismo**, e o mecanismo era justamente o furo. Ele ficava verde
+enquanto `design_staff` lia a ficha do inquilino vizinho. Reescrito para exigir
+as duas perguntas (quem é você · este cliente é seu) **e a ordem entre elas**.
+
+### Portão
+
+`npx tsc --noEmit` com **exatamente os mesmos 4 erros da base**, todos em
+`app/api/v2/assistido/route.ts` (`TS7006`), **nenhum meu** — medido com e sem ·
+**283 arquivos, 4.472 testes verdes, 1 pulado** (44 novos) · `npm run lint` com
+**exatamente os mesmos 208 problemas (65 erros)** da base, medido com e sem.
+
+**As duas metades, e a prova de que elas provam:** com o conserto revertido e os
+testes novos no lugar, **26 testes reprovam** — inclusive os três marcados
+`⛔ O FURO PROVADO`. Teste que passa nos dois estados não prova nada, e este foi
+o passo que confirmou que estes provam.
+
+### 🔴 O QUE ACHEI DE PASSAGEM E **NÃO** CONSERTEI
+
+- [ ] 🔴 **`GuardaDeRota` NÃO EXISTE.** `app/agency/layout.tsx:18` promete, com
+      todas as letras, que *"a permissão de cada rota individual é conferida na
+      própria página, pelo `GuardaDeRota`"*. **Zero ocorrências no repositório
+      inteiro.** O layout só confere "é da casa"; **nenhuma das 42 páginas de
+      `/agency/**` confere a própria linha do inventário.** `/agency/escada`,
+      `/agency/settings`, `/agency/brain`, `/agency/control-room` e
+      `/agency/integrations` são `gestao` e abrem para qualquer papel interno por
+      URL direta. `motivoDeBloqueio()` existe, está correto e tem **zero
+      chamadores** — é o quarto caso confirmado de "peça verde, junta rompida".
+      **Despacho próprio: são 42 páginas, não é conserto de rota.**
+- [ ] 🔴 **A branch de deploy está 25 commits atrás.**
+      `claude/dioli-agency-os-architecture-kk7kp` não tem o 12º departamento
+      (Produto & Tecnologia, `tech_staff`), nem "publicar agora", nem "apagar e
+      fundir cliente", nem a porta da frente de hoje. **Commit em branch que não
+      deploya é trabalho que não existe** — a casa já registrou esta frase em
+      08/08 e ela voltou. **Decisão de quem manda mergear.**
+- [ ] ⚠️ **`tsc` da base NÃO está limpo** — 4 erros `TS7006` em
+      `app/api/v2/assistido/route.ts`, entrados no merge `64d8afe` de 15/08 que
+      diz "CI verde nos dois runs". Ou o CI não roda `tsc`, ou roda com outra
+      régua. **Frente de outro agente; não toquei.**
+- [ ] ⚠️ **A lista de papéis escrita à mão** de `/api/agency/google`,
+      `gasto-de-ia`, `material-de-marca` e `sala-dos-agentes` **barra o
+      legítimo** (`ads_staff` abre a tela e leva 403 da API). Achado do
+      especialista de segurança, **outro despacho** — só registrado aqui.
+
+
 ## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
 
 **Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no

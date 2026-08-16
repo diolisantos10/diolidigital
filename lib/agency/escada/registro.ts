@@ -13,6 +13,7 @@
 //     e pelo relatório: é a prova congelada da última subida.
 
 import { prisma } from "@/lib/db/client";
+import { clienteEDesteWorkspace } from "@/lib/agency/esteira/posse-do-cliente";
 import {
   degrauDeclarado, departamentoDoAgente, departamentosDaCasa, decidirEntrega,
   avaliarSubida, alturaDo, JANELA_DE_EVIDENCIA_DIAS,
@@ -381,6 +382,26 @@ export async function liberarCliente(p: {
   if (atual !== "allowlist") {
     return { ok: false, degrau: atual, erro: `só faz sentido em allowlist — o departamento está em ${atual}` };
   }
+
+  // ── O `clientId` VEM DO CORPO DA REQUISIÇÃO, E ATÉ 16/08/2026 NINGUÉM
+  //    CONFERIA DE QUEM ELE ERA (achado do especialista de segurança) ────────
+  //
+  // A linha entrava na allowlist deste inquilino direto, fosse ela do inquilino
+  // ou não. O impacto de hoje é baixo — a lista só vale dentro do próprio
+  // workspace, então liberar o id de um estranho não libera nada de verdade —
+  // mas é o MESMO defeito de posse do resto da frente, e ele suja a lista com
+  // ids que ninguém consegue explicar depois.
+  //
+  // Fecha ANTES de qualquer escrita, e falha de banco cai em "não pode": não
+  // conseguir conferir de quem é o cliente nunca pode virar "então pode".
+  if (!(await clienteEDesteWorkspace(p.clientId, { workspaceId: p.workspaceId }))) {
+    return {
+      ok: false,
+      degrau: atual,
+      erro: "cliente não encontrado neste workspace — a allowlist não recebe id que a casa não reconhece",
+    };
+  }
+
   const desde = new Date(Date.now() - JANELA_DE_EVIDENCIA_DIAS * 24 * 60 * 60_000);
   const registros = await prisma.departmentLadderRecord.findMany({
     where: { workspaceId: p.workspaceId, departmentId: p.departmentId, criadoEm: { gte: desde } },

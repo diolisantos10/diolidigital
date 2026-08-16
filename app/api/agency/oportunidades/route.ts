@@ -13,10 +13,23 @@
 // rota num oráculo de enumeração — dá para varrer ids e descobrir quantas
 // oportunidades a agência vizinha tem. "Não encontrado" é a resposta honesta
 // para quem não é dono: para ele, aquilo de fato não existe.
+//
+// ── LARGURA (16/08/2026) ─────────────────────────────────────────────────────
+// A posse já estava certa; a LARGURA não estava. As duas pernas tinham
+// `requireSession()` sozinho — "tem biscoito válido da casa, entra" — enquanto a
+// tela que elas servem, `/agency/oportunidades`, é `dono_e_gestao` do
+// Atendimento no inventário. Design, Social, Tráfego e Tecnologia liam a fila
+// inteira de prospecção com um `curl`. É o mesmo defeito já consertado na porta
+// da frente, o arquivo ao lado.
+//
+// É o mesmo remédio: `exigirApiInterna(...)` prende a permissão da API à MESMA
+// linha do inventário que a tela — e a ESCRITA vai um passo além, por
+// `exigirCapacidade`, porque ler é largo de propósito e escrever é estreito de
+// propósito. Registrar oportunidade é `criar` no departamento dono.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { requireSession } from "@/lib/auth/api-guard";
+import { exigirApiInterna, exigirCapacidade } from "@/lib/agency/organizacao/guarda";
 import { qualificarEGravar, lerOportunidade } from "@/lib/agency/comercial/pipeline";
 import {
   registrarOportunidade,
@@ -31,8 +44,9 @@ const LIMITE_PADRAO = 50;
 const LIMITE_MAXIMO = 200;
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const { session, error } = await requireSession();
-  if (error) return error;
+  const { acesso, erro } = await exigirApiInterna("/agency/oportunidades");
+  if (erro) return erro;
+  const { session } = acesso;
 
   const params = request.nextUrl.searchParams;
   const statusFiltro = params.get("status");
@@ -75,8 +89,9 @@ interface CorpoDeColagem {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const { session, error } = await requireSession();
-  if (error) return error;
+  const { acesso, erro } = await exigirCapacidade("criar", "client-service-sdr", "/agency/oportunidades");
+  if (erro) return erro;
+  const { session } = acesso;
 
   let corpo: CorpoDeColagem;
   try {

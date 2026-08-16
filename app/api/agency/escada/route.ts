@@ -3,17 +3,44 @@
 // GET  → em que degrau está cada departamento e QUANTO FALTA, em número, para
 //        subir. "Falta evidência" sem o número é ruído que ninguém investiga.
 // POST → subir (exige o número) ou descer (imediato, sem pergunta).
+//
+// ── QUEM PODE MEXER NA ESCADA (16/08/2026) ─────────────────────────────────
+//
+// As duas pernas tinham `getSession()` sozinho: qualquer biscoito válido da
+// casa. Provado: `design_staff` executou `acao: "descer"` em `social-media` e
+// levou 200; `social_staff` executou `liberar_cliente` com um `clientId`
+// arbitrário do corpo e levou 200.
+//
+// Dói mais do que parece porque **`descer` é imediato e não exige evidência
+// nenhuma** — é assim de propósito, para a casa poder se proteger na hora. O
+// preço disso é que qualquer funcionário derrubava um departamento inteiro para
+// sombra e parava a entrega ao cliente. Num piloto 100% IA a escada é a única
+// proteção que sobrou; está no `CLAUDE.md` com todas as letras.
+//
+// A régua sai do INVENTÁRIO, não de palpite: `/agency/escada` é
+// `acesso: "gestao"` **e** `administrativa: true` (`organizacao/paginas.ts`).
+// A doutrina do próprio inventário diz que `administrativa` não fecha a porta da
+// página — fecha o BOTÃO de dentro dela. Então:
+//
+//   • GET  → `exigirApiInterna("/agency/escada")` — gestão lê (master, diretor
+//            e PM). É a mesma linha do inventário que a tela.
+//   • POST → `exigirAdministracao("/agency/escada")` — só a DIREÇÃO escreve.
+//            O PM fica de fora aqui e isso é a regra, não descuido:
+//            `podeAdministrar()` existe para dizer que coordenar a operação não
+//            é o mesmo que ter a chave do cofre — e mudar o degrau de exposição
+//            de um departamento é decisão de dono, não de coordenação.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
+import { exigirAdministracao, exigirApiInterna } from "@/lib/agency/organizacao/guarda";
 import {
   estadoDaEscada, subirDegrau, descerDegrau, liberarCliente,
 } from "@/lib/agency/escada/registro";
 import { ROTULO_DO_DEGRAU, JANELA_DE_EVIDENCIA_DIAS, CRITERIO } from "@/lib/agency/escada/degraus";
 
 export async function GET(): Promise<NextResponse> {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { acesso, erro } = await exigirApiInterna("/agency/escada");
+  if (erro) return erro;
+  const { session } = acesso;
 
   const degraus = await estadoDaEscada(session.workspaceId);
   return NextResponse.json({
@@ -38,8 +65,9 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { acesso, erro } = await exigirAdministracao("/agency/escada");
+  if (erro) return erro;
+  const { session } = acesso;
 
   const body = await request.json().catch(() => ({}));
   const departmentId = typeof body.departmentId === "string" ? body.departmentId : "";

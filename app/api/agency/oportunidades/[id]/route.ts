@@ -12,10 +12,21 @@
 // filtro dentro do `updateMany` é atômico — ou a linha é do inquilino e muda, ou
 // não é e nada acontece. Zero linhas afetadas → 404, nunca 403: 403 confirmaria
 // que o id existe em OUTRO workspace, e isso é vazamento de existência.
+//
+// ── LARGURA (16/08/2026) ─────────────────────────────────────────────────────
+// A posse estava certa e a LARGURA não: `requireSession()` sozinho num `PATCH`
+// que **aprova, recusa e marca proposta como enviada** — e "enviada" ainda gasta
+// conexão paga do 99Freelas, que não volta. Qualquer papel da casa decidia a
+// fila comercial de outro departamento; `design_staff` fazia tudo isto hoje.
+//
+// A régua sai do inventário: `/agency/oportunidades` é `dono_e_gestao` do
+// Atendimento. Como isto é decisão e não leitura, a guarda é `exigirCapacidade`
+// com a capacidade que descreve o ato — `aprovar` —, e não a porta larga da
+// página. Ler é largo de propósito; decidir é estreito de propósito.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { requireSession } from "@/lib/auth/api-guard";
+import { exigirCapacidade } from "@/lib/agency/organizacao/guarda";
 import { ehStatusValido, STATUS_VALIDOS, CAMPOS_DE_LEITURA } from "@/lib/agency/comercial/oportunidade";
 import { registrarGasto } from "@/lib/marketplaces/99freelas/contador";
 import { temCotaDeConexoes } from "@/lib/marketplaces/cotas";
@@ -37,8 +48,9 @@ export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const { session, error } = await requireSession();
-  if (error) return error;
+  const { acesso, erro } = await exigirCapacidade("aprovar", "client-service-sdr", "/agency/oportunidades");
+  if (erro) return erro;
+  const { session } = acesso;
   const { id } = await context.params;
 
   let corpo: CorpoDaDecisao;
