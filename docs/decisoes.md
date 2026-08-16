@@ -8,6 +8,65 @@
 
 ---
 
+## BARRAR POR ENGANO É BENIGNO; APROVAR POR ENGANO MATA O MECANISMO — IDENTIDADE DE TRAVA VIRA DERIVADA, NUNCA DECLARADA
+
+**Decidido em** 2026-08-16 · **por** `esteira`, sob despacho do Diretor ·
+**origem:** teste montado de propósito contra a trava de reivindicação, mais o
+achado irmão na fila de leads e no robô de espelho do kit.
+
+**A lição que atravessa:** quatro vezes hoje um defeito só apareceu porque a
+ferramenta foi **exercitada**, não porque um teste ficou vermelho — e o falso
+negativo da trava só foi encontrado porque alguém exigiu **provar** o medo
+antes de consertar. Hipótese que ninguém tenta reproduzir vira ou pânico ou
+descaso, nunca conserto.
+
+### As decisões que atravessam domínios
+
+- **CRITÉRIO NOVO PARA TODA TRAVA DESTA CASA: BARRAR POR ENGANO É O MODO
+  BENIGNO; APROVAR POR ENGANO É O QUE MATA O MECANISMO.** Provado, não
+  suposto: com identidade herdada gravada como própria, a trava de
+  reivindicação respondeu "✅ Sem colisão" e saída `0` sobre um arquivo sob
+  reivindicação viva de outra sessão. Falso positivo é barulhento e barato;
+  falso negativo é silencioso e ensina a casa a confiar num mecanismo que não
+  protege mais nada. Diante de dúvida, toda trava desta casa escolhe o lado
+  que faz barulho.
+- **IDENTIDADE DE REIVINDICAÇÃO PASSA A SER DERIVADA, NUNCA DECLARADA.** A
+  causa raiz do falso negativo era conceitual: o id era uma flag digitada por
+  alguém (`--quem`), e declaração não verificada não é identidade. Conserto:
+  a identidade nasce do caminho absoluto do worktree — determinística, única
+  por worktree, impossível de herdar e impossível de digitar errado, porque
+  ninguém mais digita. `--quem` vira só rótulo legível; `git config
+  dioli.quem` nunca mais decide nada. Reivindicações antigas no remoto não
+  quebram — nunca serão reconhecidas como "minhas" por ninguém, que é o lado
+  seguro.
+- **CONTAGEM DE REPETIÇÃO SAI DA MEMÓRIA E VAI PARA O BANCO — E A RESPOSTA
+  CONFESSA A JANELA.** A fila de leads agrupava repetição só sobre as últimas
+  solicitações carregadas: irmão fora dessa janela não aparecia, e a tela
+  chamava de "1ª vez" quem já tinha escrito várias. O teto **não** foi
+  aumentado — lição já registrada desta casa (empurrar o teto só adia o mesmo
+  problema). A contagem passou a vir do banco via `chaveDoProspect`, e a
+  resposta nomeia separadamente total no banco, irmãos visíveis e irmãos fora
+  da janela — mostrar menos do que existe sem avisar é mentir por omissão.
+  Falha de contagem cai para parcial, nunca vira zero silencioso.
+- **O ESPELHO DO `DIOLI-BRAIN-KIT` PASSOU A EXISTIR, COM CARIMBO QUE NÃO
+  MENTE QUANDO FALHA.** O carimbo estava parado havia uma semana e nenhum
+  workflow desta casa espelhava nada — doutrina ausente lendo como doutrina
+  completa. Agora há robô diário e sob demanda, e o carimbo grava tentativa,
+  erro e estado mesmo quando falha. Achado medido, não contornado: o kit é
+  repositório privado separado e o token do Actions não alcança fora deste
+  repositório — falta `KIT_REPO_TOKEN`, decisão do CEO.
+
+### O que continua aberto, sem dono, fora do fluxo de hoje
+
+- 🔴 `KIT_REPO_TOKEN` não provisionado — bloqueia o espelho do kit.
+- 🔴 Backfill de `chaveDoProspect` segue armado, esperando o CEO decidir
+  rodar — escrita em dado real de cliente não é de agente.
+- A tela da fila de leads ainda não consome o dado novo de "irmão fora da
+  janela" — API pronta, tela com outro dono em voo.
+- Fichas duplicadas em produção esperando decisão do CEO desde 08/08.
+
+---
+
 ## MECANISMO NÃO EXERCITADO NÃO É MECANISMO PRONTO — E TRÊS REGRAS QUE SAÍRAM DISSO
 
 **Decidido em** 2026-08-16 · **por** três `pm`s em frentes separadas, consolidado

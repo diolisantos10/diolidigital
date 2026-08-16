@@ -15,6 +15,99 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — A TRAVA APROVOU O QUE DEVIA BARRAR (provado, não suposto); A FILA GANHOU CONTAGEM DE VERDADE; O ESPELHO DO KIT NASCEU
+
+**A conclusão primeiro:** a trava de reivindicação tinha um falso negativo — em
+teste montado de propósito, ela deixou passar um toque num arquivo que estava
+sob reivindicação viva de outra sessão, com código de saída `0`. Conserto:
+identidade deixa de ser **declarada** (a flag `--quem`) e passa a ser
+**derivada** do caminho do worktree — ninguém mais digita, então ninguém mais
+herda por engano. Na mesma rodada: a fila de leads passou a contar repetição
+pelo banco, não só pelas 200 últimas solicitações em memória; e o robô de
+espelho do `dioli-brain-kit` foi ligado, com carimbo que registra até quando
+falha.
+
+### A — A TRAVA CHEGOU A APROVAR O QUE DEVIA BARRAR
+
+- Caso montado para provar, não supor: existia reivindicação viva de outra
+  sessão sobre `app/api/agency/leads/route.ts`; a identidade daquela sessão foi
+  gravada como se fosse própria (caminho batendo, portanto tida como
+  confiável); o arquivo foi tocado; `conferir` respondeu **"✅ Sem colisão"**
+  com saída `0`. Falso positivo é barulhento e barato — **falso negativo é
+  silencioso e mata o mecanismo**: quem não confere por conta própria empurra
+  acreditando que a trava conferiu.
+- Causa: a própria mensagem do comando induzia o erro. Ao achar identidade
+  herdada, ela sugeria `--quem pm-XXXX` como confirmação — quem copiasse sem
+  pensar gravava id alheio como confiável. Três sessões já tinham se
+  sobrescrito na mesma chave global desta casa antes de hoje — histórico, não
+  hipótese.
+- **Causa raiz conceitual:** o id era uma declaração não verificada, e
+  declaração não verificada não é identidade.
+
+### B — O CONSERTO: IDENTIDADE DERIVADA, NUNCA DECLARADA
+
+- A identidade passa a nascer do caminho absoluto do worktree (prefixo mais
+  hash) — determinística, única por worktree, impossível de herdar (dois
+  worktrees têm caminhos diferentes) e impossível de digitar errado (ninguém
+  digita).
+- `--quem` deixa de definir posse e vira só rótulo legível para gente; a
+  máquina não lê mais essa flag para decidir nada.
+- `git config dioli.quem` nunca mais é lido para decidir nada; sobra um aviso
+  de vestígio com a linha para apagar — não apaga sozinho, pode ser de outra
+  sessão viva.
+- Sumiu a fiação de identidade "desconhecida/suspeita/herdada": sem
+  declaração, não há mais estado duvidoso para tratar.
+- Reivindicações antigas no remoto não quebram: nunca serão reconhecidas como
+  "minhas" por ninguém — que é o lado seguro, barra em vez de aprovar. Provado
+  com os quatro caminhos de worktree reais desta máquina: quatro identidades
+  distintas, o worktree principal nunca colide com um isolado.
+
+### C — A FILA DE LEADS NÃO ENXERGAVA O IRMÃO FORA DA JANELA
+
+- A rota lia no máximo 200 solicitações e agrupava repetição **em memória**
+  sobre essa lista: irmão fora das 200 não aparecia, e a tela dizia "1ª vez"
+  para quem já tinha escrito várias vezes.
+- **O teto não foi aumentado** — a casa já registrou a lição: quando o teto
+  aperta, o caminho é promover uma coluna, não empurrar o número (aumentar só
+  adia o mesmo problema para a próxima marca).
+- A contagem passou a vir do **banco**, usando a `chaveDoProspect` (saiu do
+  limbo nesta mesma rodada) e o índice que já existia — reaproveitando a
+  mesma política de visibilidade "meu OU órfão" já em uso no resto da casa.
+- A resposta **confessa a janela**: total no banco, irmãos visíveis e irmãos
+  fora da janela ganharam nomes diferentes, porque são fatos diferentes.
+  Mostrar 2 quando são 3 é mentir por omissão.
+- Falha de contagem nunca vira zero silencioso: cai para a janela e marca
+  contagem parcial. "Não consegui contar" e "escreveu uma vez só" são fatos
+  opostos e não podem parecer o mesmo resultado.
+- **Aberto:** a tela da fila ainda não mostra o dado novo — outro `pm` está em
+  voo nessa frente, já tem dono.
+
+### D — O ROBÔ DE ESPELHO DO KIT NASCEU
+
+- Medido: o carimbo estava parado havia uma semana e os workflows desta casa
+  não incluíam nenhum de espelho — quem abrisse `docs/kit/` lia manual
+  incompleto acreditando ter lido o manual inteiro.
+- O robô agora existe, roda diário e sob demanda, e o carimbo grava
+  `ultimaTentativaEm`, `ultimoErro` e `estado` — **mesmo quando falha**. O
+  aviso mora no topo de `docs/kit/` (gerado) e também na abertura de sessão,
+  pelo gancho.
+- **Achado medido, não contornado:** o kit é repositório privado separado, e
+  `git ls-remote` falha aqui com "could not read Username" — o `GITHUB_TOKEN`
+  do Actions só alcança o próprio repositório.
+- 🔴 **Aberto:** `KIT_REPO_TOKEN` não existe. Enquanto o CEO não provisionar,
+  o robô não espelha e `docs/kit/` continua parado.
+
+### O que fica aberto desta rodada
+
+- 🔴 `KIT_REPO_TOKEN` não provisionado — bloqueia o espelho do kit.
+- 🔴 Backfill de `chaveDoProspect` segue armado e não disparado, esperando o
+  CEO — escrita em dado real de cliente não é de agente.
+- A tela da fila ainda não consome o dado novo de "irmão fora da janela" —
+  API pronta, tela tem outro dono em voo.
+- Linha legada de `chaveDoProspect` nula não é alcançada pela contagem barata
+  — não é regressão, é o limite já declarado; quem fecha é o backfill.
+- Fichas duplicadas em produção seguem esperando decisão do CEO desde 08/08.
+
 ## 🟢 16/08/2026 — TRÊS DEFEITOS SÓ APARECERAM PORQUE A FERRAMENTA FOI EXERCITADA, NÃO PORQUE UM TESTE FICOU VERMELHO
 
 **A conclusão primeiro:** o ambiente de sessão nascia quebrado toda vez, a trava
