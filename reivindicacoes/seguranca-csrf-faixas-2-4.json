@@ -1,0 +1,13 @@
+{
+  "id": "seguranca/csrf-faixas-2-4",
+  "quem": "wt-69548b43db",
+  "frente": "fechar faixas 2-4 do CSRF funcao por funcao, comecando por admin/training/sdr/run, admin/reset e clients/fundir",
+  "responsabilidade": "seguranca/csrf-faixas-2-4",
+  "arquivos": [
+    "app/api/admin",
+    "app/api/clients"
+  ],
+  "abertaEm": "2026-08-16T19:37:30.618Z",
+  "encerradaEm": null,
+  "rotulo": "pm-avisos"
+}
