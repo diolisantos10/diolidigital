@@ -32,6 +32,7 @@
 
 import type { BriefingScope, LiveEstimate, EstimateItem, EstimateConfidence } from "./briefing-conversation";
 import { PLANOS_PUBLICOS, planoPorId, precoEmReais, type PlanoId } from "./planos";
+import { faixaDoAdicional } from "./adicionais";
 
 // ── Social Media Plans ────────────────────────────────────────────────────────
 
@@ -135,6 +136,29 @@ export const SOCIAL_PACKAGES: PackageDef[] = ESCADA.map((plano, i) => {
 // `__tests__/comercial/preco-uma-fonte-so.test.ts` reprova a build.
 
 /**
+ * COMO UMA FAIXA SE ESCREVE NA TELA — e por que isto passou a ser preciso.
+ *
+ * Quando o preço do plano virou UM número (`minPrice === maxPrice`, ver o
+ * cabeçalho deste arquivo), toda tela que desenhava `min–max` passou a mostrar
+ * **"R$ 790 – R$ 790"**. Ninguém digitou isso: é o desenho antigo, de faixa,
+ * recebendo um dado que deixou de ser faixa. O número está certo e a forma
+ * está errada — e "de R$ 790 a R$ 790" é a frase de quem não sabe o próprio
+ * preço, escrita no cabeçalho da tabela que o SDR abre na frente do cliente.
+ *
+ * Isto é FORMATAÇÃO, não preço: nada aqui decide, arredonda ou compara valor.
+ * Quando os dois lados são iguais, sai um número só; quando são diferentes —
+ * os adicionais (tráfego, identidade) ainda são faixa de verdade — sai a
+ * faixa, com travessão, como sempre foi.
+ *
+ * O formatador entra por parâmetro de propósito: cada superfície já tem o seu
+ * (`precoEmReais`, `fmtBRL`, `brl`), e unificar os cinco é outra frente. Trocar
+ * o formatador aqui mudaria a aparência de telas que ninguém pediu para mexer.
+ */
+export function faixaDePreco(min: number, max: number, fmt: (n: number) => string): string {
+  return min === max ? fmt(min) : `${fmt(min)}–${fmt(max)}`;
+}
+
+/**
  * Recebe peças por MÊS e devolve o degrau oficial que as cobre.
  *
  * Os cortes NÃO são mais números escritos à mão (14 / 24 / 34 / 50): são a
@@ -182,13 +206,16 @@ export const COMMUNITY_LABEL: Record<CommunityLevel, string> = {
   full: "Completa",
 };
 
-// ── Add-on prices (separate departments) ──────────────────────────────────────
-
+// ── Add-on prices ─────────────────────────────────────────────────────────────
+// 🔴 Estas quatro faixas eram DIGITADAS aqui e o `maxPrice` de cada uma era,
+// número por número, o `targetPrice` de `pricing-margins.ts`. A primeira rodada
+// do conserto de preço não viu — ela varria preço de PLANO. Agora as duas
+// derivam de `lib/agency/adicionais.ts`.
 const P = {
-  reel:         { min:  150, max:  400 }, // extra reel beyond the plan
-  trafficMgmt:  { min:  500, max: 1200 }, // paid-traffic management fee
-  branding:     { min: 1200, max: 2500 }, // visual identity
-  brandingFull: { min: 2000, max: 4000 }, // full brand book / rebrand
+  reel:         faixaDoAdicional("reel"),
+  trafficMgmt:  faixaDoAdicional("trafficMgmt"),
+  branding:     faixaDoAdicional("branding"),
+  brandingFull: faixaDoAdicional("brandingFull"),
 };
 
 // ── Main export ───────────────────────────────────────────────────────────────

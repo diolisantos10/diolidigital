@@ -90,7 +90,21 @@ E mais três, em `lib/agency/service-catalog.ts`, vendidos como faixa:
 
 ---
 
-## 🔴 OS TRÊS ACHADOS QUE SAÍRAM DESTE LEVANTAMENTO
+## 🔴 OS ACHADOS QUE SAÍRAM DESTE LEVANTAMENTO
+
+### 0. 🔴 O SDR OFERECIA UM PLANO QUE NÃO EXISTE (achado na 2ª rodada)
+
+`lib/agency/sdr-agent.ts` e `lib/agency/question-engine.ts` diziam ao prospect,
+na conversa: *"**Plano Starter (R$ 1.200–1.800/mês)** — 8 posts + 8 stories/mês"*.
+
+| | o SDR dizia | a casa vende |
+|---|---|---|
+| plano | "Starter" | **Ritmo** |
+| preço | R$ 1.200–1.800/mês | **R$ 297/mês** |
+
+**Quatro vezes o preço real, para o mesmo escopo** — e do lado errado: o SDR
+espantava quem tinha R$ 400 dizendo que o mínimo da casa era R$ 1.200. Corrigido:
+a fala passou a derivar do degrau mais barato que produz peça.
 
 ### 1. O plano Ritmo é vendido duas vezes, e a segunda é mais barata
 
@@ -147,6 +161,9 @@ negociar.
 
 ---
 
-*Levantado do código-fonte, não de memória. Se o CEO tiver a lista dos 24, a
+*Levantado do código-fonte, não de memória. Revisado na 2ª rodada, depois de
+`qualidade` refutar o detector da primeira.*
+
+* Se o CEO tiver a lista dos 24, a
 divergência entre as duas é o mapa do que falta construir — ou do que está
 sendo vendido sem existir.*

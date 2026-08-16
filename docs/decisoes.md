@@ -13,6 +13,75 @@
 **Decidido em** 2026-08-16 · **por** CEO, executado pelo `pm` a mando do Diretor ·
 **branch** `claude/preco-fonte-unica-seis-planos`
 
+### 🔴 2ª RODADA (mesmo dia) — A CAMADA DE DÚVIDA REFUTOU A PEÇA CENTRAL
+
+`qualidade` rodou por fora e **confirmou 4 das 6 afirmações e refutou o
+detector**. A frase do laudo, e ela é justa:
+
+> **"Detector calibrado contra CÓPIA não pega DIVERGÊNCIA."**
+
+O portão da 1ª rodada montava a lista de números a caçar a partir dos seis
+preços oficiais — {49, 297, 790, 1.390, 2.590, 4.990}. **O incidente que
+originou tudo tinha números diferentes** (600 / 900 / 1.400 / 2.400 / 6.500).
+Se aquele portão existisse antes, teria passado **verde por cima do próprio
+incidente**. **11 de 13 bypasses plantados passaram.**
+
+**A regra virou FORMA, não valor:** três ou mais preços declarados fora das
+fontes é catálogo, tenham os números que tiverem. Mais: centavos normalizados
+(`R$ 297,00` era invisível, e é o formato que `toLocaleString` produz), `=` além
+de `:`, tupla nome+número, template, string, aritmética inline, e nome de plano
+fantasma sem exigir aspas.
+
+**A trava do Performance tinha quatro furos, e o pior era o nome da variável:**
+`/\bPLANOS\b(?!_)/` **não casa dentro de `PLANOS_INTERNOS`** — `_` é caractere
+de palavra. Uma tela pública iterando a lista dos NÃO-VENDÁVEIS publicava o
+Performance com o portão verde. A checagem passou a ser por **símbolo** e
+**transitiva pelo grafo de imports**, e a lista de superfícies passou a ser por
+**exclusão**: pasta nova nasce protegida, não invisível.
+
+**E uma afirmação da 1ª rodada era falsa quando foi escrita:** "superfície de
+cliente lê `PLANOS_PUBLICOS`, nunca `PLANOS`" — `self-serve-catalog.ts` importa
+`PLANOS` e é a fonte da vitrine pública. Corrigida no código e aqui.
+
+### 🔴 O QUE A 2ª RODADA ACHOU E A 1ª NÃO TINHA VISTO
+
+1. **O SDR oferecia ao prospect um plano que não existe.** `sdr-agent.ts` e
+   `question-engine.ts` falavam, na conversa, em **"Plano Starter (R$ 1.200–1.800/mês)"**
+   — plano inexistente, preço que não está escrito em lugar nenhum, e **quatro
+   vezes** o valor do degrau equivalente (Ritmo, R$ 297, as mesmas 8 peças/mês).
+   Nenhuma varredura tinha pego porque o número não era preço de plano de
+   ninguém — que é exatamente o que os detectores procuravam. É a pior das sete
+   fontes: ela falava com gente.
+2. **Adicionais em duas tabelas digitadas** — o `maxPrice` de `live-calculator`
+   era, número por número, o `targetPrice` de `pricing-margins`.
+3. **Terceira cópia da economia do reel, com contradição VIVA:** piso R$ 200 em
+   `pricing-margins` contra mínimo de tabela R$ 150 no briefing. **Não escolhi
+   qual vale** — nenhum tem procedência. O reel ficou com `piso: null` e não
+   fecha automático.
+4. **`negociacao.ts` duplicava os limites de faixa dentro de si mesmo.** O modo
+   de falhar era silencioso: mexer numa faixa fazia `ehPerguntaDeFaixa` rejeitar
+   a pergunta CERTA do SDR e o turno inteiro ser descartado, sem erro nem log.
+5. **O `pricing` da proposta era texto livre** e ia direto ao cliente: qualquer
+   string não-vazia passava. Agora, quando o texto CITA um plano, é conferido
+   contra a fonte — e proposta sob medida (marca, site, fases) continua
+   passando, marcada como `ancorado: false`.
+
+### A decisão de desenho da 2ª rodada: uma fonte POR PRODUTO, três ao todo
+
+`planos.ts` (planos) · `adicionais.ts` (reel, tráfego, marca) ·
+`self-serve-catalog.ts` (balcão e vitrine). Nenhuma duplica a outra, e um quarto
+lugar que declare preço reprova a build.
+
+### A decisão de honestidade: o limite do portão está ESCRITO
+
+`de` e `ate` ficaram **fora** da lista de chaves de preço — em `negociacao.ts`
+elas são limites de bolso e degraus de desconto, e incluí-las fazia o portão
+gritar no caso limpo, que é como um alarme é desligado. O preço foi pago do lado
+certo (`adicionais.ts` usa `precoDe`/`precoAte`), **e o buraco que sobra está
+declarado no próprio teste**: um catálogo escrito só com `{ de, ate }` escapa da
+regra de forma. Não conheço como fechar sem um parser de verdade, e prefiro o
+limite escrito a uma regra que ninguém aguenta manter ligada.
+
 ### A decisão do CEO, em uma frase
 
 A tabela tem **seis** degraus — Pulso R$ 49 · Ritmo R$ 297 · Presença R$ 790 ·

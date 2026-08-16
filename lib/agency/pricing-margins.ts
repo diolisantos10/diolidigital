@@ -23,10 +23,23 @@
 // Agora `floorPrice` e `targetPrice` DERIVAM de `lib/agency/planos.ts`. Só o
 // `costBasis` mora aqui — custo não é preço, e o custo é o único dado desta
 // casa que ninguém mediu.
+//
+// 🔴 **CORREÇÃO DA 2ª RODADA — a frase acima já foi falsa neste arquivo.** Ela
+// dizia "o catálogo paralelo foi eliminado" enquanto `ADDON_MARGINS` continuava
+// com preço digitado, e o `targetPrice` de cada adicional era, número por
+// número, o `maxPrice` da tabela de `live-calculator.ts`. Havia ainda uma
+// TERCEIRA cópia do reel dentro de `computeDealFloor`, com piso R$ 200 contra o
+// mínimo de R$ 150 do briefing — a casa discordando de si mesma. Tudo isso
+// deriva agora de `lib/agency/adicionais.ts`.
+//
+// A lição está no comentário, não só no código: **comentário que promete mais
+// do que o mecanismo entrega é a mentira mais cara desta casa**, porque quem lê
+// depois confia nele em vez de conferir.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { SOCIAL_PACKAGES, type SocialPackage } from "./live-calculator";
 import { PLANOS_PUBLICOS } from "./planos";
+import { ADICIONAIS, adicionalPorId } from "./adicionais";
 
 // ── Margin profile ────────────────────────────────────────────────────────────
 // For each sellable line, we model:
@@ -71,12 +84,25 @@ export const SOCIAL_MARGINS: Partial<Record<SocialPackage, MarginProfile>> = (()
   return saida;
 })();
 
-// Add-on departments.
-export const ADDON_MARGINS = {
-  trafficMgmt:  { costBasis: 220, floorPrice: 450,  targetPrice: 1200 },
-  branding:     { costBasis: 480, floorPrice: 1050, targetPrice: 2500 },
-  brandingFull: { costBasis: 820, floorPrice: 1750, targetPrice: 4000 },
-} as const;
+/**
+ * Adicionais — DERIVADOS de `lib/agency/adicionais.ts`.
+ *
+ * 🔴 Eram digitados aqui, e o `targetPrice` de cada um era, número por número,
+ * o `maxPrice` da tabela de `live-calculator.ts`. A primeira rodada do conserto
+ * declarou o catálogo paralelo "eliminado" olhando só para preço de PLANO — e
+ * este ficou de pé. A afirmação estava errada; está corrigida.
+ *
+ * Adicional sem piso decidido **não ganha perfil**: sem piso não há autorização
+ * de desconto, e um perfil ausente é recusa explícita, não silêncio.
+ */
+export const ADDON_MARGINS: Partial<Record<string, MarginProfile>> = (() => {
+  const saida: Partial<Record<string, MarginProfile>> = {};
+  for (const a of ADICIONAIS) {
+    if (a.piso === null) continue;
+    saida[a.id] = { costBasis: a.custoBase, floorPrice: a.piso, targetPrice: a.precoAte };
+  }
+  return saida;
+})();
 
 // ── Discount levers ───────────────────────────────────────────────────────────
 // Legitimate reasons the SDR may apply a discount. Each has a max percentage.
@@ -222,17 +248,43 @@ export function computeDealFloor(args: {
       add(pkg?.label ?? "Plano Social", perfil);
     }
   }
-  // Extra reels: thin-margin add-on (~R$120 cost each, floor ~R$200).
+  // 🔴 O reel era a TERCEIRA cópia da economia do adicional, e trazia uma
+  // contradição viva: piso R$ 200 aqui, mínimo de tabela R$ 150 no briefing —
+  // o piso ACIMA do menor valor cotável. Nenhum dos dois tem procedência.
+  // Agora o reel tem `piso: null` na fonte e este bloco é fail-closed.
   if (args.extraReels && args.extraReels > 0) {
-    const cost = args.extraReels * 120;
-    const floor = args.extraReels * 200;
-    const target = args.extraReels * 400;
-    lines.push({ label: `Reels extras (${args.extraReels})`, cost, floor, target });
-    totalCost += cost; totalFloor += floor; totalTarget += target;
+    const reel = adicionalPorId("reel");
+    const perfil = reel && reel.piso !== null ? ADDON_MARGINS[reel.id] : undefined;
+    if (!perfil) {
+      semAutorizacao.push(
+        `Reel avulso não tem piso decidido (${reel?.contradicao ?? "adicional ausente"}). ` +
+          `Não cabe em fechamento automático — orce à parte.`,
+      );
+    } else {
+      const n = args.extraReels;
+      lines.push({
+        label: `Reels extras (${n})`,
+        cost: perfil.costBasis === null ? null : perfil.costBasis * n,
+        floor: perfil.floorPrice * n,
+        target: perfil.targetPrice * n,
+      });
+      if (perfil.costBasis === null) totalCost = null;
+      else if (totalCost !== null) totalCost += perfil.costBasis * n;
+      totalFloor += perfil.floorPrice * n;
+      totalTarget += perfil.targetPrice * n;
+    }
   }
-  if (args.wantsTraffic) add("Tráfego Pago — gestão", ADDON_MARGINS.trafficMgmt);
+  const adicionar = (id: string, rotulo: string) => {
+    const perfil = ADDON_MARGINS[id];
+    if (!perfil) {
+      semAutorizacao.push(`"${rotulo}" não tem piso decidido em adicionais.ts — escale.`);
+      return;
+    }
+    add(rotulo, perfil);
+  };
+  if (args.wantsTraffic) adicionar("trafficMgmt", "Tráfego Pago — gestão");
   if (args.wantsBranding) {
-    add("Identidade Visual", args.wantsRebrand ? ADDON_MARGINS.brandingFull : ADDON_MARGINS.branding);
+    adicionar(args.wantsRebrand ? "brandingFull" : "branding", "Identidade Visual");
   }
 
   return { totalCost, totalFloor, totalTarget, lines, semAutorizacao };

@@ -702,7 +702,21 @@ export function blocoDeNegociacaoParaPrompt(): string {
 // escolha é conhecido: se o modelo abreviar as opções e citar só dois limites com
 // R$, o turno é descartado e cai no motor de regras. Descartar de vez em quando a
 // pergunta certa é barato; deixar passar uma cotação, não.
-const LIMITES_DE_FAIXA = new Set(["150", "500", "1500", "5000"]);
+// 🔴 ESTA LISTA ERA DIGITADA — `["150", "500", "1500", "5000"]` — e é a MESMA
+// régua de `FAIXAS`, 600 linhas acima, no mesmo arquivo. Duplicata dentro de si
+// mesmo é a que menos se enxerga, e o modo de falhar era silencioso e caro:
+// mexer numa faixa (trocar R$ 5.000 por R$ 6.000, por exemplo) fazia
+// `ehPerguntaDeFaixa` REJEITAR a pergunta correta do SDR, o turno inteiro ser
+// descartado e o motor de regras assumir — sem erro, sem log, sem tela vermelha.
+// A regra nova simplesmente nunca rodaria.
+//
+// Agora sai da própria `FAIXAS`. `Infinity` fica de fora porque não é um número
+// que alguém escreve numa frase ("acima de R$ 5.000" cita o 5.000, não o teto).
+const LIMITES_DE_FAIXA = new Set(
+  FAIXAS.flatMap((f) => [f.de, f.ate])
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .map((n) => String(n)),
+);
 const VALOR_MONETARIO = /r\$\s*([\d.,]+)|(\d[\d.,]*)\s*reais/gi;
 
 export function ehPerguntaDeFaixa(reply: string): boolean {

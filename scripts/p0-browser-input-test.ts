@@ -11,6 +11,17 @@
 //   5. Operational gap check per department
 //   6. Final verdict
 
+import { PLANOS_PUBLICOS } from "../lib/agency/planos";
+import { adicionalPorId } from "../lib/agency/adicionais";
+
+// A encenação usa o degrau destacado da tabela real. Fixture de proposta que
+// inventa plano é fixture que ensina o erro que ela deveria detectar.
+const PLANO_DA_ENCENACAO =
+  PLANOS_PUBLICOS.find((p) => p.destaque) ?? PLANOS_PUBLICOS[PLANOS_PUBLICOS.length - 1];
+const FAIXA_DO_PLANO = { minPrice: PLANO_DA_ENCENACAO.preco, maxPrice: PLANO_DA_ENCENACAO.preco };
+const marca = adicionalPorId("branding")!;
+const FAIXA_DA_MARCA = { minPrice: marca.precoDe, maxPrice: marca.precoAte };
+
 const BASE   = process.env.BASE_URL ?? "http://127.0.0.1:8125";
 const MASTER = { email: "master@dioli.studio", password: "dioli2025" };
 
@@ -244,8 +255,11 @@ async function main() {
         totalMin: 2200,
         totalMax: 3200,
         items: [
-          { label: "Social Media — Plano Growth (12 posts + 20 stories + 2 reels)", minPrice: 1400, maxPrice: 2000, unit: "mês" },
-          { label: "Identidade Visual — Direção visual completa", minPrice: 800, maxPrice: 1200, unit: "projeto" },
+          // Fixture derivada da fonte única: este script encena uma proposta
+          // vista por um prospect, e até 16/08/2026 ele encenava o "Plano
+          // Growth" a R$ 1.400–2.000 — plano inexistente, preço inexistente.
+          { label: `Social Media — Plano ${PLANO_DA_ENCENACAO.nome}`, ...FAIXA_DO_PLANO, unit: "mês" },
+          { label: "Identidade Visual — Direção visual completa", ...FAIXA_DA_MARCA, unit: "projeto" },
         ],
         included: ["Gestão de perfil Instagram", "12 posts/mês", "20 stories/mês", "2 reels editados", "Copywriting", "Direção visual"],
         notIncluded: ["Produção fotográfica", "Tráfego pago", "TikTok"],

@@ -3,7 +3,16 @@
 // ─── O QUE MUDOU EM 16/08/2026, E POR QUÊ ────────────────────────────────────
 //
 // Ordem do CEO: a tabela tem **SEIS** degraus, e o preço mora em UM lugar só.
-// Antes desta data havia TRÊS tabelas de preço de plano vivas ao mesmo tempo:
+//
+// ⚠️ **A contagem abaixo foi corrigida na 2ª rodada.** A 1ª dizia "três tabelas"
+// e a camada de dúvida achou mais: o balcão duplicado em `negociacao.ts`, a
+// economia dos adicionais em duas tabelas, uma terceira cópia do reel com piso
+// contraditório, e — a pior — o **SDR oferecendo ao prospect um "Plano Starter
+// (R$ 1.200–1.800/mês)" que nunca existiu**, a quatro vezes o preço real. Ver
+// `docs/precos.md`. Número de tabelas em prosa envelhece: o que vale é o portão.
+//
+// Antes desta data havia, no mínimo, estas tabelas de preço de plano vivas ao
+// mesmo tempo:
 //
 //   1. este arquivo, com 5 planos (Pulso…Crescimento);
 //   2. `comercial/negociacao.ts` → `TABELA_DE_PISO`, com `cheio` por plano
@@ -14,10 +23,15 @@
 //      — e essa era a tabela que o **briefing PÚBLICO** cotava para o prospect.
 //
 // A terceira era o dano real: o site dizia R$ 2.590 e a proposta gerada na
-// mesma casa dizia "Plano Growth, R$ 1.500 a R$ 2.400". As três foram
-// ELIMINADAS como fonte — as duas de baixo passaram a DERIVAR desta. Não foram
-// sincronizadas: duplicata sincronizada volta a divergir no primeiro dia de
-// pressa. Quem quiser mudar preço muda aqui, e só aqui.
+// mesma casa dizia "Plano Growth, R$ 1.500 a R$ 2.400". Todas foram ELIMINADAS
+// como fonte e passaram a DERIVAR desta. Não foram sincronizadas: duplicata
+// sincronizada volta a divergir no primeiro dia de pressa.
+//
+// **Quem quiser mudar preço muda aqui, e só aqui** — e o que garante isso não é
+// esta frase, é `__tests__/comercial/preco-uma-fonte-so.test.ts`, que varre o
+// código atrás de estruturas com três ou mais preços declarados. Ele detecta
+// FORMA, não valor: a 1ª rodada procurava os seis números oficiais e teria
+// passado verde por cima do próprio incidente, cujos números eram outros.
 //
 // ─── A REGRA QUE SUSTENTA A BASE DA TABELA ───────────────────────────────────
 // Gente entra a partir do Presença. Abaixo disso a operação é máquina, e é só
@@ -34,8 +48,19 @@
 // conta do cliente, e a conta de anúncios da agência está restrita desde
 // 03/08/2026. Vender operação diária hoje é vender o que não se pode entregar.
 //
-// **Superfície de cliente lê `PLANOS_PUBLICOS`. Nunca `PLANOS`.** Há teste que
-// reprova o contrário (`__tests__/comercial/preco-uma-fonte-so.test.ts`).
+// **Superfície de cliente lê `PLANOS_PUBLICOS`.** A garantia é transitiva: o
+// portão anda o GRAFO DE IMPORTS a partir de toda tela e rota que um cliente
+// alcança, e reprova qualquer módulo no caminho que importe `PLANOS`,
+// `PLANOS_INTERNOS` ou `planoPorId` sem estar na lista de **filtros provados**
+// — e "provado" quer dizer que existe teste mostrando que aquele módulo nunca
+// devolve plano não vendável.
+//
+// ⚠️ **A 1ª rodada escreveu aqui "nunca `PLANOS`" e isso era FALSO na hora em
+// que foi escrito.** `self-serve-catalog.ts` importa `PLANOS` e é a fonte da
+// vitrine pública; escapava porque a checagem era uma regex numa lista de
+// pastas feita à mão, e `lib/` não estava nela. Pior: a regex era
+// `/\bPLANOS\b(?!_)/`, que **não casa dentro de `PLANOS_INTERNOS`** — o nome da
+// variável dos não-vendáveis era exatamente o que passava batido.
 //
 // ─── O QUE NÃO PODE ENTRAR AQUI ──────────────────────────────────────────────
 //   • serviço que a casa não entrega hoje com código rodando em produção;
@@ -310,6 +335,33 @@ export const PLANOS_INTERNOS: Plano[] = PLANOS.filter((p) => p.exposicao === "in
 export function planoPorId(id: string): Plano | undefined {
   return PLANOS.find((p) => p.id === id);
 }
+
+/**
+ * O DEGRAU DE ENTRADA COM PEÇAS — o mais barato que produz conteúdo.
+ *
+ * Existe porque o SDR precisa citar "o plano de entrada" numa frase que vai ao
+ * prospect, e essa frase estava escrita à mão: até 16/08/2026 ele oferecia o
+ * "**Plano Starter (R$ 1.200–1.800/mês)**" — plano que nunca existiu, a um
+ * preço que não está escrito em lugar nenhum, **quatro vezes** o valor real.
+ * Duas varreduras de preço passaram por cima disso sem ver, porque o número não
+ * era preço de plano de ninguém.
+ *
+ * Derivado, e não fixado: se um degrau mais barato com peças entrar na tabela,
+ * a fala do SDR acompanha sozinha.
+ */
+export const PLANO_DE_ENTRADA_COM_PECAS: Plano = (() => {
+  const comPecas = PLANOS.filter(
+    (p) => p.exposicao === "publico" && p.pecasPorMes !== null && p.pecasPorMes > 0,
+  ).sort((a, b) => a.preco - b.preco)[0];
+  if (!comPecas) {
+    // Falha alto no import. Uma frase de venda com `undefined.nome` chega ao
+    // prospect; uma build quebrada, não.
+    throw new Error(
+      "planos.ts: nenhum plano público produz peça. O SDR não tem o que oferecer como entrada.",
+    );
+  }
+  return comPecas;
+})();
 
 /**
  * `true` só quando o plano pode ser proposto, cotado ou exibido a alguém de

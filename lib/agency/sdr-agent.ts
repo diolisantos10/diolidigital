@@ -5,6 +5,7 @@
 
 import type { BriefingScope, ConvState, LiveEstimate } from "./briefing-conversation";
 import { remainingRequiredQuestions } from "./question-engine";
+import { PLANO_DE_ENTRADA_COM_PECAS, precoEmReais } from "./planos";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -244,18 +245,28 @@ export function buildPriceObjectionReply(
 ): string {
   const biz = scope.businessName ?? "seu negócio";
   const isResto = isRestaurantSegment(scope);
+  // 🔴 Até 16/08/2026 estas respostas — que vão AO PROSPECT, na conversa —
+  // citavam o "**Plano Starter (R$ 1.200–1.800/mês)**". Esse plano nunca
+  // existiu e esse preço não está escrito em lugar nenhum da casa. A tabela
+  // oficial de 8 peças/mês é o RITMO, a R$ 297. O SDR estava ancorando o
+  // prospect em quatro vezes o preço real, e nenhuma das duas varreduras de
+  // preço tinha pego, porque o número não era preço de plano de ninguém.
+  const ENTRADA = PLANO_DE_ENTRADA_COM_PECAS;
+  const nomeDoPlano = `Plano ${ENTRADA.nome}`;
+  const precoDoPlano = precoEmReais(ENTRADA.preco);
+  const cadencia = ENTRADA.pecasPorMes === null ? "cadência a confirmar" : `${ENTRADA.pecasPorMes} peças/mês`;
   const restoTip = isResto
-    ? "\n\nPara restaurantes, o **Plano Starter** com foco em Instagram já gera bons resultados — fotos de pratos, stories de cardápio e promoções semanais."
+    ? `\n\nPara restaurantes, o **${nomeDoPlano}** com foco em Instagram já gera bons resultados — fotos de pratos, stories de cardápio e promoções semanais.`
     : "";
 
   if (parsedBudget !== undefined) {
     const budgetStr = `R$ ${parsedBudget.toLocaleString("pt-BR")}`;
-    if (parsedBudget < 1200) {
-      return `Entendo — ${budgetStr} é o limite que você tem em mente.\n\nNosso plano de entrada começa em **R$ 1.200/mês** (Plano Starter: 8 posts + 8 stories/mês). Com ${budgetStr}, ficamos fora do nosso padrão mínimo, mas posso apresentar o que é possível dentro dessa faixa.${restoTip}\n\nQuer explorar o **Plano Starter** como ponto de partida para o **${biz}**, ou prefere me contar qual é a prioridade máxima?`;
+    if (parsedBudget < ENTRADA.preco) {
+      return `Entendo — ${budgetStr} é o limite que você tem em mente.\n\nNosso plano com peças começa em **${precoDoPlano}/mês** (${nomeDoPlano}: ${cadencia}). Com ${budgetStr}, posso te mostrar o que cabe nessa faixa.${restoTip}\n\nQuer explorar o **${nomeDoPlano}** como ponto de partida para o **${biz}**, ou prefere me contar qual é a prioridade máxima?`;
     }
     if (estimate.totalMin > 0 && parsedBudget < estimate.totalMin) {
       const gap = estimate.totalMin - parsedBudget;
-      return `Entendo — ${budgetStr} é o orçamento que você tem em mente para o **${biz}**.\n\nO escopo atual está em **R$ ${estimate.totalMin.toLocaleString("pt-BR")}–${estimate.totalMax.toLocaleString("pt-BR")}/mês** — uma diferença de R$ ${gap.toLocaleString("pt-BR")}. Posso ajustar para o **Plano Starter (R$ 1.200–1.800/mês)** — 8 posts + 8 stories/mês — que fica mais próximo.${restoTip}\n\nQuer que eu faça esse ajuste?`;
+      return `Entendo — ${budgetStr} é o orçamento que você tem em mente para o **${biz}**.\n\nO escopo atual está em **R$ ${estimate.totalMin.toLocaleString("pt-BR")}–${estimate.totalMax.toLocaleString("pt-BR")}/mês** — uma diferença de R$ ${gap.toLocaleString("pt-BR")}. Posso ajustar para o **${nomeDoPlano} (${precoDoPlano}/mês)** — ${cadencia} — que fica mais próximo.${restoTip}\n\nQuer que eu faça esse ajuste?`;
     }
     return `Entendido — ${budgetStr}/mês está dentro do que planejamos para o **${biz}**. Podemos seguir com o escopo atual.`;
   }
@@ -263,7 +274,7 @@ export function buildPriceObjectionReply(
   // Generic price objection
   const postsPerMonth = (scope.social?.postsPerWeek ?? 0) * 4;
   if (postsPerMonth > 8) {
-    return `Entendo a preocupação com o investimento. O plano atual inclui **${postsPerMonth} posts/mês** — um volume que entrega resultados consistentes para o **${biz}**.\n\nSe preferir começar menor, posso ajustar para o **Plano Starter (R$ 1.200–1.800/mês)** — 8 posts + 8 stories/mês. Qual faixa de orçamento você tem em mente?`;
+    return `Entendo a preocupação com o investimento. O plano atual inclui **${postsPerMonth} posts/mês** — um volume que entrega resultados consistentes para o **${biz}**.\n\nSe preferir começar menor, posso ajustar para o **${nomeDoPlano} (${precoDoPlano}/mês)** — ${cadencia}. Qual faixa de orçamento você tem em mente?`;
   }
   return `Entendo. Qual é a faixa de investimento que você tem em mente para o **${biz}**? Com esse número, ajusto o escopo para encaixar.`;
 }
@@ -422,7 +433,7 @@ export function runSDRQualityGate(conv: ConvState, sdr: SDRAgentState): SDRQuali
       detail: ({
         fits:              "Budget adequado ao escopo.",
         above_budget:      "Budget abaixo da estimativa — escopo ajustado.",
-        below_recommended: "Budget abaixo do Plano Starter mínimo.",
+        below_recommended: `Budget abaixo do ${PLANO_DE_ENTRADA_COM_PECAS.nome}, o menor plano com peças.`,
         unknown:           "Status de budget não avaliado.",
       } as const)[sdr.budgetSignal.fitStatus],
     },
@@ -632,7 +643,7 @@ export function buildBrainReasoningOutput(
 
   const risks: string[] = [];
   if (sdr.objection.active) risks.push(`Objeção ativa: ${sdr.objection.types.join(", ")}`);
-  if (sdr.budgetSignal.fitStatus === "below_recommended") risks.push("Budget abaixo do Plano Starter mínimo");
+  if (sdr.budgetSignal.fitStatus === "below_recommended") risks.push(`Budget abaixo do ${PLANO_DE_ENTRADA_COM_PECAS.nome}, o menor plano com peças`);
   if (sdr.objection.types.includes("needs_internal_approval")) risks.push("Aprovação interna pendente");
   if (e.confidence === "none" || e.confidence === "low") risks.push("Estimativa com baixa confiança");
 
@@ -707,7 +718,7 @@ export function buildHandoffSummary(conv: ConvState, sdr: SDRAgentState): SDRHan
     const fitLabels: Record<BudgetSignal["fitStatus"], string> = {
       fits:              "Budget adequado ao escopo.",
       above_budget:      "Budget abaixo da estimativa — escopo foi ajustado.",
-      below_recommended: "Budget abaixo do Plano Starter (R$ 1.200 mínimo).",
+      below_recommended: `Budget abaixo do ${PLANO_DE_ENTRADA_COM_PECAS.nome} (${precoEmReais(PLANO_DE_ENTRADA_COM_PECAS.preco)}).`,
       unknown:           "Status de budget desconhecido.",
     };
     budgetFit = `Prospect mencionou: R$ ${sdr.budgetSignal.amount.toLocaleString("pt-BR")}. ${fitLabels[sdr.budgetSignal.fitStatus]}`;
@@ -734,12 +745,12 @@ export function buildHandoffSummary(conv: ConvState, sdr: SDRAgentState): SDRHan
     tradeoffsAccepted.push("Tráfego pago deixado de fora");
   const ppm = (scope.social?.postsPerWeek ?? 0) * 4;
   if (ppm <= 8 && sdr.objection.types.some((t) => ["price_too_high", "wants_cheaper"].includes(t)))
-    tradeoffsAccepted.push("Plano Starter aceito (8 posts/mês)");
+    tradeoffsAccepted.push(`${PLANO_DE_ENTRADA_COM_PECAS.nome} aceito`);
 
   const unresolvedRisks: string[] = [];
   if (sdr.objection.active) unresolvedRisks.push("Objeção de preço não resolvida na conversa");
   if (sdr.budgetSignal.fitStatus === "below_recommended")
-    unresolvedRisks.push("Budget abaixo do Plano Starter mínimo");
+    unresolvedRisks.push(`Budget abaixo do ${PLANO_DE_ENTRADA_COM_PECAS.nome}`);
   if (sdr.objection.types.includes("needs_internal_approval"))
     unresolvedRisks.push("Aprovação interna pendente");
 

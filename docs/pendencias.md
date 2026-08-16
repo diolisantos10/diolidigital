@@ -25,7 +25,105 @@ R$ 1.500 a R$ 2.400"**.
 **Portão:** `npx tsc --noEmit` limpo · **4.470 testes em 281 arquivos, todos
 verdes** (10 novos no portão de preço, 12 no medidor de esforço).
 
-### 🔴 EXISTIAM QUATRO CATÁLOGOS DE PREÇO DE PLANO, NÃO UM
+### 🔴 2ª RODADA, NO MESMO DIA — `qualidade` REFUTOU O DETECTOR
+
+A camada de dúvida rodou por fora e confirmou 4 das 6 afirmações. **Refutou a
+peça central**, e a frase do laudo é justa:
+
+> **"Detector calibrado contra CÓPIA não pega DIVERGÊNCIA."**
+
+O portão da 1ª rodada caçava os seis preços oficiais. **O incidente que originou
+tudo tinha números OUTROS** (600 / 900 / 1.400 / 2.400 / 6.500) — ele teria
+passado **verde por cima do próprio incidente**. **11 de 13 bypasses plantados
+passaram.** A regra virou **FORMA**: três ou mais preços declarados fora das
+fontes é catálogo, tenha os números que tiver.
+
+### 🔴 O PIOR ACHADO DO DIA VEIO DEPOIS: O SDR FALAVA UM PLANO QUE NÃO EXISTE
+
+`lib/agency/sdr-agent.ts` e `lib/agency/question-engine.ts` ofereciam ao
+prospect, **na conversa**, o *"**Plano Starter (R$ 1.200–1.800/mês)** — 8 posts +
+8 stories/mês"*.
+
+| | o que o SDR dizia | o que a casa vende |
+|---|---|---|
+| plano | "Starter" | **Ritmo** |
+| preço | R$ 1.200–1.800/mês | **R$ 297/mês** |
+| escopo | 8 posts + 8 stories | 8 peças/mês |
+
+**Quatro vezes o preço real, para o mesmo escopo.** E nenhuma das duas
+varreduras de preço tinha visto — porque **o número não era preço de plano de
+ninguém**, e era exatamente isso que os detectores procuravam. Foi a regra de
+FORMA (nome de plano fantasma, sem exigir aspas) que o pegou.
+
+Conserto: `PLANO_DE_ENTRADA_COM_PECAS` em `planos.ts` — derivado (o mais barato
+que produz peça), não fixado. Se um degrau mais barato com peças entrar, a fala
+do SDR acompanha sozinha.
+
+### 🔴 A TRAVA DO PERFORMANCE TINHA QUATRO FUROS
+
+O pior era **o nome da variável dos não-vendáveis**: `/\bPLANOS\b(?!_)/` **não
+casa dentro de `PLANOS_INTERNOS`**, porque `_` é caractere de palavra e não há
+fronteira ali. Uma tela pública iterando `PLANOS_INTERNOS` publicaria o
+Performance com o portão **verde**. Os outros três: `planoPorId("performance")`
+(nunca contém o literal 4990), re-export intermediário, e `fetch` de rota de API.
+
+Agora a checagem é **por símbolo** e **transitiva pelo grafo de imports**, e a
+lista de superfícies é **por EXCLUSÃO** — pasta nova nasce protegida, não
+invisível. Módulo que toca símbolo perigoso só passa se estiver em
+`FILTROS_PROVADOS`, e "provado" quer dizer **com teste que mostra que ele nunca
+devolve plano não vendável**.
+
+> ⚠️ **Uma afirmação da 1ª rodada era FALSA quando foi escrita:** *"superfície de
+> cliente lê PLANOS_PUBLICOS, nunca PLANOS"*. `self-serve-catalog.ts` importa
+> `PLANOS` e é a fonte da vitrine pública — escapava porque `lib/` não estava na
+> lista de pastas. Corrigido no código, no teste e em `docs/precos.md`.
+> **Comentário que promete mais do que o mecanismo entrega é a mentira mais cara
+> desta casa.**
+
+### AS OUTRAS QUATRO FONTES QUE A 1ª RODADA NÃO VIU
+
+1. **Adicionais em duas tabelas digitadas** — o `maxPrice` de `live-calculator`
+   era, número por número, o `targetPrice` de `pricing-margins`. Nasceu
+   `lib/agency/adicionais.ts`, e as duas derivam.
+2. **Terceira cópia da economia do reel, com CONTRADIÇÃO VIVA:** piso R$ 200
+   contra mínimo de tabela R$ 150 — o piso ACIMA do menor valor cotável. **Não
+   escolhi qual vale**: nenhum tem procedência. `piso: null`, e o reel não fecha
+   automático.
+3. **`negociacao.ts` duplicava os limites de faixa dentro de si mesmo.** Modo de
+   falhar silencioso: mexer numa faixa fazia `ehPerguntaDeFaixa` rejeitar a
+   pergunta CERTA do SDR e o turno ser descartado, sem erro nem log.
+4. **O `pricing` da proposta era TEXTO LIVRE** indo direto ao cliente. Agora,
+   quando cita um plano, é conferido contra a fonte; proposta sob medida continua
+   passando, marcada como não conferida.
+
+### AS PROBES — cada correção com o bypass plantado
+
+O Diretor foi explícito: *"não aceito 'agora cobre' sem a probe"*. Cada teste
+novo roda a regra ANTIGA sobre o bypass e exige que ela **falhe**, depois roda a
+regra nova e exige que ela **pegue**:
+
+- catálogo com números divergentes · `R$ 297,00` · `=` no lugar de `:` · tupla
+  `[["Ritmo",297]]` · chave fora da lista · template `` `R$ ${297}` `` · centavos
+  como inteiro · string `"297"` · aritmética `300-3` · `PLANOS_INTERNOS` numa
+  tela · `planoPorId` · nome de plano em template.
+- ✅ **e a metade que impede o alarme de ser desligado:** `R$ 49,90` do rodízio
+  do Sushi Cazza, preço de balcão, `timeoutMs = 2590` e URL com `/planos`
+  continuam passando.
+
+### O LIMITE DO PORTÃO, ESCRITO EM VEZ DE ESCONDIDO
+
+`de` e `ate` ficaram **fora** da lista de chaves de preço: em `negociacao.ts`
+são limites de bolso e degraus de desconto, e incluí-las fazia o portão gritar no
+caso limpo. `adicionais.ts` passou a usar `precoDe`/`precoAte`, que são
+inequívocos. **O buraco que sobra está declarado no teste:** um catálogo escrito
+só com `{ de, ate }` escapa da regra de forma. Não fecha sem parser de verdade.
+
+**Portão da 2ª rodada:** `tsc` limpo · **4.501 testes em 282 arquivos, todos
+verdes** · `npm run build` sai **0**.
+
+---
+
+### 🔴 EXISTIAM QUATRO CATÁLOGOS DE PREÇO DE PLANO, NÃO UM (o que a 1ª rodada viu)
 
 | Onde | O que declarava | Chegava a quem |
 |---|---|---|
@@ -142,6 +240,14 @@ senão a conta mais cara da casa apareceria como a mais barata.
       `setup-meta-ads` (R$ 380, vitrine pública) e "Gestão de Tráfego Pago"
       (R$ 500–1.200). É a mesma laranja que barrou o Performance. **Nada foi
       removido** — tirar produto do ar é decisão de negócio.
+- [ ] **CEO** — **o piso do reel avulso.** `live-calculator` dizia mínimo R$ 150
+      e `pricing-margins` dizia piso R$ 200 — o piso ACIMA do mínimo cotável.
+      Nenhum dos dois tem procedência escrita. Enquanto não decidir, o reel não
+      é cotado nem fechado automaticamente.
+- [ ] **CEO** — **Identidade Visual: R$ 2.900 (`docs/precos.md`) × faixa
+      R$ 1.200–2.500 (código).** O teto do código fica ABAIXO do preço do
+      documento. Faixa e preço fechado são produtos diferentes; escolher um
+      seria decidir preço.
 - [ ] **CEO** — **os "24 verdes".** O código só prova **5** (os planos públicos).
       A lista completa, com o "não sei" explícito item a item, está em
       `docs/catalogo-vendavel.md`.

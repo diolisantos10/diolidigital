@@ -11,6 +11,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { SOCIAL_PACKAGES, type PackageDef } from "./live-calculator";
+// Terceiro lugar onde a faixa dos adicionais estava digitada. Agora deriva.
+import { adicionalPorId } from "./adicionais";
+
+/** A faixa de um adicional nos nomes que este catálogo usa. */
+function faixaDoAdicional(id: string): { minPrice: number; maxPrice: number } {
+  const a = adicionalPorId(id);
+  if (!a) throw new Error(`service-catalog.ts: adicional "${id}" não existe em adicionais.ts.`);
+  return { minPrice: a.precoDe, maxPrice: a.precoAte };
+}
 
 export type DepartmentId = "social" | "traffic" | "branding";
 
@@ -53,8 +62,7 @@ export const DEPARTMENT_CATALOG: DepartmentCatalog[] = [
         id: "traffic-mgmt",
         label: "Gestão de Tráfego Pago",
         detail: "Setup, criação e gerenciamento mensal de campanhas (verba de mídia à parte)",
-        minPrice: 500,
-        maxPrice: 1200,
+        ...faixaDoAdicional("trafficMgmt"),
         unit: "mês",
       },
     ],
@@ -69,16 +77,14 @@ export const DEPARTMENT_CATALOG: DepartmentCatalog[] = [
         id: "branding-basic",
         label: "Identidade Visual",
         detail: "Logo, paleta, tipografia e aplicações essenciais",
-        minPrice: 1200,
-        maxPrice: 2500,
+        ...faixaDoAdicional("branding"),
         unit: "projeto",
       },
       {
         id: "branding-full",
         label: "Rebranding Completo",
         detail: "Brand book completo, reposicionamento e sistema visual",
-        minPrice: 2000,
-        maxPrice: 4000,
+        ...faixaDoAdicional("brandingFull"),
         unit: "projeto",
       },
     ],

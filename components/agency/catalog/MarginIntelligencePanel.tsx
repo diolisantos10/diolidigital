@@ -9,6 +9,7 @@
 // Never rendered for non-master roles, and never shown in the public briefing.
 
 import { useAgencyStore } from "@/store/agency-store";
+import { ADICIONAIS, ADICIONAIS_COM_CONTRADICAO } from "@/lib/agency/adicionais";
 import { SOCIAL_PACKAGES } from "@/lib/agency/live-calculator";
 import {
   SOCIAL_MARGINS,
@@ -26,10 +27,12 @@ function MarginBadge({ pct }: { pct: number | null }) {
   // `null` = o custo daquela linha nunca foi medido. A pílula NÃO fica verde
   // nem some: ela diz "sem custo". Um selo verde sobre custo desconhecido é
   // exatamente o carimbo falso que esta casa já pagou caro.
+  // `inline-flex` + `whitespace-nowrap`: com `h-5` fixo e o rótulo livre para
+  // quebrar, a 375px o texto saía POR FORA da pílula.
   if (pct === null) {
     return (
       <span
-        className="h-5 px-2 rounded-full text-[10px] font-bold bg-[var(--warning-bg)] text-[var(--warning)]"
+        className="inline-flex h-5 items-center whitespace-nowrap rounded-full bg-[var(--warning-bg)] px-2 text-[10px] font-bold text-[var(--warning)]"
         title="Custo de atendimento nunca medido — a margem não pode ser afirmada."
       >
         sem custo
@@ -38,7 +41,11 @@ function MarginBadge({ pct }: { pct: number | null }) {
   }
   const tone =
     pct >= 60 ? "bg-[var(--success-bg)] text-[var(--success)]" : pct >= 45 ? "bg-[var(--warning-bg)] text-[var(--warning)]" : "bg-[#FEE2E2] text-[var(--danger)]";
-  return <span className={`h-5 px-2 rounded-full text-[10px] font-bold ${tone}`}>{pct}%</span>;
+  return (
+    <span className={`inline-flex h-5 items-center whitespace-nowrap rounded-full px-2 text-[10px] font-bold ${tone}`}>
+      {pct}%
+    </span>
+  );
 }
 
 function Row({
@@ -56,12 +63,32 @@ function Row({
   const marginAtTarget = marginPct(profile.targetPrice, profile.costBasis);
   return (
     <tr className="border-t border-[var(--border)]">
+      {/* PAINEL ESCURO — os degraus de texto do DESIGN.md §2.2 são calibrados
+          para fundo CLARO. `--text-primary` (#1F2937) sobre este #0B0E1A dá
+          1,29:1: o nome do serviço, que é a primeira coluna da tabela, estava
+          praticamente apagado. As células soltas escapavam por acidente
+          (`[&_td]:text-white` no `tbody` vence a classe do próprio `td`) — o
+          que estava dentro de `div`/`span` não escapava. Branco para o nome,
+          `--text-on-dark` para o apoio. */}
       <td className="p-3">
-        <div className="text-[13px] font-medium text-[var(--text-primary)]">{label}</div>
-        <div className="text-[10px] text-[var(--text-muted)]">{detail}</div>
+        <div className="text-[13px] font-medium text-white">{label}</div>
+        <div className="text-[10px] text-[var(--text-on-dark)]">{detail}</div>
       </td>
       <td className="p-3 text-center text-[12px] text-[var(--text-secondary)] mono-num">
-        {profile.costBasis === null ? <span className="text-[var(--warning)]" title="custo de atendimento nunca medido">não medido</span> : brl(profile.costBasis)}
+        {profile.costBasis === null ? (
+          // Mesma ausência da pílula "sem custo" ao lado — e agora com a mesma
+          // aparência. Em texto solto ela era `--warning` sobre o escuro: 3,6:1,
+          // reprovado em AA, justamente na palavra que avisa que o número não
+          // existe.
+          <span
+            className="inline-flex h-5 items-center whitespace-nowrap rounded-full bg-[var(--warning-bg)] px-2 text-[10px] font-bold text-[var(--warning)]"
+            title="custo de atendimento nunca medido"
+          >
+            não medido
+          </span>
+        ) : (
+          brl(profile.costBasis)
+        )}
       </td>
       <td className="p-3 text-center text-[12px] font-semibold text-[var(--danger)] mono-num">{brl(profile.floorPrice)}</td>
       <td className="p-3 text-center text-[12px] text-[var(--text-primary)] mono-num">{brl(list)}</td>
@@ -92,8 +119,14 @@ export default function MarginIntelligencePanel() {
         </div>
       </div>
 
+      {/* `overflow-x-auto` SEM `min-w` não rola: a tabela obedece ao `w-full` e
+          ESMAGA as sete colunas dentro de 340px — a 375px "R$ 229" quebrava em
+          duas linhas e a pílula de custo entrava por cima da coluna vizinha. É
+          a §6.3 do DESIGN.md: container de tabela precisa de `min-w` explícito.
+          (A dívida maior — abaixo de `lg` isto deveria ser lista de cartões —
+          está registrada para o PM; aqui ficou a rolagem funcionando.) */}
       <div className="p-2 overflow-x-auto">
-        <table className="w-full border-collapse text-[12px]">
+        <table className="w-full min-w-[760px] border-collapse text-[12px]">
           <thead>
             <tr className="text-[10px] uppercase tracking-[0.05em] text-[#6B7280]">
               <th className="text-left p-3 font-semibold w-[200px]">Serviço</th>
@@ -122,12 +155,37 @@ export default function MarginIntelligencePanel() {
                 />
               );
             })}
-            <Row label="Tráfego Pago — gestão" detail="Fee mensal (verba à parte)" list={500} profile={ADDON_MARGINS.trafficMgmt} />
-            <Row label="Identidade Visual" detail="Projeto" list={1200} profile={ADDON_MARGINS.branding} />
-            <Row label="Rebranding Completo" detail="Projeto" list={2000} profile={ADDON_MARGINS.brandingFull} />
+            {/* Os adicionais também deixaram de ser digitados aqui: rótulo,
+                faixa e perfil vêm de `lib/agency/adicionais.ts`. O que NÃO tem
+                piso decidido (hoje: o reel) aparece na linha de aviso abaixo,
+                nunca como uma linha de margem com número inventado. */}
+            {ADICIONAIS.map((a) => {
+              const perfil = ADDON_MARGINS[a.id];
+              if (!perfil) return null;
+              return <Row key={a.id} label={a.nome} detail={`${a.unidade} · faixa de tabela`} list={a.precoDe} profile={perfil} />;
+            })}
           </tbody>
         </table>
       </div>
+
+      {/* 🔴 O que a tabela NÃO pode mostrar, e por quê. Sumir em silêncio é como
+          um item sem piso vira um item que alguém fecha no escuro. */}
+      {ADICIONAIS_COM_CONTRADICAO.length > 0 && (
+        <div className="px-5 pb-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.05em] text-[var(--warning)]">
+            Sem piso decidido ou com contradição aberta
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {ADICIONAIS_COM_CONTRADICAO.map((a) => (
+              <li key={a.id} className="text-[11px] leading-relaxed text-[#8B92A8]">
+                <b className="text-white">{a.nome}</b>
+                {a.piso === null && <span className="text-[var(--warning)]"> · sem piso: não fecha automático</span>}
+                <span className="block">{a.contradicao}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Discount levers */}
       <div className="px-5 py-4 border-t border-[#1F2433]">

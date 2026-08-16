@@ -51,7 +51,7 @@ const ISSUE_PATTERNS: IssuePattern[] = [
     problem:
       "Quando o cliente objeta ao preço, o SDR não propõe plano ajustado nem pergunta budget máximo. A objeção fica sem resposta estruturada.",
     suggestedChange:
-      "Ao detectar objection_types com price_too_high: executar buildPriceObjectionReply com parsedBudget antes de qualquer outro fluxo. Propor Plano Starter quando budget < estimativa atual.",
+      "Ao detectar objection_types com price_too_high: executar buildPriceObjectionReply com parsedBudget antes de qualquer outro fluxo. Propor o menor plano com peças da tabela oficial quando budget < estimativa atual.",
     impact: "critical",
   },
   {

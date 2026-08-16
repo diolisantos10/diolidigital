@@ -7,6 +7,7 @@
 import type { ConvState, ConvMessage, BriefingScope, SocialScope } from "./briefing-conversation";
 import { emptyBrandingScope, emptyScope, emptyEstimate } from "./briefing-conversation";
 import { computeEstimate } from "./live-calculator";
+import { PLANO_DE_ENTRADA_COM_PECAS, precoEmReais } from "./planos";
 import { lerAreaDeAtendimento } from "./comercial/onde-o-negocio-vende";
 
 // ── Text helpers ──────────────────────────────────────────────────────────────
@@ -442,7 +443,7 @@ export function detectNegotiation(text: string, state: ConvState): NegotiationRe
       return {
         scopeDelta: { social: { ...soc, postsPerWeek: 2, storiesPerWeek: 2, reelsPerMonth: 0 }, wantsPaidTraffic: false },
         replyText:
-          "Entendido! Posso ajustar para o **Plano Starter** — 8 posts + 8 stories/mês, sem reels e sem tráfego, faixa de **R$ 1.200–1.800/mês**.\n\nIso serve como ponto de partida. Quando o negócio crescer, a gente escala.",
+          `Entendido! Posso ajustar para o **Plano ${PLANO_DE_ENTRADA_COM_PECAS.nome}** — ${PLANO_DE_ENTRADA_COM_PECAS.pecasPorMes} peças/mês, sem reels e sem tráfego, a **${precoEmReais(PLANO_DE_ENTRADA_COM_PECAS.preco)}/mês**.\n\nIsso serve como ponto de partida. Quando o negócio crescer, a gente escala.`,
       };
     }
     return {
@@ -459,7 +460,7 @@ export function detectNegotiation(text: string, state: ConvState): NegotiationRe
         wantsPaidTraffic: false,
       },
       replyText:
-        "Feito! Ajustei para o **Plano Starter** — 8 posts + 8 stories/mês, sem reels e sem tráfego pago. Faixa de **R$ 1.200–1.800/mês**.\n\nQuando quiser escalar, é só dizer.",
+        `Feito! Ajustei para o **Plano ${PLANO_DE_ENTRADA_COM_PECAS.nome}** — ${PLANO_DE_ENTRADA_COM_PECAS.pecasPorMes} peças/mês, sem reels e sem tráfego pago, a **${precoEmReais(PLANO_DE_ENTRADA_COM_PECAS.preco)}/mês**.\n\nQuando quiser escalar, é só dizer.`,
     };
   }
 

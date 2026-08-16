@@ -10,11 +10,15 @@
 > | Moedas de troca e a régua de faixas do SDR | `lib/agency/comercial/negociacao.ts` (**deriva** de `planos.ts`) |
 > | A cotação do briefing | `lib/agency/live-calculator.ts` (**deriva** de `planos.ts`) |
 > | Custo e margem, uso interno | `lib/agency/pricing-margins.ts` (**deriva** de `planos.ts`) |
+> | Os adicionais (reel, tráfego, marca) | **`lib/agency/adicionais.ts`** |
 > | O balcão (post R$ 79, carrossel R$ 129) | **`lib/agency/self-serve-catalog.ts`** |
 >
-> ### 🔴 EM 16/08/2026 EXISTIAM **QUATRO** TABELAS DE PREÇO DE PLANO
+> ### 🔴 EM 16/08/2026 EXISTIAM **SETE** FONTES DE PREÇO, NÃO UMA
 >
-> Não uma fonte e um documento: quatro catálogos de código, vivos ao mesmo tempo.
+> Não uma fonte e um documento: sete lugares de código declarando preço, vivos
+> ao mesmo tempo. **A 1ª rodada do conserto achou quatro e declarou o problema
+> resolvido; a camada de dúvida achou mais três.** A contagem está aqui porque
+> ela é o argumento — mas o que protege não é este parágrafo, é o portão.
 >
 > | Onde | O que declarava | Chegava a quem |
 > |---|---|---|
@@ -23,18 +27,40 @@
 > | `live-calculator.ts` | **5 planos que não existem** (Essencial, Starter, Growth, Pro, Premium), em FAIXAS: R$ 600–900 · 900–1.400 · 1.500–2.400 · 2.500–4.000 · 4.000–6.500 | **briefing PÚBLICO** |
 > | `pricing-margins.ts` | um **segundo piso** (520 · 820 · 1.300 · 2.200 · 3.600) que contradizia o primeiro | painel de margem do dono |
 >
-> A terceira era o dano: `/planos` dizia **Crescimento R$ 2.590** e, no mesmo dia
-> e na mesma casa, o prospect que preenchia o briefing recebia **"Plano Growth —
-> R$ 1.500 a R$ 2.400"**. As três de baixo foram **ELIMINADAS como fonte** e
-> passaram a **derivar** de `planos.ts`. Não foram sincronizadas: duplicata
-> sincronizada volta a divergir no primeiro dia de pressa.
+> | `sdr-agent.ts` + `question-engine.ts` | 🔴 o **"Plano Starter (R$ 1.200–1.800/mês)"** — plano que nunca existiu, preço que não está escrito em lugar nenhum | **a fala do SDR ao prospect** |
+> | `self-serve-catalog.ts` + `negociacao.ts` | os 5 itens de balcão, os mesmos dez números, nos dois | vitrine + SDR |
+> | `live-calculator.ts` + `pricing-margins.ts` | os adicionais: o `maxPrice` de um era o `targetPrice` do outro, número por número | briefing + painel do dono |
+>
+> A terceira linha era o dano mais visível: `/planos` dizia **Crescimento
+> R$ 2.590** e, no mesmo dia e na mesma casa, o prospect que preenchia o briefing
+> recebia **"Plano Growth — R$ 1.500 a R$ 2.400"**.
+>
+> **A pior, porém, foi a que só a 2ª rodada pegou:** o SDR oferecia ao prospect,
+> na conversa, um plano inexistente a **quatro vezes** o preço real do degrau
+> equivalente (R$ 1.200 contra os R$ 297 do Ritmo, ambos "8 peças/mês"). Nenhuma
+> varredura de preço tinha visto, porque **o número não era preço de plano de
+> ninguém** — e era exatamente isso que os detectores procuravam.
+>
+> Todas foram **ELIMINADAS como fonte** e passaram a **derivar**. Não foram
+> sincronizadas: duplicata sincronizada volta a divergir no primeiro dia de pressa.
+>
+> ### 🔴 A LIÇÃO DA 2ª RODADA: DETECTOR CALIBRADO CONTRA CÓPIA NÃO PEGA DIVERGÊNCIA
+>
+> O primeiro portão montava a lista de números a caçar a partir dos seis preços
+> oficiais. **O incidente que originou tudo tinha números diferentes** — 600, 900,
+> 1.400, 2.400, 1.200. Se o portão de então existisse antes, ele teria passado
+> **verde por cima do próprio incidente**. Hoje ele detecta **FORMA**: três ou
+> mais preços declarados fora das fontes é catálogo, tenha os números que tiver.
 >
 > **Mudou um preço? Muda em `planos.ts` e aqui, no mesmo commit.** Não é
 > disciplina, é portão: `__tests__/comercial/preco-uma-fonte-so.test.ts` lê a
 > tabela "Os seis degraus" daqui, compara com `PLANOS`, **varre o código atrás de
 > preço de plano solto** e **reprova a build**.
 >
-> ⚠️ **O balcão NÃO contém os 5 planos, e isso é de propósito** — são produtos
+> **São TRÊS fontes, e nenhuma duplica a outra:** planos, adicionais e balcão são
+> produtos diferentes. Qualquer quarto lugar que declare preço reprova a build.
+>
+> ⚠️ **O balcão NÃO contém os 6 planos, e isso é de propósito** — são produtos
 > diferentes (ver "Preço por serviço", abaixo). Uma auditoria já leu o balcão
 > procurando os planos e concluiu, errado, que o preço não estava no código.
 
@@ -103,6 +129,8 @@ teste que reprova qualquer superfície de cliente que importe `PLANOS` em vez de
 
 | Falta | Onde some hoje | Quem decide |
 |---|---|---|
+| **Piso do reel avulso** | `live-calculator` dizia mínimo R$ 150 e `pricing-margins` dizia piso R$ 200 — o piso ACIMA do mínimo cotável. Nenhum tem procedência. Hoje `piso: null`: o reel não fecha automático | CEO |
+| **Identidade Visual: R$ 2.900 (este documento) × faixa R$ 1.200–2.500 (código)** | o teto do código fica ABAIXO do preço do documento | CEO |
 | **Piso do Pulso** | não existe em lugar nenhum. O SDR **não consegue fechar Pulso** — `podeFechar("pulso", …)` devolve `false` com o motivo escrito | CEO |
 | **Implantação do Performance** | o parecer escalonou 3 faixas (1.290/1.900/2.900) e nenhuma foi atribuída a ele | CEO |
 | **Piso, escopo, cadência e permanência do Performance** | nunca escritos | CEO |

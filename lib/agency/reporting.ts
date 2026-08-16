@@ -20,18 +20,126 @@ import { needsRevision, getVersion } from "@/lib/agency/deliverables";
 export const INVALID_PRICING_MESSAGE =
   "Defina o investimento antes de enviar a proposta ao cliente.";
 
-export function isValidProposalPricing(pricing?: string): boolean {
-  if (!pricing) return false;
-  const norm = pricing.trim().toLowerCase();
-  if (norm.length === 0) return false;
-  // Phrase placeholders — block if they appear anywhere in the value.
-  if (norm.includes("a definir") || norm.includes("tbd") || norm.includes("to be defined")) return false;
-  // Exact-token placeholders (dashes / bare zero with optional currency symbol).
+// ─── 🔴 A MAIOR SUPERFÍCIE DE PREÇO SOLTO DA CASA (achada em 16/08/2026) ──────
+//
+// `proposal.pricing` é **texto livre** e vai direto ao cliente
+// (`store/agency-store.ts` → `sendProposal`). Até aqui, a única exigência era
+// "não estar vazio e não ser zero": qualquer string passava. Alguém podia
+// escrever "Plano Ritmo — R$ 197/mês" e a proposta saía, com um preço que não
+// existe em lugar nenhum e sem nada vermelho na tela.
+//
+// **O que NÃO dá para fazer, e não foi feito:** exigir que todo `pricing` cite
+// um plano. Proposta legítima cota projeto (marca, site, fases), pacote misto e
+// escopo sob medida — travar isso quebraria o produto para consertar o portão.
+//
+// **O que dá para fazer, e é mecanismo:** quando o texto CITA um plano da casa
+// pelo nome, ele passa a ser conferido contra a fonte única. Divergência
+// provável vira recusa; o que não é conferível segue passando, e o chamador
+// sabe que não foi conferido (`ancorado: false`).
+
+import { PLANOS, precoEmReais } from "./planos";
+
+export interface VeredictoDoPreco {
+  pode: boolean;
+  /** true quando o texto citou um plano e foi possível conferir o número. */
+  ancorado: boolean;
+  motivo: string;
+}
+
+/** Todo valor em reais dentro do texto, normalizado. "R$ 1.390,00" → 1390. */
+function valoresCitados(texto: string): number[] {
+  const saida: number[] = [];
+  for (const m of texto.matchAll(/R\$\s*(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{2}))?/gi)) {
+    const inteiro = Number(m[1].replace(/\./g, ""));
+    // Centavos diferentes de zero são um valor DIFERENTE do inteiro: R$ 49,90
+    // não é R$ 49. Somar os centavos evita tanto o falso negativo quanto o
+    // falso positivo.
+    const centavos = m[2] ? Number(m[2]) : 0;
+    saida.push(centavos === 0 ? inteiro : inteiro + centavos / 100);
+  }
+  return saida;
+}
+
+/**
+ * Confere o preço escrito à mão numa proposta contra a fonte única.
+ *
+ * As três recusas, todas prováveis pelo código:
+ *   1. placeholder ou zero (a regra que já existia);
+ *   2. cita um plano **não vendável** (hoje: Performance);
+ *   3. cita um plano vendável com um valor que **não é o preço nem o piso** dele.
+ *
+ * Fora disso, passa — e devolve `ancorado: false` para quem quiser exibir
+ * "este valor não foi conferido contra a tabela".
+ */
+export function conferirPrecoDaProposta(pricing?: string): VeredictoDoPreco {
+  if (!pricing) return { pode: false, ancorado: false, motivo: INVALID_PRICING_MESSAGE };
+  const bruto = pricing.trim();
+  const norm = bruto.toLowerCase();
+  if (norm.length === 0) return { pode: false, ancorado: false, motivo: INVALID_PRICING_MESSAGE };
+  if (norm.includes("a definir") || norm.includes("tbd") || norm.includes("to be defined")) {
+    return { pode: false, ancorado: false, motivo: INVALID_PRICING_MESSAGE };
+  }
   const compact = norm.replace(/\s/g, "");
-  if (["-", "–", "—", "0", "€0", "r$0", "$0"].includes(compact)) return false;
-  // Any pure-zero amount, e.g. "0", "0,00", "r$ 0,00", "€0.00".
-  if (/^(r\$|€|\$)?0+([.,]0+)?$/.test(compact)) return false;
-  return true;
+  if (["-", "–", "—", "0", "€0", "r$0", "$0"].includes(compact)) {
+    return { pode: false, ancorado: false, motivo: INVALID_PRICING_MESSAGE };
+  }
+  if (/^(r\$|€|\$)?0+([.,]0+)?$/.test(compact)) {
+    return { pode: false, ancorado: false, motivo: INVALID_PRICING_MESSAGE };
+  }
+
+  const valores = valoresCitados(bruto);
+  let ancorado = false;
+
+  for (const plano of PLANOS) {
+    // Nome do plano como palavra inteira, sem depender de caixa nem de acento
+    // ter sido digitado igual — quem escreve proposta escreve "presenca".
+    const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    if (!new RegExp(`\\b${semAcento(plano.nome)}\\b`).test(semAcento(bruto))) continue;
+    ancorado = true;
+
+    if (plano.exposicao !== "publico") {
+      return {
+        pode: false,
+        ancorado: true,
+        motivo:
+          `A proposta cita o plano ${plano.nome}, que é precificado e NÃO é vendável ` +
+          `(${plano.motivoDoInterno ?? "sem motivo declarado"}). Não envie.`,
+      };
+    }
+
+    // Só confere se houver número. "Plano Presença, condições no contrato" é
+    // legítimo e não tem o que conferir.
+    if (valores.length === 0) continue;
+
+    const autorizados = [plano.preco, ...(plano.piso === null ? [] : [plano.piso])];
+    const divergentes = valores.filter((v) => !autorizados.includes(v));
+    if (divergentes.length > 0) {
+      return {
+        pode: false,
+        ancorado: true,
+        motivo:
+          `A proposta cita o plano ${plano.nome} com ${divergentes.map(precoEmReais).join(", ")}. ` +
+          `A tabela diz ${precoEmReais(plano.preco)}` +
+          (plano.piso === null
+            ? ` e este plano NÃO tem piso de negociação decidido — nenhum desconto é autorizado.`
+            : ` (piso ${precoEmReais(plano.piso)}).`) +
+          ` Corrija o valor ou tire o nome do plano do texto.`,
+      };
+    }
+  }
+
+  return {
+    pode: true,
+    ancorado,
+    motivo: ancorado
+      ? "Valor confere com a tabela da casa."
+      : "Valor não cita plano da casa — não foi conferido contra a tabela.",
+  };
+}
+
+/** A porta antiga, mantida porque a tela e a store a chamam. */
+export function isValidProposalPricing(pricing?: string): boolean {
+  return conferirPrecoDaProposta(pricing).pode;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
