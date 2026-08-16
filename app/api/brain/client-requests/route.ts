@@ -123,9 +123,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               ?? (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope?.prospectPhone,
   });
 
+  // 🔴 O `contato` DO CORPO É DESCARTADO ANTES DO ESPALHAMENTO (16/08/2026).
+  //
+  // Achado pelo `seguranca`, com POST observado: esta rota é PÚBLICA e espalhava
+  // `body.briefingJson` inteiro. Quando `montarContato` devolvia `null` — ou
+  // seja, quando o contato era INVÁLIDO — o `contato` cru de quem chamou
+  // sobrevivia dentro do blob. Deu para gravar um e-mail com `<script>` por ali.
+  //
+  // Em execução nada quebrava: `lerContato` valida e o gate continuava marcando
+  // `lead_incompleto`. O estrago era no BACKFILL, que tratava `$.contato` como
+  // "válido por construção" e o levaria para a coluna — e `filtroDeContato` usa
+  // `IS NOT NULL` sem revalidar. O registro forjado apareceria em
+  // `?contato=sim` enquanto o dossiê diz "não há para onde responder": as duas
+  // verdades adjacentes que esta frente existe para matar.
+  //
+  // Agora só existe UM jeito de `$.contato` nascer: passando por
+  // `montarContato`. A premissa do backfill virou verdade em vez de esperança —
+  // e o backfill confere a forma mesmo assim, porque o que já foi gravado antes
+  // deste conserto continua no banco.
+  const { contato: _contatoNaoConfiavel, ...briefingSemContato } =
+    (body.briefingJson as Record<string, unknown> | undefined) ?? {};
+
   const briefingJson =
     body.briefingJson != null || contatoDeclarado
-      ? { ...(body.briefingJson as object | undefined ?? {}), ...(contatoDeclarado ? { contato: contatoDeclarado } : {}) }
+      ? { ...briefingSemContato, ...(contatoDeclarado ? { contato: contatoDeclarado } : {}) }
       : undefined;
 
   const contato = lerContato({ briefingJson, sdrHandoffJson: body.sdrHandoffJson });

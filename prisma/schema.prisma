@@ -1202,6 +1202,33 @@ model ClientRequestDb {
   briefingJson    String?
   sdrHandoffJson  String?
   attachmentsJson String   @default("[]")
+
+  /// ── COMO SE FALA COM QUEM PEDIU (16/08/2026) ───────────────────────────────
+  ///
+  /// Até aqui o contato morava DENTRO de `briefingJson`, um blob de texto. Foi
+  /// escolha declarada em 08/08 (o `prisma/` estava com outro agente), e o preço
+  /// dela estava escrito: **enquanto não for coluna, não dá para filtrar nem
+  /// indexar por contato no banco** — e é exatamente disso que depende o aviso
+  /// do orçamento, que precisa perguntar "quais pedidos têm para onde responder?"
+  /// sem carregar e desserializar a fila inteira.
+  ///
+  /// ⚠️ ESTAS COLUNAS SÃO PROJEÇÃO, NÃO ENTRADA. Ninguém as digita: elas são
+  /// escritas pelo serviço de persistência a partir de `lerContato`, o leitor
+  /// único (`lib/agency/comercial/contato-do-lead.ts`), no mesmo ato da
+  /// gravação. Duas verdades adjacentes sobre o mesmo fato foi o defeito nº 2 do
+  /// incidente do Drive; aqui a segunda verdade é derivada da primeira, sempre.
+  ///
+  /// NULO significa "não há canal declarado" — nunca "ainda não olhamos". Valor
+  /// aqui é sempre validado (e-mail com forma de e-mail, WhatsApp com 10 a 13
+  /// dígitos, já normalizado); o que não passa não é gravado, porque telefone
+  /// inventado desliga o alarme sem dar para onde ligar.
+  contatoNome     String?
+  contatoEmail    String?
+  contatoWhatsapp String?
+  /// Quando o canal foi declarado. Nulo em registro antigo cujo contato só
+  /// existe no `briefingJson` — ausência de informação não é informação.
+  contatoEm       DateTime?
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -1210,6 +1237,11 @@ model ClientRequestDb {
   evidenceItems EvidenceItem[]
   portalAccess  PortalAccess[]
   messages      PortalMessage[]
+
+  /// A consulta que o aviso do orçamento faz: "o que está parado nesta agência,
+  /// e para qual deles eu tenho canal?".
+  @@index([workspaceId, contatoEmail])
+  @@index([workspaceId, contatoWhatsapp])
 }
 
 // Client ↔ team conversation. A thread belongs to um CLIENTE — não a uma

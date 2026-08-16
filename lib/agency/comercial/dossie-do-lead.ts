@@ -90,6 +90,11 @@ type Entrada = {
   rawContext?: string | null;
   briefingJson?: unknown;
   sdrHandoffJson?: unknown;
+  /** As colunas de contato (16/08/2026). `lerContato` as prefere; o blob abaixo
+   *  continua valendo para quem entrou antes delas existirem. */
+  contatoNome?: unknown;
+  contatoEmail?: unknown;
+  contatoWhatsapp?: unknown;
 };
 
 const DIA = 24 * 60 * 60 * 1000;

@@ -8,11 +8,24 @@
 //
 // Duas coisas produziram isso, e as duas moram aqui:
 //
-//   1. O contato NÃO TEM COLUNA. Ele mora dentro de `briefingJson`, um blob de
-//      texto, em pelo menos dois formatos diferentes conforme a época. Cada
+//   1. O contato NÃO TINHA COLUNA. Ele morava dentro de `briefingJson`, um blob
+//      de texto, em pelo menos dois formatos diferentes conforme a época. Cada
 //      leitor reinventava o próprio `?.scope?.prospectEmail`, e o que não tem
 //      leitor único não tem alarme, não tem filtro e não tem gate. Esta função
 //      é o leitor único.
+//
+//      ✅ 16/08/2026 — A COLUNA EXISTE (`contatoNome`, `contatoEmail`,
+//      `contatoWhatsapp`, `contatoEm`). Ela é a PRIMEIRA origem desta função, e
+//      o `briefingJson` continua sendo lido como segunda: os registros antigos
+//      não foram reescritos e não podem regredir. Quem escreve a coluna é o
+//      serviço de persistência, a partir DESTA função — a coluna é projeção do
+//      leitor único, nunca uma segunda verdade digitada em paralelo.
+//
+//      ⚠️ O valor da coluna é VALIDADO aqui do mesmo jeito que o do blob. Coluna
+//      não é atestado de qualidade: um backfill, um seed ou um `UPDATE` à mão
+//      podem pôr lixo lá, e um telefone de 4 dígitos vindo do banco faria
+//      `temComoFalar` mentir com cara de dado estruturado. Valor de coluna que
+//      não passa na validação é IGNORADO e a leitura cai para o blob.
 //
 //   2. NINGUÉM PERGUNTOU. A conversa do SDR foi desenhada para NÃO pedir e-mail
 //      nem telefone (ver `__tests__/briefing/identity-capture.test.ts`), na
@@ -92,43 +105,86 @@ function objeto(v: unknown): Record<string, unknown> | null {
   return null;
 }
 
+/**
+ * A primeira origem que passa na validação, normalizada.
+ *
+ * Existe para que "a coluna vem antes" não vire "a coluna manda mesmo quando
+ * está errada". Origem inválida é PULADA, não fatal — é a diferença entre
+ * preferir uma fonte e confiar nela cegamente.
+ */
+function primeiroValido(
+  candidatos: Array<string | null>,
+  valido: (v: unknown) => boolean,
+  normalizar: (v: string) => string,
+): string | null {
+  for (const c of candidatos) {
+    if (c && valido(c)) return normalizar(c);
+  }
+  return null;
+}
+
 export const MOTIVO_SEM_CONTATO =
   "o briefing foi enviado sem nome de contato e sem canal (WhatsApp ou e-mail)";
 
 /**
+ * O que uma solicitação carrega de contato — a COLUNA (16/08/2026) e o blob
+ * antigo, no mesmo objeto. Toda origem é opcional: um registro de 08/08 chega
+ * aqui só com `briefingJson`, e um de hoje chega com os dois.
+ */
+export type EntradaDeContato = {
+  contatoNome?: unknown;
+  contatoEmail?: unknown;
+  contatoWhatsapp?: unknown;
+  briefingJson?: unknown;
+  sdrHandoffJson?: unknown;
+};
+
+/**
  * Lê o contato de uma solicitação, venha ela de qual época vier.
  *
- * Duas origens, nesta ordem de precedência:
+ * TRÊS origens, nesta ordem de precedência:
+ *   0. as COLUNAS `contato*` — o formato de hoje, filtrável e indexável;
  *   1. `briefingJson.contato` — o formato canônico, escrito pelo gate de 08/08;
  *   2. `briefingJson.scope.prospect*` — o formato legado (as três de produção).
  *
+ * A ordem tem consequência e ela é deliberada: **a coluna vence**, porque é ela
+ * que o banco filtra. Se a coluna e o blob discordassem, uma consulta acharia um
+ * conjunto e a tela mostraria outro — que é o defeito das duas verdades
+ * adjacentes. Como quem escreve a coluna é o serviço de persistência a partir
+ * desta mesma função, discordar exigiria alguém escrever no banco por fora.
+ *
+ * ⚠️ Cada origem passa pela MESMA validação. Coluna com lixo é ignorada, e a
+ * leitura cai para a origem seguinte — nunca vira `temComoFalar: true`.
+ *
  * `rawContext` **não é lido aqui, de propósito.** Ver o cabeçalho do arquivo.
  */
-export function lerContato(entrada: {
-  briefingJson?: unknown;
-  sdrHandoffJson?: unknown;
-} | null | undefined): ContatoDoLead {
+export function lerContato(entrada: EntradaDeContato | null | undefined): ContatoDoLead {
   const briefing = objeto(entrada?.briefingJson);
   const canonico = objeto(briefing?.contato);
   const escopo   = objeto(briefing?.scope);
   const handoff  = objeto(entrada?.sdrHandoffJson);
 
   const nome =
+    texto(entrada?.contatoNome) ??
     texto(canonico?.nome) ??
     texto(escopo?.prospectName) ??
     texto(handoff?.prospectName);
 
-  const emailBruto =
-    texto(canonico?.email) ??
-    texto(escopo?.prospectEmail) ??
-    texto(handoff?.prospectEmail);
-  const email = emailValido(emailBruto) ? emailBruto!.trim() : null;
+  // A coluna entra na fila de candidatos como mais uma origem — não como uma
+  // resposta pronta. `primeiroValido` corre as origens NA ORDEM e devolve a
+  // primeira que passa na validação: coluna com lixo não derruba o registro
+  // para "sem contato" quando o blob antigo tem o dado bom.
+  const email = primeiroValido(
+    [texto(entrada?.contatoEmail), texto(canonico?.email), texto(escopo?.prospectEmail), texto(handoff?.prospectEmail)],
+    emailValido,
+    (v) => v.trim(),
+  );
 
-  const zapBruto =
-    texto(canonico?.whatsapp) ??
-    texto(escopo?.prospectPhone) ??
-    texto(handoff?.prospectPhone);
-  const whatsapp = whatsappValido(zapBruto) ? normalizarWhatsapp(zapBruto!) : null;
+  const whatsapp = primeiroValido(
+    [texto(entrada?.contatoWhatsapp), texto(canonico?.whatsapp), texto(escopo?.prospectPhone), texto(handoff?.prospectPhone)],
+    whatsappValido,
+    normalizarWhatsapp,
+  );
 
   // WhatsApp na frente: é por onde o cliente brasileiro responde. E-mail de
   // login do Google chega em caixa que ninguém lê.
@@ -205,4 +261,49 @@ export function montarContato(input: {
   const whatsapp = whatsappValido(input.whatsapp) ? normalizarWhatsapp(input.whatsapp as string) : null;
   if (!email && !whatsapp) return null;
   return { nome, email, whatsapp, informadoEm: new Date().toISOString() };
+}
+
+/** O que vai para as colunas `contato*` do `ClientRequestDb`. */
+export type ColunasDeContato = {
+  contatoNome: string | null;
+  contatoEmail: string | null;
+  contatoWhatsapp: string | null;
+  contatoEm: Date | null;
+};
+
+/**
+ * A PROJEÇÃO do contato para as colunas do banco (16/08/2026).
+ *
+ * Esta é a única função que produz o valor das colunas, e ela **deriva de
+ * `lerContato`**. Ninguém monta esses campos à mão em rota, em script ou em
+ * seed: se um segundo lugar decidisse o que é contato, a coluna e a tela
+ * passariam a discordar, e a consulta do banco acharia um conjunto diferente do
+ * que o operador vê. É o defeito das duas verdades adjacentes, e esta casa já o
+ * pagou duas vezes (o Drive e a fila do briefing).
+ *
+ * **Nome sozinho não sobe.** Sem canal, as quatro colunas ficam nulas — inclusive
+ * o nome. Uma coluna de nome preenchida com o canal vazio é um índice que promete
+ * o que não cumpre, e "nome sozinho" é exatamente como se chamava o desperdício
+ * de 51 dias.
+ */
+export function colunasDeContato(
+  entrada: EntradaDeContato | null | undefined,
+  agora: Date = new Date(),
+): ColunasDeContato {
+  const contato = lerContato(entrada);
+  if (!contato.temComoFalar) {
+    return { contatoNome: null, contatoEmail: null, contatoWhatsapp: null, contatoEm: null };
+  }
+  // `informadoEm` do formato canônico é a hora em que a PESSOA declarou. Ela
+  // vence o relógio de agora: reescrever a data a cada gravação apagaria há
+  // quanto tempo a casa tem esse canal.
+  const canonico = objeto(objeto(entrada?.briefingJson)?.contato);
+  const declaradoEm = texto(canonico?.informadoEm);
+  const quando = declaradoEm ? new Date(declaradoEm) : agora;
+  return {
+    contatoNome: contato.nome,
+    contatoEmail: contato.email,
+    contatoWhatsapp: contato.whatsapp,
+    contatoEm: Number.isNaN(quando.getTime()) ? agora : quando,
+  };
 }

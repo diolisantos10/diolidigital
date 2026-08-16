@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/client";
 import { apenasDoWorkspace, workspaceUnico } from "@/lib/auth/posse-de-workspace";
+import { colunasDeContato } from "@/lib/agency/comercial/contato-do-lead";
 
 // ── Normalization ─────────────────────────────────────────────────────────────
 // SQLite (via Prisma) stores JSON fields as raw strings. This normalizer parses
@@ -115,10 +116,32 @@ export async function resolverWorkspacePublico(informado?: string): Promise<stri
   return undefined;
 }
 
+/**
+ * As colunas `contato*` são PROJEÇÃO, não entrada (16/08/2026).
+ *
+ * Elas nunca vêm do chamador. São derivadas aqui, no ato da gravação, a partir
+ * de `lerContato` — o leitor único. Aceitá-las do corpo abriria a porta para uma
+ * rota gravar um e-mail na coluna que não está no briefing, e a partir daí a
+ * consulta do banco e a tela do operador falariam de conjuntos diferentes.
+ *
+ * O ponto seguinte é igualmente importante: **toda vez que o `briefingJson`
+ * muda, a projeção é refeita.** Coluna que não acompanha a origem vira cache
+ * velho com cara de fato — e cache velho de contato manda a proposta para o
+ * endereço que a pessoa acabou de corrigir.
+ */
+function projecaoDeContato(input: { briefingJson?: object; sdrHandoffJson?: object }) {
+  return colunasDeContato({
+    briefingJson: input.briefingJson,
+    sdrHandoffJson: input.sdrHandoffJson,
+  });
+}
+
 export async function createClientRequest(input: CreateClientRequestInput): Promise<NormalizedClientRequest> {
   const workspaceId = await resolverWorkspacePublico(input.workspaceId);
+  const contato = projecaoDeContato(input);
   const raw = await prisma.clientRequestDb.create({
     data: {
+      ...contato,
       businessName:    input.businessName,
       segment:         input.segment         ?? "",
       services:        JSON.stringify(input.services    ?? []),
@@ -142,10 +165,36 @@ export async function getClientRequest(id: string): Promise<NormalizedClientRequ
   return raw ? normalizeClientRequest(raw) : null;
 }
 
+/**
+ * O FILTRO QUE A COLUNA DESTRAVOU (16/08/2026) — no banco, não em memória.
+ *
+ * `true`  → só o que tem canal declarado. É a fila que o aviso do orçamento pode
+ *           efetivamente responder.
+ * `false` → só o que NÃO tem. É a outra fila, e a ação dela é oposta: não é
+ *           "alguém responde", é "não há para onde responder". Somar as duas num
+ *           número só produz um alarme que ninguém sabe atender.
+ *
+ * Sem a coluna isto exigia carregar a fila inteira e desserializar um blob de
+ * texto por registro — que é por que ninguém fazia.
+ */
+function filtroDeContato(comContato: boolean): Record<string, unknown> {
+  return comContato
+    ? { OR: [{ contatoEmail: { not: null } }, { contatoWhatsapp: { not: null } }] }
+    : { contatoEmail: null, contatoWhatsapp: null };
+}
+
 export async function listClientRequests(options?: {
   workspaceId?: string;
   status?: ClientRequestDbStatus | string;
   limit?: number;
+  /**
+   * ⚠️ Só encontra o que está NA COLUNA. Registro antigo, cujo contato só existe
+   * dentro do `briefingJson`, não foi reescrito por esta frente e por isso não
+   * responde a este filtro — `lerContato` continua achando o contato dele na
+   * tela, e o backfill da migration subiu o que era seguro subir. Quem precisar
+   * da fila COMPLETA não passa este parâmetro e filtra pelo leitor único.
+   */
+  comContato?: boolean;
 }): Promise<NormalizedClientRequest[]> {
   let statusFilter: Record<string, unknown> | undefined;
   if (options?.status) {
@@ -160,13 +209,20 @@ export async function listClientRequests(options?: {
   // depois por `apenasDoWorkspace` (a política única). Filtrar só por
   // `workspaceId` esconderia 6 das 7 solicitações reais; não filtrar nada
   // listava a agência inteira do vizinho.
+  //
+  // As condições entram numa lista `AND`, não soltas no objeto: o recorte de
+  // workspace já usa um `OR`, e o filtro de contato usa outro. Dois `OR` como
+  // chaves do mesmo objeto — um sobrescreve o outro EM SILÊNCIO, e o que some é
+  // sempre o recorte de posse.
+  const condicoes: Record<string, unknown>[] = [];
+  if (options?.workspaceId) {
+    condicoes.push({ OR: [{ workspaceId: options.workspaceId }, { workspaceId: null }] });
+  }
+  if (statusFilter) condicoes.push(statusFilter);
+  if (options?.comContato !== undefined) condicoes.push(filtroDeContato(options.comContato));
+
   const rows = await prisma.clientRequestDb.findMany({
-    where: {
-      ...(options?.workspaceId
-        ? { OR: [{ workspaceId: options.workspaceId }, { workspaceId: null }] }
-        : {}),
-      ...statusFilter,
-    },
+    where: condicoes.length > 0 ? { AND: condicoes } : {},
     orderBy: { createdAt: "desc" },
     take: options?.limit ?? 100,
   });
@@ -177,6 +233,25 @@ export async function listClientRequests(options?: {
 }
 
 export async function updateClientRequest(id: string, input: UpdateClientRequestInput): Promise<NormalizedClientRequest> {
+  // A origem mudou → a projeção é refeita no MESMO update. Sem isto, corrigir o
+  // e-mail no briefing deixaria a coluna com o endereço antigo, e a consulta do
+  // banco continuaria apontando para onde a pessoa já não está.
+  //
+  // ⚠️ A projeção lê o registro INTEIRO, não só o campo que veio no PATCH. Um
+  // update que traz apenas `briefingJson` não pode apagar um contato que mora no
+  // `sdrHandoffJson` — reprojetar sobre metade do fato é como perder o dado por
+  // ter tocado no arquivo ao lado.
+  const reprojetar = input.briefingJson != null || input.sdrHandoffJson != null;
+  const atual = reprojetar
+    ? await prisma.clientRequestDb.findUnique({
+        where: { id },
+        select: { briefingJson: true, sdrHandoffJson: true },
+      })
+    : null;
+  const origem = {
+    briefingJson:   (input.briefingJson   ?? atual?.briefingJson   ?? undefined) as object | undefined,
+    sdrHandoffJson: (input.sdrHandoffJson ?? atual?.sdrHandoffJson ?? undefined) as object | undefined,
+  };
   const raw = await prisma.clientRequestDb.update({
     where: { id },
     data: {
@@ -185,6 +260,7 @@ export async function updateClientRequest(id: string, input: UpdateClientRequest
       ...(input.workspaceId ? { workspaceId: input.workspaceId }                              : {}),
       ...(input.briefingJson   ? { briefingJson:   JSON.stringify(input.briefingJson)   }     : {}),
       ...(input.sdrHandoffJson ? { sdrHandoffJson: JSON.stringify(input.sdrHandoffJson) }     : {}),
+      ...(reprojetar ? projecaoDeContato(origem) : {}),
     },
   });
   return normalizeClientRequest(raw);

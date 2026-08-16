@@ -8,6 +8,53 @@
 
 ---
 
+## O CONTATO DO LEAD É COLUNA, E PEDIR CONTATO É CONVERSA — NUNCA FORMULÁRIO
+
+**Decidido em** 2026-08-16 · **por** o Diretor, executado pelo `pm` ·
+**PR** #170, branch `claude/contato-com-coluna` ·
+**origem:** a pergunta do CEO sobre o aviso do orçamento
+
+**O que estava aberto.** O contato do lead morava dentro de `briefingJson`, um
+blob de texto — escolha declarada em 08/08, com o preço escrito junto: *sem
+coluna, não dá para filtrar nem indexar por contato no banco*. E o pedido de
+contato, no passo de confirmação, era um formulário de três campos com o botão
+apagado até tudo preenchido.
+
+**As três decisões, e a terceira NÃO foi tomada aqui.**
+
+1. **A coluna existe, e é PROJEÇÃO — não entrada.** `contatoNome`,
+   `contatoEmail`, `contatoWhatsapp` e `contatoEm` são escritos pelo serviço de
+   persistência a partir de `lerContato`, o leitor único. Ninguém os digita.
+   Se um segundo lugar decidisse o que é contato, a consulta do banco e a tela
+   do operador passariam a falar de conjuntos diferentes — é o defeito das duas
+   verdades adjacentes, que esta casa já pagou no Drive e na fila do briefing.
+   **A coluna vence o blob na leitura, mas passa pela MESMA validação:** coluna
+   com lixo é ignorada e a leitura cai para a origem seguinte.
+
+2. **Pedir contato conversando é legítimo — no PASSO DE CONFIRMAÇÃO.** O motivo
+   escrito do incidente do "só isso" é mais estreito do que "não capturar
+   contato": ele proíbe **pedir durante a descoberta, com validação de formato**.
+   Uma pergunta de cada vez, no fim, sem validação agressiva, com pular sempre
+   visível, **não reabre o incidente** — e as 4 asserções de
+   `identity-capture.test.ts` continuam passando sem uma vírgula alterada.
+   A trava `EMAIL_HALLUCINATION` da rota do SDR **fica intacta**, e a distinção
+   entre pedido legítimo e alucinação é ESTRUTURAL: a captura não passa por
+   modelo nenhum nem por `/api/sdr/chat`. Há teste que reprova o dia em que
+   passar.
+
+3. 🔴 **PEDIR CONTATO NO MEIO DA CONVERSA: NÃO FOI FEITO, e sobe ao CEO.** Isso
+   exigiria INVERTER as 4 asserções do contrato da descoberta — o mesmo teste
+   que registra por que o bot travava o prospect antes de saber o que ele queria.
+   Inverter um contrato que nasceu de incidente medido não é decisão de quem
+   executa.
+
+**A lei que não foi afrouxada:** ausência de informação não é informação.
+`pistasDeContato` continua sem fazer `temComoFalar` virar `true`, nome sozinho
+continua não sendo contato (e não sobe para a coluna), e recusar continua
+gravando `lead_incompleto` com a conversa inteira.
+
+---
+
 ## O ANÚNCIO SÓ NASCE COM ATIVO QUE SE PROVA DO DONO — PÁGINA E ARTE
 
 **Decidido em** 2026-08-15 · **por** `seguranca`, a pedido do Diretor ·

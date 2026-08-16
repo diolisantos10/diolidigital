@@ -62,11 +62,23 @@ const ARTEFATOS: Reg[] = [
 /** Quantos workspaces a base tem — a órfã sem cliente depende disto. */
 let workspaces: Reg[] = [{ id: "ws-A" }, { id: "ws-B" }];
 
-/** O `where` do Prisma, honrado: `id`, `{ in: [...] }`, `OR` e igualdade. */
+/** O `where` do Prisma, honrado: `id`, `{ in: [...] }`, `OR`, `AND` e igualdade.
+ *
+ *  ⚠️ `AND` entrou em 16/08/2026 e é FIDELIDADE DO DUBLÊ, não afrouxamento de
+ *  asserção: `listClientRequests` passou a montar as condições numa lista `AND`
+ *  porque o recorte de posse e o filtro de contato usam, cada um, um `OR` — e
+ *  dois `OR` como chaves do mesmo objeto se sobrescrevem em silêncio. O dublê
+ *  não conhecia o operador e devolvia lista vazia para uma consulta que o Prisma
+ *  responde certo. As expectativas deste arquivo não mudaram uma vírgula. */
 function casa(reg: Reg, where: unknown): boolean {
   if (!where || typeof where !== "object") return true;
   const w = where as Record<string, unknown>;
   for (const [chave, valor] of Object.entries(w)) {
+    if (chave === "AND") {
+      const ramos = valor as unknown[];
+      if (!ramos.every((r) => casa(reg, r))) return false;
+      continue;
+    }
     if (chave === "OR") {
       const ramos = valor as unknown[];
       if (!ramos.some((r) => casa(reg, r))) return false;
