@@ -15,7 +15,196 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
-## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
+## 🟢 16/08/2026 — OS SEIS BLOQUEANTES DA RODADA 1, FECHADOS (branch `claude/rodada-1-defeitos-do-piloto`, SEM PR)
+
+**Origem:** parecer de `qualidade` + `experiencia` sobre a própria rodada 1.
+Veredito: NÃO PASSA como PR, seis bloqueantes com prova reproduzível — **dois
+deles regressões que a rodada tinha acabado de criar**. O trabalho do teto do
+servidor (`8fdd818`, `f03efb8`) foi conferido e ficou de pé.
+
+| | O que era | A prova do conserto |
+|---|---|---|
+| **B1** 🔴 | abrir "Anexar" recortava **Falar** e **Anexar** a 375×600 | geometria medida no navegador + `__tests__/briefing/o-rodape-do-cartao-nao-e-recortado.test.ts` |
+| **B2** 🔴 | nome do arquivo virava RESPOSTA do cliente e subia à proposta; 5 anexos = 5 turnos de IA | `__tests__/briefing/o-anexo-e-evento-nao-e-fala.test.ts` |
+| **B3** | o aviso de "não li seu arquivo" viajava pelo canal de IA que tinha caído | idem, com o turno de IA lançando exceção |
+| **B4** | nome e conteúdo de arquivo forjavam a cerca do anexo | `__tests__/comercial/a-cerca-do-anexo-nao-se-forja.test.ts` |
+| **B5** | JSON de anexo quebrado virava `"ANEXOS: nenhum."` (fail-open) | `__tests__/esteira/anexo-do-pedido-lido.test.ts` (o teste que carimbava a regressão foi **invertido**) |
+| **B6** | anexo AINDA SUBINDO era declarado ilegível ao SDR | `__tests__/briefing/o-anexo-e-evento-nao-e-fala.test.ts` |
+
+**Portão:** `npx tsc --noEmit` limpo · **4617 testes em 293 arquivos, todos
+verdes** · `npm run build` compila (os **7 avisos são todos de
+`instrumentation.ts`**, anteriores a este trabalho e já registrados em 08/08).
+
+### 🔴 B1 — a medição, antes e depois, no navegador de verdade
+
+A régua do auditor era explícita: *"provado por medição de geometria, não por
+afirmação"*. `scripts/medir-cartao-do-briefing.mjs` (novo) abre o `/briefing`,
+abre o painel e mede em vários pontos de rolagem:
+
+```
+ANTES  (f03efb8) · 375×600 · painel ABERTO
+  cartão 213–584 | Falar/Anexar 620–652 | clicável false | recortado TRUE   (em y=0, 150, 300, 305)
+DEPOIS · 375×600 · painel ABERTO
+  cartão 213–584 | Falar/Anexar 541–573 | clicável true  | recortado false
+```
+
+Conferido também em **375×812, 768×1024 e 1440×900**. Os números do "antes"
+batem com os do auditor.
+
+**A causa:** o cartão tinha teto medido (371px) e três regiões com piso somando
+mais que ele — cabeçalho ~72 + conversa `min-h-[120px]` + materiais
+`min-h-[120px]` + rodapé ~110 = **422**. Os 51px que sobravam saíam pelo rodapé
+e o `overflow-hidden` os cortava calado. **O piso de 320px do cartão era cego ao
+rodapé.**
+
+**O conserto:** os pisos de CSS saíram; cabeçalho e rodapé são **medidos**
+(`ResizeObserver`, porque o rodapé cresce com a caixa de digitar e com a linha de
+erro do microfone) e entram na conta de duas funções puras —
+`tetoDoCartaoDaConversa(janela, topo, extremos)` e `alturasDasRegioes(...)`.
+Janela curta demais faz o **cartão crescer e a página rolar**: rolar é
+recuperável, recortar não é.
+
+> **A repartição deixou de ser proporcional.** `flex-[2]/flex-[1]` errava nas
+> duas pontas: dava 63px ao painel a 375×600 (a zona de arrastar pede ~110 e
+> ficava pela metade) e 330px no desktop a um painel que nunca precisa de mais
+> que ~190. Agora a conversa recebe o piso primeiro, o painel recebe até o que
+> precisa, e a sobra é da conversa.
+
+### 🔴 B2 — arquivo que chega passou a ser EVENTO, não fala do prospect
+
+A regressão: `handleFilesPicked` chamava `runTurn` para todo arquivo, e
+`runTurn` entrega a fala visível a `processProspectMessage`. A fala visível do
+anexo é a bolha `📎 Enviei meu briefing: **brandbook.pdf**` — então o **nome do
+arquivo virava a resposta da pergunta pendente**, ia para a tela, para
+`ClientRequestDb` e para a proposta. Cinco anexos consumiam cinco perguntas do
+SDR **e cinco chamadas de IA**, cada uma carregando o dossiê inteiro, em porta
+pública sem login.
+
+A orquestração saiu do componente e virou `processarLoteDeAnexos` — função
+exportada, com tudo injetado, **fora** do React. Não foi organização: é a única
+forma de PROVAR as duas garantias sem renderizar a tela (e nenhum teste desta
+casa renderiza `PublicBriefingRoom`). Um turno de IA **por lote**, e o turno é
+`turnoDeEvento`, que **não passa pelo motor de regras** — escopo e estimativa
+continuam sendo aproveitados; o que se perde é só o casamento indevido com a
+pergunta.
+
+### B3 — a mensagem de falha não viaja mais pelo sistema que falhou
+
+A régua adotada, do auditor: **a mensagem de falha nunca pode depender do
+sistema que falhou.** O aviso de "seu arquivo chegou e não consegui ler" agora é
+pintado na conversa por caminho determinístico — sem rede, sem chave — **antes**
+de qualquer chamada de IA, e carrega o próximo passo (tentar de novo, ou contar
+o essencial em uma frase). O teste mata o canal de IA com exceção e cobra o
+aviso mesmo assim.
+
+### B4 — a cerca do anexo passou a carregar uma MARCA sorteada
+
+`lib/agency/comercial/cerca-de-anexo.ts` (novo), usado pelos **dois** módulos
+que montam prompt com anexo. Sanitizar caractere é jogo de gato e rato — o
+modelo lê texto e não existe lista fechada de "o que parece cerca". Então a
+estrutura deixou de ser reconhecível pelo desenho:
+
+```
+──── INÍCIO DO ANEXO #a3f91b2c: brandbook.pdf ────
+──── FIM DO ANEXO #a3f91b2c ────
+```
+
+Três metades: a marca é sorteada por montagem (quem escreveu o arquivo ANTES não
+pode tê-la escrito dentro); a marca é **retirada** de nome e conteúdo; e o
+fechamento **não carrega nome nenhum** — era o nome que dava ao atacante metade
+de uma linha de cerca sob controle dele. O desfiguramento de runs de traço
+continua como segunda linha, e é ele que engana também o modelo **ingênuo**, o
+que ignora a instrução da marca.
+
+O teste roda dois analisadores sobre a saída: o certo (só é cerca a linha com a
+marca) e o ingênuo (acredita no desenho). Contra o código de ontem os dois eram
+enganados — conferido rodando os mesmos analisadores sobre o formato antigo.
+
+> ⚠️ **O que a trava NÃO faz, de propósito:** apagar toda sequência `#xxxxxxxx`.
+> `#0A1F44FF` é cor RGBA legítima de brand book, e mutilar a paleta do cliente
+> para se defender de um sósia da marca destruiria o dado que o anexo existe
+> para entregar. Só a marca da montagem corrente sai. Há teste para isso.
+
+### B5 — o teste que carimbava a regressão foi invertido
+
+`__tests__/esteira/anexo-do-pedido-lido.test.ts` exigia, **por escrito**, que
+`attachmentsJson: "{quebrado"` produzisse `"ANEXOS: nenhum."`. É o mesmo padrão
+do `identity-capture` (08/08) e do `jornada-real`: **o defeito virando
+invariante.** Agora lista ilegível é terceiro estado declarado, com a ordem de
+escalar, e **sem inventar quantidade** ("1 arquivo(s)" seria número que ninguém
+mediu). Campo vazio continua sendo o único caso de ausência.
+
+### B6 — o terceiro estado existe: lido · não pôde ser lido · **ainda subindo**
+
+`opacos = validos.filter(it => !(it.lido && texto))` engolia o item com
+`status: "uploading"` (`lido === undefined`). Bastava digitar enquanto o PDF
+subia — em 4G, dezenas de segundos — para o SDR ser informado de que não
+conseguiu ler um arquivo que chegaria dois segundos depois, e pedir ao cliente
+que contasse o conteúdo. O bloco novo manda o oposto do bloco dos opacos:
+**não peça, espere.**
+
+---
+
+## 🔴 A PROPOSTA DE REDESENHO DO PAINEL DE MATERIAIS — do auditor, NÃO executada
+
+**O argumento dele, e eu o adoto:** *enquanto forem três faixas no mesmo teto, o
+conserto de altura vai voltar.* A proposta é o painel de materiais deixar de ser
+a terceira faixa dentro do cartão e virar **folha sobre o cartão** (sheet), com
+o próprio fechar.
+
+**Não foi feito nesta rodada porque redesenho continua proibido nela.** O que a
+medição de hoje acrescenta ao argumento dele, em números:
+
+- a 375×600 sobram **189px** para as duas regiões flexíveis. Não existe
+  repartição boa: ou a conversa vira tira, ou a zona de arrastar fica pela
+  metade. Hoje o painel fica com 101px e a conversa com 88 — **os dois no
+  mínimo, ao mesmo tempo**;
+- a "Ou compartilhar por link" só aparece rolando dentro do painel, inclusive no
+  desktop, onde há tela de sobra;
+- toda vez que o rodapé crescer (caixa em duas linhas, erro de microfone) o
+  aperto piora, e a conta só tem para onde tirar da conversa.
+
+- [ ] `interface` + `experiencia` — **painel de materiais como folha sobre o
+      cartão.** Com dono, sem data.
+
+---
+
+## 🟠 A DÍVIDA LEVANTADA PELA AUDITORIA DA RODADA 1 — registrada, NÃO consertada
+
+Ordem explícita do despacho: registrar, não consertar agora.
+
+- [ ] `plataforma` — 🔴 **`despertador.ts:278` (a linha que decide "isto é
+      falha?") não tem teste nenhum.** Quem a reescrever como `quebrou(...)`
+      reintroduz o P0 **com a suíte verde**. É o pior tipo de dívida: a que a
+      suíte diz que não existe.
+- [ ] `plataforma` — **`semAlvo` só tem `console.log` como consumidor.** No
+      Railway isso é log efêmero: o sinal existe e ninguém o recebe.
+- [ ] `qualidade` — **nenhum teste renderiza `PublicBriefingRoom`.** `runTurn` e
+      a remontagem do dossiê não têm prova de comportamento em tela. Esta rodada
+      empurrou o que deu para funções puras exportadas
+      (`processarLoteDeAnexos`, `alturasDasRegioes`, `dossieDosAnexos`), mas o
+      componente em si continua sem teste de render.
+- [ ] `qualidade` — **`data-rolado` tem comentário dizendo "o teste lê isto" e
+      nenhum teste lê**; `superficieDaBarra` não tem prova de que
+      `AgencyTopBar` a chama. Comentário que descreve um teste inexistente é
+      pior que nenhum: ele desliga a desconfiança.
+- [ ] `qualidade` — **dois testes de `anexo-do-pedido-lido.test.ts` são `grep` de
+      texto no fonte** (`describe("a triagem usa o leitor novo…")`). Quebram com
+      uma quebra de linha e não provam comportamento.
+- [ ] `interface` — **botão de menu do painel com 36×36px** (mínimo de toque é
+      44). Pré-existente.
+- [ ] `esteira` — **PDF → `precisa_decisao` é prompt, não trava**, e o cliente
+      não é informado por canal nenhum. "Trava, não aviso."
+- [ ] `esteira` — **`TETO_DO_DOSSIE` é 12.000 e o máximo real da rota de upload é
+      16.000**: dois anexos cheios são aparados para ~5.970 cada. Os dois
+      números foram escolhidos em momentos diferentes e ninguém os comparou.
+- [ ] 🔴 `experiencia` — **iOS real e `visualViewport` NÃO foram medidos, e isso
+      muda a conclusão do B1 no aparelho do CEO.** No iOS Safari o teclado **não
+      dispara `resize`** e **não encolhe `dvh`**: a medição desta rodada (feita
+      em Chromium headless) não cobre o caso. **O relato original do CEO pode
+      sobreviver no iPhone dele mesmo com o B1 fechado.** Só se fecha com
+      aparelho na mão ou `visualViewport` observado — e o segundo continua sendo
+      hipótese até alguém medir.
 
 **Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no
 Google, 0 linhas em `DriveMaterial`**. O CEO escolheu o material no seletor, o
