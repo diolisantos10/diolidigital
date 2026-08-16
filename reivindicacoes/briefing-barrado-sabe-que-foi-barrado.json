@@ -1,0 +1,12 @@
+{
+  "id": "briefing/barrado-sabe-que-foi-barrado",
+  "quem": "pm-9ab49074",
+  "frente": "barrado que nao sabe que foi barrado: 429 vira falha muda no briefing",
+  "responsabilidade": "briefing/barrado-sabe-que-foi-barrado",
+  "arquivos": [
+    "components/agency/briefing/PublicBriefingRoom.tsx",
+    "lib/security/limite-no-banco.ts"
+  ],
+  "abertaEm": "2026-08-16T18:31:52.493Z",
+  "encerradaEm": null
+}
