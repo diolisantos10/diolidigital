@@ -385,3 +385,102 @@ export function agruparPorProspect(
   }
   return saida;
 }
+
+// ── A JANELA CONFESSADA (16/08/2026) ────────────────────────────────────────
+//
+// `agruparPorProspect` só enxerga a JANELA que `listClientRequests` trouxe
+// (hoje, no máximo 200 linhas). Um contato que escreveu 6 vezes, mas cuja 6ª
+// linha caiu fora dessas 200, aparecia aqui como `vezes: 5` — número
+// completo com cara de errado, e a tela dizia "5ª vez" para quem já
+// escreveu 6.
+//
+// A correção não mora aqui dentro: `agruparPorProspect` continua uma função
+// pura sobre a janela que recebeu, e ISSO NÃO MUDA. O que muda é que, depois
+// de `agruparPorProspect` rodar, a rota cruza o `vezes` da janela com o total
+// de verdade que `contarIrmaosPorChave` traz do banco (sem teto) — e esta
+// função é o cruzamento. Pura também: não lê banco, não decide política de
+// visibilidade, só monta a confissão a partir dos dois números que já
+// chegaram prontos.
+
+/** O que a fila devolve sobre a janela: o total real, o que a janela mostra,
+ *  e a diferença — CONFESSADA, nunca escondida atrás de um número que parece
+ *  completo e não é. */
+export type JanelaDaRepeticao = {
+  /** Quantas vezes este contato escreveu, de verdade — direto do banco, sem
+   *  o teto da janela de exibição. Nunca menor que `irmaosVisiveis`: a
+   *  janela é o piso, não o total inventado. */
+  totalNoBanco: number;
+  /** Quantos dos irmãos estão dentro da janela atual e dá para mostrar —
+   *  o mesmo número que `RepeticaoDoProspect.vezes` já contava. */
+  irmaosVisiveis: number;
+  /** A diferença: quantos irmãos existem e NÃO cabem nesta janela. Zero
+   *  quando a janela contém todo mundo — aviso que dispara sempre é aviso
+   *  que ninguém lê. */
+  irmaosForaDaJanela: number;
+  /** Texto pronto para a tela, preenchido só quando `irmaosForaDaJanela > 0`.
+   *  É melhor mostrar "há mais, não couberam" do que um número errado com
+   *  cara de certo. */
+  aviso: string | null;
+  /** `true` quando a consulta ao banco falhou (ou não pôde ser feita) e
+   *  `totalNoBanco` é, na verdade, só o que a janela já sabia — NUNCA um
+   *  zero disfarçado de certeza, e nunca "1ª vez" para quem escreveu mais. */
+  contagemParcial: boolean;
+};
+
+/**
+ * Confessa a janela: cruza o que a janela enxergou (`irmaosVisiveis`, vindo
+ * de `RepeticaoDoProspect.vezes`) com o que o banco sabe de verdade
+ * (`totalDoBanco`, vindo de `contarIrmaosPorChave`, sem teto).
+ *
+ * Pura — não lê o banco, não decide política de visibilidade. Quem consulta
+ * é `contarIrmaosPorChave` (`client-request-service.ts`); esta função só
+ * monta a confissão a partir do resultado que já chegou.
+ *
+ * `totalDoBanco: undefined` cobre DOIS casos que a rota distingue com
+ * `contagemFalhou`, e os dois caem para o mesmo piso seguro — a janela:
+ *   • a linha não tem coluna `chaveDoProspect` gravada (legada/recalculada)
+ *     — não há o que perguntar ao banco além do que já se sabe;
+ *   • a consulta ao banco falhou de verdade — `contagemFalhou: true`, e é
+ *     isso que marca `contagemParcial`, para a tela saber que o número pode
+ *     estar incompleto e não é uma certeza.
+ */
+export function janelaDaRepeticao(params: {
+  /** `vezes` da janela — quantos irmãos a página atual enxerga. */
+  irmaosVisiveis: number;
+  /** O total que `contarIrmaosPorChave` devolveu para a chave desta linha. */
+  totalDoBanco: number | undefined;
+  /** A consulta ao banco falhou nesta requisição inteira? */
+  contagemFalhou: boolean;
+}): JanelaDaRepeticao {
+  const { irmaosVisiveis, totalDoBanco, contagemFalhou } = params;
+
+  if (totalDoBanco === undefined) {
+    return {
+      totalNoBanco: irmaosVisiveis,
+      irmaosVisiveis,
+      irmaosForaDaJanela: 0,
+      aviso: null,
+      // Só é "parcial" quando de fato tentamos e falhamos. Linha sem coluna
+      // gravada (o caso comum, não uma falha) não é parcial — é apenas o
+      // limite conhecido e declarado da frente de hoje.
+      contagemParcial: contagemFalhou,
+    };
+  }
+
+  // O total do banco nunca pode ser menor que o que a própria janela viu —
+  // se vier menor (não deveria acontecer; defesa, não expectativa), a
+  // janela vence, porque é o dado mais recente e mais certo que temos.
+  const totalNoBanco = Math.max(totalDoBanco, irmaosVisiveis);
+  const irmaosForaDaJanela = totalNoBanco - irmaosVisiveis;
+
+  return {
+    totalNoBanco,
+    irmaosVisiveis,
+    irmaosForaDaJanela,
+    aviso:
+      irmaosForaDaJanela > 0
+        ? `${totalNoBanco}ª vez deste contato — ${irmaosForaDaJanela} ${irmaosForaDaJanela === 1 ? "não cabe" : "não cabem"} nesta janela`
+        : null,
+    contagemParcial: false,
+  };
+}

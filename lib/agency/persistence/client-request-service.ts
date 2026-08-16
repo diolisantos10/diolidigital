@@ -198,6 +198,72 @@ export async function listClientRequests(options?: {
   return visiveis.map(normalizeClientRequest);
 }
 
+// ── QUANTOS IRMÃOS EXISTEM DE VERDADE (16/08/2026) ─────────────────────────
+//
+// `listClientRequests` lê no máximo `limit` linhas (hoje, 200 em
+// `app/api/agency/leads/route.ts`), e `agruparPorProspect` agrupa repetição
+// só sobre essa janela. Um contato que já escreveu 6 vezes, cuja 6ª linha
+// caiu fora das 200 mais recentes, aparecia como "5ª vez" — número completo
+// com cara de errado.
+//
+// O caminho barato: `chaveDoProspect` já é coluna gravada (ver
+// `createClientRequest` acima) e o índice `@@index([workspaceId,
+// chaveDoProspect])` já existe no schema — não é varredura, é consulta sobre
+// índice. **Não** se aumenta o teto de `limit`: já é lição registrada da
+// casa (varredura de fichas legadas, teto de 1000) que aumentar só empurra o
+// problema adiante — a 201ª vira a 1001ª, e o defeito volta calado.
+//
+// Somente leitura. Não funde, não decide, não escreve nada — só conta.
+export async function contarIrmaosPorChave(params: {
+  /** Mesmo critério de `listClientRequests`/`apenasDoWorkspace` ("meu OU
+   *  órfão"). NÃO se inventa uma segunda política de visibilidade aqui —
+   *  duas verdades sobre quem vê o quê é o defeito nº 2 do incidente do
+   *  Drive. `undefined` = sem filtro de workspace (mesmo comportamento de
+   *  `listClientRequests` sem `workspaceId`). */
+  workspaceId?: string;
+  /** As chaves candidatas, tipicamente as `chaveDoProspect` já presentes na
+   *  janela que a rota buscou. Nulas, indefinidas e vazias são descartadas
+   *  ANTES da consulta — chave nula não consulta nada e não agrupa com
+   *  ninguém (a lei de `chave-do-prospect.ts`). */
+  chaves: Array<string | null | undefined>;
+}): Promise<Map<string, number>> {
+  const distintas = [
+    ...new Set(
+      params.chaves
+        .map((c) => (typeof c === "string" ? c.trim() : ""))
+        .filter((c) => c.length > 0),
+    ),
+  ];
+  // Nenhuma chave válida: nem vale a pena ir ao banco.
+  if (distintas.length === 0) return new Map();
+
+  const linhas = await prisma.clientRequestDb.findMany({
+    where: {
+      chaveDoProspect: { in: distintas },
+      // ⚠️ NÃO filtra por status. A pergunta é "quantas vezes esta pessoa
+      // escreveu", e um briefing que já virou projeto continua sendo uma vez
+      // que ela escreveu — escolha declarada, não esquecimento.
+      ...(params.workspaceId
+        ? { OR: [{ workspaceId: params.workspaceId }, { workspaceId: null }] }
+        : {}),
+    },
+    select: { chaveDoProspect: true, workspaceId: true, clientId: true },
+  });
+
+  // A MESMA política de "meu OU órfão" de `listClientRequests` —
+  // reaproveitada, não reinventada.
+  const visiveis = params.workspaceId
+    ? await apenasDoWorkspace(linhas, params.workspaceId)
+    : linhas;
+
+  const contagem = new Map<string, number>();
+  for (const linha of visiveis) {
+    if (!linha.chaveDoProspect) continue; // defesa: o `where` já garante isto
+    contagem.set(linha.chaveDoProspect, (contagem.get(linha.chaveDoProspect) ?? 0) + 1);
+  }
+  return contagem;
+}
+
 export async function updateClientRequest(id: string, input: UpdateClientRequestInput): Promise<NormalizedClientRequest> {
   const raw = await prisma.clientRequestDb.update({
     where: { id },
