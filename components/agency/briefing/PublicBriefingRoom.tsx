@@ -748,6 +748,74 @@ interface UploadItem {
   id: string;
   attachment: RequestAttachment;
   status: "uploading" | "done" | "error";
+  /**
+   * O texto que o servidor conseguiu extrair do arquivo. Vazio quando a
+   * extração falhou ou não se aplica — e a diferença entre "vazio" e "não
+   * tentei" é justamente o que `lido` guarda.
+   */
+  texto?: string;
+  /** `true` quando saiu texto do arquivo; `false` quando o arquivo é opaco. */
+  lido?: boolean;
+}
+
+/**
+ * ── O CONTEÚDO DO ANEXO VIVE A CONVERSA INTEIRA (16/08/2026) ────────────────
+ *
+ * O defeito relatado era "o brand book é ignorado". A leitura do PDF já
+ * existia (`/api/sdr/upload` manda o arquivo para a API de documentos do
+ * Claude) — o que não existia era MEMÓRIA. O texto extraído entrava como
+ * `currentMessage` de UM turno e evaporava: do turno seguinte em diante o
+ * histórico enviado ao SDR só tem a bolha visível ("📎 Enviei meu briefing:
+ * X.pdf"), que não contém uma linha do documento. A régua de marca do cliente
+ * era lida uma vez e esquecida.
+ *
+ * Aqui ela é remontada a cada turno, com teto — reenviar 5 documentos inteiros
+ * a cada mensagem é a fatura de IA da agência.
+ *
+ * A OUTRA METADE, e ela é a lei da casa: arquivo cujo conteúdo NÃO foi lido é
+ * declarado como não lido. Antes, extração falha devolvia string vazia e o
+ * `runTurn` nem era chamado — o SDR não ficava sabendo nem que houve anexo,
+ * enquanto a tela mostrava "Anexado" em verde. Ausência de informação não é
+ * informação.
+ */
+const TETO_DO_DOSSIE = 12_000;
+
+export function dossieDosAnexos(items: Pick<UploadItem, "attachment" | "status" | "texto" | "lido">[]): string {
+  const validos = items.filter((it) => it.status !== "error");
+  if (validos.length === 0) return "";
+
+  const lidos = validos.filter((it) => it.lido && (it.texto ?? "").trim());
+  const opacos = validos.filter((it) => !(it.lido && (it.texto ?? "").trim()));
+
+  const linhas: string[] = ["──────── MATERIAL ANEXADO PELO CLIENTE ────────"];
+
+  if (lidos.length > 0) {
+    // O teto é dividido entre os arquivos para que o último anexado não fique
+    // sempre de fora — o brand book costuma ser o segundo.
+    const cota = Math.max(1_200, Math.floor(TETO_DO_DOSSIE / lidos.length));
+    for (const it of lidos) {
+      const t = (it.texto ?? "").trim();
+      const corte = t.length > cota;
+      linhas.push(
+        `--- ${it.attachment.fileName} ---`,
+        corte ? t.slice(0, cota) + "\n[…trecho cortado por tamanho — peça à equipe se precisar do resto]" : t,
+      );
+    }
+    linhas.push(
+      "Use o que está escrito acima. Se o cliente já respondeu algo aqui, NÃO pergunte de novo.",
+    );
+  }
+
+  if (opacos.length > 0) {
+    linhas.push(
+      `ARQUIVOS QUE VOCÊ NÃO CONSEGUIU LER: ${opacos.map((it) => it.attachment.fileName).join(", ")}.`,
+      "NÃO invente o que há neles e NÃO diga que leu. Se o conteúdo deles for necessário,",
+      "peça ao cliente para contar o essencial em uma frase — reconhecendo que ele já enviou o arquivo.",
+    );
+  }
+
+  linhas.push("──────── FIM DO MATERIAL ────────");
+  return linhas.join("\n");
 }
 
 interface UploadResult {
@@ -998,8 +1066,27 @@ function BriefingFileUpload({
         <p className="text-[9px] text-[var(--text-subtle)] mt-0.5">PDF, DOC, DOCX, PPT, PNG, JPG, SVG, TXT · máx. 20 MB</p>
       </div>
 
+      {/* ── A LISTA DE ANEXOS COLAPSA (16/08/2026) ──────────────────────────────
+          Aberta, ela crescia uma linha de 44px por arquivo, dentro do painel que
+          fica ENTRE a conversa e a caixa de digitar. Com 5 arquivos isso é a
+          conversa inteira fora da vista. Fechada, é uma linha; quem quiser
+          conferir clica. `<details>` e não estado próprio: abre sem JavaScript,
+          é acessível por teclado de fábrica e não some se o React remontar. */}
       {items.length > 0 && (
-        <div className="space-y-1.5">
+        <details className="group">
+          <summary className="cursor-pointer select-none list-none flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] py-1.5">
+            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden className="transition-transform group-open:rotate-90 shrink-0">
+              <path d="M3 1.5L7 5L3 8.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {items.length} anexo{items.length !== 1 ? "s" : ""}
+            {items.some((it) => it.status === "uploading") && (
+              <span className="text-[var(--text-muted)] font-normal">· lendo…</span>
+            )}
+            {items.some((it) => it.status === "error") && (
+              <span className="text-[var(--danger)] font-normal">· 1 ou mais falharam</span>
+            )}
+          </summary>
+        <div className="space-y-1.5 mt-1.5">
           {items.map((it) => (
             <div key={it.id} className="flex items-center gap-2.5 bg-white border border-[var(--border)] rounded-[8px] px-2.5 py-2">
               <div className="w-7 h-7 rounded-[6px] bg-[var(--accent)] flex items-center justify-center shrink-0">
@@ -1014,9 +1101,21 @@ function BriefingFileUpload({
                   Lendo…
                 </span>
               )}
-              {it.status === "done" && (
+              {/* "Anexado" verde para arquivo que a Dioli NÃO conseguiu ler é a
+                  meia-verdade que produziu o defeito de 15/08: o cliente acha
+                  que o documento foi lido e o SDR pergunta o que está nele. O
+                  selo agora separa "chegou" de "foi lido". */}
+              {it.status === "done" && it.lido && (
                 <span className="h-4 px-1.5 rounded-[3px] bg-[var(--success-bg)] text-[9px] font-semibold text-[var(--success)] shrink-0 whitespace-nowrap">
-                  Anexado
+                  Lido
+                </span>
+              )}
+              {it.status === "done" && !it.lido && (
+                <span
+                  className="h-4 px-1.5 rounded-[3px] bg-[var(--warning-bg)] text-[9px] font-semibold text-[var(--warning)] shrink-0 whitespace-nowrap"
+                  title="O arquivo chegou, mas não conseguimos extrair o texto dele."
+                >
+                  Anexado · não lido
                 </span>
               )}
               {it.status === "error" && (
@@ -1035,6 +1134,7 @@ function BriefingFileUpload({
             </div>
           ))}
         </div>
+        </details>
       )}
     </div>
   );
@@ -1056,6 +1156,11 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
 
+  // Lido dentro de turnos assíncronos, onde o `fileItems` capturado pelo
+  // closure já está velho. Mesmo padrão de `stateRef`.
+  const itensDosAnexosRef = useRef(fileItems);
+  itensDosAnexosRef.current = fileItems;
+
   // Internal temp ID for link association
   const [tempClientId] = useState(() => "prospect-" + Date.now());
 
@@ -1066,12 +1171,59 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef    = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef    = useRef<HTMLDivElement>(null);
+  const textareaRef       = useRef<HTMLTextAreaElement>(null);
+  const areaDasMensagens  = useRef<HTMLDivElement>(null);
+  const rodapeDaConversa  = useRef<HTMLDivElement>(null);
+
+  // ── A ROLAGEM É DA CONVERSA, NUNCA DA PÁGINA (16/08/2026) ──────────────────
+  // Era `messagesEndRef.current?.scrollIntoView()`. `scrollIntoView` rola TODOS
+  // os ancestrais roláveis até o elemento aparecer — inclusive o documento.
+  // Medido a 375×600: a cada resposta do SDR a página saltava sozinha para
+  // `scrollY: 1123`, e é literalmente o "fica subindo e descendo a tela o tempo
+  // todo" do relato. Mexer em `scrollTop` do próprio contêiner move a conversa
+  // e não toca na página.
+  const rolarConversaAoFim = useCallback((suave = true) => {
+    const el = areaDasMensagens.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: suave ? "smooth" : "auto" });
+  }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [conv.messages, aiThinking]);
+    rolarConversaAoFim();
+  }, [conv.messages, aiThinking, rolarConversaAoFim]);
+
+  // Abrir/fechar o painel de materiais e cada arquivo que entra mudam a altura
+  // disponível para a conversa. Sem isto, anexar um arquivo empurra a última
+  // resposta do SDR para fora da vista — o defeito exato de 16/08/2026.
+  useEffect(() => {
+    rolarConversaAoFim(false);
+  }, [showMaterials, attachments.length, rolarConversaAoFim]);
+
+  // ── DIGITAR TRAZ A CONVERSA JUNTO ─────────────────────────────────────────
+  // O cartão cabe na janela, mas a PÁGINA continua rolável (há o resumo do
+  // pedido abaixo dele). Ao tocar na caixa de digitar, o navegador rola só o
+  // necessário para o campo aparecer — e o campo é o RODAPÉ do cartão, então a
+  // conversa fica acima da borda de cima. É este o gesto do relato do CEO.
+  // `block: "end"` traz o fim do cartão ao fim da janela: como o cartão cabe
+  // inteiro, a conversa entra junto.
+  const cartaoDaConversa = useRef<HTMLDivElement>(null);
+  const ancorarConversa = useCallback(() => {
+    cartaoDaConversa.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, []);
+
+  // Quando o rodapé muda de altura — a caixa de digitar cresce, o painel de
+  // materiais abre, a linha de erro do microfone aparece — a conversa encolhe
+  // por baixo e a última mensagem sai da vista sem que nada tenha "chegado".
+  // Nenhum efeito ligado a `messages` cobre esse caso: por isso é observador de
+  // tamanho, não mais um `useEffect` de estado.
+  useEffect(() => {
+    const alvo = rodapeDaConversa.current;
+    if (!alvo || typeof ResizeObserver === "undefined") return;
+    const obs = new ResizeObserver(() => rolarConversaAoFim(false));
+    obs.observe(alvo);
+    return () => obs.disconnect();
+  }, [rolarConversaAoFim]);
 
   // Append transcribed text to input (never auto-submits; user reviews before sending)
   const handleTranscript = useCallback((text: string) => {
@@ -1191,7 +1343,14 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       setState({ ...ruleResult, conv: { ...ruleResult.conv, messages: userVisible } });
       setAiThinking(true);
 
-      const claude = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope);
+      // O material anexado acompanha TODO turno, não só o turno em que foi
+      // enviado. O histórico que vai ao modelo carrega apenas a bolha visível
+      // ("📎 Enviei meu briefing: X.pdf"), que não tem uma linha do documento —
+      // sem esta remontagem o brand book do cliente é lido uma vez e esquecido.
+      const dossie = dossieDosAnexos(itensDosAnexosRef.current);
+      const paraOSdr = dossie ? `${sdrText ?? text}\n\n${dossie}` : (sdrText ?? text);
+
+      const claude = await fetchSdrReply(priorMessages, paraOSdr, ruleResult.conv.scope);
       setAiThinking(false);
 
       if (claude) {
@@ -1247,29 +1406,46 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           continue;
         }
 
-        setFileItems((prev) =>
+        const texto = result.extractedText.trim();
+        const lido  = texto.length > 0;
+
+        const marcarComoLido = (prev: UploadItem[]): UploadItem[] =>
           prev.map((it) =>
             it.id === id
               ? {
                   ...it,
-                  status: "done",
+                  status: "done" as const,
+                  texto,
+                  lido,
                   attachment: { ...it.attachment, fileType: result.fileType, mimeType: result.mimeType },
                 }
               : it,
-          ),
-        );
+          );
+        setFileItems(marcarComoLido);
+        // O ref é atualizado À MÃO, e não pelo render seguinte: o `runTurn` logo
+        // abaixo lê o dossiê deste mesmo ref, e depender do ciclo de render aqui
+        // mandaria o turno sem o arquivo que acabou de chegar.
+        itensDosAnexosRef.current = marcarComoLido(itensDosAnexosRef.current);
 
-        // If we extracted briefing content, let the SDR read it.
-        if (result.extractedText.trim()) {
-          const visible = `📎 Enviei meu briefing: **${result.fileName}**`;
-          const sdrText =
-            `O cliente anexou um arquivo de briefing chamado "${result.fileName}". ` +
-            `Leia o conteúdo abaixo, extraia tudo que for relevante (negócio, segmento, serviços, ` +
-            `objetivos, quantidades, prazos, contato) para o scope e dê continuidade à conversa de ` +
-            `forma natural, confirmando os pontos principais que entendeu.\n\n` +
-            `--- CONTEÚDO DO BRIEFING ---\n${result.extractedText}`;
-          void runTurn(visible, sdrText);
-        }
+        // ── O TURNO ACONTECE COM OU SEM TEXTO ──────────────────────────────
+        // Antes, `if (extractedText.trim())` fazia o arquivo ilegível passar em
+        // silêncio: nenhum turno, nada dito ao SDR, e "Anexado" verde na tela.
+        // Extração falha por falta de chave, timeout ou PDF só-imagem é o caso
+        // COMUM, não o raro — e era exatamente ele que produzia o SDR pedindo o
+        // briefing que já estava anexado.
+        //
+        // `await` e não `void`: com dois arquivos, dois turnos disparados juntos
+        // liam o mesmo `stateRef` e um sobrescrevia a resposta do outro.
+        const visible = `📎 Enviei meu briefing: **${result.fileName}**`;
+        const sdrText = lido
+          ? `O cliente anexou um arquivo de briefing chamado "${result.fileName}". ` +
+            `Leia o conteúdo (ele vem no material anexado abaixo), extraia tudo que for relevante ` +
+            `(negócio, segmento, serviços, objetivos, quantidades, prazos, contato) para o scope e ` +
+            `dê continuidade à conversa de forma natural, confirmando os pontos principais que entendeu.`
+          : `O cliente anexou o arquivo "${result.fileName}" e NÃO foi possível ler o conteúdo dele. ` +
+            `Reconheça que o arquivo chegou, NÃO finja que leu, NÃO invente o que há nele e peça a ele ` +
+            `o essencial em uma frase.`;
+        await runTurn(visible, sdrText);
       }
     },
     [tempClientId, runTurn],
@@ -1362,10 +1538,25 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     <div className={`grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start ${barraDeConversaoVisivel ? "acao-reserva lg:pb-0" : ""}`}>
 
       {/* ── Left: Chat ───────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col">
+      {/* ── A CONVERSA TEM CASA PRÓPRIA (16/08/2026) ─────────────────────────────
+          Relato do CEO: "enquanto eu digito, na tela do SDR eu não consigo
+          enxergar o que ele está falando; tem que ficar subindo e descendo a
+          tela o tempo todo."
+
+          MEDIDO a 375×600 com 5 anexos, antes: página de 1890px numa janela de
+          600px, e o quadro que o CEO via enquanto digitava não tinha UMA LINHA
+          da conversa — só lista de anexos, campo de link e a caixa de digitar.
+
+          A causa não era o tamanho da fonte nem o desenho: era o cartão do chat
+          CRESCER sem limite e a rolagem útil ser a da PÁGINA. Com `max-h` em
+          `dvh` o cartão inteiro cabe na janela; a conversa rola por DENTRO
+          (`flex-1` + `overflow-y-auto`) e o cabeçalho e a caixa de digitar
+          ficam ancorados nas pontas. `dvh` e não `vh` porque no celular a barra
+          do navegador entra e sai, e `vh` mede a janela que não existe. */}
+      <div ref={cartaoDaConversa} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col max-h-[calc(100dvh-7rem)]">
 
         {/* Chat header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
           <div>
             <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Consultora de Orçamento</div>
             <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">Conversa com a Dioli Studio</div>
@@ -1377,7 +1568,16 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         </div>
 
         {/* Messages */}
-        <div className="px-5 py-4 space-y-3 overflow-y-auto min-h-[320px] max-h-[480px]">
+        {/* `flex-1` toma a sobra do cartão; `min-h-[200px]` é o PISO de conversa
+            visível — abaixo disso a tela deixa de responder "o que ele falou?",
+            que é a única pergunta que esta área existe para responder. O
+            `max-h-[480px]` de antes era teto FIXO: no desktop desperdiçava meia
+            tela, e no celular não impedia nada, porque quem crescia era o
+            cartão inteiro. */}
+        <div
+          ref={areaDasMensagens}
+          className="px-5 py-4 space-y-3 overflow-y-auto flex-[2_1_0%] min-h-[120px]"
+        >
           {conv.messages.map((msg) => (
             <MessageBubble key={msg.id} msg={msg} />
           ))}
@@ -1397,8 +1597,18 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         </div>
 
         {/* Materials panel (toggled): file upload + cloud links */}
+        {/* O painel de materiais mora ENTRE a conversa e a caixa de digitar. Sem
+            teto ele empurra a conversa para fora da vista a cada arquivo — foi
+            ele que, com 5 anexos, deixou a tela do CEO sem uma linha de
+            conversa.
+
+            Ele DIVIDE o espaço com a conversa em vez de empurrá-la: os dois são
+            itens flexíveis do mesmo cartão de altura limitada, a conversa com o
+            dobro do peso. Teto fixo (`max-h`) não bastava — com o painel aberto
+            a soma dos dois estourava o cartão e o `overflow-hidden` cortava a
+            conversa por baixo, que é o mesmo defeito com outra cara. */}
         {showMaterials && (
-          <div className="px-5 pb-3 border-t border-[var(--border)] pt-3 space-y-4">
+          <div className="px-5 pb-3 border-t border-[var(--border)] pt-3 space-y-4 flex-[1_1_0%] min-h-[120px] overflow-y-auto">
             {/* File upload */}
             <div>
               <div className="text-[11px] font-semibold text-[var(--text-primary)] mb-2">Enviar arquivo do briefing</div>
@@ -1412,13 +1622,16 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           </div>
         )}
 
-        {/* Input */}
-        <div className="border-t border-[var(--border)] px-4 py-3">
+        {/* Input — ancorado no rodapé do cartão (`shrink-0` no fim de um flex
+            column de altura limitada). Ele não cobre a conversa: ocupa espaço
+            próprio, e o que sobra é da conversa. */}
+        <div ref={rodapeDaConversa} className="border-t border-[var(--border)] px-4 py-3 shrink-0">
           <div className="flex gap-2">
             <textarea
               ref={textareaRef}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
+              onFocus={ancorarConversa}
               onKeyDown={handleKeyDown}
               placeholder={
                 conv.isFirstMessage
@@ -1470,7 +1683,10 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               ) : (
                 <button
                   type="button"
-                  onClick={isListening ? stopListening : startListening}
+                  // Gravar áudio é o outro caminho do relato ("enquanto eu
+                  // digito OU mando áudio"). O prospect fala olhando a tela; se
+                  // a conversa não está nela, ele fala no escuro.
+                  onClick={() => { ancorarConversa(); (isListening ? stopListening : startListening)(); }}
                   aria-pressed={isListening}
                   className={`h-8 px-3 rounded-[7px] text-[12px] font-semibold border transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                     isListening
@@ -1654,16 +1870,28 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           )}
 
           {/* Attachments */}
+          {/* Mesma regra da lista do painel de envio: uma linha fechada, detalhe
+              sob clique. No celular este bloco fica logo abaixo do chat, e uma
+              lista de 5 nomes aqui é mais meia tela entre o CEO e a conversa. */}
           {attachments.length > 0 && (
-            <div className="px-4 pb-3 border-t border-[var(--border)] pt-3">
-              <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1.5">Materiais</div>
-              {attachments.map((a) => (
-                <div key={a.id} className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] py-0.5">
-                  <span className="w-1 h-1 rounded-full bg-[var(--navy)] shrink-0" />
-                  <span className="truncate">{a.fileName}</span>
-                </div>
-              ))}
-            </div>
+            <details className="group px-4 pb-3 border-t border-[var(--border)] pt-3">
+              <summary className="cursor-pointer select-none list-none flex items-center gap-1.5">
+                <svg width="8" height="8" viewBox="0 0 10 10" fill="none" aria-hidden className="transition-transform group-open:rotate-90 shrink-0 text-[var(--text-muted)]">
+                  <path d="M3 1.5L7 5L3 8.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">
+                  Materiais · {attachments.length} anexo{attachments.length !== 1 ? "s" : ""}
+                </span>
+              </summary>
+              <div className="mt-1.5">
+                {attachments.map((a) => (
+                  <div key={a.id} className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] py-0.5">
+                    <span className="w-1 h-1 rounded-full bg-[var(--navy)] shrink-0" />
+                    <span className="truncate">{a.fileName}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
           )}
 
           {/* "Keep talking" hint while scope is incomplete */}
