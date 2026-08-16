@@ -15,6 +15,97 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — D1 e D2, A TERCEIRA PASSADA (branch `claude/rodada-1-defeitos-do-piloto`, SEM PR)
+
+**Origem:** terceira passada de `qualidade`. C4 passou limpo, a medição do C3 foi
+confirmada como honesta e o argumento do C2 (a cerca do navegador é trava contra
+*documento hostil / remetente honesto*) foi aceito. Dois defeitos novos.
+
+**Portão:** `npx tsc --noEmit` limpo · **4677 testes em 295 arquivos, todos
+verdes** (+17) · `npm run build` compila (os avisos continuam sendo **todos** de
+`instrumentation.ts` e `next.config.ts`, anteriores a este trabalho — nenhum
+arquivo desta rodada aparece em trace nenhum).
+
+### 🔴 D1 — a cerca fechou no TRIADOR e ficou aberta em quem PRODUZ A PEÇA
+
+C1 endureceu `esteira/triagem.ts` e deixou intactos os irmãos. O defeito que o
+cabeçalho de `cerca-de-anexo.ts` já nomeava — **dois lugares irmãos com regras
+diferentes** — tinha virado **quatro**:
+
+| Módulo | O que entrava sem cerca com marca | Por que dói |
+|---|---|---|
+| `esteira/producao-de-pedido.ts:255-264` | `description` e `objective` | é o prompt do especialista que **produz a peça entregue ao cliente**. Estritamente pior que o C1: lá a vítima era a classificação |
+| `esteira/pm-responde.ts:130-146` | `${m.body}` de cada mensagem, `${mensagem.body}`, `description`, `objective`, `declineReason`, nome | o atacante **nem precisa de arquivo**: basta uma mensagem no portal |
+| `comercial/qualificar.ts:172-174` | `${titulo}` e `${descricao}` do anúncio | **conteúdo de terceiro** — a única entrada desta casa que ninguém aqui escreveu |
+
+**A cerca deixou de ser desenhada à mão.** `aberturaDeBloco` /
+`fechamentoDeBloco` nascem em `lib/agency/comercial/cerca-de-anexo.ts`, o mesmo
+módulo da cerca do anexo e da do pedido: marca sorteada por montagem, marca
+retirada do conteúdo, fechamento sem uma letra de fora, e `instrucaoDaMarca` no
+prompt. As três montagens viraram **função pura exportada** — montagem presa
+dentro do laço que lê o banco é montagem que nenhum teste submete a um adversário.
+
+**Também fora da cerca, e por isso também lavados:** os campos rotulados do
+contexto do PM (nome, pedido em aberto, objetivo, motivo, última mensagem). Fora
+da cerca é a posição de **maior** autoridade do prompt — é o mesmo raciocínio do
+nome do cliente no C1.
+
+### 🔴 D2 — a regra era global e a verificação lia UM arquivo
+
+`a-cerca-do-pedido-nao-se-forja.test.ts` enunciava *"toda linha de cerca do
+prompt carrega a marca desta montagem"* e lia só `triagem.ts`. O `qualidade`
+rodou o **próprio predicado do teste** nos irmãos: reprovava
+`producao-de-pedido.ts:264`.
+
+> **Régua adotada como regra da casa:** *regra cuja verificação é escopada ao
+> arquivo que acabou de ser consertado mede o conserto, não a regra.*
+
+A varredura **descobre o conjunto pelo código, nunca por lista fixa**: todo
+arquivo que importa `@/lib/ai/generate` (quem fala com o modelo) **mais um salto
+dos imports locais dele** (onde moram os montadores de bloco). São **94 arquivos
+hoje**, e módulo de prompt novo entra sozinho no dia em que nascer. As quatro
+metades do teste: acha os módulos de verdade (não passa por vacuidade) · nenhum
+tem cerca sem marca · o **mesmo predicado reprova o fonte antigo** guardado em
+`__tests__/_fixtures/legado/prompts-antes-de-d1.ts` (6 linhas) · pega um módulo
+novo plantado e **não** inventa problema no módulo limpo.
+
+### 🔎 A VARREDURA REVELOU MAIS DOIS — e os dois foram consertados
+
+Além dos três nomeados no despacho, o conjunto de 94 arquivos tinha **dois
+módulos com desenho de cerca sem marca**, ambos com texto só da casa:
+`comercial/negociacao.ts:511-513` e `radar/library.ts:144-146`. Não eram cerca —
+eram **título decorado**, e é pior do que parece: `instrucaoDaMarca` declara ao
+modelo que **linha que parece cerca e não traz a marca é CONTEÚDO do cliente**.
+Decoração da casa vestida de estrutura ensina exatamente a lição que o atacante
+quer. Os dois viraram título `##`. **Total: 5 módulos, não 3.**
+
+### ⚠️ O QUE A VARREDURA AINDA NÃO ALCANÇA — declarado, não escondido
+
+- [ ] 🔴 `seguranca` — **`app/api/sdr/chat/route.ts` NÃO importa
+      `@/lib/ai/generate`** e por isso fica fora do conjunto. O system prompt
+      dele tem títulos desenhados com `━━━` (linhas 115-135 e adiante) — mesma
+      classe do que foi consertado em `negociacao.ts`. **Não tocado por ordem do
+      despacho** (vai com C5).
+- [ ] 🔴 `seguranca` — **a montagem do briefing público acontece no NAVEGADOR**
+      (`components/agency/briefing/PublicBriefingRoom.tsx`), que também não entra
+      na varredura. Já é o assunto do C2/C5. **Não tocado por ordem do despacho.**
+- [ ] `qualidade` — a varredura acha **linha de cerca**; ela **não** acha
+      interpolação de texto de cliente **sem** cerca nenhuma. Exemplo vivo:
+      `producao-de-pedido.ts` passa `businessName`, `segment`, `targetAudience`,
+      `feedRealDoCliente` e `contratoDeMarca` para `esp.prompt(contexto)`, todos
+      derivados do cliente e **fora** de qualquer cerca. Frente própria.
+
+### ⚠️ A DÍVIDA DO ACHATAMENTO CRESCEU (já registrada abaixo, agora com alcance)
+
+`conteudoParaCerca` achata **toda** quebra de linha. A partir do D1 isso vale
+também para o **anúncio de terceiro** (`qualificar.ts`), que é texto longo de
+marketplace e chega ao modelo como parágrafo único. **Foi deliberado não abrir
+exceção lá:** preservar `\n` só num módulo recriaria "dois lugares irmãos com
+regras diferentes", que é o defeito que este trabalho existe para fechar. O
+conserto certo é único e vale para os cinco — e não foi feito nesta rodada.
+
+---
+
 ## 🟢 16/08/2026 — C1…C5, A SEGUNDA PASSADA (branch `claude/rodada-1-defeitos-do-piloto`, SEM PR)
 
 **Origem:** segunda passada de `qualidade` + `experiencia`. Os seis bloqueantes
