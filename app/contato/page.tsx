@@ -5,7 +5,9 @@ import { ContatoForm } from "./ContatoForm";
 
 export const metadata: Metadata = {
   title: "Contato",
-  description: "Fale com a Dioli Digital. Escreva pra gente e responderemos rápido.",
+  // Sem "responderemos rápido" (16/08/2026): não há nada no código que garanta
+  // rapidez, e promessa de prazo sem mecanismo é a regra que o CEO fechou.
+  description: "Fale com a Dioli Digital. Conte o que você precisa e a gente responde.",
 };
 
 export default function ContatoPage() {
@@ -25,7 +27,7 @@ export default function ContatoPage() {
           Fale com a <span className="text-gradient-cool">gente.</span>
         </h1>
         <p className="mt-3 text-[15px] leading-relaxed text-[var(--text-secondary)]">
-          Escreva sua mensagem que a gente responde rápido — normalmente em poucas horas úteis.
+          Escreva sua mensagem — a gente lê tudo que chega e responde pelo canal que você deixar.
           Sem compromisso.
         </p>
 

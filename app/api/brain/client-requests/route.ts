@@ -11,6 +11,7 @@ import { rateLimited } from "@/lib/security/rate-limit";
 import { sendEmail } from "@/lib/email/send";
 import { briefingConfirmationEmail } from "@/lib/email/templates";
 import { lerContato, montarContato } from "@/lib/agency/comercial/contato-do-lead";
+import { gravarFalhaDeEscopo, motivoParaOCliente } from "@/lib/agency/briefing/falha-de-escopo";
 
 // Fire-and-forget prospect confirmation. O endereço sai do leitor único de
 // contato (`lerContato`) — não de um `?.scope?.prospectEmail` reinventado aqui.
@@ -156,8 +157,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Automatically generate the full scope as soon as the briefing lands —
       // no PM click needed. Fire-and-forget: the 201 returns immediately while
       // the synchronous engine chain runs in the background.
-      runAutoScope(record.id).catch((e) => {
+      // A falha NÃO morre no console (16/08/2026). Antes, o `.catch` só logava:
+      // a solicitação ficava em `new` com zero canvases para sempre, e a tela de
+      // confirmação do cliente não tinha como distinguir "montando agora" de
+      // "morreu há dois dias" — então ela mentia com um prazo fixo. Agora a
+      // falha vira registro, e a tela LÊ o registro e diz que travou.
+      runAutoScope(record.id).catch(async (e) => {
         console.error("[client-requests] background auto-scope failed for", record.id, e);
+        try {
+          const atual = await getClientRequest(record.id);
+          await updateClientRequest(record.id, {
+            // `status` NÃO se mexe: sair de `new` tiraria o lead dos baldes
+            // `briefing-parado-*` do raio-x — o alarme da casa desligado
+            // justamente no lead que mais precisa ser cobrado.
+            briefingJson: gravarFalhaDeEscopo(atual?.briefingJson ?? null, motivoParaOCliente(e)),
+          });
+        } catch (e2) {
+          console.error("[client-requests] não consegui registrar a falha de escopo de", record.id, e2);
+        }
       });
 
       // Confirmation e-mail to the prospect — fire-and-forget, never blocks the 201.

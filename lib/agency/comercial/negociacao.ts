@@ -35,7 +35,66 @@
 // pedido é sempre o que não custa margem (pagamento à vista, prazo). Quem
 // resolve a contradição no papel é o Diretor com o CEO — está em aberto.
 
-import { precoEmReais } from "../planos";
+// ─── PREÇO NÃO SE COPIA PARA CÁ — SE IMPORTA (16/08/2026) ────────────────────
+// Até hoje este módulo era a TERCEIRA tabela de preço da casa: `TABELA_DE_PISO`
+// repetia à mão os valores cheios dos planos (297, 790, 1390, 2590) e dos itens
+// de balcão (79, 129, 99, 39, 149), e as frases de venda traziam os mesmos
+// números escritos por extenso. Nada obrigava as três a concordarem: bastava o
+// CEO mexer no preço em `planos.ts` para o SDR continuar cotando o antigo, com
+// cara de número oficial. "Mudar nos dois no mesmo commit" é disciplina, e
+// disciplina é o que falha no primeiro dia de pressa.
+//
+// A partir daqui **o valor CHEIO é lido da fonte do produto**:
+//   • plano  → `lib/agency/planos.ts` (`PLANOS[].preco`)
+//   • balcão → `lib/agency/self-serve-catalog.ts` (`SELF_SERVE_CATALOG[].price`)
+//
+// O que continua nascendo AQUI, e é dado próprio e não duplicata, é o **piso** —
+// o mais baixo autorizado. Ele não existe em nenhuma das duas fontes porque é
+// número interno de negociação, nunca preço de catálogo.
+//
+// E as frases ditas ao cliente (`versaoMenor`, `principal`, `alternativa`) são
+// MONTADAS com `precoEmReais(...)` sobre a fonte. Preço escrito à mão dentro de
+// uma frase é preço que nenhum portão alcança — é literalmente o que o SDR fala.
+import { PLANOS, precoEmReais, type Plano } from "../planos";
+import { SELF_SERVE_CATALOG } from "../self-serve-catalog";
+
+/** Lê um plano da fonte única. LANÇA se o id sumir — fail-closed, igual ao resto
+ *  deste módulo. Plano renomeado na fonte tem de derrubar a casa em voz alta;
+ *  um `?? 0` silencioso faria o SDR cotar R$ 0,00 para um cliente de verdade. */
+function plano(id: Plano["id"]): Plano {
+  const p = PLANOS.find((x) => x.id === id);
+  if (!p) {
+    throw new Error(
+      `negociacao.ts: o plano "${id}" não existe em lib/agency/planos.ts, que é a fonte única de preço de plano. ` +
+        `Renomear ou remover um plano exige atualizar TABELA_DE_PISO no mesmo commit.`,
+    );
+  }
+  return p;
+}
+
+/** O mesmo, para o balcão. Mesma regra, mesma razão. */
+function balcao(id: string): { label: string; price: number; precoMinimo: number } {
+  const s = SELF_SERVE_CATALOG.find((x) => x.id === id);
+  if (!s) {
+    throw new Error(
+      `negociacao.ts: o item de balcão "${id}" não existe em lib/agency/self-serve-catalog.ts, que é a fonte única ` +
+        `de preço do balcão.`,
+    );
+  }
+  if (typeof s.precoMinimo !== "number") {
+    throw new Error(
+      `negociacao.ts: o item de balcão "${id}" não declara \`precoMinimo\`. Sem piso na fonte não há autorização ` +
+        `de venda — ausência de piso não é piso zero.`,
+    );
+  }
+  return { label: s.label, price: s.price, precoMinimo: s.precoMinimo };
+}
+
+/** "R$ 790" a partir da fonte. Existe para nenhuma frase de venda ter número
+ *  digitado à mão. */
+function precoDoPlano(id: Plano["id"]): string {
+  return precoEmReais(plano(id).preco);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. FAIXAS DE INVESTIMENTO — o que se oferece para cada bolso
@@ -85,7 +144,7 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 150 e R$ 500",
     de: 150,
     ate: 500,
-    principal: "Plano Ritmo (R$ 297/mês): pauta, 8 peças prontas por mês e aprovação no portal — quem publica é o cliente",
+    principal: `Plano ${plano("ritmo").nome} (${precoDoPlano("ritmo")}/mês): pauta, 8 peças prontas por mês e aprovação no portal — quem publica é o cliente`,
     alternativa: "Pacote de peças avulsas montado dentro do que ele tem para gastar",
     condicao: "No Ritmo a publicação é do cliente. Publicar por ele derruba a conta do degrau.",
     confirmarAntes: false,
@@ -95,7 +154,7 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 500 e R$ 1.500",
     de: 500,
     ate: 1500,
-    principal: "Plano Presença (R$ 790/mês): é aqui que entra gente da nossa equipe, publicação e Google gerenciado",
+    principal: `Plano ${plano("presenca").nome} (${precoDoPlano("presenca")}/mês): é aqui que entra gente da nossa equipe, publicação e Google gerenciado`,
     alternativa: "Projeto de marca (identidade visual ou posicionamento), com começo e fim",
     condicao: "Projeto de marca não é mensalidade — é entrega com prazo próprio.",
     confirmarAntes: false,
@@ -105,8 +164,8 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 1.500 e R$ 5.000",
     de: 1500,
     ate: 5000,
-    principal: "Plano Crescimento (R$ 2.590/mês): conteúdo, criativos de anúncio e a campanha desenhada",
-    alternativa: "Plano Conteúdo (R$ 1.390/mês), quando ele ainda não vai colocar verba em anúncio",
+    principal: `Plano ${plano("crescimento").nome} (${precoDoPlano("crescimento")}/mês): conteúdo, criativos de anúncio e a campanha desenhada`,
+    alternativa: `Plano ${plano("conteudo").nome} (${precoDoPlano("conteudo")}/mês), quando ele ainda não vai colocar verba em anúncio`,
     // A verba de mídia fica FORA. Se ela entrar na conta da faixa, o cliente
     // acha que R$ 2.000 cobrem plano + anúncio, e a agência trabalha de graça.
     condicao: "A verba de mídia é sempre à parte, paga por ele direto à plataforma. Zero promessa de retorno.",
@@ -118,7 +177,7 @@ export const FAIXAS: Oferta[] = [
     de: 5000,
     ate: Number.POSITIVE_INFINITY,
     principal: "Projeto em fases: cada fase com escopo, prazo e preço fechados antes de começar",
-    alternativa: "Plano Crescimento como base, com as fases entrando por cima mês a mês",
+    alternativa: `Plano ${plano("crescimento").nome} como base, com as fases entrando por cima mês a mês`,
     condicao: "Fase seguinte só é vendida com a anterior entregue. Nada de escopo aberto.",
     confirmarAntes: false,
   },
@@ -185,44 +244,59 @@ export interface LinhaDaTabela {
   versaoMenor: string;
 }
 
+// ⚠️ NENHUM `cheio` é digitado nesta tabela, e isso é o ponto.
+// `cheio` vem do catálogo do produto; só `piso` nasce aqui. Se você está prestes
+// a escrever um número em `cheio`, o lugar certo é `planos.ts` (plano) ou
+// `self-serve-catalog.ts` (balcão) — e há teste que reprova a tentativa.
 export const TABELA_DE_PISO: Record<ItemNegociavel, LinhaDaTabela> = {
   post: {
-    id: "post", nome: "Post único com arte e legenda", cheio: 79, piso: 49, recorrente: false,
+    id: "post", nome: "Post único com arte e legenda",
+    cheio: balcao("balcao-post-feed").price, piso: balcao("balcao-post-feed").precoMinimo, recorrente: false,
     versaoMenor: "só a legenda pronta, com a arte por conta dele",
   },
   carrossel: {
-    id: "carrossel", nome: "Carrossel", cheio: 129, piso: 79, recorrente: false,
+    id: "carrossel", nome: "Carrossel",
+    cheio: balcao("balcao-carrossel-5").price, piso: balcao("balcao-carrossel-5").precoMinimo, recorrente: false,
     versaoMenor: "um post único no lugar do carrossel",
   },
   stories: {
-    id: "stories", nome: "Sequência de stories", cheio: 99, piso: 59, recorrente: false,
+    id: "stories", nome: "Sequência de stories",
+    cheio: balcao("balcao-4-stories").price, piso: balcao("balcao-4-stories").precoMinimo, recorrente: false,
     versaoMenor: "uma sequência mais curta, com menos telas",
   },
   copy: {
-    id: "copy", nome: "Copy / legenda", cheio: 39, piso: 29, recorrente: false,
+    id: "copy", nome: "Copy / legenda",
+    cheio: balcao("balcao-legenda").price, piso: balcao("balcao-legenda").precoMinimo, recorrente: false,
     // A copy é o item mais barato da casa: não existe degrau abaixo dela.
     // Aqui a saída é prazo, não escopo — e isso está dito com todas as letras.
     versaoMenor: "sem versão menor: a saída é prazo maior de entrega, não preço",
   },
   auditoria: {
-    id: "auditoria", nome: "Auditoria de perfil", cheio: 149, piso: 99, recorrente: false,
+    id: "auditoria", nome: "Auditoria de perfil",
+    cheio: balcao("balcao-auditoria-perfil").price, piso: balcao("balcao-auditoria-perfil").precoMinimo,
+    recorrente: false,
     versaoMenor: "uma leitura mais curta, só com o diagnóstico, sem o plano de ação",
   },
   ritmo: {
-    id: "ritmo", nome: "Plano Ritmo", cheio: 297, piso: 229, recorrente: true,
-    versaoMenor: "menos peças por mês dentro do próprio Ritmo, ou o Pulso (R$ 49) para começar medindo",
+    id: "ritmo", nome: `Plano ${plano("ritmo").nome}`, cheio: plano("ritmo").preco, piso: 229, recorrente: true,
+    versaoMenor:
+      `menos peças por mês dentro do próprio ${plano("ritmo").nome}, ` +
+      `ou o ${plano("pulso").nome} (${precoDoPlano("pulso")}) para começar medindo`,
   },
   presenca: {
-    id: "presenca", nome: "Plano Presença", cheio: 790, piso: 690, recorrente: true,
-    versaoMenor: "o Ritmo (R$ 297), em que ele mesmo publica",
+    id: "presenca", nome: `Plano ${plano("presenca").nome}`, cheio: plano("presenca").preco, piso: 690,
+    recorrente: true,
+    versaoMenor: `o ${plano("ritmo").nome} (${precoDoPlano("ritmo")}), em que ele mesmo publica`,
   },
   conteudo: {
-    id: "conteudo", nome: "Plano Conteúdo", cheio: 1390, piso: 1190, recorrente: true,
-    versaoMenor: "o Presença (R$ 790), sem stories e sem roteiro de reels",
+    id: "conteudo", nome: `Plano ${plano("conteudo").nome}`, cheio: plano("conteudo").preco, piso: 1190,
+    recorrente: true,
+    versaoMenor: `o ${plano("presenca").nome} (${precoDoPlano("presenca")}), sem stories e sem roteiro de reels`,
   },
   crescimento: {
-    id: "crescimento", nome: "Plano Crescimento", cheio: 2590, piso: 2190, recorrente: true,
-    versaoMenor: "o Conteúdo (R$ 1.390), sem os criativos de anúncio",
+    id: "crescimento", nome: `Plano ${plano("crescimento").nome}`, cheio: plano("crescimento").preco, piso: 2190,
+    recorrente: true,
+    versaoMenor: `o ${plano("conteudo").nome} (${precoDoPlano("conteudo")}), sem os criativos de anúncio`,
   },
 };
 

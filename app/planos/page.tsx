@@ -20,13 +20,24 @@ function zap(msg: string): string {
   return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
 }
 
+// O degrau mais barato e o mais caro, LIDOS da fonte.
+//
+// Até 16/08/2026 esta linha dizia "Do R$ 49 que mede ao R$ 2.590 que cresce"
+// com os dois números digitados à mão — no mesmo arquivo cujo cabeçalho promete
+// que "os dados vêm de planos.ts, fonte única". É o pior lugar possível para um
+// preço parado: `openGraph.description` é o texto que o WhatsApp e o Google
+// mostram, ninguém revisa metadado ao mexer em preço, e um preço velho num card
+// de link é uma oferta pública que a casa não pretende honrar.
+const MAIS_BARATO = PLANOS.reduce((a, b) => (b.preco < a.preco ? b : a));
+const MAIS_CARO = PLANOS.reduce((a, b) => (b.preco > a.preco ? b : a));
+
 export const metadata: Metadata = {
   title: "Planos e preços — Dioli Digital",
   description:
     "Cinco planos mensais, do acompanhamento de resultados à operação completa. Cada um diz em número o que entrega — e o que não entrega.",
   openGraph: {
     title: "Planos e preços — Dioli Digital",
-    description: "Do R$ 49 que mede ao R$ 2.590 que cresce. Escopo escrito, sem letra miúda.",
+    description: `Do ${precoEmReais(MAIS_BARATO.preco)} que mede ao ${precoEmReais(MAIS_CARO.preco)} que cresce. Escopo escrito, sem letra miúda.`,
     type: "website",
     locale: "pt_BR",
   },
