@@ -1,0 +1,13 @@
+{
+  "id": "esteira/volume-declarado",
+  "quem": "pm-a6e16be",
+  "frente": "volume declarado se perde: 2 posts por dia nao chega ao escopo nem a estimativa",
+  "responsabilidade": "esteira/volume-declarado",
+  "arquivos": [
+    "lib/agency/question-engine.ts",
+    "lib/agency/prospect-engine.ts",
+    "lib/agency/live-calculator.ts"
+  ],
+  "abertaEm": "2026-08-16T18:03:49.047Z",
+  "encerradaEm": null
+}
