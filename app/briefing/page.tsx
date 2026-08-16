@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
 import { PublicBriefingRoom } from "@/components/agency/briefing/PublicBriefingRoom";
 import type { PublicBriefingRoomSubmitData } from "@/components/agency/briefing/PublicBriefingRoom";
@@ -124,12 +125,19 @@ export default function BriefingPage() {
           </ol>
         </div>
         <div className="flex items-center justify-center gap-3 flex-wrap">
-          <button
-            onClick={() => { setSubmitted(false); setSubmittedId(null); }}
-            className="h-9 px-5 rounded-[8px] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] text-[13px] font-medium transition-colors"
+          {/* Este botão dizia "Voltar ao início" e voltava ao MESMO formulário
+              que a pessoa acabou de enviar (só desfazia `submitted`) — quem tinha
+              acabado de mandar o briefing era jogado de volta a preenchê-lo de
+              novo. "Início" que a pessoa lê aqui é o site da agência, não o
+              formulário; o destino agora é a raiz do app (`/`), e o rótulo diz
+              "site" com todas as letras para não prometer de novo o que não
+              entrega. Ordem do CEO em 16/08: "não faz o menor sentido". */}
+          <Link
+            href="/"
+            className="h-9 px-5 rounded-[8px] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] text-[13px] font-medium transition-colors inline-flex items-center"
           >
-            Voltar ao início
-          </button>
+            Voltar ao site
+          </Link>
           <a
             href="https://wa.me/5511989400692"
             // PAR DE COR QUE VIRA JUNTO. O CEO, em 16/08/2026, não conseguiu ler

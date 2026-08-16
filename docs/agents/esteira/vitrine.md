@@ -78,3 +78,41 @@ dois projetos idênticos.
 quem aprova é o cliente. **Confirme antes de remover qualquer um dos dois.**
 
 — promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §F5 (commit `465cf05`)
+
+---
+
+## Antes de inventar uma régua de "está parado há tempo demais", procure a que já existe
+
+Esta casa já tem **três** varreduras que respondem à mesma pergunta —
+`lib/agency/pm/varredura.ts`, `lib/agency/v2-recovery/detector-de-parados.ts` e
+`lib/raio-x/dados.ts`. Uma quarta régua não erra sozinha: ela **diverge** da
+anterior meses depois, e aí duas telas dão dois números para o mesmo fato.
+
+Foi o que guiou o coletor do veredito do Diretor
+(`lib/agency/diretor/coletor.ts`, 16/08): ele **reaproveita**
+`varrerOQueEstaParado`, `pacotesTravados()` e `SLA_POR_ESTADO_HORAS` em vez de
+consultar o banco de novo com um horizonte próprio.
+
+**Custo de desfazer:** baixo hoje, alto depois. Duas verdades adjacentes sobre a
+mesma fila é o defeito nº 2 do incidente do Drive, e ele já custou sete semanas
+de fila invisível.
+
+— promovido em 2026-08-16 pelo PM · origem: despacho do `esteira` (a seta do
+dispositivo do Diretor), auditado e aceito pelo `pm`
+
+---
+
+## Trava sem chamador de produção é decoração — o `grep` é parte do conserto
+
+Em 16/08 o Essencial `qualidade` varreu 84 candidatas em `lib/agency/` e
+`lib/dioli-brain/` e achou **três** mecanismos escritos, comentados e
+**desligados** — inclusive `repararJsonTruncado`, que tinha nascido no commit
+anterior com 30 linhas explicando o incidente que ela conserta, e nunca fora
+chamada.
+
+**A regra:** quem escreve mecanismo nesta casa prova o chamador antes de declarar
+o conserto feito — `grep -rn "nome(" app lib`, com `__tests__/` e `scripts/`
+contados à parte. **Teste não é chamador:** ele prova que a peça funciona, nunca
+que ela está ligada.
+
+— promovido em 2026-08-16 pelo PM · origem: laudo D-003 do `qualidade`

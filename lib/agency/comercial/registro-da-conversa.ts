@@ -121,10 +121,33 @@ export type TurnoDoSdr = {
   doVisitante: string;
   /** O que o SDR respondeu. Ausente quando o turno foi barrado por um guarda. */
   doSdr?: string;
-  /** Por que a resposta do SDR não vale (`price_leak`, `email_hallucination`…).
-   *  Registrado SEM o texto barrado: o motivo é o que se audita; repetir a fala
-   *  proibida seria gravar exatamente o que o guarda impediu de sair. */
+  /** Por que a resposta do SDR não vale (`price_leak`, `email_hallucination`,
+   *  `truncado`, `malformado`…). Registrado SEM o texto barrado: o motivo é o
+   *  que se audita; repetir a fala proibida seria gravar exatamente o que o
+   *  guarda impediu de sair. */
   motivoDaRecusa?: string;
+  /** true quando a fala foi barrada mas o ESCOPO (o que o cliente já tinha
+   *  dito) sobreviveu e foi devolvido ao cliente mesmo assim — caso de
+   *  16/08/2026: barrar a fala TENDO SALVO o briefing é um fato diferente de
+   *  perder tudo, e o diário precisa mostrar essa diferença, não só o motivo
+   *  da recusa. */
+  escopoFoiSalvo?: boolean;
+};
+
+/** Motivo cru → explicação curta, pt-BR, sem jargão de código — para quem lê
+ *  o diário sem conhecer os nomes internos dos guardas. O motivo cru continua
+ *  no corpo (quem audita por grep ainda acha "truncado"/"malformado"); isto
+ *  só acrescenta a frase ao lado. */
+const EXPLICACAO_DA_RECUSA: Record<string, string> = {
+  truncado: "a resposta do modelo foi cortada no meio, o teto de tokens acabou antes de terminar",
+  malformado: "a resposta do modelo terminou de ser escrita e ainda assim não veio em formato válido",
+  // Os dois guardas mais antigos ficaram sem frase quando os dois de cima
+  // nasceram — e motivo sem explicação no diário é o mesmo problema que esta
+  // tabela existe para resolver: quem lê o diário do piloto não é quem escreveu
+  // o nome do guarda. Aqui o modelo ERROU (pediu e-mail, cotou preço); o pacote
+  // chegou inteiro, e é por isso que nestes dois o escopo sempre sobrevive.
+  email_hallucination: "o modelo pediu ou validou e-mail, o que ele não pode fazer nesta conversa",
+  price_leak: "o modelo citou preço ou desconto na fala, o que só pode acontecer depois do login",
 };
 
 /**
@@ -152,10 +175,17 @@ export async function registrarTurnoDoSdr(turno: TurnoDoSdr): Promise<number> {
   if (doSdr) {
     linhas.push({ authorRole: "team", authorName: "SDR", body: doSdr });
   } else if (turno.motivoDaRecusa) {
+    const explicacao = EXPLICACAO_DA_RECUSA[turno.motivoDaRecusa];
+    const salvouEscopo = turno.escopoFoiSalvo
+      ? " O escopo (o que o cliente já tinha dito) foi salvo mesmo assim."
+      : "";
     linhas.push({
       authorRole: "team",
       authorName: "SDR",
-      body: `[resposta barrada pelo guarda: ${turno.motivoDaRecusa} — quem respondeu ao visitante foi o motor de regras]`,
+      body:
+        `[resposta barrada pelo guarda: ${turno.motivoDaRecusa}` +
+        `${explicacao ? ` — ${explicacao}` : ""}` +
+        ` — quem respondeu ao visitante foi o motor de regras.${salvouEscopo}]`,
     });
   }
 

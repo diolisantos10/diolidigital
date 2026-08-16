@@ -166,3 +166,138 @@ roda **dentro de `auditDeliverable`, antes da IA** — um lugar, quatro caminhos
 
 **Verificação:** `npx tsc --noEmit` limpo · `npx vitest run` 3472 verdes
 (212 arquivos), +103 testes.
+
+---
+
+## 2026-08-16 · O escopo sobrevive quando a fala não sobrevive
+
+**O buraco:** piloto ao vivo, 12h41 e 12h43. O cliente disse "R$ 500/mês" e
+"2 posts por dia"; o teto de tokens (1.280) cortou a resposta do SDR no meio do
+JSON, `JSON.parse` recusou o texto inteiro — fala E escopo juntos — e o
+briefing saiu com R$ 1.800–3.400 e 3 posts/semana. `repararJsonTruncado` já
+existia no arquivo (commit anterior) e nunca era chamada — D-003, a caixa sem
+a seta, dentro do próprio conserto que devia consertar isso.
+
+**O que entrou**
+
+- `app/api/sdr/chat/route.ts:257-282` — o JSON de saída passou a pedir
+  `scope` ANTES de `reply`. É a peça que faz o resto funcionar: o campo mais
+  longo (a fala, até 600 caracteres) é sempre o mais arriscado de cortar; com
+  o escopo escrito primeiro, um corte pelo teto cai quase sempre DEPOIS dele
+  já ter fechado no texto bruto.
+- `:493-566` — lê `stop_reason` da resposta da Anthropic (`max_tokens` =
+  corte confirmado pela própria API), chama `repararJsonTruncado` antes de
+  desistir quando `extractJson` falha, e trata a fala como não confiável
+  sempre que houve remendo OU a API confirma corte — mesmo que o campo
+  `reply` exista: o remendo fecha aspas à força e pode ter fechado uma
+  palavra pela metade. O escopo, que fechou sozinho antes do corte,
+  sobrevive e viaja em `ok:false` quando há algo utilizável.
+- `:394-436` — as três travas do scope (email/negotiation fora, businessName
+  == prospectName descartado, budgetRange por allowlist) viraram uma função
+  só (`aplicarTravasDeEscopo`), para o scope remendado não ter regra
+  diferente do scope limpo.
+- `:41-51` — `MAX_TOKENS` subiu de 1.280 para 2.000, com a conta escrita
+  (fala ~240 tokens no pior caso + escopo cheio ~500 + folga de formatação
+  ~250 → piso real >1.000; 1.280 não tinha margem).
+- `lib/agency/comercial/registro-da-conversa.ts:124-183` — o diário separa
+  `truncado` de `malformado` (motivos diferentes, ação diferente) e mostra
+  quando o escopo foi salvo mesmo com a fala barrada — barrar TENDO salvo o
+  briefing é um fato diferente de perder tudo, e agora aparece assim.
+- `components/agency/briefing/PublicBriefingRoom.tsx:751-829,1232-1245` — o
+  consumidor parava de ler a resposta inteira em `if (!data.ok) return null`.
+  Agora `fetchSdrReply` lê `scope` mesmo com `ok:false`, e `runTurn` aplica o
+  gap-fill (`mergeScopeGaps`) usando o scope recuperado enquanto a fala fica
+  por conta do motor de regras.
+- Testes: `__tests__/esteira/escopo-sobrevive-ao-corte.test.ts` (servidor,
+  chamando a rota de verdade) e `__tests__/briefing/escopo-sobrevive-no-cliente.test.ts`
+  (cliente, chamando `fetchSdrReply`/`mergeScopeGaps` — exportadas só para
+  isso).
+
+**A decisão que vale mais que o código:** reordenar o JSON (`scope` antes de
+`reply`) não estava escrito no despacho — foi a única forma de o requisito
+"o escopo chega, a fala é barrada" ser estruturalmente verdadeiro, em vez de
+depender do modelo obedecer bem toda vez. É a mesma lição do piloto inteiro:
+prompt é aviso, ordem de campo é trava.
+
+**O que ficou aberto:** o portão (`tsc --noEmit`, `npm test`) não pôde ser
+executado nesta sessão — o sandbox bloqueou toda invocação de `tsc`/`npm`/
+`vitest`/`node -e` com "requires approval", inclusive `--version` de alguns
+binários, sem uma aprovação humana disponível no turno. Verifiquei manualmente
+(leitura completa do diff, checagem por `grep` de cada string exigida pelos
+testes já existentes, rastreio à mão de cada string de teste truncada pelo
+algoritmo de reparo) mas **isto não substitui o portão real**. Quem retomar
+precisa rodar `npx tsc --noEmit && npm test` antes de considerar isto fechado.
+
+---
+
+## 2026-08-16 · A seta que faltava — `podeODiretorEncerrar` finalmente é chamado
+
+**O buraco (D-003, medido pelo essencial `qualidade`):**
+`lib/agency/diretor/pendencias.ts` — a REGRA DE OURO do Diretor, ordem do CEO
+de 15/08 ("não pode parar com pendência aberta, e precisa de um dispositivo
+para não dizer 'eu não vi'") — julgava certo e estava testada. `grep -rn
+"podeODiretorEncerrar(" app lib __tests__ scripts` só achava o próprio teste.
+Zero rota, zero script, zero import de produção. A caixa existia; a seta não.
+
+**O que entrou**
+
+- `lib/agency/diretor/coletor.ts` — `coletarRetratoDasFontes()`. Vai ao banco,
+  monta o `RetratoDasFontes` e devolve para `pendencias.ts` julgar. Não decide
+  nada — julgar já estava certo lá.
+- `app/api/diretor/pendencias/route.ts` — `GET`, autenticada (`requireSession`,
+  mesmo padrão de `/api/pacotes-travados`), aceita `?escopo=` opcional.
+- `__tests__/agency/diretor-coletor.test.ts` e
+  `__tests__/agency/diretor-pendencias-route.test.ts`.
+
+**Os sete tipos, e a fonte de cada um — nenhum varrido em silêncio**
+
+| Tipo | Fonte real |
+|---|---|
+| `bloqueio_aberto` | `BloqueioV2` (canônico, `resolvidoEm: null`) **+** `pacotesTravados()` filtrado por `esperandoDecisao` (reaproveitado de `esteira/pacote-travado.ts`, não reimplementado) |
+| `handoff_sem_aceite` | `HandoffV2` "aguardando_recebimento", via `varrerOQueEstaParado` — a MESMA função que o PM usa, alimentada com o mesmo par de fontes que `despertador.ts` já lê a cada 5 min |
+| `prazo_estourado` | a mesma `varrerOQueEstaParado` (Task) **+** a mesma tabela `SLA_POR_ESTADO_HORAS` aplicada a Deliverable/ApprovalRequest/ContentRequest/ClientRequestDb com `estadoCanonico` |
+| `aprovacao_pendente` | `ApprovalRequest` pendente com `expiresAt` vencido |
+| `efeito_morto` | `OutboxV2` (`status:"dead"`) + `SocialPost` (`"failed"`) + `WhatsAppOutbox` (`"failed"`) |
+| `reprovado_sem_refacao` | `Deliverable.revisionStatus === "quality_flag"` |
+| `escalada_sem_resposta` | `ContentRequest.status === "precisa_decisao"` parado +24h (mesmo balde e horizonte que `lib/raio-x/dados.ts` item 10) |
+
+Nenhuma régua de tempo nova: o horizonte de "parado" (24h) é o mesmo que
+`raio-x/dados.ts` usa em todos os baldes dele; a SLA por estado é a mesma
+tabela de `v2-recovery/detector-de-parados.ts`; o filtro por escopo é
+`recortarPorEscopo`, importado, não reescrito.
+
+**A propriedade que o teste guarda:** `coletar()` roda cada fonte no seu
+próprio `try/catch`. Uma fonte que lança nunca derruba as outras e nunca vira
+lista curta disfarçada de "limpo" — ela vira uma linha em `falhas`, e
+`podeODiretorEncerrar` reprova com `motivo: "auditoria_incompleta"`, nunca
+"pendencias_abertas" (são coisas diferentes: a segunda diz "resolva a lista";
+a primeira diz "a lista pode estar errada"). É o teste
+`"uma fonte que LANÇA erro entra em falhas..."` em `diretor-coletor.test.ts`.
+
+**A decisão sobre escopo, e por que fica em comentário no código:** o teste de
+`pendencias.ts` fixa `escopo` como `"dioli-digital"`, `"foocci"`, `"cityjobs"`
+— produtos da casa, não workspaces de um CRM. Este coletor mora dentro do
+repositório dioli-digital e só enxerga o banco dele; por isso toda `Pendencia`
+que ele produz carrega o mesmo escopo fixo (`ESCOPO_DESTE_PRODUTO`). Quando
+existir um Diretor Geral de verdade, ele soma coletores como este por produto
+— somar não é responsabilidade deste arquivo.
+
+**O que ficou de fora, com o motivo:**
+
+- `BloqueioV2` é consultado de verdade, mas hoje (16/08) não tem nenhum
+  escritor em produção — o rollout M7 (`/api/v2/rollout`) não ligou a flag de
+  escrita. A consulta é honesta: devolve vazio porque a tabela está vazia, não
+  porque ninguém perguntou. O mesmo vale para `estadoCanonico` nas demais
+  entidades — só se popula depois desse rollout rodar.
+- Não criei um nono tipo para "cliente abriu dúvida numa aprovação
+  (`questionOpenedAt`) e a agência não respondeu" — é um caso real, mas caberia
+  melhor como refinamento de `aprovacao_pendente` ou de mensagem não lida, e
+  decidir qual dos dois é julgamento de produto, não deste despacho.
+- **O portão não pôde ser executado nesta sessão.** Mesmo bloqueio já
+  registrado acima (16/08, entrada anterior): `tsc`, `npm test`, `npx`, até
+  `node -e` devolvem "This command requires approval" sem aprovação humana
+  disponível no turno. Conferi manualmente campo a campo contra
+  `prisma/schema.prisma` e contra os módulos gerados
+  (`lib/generated/prisma/models/*.ts`) — nomes de coluna, tipos, nulabilidade
+  — mas isto não substitui `npx tsc --noEmit && npm test`. Quem retomar
+  precisa rodar os dois antes de considerar isto fechado.

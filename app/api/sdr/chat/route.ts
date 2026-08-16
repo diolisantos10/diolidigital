@@ -38,6 +38,18 @@ const MODEL       = "claude-sonnet-4-6";
 const TIMEOUT_MS  = 30_000;
 const MAX_HISTORY = 18; // conversation turns sent to the model
 
+// O TETO ERA 1.280 E NÃO CABIA fala + escopo — a conta, para não virar chute:
+// a fala tem no máximo 600 caracteres em português (acentuação pesa: ~2,5
+// caracteres por token) → ~240 tokens no pior caso. O escopo, quando a
+// sondagem já cobriu identidade + social + tráfego + branding + negociação
+// (objectives[], competitors[], social{}, traffic{}, branding{}), em JSON
+// chega perto de 1.500 caracteres → ~500 tokens. Some pontuação de JSON e a
+// folga do modelo "pensar" a frase antes de fechar a última chave (~250
+// tokens de gordura) e o piso real já passa de 1.000. 1.280 não tinha
+// margem nenhuma — foi o que cortou os R$ 500/mês e os 2 posts/dia do
+// piloto de 16/08. 2.000 dá a mesma conta com folga de quase 2×.
+const MAX_TOKENS = 2_000;
+
 interface ConvMsg { role: string; text: string }
 
 interface ChatRequest {
@@ -137,7 +149,7 @@ REGRAS DE CONVERSA
 - Respostas curtas: 2 a 4 frases, no MÁXIMO 600 caracteres. Use o nome da pessoa para criar conexão.
 - POR QUE O TETO DE TAMANHO É REGRA E NÃO ESTILO — leia, porque já custou um pedido: sua resposta e os dados do briefing viajam JUNTOS, num único pacote. Se a fala fica longa, o pacote estoura o limite e fecha no meio. Aí NADA chega: nem a sua fala, nem o escopo. Não é a resposta que fica cortada — é tudo que é jogado fora, e o cliente é atendido por um motor de reserva que não sabe o que vocês conversaram. Aconteceu duas vezes em três minutos no piloto de 16/08, e o que se perdeu foram justamente os dois números que o cliente tinha acabado de dar: 2 posts por dia e R$ 500/mês. A casa devolveu um orçamento de R$ 1.800 a R$ 3.400 com 3 posts por semana. Prolixidade aqui não é estilo: é perda de dado.
 - PROIBIDO na fala: listar de volta o material que o cliente mandou, repetir o brand book item por item, enfileirar bullets, elogiar em parágrafo. Uma frase de reconhecimento basta. Elogio longo é o jeito mais comum de estourar o pacote.
-- A SAÍDA É SEMPRE UM PACOTE COMPLETO E BEM FORMADO — JSON fechado, com \`reply\` e \`scope\` dentro. Nunca pela metade, nunca "vou continuar na próxima". Se você sentir que a resposta vai ficar longa, CORTE A FALA, não o escopo: a fala o cliente pede de novo; o dado, ninguém recupera.
+- A SAÍDA É SEMPRE UM PACOTE COMPLETO E BEM FORMADO — JSON fechado, com \`reply\` e \`scope\` dentro. Nunca pela metade, nunca "vou continuar na próxima". Se você sentir que a resposta vai ficar longa, CORTE A FALA, não o escopo: a fala o cliente pede de novo; o dado, ninguém recupera. É por isso que o JSON abaixo pede \`scope\` ANTES de \`reply\`: feche o escopo primeiro, fale depois — se o corte vier, que caia na fala.
 - Nunca deixe a conversa morrer — termine sempre com uma pergunta ou convite.
 - ESPELHE A LINGUAGEM DO CLIENTE. Repare em como ele fala. Se ele usa termos de marketing (reels, criativos, engajamento, tráfego), você pode usar também. Se ele é leigo (fala "vídeos", "fotos", "postar", "chamar cliente"), FALE SIMPLES — sem jargão. Quando um termo técnico for inevitável, explique em poucas palavras entre parênteses, ex.: "reels (vídeos curtos)", "criativos (as artes/imagens dos posts)". A pessoa nunca deve se sentir perdida nem burra por não conhecer o termo.
 - Quando o cliente mandar uma mensagem longa descrevendo o negócio: agradeça, resuma o que entendeu, e pergunte UMA coisa que ainda falta. Nunca mude de assunto abruptamente.
@@ -242,10 +254,14 @@ IMPORTANTE: prospectName (nome da pessoa) e businessName (nome do negócio) são
 Devolva SEMPRE o scope ACUMULADO — tudo confirmado até agora. Omita campos que o cliente não disse. NUNCA preencha prospectEmail nem negotiation. PODE preencher preferredChannel ("email"|"whatsapp"), prospectPhone (só dígitos, com DDD, e só quando o cliente escolher WhatsApp e informar) e budgetRange — este último SÓ com um dos ids de faixa listados no bloco NEGOCIAÇÃO, nunca com um número solto nem com texto livre.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FORMATO — retorne SOMENTE JSON válido, sem texto fora:
+FORMATO — retorne SOMENTE JSON válido, sem texto fora. ESCREVA "scope" ANTES
+DE "reply" — nesta ordem, sempre. O motivo: se o teto de tokens cortar sua
+resposta no meio, o corte cai no campo mais longo — e o mais longo é sempre a
+fala, nunca o escopo. Escrevendo o escopo primeiro, ele já está fechado no
+texto quando (e se) o corte acontecer, e o servidor consegue recuperá-lo
+mesmo perdendo a fala:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {
-  "reply": "sua próxima fala (string, pt-BR) — NUNCA contém preço",
   "needsClarification": true/false,
   "scope": {
     "prospectName": "...", "businessName": "...", "segment": "...",
@@ -261,7 +277,8 @@ FORMATO — retorne SOMENTE JSON válido, sem texto fora:
     "serviceMode": "monthly" | "one_off" | "umbrella" | "unsure",
     "budgetRange": "balcao" | "pacote" | "presenca" | "gestao" | "projeto",
     "deadline": "..."
-  }
+  },
+  "reply": "sua próxima fala (string, pt-BR) — NUNCA contém preço — escrita por ÚLTIMO"
 }`;
 
 function buildClaudeMessages(messages: ConvMsg[], currentMessage: string, scope: Record<string, unknown> | undefined) {
@@ -365,6 +382,59 @@ function repararJsonTruncado(text: string): Record<string, unknown> | null {
   }
 }
 
+// ─── AS TRÊS TRAVAS DO SCOPE, NUM SÓ LUGAR ───────────────────────────────────
+//
+// Até 16/08 elas viviam soltas no corpo da rota, aplicadas uma única vez ao
+// scope de um JSON limpo. A partir de agora o scope também pode chegar de um
+// JSON REMENDADO (`repararJsonTruncado`, quando o pacote foi cortado) — e ele
+// passa pelas MESMAS travas, sem atalho: dado recuperado de um pacote cortado
+// não ganha passe livre por ter vindo de um caminho diferente. Duas cópias da
+// mesma regra é como esta casa historicamente deixa uma delas ficar velha
+// enquanto a outra muda — por isso a extração, não por estética.
+function aplicarTravasDeEscopo(bruto: Record<string, unknown>): Record<string, unknown> {
+  const scopePatch = { ...bruto };
+
+  // E-mail comes from Google login; the negotiation itself happens after login
+  // — so those never come from the chat, even if the model hallucinates them.
+  // prospectPhone + preferredChannel ARE captured now (the client chooses how
+  // they want to be reached: e-mail or WhatsApp).
+  delete scopePatch.prospectEmail;
+  delete scopePatch.negotiation;
+
+  // NOME DA PESSOA NÃO É NOME DO NEGÓCIO — e aqui a regra é trava, não aviso.
+  // 16/08/2026: o cliente confirmou "City Jobs" por voz, anexou o brand book
+  // do City Jobs, e o pedido chegou ao Gerente de Projeto como "briefing da
+  // Diego". A instrução JÁ existia no prompt e não bastou: nome errado na
+  // origem vira cadastro, vira proposta e vira peça. Fail-closed — na dúvida
+  // o campo some, e o resto da casa trata o negócio como desconhecido, que é
+  // a verdade. Campo vazio é honesto; campo com o nome errado, não.
+  const soLetras = (v: unknown) =>
+    typeof v === "string" ? v.trim().toLowerCase().replace(/\s+/g, " ") : "";
+  if (
+    soLetras(scopePatch.businessName) &&
+    soLetras(scopePatch.businessName) === soLetras(scopePatch.prospectName)
+  ) {
+    console.error("[sdr/chat] businessName igual ao prospectName — descartado");
+    delete scopePatch.businessName;
+  }
+
+  // budgetRange passa a existir (decisão do CEO, 05/08/2026: a faixa é a
+  // terceira pergunta), mas por ALLOWLIST, não por confiança. O modelo só pode
+  // gravar um dos ids de faixa; número solto, texto livre ou faixa inventada
+  // são descartados em silêncio. Fail-closed: sem faixa válida, o campo some e
+  // o resto do sistema segue tratando a faixa como desconhecida — que é a
+  // verdade. Faixa chutada é dado do cliente inventado.
+  //
+  // Guarda o RÓTULO, não o id: o painel público do briefing renderiza este
+  // campo direto na tela ("Orçamento: ..."), e id interno não é linguagem de
+  // cliente.
+  const faixaNormalizada = normalizarFaixa(scopePatch.budgetRange);
+  if (faixaNormalizada) scopePatch.budgetRange = faixaNormalizada;
+  else delete scopePatch.budgetRange;
+
+  return scopePatch;
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const barrado = await limiteExcedido(req, "sdr-chat", 30, 60_000);
   if (barrado) return barrado as NextResponse;
@@ -407,7 +477,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1280,
+        max_tokens: MAX_TOKENS,
         system: SYSTEM_PROMPT,
         messages: claudeMessages,
       }),
@@ -420,56 +490,82 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: false, reason: "provider_error" });
     }
 
-    const json = (await res.json()) as { content?: { type: string; text: string }[] };
+    // ── Ler stop_reason ANTES de julgar o JSON ────────────────────────────────
+    // A Anthropic diz, no envelope da resposta, POR QUE ela parou de gerar.
+    // `stop_reason === "max_tokens"` é CORTE — o teto acabou no meio da escrita.
+    // Qualquer outro valor com um JSON que não fecha é OUTRA coisa: o modelo
+    // terminou de escrever, e o que terminou de escrever não é JSON válido —
+    // bug de formatação, não falta de espaço. As duas causas viravam o MESMO
+    // `parse_error` no diário, e ninguém conseguia dizer qual das duas era o
+    // dia a dia real do piloto. Ver o bloco "O CONSERTO DE 16/08" acima.
+    const json = (await res.json()) as {
+      content?: { type: string; text: string }[];
+      stop_reason?: string;
+    };
     const text = json.content?.[0]?.text ?? "";
-    const parsed = extractJson(text);
+    const cortadoPeloTeto = json.stop_reason === "max_tokens";
 
-    if (!parsed || typeof parsed.reply !== "string" || !parsed.reply.trim()) {
-      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: "parse_error" });
-      return NextResponse.json({ ok: false, reason: "parse_error" });
+    // `extractJson` falhando não é mais o fim da linha — antes de desistir, a
+    // seta que faltava: tenta fechar à força o que ficou aberto.
+    let parsed = extractJson(text);
+    let precisouDeRemendo = false;
+    if (!parsed) {
+      parsed = repararJsonTruncado(text);
+      precisouDeRemendo = parsed !== null;
     }
 
-    const scopePatch = parsed.scope && typeof parsed.scope === "object" ? (parsed.scope as Record<string, unknown>) : {};
-
-    // E-mail comes from Google login; the negotiation itself happens after login
-    // — so those never come from the chat, even if the model hallucinates them.
-    // prospectPhone + preferredChannel ARE captured now (the client chooses how
-    // they want to be reached: e-mail or WhatsApp).
-    delete scopePatch.prospectEmail;
-    delete scopePatch.negotiation;
-
-    // NOME DA PESSOA NÃO É NOME DO NEGÓCIO — e aqui a regra é trava, não aviso.
-    // 16/08/2026: o cliente confirmou "City Jobs" por voz, anexou o brand book
-    // do City Jobs, e o pedido chegou ao Gerente de Projeto como "briefing da
-    // Diego". A instrução JÁ existia no prompt e não bastou: nome errado na
-    // origem vira cadastro, vira proposta e vira peça. Fail-closed — na dúvida
-    // o campo some, e o resto da casa trata o negócio como desconhecido, que é
-    // a verdade. Campo vazio é honesto; campo com o nome errado, não.
-    const soLetras = (v: unknown) =>
-      typeof v === "string" ? v.trim().toLowerCase().replace(/\s+/g, " ") : "";
-    if (
-      soLetras(scopePatch.businessName) &&
-      soLetras(scopePatch.businessName) === soLetras(scopePatch.prospectName)
-    ) {
-      console.error("[sdr/chat] businessName igual ao prospectName — descartado");
-      delete scopePatch.businessName;
+    // Nada recuperável: nem o JSON limpo, nem o remendo. "truncado" quando a
+    // própria API confirma que cortou; "malformado" quando ela diz que
+    // terminou e o texto ainda assim não é JSON — duas causas, duas linhas
+    // diferentes no diário (item 5 do despacho).
+    if (!parsed) {
+      const motivo = cortadoPeloTeto ? "truncado" : "malformado";
+      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: motivo });
+      return NextResponse.json({ ok: false, reason: motivo });
     }
 
-    // budgetRange passa a existir (decisão do CEO, 05/08/2026: a faixa é a
-    // terceira pergunta), mas por ALLOWLIST, não por confiança. O modelo só pode
-    // gravar um dos ids de faixa; número solto, texto livre ou faixa inventada
-    // são descartados em silêncio. Fail-closed: sem faixa válida, o campo some e
-    // o resto do sistema segue tratando a faixa como desconhecida — que é a
-    // verdade. Faixa chutada é dado do cliente inventado.
-    //
-    // Guarda o RÓTULO, não o id: o painel público do briefing renderiza este
-    // campo direto na tela ("Orçamento: ..."), e id interno não é linguagem de
-    // cliente.
-    const faixaNormalizada = normalizarFaixa(scopePatch.budgetRange);
-    if (faixaNormalizada) scopePatch.budgetRange = faixaNormalizada;
-    else delete scopePatch.budgetRange;
+    const scopePatchBruto =
+      parsed.scope && typeof parsed.scope === "object" && !Array.isArray(parsed.scope)
+        ? (parsed.scope as Record<string, unknown>)
+        : {};
+    const scopePatch = aplicarTravasDeEscopo(scopePatchBruto);
+    const temScopeUtil = Object.keys(scopePatch).length > 0;
 
-    const replyText = parsed.reply.trim();
+    // A FALA SÓ É CONFIÁVEL QUANDO O JSON FECHOU SOZINHO. Um JSON que só
+    // fechou porque NÓS forçamos o fechamento (`repararJsonTruncado`) pode ter
+    // fechado uma frase bem no meio de uma palavra — o remendo garante um JSON
+    // válido, nunca uma frase completa. Por isso, sempre que houve remendo (ou
+    // a API confirma corte via stop_reason), a fala é tratada como não
+    // confiável e é barrada — mesmo que o campo `reply` exista e não esteja
+    // vazio. O guarda NÃO afrouxa: continua melhor barrar do que arriscar
+    // devolver uma frase cortada ao cliente. O que muda é que o ESCOPO, que já
+    // estava fechado no texto antes do corte (ver ordem do JSON no prompt),
+    // sobrevive sozinho.
+    const falaConfiavel = !precisouDeRemendo && !cortadoPeloTeto;
+    const replyBruta =
+      falaConfiavel && typeof parsed.reply === "string" ? parsed.reply.trim() : "";
+
+    if (!replyBruta) {
+      const motivo: "truncado" | "malformado" =
+        precisouDeRemendo || cortadoPeloTeto ? "truncado" : "malformado";
+      await registrar({
+        ...fio,
+        doVisitante: body.currentMessage,
+        motivoDaRecusa: motivo,
+        escopoFoiSalvo: temScopeUtil,
+      });
+      // O item 3 do despacho: a fala o motor de regras refaz; o número que o
+      // cliente falou uma vez, ninguém recupera. Se sobrou escopo utilizável,
+      // ele viaja mesmo com `ok: false` — o cliente (`PublicBriefingRoom.tsx`)
+      // aplica esse scope via gap-fill mesmo quando a fala é descartada.
+      return NextResponse.json({
+        ok: false,
+        reason: motivo,
+        ...(temScopeUtil ? { scope: scopePatch } : {}),
+      });
+    }
+
+    const replyText = replyBruta;
 
     // ── Email guardrail ──────────────────────────────────────────────────────
     // Defence in depth: if the model slips into asking for / validating an e-mail
@@ -481,8 +577,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       console.warn("[sdr/chat] email-hallucination detected, falling back");
       // Turno barrado é o que MAIS interessa auditar — foi um erro do agente.
       // Grava a fala do visitante e o motivo, nunca o texto barrado.
-      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: "email_hallucination" });
-      return NextResponse.json({ ok: false, reason: "email_hallucination" });
+      //
+      // O JSON aqui abriu LIMPO — não houve corte nem remendo. O que foi
+      // barrado foi a FALA (o modelo alucinou pedir e-mail), não o pacote.
+      // O `scope` já passou pelas mesmas travas (`aplicarTravasDeEscopo`) lá
+      // em cima, antes de sabermos se a fala seria barrada — então o dado que
+      // o cliente realmente disse (nome, telefone, faixa de orçamento) não
+      // tem nenhuma culpa no erro do agente e não pode ser jogado fora junto
+      // com a frase ruim. Mesmo padrão de `truncado`/`malformado` acima.
+      await registrar({
+        ...fio,
+        doVisitante: body.currentMessage,
+        motivoDaRecusa: "email_hallucination",
+        escopoFoiSalvo: temScopeUtil,
+      });
+      return NextResponse.json({
+        ok: false,
+        reason: "email_hallucination",
+        ...(temScopeUtil ? { scope: scopePatch } : {}),
+      });
     }
 
     // ── Price guardrail ──────────────────────────────────────────────────────
@@ -496,8 +609,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const PRICE_LEAK = /r\$\s*\d|\d+\s*(reais|\/m[êe]s\b)|desconto|\bplano\b.*\bR\$/i;
     if (PRICE_LEAK.test(replyText) && !ehPerguntaDeFaixa(replyText)) {
       console.warn("[sdr/chat] price-leak detected, falling back");
-      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: "price_leak" });
-      return NextResponse.json({ ok: false, reason: "price_leak" });
+      // Mesmo raciocínio do guarda de e-mail acima: o preço vazou na FALA, o
+      // JSON abriu limpo, e o `scope` já filtrado não tem nada a ver com o
+      // vazamento. Barrar a frase é certo; jogar fora o número de orçamento
+      // que o cliente informou (ex.: a faixa "R$ 500/mês") junto com ela não
+      // é — é o mesmo dado que o piloto de 16/08 quase perdeu.
+      await registrar({
+        ...fio,
+        doVisitante: body.currentMessage,
+        motivoDaRecusa: "price_leak",
+        escopoFoiSalvo: temScopeUtil,
+      });
+      return NextResponse.json({
+        ok: false,
+        reason: "price_leak",
+        ...(temScopeUtil ? { scope: scopePatch } : {}),
+      });
     }
 
     await registrar({ ...fio, doVisitante: body.currentMessage, doSdr: replyText });

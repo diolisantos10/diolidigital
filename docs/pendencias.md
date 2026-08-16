@@ -15,6 +15,108 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — O ESCOPO PASSA A SOBREVIVER À FALA + A SETA DO DISPOSITIVO DO DIRETOR
+
+**A consequência, primeiro:** quando o SDR tem a fala barrada, **o briefing do
+cliente não vai mais junto para o lixo**. E o dispositivo que o CEO mandou
+construir em 15/08 para o Diretor não ter desculpa de *"eu não vi"* **passou a
+ter quem o chame**.
+
+**O caso real, piloto ao vivo:** dois `parse_error` em três minutos (12:41:23 e
+12:43:01). O cliente tinha dito **"R$ 500/mês"** e **"2 posts por dia"**; o
+briefing saiu com **R$ 1.800–3.400 e 3 posts/semana**. O escopo morreu junto com
+a fala.
+
+**Portão rodado pelo `pm`:** `npx tsc --noEmit` → **0 erros** ·
+**4831 testes em 311 arquivos, 1 pulado, todos verdes** (piso antes da rodada:
+4818 em 309).
+
+### O que ficou PROTEGIDO daqui para a frente
+
+- **O commit anterior (#177) tinha escrito `repararJsonTruncado` e NUNCA a
+  chamado** — código morto dentro do próprio conserto. A seta foi ligada.
+- **`ok: false` deixou de significar "nada aproveitável".** As quatro portas de
+  recusa (`truncado`, `malformado`, `email_hallucination`, `price_leak`) devolvem
+  o `scope` que sobreviveu, e `PublicBriefingRoom.tsx` o aplica por gap-fill
+  mesmo com a fala barrada — **consertar só o servidor deixaria o mesmo defeito
+  um andar acima.**
+- **O guarda não foi afrouxado.** Nenhuma regexp mudou; fala vinda de JSON
+  remendado é tratada como não confiável **mesmo com `reply` presente**.
+- **Dado recuperado passa pelas MESMAS travas**, agora numa função só
+  (`aplicarTravasDeEscopo`), chamada nos dois caminhos.
+- **O prompt exige `scope` ANTES de `reply`** — o corte cai no campo mais longo,
+  que é sempre a fala. É a metade que funciona antes de precisar de remendo.
+- **`stop_reason` passou a ser lido:** `truncado` (a API confirma corte) e
+  `malformado` (terminou de escrever e não é JSON) são linhas diferentes no
+  diário, com frase em português, e o diário diz **quando o escopo foi salvo**.
+- **Teto de tokens 1.280 → 2.000**, com a conta comentada no código.
+- **`GET /api/diretor/pendencias`** existe e é autenticada: coletor
+  (`lib/agency/diretor/coletor.ts`) → `podeODiretorEncerrar` → veredito com a
+  frase, as pendências ordenadas e as falhas de auditoria. Os sete tipos são
+  varridos de verdade; **fonte que falha vira `auditoria_incompleta`, nunca
+  "limpo"**, e há teste que guarda exatamente isso.
+- **"Voltar ao início" virou "Voltar ao site"** em `app/briefing/page.tsx` e leva
+  à raiz. Antes ele só desfazia `submitted` e devolvia ao **mesmo formulário que
+  a pessoa acabou de enviar**. Palavra do CEO: *"não faz o menor sentido."*
+
+### 🔴 O QUE CONTINUA ABERTO — com todas as letras
+
+- [ ] `cerebro` — **`saveArtifactToDb`** (`lib/agency/persistence/save-artifact.ts:24`)
+      **não tem chamador nenhum, nem em teste**, e o `POST /api/brain/artifacts`
+      que o chamaria também não tem chamador de produção. O próprio arquivo
+      promete *"no silent data loss"*. Se alguém ligar a tela que aprova canvas
+      sem notar isso, **a aprovação parece dar certo na tela e não grava nada**.
+- [ ] `cerebro` — **os acessores por departamento de `quality-gates.ts`**
+      (`getQualityGateForDepartment:510`, `getBlockingChecks:514`) só são chamados
+      pelo teste-medidor. **Agrava o P0 conhecido:** escrever `mecanismo` nos
+      checks da Onda 4 **não basta** se nada passar a ler o registro de dentro dos
+      motores reais. É fácil consertar o dado e esquecer de ligar o fio.
+- [ ] **`BloqueioV2` e `estadoCanonico` são consultados pelo coletor novo e hoje
+      voltam VAZIOS em produção** — nada os escreve ainda (rollout M7 não ligou).
+      Está documentado no código, não escondido. Enquanto isso, o veredito do
+      Diretor enxerga menos do que promete o nome do tipo `bloqueio_aberto`.
+- [ ] **CEO/Diretor** — decidir se *"cliente abriu dúvida numa aprovação e a
+      agência não respondeu"* (`ApprovalRequest.questionOpenedAt`) vira **8º tipo**
+      de pendência ou refinamento de `aprovacao_pendente`. Ficou de fora por ser
+      julgamento de produto.
+- [ ] **NADA foi conferido com screenshot nesta rodada.** O `interface` não
+      conseguiu subir o servidor nem rodar `scripts/shot.mjs`, e a tela de
+      confirmação do briefing **só existe depois de um envio real**. A mudança
+      reaproveita as classes do botão irmão (baixo risco), mas **isso é
+      inferência, não medição** — e a régua da casa é 375/768/1440 medido.
+- [ ] **O piloto ao vivo NÃO foi reexercitado.** A prova de que o R$ 500 / 2 posts
+      por dia agora sobrevive é de teste, não de conversa real. **A volta completa
+      só fecha com um briefing de verdade depois do deploy.**
+
+### 🔴 O ACHADO DE AMBIENTE — e ele custou a rodada inteira de dois especialistas
+
+**`node_modules` NÃO EXISTIA neste repositório no início da sessão.** Medido:
+`ls node_modules` → *No such file or directory*; `npx tsc --noEmit` devolvia
+**25.541 erros** — nenhum deles real, todos de tipo que não resolve. `npm ci`
+(769 pacotes, 27s) zerou os 25.541.
+
+**A consequência para a camada de despacho:** os **três** especialistas
+despachados (`esteira` ×3, `interface`, `qualidade`) relataram que
+`npx tsc --noEmit`, `npm test` e até `node -e` eram recusados nas sessões deles.
+**Nenhum dos quatro consertos veio com portão rodado** — quem rodou os portões
+foi o `pm`, depois de instalar as dependências. Isso é o oposto do que a casa
+quer: especialista que não consegue medir entrega por leitura, e leitura não
+reprova nada.
+
+- [ ] `plataforma` — 🔴 **especialista despachado não consegue executar comando
+      neste ambiente.** Enquanto isso for verdade, **todo portão é responsabilidade
+      de quem despacha**, e isso precisa estar escrito onde o despachante vê. É o
+      mesmo padrão do P0 do Playwright: *adivinhação sobre o ambiente custa um
+      turno por hipótese; medida custa um comando.*
+- [ ] `plataforma` — 🔴 **`--permission-mode bypassPermissions` NÃO FUNCIONA como
+      root** (`"cannot be used with root/sudo privileges"`) e mata o despacho com
+      **exit 0**, o que faz o despacho parecer bem-sucedido. O modo que funciona,
+      medido hoje: **`claude --agent <nome> --permission-mode acceptEdits -p "…" < /dev/null`**
+      (o `< /dev/null` evita o aviso de stdin). Duas rodadas anteriores declararam
+      `SEM_AGENTE` por não terem medido isto.
+
+---
+
 ## 🟢 16/08/2026 — MESMO CONTATO, CINCO BRIEFINGS: UM CADASTRO, NÃO CINCO (`4cbba4b`, `57eb2f1`)
 
 **A pergunta do CEO:** *"se entrar um cliente com o mesmo e-mail e fizer cinco

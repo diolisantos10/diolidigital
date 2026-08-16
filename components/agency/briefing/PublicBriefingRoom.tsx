@@ -748,7 +748,14 @@ function ProposalCard({
 // engine (Lei 2). The patch only FILLS gaps in the rule-based scope — it never
 // overwrites confirmed data, so the live estimate machinery stays stable.
 
-interface SdrReply { reply: string; scope: Record<string, unknown> }
+interface SdrReply {
+  /** null quando a fala do modelo foi barrada — corte no meio do pacote,
+   *  formato quebrado, ou um guarda de preço/e-mail. O motor de regras
+   *  responde no lugar dela. `scope`, se sobreviveu, chega do mesmo jeito:
+   *  ver o comentário em `fetchSdrReply`. */
+  reply: string | null;
+  scope: Record<string, unknown>;
+}
 
 // An uploaded briefing file and its processing status.
 interface UploadItem {
@@ -785,7 +792,10 @@ async function fetchUpload(file: File): Promise<UploadResult | null> {
   }
 }
 
-async function fetchSdrReply(
+// Exportada para teste direto (16/08): o contrato "scope sobrevive quando a
+// fala não sobrevive" é lógica, não prosa de prompt — e lógica se testa
+// chamando a função, não lendo o arquivo como texto.
+export async function fetchSdrReply(
   priorMessages: ConvMessage[],
   currentMessage: string,
   scope: BriefingScope,
@@ -807,11 +817,25 @@ async function fetchSdrReply(
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown };
-    if (!data.ok || typeof data.reply !== "string" || !data.reply.trim()) return null;
-    return {
-      reply: data.reply.trim(),
-      scope: data.scope && typeof data.scope === "object" ? (data.scope as Record<string, unknown>) : {},
-    };
+
+    // O contrato mudou em 16/08 (caso do R$ 500 / 2 posts por dia): `ok: false`
+    // deixou de significar "nada aproveitável". Quando a fala é barrada — corte
+    // no meio do pacote, formato quebrado, ou um guarda de preço/e-mail —, o
+    // servidor ainda pode devolver o `scope` que sobreviveu. Jogar fora a
+    // resposta inteira só porque `ok` é false jogaria fora de novo o dado que
+    // este conserto existe para salvar: o número que o cliente falou uma vez,
+    // ninguém recupera. `reply` só é aceito quando `ok: true`; `scope` é lido
+    // dos dois lados, sempre que vier.
+    const replyUsavel =
+      data.ok === true && typeof data.reply === "string" && data.reply.trim() ? data.reply.trim() : null;
+    const scopeRecuperado =
+      data.scope && typeof data.scope === "object" ? (data.scope as Record<string, unknown>) : {};
+
+    // Nem fala nem scope: não há nada aqui que valha a pena carregar — cai no
+    // fallback inteiro do motor de regras, como sempre foi.
+    if (replyUsavel === null && Object.keys(scopeRecuperado).length === 0) return null;
+
+    return { reply: replyUsavel, scope: scopeRecuperado };
   } catch {
     return null;
   }
@@ -822,7 +846,9 @@ function asNum(v: unknown): number | undefined {
 }
 
 // Gap-fill merge: only writes fields the rule-based scope hasn't already set.
-function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): BriefingScope {
+// Exportada pelo mesmo motivo que `fetchSdrReply`: é aqui que o scope
+// recuperado de uma fala barrada realmente entra no pedido do cliente.
+export function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): BriefingScope {
   if (!patch || typeof patch !== "object") return base;
   const out: BriefingScope = { ...base };
 
@@ -1207,9 +1233,15 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       setAiThinking(false);
 
       if (claude) {
+        // O scope aplica o gap-fill mesmo quando a fala foi barrada — é a
+        // metade que sobrevive quando a outra não sobrevive (caso do R$ 500 /
+        // 2 posts por dia, 16/08). Sem fala usável, quem responde ao visitante
+        // é o motor de regras — nunca uma frase cortada no meio.
         const mergedScope = mergeScopeGaps(ruleResult.conv.scope, claude.scope);
         const estimate = computeEstimate(mergedScope);
-        const assistantMsg: ConvMessage = { ...ruleAssistant, text: claude.reply };
+        const assistantMsg: ConvMessage = claude.reply
+          ? { ...ruleAssistant, text: claude.reply }
+          : ruleAssistant;
         const newConv: ConvState = {
           ...ruleResult.conv,
           scope: mergedScope,

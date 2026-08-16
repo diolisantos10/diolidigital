@@ -8,6 +8,93 @@
 
 ---
 
+## AS DUAS CARGAS DO PACOTE DO SDR VIAJAM JUNTAS E **MORREM SEPARADAS**
+
+**Decidido em** 2026-08-16 · **por** `pm`, sob despacho do Diretor ·
+**executado pelo** `esteira` · **auditado pelo** `pm` · **origem:**
+`app/api/sdr/chat/route.ts`, `components/agency/briefing/PublicBriefingRoom.tsx`,
+`lib/agency/comercial/registro-da-conversa.ts`
+
+**O caso, medido no piloto ao vivo:** dois `parse_error` em três minutos
+(12:41:23 e 12:43:01). O cliente tinha dito **"R$ 500/mês"** e **"2 posts por
+dia"**. O briefing saiu com **R$ 1.800–3.400 e 3 posts/semana**. O teto de tokens
+cortou a resposta no meio, o JSON não fechou, e o pacote inteiro foi descartado —
+inclusive os campos que já tinham chegado completos.
+
+### As decisões que atravessam domínios
+
+- **FALA E ESCOPO SÃO PERDAS DE TAMANHOS DIFERENTES, E A CASA PASSA A TRATÁ-LAS
+  ASSIM.** A fala o motor de regras refaz. O número que o cliente falou uma vez
+  ninguém recupera. `ok: false` deixou de significar "nada aproveitável": a
+  resposta pode carregar o `scope` que sobreviveu, e o cliente aplica esse escopo
+  por gap-fill mesmo com a fala barrada.
+- **VALE PARA AS QUATRO PORTAS DE RECUSA, NÃO SÓ PARA O CORTE.** `truncado`,
+  `malformado`, `email_hallucination` e `price_leak` devolvem o escopo. Nas duas
+  últimas o JSON abriu limpo: quem errou foi o agente, não o cliente — descartar
+  o dado dele ali era a mesma perda com outra roupa. `provider_error`, `timeout`
+  e `network_error` **não** mudam: ali não houve resposta do modelo, logo não há
+  escopo a salvar.
+- **O GUARDA NÃO FOI AFROUXADO, E ISSO É TRAVA.** Barrar continua melhor que
+  empurrar lixo ao cliente. Nenhuma regexp de `email_hallucination` ou
+  `price_leak` mudou. Mais: fala vinda de JSON remendado é tratada como **não
+  confiável mesmo quando o campo `reply` existe** — o remendo garante JSON
+  válido, nunca frase completa.
+- **O REPARO NUNCA INVENTA CONTEÚDO.** `repararJsonTruncado` só fecha aspas,
+  colchetes e chaves que o modelo abriu; se o remendo não virar JSON válido,
+  devolve nulo. Nesta casa dado vem do que foi dito; máquina não preenche lacuna.
+- **DADO RECUPERADO NÃO GANHA PASSE LIVRE.** As três travas do escopo (descarte
+  de `prospectEmail`/`negotiation`, `businessName ≠ prospectName`, allowlist de
+  `budgetRange`) viraram **uma função só**, `aplicarTravasDeEscopo`, chamada nos
+  dois caminhos. Duas cópias da mesma regra é como esta casa historicamente
+  deixa uma delas envelhecer enquanto a outra muda.
+- **A ORDEM DO JSON VIROU MECANISMO, NÃO CONSELHO.** O prompt passa a exigir
+  `scope` **antes** de `reply`. O corte sempre cai no campo mais longo, e o mais
+  longo é sempre a fala — escrevendo o escopo primeiro, ele já está fechado no
+  texto quando o corte acontece. É a única metade deste conserto que funciona
+  *antes* de precisar de remendo.
+- **CORTE E FORMATO QUEBRADO SÃO DIAGNÓSTICOS DIFERENTES.** A rota passa a ler
+  `stop_reason` da API. `max_tokens` é `truncado`; qualquer outro valor com JSON
+  que não abre é `malformado`. Viravam o mesmo `parse_error` e ninguém conseguia
+  dizer qual das duas era o dia a dia do piloto. O diário mostra os dois com
+  frase em português e diz **quando o escopo foi salvo mesmo com a fala barrada**
+  — barrar tendo salvo o briefing é fato diferente de perder tudo.
+- **O TETO SUBIU DE 1.280 PARA 2.000 TOKENS**, com a conta comentada no código
+  (fala ~240 + escopo cheio ~500 + folga de formatação ~250). O teto antigo não
+  tinha margem nenhuma.
+
+---
+
+## O DEFEITO D-003 ("a caixa existe e a seta não") É PADRÃO DA CASA, NÃO ACIDENTE
+
+**Decidido em** 2026-08-16 · **por** `pm` · **laudo do** Essencial `qualidade` ·
+**conserto pelo** `esteira` · **origem:** `lib/agency/diretor/pendencias.ts`,
+`lib/agency/diretor/coletor.ts`, `app/api/diretor/pendencias/route.ts`
+
+O conserto do SDR do dia **13** escreveu `repararJsonTruncado` com 30 linhas de
+comentário explicando o incidente que ela consertava — e **nunca a chamou**.
+Código morto dentro do próprio conserto. Isso motivou uma varredura do
+`qualidade` atrás de outras ocorrências, com o crivo "foi escrito para proteger
+ou para gravar algo, e não está ligado". Achados:
+
+- **`podeODiretorEncerrar`** (`lib/agency/diretor/pendencias.ts:78`) — o
+  dispositivo que o CEO mandou construir em 15/08 para o Diretor não ter desculpa
+  de *"eu não vi"* **estava escrito, testado e desligado**. Único chamador: o
+  próprio teste. **Ligado nesta rodada.**
+- **`saveArtifactToDb`** (`lib/agency/persistence/save-artifact.ts:24`) — sem
+  chamador nenhum, nem em teste. O `POST /api/brain/artifacts` que o chamaria
+  também não tem chamador de produção. Aberto.
+- **Os acessores por departamento de `quality-gates.ts`**
+  (`getQualityGateForDepartment`, `getBlockingChecks`) — só o teste-medidor os
+  chama. Aberto, e agrava o P0 conhecido: consertar o dado da Onda 4 **não basta**
+  se nada passar a ler o registro.
+
+**A regra que fica:** trava sem chamador de produção é decoração. Quem escrever
+um mecanismo nesta casa prova o chamador — `grep` do nome fora de `__tests__/` e
+`scripts/` — antes de declarar o conserto feito. Teste não é chamador: ele prova
+que a peça funciona, nunca que ela está ligada.
+
+---
+
 ## MESMO CONTATO, VÁRIOS BRIEFINGS: DEDUP DE **CADASTRO**, NUNCA DE **PEDIDO**
 
 **Decidido em** 2026-08-16 · **por** Diretor, a partir de pergunta do CEO ·
