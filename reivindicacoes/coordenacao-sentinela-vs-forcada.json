@@ -1,0 +1,12 @@
+{
+  "id": "coordenacao/sentinela-vs-forcada",
+  "quem": "ses-e83d64678d",
+  "frente": "sentinela reprova reivindicacao FORCADA com motivo: decisao registrada deve virar aviso, nunca reprovacao",
+  "responsabilidade": "coordenacao/sentinela-vs-forcada",
+  "arquivos": [
+    "lib/coordenacao/reivindicacoes.ts",
+    "__tests__/coordenacao/registro-de-reivindicacao.test.ts"
+  ],
+  "abertaEm": "2026-08-16T20:59:46.519Z",
+  "encerradaEm": null
+}
