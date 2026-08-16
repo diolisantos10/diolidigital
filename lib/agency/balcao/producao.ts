@@ -22,6 +22,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { SELF_SERVE_CATALOG } from "@/lib/agency/self-serve-catalog";
+import { carimbarHistoricoDoProspect } from "@/lib/agency/portal/carimbar-historico-do-prospect";
 
 export type ResultadoDeProducao =
   | { ok: true; projectId: string; clientId: string; jaExistia: boolean }
@@ -167,6 +168,15 @@ export async function produzirPedidoDeBalcao(clientRequestId: string): Promise<R
     where: { id: pedido.id },
     data: { status: "in_progress" },
   });
+
+  // ── 🔴 O TERCEIRO CAMINHO DE CONVERSÃO (16/08/2026) ───────────────────────
+  // Eu afirmei "carimba nos dois caminhos". São TRÊS — e o que faltava é o de
+  // MAIOR VOLUME: o balcão de R$ 39/79/129. Medido: comprador que conversou
+  // antes de pagar perdia a conversa, permanentemente. Aqui o prospect vira
+  // cliente exatamente como nos outros dois, e o histórico vai junto.
+  if (!pedido.clientId) {
+    await carimbarHistoricoDoProspect(pedido.id, cliente.id);
+  }
 
   // ── 3. O ACESSO AO PORTAL. Sem isso a peça fica pronta e ninguém vê. ─────
   const jaTemAcesso = await prisma.portalAccess.findFirst({

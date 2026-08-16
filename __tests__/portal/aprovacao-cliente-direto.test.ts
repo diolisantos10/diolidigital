@@ -289,7 +289,14 @@ describe("posse por clientId — dono derivado do token, sem vazamento", () => {
     expect(json.approvals[0].reviewNote).toContain("Carrosséis de lançamento");
   });
 
-  it("portal-data por solicitação inclui o OR por clientId — as duas chaves do mesmo dono", async () => {
+  // ⚠️ RODADA 6 — O `OR` MORREU AQUI, e a morte é o conserto.
+  //
+  // `buildPortalData` buscava aprovação por `OR: [{clientRequestId}, {clientId}]`.
+  // A chave da solicitação NÃO é prova de dono: card legado (sem carimbo) de
+  // uma solicitação re-apontada saía para o dono novo — A/B mediu
+  // `card(reviewNote)` e `canvas(pipeline)` vazando na base E no PR. Com dono
+  // conhecido, o carimbo manda, e só ele.
+  it("portal-data pelo token filtra pelo DONO, não pela chave da solicitação", async () => {
     // Escopo com solicitação: ela sai do CLIENTE, não do registro do token.
     db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr1" }]);
     // ⚠️ O token e a solicitação têm de apontar para o MESMO cliente. Com
@@ -306,8 +313,10 @@ describe("posse por clientId — dono derivado do token, sem vazamento", () => {
     await portalData(new NextRequest("http://localhost/api/brain/portal-data?token=tok-foocci"));
     expect(db.approvalRequest.findMany.mock.calls[0]![0].where).toMatchObject({
       clientVisible: true,
-      OR: [{ clientRequestId: "cr1" }, { clientId: "cli-foocci" }],
+      clientId: "cli-foocci",
     });
+    // A chave da solicitação não pode voltar como alternativa.
+    expect(db.approvalRequest.findMany.mock.calls[0]![0].where.OR).toBeUndefined();
   });
 });
 

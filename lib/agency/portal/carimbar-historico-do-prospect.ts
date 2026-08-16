@@ -33,6 +33,22 @@ export async function carimbarHistoricoDoProspect(
   clientRequestId: string,
   clientId: string,
 ): Promise<{ mensagens: number; aprovacoes: number }> {
+  // ── TRAVA EXPLÍCITA (rodada 6) ────────────────────────────────────────────
+  // Se a solicitação NÃO pertence a este cliente, não se carimba nada. Sem
+  // isto, a proteção dependia da ordem de um `deleteMany` num arquivo distante
+  // (`/api/admin/reset` apaga `portalMessage` antes de zerar o `clientId`) —
+  // e trava que depende da ordem de outro arquivo é trava emprestada.
+  const solicitacao = await prisma.clientRequestDb
+    .findUnique({ where: { id: clientRequestId }, select: { clientId: true } })
+    .catch(() => null);
+  if (solicitacao?.clientId !== clientId) {
+    console.error(
+      `[portal] carimbo RECUSADO: a solicitação ${clientRequestId} não pertence a ${clientId}. `
+      + "Carimbar aqui gravaria prova FALSA de pertencimento.",
+    );
+    return { mensagens: 0, aprovacoes: 0 };
+  }
+
   try {
     const [mensagens, aprovacoes] = await Promise.all([
       prisma.portalMessage.updateMany({

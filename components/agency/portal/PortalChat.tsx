@@ -265,7 +265,11 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
 
   return (
     <div className={`flex flex-col bg-white overflow-hidden ${bare ? "flex-1 min-h-0" : "rounded-[12px] border border-[var(--border)]"}`}>
-      {historicoParcial && !divergente && (
+      {/* ⚠️ 375px, dia 1: com corte E nenhuma mensagem, esta tarja e o corpo
+          vazio ("Sua conversa está guardada") diziam o MESMO fato em duas
+          redações, um bloco sobre o outro. O corpo já explica; a tarja só
+          aparece quando há mensagem para ela contextualizar. */}
+      {historicoParcial && !divergente && messages.length > 0 && (
         <div className="px-4 pt-3" role="status">
           <div className="rounded-[10px] px-3 py-2" style={{ background: "#FFFBEB" }}>
             <p className="text-[11.5px] leading-snug" style={{ color: "#9B7B2D" }}>

@@ -40,6 +40,12 @@ const SUPERFICIE = [
   // O resolvedor da CONVERSA mora aqui e é chamado pelas rotas do portal —
   // foi exatamente por estar fora da lista que ele divergiu na rodada 4.
   "app/api/messages/conversa.ts",
+  // ⚠️ `lib/agency/portal/**` entrou na rodada 6: é onde moram os helpers de
+  // POSSE que as rotas chamam, e a varredura não o via. `qualidade` mostrou
+  // que `solicitacao-que-mudou-de-dono.ts` já lia `prisma.portalAccess` sem
+  // ser varrido — helper fora da varredura é rota fora da varredura com outro
+  // nome.
+  "lib/agency/portal",
 ];
 
 /**
@@ -47,12 +53,19 @@ const SUPERFICIE = [
  * exceção declarada — se a lista crescer sem motivo escrito, a trava virou
  * decoração.
  */
-const PERMITIDOS: Record<string, string> = {
-  // A porta que TROCA token por cookie: ela precisa conferir o token cru,
-  // porque é ela que decide se grava a credencial. Continua obrigada a exigir
-  // dono — provado em `__tests__/portal/cookie-de-outro-cliente-na-porta`.
-  "app/api/portal/session/route.ts": "mint do cookie: confere o token cru por definição",
-};
+// ⚠️ A ALLOWLIST ESTÁ VAZIA, E ISSO É O CONSERTO (rodada 6).
+//
+// Ela tinha uma entrada — `app/api/portal/session` — justificada por uma
+// afirmação FALSA: *"continua obrigada a exigir dono — provado em
+// `cookie-de-outro-cliente-na-porta`"*. Aquele teste faz `vi.mock` do módulo e
+// só exercita `app/portal/access/route.ts`; **nunca tocou em `session`**. A
+// única exceção do único gate de arquitetura estava apoiada em prova que não
+// existia — e a rota, medida, dava 200 + cookie de 180 dias para token nu e
+// para `ponteiro_andou`.
+//
+// A rota passou a usar o resolvedor único, e a exceção deixou de ser
+// necessária. Exceção que some é melhor que exceção justificada.
+const PERMITIDOS: Record<string, string> = {};
 
 function arquivosDe(alvo: string): string[] {
   const caminho = join(RAIZ, alvo);
@@ -81,9 +94,23 @@ const PROIBIDOS: { nome: string; re: RegExp; porque: string }[] = [
     porque: "confere existência/validade e NÃO confere dono",
   },
   {
-    nome: "prisma.portalAccess",
-    re: /prisma\s*\.\s*portalAccess\b/,
-    porque: "ler o registro do token à mão é reimplementar o resolvedor",
+    // ⚠️ A REGRA É "RESOLVER POR TOKEN", NÃO "TOCAR NA TABELA".
+    //
+    // A primeira versão proibia `prisma.portalAccess` inteiro, e acusou
+    // `solicitacao-que-mudou-de-dono.ts` — que lê a tabela por
+    // `clientRequestId` como EVIDÊNCIA de troca de dono, não para resolver
+    // credencial nenhuma. Proibição larga demais se paga com exceção, e
+    // exceção é onde o furo volta a morar. A busca POR TOKEN é que é
+    // resolução, e é ela que fica proibida.
+    nome: "prisma.portalAccess … { token",
+    re: /prisma\s*\.\s*portalAccess[\s\S]{0,120}?\btoken\b\s*[,:}]/,
+    porque: "buscar o registro PELO TOKEN é resolver credencial — isso é do resolvedor único",
+  },
+  {
+    // A fuga que o `qualidade` provou passar: apelidar o cliente do Prisma.
+    nome: "prisma apelidado",
+    re: /import\s*\{[^}]*\bprisma\s+as\s+\w+/,
+    porque: "apelidar o prisma escapa da varredura por nome — se precisa apelidar, precisa explicar",
   },
 ];
 
@@ -117,8 +144,8 @@ describe("um resolvedor só para credencial de portal", () => {
       expect(motivo.length, `${arquivo} sem motivo`).toBeGreaterThan(20);
     }
     // Se esta conta subir, alguém abriu exceção — e vai ter de explicar aqui.
-    // Encolheu de 2 para 1 na rodada 5: `app/portal/access` passou a usar o
-    // resolvedor único (antes conferia só validade, nunca dono).
-    expect(Object.keys(PERMITIDOS)).toHaveLength(1);
+    // 2 → 1 → 0. A última caiu quando `POST /api/portal/session` passou pelo
+    // resolvedor: a justificativa dela citava um teste que não a exercitava.
+    expect(Object.keys(PERMITIDOS)).toHaveLength(0);
   });
 });

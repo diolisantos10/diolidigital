@@ -188,7 +188,7 @@ describe("07-CRITERIOS — os 15 cenários obrigatórios", () => {
 
   it("11. trocar o id de outro cliente na requisição do portal é negado", () => {
     expect(pertenceAoToken(
-      { clientRequestId: "req-a", clientId: "cliente-a", clientRequestClientId: "cliente-a" },
+      { clientRequestId: "req-a", clientId: "cliente-a"},
       { clientRequestId: "req-b", clientId: "cliente-b" },
       null,
     )).toBe(false);

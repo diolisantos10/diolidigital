@@ -93,15 +93,20 @@ function toPortalDTO(p: DbPost) {
  *  aqui. O filtro do portal leva os dois. `false` = token inválido. */
 async function resolveTokenScope(
   token: string,
-): Promise<{ reqId: string | null; workspaceId: string | null } | false> {
+): Promise<{ reqId: string | null; workspaceId: string | null; clientId: string | null } | false> {
   // 🔴 RODADA 3: lia `access.record.clientRequestId` — o ponteiro cru. Agora o
   // escopo é o CONGELADO, e a solicitação sai do CLIENTE, nunca do registro.
   const escopo = await escopoDoToken(token);
   if (!escopo.ok) return false;
   if (escopo.tipo === "prospect") {
-    return { reqId: escopo.clientRequestId, workspaceId: escopo.workspaceId };
+    // Prospect não tem dono — a identidade dele é a própria solicitação.
+    return { reqId: escopo.clientRequestId, workspaceId: escopo.workspaceId, clientId: null };
   }
-  return { reqId: escopo.clientRequestIds[0] ?? null, workspaceId: escopo.workspaceId };
+  return {
+    reqId: escopo.clientRequestIds[0] ?? null,
+    workspaceId: escopo.workspaceId,
+    clientId: escopo.clientId,
+  };
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -124,6 +129,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         workspaceId: escopo.workspaceId,
         clientRequestId: escopo.reqId,
         visibility: "compartilhado",
+        // ── A CERCA DO FILHO (rodada 6) ─────────────────────────────────
+        // `clientRequestId` sozinho é a CHAVE DA SOLICITAÇÃO, não prova de
+        // dono: peça legada (sem carimbo) de uma solicitação re-apontada saía
+        // para o dono novo. A/B media `peca(caption)` vazando na base e no PR.
+        // Com dono conhecido, o carimbo tem de bater.
+        ...(escopo.clientId ? { clientId: escopo.clientId } : {}),
       },
       orderBy: { scheduledFor: "asc" },
     });

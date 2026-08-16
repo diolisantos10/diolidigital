@@ -304,3 +304,214 @@ describe("prospect que vira cliente leva o histórico junto", () => {
     expect((await prisma.portalMessage.findUnique({ where: { id: msg.id } }))?.clientId).toBe(beta);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 O BOTÃO "APROVAR" — AS DUAS METADES NA MESMA LINHA
+//
+// Eu exigi carimbo e só carimbo na rodada 5. Mas `ApprovalRequest.clientId`
+// NASCE NULO no fluxo Brain: o carimbo vale para card criado DEPOIS do deploy,
+// e **todo card pendente que já existe tem `clientId` nulo**. Medido em
+// navegador: o dono legítimo via "1 DECISÃO PENDENTE — Pacote mensal
+// R$ 12.000", clicava em Aprovar e recebia `Approval not accessible with this
+// token`, em inglês. Aprovar dispara `createProjectFromRequest` →
+// `runProjectExecution`: **era a esteira comercial parada, com o botão à
+// vista.**
+//
+// É a mesma linha que decide os dois lados do trade-off, e ela não tinha gate
+// em lado nenhum. Agora tem os dois.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("aprovar a própria proposta — e só a própria", () => {
+  async function cardOrfaoEm(clientRequestId: string) {
+    return prisma.approvalRequest.create({
+      data: {
+        clientRequestId, clientId: null, department: "proposal",
+        status: "pending", clientVisible: true, requestedBy: "agencia",
+        reviewNote: "Pacote mensal R$ 12.000", sourcePostIdsJson: "[]",
+      },
+    });
+  }
+  async function decidir(token: string, approvalRequestId: string) {
+    const { POST } = await import("@/app/api/portal/approvals/route");
+    return POST(new NextRequest("http://localhost/api/portal/approvals", {
+      method: "POST",
+      body: JSON.stringify({ token, approvalRequestId, action: "approve" }),
+    }));
+  }
+
+  it("✅ METADE 1: o dono legítimo APROVA o card órfão da própria solicitação", async () => {
+    // Solicitação que sempre foi do BETA, com o card no formato de todo card
+    // pendente anterior ao deploy: `clientId` NULO.
+    const propria = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: beta, businessName: "Loja BETA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    const card = await cardOrfaoEm(propria.id);
+    await prisma.portalAccess.create({ data: { token: "tk-ok", clientId: beta, clientRequestId: propria.id } });
+
+    const res = await decidir("tk-ok", card.id);
+
+    // Se este teste cair, a esteira comercial parou no dia 1.
+    expect(res.status, await res.text()).toBeLessThan(400);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card.id } }))?.status).not.toBe("pending");
+  });
+
+  it("⛔ METADE 2: o dono NOVO não aprova o card órfão de uma solicitação que já foi de outro", async () => {
+    // `reqCompartilhada` é do BETA hoje e foi do ALFA — e o ALFA deixou
+    // pegada (o `PortalAccess` do teste anterior a este bloco não conta; aqui
+    // a evidência é criada explicitamente).
+    await prisma.portalAccess.create({
+      data: { token: "tk-pegada-alfa", clientId: alfa, clientRequestId: reqCompartilhada },
+    });
+    const card = await cardOrfaoEm(reqCompartilhada);
+    await prisma.portalAccess.create({ data: { token: "tk-beta-2", clientId: beta } });
+
+    const res = await decidir("tk-beta-2", card.id);
+
+    expect(res.status).toBe(403);
+    // E aprovação PUBLICA: o banco não pode ter andado.
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card.id } }))?.status).toBe("pending");
+  });
+
+  it("⛔ METADE 3: card CARIMBADO para outro não abre, nem com solicitação em comum", async () => {
+    const card = await prisma.approvalRequest.create({
+      data: {
+        clientRequestId: reqCompartilhada, clientId: alfa, department: "proposal",
+        status: "pending", clientVisible: true, requestedBy: "agencia",
+        reviewNote: "Pacote do ALFA", sourcePostIdsJson: "[]",
+      },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-beta-3", clientId: beta, clientRequestId: reqCompartilhada } });
+
+    const res = await decidir("tk-beta-3", card.id);
+
+    expect(res.status).toBe(403);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card.id } }))?.status).toBe("pending");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 BLOQUEANTE 3 — O FILHO LEGADO, NAS PORTAS QUE ELE VAZAVA
+//
+// O enquadramento do Diretor: *"a identidade foi consertada e a chave dos
+// filhos não."* Cinco rodadas atacando QUEM É O DONO, enquanto `portal-data` e
+// `social-posts` continuavam perguntando DE QUAL SOLICITAÇÃO é a linha.
+//
+// ⚠️ O fixture do topo deste arquivo semeia o acervo do BETA todo CARIMBADO —
+// o caso fácil. O que vaza é o filho **SEM** carimbo, e é ele que este bloco
+// planta. Foi por isso que as dez portas passavam verdes com o furo aberto.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("filho SEM carimbo de solicitação re-apontada", () => {
+  const SEGREDO_FILHO = "FILHO-LEGADO orçamento de R$ 91.000";
+
+  beforeEach(async () => {
+    // Sem `clientId`: o formato de todo filho anterior ao carimbo.
+    await prisma.approvalRequest.create({
+      data: {
+        clientRequestId: reqCompartilhada, clientId: null, department: "proposal",
+        status: "pending", clientVisible: true, requestedBy: "agencia",
+        reviewNote: SEGREDO_FILHO, sourcePostIdsJson: "[]",
+      },
+    });
+    await prisma.brainArtifact.create({
+      data: {
+        clientRequestId: reqCompartilhada, clientId: null, department: "strategy",
+        canvasId: "c1", canvasJson: JSON.stringify({ summary: SEGREDO_FILHO }),
+        version: 1, status: "approved", approvedAt: new Date(),
+      },
+    });
+    await prisma.socialPost.create({
+      data: {
+        workspaceId: ws, clientId: null, clientRequestId: reqCompartilhada,
+        caption: SEGREDO_FILHO, status: "approved", visibility: "compartilhado",
+        format: "feed", networks: "[]",
+      },
+    });
+    // O ALFA deixou pegada na solicitação: é a evidência de que ela mudou de mãos.
+    await prisma.portalAccess.create({
+      data: { token: "tk-pegada", clientId: alfa, clientRequestId: reqCompartilhada },
+    });
+  });
+
+  it("⛔ `portal-data` não serve card nem canvas sem carimbo ao dono novo", async () => {
+    await prisma.portalAccess.create({ data: { token: "tk-novo", clientId: beta, clientRequestId: reqCompartilhada } });
+    const { GET } = await import("@/app/api/brain/portal-data/route");
+
+    const bruto = await (await GET(get("/api/brain/portal-data?token=tk-novo"))).text();
+
+    expect(bruto, "card(reviewNote) vazou").not.toContain("91.000");
+  });
+
+  it("⛔ `social-posts` não serve peça sem carimbo ao dono novo", async () => {
+    await prisma.portalAccess.create({ data: { token: "tk-novo2", clientId: beta, clientRequestId: reqCompartilhada } });
+    const { GET } = await import("@/app/api/social-posts/route");
+
+    const bruto = await (await GET(get("/api/social-posts?token=tk-novo2"))).text();
+
+    expect(bruto, "peca(caption) vazou").not.toContain("91.000");
+  });
+
+  it("✅ e o filho CARIMBADO do dono continua saindo — a metade que importa", async () => {
+    await prisma.socialPost.create({
+      data: {
+        workspaceId: ws, clientId: beta, clientRequestId: reqCompartilhada,
+        caption: "PECA-DO-BETA legítima", status: "approved", visibility: "compartilhado",
+        format: "feed", networks: "[]",
+      },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-novo3", clientId: beta, clientRequestId: reqCompartilhada } });
+    const { GET } = await import("@/app/api/social-posts/route");
+
+    const bruto = await (await GET(get("/api/social-posts?token=tk-novo3"))).text();
+
+    expect(bruto).toContain("PECA-DO-BETA");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AS GUARDAS QUE NASCERAM SEM TESTE — a regra nova da casa:
+// **guarda nova nasce com o teste, ou nasce enfeite.**
+// A/B prova que está certo HOJE; mutação prova que continua certo AMANHÃ.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("M13 — a aprovação nasce CARIMBADA", () => {
+  it("⛔ criar card pelo fluxo Brain grava o dono derivado da solicitação", async () => {
+    const { createApprovalRequest } = await import("@/lib/agency/persistence/approval-service");
+    const card = await createApprovalRequest({
+      clientRequestId: reqCompartilhada, department: "proposal",
+      requestedBy: "agencia", clientVisible: true,
+    });
+    // Sem isto, todo card novo nasce órfão e a posse volta a depender do
+    // ponteiro lido na decisão — que é o furo do `approvals`.
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card.id } }))?.clientId).toBe(beta);
+  });
+});
+
+describe("M16 — trocar o dono de uma solicitação é PROIBIDO", () => {
+  it("⛔ `updateClientRequest` recusa mover A→B", async () => {
+    const { updateClientRequest } = await import("@/lib/agency/persistence/client-request-service");
+    await expect(updateClientRequest(reqCompartilhada, { clientId: alfa }))
+      .rejects.toThrow(/já tem cliente/i);
+    expect((await prisma.clientRequestDb.findUnique({ where: { id: reqCompartilhada } }))?.clientId).toBe(beta);
+  });
+
+  it("✅ mas carimbar dono NULO continua permitido — é o primeiro vínculo", async () => {
+    const { updateClientRequest } = await import("@/lib/agency/persistence/client-request-service");
+    const orfa = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, businessName: "sem dono", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    await updateClientRequest(orfa.id, { clientId: alfa });
+    expect((await prisma.clientRequestDb.findUnique({ where: { id: orfa.id } }))?.clientId).toBe(alfa);
+  });
+});
+
+describe("M2 — apuração que falha FECHA", () => {
+  it("⛔ sem conseguir apurar, nenhuma solicitação é considerada limpa", async () => {
+    const { solicitacoesQueMudaramDeDono } = await import("@/lib/agency/portal/solicitacao-que-mudou-de-dono");
+    const espiao = vi.spyOn(prisma.portalMessage, "findMany").mockRejectedValueOnce(new Error("banco caiu"));
+
+    const sujas = await solicitacoesQueMudaramDeDono(beta, [reqCompartilhada]);
+
+    // TODAS suspeitas: "não sei quais mudaram de dono" e "nenhuma mudou" são
+    // fatos opostos, e o segundo é o que vaza.
+    expect(sujas.has(reqCompartilhada)).toBe(true);
+    espiao.mockRestore();
+  });
+});

@@ -15,6 +15,55 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## ⚠️ DECISÃO DO CEO — o dia em que o portal vira a chave
+
+**O que está em jogo:** o conserto do vazamento (portal de um cliente mostrando
+a conversa de outro) muda a regra de quem pode ver o quê. A regra nova é: **só
+aparece o que está comprovadamente ligado ao cliente**. O que existe hoje no
+sistema, de antes do conserto, **não tem essa ligação escrita** — e por isso
+não aparece.
+
+**O que acontece no primeiro dia, se subir do jeito que está:**
+
+| O que o cliente faz | O que ele vê hoje | O que veria no dia 1 |
+|---|---|---|
+| Abre "Fale com seu PM" | a conversa dele | **conversa vazia**, com um aviso de que parte do histórico não está sendo exibida |
+| Clica no link antigo que recebeu por WhatsApp | entra no portal | **"Este link não está mais valendo"**, com botão para pedir um novo |
+| Tem uma proposta esperando aprovação | aprova e o projeto começa | **aprova normalmente** (isto foi consertado nesta rodada) |
+
+**Nada é apagado.** Tudo continua no banco. O que muda é o que a tela mostra
+até alguém religar cada peça ao dono.
+
+### As duas opções, com preço
+
+**A) Subir assim, e religar depois.**
+- *Custo:* todo cliente ativo precisa receber um link novo (é um comando só,
+  feito pela agência); e o histórico antigo de conversa fica fora do ar até a
+  religação. Alguns clientes vão perguntar.
+- *Risco:* baixo e conhecido. Nada de errado aparece para ninguém.
+- *Prazo:* imediato.
+
+**B) Religar antes de subir.**
+- *Custo:* alguém da agência confere, cliente por cliente, de quem é cada
+  conversa antiga, e carimba. É trabalho humano, e o volume **ainda não foi
+  medido** (falta rodar o censo em produção — nenhum agente tem a credencial).
+- *Risco:* enquanto não sobe, **o vazamento continua no ar**.
+- *Prazo:* depende do volume, que é justamente o que não sabemos.
+
+### O que eu recomendo, e por quê
+
+**A, com a reemissão dos links feita no mesmo dia.** O vazamento é o dano
+maior: é conversa comercial de um cliente aparecendo para outro, e ele está no
+ar agora. Histórico fora do ar é constrangedor; conversa do vizinho na tela é
+perda de cliente. E a opção B pede uma decisão de "de quem é esta linha" que
+ninguém consegue tomar com segurança para as linhas antigas — que é exatamente
+a raiz do problema.
+
+**O que preciso de você:** o "pode subir", e cinco minutos depois do deploy
+para rodar o comando que reemite os links dos clientes ativos.
+
+---
+
 ## 🟢 15/08/2026 — O PORTAL DE UM CLIENTE MOSTRAVA A CONVERSA DE OUTRO (P0)
 
 **A consequência, primeiro:** a conversa do PM — que carrega briefing, valores e
@@ -184,262 +233,8 @@ re-apontava A→B incondicionalmente. Carimbar dono nulo pode; **trocar dono nã
       `x-railway-fallback: true`) durante esta apuração**, em `/api/health` e em
       todas as rotas. Não foi causado por esta frente (o trabalho todo foi
       local). **Nada foi medido em produção por causa disso.**
-- [ ] 🔴 **O CUSTO REAL, corrigido: NÃO é "o histórico legado".** `montarFiltro`
-      devolve `{ clientId }`, e nenhuma linha anterior ao carimbo tem dono
-      escrito — então, **no dia 1, 100% das mensagens anteriores ao deploy somem
-      para 100% dos clientes**. Todo cliente abre "Fale com seu PM" e vê a
-      tarja com a conversa vazia. A minha declaração anterior ("o histórico
-      legado") minimizava isso e vai ao CEO com estas palavras.
-      **[DONO: Diretor decide (é escolha de negócio: aceitar o dia 1 assim, ou
-      fazer um backfill curado antes) · antes do deploy]**
-
-### O ITEM DO DOMÍNIO OFICIAL — o que ficou pronto e o que é do CEO
-
-**Varredura completa: 11 lugares montam URL absoluta.** 8 já estavam certos
-(passam por `origemPublica`/`urlPublica`, que lê `x-forwarded-host`, ou pelo
-`HOST_PADRAO` que já é `www.diolidigital.com.br`). **3 estavam errados e foram
-consertados** — os três que falam com o cliente fora de uma requisição:
-
-| Onde | Estava | Ficou |
-|---|---|---|
-| `lib/agency/esteira/avisos.ts` (link do portal no WhatsApp) | string **VAZIA** sem env → `/portal/access/<token>` relativo, que **não abre nada** numa mensagem | `baseDeLink()` |
-| `app/api/self-serve/order/route.ts` (retorno do Mercado Pago) | string **VAZIA** → comprador voltava para lugar nenhum | `baseDeLink()` |
-| `lib/integrations/meta/notifications.ts` (aviso de proposta) | Railway **escrito à mão** | `baseDeLink()` |
-
-`baseDeLink()` mora em `lib/http/endereco-publico.ts`, **um lugar só**, e
-**nunca devolve vazio**. O padrão continua sendo o endereço de HOJE
-(`up.railway.app`) de propósito: o domínio oficial ainda **não atende**
-(`targetPort` vazio), e apontar para porta fechada é pior que link feio.
-
-- **O que depende do CEO, no Railway (não foi tocado):** definir o `targetPort`
-  (8080) em `diolidigital.com.br` e `www.diolidigital.com.br`, e o DNS.
-- **Depois disso, a troca é UMA variável:** `NEXT_PUBLIC_APP_URL`. Nenhum código
-  muda. Travado por teste.
-- ⚠️ **EFEITO COLATERAL QUE O CLIENTE MERECE SABER ANTES:** o cookie do portal
-  tem escopo de **domínio**. Trocar o domínio **DERRUBA todas as sessões abertas**
-  em `up.railway.app` — quem estiver logado precisa reabrir pelo link de acesso.
-
-### Portão
-
-`npx tsc --noEmit` **limpo** · **4.450 testes em 283 arquivos, todos verdes** ·
-`npm run build` compila · `npm run lint` **falha com 65 erros e 143 avisos —
-número IDÊNTICO ao da branch base**, medido antes e depois com `git stash`;
-nenhum arquivo desta frente aparece na lista. O lint desta casa está vermelho
-desde antes desta frente, e isso é pendência de outra pessoa.
-
-🔴 **ACHADO DE PASSAGEM: o cliente Prisma commitado estava INCOMPLETO.** Num
-checkout limpo, `npx tsc --noEmit` acusava **4 erros** em
-`app/api/v2/assistido/route.ts` — não era código ruim, era
-`lib/generated/prisma/models/RecusaV2.ts` **faltando no repositório**, embora o
-modelo exista no schema (`prisma/schema.prisma:2177`) e a pasta seja commitada
-de propósito ("para o Railway não precisar de `prisma generate`"). O arquivo
-entra neste PR e o tsc fica limpo. **Quem gerou o cliente da última vez não
-commitou tudo** — e o build do Railway vinha se salvando porque roda
-`prisma generate`.
-
-⚠️ **`middleware.ts` NÃO EXISTE NO NEXT 16 DESTA CASA.** A primeira versão da
-trava de porta foi escrita como `middleware.ts` e o **build reprovou**: *"Both
-middleware file and proxy file are detected. Please use ./proxy.ts only."*
-A trava mora em `proxy.ts`. Descoberto construindo, não lendo — é o que
-`AGENTS.md` manda fazer.
-
-⚠️ **4 testes antigos foram REESCRITOS, não afrouxados.** Eles fixavam a forma
-do filtro **sem a cerca** — o defeito virando invariante, o mesmo padrão já
-registrado em 08/08. A forma nova está anotada com o porquê.
-
-
-## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
-
-**Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no
-Google, 0 linhas em `DriveMaterial`**. O CEO escolheu o material no seletor, o
-Google concedeu o acesso, e a tela respondeu *"Sem material — a Dioli não alcança
-NENHUM arquivo seu"*. Sem erro, sem aviso, sem registro.
-
-**A causa, capturada AO VIVO em produção antes do deploy do conserto** (POST na
-rota do portal com um arquivo fora do alcance):
-
-```
-HTTP 200  {"gravados":[],"recusados":[{...}],
-           "proximoPasso":"Você escolheu apenas pastas. ..."}
-```
-
-Zero gravados, **HTTP 200**, e no campo que a tela pinta de **verde** — para um
-PNG. Somado a isso, no navegador o callback do seletor fazia `await fetch` e
-`await res.json()` **sem try/catch**: 502 do proxy (HTML), rede oscilando ou
-servidor reiniciando num deploy matavam a escolha sem uma palavra na tela.
-
-**Depois, as duas metades provadas contra produção:**
-
-| | antes | depois |
-|---|---|---|
-| gravação impedida | `HTTP 200` + frase verde | `HTTP 502` + "Sua escolha NÃO foi registrada — a falha foi nossa" |
-| escolha real | (perdida) | `HTTP 200`, 1 gravado, "agora diga o que é" |
-| Foocci no diagnóstico | 1 no Google / 0 na casa · `escolhaPerdida: true` | 1 / 1 · `escolhaPerdida: false` |
-
-**O que ficou aberto, e é ação de gente:** o arquivo da Foocci está dentro da
-casa **pendente de triagem** — `papel` NULO, `declarados: 0`, `importados: 0`.
-Ele **não entra em peça nenhuma** até alguém dizer o que ele é. O nome é
-`ChatGPT Image 7_08_2026, 11_02_42.png`: não dá para saber se é logo, foto ou
-rascunho, e **carimbar "logo" por conveniência poria a imagem errada numa peça
-entregue**. Quem declara é o cliente, no portal — o cartão já mostra o arquivo
-com o seletor de papel.
-
-**A rede de segurança nova:** `POST /api/admin/reconciliar-drive` (CRON_SECRET).
-O diagnóstico já sabia DETECTAR (`escolhaPerdida`); agora a casa CONSERTA — todo
-arquivo que o Google concede e a casa não tem entra pendente de triagem.
-
----
-
-## 🟢 08/08/2026 — O BRIEFING PÚBLICO PASSA A PEDIR CONTATO, E A FILA DA PORTA DA FRENTE ENTRA NO RAIO-X
-
-**A consequência, primeiro:** três interessados entraram e a agência não tinha
-como responder a nenhum. Medido em produção, em `ClientRequestDb`:
-
-| Negócio | Parado desde | Serviços | Contato |
-|---|---|---|---|
-| **Sushi Cazza** | 18/06 — **51 dias** | planejamento de conteúdo, direção visual, estratégia | **nenhum** |
-| **Camila Pereira** (Beauty Clinic) | 10/07 — **29 dias** | social media, quer muito vídeo | **nenhum** |
-| **Beatriz Gimenes** (lash designer) | 11/07 — **28 dias** | social + tráfego + identidade | **nenhum** |
-
-Dois defeitos empilhados. **O segundo é o grave: mesmo que alguém varresse a
-fila, não havia para onde ligar.**
-
-### 🔴 A CAUSA RAIZ ESTAVA ESCRITA COMO CONTRATO, NUM TESTE
-
-`__tests__/briefing/identity-capture.test.ts` dizia, no cabeçalho:
-*"E-mail and WhatsApp are NO LONGER collected in the conversation — they are
-captured via Google sign-in after the prospect confirms their request."*
-
-A premissa é falsa na prática: **quem não chega ao login não deixa nada, e a
-maioria não chega.** O teste travava "o SDR nunca pede e-mail" — e o resultado
-está medido acima. É o mesmo padrão do teste dos pedidos de API (07/08) e do
-`jornada-real` (08/08): **o defeito virando invariante.** O cabeçalho foi
-reescrito declarando o que mudou e o que continua valendo (a conversa do SDR
-segue sem pedir contato — o pedido mora no passo de confirmação; pedir no meio
-da descoberta foi o que produziu o incidente original do "só isso").
-
-### 1. O CONTATO PASSA A SER CONDIÇÃO PARA FECHAR — e a trava é no SERVIDOR
-
-**Onde pedir foi decisão declarada.** No FIM, com a proposta na tela: pedir na
-primeira mensagem cobra antes de entregar e espanta quem só está olhando; pedir
-depois de a pessoa ter contado o negócio inteiro é a hora em que o pedido é
-natural — ela investiu, quer o resultado, e o contato é o que faz o resultado
-chegar até ela.
-
-- **Nome + PELO MENOS UM canal (WhatsApp _ou_ e-mail).** O WhatsApp entra na
-  frente, e não é estética: é por onde o cliente brasileiro responde. O
-  formulário antigo aceitava **só e-mail**, e o e-mail do login do Google é a
-  caixa que a pessoa não abre.
-- **A trava mora em `POST /api/brain/client-requests`, não no botão.** A rota é
-  **pública** — é o submit do `/briefing` — e um POST direto passa por cima de
-  qualquer `disabled`. `status` vindo do corpo é **ignorado**; quem escolhe entre
-  `new` e `lead_incompleto` é o servidor.
-
-**AS DUAS METADES, provadas em `__tests__/comercial/gate-de-contato-do-briefing.test.ts`:**
-
-| | fecha? | vira proposta? | o que foi dito |
-|---|---|---|---|
-| **com canal** | sim, `status: "new"` | **sim** — `runAutoScope` roda | grava |
-| **sem canal** | não | **não** — `runAutoScope` NÃO roda | **grava inteiro** |
-
-**Sem contato NÃO é descarte.** Há saída explícita na tela ("Prefiro não deixar
-contato agora"): a conversa sobe, grava como `lead_incompleto` **com o motivo**,
-e aparece na fila. Sem ela, quem não quer dar contato fecha a aba e a melhor
-matéria-prima que esta agência recebe desaparece sem deixar registro.
-
-E a tela de confirmação **para de prometer o que não pode cumprir**: quem sobe
-sem contato não lê mais *"entramos em contato em até 1 dia útil"*.
-
-### 🔴 CONTATO NÃO SE DEDUZ — e a arroba do Sushi Cazza tem nome próprio
-
-`lib/agency/comercial/contato-do-lead.ts` é o **leitor único**: lê o formato
-canônico novo e o legado (`briefingJson.scope.prospect*`), e **não lê o
-`rawContext`**. O `@sushicazzaoficial` que está escrito no briefing aparece como
-**PISTA** (`pistasDeContato`), em campo separado, rotulado *"não é contato
-confirmado"* na tela — e **nunca** faz `temComoFalar` virar `true`. Quem aborda
-é o CEO.
-
-- **Nome sozinho não é contato** — era exatamente assim que o desperdício se
-  chamava.
-- Piso de 10 dígitos no telefone: aceitar 8 faria `R$ 1.500` e `12 posts` — que
-  aparecem em TODO briefing — virarem telefone. **Telefone inventado é pior que
-  nenhum: desliga o alarme sem dar para onde ligar.**
-
-### 2. A FILA ENTRA NO RAIO-X (`lib/raio-x/dados.ts`, item 11)
-
-**Por que nada tocava:** o raio-x mede `pedidosDoClienteAbertos` sobre
-`ContentRequest` — o pedido de quem **já é cliente**. Estas moram em
-`ClientRequestDb`, a porta do **prospect**, e nenhuma varredura a olhava.
-
-**O horizonte é 24h, e a defesa é a própria tela:** o `/briefing` promete
-*"entramos em contato em até 1 dia útil"*. Alarme de 48h ou 72h toca **depois de
-a promessa já estar quebrada** — registra o dano em vez de preveni-lo. E 24h é o
-mesmo relógio de todos os outros baldes do arquivo; um segundo relógio na mesma
-varredura é uma segunda regra para alguém esquecer.
-
-**DOIS baldes, porque a AÇÃO é diferente** (`briefing-parado-com-contato` e
-`briefing-parado-sem-contato`, ambos `alto`). O segundo é também o **termômetro
-do gate**: se ele crescer depois de hoje, o briefing está vazando.
-
-As duas metades em `__tests__/raio-x/fila-da-porta-da-frente.test.ts`: acha as
-três com a mais antiga nomeada e os 51 dias na evidência · **não** dispara em
-fila vazia, em lead de hoje nem em ficha que já virou projeto.
-
-### 3. AS TRÊS DE VOLTA — `/agency/leads` ("Quem procurou", na barra lateral)
-
-Cada cartão responde, nesta ordem: **dá para falar com ele?** (e o "não" vem
-primeiro, em vermelho) · o que ele pediu, **nas palavras dele** · escopo e faixa
-**pela tabela da casa** (`live-calculator` + `service-catalog`) · **preciso
-confirmar**.
-
-- **Determinístico. Zero IA.** Um modelo escrevendo "leitura do negócio"
-  produziria prosa convincente sobre um cliente que ninguém conferiu — o modo de
-  falhar desta casa sem revisor humano.
-- **Faixa ausente NÃO é R$ 0.** Serviço que a tabela não cobre devolve faixa
-  nula com o motivo escrito. Faixa sem cadência declarada é a banda inteira do
-  catálogo **e diz que é**.
-- **Falha de leitura tem tela própria** (`medido: false`): lista vazia por erro
-  de banco é exatamente como esta fila ficou invisível por sete semanas.
-- Somente leitura. **Não aborda ninguém, não envia nada, não escreve nada.**
-
-> ⚠️ **"Solicitações", a aba que já existia, lê o STORE DO NAVEGADOR** — quem
-> abrisse noutro computador via zero. É parte de por que ninguém enxergou as
-> três. A tela nova lê o **banco**. Unificar as duas fica aberto, com dono.
-
-### 🔴 4. A FICHA DUPLICADA DA CAMILA — LEVANTADA, NÃO FUNDIDA
-
-**Não fundi**: afirmar que duas fichas são o mesmo negócio é decisão de negócio,
-e a ficha certa decide para onde vai o histórico.
-
-**O mecanismo, com linha:** **duas** rotas criam `Client` a partir da mesma
-solicitação e **nenhuma confere se já existe alguém com aquele nome** —
-`lib/agency/execution/create-project-from-request.ts:49` e
-`app/api/brain/orchestrate/apply/route.ts:103`. As duas só olham
-`req.clientId == null`. **Não há `@@unique(workspaceId, name)` no `Client`.**
-
-> **E aqui os dois defeitos se encontram:** `lib/agency/balcao/producao.ts:98`
-> **deduplica** — por **e-mail**. O caminho do briefing não tinha e-mail nenhum,
-> então não tinha chave. **Sem contato não existe chave de identidade**, e é por
-> isso que o gate do item 1 também fecha este buraco daqui para frente.
-
-**Decisão do CEO:** qual das duas (`cmqyb0bpo…` / `cmrt7aecz…`) é a boa.
-
-### Portão
-
-`npx tsc --noEmit` limpo · **3088 testes em 191 arquivos, todos verdes** ·
-`npm run build` sai 0. ⚠️ Os 9 avisos do build são **todos** de
-`instrumentation.ts` → `lib/agency/design/fontes-embutidas.ts` /
-`lib/agency/media/armazenamento.ts` → `app/api/media/route.ts` — **frentes de
-outros agentes, nenhum arquivo meu aparece em trace nenhum.**
-
-Conferido em **375 / 768 / 1440**, autenticado, com os estados vazio, bloqueado e
-válido. Notas (0–10) a 375px: hierarquia **9** · tipografia **9** · espaçamento
-**8,5** · consistência **9**. Dois defeitos achados **renderizando, não lendo**:
-o rótulo do botão do Google quebrava em duas linhas a 375px (e prometia "para ver
-a proposta", que deixou de ser verdade), e as linhas de escopo botavam preço e
-nome do plano na mesma largura — agora empilham no celular.
-
-### 🔴 O QUE NÃO FOI FEITO, E POR QUÊ
+- [ ] 🔴 **DECISÃO DO CEO — o dia da virada do portal. Texto próprio abaixo, na
+      seção "⚠️ DECISÃO DO CEO".** **[DONO: CEO · antes do deploy]**
 
 - [ ] **AS TRÊS CONTINUAM EM `"new"` NO BANCO DE PRODUÇÃO. Não as movi.** Daqui
       só há HTTP e a rota exige sessão de admin (medido: `401`). O dossiê das

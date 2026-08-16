@@ -11,7 +11,6 @@ import { pertenceAoToken } from "@/lib/agency/portal/posse-da-aprovacao";
 const APROVACAO_DO_CLIENTE_A = {
   clientRequestId: "req-a",
   clientId: "cliente-a",
-  clientRequestClientId: "cliente-a",
 };
 
 describe("pertenceAoToken — o isolamento do portal", () => {
@@ -21,7 +20,7 @@ describe("pertenceAoToken — o isolamento do portal", () => {
 
   it("token do cliente certo (cliente direto, sem solicitação): pertence", () => {
     expect(pertenceAoToken(
-      { clientRequestId: null, clientId: "cliente-a", clientRequestClientId: null },
+      { clientRequestId: null, clientId: "cliente-a"},
       { clientRequestId: null, clientId: "cliente-a" },
       null,
     )).toBe(true);
@@ -45,7 +44,7 @@ describe("pertenceAoToken — o isolamento do portal", () => {
   });
 
   it("aprovação órfã (sem dono nenhum) não pertence a ninguém — fail-closed", () => {
-    const orfa = { clientRequestId: null, clientId: null, clientRequestClientId: null };
+    const orfa = { clientRequestId: null, clientId: null};
     expect(pertenceAoToken(orfa, { clientRequestId: "req-a", clientId: "cliente-a" }, null)).toBe(false);
   });
 

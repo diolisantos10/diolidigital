@@ -14,7 +14,11 @@
 export interface AprovacaoParaPosse {
   clientRequestId: string | null;
   clientId: string | null;
-  clientRequestClientId: string | null;
+  // ⚠️ `clientRequestClientId` FOI APAGADO (16/08/2026). Ele era o ponteiro
+  // MUTÁVEL lido na hora da decisão; virou campo morto quando a posse passou a
+  // exigir carimbo, e campo morto numa struct de segurança é o próximo a ser
+  // "reaproveitado". Quem precisar do dono atual da solicitação que o derive
+  // do resolvedor único.
 }
 
 export interface TokenParaPosse {
@@ -26,12 +30,48 @@ export function pertenceAoToken(
   aprovacao: AprovacaoParaPosse,
   token: TokenParaPosse,
   clientIdDaSolicitacaoDoToken: string | null,
+  /**
+   * As solicitações que o token PROVA possuir e que não têm evidência de
+   * terem sido de outro cliente. Vazio = nenhuma; a posse então exige carimbo.
+   */
+  solicitacoesLimpasDoToken: readonly string[] = [],
 ): boolean {
   if (token.clientRequestId && aprovacao.clientRequestId === token.clientRequestId) {
     return true;
   }
   const tokenClientId = token.clientId ?? clientIdDaSolicitacaoDoToken;
   if (!tokenClientId) return false;
+
+  // ── 🔴 EU PAREI A ESTEIRA COMERCIAL (16/08/2026) ──────────────────────────
+  //
+  // A rodada 5 exigiu carimbo e só carimbo. Mas `ApprovalRequest.clientId`
+  // NASCE NULO no fluxo Brain — está escrito no meu próprio comentário em
+  // `approval-service.ts`. O carimbo vale para card criado DEPOIS do deploy;
+  // **todo card pendente que já existe tem `clientId` nulo**.
+  //
+  // Resultado medido em navegador: o dono legítimo abre "Aprovações", vê
+  // "1 DECISÃO PENDENTE — Pacote mensal R$ 12.000", clica em Aprovar e recebe
+  // `Approval not accessible with this token`, em inglês e em vermelho. E
+  // aprovar proposta é o gatilho de `createProjectFromRequest` →
+  // `runProjectExecution`: não é histórico escondido, é a **esteira comercial
+  // parada, com o botão à vista**.
+  //
+  // As DUAS metades, e nenhuma delas depende de dado pós-deploy:
+  //
+  //   • card COM carimbo  → o carimbo manda, e só ele. (barra o alheio)
+  //   • card SEM carimbo  → pertence se a solicitação dele estiver entre as
+  //     que o token prova possuir E sem evidência de ter sido de outro.
+  //     (atende o próprio)
+  //
+  // A lista limpa é montada pelo chamador, do lado do servidor, a partir do
+  // escopo congelado. Ela nunca AMPLIA o alcance de um card carimbado — só
+  // decide o destino do card órfão, que hoje simplesmente não abriria.
+  if (aprovacao.clientId == null) {
+    return (
+      !!aprovacao.clientRequestId
+      && solicitacoesLimpasDoToken.includes(aprovacao.clientRequestId)
+    );
+  }
 
   // ── 🔴 RODADA 5: `clientRequestClientId` SAIU DAQUI ───────────────────────
   //

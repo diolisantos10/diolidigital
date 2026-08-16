@@ -89,7 +89,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (!reqId) {
       return NextResponse.json({ error: "Token not linked to a request" }, { status: 404 });
     }
-    return NextResponse.json(await buildPortalData(reqId));
+    return NextResponse.json(await buildPortalData(reqId, escopo.tipo === "cliente" ? escopo.clientId : null));
   }
 
   // Direct clientRequestId / clientId — internal use only (agency session).
@@ -239,13 +239,28 @@ function mapearAprovacao(
   };
 }
 
-async function buildPortalData(clientRequestId: string) {
+// ── A MESMA INVERSÃO, NA TABELA VIZINHA (16/08/2026, rodada 6) ─────────────
+//
+// Cinco rodadas consertando **quem é o dono** e esta função continuava
+// perguntando **de qual solicitação é a linha**. `montarFiltro` já servia só o
+// que se prova próprio; aqui o filho legado (sem carimbo) de uma solicitação
+// re-apontada seguia saindo — `card(reviewNote)` e `canvas(pipeline)`, com A/B
+// provando que a base vaza e o PR também vazava.
+//
+// `donoEsperado` é o cliente CONGELADO do token. Filho sem carimbo não sai —
+// exatamente como a mensagem sem carimbo não sai. Nulo = caminho interno
+// (sessão da agência, já cercado por posse de workspace), e aí não se cerca de
+// novo: seria esconder da equipe o que ela tem direito de ver.
+async function buildPortalData(clientRequestId: string, donoEsperado: string | null = null) {
   const clientRequest = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
   if (!clientRequest) return null;
 
+  // A cerca do filho: com dono esperado, o carimbo TEM de bater.
+  const cercaDoFilho = donoEsperado ? { clientId: donoEsperado } : {};
+
   const [artifacts, approvals] = await Promise.all([
     prisma.brainArtifact.findMany({
-      where: { clientRequestId, status: "approved" },
+      where: { clientRequestId, status: "approved", ...cercaDoFilho },
       orderBy: { approvedAt: "asc" },
       select: {
         id: true, department: true, canvasId: true, canvasJson: true,
@@ -254,13 +269,19 @@ async function buildPortalData(clientRequestId: string) {
     }),
     // Por OR: as aprovações da solicitação (fluxo Brain) E as do cliente
     // direto (cards de calendário por `clientId`) — um dono só, duas chaves.
-    buscarAprovacoes({
-      clientVisible: true,
-      OR: [
-        { clientRequestId },
-        ...(clientRequest.clientId ? [{ clientId: clientRequest.clientId }] : []),
-      ],
-    }).then(semDuplicatas),
+    buscarAprovacoes(
+      donoEsperado
+        // Com dono: só card carimbado para ELE. A chave da solicitação deixa
+        // de ser prova — era ela que servia o card do dono ANTIGO.
+        ? { clientVisible: true, clientId: donoEsperado }
+        : {
+            clientVisible: true,
+            OR: [
+              { clientRequestId },
+              ...(clientRequest.clientId ? [{ clientId: clientRequest.clientId }] : []),
+            ],
+          },
+    ).then(semDuplicatas),
   ]);
 
   // As peças estruturadas dos cards (imagem + legenda), nos DOIS ramos — o

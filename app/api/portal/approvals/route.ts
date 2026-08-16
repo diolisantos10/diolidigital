@@ -27,6 +27,7 @@ import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { negotiateProposal } from "@/lib/agency/execution/negotiate-proposal";
 import { assessResources } from "@/lib/agency/execution/assess-resources";
 import { gravarMensagemDoPortal } from "@/lib/agency/portal/mensagem-do-portal";
+import { solicitacoesQueMudaramDeDono } from "@/lib/agency/portal/solicitacao-que-mudou-de-dono";
 
 // V2 (M5): as QUATRO decisões do cliente + a dúvida vivem num contrato único
 // (`lib/agency/portal/decisoes-do-portal.ts`) — rota e tela leem a mesma
@@ -129,7 +130,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const formaDaAprovacao = {
       clientRequestId: approval.clientRequestId,
       clientId: approval.clientId,
-      clientRequestClientId: approval.clientRequest?.clientId ?? null,
     };
     // `pertenceAoToken` (função pura, provada por teste) continua sendo quem
     // decide — o que mudou é o que ela RECEBE: só o escopo congelado.
@@ -142,11 +142,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // 🔴 O `seguranca` aprovou uma entrega de OUTRO cliente por aqui, e nesta
     // casa entrega aprovada publica. A posse deixou de aceitar a solicitação
     // como prova: quando há cliente, o CARIMBO tem de bater.
+    // As solicitações que este token prova possuir E sem evidência de terem
+    // sido de outro cliente. É o que permite o dono legítimo decidir o card
+    // ÓRFÃO (o formato de todo card pendente anterior ao deploy) sem abrir o
+    // card órfão de uma solicitação que mudou de mãos.
+    const sujas = escopo.tipo === "cliente"
+      ? await solicitacoesQueMudaramDeDono(escopo.clientId, escopo.clientRequestIds)
+      : new Set<string>();
+    const limpas = escopo.tipo === "cliente"
+      ? escopo.clientRequestIds.filter((id) => !sujas.has(id))
+      : [];
     const belongsToToken = escopo.tipo === "cliente"
       ? pertenceAoToken(
           formaDaAprovacao,
           { clientRequestId: null, clientId: escopo.clientId },
           escopo.clientId,
+          limpas,
         )
       // Prospect: a identidade é a solicitação, e o card não pode ter dono.
       : approval.clientId == null
