@@ -133,7 +133,10 @@ describe("Produto & Tecnologia — a superfície está de pé e ligada à casa",
     expect(dep!.nome).toBe("Produto & Tecnologia");
   });
 
-  it("as sete funções do departamento existem no catálogo canônico", () => {
+  // As sete executoras continuam as mesmas; o oitavo nome é o GERENTE do
+  // departamento, criado na reforma de hierarquia de 16/08/2026. Ele não
+  // executa: recebe do Gerente Geral e distribui aqui dentro.
+  it("as sete funções do departamento, mais o gerente, existem no catálogo canônico", () => {
     const dep = departamentoV2("product-technology");
     expect(dep, "departamento ausente do catálogo canônico").toBeDefined();
     expect(dep!.funcoes.map((f) => f.id).sort()).toEqual(
@@ -142,6 +145,7 @@ describe("Produto & Tecnologia — a superfície está de pé e ligada à casa",
         "design-system-engineer",
         "frontend-engineer",
         "fullstack-engineer",
+        "manager-produto-tecnologia",
         "product-designer",
         "software-architect",
         "technology-orchestrator",

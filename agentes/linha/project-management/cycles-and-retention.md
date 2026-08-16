@@ -16,6 +16,21 @@
 | **O que recusa** | Reproduzir entrega anterior no ciclo novo; abrir ciclo sem fechar o anterior. Fora do mandato → devolve pela cadeia com o motivo. |
 | **Risco proposto** | Médio |
 
+## A hierarquia, para não restar dúvida
+
+```
+CEO → Diretor → **Gerente Geral** (`gerente-geral`) → **este cargo**
+```
+
+Este departamento é a casa do Gerente Geral: **a demanda chega dele, e é
+para ele que volta**. O insumo de trabalho continua vindo de quem a
+esteira diz (`handoff.recebe_de`, abaixo) — linha de comando e linha de
+produção são eixos diferentes.
+
+**O cliente fala com o Gerente Geral, nunca com este cargo** —
+departamento que fala direto com cliente cria duas versões da mesma
+promessa.
+
 ## Especificação operacional
 
 | Campo | Valor |

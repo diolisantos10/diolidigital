@@ -24,8 +24,8 @@ describe("catálogo canônico V2 — contrato com o manifesto", () => {
     expect(DEPARTAMENTOS_V2).toHaveLength(12);
   });
 
-  it("tem exatamente 69 funções executoras", () => {
-    expect(FUNCOES_V2).toHaveLength(69);
+  it("tem exatamente 81 funções executoras (69 + os 12 gerentes)", () => {
+    expect(FUNCOES_V2).toHaveLength(81);
   });
 
   it("cada função do manifesto existe no catálogo, no departamento certo", () => {

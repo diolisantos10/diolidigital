@@ -7,7 +7,8 @@
 ## 1. O catálogo canônico (código, não banco)
 
 - `lib/agency/catalogo-v2/catalogo.ts` — **gerado do
-  `architecture.manifest.json`**: 12 departamentos, 69 funções executoras,
+  `architecture.manifest.json`**: 12 departamentos, 81 funções — 69 executoras
+  mais os 12 gerentes da reforma de 16/08/2026 —,
   workflow de 9 marcos, 20 estados, 9 bloqueios, 4 decisões do cliente.
 - **Teste de contrato**: um teste compara código ↔ manifesto; divergiu,
   CI reprova. O manifesto é a fonte; ninguém edita o catálogo à mão.

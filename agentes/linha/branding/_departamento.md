@@ -14,6 +14,16 @@
 Médio — define regra; quem materializa é o Design. A identidade é do CLIENTE. O risco individual de cada função está na ficha dela; o
 dono de negócio (CEO) ajusta quando quiser.
 
+## A hierarquia, para não restar dúvida
+
+```
+CEO → Diretor → Gerente Geral → **Gerente de Branding** (`manager-branding`) → funções desta pasta
+```
+
+Toda demanda deste departamento entra pelo **Gerente de Branding**, que recebe do Gerente
+Geral e distribui aqui dentro. Nenhuma função desta pasta recebe demanda
+de fora nem fala com o cliente.
+
 ## Blocos comuns (4 a 14) — valem para toda função desta pasta
 
 - **Base (4):** briefing e material do cliente vencem tudo; afirmação sem fonte
@@ -36,6 +46,7 @@ dono de negócio (CEO) ajusta quando quiser.
 
 | Função | Nome | Risco proposto |
 |---|---|---|
+| `manager-branding` | Gerente de Branding | Médio |
 | `brand-architect` | Agente Brand Architect | Médio |
 | `brand-interviewer` | Agente Entrevistador de Marca | Baixo |
 | `brandbook-and-assets` | Agente de Brand Book e Assets | Médio |

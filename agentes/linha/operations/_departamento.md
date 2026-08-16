@@ -14,6 +14,16 @@
 Alto — é a fundação; erro aqui derruba todos os outros. O risco individual de cada função está na ficha dela; o
 dono de negócio (CEO) ajusta quando quiser.
 
+## A hierarquia, para não restar dúvida
+
+```
+CEO → Diretor → Gerente Geral → **Gerente de Operações, Sistemas e Segurança** (`manager-operacoes`) → funções desta pasta
+```
+
+Toda demanda deste departamento entra pelo **Gerente de Operações, Sistemas e Segurança**, que recebe do Gerente
+Geral e distribui aqui dentro. Nenhuma função desta pasta recebe demanda
+de fora nem fala com o cliente.
+
 ## Blocos comuns (4 a 14) — valem para toda função desta pasta
 
 - **Base (4):** briefing e material do cliente vencem tudo; afirmação sem fonte
@@ -36,6 +46,7 @@ dono de negócio (CEO) ajusta quando quiser.
 
 | Função | Nome | Risco proposto |
 |---|---|---|
+| `manager-operacoes` | Gerente de Operações, Sistemas e Segurança | Médio |
 | `integration-manager` | Agente Gestor de Integrações | Alto |
 | `credentials-and-access` | Agente de Credenciais e Acessos | Crítico |
 | `scheduler-and-recovery` | Agente Scheduler e Recovery | Alto |

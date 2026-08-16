@@ -14,6 +14,16 @@
 Alto — a peça chega ao cliente pagante (allowlist na escada). O risco individual de cada função está na ficha dela; o
 dono de negócio (CEO) ajusta quando quiser.
 
+## A hierarquia, para não restar dúvida
+
+```
+CEO → Diretor → Gerente Geral → **Gerente de Design e Produção Criativa** (`manager-design`) → funções desta pasta
+```
+
+Toda demanda deste departamento entra pelo **Gerente de Design e Produção Criativa**, que recebe do Gerente
+Geral e distribui aqui dentro. Nenhuma função desta pasta recebe demanda
+de fora nem fala com o cliente.
+
 ## Blocos comuns (4 a 14) — valem para toda função desta pasta
 
 - **Base (4):** briefing e material do cliente vencem tudo; afirmação sem fonte
@@ -36,6 +46,7 @@ dono de negócio (CEO) ajusta quando quiser.
 
 | Função | Nome | Risco proposto |
 |---|---|---|
+| `manager-design` | Gerente de Design e Produção Criativa | Médio |
 | `creative-director` | Agente Diretor Criativo | Médio |
 | `graphic-designer` | Agente Designer Gráfico | Alto |
 | `motion-designer` | Agente Motion Designer | Médio |
