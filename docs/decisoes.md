@@ -64,6 +64,197 @@ descaso, nunca conserto.
 - A tela da fila de leads ainda não consome o dado novo de "irmão fora da
   janela" — API pronta, tela com outro dono em voo.
 - Fichas duplicadas em produção esperando decisão do CEO desde 08/08.
+## A COLHEITA DEPOIS DAS 18:21 FOI MAIOR QUE A DE ANTES: CINCO VEZES "PARECE CERTO, NÃO ESTÁ", E O DEPLOY QUE NINGUÉM CONFERIU
+
+**Decidido em** 2026-08-16 · **registrado pelo** Essencial `cerebro`, a pedido do
+Diretor, consolidando o trabalho entre o último registro (`6007fda2`, 18:21) e
+agora · **origem:** `reivindicacoes/`, `app/api/sdr/chat/route.ts`,
+`components/agency/briefing/PublicBriefingRoom.tsx`,
+`lib/agency/question-engine.ts`, `scripts/reivindicar.mts`,
+`app/api/piloto/diagnostico/route.ts`
+
+**A conclusão primeiro:** a colheita depois do último registro é maior que a de
+antes dele. Cinco vezes hoje um defeito passou por certo porque nada nele
+denunciava que estava errado; o mesmo formato de erro ("duas portas para o mesmo
+dado") se repetiu três vezes; e os dois portões que o Diretor cobrou o dia
+inteiro (`tsc`, testes) não dizem nada sobre produção — enquanto ele cobrava,
+funil quebrado e cotação errada seguiam valendo para quem visitasse o site.
+
+### 🔴 PADRÃO 1 — "parece certo, não está, e nada denuncia" (5 casos medidos hoje)
+
+1. **Número truncado não tem marca.** `postsPerWeek: 14` cortado no dígito virava
+   `postsPerWeek: 1`, e `JSON.parse` aceitava — já registrado em
+   `docs/pendencias.md` (seção "A REIVINDICAÇÃO VIROU TRAVA"). Cito, não repito:
+   string truncada salta aos olhos ("Ana Doces e Bolos Personaliza"), número
+   truncado não.
+2. **A allowlist do cliente apontou para nomes de motivo MORTOS depois de um
+   merge.** `components/agency/briefing/PublicBriefingRoom.tsx:950-966`: o merge
+   de reconciliação (`5d806a60`) renomeou `parse_error_truncado`/
+   `parse_error_formato` para `truncado`/`malformado` no servidor
+   (`app/api/sdr/chat/route.ts:580,607`), e a allowlist do cliente
+   (`MOTIVOS_COM_ESCOPO_APROVEITAVEL`) continuou apontando para os nomes antigos
+   por algumas horas (commit `8f75e0cd`, 17:20). **Fail-closed segurou — nada
+   vazou —, mas o resgate do escopo (R$ 500/mês, 2 posts/dia) teria ficado
+   DESLIGADO em produção, em silêncio.** Nenhum teste acusava porque os dois
+   lados eram mockados separadamente, cada um provando a própria ficção — "peça
+   verde, junta rompida", de novo. Trava nova:
+   `__tests__/esteira/allowlist-bate-com-o-servidor.test.ts`, que chama a rota
+   de verdade em vez de mockar os dois lados.
+3. **"Somos de estética" fechou a pergunta de serviço sem colher serviço.**
+   `lib/agency/question-engine.ts:242-260` (`detect_service`, commit `d6d5110f`).
+   O código antigo dizia, com todas as letras, *"Non-identity questions keep the
+   original 'asked = answered' behavior"* — uma resposta que não nomeia serviço
+   nenhum era tratada como respondida. No turno seguinte a pessoa disse "quero
+   social media", mas a pergunta da vez já tinha mudado, e a frase virou
+   objetivo — o serviço nunca foi gravado, e o portão de envio nunca abria.
+4. **"2 posts por dia" virava 2 por semana — cotação 7× abaixo.**
+   `lib/agency/question-engine.ts:108` (`frequenciaSemanal`), usada em `:312`
+   (commit `78df6c60`). Antes: `postsPerWeek = 2` → estimativa R$600–900. Depois:
+   `postsPerWeek = 14` → R$4.000–6.500. "2" é plausível para a pergunta feita;
+   nada denunciava o erro.
+5. **A falha do SDR aparecia como resposta normal do bot.**
+   `components/agency/briefing/PublicBriefingRoom.tsx:799-827` (`SdrOutcome`,
+   commit `468cc735`). `fetchSdrReply` fazia `if (!res.ok) return null`, e o
+   motor de regras — calculado ANTES da chamada — preenchia a próxima pergunta
+   no lugar, cronologicamente coerente, nada pisca. *"É pior que tela em branco:
+   tela em branco a pessoa questiona; esta ela acredita."*
+
+**A mesma causa nos cinco:** um tipo ou contrato pobre demais para expressar o
+fato que precisava expressar — `null` sem motivo, ausência sem marca, "respondido"
+sem verificar o quê. Não é sorte de quem achou cada um: é o formato do erro desta
+casa hoje.
+
+### 🔴 PADRÃO 2 — a mesma pergunta entra por DUAS PORTAS, e consertar uma deixa a outra vazando
+
+- **Nome do negócio.** `prospect-engine` (e-mail do prospect virando nome do
+  negócio, fechado em `74810b75`) e a página pública
+  (`components/agency/briefing/PublicBriefingRoom.tsx:1344`, fechado em
+  `24fd4015`) gravavam o mesmo campo por caminhos diferentes; consertar a
+  primeira porta deixou a segunda gravando o nome da PESSOA no campo do NEGÓCIO
+  por mais um ciclo.
+- **Cadastro de cliente.** Já registrado nesta página, seção "MESMO CONTATO,
+  VÁRIOS BRIEFINGS": a aprovação criava um `Client` novo a cada solicitação
+  porque a chave nunca era persistida na origem.
+- **Volume de posts.** A pergunta (`lib/agency/question-engine.ts`, corrigida) e
+  a NEGOCIAÇÃO em turno de conversa ("quero mais posts, 2 por dia") gravam o
+  mesmo campo por caminhos diferentes — a segunda porta regravava pela unidade
+  errada, refazendo o erro que a primeira porta já tinha corrigido (commit
+  `96440ea5`). Trava: `volumeNaUnidade(texto, "semana"|"mes")` parametrizada —
+  nenhuma porta pode voltar a ler número cru.
+
+**A lição que fica, e serve além do SDR:** dedup, conversão de unidade ou
+qualquer regra que "protege um campo" só protege esse campo se TODAS as portas
+que o escrevem passarem pela mesma função. Achar e consertar uma porta prova que
+existe mais de uma — nunca prova que só havia uma.
+
+### 🔴 PADRÃO 3 — o tipo pobre é a causa, não o `if`
+
+Duas vezes na MESMA função (`fetchSdrReply`,
+`components/agency/briefing/PublicBriefingRoom.tsx`):
+
+- `reply: string` não conseguia expressar "sem fala, com escopo" — motivou
+  `reply: string | null` dentro de `SdrOutcome` (linha 816).
+- `null` sozinho achatava três fatos opostos — recusado por limite (429),
+  sistema fora do ar (503), sem novidade da IA (200 vazio) — motivando o tipo
+  `SdrOutcome` inteiro (linhas 811-827), um `kind` por motivo.
+
+Remendar o `if` (como o commit anterior, #177, já tinha feito uma vez) deixaria
+a armadilha de pé para a próxima pessoa. A trava aqui é de DESENHO — o tipo —
+não de teste.
+
+### 🔴 A LIÇÃO DO DIRETOR — dele, com todas as letras
+
+O Diretor cobrou `npx tsc --noEmit` e `npm test` o dia inteiro, de cada
+especialista, e **nunca conferiu se a produção estava no ar**.
+`app/api/piloto/diagnostico/route.ts:1-18` registra por quê isso não é
+acadêmico: três vezes a medição de produção parou em `railway login`
+(interativo, sem credencial no ambiente), e a resposta da casa foi construir
+instrumento de leitura em vez de escalar a pergunta. Enquanto isso, o funil
+quebrado ("Somos de estética", padrão 1 item 3) e a cotação 7× abaixo (padrão 1
+item 4) — os dois corrigidos NO CÓDIGO ao longo do dia — **continuaram valendo
+para quem visitava o site**, porque nenhum dos dois portões que o Diretor
+cobrava mede se o deploy aconteceu. **"Está no ar?" é portão, não suposição.**
+
+⚠️ **Já há pm construindo o mecanismo** — `pm-distancia-deploy`, reivindicação
+`distancia-do-deploy` (`reivindicacoes/distancia-do-deploy.json`, aberta 18:44,
+ainda não fechada), medindo quantos commits o deploy está atrás. Não construí,
+não dupliquei — só registro que existe e cito.
+
+---
+
+### A proposta ao Diretor Geral do Cérebro — recorte e justificativa, item por item
+
+**Proposta. Nada foi escrito no `dioli-brain-kit`.**
+
+1. **PADRÃO 1 ("parece certo, não está") — PROPONHO SUBIR.** Serve a qualquer
+   produto: valor truncado sem marca, allowlist apontando para nome morto após
+   rename, "respondido" sem verificar o quê, unidade errada mas plausível, erro
+   mascarado de resposta normal — nenhum destes é específico de agência de
+   marketing. A doutrina do Foocci (claim-vs-snapshot) já cobre parte disto para
+   TEXTO gerado por IA; este padrão é a mesma doença um andar abaixo, em TIPO e
+   CONTRATO de dado.
+2. **PADRÃO 2 ("duas portas") — PROPONHO SUBIR.** Não é específico de SDR: é a
+   forma que "dedup", "normalização" e "trava" tomam sempre que o mesmo campo
+   nasce por mais de um caminho de escrita. Apareceu 3× hoje neste produto
+   sozinho.
+3. **PADRÃO 3 ("tipo pobre é a causa") — PROPONHO SUBIR, como corolário de
+   "ausência de informação não é informação".** A doutrina já manda não
+   inventar dado; este padrão acrescenta a parte construtiva: o TIPO precisa ter
+   um lugar para "eu não sei o motivo" — `null` sozinho não é esse lugar.
+4. **"Está no ar" é portão — PROPONHO SUBIR A LIÇÃO, NÃO O MECANISMO.** O
+   mecanismo (`distancia-do-deploy`, commits-atrás via git) é implementação
+   específica deste repositório e do Railway. A doutrina cabe numa frase: nenhum
+   portão que só olha código (typecheck, teste) prova que o código chegou a
+   produção; produto com deploy contínuo precisa de um portão que meça a
+   distância entre HEAD e o que está servindo.
+
+Se algum destes já estiver coberto por doutrina existente do kit, prefiro que o
+Diretor Geral aponte a doutrina em vez de eu duplicar — não confirmei isso
+porque `docs/kit/` está parado há 7 dias (ver `CLAUDE.md`) e pode existir algo
+que eu não alcanço daqui.
+
+---
+
+### 🔴 O que segue aberto agora — com dono ou "sem dono", conferido no `reivindicacoes/`
+
+- **`RESEND_FROM` ausente em produção.** Sem dono.
+- **DNS sem `www` (apex devolve 404).** Sem dono — pendência do CEO
+  (`docs/pendencias.md:3989`).
+- **CSRF nas rotas de escrita interna — parecer em andamento**, dono
+  `pm-9ab49074` (`reivindicacoes/seguranca-csrf-rotas-de-escrita.json`, aberta
+  19:00, ainda sem parecer fechado). A casa depende só de `SameSite=lax` até lá.
+- **Cookie httpOnly assinado nas 3 rotas do SDR (`chat`/`upload`/`transcribe`) —
+  adiado, com o motivo escrito** em `app/api/sdr/chat/route.ts:418-430`: o
+  `seguranca` recomendou adiar porque o ganho é modesto (não fecha para quem
+  trata cookie-jar) e exigiria as três rotas juntas. Sem dono agora.
+- **`DATETIME` comparado como TEXT no SQLite**, em
+  `lib/agency/v2-recovery/processador-outbox.ts` — em andamento, dono
+  `pm-distancia-deploy` (`reivindicacoes/outbox-datetime-como-texto.json`,
+  aberta 18:44, ainda não fechada).
+- **Fichas duplicadas desde 08/08 (Camila Pereira).** Sem dono — fusão é decisão
+  do CEO, como já registrado.
+- **Script de captura (`scripts/foto-barrado-e-quebrado.mjs`) lê alerta vazio a
+  375px — falso alarme, o próprio script declarou o defeito** (ver o commit
+  `8958662e`). Em andamento — dono `pm-9ab49074`
+  (`reivindicacoes/briefing-instrumento-que-mente.json`, aberta 19:08, a mais
+  nova de todas: sem conserto ainda).
+- **`ESFRIAMENTO_MS = 6000` em
+  `components/agency/briefing/PublicBriefingRoom.tsx:1361` — escolhido sem
+  medida**, só com o raciocínio de tempo para compor a próxima frase. Sem dono;
+  risco baixo, dívida declarada.
+- **Agrupamento da fila de leads ainda lê no máximo 200 solicitações** (irmão
+  fora das 200 não aparece como repetição) — em andamento, dono `pm-a27b5772`
+  (`reivindicacoes/fila-irmao-fora-do-teto.json`, aberta 18:50).
+- **Volume declarado chegando a zero / verba declarada ignorada na estimativa —
+  outra frente, ainda aberta** (não confundir com o item 4 do Padrão 1, esse já
+  fechado). Dono `pm-verba-e-volume`
+  (`reivindicacoes/esteira-escopo-e-preco.json`, aberta 18:51, sem conserto).
+
+> 🔗 Detalhe operacional do dia — a identidade herdada entre worktrees (rodada 3
+> do mecanismo de reivindicação), o freio por `sessionId` e a ressalva sobre o
+> que ele não cobre, e as três ferramentas armadas esperando o CEO — está no
+> diário, `docs/pendencias.md`, não repetido aqui porque não atravessa domínio:
+> é operação de uma frente só.
 
 ---
 

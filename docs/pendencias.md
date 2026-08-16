@@ -107,6 +107,162 @@ falha.
 - Linha legada de `chaveDoProspect` nula não é alcançada pela contagem barata
   — não é regressão, é o limite já declarado; quem fecha é o backfill.
 - Fichas duplicadas em produção seguem esperando decisão do CEO desde 08/08.
+## 🔴 16/08/2026 (depois das 18:21) — A COLHEITA DEPOIS DO ÚLTIMO REGISTRO FOI MAIOR QUE A DE ANTES
+
+**Por que este registro existe:** o último registro (`6007fda2`) fechou às
+18:21. Entre ele e agora (por volta das 19:09) o repositório recebeu **34
+commits** — mais do que o dia inteiro tinha produzido até ali. A regra da casa é
+clara: decisão tomada em conversa vira registro na mesma sessão, e sem isto
+alguém reabre amanhã o que já foi decidido hoje. Ver a versão condensada, para o
+Diretor Geral do Cérebro, em `docs/decisoes.md` ("A COLHEITA DEPOIS DAS
+18:21..."); aqui vai o diário, com a medição.
+
+### A — CINCO VEZES "PARECE CERTO, NÃO ESTÁ, NADA DENUNCIA" NO MESMO DIA
+
+Já no corredor (`docs/decisoes.md`), com os cinco casos e as citações
+`arquivo:linha`. O que fica só aqui, de diário: a mesma doença apareceu tanto em
+código de fala (SDR) quanto em código de conversão de número (`question-engine`)
+quanto em código de coordenação entre sessões (`reivindicar.mts`, item D
+abaixo) — não é peculiaridade de um módulo, é o formato do erro desta casa hoje.
+
+### B — A IDENTIDADE HERDADA DE OUTRA SESSÃO, RODADA 3 (`692773d6`, 18:46)
+
+Continuação da decisão já registrada ("IDENTIDADE DE REIVINDICAÇÃO MORA POR
+WORKTREE", em `docs/decisoes.md`) — aquela cobria só a rodada 2. Havia uma
+terceira volta, medida por um terceiro pm, **no worktree PRINCIPAL**, que **é**
+o `git-common-dir`, não um worktree isolado de agente:
+
+- `git config dioli.quem` devolvia `"pm-a27b5772"` — identidade de OUTRA sessão,
+  gravada pelo código antigo (rodada 1), de antes da migração para
+  `.dioli-quem`. O worktree principal nunca tinha o arquivo novo, porque
+  nenhuma sessão pós-rodada-2 tinha rodado `abrir` nele ainda.
+- `npm run reivindicar -- conferir` (sem `--quem`, resolvendo sozinho) caía no
+  fallback do `git config`, **achava que sabia quem era, e barrava a própria
+  sessão pelas PRÓPRIAS reivindicações** — o "quem" usado na conferência era o
+  de outra sessão. Aprovar ou barrar por identidade errada é sempre o modo caro;
+  aqui bloqueou (benigno), mas o desenho antigo permitia o oposto.
+- **Conserto (`scripts/reivindicar.mts:260-440`):** `.dioli-quem` passa a gravar
+  também o caminho absoluto do worktree que escreveu. Na leitura, caminho batendo
+  é confiável; caminho divergente, formato antigo de uma linha só, ou valor vindo
+  só do `git config` são **suspeitos de herança — mostrados, nunca obedecidos**.
+  `abrir` também passou a gravar a identidade **antes** do push, não depois — o
+  raciocínio antigo ("reivindicação que não chegou ao remoto não deve ensinar a
+  se reconhecer como dona de nada") **era o próprio bug**: identidade é fato da
+  sessão, não da reivindicação, e cai justamente quando o push falha, que é
+  quando `conferir`/`encerrar` mais precisam funcionar.
+- Regra geral que fica, escrita no próprio arquivo: **diante de identidade
+  duvidosa, barrar por engano é o erro benigno (a pessoa perde um minuto);
+  aprovar por engano é o erro caro e silencioso. A trava sempre escolhe o lado
+  que faz barulho.**
+
+⚠️ **Registro também o lado que funcionou, para não parecer que a trava só
+falha:** hoje ela impediu esta própria sessão de tocar
+`components/agency/briefing/PublicBriefingRoom.tsx`, porque outro pm
+(`pm-defeitos-do-ceo`) tinha reivindicação viva ali
+(`reivindicacoes/briefing-tela-do-sdr.json`, aberta 18:52, ainda aberta). Não
+forcei. É por isso que este registro cita aquele arquivo sem editá-lo.
+
+### C — O FREIO POR `sessionId` NO SDR (`7394496a`, `a9637aed`, `d45cf695`) — E A RESSALVA QUE NÃO PODE SER DILUÍDA
+
+Parecer do `seguranca`, 16/08: o único freio da rota pública do SDR contava
+requisição por IP (1.800/hora); não distinguia "cliente pagante numa conversa
+longa" de "abuso". Ganhou um segundo freio, por `sessionId`, **somado** ao de
+IP — `app/api/sdr/chat/route.ts:335-434`.
+
+- **O que ele pega:** o script que reusa (ou esquece de trocar) o mesmo
+  `sessionId`, incluindo um pool de IPs atrás da mesma sessão — o caso que hoje
+  escapava do freio de IP.
+- 🔴 **O que ele NÃO pega, e ninguém deve dizer o contrário:** `sessionId` vem
+  do corpo, escrito pelo cliente. Quem quer abusar de verdade gera um
+  `sessionId` novo a cada chamada — cada um cai num balde vazio, e este freio
+  nunca estoura para ele. **Ele fecha o laço que troca de IP mantendo a sessão;
+  não limita o gasto total.** Ninguém deve reportar "o custo do SDR está sob
+  controle" com base só nisto.
+- **Achado do próprio conserto, na auditoria (`a9637aed`):** o `sessionId` era
+  `"prospect-" + Date.now()` — previsível pelo relógio, sem componente
+  aleatório. Quem adivinhasse o valor (força bruta numa janela de segundos)
+  podia queimar a cota de UM visitante específico e derrubar a conversa dele
+  por 30 minutos — negação de serviço direcionada, introduzida pelo próprio
+  conserto de hoje. Fechado com `crypto.randomUUID()`; **observação de rede
+  continua sendo caminho, e está escrito como MITIGADO, nunca como resolvido**
+  (`app/api/sdr/chat/route.ts:406-416`).
+- Cookie httpOnly assinado fecharia a parte que sobra, e foi **deliberadamente
+  adiado** — ver item aberto correspondente em `docs/decisoes.md`.
+
+### D — "EXERCITAR ACHA O QUE TESTE VERDE NÃO ACHA" — QUATRO VEZES HOJE, DEPOIS DAS 18:21
+
+- **A fila do briefing:** três tentativas de medir produção pelo terminal
+  (`npx @railway/cli whoami`) pararam em `"Unauthorized"` — `railway login` é
+  interativo, sem uso possível neste ambiente. A resposta foi construir
+  `/api/piloto/diagnostico` (`app/api/piloto/diagnostico/route.ts`) e RODAR
+  contra o banco de verdade, não só ler o código das regras de sujeira.
+- **O 429 real:** a prova visual (`8958662e`) não simulou o limite — mandou 34
+  POSTs de verdade contra `/api/sdr/chat` até o limitador responder
+  `429`/`Retry-After: 46`, e só então fotografou.
+- **A foto do escopo:** `e00b5319` fotografou o escopo sobrevivendo a um corte
+  real (56 posts/mês salvos, contra "número nenhum" do comportamento antigo).
+- **O despacho pela CLI:** já registrado no corredor ("A COORDENAÇÃO ENTRE
+  SESSÕES..."), três pms mediram de forma independente que subagente sem
+  `--permission-mode acceptEdits` não escreve nada — só apareceu rodando o
+  comando, nunca leria isso em documentação.
+
+### E — AS TRÊS FERRAMENTAS ARMADAS, ESPERANDO O CEO
+
+Conferido em `scripts/` — as três simulam por padrão, exigem confirmação
+explícita para escrever, e nenhuma foi disparada:
+
+1. `scripts/chave-do-prospect-backfill.mts` — preenche `chaveDoProspect` nas
+   linhas legadas. Decisão registrada em `docs/decisoes.md`
+   ("MESMO CONTATO, VÁRIOS BRIEFINGS").
+2. `scripts/volume-subestimado.mts` — corrige `postsPerWeek` gravado abaixo do
+   que o cliente pediu, lendo a conversa original como prova. Novo hoje
+   (`599e28a9`).
+3. `scripts/nome-do-negocio.mts` — corrige nome de negócio que nasceu como nome
+   de pessoa. Novo hoje (referenciado em `app/api/piloto/diagnostico/route.ts:5-6`).
+
+Todas as três têm o mesmo motivo para não terem rodado: escrita em dado real de
+cliente (nome, preço, escopo contratado) é decisão do CEO, não do PM nem do
+Diretor.
+
+### F — A LIÇÃO DO DIRETOR: DOIS PORTÕES COBRADOS O DIA INTEIRO, NENHUM SOBRE PRODUÇÃO
+
+Já no corredor. Aqui, o fato cru: o Diretor rodou `npx tsc --noEmit` e
+`npm test` repetidamente ao longo do dia como critério de aceite de cada
+despacho, e nenhuma dessas rodadas mede se o commit aprovado chegou à produção.
+`app/api/piloto/diagnostico/route.ts` só existe porque três tentativas de medir
+produção pelo terminal falharam por falta de credencial — e é o CEO quem decide
+se corrige o que a rota mediu, não o Diretor.
+
+### 🔴 O que segue aberto, com dono conferido no `reivindicacoes/`
+
+- [ ] 🔴 `RESEND_FROM` ausente em produção — sem dono.
+- [ ] 🔴 DNS sem `www` (apex 404) — sem dono, pendência do CEO.
+- [ ] 🔴 CSRF nas rotas de escrita interna — em andamento, `pm-9ab49074`
+      (`seguranca-csrf-rotas-de-escrita`, aberta 19:00).
+- [ ] 🔴 Cookie httpOnly assinado nas 3 rotas do SDR — adiado com motivo
+      escrito, sem dono agora.
+- [ ] 🔴 `DATETIME` como TEXT no SQLite (`processador-outbox.ts`) — em
+      andamento, `pm-distancia-deploy` (`outbox-datetime-como-texto`, aberta
+      18:44).
+- [ ] 🔴 Fichas duplicadas desde 08/08 (Camila Pereira) — sem dono, decisão do
+      CEO.
+- [ ] 🔴 Script de captura lê alerta vazio a 375px (falso alarme declarado) —
+      em andamento, `pm-9ab49074` (`briefing-instrumento-que-mente`, aberta
+      19:08, a mais nova).
+- [ ] 🔴 `ESFRIAMENTO_MS = 6000` sem medida — sem dono, risco baixo.
+- [ ] 🔴 Fila de leads lê no máximo 200 — em andamento, `pm-a27b5772`
+      (`fila-irmao-fora-do-teto`, aberta 18:50).
+- [ ] 🔴 Volume declarado chegando a zero / verba ignorada na estimativa — em
+      andamento, `pm-verba-e-volume` (`esteira-escopo-e-preco`, aberta 18:51).
+- [ ] 🔴 Robô de espelho do kit pronto, esperando `KIT_REPO_TOKEN` do CEO — ver
+      `CLAUDE.md`.
+- [ ] 🔴 Tela dos avisos de orçamento presos e o alinhamento API-vs-página — em
+      andamento, `pm-9ab49074` (`agencia/api-alinha-com-a-pagina`, aberta
+      19:00).
+- [ ] 🔴 Barra branca no topo (relato do CEO, 15/08) — em andamento,
+      `pm-defeitos-do-ceo` (`layout-barra-do-topo`, aberta 18:52).
+
+---
 
 ## 🟢 16/08/2026 — TRÊS DEFEITOS SÓ APARECERAM PORQUE A FERRAMENTA FOI EXERCITADA, NÃO PORQUE UM TESTE FICOU VERMELHO
 
