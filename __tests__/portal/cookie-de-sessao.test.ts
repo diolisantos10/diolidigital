@@ -102,7 +102,8 @@ describe("/api/portal/session — token do caminho vira cookie", () => {
 describe("rota de dados aceita o cookie além do parâmetro", () => {
   it("aprovação decidida SÓ com o cookie — sem token no corpo", async () => {
     db.approvalRequest.findUnique.mockResolvedValue({
-      id: "ap1", clientRequestId: "cr1", department: "social-media",
+      // rodada 5: prova de posse é o carimbo, não o ponteiro.
+      id: "ap1", clientRequestId: "cr1", clientId: "c1", department: "social-media",
       clientVisible: true, status: "pending", questionOpenedAt: null,
       clientRequest: { id: "cr1", clientId: "c1" },
     });

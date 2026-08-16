@@ -37,8 +37,12 @@ vi.mock("@/lib/agency/esteira/refacao", () => ({ refazerPorPedidoDoCliente: refa
 
 import { POST } from "@/app/api/portal/approvals/route";
 
+// ⚠️ rodada 5: a posse deixou de aceitar `clientRequest.clientId` (o ponteiro
+// MUTÁVEL, lido na hora da decisão) como prova — com a solicitação
+// re-apontada, o dono NOVO aprovava o card do ANTIGO, e aprovação PUBLICA.
+// Prova é CARIMBO: `ApprovalRequest.clientId`, gravado na criação.
 const APROVACAO = {
-  id: "ap1", clientRequestId: "cr1", department: "social-media",
+  id: "ap1", clientRequestId: "cr1", clientId: "c1", department: "social-media",
   clientVisible: true, status: "pending", questionOpenedAt: null as Date | null,
   clientRequest: { id: "cr1", clientId: "c1" },
 };

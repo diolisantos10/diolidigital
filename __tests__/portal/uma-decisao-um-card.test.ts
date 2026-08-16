@@ -21,6 +21,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
+  // rodada 5: a aprovação passou a nascer CARIMBADA com o dono (derivado da
+  // solicitação no instante da escrita) — a posse deixou de aceitar o ponteiro.
+  clientRequestDb: { findUnique: vi.fn() },
   approvalRequest: {
     create: vi.fn(),
     findFirst: vi.fn(),
@@ -38,6 +41,7 @@ import {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  db.clientRequestDb.findUnique.mockResolvedValue({ clientId: "c1" });
   db.approvalRequest.create.mockResolvedValue({ id: "novo" });
   db.approvalRequest.findFirst.mockResolvedValue(null);
   db.approvalRequest.findMany.mockResolvedValue([]);

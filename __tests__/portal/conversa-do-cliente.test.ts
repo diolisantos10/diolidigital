@@ -14,7 +14,7 @@
 //   • acesso sem dono nenhum não é mais 404 mudo: é 409 explicado, e a tela
 //     desliga a caixa de texto em vez de prometer reenvio eterno.
 
-import { donoFalso } from "../_stubs/escopo-do-token";
+import { donoFalso, escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -36,10 +36,13 @@ const db = vi.hoisted(() => ({
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const donoDoToken = vi.hoisted(() => vi.fn());
+// rodada 5: `conversaDoToken` deixou de ter caminho próprio e passou a usar o
+// resolvedor único — por isso a suíte precisa dele mockado também.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, donoDoToken }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, donoDoToken, escopoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { POST, GET } from "@/app/api/portal/messages/route";
@@ -69,6 +72,7 @@ beforeEach(() => {
   // Espelho do real (rodada 4): `PortalAccess.clientId` é a única prova;
   // não se deriva do ponteiro, e ponteiro andado recusa.
   donoDoToken.mockImplementation(donoFalso(validatePortalAccess, db));
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   db.portalAccess.findUnique.mockImplementation(async () => {
     const a = await validatePortalAccess("x");
     return { clientRequestId: a?.record?.clientRequestId ?? null };
@@ -281,19 +285,25 @@ describe("token válido que não aponta para ninguém", () => {
     validatePortalAccess.mockResolvedValue({ valid: true, record: { clientId: null, clientRequestId: null } });
   });
 
-  it("GET diz que a conversa não pode receber mensagem (podeEnviar=false)", async () => {
+  // ⚠️ RODADA 5 — o veredito mudou de "conversa vazia" para RECUSA, e é o
+  // conserto: token que não aponta para dono nenhum não abre conversa. As duas
+  // portas (`escopoDoToken` e `conversaDoToken`) agora dão a MESMA resposta —
+  // era a divergência entre elas que servia a conversa de outro cliente.
+  it("GET recusa: token sem dono não abre conversa nenhuma", async () => {
     const res = await GET(get("?token=tok"));
-    const json = await res.json();
-    expect(res.status).toBe(200);
-    expect(json.podeEnviar).toBe(false);
-    expect(json.motivo).toBe("sem-dono");
+    // Antes: 200 com `{ podeEnviar: false, motivo: "sem-dono" }` — conversa
+    // vazia. Agora é RECUSA, porque abrir uma conversa para um token que não
+    // aponta para dono nenhum foi o caminho que serviu a conversa de outro.
+    expect(res.status).toBe(403);
+    expect(JSON.stringify(await res.json())).toContain("sem_dono");
   });
 
-  it("POST devolve 409 com instrução — não o 404 genérico que travava o CEO", async () => {
+  it("POST recusa pelo MESMO motivo — um caminho, não dois", async () => {
     const res = await POST(post({ token: "tok", body: "oi" }));
-    expect(res.status).toBe(409);
-    const json = await res.json();
-    expect(json.error).toMatch(/link novo/i);
+    // O MESMO veredito do GET — era a divergência entre os dois que produzia
+    // o vazamento. E, sobretudo: nada é gravado, então nenhuma "prova" de
+    // pertencimento é fabricada em nome de outro cliente.
+    expect(res.status).toBe(403);
     expect(db.portalMessage.create).not.toHaveBeenCalled();
   });
 });

@@ -93,10 +93,30 @@ export async function createApprovalRequest(input: CreateApprovalRequestInput) {
   }
   const jaExiste = await cardGenericoJaPendente(input);
   if (jaExiste) return jaExiste;
+
+  // ── O CARIMBO DO DONO NASCE AQUI (15/08/2026, rodada 5) ───────────────────
+  //
+  // `clientId` era `input.clientId ?? null` — e no fluxo Brain, que passa só
+  // `clientRequestId`, isso é SEMPRE nulo. A posse então caía em
+  // `approval.clientRequest.clientId`, o ponteiro MUTÁVEL lido na hora da
+  // decisão: com a solicitação re-apontada, o dono NOVO passava a poder
+  // aprovar o card do dono ANTIGO. E aprovação, nesta casa, PUBLICA.
+  //
+  // Mesma medicina das mensagens (`gravarMensagemDoPortal`): o dono é
+  // derivado do banco **no instante da escrita** e congelado na linha. A
+  // leitura passa a exigir carimbo, e não mais o ponteiro.
+  let clientId = input.clientId ?? null;
+  if (!clientId && input.clientRequestId) {
+    const solicitacao = await prisma.clientRequestDb
+      .findUnique({ where: { id: input.clientRequestId }, select: { clientId: true } })
+      .catch(() => null);
+    clientId = solicitacao?.clientId ?? null;
+  }
+
   return prisma.approvalRequest.create({
     data: {
       clientRequestId: input.clientRequestId ?? null,
-      clientId:        input.clientId ?? null,
+      clientId,
       department:      input.department,
       artifactId:      input.artifactId,
       requestedBy:     input.requestedBy  ?? "internal",

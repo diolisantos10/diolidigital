@@ -32,8 +32,20 @@ export function pertenceAoToken(
   }
   const tokenClientId = token.clientId ?? clientIdDaSolicitacaoDoToken;
   if (!tokenClientId) return false;
-  return (
-    aprovacao.clientId === tokenClientId ||
-    aprovacao.clientRequestClientId === tokenClientId
-  );
+
+  // ── 🔴 RODADA 5: `clientRequestClientId` SAIU DAQUI ───────────────────────
+  //
+  // Eu afirmei na rodada 3 que "a posse deixou de aceitar a solicitação como
+  // prova". **Não tinha deixado** — esta linha aceitava
+  // `aprovacao.clientRequestClientId`, que é `approval.clientRequest.clientId`:
+  // o ponteiro MUTÁVEL, lido AGORA. Com a solicitação re-apontada, o card
+  // legado do ALFA passava a "provar" que era do BETA. O A/B do `seguranca`
+  // devolveu `200 approved` na base E no PR, com o banco `approved` nos dois.
+  //
+  // Nesta casa **entrega aprovada publica**: não é leitura indevida, é escrita
+  // no negócio de terceiro.
+  //
+  // Prova é CARIMBO. `ApprovalRequest.clientId` é gravado na criação e não
+  // anda; `clientRequest.clientId` anda. Só o primeiro vale.
+  return aprovacao.clientId === tokenClientId;
 }

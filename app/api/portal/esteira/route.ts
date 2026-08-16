@@ -39,16 +39,12 @@ export const maxDuration = 300;
 async function nomeDoClienteDoToken(token: string): Promise<string> {
   const anonimo = `portal:${token.slice(0, 8)}…`;
   try {
-    // Leitura SEM efeito colateral: `validatePortalAccess` (que já rodou nesta
-    // requisição) incrementa `accessCount`, e a mesma visita não pode contar
-    // duas vezes — é a lição escrita em `conferirTokenDoPortal`.
-    const record = await prisma.portalAccess.findUnique({
-      where: { token }, select: { clientId: true, clientRequestId: true },
-    });
-    // 🔴 RODADA 3: aqui se RE-DERIVAVA o dono do ponteiro
-    // (`record.clientRequestId` → `clientId`), e era esse nome que ia parar na
-    // AUTORIA da aprovação. Só o `clientId` CONGELADO no registro vale.
-    const clientId = record?.clientId ?? null;
+    // ⚠️ RODADA 5: isto lia `prisma.portalAccess` À MÃO — reimplementação do
+    // resolvedor, e é exatamente o padrão que o teste de arquitetura
+    // (`__tests__/plataforma/resolvedor-unico-do-portal`) passou a reprovar.
+    // Quem resolve QUAL CLIENTE é o resolvedor único, e mais ninguém.
+    const escopo = await escopoDoToken(token);
+    const clientId = escopo.ok && escopo.tipo === "cliente" ? escopo.clientId : null;
     if (!clientId) return anonimo;
     const cliente = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
     return (cliente?.name ?? "").trim() || anonimo;

@@ -12,7 +12,7 @@
 // por `clientRequestDb.findUnique` / `findMany` — e a mensagem sai carimbada
 // com AS DUAS chaves quando as duas existem.
 
-import { donoFalso } from "../_stubs/escopo-do-token";
+import { donoFalso, escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -27,10 +27,13 @@ const db = vi.hoisted(() => ({
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const donoDoToken = vi.hoisted(() => vi.fn());
+// rodada 5: `conversaDoToken` deixou de ter caminho próprio e passou a usar o
+// resolvedor único — por isso a suíte precisa dele mockado também.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, donoDoToken }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, donoDoToken, escopoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { POST, GET } from "@/app/api/portal/messages/route";
@@ -47,6 +50,7 @@ beforeEach(() => {
   // Espelho do real (rodada 4): `PortalAccess.clientId` é a única prova;
   // não se deriva do ponteiro, e ponteiro andado recusa.
   donoDoToken.mockImplementation(donoFalso(validatePortalAccess, db));
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   db.portalAccess.findUnique.mockImplementation(async () => {
     const a = await validatePortalAccess("x");
     return { clientRequestId: a?.record?.clientRequestId ?? null };
@@ -95,7 +99,8 @@ describe("envio do cliente pela gaveta do PM", () => {
   it("via cookie httpOnly (A4): mesmo resultado, com o selo da tela", async () => {
     const res = await POST(post({ body: "Oi, PM!", dono: donoDaTela("cli1") }, `${PORTAL_COOKIE}=tok-cookie`));
     expect(res.status).toBe(201);
-    expect(donoDoToken).toHaveBeenCalledWith("tok-cookie");
+    // rodada 5: quem resolve QUAL CLIENTE é o resolvedor único.
+    expect(escopoDoToken).toHaveBeenCalledWith("tok-cookie");
     expect(db.portalMessage.create.mock.calls[0]![0].data.readByTeam).toBe(false);
   });
 
@@ -128,7 +133,8 @@ describe("leitura da conversa pelo cookie", () => {
     });
     const res = await GET(req);
     expect(res.status).toBe(200);
-    expect(donoDoToken).toHaveBeenCalledWith("tok-cookie");
+    // rodada 5: quem resolve QUAL CLIENTE é o resolvedor único.
+    expect(escopoDoToken).toHaveBeenCalledWith("tok-cookie");
     // Ao ver a conversa, as mensagens da equipe ficam lidas PARA O CLIENTE.
     expect(db.portalMessage.updateMany.mock.calls[0]![0].where.authorRole).toBe("team");
   });

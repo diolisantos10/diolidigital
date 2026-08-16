@@ -27,7 +27,7 @@
 // mensagem órfã do banco, que é vazamento entre clientes.
 
 import { prisma } from "@/lib/db/client";
-import { validatePortalAccess, donoDoToken } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 
 /** O filtro Prisma de uma conversa. Objeto simples de propósito: os testes
  *  mockam o prisma e comparam a forma. */
@@ -253,39 +253,58 @@ export type ResultadoDoToken =
  * conversa. Ver o cabeçalho de `donoDoToken`.
  */
 export async function conversaDoToken(token: string): Promise<ResultadoDoToken> {
-  const dono = await donoDoToken(token);
+  // ── UM CAMINHO, NÃO DOIS (rodada 5) ──────────────────────────────────────
+  //
+  // 🔴 O incidente do CEO NÃO estava fechado, e `seguranca` e `qualidade`
+  // chegaram à mesma linha por caminhos independentes. Esta função tinha
+  // caminho PRÓPRIO: no ramo `sem_dono` ela lia o `PortalAccess` à mão e caía
+  // em `conversaDaSolicitacao`, que RE-DERIVAVA o cliente do ponteiro. O
+  // mesmo token dava três vereditos:
+  //
+  //     donoDoToken("tk")     → sem_dono
+  //     escopoDoToken("tk")   → sem_dono
+  //     conversaDoToken("tk") → clientId = BETA        ← concedia
+  //
+  // E o pior não é ler: pelo POST a mensagem nascia carimbada `clientId: beta`.
+  // O desenho novo elege o carimbo como ÚNICA prova de pertencimento — e este
+  // caminho **fabricava a prova**.
+  //
+  // ⚠️ A frase que resume as quatro rodadas: **a cerca responde "quais linhas
+  // do cliente X", nunca "qual cliente".** A inversão de `montarFiltro` é
+  // perfeita e inútil enquanto a identidade for escolhida antes dela — o
+  // filtro peneira fielmente as linhas do BETA e as entrega ao token do ALFA.
+  //
+  // Por isso aqui não há mais resolução nenhuma: quem decide QUAL CLIENTE é
+  // `escopoDoToken`, e só ele. Este arquivo só monta o filtro.
+  const escopo = await escopoDoToken(token);
 
-  if (dono.ok) {
-    // A solicitação preferida continua vindo do registro do token — mas só
-    // vale se for do dono CONGELADO (`conversaDoCliente` confere).
-    const registro = await prisma.portalAccess.findUnique({
-      where: { token }, select: { clientRequestId: true },
-    }).catch(() => null);
-    return { ok: true, conversa: await conversaDoCliente(dono.clientId, registro?.clientRequestId ?? null) };
+  if (!escopo.ok) {
+    return {
+      ok: false,
+      status: 403,
+      reason: escopo.motivo === "ponteiro_andou" ? "ponteiro_andou" : escopo.motivo,
+    };
   }
 
-  if (dono.motivo === "ponteiro_andou") {
-    // Não é "acesso negado" genérico: é um link cuja solicitação mudou de dono
-    // debaixo dele. Fecha e diz o porquê, para a agência emitir link novo.
-    return { ok: false, status: 403, reason: "ponteiro_andou" };
-  }
-  if (dono.motivo === "token_invalido") {
-    const acesso = await validatePortalAccess(token).catch(() => null);
-    return { ok: false, status: 403, reason: acesso?.reason ?? "not_found" };
+  if (escopo.tipo === "cliente") {
+    return { ok: true, conversa: await conversaDoCliente(escopo.clientId, null) };
   }
 
-  // `sem_dono`: token válido que não aponta para cliente nenhum. Pode ser um
-  // PROSPECT (solicitação de briefing que ainda não virou cliente) — esse tem
-  // conversa legítima presa à própria solicitação.
-  const registro = await prisma.portalAccess.findUnique({
-    where: { token }, select: { clientRequestId: true },
-  }).catch(() => null);
-  if (registro?.clientRequestId) {
-    return { ok: true, conversa: await conversaDaSolicitacao(registro.clientRequestId) };
-  }
-  // Token válido sem dono nenhum — não existe onde escrever. Não é erro do
-  // cliente, é acesso mal emitido; quem trata é a agência.
-  return { ok: true, conversa: VAZIA };
+  // PROSPECT — e pela MESMA regra do resolvedor único, que já garantiu que a
+  // solicitação existe e continua SEM dono. Nada é re-derivado aqui.
+  return {
+    ok: true,
+    conversa: {
+      clientId: null,
+      clientRequestIdsDaEscrita: [escopo.clientRequestId],
+      ancora: { clientId: null, clientRequestId: escopo.clientRequestId },
+      filtro: {
+        AND: [{ clientRequestId: { in: [escopo.clientRequestId] } }, { clientId: null }],
+      },
+      ocultadasPorAmbiguidade: 0,
+      houveCorteDeHistorico: false,
+    },
+  };
 }
 
 // Posse: "estar logado não é ser dono". A conferência vivia COPIADA aqui e
