@@ -1,0 +1,11 @@
+{
+  "id": "outbox-datetime-como-texto",
+  "quem": "pm-distancia-deploy",
+  "frente": "Medir e consertar comparacao de DATETIME como TEXT no processador de outbox (SQLite)",
+  "responsabilidade": "outbox-datetime-como-texto",
+  "arquivos": [
+    "lib/agency/v2-recovery/processador-outbox.ts"
+  ],
+  "abertaEm": "2026-08-16T18:44:22.880Z",
+  "encerradaEm": null
+}
