@@ -1,5 +1,13 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "watchPatterns": [
+      "**",
+      "!/reivindicacoes/**",
+      "!/docs/**",
+      "!/*.md"
+    ]
+  },
   "deploy": {
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
