@@ -12,6 +12,23 @@
 // Agora a ficha delimita o trecho, o código lê em runtime e injeta. Este teste
 // prova as DUAS metades: que o caminho existe (a ficha chega) e que ele acusa o
 // caso plantado (ficha sem marcador não vira sucesso silencioso).
+//
+// ── POR QUE ESTE ARQUIVO NÃO MORA EM `__tests__/v2/`, QUE SERIA O LUGAR DELE ──
+//
+// Ele nasceu em `__tests__/v2/` no PR #178. Ao reconciliar o #178 com o head em
+// 16/08/2026, o gancho pré-push recusou: a sessão `pm-9ab49074` tinha
+// reivindicação VIVA sobre o diretório `__tests__/v2` inteiro, caçando um portão
+// instável ("passa isolado, falha na suíte cheia"). Depositar um arquivo novo
+// dentro da suíte cuja COMPOSIÇÃO é a variável que ela está medindo estragaria a
+// medição dela no meio.
+//
+// A responsabilidade das duas frentes é diferente e a sobreposição era
+// incidental — então o arquivo veio para cá, ao lado do irmão
+// (`ordem-do-pacote-do-sdr.test.ts`), em vez de alguém usar `--forcar`. Nada no
+// teste depende da pasta: todos os caminhos saem de `process.cwd()`.
+//
+// **Devolver para `__tests__/v2/` quando aquela frente encerrar** é limpeza
+// legítima, não urgência.
 
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
