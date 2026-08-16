@@ -291,6 +291,75 @@ function extractJson(text: string): Record<string, unknown> | null {
   }
 }
 
+// ─── O CONSERTO DE 16/08: pacote cortado não pode levar o escopo junto ───────
+//
+// CASO REAL, piloto ao vivo. Duas vezes em três minutos a resposta do SDR foi
+// barrada por `parse_error` e quem atendeu o CEO foi o motor de regras — sem
+// ele saber. O estrago não foi a fala perdida; foi o que vinha JUNTO com ela.
+//
+// O SDR devolve UM pacote com duas cargas dentro: `reply` (a fala) e `scope`
+// (os dados do briefing). Quando o JSON não abria, o pacote inteiro ia fora —
+// as duas cargas. O CEO tinha dito "2 posts por dia" e "verba de R$ 500/mês";
+// aquele `scope` virou pó. O painel passou a mostrar "0 posts/mês", e a casa
+// devolveu R$ 1.800–3.400 com 3 posts/semana: nem a verba dele, nem o volume.
+//
+// A causa mecânica é banal e por isso mesmo passou despercebida: o teto de
+// tokens corta a resposta no meio, o JSON nunca fecha, e `JSON.parse` recusa o
+// texto inteiro — inclusive os campos que já tinham chegado completos.
+//
+// Daí as duas peças abaixo:
+//
+//  • `repararJsonTruncado` fecha à força as aspas, colchetes e chaves que
+//    ficaram abertos, aproveitando o que chegou inteiro. É deliberadamente
+//    conservador: se o remendo não virar JSON válido, devolve null. **Ele
+//    nunca inventa conteúdo** — só termina de fechar o que o modelo abriu.
+//    Nesta casa dado vem do que foi dito; a máquina não preenche lacuna.
+//
+//  • O escopo passa a sobreviver sozinho. Fala inutilizável e dado do cliente
+//    são perdas de tamanhos MUITO diferentes: a fala o motor de regras refaz,
+//    o número que o cliente falou uma vez ninguém recupera.
+//
+// O guarda NÃO foi afrouxado, e isso é regra: barrar continua melhor que
+// empurrar lixo para o cliente. O que mudou é que barrar a fala deixou de
+// significar jogar fora o briefing.
+function repararJsonTruncado(text: string): Record<string, unknown> | null {
+  const stripped = text.replace(/^```(?:json)?\s*/i, "").trim();
+  const start = stripped.indexOf("{");
+  if (start === -1) return null;
+
+  const corpo = stripped.slice(start);
+  const pilha: string[] = [];
+  let dentroDeString = false;
+  let escapado = false;
+
+  for (const c of corpo) {
+    if (escapado) { escapado = false; continue; }
+    if (c === "\\" && dentroDeString) { escapado = true; continue; }
+    if (c === '"') { dentroDeString = !dentroDeString; continue; }
+    if (dentroDeString) continue;
+    if (c === "{" || c === "[") pilha.push(c === "{" ? "}" : "]");
+    else if (c === "}" || c === "]") pilha.pop();
+  }
+
+  // Corta um par `"chave":` ou uma vírgula pendurada no fim — restos que
+  // sobram quando o corte cai bem no meio de um campo e que nenhum
+  // fechamento de chave conserta.
+  let remendo = corpo;
+  if (dentroDeString) remendo += '"';
+  remendo = remendo.replace(/,\s*$/, "").replace(/,?\s*"[^"]*"\s*:\s*$/, "");
+
+  for (let i = pilha.length - 1; i >= 0; i--) remendo += pilha[i];
+
+  try {
+    const obj = JSON.parse(remendo) as unknown;
+    return obj && typeof obj === "object" && !Array.isArray(obj)
+      ? (obj as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const barrado = await limiteExcedido(req, "sdr-chat", 30, 60_000);
   if (barrado) return barrado as NextResponse;
