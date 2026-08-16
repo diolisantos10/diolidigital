@@ -1,0 +1,14 @@
+{
+  "id": "plataforma-cadencia-de-entrega",
+  "quem": "ses-bb01c09bbc",
+  "frente": "cadencia de entrega: medir por que a producao congela mesmo com ci.yml agrupado e watchPatterns",
+  "responsabilidade": "plataforma-cadencia-de-entrega",
+  "arquivos": [
+    "railway.json",
+    ".github/workflows/ci.yml",
+    "scripts/portao-do-deploy.mts"
+  ],
+  "abertaEm": "2026-08-16T20:56:50.445Z",
+  "encerradaEm": null,
+  "rotulo": "sessao-B"
+}
