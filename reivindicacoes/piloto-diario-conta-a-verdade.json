@@ -1,0 +1,13 @@
+{
+  "id": "piloto/diario-conta-a-verdade",
+  "quem": "wt-a5f1fd2e59",
+  "frente": "o diario do piloto conta a verdade sobre os consertos de hoje: resgate do escopo medido, truncado vs malformado, ausencia nao parece zero",
+  "responsabilidade": "piloto/diario-conta-a-verdade",
+  "arquivos": [
+    "app/api/piloto/diario/route.ts",
+    "__tests__/piloto"
+  ],
+  "abertaEm": "2026-08-16T19:53:24.449Z",
+  "encerradaEm": null,
+  "rotulo": "pm-diario-do-piloto"
+}
