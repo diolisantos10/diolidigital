@@ -17,6 +17,7 @@ import {
   chaveCanonicaDoContato,
   chaveDaSolicitacao,
   agruparPorProspect,
+  pedidoDoBriefing,
 } from "@/lib/agency/comercial/chave-do-prospect";
 import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
 
@@ -117,13 +118,106 @@ describe("cinco briefings do mesmo e-mail, um atrás do outro", () => {
     const g = agruparPorProspect(cinco);
     // Cinco linhas entraram, cinco linhas saíram. Nada foi fundido nem engolido.
     expect([...g.keys()].sort()).toEqual(["req-1", "req-2", "req-3", "req-4", "req-5"]);
-    expect(g.get("req-2")!.irmaos.sort()).toEqual(["req-1", "req-3", "req-4", "req-5"]);
+    expect(g.get("req-2")!.irmaos.map((i) => i.id).sort()).toEqual(["req-1", "req-3", "req-4", "req-5"]);
   });
 
   it("a ordem de chegada embaralhada na entrada não muda o resultado", () => {
     const g = agruparPorProspect([...cinco].reverse());
     expect(g.get("req-1")!.ordem).toBe(1);
     expect(g.get("req-5")!.ordem).toBe(5);
+  });
+});
+
+describe("🔴 o irmão precisa ser RECONHECÍVEL — id de banco não é informação", () => {
+  // Até 16/08/2026 a tela imprimia `outro briefing: 0083d663-4ee0-…` e quatro
+  // dessas eram o elemento mais pesado do bloco. Um cuid não responde a única
+  // pergunta do bloco: *é o mesmo pedido reenviado, ou um segundo projeto?*
+
+  const camila = { nome: "Camila Pereira", email: "camila@beautyclinicsp.com.br" };
+
+  it("cada irmão sai com data, nome do negócio e o que foi pedido", () => {
+    const g = agruparPorProspect([
+      {
+        id: "b1", createdAt: min(1), ...briefing(camila),
+        businessName: "Beauty Clinic — Camila Pereira",
+        services: ["social media"],
+      },
+      {
+        id: "b2", createdAt: min(2), ...briefing(camila),
+        businessName: "Clínica Camila Pereira — unidade Pinheiros",
+        services: ["identidade visual"],
+      },
+    ]);
+
+    const irmao = g.get("b1")!.irmaos[0]!;
+    expect(irmao.id).toBe("b2");
+    expect(irmao.em).toEqual(min(2));
+    // É esta linha que deixa quem lê ver que o 2º briefing é outro projeto.
+    expect(irmao.negocio).toBe("Clínica Camila Pereira — unidade Pinheiros");
+    expect(irmao.pedido).toBe("identidade visual");
+  });
+
+  it("o serviço declarado vence o texto corrido — foi o campo preenchido de propósito", () => {
+    expect(
+      pedidoDoBriefing({
+        services: ["social media", "trafego pago"],
+        rawContext: "Alguém me responde? Já mandei outras vezes.",
+      }),
+    ).toBe("social media · trafego pago");
+  });
+
+  it("sem serviço, cita a PRIMEIRA FRASE do que a pessoa escreveu — citação, não paráfrase", () => {
+    expect(
+      pedidoDoBriefing({
+        services: [],
+        rawContext: "Quero anunciar para harmonização facial. O orçamento é de R$ 2.000 por mês.",
+      }),
+    ).toBe("Quero anunciar para harmonização facial.");
+  });
+
+  it("frase longa é cortada no fim de uma PALAVRA INTEIRA, nunca no meio dela", () => {
+    const original =
+      "Tenho uma clínica de estética em Moema e quero muito começar a postar direito porque hoje eu mesma faço tudo no celular";
+    const pedido = pedidoDoBriefing({ rawContext: original })!;
+
+    expect(pedido.length).toBeLessThanOrEqual(91);
+    expect(pedido.endsWith("…")).toBe(true);
+
+    // A metade que importa: tirando as reticências, o que sobrou é um prefixo
+    // literal do texto do cliente E a próxima letra do original é um espaço —
+    // ou seja, nenhuma palavra foi partida ao meio ("no celu…" é o defeito que
+    // tem cara de erro de sistema). Nada foi reescrito: é recorte, não resumo.
+    const semReticencias = pedido.slice(0, -1);
+    expect(original.startsWith(semReticencias)).toBe(true);
+    expect(original[semReticencias.length]).toBe(" ");
+  });
+
+  it("⛔ SEM SERVIÇO E SEM TEXTO, O PEDIDO É NULO — a tela dirá que não há descrição", () => {
+    // A metade cara: ausência de informação não pode virar descrição inventada.
+    expect(pedidoDoBriefing({ services: [], rawContext: "" })).toBeNull();
+    expect(pedidoDoBriefing({ services: ["   "], rawContext: "   " })).toBeNull();
+    expect(pedidoDoBriefing({})).toBeNull();
+
+    const g = agruparPorProspect([
+      { id: "v1", createdAt: min(1), ...briefing(camila) },
+      { id: "v2", createdAt: min(2), ...briefing(camila) },
+    ]);
+    expect(g.get("v1")!.irmaos[0]!.pedido).toBeNull();
+    expect(g.get("v1")!.irmaos[0]!.negocio).toBeNull();
+    // E o irmão continua na lista: sem descrição não é motivo para sumir.
+    expect(g.get("v1")!.irmaos).toHaveLength(1);
+  });
+
+  it("⛔ o nome do negócio descreve, mas CONTINUA sem virar identidade", () => {
+    // A regra do cabeçalho do arquivo não foi afrouxada de carona: dois
+    // "Camila Pereira" com e-mails diferentes seguem sendo duas pessoas, mesmo
+    // agora que o nome do negócio viaja dentro do agrupamento.
+    const g = agruparPorProspect([
+      { id: "x", createdAt: min(1), businessName: "Beauty Clinic", ...briefing({ email: "a@x.com" }) },
+      { id: "y", createdAt: min(2), businessName: "Beauty Clinic", ...briefing({ email: "b@x.com" }) },
+    ]);
+    expect(g.get("x")!.vezes).toBe(1);
+    expect(g.get("y")!.vezes).toBe(1);
   });
 });
 
@@ -178,7 +272,7 @@ describe("o caso que só a interseção resolve", () => {
     expect(g.get("so-email")!.vezes).toBe(3);
     expect(g.get("ponte")!.vezes).toBe(3);
     expect(g.get("ponte")!.ordem).toBe(3);
-    expect(g.get("so-zap")!.irmaos.sort()).toEqual(["ponte", "so-email"]);
+    expect(g.get("so-zap")!.irmaos.map((i) => i.id).sort()).toEqual(["ponte", "so-email"]);
   });
 
   it("⛔ sem a ponte, os dois continuam separados — a fusão exige evidência", () => {

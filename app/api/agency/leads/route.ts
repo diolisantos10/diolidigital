@@ -44,12 +44,20 @@ export async function GET(): Promise<NextResponse> {
     // agora sabe dizer "3ª vez deste contato" e apontar os irmãos. Fundir seria
     // escolher, por conta própria, entre "reenviou" e "pediu outro projeto" —
     // e a segunda hipótese é um cliente contratando trabalho novo.
+    //
+    // `businessName`, `services` e `rawContext` vão junto **só para descrever o
+    // irmão na tela** — nome de negócio continua proibido como identidade (ver
+    // a lei em `chave-do-prospect.ts`). Sem eles, a lista de irmãos saía em id
+    // cru de banco, que não responde "é o mesmo pedido ou é outro projeto?".
     const repeticoes = agruparPorProspect(
       registros.map((r) => ({
         id: r.id,
         createdAt: r.createdAt,
         briefingJson: r.briefingJson,
         sdrHandoffJson: r.sdrHandoffJson,
+        businessName: r.businessName,
+        services: r.services,
+        rawContext: r.rawContext,
       })),
     );
 

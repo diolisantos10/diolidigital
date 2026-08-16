@@ -73,3 +73,9 @@ __tests__/_scratch/
 # Evidência de tela (screenshots de auto-revisão). Prova de trabalho, não
 # entregável: nasce a cada rodada, pesa, e o que importa dela já foi relatado.
 scratchpad/
+
+# Saída padrão de `scripts/shot-agencia.mjs`. 🔴 Além dos PNGs, guarda
+# `sessao.json` — o COOKIE DE SESSÃO de um usuário master, em claro. Commitar
+# isso publicaria uma credencial viva num repositório. A pasta inteira fica de
+# fora, e é por isso, não por peso.
+.shots/

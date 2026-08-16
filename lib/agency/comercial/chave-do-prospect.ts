@@ -135,14 +135,50 @@ export function chaveDaSolicitacao(entrada: {
 
 // ── O AGRUPAMENTO DA CAIXA DE ENTRADA ───────────────────────────────────────
 
+/**
+ * Um dos OUTROS briefings do mesmo contato, do jeito que dá para reconhecer.
+ *
+ * 🔴 **POR QUE ISTO NÃO É UM `string` DE ID (16/08/2026).** A primeira versão
+ * carregava só o id, e a tela o imprimia cru:
+ *
+ * ```
+ * outro briefing: 0083d663-4ee0-4e8f-b9b5-acd13858f0cf
+ * ```
+ *
+ * Quatro linhas dessas, em monospace, eram o elemento mais pesado do bloco — e
+ * **não respondiam a pergunta para a qual o bloco existe**: *isto é o mesmo
+ * pedido reenviado, ou um segundo projeto?* Um cuid não distingue os dois casos,
+ * e quem lê esta tela é o CEO, não o banco. Data, nome do negócio e o que foi
+ * pedido distinguem — e são todos DADO GRAVADO, nunca inferência.
+ */
+export type IrmaoDoProspect = {
+  id: string;
+  /** Quando aquele briefing chegou. */
+  em: Date;
+  /**
+   * Como o negócio se chamou NAQUELE briefing. É a pista mais barata de
+   * "segundo projeto": a Camila mandou dois como *Beauty Clinic* e dois como
+   * *Clínica Camila Pereira — unidade Pinheiros*.
+   */
+  negocio: string | null;
+  /**
+   * O que foi pedido, **nas palavras já gravadas**. Serviço declarado quando
+   * existe; senão, a primeira frase do texto que a pessoa escreveu.
+   *
+   * `null` quando o briefing não gravou nem um nem outro — e nulo aqui vira
+   * "sem descrição gravada" na tela, nunca uma descrição inventada.
+   */
+  pedido: string | null;
+};
+
 /** O que a caixa de entrada precisa saber sobre uma linha repetida. */
 export type RepeticaoDoProspect = {
   /** Quantos briefings deste mesmo contato existem na fila. `1` = não é repetição. */
   vezes: number;
   /** A posição deste briefing na sequência do prospect (1 = o primeiro que chegou). */
   ordem: number;
-  /** Os ids dos OUTROS briefings do mesmo contato — para a tela linkar, nunca some. */
-  irmaos: string[];
+  /** Os OUTROS briefings do mesmo contato — para a tela mostrar, nunca some. */
+  irmaos: IrmaoDoProspect[];
   /** Quando o primeiro briefing deste contato chegou. */
   primeiroEm: Date;
 };
@@ -152,7 +188,45 @@ type EntradaParaAgrupar = {
   createdAt: Date;
   briefingJson?: unknown;
   sdrHandoffJson?: unknown;
+  /** Só para descrever o irmão na tela. Não entra em chave nenhuma. */
+  businessName?: string | null;
+  /** Idem. Ver a lei no cabeçalho: nome de negócio NUNCA vira identidade. */
+  services?: string[] | null;
+  rawContext?: string | null;
 };
+
+/** Quanto do texto do cliente cabe numa linha de lista sem virar parágrafo. */
+const TETO_DO_PEDIDO = 90;
+
+/**
+ * O que foi pedido, em uma linha — **leitura, nunca resumo gerado**.
+ *
+ * Precedência declarada: o serviço que a pessoa marcou vence o texto corrido,
+ * porque é o campo que ela preencheu de propósito. Só quando não há serviço
+ * nenhum é que se cita a primeira frase do que ela escreveu, entre as aspas da
+ * tela — citação, não paráfrase, pela mesma regra de `oQueEleContou`.
+ *
+ * Nenhuma chamada de IA, nenhuma inferência: se os dois campos estão vazios, a
+ * resposta é `null`, e a tela diz que não há descrição gravada.
+ */
+export function pedidoDoBriefing(entrada: {
+  services?: string[] | null;
+  rawContext?: string | null;
+}): string | null {
+  const servicos = (entrada.services ?? []).map((s) => (typeof s === "string" ? s.trim() : "")).filter(Boolean);
+  if (servicos.length > 0) return servicos.join(" · ");
+
+  const bruto = typeof entrada.rawContext === "string" ? entrada.rawContext.trim() : "";
+  if (!bruto) return null;
+
+  // A primeira frase, e não os primeiros N caracteres: cortar no meio de uma
+  // palavra produz "quero anunciar no Insta…" com cara de erro de sistema.
+  const primeiraFrase = bruto.split(/(?<=[.!?])\s+/)[0]!.trim();
+  if (primeiraFrase.length <= TETO_DO_PEDIDO) return primeiraFrase;
+  const corte = primeiraFrase.slice(0, TETO_DO_PEDIDO);
+  const ultimoEspaco = corte.lastIndexOf(" ");
+  return `${(ultimoEspaco > 40 ? corte.slice(0, ultimoEspaco) : corte).trimEnd()}…`;
+}
 
 /**
  * Agrupa uma fila de briefings por prospect. **Função pura — não lê o banco, não
@@ -250,7 +324,14 @@ export function agruparPorProspect(
       saida.set(m.id, {
         vezes: emOrdem.length,
         ordem: i + 1,
-        irmaos: emOrdem.filter((o) => o.id !== m.id).map((o) => o.id),
+        irmaos: emOrdem
+          .filter((o) => o.id !== m.id)
+          .map((o) => ({
+            id: o.id,
+            em: o.createdAt,
+            negocio: typeof o.businessName === "string" && o.businessName.trim() ? o.businessName.trim() : null,
+            pedido: pedidoDoBriefing(o),
+          })),
         primeiroEm,
       });
     });
