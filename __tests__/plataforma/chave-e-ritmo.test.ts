@@ -102,7 +102,11 @@ function pedidoDeAudio(token = "tok-1", bytes = 5_000): NextRequest {
   fd.append("file", new Blob([new Uint8Array(bytes)], { type: "audio/webm" }), "audio.webm");
   fd.append("token", token);
   return new NextRequest("http://localhost/api/portal/transcricao", {
-    method: "POST", body: fd, headers: { "x-forwarded-for": `10.0.0.${Math.floor(Math.random() * 250)}` },
+    method: "POST",
+    body: fd,
+    // "sec-fetch-site: same-origin" — a FAIXA 1 do CSRF bloqueia por padrão
+    // sem este sinal; aqui simulamos o navegador legítimo do portal.
+    headers: { "x-forwarded-for": `10.0.0.${Math.floor(Math.random() * 250)}`, "sec-fetch-site": "same-origin" },
   });
 }
 

@@ -41,8 +41,12 @@ const APROVACAO = {
 };
 
 function req(body: Record<string, unknown>): NextRequest {
+  // "sec-fetch-site: same-origin" — a FAIXA 1 do CSRF (navegacao-cross-site.ts)
+  // bloqueia por padrão sem este sinal; aqui simulamos o navegador legítimo.
   return new NextRequest("http://localhost/api/portal/approvals", {
-    method: "POST", body: JSON.stringify({ token: "tok-1", approvalRequestId: "ap1", ...body }),
+    method: "POST",
+    headers: { "sec-fetch-site": "same-origin" },
+    body: JSON.stringify({ token: "tok-1", approvalRequestId: "ap1", ...body }),
   });
 }
 

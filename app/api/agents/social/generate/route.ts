@@ -20,6 +20,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { generate } from "@/lib/ai/generate";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 const MAX_TOKENS = 4096;
 
@@ -27,6 +28,11 @@ export async function POST(req: NextRequest) {
   // SEGURANÇA: exige sessão — antes, anônimo queimava a chave Claude da agência.
   const guard = await requireSession();
   if (guard.error) return guard.error;
+
+  // FAIXA 1 do CSRF: gasta a chave de IA da agência a cada chamada.
+  if (deveBloquearMutacaoCrossSite(req)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
 
   const body = await req.json() as {
     // Opcionais e usados SÓ para dar dono ao gasto. A tela ainda pode não

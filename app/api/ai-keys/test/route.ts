@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { resolveProviderKey, PROVIDER_INTEGRATION_ID, isAiProvider } from "@/lib/ai/resolve-key";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 const isProvider = isAiProvider;
 
@@ -171,6 +172,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Testar chave dispara chamada PAGA ao provedor e escreve na configuração da
   // integração. Quem configura credencial é o master — e só ele testa.
   if (session.role !== "master") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  // FAIXA 1 do CSRF: dispara chamada PAGA ao provedor a cada teste.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
 
   const body = (await request.json().catch(() => ({}))) as { provider?: string };
   const provider = body.provider ?? "";

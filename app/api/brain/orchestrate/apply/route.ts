@@ -14,6 +14,7 @@ import { pedirDirecao } from "@/lib/agency/esteira/marcos";
 import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
 import { resolverOuCriarCliente, registrarReaproveitamento } from "@/lib/agency/execution/cliente-do-briefing";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 const AGENCY_ROLES = ["master", "project_manager"] as const;
 // Reasoning departments accepted in a proposal. "analytics" is a reasoning dept
@@ -70,6 +71,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { session, error } = await requireSession([...AGENCY_ROLES]);
   if (error) return error;
   if (session.clientId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  // FAIXA 1 do CSRF: esta é a ÚNICA rota que cria Project + Tasks de verdade
+  // a partir da proposta do orquestrador (ver o cabeçalho do arquivo).
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
 
   let body: { clientRequestId?: unknown; proposal?: unknown };
   try {

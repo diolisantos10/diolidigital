@@ -12,6 +12,7 @@ import { sendWhatsAppDirect } from "@/lib/integrations/meta/client";
 import { loadConnectionToken } from "@/lib/integrations/meta/connections";
 import { resolveWhatsAppEnv } from "@/lib/integrations/meta/config";
 import { listThreads, listMessages, recordOutbound } from "@/lib/integrations/meta/inbox";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 // Resolve the sending number + token for a workspace: stored connection wins,
 // else env vars.
@@ -46,6 +47,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.role !== "master") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  // FAIXA 1 do CSRF: forjar este POST dispara WhatsApp real em nome da agência.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
 
   const body = (await request.json()) as { contactWaId?: string; text?: string };
   const contactWaId = (body.contactWaId ?? "").trim();

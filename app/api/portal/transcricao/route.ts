@@ -29,6 +29,7 @@ import {
   type ResultadoDeTranscricao,
 } from "@/lib/ai/transcricao";
 import { transcreverPelaCasa, ditadoPorEnvioDisponivel } from "@/lib/ai/transcricao-servidor";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 function resposta(r: ResultadoDeTranscricao, status = 200): NextResponse {
   return NextResponse.json(r, { status });
@@ -80,6 +81,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // agência. Latente com um workspace só; estrutural no segundo.
   const dono = await resolvePortalClient(token);
   if (!dono) return resposta(falhaDeTranscricao("acesso_negado"), 403);
+
+  // FAIXA 1 do CSRF: gasta a chave de IA do workspace, autenticada por cookie
+  // httpOnly do portal.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return resposta(falhaDeTranscricao("acesso_negado"), 403);
+  }
 
   const arquivo = form.get("file");
   if (!arquivo || !(arquivo instanceof Blob)) {

@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { getSession, isAgencyRole } from "@/lib/auth/session";
 import { generateDesign, type DesignSize, type DesignQuality } from "@/lib/ai/design-engine";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 /**
  * Teto por USUÁRIO, e a chave do balde é SÓ o `userId`.
@@ -36,6 +37,11 @@ export async function POST(request: NextRequest) {
   }
   if (session.clientId || !isAgencyRole(session.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // FAIXA 1 do CSRF: ~US$0,17–0,25 por chamada, na chave da agência.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
   }
 
   const { allowed, retryAfter } = rateLimit(`generate-image:${session.userId}`, POR_USUARIO_POR_MINUTO, 60_000);

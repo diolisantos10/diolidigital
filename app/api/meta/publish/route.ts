@@ -17,6 +17,7 @@ import { requireSession } from "@/lib/auth/api-guard";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { publishPost } from "@/lib/integrations/meta/client";
 import type { PublishInput } from "@/lib/integrations/meta/types";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 /** Quem publica em nome do cliente. Design e Ads produzem peça; quem leva ao
  *  ar é a operação social e quem responde pela conta. */
@@ -31,6 +32,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Uma sessão de portal nunca publica, mesmo que carregue um papel interno.
   if (session.clientId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // FAIXA 1 do CSRF: forjar este POST publica de verdade no perfil do
+  // cliente. `SameSite=Lax` já barra o forjado clássico; esta é a segunda
+  // trava, para o navegador sem `SameSite` (ver lib/security/navegacao-cross-site.ts).
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
   }
 
   const { allowed, retryAfter } = rateLimit(`meta-publish:${session.userId}`, PUBLICACOES_POR_MINUTO, 60_000);

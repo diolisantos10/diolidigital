@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirAdministracao } from "@/lib/agency/organizacao/guarda";
 import { prisma } from "@/lib/db/client";
+import { segredoConfere } from "@/lib/security/crypto";
 import { flagLigada, FLAGS_V2, type ArmazemDeFlags } from "@/lib/agency/flags-v2/flags";
 import { virarChaveDoPiloto } from "@/lib/agency/esteira-assistida/piloto";
 import { executarCicloAssistido, type DependenciasDoCiclo } from "@/lib/agency/esteira-assistida/cadeia";
@@ -25,6 +26,7 @@ import { armazemDeHandoffsNoBanco } from "@/lib/agency/handoff-v2/armazem-prisma
 import { createClientRequest } from "@/lib/agency/persistence/client-request-service";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import type { PerfilOrganizacional } from "@/lib/agency/organizacao/autoridade";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 export const maxDuration = 300;
 
@@ -41,11 +43,23 @@ interface Corpo {
 async function autenticar(request: NextRequest): Promise<{ quem: string } | { erro: NextResponse }> {
   const cabecalho = request.headers.get("authorization") ?? "";
   const segredo = process.env.PILOTO_SECRET || process.env.CRON_SECRET;
-  if (segredo && cabecalho === `Bearer ${segredo}`) {
+  // ⚠️ Era `cabecalho === \`Bearer ${segredo}\`` — comparação por `===` sai no
+  // primeiro byte diferente e vaza o segredo por medição de tempo, byte a
+  // byte (o mesmo "PIOR DOS SEIS" já corrigido em admin/reset-request e nos
+  // demais pontos de PILOTO_SECRET/CRON_SECRET). `segredoConfere` compara o
+  // hash em tempo constante — mesmo padrão de produto-tecnologia/cadeia e
+  // agency/avisos-de-orcamento, que já protegem o MESMO par de segredos.
+  const doHeader = cabecalho.toLowerCase().startsWith("bearer ") ? cabecalho.slice(7).trim() : null;
+  if (segredo && segredoConfere(doHeader, segredo)) {
     return { quem: "operacao:sala-de-controle" };
   }
   const guarda = await exigirAdministracao("/agency/pm-command");
   if (guarda.erro) return { erro: guarda.erro };
+  // FAIXA 1 do CSRF: só no caminho de SESSÃO (cookie). O caminho por segredo,
+  // acima, não tem cookie — sem cookie não há CSRF a barrar.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return { erro: NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 }) };
+  }
   return { quem: `direcao:${guarda.acesso.session.userId}` };
 }
 

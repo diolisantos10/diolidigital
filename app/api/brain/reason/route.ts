@@ -28,6 +28,7 @@ import {
 import type { StrategyIntelligenceOutput } from "@/lib/agency/intelligence/strategy";
 import type { QualityCanvas } from "@/lib/dioli-brain/quality-canvas";
 import { getDepartmentDef } from "@/lib/agency/departments";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 import { buildClientSnapshot, snapshotBrandBrain, type ClientKnowledgeSnapshot } from "@/lib/dioli-brain/client-snapshot";
 import { generateStrategyCanvas } from "@/lib/dioli-brain/strategy-engine";
 import { generateSocialCanvas } from "@/lib/dioli-brain/social-engine";
@@ -84,6 +85,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await getSession();
   if (!session || session.clientId || !isAgencyRole(session.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // FAIXA 1 do CSRF: pode gastar a chave de IA da agência (overlay opcional).
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
   }
 
   let body: { dept?: unknown; context?: Record<string, unknown> };

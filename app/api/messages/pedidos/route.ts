@@ -25,6 +25,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
 import { conversaDoCliente } from "@/app/api/messages/conversa";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 /** Para onde um pedido do cliente pode ser roteado. Só os departamentos que
  *  produzem PEÇA para o cliente — mandar um pedido de conteúdo para Operações
@@ -102,6 +103,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Quem decide escopo é quem responde pelo contrato.
   const { session, error } = await requireSession(["master", "project_manager"]);
   if (error) return error;
+
+  // FAIXA 1 do CSRF: a triagem cria Task e pode disparar produção real
+  // (`decisao: "ciclo"` produz na hora — ver `produzirPedido` abaixo).
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
 
   let corpo: Record<string, unknown>;
   try {
@@ -370,6 +377,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const { session, error } = await requireSession(["master", "project_manager"]);
   if (error) return error;
+
+  // FAIXA 1 do CSRF: esta rota cancela orçamento visível ao cliente e registra
+  // entrega visível no portal — mutação real, autenticada por cookie.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
 
   let corpo: Record<string, unknown>;
   try {

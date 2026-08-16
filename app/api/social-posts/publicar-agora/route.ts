@@ -26,6 +26,7 @@ import { requireSession } from "@/lib/auth/api-guard";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { prisma } from "@/lib/db/client";
 import { publicarAgendados } from "@/lib/agency/esteira/publicacao";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 const PODEM_PUBLICAR = ["master", "project_manager", "social_staff"] as const;
 /** Ritmo de gente, não de máquina — o mesmo teto de `/api/meta/publish`. */
@@ -39,6 +40,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Sessão de portal nunca publica, mesmo carregando papel interno.
   if (session.clientId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // FAIXA 1 do CSRF: forjar este POST publica de verdade a peça agora.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
   }
 
   const { allowed, retryAfter } = rateLimit(

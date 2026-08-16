@@ -90,8 +90,12 @@ function reqEquipe(body: Record<string, unknown>): NextRequest {
   });
 }
 function reqDecisao(body: Record<string, unknown>): NextRequest {
+  // "sec-fetch-site: same-origin" — a FAIXA 1 do CSRF (navegacao-cross-site.ts)
+  // bloqueia por padrão sem este sinal; aqui simulamos o navegador legítimo.
   return new NextRequest("http://localhost/api/portal/approvals", {
-    method: "POST", body: JSON.stringify({ token: "tok-foocci", approvalRequestId: "ap-cal", ...body }),
+    method: "POST",
+    headers: { "sec-fetch-site": "same-origin" },
+    body: JSON.stringify({ token: "tok-foocci", approvalRequestId: "ap-cal", ...body }),
   });
 }
 

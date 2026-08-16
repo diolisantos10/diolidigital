@@ -26,6 +26,7 @@ import {
   type AIRunContext,
   type OpenAIMessages,
 } from "@/lib/agency/intelligence/openai-schemas";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 function validateOutput(departmentId: string, raw: unknown) {
   if (departmentId === "strategy")          return validateStrategyOutput(raw);
@@ -59,6 +60,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await getSession();
   if (!session || session.clientId || !isAgencyRole(session.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // FAIXA 1 do CSRF: gasta a chave de IA da agência a cada chamada.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
   }
 
   let body: {

@@ -36,9 +36,11 @@ import { POST } from "@/app/api/brain/reason/route";
 import { generateStrategyCanvas } from "@/lib/dioli-brain/strategy-engine";
 
 function makeRequest(body: unknown): NextRequest {
+  // "sec-fetch-site: same-origin" — a FAIXA 1 do CSRF (navegacao-cross-site.ts)
+  // bloqueia por padrão sem este sinal; aqui simulamos o navegador legítimo.
   return new NextRequest("http://localhost/api/brain/reason", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "sec-fetch-site": "same-origin" },
     body: JSON.stringify(body),
   });
 }

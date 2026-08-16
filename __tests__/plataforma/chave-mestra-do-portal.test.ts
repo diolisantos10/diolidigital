@@ -176,7 +176,15 @@ beforeEach(() => {
 });
 
 function json(url: string, method: string, body: unknown): NextRequest {
-  return new NextRequest(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  // "sec-fetch-site: same-origin" — a FAIXA 1 do CSRF (navegacao-cross-site.ts)
+  // bloqueia mutação sem este sinal por padrão; aqui simulamos o navegador
+  // legítimo da equipe. Inofensivo nas rotas que este helper chama e que não
+  // têm a guarda (ex.: brain/portal-access).
+  return new NextRequest(url, {
+    method,
+    headers: { "content-type": "application/json", "sec-fetch-site": "same-origin" },
+    body: JSON.stringify(body),
+  });
 }
 const get = (url: string) => new NextRequest(url);
 

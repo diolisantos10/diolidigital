@@ -56,7 +56,10 @@ vi.mock("@/lib/db/client", () => ({ prisma: { $queryRawUnsafe: queryRawUnsafe } 
 import { GET, POST } from "@/app/api/agency/avisos-de-orcamento/route";
 
 function req(method: "GET" | "POST", bearer?: string) {
-  const headers: Record<string, string> = {};
+  // "sec-fetch-site: same-origin" — a FAIXA 1 do CSRF (navegacao-cross-site.ts)
+  // bloqueia POST sem sessão por padrão sem este sinal; inofensivo no caminho
+  // por segredo (ele nem chega a checar) e no GET (a guarda só vale para POST).
+  const headers: Record<string, string> = { "sec-fetch-site": "same-origin" };
   if (bearer) headers["authorization"] = `Bearer ${bearer}`;
   return new NextRequest("http://localhost/api/agency/avisos-de-orcamento", { method, headers });
 }

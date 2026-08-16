@@ -26,6 +26,7 @@ import { createProjectFromRequest } from "@/lib/agency/execution/create-project-
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { negotiateProposal } from "@/lib/agency/execution/negotiate-proposal";
 import { assessResources } from "@/lib/agency/execution/assess-resources";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 // V2 (M5): as QUATRO decisões do cliente + a dúvida vivem num contrato único
 // (`lib/agency/portal/decisoes-do-portal.ts`) — rota e tela leem a mesma
@@ -69,6 +70,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { error: "token, approvalRequestId, action required" },
       { status: 400 },
     );
+  }
+
+  // FAIXA 1 do CSRF: a decisão do cliente aprova proposta, cria projeto e
+  // dispara produção real — autenticada por cookie httpOnly do portal.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
   }
 
   const status = ACTION_TO_STATUS[action];

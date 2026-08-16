@@ -50,7 +50,13 @@ function pede(body: Record<string, unknown>): NextRequest {
   return new NextRequest("http://localhost/api/portal/pedidos", { method: "POST", body: JSON.stringify(body) });
 }
 function tria(body: Record<string, unknown>): NextRequest {
-  return new NextRequest("http://localhost/api/messages/pedidos", { method: "POST", body: JSON.stringify(body) });
+  // "sec-fetch-site: same-origin" — a FAIXA 1 do CSRF bloqueia por padrão sem
+  // este sinal; aqui simulamos o navegador legítimo da equipe.
+  return new NextRequest("http://localhost/api/messages/pedidos", {
+    method: "POST",
+    headers: { "sec-fetch-site": "same-origin" },
+    body: JSON.stringify(body),
+  });
 }
 
 const PEDIDO_NOVO = {

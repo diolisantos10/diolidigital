@@ -101,7 +101,9 @@ describe("rota de dados aceita o cookie além do parâmetro", () => {
     const req = new NextRequest("http://localhost/api/portal/approvals", {
       method: "POST",
       body: JSON.stringify({ approvalRequestId: "ap1", action: "approve" }),
-      headers: { cookie: `${PORTAL_COOKIE}=tok-cookie` },
+      // "sec-fetch-site: same-origin" — a FAIXA 1 do CSRF bloqueia por padrão
+      // sem este sinal; aqui simulamos o navegador legítimo do portal.
+      headers: { cookie: `${PORTAL_COOKIE}=tok-cookie`, "sec-fetch-site": "same-origin" },
     });
     const res = await approvalsPOST(req);
 

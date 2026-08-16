@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
 import { ligarCampanha, desligarCampanha } from "@/lib/agency/esteira/trafego";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,11 @@ export async function GET(): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const { error, session } = await requireSession();
   if (error) return error;
+
+  // FAIXA 1 do CSRF: "ligar" faz dinheiro do cliente sair de verdade.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
 
   let body: { campanhaId?: string; acao?: string };
   try { body = await request.json(); }

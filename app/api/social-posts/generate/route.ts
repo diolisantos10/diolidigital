@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
 import { generate } from "@/lib/ai/generate";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 const NETWORK_LABELS: Record<string, string> = {
   instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn",
@@ -81,6 +82,11 @@ function contextBlock(ctx: ClientContext | null): string {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const { session, error } = await requireSession(["master", "project_manager", "social_staff"]);
   if (error) return error;
+
+  // FAIXA 1 do CSRF: gasta a chave de IA da agência a cada chamada.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
 
   let body: Record<string, unknown>;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }

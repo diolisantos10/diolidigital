@@ -99,6 +99,7 @@ import {
   type EscopoDoAviso,
 } from "@/lib/agency/esteira/orcamento-do-briefing";
 import { apenasDoWorkspace } from "@/lib/auth/posse-de-workspace";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 export const dynamic = "force-dynamic";
 
@@ -286,6 +287,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const auth = await autenticar(request);
   if ("erro" in auth) return auth.erro;
+
+  // FAIXA 1 do CSRF — só no caminho de SESSÃO (cookie): reenvia e-mail real a
+  // prospect. O caminho por segredo (`casaInteira`) não tem cookie, então não
+  // é alvo de CSRF — ver a nota de `deveBloquearMutacaoCrossSite`.
+  if (!("casaInteira" in auth.escopo) && deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
 
   // `incluirLegados` é um ATO DELIBERADO e SEPARADO — nunca o padrão. Corpo
   // ausente, malformado ou sem o campo é tratado como "não", nunca como

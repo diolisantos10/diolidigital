@@ -7,6 +7,7 @@ import { requireSession } from "@/lib/auth/api-guard";
 import { naoEncontrado, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import { runAutoScope } from "@/lib/dioli-brain/run-auto-scope";
 import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 const AGENCY_ROLES = ["master", "project_manager"] as const;
 
@@ -14,6 +15,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { session, error } = await requireSession([...AGENCY_ROLES]);
   if (error) return error;
   if (session.clientId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  // FAIXA 1 do CSRF: dispara a cadeia de 6 motores e gasta a chave de IA.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
 
   let body: { clientRequestId?: unknown };
   try {

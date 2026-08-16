@@ -63,9 +63,11 @@ const snapshot: ClientKnowledgeSnapshot = {
 };
 
 function applyReq(body: unknown): NextRequest {
+  // "sec-fetch-site: same-origin" — a FAIXA 1 do CSRF (navegacao-cross-site.ts)
+  // bloqueia por padrão sem este sinal; aqui simulamos o navegador legítimo.
   return new NextRequest("http://localhost/api/brain/orchestrate/apply", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "sec-fetch-site": "same-origin" },
     body: JSON.stringify(body),
   });
 }

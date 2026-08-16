@@ -10,10 +10,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 export async function POST(request: NextRequest, ctx: { params: Promise<{ id: string }> }): Promise<NextResponse> {
   const { session, error } = await requireSession(["master", "project_manager", "executivo_comercial"]);
   if (error) return error;
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
   const { id: projectId } = await ctx.params;
 
   // Posse: o projeto é do workspace da sessão? (o núcleo roda sem sessão, então

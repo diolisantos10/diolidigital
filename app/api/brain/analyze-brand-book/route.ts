@@ -25,6 +25,7 @@ import {
   analisarBrandBook,
   MAX_BYTES_DO_BRAND_BOOK,
 } from "@/lib/ai/leitura-de-marca";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 import type { BrandExtraction } from "@/lib/types/brand-extraction";
 export type { BrandExtraction };
@@ -33,6 +34,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await getSession();
   if (!session || session.clientId) {
     return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  }
+
+  // FAIXA 1 do CSRF: gasta a chave de IA da agência a cada chamada.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ ok: false, error: "Origem não confiável para esta ação." }, { status: 403 });
   }
 
   let formData: FormData;

@@ -39,7 +39,11 @@ function pedido(url: string, body: unknown): NextRequest {
   n += 1;
   return new NextRequest(url, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-forwarded-for": `172.16.0.${n % 250}` },
+    // "sec-fetch-site: same-origin" simula o navegador legítimo — a FAIXA 1
+    // do CSRF (lib/security/navegacao-cross-site.ts) bloqueia por padrão sem
+    // este sinal, exatamente o que este arquivo testa que NÃO deve acontecer
+    // para quem tem direito.
+    headers: { "content-type": "application/json", "x-forwarded-for": `172.16.0.${n % 250}`, "sec-fetch-site": "same-origin" },
     body: JSON.stringify(body),
   });
 }

@@ -42,14 +42,26 @@ let outroId = "";
 let tokenFoocci = "";
 let tokenOutro = "";
 
+// "sec-fetch-site: same-origin" — a FAIXA 1 do CSRF (navegacao-cross-site.ts)
+// bloqueia mutação por padrão sem este sinal; aqui simulamos o navegador
+// legítimo (equipe e cliente). Inofensivo nas rotas que este helper chama e
+// que não têm a guarda.
 function postJson(url: string, body: Record<string, unknown>): NextRequest {
-  return new NextRequest(`http://localhost${url}`, { method: "POST", body: JSON.stringify(body) });
+  return new NextRequest(`http://localhost${url}`, {
+    method: "POST",
+    headers: { "sec-fetch-site": "same-origin" },
+    body: JSON.stringify(body),
+  });
 }
 function getUrl(url: string): NextRequest {
   return new NextRequest(`http://localhost${url}`);
 }
 function patchJson(url: string, body: Record<string, unknown>): NextRequest {
-  return new NextRequest(`http://localhost${url}`, { method: "PATCH", body: JSON.stringify(body) });
+  return new NextRequest(`http://localhost${url}`, {
+    method: "PATCH",
+    headers: { "sec-fetch-site": "same-origin" },
+    body: JSON.stringify(body),
+  });
 }
 
 beforeAll(async () => {

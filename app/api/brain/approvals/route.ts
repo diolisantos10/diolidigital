@@ -14,6 +14,7 @@ import {
   naoEncontrado,
   solicitacaoDoWorkspace,
 } from "@/lib/auth/posse-de-workspace";
+import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 
 // A trava que o vizinho `app/api/brain/portal-data` já explicava num parágrafo
 // inteiro e que aqui nunca foi aplicada. O que passava sem ela:
@@ -49,6 +50,11 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const { session, error } = await requireSession();
   if (error) return error;
 
+  // FAIXA 1 do CSRF: liga/desliga a visibilidade de um card no portal do cliente.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
+
   let body: Record<string, unknown>;
   try { body = await request.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
@@ -73,6 +79,11 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const { session, error } = await requireSession();
   if (error) return error;
+
+  // FAIXA 1 do CSRF: comentário/decisão VISÍVEL AO CLIENTE, assinado como a agência.
+  if (deveBloquearMutacaoCrossSite(request)) {
+    return NextResponse.json({ error: "Origem não confiável para esta ação." }, { status: 403 });
+  }
 
   let body: Record<string, unknown>;
   try { body = await request.json(); } catch {

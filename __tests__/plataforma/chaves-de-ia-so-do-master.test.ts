@@ -46,9 +46,11 @@ const LINHA = {
 };
 
 function pedidoDeTeste(): NextRequest {
+  // "sec-fetch-site: same-origin" — a FAIXA 1 do CSRF (navegacao-cross-site.ts)
+  // bloqueia por padrão sem este sinal; aqui simulamos o navegador legítimo.
   return new NextRequest("http://localhost/api/ai-keys/test", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "sec-fetch-site": "same-origin" },
     body: JSON.stringify({ provider: "openai" }),
   });
 }
@@ -121,7 +123,11 @@ describe("POST /api/ai-keys/test", () => {
   it("corpo inválido não estoura a rota", async () => {
     getSession.mockResolvedValue(SESSAO);
     const res = await testarChave(
-      new NextRequest("http://localhost/api/ai-keys/test", { method: "POST", body: "isto não é json" }),
+      new NextRequest("http://localhost/api/ai-keys/test", {
+        method: "POST",
+        headers: { "sec-fetch-site": "same-origin" },
+        body: "isto não é json",
+      }),
     );
     expect(res.status).toBe(400);
   });
