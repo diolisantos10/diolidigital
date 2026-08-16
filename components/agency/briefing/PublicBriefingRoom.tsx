@@ -57,7 +57,7 @@ function buildRawText(messages: ConvMessage[]): string {
     .join("\n\n");
 }
 
-function buildExtractedSummary(scope: BriefingScope): ExtractedRequestSummary {
+export function buildExtractedSummary(scope: BriefingScope): ExtractedRequestSummary {
   const services: string[] = [];
   const depts: string[] = [];
   if (scope.wantsSocialMedia)   { services.push("Social Media"); depts.push("social-media", "design"); }
@@ -66,9 +66,22 @@ function buildExtractedSummary(scope: BriefingScope): ExtractedRequestSummary {
 
   const s = scope.social;
   const quantities: string[] = [];
-  if (s?.postsPerWeek !== undefined) quantities.push(`${s.postsPerWeek * 4} posts/mês`);
+  if (s?.postsPerWeek !== undefined && s.postsPerWeek > 0) quantities.push(`${s.postsPerWeek * 4} posts/mês`);
   if (s?.storiesPerWeek !== undefined && s.storiesPerWeek > 0) quantities.push(`${s.storiesPerWeek * 4} stories/mês`);
   if (s?.reelsPerMonth !== undefined && s.reelsPerMonth > 0) quantities.push(`${s.reelsPerMonth} reels/mês`);
+
+  // missingInfo — declara ausência em vez de escondê-la. O caso Diego (16/08)
+  // é a prova do que acontece quando o campo some da tela em silêncio: ele
+  // leu "0 posts" e achou que era bug do sistema, porque nada na tela dizia
+  // "ainda não perguntamos isso". Aqui a régua é estrutural (o campo do
+  // BriefingScope está vazio), não regex sobre texto livre como no extrator
+  // v1 (`briefing-extractor.ts`) — os dois pipelines são propositalmente
+  // diferentes e não convergem neste bloco.
+  const missingInfo: string[] = [];
+  if (quantities.length === 0) missingInfo.push("Quantidade de peças/posts");
+  if (!scope.budgetRange) missingInfo.push("Orçamento");
+  if (!scope.deadline) missingInfo.push("Prazo de entrega");
+  if (!scope.targetAudience) missingInfo.push("Público-alvo");
 
   return {
     clientName:           scope.businessName,
@@ -79,7 +92,7 @@ function buildExtractedSummary(scope: BriefingScope): ExtractedRequestSummary {
     quantities,
     urgency:              scope.deadline ?? undefined,
     suggestedDepartments: [...new Set(depts)],
-    missingInfo:          [],
+    missingInfo,
   };
 }
 
@@ -129,6 +142,9 @@ function MsgText({ text }: { text: string }) {
 
 // ── Message bubble ─────────────────────────────────────────────────────────────
 
+// `data-testid` nos dois balões e no container de mensagens (ver comentário
+// completo em `mensagens-container`, logo abaixo, e no `<textarea>`): são o
+// jeito de MEDIR "a fala fica visível", não de raciocinar sobre o layout.
 function MessageBubble({ msg }: { msg: ConvMessage }) {
   if (msg.role === "system") {
     return (
@@ -141,7 +157,10 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
   }
   const isAssistant = msg.role === "assistant";
   return (
-    <div className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}>
+    <div
+      data-testid={isAssistant ? "balao-do-agente" : "balao-do-visitante"}
+      className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}
+    >
       {isAssistant && (
         <div className="w-6 h-6 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0 mr-2 mt-0.5">
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
@@ -197,7 +216,11 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
     if (scope.social?.platforms.length)
       rows.push({ label: "Canais", value: scope.social.platforms.join(", ") });
     if (scope.social?.postsPerWeek !== undefined)
-      rows.push({ label: "Posts", value: `${scope.social.postsPerWeek * 4}/mês` });
+      rows.push({
+        label: "Posts",
+        value: scope.social.postsPerWeek > 0 ? `${scope.social.postsPerWeek * 4}/mês` : "Não incluído",
+        dim: scope.social.postsPerWeek === 0,
+      });
     if (scope.social?.storiesPerWeek !== undefined)
       rows.push({
         label: "Stories",
@@ -1701,8 +1724,22 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="px-5 py-4 space-y-3 overflow-y-auto min-h-[320px] max-h-[480px]">
+        {/* Messages
+            Em 16/08/2026 o CEO relatou que na tela do SDR não enxergava o que
+            o agente estava falando. A primeira rodada declarou "não
+            reproduzi" CONTANDO BALÕES NO DOM — e contar não é ver. A segunda
+            mediu a fração do balão dentro da viewport (`scripts/repro-fala-
+            fora-da-vista.mjs`) e mostrou 100% visível em 6 turnos reais e em
+            viewport encolhida a 380px: o relato NÃO se reproduziu por aqui,
+            com o mecanismo original (`scrollIntoView` + este sentinela,
+            abaixo). O conserto cogitado nessa rodada foi revertido. Estes
+            `data-testid` (aqui, no `MessageBubble` e no `<textarea>` de
+            resposta) existem para que a PRÓXIMA suspeita seja MEDIDA em
+            minutos, em vez de virar mais uma rodada de raciocínio sobre o
+            código — foi o raciocínio, e não a medição, que quase fez esta
+            casa trocar o `scrollIntoView` por um conserto de defeito
+            inexistente. */}
+        <div data-testid="mensagens-container" className="px-5 py-4 space-y-3 overflow-y-auto min-h-[320px] max-h-[480px]">
           {conv.messages.map((msg) => (
             <MessageBubble key={msg.id} msg={msg} />
           ))}
@@ -1755,6 +1792,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           <div className="flex gap-2">
             <textarea
               ref={textareaRef}
+              data-testid="textarea-resposta"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
