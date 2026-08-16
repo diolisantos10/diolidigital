@@ -1,0 +1,11 @@
+{
+  "id": "plataforma-ci-concorrencia",
+  "quem": "pm-entrega-congelada",
+  "frente": "entrega congelada: cancel-in-progress por branch impede qualquer commit novo de ficar verde",
+  "responsabilidade": "plataforma-ci-concorrencia",
+  "arquivos": [
+    ".github/workflows/ci.yml"
+  ],
+  "abertaEm": "2026-08-16T19:12:20.926Z",
+  "encerradaEm": null
+}
