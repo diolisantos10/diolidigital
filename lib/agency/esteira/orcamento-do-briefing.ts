@@ -58,11 +58,97 @@
 //    sendo atendido pelo portal. Faltar contato impede AVISAR, nunca ATENDER —
 //    é a mesma lei que fez `lead_incompleto` entrar na busca lá embaixo.
 // 4. **Falha de e-mail não desfaz nem repete a entrega.** O envio acontece
-//    DEPOIS da transação e nunca é retentado. Ver o bloco de comentário em
-//    `avisarPorEmail`: essa ordem é a garantia de que ninguém recebe o mesmo
-//    orçamento duas vezes.
+//    DEPOIS da transação e nunca é retentado SOZINHO. Ver o bloco de
+//    comentário em `avisarPorEmail`: essa ordem é a garantia de que ninguém
+//    recebe o mesmo orçamento duas vezes.
+//
+// ─── A SETA SEGUINTE, AINDA 16/08/2026: A FALHA QUE SOBREVIVE ──────────────
+//
+// `RESEND_FROM` não existe no Railway (medido). Sem ela, `sendEmail` cai no
+// remetente compartilhado, que o Resend só entrega para o dono da própria
+// conta — no dia do deploy, TODO prospect da fila falha o aviso. Até aqui a
+// falha virava `console.warn` e um `avisosQueFalharam.push(...)` que só vive
+// enquanto dura a chamada (`despertador.ts` lê e descarta a cada rodada). Log
+// não é fila: ninguém consulta, ninguém reprocessa, e quando o CEO setar a
+// variável ninguém é reavisado — o silêncio de 51 dias recriado, invisível.
+//
+// `gravarResultadoDoAviso` fecha isso: toda tentativa — sucesso incluído —
+// grava em `ClientRequestDb.avisoOrcamento*` (migração
+// `20260816130000_aviso_de_orcamento_que_falha`). Gravar o SUCESSO também é
+// tão obrigatório quanto gravar a falha: é o que autoriza
+// `reenviarAvisosQueFalharam` a existir sem virar máquina de duplicata — ela
+// só busca `avisoOrcamentoStatus IN ('falhou', 'skipped')`, nunca 'avisado'.
+//
+// O reenvio é chamado por rota protegida (`app/api/agency/avisos-de-orcamento`),
+// nunca pelo relógio de 5 em 5 minutos: a decisão de não retentar sozinho foi
+// declarada com motivo no item 4 acima, e não é desta função que ela se
+// derruba. O que muda é que a falha deixa de ser terminal — alguém PODE
+// mandar reenviar, em vez de o cliente ficar preso a um `console.warn` morto.
+//
+// ─── A SETA SEGUINTE, AINDA 16/08/2026: OS QUE JÁ FALHARAM ANTES DESTE DEPLOY ──
+//
+// Auditoria: `a2d06fb1` — a versão anterior deste arquivo, que criava o
+// `portalMessage` mas não gravava NENHUM status — **já estava em produção**
+// antes desta migração existir. Todo pedido que o relógio processou naquela
+// janela saiu de `new` (está em `proposal_pending` ou adiante) e tem
+// `avisoOrcamentoStatus = NULL` — não porque ninguém tentou, mas porque a
+// coluna que registraria a tentativa não existia ainda.
+//
+// `NULL` NÃO é `'falhou'`. `NULL` é "NÃO SABEMOS":
+//
+//   • tratar `NULL` como `'falhou'` e reenviar em massa arrisca duplicata para
+//     quem porventura recebeu o e-mail antes de a coluna existir;
+//   • tratar `NULL` como `'avisado'` garante o silêncio de quem não recebeu.
+//
+// Por isso `NULL` vira um terceiro balde — "legado" — nunca um quinto valor
+// de status gravado por palpite: não há como saber o que aconteceu, e gravar
+// uma suposição seria inventar dado, a mesma proibição que já vale para o
+// orçamento em si (ver `estimativaDe`).
+//
+// O balde só existe uma vez: na primeira tentativa (bem-sucedida ou não) o
+// status deixa de ser `NULL` — `gravarResultadoDoAviso` sempre escreve um dos
+// quatro valores conhecidos — e o pedido passa a viver no regime normal
+// (`'avisado'` some de qualquer balde; `'falhou'`/`'skipped'` migram para a
+// fila comum de `reenviarAvisosQueFalharam`). A ambiguidade se autocura.
+//
+// `reenviarAvisosLegados` é a única porta para esse balde, e ela NUNCA roda
+// como efeito colateral do reenvio normal — é ação deliberada, disparada só
+// com o campo explícito `incluirLegados: true` no corpo do POST da rota. Quem
+// dispara o reenvio padrão não pode atingir os legados por acidente.
+//
+// ─── A FRONTEIRA DO INQUILINO, 16/08/2026 (devolução do `seguranca`) ───────
+//
+// As três buscas abaixo (`reenviarAvisosQueFalharam`, `candidatosLegados` e a
+// do `GET` da rota irmã) nasceram SEM `workspaceId` no WHERE. `autenticar()`
+// na rota confere "existe sessão?" — nunca "esta sessão é dona deste dado?".
+// Consequência medida: qualquer funcionário logado, de qualquer workspace,
+// enxergava negócio/e-mail/motivo de falha de prospects de TODOS os
+// workspaces, e o botão de reenviar disparava e-mail de verdade para
+// prospect que não é da agência dele — efeito externo em nome de outro.
+//
+// O conserto usa a política de posse que já existe
+// (`lib/auth/posse-de-workspace.ts`) em vez de escrever uma quarta versão da
+// regra: toda função aqui que toca `ClientRequestDb` agora recebe um
+// `EscopoDoAviso` OBRIGATÓRIO — nunca um default implícito — e filtra em
+// DUAS camadas: o `WHERE` já reduz no banco (`workspaceId = ? OR
+// workspaceId IS NULL`), e `apenasDoWorkspace()` filtra de novo em memória
+// (a política completa da órfã-com-cliente, que um `WHERE` simples não
+// expressa). Duas camadas porque a rota irmã (`app/api/agency/leads`) já
+// prova que confiar só no banco é frágil a um WHERE esquecido amanhã.
+//
+// O CAMINHO POR SEGREDO (`PILOTO_SECRET`/`CRON_SECRET`) NÃO TEM SESSÃO, LOGO
+// NÃO TEM WORKSPACE. Decisão, escrita aqui para não ficar implícita: ele é
+// `{ casaInteira: true }` — operação da casa inteira, de propósito, pelos
+// mesmos dois motivos que o relógio (`entregarOrcamentosPendentes`, acima
+// neste arquivo) já opera sem filtro de workspace: (1) quem detém o segredo
+// já tem acesso de infraestrutura — o segredo não é uma credencial de
+// workspace, é uma credencial de operação da casa; (2) inconsistência seria
+// pior: o mesmo pedido apareceria para o relógio e desapareceria para a
+// operação manual pelo MESMO segredo. `casaInteira` não é "esqueci de
+// filtrar" — é um valor do tipo, obrigatório, com o nome dizendo o que é.
 
 import { prisma } from "@/lib/db/client";
+import { apenasDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import {
   textoDaVerbaEstourada,
   type ConfrontoDeVerba,
@@ -167,8 +253,16 @@ async function linkDaConversa(clientRequestId: string): Promise<string | null> {
   }
 }
 
-/** O que aconteceu com o toque no ombro. `sem_canal` NÃO é falha. */
-type ResultadoDoAviso = "avisado" | "sem_canal" | "falhou";
+/** O que aconteceu com o toque no ombro. `sem_canal` NÃO é falha, e é por
+ *  isso que ela nunca carrega `detalhe`: não há motivo a investigar, só um
+ *  fato — o lead não declarou e-mail. As outras três levam `detalhe` porque
+ *  é o que a fila de reenvio (e quem olha o painel) precisa para decidir se
+ *  vale reenviar ou se é a casa que precisa configurar algo primeiro. */
+type ResultadoDoAviso =
+  | { tipo: "avisado" }
+  | { tipo: "sem_canal" }
+  | { tipo: "falhou"; detalhe: string }
+  | { tipo: "skipped"; detalhe: string };
 
 /**
  * Avisa por e-mail que o orçamento ficou pronto.
@@ -205,7 +299,7 @@ async function avisarPorEmail(
     // Sem e-mail declarado não há a quem avisar — e isso não é problema deste
     // arquivo resolver. O orçamento JÁ está no portal, entregue. Ver a regra 3
     // do cabeçalho: faltar contato impede avisar, nunca impede atender.
-    if (!contato.email) return "sem_canal";
+    if (!contato.email) return { tipo: "sem_canal" };
 
     const { subject, html } = orcamentoProntoEmail({
       prospectName: contato.nome ?? undefined,
@@ -219,20 +313,68 @@ async function avisarPorEmail(
     });
 
     const r = await sendEmail({ to: contato.email, subject, html });
-    if (r.ok) return "avisado";
+    if (r.ok) return { tipo: "avisado" };
 
     // `skipped` é a casa sem RESEND_API_KEY — configuração, não defeito do
-    // pedido. Distinguir os dois no log evita mandar alguém caçar bug onde
-    // falta variável de ambiente.
-    console.warn(
-      r.skipped
-        ? `[orcamento] aviso não enviado (RESEND_API_KEY ausente) — pedido ${pedido.id}`
-        : `[orcamento] aviso falhou — pedido ${pedido.id}: ${r.error ?? "sem detalhe"}`,
-    );
-    return "falhou";
+    // pedido. Distinguir os dois no log (e agora também no banco, ver
+    // `gravarResultadoDoAviso`) evita mandar alguém caçar bug onde falta
+    // variável de ambiente — e evita reenviar achando que vai resolver
+    // sozinho quando o que falta é configurar a chave.
+    if (r.skipped) {
+      const detalhe = "RESEND_API_KEY ausente";
+      console.warn(`[orcamento] aviso não enviado (${detalhe}) — pedido ${pedido.id}`);
+      return { tipo: "skipped", detalhe };
+    }
+    const detalhe = r.error ?? "sem detalhe";
+    console.warn(`[orcamento] aviso falhou — pedido ${pedido.id}: ${detalhe}`);
+    return { tipo: "falhou", detalhe };
   } catch (err) {
+    const detalhe = err instanceof Error ? err.message : String(err);
     console.error("[orcamento] aviso lançou — a entrega segue valendo:", err);
-    return "falhou";
+    return { tipo: "falhou", detalhe };
+  }
+}
+
+/**
+ * Grava o que aconteceu com o toque no ombro — sucesso incluído.
+ *
+ * ── POR QUE GRAVAR TAMBÉM O SUCESSO ──────────────────────────────────────
+ * `reenviarAvisosQueFalharam` só busca `avisoOrcamentoStatus IN ('falhou',
+ * 'skipped')`. Se "avisado" não fosse gravado, não haveria como o reenvio
+ * saber quem JÁ recebeu — e o botão de reenviar viraria uma máquina de
+ * mandar o mesmo orçamento duas vezes, que é o defeito oposto e pior deste
+ * conserto (ver o cabeçalho do arquivo).
+ *
+ * Nunca lança: quem chama está no meio de uma rodada (ou de um reenvio) com
+ * outros pedidos na fila, e uma falha ao GRAVAR o resultado não pode
+ * derrubar um e-mail que já saiu (ou já foi tentado). O custo de falhar aqui
+ * é real — a próxima leitura não vê a tentativa — mas é estritamente menor
+ * que o custo de derrubar a rodada inteira por causa de uma escrita de
+ * diagnóstico.
+ *
+ * `$executeRawUnsafe` porque a coluna é nova e o cliente Prisma gerado
+ * (`lib/generated/prisma/`) é versionado de propósito — regenerá-lo nesta
+ * árvore, com dois outros pms editando o mesmo repositório agora, produziria
+ * um diff gigante e colidiria com o trabalho deles. Mesmo padrão de
+ * `lib/integrations/meta/ritmo-no-banco.ts`.
+ */
+async function gravarResultadoDoAviso(pedidoId: string, aviso: ResultadoDoAviso): Promise<void> {
+  const detalhe = "detalhe" in aviso ? aviso.detalhe.slice(0, 500) : null;
+  try {
+    await prisma.$executeRawUnsafe(
+      `UPDATE ClientRequestDb
+          SET avisoOrcamentoStatus = ?,
+              avisoOrcamentoDetalhe = ?,
+              avisoOrcamentoEm = ?,
+              avisoOrcamentoTentativas = avisoOrcamentoTentativas + 1
+        WHERE id = ?`,
+      aviso.tipo,
+      detalhe,
+      new Date().toISOString(),
+      pedidoId,
+    );
+  } catch (err) {
+    console.error(`[orcamento] não consegui gravar o estado do aviso do pedido ${pedidoId}:`, err);
   }
 }
 
@@ -391,7 +533,13 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
       // desta linha pode voltar atrás nisso.
       resultado.entregues += 1;
 
-      switch (await avisarPorEmail(pedido, e)) {
+      const aviso = await avisarPorEmail(pedido, e);
+      // Grava SEMPRE — sucesso incluído. Ver o porquê em
+      // `gravarResultadoDoAviso`: sem a marca de sucesso, o reenvio não teria
+      // como saber quem já foi avisado e viraria máquina de duplicata.
+      await gravarResultadoDoAviso(pedido.id, aviso);
+
+      switch (aviso.tipo) {
         case "avisado":
           resultado.avisados += 1;
           break;
@@ -399,8 +547,12 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
           resultado.semCanal += 1;
           break;
         case "falhou":
+        case "skipped":
+          // As duas viram a mesma notícia de rodada (o cliente não foi
+          // avisado) — o que as distingue para quem for AGIR é o `detalhe`
+          // gravado no banco, não este texto de log.
           resultado.avisosQueFalharam.push(
-            `pedido ${pedido.id} (${pedido.businessName ?? "sem nome"}): orçamento entregue no portal, mas o e-mail não saiu`,
+            `pedido ${pedido.id} (${pedido.businessName ?? "sem nome"}): orçamento entregue no portal, mas o e-mail não saiu (${aviso.detalhe})`,
           );
           break;
       }
@@ -409,5 +561,288 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
     }
   }
 
+  return resultado;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O REENVIO — a falha que sobrevive vira aviso que sai
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Teto por chamada. Reenvio é ação deliberada (rota protegida), não o
+ *  relógio de 5 em 5 min — mas mesmo deliberado, um teto evita que um clique
+ *  vire uma rajada de e-mail. */
+export const MAX_REENVIOS_POR_CHAMADA = 20;
+
+export type ResultadoDoReenvio = {
+  /** Quantos saíram desta vez. */
+  reenviados: number;
+  /** Quantos foram tentados de novo e falharam de novo (o motivo já foi
+   *  regravado — quem quiser o texto atual lê `avisoOrcamentoDetalhe`). */
+  aindaFalhando: number;
+  /** Erros que impediram a TENTATIVA de acontecer (não o envio em si). */
+  falhas: string[];
+};
+
+type LinhaParaReenviar = {
+  id: string;
+  businessName: string | null;
+  briefingJson: string | null;
+  sdrHandoffJson: string | null;
+  /** Presentes SÓ para a fronteira de posse (`apenasDoWorkspace`) decidir de
+   *  quem é a linha. Nunca usados para nada além disso — o e-mail, o texto e
+   *  a gravação seguem exatamente como já eram. */
+  workspaceId: string | null;
+  clientId: string | null;
+};
+
+/**
+ * De quem é a chamada: um workspace específico (sessão de equipe — o caso
+ * normal) ou "casa inteira" (o segredo de operação, sem sessão, decisão
+ * escrita no cabeçalho deste arquivo). Nunca opcional: quem chama declara,
+ * o TypeScript obriga.
+ */
+export type EscopoDoAviso = { workspaceId: string } | { casaInteira: true };
+
+/** Filtra as linhas que vieram de uma consulta já reduzida no banco pela
+ *  MESMA política de posse do resto da casa — nunca uma quarta versão dela.
+ *  `casaInteira` não filtra nada, de propósito (ver o porquê no cabeçalho). */
+async function filtradoPeloEscopo<T extends { workspaceId: string | null; clientId: string | null }>(
+  linhas: T[],
+  escopo: EscopoDoAviso,
+): Promise<T[]> {
+  if ("casaInteira" in escopo) return linhas;
+  return apenasDoWorkspace(linhas, escopo.workspaceId);
+}
+
+/**
+ * O corpo da tentativa, compartilhado entre o reenvio normal e o reenvio de
+ * legados: lê a estimativa JÁ gravada (nunca recalcula), tenta o e-mail e
+ * grava o resultado — sucesso incluído, que é o que faz o balde de origem
+ * (falhou/skipped, ou legado) deixar de conter o pedido na próxima leitura.
+ */
+async function tentarReenviosEmLote(
+  candidatos: LinhaParaReenviar[],
+  resultado: ResultadoDoReenvio,
+): Promise<void> {
+  for (const pedido of candidatos) {
+    try {
+      // A estimativa é lida DE NOVO do briefing gravado — nunca recalculada.
+      // O reenvio manda o MESMO número que já está escrito na conversa do
+      // portal; se o briefing não tiver mais estimativa utilizável (JSON
+      // corrompido entre a entrega e o reenvio, por exemplo), não há número
+      // seguro para reenviar e o pedido fica de fora desta rodada de reenvio
+      // — nunca inventa valor para destravar um e-mail.
+      const e = estimativaDe(pedido.briefingJson);
+      if (!e) {
+        resultado.falhas.push(`pedido ${pedido.id}: sem estimativa gravada — não reenviado`);
+        continue;
+      }
+
+      const aviso = await avisarPorEmail(pedido, e);
+      await gravarResultadoDoAviso(pedido.id, aviso);
+
+      if (aviso.tipo === "avisado") resultado.reenviados += 1;
+      else resultado.aindaFalhando += 1;
+    } catch (err) {
+      resultado.falhas.push(err instanceof Error ? err.message : String(err));
+    }
+  }
+}
+
+/**
+ * Reenvia o aviso de quem já teve o orçamento ENTREGUE no portal (a mensagem
+ * já está lá, o pedido já saiu de `new`) mas cujo e-mail não saiu.
+ *
+ * ── O MECANISMO QUE IMPEDE A DUPLICATA ──────────────────────────────────────
+ * A consulta abaixo só alcança `avisoOrcamentoStatus IN ('falhou', 'skipped')`
+ * — nunca `'avisado'` e nunca `'sem_canal'`. É a MESMA garantia que já existia
+ * para a entrega original (o pedido sai de `new` antes do e-mail), expressa
+ * agora como estado gravado em vez de estado de fila: quem já foi avisado com
+ * sucesso não pode voltar a aparecer aqui, porque o UPDATE de
+ * `gravarResultadoDoAviso` já trocou o status dele para `'avisado'` na
+ * primeira vez que isso aconteceu — inclusive num reenvio anterior.
+ *
+ * Não existe um segundo caminho de envio: reaproveita `avisarPorEmail`, a
+ * mesma função que a entrega original chama. Duplicar o envio duplicaria
+ * também o dia em que `RESEND_FROM` sumir nas variáveis de novo.
+ *
+ * Chamado por uma rota protegida (`app/api/agency/avisos-de-orcamento`), NUNCA
+ * pelo relógio de 5 em 5 minutos — a decisão de não retentar sozinho tem dono e
+ * motivo (regra 4 do cabeçalho deste arquivo), e não é este reenvio que a
+ * derruba. O que ele resolve é a falha deixar de ser terminal: alguém PODE
+ * mandar tentar de novo, em vez do cliente ficar preso a um log que já rodou.
+ *
+ * Nunca lança: um pedido problemático não pode impedir os outros de serem
+ * reenviados.
+ *
+ * `escopo` é OBRIGATÓRIO (16/08/2026, devolução do `seguranca`): sem ele esta
+ * função alcançava `falhou`/`skipped` de QUALQUER workspace, e um clique de
+ * quem estivesse logado em qualquer agência disparava e-mail de verdade para
+ * prospect alheio. O filtro entra em DUAS camadas — `AND (workspaceId = ? OR
+ * workspaceId IS NULL)` já reduz no `WHERE`, e `filtradoPeloEscopo` reaplica
+ * a política completa da órfã-com-cliente em memória. Ver o porquê de
+ * `casaInteira` existir no cabeçalho do arquivo.
+ */
+export async function reenviarAvisosQueFalharam(escopo: EscopoDoAviso): Promise<ResultadoDoReenvio> {
+  const resultado: ResultadoDoReenvio = { reenviados: 0, aindaFalhando: 0, falhas: [] };
+
+  let candidatos: LinhaParaReenviar[];
+  try {
+    const linhas =
+      "casaInteira" in escopo
+        ? await prisma.$queryRawUnsafe<LinhaParaReenviar[]>(
+            `SELECT id, businessName, briefingJson, sdrHandoffJson, workspaceId, clientId
+               FROM ClientRequestDb
+              WHERE avisoOrcamentoStatus IN ('falhou', 'skipped')
+              ORDER BY avisoOrcamentoEm ASC
+              LIMIT ?`,
+            MAX_REENVIOS_POR_CHAMADA,
+          )
+        : await prisma.$queryRawUnsafe<LinhaParaReenviar[]>(
+            `SELECT id, businessName, briefingJson, sdrHandoffJson, workspaceId, clientId
+               FROM ClientRequestDb
+              WHERE avisoOrcamentoStatus IN ('falhou', 'skipped')
+                AND (workspaceId = ? OR workspaceId IS NULL)
+              ORDER BY avisoOrcamentoEm ASC
+              LIMIT ?`,
+            escopo.workspaceId,
+            MAX_REENVIOS_POR_CHAMADA,
+          );
+    candidatos = await filtradoPeloEscopo(linhas, escopo);
+  } catch (err) {
+    resultado.falhas.push(err instanceof Error ? err.message : String(err));
+    return resultado;
+  }
+
+  await tentarReenviosEmLote(candidatos, resultado);
+  return resultado;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O BALDE DOS LEGADOS — "não sabemos", nunca "falhou" nem "avisado"
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Ver o comentário longo acima de `reenviarAvisosQueFalharam` para a origem
+// do problema. O resumo do mecanismo:
+//
+//   • Candidato a legado é `status = 'proposal_pending'` (já saiu de `new`,
+//     ou seja, o orçamento JÁ foi entregue no portal) com
+//     `avisoOrcamentoStatus IS NULL` (nunca tentamos gravar nada, porque a
+//     coluna não existia quando este pedido foi processado).
+//   • Só entra no balde quem TEM e-mail no leitor único (`lerContato`). Quem
+//     não tem é `sem_canal` — fato, não legado — e não é fila de reenvio.
+//   • `NULL` nunca é escrito por aqui como palpite: a única escrita é
+//     `gravarResultadoDoAviso`, chamada depois de uma tentativa REAL.
+
+/** Uma linha do balde de legados, já com o e-mail confirmado presente —
+ *  quem não tem e-mail nunca chega a este tipo. */
+export type LegadoDeAviso = {
+  id: string;
+  businessName: string | null;
+  contatoEmail: string;
+};
+
+/** `escopo` obrigatório pelo mesmo motivo do reenvio normal — ver o cabeçalho
+ *  do arquivo. Duas camadas de filtro: o `WHERE` já reduz no banco quando há
+ *  um workspace; `filtradoPeloEscopo` reaplica a política completa (órfã com
+ *  cliente incluída) em memória. */
+async function candidatosLegados(limite: number, escopo: EscopoDoAviso): Promise<LinhaParaReenviar[]> {
+  const linhas =
+    "casaInteira" in escopo
+      ? await prisma.$queryRawUnsafe<LinhaParaReenviar[]>(
+          `SELECT id, businessName, briefingJson, sdrHandoffJson, workspaceId, clientId
+             FROM ClientRequestDb
+            WHERE status = 'proposal_pending' AND avisoOrcamentoStatus IS NULL
+            ORDER BY createdAt ASC
+            LIMIT ?`,
+          limite,
+        )
+      : await prisma.$queryRawUnsafe<LinhaParaReenviar[]>(
+          `SELECT id, businessName, briefingJson, sdrHandoffJson, workspaceId, clientId
+             FROM ClientRequestDb
+            WHERE status = 'proposal_pending' AND avisoOrcamentoStatus IS NULL
+              AND (workspaceId = ? OR workspaceId IS NULL)
+            ORDER BY createdAt ASC
+            LIMIT ?`,
+          escopo.workspaceId,
+          limite,
+        );
+  return filtradoPeloEscopo(linhas, escopo);
+}
+
+/** Separa quem tem e-mail (o único subconjunto que faz sentido no balde) de
+ *  quem não tem (`sem_canal` — não é legado, não é fila de reenvio). */
+function filtrarComEmail(linhas: LinhaParaReenviar[]): LinhaParaReenviar[] {
+  return linhas.filter((l) => {
+    const contato = lerContato({ briefingJson: l.briefingJson, sdrHandoffJson: l.sdrHandoffJson });
+    return Boolean(contato.email);
+  });
+}
+
+/** Teto de leitura para o balde de legados — mesma lógica de teto do resto
+ *  do arquivo, mas maior que `MAX_REENVIOS_POR_CHAMADA` porque contar (GET)
+ *  não dispara e-mail nenhum; só o reenvio (POST) respeita o teto de envio. */
+const MAX_LEGADOS_PARA_CONTAR = 500;
+
+/**
+ * Conta e lista quem está no balde de legados, para a rota (GET) mostrar
+ * separado dos que sabidamente falharam. Nunca lança: quem chama precisa
+ * saber "não consegui contar" separado de "a contagem é zero" — por isso
+ * devolve a promessa crua e deixa o chamador decidir o formato do erro.
+ *
+ * `escopo` obrigatório — mesma fronteira de posse do resto do arquivo (ver o
+ * cabeçalho). Sem ele, o painel de legados vazava negócio e e-mail de
+ * prospects de outros workspaces.
+ */
+export async function contarAvisosLegados(
+  escopo: EscopoDoAviso,
+): Promise<{ total: number; itens: LegadoDeAviso[] }> {
+  const linhas = await candidatosLegados(MAX_LEGADOS_PARA_CONTAR, escopo);
+  const comEmail = filtrarComEmail(linhas);
+  return {
+    total: comEmail.length,
+    itens: comEmail.map((l) => ({
+      id: l.id,
+      businessName: l.businessName,
+      contatoEmail: lerContato({ briefingJson: l.briefingJson, sdrHandoffJson: l.sdrHandoffJson }).email!,
+    })),
+  };
+}
+
+/**
+ * Reenvia o balde de legados — pedidos com `avisoOrcamentoStatus IS NULL`
+ * que já saíram de `new`, ou seja, cuja entrega no portal já aconteceu antes
+ * de esta casa saber registrar o resultado do aviso por e-mail.
+ *
+ * ── POR QUE ISTO NUNCA É O COMPORTAMENTO PADRÃO ─────────────────────────────
+ * `reenviarAvisosQueFalharam` não chama esta função, e a rota só a aciona com
+ * um campo explícito no corpo do POST (`incluirLegados: true`). `NULL`
+ * significa "não sabemos se o cliente já recebeu" — reenviar por padrão
+ * arriscaria mandar o mesmo orçamento duas vezes para quem, por acaso, já
+ * tinha recebido antes de a coluna existir. Duplicata é o defeito pior desta
+ * casa (ver o cabeçalho do arquivo); por isso este balde só se mexe quando
+ * alguém pede, sabendo o que está pedindo.
+ *
+ * A ambiguidade se autocura: depois desta tentativa (sucesso ou falha), o
+ * pedido tem status conhecido e nunca mais aparece neste balde — na pior das
+ * hipóteses migra para a fila comum de `reenviarAvisosQueFalharam`.
+ *
+ * Nunca lança: mesmo padrão de resiliência do reenvio normal.
+ *
+ * `escopo` obrigatório — mesma fronteira de posse das duas funções acima.
+ */
+export async function reenviarAvisosLegados(escopo: EscopoDoAviso): Promise<ResultadoDoReenvio> {
+  const resultado: ResultadoDoReenvio = { reenviados: 0, aindaFalhando: 0, falhas: [] };
+
+  let candidatos: LinhaParaReenviar[];
+  try {
+    const linhas = await candidatosLegados(MAX_REENVIOS_POR_CHAMADA, escopo);
+    candidatos = filtrarComEmail(linhas);
+  } catch (err) {
+    resultado.falhas.push(err instanceof Error ? err.message : String(err));
+    return resultado;
+  }
+
+  await tentarReenviosEmLote(candidatos, resultado);
   return resultado;
 }

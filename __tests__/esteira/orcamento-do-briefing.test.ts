@@ -13,6 +13,13 @@ const db = vi.hoisted(() => ({
   portalMessage: { create: vi.fn() },
   portalAccess: { findFirst: vi.fn() },
   $transaction: vi.fn(async (ops: unknown[]) => ops),
+  // O AVISO QUE FALHA NUNCA MAIS SOME (16/08/2026): a persistência do
+  // resultado usa SQL cru (a coluna é nova; ver o comentário de
+  // `gravarResultadoDoAviso`), então o mock precisa dos dois métodos crus —
+  // sem eles, toda gravação cairia silenciosamente no `catch` e nenhum teste
+  // conseguiria provar que ela aconteceu.
+  $executeRawUnsafe: vi.fn().mockResolvedValue(1),
+  $queryRawUnsafe: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
@@ -63,6 +70,10 @@ beforeEach(() => {
   db.portalAccess.findFirst.mockReset();
   db.portalAccess.findFirst.mockResolvedValue({ token: "tok123" });
   db.$transaction.mockClear();
+  db.$executeRawUnsafe.mockReset();
+  db.$executeRawUnsafe.mockResolvedValue(1);
+  db.$queryRawUnsafe.mockReset();
+  db.$queryRawUnsafe.mockResolvedValue([]);
   email.sendEmail.mockReset();
   email.sendEmail.mockResolvedValue({ ok: true, id: "em_1" });
 });
@@ -455,5 +466,78 @@ describe("o texto do e-mail entra na MESMA regra do texto do orçamento", () => 
     db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
     await entregarOrcamentosPendentes();
     expect(email.sendEmail.mock.calls[0][0].html as string).not.toMatch(/verba menor/i);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O AVISO QUE FALHA NUNCA MAIS SOME — 16/08/2026
+//
+// `RESEND_FROM` não existe no Railway (medido). Sem ela, todo aviso de
+// orçamento falha no dia do deploy — e até aqui a falha virava um
+// `console.warn` que morria no rodízio do log do container. "Log não é fila":
+// ninguém consulta, ninguém reprocessa, e quando o CEO configurar a variável
+// ninguém é reavisado — o silêncio de 51 dias (Sushi Cazza) recriado, agora
+// invisível porque parece que o sistema fez a parte dele.
+//
+// Estes testes provam que o resultado (sucesso INCLUÍDO) vira uma escrita no
+// banco que sobrevive à função que a produziu — é o que autoriza um reenvio a
+// existir sem virar máquina de mandar o mesmo orçamento duas vezes.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("a falha do aviso vira estado gravado — não some com a rodada", () => {
+  it("e-mail que falha grava avisoOrcamentoStatus='falhou' com o motivo", async () => {
+    email.sendEmail.mockResolvedValue({ ok: false, error: "resend_422: domínio não verificado" });
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    await entregarOrcamentosPendentes();
+
+    expect(db.$executeRawUnsafe).toHaveBeenCalledTimes(1);
+    const args = db.$executeRawUnsafe.mock.calls[0];
+    expect(args[0]).toMatch(/UPDATE ClientRequestDb/);
+    // status, detalhe, em(iso), id — nesta ordem, ver `gravarResultadoDoAviso`.
+    expect(args[1]).toBe("falhou");
+    expect(args[2]).toMatch(/domínio não verificado/);
+    expect(args[4]).toBe("req1");
+  });
+
+  it("RESEND_API_KEY ausente grava 'skipped', distinto de 'falhou' — é configuração, não defeito do pedido", async () => {
+    email.sendEmail.mockResolvedValue({ ok: false, skipped: true });
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    await entregarOrcamentosPendentes();
+
+    const args = db.$executeRawUnsafe.mock.calls[0];
+    expect(args[1]).toBe("skipped");
+    expect(args[2]).toMatch(/RESEND_API_KEY/);
+  });
+
+  it("caso limpo intacto: quem foi avisado de primeira grava 'avisado', nunca estado de erro", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    await entregarOrcamentosPendentes();
+
+    expect(db.$executeRawUnsafe).toHaveBeenCalledTimes(1);
+    const args = db.$executeRawUnsafe.mock.calls[0];
+    expect(args[1]).toBe("avisado");
+    expect(args[2]).toBeNull();
+  });
+
+  it("sem_canal grava o fato, mas NUNCA como 'falhou' — sem_canal não é falha", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedidoSemContato()]);
+    await entregarOrcamentosPendentes();
+
+    expect(db.$executeRawUnsafe).toHaveBeenCalledTimes(1);
+    const args = db.$executeRawUnsafe.mock.calls[0];
+    expect(args[1]).toBe("sem_canal");
+    expect(args[1]).not.toBe("falhou");
+  });
+
+  it("uma falha ao GRAVAR o estado não derruba a rodada — o próximo pedido segue", async () => {
+    db.$executeRawUnsafe.mockRejectedValueOnce(new Error("banco fora do ar"));
+    db.clientRequestDb.findMany.mockResolvedValue([pedido({ id: "req1" }), pedido({ id: "req2" })]);
+    const r = await entregarOrcamentosPendentes();
+
+    // A entrega (o que chega ao cliente) não depende da gravação de
+    // diagnóstico: os dois pedidos continuam entregues e avisados.
+    expect(r.entregues).toBe(2);
+    expect(r.avisados).toBe(2);
+    expect(r.falhas).toEqual([]);
   });
 });

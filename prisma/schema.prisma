@@ -1242,6 +1242,51 @@ model ClientRequestDb {
   /// é a inferência que esta casa proíbe.
   chaveDoProspect String?
 
+  /// ── O AVISO DE ORÇAMENTO QUE FALHA NUNCA MAIS SOME (16/08/2026, aditiva) ──
+  ///
+  /// Motivo completo em `lib/agency/esteira/orcamento-do-briefing.ts`. Resumo:
+  /// sem `RESEND_FROM` configurado no Railway, todo aviso de orçamento falha
+  /// no dia do deploy — e até aqui a falha só existia como `console.warn`,
+  /// apagado no redeploy seguinte. Estas três colunas dão à falha um lugar que
+  /// SOBREVIVE à rodada, e que autoriza um reenvio sem duplicar o e-mail de
+  /// quem já foi avisado com sucesso.
+  ///
+  /// Só são escritas DEPOIS que o orçamento já foi entregue no portal — mesma
+  /// regra de `avisarPorEmail`: nunca antes da transação que tira o pedido de
+  /// `new`. Os valores possíveis de `avisoOrcamentoStatus`, e cada um é um FATO
+  /// diferente — nunca achatados em "deu certo" / "deu errado":
+  ///   • "avisado"   — o e-mail saiu. O reenvio NUNCA busca este estado — é
+  ///                   isso que impede o cliente de receber o orçamento 2x.
+  ///   • "falhou"    — o Resend recusou o envio. É o que o reenvio busca.
+  ///   • "skipped"   — `RESEND_API_KEY` ausente. Configuração da casa, não do
+  ///                   pedido — mas reenviável assim que a chave existir, e por
+  ///                   isso o reenvio também busca este estado.
+  ///   • "sem_canal" — o lead não declarou e-mail. NÃO é falha, e o reenvio
+  ///                   NUNCA busca este estado: não há para onde reenviar.
+  ///
+  /// E o quinto fato, que não é um valor gravado aqui — é a AUSÊNCIA dele:
+  ///   • NULL — "não sabemos". `a2d06fb1` (versão anterior deste arquivo) já
+  ///     estava em produção antes de esta coluna existir: todo pedido que o
+  ///     relógio processou naquela janela saiu de `new` sem gravar nada.
+  ///     NULL não é "falhou" (reenviar por padrão arriscaria duplicata para
+  ///     quem, por acaso, já recebeu) nem "avisado" (garantiria silêncio para
+  ///     quem não recebeu). Por isso vira um balde à parte — "legado"
+  ///     (`contarAvisosLegados` / `reenviarAvisosLegados`) — nunca um sexto
+  ///     valor gravado por palpite, e o reenvio dele é sempre opt-in
+  ///     explícito, nunca o padrão. Ver "O BALDE DOS LEGADOS" em
+  ///     `lib/agency/esteira/orcamento-do-briefing.ts`.
+  avisoOrcamentoStatus     String?
+  /// O motivo em texto — a resposta do Resend, ou "RESEND_API_KEY ausente".
+  /// Nunca guarda dado do cliente: é sempre o lado da casa que falhou.
+  avisoOrcamentoDetalhe    String?
+  /// Quando este status foi gravado. Atualizada a cada tentativa — inclusive
+  /// nos reenvios — para a fila de reenvio priorizar quem espera há mais tempo.
+  avisoOrcamentoEm         DateTime?
+  /// Quantas vezes a casa tentou avisar este pedido (entrega original +
+  /// reenvios). Existe para o painel dizer "já tentamos 3x" em vez de deixar
+  /// parecer que o reenvio nunca rodou.
+  avisoOrcamentoTentativas Int      @default(0)
+
   artifacts     BrainArtifact[]
   approvals     ApprovalRequest[]
   evidenceItems EvidenceItem[]
