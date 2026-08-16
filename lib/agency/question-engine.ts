@@ -54,24 +54,59 @@ function extractNumber(t: string): number | undefined {
  * respondendo no ritmo que lhe foi perguntado, e supor o contrário seria
  * inventar. Ausência de unidade é diferente de unidade contrária.
  */
-export function frequenciaSemanal(texto: string): number | undefined {
+export type UnidadeDeVolume = "semana" | "mes";
+
+/** Quantas vezes por SEMANA cada unidade acontece. */
+const POR_SEMANA: Record<string, number> = { dia: 7, semana: 1, quinzena: 0.5, mes: 0.25 };
+
+/** A unidade que a RESPOSTA declarou — `null` quando ela não declarou nenhuma. */
+function unidadeDaResposta(t: string): keyof typeof POR_SEMANA | null {
+  if (/\b(por|ao|todo|cada|a\s*cada)\s*dia\b|\bdi[áa]ri[ao]s?\b|\bdiariamente\b/.test(t)) return "dia";
+  if (/\b(por|ao|na|cada|a\s*cada)\s*semana\b|\bsemana(l|is)\b|\bsemanalmente\b/.test(t)) return "semana";
+  if (/\bquinzena(l|is)?\b|\ba\s*cada\s*(duas|2)\s*semanas\b/.test(t)) return "quinzena";
+  if (/\b(por|ao|no|cada|a\s*cada)\s*m[êe]s\b|\bmensa(l|is)\b|\bmensalmente\b/.test(t)) return "mes";
+  return null;
+}
+
+/**
+ * O NÚMERO QUE A PESSOA DISSE, NA UNIDADE QUE O CAMPO GUARDA.
+ *
+ * ⚠️ **A UNIDADE DE DESTINO É PARÂMETRO, e isso é a trava — não um detalhe.**
+ *
+ * A primeira versão desta função convertia sempre para "por semana", porque as
+ * duas perguntas consertadas guardavam `postsPerWeek`/`storiesPerWeek`. Aí a
+ * varredura do motor achou **seis** lugares que leem número com unidade, e dois
+ * deles guardam `reelsPerMonth` — **por mês**. Aplicar a conversão semanal neles
+ * produziria o ERRO INVERSO, com a cara de conserto.
+ *
+ * Três consertos manuais viram um quarto defeito no dia em que alguém adicionar
+ * a quarta pergunta. Com a unidade de destino no parâmetro, quem escreve a
+ * pergunta é obrigado a dizer em que unidade ela guarda — e o encontro entre a
+ * unidade da pergunta e a da resposta acontece **num lugar só**.
+ *
+ * Arredondamento sempre para CIMA: 10 posts/mês são 2,5/semana, e entregar 2
+ * seria devolver menos do que foi contratado. **Na dúvida, a favor de quem
+ * paga.**
+ */
+export function volumeNaUnidade(texto: string, destino: UnidadeDeVolume): number | undefined {
   const n = extractNumber(texto);
   if (n === undefined) return undefined;
-  const t = texto.toLowerCase();
 
-  // "por dia", "ao dia", "diários", "todo dia", "diariamente"
-  if (/\b(por|ao|todo|cada)\s*dia\b|\bdi[áa]ri[ao]s?\b|\bdiariamente\b/.test(t)) return n * 7;
+  const unidade = unidadeDaResposta(texto.toLowerCase());
+  // Sem unidade declarada, vale a da PERGUNTA. Ausência de unidade é diferente
+  // de unidade contrária: quem responde "5" a "quantas por semana?" está
+  // respondendo por semana, e supor o contrário seria inventar o pedido.
+  if (unidade === null) return n;
 
-  // "por mês", "ao mês", "mensais", "mensalmente"
-  // Arredonda para CIMA: 10 posts/mês é 2,5/semana, e entregar 2 seria devolver
-  // menos do que foi contratado. Na dúvida, a favor de quem paga.
-  if (/\b(por|ao|no|cada)\s*m[êe]s\b|\bmensa(l|is)\b|\bmensalmente\b/.test(t)) return Math.ceil(n / 4);
+  const porSemana = n * POR_SEMANA[unidade];
+  const convertido = destino === "semana" ? porSemana : porSemana * 4;
+  return Math.max(1, Math.ceil(convertido));
+}
 
-  // "por quinzena", "quinzenal" — a cada duas semanas.
-  if (/\bquinzena(l|is)?\b/.test(t)) return Math.ceil(n / 2);
-
-  // Sem unidade, ou "por semana": vale a unidade da pergunta.
-  return n;
+/** Atalho para o destino mais comum. Mantido porque é o nome que o incidente do
+ *  CEO batizou e que os testes daquele dia usam. */
+export function frequenciaSemanal(texto: string): number | undefined {
+  return volumeNaUnidade(texto, "semana");
 }
 
 export function detectPlatforms(t: string): string[] {
@@ -293,7 +328,9 @@ const QUESTIONS: QuestionDef[] = [
     id: "reels",
     when: (s) => s.scope.wantsSocialMedia && s.scope.social?.reelsPerMonth === undefined,
     text: () => "Vai precisar de reels ou vídeos? Se sim, quantos por mês? (Roteiro e edição inclusos — filmagem não é incluída por padrão)",
-    parse: (answer, s) => ({ social: { ...social(s), reelsPerMonth: isNo(answer) ? 0 : (extractNumber(answer) ?? 4) } }),
+    // Destino "mes": este campo é `reelsPerMonth`. "2 reels por semana" são 8
+    // por mês — e a conversão semanal daria 2, o erro inverso com cara de conserto.
+    parse: (answer, s) => ({ social: { ...social(s), reelsPerMonth: isNo(answer) ? 0 : (volumeNaUnidade(answer, "mes") ?? 4) } }),
   },
 
   // Q5.1 — video production (only when reels/videos are in scope)
@@ -535,7 +572,10 @@ export function detectNegotiation(text: string, state: ConvState): NegotiationRe
     s.wantsSocialMedia &&
     /quero reels?|adicionar reels?|adiciona reels?|inclui reels?|coloca reels?|incluir reels?/.test(t)
   ) {
-    const n = extractNumber(text) ?? 2;
+    // Mesmo campo, mesma unidade de destino que a pergunta `reels`. A negociação
+    // ("quero reels") é outra porta para o MESMO campo — deixar uma porta sem a
+    // conversão é deixar o defeito escolher por onde entrar.
+    const n = volumeNaUnidade(text, "mes") ?? 2;
     return {
       scopeDelta: { social: { ...soc, reelsPerMonth: n } },
       replyText: `Ótimo! Adicionei ${n} reel${n !== 1 ? "s" : ""}/mês — roteiro + edição a partir de material do cliente. Filmagem não está incluída por padrão.`,
@@ -567,7 +607,8 @@ export function detectNegotiation(text: string, state: ConvState): NegotiationRe
     s.wantsSocialMedia && soc.postsPerWeek !== undefined &&
     /mais posts?|aumentar posts?|aumenta posts?|sobe posts?|mais postagens?/.test(t)
   ) {
-    const n = extractNumber(text) ?? soc.postsPerWeek + 1;
+    // "quero mais posts, 2 por dia" são 14/semana — não 2.
+    const n = volumeNaUnidade(text, "semana") ?? soc.postsPerWeek + 1;
     return {
       scopeDelta: { social: { ...soc, postsPerWeek: n } },
       replyText: `Feito! Ajustei para ${n} posts por semana (${n * 4}/mês).`,
@@ -579,7 +620,7 @@ export function detectNegotiation(text: string, state: ConvState): NegotiationRe
     s.wantsSocialMedia && soc.postsPerWeek !== undefined &&
     /menos posts?|diminuir posts?|diminui posts?|reduzir posts?|reduz posts?/.test(t)
   ) {
-    const n = extractNumber(text) ?? Math.max(2, soc.postsPerWeek - 1);
+    const n = volumeNaUnidade(text, "semana") ?? Math.max(2, soc.postsPerWeek - 1);
     return {
       scopeDelta: { social: { ...soc, postsPerWeek: n } },
       replyText: `Feito! Ajustei para ${n} posts por semana (${n * 4}/mês).`,
