@@ -45,7 +45,14 @@ export function cortarNomeDeArquivo(nome: unknown, teto: number = TETO_DO_NOME_D
   const bruto = typeof nome === "string" ? nome : "";
   // Quebra de linha dentro do nome partiria o cabeçalho `--- nome ---` em duas
   // linhas e deixaria o atacante escrever linha solta dentro do prompt.
-  const limpo = bruto.replace(/[\r\n\t]+/g, " ").trim();
+  //
+  // ⚠️ 16/08/2026 (B4) — `[\r\n\t]` não é a lista inteira. Vertical tab, form feed,
+  // NEL, LINE SEPARATOR e PARAGRAPH SEPARATOR também quebram linha em algum consumidor (o
+  // JSON da resposta, o `<pre>` da tela, o prompt do modelo). Lista fechada de
+  // "o que quebra linha" muda com o consumidor; lista fechada de "o que é
+  // caractere de controle" não muda.
+  // eslint-disable-next-line no-control-regex
+  const limpo = bruto.replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029]+/g, " ").trim();
   if (!limpo) return "arquivo";
   if (limpo.length <= teto) return limpo;
 

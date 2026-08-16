@@ -32,6 +32,11 @@ import { mkdir, writeFile, readFile, stat, unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { prisma } from "@/lib/db/client";
+// O NOME DO ARQUIVO É ENTRADA DE ATACANTE, e este é o ponto de ORIGEM dele: o
+// que for gravado aqui reaparece na tela, na resposta HTTP e — desde 16/08 — no
+// prompt da triagem. `slice(0, 200)` cortava tamanho e mais nada: `\n` dentro do
+// nome atravessava tudo e quebrava a linha do prompt em duas (B4).
+import { cortarNomeDeArquivo } from "@/lib/agency/comercial/nome-de-anexo";
 
 /** Teto por arquivo. Vídeo de celular vai de 20 a 200 MB; 120 MB cobre a
  *  maioria sem deixar um único envio comer o volume inteiro. */
@@ -293,7 +298,11 @@ export async function guardarArquivo(input: {
       clientId: input.clientId ?? null,
       projectId: input.projectId ?? null,
       kind: input.kind ?? "inbound",
-      fileName: input.fileName.slice(0, 200),
+      // Corta E desmonta a quebra de linha. O desfiguramento de cerca não mora
+      // aqui de propósito: mutilar `logo---final.png` na tela do cliente para se
+      // defender de prompt seria pagar na porta errada. Quem monta prompt lava o
+      // nome de novo (`nomeParaCerca`), que é onde o risco existe.
+      fileName: cortarNomeDeArquivo(input.fileName, 200),
       mimeType: input.mimeType,
       sizeBytes: bytes.length,
       sha256,

@@ -197,10 +197,35 @@ describe("✅ o anexo legítimo chega ao classificador", () => {
     expect(blocoDeAnexos(await lerAnexosDoPedido({ attachmentsJson: null, clientId: "cli-A" }))).toBe(
       "ANEXOS: nenhum.",
     );
-    // JSON quebrado NÃO derruba a triagem.
-    expect(blocoDeAnexos(await lerAnexosDoPedido({ attachmentsJson: "{quebrado", clientId: "cli-A" }))).toBe(
-      "ANEXOS: nenhum.",
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🔴 ESTE TESTE CARIMBAVA A REGRESSÃO COMO CORRETA (B5, 16/08/2026).
+  //
+  // Ele exigia, por escrito, que `attachmentsJson: "{quebrado"` produzisse
+  // `"ANEXOS: nenhum."` — isto é, exigia que a casa mentisse dizendo que não há
+  // anexo quando o que houve foi falha de leitura. Era o defeito virando
+  // invariante, o mesmo padrão do `identity-capture` (08/08) e do
+  // `jornada-real`. Invertido: ausência de informação não é informação.
+  it("🔑 lista ILEGÍVEL é terceiro estado — nunca 'não tem anexo'", async () => {
+    const bloco = blocoDeAnexos(
+      await lerAnexosDoPedido({ attachmentsJson: "{quebrado", clientId: "cli-A" }),
     );
+
+    expect(bloco).not.toBe("ANEXOS: nenhum.");
+    expect(bloco).toMatch(/NÃO CONSEGUI LER A LISTA/i);
+    // E não inventa quantidade: "1 arquivo(s)" seria número que ninguém mediu.
+    expect(bloco).not.toMatch(/enviou \d+ arquivo/);
+    // A triagem continua de pé (não lança), e ela sabe o que fazer: escalar.
+    expect(bloco).toMatch(/escale para a equipe/i);
+  });
+
+  it("JSON válido que não é lista também é ilegível, não é ausência", async () => {
+    const bloco = blocoDeAnexos(
+      await lerAnexosDoPedido({ attachmentsJson: '{"a":1}', clientId: "cli-A" }),
+    );
+    expect(bloco).not.toBe("ANEXOS: nenhum.");
+    expect(bloco).toMatch(/NÃO CONSEGUI LER A LISTA/i);
   });
 
   it("anexo enorme é cortado, e o corte é DECLARADO ao modelo", async () => {
