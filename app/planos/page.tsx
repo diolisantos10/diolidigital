@@ -13,7 +13,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DioliLogo } from "@/components/brand/DioliLogo";
 import { OrbitMotif } from "@/components/brand/OrbitMotif";
-import { PLANOS, FORA_DE_TODO_PLANO, precoEmReais } from "@/lib/agency/planos";
+// 🔴 `PLANOS_PUBLICOS`, NUNCA `PLANOS`. A fonte única tem SEIS degraus; um
+// deles (Performance, R$ 4.990 + mídia) é precificado e NÃO vendável enquanto
+// a gestão de Meta Ads estiver laranja. `PLANOS` aqui publicaria o preço de um
+// plano que a casa não pode entregar — e esta é a página que o prospect lê.
+// Há teste que reprova o import errado neste arquivo.
+import { PLANOS_PUBLICOS, FORA_DE_TODO_PLANO, precoEmReais, implantacaoEmTexto } from "@/lib/agency/planos";
+
+// A escada pública, ordenada por preço. Tudo que a página escreve em prosa
+// sobre "quantos" e "de quanto a quanto" sai daqui — número de plano escrito à
+// mão numa manchete é preço fora da fonte única, e foi assim que esta casa
+// chegou a ter quatro tabelas.
+const ESCADA_PUBLICA = [...PLANOS_PUBLICOS].sort((a, b) => a.preco - b.preco);
+const MAIS_BARATO = ESCADA_PUBLICA[0];
+const MAIS_CARO = ESCADA_PUBLICA[ESCADA_PUBLICA.length - 1];
+const POR_EXTENSO: Record<number, string> = {
+  3: "Três", 4: "Quatro", 5: "Cinco", 6: "Seis", 7: "Sete", 8: "Oito",
+};
+const QUANTOS_POR_EXTENSO = POR_EXTENSO[ESCADA_PUBLICA.length] ?? String(ESCADA_PUBLICA.length);
 
 const WHATSAPP = "5511989400692";
 function zap(msg: string): string {
@@ -23,10 +40,11 @@ function zap(msg: string): string {
 export const metadata: Metadata = {
   title: "Planos e preços — Dioli Digital",
   description:
-    "Cinco planos mensais, do acompanhamento de resultados à operação completa. Cada um diz em número o que entrega — e o que não entrega.",
+    `${QUANTOS_POR_EXTENSO} planos mensais, do acompanhamento de resultados à operação completa. Cada um diz em número o que entrega — e o que não entrega.`,
   openGraph: {
     title: "Planos e preços — Dioli Digital",
-    description: "Do R$ 49 que mede ao R$ 2.590 que cresce. Escopo escrito, sem letra miúda.",
+    // Preço em prosa é preço fora da fonte. Estes dois saem da própria escada.
+    description: `Do ${precoEmReais(MAIS_BARATO.preco)} que mede ao ${precoEmReais(MAIS_CARO.preco)} que cresce. Escopo escrito, sem letra miúda.`,
     type: "website",
     locale: "pt_BR",
   },
@@ -82,7 +100,7 @@ export default function PlanosPage() {
             Planos mensais
           </span>
           <h1 className="mt-6 max-w-3xl text-balance text-[38px] font-bold leading-[1.04] tracking-[-0.035em] text-[var(--navy)] md:text-[58px]">
-            Cinco degraus. <span className="text-gradient-cool">Você sobe quando quiser.</span>
+            {QUANTOS_POR_EXTENSO} degraus. <span className="text-gradient-cool">Você sobe quando quiser.</span>
           </h1>
           <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-[var(--text-secondary)] md:text-[18px]">
             Cada plano diz, em número, o que entrega — e traz por escrito o que <em>não</em> entrega.
@@ -91,7 +109,7 @@ export default function PlanosPage() {
 
           {/* a escada, em uma olhada */}
           <ol className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {PLANOS.map((p) => (
+            {PLANOS_PUBLICOS.map((p) => (
               <li key={p.id}>
                 <a
                   href={`#${p.id}`}
@@ -114,7 +132,7 @@ export default function PlanosPage() {
       {/* ── As fichas ──────────────────────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-6xl px-5 py-16 md:px-8 md:py-24">
         <div className="flex flex-col gap-6">
-          {PLANOS.map((p) => (
+          {PLANOS_PUBLICOS.map((p) => (
             <article
               key={p.id}
               id={p.id}
@@ -146,7 +164,7 @@ export default function PlanosPage() {
                     <span className="ml-1 text-[14px] font-semibold text-[var(--text-muted)]">/mês</span>
                   </p>
                   <p className="mt-2 text-[12.5px] text-[var(--text-muted)]">
-                    {p.implantacao === null ? "Implantação isenta" : `+ implantação de ${precoEmReais(p.implantacao)}, uma vez`}
+                    {implantacaoEmTexto(p.implantacao)}
                   </p>
                 </div>
               </div>
@@ -184,7 +202,7 @@ export default function PlanosPage() {
                 <span>
                   Permanência{" "}
                   <b className="font-semibold text-[var(--navy)]">
-                    {p.permanencia === 0 ? "nenhuma" : `${p.permanencia} meses`}
+                    {p.permanencia === null ? "a definir" : p.permanencia === 0 ? "nenhuma" : `${p.permanencia} meses`}
                   </b>
                 </span>
                 {p.pecaExtra !== null && (

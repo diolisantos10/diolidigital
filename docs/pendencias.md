@@ -15,6 +15,160 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — O PREÇO PASSOU A TER UMA FONTE SÓ, COM SEIS PLANOS (branch `claude/preco-fonte-unica-seis-planos`)
+
+**A consequência, primeiro:** o briefing público parou de cotar cinco planos que
+não existem. Até hoje, `/planos` dizia **Crescimento R$ 2.590** e, na mesma casa
+e no mesmo dia, o prospect que preenchia o briefing recebia **"Plano Growth —
+R$ 1.500 a R$ 2.400"**.
+
+**Portão:** `npx tsc --noEmit` limpo · **4.470 testes em 281 arquivos, todos
+verdes** (10 novos no portão de preço, 12 no medidor de esforço).
+
+### 🔴 EXISTIAM QUATRO CATÁLOGOS DE PREÇO DE PLANO, NÃO UM
+
+| Onde | O que declarava | Chegava a quem |
+|---|---|---|
+| `lib/agency/planos.ts` | os 5 oficiais | site `/planos` |
+| `comercial/negociacao.ts` | `cheio`/`piso` digitados + preço em frases de venda | fala do SDR |
+| `live-calculator.ts` | **5 planos inexistentes**, em faixas (600–900 … 4.000–6.500) | **briefing PÚBLICO** |
+| `pricing-margins.ts` | um **segundo piso** (520 · 820 · 1.300 · 2.200 · 3.600) contradizendo o primeiro | painel do dono |
+
+Um **quinto** apareceu no caminho: os cinco itens de balcão estavam repetidos,
+número por número, entre `self-serve-catalog.ts` e `negociacao.ts`.
+
+> **E o portão que já existia passava verde nos quatro dias em que isso era
+> verdade** — ele comparava `docs/precos.md` com `planos.ts`, exatamente o par
+> que já concordava. É o mesmo padrão do "defeito virando invariante" registrado
+> em 07 e 08/08: **portão que confere onde não está o problema é decoração.**
+
+**As quatro foram ELIMINADAS como fonte, não sincronizadas.** Sincronizar deixa
+as duas de pé e elas divergem de novo no primeiro dia de pressa.
+
+### O QUE O PORTÃO NOVO FAZ (`__tests__/comercial/preco-uma-fonte-so.test.ts`)
+
+- ⛔ **varre `lib/`, `app/`, `components/`, `scripts/`, `store/`** atrás de preço
+  de plano digitado fora da fonte — por chave (`preco:`, `price:`, `piso:`…) e em
+  prosa (`R$ 297`) — e **reprova a build**;
+- ⛔ reprova superfície de cliente que importe `PLANOS` em vez de `PLANOS_PUBLICOS`;
+- ⛔ reprova a volta do catálogo-fantasma (`"Plano Growth"` etc.);
+- ✅ **não acusa o caso limpo**: preço de balcão (R$ 79, R$ 129) passa;
+  `const timeoutMs = 2590` passa;
+- 🔑 **falha ALTO se não conseguir ler**: tabela do documento sem 6 linhas, ou
+  varredura que enxergue menos de 200 arquivos, quebram o portão em vez de
+  aprovarem tudo em silêncio;
+- 🔑 **exceção declarada morre sozinha**: há uma única colisão declarada
+  (`precoMinimo: 49` do post de balcão, que por acaso é o preço do Pulso), com
+  justificativa escrita — e um teste reprova exceção **morta**, para o buraco não
+  sobreviver ao conserto.
+
+**Um defeito achado pelo próprio portão, não pela leitura:** o `R$ 49,90` do
+rodízio infantil do Sushi Cazza, em cinco scripts de piloto, casava como "R$ 49"
+e era acusado de ser o preço do Pulso. Portão que grita no caso limpo é portão
+que alguém desliga na terceira vez.
+
+### 🔴 "PENDENTE" DEIXOU DE PODER VIRAR "ISENTA"
+
+`implantacao` era `number | null`, com `null` significando **isenta**. O
+Performance chegou sem implantação escrita em lugar nenhum — guardar isso como
+`null` teria feito a casa **anunciar implantação isenta num plano de R$ 4.990**.
+Virou união: `isenta` · `valor` · `pendente`.
+
+Mesma regra em `piso: null` (ausência de autorização, não piso zero) e em
+`costBasis: null` (o painel do dono mostra **"sem custo"**, não uma margem
+inventada).
+
+### RESPOSTAS ÀS DUAS PERGUNTAS DO CEO
+
+1. **O Performance vazava?** **Não — ele não existia.** Zero ocorrências de plano
+   Performance ou de R$ 4.990 no código. `docs/precos.md` explicava por quê
+   ("*Por que não há plano de R$ 4.990*"). Ele **nasceu** nesta entrega, já com a
+   trava: precificado, `exposicao: "interno"`, fora de toda superfície de cliente.
+2. **A tabela ficou com os seis?** **Sim**, e nenhum sétimo ou quinto sobrou.
+
+### IMPLANTAÇÃO DE PULSO E RITMO — o que já existia, mantido
+
+- **Pulso: isenta**, e já estava assim.
+- **Ritmo: R$ 390**, e já estava assim — valor anterior ao parecer do conselho.
+  **Nada foi inventado, nada foi estendido por analogia.** Há teste que reprova
+  implantação fora das faixas decididas (390 · 1.290 · 1.900 · 2.900).
+
+### O MEDIDOR DE ESFORÇO (`lib/agency/medicao/custo-de-atendimento.ts`)
+
+O conselho fez a conta de margem tratando o **Presença de R$ 790 como a
+entrada**. Com o Pulso a R$ 49, o risco do plano de entrada é **dezesseis vezes
+maior** — e nunca foi medido.
+
+**Nada foi construído do zero:** `ExecucaoV2` já grava `ator`, `clienteId`,
+`funcaoId`, `departamentoId`, `inicio` e `fim`. Faltava somar. O modo de falhar
+mais perigoso está travado por teste: **execução sem `fim` NÃO é duração zero** —
+senão a conta mais cara da casa apareceria como a mais barata.
+
+**Não bloqueia venda nenhuma.** É medidor.
+
+### 🔴 O QUE NÃO FOI FEITO, E POR QUÊ
+
+- 🔴 **NENHUM ESPECIALISTA FOI DESPACHADO COMO AGENTE** (`qualidade`, `seguranca`,
+      `interface`, `experiencia`, `meta`): **não há ferramenta de despacho nesta
+      execução do `pm`.** O despacho pedia `qualidade` explicitamente, em
+      especial sobre a varredura do Performance e a lista de vendáveis. A revisão
+      foi feita pelo `pm` contra as cartas — **não substitui a passada deles**, e
+      é o sexto registro seguido do mesmo impedimento neste arquivo.
+- 🔴 **NENHUMA TELA FOI CONFERIDA EM 375/768/1440.** `/planos`,
+      `/agency/catalog` e o briefing público mudaram de conteúdo (a matriz de
+      recursos passou a mostrar "—" onde não há dado declarado). Não subi o
+      servidor nem tirei screenshot. **Fica aberto, com dono: `interface`.**
+- ⚠️ **Stories e reels deixaram de ser dimensionados na cotação.** Eles não
+      existem como unidade nos planos oficiais (o escopo fala em PEÇAS/mês).
+      Inventar "5 stories/semana" para casar com a interface antiga seria
+      preencher escopo por inferência. Os campos são `null` e a tela mostra "—".
+- ⚠️ **`SocialPackage` mudou de vocabulário** (`growth` → `crescimento`). Se
+      houver `budgetRange`/pacote **gravado no banco de produção** com os ids
+      antigos, ele não resolve mais. Não há como medir daqui (sem acesso ao
+      banco). **Sem dono.**
+
+### 🔴 O QUE SOBE PARA O CEO — decisão dele, não minha
+
+- [ ] **CEO** — **piso do Pulso.** Não existe em lugar nenhum, e por isso o SDR
+      **não consegue fechar Pulso** (`podeFechar` devolve `false`). Não é
+      regressão: é a lacuna ficando visível.
+- [ ] **CEO** — **implantação, piso, escopo, cadência e permanência do
+      Performance.** Nada disso foi escrito.
+- [ ] **CEO** — **o Ritmo é vendido duas vezes.** `balcao-pacote-mes` ("Pacote
+      mês — 8 peças", R$ 297) entrega as mesmas 8 peças, pelo mesmo preço, **sem
+      a implantação de R$ 390 e sem os 3 meses de permanência**, na vitrine
+      pública. A duplicata de número foi eliminada; a sobreposição comercial não.
+- [ ] **CEO** — 🔴 **há oferta de Meta Ads à venda com a conta restrita.**
+      `setup-meta-ads` (R$ 380, vitrine pública) e "Gestão de Tráfego Pago"
+      (R$ 500–1.200). É a mesma laranja que barrou o Performance. **Nada foi
+      removido** — tirar produto do ar é decisão de negócio.
+- [ ] **CEO** — **os "24 verdes".** O código só prova **5** (os planos públicos).
+      A lista completa, com o "não sei" explícito item a item, está em
+      `docs/catalogo-vendavel.md`.
+
+### O QUE FICA COM DONO TÉCNICO
+
+- [ ] `plataforma` — 🔴 **`Client` NÃO TEM CAMPO DE PLANO** (`planoId`). É a
+      lacuna que bloqueia a pergunta do CEO: dá para dizer "a conta X consumiu
+      3h", nunca "o Pulso consome 3h".
+- [ ] `plataforma` — **`ExecucaoV2.fim` é opcional** e execução que ninguém fecha
+      some da conta. Se a proporção for alta, o total de horas é um **piso**, não
+      uma medida.
+- [ ] `interface` + `experiencia` — **não existe tela de horas por conta e por
+      atividade.** Sugestão: `/agency/catalog`, ao lado da Inteligência de
+      Margem, que já mostra "sem custo" nos seis.
+- [ ] `esteira` — **atendimento fora da linha V2 não é contado** (WhatsApp,
+      revisão na mão, ligação). É justamente o atendimento que se teme no plano
+      de entrada.
+- [ ] `esteira` — **9 dos 15 itens da vitrine não têm piso** (`precoMinimo`).
+      O SDR responde "preciso confirmar" para todos — correto como
+      comportamento, errado como estado.
+- [ ] `plataforma`/`esteira` — **`service-catalog.ts` diz Identidade Visual
+      R$ 1.200–2.500 e `docs/precos.md` diz R$ 2.900.** Faixa × preço, e os dois
+      são mostrados. Fora do escopo desta frente (não é preço de PLANO), mas é a
+      mesma doença.
+
+
 ## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
 
 **Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no

@@ -6,6 +6,8 @@
 // Pricing is fixed (not min–max) because the buyer pays at checkout.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { PLANOS } from "./planos";
+
 export type SelfServeCategory = "social" | "video" | "design" | "traffic" | "balcao";
 
 export interface MicroService {
@@ -30,6 +32,10 @@ export interface MicroService {
   // mão — e prazo, como preço, mora em um lugar só.
   deliveryLabel?: string;
 }
+
+// O único número de PLANO que este arquivo usa vem da fonte única. Ver o
+// comentário em `balcao-pacote-mes`.
+const RITMO = PLANOS.find((p) => p.id === "ritmo")!;
 
 export const SELF_SERVE_CATALOG: MicroService[] = [
   // ── Balcão ───────────────────────────────────────────────────────────────
@@ -134,8 +140,17 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
       "Calendário com a data de cada publicação",
       "Aprovação peça a peça no portal do cliente",
     ],
-    price: 297,
-    precoMinimo: 229,
+    // 🔴 ESTE ITEM É O PLANO RITMO COM OUTRO NOME, e o preço prova: R$ 297 e
+    // piso R$ 229 eram os números do Ritmo, digitados aqui de novo. A duplicata
+    // foi eliminada — os dois valores agora DERIVAM de `lib/agency/planos.ts`.
+    //
+    // ⚠️ A SOBREPOSIÇÃO COMERCIAL CONTINUA DE PÉ E É DECISÃO DO CEO: o Ritmo
+    // cobra R$ 297/mês + R$ 390 de implantação + 3 meses de permanência; este
+    // item entrega as mesmas 8 peças por R$ 297, sem implantação e sem
+    // permanência, na vitrine pública. Quem comparar as duas telas compra esta.
+    // Nenhum produto foi removido aqui — remover oferta é decisão de negócio.
+    price: RITMO.preco,
+    precoMinimo: RITMO.piso ?? undefined,
     deliveryDays: 30,
     deliveryLabel: "mensal",
     category: "balcao",

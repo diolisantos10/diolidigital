@@ -1,4 +1,4 @@
-# Tabela de preços da Dioli Digital — v1, 05/08/2026
+# Tabela de preços da Dioli Digital — v2, 16/08/2026 (era v1, 05/08/2026)
 
 > ## 💰 ONDE O PREÇO MORA DE VERDADE
 >
@@ -6,13 +6,33 @@
 >
 > | O quê | Onde |
 > |---|---|
-> | Os 5 planos (nome, preço, implantação, escopo) | **`lib/agency/planos.ts`** |
-> | Pisos de negociação e moedas de troca | **`lib/agency/comercial/negociacao.ts`** |
+> | Os **6** planos: nome, preço, implantação, **piso**, escopo, exposição | **`lib/agency/planos.ts`** |
+> | Moedas de troca e a régua de faixas do SDR | `lib/agency/comercial/negociacao.ts` (**deriva** de `planos.ts`) |
+> | A cotação do briefing | `lib/agency/live-calculator.ts` (**deriva** de `planos.ts`) |
+> | Custo e margem, uso interno | `lib/agency/pricing-margins.ts` (**deriva** de `planos.ts`) |
 > | O balcão (post R$ 79, carrossel R$ 129) | **`lib/agency/self-serve-catalog.ts`** |
 >
-> **Mudou um preço? Mude nos DOIS, no mesmo commit.** Não é disciplina, é
-> portão: `__tests__/comercial/preco-uma-fonte-so.test.ts` lê a tabela "Os cinco
-> degraus" daqui, compara com `PLANOS` e **reprova a build** se divergirem.
+> ### 🔴 EM 16/08/2026 EXISTIAM **QUATRO** TABELAS DE PREÇO DE PLANO
+>
+> Não uma fonte e um documento: quatro catálogos de código, vivos ao mesmo tempo.
+>
+> | Onde | O que declarava | Chegava a quem |
+> |---|---|---|
+> | `lib/agency/planos.ts` | os 5 planos oficiais | site `/planos` |
+> | `comercial/negociacao.ts` | `cheio`/`piso` digitados + preço em frases de venda | fala do SDR |
+> | `live-calculator.ts` | **5 planos que não existem** (Essencial, Starter, Growth, Pro, Premium), em FAIXAS: R$ 600–900 · 900–1.400 · 1.500–2.400 · 2.500–4.000 · 4.000–6.500 | **briefing PÚBLICO** |
+> | `pricing-margins.ts` | um **segundo piso** (520 · 820 · 1.300 · 2.200 · 3.600) que contradizia o primeiro | painel de margem do dono |
+>
+> A terceira era o dano: `/planos` dizia **Crescimento R$ 2.590** e, no mesmo dia
+> e na mesma casa, o prospect que preenchia o briefing recebia **"Plano Growth —
+> R$ 1.500 a R$ 2.400"**. As três de baixo foram **ELIMINADAS como fonte** e
+> passaram a **derivar** de `planos.ts`. Não foram sincronizadas: duplicata
+> sincronizada volta a divergir no primeiro dia de pressa.
+>
+> **Mudou um preço? Muda em `planos.ts` e aqui, no mesmo commit.** Não é
+> disciplina, é portão: `__tests__/comercial/preco-uma-fonte-so.test.ts` lê a
+> tabela "Os seis degraus" daqui, compara com `PLANOS`, **varre o código atrás de
+> preço de plano solto** e **reprova a build**.
 >
 > ⚠️ **O balcão NÃO contém os 5 planos, e isso é de propósito** — são produtos
 > diferentes (ver "Preço por serviço", abaixo). Uma auditoria já leu o balcão
@@ -38,24 +58,55 @@ Também ficam fora, pelo mesmo motivo (custo que não é conteúdo): **posiciona
 e identidade visual** (projeto com começo e fim), **site e landing** e a **verba
 de mídia**.
 
-## Os cinco degraus
+## Os seis degraus
 
-| Plano | Preço | Implantação | O que muda em relação ao degrau de baixo |
-|---|---|---|---|
-| **Pulso** | R$ 49/mês | isenta | Observa, mede e avisa. Zero peça, zero hora humana. |
-| **Ritmo** | R$ 297/mês | R$ 390 | **+ 8 peças/mês** prontas e aprovadas no portal. **Você publica.** Ainda zero hora humana. |
-| **Presença** | R$ 790/mês | R$ 1.290 | + 10 peças, **nós publicamos**, Google gerenciado, avaliações e **um humano no atendimento**. |
-| **Conteúdo** | R$ 1.390/mês | R$ 1.900 | + 14 peças, stories, **roteiros de reels**, plano de medição, reunião mensal. |
-| **Crescimento** | R$ 2.590/mês | R$ 2.900 | + 18 peças, criativos de anúncio e a campanha desenhada — rodando **na conta do cliente**. |
+| Plano | Preço | Implantação | Piso | O que muda em relação ao degrau de baixo |
+|---|---|---|---|---|
+| **Pulso** | R$ 49/mês | isenta | **preciso confirmar** | Observa, mede e avisa. Zero peça, zero hora humana. |
+| **Ritmo** | R$ 297/mês | R$ 390 | R$ 229 | **+ 8 peças/mês** prontas e aprovadas no portal. **Você publica.** Ainda zero hora humana. |
+| **Presença** | R$ 790/mês | R$ 1.290 | R$ 690 | + 10 peças, **nós publicamos**, Google gerenciado, avaliações e **um humano no atendimento**. |
+| **Conteúdo** | R$ 1.390/mês | R$ 1.900 | R$ 1.190 | + 14 peças, stories, **roteiros de reels**, plano de medição, reunião mensal. |
+| **Crescimento** | R$ 2.590/mês | R$ 2.900 | R$ 2.190 | + 18 peças, criativos de anúncio e a campanha desenhada — rodando **na conta do cliente**. |
+| **Performance** 🔴 | R$ 4.990/mês **+ mídia** | **preciso confirmar** | **preciso confirmar** | 🔴 **NÃO VENDÁVEL.** Escopo não escrito. Ver abaixo. |
+
+**Pulso e Ritmo são decisão consciente do CEO** — pacotes de entrada para quem
+tem menos dinheiro. Não são resíduo de tabela velha e não se removem.
 
 **A regra que sustenta a base da tabela, e ela é inegociável: gente entra a
 partir do Presença.** Abaixo disso a operação é máquina, e é só por isso que
 R$ 49 e R$ 297 podem existir sem dar prejuízo. Se a publicação do Ritmo virar
 nossa, o degrau quebra.
 
-**Por que não há plano de R$ 4.990:** ele exigiria a agência operando o Meta Ads
-todo dia dentro da conta do cliente, e a conta de anúncios da casa está restrita
-desde 03/08. Vender operação diária hoje é vender o que não se pode entregar.
+A implantação é **parcelável em até 3x**.
+
+### 🔴 O PERFORMANCE É PRECIFICADO E NÃO É VENDÁVEL
+
+Ele existe em `PLANOS` para a casa saber quanto custa, e **não** em
+`PLANOS_PUBLICOS`. Não vai ao site, ao briefing, à vitrine, à proposta nem ao
+portal — **nem como bônus, beta ou cortesia.** Dois motivos, e cada um sozinho
+já basta:
+
+1. **A gestão de Meta Ads operada dia a dia dentro da conta do cliente está
+   LARANJA.** A conta de anúncios da agência está restrita desde 03/08/2026.
+   Nada laranja, vermelho ou horizonte é vendável. Vender operação diária hoje é
+   vender o que não se pode entregar.
+2. **Só o preço deste degrau foi decidido.** Escopo, implantação, piso, cadência
+   e permanência não foram escritos por ninguém — nem no parecer do conselho de
+   05/08, nem depois. Não há o que colocar num contrato, e preencher por analogia
+   com o Crescimento seria inventar contrato.
+
+A trava é código, não este parágrafo: `exposicao: "interno"` em `planos.ts`, e
+teste que reprova qualquer superfície de cliente que importe `PLANOS` em vez de
+`PLANOS_PUBLICOS`.
+
+### 🔴 O QUE FALTA, COM NOME (nenhum destes se completa por inferência)
+
+| Falta | Onde some hoje | Quem decide |
+|---|---|---|
+| **Piso do Pulso** | não existe em lugar nenhum. O SDR **não consegue fechar Pulso** — `podeFechar("pulso", …)` devolve `false` com o motivo escrito | CEO |
+| **Implantação do Performance** | o parecer escalonou 3 faixas (1.290/1.900/2.900) e nenhuma foi atribuída a ele | CEO |
+| **Piso, escopo, cadência e permanência do Performance** | nunca escritos | CEO |
+| **Custo de atendimento de qualquer plano** | `costBasis` é `null` nos seis. A margem **não é afirmada** | medição |
 
 O escopo numerado de cada plano, com o que NÃO está incluído item a item, está
 na vitrine.
@@ -107,6 +158,9 @@ WhatsApp do cliente R$ 490/mês · SEO local R$ 690/mês.
 ## As regras sem as quais o preço não sobrevive
 
 - **Excedente:** peça além do contratado R$ 180; pedido avulso mínimo R$ 750.
+- **Mídia:** **+8% sobre a verba acima de R$ 15 mil/mês**, e só sobre o
+  excedente — 8% sobre a verba inteira criaria um degrau de R$ 1.200 num real a
+  mais. A verba nunca passa pela conta da agência.
 - **Ajustes:** 2 rodadas por peça (3 a partir do Conteúdo). Aprovação em até 2
   dias úteis; passado isso a peça segue para a data agendada.
 - **Permanência:** 3 meses até o Presença, 6 do Conteúdo em diante. Pausa máxima
@@ -115,7 +169,9 @@ WhatsApp do cliente R$ 490/mês · SEO local R$ 690/mês.
   definiu que o objetivo do comercial é FECHAR todo cliente sem prejuízo: cada
   item tem um piso calculado (`lib/agency/comercial/negociacao.ts`), e a
   mensalidade pode descer até ele — Ritmo R$ 229, Presença R$ 690, Conteúdo
-  R$ 1.190, Crescimento R$ 2.190.
+  R$ 1.190, Crescimento R$ 2.190. **O piso do Pulso não existe**, e por isso o
+  Pulso não é fechável pelo SDR: ausência de piso não é piso zero, é ausência de
+  autorização.
   **A ordem das moedas de troca continua valendo, e ela é a proteção real:** a
   primeira coisa que se oferece é o que NÃO custa margem — prazo maior,
   pagamento à vista, menos rodadas de ajuste, contrato mais longo, autorização
@@ -136,9 +192,24 @@ WhatsApp do cliente R$ 490/mês · SEO local R$ 690/mês.
 | Presença R$ 790 | ≈ R$ 28 | a medir | R$ 762 |
 | Conteúdo R$ 1.390 | ≈ R$ 38 | a medir | R$ 1.352 |
 | Crescimento R$ 2.590 | ≈ R$ 52 | a medir | R$ 2.538 |
+| Performance R$ 4.990 | não estimado | **não vendável** | — |
 
 **Fechado:** o custo de IA, contado por peça a partir do próprio sistema.
 **Hipótese:** a hora humana do Presença para cima — ninguém mediu.
+
+> ### 🔴 O RISCO QUE PULSO E RITMO TORNAM DEZESSEIS VEZES MAIOR
+>
+> O parecer do conselho fez a conta de margem tratando o **Presença de R$ 790
+> como a entrada**, e registrou o risco em uma frase: *"o plano de entrada atrai
+> o cliente que paga menos e exige mais, ocupando capacidade que valia três vezes
+> mais"*. Com o Pulso a **R$ 49**, a mesma hora de atendimento custa
+> proporcionalmente **dezesseis vezes mais**.
+>
+> **Isto não bloqueia a venda** — os dois degraus são decisão do CEO e continuam
+> abertos. O que muda é que o custo passa a ser **medido desde o primeiro
+> cliente**: horas humanas por conta, separadas por atividade
+> (`lib/agency/medicao/custo-de-atendimento.ts`). O número tem que chegar ao CEO
+> **antes** de a carteira encher, não depois.
 **Falta:** o custo fixo mensal da casa e quantas contas ela atende sem hora
 extra. Sem esses dois, o piso de margem não existe. Plano que não fechar o piso
 **perde escopo, nunca preço**.

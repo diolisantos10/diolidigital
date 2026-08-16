@@ -35,7 +35,27 @@
 // pedido é sempre o que não custa margem (pagamento à vista, prazo). Quem
 // resolve a contradição no papel é o Diretor com o CEO — está em aberto.
 
-import { precoEmReais } from "../planos";
+// ─── DE ONDE VÊM OS NÚMEROS DE PLANO (mudou em 16/08/2026) ───────────────────
+// `TABELA_DE_PISO` tinha `cheio` DIGITADO À MÃO por plano — 297, 790, 1390,
+// 2590 — e as frases de venda repetiam o mesmo preço em texto corrido. Era um
+// catálogo paralelo: no dia em que o CEO mexesse no preço em `planos.ts`, o SDR
+// continuaria ancorando no valor velho, e o cliente sempre acha o menor.
+//
+// **A tabela paralela foi eliminada, não sincronizada.** O `cheio`, o `piso` e
+// todo preço citado nas frases agora DERIVAM de `lib/agency/planos.ts`.
+//
+// E o balcão era duplicata também: os cinco itens estavam escritos aqui E, com
+// os mesmos dez números, em `self-serve-catalog.ts`, que é a vitrine pública.
+// Também foram eliminados — agora derivam de lá, que é onde o cliente compra.
+//
+// **Plano sem piso declarado NÃO entra na tabela.** Pulso (R$ 49) nunca teve
+// piso escrito; Performance também não. Ausência de piso não é piso zero — é
+// ausência de autorização, e `podeFechar` diz isso com o nome do plano.
+//
+// **Plano `interno` NUNCA entra.** O Performance é precificado e não vendável:
+// se ele entrasse aqui, o SDR poderia fechá-lo numa conversa.
+import { PLANOS, precoEmReais, type Plano, type PlanoId } from "../planos";
+import { SELF_SERVE_CATALOG } from "../self-serve-catalog";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. FAIXAS DE INVESTIMENTO — o que se oferece para cada bolso
@@ -65,6 +85,24 @@ export interface Oferta {
   confirmarAntes: boolean;
 }
 
+/**
+ * O preço de um plano, formatado, lido da fonte única.
+ *
+ * **Falha alto de propósito.** Se o id sumir de `planos.ts`, isto explode no
+ * import — em vez de renderizar "Plano Ritmo (undefined/mês)" numa frase que o
+ * SDR fala para um cliente. Portão que degrada em silêncio não é portão.
+ */
+function precoDoPlano(id: string): string {
+  const p: Plano | undefined = PLANOS.find((x) => x.id === id);
+  if (!p) {
+    throw new Error(
+      `negociacao.ts: o plano "${id}" não existe em lib/agency/planos.ts. ` +
+        `A régua do SDR cita este plano numa frase de venda — corrija a fonte única ou a frase.`,
+    );
+  }
+  return precoEmReais(p.preco);
+}
+
 /** As cinco faixas, na ordem. Ordem importa: `ofertaParaFaixa` percorre de baixo
  *  para cima e devolve a primeira que couber. */
 export const FAIXAS: Oferta[] = [
@@ -85,7 +123,7 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 150 e R$ 500",
     de: 150,
     ate: 500,
-    principal: "Plano Ritmo (R$ 297/mês): pauta, 8 peças prontas por mês e aprovação no portal — quem publica é o cliente",
+    principal: `Plano Ritmo (${precoDoPlano("ritmo")}/mês): pauta, 8 peças prontas por mês e aprovação no portal — quem publica é o cliente`,
     alternativa: "Pacote de peças avulsas montado dentro do que ele tem para gastar",
     condicao: "No Ritmo a publicação é do cliente. Publicar por ele derruba a conta do degrau.",
     confirmarAntes: false,
@@ -95,7 +133,7 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 500 e R$ 1.500",
     de: 500,
     ate: 1500,
-    principal: "Plano Presença (R$ 790/mês): é aqui que entra gente da nossa equipe, publicação e Google gerenciado",
+    principal: `Plano Presença (${precoDoPlano("presenca")}/mês): é aqui que entra gente da nossa equipe, publicação e Google gerenciado`,
     alternativa: "Projeto de marca (identidade visual ou posicionamento), com começo e fim",
     condicao: "Projeto de marca não é mensalidade — é entrega com prazo próprio.",
     confirmarAntes: false,
@@ -105,8 +143,8 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 1.500 e R$ 5.000",
     de: 1500,
     ate: 5000,
-    principal: "Plano Crescimento (R$ 2.590/mês): conteúdo, criativos de anúncio e a campanha desenhada",
-    alternativa: "Plano Conteúdo (R$ 1.390/mês), quando ele ainda não vai colocar verba em anúncio",
+    principal: `Plano Crescimento (${precoDoPlano("crescimento")}/mês): conteúdo, criativos de anúncio e a campanha desenhada`,
+    alternativa: `Plano Conteúdo (${precoDoPlano("conteudo")}/mês), quando ele ainda não vai colocar verba em anúncio`,
     // A verba de mídia fica FORA. Se ela entrar na conta da faixa, o cliente
     // acha que R$ 2.000 cobrem plano + anúncio, e a agência trabalha de graça.
     condicao: "A verba de mídia é sempre à parte, paga por ele direto à plataforma. Zero promessa de retorno.",
@@ -159,16 +197,14 @@ export function ofertaParaFaixa(valorEmReais: number): Oferta {
 // 2. A TABELA DE PISO — preço cheio → o mais baixo que pode ser vendido
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ItemNegociavel =
-  | "post"
-  | "carrossel"
-  | "stories"
-  | "copy"
-  | "auditoria"
-  | "ritmo"
-  | "presenca"
-  | "conteudo"
-  | "crescimento";
+/** Itens do BALCÃO. Não são plano: escopo fechado, pagamento antes, sem
+ *  permanência. Continuam escritos à mão aqui — ver o cabeçalho do arquivo. */
+export type ItemDeBalcao = "post" | "carrossel" | "stories" | "copy" | "auditoria";
+
+/** Qualquer coisa que o SDR possa fechar: balcão + plano (por id da fonte única).
+ *  Nem todo `PlanoId` tem linha aqui — plano sem piso declarado e plano interno
+ *  ficam de fora, e `podeFechar` explica qual dos dois é o caso. */
+export type ItemNegociavel = ItemDeBalcao | PlanoId;
 
 export interface LinhaDaTabela {
   id: ItemNegociavel;
@@ -185,46 +221,137 @@ export interface LinhaDaTabela {
   versaoMenor: string;
 }
 
-export const TABELA_DE_PISO: Record<ItemNegociavel, LinhaDaTabela> = {
-  post: {
-    id: "post", nome: "Post único com arte e legenda", cheio: 79, piso: 49, recorrente: false,
-    versaoMenor: "só a legenda pronta, com a arte por conta dele",
-  },
-  carrossel: {
-    id: "carrossel", nome: "Carrossel", cheio: 129, piso: 79, recorrente: false,
-    versaoMenor: "um post único no lugar do carrossel",
-  },
-  stories: {
-    id: "stories", nome: "Sequência de stories", cheio: 99, piso: 59, recorrente: false,
-    versaoMenor: "uma sequência mais curta, com menos telas",
-  },
-  copy: {
-    id: "copy", nome: "Copy / legenda", cheio: 39, piso: 29, recorrente: false,
-    // A copy é o item mais barato da casa: não existe degrau abaixo dela.
-    // Aqui a saída é prazo, não escopo — e isso está dito com todas as letras.
-    versaoMenor: "sem versão menor: a saída é prazo maior de entrega, não preço",
-  },
-  auditoria: {
-    id: "auditoria", nome: "Auditoria de perfil", cheio: 149, piso: 99, recorrente: false,
-    versaoMenor: "uma leitura mais curta, só com o diagnóstico, sem o plano de ação",
-  },
-  ritmo: {
-    id: "ritmo", nome: "Plano Ritmo", cheio: 297, piso: 229, recorrente: true,
-    versaoMenor: "menos peças por mês dentro do próprio Ritmo, ou o Pulso (R$ 49) para começar medindo",
-  },
-  presenca: {
-    id: "presenca", nome: "Plano Presença", cheio: 790, piso: 690, recorrente: true,
-    versaoMenor: "o Ritmo (R$ 297), em que ele mesmo publica",
-  },
-  conteudo: {
-    id: "conteudo", nome: "Plano Conteúdo", cheio: 1390, piso: 1190, recorrente: true,
-    versaoMenor: "o Presença (R$ 790), sem stories e sem roteiro de reels",
-  },
-  crescimento: {
-    id: "crescimento", nome: "Plano Crescimento", cheio: 2590, piso: 2190, recorrente: true,
-    versaoMenor: "o Conteúdo (R$ 1.390), sem os criativos de anúncio",
-  },
+// ── AS LINHAS DE BALCÃO, DERIVADAS DA VITRINE ────────────────────────────────
+//
+// 🔴 Também eram duplicata, e ninguém tinha percebido: os cinco itens de balcão
+// estavam escritos aqui (post 79/49, carrossel 129/79, stories 99/59, copy
+// 39/29, auditoria 149/99) e **exatamente iguais** em
+// `lib/agency/self-serve-catalog.ts`, que é a fonte da vitrine pública. Dois
+// lugares, os mesmos dez números, nada obrigando os dois a concordar.
+//
+// A fonte do balcão é o CATÁLOGO DA VITRINE, não este arquivo: é ele que o
+// cliente lê e é nele que o pagamento é cobrado. Aqui fica só a "versão menor"
+// — a frase que o SDR fala quando bate no piso, que é conduta de negociação e
+// não existe no catálogo.
+
+/** O que se oferece no lugar do desconto, por item de balcão. É a única coisa
+ *  de balcão que nasce aqui: os PREÇOS vêm da vitrine. */
+const VERSAO_MENOR_DO_BALCAO: Record<ItemDeBalcao, string> = {
+  post: "só a legenda pronta, com a arte por conta dele",
+  carrossel: "um post único no lugar do carrossel",
+  stories: "uma sequência mais curta, com menos telas",
+  // A copy é o item mais barato da casa: não existe degrau abaixo dela. Aqui a
+  // saída é prazo, não escopo — e isso está dito com todas as letras.
+  copy: "sem versão menor: a saída é prazo maior de entrega, não preço",
+  auditoria: "uma leitura mais curta, só com o diagnóstico, sem o plano de ação",
 };
+
+/** De qual item da vitrine vem cada linha de balcão do SDR. */
+const ITEM_DA_VITRINE: Record<ItemDeBalcao, string> = {
+  post: "balcao-post-feed",
+  carrossel: "balcao-carrossel-5",
+  stories: "balcao-4-stories",
+  copy: "balcao-legenda",
+  auditoria: "balcao-auditoria-perfil",
+};
+
+function linhasDeBalcao(): Record<string, LinhaDaTabela> {
+  const saida: Record<string, LinhaDaTabela> = {};
+  for (const [id, idNaVitrine] of Object.entries(ITEM_DA_VITRINE) as [ItemDeBalcao, string][]) {
+    const item = SELF_SERVE_CATALOG.find((s) => s.id === idNaVitrine);
+    if (!item) {
+      // Falha alto. Sumir com a linha em silêncio faria `podeFechar("post", …)`
+      // devolver "não está na tabela" para um produto que a vitrine vende hoje.
+      throw new Error(
+        `negociacao.ts: o item de balcão "${idNaVitrine}" não existe mais em self-serve-catalog.ts. ` +
+          `O SDR negocia este item — conserte o mapa ou remova a linha de propósito.`,
+      );
+    }
+    if (item.precoMinimo === undefined) {
+      throw new Error(
+        `negociacao.ts: "${idNaVitrine}" está na vitrine sem \`precoMinimo\`. Sem piso não há ` +
+          `autorização de desconto — declare o piso na vitrine ou tire o item da régua do SDR.`,
+      );
+    }
+    saida[id] = {
+      id,
+      nome: item.label,
+      cheio: item.price,
+      piso: item.precoMinimo,
+      recorrente: false,
+      versaoMenor: VERSAO_MENOR_DO_BALCAO[id],
+    };
+  }
+  return saida;
+}
+
+// ── AS LINHAS DE PLANO, DERIVADAS DA FONTE ÚNICA ─────────────────────────────
+//
+// Nenhum número de plano é digitado aqui. `cheio` e `piso` vêm de `PLANOS`, e a
+// "versão menor" é o degrau imediatamente abaixo na própria escada oficial —
+// não uma frase que alguém escreveu e esqueceu de atualizar.
+
+/** O que se oferece quando o preço bate no piso: o degrau de baixo, com o preço
+ *  lido da fonte. O degrau mais baixo não tem degrau abaixo dele — e aí a saída
+ *  é escopo dentro do próprio plano, dito com todas as letras. */
+function versaoMenorDoPlano(plano: Plano, degrauAbaixo: Plano | undefined): string {
+  if (!degrauAbaixo) {
+    return `sem degrau abaixo: a saída é menos peças por mês dentro do próprio ${plano.nome}, não preço`;
+  }
+  return `o ${degrauAbaixo.nome} (${precoEmReais(degrauAbaixo.preco)})`;
+}
+
+/**
+ * Planos que ficaram de fora da tabela, COM o motivo. Existe para o portão
+ * poder dizer "o Pulso existe e não tem piso" em vez de "não conheço Pulso" —
+ * são diagnósticos diferentes e levam a ações diferentes (confirmar o piso com
+ * o CEO × corrigir um id digitado errado).
+ */
+export const PLANOS_SEM_LINHA: Record<string, string> = {};
+
+function linhasDePlano(): Record<string, LinhaDaTabela> {
+  const saida: Record<string, LinhaDaTabela> = {};
+  // A escada pública, em ordem de preço — é ela que define o "degrau de baixo".
+  const escada = PLANOS.filter((p) => p.exposicao === "publico").sort((a, b) => a.preco - b.preco);
+
+  for (const plano of PLANOS) {
+    if (plano.exposicao !== "publico") {
+      PLANOS_SEM_LINHA[plano.id] =
+        `${plano.nome} é precificado mas NÃO é vendável (${plano.motivoDoInterno ?? "sem motivo declarado"}). ` +
+        `Não existe piso porque não existe venda.`;
+      continue;
+    }
+    if (plano.piso === null) {
+      PLANOS_SEM_LINHA[plano.id] =
+        `${plano.nome} não tem piso de negociação escrito em lugar nenhum. Ausência de piso não é piso ` +
+        `zero: é ausência de autorização. Quem define é o CEO.`;
+      continue;
+    }
+    const indice = escada.findIndex((p) => p.id === plano.id);
+    saida[plano.id] = {
+      id: plano.id,
+      nome: `Plano ${plano.nome}`,
+      cheio: plano.preco,
+      piso: plano.piso,
+      recorrente: true,
+      versaoMenor: versaoMenorDoPlano(plano, indice > 0 ? escada[indice - 1] : undefined),
+    };
+  }
+  return saida;
+}
+
+/**
+ * A tabela inteira: balcão escrito à mão + planos derivados da fonte única.
+ *
+ * É `Record<string, …>` e não `Record<ItemNegociavel, …>` de propósito: as
+ * chaves de plano são DERIVADAS, e um tipo que exigisse todas as chaves
+ * obrigaria a inventar uma linha para o Pulso e para o Performance — que é
+ * exatamente o que não se pode fazer.
+ */
+export const TABELA_DE_PISO: Readonly<Record<string, LinhaDaTabela>> = Object.freeze({
+  ...linhasDeBalcao(),
+  ...linhasDePlano(),
+});
 
 export interface VeredictoDePreco {
   pode: boolean;
@@ -239,7 +366,13 @@ function linha(item: string): LinhaDaTabela | undefined {
   // comparação `valor < undefined` é false, ou seja, o portão AUTORIZARIA um
   // item inexistente. Fail-closed de verdade começa aqui.
   if (typeof item !== "string" || !Object.hasOwn(TABELA_DE_PISO, item)) return undefined;
-  return TABELA_DE_PISO[item as ItemNegociavel];
+  return TABELA_DE_PISO[item];
+}
+
+/** O motivo específico, quando o item é um plano que a casa conhece e mesmo
+ *  assim não pode fechar. Devolve `null` para item genuinamente desconhecido. */
+function motivoDeNaoTerLinha(item: string): string | null {
+  return typeof item === "string" && Object.hasOwn(PLANOS_SEM_LINHA, item) ? PLANOS_SEM_LINHA[item] : null;
 }
 
 /**
@@ -257,12 +390,14 @@ export function podeFechar(item: string, valorProposto: number): VeredictoDePrec
   const l = linha(item);
 
   if (!l) {
+    const conhecido = motivoDeNaoTerLinha(item);
     return {
       pode: false,
       piso: Number.POSITIVE_INFINITY,
-      motivo:
-        `"${item}" não está na tabela de piso. Sem piso conhecido não existe autorização de venda — ` +
-        `preciso confirmar antes de falar preço deste item.`,
+      motivo: conhecido
+        ? `${conhecido} Preciso confirmar antes de falar preço deste item.`
+        : `"${item}" não está na tabela de piso. Sem piso conhecido não existe autorização de venda — ` +
+          `preciso confirmar antes de falar preço deste item.`,
     };
   }
 
@@ -460,9 +595,10 @@ export function chegouNoPiso(item: string, valor: number): SaidaDoPiso {
       piso: Number.POSITIVE_INFINITY,
       versaoMenor: "",
       precisaConfirmar: true,
-      frase:
-        `Não tenho "${item}" na minha tabela, então não falo preço dele por conta própria — ` +
-        `preciso confirmar internamente e te trago o valor certo.`,
+      frase: motivoDeNaoTerLinha(item)
+        ? `Não tenho autorização de preço para "${item}" — preciso confirmar internamente e te trago o valor certo.`
+        : `Não tenho "${item}" na minha tabela, então não falo preço dele por conta própria — ` +
+          `preciso confirmar internamente e te trago o valor certo.`,
     };
   }
 

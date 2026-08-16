@@ -1,19 +1,42 @@
-// ─── Live Pricing Calculator V2 ───────────────────────────────────────────────
-// Social Media is the flagship department: 5 isolated plans with a detailed
-// feature matrix (posts, stories, reels, copy/design/calendar, reports,
-// community). Paid traffic and visual identity are SEPARATE departments,
-// priced as add-ons that stack on top of the social plan.
+// ─── A CALCULADORA DO BRIEFING — ela NÃO tem mais preço próprio ───────────────
 //
-// Architecture note: each department is treated like its own business with its
-// own catalogue — see lib/agency/service-catalog.ts. This file owns the social
-// plans + the estimate math the briefing room renders in real time.
+// 🔴 O QUE ESTE ARQUIVO ERA ATÉ 16/08/2026, E POR QUE ERA O PIOR DOS TRÊS
+//
+// `SOCIAL_PACKAGES` declarava CINCO PLANOS QUE NÃO EXISTEM na casa — Essencial,
+// Starter, Growth, Pro, Premium — com FAIXAS de preço próprias (R$ 600–900,
+// R$ 900–1.400, R$ 1.500–2.400, R$ 2.500–4.000, R$ 4.000–6.500). E não era um
+// resto de código morto: `computeEstimate` é chamado por
+// `components/agency/briefing/PublicBriefingRoom.tsx`, o briefing **público**.
+//
+// Ou seja: `/planos` dizia "Crescimento, R$ 2.590" e, na mesma casa, no mesmo
+// dia, o prospect que preenchia o briefing recebia "Plano Growth — R$ 1.500 a
+// R$ 2.400". Duas tabelas, dois preços, e o cliente sempre acha o menor.
+//
+// **A tabela foi ELIMINADA, não sincronizada.** Sincronizar deixa as duas de pé
+// e elas divergem de novo no primeiro dia de pressa. Agora os pacotes são
+// DERIVADOS de `lib/agency/planos.ts`: mesmos nomes, mesmos ids, mesmo preço,
+// e a cadência lida do escopo oficial (`pecasPorMes`).
+//
+// ─── DUAS CONSEQUÊNCIAS QUE PRECISAM ESTAR ESCRITAS ──────────────────────────
+//
+// 1. **Não existe mais faixa de preço de plano.** `minPrice === maxPrice === o
+//    preço do plano`. O preço da casa é um número, não uma banda de negociação
+//    — a banda é o `piso`, é interna, e mora em `comercial/negociacao.ts`.
+// 2. **Stories e reels não são mais dimensionados aqui.** Eles não existem como
+//    unidade nos planos oficiais (o escopo fala em PEÇAS por mês, e stories
+//    entram a partir do Conteúdo, em sequências). Inventar "5 stories/semana"
+//    para casar com a interface antiga seria preencher escopo por inferência —
+//    exatamente o que a casa proíbe. Os campos viraram `null` e a interface
+//    passa a mostrar o escopo oficial do plano.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { BriefingScope, LiveEstimate, EstimateItem, EstimateConfidence } from "./briefing-conversation";
+import { PLANOS_PUBLICOS, planoPorId, precoEmReais, type PlanoId } from "./planos";
 
 // ── Social Media Plans ────────────────────────────────────────────────────────
 
-export type SocialPackage = "essencial" | "starter" | "growth" | "pro" | "premium";
+/** O id do plano é o id da fonte única. Não há um segundo vocabulário. */
+export type SocialPackage = PlanoId;
 
 export type ReportLevel = "none" | "basic" | "advanced";
 export type CommunityLevel = "none" | "basic" | "full";
@@ -21,122 +44,130 @@ export type CommunityLevel = "none" | "basic" | "full";
 export interface PackageDef {
   id: SocialPackage;
   label: string;
-  postsPerWeek: number;    // primary cadence shown to clients
-  storiesPerWeek: number;
-  postsPerMonth: number;   // = postsPerWeek * 4 (derived, kept for legacy reads)
-  storiesPerMonth: number; // = storiesPerWeek * 4
-  reelsPerMonth: number;   // reels included in the plan
+  /** Peças por mês, do escopo oficial. `null` = o plano não declara cadência. */
+  pecasPorMes: number | null;
+  /** `null` = a unidade não existe no escopo oficial deste plano. NUNCA 0 por
+   *  omissão: "não está escrito" e "está escrito que é zero" são fatos
+   *  diferentes, e é o segundo que a interface tem direito de exibir. */
+  postsPerMonth: number | null;
+  storiesPerMonth: number | null;
+  reelsPerMonth: number | null;
   copy: boolean;           // copywriting (textos) included
   design: boolean;         // custom design / artes
   calendar: boolean;       // editorial calendar / strategy
   reports: ReportLevel;    // monthly metrics report
   community: CommunityLevel; // comment / DM management
+  /** Preço do plano. `min === max` de propósito: o preço da casa é um número. */
   minPrice: number;
   maxPrice: number;
   description: string;
 }
 
-// Agency-grade volume (per week), startup-friendly pricing. Cadence is weekly
-// because that's how a real operation runs — not a handful of posts a month.
-export const SOCIAL_PACKAGES: PackageDef[] = [
-  {
-    id: "essencial",
-    label: "Plano Essencial",
-    postsPerWeek: 3,
-    storiesPerWeek: 5,
-    postsPerMonth: 12,
-    storiesPerMonth: 20,
-    reelsPerMonth: 2,
-    copy: true,
-    design: true,
-    calendar: false,
-    reports: "none",
-    community: "none",
-    minPrice: 600,
-    maxPrice: 900,
-    description: "3 posts + 5 stories/semana + 2 reels/mês — presença consistente",
-  },
-  {
-    id: "starter",
-    label: "Plano Starter",
-    postsPerWeek: 5,
-    storiesPerWeek: 7,
-    postsPerMonth: 20,
-    storiesPerMonth: 28,
-    reelsPerMonth: 4,
-    copy: true,
-    design: true,
-    calendar: true,
-    reports: "basic",
-    community: "none",
-    minPrice: 900,
-    maxPrice: 1400,
-    description: "5 posts + 7 stories/semana + 4 reels/mês — ritmo profissional",
-  },
-  {
-    id: "growth",
-    label: "Plano Growth",
-    postsPerWeek: 7,
-    storiesPerWeek: 10,
-    postsPerMonth: 28,
-    storiesPerMonth: 40,
-    reelsPerMonth: 6,
-    copy: true,
-    design: true,
-    calendar: true,
-    reports: "basic",
-    community: "basic",
-    minPrice: 1500,
-    maxPrice: 2400,
-    description: "1 post/dia + 10 stories/semana + 6 reels/mês — ritmo constante",
-  },
-  {
-    id: "pro",
-    label: "Plano Pro",
-    postsPerWeek: 10,
-    storiesPerWeek: 14,
-    postsPerMonth: 40,
-    storiesPerMonth: 56,
-    reelsPerMonth: 10,
-    copy: true,
-    design: true,
-    calendar: true,
-    reports: "advanced",
-    community: "full",
-    minPrice: 2500,
-    maxPrice: 4000,
-    description: "10 posts + 14 stories/semana + 10 reels/mês — presença forte",
-  },
-  {
-    id: "premium",
-    label: "Plano Premium",
-    postsPerWeek: 15,
-    storiesPerWeek: 21,
-    postsPerMonth: 60,
-    storiesPerMonth: 84,
-    reelsPerMonth: 16,
-    copy: true,
-    design: true,
-    calendar: true,
-    reports: "advanced",
-    community: "full",
-    minPrice: 4000,
-    maxPrice: 6500,
-    description: "15 posts + 21 stories/semana + 16 reels/mês — operação de marca completa",
-  },
-];
+// ── A DERIVAÇÃO ───────────────────────────────────────────────────────────────
+//
+// A escada oficial é CUMULATIVA e diz isso com todas as letras: o Ritmo inclui
+// "Tudo do Pulso", o Presença "Tudo do Ritmo", e assim por diante. Por isso a
+// matriz de recursos é lida sobre o escopo ACUMULADO, não sobre a linha isolada
+// — senão o Ritmo apareceria sem relatório mensal, que ele herda do Pulso.
+//
+// Cada recurso é ancorado numa FRASE LITERAL do escopo oficial. Se alguém
+// reescrever o escopo em `planos.ts`, o recurso muda junto — e há teste que
+// reprova âncora que deixou de existir, para a matriz não virar tudo `false`
+// em silêncio. Recurso deduzido por posição na escada seria palpite; recurso
+// lido do texto do contrato é derivação.
 
-// Receives posts-per-MONTH (scope stores postsPerWeek; estimate passes *4).
-export function detectPackage(postsPerMonth: number): SocialPackage {
-  if (postsPerMonth <= 14) return "essencial"; // ~3/semana
-  if (postsPerMonth <= 24) return "starter";   // ~5/semana
-  if (postsPerMonth <= 34) return "growth";    // ~7/semana
-  if (postsPerMonth <= 50) return "pro";       // ~10/semana
-  return "premium";                             // 15+/semana
+const ESCADA = [...PLANOS_PUBLICOS].sort((a, b) => a.preco - b.preco);
+
+/** Todo o escopo do degrau e dos degraus abaixo dele, em minúsculas. */
+function escopoAcumulado(indice: number): string {
+  return ESCADA.slice(0, indice + 1)
+    .flatMap((p) => p.inclui)
+    .join(" · ")
+    .toLowerCase();
+}
+
+/** As âncoras. Exportadas porque o teste as confere contra `planos.ts`. */
+export const ANCORAS_DE_ESCOPO = {
+  copy: "legenda",
+  design: "arte pronta",
+  calendar: "calendário",
+  reportsBasic: "relatório mensal",
+  reportsAdvanced: "plano de medição",
+  communityBasic: "gestão de avaliações",
+  communityFull: "atendimento humano",
+} as const;
+
+export const SOCIAL_PACKAGES: PackageDef[] = ESCADA.map((plano, i) => {
+  const escopo = escopoAcumulado(i);
+  const tem = (frase: string) => escopo.includes(frase);
+
+  return {
+    id: plano.id,
+    label: `Plano ${plano.nome}`,
+    pecasPorMes: plano.pecasPorMes,
+    // Peça É post no vocabulário do escopo oficial ("8 peças por mês —
+    // carrossel de até 6 telas ou post único").
+    postsPerMonth: plano.pecasPorMes,
+    // Não dimensionados no escopo oficial: ver o cabeçalho do arquivo.
+    storiesPerMonth: null,
+    reelsPerMonth: null,
+    copy: tem(ANCORAS_DE_ESCOPO.copy),
+    design: tem(ANCORAS_DE_ESCOPO.design),
+    calendar: tem(ANCORAS_DE_ESCOPO.calendar),
+    reports: tem(ANCORAS_DE_ESCOPO.reportsAdvanced)
+      ? "advanced"
+      : tem(ANCORAS_DE_ESCOPO.reportsBasic)
+        ? "basic"
+        : "none",
+    community: tem(ANCORAS_DE_ESCOPO.communityFull)
+      ? "full"
+      : tem(ANCORAS_DE_ESCOPO.communityBasic)
+        ? "basic"
+        : "none",
+    minPrice: plano.preco,
+    maxPrice: plano.preco,
+    description: plano.salto,
+  };
+});
+
+// A tabela paralela que ficava aqui foi APAGADA neste ponto. Se você está
+// pensando em recriar um catálogo de plano neste arquivo: não. O portão
+// `__tests__/comercial/preco-uma-fonte-so.test.ts` reprova a build.
+
+/**
+ * Recebe peças por MÊS e devolve o degrau oficial que as cobre.
+ *
+ * Os cortes NÃO são mais números escritos à mão (14 / 24 / 34 / 50): são a
+ * própria cadência dos planos. Devolve o PRIMEIRO degrau cuja cadência atende o
+ * pedido; se nenhum atende (o cliente quer mais peças do que o topo entrega),
+ * devolve o topo — que é o que a casa consegue vender, e o excedente vira peça
+ * extra (`PECA_EXTRA`), não um plano inventado.
+ *
+ * Quem pedir 0 peça cai no Pulso, e isso é correto: o Pulso é o degrau que não
+ * produz peça nenhuma.
+ */
+export function detectPackage(pecasPorMes: number): SocialPackage {
+  const comCadencia = SOCIAL_PACKAGES.filter((p) => p.pecasPorMes !== null);
+  if (comCadencia.length === 0) {
+    // Falha alto. Uma lista vazia aqui faria o briefing cotar `undefined`.
+    throw new Error(
+      "live-calculator: nenhum plano público declara `pecasPorMes` em lib/agency/planos.ts — " +
+        "sem cadência não há como escolher degrau.",
+    );
+  }
+  const pedido = typeof pecasPorMes === "number" && Number.isFinite(pecasPorMes) ? pecasPorMes : 0;
+  const cobre = comCadencia.find((p) => (p.pecasPorMes as number) >= pedido);
+  return (cobre ?? comCadencia[comCadencia.length - 1]).id;
 }
 
 export function getPackageDef(id: SocialPackage): PackageDef {
-  return SOCIAL_PACKAGES.find((p) => p.id === id)!;
+  const achou = SOCIAL_PACKAGES.find((p) => p.id === id);
+  if (!achou) {
+    // O `!` que estava aqui devolvia `undefined` tipado como `PackageDef`, e o
+    // primeiro acesso a `.minPrice` estourava dentro do briefing público.
+    throw new Error(`live-calculator: plano "${id}" não é um plano público da casa.`);
+  }
+  return achou;
 }
 
 // Human-readable labels for the matrix levels.
@@ -177,13 +208,14 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
     if (s?.postsPerWeek === undefined) {
       missing.push("Frequência de posts por semana");
     } else {
-      const postsPerMonth = s.postsPerWeek * 4;
-      const pkgId = detectPackage(postsPerMonth);
+      const pecasPorMes = s.postsPerWeek * 4;
+      const pkgId = detectPackage(pecasPorMes);
       const pkg   = getPackageDef(pkgId);
+      const plano = planoPorId(pkgId)!;
 
       items.push({
         label:    pkg.label,
-        detail:   `${pkg.postsPerWeek} posts + ${pkg.storiesPerWeek} stories/semana${pkg.reelsPerMonth > 0 ? ` · ${pkg.reelsPerMonth} reels/mês` : ""}`,
+        detail:   plano.salto,
         minPrice: pkg.minPrice,
         maxPrice: pkg.maxPrice,
         unit:     "mês",
@@ -191,36 +223,41 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
       totalMin += pkg.minPrice;
       totalMax += pkg.maxPrice;
 
-      included.push(`${pkg.postsPerWeek} posts/semana (${pkg.postsPerMonth}/mês)`);
-      included.push(`${pkg.storiesPerWeek} stories/semana`);
-      if (pkg.reelsPerMonth > 0) included.push(`${pkg.reelsPerMonth} reels/mês (edição)`);
-      if (pkg.copy)     included.push("Copywriting (textos)");
-      if (pkg.design)   included.push("Design personalizado das artes");
-      if (pkg.calendar) included.push("Calendário editorial e estratégia");
-      if (pkg.reports !== "none")
-        included.push(pkg.reports === "advanced" ? "Relatório mensal avançado" : "Relatório mensal de métricas");
-      if (pkg.community !== "none")
-        included.push(pkg.community === "full" ? "Gestão de comunidade completa" : "Gestão de comunidade (básica)");
+      // O ESCOPO OFICIAL, palavra por palavra. Antes, esta lista era montada de
+      // frases próprias ("Copywriting (textos)", "Gestão de comunidade
+      // completa") que não existiam em contrato nenhum — o prospect lia uma
+      // promessa que a ficha do plano não fazia.
+      included.push(...plano.inclui);
+      notIncluded.push(...plano.naoInclui);
 
       // Client-side overrides
       if (s.needsCopy === false) notIncluded.push("Copy — fornecida pelo cliente");
       if (s.hasPhotos === false) notIncluded.push("Produção fotográfica (orçar separado)");
 
-      // Extra reels beyond what the plan includes → add-on
-      if (s.reelsPerMonth !== undefined && s.reelsPerMonth > pkg.reelsPerMonth) {
-        const extra = s.reelsPerMonth - pkg.reelsPerMonth;
-        const rMin  = extra * P.reel.min;
-        const rMax  = extra * P.reel.max;
+      // Peça além do contratado. O excedente é o número da tabela oficial
+      // (R$ 180/peça), não uma faixa — e vídeo/reel continua FORA de todo plano.
+      if (plano.pecasPorMes !== null && pecasPorMes > plano.pecasPorMes && plano.pecaExtra !== null) {
+        const extra = pecasPorMes - plano.pecasPorMes;
+        const valor = extra * plano.pecaExtra;
         items.push({
-          label:    `Reels extras (${extra}/mês)`,
-          detail:   "Além do incluso no plano",
-          minPrice: rMin,
-          maxPrice: rMax,
+          label:    `Peças excedentes (${extra}/mês)`,
+          detail:   `Além das ${plano.pecasPorMes} do plano, a ${precoEmReais(plano.pecaExtra)} cada`,
+          minPrice: valor,
+          maxPrice: valor,
           unit:     "mês",
         });
-        totalMin += rMin;
-        totalMax += rMax;
-        included.push(`${s.reelsPerMonth} reels/mês no total`);
+        totalMin += valor;
+        totalMax += valor;
+      }
+
+      // Reel pedido no briefing NUNCA entra na conta do plano: vídeo está em
+      // `FORA_DE_TODO_PLANO` por decisão do CEO. Dizer o preço aqui seria
+      // recriar a cotação de vídeo que a tabela oficial tirou da mensalidade.
+      if (s.reelsPerMonth !== undefined && s.reelsPerMonth > 0) {
+        notIncluded.push(
+          `Gravação e edição de vídeo (${s.reelsPerMonth} reels/mês pedidos) — sempre orçado à parte`,
+        );
+        missing.push("Orçamento de vídeo (fora de todo plano)");
       }
     }
   }

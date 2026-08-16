@@ -8,6 +8,89 @@
 
 ---
 
+## O PREÇO PASSA A TER UMA FONTE SÓ, COM SEIS PLANOS — E O PERFORMANCE NÃO É VENDÁVEL
+
+**Decidido em** 2026-08-16 · **por** CEO, executado pelo `pm` a mando do Diretor ·
+**branch** `claude/preco-fonte-unica-seis-planos`
+
+### A decisão do CEO, em uma frase
+
+A tabela tem **seis** degraus — Pulso R$ 49 · Ritmo R$ 297 · Presença R$ 790 ·
+Conteúdo R$ 1.390 · Crescimento R$ 2.590 · **Performance R$ 4.990 + mídia** — e
+o preço mora em **um lugar só**, com trava na CI.
+
+**Pulso e Ritmo são decisão consciente do CEO**, pacotes de entrada para quem tem
+menos dinheiro. Não são resíduo de tabela velha; não se removem; não se
+questionam.
+
+### 🔴 O que foi encontrado: existiam QUATRO catálogos de preço de plano
+
+Não uma fonte e um documento — quatro catálogos **de código**, vivos ao mesmo
+tempo, e nada obrigando nenhum deles a concordar com os outros:
+
+| Onde | O que declarava | Chegava a quem |
+|---|---|---|
+| `lib/agency/planos.ts` | os 5 planos oficiais | site `/planos` |
+| `comercial/negociacao.ts` | `cheio`/`piso` digitados + preço dentro de frases de venda | a fala do SDR |
+| `live-calculator.ts` | **5 planos que não existem** (Essencial, Starter, Growth, Pro, Premium) em FAIXAS: 600–900 · 900–1.400 · 1.500–2.400 · 2.500–4.000 · 4.000–6.500 | **o briefing PÚBLICO** |
+| `pricing-margins.ts` | um **SEGUNDO piso** (520 · 820 · 1.300 · 2.200 · 3.600) que contradizia o primeiro | painel de margem do dono |
+
+**O terceiro era o dano real.** `/planos` dizia "Crescimento, R$ 2.590" e, na
+mesma casa e no mesmo dia, o prospect que preenchia o briefing recebia **"Plano
+Growth — R$ 1.500 a R$ 2.400"**. Um quinto foi achado depois, no balcão: os cinco
+itens de `self-serve-catalog.ts` estavam repetidos, número por número, dentro de
+`negociacao.ts`.
+
+**O portão que já existia passava verde nos quatro dias em que isso era verdade**,
+porque comparava `docs/precos.md` com `planos.ts` — exatamente o par que já
+concordava. Portão que confere onde não está o problema é decoração.
+
+### A decisão de desenho: ELIMINAR, não sincronizar
+
+Duplicata sincronizada volta a divergir no primeiro dia de pressa. As quatro
+tabelas paralelas **deixaram de ser fonte** e passaram a **derivar** de
+`lib/agency/planos.ts`. Nenhum preço de plano é digitado fora dele.
+
+### A decisão que protege o cliente: PRECIFICADO ≠ PÚBLICO
+
+O Performance existe na fonte única (a casa precisa saber quanto ele custa) e
+**não** em `PLANOS_PUBLICOS`. Dois motivos, cada um bastando sozinho:
+
+1. **A gestão diária de Meta Ads na conta do cliente está LARANJA** — conta de
+   anúncios restrita desde 03/08/2026. Nada laranja, vermelho ou horizonte é
+   vendável, nem como bônus, beta ou cortesia.
+2. **Só o preço dele foi decidido.** Escopo, implantação, piso, cadência e
+   permanência não foram escritos por ninguém. Não há o que pôr num contrato.
+
+A trava é `exposicao: "interno"` + teste que reprova qualquer superfície de
+cliente que importe `PLANOS` em vez de `PLANOS_PUBLICOS`.
+
+### A decisão que mais vai incomodar: "pendente" não vira "isenta"
+
+`implantacao` deixou de ser `number | null` e virou união
+(`isenta` · `valor` · `pendente`). Com `null`, o Performance — que chegou sem
+implantação escrita — teria sido publicado como **implantação isenta** num plano
+de R$ 4.990. **"Ninguém escreveu" e "é de graça" são fatos opostos**, e o tipo
+agora impede confundi-los.
+
+Pelo mesmo motivo: `piso: null` (Pulso e Performance) é **ausência de
+autorização**, não piso zero — `podeFechar` recusa e diz qual dos dois casos é.
+E `costBasis` dos seis é `null`: o painel do dono mostra **"sem custo"** em vez
+de uma margem inventada.
+
+### O que NÃO foi decidido aqui, e sobe para o CEO
+
+- **Piso do Pulso** — não existe. O SDR não fecha Pulso hoje.
+- **Implantação, piso e escopo do Performance** — nunca escritos.
+- **`balcao-pacote-mes`** vende as 8 peças do Ritmo por R$ 297 **sem implantação
+  e sem permanência**, na vitrine pública. A duplicata de número foi eliminada; a
+  sobreposição comercial é decisão de negócio.
+- **`setup-meta-ads` (R$ 380) e "Gestão de Tráfego Pago" (R$ 500–1.200)**
+  continuam à venda enquanto a conta de anúncios está restrita. Nada foi removido
+  — tirar produto do ar é decisão do CEO.
+
+---
+
 ## O ANÚNCIO SÓ NASCE COM ATIVO QUE SE PROVA DO DONO — PÁGINA E ARTE
 
 **Decidido em** 2026-08-15 · **por** `seguranca`, a pedido do Diretor ·

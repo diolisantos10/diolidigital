@@ -10,11 +10,23 @@
 // margin %, and floor price are negotiation levers the SDR reasons with — they
 // stay on the server (the /api/sdr/chat route) and in internal agency screens.
 //
-// The client-facing price ranges live in live-calculator.ts (minPrice/maxPrice).
-// This module overlays the hidden economics on top of those ids.
+// 🔴 O QUARTO CATÁLOGO PARALELO — eliminado em 16/08/2026
+//
+// `SOCIAL_MARGINS` tinha `floorPrice` e `targetPrice` DIGITADOS por plano, para
+// os cinco planos-fantasma do `live-calculator`. Eram preço de plano escrito
+// num quarto arquivo — e, pior, um SEGUNDO PISO: a casa tinha o piso de
+// `comercial/negociacao.ts` (Ritmo 229, Presença 690, Conteúdo 1.190,
+// Crescimento 2.190) e o piso daqui (520, 820, 1.300, 2.200, 3.600) ao mesmo
+// tempo, e os dois discordavam. Dois pisos é o mesmo que nenhum: o SDR usa o
+// que estiver mais perto da mão.
+//
+// Agora `floorPrice` e `targetPrice` DERIVAM de `lib/agency/planos.ts`. Só o
+// `costBasis` mora aqui — custo não é preço, e o custo é o único dado desta
+// casa que ninguém mediu.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { SOCIAL_PACKAGES, type SocialPackage } from "./live-calculator";
+import { PLANOS_PUBLICOS } from "./planos";
 
 // ── Margin profile ────────────────────────────────────────────────────────────
 // For each sellable line, we model:
@@ -24,21 +36,40 @@ import { SOCIAL_PACKAGES, type SocialPackage } from "./live-calculator";
 // The client-facing minPrice/maxPrice sit between floorPrice and targetPrice.
 
 export interface MarginProfile {
-  costBasis: number;
+  /**
+   * 🔴 `null` = NUNCA FOI MEDIDO, e é assim que os seis nascem hoje.
+   *
+   * Os cinco números que estavam aqui (280, 420, 620, 980, 1.500) eram o custo
+   * de cinco planos que **não existem**. Trazê-los para os planos oficiais
+   * "pela faixa de preço parecida" seria inventar a economia da casa — e é
+   * sobre esse número que o SDR decide dar desconto.
+   *
+   * `docs/precos.md` tem o custo de IA por plano (≈ R$ 4 a R$ 52/mês), que é
+   * medido e é REAL — mas é só a parte de IA. Falta a hora humana por conta,
+   * que é justamente o que `lib/agency/medicao/custo-de-atendimento.ts` passou
+   * a levantar. Enquanto ela não existir, este campo é `null` e a margem não é
+   * afirmada. Melhor "não sei" do que um percentual convincente e errado.
+   */
+  costBasis: number | null;
+  /** O menor valor autorizado. Vem do `piso` da fonte única. */
   floorPrice: number;
+  /** O preço de tabela. Vem do `preco` da fonte única. */
   targetPrice: number;
 }
 
-// Social plans — cost basis reflects an AI-native operation (low marginal cost,
-// high margin). Floor is ~1.6–1.8× cost so even the deepest discount stays
-// comfortably profitable. Target is at/above the client-facing maxPrice.
-export const SOCIAL_MARGINS: Record<SocialPackage, MarginProfile> = {
-  essencial: { costBasis: 280,  floorPrice: 520,  targetPrice: 900  },
-  starter:   { costBasis: 420,  floorPrice: 820,  targetPrice: 1400 },
-  growth:    { costBasis: 620,  floorPrice: 1300, targetPrice: 2400 },
-  pro:       { costBasis: 980,  floorPrice: 2200, targetPrice: 4000 },
-  premium:   { costBasis: 1500, floorPrice: 3600, targetPrice: 6500 },
-};
+/**
+ * Derivado, nunca digitado. Plano sem `piso` declarado (Pulso) e plano
+ * `interno` (Performance) **não aparecem aqui** — sem piso não há autorização
+ * de desconto, e é `podeFechar` em `comercial/negociacao.ts` que dá o recado.
+ */
+export const SOCIAL_MARGINS: Partial<Record<SocialPackage, MarginProfile>> = (() => {
+  const saida: Partial<Record<SocialPackage, MarginProfile>> = {};
+  for (const p of PLANOS_PUBLICOS) {
+    if (p.piso === null) continue;
+    saida[p.id] = { costBasis: null, floorPrice: p.piso, targetPrice: p.preco };
+  }
+  return saida;
+})();
 
 // Add-on departments.
 export const ADDON_MARGINS = {
@@ -111,18 +142,31 @@ export function getDiscountLever(id: DiscountLeverId): DiscountLever | undefined
 
 // ── Margin math ───────────────────────────────────────────────────────────────
 
-export function marginPct(sellPrice: number, costBasis: number): number {
+/**
+ * Margem em %. **`null` quando o custo não foi medido** — não 100%, não 0%.
+ * Um `costBasis` ausente tratado como zero devolveria "margem de 100%", que é a
+ * mentira mais perigosa que este módulo poderia contar ao SDR.
+ */
+export function marginPct(sellPrice: number, costBasis: number | null): number | null {
+  if (costBasis === null) return null;
   if (sellPrice <= 0) return 0;
   return Math.round(((sellPrice - costBasis) / sellPrice) * 100);
 }
 
-export type MarginHealth = "healthy" | "thin" | "below_floor";
+/** `nao_medida` não é um estado de erro: é o estado real da casa hoje. */
+export type MarginHealth = "healthy" | "thin" | "below_floor" | "nao_medida";
 
-// Classifies a proposed sell price against a profile. "below_floor" means the
-// SDR is not authorized to sell here — escalate to a human.
+/**
+ * Classifica um preço proposto. `below_floor` = o SDR não pode vender aqui.
+ *
+ * Ordem importa: o PISO é checado antes do custo. O piso é decisão registrada e
+ * vale mesmo sem custo medido — deixar de barrar uma venda abaixo do piso por
+ * falta de custo seria trocar uma trava que existe por uma que falta.
+ */
 export function classifyMargin(sellPrice: number, profile: MarginProfile): MarginHealth {
   if (sellPrice < profile.floorPrice) return "below_floor";
   const pct = marginPct(sellPrice, profile.costBasis);
+  if (pct === null) return "nao_medida";
   return pct >= 55 ? "healthy" : "thin";
 }
 
@@ -131,10 +175,15 @@ export function classifyMargin(sellPrice: number, profile: MarginProfile): Margi
 // floor price across the whole deal. The SDR must never quote below this sum.
 
 export interface DealFloor {
-  totalCost: number;
+  /** `null` quando qualquer linha do negócio tem custo não medido. Somar só as
+   *  linhas conhecidas devolveria um custo total menor que o real, com cara de
+   *  total. */
+  totalCost: number | null;
   totalFloor: number;
   totalTarget: number;
-  lines: { label: string; cost: number; floor: number; target: number }[];
+  lines: { label: string; cost: number | null; floor: number; target: number }[];
+  /** As linhas que não puderam entrar, com o motivo. Nunca somem em silêncio. */
+  semAutorizacao: string[];
 }
 
 export function computeDealFloor(args: {
@@ -145,20 +194,33 @@ export function computeDealFloor(args: {
   wantsRebrand?: boolean;
 }): DealFloor {
   const lines: DealFloor["lines"] = [];
-  let totalCost = 0;
+  const semAutorizacao: string[] = [];
+  let totalCost: number | null = 0;
   let totalFloor = 0;
   let totalTarget = 0;
 
-  const add = (label: string, p: { costBasis: number; floorPrice: number; targetPrice: number }) => {
+  const add = (label: string, p: { costBasis: number | null; floorPrice: number; targetPrice: number }) => {
     lines.push({ label, cost: p.costBasis, floor: p.floorPrice, target: p.targetPrice });
-    totalCost += p.costBasis;
+    if (p.costBasis === null) totalCost = null;
+    else if (totalCost !== null) totalCost += p.costBasis;
     totalFloor += p.floorPrice;
     totalTarget += p.targetPrice;
   };
 
   if (args.socialPackage) {
-    const pkg = SOCIAL_PACKAGES.find((p) => p.id === args.socialPackage);
-    add(pkg?.label ?? "Plano Social", SOCIAL_MARGINS[args.socialPackage]);
+    const perfil = SOCIAL_MARGINS[args.socialPackage];
+    if (!perfil) {
+      // Fail-closed e RUIDOSO. Sem perfil não há piso — e um negócio montado
+      // sem a linha do plano sairia com piso menor que o real, que é o jeito
+      // silencioso de vender abaixo do chão.
+      semAutorizacao.push(
+        `"${args.socialPackage}" não tem piso autorizado (plano interno ou piso não declarado em planos.ts). ` +
+          `Este negócio NÃO pode ser fechado pelo SDR — escale.`,
+      );
+    } else {
+      const pkg = SOCIAL_PACKAGES.find((p) => p.id === args.socialPackage);
+      add(pkg?.label ?? "Plano Social", perfil);
+    }
   }
   // Extra reels: thin-margin add-on (~R$120 cost each, floor ~R$200).
   if (args.extraReels && args.extraReels > 0) {
@@ -173,7 +235,7 @@ export function computeDealFloor(args: {
     add("Identidade Visual", args.wantsRebrand ? ADDON_MARGINS.brandingFull : ADDON_MARGINS.branding);
   }
 
-  return { totalCost, totalFloor, totalTarget, lines };
+  return { totalCost, totalFloor, totalTarget, lines, semAutorizacao };
 }
 
 // ── Discount resolution ───────────────────────────────────────────────────────
@@ -187,12 +249,13 @@ export interface DiscountDecision {
   finalPrice: number;        // basePrice after discount
   floorPrice: number;        // the floor it was clamped against
   clampedToFloor: boolean;   // true if the requested discount hit the floor
-  marginPctAtFinal: number;
+  /** `null` quando o custo não foi medido — ver `MarginProfile.costBasis`. */
+  marginPctAtFinal: number | null;
 }
 
 export function resolveDiscount(args: {
   basePrice: number;         // the price being discounted from (usually target/list)
-  costBasis: number;
+  costBasis: number | null;
   floorPrice: number;
   levers: DiscountLeverId[];
 }): DiscountDecision {

@@ -22,7 +22,20 @@ function brl(n: number) {
   return "R$ " + n.toLocaleString("pt-BR");
 }
 
-function MarginBadge({ pct }: { pct: number }) {
+function MarginBadge({ pct }: { pct: number | null }) {
+  // `null` = o custo daquela linha nunca foi medido. A pílula NÃO fica verde
+  // nem some: ela diz "sem custo". Um selo verde sobre custo desconhecido é
+  // exatamente o carimbo falso que esta casa já pagou caro.
+  if (pct === null) {
+    return (
+      <span
+        className="h-5 px-2 rounded-full text-[10px] font-bold bg-[var(--warning-bg)] text-[var(--warning)]"
+        title="Custo de atendimento nunca medido — a margem não pode ser afirmada."
+      >
+        sem custo
+      </span>
+    );
+  }
   const tone =
     pct >= 60 ? "bg-[var(--success-bg)] text-[var(--success)]" : pct >= 45 ? "bg-[var(--warning-bg)] text-[var(--warning)]" : "bg-[#FEE2E2] text-[var(--danger)]";
   return <span className={`h-5 px-2 rounded-full text-[10px] font-bold ${tone}`}>{pct}%</span>;
@@ -47,7 +60,9 @@ function Row({
         <div className="text-[13px] font-medium text-[var(--text-primary)]">{label}</div>
         <div className="text-[10px] text-[var(--text-muted)]">{detail}</div>
       </td>
-      <td className="p-3 text-center text-[12px] text-[var(--text-secondary)] mono-num">{brl(profile.costBasis)}</td>
+      <td className="p-3 text-center text-[12px] text-[var(--text-secondary)] mono-num">
+        {profile.costBasis === null ? <span className="text-[var(--warning)]" title="custo de atendimento nunca medido">não medido</span> : brl(profile.costBasis)}
+      </td>
       <td className="p-3 text-center text-[12px] font-semibold text-[var(--danger)] mono-num">{brl(profile.floorPrice)}</td>
       <td className="p-3 text-center text-[12px] text-[var(--text-primary)] mono-num">{brl(list)}</td>
       <td className="p-3 text-center text-[12px] text-[var(--navy)] mono-num">{brl(profile.targetPrice)}</td>
@@ -91,15 +106,22 @@ export default function MarginIntelligencePanel() {
             </tr>
           </thead>
           <tbody className="[&_td]:text-white">
-            {SOCIAL_PACKAGES.map((p) => (
-              <Row
-                key={p.id}
-                label={p.label}
-                detail={`${p.postsPerWeek} posts/sem`}
-                list={p.minPrice}
-                profile={SOCIAL_MARGINS[p.id]}
-              />
-            ))}
+            {/* Plano sem perfil de margem NÃO some da tela: some da tabela e
+                aparece na linha de aviso abaixo. Sumir em silêncio é como um
+                plano sem piso vira um plano que o SDR fecha no escuro. */}
+            {SOCIAL_PACKAGES.map((p) => {
+              const profile = SOCIAL_MARGINS[p.id];
+              if (!profile) return null;
+              return (
+                <Row
+                  key={p.id}
+                  label={p.label}
+                  detail={p.pecasPorMes === null ? "cadência não declarada" : `${p.pecasPorMes} peças/mês`}
+                  list={p.minPrice}
+                  profile={profile}
+                />
+              );
+            })}
             <Row label="Tráfego Pago — gestão" detail="Fee mensal (verba à parte)" list={500} profile={ADDON_MARGINS.trafficMgmt} />
             <Row label="Identidade Visual" detail="Projeto" list={1200} profile={ADDON_MARGINS.branding} />
             <Row label="Rebranding Completo" detail="Projeto" list={2000} profile={ADDON_MARGINS.brandingFull} />

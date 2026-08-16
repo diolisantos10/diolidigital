@@ -28,10 +28,12 @@ function Check({ on }: { on: boolean }) {
 type Row = { label: string; render: (p: PackageDef) => ReactNode };
 
 const SOCIAL_ROWS: Row[] = [
-  { label: "Posts/semana",         render: (p) => <span className="font-semibold">{p.postsPerWeek}</span> },
-  { label: "Stories/semana",       render: (p) => p.storiesPerWeek },
-  { label: "Total posts/mês",      render: (p) => <span className="text-[var(--text-muted)]">{p.postsPerMonth}</span> },
-  { label: "Reels/mês",            render: (p) => (p.reelsPerMonth > 0 ? p.reelsPerMonth : <Check on={false} />) },
+  // "Peças/mês" e não "posts/semana": é a unidade do escopo oficial. `null` é
+  // "não declarado" e aparece como "—" — nunca como zero, que afirmaria que o
+  // plano entrega nada.
+  { label: "Peças/mês",            render: (p) => <span className="font-semibold">{p.pecasPorMes ?? "—"}</span> },
+  { label: "Stories/mês",          render: (p) => p.storiesPerMonth ?? <span className="text-[var(--text-muted)]" title="não dimensionado no escopo oficial">—</span> },
+  { label: "Reels/mês",            render: (p) => p.reelsPerMonth ?? <span className="text-[var(--text-muted)]" title="vídeo fica fora de todo plano">—</span> },
   { label: "Copywriting",          render: (p) => <Check on={p.copy} /> },
   { label: "Design personalizado", render: (p) => <Check on={p.design} /> },
   { label: "Calendário editorial", render: (p) => <Check on={p.calendar} /> },
