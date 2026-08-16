@@ -141,3 +141,26 @@ describe("o texto que o cliente lê", () => {
     expect(t).not.toMatch(/\$\d|clientRequestId|correlation|orchestrator/i);
   });
 });
+
+describe("briefing SEM contato tambem e atendido — a causa raiz da noite de 16/08", () => {
+  it("pega lead_incompleto, nao so new", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([]);
+    await entregarOrcamentosPendentes();
+    const where = db.clientRequestDb.findMany.mock.calls[0][0].where;
+    // O briefing do CEO entrou sem contato (o SDR havia parado de pedir
+    // e-mail) e a porta de entrada o gravou como `lead_incompleto`. Nesse
+    // estado ele ficava fora da vista de TUDO — e o CEO esperou a noite
+    // inteira por um orcamento de um pedido tratado como lixo.
+    expect(where.status.in).toContain("new");
+    expect(where.status.in).toContain("lead_incompleto");
+  });
+
+  it("entrega o orcamento de um lead_incompleto pelo portal", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([pedido({ status: "lead_incompleto", clientId: null })]);
+    const r = await entregarOrcamentosPendentes();
+    // Faltar contato impede AVISAR por fora; nao impede ATENDER. O portal nao
+    // precisa de e-mail para funcionar.
+    expect(r.entregues).toBe(1);
+    expect(db.portalMessage.create).toHaveBeenCalledTimes(1);
+  });
+});

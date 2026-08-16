@@ -133,9 +133,24 @@ export function textoDoOrcamento(negocio: string, e: EstimativaGuardada): string
 export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcamento> {
   const resultado: ResultadoDoOrcamento = { entregues: 0, semOrcamento: 0, falhas: [] };
 
+  // ── POR QUE `lead_incompleto` ENTRA AQUI ──────────────────────────────────
+  // 16/08/2026, sete horas depois de este arquivo subir: ele não tinha
+  // entregado UM orçamento. Nem falha, nem entrega — silêncio.
+  //
+  // A causa estava na porta de entrada. `app/api/brain/client-requests` grava
+  //   status: contato.temComoFalar ? "new" : "lead_incompleto"
+  // e o briefing do CEO entrou SEM contato — porque o SDR havia parado de pedir
+  // e-mail. Resultado: o pedido nasceu marcado como incompleto e ficou fora da
+  // vista de tudo. Ele esperou a noite inteira por um orçamento de um pedido
+  // que o sistema tratava como lixo.
+  //
+  // Faltar contato NÃO é faltar pedido. O cliente escreveu, anexou material e
+  // está com o portal aberto — o orçamento chega ali, e o portal não precisa
+  // de e-mail nenhum para funcionar. O que a falta de contato impede é AVISAR
+  // por fora; não é atender.
   const pedidos = await prisma.clientRequestDb
     .findMany({
-      where: { status: "new" },
+      where: { status: { in: ["new", "lead_incompleto"] } },
       orderBy: { createdAt: "asc" },
       take: MAX_POR_RODADA,
     })
