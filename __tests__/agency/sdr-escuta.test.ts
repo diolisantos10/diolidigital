@@ -153,3 +153,73 @@ describe("SDR — o agente não garante o que não consegue verificar", () => {
     expect(FICHA).toContain("garanto que o briefing");
   });
 });
+
+// ── A RESPOSTA QUE É DESCARTADA INTEIRA (ordem do CEO, 16/08/2026) ──────────
+//
+// Duas vezes em três minutos (12h41 e 12h43) a resposta do SDR foi barrada por
+// erro de formato e quem atendeu o cliente foi o motor de regras — sem ele
+// saber. O pacote leva DUAS coisas juntas: a fala e o escopo. Formato quebrado
+// joga as duas fora.
+//
+// O que se perdeu: 2 posts por dia e R$ 500/mês. O painel foi para "0 posts" e
+// a casa devolveu R$ 1.800–3.400 com 3 posts/semana. O SDR é o primeiro da
+// esteira: todo mundo depois trabalhou certo em cima de dado furado.
+//
+// O guarda NÃO se afrouxa — barrar é melhor que empurrar lixo para o cliente.
+// O conserto é o agente responder no formato certo, e é isso que estes testes
+// cobram.
+
+describe("SDR — o pacote é completo, e a fala é curta porque o pacote é um só", () => {
+  it("o prompt declara o teto de tamanho com o motivo, não como estilo", () => {
+    expect(PROMPT).toContain("no MÁXIMO 600 caracteres");
+    expect(PROMPT).toContain("POR QUE O TETO DE TAMANHO É REGRA E NÃO ESTILO");
+    expect(PROMPT).toContain("Prolixidade aqui não é estilo: é perda de dado");
+  });
+
+  it("o prompt exige pacote completo e manda cortar a FALA, nunca o escopo", () => {
+    expect(PROMPT).toContain("A SAÍDA É SEMPRE UM PACOTE COMPLETO E BEM FORMADO");
+    expect(PROMPT).toContain("CORTE A FALA, não o escopo");
+  });
+
+  it("o prompt proíbe o elogio longo e a lista de volta do material", () => {
+    expect(PROMPT).toContain("PROIBIDO na fala");
+    expect(PROMPT).toContain("Elogio longo é o jeito mais comum de estourar o pacote");
+  });
+
+  it("a ficha registra o caso das duas quebras em três minutos", () => {
+    expect(FICHA).toContain("A saída é sempre um pacote completo e bem formado");
+    expect(FICHA).toContain("duas vezes em três minutos");
+    // e deixa escrito que o guarda não se afrouxa
+    expect(FICHA).toContain("Barrar é\nmelhor que empurrar lixo para o cliente");
+  });
+});
+
+describe("SDR — verba declarada se repete de volta", () => {
+  it("o prompt manda ecoar o número e explica por que não é cotar", () => {
+    expect(PROMPT).toContain("VERBA DECLARADA SE REPETE DE VOLTA");
+    expect(PROMPT).toContain("Número dito e não repetido é número em risco");
+  });
+
+  it("a ficha carrega a regra e o caso dos R$ 500", () => {
+    expect(FICHA).toContain("Verba declarada se repete de volta");
+    expect(FICHA).toContain("R$ 500/mês");
+  });
+});
+
+describe("SDR — nome da pessoa não é nome do negócio", () => {
+  it("o prompt diz que o nome confirmado ou escrito no material manda", () => {
+    expect(PROMPT).toContain("Nome de negócio confirmado pelo cliente, ou escrito no material que ele anexou, MANDA");
+    expect(PROMPT).toContain("briefing da Diego");
+  });
+
+  it("a regra é TRAVA, não aviso: o campo é descartado quando repete a pessoa", () => {
+    // Prompt é aviso; código é trava. A instrução já existia e não bastou.
+    expect(PROMPT).toContain("businessName igual ao prospectName — descartado");
+    expect(PROMPT).toContain("delete scopePatch.businessName");
+  });
+
+  it("a ficha declara que esta regra também é trava de código", () => {
+    expect(FICHA).toContain("Nome da pessoa não é nome do negócio");
+    expect(FICHA).toContain("Campo vazio é honesto");
+  });
+});
