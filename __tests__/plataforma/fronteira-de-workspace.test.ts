@@ -86,7 +86,7 @@ function bancoDeDoisInquilinos() {
 beforeEach(() => {
   vi.clearAllMocks();
   // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
-  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
+  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr-A" }]);
   escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   requireSession.mockResolvedValue({ session: { workspaceId: "ws-A", email: "staff@a.com" }, error: null });
   getSession.mockResolvedValue({ workspaceId: "ws-A", email: "staff@a.com" });
@@ -175,6 +175,8 @@ describe("POST /api/social-posts — criar peça para cliente do vizinho é recu
 
 describe("GET /api/social-posts com token — o workspace entra no filtro", () => {
   it("a consulta do portal filtra por workspaceId, não só por clientRequestId", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr-A" }]);
+    db.client.findUnique?.mockResolvedValue?.({ id: "cli-A", workspaceId: "ws-A" });
     // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
     // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
     // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque

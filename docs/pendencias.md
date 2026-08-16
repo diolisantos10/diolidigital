@@ -113,53 +113,73 @@ re-apontava A→B incondicionalmente. Carimbar dono nulo pode; **trocar dono nã
 
 ### 🔴 O QUE FICOU ABERTO
 
-- [ ] `plataforma` — 🟠 **`ClientRequestDb.clientId` continua mutável no schema.**
+> **Pendência sem dono não existe** — régua do Diretor. Toda linha abaixo tem
+> dono e prazo. Onde o dono é "Diretor decide", é porque a escolha é de negócio
+> e não minha.
+
+- [ ] 🔴 **REEMISSÃO DE LINKS ANTES DO DEPLOY.** `PortalAccess.clientId` virou a
+      única prova de pertencimento de um token: **link legado sem dono escrito
+      é recusado** e cai em `/portal/invalid`. Rodar
+      `GET /api/admin/censo-de-historico-ambiguo` para contar, e reemitir por
+      `POST /api/admin/links-do-portal` — que já emite com dono.
+      **[DONO: CEO/Diretor · pré-requisito do deploy]**
+- [ ] 🟠 **`escopo.clientRequestIds[0]`** — cliente com três solicitações só
+      alcança a mais nova em `portal-data`, `esteira`, `social-posts` e `media`.
+      Defeito funcional, pré-existente, agora explícito.
+      **[DONO: `esteira` · 14 dias]**
+- [ ] 🔴 **`/api/portal/conectar-meta` redireciona com o token na query** —
+      credencial em log de proxy e no `Referer`. Pré-existente; não usa
+      resolvedor nenhum. **[DONO: `seguranca` · 14 dias]**
+- [ ] 🟠 **`reviewedBy` grava e exibe fragmento do token do portal.** Some com
+      ele. **[DONO: `esteira` · 14 dias]**
+
+- [ ] `plataforma` — 🟠 **`ClientRequestDb.clientId` continua mutável no schema.** **[DONO: `plataforma` · 7 dias]**
       O único re-apontador incondicional foi fechado e o token não segue mais o
       ponteiro, mas o campo ainda pode andar. Torná-lo imutável (ou exigir um
-      caminho sancionado único) é o conserto de raiz. Sem dono.
-- [ ] 🔴 **O NÚMERO DE PRODUÇÃO do histórico escondido NÃO FOI MEDIDO.** O banco
+      caminho sancionado único) é o conserto de raiz. 
+- [ ] 🔴 **O NÚMERO DE PRODUÇÃO do histórico escondido NÃO FOI MEDIDO.** **[DONO: **CEO/Diretor** · antes do deploy]** O banco
       mora num volume dentro do contêiner; este ambiente não tem `CRON_SECRET`
       nem sessão de admin. A conta roda em um comando
       (`scripts/censo-de-historico-ambiguo.mts`) ou por
       `GET /api/admin/censo-de-historico-ambiguo` — **CEO/Diretor**. O script foi
       validado contra cenário semeado (achou as 2 plantadas). **Estimar seria
       inventar.**
-- [ ] 🟠 **Balcão: efeito comercial declarado.** Como e-mail não verificado
+- [ ] 🟠 **Balcão: efeito comercial declarado.** **[DONO: **Diretor decide** · 7 dias]** Como e-mail não verificado
       deixou de fundir ficha, quem compra a **segunda vez** pelo balcão ganha
       **ficha nova** — carteira fragmentada, um portal por ficha. A direção está
       certa ("duplicada é cadastro, fundida é vazamento"), mas alguém tem de
-      fundir depois. **Sem dono.**
-- [ ] 🟠 **Balcão não é idempotente sob concorrência.** A guarda de identidade
+      fundir depois. **
+- [ ] 🟠 **Balcão não é idempotente sob concorrência.** **[DONO: `plataforma` · 7 dias]** A guarda de identidade
       venceu a corrida, mas o resto de `produzirPedidoDeBalcao` não é
       transacional: duas execuções do mesmo pedido produziram **2 Client, 2
       Project, 2 PortalAccess**, e o token do perdedor devolve `ponteiro_andou`
       → **portal morto para quem pagou**. O comentário em `producao.ts:19-21`
-      afirma o contrário — **comentário que mente é pior que ausente**. Sem dono.
-- [ ] 🔴 **Sequestro de cookie por token válido de terceiro** (pré-existente):
+      afirma o contrário — **comentário que mente é pior que ausente**. 
+- [ ] 🔴 **Sequestro de cookie por token válido de terceiro** **[DONO: `seguranca` · 14 dias — **P0 próprio**]** (pré-existente):
       token válido na query sobrescreve o cookie da vítima por 180 dias. Custo do
       ataque: um token de balcão de R$ 39. Efeito: a vítima vê o portal do
       atacante e **o que ela digitar cai na conversa dele**. Não é regressão
       desta frente e não cabe neste PR — **item próprio, e é P0.**
-- [ ] 🟠 **Não existe camada única de conferência de token** — cada rota é
+- [ ] 🟠 **Não existe camada única de conferência de token** **[DONO: `qualidade` · 14 dias]** — cada rota é
       conferida à mão, "foi assim que 4 ficaram para trás nesta rodada, e será
       assim na próxima". `escopoDoToken` reduz para uma chamada, mas nada obriga
       a chamá-la. Proposta: teste de arquitetura que reprove rota sob
       `app/api/portal/**` que importe `validatePortalAccess` direto.
 - [ ] 🟠 **`create-project-from-request:52` e `orchestrate/apply:111` decidem no
-      CÓDIGO, não no `WHERE`** — mesma corrida que foi fechada no balcão. São
+      CÓDIGO, não no `WHERE`** **[DONO: `plataforma` · 14 dias]** — mesma corrida que foi fechada no balcão. São
       first-assignment (não re-apontam), então o risco é duplicação, não troca
       de dono. Uniformizar.
-- [ ] 🟠 **Falso positivo no dia do deploy:** aba aberta em `/portal/access/me`
+- [ ] 🟠 **Falso positivo no dia do deploy:** **[DONO: `plataforma` · 7 dias]** aba aberta em `/portal/access/me`
       com bundle antigo não manda `dono` ⇒ recusa até recarregar. Portão que
       reprova o legítimo é metade do problema. Mitigação possível: tolerar a
       ausência do selo por uma janela curta após o deploy.
-- [ ] 🟠 **O selo é pseudônimo estável e sem sal** — viaja na query string e para
-      em log. Mintar por sessão fecha a correlação. Sem dono.
+- [ ] 🟠 **O selo é pseudônimo estável e sem sal** **[DONO: `plataforma` · 14 dias]** — viaja na query string e para
+      em log. Mintar por sessão fecha a correlação. 
 - [ ] `plataforma` — **`Client` sem `@@unique(workspaceId, name)`** e duas rotas
       criando ficha sem dedup (já aberto desde 08/08 pela Camila duplicada).
-- [ ] `seguranca` — 🔴 **não há registro de acesso do portal.** Enquanto não
+- [ ] `seguranca` — 🔴 **não há registro de acesso do portal.** **[DONO: `seguranca` · 14 dias]** Enquanto não
       houver, toda pergunta forense sobre o portal termina em "não há como
-      saber". Sem dono.
+      saber". 
 - [ ] **CEO/Diretor** — 🔴 **PRODUÇÃO ESTAVA FORA DO AR (HTTP 502,
       `x-railway-fallback: true`) durante esta apuração**, em `/api/health` e em
       todas as rotas. Não foi causado por esta frente (o trabalho todo foi
@@ -428,7 +448,7 @@ nome do plano na mesma largura — agora empilham no celular.
       schema quebraria a frente dele. O leitor único (`lerContato`) esconde o
       formato de todo mundo, então promover a coluna depois é migration + um
       arquivo. **Enquanto não for coluna, não dá para filtrar nem indexar por
-      contato no banco.** Sem dono.
+      contato no banco.** 
 - [ ] **Abandono NO MEIO da conversa continua sem registro.** O `lead_incompleto`
       pega quem chega ao passo de contato e recusa; quem fecha a aba na terceira
       mensagem não deixa nada. Capturar isso exige gravação parcial com token de
@@ -769,7 +789,7 @@ quem lhe der um verbo de escrita.
 - **A ficha do cliente 404 de forma intermitente** (o store hidrata depois do
   primeiro render e o `notFound()` dispara antes). **É anterior a este
   trabalho** e atrapalhou a captura em 768/1440 — a seção foi conferida em
-  375px. Sem dono.
+  375px. 
 - **`GET /api/agency/material-de-marca?clientId=…` lista até 500 arquivos sem
   paginação.** Suficiente hoje; não é para sempre.
 
@@ -1472,7 +1492,7 @@ tocado aqui).
 - **O pedido em `precisa_decisao` há +24h continua parado** — por desenho ele
   espera decisão de gente.
 - **A conferência de PIXEL na foto gerada por IA continua não existindo.** É a
-  causa raiz dos 3 descartes e é o que destrava os 3 pilares. Sem dono.
+  causa raiz dos 3 descartes e é o que destrava os 3 pilares. 
 
 
 ## 🟢 08/08/2026 — 99FREELAS: A MÁQUINA DE CONFORMIDADE ENTROU NO CAMINHO QUE A TELA USA
@@ -1863,7 +1883,7 @@ um retângulo branco vazio de meia tela a 1440px.
       §7.6 do DESIGN.md. **Não mexi**: a tela é de outra frente.
 - [ ] `qualidade` — `PAPEIS[papel]` cai no id cru quando o papel não está na
       lista fechada. É o comportamento honesto (não inventa rótulo) e **também**
-      o sintoma de dado velho no banco. Sem dono.
+      o sintoma de dado velho no banco. 
 
 ### 🗺️ E o MAPA do arsenal de informação: `docs/plataformas/mapa-do-arsenal-de-informacao.md`
 

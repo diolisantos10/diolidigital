@@ -49,7 +49,9 @@ function envio(token: string, nome = "logo.png", tipo = "image/png"): NextReques
 beforeEach(() => {
   vi.clearAllMocks();
   // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
-  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
+  // As solicitações do escopo saem do CLIENTE. Cliente direto não tem
+  // nenhuma — e é isso que o teste abaixo afirma.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([]);
   escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db, { resolvePortalClient }));
   getSession.mockResolvedValue(null);
   guardarArquivo.mockResolvedValue({ ok: true, arquivo: { id: "m1", fileName: "logo.png", sizeBytes: 16, mimeType: "image/png", url: "/api/media/m1" } });
@@ -93,6 +95,8 @@ describe("o arquivo é arquivado no workspace DO CLIENTE, derivado do token", ()
   // Agora sai do ESCOPO CONGELADO (`escopoDoToken` → cliente → workspace).
   // A garantia que este teste protege é a mesma: a casa é a DO DONO.
   it("token com solicitação: o workspace vem do DONO congelado", async () => {
+    // O escopo lista as solicitações DO CLIENTE (não a do registro do token).
+    db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr1" }]);
     validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
     db.clientRequestDb.findUnique.mockResolvedValue({ workspaceId: "ws-padaria" });
     resolvePortalClient.mockResolvedValue({ clientId: "c1", workspaceId: "ws-padaria" });

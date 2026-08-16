@@ -63,7 +63,8 @@ const SESSAO = { session: { userId: "u1", email: "m@d", name: "M", role: "master
 beforeEach(() => {
   vi.clearAllMocks();
   // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
-  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
+  // Cliente DIRETO (o caso Foocci): nenhuma solicitação de briefing.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([]);
   escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   requireSession.mockResolvedValue(SESSAO);
   // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
@@ -98,6 +99,8 @@ describe("GET /api/social-posts — as telas do carrossel saem no DTO", () => {
   });
 
   it("ramo de token (portal): telas presentes, script continua AUSENTE", async () => {
+    // Escopo com solicitação: ela sai do CLIENTE, não do registro do token.
+    db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr1" }]);
     validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
     const res = await listarPosts(new NextRequest("http://localhost/api/social-posts?token=tok-1"));
     const json = await res.json();
@@ -296,7 +299,11 @@ describe("portal-data — pecas estruturadas a partir de sourcePostIdsJson", () 
   });
 
   it("no ramo COM solicitação (buildPortalData) as pecas saem igual — as duas portas falam a mesma língua", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
+    // Escopo com solicitação: ela sai do CLIENTE, não do registro do token.
+    db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr1" }]);
+    // Token e solicitação apontando para o MESMO cliente: divergir aqui é
+    // `ponteiro_andou` → 403, que é a trava do dono congelado, não um defeito.
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "cli-foocci" } });
     db.clientRequestDb.findUnique.mockResolvedValue({
       id: "cr1", clientId: "cli-foocci", businessName: "Foocci", status: "in_production",
       services: "[]", objectives: "[]", briefingJson: "{}", segment: "", createdAt: new Date(),

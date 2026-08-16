@@ -92,6 +92,8 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
   // de outra marca. Existe para ele NÃO concluir que a agência apagou a
   // conversa dele.
   const [historicoParcial, setHistoricoParcial] = useState(false);
+  /** A explicação vem do SERVIDOR — uma fonte só. Ver a tarja abaixo. */
+  const [detalhe, setDetalhe] = useState<string | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
   const [linkDraft, setLinkDraft] = useState("");
   const [suggesting, setSuggesting] = useState(false);
@@ -171,9 +173,10 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
         return;
       }
       const data = (await res.json()) as {
-        messages?: ChatMessage[]; podeEnviar?: boolean; motivo?: string;
+        messages?: ChatMessage[]; podeEnviar?: boolean; motivo?: string; detalhe?: string;
       };
       setMessages(data.messages ?? []);
+      setDetalhe(typeof data.detalhe === "string" ? data.detalhe : null);
       // Sem número: a contagem do que foi cortado é do lado da AGÊNCIA (censo).
       // Devolvê-la ao cliente entregava o volume do acervo de outro.
       setHistoricoParcial(data.motivo === "historico-parcial");
@@ -266,9 +269,13 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
         <div className="px-4 pt-3" role="status">
           <div className="rounded-[10px] px-3 py-2" style={{ background: "#FFFBEB" }}>
             <p className="text-[11.5px] leading-snug" style={{ color: "#9B7B2D" }}>
+              {/* ⚠️ UM TEXTO SÓ, E ELE VEM DO SERVIDOR. A tela tinha o dela
+                  ("é só pedir à equipe Dioli") e o servidor mandava outro que
+                  nunca era exibido — dois textos, e o cliente lia o pior:
+                  aquele arma engenharia social contra o nosso próprio suporte
+                  ("me manda o histórico da conversa"). O texto morto saiu. */}
               <b>Parte do histórico antigo não está aparecendo aqui.</b>{" "}
-              Não conseguimos confirmar a origem dessas mensagens, então preferimos não
-              mostrar. <b>Nada foi apagado</b> — é só pedir à equipe Dioli.
+              {detalhe ?? "Não conseguimos confirmar a origem dessas mensagens, então preferimos não mostrar. Nada foi apagado."}
             </p>
           </div>
         </div>
@@ -481,7 +488,11 @@ export function PortalChat({ token, clientRequestId, clientId, dono, suggestCont
                 ? micModo === "envio"
                   ? "Gravando… fale e toque no microfone para transcrever"
                   : "Ouvindo… fale agora"
-                : "Escreva ou grave um áudio…"
+                // ⚠️ 375px: "Escreva ou grave um áudio…" quebrava em duas
+                // linhas dentro de um `rows={1}` e saía CORTADO — conferido em
+                // imagem (`docs/entregas/portal-15-08/375-*.png`), não em
+                // leitura de fonte. O texto curto cabe.
+                : "Mensagem ou áudio…"
           }
           rows={1}
           className="flex-1 px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-[10px] outline-none focus:border-[var(--text-primary)] focus:bg-white transition-all resize-none leading-relaxed"

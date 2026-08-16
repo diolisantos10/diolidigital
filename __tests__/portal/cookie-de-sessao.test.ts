@@ -50,7 +50,7 @@ beforeEach(() => {
   // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
   // carregam o dono, que é a forma que os links emitidos passam a ter.
   // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
-  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "cli1" } });
+  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
   conferirTokenDoPortal.mockResolvedValue(true);
 });
 

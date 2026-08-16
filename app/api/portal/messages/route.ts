@@ -200,9 +200,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         ? {
             motivo: "historico-parcial",
             detalhe:
-              "Parte do histórico antigo desta conversa não está sendo exibida porque não"
-              + " conseguimos confirmar a origem dela. Nada foi apagado — fale com a equipe"
-              + " Dioli. As mensagens novas continuam normais.",
+              // ⚠️ NÃO diga ao cliente para "pedir o histórico à equipe": isso
+              // arma engenharia social contra o próprio suporte, e o suporte
+              // não tem como saber de quem é a linha (é justamente por isso
+              // que ela está retida). A recuperação é interna.
+              "Não conseguimos confirmar a origem de parte do histórico antigo, então ela não"
+              + " está sendo exibida. Nada foi apagado, e a equipe Dioli já está tratando disso."
+              + " As mensagens novas continuam normais.",
           }
         : {}),
     });

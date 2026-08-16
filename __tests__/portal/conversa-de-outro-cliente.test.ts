@@ -161,14 +161,20 @@ describe("a solicitação muda de dono e leva a conversa junto", () => {
     expect(lidas).not.toContain("recado-da-beta");
   });
 
-  it("✅ no caso LIMPO nada é escondido — inclusive a linha legada sem clientId", async () => {
+  // ⚠️ RODADA 4 — ESTE TESTE FOI INVERTIDO, e a inversão é a decisão.
+  //
+  // Ele exigia que "uma cerca grosseira (`clientId: X` e ponto)" NÃO fosse
+  // adotada, para não apagar o histórico legado. Essa exigência é exatamente
+  // o que mantinha o vazamento: a mesma linha sem dono que o dono certo lia,
+  // o dono NOVO de uma solicitação re-apontada lia também. Não dá para ter as
+  // duas — e entre "vê menos histórico" e "vê o preço do vizinho", a casa
+  // escolhe a primeira, avisa na tela e mede o resto no censo.
+  it("🟠 (custo declarado) no caso limpo, só o que tem dono ESCRITO é servido", async () => {
     const lidas = await corpos(await lerConversa(get(`/api/portal/messages?token=${TOKEN_ALFA}`)));
     expect(lidas).toContain(SEGREDO_1);
     expect(lidas).toContain(SEGREDO_2);
-    // A metade que quase ninguém testa: as 11 escritas antigas gravam só
-    // `clientRequestId`. Uma cerca grosseira (`clientId: X` e ponto) apagaria
-    // esse histórico do portal sem ninguém perceber.
-    expect(lidas).toContain("recado-legado-sem-clientid");
+    // A linha legada fica parada até alguém dizer de quem é.
+    expect(lidas).not.toContain("recado-legado-sem-clientid");
   });
 
   it("⛔ a marcação de lida também é cercada — o BETA não carimba mensagem do ALFA", async () => {

@@ -101,7 +101,8 @@ function reqDecisao(body: Record<string, unknown>): NextRequest {
 beforeEach(() => {
   vi.clearAllMocks();
   // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
-  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
+  // Cliente DIRETO (o caso Foocci): nenhuma solicitação de briefing.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([]);
   escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   requireSession.mockResolvedValue(SESSAO_MASTER);
   db.socialPost.findMany.mockResolvedValue(SEIS_POSTS);
@@ -289,7 +290,12 @@ describe("posse por clientId — dono derivado do token, sem vazamento", () => {
   });
 
   it("portal-data por solicitação inclui o OR por clientId — as duas chaves do mesmo dono", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "cli1" } });
+    // Escopo com solicitação: ela sai do CLIENTE, não do registro do token.
+    db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr1" }]);
+    // ⚠️ O token e a solicitação têm de apontar para o MESMO cliente. Com
+    // `clientId` divergentes isto agora é `ponteiro_andou` → 403, que é a
+    // trava do dono congelado funcionando — o fixture é que estava incoerente.
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "cli-foocci" } });
     db.clientRequestDb.findUnique.mockResolvedValue({
       id: "cr1", clientId: "cli-foocci", businessName: "Foocci", status: "in_production",
       services: "[]", objectives: "[]", briefingJson: "{}", segment: "", createdAt: new Date(),

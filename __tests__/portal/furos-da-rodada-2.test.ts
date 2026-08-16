@@ -111,18 +111,26 @@ describe("FURO B — o token seguia o ponteiro e virava outro cliente", () => {
     expect(evento?.clientId).toBe(alfa);
   });
 
-  it("✅ token SEM dono congela no primeiro uso — e não muda depois", async () => {
-    const semDono = await prisma.clientRequestDb.create({
+  // ⚠️ RODADA 4 — O CONGELAMENTO SAIU, E A SAÍDA É O CONSERTO.
+  //
+  // Este teste provava que um token SEM dono congelava no dono derivado do
+  // ponteiro. O `seguranca` mostrou o buraco: se a solicitação JÁ tinha
+  // andado, ele congelava no dono **NOVO** — o sintoma original ressuscitado.
+  // E, pior, só protegia token validado depois do deploy: **todo token em
+  // produção é anterior a ele**, então o conserto não alcançava cliente real
+  // nenhum. Era defesa que depende de dado que só existe no futuro.
+  //
+  // Agora `PortalAccess.clientId` é a ÚNICA prova: sem ela, não se deriva.
+  it("⛔ token SEM dono escrito não deriva dono nenhum — nem do ponteiro", async () => {
+    const solicitacao = await prisma.clientRequestDb.create({
       data: { workspaceId: ws, clientId: beta, businessName: "BETA", services: "[]", objectives: "[]", rawContext: "x" },
     });
-    await prisma.portalAccess.create({ data: { token: "tk-b4", clientRequestId: semDono.id } });
+    await prisma.portalAccess.create({ data: { token: "tk-b4", clientRequestId: solicitacao.id } });
 
-    expect(await resolvePortalClient("tk-b4")).toMatchObject({ clientId: beta });
-    // Congelou no registro — deixou de depender do ponteiro.
-    expect((await prisma.portalAccess.findUnique({ where: { token: "tk-b4" } }))?.clientId).toBe(beta);
-
-    await prisma.clientRequestDb.update({ where: { id: semDono.id }, data: { clientId: alfa } });
+    // A solicitação TEM dono, e mesmo assim o token não vale.
     expect(await resolvePortalClient("tk-b4")).toBeNull();
+    // E nada é gravado no registro: não se congela um palpite.
+    expect((await prisma.portalAccess.findUnique({ where: { token: "tk-b4" } }))?.clientId).toBeNull();
   });
 
   it("✅ caso limpo: ponteiro parado, token funciona sempre", async () => {
