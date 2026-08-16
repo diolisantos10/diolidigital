@@ -1,0 +1,12 @@
+{
+  "id": "fila/irmao-fora-do-teto",
+  "quem": "pm-a27b5772",
+  "frente": "fila que nao enxerga o irmao: agrupamento em memoria sobre teto de 200",
+  "responsabilidade": "fila/irmao-fora-do-teto",
+  "arquivos": [
+    "app/api/agency/leads/route.ts",
+    "lib/agency/comercial/chave-do-prospect.ts"
+  ],
+  "abertaEm": "2026-08-16T18:50:15.069Z",
+  "encerradaEm": null
+}
