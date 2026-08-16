@@ -214,12 +214,22 @@ nome do plano na mesma largura — agora empilham no celular.
       migration e sem backfill. **Quem decide se aborda é o CEO.**
 - [ ] **NADA foi enviado a ninguém.** Nenhuma mensagem, nenhum e-mail, nenhuma
       abordagem pelo `@sushicazzaoficial`.
-- [ ] **Contato ainda NÃO TEM COLUNA** — mora dentro de `briefingJson`. Foi
-      escolha declarada: `prisma/` está com outro agente nesta rodada e mexer no
-      schema quebraria a frente dele. O leitor único (`lerContato`) esconde o
-      formato de todo mundo, então promover a coluna depois é migration + um
-      arquivo. **Enquanto não for coluna, não dá para filtrar nem indexar por
-      contato no banco.** Sem dono.
+- [x] 🟢 **FECHADO EM 16/08/2026 — o contato GANHOU COLUNA** (PR #170, branch
+      `claude/contato-com-coluna`). A previsão daqui estava certa: foi migration
+      + um arquivo, porque o leitor único escondia o formato de todo mundo.
+      `contatoNome`/`contatoEmail`/`contatoWhatsapp`/`contatoEm` no
+      `ClientRequestDb`, com dois índices por workspace, e
+      `listClientRequests({ comContato })` filtrando **no banco** —
+      `/api/agency/leads?contato=sim|nao`. As colunas são **projeção de
+      `lerContato`**, escritas pelo serviço de persistência: ninguém as digita,
+      e por isso não existe segunda verdade sobre o mesmo fato.
+      ⚠️ **O limite, declarado:** registro antigo cujo contato só existe no
+      `briefingJson` **não responde ao filtro do banco**. Ele aparece na tela (o
+      leitor único o acha) e não aparece no recorte — está no tipo, na resposta
+      da rota (`filtro.apenasColuna`) e travado por teste. O backfill da
+      migration sobe o que é seguro subir e **pula o resto de propósito**:
+      deixar de subir custa um índice, subir lixo custa uma ligação para um
+      número que não existe.
 - [ ] **Abandono NO MEIO da conversa continua sem registro.** O `lead_incompleto`
       pega quem chega ao passo de contato e recusa; quem fecha a aba na terceira
       mensagem não deixa nada. Capturar isso exige gravação parcial com token de
