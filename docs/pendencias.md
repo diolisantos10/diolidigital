@@ -15,6 +15,118 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — O PR #178 RECONCILIADO: A FICHA VIRA FONTE DO PROMPT, E A ORDEM DO PACOTE GANHA TRAVA
+
+**A consequência, primeiro:** o system prompt do SDR passa a ser montado em
+runtime a partir da **ficha do cargo** — editou a ficha, subiu o deploy, o agente
+já vestiu. E a garantia de que o corte por teto de tokens cai **na fala, nunca no
+dado do cliente**, deixou de depender de ninguém lembrar: agora ela está na ficha
+e há teste que reprova se sair de lá.
+
+**Portões rodados pelo `pm`:** `npx tsc --noEmit` → **exit 0** · **4983 testes em
+326 arquivos, todos verdes** · `npm run build` → **exit 0**. (O piso do despacho
+era 4886 em 316. O teste antes pulado —
+`__tests__/plataforma/o-navegador-chega-em-producao.test.ts:64`, um
+`it.skipIf(!construido)` — deixou de ser pulado **porque o build rodou**, e passou.)
+
+### 🔴 O RISCO ERA INVISÍVEL, E NÃO ERA O CONFLITO DE MERGE
+
+O #178 foi aberto sobre a base velha `88ef823`. O conflito real tinha **duas
+linhas**. O perigo estava noutro lugar: o bloco vindo da ficha é colado **depois**
+do prompt base e se declara autoridade — *"em conflito com qualquer instrução
+acima, ESTAS REGRAS VALEM"*. O conserto do SDR de hoje depende da **ordem dos
+campos** (`scope` primeiro, `reply` por último). **A ficha não carregava essa
+ordem.** Bastava alguém reordenar aquele parágrafo para a trava do código
+continuar igual e **parar de proteger**, com os testes verdes — porque eles
+testam `repararJsonTruncado`, não a ficha nem o prompt montado.
+
+### O que ficou PROTEGIDO daqui para a frente
+
+- **A ordem mora nos DOIS lugares, de propósito:** no prompt base
+  (`lib/agency/comercial/prompt-do-sdr.ts`) e dentro dos marcadores
+  `REGRAS-DO-CARGO` da ficha
+  (`agentes/linha/client-service-sdr/conversational-sdr.md`). O teste é quem
+  impede as duas cópias de divergirem.
+- **O teste mede o TEXTO MONTADO** (`sistemaDoSdr()`), que é o que o modelo
+  recebe — não o prompt base sozinho nem a ficha sozinha
+  (`__tests__/agency/ordem-do-pacote-do-sdr.test.ts`).
+- **As duas metades provadas por MUTAÇÃO NO ARQUIVO REAL**, não em string
+  sintética: apagando o parágrafo da ficha de verdade, **5 asserções reprovam**;
+  com ele, verde. E há caso plantado provando que **reescrita legítima** do
+  parágrafo (outras palavras, sem crases, mesmo sentido) **passa** — trava que
+  reprova redação honesta é trava que alguém desliga.
+- **Uma ambiguidade do prompt que ninguém tinha visto:** a linha do PACOTE dizia
+  `` com `reply` e `scope` dentro `` três frases antes de exigir o contrário. O
+  teste pegou. Corrigido, e o teste reprova quem inverter.
+- **`SYSTEM_PROMPT` saiu de `route.ts`** para `lib/agency/comercial/prompt-do-sdr.ts`
+  — importar módulo de rota no vitest arrasta prisma, auth e `next/server`.
+- **Nada foi afrouxado:** nenhuma regexp, o guarda `falaConfiavel`, o `MAX_TOKENS`
+  (3.000 do head, não o 1.280 do #178) e o comentário "RECONCILIAÇÃO DE 16/08"
+  estão intocados. Nenhum teste foi apagado.
+- **`regras-da-ficha.ts` passou a dizer a condição da própria promessa:** o cache
+  é por processo — produção zera no deploy, dev exige reiniciar.
+
+**Auditado pelo `qualidade`** (despachado pela CLI): **aprovado com ressalva**, e
+as duas ressalvas dele foram consertadas na mesma rodada. Ele recusou confirmar o
+que não pôde executar, que é o comportamento certo do Essencial.
+
+### 🔴 UMA AFIRMAÇÃO MINHA ESTAVA ERRADA, E FICA REGISTRADA
+
+Ao despachar, afirmei que export extra num `route.ts` quebraria o `npm run build`
+(pela validação `checkFields` do `next-types-plugin`). **Medido: não quebra.** O
+Next 16.2.1 deste repositório gera em `.next/types` só `routes.d.ts` e
+`validator.ts` — **não há arquivo de guarda por rota** —, e o build sai **0** com
+`repararJsonTruncado` exportado da rota desde antes. A extração continua certa
+pelo outro motivo; a razão que declarei, não.
+
+### 🔴 O QUE CONTINUA ABERTO — com todas as letras
+
+- [ ] **O dispositivo vale para 1 ficha de ~81.** Só `conversational-sdr.md`
+      delimita `REGRAS-DO-CARGO`. Para as outras, `blocoDeRegrasParaPrompt`
+      devolve string vazia e o agente roda com o entorno de sempre — **degrada,
+      não derruba**, e loga o motivo. Quem ler *"a ficha chega no agente sozinha"*
+      sem contar as fichas conclui o oposto. **Sem dono.**
+- [ ] **A garantia é textual, não estrutural.** Nada no parser exige a ordem dos
+      campos. Quem impede fala cortada de chegar ao prospect é o guarda
+      `falaConfiavel` **em código**; a ordem do prompt decide **o que sobra**
+      quando corta. As duas são uma decisão só.
+- [ ] **O piloto ao vivo continua sem reexercício.** A prova é de teste, não de
+      conversa real.
+- [ ] **`__tests__/agency/a-ficha-chega-no-agente.test.ts` está fora do lugar
+      natural dele** (`__tests__/v2/`), por respeito a reivindicação viva de outra
+      sessão. **Devolver quando a frente `qualidade/portao-instavel-v2`
+      encerrar.** O porquê está escrito dentro do arquivo.
+
+### 🔴 A QUARTA E A QUINTA COLISÃO DO DIA — e desta vez houve MECANISMO
+
+O `push` foi recusado **duas vezes** nesta rodada. Da primeira, o remoto estava
+**19 commits à frente** — e nenhum deles tocava arquivo de código deste trabalho;
+só `docs/decisoes.md` cruzou, resolvido mantendo as duas seções com ponteiro de
+uma para a outra.
+
+**Da segunda, quem recusou foi o gancho pré-push**, e é a primeira vez que a casa
+para uma colisão **antes** do dano: `pm-9ab49074` tinha reivindicação viva sobre o
+diretório `__tests__/v2` inteiro, caçando um portão instável *"passa isolado,
+falha na suíte cheia"* — e o #178 depositava um teste novo lá dentro. **A
+composição da suíte É a variável que aquela sessão está medindo.**
+
+**`--forcar` existe e NÃO foi usado.** As responsabilidades eram diferentes e a
+sobreposição era de pasta, não de pergunta: o arquivo mudou de lugar. **A trava de
+reivindicação funcionou na estreia** — e vale registrar que ela nasceu no remoto
+**no meio deste trabalho**, então esta frente inteira foi construída **sem
+reivindicação**, porque o mecanismo ainda não existia localmente quando ela
+começou.
+
+- [ ] 🔴 **CEO/Diretor — há pelo menos QUATRO sessões vivas nesta branch agora**
+      (`pm-9ab49074`, `pm-a27b5772`, `pm-a6e16be`, e esta), e **duas delas mexem no
+      SDR ao mesmo tempo**: `esteira/fim-da-entrevista` (aberta 17:47, em
+      `prospect-engine.ts` / `sdr-agent.ts` / `question-engine.ts`) e esta. Os
+      arquivos não se cruzam **hoje**. A trava nova barra por arquivo e por
+      responsabilidade; **ninguém está barrando por PRODUTO**. Sem dono.
+
+---
+
+
 ## 🟢 16/08/2026 — A REIVINDICAÇÃO VIROU TRAVA: TRÊS FRENTES CONSTRUÍDAS EM DOBRO NO MESMO DIA (`f9e3663e`, `503f41af`)
 
 **A conclusão em uma frase:** conversas diferentes na mesma branch construíram o
