@@ -247,11 +247,29 @@ describe("✅ o anexo legítimo chega ao classificador", () => {
 describe("a triagem usa o leitor novo, e não sobrou a frase antiga", () => {
   const FONTE = new URL("../../lib/agency/esteira/triagem.ts", import.meta.url).pathname;
 
-  it("o prompt monta o bloco pelo leitor com conferência de dono", async () => {
+  // ⚠️ 16/08/2026 — este teste ERA `grep` no fonte
+  // (`expect(src).toContain("blocoDeAnexos(await lerAnexosDoPedido(")`), e está
+  // na dívida levantada pelo `qualidade`: quebra com uma quebra de linha e não
+  // prova comportamento. Agora ele chama a montagem de verdade.
+  it("o prompt do triador carrega o CONTEÚDO do anexo lido, e não só o nome", async () => {
+    const { montarPedidoParaOModelo } = await import("@/lib/agency/esteira/triagem");
+    const p = montarPedidoParaOModelo({
+      clienteNome: "Padaria Bella",
+      description: "vejam o briefing anexo",
+      objective: "vender mais",
+      desiredFor: null,
+      anexos: [{ id: "m1", fileName: "brief.txt", lido: true, texto: "doze posts por mês", truncado: false }],
+    });
+    expect(p).toContain("doze posts por mês");
+    expect(p).toContain("brief.txt");
+  });
+
+  it("o dono do anexo vem do BANCO, nunca do corpo da requisição", async () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync(FONTE, "utf8");
-    expect(src).toContain("blocoDeAnexos(await lerAnexosDoPedido(");
-    // O dono vem do BANCO (`pedido.clientId`), nunca do corpo da requisição.
+    // Este continua sendo leitura de fonte porque a alternativa exigiria o
+    // Prisma inteiro. O que ele guarda é a FRONTEIRA — `clientId` saindo do
+    // pedido, não do que o cliente mandou —, e é o pior lugar para regredir.
     expect(src).toMatch(/clientId:\s*pedido\.clientId/);
   });
 

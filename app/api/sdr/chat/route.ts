@@ -275,6 +275,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, reason: "bad_request" }, { status: 400 });
   }
 
+  // ⚠️ C2, 16/08/2026 — `currentMessage` chega com o dossiê de anexos JÁ MONTADO
+  // pelo navegador (`dossieDosAnexos`), cerca e marca inclusas. **Esta rota não
+  // confere cerca nenhuma, e não teria como**: a marca é sorteada na máquina de
+  // quem envia, e quem controla o navegador pode POSTar aqui sem cerca alguma.
+  //
+  // Isso é DECLARADO, não esquecido. Nesta porta o remetente escreve os dois
+  // lados da cerca — ele digita o prompt —, então a cerca é higiene (e trava
+  // real só contra documento hostil nas mãos de remetente honesto). As travas
+  // que valem contra o remetente hostil são as daqui para baixo, e todas rodam
+  // no servidor: os tetos de tamanho, o `PRICE_LEAK`, o descarte de
+  // `prospectEmail`/`negotiation` e a lista de permissão de `budgetRange`.
+  // Ver o cabeçalho de `dossieDosAnexos` e o teste
+  // `__tests__/briefing/a-cerca-publica-e-higiene-a-trava-e-no-servidor.test.ts`.
   const claudeMessages = buildClaudeMessages(body.messages, body.currentMessage, body.scope);
 
   const controller = new AbortController();

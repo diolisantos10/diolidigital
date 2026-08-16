@@ -798,13 +798,55 @@ interface UploadItem {
 export const ALTURA_MINIMA_DO_CARTAO = 320;
 
 /**
- * O mínimo de CONVERSA que precisa sobrar depois de cabeçalho e rodapé.
+ * O piso DURO da conversa: abaixo disto o cartão deixa de responder "o que ele
+ * falou?", que é a pergunta que ele existe para responder. Uma bolha de mensagem
+ * tem ~40px; 88 garante duas linhas e a sombra da terceira.
  *
- * Não é estética: abaixo disto o cartão deixa de responder "o que ele falou?",
- * que é a pergunta que ele existe para responder. Uma bolha de mensagem tem
- * ~40px; 88 garante duas linhas e a sombra da terceira.
+ * ⚠️ Ele NÃO é o alvo — é o fundo do poço. Ver `PISO_UTIL_DA_CONVERSA`.
  */
 export const PISO_DA_CONVERSA = 88;
+
+/**
+ * O piso ÚTIL da conversa — **quatro linhas inteiras**.
+ *
+ * ⚠️ C5, 16/08/2026 (segunda passada de `experiencia`). A repartição anterior
+ * dizia, por escrito, "a conversa recebe o piso; os materiais recebem até o que
+ * precisam; o que sobrar é da conversa" — e o passo 3 só acontecia com
+ * `sobra > 278`. Medido a 375×600 com o painel aberto:
+ *
+ *     sobra = 161  →  materiais = min(190, 161−88) = 73  →  conversa = 88
+ *
+ * A conversa era o RESTO, não a prioridade: três linhas com a primeira fatiada
+ * no meio da altura da letra. `PISO_DA_CONVERSA` era usado como alvo quando é
+ * fundo do poço, e um piso de sobrevivência atendido com exatidão é um defeito
+ * que passa no teste.
+ */
+export const PISO_UTIL_DA_CONVERSA = 160;
+
+/**
+ * O mínimo em que o painel de materiais ainda SERVE: a zona de arrastar com a
+ * seta E a frase, mais a primeira linha da lista de anexos. Abaixo disto o
+ * painel vira meia seta sem texto — visível e inútil, que é pior que fechado.
+ */
+export const PISO_DOS_MATERIAIS = 96;
+
+/**
+ * Abaixo desta altura de janela o CABEÇALHO do cartão sai.
+ *
+ * ⚠️ C5 — "CONSULTORA DE ORÇAMENTO / Conversa com a Dioli Studio / ● Online"
+ * custa **72px** para dizer à pessoa o que ela acabou de escolher. A 375×600
+ * isso é **82% da conversa inteira**. Em janela alta ele é orientação barata;
+ * em janela curta é o maior item de despesa da tela.
+ *
+ * 640 e não 600: a 600 exata (o relato do CEO) o corte tem de valer, e janela de
+ * 620–639 com teclado aberto é o mesmo aperto com outro número.
+ */
+export const JANELA_CURTA = 640;
+
+/** Uma função, para que a regra seja testável sem renderizar a tela. */
+export function cabecalhoDoCartaoAparece(alturaDaJanela: number): boolean {
+  return alturaDaJanela >= JANELA_CURTA;
+}
 
 /**
  * Quanto o cartão da conversa pode ter, dado o tamanho da janela, quanto de
@@ -851,10 +893,16 @@ export function tetoDoCartaoDaConversa(
  * precisa de mais que ~190 — meia tela de espaço vazio roubada da conversa.
  *
  * A ordem passa a ser declarada, não proporcional:
- *   1. a CONVERSA recebe o piso primeiro — é a queixa original do CEO
- *      ("não consigo enxergar o que ele está falando");
+ *   1. a CONVERSA recebe o piso ÚTIL primeiro (quatro linhas) — é a queixa
+ *      original do CEO ("não consigo enxergar o que ele está falando");
  *   2. os MATERIAIS recebem até o que precisam, nunca mais;
- *   3. o que sobrar é da conversa.
+ *   3. o que sobrar é da conversa;
+ *   4. e só se o painel ficar INUTILIZÁVEL (abaixo de `PISO_DOS_MATERIAIS`) ele
+ *      pega emprestado da conversa — nunca abaixo do piso DURO de 88.
+ *
+ * ⚠️ C5 — o passo 1 usava `PISO_DA_CONVERSA` (88, o fundo do poço) como alvo, e
+ * por isso a conversa era o RESTO: a 375×600 ela ficava com exatamente 88px e o
+ * painel com 73. As duas quebradas ao mesmo tempo, e o teste passando.
  */
 export const ALTURA_UTIL_DOS_MATERIAIS = 190;
 
@@ -866,7 +914,16 @@ export function alturasDasRegioes(entrada: {
 }): { conversa: number; materiais: number } {
   const sobra = Math.max(0, Math.round(entrada.cartao - entrada.cabecalho - entrada.rodape));
   if (!entrada.materiaisAbertos) return { conversa: sobra, materiais: 0 };
-  const materiais = Math.min(ALTURA_UTIL_DOS_MATERIAIS, Math.max(0, sobra - PISO_DA_CONVERSA));
+
+  // 1. a conversa recebe o piso ÚTIL, e ele vem antes de tudo.
+  const paraAConversa = Math.min(sobra, PISO_UTIL_DA_CONVERSA);
+  // 2 e 3. os materiais recebem até o que precisam, do que sobrou.
+  let materiais = Math.min(ALTURA_UTIL_DOS_MATERIAIS, Math.max(0, sobra - paraAConversa));
+  // 4. painel visível e inútil é pior que painel fechado: aí ele empresta da
+  //    conversa, e só até o piso DURO.
+  if (materiais < PISO_DOS_MATERIAIS) {
+    materiais = Math.min(PISO_DOS_MATERIAIS, Math.max(0, sobra - PISO_DA_CONVERSA));
+  }
   // A sobra do arredondamento fica com a conversa: um pixel a mais nos
   // materiais é um pixel a menos no cartão, e é assim que volta a estourar.
   return { conversa: sobra - materiais, materiais };
@@ -915,14 +972,71 @@ function nomesResumidos(items: { attachment: { fileName: string } }[], marca: st
   return resto > 0 ? `${nomes.join(", ")} e mais ${resto}` : nomes.join(", ");
 }
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ LEIA ANTES DE CONFIAR NESTA CERCA — C2, 16/08/2026 (segunda passada)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * **Esta função roda NO NAVEGADOR, e o resultado dela vai como `currentMessage`
+ * para `POST /api/sdr/chat`, que apenas apara e repassa ao modelo.** A marca
+ * sorteada (`novaMarcaDeCerca`) é sorteada NA MÁQUINA DE QUEM ENVIA. Quem
+ * controla o navegador lê a marca no próprio request e pode `curl` a rota
+ * direto, sem login, com a cerca que quiser — ou sem cerca nenhuma.
+ *
+ * É o mesmo defeito que `f03efb8` corrigiu para o TETO ("teto que mora no
+ * navegador não é teto"), repetido na CERCA. E declarar mecanismo onde só há
+ * enfeite é o pior defeito possível nesta casa.
+ *
+ * ── ENTÃO O QUE ESTA CERCA É, COM TODAS AS LETRAS ──────────────────────────
+ *
+ * **É TRAVA contra documento hostil nas mãos de um remetente honesto.** Esse é
+ * o ataque real desta porta: o prospect de boa-fé sobe um brand book, um PDF de
+ * fornecedor ou um .docx encaminhado cujo AUTOR não é ele. Esse autor escreveu o
+ * arquivo antes desta montagem existir e por isso não pode ter escrito a marca
+ * dentro dele. Contra ele a marca vale, e vale mesmo com o modelo ingênuo (ver
+ * `__tests__/comercial/a-cerca-do-anexo-nao-se-forja.test.ts`).
+ *
+ * **NÃO É TRAVA contra remetente hostil**, e nunca poderia ser: nesta porta a
+ * pessoa digita o prompt. Ela não precisa forjar cerca nenhuma — escreve a
+ * injeção no campo de texto, que é dela por definição. Mover esta montagem para
+ * o servidor tornaria a marca inforjável **sem tornar nada inalcançável**.
+ *
+ * ── ONDE ESTÁ A TRAVA DE VERDADE, TODA ELA NO SERVIDOR ─────────────────────
+ *
+ *   • `SYSTEM_PROMPT` mora em `app/api/sdr/chat/route.ts` — o navegador não o
+ *     envia e não pode substituí-lo;
+ *   • **preço**: `PRICE_LEAK` na rota reprova o turno inteiro se o modelo citar
+ *     valor. O preço real sai do catálogo, no servidor, depois do login;
+ *   • **escopo**: `prospectEmail` e `negotiation` são APAGADOS do patch;
+ *     `budgetRange` passa por lista de permissão (`normalizarFaixa`);
+ *   • **tamanho**: `lib/security/teto-do-turno-publico.ts` (corpo, mensagem,
+ *     histórico, contexto) — é o que protege a conta de IA da agência;
+ *   • **ritmo**: `limiteExcedido` por IP, contado no banco.
+ *
+ * As duas metades disto estão provadas, executando, em
+ * `__tests__/briefing/a-cerca-publica-e-higiene-a-trava-e-no-servidor.test.ts`:
+ * com a cerca FORJADA e com a cerca AUSENTE, as travas do servidor continuam
+ * barrando. "Sem gate = reprovado" vale também para a frase que descreve o gate.
+ */
 export function dossieDosAnexos(
   items: Pick<UploadItem, "attachment" | "status" | "texto" | "lido">[],
   marca: string = novaMarcaDeCerca(),
 ): string {
   const validos = items.filter((it) => it.status !== "error");
-  if (validos.length === 0) return "";
+  // ── O QUARTO ESTADO (C4, 16/08/2026, segunda passada) ─────────────────────
+  // `items.filter(it => it.status !== "error")` DESCARTAVA o upload que falhou,
+  // e `instrucaoDeAnexosParaOSdr` recebia só os que chegaram. Medido: 3
+  // arquivos, 1 falha → o SDR conversa como se fossem 2 e **nunca fica sabendo
+  // do terceiro**, nem neste turno nem nos seguintes. Se a pessoa perguntar
+  // "chegou o terceiro?", ele não tem registro — e o chip que a tela pintou
+  // nasce `role:"system"`, que `historicoParaOModelo` descarta do histórico.
+  //
+  // "não chegou" é um FATO, e é o oposto de "não existe". Ausência de
+  // informação não é informação.
+  const falharam = items.filter((it) => it.status === "error");
+  if (validos.length === 0 && falharam.length === 0) return "";
 
-  // ── OS TRÊS ESTADOS (B6, 16/08/2026) ──────────────────────────────────────
+  // ── OS TRÊS PRIMEIROS ESTADOS (B6, 16/08/2026) ────────────────────────────
   // `opacos` era `!(lido && texto)` e engolia o arquivo AINDA SUBINDO: item com
   // `status: "uploading"` tem `lido === undefined`, então bastava o cliente
   // digitar enquanto o PDF subia — em 4G, dezenas de segundos — para o SDR ler
@@ -1043,6 +1157,18 @@ export function dossieDosAnexos(
     );
   }
 
+  // O QUARTO ESTADO. A ação é diferente das outras três: não é "espere" (ainda
+  // subindo) nem "não invente" (opaco) — é **reconheça a falha e peça de novo**,
+  // porque a casa perdeu o arquivo e o cliente não tem como saber disso sozinho.
+  if (falharam.length > 0) {
+    linhas.push(
+      `ARQUIVOS QUE NÃO CHEGARAM ATÉ NÓS (o envio falhou): ${nomesResumidos(falharam, marca)}.`,
+      "O cliente TENTOU enviar e o upload falhou do nosso lado. NÃO diga que recebeu, NÃO diga que",
+      "leu e NÃO ignore: reconheça que não chegou, peça para tentar de novo — ou o essencial em",
+      "uma frase — e siga a conversa.",
+    );
+  }
+
   linhas.push(`──────── FIM DO MATERIAL #${marca} ────────`, FECHO_DE_ANEXO);
 
   const bloco = linhas.join("\n");
@@ -1107,55 +1233,81 @@ function mensagemLocal(role: ConvMessage["role"], text: string): ConvMessage {
 export interface AnexoChegado { nome: string; lido: boolean }
 
 /**
- * O aviso que a pessoa lê NA CONVERSA sobre cada arquivo.
+ * O aviso que a pessoa lê NA CONVERSA sobre o LOTE inteiro. **Uma bolha.**
  *
- * Determinístico, sem rede e sem chave. Os três estados são distintos e o que
- * falhou carrega o PRÓXIMO PASSO — aviso sem saída é só má notícia.
+ * ⚠️ C5, 16/08/2026 (segunda passada de `experiencia`). Antes era uma bolha POR
+ * ARQUIVO, e cinco arquivos ilegíveis geravam cinco bolhas com a mesma frase de
+ * 27 palavras — e o SDR repetia numa sexta. A informação nova por bolha era só
+ * o nome. Medido: ~800px de conversa comidos no celular, numa tela em que a
+ * conversa inteira tem 88px de altura.
+ *
+ * Isto também resolve a redundância entre este aviso determinístico e
+ * `respostaSemIa`, que diziam quase a mesma coisa em sequência: aqui ficam os
+ * NOMES e o próximo passo; lá fica só a continuação da conversa.
+ *
+ * Determinístico, sem rede e sem chave: é a metade do B3 que não pode depender
+ * do sistema que falhou. Os quatro estados são distintos e o que deu errado
+ * carrega o PRÓXIMO PASSO — aviso sem saída é só má notícia.
  */
-export function avisoDeChegada(nome: string, estado: "lido" | "opaco" | "falhou"): string {
-  if (estado === "lido") return `📎 ${nome} — recebido e lido.`;
-  if (estado === "opaco") {
-    return (
-      `📎 ${nome} — recebido, mas NÃO consegui ler o conteúdo. ` +
-      `Tente enviar de novo (PDF com texto ou DOCX costumam funcionar) ou me conte o essencial em uma frase aqui.`
-    );
-  }
-  return `📎 ${nome} — o arquivo NÃO chegou até nós. Tente enviar de novo, ou me conte o essencial em uma frase aqui.`;
+export function avisoDoLote(chegados: AnexoChegado[], falharam: string[]): string {
+  const lidos = chegados.filter((c) => c.lido).map((c) => c.nome);
+  const opacos = chegados.filter((c) => !c.lido).map((c) => c.nome);
+  const total = chegados.length + falharam.length;
+  if (total === 0) return "";
+
+  const trechos: string[] = [];
+  if (lidos.length > 0) trechos.push(`li ${lidos.join(", ")}`);
+  if (opacos.length > 0) trechos.push(`não consegui ler ${opacos.join(", ")}`);
+  if (falharam.length > 0) trechos.push(`NÃO chegou até nós ${falharam.join(", ")}`);
+
+  const cabeca = `📎 ${total} arquivo${total !== 1 ? "s" : ""}: ${trechos.join(" · ")}.`;
+  if (opacos.length === 0 && falharam.length === 0) return cabeca;
+  return (
+    `${cabeca} Me conte o essencial em uma frase — o que você faz e o que precisa — ` +
+    `ou tente enviar de novo. Não vou inventar o que está nesses arquivos.`
+  );
 }
 
 /**
  * A resposta da consultora quando a IA está fora do ar.
  *
  * Não é enfeite: é o que o prospect ouve no lugar de "Vai querer stories
- * também?". Ela nunca afirma ter lido nada.
+ * também?". Ela nunca afirma ter lido o que não leu.
+ *
+ * ⚠️ Ela NÃO repete a lista de nomes nem o diagnóstico arquivo a arquivo: isso
+ * já foi dito, uma vez só, por `avisoDoLote`, na bolha imediatamente acima.
+ * Dizer duas vezes em sequência é o que empurrava a conversa para fora da tela.
  */
 export function respostaSemIa(chegados: AnexoChegado[], falharam: string[]): string {
-  const lidos = chegados.filter((c) => c.lido).map((c) => c.nome);
-  const opacos = chegados.filter((c) => !c.lido).map((c) => c.nome);
-  const partes: string[] = [];
-
-  if (lidos.length > 0) {
-    partes.push(`Recebi ${lidos.join(", ")} e guardei o conteúdo com o seu pedido.`);
-  }
-  if (opacos.length > 0 || falharam.length > 0) {
-    const nomes = [...opacos, ...falharam].join(", ");
-    partes.push(
-      `Sobre ${nomes}: o arquivo está com a gente, mas NÃO consegui ler o conteúdo agora — ` +
-        `não vou inventar o que há nele. Me conte em uma frase o essencial (o que você faz e o que precisa), ` +
-        `ou tente enviar de novo. A equipe também vai abrir o arquivo do lado de cá.`,
+  if (chegados.length === 0 && falharam.length > 0) {
+    return (
+      "Não consegui receber seus arquivos — a falha foi do nosso lado. Tente enviar de novo, " +
+      "ou me conte em uma frase o que você faz e o que precisa, que eu sigo daqui."
     );
   }
-  if (partes.length === 0) partes.push("Recebi o material e guardei com o seu pedido.");
-  return partes.join(" ");
+  const algoOpaco = chegados.some((c) => !c.lido) || falharam.length > 0;
+  if (algoOpaco) {
+    return (
+      "Está tudo registrado com o seu pedido. Como nem tudo deu para ler, me conte em uma frase " +
+      "o que você faz e o que precisa — NÃO consegui ler parte do material e não vou inventar o que há nele."
+    );
+  }
+  return "Recebi e li o material, e guardei com o seu pedido. Me conte em uma frase o que você precisa, para eu seguir.";
 }
 
-/** O que o SDR é informado sobre o lote. UMA instrução, para UM turno. */
-export function instrucaoDeAnexosParaOSdr(chegados: AnexoChegado[]): string {
+/**
+ * O que o SDR é informado sobre o lote. UMA instrução, para UM turno.
+ *
+ * ⚠️ C4 — `falharam` é o segundo parâmetro e ele é a metade que faltava. Sem
+ * ele, 3 arquivos com 1 falha viravam "o cliente anexou 2" e o terceiro
+ * desaparecia da conversa para sempre.
+ */
+export function instrucaoDeAnexosParaOSdr(chegados: AnexoChegado[], falharam: string[] = []): string {
   const lidos = chegados.filter((c) => c.lido).map((c) => c.nome);
   const opacos = chegados.filter((c) => !c.lido).map((c) => c.nome);
   const partes: string[] = [
     "EVENTO DO SISTEMA (não é fala do cliente e não responde à sua pergunta pendente):",
-    `o cliente acabou de anexar ${chegados.length} arquivo(s).`,
+    `o cliente acabou de tentar enviar ${chegados.length + falharam.length} arquivo(s).`,
   ];
   if (lidos.length > 0) {
     partes.push(
@@ -1168,6 +1320,12 @@ export function instrucaoDeAnexosParaOSdr(chegados: AnexoChegado[]): string {
     partes.push(
       `NÃO foi possível ler: ${opacos.join(", ")}. Reconheça que chegou, NÃO finja que leu,`,
       "NÃO invente o conteúdo e peça o essencial em uma frase.",
+    );
+  }
+  if (falharam.length > 0) {
+    partes.push(
+      `NÃO CHEGOU até nós: ${falharam.join(", ")}. O envio falhou do NOSSO lado — reconheça a falha,`,
+      "NÃO diga que recebeu, e peça para tentar de novo ou o essencial em uma frase.",
     );
   }
   partes.push(
@@ -1206,26 +1364,32 @@ export async function processarLoteDeAnexos(dep: {
     dep.aoTerminar(id, r);
 
     if (!r) {
-      const nome = cortarNomeDeArquivo(file.name);
-      falharam.push(nome);
-      dep.avisar([mensagemLocal("system", avisoDeChegada(nome, "falhou"))]);
+      falharam.push(cortarNomeDeArquivo(file.name));
       continue;
     }
 
     const nome = cortarNomeDeArquivo(r.fileName);
-    const lido = r.extractedText.trim().length > 0;
-    chegados.push({ nome, lido });
-    dep.avisar([mensagemLocal("system", avisoDeChegada(nome, lido ? "lido" : "opaco"))]);
+    chegados.push({ nome, lido: r.extractedText.trim().length > 0 });
   }
 
   if (chegados.length === 0 && falharam.length === 0) return;
 
-  // Nenhum arquivo entrou: não há o que mandar ao modelo, e a pessoa já foi
-  // avisada pelo caminho que não depende dele.
-  if (chegados.length === 0) return;
+  // ── UMA BOLHA PARA O LOTE, e ela vem ANTES de qualquer chamada de IA ───────
+  // O aviso continua determinístico (B3: a mensagem de falha não viaja pelo
+  // sistema que falhou) e passa a ser UM só (C5: cinco bolhas de 27 palavras
+  // comiam ~800px da conversa no celular).
+  dep.avisar([mensagemLocal("system", avisoDoLote(chegados, falharam))]);
 
+  // ⚠️ C4 — o turno de evento acontece TAMBÉM quando só houve falha. Antes,
+  // `if (chegados.length === 0) return` fazia o SDR nunca ficar sabendo do
+  // arquivo que não chegou: o chip nasce `role:"system"` e
+  // `historicoParaOModelo` descarta `system` do histórico, então a informação
+  // não existia nem neste turno nem nos seguintes.
   try {
-    await dep.turnoDeEvento(instrucaoDeAnexosParaOSdr(chegados), respostaSemIa(chegados, falharam));
+    await dep.turnoDeEvento(
+      instrucaoDeAnexosParaOSdr(chegados, falharam),
+      respostaSemIa(chegados, falharam),
+    );
   } catch {
     // O turno de IA é o EXTRA. Ele quebrar não pode apagar o aviso que já foi
     // pintado — é literalmente o defeito B3 com outra roupa.
@@ -1438,8 +1602,96 @@ function BriefingFileUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
+  // ── C5 · O SELO DE STATUS DEIXA DE SER CAÇADO ─────────────────────────────
+  // Medido pelo `experiencia`: os selos "Anexado · não lido" e "Falhou" ficavam
+  // fora da vista em TODOS os tamanhos (138px escondidos até a 1440×900), atrás
+  // de uma dropzone inteira, uma rolagem e um clique no `<details>`. A casa
+  // construiu a honestidade sobre o que foi lido e a escondeu.
+  //
+  // Duas mudanças, e nenhuma é redesenho: a lista sobe para ANTES da zona de
+  // arrastar (quem já enviou quer conferir, não enviar de novo), e o `<details>`
+  // abre sozinho quando algum arquivo pede atenção. Continua sendo `<details>`:
+  // abre sem JavaScript e é acessível por teclado de fábrica.
+  const pedeAtencao = items.some(
+    (it) => it.status === "error" || (it.status === "done" && !it.lido),
+  );
+  const [aberto, setAberto] = useState(false);
+  useEffect(() => {
+    if (pedeAtencao) setAberto(true);
+  }, [pedeAtencao]);
+
+  const lista = items.length > 0 && (
+    <details
+      className="group"
+      open={aberto}
+      onToggle={(e) => setAberto((e.currentTarget as HTMLDetailsElement).open)}
+    >
+      <summary className="cursor-pointer select-none list-none flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] py-1.5">
+        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden className="transition-transform group-open:rotate-90 shrink-0">
+          <path d="M3 1.5L7 5L3 8.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        {items.length} anexo{items.length !== 1 ? "s" : ""}
+        {items.some((it) => it.status === "uploading") && (
+          <span className="text-[var(--text-muted)] font-normal">· lendo…</span>
+        )}
+        {items.some((it) => it.status === "error") && (
+          <span className="text-[var(--danger)] font-normal">· 1 ou mais falharam</span>
+        )}
+      </summary>
+      <div className="space-y-1.5 mt-1.5">
+        {items.map((it) => (
+          <div key={it.id} className="flex items-center gap-2.5 bg-white border border-[var(--border)] rounded-[8px] px-2.5 py-2">
+            <div className="w-7 h-7 rounded-[6px] bg-[var(--accent)] flex items-center justify-center shrink-0">
+              <span className="text-[8px] font-bold text-[var(--text-secondary)] leading-none">{it.attachment.fileType}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{it.attachment.fileName}</p>
+              <p className="text-[10px] text-[var(--text-muted)]">{fmtBytes(it.attachment.sizeBytes)}</p>
+            </div>
+            {it.status === "uploading" && (
+              <span className="h-4 px-1.5 rounded-[3px] bg-[var(--warning-bg)] text-[9px] font-semibold text-[var(--warning)] shrink-0 whitespace-nowrap">
+                Lendo…
+              </span>
+            )}
+            {/* "Anexado" verde para arquivo que a Dioli NÃO conseguiu ler é a
+                meia-verdade que produziu o defeito de 15/08: o cliente acha
+                que o documento foi lido e o SDR pergunta o que está nele. O
+                selo agora separa "chegou" de "foi lido". */}
+            {it.status === "done" && it.lido && (
+              <span className="h-4 px-1.5 rounded-[3px] bg-[var(--success-bg)] text-[9px] font-semibold text-[var(--success)] shrink-0 whitespace-nowrap">
+                Lido
+              </span>
+            )}
+            {it.status === "done" && !it.lido && (
+              <span
+                className="h-4 px-1.5 rounded-[3px] bg-[var(--warning-bg)] text-[9px] font-semibold text-[var(--warning)] shrink-0 whitespace-nowrap"
+                title="O arquivo chegou, mas não conseguimos extrair o texto dele."
+              >
+                Anexado · não lido
+              </span>
+            )}
+            {it.status === "error" && (
+              <span className="h-4 px-1.5 rounded-[3px] bg-[#FEE2E2] text-[9px] font-semibold text-[var(--danger)] shrink-0 whitespace-nowrap">
+                Falhou
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onRemove(it.id); }}
+              aria-label={`Remover ${it.attachment.fileName}`}
+              className="text-[var(--text-subtle)] hover:text-[var(--danger)] transition-colors shrink-0 text-[16px] leading-none"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+
   return (
     <div className="space-y-2">
+      {lista}
       <div
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -1472,76 +1724,6 @@ function BriefingFileUpload({
         <p className="text-[9px] text-[var(--text-subtle)] mt-0.5">PDF, DOC, DOCX, PPT, PNG, JPG, SVG, TXT · máx. 20 MB</p>
       </div>
 
-      {/* ── A LISTA DE ANEXOS COLAPSA (16/08/2026) ──────────────────────────────
-          Aberta, ela crescia uma linha de 44px por arquivo, dentro do painel que
-          fica ENTRE a conversa e a caixa de digitar. Com 5 arquivos isso é a
-          conversa inteira fora da vista. Fechada, é uma linha; quem quiser
-          conferir clica. `<details>` e não estado próprio: abre sem JavaScript,
-          é acessível por teclado de fábrica e não some se o React remontar. */}
-      {items.length > 0 && (
-        <details className="group">
-          <summary className="cursor-pointer select-none list-none flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] py-1.5">
-            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden className="transition-transform group-open:rotate-90 shrink-0">
-              <path d="M3 1.5L7 5L3 8.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            {items.length} anexo{items.length !== 1 ? "s" : ""}
-            {items.some((it) => it.status === "uploading") && (
-              <span className="text-[var(--text-muted)] font-normal">· lendo…</span>
-            )}
-            {items.some((it) => it.status === "error") && (
-              <span className="text-[var(--danger)] font-normal">· 1 ou mais falharam</span>
-            )}
-          </summary>
-        <div className="space-y-1.5 mt-1.5">
-          {items.map((it) => (
-            <div key={it.id} className="flex items-center gap-2.5 bg-white border border-[var(--border)] rounded-[8px] px-2.5 py-2">
-              <div className="w-7 h-7 rounded-[6px] bg-[var(--accent)] flex items-center justify-center shrink-0">
-                <span className="text-[8px] font-bold text-[var(--text-secondary)] leading-none">{it.attachment.fileType}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{it.attachment.fileName}</p>
-                <p className="text-[10px] text-[var(--text-muted)]">{fmtBytes(it.attachment.sizeBytes)}</p>
-              </div>
-              {it.status === "uploading" && (
-                <span className="h-4 px-1.5 rounded-[3px] bg-[var(--warning-bg)] text-[9px] font-semibold text-[var(--warning)] shrink-0 whitespace-nowrap">
-                  Lendo…
-                </span>
-              )}
-              {/* "Anexado" verde para arquivo que a Dioli NÃO conseguiu ler é a
-                  meia-verdade que produziu o defeito de 15/08: o cliente acha
-                  que o documento foi lido e o SDR pergunta o que está nele. O
-                  selo agora separa "chegou" de "foi lido". */}
-              {it.status === "done" && it.lido && (
-                <span className="h-4 px-1.5 rounded-[3px] bg-[var(--success-bg)] text-[9px] font-semibold text-[var(--success)] shrink-0 whitespace-nowrap">
-                  Lido
-                </span>
-              )}
-              {it.status === "done" && !it.lido && (
-                <span
-                  className="h-4 px-1.5 rounded-[3px] bg-[var(--warning-bg)] text-[9px] font-semibold text-[var(--warning)] shrink-0 whitespace-nowrap"
-                  title="O arquivo chegou, mas não conseguimos extrair o texto dele."
-                >
-                  Anexado · não lido
-                </span>
-              )}
-              {it.status === "error" && (
-                <span className="h-4 px-1.5 rounded-[3px] bg-[#FEE2E2] text-[9px] font-semibold text-[var(--danger)] shrink-0 whitespace-nowrap">
-                  Falhou
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onRemove(it.id); }}
-                aria-label={`Remover ${it.attachment.fileName}`}
-                className="text-[var(--text-subtle)] hover:text-[var(--danger)] transition-colors shrink-0 text-[16px] leading-none"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-        </details>
-      )}
     </div>
   );
 }
@@ -1642,16 +1824,30 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   // Agora cabeçalho e rodapé são MEDIDOS e entram na conta do teto, e as duas
   // regiões flexíveis recebem altura calculada (`alturasDasRegioes`) em vez de
   // pisos de CSS que não sabem quanto espaço existe.
+  //
+  // ── 16/08/2026 · C5: O CABEÇALHO DO CARTÃO SAI EM JANELA CURTA ────────────
+  // Ele custa 72px — 82% da conversa inteira a 375×600 — para dizer o que a
+  // pessoa acabou de escolher ("Consultora de Orçamento"). É a economia mais
+  // barata que existe nesta tela, e vale SÓ em janela curta: em tela alta a
+  // orientação não custa nada.
   const cabecalhoDaConversa = useRef<HTMLDivElement>(null);
   const [tetoDoCartao, setTetoDoCartao] = useState<string | undefined>(undefined);
   const [regioes, setRegioes] = useState<{ conversa: number; materiais: number } | null>(null);
+  const [cabecalhoAparece, setCabecalhoAparece] = useState(true);
 
   useEffect(() => {
     const medir = () => {
       const el = cartaoDaConversa.current;
       if (!el) return;
       const topoNoDocumento = el.getBoundingClientRect().top + window.scrollY;
-      const cabecalho = cabecalhoDaConversa.current?.getBoundingClientRect().height ?? 0;
+      // A decisão vem ANTES da medida, e a medida obedece a ela: ler a altura do
+      // cabeçalho que está prestes a sair daria um quadro inteiro com a conta
+      // errada — e é no primeiro quadro que a pessoa olha.
+      const mostraCabecalho = cabecalhoDoCartaoAparece(window.innerHeight);
+      setCabecalhoAparece(mostraCabecalho);
+      const cabecalho = mostraCabecalho
+        ? cabecalhoDaConversa.current?.getBoundingClientRect().height ?? 0
+        : 0;
       const rodape = rodapeDaConversa.current?.getBoundingClientRect().height ?? 0;
       const teto = tetoDoCartaoDaConversa(window.innerHeight, topoNoDocumento, cabecalho + rodape);
       setTetoDoCartao(`${teto}px`);
@@ -1677,7 +1873,10 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       window.removeEventListener("resize", medir);
       obs?.disconnect();
     };
-  }, [showMaterials]);
+    // `cabecalhoAparece` entra nas dependências porque o alvo observado some com
+    // ele: sem isso, o `ResizeObserver` fica apontando para um nó desmontado e a
+    // conta para de se corrigir exatamente na janela curta, que é a apertada.
+  }, [showMaterials, cabecalhoAparece]);
 
   // Quando o rodapé muda de altura — a caixa de digitar cresce, o painel de
   // materiais abre, a linha de erro do microfone aparece — a conversa encolhe
@@ -2061,17 +2260,22 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col max-h-[calc(100dvh-7rem)]"
       >
 
-        {/* Chat header */}
-        <div ref={cabecalhoDaConversa} className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
-          <div>
-            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Consultora de Orçamento</div>
-            <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">Conversa com a Dioli Studio</div>
+        {/* Chat header — ⚠️ C5: SAI em janela curta (`cabecalhoDoCartaoAparece`).
+            72px para repetir o que a pessoa acabou de escolher é 82% da conversa
+            inteira a 375×600. O título da página, logo acima do cartão, já diz
+            onde ela está. */}
+        {cabecalhoAparece && (
+          <div ref={cabecalhoDaConversa} className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
+            <div>
+              <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Consultora de Orçamento</div>
+              <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">Conversa com a Dioli Studio</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[var(--success)]" />
+              <span className="text-[11px] text-[var(--text-muted)]">Online</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-[var(--success)]" />
-            <span className="text-[11px] text-[var(--text-muted)]">Online</span>
-          </div>
-        </div>
+        )}
 
         {/* Messages */}
         {/* `flex-1` toma a sobra do cartão; `min-h-[200px]` é o PISO de conversa

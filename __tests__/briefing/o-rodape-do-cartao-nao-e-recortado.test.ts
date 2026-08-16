@@ -28,18 +28,41 @@
  *
  * Quem está por último é o rodapé.
  *
- * ── COMO ESTE TESTE PROVA ──────────────────────────────────────────────────
- * A regra ANTIGA era CSS e está escrita aqui como `regraAntiga` — os mesmos
- * pisos fixos de 120px. Cada afirmação abaixo é feita contra as DUAS: a antiga
- * REPROVA nos números medidos, a nova passa. Sem isso o teste seria uma guarda
- * de regressão, não prova de conserto.
+ * ── ⚠️ ONDE ESTE ARQUIVO **NÃO** DISCRIMINA, E ISSO ESTÁ DECLARADO ─────────
+ * Medido pelo `qualidade` em 16/08 (revertendo o fonte para `f03efb8` e
+ * mantendo os testes): **destes 8 testes, 0 reprovam o código anterior pela
+ * REGRA.** `regraAntiga()` é honesta (a transcrição do CSS confere) mas a
+ * asserção compara CONSTANTES — `422 > 371` é verde dos dois lados —, e as
+ * demais falhavam por símbolo ausente (`alturasDasRegioes` não existia).
+ *
+ * Isso não tem conserto por teste unitário: a regra antiga era CSS
+ * (`min-h-[120px]` num `overflow-hidden`), e CSS não é função que se possa
+ * reexecutar em Node. **A prova de conserto do B1 é geométrica, no navegador**,
+ * e mora em `scripts/medir-cartao-do-briefing.mjs`:
+ *
+ *     ANTES  (f03efb8) · 375×600 · painel ABERTO
+ *       cartão 213–584 | Falar/Anexar 620–652 | clicável false | recortado TRUE
+ *     DEPOIS · 375×600 · painel ABERTO
+ *       cartão 213–584 | Falar/Anexar 541–573 | clicável true  | recortado false
+ *
+ * O que este arquivo faz é o outro trabalho, e ele também é necessário: provar
+ * que a aritmética nova FECHA para toda entrada. Declarar é aceitável; fingir
+ * que discrimina, não.
+ *
+ * ── O QUE DISCRIMINA DE VERDADE AQUI É O BLOCO C5, NO FIM ──────────────────
+ * Aquele reprova o código de HOJE (`68231a3`) pela regra, porque a assinatura
+ * de `alturasDasRegioes` se mantém: mesma chamada, número diferente.
  */
 import { describe, it, expect } from "vitest";
 import {
   alturasDasRegioes,
+  cabecalhoDoCartaoAparece,
   tetoDoCartaoDaConversa,
   ALTURA_MINIMA_DO_CARTAO,
+  JANELA_CURTA,
   PISO_DA_CONVERSA,
+  PISO_DOS_MATERIAIS,
+  PISO_UTIL_DA_CONVERSA,
   ALTURA_UTIL_DOS_MATERIAIS,
 } from "@/components/agency/briefing/PublicBriefingRoom";
 
@@ -156,5 +179,105 @@ describe("B1 · com o painel de materiais aberto, o rodapé continua DENTRO do c
     // que continua certa quando os extremos cabem no piso de 320.
     expect(tetoDoCartaoDaConversa(600, 213)).toBe(371);
     expect(tetoDoCartaoDaConversa(400, 213)).toBe(ALTURA_MINIMA_DO_CARTAO);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// C5 · A CONVERSA COM 88px E O PAINEL COM 73px — AS DUAS QUEBRADAS JUNTAS
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Medido pelo `experiencia` em 16/08 (segunda passada), painel aberto, 375×600:
+//
+//     sobra = 161  →  materiais = min(190, 161−88) = 73  →  conversa = 88
+//
+// A conversa era o RESTO, não a prioridade: três linhas com a PRIMEIRA fatiada
+// no meio da altura da letra, e a dropzone cortada mostrando meia seta sem
+// texto. A ordem declarada ("a conversa recebe o piso; os materiais recebem até
+// o que precisam; o que sobrar é da conversa") só entregava o passo 3 com
+// `sobra > 278`.
+//
+// ── POR QUE ESTE BLOCO DISCRIMINA (e o de cima não) ────────────────────────
+// A ASSINATURA de `alturasDasRegioes` se mantém — ela já existe em `68231a3`.
+// Cada `it` abaixo é a MESMA chamada com o MESMO argumento, e o número devolvido
+// pelo código de hoje reprova. Nada aqui falha por símbolo ausente.
+describe("C5 · a conversa deixa de ser o resto", () => {
+  // ── ⚠️ OS TRÊS PRIMEIROS SÓ USAM NÚMEROS LITERAIS E `alturasDasRegioes` ────
+  // Nenhum símbolo novo, de propósito: assim eles REPROVAM `68231a3` pela regra
+  // (número devolvido), e não por `is not a function`. Foi essa a régua que o
+  // `qualidade` cobrou, e ela custa escrever o número medido na mão.
+
+  it("🔑 375×600, painel aberto, cartão 371 · a conversa recebe 4 LINHAS (≥160)", () => {
+    // MEDIDO em `68231a3` com esta MESMA chamada: conversa 88, materiais 173.
+    // A conversa era o RESTO. (Com o cabeçalho ainda na tela, era 88/101 — as
+    // duas quebradas juntas.)
+    const r = alturasDasRegioes({ cartao: 371, cabecalho: 0, rodape: 110, materiaisAbertos: true });
+    expect(r.conversa).toBeGreaterThanOrEqual(160);
+    // E o painel continua utilizável: a seta E o texto, não meia seta.
+    expect(r.materiais).toBeGreaterThanOrEqual(96);
+    // Nada estourou: a soma cabe.
+    expect(r.conversa + r.materiais + 110).toBeLessThanOrEqual(371);
+  });
+
+  it("🔑 a conversa vem ANTES do painel na fila — a ordem declarada é a executada", () => {
+    // MEDIDO em `68231a3`: conversa = 290 − min(190, 202) = 100.
+    const r = alturasDasRegioes({ cartao: 400, cabecalho: 0, rodape: 110, materiaisAbertos: true });
+    expect(r.conversa).toBeGreaterThanOrEqual(160);
+  });
+
+  it("🔑 até no aperto a conversa não fica exatamente no piso de sobrevivência", () => {
+    // 375×600 com o cabeçalho AINDA na tela: em `68231a3` a conversa recebia
+    // exatamente 88 — o piso duro atendido com exatidão, que é um defeito que
+    // passa no teste.
+    const r = alturasDasRegioes({ cartao: 371, cabecalho: 72, rodape: 110, materiaisAbertos: true });
+    expect(r.conversa).toBeGreaterThan(88);
+    expect(r.conversa + r.materiais).toBe(371 - 72 - 110);
+  });
+
+  // ── Daqui para baixo os símbolos novos entram: são as CONSTANTES da regra,
+  //    e servem para que o número não seja repetido à mão em cada asserção.
+
+  it("🔑 o cabeçalho de 72px SAI em janela curta — 82% da conversa a 375×600", () => {
+    expect(cabecalhoDoCartaoAparece(600)).toBe(false);
+    expect(cabecalhoDoCartaoAparece(639)).toBe(false);
+    // E CONTINUA em tela alta: em janela folgada a orientação não custa nada.
+    expect(cabecalhoDoCartaoAparece(JANELA_CURTA)).toBe(true);
+    expect(cabecalhoDoCartaoAparece(812)).toBe(true);
+    expect(cabecalhoDoCartaoAparece(900)).toBe(true);
+  });
+
+  it("🔑 painel visível e INÚTIL é pior que fechado: ele empresta, mas nunca do piso duro", () => {
+    // Aperto extremo: sobra 150px para as duas regiões.
+    const r = alturasDasRegioes({ cartao: 260, cabecalho: 0, rodape: 110, materiaisAbertos: true });
+    expect(r.materiais).toBeGreaterThanOrEqual(Math.min(PISO_DOS_MATERIAIS, 150 - PISO_DA_CONVERSA));
+    expect(r.conversa).toBeGreaterThanOrEqual(PISO_DA_CONVERSA);
+    expect(r.conversa + r.materiais).toBe(150);
+  });
+
+  it("os pisos são três, e a ordem entre eles é a regra", () => {
+    expect(PISO_DA_CONVERSA).toBeLessThan(PISO_UTIL_DA_CONVERSA);
+    expect(PISO_DOS_MATERIAIS).toBeLessThan(ALTURA_UTIL_DOS_MATERIAIS);
+  });
+
+  it("✅ no desktop nada mudou: o painel pega o que precisa e a sobra é da conversa", () => {
+    const r = alturasDasRegioes({ cartao: 900, cabecalho: 72, rodape: 110, materiaisAbertos: true });
+    expect(r.materiais).toBe(ALTURA_UTIL_DOS_MATERIAIS);
+    expect(r.conversa).toBe(900 - 72 - 110 - ALTURA_UTIL_DOS_MATERIAIS);
+  });
+
+  it("✅ a soma continua fechando para TODA janela — o B1 não foi afrouxado", () => {
+    for (let janela = 320; janela <= 1200; janela += 7) {
+      for (const rodape of [88, 110, 148, 190]) {
+        const cabecalho = cabecalhoDoCartaoAparece(janela) ? 72 : 0;
+        const cartao = tetoDoCartaoDaConversa(janela, 213, cabecalho + rodape);
+        const r = alturasDasRegioes({ cartao, cabecalho, rodape, materiaisAbertos: true });
+        expect(r.conversa).toBeGreaterThanOrEqual(0);
+        expect(r.materiais).toBeGreaterThanOrEqual(0);
+        expect(r.conversa + r.materiais + cabecalho + rodape).toBeLessThanOrEqual(cartao);
+        // E a conversa nunca cai abaixo do piso DURO enquanto houver espaço.
+        if (cartao - cabecalho - rodape >= PISO_DA_CONVERSA) {
+          expect(r.conversa).toBeGreaterThanOrEqual(PISO_DA_CONVERSA);
+        }
+      }
+    }
   });
 });

@@ -91,9 +91,23 @@ describe("o dossiê dos anexos — o que o SDR recebe a cada turno", () => {
     expect(d).not.toMatch(/NÃO consegui|não conseguiu ler/i);
   });
 
-  it("upload que FALHOU não entra no dossiê — ele não é um anexo do cliente", () => {
+  // ⚠️ 16/08/2026 (C4) — ESTE TESTE FOI INVERTIDO, e o motivo é o mesmo do B5.
+  //
+  // Ele exigia, por escrito, que o upload falho produzisse `""`:
+  //
+  //     it("upload que FALHOU não entra no dossiê — ele não é um anexo do cliente",
+  //        () => expect(dossieDosAnexos([anexo({ status: "error" })])).toBe(""));
+  //
+  // É **o defeito virando invariante** — o terceiro caso do mesmo padrão nesta
+  // casa (`identity-capture`, `jornada-real`, `anexo-do-pedido-lido`). A
+  // premissa "não é um anexo do cliente" é falsa: o cliente TENTOU enviar, a
+  // falha foi nossa, e ele não tem como saber disso sozinho. Medido: 3 arquivos,
+  // 1 falha → o SDR conversava como se fossem 2, para sempre.
+  it("upload que FALHOU é DECLARADO ao SDR — 'não chegou' é fato, não ausência", () => {
     const d = dossieDosAnexos([anexo({ fileName: "morreu.pdf", status: "error" })]);
-    expect(d).toBe("");
+    expect(d).not.toBe("");
+    expect(d).toMatch(/NÃO CHEGARAM ATÉ NÓS \(o envio falhou\): morreu\.pdf/);
+    expect(d).toMatch(/NÃO diga que recebeu/i);
   });
 
   it("sem anexo nenhum, o dossiê é VAZIO — nada é acrescentado ao turno", () => {
