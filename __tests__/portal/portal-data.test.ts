@@ -6,22 +6,31 @@
 // A1: o filtro de preço era uma regex que "USD 500" e "3k" atravessavam.
 // Visibilidade: entrega "interno" nunca abastece card de portal.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
-  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn() },
+  // rodada 8: a cerca do filho apura evidência de troca de dono em quatro
+  // tabelas (ver `solicitacao-que-mudou-de-dono`). Sem estes mocks a apuração
+  // falha e FECHA — que é o certo, mas deixa a suíte sem exercitar o caminho
+  // limpo.
+  portalMessage: { findMany: vi.fn() },
+  portalAccess: { findMany: vi.fn() },
+  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   brainArtifact: { findMany: vi.fn() },
   approvalRequest: { findMany: vi.fn() },
-  project: { findFirst: vi.fn() },
+  project: { findFirst: vi.fn(), findMany: vi.fn() },
   deliverable: { findMany: vi.fn() },
   client: { findUnique: vi.fn() },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, escopoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { GET } from "@/app/api/brain/portal-data/route";
@@ -46,7 +55,21 @@ function req(): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  db.portalMessage?.findMany?.mockResolvedValue?.([]);
+  db.portalAccess?.findMany?.mockResolvedValue?.([]);
+  db.project?.findMany?.mockResolvedValue?.([]);
+  db.approvalRequest?.findMany?.mockResolvedValue?.([]);
+  // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
+  // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+  // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+  // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+  // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+  // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+  // carregam o dono, que é a forma que os links emitidos passam a ter.
+  // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
+  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
   db.clientRequestDb.findUnique.mockResolvedValue({ ...SOLICITACAO });
   db.brainArtifact.findMany.mockResolvedValue([]);
   db.approvalRequest.findMany.mockResolvedValue([]);

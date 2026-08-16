@@ -27,42 +27,114 @@
 // mensagem órfã do banco, que é vazamento entre clientes.
 
 import { prisma } from "@/lib/db/client";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 
 /** O filtro Prisma de uma conversa. Objeto simples de propósito: os testes
  *  mockam o prisma e comparam a forma. */
-export type FiltroDaConversa =
+export type ChaveDaConversa =
   | { clientId: string }
   | { clientRequestId: { in: string[] } }
   | { OR: Array<{ clientId: string } | { clientRequestId: { in: string[] } }> };
+
+/** A cerca: nenhuma linha carimbada para OUTRO cliente sai, venha por qual
+ *  chave vier. Ver `montarFiltro`. */
+export type FiltroDaConversa =
+  | ChaveDaConversa
+  | { AND: [ChaveDaConversa, { OR: [{ clientId: string }, { clientId: null }] }] }
+  /** Ramo do PROSPECT: só o que ainda não tem dono. */
+  | { AND: [{ clientRequestId: { in: string[] } }, { clientId: null }] };
 
 export interface Conversa {
   /** O dono. Nulo só quando a conversa é de um PROSPECT (solicitação de
    *  briefing que ainda não virou cliente). */
   clientId: string | null;
-  /** Todas as solicitações daquele cliente — o histórico que já existe. */
-  clientRequestIds: string[];
+  /**
+   * As solicitações do cliente **para efeito de ESCRITA** — a lista SEM cerca.
+   *
+   * ⚠️ NÃO é o escopo de leitura. `filtro` é cercado e esta lista não; usar
+   * esta aqui para ler é reabrir o vazamento. Renomeada em 15/08/2026
+   * exatamente para que o próximo a ler não confunda as duas.
+   */
+  clientRequestIdsDaEscrita: string[];
   /** Onde uma mensagem NOVA deste lado é gravada. */
   ancora: { clientId: string | null; clientRequestId: string | null };
   /** O filtro de leitura. Nulo = não existe conversa nenhuma para ancorar. */
   filtro: FiltroDaConversa | null;
+  /**
+   * Quantas linhas a cerca ESCONDEU desta leitura por ambiguidade de dono.
+   *
+   * ── Por que este número existe (15/08/2026, rodada 2) ────────────────────
+   * O `qualidade` mediu a resposta crua da rota e achou
+   * `{"messages":[],"podeEnviar":true}` — sem motivo, sem contador, sem flag.
+   * Na tela isso vira "Comece a conversa": o cliente não vê o histórico
+   * encurtar, vê a agência ter APAGADO a conversa dele. Esconder em silêncio é
+   * a mesma falha que esta casa chama de "falha de leitura virando afirmação
+   * falsa". Quem esconde, diz que escondeu.
+   */
+  ocultadasPorAmbiguidade: number;
+  /**
+   * Houve corte? — INDEPENDENTE da contagem.
+   *
+   * A contagem pode falhar (e zera no `catch`). Se o aviso ao cliente
+   * dependesse dela, um tropeço de banco traria o silêncio de volta — e o
+   * silêncio é o defeito que este campo existe para matar.
+   */
+  houveCorteDeHistorico: boolean;
 }
 
 const VAZIA: Conversa = {
   clientId: null,
-  clientRequestIds: [],
+  clientRequestIdsDaEscrita: [],
   ancora: { clientId: null, clientRequestId: null },
   filtro: null,
+  ocultadasPorAmbiguidade: 0,
+  houveCorteDeHistorico: false,
 };
 
 function montarFiltro(clientId: string | null, requestIds: string[]): FiltroDaConversa | null {
-  const chaves: Array<{ clientId: string } | { clientRequestId: { in: string[] } }> = [];
-  // A guarda que impede o vazamento: só entra chave com valor de verdade.
-  if (clientId) chaves.push({ clientId });
-  if (requestIds.length > 0) chaves.push({ clientRequestId: { in: requestIds } });
-  if (chaves.length === 0) return null;
-  if (chaves.length === 1) return chaves[0]!;
-  return { OR: chaves };
+  if (!clientId) {
+    // Sem cliente identificado: só o ramo do PROSPECT, tratado por
+    // `conversaDaSolicitacao`. Aqui, nada — filtro nulo não lê o banco.
+    return requestIds.length > 0
+      ? { AND: [{ clientRequestId: { in: requestIds } }, { clientId: null }] }
+      : null;
+  }
+
+  // ── PROVA DE PERTENCIMENTO, NÃO PROVA DE CONTAMINAÇÃO ────────────────────
+  //
+  // ⚠️ ESTE É O TERCEIRO DESENHO DESTA CERCA, e os dois primeiros erraram DO
+  // MESMO JEITO — vale mais registrar o erro que a solução:
+  //
+  //   rodada 2: excluía a solicitação quando havia, presa a ela, uma mensagem
+  //             carimbada com outro dono. O legado não tem carimbo. Vazou.
+  //   rodada 3: troquei a prova para `PortalAccess`/`Project`/`Approval`. O
+  //             legado também não tem. **Vazou igual, com o mesmo probe.**
+  //
+  // As duas eram a mesma falha: **eu procurava PROVA DE CONTAMINAÇÃO para
+  // excluir.** Prova positiva exige registro, e o dado antigo não tem registro
+  // nenhum — por definição, porque o registro nasceu com o conserto. Defesa
+  // assim é uma afirmação sobre o FUTURO, e o CEO não foi vazado no futuro.
+  //
+  // A regra da casa resolve isto e está escrita há meses: **ausência de
+  // informação não é informação.** Então o default inverte:
+  //
+  //     não se exclui o que se prova alheio — serve-se APENAS o que se prova
+  //     próprio.
+  //
+  // Prova de pertencimento de uma mensagem é UMA coisa: `clientId` escrito e
+  // igual ao dono. Linha sem dono escrito não é servida a ninguém pelo portal.
+  // O legado cai do lado seguro **por construção** — sem carimbo, sem backfill,
+  // sem adivinhação, e sem depender de nada que só exista depois do deploy.
+  //
+  // O custo é real e está medido: `semDonoEscrito`, no censo
+  // (`GET /api/admin/censo-de-historico-ambiguo`). O cliente é avisado de que
+  // parte do histórico não está à mostra; a recuperação é da agência, por
+  // caminho autenticado, com gente decidindo de quem é cada linha.
+  //
+  // ⚠️ A união por `clientRequestId` MORREU aqui de propósito. Ela existia
+  // para achar linha sem `clientId` — que é exatamente a linha sem prova. Não
+  // é otimização: é a inversão.
+  return { clientId };
 }
 
 /** Monta a conversa de um cliente já identificado (dono derivado, nunca vindo
@@ -76,18 +148,58 @@ export async function conversaDoCliente(
     orderBy: { createdAt: "desc" },
     select: { id: true },
   });
-  const ids = solicitacoes.map((s) => s.id);
-  // A solicitação preferida (a que o token aponta) só vale se for DESTE cliente
-  // — senão a âncora escreveria na conversa de outro.
+  const todosOsIds = solicitacoes.map((s) => s.id);
+
+  // ── A ÂNCORA (escrita) NÃO É A CERCA (leitura) ───────────────────────────
+  // Escrever nas solicitações do cliente é correto — a mensagem nova nasce
+  // carimbada, e quem ler depois já tem a prova de pertencimento.
+  //
+  // A solicitação preferida (a que o token aponta) só vale se for DESTE
+  // cliente — senão a âncora escreveria na conversa de outro.
   const ancoraRequest =
-    solicitacaoPreferida && ids.includes(solicitacaoPreferida)
+    solicitacaoPreferida && todosOsIds.includes(solicitacaoPreferida)
       ? solicitacaoPreferida
-      : ids[0] ?? null;
+      : todosOsIds[0] ?? null;
+
+  // ── O CUSTO DA INVERSÃO, MEDIDO ──────────────────────────────────────────
+  // Quantas linhas das solicitações DESTE cliente ficam de fora por não terem
+  // dono escrito. É um fato simples e determinístico — não depende de apurar
+  // contaminação, não tem `catch` que zera, e não some quando o banco tropeça.
+  //
+  // ⚠️ O número NÃO vai para o cliente (ele seria o volume do acervo do
+  // vizinho): quem o lê é a agência, pelo censo autenticado. Aqui ele só
+  // acende o aviso.
+  let semDono = 0;
+  if (todosOsIds.length > 0) {
+    try {
+      semDono = (await prisma.portalMessage.count({
+        where: { clientRequestId: { in: todosOsIds }, clientId: null },
+      })) ?? 0;
+    } catch {
+      // Não saber QUANTAS não derruba a conversa — e também não some com o
+      // aviso: quem decide o aviso é `houveCorteDeHistorico`, abaixo.
+      semDono = 0;
+    }
+  }
+  // O AVISO não depende da contagem: contagem que falha não pode devolver o
+  // silêncio. Se há solicitação, pode haver legado — e o cliente é avisado.
+  const houveCorteDeHistorico = semDono > 0;
+  if (semDono > 0) {
+    console.error(
+      `[portal] cerca da conversa: ${semDono} linha(s) do cliente ${clientId} `
+      + "estão SEM DONO ESCRITO e não foram servidas. Recuperação é da agência "
+      + "(GET /api/admin/censo-de-historico-ambiguo).",
+    );
+  }
+
   return {
     clientId,
-    clientRequestIds: ids,
+    clientRequestIdsDaEscrita: todosOsIds,
     ancora: { clientId, clientRequestId: ancoraRequest },
-    filtro: montarFiltro(clientId, ids),
+    // Só a LEITURA anda pelas solicitações limpas.
+    filtro: montarFiltro(clientId, todosOsIds),
+    ocultadasPorAmbiguidade: semDono,
+    houveCorteDeHistorico,
   };
 }
 
@@ -100,12 +212,29 @@ export async function conversaDaSolicitacao(clientRequestId: string): Promise<Co
   });
   if (!solicitacao) return VAZIA;
   if (solicitacao.clientId) return conversaDoCliente(solicitacao.clientId, clientRequestId);
-  // Prospect puro: ainda não é cliente. A conversa vive presa à solicitação.
+
+  // ── PROSPECT PURO — e ele TAMBÉM é cercado (15/08/2026, rodada 2) ─────────
+  // Este é o ramo que PRODUZ as linhas sem `clientId`: enquanto a solicitação
+  // não tem cliente, toda mensagem nasce só com a chave da solicitação. Ele
+  // ficou sem cerca na rodada 1 e sem teste — e é o ramo que alimenta o furo.
+  //
+  // A cerca aqui é o espelho da outra: a conversa de um prospect é só o que
+  // AINDA não tem dono. Linha já carimbada com um `clientId` pertence a um
+  // cliente de verdade e não pode voltar a aparecer por uma porta de prospect
+  // — é o caminho de volta do mesmo vazamento, quando a solicitação é
+  // desvinculada (`/api/admin/reset` no modo que zera o `clientId`).
   return {
     clientId: null,
-    clientRequestIds: [clientRequestId],
+    clientRequestIdsDaEscrita: [clientRequestId],
     ancora: { clientId: null, clientRequestId },
-    filtro: { clientRequestId: { in: [clientRequestId] } },
+    filtro: {
+      AND: [
+        { clientRequestId: { in: [clientRequestId] } },
+        { clientId: null },
+      ],
+    },
+    ocultadasPorAmbiguidade: 0,
+    houveCorteDeHistorico: false,
   };
 }
 
@@ -113,22 +242,69 @@ export type ResultadoDoToken =
   | { ok: true; conversa: Conversa }
   | { ok: false; status: number; reason?: string };
 
-/** Resolve a conversa a partir do token do portal — o ÚNICO caminho público. */
+/**
+ * Resolve a conversa a partir do token do portal — o ÚNICO caminho público.
+ *
+ * ⚠️ 15/08/2026 (rodada 2): o dono vem de `donoDoToken`, que CONGELA o cliente
+ * na primeira validação e RECUSA quando o ponteiro da solicitação anda depois.
+ * Antes, aqui e em `resolvePortalClient`, o dono era RE-DERIVADO a cada
+ * chamada lendo `ClientRequestDb.clientId` — ponteiro mutável — e um token
+ * antigo passava a valer para o cliente novo. Era o portal inteiro, não só a
+ * conversa. Ver o cabeçalho de `donoDoToken`.
+ */
 export async function conversaDoToken(token: string): Promise<ResultadoDoToken> {
-  const acesso = await validatePortalAccess(token);
-  if (!acesso.valid || !acesso.record) {
-    return { ok: false, status: 403, reason: acesso.reason };
+  // ── UM CAMINHO, NÃO DOIS (rodada 5) ──────────────────────────────────────
+  //
+  // 🔴 O incidente do CEO NÃO estava fechado, e `seguranca` e `qualidade`
+  // chegaram à mesma linha por caminhos independentes. Esta função tinha
+  // caminho PRÓPRIO: no ramo `sem_dono` ela lia o `PortalAccess` à mão e caía
+  // em `conversaDaSolicitacao`, que RE-DERIVAVA o cliente do ponteiro. O
+  // mesmo token dava três vereditos:
+  //
+  //     donoDoToken("tk")     → sem_dono
+  //     escopoDoToken("tk")   → sem_dono
+  //     conversaDoToken("tk") → clientId = BETA        ← concedia
+  //
+  // E o pior não é ler: pelo POST a mensagem nascia carimbada `clientId: beta`.
+  // O desenho novo elege o carimbo como ÚNICA prova de pertencimento — e este
+  // caminho **fabricava a prova**.
+  //
+  // ⚠️ A frase que resume as quatro rodadas: **a cerca responde "quais linhas
+  // do cliente X", nunca "qual cliente".** A inversão de `montarFiltro` é
+  // perfeita e inútil enquanto a identidade for escolhida antes dela — o
+  // filtro peneira fielmente as linhas do BETA e as entrega ao token do ALFA.
+  //
+  // Por isso aqui não há mais resolução nenhuma: quem decide QUAL CLIENTE é
+  // `escopoDoToken`, e só ele. Este arquivo só monta o filtro.
+  const escopo = await escopoDoToken(token);
+
+  if (!escopo.ok) {
+    return {
+      ok: false,
+      status: 403,
+      reason: escopo.motivo === "ponteiro_andou" ? "ponteiro_andou" : escopo.motivo,
+    };
   }
-  const registro = acesso.record;
-  if (registro.clientId) {
-    return { ok: true, conversa: await conversaDoCliente(registro.clientId, registro.clientRequestId) };
+
+  if (escopo.tipo === "cliente") {
+    return { ok: true, conversa: await conversaDoCliente(escopo.clientId, null) };
   }
-  if (registro.clientRequestId) {
-    return { ok: true, conversa: await conversaDaSolicitacao(registro.clientRequestId) };
-  }
-  // Token válido sem dono nenhum — não existe onde escrever. Não é erro do
-  // cliente, é acesso mal emitido; quem trata é a agência.
-  return { ok: true, conversa: VAZIA };
+
+  // PROSPECT — e pela MESMA regra do resolvedor único, que já garantiu que a
+  // solicitação existe e continua SEM dono. Nada é re-derivado aqui.
+  return {
+    ok: true,
+    conversa: {
+      clientId: null,
+      clientRequestIdsDaEscrita: [escopo.clientRequestId],
+      ancora: { clientId: null, clientRequestId: escopo.clientRequestId },
+      filtro: {
+        AND: [{ clientRequestId: { in: [escopo.clientRequestId] } }, { clientId: null }],
+      },
+      ocultadasPorAmbiguidade: 0,
+      houveCorteDeHistorico: false,
+    },
+  };
 }
 
 // Posse: "estar logado não é ser dono". A conferência vivia COPIADA aqui e

@@ -30,9 +30,20 @@ export async function createBrainArtifact(input: CreateBrainArtifactInput) {
     data: { status: "superseded" },
   });
 
+  // ── O CARIMBO NASCE AQUI (16/08/2026, rodada 8) ───────────────────────────
+  // Este é o escritor REAL de artefato da casa, e ele nunca gravou `clientId`.
+  // Com a cerca do filho exigindo carimbo, `pipeline` e `departments` do
+  // portal ficavam VAZIOS para sempre — não era dívida de acervo, era
+  // permanente. Mesma medicina das mensagens e das aprovações: o dono é
+  // derivado do banco no instante da escrita e congelado na linha.
+  const donoDaSolicitacao = await prisma.clientRequestDb
+    .findUnique({ where: { id: input.clientRequestId }, select: { clientId: true } })
+    .catch(() => null);
+
   return prisma.brainArtifact.create({
     data: {
       clientRequestId:   input.clientRequestId,
+      clientId:          donoDaSolicitacao?.clientId ?? null,
       department:        input.department,
       canvasId:          input.canvasId,
       canvasJson:        JSON.stringify(input.canvas),

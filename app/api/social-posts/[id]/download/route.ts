@@ -30,7 +30,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { lerArquivo } from "@/lib/agency/media/armazenamento";
 import {
@@ -71,16 +71,17 @@ export async function GET(
   // ── Quem está pedindo ─────────────────────────────────────────────────────
   let dono: FiltroDeDono | null = null;
   if (token) {
-    const v = await validatePortalAccess(token);
-    if (v.valid && v.record) {
-      dono = {
-        tipo: "portal",
-        clientId: v.record.clientId ?? null,
-        clientRequestId: v.record.clientRequestId ?? null,
-      };
-      // Token válido que não aponta para dono nenhum não abre nada. Fail-closed:
-      // um `OR: []` no Prisma não filtra — devolveria a peça de qualquer um.
-      if (!v.record.clientId && !v.record.clientRequestId) dono = null;
+    // 🔴 RODADA 3: o dono vinha do REGISTRO do token (o ponteiro). Agora vem do
+    // ESCOPO CONGELADO. Fail-closed continua: token sem dono não abre nada — um
+    // `OR: []` no Prisma não filtra, devolveria a peça de qualquer um.
+    const esc = await escopoDoToken(token);
+    // ⚠️ `condicaoDoDono` monta `OR: []` quando os dois campos são nulos — e
+    // um `OR: []` no Prisma NÃO filtra: devolveria a peça de qualquer um. Por
+    // isso cada ramo preenche exatamente UM lado, nunca dois nulos.
+    if (esc.ok && esc.tipo === "cliente") {
+      dono = { tipo: "portal", clientId: esc.clientId, clientRequestId: null };
+    } else if (esc.ok && esc.tipo === "prospect") {
+      dono = { tipo: "portal", clientId: null, clientRequestId: esc.clientRequestId };
     }
   } else {
     const session = await getSession();

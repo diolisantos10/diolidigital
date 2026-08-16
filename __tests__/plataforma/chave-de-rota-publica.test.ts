@@ -42,9 +42,12 @@ vi.mock("@/lib/db/client", () => ({ prisma: db }));
 const decryptSecret = vi.hoisted(() => vi.fn((s: string) => `aberta:${s}`));
 vi.mock("@/lib/security/crypto", () => ({ decryptSecret, encryptSecret: vi.fn() }));
 
-const conferirTokenDoPortal = vi.hoisted(() => vi.fn());
+// ⚠️ rodada 5: a porta de entrada passou a exigir DONO, não só validade —
+// `conferirTokenDoPortal` nunca conferiu dono, e por isso token legado entrava
+// e gravava cookie de 180 dias. Agora ela usa o resolvedor único.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/agency/persistence/portal-access-service", () => ({
-  conferirTokenDoPortal,
+  escopoDoToken,
   validatePortalAccess: vi.fn(),
   createPortalAccess: vi.fn(),
   resolvePortalClient: vi.fn(),
@@ -152,20 +155,20 @@ describe("GET /portal/access — só se grava cookie de token VÁLIDO", () => {
   const chamar = (url: string) => entrarNoPortal(new NextRequest(url));
 
   it("token podre: redireciona, mas NÃO grava o cookie de 180 dias", async () => {
-    conferirTokenDoPortal.mockResolvedValue(false);
+    escopoDoToken.mockResolvedValue({ ok: false, motivo: "sem_dono" });
     const res = await chamar("http://localhost/portal/access?token=lixo");
     expect(res.status).toBe(307);
     expect(res.cookies.get(PORTAL_COOKIE)).toBeUndefined();
   });
 
   it("token expirado ou revogado: mesma coisa — o cookie não nasce", async () => {
-    conferirTokenDoPortal.mockResolvedValue(false);
+    escopoDoToken.mockResolvedValue({ ok: false, motivo: "sem_dono" });
     const res = await chamar("http://localhost/portal/access?token=tok-vencido");
     expect(res.cookies.get(PORTAL_COOKIE)).toBeUndefined();
   });
 
   it("token válido: grava o cookie httpOnly e limpa a URL", async () => {
-    conferirTokenDoPortal.mockResolvedValue(true);
+    escopoDoToken.mockResolvedValue({ ok: true, tipo: "cliente", clientId: "c1", workspaceId: "ws1", clientRequestIds: [] });
     const res = await chamar("http://localhost/portal/access?token=tok-bom");
     const cookie = res.cookies.get(PORTAL_COOKIE);
     expect(cookie?.value).toBe("tok-bom");
@@ -175,7 +178,7 @@ describe("GET /portal/access — só se grava cookie de token VÁLIDO", () => {
 
   it("sem token nenhum: não confere nada e não grava nada", async () => {
     const res = await chamar("http://localhost/portal/access");
-    expect(conferirTokenDoPortal).not.toHaveBeenCalled();
+    expect(escopoDoToken).not.toHaveBeenCalled();
     expect(res.cookies.get(PORTAL_COOKIE)).toBeUndefined();
   });
 });

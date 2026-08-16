@@ -11,11 +11,12 @@
 //     `MaterialRequest`, não retomava produção, não avisava ninguém — enquanto a
 //     tela dizia "A equipe já foi avisada".
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
-  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn() },
+  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   client: { findUnique: vi.fn(), findFirst: vi.fn() },
   agencyWorkspace: { findFirst: vi.fn() },
   mediaAsset: { update: vi.fn() },
@@ -25,10 +26,12 @@ const resolvePortalClient = vi.hoisted(() => vi.fn());
 const getSession = vi.hoisted(() => vi.fn());
 const guardarArquivo = vi.hoisted(() => vi.fn());
 const materialEnviadoPeloCliente = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/auth/session", () => ({ getSession }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, resolvePortalClient }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, resolvePortalClient, escopoDoToken }));
 vi.mock("@/lib/agency/media/armazenamento", () => ({
   guardarArquivo, MAX_BYTES_POR_ARQUIVO: 25 * 1024 * 1024,
 }));
@@ -45,6 +48,11 @@ function envio(token: string, nome = "logo.png", tipo = "image/png"): NextReques
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
+  // As solicitações do escopo saem do CLIENTE. Cliente direto não tem
+  // nenhuma — e é isso que o teste abaixo afirma.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([]);
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db, { resolvePortalClient }));
   getSession.mockResolvedValue(null);
   guardarArquivo.mockResolvedValue({ ok: true, arquivo: { id: "m1", fileName: "logo.png", sizeBytes: 16, mimeType: "image/png", url: "/api/media/m1" } });
   db.mediaAsset.update.mockResolvedValue({});
@@ -61,6 +69,13 @@ beforeEach(() => {
 
 describe("o arquivo é arquivado no workspace DO CLIENTE, derivado do token", () => {
   it("cliente direto (token sem solicitação): workspace vem do dono, não do primeiro do banco", async () => {
+    // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+    // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+    // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+    // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+    // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+    // carregam o dono, que é a forma que os links emitidos passam a ter.
+    // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
     validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: null, clientId: "cli-foocci" } });
     resolvePortalClient.mockResolvedValue({ clientId: "cli-foocci", workspaceId: "ws-foocci" });
 
@@ -73,8 +88,16 @@ describe("o arquivo é arquivado no workspace DO CLIENTE, derivado do token", ()
     expect(db.agencyWorkspace.findFirst).not.toHaveBeenCalled();
   });
 
-  it("token com solicitação continua vindo da solicitação — nada regrediu", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  // ⚠️ 15/08/2026 (rodada 3) — O WORKSPACE PASSOU A VIR DO CLIENTE, NÃO DA
+  // SOLICITAÇÃO, e a mudança é o conserto. `ClientRequestDb.clientId` é um
+  // ponteiro mutável; tirar o workspace dele significava que, depois de a
+  // solicitação trocar de dono, o arquivo do cliente ia para a casa errada.
+  // Agora sai do ESCOPO CONGELADO (`escopoDoToken` → cliente → workspace).
+  // A garantia que este teste protege é a mesma: a casa é a DO DONO.
+  it("token com solicitação: o workspace vem do DONO congelado", async () => {
+    // O escopo lista as solicitações DO CLIENTE (não a do registro do token).
+    db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr1" }]);
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
     db.clientRequestDb.findUnique.mockResolvedValue({ workspaceId: "ws-padaria" });
     resolvePortalClient.mockResolvedValue({ clientId: "c1", workspaceId: "ws-padaria" });
 

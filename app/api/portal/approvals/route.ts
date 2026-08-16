@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import {
   updateApprovalStatus,
@@ -26,6 +26,7 @@ import { createProjectFromRequest } from "@/lib/agency/execution/create-project-
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { negotiateProposal } from "@/lib/agency/execution/negotiate-proposal";
 import { assessResources } from "@/lib/agency/execution/assess-resources";
+import { gravarMensagemDoPortal } from "@/lib/agency/portal/mensagem-do-portal";
 
 // V2 (M5): as QUATRO decisões do cliente + a dúvida vivem num contrato único
 // (`lib/agency/portal/decisoes-do-portal.ts`) — rota e tela leem a mesma
@@ -89,10 +90,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // 1. Validate the portal token.
-  const access = await validatePortalAccess(token);
-  if (!access.valid || !access.record) {
-    return NextResponse.json({ error: "Access denied", reason: access.reason }, { status: 403 });
+  // 1. Validate the portal token — pelo ESCOPO CONGELADO.
+  //
+  // 🔴 RODADA 3: aqui estava `validatePortalAccess` cru, e a posse casava por
+  // `access.record.clientRequestId` — o ponteiro. Com a solicitação re-apontada,
+  // o probe do `seguranca` **APROVOU UMA ENTREGA DE OUTRO CLIENTE** com um
+  // token alheio: `200 {"status":"approved"}`. Nesta casa entrega aprovada
+  // publica — não é leitura indevida, é ESCRITA no negócio de terceiro.
+  const escopo = await escopoDoToken(token);
+  if (!escopo.ok) {
+    return NextResponse.json(
+      { error: "Access denied", reason: escopo.motivo },
+      { status: 403 },
+    );
   }
 
   try {
@@ -113,20 +123,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // de isolamento ser provado por teste — o comportamento é o mesmo de
     // sempre, INCLUSIVE a preguiça: a solicitação do token só é buscada quando
     // a checagem direta não bastou (o caminho quente não paga a consulta).
-    const tokenRequestId = access.record.clientRequestId;
+    // A posse agora casa contra o ESCOPO CONGELADO: o cliente que o token
+    // aponta desde o primeiro uso, e as solicitações DESSE cliente — nunca a
+    // solicitação escrita no registro do token, que pode ter mudado de dono.
     const formaDaAprovacao = {
       clientRequestId: approval.clientRequestId,
       clientId: approval.clientId,
-      clientRequestClientId: approval.clientRequest?.clientId ?? null,
     };
-    const formaDoToken = { clientRequestId: tokenRequestId, clientId: access.record.clientId };
-    let belongsToToken = pertenceAoToken(formaDaAprovacao, formaDoToken, null);
-    if (!belongsToToken && !access.record.clientId && tokenRequestId) {
-      const solicitacao = await prisma.clientRequestDb.findUnique({
-        where: { id: tokenRequestId }, select: { clientId: true },
-      });
-      belongsToToken = pertenceAoToken(formaDaAprovacao, formaDoToken, solicitacao?.clientId ?? null);
-    }
+    // `pertenceAoToken` (função pura, provada por teste) continua sendo quem
+    // decide — o que mudou é o que ela RECEBE: só o escopo congelado.
+    //
+    // ⚠️ A chave de solicitação só entra quando ela pertence ao escopo. É
+    // isso que impede a solicitação re-apontada de continuar valendo, sem
+    // precisar de uma segunda regra de posse ao lado desta (duas regras com o
+    // mesmo nome é o defeito nº 2 do incidente do Drive).
+    // ── PROVA DE PERTENCIMENTO ────────────────────────────────────────────
+    // 🔴 O `seguranca` aprovou uma entrega de OUTRO cliente por aqui, e nesta
+    // casa entrega aprovada publica. A posse deixou de aceitar a solicitação
+    // como prova: quando há cliente, o CARIMBO tem de bater.
+    //
+    // ── RODADA 9: DECIDIR EXIGE CARIMBO, E SÓ ─────────────────────────────
+    // A rodada 8 abria o card ÓRFÃO para quem "provasse" que a solicitação
+    // nunca mudou de dono. A prova é cega justamente na população de
+    // produção — `PortalAccess` legado tem `clientId` nulo, então não há o
+    // que comparar — e aqui APROVAR PUBLICA. Card sem carimbo é indecidível
+    // por qualquer token; quem o devolve ao dono é o backfill, offline e com
+    // curadoria (`lib/agency/portal/backfill-de-carimbo.ts`).
+    const belongsToToken = escopo.tipo === "cliente"
+      ? pertenceAoToken(
+          formaDaAprovacao,
+          { clientRequestId: null, clientId: escopo.clientId },
+          escopo.clientId,
+        )
+      // Prospect: a identidade é a solicitação, e o card não pode ter dono.
+      : approval.clientId == null
+        && approval.clientRequest?.clientId == null
+        && approval.clientRequestId === escopo.clientRequestId;
     if (!belongsToToken) {
       return NextResponse.json({ error: "Approval not accessible with this token" }, { status: 403 });
     }
@@ -308,12 +340,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               await prisma.materialRequest.create({ data: { projectId: created.projectId, type: m.type, description: m.description } });
             }
             const list = gate.missing.map((m) => `• ${m.description}`).join("\n");
-            await prisma.portalMessage.create({
-              data: {
-                clientRequestId: approval.clientRequestId, authorRole: "team", authorName: "Equipe Dioli",
-                body: `Seu projeto foi aprovado! 🎉 Pra gente começar a produzir com qualidade, só precisamos de alguns materiais seus:\n\n${list}\n\nÉ só enviar na aba "Materiais" aqui do portal — assim que chegarem, os agentes começam na hora. 💛`,
-                readByTeam: false,
-              },
+            await gravarMensagemDoPortal({
+              clientRequestId: approval.clientRequestId, authorRole: "team", authorName: "Equipe Dioli",
+              body: `Seu projeto foi aprovado! 🎉 Pra gente começar a produzir com qualidade, só precisamos de alguns materiais seus:\n\n${list}\n\nÉ só enviar na aba "Materiais" aqui do portal — assim que chegarem, os agentes começam na hora. 💛`,
+              readByTeam: false,
             });
           }
         }

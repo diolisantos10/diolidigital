@@ -25,6 +25,7 @@ import {
   type PlanoDeCampanha, type DesempenhoPago, type PublicoDoConjunto,
 } from "@/lib/integrations/meta/ads";
 import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
+import { gravarMensagemDoPortal } from "@/lib/agency/portal/mensagem-do-portal";
 import {
   oQueFaltaParaSegmentar, NAO_PERGUNTADO, type AreaDeAtendimento,
 } from "@/lib/agency/comercial/onde-o-negocio-vende";
@@ -285,9 +286,8 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
   // campanha pausada que ninguém sabe que existe é trabalho jogado fora.
   const completa = oQueFaltou === null;
   if (projeto.clientRequestId && completa) {
-    await prisma.portalMessage.create({
-      data: {
-        clientRequestId: projeto.clientRequestId, authorRole: "team", authorName: "Gerente de projeto",
+    await gravarMensagemDoPortal({
+      clientRequestId: projeto.clientRequestId, authorRole: "team", authorName: "Gerente de projeto",
         body: [
           "Sua campanha de anúncios está montada e PAUSADA, esperando seu ok. 🎯",
           "",
@@ -297,8 +297,7 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
           "",
           "Ela só começa a gastar quando você autorizar. Me diz aqui quando quiser ligar.",
         ].join("\n"),
-        readByTeam: true,
-      },
+      readByTeam: true,
     }).catch(() => { /* best-effort */ });
   }
 

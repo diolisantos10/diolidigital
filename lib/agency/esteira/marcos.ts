@@ -21,6 +21,7 @@ import { carimboDaAutoria, type AutoriaDaAprovacao } from "@/lib/agency/esteira/
 // A MESMA forma canônica de agente→departamento que a escada usa. Ver o bloco
 // de publicação de cards em `apresentar`.
 import { departamentoDoAgente } from "@/lib/agency/escada/degraus";
+import { gravarMensagemDoPortal } from "@/lib/agency/portal/mensagem-do-portal";
 
 export interface ResultadoDoMarco {
   ok: boolean;
@@ -55,8 +56,8 @@ export async function falarComOCliente(
 ): Promise<boolean> {
   if (!projeto.clientRequestId) return false;
   try {
-    await prisma.portalMessage.create({
-      data: { clientRequestId: projeto.clientRequestId, authorRole: "team", authorName: "Gerente de projeto", body: corpo, readByTeam: true },
+    await gravarMensagemDoPortal({
+      clientRequestId: projeto.clientRequestId, authorRole: "team", authorName: "Gerente de projeto", body: corpo, readByTeam: true,
     });
   } catch (e) {
     console.warn("[esteira] não consegui falar com o cliente:", e instanceof Error ? e.message : e);

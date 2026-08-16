@@ -5,8 +5,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { filtroDeFilhoDoDono } from "@/lib/agency/portal/filho-do-dono";
+import { solicitacoesQueMudaramDeDono } from "@/lib/agency/portal/solicitacao-que-mudou-de-dono";
 
 interface DbPost {
   id: string; clientId: string | null; clientRequestId: string | null;
@@ -93,26 +95,22 @@ function toPortalDTO(p: DbPost) {
  *  aqui. O filtro do portal leva os dois. `false` = token inválido. */
 async function resolveTokenScope(
   token: string,
-): Promise<{ reqId: string | null; workspaceId: string | null } | false> {
-  const access = await validatePortalAccess(token);
-  if (!access.valid || !access.record) return false;
-  if (access.record.clientRequestId) {
-    const req = await prisma.clientRequestDb.findUnique({
-      where: { id: access.record.clientRequestId }, select: { id: true, workspaceId: true },
-    });
-    return { reqId: req?.id ?? null, workspaceId: req?.workspaceId ?? null };
+): Promise<{ reqId: string | null; workspaceId: string | null; clientId: string | null; limpas: string[] } | false> {
+  // 🔴 RODADA 3: lia `access.record.clientRequestId` — o ponteiro cru. Agora o
+  // escopo é o CONGELADO, e a solicitação sai do CLIENTE, nunca do registro.
+  const escopo = await escopoDoToken(token);
+  if (!escopo.ok) return false;
+  if (escopo.tipo === "prospect") {
+    // Prospect não tem dono — a identidade dele é a própria solicitação.
+    return { reqId: escopo.clientRequestId, workspaceId: escopo.workspaceId, clientId: null, limpas: [] };
   }
-  if (access.record.clientId) {
-    const cliente = await prisma.client.findUnique({
-      where: { id: access.record.clientId }, select: { workspaceId: true },
-    });
-    const latest = await prisma.clientRequestDb.findFirst({
-      where: { clientId: access.record.clientId }, orderBy: { createdAt: "desc" },
-      select: { id: true, workspaceId: true },
-    });
-    return { reqId: latest?.id ?? null, workspaceId: cliente?.workspaceId ?? latest?.workspaceId ?? null };
-  }
-  return { reqId: null, workspaceId: null };
+  const sujas = await solicitacoesQueMudaramDeDono(escopo.clientId, escopo.clientRequestIds);
+  return {
+    reqId: escopo.clientRequestIds[0] ?? null,
+    workspaceId: escopo.workspaceId,
+    clientId: escopo.clientId,
+    limpas: escopo.clientRequestIds.filter((x) => !sujas.has(x)),
+  };
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -135,6 +133,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         workspaceId: escopo.workspaceId,
         clientRequestId: escopo.reqId,
         visibility: "compartilhado",
+        // A cerca do filho, com as DUAS metades — a mesma regra da posse e da
+        // listagem de `portal-data`. Exigir só carimbo apagava a peça legada
+        // do próprio dono (o escritor não carimbava).
+        ...(escopo.clientId ? filtroDeFilhoDoDono(escopo.clientId) : {}),
       },
       orderBy: { scheduledFor: "asc" },
     });

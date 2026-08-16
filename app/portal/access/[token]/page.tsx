@@ -175,6 +175,12 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
   const q = token ? `?token=${encodeURIComponent(token)}` : "";
 
   const [vista, setVista] = useState<VistaDoCliente | null>(null);
+  // ── QUEM ESTA TELA ESTÁ MOSTRANDO (15/08/2026, incidente do portal) ───────
+  // A identidade OPACA do dono desta tela, como o SERVIDOR a derivou em
+  // `/api/portal/vista`. Ela viaja junto da conversa do PM para que o servidor
+  // possa conferir que o cliente da tela e o cliente da credencial da conversa
+  // são o mesmo. Ela não abre nada: só faz a conversa fechar quando divergem.
+  const [donoDaTela, setDonoDaTela] = useState<string | null>(null);
   const [data, setData] = useState<PortalData | null>(null);
   const [esteira, setEsteira] = useState<EstadoEsteira | null>(null);
   const [conexoes, setConexoes] = useState<ConexaoView[]>([]);
@@ -245,7 +251,9 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
         setErro(res.status === 403 ? "invalid" : "network");
         return;
       }
-      setVista(await res.json());
+      const json = (await res.json()) as VistaDoCliente & { dono?: string };
+      setVista(json);
+      setDonoDaTela(typeof json.dono === "string" ? json.dono : null);
       setErro(null);
     } catch {
       setErro("network");
@@ -1091,6 +1099,7 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
         open={chatAberto}
         onClose={() => setChatAberto(false)}
         token={token}
+        dono={donoDaTela}
         authorName={marca}
         teamLabel="Fale com seu PM"
         subtitle="a ponte com todos os departamentos"

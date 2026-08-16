@@ -177,11 +177,41 @@ export async function listClientRequests(options?: {
 }
 
 export async function updateClientRequest(id: string, input: UpdateClientRequestInput): Promise<NormalizedClientRequest> {
+  // ── 🔴 O SEGUNDO RE-APONTADOR (15/08/2026, rodada 3) ──────────────────────
+  //
+  // `PATCH /api/brain/client-requests?id=X` com `{"clientId":"B"}` re-apontava
+  // A→B **incondicionalmente**, guardado só por `requireSession()` — sem lista
+  // de papéis. O `seguranca` provou: `PROBE-REAPONTADOR 200 era alfa… agora:
+  // beta`. Eu fechei o balcão na rodada 2 e deixei este de pé.
+  //
+  // Mover a solicitação de um cliente para outro é o gesto que produziu o
+  // incidente inteiro: leva conversa, projeto, aprovações e portal junto. Se
+  // for para acontecer, é decisão de gente com nome — não efeito colateral de
+  // um PATCH genérico.
+  //
+  // A regra: **carimbar dono NULO pode; TROCAR dono não.** A guarda é o
+  // `updateMany` com `clientId: null` no WHERE (o banco decide, não o código —
+  // decidir no código perde a corrida entre duas chamadas simultâneas).
+  if (input.clientId) {
+    const atual = await prisma.clientRequestDb.findUnique({
+      where: { id }, select: { clientId: true },
+    });
+    if (atual?.clientId && atual.clientId !== input.clientId) {
+      throw new Error(
+        "Esta solicitação já tem cliente. Trocar o dono de uma solicitação move conversa, "
+        + "projeto e portal junto — não é edição, é fusão de fichas, e precisa de decisão humana.",
+      );
+    }
+    if (!atual?.clientId) {
+      await prisma.clientRequestDb.updateMany({
+        where: { id, clientId: null }, data: { clientId: input.clientId },
+      });
+    }
+  }
   const raw = await prisma.clientRequestDb.update({
     where: { id },
     data: {
       ...(input.status      ? { status: input.status }                                        : {}),
-      ...(input.clientId    ? { clientId: input.clientId }                                    : {}),
       ...(input.workspaceId ? { workspaceId: input.workspaceId }                              : {}),
       ...(input.briefingJson   ? { briefingJson:   JSON.stringify(input.briefingJson)   }     : {}),
       ...(input.sdrHandoffJson ? { sdrHandoffJson: JSON.stringify(input.sdrHandoffJson) }     : {}),

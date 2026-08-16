@@ -30,6 +30,15 @@ interface PortalChatProps {
   /** Team side: abre a conversa PELO CLIENTE — o caminho que funciona também
    *  para cliente criado direto (sem solicitação). Requer sessão. */
   clientId?: string;
+  /** Portal do cliente: a identidade OPACA do dono da TELA, como o servidor a
+   *  derivou em `/api/portal/vista`. Viaja em toda leitura e todo envio para o
+   *  servidor conferir que o cliente da tela e o cliente da credencial desta
+   *  conversa são o mesmo — em `/portal/access/me` o chat autentica pelo
+   *  cookie `dioli_portal`, que é UM por navegador e guarda UM cliente, e até
+   *  15/08/2026 ninguém conferia se batia com a tela. NÃO concede acesso: o
+   *  dono continua derivado do token/cookie; isto só faz a conversa fechar
+   *  quando os dois lados discordam. */
+  dono?: string | null;
   /** Team side: when set, shows an "✨ Sugerir mensagem" button that drafts a
    *  reply with AI, biased by this situation hint (e.g. "escopo aprovado"). */
   suggestContext?: string;
@@ -65,7 +74,7 @@ function LinkifiedBody({ text, mine }: { text: string; mine: boolean }) {
   );
 }
 
-export function PortalChat({ token, clientRequestId, clientId, suggestContext, authorName, height = 360, bare = false }: PortalChatProps) {
+export function PortalChat({ token, clientRequestId, clientId, dono, suggestContext, authorName, height = 360, bare = false }: PortalChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -74,6 +83,17 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
   // Conversa sem dono (acesso mal emitido): a caixa de texto some e a tela diz
   // o motivo, em vez de aceitar o texto e falhar no envio para sempre.
   const [semDono, setSemDono] = useState(false);
+  // A credencial deste navegador aponta para OUTRO cliente que não o da tela.
+  // A conversa fica vazia (o servidor não devolve mensagem nenhuma) e a caixa
+  // de texto sai — enviar aqui gravaria na conversa de outra pessoa.
+  const [divergente, setDivergente] = useState(false);
+  // O servidor cortou parte do histórico antigo por não conseguir atribuí-lo.
+  // É um SIM/NÃO de propósito: o número diria ao cliente o volume de mensagens
+  // de outra marca. Existe para ele NÃO concluir que a agência apagou a
+  // conversa dele.
+  const [historicoParcial, setHistoricoParcial] = useState(false);
+  /** A explicação vem do SERVIDOR — uma fonte só. Ver a tarja abaixo. */
+  const [detalhe, setDetalhe] = useState<string | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
   const [linkDraft, setLinkDraft] = useState("");
   const [suggesting, setSuggesting] = useState(false);
@@ -132,13 +152,18 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
 
   // A ordem importa: clientId (o caminho que serve cliente direto) vem antes de
   // clientRequestId, que fica como entrada legada das telas de projeto.
-  const query = token
+  // `dono` acompanha SEMPRE o lado do cliente — inclusive (e principalmente) no
+  // modo cookie, onde não há token nenhum na requisição e o servidor não teria
+  // com o que comparar.
+  const selo = !clientId && !clientRequestId && dono ? `dono=${encodeURIComponent(dono)}` : "";
+  const credencial = token
     ? `token=${encodeURIComponent(token)}`
     : clientId
       ? `clientId=${encodeURIComponent(clientId)}`
       : clientRequestId
         ? `clientRequestId=${encodeURIComponent(clientRequestId)}`
         : ""; // A4: modo cookie — o httpOnly do portal autentica sozinho
+  const query = [credencial, selo].filter(Boolean).join("&");
 
   const load = useCallback(async () => {
     try {
@@ -147,9 +172,21 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
         if (loading) setError("Não foi possível carregar a conversa.");
         return;
       }
-      const data = (await res.json()) as { messages?: ChatMessage[]; podeEnviar?: boolean };
+      const data = (await res.json()) as {
+        messages?: ChatMessage[]; podeEnviar?: boolean; motivo?: string; detalhe?: string;
+      };
       setMessages(data.messages ?? []);
-      setSemDono(data.podeEnviar === false);
+      setDetalhe(typeof data.detalhe === "string" ? data.detalhe : null);
+      // Sem número: a contagem do que foi cortado é do lado da AGÊNCIA (censo).
+      // Devolvê-la ao cliente entregava o volume do acervo de outro.
+      setHistoricoParcial(data.motivo === "historico-parcial");
+      // "sem dono" e "dono divergente" são fatos DIFERENTES e a tela precisa
+      // dizer qual é: o primeiro é acesso mal emitido (a agência resolve), o
+      // segundo é a credencial de outro cliente neste navegador (recarregar
+      // pelo link resolve). Tratar os dois com o mesmo texto mandaria o cliente
+      // pedir um link novo que ele já tem.
+      setDivergente(data.motivo === "dono-divergente");
+      setSemDono(data.podeEnviar === false && data.motivo !== "dono-divergente");
       setError(null);
     } catch {
       if (loading) setError("Não foi possível carregar a conversa.");
@@ -189,7 +226,7 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
       const res = await fetch("/api/portal/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, clientRequestId, clientId, body: text, authorName }),
+        body: JSON.stringify({ token, clientRequestId, clientId, dono: dono ?? undefined, body: text, authorName }),
       });
       if (!res.ok) {
         setMessages((m) => m.filter((x) => x.id !== optimistic.id));
@@ -203,7 +240,10 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
             ? detalhe.error
             : "Não foi possível enviar. Tente novamente.",
         );
-        if (res.status === 409) setSemDono(true);
+        if (res.status === 409) {
+          if (detalhe && (detalhe as { motivo?: string }).motivo === "dono-divergente") setDivergente(true);
+          else setSemDono(true);
+        }
       } else {
         await load();
       }
@@ -225,12 +265,74 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
 
   return (
     <div className={`flex flex-col bg-white overflow-hidden ${bare ? "flex-1 min-h-0" : "rounded-[12px] border border-[var(--border)]"}`}>
+      {/* ⚠️ 375px, dia 1: com corte E nenhuma mensagem, esta tarja e o corpo
+          vazio ("Sua conversa está guardada") diziam o MESMO fato em duas
+          redações, um bloco sobre o outro. O corpo já explica; a tarja só
+          aparece quando há mensagem para ela contextualizar. */}
+      {historicoParcial && !divergente && messages.length > 0 && (
+        <div className="px-4 pt-3" role="status">
+          <div className="rounded-[10px] px-3 py-2" style={{ background: "#FFFBEB" }}>
+            <p className="text-[11.5px] leading-snug" style={{ color: "#9B7B2D" }}>
+              {/* ⚠️ UM TEXTO SÓ, E ELE VEM DO SERVIDOR. A tela tinha o dela
+                  ("é só pedir à equipe Dioli") e o servidor mandava outro que
+                  nunca era exibido — dois textos, e o cliente lia o pior:
+                  aquele arma engenharia social contra o nosso próprio suporte
+                  ("me manda o histórico da conversa"). O texto morto saiu. */}
+              <b>Parte do histórico antigo não está aparecendo aqui.</b>{" "}
+              {detalhe ?? "Não conseguimos confirmar a origem dessas mensagens, então preferimos não mostrar. Nada foi apagado."}
+            </p>
+          </div>
+        </div>
+      )}
       <div
         className="px-4 py-3 overflow-y-auto space-y-3"
         style={bare ? { flex: 1, minHeight: 0 } : { height }}
       >
         {loading ? (
           <p className="text-[12px] text-[var(--text-muted)] text-center py-8">Carregando conversa…</p>
+        ) : divergente ? (
+          // ⚠️ NUNCA "Comece a conversa" aqui. O convite a escrever em cima de
+          // uma conversa que o servidor recusou abrir dizia ao cliente que ele
+          // não tem histórico — quando o que houve foi um barramento nosso.
+          <div className="text-center py-10">
+            <p className="text-[13px] text-[var(--text-secondary)] font-medium">
+              Não consegui abrir esta conversa com segurança
+            </p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-1">
+              Sua conversa está guardada. Abra o portal pelo link que você recebeu da Dioli.
+            </p>
+          </div>
+        ) : messages.length === 0 && historicoParcial ? (
+          // ⚠️ NUNCA "Comece a conversa" quando houve corte: o cliente TEM
+          // conversa, ela é que não pôde ser exibida. Dizer o contrário é a
+          // agência afirmando que ele nunca falou com ela.
+          <div className="text-center py-10">
+            <p className="text-[13px] text-[var(--text-secondary)] font-medium">
+              Sua conversa está guardada
+            </p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-1">
+              O histórico antigo não pôde ser exibido agora. Pode escrever aqui normalmente —
+              a equipe Dioli continua vendo tudo.
+            </p>
+          </div>
+        ) : messages.length === 0 && error ? (
+          // Erro de carga NÃO é conversa vazia. Antes o corpo dizia "Comece a
+          // conversa" e o erro saía numa linha de 10px no rodapé.
+          <div className="text-center py-10">
+            <p className="text-[13px] text-[var(--danger)] font-medium">
+              Não consegui carregar sua conversa
+            </p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-1">
+              Isso é um problema nosso, não seu. Tente de novo em instantes — nada foi perdido.
+            </p>
+            <button
+              onClick={() => { setError(null); setLoading(true); void load(); }}
+              className="mt-3 h-8 px-3 rounded-full text-[12px] font-semibold"
+              style={{ background: "var(--accent)", color: "var(--text-primary)" }}
+            >
+              Tentar de novo
+            </button>
+          </div>
         ) : messages.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-[13px] text-[var(--text-secondary)] font-medium">Comece a conversa</p>
@@ -266,7 +368,15 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
         <p className="text-[10px] text-[var(--danger)] px-4 pb-1">{error}</p>
       )}
 
-      {semDono ? (
+      {divergente ? (
+        <div className="border-t border-[var(--border)] px-4 py-4 bg-[#FFFBEB]">
+          <p className="text-[12.5px] font-semibold text-[#9B7B2D]">Não consegui abrir esta conversa com segurança</p>
+          <p className="text-[11.5px] text-[#B08D3E] mt-0.5 leading-snug">
+            Este navegador está com o acesso de outra marca guardado. Abra o portal pelo link que
+            você recebeu da Dioli e a conversa volta. Nada foi enviado.
+          </p>
+        </div>
+      ) : semDono ? (
         <div className="border-t border-[var(--border)] px-4 py-4 bg-[#FFFBEB]">
           <p className="text-[12.5px] font-semibold text-[#9B7B2D]">Esta conversa ainda não tem dono</p>
           <p className="text-[11.5px] text-[#B08D3E] mt-0.5 leading-snug">
@@ -382,7 +492,11 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
                 ? micModo === "envio"
                   ? "Gravando… fale e toque no microfone para transcrever"
                   : "Ouvindo… fale agora"
-                : "Escreva ou grave um áudio…"
+                // ⚠️ 375px: "Escreva ou grave um áudio…" quebrava em duas
+                // linhas dentro de um `rows={1}` e saía CORTADO — conferido em
+                // imagem (`docs/entregas/portal-15-08/375-*.png`), não em
+                // leitura de fonte. O texto curto cabe.
+                : "Mensagem ou áudio…"
           }
           rows={1}
           className="flex-1 px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-[10px] outline-none focus:border-[var(--text-primary)] focus:bg-white transition-all resize-none leading-relaxed"

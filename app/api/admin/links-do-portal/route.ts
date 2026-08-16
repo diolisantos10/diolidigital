@@ -67,8 +67,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  // ── A CARTEIRA INTEIRA (16/08/2026) ───────────────────────────────────────
+  // `?carteira=1` percorre TODOS os clientes por ID. Sem isto, reemitir para a
+  // carteira exigia digitar cliente por cliente — e foi por não existir que a
+  // frase "é um comando só", que eu mandei ao Diretor e ele levou ao CEO, era
+  // falsa. Continua exigindo `emitir=1` para gravar qualquer coisa.
+  const carteira = ["1", "true"].includes((url.searchParams.get("carteira") ?? "").toLowerCase());
+
   const relatorio = await levantarLinksDoPortal({
     clientes,
+    todaACarteira: carteira,
     host: url.searchParams.get("host"),
     emitir,
   }).catch((e) => {

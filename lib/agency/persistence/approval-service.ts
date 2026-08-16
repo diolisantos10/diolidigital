@@ -73,7 +73,7 @@ async function cardGenericoJaPendente(input: CreateApprovalRequestInput) {
   const dono = input.clientRequestId
     ? { clientRequestId: input.clientRequestId }
     : { clientId: input.clientId! };
-  return prisma.approvalRequest.findFirst({
+  const reusavel = await prisma.approvalRequest.findFirst({
     where: {
       ...dono,
       department: input.department,
@@ -83,6 +83,19 @@ async function cardGenericoJaPendente(input: CreateApprovalRequestInput) {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  // ── 🔴 O RE-CARIMBO SAIU DAQUI (rodada 9) — ele FABRICAVA PROVA FALSA ─────
+  //
+  // Na rodada 7 eu fiz este reuso carimbar o card órfão com o dono atual da
+  // solicitação. Medido: card órfão **de A**, solicitação re-apontada, e o
+  // reuso gravava `clientId = B` — **com autoridade, e o rastro forense
+  // sumia**. A cerca passava a ver o card como legitimamente do B.
+  //
+  // É o oposto exato da trava que eu mesmo dei a `carimbarHistoricoDoProspect`
+  // no MESMO PR ("carimbar aqui gravaria prova FALSA"). Vale a mesma medicina:
+  // carimbo retroativo só acontece **offline, sob curadoria**, em
+  // `lib/agency/portal/backfill-de-carimbo.ts` — nunca no caminho quente.
+  return reusavel;
 }
 
 export async function createApprovalRequest(input: CreateApprovalRequestInput) {
@@ -93,10 +106,30 @@ export async function createApprovalRequest(input: CreateApprovalRequestInput) {
   }
   const jaExiste = await cardGenericoJaPendente(input);
   if (jaExiste) return jaExiste;
+
+  // ── O CARIMBO DO DONO NASCE AQUI (15/08/2026, rodada 5) ───────────────────
+  //
+  // `clientId` era `input.clientId ?? null` — e no fluxo Brain, que passa só
+  // `clientRequestId`, isso é SEMPRE nulo. A posse então caía em
+  // `approval.clientRequest.clientId`, o ponteiro MUTÁVEL lido na hora da
+  // decisão: com a solicitação re-apontada, o dono NOVO passava a poder
+  // aprovar o card do dono ANTIGO. E aprovação, nesta casa, PUBLICA.
+  //
+  // Mesma medicina das mensagens (`gravarMensagemDoPortal`): o dono é
+  // derivado do banco **no instante da escrita** e congelado na linha. A
+  // leitura passa a exigir carimbo, e não mais o ponteiro.
+  let clientId = input.clientId ?? null;
+  if (!clientId && input.clientRequestId) {
+    const solicitacao = await prisma.clientRequestDb
+      .findUnique({ where: { id: input.clientRequestId }, select: { clientId: true } })
+      .catch(() => null);
+    clientId = solicitacao?.clientId ?? null;
+  }
+
   return prisma.approvalRequest.create({
     data: {
       clientRequestId: input.clientRequestId ?? null,
-      clientId:        input.clientId ?? null,
+      clientId,
       department:      input.department,
       artifactId:      input.artifactId,
       requestedBy:     input.requestedBy  ?? "internal",

@@ -5,6 +5,7 @@
 // instrução interna ou observação sobre o cliente, chegava nele.
 // Visibilidade: post "interno" nunca sai por rota de portal — fail-closed.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -12,14 +13,16 @@ const db = vi.hoisted(() => ({
   socialPost: { findMany: vi.fn() },
   // O ramo de portal resolve o WORKSPACE do token e leva ele no filtro
   // (auditoria 7, B2): `clientRequestId` sozinho é id global.
-  clientRequestDb: { findFirst: vi.fn(), findUnique: vi.fn() },
+  clientRequestDb: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
   client: { findUnique: vi.fn() },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, escopoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { GET } from "@/app/api/social-posts/route";
@@ -40,7 +43,17 @@ function req(url: string): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
+  // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+  // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+  // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+  // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+  // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+  // carregam o dono, que é a forma que os links emitidos passam a ter.
+  // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
+  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
   db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr1", workspaceId: "ws1" });
   db.client.findUnique.mockResolvedValue({ workspaceId: "ws1" });
   db.socialPost.findMany.mockResolvedValue([POST_NO_BANCO]);

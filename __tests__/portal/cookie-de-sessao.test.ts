@@ -6,6 +6,7 @@
 //   2. /api/portal/session só grava cookie de token VÁLIDO;
 //   3. as rotas de dados aceitam o cookie ALÉM do parâmetro (compatibilidade).
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -22,9 +23,11 @@ const validatePortalAccess = vi.hoisted(() => vi.fn());
 const conferirTokenDoPortal = vi.hoisted(() => vi.fn());
 const updateApprovalStatus = vi.hoisted(() => vi.fn());
 const addApprovalComment = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, conferirTokenDoPortal }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, conferirTokenDoPortal, escopoDoToken }));
 vi.mock("@/lib/agency/persistence/approval-service", () => ({ updateApprovalStatus, addApprovalComment }));
 vi.mock("@/lib/agency/execution/create-project-from-request", () => ({ createProjectFromRequest: vi.fn() }));
 vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution: vi.fn() }));
@@ -39,7 +42,15 @@ import { PORTAL_COOKIE } from "@/lib/agency/persistence/portal-cookie";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
+  // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+  // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+  // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+  // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+  // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+  // carregam o dono, que é a forma que os links emitidos passam a ter.
+  // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
+  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
   conferirTokenDoPortal.mockResolvedValue(true);
 });
 
@@ -91,7 +102,8 @@ describe("/api/portal/session — token do caminho vira cookie", () => {
 describe("rota de dados aceita o cookie além do parâmetro", () => {
   it("aprovação decidida SÓ com o cookie — sem token no corpo", async () => {
     db.approvalRequest.findUnique.mockResolvedValue({
-      id: "ap1", clientRequestId: "cr1", department: "social-media",
+      // rodada 5: prova de posse é o carimbo, não o ponteiro.
+      id: "ap1", clientRequestId: "cr1", clientId: "c1", department: "social-media",
       clientVisible: true, status: "pending", questionOpenedAt: null,
       clientRequest: { id: "cr1", clientId: "c1" },
     });

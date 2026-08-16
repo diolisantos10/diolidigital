@@ -14,10 +14,17 @@
 //     (nunca lido até hoje) vira peça com URLs /api/media/<id>;
 //   • PATCH aceita mediaUrlsJson como array de strings, normalizado.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 
 const db = vi.hoisted(() => ({
+  // rodada 8: a cerca do filho apura evidência de troca de dono em quatro
+  // tabelas (ver `solicitacao-que-mudou-de-dono`). Sem estes mocks a apuração
+  // falha e FECHA — que é o certo, mas deixa a suíte sem exercitar o caminho
+  // limpo.
+  portalMessage: { findMany: vi.fn() },
+  portalAccess: { findMany: vi.fn() },
   socialPost: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   approvalRequest: { findMany: vi.fn() },
@@ -30,9 +37,11 @@ const db = vi.hoisted(() => ({
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const resolvePortalClient = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, resolvePortalClient }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, resolvePortalClient, escopoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { GET as listarPosts } from "@/app/api/social-posts/route";
@@ -59,7 +68,22 @@ const SESSAO = { session: { userId: "u1", email: "m@d", name: "M", role: "master
 
 beforeEach(() => {
   vi.clearAllMocks();
+  db.portalMessage?.findMany?.mockResolvedValue?.([]);
+  db.portalAccess?.findMany?.mockResolvedValue?.([]);
+  db.project?.findMany?.mockResolvedValue?.([]);
+  db.approvalRequest?.findMany?.mockResolvedValue?.([]);
+  // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
+  // Cliente DIRETO (o caso Foocci): nenhuma solicitação de briefing.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([]);
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   requireSession.mockResolvedValue(SESSAO);
+  // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+  // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+  // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+  // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+  // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+  // carregam o dono, que é a forma que os links emitidos passam a ter.
+  // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: null, clientId: "cli-foocci" } });
   resolvePortalClient.mockResolvedValue({ clientId: "cli-foocci", workspaceId: "ws1" });
   db.socialPost.findMany.mockResolvedValue([postCarrossel()]);
@@ -85,7 +109,9 @@ describe("GET /api/social-posts — as telas do carrossel saem no DTO", () => {
   });
 
   it("ramo de token (portal): telas presentes, script continua AUSENTE", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+    // Escopo com solicitação: ela sai do CLIENTE, não do registro do token.
+    db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr1" }]);
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
     const res = await listarPosts(new NextRequest("http://localhost/api/social-posts?token=tok-1"));
     const json = await res.json();
     expect(json.posts[0].telas).toEqual(TELAS);
@@ -283,7 +309,11 @@ describe("portal-data — pecas estruturadas a partir de sourcePostIdsJson", () 
   });
 
   it("no ramo COM solicitação (buildPortalData) as pecas saem igual — as duas portas falam a mesma língua", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+    // Escopo com solicitação: ela sai do CLIENTE, não do registro do token.
+    db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr1" }]);
+    // Token e solicitação apontando para o MESMO cliente: divergir aqui é
+    // `ponteiro_andou` → 403, que é a trava do dono congelado, não um defeito.
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "cli-foocci" } });
     db.clientRequestDb.findUnique.mockResolvedValue({
       id: "cr1", clientId: "cli-foocci", businessName: "Foocci", status: "in_production",
       services: "[]", objectives: "[]", briefingJson: "{}", segment: "", createdAt: new Date(),

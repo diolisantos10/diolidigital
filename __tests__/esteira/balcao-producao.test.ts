@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const db = {
-  clientRequestDb: { findUnique: vi.fn(), update: vi.fn() },
+  clientRequestDb: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   project: { findFirst: vi.fn(), create: vi.fn() },
   client: { findFirst: vi.fn(), create: vi.fn() },
   agencyWorkspace: { findMany: vi.fn() },
@@ -39,6 +39,7 @@ beforeEach(() => {
   db.client.create.mockResolvedValue({ id: "cli-1" });
   db.project.create.mockResolvedValue({ id: "prj-1" });
   db.clientRequestDb.update.mockResolvedValue({});
+  db.clientRequestDb.updateMany.mockResolvedValue({ count: 1 });
   db.portalAccess.findFirst.mockResolvedValue(null);
   db.portalAccess.create.mockResolvedValue({ id: "pa-1" });
 });
@@ -88,12 +89,41 @@ describe("pagou, produz", () => {
     expect(db.project.create).not.toHaveBeenCalled();
   });
 
-  it("cliente que já existe é REUSADO — a carteira não duplica pessoa", async () => {
+  // ⚠️ 15/08/2026 — ESTE TESTE FOI INVERTIDO, E A INVERSÃO É O CONSERTO.
+  //
+  // Ele se chamava "cliente que já existe é REUSADO — a carteira não duplica
+  // pessoa" e travava exatamente o comportamento que virou P0: o balcão achava
+  // `Client` por `{ workspaceId, email }` com o e-mail vindo do FORMULÁRIO DE
+  // COMPRA, sem verificação nenhuma. Com um cartão e R$ 79 eu digitava o
+  // e-mail de um cliente existente e a minha compra entrava na ficha dele.
+  //
+  // É o mesmo padrão que esta casa já registrou duas vezes: **o defeito virando
+  // invariante**. "Não duplicar pessoa" é desejo de cadastro; fundir ficha por
+  // e-mail não verificado é vazamento. Ficha duplicada um humano funde depois
+  // (precedente da Camila, 08/08); ficha fundida indevidamente ninguém desfaz.
+  it("⛔ e-mail digitado NÃO funde ficha — a carteira prefere duplicar a vazar", async () => {
     db.clientRequestDb.findUnique.mockResolvedValue(pedido());
+    // Existe um cliente com este e-mail. Não importa: e-mail não é identidade.
     db.client.findFirst.mockResolvedValue({ id: "cli-antigo" });
+
     const r = await produzirPedidoDeBalcao("req-1");
+
     expect(r.ok).toBe(true);
+    expect(db.client.create).toHaveBeenCalled();
+    expect(db.project.create.mock.calls[0]![0].data.clientId).toBe("cli-1");
+    expect(db.project.create.mock.calls[0]![0].data.clientId).not.toBe("cli-antigo");
+  });
+
+  it("⛔ solicitação que já tem dono nunca é re-apontada — a guarda está no WHERE", async () => {
+    db.clientRequestDb.findUnique.mockResolvedValue(pedido({ clientId: "dono-legitimo" }));
+
+    await produzirPedidoDeBalcao("req-1");
+
+    // Decidir no código perde a corrida entre duas compras simultâneas; quem
+    // garante é o banco.
+    const where = db.clientRequestDb.updateMany.mock.calls[0]![0].where;
+    expect(where.clientId).toBeNull();
     expect(db.client.create).not.toHaveBeenCalled();
-    expect(db.project.create.mock.calls[0]![0].data.clientId).toBe("cli-antigo");
+    expect(db.project.create.mock.calls[0]![0].data.clientId).toBe("dono-legitimo");
   });
 });

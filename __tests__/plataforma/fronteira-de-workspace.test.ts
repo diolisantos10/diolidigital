@@ -18,12 +18,13 @@
 // E o ramo de PORTAL do GET: `clientRequestId` sozinho é um id global. Filtrar
 // só por ele é apostar que nenhum id de outro inquilino jamais encosta ali.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
   socialPost: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn(), findMany: vi.fn() },
-  clientRequestDb: { findFirst: vi.fn(), findUnique: vi.fn() },
+  clientRequestDb: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
   client: { findFirst: vi.fn(), findUnique: vi.fn() },
   agencyWorkspace: { findFirst: vi.fn() },
 }));
@@ -31,14 +32,15 @@ const requireSession = vi.hoisted(() => vi.fn());
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const getSession = vi.hoisted(() => vi.fn());
 const guardarArquivo = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 vi.mock("@/lib/auth/session", () => ({ getSession }));
 vi.mock("@/lib/agency/persistence/portal-access-service", () => ({
   validatePortalAccess,
-  resolvePortalClient: vi.fn(),
-}));
+  resolvePortalClient: vi.fn(), escopoDoToken }));
 vi.mock("@/lib/agency/media/armazenamento", () => ({
   guardarArquivo,
   MAX_BYTES_POR_ARQUIVO: 25 * 1024 * 1024,
@@ -83,6 +85,9 @@ function bancoDeDoisInquilinos() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr-A" }]);
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   requireSession.mockResolvedValue({ session: { workspaceId: "ws-A", email: "staff@a.com" }, error: null });
   getSession.mockResolvedValue({ workspaceId: "ws-A", email: "staff@a.com" });
   db.socialPost.findFirst.mockResolvedValue(POST_EXISTENTE);
@@ -170,7 +175,16 @@ describe("POST /api/social-posts — criar peça para cliente do vizinho é recu
 
 describe("GET /api/social-posts com token — o workspace entra no filtro", () => {
   it("a consulta do portal filtra por workspaceId, não só por clientRequestId", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr-A", clientId: null } });
+    db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr-A" }]);
+    db.client.findUnique?.mockResolvedValue?.({ id: "cli-A", workspaceId: "ws-A" });
+    // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+    // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+    // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+    // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+    // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+    // carregam o dono, que é a forma que os links emitidos passam a ter.
+    // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr-A", clientId: "cli-A" } });
     db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr-A", workspaceId: "ws-A" });
     const res = await listarPosts(new NextRequest("http://localhost/api/social-posts?token=tok"));
     expect(res.status).toBe(200);
@@ -178,11 +192,23 @@ describe("GET /api/social-posts com token — o workspace entra no filtro", () =
     expect(where).toMatchObject({ workspaceId: "ws-A", clientRequestId: "cr-A", visibility: "compartilhado" });
   });
 
-  it("workspace não resolvido: lista vazia, nunca consulta larga (fail-closed)", async () => {
+  // ⚠️ 15/08/2026 (rodada 3) — A GARANTIA CONTINUA; O CÓDIGO FICOU MAIS DURO.
+  //
+  // Antes: token apontando para uma solicitação que não existe resolvia um
+  // escopo VAZIO e a rota devolvia `{ posts: [] }`. Agora o `escopoDoToken`
+  // classifica isso como token que não aponta para dono nenhum e a rota
+  // devolve **403**. Os dois são fail-closed; 403 é o mais honesto — não é
+  // "você não tem peças", é "este acesso não vale".
+  //
+  // O que este teste protege é o que sempre protegeu, e segue intacto:
+  // **nenhuma consulta larga**. É essa linha que impede a lista de um cliente
+  // de aparecer para outro.
+  it("solicitação inexistente: acesso negado e NUNCA consulta larga (fail-closed)", async () => {
     validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr-orfa", clientId: null } });
     db.clientRequestDb.findUnique.mockResolvedValue(null);
     const res = await listarPosts(new NextRequest("http://localhost/api/social-posts?token=tok"));
-    expect((await res.json()).posts).toEqual([]);
+    expect(res.status).toBe(403);
+    expect((await res.json()).posts).toBeUndefined();
     expect(db.socialPost.findMany).not.toHaveBeenCalled();
   });
 });

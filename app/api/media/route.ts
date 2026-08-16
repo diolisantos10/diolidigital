@@ -30,7 +30,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
-import { validatePortalAccess, resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken, resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { guardarArquivo, MAX_BYTES_POR_ARQUIVO } from "@/lib/agency/media/armazenamento";
 import { rateLimited } from "@/lib/security/rate-limit";
@@ -70,17 +70,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let uploadedBy = "cliente";
 
   if (token) {
-    const v = await validatePortalAccess(token);
-    if (!v.valid || !v.record) return NextResponse.json({ error: "Acesso inválido ou expirado" }, { status: 401 });
-    const acesso = v.record;
-    // O DONO VEM DO TOKEN. Se viesse do corpo, um cliente poderia anexar um
-    // arquivo à pasta de outro só mudando um campo.
-    clientRequestId = acesso.clientRequestId ?? null;
-    clientId = acesso.clientId ?? null;
-    const req = clientRequestId
-      ? await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId }, select: { workspaceId: true } })
-      : null;
-    workspaceId = req?.workspaceId ?? null;
+    // 🔴 RODADA 3: o dono vinha do REGISTRO do token (`acesso.clientRequestId`),
+    // que é o ponteiro. Um arquivo enviado depois de a solicitação trocar de
+    // dono seria gravado na pasta do cliente errado. Agora vem do ESCOPO
+    // CONGELADO — o cliente que o token aponta desde o primeiro uso.
+    const esc = await escopoDoToken(token);
+    if (!esc.ok) {
+      // Token PODRE é 401; token bom que não aponta para dono nenhum é 409 —
+      // são fatos diferentes e a tela do cliente trata cada um de um jeito.
+      // `ponteiro_andou` entra como 401: para quem está enviando, aquele link
+      // deixou de valer.
+      return esc.motivo === "sem_dono"
+        ? NextResponse.json({ error: "Este acesso não está ligado a nenhum cliente." }, { status: 409 })
+        : NextResponse.json({ error: "Acesso inválido ou expirado", motivo: esc.motivo }, { status: 401 });
+    }
+    if (esc.tipo === "cliente") {
+      clientId = esc.clientId;
+      clientRequestId = esc.clientRequestIds[0] ?? null;
+      workspaceId = esc.workspaceId;
+    } else {
+      // Prospect: o arquivo nasce preso à solicitação, sem dono — que é
+      // exatamente o que ele é.
+      clientId = null;
+      clientRequestId = esc.clientRequestId;
+      workspaceId = esc.workspaceId;
+    }
     if (!workspaceId || !clientId) {
       // O DONO COMPLETO vem do token, sempre. Antes, a falta do workspace caía
       // em `agencyWorkspace.findFirst()` — o primeiro workspace do banco, que

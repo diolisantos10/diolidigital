@@ -22,7 +22,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { gravarCookieDoPortal } from "@/lib/agency/persistence/portal-cookie";
-import { conferirTokenDoPortal } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 
 /** Atrás do proxy do Railway, `request.url` carrega o host INTERNO
  *  (0.0.0.0:8080) — um redirect montado com ele manda o cliente para um
@@ -40,12 +40,41 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(urlPublica(request, "/portal/invalid"));
   }
 
-  const response = NextResponse.redirect(urlPublica(request, "/portal/access/me"));
-  // Sem token válido, NADA é gravado — e o cookie que já existir também não é
-  // apagado: quem já tem acesso bom e clica num link velho não pode ser expulso
-  // por isso. O redirecionamento continua igual; a página mostra o erro.
-  if (await conferirTokenDoPortal(token)) {
+  // ── 🔴 RODADA 5: CONFERIR VALIDADE NÃO É CONFERIR DONO ────────────────────
+  //
+  // Isto usava `conferirTokenDoPortal`, que confere existência, revogação e
+  // prazo — e **nunca o dono**. Medido em navegador real: token legado (sem
+  // dono escrito) recebia `307 → /portal/access/me` **com
+  // `Set-Cookie: dioli_portal=...; Max-Age=15552000`** — o cookie podre de 180
+  // dias que o cabeçalho DESTE arquivo diz que não pode acontecer. E a
+  // `/portal/invalid`, que tem contato clicável, ficava inalcançável.
+  //
+  // Agora quem decide é o resolvedor único: sem dono, não entra e não grava.
+  if ((await escopoDoToken(token)).ok) {
+    const response = NextResponse.redirect(urlPublica(request, "/portal/access/me"));
     gravarCookieDoPortal(response, request, token);
+    return response;
   }
-  return response;
+
+  // ── 🔴 F5 (15/08/2026): TOKEN RUIM NÃO PODE CAIR NO PORTAL DE OUTRO ────────
+  //
+  // Aqui estava escrito que o cookie antigo NÃO era apagado, "para quem já tem
+  // acesso bom e clica num link velho não ser expulso". A intenção era boa e a
+  // consequência é o incidente:
+  //
+  //   o cliente B clica no link DELE, que expirou. O token não valida, nada é
+  //   gravado — e a rota redirecionava assim mesmo para `/portal/access/me`,
+  //   onde o cookie manda. Se aquele navegador tinha o cookie do cliente A
+  //   (o CEO abre o portal de todos), B cai **dentro do portal de A**, marca,
+  //   projetos, conversa e tudo. O selo da tela não dispara: vista e chat leem
+  //   o MESMO cookie e concordam entre si.
+  //
+  // É o caminho mais banal que existe — link expirado — e não tinha teste.
+  //
+  // A regra nova: **token ruim nunca leva a uma sessão que não é dele.** Vai
+  // para a tela de acesso inválido, que explica e não expõe portal nenhum. O
+  // cookie da sessão legítima daquele navegador é PRESERVADO (apagar seria a
+  // negação de serviço que o `seguranca` mostrou no `proxy.ts`): quem tinha
+  // acesso bom continua tendo — só não entra por esta porta, com este token.
+  return NextResponse.redirect(urlPublica(request, "/portal/invalid"));
 }

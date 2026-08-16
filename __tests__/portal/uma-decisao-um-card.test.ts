@@ -21,6 +21,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
+  // rodada 5: a aprovação passou a nascer CARIMBADA com o dono (derivado da
+  // solicitação no instante da escrita) — a posse deixou de aceitar o ponteiro.
+  clientRequestDb: { findUnique: vi.fn() },
   approvalRequest: {
     create: vi.fn(),
     findFirst: vi.fn(),
@@ -38,6 +41,7 @@ import {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  db.clientRequestDb.findUnique.mockResolvedValue({ clientId: "c1" });
   db.approvalRequest.create.mockResolvedValue({ id: "novo" });
   db.approvalRequest.findFirst.mockResolvedValue(null);
   db.approvalRequest.findMany.mockResolvedValue([]);
@@ -84,6 +88,10 @@ describe("createApprovalRequest — a duplicata para de nascer", () => {
       requestedBy: "Especialista de Copy dos posts (Social Media)",
     });
 
+    // ⚠️ 16/08/2026 (rodada 9) — REVERTIDO, e a reversão é o conserto.
+    // O re-carimbo aqui FABRICAVA PROVA FALSA: card órfão de A, solicitação
+    // re-apontada, e o reuso gravava `clientId = B` com autoridade — o rastro
+    // forense sumia. Carimbo retroativo só no backfill, offline e curado.
     expect(r).toEqual({ id: "ja-existe", department: "social-media" });
     expect(db.approvalRequest.create).not.toHaveBeenCalled();
   });

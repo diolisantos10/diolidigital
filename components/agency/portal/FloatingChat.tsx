@@ -11,6 +11,10 @@ interface ChatDrawerProps {
   onClose: () => void;
   token?: string;
   clientRequestId?: string;
+  /** A identidade OPACA do cliente que a TELA está mostrando, como o servidor
+   *  a derivou. Vai junto da conversa para o servidor conferir que os dois
+   *  lados falam do mesmo cliente. Ver `lib/agency/portal/dono-da-tela.ts`. */
+  dono?: string | null;
   authorName?: string;
   teamLabel?: string;
   /** Linha sob o título — o portal usa para dizer o PAPEL do PM ("a ponte com
@@ -19,7 +23,7 @@ interface ChatDrawerProps {
   subtitle?: string;
 }
 
-export function ChatDrawer({ open, onClose, token, clientRequestId, authorName, teamLabel = "Equipe Dioli", subtitle }: ChatDrawerProps) {
+export function ChatDrawer({ open, onClose, token, clientRequestId, dono, authorName, teamLabel = "Equipe Dioli", subtitle }: ChatDrawerProps) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 sm:inset-auto sm:bottom-5 sm:right-5 z-50 flex flex-col bg-white sm:w-[400px] sm:h-[580px] sm:max-h-[85vh] sm:rounded-[18px] overflow-hidden shadow-[0_16px_50px_rgba(7,10,31,0.4)] border border-black/5">
@@ -48,7 +52,7 @@ export function ChatDrawer({ open, onClose, token, clientRequestId, authorName, 
         </button>
       </div>
 
-      <PortalChat token={token} clientRequestId={clientRequestId} authorName={authorName} bare />
+      <PortalChat token={token} clientRequestId={clientRequestId} dono={dono} authorName={authorName} bare />
     </div>
   );
 }

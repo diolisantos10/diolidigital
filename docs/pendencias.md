@@ -15,198 +15,274 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
-## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
+## ⚠️ DECISÃO DO CEO — o dia em que o portal vira a chave
 
-**Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no
-Google, 0 linhas em `DriveMaterial`**. O CEO escolheu o material no seletor, o
-Google concedeu o acesso, e a tela respondeu *"Sem material — a Dioli não alcança
-NENHUM arquivo seu"*. Sem erro, sem aviso, sem registro.
+**O que está em jogo:** o conserto do vazamento (portal de um cliente mostrando
+a conversa de outro) muda a regra de quem pode ver o quê. A regra nova é: **só
+aparece o que está comprovadamente ligado ao cliente**. O que existe hoje no
+sistema, de antes do conserto, **não tem essa ligação escrita** — e por isso
+não aparece.
 
-**A causa, capturada AO VIVO em produção antes do deploy do conserto** (POST na
-rota do portal com um arquivo fora do alcance):
+> ### 🔁 ESTE TEXTO FOI REESCRITO EM 16/08 — a recomendação MUDOU
+>
+> As versões anteriores ofereciam duas opções: **subir e conviver com a tela
+> vazia**, ou **religar tudo à mão antes de subir**. As duas estavam erradas
+> pelo mesmo motivo, e foi preciso o `qualidade` e o `seguranca` dizerem a
+> mesma coisa, separados, para eu enxergar:
+>
+> - subir do jeito que estava **esvaziava a tela do dono legítimo** — a
+>   medição em navegador deu **"0 DECISÕES PENDENTES"** com uma proposta de
+>   **R$ 12.000** parada no banco. Não é histórico escondido: é a esteira
+>   comercial parada, em silêncio, afirmando algo falso;
+> - religar tudo à mão era trabalho humano de volume desconhecido.
+>
+> **A saída é a terceira, e ela agora existe: um religamento AUTOMÁTICO e com
+> curadoria — o "backfill".** Ele roda antes do deploy, offline, e só religa a
+> linha quando consegue **provar** de quem ela é. O que ele não prova, ele
+> **deixa de fora e escreve o motivo** — nunca chuta.
 
-```
-HTTP 200  {"gravados":[],"recusados":[{...}],
-           "proximoPasso":"Você escolheu apenas pastas. ..."}
-```
+### O que o backfill faz, em português
 
-Zero gravados, **HTTP 200**, e no campo que a tela pinta de **verde** — para um
-PNG. Somado a isso, no navegador o callback do seletor fazia `await fetch` e
-`await res.json()` **sem try/catch**: 502 do proxy (HTML), rede oscilando ou
-servidor reiniciando num deploy matavam a escolha sem uma palavra na tela.
+Cada peça antiga (mensagem, proposta, entregável, peça de conteúdo) é religada
+ao cliente **só se passar nos três testes**:
 
-**Depois, as duas metades provadas contra produção:**
+1. **nenhum irmão dela pertence a outro cliente** — se a mesma pasta tem peça
+   carimbada com outro nome, a pasta é ambígua e ninguém mexe nela;
+2. **nenhum link de portal daquela pasta aponta para outro cliente**;
+3. **o cliente existia antes da peça** — peça não pode ser mais velha que o
+   dono que se quer atribuir a ela.
 
-| | antes | depois |
+Roda em **modo conferência por padrão** (não grava nada) e devolve a lista:
+quantas religou, quantas ficou de fora e **por quê**. Rodar duas vezes não
+duplica nada.
+
+### O que acontece no primeiro dia, com o backfill rodado antes
+
+| O que o cliente faz | O que ele vê hoje | O que verá no dia 1 |
 |---|---|---|
-| gravação impedida | `HTTP 200` + frase verde | `HTTP 502` + "Sua escolha NÃO foi registrada — a falha foi nossa" |
-| escolha real | (perdida) | `HTTP 200`, 1 gravado, "agora diga o que é" |
-| Foocci no diagnóstico | 1 no Google / 0 na casa · `escolhaPerdida: true` | 1 / 1 · `escolhaPerdida: false` |
+| Abre "Fale com seu PM" | a conversa dele | **a conversa dele** — e nada do vizinho |
+| Tem uma proposta esperando aprovação | aprova e o projeto começa | **aprova normalmente** |
+| Clica no link antigo que recebeu por WhatsApp | entra no portal | **"Este link de acesso não está mais valendo"**, com botão de WhatsApp e de e-mail para pedir um novo |
+| Tem uma peça que o backfill **não conseguiu provar** de quem é | ela aparece | **não aparece**, e ela está na lista de exclusões com o motivo |
 
-**O que ficou aberto, e é ação de gente:** o arquivo da Foocci está dentro da
-casa **pendente de triagem** — `papel` NULO, `declarados: 0`, `importados: 0`.
-Ele **não entra em peça nenhuma** até alguém dizer o que ele é. O nome é
-`ChatGPT Image 7_08_2026, 11_02_42.png`: não dá para saber se é logo, foto ou
-rascunho, e **carimbar "logo" por conveniência poria a imagem errada numa peça
-entregue**. Quem declara é o cliente, no portal — o cartão já mostra o arquivo
-com o seletor de papel.
+**Nada é apagado, em nenhum caminho.** Tudo continua no banco.
 
-**A rede de segurança nova:** `POST /api/admin/reconciliar-drive` (CRON_SECRET).
-O diagnóstico já sabia DETECTAR (`escolhaPerdida`); agora a casa CONSERTA — todo
-arquivo que o Google concede e a casa não tem entra pendente de triagem.
+### A ordem do dia — quatro gestos, nesta sequência, no mesmo turno
+
+1. **Rodar o backfill em modo conferência** e ler a lista de exclusões — é aqui
+   que se descobre o tamanho real do problema, o número que faltava.
+   `GET /api/admin/backfill-de-carimbo` (não grava nada).
+2. **Rodar o backfill para valer:** o **mesmo endereço com POST**. É o verbo
+   que separa conferir de gravar.
+3. **Avisar o cliente** — uma mensagem curta: *"hoje o acesso ao seu portal
+   muda e você vai receber um link novo."* Cliente avisado acha normal;
+   cliente surpreendido acha que quebrou.
+4. **Subir e reemitir os links** — **um comando só, para a carteira inteira**:
+   `GET /api/admin/links-do-portal?carteira=1&emitir=1`. É idempotente e
+   devolve a lista do que reemitiu e do que falhou.
+
+- *Custo:* um turno. O trabalho humano fica restrito ao que o backfill não
+  conseguiu provar — e essa lista sai no passo 1, antes de qualquer risco.
+- *Risco:* **contido, e nomeado.** Cliente não avisado estranha o link novo.
+  Peça sem prova de dono some da tela até alguém religá-la à mão.
+- *Prazo:* imediato. O bloco inteiro no mesmo turno, não em dias diferentes.
+
+**O que preciso de você:** o "pode subir" **para o bloco inteiro**, e o acesso
+de produção para rodar o passo 1 — a credencial `CRON_SECRET` é sua, nenhum
+agente tem. Subir sem os quatro passos é a única forma de isto dar errado.
+
+### 🔴 EM ABERTO — o backfill é PRÉ-REQUISITO DE DEPLOY, com dono e prazo
+
+| O que | Dono | Prazo | Estado |
+|---|---|---|---|
+| Rodar `GET /api/admin/backfill-de-carimbo` em produção (ensaio) e ler as exclusões | **CEO** (é dele a credencial) | no dia do deploy, **antes** dele | ⛔ não rodado — nenhum agente alcança o banco |
+| Rodar o `POST` do mesmo endereço | CEO | logo após ler o ensaio | ⛔ depende do anterior |
+| Decidir à mão as solicitações que ficaram de fora | Diretor, com o `pm` | +7 dias do deploy | ⛔ a lista só existe depois do passo 1 |
+| Reemitir a carteira (`?carteira=1&emitir=1`) | CEO | mesmo turno do deploy | ⛔ |
+
+⚠️ **A ordem não é sugestão.** Subir sem o backfill é o cenário medido em
+navegador: `0 DECISÕES PENDENTES` com **R$ 12.000** de proposta parada.
 
 ---
 
-## 🟢 08/08/2026 — O BRIEFING PÚBLICO PASSA A PEDIR CONTATO, E A FILA DA PORTA DA FRENTE ENTRA NO RAIO-X
+## 🟢 15/08/2026 — O PORTAL DE UM CLIENTE MOSTRAVA A CONVERSA DE OUTRO (P0)
 
-**A consequência, primeiro:** três interessados entraram e a agência não tinha
-como responder a nenhum. Medido em produção, em `ClientRequestDb`:
+**A consequência, primeiro:** a conversa do PM — que carrega briefing, valores e
+combinação comercial — aparecia no portal de quem não é dono. O CEO viu em
+produção: portal de um cliente, painel "Fale com seu PM" com as mensagens de
+outro, **mesmos horários**.
 
-| Negócio | Parado desde | Serviços | Contato |
-|---|---|---|---|
-| **Sushi Cazza** | 18/06 — **51 dias** | planejamento de conteúdo, direção visual, estratégia | **nenhum** |
-| **Camila Pereira** (Beauty Clinic) | 10/07 — **29 dias** | social media, quer muito vídeo | **nenhum** |
-| **Beatriz Gimenes** (lash designer) | 11/07 — **28 dias** | social + tráfego + identidade | **nenhum** |
+**A decisão e o desenho das travas: `docs/decisoes.md`.** Aqui fica o que foi
+medido, o que ficou aberto e a resposta forense.
 
-Dois defeitos empilhados. **O segundo é o grave: mesmo que alguém varresse a
-fila, não havia para onde ligar.**
+### 🔴 A CAUSA REAL — e a leitura de origem estava INCOMPLETA, não errada
 
-### 🔴 A CAUSA RAIZ ESTAVA ESCRITA COMO CONTRATO, NUM TESTE
+Os 4 pontos apontados pelo Diretor Geral existem e estão corretos. O que faltava
+é o mecanismo: a leitura da conversa une `clientId` + todas as solicitações do
+cliente, e **`ClientRequestDb.clientId` não é imutável**. Solicitação que muda
+de dono **leva a conversa junto**.
 
-`__tests__/briefing/identity-capture.test.ts` dizia, no cabeçalho:
-*"E-mail and WhatsApp are NO LONGER collected in the conversation — they are
-captured via Google sign-in after the prospect confirms their request."*
+> ### 🔴 A CAUSA FOI REESCRITA NA RODADA 2 — a primeira versão acusou os errados
+>
+> `seguranca` e `qualidade`, **separados e por caminhos diferentes**, chegaram
+> ao mesmo culpado. Os três sites acusados na rodada 1 estão **inocentes**:
+> `/api/admin/reset` roda `tx.portalMessage.deleteMany({})` (`route.ts:177`) em
+> **todos** os modos — não sobra mensagem para vazar; e
+> `create-project-from-request.ts:51` e `orchestrate/apply/route.ts:111` estão
+> **dentro de `if (!clientId)`** — só preenchem dono nulo, nunca movem A→B.
+>
+> **O culpado é `lib/agency/balcao/producao.ts`** — a única sobrescrita
+> incondicional do repositório, e a única que não apaga mensagem. Achava
+> `Client` por e-mail **não verificado** do formulário de compra e re-apontava a
+> solicitação por cima do dono. **R$ 79 e um cartão** bastavam.
 
-A premissa é falsa na prática: **quem não chega ao login não deixa nada, e a
-maioria não chega.** O teste travava "o SDR nunca pede e-mail" — e o resultado
-está medido acima. É o mesmo padrão do teste dos pedidos de API (07/08) e do
-`jornada-real` (08/08): **o defeito virando invariante.** O cabeçalho foi
-reescrito declarando o que mudou e o que continua valendo (a conversa do SDR
-segue sem pedir contato — o pedido mora no passo de confirmação; pedir no meio
-da descoberta foi o que produziu o incidente original do "só isso").
+### 🔴 RODADA 2 — os dois Essenciais reprovaram, e o que entrou
 
-### 1. O CONTATO PASSA A SER CONDIÇÃO PARA FECHAR — e a trava é no SERVIDOR
+O `seguranca` **barrou o merge**; o `qualidade` **reprovou**. O item nº 1 de
+todos: **o token passou a CONGELAR o dono** (`donoDoToken`). O furo mais grave
+não era da conversa — era do **portal inteiro**: `resolvePortalClient` e
+`conversaDoToken` re-derivavam o dono a cada chamada, e o probe do `seguranca`
+recebeu de `/api/portal/vista` a **marca de outro cliente**. O selo da rodada 1
+não pegava isso (tela e conversa derivam o mesmo cliente errado e concordam).
 
-**Onde pedir foi decisão declarada.** No FIM, com a proposta na tela: pedir na
-primeira mensagem cobra antes de entregar e espanta quem só está olhando; pedir
-depois de a pessoa ter contado o negócio inteiro é a hora em que o pedido é
-natural — ela investiu, quer o resultado, e o contato é o que faz o resultado
-chegar até ela.
+Também entraram: o balcão parou de fundir ficha; os **sete escritores** legados
+carimbam o dono; o selo virou **obrigatório em modo cookie** (havia teste
+asseverando o fail-open); o **ramo do prospect** ganhou cerca; a **porta de
+entrada** (F5) parou de jogar link expirado dentro do portal do cliente
+anterior; a higiene de cookie **saiu do `proxy.ts`** (era negação de serviço); e
+o corte de histórico **deixou de ser mudo**.
 
-- **Nome + PELO MENOS UM canal (WhatsApp _ou_ e-mail).** O WhatsApp entra na
-  frente, e não é estética: é por onde o cliente brasileiro responde. O
-  formulário antigo aceitava **só e-mail**, e o e-mail do login do Google é a
-  caixa que a pessoa não abre.
-- **A trava mora em `POST /api/brain/client-requests`, não no botão.** A rota é
-  **pública** — é o submit do `/briefing` — e um POST direto passa por cima de
-  qualquer `disabled`. `status` vindo do corpo é **ignorado**; quem escolhe entre
-  `new` e `lead_incompleto` é o servidor.
+**Provado, não deduzido.** `__tests__/portal/conversa-de-outro-cliente.test.ts`,
+banco de verdade, rotas de verdade: **5 dos 10 testes falham sem o conserto.** A
+reprodução também foi andada em NAVEGADOR real (Playwright, dois clientes
+semeados, nenhum dado real) — e foi ela que **refutou** duas hipóteses da
+investigação: o `history.replaceState` para `/portal/access/me` **não** troca o
+`params.token` da página, e com o código de hoje tela e chat **nunca** divergem
+dentro de uma mesma visita. A divergência tela × cookie é real **na rota** e foi
+travada assim mesmo; o que produz o sintoma observado é a âncora.
 
-**AS DUAS METADES, provadas em `__tests__/comercial/gate-de-contato-do-briefing.test.ts`:**
+### 🔴 A PERGUNTA FORENSE: "algum cliente real chegou a ver conversa de outro?"
 
-| | fecha? | vira proposta? | o que foi dito |
-|---|---|---|---|
-| **com canal** | sim, `status: "new"` | **sim** — `runAutoScope` roda | grava |
-| **sem canal** | não | **não** — `runAutoScope` NÃO roda | **grava inteiro** |
+**NÃO HÁ COMO SABER.** O motivo, item a item:
 
-**Sem contato NÃO é descarte.** Há saída explícita na tela ("Prefiro não deixar
-contato agora"): a conversa sobe, grava como `lead_incompleto` **com o motivo**,
-e aparece na fila. Sem ela, quem não quer dar contato fecha a aba e a melhor
-matéria-prima que esta agência recebe desaparece sem deixar registro.
+| Registro | O que permite | O que NÃO permite |
+|---|---|---|
+| `PortalAccess.lastAccessedAt` / `accessCount` | que um token foi usado, e quando | de qual navegador, e **o que a resposta continha**. É contador de CHAMADA (todo `validatePortalAccess`), não de visita |
+| `PortalMessage.readByClient` / `readByTeam` | que alguém do lado do cliente abriu | **quem**. O próprio dono legítimo vira o mesmo campo — os dois casos são indistinguíveis |
+| Tabela de auditoria do portal | — | **não existe.** Não há modelo de log de acesso no schema |
+| Log de aplicação | — | `/api/portal/messages` **não loga acesso** (só erro). E produção estava **502** durante esta apuração |
 
-E a tela de confirmação **para de prometer o que não pode cumprir**: quem sobe
-sem contato não lê mais *"entramos em contato em até 1 dia útil"*.
+**E o mais importante: no caminho da âncora o token usado é LEGÍTIMO do próprio
+cliente.** Mesmo um log de acesso perfeito não marcaria nada de anômalo. Não é
+"provavelmente não" — é **não há como saber**.
 
-### 🔴 CONTATO NÃO SE DEDUZ — e a arroba do Sushi Cazza tem nome próprio
+### 🔴 RODADA 3 — `seguranca` e `qualidade` reprovaram de novo. O que entrou.
 
-`lib/agency/comercial/contato-do-lead.ts` é o **leitor único**: lê o formato
-canônico novo e o legado (`briefingJson.scope.prospect*`), e **não lê o
-`rawContext`**. O `@sushicazzaoficial` que está escrito no briefing aparece como
-**PISTA** (`pistasDeContato`), em campo separado, rotulado *"não é contato
-confirmado"* na tela — e **nunca** faz `temComoFalar` virar `true`. Quem aborda
-é o CEO.
+**A trava vai onde o id é USADO.** Converter a função central não converteu
+quem não a chama: **8 rotas** liam o ponteiro cru (a varredura achou 8, não as
+4 apontadas). A pior não era leitura — `/api/portal/approvals` **aprovou uma
+entrega de outro cliente**, e nesta casa entrega aprovada publica. Todas passam
+agora por `escopoDoToken`, o escopo congelado.
 
-- **Nome sozinho não é contato** — era exatamente assim que o desperdício se
-  chamava.
-- Piso de 10 dígitos no telefone: aceitar 8 faria `R$ 1.500` e `12 posts` — que
-  aparecem em TODO briefing — virarem telefone. **Telefone inventado é pior que
-  nenhum: desliga o alarme sem dar para onde ligar.**
+**O FURO A não estava fechado para o dado que já existe.** O carimbo de dono
+vale para o futuro; nenhuma linha de produção o tem. A cerca só excluía
+solicitação com carimbo alheio — conversa **100% legada** não tinha o que
+provar e atravessava inteira. A evidência passou a vir de **quatro** registros
+independentes (`PortalAccess`, `Project`, `ApprovalRequest`, `PortalMessage`).
 
-### 2. A FILA ENTRA NO RAIO-X (`lib/raio-x/dados.ts`, item 11)
+**O censo tranquilizava** — media o CUSTO da cerca, não o RISCO, e em produção
+tenderia a `0/0`. Agora usa a mesma fonte da cerca e publica `semDonoEscrito`
+como número principal.
 
-**Por que nada tocava:** o raio-x mede `pedidosDoClienteAbertos` sobre
-`ContentRequest` — o pedido de quem **já é cliente**. Estas moram em
-`ClientRequestDb`, a porta do **prospect**, e nenhuma varredura a olhava.
+**A contagem `ocultadas` saiu da resposta ao cliente:** ela era a contagem
+exata do acervo do vizinho, e a tela ainda mandava "é só pedir à equipe Dioli"
+— engenharia social contra o próprio suporte.
 
-**O horizonte é 24h, e a defesa é a própria tela:** o `/briefing` promete
-*"entramos em contato em até 1 dia útil"*. Alarme de 48h ou 72h toca **depois de
-a promessa já estar quebrada** — registra o dano em vez de preveni-lo. E 24h é o
-mesmo relógio de todos os outros baldes do arquivo; um segundo relógio na mesma
-varredura é uma segunda regra para alguém esquecer.
+**O segundo re-apontador vivo foi fechado:** `PATCH /api/brain/client-requests`
+re-apontava A→B incondicionalmente. Carimbar dono nulo pode; **trocar dono não**.
 
-**DOIS baldes, porque a AÇÃO é diferente** (`briefing-parado-com-contato` e
-`briefing-parado-sem-contato`, ambos `alto`). O segundo é também o **termômetro
-do gate**: se ele crescer depois de hoje, o briefing está vazando.
+### 🔴 O QUE FICOU ABERTO
 
-As duas metades em `__tests__/raio-x/fila-da-porta-da-frente.test.ts`: acha as
-três com a mais antiga nomeada e os 51 dias na evidência · **não** dispara em
-fila vazia, em lead de hoje nem em ficha que já virou projeto.
+> **Pendência sem dono não existe** — régua do Diretor. Toda linha abaixo tem
+> dono e prazo. Onde o dono é "Diretor decide", é porque a escolha é de negócio
+> e não minha.
 
-### 3. AS TRÊS DE VOLTA — `/agency/leads` ("Quem procurou", na barra lateral)
+- [ ] 🔴 **REEMISSÃO DE LINKS ANTES DO DEPLOY.** `PortalAccess.clientId` virou a
+      única prova de pertencimento de um token: **link legado sem dono escrito
+      é recusado** e cai em `/portal/invalid`. Rodar
+      `GET /api/admin/censo-de-historico-ambiguo` para contar, e reemitir por
+      `POST /api/admin/links-do-portal` — que já emite com dono.
+      **[DONO: CEO/Diretor · pré-requisito do deploy]**
+- [ ] 🟠 **`escopo.clientRequestIds[0]`** — cliente com três solicitações só
+      alcança a mais nova em `portal-data`, `esteira`, `social-posts` e `media`.
+      Defeito funcional, pré-existente, agora explícito.
+      **[DONO: `esteira` · 14 dias]**
+- [ ] 🔴 **`/api/portal/conectar-meta` redireciona com o token na query** —
+      credencial em log de proxy e no `Referer`. Pré-existente; não usa
+      resolvedor nenhum. **[DONO: `seguranca` · 14 dias]**
+- [ ] 🟠 **`reviewedBy` grava e exibe fragmento do token do portal.** Some com
+      ele. **[DONO: `esteira` · 14 dias]**
 
-Cada cartão responde, nesta ordem: **dá para falar com ele?** (e o "não" vem
-primeiro, em vermelho) · o que ele pediu, **nas palavras dele** · escopo e faixa
-**pela tabela da casa** (`live-calculator` + `service-catalog`) · **preciso
-confirmar**.
-
-- **Determinístico. Zero IA.** Um modelo escrevendo "leitura do negócio"
-  produziria prosa convincente sobre um cliente que ninguém conferiu — o modo de
-  falhar desta casa sem revisor humano.
-- **Faixa ausente NÃO é R$ 0.** Serviço que a tabela não cobre devolve faixa
-  nula com o motivo escrito. Faixa sem cadência declarada é a banda inteira do
-  catálogo **e diz que é**.
-- **Falha de leitura tem tela própria** (`medido: false`): lista vazia por erro
-  de banco é exatamente como esta fila ficou invisível por sete semanas.
-- Somente leitura. **Não aborda ninguém, não envia nada, não escreve nada.**
-
-> ⚠️ **"Solicitações", a aba que já existia, lê o STORE DO NAVEGADOR** — quem
-> abrisse noutro computador via zero. É parte de por que ninguém enxergou as
-> três. A tela nova lê o **banco**. Unificar as duas fica aberto, com dono.
-
-### 🔴 4. A FICHA DUPLICADA DA CAMILA — LEVANTADA, NÃO FUNDIDA
-
-**Não fundi**: afirmar que duas fichas são o mesmo negócio é decisão de negócio,
-e a ficha certa decide para onde vai o histórico.
-
-**O mecanismo, com linha:** **duas** rotas criam `Client` a partir da mesma
-solicitação e **nenhuma confere se já existe alguém com aquele nome** —
-`lib/agency/execution/create-project-from-request.ts:49` e
-`app/api/brain/orchestrate/apply/route.ts:103`. As duas só olham
-`req.clientId == null`. **Não há `@@unique(workspaceId, name)` no `Client`.**
-
-> **E aqui os dois defeitos se encontram:** `lib/agency/balcao/producao.ts:98`
-> **deduplica** — por **e-mail**. O caminho do briefing não tinha e-mail nenhum,
-> então não tinha chave. **Sem contato não existe chave de identidade**, e é por
-> isso que o gate do item 1 também fecha este buraco daqui para frente.
-
-**Decisão do CEO:** qual das duas (`cmqyb0bpo…` / `cmrt7aecz…`) é a boa.
-
-### Portão
-
-`npx tsc --noEmit` limpo · **3088 testes em 191 arquivos, todos verdes** ·
-`npm run build` sai 0. ⚠️ Os 9 avisos do build são **todos** de
-`instrumentation.ts` → `lib/agency/design/fontes-embutidas.ts` /
-`lib/agency/media/armazenamento.ts` → `app/api/media/route.ts` — **frentes de
-outros agentes, nenhum arquivo meu aparece em trace nenhum.**
-
-Conferido em **375 / 768 / 1440**, autenticado, com os estados vazio, bloqueado e
-válido. Notas (0–10) a 375px: hierarquia **9** · tipografia **9** · espaçamento
-**8,5** · consistência **9**. Dois defeitos achados **renderizando, não lendo**:
-o rótulo do botão do Google quebrava em duas linhas a 375px (e prometia "para ver
-a proposta", que deixou de ser verdade), e as linhas de escopo botavam preço e
-nome do plano na mesma largura — agora empilham no celular.
-
-### 🔴 O QUE NÃO FOI FEITO, E POR QUÊ
+- [ ] `plataforma` — 🟠 **`ClientRequestDb.clientId` continua mutável no schema.** **[DONO: `plataforma` · 7 dias]**
+      O único re-apontador incondicional foi fechado e o token não segue mais o
+      ponteiro, mas o campo ainda pode andar. Torná-lo imutável (ou exigir um
+      caminho sancionado único) é o conserto de raiz. 
+- [ ] 🔴 **O NÚMERO DE PRODUÇÃO do histórico escondido NÃO FOI MEDIDO.** **[DONO: **CEO/Diretor** · antes do deploy]** O banco
+      mora num volume dentro do contêiner; este ambiente não tem `CRON_SECRET`
+      nem sessão de admin. A conta roda em um comando
+      (`scripts/censo-de-historico-ambiguo.mts`) ou por
+      `GET /api/admin/censo-de-historico-ambiguo` — **CEO/Diretor**. O script foi
+      validado contra cenário semeado (achou as 2 plantadas). **Estimar seria
+      inventar.**
+- [ ] 🟠 **Balcão: efeito comercial declarado.** **[DONO: **Diretor decide** · 7 dias]** Como e-mail não verificado
+      deixou de fundir ficha, quem compra a **segunda vez** pelo balcão ganha
+      **ficha nova** — carteira fragmentada, um portal por ficha. A direção está
+      certa ("duplicada é cadastro, fundida é vazamento"), mas alguém tem de
+      fundir depois. **
+- [ ] 🟠 **Balcão não é idempotente sob concorrência.** **[DONO: `plataforma` · 7 dias]** A guarda de identidade
+      venceu a corrida, mas o resto de `produzirPedidoDeBalcao` não é
+      transacional: duas execuções do mesmo pedido produziram **2 Client, 2
+      Project, 2 PortalAccess**, e o token do perdedor devolve `ponteiro_andou`
+      → **portal morto para quem pagou**. O comentário em `producao.ts:19-21`
+      afirma o contrário — **comentário que mente é pior que ausente**. 
+- [ ] 🔴 **Sequestro de cookie por token válido de terceiro** **[DONO: `seguranca` · 14 dias — **P0 próprio**]** (pré-existente):
+      token válido na query sobrescreve o cookie da vítima por 180 dias. Custo do
+      ataque: um token de balcão de R$ 39. Efeito: a vítima vê o portal do
+      atacante e **o que ela digitar cai na conversa dele**. Não é regressão
+      desta frente e não cabe neste PR — **item próprio, e é P0.**
+- [ ] 🟠 **Não existe camada única de conferência de token** **[DONO: `qualidade` · 14 dias]** — cada rota é
+      conferida à mão, "foi assim que 4 ficaram para trás nesta rodada, e será
+      assim na próxima". `escopoDoToken` reduz para uma chamada, mas nada obriga
+      a chamá-la. Proposta: teste de arquitetura que reprove rota sob
+      `app/api/portal/**` que importe `validatePortalAccess` direto.
+- [ ] 🟠 **`create-project-from-request:52` e `orchestrate/apply:111` decidem no
+      CÓDIGO, não no `WHERE`** **[DONO: `plataforma` · 14 dias]** — mesma corrida que foi fechada no balcão. São
+      first-assignment (não re-apontam), então o risco é duplicação, não troca
+      de dono. Uniformizar.
+- [ ] 🟠 **Falso positivo no dia do deploy:** **[DONO: `plataforma` · 7 dias]** aba aberta em `/portal/access/me`
+      com bundle antigo não manda `dono` ⇒ recusa até recarregar. Portão que
+      reprova o legítimo é metade do problema. Mitigação possível: tolerar a
+      ausência do selo por uma janela curta após o deploy.
+- [ ] 🟠 **O selo é pseudônimo estável e sem sal** **[DONO: `plataforma` · 14 dias]** — viaja na query string e para
+      em log. Mintar por sessão fecha a correlação. 
+- [ ] `plataforma` — **`Client` sem `@@unique(workspaceId, name)`** e duas rotas
+      criando ficha sem dedup (já aberto desde 08/08 pela Camila duplicada).
+- [ ] `seguranca` — 🔴 **não há registro de acesso do portal.** **[DONO: `seguranca` · 14 dias]** Enquanto não
+      houver, toda pergunta forense sobre o portal termina em "não há como
+      saber". 
+- [ ] **CEO/Diretor** — 🔴 **PRODUÇÃO ESTAVA FORA DO AR (HTTP 502,
+      `x-railway-fallback: true`) durante esta apuração**, em `/api/health` e em
+      todas as rotas. Não foi causado por esta frente (o trabalho todo foi
+      local). **Nada foi medido em produção por causa disso.**
+- [ ] 🟢 **FECHADO nesta rodada — o filho legado (bloqueante 3 do `seguranca`).**
+      `portal-data` e `social-posts` perguntavam **de qual solicitação** é a
+      linha, não **de quem** ela é: filho sem carimbo de solicitação
+      re-apontada saía para o dono novo (`card(reviewNote)`, `canvas(pipeline)`,
+      `peca(caption)`). A mesma inversão de `montarFiltro` foi aplicada aos
+      filhos. A/B provado revertendo a cerca — os dois testes caem.
+      **[DONO: `pm` · fechado 16/08]**
+- [ ] 🔴 **DECISÃO DO CEO — o dia da virada do portal. Texto próprio abaixo, na
+      seção "⚠️ DECISÃO DO CEO".** **[DONO: CEO · antes do deploy]**
 
 - [ ] **AS TRÊS CONTINUAM EM `"new"` NO BANCO DE PRODUÇÃO. Não as movi.** Daqui
       só há HTTP e a rota exige sessão de admin (medido: `401`). O dossiê das
@@ -219,7 +295,7 @@ nome do plano na mesma largura — agora empilham no celular.
       schema quebraria a frente dele. O leitor único (`lerContato`) esconde o
       formato de todo mundo, então promover a coluna depois é migration + um
       arquivo. **Enquanto não for coluna, não dá para filtrar nem indexar por
-      contato no banco.** Sem dono.
+      contato no banco.** 
 - [ ] **Abandono NO MEIO da conversa continua sem registro.** O `lead_incompleto`
       pega quem chega ao passo de contato e recusa; quem fecha a aba na terceira
       mensagem não deixa nada. Capturar isso exige gravação parcial com token de
@@ -560,7 +636,7 @@ quem lhe der um verbo de escrita.
 - **A ficha do cliente 404 de forma intermitente** (o store hidrata depois do
   primeiro render e o `notFound()` dispara antes). **É anterior a este
   trabalho** e atrapalhou a captura em 768/1440 — a seção foi conferida em
-  375px. Sem dono.
+  375px. 
 - **`GET /api/agency/material-de-marca?clientId=…` lista até 500 arquivos sem
   paginação.** Suficiente hoje; não é para sempre.
 
@@ -1263,7 +1339,7 @@ tocado aqui).
 - **O pedido em `precisa_decisao` há +24h continua parado** — por desenho ele
   espera decisão de gente.
 - **A conferência de PIXEL na foto gerada por IA continua não existindo.** É a
-  causa raiz dos 3 descartes e é o que destrava os 3 pilares. Sem dono.
+  causa raiz dos 3 descartes e é o que destrava os 3 pilares. 
 
 
 ## 🟢 08/08/2026 — 99FREELAS: A MÁQUINA DE CONFORMIDADE ENTROU NO CAMINHO QUE A TELA USA
@@ -1654,7 +1730,7 @@ um retângulo branco vazio de meia tela a 1440px.
       §7.6 do DESIGN.md. **Não mexi**: a tela é de outra frente.
 - [ ] `qualidade` — `PAPEIS[papel]` cai no id cru quando o papel não está na
       lista fechada. É o comportamento honesto (não inventa rótulo) e **também**
-      o sintoma de dado velho no banco. Sem dono.
+      o sintoma de dado velho no banco. 
 
 ### 🗺️ E o MAPA do arsenal de informação: `docs/plataformas/mapa-do-arsenal-de-informacao.md`
 

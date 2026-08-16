@@ -1,0 +1,38 @@
+{
+  "medidoEm": "2026-08-15T21:21:13.438Z",
+  "base": "http://localhost:3000",
+  "cenarios": [
+    {
+      "rotulo": "1) portal do ALFA, cookie do ALFA (caso limpo)",
+      "urlFinal": "/portal/access/me",
+      "marcaNaTela": "Agência ALFA (cliente A)",
+      "chatMostraSegredoDoAlfa": true,
+      "chatMostraRecadoDaBeta": false,
+      "chatRecusouComSeguranca": false
+    },
+    {
+      "rotulo": "2) portal do BETA com o cookie do ALFA guardado",
+      "urlFinal": "/portal/access/me",
+      "marcaNaTela": "Loja BETA (cliente B)",
+      "chatMostraSegredoDoAlfa": false,
+      "chatMostraRecadoDaBeta": true,
+      "chatRecusouComSeguranca": false
+    },
+    {
+      "rotulo": "3) /me com o cookie do ALFA (sessão legítima por cookie)",
+      "urlFinal": "/portal/access/me",
+      "marcaNaTela": "Agência ALFA (cliente A)",
+      "chatMostraSegredoDoAlfa": true,
+      "chatMostraRecadoDaBeta": false,
+      "chatRecusouComSeguranca": false
+    },
+    {
+      "rotulo": "4) DUAS ABAS — aba 1 em /me (cookie ALFA), aba 2 abre o portal do BETA",
+      "cookieDepois": "TOKENBETA",
+      "aba1AntesMostravaSegredoDoAlfa": true,
+      "aba1DepoisMostraSegredoDoAlfa": false,
+      "aba1DepoisMostraRecadoDaBeta": false,
+      "aba1DepoisRecusouComSeguranca": true
+    }
+  ]
+}

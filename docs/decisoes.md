@@ -8,6 +8,271 @@
 
 ---
 
+## A CONVERSA DO PORTAL É CERCADA PELO DONO, E A TELA DECLARA QUEM ELA MOSTRA
+
+**Decidido em** 2026-08-15 · **por** `pm`, a pedido do Diretor (P0) ·
+**origem:** o CEO abriu o portal de um cliente em produção e o painel "Fale com
+seu PM" trouxe a conversa de OUTRO cliente — mesmas mensagens, mesmos horários.
+
+**O fato, sem suavizar.** A conversa do PM carrega briefing, valores e
+combinação comercial. Ela apareceu no portal de quem não é dono.
+
+### A leitura de causa do Diretor Geral estava CERTA no diagnóstico e INCOMPLETA no mecanismo
+
+Os quatro pontos que ele apontou existem no código e estão descritos com
+precisão: `modoCookie` zera o token em `/me`; a chamada sai sem `token=`; a rota
+cai no cookie; e o cookie é **um só por navegador, `path:"/"`, 180 dias, um
+cliente**. A frase-síntese dele — *"o cliente da tela e o cliente da conversa
+são resolvidos por caminhos diferentes e ninguém confere se são o mesmo"* — é
+verdadeira e virou trava.
+
+**O que a leitura dele NÃO alcançava, e é o que reproduz o sintoma exato:**
+a leitura da conversa une duas chaves (`clientId` do dono **e** todas as
+solicitações dele), e **`ClientRequestDb.clientId` não é imutável**.
+
+> ### 🔴 A CAUSA FOI REESCRITA NA RODADA 2 — a primeira versão acusou os errados
+>
+> `seguranca` e `qualidade`, trabalhando **separados e por caminhos
+> diferentes**, chegaram ao mesmo culpado. Os três sites que esta decisão
+> acusava originalmente estão **inocentes**:
+>
+> | Site acusado | Por que NÃO pode ter produzido o sintoma |
+> |---|---|
+> | `/api/admin/reset` | a MESMA transação roda `tx.portalMessage.deleteMany({})` (`route.ts:177`) em **todos** os modos. Não sobra mensagem para vazar |
+> | `create-project-from-request.ts:51` | está dentro de `if (!clientId)` (`:47`). Só preenche dono **nulo**. Nunca move A→B |
+> | `orchestrate/apply/route.ts:111` | idem, guardado por `if (!clientId)` em `:101` |
+>
+> **O culpado é `lib/agency/balcao/producao.ts` — a ÚNICA sobrescrita
+> incondicional do repositório, e a única que não apaga mensagem nenhuma.** Ele
+> achava `Client` por `{ workspaceId, email }` com o e-mail vindo do
+> **formulário de compra, sem verificação**, e re-apontava a solicitação por
+> cima do dono existente. **Com um cartão e R$ 79** qualquer pessoa digitava o
+> e-mail de um cliente e enfiava a própria solicitação dentro da ficha dele.
+>
+> Documento errado manda o próximo blindar o lugar errado — por isso a correção
+> foi feita nos cinco lugares onde a causa estava escrita.
+
+Quando a solicitação R sai do cliente A e passa para o B, as mensagens antigas
+continuam gravadas com `clientId: A` **E** `clientRequestId: R` — as duas
+chaves, como esta casa passou a carimbar em 05/08. A partir daí o portal de B lê
+aquelas linhas pelo ramo da solicitação e o de A continua lendo pelo ramo do
+cliente: **os dois portais mostram a mesma conversa, com os mesmos horários,
+cada um com o seu próprio token válido e nenhum cookie envolvido.**
+
+**Isso importa porque a conferência tela × cookie, sozinha, NÃO teria pego.**
+Nesse caminho a credencial está perfeitamente correta; o que está errado é o
+dado. Consertar só o que a leitura original apontava deixaria o vazamento de pé.
+
+### A decisão, em uma frase: a conversa é cercada pelo DONO, e a cerca é da leitura
+
+**Três travas, cada uma numa camada só:**
+
+1. **A cerca do dono** (`app/api/messages/conversa.ts`, o lugar já declarado
+   como dono da âncora e do filtro). Nenhuma linha carimbada para outro cliente
+   sai, venha por qual chave vier. `clientId: null` continua passando **de
+   propósito** — é o formato das 11 escritas antigas, e barrá-lo apagaria
+   histórico legítimo do portal.
+2. **A solicitação que já foi de outro sai da leitura.** Linha legada
+   (`clientId` nulo) não tem dono escrito, e adivinhar é o que a lei da casa
+   proíbe. Mas dá para **provar** que a solicitação já foi de outro: basta
+   existir, presa a ela, uma linha carimbada com outro `clientId`. Onde há essa
+   prova, a solicitação inteira sai da leitura daquele cliente. Falha de leitura
+   dessa consulta **fecha, não abre**.
+3. **A conferência tela × credencial** (o que o Diretor exigiu, no formato que
+   funciona). `/api/portal/vista` devolve `dono` — a identidade **opaca**
+   (sha256 truncado, não o `clientId`) do cliente que a tela está mostrando. A
+   conversa devolve esse selo ao servidor em toda leitura e todo envio;
+   divergiu, a resposta é **vazia com motivo** (`dono-divergente`) no GET e
+   **409** no POST. Sem isso não havia como comparar: em `/portal/access/me` o
+   chat não manda token nenhum, o cookie É a credencial, e o servidor não tinha
+   com o que confrontar.
+
+> **A regra que impede o selo de virar buraco novo: ele NUNCA concede, só
+> recusa.** O dono continua **derivado** do token/cookie (regra da casa de
+> 03/08/2026: derivação, nunca comparação). Selo forjado não abre a conversa de
+> ninguém — há teste que prova.
+
+**E uma quarta, na porta.** ⚠️ **ESTE PARÁGRAFO DESCREVIA UM MECANISMO QUE FOI
+REMOVIDO NA MESMA RODADA, e ficou aqui contradizendo o que se lê 40 linhas
+abaixo.** É a mesma falha pela qual esta decisão corrigiu cinco documentos —
+viva dentro do documento que a corrige. Achado pelo `qualidade`.
+
+A versão original apagava o cookie no `proxy.ts` quando o token do caminho era
+de outro cliente. O `seguranca` mostrou que aquilo era **negação de serviço**:
+o cookie morria ANTES de o token ser validado, então bastava mandar à vítima um
+link para `/portal/access/qualquer-lixo` para derrubar a sessão dela.
+
+**O que vale hoje:** a regravação acontece em `/api/portal/vista`, **depois** de
+o token ser validado — token bom regrava, lixo não faz nada, e sessão legítima
+nunca é derrubada. O `proxy.ts` não toca em cookie de portal.
+
+### A RODADA 2 — o que os dois Essenciais derrubaram, e o que entrou
+
+O `seguranca` **barrou o merge** e o `qualidade` **reprovou**. O que mudou:
+
+1. **O TOKEN CONGELA O DONO** (`donoDoToken`). O furo mais grave não era da
+   conversa: era do **portal inteiro**. `resolvePortalClient` e `conversaDoToken`
+   **re-derivavam** o dono a cada chamada lendo o ponteiro mutável — probe real:
+   `/api/portal/vista` com o token de um cliente devolveu a marca de outro. O
+   selo da rodada 1 não pegava nada disso (tela e conversa derivam o **mesmo**
+   cliente errado e concordam). Agora o token aponta para um cliente e só; se o
+   ponteiro andar, **403 `ponteiro_andou`**, com registro em `ActivityEvent`.
+2. **O BALCÃO PARA DE FUNDIR FICHA.** E-mail não verificado não é chave de
+   identidade; solicitação com dono nunca é re-apontada (guarda no `WHERE`, não
+   no código — decidir no código perde a corrida entre duas compras).
+3. **OS SETE ESCRITORES CARIMBAM O DONO** (`gravarMensagemDoPortal`). A cerca
+   era probabilística: conversa 100% legada não tinha carimbo nenhum para a
+   prova de contaminação achar, e atravessava inteira.
+4. **O SELO É OBRIGATÓRIO EM MODO COOKIE.** Selo que se desliga ao ser omitido
+   é aviso, não trava — e havia teste asseverando o fail-open. Corrigidos os dois.
+5. **O RAMO DO PROSPECT GANHOU CERCA.** Era o ramo que PRODUZ as linhas sem
+   dono, e estava aberto 100 linhas abaixo do que a rodada 1 cercou.
+6. **A PORTA DE ENTRADA (F5).** `/portal/access?token=<inválido>` mantinha o
+   cookie antigo e redirecionava para `/me`: **cliente com link expirado caía no
+   portal do cliente anterior**. É o caminho mais banal que existe e não tinha
+   teste. Agora vai para `/portal/invalid` — que **não existia** e foi criada.
+7. **A HIGIENE DE COOKIE SAIU DO `proxy.ts`** — ela apagava o cookie ANTES de
+   validar, então um link com lixo derrubava a sessão da vítima (negação de
+   serviço). Virou regravação **depois** de validar, em `/api/portal/vista`.
+8. **O CORTE DEIXOU DE SER MUDO.** A resposta era `{"messages":[],
+   "podeEnviar":true}` e a tela dizia *"Comece a conversa"* — o cliente não via
+   o histórico encurtar, via a agência ter apagado a conversa dele. Agora vem
+   `motivo`, a **contagem** do que foi escondido, e a tela não convida a
+   escrever no estado divergente.
+
+### 🔴 A RODADA 9 — O BACKFILL É O CONSERTO, NÃO O PLANO B
+
+**A decisão desta rodada, em uma frase: quando a informação não está no banco,
+nenhuma regra de LEITURA resolve — resolve-se uma vez, offline, com curadoria.**
+
+Foram **quatro rodadas** oscilando entre duas paredes, e é a oscilação que é o
+achado:
+
+| A escolha | O que ela quebra |
+|---|---|
+| exigir carimbo para ler | o **dono legítimo** perde a tela: `0 DECISÕES PENDENTES` com R$ 12.000 de proposta parada no banco |
+| não exigir carimbo | o **estranho** entra: o token de B aprovava o card órfão de A — e aprovar, nesta casa, **publica** |
+
+O `qualidade` e o `seguranca` convergiram, separados, na mesma frase: *"o botão
+abre para o estranho e a tela fecha para o dono"*. As duas metades estavam
+**invertidas**.
+
+**Por que nenhuma regra de leitura podia funcionar:** a pergunta *"de quem é
+esta linha sem carimbo?"* não tem resposta em tempo de leitura. Toda tentativa
+de inferir — inclusive a minha, "ausência de evidência de troca de dono" — é
+cega exatamente onde a produção vive: o `PortalAccess` legado tem `clientId`
+nulo, então não há o que comparar.
+
+**O que entrou:**
+
+1. **O BACKFILL CURADO** (`lib/agency/portal/backfill-de-carimbo.ts`). Carimba a
+   linha órfã **só com prova**, e a prova é tripla: nenhum irmão com carimbo
+   alheio; nenhum `PortalAccess` da solicitação apontando para outro; e o
+   **cliente já existia quando a linha foi escrita** (`Client.createdAt <=
+   linha.createdAt`) — a única prova *positiva* que o banco oferece. Falhou
+   qualquer uma: **não carimba, e escreve o motivo.** Ensaio por padrão,
+   idempotente.
+2. **A METADE 2 MORREU.** Ler exige carimbo, ponto — em `filtroDeFilhoDoDono` e
+   em `pertenceAoToken`. Card órfão é **indecidível por qualquer token**.
+3. **O ARTEFATO NASCE CARIMBADO** (`createBrainArtifact`). O escritor real de
+   artefato nunca gravou `clientId`: sem isto, `pipeline` e `departments` do
+   portal ficariam vazios **para sempre** — não era dívida de acervo, era
+   permanente.
+4. **A REEMISSÃO EM LOTE EXISTE** (`?carteira=1&emitir=1`). Eu havia escrito ao
+   Diretor que reemitir "é um comando só", e **era falso** — ele levou a
+   recomendação ao CEO apoiado na minha frase. Agora é verdade.
+5. **O BACKFILL RODA ONDE O BANCO ESTÁ** (`/api/admin/backfill-de-carimbo`:
+   `GET` ensaia, `POST` aplica). O script sozinho exige o banco de produção, que
+   **ninguém alcança** — é o mesmo buraco que custou um dia em 07/08 com os
+   links. Pré-requisito de deploy que o CEO não consegue executar não é
+   requisito, é intenção.
+
+> ### ⚠️ O carimbo retroativo tem UM lugar só, e é este
+>
+> Na rodada 7 eu pus um carimbo retroativo no caminho quente
+> (`cardGenericoJaPendente`): ele gravava o dono do token no card órfão **no
+> instante da decisão**. Isso **fabrica prova falsa** — carimbava o card de A
+> com o id de B, com autoridade, e o rastro forense sumia. Era o oposto de uma
+> trava que eu mesmo havia escrito no mesmo PR. Removido.
+>
+> Carimbo retroativo é legítimo **offline, com relatório, sob decisão de
+> gente**. No caminho quente é falsificação.
+
+### A regra de método que esta frente produziu
+
+**Toda cerca nova nasce com as duas metades na mesma porta, e a metade positiva
+do dono se mede na camada que o cliente usa — não na função pura.** Foi por
+medir só a função pura que a tela do dono ficou vazia com a trava "passando":
+os testes provavam que o estranho era barrado, e nenhum provava que o dono
+entrava.
+
+E a outra, que vale para qualquer guarda: **A/B prova que está certo hoje;
+mutação prova que continua certo amanhã. As duas, sempre.**
+
+### O que NÃO foi feito, e por quê
+
+- **Não se consertou no cliente escondendo a caixa.** A trava é servidor; a tela
+  só traduz o motivo.
+- **O token NÃO voltou para a URL.** O achado A4 continua de pé.
+- 🔴 **O número de PRODUÇÃO do histórico escondido NÃO foi medido.** O banco mora
+  num volume dentro do contêiner e este ambiente não tem `CRON_SECRET` nem
+  sessão de admin. A conta existe e roda em um comando
+  (`scripts/censo-de-historico-ambiguo.mts`) ou por
+  `GET /api/admin/censo-de-historico-ambiguo`. **Estimar seria inventar.**
+- 🟠 **O selo é pseudônimo estável e sem sal:** viaja na query string e para em
+  log igual ao id pararia. Quem tem o log correlaciona o tráfego por cliente.
+  Mintar por sessão fecharia isso; não foi feito.
+- 🔴 **O BACKFILL NÃO FOI RODADO EM PRODUÇÃO.** Ele existe, tem teste e roda por
+  rota — mas exige `CRON_SECRET`, que **nenhum agente tem**. Enquanto não rodar,
+  o número de linhas que ficam de fora **não existe**, e dizer que "quase tudo
+  vai ser religado" seria inventar. Dono, prazo e ordem dos gestos estão em
+  `docs/pendencias.md`.
+- 🟠 **O motivo da recusa vaza para fora** (`sem_dono`, `ponteiro_andou`,
+  `token_invalido` chegam ao chamador externo em `messages`, `portal-data`,
+  `session` e `approvals`). É um oráculo: quem sonda distingue "token inválido"
+  de "token válido de outro dono". Não fechado nesta rodada — fechar exige
+  separar o motivo interno (log) do motivo externo (tela), em quatro rotas.
+- 🟢 **As três fugas do teste de arquitetura fecharam na rodada 10** — e o
+  conserto foi inverter o default, não tapar as três. Ver abaixo.
+
+### 🔴 A RODADA 10 — o gate de arquitetura inverteu o default, e achou um telefone
+
+O `qualidade` nomeou três fugas no gate: rota fora da lista de pastas,
+`prisma["portalAccess"]` com colchete, e `where: { token }` a mais de 120
+caracteres do nome da tabela. **Eram a mesma fuga.**
+
+O defeito era a **forma**: o gate tinha uma LISTA DE LUGARES VIGIADOS
+(`SUPERFICIE`) — que é exatamente o erro que o próprio arquivo existe para
+conter: *"a trava vai onde o id é USADO — converter a função central não
+converte quem não a chama."* Lista de pastas nunca acompanha o código.
+
+**Agora varre-se `app/` e `lib/` inteiros**, e quem pode LER a tabela de
+credencial é lista nominal com motivo escrito, conferida contra o disco
+(exceção para arquivo que não existe mais é exceção que ninguém revisou). A
+janela de 120 caracteres morreu junto.
+
+> #### O que a inversão achou na primeira vez que rodou
+>
+> `lib/integrations/meta/notifications.ts` resolvia credencial por conta
+> própria — `prisma.portalAccess.findFirst({ where: { token } })` — lendo o
+> ponteiro **mutável** `clientRequestId`, o mesmo que produziu o P0 da conversa.
+>
+> **E ali o destino é um telefone.** Solicitação re-apontada = WhatsApp sobre a
+> proposta de um cliente indo para o celular de outro, com o link do portal
+> dentro — e sem tela onde o cliente perceba e feche. Passou a usar
+> `escopoDoToken`: ponteiro que andou é recusado, e recusa vira **nenhuma
+> notificação**. Não se manda WhatsApp por palpite.
+>
+> Nenhuma varredura por lista de pastas acharia isto: a pasta não estava na
+> lista, e ninguém associava `integrations/meta` ao portal.
+
+**A lição de método, e ela custou uma tentativa:** o primeiro conserto da fuga
+do colchete **não pegava** — a expressão exigia `prisma` colado ao colchete, e
+a forma real tem um *cast* no meio. Só apareceu porque plantei a fuga em vez de
+raciocinar sobre ela. **Fuga que não foi plantada não foi fechada.**
+
+---
+
 ## O ANÚNCIO SÓ NASCE COM ATIVO QUE SE PROVA DO DONO — PÁGINA E ARTE
 
 **Decidido em** 2026-08-15 · **por** `seguranca`, a pedido do Diretor ·

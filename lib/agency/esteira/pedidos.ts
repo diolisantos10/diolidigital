@@ -15,6 +15,7 @@
 // dizer "parado esperando o cliente" em vez de deixar o projeto mudo.
 
 import { prisma } from "@/lib/db/client";
+import { gravarMensagemDoPortal } from "@/lib/agency/portal/mensagem-do-portal";
 
 export interface PedidoAberto {
   id: string;
@@ -140,14 +141,12 @@ export async function cobrarCliente(input: {
   if (!texto) return 0;
 
   try {
-    await prisma.portalMessage.create({
-      data: {
-        clientRequestId: input.clientRequestId,
-        authorRole: "team",
-        authorName: "Gerente de projeto",
-        body: texto,
-        readByTeam: true,
-      },
+    await gravarMensagemDoPortal({
+      clientRequestId: input.clientRequestId,
+      authorRole: "team",
+      authorName: "Gerente de projeto",
+      body: texto,
+      readByTeam: true,
     });
   } catch (e) {
     console.warn("[esteira] não consegui enviar a cobrança:", e instanceof Error ? e.message : e);

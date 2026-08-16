@@ -11,19 +11,22 @@
 //   4. A4 fechado até o DOM: em modo cookie a URL de mídia sai SEM ?token=,
 //      e a rota de mídia autentica pelo cookie httpOnly.
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 
 const db = vi.hoisted(() => ({
-  approvalRequest: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn(), count: vi.fn() },
-  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn() },
+  // rodada 8/9: a apuração de evidência consulta quatro tabelas.
+  portalMessage: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
+  portalAccess: { findMany: vi.fn(), findFirst: vi.fn() },
+  approvalRequest: { findUnique: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), count: vi.fn() },
+  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   socialPost: { findMany: vi.fn(), updateMany: vi.fn(), update: vi.fn(), findFirst: vi.fn() },
   client: { findUnique: vi.fn() },
-  brainArtifact: { findMany: vi.fn() },
-  project: { findFirst: vi.fn() },
+  brainArtifact: { findMany: vi.fn(), findFirst: vi.fn() },
+  project: { findFirst: vi.fn(), findMany: vi.fn() },
   deliverable: { findMany: vi.fn() },
   materialRequest: { create: vi.fn() },
-  portalMessage: { create: vi.fn() },
   mediaAsset: { findUnique: vi.fn() },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
@@ -34,9 +37,11 @@ const addApprovalComment = vi.hoisted(() => vi.fn());
 const getSession = vi.hoisted(() => vi.fn());
 const lerArquivo = vi.hoisted(() => vi.fn());
 const assinaturaValida = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, escopoDoToken }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 vi.mock("@/lib/auth/session", () => ({ getSession }));
 vi.mock("@/lib/agency/media/armazenamento", () => ({ lerArquivo, assinaturaValida }));
@@ -97,6 +102,19 @@ function reqDecisao(body: Record<string, unknown>): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  db.portalMessage?.findMany?.mockResolvedValue?.([]);
+  db.portalMessage?.findFirst?.mockResolvedValue?.(null);
+  db.portalAccess?.findFirst?.mockResolvedValue?.(null);
+  db.approvalRequest?.findFirst?.mockResolvedValue?.(null);
+  db.brainArtifact?.findFirst?.mockResolvedValue?.(null);
+  db.socialPost?.findFirst?.mockResolvedValue?.(null);
+  db.portalAccess?.findMany?.mockResolvedValue?.([]);
+  db.project?.findMany?.mockResolvedValue?.([]);
+  db.approvalRequest?.findMany?.mockResolvedValue?.([]);
+  // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
+  // Cliente DIRETO (o caso Foocci): nenhuma solicitação de briefing.
+  db.clientRequestDb.findMany?.mockResolvedValue?.([]);
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
   requireSession.mockResolvedValue(SESSAO_MASTER);
   db.socialPost.findMany.mockResolvedValue(SEIS_POSTS);
   db.socialPost.updateMany.mockResolvedValue({ count: 6 });
@@ -109,6 +127,13 @@ beforeEach(() => {
   createApprovalRequest.mockResolvedValue({ id: "ap-cal" });
   updateApprovalStatus.mockResolvedValue({ id: "ap-cal", status: "approved", reviewedAt: new Date() });
   addApprovalComment.mockResolvedValue({ id: "cm1" });
+  // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+  // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+  // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+  // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+  // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+  // carregam o dono, que é a forma que os links emitidos passam a ter.
+  // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: null, clientId: "cli-foocci" } });
 });
 
@@ -275,8 +300,20 @@ describe("posse por clientId — dono derivado do token, sem vazamento", () => {
     expect(json.approvals[0].reviewNote).toContain("Carrosséis de lançamento");
   });
 
-  it("portal-data por solicitação inclui o OR por clientId — as duas chaves do mesmo dono", async () => {
-    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  // ⚠️ RODADA 6 — O `OR` MORREU AQUI, e a morte é o conserto.
+  //
+  // `buildPortalData` buscava aprovação por `OR: [{clientRequestId}, {clientId}]`.
+  // A chave da solicitação NÃO é prova de dono: card legado (sem carimbo) de
+  // uma solicitação re-apontada saía para o dono novo — A/B mediu
+  // `card(reviewNote)` e `canvas(pipeline)` vazando na base E no PR. Com dono
+  // conhecido, o carimbo manda, e só ele.
+  it("portal-data pelo token filtra pelo DONO, não pela chave da solicitação", async () => {
+    // Escopo com solicitação: ela sai do CLIENTE, não do registro do token.
+    db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr1" }]);
+    // ⚠️ O token e a solicitação têm de apontar para o MESMO cliente. Com
+    // `clientId` divergentes isto agora é `ponteiro_andou` → 403, que é a
+    // trava do dono congelado funcionando — o fixture é que estava incoerente.
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "cli-foocci" } });
     db.clientRequestDb.findUnique.mockResolvedValue({
       id: "cr1", clientId: "cli-foocci", businessName: "Foocci", status: "in_production",
       services: "[]", objectives: "[]", briefingJson: "{}", segment: "", createdAt: new Date(),
@@ -285,10 +322,26 @@ describe("posse por clientId — dono derivado do token, sem vazamento", () => {
     db.project.findFirst.mockResolvedValue(null);
 
     await portalData(new NextRequest("http://localhost/api/brain/portal-data?token=tok-foocci"));
-    expect(db.approvalRequest.findMany.mock.calls[0]![0].where).toMatchObject({
-      clientVisible: true,
-      OR: [{ clientRequestId: "cr1" }, { clientId: "cli-foocci" }],
-    });
+    // ⚠️ RODADA 8 — AS DUAS METADES NA MESMA CONSULTA.
+    // Exigir só o carimbo apagou a lista: card órfão (o formato de todo card
+    // pendente anterior ao carimbo) não casa com carimbo nenhum, e a tela
+    // dizia "nada depende de você" com proposta pendente no banco. A regra é
+    // a MESMA da posse — se listagem e posse divergirem, o POST volta a
+    // aceitar o que o GET nunca mostra.
+    // ⚠️ `at(-1)`: a apuração de evidência (`solicitacoesQueMudaramDeDono`)
+    // consulta `approvalRequest` ANTES da listagem. A chamada que interessa é
+    // a última. A primeira é a sonda, e ela é conferida logo abaixo.
+    const chamadas = db.approvalRequest.findMany.mock.calls;
+    const sonda = chamadas[0]![0].where;
+    expect(sonda.clientId, "a sonda tem de procurar carimbo ALHEIO").toMatchObject({ not: null });
+    const onde = chamadas.at(-1)![0].where;
+    // ⚠️ RODADA 9 — EXIGE CARIMBO, PONTO. O ramo do órfão morreu: era ele que
+    // abria o card de A para o token de B (a "evidência de troca de dono" é
+    // cega na população de produção, onde o `PortalAccess` legado tem
+    // `clientId` nulo). Quem devolve o órfão ao dono é o BACKFILL, offline.
+    expect(onde.clientVisible).toBe(true);
+    expect(onde.clientId).toBe("cli-foocci");
+    expect(onde.OR, "a chave da solicitação não pode voltar").toBeUndefined();
   });
 });
 

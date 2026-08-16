@@ -7,12 +7,13 @@
 //    presa ao card e o prazo PAUSA — o relógio não corre contra o cliente
 //    enquanto a bola está com a agência (T5/T5b da tabela de transições).
 
+import { escopoFalso } from "../_stubs/escopo-do-token";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
   approvalRequest: { findUnique: vi.fn(), update: vi.fn(), count: vi.fn() },
-  clientRequestDb: { findUnique: vi.fn() },
+  clientRequestDb: { findUnique: vi.fn(), findMany: vi.fn() },
   socialPost: { updateMany: vi.fn() },
   project: { findFirst: vi.fn() },
   materialRequest: { create: vi.fn() },
@@ -23,19 +24,25 @@ const updateApprovalStatus = vi.hoisted(() => vi.fn());
 const addApprovalComment = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, escopoDoToken }));
 vi.mock("@/lib/agency/persistence/approval-service", () => ({ updateApprovalStatus, addApprovalComment }));
 vi.mock("@/lib/agency/execution/create-project-from-request", () => ({ createProjectFromRequest: vi.fn() }));
 vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution: vi.fn() }));
 vi.mock("@/lib/agency/execution/negotiate-proposal", () => ({ negotiateProposal: vi.fn() }));
 vi.mock("@/lib/agency/execution/assess-resources", () => ({ assessResources: vi.fn() }));
 const refazer = vi.hoisted(() => vi.fn());
+// `escopoDoToken` (rodada 3): a trava do ponteiro andado mudou de casa.
+const escopoDoToken = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/agency/esteira/refacao", () => ({ refazerPorPedidoDoCliente: refazer }));
 
 import { POST } from "@/app/api/portal/approvals/route";
 
+// ⚠️ rodada 5: a posse deixou de aceitar `clientRequest.clientId` (o ponteiro
+// MUTÁVEL, lido na hora da decisão) como prova — com a solicitação
+// re-apontada, o dono NOVO aprovava o card do ANTIGO, e aprovação PUBLICA.
+// Prova é CARIMBO: `ApprovalRequest.clientId`, gravado na criação.
 const APROVACAO = {
-  id: "ap1", clientRequestId: "cr1", department: "social-media",
+  id: "ap1", clientRequestId: "cr1", clientId: "c1", department: "social-media",
   clientVisible: true, status: "pending", questionOpenedAt: null as Date | null,
   clientRequest: { id: "cr1", clientId: "c1" },
 };
@@ -48,7 +55,22 @@ function req(body: Record<string, unknown>): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));
+  // ⚠️ 15/08/2026 (rodada 4) — O TOKEN PASSOU A EXIGIR `clientId` NO REGISTRO.
+  // `PortalAccess.clientId` virou a ÚNICA prova de pertencimento de um token:
+  // sem ela não se DERIVA dono do ponteiro `ClientRequestDb.clientId`, porque
+  // derivar de ponteiro mutável foi o que produziu o incidente (um link legado
+  // do cliente A abria o portal do cliente B). Por isso os fixtures abaixo
+  // carregam o dono, que é a forma que os links emitidos passam a ter.
+  // Token legado (sem `clientId`) é RECUSADO — ver a pendência de reemissão.
+  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: "c1" } });
+  // ⚠️ 15/08/2026 (rodada 3): a posse deixou de casar pelo `clientRequestId`
+  // escrito no registro do token — o PONTEIRO — e passa pelo ESCOPO CONGELADO
+  // (`escopoDoToken`), que deriva o cliente e as solicitações DELE. Por isso a
+  // solicitação do token agora precisa existir no banco do teste. Foi por este
+  // caminho que o probe do `seguranca` APROVOU uma entrega de outro cliente.
+  db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr1", clientId: "c1", workspaceId: "ws1" });
+  db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
   db.approvalRequest.findUnique.mockResolvedValue({ ...APROVACAO });
   db.approvalRequest.update.mockResolvedValue({});
   db.approvalRequest.count.mockResolvedValue(1);

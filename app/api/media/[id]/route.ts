@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { lerArquivo, assinaturaValida } from "@/lib/agency/media/armazenamento";
 
@@ -47,12 +47,30 @@ export async function GET(
   if (sig && assinaturaValida(id, exp, sig)) {
     autorizado = true;
   } else if (token) {
-    const v = await validatePortalAccess(token);
-    if (v.valid && v.record) {
-      const acesso = v.record;
+    // 🔴 RODADA 3: casava por `acesso.clientRequestId` — o ponteiro cru. Com a
+    // solicitação re-apontada, o probe do `seguranca` recebeu 410 ("arquivo
+    // indisponível no armazenamento") em vez de 403 — ou seja, **AUTORIZOU** o
+    // arquivo de outro cliente; só faltou o byte no disco do fixture.
+    const escopo = await escopoDoToken(token);
+    // ── PROVA DE PERTENCIMENTO, NÃO AUSÊNCIA DE PROVA DE CONTAMINAÇÃO ───────
+    //
+    // 🔴 Aqui morava a REGRESSÃO da rodada 3: `escopo.clientId === registro
+    // .clientId` com os dois NULOS autorizava — e atravessava WORKSPACE
+    // (inquilino 1 lendo arquivo do inquilino 2), porque todo `MediaAsset`
+    // legado tem `clientId` nulo. A base tinha o `!!` que eu removi.
+    //
+    // Agora o arquivo só sai com DONO ESCRITO batendo com o dono do token.
+    // Arquivo legado (sem dono) não é servido a ninguém pelo portal — não é
+    // "não achei prova de que é de outro", é "não há prova de que é seu".
+    if (escopo.ok && escopo.tipo === "cliente") {
+      autorizado = !!registro.clientId && registro.clientId === escopo.clientId;
+    } else if (escopo.ok && escopo.tipo === "prospect") {
+      // Prospect não tem cliente: a identidade dele É a solicitação, e o
+      // arquivo tem de estar sem dono E preso àquela solicitação.
       autorizado =
-        (!!acesso.clientRequestId && acesso.clientRequestId === registro.clientRequestId) ||
-        (!!acesso.clientId && acesso.clientId === registro.clientId);
+        registro.clientId == null
+        && !!registro.clientRequestId
+        && registro.clientRequestId === escopo.clientRequestId;
     }
   } else {
     const session = await getSession();
