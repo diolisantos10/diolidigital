@@ -1170,6 +1170,21 @@ function BriefingFileUpload({
   );
 }
 
+/**
+ * Gera o `tempClientId` da sala — o mesmo valor que vira `sessionId` mandado
+ * para `/api/sdr/chat` e chave do freio por sessão (`limite-no-banco.ts`).
+ *
+ * Extraída como função própria (em vez de literal dentro do `useState`) para
+ * ser testável sem montar o componente inteiro — ver
+ * `__tests__/briefing/session-id-nao-e-previsivel.test.ts`, que prova as duas
+ * metades do achado 1 do `seguranca` (16/08/2026): que o valor não é mais
+ * adivinhável a partir do relógio, e que ele sobrevive à higienização de
+ * `fioDaConversa` sem virar `"sem-sessao"`.
+ */
+export function gerarTempClientId(): string {
+  return `prospect-${Date.now()}-${crypto.randomUUID()}`;
+}
+
 export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const [state,          setState]          = useState<ProspectConvState>(() => initProspectConvState());
   const [inputText,      setInputText]      = useState("");
@@ -1186,8 +1201,15 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
 
-  // Internal temp ID for link association
-  const [tempClientId] = useState(() => "prospect-" + Date.now());
+  // Internal temp ID for link association — e é o `sessionId` que vai para
+  // `/api/sdr/chat` e vira a chave do freio por sessão (`limite-no-banco.ts`).
+  // Geração em `gerarTempClientId` (comentário lá explica o porquê do
+  // `crypto.randomUUID()`). `useState(gerarTempClientId)` — não `useMemo`,
+  // não literal solto — garante que o valor nasce UMA vez por montagem do
+  // componente e não muda a cada render: se mudasse, o freio por sessão
+  // nunca acumularia contagem e o registro da conversa (`PortalMessage`)
+  // fragmentaria em vários fios.
+  const [tempClientId] = useState(gerarTempClientId);
 
   const conv = state.conv;
   const sdr  = state.sdr;

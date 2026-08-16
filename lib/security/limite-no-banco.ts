@@ -43,6 +43,42 @@ export interface ResultadoDoLimite {
 
 const LIBERADO: ResultadoDoLimite = { liberado: true, esperarSegundos: 0, motivo: "ok" };
 
+// ── VISIBILIDADE DO ESTOURO — achado 2 do `seguranca`, 16/08/2026 ───────────
+//
+// Até aqui, este arquivo só logava quando o BANCO estava fora do ar
+// (`catch` lá embaixo). Quando o TETO estourava — o caminho normal do freio
+// funcionando — não sobrava rastro nenhum: impossível, olhando só o log,
+// distinguir um 429 de IP de um 429 de sessão, ou perceber que um balde
+// COMPARTILHADO (várias pessoas dividindo a mesma janela — ex.:
+// `sdr-chat-sessao:sdr:sem-sessao`, o fallback para quem chega sem
+// `sessionId`) está sendo atingido, o que seria DoS real contra terceiros
+// passando em silêncio.
+//
+// `chave` aqui é `${balde}:${identificador}` — convenção de TODOS os
+// chamadores desta função (ver `limiteExcedido` e `self-serve/order/route.ts`).
+// O `identificador` pode ser IP ou o fio de uma conversa: dado sensível, e
+// NUNCA vai para o log. Só o `balde` — o nome do teto, escolhido em código,
+// nunca pelo requisitante — é seguro de imprimir.
+function baldeDaChave(chave: string): string {
+  const i = chave.indexOf(":");
+  return i === -1 ? chave : chave.slice(0, i);
+}
+
+// Sinal ADICIONAL, também seguro: alguns chamadores usam um IDENTIFICADOR que
+// não é de ninguém — é uma palavra fixa escrita em código para representar um
+// balde COMPARTILHADO por todo mundo que cai nele (`"global"`, em
+// `self-serve-order`; `"sem-sessao"`, em `fioDaConversa`). Reconhecer esse
+// padrão não expõe identidade — o valor É o mesmo para qualquer pessoa que
+// caia ali, de propósito. Detectar isso é o que permite responder à pergunta
+// do achado: "o balde global está sendo atingido?" — sem nunca imprimir o
+// identificador de quem, de fato, é.
+function pareceBaldeCompartilhado(chave: string): boolean {
+  const i = chave.indexOf(":");
+  if (i === -1) return false;
+  const identificador = chave.slice(i + 1);
+  return identificador === "global" || /(^|:)sem-sessao$/.test(identificador);
+}
+
 /** Faxina barata das janelas vencidas: no máximo uma vez por minuto por
  *  processo, e nunca no caminho crítico da decisão (erro aqui é ignorado). */
 let ultimaFaxina = 0;
@@ -115,6 +151,14 @@ export async function consumirVaga(
       select: { resetAt: true },
     });
     const restante = linha ? linha.resetAt.getTime() - agora : janelaMs;
+
+    // O rastro que faltava — balde e motivo, NUNCA `chave`/`identificador`
+    // inteiros (ver comentário acima de `baldeDaChave`).
+    console.warn(
+      `[limite-no-banco] estourou balde=${baldeDaChave(chave)} motivo=estourou` +
+        ` compartilhado=${pareceBaldeCompartilhado(chave)}`,
+    );
+
     return {
       liberado: false,
       esperarSegundos: Math.max(1, Math.ceil(restante / 1000)),

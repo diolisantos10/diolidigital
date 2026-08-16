@@ -392,6 +392,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // por construção, todo tráfego que chega sem `sessionId` nenhum (o balde
   // global `sdr:sem-sessao`, acima).
   //
+  // O OUTRO LADO DA MESMA MOEDA — achado 1 do parecer de 16/08/2026: esta
+  // trava não é só escapável, ela é ATACÁVEL. `sessionId` viaja no CORPO da
+  // requisição: não é segredo, não é assinado, e nada aqui garante que o
+  // valor pertence a quem o mandou. Quem DESCOBRE o `sessionId` de outra
+  // pessoa — hoje, só observando a rede dela (proxy, extensão de navegador,
+  // rede Wi-Fi compartilhada) — pode mandar 60 chamadas usando aquele MESMO
+  // valor e QUEIMAR a cota da vítima: a conversa dela com o SDR leva 429 pelo
+  // resto da janela de 30 min. Griefing de um lead específico, não vazamento
+  // de dado nem gasto relevante de IA — mas é negação de serviço de verdade,
+  // e foi esta trava que abriu a porta para ela.
+  //
+  // Até 16/08 essa porta era MAIOR do que "observar a rede": o valor gerado
+  // pela sala (`PublicBriefingRoom.tsx`) era `"prospect-" + Date.now()` — um
+  // relógio em milissegundos, SEM componente aleatório. Um script não
+  // precisava observar nada: bastava tentar os poucos milissegundos prováveis
+  // e ACERTAR o `sessionId` de um visitante por força bruta numa janela de
+  // segundos. Isso foi FECHADO no mesmo despacho (`crypto.randomUUID()`
+  // somado ao relógio) — força bruta deixou de ser viável. O que continua
+  // ABERTO, e não tem conserto nesta frente: `sessionId` continua não sendo
+  // segredo nem assinado, e observação de rede continua sendo caminho. Isto
+  // está MITIGADO, não resolvido — o mesmo cookie httpOnly avaliado abaixo
+  // fecharia esta metade também, e segue fora do escopo pelo mesmo motivo.
+  //
   // AVALIADO E NÃO FEITO NESTA FRENTE: ancorar a sessão em algo que o
   // SERVIDOR controla — um cookie httpOnly assinado, atribuído no primeiro
   // `Set-Cookie` e só então usado como chave do balde — fecharia o buraco do
