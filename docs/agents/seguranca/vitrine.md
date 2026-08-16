@@ -12,6 +12,47 @@
 
 ---
 
+## A PORTA DOS FUNDOS É A API, NÃO A URL
+
+O dia em que a tela barrava e o `curl` entregava.
+
+**Medido em 16/08/2026, com ataque reproduzido.** A página `/agency/leads` é
+`dono_e_gestao`: um `social_staff` bate na porta e não entra. A rota que
+alimenta essa página chamava `requireSession()` **sem lista de papéis**. Com a
+mesma sessão que a tela recusa:
+
+```
+curl -b 'dioli-session=<jwt de social_staff>' '/api/agency/leads?contato=sim'
+→ 200 · nome, e-mail e WhatsApp de TODOS os leads do workspace,
+       mais as citações cruas do briefing e as pistas raspadas da conversa
+```
+
+**O padrão, e ele vale para toda rota desta casa:** *guarda de borda que exclui
+`/api/` transforma toda permissão de página em arrumação, a menos que cada
+handler repita a regra à mão.* O `proxy.ts` pula `/api/` inteiro **de
+propósito** — então não existe segunda camada esperando por você.
+
+**O corolário é o que mais dói:** o mecanismo certo já existia.
+`exigirApiInterna(rota)` foi escrito exatamente para isto, e estava em **1 rota
+de 16**. **Mecanismo que existe e é usado por 1 de 16 não é trava, é intenção.**
+
+**O que fazer, sempre:** rota de API interna abre com
+`exigirApiInterna("/agency/<a página que ela serve>")`. A permissão da API e a
+da tela ficam presas à MESMA linha do inventário — duas regras separadas para a
+mesma coisa é como a tela some do menu e a API continua servindo o dado. E
+**negue antes de consultar o banco**: negar depois de ler já pagou o custo, já
+pôde vazar no log e já contou a resposta pelo tempo dela.
+
+⚠️ **A lição sobre valor de alvo.** O buraco era anterior ao PR que o achou. O
+que mudou foi o preço: ao ganhar `?contato=sim`, a rota passou a devolver **a
+lista pronta de quem tem para onde ligar** — o recorte exato que um concorrente
+quereria. Filtro novo em rota velha é hora de reler a guarda dela.
+
+— promovido em 2026-08-16 pelo PM · origem: auditoria do `seguranca` no PR #170 ·
+conserto e teste em `__tests__/comercial/porta-dos-fundos-dos-leads.test.ts`
+
+---
+
 ## Fail closed já é o padrão desta casa — e ele foi conquistado, não herdado
 
 Três provas registradas, todas de 07/08/2026:

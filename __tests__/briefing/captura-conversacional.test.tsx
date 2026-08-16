@@ -21,24 +21,93 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   ESTADO_INICIAL,
   FRASE_SEM_CONTATO,
+  capturaTerminou,
   contatoDaCaptura,
+  ehUltimoTurno,
+  iniciarCaptura,
   lerResposta,
+  mostrarFraseSemContato,
   perguntaDoTurno,
+  proximoCampo,
+  pularTurno,
+  recusar,
+  responderTurno,
   temCanal,
-  turnosDaCaptura,
   type EstadoDaCaptura,
 } from "@/lib/agency/comercial/captura-conversacional";
 import { CapturaDeContato } from "@/components/agency/briefing/PublicBriefingRoom";
 
 const vazio = (): EstadoDaCaptura => ({ ...ESTADO_INICIAL });
 
+describe("🔴 O DEFEITO DE 16/08 — 'ela deu o número e o sistema diz que ela não deu'", () => {
+  // Reproduzido pelo `experiencia` no navegador, a 375px, com o POST observado.
+  // A pessoa digitava o WhatsApp; o turno seguinte dizia "é só pular" e não
+  // tinha botão de pular; ela clicava em "Prefiro não deixar contato agora" —
+  // o único controle parecido — e o POST saía com `contato: null`. Os 51 dias
+  // do Sushi Cazza produzidos pelo conserto dos 51 dias.
+
+  it("⛔ A ELIMINAÇÃO: com WhatsApp na mão, NÃO EXISTE turno depois — nada a destruir", () => {
+    const c = responderTurno(iniciarCaptura("Marcos"), "11 97777-1234");
+    expect(c.campo).toBeNull();
+    expect(capturaTerminou(c)).toBe(true);
+    expect(contatoDaCaptura(c.estado)).toMatchObject({ whatsapp: "11977771234" });
+  });
+
+  it("⛔ o mesmo pelo e-mail: canal dado encerra a captura", () => {
+    const c = responderTurno(pularTurno(iniciarCaptura("Marcos")), "marcos@trigodeouro.com.br");
+    expect(c.campo).toBeNull();
+    expect(contatoDaCaptura(c.estado)).toMatchObject({ email: "marcos@trigodeouro.com.br" });
+  });
+
+  it("🔴 A BLINDAGEM DA CLASSE — recusar NUNCA devolve `null` para quem já deu canal", () => {
+    // Mesmo forçando um estado que a tela de hoje não produz (canal gravado E
+    // um turno ainda em cartaz), recusar não pode apagar o contato. É a classe
+    // do defeito, não o caso: um turno novo depois do canal ressuscitaria o bug.
+    const forcada = {
+      ...iniciarCaptura("Marcos"),
+      estado: { nome: "Marcos", whatsapp: "11977771234", email: "" },
+      campo: "email" as const,
+    };
+    const saida = recusar(forcada);
+    expect(saida.acao).toBe("enviar_com_contato");
+    if (saida.acao === "enviar_com_contato") {
+      expect(saida.contato.whatsapp).toBe("11977771234");
+    }
+  });
+
+  it("sem canal nenhum, recusar continua sendo o caminho do `lead_incompleto`", () => {
+    expect(recusar(iniciarCaptura("Marcos")).acao).toBe("enviar_sem_contato");
+  });
+
+  it("🔴 SEGUNDA RESPOSTA ILEGÍVEL NÃO AVANÇA EM SILÊNCIO — e não descarta o que foi digitado", () => {
+    let c = iniciarCaptura("Marcos");
+    c = responderTurno(c, "1500");        // ilegível: recado
+    expect(c.campo).toBe("whatsapp");
+    expect(c.recado).toBeTruthy();
+    c = responderTurno(c, "meu zap");     // ilegível de novo: continua no turno
+    expect(c.campo).toBe("whatsapp");     // ANTES: avançava e jogava fora o texto
+    expect(c.recado).toBeTruthy();
+    // E a saída explícita continua funcionando — não é beco sem saída.
+    expect(pularTurno(c).campo).toBe("email");
+  });
+
+  it("🔴 DUAS VERDADES NA MESMA TELA: a frase 'sem WhatsApp nem e-mail' some para quem já deu", () => {
+    expect(mostrarFraseSemContato(vazio())).toBe(true);
+    expect(mostrarFraseSemContato({ ...vazio(), whatsapp: "11977771234" })).toBe(false);
+  });
+});
+
 describe("UMA PERGUNTA POR VEZ — a diferença entre conversa e formulário", () => {
-  it("os turnos são separados e o WhatsApp vem antes do e-mail", () => {
-    expect(turnosDaCaptura(false)).toEqual(["nome", "whatsapp", "email"]);
+  it("a ordem: nome, depois WhatsApp, depois e-mail", () => {
+    expect(proximoCampo(vazio(), [], false)).toBe("nome");
+    expect(proximoCampo(vazio(), ["nome"], false)).toBe("whatsapp");
+    expect(proximoCampo(vazio(), ["nome", "whatsapp"], false)).toBe("email");
+    expect(proximoCampo(vazio(), ["nome", "whatsapp", "email"], false)).toBeNull();
   });
 
   it("o nome NÃO é perguntado de novo quando o SDR já o capturou na descoberta", () => {
-    expect(turnosDaCaptura(true)).toEqual(["whatsapp", "email"]);
+    expect(iniciarCaptura("Marcos").campo).toBe("whatsapp");
+    expect(iniciarCaptura(null).campo).toBe("nome");
   });
 
   it("🔑 UM CANAL BASTA — quem responde o primeiro turno já é alcançável", () => {
@@ -47,18 +116,26 @@ describe("UMA PERGUNTA POR VEZ — a diferença entre conversa e formulário", (
     expect(contatoDaCaptura(depoisDoZap)).toMatchObject({ whatsapp: "11977771234", email: "" });
   });
 
-  it("com canal na mão, o turno do e-mail vira OFERTA, não cobrança", () => {
-    const semNada = perguntaDoTurno("email", vazio());
-    const comZap = perguntaDoTurno("email", { ...vazio(), whatsapp: "11977771234" });
-    expect(comZap.opcional).toBe(true);
-    expect(comZap.texto).toMatch(/se preferir|pular|quer receber/i);
-    // E os dois textos são diferentes: repetir a mesma frase para quem já
-    // respondeu é o que faz a pessoa sentir que ninguém estava ouvindo.
-    expect(comZap.texto).not.toBe(semNada.texto);
+  it("o texto do turno de e-mail não promete mais um 'pular' que não existia", () => {
+    // A frase antiga ("se preferir só o WhatsApp, é só pular") aparecia numa
+    // tela sem botão de pular. Ela morreu junto com o turno que a exibia.
+    expect(perguntaDoTurno("email", vazio()).texto).not.toMatch(/é só pular/i);
+  });
+
+  it("🟠 O RÓTULO DIZ O QUE O CLIQUE FAZ — turno de canal ENVIA, e o botão avisa", () => {
+    expect(perguntaDoTurno("nome", vazio()).acao).toMatch(/continuar/i);
+    expect(perguntaDoTurno("whatsapp", vazio()).acao).toMatch(/receber minha proposta/i);
+    expect(perguntaDoTurno("email", vazio()).acao).toMatch(/receber minha proposta/i);
   });
 
   it("a pergunta do WhatsApp DIZ POR QUÊ — pedido sem motivo parece cobrança de cadastro", () => {
     expect(perguntaDoTurno("whatsapp", vazio()).texto).toMatch(/responde|r[áa]pido/i);
+  });
+
+  it("`ehUltimoTurno` sabe quando o botão fecha o briefing", () => {
+    const noZap = iniciarCaptura("Marcos");
+    expect(ehUltimoTurno(noZap)).toBe(false);       // pular o zap ainda leva ao e-mail
+    expect(ehUltimoTurno(pularTurno(noZap))).toBe(true); // o e-mail é o fim da linha
   });
 });
 
@@ -77,9 +154,8 @@ describe("⛔ O INCIDENTE DO 'SÓ ISSO' NÃO VOLTA — nenhuma resposta é recus
     const frases = [
       FRASE_SEM_CONTATO,
       ...(["nome", "whatsapp", "email"] as const).flatMap((c) => {
-        const p1 = perguntaDoTurno(c, vazio());
-        const p2 = perguntaDoTurno(c, { ...vazio(), whatsapp: "11977771234" });
-        return [p1.texto, p1.acao, p1.placeholder, p2.texto, p2.acao];
+        const p = perguntaDoTurno(c, vazio());
+        return [p.texto, p.acao, p.placeholder];
       }),
       lerResposta("email", "só isso").recado ?? "",
       lerResposta("whatsapp", "1500").recado ?? "",
@@ -114,6 +190,9 @@ describe("RECUSAR CONTINUA PERMITIDO — e a tela não promete o que não cumpre
   it("🔴 quem recusa lê UMA FRASE dizendo que nada será enviado e onde a coisa fica", () => {
     expect(FRASE_SEM_CONTATO).toMatch(/n[ãa]o temos como te enviar/i);
     expect(FRASE_SEM_CONTATO).toMatch(/guardado/i);
+    // 🟠 E que o clique é IRREVERSÍVEL: envia agora e a tela troca. "Prefiro
+    // não deixar contato agora" soava como adiamento — não há "agora".
+    expect(FRASE_SEM_CONTATO).toMatch(/enviado agora/i);
   });
 
   it("lixo nos dois campos não força contato: um e-mail quebrado não vira canal", () => {
@@ -131,8 +210,35 @@ describe("A TELA MONTA, e mostra UM campo — não três", () => {
   });
 
   it("a saída honesta e a frase continuam visíveis desde o primeiro turno", () => {
-    expect(html).toContain("Prefiro não deixar contato agora");
+    expect(html).toContain("Enviar sem deixar contato");
     expect(html).toContain(FRASE_SEM_CONTATO.slice(0, 40));
+  });
+
+  it("🔴 A SAÍDA DO TURNO APARECE — foi a falta dela que produziu o defeito de 16/08", () => {
+    // Primeiro turno (nome): há "Pular" na tela, não só o botão primário.
+    expect(html).toContain("Pular");
+  });
+
+  it("🟠 o botão do Google diz que ENVIA, não que 'continua'", () => {
+    const fonte = fs.readFileSync(
+      path.join(process.cwd(), "components/agency/briefing/PublicBriefingRoom.tsx"),
+      "utf8",
+    );
+    expect(fonte).toContain("Enviar com minha conta Google");
+    expect(fonte).not.toContain("Continuar com Google");
+    // E a mensagem de erro não aponta mais para um formulário que não existe.
+    expect(fonte).not.toContain("Use o formulário abaixo");
+  });
+
+  it("🟠 POPUP BLOQUEADO NÃO É CLIQUE MORTO — Safari/iOS é onde nosso cliente está", () => {
+    const fonte = fs.readFileSync(
+      path.join(process.cwd(), "components/agency/briefing/PublicBriefingRoom.tsx"),
+      "utf8",
+    );
+    // O componente responde por si, sem depender do `onFallback` de quem o usa
+    // (que na sala do briefing chegava como `() => {}` — botão que não fazia nada).
+    expect(fonte).toContain("setPopupBloqueado(true)");
+    expect(fonte).toContain("bloqueou a janela do Google");
   });
 
   it("⛔ NENHUM botão nasce apagado — não há nada a exigir, e seguir sem responder é caminho", () => {

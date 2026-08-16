@@ -1,5 +1,69 @@
 # Pendências — o que está aberto
 
+## 🔴 16/08/2026 — ABERTAS PELA AUDITORIA DO PR #170 (contato do lead)
+
+Levantadas por `seguranca` e `experiencia` **fora do escopo daquele PR**, e
+deliberadamente NÃO consertadas lá: misturar conserto de percurso com conserto
+de borda faz o revisor perder os dois. O que era do PR foi consertado nele.
+
+### 🔴 P0 DA CASA — `/api/**` está fora do guarda de borda, por decisão explícita
+
+`proxy.ts` pula `/api/` inteiro (`PUBLIC_PATHS`). **A única trava de uma rota de
+API é o que o handler dela faz à mão** — e a maioria de `/api/agency/**` faz
+`requireSession()` pelado, que só pergunta "tem sessão?", nunca "este papel pode
+esta área?". Todas as abaixo servem telas `dono_e_gestao`; um `social_staff`
+barrado na tela passa por `curl`.
+
+- **Sem guarda nenhuma:** `escada`, `clients/[id]/marca`, `oportunidades/caixa`,
+  `oportunidades/email`, `oportunidades/caixa/testar`.
+- **Com `requireSession()` pelado:** `oportunidades`, `oportunidades/[id]`,
+  `oportunidades/conexoes`.
+- O mecanismo certo existe e é usado por **1 rota de 16**: `exigirApiInterna`.
+  Mecanismo usado por 1 de 16 não é trava, é intenção.
+- ✅ **`/api/agency/leads` foi fechada no PR #170** (era a de maior valor de
+  alvo depois do `?contato=sim`). As outras **precisam de dono**.
+
+- [ ] `seguranca` — 🔴 **varrer `/api/agency/**` e pôr `exigirApiInterna` em
+      todas.** Considerar inverter o padrão: rota de API interna sem guarda
+      declarada deveria falhar no build, não em produção.
+- [ ] `plataforma` — **comentário mentiroso** em `app/agency/layout.tsx:18`:
+      cita `GuardaDeRota` como quem confere permissão, e **esse componente não
+      existe no repositório**. Quem confere é o `proxy.ts`. Comentário que
+      aponta para uma trava inexistente é pior que comentário nenhum — ele faz
+      o próximo leitor achar que a proteção está coberta.
+- [ ] ⚠️ **Nota para quem for mexer:** os índices novos (`workspaceId` +
+      `contatoEmail` / `contatoWhatsapp`) tornam **barata a enumeração** no dia
+      em que alguém criar um `?email=`. **Essa rota não pode nascer pública.**
+
+### 🔴 A PESSOA ENTREGA O WHATSAPP PARA RECEBER UM NÚMERO QUE A TELA NUNCA MOSTRA
+
+- [ ] `experiencia` / `esteira` — 🔴 **`EstimateSection` nunca é renderizado**
+      (`components/agency/briefing/PublicBriefingRoom.tsx`, o componente está
+      definido e sem chamador). O briefing público promete estimativa de escopo,
+      prazo e investimento na chamada da página, pede o contato em troca — e a
+      estimativa **não aparece em lugar nenhum**. **Pré-existente e grave**;
+      achado ao percorrer o fluxo, não ao ler o código. Sem dono.
+
+### 🔴 "RECEBEMOS SEU BRIEFING" É DITO MESMO QUANDO A GRAVAÇÃO FALHOU
+
+- [ ] `esteira` — `app/briefing/page.tsx` engole a falha do POST num `catch` que
+      só escreve no console, e a tela de sucesso aparece igual. **É a mesma
+      classe do incidente do Drive** (`HTTP 200` no campo que a tela pinta de
+      verde): o prospect vai embora certo de que foi recebido, e não há registro
+      nenhum. O store local **não** é rede de segurança — ele morre com a aba.
+      Sem dono.
+
+### 🟠 Propostas de eliminação levantadas pelo `experiencia`
+
+- [ ] `experiencia` — o passo **"Sim, quero meu orçamento →"** é um clique que
+      não decide nada: quem chegou até ali já quer. Proposta de eliminá-lo e
+      levar direto à captura. Precisa de decisão, não de conserto.
+- [ ] `experiencia` — **o segundo canal (e-mail de quem já deu WhatsApp) pode
+      ir para a TELA DE SUCESSO.** Ali o briefing já está salvo e o lead já é
+      alcançável, então pular não custa nada — foi por isso que o turno saiu do
+      meio da captura. Ainda não construído.
+
+
 > # ⛔ O MAPA DA CASA É `docs/ESTADO-REAL-08-08.md`.
 > Aposentado como fonte de verdade por ordem do CEO em 08/08/2026. Este arquivo
 > tem **3.896 linhas** e **29 seções já concluídas** — o que está aberto de

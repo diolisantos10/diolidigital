@@ -141,6 +141,37 @@ describe("METADE 2 — SEM contato, não vira proposta E NÃO SE PERDE", () => {
 });
 
 describe("a trava não é contornável pelo corpo da requisição", () => {
+  // 16/08/2026, achado pelo `seguranca` com POST observado. Esta rota é PÚBLICA
+  // e espalhava `body.briefingJson` inteiro: um `contato` INVÁLIDO no corpo
+  // sobrevivia dentro do blob, porque `montarContato` devolvia `null` e não
+  // sobrescrevia nada. Em execução o gate segurava; o estrago era no backfill,
+  // que trataria `$.contato` como válido por construção e o levaria para a
+  // COLUNA — onde o filtro do banco não revalida.
+  it("🔴 `briefingJson.contato` INVÁLIDO vindo do corpo é DESCARTADO, não preservado", async () => {
+    await POST(
+      pedir({
+        ...BRIEFING_COMPLETO,
+        briefingJson: {
+          scope: { businessName: "Restaurante Sushi Cazza" },
+          contato: { nome: "Injetado", email: "<script>alert(1)</script>", whatsapp: "0" },
+        },
+      }),
+    );
+
+    const briefing = criados[0].briefingJson as { contato?: unknown; scope?: unknown };
+    expect(briefing.contato).toBeUndefined();
+    // O resto do briefing não foi levado junto no descarte.
+    expect(briefing.scope).toBeTruthy();
+    expect(criados[0].status).toBe("lead_incompleto");
+  });
+
+  it("o `contato` VÁLIDO continua nascendo — o descarte não fechou o caminho legítimo", async () => {
+    await POST(pedir({ ...BRIEFING_COMPLETO, contato: { nome: "Helena", email: "helena@studiovitrine.com.br" } }));
+    const briefing = criados[0].briefingJson as { contato?: Record<string, unknown> };
+    expect(briefing.contato).toMatchObject({ email: "helena@studiovitrine.com.br" });
+    expect(criados[0].status).toBe("new");
+  });
+
   it("`status` vindo do POST público é IGNORADO — senão qualquer um se declararia 'completed' e sairia da fila", async () => {
     await POST(pedir({ ...BRIEFING_COMPLETO, status: "completed" }));
     expect(criados[0].status).toBe("lead_incompleto");

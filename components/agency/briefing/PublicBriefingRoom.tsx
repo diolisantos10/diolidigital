@@ -9,13 +9,17 @@ import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone"
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
 import {
-  ESTADO_INICIAL,
   FRASE_SEM_CONTATO,
+  capturaTerminou,
   contatoDaCaptura,
-  lerResposta,
+  ehUltimoTurno,
+  iniciarCaptura,
+  mostrarFraseSemContato,
   perguntaDoTurno,
-  turnosDaCaptura,
-  type EstadoDaCaptura,
+  pularTurno,
+  recusar,
+  responderTurno,
+  type Captura,
 } from "@/lib/agency/comercial/captura-conversacional";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
@@ -390,10 +394,12 @@ function GoogleSignInButton({
 }) {
   const [state, setState] = useState<"idle" | "opening" | "waiting" | "error">("idle");
   const [errorCode, setErrorCode] = useState("");
+  const [popupBloqueado, setPopupBloqueado] = useState(false);
 
   function handleClick() {
     if (loading || state !== "idle") return;
     setState("opening");
+    setPopupBloqueado(false);
 
     const popup = window.open(
       "/api/auth/google",
@@ -402,8 +408,17 @@ function GoogleSignInButton({
     );
 
     if (!popup) {
-      // Popup blocked — fall back to email input
+      // 🔴 POPUP BLOQUEADO — e até 16/08/2026 o clique NÃO FAZIA NADA aqui.
+      //
+      // `onFallback` chega como `() => {}` na sala do briefing, então o botão
+      // apagava, não abria janela nenhuma e não dizia uma palavra. Safari e iOS
+      // bloqueiam popup por padrão, e **iPhone é onde nosso cliente está**:
+      // botão morto no celular é a pessoa concluindo que o site quebrou.
+      //
+      // Agora o componente responde por si: avisa e aponta para as perguntas,
+      // que estão logo abaixo e não dependem de janela nenhuma.
       setState("idle");
+      setPopupBloqueado(true);
       onFallback();
       return;
     }
@@ -467,15 +482,26 @@ function GoogleSignInButton({
           <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
           <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
         </svg>
-        {/* Rótulo curto de propósito: a 375px o texto antigo ("…para ver a
-            proposta") quebrava em duas linhas dentro do botão e desalinhava o
-            logo. E ele prometia o que não é mais verdade — a proposta chega
-            pelo canal informado, não na tela seguinte. */}
-        Continuar com Google
+        {/* ⚠️ O RÓTULO ANTIGO COMEÇAVA COM "Continuar…" ATÉ 16/08/2026, e mentia.
+            Este botão NÃO continua nada: ele pega o e-mail da conta, **envia o
+            briefing e encerra a sessão** — a tela troca para a de sucesso. É o
+            mesmo defeito do "Continuar" que fechava o briefing, e estava três
+            linhas acima dele, intacto. O rótulo curto continua sendo requisito:
+            a 375px o texto antigo quebrava em duas linhas e desalinhava o logo. */}
+        Enviar com minha conta Google
       </button>
       {state === "error" && (
         <p className="text-[10px] text-[var(--danger)] text-center">
-          Erro ao autenticar com Google{errorCode ? ` (${errorCode})` : ""}. Use o formulário abaixo.
+          {/* Mandava usar o formulário logo abaixo — e formulário abaixo não
+              existe mais desde que a captura virou conversa. Instrução que
+              aponta para algo inexistente faz a pessoa procurar, não achar,
+              e desistir. */}
+          Erro ao entrar com o Google{errorCode ? ` (${errorCode})` : ""}. Sem problema: responda as perguntas abaixo.
+        </p>
+      )}
+      {popupBloqueado && (
+        <p className="text-[10px] text-[var(--text-muted)] text-center leading-relaxed">
+          Seu navegador bloqueou a janela do Google. Sem problema — é só responder abaixo.
         </p>
       )}
     </div>
@@ -549,51 +575,60 @@ export function CapturaDeContato({
   onSemContato: () => void;
   loading: boolean;
 }) {
-  const turnos = turnosDaCaptura(!!nomeConhecido?.trim());
-  const [indice, setIndice] = useState(0);
-  const [estado, setEstado] = useState<EstadoDaCaptura>({
-    ...ESTADO_INICIAL,
-    nome: nomeConhecido?.trim() ?? "",
-  });
+  // TODA a máquina de turnos mora no módulo puro. Este componente guarda um
+  // estado só (`captura`) e o rascunho da caixa de texto — porque o defeito de
+  // 16/08 era de ESTADO ENTRE TURNOS, e estado dentro de componente só se testa
+  // clicando. O que não dá para testar chamando função é o que volta a quebrar.
+  const [captura, setCaptura] = useState<Captura>(() => iniciarCaptura(nomeConhecido));
   const [rascunho, setRascunho] = useState("");
-  const [recado, setRecado] = useState<string | null>(null);
 
-  const campo = turnos[indice];
-  const pergunta = perguntaDoTurno(campo, estado, estado.nome ? estado.nome.split(" ")[0] : null);
-  const ultimo = indice === turnos.length - 1;
+  const { estado, campo, recado } = captura;
 
-  function avancar(estadoNovo: EstadoDaCaptura) {
-    setRascunho("");
-    setRecado(null);
-    if (ultimo) {
-      // Fim da captura. Sem canal nenhum, isto vira EXATAMENTE o mesmo caminho
-      // de quem recusou: um envio só, sem contato, e o servidor decide. Chamar
-      // os dois caminhos aqui mandaria o briefing duas vezes — o prospect
-      // apareceria duplicado na fila, que é a Camila de 08/08 de novo.
-      const contato = contatoDaCaptura(estadoNovo);
-      if (contato) onSubmit(contato);
-      else onSemContato();
-      return;
-    }
-    setEstado(estadoNovo);
-    setIndice(indice + 1);
+  // Terminou: entrega o que foi capturado. Um envio só — chamar os dois
+  // caminhos mandaria o briefing duas vezes e o prospect apareceria duplicado
+  // na fila, que é a Camila de 08/08 de novo.
+  function concluir(c: Captura) {
+    const contato = contatoDaCaptura(c.estado);
+    if (contato) onSubmit(contato);
+    else onSemContato();
+  }
+
+  function aplicar(proxima: Captura) {
+    if (capturaTerminou(proxima)) { concluir(proxima); return; }
+    // Só limpa a caixa quando o turno de fato virou. Resposta ilegível fica na
+    // tela com o recado — jogar fora o que a pessoa digitou é o mesmo defeito
+    // de apagar o contato dela, em escala menor.
+    if (proxima.campo !== captura.campo) setRascunho("");
+    setCaptura(proxima);
   }
 
   function responder() {
-    if (loading) return;
-    const { valor, recado: aviso } = lerResposta(campo, rascunho);
-    if (!valor) {
-      // Não deu para entender: um recado curto, UMA vez, e a pessoa continua
-      // podendo seguir pelo mesmo botão de sempre. Nada é recusado e a pergunta
-      // não se repete em laço — foi o laço que travou o prospect no incidente.
-      if (aviso && !recado) { setRecado(aviso); return; }
-      avancar(estado);
-      return;
-    }
-    avancar({ ...estado, [campo]: valor });
+    if (loading || !campo) return;
+    aplicar(responderTurno(captura, rascunho));
   }
 
-  const enviaAgora = ultimo;
+  function pular() {
+    if (loading || !campo) return;
+    aplicar(pularTurno(captura));
+  }
+
+  // 🔴 A BLINDAGEM, e ela é mecanismo — não confiança em quem desenha a tela.
+  // Recusar NUNCA pode apagar canal já dado. Hoje não existe tela em que os dois
+  // coexistam (o turno de e-mail deixou de existir depois do canal), mas o
+  // defeito era da CLASSE: no dia em que alguém acrescentar um turno depois do
+  // canal, esta linha é o que impede o "ela deu o número e o sistema diz que
+  // não" de voltar.
+  function recusarContato() {
+    if (loading) return;
+    const saida = recusar(captura);
+    if (saida.acao === "enviar_com_contato") onSubmit(saida.contato);
+    else onSemContato();
+  }
+
+  if (!campo) return null;
+
+  const pergunta = perguntaDoTurno(campo, estado, estado.nome ? estado.nome.split(" ")[0] : null);
+  const enviaAgora = ehUltimoTurno(captura);
 
   return (
     <div className="space-y-2.5">
@@ -628,36 +663,43 @@ export function CapturaDeContato({
         <p className="text-[12px] text-[var(--text-muted)] text-center leading-relaxed">{recado}</p>
       )}
 
-      {/* Pular é um turno respondido, não uma desistência — e aparece em TODOS
-          os turnos que não são o último. Dizer no código que "pular sempre pode"
-          e não mostrar o caminho na tela é a mesma coisa que não poder: quem não
-          vê a saída escreve qualquer coisa no campo para se livrar dele, e aí a
-          casa ganha um telefone inventado em vez de um lead honesto sem canal. */}
-      {!enviaAgora && (
-        <button
-          onClick={() => !loading && avancar(estado)}
-          disabled={loading}
-          style={{ touchAction: "manipulation" }}
-          className="w-full h-9 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors disabled:opacity-40"
-        >
-          Pular
-        </button>
-      )}
+      {/* 🔴 A SAÍDA APARECE EM TODO TURNO, SEM EXCEÇÃO — foi a falta dela no
+          último turno que produziu o defeito de 16/08: a tela dizia "é só
+          pular", não havia botão de pular, e a pessoa clicava no único controle
+          parecido, que apagava o contato que ela tinha acabado de dar.
+          O rótulo diz o que o clique faz: no último turno ele ENVIA. */}
+      <button
+        onClick={pular}
+        disabled={loading}
+        style={{ touchAction: "manipulation" }}
+        className="w-full h-9 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors disabled:opacity-40"
+      >
+        {enviaAgora ? "Enviar sem responder isso" : "Pular"}
+      </button>
 
       {/* A saída honesta. Sem ela, quem não quer dar contato fecha a aba e a
           conversa inteira — a melhor matéria-prima que esta agência recebe —
           desaparece sem deixar registro. Com ela, o briefing fica gravado e
           aparece na fila com o motivo. O que ela NÃO faz é gerar proposta.
           A frase acima dela existe para a tela não prometer o que não cumpre. */}
+      {/* A frase some para quem JÁ deu canal: dizer "sem WhatsApp nem e-mail não
+          temos como te enviar nada" a quem acabou de digitar o número são duas
+          verdades na mesma tela, e ensina que o sistema não registrou. */}
       <div className="pt-1 border-t border-[var(--border)]">
-        <p className="text-[11px] text-[var(--text-subtle)] leading-relaxed pt-2">{FRASE_SEM_CONTATO}</p>
+        {mostrarFraseSemContato(estado) && (
+          <p className="text-[11px] text-[var(--text-subtle)] leading-relaxed pt-2">{FRASE_SEM_CONTATO}</p>
+        )}
         <button
-          onClick={() => !loading && onSemContato()}
+          onClick={recusarContato}
           disabled={loading}
           style={{ touchAction: "manipulation" }}
           className="w-full h-9 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] underline underline-offset-2 transition-colors disabled:opacity-40"
         >
-          Prefiro não deixar contato agora
+          {/* O rótulo diz que ENVIA e ENCERRA. "Prefiro não deixar contato
+              agora" soava como adiamento — e não há "agora": o briefing sobe e a
+              tela troca. Rótulo que esconde irreversibilidade é o mesmo defeito
+              do "Continuar" que fechava o briefing. */}
+          Enviar sem deixar contato
         </button>
       </div>
     </div>

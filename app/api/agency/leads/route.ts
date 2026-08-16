@@ -10,13 +10,29 @@
 // Nenhuma escrita, nenhuma chamada de IA, nenhum contato inventado.
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth/api-guard";
+import { exigirApiInterna } from "@/lib/agency/organizacao/guarda";
 import { listClientRequests } from "@/lib/agency/persistence/client-request-service";
 import { montarDossie } from "@/lib/agency/comercial/dossie-do-lead";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const { session, error } = await requireSession();
-  if (error) return error;
+  // ── A PORTA DOS FUNDOS ERA ESTA LINHA (16/08/2026) ─────────────────────────
+  //
+  // Era `requireSession()`, sem lista de papéis. A TELA `/agency/leads` é
+  // `dono_e_gestao`; a ROTA aceitava qualquer sessão interna. Medido: um
+  // `social_staff` barrado na tela recebia **200 com nome, e-mail e WhatsApp de
+  // todos os leads do workspace** por `curl`, mais as citações cruas do briefing
+  // e as pistas raspadas da conversa. E `proxy.ts` pula `/api/` inteiro de
+  // propósito — não havia segunda camada para salvar.
+  //
+  // `exigirApiInterna(rota)` prende a permissão da API à MESMA linha do
+  // inventário que decide a tela. Duas regras separadas para a mesma coisa é
+  // como a tela some do menu e a API continua servindo o dado.
+  //
+  // ⚠️ Nega ANTES de consultar o banco: negar depois de ler já pagou o custo,
+  // já pôde vazar no log e já contou a resposta pelo tempo dela.
+  const guarda = await exigirApiInterna("/agency/leads");
+  if (guarda.erro) return guarda.erro;
+  const { session } = guarda.acesso;
 
   // `?contato=sim|nao` — o recorte que a COLUNA destravou (16/08/2026). É o que
   // o aviso do orçamento precisa perguntar: "quais destes eu consigo responder?".

@@ -324,6 +324,43 @@ describe("O BACKFILL DA MIGRATION — rodado de verdade, com o SQL que foi envia
     expect(legado.contatoEm).toBeNull();
   });
 
+  it("🔴 CONTATO FORJADO NO `$.contato` NÃO SOBE — a premissa 'válido por construção' era falsa", async () => {
+    // O `seguranca` provou com POST observado: a rota pública preservava o
+    // `contato` cru do corpo quando ele era inválido. Se o backfill confiasse
+    // no formato canônico, este registro apareceria em `?contato=sim` enquanto
+    // o dossiê diz "não há para onde responder" — duas verdades adjacentes.
+    await prisma.clientRequestDb.create({
+      data: {
+        workspaceId, businessName: "Serralheria Porta Firme", services: "[]", objectives: "[]", status: "lead_incompleto",
+        briefingJson: JSON.stringify({
+          contato: { nome: "Injetado", email: "<script>alert(1)</script>", whatsapp: "0", informadoEm: "2026-08-16T10:00:00.000Z" },
+        }),
+      },
+    });
+    await prisma.clientRequestDb.create({
+      data: {
+        workspaceId, businessName: "Marcenaria Nó Cego", services: "[]", objectives: "[]", status: "lead_incompleto",
+        // Com espaço no meio: passa por qualquer LIKE ingênuo de "tem arroba".
+        briefingJson: JSON.stringify({ contato: { email: "vitima@x.com atacante@y.com", whatsapp: null } }),
+      },
+    });
+
+    await rodarBackfillDaMigration();
+
+    for (const nome of ["Serralheria Porta Firme", "Marcenaria Nó Cego"]) {
+      const l = await prisma.clientRequestDb.findFirstOrThrow({ where: { businessName: nome } });
+      expect(l.contatoEmail).toBeNull();
+      expect(l.contatoWhatsapp).toBeNull();
+      expect(l.contatoNome).toBeNull();
+      expect(l.contatoEm).toBeNull();
+    }
+
+    // E a consequência que importa: o forjado NÃO entra no recorte de quem tem
+    // canal. A coluna e o dossiê continuam contando a MESMA história.
+    const comCanal = await listClientRequests({ workspaceId, comContato: true, limit: 500 });
+    expect(comCanal.some((r) => r.businessName === "Serralheria Porta Firme")).toBe(false);
+  });
+
   it("⛔ A OUTRA METADE — o backfill NÃO sobe lixo, e é por isso que dá para confiar no filtro", async () => {
     await prisma.clientRequestDb.create({
       data: {

@@ -19,18 +19,30 @@
 -- há teste que reprova quem quebrar esse caminho.
 --
 -- ── O BACKFILL É CONSERVADOR PORQUE ERRAR PARA CIMA É CARO ─────────────────
--- Só sobe para a coluna o que já é válido POR CONSTRUÇÃO ou o que passa por uma
--- conferência de forma aqui mesmo:
+-- **NENHUMA origem é confiada sem conferência de forma.** As duas passam pelo
+-- mesmo crivo: e-mail precisa ter forma de e-mail e não ter espaço; telefone
+-- precisa ter de 10 a 13 dígitos depois de tirar máscara, e mais nada além de
+-- dígitos. O piso de 10 não é capricho: aceitar 8 faria "R$ 1.500" e "12 posts"
+-- — que aparecem em TODO briefing — virarem telefone, e telefone inventado é
+-- PIOR que nenhum, porque desliga o alarme sem dar para onde ligar.
 --
---   • `$.contato.*` — o formato canônico, escrito pelo gate de 08/08, que já
---     passou por `montarContato` (e-mail validado, WhatsApp normalizado). Sobe
---     inteiro.
---   • `$.scope.prospect*` — o formato legado, que NUNCA foi validado por nada.
---     Sobe só com conferência: e-mail precisa ter a forma de e-mail; telefone
---     precisa ter de 10 a 13 dígitos depois de tirar máscara. O piso de 10 não é
---     capricho: aceitar 8 faria "R$ 1.500" e "12 posts" — que aparecem em TODO
---     briefing — virarem telefone, e telefone inventado é PIOR que nenhum,
---     porque desliga o alarme sem dar para onde ligar.
+-- 🔴 A PRIMEIRA VERSÃO DISTO CONFIAVA NO `$.contato` COMO "VÁLIDO POR
+-- CONSTRUÇÃO", E A PREMISSA ERA FALSA — achado pelo `seguranca` em 16/08 com
+-- POST observado. `POST /api/brain/client-requests` é **rota pública** e
+-- espalhava o `briefingJson` do corpo inteiro; quando `montarContato` devolvia
+-- `null` (contato inválido), o `contato` CRU do atacante sobrevivia dentro do
+-- blob. Um e-mail com `<script>` entrava por ali.
+--
+-- O estrago não era o script — `lerContato` valida e o gate continuava dizendo
+-- `lead_incompleto`. Era a COLUNA: `filtroDeContato` usa `contatoEmail IS NOT
+-- NULL` e **não revalida**, então o registro forjado apareceria em
+-- `?contato=sim` enquanto o dossiê diz "não há para onde responder". É
+-- exatamente a "duas verdades adjacentes" que esta frente existe para matar.
+--
+-- Consertado nas DUAS pontas: a rota parou de preservar `contato` não validado
+-- (a premissa passou a ser verdadeira daqui para a frente) **e** o backfill
+-- confere a forma (para o que já foi gravado antes do conserto). Uma ponta só
+-- deixaria a outra metade do problema de pé.
 --
 -- O que não passar na conferência simplesmente NÃO sobe, e isso é seguro: o
 -- leitor único continua lendo o `briefingJson` como segunda origem. Deixar de
@@ -46,24 +58,44 @@ ALTER TABLE "ClientRequestDb" ADD COLUMN "contatoEmail" TEXT;
 ALTER TABLE "ClientRequestDb" ADD COLUMN "contatoWhatsapp" TEXT;
 ALTER TABLE "ClientRequestDb" ADD COLUMN "contatoEm" DATETIME;
 
--- ── Backfill 1: o formato canônico (válido por construção) ─────────────────
+-- ⚠️ TUDO NUMA TRANSAÇÃO. Medido pelo `seguranca`: em SQLite, sem isto, o
+-- primeiro UPDATE PERSISTE mesmo com o segundo falhando. Uma quebra no meio
+-- deixaria colunas preenchidas e os dois `CREATE INDEX` do fim de fora — e aí
+-- `?contato=nao` passaria a devolver lead que TEM canal. Falha virando
+-- afirmação é pior que falha: ninguém vai atrás do que parece ter dado certo.
+BEGIN;
+
+-- ── Backfill 1: o formato canônico — CONFERIDO, não confiado ───────────────
+UPDATE "ClientRequestDb"
+SET "contatoEmail" = trim(json_extract("briefingJson", '$.contato.email'))
+WHERE "briefingJson" IS NOT NULL
+  AND json_valid("briefingJson")
+  AND trim(coalesce(json_extract("briefingJson", '$.contato.email'), '')) LIKE '_%@_%._%'
+  AND trim(json_extract("briefingJson", '$.contato.email')) NOT LIKE '% %';
+
+UPDATE "ClientRequestDb"
+SET "contatoWhatsapp" = replace(replace(replace(replace(replace(replace(replace(
+      json_extract("briefingJson", '$.contato.whatsapp'),
+      '+',''),'-',''),' ',''),'(',''),')',''),'.',''),'/','')
+WHERE "briefingJson" IS NOT NULL
+  AND json_valid("briefingJson")
+  AND json_extract("briefingJson", '$.contato.whatsapp') IS NOT NULL
+  AND length(replace(replace(replace(replace(replace(replace(replace(
+      json_extract("briefingJson", '$.contato.whatsapp'),
+      '+',''),'-',''),' ',''),'(',''),')',''),'.',''),'/','')) BETWEEN 10 AND 13
+  AND NOT replace(replace(replace(replace(replace(replace(replace(
+      json_extract("briefingJson", '$.contato.whatsapp'),
+      '+',''),'-',''),' ',''),'(',''),')',''),'.',''),'/','')
+      GLOB '*[^0-9]*';
+
+-- O nome só entra DEPOIS dos canais, e só onde um canal entrou. Nome é o único
+-- campo que não tem forma para conferir — a defesa dele é não existir sozinho.
 UPDATE "ClientRequestDb"
 SET "contatoNome" = json_extract("briefingJson", '$.contato.nome')
 WHERE "briefingJson" IS NOT NULL
   AND json_valid("briefingJson")
-  AND json_extract("briefingJson", '$.contato.nome') IS NOT NULL;
-
-UPDATE "ClientRequestDb"
-SET "contatoEmail" = json_extract("briefingJson", '$.contato.email')
-WHERE "briefingJson" IS NOT NULL
-  AND json_valid("briefingJson")
-  AND json_extract("briefingJson", '$.contato.email') IS NOT NULL;
-
-UPDATE "ClientRequestDb"
-SET "contatoWhatsapp" = json_extract("briefingJson", '$.contato.whatsapp')
-WHERE "briefingJson" IS NOT NULL
-  AND json_valid("briefingJson")
-  AND json_extract("briefingJson", '$.contato.whatsapp') IS NOT NULL;
+  AND trim(coalesce(json_extract("briefingJson", '$.contato.nome'), '')) <> ''
+  AND ("contatoEmail" IS NOT NULL OR "contatoWhatsapp" IS NOT NULL);
 
 UPDATE "ClientRequestDb"
 SET "contatoEm" = json_extract("briefingJson", '$.contato.informadoEm')
@@ -120,5 +152,10 @@ UPDATE "ClientRequestDb"
 SET "contatoNome" = NULL
 WHERE "contatoEmail" IS NULL AND "contatoWhatsapp" IS NULL;
 
+-- Os índices entram DENTRO da mesma transação do backfill, e é o ponto da
+-- transação: coluna preenchida sem índice é um recorte que ninguém consegue
+-- responder, e índice sem a coluna conferida é um recorte que responde errado.
 CREATE INDEX "ClientRequestDb_workspaceId_contatoEmail_idx" ON "ClientRequestDb"("workspaceId", "contatoEmail");
 CREATE INDEX "ClientRequestDb_workspaceId_contatoWhatsapp_idx" ON "ClientRequestDb"("workspaceId", "contatoWhatsapp");
+
+COMMIT;

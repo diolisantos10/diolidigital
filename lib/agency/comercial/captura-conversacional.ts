@@ -56,14 +56,49 @@ export type EstadoDaCaptura = {
 export const ESTADO_INICIAL: EstadoDaCaptura = { nome: "", whatsapp: "", email: "" };
 
 /**
- * A ordem dos turnos.
+ * O PRÓXIMO turno — ou `null` quando a captura acabou.
  *
- * O nome sai da fila quando o SDR já o capturou na descoberta — perguntar de
- * novo o que a pessoa acabou de dizer é o jeito mais rápido de parecer que
- * ninguém estava ouvindo.
+ * ── 🔴 A ELIMINAÇÃO (16/08/2026), E ELA É A CORREÇÃO DE UM DEFEITO MEDIDO ───
+ *
+ * **Com canal na mão, o turno do e-mail NÃO EXISTE.** Não é atalho de
+ * conveniência: é o conserto pela raiz de um defeito que o `experiencia`
+ * reproduziu no navegador, a 375px, com o POST observado:
+ *
+ *   1. a pessoa digitava o WhatsApp e ele era gravado no estado do turno;
+ *   2. o turno seguinte (e-mail) dizia *"se preferir só o WhatsApp, é só pular"*
+ *      e **não tinha botão de pular**;
+ *   3. o único controle com cara de saída era "Prefiro não deixar contato
+ *      agora", que mandava `contato: null`;
+ *   4. resultado: **ela deu o número e o sistema dizia que ela não deu.** O
+ *      registro virava `lead_incompleto` e a tela final respondia "como não
+ *      temos WhatsApp nem e-mail seu, não temos como te enviar a proposta".
+ *
+ * São os 51 dias do Sushi Cazza produzidos pelo conserto dos 51 dias. A causa
+ * é estrutural: fatiar o formulário criou **estado já commitado**, e uma saída
+ * herdada do formulário único passou a destruí-lo. No formulário não havia
+ * estado para destruir.
+ *
+ * Dava para remendar pondo um botão "Pular" no último turno. Não foi o caminho:
+ * o turno **compra o canal que a própria casa declara não usar**
+ * (`contato-do-lead.ts`: *"e-mail de login do Google chega em caixa que ninguém
+ * lê"*), e o preço dele era manter viva a única tela onde a pessoa consegue
+ * destruir o canal que ela usa. Um canal já basta para o gate. **Turno que não
+ * existe não tem como ter defeito.**
+ *
+ * Um segundo canal, se um dia for desejado, é assunto da tela de SUCESSO —
+ * briefing já salvo, lead já alcançável, e ali pular não custa nada.
  */
-export function turnosDaCaptura(nomeJaConhecido: boolean): CampoDaCaptura[] {
-  return nomeJaConhecido ? ["whatsapp", "email"] : ["nome", "whatsapp", "email"];
+export function proximoCampo(
+  estado: EstadoDaCaptura,
+  perguntados: CampoDaCaptura[],
+  nomeJaConhecido: boolean,
+): CampoDaCaptura | null {
+  // A ELIMINAÇÃO. Um canal basta — e o que vem depois dele só tem a perder.
+  if (temCanal(estado)) return null;
+  if (!nomeJaConhecido && !perguntados.includes("nome")) return "nome";
+  if (!perguntados.includes("whatsapp")) return "whatsapp";
+  if (!perguntados.includes("email")) return "email";
+  return null;
 }
 
 export type Pergunta = {
@@ -106,22 +141,24 @@ export function perguntaDoTurno(campo: CampoDaCaptura, estado: EstadoDaCaptura, 
     return {
       campo,
       texto: `${oi}qual o seu WhatsApp? É por lá que a gente responde mais rápido.`,
-      acao: "Continuar",
+      // Responder este turno com um número legível ENCERRA a captura (um canal
+      // basta). O rótulo diz isso: "Continuar" num botão que envia o briefing é
+      // a tela mentindo sobre o próprio clique.
+      acao: "Receber minha proposta",
       opcional: false,
       placeholder: "DDD + número",
       tipo: "tel",
     };
   }
-  // O turno do e-mail é o ÚLTIMO, e por isso o botão dele ENVIA. O rótulo diz
-  // isso com todas as letras nos dois casos: "Continuar" num botão que fecha o
-  // briefing é a tela mentindo sobre o que o clique faz — e quem clica sem canal
-  // precisa saber que está enviando assim mesmo.
+  // O turno do e-mail só existe para quem NÃO deu WhatsApp — ver a eliminação em
+  // `proximoCampo`. Por isso não há mais o texto "se preferir só o WhatsApp, é
+  // só pular": ele era exibido numa tela sem botão de pular, e essa promessa
+  // vazia empurrava a pessoa para o único controle parecido, que apagava o
+  // contato dela.
   return {
     campo,
-    texto: temCanal(estado)
-      ? "Quer receber a proposta por e-mail também? Se preferir só o WhatsApp, é só pular."
-      : "E um e-mail? Serve qualquer um que você abra.",
-    acao: temCanal(estado) ? "Receber minha proposta" : "Enviar meu briefing",
+    texto: "Sem WhatsApp, então — me passa um e-mail? Serve qualquer um que você abra.",
+    acao: "Receber minha proposta",
     opcional: true,
     placeholder: "seu@email.com",
     tipo: "email",
@@ -194,6 +231,119 @@ export function contatoDaCaptura(estado: EstadoDaCaptura): { nome: string; email
   };
 }
 
+// ── A MÁQUINA DE TURNOS ────────────────────────────────────────────────────
+//
+// Ela mora aqui, e não dentro do componente, por um motivo aprendido caro: o
+// defeito que o `experiencia` achou era de ESTADO ENTRE TURNOS, e estado dentro
+// de componente só se testa clicando. Aqui ele se testa chamando função — e a
+// classe inteira do defeito ("uma saída apaga o que outro turno já gravou")
+// fica travada por teste, não por atenção de quem revisa.
+
+export type Captura = {
+  estado: EstadoDaCaptura;
+  /** O turno em cartaz. `null` quando a captura terminou. */
+  campo: CampoDaCaptura | null;
+  perguntados: CampoDaCaptura[];
+  /** O recado do turno atual. Some assim que a pessoa avança. */
+  recado: string | null;
+  nomeJaConhecido: boolean;
+};
+
+export function iniciarCaptura(nomeConhecido?: string | null): Captura {
+  const nome = nomeConhecido?.trim() ?? "";
+  const estado: EstadoDaCaptura = { ...ESTADO_INICIAL, nome };
+  return {
+    estado,
+    campo: proximoCampo(estado, [], !!nome),
+    perguntados: [],
+    recado: null,
+    nomeJaConhecido: !!nome,
+  };
+}
+
+function avancar(c: Captura, estado: EstadoDaCaptura): Captura {
+  const perguntados = c.campo ? [...c.perguntados, c.campo] : c.perguntados;
+  return {
+    ...c,
+    estado,
+    perguntados,
+    campo: proximoCampo(estado, perguntados, c.nomeJaConhecido),
+    recado: null,
+  };
+}
+
+/**
+ * A pessoa respondeu o turno.
+ *
+ * TRÊS saídas, e a terceira é o segundo conserto de 16/08:
+ *   • resposta legível → grava e avança;
+ *   • resposta VAZIA → é pular, avança sem gravar (pular é resposta legítima);
+ *   • resposta ilegível → **fica no mesmo turno com um recado, e o que foi
+ *     digitado NÃO é descartado.**
+ *
+ * ⚠️ A versão anterior avançava em silêncio na SEGUNDA resposta ilegível,
+ * jogando fora o texto. Era o mesmo defeito do outro conserto deste dia com
+ * outra roupa: **perder o que a pessoa deu sem avisar.** Agora nada avança
+ * sozinho — a saída existe, é visível ("Pular"), e é sempre um clique
+ * deliberado. Isso não é o laço do incidente do "só isso": lá o bot repetia a
+ * pergunta e a pessoa NÃO TINHA COMO SEGUIR; aqui seguir está sempre a um
+ * toque, no mesmo lugar de sempre.
+ */
+export function responderTurno(c: Captura, texto: string): Captura {
+  if (!c.campo) return c;
+  const t = (texto ?? "").trim();
+  if (!t) return avancar(c, c.estado); // vazio é pular
+
+  const { valor, recado } = lerResposta(c.campo, t);
+  if (valor) return avancar(c, { ...c.estado, [c.campo]: valor });
+  return { ...c, recado };
+}
+
+/** Pular explicitamente. Nunca grava, nunca apaga, sempre anda. */
+export function pularTurno(c: Captura): Captura {
+  return c.campo ? avancar(c, c.estado) : c;
+}
+
+/** A captura acabou e o briefing pode subir. */
+export function capturaTerminou(c: Captura): boolean {
+  return c.campo === null;
+}
+
+/**
+ * Ainda vem outro turno depois deste?
+ *
+ * É o que decide se o botão diz "Continuar" ou se ele ENVIA. Botão que diz
+ * "Continuar" e fecha o briefing é a tela mentindo sobre o próprio clique — foi
+ * um dos rótulos consertados em 16/08.
+ */
+export function ehUltimoTurno(c: Captura): boolean {
+  if (!c.campo) return true;
+  return proximoCampo(c.estado, [...c.perguntados, c.campo], c.nomeJaConhecido) === null;
+}
+
+export type SaidaDaRecusa =
+  | { acao: "enviar_sem_contato" }
+  /** 🔴 A BLINDAGEM. Ver abaixo. */
+  | { acao: "enviar_com_contato"; contato: { nome: string; email: string; whatsapp: string } };
+
+/**
+ * 🔴 RECUSAR NUNCA APAGA CONTATO JÁ DADO — e isto é trava, não confiança.
+ *
+ * Com a eliminação do turno de e-mail não existe mais tela em que a pessoa
+ * tenha canal gravado E veja o botão de recusar. Esta função continua existindo
+ * assim mesmo, porque **o defeito era da CLASSE, não do caso**: no dia em que
+ * alguém acrescentar um turno depois do canal — um "qual seu Instagram?", uma
+ * pergunta de horário —, a saída antiga volta a ter o que destruir.
+ *
+ * A regra em uma frase: **é impossível esta captura entregar `null` para alguém
+ * que já disse como falar com ela.**
+ */
+export function recusar(c: Captura): SaidaDaRecusa {
+  const contato = contatoDaCaptura(c.estado);
+  if (contato) return { acao: "enviar_com_contato", contato };
+  return { acao: "enviar_sem_contato" };
+}
+
 /**
  * A frase que quem NÃO deixa contato lê antes de seguir.
  *
@@ -203,5 +353,17 @@ export function contatoDaCaptura(estado: EstadoDaCaptura): { nome: string; email
  * caminho de volta é ela quem abre.
  */
 export const FRASE_SEM_CONTATO =
-  "Sem WhatsApp nem e-mail não temos como te enviar nada. Seu briefing fica guardado inteiro, " +
-  "e a proposta só sai quando você voltar a falar com a gente.";
+  "Sem WhatsApp nem e-mail não temos como te enviar nada. Se seguir assim, seu briefing é " +
+  "enviado agora e fica guardado inteiro — a proposta só sai quando você voltar a falar com a gente.";
+
+/**
+ * A frase só aparece para quem AINDA não deu canal.
+ *
+ * Duas verdades na mesma tela foi o terceiro achado do `experiencia`: quem
+ * acabou de digitar o WhatsApp lia "sem WhatsApp nem e-mail não temos como te
+ * enviar nada". Uma tela que contradiz o que a pessoa acabou de fazer ensina
+ * que o sistema não registrou — e ela vai embora ou repete tudo.
+ */
+export function mostrarFraseSemContato(estado: EstadoDaCaptura): boolean {
+  return !temCanal(estado);
+}
