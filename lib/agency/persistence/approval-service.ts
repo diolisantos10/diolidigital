@@ -84,27 +84,17 @@ async function cardGenericoJaPendente(input: CreateApprovalRequestInput) {
     orderBy: { createdAt: "desc" },
   });
 
-  // ── 🔴 REUSO NÃO PODE DEIXAR O CARD SEM DONO (16/08/2026) ─────────────────
+  // ── 🔴 O RE-CARIMBO SAIU DAQUI (rodada 9) — ele FABRICAVA PROVA FALSA ─────
   //
-  // Esta função devolve um card EXISTENTE e o `create` abaixo nem roda — logo,
-  // o carimbo que `createApprovalRequest` passou a gravar **não acontecia no
-  // caminho do reuso**. Card antigo, órfão, continuava órfão para sempre; e
-  // card órfão só é decidível pela regra de exceção (solicitação limpa), que é
-  // a mais frágil das duas metades.
+  // Na rodada 7 eu fiz este reuso carimbar o card órfão com o dono atual da
+  // solicitação. Medido: card órfão **de A**, solicitação re-apontada, e o
+  // reuso gravava `clientId = B` — **com autoridade, e o rastro forense
+  // sumia**. A cerca passava a ver o card como legitimamente do B.
   //
-  // O reuso agora carimba, pela MESMA derivação da criação: dono lido do banco
-  // no instante da escrita. Só carimba o que está sem dono — nunca sobrescreve.
-  if (reusavel && !reusavel.clientId && input.clientRequestId) {
-    const solicitacao = await prisma.clientRequestDb
-      .findUnique({ where: { id: input.clientRequestId }, select: { clientId: true } })
-      .catch(() => null);
-    if (solicitacao?.clientId) {
-      await prisma.approvalRequest
-        .updateMany({ where: { id: reusavel.id, clientId: null }, data: { clientId: solicitacao.clientId } })
-        .catch(() => null);
-      return { ...reusavel, clientId: solicitacao.clientId };
-    }
-  }
+  // É o oposto exato da trava que eu mesmo dei a `carimbarHistoricoDoProspect`
+  // no MESMO PR ("carimbar aqui gravaria prova FALSA"). Vale a mesma medicina:
+  // carimbo retroativo só acontece **offline, sob curadoria**, em
+  // `lib/agency/portal/backfill-de-carimbo.ts` — nunca no caminho quente.
   return reusavel;
 }
 

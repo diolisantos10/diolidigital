@@ -11,10 +11,16 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
+  // rodada 8: a cerca do filho apura evidência de troca de dono em quatro
+  // tabelas (ver `solicitacao-que-mudou-de-dono`). Sem estes mocks a apuração
+  // falha e FECHA — que é o certo, mas deixa a suíte sem exercitar o caminho
+  // limpo.
+  portalMessage: { findMany: vi.fn() },
+  portalAccess: { findMany: vi.fn() },
   clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   brainArtifact: { findMany: vi.fn() },
   approvalRequest: { findMany: vi.fn() },
-  project: { findFirst: vi.fn() },
+  project: { findFirst: vi.fn(), findMany: vi.fn() },
   deliverable: { findMany: vi.fn() },
   client: { findUnique: vi.fn() },
 }));
@@ -49,6 +55,10 @@ function req(): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  db.portalMessage?.findMany?.mockResolvedValue?.([]);
+  db.portalAccess?.findMany?.mockResolvedValue?.([]);
+  db.project?.findMany?.mockResolvedValue?.([]);
+  db.approvalRequest?.findMany?.mockResolvedValue?.([]);
   // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
   db.clientRequestDb.findMany?.mockResolvedValue?.([{ id: "cr1" }]);
   escopoDoToken.mockImplementation(escopoFalso(validatePortalAccess, db));

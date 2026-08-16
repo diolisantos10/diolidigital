@@ -30,11 +30,10 @@ export function pertenceAoToken(
   aprovacao: AprovacaoParaPosse,
   token: TokenParaPosse,
   clientIdDaSolicitacaoDoToken: string | null,
-  /**
-   * As solicitações que o token PROVA possuir e que não têm evidência de
-   * terem sido de outro cliente. Vazio = nenhuma; a posse então exige carimbo.
-   */
-  solicitacoesLimpasDoToken: readonly string[] = [],
+  // ⚠️ `solicitacoesLimpasDoToken` FOI APAGADO (rodada 9). Ele alimentava a
+  // metade 2 — o ramo que decidia o card ÓRFÃO por "ausência de evidência de
+  // troca de dono". Esse ramo morreu (ver abaixo), e parâmetro que ninguém lê
+  // numa função de segurança é o próximo a ser religado sem teste.
 ): boolean {
   if (token.clientRequestId && aprovacao.clientRequestId === token.clientRequestId) {
     return true;
@@ -66,12 +65,15 @@ export function pertenceAoToken(
   // A lista limpa é montada pelo chamador, do lado do servidor, a partir do
   // escopo congelado. Ela nunca AMPLIA o alcance de um card carimbado — só
   // decide o destino do card órfão, que hoje simplesmente não abriria.
-  if (aprovacao.clientId == null) {
-    return (
-      !!aprovacao.clientRequestId
-      && solicitacoesLimpasDoToken.includes(aprovacao.clientRequestId)
-    );
-  }
+  // ── A METADE 2 MORREU (rodada 9) ─────────────────────────────────────────
+  // Card órfão NÃO é decidível por ninguém. Era esta regra que deixava o token
+  // legítimo de B aprovar o card órfão de A: a "evidência de ter sido de
+  // outro" é cega justamente onde a produção vive (`PortalAccess` legado tem
+  // `clientId` nulo). E aprovação, nesta casa, PUBLICA.
+  //
+  // O card órfão do dono legítimo volta a abrir pelo BACKFILL — que o carimba
+  // offline, com curadoria — e não por uma exceção no caminho quente.
+  if (aprovacao.clientId == null) return false;
 
   // ── 🔴 RODADA 5: `clientRequestClientId` SAIU DAQUI ───────────────────────
   //

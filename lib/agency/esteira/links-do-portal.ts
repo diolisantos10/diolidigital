@@ -84,9 +84,19 @@ export interface RelatorioDeLinks {
 
 /** Token válido = não revogado e não vencido. A data é conferida aqui, e não no
  *  `where`, para que "vencido" apareça no relato em vez de sumir do resultado. */
-export function tokenVivo(t: { revokedAt: Date | null; expiresAt: Date | null }, agora = new Date()): boolean {
+export function tokenVivo(
+  t: { revokedAt: Date | null; expiresAt: Date | null; clientId?: string | null },
+  agora = new Date(),
+): boolean {
   if (t.revokedAt) return false;
   if (t.expiresAt && t.expiresAt.getTime() < agora.getTime()) return false;
+  // ── 🔴 SEM DONO ESCRITO, O TOKEN NÃO ABRE MAIS NADA (16/08/2026) ──────────
+  // `PortalAccess.clientId` virou a única prova de pertencimento de um token,
+  // e `escopoDoToken` recusa quem não a tem. Um token legado está tecnicamente
+  // "vivo" e não abre nada: reaproveitá-lo aqui devolveria ao cliente um link
+  // morto, e a reemissão em lote não consertaria coisa nenhuma.
+  // `undefined` (chamador que não seleciona a coluna) continua passando.
+  if (t.clientId === null) return false;
   return true;
 }
 
@@ -99,6 +109,17 @@ export function normalizarHost(host: string | null | undefined): string {
 export interface PedidoDeLinks {
   /** Os nomes procurados. Vazio = `CLIENTES_PADRAO`. */
   clientes?: string[];
+  /**
+   * ── A CARTEIRA INTEIRA, POR ID (16/08/2026, rodada 8) ────────────────────
+   * Eu escrevi ao CEO que reemitir os links "é um comando só" — e era FALSO.
+   * Sem lista, esta função processava três nomes fixos, e nome que casa com
+   * mais de um cliente era recusado (`nome_ambiguo`). O Diretor levou a
+   * recomendação apoiado na minha frase.
+   *
+   * Aqui cada cliente é resolvido pelo próprio ID: sem busca por nome, sem
+   * ambiguidade possível. É o que faz a opção A existir de verdade.
+   */
+  todaACarteira?: boolean;
   host?: string | null;
   /** `true` só quando quem chamou pediu EXPLICITAMENTE para gerar o que falta. */
   emitir?: boolean;
@@ -110,6 +131,56 @@ export interface PedidoDeLinks {
  * Nunca lança por cliente: um nome que não existe vira uma LINHA com motivo, e
  * não uma exceção que derruba os outros dois links que o CEO também pediu.
  */
+
+/**
+ * O link de UM cliente, resolvido pelo ID. Corpo compartilhado pelo modo de
+ * lote e pelo modo por nome — duas cópias divergiriam, e é justamente o lote
+ * que precisa ser confiável para a carteira inteira.
+ */
+async function linkDeUmCliente(
+  c: { id: string; name: string | null },
+  host: string,
+  emitir: boolean,
+): Promise<LinhaDeLink> {
+  const acessos = await prisma.portalAccess.findMany({
+    where: { clientId: c.id },
+    orderBy: { grantedAt: "desc" },
+  });
+  const bom = acessos.find((a) => tokenVivo(a));
+
+  if (bom) {
+    return {
+      procurado: c.name ?? c.id, situacao: "link_existente", cliente: c.name ?? "", clientId: c.id,
+      link: `${host}/portal/access/${bom.token}`,
+      motivo: "token existente com dono escrito, reaproveitado — nada foi gravado nem revogado.",
+      emitidoEm: bom.grantedAt.toISOString().slice(0, 10),
+      acessos: bom.accessCount,
+    };
+  }
+
+  const motivo = acessos.length === 0
+    ? "nunca teve token de portal"
+    : "todos os tokens estão revogados, vencidos ou SEM DONO ESCRITO (não abrem mais)";
+
+  if (!emitir) {
+    return {
+      procurado: c.name ?? c.id, situacao: "sem_token", cliente: c.name ?? "", clientId: c.id, link: null,
+      motivo: `${motivo}. Nada foi gravado: emitir é ação explícita (\`emitir=1\`).`,
+    };
+  }
+
+  const novo = await prisma.portalAccess.create({
+    data: { token: randomBytes(32).toString("base64url"), clientId: c.id },
+  });
+  return {
+    procurado: c.name ?? c.id, situacao: "link_novo", cliente: c.name ?? "", clientId: c.id,
+    link: `${host}/portal/access/${novo.token}`,
+    motivo: `${motivo} — token NOVO emitido agora. Nenhum token anterior foi revogado.`,
+    emitidoEm: novo.grantedAt.toISOString().slice(0, 10),
+    acessos: novo.accessCount,
+  };
+}
+
 export async function levantarLinksDoPortal(p: PedidoDeLinks = {}): Promise<RelatorioDeLinks> {
   const host = normalizarHost(p.host);
   const emitir = p.emitir === true;
@@ -123,6 +194,21 @@ export async function levantarLinksDoPortal(p: PedidoDeLinks = {}): Promise<Rela
 
   const linhas: LinhaDeLink[] = [];
   let faltando = 0;
+
+  // A carteira inteira, por ID — sem busca por nome, sem ambiguidade.
+  // Idempotente: reusa token com dono e só emite onde falta.
+  if (p.todaACarteira) {
+    for (const c of todos) {
+      const linha = await linkDeUmCliente(c, host, emitir);
+      linhas.push(linha);
+      if (!linha.link) faltando++;
+    }
+    return {
+      host, emitiu: emitir,
+      clientesNoBanco: todos.map((c) => ({ id: c.id, nome: c.name ?? "" })),
+      linhas, faltando,
+    };
+  }
 
   for (const nome of alvos) {
     // Busca por conteúdo, sem `mode: insensitive` — o SQLite do Prisma não o
@@ -147,47 +233,10 @@ export async function levantarLinksDoPortal(p: PedidoDeLinks = {}): Promise<Rela
       continue;
     }
 
-    const c = casam[0]!;
-    const acessos = await prisma.portalAccess.findMany({
-      where: { clientId: c.id },
-      orderBy: { grantedAt: "desc" },
-    });
-    const bom = acessos.find((a) => tokenVivo(a));
-
-    if (bom) {
-      linhas.push({
-        procurado: nome, situacao: "link_existente", cliente: c.name ?? "", clientId: c.id,
-        link: `${host}/portal/access/${bom.token}`,
-        motivo: "token existente, reaproveitado — nada foi gravado e nada foi revogado.",
-        emitidoEm: bom.grantedAt.toISOString().slice(0, 10),
-        acessos: bom.accessCount,
-      });
-      continue;
-    }
-
-    const motivo = acessos.length === 0
-      ? "nunca teve token de portal"
-      : "todos os tokens estão revogados ou vencidos";
-
-    if (!emitir) {
-      linhas.push({
-        procurado: nome, situacao: "sem_token", cliente: c.name ?? "", clientId: c.id, link: null,
-        motivo: `${motivo}. Nada foi gravado: emitir é ação explícita (\`emitir=1\`).`,
-      });
-      faltando++;
-      continue;
-    }
-
-    const novo = await prisma.portalAccess.create({
-      data: { token: randomBytes(32).toString("base64url"), clientId: c.id },
-    });
-    linhas.push({
-      procurado: nome, situacao: "link_novo", cliente: c.name ?? "", clientId: c.id,
-      link: `${host}/portal/access/${novo.token}`,
-      motivo: `${motivo} — token NOVO emitido agora. Nenhum token anterior foi revogado.`,
-      emitidoEm: novo.grantedAt.toISOString().slice(0, 10),
-      acessos: novo.accessCount,
-    });
+    const linha = await linkDeUmCliente(casam[0]!, host, emitir);
+    linha.procurado = nome;
+    linhas.push(linha);
+    if (!linha.link) faltando++;
   }
 
   return {

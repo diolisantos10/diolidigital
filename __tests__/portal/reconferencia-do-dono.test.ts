@@ -338,7 +338,17 @@ describe("aprovar a própria proposta — e só a própria", () => {
     }));
   }
 
-  it("✅ METADE 1: o dono legítimo APROVA o card órfão da própria solicitação", async () => {
+  // ⚠️ RODADA 9 — A METADE 1 MUDOU DE LUGAR, e é o fim do vaivém.
+  //
+  // Ela era uma EXCEÇÃO no caminho quente ("órfão de solicitação sem
+  // evidência de ter sido de outro, então passa"). Era ela que abria o
+  // bloqueante A: a evidência é cega na população de produção, porque
+  // `PortalAccess` legado tem `clientId` nulo e o filtro de carimbo alheio não
+  // o enxerga. O token legítimo de B aprovava o card órfão de A.
+  //
+  // Agora o card órfão é destravado pelo BACKFILL — offline, com curadoria —
+  // e a leitura volta a exigir carimbo, ponto. Não sabido fecha.
+  it("✅ METADE 1: depois do BACKFILL, o dono legítimo aprova o próprio card", async () => {
     // Solicitação que sempre foi do BETA, com o card no formato de todo card
     // pendente anterior ao deploy: `clientId` NULO.
     const propria = await prisma.clientRequestDb.create({
@@ -347,6 +357,13 @@ describe("aprovar a própria proposta — e só a própria", () => {
     const card = await cardOrfaoEm(propria.id);
     await prisma.portalAccess.create({ data: { token: "tk-ok", clientId: beta, clientRequestId: propria.id } });
 
+    // Sem o backfill, o card órfão não abre para ninguém — inclusive o dono.
+    const antes = await decidir("tk-ok", card.id);
+    expect(antes.status, "card órfão não pode abrir ANTES do backfill").toBe(403);
+
+    const { backfillDeCarimbo } = await import("@/lib/agency/portal/backfill-de-carimbo");
+    await backfillDeCarimbo(true);
+
     const res = await decidir("tk-ok", card.id);
 
     // Se este teste cair, a esteira comercial parou no dia 1.
@@ -354,7 +371,7 @@ describe("aprovar a própria proposta — e só a própria", () => {
     expect((await prisma.approvalRequest.findUnique({ where: { id: card.id } }))?.status).not.toBe("pending");
   });
 
-  it("⛔ METADE 2: o dono NOVO não aprova o card órfão de uma solicitação que já foi de outro", async () => {
+  it("⛔ METADE 2: o dono NOVO não aprova o card órfão de solicitação que já foi de outro — nem depois do backfill", async () => {
     // `reqCompartilhada` é do BETA hoje e foi do ALFA — e o ALFA deixou
     // pegada (o `PortalAccess` do teste anterior a este bloco não conta; aqui
     // a evidência é criada explicitamente).
@@ -363,6 +380,11 @@ describe("aprovar a própria proposta — e só a própria", () => {
     });
     const card = await cardOrfaoEm(reqCompartilhada);
     await prisma.portalAccess.create({ data: { token: "tk-beta-2", clientId: beta } });
+
+    // O backfill DEIXA ESTA DE FORA — a solicitação tem carimbo alheio.
+    const { backfillDeCarimbo } = await import("@/lib/agency/portal/backfill-de-carimbo");
+    const rel = await backfillDeCarimbo(true);
+    expect(rel.linhas.find((l) => l.clientRequestId === reqCompartilhada)?.deixadaDeFora).toBeTruthy();
 
     const res = await decidir("tk-beta-2", card.id);
 
@@ -543,7 +565,11 @@ describe("M18 — o prospect só decide card SEM dono", () => {
     expect((await prisma.approvalRequest.findUnique({ where: { id: card.id } }))?.status).toBe("pending");
   });
 
-  it("⛔ e o reuso de card genérico CARIMBA — card órfão não fica órfão para sempre", async () => {
+  // ⚠️ RODADA 9 — INVERTIDO. Este teste travava o re-carimbo no caminho
+  // quente, e o re-carimbo FABRICAVA PROVA FALSA: card órfão de A, solicitação
+  // re-apontada, e o reuso gravava `clientId = B` com autoridade — o rastro
+  // forense sumia. Carimbo retroativo só no backfill, sob curadoria.
+  it("⛔ o reuso NÃO carimba — carimbo retroativo no caminho quente é prova falsa", async () => {
     const { createApprovalRequest } = await import("@/lib/agency/persistence/approval-service");
     // Card antigo, genérico e SEM dono: o formato do acervo pré-carimbo.
     const antigo = await prisma.approvalRequest.create({
@@ -561,7 +587,9 @@ describe("M18 — o prospect só decide card SEM dono", () => {
     });
 
     expect(devolvido.id).toBe(antigo.id);
-    expect((await prisma.approvalRequest.findUnique({ where: { id: antigo.id } }))?.clientId).toBe(beta);
+    // Continua órfão: quem o destrava é o backfill, com curadoria — e nesta
+    // solicitação (que tem carimbo alheio) ele nem vai destravar.
+    expect((await prisma.approvalRequest.findUnique({ where: { id: antigo.id } }))?.clientId).toBeNull();
   });
 });
 
@@ -579,8 +607,27 @@ describe("as outras portas com token nu (sem dono escrito)", () => {
     return fn(req, { params: Promise.resolve({ id: "qualquer" }) });
   }
 
+  // ⚠️ AS TRÊS QUE ERAM CONTROLE POSITIVO (rodada 8). Com `approvalRequestId:
+  // "x"` e `pedidoId: "x"`, um token TOTALMENTE LEGÍTIMO também levava 404/400
+  // — a rota morria na busca ou na validação ANTES de olhar posse. Apagar a
+  // trava de token inteira deixava o teste verde. Agora os ids EXISTEM e a
+  // asserção é de MOTIVO, não de status.
   it("⛔ nenhuma delas abre com token nu — e nenhuma vaza o nome do BETA", async () => {
     await prisma.portalAccess.create({ data: { token: "tk-nu", clientRequestId: reqCompartilhada } });
+    // Ids REAIS: sem isto, o 403 podia estar vindo de "não achei", não de posse.
+    const pedidoReal = await prisma.contentRequest.create({
+      data: {
+        clientId: beta, title: "Pedido da Loja BETA",
+        description: "descrição", objective: "objetivo", quoteStatus: "pendente",
+      },
+    });
+    const cardReal = await prisma.approvalRequest.create({
+      data: {
+        clientRequestId: reqCompartilhada, clientId: beta, department: "proposal",
+        status: "pending", clientVisible: true, requestedBy: "agencia",
+        reviewNote: "Loja BETA — pacote", sourcePostIdsJson: "[]",
+      },
+    });
 
     const portas: [string, "GET" | "POST", string, unknown?][] = [
       ["@/app/api/portal/conexoes/route", "GET", "/api/portal/conexoes?token=tk-nu"],
@@ -593,19 +640,27 @@ describe("as outras portas com token nu (sem dono escrito)", () => {
       ["@/app/api/portal/transcricao/route", "GET", "/api/portal/transcricao?token=tk-nu"],
       // A ESCRITA — a pior delas.
       ["@/app/api/portal/approvals/route", "POST", "/api/portal/approvals",
-        { token: "tk-nu", approvalRequestId: "x", action: "approve" }],
+        { token: "tk-nu", approvalRequestId: cardReal.id, action: "approve" }],
       ["@/app/api/portal/pedidos/orcamento/route", "POST", "/api/portal/pedidos/orcamento",
-        { token: "tk-nu", pedidoId: "x", decisao: "aprovar" }],
+        { token: "tk-nu", pedidoId: pedidoReal.id, decisao: "aprovar", apontamento: "ok" }],
       ["@/app/api/portal/session/route", "POST", "/api/portal/session", { token: "tk-nu" }],
     ];
 
     for (const [mod, verbo, caminho, corpo] of portas) {
       const res = await chamar(mod, verbo, caminho, corpo);
+      // ⚠️ SEM `continue` SILENCIOSO: porta que deixe de exportar o verbo some
+      // da varredura sem ninguém notar — é literalmente o defeito que esta
+      // operação repetiu cinco vezes.
+      expect(res, `${mod} não exporta ${verbo} — a varredura perderia esta porta`).not.toBeNull();
       if (!res) continue;
       expect(res.status, `${mod} ABRIU com token nu`).toBeGreaterThanOrEqual(400);
       const bruto = await res.text().catch(() => "");
       expect(bruto, `${mod} vazou o nome do BETA`).not.toContain("Loja BETA");
     }
+
+    // E a prova de que o 403 veio da POSSE, não de "não achei": o card e o
+    // pedido continuam intactos.
+    expect((await prisma.approvalRequest.findUnique({ where: { id: cardReal.id } }))?.status).toBe("pending");
   });
 
   it("⛔ e `session` não grava cookie de 180 dias com token nu", async () => {
@@ -616,5 +671,320 @@ describe("as outras portas com token nu (sem dono escrito)", () => {
     }));
     expect(res.status).toBe(403);
     expect(res.cookies.get("dioli_portal")).toBeUndefined();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 A LISTA E A POSSE TÊM DE RESPONDER A MESMA COISA
+//
+// A rodada 7 passou porque o teste chamava o POST direto. Medido depois:
+//
+//   POST /api/portal/approvals · token do ALFA · card órfão DELE → 200 approved
+//   GET  /api/brain/portal-data?token=tok-alfa                   → "approvals":[]
+//
+// **O POST aceitava o que o GET nunca mostrava.** Na tela: "0 DECISÕES
+// PENDENTES · Nada esperando sua decisão", com R$ 12.000 pendentes no banco.
+// Erro vermelho gera chamado; "nada depende de você" não gera nada.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("o card órfão do dono APARECE na lista, não só aceita o clique", () => {
+  it("⛔ `portal-data` LISTA o card órfão da solicitação do próprio dono", async () => {
+    const propria = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: beta, businessName: "Loja BETA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    const card = await prisma.approvalRequest.create({
+      data: {
+        clientRequestId: propria.id, clientId: null, department: "proposal",
+        status: "pending", clientVisible: true, requestedBy: "agencia",
+        reviewNote: "Pacote mensal R$ 12.000", sourcePostIdsJson: "[]",
+      },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-lista", clientId: beta, clientRequestId: propria.id } });
+    // O backfill é o que devolve o card órfão ao dono — offline, com curadoria.
+    const { backfillDeCarimbo } = await import("@/lib/agency/portal/backfill-de-carimbo");
+    await backfillDeCarimbo(true);
+
+    const { GET } = await import("@/app/api/brain/portal-data/route");
+    const json = await (await GET(get("/api/brain/portal-data?token=tk-lista"))).json();
+
+    // Se isto cair, a tela diz "nada depende de você" com dinheiro na mesa.
+    expect(json.approvals.map((a: { id: string }) => a.id)).toContain(card.id);
+  });
+
+  it("⛔ e o ARTEFATO órfão também — `pipeline` e `departments` não podem vir vazios", async () => {
+    const propria = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: beta, businessName: "Loja BETA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    // `clientId: null` é o que o escritor REAL da casa gravava — sempre.
+    await prisma.brainArtifact.create({
+      data: {
+        clientRequestId: propria.id, clientId: null, department: "strategy",
+        canvasId: "c1", canvasJson: JSON.stringify({ summary: "Direção aprovada do BETA" }),
+        version: 1, status: "approved", approvedAt: new Date(),
+      },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-art", clientId: beta, clientRequestId: propria.id } });
+    const { backfillDeCarimbo } = await import("@/lib/agency/portal/backfill-de-carimbo");
+    await backfillDeCarimbo(true);
+
+    const { GET } = await import("@/app/api/brain/portal-data/route");
+    const json = await (await GET(get("/api/brain/portal-data?token=tk-art"))).json();
+
+    expect(json.pipeline.length, "pipeline vazio = portal apagado").toBeGreaterThan(0);
+    expect(Object.keys(json.departments).length, "departments vazio").toBeGreaterThan(0);
+  });
+
+  it("⛔ o escritor REAL de artefato passa a carimbar o dono", async () => {
+    // Sem isto, a cerca do filho apagava a tela PARA SEMPRE — não era dívida
+    // de acervo que a reemissão de links resolve.
+    const { createBrainArtifact } = await import("@/lib/agency/persistence/brain-artifact-service");
+    const propria = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: beta, businessName: "Loja BETA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    const art = await createBrainArtifact({
+      clientRequestId: propria.id, department: "strategy", canvasId: "c1",
+      canvas: { summary: "x" }, approvedBy: "teste",
+    });
+    expect((await prisma.brainArtifact.findUnique({ where: { id: art.id } }))?.clientId).toBe(beta);
+  });
+
+  it("⛔ mas o card órfão de solicitação RE-APONTADA continua fora da lista", async () => {
+    // A outra metade, na MESMA porta: a lista não pode virar porta dos fundos.
+    await prisma.portalAccess.create({
+      data: { token: "tk-pegada-a", clientId: alfa, clientRequestId: reqCompartilhada },
+    });
+    const card = await prisma.approvalRequest.create({
+      data: {
+        clientRequestId: reqCompartilhada, clientId: null, department: "proposal",
+        status: "pending", clientVisible: true, requestedBy: "agencia",
+        reviewNote: "SEGREDO orçamento de R$ 91.000", sourcePostIdsJson: "[]",
+      },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-lista-b", clientId: beta, clientRequestId: reqCompartilhada } });
+
+    const { GET } = await import("@/app/api/brain/portal-data/route");
+    const bruto = await (await GET(get("/api/brain/portal-data?token=tk-lista-b"))).text();
+
+    expect(bruto).not.toContain("91.000");
+    expect(bruto).not.toContain(card.id);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 A REEMISSÃO EM LOTE — sem ela a opção A não existe
+//
+// Eu escrevi ao Diretor que reemitir os links "é um comando só", ele levou ao
+// CEO, e era FALSO: sem lista, `levantarLinksDoPortal` processava três nomes
+// fixos, e nome que casa com mais de um cliente era recusado.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("reemissão da carteira inteira", () => {
+  it("⛔ alcança TODOS os clientes por id — sem nome, sem ambiguidade", async () => {
+    const { levantarLinksDoPortal } = await import("@/lib/agency/esteira/links-do-portal");
+    // Dois clientes com o MESMO nome: pelo caminho por nome isto era
+    // `nome_ambiguo` e ninguém recebia link.
+    await prisma.client.create({ data: { workspaceId: ws, name: "Agência ALFA" } });
+
+    const r = await levantarLinksDoPortal({ todaACarteira: true, emitir: true });
+
+    const noBanco = await prisma.client.count();
+    expect(r.linhas).toHaveLength(noBanco);
+    expect(r.linhas.every((l) => l.link), "algum cliente ficou sem link").toBe(true);
+    expect(r.linhas.some((l) => l.situacao === "nome_ambiguo")).toBe(false);
+  });
+
+  it("⛔ o token emitido TEM dono escrito — senão a reemissão não conserta nada", async () => {
+    const { levantarLinksDoPortal } = await import("@/lib/agency/esteira/links-do-portal");
+    await levantarLinksDoPortal({ todaACarteira: true, emitir: true });
+    expect(await prisma.portalAccess.count({ where: { clientId: null } })).toBe(0);
+  });
+
+  it("⛔ token LEGADO (sem dono) não é reaproveitado — ele não abre mais nada", async () => {
+    const { levantarLinksDoPortal } = await import("@/lib/agency/esteira/links-do-portal");
+    const so = await prisma.client.create({ data: { workspaceId: ws, name: "So Legado" } });
+    await prisma.portalAccess.create({ data: { token: "tk-legado-reuso", clientRequestId: reqCompartilhada } });
+
+    const r = await levantarLinksDoPortal({ todaACarteira: true, emitir: true });
+    const linha = r.linhas.find((l) => l.clientId === so.id)!;
+
+    expect(linha.situacao).toBe("link_novo");
+    expect(linha.link).not.toContain("tk-legado-reuso");
+  });
+
+  it("✅ e é IDEMPOTENTE: rodar duas vezes não cria token novo", async () => {
+    const { levantarLinksDoPortal } = await import("@/lib/agency/esteira/links-do-portal");
+    await levantarLinksDoPortal({ todaACarteira: true, emitir: true });
+    const depoisDaPrimeira = await prisma.portalAccess.count();
+    const r = await levantarLinksDoPortal({ todaACarteira: true, emitir: true });
+    expect(await prisma.portalAccess.count()).toBe(depoisDaPrimeira);
+    expect(r.linhas.every((l) => l.situacao === "link_existente")).toBe(true);
+  });
+});
+
+describe("a linha-mãe também é cercada", () => {
+  it("⛔ o briefing da solicitação de outro não trafega no JSON", async () => {
+    // A tela mascarava com `vista.marca.nome` — mas `curl` lê o JSON.
+    const doAlfa = await prisma.clientRequestDb.create({
+      data: {
+        workspaceId: ws, clientId: alfa, businessName: "Padaria ALFA",
+        segment: "padaria", services: '["social"]', objectives: '["vender"]',
+        status: "in_progress", rawContext: "x",
+      },
+    });
+    // O ponteiro anda para o BETA, que abre com o token dele.
+    await prisma.clientRequestDb.update({ where: { id: doAlfa.id }, data: { clientId: beta } });
+    await prisma.portalAccess.create({ data: { token: "tk-mae", clientId: alfa, clientRequestId: doAlfa.id } });
+    await prisma.portalAccess.create({ data: { token: "tk-mae-b", clientId: beta, clientRequestId: doAlfa.id } });
+
+    const { GET } = await import("@/app/api/brain/portal-data/route");
+    const bruto = await (await GET(get("/api/brain/portal-data?token=tk-mae-b"))).text();
+
+    expect(bruto).not.toContain("Padaria ALFA");
+  });
+
+  it("✅ e o próprio briefing do dono continua saindo", async () => {
+    const propria = await prisma.clientRequestDb.create({
+      data: {
+        workspaceId: ws, clientId: beta, businessName: "Loja BETA legítima",
+        segment: "loja", services: "[]", objectives: "[]", status: "in_progress", rawContext: "x",
+      },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-mae-ok", clientId: beta, clientRequestId: propria.id } });
+    const { GET } = await import("@/app/api/brain/portal-data/route");
+    const bruto = await (await GET(get("/api/brain/portal-data?token=tk-mae-ok"))).text();
+    expect(bruto).toContain("Loja BETA legítima");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 O BACKFILL — o conserto, e ele tem de ter as duas metades
+// ═══════════════════════════════════════════════════════════════════════════
+describe("backfill curado", () => {
+  it("✅ carimba a solicitação LIMPA, e o dono volta a ver o que é dele", async () => {
+    const propria = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: beta, businessName: "Loja BETA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    await prisma.portalMessage.create({
+      data: { clientRequestId: propria.id, authorRole: "team", authorName: "x", body: "conversa antiga do beta" },
+    });
+
+    const { backfillDeCarimbo } = await import("@/lib/agency/portal/backfill-de-carimbo");
+    const rel = await backfillDeCarimbo(true);
+
+    const linha = rel.linhas.find((l) => l.clientRequestId === propria.id)!;
+    expect(linha.deixadaDeFora).toBeUndefined();
+    expect(linha.carimbadas.mensagens).toBeGreaterThan(0);
+  });
+
+  it("⛔ DEIXA DE FORA a solicitação com carimbo alheio — e diz por quê", async () => {
+    await prisma.portalMessage.create({
+      data: { clientRequestId: reqCompartilhada, clientId: alfa, authorRole: "team", authorName: "x", body: "do alfa" },
+    });
+    await prisma.portalMessage.create({
+      data: { clientRequestId: reqCompartilhada, authorRole: "team", authorName: "x", body: "orfa ambigua" },
+    });
+
+    const { backfillDeCarimbo } = await import("@/lib/agency/portal/backfill-de-carimbo");
+    const rel = await backfillDeCarimbo(true);
+
+    const linha = rel.linhas.find((l) => l.clientRequestId === reqCompartilhada)!;
+    expect(linha.deixadaDeFora).toMatch(/OUTRO cliente/);
+    // E a linha ambígua continua órfã — não sabido fecha.
+    const orfa = await prisma.portalMessage.findFirst({ where: { body: "orfa ambigua" } });
+    expect(orfa?.clientId).toBeNull();
+  });
+
+  it("⛔ DEIXA DE FORA linha mais velha que o cliente — ela não pode ter nascido dele", async () => {
+    const novo = await prisma.client.create({ data: { workspaceId: ws, name: "Cliente recente" } });
+    const r = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: novo.id, businessName: "x", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    await prisma.portalMessage.create({
+      data: {
+        clientRequestId: r.id, authorRole: "team", authorName: "x", body: "anterior ao cliente",
+        createdAt: new Date("2020-01-01"),
+      },
+    });
+
+    const { backfillDeCarimbo } = await import("@/lib/agency/portal/backfill-de-carimbo");
+    const rel = await backfillDeCarimbo(true);
+
+    expect(rel.linhas.find((l) => l.clientRequestId === r.id)?.deixadaDeFora).toMatch(/MAIS VELHA/);
+  });
+
+  it("✅ ENSAIO não grava nada — relatório antes de escrita", async () => {
+    const propria = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: beta, businessName: "Loja BETA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    const msg = await prisma.portalMessage.create({
+      data: { clientRequestId: propria.id, authorRole: "team", authorName: "x", body: "ensaio" },
+    });
+
+    const { backfillDeCarimbo } = await import("@/lib/agency/portal/backfill-de-carimbo");
+    const rel = await backfillDeCarimbo(false);
+
+    expect(rel.aplicou).toBe(false);
+    expect((await prisma.portalMessage.findUnique({ where: { id: msg.id } }))?.clientId).toBeNull();
+  });
+
+  it("✅ é IDEMPOTENTE — a segunda passada não carimba nada", async () => {
+    await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: beta, businessName: "Loja BETA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    const { backfillDeCarimbo } = await import("@/lib/agency/portal/backfill-de-carimbo");
+    await backfillDeCarimbo(true);
+    const segunda = await backfillDeCarimbo(true);
+    expect(segunda.totalDeLinhasCarimbadas).toBe(0);
+  });
+});
+
+// ── ME: a cerca do CANVAS, com segredo SEM cifrão ──────────────────────────
+// O gate anterior era vácuo: o segredo tinha "R$", e `noPrice` remove valor
+// **independentemente de posse** — a cerca podia estar revertida e o teste
+// passava igual. Segredo sem cifrão isola a posse do filtro de preço.
+describe("ME — a cerca do canvas, isolada do filtro de preço", () => {
+  const SEM_CIFRAO = "DIRECAO-SECRETA-DO-BETA reposicionamento de marca";
+
+  it("⛔ canvas ÓRFÃO não sai — e a cerca do FILHO é quem barra, isolada", async () => {
+    // ⚠️ O gate anterior não isolava nada: usava uma solicitação com carimbo
+    // alheio, e aí quem barrava era a cerca da LINHA-MÃE. Reverter a cerca do
+    // filho deixava o teste verde. Aqui a solicitação é LIMPA — a mãe passa —
+    // e só a cerca do filho pode barrar o canvas órfão. Sem cifrão, para que
+    // `noPrice` (que remove valor independentemente de posse) não faça o
+    // trabalho no lugar dela.
+    const limpa = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: beta, businessName: "Loja BETA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    await prisma.brainArtifact.create({
+      data: {
+        clientRequestId: limpa.id, clientId: null, department: "strategy",
+        canvasId: "c1", canvasJson: JSON.stringify({ summary: SEM_CIFRAO }),
+        version: 1, status: "approved", approvedAt: new Date(),
+      },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-me-b", clientId: beta, clientRequestId: limpa.id } });
+
+    const { GET } = await import("@/app/api/brain/portal-data/route");
+    const bruto = await (await GET(get("/api/brain/portal-data?token=tk-me-b"))).text();
+
+    // Órfão não sai — nem para o dono. Quem o devolve é o BACKFILL.
+    expect(bruto).not.toContain("DIRECAO-SECRETA-DO-BETA");
+  });
+
+  it("✅ e o canvas CARIMBADO do dono sai — sem cifrão para provar que é posse", async () => {
+    const propria = await prisma.clientRequestDb.create({
+      data: { workspaceId: ws, clientId: beta, businessName: "Loja BETA", services: "[]", objectives: "[]", rawContext: "x" },
+    });
+    await prisma.brainArtifact.create({
+      data: {
+        clientRequestId: propria.id, clientId: beta, department: "strategy",
+        canvasId: "c1", canvasJson: JSON.stringify({ summary: "DIRECAO-LEGITIMA reposicionamento" }),
+        version: 1, status: "approved", approvedAt: new Date(),
+      },
+    });
+    await prisma.portalAccess.create({ data: { token: "tk-me-ok", clientId: beta, clientRequestId: propria.id } });
+
+    const { GET } = await import("@/app/api/brain/portal-data/route");
+    const bruto = await (await GET(get("/api/brain/portal-data?token=tk-me-ok"))).text();
+
+    expect(bruto).toContain("DIRECAO-LEGITIMA");
   });
 });

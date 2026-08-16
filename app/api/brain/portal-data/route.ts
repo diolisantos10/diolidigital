@@ -10,6 +10,8 @@ import { requireSession } from "@/lib/auth/api-guard";
 // copiada para outros dois lugares — onde já divergia. Uma trava de segurança
 // com três versões é três políticas com o mesmo nome.
 import { clienteDoWorkspace, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
+import { filtroDeFilhoDoDono } from "@/lib/agency/portal/filho-do-dono";
+import { solicitacoesQueMudaramDeDono } from "@/lib/agency/portal/solicitacao-que-mudou-de-dono";
 // A relação agente→departamento tem UMA forma canônica nesta casa, e é a que a
 // escada de exposição usa. Ver o bloco em `buildPortalData`.
 // A consulta do card, o agrupamento dos genéricos, as peças estruturadas e a
@@ -89,7 +91,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (!reqId) {
       return NextResponse.json({ error: "Token not linked to a request" }, { status: 404 });
     }
-    return NextResponse.json(await buildPortalData(reqId, escopo.tipo === "cliente" ? escopo.clientId : null));
+    let limpas: string[] = [];
+    if (escopo.tipo === "cliente") {
+      const sujas = await solicitacoesQueMudaramDeDono(escopo.clientId, escopo.clientRequestIds);
+      limpas = escopo.clientRequestIds.filter((x) => !sujas.has(x));
+    }
+    // A solicitação de entrada também sai da lista LIMPA — pegar a mais recente
+    // sem cercar traria de volta a linha-mãe do vizinho.
+    const reqLimpo = escopo.tipo === "cliente" ? (limpas[0] ?? null) : reqId;
+    if (escopo.tipo === "cliente" && !reqLimpo) {
+      return NextResponse.json({
+        id: null, businessName: "", status: "new", services: [], objectives: [],
+        createdAt: null, pipeline: [], approvals: [],
+      });
+    }
+    return NextResponse.json(await buildPortalData(
+      reqLimpo!,
+      escopo.tipo === "cliente" ? escopo.clientId : null,
+      limpas,
+    ));
   }
 
   // Direct clientRequestId / clientId — internal use only (agency session).
@@ -251,12 +271,33 @@ function mapearAprovacao(
 // exatamente como a mensagem sem carimbo não sai. Nulo = caminho interno
 // (sessão da agência, já cercado por posse de workspace), e aí não se cerca de
 // novo: seria esconder da equipe o que ela tem direito de ver.
-async function buildPortalData(clientRequestId: string, donoEsperado: string | null = null) {
+async function buildPortalData(
+  clientRequestId: string,
+  donoEsperado: string | null = null,
+  solicitacoesLimpas: readonly string[] = [],
+) {
   const clientRequest = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
   if (!clientRequest) return null;
 
-  // A cerca do filho: com dono esperado, o carimbo TEM de bater.
-  const cercaDoFilho = donoEsperado ? { clientId: donoEsperado } : {};
+  // ── A CERCA NÃO ALCANÇAVA A LINHA-MÃE (16/08/2026, rodada 8) ──────────────
+  // A cerca do filho protegia card, artefato e peça — e a SOLICITAÇÃO em si
+  // continuava saindo inteira: `businessName`, `segment`, `services`,
+  // `objectives`. Medido: `"businessName":"Padaria Alfa"` no portal do Studio
+  // Beta. A tela mascarava (o cabeçalho usa `vista.marca.nome`), mas **o
+  // briefing do vizinho trafegava no JSON** — e JSON é o que um `curl` lê.
+  // A cerca certa é a MESMA dos filhos: solicitação com evidência de ter sido
+  // de outro cliente não é servida — nem os filhos dela, nem ela própria.
+  // Conferir só `clientRequest.clientId === donoEsperado` não bastava: depois
+  // do re-apontamento a solicitação É do dono novo, e continua carregando o
+  // `businessName` do antigo.
+  if (donoEsperado && !solicitacoesLimpas.includes(clientRequestId)) {
+    return null;
+  }
+
+  // A cerca do filho, com AS DUAS METADES (ver `filtro-de-filho-do-dono`):
+  // carimbo que bate, OU órfão de solicitação que o token prova possuir.
+  // Exigir só carimbo apagava a tela — e o escritor de artefato não carimbava.
+  const cercaDoFilho = donoEsperado ? filtroDeFilhoDoDono(donoEsperado) : {};
 
   const [artifacts, approvals] = await Promise.all([
     prisma.brainArtifact.findMany({
@@ -271,9 +312,10 @@ async function buildPortalData(clientRequestId: string, donoEsperado: string | n
     // direto (cards de calendário por `clientId`) — um dono só, duas chaves.
     buscarAprovacoes(
       donoEsperado
-        // Com dono: só card carimbado para ELE. A chave da solicitação deixa
-        // de ser prova — era ela que servia o card do dono ANTIGO.
-        ? { clientVisible: true, clientId: donoEsperado }
+        // A MESMA regra da posse (`pertenceAoToken`). Se a listagem e a posse
+        // divergirem, volta o defeito da rodada 7: o POST aceitando o que o
+        // GET nunca mostra.
+        ? { clientVisible: true, ...filtroDeFilhoDoDono(donoEsperado) }
         : {
             clientVisible: true,
             OR: [

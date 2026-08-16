@@ -19,6 +19,12 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 
 const db = vi.hoisted(() => ({
+  // rodada 8: a cerca do filho apura evidência de troca de dono em quatro
+  // tabelas (ver `solicitacao-que-mudou-de-dono`). Sem estes mocks a apuração
+  // falha e FECHA — que é o certo, mas deixa a suíte sem exercitar o caminho
+  // limpo.
+  portalMessage: { findMany: vi.fn() },
+  portalAccess: { findMany: vi.fn() },
   socialPost: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   approvalRequest: { findMany: vi.fn() },
@@ -62,6 +68,10 @@ const SESSAO = { session: { userId: "u1", email: "m@d", name: "M", role: "master
 
 beforeEach(() => {
   vi.clearAllMocks();
+  db.portalMessage?.findMany?.mockResolvedValue?.([]);
+  db.portalAccess?.findMany?.mockResolvedValue?.([]);
+  db.project?.findMany?.mockResolvedValue?.([]);
+  db.approvalRequest?.findMany?.mockResolvedValue?.([]);
   // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
   // Cliente DIRETO (o caso Foocci): nenhuma solicitação de briefing.
   db.clientRequestDb.findMany?.mockResolvedValue?.([]);

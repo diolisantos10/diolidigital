@@ -7,6 +7,8 @@ import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
 import { escopoDoToken } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { filtroDeFilhoDoDono } from "@/lib/agency/portal/filho-do-dono";
+import { solicitacoesQueMudaramDeDono } from "@/lib/agency/portal/solicitacao-que-mudou-de-dono";
 
 interface DbPost {
   id: string; clientId: string | null; clientRequestId: string | null;
@@ -93,19 +95,21 @@ function toPortalDTO(p: DbPost) {
  *  aqui. O filtro do portal leva os dois. `false` = token inválido. */
 async function resolveTokenScope(
   token: string,
-): Promise<{ reqId: string | null; workspaceId: string | null; clientId: string | null } | false> {
+): Promise<{ reqId: string | null; workspaceId: string | null; clientId: string | null; limpas: string[] } | false> {
   // 🔴 RODADA 3: lia `access.record.clientRequestId` — o ponteiro cru. Agora o
   // escopo é o CONGELADO, e a solicitação sai do CLIENTE, nunca do registro.
   const escopo = await escopoDoToken(token);
   if (!escopo.ok) return false;
   if (escopo.tipo === "prospect") {
     // Prospect não tem dono — a identidade dele é a própria solicitação.
-    return { reqId: escopo.clientRequestId, workspaceId: escopo.workspaceId, clientId: null };
+    return { reqId: escopo.clientRequestId, workspaceId: escopo.workspaceId, clientId: null, limpas: [] };
   }
+  const sujas = await solicitacoesQueMudaramDeDono(escopo.clientId, escopo.clientRequestIds);
   return {
     reqId: escopo.clientRequestIds[0] ?? null,
     workspaceId: escopo.workspaceId,
     clientId: escopo.clientId,
+    limpas: escopo.clientRequestIds.filter((x) => !sujas.has(x)),
   };
 }
 
@@ -129,12 +133,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         workspaceId: escopo.workspaceId,
         clientRequestId: escopo.reqId,
         visibility: "compartilhado",
-        // ── A CERCA DO FILHO (rodada 6) ─────────────────────────────────
-        // `clientRequestId` sozinho é a CHAVE DA SOLICITAÇÃO, não prova de
-        // dono: peça legada (sem carimbo) de uma solicitação re-apontada saía
-        // para o dono novo. A/B media `peca(caption)` vazando na base e no PR.
-        // Com dono conhecido, o carimbo tem de bater.
-        ...(escopo.clientId ? { clientId: escopo.clientId } : {}),
+        // A cerca do filho, com as DUAS metades — a mesma regra da posse e da
+        // listagem de `portal-data`. Exigir só carimbo apagava a peça legada
+        // do próprio dono (o escritor não carimbava).
+        ...(escopo.clientId ? filtroDeFilhoDoDono(escopo.clientId) : {}),
       },
       orderBy: { scheduledFor: "asc" },
     });

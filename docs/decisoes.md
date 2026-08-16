@@ -140,6 +140,75 @@ O `seguranca` **barrou o merge** e o `qualidade` **reprovou**. O que mudou:
    `motivo`, a **contagem** do que foi escondido, e a tela não convida a
    escrever no estado divergente.
 
+### 🔴 A RODADA 9 — O BACKFILL É O CONSERTO, NÃO O PLANO B
+
+**A decisão desta rodada, em uma frase: quando a informação não está no banco,
+nenhuma regra de LEITURA resolve — resolve-se uma vez, offline, com curadoria.**
+
+Foram **quatro rodadas** oscilando entre duas paredes, e é a oscilação que é o
+achado:
+
+| A escolha | O que ela quebra |
+|---|---|
+| exigir carimbo para ler | o **dono legítimo** perde a tela: `0 DECISÕES PENDENTES` com R$ 12.000 de proposta parada no banco |
+| não exigir carimbo | o **estranho** entra: o token de B aprovava o card órfão de A — e aprovar, nesta casa, **publica** |
+
+O `qualidade` e o `seguranca` convergiram, separados, na mesma frase: *"o botão
+abre para o estranho e a tela fecha para o dono"*. As duas metades estavam
+**invertidas**.
+
+**Por que nenhuma regra de leitura podia funcionar:** a pergunta *"de quem é
+esta linha sem carimbo?"* não tem resposta em tempo de leitura. Toda tentativa
+de inferir — inclusive a minha, "ausência de evidência de troca de dono" — é
+cega exatamente onde a produção vive: o `PortalAccess` legado tem `clientId`
+nulo, então não há o que comparar.
+
+**O que entrou:**
+
+1. **O BACKFILL CURADO** (`lib/agency/portal/backfill-de-carimbo.ts`). Carimba a
+   linha órfã **só com prova**, e a prova é tripla: nenhum irmão com carimbo
+   alheio; nenhum `PortalAccess` da solicitação apontando para outro; e o
+   **cliente já existia quando a linha foi escrita** (`Client.createdAt <=
+   linha.createdAt`) — a única prova *positiva* que o banco oferece. Falhou
+   qualquer uma: **não carimba, e escreve o motivo.** Ensaio por padrão,
+   idempotente.
+2. **A METADE 2 MORREU.** Ler exige carimbo, ponto — em `filtroDeFilhoDoDono` e
+   em `pertenceAoToken`. Card órfão é **indecidível por qualquer token**.
+3. **O ARTEFATO NASCE CARIMBADO** (`createBrainArtifact`). O escritor real de
+   artefato nunca gravou `clientId`: sem isto, `pipeline` e `departments` do
+   portal ficariam vazios **para sempre** — não era dívida de acervo, era
+   permanente.
+4. **A REEMISSÃO EM LOTE EXISTE** (`?carteira=1&emitir=1`). Eu havia escrito ao
+   Diretor que reemitir "é um comando só", e **era falso** — ele levou a
+   recomendação ao CEO apoiado na minha frase. Agora é verdade.
+5. **O BACKFILL RODA ONDE O BANCO ESTÁ** (`/api/admin/backfill-de-carimbo`:
+   `GET` ensaia, `POST` aplica). O script sozinho exige o banco de produção, que
+   **ninguém alcança** — é o mesmo buraco que custou um dia em 07/08 com os
+   links. Pré-requisito de deploy que o CEO não consegue executar não é
+   requisito, é intenção.
+
+> ### ⚠️ O carimbo retroativo tem UM lugar só, e é este
+>
+> Na rodada 7 eu pus um carimbo retroativo no caminho quente
+> (`cardGenericoJaPendente`): ele gravava o dono do token no card órfão **no
+> instante da decisão**. Isso **fabrica prova falsa** — carimbava o card de A
+> com o id de B, com autoridade, e o rastro forense sumia. Era o oposto de uma
+> trava que eu mesmo havia escrito no mesmo PR. Removido.
+>
+> Carimbo retroativo é legítimo **offline, com relatório, sob decisão de
+> gente**. No caminho quente é falsificação.
+
+### A regra de método que esta frente produziu
+
+**Toda cerca nova nasce com as duas metades na mesma porta, e a metade positiva
+do dono se mede na camada que o cliente usa — não na função pura.** Foi por
+medir só a função pura que a tela do dono ficou vazia com a trava "passando":
+os testes provavam que o estranho era barrado, e nenhum provava que o dono
+entrava.
+
+E a outra, que vale para qualquer guarda: **A/B prova que está certo hoje;
+mutação prova que continua certo amanhã. As duas, sempre.**
+
 ### O que NÃO foi feito, e por quê
 
 - **Não se consertou no cliente escondendo a caixa.** A trava é servidor; a tela
@@ -153,6 +222,20 @@ O `seguranca` **barrou o merge** e o `qualidade` **reprovou**. O que mudou:
 - 🟠 **O selo é pseudônimo estável e sem sal:** viaja na query string e para em
   log igual ao id pararia. Quem tem o log correlaciona o tráfego por cliente.
   Mintar por sessão fecharia isso; não foi feito.
+- 🔴 **O BACKFILL NÃO FOI RODADO EM PRODUÇÃO.** Ele existe, tem teste e roda por
+  rota — mas exige `CRON_SECRET`, que **nenhum agente tem**. Enquanto não rodar,
+  o número de linhas que ficam de fora **não existe**, e dizer que "quase tudo
+  vai ser religado" seria inventar. Dono, prazo e ordem dos gestos estão em
+  `docs/pendencias.md`.
+- 🟠 **O motivo da recusa vaza para fora** (`sem_dono`, `ponteiro_andou`,
+  `token_invalido` chegam ao chamador externo em `messages`, `portal-data`,
+  `session` e `approvals`). É um oráculo: quem sonda distingue "token inválido"
+  de "token válido de outro dono". Não fechado nesta rodada — fechar exige
+  separar o motivo interno (log) do motivo externo (tela), em quatro rotas.
+- 🟠 **O teste de arquitetura tem duas exceções sem contra-prova:** a lista de
+  caminhos `SUPERFICIE` e a janela de 120 caracteres da expressão. Três fugas
+  passam por ali (rota fora da lista, `prisma["portalAccess"]`, `where: { token }`
+  a mais de 120 caracteres). A allowlist é **zero**, mas a exceção mudou de nome.
 
 ---
 

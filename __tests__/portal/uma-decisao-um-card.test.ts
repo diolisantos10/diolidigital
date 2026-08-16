@@ -88,12 +88,11 @@ describe("createApprovalRequest — a duplicata para de nascer", () => {
       requestedBy: "Especialista de Copy dos posts (Social Media)",
     });
 
-    // ⚠️ 16/08/2026: o reuso passou a CARIMBAR o dono. O card devolvido é o
-    // mesmo (nada é criado), mas volta com `clientId` — sem isso, card antigo
-    // e órfão continuava órfão para sempre, e card órfão só é decidível pela
-    // regra de exceção, que é a mais frágil das duas metades da posse.
-    expect(r).toMatchObject({ id: "ja-existe", department: "social-media" });
-    expect(r.clientId).toBe("c1");
+    // ⚠️ 16/08/2026 (rodada 9) — REVERTIDO, e a reversão é o conserto.
+    // O re-carimbo aqui FABRICAVA PROVA FALSA: card órfão de A, solicitação
+    // re-apontada, e o reuso gravava `clientId = B` com autoridade — o rastro
+    // forense sumia. Carimbo retroativo só no backfill, offline e curado.
+    expect(r).toEqual({ id: "ja-existe", department: "social-media" });
     expect(db.approvalRequest.create).not.toHaveBeenCalled();
   });
 

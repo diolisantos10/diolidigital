@@ -16,15 +16,17 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 
 const db = vi.hoisted(() => ({
-  approvalRequest: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn(), count: vi.fn() },
+  // rodada 8/9: a apuração de evidência consulta quatro tabelas.
+  portalMessage: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
+  portalAccess: { findMany: vi.fn(), findFirst: vi.fn() },
+  approvalRequest: { findUnique: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), count: vi.fn() },
   clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   socialPost: { findMany: vi.fn(), updateMany: vi.fn(), update: vi.fn(), findFirst: vi.fn() },
   client: { findUnique: vi.fn() },
-  brainArtifact: { findMany: vi.fn() },
-  project: { findFirst: vi.fn() },
+  brainArtifact: { findMany: vi.fn(), findFirst: vi.fn() },
+  project: { findFirst: vi.fn(), findMany: vi.fn() },
   deliverable: { findMany: vi.fn() },
   materialRequest: { create: vi.fn() },
-  portalMessage: { create: vi.fn() },
   mediaAsset: { findUnique: vi.fn() },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
@@ -100,6 +102,15 @@ function reqDecisao(body: Record<string, unknown>): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  db.portalMessage?.findMany?.mockResolvedValue?.([]);
+  db.portalMessage?.findFirst?.mockResolvedValue?.(null);
+  db.portalAccess?.findFirst?.mockResolvedValue?.(null);
+  db.approvalRequest?.findFirst?.mockResolvedValue?.(null);
+  db.brainArtifact?.findFirst?.mockResolvedValue?.(null);
+  db.socialPost?.findFirst?.mockResolvedValue?.(null);
+  db.portalAccess?.findMany?.mockResolvedValue?.([]);
+  db.project?.findMany?.mockResolvedValue?.([]);
+  db.approvalRequest?.findMany?.mockResolvedValue?.([]);
   // rodada 4: as solicitações do escopo saem do CLIENTE, não do token.
   // Cliente DIRETO (o caso Foocci): nenhuma solicitação de briefing.
   db.clientRequestDb.findMany?.mockResolvedValue?.([]);
@@ -311,12 +322,26 @@ describe("posse por clientId — dono derivado do token, sem vazamento", () => {
     db.project.findFirst.mockResolvedValue(null);
 
     await portalData(new NextRequest("http://localhost/api/brain/portal-data?token=tok-foocci"));
-    expect(db.approvalRequest.findMany.mock.calls[0]![0].where).toMatchObject({
-      clientVisible: true,
-      clientId: "cli-foocci",
-    });
-    // A chave da solicitação não pode voltar como alternativa.
-    expect(db.approvalRequest.findMany.mock.calls[0]![0].where.OR).toBeUndefined();
+    // ⚠️ RODADA 8 — AS DUAS METADES NA MESMA CONSULTA.
+    // Exigir só o carimbo apagou a lista: card órfão (o formato de todo card
+    // pendente anterior ao carimbo) não casa com carimbo nenhum, e a tela
+    // dizia "nada depende de você" com proposta pendente no banco. A regra é
+    // a MESMA da posse — se listagem e posse divergirem, o POST volta a
+    // aceitar o que o GET nunca mostra.
+    // ⚠️ `at(-1)`: a apuração de evidência (`solicitacoesQueMudaramDeDono`)
+    // consulta `approvalRequest` ANTES da listagem. A chamada que interessa é
+    // a última. A primeira é a sonda, e ela é conferida logo abaixo.
+    const chamadas = db.approvalRequest.findMany.mock.calls;
+    const sonda = chamadas[0]![0].where;
+    expect(sonda.clientId, "a sonda tem de procurar carimbo ALHEIO").toMatchObject({ not: null });
+    const onde = chamadas.at(-1)![0].where;
+    // ⚠️ RODADA 9 — EXIGE CARIMBO, PONTO. O ramo do órfão morreu: era ele que
+    // abria o card de A para o token de B (a "evidência de troca de dono" é
+    // cega na população de produção, onde o `PortalAccess` legado tem
+    // `clientId` nulo). Quem devolve o órfão ao dono é o BACKFILL, offline.
+    expect(onde.clientVisible).toBe(true);
+    expect(onde.clientId).toBe("cli-foocci");
+    expect(onde.OR, "a chave da solicitação não pode voltar").toBeUndefined();
   });
 });
 

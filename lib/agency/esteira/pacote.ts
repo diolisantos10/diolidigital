@@ -46,6 +46,7 @@
 // reescrito — o código foi mudado de casa e ganhou um segundo chamador.
 
 import { prisma } from "@/lib/db/client";
+import type { RamoDoFilho } from "@/lib/agency/portal/filho-do-dono";
 import { cardGenerico } from "@/lib/agency/persistence/approval-service";
 import { departamentoDoAgente } from "@/lib/agency/escada/degraus";
 
@@ -78,7 +79,12 @@ export type PecaDoCard = {
  *  direto) precisam falar a mesma língua. */
 export type FiltroDeAprovacao =
   | { clientId: string; clientVisible: true }
-  | { clientVisible: true; OR: Array<{ clientRequestId: string } | { clientId: string }> };
+  | { clientVisible: true; OR: Array<{ clientRequestId: string } | { clientId: string }> }
+  // ⚠️ 16/08/2026: a cerca do filho do portal. As duas metades numa consulta —
+  // carimbo que bate OU órfão de solicitação que o token prova possuir. Ver
+  // `lib/agency/portal/filho-do-dono.ts`; exigir só carimbo apagou a lista de
+  // aprovações do dono legítimo (o escritor de artefato não carimbava).
+  | { clientVisible: true; OR: RamoDoFilho[] };
 
 export function buscarAprovacoes(where: FiltroDeAprovacao) {
   return prisma.approvalRequest.findMany({

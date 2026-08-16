@@ -23,57 +23,85 @@ aparece o que está comprovadamente ligado ao cliente**. O que existe hoje no
 sistema, de antes do conserto, **não tem essa ligação escrita** — e por isso
 não aparece.
 
-**O que acontece no primeiro dia, se subir do jeito que está:**
+> ### 🔁 ESTE TEXTO FOI REESCRITO EM 16/08 — a recomendação MUDOU
+>
+> As versões anteriores ofereciam duas opções: **subir e conviver com a tela
+> vazia**, ou **religar tudo à mão antes de subir**. As duas estavam erradas
+> pelo mesmo motivo, e foi preciso o `qualidade` e o `seguranca` dizerem a
+> mesma coisa, separados, para eu enxergar:
+>
+> - subir do jeito que estava **esvaziava a tela do dono legítimo** — a
+>   medição em navegador deu **"0 DECISÕES PENDENTES"** com uma proposta de
+>   **R$ 12.000** parada no banco. Não é histórico escondido: é a esteira
+>   comercial parada, em silêncio, afirmando algo falso;
+> - religar tudo à mão era trabalho humano de volume desconhecido.
+>
+> **A saída é a terceira, e ela agora existe: um religamento AUTOMÁTICO e com
+> curadoria — o "backfill".** Ele roda antes do deploy, offline, e só religa a
+> linha quando consegue **provar** de quem ela é. O que ele não prova, ele
+> **deixa de fora e escreve o motivo** — nunca chuta.
 
-| O que o cliente faz | O que ele vê hoje | O que veria no dia 1 |
+### O que o backfill faz, em português
+
+Cada peça antiga (mensagem, proposta, entregável, peça de conteúdo) é religada
+ao cliente **só se passar nos três testes**:
+
+1. **nenhum irmão dela pertence a outro cliente** — se a mesma pasta tem peça
+   carimbada com outro nome, a pasta é ambígua e ninguém mexe nela;
+2. **nenhum link de portal daquela pasta aponta para outro cliente**;
+3. **o cliente existia antes da peça** — peça não pode ser mais velha que o
+   dono que se quer atribuir a ela.
+
+Roda em **modo conferência por padrão** (não grava nada) e devolve a lista:
+quantas religou, quantas ficou de fora e **por quê**. Rodar duas vezes não
+duplica nada.
+
+### O que acontece no primeiro dia, com o backfill rodado antes
+
+| O que o cliente faz | O que ele vê hoje | O que verá no dia 1 |
 |---|---|---|
-| Abre "Fale com seu PM" | a conversa dele | **conversa vazia**, com um aviso de que parte do histórico não está sendo exibida |
-| Clica no link antigo que recebeu por WhatsApp | entra no portal | **"Este link não está mais valendo"**, com botão para pedir um novo |
-| Tem uma proposta esperando aprovação | aprova e o projeto começa | **aprova normalmente** (isto foi consertado nesta rodada) |
+| Abre "Fale com seu PM" | a conversa dele | **a conversa dele** — e nada do vizinho |
+| Tem uma proposta esperando aprovação | aprova e o projeto começa | **aprova normalmente** |
+| Clica no link antigo que recebeu por WhatsApp | entra no portal | **"Este link de acesso não está mais valendo"**, com botão de WhatsApp e de e-mail para pedir um novo |
+| Tem uma peça que o backfill **não conseguiu provar** de quem é | ela aparece | **não aparece**, e ela está na lista de exclusões com o motivo |
 
-**Nada é apagado.** Tudo continua no banco. O que muda é o que a tela mostra
-até alguém religar cada peça ao dono.
+**Nada é apagado, em nenhum caminho.** Tudo continua no banco.
 
-### As duas opções, com preço
+### A ordem do dia — quatro gestos, nesta sequência, no mesmo turno
 
-**A) Subir, reemitir e avisar — NO MESMO DIA, como um bloco só.**
-
-⚠️ **A não é "publicar e resolver depois".** São três gestos, nesta ordem, e o
-plano só vale com os três:
-
-1. **Avisar o cliente ANTES** — uma mensagem curta: *"hoje à tarde o acesso ao
-   seu portal muda; você vai receber um link novo, e o histórico antigo da
-   conversa fica fora do ar por alguns dias."* Cliente avisado acha normal;
+1. **Rodar o backfill em modo conferência** e ler a lista de exclusões — é aqui
+   que se descobre o tamanho real do problema, o número que faltava.
+   `GET /api/admin/backfill-de-carimbo` (não grava nada).
+2. **Rodar o backfill para valer:** o **mesmo endereço com POST**. É o verbo
+   que separa conferir de gravar.
+3. **Avisar o cliente** — uma mensagem curta: *"hoje o acesso ao seu portal
+   muda e você vai receber um link novo."* Cliente avisado acha normal;
    cliente surpreendido acha que quebrou.
-2. **Subir.**
-3. **Reemitir os links no mesmo dia** — é um comando só, feito pela agência.
-   Sem isso o cliente bate em "Este link não está mais valendo" sem ter o novo
-   na mão, e aí o conserto vira o problema.
+4. **Subir e reemitir os links** — **um comando só, para a carteira inteira**:
+   `GET /api/admin/links-do-portal?carteira=1&emitir=1`. É idempotente e
+   devolve a lista do que reemitiu e do que falhou.
 
-- *Custo:* o aviso + o comando de reemissão, no mesmo turno. O histórico antigo
-  de conversa fica fora do ar até a religação.
-- *Risco:* baixo e conhecido. Nada de errado aparece para ninguém.
-- *Prazo:* imediato — mas o bloco inteiro no mesmo dia, não em dias diferentes.
+- *Custo:* um turno. O trabalho humano fica restrito ao que o backfill não
+  conseguiu provar — e essa lista sai no passo 1, antes de qualquer risco.
+- *Risco:* **contido, e nomeado.** Cliente não avisado estranha o link novo.
+  Peça sem prova de dono some da tela até alguém religá-la à mão.
+- *Prazo:* imediato. O bloco inteiro no mesmo turno, não em dias diferentes.
 
-**B) Religar antes de subir.**
-- *Custo:* alguém da agência confere, cliente por cliente, de quem é cada
-  conversa antiga, e carimba. É trabalho humano, e o volume **ainda não foi
-  medido** (falta rodar o censo em produção — nenhum agente tem a credencial).
-- *Risco:* enquanto não sobe, **o vazamento continua no ar**.
-- *Prazo:* depende do volume, que é justamente o que não sabemos.
+**O que preciso de você:** o "pode subir" **para o bloco inteiro**, e o acesso
+de produção para rodar o passo 1 — a credencial `CRON_SECRET` é sua, nenhum
+agente tem. Subir sem os quatro passos é a única forma de isto dar errado.
 
-### O que eu recomendo, e por quê
+### 🔴 EM ABERTO — o backfill é PRÉ-REQUISITO DE DEPLOY, com dono e prazo
 
-**A, com a reemissão dos links feita no mesmo dia.** O vazamento é o dano
-maior: é conversa comercial de um cliente aparecendo para outro, e ele está no
-ar agora. Histórico fora do ar é constrangedor; conversa do vizinho na tela é
-perda de cliente. E a opção B pede uma decisão de "de quem é esta linha" que
-ninguém consegue tomar com segurança para as linhas antigas — que é exatamente
-a raiz do problema.
+| O que | Dono | Prazo | Estado |
+|---|---|---|---|
+| Rodar `GET /api/admin/backfill-de-carimbo` em produção (ensaio) e ler as exclusões | **CEO** (é dele a credencial) | no dia do deploy, **antes** dele | ⛔ não rodado — nenhum agente alcança o banco |
+| Rodar o `POST` do mesmo endereço | CEO | logo após ler o ensaio | ⛔ depende do anterior |
+| Decidir à mão as solicitações que ficaram de fora | Diretor, com o `pm` | +7 dias do deploy | ⛔ a lista só existe depois do passo 1 |
+| Reemitir a carteira (`?carteira=1&emitir=1`) | CEO | mesmo turno do deploy | ⛔ |
 
-**O que preciso de você:** o "pode subir" **para o bloco inteiro** — o aviso
-antes, o deploy, e a reemissão no mesmo dia. Subir sem os outros dois é a única
-forma de A dar errado.
+⚠️ **A ordem não é sugestão.** Subir sem o backfill é o cenário medido em
+navegador: `0 DECISÕES PENDENTES` com **R$ 12.000** de proposta parada.
 
 ---
 
