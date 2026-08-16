@@ -1,0 +1,13 @@
+{
+  "id": "ambiente/gancho-de-sessao",
+  "quem": "pm-a27b5772",
+  "frente": "gancho de sessao que provisiona o ambiente na abertura",
+  "responsabilidade": "ambiente/gancho-de-sessao",
+  "arquivos": [
+    ".claude/settings.json",
+    "scripts/preparar-ambiente.mjs",
+    "__tests__/coordenacao"
+  ],
+  "abertaEm": "2026-08-16T17:35:28.280Z",
+  "encerradaEm": null
+}
