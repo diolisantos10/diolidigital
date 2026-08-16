@@ -436,7 +436,7 @@ export function runSDRQualityGate(conv: ConvState, sdr: SDRAgentState): SDRQuali
       detail: ({
         fits:              "Budget adequado ao escopo.",
         above_budget:      "Budget abaixo da estimativa — escopo ajustado.",
-        below_recommended: "Budget abaixo do Plano Starter mínimo.",
+        below_recommended: "Budget abaixo do piso do escopo desenhado.",
         unknown:           "Status de budget não avaliado.",
       } as const)[sdr.budgetSignal.fitStatus],
     },
@@ -646,7 +646,7 @@ export function buildBrainReasoningOutput(
 
   const risks: string[] = [];
   if (sdr.objection.active) risks.push(`Objeção ativa: ${sdr.objection.types.join(", ")}`);
-  if (sdr.budgetSignal.fitStatus === "below_recommended") risks.push("Budget abaixo do Plano Starter mínimo");
+  if (sdr.budgetSignal.fitStatus === "below_recommended") risks.push("Budget abaixo do piso do escopo desenhado");
   if (sdr.objection.types.includes("needs_internal_approval")) risks.push("Aprovação interna pendente");
   if (e.confidence === "none" || e.confidence === "low") risks.push("Estimativa com baixa confiança");
 
@@ -721,7 +721,7 @@ export function buildHandoffSummary(conv: ConvState, sdr: SDRAgentState): SDRHan
     const fitLabels: Record<BudgetSignal["fitStatus"], string> = {
       fits:              "Budget adequado ao escopo.",
       above_budget:      "Budget abaixo da estimativa — escopo foi ajustado.",
-      below_recommended: "Budget abaixo do Plano Starter (R$ 1.200 mínimo).",
+      below_recommended: "Budget abaixo do piso do escopo desenhado — a proposta precisa enxugar ou o valor precisa subir.",
       unknown:           "Status de budget desconhecido.",
     };
     budgetFit = `Prospect mencionou: R$ ${sdr.budgetSignal.amount.toLocaleString("pt-BR")}. ${fitLabels[sdr.budgetSignal.fitStatus]}`;
@@ -748,12 +748,12 @@ export function buildHandoffSummary(conv: ConvState, sdr: SDRAgentState): SDRHan
     tradeoffsAccepted.push("Tráfego pago deixado de fora");
   const ppm = (scope.social?.postsPerWeek ?? 0) * 4;
   if (ppm <= 8 && sdr.objection.types.some((t) => ["price_too_high", "wants_cheaper"].includes(t)))
-    tradeoffsAccepted.push("Plano Starter aceito (8 posts/mês)");
+    tradeoffsAccepted.push("Cadência reduzida aceita (8 posts/mês)");
 
   const unresolvedRisks: string[] = [];
   if (sdr.objection.active) unresolvedRisks.push("Objeção de preço não resolvida na conversa");
   if (sdr.budgetSignal.fitStatus === "below_recommended")
-    unresolvedRisks.push("Budget abaixo do Plano Starter mínimo");
+    unresolvedRisks.push("Budget abaixo do piso do escopo desenhado");
   if (sdr.objection.types.includes("needs_internal_approval"))
     unresolvedRisks.push("Aprovação interna pendente");
 

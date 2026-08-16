@@ -1456,7 +1456,22 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
 
 // ─── Group ordering for UI rendering ─────────────────────────────────────────
 
+// ⚠️ ESTA LISTA É O FILTRO DE RENDERIZAÇÃO, NÃO UMA PREFERÊNCIA DE ORDEM.
+//
+// `app/agency/settings/page.tsx` monta a tela com `CHECK_GROUP_ORDER.map()` e
+// filtra as checagens por grupo. Grupo que não está aqui **não é desenhado** —
+// a checagem existe no relatório, conta no score, e é invisível para quem abre
+// a tela. Foi exatamente o que aconteceu com "Comunicação com o cliente" em
+// 16/08/2026: a checagem do canal de e-mail nasceu, entrou no `runSystemDoctor`,
+// e o CEO foi mandado olhar a tela onde ela não aparecia.
+//
+// A defesa não é lembrar de atualizar esta lista: é o portão
+// `__tests__/comercial/o-diagnostico-mostra-o-que-mede.test.ts`, que compara os
+// grupos EMITIDOS com os grupos ORDENADOS e reprova qualquer grupo órfão.
 export const CHECK_GROUP_ORDER = [
+  // Primeiro porque é o único grupo cujo defeito é sentido pelo CLIENTE, não
+  // pela equipe: briefing que chega e não recebe resposta.
+  "Comunicação com o cliente",
   "Dados do Piloto",
   "Operações do Projeto",
   "Orquestração",

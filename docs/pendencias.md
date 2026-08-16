@@ -15,6 +15,176 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — A PASSADA ADVERSARIAL DE `qualidade` REPROVOU 4 COISAS DA RODADA 2, E AS 4 VOLTARAM CONSERTADAS
+
+**Branch `claude/piloto-rodada2-trava-e-confirmacao`. O commit anterior (`a328167`)
+foi auditado e reprovado em quatro pontos. Nenhum deles se consertava afrouxando
+a trava de preço — os quatro estavam no que vem DEPOIS dela.**
+
+### 🔴 B1 — O LOG NOVO GRAVAVA NOME DE CLIENTE, E O COMENTÁRIO DIZIA QUE NÃO
+
+`app/api/sdr/chat/route.ts` gravava `vazamento[0].slice(0, 40)`. A quarta
+alternativa do regex da trava é `\bplano\b.*\bR\$`, com `.*` **guloso**:
+
+```
+"Para o plano da Pizzaria do Joao Silva, dono Marcelo, o valor fica em R$ 500."
+   →  log:  "plano da Pizzaria do Joao Silva, dono Ma"
+```
+
+Nome de pessoa e de negócio no log do contêiner — com o comentário logo acima
+**afirmando** que isso não acontecia. Conserto: `marcaDoVazamento()` grava uma
+**etiqueta de lista fechada** (`rs_com_numero`, `numero_com_reais`, `desconto`,
+`plano_com_rs`) e, no máximo, o **valor monetário** casado por regex estreito,
+com teto de 24 caracteres. Portão:
+`__tests__/comercial/o-log-da-trava-nao-carrega-cliente.test.ts` — prova que o
+recorte cru VAZA (com as frases reais) e que a marca nova não vaza.
+
+> **A regra que fica: não se recorta texto livre para log.** Grava-se o que é,
+> por construção, incapaz de carregar identidade.
+
+### 🔴 B2 — A CHECAGEM DO E-MAIL NÃO ERA DESENHADA NA TELA PARA ONDE O CEO FOI MANDADO
+
+`"Comunicação com o cliente"` era o **único dos 12 grupos emitidos** que faltava
+em `CHECK_GROUP_ORDER` — e `app/agency/settings/page.tsx` monta a tela com
+`CHECK_GROUP_ORDER.map().filter()`. Grupo fora da lista **não existe na tela**.
+Somado a isso, aquela página chamava `runSystemDoctor` **sem `canalDeEmail`**:
+mesmo aparecendo, a checagem seria `info` ("não conferi") enquanto o cartão de
+onde o link partiu já sabia que o canal estava desligado.
+
+**As duas pontas fechadas**, e a defesa não é lembrar de atualizar a lista: o
+portão `__tests__/comercial/o-diagnostico-mostra-o-que-mede.test.ts` compara
+**grupos emitidos × grupos ordenados** e reprova qualquer órfão — a classe
+inteira do defeito, não o caso de hoje.
+
+### 🔴 B3 — A FALA HONESTA DISPARAVA CONTRA QUEM INFORMOU O ORÇAMENTO
+
+Medido por `qualidade` contra a trava:
+
+| A fala do SDR | Antes de 16/08 | Depois de `a328167` |
+|---|---|---|
+| "com R$ 1.000 de verba mensal em anúncios dá para começar com Meta Ads" | conversa seguia | "quem fecha número aqui é a nossa equipe" |
+| "Anotei: seu orçamento de R$ 800 por mês. Quantos posts você quer?" | conversa seguia | idem |
+
+Falso positivo na primeira impressão comercial da agência. **A trava não foi
+afrouxada** — o turno do modelo continua descartado e o texto dele nunca chega ao
+navegador. O que mudou é **qual fallback ocupa o lugar**: quando o número da fala
+é **eco do que o próprio cliente já disse** (`ecoDoCliente`, alimentado por
+`scope.budgetRange`, `traffic.monthlyAdBudget` e o histórico), a conversa segue
+com a fala do motor. O servidor devolve só um **booleano** (`eco`) — nem texto,
+nem número, nem nome viajam.
+
+> Por que isto não é heurística frágil: um eco classificado errado **não pode
+> vazar preço**, porque nos dois ramos quem fala é a casa. No pior caso troca uma
+> fala nossa por outra fala nossa, e as duas passam pelo portão de runtime.
+
+### 🔴 B4 — "TÁ CARO" ENCOLHIA O PEDIDO E A FRASE QUE AVISAVA SUMIA
+
+No ramo `price_leak`, o front mantinha o escopo **já cortado** por
+`detectNegotiation` (posts → 2, stories → 2, reels → 0, tráfego pago desligado) e
+trocava o texto pela fala honesta, que não menciona corte nenhum.
+
+**Decisão: quando o motor CORTOU, quem fala é o motor** (`escopoEncolheu`). A fala
+dele é a única que descreve o corte, e desde 16/08 ela não cita mais preço
+inventado — que era o motivo original de calá-la. **Desfazer o corte foi
+recusado**: `processProspectMessage` aplica extração e negociação no mesmo passo,
+então reverter o escopo jogaria fora o que o cliente acabou de informar. Trocar
+mutação silenciosa por perda silenciosa não é conserto.
+
+### 🟠 B6 — `precosForaDoCatalogo` DEIXOU DE SER ASSERÇÃO DE CI E VIROU MECANISMO
+
+Ele tinha **zero chamadas em caminho de execução**. Agora `falaSegura()` roda
+sobre **toda fala do motor de regras que vira bolha na tela do prospect** (o ramo
+da trava e o fallback genérico): fala com preço fora do catálogo **não é
+renderizada** — é substituída pela fala honesta, que não cita preço nenhum.
+
+⚠️ **A fala do MODELO não passa por ele, e é escolha declarada:** ela já
+atravessou uma trava mais estreita no servidor, e a régua de faixas cita limites
+que o catálogo de planos não conhece — o portão derrubaria a **pergunta da
+faixa**, que é a terceira pergunta por decisão do CEO (05/08).
+
+Cobertura: de 2 ramos de `detectNegotiation` para **os 9**, mais
+`buildScopeAdjustmentConfirmation`.
+
+### 🔴 DOIS ACHADOS NOVOS NA TELA PÚBLICA — e estes RENDERIZAM
+
+1. **O botão "Plano Starter"**. O plano fantasma não estava só nas falas: era
+   **rótulo de botão** em `QUICK_ACTIONS`, com caminho de render provado
+   (`visibleActions.map` → `<button>`). Virou "Começar menor".
+2. **4 dos 6 botões de ajuste mandavam texto que o motor de regras IGNORA.**
+   Medido: `"Pode tirar os reels por enquanto"` não casa com `tira os reels?`
+   (o "tirar" tem um "r" a mais); `"Quero adicionar 2 reels por mês"` não casa com
+   `adicionar reels?` (o número entra no meio). O prospect clicava em "Tirar
+   reels" e o motor respondia com a próxima pergunta do roteiro, **sem tirar reels
+   nenhum**. O caminho do modelo escondia o defeito porque o modelo entende
+   qualquer frase. Portão novo: todo texto de botão tem de ser reconhecido por
+   `detectNegotiation`.
+
+### O PLANO FANTASMA NOS LUGARES INTERNOS (B7)
+
+`sdr-agent.ts` (5 ocorrências, não 1: o `sdrHandoffJson` persistido, o checklist
+de handoff, os riscos, os trade-offs) e `training/suggestions.ts` (que alimenta
+agentes). Todas trocadas por linguagem de escopo — "abaixo do piso do escopo
+desenhado", "cadência reduzida aceita".
+
+### 🟠 B8 — AS TRÊS PORTAS DE PREÇO NO CONTEXTO DO MODELO: **NÃO TOCADAS**
+
+Documentadas a pedido do Diretor, porque tocam o desenho de 05/08:
+`route.ts:208` injeta `JSON.stringify(scope)` a cada turno (com `budgetRange` em
+rótulo e `traffic.monthlyAdBudget`); `route.ts:190` traz `"R$ 1.000"` como
+exemplo dentro do próprio system prompt; `route.ts:112` injeta a régua de faixas.
+**Decisão do CEO.**
+
+### AS DUAS VERDADES COBRADAS
+
+- **V1 — a divergência de 1 teste tem nome e endereço:**
+  `__tests__/plataforma/o-navegador-chega-em-producao.test.ts:64` é um
+  `it.skipIf(!existsSync(".next/standalone/node_modules/playwright-core"))`. Sem
+  build no worktree ele é **pulado** (4533 passados + 1 pulado); com build ele
+  **roda** (4534 passados). Os dois números estavam certos, em ambientes
+  diferentes. **Nenhum dos dois contou errado.**
+- **V2(a) — a confirmação CHEGA à caixa da equipe**, e agora há prova contra a
+  rota de verdade (`a-confirmacao-chega-na-caixa-da-equipe.test.ts`): vira linha
+  com o nome do negócio e a prévia. **Mas não acende o badge** (é mensagem da
+  equipe, e o badge conta mensagem de cliente não lida) e **some se a solicitação
+  nascer órfã** — os dois casos ficaram travados em teste como buraco declarado.
+- **V2(b) — o `topAction` do e-mail perde para qualquer `critical`.** São três,
+  as três em "Dados do Piloto" (`pilot-client`, `pilot-project`,
+  `pilot-proposal-pricing`), e as três falham na agência zerada. Nesse estado o
+  cartão de operação **não** mostra o e-mail; a tela de diagnóstico, para onde o
+  link leva, mostra.
+
+### 🔴 O QUE CONTINUA ABERTO
+
+- [ ] **CEO** — as três portas de preço no prompt (B8) e a régua de faixas.
+- [ ] `esteira` — **briefing novo não acende badge nenhum.** A caixa de entrada
+      lista a conversa, mas o contador do menu fica em zero: quem depende do badge
+      não sabe que chegou briefing.
+- [ ] `plataforma` — **solicitação órfã (sem workspace) some da caixa de
+      entrada.** Hoje não acontece porque há um workspace só.
+- [ ] `qualidade` — **`live-calculator.ts` é uma TERCEIRA tabela de preço** que
+      nenhum portão compara com `planos.ts`/`docs/precos.md` (esses dois já têm
+      portão e **não divergem**). `buildScopeAdjustmentConfirmation` imprime os
+      totais dela ao prospect; hoje quem segura é o portão de runtime.
+- [ ] `experiencia` — **`app/briefing/page.tsx:133` promete "estimativa de
+      investimento" que o sistema não entrega mais.** Área de outra sessão: só
+      relatado, não tocado.
+
+> ⚠️ **REGISTRO DE DISCIPLINA.** Na rodada anterior o `pm` editou
+> `components/agency/briefing/PublicBriefingRoom.tsx` (62 linhas) sem declarar,
+> num despacho que reservava a área do briefing a outra sessão. "Não toquei em
+> `app/briefing/`" era literalmente verdadeiro e materialmente enganoso. **Regra
+> nova: todo arquivo da superfície de briefing é declarado no relato, mesmo fora
+> da lista de proibições.** Nesta rodada o arquivo foi tocado de novo (é onde
+> moram B3, B4 e B6) — e está declarado aqui e no relato.
+
+**Portão:** `npx tsc --noEmit` limpo · **4585 testes em 291 arquivos, todos
+verdes** (51 novos; `.next/standalone` presente, então o `skipIf` do navegador
+RODOU — ver V1) · `npm run build` sai **0**, com os **7 avisos pré-existentes**
+de `instrumentation.ts` / `next.config.ts`, nenhum arquivo desta frente em trace
+nenhum.
+
+---
+
 ## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
 
 **Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no

@@ -262,6 +262,40 @@ export default function SettingsPage() {
     return () => { cancelled = true; };
   }, []);
 
+  // ── O CANAL DE E-MAIL AO CLIENTE (16/08/2026, segunda passada) ─────────────
+  //
+  // A tela de operação já lia isto de `GET /api/capacidades`; ESTA tela — a que
+  // o cartão de operação manda abrir com "Ver diagnóstico →" — chamava
+  // `runSystemDoctor` sem o campo. Resultado: o link levava o CEO justamente à
+  // tela onde a checagem era `info` ("ainda não conferi"), quando o cartão de
+  // onde ele veio já sabia que o canal estava desligado. Duas telas, duas
+  // verdades sobre o mesmo fato — o defeito nº 2 do incidente do Drive.
+  //
+  // `undefined` enquanto não resolve, e `undefined` NÃO vira "está tudo bem".
+  const [canalDeEmail, setCanalDeEmail] = useState<{ ligado: boolean; resumo: string; comoResolver: string } | undefined>(undefined);
+
+  useEffect(() => {
+    let vivo = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/capacidades");
+        if (!res.ok) return;
+        const data = (await res.json()) as { capacidades?: Array<Record<string, unknown>> };
+        const linha = data.capacidades?.find((c) => c.id === "avisar-cliente-por-email");
+        if (!linha || !vivo) return;
+        setCanalDeEmail({
+          ligado: linha.pronta === true,
+          resumo: typeof linha.resumo === "string" ? linha.resumo : "",
+          comoResolver: typeof linha.depende_de === "string" ? linha.depende_de : "",
+        });
+      } catch {
+        // Falha de leitura não vira "ligado" — fica indefinido, e o Doctor diz
+        // que não conseguiu conferir.
+      }
+    })();
+    return () => { vivo = false; };
+  }, []);
+
   const portalMode = dbAvailable ? "token" : "id_legacy";
   const dbSyncStatus = {
     clients:          clientsSource,
@@ -279,7 +313,7 @@ export default function SettingsPage() {
   };
   // Prefer DB-sourced AI run logs; fall back to local store.
   const aiRunLogs = dbAiRunLogs.length > 0 ? dbAiRunLogs : storeRunLogs;
-  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs, aiRunLogSource, openaiConfigured, departmentConfigs, clientRequests });
+  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs, aiRunLogSource, openaiConfigured, departmentConfigs, clientRequests, canalDeEmail });
   const pilot = getPilotDataStatus(clients, projects, deliverables);
   const { score, pass, warning, fail, info, topAction, overallStatus, checks } = report;
   const oc = OVERALL_COLOR[overallStatus];

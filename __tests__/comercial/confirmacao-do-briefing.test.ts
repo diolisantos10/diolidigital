@@ -150,6 +150,21 @@ describe("a confirmação no portal não depende de e-mail", () => {
     expect(rota).toMatch(/precisamos de um WhatsApp ou e-mail/);
   });
 
+  it("NÃO chama a PESSOA de negócio — o campo `businessName` desta rota é ambíguo", () => {
+    // Reprovação de `qualidade` (16/08): a frase era "Recebemos o briefing do
+    // ${input.businessName}", e `businessName` chega do briefing como
+    // `data.prospectName ?? data.title`. Quando o prospect só disse o nome dele,
+    // o cliente lia "Recebemos o briefing do João." — a pessoa tratada como
+    // empresa, na primeira frase que a agência lhe escreve. E "do"/"da" é um
+    // segundo palpite errado embutido.
+    const corpo = rota.slice(rota.indexOf("const linhas = ["), rota.indexOf("const { prisma } = await import"));
+    expect(corpo).not.toMatch(/\$\{input\.businessName\}/);
+    expect(corpo).toContain("Recebemos seu briefing");
+    // E o campo saiu da assinatura: o que não se usa não se recebe.
+    const assinatura = rota.slice(rota.indexOf("async function registrarConfirmacaoNoPortal(input: {"), rota.indexOf("}): Promise<void>"));
+    expect(assinatura).not.toContain("businessName");
+  });
+
   it("é best-effort: não pode derrubar o 201 do briefing", () => {
     const trecho = rota.slice(rota.indexOf("registrarConfirmacaoNoPortal({"));
     expect(trecho.slice(0, 600)).toContain(".catch(");

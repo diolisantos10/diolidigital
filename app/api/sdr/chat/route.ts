@@ -28,6 +28,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
 import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 import { blocoDeNegociacaoParaPrompt, ehPerguntaDeFaixa, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
+import { marcaDoVazamento, ecoDoCliente } from "@/lib/agency/comercial/resposta-de-preco";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
 const MODEL       = "claude-sonnet-4-6";
@@ -335,29 +336,53 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // O log anterior era uma frase sem dado: "price-leak detected". Ele prova
       // que a trava disparou e não responde NENHUMA das perguntas que a equipe
       // faz depois — com que frequência, em que turno, e de onde saiu o número.
-      // Sem isso, "dispara em quase toda conversa" era palpite dos dois lados.
       //
-      // O que entra na linha: o TRECHO que casou (até 40 caracteres), o número
-      // do turno e se o próprio cliente já tinha falado em dinheiro. O que NÃO
-      // entra: a fala inteira do SDR e a mensagem do cliente — elas carregam
-      // nome de pessoa e de negócio, e log de container não é lugar de dado de
-      // cliente. O trecho é o mínimo que permite separar as causas.
+      // ⛔ E A PRIMEIRA VERSÃO DELE VAZAVA CLIENTE (reprovada por `qualidade`).
+      // Ela recortava 40 caracteres do casamento CRU do regex — e o casamento
+      // cru vem da quarta alternativa, `\bplano\b.*\bR\$`, cujo `.*` é guloso e
+      // arrasta a frase inteira. Medido: "Para o plano da Pizzaria do Joao
+      // Silva, dono Marcelo, o valor fica em R$ 500." gravava "plano da Pizzaria
+      // do Joao Silva, dono Ma". Nome de pessoa e de negócio em log de
+      // contêiner — com o comentário aqui em cima afirmando que não acontecia.
+      //
+      // A regra que ficou: **não se recorta texto livre para log.** O que entra
+      // é `marcaDoVazamento` — uma etiqueta de lista fechada e, no máximo, o
+      // padrão monetário casado por regex estreito. Ver
+      // `lib/agency/comercial/resposta-de-preco.ts`, seção 4.
       const clienteFalouEmDinheiro = /r\$|reais|or[çc]amento|investir|gastar|pre[çc]o|custa|valor/i.test(
         body.currentMessage,
       );
+
+      // ── O ECO (seção 5 do mesmo arquivo) ────────────────────────────────────
+      // Só o SERVIDOR pode responder isto: ele tem a fala recusada, que não pode
+      // viajar para o navegador. O que viaja é um booleano — ele não carrega
+      // texto, número nem nome. Com ele o front escolhe o fallback certo sem
+      // nunca ver o que a trava recusou.
+      const escopoAtual = (body.scope ?? {}) as Record<string, unknown>;
+      const trafego = escopoAtual.traffic as { monthlyAdBudget?: unknown } | undefined;
+      const eco = ecoDoCliente(replyText, [
+        body.currentMessage,
+        ...body.messages.filter((m) => m.role !== "assistant" && m.role !== "system").map((m) => m.text),
+        typeof escopoAtual.budgetRange === "string" ? escopoAtual.budgetRange : null,
+        typeof trafego?.monthlyAdBudget === "string" ? trafego.monthlyAdBudget : null,
+      ]);
+
+      const marca = marcaDoVazamento(replyText);
       console.warn(
         "[sdr/chat] price-leak",
         JSON.stringify({
-          trecho: vazamento[0].slice(0, 40),
+          padrao: marca.padrao,
+          valor: marca.valor,
           turno: claudeMessages.length,
           clienteFalouEmDinheiro,
+          eco,
           // A pergunta de faixa é a ÚNICA exceção legítima. Quando ela é falsa e
           // a fala PARECE a pergunta da faixa, o que reprovou foi a regra dos 3
           // limites — e isso é ajuste de prompt, não afrouxamento de trava.
           pareciaPerguntaDeFaixa: /investir|investimento|or[çc]amento|verba|gastar|faixa/i.test(replyText),
         }),
       );
-      return NextResponse.json({ ok: false, reason: "price_leak" });
+      return NextResponse.json({ ok: false, reason: "price_leak", eco });
     }
 
     return NextResponse.json({

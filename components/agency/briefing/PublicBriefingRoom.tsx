@@ -5,7 +5,7 @@ import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/
 import { initProspectConvState, processProspectMessage, type ProspectConvState } from "@/lib/agency/prospect-engine";
 import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from "@/lib/agency/sdr-agent";
 import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live-calculator";
-import { respostaHonestaDePreco } from "@/lib/agency/comercial/resposta-de-preco";
+import { respostaHonestaDePreco, falaSegura, escopoEncolheu } from "@/lib/agency/comercial/resposta-de-preco";
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
@@ -332,25 +332,45 @@ interface QuickAction {
   show: (scope: BriefingScope) => boolean;
 }
 
+// ⚠️ O TEXTO DESTES BOTÕES É ENTRADA DE MÁQUINA, NÃO SÓ FRASE DE TELA.
+//
+// Medido em 16/08/2026: **4 dos 6** textos daqui não casavam com nenhum ramo de
+// `detectNegotiation` — "Pode tirar os reels por enquanto" não bate com
+// `tira os reels?` (o "tirar" tem um "r" a mais), "Quero adicionar 2 reels por
+// mês" não bate com `adicionar reels?` (o número entra no meio). O prospect
+// clicava no botão de ajustar o escopo e o motor de regras respondia com a
+// próxima pergunta do roteiro, sem ajustar nada. O caminho do modelo escondia o
+// defeito porque o modelo entende qualquer frase — o motor, que é o fallback,
+// não entendia nenhuma destas.
+//
+// O portão que impede a volta está em `trava-de-preco-do-sdr.test.ts`: todo
+// texto desta lista tem de ser reconhecido por `detectNegotiation`.
 const QUICK_ACTIONS: QuickAction[] = [
   {
-    label: "Plano Starter",
+    // ⚠️ 16/08/2026 — ACHADO NESTA PASSADA, e este é RENDERIZADO de verdade.
+    // O rótulo era "Plano Starter": um plano que não existe em
+    // `lib/agency/planos.ts` nem em `docs/precos.md`, virando BOTÃO na tela
+    // pública do prospect (ver o `visibleActions.map` no rodapé do painel).
+    // Diferente do `ProposalCard`, que é código morto, este tem caminho de
+    // render. O texto enviado continua o mesmo — é ele que aciona o ramo de
+    // enxugar escopo em `detectNegotiation`.
+    label: "Começar menor",
     text: "Quero começar com um plano mais simples e barato",
     show: (s) => s.wantsSocialMedia && (s.social?.postsPerWeek ?? 0) * 4 > 8,
   },
   {
     label: "Tirar reels",
-    text: "Pode tirar os reels por enquanto",
+    text: "Sem os reels por enquanto",
     show: (s) => s.wantsSocialMedia && (s.social?.reelsPerMonth ?? 0) > 0,
   },
   {
     label: "Adicionar reels",
-    text: "Quero adicionar 2 reels por mês",
+    text: "Quero adicionar reels",
     show: (s) => s.wantsSocialMedia && s.social?.postsPerWeek !== undefined && (s.social?.reelsPerMonth === 0 || s.social?.reelsPerMonth === undefined),
   },
   {
     label: "Sem tráfego pago",
-    text: "Pode tirar o tráfego pago",
+    text: "Sem tráfego pago por enquanto",
     show: (s) => !!s.wantsPaidTraffic,
   },
   {
@@ -360,7 +380,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   },
   {
     label: "Menos posts",
-    text: "Quero reduzir a quantidade de posts",
+    text: "Quero reduzir posts",
     show: (s) => s.wantsSocialMedia && (s.social?.postsPerWeek ?? 0) > 2,
   },
 ];
@@ -758,7 +778,26 @@ interface SdrReply { reply: string; scope: Record<string, unknown> }
 //
 // A trava continua intacta (ela é o que impede a agência de prometer preço
 // errado). O que mudou é só o que se DIZ quando ela dispara.
-type FalhaDoSdr = { motivo: string | null };
+//
+// ── 16/08/2026, SEGUNDA PASSADA — o falso positivo e a mutação silenciosa ─────
+//
+// `qualidade` executou a trava contra falas reais e achou dois defeitos NESTE
+// ramo. Nenhum dos dois se conserta afrouxando a trava; os dois se consertam
+// aqui, no que vem DEPOIS dela:
+//
+//   • FALSO POSITIVO — "Anotei: seu orçamento de R$ 800 por mês. Me conta
+//     quantos posts você quer?" dispara a trava. É o SDR ecoando o número que o
+//     próprio cliente acabou de informar, e quem informou o orçamento passou a
+//     ouvir "quem fecha número aqui é a nossa equipe". Agora o servidor devolve
+//     `eco` (só um booleano — não viaja texto nenhum) e o eco segue a conversa.
+//   • MUTAÇÃO SILENCIOSA — quando o motor de regras CORTA o escopo ("tá caro" →
+//     posts para 2, tráfego pago desligado), a fala honesta ocupava o lugar da
+//     única frase que avisava do corte. Agora, escopo que encolheu manda o motor
+//     falar: é a fala dele que descreve o corte.
+//
+// E as três saídas passam por `falaSegura` — o portão de runtime que impede
+// qualquer fala com preço fora do catálogo de virar bolha na tela.
+type FalhaDoSdr = { motivo: string | null; eco?: boolean };
 
 
 // An uploaded briefing file and its processing status.
@@ -812,9 +851,9 @@ async function fetchSdrReply(
       }),
     });
     if (!res.ok) return { motivo: null };
-    const data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown };
+    const data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown; eco?: unknown };
     if (!data.ok || typeof data.reply !== "string" || !data.reply.trim()) {
-      return { motivo: typeof data.reason === "string" ? data.reason : null };
+      return { motivo: typeof data.reason === "string" ? data.reason : null, eco: data.eco === true };
     }
     return {
       reply: data.reply.trim(),
@@ -1219,19 +1258,35 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       setAiThinking(false);
 
       if (!ehResposta(resultado) && resultado.motivo === "price_leak") {
-        // ── A TRAVA DE PREÇO DISPAROU — e a resposta passa a ser HONESTA ───────
+        // ── A TRAVA DE PREÇO DISPAROU — e a resposta depende de POR QUÊ ────────
         //
-        // O estado do motor de regras continua valendo (é ele que sabe em que
-        // ponto da sondagem a conversa está); o que NÃO vale é a fala dele, que
-        // aqui seria a próxima pergunta do roteiro — mudança de assunto na cara
-        // de quem acabou de perguntar o preço.
+        // O estado do motor de regras continua valendo sempre (é ele que sabe em
+        // que ponto da sondagem a conversa está). O que se decide aqui é só qual
+        // fala ocupa o lugar da que a trava recusou:
         //
-        // A trava não foi tocada. O que ela recusou continua recusado; só a
-        // frase que ocupa o lugar deixou de fingir que a pergunta não existiu.
+        //   • ECO — o número da fala recusada era o que o próprio cliente já
+        //     tinha informado (verba de anúncio, faixa escolhida). Quem acabou
+        //     de dizer quanto tem não pode ouvir "quem fecha número é a equipe":
+        //     a conversa segue, com a fala do motor.
+        //   • ESCOPO ENCOLHEU — o motor cortou posts/stories/reels/tráfego neste
+        //     turno. A fala DELE é a única que descreve o corte; calá-la deixaria
+        //     o escopo menor sem uma palavra na tela (era o defeito B4).
+        //   • O RESTO — o cliente perguntou o preço e o motor não tinha nada a
+        //     dizer sobre isso. Aí sim, a fala honesta.
+        //
+        // A trava não foi tocada em nenhum dos três: o turno do modelo continua
+        // descartado, e o texto dele nunca chega ao navegador.
         const honesta = respostaHonestaDePreco(ruleResult.conv.scope.prospectName);
+        const encolheu = escopoEncolheu(prevState.conv.scope, ruleResult.conv.scope);
+        const segueAConversa = resultado.eco === true || encolheu;
+        const escolhida = segueAConversa ? ruleAssistant.text : honesta.texto;
+        // O PORTÃO DE RUNTIME: a fala do motor é escrita à mão e pode voltar a
+        // citar preço sem lastro (foi o que aconteceu com o "Plano Starter
+        // R$ 1.200"). `falaSegura` recusa e devolve a fala honesta.
+        const aprovada = falaSegura(escolhida, ruleResult.conv.scope.prospectName);
         const conv: ConvState = {
           ...ruleResult.conv,
-          messages: [...userVisible, { ...ruleAssistant, text: honesta.texto }],
+          messages: [...userVisible, { ...ruleAssistant, text: aprovada.texto }],
         };
         setState({
           conv: { ...conv, canSubmit: canSubmitProposal(conv, ruleResult.sdr) },
@@ -1245,6 +1300,14 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         const claude = resultado;
         const mergedScope = mergeScopeGaps(ruleResult.conv.scope, claude.scope);
         const estimate = computeEstimate(mergedScope);
+        // ⚠️ A fala do MODELO não passa por `falaSegura`, e é escolha declarada.
+        // Ela já atravessou uma trava MAIS estreita no servidor: lá, qualquer
+        // "R$ <número>" derruba o turno, com uma única exceção (a pergunta da
+        // faixa). Rodar o portão do catálogo por cima dela criaria uma
+        // contradição de réguas — a régua de faixas cita limites que o catálogo
+        // de planos não conhece, e o cliente perderia a pergunta da faixa, que é
+        // a terceira pergunta por decisão do CEO (05/08). Portão sobre fala já
+        // travada é redundância que quebra o caso legítimo.
         const assistantMsg: ConvMessage = { ...ruleAssistant, text: claude.reply };
         const newConv: ConvState = {
           ...ruleResult.conv,
@@ -1258,7 +1321,23 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         });
       } else {
         // Fallback: rule-based reply + the lighter extraction pass.
-        setState(ruleResult);
+        //
+        // Aqui NÃO há trava nenhuma no caminho — a fala é escrita à mão em
+        // `sdr-agent.ts` / `question-engine.ts` e vai direto para a tela do
+        // prospect. É o caminho por onde o "Plano Starter (R$ 1.200–1.800/mês)"
+        // chegou ao cliente por meses. `falaSegura` é o portão que faltava.
+        const aprovada = falaSegura(ruleAssistant.text, ruleResult.conv.scope.prospectName);
+        setState(
+          aprovada.substituida
+            ? {
+                ...ruleResult,
+                conv: {
+                  ...ruleResult.conv,
+                  messages: [...userVisible, { ...ruleAssistant, text: aprovada.texto }],
+                },
+              }
+            : ruleResult,
+        );
         void fireAiExtract(text, priorMessages);
       }
     },

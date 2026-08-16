@@ -71,13 +71,20 @@ function sendBriefingConfirmation(body: Record<string, unknown>, briefingJson: u
  */
 async function registrarConfirmacaoNoPortal(input: {
   clientRequestId: string;
-  businessName: string;
   services: string[];
   anexos: number;
   temComoFalar: boolean;
 }): Promise<void> {
+  // ⚠️ O NOME DO NEGÓCIO NÃO ENTRA NESTA FRASE, e é escolha declarada
+  // (reprovação de `qualidade`, 16/08/2026). O campo `businessName` desta rota
+  // chega do briefing como `data.prospectName ?? data.title`: quando o prospect
+  // só disse o nome dele, a frase virava **"Recebemos o briefing do João."** —
+  // tratando a pessoa como se fosse o negócio. E o artigo ("do"/"da") é outro
+  // palpite errado na primeira frase que a agência escreve para o cliente.
+  // A caixa de entrada da equipe já mostra o nome do negócio na própria linha da
+  // conversa; repeti-lo aqui só cria uma chance de errar.
   const linhas = [
-    `Recebemos o briefing do ${input.businessName}. Está tudo aqui com a gente. ✅`,
+    "Recebemos seu briefing. Está tudo aqui com a gente. ✅",
     "",
     "O que chegou:",
     `• A conversa completa do briefing`,
@@ -232,7 +239,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (typeof body.source !== "string" || body.source === "briefing") {
       registrarConfirmacaoNoPortal({
         clientRequestId: record.id,
-        businessName,
         services: Array.isArray(body.services) ? (body.services as string[]) : [],
         anexos: Array.isArray(body.attachmentsJson) ? body.attachmentsJson.length : 0,
         temComoFalar: contato.temComoFalar,
