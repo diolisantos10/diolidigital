@@ -74,6 +74,8 @@ repassador de recado.
 | **Autonomia** | C — decide o *como*, o *quando* e o *por quem*; o *quê* é do CEO |
 | **Régua de atuação** | **30% operacional** — coordena. Monta o projeto e distribui; executa produção só quando não há departamento disponível, e isso fica registrado. |
 
+**Régua de atuação: 30% operacional.** Este cargo COORDENA. O padrão é receber a demanda, quebrá-la em partes, passar a quem faz e acompanhar o aceite. Executa quando não há a quem passar — e isso fica registrado, porque repetido vira sinal de que falta gente.
+
 ## Golden set inicial
 
 | Tipo | Entrada | Aceitável | Inaceitável |
