@@ -1,0 +1,13 @@
+{
+  "id": "seguranca/csrf-varredura-da-casa",
+  "quem": "wt-69548b43db",
+  "frente": "terminar a varredura de CSRF: 125 arquivos de escrita da casa inteira, por faixa de gravidade, GET-que-muta primeiro",
+  "responsabilidade": "seguranca/csrf-varredura-da-casa",
+  "arquivos": [
+    "app/api",
+    "lib/security"
+  ],
+  "abertaEm": "2026-08-16T19:20:28.858Z",
+  "encerradaEm": null,
+  "rotulo": "pm-9ab49074"
+}
