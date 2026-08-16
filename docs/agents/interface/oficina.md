@@ -308,8 +308,10 @@ fatura não é funcionalidade, é promessa.
 2. **Gemini com áudio `webm`** é o caminho menos testado dos três: a lista oficial
    de mimes do Google não cita webm. Se recusar, cai como `audio_recusado` e a
    cadeia segue — mas o ideal é medir com áudio real do iPhone (mp4) e do Chrome.
-3. **`BriefingRoomV2` (painel interno)** ainda tem a linha de erro do microfone em
-   10px. Não foi tocado nesta frente para não ampliar o escopo.
+3. **`BriefingRoomV2` (painel interno)** tinha a linha de erro do microfone em
+   10px — não foi tocado naquela frente para não ampliar o escopo. O arquivo
+   foi apagado em 16/08/2026 (760 linhas sem nenhum importador); o item fica
+   resolvido pela remoção, não pelo conserto.
 
 ---
 

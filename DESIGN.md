@@ -803,7 +803,8 @@ Levantamento de auditoria (Julho/2026). Prioridade: **P0** crítico → **P3** b
   agora usam o mesmo banner: `components/agency/ui/AvisoModoAlternativo.tsx`,
   com o motivo técnico como detalhe, nunca como manchete. Ver §7.3.
 - **I-7 · Grids sem breakpoint responsivo.** `grid-cols-4/5` fixos no dashboard,
-  control-room, orchestrator e `BriefingRoomV2` estouram no celular.
+  control-room e orchestrator estouram no celular (`BriefingRoomV2` tinha o
+  mesmo problema; o arquivo foi apagado em 16/08/2026, sem importador nenhum).
   **Ação:** `grid-cols-1 md:grid-cols-...`.
 - **I-8 · Rotas órfãs na navegação.** *(Parcial — 05/08/2026.)* **WhatsApp**
   (`/agency/whatsapp`, caixa completa e funcional) e **Radar do mercado**
@@ -870,7 +871,8 @@ Levantamento de auditoria (Julho/2026). Prioridade: **P0** crítico → **P3** b
     era a AGÊNCIA sem provedor configurado — mandando o cliente desconfiar do
     aparelho dele por uma pendência nossa;*
   - *`BriefingRoomV2` era a cópia atrasada: 10px de fonte, alvo de 24px e o
-    ativo em rosa claro. Subiu para 12px/32px e vermelho cheio, como o público.)*
+    ativo em rosa claro. Subiu para 12px/32px e vermelho cheio, como o público
+    — arquivo apagado em 16/08/2026, sem importador nenhum.)*
 
 - **I-23 · Rótulo de estado tem que descrever o motor que está rodando.** O
   microfone do briefing dizia **"Ouvindo"** nos dois caminhos. No reconhecimento
