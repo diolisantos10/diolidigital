@@ -1,0 +1,14 @@
+{
+  "id": "distancia-do-deploy",
+  "quem": "pm-distancia-deploy",
+  "frente": "Mecanismo que mede a DISTANCIA da producao (quantos commits atras) e trava informando ao fechar bloco",
+  "responsabilidade": "distancia-do-deploy",
+  "arquivos": [
+    "lib/plataforma/distancia-do-deploy.ts",
+    "scripts/distancia-do-deploy.mts",
+    "__tests__/plataforma/distancia-do-deploy.test.ts",
+    "lib/plataforma/consulta-de-ci.ts"
+  ],
+  "abertaEm": "2026-08-16T18:44:10.795Z",
+  "encerradaEm": null
+}
