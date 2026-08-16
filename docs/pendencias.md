@@ -15,6 +15,116 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — MESMO CONTATO, CINCO BRIEFINGS: UM CADASTRO, NÃO CINCO (`4cbba4b`, `57eb2f1`)
+
+**A pergunta do CEO:** *"se entrar um cliente com o mesmo e-mail e fizer cinco
+briefings um atrás do outro, o que acontece com o sistema?"*
+
+**A resposta medida: não dava pane — dava bagunça cara.** Cinco linhas anônimas
+na fila e, na aprovação, **cinco `Client` homônimos, cinco portais, cinco
+históricos**. A Camila Pereira já estava duplicada em produção por esse caminho
+desde 08/08. As decisões de corredor estão em `docs/decisoes.md` (16/08) —
+**marca, não funde** · **dedup de cadastro, nunca de pedido** · **nome nunca vira
+chave** · **lead sem canal não tem chave** · **índice não-único, deliberado** ·
+**continua `create`, nunca `upsert`**.
+
+### O que ficou PROTEGIDO daqui para a frente
+
+- **As DUAS portas que criavam cadastro** passam pelo mesmo resolvedor
+  (`lib/agency/execution/cliente-do-briefing.ts`):
+  `create-project-from-request.ts` e `/api/brain/orchestrate/apply`. Consertar só
+  uma deixaria a outra vazando em silêncio.
+- **A chave é persistida em quem nasce.** `Client` de briefing passa a gravar
+  `email` e `phone` normalizados. Sem isso, a busca por contato jamais casaria —
+  ver a lição proposta ao kit em `docs/decisoes.md`.
+- **Reaproveitamento é visível, não mágico:** `registrarReaproveitamento` grava
+  `cliente_reaproveitado` na linha do tempo.
+- **A fila carimba a repetição** e mostra os irmãos por data · negócio · o que
+  foi pedido — dado gravado, zero IA.
+
+**Portões declarados nos commits:** `4cbba4b` — `npx tsc --noEmit` limpo, 4579
+testes em 292 arquivos; `57eb2f1` — 4668 testes em 298 arquivos, 1 pulado.
+Conferida a 375/768/1440 com dado plantado. **Conferido de novo ao escrever este
+registro (16/08):** `tsc` exit 0 · **4695 testes em 301 arquivos, 1 pulado** — o
+número subiu porque outras frentes entraram depois; nada quebrou.
+
+### 🔴 O QUE CONTINUA ABERTO — com todas as letras
+
+- [ ] **Aprovar N briefings do mesmo contato ainda cria N PROJETOS** (agora sob um
+      cadastro só). **É deliberado** — a idempotência é por solicitação, e travar
+      por cliente faria o segundo pedido legítimo falhar em silêncio com o cliente
+      já tendo pago. **A defesa é o carimbo na tela**, ou seja: uma pessoa olhando.
+      Não há mecanismo.
+- [ ] 🔴 **DINHEIRO REAL, SEM DONO:** N briefings ainda disparam **N rodadas de
+      `runAutoScope`** = **N faturas de IA**
+      (`app/api/brain/client-requests/route.ts:272`). Não há nenhuma consulta ao
+      prospect antes de gastar. O único freio é o teto de ritmo posto pelo
+      `seguranca` em 16/08 (`79b72df`): **20 por 10 min, por IP** — que barra
+      rajada de abuso e **não barra nada** no caso do CEO, que são cinco briefings
+      legítimos e cinco faturas. **Fora do escopo do bloco de hoje. Sem dono.**
+- [ ] 🔴 **AS DUPLICATAS QUE JÁ EXISTEM EM PRODUÇÃO NÃO FORAM FUNDIDAS.** O
+      mecanismo impede duplicata **nova**; não limpa a velha. A Camila Pereira
+      segue com duas fichas, esperando o merge manual
+      (`app/api/clients/[id]/fundir/route.ts`). **Qual ficha fica com o histórico é
+      decisão do CEO** — a mesma que está aberta desde 08/08.
+- [ ] **`chaveDoProspect` é GRAVADA e AINDA NÃO É LIDA por ninguém.** Medido: os
+      únicos leitores são testes e `scripts/plantar-leads-repetidos.mjs`. Quem
+      agrupa a fila é `agruparPorProspect`, **em memória**
+      (`app/api/agency/leads/route.ts:52`) — o que, por acaso, é o que faz as
+      linhas legadas também serem agrupadas. **As linhas legadas ficam com a chave
+      NULA e não há backfill.** Coluna gravada que ninguém lê é dívida que envelhece
+      calada. Sem dono.
+- [ ] **Teto de 1000 na varredura de fichas legadas**
+      (`TETO_DA_VARREDURA`, `cliente-do-briefing.ts:89`). Acima disso a segunda
+      passada simplesmente **não vê** a ficha e o cadastro duplica **em silêncio**.
+      Hoje a carteira é de dezenas; o caminho declarado quando crescer é promover
+      uma coluna de e-mail normalizado, **não aumentar o teto**.
+- [ ] **A fila lê no máximo 200 solicitações abertas** (`limit: 200` em
+      `app/api/agency/leads/route.ts:26`). Como o agrupamento é em memória sobre
+      essa lista, irmão que caia fora das 200 **não aparece** como repetição. Não
+      morde hoje; não é para sempre.
+
+### 🔴 O ACHADO ESTRUTURAL DE HOJE — A CAMADA DO PM **EXISTE E FUNCIONA**, e duas execuções afirmaram o contrário
+
+Duas execuções seguidas do `pm` registraram, neste próprio arquivo, que *"não há
+ferramenta de despacho nesta execução"* e declararam exceção `SEM_AGENTE` para
+fazer o trabalho à mão (ver 08/08, seções do CityJobs e do IMAP). O `CLAUDE.md`
+já mandava conferir isso **"uma vez, hoje"**.
+
+**Conferido em 16/08, e a afirmação anterior está ERRADA:**
+
+```
+$ which claude                → /opt/node22/bin/claude
+$ claude --agent qualidade -p "…"   → resposta do especialista, exit 0
+```
+
+**O despacho funciona pela CLI.** O que não existe é a ferramenta de despacho
+*dentro da sessão*; o caminho `claude --agent <nome>` está de pé — e é
+exatamente o que `docs/decisoes.md` registra ter sido usado em 08/08 para
+derrubar o Caminho C do Drive com o especialista `google`. **Duas rodadas
+produziram na mão declarando impossibilidade que não foi medida** — é o padrão
+que o P0 do Playwright já tinha ensinado: *adivinhação sobre o ambiente custa um
+turno por hipótese; medida custa um comando.*
+
+**A segunda prova é este próprio registro.** O `qualidade` foi despachado pela
+CLI para auditar os dois textos contra o código, e **voltou com as 7 afirmações
+verificadas, cada uma com caminho:linha** — inclusive a de que `chaveDoProspect`
+não tem leitor de produção. Ele também recusou confirmar o que não podia medir
+(*"não verificável conta como reprovação, não como confirmação"*), que é o
+comportamento certo do Essencial. **A camada não era cara: era não exercitada.**
+
+- [ ] `plataforma` — **`SEM_AGENTE` deixa de ser exceção aceitável sem a medida
+      junto.** Quem declarar precisa colar a saída do comando que falhou. Exceção
+      é dado, não perdão, e exceção baseada em suposição contamina a régua da casa.
+- [ ] `plataforma` — **o elenco em disco tem 14 fichas** (`.claude/agents/`,
+      `~/.claude/agents/` vazio) e o `CLAUDE.md` fala em **26 agentes
+      disponíveis**. Os dois números não batem. **A confirmar** a qual elenco o 26
+      se refere — o catálogo de funções do produto passou a 81 em `2c75e9e`, que é
+      outra coisa. Número de agentes em documento de bordo que ninguém contou é o
+      tipo de dado que vira meta e nunca vira verdade.
+
+---
+
 ## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
 
 **Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no
@@ -227,8 +337,15 @@ nome do plano na mesma largura — agora empilham no celular.
 - [ ] `esteira` — **"Solicitações" lê o store do navegador e `/agency/leads` lê o
       banco.** Duas verdades adjacentes sobre a mesma fila é o defeito nº 2 do
       incidente do Drive. Unificar.
-- [ ] `plataforma` — **`Client` sem `@@unique(workspaceId, name)` e com duas
-      rotas criando ficha sem dedup.** É o que produziu a Camila duplicada.
+- [x] ~~`plataforma` — **`Client` sem `@@unique(workspaceId, name)` e com duas
+      rotas criando ficha sem dedup.** É o que produziu a Camila duplicada.~~
+      **FECHADO em 16/08/2026 (`4cbba4b`) — mas não como estava escrito aqui.** As
+      duas rotas passaram a chamar o mesmo resolvedor, e isso está resolvido. O
+      `@@unique(workspaceId, name)` **NÃO foi criado, e não deve ser**: nome nunca
+      vira chave de identidade — dois homônimos podem ser duas pessoas, e fundir
+      por homonímia entregaria o portal de um cliente a outro. Ver a seção de
+      16/08 no topo e o registro em `docs/decisoes.md`. **A ficha duplicada da
+      Camila continua sem fusão** (item 4 acima segue aberto).
 - [ ] **`ProposalCard` e `EmailFallbackForm` em `PublicBriefingRoom.tsx` não têm
       chamador** — código morto, achado de passagem. Não removi: apagar 150
       linhas de uma tela pública no mesmo commit da trava misturaria os riscos.
