@@ -74,6 +74,17 @@ export function esperaHa(n: number): string {
 }
 
 /**
+ * "parada há 3 dias" · "chegou hoje".
+ *
+ * Existe porque `parada ${esperaHa(0)}` produzia **"parada chegou hoje"**, que
+ * é a mesma classe de erro de "parada há 0 dias": frase montada por
+ * concatenação que ninguém leu em voz alta.
+ */
+export function paradaHa(n: number): string {
+  return n === 0 ? "chegou hoje" : `parada há ${dias(n)}`;
+}
+
+/**
  * Um número do placar.
  *
  * `nota` explica o que o número NÃO é — é onde mora o aviso de não-soma, e ele

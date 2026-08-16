@@ -15,6 +15,220 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — A AUDITORIA DA APROVAÇÃO PARADA: A TELA COBRAVA O CLIENTE PELO ATRASO DA CASA
+
+**A consequência, primeiro:** a faixa que a agência ligou de manhã somava os dois
+baldes e imprimia o total sob o rótulo *"esperando a decisão dele"* — o alarme
+que o cabeçalho do próprio arquivo jura impedir.
+
+### 🔴 1. `paradas` INCLUI `bolaConosco`, E A TELA IMPRIMIA `paradas`
+
+Medido: 3 cards, 2 com dúvida aberta → a faixa mostrava *"2 ele perguntou e não
+respondemos"* **e** *"3 esperando a decisão dele — a mais antiga há 6 dias"*,
+quando só **1** esperava o cliente e os 6 dias eram de um card cujo relógio o
+schema declara **pausado**.
+
+**A separação estava feita na prosa e não estava feita no número.** O aviso de
+não-soma existia entre `abandonadas` e `paradas`, e **não** entre `bolaConosco` e
+`paradas` — que era justamente o par que se sobrepunha.
+
+O conserto mora no **servidor** (`esperandoOCliente`, `maisAntigoDeleEmDias`,
+`maisAntigoNossoEmDias`): tela que faz conta é a segunda cópia da regra, e cópia
+diverge. A perna do relógio tinha o mesmo defeito e recebeu o mesmo conserto.
+
+E a causa de fundo: **nenhum teste renderizava este componente.** A varredura
+tinha 22 testes, a rota 10, e a tela — onde o defeito estava — zero.
+
+### 🔴 2. SLUG DE BANCO COMO TÍTULO, E A LINHA URGENTE SEM DESTINO
+
+`c.departamento` saía cru — "social-media", "paid-traffic" — enquanto o `Badge`
+da casa carrega o comentário *"chave de banco não é português"*. Pior: duas das
+cinco linhas diziam "social-media" e eram **indistinguíveis**.
+
+`lib/agency/organizacao/nome-do-departamento.ts` é o tradutor único, e ele não é
+`getDepartmentDef(x)!.name`: `ApprovalRequest.department` é `String` livre e a
+casa grava ali `pedido:<id>` e `proibicoes-do-cliente`, que não são departamento.
+**Chave desconhecida é humanizada e DECLARADA como chave**, nunca batizada com
+nome bonito. Cada linha ganhou o código do card como localizador.
+
+> ⚠️ **O "cobrar quem?" continua com o CEO.** A faixa ainda não diz de que
+> CLIENTE é a peça. O fato que a decisão precisa: **as quatro filas vizinhas
+> desta mesma tela já imprimem nome de cliente e de projeto para a mesma
+> audiência** (`/agency/approvals` é `todos_internos`) — então mostrar o cliente
+> aqui não abre classe de exposição nova. Não decidi.
+
+### 🔴 3. UM BOTÃO QUE A PRÓPRIA FAIXA DIZIA NÃO EXISTIR
+
+`✓ Aprovado`, um clique, sem confirmação, **do lado da agência**, numa seção
+chamada "Entregas Aguardando Aprovação do CLIENTE" e dois centímetros abaixo da
+faixa que diz *"ninguém é aprovado por máquina"*.
+
+A regra veio de `AprovacoesDoCliente` no portal, que já a tinha resolvido de
+propósito: confirmação que **nomeia a entrega** — "tem certeza?" sozinho é a
+mesma decisão às cegas com um clique a mais. Aqui ela carrega uma frase a mais,
+porque **quem clica não é o dono da decisão**: *"você está marcando pelo cliente,
+e não decidindo por ele; só faça isto se ele já disse sim fora do portal"*.
+
+### 🔴 4. O ERRO HONESTO EMPRESTAVA CREDIBILIDADE A QUATRO MENTIRAS
+
+A faixa nova diz *"não é zero, é desconhecida"*. As quatro filas abaixo, com o
+**mesmo banco caído**, imprimiam "Nenhuma…" — elas fazem
+`.catch(() => setSource("local"))` e caem no store do navegador em silêncio.
+
+**Pior que quatro zeros sozinhos:** a pessoa aprende que a tela avisa quando não
+consegue ler, e generaliza para a tela inteira. Agora a página nomeia quais filas
+não vieram do banco. Sem hook novo: o único caminho que grava `source: "db"` é
+uma leitura bem-sucedida, então "terminou de carregar e continua em `local`" **é**
+"o banco não respondeu".
+
+### 🔴 5. A ÂNCORA ELEGIA O MESMO INQUILINO PARA SEMPRE
+
+A perna tirava o workspace do card `pending` mais antigo. Como ela **não tira
+card de pending** (só conta, e isso é de propósito), o mesmo card seguia sendo o
+mais antigo na rodada seguinte, e na seguinte. **Fome determinística, não
+sorteio.** Passou a enumerar a casa, como a irmã.
+
+### 🔴 6. O ÓRFÃO DO BANCO INTEIRO SERVIDO A UM INQUILINO
+
+A rota contava `approvalRequest` órfão do banco inteiro e devolvia para qualquer
+inquilino — **três linhas abaixo de um comentário dizendo que varrer órfão alheio
+é vazamento entre clientes**. Órfão não tem inquilino por definição, então não há
+recorte correto; há uma pergunta honesta: a casa tem **um** inquilino só? Se sim,
+o número vale. Se não, ele é **`null` com o motivo** — nunca zero.
+
+### 7. O TETO, O PULSO E A TRAVA — o mesmo tratamento da irmã
+
+Contagem virou consulta própria (a faixa afirmava *"a lista tem teto, a contagem
+acima não"* enquanto `paradas` saía de `fila.length`). `paradasNaAprovacao`
+entrou no pulso em `filas`. O detector de escrita virou allowlist — a lista
+antiga reprovava a palavra "decidir" dentro de um `log`, e esta perna **precisa**
+dizer "decisão".
+
+### 8. FORMA
+
+`role="alert"` e `role="status"` (§7.1/§7.3), `<h2>`, `--card` no lugar de
+`bg-white`, piso de 12px, grade em `lg`. O `Numero` byte a byte idêntico, o
+cartão de erro copiado e o `dias()` duplicado saíram para
+`components/agency/ui/fila/pecas.tsx` — com os três degraus de cor declarados
+**uma vez**, porque `--danger` queria dizer coisas opostas nas duas telas.
+E "1 card(s)" e "parada há 0 dias" morreram: `contagem()` e `paradaHa()`.
+
+### Portão
+
+`npx tsc --noEmit` **limpo**, medido com e sem · **293 arquivos, 4.611 testes
+verdes, 1 pulado** · `npm run lint` com **exatamente os mesmos 212 problemas (67
+erros)** da base, medido com e sem.
+
+**As duas metades:** cada bloqueante foi revertido e a suíte rodada — o número
+sob o rótulo errado na tela (2 vermelhos) e no servidor (5), a âncora de um
+inquilino (4), o órfão do banco inteiro (1), o clique único que aprova pelo
+cliente (1).
+
+Capturas em **375 / 768 / 1440**, nos **quatro** estados incluindo carregando.
+Notas a 375px: hierarquia **9** · tipografia **9** · espaçamento **8,5** ·
+consistência **9**.
+
+### 🔴 O QUE FICA COM O CEO
+
+- [ ] **Mostrar o cliente na faixa de aprovação parada** — ver o fato acima.
+- [ ] **`ApprovalRequest.workspaceId` nulo.** Não toquei, por ordem. Enquanto for
+      assim, card órfão continua fora de toda fila por inquilino.
+
+## 🟢 16/08/2026 — A APROVAÇÃO PARADA: O MESMO DEFEITO, O ARQUIVO AO LADO
+
+**A consequência, primeiro:** o relógio da agência passou a contar a peça pronta
+que morre esperando um clique do cliente, e a conta virou faixa no topo do
+**Centro de Aprovações**.
+
+**O defeito, e ele também não era um bug:**
+`lib/agency/esteira/aprovacao-parada.ts` existia **completo, correto e testado**
+— e o único importador do repositório inteiro era o próprio teste. É o **segundo
+caso confirmado no mesmo dia** do padrão "peça verde, junta rompida".
+
+Esta é a fila mais cara que a casa tem: a peça já foi produzida, a IA já foi
+paga, o relógio já foi gasto. Do lado de fora parece que a agência não entregou;
+do lado de dentro parece que entregou.
+
+### 1. O RELÓGIO OLHA A APROVAÇÃO (`despertador.ts`, perna `aprovacao-parada`)
+
+No molde da irmã: `try/catch` próprio com `quebrou("aprovacao-parada")`, teto por
+rodada nos NOMES e nunca na contagem.
+
+**Ela CONTA e faz `log`. Não aprova, não reprova, não expira card e não manda
+mensagem** — aprovar no lugar do cliente é falsificar o consentimento dele, e
+**expirar por robô é reprovar com outro nome**. Há teste que reprova quem plugar
+verbo de decisão, de escrita ou de envio no bloco.
+
+- **Os dois baldes sobem separados, e a NOSSA dívida vem primeiro:**
+  `bolaConosco` (ele perguntou e não respondemos — o prazo dele está PAUSADO) e
+  "esperando a decisão dele". Somados, viram um alarme que cobra o cliente pelo
+  atraso da própria casa.
+- **A âncora do workspace sai do PRÓPRIO card parado**, não de uma linha
+  qualquer do banco — `ApprovalRequest` não tem `workspaceId`, e a posse é
+  `clientRequestId` OU `clientId`. Pegar "o primeiro cliente que existir" leria
+  a fila do inquilino errado, ou leria vazio com a fila cheia.
+- **O card pendente SEM DONO é contado à parte.** Ele fica fora de toda fila por
+  workspace — corretamente, porque varrer órfão de outro inquilino é vazamento
+  entre clientes —, e por isso mesmo precisa aparecer em algum lugar.
+
+### 2. A CONTA VIRA TELA (faixa em `/agency/approvals` + `GET /api/agency/aprovacoes-paradas`)
+
+**Log do Railway não é tela.** Fila que só existe se alguém lembrar de abrir o
+console é a mesma fila morta de sempre, com um arquivo bonito ao lado — é a
+lição literal da porta da frente, uma camada acima.
+
+Ficou na tela que já existia, enxertada acima das quatro filas internas: as de
+baixo são trabalho que espera a CASA; esta é trabalho pronto que já saiu da casa.
+
+### 🔴 O TESTE QUE TRANCAVA O DEFEITO COMO CONTRATO
+
+`aprovacoesParadas` fazia `.catch(() => [])` nas duas consultas, e havia teste
+exigindo isso (*"banco fora do ar não derruba quem consulta"* → `paradas === 0`).
+Enquanto a função não tinha chamador, era teoria. No dia em que ganhou tela,
+virou **"Nenhuma peça esperando decisão do cliente. Isto é boa notícia."**
+impresso em cima de um banco que piscou.
+
+É o mesmo padrão que esta casa já pagou três vezes: **o defeito virando
+invariante.** As duas consultas voltaram a lançar; quem trata é quem chama — a
+perna com `quebrou(...)` e a rota com 503 e *"esta fila NÃO é zero, é
+desconhecida"*.
+
+### 🔴 O CABEÇALHO QUE DESMENTIA A PRÓPRIA TELA
+
+Com a faixa posta, o Centro de Aprovações dizia **"Nenhum item pendente — tudo em
+dia"** com cinco peças paradas listadas logo abaixo — o cabeçalho contava só as
+filas internas. É o defeito do cartão do Drive de 07/08 outra vez. Ele passou a
+receber a contagem da faixa, e **`null` (não medido) é tratado como diferente de
+zero**.
+
+**Portão:** `npx tsc --noEmit` limpo · **290 arquivos de teste, 4.549 testes
+verdes** · `npm run lint` com **exatamente os mesmos 212 problemas (67 erros)**
+da base, medido com e sem. Conferido em 375/768/1440 nos três estados —
+`docs/entregas/aprovacao-16-08/`.
+
+### 🔴 O QUE FICOU ABERTO
+
+- [ ] **A faixa não mostra NOME DE CLIENTE** — `aprovacoesParadas` devolve
+      departamento, dias e de quem é a vez, e nada mais. Para decidir "vou
+      cobrar quem?", falta o cliente. Acrescentá-lo é mexer no leitor e reabre a
+      pergunta de PII em tela; **não foi feito, e é despacho próprio.**
+- [ ] **`ApprovalRequest` sem `workspaceId`** é o mesmo buraco do
+      `ClientRequestDb`: a posse é indireta e o card órfão não é de ninguém. A
+      perna e a tela passaram a **contar** os órfãos; consertar o dado é decisão
+      de gente. **Sem dono.**
+- [ ] **A varredura de aprovação assume UM workspace por rodada**, como todas as
+      irmãs do despertador. Com dois inquilinos ativos, a segunda fila não é
+      lida. Dívida antiga do arquivo inteiro, não desta frente.
+- [ ] **Nenhum especialista foi despachado como agente** (`interface`,
+      `experiencia`, `qualidade`, `seguranca`): **não há ferramenta de despacho
+      nesta execução** — o `pm` desta rodada NÃO tem `Task`/`Agent`, conferido
+      contra a lista de ferramentas disponíveis. O trabalho foi auditado pelo
+      `pm` contra as quatro cartas em `.claude/agents/`, e essa passada produziu
+      quatro consertos (a guarda das rotas, o teste que dava falsa sensação, o
+      cabeçalho que se desmentia e a falha virando fila zero). **Não substitui a
+      passada deles.**
+
+---
 ## 🟢 16/08/2026 — A AUDITORIA DA PORTA DA FRENTE: A FILA NÃO CONTINHA AS PESSOAS QUE ELA EXISTE PARA MOSTRAR
 
 **A consequência, primeiro:** a fila que a agência acabara de ligar mostrava, em

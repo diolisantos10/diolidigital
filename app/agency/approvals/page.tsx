@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import EsperandoOCliente from "@/components/agency/approvals/EsperandoOCliente";
 import { useAgencyStore, type BrandUpdate } from "@/store/agency-store";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { useDbMaterialRequests } from "@/lib/hooks/useDbMaterialRequests";
@@ -51,21 +52,50 @@ export default function ApprovalsPage() {
     deliverables,
     updateStatus: updateDeliverableStatus,
     setFeedback: setDeliverableFeedback,
+    source: fonteDasEntregas,
+    loading: lendoEntregas,
   } = useDbDeliverables();
 
   const {
     materialRequests,
     updateStatus: updateMaterialRequestStatus,
+    source: fonteDosMateriais,
+    loading: lendoMateriais,
   } = useDbMaterialRequests();
 
   const {
     brandUpdates,
     apply: applyBrandUpdate,
     dismiss: dismissBrandUpdate,
+    source: fonteDasMarcas,
+    loading: lendoMarcas,
   } = useDbBrandUpdates();
+
+  // ── 🔴 O ERRO HONESTO EMPRESTAVA CREDIBILIDADE A QUATRO MENTIRAS (16/08) ──
+  //
+  // A faixa nova diz, com todas as letras, *"esta fila NÃO é zero, é
+  // desconhecida"* quando não consegue ler. As quatro filas abaixo dela, com o
+  // MESMO banco caído, imprimem "Nenhuma entrega aguardando…" — elas fazem
+  // `.catch(() => setSource("local"))` e caem no store do navegador em silêncio.
+  //
+  // Isso é pior que quatro zeros sozinhos: a pessoa aprende que **esta tela
+  // avisa quando não consegue ler**, e generaliza a lição para a tela inteira.
+  // Um aviso honesto ao lado de quatro silêncios ensina a confiar nos quatro.
+  //
+  // Não há hook novo aqui: o único caminho que grava `source: "db"` é uma
+  // leitura bem-sucedida, então "terminou de carregar e continua em `local`" é
+  // exatamente "o banco não respondeu".
+  const filasDoBancoQueNaoVieram = [
+    !lendoEntregas && fonteDasEntregas === "local" ? "entregas em revisão" : null,
+    !lendoMateriais && fonteDosMateriais === "local" ? "materiais pedidos" : null,
+    !lendoMarcas && fonteDasMarcas === "local" ? "atualizações de marca" : null,
+  ].filter((x): x is string => x !== null);
 
   const [feedbackMap, setFeedbackMap] = useState<Record<string, string>>({});
   const [expandedFeedback, setExpandedFeedback] = useState<Record<string, boolean>>({});
+  /** Quem já pediu para registrar a aprovação e ainda não confirmou. Ver o
+   *  comentário no botão: aprovar no lugar do cliente não tem desfazer. */
+  const [confirmandoAprovacao, setConfirmandoAprovacao] = useState<Record<string, boolean>>({});
 
   // ── Compute queues ────────────────────────────────────────────────────────
   const sentProposals = projects.filter((p) => p.proposal?.status === "sent");
@@ -84,12 +114,35 @@ export default function ApprovalsPage() {
       (d.status === "draft" || d.revisionStatus === "revision_requested" || d.revisionStatus === "in_revision")
   );
 
-  const totalPending =
+  const internosPendentes =
     sentProposals.length +
     inReviewDeliverables.length +
     pendingBrandUpdates.length +
     pendingMaterials.length +
     deliverablesNeedingRevision.length;
+
+  // ── O CABEÇALHO NÃO PODE DESMENTIR A TELA (16/08/2026) ────────────────────
+  // Ele dizia "Nenhum item pendente — tudo em dia" contando só as quatro filas
+  // internas. Com a faixa de aprovações do cliente logo abaixo, a tela passou a
+  // afirmar duas coisas opostas ao mesmo tempo — o defeito do cartão do Drive
+  // de 07/08, de novo. `null` = ainda não medido, que **não** é zero: dizer
+  // "tudo em dia" sobre fila que não foi lida é a pior das três respostas.
+  const [esperandoCliente, setEsperandoCliente] = useState<number | null>(null);
+  const [mediuCliente, setMediuCliente] = useState(false);
+  const anotarFilaDoCliente = useCallback((n: number | null) => {
+    setEsperandoCliente(n);
+    setMediuCliente(true);
+  }, []);
+
+  const totalPending = internosPendentes + (esperandoCliente ?? 0);
+  const filaDoClienteDesconhecida = mediuCliente && esperandoCliente === null;
+  const subtituloDoCentro = filaDoClienteDesconhecida
+    ? `${internosPendentes} item(ns) interno(s) aguardando ação — a fila do cliente NÃO pôde ser medida agora`
+    : totalPending > 0
+    ? `${totalPending} item(ns) aguardando ação`
+    : mediuCliente
+    ? "Nenhum item pendente — tudo em dia"
+    : "Conferindo o que está pendente…";
 
   const getClient = (clientId?: string) => clients.find((c) => c.id === clientId);
   const getProject = (projectId?: string) => projects.find((p) => p.id === projectId);
@@ -99,11 +152,7 @@ export default function ApprovalsPage() {
       {/* Header */}
       <AgencyHeader
         title="Centro de Aprovações"
-        subtitle={
-          totalPending > 0
-            ? `${totalPending} item(ns) aguardando ação`
-            : "Nenhum item pendente — tudo em dia"
-        }
+        subtitle={subtituloDoCentro}
         actions={
           totalPending > 0 ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] text-[12px] font-semibold">
@@ -113,6 +162,39 @@ export default function ApprovalsPage() {
           ) : undefined
         }
       />
+
+      {/* ── 0. O QUE ESPERA O CLIENTE DECIDIR (16/08/2026) ────────────────
+          Vem ANTES das quatro filas internas de propósito: as de baixo são
+          trabalho que espera a CASA, e esta é trabalho pronto que já saiu da
+          casa e morre esperando um clique lá fora. Ela é a única em que o
+          custo já foi todo pago. Lê o banco (as demais leem o store do
+          navegador — dívida anterior a este trabalho, registrada). */}
+      <EsperandoOCliente onContagem={anotarFilaDoCliente} />
+
+      {/* AS QUATRO FILAS ABAIXO TAMBÉM DIZEM QUANDO NÃO CONSEGUIRAM LER.
+          Sem isto, um aviso honesto (a faixa acima) ficava ao lado de quatro
+          silêncios, e a lição que a pessoa aprende — "esta tela avisa" — passa a
+          valer para filas que não avisam. */}
+      {filasDoBancoQueNaoVieram.length > 0 && (
+        <div
+          role="alert"
+          className="mb-8 rounded-[12px] border border-[var(--warning)] bg-[var(--warning-bg)] px-4 sm:px-5 py-4"
+        >
+          <p className="text-[13px] font-semibold text-[var(--warning)]">
+            {filasDoBancoQueNaoVieram.length === 1
+              ? "Uma das filas abaixo não veio do banco"
+              : `${filasDoBancoQueNaoVieram.length} das filas abaixo não vieram do banco`}
+          </p>
+          <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed">
+            {filasDoBancoQueNaoVieram.join(" · ")} — a leitura falhou e estas seções estão mostrando o
+            que existe <strong>neste navegador</strong>.
+          </p>
+          <p className="text-[12px] text-[var(--text-muted)] mt-2 leading-relaxed">
+            Um &ldquo;Nenhuma…&rdquo; nessas seções quer dizer <strong>não sei</strong>, e não
+            <strong> não há</strong>. Recarregue a página para tentar de novo.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-10">
         {/* ── 1. Proposals ────────────────────────────────────────────────── */}
@@ -189,11 +271,28 @@ export default function ApprovalsPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
+                        {/* ── 🔴 UM CLIQUE APROVAVA NO LUGAR DO CLIENTE (16/08) ──
+                            Este botão ficava dois centímetros abaixo de uma faixa
+                            que diz *"ninguém é aprovado por máquina"*, numa seção
+                            chamada "Entregas Aguardando Aprovação do CLIENTE" — e
+                            era um clique, sem confirmação, do lado da agência.
+                            O arquivo da varredura diz, com todas as letras, que
+                            aprovar no lugar do cliente é falsificar o
+                            consentimento dele e é o único erro da lista **sem
+                            desfazer**.
+
+                            `AprovacoesDoCliente`, no portal, já tinha resolvido
+                            isso de propósito e escrito o porquê: decisão exige
+                            confirmação que **nomeia o que vai ser aprovado** —
+                            "tem certeza?" sozinho é a mesma decisão às cegas com
+                            um clique a mais. A regra vem de lá, e aqui ela carrega
+                            uma frase a mais, porque aqui quem clica **não é o
+                            dono da decisão**. */}
                         <button
-                          onClick={() => updateDeliverableStatus(d.id, "approved")}
+                          onClick={() => setConfirmandoAprovacao((p) => ({ ...p, [d.id]: true }))}
                           className="px-3 py-1.5 bg-[var(--success-bg)] text-[var(--success)] text-[12px] font-medium rounded-[6px] hover:bg-[#BBF7D0] transition-colors"
                         >
-                          ✓ Aprovado
+                          ✓ Registrar aprovação
                         </button>
                         <button
                           onClick={() => {
@@ -205,6 +304,37 @@ export default function ApprovalsPage() {
                         </button>
                       </div>
                     </div>
+                    {confirmandoAprovacao[d.id] && (
+                      <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                        <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-snug">
+                          Registrar que o cliente aprovou <strong>{d.name}</strong>
+                          {project ? ` (${project.name})` : ""}?
+                        </p>
+                        <p className="text-[12px] text-[var(--text-muted)] mt-1.5 leading-relaxed max-w-[62ch]">
+                          Você está marcando pelo cliente, e não decidindo por ele. Só faça isto se ele
+                          já disse sim <strong>fora do portal</strong> — por mensagem, ligação ou
+                          reunião. <strong>Aprovação não tem desfazer</strong>: ela libera a entrega.
+                          Se ele ainda não respondeu, o lugar da decisão é o portal dele.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            onClick={() => {
+                              updateDeliverableStatus(d.id, "approved");
+                              setConfirmandoAprovacao((p) => ({ ...p, [d.id]: false }));
+                            }}
+                            className="px-3 py-1.5 bg-[var(--success-bg)] text-[var(--success)] text-[12px] font-semibold rounded-[6px] hover:bg-[#BBF7D0] transition-colors"
+                          >
+                            Sim, ele aprovou — registrar
+                          </button>
+                          <button
+                            onClick={() => setConfirmandoAprovacao((p) => ({ ...p, [d.id]: false }))}
+                            className="px-3 py-1.5 border border-[var(--border)] text-[12px] font-medium rounded-[6px] text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     {expandedFeedback[d.id] && (
                       <div className="mt-3 pt-3 border-t border-[var(--border)]">
                         <label className="block text-[11px] text-[var(--text-secondary)] font-medium mb-1.5 uppercase tracking-wide">

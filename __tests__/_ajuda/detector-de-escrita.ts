@@ -77,15 +77,41 @@ export function semComentarios(fonte: string): string {
 }
 
 export function apenasCodigo(fonte: string): string {
-  return fonte
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/^[ \t]*\/\/.*$/gm, " ")
-    .replace(/(["'])(?:\\.|(?!\1)[^\\\n])*\1/g, '""')
-    // Templates depois das aspas: uma `${}` pode conter chamada de verdade, e
-    // por isso o miolo da interpolação é PRESERVADO — só o texto some.
-    .replace(/`(?:\\.|[^`\\$]|\$(?!\{))*`/g, "``")
-    .replace(/`(?:\\.|[^`\\$]|\$(?!\{))*/g, "``")
-    .replace(/\}(?:\\.|[^`\\$]|\$(?!\{))*`/g, "}``");
+  const semComentario = semComentarios(fonte)
+    // Aspas simples e duplas: o conteúdo some, a forma da chamada fica —
+    // `log("x")` vira `log("")`, e a allowlist continua vendo `log(`.
+    .replace(/(["'])(?:\\.|(?!\1)[^\\\n])*\1/g, '""');
+
+  // ── TEMPLATE PRECISA DE VARREDURA, NÃO DE REGEX ──────────────────────────
+  //
+  // Uma regex que "come" o template inteiro apagaria as `${...}`, e dentro
+  // delas pode haver chamada de verdade. Uma que preserva as `${}` deixa
+  // passar o TEXTO entre duas interpolações — foi assim que
+  // `` `${x} dia(s) sem decisão` `` fez a palavra `dia(` virar "chamada não
+  // declarada". Aqui o texto some e o miolo das interpolações fica.
+  let fora = "";
+  let i = 0;
+  while (i < semComentario.length) {
+    const c = semComentario[i]!;
+    if (c !== "`") { fora += c; i++; continue; }
+    i++; // abre o template
+    let profundidade = 0;
+    while (i < semComentario.length) {
+      const d = semComentario[i]!;
+      if (profundidade === 0) {
+        if (d === "\\") { i += 2; continue; }
+        if (d === "`") { i++; break; }
+        if (d === "$" && semComentario[i + 1] === "{") { profundidade = 1; fora += " "; i += 2; continue; }
+        i++; // texto do template: descartado
+        continue;
+      }
+      if (d === "{") profundidade++;
+      if (d === "}") { profundidade--; if (profundidade === 0) { fora += " "; i++; continue; } }
+      fora += d;
+      i++;
+    }
+  }
+  return fora;
 }
 
 /**

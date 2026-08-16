@@ -35,6 +35,11 @@ import { cobrarAFila } from "@/lib/agency/esteira/fila-que-se-cobra";
 import { resumoDoPortao } from "@/lib/agency/comercial/o-que-espera-no-portao";
 import { quemBateuNaPorta, resumoDaPorta } from "@/lib/agency/comercial/quem-bateu-na-porta";
 import { todosOsInquilinos } from "@/lib/agency/varredura/inquilinos";
+import {
+  aprovacoesParadas,
+  resumoDasAprovacoes,
+  DIAS_ATE_VIRAR_ABANDONO,
+} from "@/lib/agency/esteira/aprovacao-parada";
 import { cobrarPedidosEsquecidos } from "@/lib/agency/esteira/pedidos";
 import { fazerBackup, estadoDoBackup } from "@/lib/agency/backup";
 import { registrarBatida, type FalhaDaRodada } from "@/lib/agency/pulso";
@@ -222,6 +227,9 @@ export async function baterORelogio(): Promise<{
   /** Quantos bateram na porta da frente e continuam sem atendimento.
    *  **NÃO é trabalho movido — é medida.** Esta perna não aborda ninguém. */
   naPorta: number;
+  /** Cards de aprovação pendentes que ninguém decidiu. **Medida, não decisão:**
+   *  esta perna não aprova, não reprova e não expira card nenhum. */
+  paradasNaAprovacao: number;
   backup: boolean;
 }> {
   let retomados = 0;
@@ -238,6 +246,8 @@ export async function baterORelogio(): Promise<{
   let oportunidadesDaCaixa = 0;
   /** Quem está parado na porta da frente. Medida, não movimento. */
   let naPorta = 0;
+  /** Peça pronta esperando um clique que ninguém deu. Medida, não decisão. */
+  let paradasNaAprovacao = 0;
   /** Arquivos do Drive que estavam presos e finalmente chegaram ao disco. */
   let materiaisRecuperados = 0;
   let backup = false;
@@ -548,6 +558,111 @@ export async function baterORelogio(): Promise<{
     quebrou("porta-da-frente", err);
   }
 
+  // ── A APROVAÇÃO QUE NINGUÉM DECIDIU (16/08/2026) ─────────────────────────
+  //
+  // O MESMO DEFEITO DA PERNA DE CIMA, no arquivo ao lado.
+  // `lib/agency/esteira/aprovacao-parada.ts` estava escrito, completo e testado
+  // — e o único importador do repositório inteiro era o próprio teste. Peça
+  // verde, junta rompida: o teste passa porque exercita a função, e a função
+  // nunca roda. É o segundo caso confirmado no mesmo dia.
+  //
+  // O que ficava invisível é a fila MAIS CARA que esta casa tem: a peça já foi
+  // produzida, a IA já foi paga, o relógio já foi gasto, e ela morre esperando
+  // um clique. Do lado de fora parece que a agência não entregou; do lado de
+  // dentro parece que entregou.
+  //
+  // ELA CONTA E FAZ `log`. NÃO APROVA, NÃO REPROVA, NÃO EXPIRA CARD E NÃO MANDA
+  // MENSAGEM. O cabeçalho do arquivo diz por quê, e é a única razão da lista
+  // que não tem desfazer: **aprovar no lugar do cliente é falsificar o
+  // consentimento dele.** Um card expirado por robô também é decisão tomada por
+  // robô — expirar é reprovar com outro nome.
+  //
+  // E OS DOIS NÚMEROS NÃO SE SOMAM, pelo mesmo motivo da perna de cima:
+  //   • "esperando o cliente" — a bola é DELE. Cobrar é legítimo.
+  //   • `bolaConosco` — ele PERGUNTOU e a agência não respondeu. A bola é
+  //     NOSSA, o prazo dele está pausado, e esta é a urgente.
+  // Somadas, viram um alarme que cobra o cliente pelo atraso da própria casa.
+  try {
+    // ── 🔴 A ÂNCORA ELEGIA UM INQUILINO PARA SEMPRE (corrigido em 16/08) ────
+    //
+    // A versão anterior tirava o workspace do **card `pending` mais antigo** e
+    // varria só ele. O argumento era bom — `ApprovalRequest` não tem
+    // `workspaceId`, e pegar "o primeiro cliente do banco" leria a fila do
+    // inquilino errado. O desfecho é que era pior que sorteio:
+    //
+    // **esta perna não tira card de pending** (ela só CONTA, e isso é de
+    // propósito — expirar por robô é reprovar com outro nome). Então o card
+    // mais antigo continua sendo o mais antigo na rodada seguinte, e na
+    // seguinte, e na seguinte. **O mesmo inquilino é eleito para sempre**, e os
+    // outros nunca saem em log nenhum. Fome determinística, não azar.
+    //
+    // Agora enumera-se a casa e passa-se por todos, como a irmã da porta da
+    // frente. Ver `lib/agency/varredura/inquilinos.ts`.
+    const agora = new Date();
+    for (const ws of await todosOsInquilinos()) {
+      const r = await resumoDasAprovacoes(ws, agora);
+      paradasNaAprovacao += r.paradas;
+
+      // A NOSSA DÍVIDA VEM PRIMEIRO. Ler "12 aprovações paradas" antes de
+      // "3 delas somos nós que devemos resposta" é ler a cobrança do cliente
+      // antes da própria.
+      if (r.bolaConosco > 0) {
+        log(`${r.bolaConosco} cliente(s) PERGUNTARAM e ainda não foram respondidos — a bola é NOSSA, e o prazo deles está pausado`);
+      }
+      // 🔴 A ESPERA DO CLIENTE É `esperandoOCliente`, NÃO `paradas` (16/08).
+      // `paradas` é o total e INCLUI a dívida nossa. Dizer "N sem decisão" logo
+      // depois de "M perguntaram e não respondemos" fazia os dois números se
+      // sobreporem em silêncio — e datava a espera do cliente com o relógio de
+      // um card que o schema declara PAUSADO.
+      if (r.esperandoOCliente > 0) {
+        log(`${r.esperandoOCliente} aprovação(ões) esperando a decisão do cliente` +
+            (r.maisAntigoDeleEmDias !== null ? ` — a mais antiga há ${r.maisAntigoDeleEmDias} dia(s)` : ""));
+      }
+      if (r.abandonadas > 0) {
+        log(`${r.abandonadas} aprovação(ões) passaram do prazo ou de ${DIAS_ATE_VIRAR_ABANDONO} dia(s) sem decisão — peça pronta parada`);
+      }
+      // A lista tem teto e a contagem não: quem lê precisa saber que os baldes
+      // acima são piso quando a fila foi amostrada.
+      if (r.amostrada) {
+        log(`aprovação parada — fila de ${r.paradas}, ${r.listados} lidos: os números acima são PISO, não total`);
+      }
+
+      // Nome só para o que já virou abandono ou é dívida nossa, e no máximo
+      // MAX_POR_RODADA linhas: o teto vale para os NOMES, nunca para a
+      // contagem. Truncar a contagem mentiria sobre o tamanho da fila. A
+      // segunda leitura só acontece quando há algo a nomear.
+      if (r.abandonadas > 0 || r.bolaConosco > 0) {
+        const fila = await aprovacoesParadas(ws, agora);
+        const urgentes = fila
+          // A dívida nossa em cima, e dentro de cada grupo o mais antigo
+          // primeiro — a mesma ordem da tela da porta da frente.
+          .filter((c) => c.bolaConosco || c.prazoVencido || c.diasParado >= DIAS_ATE_VIRAR_ABANDONO)
+          .sort((a, b) => Number(b.bolaConosco) - Number(a.bolaConosco) || b.diasParado - a.diasParado);
+        for (const c of urgentes.slice(0, MAX_POR_RODADA)) {
+          log(`aprovação parada — ${c.departamento} (${c.id}) há ${c.diasParado} dia(s): ${c.deQuemEAVez}`);
+        }
+      }
+    }
+
+    // O CARD ÓRFÃO, que ninguém enxerga. `aprovacoesParadas` deixa de fora,
+    // corretamente, o card sem `clientRequestId` E sem `clientId` — ele não tem
+    // dono, e varrer órfão de outro inquilino é vazamento entre clientes. Mas
+    // "corretamente fora da conta" não é "não existe": ele é uma peça pronta
+    // esperando decisão que nenhuma fila mostra. Vira LOG, não falha da rodada,
+    // porque o conserto é de dado e é decisão de gente.
+    // Ele é do BANCO INTEIRO, e o log diz isso: órfão não tem inquilino por
+    // definição, e apresentá-lo dentro do laço acima o faria parecer de um
+    // inquilino específico — contado N vezes, de quebra. Por isso mora fora.
+    const orfaos = await prisma.approvalRequest.count({
+      where: { status: "pending", clientRequestId: null, clientId: null },
+    });
+    if (orfaos > 0) {
+      log(`aprovação parada — ${orfaos} card(s) pendentes SEM dono no banco inteiro: invisíveis para toda fila por workspace`);
+    }
+  } catch (err) {
+    quebrou("aprovacao-parada", err);
+  }
+
   // ── A PERGUNTA QUE NUNCA CHEGOU AO CLIENTE ────────────────────────────────
   // Medido na produção em 08/08/2026: um pedido de material aberto há mais de
   // um dia com `askedClientAt` vazio. O agente travou esperando algo que o
@@ -673,11 +788,11 @@ export async function baterORelogio(): Promise<{
     // 24 h, e somar nível daria "864 pessoas na porta" para uma fila de 3. Ver
     // `Batida.filas` em `lib/agency/pulso.ts`. Sem este campo, `naPorta` era
     // medido a cada 5 minutos e não tinha consumidor nenhum além do console.
-    filas: { naPorta },
+    filas: { naPorta, paradasNaAprovacao },
     falhas,
   });
 
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, naPorta, backup };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, naPorta, paradasNaAprovacao, backup };
 }
 
 /**
