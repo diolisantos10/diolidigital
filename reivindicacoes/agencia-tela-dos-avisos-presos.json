@@ -1,0 +1,13 @@
+{
+  "id": "agencia/tela-dos-avisos-presos",
+  "quem": "pm-9ab49074",
+  "frente": "tela dos avisos de orcamento presos: ver os quatro estados sem achatar, e botao de reenvio (legado separado)",
+  "responsabilidade": "agencia/tela-dos-avisos-presos",
+  "arquivos": [
+    "app/agency/avisos-de-orcamento",
+    "components/agency/avisos",
+    "__tests__/agency/tela-dos-avisos"
+  ],
+  "abertaEm": "2026-08-16T18:02:57.031Z",
+  "encerradaEm": null
+}
