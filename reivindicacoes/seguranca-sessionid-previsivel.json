@@ -1,0 +1,13 @@
+{
+  "id": "seguranca/sessionid-previsivel",
+  "quem": "pm-9ab49074",
+  "frente": "sessionId previsivel: derrubar a conversa de um lead especifico",
+  "responsabilidade": "seguranca/sessionid-previsivel",
+  "arquivos": [
+    "components/agency/briefing/PublicBriefingRoom.tsx",
+    "lib/security/limite-no-banco.ts",
+    "app/api/sdr/chat/route.ts"
+  ],
+  "abertaEm": "2026-08-16T18:17:44.044Z",
+  "encerradaEm": null
+}
