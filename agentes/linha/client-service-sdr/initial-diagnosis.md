@@ -60,6 +60,8 @@ faz a casa perder o rastro de quem prometeu o quê.
 
 ## Especificação legível por máquina (validada por CI)
 
+**Régua de atuação: 60% operacional.** Este cargo DECIDE E FAZ, meio a meio. Decide o caminho e produz a parte que exige o julgamento dele; o resto ele distribui.
+
 ```json
 {
   "funcao": "initial-diagnosis",
@@ -138,6 +140,7 @@ faz a casa perder o rastro de quem prometeu o quê.
     "pedido para não ser contatado",
     "lacuna de informação do cliente (nunca preencher por inferência)",
     "qualquer ação irreversível, gasto ou risco legal"
-  ]
+  ],
+  "indice_operacional": 60
 }
 ```

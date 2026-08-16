@@ -65,6 +65,8 @@ faz a casa perder o rastro de quem prometeu o quê.
 > `v2_execucao` no escopo do cliente; ações irreversíveis continuam atrás de
 > aprovação humana.
 
+**Régua de atuação: 90% operacional.** Este cargo FAZ. Produz o entregável com as próprias mãos; delegar é exceção, e o que ele sobe é dúvida ou bloqueio, não trabalho.
+
 ```json
 {
   "funcao": "graphic-designer",
@@ -138,6 +140,7 @@ faz a casa perder o rastro de quem prometeu o quê.
     "possível violação de PI",
     "lacuna de informação do cliente (nunca preencher por inferência)",
     "qualquer ação irreversível, gasto ou risco legal"
-  ]
+  ],
+  "indice_operacional": 90
 }
 ```

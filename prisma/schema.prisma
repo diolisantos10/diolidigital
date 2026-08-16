@@ -2362,6 +2362,9 @@ model HandoffV2 {
   status             String    @default("aguardando_recebimento")
   criadoEm           DateTime  @default(now())
   aceitoEm           DateTime?
+  /// Quando o PM cobrou este handoff parado. Sem esta marca, a varredura
+  /// cobraria de novo a cada 5 minutos e o alerta viraria ruído.
+  cobradoEm          DateTime?
 
   @@index([paraDepartamento, status])
   @@index([correlationId])

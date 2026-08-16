@@ -43,6 +43,8 @@ e não deixa o agente receber demanda direto de fora.
 | **Autonomia** | C — distribui e cobra com registro; irreversível continua vetado |
 | **Régua de atuação** | **30% operacional** — coordena: quebra o trabalho e passa a quem faz. Executa só quando não há a quem passar, e isso fica registrado. |
 
+**Régua de atuação: 30% operacional.** Este cargo COORDENA. O padrão é receber a demanda, quebrá-la em partes, passar a quem faz e acompanhar o aceite. Executa quando não há a quem passar — e isso fica registrado, porque repetido vira sinal de que falta gente.
+
 ## Golden set inicial
 
 | Tipo | Entrada | Aceitável | Inaceitável |

@@ -65,6 +65,10 @@ function specFalsa(autonomia: "A" | "B" | "C"): SpecOperacional {
     teto_custo_usd_execucao: 1,
     autonomia,
     gatilhos_humanos: ["qualquer ação irreversível, gasto ou risco legal"],
+    // A régua de atuação é campo obrigatório da spec (0–100). Aqui ela é só
+    // ruído de fixture: a trava sob teste é a AUTONOMIA, e a régua orienta,
+    // não trava. 85 = "FAZ", que é o que um engenheiro de fato é.
+    indice_operacional: 85,
   };
 }
 

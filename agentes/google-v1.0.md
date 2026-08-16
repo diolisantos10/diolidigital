@@ -54,6 +54,7 @@
 | Atualização (9) | Dever permanente de conferir fonte; recaptura com `--diff`. Modelo exemplar do Bloco 9 — já funciona. |
 | Avaliação (11) | Golden set não existe (lacuna); caso obrigatório: reclamação 1–3 estrelas → rascunho escalado, nunca resposta automática. |
 | Interfaces (12) | Operador descreve a ação → parecer; estado real do acesso registrado com data. |
+| **Régua de atuação** | **60% operacional.** **Decide e faz** — produz a parte que exige o próprio julgamento; distribui o resto. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 

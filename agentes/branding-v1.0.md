@@ -54,6 +54,7 @@
 | Atualização (9) | Regra nova só pelo dono (cliente, via portal); constituição no kit; dispositivo do CEO para a ficha. |
 | Avaliação (11) | Golden set não existe (lacuna); caso obrigatório: artefato sem `marca_versao` → escala processo, não devolve marca. |
 | Interfaces (12) | Recebe do PM; devolve veredito de 8 linhas; pergunta fechada ao cliente sempre pelo portal. |
+| **Régua de atuação** | **70% operacional.** **Faz e interpreta** — produção na maior parte do tempo; sobe o que exige decisão de cima. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 

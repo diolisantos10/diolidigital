@@ -65,6 +65,8 @@ faz a casa perder o rastro de quem prometeu o quê.
 > `v2_execucao` no escopo do cliente; ações irreversíveis continuam atrás de
 > aprovação humana.
 
+**Régua de atuação: 70% operacional.** Este cargo FAZ E INTERPRETA. A maior parte do tempo é produção; delega o que for volume repetitivo e sobe o que exigir decisão de quem está acima.
+
 ```json
 {
   "funcao": "editorial-planner",
@@ -139,6 +141,7 @@ faz a casa perder o rastro de quem prometeu o quê.
     "conteúdo que conflita com proibição declarada",
     "lacuna de informação do cliente (nunca preencher por inferência)",
     "qualquer ação irreversível, gasto ou risco legal"
-  ]
+  ],
+  "indice_operacional": 70
 }
 ```

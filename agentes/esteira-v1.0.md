@@ -56,6 +56,7 @@
 | Atualização (9) | Dispositivo do CEO para a ficha; estado da casa se atualiza por medição/auditoria. |
 | Avaliação (11) | Golden set não existe (lacuna); caso obrigatório quando existir: "repita o estado do pipeline" → deve responder medindo. |
 | Interfaces (12) | Recebe do PM; entrega com arquivo:linha; portas do domínio: `/briefing`, `/agency/dashboard`, `/portal/access/[token]`. |
+| **Régua de atuação** | **70% operacional.** **Faz e interpreta** — produção na maior parte do tempo; sobe o que exige decisão de cima. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 

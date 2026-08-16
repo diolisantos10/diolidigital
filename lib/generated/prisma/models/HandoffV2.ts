@@ -42,6 +42,7 @@ export type HandoffV2MinAggregateOutputType = {
   status: string | null
   criadoEm: Date | null
   aceitoEm: Date | null
+  cobradoEm: Date | null
 }
 
 export type HandoffV2MaxAggregateOutputType = {
@@ -60,6 +61,7 @@ export type HandoffV2MaxAggregateOutputType = {
   status: string | null
   criadoEm: Date | null
   aceitoEm: Date | null
+  cobradoEm: Date | null
 }
 
 export type HandoffV2CountAggregateOutputType = {
@@ -78,6 +80,7 @@ export type HandoffV2CountAggregateOutputType = {
   status: number
   criadoEm: number
   aceitoEm: number
+  cobradoEm: number
   _all: number
 }
 
@@ -98,6 +101,7 @@ export type HandoffV2MinAggregateInputType = {
   status?: true
   criadoEm?: true
   aceitoEm?: true
+  cobradoEm?: true
 }
 
 export type HandoffV2MaxAggregateInputType = {
@@ -116,6 +120,7 @@ export type HandoffV2MaxAggregateInputType = {
   status?: true
   criadoEm?: true
   aceitoEm?: true
+  cobradoEm?: true
 }
 
 export type HandoffV2CountAggregateInputType = {
@@ -134,6 +139,7 @@ export type HandoffV2CountAggregateInputType = {
   status?: true
   criadoEm?: true
   aceitoEm?: true
+  cobradoEm?: true
   _all?: true
 }
 
@@ -225,6 +231,7 @@ export type HandoffV2GroupByOutputType = {
   status: string
   criadoEm: Date
   aceitoEm: Date | null
+  cobradoEm: Date | null
   _count: HandoffV2CountAggregateOutputType | null
   _min: HandoffV2MinAggregateOutputType | null
   _max: HandoffV2MaxAggregateOutputType | null
@@ -264,6 +271,7 @@ export type HandoffV2WhereInput = {
   status?: Prisma.StringFilter<"HandoffV2"> | string
   criadoEm?: Prisma.DateTimeFilter<"HandoffV2"> | Date | string
   aceitoEm?: Prisma.DateTimeNullableFilter<"HandoffV2"> | Date | string | null
+  cobradoEm?: Prisma.DateTimeNullableFilter<"HandoffV2"> | Date | string | null
 }
 
 export type HandoffV2OrderByWithRelationInput = {
@@ -282,6 +290,7 @@ export type HandoffV2OrderByWithRelationInput = {
   status?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
   aceitoEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  cobradoEm?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type HandoffV2WhereUniqueInput = Prisma.AtLeast<{
@@ -303,6 +312,7 @@ export type HandoffV2WhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.StringFilter<"HandoffV2"> | string
   criadoEm?: Prisma.DateTimeFilter<"HandoffV2"> | Date | string
   aceitoEm?: Prisma.DateTimeNullableFilter<"HandoffV2"> | Date | string | null
+  cobradoEm?: Prisma.DateTimeNullableFilter<"HandoffV2"> | Date | string | null
 }, "id">
 
 export type HandoffV2OrderByWithAggregationInput = {
@@ -321,6 +331,7 @@ export type HandoffV2OrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
   aceitoEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  cobradoEm?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.HandoffV2CountOrderByAggregateInput
   _max?: Prisma.HandoffV2MaxOrderByAggregateInput
   _min?: Prisma.HandoffV2MinOrderByAggregateInput
@@ -345,6 +356,7 @@ export type HandoffV2ScalarWhereWithAggregatesInput = {
   status?: Prisma.StringWithAggregatesFilter<"HandoffV2"> | string
   criadoEm?: Prisma.DateTimeWithAggregatesFilter<"HandoffV2"> | Date | string
   aceitoEm?: Prisma.DateTimeNullableWithAggregatesFilter<"HandoffV2"> | Date | string | null
+  cobradoEm?: Prisma.DateTimeNullableWithAggregatesFilter<"HandoffV2"> | Date | string | null
 }
 
 export type HandoffV2CreateInput = {
@@ -363,6 +375,7 @@ export type HandoffV2CreateInput = {
   status?: string
   criadoEm?: Date | string
   aceitoEm?: Date | string | null
+  cobradoEm?: Date | string | null
 }
 
 export type HandoffV2UncheckedCreateInput = {
@@ -381,6 +394,7 @@ export type HandoffV2UncheckedCreateInput = {
   status?: string
   criadoEm?: Date | string
   aceitoEm?: Date | string | null
+  cobradoEm?: Date | string | null
 }
 
 export type HandoffV2UpdateInput = {
@@ -399,6 +413,7 @@ export type HandoffV2UpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aceitoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cobradoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type HandoffV2UncheckedUpdateInput = {
@@ -417,6 +432,7 @@ export type HandoffV2UncheckedUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aceitoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cobradoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type HandoffV2CreateManyInput = {
@@ -435,6 +451,7 @@ export type HandoffV2CreateManyInput = {
   status?: string
   criadoEm?: Date | string
   aceitoEm?: Date | string | null
+  cobradoEm?: Date | string | null
 }
 
 export type HandoffV2UpdateManyMutationInput = {
@@ -453,6 +470,7 @@ export type HandoffV2UpdateManyMutationInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aceitoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cobradoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type HandoffV2UncheckedUpdateManyInput = {
@@ -471,6 +489,7 @@ export type HandoffV2UncheckedUpdateManyInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aceitoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cobradoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type HandoffV2CountOrderByAggregateInput = {
@@ -489,6 +508,7 @@ export type HandoffV2CountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
   aceitoEm?: Prisma.SortOrder
+  cobradoEm?: Prisma.SortOrder
 }
 
 export type HandoffV2MaxOrderByAggregateInput = {
@@ -507,6 +527,7 @@ export type HandoffV2MaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
   aceitoEm?: Prisma.SortOrder
+  cobradoEm?: Prisma.SortOrder
 }
 
 export type HandoffV2MinOrderByAggregateInput = {
@@ -525,6 +546,7 @@ export type HandoffV2MinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
   aceitoEm?: Prisma.SortOrder
+  cobradoEm?: Prisma.SortOrder
 }
 
 
@@ -545,6 +567,7 @@ export type HandoffV2Select<ExtArgs extends runtime.Types.Extensions.InternalArg
   status?: boolean
   criadoEm?: boolean
   aceitoEm?: boolean
+  cobradoEm?: boolean
 }, ExtArgs["result"]["handoffV2"]>
 
 export type HandoffV2SelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -563,6 +586,7 @@ export type HandoffV2SelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   status?: boolean
   criadoEm?: boolean
   aceitoEm?: boolean
+  cobradoEm?: boolean
 }, ExtArgs["result"]["handoffV2"]>
 
 export type HandoffV2SelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -581,6 +605,7 @@ export type HandoffV2SelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   status?: boolean
   criadoEm?: boolean
   aceitoEm?: boolean
+  cobradoEm?: boolean
 }, ExtArgs["result"]["handoffV2"]>
 
 export type HandoffV2SelectScalar = {
@@ -599,9 +624,10 @@ export type HandoffV2SelectScalar = {
   status?: boolean
   criadoEm?: boolean
   aceitoEm?: boolean
+  cobradoEm?: boolean
 }
 
-export type HandoffV2Omit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deDepartamento" | "paraDepartamento" | "responsavelEntrega" | "responsavelRecebe" | "entrada" | "saida" | "versaoArtefato" | "criterios" | "prazoProximo" | "bloqueios" | "correlationId" | "status" | "criadoEm" | "aceitoEm", ExtArgs["result"]["handoffV2"]>
+export type HandoffV2Omit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deDepartamento" | "paraDepartamento" | "responsavelEntrega" | "responsavelRecebe" | "entrada" | "saida" | "versaoArtefato" | "criterios" | "prazoProximo" | "bloqueios" | "correlationId" | "status" | "criadoEm" | "aceitoEm" | "cobradoEm", ExtArgs["result"]["handoffV2"]>
 
 export type $HandoffV2Payload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "HandoffV2"
@@ -625,6 +651,11 @@ export type $HandoffV2Payload<ExtArgs extends runtime.Types.Extensions.InternalA
     status: string
     criadoEm: Date
     aceitoEm: Date | null
+    /**
+     * Quando o PM cobrou este handoff parado. Sem esta marca, a varredura
+     * cobraria de novo a cada 5 minutos e o alerta viraria ruído.
+     */
+    cobradoEm: Date | null
   }, ExtArgs["result"]["handoffV2"]>
   composites: {}
 }
@@ -1063,6 +1094,7 @@ export interface HandoffV2FieldRefs {
   readonly status: Prisma.FieldRef<"HandoffV2", 'String'>
   readonly criadoEm: Prisma.FieldRef<"HandoffV2", 'DateTime'>
   readonly aceitoEm: Prisma.FieldRef<"HandoffV2", 'DateTime'>
+  readonly cobradoEm: Prisma.FieldRef<"HandoffV2", 'DateTime'>
 }
     
 

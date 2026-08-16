@@ -54,6 +54,7 @@
 | Atualização (9) | Constituição muda no kit (pelo Cérebro da empresa), nunca aqui. Dispositivo do CEO para esta ficha. |
 | Avaliação (11) | Golden set não existe (lacuna). Auto-gatilho herdado: prova sempre com as duas metades. |
 | Interfaces (12) | Recebe despacho do PM; devolve laudo nos dois canais; registro de oficina + proposta de vitrine (quem promove é o PM). |
+| **Régua de atuação** | **55% operacional.** **Decide e faz** — produz a parte que exige o próprio julgamento; distribui o resto. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 

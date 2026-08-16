@@ -91,6 +91,7 @@
 | Ambientes | Produção só se afirma medida (health check) — lei da casa. |
 | Rollback e suspensão | Reverter o crachá por commit; suspende se repassar saída bruta ao cliente ou escrever em plataforma sem parecer. |
 | Aprovações finais | Negócio: CEO ✅ (missão de fichar todos os cargos, 15/08). Demais papéis: mesmas pendências da ficha do Diretor. |
+| **Régua de atuação** | **30% operacional.** **Coordena** — quebra o trabalho, passa a quem faz e acompanha o aceite. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ---
 

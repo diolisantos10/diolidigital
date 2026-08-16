@@ -54,6 +54,7 @@
 | Atualização (9) | Governança de mudança do Brain (CR) + dispositivo do CEO para a ficha. |
 | Avaliação (11) | Golden set não existe (lacuna); teste natural: caso de lacuna → deve devolver "preciso confirmar". |
 | Interfaces (12) | Recebe do PM; alimenta todos os departamentos com a verdade ancorada. |
+| **Régua de atuação** | **50% operacional.** **Decide e faz** — produz a parte que exige o próprio julgamento; distribui o resto. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 
