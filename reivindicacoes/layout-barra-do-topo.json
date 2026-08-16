@@ -1,14 +1,15 @@
 {
   "id": "layout-barra-do-topo",
-  "quem": "pm-defeitos-do-ceo",
-  "frente": "barra branca no topo atrapalhando as telas (relato do CEO, 15/08)",
+  "quem": "ses-db797cff57",
+  "frente": "barra branca superior atrapalhando todas as telas (relato do CEO, 15/08)",
   "responsabilidade": "layout-barra-do-topo",
   "arquivos": [
-    "app/briefing/layout.tsx",
     "app/layout.tsx",
     "app/globals.css",
+    "app/briefing/layout.tsx",
     "components/agency/layout/AgencyShell.tsx"
   ],
-  "abertaEm": "2026-08-16T18:52:37.526Z",
-  "encerradaEm": "2026-08-16T20:00:12.565Z"
+  "abertaEm": "2026-08-16T20:46:28.300Z",
+  "encerradaEm": null,
+  "rotulo": "diretor-barra-branca"
 }
