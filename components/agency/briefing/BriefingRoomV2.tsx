@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
 import { initConvState, processClientMessage } from "@/lib/agency/question-engine";
-import { detectPackage, getPackageDef, SOCIAL_PACKAGES } from "@/lib/agency/live-calculator";
+import { detectPackage, getPackageDef, faixaDePreco, SOCIAL_PACKAGES } from "@/lib/agency/live-calculator";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { FileUploadZone } from "@/components/agency/briefing/FileUploadZone";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
@@ -259,7 +259,7 @@ function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
         <div key={i} className="flex items-start gap-2 text-[11px]">
           <span className="text-[var(--text-muted)] flex-1 leading-relaxed">{item.label}</span>
           <span className="text-[var(--text-secondary)] shrink-0 text-right">
-            {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}
+            {faixaDePreco(item.minPrice, item.maxPrice, fmtBRL)}
             <span className="text-[var(--text-subtle)]">/{item.unit}</span>
           </span>
         </div>
@@ -267,7 +267,7 @@ function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
       <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border)]">
         <span className="text-[11px] font-semibold text-[var(--text-primary)]">Total</span>
         <span className="text-[13px] font-bold text-[var(--text-primary)]">
-          {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
+          {faixaDePreco(estimate.totalMin, estimate.totalMax, fmtBRL)}
         </span>
       </div>
     </div>
@@ -360,7 +360,7 @@ function ProposalCard({
         <div>
           <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Investimento estimado</div>
           <p className="text-[14px] font-bold text-[var(--text-primary)]">
-            {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
+            {faixaDePreco(estimate.totalMin, estimate.totalMax, fmtBRL)}
             <span className="text-[11px] font-normal text-[var(--text-muted)] ml-1">/mês</span>
           </p>
           <p className="text-[9px] text-[var(--text-subtle)] mt-0.5">*Sujeito a detalhamento no escopo final</p>

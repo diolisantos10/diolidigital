@@ -6,6 +6,7 @@ import {
   SOCIAL_PACKAGES,
   REPORT_LABEL,
   COMMUNITY_LABEL,
+  faixaDePreco,
   type PackageDef,
 } from "@/lib/agency/live-calculator";
 
@@ -19,7 +20,10 @@ function Check({ on }: { on: boolean }) {
   return on ? (
     <span className="text-[var(--success)] font-bold">✓</span>
   ) : (
-    <span className="text-[var(--border-strong)]">—</span>
+    // O "—" é DADO ("este plano não tem"), não moldura: em `--border-strong`
+    // ele dava 1,4:1 sobre a linha e sumia. DESIGN.md §2.2/§8 — token de
+    // borda não pinta texto.
+    <span className="text-[var(--text-muted)]">—</span>
   );
 }
 
@@ -44,7 +48,10 @@ const SOCIAL_ROWS: Row[] = [
 function SocialPlansTable() {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-[12px]">
+      {/* `min-w` explícito para a rolagem existir de verdade (DESIGN.md §6.3):
+          180px do rótulo + 5 colunas de 120px. Sem ele o `w-full` espreme as
+          seis colunas na largura do celular e quebra os números no meio. */}
+      <table className="w-full min-w-[780px] border-collapse text-[12px]">
         <thead>
           <tr>
             <th className="text-left p-3 font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] text-[10px] w-[180px]">
@@ -53,8 +60,10 @@ function SocialPlansTable() {
             {SOCIAL_PACKAGES.map((p) => (
               <th key={p.id} className="p-3 text-center border-l border-[var(--border)] min-w-[120px]">
                 <div className="text-[13px] font-bold text-[var(--text-primary)]">{p.label.replace("Plano ", "")}</div>
+                {/* Preço de plano é UM número desde 16/08/2026: o desenho de faixa
+                    produzia "R$ 790–R$ 790". `faixaDePreco` colapsa. */}
                 <div className="text-[11px] font-semibold text-[var(--navy)] mt-1">
-                  {brl(p.minPrice)}–{brl(p.maxPrice)}
+                  {faixaDePreco(p.minPrice, p.maxPrice, brl)}
                 </div>
                 <div className="text-[9px] text-[var(--text-muted)]">/mês</div>
               </th>

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
 import { initProspectConvState, processProspectMessage, type ProspectConvState } from "@/lib/agency/prospect-engine";
 import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from "@/lib/agency/sdr-agent";
-import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live-calculator";
+import { detectPackage, getPackageDef, computeEstimate, faixaDePreco } from "@/lib/agency/live-calculator";
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
@@ -270,6 +270,11 @@ const CONFIDENCE_CFG = {
   high:   { label: "Estimativa confiável", bg: "bg-[var(--success-bg)]",  text: "text-[var(--success)]" },
 };
 
+// ⚠️ NÃO RENDERIZADO HOJE. Este bloco e o `ProposalCard` abaixo estão definidos
+// e não têm um único uso nesta tela: o prospect não vê preço nenhum no briefing
+// público (é a dívida I-16 do DESIGN.md, "o briefing esconde o preço"). Ficam
+// em ordem de propósito — quando o preço subir para a tela, ele não pode subir
+// com o defeito de faixa que a fonte única criou ("R$ 790 – R$ 790").
 function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
   const cfg = CONFIDENCE_CFG[estimate.confidence];
   return (
@@ -286,7 +291,7 @@ function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
         <div key={i} className="flex items-start gap-2 text-[11px]">
           <span className="text-[var(--text-muted)] flex-1 leading-relaxed">{item.label}</span>
           <span className="text-[var(--text-secondary)] shrink-0 text-right">
-            {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}
+            {faixaDePreco(item.minPrice, item.maxPrice, fmtBRL)}
             <span className="text-[var(--text-subtle)]">/{item.unit}</span>
           </span>
         </div>
@@ -296,7 +301,7 @@ function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
           <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border)]">
             <span className="text-[10px] text-[var(--text-muted)]">Subtotal</span>
             <span className="text-[11px] text-[var(--text-muted)] line-through">
-              {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
+              {faixaDePreco(estimate.totalMin, estimate.totalMax, fmtBRL)}
             </span>
           </div>
           <div className="flex items-center justify-between">
@@ -307,7 +312,7 @@ function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
           <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]">
             <span className="text-[11px] font-semibold text-[var(--text-primary)]">Total com desconto</span>
             <span className="text-[13px] font-bold text-[var(--success)]">
-              {fmtBRL(estimate.discountedMin)} – {fmtBRL(estimate.discountedMax ?? estimate.discountedMin)}
+              {faixaDePreco(estimate.discountedMin, estimate.discountedMax ?? estimate.discountedMin, fmtBRL)}
             </span>
           </div>
         </>
@@ -315,7 +320,7 @@ function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
         <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border)]">
           <span className="text-[11px] font-semibold text-[var(--text-primary)]">Total</span>
           <span className="text-[13px] font-bold text-[var(--text-primary)]">
-            {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
+            {faixaDePreco(estimate.totalMin, estimate.totalMax, fmtBRL)}
           </span>
         </div>
       )}
@@ -657,10 +662,10 @@ function ProposalCard({
           {estimate.discountPct && estimate.discountedMin !== undefined ? (
             <>
               <p className="text-[11px] text-[var(--text-muted)] line-through">
-                {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}/mês
+                {faixaDePreco(estimate.totalMin, estimate.totalMax, fmtBRL)}/mês
               </p>
               <p className="text-[14px] font-bold text-[var(--success)]">
-                {fmtBRL(estimate.discountedMin)} – {fmtBRL(estimate.discountedMax ?? estimate.discountedMin)}
+                {faixaDePreco(estimate.discountedMin, estimate.discountedMax ?? estimate.discountedMin, fmtBRL)}
                 <span className="text-[11px] font-normal text-[var(--text-muted)] ml-1">/mês</span>
               </p>
               <p className="text-[9px] text-[var(--success)] mt-0.5">
@@ -670,7 +675,7 @@ function ProposalCard({
           ) : (
             <>
               <p className="text-[14px] font-bold text-[var(--text-primary)]">
-                {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
+                {faixaDePreco(estimate.totalMin, estimate.totalMax, fmtBRL)}
                 <span className="text-[11px] font-normal text-[var(--text-muted)] ml-1">/mês</span>
               </p>
               <p className="text-[9px] text-[var(--text-subtle)] mt-0.5">*Sujeito a detalhamento no escopo final</p>
@@ -1587,7 +1592,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                   <span className="text-[var(--text-muted)] w-16 shrink-0">{row.label}</span>
                   {row.value
                     ? <span className="text-[var(--text-primary)] font-medium">{row.value}</span>
-                    : <span className="text-[var(--border-strong)]">aguardando…</span>}
+                    : <span className="text-[var(--text-subtle)]">aguardando…</span>}
                 </div>
               ))}
               <p className="text-[10px] text-[var(--text-subtle)] mt-3 leading-relaxed">

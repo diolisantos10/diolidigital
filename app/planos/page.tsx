@@ -8,6 +8,15 @@
 //
 // Os dados vêm de `lib/agency/planos.ts`, fonte única. Preço de plano escrito
 // em dois lugares vira dois preços diferentes na semana em que um deles muda.
+//
+// ─── TIPOGRAFIA, 16/08/2026 ──────────────────────────────────────────────────
+// Esta página tinha 21 tamanhos de fonte, seis fracionários (10,5 · 11,5 ·
+// 12,5 · 13,5 · 14,5 · 15,5) e TRÊS abaixo do piso de 12px do DESIGN.md §3 —
+// 10,5px no selo "O mais contratado" e 11px nos dois títulos "O que está / não
+// está incluído", que são os rótulos que organizam a ficha inteira. Ficaram 14,
+// todos na escala (12/13/14/16/18/22/26+), com o mesmo mapeamento já usado no
+// portal: degrau mais próximo, para CIMA no empate. Nenhum título display foi
+// mexido — a escala §3 é livre acima de 26px.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -74,10 +83,10 @@ export default function PlanosPage() {
           <Link href="/" className="flex-1" aria-label="Dioli Digital — página inicial">
             <DioliLogo variant="full" tone="dark" markSize={34} />
           </Link>
-          <Link href="/" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] sm:block">
+          <Link href="/" className="hidden text-[14px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] sm:block">
             Serviços
           </Link>
-          <Link href="/auth/signin" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] sm:block">
+          <Link href="/auth/signin" className="hidden text-[14px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] sm:block">
             Área do cliente
           </Link>
           <a
@@ -95,7 +104,7 @@ export default function PlanosPage() {
       {/* ── Abertura ───────────────────────────────────────────────────────── */}
       <section className="mesh-cool relative overflow-hidden border-b border-[var(--border)]">
         <div className="relative mx-auto max-w-6xl px-5 pb-14 pt-14 md:px-8 md:pb-20 md:pt-20">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-white/70 px-3.5 py-1.5 text-[12.5px] font-semibold text-[var(--text-secondary)] backdrop-blur">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-white/70 px-3.5 py-1.5 text-[13px] font-semibold text-[var(--text-secondary)] backdrop-blur">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--azure)]" />
             Planos mensais
           </span>
@@ -121,7 +130,7 @@ export default function PlanosPage() {
                   <span className="mt-1 font-display text-[22px] font-bold leading-none tracking-[-0.02em] text-[var(--navy)]">
                     {precoEmReais(p.preco)}
                   </span>
-                  <span className="mt-0.5 text-[11.5px] text-[var(--text-muted)]">por mês</span>
+                  <span className="mt-0.5 text-[12px] text-[var(--text-muted)]">por mês</span>
                 </a>
               </li>
             ))}
@@ -147,14 +156,14 @@ export default function PlanosPage() {
               <div className="flex flex-col gap-4 border-b border-[var(--border)] px-6 py-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-x-6 sm:gap-y-3 md:px-8">
                 <div className="min-w-0 sm:flex-1">
                   {p.destaque && (
-                    <span className="inline-flex rounded-full bg-[var(--accent)] px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-[var(--navy)]">
+                    <span className="inline-flex rounded-full bg-[var(--accent)] px-2.5 py-1 text-[12px] font-bold uppercase tracking-[0.1em] text-[var(--navy)]">
                       O mais contratado
                     </span>
                   )}
                   <h2 className={`text-[26px] font-bold tracking-[-0.02em] text-[var(--navy)] md:text-[30px] ${p.destaque ? "mt-2" : ""}`}>
                     {p.nome}
                   </h2>
-                  <p className="mt-1.5 max-w-xl text-[14.5px] leading-relaxed text-[var(--text-secondary)]">
+                  <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
                     {p.paraQuem} <span className="text-[var(--text-muted)]">{p.salto}</span>
                   </p>
                 </div>
@@ -163,7 +172,7 @@ export default function PlanosPage() {
                     {precoEmReais(p.preco)}
                     <span className="ml-1 text-[14px] font-semibold text-[var(--text-muted)]">/mês</span>
                   </p>
-                  <p className="mt-2 text-[12.5px] text-[var(--text-muted)]">
+                  <p className="mt-2 text-[13px] text-[var(--text-muted)]">
                     {implantacaoEmTexto(p.implantacao)}
                   </p>
                 </div>
@@ -172,11 +181,11 @@ export default function PlanosPage() {
               {/* corpo: inclui | não inclui */}
               <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr]">
                 <div className="px-6 py-6 md:px-8">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-[var(--azure)]">O que está incluído</p>
+                  <p className="text-[12px] font-bold uppercase tracking-[0.13em] text-[var(--azure)]">O que está incluído</p>
                   <ol className="mt-4 space-y-3">
                     {p.inclui.map((item, i) => (
-                      <li key={item} className="flex items-start gap-3 text-[14.5px] leading-relaxed text-[var(--text-primary)]">
-                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[var(--accent)] font-display text-[11px] font-bold text-[var(--navy)]">
+                      <li key={item} className="flex items-start gap-3 text-[14px] leading-relaxed text-[var(--text-primary)]">
+                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[var(--accent)] font-display text-[12px] font-bold text-[var(--navy)]">
                           {i + 1}
                         </span>
                         <span className="text-pretty">{item}</span>
@@ -185,7 +194,7 @@ export default function PlanosPage() {
                   </ol>
                 </div>
                 <div className="border-t border-[var(--border)] bg-[var(--bg-elevated)] px-6 py-6 md:border-l md:border-t-0 md:px-8">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-[var(--text-muted)]">O que não está incluído</p>
+                  <p className="text-[12px] font-bold uppercase tracking-[0.13em] text-[var(--text-muted)]">O que não está incluído</p>
                   <ul className="mt-4 space-y-3">
                     {p.naoInclui.map((item) => (
                       <li key={item} className="flex items-start gap-3 text-[14px] leading-relaxed text-[var(--text-secondary)]">
@@ -214,7 +223,7 @@ export default function PlanosPage() {
                   href={zap(`Olá! Quero contratar o plano ${p.nome} da Dioli Digital.`)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-auto inline-flex h-10 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--card)] px-5 text-[13.5px] font-semibold text-[var(--navy)] transition-colors hover:bg-[var(--accent)]"
+                  className="ml-auto inline-flex h-10 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--card)] px-5 text-[14px] font-semibold text-[var(--navy)] transition-colors hover:bg-[var(--accent)]"
                 >
                   Quero o {p.nome} →
                 </a>
@@ -228,11 +237,11 @@ export default function PlanosPage() {
       <section className="border-y border-[var(--border)] bg-[var(--bg-elevated)]">
         <div className="mx-auto w-full max-w-6xl px-5 py-16 md:px-8 md:py-24">
           <div className="max-w-2xl">
-            <p className="text-[12.5px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Sempre à parte</p>
+            <p className="text-[13px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Sempre à parte</p>
             <h2 className="mt-3 text-[28px] font-bold tracking-[-0.025em] text-[var(--navy)] md:text-[40px]">
               O que <span className="text-gradient-cool">não</span> entra em plano nenhum.
             </h2>
-            <p className="mt-4 text-[15.5px] leading-relaxed text-[var(--text-secondary)]">
+            <p className="mt-4 text-[16px] leading-relaxed text-[var(--text-secondary)]">
               Preferimos dizer antes: estes quatro itens são orçados por fora, em qualquer degrau.
               Diluir eles na mensalidade encareceria o plano de todo mundo — inclusive de quem
               nunca vai usar.
@@ -242,7 +251,7 @@ export default function PlanosPage() {
             {FORA_DE_TODO_PLANO.map((f) => (
               <div key={f.titulo} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
                 <h3 className="text-[16px] font-semibold text-[var(--navy)]">{f.titulo}</h3>
-                <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--text-secondary)]">{f.texto}</p>
+                <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">{f.texto}</p>
               </div>
             ))}
           </div>
@@ -264,7 +273,7 @@ export default function PlanosPage() {
       {/* ── Regras do contrato ─────────────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-6xl px-5 py-16 md:px-8 md:py-24">
         <div className="max-w-2xl">
-          <p className="text-[12.5px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Sem letra miúda</p>
+          <p className="text-[13px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Sem letra miúda</p>
           <h2 className="mt-3 text-[28px] font-bold tracking-[-0.025em] text-[var(--navy)] md:text-[40px]">
             As regras, <span className="text-gradient-cool">na frente.</span>
           </h2>
@@ -279,7 +288,7 @@ export default function PlanosPage() {
             { t: "Sem promessa de retorno", d: "Não prometemos faturamento nem ROI. Prometemos consistência, prazo e número medido — e mostramos os três todo mês." },
           ].map((r) => (
             <div key={r.t}>
-              <dt className="flex items-center gap-2 text-[15.5px] font-semibold text-[var(--navy)]">
+              <dt className="flex items-center gap-2 text-[16px] font-semibold text-[var(--navy)]">
                 <Check className="h-4 w-4 text-[var(--azure)]" />
                 {r.t}
               </dt>
@@ -303,7 +312,7 @@ export default function PlanosPage() {
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/briefing"
-              className="inline-flex h-12 items-center justify-center rounded-full bg-[var(--cyan)] px-6 text-[15px] font-semibold text-[var(--navy)] transition-transform hover:-translate-y-0.5"
+              className="inline-flex h-12 items-center justify-center rounded-full bg-[var(--cyan)] px-6 text-[16px] font-semibold text-[var(--navy)] transition-transform hover:-translate-y-0.5"
             >
               Fazer briefing gratuito →
             </Link>
@@ -311,7 +320,7 @@ export default function PlanosPage() {
               href={zap("Olá! Quero ajuda para escolher o plano da Dioli Digital.")}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-12 items-center justify-center rounded-full border border-white/25 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10"
+              className="inline-flex h-12 items-center justify-center rounded-full border border-white/25 px-6 text-[16px] font-semibold text-white transition-colors hover:bg-white/10"
             >
               Falar no WhatsApp
             </a>
