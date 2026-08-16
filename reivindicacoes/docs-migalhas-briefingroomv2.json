@@ -1,0 +1,12 @@
+{
+  "id": "docs/migalhas-briefingroomv2",
+  "quem": "pm-9ab49074",
+  "frente": "migalhas do BriefingRoomV2 apagado em DESIGN.md e oficina do interface",
+  "responsabilidade": "docs/migalhas-briefingroomv2",
+  "arquivos": [
+    "DESIGN.md",
+    "docs/agents/interface/oficina.md"
+  ],
+  "abertaEm": "2026-08-16T18:32:07.267Z",
+  "encerradaEm": null
+}
