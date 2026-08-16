@@ -365,6 +365,58 @@ function repararJsonTruncado(text: string): Record<string, unknown> | null {
   }
 }
 
+/**
+ * Passa o escopo pelos guardas da casa antes de ele valer como dado.
+ *
+ * Virou função à parte em 16/08 porque agora existem DOIS caminhos que entregam
+ * escopo: o turno inteiro (fala + dados) e o turno em que só o dado sobreviveu.
+ * Guarda que existe em um caminho e não no outro é guarda que não existe — o
+ * escopo salvo do pacote cortado passa exatamente pelas mesmas travas.
+ */
+function escopoSaneado(parsed: Record<string, unknown>): Record<string, unknown> {
+  const scopePatch = parsed.scope && typeof parsed.scope === "object" ? { ...(parsed.scope as Record<string, unknown>) } : {};
+
+  // E-mail comes from Google login; the negotiation itself happens after login
+  // — so those never come from the chat, even if the model hallucinates them.
+  // prospectPhone + preferredChannel ARE captured now (the client chooses how
+  // they want to be reached: e-mail or WhatsApp).
+  delete scopePatch.prospectEmail;
+  delete scopePatch.negotiation;
+
+  // NOME DA PESSOA NÃO É NOME DO NEGÓCIO — e aqui a regra é trava, não aviso.
+  // 16/08/2026: o cliente confirmou "City Jobs" por voz, anexou o brand book
+  // do City Jobs, e o pedido chegou ao Gerente de Projeto como "briefing da
+  // Diego". A instrução JÁ existia no prompt e não bastou: nome errado na
+  // origem vira cadastro, vira proposta e vira peça. Fail-closed — na dúvida
+  // o campo some, e o resto da casa trata o negócio como desconhecido, que é
+  // a verdade. Campo vazio é honesto; campo com o nome errado, não.
+  const soLetras = (v: unknown) =>
+    typeof v === "string" ? v.trim().toLowerCase().replace(/\s+/g, " ") : "";
+  if (
+    soLetras(scopePatch.businessName) &&
+    soLetras(scopePatch.businessName) === soLetras(scopePatch.prospectName)
+  ) {
+    console.error("[sdr/chat] businessName igual ao prospectName — descartado");
+    delete scopePatch.businessName;
+  }
+
+  // budgetRange passa a existir (decisão do CEO, 05/08/2026: a faixa é a
+  // terceira pergunta), mas por ALLOWLIST, não por confiança. O modelo só pode
+  // gravar um dos ids de faixa; número solto, texto livre ou faixa inventada
+  // são descartados em silêncio. Fail-closed: sem faixa válida, o campo some e
+  // o resto do sistema segue tratando a faixa como desconhecida — que é a
+  // verdade. Faixa chutada é dado do cliente inventado.
+  //
+  // Guarda o RÓTULO, não o id: o painel público do briefing renderiza este
+  // campo direto na tela ("Orçamento: ..."), e id interno não é linguagem de
+  // cliente.
+  const faixaNormalizada = normalizarFaixa(scopePatch.budgetRange);
+  if (faixaNormalizada) scopePatch.budgetRange = faixaNormalizada;
+  else delete scopePatch.budgetRange;
+
+  return scopePatch;
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const barrado = await limiteExcedido(req, "sdr-chat", 30, 60_000);
   if (barrado) return barrado as NextResponse;
@@ -407,7 +459,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1280,
+        // 1280 era o teto que cortava o pacote no meio no piloto de 16/08 — a
+        // fala do prospect e o escopo dele viajam JUNTOS aqui, e um turno em que
+        // o cliente conta muita coisa de uma vez produz um pacote grande por
+        // mérito, não por prolixidade. Folga no teto é mais barata que dado do
+        // cliente perdido; o freio da fala continua sendo o limite de caracteres
+        // do prompt, não o teto de tokens.
+        max_tokens: 3000,
         system: SYSTEM_PROMPT,
         messages: claudeMessages,
       }),
@@ -420,54 +478,48 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: false, reason: "provider_error" });
     }
 
-    const json = (await res.json()) as { content?: { type: string; text: string }[] };
+    const json = (await res.json()) as { content?: { type: string; text: string }[]; stop_reason?: string };
     const text = json.content?.[0]?.text ?? "";
-    const parsed = extractJson(text);
 
-    if (!parsed || typeof parsed.reply !== "string" || !parsed.reply.trim()) {
-      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: "parse_error" });
-      return NextResponse.json({ ok: false, reason: "parse_error" });
+    // A PRÓPRIA API DIZ SE O PACOTE FOI CORTADO — e é o único jeito de saber
+    // sem adivinhar. `stop_reason: "max_tokens"` significa que o modelo estava
+    // no meio da frase quando o teto bateu: o JSON não fechou porque acabou, não
+    // porque o modelo escreveu errado. Sem esta leitura as duas causas caem no
+    // mesmo balde no diário, e quem for ler amanhã não sabe se o remédio é subir
+    // o teto ou consertar o prompt.
+    const cortadoNoTeto = json.stop_reason === "max_tokens";
+    const motivoDoParse = cortadoNoTeto ? "parse_error_truncado" : "parse_error_formato";
+
+    // Primeiro o caminho normal; só depois o remendo. `repararJsonTruncado` é
+    // conservador e nunca inventa conteúdo — ver o bloco acima dele.
+    const doParseNormal = extractJson(text);
+    const parsed = doParseNormal ?? repararJsonTruncado(text);
+
+    if (!parsed) {
+      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: motivoDoParse });
+      return NextResponse.json({ ok: false, reason: motivoDoParse });
     }
 
-    const scopePatch = parsed.scope && typeof parsed.scope === "object" ? (parsed.scope as Record<string, unknown>) : {};
+    const scopePatch = escopoSaneado(parsed);
 
-    // E-mail comes from Google login; the negotiation itself happens after login
-    // — so those never come from the chat, even if the model hallucinates them.
-    // prospectPhone + preferredChannel ARE captured now (the client chooses how
-    // they want to be reached: e-mail or WhatsApp).
-    delete scopePatch.prospectEmail;
-    delete scopePatch.negotiation;
+    // ── O ESCOPO SOBREVIVE SEM A FALA ────────────────────────────────────────
+    // As duas cargas do pacote NÃO valem o mesmo. A fala o motor de regras
+    // refaz na hora e o cliente nem percebe; o número que ele falou uma vez —
+    // "2 posts por dia", "R$ 500 por mês" — ninguém recupera, e o orçamento
+    // sai errado a partir dali. Então, quando o remendo salva os dados mas a
+    // fala veio inutilizável, o turno cai no motor de regras (`ok: false`) COM
+    // o escopo junto, em vez de jogar o briefing fora com ela.
+    // Num pacote REMENDADO a fala só é confiável se `scope` chegou: o formato
+    // manda `reply` antes de `scope`, então escopo presente prova que a fala já
+    // tinha fechado antes do corte. Sem `scope`, o corte caiu na fala — e mandar
+    // meia frase ao prospect é pior que deixar o motor de regras responder.
+    // Nada se inventa aqui: o remendo fecha, esta linha decide em quem confiar.
+    const falaConfiavel = doParseNormal !== null || "scope" in parsed;
 
-    // NOME DA PESSOA NÃO É NOME DO NEGÓCIO — e aqui a regra é trava, não aviso.
-    // 16/08/2026: o cliente confirmou "City Jobs" por voz, anexou o brand book
-    // do City Jobs, e o pedido chegou ao Gerente de Projeto como "briefing da
-    // Diego". A instrução JÁ existia no prompt e não bastou: nome errado na
-    // origem vira cadastro, vira proposta e vira peça. Fail-closed — na dúvida
-    // o campo some, e o resto da casa trata o negócio como desconhecido, que é
-    // a verdade. Campo vazio é honesto; campo com o nome errado, não.
-    const soLetras = (v: unknown) =>
-      typeof v === "string" ? v.trim().toLowerCase().replace(/\s+/g, " ") : "";
-    if (
-      soLetras(scopePatch.businessName) &&
-      soLetras(scopePatch.businessName) === soLetras(scopePatch.prospectName)
-    ) {
-      console.error("[sdr/chat] businessName igual ao prospectName — descartado");
-      delete scopePatch.businessName;
+    if (!falaConfiavel || typeof parsed.reply !== "string" || !parsed.reply.trim()) {
+      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: motivoDoParse });
+      return NextResponse.json({ ok: false, reason: motivoDoParse, scope: scopePatch });
     }
-
-    // budgetRange passa a existir (decisão do CEO, 05/08/2026: a faixa é a
-    // terceira pergunta), mas por ALLOWLIST, não por confiança. O modelo só pode
-    // gravar um dos ids de faixa; número solto, texto livre ou faixa inventada
-    // são descartados em silêncio. Fail-closed: sem faixa válida, o campo some e
-    // o resto do sistema segue tratando a faixa como desconhecida — que é a
-    // verdade. Faixa chutada é dado do cliente inventado.
-    //
-    // Guarda o RÓTULO, não o id: o painel público do briefing renderiza este
-    // campo direto na tela ("Orçamento: ..."), e id interno não é linguagem de
-    // cliente.
-    const faixaNormalizada = normalizarFaixa(scopePatch.budgetRange);
-    if (faixaNormalizada) scopePatch.budgetRange = faixaNormalizada;
-    else delete scopePatch.budgetRange;
 
     const replyText = parsed.reply.trim();
 
