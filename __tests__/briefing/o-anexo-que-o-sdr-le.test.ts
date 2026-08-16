@@ -16,7 +16,11 @@
  * lei "ausência de informação não é informação".
  */
 import { describe, it, expect } from "vitest";
-import { dossieDosAnexos } from "@/components/agency/briefing/PublicBriefingRoom";
+import {
+  dossieDosAnexos,
+  tetoDoCartaoDaConversa,
+  ALTURA_MINIMA_DO_CARTAO,
+} from "@/components/agency/briefing/PublicBriefingRoom";
 
 type Item = Parameters<typeof dossieDosAnexos>[0][number];
 
@@ -176,5 +180,41 @@ describe("a lista de nomes não é despejo — nome de arquivo é PII", () => {
     expect(citados).toBeLessThanOrEqual(10);
     // Mas o TOTAL continua dito — 200 arquivos não viram "alguns arquivos".
     expect(d).toContain("e mais 190");
+  });
+});
+
+/**
+ * ── A CAIXA DE DIGITAR TEM DE ESTAR NA TELA (16/08/2026) ────────────────────
+ *
+ * Passada de EXPERIÊNCIA no `/briefing` a 375×600, primeira pintura, medida no
+ * navegador: o cartão saía com 488px começando em y=210, terminando em 698 numa
+ * janela de 600 — e a caixa de digitar caía em **y574–648, fora da tela**.
+ *
+ * A conversa aparecia (o conserto anterior funcionou) e mesmo assim a pessoa não
+ * via ONDE responder sem rolar. `calc(100dvh-7rem)` reservava 112px para o que
+ * está acima do cartão; a 375px o que está acima soma ~210px.
+ *
+ * Depois: cartão 371px, caixa de digitar em y457–531 — dentro da janela.
+ */
+describe("o teto do cartão da conversa é MEDIDO, não chutado", () => {
+  it("⛔ o chute de 112px de reserva não cabia a 375×600 — a medida cabe", () => {
+    // O caso real: janela 600, cartão começando em 210.
+    const teto = tetoDoCartaoDaConversa(600, 210);
+    expect(teto).toBe(374);
+    // O que importa é a consequência: o cartão termina DENTRO da janela.
+    expect(210 + teto).toBeLessThanOrEqual(600);
+    // A reserva antiga (112px) produzia 488 e estourava em 698.
+    expect(210 + (600 - 112)).toBeGreaterThan(600);
+  });
+
+  it("✅ no desktop, onde já cabia, continua cabendo e sem encolher à toa", () => {
+    const teto = tetoDoCartaoDaConversa(900, 260);
+    expect(teto).toBe(624);
+    expect(260 + teto).toBeLessThanOrEqual(900);
+  });
+
+  it("cabeçalho grande demais NÃO espreme a conversa até virar tira", () => {
+    // Janela baixa e muito conteúdo acima: o piso segura, e a página rola.
+    expect(tetoDoCartaoDaConversa(500, 400)).toBe(ALTURA_MINIMA_DO_CARTAO);
   });
 });

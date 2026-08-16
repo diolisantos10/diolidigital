@@ -778,6 +778,21 @@ interface UploadItem {
  * enquanto a tela mostrava "Anexado" em verde. Ausência de informação não é
  * informação.
  */
+/** Abaixo disto a conversa vira uma tira e o cartão deixa de servir. Quando o
+ *  que está acima é grande demais, a página volta a rolar — e isso é o certo:
+ *  espremer a conversa para caber seria trocar um defeito por outro. */
+export const ALTURA_MINIMA_DO_CARTAO = 320;
+
+/** Quanto o cartão da conversa pode ter, dado o tamanho da janela e quanto de
+ *  página existe ACIMA dele.
+ *
+ *  Existe como função pura porque era um NÚMERO CHUTADO (`calc(100dvh-7rem)`,
+ *  isto é, 112px de reserva) e o chute errava por quase o dobro no celular. */
+export function tetoDoCartaoDaConversa(alturaDaJanela: number, topoDoCartao: number): number {
+  const RESPIRO = 16;
+  return Math.round(Math.max(ALTURA_MINIMA_DO_CARTAO, alturaDaJanela - topoDoCartao - RESPIRO));
+}
+
 const TETO_DO_DOSSIE = 12_000;
 
 /** O mínimo que um arquivo precisa receber para valer a pena aparecer. Abaixo
@@ -1263,6 +1278,35 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     cartaoDaConversa.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, []);
 
+  // ── 16/08/2026 · A RESERVA DE 7rem ERA UM CHUTE, E ELE ERRAVA NO CELULAR ───
+  //
+  // `max-h-[calc(100dvh-7rem)]` reserva 112px para tudo o que está ACIMA do
+  // cartão. Medido a 375×600 na primeira pintura, o que está acima soma ~210px
+  // (barra do topo + "Vamos entender seu projeto" + as três linhas do subtítulo):
+  // o cartão saía com 488px começando em y=210 e terminava em 698, numa janela
+  // de 600. A caixa de digitar caía em y574–648 — **fora da tela**.
+  //
+  // A conversa aparecia (o conserto anterior funcionou) e mesmo assim a pessoa
+  // não via ONDE responder sem rolar. É a pergunta do Essencial de experiência:
+  // ela consegue fazer o que veio fazer? Na primeira pintura, não.
+  //
+  // O conserto não é escolher outro número: é PARAR de chutar. Mede-se quanto
+  // de página existe acima do cartão e faz-se o cartão terminar no fim da
+  // janela. Piso de 320px para que um cabeçalho gigante não esprema a conversa
+  // até virar tira — aí a página volta a rolar, e isso é o certo.
+  const [tetoDoCartao, setTetoDoCartao] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const medir = () => {
+      const el = cartaoDaConversa.current;
+      if (!el) return;
+      const topoNoDocumento = el.getBoundingClientRect().top + window.scrollY;
+      setTetoDoCartao(`${tetoDoCartaoDaConversa(window.innerHeight, topoNoDocumento)}px`);
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, []);
+
   // Quando o rodapé muda de altura — a caixa de digitar cresce, o painel de
   // materiais abre, a linha de erro do microfone aparece — a conversa encolhe
   // por baixo e a última mensagem sai da vista sem que nada tenha "chegado".
@@ -1604,7 +1648,13 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           (`flex-1` + `overflow-y-auto`) e o cabeçalho e a caixa de digitar
           ficam ancorados nas pontas. `dvh` e não `vh` porque no celular a barra
           do navegador entra e sai, e `vh` mede a janela que não existe. */}
-      <div ref={cartaoDaConversa} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col max-h-[calc(100dvh-7rem)]">
+      {/* A classe `max-h` continua sendo o valor ANTES da hidratação; o `style`
+          é a medida real, e vence assim que o efeito acima roda. */}
+      <div
+        ref={cartaoDaConversa}
+        style={tetoDoCartao ? { maxHeight: tetoDoCartao } : undefined}
+        className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col max-h-[calc(100dvh-7rem)]"
+      >
 
         {/* Chat header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
