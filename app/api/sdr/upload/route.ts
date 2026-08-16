@@ -23,6 +23,12 @@ import { NextRequest, NextResponse } from "next/server";
 // no volume, é atômico e é fail-closed: contador fora do ar recusa, não libera.
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
 import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
+// ⚠️ O NOME DO ARQUIVO É ENTRADA DE ATACANTE (parecer de segurança, 16/08/2026).
+// Esta rota devolvia `file.name` do multipart sem cortar, e o dossiê do SDR
+// monta um cabeçalho `--- <nome> ---` por arquivo em TODO turno: 10 anexos com
+// nome de 50.000 caracteres produziam um dossiê de 501.310 — 41× o teto
+// declarado, na conta de IA da agência. Cortar aqui é a metade da ORIGEM.
+import { cortarNomeDeArquivo, cortarRotuloDeTipo } from "@/lib/agency/comercial/nome-de-anexo";
 import AdmZip from "adm-zip";
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
@@ -152,7 +158,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const mime = file.type || "application/octet-stream";
-  const fileType = MIME_LABEL[mime] ?? (file.name.split(".").pop()?.toUpperCase() ?? "FILE");
+  // O nome e o rótulo saem cortados daqui — é o único ponto do sistema em que
+  // eles nascem, e cortar na origem vale mais que cortar em cada consumidor.
+  const fileName = cortarNomeDeArquivo(file.name);
+  const fileType = MIME_LABEL[mime] ?? cortarRotuloDeTipo(fileName.split(".").pop());
   const buf = Buffer.from(await file.arrayBuffer());
 
   let extractedText = "";
@@ -177,7 +186,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   return NextResponse.json({
     ok: true,
-    fileName: file.name,
+    fileName,
     fileType,
     sizeBytes: file.size,
     mimeType: mime,

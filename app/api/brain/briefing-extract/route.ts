@@ -19,6 +19,17 @@ import { NextRequest, NextResponse } from "next/server";
 // de graça, numa rota pública que gasta chave de IA PAGA. `limiteExcedido` conta
 // no volume, é atômico e é fail-closed: contador fora do ar recusa, não libera.
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
+// ⚠️ MESMO FURO DA IRMÃ, MESMO CONSERTO. `/api/sdr/chat` ganhou teto de TAMANHO
+// em 16/08/2026; esta rota é pública igual, monta prompt com `messages[].text` e
+// `currentMessage` do mesmo jeito e gasta a mesma chave paga. Deixar a irmã
+// aberta depois de fechar uma é o defeito nº 2 do incidente do Drive: a regra
+// existe e não é a mesma nos dois lados.
+import {
+  TETO_DA_MENSAGEM,
+  apararTexto,
+  corpoGrandeDemais,
+  historicoParaOModelo,
+} from "@/lib/security/teto-do-turno-publico";
 import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
@@ -44,12 +55,11 @@ interface ExtractedFields {
   objectives?: string[];
 }
 
-function buildPrompt(messages: ConvMsg[], currentMessage: string): string {
-  const history = messages
-    .filter((m) => m.role !== "system")
-    .slice(-MAX_HISTORY)
-    .map((m) => `${m.role === "assistant" ? "Consultora" : "Prospect"}: ${m.text}`)
+function buildPrompt(messages: unknown[], currentMessageBruto: string): string {
+  const history = historicoParaOModelo(messages, undefined, MAX_HISTORY)
+    .turnos.map((m) => `${m.role === "assistant" ? "Consultora" : "Prospect"}: ${m.content}`)
     .join("\n");
+  const currentMessage = apararTexto(currentMessageBruto, TETO_DA_MENSAGEM).texto;
 
   return `Você é um extrator de contexto. Analise a conversa abaixo e retorne um objeto JSON com os campos identificados.
 
@@ -126,6 +136,12 @@ function validateExtracted(raw: unknown): ExtractedFields {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // O portão mais barato primeiro, antes de o corpo ser lido — `req.json()` de
+  // um corpo de 500 MB já é o dano.
+  if (corpoGrandeDemais(req.headers)) {
+    return NextResponse.json({ ok: false, reason: "too_large" }, { status: 413 });
+  }
+
   const barrado = await limiteExcedido(req, "briefing-extract", 30, 60_000);
   if (barrado) return barrado as NextResponse;
 

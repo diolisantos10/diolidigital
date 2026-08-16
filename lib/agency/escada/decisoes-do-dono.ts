@@ -209,8 +209,23 @@ export interface RelatorioDasDecisoes {
   mudancas: MudancaDaDecisao[];
   /** Decisão malformada — recusada por inteiro, com motivo. */
   recusadas: RecusaDeDecisao[];
-  /** Nome de cliente que não resolveu, e escopo que resolveu para zero. */
+  /** Nome de cliente que não resolveu, e escopo que resolveu para zero POR ENGANO. */
   avisos: string[];
+  /**
+   * Decisão válida cujo escopo DINÂMICO não achou ninguém — casa zerada, cliente
+   * ainda sem projeto. É estado normal, não falha, e por isso tem canal próprio.
+   *
+   * 16/08/2026: a linha `nenhum cliente resolvido — nada foi liberado` estava em
+   * `avisos`, e o despertador trata todo aviso como QUEBRA da rodada. Resultado:
+   * a agência zerada gritava uma falha a cada 5 minutos por estar exatamente no
+   * estado em que deveria estar. Log que grita sempre é log que ninguém lê — e é
+   * embaixo dele que a falha de verdade se esconde.
+   *
+   * O sinal legítimo NÃO se perde: escopo por NOMES que não resolve continua em
+   * `avisos` (alguém digitou um nome que não existe, e isso é erro humano a
+   * corrigir), e erro de leitura do banco continua em `recusadas`.
+   */
+  semAlvo: string[];
 }
 
 function lerClientes(json: string | null | undefined): string[] {
@@ -236,7 +251,7 @@ export async function aplicarDecisoesDoDono(
   workspaceId: string,
   decisoes: readonly DecisaoDoDono[] = DECISOES_DO_DONO,
 ): Promise<RelatorioDasDecisoes> {
-  const r: RelatorioDasDecisoes = { aplicadas: 0, mudancas: [], recusadas: [], avisos: [] };
+  const r: RelatorioDasDecisoes = { aplicadas: 0, mudancas: [], recusadas: [], avisos: [], semAlvo: [] };
 
   for (const d of decisoes) {
     const recusa = recusarDecisao(d);
@@ -254,9 +269,17 @@ export async function aplicarDecisoesDoDono(
     }
     for (const n of alvo.naoResolvidos) r.avisos.push(`${d.id}: ${n}`);
     if (alvo.ids.length === 0) {
-      // Zero cliente resolvido não é "aplicada com sucesso". Sem esta linha, a
-      // decisão pareceria aplicada para sempre e ninguém receberia nada.
-      r.avisos.push(`${d.id}: nenhum cliente resolvido — nada foi liberado`);
+      // Zero cliente resolvido continua NÃO sendo "aplicada com sucesso" — a
+      // decisão não entra em `aplicadas` e nada é escrito. O que mudou em
+      // 16/08/2026 é o CANAL, não a contagem.
+      //
+      // Escopo dinâmico sem ninguém = a casa ainda não tem cliente com projeto.
+      // Escopo por NOMES sem ninguém = o nome escrito na decisão não existe, e
+      // isso alguém tem que consertar. Só o segundo é falha.
+      const escopoDinamico = d.escopo.tipo === "clientes_com_projeto";
+      const linha = `${d.id}: nenhum cliente resolvido — nada foi liberado`;
+      if (escopoDinamico && alvo.naoResolvidos.length === 0) r.semAlvo.push(linha);
+      else r.avisos.push(linha);
       continue;
     }
     r.aplicadas++;
@@ -341,7 +364,7 @@ export async function aplicarDecisoesDoDono(
  * porque alguém lembrou de rodar a rota logado nele.
  */
 export async function aplicarDecisoesDoDonoNaCasa(): Promise<RelatorioDasDecisoes> {
-  const geral: RelatorioDasDecisoes = { aplicadas: 0, mudancas: [], recusadas: [], avisos: [] };
+  const geral: RelatorioDasDecisoes = { aplicadas: 0, mudancas: [], recusadas: [], avisos: [], semAlvo: [] };
   let workspaces: Array<{ id: string }>;
   try {
     workspaces = await prisma.agencyWorkspace.findMany({ select: { id: true } });
@@ -355,6 +378,7 @@ export async function aplicarDecisoesDoDonoNaCasa(): Promise<RelatorioDasDecisoe
     geral.mudancas.push(...r.mudancas);
     geral.recusadas.push(...r.recusadas);
     geral.avisos.push(...r.avisos);
+    geral.semAlvo.push(...r.semAlvo);
   }
   return geral;
 }

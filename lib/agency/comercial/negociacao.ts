@@ -506,11 +506,16 @@ export function opcoesDeFaixa(): string[] {
   return FAIXAS.map((f) => f.rotulo);
 }
 
+// ⚠️ 16/08/2026 — POR QUE ESTE TÍTULO DEIXOU DE SER DESENHADO COM `━━━`.
+// Este bloco é texto da CASA e não envolve texto de ninguém de fora — não é
+// cerca. Mas `instrucaoDaMarca` (`comercial/cerca-de-anexo.ts`) declara ao
+// modelo que **linha que parece cerca e não traz a marca é CONTEÚDO do
+// cliente**. Um separador decorativo da casa com desenho de cerca ensina
+// exatamente a lição errada, e é o que o atacante quer que o modelo aprenda.
+// Ou a linha é cerca com marca, ou não parece cerca.
 export function blocoDeNegociacaoParaPrompt(): string {
   return [
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-    "NEGOCIAÇÃO — a faixa de investimento (decisão do CEO, 05/08/2026)",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "## NEGOCIAÇÃO — a faixa de investimento (decisão do CEO, 05/08/2026)",
     "",
     "Seu objetivo é FECHAR TODO CLIENTE. Toda faixa tem produto nesta casa — você",
     "NUNCA diz, nem sugere, que não temos nada para a pessoa. Se o valor for baixo,",

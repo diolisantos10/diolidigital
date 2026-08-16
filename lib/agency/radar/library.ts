@@ -140,9 +140,13 @@ export function buildInsightBlock(insights: Array<{ title: string; guidance: str
     const tag = i.source === "official" ? `OFICIAL${i.sourceName ? ` (${i.sourceName})` : ""}` : "tendência";
     return `• [${tag}] ${i.title}: ${i.guidance}`;
   });
+  // ⚠️ 16/08/2026 — o título saiu do desenho de cerca (`━━━`) pelo mesmo motivo
+  // de `comercial/negociacao.ts`: no prompt, linha que parece cerca e não traz a
+  // marca da montagem é, por declaração da casa, CONTEÚDO do cliente. Decoração
+  // da casa não pode se vestir de estrutura.
   return [
-    "━━━ RADAR DIOLI — o que está ATUAL no mercado (siga estas diretrizes) ━━━",
+    "## RADAR DIOLI — o que está ATUAL no mercado (siga estas diretrizes)",
     ...lines,
-    "━━━",
+    "## fim das diretrizes do Radar",
   ].join("\n");
 }

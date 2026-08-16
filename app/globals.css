@@ -230,9 +230,13 @@ h1, h2, h3, h4, .font-display {
    linha ao meio). Quem reserva a altura da barra é o LAYOUT (`.agency-shell`),
    e a própria barra sai das MESMAS variáveis — as duas nunca saem de sincronia. */
 .agency-shell {
-  --barra-altura:  3.25rem;                 /* 52px — a mesma altura do topo da sidebar */
+  /* 44px = o botão de menu (36px) + 4px acima e abaixo. Eram 52px, herdados do
+     "topo da sidebar" — régua de DESKTOP aplicada ao celular, onde a sidebar nem
+     aparece. Medido a 375px logado: a barra + o respiro comiam 68px (11% de uma
+     tela de 600px) em toda rota do painel, na MESMA cor do fundo da página. */
+  --barra-altura:  2.75rem;                 /* 44px — a altura real do que mora dentro */
   --barra-safe:    env(safe-area-inset-top, 0px);
-  --barra-respiro: 1rem;                    /* respiro entre a barra e o conteúdo */
+  --barra-respiro: 0.75rem;                 /* respiro entre a barra e o conteúdo */
   --barra-espaco:  calc(var(--barra-altura) + var(--barra-safe));
 }
 /* A barra em si: altura e safe-area saem das variáveis acima. */
