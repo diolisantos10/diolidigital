@@ -72,6 +72,8 @@ describe("G-3 — a autorização vem ANTES de qualquer escrita", () => {
   });
 });
 
+type ArgsDeRecusa = Parameters<DependenciasDaVarredura["registrarRecusa"]>[0];
+
 describe("G-6 — provedor de IA fora do ar NEGA; não vira entregável", () => {
   const fonte = fs.readFileSync(path.join(process.cwd(), "lib/agency/esteira-assistida/adaptador-de-ia.ts"), "utf8");
 
@@ -90,9 +92,9 @@ describe("G-6 — provedor de IA fora do ar NEGA; não vira entregável", () => 
   });
 
   it("ciclo que para vira LINHA VISÍVEL — inclusive quando ESCALA (o executor não grava escalada)", async () => {
-    const registrarRecusa = vi.fn(async () => undefined);
+    const gravadas: ArgsDeRecusa[] = [];
     const deps = montar({
-      registrarRecusa,
+      registrarRecusa: async (d) => { gravadas.push(d); },
       marcarStatus: vi.fn(async () => undefined),
       rodarCiclo: async () => ({
         ok: false, passos: [], artefatos: {}, custoTotalUsd: 0,
@@ -102,21 +104,23 @@ describe("G-6 — provedor de IA fora do ar NEGA; não vira entregável", () => 
     const r = await varrerAPorta(deps);
     expect(r.pararamNoMeio).toBe(1);
     expect(r.recusadas).toBe(0); // conta como "parou", não duas vezes
-    expect(registrarRecusa).toHaveBeenCalledTimes(1);
-    expect(registrarRecusa.mock.calls[0]![0]).toMatchObject({ funcaoId: "brand-architect", workspaceId: AGENCIA });
-    expect((registrarRecusa.mock.calls[0]![0] as { motivo: string }).motivo).toMatch(/provedor de IA/);
+    expect(gravadas).toHaveLength(1);
+    expect(gravadas[0]).toMatchObject({ funcaoId: "brand-architect", workspaceId: AGENCIA });
+    expect(gravadas[0]!.motivo).toMatch(/provedor de IA/);
     expect(deps.marcarStatus).toHaveBeenCalledWith("req1", "precisa_decisao");
   });
 });
 
 describe("G-5 — toda recusa nasce com dono de AGÊNCIA", () => {
   it("⛔ o motivo carrega o nome do negócio: sem workspaceId ele vaza para a outra casa", async () => {
-    const registrarRecusa = vi.fn(async () => undefined);
-    const deps = montar({ registrarRecusa, solicitacoesNaPorta: async () => [lead({ temComoFalar: false, porQueNaoDaParaFalar: "sem canal" })] });
+    const gravadas: ArgsDeRecusa[] = [];
+    const deps = montar({
+      registrarRecusa: async (d) => { gravadas.push(d); },
+      solicitacoesNaPorta: async () => [lead({ temComoFalar: false, porQueNaoDaParaFalar: "sem canal" })],
+    });
     await varrerAPorta(deps);
-    const gravada = registrarRecusa.mock.calls[0]![0] as { workspaceId?: string | null; motivo: string };
-    expect(gravada.workspaceId).toBe(AGENCIA);
-    expect(gravada.motivo).toContain("CityJobs"); // é este dado que precisa de dono
+    expect(gravadas[0]!.workspaceId).toBe(AGENCIA);
+    expect(gravadas[0]!.motivo).toContain("CityJobs"); // é este dado que precisa de dono
   });
 
   it("✅ a sala do PM filtra por agência em TODA leitura", () => {
