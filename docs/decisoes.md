@@ -8,6 +8,44 @@
 
 ---
 
+## EVIDÊNCIA DE FRASE NÃO DESARMA O NÚMERO QUE ESTÁ EM POSIÇÃO DE COTAÇÃO
+
+**Decidido em** 2026-08-16 · **por** o CEO, sobre achado de `qualidade` ·
+**origem:** o falso negativo que o conserto de `08c09a8` introduziu
+
+**O que aconteceu.** A quinta passada ensinou o leitor de preço a não ler ano
+como dinheiro. A regra olhava a **frase inteira**: bastava um `desde` em qualquer
+lugar para desarmar todo número com forma de ano. `qualidade` rodou o corpus
+completo e achou o vazamento:
+
+```
+PASSA ← VAZA | "Desde 2015 a gente atende assim, e pra você fica em 1990."
+BARRA        | "Atuamos desde 2012; seu investimento fica em 2050."
+```
+
+A segunda só acertava **por acidente**: `investimento` é pista forte, e pista
+forte desarmava a exceção do ano — também pela frase inteira. Tirada a palavra
+forte, que é o que qualquer SDR faz ao escrever "pra você fica em", vazava.
+
+**A regra.** Quando duas leituras competem **dentro da mesma frase**, evidência
+de frase inteira contra evidência de frase inteira é um empate que quem escreve o
+código resolve por chute. O desempate é a **posição**: o que está colado no
+número. Marca de ano numa oração não desarma um número que está em moldura de
+cotação na outra. Ano e preço de quatro dígitos são o mesmo símbolo — o que os
+separa nunca foi a forma, é onde eles estão.
+
+**E a ordem de prioridade, dita pelo CEO com todas as letras:** se fechar o
+buraco custar mais falso positivo, **aceita-se o falso positivo**. O custo dele é
+um turno estranho e recuperável; o do falso negativo é preço errado na cara do
+cliente. Falso positivo é número a declarar; falso negativo é zero, sem exceção.
+
+**Corolário de método.** Uma mudança que **só pode barrar mais** não abre falso
+negativo em outro lugar, e isso é verificável antes de medir. Foi assim que este
+conserto foi desenhado: a posição de cotação entra como veto da exceção do ano e
+como gatilho extra — nunca removendo um gatilho que já existia.
+
+---
+
 ## QUEM ESCREVE O CONSERTO NÃO ESCREVE O CORPUS QUE O MEDE
 
 **Decidido em** 2026-08-16 · **por** o CEO, sobre achado de `qualidade` ·

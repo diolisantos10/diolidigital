@@ -150,8 +150,13 @@ const PISTA_FORTE_DE_PRECO =
  * depois do número está aqui, o número não é preço — nem numa frase que fala de
  * orçamento ("com esse investimento dá para 300 posts por ano").
  */
+// ⚠️ `disparos`, `fotos`, `imagens`, `e-mails`, `mensagens` e `envios` entraram
+// na SEXTA passada: `qualidade` mediu "Fecha em 1.500 disparos de e-mail por
+// mês?" e "Fica em 200 fotos por ensaio." como BARRADAS — eram lacuna da lista,
+// não da régua. Entram sem custo de falso negativo: nenhuma cotação desta casa
+// tem um desses substantivos logo depois do preço.
 const UNIDADE_DEPOIS =
-  /^\s*(?:%|posts?|postagens?|stories|storys?|reels?|pe[çc]as?|artes?|v[íi]deos?|criativos?|carross[ée]is?|carrossel|dias?|semanas?|m[êe]s(?:es)?|anos?|horas?|minutos?|rodadas?|seguidores?|clientes?|pessoas?|contas?|canais?|redes?|campanhas?|an[úu]ncios?|leads?|telas?|vezes|views?|visualiza[çc][õo]es|curtidas?|likes?|coment[áa]rios?|compartilhamentos?|salvamentos?|impress[õo]es|cliques?|inscritos?|assinantes?|acessos?|visitas?|intera[çc][õo]es)\b/i;
+  /^\s*(?:%|posts?|postagens?|stories|storys?|reels?|pe[çc]as?|artes?|v[íi]deos?|criativos?|carross[ée]is?|carrossel|dias?|semanas?|m[êe]s(?:es)?|anos?|horas?|minutos?|rodadas?|seguidores?|clientes?|pessoas?|contas?|canais?|redes?|campanhas?|an[úu]ncios?|leads?|telas?|vezes|views?|visualiza[çc][õo]es|curtidas?|likes?|coment[áa]rios?|compartilhamentos?|salvamentos?|impress[õo]es|cliques?|inscritos?|assinantes?|acessos?|visitas?|intera[çc][õo]es|disparos?|fotos?|imagens?|e-?mails?|mensagens?|envios?)\b/i;
 
 /**
  * Piso do valor implícito. Abaixo disto um número solto quase nunca é preço
@@ -205,6 +210,86 @@ const PISO_DO_IMPLICITO = 50;
 /** O que, colado ANTES do número, prova que ele é dinheiro apesar da forma. */
 const PREFIXO_MONETARIO = /(?:r\$|por\s+apenas|a\s+partir\s+de|de\s+entrada)\s*$/i;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 1c. A POSIÇÃO DE COTAÇÃO — a evidência que é LOCAL, não da frase inteira
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// ── O VAZAMENTO QUE PRODUZIU ESTE BLOCO (16/08/2026, SEXTA passada) ──────────
+//
+// `qualidade` rodou o corpus completo contra `08c09a8` e achou o falso negativo
+// que a quinta passada INTRODUZIU:
+//
+//   PASSA  ← VAZA | "Desde 2015 a gente atende assim, e pra você fica em 1990."
+//
+// A marca de ano (`desde`) e a cotação (`fica em 1990`) estão na MESMA frase, e
+// `1990` é preço de quatro dígitos sem separador. A regra do ano era avaliada
+// **pela frase inteira**: bastava um `desde` em qualquer lugar para desarmar
+// todo número com forma de ano — inclusive o que estava em posição de preço.
+// Resultado: preço errado na tela do prospect, que é o incidente que originou
+// esta frente inteira.
+//
+// O que segurava os casos vizinhos era ACIDENTAL, não estrutural: "Atuamos desde
+// 2012; seu investimento fica em 2050." só barrava porque `investimento` é pista
+// FORTE e a pista forte desarmava a regra do ano pela frase inteira. Tirada a
+// palavra forte, vazava. Duas evidências de frase inteira competindo pela frase
+// inteira: quem ganhasse, ganhava sempre — e no caso errado ganhava a errada.
+//
+// ── A RÉGUA: EVIDÊNCIA DE FRASE NÃO DESARMA NÚMERO EM POSIÇÃO DE COTAÇÃO ────
+//
+// Ano e preço de quatro dígitos são **o mesmo símbolo**: não há forma que os
+// separe. O que os separa é a POSIÇÃO — o que vem colado antes do número. Um
+// número logo depois de "fica em", "sai por", "fecho em", "consigo", "o valor
+// é", "a partir de" está em posição de cotação, e **nenhuma marca de ano em
+// outro pedaço da frase o desarma**. Simetricamente, um número logo depois de
+// "desde", "fundada em", "naquele ano" nunca fica em posição de cotação, por
+// mais que a frase inteira fale de investimento.
+//
+// ⚠️ E A ORDEM DA CASA É EXPLÍCITA: se as duas leituras competem, **ganha a que
+// protege**. O custo do falso positivo é um turno estranho e recuperável; o do
+// falso negativo é preço errado na cara do cliente.
+//
+// ⚠️ ESTE BLOCO SÓ ADICIONA BARRAGEM — ele nunca remove um gatilho existente.
+// É por construção: `PRECO_LOCAL` entra como veto da exceção do ano (barra mais)
+// e como gatilho extra da passada implícita (barra mais). A pista de frase
+// continua valendo como estava. Uma mudança que só pode BARRAR MAIS não pode
+// abrir falso negativo em outro lugar — foi assim que ela foi desenhada, e o
+// corpus de 584 é a medição que prova.
+
+/** Palavra que, sozinha, NOMEIA dinheiro. Colada ao número, ela o define. */
+const PALAVRA_DE_PRECO_COLADA =
+  /(?:r\$|pre[çc]os?|valor(?:es)?|investimento|or[çc]amento|mensalidade|custo|desconto|verba|entrada|a\s+partir\s+de|por\s+apenas)/
+    .source;
+
+/** Verbo/moldura que POSICIONA uma cotação, mesmo sem nomear dinheiro. */
+const VERBO_DE_COTACAO =
+  /(?:fic\w*\s+(?:em|por|assim)|sa(?:i|em|ir)\w*\s+(?:por|a|de)|fech\w*\s+(?:em|por)|consig\w*|deix\w*\s+(?:em|por)|fa[çc]\w*\s+por|dou\s+por|cobr\w*|custa\w*)/
+    .source;
+
+/**
+ * O ENCHIMENTO que pode existir entre a moldura e o número — e nada além dele.
+ *
+ * Cada volta consome pelo menos um separador **e** uma palavra da lista, então a
+ * moldura não alcança um número do outro lado da oração: em "fica em Fortaleza
+ * desde 2018", `Fortaleza` não está aqui e o casamento morre — que é exatamente
+ * o que precisa acontecer.
+ */
+const ENCHIMENTO_ATE_O_NUMERO =
+  /(?:[\s:,–—-]+(?:é|e|de|em|por|a|ao|torno|cerca|volta|faixa|uns|umas|apenas|s[óo]|seria|ser[áa]|fica|ficaria|assim|aproximadamente|quase|perto|redor|r\$)\b)*[\s:,–—-]*/
+    .source;
+
+/**
+ * O número está em POSIÇÃO DE COTAÇÃO? Pergunta feita ao texto que vem ANTES
+ * dele, ancorada no fim — locality é o ponto: ela não enxerga a frase inteira.
+ */
+const PRECO_LOCAL = new RegExp(
+  `(?:${PALAVRA_DE_PRECO_COLADA}|${VERBO_DE_COTACAO})${ENCHIMENTO_ATE_O_NUMERO}$`,
+  "i",
+);
+
+function emPosicaoDeCotacao(frase: string, inicioDoNumero: number): boolean {
+  return PRECO_LOCAL.test(frase.slice(0, inicioDoNumero));
+}
+
 /** O que, colado DEPOIS do número, prova o mesmo. */
 const SUFIXO_MONETARIO =
   /^\s*(?:reais?\b|\/\s*m[êe]s\b|por\s+m[êe]s\b|ao\s+m[êe]s\b|mensa(?:l|is)\b|,\d{2}\b)/i;
@@ -247,7 +332,14 @@ const NUMERO_DE_ENDERECO =
  *   2. não tem prefixo nem sufixo monetário colado;
  *   3. a frase carrega **evidência de data** (`desde`, `fundada`, `no mercado`,
  *      ou dois anos ligados por "ou"/"a"/"até"/"e");
- *   4. a frase **não** tem pista FORTE de preço.
+ *   4. **ele não está em posição de cotação** (`emPosicaoDeCotacao`).
+ *
+ * ⚠️ A CONDIÇÃO 4 MUDOU NA SEXTA PASSADA, E FOI ELA QUE VAZAVA. Ela dizia "a
+ * frase não tem pista FORTE de preço" — evidência de FRASE INTEIRA contra
+ * evidência de FRASE INTEIRA. Em "Desde 2015 a gente atende assim, e pra você
+ * fica em 1990." a marca de ano ganhava e o preço 1990 saía como data. Trocada
+ * pela leitura LOCAL: o que decide é o que está colado no número, e uma marca de
+ * ano no outro pedaço da frase não desarma mais um número em posição de preço.
  *
  * ⚠️ POR QUE A CONDIÇÃO 3 NÃO PODE SER `em <ano>` NEM `de <ano>`: "Fica em 2000."
  * e "Sai por 2000." são cotações, e as duas casariam. Medido ao escrever a
@@ -258,7 +350,13 @@ const NUMERO_DE_ENDERECO =
 // é um `.`, e a versão ingênua fazia `"…desde 2018."` deixar de casar — o ano
 // mais óbvio do corpus escapava da regra escrita para ele. O que precisa ser
 // barrado é o ponto de MILHAR (`2.018`), que é `\.` seguido de dígito.
-const ANO_CRU = /(?<![\d.,])(?:19|20)\d{2}(?![\d,])(?!\.\d)/g;
+//
+// ⚠️ E A VÍRGULA SAIU DO LOOKAHEAD NA SEXTA PASSADA. `(?![\d,])` derrubava o
+// casamento em `"Naquele ano, 2017, o perfil…"` — o ano ficava sem a regra
+// escrita para ele só por estar seguido de vírgula. O que a vírgula precisava
+// barrar era o centavo (`1990,00`), e disso já cuida `SUFIXO_MONETARIO`, que é
+// checado em cada casamento logo abaixo.
+const ANO_CRU = /(?<![\d.,])(?:19|20)\d{2}(?!\d)(?!\.\d)/g;
 const EVIDENCIA_DE_DATA =
   /\b(?:desde|fundad\w*|criad\w*|nascid\w*|inaugurad\w*|abrimos|abriu|abriram|atuamos|atuando|operamos|no\s+mercado|ano\s+de|na\s+[ée]poca|naquele\s+ano)\b|\b(?:19|20)\d{2}\s*(?:ou|a|at[ée]|e)\s*(?:19|20)\d{2}\b/i;
 
@@ -289,12 +387,16 @@ function trechosQueNaoSaoDinheiro(frase: string): [number, number][] {
 
   const temPistaForte = PISTA_FORTE_DE_PRECO.test(frase);
 
-  if (!temPistaForte && EVIDENCIA_DE_DATA.test(frase))
+  // ⚠️ O ANO É DECIDIDO POR NÚMERO, NÃO PELA FRASE. Ver o bloco 1c: a pista de
+  // frase inteira (forte ou não) NÃO entra aqui — quem desarma a exceção do ano
+  // é a posição de cotação do próprio número.
+  if (EVIDENCIA_DE_DATA.test(frase))
     for (const m of frase.matchAll(ANO_CRU)) {
       const inicio = m.index;
       const fim = inicio + m[0].length;
       if (PREFIXO_MONETARIO.test(frase.slice(0, inicio))) continue;
       if (SUFIXO_MONETARIO.test(frase.slice(fim))) continue;
+      if (emPosicaoDeCotacao(frase, inicio)) continue;
       faixas.push([inicio, fim]);
     }
 
@@ -364,14 +466,26 @@ export function valoresMonetarios(texto: string): ValorNaFala[] {
       else achados.push({ valor: n, grafia: "explicito" });
     }
 
-    // ── Passada 2: número solto, só com pista de preço na MESMA frase ────────
-    if (!PISTA_DE_PRECO.test(frase)) continue;
+    // ── Passada 2: número solto, com pista na MESMA frase OU em posição de
+    //    cotação (o que vem colado antes dele) ────────────────────────────────
+    //
+    // ⚠️ A POSIÇÃO DE COTAÇÃO É GATILHO PRÓPRIO (16/08/2026, sexta passada).
+    // `qualidade` mediu, e o furo vem de `977f276`:
+    //
+    //   PASSA  ← VAZA | "Consigo 1999 pra você."
+    //
+    // "Consigo" não é palavra de preço e nunca entrará em `PISTA_DE_PRECO` sem
+    // arrastar junto todo "consigo 3 reels". Mas `consigo <número>` **colado** é
+    // moldura de cotação, e é assim que ela passa a ser lida. Sem isto, a fala
+    // mais barata de escrever num SDR — verbo de posse e o preço — atravessa.
+    const pistaNaFrase = PISTA_DE_PRECO.test(frase);
     // O que tem FORMA de ano, CNPJ, CPF, CEP, telefone, endereço ou métrica de
     // rede social não é dinheiro, por mais pista de preço que a frase tenha.
     const naoEhDinheiro = trechosQueNaoSaoDinheiro(frase);
     for (const m of frase.matchAll(QUALQUER_NUMERO)) {
       const inicio = m.index;
       const fim = inicio + m[0].length;
+      if (!pistaNaFrase && !emPosicaoDeCotacao(frase, inicio)) continue;
       // Não relê o que a passada explícita já contou (o número dentro de "R$ 1.200").
       if (jaLidos.some(([a, b]) => inicio >= a && fim <= b)) continue;
       if (naoEhDinheiro.some(([a, b]) => inicio < b && fim > a)) continue;

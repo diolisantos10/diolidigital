@@ -15,6 +15,89 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 16/08/2026 — SEXTA PASSADA: `qualidade` ACHOU O FALSO NEGATIVO QUE O MEU CONSERTO ABRIU
+
+**Branch `claude/piloto-rodada2-trava-e-confirmacao`, sobre `08c09a8`.**
+`qualidade` fechou o corpus (68 originais + 27 novas escritas **contra** o
+conserto da quinta passada) e mediu 8 divergências. Uma delas era regressão minha:
+
+```
+PASSA ← VAZA | "Desde 2015 a gente atende assim, e pra você fica em 1990."   ← 08c09a8
+PASSA ← VAZA | "Consigo 1999 pra você."                                      ← 977f276
+BARRA        | "Atuamos desde 2012; seu investimento fica em 2050."          ← por acidente
+```
+
+**A causa, e ela é estrutural, não de caso.** A exceção do ano era avaliada pela
+**frase inteira**: um `desde` em qualquer lugar desarmava todo número com forma de
+ano, inclusive o que estava em moldura de preço. E o que segurava os vizinhos era
+a pista FORTE, também pela frase inteira — evidência de frase contra evidência de
+frase, empate resolvido no chute. Tirada a palavra forte (`investimento`), o
+preço vazava com uma fala que qualquer SDR escreve.
+
+**O conserto: a leitura passa a ser LOCAL.** `emPosicaoDeCotacao()` pergunta o
+que está **colado antes do número** — `fica em`, `sai por`, `fecho em`, `consigo`,
+`o valor é`, `a partir de`. Um número em posição de cotação não é desarmado por
+marca de ano em outro pedaço da frase; um número depois de `desde` / `fundada em`
+/ `naquele ano` nunca entra em posição de cotação, por mais que a frase fale de
+investimento. A pista FORTE **saiu** do desempate do ano — era ela que produzia o
+falso positivo do `;`. Detalhe: a mudança **só pode barrar mais** (veto novo +
+gatilho novo, nenhum gatilho removido), e é por isso que ela não podia abrir
+falso negativo em outro lugar.
+
+**Medido contra o corpus DELA (95 falas) — o número que vale:**
+
+| | antes (`08c09a8`) | depois |
+|---|---|---|
+| **falso NEGATIVO** (deviam BARRAR, passavam) | **2** | **0** |
+| falso positivo (deviam PASSAR, barravam) | 6 | **2** |
+
+E as travas que não podiam mexer: **0 regressões nas 584** · **0/584 cotações
+atravessam** · as **6 falas `<número>/mês`** continuam barrando · **0/15** no
+corpus limpo.
+
+**Os 2 falsos positivos que ficam — declarados, não escondidos:**
+
+- `"Investimento: alinho com o time\nA campanha entra no ar em 2026"`
+- `"A marca é de 2014 e fica em Curitiba."`
+
+São a mesma classe e são **anteriores a esta frente**: a pista de preço de uma
+oração alcança o número da outra, porque `;`, `:` e a quebra de linha deixaram de
+separar frases na quarta passada. Consertar isso mexe no separador, e mexer no
+separador custa falso NEGATIVO — foi por isso que a quarta passada o removeu
+(`"Fica assim: 1.200 por mês."` depende dele). Ordem da casa: só se conserta o
+falso positivo que não custe falso negativo. **Ficam, com o porquê no código.**
+
+**I2 — dos 7 pré-existentes, 5 saíram:** `disparos`, `fotos`, `imagens`,
+`e-mails`, `mensagens` e `envios` entraram no `UNIDADE_DEPOIS` (lacuna de lista,
+custo zero); o `ANO_CRU` deixou de perder o ano seguido de vírgula
+(`"Naquele ano, 2017, …"`) — o lookahead barrava o centavo, e disso já cuidava o
+`SUFIXO_MONETARIO`; e o `;` do `"Sobre investimento…; atende desde 2019."` caiu
+junto com a saída da pista forte do desempate.
+
+**I3 — o corpus dela entra INTEIRO no portão.** As 95 falas verbatim, com autoria
+declarada e o esperado que ela marcou, em
+`__tests__/comercial/o-leitor-nao-le-ano-cnpj-nem-telefone-como-dinheiro.test.ts`.
+As 2 que ainda divergem entram como **falha conhecida com o porquê**, e a
+asserção é de conjunto EXATO: divergência nova fica vermelha, e conserto de uma
+delas **também** fica vermelho — lista de falha conhecida que só cresce em
+silêncio é o próximo defeito. O bloco cartesiano do `pm` continua no arquivo,
+marcado como **suplemento**, e o número que se relata é o dela.
+
+**Portão:** `npx tsc --noEmit` limpo · **4734 testes em 294 arquivos, todos
+verdes** (eram 4722) · `npm run build` sai 0, com os mesmos 6 avisos.
+
+### Aberto
+
+- [ ] `qualidade` — os **2 falsos positivos do separador de oração** acima. O
+  conserto de verdade é devolver `;` / `:` / `\n` como separadores de frase **e**
+  cobrir com a posição de cotação o que eles quebram (`"Fica assim: 1.200 por
+  mês."`). É trabalho de uma passada inteira, com medição dos dois lados — não de
+  um remendo.
+- [ ] `qualidade` — o corpus dela vive **no teste**, não num arquivo de dados. Se
+  ele crescer de novo, vale extrair para fixture com o carimbo de autoria.
+
+---
+
 ## 🟢 16/08/2026 — QUINTA PASSADA: O MEU CORPUS MEDIA AS MINHAS DEFESAS
 
 **Branch `claude/piloto-rodada2-trava-e-confirmacao`. `qualidade` deu SIM para o
