@@ -1,0 +1,13 @@
+{
+  "id": "plataforma-gatilho-de-deploy",
+  "quem": "pm-gatilho-de-deploy",
+  "frente": "commit de papelada dispara build e afoga a esteira: 7 das 7 entregas na janela do congelamento eram reivindicacao de arquivo unico",
+  "responsabilidade": "plataforma-gatilho-de-deploy",
+  "arquivos": [
+    "railway.json",
+    "__tests__/plataforma/gatilho-de-deploy.test.ts",
+    "lib/plataforma/gatilho-de-deploy.ts"
+  ],
+  "abertaEm": "2026-08-16T19:37:06.570Z",
+  "encerradaEm": null
+}
