@@ -85,7 +85,7 @@ describe("SDR — oferta de material interrompe o roteiro", () => {
     // A rota de upload aceita PDF, Word, PowerPoint, imagem e texto (20 MB).
     // Agente que não sabe disso manda o cliente "descrever" o que já estava
     // num arquivo pronto.
-    expect(PROMPT).toMatch(/anexa aqui mesmo no chat/);
+    expect(PROMPT).toContain("Anexar briefing / materiais");
     expect(PROMPT).toContain("PDF");
   });
 
