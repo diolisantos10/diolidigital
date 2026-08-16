@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { listClientRequests } from "@/lib/agency/persistence/client-request-service";
 import { montarDossie } from "@/lib/agency/comercial/dossie-do-lead";
+import { agruparPorProspect } from "@/lib/agency/comercial/chave-do-prospect";
 
 export async function GET(): Promise<NextResponse> {
   const { session, error } = await requireSession();
@@ -26,6 +27,32 @@ export async function GET(): Promise<NextResponse> {
     });
 
     const agora = new Date();
+
+    // ── QUEM JÁ ESCREVEU ANTES (16/08/2026) ────────────────────────────────
+    //
+    // Pergunta do CEO: *"se entrar um cliente com o mesmo e-mail e fizer cinco
+    // briefings um atrás do outro, o que acontece com o sistema?"*. Nesta tela,
+    // acontecia o pior desfecho possível para quem opera: **cinco cartões
+    // anônimos e indistinguíveis**, como se fossem cinco prospects diferentes.
+    //
+    // O agrupamento é feito aqui, e não dentro de `montarDossie`, por um motivo
+    // simples: só quem enxerga a FILA INTEIRA sabe que uma linha é a terceira.
+    // Um dossiê olha uma linha só.
+    //
+    // ⚠️ **Marca, nunca funde, e nada some.** Os cinco briefings continuam na
+    // resposta, inteiros, cada um com o seu texto — o que muda é que cada um
+    // agora sabe dizer "3ª vez deste contato" e apontar os irmãos. Fundir seria
+    // escolher, por conta própria, entre "reenviou" e "pediu outro projeto" —
+    // e a segunda hipótese é um cliente contratando trabalho novo.
+    const repeticoes = agruparPorProspect(
+      registros.map((r) => ({
+        id: r.id,
+        createdAt: r.createdAt,
+        briefingJson: r.briefingJson,
+        sdrHandoffJson: r.sdrHandoffJson,
+      })),
+    );
+
     const dossies = registros
       .map((r) =>
         montarDossie(
@@ -42,6 +69,7 @@ export async function GET(): Promise<NextResponse> {
             sdrHandoffJson: r.sdrHandoffJson,
           },
           agora,
+          repeticoes.get(r.id) ?? null,
         ),
       )
       // O mais velho primeiro: a fila que se lê de cima para baixo é a fila em
@@ -52,6 +80,10 @@ export async function GET(): Promise<NextResponse> {
       medido: true,
       total: dossies.length,
       semContato: dossies.filter((d) => !d.contato.temComoFalar).length,
+      /** Quantos cartões desta fila são repetição de um contato que já escreveu.
+       *  É o termômetro da pergunta do CEO de 16/08: se este número crescer, a
+       *  agência está recebendo o mesmo prospect várias vezes sem responder. */
+      repetidos: dossies.filter((d) => (d.repeticao?.vezes ?? 1) > 1).length,
       leads: dossies,
     });
   } catch (e) {

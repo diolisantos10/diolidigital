@@ -133,6 +133,19 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
           <span className="text-[12px] text-[var(--text-muted)] shrink-0 pt-1">{aberto ? "fechar" : "abrir"}</span>
         </div>
 
+        {/* ESTE CONTATO JÁ ESCREVEU ANTES (16/08/2026). Pergunta do CEO: "cinco
+            briefings do mesmo e-mail, o que acontece?". Acontecia que apareciam
+            cinco cartões idênticos e nada dizia que eram a mesma pessoa. O
+            carimbo NÃO afirma que é pedido repetido — pode ser um segundo
+            projeto legítimo. Ele diz o fato e deixa a leitura para quem abre. */}
+        {lead.repeticao && (
+          <div className="mt-3">
+            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-[6px] bg-[var(--warning-bg)] text-[var(--warning)] text-[12px] font-semibold">
+              {lead.repeticao.ordem}º briefing deste mesmo contato (de {lead.repeticao.vezes})
+            </span>
+          </div>
+        )}
+
         {/* A pergunta que decide tudo vem primeiro, e o "não" é vermelho. */}
         <div className="mt-3">
           {semContato ? (
@@ -200,6 +213,30 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
               </ul>
             )}
           </Bloco>
+
+          {lead.repeticao && (
+            <Bloco titulo="Este contato já escreveu antes">
+              <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                São <strong>{lead.repeticao.vezes} briefings</strong> do mesmo contato, e este é o{" "}
+                <strong>{lead.repeticao.ordem}º</strong>. O primeiro chegou em{" "}
+                {new Date(lead.repeticao.primeiroEm).toLocaleDateString("pt-BR")}.
+              </p>
+              <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">
+                <strong>Nenhum deles foi juntado nem descartado</strong> — cada briefing está inteiro,
+                com o texto que a pessoa escreveu. Pode ser o mesmo pedido reenviado, ou um{" "}
+                <strong>segundo projeto</strong> que ela quer contratar: quem lê os dois decide, não o
+                sistema.
+              </p>
+              <ul className="mt-2.5 space-y-1">
+                {lead.repeticao.irmaos.map((id) => (
+                  <li key={id} className="text-[13px] text-[var(--text-primary)]">
+                    <span className="text-[var(--text-muted)]">outro briefing:</span>{" "}
+                    <code className="text-[12px]">{id}</code>
+                  </li>
+                ))}
+              </ul>
+            </Bloco>
+          )}
 
           {lead.servicosPedidos.length > 0 && (
             <Bloco titulo="O que ele pediu">

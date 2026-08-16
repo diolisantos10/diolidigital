@@ -88,7 +88,16 @@ beforeAll(async () => {
   // passou a servir a consulta do log pela coluna líder, e o teste acusou
   // SEARCH onde deveria haver SCAN — um falso negativo que faria alguém
   // "consertar" a asserção em vez de entender a causa.
-  for (const i of ["AIRunLog_workspaceId_clientId_createdAt_idx"]) {
+  //
+  // 16/08/2026 — `Client_workspaceId_email_idx` entrou pelo mesmo motivo. Ele
+  // nasceu para a dedup de cliente (a pergunta do CEO sobre cinco briefings do
+  // mesmo e-mail), e tem `workspaceId` como coluna líder — então ele serve, de
+  // carona, a consulta "clientes do workspace" desta comparação. Sem derrubá-lo,
+  // o "antes" acusaria SEARCH e o teste reprovaria um índice que está certo.
+  for (const i of [
+    "AIRunLog_workspaceId_clientId_createdAt_idx",
+    "Client_workspaceId_email_idx",
+  ]) {
     await semIndices.execute(`DROP INDEX IF EXISTS "${i}"`);
   }
 }, 120_000);

@@ -15,6 +15,7 @@ import { coletarMaterialDeProduto } from "@/lib/agency/esteira/material-de-produ
 import { sincronizarDoBriefing } from "@/lib/agency/esteira/proibicoes";
 import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
+import { resolverOuCriarCliente, registrarReaproveitamento } from "@/lib/agency/execution/cliente-do-briefing";
 
 const DEPT_TO_DEF: Record<string, DepartmentId> = {
   strategy: "strategy", social: "social-media", design: "design",
@@ -44,11 +45,41 @@ export async function createProjectFromRequest(clientRequestId: string, approved
   if (!snapshot) return { ok: false, error: "Snapshot indisponível" };
   const proposal = await orchestratePMReasoning(snapshot, workspaceId);
 
+  // ── O CLIENTE: REAPROVEITADO QUANDO O CONTATO BATE (16/08/2026) ───────────
+  //
+  // Pergunta do CEO: *"se entrar um cliente com o mesmo e-mail e fizer cinco
+  // briefings um atrás do outro, o que acontece com o sistema?"*
+  //
+  // Até aqui, esta linha respondia: **cinco `Client` homônimos**, cinco portais,
+  // cinco históricos. Ela fazia `prisma.client.create` sempre que `req.clientId`
+  // era nulo, sem nunca perguntar se aquele contato já era cliente da casa — e
+  // ainda criava a ficha SEM `email` e SEM `phone`, o que tornava qualquer busca
+  // por contato impossível daí para a frente. A Camila Pereira duplicada em
+  // produção (08/08/2026) nasceu exatamente aqui.
+  //
+  // A decisão de quem é o mesmo cliente mora num lugar só
+  // (`execution/cliente-do-briefing.ts`), compartilhado com a outra porta que
+  // criava ficha (`/api/brain/orchestrate/apply`) — duas cópias da regra
+  // divergiriam, e é assim que uma porta passa a deduplicar e a outra não.
+  //
+  // ⚠️ **O que continua possível de propósito:** o MESMO cliente pedir um
+  // SEGUNDO projeto. A idempotência acima (`:34`) é por SOLICITAÇÃO, nunca por
+  // cliente — ver `IDEMPOTENCIA_E_POR_SOLICITACAO`. Não duplicar cadastro é o
+  // objetivo; impedir pedido novo seria uma prisão, e o Diretor vetou.
   let clientId = req.clientId ?? undefined;
   if (!clientId) {
-    const client = await prisma.client.create({ data: { workspaceId, name: req.businessName, industry: req.segment || null } });
-    clientId = client.id;
+    const resolvido = await resolverOuCriarCliente({
+      workspaceId,
+      businessName: req.businessName,
+      segment: req.segment,
+      briefingJson: req.briefingJson,
+      sdrHandoffJson: req.sdrHandoffJson,
+    });
+    clientId = resolvido.clientId;
     await prisma.clientRequestDb.update({ where: { id: clientRequestId }, data: { clientId, workspaceId } });
+    if (resolvido.reaproveitado) {
+      await registrarReaproveitamento({ workspaceId, clientId, clientRequestId, motivo: resolvido.motivo });
+    }
   }
 
   // O CÉREBRO DE MARCA NASCE AQUI. Antes disto, o cliente contava cor, tom de

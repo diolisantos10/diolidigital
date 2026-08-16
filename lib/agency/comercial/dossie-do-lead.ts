@@ -32,6 +32,7 @@ import {
   type ContatoDoLead,
   type PistaDeContato,
 } from "./contato-do-lead";
+import type { RepeticaoDoProspect } from "./chave-do-prospect";
 
 export type FonteDaFaixa =
   /** O escopo gravado bastou: a tabela foi aplicada sobre a cadência declarada. */
@@ -62,6 +63,25 @@ export type DossieDoLead = {
   contato: ContatoDoLead;
   /** Pistas do texto. **Não são contato.** Ver a regra 3 no cabeçalho. */
   pistas: PistaDeContato[];
+
+  /**
+   * **ESTE MESMO CONTATO JÁ ESCREVEU ANTES?** (16/08/2026)
+   *
+   * Pergunta do CEO: *"se entrar um cliente com o mesmo e-mail e fizer cinco
+   * briefings um atrás do outro, o que acontece com o sistema?"*. Acontecia que
+   * apareciam **cinco cartões idênticos e anônimos** nesta fila, e nada dizia
+   * que eram a mesma pessoa — quem abrisse a tela trataria cinco pedidos de um
+   * prospect como cinco prospects.
+   *
+   * `null` quando é a única vez, ou quando o briefing chegou **sem canal
+   * declarado** — sem contato não existe chave, e agrupar dois leads anônimos
+   * por semelhança de nome seria a inferência que esta casa proíbe.
+   *
+   * ⚠️ **Marca, não funde.** Ver `agruparPorProspect`: cinco briefings do mesmo
+   * e-mail podem ser um reenvio OU um segundo projeto legítimo, e nenhum código
+   * distingue os dois. Quem decide é gente, com os dois textos na frente.
+   */
+  repeticao: RepeticaoDoProspect | null;
 
   /** O que o lead disse que quer, como ele mesmo disse. */
   servicosPedidos: string[];
@@ -135,7 +155,13 @@ function frasesDoBriefing(raw: string | null | undefined): string[] {
     .slice(0, 8);
 }
 
-export function montarDossie(entrada: Entrada, agora: Date = new Date()): DossieDoLead {
+export function montarDossie(
+  entrada: Entrada,
+  agora: Date = new Date(),
+  /** Só quem enxerga a FILA INTEIRA sabe disto — por isso vem de fora, e não é
+   *  calculado aqui dentro. Quem calcula é `agruparPorProspect`. */
+  repeticao: RepeticaoDoProspect | null = null,
+): DossieDoLead {
   const criadoEm = entrada.createdAt instanceof Date ? entrada.createdAt : new Date(entrada.createdAt);
   const servicos = entrada.services ?? [];
   const objetivos = entrada.objectives ?? [];
@@ -248,6 +274,7 @@ export function montarDossie(entrada: Entrada, agora: Date = new Date()): Dossie
     status: entrada.status,
     contato,
     pistas: pistasDeContato(entrada.rawContext),
+    repeticao,
     servicosPedidos: servicos,
     objetivos,
     oQueEleContou: frasesDoBriefing(entrada.rawContext),
