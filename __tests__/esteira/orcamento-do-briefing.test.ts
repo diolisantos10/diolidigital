@@ -153,6 +153,10 @@ describe("briefing SEM contato tambem e atendido — a causa raiz da noite de 16
     // inteira por um orcamento de um pedido tratado como lixo.
     expect(where.status.in).toContain("new");
     expect(where.status.in).toContain("lead_incompleto");
+    // Terceiro estado, achado pelo diario do piloto: o auto-scope move o
+    // pedido para `scope_ready` e ali ele morria — escopo pronto era o fim da
+    // linha em vez do meio dela.
+    expect(where.status.in).toContain("scope_ready");
   });
 
   it("entrega o orcamento de um lead_incompleto pelo portal", async () => {

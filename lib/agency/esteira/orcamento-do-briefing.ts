@@ -148,9 +148,23 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
   // está com o portal aberto — o orçamento chega ali, e o portal não precisa
   // de e-mail nenhum para funcionar. O que a falta de contato impede é AVISAR
   // por fora; não é atender.
+  //
+  // ── E POR QUE `scope_ready` ─────────────────────────────────────────────
+  // Terceira e última descoberta, e só apareceu quando o diário do piloto
+  // ficou de pé e deixou os Diretores enxergarem o banco. O briefing do CEO
+  // estava lá, intacto, COM anexo e COM orçamento calculado — em `scope_ready`.
+  //
+  // O auto-scope (`lib/dioli-brain/run-auto-scope.ts`) tinha rodado nele,
+  // oito agentes de estratégia trabalharam, o pedido avançou para
+  // `scope_ready`... e ali morreu. Nenhum código pega esse estado. Escopo
+  // pronto era o fim da linha em vez do meio dela.
+  //
+  // A lição, que vale mais que a linha: durante três teorias eu procurei o
+  // pedido nos estados que EU imaginava, em vez de perguntar ao banco em que
+  // estado ele estava. Diagnóstico por dedução perde para uma leitura.
   const pedidos = await prisma.clientRequestDb
     .findMany({
-      where: { status: { in: ["new", "lead_incompleto"] } },
+      where: { status: { in: ["new", "lead_incompleto", "scope_ready"] } },
       orderBy: { createdAt: "asc" },
       take: MAX_POR_RODADA,
     })
