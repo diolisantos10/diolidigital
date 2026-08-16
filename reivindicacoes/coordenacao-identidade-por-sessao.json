@@ -1,14 +1,12 @@
 {
   "id": "coordenacao/identidade-por-sessao",
   "quem": "ses-bb01c09bbc",
-  "frente": "identidade da trava unica por SESSAO, nao por worktree",
+  "frente": "mesma sessao, mesma frente",
   "responsabilidade": "coordenacao/identidade-por-sessao",
   "arquivos": [
-    "lib/coordenacao/reivindicacoes.ts",
-    "scripts/reivindicar.mts",
-    "__tests__/coordenacao"
+    "lib/coordenacao/reivindicacoes.ts"
   ],
-  "abertaEm": "2026-08-16T20:40:31.423Z",
+  "abertaEm": "2026-08-16T20:40:43.205Z",
   "encerradaEm": null,
   "rotulo": "pm-identidade-de-sessao"
 }
