@@ -9,12 +9,16 @@
 // leia o cabeçalho de lá antes de mexer aqui.
 //
 // O GET também marca como lidas as mensagens do OUTRO lado, que é o que apaga
-// o badge de não-lidas de cada lado ao abrir a conversa.
+// o badge de não-lidas de cada lado ao abrir a conversa — MENOS quando o GET
+// chega por navegação de topo cruzada (link forjado de outro site), caso em
+// que a leitura acontece mas a marcação é pulada. Ver
+// `lib/security/navegacao-cross-site.ts`.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { requireSession } from "@/lib/auth/api-guard";
+import { ehNavegacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 import {
   conversaDoToken,
   conversaDoCliente,
@@ -118,16 +122,29 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     // Ao ver a conversa, o outro lado fica lido para este espectador.
-    if (viewer === "client") {
-      await prisma.portalMessage.updateMany({
-        where: { ...conversa.filtro, authorRole: "team", readByClient: false },
-        data: { readByClient: true },
-      });
-    } else {
-      await prisma.portalMessage.updateMany({
-        where: { ...conversa.filtro, authorRole: "client", readByTeam: false },
-        data: { readByTeam: true },
-      });
+    //
+    // ── POR QUE ISTO É UM `if` A MAIS, E NÃO SÓ O `updateMany` ────────────
+    // Este GET muda estado, e `SameSite=Lax` libera cookie em navegação de
+    // TOPO por GET — um link forjado (`<a href>`, `<meta refresh>`) em
+    // qualquer site aciona esta rota com a sessão da vítima anexada e marca
+    // mensagens como lidas sem ela ter aberto a conversa, escondendo aviso
+    // de mensagem nova do lado que devia vê-la. `Sec-Fetch-Site` diz se o
+    // GET veio de navegação cruzada, e a página que navega não consegue
+    // forjar esse cabeçalho. A LEITURA continua igual para todo mundo — só a
+    // marcação como lida é pulada quando a origem é cruzada. Ver
+    // `lib/security/navegacao-cross-site.ts` para o que isto NÃO cobre.
+    if (!ehNavegacaoCrossSite(request)) {
+      if (viewer === "client") {
+        await prisma.portalMessage.updateMany({
+          where: { ...conversa.filtro, authorRole: "team", readByClient: false },
+          data: { readByClient: true },
+        });
+      } else {
+        await prisma.portalMessage.updateMany({
+          where: { ...conversa.filtro, authorRole: "client", readByTeam: false },
+          data: { readByTeam: true },
+        });
+      }
     }
 
     return NextResponse.json({ messages: rows.map((m) => toDTO(m, viewer)), podeEnviar: true });
