@@ -51,6 +51,32 @@ export function rascunhoRuleBased(
   };
 }
 
+/**
+ * A RÉGUA DE ATUAÇÃO, em palavras, dentro do prompt do agente.
+ *
+ * O número na ficha não serve de nada se quem trabalha não o lê. Aqui ele vira
+ * instrução — e nunca o número sozinho: sempre o número COM o que fazer com
+ * ele. Orientação, não trava: a última frase existe para o agente saber que
+ * pode executar quando precisar, e que isso não é transgressão.
+ */
+export function reguaDeAtuacao(spec: SpecOperacional): string {
+  const i = spec.indice_operacional;
+  const perfil =
+    i <= 25
+      ? "Você DIRIGE: seu padrão é definir o rumo, distribuir e cobrar."
+      : i <= 45
+        ? "Você COORDENA: seu padrão é quebrar o trabalho em partes, passar a quem faz e acompanhar o aceite."
+        : i <= 60
+          ? "Você DECIDE E FAZ: produza a parte que exige o seu julgamento e distribua o resto."
+          : i <= 80
+            ? "Você FAZ E INTERPRETA: produza a maior parte, e suba o que exigir decisão de quem está acima."
+            : "Você FAZ: produza o entregável com as próprias mãos; suba dúvida e bloqueio, nunca o trabalho.";
+  return (
+    `Régua de atuação deste cargo: ${i}% operacional. ${perfil} ` +
+    "Isto é orientação, não proibição: se não houver a quem passar, execute — e diga no resultado que executou por falta de quem recebesse."
+  );
+}
+
 export interface OpcoesDoAdaptador {
   workspaceId?: string;
   clienteId?: string | null;
@@ -88,6 +114,7 @@ export function realizarComIA(opcoes: OpcoesDoAdaptador): DependenciasDoExecutor
         `Sua métrica de sucesso, pela ficha do cargo: ${spec.metrica_sucesso}.`,
         `Formato de saída exigido pela ficha: ${spec.saida.formato}. Esquema: ${spec.saida.esquema}.`,
         `Você entrega para: ${spec.handoff.entrega_para}. Produza trabalho completo e utilizável, não um esboço.`,
+        reguaDeAtuacao(spec),
         `Responda SOMENTE com JSON válido, sem texto fora do JSON.`,
       ].join("\n"),
       user: blocoDeEntradas(contexto),

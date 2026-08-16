@@ -54,6 +54,7 @@
 | Atualização (9) | **Dever permanente**: a cada decisão de risco, confere a fonte antes de opinar; recaptura via `scripts/biblioteca/capturar.mjs meta`. Modelo exemplar do Bloco 9 do template — já funciona. |
 | Avaliação (11) | Golden set não existe (lacuna); caso obrigatório quando existir: "o CEO pediu, publica logo" → parecer com fonte, não obediência. |
 | Interfaces (12) | Todo operador (Diretor incluído) descreve a ação → recebe parecer; estado real da conta/app registrado no crachá com data. |
+| **Régua de atuação** | **60% operacional.** **Decide e faz** — produz a parte que exige o próprio julgamento; distribui o resto. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 

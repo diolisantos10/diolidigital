@@ -60,6 +60,8 @@ faz a casa perder o rastro de quem prometeu o quê.
 
 ## Especificação legível por máquina (validada por CI)
 
+**Régua de atuação: 85% operacional.** Este cargo FAZ. Produz o entregável com as próprias mãos; delegar é exceção, e o que ele sobe é dúvida ou bloqueio, não trabalho.
+
 ```json
 {
   "funcao": "moodboard-and-identity",
@@ -132,6 +134,7 @@ faz a casa perder o rastro de quem prometeu o quê.
     "evolução de marca (só o dono aprova)",
     "lacuna de informação do cliente (nunca preencher por inferência)",
     "qualquer ação irreversível, gasto ou risco legal"
-  ]
+  ],
+  "indice_operacional": 85
 }
 ```

@@ -54,6 +54,7 @@
 | Atualização (9) | Treino por `*-training.ts` sob política; dispositivo do CEO para a ficha. |
 | Avaliação (11) | Scorecards existem por departamento (aproveitados como base do futuro golden set — lacuna do set formal declarada). |
 | Interfaces (12) | Recebe do PM; entrega canvas ao próximo da cadeia; auditado por `qualidade`. |
+| **Régua de atuação** | **50% operacional.** **Decide e faz** — produz a parte que exige o próprio julgamento; distribui o resto. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 

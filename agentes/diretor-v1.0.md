@@ -189,6 +189,7 @@
 | Plantão | Não se aplica — cargo de sessão, não serviço 24/7. |
 | Rollback e suspensão | Reverter o cargo = reverter o crachá por commit. Suspende: qualquer escrita feita pelo cargo, ou aprovação dada no lugar do cliente. |
 | Aprovações finais | Negócio: CEO ✅ (ordem de 15/08). Avaliador: Diretor Geral ✅ (decisão do CEO, 15/08). Responsável técnico: **pendente de nomeação.** |
+| **Régua de atuação** | **15% operacional.** **Dirige** — define o rumo, distribui e cobra; executar é suprir uma falta. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ---
 

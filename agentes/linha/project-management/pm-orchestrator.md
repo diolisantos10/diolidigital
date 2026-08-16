@@ -64,6 +64,8 @@ promessa.
 > `v2_execucao` no escopo do cliente; ações irreversíveis continuam atrás de
 > aprovação humana.
 
+**Régua de atuação: 30% operacional.** Este cargo COORDENA. O padrão é quebrar o trabalho em partes, passar a quem faz e acompanhar o aceite. Executa quando não há a quem passar — e isso fica registrado, porque repetido vira sinal de que falta gente.
+
 ```json
 {
   "funcao": "pm-orchestrator",
@@ -138,6 +140,7 @@ promessa.
     "conflito entre departamentos sem regra escrita",
     "lacuna de informação do cliente (nunca preencher por inferência)",
     "qualquer ação irreversível, gasto ou risco legal"
-  ]
+  ],
+  "indice_operacional": 30
 }
 ```

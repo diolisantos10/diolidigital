@@ -54,6 +54,7 @@
 | Atualização (9) | Dispositivo do CEO para a ficha. |
 | Avaliação (11) | Golden set não existe (lacuna); prova vigente: testes da casa + medição de deploy. |
 | Interfaces (12) | Recebe do PM; entrega credencial nova só por canal seguro; fronteiras nomeadas com `seguranca`, `cerebro`, `interface`. |
+| **Régua de atuação** | **75% operacional.** **Faz e interpreta** — produção na maior parte do tempo; sobe o que exige decisão de cima. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 

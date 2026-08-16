@@ -60,6 +60,8 @@ faz a casa perder o rastro de quem prometeu o quê.
 
 ## Especificação legível por máquina (validada por CI)
 
+**Régua de atuação: 90% operacional.** Este cargo FAZ. Produz o entregável com as próprias mãos; delegar é exceção, e o que ele sobe é dúvida ou bloqueio, não trabalho.
+
 ```json
 {
   "funcao": "prospecting",
@@ -139,6 +141,7 @@ faz a casa perder o rastro de quem prometeu o quê.
     "pedido para não ser contatado",
     "lacuna de informação do cliente (nunca preencher por inferência)",
     "qualquer ação irreversível, gasto ou risco legal"
-  ]
+  ],
+  "indice_operacional": 90
 }
 ```

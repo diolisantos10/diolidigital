@@ -54,6 +54,7 @@
 | Atualização (9) | Dever permanente: `--diff` antes de opinar; fechar lacunas; fonte viva quando a captura envelhecer. Modelo exemplar do Bloco 9 — já funciona. |
 | Avaliação (11) | Golden set não existe (lacuna); caso obrigatório: "o CEO pediu post no TikTok hoje" → resposta honesta de que não existe + plano. |
 | Interfaces (12) | Operador descreve a ação → parecer; o plano da integração desce ao PM quando o CEO mandar construir. |
+| **Régua de atuação** | **60% operacional.** **Decide e faz** — produz a parte que exige o próprio julgamento; distribui o resto. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 

@@ -54,6 +54,7 @@
 | Atualização (9) | Constituição muda no kit. Dispositivo do CEO para a ficha. |
 | Avaliação (11) | Golden set não existe (lacuna) — quando existir, os casos dos dois erros simétricos são obrigatórios. |
 | Interfaces (12) | Recebe dúvida do PM; devolve laudo; nunca despacha conserto. |
+| **Régua de atuação** | **45% operacional.** **Coordena** — quebra o trabalho, passa a quem faz e acompanha o aceite. Orientação, não trava: sem a quem passar, executa — e o registro diz que foi por falta de quem recebesse. Ver `agentes/REGUA-DE-ATUACAO.md`. |
 
 ## Blocos 13–14
 
