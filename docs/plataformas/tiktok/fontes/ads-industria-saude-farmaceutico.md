@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Healthcare and Pharmaceuticals (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-healthcare-pharmaceuticals
-capturado_em: 2026-08-16
-hash: 1947166d0ff151c9
+capturado_em: 2026-08-17
+hash: e80400b72680b94b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -5230,6 +5230,7 @@ Baby food products
 
 Not allowed.
 
+*Was the information helpful?
 Content
 Principle
 Healthcare-related products and services

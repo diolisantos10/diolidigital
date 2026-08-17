@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok Advertising Policies — Financial Services (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-financial-services
-capturado_em: 2026-08-16
+capturado_em: 2026-08-17
 hash: df14ef7bf8242537
 ---
 

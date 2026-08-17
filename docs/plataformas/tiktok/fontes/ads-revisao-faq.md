@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok Ad Review FAQ (revisão e recurso)"
 url: https://ads.tiktok.com/help/article/ad-review-faq?lang=en
-capturado_em: 2026-08-16
+capturado_em: 2026-08-17
 hash: c39fd1b0d3c57d2d
 ---
 

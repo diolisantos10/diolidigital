@@ -1,8 +1,8 @@
 ---
 titulo: "Accounts API Authentication — OAuth do anunciante (app_id, secret, auth_code, access token de longa duração)"
 url: https://business-api.tiktok.com/portal/docs/accounts-api-authentication/v1.3
-capturado_em: 2026-08-16
-hash: 01edce2542f10e9c
+capturado_em: 2026-08-17
+hash: a68cbbb9d1a2f6df
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -41,8 +41,8 @@ Business Messaging API
 API Reference
 API Playground
 API Service Status Page
-SDK
 Appendix
+SDK
 Access Token Expiry
 Refresh Token Expiry
 Authentication

@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /oauth2/access_token/ (troca de auth_code por access token de anunciante)"
 url: https://business-api.tiktok.com/portal/docs?id=1739965703387137
-capturado_em: 2026-08-16
-hash: c1f42eaddd248368
+capturado_em: 2026-08-17
+hash: 496055f11824de75
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -100,8 +100,8 @@ Video
 Welcome Messages
 API Playground
 API Service Status Page
-SDK
 Appendix
+SDK
 /oauth2/access_token/
 Comparing v1.2 and v1.3
 Request

@@ -1,7 +1,7 @@
 ---
 titulo: "OAuth — User Access Token Management (validade do access token e do refresh token)"
 url: https://developers.tiktok.com/doc/oauth-user-access-token-management
-capturado_em: 2026-08-16
+capturado_em: 2026-08-17
 hash: 517db553f2fde50a
 ---
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Authorization (fluxo de autorização da conta de anunciante do cliente)"
 url: https://business-api.tiktok.com/portal/docs/authorization/v1.3
-capturado_em: 2026-08-16
-hash: 31d2925c6ba08901
+capturado_em: 2026-08-17
+hash: 178c3d19692e8cb8
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -33,8 +33,8 @@ API Reference
 API Reference
 API Playground
 API Service Status Page
-SDK
 Appendix
+SDK
 Prerequisites
 Workflow
 Step 1: Share authorization URL with the business

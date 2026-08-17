@@ -1,7 +1,7 @@
 ---
 titulo: "Display API — List Videos (/v2/video/list/, métricas de like/comment/share/view)"
 url: https://developers.tiktok.com/doc/tiktok-api-v2-video-list
-capturado_em: 2026-08-16
+capturado_em: 2026-08-17
 hash: 55ae85a172e4d022
 ---
 

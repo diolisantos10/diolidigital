@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /campaign/create/ (objetivo, orçamento, tipo de compra)"
 url: https://business-api.tiktok.com/portal/docs?id=1739318962329602
-capturado_em: 2026-08-16
-hash: ddbcffa57d4cca00
+capturado_em: 2026-08-17
+hash: 24003e2268f9e20a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -103,8 +103,8 @@ Video
 Welcome Messages
 API Playground
 API Service Status Page
-SDK
 Appendix
+SDK
 Before you start
 Comparing v1.2 and v1.3
 Request

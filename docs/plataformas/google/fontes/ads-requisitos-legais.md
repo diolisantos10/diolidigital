@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads — requisitos legais"
 url: https://support.google.com/adspolicy/answer/6023676?hl=pt-BR
-capturado_em: 2026-08-16
+capturado_em: 2026-08-17
 hash: eea5e050d712791c
 ---
 

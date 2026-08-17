@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /report/integrated/get/ (relatórios: dimensões, métricas, filtros)"
 url: https://business-api.tiktok.com/portal/docs?id=1740302848100353
-capturado_em: 2026-08-16
-hash: 7a2e611bb053efb4
+capturado_em: 2026-08-17
+hash: 6f7831c296d3cbf0
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -100,8 +100,8 @@ Video
 Welcome Messages
 API Playground
 API Service Status Page
-SDK
 Appendix
+SDK
 Comparing v1.2 and v1.3
 Request
 Example

@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /ad/create/ (criativo do anúncio: vídeo, texto, CTA, identidade)"
 url: https://business-api.tiktok.com/portal/docs?id=1739953377508354
-capturado_em: 2026-08-16
-hash: 38e9ca9cd6769ff3
+capturado_em: 2026-08-17
+hash: 8cd04c2dd70cc6bf
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -99,8 +99,8 @@ Video
 Welcome Messages
 API Playground
 API Service Status Page
-SDK
 Appendix
+SDK
 Before you start
 Comparing v1.2 and v1.3
 Request

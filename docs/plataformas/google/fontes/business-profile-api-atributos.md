@@ -1,7 +1,7 @@
 ---
 titulo: "Business Profile APIs — atributos de local"
 url: https://developers.google.com/my-business/content/attributes?hl=pt-br
-capturado_em: 2026-08-16
+capturado_em: 2026-08-17
 hash: a271196222c752e6
 ---
 

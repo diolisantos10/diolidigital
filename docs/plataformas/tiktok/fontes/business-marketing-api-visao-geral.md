@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Overview (TikTok API for Business)"
 url: https://business-api.tiktok.com/portal/docs/marketing-api-overview/v1.3
-capturado_em: 2026-08-16
-hash: 894321a4e10217da
+capturado_em: 2026-08-17
+hash: 8a6fbe1496428a6a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -32,8 +32,8 @@ Business Messaging API
 API Reference
 API Playground
 API Service Status Page
-SDK
 Appendix
+SDK
 Benefits of Marketing API
 Overview
 

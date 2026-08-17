@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /file/video/ad/upload/ (upload de vídeo de anúncio: formatos, tamanho, hash)"
 url: https://business-api.tiktok.com/portal/docs?id=1737587322856449
-capturado_em: 2026-08-16
-hash: 1bd30290245bb7b9
+capturado_em: 2026-08-17
+hash: 664e0e0aa90c70dc
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -100,8 +100,8 @@ Get suggested thumbnails for a video
 Welcome Messages
 API Playground
 API Service Status Page
-SDK
 Appendix
+SDK
 Before you start
 Comparing v1.2 and v1.3
 Request

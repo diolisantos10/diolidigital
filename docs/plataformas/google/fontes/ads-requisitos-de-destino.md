@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads — requisitos de destino"
 url: https://support.google.com/adspolicy/answer/6368661?hl=pt-BR
-capturado_em: 2026-08-16
+capturado_em: 2026-08-17
 hash: ca423a00500be007
 ---
 
