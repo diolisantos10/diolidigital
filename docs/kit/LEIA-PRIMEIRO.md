@@ -11,9 +11,9 @@
 
 ## Estado do espelho, agora
 
-- **Carimbado em `2026-08-09T01:06:32.123Z`** (kit `6782942`) — **parado há 7 dia(s).**
-- **Estado:** `nunca-rodou`
-- **Última tentativa do robô:** nunca rodou.
+- **Carimbado em `2026-08-09T01:06:32.123Z`** (kit `6782942`) — **parado há 8 dia(s).**
+- **Estado:** `falhou`
+- **Última tentativa do robô:** **FALHOU** em 2026-08-17T07:26:39.185Z — KIT_REPO_TOKEN ausente neste repositório. O GITHUB_TOKEN padrão do Actions não alcança dioli-brain-kit (repo privado separado) — ver o comentário no topo de .github/workflows/kit-espelho.yml. git ls-remote sem token: fatal: could not read Username for 'https://github.com': terminal prompts disabled (exit 128).
 
 ## A frase que mais importa
 
