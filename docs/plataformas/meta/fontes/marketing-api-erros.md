@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — referência de erros (códigos e subcódigos)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/error-reference
-capturado_em: 2026-08-17
+capturado_em: 2026-08-18
 hash: bac5cd8ba5a2e39e
 ---
 

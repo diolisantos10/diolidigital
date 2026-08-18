@@ -1,8 +1,8 @@
 ---
 titulo: "Padrões da Comunidade — Spam"
 url: https://transparency.meta.com/pt-br/policies/community-standards/spam/
-capturado_em: 2026-08-17
-hash: 70b823972889365c
+capturado_em: 2026-08-18
+hash: 5d2191964867bc84
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -15,10 +15,10 @@ Dados
 Detalhes da política
 REGISTRO DE ALTERAÇÕES
 Hoje
-27 de jun de 2024
-1 de jul de 2022
-18 de dez de 2020
-31 de out de 2019
+26 de jun de 2024
+30 de jun de 2022
+17 de dez de 2020
+30 de out de 2019
 Explicação da política
 Não permitimos conteúdo criado para enganar, iludir ou sobrecarregar os usuários com o objetivo de aumentar artificialmente a visibilidade. Esse tipo de conteúdo prejudica a capacidade das pessoas de interagir de forma autêntica em nossas plataformas. Isso pode ameaçar a segurança, a estabilidade e a usabilidade dos nossos serviços. Também buscamos evitar táticas abusivas, como a disseminação de links enganosos para atrair usuários desavisados por meio de funcionalidades ou códigos enganosos, além da falsificação de domínios confiáveis.
 O spam online é um setor lucrativo, e, por isso, nossas políticas e nossos métodos de detecção precisam evoluir constantemente para acompanhar as novas tendências e táticas de spam. Quando tomamos medidas para combater o spam, buscamos equilibrar o aumento dos custos para os produtores e distribuidores em nossas plataformas com a proteção da atividade dinâmica e autêntica de nossa comunidade.

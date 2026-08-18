@@ -1,7 +1,7 @@
 ---
 titulo: "Permissions Reference — todas as permissões da Graph API e o nível exigido"
 url: https://developers.facebook.com/docs/permissions
-capturado_em: 2026-08-17
+capturado_em: 2026-08-18
 hash: 952ff579263b3ffc
 ---
 

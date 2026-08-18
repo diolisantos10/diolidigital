@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Adult Content"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-adult-content
-capturado_em: 2026-08-17
-hash: e38f715e1e619547
+capturado_em: 2026-08-18
+hash: 76754df4633c8928
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -228,7 +228,6 @@ In the following markets, Promote is the only form of paid ads that is allowed, 
 
 Albania, Brunei, El Salvador, Ethiopia, Honduras, Kyrgyzstan, Laos, Libya, Mali, Mauritius, Monaco, Myanmar, Nicaragua, Senegal, Tanzania, Uganda
 
-*Was the information helpful?
 Content
 Principle
 Dating apps

@@ -1,7 +1,7 @@
 ---
 titulo: "Webhooks — referência de campos do objeto Page"
 url: https://developers.facebook.com/docs/graph-api/webhooks/reference/page/
-capturado_em: 2026-08-17
+capturado_em: 2026-08-18
 hash: c1187ffcc9f491bc
 ---
 

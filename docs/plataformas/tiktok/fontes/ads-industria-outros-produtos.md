@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Other Products and Services"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-other-products-and-services
-capturado_em: 2026-08-17
-hash: de95cf46470d815f
+capturado_em: 2026-08-18
+hash: abab7a1a6d791520
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -306,7 +306,6 @@ Horoscope and fortune-telling products, services, and content are not allowed in
 
 Algeria, Argentina, Bahrain, Bangladesh, Belarus, Brunei, El Salvador, Ethiopia, Honduras, Iraq, Jordan, Kuwait, Kyrgyzstan, Laos, Lebanon, Libya, Mali, Mauritius, Monaco, Morocco, Myanmar, Nicaragua, Oman, Qatar, Saudi Arabia, Senegal, Tanzania, Turkey, Uganda, Ukraine, United Arab Emirates
 
-*Was the information helpful?
 Content
 Principle
 Accounting and taxation
