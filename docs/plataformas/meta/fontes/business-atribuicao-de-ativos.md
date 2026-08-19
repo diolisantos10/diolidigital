@@ -1,7 +1,7 @@
 ---
 titulo: "Business — atribuição de ativos (contas de anúncio, Páginas, Instagram)"
 url: https://developers.facebook.com/docs/business-management-apis/business-asset-management
-capturado_em: 2026-08-18
+capturado_em: 2026-08-19
 hash: f28eb362c099280d
 ---
 

@@ -1,7 +1,7 @@
 ---
 titulo: "Getting Started — Create an App: conta de desenvolvedor, organização, registro, Sandbox e submissão à revisão"
 url: https://developers.tiktok.com/doc/getting-started-create-an-app
-capturado_em: 2026-08-18
+capturado_em: 2026-08-19
 hash: 703d502902badd0f
 ---
 

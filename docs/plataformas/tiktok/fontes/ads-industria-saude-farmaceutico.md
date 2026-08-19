@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Healthcare and Pharmaceuticals (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-healthcare-pharmaceuticals
-capturado_em: 2026-08-18
-hash: e80400b72680b94b
+capturado_em: 2026-08-19
+hash: 6c67d1657aff87b6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -5238,10 +5238,6 @@ Medical devices
 Hemp and cannabidiol (CBD) cosmetic products
 Market-specific requirements
 Promote on TikTok
-Related Articles
- TikTok Advertising Policies
- Weight Management and Body Image
- Other Products and Services
 Log in for a personalized experience
 Sign up
 Log in
