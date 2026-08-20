@@ -1,7 +1,7 @@
 ---
 titulo: "WhatsApp Cloud API — webhooks (eventos de mensagem e status)"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/overview
-capturado_em: 2026-08-19
+capturado_em: 2026-08-20
 hash: 450194b52e4d0378
 ---
 

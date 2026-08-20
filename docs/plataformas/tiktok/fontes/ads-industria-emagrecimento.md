@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Weight Management and Body Image"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-weight-management
-capturado_em: 2026-08-19
-hash: d75db25276d84568
+capturado_em: 2026-08-20
+hash: 80056e72bb1d7a06
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,7 +65,7 @@ Policies and security /
 Advertising Policies /
 Advertising policies /
 Weight Management and Body Image
-Last updated: June 2026
+Last updated: August 2026
 Principle
 
 At TikTok, our goal is to foster a body-positive and inclusive environment. We strive to create a space where our community feels comfortable, confident, and valued. We are committed to making TikTok a place that promotes self-esteem and discourages negative social comparisons.
@@ -104,6 +104,16 @@ Weight loss surgical procedures (eligibility and ad approval must be confirmed i
 
 Meal replacement products
 
+Weight management supplements
+
+Austria, Belgium, Bulgaria, Croatia, Cyprus, Czech Republic, Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Ireland, Italy, Israel, Latvia, Lithuania, Luxembourg, Netherlands, Norway, Poland, Portugal, Romania, Serbia, Slovakia, Slovenia, Spain, Sweden, Switzerland, United Kingdom
+
+Examples of what is allowed in select countries* (subject to age restrictions, and full compliance with all advertising policies):
+
+Weight loss supplements
+
+Meal replacement products
+
 Body image
 
 Ad content and landing pages must not explicitly shame users about their bodies, suggest there is an ideal body type, or promote improved life circumstances or self-image as a result of changes in body appearance or weight.
@@ -120,6 +130,7 @@ Claims that looking a certain way will make individuals more desirable, successf
 
 Claims that body appearance determines a person’s confidence, self-esteem, emotional wellbeing, desirability, popularity, or social standing
 
+*Was the information helpful?
 Content
 Principle
 Weight Management

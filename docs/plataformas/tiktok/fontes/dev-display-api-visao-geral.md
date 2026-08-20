@@ -1,15 +1,14 @@
 ---
 titulo: "Display API — Overview (/v2/user/info/, /v2/video/list/, /v2/video/query/)"
 url: https://developers.tiktok.com/doc/display-api-overview
-capturado_em: 2026-08-19
-hash: 7e29c4db9b67e4ef
+capturado_em: 2026-08-20
+hash: 16e80f7453d077eb
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
-
+Last updated August 4, 2026
 Overview
 
 The Display API contains a set of HTTP-based APIs that your product can use to display a TikTok creator's videos and their profile information.
@@ -48,3 +47,10 @@ Get Started with Display API
 
 Was this document helpful?
 On this page
+Components
+Permissions
+Example Use Cases
+Display User's TikTok Profile
+Display User's Self-Selected TikTok Videos
+Display User's Recent TikTok Videos
+Next Steps

@@ -1,20 +1,19 @@
 ---
 titulo: "Content Posting API — Upload Content (enviar para a caixa de entrada/rascunho, sem publicar)"
 url: https://developers.tiktok.com/doc/content-posting-api-get-started-upload-content
-capturado_em: 2026-08-19
-hash: 7a0b22b7f06109f4
+capturado_em: 2026-08-20
+hash: ad870ab71d0ad686
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
+Last updated August 4, 2026
+Get Started - Upload
 
 Tip: You can enable email notifications to get our latest product updates.
 
 New: Content Posting API now supports sending photos!
-
-Get Started
 
 This guide shows you how to use the Content Posting API to upload content to TikTok.
 
@@ -186,3 +185,9 @@ Response:
 
 Was this document helpful?
 On this page
+Prerequisites
+Upload draft to TikTok
+Upload a video
+Example
+Upload photos
+Example

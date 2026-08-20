@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Adult Content"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-adult-content
-capturado_em: 2026-08-19
-hash: e38f715e1e619547
+capturado_em: 2026-08-20
+hash: 6e99f85aef12f261
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,10 +65,10 @@ Policies and security /
 Advertising Policies /
 Advertising policies /
 Adult content
-Last updated: June 2026
+Last updated: August 2026
 Principle
 
-At TikTok, we are committed to maintaining a safe and positive environment for our community We aim to make our ad content appropriate for everyone. Therefore, as an advertiser, it is your responsibility to follow all advertising regulations, laws, and standards for adult sexual products, services, dating services, and entertainment.
+At TikTok, we are committed to maintaining a safe and positive environment for our community We aim to make our ad content appropriate for everyone. Therefore, as an advertiser, it is your responsibility to follow all advertising regulations, laws, and standards for the promotion of adult sexual products, services, dating services, entertainment, and depictions of sexual content.
 
 Policy
 
@@ -82,13 +82,9 @@ Sexual services
 
 Sexual products
 
-Sexual activity
-
-Sexually explicit content, text, and audio
+Sexually explicit content
 
 Sexually suggestive content
-
-Nudity and body exposure
 
 Dating apps
 
@@ -164,9 +160,9 @@ Pornographic material, sex toys, and supplies such as fetish or sexual fantasy c
 
 Promotion, sale, solicitation, or facilitation of access to the enhancement of sexual performance, pleasure, or bodily appearance, such as drugs, medications, tools, or devices such as penis enlargement or breast enhancement products or services
 
-Sexual activity
+Sexually explicit content
 
-Sexual activity is not allowed.
+Sexually explicit content is not allowed.
 
 Examples of what is not allowed:
 
@@ -174,21 +170,7 @@ Penetrative sex, non-penetrative sex, and oral sex
 
 Fetish and kink activity
 
-Sexually explicit content, text, and audio
-
-Sexually explicit content, text, and audio are not allowed.
-
-Examples of what is not allowed:
-
-Grinding
-
-Humping
-
-Rubbing, squeezing, pinching, spanking, or slapping of clothed sensitive regions or sensitive body parts
-
-Imitating sexual positions outside of sexual activity taking place
-
-Mimicking sexual acts
+Displaying nudity
 
 Sexually explicit text, audio or term that directly describes or references specific sexual activity, body parts, or sexual products
 
@@ -208,19 +190,11 @@ Emphasis on sensitive body parts or sensitive regions
 
 Flirtatious movements
 
-Wearing underwear, stripping, or undressing
+Stripping or undressing
 
 Swimsuits, lingerie, or clothing that exposes or implies exposure of intimate areas
 
-Nudity and body exposure
-
-Nudity and body exposure is not allowed.
-
-Examples of what is not allowed:
-
-Displaying nudity
-
-Displaying excessive visible skin
+Imitating sexual positions or sexual acts
 
 Promote on TikTok
 
@@ -235,10 +209,8 @@ Dating apps
 Live chat apps
 Sexual services
 Sexual products
-Sexual activity
-Sexually explicit content, text, and audio
+Sexually explicit content
 Sexually suggestive content
-Nudity and body exposure
 Promote on TikTok
 Related Articles
  Age Targeting Restrictions

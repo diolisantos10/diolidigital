@@ -1,8 +1,8 @@
 ---
 titulo: "Diretrizes da Comunidade — Bens regulamentados e atividades comerciais (divulgação de conteúdo comercial) (pt-BR)"
 url: https://www.tiktok.com/community-guidelines/pt-br/regulated-commercial-activities
-capturado_em: 2026-08-19
-hash: 6f4fa5a2e1c1a0b2
+capturado_em: 2026-08-20
+hash: d27962c9e1d56c71
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,7 +10,10 @@ hash: 6f4fa5a2e1c1a0b2
 
 Produtos, serviços e atividades comerciais regulamentados
 Diretrizes da Comunidade
-Publicado em 14 de agosto de 2025 • Em vigor a partir de 13 de setembro de 2025
+
+Publicado em 14 de agosto de 2025
+
+Em vigor a partir de 13 de setembro de 2025
 
 O TikTok é um lugar para compartilhar e aprender sobre todos os tipos de produto e serviço. Alguns deles, porém, podem envolver riscos mais elevados, como dependência, perigo ou golpes. Realizamos a moderação de conteúdo relacionado a atividades regulamentadas ou comerciais com o objetivo de evitar danos físicos ou financeiros. Em alguns casos, quando possíveis danos podem ser mitigados por meio de controles adicionais, é permitida a publicidade paga limitada de contas corporativas registradas e verificadas que atendem às políticas e aos requisitos legais do TikTok.
 
@@ -43,7 +46,7 @@ Mais informações
 
 Fraudes e golpes
 
-O TikTok é um espaço para aprender e interagir com uma grande diversidade de assuntos, e buscamos garantir que ninguém se aproveite do seu interesse em explorar e se envolver com novos temas. Por esse motivo, é proibida qualquer tentativa de aplicar golpes, ludibriar ou fraudar outras pessoas. Essa proibição inclui ações como facilitar golpes financeiros, fingir ser uma celebridade para vender produtos ou interagir com usuários, além de qualquer outro tipo de fraude. Saiba mais sobre como identificar fraudes online e se proteger.
+O TikTok é um espaço para aprender e interagir com uma grande diversidade de assuntos, e buscamos garantir que ninguém se aproveite do seu interesse em explorar e se envolver com novos temas. Por esse motivo, é proibida qualquer tentativa de aplicar golpes, ludibriar ou fraudar outras pessoas. Essa proibição inclui ações como facilitar golpes financeiros, fingir ser uma celebridade para vender produtos ou interagir com usuários, além de qualquer outro tipo de fraude. Saiba mais sobre como identificar fraudes  online e se proteger.
 
 Mais informações
 

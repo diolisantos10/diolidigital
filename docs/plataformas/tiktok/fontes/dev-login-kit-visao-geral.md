@@ -1,16 +1,15 @@
 ---
 titulo: "Login Kit Overview — o OAuth 2.0 do TikTok"
 url: https://developers.tiktok.com/doc/login-kit-overview
-capturado_em: 2026-08-19
-hash: e991108bc25c4666
+capturado_em: 2026-08-20
+hash: ad345449f6a584f7
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
-
-Login Kit
+Last updated August 19, 2026
+Overview
 
 Integrating with our Login Kit enables users to quickly and securely sign into your app with their TikTok account. LoginKit is available on iOS, Android, Desktop and Web. Login Kit is based on OAuth 2.0 for user authorization and API authentication.
 
@@ -52,3 +51,7 @@ There's also a QR code authorization flow (the seventh doc you listed) — it's 
 The token exchange and refresh logic is identical enough across platforms that it's worth building that server-side piece once as a shared service, then treating the four client flows as thin front-ends that all funnel a code (+ code_verifier where applicable) into it.
 Was this document helpful?
 On this page
+How TikTok Login Kit works
+General workflow
+Platform differences
+Integration notes

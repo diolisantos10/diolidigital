@@ -1,15 +1,14 @@
 ---
 titulo: "Developer Guidelines (TikTok for Developers)"
 url: https://developers.tiktok.com/doc/our-guidelines-developer-guidelines
-capturado_em: 2026-08-19
-hash: 71c216da9d193d69
+capturado_em: 2026-08-20
+hash: 532ec2d3c9a330ef
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
-
+Last updated August 4, 2026
 Developer Guidelines
 
 We are excited that you are seeking to integrate your app with TikTok. As developers, you can help us inspire creativity and bring joy by providing awesome experiences for TikTok users. This page provides guidelines for you to better understand our integration processes and requirements.
@@ -85,3 +84,12 @@ You are responsible for adhering to all policies and guidelines. TikTok reserves
 
 Was this document helpful?
 On this page
+App review process
+Submission requirements
+Developer Principles
+Provide great experiences
+Build awesome interfaces
+Be reliable
+Be trustworthy
+TikTok Integration Maintenance Requirements
+Terms and Policies

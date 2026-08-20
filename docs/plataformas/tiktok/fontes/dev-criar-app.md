@@ -1,15 +1,14 @@
 ---
 titulo: "Getting Started — Create an App: conta de desenvolvedor, organização, registro, Sandbox e submissão à revisão"
 url: https://developers.tiktok.com/doc/getting-started-create-an-app
-capturado_em: 2026-08-19
-hash: 703d502902badd0f
+capturado_em: 2026-08-20
+hash: b3c24267095d4375
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
-
+Last updated August 4, 2026
 Register Your App
 
 To integrate with our products, you must connect your app to TikTok for Developers and submit your app registration for review. This guide demonstrates how to connect an app, configure app settings, and complete the submission process.
@@ -144,3 +143,16 @@ Once your app is approved and live, any subsequent changes must be submitted for
 
 Was this document helpful?
 On this page
+Prerequisites
+Connect your app
+App page navigation
+Configure settings for your app
+App details
+Credentials
+Basic information
+Platforms
+Products
+Login Kit settings example
+Verify URL ownership
+Submit your app for review
+App review status

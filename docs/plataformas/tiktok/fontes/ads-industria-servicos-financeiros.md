@@ -1,15 +1,71 @@
 ---
 titulo: "TikTok Advertising Policies — Financial Services (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-financial-services
-capturado_em: 2026-08-19
-hash: 6f4578defc87a19e
+capturado_em: 2026-08-20
+hash: b1016af4c82abe40
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
+Advertisers
+Getting started
+Ad creation
+Ad formats
+Ad objectives
+Ad optimization
+Measurement
+Payment and billing
+Policies and security
+Advertising Policies
+
+Advertising policies
+
+TikTok Advertising Policies
+Advertiser Account Policy
+About TikTok advertising restrictions for people under the age of 18
+About the TikTok Industry Pilot Program
+Protecting minors on TikTok: advertising initiatives
+Ad Serving Policy
+Ad format and functionality
+Adult content
+Age Targeting Restrictions
+Alcohol
+Alcohol: Market-specific requirements
+Animals and Environment
+Audience Expiration Policy
+Dangerous Products or Services
+Deceptive practices
+Discrimination, Harassment, and Bullying
 Financial Services
-Last updated: June 2026
+Gambling and Games
+Healthcare and Pharmaceuticals
+Housing, Employment, and Credit ("HEC") Ad Policy
+Intellectual Property Infringement
+Misinformation
+Misleading and false content
+Other Products and Services
+Suicide and Self-Harm
+Politics, Governments, and Elections
+Teen Safety and Well-Being
+TikTok After Conversion Experience Policy
+TikTok Ad After Conversion Experience Management Guidelines
+TikTok Ad After Conversion Experience: Customer Review Guidelines
+TikTok’s Anti-Discrimination Ad Policy
+Violence and Dangerous Activities
+Weight Management and Body Image
+Key TikTok Ad Policy Updates
+Ad content appeals quota strategy on TikTok Ads Manager
+How to submit an account appeal in TikTok Ads Manager
+
+Advertising policy resources
+
+Advertisers /
+Policies and security /
+Advertising Policies /
+Advertising policies /
+Financial Services
+Last updated: August 2026
 Principle
 
 At TikTok, our aim is to provide our users with the necessary details to allow them to make well-informed financial choices. Our policies prioritize equipping users with the information they need to evaluate financial products and services, while also protecting them from any deceptive or harmful practices.
@@ -712,7 +768,7 @@ Restrict ads to viewers aged 18 years and older
 
 Examples of what may be allowed:
 
-Cryptocurrencies
+Cryptocurrencies and cryptocurrency mining devices
 
 The exchange, management, or investment of funds, such as fiat or virtual
 
@@ -733,8 +789,6 @@ Complex speculative investments such as contracts for differences (CFDs), financ
 Credit repair services
 
 Cryptocurrency ATMs
-
-Cryptocurrency mining devices
 
 Get-rich-quick schemes
 
@@ -1224,6 +1278,8 @@ Investment services
 
 Loans
 
+Foreign Exchange (FX) services
+
 Ads for cryptocurrency exchange services and custodial wallets may be allowed if the following requirements are met:
 
 Be licensed by local and regional authorities
@@ -1250,7 +1306,7 @@ Credit repair services
 
 Get-rich-quick schemes
 
-High-risk investment products, such as forex trading and binary options
+High-risk investment products, such as binary options
 
 Multi-level marketing
 
@@ -3137,3 +3193,15 @@ Token sales
 Unaccredited digital banks that perform any traditional bank-like function
 
 Virtual currencies or cryptocurrencies, such as Bitcoin and Ethereum
+
+Content
+Principle
+Market-specific requirements
+Promote on TikTok
+Related Articles
+ TikTok Advertising Policies
+ Gambling and Games
+ Healthcare and Pharmaceuticals
+Log in for a personalized experience
+Sign up
+Log in

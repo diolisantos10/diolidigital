@@ -1,16 +1,15 @@
 ---
 titulo: "OAuth — User Access Token Management (validade do access token e do refresh token)"
 url: https://developers.tiktok.com/doc/oauth-user-access-token-management
-capturado_em: 2026-08-19
-hash: 517db553f2fde50a
+capturado_em: 2026-08-20
+hash: 6da18b77ba71039c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
-
-Endpoints
+Last updated August 4, 2026
+User Access Token Management
 1. Fetch an access token using an authorization code
 
 Once the authorization code callback is handled, you can use the code to retrieve the user's access token.
@@ -492,3 +491,21 @@ If the request is not successful, an error response body will be returned in the
 
 Was this document helpful?
 On this page
+1. Fetch an access token using an authorization code
+Endpoint
+Headers
+Request body parameters
+Response struct
+Example
+2. Refresh an access token using a refresh token
+Endpoint
+Headers
+Request body parameters
+Response struct
+Example
+3. Revoke access
+Endpoint
+Headers
+Request body parameters
+Response struct
+Example

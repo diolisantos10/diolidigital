@@ -1,16 +1,15 @@
 ---
 titulo: "Login Kit for Web — fluxo de autorização no servidor (redirect, code, state)"
 url: https://developers.tiktok.com/doc/login-kit-web
-capturado_em: 2026-08-19
-hash: b7f55824ce17072d
+capturado_em: 2026-08-20
+hash: 39fd2b685dd69ea3
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
-
-Login Kit for Web
+Last updated August 4, 2026
+Web
 
 This guide details how to enable authentication from your web app to TikTok. After successfully completing authentication with TikTok, developers can obtain an access_token for the TikTok user.
 
@@ -270,3 +269,14 @@ See Manage User Access Tokens for related endpoints.
 
 Was this document helpful?
 On this page
+Prerequisites
+Register your app
+Configure redirect URI
+Integration Guide
+Implement the front-end code
+Implement the server code to handle authorization grant flow
+Redirect request to TikTok's authorization server
+TikTok prompts a users to log in or sign up
+TikTok prompts a user for consent
+Manage authorization response
+Manage access token

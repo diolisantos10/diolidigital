@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Gambling and Games (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-gambling-and-games
-capturado_em: 2026-08-19
-hash: 6e4a175186120198
+capturado_em: 2026-08-20
+hash: cdd7112b0cdf4b6a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -267,11 +267,25 @@ Austria
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
@@ -917,11 +931,25 @@ Denmark
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
@@ -1149,11 +1177,25 @@ Germany
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
@@ -1313,11 +1355,25 @@ Ireland
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
@@ -1339,13 +1395,27 @@ Israel
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
 
 Advertisers must use scheduling restrictions as required by law.
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
@@ -1677,11 +1747,25 @@ Netherlands
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
@@ -1737,11 +1821,25 @@ Norway
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
@@ -2017,13 +2115,27 @@ Portugal
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
 
 Advertisers must use scheduling restrictions as required by law
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
@@ -2057,11 +2169,25 @@ Romania
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
@@ -2241,13 +2367,27 @@ Spain
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
 
 Advertisers must use scheduling restrictions as required by law
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
@@ -2295,11 +2435,25 @@ Sweden
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
@@ -2646,6 +2800,10 @@ Content
 Principle
 Policy
 Market-specific requirements
+Related Articles
+ TikTok Advertising Policies
+ Healthcare and Pharmaceuticals
+ Financial Services
 Log in for a personalized experience
 Sign up
 Log in

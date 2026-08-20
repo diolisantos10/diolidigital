@@ -1,7 +1,7 @@
 ---
 titulo: "Tipos de token de acesso — usuário, app, página, cliente"
 url: https://developers.facebook.com/documentation/facebook-login/guides/access-tokens
-capturado_em: 2026-08-19
+capturado_em: 2026-08-20
 hash: 1a855d378e1d6291
 ---
 

@@ -1,15 +1,14 @@
 ---
 titulo: "Scopes Overview — como escopo é pedido, aprovado e autorizado pelo usuário"
 url: https://developers.tiktok.com/doc/scopes-overview
-capturado_em: 2026-08-19
-hash: db4cf5997ac16857
+capturado_em: 2026-08-20
+hash: 5a5fce56a2eb7788
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
-
+Last updated August 19, 2026
 Scopes Overview
 
 Scopes represent end user granted permissions to access specific data resources or perform specific actions. Every TikTok for Developer API requires a scope to be accessed, and sensitive fields are protected by additional scopes. For example, the scope user.info.basic allows access to APIs and data related to the basic user of a TikTok user.
@@ -41,3 +40,6 @@ You can find the list of available scopes and their explanation on the scopes re
 
 Was this document helpful?
 On this page
+Managing scopes
+User authorization
+Scopes Reference

@@ -1,20 +1,19 @@
 ---
 titulo: "Content Posting API — Get Started (TikTok for Developers)"
 url: https://developers.tiktok.com/doc/content-posting-api-get-started
-capturado_em: 2026-08-19
-hash: ea542d4d532c093f
+capturado_em: 2026-08-20
+hash: 9019ef2be0b08dc5
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
+Last updated August 4, 2026
+Get Started - Direct Post
 
 Tip: You can enable email notifications to get our latest product updates.
 
 New: Content Posting API now supports posting photos!
-
-Get Started
 
 This guide demonstrates how to use the Content Posting API to post content directly to TikTok.
 
@@ -229,3 +228,10 @@ Response:
 
 Was this document helpful?
 On this page
+Prerequisites
+Post directly to TikTok
+Query Creator Info
+Post a video
+Example
+Post photos
+Example

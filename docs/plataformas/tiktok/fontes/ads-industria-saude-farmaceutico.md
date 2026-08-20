@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Healthcare and Pharmaceuticals (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-healthcare-pharmaceuticals
-capturado_em: 2026-08-19
-hash: 6c67d1657aff87b6
+capturado_em: 2026-08-20
+hash: 95fba79db9a32272
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,7 +65,7 @@ Policies and security /
 Advertising Policies /
 Advertising policies /
 Healthcare and Pharmaceuticals
-Last updated: June 2026
+Last updated: August 2026
 Principle
 
 At TikTok, all healthcare and pharmaceutical products and services advertised on the platform must be in compliance with all applicable laws and regulations in each market. Our policies aim to foster an ad platform that equips our users with appropriate information.
@@ -1326,7 +1326,21 @@ May be allowed if the following requirements are met:
 
 - Comply with local laws and regulations
 
+- Certifications from appropriate local regional regulating authorities may be required
+
 - The ad must be restricted to users aged 18 years or older
+
+Examples of what may be allowed:
+
+- Covid test home kits
+
+- Glucometer home kit
+
+- Ovulation predictor kits (e.g. LH surge strips)
+
+Examples of what is not allowed:
+
+- Medical devices that generate results requiring professional interpretation to be meaningful (e.g. hormone panel tests)
 
 Cosmetic clinics
 
@@ -1367,6 +1381,18 @@ May be allowed if the following requirements are met:
 - Certifications from appropriate local regional regulating authorities may be required
 
 - The ad must be restricted to users aged 18 years or older
+
+Examples of what is not allowed:
+
+- Abortion
+
+- Surrogacy
+
+- Purchase/sale of sperm or ova from a donor or a person acting on their behalf
+
+- Purchase/ sale of an in vitro embryo
+
+- Purchase/sale of a human cell or gene from a donor (or representative) with the intention of using it to create a human being
 
 Pharmacies
 
@@ -5238,6 +5264,10 @@ Medical devices
 Hemp and cannabidiol (CBD) cosmetic products
 Market-specific requirements
 Promote on TikTok
+Related Articles
+ TikTok Advertising Policies
+ Weight Management and Body Image
+ Other Products and Services
 Log in for a personalized experience
 Sign up
 Log in

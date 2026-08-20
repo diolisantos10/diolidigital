@@ -1,18 +1,18 @@
 ---
 titulo: "Content Sharing Guidelines — auditoria de app e restrições (TikTok for Developers)"
 url: https://developers.tiktok.com/doc/content-sharing-guidelines
-capturado_em: 2026-08-19
-hash: a804065d48693c53
+capturado_em: 2026-08-20
+hash: 0ce7985a981d16ec
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
+Last updated August 4, 2026
+Content Sharing Guidelines
 
 New: Content Posting API now supports posting photos!
 
-General Guidelines
 Watermark Guidelines
 
 We expect you to avoid adding unwanted material to content posted to TikTok. That means your apps and integrations should not superimpose or otherwise include any brand name, logo, watermark, other promotional branding, link or promotional text, on or in any content which is shared to TikTok. Doing so is a violation of these guidelines, and may also lead to deleted content or disabled accounts.
@@ -126,3 +126,8 @@ d. If video resources are already on API Clients' servers, do not use FILE_UPLOA
 
 Was this document helpful?
 On this page
+Watermark Guidelines
+Direct Post API - Developer Guidelines
+Intended Use
+Required UX Implementation in Your App
+Technical Considerations

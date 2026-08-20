@@ -1,15 +1,14 @@
 ---
 titulo: "Display API — Get Started (leitura de perfil e de vídeos do usuário autorizado)"
 url: https://developers.tiktok.com/doc/display-api-get-started
-capturado_em: 2026-08-19
-hash: 8bdc8fd7b55be9ba
+capturado_em: 2026-08-20
+hash: ad9c00171d0fd087
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
-
+Last updated August 19, 2026
 Get Started
 
 This guide will show you how to get an authorization code and an access token in order to utilize the Display APIs. We will use the Display APIs to display a TikTok user's profile and videos on your platform.
@@ -185,3 +184,10 @@ Open a web view with the url embed_link to consume the video on user clicks. Use
 
 Was this document helpful?
 On this page
+Before You Start
+Authorization
+Get an Authorization Code
+Get an Access Token
+Display User's TikTok Profile
+Display User's Recent TikTok Videos
+Display User's Self-Selected TikTok Videos

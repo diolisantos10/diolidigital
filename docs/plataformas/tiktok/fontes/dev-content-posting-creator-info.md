@@ -1,18 +1,18 @@
 ---
 titulo: "Content Posting API — Query Creator Info (/v2/post/publish/creator_info/query/: opções de privacidade, toggles e cota diária do criador)"
 url: https://developers.tiktok.com/doc/content-posting-api-reference-query-creator-info
-capturado_em: 2026-08-19
-hash: ede1a5b92cf04afd
+capturado_em: 2026-08-20
+hash: 561f17ee5649fa06
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
+Last updated August 4, 2026
+Query Creator Info
 
 New: Content Posting API now supports posting photos!
 
-Query Creator Info
 Overview
 
 This API returns profile and permission information of the current user.
@@ -336,3 +336,10 @@ TikTok server or network error. Try again later.
 
 Was this document helpful?
 On this page
+Overview
+Request
+Header
+Example
+Response
+Example
+Error Codes

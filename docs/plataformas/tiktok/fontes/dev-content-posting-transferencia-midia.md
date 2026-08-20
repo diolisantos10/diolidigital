@@ -1,18 +1,17 @@
 ---
 titulo: "Content Posting API — Media Transfer Guide (FILE_UPLOAD x PULL_FROM_URL, chunks, formatos e limites de mídia)"
 url: https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide
-capturado_em: 2026-08-19
-hash: e359bf648627f1d1
+capturado_em: 2026-08-20
+hash: ef50f7d3918c46e4
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
+Last updated August 4, 2026
+Media Transfer Guide
 
 New: Content Posting API now supports posting photos!
-
-Media Transfer Guide
 
 This guide explains the process of transferring media files to TikTok servers when using the Content Posting API.
 
@@ -599,3 +598,19 @@ Maximum of 20MB for each image
 
 Was this document helpful?
 On this page
+File upload
+Work with chunks
+Chunk restrictions
+Media transfer HTTP schema
+Examples
+Response
+Pull from URL
+Prerequisites
+Ownership verification rules
+Domain
+URL Prefix
+Cancel ongoing pull from URL tasks
+Request
+Response
+Video restrictions
+Image restrictions

@@ -1,16 +1,15 @@
 ---
 titulo: "Manage User Access Tokens with OAuth v2 (troca de code, refresh, revogação)"
 url: https://developers.tiktok.com/doc/login-kit-manage-user-access-tokens
-capturado_em: 2026-08-19
-hash: a4227b7cbbe467f8
+capturado_em: 2026-08-20
+hash: 1fbfc2ab9c8b87e2
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
-
-Manage User Access Tokens with OAuth v2
+Last updated August 4, 2026
+Manage User Access Tokens
 
 TikTok Login Kit manages the token life cycle, allowing you to integrate login and authentication flows directly in your application. A successful authorization flow grants you refreshable access tokens. Those tokens enable you to perform endpoint access with user permissions.
 
@@ -49,3 +48,8 @@ You must register a redirect URI for your desktop app and use https://www.tiktok
 
 Was this document helpful?
 On this page
+Authorization scopes
+Token security
+Endpoints for web
+Endpoints for mobile
+Endpoints for desktop

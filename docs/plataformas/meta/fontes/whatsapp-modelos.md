@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp — modelos de mensagem (templates): criação e aprovação"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview
-capturado_em: 2026-08-19
-hash: f27c4dc223d26b65
+capturado_em: 2026-08-20
+hash: e063cb09836f50bb
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -167,7 +167,7 @@ Consulte o documento sobre análise do modelo para saber mais sobre o processo d
 Status do modelo
 Os modelos precisam ter o status APPROVED antes de serem enviados em mensagens. O status de um modelo é inicialmente definido pelo processo de análise de modelos, mas pode ser alterado para outro valor baseado no uso e no feedback de qualidade.
 As alterações de status do modelo são comunicadas via webhooks de message_template_status_update, mas você pode usar a API de Modelos e pedir o campo status para obter o status de um modelo a qualquer momento.
-Exemplo de pedido
+Exemplo de solicitação
 curl 'https://graph.facebook.com/<API_VERSION>/<TEMPLATE_ID>?fields=status' \
 -H 'Authorization: Bearer <ACCESS_TOKEN>'
 Exemplo de resposta

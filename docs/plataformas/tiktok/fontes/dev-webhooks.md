@@ -1,16 +1,15 @@
 ---
 titulo: "Webhooks Overview — eventos de publicação e de autorização"
 url: https://developers.tiktok.com/doc/webhooks-overview
-capturado_em: 2026-08-19
-hash: 62022c369cd14866
+capturado_em: 2026-08-20
+hash: eeb678d7add366ac
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
-
-TikTok Webhooks
+Last updated August 4, 2026
+Overview
 Overview
 
 Webhook is a subscription that notifies your application via a callback URL when an event happens in TikTok. Rather than requiring you to pull information via API, you can use webhooks to get information on events that occur. Notifications are delivered via HTTPS POST in JSON format to the callback url configured for your app in the Developer Portal. This information can be used to update your system or to trigger business processes.
@@ -30,3 +29,5 @@ TikTok makes a best effort for "at least once delivery" of webhooks. Webhook end
 
 Was this document helpful?
 On this page
+Overview
+Requirements and Limitations

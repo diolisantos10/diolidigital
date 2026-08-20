@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Other Products and Services"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-other-products-and-services
-capturado_em: 2026-08-19
-hash: abab7a1a6d791520
+capturado_em: 2026-08-20
+hash: 00741a0457c41e11
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,7 +65,7 @@ Policies and security /
 Advertising Policies /
 Advertising policies /
 Other Products and Services
-Last updated: March 2026
+Last updated: August 2026
 Principle
 
 Our policies are carefully set to ensure that the TikTok platform remains a safe and healthy space for its diverse community. We aim to create an environment where users can take part in a positive community experience.
@@ -306,6 +306,40 @@ Horoscope and fortune-telling products, services, and content are not allowed in
 
 Algeria, Argentina, Bahrain, Bangladesh, Belarus, Brunei, El Salvador, Ethiopia, Honduras, Iraq, Jordan, Kuwait, Kyrgyzstan, Laos, Lebanon, Libya, Mali, Mauritius, Monaco, Morocco, Myanmar, Nicaragua, Oman, Qatar, Saudi Arabia, Senegal, Tanzania, Turkey, Uganda, Ukraine, United Arab Emirates
 
+Prediction Markets
+
+Ads related to prediction markets or event outcome trading platforms may be allowed with restrictions in the following markets:
+
+Canada, United States, Philippines, Bolivia, Ecuador, Guatemala, Dominican Republic, Paraguay, Colombia, Panama, Peru, United Kingdom, Ireland, Denmark, Finland, Sweden, Israel
+
+Markets not listed above are currently not eligible for Prediction Market advertising.
+
+Market-specific requirements
+
+Ads for Prediction Markets may be allowed if the following requirements are met:
+
+Work with a TikTok Sales Representative to obtain permission via an application process.
+
+The ads must be age-targeted to the appropriate audience.
+
+Comply with disclosure requirements, including disclaimers.
+
+Examples of what may be allowed:
+
+Platforms using financial trading or event contract terminology
+
+Regulated event outcome trading platforms
+
+Platforms where users trade contracts with other participants
+
+Examples of what is not allowed:
+
+Platforms that refer to users as "placing bets" or use gambling terminology
+
+Odds-based or sportsbook-style betting products
+
+Products not licensed or permitted as required by local regulation in the target market
+
 Content
 Principle
 Accounting and taxation
@@ -319,6 +353,7 @@ Underwear, shapewear, and swimwear
 Unsuitable business products or services
 Virtual private network (VPN) services
 Horoscope and fortune-telling products and services
+Prediction Markets
 Related Articles
  TikTok Advertising Policies
  Healthcare and Pharmaceuticals

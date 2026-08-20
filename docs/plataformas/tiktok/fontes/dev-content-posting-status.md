@@ -1,18 +1,17 @@
 ---
 titulo: "Content Posting API — Get Post Status (/v2/post/publish/status/fetch/ e códigos de erro)"
 url: https://developers.tiktok.com/doc/content-posting-api-reference-get-video-status
-capturado_em: 2026-08-19
-hash: b8185058a98b4c49
+capturado_em: 2026-08-20
+hash: ceee855172ae52f6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
+Last updated August 4, 2026
+Get Post Status
 
 New: Content Posting API now supports posting photos!
-
-Get Post Status
 
 For content uploaded with the Content Posting API, two mechanisms are provided for developers to check the status of the post by the TikTok user:
 
@@ -421,3 +420,11 @@ Retry should not be done.
 
 Was this document helpful?
 On this page
+Content Status Overview
+Fetch Status endpoint
+Request
+Response
+Nested data struct
+Nested error struct
+Content Posting webhooks
+Fail reasons

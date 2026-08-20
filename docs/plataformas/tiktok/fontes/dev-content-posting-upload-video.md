@@ -1,18 +1,18 @@
 ---
 titulo: "Content Posting API — Initialize Video Upload (/v2/post/publish/inbox/video/init/, 6 req/min por token)"
 url: https://developers.tiktok.com/doc/content-posting-api-reference-upload-video
-capturado_em: 2026-08-19
-hash: 966e36753c2ebade
+capturado_em: 2026-08-20
+hash: 6a4830f47bbc4292
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Docs
+Last updated August 4, 2026
+Upload
 
 New: Content Posting API now supports posting photos!
 
-Upload
 Overview
 
 To upload a video without posting it, you must invoke the Content Posting API to do the following:
@@ -481,3 +481,17 @@ curl --location --request PUT 'https://open-upload.tiktokapis.com/video/?upload_
 
 Was this document helpful?
 On this page
+Overview
+Initialize Video Upload
+Request
+Header
+Body
+Examples
+Response
+Example
+Error codes
+Send Video to TikTok Servers
+Request
+Header
+Body
+Example
