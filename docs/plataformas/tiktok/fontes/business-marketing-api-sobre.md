@@ -1,7 +1,7 @@
 ---
 titulo: "About API for Business (o que a Marketing API cobre — Business Help Center)"
 url: https://ads.tiktok.com/help/article/marketing-api?lang=en
-capturado_em: 2026-08-20
+capturado_em: 2026-08-21
 hash: 01bb85dd58ffcb7a
 ---
 

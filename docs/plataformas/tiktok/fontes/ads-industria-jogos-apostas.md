@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok Advertising Policies — Gambling and Games (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-gambling-and-games
-capturado_em: 2026-08-20
+capturado_em: 2026-08-21
 hash: cdd7112b0cdf4b6a
 ---
 

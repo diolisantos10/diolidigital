@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /identity/music/authorization/ (autorização de música em anúncio)"
 url: https://business-api.tiktok.com/portal/docs?id=1740218495869954
-capturado_em: 2026-08-20
-hash: 77e50d7ea9dfd18f
+capturado_em: 2026-08-21
+hash: b5fa73b2c41551ea
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -21,7 +21,6 @@ Organic API
 Business Messaging API
 API Reference
 Accounts
-Ads
 Ad Accounts
 Ad Comments
 Ad Comments - Blocked Words
@@ -54,6 +53,7 @@ Catalog Video Templates
 Catalog Diagnostics
 Catalog Insights
 Change Log
+Creative Pre-review
 Creative Portfolios
 Creative Reports
 Creative Tools
@@ -98,8 +98,8 @@ TikTok One
 TikTok Store
 Tools
 User
-Verification
 Video
+Verification
 Welcome Messages
 API Playground
 API Service Status Page

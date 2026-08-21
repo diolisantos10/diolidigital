@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /campaign/create/ (objetivo, orçamento, tipo de compra)"
 url: https://business-api.tiktok.com/portal/docs?id=1739318962329602
-capturado_em: 2026-08-20
-hash: 24003e2268f9e20a
+capturado_em: 2026-08-21
+hash: da0e5ef90647347a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -21,7 +21,6 @@ Organic API
 Business Messaging API
 API Reference
 Accounts
-Ads
 Ad Accounts
 Ad Comments
 Ad Comments - Blocked Words
@@ -62,6 +61,7 @@ Catalog Video Templates
 Catalog Diagnostics
 Catalog Insights
 Change Log
+Creative Pre-review
 Creative Portfolios
 Creative Reports
 Creative Tools
@@ -98,8 +98,8 @@ TikTok One
 TikTok Store
 Tools
 User
-Verification
 Video
+Verification
 Welcome Messages
 API Playground
 API Service Status Page

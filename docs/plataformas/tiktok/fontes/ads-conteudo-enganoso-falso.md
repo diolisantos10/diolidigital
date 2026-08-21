@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Misleading and False Content"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-misleading-and-false-content?lang=en
-capturado_em: 2026-08-20
-hash: dd4ac5f65817c6b2
+capturado_em: 2026-08-21
+hash: ad73eec68becb976
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -178,6 +178,7 @@ Examples of what is not allowed:
 
 Public figures being the victim of or engaging in bullying or harassing, making a false endorsement, or being endorsed.
 
+*Was the information helpful?
 Content
 Principle
 Misleading claims

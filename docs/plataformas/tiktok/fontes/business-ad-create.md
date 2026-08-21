@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /ad/create/ (criativo do anúncio: vídeo, texto, CTA, identidade)"
 url: https://business-api.tiktok.com/portal/docs?id=1739953377508354
-capturado_em: 2026-08-20
-hash: 8cd04c2dd70cc6bf
+capturado_em: 2026-08-21
+hash: 5a0aa660889213c8
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -20,83 +20,6 @@ Marketing API
 Organic API
 Business Messaging API
 API Reference
-Accounts
-Ads
-Get ads
-Create ads
-Update ads
-Update the statuses of ads
-Ad Accounts
-Ad Comments
-Ad Comments - Blocked Words
-Ad Diagnosis
-Ad Groups
-Ad Review
-Audience
-Authentication
-Automated Rules
-BC Management
-BC Payments
-BC Payment Portfolios
-BC Assets
-BC Asset Groups
-BC Billing Groups
-BC Partners
-BC Members
-BC Invoices
-BC Reporting
-Brand Safety
-Business Messaging
-Campaign
-Catalog Management
-Catalog Event Sources
-Catalog Feeds
-Catalog Products
-Catalog Product Sets
-Catalog Videos
-Catalog Video Templates
-Catalog Diagnostics
-Catalog Insights
-Change Log
-Creative Portfolios
-Creative Reports
-Creative Tools
-Custom Conversions
-Discovery
-(Deprecated) Dynamic Scene
-Events 2.0
-Events 1.0
-Files
-GMV Max
-Identity
-Images
-Leads
-Media Mix Modeling
-MCP Authorization
-Mentions
-Music
-Negative Keywords
-Page
-Pangle
-Playable Ads
-Reach & Frequency
-Reporting
-Showcase
-Smart Creative
-(To be deprecated) Legacy Smart+
-Upgraded Smart+
-Spark Ads Recommendation
-Spark Ads Using Authorized Posts
-Super Split Test
-Subscription
-Terms
-TikTok One
-TikTok Store
-Tools
-User
-Verification
-Video
-Welcome Messages
 API Playground
 API Service Status Page
 Appendix

@@ -1,7 +1,7 @@
 ---
 titulo: "Perfil de Empresa — denunciar avaliações impróprias"
 url: https://support.google.com/business/answer/4596773?hl=pt-BR
-capturado_em: 2026-08-20
+capturado_em: 2026-08-21
 hash: 4b34a7816aa3092e
 ---
 

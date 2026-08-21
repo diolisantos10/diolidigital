@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /file/video/ad/upload/ (upload de vídeo de anúncio: formatos, tamanho, hash)"
 url: https://business-api.tiktok.com/portal/docs?id=1737587322856449
-capturado_em: 2026-08-20
-hash: 664e0e0aa90c70dc
+capturado_em: 2026-08-21
+hash: 894fddd00761e7a6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -21,7 +21,6 @@ Organic API
 Business Messaging API
 API Reference
 Accounts
-Ads
 Ad Accounts
 Ad Comments
 Ad Comments - Blocked Words
@@ -54,6 +53,7 @@ Catalog Video Templates
 Catalog Diagnostics
 Catalog Insights
 Change Log
+Creative Pre-review
 Creative Portfolios
 Creative Reports
 Creative Tools
@@ -90,13 +90,13 @@ TikTok One
 TikTok Store
 Tools
 User
-Verification
 Video
 Upload a video
 Update the name of a video
 Get info about videos
 Search for videos
 Get suggested thumbnails for a video
+Verification
 Welcome Messages
 API Playground
 API Service Status Page
@@ -105,6 +105,7 @@ SDK
 Before you start
 Comparing v1.2 and v1.3
 Request
+List of values for location_codes or location_code
 Example
 Upload by file with Smart Fix enabled
 Upload by file with Smart Fix disabled
@@ -157,11 +158,13 @@ New request parameter
 	
 /
 	
-is_third_party: boolean
-flaw_detect: boolean
-auto_fix_enabled: boolean
-auto_bind_enabled: boolean
-video_id: string
+is_third_party
+flaw_detect
+auto_fix_enabled
+auto_bind_enabled
+video_id
+pre_review_enabled
+pre_review_info
 
 Response parameter name
 	
@@ -181,9 +184,10 @@ New response parameter
 	
 /
 	
-fix_task_id:string
-flaw_types: string[]
-preview_url_expire_time: string
+fix_task_id
+flaw_types
+preview_url_expire_time
+pre_review_task_id
 Request
 
 Endpoint https://business-api.tiktok.com/open_api/v1.3/file/video/ad/upload/
@@ -355,6 +359,738 @@ Valid only when flaw_detect = true and auto_fix_enabled = true.
 Whether to automatically upload the fixed video to your creative library.
 
 Default value : false.
+
+pre_review_enabled
+	
+boolean
+	
+Whether to create a pre-review task for the video and any associated materials, which may include ad text and the landing page URL.
+
+A pre-review task is a process initiated to evaluate and assess the compliance and quality of your creatives before they are used to create ads, ensuring that they meet TikTok advertising guidelines and standards.
+
+Supported values: true, false.
+
+Default value: false.
+
+When you set this field to true, you need to specify pre_review_info simultaneously, and the response will include the pre_review_task_id.
+
+pre_review_info
+Conditional
+	
+object
+	
+Required when pre_review_enabled is set to true.
+
+Additional details for the pre-review.
+
+landing_page_url
+	
+string
+	
+The landing page URL to use in your ad.
+
+ad_text
+	
+string
+	
+The ad text to use in your ad.
+
+An ad text is shown to your audience as part of your ad creative, to deliver the message you intend to communicate to them.
+Ad text must be 1-100 characters long and cannot contain emoji.
+Each word in Chinese or Japanese counts as two characters, while each letter in English counts as one character.
+
+location_codes
+Conditional
+	
+string[]
+	
+Required when pre_review_info is specified.
+
+The codes of the locations that you want to target.
+
+Max size: 1.
+
+For enum values, see List of values for location_codes or location_code.
+
+Example: US.
+
+is_ecommerce
+	
+boolean
+	
+Whether the creatives are intended for use in E-commerce ads, including GMV Max Campaigns and Catalog Ads.
+
+Supported values: true, false.
+Default value: false.
+List of values for location_codes or location_code
+
+The following table lists the enum values for the request parameter location_codes in /creative/pre_review/task/create/, /file/video/ad/upload/, and /file/image/ad/upload/, and the response parameter location_code in /creative/pre_review/task/get/.
+
+Location Code	Description
+
+AD
+	
+Andorra
+
+AE
+	
+United Arab Emirates
+
+AG
+	
+Antigua and Barbuda
+
+AI
+	
+Anguilla
+
+AL
+	
+Albania
+
+AO
+	
+Angola
+
+AR
+	
+Argentina
+
+AT
+	
+Austria
+
+AU
+	
+Australia
+
+AW
+	
+Aruba
+
+AZ
+	
+Azerbaijan
+
+BA
+	
+Bosnia and Herzegovina
+
+BB
+	
+Barbados
+
+BD
+	
+Bangladesh
+
+BE
+	
+Belgium
+
+BG
+	
+Bulgaria
+
+BH
+	
+Bahrain
+
+BL
+	
+Saint Barthélemy
+
+BM
+	
+Bermuda
+
+BO
+	
+Bolivia
+
+BQ
+	
+Caribbean Netherlands
+
+BR
+	
+Brazil
+
+BS
+	
+The Bahamas
+
+BY
+	
+Belarus
+
+BZ
+	
+Belize
+
+CA
+	
+Canada
+
+CD
+	
+Democratic Republic of the Congo
+
+CH
+	
+Switzerland
+
+CL
+	
+Chile
+
+CO
+	
+Colombia
+
+CR
+	
+Costa Rica
+
+CU
+	
+Cuba
+
+CV
+	
+Cabo Verde
+
+CW
+	
+Curaçao
+
+CY
+	
+Cyprus
+
+CZ
+	
+Czech Republic
+
+DE
+	
+Germany
+
+DJ
+	
+Djibouti
+
+DK
+	
+Denmark
+
+DM
+	
+Dominica
+
+DO
+	
+Dominican Republic
+
+DZ
+	
+Algeria
+
+EC
+	
+Ecuador
+
+EE
+	
+Estonia
+
+EG
+	
+Egypt
+
+ER
+	
+Eritrea
+
+ES
+	
+Spain
+
+FI
+	
+Finland
+
+FO
+	
+Faroe Islands
+
+FR
+	
+France
+
+GB
+	
+United Kingdom
+
+GD
+	
+Grenada
+
+GE
+	
+Georgia
+
+GF
+	
+French Guiana
+
+GG
+	
+Bailiwick of Guernsey
+
+GI
+	
+Gibraltar
+
+GL
+	
+Greenland
+
+GN
+	
+Guinea
+
+GP
+	
+Guadeloupe
+
+GQ
+	
+Equatorial Guinea
+
+GR
+	
+Greece
+
+GT
+	
+Guatemala
+
+GW
+	
+Guinea-Bissau
+
+HK
+	
+Hong Kong
+
+HN
+	
+Honduras
+
+HR
+	
+Croatia
+
+HT
+	
+Haiti
+
+HU
+	
+Hungary
+
+ID
+	
+Indonesia
+
+IE
+	
+Ireland
+
+IL
+	
+Israel
+
+IM
+	
+Isle of Man
+
+IN
+	
+India
+
+IQ
+	
+Iraq
+
+IS
+	
+Iceland
+
+IT
+	
+Italy
+
+JE
+	
+Jersey
+
+JM
+	
+Jamaica
+
+JO
+	
+Jordan
+
+JP
+	
+Japan
+
+KE
+	
+Kenya
+
+KH
+	
+Cambodia
+
+KM
+	
+Comoros
+
+KN
+	
+Saint Kitts and Nevis
+
+KR
+	
+South Korea
+
+KW
+	
+Kuwait
+
+KY
+	
+Cayman Islands
+
+KZ
+	
+Kazakhstan
+
+LB
+	
+Lebanon
+
+LC
+	
+Saint Lucia
+
+LI
+	
+Liechtenstein
+
+LK
+	
+Sri Lanka
+
+LT
+	
+Lithuania
+
+LU
+	
+Luxembourg
+
+LV
+	
+Latvia
+
+LY
+	
+Libya
+
+MA
+	
+Morocco
+
+MC
+	
+Monaco
+
+MD
+	
+Moldova
+
+ME
+	
+Montenegro
+
+MF
+	
+Saint Martin
+
+MK
+	
+North Macedonia
+
+MM
+	
+Myanmar
+
+MO
+	
+Macao
+
+MQ
+	
+Martinique
+
+MR
+	
+Mauritania
+
+MS
+	
+Montserrat
+
+MT
+	
+Malta
+
+MX
+	
+Mexico
+
+MY
+	
+Malaysia
+
+MZ
+	
+Mozambique
+
+NG
+	
+Nigeria
+
+NI
+	
+Nicaragua
+
+NL
+	
+Netherlands
+
+NO
+	
+Norway
+
+NP
+	
+Nepal
+
+NZ
+	
+New Zealand
+
+OM
+	
+Oman
+
+PA
+	
+Panama
+
+PE
+	
+Peru
+
+PF
+	
+French Polynesia
+
+PH
+	
+Philippines
+
+PK
+	
+Pakistan
+
+PL
+	
+Poland
+
+PM
+	
+Saint Pierre and Miquelon
+
+PR
+	
+Puerto Rico
+
+PS
+	
+Palestine
+
+PT
+	
+Portugal
+
+PY
+	
+Paraguay
+
+QA
+	
+Qatar
+
+RO
+	
+Romania
+
+RS
+	
+Serbia
+
+RU
+	
+Russia
+
+SA
+	
+Saudi Arabia
+
+SD
+	
+Sudan
+
+SE
+	
+Sweden
+
+SG
+	
+Singapore
+
+SI
+	
+Slovenia
+
+SJ
+	
+Svalbard and Jan Mayen
+
+SK
+	
+Slovakia
+
+SM
+	
+San Marino
+
+SO
+	
+Somalia
+
+SS
+	
+South Sudan
+
+ST
+	
+Sao Tome and Principe
+
+SV
+	
+El Salvador
+
+SX
+	
+Sint Maarten
+
+SY
+	
+Syria
+
+TC
+	
+Turks and Caicos Islands
+
+TD
+	
+Chad
+
+TF
+	
+French Southern and Antarctic Lands
+
+TH
+	
+Thailand
+
+TN
+	
+Tunisia
+
+TR
+	
+Turkey
+
+TT
+	
+Trinidad and Tobago
+
+TW
+	
+Taiwan (Province of China)
+
+UA
+	
+Ukraine
+
+US
+	
+United States
+
+UY
+	
+Uruguay
+
+UZ
+	
+Uzbekistan
+
+VC
+	
+Saint Vincent and the Grenadines
+
+VE
+	
+Venezuela
+
+VG
+	
+British Virgin Islands
+
+VI
+	
+Virgin Islands of the United States
+
+VN
+	
+Vietnam
+
+YE
+	
+Yemen
+
+ZA
+	
+South Africa
 Example
 Upload by file with Smart Fix enabled
 curl --location --request POST 'https://business-api.tiktok.com/open_api/v1.3/file/video/ad/upload/' \
@@ -563,6 +1299,16 @@ ILLEGAL_VIDEO_SIZE: The video size is not correct. Use the standard video size: 
 NO_BGM(deprecated): The ad or video has no background audio, or the background audio is incoherent/unclear.
 BLACK_EDGE(deprecated) : A video image contains black bars, which affects user experience and is not allowed.
 ILLEGAL_DURATION(deprecated): Video length is either longer than 60s or shorter than 5s, which doesn't meet our requirements.
+
+pre_review_task_id
+	
+string
+	
+Returned only when pre_review_enabled in the request is set to true.
+
+The ID of the pre-review task.
+
+To obtain the result of the pre-review task, pass the value of this field to the task_id field in /creative/pre_review/task/get/.
 Example
 Upload by file with Smart Fix enabled and issue detected
 HTTPS/1.1 200 OK

@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /report/integrated/get/ (relatórios: dimensões, métricas, filtros)"
 url: https://business-api.tiktok.com/portal/docs?id=1740302848100353
-capturado_em: 2026-08-20
-hash: 6f7831c296d3cbf0
+capturado_em: 2026-08-21
+hash: b73d73021a707cf3
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -21,7 +21,6 @@ Organic API
 Business Messaging API
 API Reference
 Accounts
-Ads
 Ad Accounts
 Ad Comments
 Ad Comments - Blocked Words
@@ -54,6 +53,7 @@ Catalog Video Templates
 Catalog Diagnostics
 Catalog Insights
 Change Log
+Creative Pre-review
 Creative Portfolios
 Creative Reports
 Creative Tools
@@ -95,8 +95,8 @@ TikTok One
 TikTok Store
 Tools
 User
-Verification
 Video
+Verification
 Welcome Messages
 API Playground
 API Service Status Page
