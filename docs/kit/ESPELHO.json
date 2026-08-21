@@ -2,7 +2,7 @@
   "origem": "diolisantos10/dioli-brain-kit",
   "kitCommit": "678294223e4678da70f4913ce00d8fa7f9b0eaa4",
   "espelhadoEm": "2026-08-09T01:06:32.123Z",
-  "ultimaTentativaEm": "2026-08-20T07:10:30.259Z",
+  "ultimaTentativaEm": "2026-08-21T07:11:29.719Z",
   "ultimoErro": "KIT_REPO_TOKEN ausente neste repositório. O GITHUB_TOKEN padrão do Actions não alcança dioli-brain-kit (repo privado separado) — ver o comentário no topo de .github/workflows/kit-espelho.yml. git ls-remote sem token: fatal: could not read Username for 'https://github.com': terminal prompts disabled (exit 128).",
   "estado": "falhou",
   "arquivos": {
