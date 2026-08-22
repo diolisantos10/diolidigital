@@ -1,8 +1,8 @@
 ---
 titulo: "Permissions Reference — todas as permissões da Graph API e o nível exigido"
 url: https://developers.facebook.com/docs/permissions
-capturado_em: 2026-08-21
-hash: 952ff579263b3ffc
+capturado_em: 2026-08-22
+hash: 3208ec8ddddfe041
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -1033,7 +1033,7 @@ Recupere uma lista das publicações do usuário no Threads e demonstre como ver
 
 threads_business_basic
 
-	The threads_business_basic permission allows a business app to fetch the Threads account ID that is associated with an Instagram account within the Business Portfolio through matching username. The allowed usage for this permission is to retrieve a Threads account ID to use as the threads_user_id during the creation of ads on Threads. It is not intended for any other purpose. For example, using threads_business_basic permission in a consumer app is strictly prohibited. Você também pode usar essa permissão para solicitar informações de análise com o objetivo de aprimorar seu app e para fins de marketing ou publicidade, por meio do uso de informações agregadas e anônimas ou sem identificação (desde que esses dados não possam ser identificados novamente).
+	The threads_business_basic permission allows a business app to fetch the Threads account ID that is associated with an Instagram account within the Business Portfolio through matching username. The allowed usage for this permission is to retrieve a Threads account ID to use as the threads_user_id during the creation of ads on Threads. It is not intended for any other purpose. For example, using threads_business_basic permission in a consumer app is strictly prohibited. A permissão também pode ser usada para solicitar insights de análise a fim de melhorar o app. Além disso, ela pode ser usada para fins de marketing ou de publicidade, por meio do uso de informações agregadas, anônimas ou sem identificação (desde que não seja possível identificar esses dados novamente).
 Uso permitido
 Retrieve a Threads account ID to use as the threads_user_id during the creation of ads on Threads, for the purpose of managing the user's presence on Threads.
 	Forneça exemplos específicos do porquê seu app precisa da permissão `threads_business_basic` para recuperar `threads_user_id` durante a criação de anúncios no Threads.
@@ -1045,7 +1045,7 @@ threads_content_publish
 
 Dependencies
 threads_basic
-	The threads_content_publish permission allows a business app to create and publish content on behalf of a Threads profile. The allowed usage for this permission is to enable a business app user to create and publish content to their Threads profile. Você também pode usar essa permissão para solicitar informações de análise com o objetivo de aprimorar seu app e para fins de marketing ou publicidade, por meio do uso de informações agregadas e anônimas ou sem identificação (desde que esses dados não possam ser identificados novamente).
+	The threads_content_publish permission allows a business app to create and publish content on behalf of a Threads profile. The allowed usage for this permission is to enable a business app user to create and publish content to their Threads profile. A permissão também pode ser usada para solicitar insights de análise a fim de melhorar o app. Além disso, ela pode ser usada para fins de marketing ou de publicidade, por meio do uso de informações agregadas, anônimas ou sem identificação (desde que não seja possível identificar esses dados novamente).
 Uso permitido
 Enables an app user to create and publish content to their Threads profile, for the purpose of managing the user's presence on Threads.
 	Forneça exemplos específicos do porquê seu app precisa da permissão `threads_content_publish` para permitir que os usuários criem e publiquem conteúdo no próprio perfil do Threads.
@@ -1060,7 +1060,7 @@ threads_delete
 
 Dependencies
 threads_basic
-	The threads_delete permission allows an app to delete an app user's Threads posts. The allowed usage for this permission is to delete an app user's Thread posts. Você também pode usar essa permissão para solicitar informações de análise com o objetivo de aprimorar seu app e para fins de marketing ou publicidade, por meio do uso de informações agregadas e anônimas ou sem identificação (desde que esses dados não possam ser identificados novamente).
+	The threads_delete permission allows an app to delete an app user's Threads posts. The allowed usage for this permission is to delete an app user's Thread posts. A permissão também pode ser usada para solicitar insights de análise a fim de melhorar o app. Além disso, ela pode ser usada para fins de marketing ou de publicidade, por meio do uso de informações agregadas, anônimas ou sem identificação (desde que não seja possível identificar esses dados novamente).
 Uso permitido
 Delete an app user's Thread posts.
 	Forneça exemplos específicos do porquê seu app precisa da permissão `threads_delete` para excluir posts de um usuário do app no Threads.
@@ -1075,7 +1075,7 @@ threads_keyword_search
 
 Dependencies
 threads_basic
-	The threads_keyword_search permission allows an app to search and fetch content with a specific keyword on behalf of a Threads user. The permission also allows for publishing responses to this fetched content. The allowed usage for this permission is to help the user manage their social media presence. Você também pode usar essa permissão para solicitar informações de análise com o objetivo de aprimorar seu app e para fins de marketing ou publicidade, por meio do uso de informações agregadas e anônimas ou sem identificação (desde que esses dados não possam ser identificados novamente).
+	The threads_keyword_search permission allows an app to search and fetch content with a specific keyword on behalf of a Threads user. The permission also allows for publishing responses to this fetched content. The allowed usage for this permission is to help the user manage their social media presence. A permissão também pode ser usada para solicitar insights de análise a fim de melhorar o app. Além disso, ela pode ser usada para fins de marketing ou de publicidade, por meio do uso de informações agregadas, anônimas ou sem identificação (desde que não seja possível identificar esses dados novamente).
 Uso permitido
 Showing public content and the public content tree that a user searches using a specific keyword.
 Giving the user the ability to sort user’s own mentioned threads.
@@ -1091,7 +1091,7 @@ threads_location_tagging
 
 Dependencies
 threads_basic
-	The threads_location_tagging permission allows an app to search for and fetch public locations using specific queries/keywords or coordinates on behalf of a Threads user and publish media with a location tagged. The allowed usage for this permission is to help users tag public locations to their posts and request locations when media is retrieved. Você também pode usar essa permissão para solicitar informações de análise com o objetivo de aprimorar seu app e para fins de marketing ou publicidade, por meio do uso de informações agregadas e anônimas ou sem identificação (desde que esses dados não possam ser identificados novamente).
+	The threads_location_tagging permission allows an app to search for and fetch public locations using specific queries/keywords or coordinates on behalf of a Threads user and publish media with a location tagged. The allowed usage for this permission is to help users tag public locations to their posts and request locations when media is retrieved. A permissão também pode ser usada para solicitar insights de análise a fim de melhorar o app. Além disso, ela pode ser usada para fins de marketing ou de publicidade, por meio do uso de informações agregadas, anônimas ou sem identificação (desde que não seja possível identificar esses dados novamente).
 Uso permitido
 Helps users tag public locations to their posts and request locations when media is retrieved.
 	Forneça exemplos específicos do porquê seu app precisa da permissão `threads_location_tagging` para permitir que os usuários leiam informações de localização ou publiquem um post com informações de localização.
@@ -1105,7 +1105,7 @@ threads_manage_insights
 
 Dependencies
 threads_basic
-	Com a permissão threads_manage_insights, seu app pode obter acesso a insights de um perfil do Threads. Seu app pode obter insights de um perfil do Threads e de threads individuais publicadas por esse perfil. Você também pode usar essa permissão para solicitar informações de análise com o objetivo de aprimorar seu app e para fins de marketing ou publicidade, por meio do uso de informações agregadas e anônimas ou sem identificação (desde que esses dados não possam ser identificados novamente).
+	Com a permissão threads_manage_insights, seu app pode obter acesso a insights de um perfil do Threads. Seu app pode obter insights de um perfil do Threads e de threads individuais publicadas por esse perfil. A permissão também pode ser usada para solicitar insights de análise a fim de melhorar o app. Além disso, ela pode ser usada para fins de marketing ou de publicidade, por meio do uso de informações agregadas, anônimas ou sem identificação (desde que não seja possível identificar esses dados novamente).
 Obter insights de um perfil do Threads
 Obter insights de threads individuais publicadas por esse perfil
 	Forneça exemplos específicos do porquê seu app precisa da permissão `threads_manage_insights` para acompanhar sua performance no Threads ao fornecer insights do perfil e métricas individuais do Threads.
@@ -1119,7 +1119,7 @@ threads_manage_mentions
 
 Dependencies
 threads_basic
-	The threads_manage_mentions permission allows an app to fetch content where the user is mentioned in on behalf of a Threads user. The allowed usage for this permission is to help the user manage their social media presence, which includes: showing public content and the public content tree that a user is mentioned in, enabling the user to sort user’s own mentioned threads, and enabling the user to publish responses to the public content tree that the user is mentioned in. Você também pode usar essa permissão para solicitar informações de análise com o objetivo de aprimorar seu app e para fins de marketing ou publicidade, por meio do uso de informações agregadas e anônimas ou sem identificação (desde que esses dados não possam ser identificados novamente).
+	The threads_manage_mentions permission allows an app to fetch content where the user is mentioned in on behalf of a Threads user. The allowed usage for this permission is to help the user manage their social media presence, which includes: showing public content and the public content tree that a user is mentioned in, enabling the user to sort user’s own mentioned threads, and enabling the user to publish responses to the public content tree that the user is mentioned in. A permissão também pode ser usada para solicitar insights de análise a fim de melhorar o app. Além disso, ela pode ser usada para fins de marketing ou de publicidade, por meio do uso de informações agregadas, anônimas ou sem identificação (desde que não seja possível identificar esses dados novamente).
 Uso permitido
 Showing public content and the public content tree that a user is mentioned in.
 Giving the user the ability to sort user’s own mentioned threads.
@@ -1138,7 +1138,7 @@ threads_manage_replies
 
 Dependencies
 threads_basic
-	Com a permissão threads_manage_replies, o app pode criar uma resposta em nome de um perfil do Threads, ocultar ou exibir respostas a uma thread e controlar quem pode responder a uma thread no perfil do Threads. O app pode criar uma resposta em nome de um perfil do Threads, ocultar ou exibir respostas a uma thread e controlar quem pode responder a uma thread no perfil do Threads. Você também pode usar essa permissão para solicitar informações de análise com o objetivo de aprimorar seu app e para fins de marketing ou publicidade, por meio do uso de informações agregadas e anônimas ou sem identificação (desde que esses dados não possam ser identificados novamente).
+	Com a permissão threads_manage_replies, o app pode criar uma resposta em nome de um perfil do Threads, ocultar ou exibir respostas a uma thread e controlar quem pode responder a uma thread no perfil do Threads. O app pode criar uma resposta em nome de um perfil do Threads, ocultar ou exibir respostas a uma thread e controlar quem pode responder a uma thread no perfil do Threads. A permissão também pode ser usada para solicitar insights de análise a fim de melhorar o app. Além disso, ela pode ser usada para fins de marketing ou de publicidade, por meio do uso de informações agregadas, anônimas ou sem identificação (desde que não seja possível identificar esses dados novamente).
 Criar uma resposta em nome de um perfil do Threads
 Ocultar ou exibir respostas a uma thread
 Controlar quem pode responder a uma thread no perfil do Threads
@@ -1179,7 +1179,7 @@ threads_read_replies
 
 Dependencies
 threads_basic
-	Com a permissão threads_read_replies, o app pode ler as respostas a uma thread do usuário. Com essa permissão, é possível obter respostas a uma thread pertencente ao usuário do app. Você também pode usar essa permissão para solicitar informações de análise com o objetivo de aprimorar seu app e para fins de marketing ou publicidade, por meio do uso de informações agregadas e anônimas ou sem identificação (desde que esses dados não possam ser identificados novamente).
+	Com a permissão threads_read_replies, o app pode ler as respostas a uma thread do usuário. Com essa permissão, é possível obter respostas a uma thread pertencente ao usuário do app. A permissão também pode ser usada para solicitar insights de análise a fim de melhorar o app. Além disso, ela pode ser usada para fins de marketing ou de publicidade, por meio do uso de informações agregadas, anônimas ou sem identificação (desde que não seja possível identificar esses dados novamente).
 Obter respostas a uma thread pertencente ao usuário do app
 	
 Descrição do caso de uso

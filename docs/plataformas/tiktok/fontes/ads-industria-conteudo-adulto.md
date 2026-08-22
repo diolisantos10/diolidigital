@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Adult Content"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-adult-content
-capturado_em: 2026-08-21
-hash: 6e99f85aef12f261
+capturado_em: 2026-08-22
+hash: a5755bb1d0f309b6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -122,7 +122,7 @@ Exchange in terms of income or compensation including goods or services
 
 Sugar dating, or any type of engagement in companionship or relationships in exchange for compensation or material benefit
 
-*Dating app ads are not allowed in the following markets: Algeria, Bahrain, Bangladesh, Egypt, Iraq, Jordan, Kuwait, Lebanon, Morocco, Oman, Pakistan, Qatar, Saudi Arabia, Turkey, United Arab Emirates
+*Dating app ads are not allowed in the following markets: Bahrain, Iraq, Jordan, Kuwait, Lebanon, Morocco, Oman, Qatar, Saudi Arabia
 
 Live chat apps
 
@@ -202,7 +202,6 @@ In the following markets, Promote is the only form of paid ads that is allowed, 
 
 Albania, Brunei, El Salvador, Ethiopia, Honduras, Kyrgyzstan, Laos, Libya, Mali, Mauritius, Monaco, Myanmar, Nicaragua, Senegal, Tanzania, Uganda
 
-*Was the information helpful?
 Content
 Principle
 Dating apps

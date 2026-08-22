@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok Advertising Policies — Deceptive Practices"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-deceptive-practices
-capturado_em: 2026-08-21
+capturado_em: 2026-08-22
 hash: 1b5c183035d35e68
 ---
 

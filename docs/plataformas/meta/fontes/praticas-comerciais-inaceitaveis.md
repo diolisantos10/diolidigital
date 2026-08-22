@@ -1,7 +1,7 @@
 ---
 titulo: "Padrões de Publicidade — Práticas comerciais inaceitáveis"
 url: https://transparency.meta.com/pt-br/policies/ad-standards/fraud-scams/unacceptable-business-practices/
-capturado_em: 2026-08-21
+capturado_em: 2026-08-22
 hash: 924d510cc354c254
 ---
 

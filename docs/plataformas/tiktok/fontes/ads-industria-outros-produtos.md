@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Other Products and Services"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-other-products-and-services
-capturado_em: 2026-08-21
-hash: 00741a0457c41e11
+capturado_em: 2026-08-22
+hash: 6c15dd9cf9afdcfe
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -300,11 +300,11 @@ South Korea
 
 Horoscope and fortune-telling products and services are allowed if certain requirements are met in the following markets:
 
-Australia, Austria, Azerbaijan, Belgium, Bosnia and Herzegovina, Brazil, Bulgaria, Cambodia, Canada, Chile, Colombia, Costa Rica, Cyprus, Czech Republic, Denmark, Dominican Republic, Ecuador, Egypt, Finland, France, Germany, Greece, Guatemala, Hungary, Indonesia, Ireland, Israel, Italy, Japan, Kazakhstan, Luxembourg, Malaysia, Mexico, Netherlands, New Zealand, Norway, Panama, Pakistan, Peru, Philippines, Poland, Portugal, Romania, Serbia, Singapore, South Africa, Spain, Sweden, Switzerland, Taiwan, Thailand, United Kingdom, United States, Uruguay, Vietnam
+Australia, Austria, Azerbaijan, Bangladesh, Belgium, Bosnia and Herzegovina, Brazil, Bulgaria, Cambodia, Canada, Chile, Colombia, Costa Rica, Cyprus, Czech Republic, Denmark, Dominican Republic, Ecuador, Egypt, Finland, France, Germany, Greece, Guatemala, Hungary, Indonesia, Ireland, Israel, Italy, Japan, Kazakhstan, Lebanon, Luxembourg, Malaysia, Mexico, Morocco, Netherlands, New Zealand, Norway, Panama, Pakistan, Peru, Philippines, Poland, Portugal, Romania, Serbia, Singapore, South Africa, Spain, Sweden, Switzerland, Taiwan, Thailand, United Kingdom, United States, Uruguay, Vietnam
 
 Horoscope and fortune-telling products, services, and content are not allowed in the following markets:
 
-Algeria, Argentina, Bahrain, Bangladesh, Belarus, Brunei, El Salvador, Ethiopia, Honduras, Iraq, Jordan, Kuwait, Kyrgyzstan, Laos, Lebanon, Libya, Mali, Mauritius, Monaco, Morocco, Myanmar, Nicaragua, Oman, Qatar, Saudi Arabia, Senegal, Tanzania, Turkey, Uganda, Ukraine, United Arab Emirates
+Algeria, Argentina, Bahrain, Belarus, Brunei, El Salvador, Ethiopia, Honduras, Iraq, Jordan, Kuwait, Kyrgyzstan, Laos, Libya, Mali, Mauritius, Monaco, Myanmar, Nicaragua, Oman, Qatar, Saudi Arabia, Senegal, Tanzania, Turkey, Uganda, Ukraine, United Arab Emirates
 
 Prediction Markets
 

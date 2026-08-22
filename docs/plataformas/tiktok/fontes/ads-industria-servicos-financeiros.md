@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Financial Services (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-financial-services
-capturado_em: 2026-08-21
-hash: b1016af4c82abe40
+capturado_em: 2026-08-22
+hash: 417d796691a15eb7
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -556,6 +556,8 @@ Loans, such as housing loans and peer-to-peer (P2P) loans
 
 Third-party payment services
 
+Investment consultation or advice
+
 Trading platforms
 
 Cryptocurrencies
@@ -581,8 +583,6 @@ Foreign exchange (FX) services
 Get-rich-quick schemes
 
 High APR Loans (loans with an annual percentage rate of 50% or higher)
-
-Investment consultation or advice
 
 Multi-level marketing (with focus on downline recruitment and strict inventory level or sales quotas)
 
@@ -2356,6 +2356,8 @@ Loans, such as housing loans
 
 Third-party payment services
 
+Investment consultation or advice
+
 Trading platforms
 
 Cryptocurrencies
@@ -2381,8 +2383,6 @@ Foreign exchange (FX) services
 Get-rich-quick schemes
 
 High APR Loans (with annual percentage rate of 50% or higher)
-
-Investment consultation or advice
 
 Multi-level marketing (with focus on downline recruitment and strict inventory level or sales quotas)
 
@@ -3194,6 +3194,7 @@ Unaccredited digital banks that perform any traditional bank-like function
 
 Virtual currencies or cryptocurrencies, such as Bitcoin and Ethereum
 
+*Was the information helpful?
 Content
 Principle
 Market-specific requirements

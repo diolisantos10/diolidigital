@@ -1,20 +1,18 @@
 ---
 titulo: "Marketing API — referência de Campaign (ad-campaign-group)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-campaign-group
-capturado_em: 2026-08-21
-hash: 4d6122084832f301
+capturado_em: 2026-08-22
+hash: 726a91c351c97e32
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Version
 v22.0
 v23.0
 v24.0
 v25.0
-Isso foi útil?
 Grupo de campanhas de anúncios
 Updated: 11 de mai de 2026
 Copiar para LLM
@@ -40,8 +38,8 @@ PHP SDK
 JavaScript SDK
 Android SDK
 iOS SDK
-GET v25.0/...?fields={fieldname_of_type_Campaign} HTTP/1.1
-Host: graph.facebook.com
+GET v25.0/...?fields={fieldname_of_type_Campaign} HTTP/1.1
+Host: graph.facebook.com
 
 Teste no Explorador da Graph API
 Para saber como usar a Graph API, leia nosso guia Como usar a Graph API
@@ -473,8 +471,8 @@ JavaScript SDK
 Android SDK
 iOS SDK
 cURL
-POST /v25.0/act_<AD_ACCOUNT_ID>/campaigns HTTP/1.1
-Host: graph.facebook.com
+POST /v25.0/act_<AD_ACCOUNT_ID>/campaigns HTTP/1.1
+Host: graph.facebook.com
 
 name=My+campaign&objective=OUTCOME_TRAFFIC&status=PAUSED&special_ad_categories=%5B%5D&is_adset_budget_sharing_enabled=0
 
@@ -1706,4 +1704,3 @@ OUTCOME_AWARENESS
 REACH
 	
 place_page_set_id
-Você achou esta página útil?

@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Gambling and Games (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-gambling-and-games
-capturado_em: 2026-08-21
-hash: cdd7112b0cdf4b6a
+capturado_em: 2026-08-22
+hash: 27e9ddaa819d6fa4
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -2475,11 +2475,25 @@ Switzerland
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling:
 
-Exception: Sports betting is allowed if the following requirement is met:
+Online casinos are allowed if the following requirement is met:
 
 Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Sports betting is allowed if the following requirement is met:
+
+Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+Examples of what is not allowed:
+
+Casinos & Gambling Venues
+
+Fantasy Sports
+
+Gambling Games
+
+Offline Gambling Services
 
 Non-casino games are not allowed.
 
