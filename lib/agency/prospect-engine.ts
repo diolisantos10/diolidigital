@@ -247,16 +247,66 @@ function buildSDRQuestionText(q: QuestionDef, state: ConvState, sdr: SDRAgentSta
 
 // ── initProspectConvState ─────────────────────────────────────────────────────
 
-export function initProspectConvState(): ProspectConvState {
+/**
+ * O que a pessoa já declarou na PORTA (`LeadNaPorta`), antes de a conversa
+ * abrir. `null` é o caminho legítimo de quem clicou "Prefiro não deixar
+ * contato agora" — nesse caso nada muda e o SDR pergunta o nome, como sempre.
+ */
+export type ContatoInicial = { nome?: string; email?: string; whatsapp?: string } | null;
+
+// ── O DADO DA PORTA TEM DE ENTRAR NO ESCOPO ANTES DO PRIMEIRO TURNO ─────────
+//
+// 23/08/2026, piloto ao vivo: o CEO preencheu nome, e-mail e WhatsApp na porta,
+// a conversa abriu e a PRIMEIRA fala da consultora foi *"Para começar, qual é o
+// seu nome e o nome do seu negócio?"*. Palavras dele: *"Primeiro erro, já pediu
+// o meu nome novamente, se eu dei meu nome na página de entrada."* O painel da
+// direita confirmava a causa: "Nome: aguardando…".
+//
+// A porta capturava e não entregava. `contatoDaPorta` existia em
+// `app/briefing/page.tsx` desde 16/08, mas só era lido no ENVIO final do
+// briefing — nunca entrava no escopo que abre a conversa. É a "seta faltando"
+// que esta casa já conhece (D-003): o dado existe, o consumidor existe, e não
+// há ligação entre os dois.
+//
+// Por que consertar AQUI e não no prompt do SDR: a regra "não perguntar o que
+// já foi respondido" já está escrita no prompt — ela não falhou, ela nunca foi
+// alimentada. Prompt é aviso; o escopo é a trava. Semeando o escopo, as duas
+// telas obedecem de graça: o painel mostra o nome em vez de "aguardando…", e a
+// pergunta de identidade (`prospect_name_biz`) passa a pedir SÓ o que falta.
+export function initProspectConvState(contatoInicial?: ContatoInicial): ProspectConvState {
+  const nome = contatoInicial?.nome?.trim() || undefined;
+  const primeiroNome = nome?.split(/\s+/)[0];
+
+  const scope = emptyScope();
+  if (nome) scope.prospectName = nome;
+  // O WhatsApp desce junto — ele já é campo legítimo do escopo da conversa
+  // (`app/api/sdr/chat/route.ts` o mantém; é o `prospectEmail` que ele apaga).
+  //
+  // ⛔ O E-MAIL NÃO DESCE, e isso é regra da casa, não esquecimento: o escopo
+  // inteiro é serializado para dentro do prompt do modelo (`route.ts:118` —
+  // "dados já captados") e a doutrina daqui é que e-mail NUNCA trafega pelo
+  // caminho do chat. Ele não faz falta: o SDR é proibido de pedir e-mail, e no
+  // envio final quem manda é o contato da porta (`app/briefing/page.tsx`).
+  // Mandar PII que ninguém vai usar é custo sem contrapartida.
+  const whatsapp = contatoInicial?.whatsapp?.trim();
+  if (whatsapp) scope.prospectPhone = whatsapp;
+
+  // A saudação é a primeira coisa que a pessoa lê — se ela pedir um dado que
+  // acabou de ser dado, nenhuma correção adiante apaga a impressão de que
+  // ninguém prestou atenção. Sem nome (porta pulada), o texto original vale.
+  const texto = primeiroNome
+    ? `Olá, ${primeiroNome}! Seja bem-vindo(a) à Dioli Studio.\n\nSou sua consultora de orçamento. Vou te ajudar a montar uma proposta personalizada para o seu negócio — com estimativa de investimento atualizada em tempo real.\n\n**Para começar, qual é o nome do seu negócio?**`
+    : "Olá! Seja bem-vindo(a) à Dioli Studio.\n\nSou sua consultora de orçamento. Vou te ajudar a montar uma proposta personalizada para o seu negócio — com estimativa de investimento atualizada em tempo real.\n\n**Para começar, qual é o seu nome e o nome do seu negócio?**";
+
   const welcome: ConvMessage = {
     id: "welcome",
     role: "assistant",
-    text: "Olá! Seja bem-vindo(a) à Dioli Studio.\n\nSou sua consultora de orçamento. Vou te ajudar a montar uma proposta personalizada para o seu negócio — com estimativa de investimento atualizada em tempo real.\n\n**Para começar, qual é o seu nome e o nome do seu negócio?**",
+    text: texto,
     createdAt: new Date().toISOString(),
   };
   const conv: ConvState = {
     messages: [welcome],
-    scope: emptyScope(),
+    scope,
     answeredQIds: [],
     isFirstMessage: true,
     estimate: emptyEstimate(),
@@ -300,6 +350,14 @@ export function processProspectMessage(
     newScope    = conv.scope;
     newAnswered = conv.answeredQIds;
   } else if (conv.isFirstMessage) {
+    // ── QUEM JÁ SE IDENTIFICOU NA PORTA NÃO É ADIVINHADO OUTRA VEZ ──────────
+    // 23/08/2026: o nome semeado pela porta sobrevivia à saudação e MORRIA na
+    // primeira resposta — a linha de baixo partia de `emptyScope()` e jogava
+    // fora tudo o que a porta tinha entregado. O painel voltava a "Nome:
+    // aguardando…" e a consultora perguntava o nome no segundo turno, que é
+    // exatamente o defeito que o CEO viu no primeiro. Meio conserto é conserto
+    // que a pessoa ainda sente.
+    const jaSabemosONome = Boolean(conv.scope.prospectName);
     const serviceDelta = parseInitialMessage(text);
     let { prospectName, businessName: bizFromText } = parseProspectNameBiz(text);
     // Negócio ≠ Nome: a bare person name (no business keyword) must not be
@@ -308,7 +366,13 @@ export function processProspectMessage(
     const guessedBiz = bizFromText ?? serviceDelta.businessName;
     // 3+ words with no business keyword reads as a full person name (first +
     // middle + last), not a brand — treat it as the person, ask the business next.
-    if (guessedBiz && !prospectName && !hasBizSignal && guessedBiz.trim().split(/\s+/).length >= 3) {
+    //
+    // ⛔ Só vale quando o nome AINDA é desconhecido. Essa regra nasceu do fato
+    // de a saudação pedir o NOME primeiro; com o nome já dado na porta, a
+    // saudação pediu o NEGÓCIO — e reinterpretar a resposta como nome de
+    // pessoa transformaria "Padaria do João Aurora" em gente, apagando o
+    // negócio e o nome verdadeiro de uma vez.
+    if (guessedBiz && !prospectName && !hasBizSignal && !jaSabemosONome && guessedBiz.trim().split(/\s+/).length >= 3) {
       prospectName = guessedBiz;
       bizFromText = undefined;
       delete serviceDelta.businessName;
@@ -318,9 +382,13 @@ export function processProspectMessage(
       ? extractBizFromFileNames(attachmentFileNames)
       : undefined;
     const businessName = bizFromText ?? bizFromFiles;
-    newScope = mergeScopeDelta(emptyScope(), {
+    // A base é o escopo QUE JÁ EXISTE, não um escopo vazio: sem porta ele é
+    // vazio mesmo (nada muda para quem pulou), e com porta ele carrega o que a
+    // pessoa declarou. Palpite de parser não sobrescreve declaração explícita —
+    // por isso `prospectName` só entra quando ainda não sabemos o nome.
+    newScope = mergeScopeDelta(conv.scope, {
       ...serviceDelta,
-      ...(prospectName ? { prospectName } : {}),
+      ...(prospectName && !jaSabemosONome ? { prospectName } : {}),
       ...(businessName ? { businessName } : {}),
     });
     newAnswered = inferProspectAnsweredQIds(newScope);

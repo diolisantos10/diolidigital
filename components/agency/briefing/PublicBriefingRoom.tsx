@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
-import { initProspectConvState, processProspectMessage, type ProspectConvState } from "@/lib/agency/prospect-engine";
+import { initProspectConvState, processProspectMessage, type ProspectConvState, type ContatoInicial } from "@/lib/agency/prospect-engine";
 import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from "@/lib/agency/sdr-agent";
 import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live-calculator";
 import { montarAvisoDeAnexo } from "@/lib/agency/anexo-nao-e-resposta";
@@ -42,6 +42,16 @@ export interface PublicBriefingRoomSubmitData {
 
 interface PublicBriefingRoomProps {
   onSubmit: (data: PublicBriefingRoomSubmitData) => void;
+  /**
+   * O que a pessoa declarou na porta (`LeadNaPorta`), antes de a sala abrir.
+   *
+   * 23/08/2026 — o piloto ao vivo do CEO: ele deu nome, e-mail e WhatsApp na
+   * porta e a primeira fala da consultora pediu o nome de novo, com o painel da
+   * direita marcando "Nome: aguardando…". A porta capturava e não entregava.
+   * Esta prop é a entrega. `null`/ausente é o caminho de quem escolheu não
+   * deixar contato — nesse caso a sala funciona exatamente como antes.
+   */
+  contatoDaPorta?: ContatoInicial;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -1327,8 +1337,11 @@ export function gerarTempClientId(): string {
   return `prospect-${Date.now()}-${crypto.randomUUID()}`;
 }
 
-export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
-  const [state,          setState]          = useState<ProspectConvState>(() => initProspectConvState());
+export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingRoomProps) {
+  // O contato da porta entra na semente do estado — antes do primeiro turno,
+  // não depois. Se entrasse por `useEffect`, a saudação já teria sido escrita
+  // pedindo o nome e a correção chegaria tarde demais para a pessoa que leu.
+  const [state,          setState]          = useState<ProspectConvState>(() => initProspectConvState(contatoDaPorta));
   const [inputText,      setInputText]      = useState("");
   const [showMaterials,  setShowMaterials]  = useState(false);
   const [linkAtts,       setLinkAtts]       = useState<RequestAttachment[]>([]);
@@ -1798,7 +1811,11 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               onKeyDown={handleKeyDown}
               placeholder={
                 conv.isFirstMessage
-                  ? "Diga seu nome e o nome do seu negócio para começar…"
+                  ? conv.scope.prospectName
+                    // Quem já se identificou na porta não é convidado a repetir
+                    // o nome nem no espaço reservado do campo de digitação.
+                    ? "Diga o nome do seu negócio para começar…"
+                    : "Diga seu nome e o nome do seu negócio para começar…"
                   : "Digite sua resposta…"
               }
               rows={2}
