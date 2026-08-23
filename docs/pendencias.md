@@ -14,6 +14,82 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🟢 23/08/2026 — PILOTO AO VIVO: A PORTA CAPTURAVA O CONTATO E NÃO ENTREGAVA
+
+**O relato do CEO, ao reiniciar o teste em `/briefing`:** *"Primeiro erro, já
+pediu o meu nome novamente, se eu dei meu nome na página de entrada."* Ele
+preencheu nome, e-mail e WhatsApp no formulário de entrada (`LeadNaPorta`) e a
+primeira fala da consultora foi *"Para começar, qual é o seu nome e o nome do
+seu negócio?"*. O painel da direita marcava **"Nome: aguardando…"** — a prova de
+que o dado da porta não chegava ao escopo da conversa.
+
+**A causa, medida e não deduzida:** `contatoDaPorta` existia em
+`app/briefing/page.tsx` desde 16/08 e era lido **só no envio final** do
+briefing. Nunca entrava no escopo que abre a conversa. É a **seta faltando**
+(D-003): o dado existe, o consumidor existe, e não há ligação entre os dois.
+
+**Por que o prompt não segurou:** a regra *"cliente que já se identificou e é
+perguntado outra vez conclui que ninguém prestou atenção"* já estava escrita no
+prompt do SDR. Ela não falhou por redação — **nunca foi alimentada**. Prompt é
+aviso; o escopo é a trava.
+
+**Eram DOIS vazamentos no mesmo caminho**, e o segundo só apareceu porque o
+conserto foi conferido na TELA, não no papel:
+
+1. `initProspectConvState()` nascia sempre de `emptyScope()` e não recebia nada
+   da porta — saudação e painel pediam o que já tinha sido dado.
+2. `processProspectMessage()` reconstruía o escopo **do zero** na primeira
+   resposta (`mergeScopeDelta(emptyScope(), …)`), matando o nome semeado: o
+   painel voltava a "aguardando…" e a pergunta do nome reaparecia **um turno
+   depois**. Meio conserto é conserto que a pessoa ainda sente.
+
+**O que ficou de pé:** o escopo nasce com o que a porta entregou
+(`prospectName`, `prospectPhone`); a saudação é condicional (cumprimenta pelo
+nome e pede só o que falta); e o palpite do parser não sobrescreve o que a
+pessoa declarou explicitamente. O **e-mail NÃO desce** para o escopo de
+propósito — o escopo inteiro vai serializado para dentro do prompt do modelo
+(`app/api/sdr/chat/route.ts`), e a doutrina da casa é que e-mail não trafega
+pelo caminho do chat; o envio final continua usando o contato da porta.
+
+**Quem pulou a porta continua igual**, e isso é caminho de propósito, não
+sobra: sem nome, a pergunta do nome vale, e a heurística "3+ palavras = nome de
+pessoa" segue valendo lá (foi **condicionada** ao que a saudação de fato
+perguntou, não trocada). `__tests__/briefing/nome-da-porta-nao-e-perguntado-de-novo.test.ts`
+trava as duas metades.
+
+**Conferido na tela** (navegador de verdade, dev local), não só no teste: com
+contato na porta, "Olá, Dioli! … qual é o nome do seu negócio?" e painel com
+"Nome: Dioli Santos"; depois de responder o negócio, o nome PERMANECE e a
+conversa segue. Sem contato, tudo como antes.
+
+**O que NÃO foi conferido:** o comportamento do SDR com o modelo de verdade —
+no ambiente local a chamada a `/api/sdr/chat` não completa, e a conversa cai no
+motor de regras. O escopo semeado chega ao modelo pelo mesmo caminho que
+qualquer outro dado do escopo (`route.ts`, "dados já captados"), mas isso não
+foi exercitado com o modelo ao vivo.
+
+### 🟢 O achado de tabela: o CI estava vermelho para TODO commit, e travava o deploy
+
+Descoberto ao conferir se o conserto acima tinha chegado ao ar: **não tinha**, e
+não por causa dele. `__tests__/security/guarda-de-origem-no-navegador.test.ts`
+reprovava toda rodada, e o "Wait for CI" do Railway — funcionando como
+projetado — não promovia nada. **A casa inteira estava com a entrega travada.**
+
+A causa não era a guarda de origem: era o caminho do Chromium fixado **com a
+versão dentro** (`/opt/pw-browsers/chromium-1194/...`). O `ci.yml` roda
+`npx playwright install chromium`, que instala a versão que o Playwright atual
+pede (1228 hoje); o caminho 1194 deixa de existir e o sentinela conclui, pela
+regra que ele tem, que não há navegador. Máquina de dev antiga seguia verde por
+ainda ter a pasta velha — **verde por herança, vermelho em máquina limpa**.
+
+`lib/agency/design/renderizar.ts:185` já tinha a lição escrita: *"caminho fixo
+com versão dentro é dívida com data marcada"*. Aqui ela venceu. O arquivo passou
+a **perguntar ao Playwright** onde ele instalou, com os caminhos conhecidos como
+recurso. **O sentinela não foi afrouxado** — provado por execução nas duas
+direções: com navegador, as 9 provas rodam; escondendo o navegador
+(`PLAYWRIGHT_BROWSERS_PATH` vazio + lista de caminhos removida), a rodada
+reprova com a mesma mensagem.
+
 ## 🔴 16/08/2026 (noite) — A COLHEITA DA NOITE: MÉTRICA MANIPULÁVEL, RESET TRAVADO PELO DIRETOR, E A JUNTA ENTRE DUAS REGRAS CERTAS
 
 **Por que este registro existe:** decisão tomada em conversa vira registro na
