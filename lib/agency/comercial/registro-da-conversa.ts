@@ -126,6 +126,16 @@ export type TurnoDoSdr = {
    *  que se audita; repetir a fala proibida seria gravar exatamente o que o
    *  guarda impediu de sair. */
   motivoDaRecusa?: string;
+  /** A FORMA do pacote que falhou, em uma frase — nunca o conteúdo dele.
+   *
+   *  Por que existe: em 23/08/2026 o diário mostrou dois turnos seguidos
+   *  barrados por `malformado` e não havia como perguntar POR QUÊ. O texto que
+   *  falhou não é gravado (e não deve ser), então "malformado" sozinho é um
+   *  nome, não um achado. Aqui entra só forma — houve `{`? sobrou texto fora do
+   *  pacote? em que posição o parser desistiu? —, montada por
+   *  `lib/agency/comercial/diagnostico-de-formato.ts`, que não deixa uma letra
+   *  do modelo passar. */
+  formaDaFalha?: string;
   /** Três estados, três significados — não confundir `false` com `undefined`:
    *  `true`  — o modelo extraiu escopo NESTE turno e ele sobreviveu às travas:
    *            o resgate FUNCIONOU.
@@ -227,12 +237,16 @@ export async function registrarTurnoDoSdr(turno: TurnoDoSdr): Promise<number> {
         : turno.escopoFoiSalvo === false
           ? FRASE_ESCOPO_PERDIDO
           : "";
+    // A forma entra ANTES do fecho e DEPOIS da explicação: o diário conta por
+    // `contains` no prefixo e no motivo, e os dois continuam onde estavam.
+    const forma = turno.formaDaFalha ? ` — na forma: ${turno.formaDaFalha}` : "";
     linhas.push({
       authorRole: "team",
       authorName: "SDR",
       body:
         `${PREFIXO_TURNO_BARRADO} ${turno.motivoDaRecusa}` +
         `${explicacao ? ` — ${explicacao}` : ""}` +
+        `${forma}` +
         ` — quem respondeu ao visitante foi o motor de regras.${salvouEscopo}]`,
     });
   }

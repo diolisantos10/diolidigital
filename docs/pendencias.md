@@ -14,6 +14,90 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🔴 23/08/2026 — A DÉCIMA VERIFICAÇÃO NÃO FECHOU, E O INSTRUMENTO ESTAVA MENTINDO SOBRE ELA
+
+**A ordem do CEO:** *"pode rodar com IA, quero o teste até o final"* — custo de
+IA liberado para fechar a única verificação do cliente falso que nunca foi
+medida: o guarda do SDR ("nenhuma resposta pode ser barrada pelo guarda — plano
+B atendendo em silêncio é falha").
+
+### O defeito que apareceu no caminho, e era o pior tipo
+
+A bateria chamava a rota real do SDR e **jogava a resposta dela fora**. A
+verificação do guarda decidia lendo o diário: sem linha de barra, veredito
+"passou". Só que o diário TAMBÉM fica vazio quando a rota recusa **antes** de
+chamar o modelo — sem chave (`not_configured`) ela volta sem escrever nada, e no
+429 do próprio freio de ritmo, idem.
+
+Resultado medido nesta máquina: `npm run cliente-falso -- --ao-vivo` **sem chave
+nenhuma** fechava **10 de 10 em verde**, com a décima verificação afirmando sobre
+um SDR que nunca falou. É o defeito nº 4 do CEO — *o plano B atende, ninguém
+percebe, a tela fica verde* — cometido por dentro do instrumento que existe para
+pegá-lo.
+
+**Consertado.** A bateria mede o desfecho de cada chamada ao SDR; a verificação
+passou a exigir prova de que o modelo respondeu. Recusa antes do modelo é "não
+coberto" **com o motivo escrito**; queda do modelo com o cliente na frente
+(`provider_error`, `timeout`, `truncado`, `malformado`) é **quebra**. O placar
+mostra, por rodada, quantos turnos o modelo respondeu e cada queda com o motivo.
+A régua não foi afrouxada em ponto nenhum — ela deixou de aprovar o que não
+mediu. Prova: a mesma rodada sem chave agora devolve *"16 de 16 turnos nem
+chegaram ao modelo (not_configured) — o guarda não foi exercitado, e não medir
+não é aprovar"*.
+
+### 🔴 ⛔ BLOQUEADO NO CEO — não há chave de IA alcançável para a rodada ao vivo
+
+Levantado, não deduzido:
+
+- **O que a rodada ao vivo exige é SÓ a variável `ANTHROPIC_API_KEY`.** O banco
+  descartável da bateria nasce sem workspace nenhum, então `chaveDeRotaPublica`
+  não tem cofre a consultar e cai direto em `chaveDoAmbiente`. Não é preciso
+  banco, nem workspace, nem linha de integração.
+- **Ela não está nos segredos deste repositório** — conferido no runner, por
+  presença e nunca por valor, sob cinco nomes plausíveis (`ANTHROPIC_API_KEY`,
+  `CLAUDE_API_KEY`, `ANTHROPIC_KEY`, `ANTHROPIC_API_TOKEN`, `AI_API_KEY`):
+  todos ausentes.
+- **Ela não está no Railway.** O serviço `diolidigital` não tem essa variável, e
+  nenhum outro projeto da conta tem (Foocci e CityJobs têm `OPENAI_API_KEY`, que
+  não serve: a rota do SDR é Claude).
+- **Onde ela está de verdade:** a produção conversa com o modelo, então a chave
+  existe — colada na tela de Integrações e guardada **cifrada no banco de
+  produção**, decifrável só com `CREDENTIALS_SECRET` dentro do contêiner. Fora
+  do alcance de qualquer sessão.
+
+**A ação, e só o CEO pode fazê-la:** GitHub → Settings → Secrets and variables →
+Actions → New repository secret → nome `ANTHROPIC_API_KEY`. Feito isso, um
+disparo do workflow **"Cliente falso — rodada ao vivo (SDR de IA)"** roda a
+bateria três vezes seguidas e fecha (ou reprova) a décima verificação. O segredo
+nunca aparece em log: o workflow o lê de dentro do runner e o passo de
+conferência afirma presença, nunca valor — mesma forma do `meta-raiox.yml` da
+casa irmã. **O log deste repositório é público.**
+
+### ⚪ O `malformado` continua ABERTO — e agora deixa rastro
+
+O diário do piloto mostrou, hoje às 15:39 e 15:40, **dois turnos seguidos**
+barrados por `malformado`: o modelo terminou de escrever e o que escreveu não era
+JSON válido. Não é `truncado` — o teto de 3.000 tokens e o remendo de JSON
+cortado não cobrem este caso. **A causa não foi encontrada e nenhum conserto foi
+inventado**: sem rodada ao vivo não há como reproduzir, e mexer no guarda para
+aceitar formato inválido seria afrouxar a régua, não consertar.
+
+O que subiu foi o **instrumento que faltava**: até hoje "malformado" era uma
+palavra e nada mais — o texto que falhou não é gravado (e não deve ser), então
+ninguém tinha como perguntar por quê. O diário passa a registrar a **forma** do
+pacote — houve `{`? sobrou texto antes/depois? em que posição o parser desistiu?
+que tamanho tinha? —, montada por `lib/agency/comercial/diagnostico-de-formato.
+ts`, que **não deixa passar uma letra do que o modelo escreveu** (teste alimenta
+o laudo com pacotes que contêm preço, pedido de e-mail e chave de API e exige
+que nenhuma palavra deles reapareça). Nem a mensagem do `JSON.parse` passa: ela
+cita o trecho ofensor, e só o número da posição sai.
+
+Três causas diferentes, três consertos diferentes — e a próxima vez dirá qual
+foi. Enquanto não disser, **`malformado` é defeito aberto e não se vende como
+resolvido**.
+
+---
+
 ## 🟢 23/08/2026 — O CLIENTE FALSO ENTROU EM OPERAÇÃO, E A PRIMEIRA RODADA ACHOU 4 DEFEITOS
 
 **A ordem do CEO, literal:** *"Não vou testar mais, porque não tenho mais tempo
