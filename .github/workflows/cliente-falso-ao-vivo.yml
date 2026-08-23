@@ -81,18 +81,47 @@ jobs:
       # não mente mais (a verificação passou a exigir prova de que o modelo
       # respondeu), mas gastar 45 minutos de runner para ouvir "não coberto" é
       # desperdício: melhor falhar no primeiro passo, dizendo o que falta.
+      #
+      # ── POR QUE ELE OLHA MAIS DE UM NOME ────────────────────────────────────
+      # A primeira rodada (23/08/2026) morreu aqui: `ANTHROPIC_API_KEY` não está
+      # nos segredos deste repositório. "Não está com este nome" e "não existe"
+      # são fatos diferentes, e concluir o segundo a partir do primeiro seria
+      # adivinhar (guardrail 1). Por isso o passo confere os apelidos que uma
+      # chave da Anthropic costuma receber e DIZ qual encontrou — presença, nunca
+      # valor. Achando um apelido, ele vale: o que a rota lê é a variável de
+      # ambiente `ANTHROPIC_API_KEY`, e traduzir o nome aqui dentro é mais honesto
+      # do que reprovar uma chave que existe por causa da etiqueta.
       - name: A chave existe? (presença, nunca valor)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          ANTHROPIC_API_TOKEN: ${{ secrets.ANTHROPIC_API_TOKEN }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
         run: |
-          if [ -z "${ANTHROPIC_API_KEY}" ]; then
-            echo "::error::ANTHROPIC_API_KEY não está nos segredos deste repositório."
-            echo "Sem ela a rodada ao vivo não mede o guarda do SDR — ela cai no motor"
-            echo "de regras e o placar devolve 'não coberto'. Quem cadastra o segredo é o CEO:"
-            echo "Settings -> Secrets and variables -> Actions -> New repository secret."
+          achado=""
+          for nome in ANTHROPIC_API_KEY CLAUDE_API_KEY ANTHROPIC_KEY ANTHROPIC_API_TOKEN AI_API_KEY; do
+            valor=$(printenv "$nome" || true)
+            if [ -n "$valor" ]; then
+              echo "• ${nome}: PRESENTE"
+              [ -z "$achado" ] && achado="$nome"
+            else
+              echo "• ${nome}: ausente"
+            fi
+          done
+          if [ -z "$achado" ]; then
+            echo "::error::Nenhuma chave da Anthropic nos segredos deste repositório."
+            echo "Sem ela a rodada ao vivo não mede o guarda do SDR — ela cai no motor de"
+            echo "regras e a décima verificação devolve 'não coberto', que NÃO é aprovação."
+            echo "Quem cadastra o segredo é o CEO, e só ele:"
+            echo "  Settings -> Secrets and variables -> Actions -> New repository secret"
+            echo "  Nome: ANTHROPIC_API_KEY"
+            echo "A chave que a produção usa hoje NÃO está no Railway: ela foi colada na tela"
+            echo "de Integrações e vive cifrada no banco de produção, fora do alcance daqui."
             exit 1
           fi
-          echo "✅ chave presente. O valor não é impresso em passo nenhum deste workflow."
+          echo "CHAVE_ENCONTRADA_EM=${achado}" >> "$GITHUB_ENV"
+          echo "✅ chave presente (em ${achado}). O valor não é impresso em passo nenhum."
 
       # ── POR QUE UMA RODADA POR VEZ, COM PAUSA, E NÃO `--rodadas=N` ──────────
       # `/api/sdr/chat` tem freio de ritmo de 30 chamadas por minuto por IP, e o
@@ -108,9 +137,17 @@ jobs:
       - name: A bateria, ao vivo
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          ANTHROPIC_API_TOKEN: ${{ secrets.ANTHROPIC_API_TOKEN }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
           RODADAS: ${{ github.event.inputs.rodadas || '3' }}
         run: |
           set -e
+          # `resolve-key.ts` lê exatamente `ANTHROPIC_API_KEY`. Quando a chave foi
+          # cadastrada com outro nome, a tradução acontece aqui — em memória, no
+          # runner, sem passar por arquivo nem por log.
+          export ANTHROPIC_API_KEY="$(printenv "${CHAVE_ENCONTRADA_EM}")"
           for n in $(seq 1 "${RODADAS}"); do
             echo "════════════ rodada ${n} de ${RODADAS} ════════════"
             npm run cliente-falso -- --ao-vivo
