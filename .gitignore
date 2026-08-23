@@ -96,3 +96,4 @@ scratchpad/
 # repositório faria a identidade de uma sessão vazar para outra (ou para o
 # histórico do git). Ver o bloco "Identidade da sessão" em reivindicar.mts.
 .dioli-quem
+.cliente-falso/

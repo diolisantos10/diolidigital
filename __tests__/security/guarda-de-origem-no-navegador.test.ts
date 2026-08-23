@@ -1,6 +1,7 @@
 import http from "node:http";
 import type { AddressInfo } from "node:net";
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { ehNavegacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 import { PORTAL_COOKIE } from "@/lib/agency/persistence/portal-cookie";
@@ -45,7 +46,46 @@ import { PORTAL_COOKIE } from "@/lib/agency/persistence/portal-cookie";
 // Instrumento: Chromium 141.0.7390.37 (/opt/pw-browsers/chromium-1194),
 // medido em 16/08/2026.
 
-const CAMINHO_CHROMIUM = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+// ── ONDE O CHROMIUM MORA: PERGUNTA-SE, NÃO SE ADIVINHA ─────────────────────
+//
+// 23/08/2026: este arquivo reprovou TODA rodada de CI — e com ela travou o
+// "Wait for CI" do Railway, ou seja, travou o deploy da casa inteira. A causa
+// não era a guarda: era o caminho fixo abaixo, com a VERSÃO do Chromium dentro
+// ("chromium-1194"). O `npx playwright install chromium` do `ci.yml` instala a
+// versão que o Playwright atual pede (1228 hoje), o caminho 1194 deixa de
+// existir, e o sentinela conclui — corretamente, pela regra que ele tem — que
+// não há navegador. Máquina de dev antiga continuava verde por ainda ter a
+// pasta velha: verde por herança, vermelho em qualquer máquina limpa.
+//
+// `lib/agency/design/renderizar.ts:185` já tinha escrito a lição desta casa com
+// todas as letras: *"caminho fixo com versão dentro é dívida com data
+// marcada"*. Aqui a dívida venceu. A ordem agora é a mesma de lá — PERGUNTAR
+// ao Playwright onde ele instalou, e só então cair para os caminhos conhecidos.
+//
+// ⛔ O SENTINELA NÃO FOI AFROUXADO: se não houver navegador em lugar nenhum, a
+// rodada continua reprovando. O que mudou é que ele passou a achar o navegador
+// que o CI de fato instala — antes ele reprovava com o Chromium ali do lado.
+const CAMINHOS_CONHECIDOS = [
+  process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?.trim() || "",
+  "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+].filter(Boolean);
+
+function acharChromium(): string | null {
+  try {
+    // `require` síncrono de propósito: a decisão "há prova ou não há" é tomada
+    // no carregamento do módulo, antes de qualquer `it`, e um `await import`
+    // não serve nesse ponto.
+    const { chromium } = createRequire(import.meta.url)("playwright") as typeof import("playwright");
+    const dele = chromium.executablePath();
+    if (dele && existsSync(dele)) return dele;
+  } catch {
+    // Sem playwright ou sem registro: cai para os caminhos conhecidos abaixo.
+  }
+  for (const c of CAMINHOS_CONHECIDOS) if (existsSync(c)) return c;
+  return null;
+}
+
+const CAMINHO_CHROMIUM = acharChromium();
 
 // ── S5-style: GATE QUE NÃO REGISTRA RESULTADO REPROVA (ver
 // __tests__/design/molde-render.test.ts, linhas ~39-70, para o precedente
@@ -55,7 +95,7 @@ const CAMINHO_CHROMIUM = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 // não pode virar verde por omissão: ou o navegador está aqui, ou a ausência
 // dele foi DECLARADA com GUARDA_SEM_NAVEGADOR=1 — e mesmo declarada, a
 // rodada registra que a prova não existiu, não finge que existiu.
-const NAVEGADOR_DISPONIVEL = existsSync(CAMINHO_CHROMIUM);
+const NAVEGADOR_DISPONIVEL = CAMINHO_CHROMIUM !== null;
 const DECLARADO_SEM_NAVEGADOR = process.env.GUARDA_SEM_NAVEGADOR === "1";
 const provaNoNavegador = NAVEGADOR_DISPONIVEL ? it : it.skip;
 
@@ -170,7 +210,7 @@ describe("a guarda de Sec-Fetch-Site contra um Chromium de verdade", () => {
     atacanteBase = `http://localhost:${portaAtacante}`;
 
     const { chromium } = await import("playwright");
-    browser = await chromium.launch({ executablePath: CAMINHO_CHROMIUM, args: ["--no-sandbox"] });
+    browser = await chromium.launch({ executablePath: CAMINHO_CHROMIUM!, args: ["--no-sandbox"] });
     context = await browser.newContext();
     // O MESMO cookie da casa: dioli_portal, httpOnly, SameSite=Lax — simula
     // uma sessão de portal já aberta antes do ataque.

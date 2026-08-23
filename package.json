@@ -20,6 +20,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "node scripts/seed-db.mjs",
     "db:studio": "prisma studio",
+    "cliente-falso": "tsx scripts/cliente-falso.mts",
     "sentinela": "tsx scripts/sentinela-do-deploy.mts",
     "distancia": "tsx scripts/distancia-do-deploy.mts",
     "portao": "tsx scripts/portao-do-deploy.mts",

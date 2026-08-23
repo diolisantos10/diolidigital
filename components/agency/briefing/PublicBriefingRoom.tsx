@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
-import { initProspectConvState, processProspectMessage, type ProspectConvState } from "@/lib/agency/prospect-engine";
+import { initProspectConvState, processProspectMessage, type ProspectConvState, type ContatoInicial } from "@/lib/agency/prospect-engine";
 import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from "@/lib/agency/sdr-agent";
 import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live-calculator";
 import { montarAvisoDeAnexo } from "@/lib/agency/anexo-nao-e-resposta";
@@ -42,6 +42,16 @@ export interface PublicBriefingRoomSubmitData {
 
 interface PublicBriefingRoomProps {
   onSubmit: (data: PublicBriefingRoomSubmitData) => void;
+  /**
+   * O que a pessoa declarou na porta (`LeadNaPorta`), antes de a sala abrir.
+   *
+   * 23/08/2026 — o piloto ao vivo do CEO: ele deu nome, e-mail e WhatsApp na
+   * porta e a primeira fala da consultora pediu o nome de novo, com o painel da
+   * direita marcando "Nome: aguardando…". A porta capturava e não entregava.
+   * Esta prop é a entrega. `null`/ausente é o caminho de quem escolheu não
+   * deixar contato — nesse caso a sala funciona exatamente como antes.
+   */
+  contatoDaPorta?: ContatoInicial;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -1327,8 +1337,37 @@ export function gerarTempClientId(): string {
   return `prospect-${Date.now()}-${crypto.randomUUID()}`;
 }
 
-export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
-  const [state,          setState]          = useState<ProspectConvState>(() => initProspectConvState());
+/**
+ * O contato da porta serve para FECHAR o briefing sem perguntar de novo?
+ *
+ * Só serve com nome E pelo menos um canal — que é exatamente a regra que a
+ * própria porta aplica (`LeadNaPorta`: nome obrigatório, e-mail OU WhatsApp).
+ * Sem canal não há para onde mandar a proposta, e aí a pergunta do fecho é a
+ * última chance de existir um endereço: pular ali seria trocar uma grosseria
+ * (perguntar duas vezes) por um prejuízo (briefing sem retorno possível).
+ *
+ * Devolve `null` quando a porta foi pulada ou veio incompleta — e `null` aqui
+ * significa "siga pelo passo de contato", nunca "descarte o briefing".
+ *
+ * Função pura e exportada de propósito: a decisão é regra de negócio e se prova
+ * chamando, sem montar a sala inteira.
+ */
+export function contatoUsavelDaPorta(
+  daPorta: ContatoInicial | undefined,
+): { nome: string; email: string; whatsapp: string } | null {
+  const nome = daPorta?.nome?.trim();
+  if (!nome) return null;
+  const email = daPorta?.email?.trim() ?? "";
+  const whatsapp = daPorta?.whatsapp?.trim() ?? "";
+  if (!email && !whatsapp) return null;
+  return { nome, email, whatsapp };
+}
+
+export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingRoomProps) {
+  // O contato da porta entra na semente do estado — antes do primeiro turno,
+  // não depois. Se entrasse por `useEffect`, a saudação já teria sido escrita
+  // pedindo o nome e a correção chegaria tarde demais para a pessoa que leu.
+  const [state,          setState]          = useState<ProspectConvState>(() => initProspectConvState(contatoDaPorta));
   const [inputText,      setInputText]      = useState("");
   const [showMaterials,  setShowMaterials]  = useState(false);
   const [linkAtts,       setLinkAtts]       = useState<RequestAttachment[]>([]);
@@ -1685,6 +1724,30 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   }
 
   const [confirmStep, setConfirmStep] = useState<"pending" | "confirmed">("pending");
+
+  // ── O MESMO DEFEITO ESTAVA ESPERANDO NA LINHA DE CHEGADA ───────────────────
+  //
+  // 23/08/2026: o passo final pede *"Falta só uma coisa: para onde mandamos sua
+  // proposta"* — para TODO MUNDO, inclusive para quem digitou nome, e-mail e
+  // WhatsApp na porta cinco minutos antes. É o mesmo "ninguém prestou atenção"
+  // que o CEO viu na primeira fala, só que no pior lugar possível: na hora de
+  // fechar, depois de a pessoa ter contado o negócio inteiro.
+  //
+  // Com contato declarado na porta não há o que perguntar — o dado já está aqui
+  // e `app/briefing/page.tsx` já o trata como o que manda no envio. O botão
+  // então ENVIA, em vez de abrir um formulário para recolher o que já se tem.
+  //
+  // Quem pulou a porta (`null`) segue pelo passo de contato como sempre: para
+  // essa pessoa a pergunta é a única chance de a proposta ter para onde ir.
+  const contatoJaDeclarado = contatoUsavelDaPorta(contatoDaPorta);
+
+  function confirmarOrcamento() {
+    if (contatoJaDeclarado) {
+      handleSubmitWithContact(contatoJaDeclarado);
+      return;
+    }
+    setConfirmStep("confirmed");
+  }
   const panelRef = useRef<HTMLDivElement>(null);
   const { casca: cascaDaAcao, barra: barraDaAcao } = useReservaDeBarra<HTMLDivElement, HTMLDivElement>();
 
@@ -1798,7 +1861,11 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               onKeyDown={handleKeyDown}
               placeholder={
                 conv.isFirstMessage
-                  ? "Diga seu nome e o nome do seu negócio para começar…"
+                  ? conv.scope.prospectName
+                    // Quem já se identificou na porta não é convidado a repetir
+                    // o nome nem no espaço reservado do campo de digitação.
+                    ? "Diga o nome do seu negócio para começar…"
+                    : "Diga seu nome e o nome do seu negócio para começar…"
                   : "Digite sua resposta…"
               }
               rows={2}
@@ -2019,7 +2086,8 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               {/* Confirm CTA — appears when canSubmit */}
               {canSubmit && (
                 <button
-                  onClick={() => setConfirmStep("confirmed")}
+                  onClick={confirmarOrcamento}
+                  disabled={submitting}
                   style={{ touchAction: "manipulation" }}
                   className="w-full h-11 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[13px] font-semibold transition-colors"
                 >
@@ -2065,9 +2133,14 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         >
           <button
             onClick={() => {
-              setConfirmStep("confirmed");
-              setTimeout(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+              confirmarOrcamento();
+              // A rolagem só faz sentido quando ainda há um passo a mostrar no
+              // painel; com o contato já declarado, o envio acontece aqui mesmo.
+              if (!contatoJaDeclarado) {
+                setTimeout(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+              }
             }}
+            disabled={submitting}
             style={{ touchAction: "manipulation" }}
             className="w-full h-12 rounded-[10px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[14px] font-semibold transition-colors"
           >

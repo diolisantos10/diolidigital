@@ -50,6 +50,10 @@ import {
 // teste não pode morar num arquivo com essa restrição. Ver o cabeçalho do
 // módulo novo para o raciocínio completo.
 import { sistemaDoSdr } from "@/lib/agency/comercial/prompt-do-sdr";
+// "malformado" sozinho é um nome, não um achado — ver o cabeçalho do módulo.
+// Ele devolve FORMA (houve `{`? sobrou texto fora? onde o parser desistiu?),
+// nunca uma letra do que o modelo escreveu.
+import { formaDaFalha, laudoEmUmaFrase } from "@/lib/agency/comercial/diagnostico-de-formato";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
 const MODEL       = "claude-sonnet-4-6";
@@ -501,7 +505,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // diferentes no diário (item 5 do despacho).
     if (!parsed) {
       const motivo = cortadoPeloTeto ? "truncado" : "malformado";
-      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: motivo });
+      await registrar({
+        ...fio,
+        doVisitante: body.currentMessage,
+        motivoDaRecusa: motivo,
+        formaDaFalha: laudoEmUmaFrase(formaDaFalha(text)),
+      });
       return NextResponse.json({ ok: false, reason: motivo });
     }
 

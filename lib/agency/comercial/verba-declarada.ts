@@ -116,7 +116,24 @@ export function confrontoDeVerba(
   faixaDeclarada: unknown,
   totalMin: number,
 ): ConfrontoDeVerba | null {
-  const teto = tetoDaFaixa(faixaDeclarada);
+  // ── A VERBA DITA COM AS PALAVRAS DO CLIENTE TAMBÉM É VERBA ────────────────
+  //
+  // `tetoDaFaixa` só reconhece o vocabulário interno da casa: o id da faixa
+  // ("pacote") ou o rótulo exato ("entre R$ 150 e R$ 500"). Isso serve para o
+  // que o modelo devolve — e falha justamente para o que a PESSOA escreve.
+  //
+  // Cliente falso, 23/08/2026: perguntado quanto podia investir, respondeu
+  // *"Nosso orçamento é de R$ 500 por mês."* O campo foi gravado direitinho, e
+  // ainda assim `tetoDaFaixa` devolveu `null` — a frase não é rótulo de faixa.
+  // Sem teto não há confronto, e sem confronto o cliente recebe a estimativa
+  // cheia sem uma palavra sobre a diferença. O defeito de 16/08 sobrevivendo
+  // dentro do módulo escrito para matá-lo.
+  //
+  // A leitura do valor declarado é o SEGUNDO caminho, nunca o primeiro: quando
+  // a faixa oficial é reconhecida, ela manda (inclusive para devolver `null` em
+  // "acima de R$ 5.000", que é teto infinito e não confronta com nada).
+  const declarado = tetoDeclaradoEmReais(faixaDeclarada);
+  const teto = tetoDaFaixa(faixaDeclarada) ?? declarado;
   if (teto === null || !Number.isFinite(teto)) return null;
 
   if (typeof totalMin !== "number" || !Number.isFinite(totalMin) || totalMin <= 0) return null;
@@ -140,7 +157,13 @@ export function confrontoDeVerba(
   // vazava para o texto e o cliente lia *"você comentou que pensa em investir
   // pacote por mês"*. O fallback preserva a frase original: normalizar nunca
   // pode APAGAR o que a pessoa disse.
-  const rotulo = normalizarFaixa(faixaDeclarada) ?? String(faixaDeclarada).trim();
+  //
+  // Quando o teto veio da frase do cliente, o rótulo é o VALOR normalizado, não
+  // a frase inteira: a frase entrava crua na sentença e o cliente lia *"você
+  // comentou que pensa em investir Nosso orçamento é de R$ 500 por mês. por
+  // mês"*. Nomear a diferença só funciona se a frase que a nomeia for legível.
+  const rotulo = normalizarFaixa(faixaDeclarada)
+    ?? (declarado !== null ? precoEmReais(declarado) : String(faixaDeclarada).trim());
 
   return {
     teto,
@@ -148,6 +171,42 @@ export function confrontoDeVerba(
     diferenca: totalMin - teto,
     cabemNaVerba,
   };
+}
+
+/**
+ * O teto que o cliente declarou EM PALAVRAS, em reais. `null` quando a frase não
+ * traz número nenhum de dinheiro.
+ *
+ * Pega o MAIOR valor citado, e isso é deliberado: "de R$ 300 a R$ 600" é uma
+ * pessoa dizendo que o limite dela é 600. Ficar com o 300 faria a casa avisar
+ * que estourou a verba de quem ainda tinha folga — desnecessário, e o aviso que
+ * aparece à toa é o aviso que para de ser lido.
+ *
+ * Exige dígito e contexto de dinheiro ("R$", "reais", "mil", "k"). Texto livre
+ * sem número — "uns quinhentos reais" — continua devolvendo `null`: deduzir
+ * valor de palavra por extenso é chutar o bolso do cliente, e o guardrail desta
+ * casa diz que ausência de informação não é informação.
+ */
+export function tetoDeclaradoEmReais(valor: unknown): number | null {
+  if (typeof valor !== "string") return null;
+  const t = valor.toLowerCase();
+  const achados: number[] = [];
+
+  for (const m of t.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:mil\b|k\b)/g)) {
+    achados.push(Math.round(parseFloat(m[1].replace(",", ".")) * 1000));
+  }
+  for (const m of t.matchAll(/r\$\s*(\d{1,3}(?:\.\d{3})+|\d+)|(\d{1,3}(?:\.\d{3})+|\d+)\s*reais/g)) {
+    const bruto = (m[1] ?? m[2]).replace(/\./g, "");
+    achados.push(parseInt(bruto, 10));
+  }
+
+  // A janela existe para barrar número que não é verba: "500" solto num texto
+  // sem moeda não entra (o regex já exige moeda), e valores absurdos dos dois
+  // lados denunciam leitura errada — melhor não confrontar do que confrontar
+  // com um teto inventado.
+  const validos = achados.filter((n) => Number.isFinite(n) && n >= 50 && n <= 1_000_000);
+  if (validos.length === 0) return null;
+  return Math.max(...validos);
 }
 
 /**

@@ -304,11 +304,34 @@ export function buildConsultativeFrequencyQuestion(scope: BriefingScope): string
   return "Quantas postagens por semana você imagina para o feed? **3 por semana** é um bom ritmo para começar — mas posso ajustar para o seu negócio.";
 }
 
-// NOTE: never quotes a price. The estimate is shown only after Google sign-in.
-// This question just nudges toward closing the discovery.
+// ─── A PERGUNTA DA VERBA TEM DE PERGUNTAR A VERBA ────────────────────────────
+//
+// Esta função existe para dar voz de consultora à pergunta `budget_range`. Até
+// 23/08/2026 ela fazia o contrário: no lugar da pergunta, devolvia um FECHAMENTO
+// — *"Acho que já tenho o essencial! Tem mais algum detalhe (…) ou posso
+// preparar seu orçamento?"*. A pergunta existia no sistema, era enfileirada, era
+// marcada como feita — e a palavra "orçamento" nunca era pedida ao cliente.
+//
+// O preço dessa troca está medido. Cliente falso, primeira rodada: a casa
+// atravessou a entrevista inteira, encerrou com essa frase e entregou
+// R$ 4.500–7.700/mês a quem tinha R$ 500/mês para gastar — em silêncio, porque
+// sem verba no escopo o confronto verba × estimativa (`verba-declarada.ts`)
+// nunca nasce. É o caso CityJobs de 16/08 (R$ 500 declarados, R$ 1.800–3.400
+// entregues) se repetindo por outra porta.
+//
+// ⚠️ CONTINUA SEM CITAR PREÇO. A estimativa só aparece depois do login — a regra
+// antiga era essa e ela não foi afrouxada. Perguntar quanto o cliente pode
+// investir não é dizer quanto custa: é a única forma de a casa saber, ANTES de
+// mandar um número, se esse número cabe no bolso de quem vai lê-lo.
 export function buildBudgetQuestion(scope: BriefingScope, _estimate: LiveEstimate): string {
   const biz = scope.businessName ?? "seu negócio";
-  return `Acho que já tenho o essencial do **${biz}**! Tem mais algum detalhe que você queira incluir, ou posso preparar seu orçamento?`;
+  // A ressalva da verba de anúncios muda conforme o que já foi conversado:
+  // repetir "já me disse" a quem nunca falou de anúncio é a casa fingindo uma
+  // memória que não tem.
+  const ressalva = scope.wantsPaidTraffic
+    ? " (só a gestão — a verba de anúncios que você já me passou é à parte)"
+    : " (a verba de anúncios, se um dia entrar, é à parte disso)";
+  return `Para eu fechar o escopo do **${biz}**: qual faixa de orçamento mensal você tem em mente para a gestão?${ressalva}`;
 }
 
 // ── Submission gate ───────────────────────────────────────────────────────────

@@ -156,10 +156,67 @@ describe("(c) verba não declarada não inventa comparação", () => {
     }
   });
 
-  it("texto que não é faixa da casa é descartado, nunca adivinhado", () => {
-    for (const lixo of ["mais ou menos uns 500 reais", "tanto faz", "R$ 500", "pouco"]) {
-      expect(confrontoDeVerba(lixo, PISO_DO_PILOTO)).toBeNull();
+  it("texto sem número nenhum é descartado, nunca adivinhado", () => {
+    // Aqui não há verba: há jeito de falar. Deduzir um teto de "pouco" ou
+    // "tanto faz" é chutar o bolso da pessoa e depois avisá-la de que estourou
+    // um limite que ela nunca declarou.
+    for (const semNumero of ["tanto faz", "pouco", "uns quinhentos reais", "o que couber"]) {
+      expect(confrontoDeVerba(semNumero, PISO_DO_PILOTO)).toBeNull();
     }
+  });
+
+  // ─── ESTA ASSERÇÃO FOI INVERTIDA EM 23/08/2026, E O MOTIVO FICA ────────────
+  //
+  // Até aqui o teste exigia que "R$ 500" e "mais ou menos uns 500 reais"
+  // fossem DESCARTADOS, no mesmo balde de "tanto faz" e "pouco", sob a regra
+  // de que só o vocabulário da casa ("entre R$ 150 e R$ 500", "pacote") conta
+  // como verba declarada.
+  //
+  // A regra estava certa sobre uma coisa e errada sobre outra. Não inventar
+  // faixa a partir de jeito de falar continua valendo. Mas **ler o número que
+  // a pessoa escreveu não é inventar nada** — e o cliente escreve com as
+  // palavras dele, não com o rótulo interno da casa.
+  //
+  // O preço da versão antiga está medido. Cliente falso, 23/08/2026: à
+  // pergunta da verba o cliente respondeu *"Nosso orçamento é de R$ 500 por
+  // mês."*, o campo foi gravado, `confrontoDeVerba` devolveu `null` porque a
+  // frase não era rótulo — e ele recebeu R$ 4.000–6.500/mês em silêncio. O
+  // incidente de 16/08 (o CEO, R$ 500 declarados, R$ 1.800–3.400 entregues)
+  // acontecendo DENTRO do módulo escrito para matá-lo.
+  //
+  // E o número literal é um teto mais FIEL que o rótulo, não menos: quem diz
+  // "R$ 800" tem R$ 800, enquanto a faixa que o contém iria até R$ 1.500 e
+  // calaria sobre uma conta de R$ 1.200 que ele não pode pagar.
+  it("o número que a pessoa escreveu é verba declarada — e é o teto dela", () => {
+    for (const comoAPessoaFala of [
+      "R$ 500",
+      "R$ 500 por mês",
+      "Nosso orçamento é de R$ 500 por mês.",
+      "mais ou menos uns 500 reais",
+    ]) {
+      const c = confrontoDeVerba(comoAPessoaFala, PISO_DO_PILOTO);
+      expect(c, comoAPessoaFala).not.toBeNull();
+      expect(c!.teto).toBe(500);
+      expect(c!.diferenca).toBe(PISO_DO_PILOTO - 500);
+    }
+  });
+
+  it("de uma faixa dita à mão, o teto é o MAIOR número — não o primeiro", () => {
+    // "de R$ 300 a R$ 600" é uma pessoa dizendo que o limite dela é 600.
+    // Ficar com o 300 faria a casa avisar de estouro a quem ainda tinha folga,
+    // e aviso que aparece à toa é aviso que para de ser lido.
+    expect(confrontoDeVerba("de R$ 300 a R$ 600", 500)).toBeNull();
+    expect(confrontoDeVerba("de R$ 300 a R$ 600", 900)!.teto).toBe(600);
+  });
+
+  it("o cliente lê o valor formatado, nunca a frase dele inteira", () => {
+    // Sem normalizar, a sentença saía *"você comentou que pensa em investir
+    // Nosso orçamento é de R$ 500 por mês. por mês"*. Nomear a diferença só
+    // serve se a frase que a nomeia for legível.
+    const c = confrontoDeVerba("Nosso orçamento é de R$ 500 por mês.", PISO_DO_PILOTO)!;
+    const texto = semNbsp(textoDaVerbaEstourada(c).join("\n"));
+    expect(texto).toContain("investir R$ 500 por mês");
+    expect(texto).not.toMatch(/investir Nosso or[çc]amento/i);
   });
 
   it("estimativa ausente ou inválida também não vira comparação", () => {

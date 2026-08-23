@@ -14,6 +14,271 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🔴 23/08/2026 — A DÉCIMA VERIFICAÇÃO NÃO FECHOU, E O INSTRUMENTO ESTAVA MENTINDO SOBRE ELA
+
+**A ordem do CEO:** *"pode rodar com IA, quero o teste até o final"* — custo de
+IA liberado para fechar a única verificação do cliente falso que nunca foi
+medida: o guarda do SDR ("nenhuma resposta pode ser barrada pelo guarda — plano
+B atendendo em silêncio é falha").
+
+### O defeito que apareceu no caminho, e era o pior tipo
+
+A bateria chamava a rota real do SDR e **jogava a resposta dela fora**. A
+verificação do guarda decidia lendo o diário: sem linha de barra, veredito
+"passou". Só que o diário TAMBÉM fica vazio quando a rota recusa **antes** de
+chamar o modelo — sem chave (`not_configured`) ela volta sem escrever nada, e no
+429 do próprio freio de ritmo, idem.
+
+Resultado medido nesta máquina: `npm run cliente-falso -- --ao-vivo` **sem chave
+nenhuma** fechava **10 de 10 em verde**, com a décima verificação afirmando sobre
+um SDR que nunca falou. É o defeito nº 4 do CEO — *o plano B atende, ninguém
+percebe, a tela fica verde* — cometido por dentro do instrumento que existe para
+pegá-lo.
+
+**Consertado.** A bateria mede o desfecho de cada chamada ao SDR; a verificação
+passou a exigir prova de que o modelo respondeu. Recusa antes do modelo é "não
+coberto" **com o motivo escrito**; queda do modelo com o cliente na frente
+(`provider_error`, `timeout`, `truncado`, `malformado`) é **quebra**. O placar
+mostra, por rodada, quantos turnos o modelo respondeu e cada queda com o motivo.
+A régua não foi afrouxada em ponto nenhum — ela deixou de aprovar o que não
+mediu. Prova: a mesma rodada sem chave agora devolve *"16 de 16 turnos nem
+chegaram ao modelo (not_configured) — o guarda não foi exercitado, e não medir
+não é aprovar"*.
+
+### 🔴 ⛔ BLOQUEADO NO CEO — não há chave de IA alcançável para a rodada ao vivo
+
+Levantado, não deduzido:
+
+- **O que a rodada ao vivo exige é SÓ a variável `ANTHROPIC_API_KEY`.** O banco
+  descartável da bateria nasce sem workspace nenhum, então `chaveDeRotaPublica`
+  não tem cofre a consultar e cai direto em `chaveDoAmbiente`. Não é preciso
+  banco, nem workspace, nem linha de integração.
+- **Ela não está nos segredos deste repositório** — conferido no runner, por
+  presença e nunca por valor, sob cinco nomes plausíveis (`ANTHROPIC_API_KEY`,
+  `CLAUDE_API_KEY`, `ANTHROPIC_KEY`, `ANTHROPIC_API_TOKEN`, `AI_API_KEY`):
+  todos ausentes.
+- **Ela não está no Railway.** O serviço `diolidigital` não tem essa variável, e
+  nenhum outro projeto da conta tem (Foocci e CityJobs têm `OPENAI_API_KEY`, que
+  não serve: a rota do SDR é Claude).
+- **Onde ela está de verdade:** a produção conversa com o modelo, então a chave
+  existe — colada na tela de Integrações e guardada **cifrada no banco de
+  produção**, decifrável só com `CREDENTIALS_SECRET` dentro do contêiner. Fora
+  do alcance de qualquer sessão.
+
+**A ação, e só o CEO pode fazê-la:** GitHub → Settings → Secrets and variables →
+Actions → New repository secret → nome `ANTHROPIC_API_KEY`. Feito isso, um
+disparo do workflow **"Cliente falso — rodada ao vivo (SDR de IA)"** roda a
+bateria três vezes seguidas e fecha (ou reprova) a décima verificação. O segredo
+nunca aparece em log: o workflow o lê de dentro do runner e o passo de
+conferência afirma presença, nunca valor — mesma forma do `meta-raiox.yml` da
+casa irmã. **O log deste repositório é público.**
+
+### ⚪ O `malformado` continua ABERTO — e agora deixa rastro
+
+O diário do piloto mostrou, hoje às 15:39 e 15:40, **dois turnos seguidos**
+barrados por `malformado`: o modelo terminou de escrever e o que escreveu não era
+JSON válido. Não é `truncado` — o teto de 3.000 tokens e o remendo de JSON
+cortado não cobrem este caso. **A causa não foi encontrada e nenhum conserto foi
+inventado**: sem rodada ao vivo não há como reproduzir, e mexer no guarda para
+aceitar formato inválido seria afrouxar a régua, não consertar.
+
+O que subiu foi o **instrumento que faltava**: até hoje "malformado" era uma
+palavra e nada mais — o texto que falhou não é gravado (e não deve ser), então
+ninguém tinha como perguntar por quê. O diário passa a registrar a **forma** do
+pacote — houve `{`? sobrou texto antes/depois? em que posição o parser desistiu?
+que tamanho tinha? —, montada por `lib/agency/comercial/diagnostico-de-formato.
+ts`, que **não deixa passar uma letra do que o modelo escreveu** (teste alimenta
+o laudo com pacotes que contêm preço, pedido de e-mail e chave de API e exige
+que nenhuma palavra deles reapareça). Nem a mensagem do `JSON.parse` passa: ela
+cita o trecho ofensor, e só o número da posição sai.
+
+Três causas diferentes, três consertos diferentes — e a próxima vez dirá qual
+foi. Enquanto não disser, **`malformado` é defeito aberto e não se vende como
+resolvido**.
+
+---
+
+## 🟢 23/08/2026 — O CLIENTE FALSO ENTROU EM OPERAÇÃO, E A PRIMEIRA RODADA ACHOU 4 DEFEITOS
+
+**A ordem do CEO, literal:** *"Não vou testar mais, porque não tenho mais tempo
+nem paciência. Você vai criar um agente de teste, um ambiente de teste — pra
+validar o projeto do início ao fim, um projeto fictício. Errou, voltou,
+corrigiu. Teste assistido, automático, de cliente. Cria esse ambiente e já
+começa a testar imediatamente."*
+
+Ele tinha acabado de gastar cinco minutos testando à mão e achado três defeitos.
+Testar à mão não escala.
+
+**O que subiu:** `npm run cliente-falso`. Um cliente fictício reativo — ele LÊ a
+pergunta da casa e responde aquilo, como uma pessoa — percorrendo a esteira REAL
+de ponta a ponta: porta de contato → sala de briefing → conversa → anexo →
+portão de envio → `POST /api/brain/client-requests` → `entregarOrcamentosPendentes`
+→ o texto que chega ao cliente. Roda contra um SQLite descartável em
+`.cliente-falso/`, nunca contra produção, com trava de saída dentro de
+`sendEmail`. Custo de IA: **R$ 0,00** no modo padrão.
+
+**O que a primeira rodada achou, com a esteira de hoje (sem SDR de IA):**
+
+1. **A oferta de documento virou dado do cliente.** À pergunta "quem é o seu
+   público-alvo?", o cliente respondeu *"Posso te mandar nosso briefing em PDF,
+   ajuda?"* — e a frase foi gravada no campo `targetAudience` do pedido. É o
+   defeito nº 2 da lista do CEO, e pior do que ele descreveu: não é só ser
+   atropelado, é ter a colaboração transformada em dado falso.
+2. **A casa repetiu a mesma fala.** Depois do anexo, ela repetiu palavra por
+   palavra a pergunta de contrato mensal/campanha pontual. O anexo não consumir
+   pergunta está certo (conserto de 16/08); repetir sem sequer acusar o
+   recebimento do arquivo, não.
+3. **A casa NUNCA perguntou a verba da gestão.** Ela perguntou a plataforma dos
+   anúncios e a verba de ANÚNCIOS — duas vezes, depois de o cliente ter dito
+   *"anúncios não, agora não"* — e fechou a entrevista com *"acho que já tenho o
+   essencial"*. `budgetRange` chegou vazio ao pedido. A pergunta `budget_range`
+   existe em `question-engine.ts` e não disparou.
+4. **Orçamento de R$ 4.500–7.700/mês entregue a um cliente de R$ 500/mês, em
+   silêncio.** Consequência direta do item 3: sem verba no escopo, o
+   `confrontoDeVerba` não nasce, e o texto entregue não diz uma palavra sobre a
+   diferença. É o caso CityJobs de 16/08 acontecendo de novo por outra porta — e
+   desta vez quem o encontrou foi uma máquina, em três segundos.
+
+**O que PASSOU, e vale registrar:** o nome da porta não é mais perguntado duas
+vezes; a conversão "2 posts por dia" → 14/semana chegou certa ao escopo; o
+briefing virou pedido e o orçamento foi entregue.
+
+**O que ficou de fora desta rodada:** o SDR de IA. Sem chave configurada nesta
+máquina, a rodada padrão exercita só o motor de regras — que é justamente quem
+atende o cliente quando o guarda barra a resposta da IA. A verificação do guarda
+(`parse_error`) devolve **"não coberto"**, nunca "passou": silêncio não é
+aprovação.
+
+### 🟢 FECHADO na mesma tarde — commit `f29bf9d3`
+
+A ordem do CEO era o laço: *"Você tem que mandar consertar tudooooo até rodar."*
+Os quatro defeitos foram consertados **na origem**, e a rodada seguinte fechou
+9 de 9 verificações medíveis — repetida **3 vezes seguidas** para provar que não
+foi sorte.
+
+O que causava cada um, uma frase cada:
+
+1. **Oferta de documento virando dado** — a frase entrava no motor como resposta
+   comum. Entrou na mesma trava do recado de anexo (`anexo-nao-e-resposta.ts`),
+   nos DOIS motores, para o defeito não escolher a porta.
+2. **Fala repetida depois do anexo** — proteger o escopo resolvia metade: o campo
+   parava de ser envenenado e a conversa passava a ignorar o arquivo. Agora a
+   casa acusa o recebimento pelo nome do arquivo antes de retomar a pergunta.
+3. **A verba nunca perguntada** — `buildBudgetQuestion` devolvia um FECHAMENTO no
+   lugar da pergunta ("Acho que já tenho o essencial!"), e `budget_range` estava
+   em `OPTIONAL_QIDS`, então o portão abria antes dela e a pergunta virava
+   despedida. A pergunta voltou a perguntar, e agora trava o portão.
+4. **R$ 4.500–7.700 para quem tem R$ 500** — além do item 3, `confrontoDeVerba`
+   só lia o vocabulário interno da casa ("pacote", "entre R$ 150 e R$ 500") e
+   devolvia `null` para *"Nosso orçamento é de R$ 500 por mês"*. Agora lê o
+   número que a PESSOA escreveu. Texto sem número ("tanto faz") continua `null`.
+
+De brinde, o mesmo percurso expôs um quinto: **"Anúncios não, agora não." era
+lido como SIM**, porque continha a palavra "anúncios" — e a casa perguntava a
+plataforma e a verba dos anúncios logo depois de um não claro. A negação passou
+a ganhar da palavra-chave.
+
+**Duas verificações existentes foram corrigidas, não afrouxadas.** Uma delas
+(`verba-declarada-o-que-cabe`) exigia que "R$ 500" fosse DESCARTADO, no mesmo
+balde de "tanto faz" — estava mandando calar exatamente a frase que o CEO
+digitou. A outra tinha um percurso "completo" que nunca respondia a verba.
+
+**⚠️ CONTINUA NÃO COBERTO:** o guarda do SDR de IA. Sem chave nesta máquina, as
+3 rodadas verdes exercitaram só o motor de regras. Nove verdes de dez, e a
+décima não foi medida — não foi aprovada.
+
+## 🟢 23/08/2026 — PILOTO AO VIVO: A PORTA CAPTURAVA O CONTATO E NÃO ENTREGAVA
+
+**O relato do CEO, ao reiniciar o teste em `/briefing`:** *"Primeiro erro, já
+pediu o meu nome novamente, se eu dei meu nome na página de entrada."* Ele
+preencheu nome, e-mail e WhatsApp no formulário de entrada (`LeadNaPorta`) e a
+primeira fala da consultora foi *"Para começar, qual é o seu nome e o nome do
+seu negócio?"*. O painel da direita marcava **"Nome: aguardando…"** — a prova de
+que o dado da porta não chegava ao escopo da conversa.
+
+**A causa, medida e não deduzida:** `contatoDaPorta` existia em
+`app/briefing/page.tsx` desde 16/08 e era lido **só no envio final** do
+briefing. Nunca entrava no escopo que abre a conversa. É a **seta faltando**
+(D-003): o dado existe, o consumidor existe, e não há ligação entre os dois.
+
+**Por que o prompt não segurou:** a regra *"cliente que já se identificou e é
+perguntado outra vez conclui que ninguém prestou atenção"* já estava escrita no
+prompt do SDR. Ela não falhou por redação — **nunca foi alimentada**. Prompt é
+aviso; o escopo é a trava.
+
+**Eram DOIS vazamentos no mesmo caminho**, e o segundo só apareceu porque o
+conserto foi conferido na TELA, não no papel:
+
+1. `initProspectConvState()` nascia sempre de `emptyScope()` e não recebia nada
+   da porta — saudação e painel pediam o que já tinha sido dado.
+2. `processProspectMessage()` reconstruía o escopo **do zero** na primeira
+   resposta (`mergeScopeDelta(emptyScope(), …)`), matando o nome semeado: o
+   painel voltava a "aguardando…" e a pergunta do nome reaparecia **um turno
+   depois**. Meio conserto é conserto que a pessoa ainda sente.
+
+**O que ficou de pé:** o escopo nasce com o que a porta entregou
+(`prospectName`, `prospectPhone`); a saudação é condicional (cumprimenta pelo
+nome e pede só o que falta); e o palpite do parser não sobrescreve o que a
+pessoa declarou explicitamente. O **e-mail NÃO desce** para o escopo de
+propósito — o escopo inteiro vai serializado para dentro do prompt do modelo
+(`app/api/sdr/chat/route.ts`), e a doutrina da casa é que e-mail não trafega
+pelo caminho do chat; o envio final continua usando o contato da porta.
+
+**Quem pulou a porta continua igual**, e isso é caminho de propósito, não
+sobra: sem nome, a pergunta do nome vale, e a heurística "3+ palavras = nome de
+pessoa" segue valendo lá (foi **condicionada** ao que a saudação de fato
+perguntou, não trocada). `__tests__/briefing/nome-da-porta-nao-e-perguntado-de-novo.test.ts`
+trava as duas metades.
+
+**Conferido na tela** (navegador de verdade, dev local), não só no teste: com
+contato na porta, "Olá, Dioli! … qual é o nome do seu negócio?" e painel com
+"Nome: Dioli Santos"; depois de responder o negócio, o nome PERMANECE e a
+conversa segue. Sem contato, tudo como antes.
+
+**O que NÃO foi conferido:** o comportamento do SDR com o modelo de verdade —
+no ambiente local a chamada a `/api/sdr/chat` não completa, e a conversa cai no
+motor de regras. O escopo semeado chega ao modelo pelo mesmo caminho que
+qualquer outro dado do escopo (`route.ts`, "dados já captados"), mas isso não
+foi exercitado com o modelo ao vivo.
+
+### 🟢 O mesmo defeito esperava na LINHA DE CHEGADA
+
+Achado ao ler o caminho inteiro, não só o trecho relatado: o passo final da sala
+pedia *"Falta só uma coisa: para onde mandamos sua proposta"* para **todo
+mundo** — inclusive para quem tinha digitado nome, e-mail e WhatsApp na porta
+minutos antes. É o mesmo "ninguém prestou atenção" da primeira fala, no pior
+lugar possível: na hora de fechar, depois de a pessoa ter contado o negócio
+inteiro.
+
+Com contato declarado na porta (nome **e** pelo menos um canal), o botão "Sim,
+quero meu orçamento" agora **envia** em vez de abrir um formulário para recolher
+o que já se tem. Quem pulou a porta — ou deixou nome sem canal — segue pelo
+passo de contato como sempre: ali a pergunta é a única chance de a proposta ter
+para onde ir, e pular seria trocar uma grosseria por um prejuízo. A regra virou
+função pura testada (`contatoUsavelDaPorta`).
+
+### 🟢 O achado de tabela: o CI estava vermelho para TODO commit, e travava o deploy
+
+Descoberto ao conferir se o conserto acima tinha chegado ao ar: **não tinha**, e
+não por causa dele. `__tests__/security/guarda-de-origem-no-navegador.test.ts`
+reprovava toda rodada, e o "Wait for CI" do Railway — funcionando como
+projetado — não promovia nada. **A casa inteira estava com a entrega travada.**
+
+A causa não era a guarda de origem: era o caminho do Chromium fixado **com a
+versão dentro** (`/opt/pw-browsers/chromium-1194/...`). O `ci.yml` roda
+`npx playwright install chromium`, que instala a versão que o Playwright atual
+pede (1228 hoje); o caminho 1194 deixa de existir e o sentinela conclui, pela
+regra que ele tem, que não há navegador. Máquina de dev antiga seguia verde por
+ainda ter a pasta velha — **verde por herança, vermelho em máquina limpa**.
+
+`lib/agency/design/renderizar.ts:185` já tinha a lição escrita: *"caminho fixo
+com versão dentro é dívida com data marcada"*. Aqui ela venceu. O arquivo passou
+a **perguntar ao Playwright** onde ele instalou, com os caminhos conhecidos como
+recurso. **O sentinela não foi afrouxado** — provado por execução nas duas
+direções: com navegador, as 9 provas rodam; escondendo o navegador
+(`PLAYWRIGHT_BROWSERS_PATH` vazio + lista de caminhos removida), a rodada
+reprova com a mesma mensagem.
+
 ## 🔴 16/08/2026 (noite) — A COLHEITA DA NOITE: MÉTRICA MANIPULÁVEL, RESET TRAVADO PELO DIRETOR, E A JUNTA ENTRE DUAS REGRAS CERTAS
 
 **Por que este registro existe:** decisão tomada em conversa vira registro na

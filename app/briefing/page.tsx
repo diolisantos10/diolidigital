@@ -246,7 +246,11 @@ export default function BriefingPage() {
           Converse com a Dioli, conte o que você precisa e receba uma estimativa inicial de escopo, prazo e investimento.
         </p>
       </div>
-      <PublicBriefingRoom onSubmit={handleSubmit} />
+      {/* O contato da porta desce para a sala. Sem esta prop o dado ficava
+          preso aqui, usado só no envio final do briefing — e a conversa abria
+          perguntando o nome que a pessoa acabara de digitar (piloto do CEO,
+          23/08/2026). Capturar sem entregar é o mesmo que não capturar. */}
+      <PublicBriefingRoom onSubmit={handleSubmit} contatoDaPorta={contatoDaPorta} />
     </div>
   );
 }
