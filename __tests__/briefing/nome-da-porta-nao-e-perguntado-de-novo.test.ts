@@ -25,6 +25,7 @@
 
 import { describe, it, expect } from "vitest";
 import { initProspectConvState, processProspectMessage } from "@/lib/agency/prospect-engine";
+import { contatoUsavelDaPorta } from "@/components/agency/briefing/PublicBriefingRoom";
 
 const pediuONome = (texto: string) => /qual é o seu nome/i.test(texto);
 
@@ -99,5 +100,30 @@ describe("o nome da porta sobrevive ao primeiro turno da conversa", () => {
     // foi trocada — foi condicionada ao que a saudação de fato perguntou.
     const semPorta = processProspectMessage("Padaria Aurora Central", initProspectConvState(null));
     expect(semPorta.conv.scope.prospectName).toBe("Padaria Aurora Central");
+  });
+});
+
+// ─── E O MESMO DEFEITO ESPERAVA NA LINHA DE CHEGADA ────────────────────────
+// O passo final da sala pedia *"Falta só uma coisa: para onde mandamos sua
+// proposta"* para TODO MUNDO — inclusive para quem tinha digitado nome, e-mail
+// e WhatsApp na porta minutos antes. É o mesmo "ninguém prestou atenção" da
+// primeira fala, no pior lugar possível: na hora de fechar, depois de a pessoa
+// ter contado o negócio inteiro. Quem pulou a porta continua sendo perguntado
+// ali, porque para essa pessoa aquela é a única chance de a proposta ter para
+// onde ir — pular seria trocar uma grosseria por um prejuízo.
+describe("o fecho não repergunta o contato que já foi dado na porta", () => {
+  it("nome + um canal: fecha direto com o que a pessoa declarou", () => {
+    expect(contatoUsavelDaPorta({ nome: "Dioli Santos", email: "d@x.com", whatsapp: "" }))
+      .toEqual({ nome: "Dioli Santos", email: "d@x.com", whatsapp: "" });
+    expect(contatoUsavelDaPorta({ nome: "Dioli Santos", email: "", whatsapp: "11989400692" }))
+      .toEqual({ nome: "Dioli Santos", email: "", whatsapp: "11989400692" });
+  });
+
+  it("porta pulada, ou sem canal, ou sem nome: o passo de contato continua valendo", () => {
+    expect(contatoUsavelDaPorta(null)).toBeNull();
+    expect(contatoUsavelDaPorta(undefined)).toBeNull();
+    // Sem canal não há para onde mandar a proposta — perguntar é o certo.
+    expect(contatoUsavelDaPorta({ nome: "Dioli Santos", email: "  ", whatsapp: "" })).toBeNull();
+    expect(contatoUsavelDaPorta({ nome: "   ", email: "d@x.com", whatsapp: "" })).toBeNull();
   });
 });

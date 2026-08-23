@@ -14,6 +14,11 @@
 //                    Resend's shared onboarding sender, which can ONLY deliver
 //                    to the Resend account owner's own address (testing only).
 
+import {
+  motivoDoBloqueio,
+  registrarSaidaBloqueada,
+} from "@/lib/agency/cliente-falso/trava-de-saida";
+
 export interface SendEmailInput {
   to: string;
   subject: string;
@@ -31,6 +36,26 @@ export interface SendEmailResult {
 const DEFAULT_FROM = "Dioli Studio <onboarding@resend.dev>";
 
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
+  // ⛔ A TRAVA VEM ANTES DE TUDO — inclusive antes de ler a chave.
+  //
+  // O cliente falso (23/08/2026) dirige a esteira REAL de ponta a ponta, e a
+  // esteira real manda e-mail em dois pontos: a confirmação do briefing e a
+  // entrega do orçamento. Se a trava morasse depois do `if (!apiKey)`, ela
+  // valeria só nas máquinas SEM chave configurada — ou seja, valeria por sorte
+  // de ambiente, e produção TEM chave. A sonda de 23/08 mediu a tentativa
+  // acontecendo: *"confirmation e-mail skipped — RESEND_API_KEY not set"*.
+  //
+  // Isto não é caminho de teste enxertado em código de produção por
+  // conveniência: esta é a Única porta de saída de mensagem da casa (medido —
+  // não há outro remetente; o WhatsApp é link `wa.me`, não envio programático).
+  // Trava de saída tem de morar NA saída. Ver `lib/agency/cliente-falso/
+  // trava-de-saida.ts` para os dois cadeados e por que são dois.
+  const bloqueio = motivoDoBloqueio(input.to);
+  if (bloqueio) {
+    registrarSaidaBloqueada({ canal: "email", destino: input.to, assunto: input.subject, motivo: bloqueio });
+    return { ok: false, skipped: true, error: `bloqueado:${bloqueio}` };
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     // E-mail not configured — no-op so the calling flow never breaks.

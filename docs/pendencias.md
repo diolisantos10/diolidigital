@@ -14,6 +14,57 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🔴 23/08/2026 — O CLIENTE FALSO ENTROU EM OPERAÇÃO, E A PRIMEIRA RODADA ACHOU 4 DEFEITOS
+
+**A ordem do CEO, literal:** *"Não vou testar mais, porque não tenho mais tempo
+nem paciência. Você vai criar um agente de teste, um ambiente de teste — pra
+validar o projeto do início ao fim, um projeto fictício. Errou, voltou,
+corrigiu. Teste assistido, automático, de cliente. Cria esse ambiente e já
+começa a testar imediatamente."*
+
+Ele tinha acabado de gastar cinco minutos testando à mão e achado três defeitos.
+Testar à mão não escala.
+
+**O que subiu:** `npm run cliente-falso`. Um cliente fictício reativo — ele LÊ a
+pergunta da casa e responde aquilo, como uma pessoa — percorrendo a esteira REAL
+de ponta a ponta: porta de contato → sala de briefing → conversa → anexo →
+portão de envio → `POST /api/brain/client-requests` → `entregarOrcamentosPendentes`
+→ o texto que chega ao cliente. Roda contra um SQLite descartável em
+`.cliente-falso/`, nunca contra produção, com trava de saída dentro de
+`sendEmail`. Custo de IA: **R$ 0,00** no modo padrão.
+
+**O que a primeira rodada achou, com a esteira de hoje (sem SDR de IA):**
+
+1. **A oferta de documento virou dado do cliente.** À pergunta "quem é o seu
+   público-alvo?", o cliente respondeu *"Posso te mandar nosso briefing em PDF,
+   ajuda?"* — e a frase foi gravada no campo `targetAudience` do pedido. É o
+   defeito nº 2 da lista do CEO, e pior do que ele descreveu: não é só ser
+   atropelado, é ter a colaboração transformada em dado falso.
+2. **A casa repetiu a mesma fala.** Depois do anexo, ela repetiu palavra por
+   palavra a pergunta de contrato mensal/campanha pontual. O anexo não consumir
+   pergunta está certo (conserto de 16/08); repetir sem sequer acusar o
+   recebimento do arquivo, não.
+3. **A casa NUNCA perguntou a verba da gestão.** Ela perguntou a plataforma dos
+   anúncios e a verba de ANÚNCIOS — duas vezes, depois de o cliente ter dito
+   *"anúncios não, agora não"* — e fechou a entrevista com *"acho que já tenho o
+   essencial"*. `budgetRange` chegou vazio ao pedido. A pergunta `budget_range`
+   existe em `question-engine.ts` e não disparou.
+4. **Orçamento de R$ 4.500–7.700/mês entregue a um cliente de R$ 500/mês, em
+   silêncio.** Consequência direta do item 3: sem verba no escopo, o
+   `confrontoDeVerba` não nasce, e o texto entregue não diz uma palavra sobre a
+   diferença. É o caso CityJobs de 16/08 acontecendo de novo por outra porta — e
+   desta vez quem o encontrou foi uma máquina, em três segundos.
+
+**O que PASSOU, e vale registrar:** o nome da porta não é mais perguntado duas
+vezes; a conversão "2 posts por dia" → 14/semana chegou certa ao escopo; o
+briefing virou pedido e o orçamento foi entregue.
+
+**O que ficou de fora desta rodada:** o SDR de IA. Sem chave configurada nesta
+máquina, a rodada padrão exercita só o motor de regras — que é justamente quem
+atende o cliente quando o guarda barra a resposta da IA. A verificação do guarda
+(`parse_error`) devolve **"não coberto"**, nunca "passou": silêncio não é
+aprovação.
+
 ## 🟢 23/08/2026 — PILOTO AO VIVO: A PORTA CAPTURAVA O CONTATO E NÃO ENTREGAVA
 
 **O relato do CEO, ao reiniciar o teste em `/briefing`:** *"Primeiro erro, já
@@ -67,6 +118,22 @@ no ambiente local a chamada a `/api/sdr/chat` não completa, e a conversa cai no
 motor de regras. O escopo semeado chega ao modelo pelo mesmo caminho que
 qualquer outro dado do escopo (`route.ts`, "dados já captados"), mas isso não
 foi exercitado com o modelo ao vivo.
+
+### 🟢 O mesmo defeito esperava na LINHA DE CHEGADA
+
+Achado ao ler o caminho inteiro, não só o trecho relatado: o passo final da sala
+pedia *"Falta só uma coisa: para onde mandamos sua proposta"* para **todo
+mundo** — inclusive para quem tinha digitado nome, e-mail e WhatsApp na porta
+minutos antes. É o mesmo "ninguém prestou atenção" da primeira fala, no pior
+lugar possível: na hora de fechar, depois de a pessoa ter contado o negócio
+inteiro.
+
+Com contato declarado na porta (nome **e** pelo menos um canal), o botão "Sim,
+quero meu orçamento" agora **envia** em vez de abrir um formulário para recolher
+o que já se tem. Quem pulou a porta — ou deixou nome sem canal — segue pelo
+passo de contato como sempre: ali a pergunta é a única chance de a proposta ter
+para onde ir, e pular seria trocar uma grosseria por um prejuízo. A regra virou
+função pura testada (`contatoUsavelDaPorta`).
 
 ### 🟢 O achado de tabela: o CI estava vermelho para TODO commit, e travava o deploy
 
