@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dioli - Portal do Cliente - modos Basico e Avancado</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="agency-lockup">
+        <img src="../../../../public/brand/dioli-mark-navy.svg" alt="Dioli Digital" />
+        <span class="agency-name">Dioli</span>
+        <span class="divider" aria-hidden="true"></span>
+        <span class="client-avatar" aria-hidden="true">C</span>
+        <span class="client-name">CityJobs</span>
+      </div>
+      <div class="secure"><span aria-hidden="true">&#10003;</span><div><b>Portal seguro</b><small>Area exclusiva de CityJobs</small></div></div>
+      <button class="pm-button" data-open-modal>Falar com meu Project Manager</button>
+    </header>
+
+    <main>
+      <section class="welcome">
+        <div><small>SABADO, 15 DE AGOSTO</small><h1>Ola, CityJobs.</h1><p>Aqui esta o que importa hoje - sem complicacao.</p></div>
+        <div class="mode-card">
+          <div><b>Como voce quer ver seu portal?</b><span>Voce pode mudar quando quiser.</span></div>
+          <div class="mode-switch" role="group" aria-label="Modo de visualizacao do portal">
+            <button type="button" data-mode="basic" aria-pressed="true">Basico</button>
+            <button type="button" data-mode="advanced" aria-pressed="false">Avancado</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="basic-view" class="portal-view" aria-label="Modo Basico">
+        <nav class="tabs basic-tabs" aria-label="Navegacao Basica">
+          <button class="active">Inicio</button><button>Resultados</button><button>Projetos</button><button>Aprovacoes <em>1</em></button><button>Materiais</button>
+        </nav>
+
+        <section class="hero basic-hero">
+          <div class="hero-copy"><span class="eyebrow">SEU NEGOCIO EM UM MINUTO</span><h2>Tudo caminhando bem</h2><p>Suas redes cresceram, os anuncios estao trazendo contatos e os projetos seguem no prazo.</p><button class="text-link">Ver explicacao completa</button></div>
+          <div class="hero-orbit" aria-hidden="true"><i></i><i></i><b></b></div>
+          <div class="quick-kpis">
+            <article><small>PESSOAS ALCANCADAS</small><strong>128 mil</strong><span>24% a mais que antes</span></article>
+            <article><small>NOVOS CONTATOS</small><strong>42</strong><span>vindos dos anuncios</span></article>
+            <article><small>VALOR INVESTIDO</small><strong>R$ 1.682</strong><span>dentro do planejado</span></article>
+          </div>
+        </section>
+
+        <div class="basic-grid">
+          <section class="panel movement">
+            <div class="section-heading"><div><small>ACOMPANHAMENTO</small><h2>O que esta acontecendo</h2></div><button>Ver tudo</button></div>
+            <article class="movement-card"><span class="card-icon">S</span><div><small>REDES SOCIAIS</small><h3>Mais pessoas estao conhecendo a marca</h3><p>O alcance cresceu e o conteudo desta semana ja esta programado.</p></div><b class="status ok">Tudo certo</b></article>
+            <article class="movement-card"><span class="card-icon">A</span><div><small>ANUNCIOS</small><h3>Os anuncios geraram 42 contatos</h3><p>Cada novo contato custou R$ 3,84 - dentro da meta combinada.</p></div><b class="status good">Bom resultado</b></article>
+            <article class="movement-card"><span class="card-icon">P</span><div><small>PROJETOS</small><h3>Dois projetos estao em andamento</h3><p>A nova campanha esta em producao e a pagina de vagas entra em revisao na terca.</p></div><b class="status neutral">No prazo</b></article>
+          </section>
+
+          <aside class="side-column">
+            <section class="panel needs-you">
+              <div class="section-heading"><div><small>PRECISA DE VOCE</small><h2>Duas acoes rapidas</h2></div><span class="count">2</span></div>
+              <p>So mostramos aqui o que realmente depende da sua decisao.</p>
+              <button class="need"><span><b>Aprovar a campanha de agosto</b><small>Leva cerca de 2 minutos</small></span><strong>Revisar</strong></button>
+              <button class="need"><span><b>Enviar os arquivos da sua marca</b><small>Logo, Brand Book ou fotos</small></span><strong>Enviar</strong></button>
+            </section>
+            <section class="panel next-steps">
+              <div class="section-heading"><div><small>PROXIMOS PASSOS</small><h2>O que vem agora</h2></div></div>
+              <ol><li><i></i><span><b>Conteudo da semana</b><small>Programado</small></span></li><li><i></i><span><b>Sua aprovacao</b><small>Hoje</small></span></li><li><i></i><span><b>Nova campanha no ar</b><small>Segunda-feira</small></span></li></ol>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="advanced-view" class="portal-view" aria-label="Modo Avancado" hidden>
+        <nav class="tabs advanced-tabs" aria-label="Navegacao Avancada">
+          <button class="active">Visao Geral</button><button>Social Media</button><button>Trafego Pago</button><button>Resultados</button><button>Projetos</button><button>Aprovacoes <em>1</em></button><button>Entregas</button><button>Brand Hub</button><button>Solicitacoes</button><button>Integracoes</button><button>Minha conta</button>
+        </nav>
+        <section class="hero advanced-hero"><div><span class="eyebrow">RESULTADOS DO PERIODO</span><h2>Visao Geral</h2><p>Redes sociais, midia paga e projetos consolidados em uma unica leitura.</p></div><article><small>CONTATOS GERADOS</small><strong>438</strong><span>+31,7% no periodo</span></article></section>
+        <section class="advanced-kpis"><article><small>PESSOAS ALCANCADAS</small><b>1,28 mi</b><span>+24,1%</span></article><article><small>ENGAJAMENTO</small><b>6,8%</b><span>+1,2 pt</span></article><article><small>SEGUIDORES</small><b>42,8 mil</b><span>+3.184</span></article><article><small>CONTATOS GERADOS</small><b>438</b><span>+31,7%</span></article><article><small>VALOR INVESTIDO</small><b>R$ 1.682</b><span>no plano</span></article><article><small>CUSTO POR CONTATO</small><b>R$ 3,84</b><span>eficiente</span></article></section>
+        <div class="advanced-grid">
+          <section class="panel"><div class="section-heading"><div><small>CANAIS</small><h2>Desempenho por frente</h2></div></div><div class="data-table"><div class="table-head"><b>AREA</b><b>STATUS</b><b>RESULTADO PRINCIPAL</b><b>VARIACAO</b></div><div><b>Social Media</b><span>Crescendo</span><span>1,28 mi de alcance</span><strong>+24,1%</strong></div><div><b>Trafego Pago</b><span>Eficiente</span><span>438 contatos</span><strong>+31,7%</strong></div><div><b>Projetos</b><span>No prazo</span><span>2 em andamento</span><strong>-</strong></div><div><b>Branding</b><span>Em estruturacao</span><span>68% documentado</span><strong>+12 pt</strong></div></div></section>
+          <aside class="panel departments"><div class="section-heading"><div><small>DEPARTAMENTOS</small><h2>Saude da operacao</h2></div><strong>86%</strong></div><p>operacao saudavel</p><div><span><b>Social Media</b><i><em style="width:91%"></em></i><strong>91%</strong></span><span><b>Branding</b><i><em style="width:68%"></em></i><strong>68%</strong></span><span><b>Design</b><i><em style="width:82%"></em></i><strong>82%</strong></span><span><b>Trafego Pago</b><i><em style="width:88%"></em></i><strong>88%</strong></span></div></aside>
+        </div>
+      </section>
+    </main>
+
+    <button class="floating-pm" data-open-modal><span aria-hidden="true">+</span><span><b>Precisa de ajuda?</b><small>Fale com seu Project Manager</small></span></button>
+    <div class="modal-backdrop" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="pm-title"><button class="close" data-close-modal aria-label="Fechar">x</button><small>PROJECT MANAGER</small><h2 id="pm-title">Fale com seu Project Manager</h2><p>Escreva de forma simples. O Project Manager organiza a solicitacao e encaminha para a equipe certa.</p><textarea aria-label="Mensagem" placeholder="Como podemos ajudar?"></textarea><button class="send">Enviar mensagem</button></section></div>
+    <script src="app.js"></script>
+  </body>
+</html>
