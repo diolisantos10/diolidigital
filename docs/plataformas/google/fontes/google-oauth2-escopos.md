@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — lista de escopos OAuth 2.0 das APIs"
 url: https://developers.google.com/identity/protocols/oauth2/scopes?hl=pt-br
-capturado_em: 2026-08-22
-hash: 731c8c5bf5ff2e4c
+capturado_em: 2026-08-23
+hash: cd068a08430ff819
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -185,9 +185,9 @@ API BeyondCorp, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 API BigLake, v1
-Escopo	Descrição
-https://www.googleapis.com/auth/bigquery	Ver e gerenciar seus dados no Google BigQuery e conferir o endereço de e-mail da sua Conta do Google
-https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
+Scope	Description
+https://www.googleapis.com/auth/bigquery	View and manage your data in Google BigQuery and see the email address for your Google Account
+https://www.googleapis.com/auth/cloud-platform	See, edit, configure, and delete your Google Cloud data and see the email address for your Google Account.
 API BigQuery, v2
 Escopo	Descrição
 https://www.googleapis.com/auth/bigquery	Ver e gerenciar seus dados no Google BigQuery e conferir o endereço de e-mail da sua Conta do Google
@@ -1144,13 +1144,13 @@ https://www.googleapis.com/auth/user.phonenumbers.read	Ver e baixar os seus núm
 https://www.googleapis.com/auth/userinfo.email	Ver o endereço de e-mail principal da sua Conta do Google
 https://www.googleapis.com/auth/userinfo.profile	Ver suas informações pessoais, inclusive aquelas que você disponibilizou publicamente
 API Google Photos Library, v1
-Escopo	Descrição
-https://www.googleapis.com/auth/photoslibrary	Ver, fazer upload e organizar itens na sua biblioteca do Google Fotos
-https://www.googleapis.com/auth/photoslibrary.appendonly	Adicionar à biblioteca do Google Fotos
-https://www.googleapis.com/auth/photoslibrary.edit.appcreateddata	Editar as informações das suas fotos, vídeos e álbuns criados neste app, incluindo títulos, descrições e capas
-https://www.googleapis.com/auth/photoslibrary.readonly	Ver sua biblioteca do Google Fotos
-https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata	Gerenciar fotos adicionadas por este aplicativo
-https://www.googleapis.com/auth/photoslibrary.sharing	Gerenciar álbuns compartilhados e adicionar itens a eles por você
+Scope	Description
+https://www.googleapis.com/auth/photoslibrary	See, upload, and organize items in your Google Photos library
+https://www.googleapis.com/auth/photoslibrary.appendonly	Add to your Google Photos library
+https://www.googleapis.com/auth/photoslibrary.edit.appcreateddata	Edit the info in your photos, videos, and albums created within this app, including titles, descriptions, and covers
+https://www.googleapis.com/auth/photoslibrary.readonly	View your Google Photos library
+https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata	Manage photos added by this app
+https://www.googleapis.com/auth/photoslibrary.sharing	Manage and add to shared albums on your behalf
 API Places Aggregate, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
