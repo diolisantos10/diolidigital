@@ -1,0 +1,16 @@
+{
+  "id": "cliente-falso-ao-vivo",
+  "quem": "ses-1163d33e98",
+  "frente": "fechar a 10a verificacao do cliente falso: rodada ao vivo com SDR de IA",
+  "responsabilidade": "cliente-falso-ao-vivo",
+  "arquivos": [
+    "lib/agency/cliente-falso/percurso.ts",
+    "lib/agency/cliente-falso/verificacoes.ts",
+    "lib/agency/cliente-falso/placar.ts",
+    "scripts/cliente-falso.mts",
+    "__tests__/cliente-falso/o-teste-do-teste.test.ts"
+  ],
+  "abertaEm": "2026-08-23T16:48:24.708Z",
+  "encerradaEm": null,
+  "rotulo": "diretor-dd-verba"
+}
