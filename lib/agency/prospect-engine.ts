@@ -9,7 +9,9 @@
 import type { ConvState, ConvMessage, BriefingScope } from "./briefing-conversation";
 import { emptyScope, emptyEstimate } from "./briefing-conversation";
 import { computeEstimate } from "./live-calculator";
-import { ehAvisoDeAnexo } from "./anexo-nao-e-resposta";
+import {
+  ehAvisoDeAnexo, ehOfertaDeDocumento, recadoDeRecebimento, RETOMADA_DA_PERGUNTA,
+} from "./anexo-nao-e-resposta";
 import { emailValido, whatsappValido } from "./comercial/contato-do-lead";
 import {
   isYes, parseInitialMessage, inferAnsweredQIds, mergeScopeDelta,
@@ -345,8 +347,15 @@ export function processProspectMessage(
   // O escopo fica intacto e a pergunta continua na fila: o conteúdo do
   // documento entra pelo caminho do SDR, que é quem sabe ler documento.
   const avisoDeAnexo = ehAvisoDeAnexo(text);
+  // ── E OFERECER O DOCUMENTO TAMBÉM NÃO RESPONDE NADA ─────────────────────
+  // 23/08/2026: "Posso te mandar nosso briefing em PDF, ajuda?" foi gravado
+  // inteiro no campo `targetAudience` do pedido. O arquivo nem tinha chegado e
+  // o público-alvo do cliente já era uma pergunta que ele fez — dado falso
+  // descendo calado para a proposta. Ver `anexo-nao-e-resposta.ts`.
+  const ofertaDeDocumento = ehOfertaDeDocumento(text);
+  const mensagemSemResposta = avisoDeAnexo || ofertaDeDocumento;
 
-  if (avisoDeAnexo) {
+  if (mensagemSemResposta) {
     newScope    = conv.scope;
     newAnswered = conv.answeredQIds;
   } else if (conv.isFirstMessage) {
@@ -454,7 +463,7 @@ export function processProspectMessage(
   // O recado de anexo também não é objeção nem sinal de verba: "…_v1.pdf" tem
   // número dentro, e ler número de nome de arquivo como orçamento do cliente é
   // o mesmo defeito de 16/08 entrando por outra porta.
-  const ignoraLeitura  = conv.isFirstMessage || avisoDeAnexo;
+  const ignoraLeitura  = conv.isFirstMessage || mensagemSemResposta;
   const objectionTypes = ignoraLeitura ? [] : detectObjectionTypes(text);
   const parsedBudget   = ignoraLeitura ? undefined : parseBudgetAmount(text);
   const newEstimate    = computeEstimate(newScope);
@@ -523,7 +532,7 @@ export function processProspectMessage(
     // subindo o briefing, quem se apresenta ainda é a mensagem que ele vai
     // digitar — senão a apresentação (nome, negócio, serviço) se perde no
     // recado do arquivo e nunca mais é lida.
-    isFirstMessage: avisoDeAnexo ? conv.isFirstMessage : false,
+    isFirstMessage: mensagemSemResposta ? conv.isFirstMessage : false,
     estimate: newEstimate,
     canSubmit: false,
   };
@@ -600,6 +609,25 @@ export function processProspectMessage(
     replyText = bloqueio
       ? `${bloqueio}\n\nMe conta isso e eu já fecho o seu orçamento.`
       : "Perfeito! Tenho todas as informações que preciso. Confira o resumo do seu pedido e confirme para eu preparar seu orçamento personalizado.";
+  }
+
+  // ── QUEM MANDA ARQUIVO PRECISA OUVIR QUE ELE CHEGOU ───────────────────────
+  //
+  // 23/08/2026, cliente falso: depois de o cliente ANEXAR o briefing, a casa
+  // devolveu a pergunta anterior palavra por palavra — sem uma sílaba sobre o
+  // arquivo. Proteger o escopo do recado de anexo (a trava de 16/08) resolveu
+  // metade do problema: o campo parou de ser envenenado e a conversa passou a
+  // ignorar o documento.
+  //
+  // Para quem está do outro lado, mandar material e receber de volta a mesma
+  // frase é a prova de que ninguém está lendo. O recado entra ANTES da pergunta
+  // e a retomada avisa que a pergunta está voltando de propósito — o cliente lê
+  // "ele anotou e continuou", não "falei com uma parede".
+  const recado = recadoDeRecebimento(text, attachmentFileNames);
+  if (recado) {
+    replyText = nextQ
+      ? `${recado}\n\n${RETOMADA_DA_PERGUNTA}\n\n${replyText}`
+      : `${recado}\n\n${replyText}`;
   }
 
   // ── Finalise SDR state ────────────────────────────────────────────────────

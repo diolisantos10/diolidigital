@@ -82,6 +82,17 @@ const PERCURSO_COMPLETO = [
   "Não quero tráfego pago agora.",
   "Gosto do perfil da concorrente Clinica Derma.",
   "Budget de R$ 500 por mês.",
+  // ── A RESPOSTA DA VERBA ENTROU EM 23/08/2026 ─────────────────────────────
+  // Até aqui o percurso terminava com a pergunta da verba NO AR, sem resposta,
+  // e o portão abria assim mesmo — `budget_range` era opcional. Era esse
+  // afrouxamento que deixava a casa mandar R$ 4.500–7.700/mês a um cliente de
+  // R$ 500/mês sem uma palavra sobre a diferença (cliente falso, 23/08).
+  //
+  // Com a verba travando o portão, um briefing que não responde quanto o
+  // cliente pode investir NÃO está completo — e este percurso, que se chama
+  // "completo", precisa responder. O teste não foi afrouxado: ele passou a
+  // exigir do roteiro o que a casa agora exige do cliente.
+  "Na gestão, uns R$ 500 por mês.",
 ];
 
 describe("metade 1 — escopo completo: o portão abre e a fala combina", () => {

@@ -7,7 +7,9 @@
 import type { ConvState, ConvMessage, BriefingScope, SocialScope } from "./briefing-conversation";
 import { emptyBrandingScope, emptyScope, emptyEstimate } from "./briefing-conversation";
 import { computeEstimate } from "./live-calculator";
-import { ehAvisoDeAnexo } from "./anexo-nao-e-resposta";
+import {
+  ehAvisoDeAnexo, ehOfertaDeDocumento, recadoDeRecebimento, RETOMADA_DA_PERGUNTA,
+} from "./anexo-nao-e-resposta";
 import { lerAreaDeAtendimento } from "./comercial/onde-o-negocio-vende";
 import { NUMERO_POR_EXTENSO, normalizar as normalizarSemAcento } from "./esteira/leitura-do-pedido";
 
@@ -19,6 +21,24 @@ export function isYes(t: string): boolean {
 
 export function isNo(t: string): boolean {
   return /\b(não|nao|no\b|nunca|ainda não|por ora não|dispenso|sem\b|nenhum|zero)\b/i.test(t);
+}
+
+const TERMO_DE_ANUNCIO = /tr[áa]fego|an[úu]nci\w*|\bads?\b|impulsion/i;
+
+/**
+ * O cliente RECUSOU anúncio nesta frase?
+ *
+ * Nasceu de "Anúncios não, agora não." ser lido como um SIM porque continha a
+ * palavra "anúncios" (23/08/2026). Exige a negativa colada ao assunto — ou uma
+ * negativa seca, quando o cliente só responde "não" à pergunta — para que um
+ * "quero anúncios, mas sem reels" continue sendo um sim.
+ */
+export function recusaAnuncio(texto: string): boolean {
+  const perto =
+    /\b(n[ãa]o|nenhum\w*|zero|sem)\b[^.!?]{0,24}(tr[áa]fego|an[úu]nci|\bads?\b|impulsion)/i.test(texto) ||
+    /(tr[áa]fego|an[úu]nci\w*|\bads?\b|impulsion)[^.!?]{0,24}\b(n[ãa]o|nenhum\w*|zero)\b/i.test(texto);
+  if (perto) return true;
+  return isNo(texto) && !isYes(texto) && !TERMO_DE_ANUNCIO.test(texto);
 }
 
 function extractNumber(t: string): number | undefined {
@@ -441,11 +461,28 @@ const QUESTIONS: QuestionDef[] = [
   },
 
   // Q8 — paid traffic
+  //
+  // ─── "ANÚNCIOS NÃO" CONTINHA A PALAVRA "ANÚNCIOS" ──────────────────────────
+  //
+  // 23/08/2026, cliente falso. À pergunta acima o cliente respondeu **"Anúncios
+  // não, agora não."** — e o `parse` antigo procurava a palavra "anúncio" no
+  // texto, achava, e gravava `wantsPaidTraffic: true`. A casa então perguntou a
+  // plataforma dos anúncios, ouviu *"Nenhuma — eu disse que não quero anúncios
+  // agora"*, e perguntou a VERBA dos anúncios logo em seguida.
+  //
+  // Duas perguntas depois de um "não" claro. Para quem lê, isso não é um bug de
+  // parser: é a casa insistindo em vender o que ele acabou de recusar — e ainda
+  // enche o escopo de campos de tráfego que ele nunca pediu.
+  //
+  // A negação ganha da palavra-chave, e não o contrário. O reconhecimento é
+  // estreito: exige a negativa PERTO do assunto (ou uma negativa seca, sem
+  // nenhum termo de anúncio), justamente para não derrubar um "sim, quero
+  // anúncios, mas sem reels".
   {
     id: "wants_traffic",
     when: (s) => s.scope.wantsPaidTraffic === undefined,
     text: () => "Quer incluir **tráfego pago** (anúncios no Instagram, Facebook ou Google) neste projeto?",
-    parse: (answer) => ({ wantsPaidTraffic: isYes(answer) || /tráfego|anúncio|ads|impulsion/i.test(answer) }),
+    parse: (answer) => ({ wantsPaidTraffic: recusaAnuncio(answer) ? false : (isYes(answer) || /tráfego|anúncio|ads|impulsion/i.test(answer)) }),
   },
 
   // Q8.1 — traffic platforms (only if traffic wanted)
@@ -712,11 +749,29 @@ export function getNextQuestion(state: ConvState): QuestionDef | null {
   return null;
 }
 
-// Questions that are asked but do NOT block submission — the price-sensitive
-// ones. The interview still surfaces them, but a client who skips them can
-// still submit once the substantive discovery (audience, objectives, service
-// depth) is complete. This is what keeps the submission gate from deadlocking.
-const OPTIONAL_QIDS = new Set(["budget_range", "deadline"]);
+// Perguntas que a entrevista faz mas que NÃO travam o envio.
+//
+// ─── POR QUE `budget_range` SAIU DAQUI EM 23/08/2026 ─────────────────────────
+//
+// Enquanto a verba era opcional, o portão de envio abria assim que a última
+// pergunta substantiva era respondida — e a pergunta da verba, que vinha depois
+// dela na fila, virava a fala de despedida: ninguém nunca a respondia, porque o
+// cliente já tinha o botão de enviar na mão.
+//
+// O resultado medido: escopo sem `budgetRange`, `confrontoDeVerba` devolvendo
+// `null` por falta de teto, e R$ 4.500–7.700/mês entregues, calados, a um
+// cliente que tinha R$ 500/mês. O mesmo estrago de 16/08 (CityJobs), por outra
+// porta.
+//
+// A casa não manda preço a quem nunca foi perguntado quanto pode gastar. E não
+// há risco de a conversa emperrar aqui: `budget_range` fecha com QUALQUER
+// resposta (`parse` guarda a frase do cliente), então uma volta de pergunta
+// basta — inclusive quando a resposta é "prefiro não dizer", que também é uma
+// declaração e vale mais que o silêncio.
+//
+// `deadline` continua opcional: começar em julho ou em agosto não muda o preço
+// que o cliente vai ler, e travar o envio por isso seria perder o lead por nada.
+const OPTIONAL_QIDS = new Set(["deadline"]);
 
 // The still-pending questions that MUST be answered before a lead is complete.
 // Empty ⇒ the substantive protocol is fully covered.
@@ -745,8 +800,13 @@ export function processClientMessage(text: string, state: ConvState): ConvState 
   // porque a sala V2 tem upload próprio; deixar só um protegido é deixar o
   // defeito escolher a porta. Ver `anexo-nao-e-resposta.ts`.
   const avisoDeAnexo = ehAvisoDeAnexo(text);
+  // A oferta do documento entra na MESMA trava do recado do anexo: 23/08/2026,
+  // "Posso te mandar nosso briefing em PDF, ajuda?" virou o `targetAudience` do
+  // pedido. Deixar só um motor protegido é deixar o defeito escolher a porta.
+  const ofertaDeDocumento = ehOfertaDeDocumento(text);
+  const mensagemSemResposta = avisoDeAnexo || ofertaDeDocumento;
 
-  if (avisoDeAnexo) {
+  if (mensagemSemResposta) {
     newScope    = state.scope;
     newAnswered = state.answeredQIds;
   } else if (state.isFirstMessage) {
@@ -779,7 +839,7 @@ export function processClientMessage(text: string, state: ConvState): ConvState 
     answeredQIds: newAnswered,
     // Anexo não consome a primeira fala — quem se apresenta é a mensagem que a
     // pessoa ainda vai digitar.
-    isFirstMessage: avisoDeAnexo ? state.isFirstMessage : false,
+    isFirstMessage: mensagemSemResposta ? state.isFirstMessage : false,
     estimate: state.estimate,
     canSubmit: false,
   };
@@ -801,6 +861,17 @@ export function processClientMessage(text: string, state: ConvState): ConvState 
     replyText = nextQ.text(mid);
   } else {
     replyText = "Ótimo! Tenho tudo que preciso. Revise o resumo do seu pedido e clique em **\"Enviar solicitação\"** quando estiver pronto.";
+  }
+
+  // Arquivo que chega tem de ser acusado antes de a pergunta voltar — senão a
+  // pergunta repetida diz ao cliente que ninguém leu o que ele mandou. Mesmo
+  // texto do outro motor, de propósito: duas salas dizendo coisas diferentes
+  // sobre o mesmo evento é como esta casa já se contradisse antes.
+  const recado = recadoDeRecebimento(text);
+  if (recado) {
+    replyText = nextQ
+      ? `${recado}\n\n${RETOMADA_DA_PERGUNTA}\n\n${replyText}`
+      : `${recado}\n\n${replyText}`;
   }
 
   const assistantMsg: ConvMessage = {
