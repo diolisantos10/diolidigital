@@ -14,7 +14,7 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
-## 🔴 23/08/2026 — O CLIENTE FALSO ENTROU EM OPERAÇÃO, E A PRIMEIRA RODADA ACHOU 4 DEFEITOS
+## 🟢 23/08/2026 — O CLIENTE FALSO ENTROU EM OPERAÇÃO, E A PRIMEIRA RODADA ACHOU 4 DEFEITOS
 
 **A ordem do CEO, literal:** *"Não vou testar mais, porque não tenho mais tempo
 nem paciência. Você vai criar um agente de teste, um ambiente de teste — pra
@@ -64,6 +64,44 @@ máquina, a rodada padrão exercita só o motor de regras — que é justamente 
 atende o cliente quando o guarda barra a resposta da IA. A verificação do guarda
 (`parse_error`) devolve **"não coberto"**, nunca "passou": silêncio não é
 aprovação.
+
+### 🟢 FECHADO na mesma tarde — commit `f29bf9d3`
+
+A ordem do CEO era o laço: *"Você tem que mandar consertar tudooooo até rodar."*
+Os quatro defeitos foram consertados **na origem**, e a rodada seguinte fechou
+9 de 9 verificações medíveis — repetida **3 vezes seguidas** para provar que não
+foi sorte.
+
+O que causava cada um, uma frase cada:
+
+1. **Oferta de documento virando dado** — a frase entrava no motor como resposta
+   comum. Entrou na mesma trava do recado de anexo (`anexo-nao-e-resposta.ts`),
+   nos DOIS motores, para o defeito não escolher a porta.
+2. **Fala repetida depois do anexo** — proteger o escopo resolvia metade: o campo
+   parava de ser envenenado e a conversa passava a ignorar o arquivo. Agora a
+   casa acusa o recebimento pelo nome do arquivo antes de retomar a pergunta.
+3. **A verba nunca perguntada** — `buildBudgetQuestion` devolvia um FECHAMENTO no
+   lugar da pergunta ("Acho que já tenho o essencial!"), e `budget_range` estava
+   em `OPTIONAL_QIDS`, então o portão abria antes dela e a pergunta virava
+   despedida. A pergunta voltou a perguntar, e agora trava o portão.
+4. **R$ 4.500–7.700 para quem tem R$ 500** — além do item 3, `confrontoDeVerba`
+   só lia o vocabulário interno da casa ("pacote", "entre R$ 150 e R$ 500") e
+   devolvia `null` para *"Nosso orçamento é de R$ 500 por mês"*. Agora lê o
+   número que a PESSOA escreveu. Texto sem número ("tanto faz") continua `null`.
+
+De brinde, o mesmo percurso expôs um quinto: **"Anúncios não, agora não." era
+lido como SIM**, porque continha a palavra "anúncios" — e a casa perguntava a
+plataforma e a verba dos anúncios logo depois de um não claro. A negação passou
+a ganhar da palavra-chave.
+
+**Duas verificações existentes foram corrigidas, não afrouxadas.** Uma delas
+(`verba-declarada-o-que-cabe`) exigia que "R$ 500" fosse DESCARTADO, no mesmo
+balde de "tanto faz" — estava mandando calar exatamente a frase que o CEO
+digitou. A outra tinha um percurso "completo" que nunca respondia a verba.
+
+**⚠️ CONTINUA NÃO COBERTO:** o guarda do SDR de IA. Sem chave nesta máquina, as
+3 rodadas verdes exercitaram só o motor de regras. Nove verdes de dez, e a
+décima não foi medida — não foi aprovada.
 
 ## 🟢 23/08/2026 — PILOTO AO VIVO: A PORTA CAPTURAVA O CONTATO E NÃO ENTREGAVA
 
