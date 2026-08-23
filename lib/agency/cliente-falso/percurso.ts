@@ -42,7 +42,7 @@ import {
   ROTEIRO_PADRAO, ARQUIVO_DO_CLIENTE_FALSO, OFERTA_DE_DOCUMENTO,
   fatoQueResponde, type Roteiro,
 } from "./roteiro";
-import type { Percurso, TurnoMedido } from "./verificacoes";
+import type { Percurso, RespostaDoSdr, TurnoMedido } from "./verificacoes";
 
 /**
  * Quantas vezes o cliente falso responde antes de desistir.
@@ -95,6 +95,7 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
   // segurança: uma casa que pergunta para sempre é um defeito, e o teto o
   // transforma em placar em vez de travar a rodada.
   const turnos: TurnoMedido[] = [];
+  const respostasDoSdr: RespostaDoSdr[] = [];
   const fatosUsados = new Set<string>();
   let numero = 0;
 
@@ -140,7 +141,7 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
     }
 
     if (opts.sdrAoVivo) {
-      await chamarSdrDeVerdade(estado, texto, fio, tropecos);
+      respostasDoSdr.push(await chamarSdrDeVerdade(numero, estado, texto, fio, tropecos));
     }
 
     estado = processProspectMessage(texto, estado, anexos);
@@ -253,6 +254,7 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
       pedido,
       orcamentoEntregue,
       turnosBarrados,
+      respostasDoSdr,
       sdrAoVivo: !!opts.sdrAoVivo,
       saidasBloqueadas: saidasBloqueadas(),
     },
@@ -270,13 +272,38 @@ function servicosDoEscopo(s: Percurso["escopoFinal"]): string[] {
 }
 
 /**
- * Chama a rota REAL do SDR. Falha aqui NUNCA derruba o percurso: quando a IA não
- * responde, o cliente de verdade também segue pelo motor de regras — reproduzir
- * isso é o ponto, não um acidente.
+ * Chama a rota REAL do SDR e DIZ O QUE ELA RESPONDEU.
+ *
+ * ─── POR QUE ESTA FUNÇÃO PASSOU A DEVOLVER ALGO (23/08/2026) ────────────────
+ *
+ * Ela fazia `await POST(req)` e jogava a resposta fora. Parecia inofensivo —
+ * "quando a IA não responde, o cliente de verdade também segue pelo motor de
+ * regras". A parte omitida é que, jogando a resposta fora, o INSTRUMENTO
+ * também não sabia se a IA tinha respondido.
+ *
+ * O estrago disso é preciso e é grave: `/api/sdr/chat` devolve
+ * `{ ok:false, reason:"not_configured" }` ANTES de qualquer escrita quando não
+ * há chave. Nenhuma linha entra no diário, `turnosBarrados` fica vazio — e a
+ * verificação do guarda, que lê exatamente esse vazio, devolvia **"passou"**.
+ * Uma rodada marcada `--ao-vivo` SEM CHAVE NENHUMA fechava 10 de 10 em verde,
+ * com a décima verificação afirmando sobre um SDR que nunca falou. O mesmo
+ * vale para o teto de ritmo (429): a rota recusa antes do modelo, o percurso
+ * segue no motor de regras e o placar não tinha como notar.
+ *
+ * Era o defeito nº 4 do CEO — "o plano B atende, ninguém percebe, e a tela
+ * fica verde" — acontecendo DENTRO do instrumento que existe para pegá-lo.
+ *
+ * O conserto é o mínimo honesto: registrar, turno a turno, se o modelo
+ * respondeu e, quando não respondeu, POR QUÊ. Quem julga isso é
+ * `verificacoes.ts`; aqui só se mede.
+ *
+ * Falha aqui continua NUNCA derrubando o percurso: o cliente de verdade também
+ * segue pelo motor de regras quando a IA cai. Reproduzir isso é o ponto — o
+ * que não pode é reproduzir em silêncio.
  */
 async function chamarSdrDeVerdade(
-  estado: ProspectConvState, texto: string, fio: string, tropecos: Tropeco[],
-): Promise<void> {
+  numero: number, estado: ProspectConvState, texto: string, fio: string, tropecos: Tropeco[],
+): Promise<RespostaDoSdr> {
   try {
     const { POST } = await import("@/app/api/sdr/chat/route");
     const req = new NextRequest("http://cliente-falso.local/api/sdr/chat", {
@@ -289,8 +316,19 @@ async function chamarSdrDeVerdade(
         sessionId: fio,
       }),
     });
-    await POST(req);
+    const res = await POST(req);
+
+    // O 429/503 do freio de ritmo não passa pelo corpo `{ok, reason}` da rota —
+    // é `respostaDeRecusa`, com `{error}`. Lido pelo status, que é o único
+    // campo que os dois formatos têm em comum.
+    if (res.status === 429) return { turno: numero, respondeu: false, motivo: "teto_de_ritmo" };
+    if (res.status === 503) return { turno: numero, respondeu: false, motivo: "contador_indisponivel" };
+
+    const corpo = (await res.json()) as { ok?: boolean; reason?: string };
+    if (corpo.ok === true) return { turno: numero, respondeu: true, motivo: null };
+    return { turno: numero, respondeu: false, motivo: corpo.reason ?? `http_${res.status}` };
   } catch (e) {
     tropecos.push({ etapa: "sdr", erro: e instanceof Error ? e.message : String(e) });
+    return { turno: numero, respondeu: false, motivo: "excecao_na_rota" };
   }
 }

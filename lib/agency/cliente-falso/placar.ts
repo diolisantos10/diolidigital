@@ -99,7 +99,7 @@ export function placarEmTexto(
   l.push("");
   l.push(`**Envio:** ${p.pedido ? `pedido \`${p.pedido.id}\` em "${p.pedido.status}"` : "não virou pedido"}`);
   l.push(`**Orçamento entregue ao cliente:** ${p.orcamentoEntregue ? "sim" : "não"}`);
-  l.push(`**SDR de IA nesta rodada:** ${p.sdrAoVivo ? "ao vivo (chave paga usada)" : "não — só o motor de regras"}`);
+  l.push(`**SDR de IA nesta rodada:** ${resumoDoSdr(p)}`);
   l.push(`**Mensagens barradas pela trava de saída:** ${p.saidasBloqueadas.length} `
        + `(nenhuma pessoa de verdade foi contatada)`);
   l.push("");
@@ -107,16 +107,52 @@ export function placarEmTexto(
   return l.join("\n");
 }
 
+/**
+ * O SDR de IA respondeu, e quantas vezes o guarda barrou — por rodada.
+ *
+ * Ordem do CEO, 23/08/2026, depois de o diário do piloto mostrar DOIS turnos
+ * seguidos barrados por `malformado` sem que ninguém tivesse percebido: o
+ * placar tem de dizer o número e o motivo, sempre. "Ao vivo (chave paga usada)"
+ * — o texto que estava aqui — afirmava que a IA tinha entrado sem ter olhado
+ * uma única resposta dela.
+ */
+function resumoDoSdr(p: Percurso): string {
+  if (!p.sdrAoVivo) return "não — só o motor de regras";
+
+  const total = p.respostasDoSdr.length;
+  if (total === 0) return "a rodada diz ao vivo, mas nenhum turno chegou à rota do SDR";
+
+  const respondidos = p.respostasDoSdr.filter((r) => r.respondeu).length;
+  const conta = new Map<string, number>();
+  for (const r of p.respostasDoSdr) {
+    if (r.respondeu || !r.motivo) continue;
+    conta.set(r.motivo, (conta.get(r.motivo) ?? 0) + 1);
+  }
+  const quedas = conta.size === 0
+    ? "nenhuma queda para o motor de regras"
+    : `quedas para o motor de regras: ${[...conta].map(([m, n]) => `${m} ×${n}`).join(", ")}`;
+  return `ao vivo — ${respondidos} de ${total} turno(s) respondidos pelo modelo · ${quedas}`
+       + ` · ${p.turnosBarrados.length} barrado(s) pelo guarda no diário`;
+}
+
 function umaLinha(t: string): string {
   return t.replace(/\s*\n+\s*/g, " ⏎ ").replace(/\s{2,}/g, " ").trim();
 }
 
 /** Uma linha por rodada, para o laço. É o que se lê quando o laço roda solto. */
-export function linhaDoLaco(n: number, achados: Achado[]): string {
+export function linhaDoLaco(n: number, achados: Achado[], p?: Percurso): string {
   const q = achados.filter((a) => a.veredito === "quebrou");
+  // O SDR entra na linha do laço porque é ele que muda de rodada para rodada:
+  // o modelo é não-determinístico, e uma queda numa rodada só do meio some do
+  // placar final (que é sempre o da ÚLTIMA rodada). Sem isto, três rodadas
+  // "verdes" podiam esconder uma queda para o motor de regras no caminho.
+  const sdr = p?.sdrAoVivo
+    ? ` · IA ${p.respostasDoSdr.filter((r) => r.respondeu).length}/${p.respostasDoSdr.length}`
+      + `${p.turnosBarrados.length > 0 ? ` · ${p.turnosBarrados.length} barrado(s)` : ""}`
+    : "";
   return q.length === 0
-    ? `rodada ${n}: ✅ atravessou`
-    : `rodada ${n}: 🚫 quebrou em ${q.length} — ${q.map((a) => a.id).join(", ")}`;
+    ? `rodada ${n}: ✅ atravessou${sdr}`
+    : `rodada ${n}: 🚫 quebrou em ${q.length} — ${q.map((a) => a.id).join(", ")}${sdr}`;
 }
 
 export { SINAL };

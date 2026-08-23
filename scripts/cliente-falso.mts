@@ -106,14 +106,30 @@ const { placarEmTexto, linhaDoLaco } = await import("../lib/agency/cliente-falso
 
 let quebrouAlguma = false;
 let ultimoPlacar = "";
-let ultimoJson: unknown = null;
+let ultimoJson: Record<string, unknown> | null = null;
+
+// ── POR QUE O RESUMO DE TODAS AS RODADAS, E NÃO SÓ A ÚLTIMA ─────────────────
+// O placar gravado é sempre o da ÚLTIMA rodada — e com o SDR de IA no meio, que
+// é não-determinístico, a rodada boa do fim apagava a queda da rodada do meio.
+// "Três rodadas seguidas limpas" é uma afirmação sobre TODAS elas; guardar só a
+// última tornava essa afirmação impossível de provar depois.
+const resumoDasRodadas: Record<string, unknown>[] = [];
 
 for (let n = 1; n <= rodadas; n++) {
   const { percurso, tropecos } = await rodarPercurso({ sdrAoVivo: aoVivo });
   const achados = conferir(percurso);
   if (achados.some((a) => a.veredito === "quebrou")) quebrouAlguma = true;
 
-  console.log(linhaDoLaco(n, achados));
+  console.log(linhaDoLaco(n, achados, percurso));
+  resumoDasRodadas.push({
+    rodada: n,
+    quebrou: achados.filter((a) => a.veredito === "quebrou").map((a) => a.id),
+    naoCoberto: achados.filter((a) => a.veredito === "nao-coberto").map((a) => a.id),
+    sdrRespondeu: percurso.respostasDoSdr.filter((r) => r.respondeu).length,
+    sdrChamado: percurso.respostasDoSdr.length,
+    sdrQuedas: percurso.respostasDoSdr.filter((r) => !r.respondeu).map((r) => r.motivo),
+    turnosBarrados: percurso.turnosBarrados.length,
+  });
   ultimoPlacar = placarEmTexto(achados, percurso, tropecos);
   ultimoJson = {
     rodada: n, em: new Date().toISOString(), sdrAoVivo: aoVivo,
@@ -121,9 +137,13 @@ for (let n = 1; n <= rodadas; n++) {
     escopoFinal: percurso.escopoFinal, estimativaFinal: percurso.estimativaFinal,
     pedido: percurso.pedido, orcamentoEntregue: percurso.orcamentoEntregue,
     turnos: percurso.turnos.map((t) => ({ numero: t.numero, doCliente: t.doCliente, daCasa: t.daCasa })),
+    respostasDoSdr: percurso.respostasDoSdr,
+    turnosBarrados: percurso.turnosBarrados,
     saidasBloqueadas: percurso.saidasBloqueadas,
   };
 }
+
+if (ultimoJson) ultimoJson.todasAsRodadas = resumoDasRodadas;
 
 writeFileSync(resolve(PASTA, "placar.md"), ultimoPlacar, "utf-8");
 writeFileSync(resolve(PASTA, "placar.json"), JSON.stringify(ultimoJson, null, 2), "utf-8");

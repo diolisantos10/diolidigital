@@ -71,6 +71,9 @@ function percursoSao(): Percurso {
     pedido: { id: "req-falso-1", status: "proposal_pending", businessName: "Cantina da Prova [TESTE]" },
     orcamentoEntregue: "A estimativa fica entre R$ 400 e R$ 480 por mês.",
     turnosBarrados: [],
+    // Percurso SÃO com SDR ao vivo = o modelo respondeu TODOS os turnos.
+    // Sem esta linha, "são" incluiria uma rodada em que a IA nunca falou.
+    respostasDoSdr: [1, 2, 3, 4, 5].map((turno) => ({ turno, respondeu: true, motivo: null })),
     sdrAoVivo: true,
     saidasBloqueadas: [],
   };
@@ -152,6 +155,61 @@ describe("guarda do SDR — plano B atendendo em silêncio é falha", () => {
     const p = percursoSao();
     p.sdrAoVivo = false;
     expect(nenhumTurnoBarradoPeloGuarda(p).veredito).toBe("nao-coberto");
+  });
+
+  // ── O FALSO VERDE DE 23/08/2026, virado em teste ─────────────────────────
+  //
+  // A versão anterior lia só `turnosBarrados`. Ele fica vazio quando o guarda
+  // não barrou nada — e TAMBÉM quando a rota nem chegou ao modelo (sem chave,
+  // ou 429 do próprio freio de ritmo), porque nesses casos ela volta antes de
+  // escrever no diário. Resultado: `--ao-vivo` numa máquina sem
+  // `ANTHROPIC_API_KEY` fechava 10 de 10 em VERDE, com a décima verificação
+  // afirmando sobre um SDR que nunca falou.
+  it("NÃO diz 'passou' quando a rodada é ao vivo e nenhum turno chegou à rota", () => {
+    const p = percursoSao();
+    p.respostasDoSdr = [];
+    expect(nenhumTurnoBarradoPeloGuarda(p).veredito).toBe("nao-coberto");
+  });
+
+  it("NÃO diz 'passou' quando faltou chave de IA — diário vazio não é diário limpo", () => {
+    const p = percursoSao();
+    p.respostasDoSdr = p.respostasDoSdr.map((r) => ({ ...r, respondeu: false, motivo: "not_configured" }));
+    const a = nenhumTurnoBarradoPeloGuarda(p);
+    expect(a.veredito).toBe("nao-coberto");
+    expect(a.detalhe).toMatch(/not_configured/);
+  });
+
+  it("NÃO diz 'passou' quando a própria bateria estourou o teto de ritmo da rota", () => {
+    const p = percursoSao();
+    p.respostasDoSdr[2] = { turno: 3, respondeu: false, motivo: "teto_de_ritmo" };
+    const a = nenhumTurnoBarradoPeloGuarda(p);
+    expect(a.veredito).toBe("nao-coberto");
+    expect(a.detalhe).toMatch(/teto_de_ritmo/);
+  });
+
+  it("REPROVA quando o modelo caiu por defeito da casa e o cliente foi atendido pelo plano B", () => {
+    // `provider_error`/`timeout` não são "não medi": são a IA falhando com o
+    // cliente na frente. Isso é quebra, não lacuna.
+    const p = percursoSao();
+    p.respostasDoSdr[1] = { turno: 2, respondeu: false, motivo: "provider_error" };
+    const a = nenhumTurnoBarradoPeloGuarda(p);
+    expect(a.veredito).toBe("quebrou");
+    expect(a.detalhe).toMatch(/provider_error/);
+  });
+
+  it("nomeia o motivo da barra no detalhe — o CEO cobra 'malformado' pelo nome", () => {
+    const p = percursoSao();
+    p.turnosBarrados = ["[resposta barrada pelo guarda: malformado — quem respondeu foi o motor de regras.]"];
+    p.respostasDoSdr[2] = { turno: 3, respondeu: false, motivo: "malformado" };
+    const a = nenhumTurnoBarradoPeloGuarda(p);
+    expect(a.veredito).toBe("quebrou");
+    expect(a.detalhe).toMatch(/malformado ×1/);
+  });
+
+  it("aprova a rodada ao vivo em que o modelo respondeu tudo, e DIZ quantos turnos olhou", () => {
+    const a = nenhumTurnoBarradoPeloGuarda(percursoSao());
+    expect(a.veredito).toBe("passou");
+    expect(a.detalhe).toMatch(/5 turno/);
   });
 });
 

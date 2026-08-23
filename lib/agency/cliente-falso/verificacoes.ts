@@ -48,6 +48,21 @@ export type TurnoMedido = {
   escopoDepois: BriefingScope;
 };
 
+/**
+ * O desfecho de UMA chamada à rota real do SDR (`app/api/sdr/chat`).
+ *
+ * Existe porque "a rodada foi ao vivo" e "a IA respondeu" não são a mesma
+ * afirmação, e tratá-las como uma só deixava a verificação do guarda verde sem
+ * ter olhado nada. Ver o cabeçalho de `chamarSdrDeVerdade`, em `percurso.ts`.
+ */
+export type RespostaDoSdr = {
+  turno: number;
+  /** `true` = o modelo respondeu E a fala atravessou os guardas da rota. */
+  respondeu: boolean;
+  /** Por que não respondeu. `null` quando respondeu. */
+  motivo: string | null;
+};
+
 export type Percurso = {
   roteiro: Roteiro;
   saudacao: string;
@@ -63,6 +78,8 @@ export type Percurso = {
   orcamentoEntregue: string | null;
   /** Falas barradas pelo guarda (`[resposta barrada pelo guarda: …]`). */
   turnosBarrados: string[];
+  /** O que a rota real do SDR devolveu, turno a turno. Vazia fora do ao vivo. */
+  respostasDoSdr: RespostaDoSdr[];
   /** O SDR de verdade rodou? Se não, a verificação do guarda não afirma nada. */
   sdrAoVivo: boolean;
   saidasBloqueadas: readonly SaidaBloqueada[];
@@ -181,6 +198,24 @@ export function aCasaNaoSeRepete(p: Percurso): Achado {
 //
 // ⚠️ Sem SDR ao vivo NÃO existe guarda para barrar nada. Devolver "passou" aqui
 // seria o instrumento cometendo o próprio defeito que ele guarda.
+/**
+ * Os motivos em que a rota RECUSOU ANTES de o modelo abrir a boca.
+ *
+ * A distinção não é preciosismo: nenhum destes deixa linha no diário — a rota
+ * volta antes de `registrar`. Se eles contassem como "passou", a verificação
+ * aprovaria com base num diário vazio que só está vazio porque a chamada nunca
+ * chegou ao modelo. E se contassem como "quebrou", acusariam a CASA por um
+ * defeito da RODADA (sem chave, ou a própria bateria batendo no teto de ritmo
+ * por rodar rápido demais). Nenhuma das duas seria verdade. São "não coberto",
+ * com o motivo escrito.
+ */
+const RECUSA_ANTES_DO_MODELO = new Set([
+  "not_configured",        // não havia chave de IA para gastar
+  "teto_de_ritmo",         // 429: a própria bateria estourou o freio da rota
+  "contador_indisponivel", // 503: o contador do freio fora do ar (fail-closed)
+  "bad_request",           // o corpo não passou na porta da rota
+]);
+
 export function nenhumTurnoBarradoPeloGuarda(p: Percurso): Achado {
   const base = {
     id: "guarda-nao-barrou",
@@ -190,11 +225,66 @@ export function nenhumTurnoBarradoPeloGuarda(p: Percurso): Achado {
     return { ...base, veredito: "nao-coberto",
       detalhe: "rodada sem SDR ao vivo: não houve guarda para barrar, e silêncio não é aprovação" };
   }
+
+  // ── "AO VIVO" NÃO É PROVA DE QUE A IA FALOU ───────────────────────────────
+  //
+  // Este bloco é o conserto de 23/08/2026, e o defeito que ele fecha era o
+  // pior tipo: a verificação lia `turnosBarrados` vazio e devolvia "passou".
+  // Só que `turnosBarrados` também fica vazio quando a rota recusou ANTES de
+  // chamar o modelo — sem chave (`not_configured`), no 429 do próprio freio de
+  // ritmo. Uma rodada `--ao-vivo` numa máquina SEM `ANTHROPIC_API_KEY` fechava
+  // 10 de 10 em verde, e a décima afirmava sobre um guarda que nunca existiu.
+  //
+  // É literalmente o defeito nº 4 do CEO — o plano B atende, ninguém percebe,
+  // a tela fica verde — cometido pelo instrumento que guarda esse defeito.
+  // Ausência de informação não é informação (guardrail 1).
+  if (p.respostasDoSdr.length === 0) {
+    return { ...base, veredito: "nao-coberto",
+      detalhe: "a rodada diz ter sido ao vivo e nenhum turno chegou à rota do SDR — não há o que afirmar" };
+  }
+
+  // Barrado pelo guarda é o achado principal, e vem primeiro: aqui o modelo
+  // FALOU e a fala foi recusada. É falha da casa, e é a pergunta original.
   if (p.turnosBarrados.length > 0) {
     return { ...base, veredito: "quebrou", falaExata: p.turnosBarrados[0],
-      detalhe: `${p.turnosBarrados.length} turno(s) barrado(s); quem atendeu o cliente foi o motor de regras` };
+      detalhe: `${p.turnosBarrados.length} turno(s) barrado(s); quem atendeu o cliente foi o motor de regras`
+             + `${resumoDosMotivos(p)}` };
   }
-  return { ...base, veredito: "passou" };
+
+  const recusadosAntes = p.respostasDoSdr.filter(
+    (r) => !r.respondeu && r.motivo !== null && RECUSA_ANTES_DO_MODELO.has(r.motivo),
+  );
+  if (recusadosAntes.length > 0) {
+    const motivos = [...new Set(recusadosAntes.map((r) => r.motivo))].join(", ");
+    return { ...base, veredito: "nao-coberto",
+      detalhe: `${recusadosAntes.length} de ${p.respostasDoSdr.length} turno(s) nem chegaram ao modelo (${motivos}) — `
+             + `o guarda não foi exercitado, e não medir não é aprovar` };
+  }
+
+  // Sobrou o caso feio: o modelo não respondeu por um motivo que É da casa
+  // (timeout, queda de rede, erro do provedor) e mesmo assim o diário não
+  // registrou barra. O cliente foi atendido pelo plano B do mesmo jeito.
+  const semResposta = p.respostasDoSdr.filter((r) => !r.respondeu);
+  if (semResposta.length > 0) {
+    const motivos = [...new Set(semResposta.map((r) => r.motivo ?? "sem motivo"))].join(", ");
+    return { ...base, veredito: "quebrou", falaExata: p.turnos[semResposta[0].turno - 1]?.daCasa,
+      detalhe: `${semResposta.length} de ${p.respostasDoSdr.length} turno(s) sem resposta do modelo (${motivos}); `
+             + `quem atendeu o cliente foi o motor de regras` };
+  }
+
+  return { ...base, veredito: "passou",
+    detalhe: `${p.respostasDoSdr.length} turno(s) respondidos pelo SDR de IA, nenhum barrado` };
+}
+
+/** Os motivos de barra, contados — o que o CEO pediu ver por rodada. */
+function resumoDosMotivos(p: Percurso): string {
+  const conta = new Map<string, number>();
+  for (const r of p.respostasDoSdr) {
+    if (r.respondeu || !r.motivo) continue;
+    conta.set(r.motivo, (conta.get(r.motivo) ?? 0) + 1);
+  }
+  if (conta.size === 0) return "";
+  return ` — motivos: ${[...conta].map(([m, n]) => `${m} ×${n}`).join(", ")}`;
 }
 
 // ─── 5. O que o cliente declarou tem de chegar ao orçamento ─────────────────

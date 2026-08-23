@@ -1,0 +1,132 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CLIENTE FALSO — A RODADA AO VIVO, COM O SDR DE IA DE VERDADE NO MEIO
+#
+# ── POR QUE ESTE WORKFLOW EXISTE ────────────────────────────────────────────
+#
+# `npm run cliente-falso` roda em qualquer máquina e custa R$ 0,00 — mas só
+# exercita o motor de regras. A décima verificação da bateria (o guarda do SDR:
+# "nenhuma resposta pode ser barrada, plano B atendendo em silêncio é falha")
+# NÃO É MEDIDA nessas rodadas, e o placar diz isso com todas as letras.
+#
+# Medir a décima exige `--ao-vivo`, e `--ao-vivo` exige `ANTHROPIC_API_KEY`
+# (medido em 23/08/2026: o banco descartável da bateria nasce SEM workspace
+# nenhum, então `chaveDeRotaPublica` cai direto em `chaveDoAmbiente` — não há
+# cofre no banco a consultar, só a variável de ambiente).
+#
+# A chave não pode circular por conversa, por commit ou por log. Aqui ela vive
+# nos segredos do repositório e só existe DENTRO do runner, entregue direto ao
+# processo que a gasta. É a mesma forma que a casa irmã (Foocci) já usa em
+# `meta-raiox.yml`: o segredo é lido de dentro do runner e nunca impresso.
+#
+# ⚠️ O LOG DESTE REPOSITÓRIO É PÚBLICO. Nenhum passo aqui imprime a chave: o
+# passo de conferência afirma PRESENÇA, nunca valor, e a bateria só imprime a
+# conversa do cliente fictício e o placar.
+#
+# ── POR QUE NÃO ENTRA NO PORTÃO DO DEPLOY ───────────────────────────────────
+#
+# Só `workflow_dispatch`. Sem gatilho de `push`, o "Wait for CI" do Railway não
+# tem o que esperar daqui — mesmo raciocínio do `sentinela-do-deploy.yml`. Uma
+# bateria que gasta chave paga e depende de um modelo não-determinístico não
+# pode ter poder de barrar a entrega de um conserto urgente.
+#
+# ── SEGURANÇA DO DADO ───────────────────────────────────────────────────────
+#
+# A bateria roda contra `.cliente-falso/teste.db`, um SQLite descartável criado
+# no próprio runner. Nenhuma variável de produção entra aqui — nem
+# `DATABASE_URL`, nem `CRON_SECRET`. E `CLIENTE_FALSO=1` (setado pelo próprio
+# script) mantém a trava de saída de pé: nenhum e-mail ou WhatsApp sai.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Cliente falso — rodada ao vivo (SDR de IA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      rodadas:
+        description: "Quantas rodadas seguidas (o SDR é não-determinístico; 3 é o mínimo para afirmar que roda limpo)"
+        required: false
+        default: "3"
+
+# Uma bateria de cada vez. Duas em paralelo dividiriam o mesmo teto de ritmo da
+# rota (`sdr-chat`, 30 chamadas por minuto) e uma barraria a outra — e um 429
+# não é defeito da casa, é ruído que o placar teria de carregar.
+concurrency:
+  group: cliente-falso-ao-vivo
+  cancel-in-progress: false
+
+jobs:
+  ao-vivo:
+    name: O funil inteiro, com a IA no meio
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      # PRESENÇA, NUNCA VALOR. Sem este passo, uma rodada sem chave não estoura:
+      # ela ATRAVESSA — a rota devolve `not_configured` e o percurso segue pelo
+      # motor de regras. Até 23/08/2026 isso fechava 10 de 10 em VERDE, com a
+      # décima verificação afirmando sobre um SDR que nunca falou. A bateria já
+      # não mente mais (a verificação passou a exigir prova de que o modelo
+      # respondeu), mas gastar 45 minutos de runner para ouvir "não coberto" é
+      # desperdício: melhor falhar no primeiro passo, dizendo o que falta.
+      - name: A chave existe? (presença, nunca valor)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "${ANTHROPIC_API_KEY}" ]; then
+            echo "::error::ANTHROPIC_API_KEY não está nos segredos deste repositório."
+            echo "Sem ela a rodada ao vivo não mede o guarda do SDR — ela cai no motor"
+            echo "de regras e o placar devolve 'não coberto'. Quem cadastra o segredo é o CEO:"
+            echo "Settings -> Secrets and variables -> Actions -> New repository secret."
+            exit 1
+          fi
+          echo "✅ chave presente. O valor não é impresso em passo nenhum deste workflow."
+
+      # ── POR QUE UMA RODADA POR VEZ, COM PAUSA, E NÃO `--rodadas=N` ──────────
+      # `/api/sdr/chat` tem freio de ritmo de 30 chamadas por minuto por IP, e o
+      # IP de todas as chamadas da bateria é o mesmo ("unknown", porque a
+      # requisição é montada em processo). Uma conversa completa gasta ~16
+      # chamadas: duas rodadas coladas cabem na mesma janela de 60s e a segunda
+      # levaria 429. O 429 não é defeito da casa — é a bateria atropelando a si
+      # mesma —, e a pausa de 70s (janela de 60s + folga) o elimina na origem em
+      # vez de deixá-lo virar ruído no placar.
+      #
+      # `set -e` para na primeira rodada que quebrar: "errou, consertou" começa
+      # por não enterrar a quebra debaixo das rodadas seguintes.
+      - name: A bateria, ao vivo
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RODADAS: ${{ github.event.inputs.rodadas || '3' }}
+        run: |
+          set -e
+          for n in $(seq 1 "${RODADAS}"); do
+            echo "════════════ rodada ${n} de ${RODADAS} ════════════"
+            npm run cliente-falso -- --ao-vivo
+            cp .cliente-falso/placar.md   ".cliente-falso/placar-rodada-${n}.md"
+            cp .cliente-falso/placar.json ".cliente-falso/placar-rodada-${n}.json"
+            if [ "${n}" -lt "${RODADAS}" ]; then
+              echo "— pausa de 70s para a janela do freio de ritmo virar —"
+              sleep 70
+            fi
+          done
+
+      # `always()`: a rodada que QUEBRA é a que mais precisa deixar placar.
+      - name: Guardar os placares
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: placares-cliente-falso
+          path: .cliente-falso/placar-rodada-*
+          if-no-files-found: warn
