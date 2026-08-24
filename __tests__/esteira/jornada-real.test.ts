@@ -108,6 +108,21 @@ beforeAll(async () => {
     },
   });
   clientRequestId = req.id;
+
+  // ── O CLIENTE PAGOU ────────────────────────────────────────────────────────
+  // A jornada real começa DEPOIS do pagamento: nenhuma produção anda sem ele
+  // (lib/agency/financeiro/portao-de-pagamento.ts). Sem esta linha o motor
+  // recusa tudo com "aguardando pagamento" — que é o comportamento certo, e é
+  // exatamente o que __tests__/financeiro/portao-de-pagamento.test.ts prova.
+  await prisma.pagamentoConfirmado.create({
+    data: {
+      clientRequestId,
+      origem: "mercadopago",
+      provedorId: "pay-e2e-1",
+      valorCentavos: 259000,
+      confirmadoEm: new Date(),
+    },
+  });
 });
 
 afterAll(async () => {

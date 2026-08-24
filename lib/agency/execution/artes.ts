@@ -66,6 +66,7 @@ import {
 } from "@/lib/agency/design/storyboard";
 import { createHash } from "node:crypto";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
+import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pagamento";
 // A MESMA régua que a publicação usa. Uma segunda cópia começaria idêntica e
 // divergiria no primeiro ajuste — e um conserto que discorda do publicador é
 // pior que nenhum, porque ele é acreditado.
@@ -115,6 +116,12 @@ export interface ArtesFeitas {
   /** Peças que NÃO foram tentadas porque o cliente bateu o teto diário de
    *  imagens. Não é falha da peça e não gasta tentativa — volta amanhã. */
   semOrcamento: string[];
+  /**
+   * Peças cujo PEDIDO não tem pagamento confirmado. Não é falha da peça, não
+   * gasta tentativa e não vira erro na tela do cliente: a peça espera o
+   * dinheiro. Ver `lib/agency/financeiro/portao-de-pagamento.ts`.
+   */
+  semPagamento: string[];
   /**
    * A rodada inteira parou antes de gastar um centavo porque a casa não tem
    * como aplicar o molde. Sai preenchido com o motivo, e vazio quando tudo
@@ -177,7 +184,7 @@ export interface RecorteDaRodadaDeArte {
  * agência decidindo que sabe melhor.
  */
 export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}): Promise<ArtesFeitas> {
-  const saida: ArtesFeitas = { produzidas: 0, falhas: [], desistiram: [], semOrcamento: [] };
+  const saida: ArtesFeitas = { produzidas: 0, falhas: [], desistiram: [], semOrcamento: [], semPagamento: [] };
 
   // ── O DINHEIRO SAI ANTES DA PORTA FECHAR (08/08/2026) ─────────────────────
   //
@@ -270,7 +277,40 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
 
   const orcamento = abrirOrcamentoDoDia();
 
+  // ── O PORTÃO DE PAGAMENTO, memoizado por PEDIDO ──────────────────────────
+  //
+  // Este laço é a torneira mais cara da casa: ~US$0,17–0,25 por imagem, e o
+  // despertador o abre a cada 5 minutos. Ele NÃO passa por `run-execution`, que
+  // é onde mora o outro portão — então um portão só lá deixaria justamente o
+  // caminho caro aberto. É aqui que o dinheiro sai; é aqui que a trava fica.
+  //
+  // Memoizado porque uma rodada traz até 6 peças e elas costumam ser do mesmo
+  // pedido: sem memo seriam 6 idas ao banco para responder a mesma pergunta.
+  const pagamentoDoPedido = new Map<string, boolean>();
+
   for (const post of pendentes) {
+    // PRIMEIRA COISA DO LAÇO, antes até do pilar: nenhuma verificação que possa
+    // escrever no banco ou custar deve rodar antes de sabermos se este pedido
+    // pode gastar. Peça sem pagamento não gasta tentativa e não recebe
+    // `marcarErro` — ela simplesmente espera o dinheiro e volta na próxima
+    // rodada, sem sujar a tela do cliente com um erro que não é dele.
+    // A âncora: o pedido do post ou, quando ele é de cliente DIRETO (nasce com
+    // `clientRequestId` nulo em `publicacao.ts`), o pedido derivado do cliente.
+    // Quem deriva é o próprio portão — derivação, nunca invenção, e não achando
+    // nada o veredito é recusa.
+    const chave = post.clientRequestId ?? `cli:${post.clientId ?? "<sem-dono>"}`;
+    if (!pagamentoDoPedido.has(chave)) {
+      const v = await conferirPagamentoDaAncora({
+        clientRequestId: post.clientRequestId,
+        clientId: post.clientId,
+      });
+      pagamentoDoPedido.set(chave, v.liberado);
+    }
+    if (!pagamentoDoPedido.get(chave)) {
+      saida.semPagamento.push(post.id);
+      continue;
+    }
+
     // ── PILAR BLOQUEADO: NEM PEDE A IMAGEM ──────────────────────────────────
     // Primeira coisa do laço, antes do teto de gasto e antes de qualquer
     // chamada paga. Foi exatamente aqui que a casa queimou geração de imagem

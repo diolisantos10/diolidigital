@@ -17,9 +17,22 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
+  // O PORTÃO DE PAGAMENTO (lib/agency/financeiro/portao-de-pagamento.ts) roda
+  // antes de qualquer produção. Estes testes são sobre o que acontece DEPOIS de
+  // o cliente pagar, então a testemunha diz "pago". Quem testa a trava em si é
+  // __tests__/financeiro/portao-de-pagamento.test.ts.
+  pagamentoConfirmado: {
+    findUnique: vi.fn(async () => ({
+      valorCentavos: 7900,
+      origem: "mercadopago",
+      confirmadoEm: new Date("2026-08-25T00:00:00.000Z"),
+    })),
+  },
   project: { findFirst: vi.fn() },
   client: { findUnique: vi.fn() },
-  clientRequestDb: { findUnique: vi.fn() },
+  // `findFirst` existe por causa do PORTÃO DE PAGAMENTO: chegando só com
+  // `clientId`, ele procura o pedido mais recente do cliente antes de decidir.
+  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn() },
   cycle: { findFirst: vi.fn() },
   deliverable: { findMany: vi.fn(), update: vi.fn() },
   approvalRequest: { updateMany: vi.fn() },
@@ -41,8 +54,14 @@ beforeEach(() => {
   vi.clearAllMocks();
   // O caso Foocci: cliente criado direto. Não existe projeto nem solicitação.
   db.project.findFirst.mockResolvedValue(null);
-  db.client.findUnique.mockResolvedValue({ name: "Foocci", workspaceId: "ws1" });
+  // `createdAt` ANTERIOR ao corte do portão de pagamento: a Foocci é o cliente
+  // direto do piloto, cadastrada antes de a régua existir, e é a anistia
+  // declarada que a libera. Ver lib/agency/financeiro/portao-de-pagamento.ts.
+  db.client.findUnique.mockResolvedValue({
+    name: "Foocci", workspaceId: "ws1", createdAt: new Date("2026-07-01T00:00:00.000Z"),
+  });
   db.clientRequestDb.findUnique.mockResolvedValue(null);
+  db.clientRequestDb.findFirst.mockResolvedValue(null);
   db.cycle.findFirst.mockResolvedValue(null);
   db.deliverable.findMany.mockResolvedValue([]);
   db.deliverable.update.mockResolvedValue({});
@@ -86,7 +105,13 @@ describe("cliente DIRETO pede ajuste — e o pedido não morre em silêncio", ()
   });
 
   it("sem workspace legível o pedido GRITA no log em vez de sumir", async () => {
-    db.client.findUnique.mockResolvedValue(null);
+    // O cliente EXISTE e é anterior ao corte (senão quem barra é o portão de
+    // pagamento, e o alarme testado aqui é outro: o do pedido sem destinatário).
+    // O que falta é o workspace.
+    db.client.findUnique.mockResolvedValue({
+      name: "Órfão", workspaceId: null, createdAt: new Date("2026-07-01T00:00:00.000Z"),
+    });
+    db.project.findFirst.mockResolvedValue(null);
     const grito = vi.spyOn(console, "error").mockImplementation(() => {});
     await refazerPorPedidoDoCliente({ clientId: "cli-orfao", department: "social-media", comentario: "muda" });
     expect(grito).toHaveBeenCalledWith(expect.stringContaining("SEM DESTINATÁRIO"), expect.any(String));

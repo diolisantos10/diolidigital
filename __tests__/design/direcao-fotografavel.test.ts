@@ -128,10 +128,22 @@ describe("o pré-portão não invade o portão do pixel", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const db = vi.hoisted(() => ({
+  // O PORTÃO DE PAGAMENTO (lib/agency/financeiro/portao-de-pagamento.ts) roda
+  // antes de qualquer produção. Estes testes são sobre o que acontece DEPOIS de
+  // o cliente pagar, então a testemunha diz "pago". Quem testa a trava em si é
+  // __tests__/financeiro/portao-de-pagamento.test.ts.
+  pagamentoConfirmado: {
+    findUnique: vi.fn(async () => ({
+      valorCentavos: 7900,
+      origem: "mercadopago",
+      confirmadoEm: new Date("2026-08-25T00:00:00.000Z"),
+    })),
+  },
   socialPost: { findMany: vi.fn(), update: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
   mediaAsset: { findFirst: vi.fn(), findUnique: vi.fn(), count: vi.fn() },
   client: { findUnique: vi.fn() },
-  project: { findUnique: vi.fn() },
+  project: {
+    findFirst: vi.fn(async () => ({ clientRequestId: "cr-pago", id: "proj-pago", clientId: "cli-1" })), findUnique: vi.fn() },
   deliverable: { findMany: vi.fn() },
   activityEvent: { create: vi.fn() },
 }));

@@ -2449,3 +2449,82 @@ model HandoffV2 {
   @@index([paraDepartamento, status])
   @@index([correlationId])
 }
+
+/// ─── A TESTEMUNHA DE QUE O DINHEIRO ENTROU (24/08/2026) ──────────────────────
+///
+/// Regra do CEO, literal: *"o cliente fecha um projeto com a gente, ele vai ter
+/// que pagar antes de o projeto começar a ser feito. Eu vou pedir pra fazer um
+/// bolo, e só pago o bolo quando o bolo está feito? Não — eu preciso do dinheiro
+/// pra comprar os insumos. Então a trava é o pagamento."*
+///
+/// ── POR QUE UMA TABELA NOVA, e não uma coluna ou um estado existente ────────
+///
+/// Até hoje a casa não tinha NENHUM registro de pagamento. O que existia era
+/// `ClientRequestDb.status = "in_progress"`, escrito pelo webhook do Mercado
+/// Pago (`app/api/self-serve/webhook/route.ts`) — e escrito TAMBÉM por
+/// `app/api/brain/orchestrate/apply/route.ts` e `app/api/v2/assistido/route.ts`,
+/// que não têm nada a ver com dinheiro. Um estado que três caminhos escrevem,
+/// dois deles sem cobrar nada, não é prova de pagamento: é uma palavra que por
+/// acaso aparece nos dois lugares. Usá-lo como testemunha seria exatamente o
+/// defeito que esta casa já viu — "não recusou" lido como "pagou".
+///
+/// `LancamentoFinanceiro` também não serve: ele é o DRE (regime de competência,
+/// aceita `natureza: "estimado"` e `origem: "manual"` sem prova), e mexer nele
+/// altera o que o CEO lê como resultado. Testemunha de portão e livro-caixa são
+/// coisas diferentes.
+///
+/// Então: um registro PRÓPRIO, escrito por um caminho só, cuja EXISTÊNCIA é a
+/// prova. Ausência de linha é ausência de prova — nunca "provavelmente pagou".
+///
+/// ADITIVA: tabela nova, nenhuma tabela existente é tocada. O banco é SQLite num
+/// volume do Railway com dados de piloto VIVOS.
+///
+/// Rollback: DROP TABLE "PagamentoConfirmado". Sem a tabela, a leitura falha e
+/// o portão RECUSA tudo que nasceu depois do corte — degrada para parado, nunca
+/// para produzindo de graça.
+model PagamentoConfirmado {
+  id              String   @id @default(cuid())
+
+  /// O PEDIDO que foi pago. É a mesma chave que o Mercado Pago carrega como
+  /// `external_reference`, então o webhook não precisa traduzir nada.
+  ///
+  /// `@unique` de propósito: um pedido tem UM pagamento confirmado. Gateway
+  /// reenvia webhook — o reenvio tem de cair no mesmo registro, nunca criar um
+  /// segundo. A idempotência mora no banco, não numa variável em memória.
+  clientRequestId String   @unique
+
+  /// `mercadopago` — o webhook assinado do provedor, a testemunha primária.
+  /// `manual`      — alguém da casa registrou um Pix/transferência recebido
+  ///                 fora do gateway. Continua sendo um registro auditado, com
+  ///                 dono (`registradoPor`) e valor — não é um checkbox.
+  origem          String
+
+  /// O id do pagamento no provedor. Nulo só quando `origem = "manual"`.
+  provedorId      String?
+
+  /// CENTAVOS, inteiro. Dinheiro em ponto flutuante é erro de arredondamento
+  /// com nome de bug.
+  ///
+  /// ⚠️ OBRIGATÓRIO, e o portão exige `> 0`. Esta casa já leu "teto 0" como
+  /// "sem limite" em outro produto. Aqui, zero centavos é ZERO — não é "valor
+  /// não informado" e muito menos "liberado". Sem número, não há linha.
+  valorCentavos   Int
+
+  moeda           String   @default("BRL")
+
+  /// Quando o dinheiro foi confirmado (o `date_approved` do provedor, ou o
+  /// momento do registro manual).
+  confirmadoEm    DateTime
+
+  /// Quem registrou. NULO significa "o webhook do provedor" — e isso é um fato
+  /// diferente de "não sabemos quem foi". Registro manual SEMPRE tem dono.
+  registradoPor   String?
+
+  /// Para o registro manual: o que foi recebido e por onde. Nunca guarda dado
+  /// de cartão ou de conta — é texto do operador sobre a própria casa.
+  observacao      String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([confirmadoEm])
+}

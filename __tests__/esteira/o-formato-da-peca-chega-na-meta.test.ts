@@ -42,6 +42,20 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
+  // O portão de pagamento deriva o pedido pelo projeto do cliente quando a
+  // peça vem sem `clientRequestId` (cliente DIRETO).
+  project: { findFirst: vi.fn(async () => ({ clientRequestId: "cr-pago", id: "proj-pago", clientId: "cli-1" })), },
+  // O PORTÃO DE PAGAMENTO (lib/agency/financeiro/portao-de-pagamento.ts) roda
+  // antes de qualquer produção. Estes testes são sobre o que acontece DEPOIS de
+  // o cliente pagar, então a testemunha diz "pago". Quem testa a trava em si é
+  // __tests__/financeiro/portao-de-pagamento.test.ts.
+  pagamentoConfirmado: {
+    findUnique: vi.fn(async () => ({
+      valorCentavos: 7900,
+      origem: "mercadopago",
+      confirmadoEm: new Date("2026-08-25T00:00:00.000Z"),
+    })),
+  },
   socialPost: { findMany: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
   mediaAsset: { findFirst: vi.fn(), findUnique: vi.fn(), count: vi.fn(), findMany: vi.fn() },
   client: { findUnique: vi.fn() },

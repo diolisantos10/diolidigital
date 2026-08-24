@@ -56,10 +56,26 @@ vi.mock("@/lib/agency/execution/leitura-do-cliente", () => ({
 }));
 vi.mock("@/lib/db/client", () => ({
   prisma: {
+    // O portão de pagamento deriva o pedido pelo projeto do cliente quando a
+    // peça vem sem `clientRequestId` (cliente DIRETO).
+    project: { findFirst: vi.fn(async () => ({ clientRequestId: "cr-pago", id: "proj-pago", clientId: "cli-1" })), },
+    // O PORTÃO DE PAGAMENTO roda antes de qualquer produção. Este teste é sobre
+    // o que acontece DEPOIS de o cliente pagar, então a testemunha diz "pago".
+    pagamentoConfirmado: {
+      findUnique: vi.fn(async () => ({
+        valorCentavos: 7900, origem: "mercadopago",
+        confirmadoEm: new Date("2026-08-25T00:00:00.000Z"),
+      })),
+    },
     socialPost: { findMany: vi.fn(async () => [POST]), update: atualizarPost },
+    // O PORTÃO DE PAGAMENTO, com peça de cliente DIRETO (sem `clientRequestId`),
+    // procura o pedido do cliente e, não achando, cai na anistia pela IDADE do
+    // cadastro — daí o `findFirst` e o `createdAt`.
+    clientRequestDb: { findUnique: vi.fn(async () => null), findFirst: vi.fn(async () => null) },
     client: {
       findUnique: vi.fn(async () => ({
         id: "cli-1", name: "Padaria Aurora", industry: "padaria",
+        createdAt: new Date("2026-07-01T00:00:00.000Z"),
         brandBrain: { primaryColor: "#8B2F1F", secondaryColor: "#E8C39E", typography: "Playfair", tone: "acolhedor" },
       })),
     },

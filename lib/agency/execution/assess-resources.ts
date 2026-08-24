@@ -9,10 +9,26 @@
 
 import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
+import { conferirPagamento } from "@/lib/agency/financeiro/portao-de-pagamento";
 
 export interface MissingItem { type: string; description: string }
 
 export async function assessResources(clientRequestId: string): Promise<{ sufficient: boolean; missing: MissingItem[] }> {
+  // ── O PORTÃO DE PAGAMENTO ────────────────────────────────────────────────
+  // Esta função chama a IA paga para decidir o que ainda falta do cliente. É
+  // token gasto num projeto de cliente, e a regra do CEO não abre exceção para
+  // gasto pequeno: "sem pagamento: sem peça, sem arte, sem token gasto".
+  //
+  // Ela é chamada de `app/api/portal/approvals/route.ts`, que NÃO passa por
+  // `run-execution` — por isso o portão está aqui dentro, e não só lá.
+  //
+  // A saída da recusa é a NEUTRA ("não falta nada"), e isso não afrouxa nada:
+  // quem produz de verdade é a esteira, que tem o seu próprio portão e vai
+  // barrar o mesmo pedido com a instrução gêmea. O que esta recusa faz é não
+  // GASTAR para responder uma pergunta sobre um projeto que não pode começar.
+  const pagamento = await conferirPagamento(clientRequestId);
+  if (!pagamento.liberado) return { sufficient: true, missing: [] };
+
   const req = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
   if (!req) return { sufficient: true, missing: [] };
 

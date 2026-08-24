@@ -452,7 +452,8 @@ export const ModelName = {
   FlagV2: 'FlagV2',
   ReconciliacaoV2: 'ReconciliacaoV2',
   HeartbeatDoRelogio: 'HeartbeatDoRelogio',
-  HandoffV2: 'HandoffV2'
+  HandoffV2: 'HandoffV2',
+  PagamentoConfirmado: 'PagamentoConfirmado'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -468,7 +469,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5578,6 +5579,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PagamentoConfirmado: {
+      payload: Prisma.$PagamentoConfirmadoPayload<ExtArgs>
+      fields: Prisma.PagamentoConfirmadoFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PagamentoConfirmadoFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PagamentoConfirmadoPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PagamentoConfirmadoFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PagamentoConfirmadoPayload>
+        }
+        findFirst: {
+          args: Prisma.PagamentoConfirmadoFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PagamentoConfirmadoPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PagamentoConfirmadoFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PagamentoConfirmadoPayload>
+        }
+        findMany: {
+          args: Prisma.PagamentoConfirmadoFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PagamentoConfirmadoPayload>[]
+        }
+        create: {
+          args: Prisma.PagamentoConfirmadoCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PagamentoConfirmadoPayload>
+        }
+        createMany: {
+          args: Prisma.PagamentoConfirmadoCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PagamentoConfirmadoCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PagamentoConfirmadoPayload>[]
+        }
+        delete: {
+          args: Prisma.PagamentoConfirmadoDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PagamentoConfirmadoPayload>
+        }
+        update: {
+          args: Prisma.PagamentoConfirmadoUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PagamentoConfirmadoPayload>
+        }
+        deleteMany: {
+          args: Prisma.PagamentoConfirmadoDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PagamentoConfirmadoUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PagamentoConfirmadoUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PagamentoConfirmadoPayload>[]
+        }
+        upsert: {
+          args: Prisma.PagamentoConfirmadoUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PagamentoConfirmadoPayload>
+        }
+        aggregate: {
+          args: Prisma.PagamentoConfirmadoAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePagamentoConfirmado>
+        }
+        groupBy: {
+          args: Prisma.PagamentoConfirmadoGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PagamentoConfirmadoGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PagamentoConfirmadoCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PagamentoConfirmadoCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -6863,6 +6938,22 @@ export const HandoffV2ScalarFieldEnum = {
 export type HandoffV2ScalarFieldEnum = (typeof HandoffV2ScalarFieldEnum)[keyof typeof HandoffV2ScalarFieldEnum]
 
 
+export const PagamentoConfirmadoScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  origem: 'origem',
+  provedorId: 'provedorId',
+  valorCentavos: 'valorCentavos',
+  moeda: 'moeda',
+  confirmadoEm: 'confirmadoEm',
+  registradoPor: 'registradoPor',
+  observacao: 'observacao',
+  createdAt: 'createdAt'
+} as const
+
+export type PagamentoConfirmadoScalarFieldEnum = (typeof PagamentoConfirmadoScalarFieldEnum)[keyof typeof PagamentoConfirmadoScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -7098,6 +7189,7 @@ export type GlobalOmitConfig = {
   reconciliacaoV2?: Prisma.ReconciliacaoV2Omit
   heartbeatDoRelogio?: Prisma.HeartbeatDoRelogioOmit
   handoffV2?: Prisma.HandoffV2Omit
+  pagamentoConfirmado?: Prisma.PagamentoConfirmadoOmit
 }
 
 /* Types for Logging */

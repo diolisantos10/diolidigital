@@ -47,6 +47,7 @@ import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import { lerProibicoes, registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
 import { revisionStatusDoVeredito } from "@/lib/agency/execution/quality-auditor";
+import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pagamento";
 
 /** Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente. */
 export const MAX_REFACOES_DO_CLIENTE = 2;
@@ -107,6 +108,18 @@ export async function refazerPorPedidoDoCliente(input: {
     // Devolver "escalado" sem escalar seria repetir o silêncio; aqui o retorno
     // é honesto e quem chama (a rota) registra o erro.
     return { ...saida, escalado: true, motivo: "pedido sem dono: nem clientRequestId nem clientId" };
+  }
+
+  // ── O PORTÃO DE PAGAMENTO ────────────────────────────────────────────────
+  // Refazer é PRODUZIR: gera peça nova, gasta token e imagem. E ela é chamada
+  // de `app/api/portal/approvals/route.ts` e de `approval-service.ts`, que não
+  // passam por `run-execution` — o portão tem de estar aqui dentro.
+  //
+  // `escalado: true` com o motivo em português: a rota que chama já sabe
+  // registrar isso, e o cliente recebe a instrução gêmea em vez de um silêncio.
+  const pagamento = await conferirPagamentoDaAncora({ clientRequestId, clientId });
+  if (!pagamento.liberado) {
+    return { ...saida, escalado: true, motivo: pagamento.mensagemAoCliente };
   }
 
   const ancora: AncoraDoPedido = { clientId, clientRequestId };

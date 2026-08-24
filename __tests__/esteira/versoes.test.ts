@@ -8,6 +8,17 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
+  // O PORTÃO DE PAGAMENTO (lib/agency/financeiro/portao-de-pagamento.ts) roda
+  // antes de qualquer produção. Estes testes são sobre o que acontece DEPOIS de
+  // o cliente pagar, então a testemunha diz "pago". Quem testa a trava em si é
+  // __tests__/financeiro/portao-de-pagamento.test.ts.
+  pagamentoConfirmado: {
+    findUnique: vi.fn(async () => ({
+      valorCentavos: 7900,
+      origem: "mercadopago",
+      confirmadoEm: new Date("2026-08-25T00:00:00.000Z"),
+    })),
+  },
   project: { findFirst: vi.fn() },
   clientRequestDb: { findUnique: vi.fn() },
   cycle: { findFirst: vi.fn() },
