@@ -61,7 +61,7 @@ export async function pecasEmTexto(projectId: string, nomeDoCliente: string): Pr
   const entregas = await prisma.deliverable.findMany({
     where: { projectId },
     orderBy: { createdAt: "asc" },
-    select: { name: true, type: true, content: true, revisionStatus: true, visibility: true },
+    select: { name: true, type: true, content: true, revisionStatus: true, visibility: true, lastFeedback: true },
   }).catch(() => []);
 
   const l: string[] = [];
@@ -82,6 +82,14 @@ export async function pecasEmTexto(projectId: string, nomeDoCliente: string): Pr
     l.push(`---`, "", `## ${e.name}`);
     const revisada = e.revisionStatus === "quality_ok";
     l.push("", revisada ? "_Revisada pela Qualidade._" : `_Revisão: ${e.revisionStatus ?? "não auditada"}._`);
+    // ── O PARECER DA QUALIDADE, QUANDO ELA BARROU ──────────────────────────
+    // `apresentar()` recusa o pacote inteiro enquanto houver peça em
+    // `quality_flag`, e sem o parecer aqui a única forma de saber POR QUÊ é
+    // abrir o banco. Foi o que travou o piloto em 24/08/2026 — e ler o motivo
+    // é a diferença entre consertar o produtor e adivinhar.
+    if (e.revisionStatus === "quality_flag" && e.lastFeedback?.trim()) {
+      l.push("", `> ⚠️ **A Qualidade barrou:** ${e.lastFeedback.trim()}`);
+    }
     // O cliente só vê o que foi compartilhado — dizer isso evita a leitura
     // errada de que tudo que está aqui chegou a ele.
     l.push(e.visibility === "compartilhado" ? "_Chegou ao cliente._" : `_Não chegou ao cliente (${e.visibility})._`);
