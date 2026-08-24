@@ -28,6 +28,9 @@
 // caindo no padrão da casa, DECLARANDO que caiu, e a lacuna sobe para alguém
 // perguntar ao cliente.
 
+import { volumeDeclarado } from "@/lib/agency/live-calculator";
+import type { SocialScope } from "@/lib/agency/briefing-conversation";
+
 /** Os formatos que a esteira sabe produzir. */
 export type FormatoContratado = "carrossel" | "story" | "feed" | "reel";
 
@@ -92,6 +95,70 @@ const EXCLUSAO = [
   /\bo que n[aã]o est[aá] inclu[ií]d/,
 ];
 
+/** Quatro semanas por mês, e não 4,33. Ver o comentário do volume: o calendário
+ *  do cliente é mensal, e arredondar para baixo é o lado seguro. */
+export const SEMANAS_POR_MES = 4;
+
+/**
+ * O VOLUME LIDO DO CAMPO QUE O SDR JÁ PREENCHE.
+ *
+ * `escopo` chega como JSON em todo o caminho da esteira (`avaliarCasoNormal`,
+ * `run-execution`) porque o bloco `briefingJson.scope` é serializado antes de
+ * entrar aqui. Quando ele é JSON, `social.postsPerWeek` é a resposta do próprio
+ * cliente, gravada — e vale mais que qualquer regex sobre prosa.
+ *
+ * `volumeDeclarado` (`live-calculator.ts`) é quem decide, em toda a casa, se um
+ * volume é utilizável: zero, negativo, NaN e fora de tipo são todos "o dado não
+ * chegou". Não há segunda régua aqui — chamar a de lá é o ponto.
+ *
+ * Devolve `null` quando o escopo não é JSON, não traz o campo, ou o traz vazio.
+ * Nunca lança: escopo quebrado vira lacuna, não exceção.
+ */
+function volumeDoCampoEstruturado(
+  escopo: string | undefined,
+): { pecasPorMes: number; procedencia: string } | null {
+  if (!escopo || !escopo.trim().startsWith("{")) return null;
+  let corpo: unknown;
+  try {
+    corpo = JSON.parse(escopo);
+  } catch {
+    return null;
+  }
+  if (!corpo || typeof corpo !== "object" || Array.isArray(corpo)) return null;
+
+  // O bloco pode chegar como `scope` ou já desembrulhado — os dois acontecem na
+  // casa, e exigir um dos dois seria a régua achar que o formato é um só.
+  const raiz = corpo as Record<string, unknown>;
+  const dentro = raiz.scope;
+  const s = (dentro && typeof dentro === "object" && !Array.isArray(dentro) ? dentro : raiz) as Record<string, unknown>;
+  const social = s.social;
+  if (!social || typeof social !== "object" || Array.isArray(social)) return null;
+
+  const porSemana = volumeDeclarado(social as SocialScope);
+  if (porSemana === null) return null;
+
+  const partes: string[] = [`${porSemana} posts/semana`];
+  let total = porSemana * SEMANAS_POR_MES;
+
+  // Stories e vídeos são PEÇAS produzidas, e o contrato de saída cobra peça —
+  // não "post de feed". Deixá-los de fora fazia a casa cobrar do especialista
+  // um terço do que o cliente comprou. Só entra número declarado e utilizável.
+  const stories = volumeDeclarado({ postsPerWeek: (social as SocialScope).storiesPerWeek } as SocialScope);
+  if (stories !== null) {
+    total += stories * SEMANAS_POR_MES;
+    partes.push(`${stories} stories/semana`);
+  }
+  for (const [campo, rotulo] of [["reelsPerMonth", "reels/mês"], ["videosPerMonth", "vídeos/mês"]] as const) {
+    const n = volumeDeclarado({ postsPerWeek: (social as unknown as Record<string, number | undefined>)[campo] } as SocialScope);
+    if (n !== null) {
+      total += n;
+      partes.push(`${n} ${rotulo}`);
+    }
+  }
+
+  return { pecasPorMes: total, procedencia: `campo do briefing (${partes.join(" + ")}) = ${total}/mês` };
+}
+
 /**
  * Lê o escopo de conteúdo do que o cliente escreveu.
  *
@@ -117,18 +184,56 @@ export function lerEscopoDeConteudo(fontes: {
   const procedencia: string[] = [];
 
   // ── O VOLUME ──────────────────────────────────────────────────────────────
-  // "60 posts por mês", "60 posts simples/mês", "2 posts por dia".
+  //
+  // ⚠️ O DEFEITO QUE ESTE BLOCO PAGOU DUAS VEZES (24/08/2026, medido em
+  // produção pelo case Farol 27, e reproduzido por dois caminhos independentes)
+  //
+  // A régua lia só prosa, e só conhecia "/mês" e "/dia". O cliente diz o volume
+  // como GENTE DIZ — *"3 posts por semana no feed"* — e o próprio SDR da casa
+  // anotava certo, no campo estruturado (`social.postsPerWeek: 3`), ao lado.
+  // Resultado medido: `pecasPorMes = null`, o caminho automático recusava o
+  // briefing por "a casa não sabe o que vendeu", e o que era recusado não era o
+  // caso excepcional — era o CASO TÍPICO.
+  //
+  // Duas leituras entram aqui, nesta ordem, e a ordem é a regra:
+  //
+  //   1. O CAMPO ESTRUTURADO, quando `escopo` chega como JSON. Ele é o dado que
+  //      a casa GRAVOU, não o que ela adivinhou de um texto — é a fonte mais
+  //      forte que existe, e ignorá-la para reler a prosa era o defeito.
+  //   2. A PROSA, como antes, para o briefing que só tem texto.
+  //
+  // Nada aqui infere: continua valendo o guardrail 1 — o que não estiver
+  // escrito (num campo ou numa frase) segue virando LACUNA, nunca número.
   let pecasPorMes: number | null = null;
-  const porMes = /(\d{1,3})\s*(?:posts?|pe[cç]as?|publicac[oõ]es|conte[uú]dos?)[^.\n]{0,30}?(?:\/\s*m[eê]s|por m[eê]s|mensa)/.exec(texto);
-  if (porMes) {
-    pecasPorMes = Number(porMes[1]);
-    procedencia.push(`volume: "${porMes[0].trim()}"`);
-  } else {
-    const porDia = /(\d{1,2})\s*(?:posts?|pe[cç]as?)[^.\n]{0,30}?(?:por dia|\/\s*dia|di[aá]ri)/.exec(texto);
-    if (porDia) {
-      // 30 dias, e não 30,4: o calendário do cliente é mensal, não astronômico.
-      pecasPorMes = Number(porDia[1]) * 30;
-      procedencia.push(`volume: "${porDia[0].trim()}" × 30 dias`);
+
+  const doCampo = volumeDoCampoEstruturado(fontes.escopo);
+  if (doCampo) {
+    pecasPorMes = doCampo.pecasPorMes;
+    procedencia.push(`volume: ${doCampo.procedencia}`);
+  }
+
+  if (pecasPorMes === null) {
+    const porMes = /(\d{1,3})\s*(?:posts?|pe[cç]as?|publicac[oõ]es|conte[uú]dos?)[^.\n]{0,30}?(?:\/\s*m[eê]s|por m[eê]s|mensa)/.exec(texto);
+    if (porMes) {
+      pecasPorMes = Number(porMes[1]);
+      procedencia.push(`volume: "${porMes[0].trim()}"`);
+    } else {
+      // "3 posts por semana" — a forma como o cliente fala, e a que faltava.
+      // 4 semanas, e não 4,33: mesma escolha do "× 30 dias" logo abaixo — o
+      // calendário do cliente é mensal, não astronômico —, e para baixo, que é
+      // o lado seguro: prometer menos do que se leu nunca entrega a menos.
+      const porSemana = /(\d{1,2})\s*(?:posts?|pe[cç]as?|publicac[oõ]es|conte[uú]dos?)[^.\n]{0,30}?(?:por semana|\/\s*semana|semanal)/.exec(texto);
+      if (porSemana) {
+        pecasPorMes = Number(porSemana[1]) * SEMANAS_POR_MES;
+        procedencia.push(`volume: "${porSemana[0].trim()}" × ${SEMANAS_POR_MES} semanas`);
+      } else {
+        const porDia = /(\d{1,2})\s*(?:posts?|pe[cç]as?)[^.\n]{0,30}?(?:por dia|\/\s*dia|di[aá]ri)/.exec(texto);
+        if (porDia) {
+          // 30 dias, e não 30,4: o calendário do cliente é mensal, não astronômico.
+          pecasPorMes = Number(porDia[1]) * 30;
+          procedencia.push(`volume: "${porDia[0].trim()}" × 30 dias`);
+        }
+      }
     }
   }
   if (pecasPorMes === null || !Number.isFinite(pecasPorMes) || pecasPorMes <= 0) {

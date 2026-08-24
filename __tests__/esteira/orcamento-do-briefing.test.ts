@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const db = vi.hoisted(() => ({
   clientRequestDb: { findMany: vi.fn(), update: vi.fn() },
   portalMessage: { create: vi.fn() },
-  portalAccess: { findFirst: vi.fn() },
+  portalAccess: { findMany: vi.fn(), create: vi.fn() },
   $transaction: vi.fn(async (ops: unknown[]) => ops),
   // O AVISO QUE FALHA NUNCA MAIS SOME (16/08/2026): a persistência do
   // resultado usa SQL cru (a coluna é nova; ver o comentário de
@@ -67,8 +67,12 @@ beforeEach(() => {
   db.clientRequestDb.findMany.mockReset();
   db.clientRequestDb.update.mockReset();
   db.portalMessage.create.mockReset();
-  db.portalAccess.findFirst.mockReset();
-  db.portalAccess.findFirst.mockResolvedValue({ token: "tok123" });
+  db.portalAccess.findMany.mockReset();
+  // O pedido JÁ tem porta de aceite viva: `linkDaProposta` reaproveita e não
+  // revoga nada — a regra 2 de `links-do-portal.ts`.
+  db.portalAccess.findMany.mockResolvedValue([{ token: "tok123", expiresAt: null }]);
+  db.portalAccess.create.mockReset();
+  db.portalAccess.create.mockResolvedValue({ token: "tok-novo" });
   db.$transaction.mockClear();
   db.$executeRawUnsafe.mockReset();
   db.$executeRawUnsafe.mockResolvedValue(1);
@@ -285,7 +289,7 @@ describe("o cliente FICA SABENDO que o orçamento ficou pronto", () => {
     // Ordem do CEO em 16/08: *"está tudo ainda com o domínio, é pra estar
     // diolidigital.com.br."* Link de `*.up.railway.app` na caixa de entrada do
     // cliente não é o endereço da casa — e ainda quebra o OAuth do Drive.
-    expect(html).toContain("https://www.diolidigital.com.br/portal/access/tok123");
+    expect(html).toContain("https://www.diolidigital.com.br/proposta/tok123");
     expect(html).not.toMatch(/up\.railway\.app/);
   });
 
@@ -302,8 +306,11 @@ describe("o cliente FICA SABENDO que o orçamento ficou pronto", () => {
     expect(html).not.toContain("O que NÃO está incluído");
   });
 
-  it("sem token de portal o e-mail sai assim mesmo, sem botão que não leva a lugar nenhum", async () => {
-    db.portalAccess.findFirst.mockResolvedValue(null);
+  it("quando NÃO dá para cunhar a porta, o e-mail sai assim mesmo — sem botão que não leva a lugar nenhum", async () => {
+    // Cunhar falhou (banco fora do ar, por exemplo). A entrega vale: falhar em
+    // fabricar o link não pode desfazer um orçamento já entregue.
+    db.portalAccess.findMany.mockResolvedValue([]);
+    db.portalAccess.create.mockRejectedValue(new Error("banco fora do ar"));
     db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
     const r = await entregarOrcamentosPendentes();
 
