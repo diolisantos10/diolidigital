@@ -559,15 +559,7 @@ const QUESTIONS: QuestionDef[] = [
     },
   },
 
-  // Q10 — budget range
-  {
-    id: "budget_range",
-    when: (s) => !s.scope.budgetRange,
-    text: () => "Para fecharmos o escopo: qual faixa de orçamento mensal você tem em mente para a gestão? (sem contar a verba de anúncios)",
-    parse: (answer) => ({ budgetRange: answer.trim() }),
-  },
-
-  // ── Q10.5 — OS BÁSICOS QUE A PRODUÇÃO USA ─────────────────────────────────
+  // ── Q9.5 — OS BÁSICOS QUE A PRODUÇÃO USA ──────────────────────────────────
   //
   // ── Por que esta pergunta existe (24/08/2026) ────────────────────────────
   // O briefing perguntava tudo que serve para VENDER e nada do que serve para
@@ -591,6 +583,15 @@ const QUESTIONS: QuestionDef[] = [
   //     pode é a produção descobrir a falta depois.
   //  3. **Só para quem vai ter peça de social.** Quem só contratou tráfego não
   //     precisa responder o que não vai ser usado.
+  //  4. **Vem ANTES da verba, e isso é posição, não gosto.** Ela é opcional (não
+  //     trava o portão), e o portão abre assim que a última pergunta OBRIGATÓRIA
+  //     é respondida. Colocada depois da verba, ela era feita como fala de
+  //     despedida e o cliente já tinha o botão de enviar na mão — medido ao vivo
+  //     em 24/08/2026: a casa perguntou, a conversa acabou, e `operacao` chegou
+  //     nula à produção. É o MESMO defeito que tirou `budget_range` de opcional
+  //     em 23/08, descrito no comentário de `OPTIONAL_QIDS` — e eu entrei nele
+  //     de novo por outra porta. Antes da verba, ela é perguntada e respondida
+  //     com o portão ainda fechado; a verba segue logo atrás, sem ir para o fim.
   //
   // ⛔ NÃO PEDE E-MAIL (regra do CEO) e NÃO PEDE O NÚMERO do WhatsApp — só se o
   // negócio ATENDE por lá. O escopo inteiro é serializado para dentro do prompt
@@ -609,6 +610,14 @@ const QUESTIONS: QuestionDef[] = [
       "Se não tiver alguma delas, é só dizer que a gente segue. 🙂",
     ].join("\n"),
     parse: (answer) => ({ operacao: answer.trim() }),
+  },
+
+  // Q10 — budget range
+  {
+    id: "budget_range",
+    when: (s) => !s.scope.budgetRange,
+    text: () => "Para fecharmos o escopo: qual faixa de orçamento mensal você tem em mente para a gestão? (sem contar a verba de anúncios)",
+    parse: (answer) => ({ budgetRange: answer.trim() }),
   },
 
   // Q11 — deadline

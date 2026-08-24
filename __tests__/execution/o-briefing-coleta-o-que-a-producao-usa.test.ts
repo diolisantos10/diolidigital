@@ -84,6 +84,19 @@ describe("a casa PERGUNTA os básicos que a produção usa", () => {
     expect(pendentes).not.toContain("operacao_basica");
   });
 
+  it("é perguntada ANTES da verba — senão vira fala de despedida", () => {
+    // O defeito medido ao vivo em 24/08/2026, e é o MESMO que tirou
+    // `budget_range` de opcional em 23/08: pergunta opcional colocada depois da
+    // última obrigatória é feita quando o portão JÁ abriu — o cliente tem o
+    // botão de enviar na mão, a conversa acaba, e o campo chega nulo à produção.
+    //
+    // Com a verba ainda pendente, o portão continua fechado e a pergunta é
+    // respondida de verdade. Se alguém reordenar a fila, isto fica vermelho.
+    const semVerbaNemOperacao = { ...QUASE_FECHADO };
+    delete (semVerbaNemOperacao as Record<string, unknown>).budgetRange;
+    expect(getNextQuestion(estado(semVerbaNemOperacao))?.id).toBe("operacao_basica");
+  });
+
   it("não pergunta a quem não vai ter peça de social", () => {
     // Prospect real desiste de formulário longo, e isso custa mais que peça
     // retida. Quem não contratou social não responde o que não será usado.

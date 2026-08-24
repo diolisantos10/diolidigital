@@ -46,7 +46,13 @@ function conversaAteOrcamento() {
   ];
   for (let i = 0; i < 25; i++) {
     const feitas = s.conv.answeredQIds;
-    if (feitas.includes("competitors_refs") && !feitas.includes("budget_range")) return s;
+    // Para EXATAMENTE na pergunta do orçamento, que é o cenário do print.
+    // `operacao_basica` entrou entre `competitors_refs` e a verba em 24/08/2026
+    // (ela é opcional e precisa ser feita com o portão ainda fechado), então
+    // parar em "competitors respondida" passou a parar uma pergunta cedo demais
+    // — e o teste passaria a medir a pergunta errada.
+    if (feitas.includes("competitors_refs") && feitas.includes("operacao_basica")
+        && !feitas.includes("budget_range")) return s;
     s = processProspectMessage(respostas[i] ?? "Não", s);
   }
   throw new Error("a conversa nunca chegou na pergunta de orçamento — o cenário do print mudou");

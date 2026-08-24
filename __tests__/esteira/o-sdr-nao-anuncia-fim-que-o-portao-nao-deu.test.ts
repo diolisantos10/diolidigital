@@ -81,6 +81,11 @@ const PERCURSO_COMPLETO = [
   "Sim, preciso que escrevam os textos.",
   "Não quero tráfego pago agora.",
   "Gosto do perfil da concorrente Clinica Derma.",
+  // Os básicos operacionais (24/08/2026): a casa passou a perguntá-los ANTES
+  // da verba, com o portão ainda fechado — pergunta opcional feita depois da
+  // última obrigatória vira fala de despedida e ninguém responde. É o mesmo
+  // defeito descrito logo abaixo, por outra porta.
+  "Nosso Instagram é @clinicabelaface, atendemos de segunda a sábado das 9h às 19h, em São Paulo.",
   "Budget de R$ 500 por mês.",
   // ── A RESPOSTA DA VERBA ENTROU EM 23/08/2026 ─────────────────────────────
   // Até aqui o percurso terminava com a pergunta da verba NO AR, sem resposta,

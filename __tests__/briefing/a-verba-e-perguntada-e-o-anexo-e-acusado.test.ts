@@ -134,6 +134,18 @@ describe("a casa não manda preço a quem nunca foi perguntado quanto pode gasta
     "Preciso que vocês escrevam os textos.",
     "Anúncios não, agora não.",
     "Gosto do perfil do Bráz e do Carlos Pizza.",
+    // ── OS BÁSICOS OPERACIONAIS (24/08/2026) ─────────────────────────────
+    // A casa passou a perguntar @ do Instagram, horário e área ANTES da verba
+    // — ver `question-engine.ts`. A pergunta é opcional (não trava o portão) e
+    // por isso PRECISA vir com o portão ainda fechado: depois da verba ela
+    // virava fala de despedida e ninguém respondia, que é o mesmo defeito que
+    // tirou `budget_range` de opcional em 23/08.
+    //
+    // O que este arquivo afirma continua igual: a pergunta da verba PERGUNTA a
+    // verba e não anuncia o fim. O que mudou é a conversa que a casa tem — e o
+    // roteiro tem de refletir a conversa real, senão ele testa uma casa que não
+    // existe mais.
+    "Nosso Instagram é @cantinadaprova, abrimos de terça a domingo das 11h30 às 23h, atendemos Pinheiros.",
   ];
 
   it("a pergunta da verba PERGUNTA a verba, em vez de anunciar o fim", () => {
