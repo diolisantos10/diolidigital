@@ -61,7 +61,7 @@
 import { prisma } from "@/lib/db/client";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
 import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
-import { conexaoDoCliente, loadConnectionToken } from "@/lib/integrations/meta/connections";
+import { conexaoDoCliente, carregarTokenDaConexao } from "@/lib/integrations/meta/connections";
 import { conferirFormatoDeMidia, type MidiaConferida } from "@/lib/integrations/meta/formato-de-midia";
 import {
   ativoAutorizado,
@@ -472,14 +472,30 @@ async function conferirPost(
   }
 
   // ── 9. O token da conexão abre (dentro de publishPost) ────────────────────
-  const carregada = conexao ? await loadConnectionToken(post.workspaceId, conexao.id).catch(() => null) : null;
+  //
+  // ⚠️ Até 15/08/2026 este portão dizia *"ela some ou o token não decifra"* e
+  // mandava o cliente reconectar nos dois casos. São causas OPOSTAS: a primeira
+  // é do cliente; a segunda é o COFRE quebrado, do nosso lado, e reconectar
+  // esconde a causa em vez de consertá-la — em todos os clientes, um a um.
+  // `carregarTokenDaConexao` separa as duas na origem.
+  const resultado = conexao
+    ? await carregarTokenDaConexao(post.workspaceId, conexao.id).catch(
+        () => ({ ok: false, falha: "nao_existe" }) as const,
+      )
+    : null;
+  const carregada = resultado?.ok ? resultado.conexao : null;
   portoes.push(
     !conexao
       ? naoMedido(9, "Token carregável pelo publicador", "não medi: não há conexão.", "cliente", "Ver o portão 5.")
       : carregada
-        ? passou(9, "Token carregável pelo publicador", "`loadConnectionToken` devolveu o token e o dono derivado da própria linha.")
-        : barrou(9, "Token carregável pelo publicador", "`publishPost` não conseguiu carregar esta conexão — ela some ou o token não decifra.", "cliente",
-            "Reconectar a conta pelo portal do cliente."),
+        ? passou(9, "Token carregável pelo publicador", "`carregarTokenDaConexao` devolveu o token e o dono derivado da própria linha.")
+        : resultado && !resultado.ok && resultado.falha === "token_ilegivel"
+          ? barrou(9, "Token carregável pelo publicador",
+              "o token está no banco e NENHUMA chave do cofre abre. Isto é falha NOSSA, não do cliente.", "casa",
+              "NÃO mande o cliente reconectar ainda: rode GET /api/admin/censo-do-cofre. Se houver mais conexões assim, a causa é a chave do cofre, não a conta.")
+          : barrou(9, "Token carregável pelo publicador",
+              "`publishPost` não conseguiu carregar esta conexão — ela não existe neste workspace.", "cliente",
+              "Reconectar a conta pelo portal do cliente."),
   );
 
   // ── 10. Ativo autorizado (a lista que o DONO marcou) ──────────────────────

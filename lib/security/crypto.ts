@@ -12,11 +12,10 @@
 // reconstrói a chave em segundos e decifra tudo.
 //
 // Por que não bastava "exigir CREDENTIALS_SECRET e falhar alto" como faz
-// `lib/auth/secret.ts`: aqui a chave não assina, ela CIFRA. Setar a variável
-// hoje trocaria a chave e tornaria INDECIFRÁVEL tudo que já foi cifrado com o
-// fallback — chaves de IA e tokens da Meta inclusive. Endurecimento que parece
-// segurança e é perda de dado. (Está registrado na vitrine da plataforma:
-// "NÃO sete CREDENTIALS_SECRET agora".)
+// `lib/auth/secret.ts`: aqui a chave não assina, ela CIFRA. ANTES do conserto
+// abaixo, setar a variável trocaria a chave e tornaria INDECIFRÁVEL tudo que já
+// tinha sido cifrado com o fallback — chaves de IA e tokens da Meta inclusive.
+// Endurecimento que parece segurança e é perda de dado.
 //
 // O conserto é a LEITURA COM DUAS CHAVES:
 //   • escrita → SEMPRE a chave nova (CREDENTIALS_SECRET), quando ela existe;
@@ -25,10 +24,28 @@
 // continua sendo lido, o que é novo já nasce com a chave forte. A armadilha
 // vira uma migração que acontece sozinha, no ritmo de cada segredo reescrito.
 //
+// ── O ESTADO DE HOJE (15/08/2026), MEDIDO, NÃO SUPOSTO ──────────────────────
+//
+// `CREDENTIALS_SECRET` **ESTÁ DEFINIDA** no serviço do Railway, e defini-la não
+// perdeu segredo nenhum. `DATABASE_URL` **não é variável do serviço**: o
+// `start.sh` a auto-deriva do caminho do volume, e o log do deploy vivo imprime
+// `file:/data/dioli.db` — a mesma string que o teste simula, então a chave
+// LEGADA continua reconstruível e o que é antigo continua abrindo.
+//
+// ⚠️ NÃO REMOVA `CREDENTIALS_SECRET` do Railway. Hoje isso é inócuo (tudo é
+// duplamente legível); **depois de qualquer re-cifragem é destruição de dado**,
+// porque a chave legada não abre o que nasceu com a nova.
+//
 // ⚠️ O QUE AINDA FALTA (não é feito aqui, de propósito): uma varredura de
 // re-cifragem que reescreva os segredos antigos com a chave nova. Enquanto ela
-// não rodar, um segredo nunca reescrito continua protegido pela chave fraca.
+// não rodar, um segredo nunca reescrito continua protegido pela chave fraca —
+// e a chave fraca é uma string adivinhável cujos backups moram no MESMO volume.
 // Isso MEXE EM DADO DE PRODUÇÃO e é decisão do CEO, não de um deploy.
+//
+// **Quantos segredos ainda dependem da chave fraca** deixou de ser pergunta sem
+// resposta: `lib/security/censo-do-cofre.ts` conta, e
+// `GET /api/admin/censo-do-cofre` a serve. `cifradoComChaveLegada` abaixo é a
+// peça que ele usa — antes de 15/08 ela existia com ZERO chamadores.
 
 import { createCipheriv, createDecipheriv, createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 

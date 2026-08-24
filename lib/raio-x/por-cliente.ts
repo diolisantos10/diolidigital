@@ -73,7 +73,22 @@ export interface RetratoDeCliente {
   publicadasHoje: Contagem;
   /** Marcadas para o passado e ainda não publicadas — a hora que não aconteceu. */
   atrasadas: Contagem;
-  /** Cards de decisão abertos no portal dele. */
+  /**
+   * Cards de decisão abertos no portal dele — pelas **DUAS** chaves de posse.
+   *
+   * ⚠️ Até 15/08/2026 esta contagem perguntava só `ApprovalRequest.clientId`, e
+   * por isso mentia. `ApprovalRequest` tem posse por `clientRequestId` **OU**
+   * por `clientId` (está no schema desde o lançamento da Foocci: cliente criado
+   * direto não tinha ClientRequestDb e não conseguia aprovar nada). O portal
+   * honra as duas — `lib/agency/portal/posse-da-aprovacao.ts` é a função pura
+   * que decide, e ela testa as duas. Este censo testava uma.
+   *
+   * O custo: em 15/08 a produção tinha **7 aprovações pendentes** e este censo
+   * respondia **ZERO nos 5 clientes**. A divergência foi lida — com razão —
+   * como possível vazamento de escopo, o defeito mais caro que esta casa tem.
+   * Era pergunta incompleta. **Censo que não usa a mesma chave de posse do
+   * produto não mede o produto**; ele mede a própria consulta.
+   */
   aprovacoesPendentes: Contagem;
   /** Pedidos de material travando a produção dele. */
   materiaisPendentes: Contagem;
@@ -142,7 +157,16 @@ export async function varrerPorCliente(agora: Date = new Date()): Promise<Retrat
         prisma.socialPost.count({ where: { clientId: c.id, status: "scheduled", scheduledFor: { lt: agora } } }),
       ),
       aprovacoesPendentes: await contar(
-        prisma.approvalRequest.count({ where: { clientId: c.id, status: "pending" } }),
+        prisma.approvalRequest.count({
+          where: {
+            status: "pending",
+            // As duas chaves de posse, na mesma ordem de `posse-da-aprovacao.ts`:
+            // pela SOLICITAÇÃO do cliente, ou pelo cliente direto. Perguntar só
+            // a segunda é o que fazia este censo responder zero com 7 cards
+            // abertos no banco.
+            OR: [{ clientRequest: { clientId: c.id } }, { clientId: c.id }],
+          },
+        }),
       ),
       materiaisPendentes: await contar(
         prisma.materialRequest.count({ where: { status: "pending", project: { clientId: c.id } } }),

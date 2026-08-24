@@ -70,6 +70,92 @@ export async function varrerDadosPresos(agora: Date = new Date()): Promise<Resul
     medidas.clientes = await prisma.client.count();
     medidas.projetos = await prisma.project.count();
 
+    // 1c. DE QUEM SÃO AS APROVAÇÕES ABERTAS — as DUAS chaves de posse.
+    //
+    // ── O QUE ESTA MEDIDA FECHOU (15/08/2026) ────────────────────────────────
+    // A coleta de produção mostrou **7 aprovações pendentes, todas
+    // `clientVisible: true`**, e o censo por cliente (`por-cliente.ts`) dava
+    // **ZERO nos 5 clientes**. Parecia — e foi levantado como — cartão de
+    // decisão visível a cliente nenhum: a família de defeito mais cara desta
+    // casa (escopo de posse).
+    //
+    // NÃO ERA. `ApprovalRequest` tem posse por **duas** chaves, e isso está
+    // escrito no schema desde o lançamento da Foocci: `clientRequestId` (fluxo
+    // do briefing) **OU** `clientId` (cliente criado direto). O censo por
+    // cliente perguntava só a segunda. Sete cards do primeiro tipo são
+    // invisíveis para ele **por construção da consulta**, não por falta de dono.
+    //
+    // A lição é a de sempre nesta casa: **o número não estava errado — a
+    // pergunta estava.** Duas medidas que não somam entre si viram "defeito de
+    // escopo" na cabeça de quem lê, e ninguém consegue refutar sem abrir o
+    // schema. Agora a soma fecha aqui dentro, e a divergência tem nome.
+    const aprovacoesPorSolicitacao = await prisma.approvalRequest.count({
+      where: { status: "pending", clientRequestId: { not: null } },
+    });
+    const aprovacoesPorCliente = await prisma.approvalRequest.count({
+      where: { status: "pending", clientRequestId: null, clientId: { not: null } },
+    });
+    medidas.aprovacoesPendentesPorSolicitacao = aprovacoesPorSolicitacao;
+    medidas.aprovacoesPendentesPorClienteDireto = aprovacoesPorCliente;
+
+    // O QUE SOBRA depois das duas chaves é o que realmente não tem dono.
+    // `createApprovalRequest` LANÇA sem dono (approval-service.ts), então o
+    // caminho vivo não escreve card órfão — mas dado antigo, seed ou import
+    // podem ter escrito, e afirmar "é impossível" sem contar é fé.
+    const aprovacoesSemChave = await prisma.approvalRequest.count({
+      where: { status: "pending", clientRequestId: null, clientId: null },
+    });
+    medidas.aprovacoesPendentesSemChaveDePosse = aprovacoesSemChave;
+    if (aprovacoesSemChave > 0) {
+      achados.push({
+        padrao: "estado-morto",
+        chave: "aprovacao-sem-dono",
+        titulo: "Aprovação pendente sem clientRequestId E sem clientId",
+        evidencia:
+          `${aprovacoesSemChave} card(s) em "pending" sem nenhuma das duas chaves de posse. ` +
+          "Ninguém consegue vê-lo nem decidi-lo: o portal deriva a posse do token e nada baterá.",
+        local: "ApprovalRequest.clientRequestId / .clientId",
+        gravidade: "alto",
+      });
+    }
+
+    // O ÓRFÃO DE VERDADE: `ApprovalRequest.clientId` **não tem `@relation`** no
+    // schema — só `clientRequest` tem, com `onDelete: Cascade`. Apagar um
+    // `Client` deixa o `clientId` do card apontando para o nada, sem cascata e
+    // sem erro. Contar exige comparar as duas listas; são dezenas de linhas.
+    const donosDeCards = await prisma.approvalRequest.findMany({
+      where: { status: "pending", clientId: { not: null } },
+      select: { clientId: true },
+      distinct: ["clientId"],
+      take: 500,
+    });
+    const idsDeCards = donosDeCards.map((a) => a.clientId!).filter(Boolean);
+    let pendura = 0;
+    if (idsDeCards.length > 0) {
+      const vivos = await prisma.client.findMany({
+        where: { id: { in: idsDeCards } },
+        select: { id: true },
+      });
+      const conjunto = new Set(vivos.map((c) => c.id));
+      const mortos = idsDeCards.filter((id) => !conjunto.has(id));
+      if (mortos.length > 0) {
+        pendura = await prisma.approvalRequest.count({
+          where: { status: "pending", clientId: { in: mortos } },
+        });
+        achados.push({
+          padrao: "estado-morto",
+          chave: "aprovacao-com-cliente-apagado",
+          titulo: "Aprovação pendente apontando para um cliente que não existe mais",
+          evidencia:
+            `${pendura} card(s) em "pending" com clientId sem Client correspondente (${mortos.length} id(s) mortos). ` +
+            "ApprovalRequest.clientId não tem @relation no schema: apagar o Client não cascateia e não dá erro.",
+          local: "ApprovalRequest.clientId (sem FK)",
+          gravidade: "alto",
+        });
+      }
+    }
+    medidas.aprovacoesPendentesComClienteApagado = pendura;
+
     // A ARMADILHA QUE JÁ ACONTECEU: peça pronta, aprovação criada, e o cliente
     // não enxerga porque o card nasceu invisível.
     if (aprovacoesPendentes > 0 && aprovacoesVisiveis === 0) {
@@ -356,6 +442,146 @@ export async function varrerDadosPresos(agora: Date = new Date()): Promise<Resul
           `O briefing está gravado inteiro; não há para onde ligar.`,
         local: "ClientRequestDb.briefingJson.contato",
         gravidade: "alto",
+      });
+    }
+
+    // ── 12, 13 e 14: OS TRÊS BALDES QUE FALTAVAM PARA RELIGAR O RELÓGIO ──────
+    //
+    // Levantados em 15/08/2026 na auditoria do raio-x. Os três prendem trabalho
+    // já PAGO — peça produzida, direção aprovada, aviso redigido — no último
+    // metro, que é justamente onde esta casa já foi mordida quatro vezes.
+
+    // 12. DIREÇÃO APROVADA E EXECUÇÃO QUE NÃO ANDOU.
+    //     `directionApprovedAt` é fato datado: o cliente disse "vai". Se depois
+    //     disso a execução está `idle` (ninguém pediu) ou `failed` (pediu e
+    //     quebrou), o "vai" dele morreu dentro de casa. Só conta passadas 24h do
+    //     aval — projeto aprovado agora está em operação normal, não preso.
+    const direcaoSemExecucao = await prisma.project.count({
+      where: {
+        directionApprovedAt: { not: null, lt: ontem(agora) },
+        executionStatus: { in: ["idle", "failed"] },
+      },
+    });
+    medidas.projetosComDirecaoAprovadaESemExecucao = direcaoSemExecucao;
+    if (direcaoSemExecucao > 0) {
+      const maisAntigo = await prisma.project.findFirst({
+        where: {
+          directionApprovedAt: { not: null, lt: ontem(agora) },
+          executionStatus: { in: ["idle", "failed"] },
+        },
+        select: { id: true, executionStatus: true, executionError: true, directionApprovedAt: true },
+        orderBy: { directionApprovedAt: "asc" },
+      });
+      achados.push({
+        padrao: "estado-morto",
+        chave: "direcao-aprovada-sem-execucao",
+        titulo: "Cliente aprovou a direção e a execução não andou",
+        evidencia:
+          `${direcaoSemExecucao} projeto(s) com direção aprovada há +24h e execução em "idle"/"failed". ` +
+          `O mais antigo: ${maisAntigo?.id} em "${maisAntigo?.executionStatus}" desde ` +
+          `${maisAntigo?.directionApprovedAt?.toISOString()}${maisAntigo?.executionError ? ` — ${maisAntigo.executionError}` : " — sem erro registrado"}`,
+        local: "Project.directionApprovedAt + .executionStatus",
+        gravidade: "alto",
+      });
+    }
+
+    // 12b. Execução que PEDIU e nunca terminou. Estado diferente do de cima e
+    //      ação diferente: aqui a máquina está pendurada, não parada.
+    const execucaoPendurada = await prisma.project.count({
+      where: { executionStatus: { in: ["pending", "running"] }, executionRequestedAt: { lt: ontem(agora) } },
+    });
+    medidas.projetosComExecucaoPenduradaHaMaisDeUmDia = execucaoPendurada;
+    if (execucaoPendurada > 0) {
+      achados.push({
+        padrao: "estado-morto",
+        chave: "execucao-pendurada",
+        titulo: "Execução pedida há mais de um dia e nunca terminou",
+        evidencia: `${execucaoPendurada} projeto(s) em "pending"/"running" com pedido de +24h — nem terminou nem falhou`,
+        local: "Project.executionStatus",
+        gravidade: "alto",
+      });
+    }
+
+    // 13. PACOTE BARRADO PELA QUALIDADE.
+    //     `revisionStatus: "quality_flag"` é o freio que impede a peça de ser
+    //     apresentada (`marcos.ts`, `escada/repescagem.ts`). O freio funciona —
+    //     o que não existia era ALGUÉM CONTANDO quantas peças ele segura. Freio
+    //     sem contador é o modo mais silencioso de a agência parar de entregar:
+    //     tudo "funcionando", nada chegando.
+    const barradasPelaQualidade = await prisma.deliverable.count({
+      where: { revisionStatus: "quality_flag" },
+    });
+    medidas.entregaveisBarradosPelaQualidade = barradasPelaQualidade;
+    if (barradasPelaQualidade > 0) {
+      const exemplo = await prisma.deliverable.findFirst({
+        where: { revisionStatus: "quality_flag" },
+        select: { id: true, projectId: true, updatedAt: true },
+        orderBy: { updatedAt: "asc" },
+      });
+      achados.push({
+        padrao: "estado-morto",
+        chave: "entregavel-barrado-pela-qualidade",
+        titulo: "Entregável barrado pela Qualidade e parado",
+        evidencia:
+          `${barradasPelaQualidade} entregável(is) em "quality_flag" — não são apresentados ao cliente enquanto a ressalva não cair. ` +
+          `O mais antigo: ${exemplo?.id} (projeto ${exemplo?.projectId}) desde ${exemplo?.updatedAt?.toISOString()}`,
+        local: "Deliverable.revisionStatus",
+        gravidade: "alto",
+      });
+    }
+
+    // 14. 🔴 AVISO AO CLIENTE QUE NUNCA SAIU — o furo de instrumento mais grave
+    //     desta lista.
+    //
+    //     O item 8 acima conta `WhatsAppOutbox` em `"failed"`, e isso NÃO é o
+    //     mesmo fato: `WhatsAppOutbox` é a fila de saída do WhatsApp, e "failed"
+    //     é a mensagem que TENTOU sair e a Meta recusou. `ClientNotice` é o
+    //     aviso redigido para o cliente (direção, material, entrega, ciclo), e
+    //     `"pendente"` é o aviso que **nunca foi tentado**.
+    //
+    //     Um aviso preso em `pendente` é invisível para os dois: não aparece no
+    //     balde do WhatsApp (outro modelo, outro estado) e não aparece em lugar
+    //     nenhum. É a forma exata da cicatriz que criou o cargo de PM — trabalho
+    //     escrito, ninguém avisado, e o painel verde.
+    const avisosPendentes = await prisma.clientNotice.count({ where: { status: "pendente" } });
+    const avisosPendentesAntigos = await prisma.clientNotice.count({
+      where: { status: "pendente", createdAt: { lt: ontem(agora) } },
+    });
+    const avisosFalhados = await prisma.clientNotice.count({ where: { status: "falhou" } });
+    medidas.avisosAoClientePendentes = avisosPendentes;
+    medidas.avisosAoClientePendentesHaMaisDeUmDia = avisosPendentesAntigos;
+    medidas.avisosAoClienteFalhados = avisosFalhados;
+    if (avisosPendentesAntigos > 0) {
+      const maisAntigo = await prisma.clientNotice.findFirst({
+        where: { status: "pendente", createdAt: { lt: ontem(agora) } },
+        select: { id: true, kind: true, channel: true, createdAt: true },
+        orderBy: { createdAt: "asc" },
+      });
+      achados.push({
+        padrao: "estado-morto",
+        chave: "aviso-ao-cliente-nunca-enviado",
+        titulo: "Aviso ao cliente redigido e nunca enviado",
+        evidencia:
+          `${avisosPendentesAntigos} aviso(s) em "pendente" há +24h (${avisosPendentes} no total). ` +
+          `O mais antigo: ${maisAntigo?.id} (${maisAntigo?.kind}, canal "${maisAntigo?.channel}") de ${maisAntigo?.createdAt?.toISOString()}. ` +
+          "Nunca tentou sair — não aparece no balde de WhatsApp falhado, que é outro modelo e outro estado.",
+        local: "ClientNotice.status",
+        gravidade: "alto",
+      });
+    }
+    if (avisosFalhados > 0) {
+      const exemplo = await prisma.clientNotice.findFirst({
+        where: { status: "falhou" },
+        select: { id: true, failReason: true },
+        orderBy: { updatedAt: "desc" },
+      });
+      achados.push({
+        padrao: "trabalho-invisivel",
+        chave: "aviso-ao-cliente-falhou",
+        titulo: "Aviso ao cliente tentou sair e falhou",
+        evidencia: `${avisosFalhados} aviso(s) em "falhou". Último: ${exemplo?.id} — ${exemplo?.failReason ?? "sem motivo registrado"}`,
+        local: "ClientNotice.failReason",
+        gravidade: "medio",
       });
     }
   } catch (erro) {
