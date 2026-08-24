@@ -5348,3 +5348,74 @@ identidade em `prospect-engine` —, e não foi tocado nesta peça.
   `/briefing` é `#070A1F` (escuro) e o layout raiz não tem barra. Screenshot nos
   três tamanhos: nenhuma barra branca. **Não reproduzi nesta tela** — pode ser
   outra rota.
+
+## 🟢 24/08/2026 — O DESPERTADOR GRITOU 4.600 VEZES SOBRE UMA CASA VAZIA
+
+**O achado (de passagem, por outro Diretor):** de 5 em 5 minutos, desde
+08/08/2026, o log de produção repetia
+
+```
+[despertador] decisao-do-dono falhou: 2026-08-08-solta-a-producao-de-peca: nenhum cliente resolvido — nada foi liberado
+```
+
+16 dias × 288 batidas por dia ≈ **4.600 linhas de "falhou"**, e ninguém nunca
+investigou — que é exatamente o que um alarme repetido demais produz.
+
+### O que a máquina estava tentando fazer
+
+A **decisão do dono** de 08/08 (`lib/agency/escada/decisoes-do-dono.ts`) é a
+ordem do CEO — *"solta, óbvio, tem que soltar tudo (…) dois posts não estão
+saindo"* — virada em código versionado. A cada batida do relógio ela sobe
+`social-media` e `design` de `sombra` para `allowlist`, para que a peça produzida
+**chegue ao card de aprovação do cliente** em vez de morrer registrada por
+dentro. "Soltar a produção de peça" é isso: não é publicar (o clique continua
+sendo do cliente) — é a peça pronta atravessar até ele.
+
+### Por que "nenhum cliente resolvido" — medido, não deduzido
+
+O escopo da decisão é **dinâmico**: "os clientes que a casa atende", medido por
+*tem ao menos um projeto*. Lido em produção pelo diário do piloto
+(`GET /api/piloto/diario`, somente leitura) em 24/08:
+
+| Fato em produção | Valor |
+|---|---|
+| Clientes cadastrados (`client.count`) | **0** |
+| Pedidos de conteúdo | **0** |
+| Solicitações/briefings | 2, ambos em `proposal_pending` (16/08, o piloto) |
+
+A decisão **não é órfã e a busca não está errada**: ela resolve para zero porque
+**a produção não tem nenhum cliente cadastrado**. A frase do log estava
+literalmente correta.
+
+### O custo dos 16 dias: nenhuma peça, nenhum cliente esperando
+
+**Zero peça deixou de sair e nenhum cliente real está esperando entrega** — não
+há cliente, não há projeto, não há pedido de conteúdo. O custo foi outro, e é
+real: **4.600 falsas falhas ensinaram quem lê o log a pular a linha**, e alarme
+que se aprende a pular é alarme que não protege mais o caso verdadeiro.
+
+### O conserto: separar ESTADO de FALHA — sem calar nada
+
+Nada foi silenciado e nenhuma linha foi apagada. O que mudou é **de que canal o
+fato sai**:
+
+- **Escopo por NOMES que não existem no banco** = decisão **órfã**, defeito de
+  verdade → continua subindo como **falha da rodada**, agora com a palavra
+  "órfã" no texto.
+- **Escopo DINÂMICO que resolve para zero** = a casa ainda não tem cliente →
+  passa a ser **estado** (`semAQuemLiberar`), com o texto dizendo o que
+  significa: *"a decisão continua armada e se aplica sozinha na primeira rodada
+  depois que o primeiro cliente entrar"*.
+- **Estado é dito quando COMEÇA e quando TERMINA** (`transicaoDeEstado`), nunca
+  a cada 5 minutos, e fica **consultável o tempo todo** em `/api/pulso`
+  (`estadosAgora` e `estados24h`). Some do log de minuto a minuto; não some da
+  casa.
+
+A decisão de 08/08 **não foi encerrada**: ela está válida, armada e correta. O
+dia em que o primeiro cliente com projeto entrar, ela solta sozinha na batida
+seguinte — e o estado será anunciado como encerrado.
+
+Arquivos: `lib/agency/escada/decisoes-do-dono.ts`, `lib/agency/pulso.ts`,
+`lib/agency/despertador.ts`. Testes que reprovam contra o código antigo:
+`__tests__/qualidade/decisao-do-dono-na-escada.test.ts` (3) e
+`__tests__/execution/despertador.test.ts` (3).

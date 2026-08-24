@@ -174,12 +174,50 @@ describe("metade 2 — a decisão não vira porta dos fundos", () => {
     expect(r.mudancas).toHaveLength(1);
   });
 
-  it("ZERO cliente resolvido NÃO conta como aplicada — vira aviso", async () => {
+  it("ZERO cliente resolvido NÃO conta como aplicada e NÃO some", async () => {
     db.client.findMany.mockResolvedValue([]);
     const r = await aplicarDecisoesDoDono(W, [decisao()]);
     expect(r.aplicadas).toBe(0);
     expect(db.departmentLadder.update).not.toHaveBeenCalled();
-    expect(r.avisos.join(" ")).toMatch(/nenhum cliente/i);
+    // O fato continua dito, em algum canal. O QUAL é o assunto dos dois testes
+    // abaixo.
+    expect([...r.avisos, ...r.semAQuemLiberar.map((x) => x.motivo)].join(" ")).toMatch(/cliente/i);
+  });
+
+  // ── O ACHADO DE 24/08/2026 — estado não é falha, e falha não é estado ──────
+  //
+  // A decisão `2026-08-08-solta-a-producao-de-peca` subiu como FALHA da rodada
+  // a cada 5 minutos por 16 dias, sobre uma produção que tinha ZERO cliente
+  // cadastrado. Nada estava quebrado, nenhuma peça estava retida, ninguém
+  // esperava nada. Um alarme que grita todo dia sobre o normal é o alarme que
+  // quem lê aprende a pular — e aí ele não protege mais o caso de verdade.
+  //
+  // Os dois casos abaixo separam exatamente isso, e a separação é o conserto.
+
+  it("escopo DINÂMICO com a casa sem clientes é ESTADO, não falha da rodada", async () => {
+    db.client.findMany.mockResolvedValue([]);
+    const r = await aplicarDecisoesDoDono(W, [decisao({ escopo: { tipo: "clientes_com_projeto" } })]);
+    // Não é falha: nada quebrou.
+    expect(r.avisos).toEqual([]);
+    // E não é silêncio: o fato continua registrado, com o que ele significa.
+    expect(r.semAQuemLiberar).toHaveLength(1);
+    expect(r.semAQuemLiberar[0].id).toBe("teste-1");
+    expect(r.semAQuemLiberar[0].motivo).toMatch(/nenhum cliente com projeto/i);
+    // E diz o que acontece depois — quem lê daqui a seis meses precisa saber
+    // que a decisão continua de pé e se aplica sozinha.
+    expect(r.semAQuemLiberar[0].motivo).toMatch(/se aplica sozinha/i);
+    expect(db.departmentLadder.update).not.toHaveBeenCalled();
+  });
+
+  it("decisão ÓRFÃ (nomes que não existem) CONTINUA sendo falha da rodada", async () => {
+    db.client.findMany.mockResolvedValue([{ id: "c1", name: "Outro Cliente" }]);
+    const r = await aplicarDecisoesDoDono(W, [
+      decisao({ escopo: { tipo: "nomes", nomes: ["Cliente Que Nunca Existiu"] } }),
+    ]);
+    // Aqui alguém escreveu um nome e ninguém recebeu: é defeito, e defeito grita.
+    expect(r.semAQuemLiberar).toEqual([]);
+    expect(r.avisos.join(" ")).toMatch(/órfã/i);
+    expect(db.departmentLadder.update).not.toHaveBeenCalled();
   });
 
   it("banco fora do ar NÃO lança e NÃO solta nada — o relógio não pode morrer aqui", async () => {

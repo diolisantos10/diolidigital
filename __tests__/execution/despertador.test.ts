@@ -11,7 +11,7 @@ const destravarPacote = vi.hoisted(() => vi.fn());
 const pacotesTravados = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/agency/esteira/pacote-travado", () => ({ destravarPacote, pacotesTravados }));
 
-import { baterORelogio } from "@/lib/agency/despertador";
+import { baterORelogio, transicaoDeEstado } from "@/lib/agency/despertador";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -135,5 +135,33 @@ describe("o relógio destrava o que a Qualidade barrou", () => {
     const r = await baterORelogio();
     expect(r.retomados).toBe(1);
     expect(r.destravadas).toBe(0);
+  });
+});
+
+// ── SÓ A MUDANÇA DE ESTADO VIRA LINHA DE LOG (24/08/2026) ────────────────────
+//
+// O achado: `decisao-do-dono falhou: … nenhum cliente resolvido` repetido a
+// cada 5 minutos, por 16 dias, sobre uma casa que apenas ainda não tinha
+// cliente. O conserto NÃO é calar o fato — é dizê-lo quando ele COMEÇA e
+// quando ele TERMINA, e deixá-lo consultável o tempo todo em `/api/pulso`.
+//
+// Esta função é a metade pura do conserto: dado o que já foi anunciado e o que
+// vale agora, o que precisa virar linha nova.
+describe("transição de estado — o que já foi dito não se repete", () => {
+  it("estado que continua igual NÃO vira linha nova", () => {
+    const t = transicaoDeEstado(["decisao-do-dono::sem cliente"], ["decisao-do-dono::sem cliente"]);
+    expect(t.comecaram).toEqual([]);
+    expect(t.terminaram).toEqual([]);
+  });
+
+  it("estado que COMEÇA é anunciado", () => {
+    const t = transicaoDeEstado([], ["decisao-do-dono::sem cliente"]);
+    expect(t.comecaram).toEqual(["decisao-do-dono::sem cliente"]);
+  });
+
+  it("estado que TERMINA também é anunciado — sumir em silêncio é perder o fim da história", () => {
+    const t = transicaoDeEstado(["decisao-do-dono::sem cliente"], []);
+    expect(t.terminaram).toEqual(["decisao-do-dono::sem cliente"]);
+    expect(t.comecaram).toEqual([]);
   });
 });

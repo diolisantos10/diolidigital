@@ -209,8 +209,29 @@ export interface RelatorioDasDecisoes {
   mudancas: MudancaDaDecisao[];
   /** Decisão malformada — recusada por inteiro, com motivo. */
   recusadas: RecusaDeDecisao[];
-  /** Nome de cliente que não resolveu, e escopo que resolveu para zero. */
+  /** Defeito de verdade: nome de cliente que NÃO resolveu (decisão órfã),
+   *  erro de escrita no banco. Sobe como FALHA da rodada. */
   avisos: string[];
+  /**
+   * ESTADO, e não falha (24/08/2026).
+   *
+   * A decisão está válida, armada, e simplesmente não há a quem liberar ainda:
+   * o escopo é DINÂMICO (`clientes_com_projeto`) e a casa não tem nenhum
+   * cliente com projeto. Nada foi retido, ninguém está esperando peça, e no
+   * minuto em que o primeiro cliente entrar a decisão se aplica sozinha, na
+   * rodada seguinte.
+   *
+   * POR QUE ISTO SAIU DE `avisos` — o achado de 24/08/2026: entre 08/08 e
+   * 24/08 esta linha subiu como FALHA a cada 5 minutos — mais de 4.600 vezes —
+   * dizendo "falhou" sobre uma casa que só ainda não tinha cliente. Nada tinha
+   * quebrado. Alarme que grita todo dia sobre um estado normal é o alarme que
+   * quem lê aprende a pular, e aí ele deixa de proteger o caso real (uma
+   * decisão órfã, que continua em `avisos`).
+   *
+   * O fato NÃO some: ele continua sendo dito — em `/api/pulso` como estado
+   * contínuo, e no log quando o estado COMEÇA e quando TERMINA.
+   */
+  semAQuemLiberar: RecusaDeDecisao[];
 }
 
 function lerClientes(json: string | null | undefined): string[] {
@@ -236,7 +257,7 @@ export async function aplicarDecisoesDoDono(
   workspaceId: string,
   decisoes: readonly DecisaoDoDono[] = DECISOES_DO_DONO,
 ): Promise<RelatorioDasDecisoes> {
-  const r: RelatorioDasDecisoes = { aplicadas: 0, mudancas: [], recusadas: [], avisos: [] };
+  const r: RelatorioDasDecisoes = { aplicadas: 0, mudancas: [], recusadas: [], avisos: [], semAQuemLiberar: [] };
 
   for (const d of decisoes) {
     const recusa = recusarDecisao(d);
@@ -254,9 +275,23 @@ export async function aplicarDecisoesDoDono(
     }
     for (const n of alvo.naoResolvidos) r.avisos.push(`${d.id}: ${n}`);
     if (alvo.ids.length === 0) {
-      // Zero cliente resolvido não é "aplicada com sucesso". Sem esta linha, a
-      // decisão pareceria aplicada para sempre e ninguém receberia nada.
-      r.avisos.push(`${d.id}: nenhum cliente resolvido — nada foi liberado`);
+      // Zero cliente resolvido não é "aplicada com sucesso" em nenhum dos dois
+      // casos — mas os dois casos NÃO são a mesma coisa, e tratá-los igual foi
+      // o defeito de 08/08 a 24/08/2026.
+      //
+      //   • escopo por NOMES → a decisão aponta para gente que não existe no
+      //     banco. É decisão ÓRFÃ: alguém escreveu um nome e ninguém recebeu.
+      //     Isso é DEFEITO, e continua subindo como falha da rodada.
+      //   • escopo DINÂMICO → "os clientes que a casa atende" resolveu para
+      //     zero porque a casa ainda não atende ninguém. Não há trabalho
+      //     retido, não há peça presa, não há quem esperar. É ESTADO.
+      const msg =
+        d.escopo.tipo === "nomes"
+          ? `${d.id}: nenhum dos nomes do escopo existe no banco — decisão órfã, nada foi liberado`
+          : `${d.id}: a casa ainda não tem nenhum cliente com projeto — não há a quem liberar. ` +
+            `A decisão continua armada e se aplica sozinha na primeira rodada depois que o primeiro cliente entrar.`;
+      if (d.escopo.tipo === "nomes") r.avisos.push(msg);
+      else r.semAQuemLiberar.push({ id: d.id, motivo: msg });
       continue;
     }
     r.aplicadas++;
@@ -341,7 +376,7 @@ export async function aplicarDecisoesDoDono(
  * porque alguém lembrou de rodar a rota logado nele.
  */
 export async function aplicarDecisoesDoDonoNaCasa(): Promise<RelatorioDasDecisoes> {
-  const geral: RelatorioDasDecisoes = { aplicadas: 0, mudancas: [], recusadas: [], avisos: [] };
+  const geral: RelatorioDasDecisoes = { aplicadas: 0, mudancas: [], recusadas: [], avisos: [], semAQuemLiberar: [] };
   let workspaces: Array<{ id: string }>;
   try {
     workspaces = await prisma.agencyWorkspace.findMany({ select: { id: true } });
@@ -355,6 +390,7 @@ export async function aplicarDecisoesDoDonoNaCasa(): Promise<RelatorioDasDecisoe
     geral.mudancas.push(...r.mudancas);
     geral.recusadas.push(...r.recusadas);
     geral.avisos.push(...r.avisos);
+    geral.semAQuemLiberar.push(...r.semAQuemLiberar);
   }
   return geral;
 }

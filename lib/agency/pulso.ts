@@ -41,6 +41,25 @@ export interface FalhaDaRodada {
   erro: string;
 }
 
+/**
+ * ESTADO ANORMAL-MAS-NÃO-QUEBRADO da rodada (24/08/2026).
+ *
+ * Nasceu de um achado: a decisão do dono de 08/08 subia como FALHA a cada 5
+ * minutos porque a casa não tinha nenhum cliente para liberar. Nada tinha
+ * quebrado — e mesmo assim o log gritava "falhou" mais de 4.600 vezes em 16
+ * dias, ensinando quem lê a pular a linha.
+ *
+ * Estado não é falha e não é silêncio: é um fato que continua verdadeiro
+ * enquanto durar, dito UMA vez no log quando começa (e quando termina), e
+ * sempre disponível em `/api/pulso`. Quem quiser saber, pergunta e vê.
+ */
+export interface EstadoDaRodada {
+  /** De quem é o estado: `decisao-do-dono`, `backup`… */
+  perna: string;
+  /** O fato, em português, com o que ele significa. Nunca leva PII. */
+  texto: string;
+}
+
 export interface Batida {
   em: string;
   /** Quanto tempo a rodada levou. Rodada que cresce é rodada que vai estourar. */
@@ -48,6 +67,8 @@ export interface Batida {
   /** O que a rodada MOVEU. Zero em tudo = a casa não tinha trabalho. */
   moveu: Record<string, number>;
   falhas: FalhaDaRodada[];
+  /** Estados contínuos observados nesta rodada. Opcional: batida antiga não tem. */
+  estados?: EstadoDaRodada[];
 }
 
 export interface EstadoDoPulso {
@@ -62,6 +83,11 @@ export interface EstadoDoPulso {
   falhas24h: Array<{ perna: string; erro: string; vezes: number; ultimaEm: string }>;
   /** Soma do que a casa moveu nas últimas 24 h. */
   moveu24h: Record<string, number>;
+  /** Estados contínuos vistos nas últimas 24 h. NÃO são falhas — ver
+   *  `EstadoDaRodada`. Ficam aqui para que "não é falha" nunca vire "sumiu". */
+  estados24h: Array<{ perna: string; texto: string; vezes: number; ultimaEm: string }>;
+  /** O estado que valia na ÚLTIMA batida — o retrato de agora. */
+  estadosAgora: EstadoDaRodada[];
 }
 
 function pasta(): string {
@@ -111,6 +137,7 @@ export async function lerPulso(agora: Date = new Date()): Promise<EstadoDoPulso>
   const recentes = todas.filter((b) => new Date(b.em).getTime() >= limite);
 
   const porFalha = new Map<string, { perna: string; erro: string; vezes: number; ultimaEm: string }>();
+  const porEstado = new Map<string, { perna: string; texto: string; vezes: number; ultimaEm: string }>();
   const moveu24h: Record<string, number> = {};
   for (const b of recentes) {
     for (const f of b.falhas ?? []) {
@@ -118,6 +145,12 @@ export async function lerPulso(agora: Date = new Date()): Promise<EstadoDoPulso>
       const atual = porFalha.get(chave);
       if (atual) { atual.vezes++; atual.ultimaEm = b.em; }
       else porFalha.set(chave, { perna: f.perna, erro: f.erro, vezes: 1, ultimaEm: b.em });
+    }
+    for (const e of b.estados ?? []) {
+      const chave = `${e.perna}::${e.texto}`;
+      const atual = porEstado.get(chave);
+      if (atual) { atual.vezes++; atual.ultimaEm = b.em; }
+      else porEstado.set(chave, { perna: e.perna, texto: e.texto, vezes: 1, ultimaEm: b.em });
     }
     for (const [k, v] of Object.entries(b.moveu ?? {})) {
       if (typeof v === "number") moveu24h[k] = (moveu24h[k] ?? 0) + v;
@@ -134,5 +167,7 @@ export async function lerPulso(agora: Date = new Date()): Promise<EstadoDoPulso>
     batidas: todas.length,
     falhas24h: [...porFalha.values()].sort((a, b) => b.vezes - a.vezes),
     moveu24h,
+    estados24h: [...porEstado.values()].sort((a, b) => b.vezes - a.vezes),
+    estadosAgora: ultima?.estados ?? [],
   };
 }

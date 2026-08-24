@@ -36,7 +36,7 @@ import { cobrarAFila } from "@/lib/agency/esteira/fila-que-se-cobra";
 import { resumoDoPortao } from "@/lib/agency/comercial/o-que-espera-no-portao";
 import { cobrarPedidosEsquecidos } from "@/lib/agency/esteira/pedidos";
 import { fazerBackup, estadoDoBackup } from "@/lib/agency/backup";
-import { registrarBatida, type FalhaDaRodada } from "@/lib/agency/pulso";
+import { registrarBatida, type FalhaDaRodada, type EstadoDaRodada } from "@/lib/agency/pulso";
 import { vigiarAMadrugada } from "@/lib/agency/vigia-da-madrugada";
 
 /** De quanto em quanto tempo a agência olha se tem trabalho parado. */
@@ -53,6 +53,35 @@ const MAX_TENTATIVAS = 5;
 const TRAVADO_MS = 10 * 60_000;
 
 let ligado = false;
+
+/**
+ * O QUE JÁ FOI DITO — a memória que impede o log de repetir estado (24/08/2026).
+ *
+ * Vive no processo de propósito: se o container reinicia, o estado é anunciado
+ * de novo, e isso é CERTO — o log novo começa do zero e quem o ler precisa
+ * saber o que está valendo. O que não pode é a mesma frase a cada 5 minutos.
+ */
+let estadosJaAnunciados: string[] = [];
+
+/**
+ * Compara o estado de agora com o de antes. Função PURA para poder ser provada
+ * sem relógio, sem banco e sem servidor.
+ *
+ * Só o que MUDA vira linha de log: o que começou e o que terminou. O que
+ * continua igual não vira nada — já foi dito, e continua respondendo em
+ * `/api/pulso`.
+ */
+export function transicaoDeEstado(
+  anteriores: readonly string[],
+  atuais: readonly string[],
+): { comecaram: string[]; terminaram: string[] } {
+  const antes = new Set(anteriores);
+  const agora = new Set(atuais);
+  return {
+    comecaram: [...agora].filter((x) => !antes.has(x)),
+    terminaram: [...antes].filter((x) => !agora.has(x)),
+  };
+}
 
 function log(msg: string): void {
   console.log(`[despertador] ${msg}`);
@@ -300,6 +329,9 @@ export async function baterORelogio(): Promise<{
   // sai em `/api/health` → `relogio.falhas`.
   const comeco = Date.now();
   const falhas: FalhaDaRodada[] = [];
+  /** Fatos que são ESTADO, não quebra. Ver `EstadoDaRodada` em `pulso.ts`. */
+  const estados: EstadoDaRodada[] = [];
+  const estadoDe = (perna: string, texto: string): void => { estados.push({ perna, texto }); };
   const quebrou = (perna: string, err: unknown): void => {
     const erro = err instanceof Error ? err.message : String(err ?? "erro");
     falhas.push({ perna, erro });
@@ -335,6 +367,12 @@ export async function baterORelogio(): Promise<{
     // que não aplica e não avisa é a peça presa de novo, com outra roupa.
     for (const x of r.recusadas) quebrou("decisao-do-dono", `${x.id}: ${x.motivo}`);
     for (const a of r.avisos) quebrou("decisao-do-dono", a);
+    // "Não há a quem liberar" é ESTADO, não falha — e a diferença foi paga
+    // caro: de 08/08 a 24/08/2026 esta linha subiu como `falhou` a cada 5
+    // minutos sobre uma casa que apenas ainda não tinha cliente. Continua
+    // sendo dita (no começo e no fim do estado, e em `/api/pulso` o tempo
+    // todo); deixa de gritar.
+    for (const x of r.semAQuemLiberar) estadoDe("decisao-do-dono", x.motivo);
   } catch (err) {
     quebrou("decisao-do-dono", err);
   }
@@ -740,11 +778,19 @@ export async function baterORelogio(): Promise<{
   // A BATIDA É GRAVADA SEMPRE — inclusive (e principalmente) a rodada em que
   // nada aconteceu. É a rodada silenciosa que prova que o relógio está vivo, e
   // era exatamente ela que não deixava rastro nenhum.
+  // ── SÓ A MUDANÇA VIRA LINHA ───────────────────────────────────────────────
+  const chaves = estados.map((e) => `${e.perna}::${e.texto}`);
+  const { comecaram, terminaram } = transicaoDeEstado(estadosJaAnunciados, chaves);
+  for (const c of comecaram) log(`estado: ${c.replace("::", " — ")}`);
+  for (const t of terminaram) log(`estado ENCERRADO: ${t.replace("::", " — ")}`);
+  estadosJaAnunciados = chaves;
+
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
     moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas },
     falhas,
+    estados,
   });
 
   return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, backup };
