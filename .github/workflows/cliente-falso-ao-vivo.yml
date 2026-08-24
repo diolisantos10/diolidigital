@@ -220,6 +220,10 @@ jobs:
             # Copia SEMPRE, quebrando ou não — é isto que o artefato leva embora.
             cp .cliente-falso/placar.md   ".cliente-falso/placar-rodada-${n}.md"   || true
             cp .cliente-falso/placar.json ".cliente-falso/placar-rodada-${n}.json" || true
+            # As PEÇAS, legíveis por quem não abre banco nem terminal. É o que o
+            # CEO pediu para ver, e o único lugar onde as peças do piloto podem
+            # ser lidas: o banco é descartável e o servidor de teste é loopback.
+            cp .cliente-falso/pecas.md    ".cliente-falso/pecas-rodada-${n}.md"    || true
 
             if [ -n "${falhou}" ]; then
               echo "::error::a rodada ${n} quebrou — placar guardado no artefato desta execução."
@@ -247,6 +251,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: placares-cliente-falso
-          path: .cliente-falso/placar-rodada-*
+          path: |
+            .cliente-falso/placar-rodada-*
+            .cliente-falso/pecas-rodada-*
           include-hidden-files: true
           if-no-files-found: error

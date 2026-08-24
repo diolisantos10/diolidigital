@@ -154,10 +154,25 @@ for (let n = 1; n <= rodadas; n++) {
     turnosBarrados: percurso.turnosBarrados.length,
     aprovouViaRota: percurso.aprovacao.viaRota,
     nasceuSemPainel: percurso.aceite.nasceuSozinho,
+    pecasAprovadasPeloCliente: percurso.aprovacaoDaPeca.carimboDoCliente,
     projetoId: percurso.esteira.projetoId,
     tarefas: percurso.esteira.tarefas,
   });
   ultimoPlacar = placarEmTexto(achados, percurso, tropecos);
+
+  // ── AS PEÇAS, PARA O DONO LER ────────────────────────────────────────────
+  // O CEO pediu para VER o que a esteira produz. O portal do cliente e a tela
+  // da agência mostram peça, mas nenhum dos dois alcança o piloto: o banco é
+  // descartável e o servidor de teste é só loopback. Então as peças saem em
+  // texto, no artefato da rodada. Ver `pecas-em-texto.ts`.
+  if (percurso.esteira.projetoId) {
+    const { pecasEmTexto } = await import("../lib/agency/cliente-falso/pecas-em-texto.ts");
+    writeFileSync(
+      resolve(PASTA, "pecas.md"),
+      await pecasEmTexto(percurso.esteira.projetoId, percurso.roteiro.nomeDoNegocioNaTela),
+      "utf-8",
+    );
+  }
   ultimoJson = {
     rodada: n, em: new Date().toISOString(), sdrAoVivo: aoVivo,
     achados, tropecos,
@@ -167,6 +182,7 @@ for (let n = 1; n <= rodadas; n++) {
     respostasDoSdr: percurso.respostasDoSdr,
     aprovacao: percurso.aprovacao,
     aceite: percurso.aceite,
+    aprovacaoDaPeca: percurso.aprovacaoDaPeca,
     esteira: percurso.esteira,
     turnosBarrados: percurso.turnosBarrados,
     saidasBloqueadas: percurso.saidasBloqueadas,

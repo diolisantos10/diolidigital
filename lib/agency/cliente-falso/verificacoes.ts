@@ -25,7 +25,20 @@ import type { BriefingScope, LiveEstimate } from "../briefing-conversation";
 import type { SaidaBloqueada } from "./trava-de-saida";
 import type { Roteiro } from "./roteiro";
 
-export type Veredito = "passou" | "quebrou" | "nao-coberto";
+/**
+ * ── `fora-de-escopo` NÃO É `nao-coberto`, E A DIFERENÇA É O PLACAR INTEIRO ──
+ *
+ * `nao-coberto` é uma etapa que a bateria DEVERIA medir e não mediu — ela conta
+ * como buraco, e é obrigação de quem lê ir atrás. `fora-de-escopo` é uma etapa
+ * que a esteira não tem: nada falta.
+ *
+ * Nasceu da correção do CEO em 24/08/2026 ("não precisa de publicação"). Até
+ * ali a publicação subia como "não coberto" e fazia o placar somar uma ausência
+ * que não existia — a casa parecia 1 etapa mais incompleta do que é. Misturar
+ * "não medi" com "não é meu" é a forma mais rápida de um número de completude
+ * mentir nas duas direções.
+ */
+export type Veredito = "passou" | "quebrou" | "nao-coberto" | "fora-de-escopo";
 
 export type Achado = {
   /** Identificador estável — é por ele que o CEO cobra "isto de novo?". */
@@ -110,6 +123,29 @@ export type DesfechoDoAceite = {
   motivo: string | null;
 };
 
+/**
+ * A APROVAÇÃO DAS PEÇAS PELO CLIENTE — o fim do percurso que o CEO pediu.
+ *
+ * `viaPortal` e `carimboDoCliente` são fatos diferentes e os dois importam:
+ * o primeiro diz que a porta do cliente foi usada; o segundo, que o banco
+ * guardou a assinatura DELE (`client:<nome>`) e não a da casa. A grafia
+ * `"cliente"` seca já existiu e travava a publicação — autoria ambígua não é
+ * autoria (ver `autoria-da-aprovacao.ts`).
+ */
+export type DesfechoDaAprovacaoDaPeca = {
+  tentou: boolean;
+  /** O pacote foi APRESENTADO ao cliente (MARCO 2)? Sem isso não há o que aprovar. */
+  apresentado: boolean;
+  /** Quantas entregas o cliente via para decidir. */
+  pedindoDecisao: number;
+  viaPortal: boolean;
+  /** Quantas ficaram com carimbo `client:` — a prova de QUEM aprovou. */
+  carimboDoCliente: number;
+  /** Quantas ficaram com carimbo de equipe ou grafia ambígua. É o achado. */
+  carimboDeOutro: number;
+  motivo: string | null;
+};
+
 /** O que sobrou da esteira depois da aprovação. */
 export type EstadoDaEsteira = {
   projetoId: string | null;
@@ -164,6 +200,7 @@ export type Percurso = {
   aprovacao: DesfechoDaAprovacao;
   /** Projeto, tarefas e execução, depois da aprovação. */
   aceite: DesfechoDoAceite;
+  aprovacaoDaPeca: DesfechoDaAprovacaoDaPeca;
   esteira: EstadoDaEsteira;
   /** O SDR de verdade rodou? Se não, a verificação do guarda não afirma nada. */
   sdrAoVivo: boolean;
@@ -868,20 +905,89 @@ export function oPacoteFecha(p: Percurso): Achado {
   return { ...base, veredito: "passou", detalhe: `projeto em "done" com ${p.esteira.entregas} entrega(s)` };
 }
 
-// ─── 15. A PARADA DECLARADA — publicação não é exercitada, e diz isso ───────
+// ─── 16. O CLIENTE APROVA AS PEÇAS — o fim do percurso ──────────────────────
 //
-// Nunca devolve "passou". Publicar sai no perfil do cliente, é público, e
-// desfazer não desfaz o print. Esta verificação existe para que a parada seja
-// LIDA no placar toda vez, em vez de virar um silêncio que alguém confunde com
-// cobertura — que é o defeito que esta bateria inteira existe para combater.
-export function aPublicacaoNaoFoiExercitada(_p: Percurso): Achado {
+// ── A ordem (CEO, 24/08/2026) ───────────────────────────────────────────────
+// "O piloto tem que ser até a entrega da peça que o cliente está pedindo. (...)
+// É um cliente fictício — e se é um cliente fictício, você aprova como se fosse
+// o cliente."
+//
+// Esta régua NÃO pergunta "a peça está aprovada?". Pergunta **QUEM aprovou** —
+// exatamente como a do portão de direção. Peça aprovada sem passagem pela porta
+// do cliente é vermelho, e é a trava contra o atalho, inclusive contra mim.
+//
+// O carimbo é a prova, e não é detalhe: `client:<nome>` é a única grafia que a
+// trava de publicação aceita. A grafia `"cliente"` seca já existiu em produção,
+// mostrava "aprovado" no portal e travava a publicação ao mesmo tempo — autoria
+// ambígua não é autoria (`autoria-da-aprovacao.ts`, 15/08/2026).
+export function oClienteAprovaAsPecas(p: Percurso): Achado {
+  const a = p.aprovacaoDaPeca;
+  const base = {
+    id: "peca-aprovada-pelo-cliente",
+    guarda: "A peça só está entregue quando o CLIENTE a aprova pela porta dele — nunca por carimbo da casa.",
+  };
+  if (!a.tentou) return { ...base, veredito: "nao-coberto", detalhe: a.motivo ?? "não houve peça para aprovar" };
+
+  // ── RODADA OFFLINE NÃO PRODUZ PEÇA, E ISSO NÃO É DEFEITO DA CASA ─────────
+  // Sem chave de IA a produção não fecha, o pacote não é apresentado e não há
+  // o que aprovar. Acusar a casa aqui seria a mesma culpa por fatura não paga
+  // que `pacote-fecha` já aprendeu a não fazer. A exceção é ESTREITA: vale só
+  // quando a rodada é offline E nada foi produzido.
+  if (!p.sdrAoVivo && p.esteira.entregas === 0) {
+    return { ...base, veredito: "nao-coberto",
+      detalhe: "rodada offline: sem chave de IA nenhuma peça é produzida, então não há o que o cliente aprovar. "
+             + "Aprovação de peça só se mede com `--ao-vivo`." };
+  }
+
+  // O atalho proibido: aprovação existindo sem a porta ter sido usada.
+  if (a.carimboDoCliente > 0 && !a.viaPortal) {
+    return { ...base, veredito: "quebrou",
+      detalhe: "há aprovação com carimbo de cliente e a porta do cliente NÃO foi usada — alguém assinou por ele" };
+  }
+  if (!a.apresentado) {
+    return { ...base, veredito: "quebrou",
+      detalhe: a.motivo ?? "o pacote fechou e o motor não apresentou ao cliente — a peça pronta ficou sem chegar a ele" };
+  }
+  if (a.pedindoDecisao === 0) {
+    return { ...base, veredito: "quebrou", detalhe: a.motivo ?? "nenhuma entrega chegou ao cliente para decisão" };
+  }
+  if (!a.viaPortal) {
+    return { ...base, veredito: "quebrou", detalhe: a.motivo ?? "a porta do cliente não aceitou a aprovação" };
+  }
+  if (a.carimboDoCliente === 0) {
+    return { ...base, veredito: "quebrou",
+      detalhe: "a porta respondeu OK e NENHUMA aprovação ficou com carimbo `client:` — "
+             + "para o portal a peça parece aprovada e para a publicação não está" };
+  }
+  const ressalva = a.carimboDeOutro > 0
+    ? ` (${a.carimboDeOutro} com carimbo que não é do cliente — conferir de onde veio)`
+    : "";
+  return { ...base, veredito: "passou",
+    detalhe: `${a.carimboDoCliente} entrega(s) aprovada(s) pelo cliente, com carimbo dele, pela porta do portal${ressalva}` };
+}
+
+// ─── ONDE A ESTEIRA ACABA — e por que isto NÃO é uma etapa faltando ─────────
+//
+// ── Correção do CEO, 24/08/2026: "não precisa de publicação." ───────────────
+// A esteira termina na peça aprovada e entregue. Publicar no Instagram ou no
+// Google é escolha do cliente DEPOIS — não é etapa desta esteira.
+//
+// Até esta manhã a publicação aparecia como "não coberto", o que a fazia contar
+// como uma ausência: o placar somava uma etapa que faltava medir. Ela não
+// faltava — estava fora do escopo, e as duas coisas são diferentes. Por isso
+// este achado devolve `fora-de-escopo`: ele DIZ onde o percurso acaba em vez de
+// contar um buraco que não existe.
+//
+// ⚠️ As travas dos canais de publicação continuam de pé e intocadas. Elas
+// existem para impedir vazamento, não para marcar etapa do piloto.
+export function aEsteiraAcabaNaPecaAprovada(_p: Percurso): Achado {
   return {
-    id: "publicacao-nao-coberta",
-    guarda: "A publicação (Instagram/Google) NÃO é exercitada por esta bateria.",
-    veredito: "nao-coberto",
+    id: "fim-da-esteira",
+    guarda: "A esteira termina na peça aprovada pelo cliente — publicar é escolha dele, depois.",
+    veredito: "fora-de-escopo",
     detalhe:
-      "parada deliberada: publicar sai no perfil do cliente, é público e desfazer não desfaz o print. " +
-      "As travas de saída existem desde 24/08/2026, mas nunca foram exercitadas ao vivo — declarado, não presumido.",
+      "publicar no Instagram/Google não é etapa desta esteira (decisão do CEO, 24/08/2026) e não entra na conta " +
+      "de completude. As travas desses canais seguem de pé — elas impedem vazamento, não marcam etapa.",
   };
 }
 
@@ -905,7 +1011,8 @@ export const VERIFICACOES: ((p: Percurso) => Achado)[] = [
   oPortaoDeDirecaoAbrePeloCliente,
   aExecucaoAnda,
   oPacoteFecha,
-  aPublicacaoNaoFoiExercitada,
+  oClienteAprovaAsPecas,
+  aEsteiraAcabaNaPecaAprovada,
 ];
 
 export function conferir(p: Percurso): Achado[] {

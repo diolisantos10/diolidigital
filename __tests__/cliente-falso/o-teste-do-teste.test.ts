@@ -40,6 +40,9 @@ import {
   aPortaAutenticadaFoiExercitada,
 
   oPacoteFecha,
+
+  oClienteAprovaAsPecas,
+  aEsteiraAcabaNaPecaAprovada,
 } from "@/lib/agency/cliente-falso/verificacoes";
 import { ROTEIRO_PADRAO } from "@/lib/agency/cliente-falso/roteiro";
 import { emptyScope, emptyEstimate } from "@/lib/agency/briefing-conversation";
@@ -87,6 +90,8 @@ function percursoSao(): Percurso {
         { quem: "role \"client\"", status: 403, entrou: false },
       ] },
     aceite: { tentou: true, viaPortal: true, nasceuSozinho: true, motivo: null },
+    aprovacaoDaPeca: { tentou: true, apresentado: true, pedindoDecisao: 3, viaPortal: true,
+      carimboDoCliente: 3, carimboDeOutro: 0, motivo: null },
     esteira: {
       projetoId: "proj-falso-1", tarefas: 7, execucaoRodou: true, execucaoErro: null,
       execucaoStatus: "done", direcaoAprovada: true, entregas: 3,
@@ -489,5 +494,73 @@ describe("o pacote fecha — o alvo do piloto, medido pelo instrumento", () => {
     p.sdrAoVivo = false;
     p.esteira = { ...p.esteira, execucaoStatus: "failed", entregas: 0, tarefas: 8 };
     expect(oPacoteFecha(p).veredito).toBe("nao-coberto");
+  });
+});
+
+describe("a peça só está entregue quando o CLIENTE aprova", () => {
+  it("REPROVA aprovação com carimbo de cliente sem a porta do cliente ter sido usada", () => {
+    // O atalho proibido, o mesmo do portão de direção: alguém assina por ele.
+    const p = percursoSao();
+    p.aprovacaoDaPeca = { ...p.aprovacaoDaPeca, viaPortal: false, carimboDoCliente: 3 };
+    const a = oClienteAprovaAsPecas(p);
+    expect(a.veredito).toBe("quebrou");
+    expect(a.detalhe).toMatch(/assinou por ele/);
+  });
+
+  it("REPROVA o pacote que fechou e nunca foi apresentado ao cliente", () => {
+    const p = percursoSao();
+    p.aprovacaoDaPeca = { ...p.aprovacaoDaPeca, apresentado: false, viaPortal: false, carimboDoCliente: 0 };
+    expect(oClienteAprovaAsPecas(p).veredito).toBe("quebrou");
+  });
+
+  it("REPROVA quando nada chegou ao cliente para decidir", () => {
+    const p = percursoSao();
+    p.aprovacaoDaPeca = { ...p.aprovacaoDaPeca, pedindoDecisao: 0, viaPortal: false, carimboDoCliente: 0 };
+    expect(oClienteAprovaAsPecas(p).veredito).toBe("quebrou");
+  });
+
+  it("REPROVA a porta que responde OK sem deixar carimbo de cliente no banco", () => {
+    // O caso que trava a publicação sem ninguém perceber: o portal mostra
+    // "aprovado" e a peça nunca sai, porque a grafia não é `client:`.
+    const p = percursoSao();
+    p.aprovacaoDaPeca = { ...p.aprovacaoDaPeca, viaPortal: true, carimboDoCliente: 0, carimboDeOutro: 3 };
+    const a = oClienteAprovaAsPecas(p);
+    expect(a.veredito).toBe("quebrou");
+    expect(a.detalhe).toMatch(/carimbo/);
+  });
+
+  it("na rodada offline não acusa a casa — sem chave não há peça para aprovar", () => {
+    const p = percursoSao();
+    p.sdrAoVivo = false;
+    p.esteira = { ...p.esteira, entregas: 0 };
+    p.aprovacaoDaPeca = { ...p.aprovacaoDaPeca, apresentado: false, pedindoDecisao: 0, viaPortal: false, carimboDoCliente: 0 };
+    expect(oClienteAprovaAsPecas(p).veredito).toBe("nao-coberto");
+  });
+
+  it("MAS ao vivo, pacote fechado sem apresentação continua vermelho", () => {
+    const p = percursoSao();
+    p.sdrAoVivo = true;
+    p.esteira = { ...p.esteira, entregas: 7 };
+    p.aprovacaoDaPeca = { ...p.aprovacaoDaPeca, apresentado: false, pedindoDecisao: 0, viaPortal: false, carimboDoCliente: 0 };
+    expect(oClienteAprovaAsPecas(p).veredito).toBe("quebrou");
+  });
+
+  it("aprova o percurso em que o cliente assinou pela porta dele", () => {
+    expect(oClienteAprovaAsPecas(percursoSao()).veredito).toBe("passou");
+  });
+});
+
+describe("publicação está FORA DO ESCOPO — não é etapa faltando", () => {
+  it("o fim da esteira não conta como buraco de cobertura", () => {
+    // Correção do CEO 24/08: "não precisa de publicação". Antes isto subia como
+    // "não coberto" e fazia o placar somar uma ausência que não existe.
+    const a = aEsteiraAcabaNaPecaAprovada(percursoSao());
+    expect(a.veredito).toBe("fora-de-escopo");
+    expect(a.veredito).not.toBe("nao-coberto");
+  });
+
+  it("e DIZ que as travas dos canais continuam de pé", () => {
+    // Fora de escopo do PILOTO não pode ser lido como trava desmontada.
+    expect(aEsteiraAcabaNaPecaAprovada(percursoSao()).detalhe).toMatch(/travas/i);
   });
 });

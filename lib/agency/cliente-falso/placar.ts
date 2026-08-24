@@ -16,6 +16,7 @@ const SINAL: Record<Achado["veredito"], string> = {
   passou: "✅ PASSOU",
   quebrou: "🚫 QUEBROU",
   "nao-coberto": "⚪ NÃO COBERTO",
+  "fora-de-escopo": "➖ FORA DO ESCOPO",
 };
 
 export function placarEmTexto(
@@ -24,6 +25,10 @@ export function placarEmTexto(
   const quebrou = achados.filter((a) => a.veredito === "quebrou");
   const passou = achados.filter((a) => a.veredito === "passou");
   const naoCoberto = achados.filter((a) => a.veredito === "nao-coberto");
+  // Fora de escopo NÃO entra na conta de completude: não é etapa que faltou
+  // medir, é etapa que a esteira não tem. Somá-la à lista do que ficou sem
+  // olhar faria a casa parecer mais incompleta do que é.
+  const foraDeEscopo = achados.filter((a) => a.veredito === "fora-de-escopo");
 
   const l: string[] = [];
   l.push("# Cliente falso — placar da rodada");
@@ -33,7 +38,7 @@ export function placarEmTexto(
   l.push(
     quebrou.length === 0
       ? `## ✅ A casa atravessou. ${passou.length} verificações passaram.`
-      : `## 🚫 A casa quebrou em ${quebrou.length} de ${achados.length} verificações.`,
+      : `## 🚫 A casa quebrou em ${quebrou.length} de ${achados.length - foraDeEscopo.length} verificações.`,
   );
   l.push("");
 
@@ -54,6 +59,15 @@ export function placarEmTexto(
     l.push("Não é aprovação — é a lista do que ficou sem medir, e por quê.");
     l.push("");
     for (const a of naoCoberto) l.push(`- **${a.guarda}** — ${a.detalhe ?? "sem motivo declarado"}`);
+    l.push("");
+  }
+
+  if (foraDeEscopo.length > 0) {
+    l.push("### Onde a esteira acaba");
+    l.push("");
+    l.push("Isto NÃO é uma etapa faltando — é o limite do que a esteira se propõe a fazer.");
+    l.push("");
+    for (const a of foraDeEscopo) l.push(`- **${a.guarda}** — ${a.detalhe ?? ""}`);
     l.push("");
   }
 

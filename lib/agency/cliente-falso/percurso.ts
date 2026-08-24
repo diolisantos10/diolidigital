@@ -42,7 +42,7 @@ import {
   ROTEIRO_PADRAO, ARQUIVO_DO_CLIENTE_FALSO, OFERTA_DE_DOCUMENTO,
   fatoQueResponde, type Roteiro,
 } from "./roteiro";
-import type { Percurso, RespostaDoSdr, TurnoMedido, DesfechoDaAprovacao, DesfechoDoAceite, TentativaDeIntruso, EstadoDaEsteira } from "./verificacoes";
+import type { Percurso, RespostaDoSdr, TurnoMedido, DesfechoDaAprovacao, DesfechoDoAceite, DesfechoDaAprovacaoDaPeca, TentativaDeIntruso, EstadoDaEsteira } from "./verificacoes";
 
 /**
  * Quantas vezes o cliente falso responde antes de desistir.
@@ -271,6 +271,10 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
     execucaoPendencias: null, execucaoTentativas: 0,
   };
   let aceite: DesfechoDoAceite = { tentou: false, viaPortal: false, nasceuSozinho: false, motivo: "não houve proposta para aceitar" };
+  let aprovacaoDaPeca: DesfechoDaAprovacaoDaPeca = {
+    tentou: false, apresentado: false, pedindoDecisao: 0, viaPortal: false,
+    carimboDoCliente: 0, carimboDeOutro: 0, motivo: "não houve peça para aprovar",
+  };
 
   if (pedido) {
     // ─── ETAPA 6.5: O CLIENTE ACEITA — E O PROJETO NASCE SOZINHO ───────────
@@ -305,6 +309,25 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
         esteira.direcaoMotivo = aval.motivo;
       }
 
+      // ─── ETAPA 8.7: A ESCADA DE EXPOSIÇÃO, PELO MECANISMO DA CASA ─────────
+      // `apresentar()` (MARCO 2) só compartilha com o cliente as entregas dos
+      // departamentos que a escada liberou, e a escada é fail-closed: num banco
+      // novo TODO departamento nasce em sombra. Sem este passo, a produção
+      // roda, o pacote fecha e NADA chega ao cliente — ele não teria o que
+      // aprovar, e a régua da aprovação diria "não coberto" para sempre.
+      //
+      // Não se abre a escada à mão aqui. Roda-se a MESMA função que o relógio
+      // roda em produção (`aplicarDecisoesDoDonoNaCasa`), que aplica a decisão
+      // escrita do CEO de 08/08/2026 — social-media e design, para clientes com
+      // projeto. Se essa decisão não alcançar o cliente falso, ele fica em
+      // sombra e a régua diz isso: é medição, não conserto.
+      try {
+        const { aplicarDecisoesDoDonoNaCasa } = await import("@/lib/agency/escada/decisoes-do-dono");
+        await aplicarDecisoesDoDonoNaCasa();
+      } catch (e) {
+        tropecos.push({ etapa: "escada", erro: e instanceof Error ? e.message : String(e) });
+      }
+
       // ─── ETAPA 9: A EXECUÇÃO ANDA? (e "andar" é PRODUZIR) ─────────────────
       // Mesma função que o relógio chama. Se ela não anda aqui, não anda lá.
       if (esteira.projetoId) {
@@ -328,21 +351,35 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
           tropecos.push({ etapa: "execucao", erro: esteira.execucaoErro });
         }
       }
+
+      // ─── ETAPA 10: O CLIENTE APROVA AS PEÇAS ──────────────────────────────
+      // O fim do percurso, na ordem do CEO: "se for um post, tem que entregar
+      // os posts até o final (...) você aprova como se fosse o cliente".
+      if (esteira.projetoId) {
+        aprovacaoDaPeca = await aprovarAsPecasComoOCliente(pedido.id, esteira.projetoId, tropecos);
+      }
     }
   }
 
-  // ─── ETAPA 10: A PARADA DECLARADA ────────────────────────────────────────
-  // `publicarAgendados` NÃO é chamada nesta volta, de propósito. Publicar sai
-  // no perfil do cliente, é público e desfazer não desfaz o print — exercitar
-  // isso na mesma volta em que três travas acabaram de nascer seria trocar o
-  // risco conhecido por um desconhecido. A verificação declara "não coberto";
-  // ela NUNCA diz "passou". Instrumento que esconde o que não mediu mente.
+  // ─── ONDE A ESTEIRA ACABA (CEO, 24/08/2026) ──────────────────────────────
+  // "Não precisa de publicação. A esteira termina na peça aprovada e entregue
+  // ao cliente." Publicar no Instagram ou no Google é escolha DELE depois — não
+  // é etapa desta esteira, e por isso não entra na conta de completude.
+  //
+  // Isto não é a mesma coisa que a parada declarada de ontem: ali a publicação
+  // era uma etapa que ficava de fora e a régua dizia "não coberto", como se
+  // faltasse. Agora ela está FORA DO ESCOPO, e a régua diz onde o percurso
+  // acaba em vez de contar uma ausência.
+  //
+  // ⚠️ As travas dos canais de publicação continuam de pé e intocadas: elas
+  // existem para impedir vazamento, não para marcar etapa.
 
   return {
     percurso: {
       roteiro,
       aprovacao,
       aceite,
+      aprovacaoDaPeca,
       esteira,
       saudacao,
       turnos,
@@ -823,4 +860,110 @@ async function aceitarAPropostaComoOCliente(
     tropecos.push({ etapa: "aceite", erro });
     return { tentou: true, viaPortal: false, nasceuSozinho: false, motivo: `a porta do aceite estourou: ${erro}` };
   }
+}
+
+/**
+ * O CLIENTE APROVA AS PEÇAS — pela porta dele, e o carimbo prova quem foi.
+ *
+ * ── A ordem que originou esta etapa (CEO, 24/08/2026) ───────────────────────
+ * "O piloto tem que ser até a entrega da peça que o cliente está pedindo. Se
+ * for um post, tem que entregar os posts até o final. É um cliente fictício —
+ * e se é um cliente fictício, você aprova como se fosse o cliente."
+ *
+ * ── O caminho é o mesmo do aval de direção, e a condição também ─────────────
+ * `POST /api/portal/esteira` com `{ decisao: "aprovar_pacote" }` e um token de
+ * portal validado. O dono sai do TOKEN; o nome do carimbo é derivado do
+ * cadastro pelo próprio servidor (`nomeDoClienteDoToken`), nunca do corpo.
+ *
+ * **Nada aqui escreve `clientApprovedAt` nem mexe em `ApprovalRequest`.** Ou o
+ * cliente falso aprova como um cliente aprova, ou a peça fica sem aprovação e a
+ * régua diz isso com o motivo.
+ *
+ * A PROVA não é a resposta da rota: é o carimbo no banco. `client:<nome>` é a
+ * única grafia que a trava de publicação aceita — `"cliente"` seco já existiu,
+ * mostrava "aprovado" no portal e travava a publicação ao mesmo tempo (ver
+ * `autoria-da-aprovacao.ts`). Por isso a régua conta os carimbos, um a um.
+ */
+async function aprovarAsPecasComoOCliente(
+  clientRequestId: string,
+  projectId: string,
+  tropecos: Tropeco[],
+): Promise<DesfechoDaAprovacaoDaPeca> {
+  const vazio = { tentou: true, apresentado: false, pedindoDecisao: 0, viaPortal: false, carimboDoCliente: 0, carimboDeOutro: 0 };
+
+  // ── 1. O PACOTE FOI APRESENTADO? (MARCO 2) ───────────────────────────────
+  // Quem apresenta é o motor, sozinho, quando o pacote fecha. Não se apresenta
+  // à mão aqui: se o motor não apresentou, é achado, não é tarefa da bateria.
+  const proj = await prisma.project.findUnique({
+    where: { id: projectId }, select: { presentedAt: true, clientApprovedAt: true },
+  }).catch(() => null);
+  const apresentado = !!proj?.presentedAt;
+
+  // Quantas entregas o cliente VÊ para decidir. É o mesmo retrato que autoriza
+  // o botão no portal dele.
+  let pedindoDecisao = 0;
+  try {
+    const { retratoDoPacote } = await import("@/lib/agency/esteira/pacote");
+    const pacote = await retratoDoPacote(projectId);
+    pedindoDecisao = pacote.prontas.length;
+  } catch (e) {
+    tropecos.push({ etapa: "aprovacao-da-peca", erro: e instanceof Error ? e.message : String(e) });
+  }
+
+  if (!apresentado) {
+    return { ...vazio, pedindoDecisao,
+      motivo: "o pacote não foi apresentado ao cliente (MARCO 2 não rodou) — não há peça para ele aprovar" };
+  }
+  if (pedindoDecisao === 0) {
+    return { ...vazio, apresentado, motivo:
+      "o pacote foi apresentado e NENHUMA entrega chegou ao cliente para decisão — "
+      + "a escada de exposição reteve tudo, ou nenhuma peça ganhou corpo" };
+  }
+
+  // ── 2. O ACESSO DO PORTAL — ato da agência, não é a aprovação ────────────
+  let token: string;
+  try {
+    const { createPortalAccess } = await import("@/lib/agency/persistence/portal-access-service");
+    token = (await createPortalAccess({ clientRequestId, expiresAt: new Date(Date.now() + 864e5) })).token;
+  } catch (e) {
+    const erro = e instanceof Error ? e.message : String(e);
+    tropecos.push({ etapa: "aprovacao-da-peca", erro });
+    return { ...vazio, apresentado, pedindoDecisao, motivo: `não consegui cunhar o acesso do portal: ${erro}` };
+  }
+
+  // ── 3. O CLIENTE DECIDE, PELA PORTA DELE ─────────────────────────────────
+  try {
+    const { POST } = await import("@/app/api/portal/esteira/route");
+    const req = new NextRequest("http://cliente-falso.local/api/portal/esteira", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token, decisao: "aprovar_pacote" }),
+    });
+    const res = await POST(req);
+    const corpo = (await res.json()) as { ok?: boolean; mensagem?: string; error?: string };
+    if (res.status >= 400 || !corpo.ok) {
+      const motivo = `a porta do cliente recusou a aprovação da peça (${res.status}): ${corpo.error ?? corpo.mensagem ?? "sem motivo"}`;
+      tropecos.push({ etapa: "aprovacao-da-peca", erro: motivo });
+      return { ...vazio, apresentado, pedindoDecisao, motivo };
+    }
+  } catch (e) {
+    const erro = e instanceof Error ? e.message : String(e);
+    tropecos.push({ etapa: "aprovacao-da-peca", erro });
+    return { ...vazio, apresentado, pedindoDecisao, motivo: `a porta do cliente estourou: ${erro}` };
+  }
+
+  // ── 4. QUEM ASSINOU? A prova está no carimbo, não na resposta da rota ────
+  const { PREFIXO_DO_CLIENTE } = await import("@/lib/agency/esteira/autoria-da-aprovacao");
+  const linhas = await prisma.approvalRequest.findMany({
+    where: { clientRequestId, status: "approved" },
+    select: { reviewedBy: true },
+  }).catch(() => [] as Array<{ reviewedBy: string | null }>);
+  const carimboDoCliente = linhas.filter((l) => (l.reviewedBy ?? "").startsWith(PREFIXO_DO_CLIENTE)).length;
+  const carimboDeOutro = linhas.length - carimboDoCliente;
+
+  return {
+    tentou: true, apresentado, pedindoDecisao, viaPortal: true,
+    carimboDoCliente, carimboDeOutro,
+    motivo: carimboDoCliente > 0 ? null : "a porta respondeu OK e nenhuma aprovação ficou com carimbo de cliente",
+  };
 }
