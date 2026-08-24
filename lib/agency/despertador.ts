@@ -28,6 +28,7 @@ import { destravarPacote, pacotesTravados } from "@/lib/agency/esteira/pacote-tr
 import { publicarAgendados } from "@/lib/agency/esteira/publicacao";
 import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
+import { retratoDoPortao } from "@/lib/agency/financeiro/vigia-do-portao";
 import { guardarAVerba } from "@/lib/agency/esteira/trafego";
 import { cuidarDasAvaliacoes } from "@/lib/agency/esteira/avaliacoes";
 import { responderMensagensDeClientes } from "@/lib/agency/esteira/pm-responde";
@@ -610,6 +611,30 @@ export async function baterORelogio(): Promise<{
     }
   } catch (err) {
     quebrou("portao-comercial", err);
+  }
+
+  // ── QUEM O PORTÃO DE PAGAMENTO ESTÁ SEGURANDO ─────────────────────────────
+  // A trava do pagamento (lib/agency/financeiro/portao-de-pagamento.ts) barra
+  // produção sem prova de que o cliente pagou. Uma trava dessas TEM de contar
+  // quem ela está barrando: sem esta linha, "quantos clientes estão parados?"
+  // só teria resposta abrindo o banco à mão — e pergunta cuja resposta custa
+  // trabalho é pergunta que ninguém faz. Aí a trava passa a segurar cliente
+  // pagante em silêncio, que é o único jeito de este conserto virar defeito.
+  //
+  // Só LÊ. E o silêncio aqui é informação: sem ninguém parado, nada é dito.
+  try {
+    const r = await retratoDoPortao();
+    if (r.paradosPeloPortao > 0) {
+      log(`PORTÃO DE PAGAMENTO: ${r.paradosPeloPortao} projeto(s) parado(s) aguardando pagamento` +
+          (r.exemplos.length ? ` — ${r.exemplos.join("; ")}` : "") +
+          ". Recebeu por Pix? POST /api/admin/pagamentos libera na próxima rodada.");
+    }
+    // O retrato da casa, sempre — é ele que diz se a régua tem sobre quem valer.
+    log(`portão de pagamento: ${r.clientesComProjeto} cliente(s) com projeto, ` +
+        `${r.projetosVivos} projeto(s) vivo(s), ${r.semProvaDePagamento} sem prova de pagamento, ` +
+        `${r.paradosPeloPortao} parado(s)`);
+  } catch (err) {
+    quebrou("vigia-do-portao-de-pagamento", err);
   }
 
   // ── A PERGUNTA QUE NUNCA CHEGOU AO CLIENTE ────────────────────────────────
