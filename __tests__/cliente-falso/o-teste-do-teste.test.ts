@@ -438,3 +438,27 @@ describe("porta autenticada — medir só o caso feliz é medir metade", () => {
     expect(aPortaAutenticadaFoiExercitada(p).veredito).toBe("quebrou");
   });
 });
+
+describe("execução anda — produzir e terminar são duas perguntas", () => {
+  it("projeto em 'blocked' com entregas passa, MAS o placar mostra o bloqueio", () => {
+    // Medido ao vivo em 24/08/2026: 8 tarefas, 5 entregas, projeto em "blocked"
+    // porque dois portões de qualidade da casa recusaram peça. É a casa
+    // funcionando — e é fato que quem lê o placar precisa ver.
+    const p = percursoSao();
+    p.esteira = { ...p.esteira, tarefas: 8, entregas: 5, execucaoStatus: "blocked",
+      execucaoPendencias: "[recusa] pendências: Social Media · Copy dos posts", execucaoTentativas: 2 };
+    const a = aExecucaoAnda(p);
+    expect(a.veredito).toBe("passou");
+    expect(a.detalhe).toMatch(/NÃO fechou/);
+    expect(a.detalhe).toMatch(/blocked/);
+    expect(a.detalhe).toMatch(/Copy dos posts/);
+  });
+
+  it("projeto em 'done' diz que fechou, sem alarme falso", () => {
+    const p = percursoSao();
+    p.esteira = { ...p.esteira, tarefas: 8, entregas: 8, execucaoStatus: "done", execucaoPendencias: null };
+    const a = aExecucaoAnda(p);
+    expect(a.veredito).toBe("passou");
+    expect(a.detalhe).not.toMatch(/NÃO fechou/);
+  });
+});

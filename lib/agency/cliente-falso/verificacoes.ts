@@ -730,7 +730,32 @@ export function aExecucaoAnda(p: Percurso): Achado {
              + `rodar sem produzir é a rodada perdida em silêncio`
              + (p.esteira.execucaoPendencias ? `. A casa registrou: ${p.esteira.execucaoPendencias}` : "") };
   }
-  return { ...base, veredito: "passou", detalhe: `${p.esteira.entregas} entrega(s) produzida(s)` };
+  // ── PRODUZIU, MAS TERMINOU? SÃO DUAS PERGUNTAS ──────────────────────────
+  // Medido na primeira rodada ao vivo em que a esteira andou inteira
+  // (24/08/2026): 8 tarefas, 5 entregas, e o projeto em `blocked` — duas
+  // tarefas RECUSADAS pelos portões de qualidade da própria casa (piso de
+  // verdade e contrato de saída). Isso é a casa funcionando como foi desenhada:
+  // `blocked` existe justamente para o cron não re-rolar o dado eternamente.
+  //
+  // O guarda desta régua é "a execução tem de PRODUZIR", e produzir ela
+  // produziu — então o veredito é "passou", e alargá-lo para vermelho seria
+  // acusar a casa de ter portão de qualidade.
+  //
+  // MAS o placar não pode encolher isso para "5 entregas produzidas". Um
+  // projeto parado em `blocked` com tarefa recusada é fato que quem lê PRECISA
+  // ver, e a régua que o esconde vira aquela que "não estourou" — o defeito que
+  // esta bateria persegue. Então o detalhe carrega o estado e as pendências
+  // sempre que o projeto não fechou em `done`.
+  const fechou = p.esteira.execucaoStatus === "done";
+  if (!fechou) {
+    return { ...base, veredito: "passou",
+      detalhe: `${p.esteira.entregas} entrega(s) produzida(s) de ${p.esteira.tarefas} tarefa(s), `
+             + `mas o projeto NÃO fechou: está em "${p.esteira.execucaoStatus ?? "?"}"`
+             + (p.esteira.execucaoPendencias ? ` — ${p.esteira.execucaoPendencias}` : "")
+             + `. A execução andou; o pacote não saiu inteiro.` };
+  }
+  return { ...base, veredito: "passou",
+    detalhe: `${p.esteira.entregas} entrega(s) produzida(s) de ${p.esteira.tarefas} tarefa(s), projeto em "done"` };
 }
 
 // ─── 15. A PARADA DECLARADA — publicação não é exercitada, e diz isso ───────
