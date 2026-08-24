@@ -153,6 +153,15 @@ describe("a verdade atestada chega a quem produz", () => {
     expect(b).toMatch(/só quando a peça REALMENTE não existe/);
   });
 
+  it("manda usar o fato COMO FOI ATESTADO — sem estreitar nem generalizar", () => {
+    // Medido ao vivo: com "terça a domingo" atestado, a peça saiu falando em
+    // dias úteis e foi reprovada por "restringir dias sem base". Fechar o
+    // restaurante no domingo por descuido de redação custa o domingo inteiro.
+    const b = ctxBlock(ctx({ verdadeAtestada: { linhas: ["Dias atestados: ter, dom"], semInformacao: [] } }));
+    expect(b).toMatch(/não estreite, não generalize/);
+    expect(b).toMatch(/USE O FATO COMO ELE FOI ATESTADO/);
+  });
+
   it("todo especialista recebe o bloco, não só o que alguém lembrou de alterar", () => {
     const c = ctx({ verdadeAtestada: { linhas: ["Horários atestados: 11:00, 23:00"], semInformacao: [] } });
     const semBloco = TODOS_OS_ESPECIALISTAS.filter((e) => !e.prompt(c).includes("O QUE O CLIENTE ATESTOU"));

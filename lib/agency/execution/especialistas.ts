@@ -471,7 +471,17 @@ function blocoDaVerdade(c: Ctx): string {
     + "dado que ninguém tinha. Escreva a peça que FUNCIONA com o que está atestado: "
     + "\"chama a gente no direct\" não precisa de número; \"venha almoçar com a gente\" não "
     + "precisa de horário. Use \"PRECISO CONFIRMAR\" só quando a peça REALMENTE não existe "
-    + "sem aquele dado — não como recheio de um texto que você já decidiu escrever.",
+    + "sem aquele dado — não como recheio de um texto que você já decidiu escrever.\n"
+    + "\n"
+    + "⚠️ E USE O FATO COMO ELE FOI ATESTADO — não estreite, não generalize, não "
+    + "arredonde. Medido em 24/08/2026: com \"terça a domingo, das 11h30 às 15h e das "
+    + "18h30 às 23h\" atestado, a peça saiu falando em dias úteis e horário genérico, e "
+    + "foi REPROVADA por \"restringir dias de funcionamento sem base\" e \"não refletir a "
+    + "operação completa atestada\". Fechar o restaurante no domingo por descuido de "
+    + "redação custa o domingo inteiro de movimento.\n"
+    + "Se o fato for comprido demais para a peça, cite a PARTE que couber sem "
+    + "contradizer o resto (\"aberto até 23h\" está certo; \"de segunda a sexta\" quando "
+    + "abre terça a domingo está errado) — ou não fale do assunto.",
   );
   return partes.join("\n\n");
 }
