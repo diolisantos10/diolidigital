@@ -633,6 +633,15 @@ export async function baterORelogio(): Promise<{
     log(`portão de pagamento: ${r.clientesComProjeto} cliente(s) com projeto, ` +
         `${r.projetosVivos} projeto(s) vivo(s), ${r.semProvaDePagamento} sem prova de pagamento, ` +
         `${r.paradosPeloPortao} parado(s)`);
+    // QUEM, não só quantos. "1 cliente com projeto" não permite decidir nada
+    // sobre a régua; saber que projeto é, em que estado, e se ele tem pedido a
+    // que ligar um pagamento, permite.
+    for (const c of r.quemTemProjeto) {
+      const detalhe = c.projetos
+        .map((pr) => `${pr.nome} [${pr.estado}${pr.temPedido ? "" : ", SEM PEDIDO"}${pr.pago ? ", pago" : ""}]`)
+        .join("; ");
+      log(`portão de pagamento — ${c.cliente}: ${detalhe}`);
+    }
   } catch (err) {
     quebrou("vigia-do-portao-de-pagamento", err);
   }
