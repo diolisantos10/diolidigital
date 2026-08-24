@@ -11,9 +11,9 @@
 
 ## Estado do espelho, agora
 
-- **Carimbado em `2026-08-09T01:06:32.123Z`** (kit `6782942`) — **parado há 14 dia(s).**
+- **Carimbado em `2026-08-09T01:06:32.123Z`** (kit `6782942`) — **parado há 15 dia(s).**
 - **Estado:** `falhou`
-- **Última tentativa do robô:** **FALHOU** em 2026-08-23T07:05:45.434Z — KIT_REPO_TOKEN ausente neste repositório. O GITHUB_TOKEN padrão do Actions não alcança dioli-brain-kit (repo privado separado) — ver o comentário no topo de .github/workflows/kit-espelho.yml. git ls-remote sem token: fatal: could not read Username for 'https://github.com': terminal prompts disabled (exit 128).
+- **Última tentativa do robô:** **FALHOU** em 2026-08-24T07:32:21.262Z — KIT_REPO_TOKEN ausente neste repositório. O GITHUB_TOKEN padrão do Actions não alcança dioli-brain-kit (repo privado separado) — ver o comentário no topo de .github/workflows/kit-espelho.yml. git ls-remote sem token: fatal: could not read Username for 'https://github.com': terminal prompts disabled (exit 128).
 
 ## A frase que mais importa
 
