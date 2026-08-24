@@ -102,6 +102,47 @@ duas não.** Chamar isso de ~75% é honesto; chamar de "pronta" não é.
 
 ---
 
+## 🟡 24/08/2026 — DOUTRINA: TODA PROIBIÇÃO PRECISA DA INSTRUÇÃO GÊMEA
+
+**Regra que só diz "não faça" empurra o modelo para o comportamento adjacente —
+e o adjacente costuma ser pior, porque parece obediência.**
+
+Medido no piloto, em menos de 24 horas, com a mesma regra:
+
+| versão da regra | o que o modelo fez | veredito |
+|---|---|---|
+| (nenhuma) | inventou área de atendimento que o cliente nunca informou | barrado no **piso de verdade** |
+| "só afirme o que está atestado; para o resto escreva PRECISO CONFIRMAR" | escreveu a peça que PRECISAVA do dado e carimbou a lacuna dentro dela — *"chame no WhatsApp [PRECISO CONFIRMAR]"* | barrado na **Qualidade** |
+| + "escreva a peça que FUNCIONA com o que está atestado" | *"chama a gente no direct"* | passa |
+
+A proibição matou a invenção e criou o oposto: **trocou peça inventada por peça
+furada.** E o segundo estado é mais traiçoeiro que o primeiro, porque o modelo
+está literalmente obedecendo — ele escreveu "PRECISO CONFIRMAR" como mandado. A
+regra estava certa e incompleta, e incompleta ela produziu um defeito novo com
+cara de conformidade.
+
+### Por que o adjacente é pior
+
+Porque "não faça X" deixa o modelo escolher o que fazer no lugar de X, e ele
+escolhe o mais próximo de X que a letra da regra permite. Quem escreveu a regra
+imaginou o comportamento CERTO no lugar de X e não o escreveu — então o que
+sobra é o comportamento que a regra não proibiu e ninguém quis.
+
+### A regra
+
+**Toda proibição carrega a instrução gêmea, no mesmo bloco:** o que NÃO fazer, e
+o que fazer com o que sobra. Se ao escrever "nunca faça X" não for possível
+completar "faça Y no lugar", a regra ainda não está pronta — e vale mais
+descobrir isso na hora de escrevê-la do que num pacote retido.
+
+Exemplos que já vivem no código:
+- *não afirme o que não está atestado* → **e escreva a peça que funciona sem o
+  dado; "chama no direct" não precisa de número.*
+- *não invente número* → **e fale do que a marca faz, de quem ela serve e do que
+  o cliente escreveu — nada disso precisa de hora, preço ou endereço.*
+
+---
+
 ## 🟡 24/08/2026 — DOUTRINA: A RÉGUA EVOLUI E O PEDIDO FICA PARA TRÁS
 
 **Quando uma régua passa a derivar de dado, todo lugar que PEDE aquilo tem de
