@@ -146,6 +146,12 @@ describe("a casa não manda preço a quem nunca foi perguntado quanto pode gasta
     // roteiro tem de refletir a conversa real, senão ele testa uma casa que não
     // existe mais.
     "Nosso Instagram é @cantinadaprova, abrimos de terça a domingo das 11h30 às 23h, atendemos Pinheiros.",
+    // ── OS BÁSICOS DE MARCA (24/08/2026) ─────────────────────────────────
+    // Mesma natureza e mesma posição da anterior: opcional, feita ANTES da
+    // verba, com o portão ainda fechado. O lastro de cada item está em
+    // `esteira/causas-de-refacao.ts`, com arquivo e data da medição.
+    "Vermelho e creme, tenho o logo em PDF. Nunca use 'imperdível' — prefiro 'vale a pena'. "
+      + "Gosto do perfil do Bráz. Quem aprova sou eu, pelo WhatsApp.",
   ];
 
   it("a pergunta da verba PERGUNTA a verba, em vez de anunciar o fim", () => {

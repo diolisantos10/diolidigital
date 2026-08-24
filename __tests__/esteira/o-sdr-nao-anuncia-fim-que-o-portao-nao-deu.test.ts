@@ -86,6 +86,10 @@ const PERCURSO_COMPLETO = [
   // última obrigatória vira fala de despedida e ninguém responde. É o mesmo
   // defeito descrito logo abaixo, por outra porta.
   "Nosso Instagram é @clinicabelaface, atendemos de segunda a sábado das 9h às 19h, em São Paulo.",
+  // Os básicos de MARCA (24/08/2026), mesma natureza e mesma posição: cor e
+  // tipografia, tom, exemplo e quem aprova. O lastro de cada item está em
+  // `esteira/causas-de-refacao.ts`, com arquivo e data da medição.
+  "Nossas cores são rosa e branco, o logo está em PDF. Nunca fale de preço. Gosto do feed da Clinica Derma. Quem aprova sou eu.",
   "Budget de R$ 500 por mês.",
   // ── A RESPOSTA DA VERBA ENTROU EM 23/08/2026 ─────────────────────────────
   // Até aqui o percurso terminava com a pergunta da verba NO AR, sem resposta,

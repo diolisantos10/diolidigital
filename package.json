@@ -28,6 +28,7 @@
     "medir-cache": "tsx scripts/medir-cache-do-sdr.mts",
     "deploy:emergencia": "tsx scripts/deploy-de-emergencia.mts",
     "raio-x": "tsx scripts/raio-x.ts",
+    "causas": "tsx scripts/causas-de-refacao.mts",
     "prontidao": "tsx scripts/prontidao-de-publicacao.mts",
     "reconverter:jpeg": "tsx scripts/reconverter-pecas-para-jpeg.mts",
     "check:production-safety": "tsx scripts/check-production-safety.ts",

@@ -37,6 +37,7 @@
 import { createHash } from "node:crypto";
 import { lerFichaDeMarca, type CampoNaFicha } from "@/lib/agency/esteira/ficha-de-marca";
 import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { instrucaoGemea } from "@/lib/agency/execution/piso-de-verdade";
 import { materiaisDeMarca } from "@/lib/agency/esteira/material-do-drive";
 
 /** Teto do contrato, em caracteres. ~Uma tela de celular lida sem rolar duas
@@ -85,7 +86,7 @@ export async function contratoDeMarca(clientId: string | null | undefined): Prom
     // A régua lê a lista INTEIRA, não o resumo da ficha. A ficha encurta para
     // caber na tela de quem olha; proibição encurtada em silêncio vira regra
     // que sumiu — e quem produz obedece o pedaço e inventa o resto.
-    lerProibicoes(clientId).catch(() => ({ lidas: false, itens: [] as { frase: string }[] })),
+    lerProibicoes(clientId).catch(() => ({ lidas: false, itens: [] })),
   ]);
 
   const lacunas: string[] = [];
@@ -105,8 +106,18 @@ export async function contratoDeMarca(clientId: string | null | undefined): Prom
   // ── 2. O QUE NUNCA FAZER ─────────────────────────────────────────────────
   // Logo depois da identidade, de propósito: é o único bloco que permite
   // reprovar, e é o que o cliente já disse em voz alta.
-  const frases = (proibicoes.itens ?? []).map((i) => i.frase).filter(Boolean);
-  if (frases.length > 0) partes.push(`NUNCA\n${frases.map((f) => `— ${f}`).join("\n")}`);
+  //
+  // ── E CADA "NUNCA" VEM COM A INSTRUÇÃO GÊMEA (24/08/2026) ────────────────
+  // Proibição sozinha engessa a marca. Lendo só "não use 'imperdível'", o
+  // produtor tem duas saídas e as duas são ruins: repetir a palavra (e ser
+  // barrado) ou **cortar o assunto da peça** — e aí é reprovado por obedecer.
+  // Esta casa já viu isso acontecer.
+  //
+  // `instrucaoGemea` é a MESMA redação que o piso usa no motivo da violação, e
+  // ela carrega fonte e data: regra de marca sem procedência não é auditável, e
+  // trava que não se explica é desligada na primeira semana.
+  const linhas = (proibicoes.itens ?? []).filter((i) => i?.frase).map(instrucaoGemea);
+  if (linhas.length > 0) partes.push(`NUNCA\n${linhas.map((f) => `— ${f}`).join("\n")}`);
 
   const limites = definido("limites_de_promessa");
   if (limites) partes.push(`NÃO AFIRMAR, mesmo sendo verdade\n${limites.valor}`);
