@@ -1,10 +1,10 @@
 {
-  "clienteId": "cmt7g94wb000ds17dgj6uz2rt",
-  "projetoId": "cmt7g94wq000gs17dm3kdk5xn",
-  "pedidoId": "cmt7g94j30003s17d2oejk4pd",
-  "wsId": "cmt7g94bf0000s17d14tf0ftc",
-  "paginaDoCliente": "/agency/clients/cmt7g94wb000ds17dgj6uz2rt",
-  "portalDoCliente": "/portal/access/UEe7bMpvUY9RQc3lzIh8i5YeYV9SMR3JxYIS84bBFYM",
+  "clienteId": "cmt7nacin000dxo7das9rvq5o",
+  "projetoId": "cmt7naciz000gxo7d7keb73h6",
+  "pedidoId": "cmt7nabzu0003xo7d7xh7z0yz",
+  "wsId": "cmt7nabrh0000xo7d8zzwkik6",
+  "paginaDoCliente": "/agency/clients/cmt7nacin000dxo7das9rvq5o",
+  "portalDoCliente": "/portal/access/jD9zj-lK998qQCKxPzE8uo7V1tdLqX4I5qVSdTnF5dM",
   "login": {
     "email": "ceo@case-farol-27.local",
     "senha": "farol27"
@@ -18,25 +18,25 @@
       "n": 1,
       "titulo": "WhatsApp ausente",
       "veredito": "maquina",
-      "prova": "a casa NÃO tem como inventar número: `semPii` (lib/dioli-brain/client-snapshot.ts:84) apaga sequências de 8+ dígitos antes de o texto chegar ao modelo, e o question-engine não pede o número. Confirmado no banco: 0 peça(s) com número em 32. ⚠️ Ressalva medida: Client.phone ficou \"5511900000027\" — é o WhatsApp DE CONTATO que a Ana deu na porta, gravado pela ficha; NÃO é o número oficial de atendimento para CTA, e a casa não distingue os dois. Isso é uma falha: um dia alguém vai publicar o telefone pessoal da dona como CTA da loja. Pendência aberta pela MÁQUINA: MaterialRequest cmt7g95k1002cs17dwhfpwzjq. CTA provisório = direct."
+      "prova": "a casa NÃO tem como inventar número: `semPii` (lib/dioli-brain/client-snapshot.ts:84) apaga sequências de 8+ dígitos antes de o texto chegar ao modelo, e o question-engine não pede o número. Confirmado no banco: 0 peça(s) com número em 32. ⚠️ Ressalva medida: Client.phone ficou \"5511900000027\" — é o WhatsApp DE CONTATO que a Ana deu na porta, gravado pela ficha; NÃO é o número oficial de atendimento para CTA, e a casa não distingue os dois. Isso é uma falha: um dia alguém vai publicar o telefone pessoal da dona como CTA da loja. Pendência aberta pela MÁQUINA: MaterialRequest cmt7nadav002cxo7dh63sfggz. CTA provisório = direct."
     },
     {
       "n": 2,
       "titulo": "Conflito de logo",
       "veredito": "a-mao",
-      "prova": "os registros existem (BrandUpdate cmt7g95k5002ds17dmkmmydj8 / cmt7g95k8002es17dspc5e3ht, MaterialRequest cmt7g95k9002fs17d1sgpdep5), mas NÃO há detector de divergência nem trava que suspenda a consolidação sozinha: quem comparou as duas versões e suspendeu fui eu. Falta na casa: um comparador de ativos de marca e um estado \"consolidação suspensa\"."
+      "prova": "os registros existem (BrandUpdate cmt7nadb0002dxo7d3dg9xwla / cmt7nadb2002exo7dtaig30oq, MaterialRequest cmt7nadb3002fxo7d39py5pzg), mas NÃO há detector de divergência nem trava que suspenda a consolidação sozinha: quem comparou as duas versões e suspendeu fui eu. Falta na casa: um comparador de ativos de marca e um estado \"consolidação suspensa\"."
     },
     {
       "n": 8,
       "titulo": "Handoff sem aceite",
       "veredito": "maquina",
-      "prova": "HandoffV2 cmt7g95kp002hs17deloi4zx7 nasceu em \"aguardando_recebimento\" — a MÁQUINA segura o bastão na fila da Branding até o Design aceitar. Nenhum aceite foi dado: a tarefa continua em aguardando_recebimento, exatamente como o evento pede."
+      "prova": "HandoffV2 cmt7nadee002hxo7du48gav8l nasceu em \"aguardando_recebimento\" — a MÁQUINA segura o bastão na fila da Branding até o Design aceitar. Nenhum aceite foi dado: a tarefa continua em aguardando_recebimento, exatamente como o evento pede."
     },
     {
       "n": 3,
       "titulo": "Peça desalinhada — Recusar/refazer",
       "veredito": "maquina",
-      "prova": "reprovarPeca() aceitou: peça cmt7g95j80024s17dhmzr064w, volta 1, escalado=false, proibições novas gravadas=[\"otario\"]. A MÁQUINA exigiu motivo (mín. 12 chars) e autor, gravou ActivityEvent e devolveu a peça ao responsável. Histórico: 1 registro(s)."
+      "prova": "reprovarPeca() aceitou: peça cmt7nad660024xo7dqov5p8ph, volta 1, escalado=false, proibições novas gravadas=[\"otario\"]. A MÁQUINA exigiu motivo (mín. 12 chars) e autor, gravou ActivityEvent e devolveu a peça ao responsável. Histórico: 1 registro(s)."
     },
     {
       "n": 4,
@@ -48,7 +48,7 @@
       "n": 5,
       "titulo": "Cancelamento de UMA entrega",
       "veredito": "maquina",
-      "prova": "a casa TEM a decisão canônica \"cancel\" (DECISAO_PARA_STATUS/DECISOES_QUE_EXIGEM_COMENTARIO) e ela exige justificativa. Aprovação cmt7g95mv002os17d2imboj5j → cancelled; Deliverable cmt7g95ms002ns17d0oya9yth → cancelled com feedback. Nada foi apagado: 10 entregas seguem vivas no mesmo projeto."
+      "prova": "a casa TEM a decisão canônica \"cancel\" (DECISAO_PARA_STATUS/DECISOES_QUE_EXIGEM_COMENTARIO) e ela exige justificativa. Aprovação cmt7nadg7002oxo7dbjdo6106 → cancelled; Deliverable cmt7nadg5002nxo7d263mx4rj → cancelled com feedback. Nada foi apagado: 10 entregas seguem vivas no mesmo projeto."
     },
     {
       "n": 6,
@@ -60,34 +60,34 @@
       "n": 7,
       "titulo": "Falha de tracking",
       "veredito": "a-mao",
-      "prova": "NÃO existe monitor de integridade de evento nesta casa: nada compara eventos esperados × recebidos, nada alerta. Procurado em lib/agency/medicao (só leitura-da-conta.ts, que lê a Meta) e em lib/integrations (sem GA4/GTM). Detectei, alertei (ActivityEvent cmt7g95nt002rs17d4bv7c296), tentei recuperar e marquei o dado como não confiável — tudo à mão. Falta: dicionário de eventos esperados + reconciliação + alerta."
+      "prova": "NÃO existe monitor de integridade de evento nesta casa: nada compara eventos esperados × recebidos, nada alerta. Procurado em lib/agency/medicao (só leitura-da-conta.ts, que lê a Meta) e em lib/integrations (sem GA4/GTM). Detectei, alertei (ActivityEvent cmt7nadh2002rxo7d4n0aq17w), tentei recuperar e marquei o dado como não confiável — tudo à mão. Falta: dicionário de eventos esperados + reconciliação + alerta."
     }
   ],
   "diario": [
     {
       "o": "SDR / Atendimento — conversa e captura de escopo",
       "veredito": "maquina",
-      "prova": "13 turnos, pedido cmt7g94j30003s17d2oejk4pd"
+      "prova": "15 turnos, pedido cmt7nabzu0003xo7d7xh7z0yz"
     },
     {
       "o": "Escopo automático + proposta",
       "veredito": "maquina",
-      "prova": "estimativa R$ 500–1200, confiança \"high\""
+      "prova": "estimativa R$ 1700–3700, confiança \"low\""
     },
     {
       "o": "Project Management — projeto e tarefas",
       "veredito": "maquina",
-      "prova": "projeto cmt7g94wq000gs17dm3kdk5xn, 4 tarefas"
+      "prova": "projeto cmt7naciz000gxo7d7keb73h6, 4 tarefas"
     },
     {
       "o": "Execução / produção de peças",
       "veredito": "nao-tratado",
-      "prova": "status \"failed\", 0 entregas, pendências: pendências: Estratégia · Posicionamento (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Estratégia · Pesquisa de concorrência (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Pauta do mês (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Copy dos posts (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Roteiro de vídeo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Plano de medição (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Otimização do próximo ciclo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.)"
+      "prova": "status \"failed\", 0 entregas, pendências: pendências: Estratégia · Posicionamento (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Estratégia · Pesquisa de concorrência (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Pauta do mês (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Copy dos posts (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Roteiro de vídeo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Plano de medição (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Otimização do próximo ciclo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Branding · Base de marca (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.)"
     },
     {
       "o": "Ficha do cliente criada a partir do briefing",
       "veredito": "maquina",
-      "prova": "Client cmt7g94wb000ds17dgj6uz2rt nasceu de resolverOuCriarCliente"
+      "prova": "Client cmt7nacin000dxo7das9rvq5o nasceu de resolverOuCriarCliente"
     },
     {
       "o": "Campos de ficha que a esteira não coleta (site, segmento fino)",
@@ -97,12 +97,12 @@
     {
       "o": "Brand Hub / BrandBrain preenchido",
       "veredito": "a-mao",
-      "prova": "BrandBrain do cliente cmt7g94wb000ds17dgj6uz2rt — a esteira TEM o modelo e a tela, mas quem escreve o conteúdo é a IA, e não havia chave"
+      "prova": "BrandBrain do cliente cmt7nacin000dxo7das9rvq5o — a esteira TEM o modelo e a tela, mas quem escreve o conteúdo é a IA, e não havia chave"
     },
     {
       "o": "Entregas gravadas no projeto",
       "veredito": "a-mao",
-      "prova": "10 Deliverables criados à mão — a esteira falhou por falta de chave de IA. ids: cmt7g95gj0016s17dj519r08t, cmt7g95h40017s17dzcd8lnn1, cmt7g95h60018s17dhsn23f1u, cmt7g95h80019s17d2gulxrrc, cmt7g95ha001as17degetnea7, cmt7g95hc001bs17dspo0fnd3, cmt7g95he001cs17dga8dzjvj, cmt7g95hf001ds17dg5i8j54k, cmt7g95hl001es17d6tjdukwf, cmt7g95hq001fs17ddem6gs8l"
+      "prova": "10 Deliverables criados à mão — a esteira falhou por falta de chave de IA. ids: cmt7nad470016xo7d2r0tix4x, cmt7nad4b0017xo7d98csrned, cmt7nad4d0018xo7dhitxjrf1, cmt7nad4f0019xo7dsu44rv4d, cmt7nad4h001axo7dc7110dsn, cmt7nad4j001bxo7dgld4jtdl, cmt7nad4l001cxo7d760a9wrp, cmt7nad4m001dxo7d4oo5wzo6, cmt7nad4o001exo7dbpbe00qy, cmt7nad4q001fxo7dtg4dbxbl"
     },
     {
       "o": "Calendário editorial de 30 dias (12 feed + 12 stories + 8 roteiros)",

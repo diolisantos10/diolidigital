@@ -152,7 +152,7 @@
       "viaRota": false,
       "ok": true,
       "motivo": "a rota autenticada não rodou em processo; a função foi chamada direto — a camada de autenticação NÃO foi exercida",
-      "projetoId": "cmt7g94wq000gs17dm3kdk5xn",
+      "projetoId": "cmt7naciz000gxo7d7keb73h6",
       "recusouQuemNaoEStaff": null,
       "intrusos": []
     },
@@ -178,7 +178,7 @@
       "motivo": "o pacote não foi apresentado ao cliente (MARCO 2 não rodou). Por quê: o motor não registrou motivo — nem bloqueio de apresentação, nem retenção da escada"
     },
     "esteira": {
-      "projetoId": "cmt7g94wq000gs17dm3kdk5xn",
+      "projetoId": "cmt7naciz000gxo7d7keb73h6",
       "tarefas": 4,
       "execucaoRodou": true,
       "execucaoErro": null,
@@ -188,8 +188,10 @@
       "direcaoPedida": true,
       "direcaoViaPortal": true,
       "direcaoMotivo": null,
-      "execucaoPendencias": "pendências: Estratégia · Posicionamento (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Estratégia · Pesquisa de concorrência (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Pauta do mês (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Copy dos posts (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Roteiro de vídeo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Plano de medição (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Otimização do próximo ciclo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.)",
-      "execucaoTentativas": 1
+      "execucaoPendencias": "pendências: Estratégia · Posicionamento (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Estratégia · Pesquisa de concorrência (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Pauta do mês (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Copy dos posts (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Roteiro de vídeo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Plano de medição (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Otimização do próximo ciclo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Branding · Base de marca (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.)",
+      "execucaoTentativas": 1,
+      "entregasSemArbitro": 0,
+      "motivoSemArbitro": null
     },
     "saudacao": "Olá, Ana! Seja bem-vindo(a) à Dioli Studio.\n\nSou sua consultora de orçamento. Vou te ajudar a montar uma proposta personalizada para o seu negócio — com estimativa de investimento atualizada em tempo real.\n\n**Para começar, qual é o nome do seu negócio?**",
     "turnos": [
@@ -207,13 +209,14 @@
             "wantsRebrand": false
           },
           "prospectName": "Ana Farol [TESTE]",
-          "prospectPhone": "5511900000027"
+          "prospectPhone": "5511900000027",
+          "lacunasDeEscopo": []
         }
       },
       {
         "numero": 2,
         "doCliente": "O negócio se chama Farol 27 — Padaria & Café.",
-        "daCasa": "Ótimo! Agora me conta: o que você está precisando para o **Farol**?\n\nPode me contar mais? Você está buscando gestão de redes sociais, tráfego pago, criação de identidade visual — ou uma combinação?",
+        "daCasa": "Ótimo! Agora me conta: o que você está precisando para o **Farol 27**?\n\nPode me contar mais? Você está buscando gestão de redes sociais, tráfego pago, criação de identidade visual — ou uma combinação?",
         "intencao": "apresenta",
         "escopoDepois": {
           "objectives": [],
@@ -225,7 +228,8 @@
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol"
+          "businessName": "Farol 27",
+          "lacunasDeEscopo": []
         }
       },
       {
@@ -237,13 +241,38 @@
           "objectives": [],
           "wantsSocialMedia": false,
           "branding": {
-            "requested": false,
+            "requested": true,
             "hasBrandBook": false,
-            "wantsRebrand": false
+            "wantsRebrand": true
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol",
+          "businessName": "Farol 27",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
           "wantsPaidTraffic": true
         }
       },
@@ -258,13 +287,38 @@
           ],
           "wantsSocialMedia": false,
           "branding": {
-            "requested": false,
+            "requested": true,
             "hasBrandBook": false,
-            "wantsRebrand": false
+            "wantsRebrand": true
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol",
+          "businessName": "Farol 27",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
           "wantsPaidTraffic": true
         }
       },
@@ -279,13 +333,38 @@
           ],
           "wantsSocialMedia": false,
           "branding": {
-            "requested": false,
+            "requested": true,
             "hasBrandBook": false,
-            "wantsRebrand": false
+            "wantsRebrand": true
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol",
+          "businessName": "Farol 27",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
           "wantsPaidTraffic": true
         }
       },
@@ -300,13 +379,38 @@
           ],
           "wantsSocialMedia": false,
           "branding": {
-            "requested": false,
+            "requested": true,
             "hasBrandBook": false,
-            "wantsRebrand": false
+            "wantsRebrand": true
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol",
+          "businessName": "Farol 27",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
           "wantsPaidTraffic": true
         }
       },
@@ -321,13 +425,38 @@
           ],
           "wantsSocialMedia": false,
           "branding": {
-            "requested": false,
+            "requested": true,
             "hasBrandBook": false,
-            "wantsRebrand": false
+            "wantsRebrand": true
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol",
+          "businessName": "Farol 27",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
           "wantsPaidTraffic": true,
           "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo."
         }
@@ -343,14 +472,39 @@
           ],
           "wantsSocialMedia": false,
           "branding": {
-            "requested": false,
+            "requested": true,
             "hasBrandBook": false,
-            "wantsRebrand": false
+            "wantsRebrand": true
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol",
+          "businessName": "Farol 27",
           "serviceMode": "monthly",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
           "wantsPaidTraffic": true,
           "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo."
         }
@@ -366,14 +520,39 @@
           ],
           "wantsSocialMedia": false,
           "branding": {
-            "requested": false,
+            "requested": true,
             "hasBrandBook": false,
-            "wantsRebrand": false
+            "wantsRebrand": true
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol",
+          "businessName": "Farol 27",
           "serviceMode": "monthly",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
           "traffic": {
             "platforms": [
               "TikTok"
@@ -394,14 +573,39 @@
           ],
           "wantsSocialMedia": false,
           "branding": {
-            "requested": false,
+            "requested": true,
             "hasBrandBook": false,
-            "wantsRebrand": false
+            "wantsRebrand": true
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol",
+          "businessName": "Farol 27",
           "serviceMode": "monthly",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
           "traffic": {
             "platforms": [
               "TikTok"
@@ -415,7 +619,7 @@
       {
         "numero": 11,
         "doCliente": "Grande São Paulo, 3 km em volta de cada uma das 3 lojas.",
-        "daCasa": "Tem **concorrentes ou referências** (marcas, perfis) que você admira ou quer usar de inspiração?",
+        "daCasa": "Sobre a identidade visual: você **já tem logo/identidade** hoje, ou vamos criar **do zero**?",
         "intencao": "responde_livre",
         "escopoDepois": {
           "objectives": [
@@ -423,14 +627,39 @@
           ],
           "wantsSocialMedia": false,
           "branding": {
-            "requested": false,
+            "requested": true,
             "hasBrandBook": false,
-            "wantsRebrand": false
+            "wantsRebrand": true
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol",
+          "businessName": "Farol 27",
           "serviceMode": "monthly",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
           "traffic": {
             "platforms": [
               "TikTok"
@@ -449,8 +678,8 @@
       },
       {
         "numero": 12,
-        "doCliente": "Gostamos do jeito da Padaria Santa Tereza e do Coffee Lab.",
-        "daCasa": "Para eu fechar o escopo do **Farol**: qual faixa de orçamento mensal você tem em mente para a gestão? (só a gestão — a verba de anúncios que você já me passou é à parte)",
+        "doCliente": "Temos um logo em PNG, mas não temos vetor confirmado nem manual de marca.",
+        "daCasa": "O que você precisa na identidade: **logo, paleta de cores, tipografia, manual de marca completo**? Pode listar o que tiver em mente.",
         "intencao": "responde_livre",
         "escopoDepois": {
           "objectives": [
@@ -458,14 +687,164 @@
           ],
           "wantsSocialMedia": false,
           "branding": {
-            "requested": false,
-            "hasBrandBook": false,
-            "wantsRebrand": false
+            "requested": true,
+            "hasBrandBook": true,
+            "wantsRebrand": false,
+            "fromScratch": false
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol",
+          "businessName": "Farol 27",
           "serviceMode": "monthly",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
+          "traffic": {
+            "platforms": [
+              "TikTok"
+            ],
+            "monthlyAdBudget": "R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios.",
+            "serviceArea": {
+              "alcance": "local",
+              "cidade": null,
+              "raioKm": 3,
+              "comoFoiDito": "Grande São Paulo, 3 km em volta de cada uma das 3 lojas."
+            }
+          },
+          "wantsPaidTraffic": true,
+          "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo."
+        }
+      },
+      {
+        "numero": 13,
+        "doCliente": "Desculpa, não entendi. Pode explicar de outro jeito?",
+        "daCasa": "Tem **concorrentes ou referências** (marcas, perfis) que você admira ou quer usar de inspiração?",
+        "intencao": "nao_entendeu",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": true,
+            "hasBrandBook": true,
+            "wantsRebrand": false,
+            "fromScratch": false,
+            "deliverables": "Desculpa, não entendi. Pode explicar de outro jeito?"
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol 27",
+          "serviceMode": "monthly",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
+          "traffic": {
+            "platforms": [
+              "TikTok"
+            ],
+            "monthlyAdBudget": "R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios.",
+            "serviceArea": {
+              "alcance": "local",
+              "cidade": null,
+              "raioKm": 3,
+              "comoFoiDito": "Grande São Paulo, 3 km em volta de cada uma das 3 lojas."
+            }
+          },
+          "wantsPaidTraffic": true,
+          "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo."
+        }
+      },
+      {
+        "numero": 14,
+        "doCliente": "Gostamos do jeito da Padaria Santa Tereza e do Coffee Lab.",
+        "daCasa": "Para eu fechar o escopo do **Farol 27**: qual faixa de orçamento mensal você tem em mente para a gestão? (só a gestão — a verba de anúncios que você já me passou é à parte)",
+        "intencao": "responde_livre",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": true,
+            "hasBrandBook": true,
+            "wantsRebrand": false,
+            "fromScratch": false,
+            "deliverables": "Desculpa, não entendi. Pode explicar de outro jeito?"
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol 27",
+          "serviceMode": "monthly",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
           "traffic": {
             "platforms": [
               "TikTok"
@@ -487,7 +866,7 @@
         }
       },
       {
-        "numero": 13,
+        "numero": 15,
         "doCliente": "Nosso orçamento é de R$ 8000 por mês para a gestão.",
         "daCasa": "E para quando você quer começar?",
         "intencao": "declara_verba",
@@ -497,14 +876,41 @@
           ],
           "wantsSocialMedia": false,
           "branding": {
-            "requested": false,
-            "hasBrandBook": false,
-            "wantsRebrand": false
+            "requested": true,
+            "hasBrandBook": true,
+            "wantsRebrand": false,
+            "fromScratch": false,
+            "deliverables": "Desculpa, não entendi. Pode explicar de outro jeito?"
           },
           "prospectName": "Ana Farol [TESTE]",
           "prospectPhone": "5511900000027",
-          "businessName": "Farol",
+          "businessName": "Farol 27",
           "serviceMode": "monthly",
+          "lacunasDeEscopo": [
+            {
+              "id": "marca",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+              "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+              "servicoDaCasa": "branding"
+            },
+            {
+              "id": "lancamento",
+              "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+              "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+            },
+            {
+              "id": "redes",
+              "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+              "servicoDaCasa": "social"
+            },
+            {
+              "id": "trafego",
+              "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+              "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+              "servicoDaCasa": "traffic"
+            }
+          ],
           "traffic": {
             "platforms": [
               "TikTok"
@@ -533,14 +939,41 @@
       ],
       "wantsSocialMedia": false,
       "branding": {
-        "requested": false,
-        "hasBrandBook": false,
-        "wantsRebrand": false
+        "requested": true,
+        "hasBrandBook": true,
+        "wantsRebrand": false,
+        "fromScratch": false,
+        "deliverables": "Desculpa, não entendi. Pode explicar de outro jeito?"
       },
       "prospectName": "Ana Farol [TESTE]",
       "prospectPhone": "5511900000027",
-      "businessName": "Farol",
+      "businessName": "Farol 27",
       "serviceMode": "monthly",
+      "lacunasDeEscopo": [
+        {
+          "id": "marca",
+          "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã…",
+          "precisaConfirmar": "O cliente falou de MARCA (reposicionamento / identidade). Confirmar se ele quer o serviço de identidade visual da casa e em que profundidade.",
+          "servicoDaCasa": "branding"
+        },
+        {
+          "id": "lancamento",
+          "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+          "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+        },
+        {
+          "id": "redes",
+          "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+          "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+          "servicoDaCasa": "social"
+        },
+        {
+          "id": "trafego",
+          "oQueOClienteDisse": "…s. Precisamos de identidade, conteúdo e anúncios.",
+          "precisaConfirmar": "O cliente falou de MÍDIA PAGA. Confirmar verba de anúncios e praça.",
+          "servicoDaCasa": "traffic"
+        }
+      ],
       "traffic": {
         "platforms": [
           "TikTok"
@@ -569,29 +1002,50 @@
           "minPrice": 500,
           "maxPrice": 1200,
           "unit": "mês"
+        },
+        {
+          "label": "Identidade Visual",
+          "detail": "Criação de identidade visual",
+          "minPrice": 1200,
+          "maxPrice": 2500,
+          "unit": "projeto"
         }
       ],
-      "totalMin": 500,
-      "totalMax": 1200,
-      "confidence": "high",
+      "totalMin": 1700,
+      "totalMax": 3700,
+      "confidence": "low",
       "missingForEstimate": [],
       "included": [
         "Criação e gestão de campanhas pagas",
-        "Otimização e relatórios mensais"
+        "Otimização e relatórios mensais",
+        "Identidade visual completa"
       ],
       "notIncluded": [
         "Verba de mídia: R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios. (pago direto ao Google/Meta)"
+      ],
+      "lacunasAbertas": [
+        {
+          "id": "lancamento",
+          "oQueOClienteDisse": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Prec…",
+          "precisaConfirmar": "O cliente falou de LANÇAMENTO (produto/clube novo). A casa não tem um serviço fechado com esse nome — confirmar o que ele espera e quem monta o escopo."
+        },
+        {
+          "id": "redes",
+          "oQueOClienteDisse": "…149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+          "precisaConfirmar": "O cliente falou de REDES SOCIAIS. Confirmar volume e canais antes de cotar.",
+          "servicoDaCasa": "social"
+        }
       ]
     },
     "portaoAbriu": true,
     "bloqueioDoPortao": null,
     "ultimaFalaDaCasa": "E para quando você quer começar?",
     "pedido": {
-      "id": "cmt7g94j30003s17d2oejk4pd",
+      "id": "cmt7nabzu0003xo7d7xh7z0yz",
       "status": "proposal_pending",
       "businessName": "Farol 27 Padaria & Café [TESTE]"
     },
-    "orcamentoEntregue": "Recebemos seu briefing da Farol 27 Padaria & Café [TESTE] — obrigado pelo material.\n\nPelo que você descreveu, a estimativa fica entre R$ 500 e R$ 1.200 por mês.\n\nO que entra nessa conta:\n• Tráfego Pago — gestão — Setup + gerenciamento mensal\n\nO que NÃO está incluído:\n• Verba de mídia: R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios. (pago direto ao Google/Meta)\n\nIsto é uma estimativa a partir do que você contou, não a proposta final — a equipe confere e te manda a proposta fechada por aqui. Se algo acima estiver diferente do que você precisa, é só responder nesta conversa.",
+    "orcamentoEntregue": "Recebemos seu briefing da Farol 27 Padaria & Café [TESTE] — obrigado pelo material.\n\nPelo que você descreveu, a estimativa fica entre R$ 1.700 e R$ 3.700 por mês.\n\nO que entra nessa conta:\n• Tráfego Pago — gestão — Setup + gerenciamento mensal\n• Identidade Visual — Criação de identidade visual\n\nO que NÃO está incluído:\n• Verba de mídia: R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios. (pago direto ao Google/Meta)\n\nIsto é uma estimativa a partir do que você contou, não a proposta final — a equipe confere e te manda a proposta fechada por aqui. Se algo acima estiver diferente do que você precisa, é só responder nesta conversa.",
     "turnosBarrados": [],
     "respostasDoSdr": [],
     "sdrAoVivo": false,
@@ -599,28 +1053,28 @@
       {
         "canal": "email",
         "destino": "ana.farol@cliente-falso.invalid",
-        "assunto": "Recebemos seu pedido — Farol",
+        "assunto": "Recebemos seu pedido — Farol 27",
         "motivo": "modo_cliente_falso",
-        "em": "2026-08-24T16:27:40.731Z"
+        "em": "2026-08-24T19:44:34.366Z"
       },
       {
         "canal": "email",
         "destino": "ana.farol@cliente-falso.invalid",
         "assunto": "Seu orçamento está pronto — Farol 27 Padaria & Café [TESTE]",
         "motivo": "modo_cliente_falso",
-        "em": "2026-08-24T16:27:40.771Z"
+        "em": "2026-08-24T19:44:34.421Z"
       },
       {
         "canal": "whatsapp",
         "destino": "5511900000027",
         "motivo": "modo_cliente_falso",
-        "em": "2026-08-24T16:27:41.283Z"
+        "em": "2026-08-24T19:44:35.125Z"
       },
       {
         "canal": "whatsapp",
         "destino": "5511900000027",
         "motivo": "modo_cliente_falso",
-        "em": "2026-08-24T16:27:41.336Z"
+        "em": "2026-08-24T19:44:35.154Z"
       }
     ]
   },
@@ -651,13 +1105,13 @@
       "guarda": "Volume e verba que o cliente declarou têm de aparecer no orçamento; campo zerado não vira preço.",
       "veredito": "quebrou",
       "falaExata": "3 posts por semana no feed",
-      "detalhe": "volume chegou AUSENTE ao escopo e mesmo assim virou preço (R$ 500–1200, confiança \"high\")"
+      "detalhe": "volume chegou AUSENTE ao escopo e mesmo assim virou preço (R$ 1700–3700, confiança \"low\")"
     },
     {
       "id": "verba-estourada-nomeada",
       "guarda": "Orçamento acima da verba declarada tem de nomear a diferença, na cara.",
       "veredito": "nao-coberto",
-      "detalhe": "a estimativa (R$ 500) não passou da verba declarada (R$ 8000) — não há diferença a nomear"
+      "detalhe": "a estimativa (R$ 1700) não passou da verba declarada (R$ 8000) — não há diferença a nomear"
     },
     {
       "id": "fim-nao-contradiz-portao",
@@ -684,7 +1138,7 @@
       "id": "escopo-vira-projeto",
       "guarda": "Briefing aprovado tem de virar projeto — senão o funil para e ninguém vê.",
       "veredito": "passou",
-      "detalhe": "projeto cmt7g94wq000gs17dm3kdk5xn criado"
+      "detalhe": "projeto cmt7naciz000gxo7d7keb73h6 criado"
     },
     {
       "id": "nasce-sem-painel",

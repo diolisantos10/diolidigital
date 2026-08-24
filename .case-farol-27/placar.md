@@ -1,13 +1,13 @@
 # Cliente falso — placar da rodada
 
-Rodada de 24/08/2026, 16:27:42 · cliente fictício **Farol 27 Padaria & Café [TESTE]**
+Rodada de 24/08/2026, 19:44:36 · cliente fictício **Farol 27 Padaria & Café [TESTE]**
 
 ## 🚫 A casa quebrou em 1 de 18 verificações.
 
 ### O que quebrou
 
 **Volume e verba que o cliente declarou têm de aparecer no orçamento; campo zerado não vira preço.**
-- O que aconteceu: volume chegou AUSENTE ao escopo e mesmo assim virou preço (R$ 500–1200, confiança "high")
+- O que aconteceu: volume chegou AUSENTE ao escopo e mesmo assim virou preço (R$ 1700–3700, confiança "low")
 - A fala exata: `3 posts por semana no feed`
 
 ### O que esta rodada NÃO olhou
@@ -15,7 +15,7 @@ Rodada de 24/08/2026, 16:27:42 · cliente fictício **Farol 27 Padaria & Café [
 Não é aprovação — é a lista do que ficou sem medir, e por quê.
 
 - **Nenhuma resposta pode ser barrada pelo guarda — plano B atendendo em silêncio é falha.** — rodada sem SDR ao vivo: não houve guarda para barrar, e silêncio não é aprovação
-- **Orçamento acima da verba declarada tem de nomear a diferença, na cara.** — a estimativa (R$ 500) não passou da verba declarada (R$ 8000) — não há diferença a nomear
+- **Orçamento acima da verba declarada tem de nomear a diferença, na cara.** — a estimativa (R$ 1700) não passou da verba declarada (R$ 8000) — não há diferença a nomear
 - **O briefing aceito pelo cliente tem de virar projeto sozinho — sem ninguém abrir o painel.** — o aceite foi registrado e o caminho automático PAROU: o briefing não é caso normal e espera uma pessoa
 - **A aprovação do escopo passa por uma rota autenticada — e é ela que precisa ser exercitada.** — a rota autenticada não rodou em processo; a função foi chamada direto — a camada de autenticação NÃO foi exercida
 - **A execução do projeto tem de PRODUZIR — rodar sem estourar não é andar.** — a esteira andou até a produção (1 tentativa(s)) e parou por falta de chave de IA — rodada offline. Produzir de verdade só se mede com `--ao-vivo`.
@@ -53,7 +53,7 @@ Isto NÃO é uma etapa faltando — é o limite do que a esteira se propõe a fa
 > **A casa:** Prazer, Ana! E qual é o nome do seu negócio?
 
 > **Cliente:** O negócio se chama Farol 27 — Padaria & Café.
-> **A casa:** Ótimo! Agora me conta: o que você está precisando para o **Farol**? ⏎ Pode me contar mais? Você está buscando gestão de redes sociais, tráfego pago, criação de identidade visual — ou uma combinação?
+> **A casa:** Ótimo! Agora me conta: o que você está precisando para o **Farol 27**? ⏎ Pode me contar mais? Você está buscando gestão de redes sociais, tráfego pago, criação de identidade visual — ou uma combinação?
 
 > **Cliente:** Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Precisamos de identidade, conteúdo e anúncios.
 > **A casa:** Qual é o **principal objetivo** que você quer alcançar com esse trabalho? (ex: mais vendas, mais clientes, autoridade, engajamento)
@@ -80,10 +80,16 @@ Isto NÃO é uma etapa faltando — é o limite do que a esteira se propõe a fa
 > **A casa:** Onde estão os clientes que você quer alcançar? Me diga a **cidade** (e o raio, se souber — ex: "São Paulo, uns 10 km"). Se você vende para o **Brasil inteiro**, pode dizer também.
 
 > **Cliente:** Grande São Paulo, 3 km em volta de cada uma das 3 lojas.
+> **A casa:** Sobre a identidade visual: você **já tem logo/identidade** hoje, ou vamos criar **do zero**?
+
+> **Cliente:** Temos um logo em PNG, mas não temos vetor confirmado nem manual de marca.
+> **A casa:** O que você precisa na identidade: **logo, paleta de cores, tipografia, manual de marca completo**? Pode listar o que tiver em mente.
+
+> **Cliente:** Desculpa, não entendi. Pode explicar de outro jeito?
 > **A casa:** Tem **concorrentes ou referências** (marcas, perfis) que você admira ou quer usar de inspiração?
 
 > **Cliente:** Gostamos do jeito da Padaria Santa Tereza e do Coffee Lab.
-> **A casa:** Para eu fechar o escopo do **Farol**: qual faixa de orçamento mensal você tem em mente para a gestão? (só a gestão — a verba de anúncios que você já me passou é à parte)
+> **A casa:** Para eu fechar o escopo do **Farol 27**: qual faixa de orçamento mensal você tem em mente para a gestão? (só a gestão — a verba de anúncios que você já me passou é à parte)
 
 > **Cliente:** Nosso orçamento é de R$ 8000 por mês para a gestão.
 > **A casa:** E para quando você quer começar?
@@ -92,14 +98,14 @@ Isto NÃO é uma etapa faltando — é o limite do que a esteira se propõe a fa
 
 | O que o cliente disse | O que a casa guardou |
 |---|---|
-| Negócio: Farol 27 | Farol |
+| Negócio: Farol 27 | Farol 27 |
 | Volume: 3 posts por semana no feed (3/semana) | — vazio —/semana |
 | Verba: R$ 8000 por mês | Nosso orçamento é de R$ 8000 por mês para a gestão. |
 | Público: famílias do bairro | Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo. |
 
-**Orçamento calculado:** R$ 500–1200/mês · confiança "high"
+**Orçamento calculado:** R$ 1700–3700/mês · confiança "low"
 
-**Envio:** pedido `cmt7g94j30003s17d2oejk4pd` em "proposal_pending"
+**Envio:** pedido `cmt7nabzu0003xo7d7xh7z0yz` em "proposal_pending"
 **Orçamento entregue ao cliente:** sim
 **SDR de IA nesta rodada:** não — só o motor de regras
 **Mensagens barradas pela trava de saída:** 4 (nenhuma pessoa de verdade foi contatada)
