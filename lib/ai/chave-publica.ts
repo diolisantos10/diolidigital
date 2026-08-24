@@ -75,3 +75,27 @@ export async function primeiraChaveDeRotaPublica(
   }
   return null;
 }
+
+/**
+ * DE QUEM É A CONTA de uma chamada vinda da porta pública.
+ *
+ * ─── POR QUE ISTO PASSOU A SER EXPORTADO (24/08/2026) ───────────────────────
+ *
+ * O workspace já era resolvido aqui dentro, para achar a chave — e era
+ * DESCARTADO logo em seguida. Quem chamava só recebia a chave. Resultado
+ * medido em produção: toda chamada de `/api/sdr/chat` logava
+ * `[custo-de-ia] chamada SEM workspace, fora da conta` — o gasto da porta
+ * pública não entrava na conta de ninguém, e sem conta não havia como pôr um
+ * teto de GASTO (os dois freios da rota são de ritmo, e ritmo não é dinheiro).
+ *
+ * É a "seta faltando" de sempre: o dado existia, o consumidor existia, e
+ * ninguém tinha ligado os dois. Agora liga — e é o MESMO
+ * `resolverWorkspacePublico` que decide a chave e a conta, nunca duas regras
+ * respondendo coisas diferentes sobre o mesmo prospect.
+ *
+ * `null` é resposta legítima e NÃO é licença: quem gasta em cima disto
+ * (`lib/ai/teto-de-custo.ts`) trata "sem dono" como "não gasta".
+ */
+export async function workspaceDaRotaPublica(): Promise<string | null> {
+  return (await resolverWorkspacePublico()) ?? null;
+}

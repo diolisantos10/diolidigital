@@ -466,6 +466,31 @@ export async function generate(options: {
    */
   apenasOPreferido?: boolean;
   /**
+   * DE QUEM É A CONTA — **só a conta**, e é essa a diferença que justifica um
+   * segundo campo em vez de reusar `workspaceId`.
+   *
+   * ─── POR QUE ISTO NASCEU (24/08/2026) ────────────────────────────────────
+   *
+   * `/api/sdr/chat` é a PORTA PÚBLICA e resolve a própria chave
+   * (`chaveJaResolvida`) justamente para NÃO passar por `workspaceId` — porque
+   * `workspaceId` aqui faz três coisas de uma vez: resolve a chave no cofre,
+   * aplica a fixação de provedor/modelo por cliente (`escolhaDoCliente`) e
+   * atribui o gasto. A rota precisa da TERCEIRA e não pode ter as duas
+   * primeiras: elas reabririam a porta que `lib/ai/chave-publica.ts` fecha e
+   * trocariam por baixo o modelo que a rota já escolheu.
+   *
+   * Resultado, medido em produção: toda chamada da rota pública logava
+   * `[custo-de-ia] chamada SEM workspace, fora da conta` — o gasto da porta da
+   * rua não entrava na conta de ninguém, e sem conta não há teto de gasto
+   * possível (ver `lib/ai/teto-de-custo.ts`).
+   *
+   * Este campo faz UMA coisa: dizer a `anotar()` de quem é a linha do
+   * `AIRunLog`. Não resolve chave, não escolhe provedor, não escolhe modelo.
+   * `workspaceId`, quando presente, continua mandando — ninguém precisa passar
+   * os dois.
+   */
+  contaDoWorkspace?: string | null;
+  /**
    * DE QUEM é esta chamada. As duas coisas que ela habilita:
    *
    *   1. **A escolha de provedor por cliente** (`ClientAiProvider`). Com
@@ -585,12 +610,17 @@ export async function generate(options: {
     ...(options.historico?.length ? { historico: options.historico } : {}),
   };
 
+  // A conta pode vir por dois caminhos, e o de cima manda: quem passou
+  // `workspaceId` já disse tudo. `contaDoWorkspace` é a saída da rota pública,
+  // que precisa da conta SEM o cofre e SEM a fixação de provedor — ver o campo.
+  const workspaceDaConta = options.workspaceId ?? options.contaDoWorkspace ?? null;
+
   const anotar = (p: {
     provider: string; model: string; status: "success" | "error";
     uso?: UsoDeTokens | null; duracaoMs: number; erro?: string | null;
     fallbackUsed?: boolean; fallbackReason?: string | null;
   }) => {
-    if (!options.workspaceId) {
+    if (!workspaceDaConta) {
       // Não dá para atribuir a workspace nenhum — e ficar calado faria o
       // relatório de gasto parecer completo quando não é.
       console.warn(`[custo-de-ia] chamada SEM workspace, fora da conta — ${p.provider}/${p.model}`);
@@ -599,7 +629,7 @@ export async function generate(options: {
     // Sem `await`: a contabilidade não segura a entrega. `registrarChamadaDeIa`
     // nunca rejeita, então não há promessa órfã capaz de derrubar o processo.
     void registrarChamadaDeIa({
-      workspaceId:  options.workspaceId,
+      workspaceId:  workspaceDaConta,
       // O departamento sai do REGISTRO do dono, não de cada chamador repetindo
       // o mesmo par. Repetir era a segunda porta do mesmo buraco: quem lembrava
       // do `agentId` esquecia do `departmentId`, e o gasto caía em
