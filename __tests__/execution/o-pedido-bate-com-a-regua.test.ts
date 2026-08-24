@@ -60,22 +60,27 @@ describe("o volume pedido é o volume conferido", () => {
     expect(p).toContain(`de ${exigencia.min} a ${exigencia.max} peças`);
   });
 
-  it("a MISTURA pedida no prompt usa a mesma tabela que o contrato confere", () => {
+  it("a receita pedida RESPEITA os limites da tabela que o contrato confere", () => {
+    // A régua aceita uma FAIXA por formato; o pedido escolhe um ponto dentro
+    // dela. O que não pode é o pedido sair da faixa — aí o especialista seria
+    // reprovado de novo por obedecer.
     const p = copy.prompt(ctx({ escopoContratado: escopoDoPiloto }));
-    for (const f of ["carrossel", "story", "feed"] as const) {
+    for (const m of p.matchAll(/- (CARROSSEL|STORY|FEED): exatamente (\d+) peça\(s\)/g)) {
+      const f = m[1]!.toLowerCase() as keyof typeof MISTURA_DE_FORMATOS;
       const [min, max] = MISTURA_DE_FORMATOS[f];
-      expect(p).toContain(`${f.toUpperCase()}: de ${min} a ${max} peças`);
+      expect(Number(m[2]), `${f} fora da faixa da régua`).toBeGreaterThanOrEqual(min);
+      expect(Number(m[2]), `${f} fora da faixa da régua`).toBeLessThanOrEqual(max);
     }
   });
 
-  it("quando o volume passa do teto da mistura, o prompt diz o que fazer com o resto", () => {
-    // 12 peças, e carrossel+story+feed somam no máximo 8. Sem esta instrução o
-    // modelo enche de feed e leva "12 peças de feed — o teto é 3".
+  it("quando o volume passa do teto da mistura, o excedente vai para reel", () => {
+    // 12 peças, e carrossel+story+feed somam no máximo 8. As 4 restantes têm de
+    // ter destino declarado — senão o modelo enche de feed e é reprovado.
     const p = copy.prompt(ctx({ escopoContratado: escopoDoPiloto }));
     const exigencia = exigenciaDeConteudo(escopoDoPiloto);
     const teto = (["carrossel", "story", "feed"] as const)
-      .reduce((s, f) => s + MISTURA_DE_FORMATOS[f][1], 0);
-    if (exigencia.min > teto) expect(p).toMatch(/REEL: as \d+ peças restantes/);
+      .reduce((s2, f) => s2 + MISTURA_DE_FORMATOS[f][1], 0);
+    if (exigencia.min > teto) expect(p).toMatch(/REEL: exatamente \d+ peça\(s\)/);
   });
 
   it("uma entrega que obedece ao prompt PASSA no contrato", () => {
@@ -128,5 +133,42 @@ describe("a verdade atestada chega a quem produz", () => {
     const c = ctx({ verdadeAtestada: { linhas: ["Horários atestados: 11:00, 23:00"], semInformacao: [] } });
     const semBloco = TODOS_OS_ESPECIALISTAS.filter((e) => !e.prompt(c).includes("O QUE O CLIENTE ATESTOU"));
     expect(semBloco.map((e) => e.id)).toEqual([]);
+  });
+});
+
+describe("a receita de formatos fecha a conta — o modelo não faz aritmética", () => {
+  it("a receita pedida SOMA exatamente o que o contrato exige", () => {
+    const p = copy.prompt(ctx({ escopoContratado: escopoDoPiloto }));
+    const exigencia = exigenciaDeConteudo(escopoDoPiloto);
+    const m = p.match(/= (\d+) peças/);
+    expect(m, "o prompt não declara o total da receita").toBeTruthy();
+    expect(Number(m![1])).toBe(exigencia.min);
+  });
+
+  it("o prompt pede número EXATO por formato, nunca faixa", () => {
+    // Foi a faixa que produziu 11 de 12 ao vivo: o modelo escolheu o meio.
+    const p = copy.prompt(ctx({ escopoContratado: escopoDoPiloto }));
+    expect(p).toMatch(/exatamente \d+ peça\(s\)/);
+    expect(p).not.toMatch(/CARROSSEL: de \d+ a \d+/);
+  });
+
+  it("a entrega montada PELA RECEITA passa no contrato", () => {
+    // O fecho: extrai a receita do próprio prompt, monta exatamente aquilo e
+    // exige que a régua aceite. Se prompt e régua divergirem, morre aqui.
+    const c = ctx({ escopoContratado: escopoDoPiloto });
+    const p = copy.prompt(c);
+    const cenas = "1) [gancho] a fila do almoço · 2) [tensao] mesa vazia às 13h · 3) [mecanismo] o combinado do dia · 4) [acao] reserve pelo WhatsApp";
+    const items: Array<Record<string, unknown>> = [];
+    for (const m of p.matchAll(/- (CARROSSEL|STORY|FEED|REEL): exatamente (\d+) peça\(s\)/g)) {
+      const f = m[1]!.toLowerCase();
+      for (let i = 0; i < Number(m[2]); i++) {
+        items.push({ format: f, pillar: "bastidor da cozinha", headline: "h", caption: "c",
+          visual: "cozinheiro montando o prato no balcão da Cantina, luz do meio-dia",
+          ...(f === "carrossel" ? { cenas } : {}) });
+      }
+    }
+    expect(items.length).toBe(exigenciaDeConteudo(escopoDoPiloto).min);
+    const r = conferirContrato(copy, { title: "t", summary: "s", items }, c);
+    expect(r.violacoes, `a receita do prompt foi reprovada: ${r.violacoes.join("; ")}`).toEqual([]);
   });
 });

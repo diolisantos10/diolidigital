@@ -497,22 +497,67 @@ function misturaPedida(c: Ctx): string {
     // Cliente de um formato só não tem mistura a fazer, e o contrato também não
     // a cobra. Pedir mistura aqui seria pedir o que a régua não quer.
     return daMistura.length === 1
-      ? `Todas as peças são de formato "${daMistura[0]}" — é o único que este cliente contratou.`
+      ? `Todas as ${e.min} peças são de formato "${daMistura[0]}" — é o único que este cliente contratou.`
       : "";
   }
-  const linhas = daMistura.map((f) => {
-    const [min, max] = MISTURA_DE_FORMATOS[f];
-    return `- ${f.toUpperCase()}: de ${min} a ${max} peças (conferido em código, mínimo E máximo).`;
-  });
-  const tetoDaMistura = daMistura.reduce((soma, f) => soma + MISTURA_DE_FORMATOS[f][1], 0);
-  if (e.min > tetoDaMistura && e.permitidos.includes("reel" as FormatoContratado)) {
-    linhas.push(
-      `- REEL: as ${e.min - tetoDaMistura} peças restantes. Os tetos acima somam ${tetoDaMistura}, `
-      + `e o contrato pede ${e.min} — o que passa disso TEM de ser reel, ou a entrega é reprovada por excesso de formato.`,
-    );
-  }
-  linhas.push(`Some tudo: o total tem de bater ${e.min === e.max ? e.min : `${e.min} a ${e.max}`}.`);
+
+  const receita = receitaDeFormatos(e);
+  const linhas = Object.entries(receita)
+    .filter(([, n]) => n > 0)
+    .map(([f, n]) => `- ${f.toUpperCase()}: exatamente ${n} peça(s).`);
+  const total = Object.values(receita).reduce((a, b) => a + b, 0);
+  linhas.push(
+    `Some: ${Object.values(receita).filter((n) => n > 0).join(" + ")} = ${total} peças. `
+    + "Estas contagens são conferidas em código, uma a uma. Não arredonde e não troque um formato por outro.",
+  );
   return linhas.join("\n");
+}
+
+/**
+ * A RECEITA EXATA DE FORMATOS — quantas de cada, sem sobrar conta para o modelo.
+ *
+ * ── Por que uma receita e não uma faixa (24/08/2026) ────────────────────────
+ * A primeira versão deste bloco mandava a FAIXA de cada formato ("carrossel 1 a
+ * 2, story 2 a 3, feed 2 a 3") e depois dizia "o resto vai em reel", com o
+ * resto calculado sobre os MÁXIMOS. Medido ao vivo: o modelo escolheu valores
+ * no meio da faixa e entregou 11 de 12 — matematicamente impossível de acertar
+ * sem adivinhar que precisava estourar todos os tetos.
+ *
+ * A faixa é da RÉGUA, que precisa aceitar mais de uma composição válida. O
+ * PEDIDO não tem esse luxo: quem escreve precisa de um número, não de um
+ * intervalo com uma conta pendurada. Aritmética deixada para o modelo é
+ * aritmética que uma hora sai errada — e sai errada de um jeito que a régua
+ * reprova e o modelo não entende por quê.
+ *
+ * A receita nasce dos mínimos (é o que a régua exige de cada formato), sobe até
+ * os tetos enquanto faltar peça, e joga o excedente em reel — que é o único
+ * formato sem teto na mistura.
+ */
+function receitaDeFormatos(e: ExigenciaDeConteudo): Record<string, number> {
+  const daMistura = (["carrossel", "story", "feed"] as const)
+    .filter((f) => e.permitidos.includes(f as FormatoContratado));
+  const receita: Record<string, number> = {};
+  for (const f of daMistura) receita[f] = MISTURA_DE_FORMATOS[f][0];
+
+  let faltam = e.min - Object.values(receita).reduce((a, b) => a + b, 0);
+
+  // Sobe cada formato até o teto, na ordem da mistura, enquanto faltar peça.
+  for (const f of daMistura) {
+    if (faltam <= 0) break;
+    const espaco = MISTURA_DE_FORMATOS[f][1] - receita[f]!;
+    const usa = Math.min(espaco, faltam);
+    receita[f]! += usa;
+    faltam -= usa;
+  }
+
+  // O que ainda faltar vai para reel — sem teto na mistura. Sem reel no escopo,
+  // a receita fica curta e DIZ isso em vez de fingir que fecha: contrato que não
+  // fecha é pergunta para gente, não para o especialista.
+  if (faltam > 0 && e.permitidos.includes("reel" as FormatoContratado)) {
+    receita.reel = faltam;
+    faltam = 0;
+  }
+  return receita;
 }
 
 /** Formato único de saída — o motor sabe transformar isto em entregável. */
