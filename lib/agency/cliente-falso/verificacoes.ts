@@ -63,6 +63,34 @@ export type RespostaDoSdr = {
   motivo: string | null;
 };
 
+/** O desfecho da aprovação do escopo — e por QUAL caminho ela aconteceu. */
+export type DesfechoDaAprovacao = {
+  tentou: boolean;
+  /** `true` = a ROTA autenticada rodou. `false` = só a função por baixo dela,
+   *  ou seja, **a camada de autenticação não foi exercida**. A distinção é o
+   *  ponto: "a esteira anda" e "a esteira anda quando alguém a destranca" são
+   *  afirmações diferentes. */
+  viaRota: boolean;
+  ok: boolean;
+  motivo: string | null;
+  projetoId?: string | null;
+};
+
+/** O que sobrou da esteira depois da aprovação. */
+export type EstadoDaEsteira = {
+  projetoId: string | null;
+  tarefas: number;
+  /** `runProjectExecution` foi CHAMADA sem estourar. Não diz que produziu nada. */
+  execucaoRodou: boolean;
+  execucaoErro: string | null;
+  /** O estado que o projeto ficou depois da chamada (`idle`, `running`, …). */
+  execucaoStatus: string | null;
+  /** O portão de direção: a produção só roda depois que o CLIENTE avaliza. */
+  direcaoAprovada: boolean;
+  /** Quantas entregas nasceram. É a prova de que algo andou de verdade. */
+  entregas: number;
+};
+
 export type Percurso = {
   roteiro: Roteiro;
   saudacao: string;
@@ -80,6 +108,10 @@ export type Percurso = {
   turnosBarrados: string[];
   /** O que a rota real do SDR devolveu, turno a turno. Vazia fora do ao vivo. */
   respostasDoSdr: RespostaDoSdr[];
+  /** Como (e se) o escopo foi aprovado — a porta que exige gente. */
+  aprovacao: DesfechoDaAprovacao;
+  /** Projeto, tarefas e execução, depois da aprovação. */
+  esteira: EstadoDaEsteira;
   /** O SDR de verdade rodou? Se não, a verificação do guarda não afirma nada. */
   sdrAoVivo: boolean;
   saidasBloqueadas: readonly SaidaBloqueada[];
@@ -459,6 +491,116 @@ export function oOrcamentoChega(p: Percurso): Achado {
   return { ...base, veredito: "passou" };
 }
 
+// ─── 11. O escopo aprovado vira projeto ─────────────────────────────────────
+//
+// Achado de 24/08/2026, e é o mais grave da esteira: `createProjectFromRequest`
+// só é chamada de UMA rota de painel autenticada. O relógio nunca a chama. Ou
+// seja: por mais briefing que entre, **nenhum vira cliente até alguém aprovar à
+// mão**. Isto explica os zero clientes medidos em produção.
+export function oEscopoAprovadoViraProjeto(p: Percurso): Achado {
+  const base = {
+    id: "escopo-vira-projeto",
+    guarda: "Briefing aprovado tem de virar projeto — senão o funil para e ninguém vê.",
+  };
+  if (!p.aprovacao.tentou) {
+    return { ...base, veredito: "nao-coberto", detalhe: p.aprovacao.motivo ?? "não houve pedido para aprovar" };
+  }
+  if (!p.aprovacao.ok) {
+    return { ...base, veredito: "quebrou", detalhe: p.aprovacao.motivo ?? "a aprovação não passou" };
+  }
+  if (!p.esteira.projetoId) {
+    return { ...base, veredito: "quebrou", detalhe: "a aprovação disse OK e nenhum projeto apareceu no banco" };
+  }
+  return { ...base, veredito: "passou", detalhe: `projeto ${p.esteira.projetoId} criado` };
+}
+
+// ─── 12. A porta autenticada foi mesmo exercitada? ──────────────────────────
+//
+// "A esteira anda" e "a esteira anda quando alguém a destranca" são afirmações
+// diferentes, e só uma delas vale como cobertura da rota real.
+export function aPortaAutenticadaFoiExercitada(p: Percurso): Achado {
+  const base = {
+    id: "porta-autenticada",
+    guarda: "A aprovação do escopo passa por uma rota autenticada — e é ela que precisa ser exercitada.",
+  };
+  if (!p.aprovacao.tentou) return { ...base, veredito: "nao-coberto", detalhe: "não houve aprovação a exercitar" };
+  if (!p.aprovacao.viaRota) {
+    return { ...base, veredito: "nao-coberto",
+      detalhe: p.aprovacao.motivo ?? "a rota autenticada não rodou; só a função por baixo dela" };
+  }
+  return { ...base, veredito: p.aprovacao.ok ? "passou" : "quebrou",
+    detalhe: p.aprovacao.motivo ?? "a rota autenticada respondeu" };
+}
+
+// ─── 13. Projeto sem tarefa é projeto que ninguém executa ───────────────────
+export function oProjetoNasceComTarefas(p: Percurso): Achado {
+  const base = {
+    id: "projeto-tem-tarefas",
+    guarda: "Projeto criado tem de nascer com tarefas — projeto vazio não vira entrega.",
+  };
+  if (!p.esteira.projetoId) return { ...base, veredito: "nao-coberto", detalhe: "nenhum projeto foi criado nesta rodada" };
+  if (p.esteira.tarefas === 0) {
+    return { ...base, veredito: "quebrou", detalhe: `projeto ${p.esteira.projetoId} nasceu com ZERO tarefas` };
+  }
+  return { ...base, veredito: "passou", detalhe: `${p.esteira.tarefas} tarefa(s)` };
+}
+
+// ─── 14. A execução anda ────────────────────────────────────────────────────
+export function aExecucaoAnda(p: Percurso): Achado {
+  const base = {
+    id: "execucao-anda",
+    guarda: "A execução do projeto tem de PRODUZIR — rodar sem estourar não é andar.",
+  };
+  if (!p.esteira.projetoId) return { ...base, veredito: "nao-coberto", detalhe: "nenhum projeto para executar" };
+  if (p.esteira.execucaoErro) {
+    return { ...base, veredito: "quebrou", falaExata: p.esteira.execucaoErro,
+      detalhe: "a execução estourou — no relógio isso seria uma rodada perdida em silêncio" };
+  }
+
+  // ── A RÉGUA QUE MENTIU, E O CONSERTO (24/08/2026) ────────────────────────
+  // A primeira versão desta verificação devolvia "passou" quando a chamada não
+  // estourava. Na primeira rodada da esteira de baixo ela deu VERDE com o
+  // projeto em `executionStatus: idle`, `executionAttempts: 0`, as 4 tarefas em
+  // `pending` e ZERO entregas. Ou seja: mediu "não explodiu" e chamou de
+  // "andou" — a mesma doença que esta bateria inteira existe para combater,
+  // cometida por dentro dela pela terceira vez no mesmo dia.
+  //
+  // E o motivo de nada ter andado NÃO é defeito: `runProjectExecution` tem um
+  // PORTÃO DE DIREÇÃO — a produção só roda depois que o cliente avaliza o
+  // caminho ("aprovar uma direção custa uma conversa; refazer um mês de
+  // produção custa o mês"). Portão fechado é a casa funcionando, e por isso
+  // aqui é "não coberto" com o motivo, jamais "quebrou".
+  if (!p.esteira.direcaoAprovada) {
+    return { ...base, veredito: "nao-coberto",
+      detalhe: `o portão de direção está fechado (o cliente ainda não avalizou), então a produção não roda — `
+             + `projeto em "${p.esteira.execucaoStatus ?? "?"}", ${p.esteira.tarefas} tarefa(s), `
+             + `${p.esteira.entregas} entrega(s). Portão fechado é a casa funcionando, não falha.` };
+  }
+  if (p.esteira.entregas === 0) {
+    return { ...base, veredito: "quebrou",
+      detalhe: `direção aprovada e a execução não produziu NADA (projeto em "${p.esteira.execucaoStatus ?? "?"}", `
+             + `${p.esteira.entregas} entregas) — rodar sem produzir é a rodada perdida em silêncio` };
+  }
+  return { ...base, veredito: "passou", detalhe: `${p.esteira.entregas} entrega(s) produzida(s)` };
+}
+
+// ─── 15. A PARADA DECLARADA — publicação não é exercitada, e diz isso ───────
+//
+// Nunca devolve "passou". Publicar sai no perfil do cliente, é público, e
+// desfazer não desfaz o print. Esta verificação existe para que a parada seja
+// LIDA no placar toda vez, em vez de virar um silêncio que alguém confunde com
+// cobertura — que é o defeito que esta bateria inteira existe para combater.
+export function aPublicacaoNaoFoiExercitada(_p: Percurso): Achado {
+  return {
+    id: "publicacao-nao-coberta",
+    guarda: "A publicação (Instagram/Google) NÃO é exercitada por esta bateria.",
+    veredito: "nao-coberto",
+    detalhe:
+      "parada deliberada: publicar sai no perfil do cliente, é público e desfazer não desfaz o print. " +
+      "As travas de saída existem desde 24/08/2026, mas nunca foram exercitadas ao vivo — declarado, não presumido.",
+  };
+}
+
 // ─── A lista, na ordem em que o CEO lê ──────────────────────────────────────
 export const VERIFICACOES: ((p: Percurso) => Achado)[] = [
   nomeDaPortaNaoEPerguntadoDeNovo,
@@ -471,6 +613,12 @@ export const VERIFICACOES: ((p: Percurso) => Achado)[] = [
   oClienteConsegueEnviar,
   oOrcamentoChega,
   nenhumaSaidaReal,
+  // ── A metade de baixo, que nunca tinha sido percorrida ──────────────────
+  oEscopoAprovadoViraProjeto,
+  aPortaAutenticadaFoiExercitada,
+  oProjetoNasceComTarefas,
+  aExecucaoAnda,
+  aPublicacaoNaoFoiExercitada,
 ];
 
 export function conferir(p: Percurso): Achado[] {

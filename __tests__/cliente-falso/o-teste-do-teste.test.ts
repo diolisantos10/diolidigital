@@ -71,6 +71,12 @@ function percursoSao(): Percurso {
     pedido: { id: "req-falso-1", status: "proposal_pending", businessName: "Cantina da Prova [TESTE]" },
     orcamentoEntregue: "A estimativa fica entre R$ 400 e R$ 480 por mês.",
     turnosBarrados: [],
+    // Percurso SÃO com a esteira de baixo percorrida até a parada declarada.
+    aprovacao: { tentou: true, viaRota: true, ok: true, motivo: null, projetoId: "proj-falso-1" },
+    esteira: {
+      projetoId: "proj-falso-1", tarefas: 7, execucaoRodou: true, execucaoErro: null,
+      execucaoStatus: "done", direcaoAprovada: true, entregas: 3,
+    },
     // Percurso SÃO com SDR ao vivo = o modelo respondeu TODOS os turnos.
     // Sem esta linha, "são" incluiria uma rodada em que a IA nunca falou.
     respostasDoSdr: [1, 2, 3, 4, 5].map((turno) => ({ turno, respondeu: true, motivo: null })),

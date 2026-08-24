@@ -42,7 +42,7 @@ import {
   ROTEIRO_PADRAO, ARQUIVO_DO_CLIENTE_FALSO, OFERTA_DE_DOCUMENTO,
   fatoQueResponde, type Roteiro,
 } from "./roteiro";
-import type { Percurso, RespostaDoSdr, TurnoMedido } from "./verificacoes";
+import type { Percurso, RespostaDoSdr, TurnoMedido, DesfechoDaAprovacao, EstadoDaEsteira } from "./verificacoes";
 
 /**
  * Quantas vezes o cliente falso responde antes de desistir.
@@ -72,6 +72,12 @@ export type ResultadoDoPercurso = { percurso: Percurso; tropecos: Tropeco[] };
 
 export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<ResultadoDoPercurso> {
   const roteiro = opts.roteiro ?? ROTEIRO_PADRAO;
+  // ── A CASA EXISTE ANTES DO CLIENTE CHEGAR ────────────────────────────────
+  // Uma agência tem workspace e tem gente. Criar isso ANTES da conversa (e não
+  // no meio) mantém TODAS as rodadas idênticas — se nascesse na etapa 7, a
+  // rodada 1 rodaria numa base sem workspace e as seguintes numa base com, e
+  // duas rodadas que não são iguais não se comparam.
+  const casa = await garantirACasa();
   const fio = opts.fio ?? `cliente-falso-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const tropecos: Tropeco[] = [];
   limparSaidasBloqueadas();
@@ -241,9 +247,72 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
     }
   }
 
+  // ─── ETAPA 7: A APROVAÇÃO DO ESCOPO — a porta que exige gente ────────────
+  //
+  // Este é o ponto em que a esteira PARA na vida real, e o piloto existe para
+  // provar isso em vez de supor. `createProjectFromRequest` só é chamada de
+  // `POST /api/brain/auto-scope/[id]/review`, que exige sessão de agência.
+  //
+  // Tentamos a ROTA REAL primeiro, com uma sessão de staff de verdade (JWT
+  // assinado com a mesma chave do login). Se a rota não puder ser exercida em
+  // processo, o percurso NÃO finge que aprovou: ele diz qual metade rodou.
+  let aprovacao: DesfechoDaAprovacao = { tentou: false, viaRota: false, ok: false, motivo: "não houve pedido para aprovar" };
+  let esteira: EstadoDaEsteira = {
+    projetoId: null, tarefas: 0, execucaoRodou: false, execucaoErro: null,
+    execucaoStatus: null, direcaoAprovada: false, entregas: 0,
+  };
+
+  if (pedido) {
+    aprovacao = await aprovarOEscopo(pedido.id, casa, tropecos);
+
+    if (aprovacao.ok) {
+      // ─── ETAPA 8: O PROJETO NASCEU? E COM TAREFAS? ────────────────────────
+      try {
+        const proj = await prisma.project.findFirst({ where: { clientRequestId: pedido.id }, orderBy: { createdAt: "asc" } });
+        if (proj) {
+          esteira.projetoId = proj.id;
+          esteira.tarefas = await prisma.task.count({ where: { projectId: proj.id } });
+        }
+      } catch (e) {
+        tropecos.push({ etapa: "projeto", erro: e instanceof Error ? e.message : String(e) });
+      }
+
+      // ─── ETAPA 9: A EXECUÇÃO ANDA? (e "andar" é PRODUZIR) ─────────────────
+      // Mesma função que o relógio chama. Se ela não anda aqui, não anda lá.
+      if (esteira.projetoId) {
+        try {
+          const { runProjectExecution } = await import("@/lib/agency/execution/run-execution");
+          await runProjectExecution(esteira.projetoId);
+          esteira.execucaoRodou = true;
+          // A PROVA de que algo andou não é "não estourou" — é o que sobrou no
+          // banco. Lido DEPOIS da chamada, do mesmo lugar que o painel lê.
+          const depois = await prisma.project.findUnique({
+            where: { id: esteira.projetoId },
+            select: { executionStatus: true, directionApprovedAt: true },
+          });
+          esteira.execucaoStatus = depois?.executionStatus ?? null;
+          esteira.direcaoAprovada = !!depois?.directionApprovedAt;
+          esteira.entregas = await prisma.deliverable.count({ where: { projectId: esteira.projetoId } });
+        } catch (e) {
+          esteira.execucaoErro = e instanceof Error ? e.message : String(e);
+          tropecos.push({ etapa: "execucao", erro: esteira.execucaoErro });
+        }
+      }
+    }
+  }
+
+  // ─── ETAPA 10: A PARADA DECLARADA ────────────────────────────────────────
+  // `publicarAgendados` NÃO é chamada nesta volta, de propósito. Publicar sai
+  // no perfil do cliente, é público e desfazer não desfaz o print — exercitar
+  // isso na mesma volta em que três travas acabaram de nascer seria trocar o
+  // risco conhecido por um desconhecido. A verificação declara "não coberto";
+  // ela NUNCA diz "passou". Instrumento que esconde o que não mediu mente.
+
   return {
     percurso: {
       roteiro,
+      aprovacao,
+      esteira,
       saudacao,
       turnos,
       escopoFinal: conv.scope,
@@ -330,5 +399,105 @@ async function chamarSdrDeVerdade(
   } catch (e) {
     tropecos.push({ etapa: "sdr", erro: e instanceof Error ? e.message : String(e) });
     return { turno: numero, respondeu: false, motivo: "excecao_na_rota" };
+  }
+}
+
+
+/** Workspace + usuário de staff do ambiente descartável. Idempotente. */
+async function garantirACasa(): Promise<{ workspaceId: string; userId: string; nome: string; email: string }> {
+  const ws = (await prisma.agencyWorkspace.findFirst({ select: { id: true } }))
+    ?? (await prisma.agencyWorkspace.create({ data: { name: "Dioli Prova [TESTE]", slug: "dioli-prova-teste" }, select: { id: true } }));
+
+  const email = "staff.prova@cliente-falso.invalid";
+  const nome = "Staff Prova [TESTE]";
+  const user = (await prisma.user.findUnique({ where: { email }, select: { id: true } }))
+    ?? (await prisma.user.create({
+      // `passwordHash` inválido de propósito: esta conta NUNCA deve conseguir
+      // logar por senha. Ela existe só para haver um `userId` real por trás da
+      // sessão que a etapa 7 monta.
+      data: { email, name: nome, passwordHash: "sem-login-nunca", role: "master", workspaceId: ws.id },
+      select: { id: true },
+    }));
+
+  return { workspaceId: ws.id, userId: user.id, nome, email };
+}
+
+/**
+ * Aprova o escopo — pela ROTA REAL se der, e dizendo a verdade se não der.
+ *
+ * A rota é autenticada, e `getSession()` lê o cookie por `next/headers`
+ * (`cookies()`), que só existe dentro do servidor do Next. Chamada em processo,
+ * ela pode simplesmente não ter contexto de requisição. Se isso acontecer, o
+ * percurso NÃO desiste nem finge: ele chama a MESMA função que a rota chamaria
+ * (`createProjectFromRequest`) e registra que **a camada de autenticação não
+ * foi exercida**. As duas metades ficam distinguíveis no placar — que é a
+ * diferença entre "a esteira anda" e "a esteira anda quando alguém a destranca".
+ */
+async function aprovarOEscopo(
+  clientRequestId: string,
+  casa: { workspaceId: string; userId: string; nome: string; email: string },
+  tropecos: Tropeco[],
+): Promise<DesfechoDaAprovacao> {
+  // Tentativa 1: a rota de verdade, com sessão de staff de verdade.
+  try {
+    const { SignJWT } = await import("jose");
+    const { getAuthSecret } = await import("@/lib/auth/secret");
+    const { SESSION_COOKIE } = await import("@/lib/auth/session");
+    const token = await new SignJWT({
+      userId: casa.userId, email: casa.email, name: casa.nome, role: "master", workspaceId: casa.workspaceId,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("1h")
+      .sign(getAuthSecret());
+
+    const { POST } = await import("@/app/api/brain/auto-scope/[id]/review/route");
+    const req = new NextRequest(`http://cliente-falso.local/api/brain/auto-scope/${clientRequestId}/review`, {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: `${SESSION_COOKIE}=${token}` },
+      body: JSON.stringify({ decisions: {} }),
+    });
+    const res = await POST(req, { params: Promise.resolve({ id: clientRequestId }) });
+    const corpo = (await res.json()) as { ok?: boolean; projectId?: string; error?: string };
+    if (res.status < 400 && corpo.ok) {
+      return { tentou: true, viaRota: true, ok: true, motivo: null, projetoId: corpo.projectId ?? null };
+    }
+
+    // ── 401/403 É LIMITAÇÃO DO INSTRUMENTO, NÃO RECUSA DA CASA ─────────────
+    // Medido em 24/08/2026, na primeira rodada da esteira de baixo: a rota
+    // devolveu 401. Não porque a casa recusou o pedido — porque `getSession()`
+    // lê o cookie por `cookies()` do `next/headers`, que vem do contexto de
+    // requisição do servidor Next e NÃO do `NextRequest` montado à mão. O
+    // cookie que este percurso assina nunca chega lá.
+    //
+    // Contar isso como "a casa quebrou" seria acusar a casa da minha
+    // incapacidade de autenticar — falso positivo, e o defeito mais caro que
+    // um instrumento pode ter. Então cai para a tentativa 2 e DIZ que a camada
+    // de autenticação não foi exercida.
+    if (res.status === 401 || res.status === 403) {
+      tropecos.push({
+        etapa: "aprovacao-pela-rota",
+        erro: `a rota devolveu ${res.status}: o cookie de sessão não chega a \`cookies()\` fora do servidor do Next`,
+      });
+    } else {
+      // Qualquer OUTRA recusa é da casa, e vale como achado.
+      return {
+        tentou: true, viaRota: true, ok: false,
+        motivo: `a rota de aprovação recusou (${res.status}): ${corpo.error ?? "sem motivo"}`,
+      };
+    }
+  } catch (e) {
+    tropecos.push({ etapa: "aprovacao-pela-rota", erro: e instanceof Error ? e.message : String(e) });
+  }
+
+  // Tentativa 2: a mesma função que a rota chamaria — SEM a camada de auth.
+  try {
+    const { createProjectFromRequest } = await import("@/lib/agency/execution/create-project-from-request");
+    const r = await createProjectFromRequest(clientRequestId, casa.nome);
+    return r.ok
+      ? { tentou: true, viaRota: false, ok: true, motivo: "a rota autenticada não rodou em processo; a função foi chamada direto — a camada de autenticação NÃO foi exercida", projetoId: r.projectId }
+      : { tentou: true, viaRota: false, ok: false, motivo: `a criação do projeto falhou: ${r.error}` };
+  } catch (e) {
+    return { tentou: true, viaRota: false, ok: false, motivo: e instanceof Error ? e.message : String(e) };
   }
 }

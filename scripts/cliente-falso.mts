@@ -129,6 +129,9 @@ for (let n = 1; n <= rodadas; n++) {
     sdrChamado: percurso.respostasDoSdr.length,
     sdrQuedas: percurso.respostasDoSdr.filter((r) => !r.respondeu).map((r) => r.motivo),
     turnosBarrados: percurso.turnosBarrados.length,
+    aprovouViaRota: percurso.aprovacao.viaRota,
+    projetoId: percurso.esteira.projetoId,
+    tarefas: percurso.esteira.tarefas,
   });
   ultimoPlacar = placarEmTexto(achados, percurso, tropecos);
   ultimoJson = {
@@ -138,6 +141,8 @@ for (let n = 1; n <= rodadas; n++) {
     pedido: percurso.pedido, orcamentoEntregue: percurso.orcamentoEntregue,
     turnos: percurso.turnos.map((t) => ({ numero: t.numero, doCliente: t.doCliente, daCasa: t.daCasa })),
     respostasDoSdr: percurso.respostasDoSdr,
+    aprovacao: percurso.aprovacao,
+    esteira: percurso.esteira,
     turnosBarrados: percurso.turnosBarrados,
     saidasBloqueadas: percurso.saidasBloqueadas,
   };
