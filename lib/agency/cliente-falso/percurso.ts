@@ -944,8 +944,26 @@ async function aprovarAsPecasComoOCliente(
   }
 
   if (!apresentado) {
+    // ── O MOTIVO VEM DO BANCO, NÃO DE DEDUÇÃO ────────────────────────────
+    // O motor registra por que não apresentou (`apresentacao_bloqueada`) e o
+    // que a escada reteve (`escada_reteve_entrega`) — justamente para que isto
+    // não precise ser adivinhado. Ler é a diferença entre um achado e uma
+    // hipótese, e hoje já custou uma investigação inteira olhar para o lado
+    // errado de um 400.
+    const pistas = await prisma.activityEvent.findMany({
+      where: { projectId, type: { in: ["apresentacao_bloqueada", "escada_reteve_entrega", "material_sem_destino"] } },
+      orderBy: { createdAt: "desc" }, take: 3, select: { type: true, message: true },
+    }).catch(() => [] as Array<{ type: string; message: string }>);
+    const aindaPedindo = await prisma.materialRequest.count({
+      where: { projectId, status: "pending" },
+    }).catch(() => 0);
+    const porQue = pistas.length > 0
+      ? pistas.map((e) => `${e.type}: ${e.message.slice(0, 220)}`).join(" | ")
+      : aindaPedindo > 0
+        ? `${aindaPedindo} pedido(s) de material ainda pendentes — o motor só apresenta o pacote inteiro`
+        : "o motor não registrou motivo — nem bloqueio de apresentação, nem retenção da escada";
     return { ...vazio, pedindoDecisao,
-      motivo: "o pacote não foi apresentado ao cliente (MARCO 2 não rodou) — não há peça para ele aprovar" };
+      motivo: `o pacote não foi apresentado ao cliente (MARCO 2 não rodou). Por quê: ${porQue}` };
   }
   if (pedindoDecisao === 0) {
     return { ...vazio, apresentado, motivo:
