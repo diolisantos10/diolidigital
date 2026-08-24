@@ -24,6 +24,39 @@
 // perdoa o risco (a produção segue sem prova nos dois casos) — muda só a AÇÃO:
 // com a plataforma fora, a saída é reprovar o commit quando ela voltar; com a
 // plataforma de pé, é um webhook perdido e o run precisa ser disparado à mão.
+//
+// ── O MOTIVO TEM QUE SER VERDADEIRO (24/08/2026) ────────────────────────────
+// Havia um QUARTO estado escondido dentro de SEM_PROVA, e ele mentia.
+//
+// `olharCI` devolvia `houveRun: false` tanto quando PERGUNTOU e o GitHub disse
+// "não há run" quanto quando NÃO CONSEGUIU PERGUNTAR (rede fora, proxy no
+// meio, limite de requisições). A frase que saía era a mesma nos dois:
+// "nenhum run foi criado". Numa auditoria os quatro commits do dia apareceram
+// como "sem CI" — todos com CI VERDE, conferida à mão na API.
+//
+// O veredito estava certo: nos dois casos não há prova, e nos dois casos não
+// sobe. Falha fechada é o desenho, e ele fica. O que estava errado era o
+// MOTIVO — e motivo errado custa mais caro que motivo nenhum, porque manda a
+// próxima pessoa caçar um CI que existe. Quem não acha, conclui que o
+// sentinela está quebrado. E sentinela que ninguém acredita, alguém desliga.
+//
+// É a mesma doutrina que já mordeu esta casa duas vezes hoje em outro lugar:
+// **status de erro não é motivo — o motivo está na mensagem.** Um HTTP 400
+// que parecia corpo malformado era falta de saldo; um 404 que parecia rota
+// errada era URL apontando para host morto. Quem leu o rótulo foi para o
+// lugar errado nas duas.
+//
+// Por isso os dois estados são SEPARADOS na estrutura, não só no texto:
+//   • SEM_PROVA            — perguntei ao GitHub, e a resposta foi não.
+//   • SEM_RESPOSTA_DO_GITHUB — não consegui perguntar. Não sei a resposta, e
+//                              dizer que ela é "não" seria inventar.
+// Separar no tipo, e não só na frase, é o que impede a distinção de ser
+// desfeita por descuido: juntar os dois de novo não compila calado — quebra
+// em `__tests__/plataforma/sentinela-do-deploy.test.ts`.
+
+/** Só para montar o link que a mensagem oferece. A régua de I/O mora em
+ *  `consulta-de-ci.ts`; importar de lá para cá fecharia um ciclo. */
+const REPO_DE_EXIBICAO = "diolisantos10/diolidigital";
 
 /** Conclusão de um run de CI, como o GitHub a reporta. */
 export type ConclusaoDeCI =
@@ -45,12 +78,23 @@ export type EstadoDaProducao = {
 };
 
 export type ProvaDeCI = {
-  /** Existe ALGUM run de CI para este commit? */
+  /** Existe ALGUM run de CI para este commit? Só tem sentido quando a pergunta
+   *  CHEGOU a ser feita — veja `perguntaFalhou`. */
   houveRun: boolean;
   /** Conclusão do run mais recente. null quando não houve run. */
   conclusao: ConclusaoDeCI | null;
   /** Link do run, para quem for conferir. */
   url?: string | null;
+  /**
+   * true quando NÃO foi possível perguntar ao GitHub (rede, proxy, limite de
+   * requisições, resposta não-2xx). É diferente de `houveRun: false`, que é uma
+   * RESPOSTA. Aqui não há resposta nenhuma, e afirmar que não existe run seria
+   * inventar. Fecha o portão do mesmo jeito — só não mente sobre o porquê.
+   */
+  perguntaFalhou?: boolean;
+  /** O detalhe técnico de POR QUE a pergunta falhou, para quem for investigar.
+   *  Nunca carrega segredo: só status HTTP e nome do erro. */
+  motivoDaFalha?: string | null;
 };
 
 export type EstadoDaPlataforma = {
@@ -68,6 +112,7 @@ export type Veredito = {
     | "PRODUCAO_SEM_VERSAO"
     | "CI_REPROVOU"
     | "SEM_PROVA_PLATAFORMA_FORA"
+    | "SEM_RESPOSTA_DO_GITHUB"
     | "SEM_PROVA"
     | "APROVADO";
   gravidade: Gravidade;
@@ -105,7 +150,12 @@ const REPROVA: ReadonlySet<string> = new Set<ConclusaoDeCI>([
  * lados. Por isso a classificação mora aqui, uma vez só, e `julgarDeploy`
  * apenas a veste de produção.
  */
-export type CodigoDaProva = "APROVADO" | "CI_REPROVOU" | "SEM_PROVA_PLATAFORMA_FORA" | "SEM_PROVA";
+export type CodigoDaProva =
+  | "APROVADO"
+  | "CI_REPROVOU"
+  | "SEM_PROVA_PLATAFORMA_FORA"
+  | "SEM_RESPOSTA_DO_GITHUB"
+  | "SEM_PROVA";
 
 export type VereditoDaProva = {
   codigo: CodigoDaProva;
@@ -117,6 +167,29 @@ export type VereditoDaProva = {
 
 export function julgarProva(input: { ci: ProvaDeCI; plataforma: EstadoDaPlataforma }): VereditoDaProva {
   const { ci, plataforma } = input;
+
+  // ⛔ ESTE RAMO É O PRIMEIRO, E A ORDEM É A TRAVA.
+  //
+  // Sem resposta não há resposta para ler: o que `houveRun` e `conclusao`
+  // trazem aqui é preenchimento, não fato. Se este teste viesse depois do de
+  // APROVA, um caminho que devolvesse `conclusao: "success"` junto com
+  // `perguntaFalhou` viraria VERDE — falha ABERTA, no módulo cuja razão de
+  // existir é fechar. Há teste fixando exatamente isso.
+  //
+  // Vem antes também do diagnóstico de plataforma: `olharPlataforma` assume
+  // "operacional" quando NÃO consegue falar com o status page, então, quando a
+  // rede local cai, os dois sinais chegam corrompidos — e culpar o Actions
+  // seria trocar uma mentira por outra.
+  if (ci.perguntaFalhou) {
+    return {
+      codigo: "SEM_RESPOSTA_DO_GITHUB",
+      temProva: false,
+      resumo:
+        "NÃO consegui perguntar ao GitHub se este commit tem CI" +
+        (ci.motivoDaFalha ? ` (${ci.motivoDaFalha})` : "") +
+        " — não sei se há prova, e não estou dizendo que não há.",
+    };
+  }
 
   if (ci.houveRun && ci.conclusao && REPROVA.has(ci.conclusao)) {
     return {
@@ -133,6 +206,7 @@ export function julgarProva(input: { ci: ProvaDeCI; plataforma: EstadoDaPlatafor
   // Tudo o mais é AUSÊNCIA DE PROVA — e ausência de prova não é aprovação.
   // Cai aqui tanto "não houve run nenhum" quanto "houve run que morreu no
   // meio" (cancelled/stale/skipped/neutral). Nos dois casos ninguém provou nada.
+
   if (!plataforma.actionsOperacional) {
     return {
       codigo: "SEM_PROVA_PLATAFORMA_FORA",
@@ -149,7 +223,9 @@ export function julgarProva(input: { ci: ProvaDeCI; plataforma: EstadoDaPlatafor
     temProva: false,
     resumo:
       "Este commit NÃO tem CI verde" +
-      (ci.houveRun ? ` — o run terminou em "${ci.conclusao}", sem provar nada.` : " — nenhum run foi criado."),
+      (ci.houveRun
+        ? ` — o run terminou em "${ci.conclusao}", sem provar nada.`
+        : " — perguntei ao GitHub, e ele respondeu que nenhum run foi criado."),
   };
 }
 
@@ -226,13 +302,34 @@ export function julgarDeploy(input: {
         producaoSemProva: true,
       };
 
+    case "SEM_RESPOSTA_DO_GITHUB":
+      return {
+        codigo: "SEM_RESPOSTA_DO_GITHUB",
+        gravidade: "grave",
+        resumo:
+          `A produção está servindo ${commit} e NÃO consegui perguntar ao GitHub se esse commit tem CI` +
+          (ci.motivoDaFalha ? ` (${ci.motivoDaFalha})` : "") +
+          ". Não sei se há prova — não estou dizendo que não há.",
+        acao:
+          `Conferir à mão em https://github.com/${REPO_DE_EXIBICAO}/actions?query=${commit} — ` +
+          "o resultado que vale é o de DENTRO do CI, não o desta máquina, que pode " +
+          "estar sem rota até o GitHub (proxy, rede ou limite de requisições). " +
+          "Até alguém confirmar lá, tratar a produção como não verificada.",
+        producaoSemProva: true,
+      };
+
     case "SEM_PROVA":
       return {
         codigo: "SEM_PROVA",
         gravidade: "grave",
+        // Aqui a pergunta FOI feita e o GitHub respondeu. Só por isso "nenhum
+        // run foi criado" pode ser dito como fato — o caminho em que ninguém
+        // perguntou saiu deste galho e virou SEM_RESPOSTA_DO_GITHUB.
         resumo:
           `A produção está servindo ${commit} e NÃO existe CI verde para esse commit` +
-          (ci.houveRun ? ` (o run terminou em "${ci.conclusao}", sem provar nada).` : " (nenhum run foi criado)."),
+          (ci.houveRun
+            ? ` (o run terminou em "${ci.conclusao}", sem provar nada).`
+            : " (perguntei ao GitHub, e ele respondeu que nenhum run foi criado)."),
         acao: "Disparar a CI neste commit. Até ela fechar verde, tratar a produção como não verificada.",
         producaoSemProva: true,
       };
