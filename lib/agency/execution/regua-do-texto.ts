@@ -130,6 +130,13 @@ export const TIPOS_DE_DOCUMENTO_INTERNO: readonly string[] = [
   // `strategy`: se o jargão entrar pela base de marca, ele desce para todas as
   // peças e esta régua não o pega na origem. Quem o pega ali é o contrato de
   // saída (`branding.ts`), que recusa campo inventado, e o juiz da Qualidade.
+  //
+  // ⚠️ ISTO FOI MEDIDO, NÃO HERDADO POR ANALOGIA. A régua roda sobre uma base de
+  // marca realista em `__tests__/branding/regua-sobre-a-base-de-marca.test.ts` e
+  // REPROVA, com 3 violações — "incomparavel", "premium" e "a mais tradicional
+  // do bairro" —, TODAS dentro de contra-exemplo declarado ("nunca dizemos
+  // assim", "proibidas", "não afirmamos"). Aquele teste fica vermelho no dia em
+  // que a medição mudar, e aí esta isenção volta à mesa.
   "brand-foundation",
 ];
 

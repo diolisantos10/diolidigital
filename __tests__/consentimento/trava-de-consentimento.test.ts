@@ -20,6 +20,7 @@ import {
   limparAbordagensBarradas, abordagensBarradas,
 } from "@/lib/agency/consentimento/prova";
 import { sendWhatsAppDirect } from "@/lib/integrations/meta/client";
+import { acharCandidatosAPorta, NAO_MANDA_MENSAGEM_A_PESSOA } from "@/lib/agency/consentimento/portas-de-saida";
 
 const RAIZ = process.cwd();
 
@@ -116,27 +117,59 @@ describe("a porta: o WhatsApp recusa a base sem prova", () => {
   });
 });
 
-// ─── O TESTE DE CLASSE ───────────────────────────────────────────────────────
+// ─── O TESTE DE CLASSE — DERIVADO, NÃO LISTADO ───────────────────────────────
 //
-// Não basta esta porta estar travada hoje: a PRÓXIMA porta que alguém abrir tem
-// de quebrar o build se não checar consentimento. Duas travas fazem isso:
+// A primeira versão deste bloco carregava a lista das portas ESCRITA À MÃO — o
+// mesmo defeito que esta passada exterminou em dois outros lugares (os campos da
+// marca, importados em vez de copiados; `TIPOS_PUBLICAVEIS`, derivado em vez de
+// digitado), sobrevivendo no mais caro dos três. A porta que ninguém listar é a
+// porta por onde a mensagem sai sem consentimento.
 //
-//   1. `consentimento` é campo OBRIGATÓRIO no input das portas (TypeScript);
-//   2. este teste, que confere que toda porta de saída CHAMA o juízo.
-describe("teste de classe: porta de saída sem checagem de consentimento não passa", () => {
-  const PORTAS = [
-    "lib/integrations/meta/client.ts",
-    "lib/email/send.ts",
-  ];
+// Agora a lista é VARRIDA do repositório por critério estrutural
+// (`portas-de-saida.ts`): escreve na rede para fora + fala em destinatário.
+// Quinta porta nova nasce coberta — ou o build quebra aqui.
+describe("teste de classe: nenhuma saída para o mundo escapa da trava", () => {
+  const candidatos = acharCandidatosAPorta(RAIZ);
 
-  it("toda porta de saída chama `avaliarConsentimento`", () => {
-    for (const porta of PORTAS) {
-      const src = readFileSync(join(RAIZ, porta), "utf8");
-      expect(src, `${porta} não chama avaliarConsentimento`).toMatch(/avaliarConsentimento\(/);
+  it("a varredura acha as portas que a casa JÁ conhece — critério que não vê o conhecido não veria o novo", () => {
+    const nomes = candidatos.map((c) => c.arquivo);
+    expect(nomes).toContain("lib/integrations/meta/client.ts");
+    expect(nomes).toContain("lib/email/send.ts");
+    expect(nomes).toContain("lib/integrations/google/client.ts");
+  });
+
+  it("todo candidato ou CHAMA a trava, ou tem motivo escrito para não mandar mensagem a pessoa", () => {
+    const semResposta = candidatos.filter(
+      (c) => !c.chamaATrava && !NAO_MANDA_MENSAGEM_A_PESSOA[c.arquivo],
+    );
+    expect(
+      semResposta.map((c) => c.arquivo),
+      "porta de saída nova sem checagem de consentimento e sem motivo declarado — " +
+        "chame `avaliarConsentimento` ou declare em NAO_MANDA_MENSAGEM_A_PESSOA por que este módulo não fala com uma pessoa",
+    ).toEqual([]);
+  });
+
+  it("as duas portas de mensagem chamam o juízo de verdade", () => {
+    for (const porta of ["lib/integrations/meta/client.ts", "lib/email/send.ts"]) {
+      const c = candidatos.find((x) => x.arquivo === porta);
+      expect(c?.chamaATrava, `${porta} não chama avaliarConsentimento`).toBe(true);
     }
   });
 
-  it("o input das portas declara `consentimento` como OBRIGATÓRIO (sem `?`)", () => {
+  it("motivo de isenção é frase, não carimbo — e isenção que virou letra morta é apagada", () => {
+    const achados = new Set(candidatos.map((c) => c.arquivo));
+    for (const [arquivo, motivo] of Object.entries(NAO_MANDA_MENSAGEM_A_PESSOA)) {
+      expect(motivo.length, `${arquivo}: motivo curto demais para ser um motivo`).toBeGreaterThan(60);
+      expect(
+        achados.has(arquivo),
+        `${arquivo} está isento e não casa mais com o critério — apague a entrada em vez de deixá-la envelhecer`,
+      ).toBe(true);
+    }
+  });
+
+  it("a SEGUNDA rede: o input das portas declara `consentimento` como OBRIGATÓRIO (sem `?`)", () => {
+    // A varredura lê módulo, não grafo de chamada. Esta é a rede com furo
+    // diferente: quem escrever a porta nova esbarra no compilador.
     const tipos = readFileSync(join(RAIZ, "lib/integrations/meta/types.ts"), "utf8");
     expect(tipos).toMatch(/consentimento: ConsentimentoDeSaida;/);
     expect(tipos).not.toMatch(/consentimento\?:/);
