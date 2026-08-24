@@ -4,6 +4,32 @@
 
 > Carregado em toda sessão. Idioma de trabalho: **português do Brasil**.
 
+---
+
+## ⛳ PORTÃO DE ENTRADA — leia o fluxo ANTES de decidir qualquer coisa
+
+**A Dioli Digital é uma agência de marketing digital que roda dentro de um sistema
+próprio: quem produz a peça é a máquina, não uma equipe.** O cliente é a empresa
+local, pequena ou média, que não tem ninguém cuidando do digital dela.
+
+**O fluxo desta agência está desenhado. Ele só não se cumpre sozinho — documento
+não trava nada.** Por isso a leitura é sua obrigação, não sugestão. Procure pelo
+que você precisa saber:
+
+| Se você precisa saber… | Leia |
+|---|---|
+| **Por onde o cliente passa, e onde alguém decide** | [`docs/CURSOGRAMA-DA-AGENCIA.md`](docs/CURSOGRAMA-DA-AGENCIA.md) — o fluxo ponta a ponta com os pontos de decisão. Fonte do CEO; não editar. |
+| **Onde o meu departamento entra** | [`docs/arquitetura-operacional-v2/02-DEPARTAMENTOS-E-AGENTES.md`](docs/arquitetura-operacional-v2/02-DEPARTAMENTOS-E-AGENTES.md) — o organograma: quem é cada departamento e o que faz. (Ordem de leitura completa no [`00-README.md`](docs/arquitetura-operacional-v2/00-README.md).) |
+| **Ver isso desenhado** | [`docs/arquitetura-operacional-v2/visual/dioli-operating-model.html`](docs/arquitetura-operacional-v2/visual/dioli-operating-model.html) e o PDF original em [`source/A-esteira-da-Dioli-construida.pdf`](docs/arquitetura-operacional-v2/source/A-esteira-da-Dioli-construida.pdf). |
+| **Como a agência está de verdade hoje** | [`docs/raio-x-da-dioli.md`](docs/raio-x-da-dioli.md) — o estado medido em 24/08/2026 e as contradições abertas. (Chega pela branch `claude/raio-x-da-dioli`.) |
+
+**Não escreva um resumo destes documentos.** Resumo diverge do original, e divergir
+é pior que faltar. Se algo aqui estiver errado, corrija na fonte.
+
+> **Por que este bloco existe:** em 24/08/2026 o CEO perguntou o que era a Dioli
+> Digital e a resposta honesta foi **não sei** — com tudo isto já escrito, só que
+> dentro de `docs/`. **O que não está no caminho não é lido.**
+
 ## O modelo de trabalho: CEO → Diretor → departamentos → especialistas
 
 **Promovido pelo CEO em 01/08/2026: o Claude deixa de ser Project Manager e passa

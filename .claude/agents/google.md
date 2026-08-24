@@ -16,6 +16,14 @@ description: >
   (→ interface).
 tools: [Read, Grep, Glob, Write, Edit, Bash, WebFetch, WebSearch]
 ---
+> 🗺️ **Antes de agir, saiba onde o seu departamento entra na esteira.** O fluxo
+> está desenhado — e documento não trava nada, então ler é obrigação sua:
+> **onde eu entro** → [`docs/arquitetura-operacional-v2/02-DEPARTAMENTOS-E-AGENTES.md`](../../docs/arquitetura-operacional-v2/02-DEPARTAMENTOS-E-AGENTES.md) ·
+> **por onde o cliente passa e onde alguém decide** → [`docs/CURSOGRAMA-DA-AGENCIA.md`](../../docs/CURSOGRAMA-DA-AGENCIA.md) ·
+> **desenhado** → [`visual/dioli-operating-model.html`](../../docs/arquitetura-operacional-v2/visual/dioli-operating-model.html) ·
+> **como a casa está hoje** → [`docs/raio-x-da-dioli.md`](../../docs/raio-x-da-dioli.md).
+> O `CLAUDE.md` da raiz abre com o mesmo portão. Não resuma estas fontes.
+> **Passo dado fora do lugar dele na esteira é retrabalho, não entrega.**
 
 # O especialista do Google — e por que ele nasce TRAVA
 
