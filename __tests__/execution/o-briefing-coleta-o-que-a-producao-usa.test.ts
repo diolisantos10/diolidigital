@@ -17,7 +17,7 @@
 // piso confere na peça pronta. O que ela não cobrou não entrou.
 
 import { describe, it, expect } from "vitest";
-import { getNextQuestion, initConvState, inferAnsweredQIds, remainingRequiredQuestions } from "@/lib/agency/question-engine";
+import { getNextQuestion, initConvState, inferAnsweredQIds, remainingRequiredQuestions, TODAS_AS_PERGUNTAS, QIDS_OPCIONAIS } from "@/lib/agency/question-engine";
 import type { ConvState } from "@/lib/agency/briefing-conversation";
 import { ctxBlock, type Ctx } from "@/lib/agency/execution/especialistas";
 import { verdadeEmLinhas, classesSemInformacaoLegiveis, extrairVerdadeOperacional } from "@/lib/agency/execution/piso-de-verdade";
@@ -146,5 +146,51 @@ describe("o que o cliente respondeu CHEGA a quem produz", () => {
     expect(bloco).toMatch(/hor[áa]rio/i);
     // E manda escrever a peça que funciona sem o dado, em vez de furá-la.
     expect(bloco).toMatch(/NÃO CONSTRUA A PEÇA EM CIMA DO QUE FALTA/);
+  });
+});
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REGRA DE CLASSE: PERGUNTA NOVA ENTRA ANTES DA ÚLTIMA OBRIGATÓRIA
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Esta trava não é sobre `operacao_basica`. É sobre a PRÓXIMA pergunta que
+// alguém acrescentar.
+//
+// A casa já caiu neste buraco duas vezes, com um dia de intervalo:
+//   • 23/08/2026 — `budget_range` era opcional e vinha depois da última
+//     obrigatória. Virava a fala de despedida, ninguém respondia, e a casa
+//     mandou R$ 4.500–7.700/mês a um cliente de R$ 500.
+//   • 24/08/2026 — `operacao_basica` nasceu no mesmo lugar. Medido ao vivo:
+//     a casa perguntou, a conversa acabou, `operacao` chegou NULA à produção.
+//
+// Na segunda vez a lição já estava escrita — num comentário ao lado de
+// `OPTIONAL_QIDS`. Comentário só ensina quem já está lendo aquele trecho, e
+// quem acrescenta pergunta não está lendo ali: está mexendo na lista de
+// perguntas. Por isso a lição vira TESTE, no caminho de quem vai tropeçar.
+//
+// A regra: **o portão de envio abre quando a última pergunta OBRIGATÓRIA é
+// respondida.** Tudo que estiver depois dela na fila é perguntado com o botão
+// de enviar já na mão do cliente — e não é respondido.
+describe("REGRA DE CLASSE: nenhuma pergunta opcional pode ficar depois da última obrigatória", () => {
+  it("toda pergunta opcional vem ANTES da última obrigatória da fila", () => {
+    const ids = TODAS_AS_PERGUNTAS.map((q) => q.id);
+    const opcionais = ids.filter((id) => QIDS_OPCIONAIS.has(id));
+    const obrigatorias = ids.filter((id) => !QIDS_OPCIONAIS.has(id));
+    const ultimaObrigatoria = ids.lastIndexOf(obrigatorias[obrigatorias.length - 1]!);
+
+    const depoisDoPortao = opcionais.filter((id) => ids.indexOf(id) > ultimaObrigatoria);
+
+    // `deadline` é a exceção HISTÓRICA e declarada: começar em julho ou agosto
+    // não muda o preço que o cliente lê, e travar o envio por isso seria perder
+    // o lead por nada. Ela é a única que a casa aceita perder.
+    expect(
+      depoisDoPortao.filter((id) => id !== "deadline"),
+      "pergunta opcional depois da última obrigatória: ela vai ser feita com o "
+        + "portão JÁ aberto, o cliente com o botão de enviar na mão, e NINGUÉM vai "
+        + "responder. Mova-a para antes da última obrigatória — ou torne-a "
+        + "obrigatória, se a resposta for indispensável. Já aconteceu duas vezes "
+        + "(budget_range em 23/08, operacao_basica em 24/08).",
+    ).toEqual([]);
   });
 });

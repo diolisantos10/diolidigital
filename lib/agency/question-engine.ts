@@ -314,6 +314,18 @@ export interface QuestionDef {
 
 const social = (s: ConvState): SocialScope => s.scope.social ?? { platforms: [] };
 
+/**
+ * A FILA DE PERGUNTAS DO BRIEFING.
+ *
+ * ⚠️ **ORDEM É ARMADILHA NESTA CASA.** O portão de envio abre quando a última
+ * pergunta OBRIGATÓRIA é respondida — tudo que vier depois dela é perguntado
+ * com o botão de enviar já na mão do cliente, e não é respondido. Aconteceu
+ * duas vezes: `budget_range` (23/08/2026, custou R$ 4.500–7.700 cotados a um
+ * cliente de R$ 500) e `operacao_basica` (24/08/2026, chegou nula à produção).
+ *
+ * Pergunta nova entra ANTES da última obrigatória. Há teste que reprova quem
+ * acrescentar no fim — `o-briefing-coleta-o-que-a-producao-usa.test.ts`.
+ */
 const QUESTIONS: QuestionDef[] = [
   // Q0 — detect service (if nothing was understood from initial message)
   {
@@ -842,6 +854,13 @@ export function getNextQuestion(state: ConvState): QuestionDef | null {
 // básicos operacionais a casa produz uma peça mais fraca e a Qualidade a
 // segura — dano contido, e do lado de dentro.
 const OPTIONAL_QIDS = new Set(["deadline", "operacao_basica"]);
+
+/** A fila inteira, para quem precisa CONFERIR a ordem (teste da regra de
+ *  classe). Somente leitura: mexer aqui é mexer no briefing. */
+export const TODAS_AS_PERGUNTAS: readonly QuestionDef[] = QUESTIONS;
+
+/** Quais ids não travam o envio. Exportado pelo mesmo motivo acima. */
+export const QIDS_OPCIONAIS: ReadonlySet<string> = OPTIONAL_QIDS;
 
 // The still-pending questions that MUST be answered before a lead is complete.
 // Empty ⇒ the substantive protocol is fully covered.

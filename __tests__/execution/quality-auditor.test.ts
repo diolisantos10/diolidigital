@@ -9,7 +9,11 @@ import {
 } from "@/lib/agency/execution/quality-auditor";
 import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 
-const base = { deptLabel: "Social Media", title: "Pacote", content: "conteúdo da entrega", brandContext: "marca X", workspaceId: "ws1" };
+// `tipoDaEntrega` passou a ser OBRIGATÓRIO em 24/08/2026: sem saber se julga um
+// post ou um plano, o juiz inventa a régua — foi o que reprovou o
+// "Posicionamento" por ele ser um documento de estratégia. Ver a trava em
+// `auditDeliverable`.
+const base = { deptLabel: "Social Media", title: "Pacote", content: "conteúdo da entrega", brandContext: "marca X", workspaceId: "ws1", tipoDaEntrega: "social" };
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -292,5 +296,59 @@ describe("a régua de texto roda ANTES do juiz de IA", () => {
     const v = await auditDeliverable({ ...base, content: "Clientes satisfeitos aprovam." });
     expect(v.verdict).toBe("reprovado");
     expect(generate).not.toHaveBeenCalled();
+  });
+});
+
+
+// ── O JUIZ NÃO JULGA O QUE NÃO SABE O QUE É ─────────────────────────────────
+//
+// Medido no piloto de 24/08/2026: a Qualidade reprovou o "Posicionamento" (tipo
+// `strategy`) com o parecer "a auditoria exige a entrega REAL (peças prontas),
+// não documentação de planejamento". Reprovou um plano por ser um plano — porque
+// o prompt nunca dizia que tipo de artefato estava na mesa, e o juiz preencheu a
+// lacuna sozinho.
+describe("sem saber O QUE julga, o juiz não julga", () => {
+  it("tipo ausente → nao_auditado, e NENHUMA chamada de IA é feita", async () => {
+    // `nao_auditado` nunca é aprovação: segura a apresentação, como deve.
+    const v = await auditDeliverable({ ...base, tipoDaEntrega: null });
+    expect(v.verdict).toBe("nao_auditado");
+    expect(v.motivo).toBe("tipo_nao_declarado");
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("tipo em branco também não passa — string vazia não é declaração", async () => {
+    const v = await auditDeliverable({ ...base, tipoDaEntrega: "   " });
+    expect(v.verdict).toBe("nao_auditado");
+    expect(v.motivo).toBe("tipo_nao_declarado");
+  });
+
+  it("documento interno é julgado COMO PLANO, e o prompt diz isso", async () => {
+    generate.mockResolvedValue({ ok: true, data: { verdict: "pass", issues: [], note: "ok" } });
+    await auditDeliverable({ ...base, tipoDaEntrega: "strategy" });
+    const prompt = generate.mock.calls[0]![0].user as string;
+    expect(prompt).toMatch(/DOCUMENTO DE TRABALHO INTERNO/);
+    // A frase que impede exatamente a reprovação medida no piloto.
+    expect(prompt).toMatch(/NÃO reprove por não ser 'entrega final'/);
+  });
+
+  it("peça de comunicação continua sendo julgada como peça pronta", async () => {
+    generate.mockResolvedValue({ ok: true, data: { verdict: "pass", issues: [], note: "ok" } });
+    await auditDeliverable({ ...base, tipoDaEntrega: "social" });
+    const prompt = generate.mock.calls[0]![0].user as string;
+    expect(prompt).toMatch(/PEÇA DE COMUNICAÇÃO/);
+    expect(prompt).toMatch(/pode ser publicada como está/);
+  });
+
+  it("INFORMAR não é AFROUXAR: os critérios de invenção continuam nos dois casos", async () => {
+    // Se algum dia alguém "simplificar" o prompt do documento interno tirando os
+    // critérios, isto fica vermelho. Nenhum critério sai — só a régua errada.
+    generate.mockResolvedValue({ ok: true, data: { verdict: "pass", issues: [], note: "ok" } });
+    for (const tipo of ["strategy", "social"]) {
+      generate.mockClear();
+      await auditDeliverable({ ...base, tipoDaEntrega: tipo });
+      const prompt = generate.mock.calls[0]![0].user as string;
+      expect(prompt, `tipo ${tipo} perdeu o critério de invenção`).toMatch(/inventa n[úu]mero\/pre[çc]o\/dado/);
+      expect(prompt, `tipo ${tipo} perdeu o critério de promessa falsa`).toMatch(/promessa falsa/);
+    }
   });
 });

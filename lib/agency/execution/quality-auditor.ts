@@ -51,6 +51,9 @@ export type VereditoDaQualidade = "aprovado" | "reprovado" | "nao_auditado";
 /** Por que a peça não foi auditada. Só existe quando `verdict === "nao_auditado"`. */
 export type MotivoDeNaoAuditar =
   | "ia_indisponivel" | "timeout" | "erro" | "resposta_invalida"
+  /** Quem chamou não disse QUE TIPO de entrega é. Ver a trava em
+   *  `auditDeliverable`: sem o tipo, o juiz inventa a régua. */
+  | "tipo_nao_declarado"
   /** O juiz acabou sendo o MESMO modelo que escreveu a peça — ver
    *  `escolherArbitro`. Aprovação de si mesmo não é aprovação. */
   | "juiz_nao_imparcial";
@@ -146,7 +149,48 @@ const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
   erro: "NÃO AUDITADA: a auditoria falhou com erro — nenhum árbitro olhou esta peça.",
   resposta_invalida: "NÃO AUDITADA: a IA da Qualidade respondeu fora do formato — o parecer não pôde ser lido.",
   juiz_nao_imparcial: "NÃO AUDITADA: o único modelo disponível para julgar é o MESMO que escreveu a peça — não existe aprovação independente aqui.",
+  tipo_nao_declarado: "NÃO AUDITADA: quem pediu a auditoria não declarou o TIPO da entrega — sem saber se julga um post ou um plano, o juiz inventaria a régua.",
 };
+
+/**
+ * O QUE O JUIZ ESTÁ JULGANDO — e com que régua.
+ *
+ * ── O defeito que isto conserta (24/08/2026) ───────────────────────────────
+ * O prompt do auditor mandava título, departamento e corpo, e cinco critérios
+ * todos de PEÇA. Nenhuma linha dizia se aquilo era um post ou um plano. O juiz
+ * preencheu a lacuna sozinho e reprovou o "Posicionamento" — tipo `strategy` —
+ * por *"exigir a entrega REAL (peças prontas), não documentação de
+ * planejamento"*. Reprovou um plano por ser um plano.
+ *
+ * ⚠️ INFORMAR UMA RÉGUA NÃO É AFROUXAR UMA RÉGUA. Nenhum critério sai daqui: o
+ * juiz continua reprovando invenção, promessa falsa, número fabricado e clichê
+ * nos dois casos. O que muda é ele parar de cobrar peça pronta de quem nunca
+ * deveria entregar peça.
+ *
+ * A lista de tipos internos é a MESMA de `TIPOS_DE_DOCUMENTO_INTERNO`, que a
+ * régua determinística já usava — importada, não copiada. Duas listas da mesma
+ * verdade é a doença que esta casa já pagou várias vezes.
+ */
+function naturezaDaEntrega(tipo: string | null): string {
+  const interno = !reguaSeAplicaA(tipo);
+  if (interno) {
+    return [
+      `NATUREZA DESTA ENTREGA: DOCUMENTO DE TRABALHO INTERNO (tipo "${tipo}").`,
+      "Isto é um plano, uma análise ou um relatório da agência — NÃO é uma peça de",
+      "comunicação e NÃO deve virar post. Avalie como se avalia um plano: o raciocínio",
+      "se sustenta? as recomendações decorrem do que foi levantado? o que ele afirma",
+      "sobre o cliente e o mercado tem base?",
+      "NÃO reprove por não ser 'entrega final', por não ter legenda, por não estar",
+      "pronto para publicar, nem por listar decisões que ainda dependem do cliente —",
+      "nomear o que falta é a função de um documento de planejamento, não um defeito.",
+    ].join("\n");
+  }
+  return [
+    `NATUREZA DESTA ENTREGA: PEÇA DE COMUNICAÇÃO (tipo "${tipo}").`,
+    "Isto vai chegar ao cliente e falar com o público dele. Avalie como peça pronta:",
+    "ela pode ser publicada como está?",
+  ].join("\n");
+}
 
 function semArbitro(motivo: MotivoDeNaoAuditar): QualityVerdict {
   return { verdict: "nao_auditado", issues: [], note: MOTIVO_EM_PALAVRAS[motivo], motivo };
@@ -191,8 +235,29 @@ export async function auditDeliverable(input: {
    * **Omitir NÃO isenta.** Ausência de informação não é informação: chamador que
    * não declara o tipo é tratado como peça de comunicação, que é o lado seguro.
    */
-  tipoDaEntrega?: string | null;
+  tipoDaEntrega: string | null;
 }): Promise<QualityVerdict> {
+  // ── SEM SABER O QUE JULGA, O JUIZ NÃO JULGA (24/08/2026) ──────────────────
+  //
+  // Medido no piloto: a Qualidade REPROVOU o "Posicionamento" — um entregável
+  // do tipo `strategy` — com o parecer *"a auditoria de qualidade exige a
+  // entrega REAL (peças prontas), não documentação de planejamento"*. Ou seja:
+  // reprovou um documento de estratégia por ele ser um documento de estratégia.
+  //
+  // O prompt nunca dizia QUE TIPO de artefato estava na mesa. Os cinco
+  // critérios são todos de peça (tom, promessa, número inventado, clichê,
+  // mercado), e o juiz preencheu a lacuna inventando a régua que faltava.
+  //
+  // A casa SABE fazer essa distinção — `TIPOS_DE_DOCUMENTO_INTERNO` isenta
+  // `strategy` e `analytics` da régua determinística desde antes. A distinção é
+  // que não chegava ao juiz de IA. Régua certa, informação faltando.
+  //
+  // Agora o tipo é OBRIGATÓRIO na assinatura (o compilador pega quem esquecer)
+  // E conferido em execução (o compilador não pega `null` vindo do banco).
+  // Faltando, a peça sai como `nao_auditado` — que NUNCA é aprovação e segura a
+  // apresentação. É o padrão da casa: obrigar quem chama a responder a
+  // pergunta, em vez de deixar o silêncio virar um palpite.
+  if (!(input.tipoDaEntrega ?? "").trim()) return semArbitro("tipo_nao_declarado");
   // ── PRIMEIRO A TRAVA, DEPOIS A OPINIÃO ────────────────────────────────────
   //
   // Roda antes de `escolherArbitro` e antes de qualquer chamada: reprovação
@@ -244,7 +309,9 @@ export async function auditDeliverable(input: {
   try {
     const chamada = generate({
       system: "Você é o agente de Qualidade de uma agência de marketing brasileira. Audite a entrega abaixo com rigor — NÃO reescreva, só avalie. Responda SOMENTE com JSON válido.",
-      user: `ENTREGA (${input.deptLabel}) — "${input.title}":
+      user: `${naturezaDaEntrega(input.tipoDaEntrega)}
+
+ENTREGA (${input.deptLabel}) — "${input.title}":
 ${input.content}
 
 CONTEXTO DA MARCA:
