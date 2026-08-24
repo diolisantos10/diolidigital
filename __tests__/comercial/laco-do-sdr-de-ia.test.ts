@@ -237,3 +237,42 @@ describe("o guarda de preço dá segunda chance à fala, e continua estrito", ()
     expect(corpo.scope?.businessName).toBe("Farol 27");
   });
 });
+
+// ── AS FRASES QUE A PRODUÇÃO DE FATO ESCREVEU ───────────────────────────────
+//
+// ⚠️ ESTE BLOCO É O QUE IMPEDE O DEFEITO DE VOLTAR PELA PORTA DOS FUNDOS, e ele
+// nasceu de um furo real: o padrão de `publico_alvo` aceitava só o plural
+// (`(os\s+)?clientes`), e a frase que a produção escreve é *"Quem é o cliente
+// típico de vocês?"* — singular. `identificarPergunta` devolvia `null`, a
+// pergunta não era contada, e ela apareceu TRÊS vezes na mesma conversa DEPOIS
+// do freio estar no ar. O freio funcionava; o reconhecedor é que não
+// reconhecia.
+//
+// A lição, e por isso as strings abaixo são cópias LITERAIS do que saiu em
+// produção em 24/08/2026, não paráfrases: um classificador escrito de memória
+// mede a frase que o autor imaginou, não a que o modelo escreve. Ao acrescentar
+// uma pergunta nova a `PERGUNTAS`, cole aqui uma fala REAL dela.
+
+describe("o reconhecedor mede a frase que a produção escreve, não a que imaginamos", () => {
+  const REAIS: [string, string][] = [
+    ["publico_alvo", "Quem é o cliente típico de vocês? Me descreve em uma frase."],
+    ["publico_alvo", "Mas me diz uma coisa pra eu montar a proposta certa: quem é o cliente que vocês querem atingir com esse clube?"],
+    ["canais_sociais", "Você já tem Instagram ou outras redes onde posta sobre o negócio?"],
+    ["canais_sociais", "A Farol 27 tem Instagram hoje, ou vocês querem começar lá?"],
+    ["prospect_name_biz", "Me conta — qual é o seu nome e o nome do seu negócio?"],
+    ["budget_range", "Você tem uma ideia de quanto está confortável investir mensalmente?"],
+    ["material_pronto", "Vocês já têm fotos da cafeteria prontas, ou a gente tira tudo do zero?"],
+    ["prazo", "Quando você pensa em lançar esse clube — próximas semanas, este mês?"],
+  ];
+
+  for (const [id, fala] of REAIS) {
+    it(`"${fala.slice(0, 48)}…" é ${id}`, () => {
+      expect(identificarPergunta(fala)).toBe(id);
+    });
+  }
+
+  it("uma fala que NÃO pergunta nada não é pergunta nenhuma — o freio não barra no escuro", () => {
+    expect(identificarPergunta("Anotei seu WhatsApp, Ana. 😊")).toBeNull();
+    expect(identificarPergunta("Que legal, uma cafeteria de bairro em Salvador é bacana demais.")).toBeNull();
+  });
+});

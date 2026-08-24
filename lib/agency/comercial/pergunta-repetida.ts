@@ -78,7 +78,12 @@ const PERGUNTAS: { id: string; padrao: RegExp }[] = [
   { id: "volume_de_posts",   padrao: /quantos?\s+(posts?|stories|reels|v[íi]deos)|posts?\s+por\s+(semana|dia|m[êe]s)|frequ[êe]ncia\s+de\s+post/i },
   { id: "quem_escreve",      padrao: /quem\s+(escreve|redige|grava|edita)|a\s+copy|os?\s+textos?\s+(fic|s[ãa]o|v[êe]m)/i },
   { id: "verba_de_midia",    padrao: /verba\s+(mensal\s+)?(de\s+)?(m[íi]dia|an[úu]ncios?)|quanto.{0,20}an[úu]ncios?/i },
-  { id: "publico_alvo",      padrao: /p[úu]blico[-\s]*alvo|quem\s+(s[ãa]o|[ée])\s+(os\s+)?(seus\s+)?clientes?|cliente\s+ideal|para\s+quem\s+voc[êe]s?\s+vend/i },
+  // ⚠️ `(os\s+)?` COBRIA SÓ O PLURAL e por isso "Quem é o cliente típico de
+  // vocês?" — a frase que a produção de fato usa, medida em 24/08 — não casava
+  // com nada: a pergunta do público não era contada, e apareceu três vezes na
+  // mesma conversa DEPOIS do freio. Um padrão que não reconhece a frase real é
+  // um contador que não conta. Artigo singular e plural, os dois.
+  { id: "publico_alvo",      padrao: /p[úu]blico[-\s]*alvo|quem\s+(s[ãa]o|[ée])\s+(os?\s+|as?\s+)?(seus\s+)?clientes?|cliente\s+(t[íi]pico|ideal)|quem\s+voc[êe]s?\s+(quer|querem|pretend)\w*\s+atingir|para\s+quem\s+voc[êe]s?\s+vend/i },
   { id: "objetivo",          padrao: /objetivo|o\s+que\s+voc[êe]\s+(quer|espera)\s+(alcan[çc]ar|conseguir)|o\s+que\s+seria\s+sucesso|principal\s+meta/i },
   { id: "concorrentes",      padrao: /concorrent|refer[êe]ncias?\s+que|marcas?\s+que\s+voc[êe]\s+admira/i },
   { id: "prazo",             padrao: /\bprazo\b|quando\s+(voc[êe]s?\s+)?(pensa|pretende|quer|gostaria).{0,30}(come[çc]ar|lan[çc]ar)|pr[óo]ximas\s+semanas/i },
