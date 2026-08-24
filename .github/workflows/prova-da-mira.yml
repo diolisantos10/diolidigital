@@ -1,0 +1,175 @@
+name: Prova da mira do ajuste (Farol 27)
+
+# ── PARA QUE ESTE BOTÃO EXISTE (24/08/2026) ──────────────────────────────────
+#
+# Um teste verde não prova que a produção mudou. O defeito que ele fecha foi
+# MEDIDO em produção — o cliente pediu ajuste na Pauta do Mês e a máquina
+# reescreveu os Roteiros de Vídeo — então o conserto tem de ser medido no mesmo
+# lugar: pedindo um ajuste de verdade, no portal de verdade, e olhando QUAL peça
+# subiu de versão.
+#
+# ── POR QUE UM WORKFLOW, E NÃO UM TERMINAL ───────────────────────────────────
+#
+# O link do portal é uma credencial de 180 dias e mora atrás do `CRON_SECRET`,
+# que por regra da casa ninguém digita fora do CI. Aqui o segredo já está nos
+# secrets do repositório: o job levanta o link, USA e nunca o imprime
+# (`::add-mask::` desde a primeira linha em que ele existe). O que sai no log é
+# só o placar — nome da peça e número de versão.
+#
+# ── ELE MEXE NUM CLIENTE. EM UM SÓ, E É O DE TESTE ───────────────────────────
+#
+# `Farol 27` é o cliente do case, criado pela própria casa. O padrão do campo é
+# ele e o job RECUSA rodar com qualquer outro nome. Em `medir` nada é decidido:
+# o job só lê e mostra o estado.
+#
+# ── O QUE ELE NÃO FAZ ────────────────────────────────────────────────────────
+#   • Não emite token novo (nunca passa `emitir=1`).
+#   • Não aprova nada. A única decisão que ele toma é "pedir ajuste", que é a
+#     que está sendo provada, e só quando `acao=pedir-ajuste`.
+#   • Não publica em lugar nenhum.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: "Cliente do teste. Só o de teste — em produção existe um cliente e um projeto, ambos do case."
+        required: true
+        default: "Farol 27"
+      acao:
+        description: "medir = leitura pura, nada é decidido. pedir-ajuste = manda o pedido de verdade e mede antes/depois."
+        required: true
+        type: choice
+        options: ["medir", "pedir-ajuste"]
+        default: "medir"
+      comentario:
+        description: "As palavras do cliente no pedido de ajuste."
+        required: true
+        default: "troca o titulo da primeira semana da pauta, ficou generico"
+
+jobs:
+  provar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Medir a mira do ajuste em producao
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          MASTER_PASSWORD: ${{ secrets.SEED_MASTER_PASSWORD }}
+          CLIENTE: ${{ inputs.cliente }}
+          ACAO: ${{ inputs.acao }}
+          COMENTARIO: ${{ inputs.comentario }}
+        run: |
+          set -u
+          BASE="https://www.diolidigital.com.br"
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET nao esta nos secrets — nada foi medido."; exit 1
+          fi
+          if [ "$CLIENTE" != "Farol 27" ]; then
+            echo "::error::Este botao so roda no cliente de teste (Farol 27). Voce pediu '$CLIENTE'."; exit 1
+          fi
+
+          echo "— commit no ar:"
+          curl -s --max-time 30 "$BASE/api/health" | jq -r '"  " + .commit + " (" + .branch + ")"'
+
+          # ── 1. O LINK DO PORTAL, SEM EMITIR NADA ───────────────────────────
+          curl -s --max-time 60 -o /tmp/links.json -w "  links HTTP %{http_code}\n" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -G "$BASE/api/admin/links-do-portal" --data-urlencode "clientes=$CLIENTE"
+
+          SIT=$(jq -r '[.. | objects | select(has("situacao"))][0].situacao // "?"' /tmp/links.json)
+          URL=$(jq -r '[.. | objects | select(has("url")) | .url | strings][0] // ""' /tmp/links.json)
+          TOKEN="${URL##*/portal/access/}"
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ] || [ "$TOKEN" = "$URL" ]; then
+            echo "::error::Sem link vivo para $CLIENTE (situacao: $SIT). Nada foi emitido — quem emite e o CEO."
+            jq -r 'keys' /tmp/links.json; exit 1
+          fi
+          # Mascarado a partir daqui: o log de CI fica 90 dias.
+          echo "::add-mask::$TOKEN"
+          echo "  link do portal: vivo (situacao: $SIT) — o token NAO e impresso"
+
+          # ── 2. SESSAO DE AGENCIA, so para LER as entregas ──────────────────
+          # E a unica leitura que mostra TODAS as pecas do projeto com a versao
+          # de cada uma — e e com ela que se prova que a irma nao foi tocada.
+          if [ -z "${MASTER_PASSWORD:-}" ]; then
+            echo "::error::SEED_MASTER_PASSWORD nao esta nos secrets — sem ela nao da para ler a versao de cada peca."; exit 1
+          fi
+          jq -Rn --arg p "$MASTER_PASSWORD" '{email:"master@dioli.studio", password:$p}' > /tmp/cred.json
+          curl -s --max-time 60 -c /tmp/cookies.txt -o /tmp/signin.json -w "  signin HTTP %{http_code}\n" \
+            -X POST "$BASE/api/auth/signin" -H "content-type: application/json" --data @/tmp/cred.json
+          rm -f /tmp/cred.json
+          jq -e '.ok == true' /tmp/signin.json >/dev/null || { echo "::error::login de leitura falhou"; exit 1; }
+
+          ler_entregas() {
+            curl -s --max-time 60 -b /tmp/cookies.txt "$BASE/api/deliverables" \
+              | jq '[.[] | {id, name, version, revisionStatus, ownerAgentId}] | sort_by(.name)'
+          }
+
+          ler_entregas > /tmp/antes.json
+          echo "— as pecas ANTES:"
+          jq -r '.[] | "  · " + .name + "  (v" + (.version|tostring) + ", " + (.revisionStatus // "sem status") + ", agente " + (.ownerAgentId // "?") + ")"' /tmp/antes.json
+
+          # ── 3. O CARD QUE O CLIENTE ESTA VENDO ─────────────────────────────
+          curl -s --max-time 60 -o /tmp/portal.json "$BASE/api/brain/portal-data?token=$TOKEN"
+          echo "— cards pendentes no portal do cliente:"
+          jq -r '((if type=="array" then .[0] else . end).approvals // [])[]
+                 | select(.status=="pending" and (.semConteudo | not))
+                 | "  · " + .id + " [" + .department + "] mostra: \""
+                   + ((.reviewNote // "") | split("\n")[0]) + "\""' /tmp/portal.json
+
+          CARD=$(jq -r '[((if type=="array" then .[0] else . end).approvals // [])[]
+                        | select(.status=="pending" and (.semConteudo | not))][0].id // ""' /tmp/portal.json)
+          MOSTRA=$(jq -r '[((if type=="array" then .[0] else . end).approvals // [])[]
+                          | select(.status=="pending" and (.semConteudo | not))][0].reviewNote // ""' /tmp/portal.json | head -1)
+
+          if [ "$ACAO" = "medir" ]; then
+            echo "::notice::Leitura pura. Card na mesa: $CARD, mostrando \"$MOSTRA\". Nada foi decidido."
+            exit 0
+          fi
+
+          if [ -z "$CARD" ]; then
+            echo "::error::Nenhum card pendente COM CORPO no portal — nao ha o que ajustar. Nada foi decidido."; exit 1
+          fi
+
+          # ── 4. O PEDIDO DE AJUSTE, COMO O CLIENTE FAZ ──────────────────────
+          echo "— pedindo ajuste no card $CARD (a peca que ele ve e: \"$MOSTRA\")"
+          jq -Rn --arg t "$TOKEN" --arg c "$CARD" --arg m "$COMENTARIO" \
+            '{token:$t, approvalRequestId:$c, action:"request_revision", comment:$m, authorName:"Dioli (prova da mira)"}' \
+            > /tmp/pedido.json
+          code=$(curl -s --max-time 300 -o /tmp/decisao.json -w "%{http_code}" \
+            -X POST "$BASE/api/portal/approvals" \
+            -H "content-type: application/json" -H "sec-fetch-site: same-origin" \
+            --data @/tmp/pedido.json)
+          rm -f /tmp/pedido.json
+          echo "  HTTP $code"
+          if [ "$code" != "200" ]; then
+            jq -r '.error // "(sem erro legivel)"' /tmp/decisao.json | sed 's/^/  /'
+            echo "::error::O pedido de ajuste nao foi aceito. Nada a medir."; exit 1
+          fi
+
+          # A refacao roda dentro da requisicao; a leitura logo em seguida e o
+          # estado real.
+          sleep 20
+          ler_entregas > /tmp/depois.json
+
+          echo "— o placar: QUAL peca voltou?"
+          jq -rn --slurpfile a /tmp/antes.json --slurpfile d /tmp/depois.json '
+            ($a[0] | map({key: .id, value: .}) | from_entries) as $A |
+            $d[0][] |
+            (.version - ($A[.id].version // .version)) as $delta |
+            "  · " + .name + ": v" + (($A[.id].version // 0)|tostring) + " -> v" + (.version|tostring)
+              + (if $delta > 0 then "   <== VOLTOU AO AUTOR" else "   (intacta)" end)
+              + "   [" + (.revisionStatus // "sem status") + "]"'
+
+          MEXIDAS=$(jq -rn --slurpfile a /tmp/antes.json --slurpfile d /tmp/depois.json '
+            ($a[0] | map({key: .id, value: .version}) | from_entries) as $A |
+            [$d[0][] | select(.version > ($A[.id] // .version))] | length')
+          echo "— pecas refeitas nesta rodada: $MEXIDAS"
+
+          if [ "$MEXIDAS" = "0" ]; then
+            echo "::error::NENHUMA peca voltou. O pedido do cliente nao chegou a ninguem — e o defeito antigo com outra roupa."; exit 1
+          fi
+          if [ "$MEXIDAS" != "1" ]; then
+            echo "::error::$MEXIDAS pecas voltaram para UM pedido de ajuste. A mira ainda e o departamento, nao a peca."; exit 1
+          fi
+          echo "::notice::UMA peca voltou, e e a que o cliente estava vendo. A mira esta na peca."

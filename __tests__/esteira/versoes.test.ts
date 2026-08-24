@@ -120,10 +120,17 @@ describe("refação preserva a versão anterior — o cliente nunca perde o que 
   it("com VÁRIAS entregas refeitas o vínculo 1:1 não é chutado — fica nulo", async () => {
     // Card de aprovação é por departamento; apontar a versão de UMA entrega
     // quando duas mudaram seria mentir sobre o que está sendo decidido.
-    db.deliverable.findMany.mockResolvedValue([
-      { ...ENTREGA },
-      { ...ENTREGA, id: "d2", name: "Carrossel institucional" },
-    ]);
+    //
+    // O caminho em que isso ainda acontece é o FALLBACK da mira: nada foi
+    // apresentado, então nenhuma peça é "a que o cliente viu"
+    // (`entregaMostradaPorDepartamento` lê só `visibility: "compartilhado"`) e a
+    // refação volta a varrer o departamento. É por isso que a leitura das
+    // compartilhadas devolve vazio aqui.
+    db.deliverable.findMany.mockImplementation(async (args: { where?: { visibility?: string } }) =>
+      args?.where?.visibility === "compartilhado"
+        ? []
+        : [{ ...ENTREGA }, { ...ENTREGA, id: "d2", name: "Carrossel institucional" }],
+    );
     await refazerPorPedidoDoCliente({ clientRequestId: "cr1", department: "social-media", comentario: "muda" });
     expect(db.approvalRequest.updateMany.mock.calls[0]![0].data.deliverableVersionId).toBeNull();
   });

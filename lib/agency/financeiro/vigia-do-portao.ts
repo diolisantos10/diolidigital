@@ -25,6 +25,19 @@ export interface RetratoDoPortao {
   paradosPeloPortao: number;
   /** Até 5 nomes, para a linha do log ser acionável em vez de só numérica. */
   exemplos: string[];
+  /**
+   * QUEM são os clientes com projeto, e em que estado cada projeto está.
+   *
+   * Existe porque "1 cliente com projeto" não é acionável: para decidir sobre a
+   * régua é preciso saber SE aquele projeto pode voltar a rodar e SE ele tem
+   * pedido a que ligar um pagamento. Cliente sem pedido (`cliente direto`) é o
+   * caso que o registro manual não alcança — e é o único que poderia ficar
+   * preso sem saída. Ele precisa aparecer pelo nome, não virar estatística.
+   */
+  quemTemProjeto: Array<{
+    cliente: string;
+    projetos: Array<{ nome: string; estado: string; temPedido: boolean; pago: boolean }>;
+  }>;
 }
 
 /**
@@ -67,11 +80,37 @@ export async function retratoDoPortao(): Promise<RetratoDoPortao> {
     }
   }
 
+  // O retrato nominal. `take` porque isto roda a cada 5 minutos e uma casa com
+  // mil clientes não pode virar mil linhas de log — o objetivo é enxergar o
+  // começo, quando o número é pequeno e a decisão sobre a régua ainda está viva.
+  const comProjeto = await prisma.client.findMany({
+    where: { projects: { some: {} } },
+    select: {
+      name: true,
+      projects: {
+        select: { name: true, executionStatus: true, clientRequestId: true },
+        take: 10,
+      },
+    },
+    take: 10,
+  });
+
+  const quemTemProjeto = comProjeto.map((c) => ({
+    cliente: c.name,
+    projetos: c.projects.map((pr) => ({
+      nome: pr.name,
+      estado: pr.executionStatus,
+      temPedido: pr.clientRequestId !== null,
+      pago: pr.clientRequestId !== null && pagos.has(pr.clientRequestId),
+    })),
+  }));
+
   return {
     clientesComProjeto,
     projetosVivos: vivos.length,
     semProvaDePagamento: semProva,
     paradosPeloPortao: parados,
     exemplos,
+    quemTemProjeto,
   };
 }
