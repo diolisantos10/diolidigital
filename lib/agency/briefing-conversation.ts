@@ -4,9 +4,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { AreaDeAtendimento } from "./comercial/onde-o-negocio-vende";
-import type { ConfrontoDeVerba } from "./comercial/verba-declarada";
+import type { ConfrontoDeVerba, DivergenciaDeVerba } from "./comercial/verba-declarada";
+import type { LacunaDeEscopo } from "./comercial/lacuna-de-escopo";
 
-export type { AreaDeAtendimento, ConfrontoDeVerba };
+export type { AreaDeAtendimento, ConfrontoDeVerba, DivergenciaDeVerba, LacunaDeEscopo };
 
 // ── Message ───────────────────────────────────────────────────────────────────
 export interface ConvMessage {
@@ -123,6 +124,20 @@ export interface BriefingScope {
   decisionMaker?: boolean;    // is the person the decision-maker?
   competitors?: string[];     // competitors / references the client admires
   negotiation?: NegotiationState;
+  /**
+   * O QUE O CLIENTE PEDIU E A CASA NÃO SOUBE ENCAIXAR.
+   *
+   * Farol 27, 24/08/2026: a cliente abriu pedindo "reposicionamento de marca" e
+   * o escopo gravou `branding.requested: false` — não "não sei", `false`, que é
+   * a casa AFIRMANDO que ela não pediu. O vocabulário dela não batia com o da
+   * casa e o silêncio virou negativa.
+   *
+   * Aqui mora o meio-termo que faltava: o pedido fica registrado com as
+   * palavras do cliente e com a pergunta que precisa ser feita. Enquanto houver
+   * lacuna aberta, o orçamento NÃO sai com confiança alta — ver
+   * `live-calculator.ts`. Ver `comercial/lacuna-de-escopo.ts`.
+   */
+  lacunasDeEscopo?: LacunaDeEscopo[];
   // Prospect-only fields (public /briefing flow)
   prospectName?: string;
   prospectEmail?: string;
@@ -161,6 +176,16 @@ export interface LiveEstimate {
    *  `comercial/verba-declarada.ts` e o caso CityJobs. */
   confrontoDeVerba?: ConfrontoDeVerba;
 
+  /** As lacunas de escopo ainda ABERTAS no momento do cálculo — o que o cliente
+   *  pediu e a casa não confirmou. Viaja com o número porque é ela que explica
+   *  por que a confiança não é alta. */
+  lacunasAbertas?: LacunaDeEscopo[];
+
+  /** Preenchido quando a verba declarada e a conta divergem por mais de uma
+   *  ordem de grandeza — nos DOIS sentidos. Diferença dessa ordem é sinal de
+   *  escopo mal entendido, e sinal não pode passar em silêncio. */
+  divergenciaDeVerba?: DivergenciaDeVerba;
+
   /** Quando presente, esta estimativa NÃO VIRA ORÇAMENTO para o cliente: é um
    *  número que não se sustenta, e o texto diz por quê.
    *
@@ -182,6 +207,19 @@ export interface ConvState {
   messages: ConvMessage[];
   scope: BriefingScope;
   answeredQIds: string[];
+  /**
+   * QUANTAS VEZES CADA PERGUNTA JÁ FOI FEITA — não respondida, FEITA.
+   *
+   * `answeredQIds` sabia o que a conversa colheu e não sabia o que ela já
+   * gastou. Sem esse segundo número não existe como distinguir "pergunta nova"
+   * de "sexta insistência", e foi assim que a fila repetiu a mesma frase seis
+   * turnos seguidos para a Farol 27 (24/08/2026), engolindo objetivo, público,
+   * verba e prazo pelo caminho. Ver `comercial/pergunta-sem-encaixe.ts`.
+   *
+   * Opcional porque conversa antiga não tem o campo — e ausência aqui é lida
+   * como zero, que é a verdade: nada foi contado.
+   */
+  perguntasFeitas?: Record<string, number>;
   isFirstMessage: boolean;
   estimate: LiveEstimate;
   canSubmit: boolean;
