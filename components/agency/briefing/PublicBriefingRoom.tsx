@@ -7,6 +7,7 @@ import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from
 import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live-calculator";
 import { montarAvisoDeAnexo } from "@/lib/agency/anexo-nao-e-resposta";
 import { semMarcacao } from "@/lib/agency/texto-sem-marcacao";
+import { unirLacunas, type LacunaDeEscopo } from "@/lib/agency/comercial/lacuna-de-escopo";
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
@@ -1159,6 +1160,21 @@ export function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknow
         ? pn.appliedLevers.filter((x): x is string => typeof x === "string")
         : undefined,
     };
+  }
+
+  // ── AS LACUNAS ATRAVESSAM (24/08/2026) ──────────────────────────────────
+  // Quando o servidor para de repetir a pergunta pela terceira vez, a instrução
+  // gêmea é registrar a resposta CRUA do cliente como lacuna e avançar (ver
+  // `lib/agency/comercial/pergunta-repetida.ts`). Essa lacuna chega no `scope`
+  // do turno e precisa chegar ao pedido: é ela que segura a confiança do
+  // orçamento lá embaixo e que faz alguém perguntar depois, fora do caminho
+  // crítico do cliente. Sem esta ligação o freio calaria a pergunta e perderia
+  // o que o cliente disse — trocando um defeito por outro pior.
+  if (Array.isArray(patch.lacunasDeEscopo) && patch.lacunasDeEscopo.length) {
+    out.lacunasDeEscopo = unirLacunas(
+      out.lacunasDeEscopo,
+      patch.lacunasDeEscopo as LacunaDeEscopo[],
+    );
   }
 
   if (Array.isArray(patch.objectives) && patch.objectives.length) {

@@ -271,3 +271,44 @@ export async function registrarTurnoDoSdr(turno: TurnoDoSdr): Promise<number> {
 
   return gravadas;
 }
+
+/**
+ * AS FALAS QUE O SDR JÁ DISSE NESTE FIO — a memória que o servidor tem da
+ * própria boca.
+ *
+ * ─── POR QUE O SERVIDOR PRECISA DELA (24/08/2026) ───────────────────────────
+ *
+ * O freio da pergunta repetida (`comercial/pergunta-repetida.ts`) conta quantas
+ * vezes a MESMA pergunta já foi feita. A rota é sem estado: o histórico chega
+ * no CORPO da requisição, escrito pelo cliente — e um contador que só olha o
+ * que o cliente mandou é um contador que o cliente zera mandando menos.
+ *
+ * Aqui está a metade que o cliente não escreve: as falas que ESTA casa gravou,
+ * no fio dela, quando as disse. Quem chama toma o MAIOR dos dois números — um
+ * histórico encurtado não abaixa a contagem, e um banco indisponível não a
+ * apaga.
+ *
+ * Não lança: falha de leitura devolve lista vazia e o chamador cai no histórico
+ * do corpo, que é o comportamento de antes deste conserto. Fail-open aqui é
+ * certo e é a exceção — o custo do erro é uma pergunta repetida a mais, não uma
+ * conversa muda.
+ */
+export async function falasDoSdrNoFio(sessionId: unknown, teto = 40): Promise<string[]> {
+  const fio = fioDaConversa(sessionId);
+  try {
+    const linhas = await prisma.portalMessage.findMany({
+      where: { clientId: fio, authorRole: "team", authorName: "SDR" },
+      orderBy: { createdAt: "asc" },
+      take: teto,
+      select: { body: true },
+    });
+    return linhas
+      .map((l) => l.body ?? "")
+      // Turno barrado não é fala: ele nunca chegou ao cliente, e contá-lo como
+      // pergunta feita puniria o SDR por um erro que o guarda já pagou.
+      .filter((b) => b && !b.startsWith(PREFIXO_TURNO_BARRADO));
+  } catch (e) {
+    console.error(`[sdr/registro] não consegui reler o fio: ${e instanceof Error ? e.message : String(e)}`);
+    return [];
+  }
+}

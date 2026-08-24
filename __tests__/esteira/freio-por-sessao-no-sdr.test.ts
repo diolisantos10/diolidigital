@@ -64,6 +64,8 @@ const limiteExcedido = vi.hoisted(() =>
 vi.mock("@/lib/security/limite-no-banco", () => ({ limiteExcedido }));
 
 const db = vi.hoisted(() => ({
+  // O teto de gasto soma `AIRunLog` da janela — dublê vazio = gasto zero.
+  aIRunLog: { findMany: vi.fn(async () => []) },
   portalMessage: { create: vi.fn(), findFirst: vi.fn() },
   clientRequestDb: { findUnique: vi.fn() },
 }));
@@ -76,6 +78,12 @@ const chaveDeRotaPublica = vi.hoisted(() => vi.fn());
 // mandando, e nenhuma expectativa abaixo precisou mudar — só o encanamento.
 vi.mock("@/lib/ai/chave-publica", () => ({
   chaveDeRotaPublica,
+  // ── O TETO DE GASTO DA PORTA PÚBLICA (24/08/2026) ────────────────────────
+  // A rota passou a resolver DE QUEM É A CONTA e a conferir o teto de gasto
+  // antes de gastar chave paga (`lib/ai/teto-de-custo.ts`), e ele é FAIL-CLOSED:
+  // sem workspace resolvido não gasta. Sem esta linha todo teste deste arquivo
+  // mediria o teto, não o que ele existe para medir.
+  workspaceDaRotaPublica: async () => "ws-de-teste",
   primeiraChaveDeRotaPublica: async () => {
     const chave = await chaveDeRotaPublica("claude");
     return chave ? { provider: "claude", chave } : null;

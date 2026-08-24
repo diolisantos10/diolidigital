@@ -26,9 +26,10 @@ import { NextRequest, NextResponse } from "next/server";
 // de graça, numa rota pública que gasta chave de IA PAGA. `limiteExcedido` conta
 // no volume, é atômico e é fail-closed: contador fora do ar recusa, não libera.
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
-import { primeiraChaveDeRotaPublica } from "@/lib/ai/chave-publica";
+import { primeiraChaveDeRotaPublica, workspaceDaRotaPublica } from "@/lib/ai/chave-publica";
 import { classificarFalhaDeProvedor } from "@/lib/ai/falha-de-provedor";
 import { generate, ordemDePreferenciaDaCasa } from "@/lib/ai/generate";
+import type { AiProvider } from "@/lib/ai/resolve-key";
 import type { TurnoDeHistorico } from "@/lib/agency/intelligence/openai-schemas";
 import { ehPerguntaDeFaixa, formaDoPrecoNaFala, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
 // ATÉ 16/08/2026 ESTA ROTA NÃO ESCREVIA NADA. Zero chamadas a `prisma.`: o SDR
@@ -41,8 +42,27 @@ import { ehPerguntaDeFaixa, formaDoPrecoNaFala, normalizarFaixa } from "@/lib/ag
 import {
   registrarTurnoDoSdr,
   fioDaConversa,
+  falasDoSdrNoFio,
   type TurnoDoSdr,
 } from "@/lib/agency/comercial/registro-da-conversa";
+// ── O FREIO DA PERGUNTA REPETIDA, NO CAMINHO QUE ATENDE (24/08/2026) ─────────
+// O conserto de 24/08 pôs `LIMITE_DE_INSISTENCIA` em `pergunta-sem-encaixe.ts`
+// e ligou-o em `lib/agency/prospect-engine.ts` — o motor de REGRAS, que é o
+// plano B e quase nunca atende. Este arquivo, que é quem atende, não mudou um
+// byte. Medido em produção: dez turnos de vinte com a MESMA pergunta, seis
+// deles seguidos. O freio agora mora aqui, e o limite continua vindo de LÁ —
+// verdade escrita em dois lugares já está errada em um deles.
+import {
+  identificarPergunta, vezesJaPerguntada, segundaFormulacao, oQueDizerNoLugar,
+  LIMITE_DE_INSISTENCIA, O_QUE_A_PERGUNTA_DE_IA_COLHE,
+} from "@/lib/agency/comercial/pergunta-repetida";
+import { acrescentarRespostaSemEncaixe, O_QUE_A_PERGUNTA_COLHE } from "@/lib/agency/comercial/pergunta-sem-encaixe";
+// ── O TETO DE GASTO DA PORTA DA RUA (24/08/2026) ────────────────────────────
+// Os dois freios acima (`limiteExcedido`, por IP e por sessão) são de RITMO.
+// Ritmo não é dinheiro: 30 chamadas por minuto de um prompt de ~10.700 tokens
+// custam o que custam, e o teto de ritmo fica verde a fatura inteira. Ver
+// `lib/ai/teto-de-custo.ts`.
+import { podeGastarNaPortaPublica } from "@/lib/ai/teto-de-custo";
 // A MONTAGEM DO PROMPT (SYSTEM_PROMPT + a ficha do cargo, via
 // `sistemaDoSdr()`) saiu daqui e foi para `lib/agency/comercial/
 // prompt-do-sdr.ts` (despacho `esteira`, 16/08 — segunda rodada). Motivo:
@@ -326,6 +346,75 @@ function aplicarTravasDeEscopo(bruto: Record<string, unknown>): Record<string, u
 // código morto (D-003) no mesmo commit que existe para matar código morto.
 // Removida de propósito — não reintroduza.
 
+// ── A SEGUNDA CHANCE DO GUARDA DE PREÇO (24/08/2026) ────────────────────────
+//
+// O guarda `PRICE_LEAK` está certo e não se afrouxa: fala com valor em reais
+// que não seja a régua inteira de faixas não sai daqui. O defeito nunca foi o
+// guarda — foi o DESFECHO. Barrada a fala, o turno inteiro virava `{ok:false}`,
+// o cliente ficava sem resposta e a conversa morria ali. Medido em produção:
+// `price_leak ×1` em cada rodada, sempre no turno da pergunta da faixa, e
+// sempre com a conversa parando.
+//
+// **O guarda barra a FALA, não a CONVERSA.** Esta função dá ao modelo uma
+// segunda tentativa, com o corretivo específico do erro que ele acabou de
+// cometer — e a fala nova passa pelo MESMO guarda, sem exceção. Se ela vazar
+// preço de novo, o turno é barrado como sempre foi: a segunda chance é uma
+// chance, não um perdão.
+//
+// Custo: uma chamada paga a mais, e só nos turnos em que o guarda pegou algo —
+// que a medição mostra ser ~1 por conversa. Vale contra perder o turno inteiro.
+const CORRETIVO_DE_PRECO =
+  "\n\n[Correção do servidor: sua última fala foi BARRADA porque citou valor em reais. " +
+  "Reescreva a fala SEM nenhum valor monetário — confirme com palavras (\"anotei sua faixa de investimento\"), " +
+  "nunca com o número. ÚNICA exceção: a pergunta da faixa, que precisa citar a régua INTEIRA de faixas, " +
+  "todos os degraus, nunca dois ou três deles. Mantenha o mesmo `scope`.]";
+
+async function segundaChanceSemPreco(args: {
+  escolha: { provider: AiProvider; chave: { apiKey: string; model?: string | null } };
+  system: string;
+  user: string;
+  historico: TurnoDeHistorico[];
+  contaDoWorkspace: string | null;
+  guardaBarra: (fala: string) => boolean;
+}): Promise<{ reply: string; scope: Record<string, unknown> } | null> {
+  const r = await generate({
+    system: args.system,
+    user: args.user + CORRETIVO_DE_PRECO,
+    historico: args.historico,
+    maxTokens: MAX_TOKENS,
+    timeoutMs: TIMEOUT_MS,
+    tentativas: 1,
+    cachearSistema: true,
+    agentId: "comercial-sdr",
+    contaDoWorkspace: args.contaDoWorkspace,
+    chaveJaResolvida: {
+      provider: args.escolha.provider,
+      apiKey: args.escolha.chave.apiKey,
+      model: args.escolha.chave.model ?? null,
+    },
+  });
+
+  // A segunda chance exige pacote LIMPO. Nada de remendo aqui: `repararJson
+  // Truncado` produz JSON válido, nunca frase completa — e uma frase cortada na
+  // segunda tentativa entregaria ao cliente exatamente o que o guarda de corte
+  // existe para impedir. Sem pacote limpo, não há segunda fala: o turno volta a
+  // ser barrado como sempre foi.
+  const texto = r.textoCru ?? "";
+  const cortado = /^(max_tokens|length)$/i.test(r.motivoDeParada ?? "");
+  const pacote = (r.ok && r.data && typeof r.data === "object" ? (r.data as Record<string, unknown>) : null) ?? extractJson(texto);
+  if (!pacote || cortado) return null;
+
+  const fala = typeof pacote.reply === "string" ? pacote.reply.trim() : "";
+  if (!fala) return null;
+  // O MESMO guarda, sem exceção. Se vazou de novo, não houve segunda fala.
+  if (args.guardaBarra(fala)) return null;
+
+  const bruto = pacote.scope && typeof pacote.scope === "object" && !Array.isArray(pacote.scope)
+    ? (pacote.scope as Record<string, unknown>)
+    : {};
+  return { reply: fala, scope: aplicarTravasDeEscopo(bruto) };
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const barrado = await limiteExcedido(req, "sdr-chat", 30, 60_000);
   if (barrado) return barrado as NextResponse;
@@ -462,6 +551,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const { historico, user } = montarConversa(body.messages, body.currentMessage, body.scope);
 
+  // ── O TETO DE GASTO, ANTES DE QUALQUER CHAMADA PAGA ───────────────────────
+  //
+  // Esta é a PORTA DA RUA: sem login, sem token, aberta à internet. Até aqui os
+  // dois freios eram de ritmo (IP e sessão) e o gasto não tinha teto nenhum —
+  // e nem dono: toda chamada logava `[custo-de-ia] chamada SEM workspace, fora
+  // da conta`. Quem resolve a conta é a MESMA regra que resolve a chave
+  // (`resolverWorkspacePublico`, via `workspaceDaRotaPublica`), para que
+  // "quem paga" e "de quem é a conta" nunca respondam coisas diferentes sobre
+  // o mesmo prospect.
+  //
+  // Falha fechada em todos os caminhos: sem dono, sem teto configurado ou com
+  // o contador fora do ar, NÃO GASTA. E zero é zero — ver `teto-de-custo.ts`.
+  // O visitante recebe `ok:false` e o motor de regras assume, exatamente como
+  // no `not_configured` acima: a conversa continua, a chave paga é que para.
+  const workspaceDaConta = await workspaceDaRotaPublica();
+  const veredicto = await podeGastarNaPortaPublica(workspaceDaConta);
+  if (!veredicto.pode) {
+    await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: `teto_de_custo:${veredicto.motivo}` });
+    return NextResponse.json({ ok: false, reason: "teto_de_custo" });
+  }
+
   try {
     // ── O SDR PASSOU A FALAR PELA CAMADA MULTI-IA (24/08/2026) ───────────────
     //
@@ -494,6 +604,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // de vezes na mesma conversa.
       cachearSistema: true,
       agentId: "comercial-sdr",
+      // A CONTA — e só a conta. `workspaceId` faria a camada resolver a chave no
+      // cofre e aplicar a fixação de provedor por cliente, que é justamente o
+      // que a rota pública não pode ter (ver `chaveJaResolvida` abaixo e o campo
+      // `contaDoWorkspace` em `lib/ai/generate.ts`). Sem esta linha, todo turno
+      // desta rota saía no log como "fora da conta" e não havia teto possível.
+      contaDoWorkspace: workspaceDaConta,
       chaveJaResolvida: { provider: escolha.provider, apiKey: resolved.apiKey, model: resolved.model },
     });
 
@@ -614,7 +730,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       });
     }
 
-    const replyText = replyBruta;
+    let replyText = replyBruta;
+    let scopeDaVez = scopePatch;
 
     // ⚠️ RECONCILIAÇÃO DE 16/08 — DUAS SESSÕES CONSERTARAM ESTE DEFEITO EM
     // PARALELO, E A REGRA DA OUTRA DEIXOU DE VALER POR CAUSA DESTA.
@@ -670,39 +787,144 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // ── Price guardrail ──────────────────────────────────────────────────────
     // The SDR must NEVER quote a price in the conversation — the quote is built
     // only after Google login. If a price (R$ value) or discount language leaks
-    // into the reply, reject the turn and fall back to the rule-based engine.
+    // into the reply, the turn is rejected.
     //
     // ÚNICA exceção: a pergunta da faixa de investimento, que cita a régua
     // inteira de faixas (decisão do CEO, 05/08/2026). `ehPerguntaDeFaixa` é
     // estreita de propósito — ver `lib/agency/comercial/negociacao.ts`.
+    //
+    // ⚠️ O QUE MUDOU EM 24/08: **o guarda barra a fala, não a conversa.** Ele
+    // continua exatamente tão estrito quanto era; o que deixou de acontecer é o
+    // turno morrer com ele. Antes, uma fala barrada virava `{ok:false}` e a
+    // conversa encerrava ali — medido em produção, uma vez por conversa, sempre
+    // no turno da pergunta da faixa. Agora o modelo recebe o corretivo do erro
+    // que cometeu e tem UMA segunda tentativa, que passa pelo MESMO guarda. Se
+    // vazar de novo, o turno é barrado como sempre foi.
     const PRICE_LEAK = /r\$\s*\d|\d+\s*(reais|\/m[êe]s\b)|desconto|\bplano\b.*\bR\$/i;
-    if (PRICE_LEAK.test(replyText) && !ehPerguntaDeFaixa(replyText)) {
-      console.warn("[sdr/chat] price-leak detected, falling back");
-      // Mesmo raciocínio do guarda de e-mail acima: o preço vazou na FALA, o
-      // JSON abriu limpo, e o `scope` já filtrado não tem nada a ver com o
-      // vazamento. Barrar a frase é certo; jogar fora o número de orçamento
-      // que o cliente informou (ex.: a faixa "R$ 500/mês") junto com ela não
-      // é — é o mesmo dado que o piloto de 16/08 quase perdeu.
+    const vazaPreco = (fala: string) => PRICE_LEAK.test(fala) && !ehPerguntaDeFaixa(fala);
+
+    if (vazaPreco(replyText)) {
+      console.warn("[sdr/chat] price-leak detected, retrying once with the correction");
       // A FORMA, nunca a fala. Dois números fecham a pergunta que ficou aberta
       // em 24/08 ("é a exceção da régua não fechando, ou é cotação de verdade?"):
       // 2 degraus = o modelo abreviou as opções e a exceção corretamente não
       // fechou; 0 degraus com valor fora da régua = cotação, e o guarda pegou o
       // que existe para pegar. Ver `formaDoPrecoNaFala`.
       const forma = formaDoPrecoNaFala(replyText);
-      await registrar({
-        ...fio,
-        doVisitante: body.currentMessage,
-        motivoDaRecusa: "price_leak",
-        formaDaFalha:
-          `${forma.degraus} degrau(s) da régua citado(s), ${forma.foraDaRegua} valor(es) fora dela` +
-          ` (a exceção da pergunta de faixa exige 3 degraus e nenhum valor fora)`,
-        escopoFoiSalvo,
+      const laudo =
+        `${forma.degraus} degrau(s) da régua citado(s), ${forma.foraDaRegua} valor(es) fora dela` +
+        ` (a exceção da pergunta de faixa exige 3 degraus e nenhum valor fora)`;
+
+      const segunda = await segundaChanceSemPreco({
+        escolha: { provider: escolha.provider, chave: { apiKey: resolved.apiKey, model: resolved.model } },
+        system: sistemaDoSdr(),
+        user,
+        historico,
+        contaDoWorkspace: workspaceDaConta,
+        guardaBarra: vazaPreco,
       });
-      return NextResponse.json({
-        ok: false,
-        reason: "price_leak",
-        ...(temScopeUtil ? { scope: scopePatch } : {}),
-      });
+
+      if (segunda) {
+        // A primeira fala continua no diário como turno barrado — foi um erro do
+        // agente e é o que MAIS interessa auditar. O que mudou é o desfecho: a
+        // conversa segue com a fala nova, e o motivo diz que a segunda pegou.
+        await registrar({
+          ...fio,
+          doVisitante: body.currentMessage,
+          motivoDaRecusa: "price_leak_refeito",
+          formaDaFalha: laudo,
+          escopoFoiSalvo,
+        });
+        replyText = segunda.reply;
+        // O escopo da segunda volta manda: é o pacote inteiro daquela resposta.
+        // Nunca vazio — `aplicarTravasDeEscopo` já rodou nele.
+        if (Object.keys(segunda.scope).length > 0) scopeDaVez = segunda.scope;
+      } else {
+        console.warn("[sdr/chat] price-leak on the retry too, falling back");
+        // Mesmo raciocínio do guarda de e-mail acima: o preço vazou na FALA, o
+        // JSON abriu limpo, e o `scope` já filtrado não tem nada a ver com o
+        // vazamento. Barrar a frase é certo; jogar fora o número de orçamento
+        // que o cliente informou junto com ela não é.
+        await registrar({
+          ...fio,
+          doVisitante: body.currentMessage,
+          motivoDaRecusa: "price_leak",
+          formaDaFalha: laudo,
+          escopoFoiSalvo,
+        });
+        return NextResponse.json({
+          ok: false,
+          reason: "price_leak",
+          ...(Object.keys(scopeDaVez).length > 0 ? { scope: scopeDaVez } : {}),
+        });
+      }
+    }
+
+    // ── ⛔ O FREIO DA PERGUNTA REPETIDA — A TERCEIRA VEZ NÃO EXISTE ──────────
+    //
+    // Aqui, e não no prompt. O prompt já diz *"UMA pergunta por vez"* e *"se o
+    // cliente já disse algo, não repita"*: isso é aviso, e o aviso não pegou —
+    // foi medido em produção, dez turnos de vinte com a MESMA pergunta, seis
+    // deles seguidos. Prompt é aviso; código é trava.
+    //
+    // A CONTAGEM OLHA DUAS MEMÓRIAS e fica com a MAIOR. O histórico chega no
+    // CORPO da requisição, escrito pelo cliente — um contador que só olha o que
+    // o cliente mandou é um contador que o cliente zera mandando menos. A outra
+    // memória é a da casa: as falas que ESTE servidor gravou no fio
+    // (`falasDoSdrNoFio`). Histórico encurtado não abaixa a contagem; banco
+    // indisponível não a apaga.
+    //
+    // A régua é a de `pergunta-sem-encaixe.ts`, IMPORTADA e não recopiada:
+    //   1ª vez  — a pergunta como o modelo a escreveu;
+    //   2ª vez  — a reformulação, que ADMITE que a casa não entendeu e oferece
+    //             uma saída explícita ("não sei" é resposta válida);
+    //   3ª vez  — não existe.
+    //
+    // E TODA PROIBIÇÃO TEM A INSTRUÇÃO GÊMEA: no lugar da terceira, a resposta
+    // crua do cliente vira lacuna (com as palavras DELE, nunca reescritas) e a
+    // conversa AVANÇA para a próxima pergunta em aberto — ou fecha a sondagem.
+    // Proibir sem dizer o que fazer no lugar empurraria a máquina para o
+    // silêncio, que é pior que a repetição: o cliente fica olhando uma tela
+    // muda.
+    const perguntaDaVez = identificarPergunta(replyText);
+    if (perguntaDaVez) {
+      const doCorpo = body.messages
+        .filter((m) => m.role === "assistant" && typeof m.text === "string")
+        .map((m) => m.text);
+      const doBanco = await falasDoSdrNoFio(body.sessionId);
+      const jaFeita = Math.max(
+        vezesJaPerguntada(doCorpo, perguntaDaVez),
+        vezesJaPerguntada(doBanco, perguntaDaVez),
+      );
+
+      if (jaFeita >= LIMITE_DE_INSISTENCIA) {
+        // A instrução gêmea, nesta ordem: registra o que o cliente disse (cru) e
+        // segue. A lacuna segura a confiança do orçamento lá embaixo e alguém
+        // pergunta depois — fora do caminho crítico do cliente.
+        const colhe =
+          O_QUE_A_PERGUNTA_COLHE[perguntaDaVez] ??
+          O_QUE_A_PERGUNTA_DE_IA_COLHE[perguntaDaVez] ??
+          "um dado do pedido";
+        const lacunas = acrescentarRespostaSemEncaixe(
+          Array.isArray(scopeDaVez.lacunasDeEscopo) ? scopeDaVez.lacunasDeEscopo : undefined,
+          perguntaDaVez,
+          body.currentMessage,
+          colhe,
+        );
+        const jaPerguntadas = [...new Set([...doCorpo, ...doBanco].map(identificarPergunta).filter((x): x is string => x !== null))];
+        const escopoParaAFila = { ...(body.scope ?? {}), ...scopeDaVez };
+        replyText = oQueDizerNoLugar(perguntaDaVez, escopoParaAFila, jaPerguntadas);
+        scopeDaVez = { ...scopeDaVez, lacunasDeEscopo: lacunas };
+        console.warn(`[sdr/chat] pergunta "${perguntaDaVez}" já feita ${jaFeita}x — registrada como lacuna, a conversa avança`);
+      } else if (jaFeita === LIMITE_DE_INSISTENCIA - 1) {
+        // A SEGUNDA vez nunca é a mesma frase. Repetir palavra por palavra é o
+        // que faz a pessoa concluir que não foi lida.
+        const outraFormulacao = segundaFormulacao(perguntaDaVez);
+        if (outraFormulacao) {
+          replyText = outraFormulacao;
+          console.warn(`[sdr/chat] pergunta "${perguntaDaVez}" na 2ª vez — reformulada`);
+        }
+      }
     }
 
     await registrar({ ...fio, doVisitante: body.currentMessage, doSdr: replyText });
@@ -711,7 +933,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       ok: true,
       reply: replyText,
       needsClarification: parsed.needsClarification === true,
-      scope: scopePatch,
+      scope: scopeDaVez,
     });
   } catch (err) {
     const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : "network_error";
