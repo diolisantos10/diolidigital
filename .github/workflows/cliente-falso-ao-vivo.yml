@@ -46,6 +46,10 @@ on:
         description: "Quantas rodadas seguidas (o SDR é não-determinístico; 3 é o mínimo para afirmar que roda limpo)"
         required: false
         default: "3"
+      medir_cache:
+        description: "Medir o cache do prompt (3 chamadas) em vez de rodar a bateria"
+        required: false
+        default: "false"
 
 # Uma bateria de cada vez. Duas em paralelo dividiriam o mesmo teto de ritmo da
 # rota (`sdr-chat`, 30 chamadas por minuto) e uma barraria a outra — e um 429
@@ -55,24 +59,157 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  prova:
-    name: A metade que nao da para provar localmente — a consulta a CI
+  ao-vivo:
+    name: O funil inteiro, com a IA no meio
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
-      - run: npm ci
-      # O `fetch` do Node no ambiente do Diretor não usa o proxy, então
-      # `olharCI` caía em fail-closed lá — correto, mas não prova nada.
-      # Aqui não há proxy: é onde dá para ver se a régua da CI de fato lê verde.
-      # Sem RAILWAY_TOKEN o script para DEPOIS de imprimir o veredito da CI,
-      # que é exatamente a metade que se quer provar.
-      - name: Redisparar em ENSAIO contra um commit de CI verde
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      # PRESENÇA, NUNCA VALOR. Sem este passo, uma rodada sem chave não estoura:
+      # ela ATRAVESSA — a rota devolve `not_configured` e o percurso segue pelo
+      # motor de regras. Até 23/08/2026 isso fechava 10 de 10 em VERDE, com a
+      # décima verificação afirmando sobre um SDR que nunca falou. A bateria já
+      # não mente mais (a verificação passou a exigir prova de que o modelo
+      # respondeu), mas gastar 45 minutos de runner para ouvir "não coberto" é
+      # desperdício: melhor falhar no primeiro passo, dizendo o que falta.
+      #
+      # ── POR QUE ELE OLHA MAIS DE UM NOME ────────────────────────────────────
+      # A primeira rodada (23/08/2026) morreu aqui: `ANTHROPIC_API_KEY` não está
+      # nos segredos deste repositório. "Não está com este nome" e "não existe"
+      # são fatos diferentes, e concluir o segundo a partir do primeiro seria
+      # adivinhar (guardrail 1). Por isso o passo confere os apelidos que uma
+      # chave da Anthropic costuma receber e DIZ qual encontrou — presença, nunca
+      # valor. Achando um apelido, ele vale: o que a rota lê é a variável de
+      # ambiente `ANTHROPIC_API_KEY`, e traduzir o nome aqui dentro é mais honesto
+      # do que reprovar uma chave que existe por causa da etiqueta.
+      - name: A chave existe? (presença, nunca valor)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          ANTHROPIC_API_TOKEN: ${{ secrets.ANTHROPIC_API_TOKEN }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
         run: |
-          npm run redisparar -- --commit=7ff0cecae1b77a52afa5fa2ecd26989986fb1045 --ensaio || true
+          achado=""
+          for nome in ANTHROPIC_API_KEY CLAUDE_API_KEY ANTHROPIC_KEY ANTHROPIC_API_TOKEN AI_API_KEY; do
+            valor=$(printenv "$nome" || true)
+            if [ -n "$valor" ]; then
+              echo "• ${nome}: PRESENTE"
+              [ -z "$achado" ] && achado="$nome"
+            else
+              echo "• ${nome}: ausente"
+            fi
+          done
+          if [ -z "$achado" ]; then
+            echo "::error::Nenhuma chave da Anthropic nos segredos deste repositório."
+            echo "Sem ela a rodada ao vivo não mede o guarda do SDR — ela cai no motor de"
+            echo "regras e a décima verificação devolve 'não coberto', que NÃO é aprovação."
+            echo "Quem cadastra o segredo é o CEO, e só ele:"
+            echo "  Settings -> Secrets and variables -> Actions -> New repository secret"
+            echo "  Nome: ANTHROPIC_API_KEY"
+            echo "A chave que a produção usa hoje NÃO está no Railway: ela foi colada na tela"
+            echo "de Integrações e vive cifrada no banco de produção, fora do alcance daqui."
+            exit 1
+          fi
+          echo "CHAVE_ENCONTRADA_EM=${achado}" >> "$GITHUB_ENV"
+          echo "✅ chave presente (em ${achado}). O valor não é impresso em passo nenhum."
+
+      # A MEDIÇÃO DO CACHE, quando pedida. Gasta 3 chamadas de IA e não roda a
+      # bateria — existe para provar a economia com número medido, não estimado.
+      - name: Medir o cache do prompt (opcional)
+        if: ${{ github.event.inputs.medir_cache == 'true' }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          ANTHROPIC_API_TOKEN: ${{ secrets.ANTHROPIC_API_TOKEN }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+        run: |
+          export ANTHROPIC_API_KEY="$(printenv "${CHAVE_ENCONTRADA_EM}")"
+          npm run medir-cache
+
+      # ── POR QUE UMA RODADA POR VEZ, COM PAUSA, E NÃO `--rodadas=N` ──────────
+      # `/api/sdr/chat` tem freio de ritmo de 30 chamadas por minuto por IP, e o
+      # IP de todas as chamadas da bateria é o mesmo ("unknown", porque a
+      # requisição é montada em processo). Uma conversa completa gasta ~16
+      # chamadas: duas rodadas coladas cabem na mesma janela de 60s e a segunda
+      # levaria 429. O 429 não é defeito da casa — é a bateria atropelando a si
+      # mesma —, e a pausa de 70s (janela de 60s + folga) o elimina na origem em
+      # vez de deixá-lo virar ruído no placar.
+      #
+      # `set -e` para na primeira rodada que quebrar: "errou, consertou" começa
+      # por não enterrar a quebra debaixo das rodadas seguintes.
+      - name: A bateria, ao vivo
+        if: ${{ github.event.inputs.medir_cache != 'true' }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          ANTHROPIC_API_TOKEN: ${{ secrets.ANTHROPIC_API_TOKEN }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          RODADAS: ${{ github.event.inputs.rodadas || '3' }}
+        run: |
+          set -u
+          # `resolve-key.ts` lê exatamente `ANTHROPIC_API_KEY`. Quando a chave foi
+          # cadastrada com outro nome, a tradução acontece aqui — em memória, no
+          # runner, sem passar por arquivo nem por log.
+          export ANTHROPIC_API_KEY="$(printenv "${CHAVE_ENCONTRADA_EM}")"
+
+          # ── POR QUE NÃO HÁ MAIS `set -e` AQUI ────────────────────────────────
+          # Havia, e ele engoliu a prova. Na primeira rodada ao vivo (24/08/2026)
+          # a bateria quebrou e `set -e` abortou o passo ANTES do `cp` — o
+          # placar da rodada nunca foi copiado, o `upload-artifact` não achou
+          # arquivo nenhum, e a única cópia do laudo foi a que sobrou no log.
+          # A rodada que QUEBRA é justamente a que mais precisa deixar placar:
+          # sair rápido não pode custar a evidência de por que se saiu.
+          falhou=""
+          for n in $(seq 1 "${RODADAS}"); do
+            echo "════════════ rodada ${n} de ${RODADAS} ════════════"
+            npm run cliente-falso -- --ao-vivo || falhou="${n}"
+
+            # Copia SEMPRE, quebrando ou não — é isto que o artefato leva embora.
+            cp .cliente-falso/placar.md   ".cliente-falso/placar-rodada-${n}.md"   || true
+            cp .cliente-falso/placar.json ".cliente-falso/placar-rodada-${n}.json" || true
+
+            if [ -n "${falhou}" ]; then
+              echo "::error::a rodada ${n} quebrou — placar guardado no artefato desta execução."
+              break
+            fi
+            if [ "${n}" -lt "${RODADAS}" ]; then
+              echo "— pausa de 70s para a janela do freio de ritmo virar —"
+              sleep 70
+            fi
+          done
+
+          if [ -n "${falhou}" ]; then exit 1; fi
+
+      # `always()`: a rodada que QUEBRA é a que mais precisa deixar placar.
+      #
+      # ⚠️ `include-hidden-files: true` NÃO É DETALHE. `.cliente-falso/` começa
+      # com ponto, e o padrão do `upload-artifact@v4` é ignorar tudo que é
+      # oculto — nas duas primeiras rodadas ao vivo (24/08/2026) o passo fechou
+      # VERDE dizendo "No files were found", e o placar só existiu no log. Passo
+      # verde que não subiu nada é a mesma doença que esta casa persegue: o
+      # silêncio parecendo sucesso. `if-no-files-found: error` fecha a outra
+      # metade — some o arquivo, o passo grita em vez de dar de ombros.
+      - name: Guardar os placares
+        if: ${{ always() && github.event.inputs.medir_cache != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: placares-cliente-falso
+          path: .cliente-falso/placar-rodada-*
+          include-hidden-files: true
+          if-no-files-found: error
