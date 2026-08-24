@@ -83,7 +83,15 @@ const PERGUNTAS: { id: string; padrao: RegExp }[] = [
   // com nada: a pergunta do público não era contada, e apareceu três vezes na
   // mesma conversa DEPOIS do freio. Um padrão que não reconhece a frase real é
   // um contador que não conta. Artigo singular e plural, os dois.
-  { id: "publico_alvo",      padrao: /p[úu]blico[-\s]*alvo|quem\s+(s[ãa]o|[ée])\s+(os?\s+|as?\s+)?(seus\s+)?clientes?|cliente\s+(t[íi]pico|ideal)|quem\s+voc[êe]s?\s+(quer|querem|pretend)\w*\s+atingir|para\s+quem\s+voc[êe]s?\s+vend/i },
+  // ⚠️ ESTE PADRÃO JÁ ERROU DUAS VEZES, E AS DUAS SAÍRAM EM PRODUÇÃO. Primeiro
+  // `(os\s+)?clientes` só cobria o plural e "Quem é o cliente típico de vocês?"
+  // não casava. Depois, "qual é o público que você quer atingir?" também não —
+  // porque o padrão exigia o hífen de "público-alvo". Cada erro custou UMA
+  // aparição extra da mesma pergunta, e nenhum deles apareceu em teste algum
+  // até alguém ler a conversa de produção. A palavra `público` sozinha, dentro
+  // de uma pergunta do SDR, é a pergunta do público — não há segundo sentido
+  // nesta conversa.
+  { id: "publico_alvo",      padrao: /\bp[úu]blico\b|quem\s+(s[ãa]o|[ée])\s+(os?\s+|as?\s+)?(seus\s+)?clientes?|cliente\s+(t[íi]pico|ideal)|quem\s+voc[êe]s?\s+(quer|querem|pretend)\w*\s+atingir|para\s+quem\s+voc[êe]s?\s+vend/i },
   { id: "objetivo",          padrao: /objetivo|o\s+que\s+voc[êe]\s+(quer|espera)\s+(alcan[çc]ar|conseguir)|o\s+que\s+seria\s+sucesso|principal\s+meta/i },
   { id: "concorrentes",      padrao: /concorrent|refer[êe]ncias?\s+que|marcas?\s+que\s+voc[êe]\s+admira/i },
   { id: "prazo",             padrao: /\bprazo\b|quando\s+(voc[êe]s?\s+)?(pensa|pretende|quer|gostaria).{0,30}(come[çc]ar|lan[çc]ar)|pr[óo]ximas\s+semanas/i },

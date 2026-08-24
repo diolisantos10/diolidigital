@@ -257,6 +257,7 @@ describe("o reconhecedor mede a frase que a produção escreve, não a que imagi
   const REAIS: [string, string][] = [
     ["publico_alvo", "Quem é o cliente típico de vocês? Me descreve em uma frase."],
     ["publico_alvo", "Mas me diz uma coisa pra eu montar a proposta certa: quem é o cliente que vocês querem atingir com esse clube?"],
+    ["publico_alvo", "Pra eu montar a estratégia certa pro seu clube: qual é o público que você quer atingir?"],
     ["canais_sociais", "Você já tem Instagram ou outras redes onde posta sobre o negócio?"],
     ["canais_sociais", "A Farol 27 tem Instagram hoje, ou vocês querem começar lá?"],
     ["prospect_name_biz", "Me conta — qual é o seu nome e o nome do seu negócio?"],
