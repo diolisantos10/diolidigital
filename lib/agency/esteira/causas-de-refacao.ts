@@ -19,7 +19,7 @@
 //      cada uma com a citação, o arquivo e a DATA de onde a medição saiu.
 //      Afirmação medida tem prazo de validade: sem fonte e data, ninguém
 //      consegue conferir depois se ainda vale.
-//   2. **A CONTAGEM AO VIVO** (`contarCausasDeRefacao`) — lê os registros reais
+//   2. **A CONTAGEM AO VIVO** (`contarCausasDeRefacao`, no módulo irmão) — lê os registros reais
 //      da casa (as peças barradas, as reprovações de dentro, os pedidos de
 //      ajuste do cliente, os `PRECISO CONFIRMAR` que sobraram dentro da
 //      entrega) e classifica cada ocorrência numa causa do catálogo.
@@ -29,13 +29,18 @@
 // que pode sair do formulário — e é assim que o formulário não cresce para
 // sempre.
 //
-// ⚠️ ESTE MÓDULO NÃO JULGA PEÇA E NÃO ESCREVE NADA. Só lê e conta.
+// ⚠️ ESTE MÓDULO NÃO JULGA PEÇA E NÃO ESCREVE NADA.
+//
+// ⚠️ E ELE NÃO TOCA NO BANCO — a contagem mora em `causas-de-refacao-contagem.ts`.
+// A separação é mecânica, não estética, e foi MEDIDA: o catálogo é lido pelo
+// motor de perguntas do briefing, que é componente de CLIENTE
+// (`PublicBriefingRoom.tsx` → `question-engine.ts`). Enquanto a contagem morava
+// aqui, o build de produção quebrava — `lib/db/client.ts` arrastado para dentro
+// do pacote do navegador, e nem o `import()` tardio evitava: o empacotador
+// segue a aresta do mesmo jeito. Continua havendo UMA verdade: a contagem
+// IMPORTA este catálogo, nunca o copia. Há teste de classe que reprova quem
+// trouxer o banco de volta para cá.
 
-// ⚠️ O CLIENTE DO BANCO ENTRA POR IMPORT TARDIO, DENTRO DA FUNÇÃO QUE CONTA.
-// O catálogo (`CAUSAS`) é lido pelo motor de perguntas do briefing, que roda
-// também no navegador; um `import { prisma }` no topo arrastaria o banco para
-// dentro do pacote do cliente. O tipo abaixo é `import type` — some na
-// compilação e não carrega nada.
 import type { CampoDaMarca } from "@/lib/agency/esteira/campos-da-marca";
 
 /** As causas que a casa já mediu. Id estável: ele é a chave que liga a causa à
@@ -240,8 +245,6 @@ export const CAUSAS: readonly Causa[] = [
   },
 ];
 
-const PORID = new Map<CausaId, Causa>(CAUSAS.map((c) => [c.id, c]));
-
 /** A causa deste parecer, ou `null` quando o texto não casa com nenhuma que a
  *  casa saiba nomear. `null` é resposta honesta: causa que ninguém mediu não
  *  vira pergunta. */
@@ -267,110 +270,4 @@ export function causasDaPergunta(qid: string): Causa[] {
  *  fica visível de propósito, em vez de virar silêncio. */
 export function causasSemPergunta(): Causa[] {
   return CAUSAS.filter((c) => c.perguntaQueEvita === null);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// A CONTAGEM AO VIVO
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface CausaContada {
-  causa: Causa;
-  ocorrencias: number;
-  /** Até três registros reais, para ninguém ter de acreditar no número. */
-  exemplos: string[];
-}
-
-export interface ContagemDeCausas {
-  /** `false` quando a leitura falhou. Nunca "não houve refação" — ausência de
-   *  informação não é informação. */
-  lidas: boolean;
-  /** Ordenado por ocorrências, do que mais custa para o que menos custa. */
-  ranking: CausaContada[];
-  /** Registros que não casaram com nenhuma causa conhecida. Contados e não
-   *  escondidos: é aqui que a próxima causa vai aparecer. */
-  naoClassificados: number;
-  /** A janela lida, em dias. */
-  janelaDias: number;
-}
-
-const JANELA_PADRAO_DIAS = 90;
-const TETO_DE_REGISTROS = 500;
-
-/**
- * Conta, nos registros REAIS da casa, o que vem custando peça.
- *
- * Três fontes, e as três são o mesmo fenômeno visto de ângulos diferentes:
- *   • `DepartmentLadderRecord` — a peça barrada no piso, no contrato ou pela
- *     Qualidade. É a refação que a casa pegou ANTES de o cliente ver.
- *   • `ActivityEvent` do tipo `peca_reprovada` — o "não é isso" de dentro.
- *   • `Deliverable.clientFeedback` — o pedido de ajuste do CLIENTE, que é o
- *     caro: a peça já foi apresentada e já estava paga.
- *
- * Nunca lança. Falha de leitura devolve `lidas: false`.
- */
-export async function contarCausasDeRefacao(input?: {
-  workspaceId?: string | null;
-  janelaDias?: number;
-}): Promise<ContagemDeCausas> {
-  const janelaDias = input?.janelaDias ?? JANELA_PADRAO_DIAS;
-  const desde = new Date(Date.now() - janelaDias * 24 * 60 * 60 * 1000);
-  const ws = input?.workspaceId ?? undefined;
-
-  const textos: string[] = [];
-  try {
-    const { prisma } = await import("@/lib/db/client");
-    const barradas = await prisma.departmentLadderRecord.findMany({
-      where: {
-        ...(ws ? { workspaceId: ws } : {}),
-        criadoEm: { gte: desde },
-        resultado: { in: ["reprovada_qualidade", "barrada_piso", "barrada_contrato"] },
-      },
-      select: { detalhe: true },
-      take: TETO_DE_REGISTROS,
-    });
-    textos.push(...barradas.map((b) => b.detalhe ?? ""));
-
-    const reprovadas = await prisma.activityEvent.findMany({
-      where: { ...(ws ? { workspaceId: ws } : {}), type: "peca_reprovada", timestamp: { gte: desde } },
-      select: { message: true },
-      take: TETO_DE_REGISTROS,
-    });
-    textos.push(...reprovadas.map((r) => r.message ?? ""));
-
-    // O pedido de ajuste do CLIENTE. Sem filtro de workspace no `Deliverable`
-    // (ele não tem a coluna): a chave é o projeto, e a janela é a mesma.
-    const ajustes = await prisma.deliverable.findMany({
-      where: { updatedAt: { gte: desde }, NOT: { clientFeedback: null } },
-      select: { clientFeedback: true, content: true },
-      take: TETO_DE_REGISTROS,
-    });
-    for (const a of ajustes) {
-      textos.push(a.clientFeedback ?? "");
-      // O `PRECISO CONFIRMAR` que sobrou DENTRO da entrega: a lacuna que virou
-      // texto na cara do cliente. É o sintoma mais direto de pergunta que
-      // deveria ter sido feita antes.
-      for (const m of (a.content ?? "").match(/PRECISO CONFIRMAR:[^\n"]{0,80}/gi) ?? []) textos.push(m);
-    }
-  } catch (e) {
-    console.warn(`[causas-de-refacao] não consegui ler os registros: ${String(e)}`);
-    return { lidas: false, ranking: [], naoClassificados: 0, janelaDias };
-  }
-
-  const contagem = new Map<CausaId, { n: number; exemplos: string[] }>();
-  let naoClassificados = 0;
-  for (const t of textos) {
-    if (!t.trim()) continue;
-    const id = classificarCausa(t);
-    if (!id) { naoClassificados++; continue; }
-    const atual = contagem.get(id) ?? { n: 0, exemplos: [] };
-    atual.n += 1;
-    if (atual.exemplos.length < 3) atual.exemplos.push(t.slice(0, 200));
-    contagem.set(id, atual);
-  }
-
-  const ranking: CausaContada[] = [...contagem.entries()]
-    .map(([id, v]) => ({ causa: PORID.get(id)!, ocorrencias: v.n, exemplos: v.exemplos }))
-    .sort((a, b) => b.ocorrencias - a.ocorrencias);
-
-  return { lidas: true, ranking, naoClassificados, janelaDias };
 }

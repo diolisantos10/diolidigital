@@ -11,7 +11,8 @@
 //
 // Só lê. Não escreve nada, não toca em cliente, projeto nem peça.
 
-import { contarCausasDeRefacao, causasSemPergunta } from "../lib/agency/esteira/causas-de-refacao";
+import { contarCausasDeRefacao } from "../lib/agency/esteira/causas-de-refacao-contagem";
+import { causasSemPergunta } from "../lib/agency/esteira/causas-de-refacao";
 
 const dias = Number(process.argv[2] ?? "90");
 

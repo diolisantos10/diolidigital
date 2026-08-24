@@ -24,6 +24,8 @@
 //     vira regra permanente.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 
 // ── O banco, em memória. Mesmo formato do teste das proibições: o caminho de
 //    gravação e leitura roda de verdade, só o armazenamento é fake.
@@ -323,5 +325,42 @@ describe("o que o cliente não respondeu aparece ANTES de a peça ser escrita", 
       contratoDeMarca: contrato.texto,
     };
     expect(ctxBlock(ctx)).toContain("AINDA NÃO DECIDIDO");
+  });
+});
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REGRA DE CLASSE: O CATÁLOGO DO BRIEFING NÃO PODE TOCAR NO BANCO
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Medido em 24/08/2026, e a suíte inteira ficou VERDE enquanto isso quebrava:
+// `causas-de-refacao.ts` nasceu com o catálogo e a contagem juntos. O catálogo
+// é lido pelo motor de perguntas (`question-engine.ts`), que é componente de
+// CLIENTE (`PublicBriefingRoom.tsx`) — e o build de produção parou com
+// `lib/db/client.ts` arrastado para o pacote do navegador. Nem o `import()`
+// tardio salvou: o empacotador segue a aresta do mesmo jeito.
+//
+// Teste é mais barato que descobrir isso de novo no CI, e este pega o caso de
+// quem só quiser "consultar rapidinho o banco aqui dentro".
+describe("REGRA DE CLASSE: o catálogo lido pelo briefing não importa o banco", () => {
+  const RAIZ = path.resolve(__dirname, "../..");
+  /** Os módulos que o motor de perguntas do briefing carrega. */
+  const NO_CAMINHO_DO_NAVEGADOR = [
+    "lib/agency/esteira/causas-de-refacao.ts",
+    "lib/agency/esteira/campos-da-marca.ts",
+  ];
+
+  it("nenhum deles importa `lib/db/client` — nem no topo, nem por import tardio", () => {
+    for (const rel of NO_CAMINHO_DO_NAVEGADOR) {
+      const fonte = fs.readFileSync(path.join(RAIZ, rel), "utf8");
+      // `import type` some na compilação e não puxa nada — só ele é aceito.
+      const semTipos = fonte.replace(/import\s+type[^;]+;/g, "");
+      expect(
+        /["']@\/lib\/db\/client["']/.test(semTipos),
+        `${rel} importa o banco e é carregado pelo briefing público: o build de `
+          + "produção quebra com `lib/db/client.ts` no pacote do navegador. "
+          + "A metade que fala com o banco mora em `causas-de-refacao-contagem.ts`.",
+      ).toBe(false);
+    }
   });
 });
