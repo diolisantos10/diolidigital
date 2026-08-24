@@ -463,7 +463,15 @@ function blocoDaVerdade(c: Ctx): string {
     + '"PRECISO CONFIRMAR: <o quê>" no lugar do valor. Uma peça com PRECISO CONFIRMAR é '
     + "entregue e revisada; uma peça com fato inventado é REPROVADA INTEIRA e não chega ao cliente.\n"
     + "Peça boa sem número inventado existe: fale do que a marca faz, de quem ela serve e "
-    + "do que o cliente escreveu — nada disso precisa de hora, preço ou endereço.",
+    + "do que o cliente escreveu — nada disso precisa de hora, preço ou endereço.\n"
+    + "\n"
+    + "⚠️ E NÃO CONSTRUA A PEÇA EM CIMA DO QUE FALTA. Medido em 24/08/2026: peças "
+    + "escritas com CTA do tipo \"chame no WhatsApp [PRECISO CONFIRMAR: número]\" foram "
+    + "REPROVADAS pela Qualidade e o pacote inteiro ficou retido — a peça dependia de um "
+    + "dado que ninguém tinha. Escreva a peça que FUNCIONA com o que está atestado: "
+    + "\"chama a gente no direct\" não precisa de número; \"venha almoçar com a gente\" não "
+    + "precisa de horário. Use \"PRECISO CONFIRMAR\" só quando a peça REALMENTE não existe "
+    + "sem aquele dado — não como recheio de um texto que você já decidiu escrever.",
   );
   return partes.join("\n\n");
 }

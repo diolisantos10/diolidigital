@@ -143,6 +143,16 @@ describe("a verdade atestada chega a quem produz", () => {
     expect(b).toMatch(/dedução/);
   });
 
+  it("manda NÃO construir a peça em cima do que falta", () => {
+    // Medido ao vivo: peças com CTA "chame no WhatsApp [PRECISO CONFIRMAR]"
+    // foram reprovadas pela Qualidade e o pacote inteiro ficou retido. A regra
+    // do que pode ser afirmado, sozinha, empurrava o modelo a preencher o texto
+    // com lacunas em vez de escrever a peça que funciona sem elas.
+    const b = ctxBlock(ctx({ verdadeAtestada: { linhas: ["Dias atestados: uteis"], semInformacao: [] } }));
+    expect(b).toMatch(/NÃO CONSTRUA A PEÇA EM CIMA DO QUE FALTA/);
+    expect(b).toMatch(/só quando a peça REALMENTE não existe/);
+  });
+
   it("todo especialista recebe o bloco, não só o que alguém lembrou de alterar", () => {
     const c = ctx({ verdadeAtestada: { linhas: ["Horários atestados: 11:00, 23:00"], semInformacao: [] } });
     const semBloco = TODOS_OS_ESPECIALISTAS.filter((e) => !e.prompt(c).includes("O QUE O CLIENTE ATESTOU"));
