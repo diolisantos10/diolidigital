@@ -555,6 +555,28 @@ export function oEscopoAprovadoViraProjeto(p: Percurso): Achado {
 //
 // "A esteira anda" e "a esteira anda quando alguém a destranca" são afirmações
 // diferentes, e só uma delas vale como cobertura da rota real.
+//
+// ⚠️ ESTA RÉGUA MEDE QUE A PORTA FUNCIONA — NÃO QUE ELA DEVA EXISTIR.
+//
+// O raio-X da Dioli (24/08/2026) derrubou a premissa por baixo dela: o fluxo
+// oficial da agência NÃO prevê humano aprovando escopo. O cursograma do CEO tem
+// um único ponto de decisão depois da precificação — "cliente aceitou?" — e vai
+// direto para o projeto nascer; a Arquitetura Operacional V2 abre dizendo que
+// "o sistema não pode depender de o executor ser IA ou humano". Ou seja: a
+// porta que esta régua exercita é um portão que a doutrina nunca pediu, e é a
+// explicação dos ZERO clientes em produção.
+//
+// A medição continua valendo integralmente, e por dois motivos:
+//   • enquanto o portão existir, é obrigação dele recusar intruso — e agora se
+//     sabe, com prova, que recusa (401, 401, 403, 403);
+//   • a forma desta régua (o caso infeliz primeiro, mandando no veredito) serve
+//     a QUALQUER rota de staff, e o portão do escopo é só a primeira.
+//
+// Se o CEO mandar tirar o portão, o que sai é o portão — não a régua. Ela passa
+// a apontar para a próxima rota autenticada. O molde do conserto já existe na
+// casa: a "escada" tinha o mesmo defeito (peça presa porque soltar exigia
+// sessão de admin) e virou código que o relógio aplica sozinho. **Nada aqui é
+// para ser mexido antes da palavra do CEO** — guardrail 3.
 export function aPortaAutenticadaFoiExercitada(p: Percurso): Achado {
   const base = {
     id: "porta-autenticada",
