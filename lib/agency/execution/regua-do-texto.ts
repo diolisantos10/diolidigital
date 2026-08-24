@@ -118,6 +118,19 @@ export const TIPOS_DE_DOCUMENTO_INTERNO: readonly string[] = [
   "report",
   "financeiro",
   "brand-kit",
+  // ── BASE DE MARCA (24/08/2026) ───────────────────────────────────────────
+  // Entra pelo MESMO motivo que `strategy`, e não por conveniência: o núcleo
+  // deste documento são os CONTRA-EXEMPLOS literais — "não dizemos assim", as
+  // palavras proibidas, o que a marca nunca afirma mesmo sendo verdade. Citar
+  // "o melhor da cidade" para PROIBI-LO casa com o detector de superlativo pelo
+  // mesmo motivo que a peça ruim casa: a régua lê forma, não intenção.
+  //
+  // Reprovar o documento que existe para proibir o jargão ensinaria o time a
+  // desligar o freio. É fronteira declarada, com o mesmo custo declarado do
+  // `strategy`: se o jargão entrar pela base de marca, ele desce para todas as
+  // peças e esta régua não o pega na origem. Quem o pega ali é o contrato de
+  // saída (`branding.ts`), que recusa campo inventado, e o juiz da Qualidade.
+  "brand-foundation",
 ];
 
 /** A régua confere este tipo de entregável? */

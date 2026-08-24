@@ -11,6 +11,7 @@ import { limiteExcedido } from "@/lib/security/limite-no-banco";
 import { sendEmail } from "@/lib/email/send";
 import { briefingConfirmationEmail } from "@/lib/email/templates";
 import { lerContato, montarContato } from "@/lib/agency/comercial/contato-do-lead";
+import { provaDoProprioBriefing } from "@/lib/agency/consentimento/quem-pode-receber";
 
 // ── OS TETOS DA ÚNICA PORTA PÚBLICA DE GRAVAÇÃO (raio-x de 16/08/2026) ────────
 //
@@ -71,7 +72,10 @@ function sendBriefingConfirmation(body: Record<string, unknown>, briefingJson: u
     services:     Array.isArray(body.services) ? (body.services as string[]) : undefined,
   });
 
-  sendEmail({ to: email, subject, html })
+  // A pessoa acabou de digitar o próprio e-mail neste formulário e apertou
+  // enviar. É o caso mais claro de "quem bateu na porta pode ser respondido" —
+  // e a referência aponta o pedido, para ser conferível depois.
+  sendEmail({ to: email, subject, html, consentimento: provaDoProprioBriefing(String(body.id ?? "novo-pedido")) })
     .then((r) => {
       if (r.skipped) console.warn("[client-requests] confirmation e-mail skipped — RESEND_API_KEY not set");
       else if (!r.ok) console.error("[client-requests] confirmation e-mail failed:", r.error);

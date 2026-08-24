@@ -73,11 +73,21 @@ async function tentarWhatsApp(
     });
     if (!conexao) return { ok: false, motivo: "nenhuma conexão de WhatsApp no workspace" };
 
+    // ── A PROVA VEM DO BANCO, NÃO DA BOA VONTADE (24/08/2026) ─────────────
+    // Este aviso vai para o cliente da casa, cujo telefone ELE mesmo entregou.
+    // Mas quem afirma isso é o resolvedor, lendo o registro — não este arquivo.
+    // Se o número não bater com nenhum cliente e ninguém tiver escrito para a
+    // marca, a prova volta "base sem comprovação" e a trava fecha aqui mesmo.
+    const { provaParaTelefone } = await import("@/lib/agency/consentimento/quem-pode-receber");
+    const numero = telefone.replace(/\D/g, "");
+    const consentimento = await provaParaTelefone(workspaceId, numero);
+
     const { sendWhatsAppMessage } = await import("@/lib/integrations/meta");
     const r = await sendWhatsAppMessage(workspaceId, {
       connectionId: conexao.id,
-      to: telefone.replace(/\D/g, ""),
+      to: numero,
       text: texto,
+      consentimento,
     });
     if (r.ok) return { ok: true };
     // Fora da janela de 24h a Meta recusa texto livre. É o caso mais comum, e

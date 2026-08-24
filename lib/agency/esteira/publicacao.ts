@@ -128,8 +128,14 @@ export function faltaEsperar(
  *  expediente do público da maioria dos clientes desta casa. */
 const HORA_PADRAO = 10;
 
-/** Tipos de entregável que viram post. Estratégia e relatório não vão ao ar. */
-const TIPOS_PUBLICAVEIS = ["social", "video"];
+/** Tipos de entregável que viram post. Estratégia e relatório não vão ao ar.
+ *
+ *  ── DERIVADA, NÃO DIGITADA (24/08/2026) ────────────────────────────────────
+ *  Era uma lista literal aqui. Enquanto foi lista literal, "que tipo é este
+ *  entregável?" tinha duas respostas — a de quem declarou o especialista e a
+ *  desta linha — e foi assim que a Pauta do mês entrou na fila de publicação.
+ *  A verdade agora mora em `execution/tipos-de-entrega.ts`, onde cada tipo diz
+ *  se vai ao ar E por quê. Tipo desconhecido NÃO é publicável. */
 
 // ─── QUEM PODE VIRAR CALENDÁRIO (13/08/2026) ────────────────────────────────
 //
@@ -292,7 +298,7 @@ export async function agendarPostsDaEntrega(projectId: string): Promise<Agendame
   // barrada simplesmente não existe para esta função, e ninguém consegue dizer
   // ao operador POR QUE o calendário do cliente veio menor do que o pacote.
   const candidatas = await prisma.deliverable.findMany({
-    where: { projectId, type: { in: TIPOS_PUBLICAVEIS } },
+    where: { projectId, type: { in: [...TIPOS_PUBLICAVEIS] } },
     select: { id: true, name: true, content: true, type: true, visibility: true, revisionStatus: true },
     orderBy: { createdAt: "asc" },
   });
@@ -1035,6 +1041,7 @@ export async function linksPublicosDaMidia(
 }
 
 import { quebrarCenas } from "@/lib/agency/design/storyboard";
+import { TIPOS_PUBLICAVEIS } from "@/lib/agency/execution/tipos-de-entrega";
 
 interface PecaExtraida {
   legenda: string;

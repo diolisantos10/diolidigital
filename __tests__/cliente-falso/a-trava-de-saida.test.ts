@@ -20,6 +20,9 @@ import {
   DOMINIO_DO_CLIENTE_FALSO,
 } from "@/lib/agency/cliente-falso/trava-de-saida";
 import { sendEmail } from "@/lib/email/send";
+// Ver a nota gêmea em `travas-das-quatro-portas.test.ts`: consentimento é
+// obrigatório desde 24/08/2026, e o que este arquivo mede é o outro cadeado.
+const CONSENTE_EMAIL = { natureza: "resposta", mensagemRecebidaId: "msg-1" } as const;
 
 const original = process.env.CLIENTE_FALSO;
 const chaveOriginal = process.env.RESEND_API_KEY;
@@ -68,7 +71,7 @@ describe("a trava dentro de sendEmail — antes da chave, não depois", () => {
     process.env.CLIENTE_FALSO = "1";
     process.env.RESEND_API_KEY = "re_chave_falsa_de_teste";
 
-    const r = await sendEmail({ to: "alguem@gmail.com", subject: "não pode sair", html: "<p>x</p>" });
+    const r = await sendEmail({ to: "alguem@gmail.com", subject: "não pode sair", html: "<p>x</p>" , consentimento: CONSENTE_EMAIL });
 
     expect(r.ok).toBe(false);
     expect(r.error).toBe("bloqueado:modo_cliente_falso");
@@ -78,8 +81,8 @@ describe("a trava dentro de sendEmail — antes da chave, não depois", () => {
 
   it("o placar consegue afirmar 'nada saiu' porque a tentativa fica registrada", async () => {
     process.env.CLIENTE_FALSO = "1";
-    await sendEmail({ to: `a@${DOMINIO_DO_CLIENTE_FALSO}`, subject: "a", html: "a" });
-    await sendEmail({ to: `b@${DOMINIO_DO_CLIENTE_FALSO}`, subject: "b", html: "b" });
+    await sendEmail({ to: `a@${DOMINIO_DO_CLIENTE_FALSO}`, subject: "a", html: "a" , consentimento: CONSENTE_EMAIL });
+    await sendEmail({ to: `b@${DOMINIO_DO_CLIENTE_FALSO}`, subject: "b", html: "b" , consentimento: CONSENTE_EMAIL });
     // Sem este registro, "nenhuma pessoa foi contatada" seria uma afirmação sem
     // prova — e afirmação sem prova é o que esta casa chama de vender pronto o
     // que está em piloto.

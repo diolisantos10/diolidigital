@@ -157,6 +157,7 @@ import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
 import { HOST_PADRAO } from "@/lib/agency/esteira/links-do-portal";
 import { sendEmail } from "@/lib/email/send";
 import { orcamentoProntoEmail } from "@/lib/email/templates";
+import { provaDoProprioBriefing } from "@/lib/agency/consentimento/quem-pode-receber";
 
 /** Teto por rodada. O relógio bate de 5 em 5 min; enxurrada nunca. */
 const MAX_POR_RODADA = 5;
@@ -312,7 +313,13 @@ async function avisarPorEmail(
       portalLink: (await linkDaConversa(pedido.id)) ?? undefined,
     });
 
-    const r = await sendEmail({ to: contato.email, subject, html });
+    // O orçamento vai para quem PEDIU o orçamento, no e-mail que ele mesmo
+    // deixou no briefing. Resposta, não abordagem — e a referência aponta o
+    // pedido para quem quiser conferir.
+    const r = await sendEmail({
+      to: contato.email, subject, html,
+      consentimento: provaDoProprioBriefing(pedido.id),
+    });
     if (r.ok) return { tipo: "avisado" };
 
     // `skipped` é a casa sem RESEND_API_KEY — configuração, não defeito do
