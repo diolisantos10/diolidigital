@@ -117,10 +117,127 @@ describe("o preço mora em UM lugar só", () => {
 
     it("o balcão NÃO tem os 5 planos — e isso é de propósito, não um furo", async () => {
       // Registrado porque foi exatamente aqui que a auditoria de 08/08 errou.
+      //
+      // ⚠️ ESTA CHECAGEM SOZINHA NÃO PROTEGE NADA, e o motivo está no bloco
+      // seguinte: ela compara RÓTULO com RÓTULO, e rótulo é a coisa mais fácil
+      // de trocar no repositório. Ela fica porque documenta o erro de 08/08 —
+      // não porque seja o portão.
       const { SELF_SERVE_CATALOG } = await import("@/lib/agency/self-serve-catalog");
       for (const plano of PLANOS) {
         expect(SELF_SERVE_CATALOG.some((s) => s.label === plano.nome)).toBe(false);
       }
     });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O PORTÃO COMPARA PREÇO COM PREÇO — porque rótulo não protege nada
+//
+// ─── O QUE ESTE PORTÃO NÃO PEGAVA, E FOI MEDIDO EM 15/08/2026 ───────────────
+//
+// "Pacote mês — 8 peças" custa R$ 297: o preço EXATO da mensalidade do plano
+// Ritmo, com o escopo EXATO dele (pauta do mês, 8 peças, calendário, aprovação
+// peça a peça no portal). Ele passava reto pela checagem acima porque o rótulo
+// dele não é "Ritmo" — e a checagem só olhava o rótulo.
+//
+// É o padrão que esta casa já pagou várias vezes: o portão verifica a coisa
+// fácil de verificar, não a coisa que causa dano. Preço é o que o cliente
+// compara; nome é o que a agência escolhe.
+//
+// ─── AS DUAS METADES ────────────────────────────────────────────────────────
+// 1. BARRA: colisão de preço NÃO declarada reprova a build, nomeando os dois.
+// 2. NÃO INVENTA PROBLEMA: o catálogo real de hoje passa, porque a única
+//    colisão que existe (`balcao-pacote-mes`) está declarada com motivo escrito.
+describe("o portão compara PREÇO com PREÇO, não rótulo com rótulo", () => {
+  interface ItemComPreco { id: string; label: string; price: number }
+
+  /**
+   * Toda colisão de preço entre um item vendável e a mensalidade de um plano
+   * que NÃO esteja declarada como exceção conhecida.
+   *
+   * É a mesma função nas duas metades de propósito: um portão provado com um
+   * código e executado com outro não foi provado.
+   */
+  function colisoesNaoDeclaradas(
+    catalogo: ItemComPreco[],
+    planos: typeof PLANOS,
+    declaradas: Record<string, string>,
+  ): string[] {
+    const achados: string[] = [];
+    for (const item of catalogo) {
+      const plano = planos.find((p) => p.preco === item.price);
+      if (!plano) continue;
+      const motivo = declaradas[item.id];
+      if (typeof motivo === "string" && motivo.trim().length >= 60) continue;
+      achados.push(
+        `"${item.id}" (${item.label}) custa R$ ${item.price} — exatamente a mensalidade do plano ` +
+        `${plano.nome}. Ou o preço muda (decisão do CEO), ou a colisão entra em ` +
+        `COLISAO_DE_PRECO_COM_PLANO com o motivo escrito.`,
+      );
+    }
+    return achados;
+  }
+
+  // ── METADE 1: O PORTÃO REPROVA A COLISÃO NÃO DECLARADA ────────────────────
+  it("item novo com preço de plano, sem declaração, REPROVA — nomeando os dois", () => {
+    const inventado: ItemComPreco[] = [
+      { id: "pacote-presenca-avulso", label: "Pacote presença", price: 790 },
+    ];
+    const achados = colisoesNaoDeclaradas(inventado, PLANOS, {});
+    expect(achados).toHaveLength(1);
+    expect(achados[0]).toContain("pacote-presenca-avulso");
+    expect(achados[0]).toContain("790");
+    expect(achados[0]).toContain("Presença");
+  });
+
+  it("declaração VAZIA ou carimbo curto não vale como exceção", () => {
+    const inventado: ItemComPreco[] = [{ id: "x", label: "X", price: 297 }];
+    expect(colisoesNaoDeclaradas(inventado, PLANOS, { x: "" })).toHaveLength(1);
+    expect(colisoesNaoDeclaradas(inventado, PLANOS, { x: "ok" })).toHaveLength(1);
+    expect(colisoesNaoDeclaradas(inventado, PLANOS, { x: "   " })).toHaveLength(1);
+  });
+
+  it("o caso REAL de hoje seria pego se não estivesse declarado", () => {
+    // A prova de que o portão morde o caso que existe, e não só um inventado.
+    const soOPacote: ItemComPreco[] = [
+      { id: "balcao-pacote-mes", label: "Pacote mês — 8 peças", price: 297 },
+    ];
+    const achados = colisoesNaoDeclaradas(soOPacote, PLANOS, {});
+    expect(achados).toHaveLength(1);
+    expect(achados[0]).toContain("Ritmo");
+  });
+
+  // ── METADE 2: O CATÁLOGO REAL PASSA — verde hoje, vermelho no próximo ──────
+  it("o catálogo de hoje passa, porque a única colisão está declarada", async () => {
+    const { SELF_SERVE_CATALOG, COLISAO_DE_PRECO_COM_PLANO } =
+      await import("@/lib/agency/self-serve-catalog");
+    const achados = colisoesNaoDeclaradas(SELF_SERVE_CATALOG, PLANOS, COLISAO_DE_PRECO_COM_PLANO);
+    expect(achados, achados.join("\n")).toEqual([]);
+  });
+
+  it("a exceção declarada é o Pacote mês, e o motivo diz por que ele colide", async () => {
+    const { COLISAO_DE_PRECO_COM_PLANO } = await import("@/lib/agency/self-serve-catalog");
+    const motivo = COLISAO_DE_PRECO_COM_PLANO["balcao-pacote-mes"];
+    expect(motivo).toBeTruthy();
+    expect(motivo).toMatch(/Ritmo/);
+    expect(motivo).toMatch(/compra única|COMPRA ÚNICA/i);
+    // O motivo tem de dizer que a decisão é do CEO — declarar não é resolver.
+    expect(motivo).toMatch(/CEO/);
+  });
+
+  // ── E A EXCEÇÃO NÃO PODE APODRECER ────────────────────────────────────────
+  it("exceção declarada para item que não existe (ou não colide mais) REPROVA", async () => {
+    // Exceção que sobrevive ao problema é permissão permanente que ninguém
+    // lembra de ter dado. Se o CEO mudar o preço, esta declaração cai junto.
+    const { SELF_SERVE_CATALOG, COLISAO_DE_PRECO_COM_PLANO } =
+      await import("@/lib/agency/self-serve-catalog");
+    for (const id of Object.keys(COLISAO_DE_PRECO_COM_PLANO)) {
+      const item = SELF_SERVE_CATALOG.find((s) => s.id === id);
+      expect(item, `"${id}" está declarado como exceção e não existe no catálogo`).toBeDefined();
+      expect(
+        PLANOS.some((p) => p.preco === item!.price),
+        `"${id}" está declarado como exceção de colisão mas R$ ${item!.price} não é mais mensalidade de plano nenhum — apague a declaração`,
+      ).toBe(true);
+    }
   });
 });

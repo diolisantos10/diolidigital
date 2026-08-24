@@ -26,6 +26,7 @@ import {
   conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente,
 } from "@/lib/agency/execution/piso-de-verdade";
 import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
 import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import {
@@ -128,11 +129,38 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
     // caminho. Leitura fail-closed — não conseguir ler REPROVA.
     proibicoes: await lerProibicoes(projeto.clientId),
   };
-  // O contexto que o árbitro recebe. Não é o mesmo bloco riquíssimo do motor
-  // (aquele nasce do `AIRunContext`, que só existe dentro da execução) — é o
-  // que dá para reconstruir aqui, e é o suficiente para as perguntas que
-  // importam neste caminho: tom, promessa falsa, número inventado.
+  // ── A RÉGUA DE MARCA CHEGA A QUEM CONFERE (15/08/2026) ────────────────────
+  //
+  // Ordem do CEO: *"as proibições e as referências já chegam a quem PRODUZ.
+  // Faltam chegar a quem CONFERE. Conferente sem régua não confere — aprova."*
+  //
+  // Medido neste dia, nos quatro chamadores de `auditDeliverable`:
+  //
+  //   • `run-execution.ts:737`      → `ctxBlock`, que abre com `contratoDeMarca` ✅
+  //   • `producao-de-pedido.ts:356` → `ctxBlock` idem ✅
+  //   • `pacote-travado.ts:250`     → ESTE bloco: negócio, segmento, serviços,
+  //                                   objetivos. **Zero proibição, zero voz,
+  //                                   zero referência, zero léxico.** ❌
+  //   • `mes.ts:529`                → relatório mensal (documento interno) ❌
+  //
+  // O buraco era o pior possível: este é o caminho da peça que a Qualidade JÁ
+  // REPROVOU uma vez. O especialista refazia COM as proibições na mão
+  // (`verdade.proibicoes`, acima) e o árbitro julgava a peça refeita SEM elas —
+  // podendo aprovar exatamente o que o cliente proibiu, na segunda passada, com
+  // aparência de peça auditada duas vezes.
+  //
+  // A régua vem do MESMO emissor que já serve quem produz (`contratoDeMarca`).
+  // Um segundo caminho divergiria, e divergência de régua entre produtor e
+  // conferente é pior que régua ausente: os dois trabalham certo e discordam.
+  //
+  // Fail-safe, não fail-closed, e a diferença é deliberada: aqui a régua é
+  // INSUMO do juiz, não portão. Não conseguir lê-la não pode travar o
+  // destravamento de um pacote que já está parado — a reprovação continua de pé
+  // de qualquer jeito (ver "a reprovação não se apaga", mais abaixo).
+  const reguaDaMarca = await contratoDeMarca(projeto.clientId).catch(() => null);
   const contextoDaMarca = [
+    // Primeiro, como em `ctxBlock`: a ordem é a mensagem.
+    reguaDaMarca?.texto ?? "",
     `Negócio: ${negocio}`,
     req?.segment ? `Segmento: ${req.segment}` : "",
     listar(req?.services) ? `Serviços contratados: ${listar(req?.services)}` : "",

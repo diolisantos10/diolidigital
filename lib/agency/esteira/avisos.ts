@@ -20,6 +20,8 @@
 // perder o aviso é ruim, perder a entrega é pior.
 
 import { prisma } from "@/lib/db/client";
+import { linkVivoDoPortal } from "@/lib/agency/esteira/link-do-portal-do-cliente";
+import { avisarPorEmail, porQueOEmailEstaFechado } from "@/lib/agency/esteira/canal-de-email";
 
 // "recompra" entrou em 06/08/2026 com a régua de 30/60/90 dias
 // (`esteira/recompra.ts`). Ela NÃO usa `avisarCliente` — escreve o
@@ -45,11 +47,22 @@ export interface ResultadoDoAviso {
   motivo?: string;
 }
 
-/** O endereço do portal deste cliente — o link que resolve o aviso. */
-function linkDoPortal(portalToken: string): string {
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "").replace(/\/+$/, "");
-  return `${base}/portal/access/${portalToken}`;
-}
+// ── 🔴 O LINK MORTO, CONSERTADO EM 15/08/2026 ───────────────────────────────
+//
+// Este arquivo montava o link do portal a partir de `Client.portalToken`:
+//
+//     select: { phone: true, portalToken: true }
+//     `${base}/portal/access/${portalToken}`
+//
+// E NENHUMA porta do portal resolve por aí. `validatePortalAccess`
+// (`portal-access-service.ts:46`) procura em `prisma.portalAccess` — outra
+// tabela, outro token, gerado independentemente. Nada no repositório copia um no
+// outro. **Todo aviso que esta casa mandou ao cliente carregava um link que
+// responde 403**, com comprovante de entrega do lado de dentro.
+//
+// O link agora vem de `link-do-portal-do-cliente.ts`, o leitor único — e ele
+// devolve `null` com motivo quando não há token vivo, em vez de montar um
+// endereço que não abre.
 
 /**
  * Tenta o WhatsApp pela conexão Meta do workspace.
@@ -98,13 +111,44 @@ export async function avisarCliente(pedido: PedidoDeAviso): Promise<ResultadoDoA
   try {
     const cliente = await prisma.client.findUnique({
       where: { id: pedido.clientId },
-      select: { phone: true, portalToken: true },
+      select: { phone: true, email: true },
     });
 
-    const link = cliente ? linkDoPortal(cliente.portalToken) : null;
+    const portal = await linkVivoDoPortal(pedido.clientId);
+    const link = portal.link;
     const textoCompleto = link ? `${pedido.texto}\n\n${link}` : pedido.texto;
 
     const tentativa = await tentarWhatsApp(pedido.workspaceId, cliente?.phone ?? null, textoCompleto);
+
+    // ── O SEGUNDO CANAL ──────────────────────────────────────────────────────
+    // Só é tentado quando o WhatsApp NÃO saiu — dois canais para o mesmo aviso
+    // é o cliente recebendo a mesma cobrança duas vezes, que é como uma agência
+    // ensina a ser silenciada.
+    //
+    // ⛔ **NASCE DESLIGADO** (`AVISO_POR_EMAIL` != "on"). Ver `canal-de-email.ts`:
+    // são dois interruptores, os dois fail-closed, e nenhum deles é meu.
+    let porEmail: { ok: boolean; motivo: string } = {
+      ok: false,
+      motivo: porQueOEmailEstaFechado() ?? "não tentado",
+    };
+    if (!tentativa.ok) {
+      const r = await avisarPorEmail({
+        para: cliente?.email ?? null,
+        assunto: "Novidade no seu portal — Dioli Digital",
+        texto: pedido.texto,
+        link,
+      });
+      porEmail = { ok: r.ok, motivo: r.motivo };
+    }
+
+    const saiu = tentativa.ok || porEmail.ok;
+    const canal: CanalDeAviso = tentativa.ok ? "whatsapp" : porEmail.ok ? "email" : "nenhum";
+    // O motivo carrega as DUAS tentativas. Registrar só a do WhatsApp esconderia
+    // por que o segundo canal também não resolveu — e é essa frase que a fila
+    // mostra para quem vai disparar à mão.
+    const motivo = saiu
+      ? undefined
+      : `${tentativa.motivo ?? "o WhatsApp não saiu"} · e-mail: ${porEmail.motivo}`;
 
     await prisma.clientNotice.create({
       data: {
@@ -114,17 +158,17 @@ export async function avisarCliente(pedido: PedidoDeAviso): Promise<ResultadoDoA
         kind: pedido.tipo,
         body: pedido.texto,
         link,
-        status: tentativa.ok ? "enviado" : "pendente",
-        channel: tentativa.ok ? "whatsapp" : "nenhum",
-        ...(tentativa.ok ? { sentAt: new Date() } : { failReason: tentativa.motivo ?? null }),
+        status: saiu ? "enviado" : "pendente",
+        channel: canal,
+        ...(saiu ? { sentAt: new Date() } : { failReason: motivo ?? null }),
       },
     });
 
     return {
       registrado: true,
-      enviadoAutomaticamente: tentativa.ok,
-      canal: tentativa.ok ? "whatsapp" : "nenhum",
-      ...(tentativa.motivo ? { motivo: tentativa.motivo } : {}),
+      enviadoAutomaticamente: saiu,
+      canal,
+      ...(motivo ? { motivo } : {}),
     };
   } catch (e) {
     console.warn("[esteira] não consegui registrar o aviso:", e instanceof Error ? e.message : e);

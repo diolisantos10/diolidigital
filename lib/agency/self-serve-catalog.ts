@@ -238,6 +238,39 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
 ];
 
+// ─── COLISÃO DE PREÇO COM A MENSALIDADE DE UM PLANO ──────────────────────────
+//
+// ── O DEFEITO QUE PRODUZIU ESTA DECLARAÇÃO (15/08/2026) ──────────────────────
+// O portão `__tests__/comercial/preco-uma-fonte-so.test.ts` provava que "o
+// balcão não tem os 5 planos" comparando RÓTULO com RÓTULO
+// (`s.label === plano.nome`). Rótulo é a coisa mais fácil de trocar no
+// repositório inteiro. Por isso "Pacote mês — 8 peças" — R$ 297, o preço EXATO
+// da mensalidade do Ritmo, com o escopo EXATO dele (pauta, 8 peças, calendário,
+// aprovação peça a peça no portal) — passava reto pelo portão escrito
+// justamente para pegar esse tipo de coisa.
+//
+// O portão agora compara PREÇO com PREÇO. Item de balcão cujo valor coincide com
+// a mensalidade de um plano REPROVA A BUILD, a menos que esteja declarado aqui,
+// neste único lugar, com o motivo escrito.
+//
+// ── COMO SE DECLARA ──────────────────────────────────────────────────────────
+// A chave é o `id` do item. O valor é o MOTIVO, por extenso — não um carimbo.
+// Declarar não conserta nada: torna a colisão visível e datada, para que a
+// próxima colisão não-declarada quebre a build em vez de passar em silêncio.
+//
+// ⚠️ Declarar aqui NÃO altera preço nenhum e NÃO decide se o item continua à
+// venda. As duas coisas são decisão do CEO e estão na lista dele.
+export const COLISAO_DE_PRECO_COM_PLANO: Record<string, string> = {
+  "balcao-pacote-mes":
+    "R$ 297 é, ao mesmo tempo, o preço deste item de balcão e a mensalidade do plano Ritmo — " +
+    "e o escopo é o mesmo (pauta do mês, 8 peças, calendário, aprovação peça a peça no portal). " +
+    "A diferença é comercial, não de produto: o item é COMPRA ÚNICA de um mês, vendido sem os " +
+    "R$ 390 de implantação e sem os 3 meses de permanência que o Ritmo exige. " +
+    "Declarado como exceção conhecida em 15/08/2026, com o preço INALTERADO. " +
+    "Se o 'Pacote mês' continua à venda, e por qual preço e condição, é decisão do CEO — " +
+    "está aberta em docs/comercial/preco-lado-a-lado-15-08.md, pergunta 2.",
+};
+
 export const CATEGORY_LABEL: Record<SelfServeCategory, string> = {
   balcao: "Balcão",
   social: "Redes Sociais",
