@@ -162,7 +162,10 @@ export async function subirServidorDeTeste(opts: {
   };
 
 
-  const dePe = await esperarDePe(baseUrl, opts.limiteMs ?? 90_000);
+  // 180s e não 90: numa máquina fria (runner do Actions) o `/api/health` só
+  // responde depois do Turbopack compilar a rota sob demanda. Estourar o prazo
+  // ali custaria a medição inteira da porta autenticada por impaciência.
+  const dePe = await esperarDePe(baseUrl, opts.limiteMs ?? 180_000);
   if (!dePe) {
     matarGrupo("SIGKILL");
     return { servidor: null, motivo: morreu ?? "o servidor de teste não respondeu a /api/health a tempo" };

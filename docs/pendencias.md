@@ -63,6 +63,32 @@ Na prática, três perguntas antes de escrever qualquer régua nova:
    credencial boa, e a reprovar se qualquer uma entrar — por mais verde que
    esteja o resto da rodada.
 
+### O corolário do contador: número que existe não prova caminho exercitado
+
+O terceiro caso merece regra própria, porque o sintoma é o mais traiçoeiro dos
+três. **O placar dizia "2 mensagens barradas".** O número existia, era verdadeiro,
+e media outra coisa: as duas barradas eram da porta de e-mail. A porta de
+WhatsApp nunca tinha sido alcançada — `tentarWhatsApp` desistia antes, em
+"nenhuma conexão de WhatsApp no workspace".
+
+Quem lesse o placar concluiria "as travas estão funcionando". A conclusão certa
+era "uma trava está funcionando e a outra nunca foi testada". Um contador não
+distingue as duas coisas, **e é por isso que ele tranquiliza mais do que deveria**:
+um número diferente de zero parece prova.
+
+Foi quase-acidente, não detalhe de implementação. A trava de WhatsApp existia,
+aparecia no código, e morava **depois** de `loadConnectionToken` — ou seja, só
+segurava em máquina sem credencial. **Produção tem credencial.** A trava aparente
+não protegia nada no único ambiente em que protegê-la importa.
+
+**A regra:** contador de eventos bloqueados tem de dizer **de qual porta** cada
+bloqueio veio, e a régua tem de exigir a porta que ela afirma cobrir — nunca um
+total. Se o caminho não foi exercitado, o placar diz "não exercitado", e não um
+número que o leitor vai interpretar como cobertura. Hoje `saidasBloqueadas`
+carrega `canal` em cada linha, e `CADEADOS_POR_CANAL` declara quantos cadeados
+independentes cada porta tem de verdade — inclusive a de avaliação, que tem
+**um só**, escrito em vez de maquiado.
+
 E o corolário que já era regra da casa, agora com três medições atrás dele:
 **quando não deu para medir, "não coberto" com o motivo — jamais "passou".**
 Instrumento que esconde o que não mediu mente, e mente na direção mais cara: a

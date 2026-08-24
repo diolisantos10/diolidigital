@@ -178,7 +178,18 @@ jobs:
           falhou=""
           for n in $(seq 1 "${RODADAS}"); do
             echo "════════════ rodada ${n} de ${RODADAS} ════════════"
-            npm run cliente-falso -- --ao-vivo || falhou="${n}"
+            # ── POR QUE `--com-servidor` VEM JUNTO, SEMPRE ─────────────────
+            # Ele sobe um Next de teste em 127.0.0.1 (só loopback) para que a
+            # rota AUTENTICADA de aprovação seja exercitada de verdade — a
+            # única forma de `cookies()` do `next/headers` existir. Sem ele, a
+            # régua `porta-autenticada` fica em "não coberto" e as quatro
+            # credenciais de intruso (sem cookie, cookie ilegível, role
+            # "client", staff com clientId) nunca são tentadas.
+            #
+            # Custa ~30s de boot por bateria, uma vez só, dentro de um teto de
+            # 45 min. Rodada ao vivo é cara e rara: medir menos do que dá para
+            # medir nela é o desperdício de verdade.
+            npm run cliente-falso -- --ao-vivo --com-servidor || falhou="${n}"
 
             # Copia SEMPRE, quebrando ou não — é isto que o artefato leva embora.
             cp .cliente-falso/placar.md   ".cliente-falso/placar-rodada-${n}.md"   || true
