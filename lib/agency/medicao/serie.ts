@@ -25,6 +25,31 @@
 // `[]` significa **houve período anterior e nele não chegou evento nenhum** —
 // aí a comparação roda. Confundir os dois é recriar o defeito uma camada acima.
 
+// ── ⛔ NÃO CRIE UM RELÓGIO PARA ABASTECER ESTA SÉRIE (24/08/2026) ───────────
+//
+// Decisão do Diretor Geral, e ela existe porque a tentação é óbvia: a série só
+// ganha passado quando alguém abre o painel de desempenho pago. Se ninguém
+// abrir por dois meses, não há período anterior e a conciliação devolve NÃO
+// MEDIDO. O reflexo natural é agendar uma leitura periódica. **Não agende.**
+//
+// O motivo é uma cicatriz recente desta casa: um cron morreu e ficou 10 DIAS em
+// silêncio com o painel verde o tempo todo. Somar mais um relógio para
+// abastecer esta série é comprar exatamente esse risco de novo — e comprá-lo no
+// lugar mais perigoso, porque um relógio morto aqui produziria um passado
+// parado que a comparação leria como fato, marcando campanhas saudáveis como
+// "parou de chegar" e as quebradas como íntegras.
+//
+// NÃO MEDIDO enquanto ninguém abre o painel é o estado honesto. É melhor que um
+// verde vindo de um relógio que talvez esteja morto.
+//
+// O CAMINHO RECOMENDADO, no dia em que a lacuna incomodar de verdade: abastecer
+// a série **DE CARONA** — sempre que uma leitura de desempenho já acontecer por
+// qualquer motivo (o painel, um relatório mensal, uma análise de conta), gravar
+// o período junto, como `medir-conta-com-serie.ts` já faz. Carona não tem
+// relógio próprio para morrer em silêncio: se a leitura parou, o silêncio
+// aparece como NÃO MEDIDO na primeira vez que alguém olhar, que é onde ele
+// precisa aparecer.
+
 import { prisma } from "@/lib/db/client";
 
 /** A chave determinística. Duas réplicas que gravam a mesma leitura colidem na
