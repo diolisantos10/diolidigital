@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { ConvState, ConvMessage, BriefingScope } from "./briefing-conversation";
+import { nomeDoNegocioNoTexto } from "./comercial/nome-do-negocio-no-texto";
 import { emptyScope, emptyEstimate } from "./briefing-conversation";
 import { computeEstimate } from "./live-calculator";
 import {
@@ -53,45 +54,12 @@ function respostaEhCanalDeContato(texto: string): boolean {
 
 function parseProspectNameBiz(text: string): { prospectName?: string; businessName?: string } {
   let prospectName: string | undefined;
-  let businessName: string | undefined;
 
-  // ── Business name (ordered; first match wins) ─────────────────────────────
-  // All capture groups require an uppercase-first letter — never match lowercase common words.
-  // Post-match check `/^[A-ZÀ-ÿ]/` guards patterns that use /i for keyword matching.
-
-  // 1. "chamado X" / "chamada X"
-  const bizMatch = text.match(/chamad[ao]\s+([A-ZÀ-ÿ][^.!?,]{1,30}?)(?:\s*[.!?,]|\s+que\s|\s+e\s|\s+para\s|$)/i);
-  if (bizMatch && /^[A-ZÀ-ÿ]/.test(bizMatch[1])) businessName = bizMatch[1].trim();
-
-  // 2. "é o/a X" — "meu negócio é o Restaurante Sabor"
-  if (!businessName) {
-    const m = text.match(/[eé]\s+(?:o|a)\s+([A-ZÀ-ÿ][^.!?,\s]{2,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})/i);
-    if (m && /^[A-ZÀ-ÿ]/.test(m[1])) businessName = m[1].trim();
-  }
-
-  // 3. "negócio/empresa/restaurante… é/se chama X" — without article
-  if (!businessName) {
-    const m = text.match(/\b(?:neg[óo]cio|empresa|restaurante|loja|marca|bar|sushi\s*bar|caf[eé]|cantina)\s+(?:é|se\s+chama)\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ]{1,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})/i);
-    if (m && /^[A-ZÀ-ÿ]/.test(m[1])) businessName = m[1].trim();
-  }
-
-  // 4. "sou/trabalho/venho da/do/de [Name]" — no /i so capture requires uppercase
-  if (!businessName) {
-    const m = text.match(/\b(?:sou|estou|trabalho|venho|falo)\s+(?:da|do|de|na|no|pelo|pela)\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ]{1,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})(?:\s*[,.!?]|\s+e\s|$)/);
-    if (m) businessName = m[1].trim();
-  }
-
-  // 5. "para o/a [Name]" — no /i so capture requires uppercase
-  if (!businessName) {
-    const m = text.match(/\bpara\s+(?:o|a)\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ]{1,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})(?:\s*[,.!?]|\s+e\s|$)/);
-    if (m) businessName = m[1].trim();
-  }
-
-  // 6. Multi-word TitleCase at sentence start — "Marca Exemplo, quero…" or standalone "Marca Exemplo"
-  if (!businessName) {
-    const m = text.match(/^([A-ZÀ-ÿ][a-zÀ-ÿ]{1,}(?:\s+[A-ZÀ-ÿ][a-zÀ-ÿ]{1,})+)(?:\s*[,.]|\s+[a-z]|$)/);
-    if (m) businessName = m[1].trim();
-  }
+  // ── Business name ─────────────────────────────────────────────────────────
+  // A lista de padrões NÃO mora mais aqui: ela era uma de DUAS cópias (a outra
+  // em `question-engine.parseInitialMessage`), e as duas divergiam. Leitor
+  // único em `comercial/nome-do-negocio-no-texto.ts` — ver o caso Farol 27.
+  const businessName = nomeDoNegocioNoTexto(text);
 
   // ── Person name (skip greetings and words identical to business name) ──────
   const GREETINGS = /^(oi|olá|ola|hey|hi|hello|bom|boa|caro|cara|prezado|prezada)$/i;

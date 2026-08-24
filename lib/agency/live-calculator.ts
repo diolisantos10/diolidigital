@@ -10,7 +10,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { BriefingScope, LiveEstimate, EstimateItem, EstimateConfidence, SocialScope } from "./briefing-conversation";
-import { confrontoDeVerba } from "./comercial/verba-declarada";
+import { confrontoDeVerba, divergenciaDeVerba } from "./comercial/verba-declarada";
+import { lacunasAbertas } from "./comercial/lacuna-de-escopo";
 
 // ── Social Media Plans ────────────────────────────────────────────────────────
 
@@ -318,6 +319,33 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
     else                           confidence = "low";
   }
 
+  // ── TETO DE CONFIANÇA: ESCOPO INCOMPLETO NÃO SAI COM NÚMERO FIRME ─────────
+  //
+  // Farol 27, 24/08/2026. A cliente pediu reposicionamento de marca e um clube
+  // de assinatura, declarou R$ 8.000 de honorários, e a casa devolveu
+  // R$ 500–1.200/mês com `confidence: "high"`. Nada disso estava na lista de
+  // `missing` — a marca tinha sido gravada como `false` (a casa afirmando que
+  // ela não pediu) e o clube nunca teve onde morar. `missing` vazio, confiança
+  // máxima, escopo errado.
+  //
+  // A lição do CityJobs escrita acima ("confiança calculada só sobre o que
+  // ALGUÉM LEMBROU de contar como faltante") repetiu-se por outra porta: lá o
+  // buraco era um zero, aqui é um pedido que não entrou na lista. Por isso o
+  // teto NÃO é mais uma quarta regra dentro do mesmo `if` — é um limite
+  // aplicado DEPOIS, sobre qualquer confiança que a conta acima tenha produzido.
+  //
+  // Duas coisas rebaixam, e as duas dizem a mesma coisa: "isto aqui não é o
+  // escopo do cliente, é o que a casa conseguiu entender dele".
+  const lacunas = lacunasAbertas(scope);
+  const divergencia = divergenciaDeVerba(scope.budgetRange, totalMin);
+
+  // "low" e não "medium": uma lacuna aberta é um SERVIÇO possivelmente inteiro
+  // fora da conta, não um campo de detalhe faltando. Estimativa fraca, e o
+  // painel/proposta leem `lacunasAbertas` para dizer POR QUÊ.
+  if ((lacunas.length > 0 || divergencia) && (confidence === "high" || confidence === "medium")) {
+    confidence = "low";
+  }
+
   // ── Negotiated discount (client-visible final price) ────────────────────────
   // The SDR grants the discount %; the floor/margin guardrail is enforced
   // server-side (pricing-margins.ts) before the % ever reaches the scope.
@@ -348,6 +376,8 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
     missingForEstimate: missing, included, notIncluded,
     discountPct, discountReason, discountedMin, discountedMax,
     confrontoDeVerba: confronto ?? undefined,
+    lacunasAbertas: lacunas.length > 0 ? lacunas : undefined,
+    divergenciaDeVerba: divergencia ?? undefined,
     travadaPor,
   };
 }
