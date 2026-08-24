@@ -14,6 +14,54 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🔴 24/08/2026 — SEM SALDO NA CONTA DA ANTHROPIC (precisa de gente)
+
+**A conta do provedor de IA está sem saldo. Ninguém resolve isto em código.**
+
+Ronda de produção, 07:29: `Claude HTTP 400` no departamento do SDR. Perguntando
+à API o que ela recusou, veio a resposta literal:
+
+> *"Your credit balance is too low to access the Anthropic API. Please go to
+> Plans & Billing to upgrade or purchase credits."*
+
+### O que isto quer dizer, em consequência
+
+- **A casa continua atendendo** — a camada multi-IA reservou e o cliente foi
+  servido. Foi assim às 07:29 e é assim agora.
+- **Mas atende pela reserva**, que não é o provedor preferido de cada agente e
+  não tem as mesmas travas de formato. Mais caro e menos previsível.
+- **Nenhuma rodada ao vivo da bateria mede coisa alguma** enquanto durar: a
+  rodada de 07:56 fechou com IA 0/16 e 16 turnos barrados.
+
+### A armadilha que custou a investigação
+
+A Anthropic devolve **400 `invalid_request_error`** para falta de saldo — o
+mesmo status e a mesma família de erro de um **corpo malformado**. A hipótese
+inicial (ferramenta forçada + bloco de cache, do bloco do SDR na camada
+multi-IA) estava **errada**, e o status sozinho a sustentava. Os 7 candidatos de
+forma de conversa da sonda receberam o mesmo erro — inclusive o que a bateria
+usa todo dia, o que prova que a forma nunca foi o problema.
+
+**Regra que fica: status não é motivo. O motivo está na mensagem, e a mensagem
+tem de ser lida e guardada.** A camada descartava o corpo do erro; agora não.
+
+### O que já está consertado
+
+- a camada guarda o corpo do erro junto do status;
+- `falha-de-provedor.ts` classifica saldo / chave / teto de ritmo /
+  indisponibilidade a partir da mensagem;
+- o despertador levanta alarme de rodada para saldo e chave (o resto vira
+  estado visível), lendo o `AIRunLog` que já existia — faltava leitura, não
+  escrita;
+- a rota do SDR grava `sem_saldo_no_provedor` em vez de `provider_error`, e o
+  placar escreve em português que precisa de gente.
+
+### O que NÃO dá para fazer daqui
+
+Comprar crédito. **É decisão e cartão do CEO.**
+
+---
+
 ## 🟢 24/08/2026 — O PILOTO FECHOU: TRÊS RODADAS SEGUIDAS DE PONTA A PONTA
 
 **Um cliente falso entra pela porta pública, conversa com o SDR de IA, recebe
