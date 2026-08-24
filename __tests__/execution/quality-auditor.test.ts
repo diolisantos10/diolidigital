@@ -465,3 +465,46 @@ describe("o juiz recebe o LIMITE do que não é defeito", () => {
     }
   });
 });
+
+// ── O MOTIVO DIZ QUAL CHAVE RESOLVE ────────────────────────────────────────
+//
+// Piloto de 24/08/2026: 5 de 7 entregas pararam em `juiz_nao_imparcial`, e a
+// mensagem antiga explicava o problema sem dizer o conserto. Quem abrisse o
+// portal daqui a um mês saberia que a peça não foi auditada e não saberia o que
+// fazer — e o conserto NÃO é reescrever a peça, é conectar um provedor.
+//
+// São DOIS travamentos com DUAS chaves e preços diferentes, e confundi-los
+// custa dinheiro errado: a segunda chave de árbitro NÃO destrava a pesquisa de
+// concorrência, e a da Perplexity NÃO serve de árbitro.
+describe("a mensagem de 'ninguém auditou' nomeia a chave que resolve", () => {
+  it("diz que não é defeito da peça e manda NÃO reescrever", async () => {
+    const { MOTIVO_EM_PALAVRAS } = await import("@/lib/agency/execution/quality-auditor");
+    expect(MOTIVO_EM_PALAVRAS.juiz_nao_imparcial).toMatch(/não reescreva/i);
+  });
+
+  it("nomeia as três chaves que servem de árbitro independente", async () => {
+    const { MOTIVO_EM_PALAVRAS } = await import("@/lib/agency/execution/quality-auditor");
+    const m = MOTIVO_EM_PALAVRAS.juiz_nao_imparcial;
+    for (const chave of ["openai", "gemini", "deepseek"]) {
+      expect(m, `a mensagem deixou de citar ${chave}`).toContain(chave);
+    }
+  });
+
+  it("NÃO oferece a Perplexity como árbitro — ela é pesquisadora, não juíza", async () => {
+    // Se ela entrar aqui, alguém compra a chave errada para destravar o árbitro.
+    const { MOTIVO_EM_PALAVRAS, escolherArbitro } = await import("@/lib/agency/execution/quality-auditor");
+    expect(MOTIVO_EM_PALAVRAS.juiz_nao_imparcial).not.toMatch(/perplexity/i);
+    expect(escolherArbitro("perplexity")).not.toBe("perplexity");
+    for (const autor of ["claude", "openai", "gemini", "deepseek"]) {
+      expect(escolherArbitro(autor)).not.toBe("perplexity");
+    }
+  });
+
+  it("o especialista de concorrência avisa que só a Perplexity o destrava", async () => {
+    // O outro travamento, escrito onde quem for mexer tropeça.
+    const fonte = await import("node:fs/promises").then((fs) =>
+      fs.readFile("lib/agency/execution/especialistas.ts", "utf-8"));
+    expect(fonte).toMatch(/SEM A CHAVE DA PERPLEXITY, ESTE ESPECIALISTA NÃO ENTREGA/);
+    expect(fonte).toMatch(/NÃO destrava isto/);
+  });
+});

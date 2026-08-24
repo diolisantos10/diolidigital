@@ -143,12 +143,25 @@ export function ficouSemArbitro(v: VereditoDaQualidade): boolean {
  *  não fica reprovada nem aprovada; fica declarada como não auditada. */
 export const AUDIT_TIMEOUT_MS = 45_000;
 
-const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
+export const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
   ia_indisponivel: "NÃO AUDITADA: a IA da Qualidade estava indisponível — nenhum árbitro olhou esta peça.",
   timeout: "NÃO AUDITADA: a IA da Qualidade não respondeu a tempo — nenhum árbitro olhou esta peça.",
   erro: "NÃO AUDITADA: a auditoria falhou com erro — nenhum árbitro olhou esta peça.",
   resposta_invalida: "NÃO AUDITADA: a IA da Qualidade respondeu fora do formato — o parecer não pôde ser lido.",
-  juiz_nao_imparcial: "NÃO AUDITADA: o único modelo disponível para julgar é o MESMO que escreveu a peça — não existe aprovação independente aqui.",
+  // ── O MOTIVO DIZ QUAL CHAVE RESOLVE (24/08/2026) ──────────────────────────
+  // Medido no piloto: 5 de 7 entregas pararam aqui, e a mensagem antiga
+  // explicava o problema sem dizer o conserto. Quem abrisse o portal daqui a um
+  // mês saberia que a peça não foi auditada e não saberia o que fazer — e o
+  // conserto NÃO é reescrever a peça, é conectar um provedor.
+  //
+  // A fila de árbitros é `FILA_DE_ARBITROS` (logo acima): qualquer uma das três
+  // resolve, e são chaves de preços diferentes. Nomear as três é dar a escolha
+  // a quem paga, em vez de mandá-lo adivinhar.
+  juiz_nao_imparcial:
+    "NÃO AUDITADA: o único modelo disponível para julgar é o MESMO que escreveu a peça — "
+    + "não existe aprovação independente aqui. NÃO é defeito da peça: não reescreva. "
+    + "CONSERTO: conectar uma SEGUNDA chave de IA (openai, gemini ou deepseek) em "
+    + "Integrações — qualquer uma delas serve como árbitro independente.",
   tipo_nao_declarado: "NÃO AUDITADA: quem pediu a auditoria não declarou o TIPO da entrega — sem saber se julga um post ou um plano, o juiz inventaria a régua.",
 };
 
@@ -418,9 +431,21 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
     //   • REPROVAÇÃO continua valendo. Ela bloqueia, e um problema apontado pelo
     //     próprio modelo é um problema — jogá-la fora seria trocar um freio real
     //     por pureza de método.
-    //   • APROVAÇÃO vira `nao_auditado`. Não é reprovação (não bloqueia), mas
-    //     também não é aprovação: ninguém independente olhou. Fica declarada,
-    //     contável, e some do "aprovado pela Qualidade".
+    //   • APROVAÇÃO vira `nao_auditado`. Não é reprovação, mas também não é
+    //     aprovação: ninguém independente olhou. Fica declarada e contável, e
+    //     some do "aprovado pela Qualidade".
+    //
+    // ⚠️ ATUALIZAÇÃO DE 24/08/2026 — esta linha dizia "não bloqueia", e deixou
+    // de ser verdade por ordem do Diretor Geral: `nao_auditado` passou a RETER a
+    // apresentação (`marcos.apresentar`), porque peça que ninguém olhou não pode
+    // chegar ao cliente. O comentário está corrigido aqui porque doutrina que
+    // descreve o comportamento antigo é pior que doutrina nenhuma: ela ensina
+    // errado com a autoridade de estar escrita no código.
+    //
+    // CONSEQUÊNCIA MEDIDA, e é decisão de gente: com UM só provedor de IA
+    // conectado, todo especialista que escreve em `claude` se auto-aprovaria, e
+    // agora fica retido. No piloto de 24/08 isso foi 5 de 7 entregas. Não há
+    // conserto em código — exige uma segunda chave de provedor.
     if (result.provider === autor && veredito === "aprovado") {
       return { ...semArbitro("juiz_nao_imparcial"), issues, arbitro: result.provider };
     }
