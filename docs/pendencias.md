@@ -102,6 +102,64 @@ duas não.** Chamar isso de ~75% é honesto; chamar de "pronta" não é.
 
 ---
 
+## ⛔ 24/08/2026 — UMA CHAVE DE IA SÓ TRAVA O PILOTO (decisão do CEO)
+
+**Com um único provedor de IA conectado, a esteira NÃO fecha — e os dois
+motivos que sobraram no piloto são o mesmo.**
+
+Estado medido na última rodada ao vivo: 7 entregas, projeto `done`, e o pacote
+retido. Nenhum defeito de código sobrou.
+
+### Motivo 1 — cinco de sete entregas ficam sem árbitro
+
+`escolherArbitro` nunca devolve o autor: aprovação de si mesmo não é aprovação.
+Com só a chave da Anthropic conectada, todo especialista que escreve em `claude`
+(11 dos 14) se auto-aprovaria — e o resultado é `nao_auditado`, que desde hoje
+**retém a apresentação** por ordem do Diretor Geral (peça que ninguém olhou não
+chega ao cliente).
+
+Motivo gravado em cada uma das cinco, literal:
+
+> *"NÃO AUDITADA: o único modelo disponível para julgar é o MESMO que escreveu a
+> peça — não existe aprovação independente aqui."*
+
+**Resolve com QUALQUER segunda chave** — `openai`, `gemini` ou `deepseek`. A
+fila de árbitros é `["claude", "openai", "gemini", "deepseek"]`.
+
+### Motivo 2 — a pesquisa de concorrência não tem com que pesquisar
+
+O especialista `Pesquisa de concorrência` declara `provedor: "perplexity"`, e é
+o único da casa que usa IA com fonte — porque é o único trabalho que exige
+**olhar para fora**. Sem essa chave, ele cai no provedor padrão e entrega um
+diagnóstico de lacunas em vez de uma análise. A Qualidade barra, corretamente:
+
+> *"3 dos 3 concorrentes listados estão marcados como 'PRECISO CONFIRMAR' sem
+> dados verificados (...) o núcleo da análise de concorrência — sua própria
+> razão de ser — permanece suspenso."*
+
+O cliente **deu** as referências ("Bráz", "Carlos Pizza"). O que falta é a
+capacidade de pesquisar, não o dado do briefing.
+
+**Resolve com a chave da Perplexity** — e só com ela: `perplexity` não entra na
+fila de árbitros de propósito ("é pesquisadora com fonte, não juíza de texto").
+
+### O que isto significa, sem rodeio
+
+- **As três rodadas limpas não fecham** enquanto houver uma chave só. Não é
+  defeito pendente: é capacidade que a casa não tem contratada.
+- **Não é conserto em código, e não deve virar um.** Afrouxar a imparcialidade
+  do árbitro para destravar o piloto seria trocar a trava mais cara da casa por
+  um verde de laboratório.
+- **É dinheiro e é decisão do CEO.** Duas chaves: uma segunda qualquer (árbitro)
+  e a da Perplexity (pesquisa).
+
+### O que a casa faz enquanto isso, e está correto
+
+Retém, com o motivo explícito em cada peça, e o placar conta quantas ficaram sem
+árbitro. A esteira não mente dizendo que entregou.
+
+---
+
 ## 🔴 24/08/2026 — A PAUTA DO MÊS ESTAVA NA FILA PARA VIRAR POST NO PERFIL DO CLIENTE
 
 **Um documento de planejamento interno — o calendário editorial do mês — era
