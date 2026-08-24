@@ -133,6 +133,21 @@ export function placarEmTexto(
   l.push(`**SDR de IA nesta rodada:** ${resumoDoSdr(p)}`);
   l.push(`**Mensagens barradas pela trava de saída:** ${p.saidasBloqueadas.length} `
        + `(nenhuma pessoa de verdade foi contatada)`);
+
+  // ── QUANTAS PEÇAS NINGUÉM OLHOU — NO CORPO, NÃO ESCONDIDO NUMA RÉGUA ──────
+  //
+  // Desde 24/08/2026 a peça `nao_auditado` RETÉM a apresentação: ausência de
+  // auditoria não é aprovação. A consequência é que o pacote fica parado por um
+  // motivo que NÃO é defeito das peças — e quem lê o placar precisa ver isso
+  // sem abrir parecer nenhum, senão a leitura natural é "a produção está ruim".
+  //
+  // A casa não deixou de medir: ela MEDIU QUE NÃO PODIA MEDIR, e essa é uma
+  // afirmação diferente. O número aparece sempre que for maior que zero.
+  if (p.esteira.entregasSemArbitro > 0) {
+    l.push(`**Entregas que NINGUÉM auditou:** ${p.esteira.entregasSemArbitro} de ${p.esteira.entregas} `
+         + `— não é defeito das peças, é falta de árbitro independente.`);
+    if (p.esteira.motivoSemArbitro) l.push(`> ${umaLinha(p.esteira.motivoSemArbitro)}`);
+  }
   l.push("");
 
   return l.join("\n");

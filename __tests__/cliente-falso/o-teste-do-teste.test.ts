@@ -43,8 +43,10 @@ import {
 
   oClienteAprovaAsPecas,
   aEsteiraAcabaNaPecaAprovada,
+  conferir,
 } from "@/lib/agency/cliente-falso/verificacoes";
 import { ROTEIRO_PADRAO } from "@/lib/agency/cliente-falso/roteiro";
+import { placarEmTexto } from "@/lib/agency/cliente-falso/placar";
 import { emptyScope, emptyEstimate } from "@/lib/agency/briefing-conversation";
 
 // ── O percurso SÃO: tudo como deveria ser ───────────────────────────────────
@@ -564,5 +566,30 @@ describe("publicação está FORA DO ESCOPO — não é etapa faltando", () => {
   it("e DIZ que as travas dos canais continuam de pé", () => {
     // Fora de escopo do PILOTO não pode ser lido como trava desmontada.
     expect(aEsteiraAcabaNaPecaAprovada(percursoSao()).detalhe).toMatch(/travas/i);
+  });
+});
+
+describe("o placar diz quantas peças ninguém auditou — sem ninguém interpretar", () => {
+  it("mostra o número e o motivo no corpo do placar", () => {
+    // Desde 24/08/2026 a peça `nao_auditado` retém a apresentação. O pacote fica
+    // parado por um motivo que NÃO é defeito das peças, e a leitura natural de
+    // quem abre o placar seria "a produção está ruim". A casa não deixou de
+    // medir: ela mediu que não podia medir.
+    const p = percursoSao();
+    p.esteira = {
+      ...p.esteira, entregas: 7, entregasSemArbitro: 5,
+      motivoSemArbitro: "NÃO AUDITADA: o único modelo disponível para julgar é o MESMO que escreveu a peça.",
+    };
+    const texto = placarEmTexto(conferir(p), p, []);
+    expect(texto).toContain("Entregas que NINGUÉM auditou:** 5 de 7");
+    expect(texto).toMatch(/não é defeito das peças/);
+    expect(texto).toMatch(/o único modelo disponível para julgar/);
+  });
+
+  it("some quando não há nenhuma — placar não inventa alarme", () => {
+    // Número sempre visível vira ruído; zero não precisa de linha.
+    const p = percursoSao();
+    p.esteira = { ...p.esteira, entregasSemArbitro: 0, motivoSemArbitro: null };
+    expect(placarEmTexto(conferir(p), p, [])).not.toContain("NINGUÉM auditou");
   });
 });

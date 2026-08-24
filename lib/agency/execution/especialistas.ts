@@ -733,6 +733,25 @@ ${formato("Posicionamento — <negócio>", `"headline": "...", "note": "o que su
         // A ÚNICA IA de pesquisa da casa. Concorrente é fato verificável do
         // mundo real: um modelo criativo INVENTA concorrente, e inventar
         // concorrente é o erro mais caro que a Estratégia pode cometer.
+        //
+        // ⚠️ SEM A CHAVE DA PERPLEXITY, ESTE ESPECIALISTA NÃO ENTREGA — e falha
+        // de um jeito que parece defeito dele. Medido no piloto de 24/08/2026:
+        // sem a chave, `generate` cai no provedor padrão (que não pesquisa), a
+        // peça sai como diagnóstico de lacunas em vez de análise, e a Qualidade
+        // a barra com razão:
+        //
+        //   "3 dos 3 concorrentes listados estão marcados como 'PRECISO
+        //    CONFIRMAR' sem dados verificados (...) o núcleo da análise de
+        //    concorrência — sua própria razão de ser — permanece suspenso."
+        //
+        // O cliente TINHA dado as referências ("Bráz", "Carlos Pizza"): o que
+        // faltava era a capacidade de pesquisar, não o dado do briefing.
+        //
+        // CONSERTO: conectar a chave da PERPLEXITY em Integrações. Só ela serve
+        // — `perplexity` fica fora de `FILA_DE_ARBITROS` de propósito ("é
+        // pesquisadora com fonte, não juíza de texto"), então a segunda chave
+        // que destrava o ÁRBITRO (openai/gemini/deepseek) NÃO destrava isto.
+        // São dois problemas diferentes, com duas chaves diferentes.
         provedor: "perplexity",
         prompt: (c) => `Você é o especialista de CONCORRÊNCIA da Dioli Digital. Pesquise a concorrência REAL deste negócio.
 

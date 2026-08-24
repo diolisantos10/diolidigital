@@ -143,12 +143,25 @@ export function ficouSemArbitro(v: VereditoDaQualidade): boolean {
  *  não fica reprovada nem aprovada; fica declarada como não auditada. */
 export const AUDIT_TIMEOUT_MS = 45_000;
 
-const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
+export const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
   ia_indisponivel: "NÃO AUDITADA: a IA da Qualidade estava indisponível — nenhum árbitro olhou esta peça.",
   timeout: "NÃO AUDITADA: a IA da Qualidade não respondeu a tempo — nenhum árbitro olhou esta peça.",
   erro: "NÃO AUDITADA: a auditoria falhou com erro — nenhum árbitro olhou esta peça.",
   resposta_invalida: "NÃO AUDITADA: a IA da Qualidade respondeu fora do formato — o parecer não pôde ser lido.",
-  juiz_nao_imparcial: "NÃO AUDITADA: o único modelo disponível para julgar é o MESMO que escreveu a peça — não existe aprovação independente aqui.",
+  // ── O MOTIVO DIZ QUAL CHAVE RESOLVE (24/08/2026) ──────────────────────────
+  // Medido no piloto: 5 de 7 entregas pararam aqui, e a mensagem antiga
+  // explicava o problema sem dizer o conserto. Quem abrisse o portal daqui a um
+  // mês saberia que a peça não foi auditada e não saberia o que fazer — e o
+  // conserto NÃO é reescrever a peça, é conectar um provedor.
+  //
+  // A fila de árbitros é `FILA_DE_ARBITROS` (logo acima): qualquer uma das três
+  // resolve, e são chaves de preços diferentes. Nomear as três é dar a escolha
+  // a quem paga, em vez de mandá-lo adivinhar.
+  juiz_nao_imparcial:
+    "NÃO AUDITADA: o único modelo disponível para julgar é o MESMO que escreveu a peça — "
+    + "não existe aprovação independente aqui. NÃO é defeito da peça: não reescreva. "
+    + "CONSERTO: conectar uma SEGUNDA chave de IA (openai, gemini ou deepseek) em "
+    + "Integrações — qualquer uma delas serve como árbitro independente.",
   tipo_nao_declarado: "NÃO AUDITADA: quem pediu a auditoria não declarou o TIPO da entrega — sem saber se julga um post ou um plano, o juiz inventaria a régua.",
 };
 
