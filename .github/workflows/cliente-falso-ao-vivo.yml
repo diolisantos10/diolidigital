@@ -55,39 +55,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  sonda:
-    name: Existe token do Railway? (presença, nunca valor)
+  prova:
+    name: A metade que nao da para provar localmente — a consulta a CI
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      # ── SONDA DE PRESENÇA, E NADA MAIS ───────────────────────────────────
-      # Roda SÓ nesta branch (`claude/sonda-do-token-railway`), que o Railway
-      # não observa — por isso sondar não cria deploy e não atropela o deploy
-      # em espera na branch de produção.
-      #
-      # `CRON_SECRET` entra na lista como CONTROLE: ele existe, e é conhecido
-      # que existe. Se ele aparecer "ausente", a sonda está quebrada e nenhum
-      # "ausente" desta lista vale nada. Sonda sem controle não prova ausência.
-      - name: Presença dos segredos
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      # O `fetch` do Node no ambiente do Diretor não usa o proxy, então
+      # `olharCI` caía em fail-closed lá — correto, mas não prova nada.
+      # Aqui não há proxy: é onde dá para ver se a régua da CI de fato lê verde.
+      # Sem RAILWAY_TOKEN o script para DEPOIS de imprimir o veredito da CI,
+      # que é exatamente a metade que se quer provar.
+      - name: Redisparar em ENSAIO contra um commit de CI verde
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
-          RAILWAY_PROJECT_TOKEN: ${{ secrets.RAILWAY_PROJECT_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
-          RAILWAY_ENVIRONMENT_ID: ${{ secrets.RAILWAY_ENVIRONMENT_ID }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          KIT_REPO_TOKEN: ${{ secrets.KIT_REPO_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for nome in CRON_SECRET KIT_REPO_TOKEN RAILWAY_TOKEN RAILWAY_API_TOKEN \
-                      RAILWAY_PROJECT_TOKEN RAILWAY_PROJECT_ID RAILWAY_SERVICE_ID \
-                      RAILWAY_ENVIRONMENT_ID; do
-            if [ -n "$(printenv "$nome" || true)" ]; then
-              echo "• ${nome}: PRESENTE"
-            else
-              echo "• ${nome}: ausente"
-            fi
-          done
-          echo "---"
-          echo "CRON_SECRET e KIT_REPO_TOKEN são o CONTROLE: se aparecerem ausentes,"
-          echo "a sonda está quebrada e nenhum 'ausente' acima significa nada."
+          npm run redisparar -- --commit=7ff0cecae1b77a52afa5fa2ecd26989986fb1045 --ensaio || true
