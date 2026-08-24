@@ -100,6 +100,17 @@ export async function subirServidorDeTeste(opts: {
       "npx",
       ["next", "dev", "-H", HOST_UNICO, "-p", String(porta)],
       {
+        // ── `detached` NÃO É DETALHE: É O QUE FAZ `parar()` PARAR ──────────
+        // Medido em 24/08/2026: sem isto, `filho.kill()` mandava SIGTERM para
+        // o `npx`, que morria sozinho e deixava o `next dev` órfão — ainda de
+        // pé e ainda escutando (`/proc/net/tcp` mostrava `0100007F:810B` viva
+        // depois de "servidor de teste derrubado"). Um teste que promete
+        // fechar a porta e não fecha é pior que um teste que nunca a abriu.
+        //
+        // Com `detached`, o filho vira líder do próprio grupo de processos e
+        // `process.kill(-pid)` derruba o grupo inteiro — npx, next e os
+        // trabalhadores do Turbopack.
+        detached: true,
         env: {
           ...process.env,
           DATABASE_URL: opts.databaseUrl,
@@ -118,20 +129,50 @@ export async function subirServidorDeTeste(opts: {
     return { servidor: null, motivo: `não consegui subir o Next: ${e instanceof Error ? e.message : String(e)}` };
   }
 
+  // ── O QUE O SERVIDOR DISSE ANTES DE MORRER ──────────────────────────────
+  // A primeira versão canalizava stdout/stderr e nunca os lia. Quando o Next
+  // morria, o motivo era "morreu com código 1" — e o porquê ficava dentro de um
+  // cano que ninguém abriu. Diagnóstico que não chega a quem lê o placar é
+  // diagnóstico que não existe.
+  const ultimasFalas: string[] = [];
+  const guardar = (b: Buffer): void => {
+    for (const linha of b.toString().split("\n")) {
+      const t = linha.trim();
+      if (t) ultimasFalas.push(t);
+    }
+    while (ultimasFalas.length > 12) ultimasFalas.shift();
+  };
+  filho.stdout?.on("data", guardar);
+  filho.stderr?.on("data", guardar);
+
   let morreu: string | null = null;
-  filho.once("exit", (code) => { morreu = `o servidor de teste morreu com código ${code}`; });
+  filho.once("exit", (code) => {
+    morreu = `o servidor de teste morreu com código ${code}`
+      + (ultimasFalas.length ? `: ${ultimasFalas.join(" ⏎ ").slice(0, 400)}` : " (sem dizer nada)");
+  });
+
+  /** Derruba o GRUPO — não só o `npx`. Ver o bloco `detached` acima. */
+  const matarGrupo = (sinal: NodeJS.Signals): void => {
+    try {
+      if (filho.pid) process.kill(-filho.pid, sinal);
+    } catch {
+      // Grupo já morreu, ou a plataforma não deixa. Tenta o filho direto.
+      try { filho.kill(sinal); } catch { /* nada mais a fazer */ }
+    }
+  };
+
 
   const dePe = await esperarDePe(baseUrl, opts.limiteMs ?? 90_000);
   if (!dePe) {
-    filho.kill("SIGTERM");
+    matarGrupo("SIGKILL");
     return { servidor: null, motivo: morreu ?? "o servidor de teste não respondeu a /api/health a tempo" };
   }
 
   const parar = async (): Promise<void> => {
     if (filho.exitCode !== null || filho.signalCode !== null) return;
-    filho.kill("SIGTERM");
+    matarGrupo("SIGTERM");
     await new Promise<void>((resolve) => {
-      const prazo = setTimeout(() => { filho.kill("SIGKILL"); resolve(); }, 5_000);
+      const prazo = setTimeout(() => { matarGrupo("SIGKILL"); resolve(); }, 5_000);
       filho.once("exit", () => { clearTimeout(prazo); resolve(); });
     });
   };
