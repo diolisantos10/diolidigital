@@ -102,6 +102,53 @@ duas não.** Chamar isso de ~75% é honesto; chamar de "pronta" não é.
 
 ---
 
+## 🟡 24/08/2026 — DOUTRINA: INFORMAR UMA RÉGUA NÃO É AFROUXAR UMA RÉGUA
+
+**Quando uma régua reprova o que deveria aprovar, pergunte primeiro se ela está
+errada ou apenas MAL INFORMADA. São consertos opostos.**
+
+Medido no piloto: a Qualidade reprovou o "Posicionamento" — um entregável do
+tipo `strategy` — dizendo *"a auditoria exige a entrega REAL (peças prontas),
+não documentação de planejamento"*. Reprovou um plano por ser um plano, e
+segurou o pacote inteiro.
+
+A tentação era afrouxar o juiz. O certo era **contar a ele o que estava
+julgando**: o prompt mandava título, departamento e corpo, e cinco critérios
+todos de peça. Nenhuma linha dizia se aquilo era um post ou um plano — e o juiz
+preencheu a lacuna inventando a régua que faltava.
+
+**A casa já sabia fazer a distinção.** `TIPOS_DE_DOCUMENTO_INTERNO` isenta
+`strategy` e `analytics` da régua determinística de texto desde antes. A
+distinção simplesmente não chegava ao juiz de IA. É o mesmo formato de "a régua
+evolui e o pedido fica para trás", agora do lado de **quem julga** em vez de
+quem produz — e vale a pena procurá-lo nos dois lados.
+
+### Como distinguir os dois casos
+
+| | régua ERRADA | régua MAL INFORMADA |
+|---|---|---|
+| sintoma | reprova o que a casa quer aprovar, e a justificativa faz sentido | reprova por um motivo que não se aplica àquele artefato |
+| conserto | mudar o critério (⛔ só com autorização) | **dar o fato que falta** |
+| critérios | saem ou mudam | **nenhum sai** |
+
+**O teste que separa os dois:** se o conserto REMOVE um critério, é afrouxamento
+— pare e pergunte. Se o conserto ACRESCENTA um fato e todos os critérios
+continuam valendo, é informação. Hoje isso virou teste: o prompt dos dois tipos
+é percorrido e exige-se que invenção e promessa falsa continuem cobradas em
+ambos. Quem "simplificar" o prompt do documento interno fica vermelho.
+
+### E a trava que veio junto
+
+Régua mal informada não pode ser um estado alcançável em silêncio. `tipoDaEntrega`
+virou **obrigatório na assinatura** (o compilador pega quem esquecer) e
+**conferido em execução** (o compilador não pega `null` vindo do banco). Sem ele,
+a peça sai `nao_auditado` — que nunca é aprovação e segura a apresentação.
+
+É o padrão `enforceFrequency` de novo: **obrigar quem chama a responder a
+pergunta, em vez de deixar o silêncio virar um palpite.**
+
+---
+
 ## 🟡 24/08/2026 — DOUTRINA: TODA PROIBIÇÃO PRECISA DA INSTRUÇÃO GÊMEA
 
 **Regra que só diz "não faça" empurra o modelo para o comportamento adjacente —
@@ -140,6 +187,45 @@ Exemplos que já vivem no código:
   dado; "chama no direct" não precisa de número.*
 - *não invente número* → **e fale do que a marca faz, de quem ela serve e do que
   o cliente escreveu — nada disso precisa de hora, preço ou endereço.*
+
+---
+
+## 🟡 24/08/2026 — DOUTRINA: ORDEM DE PERGUNTA É ARMADILHA (regra de classe)
+
+**Pergunta nova no briefing entra ANTES da última obrigatória, nunca depois.
+Depois do portão abrir, ninguém responde.**
+
+O portão de envio abre no instante em que a última pergunta OBRIGATÓRIA é
+respondida. Tudo que estiver depois dela na fila é perguntado com o botão de
+enviar já na mão do cliente — e vira fala de despedida.
+
+A casa caiu nisto **duas vezes, com um dia de intervalo**:
+
+- **23/08/2026 — `budget_range`.** Era opcional e vinha por último. Resultado
+  medido: escopo sem verba, e R$ 4.500–7.700/mês cotados, calados, a um cliente
+  que tinha R$ 500/mês. Consertado tornando-a obrigatória.
+- **24/08/2026 — `operacao_basica`.** Nasceu no mesmo lugar. Medido ao vivo: a
+  casa perguntou, a conversa acabou, e o campo chegou **nulo** à produção.
+  Consertado por POSIÇÃO — ela não podia ser obrigatória sem travar o briefing.
+
+### Por que a segunda vez aconteceu, com a lição já escrita
+
+Porque a lição estava num **comentário ao lado de `OPTIONAL_QIDS`**. Comentário
+só ensina quem já está lendo aquele trecho — e quem acrescenta pergunta não está
+lendo ali: está mexendo na lista de perguntas, três telas acima.
+
+**Lição sobre a lição:** conhecimento que depende de alguém estar lendo o lugar
+certo não é proteção, é sorte. Quando um erro se repete com a explicação já
+escrita, o problema não é quem repetiu — é **onde a explicação mora**.
+
+Por isso esta virou **teste**, e o teste vive no caminho de quem vai tropeçar:
+ele percorre a fila, encontra qualquer pergunta opcional depois da última
+obrigatória, e reprova dizendo como consertar. Verificado que ele reprova de
+verdade — instalei uma pergunta no fim da fila e ele acusou.
+
+Os dois caminhos válidos, quando a resposta importa:
+1. **mover para antes** da última obrigatória (quando não pode travar o envio);
+2. **tornar obrigatória** (quando a resposta é indispensável — caso da verba).
 
 ---
 
