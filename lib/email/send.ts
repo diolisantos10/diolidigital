@@ -46,10 +46,26 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   // acontecendo: *"confirmation e-mail skipped — RESEND_API_KEY not set"*.
   //
   // Isto não é caminho de teste enxertado em código de produção por
-  // conveniência: esta é a Única porta de saída de mensagem da casa (medido —
-  // não há outro remetente; o WhatsApp é link `wa.me`, não envio programático).
-  // Trava de saída tem de morar NA saída. Ver `lib/agency/cliente-falso/
-  // trava-de-saida.ts` para os dois cadeados e por que são dois.
+  // conveniência: trava de saída tem de morar NA saída.
+  //
+  // ⚠️ CORRIGIDO EM 24/08/2026 — AQUI DIZIA UMA MEDIÇÃO VENCIDA. O texto
+  // afirmava que esta era *"a Única porta de saída de mensagem da casa (medido
+  // — não há outro remetente; o WhatsApp é link `wa.me`, não envio
+  // programático)"*. Era verdade quando foi escrito e virou mentira depois,
+  // sem que ninguém relesse: hoje há QUATRO portas —
+  //
+  //   sendWhatsAppDirect   → POST {phoneNumberId}/messages    (Meta)
+  //   publishPost          → publica no Instagram do cliente
+  //   publicarNoGoogle     → posta no perfil Google do cliente
+  //   responderAvaliacao   → responde avaliação pública do cliente
+  //
+  // As três novas ficaram SEM CADEADO NENHUM até 24/08. A lição não é sobre
+  // e-mail: **afirmação medida tem prazo de validade, e "medido" no comentário
+  // é o que faz a próxima pessoa não remedir.** Se você acrescentar uma porta
+  // de saída, ela entra em `trava-de-saida.ts` e nesta lista.
+  //
+  // Ver `lib/agency/cliente-falso/trava-de-saida.ts` para os cadeados de cada
+  // canal — e para quantos cada um tem DE VERDADE (`CADEADOS_POR_CANAL`).
   const bloqueio = motivoDoBloqueio(input.to);
   if (bloqueio) {
     registrarSaidaBloqueada({ canal: "email", destino: input.to, assunto: input.subject, motivo: bloqueio });

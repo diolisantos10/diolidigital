@@ -24,6 +24,7 @@ import type {
   PublishResult,
   WhatsAppMessageInput,
 } from "./types";
+import { motivoDoBloqueioDeSaida, registrarSaidaBloqueada } from "@/lib/agency/cliente-falso/trava-de-saida";
 
 function errMessage(e: unknown): string {
   if (e instanceof GraphApiError) return e.detail?.message ?? e.message;
@@ -218,6 +219,18 @@ export async function publishPost(
   workspaceId: string,
   input: PublishInput,
 ): Promise<PublishResult> {
+  // ── TRAVA DE SAÍDA (24/08/2026) ─────────────────────────────────────────
+  // Publicar é a saída mais cara de errar: sai no perfil do CLIENTE, fica
+  // público, e desfazer não desfaz o print. Trava antes de carregar o token.
+  //
+  // Dois cadeados aqui: o modo de teste, e o carimbo `[TESTE]` no texto que
+  // iria ao ar — nenhum negócio real se chama assim. Post sem texto carimbado
+  // depende só do primeiro, e isso está declarado em `CADEADOS_POR_CANAL`.
+  const bloqueio = motivoDoBloqueioDeSaida("publicacao", input.connectionId ?? "", input.caption);
+  if (bloqueio) {
+    registrarSaidaBloqueada({ canal: "publicacao", destino: input.connectionId ?? "", motivo: bloqueio });
+    return { ok: false, error: `bloqueado:${bloqueio}` };
+  }
   const conn = await loadConnectionToken(workspaceId, input.connectionId);
   if (!conn) return { ok: false, error: "Conexão Meta não encontrada ou token inválido" };
 
@@ -287,6 +300,21 @@ export async function sendWhatsAppDirect(
   token: string,
   input: WhatsAppMessageInput,
 ): Promise<PublishResult> {
+  // ── TRAVA DE SAÍDA (24/08/2026) ─────────────────────────────────────────
+  // Esta é a porta MAIS INTERNA do WhatsApp: `sendWhatsAppMessage` passa por
+  // aqui, então travar aqui trava as duas. E vem ANTES de usar o token, pelo
+  // mesmo motivo do `sendEmail`: trava que mora depois da credencial só vale
+  // nas máquinas sem credencial — ou seja, vale por sorte de ambiente, e
+  // produção TEM credencial.
+  //
+  // Até hoje esta porta não tinha trava nenhuma, e o cabeçalho do `sendEmail`
+  // afirmava que o WhatsApp era "link wa.me, não envio programático". Era
+  // verdade quando foi escrito; virou mentira quando este POST nasceu.
+  const bloqueio = motivoDoBloqueioDeSaida("whatsapp", input.to ?? "", input.text);
+  if (bloqueio) {
+    registrarSaidaBloqueada({ canal: "whatsapp", destino: input.to ?? "", motivo: bloqueio });
+    return { ok: false, error: `bloqueado:${bloqueio}` };
+  }
   try {
     const res = await graphPostJson<{ messages?: Array<{ id: string }> }>(
       `${phoneNumberId}/messages`,

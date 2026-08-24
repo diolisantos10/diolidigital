@@ -42,12 +42,59 @@ export const MARCA_DO_CLIENTE_FALSO = "[TESTE]";
 /** Domínio de todo contato fictício. Reservado pela RFC 2606: não existe. */
 export const DOMINIO_DO_CLIENTE_FALSO = "cliente-falso.invalid";
 
+/** Telefone do cliente falso. Faixa 9xxxxxxxx de São Paulo que não é de
+ *  ninguém — e, sobretudo, é o número FIXO do roteiro: se aparecer numa porta
+ *  de saída, é o teste falando, com ou sem modo de teste ligado. */
+export const TELEFONE_DO_CLIENTE_FALSO = "5511900000001";
+
+/**
+ * As portas de saída da casa. Cada uma fala com gente de verdade por um meio
+ * diferente, e cada uma tem um número DIFERENTE de cadeados — o que está
+ * declarado em `CADEADOS_POR_CANAL`, porque prometer proteção que não existe é
+ * pior que não ter proteção.
+ */
+export type CanalDeSaida = "email" | "whatsapp" | "publicacao" | "avaliacao";
+
+export type MotivoDoBloqueio =
+  | "modo_cliente_falso"
+  | "dominio_inexistente"
+  | "telefone_de_teste"
+  | "carimbo_de_teste";
+
 export type SaidaBloqueada = {
-  canal: "email";
+  canal: CanalDeSaida;
   destino: string;
   assunto?: string;
-  motivo: "modo_cliente_falso" | "dominio_inexistente";
+  motivo: MotivoDoBloqueio;
   em: string;
+};
+
+/**
+ * QUANTOS CADEADOS INDEPENDENTES CADA CANAL TEM, DE VERDADE.
+ *
+ * O e-mail tem dois: o modo de teste E o domínio `.invalid`. O segundo não
+ * depende de ninguém lembrar de exportar variável — é o que segura quando o
+ * primeiro é esquecido.
+ *
+ * Os outros três NÃO têm um equivalente perfeito do `.invalid`, e isto está
+ * escrito em vez de maquiado:
+ *
+ *   • whatsapp   — 2: modo de teste + o telefone fixo do roteiro.
+ *   • publicacao — 2: modo de teste + o carimbo `[TESTE]` no texto que iria ao
+ *                  ar. O segundo só vale quando há texto carimbado; post sem
+ *                  carimbo depende só do primeiro.
+ *   • avaliacao  — 1: modo de teste. A resposta a uma avaliação do Google não
+ *                  carrega marca de teste nenhuma, e o destino é um id de
+ *                  conexão. **Um cadeado só, e é preciso saber disso.**
+ *
+ * Contar cadeado a mais no papel é o jeito mais fácil de dormir tranquilo com
+ * uma porta aberta.
+ */
+export const CADEADOS_POR_CANAL: Record<CanalDeSaida, number> = {
+  email: 2,
+  whatsapp: 2,
+  publicacao: 2,
+  avaliacao: 1,
 };
 
 const bloqueadas: SaidaBloqueada[] = [];
@@ -63,12 +110,65 @@ export function modoClienteFalso(): boolean {
  * Separada de `sendEmail` para poder ser testada sozinha — a trava mais
  * importante da casa não pode depender de subir servidor para ser conferida.
  */
-export function motivoDoBloqueio(destino: string): SaidaBloqueada["motivo"] | null {
+export function motivoDoBloqueio(destino: string): MotivoDoBloqueio | null {
+  return motivoDoBloqueioDeSaida("email", destino);
+}
+
+/**
+ * A TRAVA DE TODAS AS PORTAS. `null` = pode sair. String = motivo do bloqueio.
+ *
+ * ─── POR QUE ELA PRECISOU CRESCER (24/08/2026) ──────────────────────────────
+ *
+ * Até hoje só o e-mail tinha trava, e o cabeçalho de `lib/email/send.ts`
+ * afirmava, com a palavra "medido", que ele era *"a Única porta de saída de
+ * mensagem da casa — o WhatsApp é link `wa.me`, não envio programático"*.
+ *
+ * **Aquela medição envelheceu e ninguém releu.** Hoje
+ * `dispatchWhatsAppNotifications` chama `sendWhatsAppDirect`, que faz POST em
+ * `{phoneNumberId}/messages` no Graph da Meta — envio programático, com token
+ * de produção (`META_WHATSAPP_TOKEN` existe no Railway). E há mais duas portas
+ * que nasceram depois: `publishPost` (Instagram) e `responderAvaliacao`
+ * (Google). **Três portas para gente de verdade, sem um cadeado sequer.**
+ *
+ * Isto não é achado de teste: qualquer engano — de um Diretor, de um script mal
+ * rodado, de uma rodada do relógio em base errada — mandava mensagem, publicava
+ * post e respondia avaliação em nome de cliente real. É por isso que a trava
+ * veio ANTES do piloto, e não como parte dele.
+ *
+ * O `texto` é opcional e serve ao segundo cadeado da publicação: o carimbo
+ * `[TESTE]` viaja no conteúdo que iria ao ar.
+ */
+export function motivoDoBloqueioDeSaida(
+  canal: CanalDeSaida,
+  destino: string,
+  texto?: string,
+): MotivoDoBloqueio | null {
+  // Cadeado 1, universal: o modo de teste fecha TODAS as portas.
   if (modoClienteFalso()) return "modo_cliente_falso";
-  // `endsWith` sobre o domínio, não `includes`: "fulano@x.invalid.com.br" é um
-  // domínio REAL que contém a palavra, e barrá-lo seria censurar cliente de
-  // verdade. O que não existe é o TLD `.invalid` no fim do endereço.
-  if (/\.invalid$/i.test(destino.trim())) return "dominio_inexistente";
+
+  const alvo = (destino ?? "").trim();
+
+  // Cadeado 2, por canal — cada um vale pelo que de fato reconhece.
+  if (canal === "email") {
+    // `endsWith` sobre o domínio, não `includes`: "fulano@x.invalid.com.br" é um
+    // domínio REAL que contém a palavra, e barrá-lo seria censurar cliente de
+    // verdade. O que não existe é o TLD `.invalid` no fim do endereço.
+    if (/\.invalid$/i.test(alvo)) return "dominio_inexistente";
+  }
+
+  if (canal === "whatsapp") {
+    // Só dígitos dos dois lados: o número chega ora "+55 11 90000-0001",
+    // ora "5511900000001", e um `includes` cru deixaria passar a metade.
+    const soDigitos = alvo.replace(/\D/g, "");
+    if (soDigitos && soDigitos.endsWith(TELEFONE_DO_CLIENTE_FALSO)) return "telefone_de_teste";
+  }
+
+  // O carimbo vale para qualquer canal que carregue texto — é dado de teste se
+  // anunciando, e barrar isso nunca prejudica cliente de verdade: nenhum
+  // negócio real se chama "[TESTE]".
+  if (texto && texto.includes(MARCA_DO_CLIENTE_FALSO)) return "carimbo_de_teste";
+  if (alvo.includes(MARCA_DO_CLIENTE_FALSO)) return "carimbo_de_teste";
+
   return null;
 }
 

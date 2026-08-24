@@ -18,6 +18,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { encryptSecret, decryptSecret } from "@/lib/security/crypto";
+import { motivoDoBloqueioDeSaida, registrarSaidaBloqueada } from "@/lib/agency/cliente-falso/trava-de-saida";
 
 const HOST_CONTAS = "https://mybusinessaccountmanagement.googleapis.com/v1";
 /** As avaliações vivem na API v4, que ainda não foi migrada pelo Google. */
@@ -206,6 +207,18 @@ export async function responderAvaliacao(
   externalId: string,
   texto: string,
 ): Promise<ResultadoGoogle<{ respondida: true }>> {
+  // ── TRAVA DE SAÍDA (24/08/2026) — antes do token, sempre ────────────────
+  // ⚠️ ESTE CANAL TEM UM CADEADO SÓ, e é preciso saber disso: a resposta a uma
+  // avaliação não carrega marca de teste nenhuma e o destino é um id de
+  // conexão — não há aqui equivalente do `.invalid` do e-mail. Se o modo de
+  // teste não estiver ligado, nada mais segura. Está declarado em
+  // `CADEADOS_POR_CANAL`, porque contar cadeado a mais no papel é o jeito mais
+  // fácil de dormir tranquilo com uma porta aberta.
+  const bloqueio = motivoDoBloqueioDeSaida("avaliacao", connectionId, texto);
+  if (bloqueio) {
+    registrarSaidaBloqueada({ canal: "avaliacao", destino: connectionId, motivo: bloqueio });
+    return { ok: false, motivo: "erro_do_google", erro: `bloqueado:${bloqueio}` };
+  }
   const limpo = texto.trim();
   if (limpo.length < 10) return { ok: false, motivo: "erro_do_google", erro: "resposta curta demais para ir ao ar" };
 
@@ -222,6 +235,15 @@ export async function publicarNoGoogle(
   connectionId: string,
   input: { texto: string; imagemUrl?: string; botao?: { texto: string; url: string } },
 ): Promise<ResultadoGoogle<{ postId: string }>> {
+  // ── TRAVA DE SAÍDA (24/08/2026) — antes do token, sempre ────────────────
+  // Post no perfil do Google do CLIENTE: público, indexável, e desfazer não
+  // desfaz quem já viu. Ver `trava-de-saida.ts` para por que esta trava nasceu
+  // depois das outras e por que ela veio ANTES do piloto.
+  const bloqueio = motivoDoBloqueioDeSaida("publicacao", connectionId, input.texto);
+  if (bloqueio) {
+    registrarSaidaBloqueada({ canal: "publicacao", destino: connectionId, motivo: bloqueio });
+    return { ok: false, motivo: "sem_conexao", erro: `bloqueado:${bloqueio}` };
+  }
   const t = await comToken(connectionId);
   if (!t) return { ok: false, motivo: "sem_conexao", erro: "conexão do Google inválida ou expirada" };
 
