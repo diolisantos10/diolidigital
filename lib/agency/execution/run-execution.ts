@@ -874,7 +874,14 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
           projectId, name: title, type: esp.deliverableType, status: "in_review", content: body,
           ownerAgentId: esp.id, cycleId: cicloId,
           revisionStatus: revisionStatusDoVeredito(audit.verdict),
-          lastFeedback: audit.note || null, version: revisions + 1,
+          // ── O PARECER INTEIRO, NÃO SÓ A FRASE DE RESUMO (24/08/2026) ────────
+          // Era `audit.note`, e o juiz às vezes devolve `note` vazia com os
+          // problemas em `issues`. Medido no piloto: duas peças reprovadas com
+          // "(a Qualidade não gravou o parecer — só o veredito)". Recusa sem
+          // motivo não é acionável: quem produz não sabe o que corrigir, e quem
+          // lê o portal não sabe por que a peça parou.
+          lastFeedback: [audit.note, ...audit.issues].filter(Boolean).join(" · ") || null,
+          version: revisions + 1,
         },
         select: { id: true },
       });
