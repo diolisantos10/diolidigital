@@ -269,6 +269,7 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
     execucaoStatus: null, direcaoAprovada: false, entregas: 0,
     direcaoPedida: false, direcaoViaPortal: false, direcaoMotivo: null,
     execucaoPendencias: null, execucaoTentativas: 0,
+    entregasSemArbitro: 0, motivoSemArbitro: null,
   };
   let aceite: DesfechoDoAceite = { tentou: false, viaPortal: false, nasceuSozinho: false, motivo: "não houve proposta para aceitar" };
   let material: DesfechoDoMaterial = { pedidos: 0, enviados: 0, viaPortal: false, motivo: null };
@@ -347,6 +348,17 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
           esteira.execucaoPendencias = depois?.executionError ?? null;
           esteira.execucaoTentativas = depois?.executionAttempts ?? 0;
           esteira.entregas = await prisma.deliverable.count({ where: { projectId: esteira.projetoId } });
+          // ── QUANTAS PEÇAS NINGUÉM OLHOU ────────────────────────────────
+          // Desde 24/08/2026 elas RETÊM a apresentação (ausência de auditoria
+          // não é aprovação), então o placar precisa dizer quantas são e por
+          // quê — senão o pacote fica parado e ninguém sabe que a causa é
+          // falta de árbitro, não defeito da peça.
+          const semArbitro = await prisma.deliverable.findMany({
+            where: { projectId: esteira.projetoId, revisionStatus: "quality_nao_auditado" },
+            select: { lastFeedback: true },
+          });
+          esteira.entregasSemArbitro = semArbitro.length;
+          esteira.motivoSemArbitro = semArbitro.find((d) => d.lastFeedback?.trim())?.lastFeedback ?? null;
         } catch (e) {
           esteira.execucaoErro = e instanceof Error ? e.message : String(e);
           tropecos.push({ etapa: "execucao", erro: esteira.execucaoErro });

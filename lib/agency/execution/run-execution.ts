@@ -22,7 +22,7 @@ import { getActiveInsights, buildInsightBlock } from "@/lib/agency/radar/library
 import { moverTarefasDoAgente, marcarEntregue } from "@/lib/agency/esteira/tarefas";
 import { abrirPedido, cobrarCliente } from "@/lib/agency/esteira/pedidos";
 import {
-  DEPARTAMENTOS, ctxBlock, conferirContrato, ESQUEMA_DO_PACOTE,
+  DEPARTAMENTOS, ctxBlock, ctxBlockParaJuiz, conferirContrato, ESQUEMA_DO_PACOTE,
   type Ctx, type Departamento, type Especialista,
 } from "@/lib/agency/execution/especialistas";
 import {
@@ -805,7 +805,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // audita → se reprovar, o agente REVISA com o parecer → reentrega melhorada.
       // O cliente sempre DECIDE; nós garantimos que o que chega já está bom.
       let audit = await auditDeliverable({
-        deptLabel: nome, title, content: body, brandContext: ctxBlock(context),
+        deptLabel: nome, title, content: body, brandContext: ctxBlockParaJuiz(context),
         marketGuidelines: insightBlock, workspaceId: project.workspaceId,
         // O estado da leitura vai como DADO, não como substring para o auditor
         // farejar no contexto — ver o comentário dos três estados lá.
@@ -851,7 +851,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         body = fixedBody;
         title = fixedTitle;
         audit = await auditDeliverable({
-          deptLabel: nome, title, content: body, brandContext: ctxBlock(context),
+          deptLabel: nome, title, content: body, brandContext: ctxBlockParaJuiz(context),
           marketGuidelines: insightBlock, workspaceId: project.workspaceId,
           feed: { lida: feedDoCliente.lida, posts: feedDoCliente.posts },
           provedorDoAutor: esp.provedor ?? "claude",

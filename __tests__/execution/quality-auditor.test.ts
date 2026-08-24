@@ -370,3 +370,43 @@ describe("sem saber O QUE julga, o juiz não julga", () => {
     }
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEPOIS DA SEPARAÇÃO, A RÉGUA AINDA MORDE
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Em 24/08/2026 o contexto do juiz foi separado do contexto do autor: os FATOS
+// vão para os dois, as REGRAS DE REDAÇÃO só para quem escreve. O motivo está em
+// `fatosDaVerdade` — o juiz lia instruções do autor e cobrava OMISSÃO de fato,
+// reprovando peças que ele mesmo chamava de publicáveis.
+//
+// Separação é onde uma régua morre sem ninguém notar. Estes testes exigem que
+// ela continue pegando o que sempre pegou, nos DOIS tipos de entrega.
+describe("a régua continua mordendo depois de o juiz parar de ler o manual do autor", () => {
+  const flagrar = (note: string, issues: string[]) =>
+    generate.mockResolvedValue({ ok: true, data: { verdict: "flag", issues, note } });
+
+  for (const tipo of ["social", "strategy"]) {
+    it(`INVENÇÃO continua reprovando — tipo "${tipo}"`, async () => {
+      flagrar("inventou telefone que ninguém informou", ["telefone (11) 3333-4444 não foi informado pelo cliente"]);
+      const v = await auditDeliverable({ ...base, tipoDaEntrega: tipo });
+      expect(v.verdict).toBe("reprovado");
+      expect(v.issues.join(" ")).toMatch(/telefone/);
+    });
+
+    it(`PROMESSA FALSA continua reprovando — tipo "${tipo}"`, async () => {
+      flagrar("promete resultado que ninguém pode garantir", ["'dobre seu faturamento em 30 dias' é garantia irreal"]);
+      const v = await auditDeliverable({ ...base, tipoDaEntrega: tipo });
+      expect(v.verdict).toBe("reprovado");
+      expect(v.issues.join(" ")).toMatch(/garantia irreal/);
+    });
+
+    it(`o juiz recebe os CRITÉRIOS de julgamento — tipo "${tipo}"`, async () => {
+      generate.mockResolvedValue({ ok: true, data: { verdict: "pass", issues: [], note: "ok" } });
+      await auditDeliverable({ ...base, tipoDaEntrega: tipo });
+      const prompt = generate.mock.calls[0]![0].user as string;
+      expect(prompt).toMatch(/promessa falsa/);
+      expect(prompt).toMatch(/inventa n[úu]mero\/pre[çc]o\/dado/);
+    });
+  }
+});

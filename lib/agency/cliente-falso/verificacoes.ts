@@ -189,6 +189,17 @@ export type EstadoDaEsteira = {
   direcaoMotivo: string | null;
   /** `executionError` lido do banco — o que a casa REGISTROU, não o que estourou. */
   execucaoPendencias: string | null;
+  /**
+   * Quantas entregas NINGUÉM auditou, e por quê.
+   *
+   * Fato separado das barradas de propósito: "a Qualidade barrou" e "ninguém
+   * olhou" têm consertos opostos — um se resolve reescrevendo a peça, o outro
+   * destravando a auditoria. Somá-los num número só mandaria a equipe reescrever
+   * o que não tem defeito.
+   */
+  entregasSemArbitro: number;
+  /** O motivo mais comum de não ter havido árbitro, em uma frase. */
+  motivoSemArbitro: string | null;
   /** Quantas vezes a execução foi tentada. Zero = o portão nem deixou começar. */
   execucaoTentativas: number;
 };
@@ -913,6 +924,9 @@ export function oPacoteFecha(p: Percurso): Achado {
     return {
       ...base, veredito: "quebrou",
       detalhe: `o projeto parou em "${p.esteira.execucaoStatus ?? "?"}" com ${p.esteira.entregas} de ${p.esteira.tarefas} tarefa(s) entregues`
+             + (p.esteira.entregasSemArbitro > 0
+                 ? `. ⚪ ${p.esteira.entregasSemArbitro} entrega(s) sem árbitro independente — NÃO é defeito da peça: ${p.esteira.motivoSemArbitro ?? "motivo não gravado"}`
+                 : "")
              + (p.esteira.execucaoPendencias ? ` — ${p.esteira.execucaoPendencias}` : "")
              + ". Os portões estão certos; quem tem de melhorar é quem produz.",
     };
@@ -974,11 +988,14 @@ export function oClienteAprovaAsPecas(p: Percurso): Achado {
       detalhe: "a porta respondeu OK e NENHUMA aprovação ficou com carimbo `client:` — "
              + "para o portal a peça parece aprovada e para a publicação não está" };
   }
+  const semArbitro = p.esteira.entregasSemArbitro > 0
+    ? ` · ⚪ ${p.esteira.entregasSemArbitro} entrega(s) NINGUÉM auditou`
+    : "";
   const ressalva = a.carimboDeOutro > 0
     ? ` (${a.carimboDeOutro} com carimbo que não é do cliente — conferir de onde veio)`
     : "";
   return { ...base, veredito: "passou",
-    detalhe: `${a.carimboDoCliente} entrega(s) aprovada(s) pelo cliente, com carimbo dele, pela porta do portal${ressalva}` };
+    detalhe: `${a.carimboDoCliente} entrega(s) aprovada(s) pelo cliente, com carimbo dele, pela porta do portal${ressalva}${semArbitro}` };
 }
 
 // ─── ONDE A ESTEIRA ACABA — e por que isto NÃO é uma etapa faltando ─────────

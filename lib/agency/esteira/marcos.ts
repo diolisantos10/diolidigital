@@ -187,6 +187,34 @@ export async function apresentar(projectId: string, opts: { mesmoComRessalva?: b
     };
   }
 
+  // ── PEÇA QUE NINGUÉM OLHOU NÃO CHEGA AO CLIENTE (24/08/2026) ──────────────
+  //
+  // A doutrina da casa é antiga e está escrita em `quality-auditor.ts`:
+  // "`nao_auditado` NUNCA pode ser lido como `aprovado`". Só que a consequência
+  // PRÁTICA contradizia a doutrina — apenas `quality_flag` retinha a
+  // apresentação, e a peça que nenhum árbitro examinou seguia para o cliente
+  // como se tivesse passado. Medido no piloto: três de sete entregas saíram
+  // `quality_nao_auditado` (o único modelo disponível para julgar era o mesmo
+  // que escreveu a peça) e nada as segurava.
+  //
+  // O MOTIVO É OUTRO, e por isso a mensagem é outra: "a Qualidade barrou" e
+  // "ninguém auditou" são fatos diferentes, com consertos diferentes — um se
+  // resolve reescrevendo a peça, o outro conectando um segundo provedor de IA.
+  // Juntá-los na mesma frase mandaria a equipe reescrever o que não tem defeito.
+  //
+  // `mesmoComRessalva` vale para os dois: é o escape declarado de quem decide
+  // apresentar assim mesmo, e continua sendo uma decisão de gente.
+  const semArbitroParaApresentar = entregaveis.filter((d) => d.revisionStatus === "quality_nao_auditado");
+  if (semArbitroParaApresentar.length > 0 && opts.mesmoComRessalva !== true) {
+    return {
+      ok: false,
+      erro:
+        `${semArbitroParaApresentar.length} entrega(s) que NINGUÉM auditou — ausência de auditoria não é aprovação. `
+        + `Motivo em cada peça (ex.: não há árbitro independente, IA fora do ar). `
+        + `Não é defeito da peça: não reescreva, destrave a auditoria.`,
+    };
+  }
+
   const pendentes = await prisma.materialRequest.count({ where: { projectId, status: "pending" } });
 
   await prisma.project.update({ where: { id: projectId }, data: { presentedAt: new Date() } });
