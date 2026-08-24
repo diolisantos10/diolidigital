@@ -24,6 +24,7 @@
     "sentinela": "tsx scripts/sentinela-do-deploy.mts",
     "distancia": "tsx scripts/distancia-do-deploy.mts",
     "portao": "tsx scripts/portao-do-deploy.mts",
+    "redisparar": "tsx scripts/redisparar-deploy.mts",
     "deploy:emergencia": "tsx scripts/deploy-de-emergencia.mts",
     "raio-x": "tsx scripts/raio-x.ts",
     "prontidao": "tsx scripts/prontidao-de-publicacao.mts",

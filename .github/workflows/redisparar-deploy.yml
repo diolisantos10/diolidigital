@@ -1,0 +1,106 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# REDISPARO DO DEPLOY — quando a CI ficou verde e o Railway descartou mesmo assim
+#
+# ── O INCIDENTE (24/08/2026) ────────────────────────────────────────────────
+# Sete commits ficaram fora do ar com a CI VERDE. O Railway criava a
+# implantação e, ~11 segundos depois de a CI fechar `success`, marcava SKIPPED.
+# A produção serviu código de sete commits atrás sem UM alarme: CI verde, painel
+# verde, entrega parada. Deploy descartado não faz barulho — foi a leitura à mão
+# do "qual commit está rodando" que pegou.
+#
+# ── O QUE ESTE WORKFLOW É, E O QUE ELE NÃO É ────────────────────────────────
+# ⛔ Ele NÃO fura o portão. `scripts/redisparar-deploy.mts` RECUSA disparar sem
+#    CI verde, usando a mesma régua do sentinela — "sem CI" não conta como verde
+#    aqui, como não conta lá. O commit já ganhou o direito de subir; isto
+#    reafirma uma decisão que a CI tomou, não a contorna.
+# ⛔ Ele NÃO desliga o "Wait for CI". A mutação usada (`serviceInstanceDeployV2`)
+#    não passa pelo portão, então não há por que mexer nele. `checkSuites` fica
+#    LIGADO. Desligar resolveria o travamento e abriria um buraco maior — seria
+#    calar o alarme, que é o que esta casa proíbe.
+#
+# Para subir SEM prova de CI (a CI fora do ar, produção quebrada) o caminho é
+# outro, de propósito: `npm run deploy:emergencia`, que cobra quem/motivo e
+# deixa registro em `docs/deploys/emergencias.md`.
+#
+# ⚠️ O log deste repositório é PÚBLICO. O token nunca é impresso: o passo de
+# conferência afirma PRESENÇA, nunca valor.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Redisparar deploy (CI verde descartada)
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: "Commit a subir (vazio = topo da branch de produção)"
+        required: false
+        default: ""
+      ensaio:
+        description: "Ensaio: confere e NÃO dispara"
+        required: false
+        default: "false"
+
+# Um redisparo de cada vez: dois em paralelo criariam duas implantações do
+# mesmo commit e o histórico deixaria de responder "qual subiu?".
+concurrency:
+  group: redisparar-deploy
+  cancel-in-progress: false
+
+jobs:
+  redisparar:
+    name: Redisparar o commit que a CI já aprovou
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # `git ls-remote` precisa do remoto; o histórico raso basta.
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      # PRESENÇA, NUNCA VALOR — mesmo padrão da sonda da chave de IA.
+      - name: O token do Railway existe?
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -z "${RAILWAY_TOKEN}" ]; then
+            echo "::error::RAILWAY_TOKEN não está nos segredos deste repositório."
+            echo "Sem ele não há como falar com o Railway — e adivinhar não é opção."
+            echo "Cadastre em: Settings -> Secrets and variables -> Actions -> New repository secret"
+            echo "  Nome: RAILWAY_TOKEN   (token de PROJETO da Dioli Digital / production)"
+            exit 1
+          fi
+          echo "✅ token presente. O valor não é impresso em passo nenhum deste workflow."
+
+      - name: Redisparar
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          # `olharCI` consulta a CI do commit; o token padrão do Actions basta.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          args=""
+          if [ -n "${{ github.event.inputs.commit }}" ]; then
+            args="--commit=${{ github.event.inputs.commit }}"
+          fi
+          if [ "${{ github.event.inputs.ensaio }}" = "true" ]; then
+            args="$args --ensaio"
+          fi
+          npm run redisparar -- $args
+
+      # A segunda leitura, dentro do próprio workflow: o que vale é o HASH.
+      - name: Segunda leitura — qual commit está rodando
+        if: ${{ github.event.inputs.ensaio != 'true' }}
+        run: |
+          echo "Esperando a implantação assentar…"
+          sleep 90
+          echo "Produção diz:"
+          curl -sS --max-time 30 https://www.diolidigital.com.br/api/health || true
+          echo
+          echo "⚠️ O que vale é o campo \"commit\", NUNCA o \"status\": ok."
