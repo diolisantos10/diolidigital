@@ -72,6 +72,7 @@ import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pag
 // pior que nenhum, porque ele é acreditado.
 import { conferirFormatoDeMidia } from "@/lib/integrations/meta/formato-de-midia";
 import { postsComFormatoRecusado } from "@/lib/agency/execution/reconversao-de-formato";
+import { PRECO_DE_TABELA_USD } from "@/lib/ai/precos";
 
 /** Quantas artes por rodada. Cada uma é uma chamada cara de modelo de imagem —
  *  um calendário de 12 posts custaria 12 de uma vez se não houvesse teto. */
@@ -518,6 +519,10 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
         size: proporcao,
         quality: "high",
         workspaceId: post.workspaceId,
+        // A QUEM ESTA IMAGEM É COBRADA. Sem isto a linha do livro-caixa sai sem
+        // cliente, e "quanto custou este cliente este mês" volta a não ter
+        // resposta — que é o defeito que o registro de custo existe para matar.
+        conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine" },
       }).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : "erro" }));
       // A chamada saiu: o dinheiro saiu junto, deu certo ou não.
       orcamento.gastar(post.clientId, 1);
@@ -689,9 +694,51 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       data: { mediaUrl: `/api/media/${guardado.arquivo.id}`, lastError: composta.nota },
     });
     saida.produzidas++;
+    // A ARTE SAIU: o arquivo, a peça e o preço de tabela, numa linha só.
+    // Sem isto o único rastro de uma imagem paga era `mediaUrl` no banco — e
+    // "quanto a casa produziu hoje" só se respondia abrindo o banco. O custo
+    // é ESTIMATIVA DE TABELA (a linha do livro-caixa é escrita pelo motor, em
+    // `design-engine.ts`); esta casa não lê o faturamento do provedor.
+    console.log(
+      `[arte] peça ${post.id} recebeu arte — /api/media/${guardado.arquivo.id}` +
+      ` · cliente=${post.clientId ?? "(sem dono)"} · formato=${post.format}` +
+      ` · custo estimado de tabela US$ ${PRECO_DA_IMAGEM_NA_TABELA(post.format).toFixed(3)} (estimativa, não fatura)`,
+    );
   }
 
+  contarOSilencio(saida);
   return saida;
+}
+
+/** O preço de tabela de UMA imagem no recorte que esta rodada pede. Lido da
+ *  tabela única da casa — nunca digitado aqui. */
+function PRECO_DA_IMAGEM_NA_TABELA(formato: string | null | undefined): number {
+  return normalizarFormatoDaArte(formato) === "story" ? PRECO_DE_TABELA_USD.retrato : PRECO_DE_TABELA_USD.quadrada;
+}
+
+function normalizarFormatoDaArte(f: string | null | undefined): string {
+  return (f ?? "").trim().toLowerCase();
+}
+
+/**
+ * O QUE A RODADA NÃO FEZ, DITO EM VOZ ALTA.
+ *
+ * `desistiram`, `semOrcamento` e `semPagamento` eram três silêncios: o
+ * despertador só repassa `falhas` e `semRenderizador`, então uma casa inteira
+ * podendo estar parada por falta de pagamento, por teto do dia ou por pilar
+ * bloqueado registrava exatamente a mesma coisa que uma casa sem trabalho —
+ * "0 arte(s) produzida(s)". Fila parada conta como entrega não feita, e é a
+ * mesma regra que fez `semRenderizador` existir.
+ *
+ * Só fala quando há o que dizer: rodada limpa continua silenciosa.
+ */
+function contarOSilencio(saida: ArtesFeitas): void {
+  const partes: string[] = [];
+  if (saida.semPagamento.length > 0) partes.push(`${saida.semPagamento.length} esperando pagamento confirmado`);
+  if (saida.semOrcamento.length > 0) partes.push(`${saida.semOrcamento.length} adiada(s) pelo teto do dia`);
+  if (saida.desistiram.length > 0) partes.push(`${saida.desistiram.length} desistiram (precisam de gente ou de material)`);
+  if (partes.length === 0) return;
+  console.log(`[arte] rodada produziu ${saida.produzidas} — e NÃO produziu: ${partes.join(" · ")}`);
 }
 
 // ─── Internos ───────────────────────────────────────────────────────────────
@@ -2029,6 +2076,10 @@ async function montarCarrossel(
       size: "square",
       quality: "high",
       workspaceId: post.workspaceId,
+      // Cada TELA é uma imagem paga e uma linha do livro-caixa — um carrossel
+      // de 6 telas custa 6 imagens, e contá-lo como uma esconderia o item que
+      // mais multiplica gasto nesta casa.
+      conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine" },
     }).catch(() => ({ ok: false as const, url: undefined }));
     gerou++;
 

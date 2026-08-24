@@ -37,7 +37,7 @@
 // grava é metadado: quem, quanto, quanto custou, e o motivo quando falha.
 
 import { prisma } from "@/lib/db/client";
-import { estimarCusto } from "@/lib/ai/precos";
+import { estimarCusto, estimarCustoDeImagem, type TamanhoDeImagem } from "@/lib/ai/precos";
 
 export interface UsoDeTokens {
   entrada: number | null;
@@ -49,6 +49,24 @@ export interface UsoDeTokens {
   /** Tokens LIDOS do cache (custam ~0,1x). É o número que prova a economia —
    *  se ele fica em zero entre chamadas iguais, algo invalidou o prefixo. */
   cacheLido?: number | null;
+}
+
+/**
+ * O RECORTE DE UMA CHAMADA DE IMAGEM — presente só quando a chamada FOI de
+ * imagem, ausente em todas as outras.
+ *
+ * Existe porque imagem não se cobra por token: o `images/generations` cobra por
+ * imagem PRODUZIDA, por tamanho e por qualidade. Passar `uso` com tokens nulos
+ * faria `estimarCusto` devolver `null`, e `null` no teto de custo vale o valor
+ * de substituição (US$ 0,05) — ou seja, a imagem mais cara da casa entraria na
+ * conta pelo preço de um chute barato. Aqui ela entra pelo preço dela.
+ */
+export interface ImagemDaChamada {
+  tamanho: TamanhoDeImagem;
+  /** A qualidade tal como foi ENVIADA ao provedor (`high`, `medium`, `hd`…). */
+  qualidade: string;
+  /** Quantas imagens saíram nesta chamada. `1` no caminho desta casa. */
+  quantas?: number;
 }
 
 export interface ChamadaDeIa {
@@ -70,6 +88,30 @@ export interface ChamadaDeIa {
   /** Um provedor de reserva atendeu no lugar do preferido. */
   fallbackUsed?: boolean;
   fallbackReason?: string | null;
+  /** Presente só em chamada de IMAGEM — ver `ImagemDaChamada`. */
+  imagem?: ImagemDaChamada | null;
+}
+
+/**
+ * O custo estimado desta chamada — texto por token, imagem por imagem.
+ *
+ * ── POR QUE UMA CHAMADA DE IMAGEM QUE FALHOU CUSTA ZERO, E NÃO `null` ───────
+ *
+ * `null` significa "não sei quanto custou", e o teto de custo trata "não sei"
+ * como US$ 0,05 (`CUSTO_DE_CHAMADA_SEM_PRECO_USD`) justamente para não contar
+ * desconhecido como grátis. Aqui não é desconhecido: o `images/generations`
+ * cobra por imagem PRODUZIDA, e uma requisição recusada (400/403) não produz
+ * imagem nenhuma. Zero é o FATO, não uma ausência — e chutar 0,05 por recusa
+ * faria uma conta sem acesso ao modelo (que erra em rajada, de graça) inflar o
+ * gasto do workspace e fechar o teto de quem não gastou nada.
+ *
+ * A linha continua sendo gravada com `status: "error"`: falha de imagem é
+ * notícia, e o relatório precisa conseguir contá-la.
+ */
+function custoDaChamada(c: ChamadaDeIa) {
+  if (!c.imagem) return estimarCusto(c.model, c.uso?.entrada, c.uso?.saida);
+  if (c.status === "error") return { usd: 0, versao: estimarCustoDeImagem(c.model, c.imagem.tamanho, c.imagem.qualidade, 0).versao };
+  return estimarCustoDeImagem(c.model, c.imagem.tamanho, c.imagem.qualidade, c.imagem.quantas ?? 1);
 }
 
 /**
@@ -80,7 +122,7 @@ export interface ChamadaDeIa {
  * mesmo falha.
  */
 export async function registrarChamadaDeIa(c: ChamadaDeIa): Promise<boolean> {
-  const custo = estimarCusto(c.model, c.uso?.entrada, c.uso?.saida);
+  const custo = custoDaChamada(c);
   try {
     await prisma.aIRunLog.create({
       data: {

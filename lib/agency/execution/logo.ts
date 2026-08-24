@@ -130,6 +130,7 @@ export async function produzirKitDeMarca(
     size: "square",
     quality: "high",
     workspaceId,
+    conta: { departmentId: "design", clientId, projectId, agentId: "design-engine" },
   }).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : "erro" }));
 
   if (simbolo.ok && simbolo.url) {

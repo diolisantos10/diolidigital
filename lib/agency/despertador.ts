@@ -511,6 +511,33 @@ export async function baterORelogio(): Promise<{
     quebrou("material-do-drive", err);
   }
 
+  // ── A COLHEITA, ANTES DA ARTE — 24/08/2026 ───────────────────────────────
+  //
+  // Vem aqui porque a perna de arte logo abaixo lê `SocialPost`, e nada nesta
+  // rodada enchia essa tabela: `agendarPostsDaEntrega` só era chamada por três
+  // eventos que já passaram (apresentar, virar mês, repescagem da escada).
+  // Entrega que ficava elegível DEPOIS deles nunca mais era colhida — e a
+  // rodada de arte trabalhava sobre nada, a cada 5 minutos. Medido no case
+  // Farol 27: 14 entregas de texto, 0 peça esperando arte, 2 peças prontas
+  // para nascer e paradas.
+  //
+  // Não gasta, não publica e não afrouxa portão nenhum: a peça nasce `draft` e
+  // os portões (escada, Qualidade, pilar) continuam por dentro da MESMA função
+  // que a porta manual usa. Ver `colherPecasDasEntregas`.
+  //
+  // Falhar aqui NÃO pode derrubar a rodada.
+  try {
+    const { colherPecasDasEntregas } = await import("@/lib/agency/execution/produzir-agora");
+    const r = await colherPecasDasEntregas();
+    if (r.criadas > 0) log(`colheita: ${r.criadas} entrega(s) viraram peça de calendário em ${r.projetos} projeto(s)`);
+    // Trabalho pago que não virou peça é NOTÍCIA, nunca silêncio — mesma regra
+    // de `naoInterpretadas` e `retidas` em `publicacao.ts`.
+    for (const x of r.retidas) log(`colheita reteve "${x.nome}": ${x.motivo}`);
+    for (const f of r.falhas) quebrou("colheita-de-pecas", f);
+  } catch (err) {
+    quebrou("colheita-de-pecas", err);
+  }
+
   // A arte vem ANTES da publicação, e por um motivo prático: o Instagram exige
   // mídia em todo formato. Post sem imagem não vai ao ar — produzir depois
   // significaria perder a data agendada e só publicar na rodada seguinte.
