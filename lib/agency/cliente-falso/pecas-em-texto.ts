@@ -87,8 +87,17 @@ export async function pecasEmTexto(projectId: string, nomeDoCliente: string): Pr
     // `quality_flag`, e sem o parecer aqui a única forma de saber POR QUÊ é
     // abrir o banco. Foi o que travou o piloto em 24/08/2026 — e ler o motivo
     // é a diferença entre consertar o produtor e adivinhar.
-    if (e.revisionStatus === "quality_flag" && e.lastFeedback?.trim()) {
-      l.push("", `> ⚠️ **A Qualidade barrou:** ${e.lastFeedback.trim()}`);
+    // Vale para os DOIS estados que seguram a apresentação. Na primeira versão
+    // só o `quality_flag` mostrava o parecer, e as peças `quality_nao_auditado`
+    // apareciam sem motivo nenhum — "ninguém olhou" também precisa dizer POR
+    // QUÊ (IA fora do ar? juiz não imparcial? tipo não declarado?), senão a
+    // única forma de saber é abrir o banco. Terceira vez que este documento
+    // aprende a mesma coisa.
+    if (e.revisionStatus === "quality_flag") {
+      l.push("", `> ⚠️ **A Qualidade barrou:** ${e.lastFeedback?.trim() || "(a Qualidade não gravou o parecer — só o veredito)"}`);
+    }
+    if (e.revisionStatus === "quality_nao_auditado") {
+      l.push("", `> ⚪ **Ninguém auditou:** ${e.lastFeedback?.trim() || "(motivo não gravado)"}`);
     }
     // O cliente só vê o que foi compartilhado — dizer isso evita a leitura
     // errada de que tudo que está aqui chegou a ele.
