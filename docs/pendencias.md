@@ -41,16 +41,46 @@ O que o Railway fez com cada um:
 - **Não foram as duas check suites paradas.** `claude` e `railway-app` ficam
   `queued` com zero runs em TODOS os commits — inclusive em `a50eb547`, que
   subiu normalmente. Se fossem a causa, nada teria subido nunca.
-- **A hipótese que sobra:** dois pushes a 2 segundos um do outro (`c10c9b43` às
-  00:59:00 e `388b0c97` às 00:59:02) criaram dois deploys simultâneos em espera,
-  e os dois foram descartados — o mais velho por ser superado, e o mais novo
-  junto. É primo do incidente de 16/08 (produção travada 21 commits atrás), que
-  foi consertado do lado da CI (concorrência por SHA) mas **não do lado do
-  Railway**.
+- **~~Dois pushes a 2 segundos um do outro~~ — HIPÓTESE TESTADA E DERRUBADA.**
+  Era a explicação que sobrava (`c10c9b43` às 00:59:00 e `388b0c97` às 00:59:02
+  criando dois deploys simultâneos em espera). O teste foi um push ÚNICO, limpo e
+  isolado — `dc7ff6d3`, sem nenhum outro perto dele. CI verde. O Railway criou o
+  deploy `26ba5ebe` às 01:08:08 e o marcou **SKIPPED** às 01:13:14. **Não é
+  colisão de pushes.**
 
-⚠️ **NÃO CONFIRMADA.** Não há como provar daqui: `RAILWAY_TOKEN` não está neste
-ambiente, e `npm run deploy:emergencia` depende dele. Fica como hipótese
-declarada, não como fato.
+### O que se sabe de fato, depois do teste
+
+**Todo deploy posterior a `a50eb547` é descartado, invariavelmente, ~5–6 minutos
+depois de criado — logo após a CI fechar verde.**
+
+| commit | criado | descartado | espera |
+|---|---|---|---|
+| `c10c9b43` | 00:59:00 | 01:04:13 | 5min13 |
+| `388b0c97` | 00:59:02 | 01:05:21 | 6min19 |
+| `dc7ff6d3` (push isolado) | 01:08:08 | 01:13:14 | 5min06 |
+
+E `a50eb547`, que SUBIU, esperou **7min38** (00:19:04 → 00:26:42 SUCCESS) — mais
+do que qualquer um dos descartados. Então não é teto de tempo fixo.
+
+### A pista que sobra, para quem tem o painel
+
+O serviço está com `checkSuites: true` ("Wait for CI"), e o commit tem **TRÊS**
+check suites: `github-actions` (fecha `success`) e mais duas — `claude` e
+`railway-app` — que ficam **`queued` com ZERO runs, para sempre**. Se o portão
+espera TODAS as suites, essas duas nunca resolvem e o deploy morre por espera.
+
+⚠️ Isso **não explica** por que `a50eb547` subiu com as mesmas duas suites
+paradas. Fica como PISTA, não como causa — e é a primeira coisa a olhar no
+painel.
+
+### ⛔ Não dá para resolver daqui
+
+`RAILWAY_TOKEN` não está neste ambiente e `npm run deploy:emergencia` depende
+dele. As ferramentas de Railway disponíveis não expressam "suba este commit":
+uma cria um SERVIÇO NOVO duplicado, a outra reaproveita a build de um deploy
+existente (a errada). Cutucar produção com ferramenta ambígua num portão que
+está se comportando de forma inesperada seria trocar um problema conhecido por
+um desconhecido. **É bloqueio de dono: precisa do painel do Railway.**
 
 ### O que se aprende, independentemente da causa
 
@@ -59,8 +89,9 @@ a CI fica verde, o painel fica verde, e a produção simplesmente não anda. O
 sentinela (`sentinela-do-deploy.yml`) existe para pegar isto, mas ele roda de
 hora em hora — nesta janela, quem pegou foi a segunda leitura à mão.
 
-**Regra prática enquanto isso não tem trava:** não empurrar dois commits em
-poucos segundos. Ou se juntam num só, ou se espera o portão do primeiro fechar.
+**A regra prática que eu tinha escrito aqui** ("não empurrar dois commits em
+poucos segundos") **caiu junto com a hipótese** — o push isolado foi descartado
+igual. Fica sem regra prática até alguém abrir o painel.
 
 ---
 
