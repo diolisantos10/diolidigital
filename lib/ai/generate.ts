@@ -141,9 +141,10 @@ const FERRAMENTA_DO_PACOTE = {
   input_schema: { type: "object" as const, additionalProperties: true },
 };
 
+
 async function callClaude(
   apiKey: string, model: string, m: OpenAIMessages, maxTokens: number,
-  timeoutMs?: number, cachearSistema?: boolean,
+  timeoutMs?: number, cachearSistema?: boolean, esquema?: Record<string, unknown>,
 ): Promise<GenerateResult> {
   const { signal, clear } = withTimeout(timeoutMs);
   try {
@@ -182,7 +183,7 @@ async function callClaude(
         // foi removido na família 4.6+. Uso de ferramenta forçado é o mecanismo
         // que existe neste modelo, e resolve pela raiz — o modelo não pode
         // responder em prosa porque não há canal de prosa disponível.
-        tools: [FERRAMENTA_DO_PACOTE],
+        tools: [esquema ? { ...FERRAMENTA_DO_PACOTE, input_schema: esquema } : FERRAMENTA_DO_PACOTE],
         tool_choice: { type: "tool", name: FERRAMENTA_DO_PACOTE.name },
       }),
       signal,
@@ -381,8 +382,9 @@ function callProvider(
   attempts: number,
   timeoutMs?: number,
   cachearSistema?: boolean,
+  esquema?: Record<string, unknown>,
 ): Promise<GenerateResult> {
-  if (provider === "claude") return callWithRetry(() => callClaude(apiKey, model, messages, maxTokens, timeoutMs, cachearSistema), attempts);
+  if (provider === "claude") return callWithRetry(() => callClaude(apiKey, model, messages, maxTokens, timeoutMs, cachearSistema, esquema), attempts);
   if (provider === "openai" || provider === "deepseek" || provider === "perplexity") {
     return callWithRetry(() => callOpenAICompatible(provider, apiKey, model, messages, maxTokens, timeoutMs), attempts);
   }
@@ -479,6 +481,16 @@ export async function generate(options: {
    * seria lido e a gravação apenas encareceria. Ver o comentário em `callClaude`.
    */
   cachearSistema?: boolean;
+  /**
+   * A forma que a resposta TEM de ter, como esquema de ferramenta.
+   *
+   * Só o Claude a aplica hoje — é o provedor cuja garantia de formato é uso de
+   * ferramenta forçado (ver `formato-garantido.ts`). Os outros garantem JSON
+   * por outro mecanismo, que não carrega forma. Passar `esquema` para eles não
+   * quebra nada e também não promete nada, e isto está escrito em vez de
+   * suposto.
+   */
+  esquema?: Record<string, unknown>;
   /** Teto de espera por chamada. Ausente = 60s, o de sempre. O SDR usa 30s:
    *  é conversa ao vivo, e quem está do outro lado não espera um minuto. */
   timeoutMs?: number;
@@ -588,7 +600,7 @@ export async function generate(options: {
     const model = (fixado && provider === fixado.provider ? modeloFixado : null) ?? resolved.model ?? modeloPadrao(provider);
     const attempts = tried.length === 0 ? (options.tentativas ?? 3) : 1;
     const comecou = Date.now();
-    const result = await callProvider(provider, resolved.apiKey, model, messages, maxTokens, attempts, options.timeoutMs, options.cachearSistema);
+    const result = await callProvider(provider, resolved.apiKey, model, messages, maxTokens, attempts, options.timeoutMs, options.cachearSistema, options.esquema);
     const duracaoMs = Date.now() - comecou;
 
     if (result.ok) {

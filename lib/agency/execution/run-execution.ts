@@ -22,7 +22,7 @@ import { getActiveInsights, buildInsightBlock } from "@/lib/agency/radar/library
 import { moverTarefasDoAgente, marcarEntregue } from "@/lib/agency/esteira/tarefas";
 import { abrirPedido, cobrarCliente } from "@/lib/agency/esteira/pedidos";
 import {
-  DEPARTAMENTOS, ctxBlock, conferirContrato,
+  DEPARTAMENTOS, ctxBlock, conferirContrato, ESQUEMA_DO_PACOTE,
   type Ctx, type Departamento, type Especialista,
 } from "@/lib/agency/execution/especialistas";
 import {
@@ -643,6 +643,12 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         system: `Você é o especialista de ${esp.label} do departamento de ${dept.label} de uma agência de marketing brasileira. Produza conteúdo real, específico e pronto para o cliente. Responda SOMENTE com JSON válido.`,
         user: esp.prompt(context) + (insightBlock ? `\n\n${insightBlock}` : ""),
         maxTokens: tetoDeTokens,
+        // ── A FORMA, TRAVADA EM CÓDIGO QUANDO HÁ CONTRATO ──────────────────
+        // Especialista com contrato de saída tem a contagem conferida em
+        // `data.items`. Objeto sem `items` vira "entregou 0" — e foi o que o
+        // piloto mediu na pauta, de forma intermitente. Com o esquema
+        // declarado o modelo não CONSEGUE devolver outra forma.
+        ...(esp.contrato ? { esquema: ESQUEMA_DO_PACOTE } : {}),
         workspaceId: project.workspaceId,
         preferredProvider: esp.provedor ?? "claude",
         // DE QUEM é a chamada. Duas coisas dependem disto e nenhuma é opcional:
@@ -679,7 +685,8 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
             parecer: `O CONTRATO DE SAÍDA NÃO FOI CUMPRIDO:\n- ${contrato.violacoes.join("\n- ")}`,
             instrucao: "Reentregue o JSON inteiro cumprindo exatamente essas contagens e formatos.",
           }),
-          maxTokens: tetoDeTokens, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
+          maxTokens: tetoDeTokens, ...(esp.contrato ? { esquema: ESQUEMA_DO_PACOTE } : {}),
+          workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
           clientId: project.clientId, departmentId: dept.id, agentId: esp.id, projectId,
         });
         correcoesDeContrato++;
@@ -754,7 +761,8 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
             parecer: `A VERIFICAÇÃO DE VERDADE REPROVOU a versão anterior: ${parecer}`,
             instrucao: 'Refaça sem esses dados — inclusive no campo "title". Onde faltar informação do cliente, escreva "PRECISO CONFIRMAR: <o quê>".',
           }),
-          maxTokens: tetoDeTokens, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
+          maxTokens: tetoDeTokens, ...(esp.contrato ? { esquema: ESQUEMA_DO_PACOTE } : {}),
+          workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
           clientId: project.clientId, departmentId: dept.id, agentId: esp.id, projectId,
         });
         correcoesDePiso++;
@@ -824,7 +832,8 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
             parecer: `A Qualidade REPROVOU a versão anterior por: ${audit.issues.join("; ") || audit.note}`,
             instrucao: "Refaça corrigindo exatamente esses pontos, mantendo o que já estava bom.",
           }),
-          maxTokens: tetoDeTokens, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
+          maxTokens: tetoDeTokens, ...(esp.contrato ? { esquema: ESQUEMA_DO_PACOTE } : {}),
+          workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
           clientId: project.clientId, departmentId: dept.id, agentId: esp.id, projectId,
         });
         revisions++;

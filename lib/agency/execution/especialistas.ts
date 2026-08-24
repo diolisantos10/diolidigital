@@ -582,6 +582,36 @@ function receitaDeFormatos(e: ExigenciaDeConteudo): Record<string, number> {
   return receita;
 }
 
+/**
+ * A FORMA DA RESPOSTA, TRAVADA EM CÓDIGO — não confiada à prosa do prompt.
+ *
+ * ── Por que nasceu, e por que mora AQUI (24/08/2026) ────────────────────────
+ * `formato()`, logo abaixo, descreve a forma em texto: `{"title", "summary",
+ * "items": [...]}`. Todo contrato de saída desta casa conta `data.items`. No
+ * piloto, o especialista de pauta devolveu um objeto SEM `items` e o contrato
+ * leu "entregou 0 semanas de calendário" — de forma intermitente: duas rodadas
+ * certas, a terceira não. É a pior maneira de um defeito aparecer, porque
+ * parece azar e volta quando ninguém está olhando.
+ *
+ * Prompt é aviso; código é trava (guardrail 4). Declarado como esquema da
+ * ferramenta, o modelo NÃO CONSEGUE devolver outra forma — deixa de ser uma
+ * instrução que ele pode desobedecer.
+ *
+ * Mora ao lado de `formato()` de propósito: os dois descrevem a MESMA forma, e
+ * separá-los seria criar a segunda régua que envelhece sozinha. A camada de IA
+ * só empresta o mecanismo (`esquema`), não conhece esta forma.
+ */
+export const ESQUEMA_DO_PACOTE = {
+  type: "object" as const,
+  properties: {
+    title: { type: "string" },
+    summary: { type: "string" },
+    items: { type: "array", items: { type: "object", additionalProperties: true }, minItems: 1 },
+  },
+  required: ["items"],
+  additionalProperties: true,
+};
+
 /** Formato único de saída — o motor sabe transformar isto em entregável. */
 function formato(titulo: string, campos: string): string {
   return `Responda em JSON: {"title": "${titulo}", "summary": "1 frase", "items": [{${campos}}]}`;

@@ -17,6 +17,7 @@
 import { describe, it, expect } from "vitest";
 import {
   TODOS_OS_ESPECIALISTAS, conferirContrato, ctxBlock, MISTURA_DE_FORMATOS, type Ctx,
+  ESQUEMA_DO_PACOTE,
 } from "@/lib/agency/execution/especialistas";
 import { lerEscopoDeConteudo, exigenciaDeConteudo } from "@/lib/agency/execution/escopo-do-cliente";
 
@@ -183,5 +184,40 @@ describe("a receita de formatos fecha a conta — o modelo não faz aritmética"
     expect(items.length).toBe(exigenciaDeConteudo(escopoDoPiloto).min);
     const r = conferirContrato(copy, { title: "t", summary: "s", items }, c);
     expect(r.violacoes, `a receita do prompt foi reprovada: ${r.violacoes.join("; ")}`).toEqual([]);
+  });
+});
+
+describe("a FORMA da resposta é trava, não recado", () => {
+  it("o esquema exige `items` — é o campo que todo contrato conta", () => {
+    // O piloto mediu a pauta devolvendo objeto sem `items`, INTERMITENTEMENTE:
+    // duas rodadas certas, a terceira não. Prosa no prompt o modelo desobedece;
+    // esquema de ferramenta, não.
+    expect(ESQUEMA_DO_PACOTE.required).toContain("items");
+    expect(ESQUEMA_DO_PACOTE.properties.items.type).toBe("array");
+    expect(ESQUEMA_DO_PACOTE.properties.items.minItems).toBe(1);
+  });
+
+  it("o esquema descreve a MESMA forma que `formato()` pede em prosa", () => {
+    // Se os dois divergirem, volta a haver duas réguas — uma travando e outra
+    // pedindo. O prompt tem de citar exatamente as chaves que o esquema exige.
+    const p = copy.prompt(ctx({ escopoContratado: escopoDoPiloto }));
+    for (const chave of Object.keys(ESQUEMA_DO_PACOTE.properties)) {
+      expect(p, `o prompt não menciona "${chave}"`).toContain(`"${chave}"`);
+    }
+  });
+
+  it("a camada de IA aceita esquema por chamada, e sem ele nada muda", async () => {
+    // Aditivo: os 29 caminhos que não passam `esquema` seguem com o schema
+    // aberto de sempre.
+    const fonte = await import("node:fs/promises").then((fs) =>
+      fs.readFile("lib/ai/generate.ts", "utf-8"));
+    expect(fonte).toContain("esquema ? { ...FERRAMENTA_DO_PACOTE, input_schema: esquema } : FERRAMENTA_DO_PACOTE");
+  });
+
+  it("todo especialista COM contrato recebe o esquema no motor", async () => {
+    const fonte = await import("node:fs/promises").then((fs) =>
+      fs.readFile("lib/agency/execution/run-execution.ts", "utf-8"));
+    // A condição é ter contrato — não uma lista de ids que envelhece.
+    expect(fonte).toContain("esp.contrato ? { esquema: ESQUEMA_DO_PACOTE }");
   });
 });
