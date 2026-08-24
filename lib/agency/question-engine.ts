@@ -5,6 +5,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { ConvState, ConvMessage, BriefingScope, SocialScope } from "./briefing-conversation";
+import { lacunasDoTexto, unirLacunas } from "./comercial/lacuna-de-escopo";
+import { nomeDoNegocioNoTexto } from "./comercial/nome-do-negocio-no-texto";
 import { emptyBrandingScope, emptyScope, emptyEstimate } from "./briefing-conversation";
 import { computeEstimate } from "./live-calculator";
 import {
@@ -210,8 +212,19 @@ function detectObjectives(t: string): string[] {
 
 // Branding is only requested when user explicitly says these words.
 // Having a Brand Book does NOT count as requesting branding.
-function detectBrandingRequest(t: string): boolean {
-  return /\b(rebrand|reposicion|identidade\s*visual|criar.{0,10}logo|logo\s*(nova|do\s*zero)|marca\s*(do\s*zero|nova|redesign|completa)|criar\s*marca|criar\s*identidade|design\s*de\s*marca|identidade\s*de\s*marca)\b/i.test(t);
+//
+// ⚠️ OS RADICAIS NÃO LEVAM `\b` NO FIM, e isso custou o caso Farol 27
+// (24/08/2026). O detector procurava `\breposicion\b`; a cliente escreveu
+// "reposicionamento de marca" — que é a palavra que gente usa. `\b` só fecha
+// entre caractere de palavra e não-palavra, e depois de "reposicion" vem "a".
+// Nunca casou. O serviço PRINCIPAL do pedido virou `branding.requested: false`,
+// e `false` não é "não sei": é a casa afirmando que ela não pediu.
+//
+// Radical + `\w*` é a forma certa de escrever "esta família de palavras":
+// reposicionar, reposicionamento, reposicionando, rebranding. Onde o termo é
+// uma expressão inteira ("identidade visual"), o `\b` final continua correto.
+export function detectBrandingRequest(t: string): boolean {
+  return /\b(?:rebrand\w*|reposicion\w*|reposition\w*|identidade\s*visual\b|criar.{0,10}logo|logo\s*(?:nova|do\s*zero)|marca\s*(?:do\s*zero|nova|redesign|completa)|criar\s*marca|criar\s*identidade|design\s*de\s*marca|identidade\s*de\s*marca)/i.test(t);
 }
 
 function detectHasBrandBook(t: string): boolean {
@@ -238,25 +251,17 @@ export function parseInitialMessage(text: string): Partial<BriefingScope> {
   else if (/moda|roupa|vestu[áa]rio/i.test(text)) segment = "Moda";
   else if (/academia|fitness|crossfit/i.test(text)) segment = "Fitness";
 
-  let businessName: string | undefined;
-  // "chamado X" / "chamada X"
-  const nameMatch = text.match(/chamad[ao]\s+([A-ZÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜ][^.!?,]{1,30}?)(?:\s*[.!?,]|\s+que\s|\s+e\s|\s+para\s|$)/i);
-  if (nameMatch) businessName = nameMatch[1].trim();
-  // "sou/trabalho/venho da/do [Name]" — no /i so capture group requires uppercase
-  if (!businessName) {
-    const m = text.match(/\b(?:sou|estou|trabalho|venho)\s+(?:da|do|de|na|no)\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ]{1,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})(?:\s*[,.!?]|\s+e\s|$)/);
-    if (m) businessName = m[1].trim();
-  }
-  // "para o/a [Name]" — no /i so capture group requires uppercase
-  if (!businessName) {
-    const m = text.match(/\bpara\s+(?:o|a)\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ]{1,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})(?:\s*[,.!?]|\s+e\s|$)/);
-    if (m) businessName = m[1].trim();
-  }
-  // Multi-word TitleCase at sentence start — "Marca Exemplo, quero…" or standalone
-  if (!businessName) {
-    const m = text.match(/^([A-ZÀ-ÿ][a-zÀ-ÿ]{1,}(?:\s+[A-ZÀ-ÿ][a-zÀ-ÿ]{1,})+)(?:\s*[,.]|\s+[a-z]|$)/);
-    if (m) businessName = m[1].trim();
-  }
+  // ⚠️ O NÚMERO FAZ PARTE DO NOME (`(?:\s+\d{1,4})?` no fim de cada captura).
+  // Farol 27, 24/08/2026: o escopo gravou `businessName: "Farol"`. As capturas
+  // só aceitavam palavras de letras, então o "27" caía fora e o corte passava
+  // por resultado válido. Nome de cliente é dado de IDENTIDADE — a casa manda
+  // proposta com ele, escreve peça com ele, chama a pessoa por ele. Cortar não
+  // é estilo, é dado errado.
+  // O nome do negócio vem do LEITOR ÚNICO da casa. Antes havia uma segunda
+  // lista de padrões aqui, com quatro dos seis casos e sem "meu negócio é a X"
+  // — foi ela que devolveu `undefined` para a Farol 27 neste caminho enquanto o
+  // outro caminho devolvia "Farol". Ver `comercial/nome-do-negocio-no-texto.ts`.
+  const businessName = nomeDoNegocioNoTexto(text);
 
   const platforms = wantsSocialMedia ? detectPlatforms(text) : [];
 
@@ -273,6 +278,9 @@ export function parseInitialMessage(text: string): Partial<BriefingScope> {
       hasBrandBook,
       wantsRebrand: /rebrand|reposicion/i.test(text),
     },
+    // O QUE FOI DITO E NÃO VIROU SERVIÇO FICA REGISTRADO, NUNCA `false` CALADO.
+    // Ver `comercial/lacuna-de-escopo.ts` e o caso Farol 27.
+    lacunasDeEscopo: lacunasDoTexto(text),
   };
 }
 
@@ -340,11 +348,27 @@ const QUESTIONS: QuestionDef[] = [
       const wantsSocialMedia  = all || /social|instagram|facebook|redes|posts/i.test(answer);
       const wantsPaidTraffic  = all || /tráfego|anúncio|ads|pago|impulsion/i.test(answer);
       const requestedBranding = all || detectBrandingRequest(answer);
+      // ⚠️ NADA AQUI ESCREVE `false`, E ISSO É O CONSERTO.
+      //
+      // Farol 27, 24/08/2026: esta linha era
+      // `branding: { requested, hasBrandBook: false, wantsRebrand: false }`,
+      // escrita SEMPRE. Quando a resposta não casava com o vocabulário da casa,
+      // ela apagava por cima o que a primeira mensagem já tinha entendido — o
+      // `wantsRebrand: true` da abertura virava `false` no turno seguinte.
+      // Sobrescrever com negativa é pior que não escrever: destrói o dado ANTES
+      // de alguém poder perguntar.
+      //
+      // Agora só o positivo é gravado. O que não foi entendido vira LACUNA, e a
+      // pergunta continua na fila (`stillPending` em `prospect-engine.ts`
+      // garante que "perguntada" não conte como "respondida" aqui).
       return {
-        wantsSocialMedia,
+        ...(wantsSocialMedia ? { wantsSocialMedia: true } : {}),
         ...(wantsPaidTraffic ? { wantsPaidTraffic: true } : {}),
-        branding: { requested: requestedBranding, hasBrandBook: false, wantsRebrand: false },
+        ...(requestedBranding
+          ? { branding: { requested: true, hasBrandBook: false, wantsRebrand: /rebrand|reposicion/i.test(answer) } }
+          : {}),
         ...(wantsSocialMedia ? { social: { platforms: detectPlatforms(answer) } } : {}),
+        lacunasDeEscopo: lacunasDoTexto(answer),
       };
     },
   },
@@ -659,6 +683,10 @@ export function mergeScopeDelta(base: BriefingScope, delta: Partial<BriefingScop
     traffic: delta.traffic !== undefined
       ? { ...(base.traffic ?? { platforms: [] }), ...delta.traffic }
       : base.traffic,
+    // LACUNA NÃO SE SOBRESCREVE, SE SOMA. Cada turno pode abrir uma nova, e o
+    // que já estava aberto continua aberto até alguém responder — quem decide
+    // se ainda está aberta é `lacunasAbertas`, com o escopo na mão.
+    lacunasDeEscopo: unirLacunas(base.lacunasDeEscopo, delta.lacunasDeEscopo),
   };
 }
 

@@ -268,3 +268,70 @@ export function textoDaVerbaEstourada(c: ConfrontoDeVerba): string[] {
 
   return linhas;
 }
+
+// ─── QUANDO A VERBA E A CONTA NÃO FALAM DA MESMA COISA ───────────────────────
+//
+// `confrontoDeVerba` acima cobre UM lado: a conta passou do bolso do cliente.
+// O caso Farol 27 (24/08/2026) mostrou o outro, que ninguém olhava.
+//
+// Ana declarou R$ 8.000/mês de honorários. A casa devolveu R$ 500–1.200/mês —
+// cerca de um sétimo — e não disse nada, porque "cabe na verba" e aviso de
+// sobra é ruído. Só que aqui não era sobra: era a casa tendo entendido um terço
+// do pedido. Quando o cliente declara sete vezes o que a conta pede, o número
+// improvável não é a verba dele; é o ESCOPO que a casa montou.
+//
+// Uma ordem de grandeza é a régua (10×), e ela vale para os dois lados: contra
+// o PISO da estimativa, a mesma referência que o confronto acima usa, para que
+// as duas leituras não divirjam no dia em que alguém mexer numa só.
+export interface DivergenciaDeVerba {
+  /** "verba_muito_acima" = o cliente declarou muito mais do que a conta pede —
+   *  sinal de escopo entendido pela metade. "conta_muito_acima" = a conta pede
+   *  ordens de grandeza mais que a verba declarada. */
+  sentido: "verba_muito_acima" | "conta_muito_acima";
+  tetoDeclarado: number;
+  pisoDaEstimativa: number;
+  /** Quantas vezes um é maior que o outro, arredondado. */
+  fator: number;
+  /** O que precisa ser dito — em português, para gente ler. */
+  aviso: string;
+}
+
+/** Fator a partir do qual a diferença deixa de ser negociação e vira suspeita
+ *  de escopo mal entendido. Uma ordem de grandeza. */
+export const FATOR_DE_DIVERGENCIA = 10;
+
+export function divergenciaDeVerba(
+  faixaDeclarada: unknown,
+  totalMin: number,
+): DivergenciaDeVerba | null {
+  const teto = tetoDaFaixa(faixaDeclarada) ?? tetoDeclaradoEmReais(faixaDeclarada);
+  if (teto === null || !Number.isFinite(teto) || teto <= 0) return null;
+  if (typeof totalMin !== "number" || !Number.isFinite(totalMin) || totalMin <= 0) return null;
+
+  if (teto / totalMin >= FATOR_DE_DIVERGENCIA) {
+    const fator = Math.round(teto / totalMin);
+    return {
+      sentido: "verba_muito_acima",
+      tetoDeclarado: teto,
+      pisoDaEstimativa: totalMin,
+      fator,
+      aviso:
+        `O cliente declarou ${precoEmReais(teto)} e o escopo montado cota a partir de ` +
+        `${precoEmReais(totalMin)} — cerca de ${fator}× menos. Uma diferença dessa ordem quase sempre ` +
+        `significa que a casa entendeu só uma parte do pedido. Confirmar o escopo com o cliente ANTES de enviar número.`,
+    };
+  }
+  if (totalMin / teto >= FATOR_DE_DIVERGENCIA) {
+    const fator = Math.round(totalMin / teto);
+    return {
+      sentido: "conta_muito_acima",
+      tetoDeclarado: teto,
+      pisoDaEstimativa: totalMin,
+      fator,
+      aviso:
+        `A conta parte de ${precoEmReais(totalMin)} contra ${precoEmReais(teto)} declarados — ` +
+        `cerca de ${fator}× mais. Confirmar o escopo antes de enviar número.`,
+    };
+  }
+  return null;
+}
