@@ -377,6 +377,35 @@ export async function baterORelogio(): Promise<{
     quebrou("decisao-do-dono", err);
   }
 
+  // ── PROVEDOR DE IA CAÍDO: APARECE, EM VEZ DE FICAR NO DIÁRIO ──────────────
+  // Medido em 24/08/2026: o Claude caiu em produção às 07:29 por falta de saldo
+  // e a casa se comportou bem — reservou, atendeu o cliente, registrou. Só que
+  // registrou numa linha de diário que alguém precisaria ir ler. Ninguém foi
+  // avisado, e a ronda achou por acaso.
+  //
+  // O dado já existia em `AIRunLog`. Não faltava escrita, faltava LEITURA.
+  //
+  // Sem saldo e sem chave ACORDAM gente: ninguém conserta em código, e enquanto
+  // durar a casa serve pela reserva — que é pior e mais cara, calada. Teto de
+  // ritmo passa sozinho e não vira alarme.
+  try {
+    const { provedoresCaidos, precisamDeGente, ROTULO_DA_FALHA } = await import("@/lib/ai/falha-de-provedor");
+    const caidos = await provedoresCaidos(60);
+    for (const c of precisamDeGente(caidos)) {
+      quebrou(
+        "provedor-de-ia",
+        `${c.provider}: ${ROTULO_DA_FALHA[c.motivo!]} — ${c.quantas} chamada(s) na última hora. Exemplo: ${c.exemplo}`,
+      );
+    }
+    // Os passageiros ficam como ESTADO: visíveis sem gritar. Um provedor
+    // instável que ninguém vê é como este achado começou.
+    for (const c of caidos.filter((x) => x.motivo !== "sem_saldo" && x.motivo !== "sem_chave")) {
+      estadoDe("provedor-de-ia", `${c.provider}: ${c.motivo ? ROTULO_DA_FALHA[c.motivo] : c.exemplo} (${c.quantas}x na última hora)`);
+    }
+  } catch (err) {
+    quebrou("provedor-de-ia", err);
+  }
+
   // ── O CAMINHO AUTOMÁTICO: O BRIEFING ACEITO VIRA PROJETO ──────────────────
   // Mesmo molde da decisão do dono, logo acima, e pelo mesmo motivo: a única
   // porta que fazia um briefing virar projeto exigia sessão de staff em

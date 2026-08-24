@@ -15,6 +15,7 @@
 // o candidato que passa gasta alguns tokens e nada mais.
 
 import { corpoDoClaude } from "../lib/ai/generate.ts";
+import { classificarFalhaDeProvedor } from "../lib/ai/falha-de-provedor.ts";
 
 const chave = process.env.ANTHROPIC_API_KEY;
 if (!chave) {
@@ -66,6 +67,8 @@ const CANDIDATOS: Array<{ nome: string; historico: Turno[]; user: string; cache:
 
 const SISTEMA_LONGO = "Você é um SDR de uma agência de marketing brasileira. ".repeat(80);
 
+let semMedir = 0;
+
 for (const c of CANDIDATOS) {
   const sistema = c.nome.startsWith("G.") ? "Você é um SDR." : SISTEMA_LONGO;
   const corpo = corpoDoClaude(
@@ -84,10 +87,30 @@ for (const c of CANDIDATOS) {
       console.log(`✅ ${c.nome} → ${res.status} ACEITO`);
     } else {
       const t = (await res.text()).slice(0, 300).replace(/\s+/g, " ").trim();
-      console.log(`🚫 ${c.nome} → ${res.status}`);
-      console.log(`   a API disse: ${t}`);
+      const motivo = classificarFalhaDeProvedor(t);
+      // ⚠️ A SONDA NÃO PODE REPETIR A ARMADILHA QUE ELA EXPÔS.
+      // Sem saldo, a Anthropic devolve 400 para TODOS os candidatos — inclusive
+      // o que a bateria usa todo dia. Quem lesse "7 de 7 recusados" concluiria
+      // que o corpo está quebrado, que foi exatamente o caminho errado que esta
+      // sonda nasceu para encurtar. Então ela DIZ que não mediu.
+      if (motivo === "sem_saldo" || motivo === "sem_chave") {
+        console.log(`⛔ ${c.nome} → ${res.status} — A SONDA NÃO MEDIU O CORPO`);
+        console.log(`   ${motivo === "sem_saldo" ? "SEM SALDO na conta" : "chave inválida"}: nenhuma conclusão sobre a forma da conversa pode ser tirada daqui.`);
+        console.log(`   a API disse: ${t}`);
+        semMedir++;
+      } else {
+        console.log(`🚫 ${c.nome} → ${res.status}`);
+        console.log(`   a API disse: ${t}`);
+      }
     }
   } catch (e) {
     console.log(`⚠️  ${c.nome} → falha de rede: ${e instanceof Error ? e.message : String(e)}`);
   }
+}
+
+if (semMedir > 0) {
+  console.log("");
+  console.log(`⛔ ${semMedir} de ${CANDIDATOS.length} candidatos não puderam ser medidos: a conta do provedor está fora.`);
+  console.log("   Isto é recado para gente — nenhuma pessoa da equipe consegue resolver em código,");
+  console.log("   e enquanto durar, a casa atende pela RESERVA (mais cara e sem as travas do provedor preferido).");
 }
