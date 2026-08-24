@@ -1,0 +1,50 @@
+{
+  "data": "2026-08-24",
+  "em": "2026-08-24T06:39:42.347Z",
+  "commit": "01d7adf",
+  "metade": "dados",
+  "varreduras": [
+    {
+      "varredura": "dados-presos",
+      "padrao": "estado-morto",
+      "status": "rodou",
+      "achados": [],
+      "medidas": {
+        "postsAprovados": 0,
+        "postsAgendados": 0,
+        "postsRascunho": 0,
+        "postsPublicados": 0,
+        "postsTotal": 0,
+        "postsCarrossel": 0,
+        "postsVisiveisAoCliente": 0,
+        "aprovacoesPendentes": 0,
+        "aprovacoesVisiveisAoCliente": 0,
+        "clientes": 0,
+        "projetos": 0,
+        "postsAtrasados": 0,
+        "postsFalhados": 0,
+        "mensagensNaoLidas": 0,
+        "mensagensNaoLidasHaMaisDeUmDia": 0,
+        "aprovacoesVencidas": 0,
+        "materiaisNaoPerguntados": 0,
+        "chamadasDeIA24h": 8,
+        "chamadasDeIAComFalha24h": 0,
+        "whatsappFalhado": 0,
+        "solicitacoesOrfas": 0,
+        "pedidosDoClienteAbertos": 0,
+        "pedidosDoClienteParadosHaMaisDeUmDia": 0,
+        "pedidosEsperandoDecisaoHaMaisDeUmDia": 0,
+        "solicitacoesDeBriefingAbertas": 0,
+        "solicitacoesDeBriefingParadasHaMaisDeUmDia": 0,
+        "solicitacoesClassificadas": 0,
+        "solicitacoesParadasComContato": 0,
+        "solicitacoesParadasSemContato": 0
+      }
+    }
+  ],
+  "porCliente": {
+    "em": "2026-08-24T06:39:42.347Z",
+    "diaDeReferencia": "2026-08-24",
+    "clientes": []
+  }
+}
