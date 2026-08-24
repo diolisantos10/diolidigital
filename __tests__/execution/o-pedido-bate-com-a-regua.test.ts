@@ -18,6 +18,7 @@ import { describe, it, expect } from "vitest";
 import {
   TODOS_OS_ESPECIALISTAS, conferirContrato, ctxBlock, MISTURA_DE_FORMATOS, type Ctx,
   ESQUEMA_DO_PACOTE,
+  ctxBlockParaJuiz,
 } from "@/lib/agency/execution/especialistas";
 import { lerEscopoDeConteudo, exigenciaDeConteudo } from "@/lib/agency/execution/escopo-do-cliente";
 
@@ -238,5 +239,52 @@ describe("a FORMA da resposta é trava, não recado", () => {
       fs.readFile("lib/agency/execution/run-execution.ts", "utf-8"));
     // A condição é ter contrato — não uma lista de ids que envelhece.
     expect(fonte).toContain("esp.contrato ? { esquema: ESQUEMA_DO_PACOTE }");
+  });
+});
+
+describe("o juiz recebe os FATOS, não o manual de quem escreve", () => {
+  const comVerdade = () => ctx({
+    verdadeAtestada: {
+      linhas: ["Dias atestados: ter, qua, qui, sex, sab, dom", "Horários atestados: 11:30, 23:00"],
+      semInformacao: ["formas de pagamento e parcelamento"],
+    },
+  });
+
+  it("os FATOS chegam ao juiz — sem eles ele não pega invenção nem contradição", () => {
+    const b = ctxBlockParaJuiz(comVerdade());
+    expect(b).toContain("O QUE O CLIENTE ATESTOU");
+    expect(b).toContain("11:30");
+    expect(b).toContain("O QUE O CLIENTE NUNCA CONTOU");
+  });
+
+  it("as REGRAS DE REDAÇÃO não chegam ao juiz", () => {
+    // Medido ao vivo: lendo "USE O FATO COMO ELE FOI ATESTADO", o juiz passou a
+    // cobrar OMISSÃO — reprovou roteiros que ele mesmo chamou de publicáveis
+    // porque não citavam o horário de fechamento. Um post não é um cadastro.
+    const b = ctxBlockParaJuiz(comVerdade());
+    expect(b).not.toMatch(/USE O FATO COMO ELE FOI ATESTADO/);
+    expect(b).not.toMatch(/NÃO CONSTRUA A PEÇA EM CIMA DO QUE FALTA/);
+    expect(b).not.toMatch(/REGRA DO QUE PODE SER AFIRMADO/);
+    expect(b).not.toMatch(/PRECISO CONFIRMAR/);
+  });
+
+  it("mas o AUTOR continua recebendo as duas coisas", () => {
+    const b = ctxBlock(comVerdade());
+    expect(b).toContain("O QUE O CLIENTE ATESTOU");
+    expect(b).toMatch(/USE O FATO COMO ELE FOI ATESTADO/);
+    expect(b).toMatch(/REGRA DO QUE PODE SER AFIRMADO/);
+  });
+
+  it("o autor é avisado de que NÃO precisa citar todos os fatos", () => {
+    // A metade gêmea da regra de precisão: "use certo o que citar" sem "não
+    // precisa citar tudo" empurra para a peça-cadastro.
+    expect(ctxBlock(comVerdade())).toMatch(/NÃO precisa citar todos os fatos/);
+  });
+
+  it("o motor manda ao juiz o contexto DO JUIZ", async () => {
+    const fonte = await import("node:fs/promises").then((fs) =>
+      fs.readFile("lib/agency/execution/run-execution.ts", "utf-8"));
+    expect(fonte).toContain("brandContext: ctxBlockParaJuiz(context)");
+    expect(fonte).not.toContain("brandContext: ctxBlock(context)");
   });
 });

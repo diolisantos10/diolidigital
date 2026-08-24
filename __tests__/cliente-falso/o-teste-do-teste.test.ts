@@ -98,6 +98,7 @@ function percursoSao(): Percurso {
       execucaoStatus: "done", direcaoAprovada: true, entregas: 3,
       direcaoPedida: true, direcaoViaPortal: true, direcaoMotivo: null,
       execucaoPendencias: null, execucaoTentativas: 1,
+      entregasSemArbitro: 0, motivoSemArbitro: null,
     },
     // Percurso SÃO com SDR ao vivo = o modelo respondeu TODOS os turnos.
     // Sem esta linha, "são" incluiria uma rodada em que a IA nunca falou.

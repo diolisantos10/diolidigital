@@ -407,8 +407,41 @@ function ctxBlock(c: Ctx): string {
     // Por último porque é o bloco que o especialista consulta enquanto escreve,
     // e porque a lista do que FALTA precisa ser a última coisa lida antes das
     // REGRAS INEGOCIÁVEIS — as duas dizem a mesma coisa e se reforçam.
-    blocoDaVerdade(c),
-  ].filter(Boolean).join("\n");
+    fatosDaVerdade(c),
+    regrasDeRedacao(c),
+  ].filter(Boolean).join("\n\n");
+}
+
+/**
+ * O MESMO CONTEXTO, MENOS AS REGRAS DE REDAÇÃO — é o que o JUIZ recebe.
+ *
+ * ── Por que existe (24/08/2026) ────────────────────────────────────────────
+ * O motor mandava `ctxBlock` inteiro como `brandContext` da auditoria. O juiz
+ * lia instruções escritas para o autor e as cobrava como checklist: reprovou
+ * roteiros dizendo, na mesma frase, que a peça era *"publicável"*, que a
+ * *"redação está correta, sem erro"* e que *"nenhum roteiro inventa dado"* —
+ * as objeções eram todas de OMISSÃO de fato atestado.
+ *
+ * O juiz PRECISA dos fatos: sem eles não há como pegar invenção nem
+ * contradição com o que o cliente disse. O que ele não pode receber é o manual
+ * de quem escreve, porque instrução lida por quem julga vira exigência.
+ *
+ * ⚠️ Nenhum critério de julgamento sai daqui — eles vivem no prompt do
+ * auditor, não neste bloco. O que sai é o manual de redação.
+ */
+export function ctxBlockParaJuiz(c: Ctx): string {
+  return [
+    c.contratoDeMarca,
+    `Negócio: ${c.businessName}`,
+    c.segment && `Segmento: ${c.segment}`,
+    c.targetAudience && `Público-alvo: ${c.targetAudience}`,
+    c.tone && `Tom de voz: ${c.tone}`,
+    c.services.length && `Serviços contratados: ${c.services.join(", ")}`,
+    c.objectives.length && `Objetivos: ${c.objectives.join(", ")}`,
+    c.strategyHeadline && `Direção estratégica: ${c.strategyHeadline}`,
+    c.feedRealDoCliente,
+    fatosDaVerdade(c),
+  ].filter(Boolean).join("\n\n");
 }
 
 /**
@@ -420,7 +453,28 @@ function ctxBlock(c: Ctx): string {
  * atendimento" sem dizer "escreva PRECISO CONFIRMAR" deixa o modelo preencher
  * com o que parece razoável, que é exatamente como a invenção entra.
  */
-function blocoDaVerdade(c: Ctx): string {
+/**
+ * OS FATOS ATESTADOS — para quem ESCREVE e para quem JULGA.
+ *
+ * ── Por que este bloco foi partido em dois (24/08/2026) ────────────────────
+ * Ele nasceu como um bloco só: fatos + regras de redação, tudo junto, e o motor
+ * mandava o mesmo texto para o especialista (via `ctxBlock`) e para o auditor
+ * de Qualidade (via `brandContext`). Medido ao vivo, e o parecer se contradizia
+ * na mesma frase: *"peça é publicável"*, *"redação atual está correta, sem
+ * erro"*, *"nenhum roteiro inventa dado não atestado"* — e mesmo assim `flag`.
+ *
+ * As objeções que sobravam eram todas de OMISSÃO: *"Roteiro 2 não menciona
+ * fechamento às 23h — incompleto quanto à operação atestada"*. O juiz estava
+ * lendo instruções escritas para o AUTOR ("use o fato como ele foi atestado")
+ * e cobrando-as como checklist de conformidade. Um post não é obrigado a listar
+ * horário de funcionamento.
+ *
+ * **Instrução para quem escreve, lida por quem julga, vira exigência.** Por
+ * isso os FATOS ficam aqui — o juiz precisa deles para pegar invenção e
+ * contradição — e as REGRAS DE REDAÇÃO ficam em `regrasDeRedacao`, que só o
+ * autor recebe.
+ */
+function fatosDaVerdade(c: Ctx): string {
   const v = c.verdadeAtestada;
   // Sem verdade montada, calar é a única saída honesta: um bloco dizendo "o
   // cliente não atestou nada" seria FALSO quando quem montou o Ctx é um teste.
@@ -429,31 +483,43 @@ function blocoDaVerdade(c: Ctx): string {
   const partes: string[] = [];
   if (v.linhas.length > 0) {
     partes.push(
-      "O QUE O CLIENTE ATESTOU (pode afirmar; veio das palavras dele):\n"
+      "O QUE O CLIENTE ATESTOU (veio das palavras dele):\n"
       + v.linhas.map((l) => `- ${l}`).join("\n"),
     );
   }
   if (v.semInformacao.length > 0) {
     partes.push(
-      "O QUE O CLIENTE NUNCA CONTOU — NÃO AFIRME NADA DISTO:\n"
+      "O QUE O CLIENTE NUNCA CONTOU:\n"
       + v.semInformacao.map((l) => `- ${l}`).join("\n"),
     );
   }
+  return partes.join("\n\n");
+}
 
-  // ── A REGRA CATEGÓRICA, E POR QUE A LISTA ACIMA NÃO BASTA ────────────────
+/**
+ * AS REGRAS DE REDAÇÃO — só para quem ESCREVE.
+ *
+ * ⚠️ NÃO vá para o auditor. Ver `fatosDaVerdade`: lidas por quem julga, elas
+ * viram checklist e a peça é reprovada por não citar todos os fatos.
+ */
+function regrasDeRedacao(c: Ctx): string {
+  // Sem verdade montada não há do que falar — e inventar regra sobre uma lista
+  // que não existe só encheria o prompt.
+  if (!c.verdadeAtestada) return "";
+
+  // ── A REGRA CATEGÓRICA, E POR QUE A LISTA DE FATOS NÃO BASTA ────────────
   //
-  // Medido em 24/08/2026, na segunda leva ao vivo: a peça foi barrada em
-  // `horario_nao_informado` num briefing em que a lista de "nunca contou" NÃO
-  // trazia horário. Não é contradição — é granularidade. A lista de classes
-  // (`classesSemInformacao`) é um resumo de painel: ela considera a classe
-  // "horário" coberta quando o cliente atestou os DIAS ("de segunda a sexta"),
-  // mesmo sem nunca ter dito uma HORA. O piso confere fato a fato, e reprova
-  // "das 12h às 15h" porque nenhuma hora foi atestada.
+  // Medido em 24/08/2026: a peça foi barrada em `horario_nao_informado` num
+  // briefing em que a lista de "nunca contou" NÃO trazia horário. Não é
+  // contradição — é granularidade. A lista de classes (`classesSemInformacao`)
+  // é um resumo de painel: considera a classe "horário" coberta quando o
+  // cliente atestou os DIAS, mesmo sem nunca ter dito uma HORA. O piso confere
+  // fato a fato e reprova "das 12h às 15h" porque nenhuma hora foi atestada.
   //
-  // Enquanto o aviso for uma lista de classes e a régua conferir fatos, sempre
-  // haverá um fato no vão entre as duas. A regra abaixo fecha o vão pelo único
-  // lado que fecha: em vez de enumerar o proibido, define o permitido.
-  partes.push(
+  // Enquanto o aviso enumerar classes e a régua conferir fatos, sempre haverá
+  // um fato no vão. A regra abaixo fecha o vão pelo único lado que fecha: em
+  // vez de enumerar o proibido, define o permitido.
+  return (
     "REGRA DO QUE PODE SER AFIRMADO — é assim que o piso de verdade confere, fato a fato:\n"
     + "Só afirme HORÁRIO, DIA, ÁREA DE ATENDIMENTO, RAIO, PREÇO, PRAZO, FORMA DE PAGAMENTO, "
     + "CANAL, PERFIL ou OFERTA que apareça LITERALMENTE na lista de atestados acima. "
@@ -476,14 +542,13 @@ function blocoDaVerdade(c: Ctx): string {
     + "⚠️ E USE O FATO COMO ELE FOI ATESTADO — não estreite, não generalize, não "
     + "arredonde. Medido em 24/08/2026: com \"terça a domingo, das 11h30 às 15h e das "
     + "18h30 às 23h\" atestado, a peça saiu falando em dias úteis e horário genérico, e "
-    + "foi REPROVADA por \"restringir dias de funcionamento sem base\" e \"não refletir a "
-    + "operação completa atestada\". Fechar o restaurante no domingo por descuido de "
-    + "redação custa o domingo inteiro de movimento.\n"
-    + "Se o fato for comprido demais para a peça, cite a PARTE que couber sem "
-    + "contradizer o resto (\"aberto até 23h\" está certo; \"de segunda a sexta\" quando "
-    + "abre terça a domingo está errado) — ou não fale do assunto.",
+    + "foi REPROVADA por \"restringir dias de funcionamento sem base\". Fechar o "
+    + "restaurante no domingo por descuido de redação custa o domingo inteiro de movimento.\n"
+    + "Você NÃO precisa citar todos os fatos atestados — a peça não é um cadastro. "
+    + "Cite o que servir à peça; o que citar, cite certo. Se o fato for comprido demais, "
+    + "use a PARTE que couber sem contradizer o resto (\"aberto até 23h\" está certo; "
+    + "\"de segunda a sexta\" quando abre terça a domingo está errado) — ou não fale do assunto."
   );
-  return partes.join("\n\n");
 }
 
 /** O rodapé que vai em TODO prompt: a regra de ouro da casa, aplicada ao
