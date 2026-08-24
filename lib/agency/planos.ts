@@ -10,7 +10,10 @@
 // Se a publicação do Ritmo virar nossa, o degrau quebra.
 //
 // O QUE NÃO PODE ENTRAR AQUI:
-//   • serviço que a casa não entrega hoje com código rodando em produção;
+//   • serviço que a casa não entrega hoje com código rodando em produção. Desde
+//     24/08/2026 isso não é só um aviso escrito: `so-vende-o-que-produz.test.ts`
+//     passa cada linha de `inclui` pela régua de `capacidade-de-producao.ts` e
+//     quebra se alguém prometer capacidade sem caminho de produção;
 //   • vídeo (gravação, edição ou geração) — decisão do CEO: é o item de maior
 //     custo real e sai da mensalidade, sempre;
 //   • a tabela por serviço. Ela é interna, para cliente de carteira — não vai
@@ -93,13 +96,24 @@ export const PLANOS: Plano[] = [
     inclui: [
       "Tudo do Ritmo, com 10 peças por mês",
       "Nós publicamos no Instagram e no Facebook",
-      "Ficha do Google mantida: locais, horários e informações",
-      "4 posts no Google por mês — novidade, oferta e evento na busca e no mapa",
       "Gestão de avaliações: elogio respondido; reclamação vira rascunho e chama gente",
       "Atendimento humano por WhatsApp, em horário comercial",
       "Otimização do ciclo: o que muda no mês seguinte, com base no que aconteceu",
     ],
-    naoInclui: ["Vídeo, em qualquer forma", "Stories", "Tráfego pago e verba de mídia", "Site e material impresso"],
+    naoInclui: [
+      "Vídeo, em qualquer forma",
+      "Stories",
+      "Tráfego pago e verba de mídia",
+      "Site e material impresso",
+      // 24/08/2026 — auditoria. Estas duas linhas estavam em `inclui` e foram
+      // vendidas por R$ 790/mês sem existir uma linha de código que as
+      // executasse: `publicarNoGoogle` não tem chamador em produção e não há
+      // NENHUMA escrita na ficha do Google no repositório (só `listarLocais`,
+      // que lê). Voltam para `inclui` no dia em que o caminho existir — e o
+      // teste `so-vende-o-que-produz` avisa quando esse dia chegar.
+      "Publicação no perfil do Google (post de novidade, oferta ou evento)",
+      "Manutenção da ficha do Google: locais, horários e informações",
+    ],
     permanencia: 3,
     pecaExtra: PECA_EXTRA,
     destaque: true,
