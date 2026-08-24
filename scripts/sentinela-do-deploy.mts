@@ -49,9 +49,15 @@ async function main(): Promise<void> {
   if (v.acao) console.log(`   → ${v.acao}`);
   console.log("");
   console.log(`   produção .... ${producao.noAr ? "no ar" : "FORA"}${producao.commit ? ` · ${producao.commit}` : ""}`);
-  console.log(
-    `   CI .......... ${ci.houveRun ? `${ci.conclusao}${ci.url ? ` · ${ci.url}` : ""}` : "nenhum run para este commit"}`,
-  );
+  // A linha do resumo repete a distinção do veredito. Se ela dissesse "nenhum
+  // run" quando a pergunta nem saiu, o cabeçalho consertado seria desmentido
+  // três linhas abaixo — e é o resumo que a pessoa lê primeiro.
+  const linhaDaCI = ci.perguntaFalhou
+    ? `não consegui perguntar${ci.motivoDaFalha ? ` · ${ci.motivoDaFalha}` : ""}`
+    : ci.houveRun
+      ? `${ci.conclusao}${ci.url ? ` · ${ci.url}` : ""}`
+      : "o GitHub respondeu: nenhum run para este commit";
+  console.log(`   CI .......... ${linhaDaCI}`);
   console.log(
     `   GitHub ...... ${plataforma.actionsOperacional ? "Actions operacional" : `Actions FORA${plataforma.incidente ? ` · ${plataforma.incidente}` : ""}`}`,
   );
