@@ -1,0 +1,737 @@
+{
+  "sessionId": "farol-27-teste-1787600438725",
+  "transcricao": [
+    {
+      "turno": 1,
+      "cliente": "Oi! Somos a Farol 27 Padaria & Café [TESTE], uma padaria e café na Grande São Paulo — 3 lojas e uma cozinha central, 6 anos de casa. Sou a Ana Farol [TESTE], dona.",
+      "http": 200,
+      "casa": "Oi Ana! Que legal conhecer a Farol 27 — padaria com presença física forte assim tem muito a contar. 🎯 Antes de entender melhor o que você precisa, deixa eu saber: qual é o grande desafio ou oportunidade que trouxe você até a gente agora?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação"
+      }
+    },
+    {
+      "turno": 2,
+      "cliente": "O negócio se chama Farol 27 — Padaria & Café.",
+      "http": 200,
+      "casa": "Ótimo, Ana! Anotei: Farol 27 Padaria & Café. Agora me conta — qual é o grande objetivo seu com marketing agora? Aumentar fluxo nas lojas, fortalecer a marca, ou tem algo específico em mente?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação"
+      }
+    },
+    {
+      "turno": 3,
+      "cliente": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+      "http": 200,
+      "casa": "Excelente, Ana! Reposicionar a marca e lançar uma assinatura é movimento sério — vi que você precisa de identidade, conteúdo e anúncios. Pra eu montar a proposta certa: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima de R$ 5.000?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)"
+        ],
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual para reposicionamento"
+        },
+        "social": {
+          "needsCopy": true,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": []
+        },
+        "serviceMode": "unsure"
+      }
+    },
+    {
+      "turno": 4,
+      "cliente": "Vender assinaturas do Clube Farol 27 e parar de depender só do balcão.",
+      "http": 200,
+      "casa": "Perfeito, Ana! Então o grande objetivo é mesmo fazer o Clube Farol 27 crescer e deixar a marca mais forte pra isso acontecer. Agora, pra eu já estruturar a proposta no seu tamanho: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima de R$ 5.000?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "targetAudience": "Pessoas que buscam café da manhã de qualidade, rotina e conveniência",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "decisionMaker": true,
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação",
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [],
+          "needsCopy": true,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": []
+        }
+      }
+    },
+    {
+      "turno": 5,
+      "cliente": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo.",
+      "http": 200,
+      "casa": "Ótimo perfil, Ana! Público bem definido. Agora, pra eu estruturar a proposta certinho: quanto você pensa em investir por mês nesse projeto — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima de R$ 5.000?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "decisionMaker": true,
+        "competitors": [],
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [],
+          "postsPerWeek": 0,
+          "storiesPerWeek": 0,
+          "reelsPerMonth": 0,
+          "needsCopy": true,
+          "hasPhotos": false,
+          "hasVideomaker": false,
+          "needsVideoProduction": false,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [],
+          "monthlyAdBudget": ""
+        },
+        "serviceMode": "unsure",
+        "deadline": "",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas"
+      }
+    },
+    {
+      "turno": 6,
+      "cliente": "Contrato mensal, mas com um projeto de lançamento de 8 semanas dentro.",
+      "http": 200,
+      "casa": "Perfeito — então é um projeto de lançamento de 8 semanas, e depois contrato mensal. Só me falta a faixa de investimento pra fechar o escopo, Ana: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima de R$ 5.000?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [],
+          "postsPerWeek": 0,
+          "storiesPerWeek": 0,
+          "reelsPerMonth": 0,
+          "needsCopy": true,
+          "hasPhotos": false,
+          "hasVideomaker": false,
+          "needsVideoProduction": false,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [],
+          "monthlyAdBudget": ""
+        },
+        "serviceMode": "monthly",
+        "deadline": "8 semanas para lançamento"
+      }
+    },
+    {
+      "turno": 7,
+      "cliente": "Instagram, TikTok e WhatsApp.",
+      "http": 200,
+      "casa": "Ótimo! Instagram, TikTok e WhatsApp fazem muito sentido pro seu público. Agora, Ana, pra eu fechar o escopo: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima de R$ 5.000?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas, Instagram, TikTok e WhatsApp",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 0,
+          "storiesPerWeek": 0,
+          "reelsPerMonth": 0,
+          "needsCopy": true,
+          "hasPhotos": false,
+          "hasVideomaker": false,
+          "needsVideoProduction": false,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "one_off",
+        "deadline": "8 semanas para lançamento",
+        "needsClarification": true
+      }
+    },
+    {
+      "turno": 8,
+      "cliente": "3 posts por semana no feed.",
+      "http": 200,
+      "casa": "Anotei: 3 posts por semana no feed. Agora, Ana, pra eu já montar a proposta certa pro seu momento: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima de R$ 5.000?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas, Instagram, TikTok e WhatsApp",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 0,
+          "reelsPerMonth": 0,
+          "needsCopy": true,
+          "hasPhotos": false,
+          "hasVideomaker": false,
+          "needsVideoProduction": false,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "one_off",
+        "deadline": "8 semanas para lançamento"
+      }
+    },
+    {
+      "turno": 9,
+      "cliente": "Stories sim, uns 3 por semana.",
+      "http": 200,
+      "casa": "Anotei: 3 stories por semana também. Ana, e quanto a reels — vocês querem vídeos curtos pro TikTok e Instagram, ou vai ser só feed e stories mesmo?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas, Instagram, TikTok e WhatsApp",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 0,
+          "needsCopy": true,
+          "hasPhotos": false,
+          "hasVideomaker": false,
+          "needsVideoProduction": false,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "one_off",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "decisionMaker": true,
+        "deadline": "8 semanas para lançamento"
+      }
+    },
+    {
+      "turno": 10,
+      "cliente": "Sim, 8 vídeos curtos por mês para o TikTok.",
+      "http": 200,
+      "casa": "Ótimo, Ana! 8 vídeos por mês é bom volume pra crescer no TikTok. Agora, pra eu estruturar a proposta no seu tamanho: quanto você pensa em investir por mês nesse projeto — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima de R$ 5.000?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": false,
+          "hasVideomaker": false,
+          "needsVideoProduction": true,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "one_off",
+        "deadline": "8 semanas para lançamento",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas"
+      }
+    },
+    {
+      "turno": 11,
+      "cliente": "A gente grava na loja com celular; roteiro e edição queremos de vocês.",
+      "http": 200,
+      "casa": "Perfeito, Ana! Vocês gravam na loja e a gente cuida do roteiro e edição — já anotei. Agora, pra eu fechar o escopo e montar a proposta certa: quanto você pensa em investir por mês nesse projeto — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima de R$ 5.000?",
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": false,
+          "hasVideomaker": true,
+          "needsVideoProduction": true,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "one_off",
+        "deadline": "8 semanas para lançamento"
+      }
+    },
+    {
+      "turno": 12,
+      "cliente": "Temos fotos de loja e de produto, cardápios antigos, embalagens e prints das redes. Brand book a gente não tem.",
+      "http": 200,
+      "casa": "Ótimo, Ana! Vocês têm um bom acervo — fotos, cardápios, embalagens e prints das redes vão ajudar muito na identidade nova. Sobre os anúncios: qual a verba mensal de mídia que vocês têm em mente pro lançamento do Clube Farol 27?",
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": true,
+          "hasVideomaker": true,
+          "needsVideoProduction": true,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "one_off",
+        "deadline": "8 semanas para lançamento"
+      }
+    },
+    {
+      "turno": 13,
+      "cliente": "Os textos ficam com vocês — não temos tom de voz definido.",
+      "http": 200,
+      "casa": "Perfeito, Ana! A gente cuida dos textos e da identidade completa. Agora, pra eu montar a proposta certa pro seu momento: quanto você pensa em investir por mês nesse projeto de lançamento — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima de R$ 5.000?",
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": true,
+          "hasVideomaker": true,
+          "needsVideoProduction": true,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "one_off",
+        "deadline": "8 semanas para lançamento"
+      }
+    },
+    {
+      "turno": 14,
+      "cliente": "Sim, queremos anúncios.",
+      "http": 200,
+      "casa": "Ótimo! Meta Ads e TikTok Ads vão bombar o lançamento. Qual é a verba mensal que vocês têm em mente pra os anúncios? E Ana, antes de fechar tudo: quanto você pensa em investir por mês nesse projeto de lançamento — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima de R$ 5.000?",
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "decisionMaker": true,
+        "competitors": [],
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": true,
+          "hasVideomaker": true,
+          "needsVideoProduction": true,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ],
+          "monthlyAdBudget": "<UNKNOWN>"
+        },
+        "serviceMode": "one_off",
+        "deadline": "8 semanas para lançamento",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas"
+      }
+    },
+    {
+      "turno": 15,
+      "cliente": "Meta e TikTok. A divisão entre os dois a gente não sabe fazer — quem decide é vocês.",
+      "http": 200,
+      "casa": "Perfeito, Ana! A gente estrutura a divisão entre Meta e TikTok de acordo com o melhor retorno pra cada público — fica tranquilo. Agora, pra eu fechar tudo e montar sua proposta: quanto você pensa em investir por mês nesse projeto de lançamento — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima de R$ 5.000?",
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": true,
+          "hasVideomaker": true,
+          "needsVideoProduction": true,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "one_off",
+        "deadline": "8 semanas para lançamento"
+      }
+    },
+    {
+      "turno": 16,
+      "cliente": "R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios.",
+      "http": 200,
+      "casa": null,
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Alimentação - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Diversificar receita além do balcão"
+        ],
+        "decisionMaker": true,
+        "competitors": [],
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Identidade visual completa para reposicionamento"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": true,
+          "hasVideomaker": true,
+          "needsVideoProduction": true,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ],
+          "monthlyAdBudget": "R$ 15.000"
+        },
+        "serviceMode": "one_off",
+        "budgetRange": "acima de R$ 5.000",
+        "deadline": "8 semanas para lançamento",
+        "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas"
+      }
+    }
+  ],
+  "scopeFinal": {
+    "prospectName": "Ana",
+    "businessName": "Farol 27 Padaria & Café",
+    "segment": "Alimentação - Padaria e Café",
+    "operacao": "3 lojas e cozinha central na Grande São Paulo, 6 anos de atuação, raio de atuação 3 km das lojas",
+    "objectives": [
+      "Reposicionar a marca",
+      "Lançar Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+      "Diversificar receita além do balcão"
+    ],
+    "wantsSocialMedia": true,
+    "wantsPaidTraffic": true,
+    "branding": {
+      "requested": true,
+      "hasBrandBook": false,
+      "wantsRebrand": true,
+      "deliverables": "Identidade visual completa para reposicionamento"
+    },
+    "social": {
+      "platforms": [
+        "Instagram",
+        "TikTok",
+        "WhatsApp"
+      ],
+      "postsPerWeek": 3,
+      "storiesPerWeek": 3,
+      "reelsPerMonth": 8,
+      "needsCopy": true,
+      "hasPhotos": true,
+      "hasVideomaker": true,
+      "needsVideoProduction": true,
+      "creativesReady": false
+    },
+    "traffic": {
+      "platforms": [
+        "Meta Ads",
+        "TikTok Ads"
+      ]
+    },
+    "serviceMode": "one_off",
+    "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas (25 a 45 anos) e empresas da região que pedem café da manhã corporativo",
+    "decisionMaker": true,
+    "competitors": [],
+    "deadline": "8 semanas para lançamento",
+    "needsClarification": true
+  }
+}

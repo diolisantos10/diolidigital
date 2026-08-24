@@ -1,0 +1,716 @@
+{
+  "sessionId": "farol-27-teste-1787597458421",
+  "transcricao": [
+    {
+      "turno": 1,
+      "cliente": "Oi! Somos a Farol 27 Padaria & Café [TESTE], uma padaria e café na Grande São Paulo — 3 lojas e uma cozinha central, 6 anos de casa. Sou a Ana Farol [TESTE], dona.",
+      "http": 200,
+      "casa": "Oi Ana! Que legal conhecer a Farol 27 — 6 anos de casa, 3 lojas, já é uma estrutura bacana. 😊 Antes de tudo: o que traz você até a gente? Qual é o maior desafio ou oportunidade que você quer resolver agora com marketing?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação"
+      }
+    },
+    {
+      "turno": 2,
+      "cliente": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+      "http": 200,
+      "casa": "Entendi! Reposicionar a marca todo, identidade visual, conteúdo pra redes e anúncios — tudo já desenhado. Perfeito. Pra eu montar a proposta certa pro seu momento: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação",
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "reposicionamento de marca e identidade para o Clube Farol 27"
+        }
+      }
+    },
+    {
+      "turno": 3,
+      "cliente": "Temos um logo em PNG, mas não temos vetor confirmado nem manual de marca.",
+      "http": 200,
+      "casa": "Anotado! Então a gente cria tudo novo — vetor, paleta, tipografia, manual de marca mesmo. Logo em PNG serve como referência. Voltando à questão de investimento, Ana: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação",
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        }
+      }
+    },
+    {
+      "turno": 4,
+      "cliente": "O negócio se chama Farol 27 — Padaria & Café.",
+      "http": 200,
+      "casa": "Perfeito, Ana! Anotado: Farol 27 Padaria & Café, com reposicionamento completo e manual de marca novo. Agora a pergunta importante pra eu montar a proposta certa: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação",
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        }
+      }
+    },
+    {
+      "turno": 5,
+      "cliente": "Vender assinaturas do Clube Farol 27 e parar de depender só do balcão.",
+      "http": 200,
+      "casa": "Ótimo, Ana! Vender assinatura é um jogo diferente — exige conteúdo que construa comunidade e anúncios que convençam sobre o valor recorrente. Antes de seguir com o planejamento: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "decisionMaker": true
+      }
+    },
+    {
+      "turno": 6,
+      "cliente": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo.",
+      "http": 200,
+      "casa": "Perfeito, Ana! Público bem definido — moradores, trabalhadores próximos e empresas corporativas. Agora a pergunta que falta pra eu montar a proposta certa: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação"
+      }
+    },
+    {
+      "turno": 7,
+      "cliente": "Contrato mensal, mas com um projeto de lançamento de 8 semanas dentro.",
+      "http": 200,
+      "casa": "Entendi, Ana — contrato mensal pra gestão contínua, com um projeto intenso de 8 semanas pra tirar o Clube do papel. Excelente. Agora a pergunta que falta pra eu montar a proposta certinho: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "serviceMode": "umbrella",
+        "deadline": "8 semanas para lançamento do Clube Farol 27"
+      }
+    },
+    {
+      "turno": 8,
+      "cliente": "Instagram, TikTok e WhatsApp.",
+      "http": 200,
+      "casa": "Ótimo, Ana! Instagram, TikTok e WhatsApp — ótimas plataformas pra alcançar seu público e vender assinatura. Antes de tudo: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": null,
+          "storiesPerWeek": null,
+          "reelsPerMonth": null,
+          "needsCopy": null,
+          "hasPhotos": null,
+          "hasVideomaker": null,
+          "needsVideoProduction": null,
+          "creativesReady": null
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "umbrella",
+        "deadline": "8 semanas para lançamento do Clube Farol 27",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação"
+      }
+    },
+    {
+      "turno": 9,
+      "cliente": "3 posts por semana no feed.",
+      "http": 200,
+      "casa": "Anotado: 3 posts por semana no feed. Agora a pergunta que falta pra eu fechar o retrato do seu projeto, Ana: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação, raio de 3 km das lojas",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": null,
+          "reelsPerMonth": null,
+          "needsCopy": null,
+          "hasPhotos": null,
+          "hasVideomaker": null,
+          "needsVideoProduction": null,
+          "creativesReady": null
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "umbrella",
+        "deadline": "8 semanas para lançamento do Clube Farol 27"
+      }
+    },
+    {
+      "turno": 10,
+      "cliente": "Stories sim, uns 3 por semana.",
+      "http": 200,
+      "casa": "Perfeito! 3 posts + 3 stories por semana já é um bom ritmo pra construir presença. Ana, agora a pergunta que vai definir como a gente estrutura tudo: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana Farol",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "needsCopy": null,
+          "hasPhotos": null,
+          "hasVideomaker": null,
+          "needsVideoProduction": null,
+          "creativesReady": null,
+          "reelsPerMonth": null
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "umbrella",
+        "deadline": "8 semanas para lançamento do Clube Farol 27",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação, raio de 3 km das lojas"
+      }
+    },
+    {
+      "turno": 11,
+      "cliente": "Sim, 8 vídeos curtos por mês para o TikTok.",
+      "http": 200,
+      "casa": "Ótimo, Ana! 8 vídeos por mês no TikTok vai bombar. Agora a pergunta final que define como a gente estrutura tudo: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 8,
+          "needsCopy": null,
+          "hasPhotos": null,
+          "hasVideomaker": null,
+          "needsVideoProduction": null,
+          "creativesReady": null
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "umbrella",
+        "deadline": "8 semanas para lançamento do Clube Farol 27",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação, raio de 3 km das lojas"
+      }
+    },
+    {
+      "turno": 12,
+      "cliente": "A gente grava na loja com celular; roteiro e edição queremos de vocês.",
+      "http": 200,
+      "casa": "Perfeito, Ana! Então a gente cuida do roteiro e edição dos 8 vídeos — vocês gravam na loja com o celular e a gente tira o melhor disso. Agora a pergunta que vai definir como estruturamos tudo: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação, raio de 3 km das lojas",
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "serviceMode": "umbrella",
+        "deadline": "8 semanas para lançamento do Clube Farol 27",
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": true,
+          "hasVideomaker": false,
+          "needsVideoProduction": false,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        }
+      }
+    },
+    {
+      "turno": 13,
+      "cliente": "Temos fotos de loja e de produto, cardápios antigos, embalagens e prints das redes. Brand book a gente não tem.",
+      "http": 200,
+      "casa": "Ótimo, Ana! Vocês têm acervo de fotos, produtos e embalagens — a gente constrói a identidade visual do Clube a partir disso e cria o manual. Agora, a pergunta que falta e que define como a gente estrutura tudo: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": true,
+          "hasVideomaker": false,
+          "needsVideoProduction": false,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "umbrella",
+        "deadline": "8 semanas para lançamento do Clube Farol 27",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação, raio de 3 km das lojas"
+      }
+    },
+    {
+      "turno": 14,
+      "cliente": "Os textos ficam com vocês — não temos tom de voz definido.",
+      "http": 200,
+      "casa": "Perfeito, Ana! Vocês cobrem a copy e a gente entrega o tom. Agora a pergunta que falta e que define como estruturamos tudo: quanto você pensa em investir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã R$ 149/mês)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": true,
+          "hasVideomaker": false,
+          "needsVideoProduction": false,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ]
+        },
+        "serviceMode": "umbrella",
+        "deadline": "8 semanas para lançamento do Clube Farol 27",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação, raio de 3 km das lojas"
+      }
+    },
+    {
+      "turno": 15,
+      "cliente": "Sim, queremos anúncios.",
+      "http": 200,
+      "casa": "Ótimo, Ana! Meta Ads e TikTok Ads vão turbinar o lançamento do Clube. Última coisa pra eu fechar a estrutura: quanto você pensa em investir por mês em mídia paga — e qual é sua faixa de investimento total pra tudo isso (criação, gestão e mídia): até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação, raio de 3 km das lojas, atende pelo WhatsApp",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "competitors": [],
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 0,
+          "videosPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": true,
+          "hasVideomaker": false,
+          "needsVideoProduction": false,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ],
+          "monthlyAdBudget": ""
+        },
+        "serviceMode": "umbrella",
+        "deadline": "8 semanas para lançamento do Clube Farol 27"
+      }
+    },
+    {
+      "turno": 16,
+      "cliente": "Meta e TikTok. A divisão entre os dois a gente não sabe fazer — quem decide é vocês.",
+      "http": 200,
+      "casa": "Perfeito, Ana! A gente aloca Meta e TikTok conforme a performance durante os 8 de lançamento. Agora, pra eu estruturar a proposta certinho: quanto você pensa em investir por mês no total — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 0,
+          "videosPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": true,
+          "hasVideomaker": false,
+          "needsVideoProduction": false,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ],
+          "distribution": "Equipe Dioli define a alocação entre plataformas"
+        },
+        "serviceMode": "umbrella",
+        "deadline": "8 semanas para lançamento do Clube Farol 27",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação, raio de 3 km das lojas, atende pelo WhatsApp"
+      }
+    },
+    {
+      "turno": 17,
+      "cliente": "R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios.",
+      "http": 200,
+      "casa": null,
+      "scope": {
+        "prospectName": "Ana",
+        "businessName": "Farol 27 Padaria & Café",
+        "segment": "Food & Beverage - Padaria e Café",
+        "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+        "objectives": [
+          "Reposicionar a marca",
+          "Lançar o Clube Farol 27 (assinatura de café da manhã)",
+          "Aumentar receita recorrente além do balcão"
+        ],
+        "decisionMaker": true,
+        "competitors": [],
+        "wantsSocialMedia": true,
+        "wantsPaidTraffic": true,
+        "branding": {
+          "requested": true,
+          "hasBrandBook": false,
+          "wantsRebrand": true,
+          "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+        },
+        "social": {
+          "platforms": [
+            "Instagram",
+            "TikTok",
+            "WhatsApp"
+          ],
+          "postsPerWeek": 3,
+          "storiesPerWeek": 3,
+          "reelsPerMonth": 0,
+          "videosPerMonth": 8,
+          "needsCopy": true,
+          "hasPhotos": true,
+          "hasVideomaker": false,
+          "needsVideoProduction": false,
+          "creativesReady": false
+        },
+        "traffic": {
+          "platforms": [
+            "Meta Ads",
+            "TikTok Ads"
+          ],
+          "monthlyAdBudget": "R$ 15.000",
+          "distribution": "Equipe Dioli define a alocação entre plataformas"
+        },
+        "serviceMode": "umbrella",
+        "budgetRange": "acima de R$ 5.000",
+        "deadline": "8 semanas para lançamento do Clube Farol 27",
+        "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação, raio de 3 km das lojas, atende pelo WhatsApp"
+      }
+    }
+  ],
+  "scopeFinal": {
+    "prospectName": "Ana",
+    "businessName": "Farol 27 Padaria & Café",
+    "segment": "Food & Beverage - Padaria e Café",
+    "operacao": "3 lojas na Grande São Paulo, cozinha central, 6 anos de atuação, raio de 3 km das lojas, atende pelo WhatsApp",
+    "wantsSocialMedia": true,
+    "wantsPaidTraffic": true,
+    "branding": {
+      "requested": true,
+      "hasBrandBook": false,
+      "wantsRebrand": true,
+      "deliverables": "Reposicionamento de marca, identidade visual com vetor confirmado e manual de marca para o Clube Farol 27"
+    },
+    "objectives": [
+      "Reposicionar a marca",
+      "Lançar o Clube Farol 27 (assinatura de café da manhã)",
+      "Aumentar receita recorrente além do balcão"
+    ],
+    "decisionMaker": true,
+    "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo",
+    "serviceMode": "umbrella",
+    "deadline": "8 semanas para lançamento do Clube Farol 27",
+    "social": {
+      "platforms": [
+        "Instagram",
+        "TikTok",
+        "WhatsApp"
+      ],
+      "postsPerWeek": 3,
+      "storiesPerWeek": 3,
+      "reelsPerMonth": 0,
+      "videosPerMonth": 8,
+      "needsCopy": true,
+      "hasPhotos": true,
+      "hasVideomaker": false,
+      "needsVideoProduction": false,
+      "creativesReady": false
+    },
+    "traffic": {
+      "platforms": [
+        "Meta Ads",
+        "TikTok Ads"
+      ],
+      "distribution": "Equipe Dioli define a alocação entre plataformas"
+    },
+    "competitors": []
+  }
+}
