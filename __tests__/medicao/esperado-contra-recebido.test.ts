@@ -33,33 +33,33 @@ describe("o plano de mensuração é uma declaração, não um palpite", () => {
 
   it("canal sem declaração devolve null — e null nunca vira verde", () => {
     expect(planoDoObjetivo("tiktok_ads", "OUTCOME_LEADS")).toBeNull();
-    const c = conciliar({ plano: planoDoObjetivo("tiktok_ads", "OUTCOME_LEADS"), recebidos: ["lead"] });
+    const c = conciliar({ plano: planoDoObjetivo("tiktok_ads", "OUTCOME_LEADS"), recebidos: ["lead"], recebidosAntes: ["lead"] });
     expect(c.estado).toBe("nao_medido");
     expect(confiavel(c)).toBe(false);
   });
 
   it("campanha sem objetivo declarado é não medida, não íntegra", () => {
-    expect(conciliarCampanhaDaMeta({ objetivo: null, acoes: { lead: 3 } }).estado).toBe("nao_medido");
+    expect(conciliarCampanhaDaMeta({ objetivo: null, acoes: { lead: 3 }, eventosAntes: ["lead"] }).estado).toBe("nao_medido");
   });
 });
 
 describe("os três estados — e o abismo entre 'íntegro' e 'não medido'", () => {
   it("o evento esperado chegou: íntegro, e a comparação rodou", () => {
-    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { lead: 40 } });
+    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { lead: 40 }, eventosAntes: ["lead"] });
     expect(c.estado).toBe("integro");
     expect(c.comparacaoRodou).toBe(true);
     expect(confiavel(c)).toBe(true);
   });
 
   it("o evento esperado NÃO chegou: incompleto, com o que falta NOMEADO", () => {
-    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { link_click: 200 } });
+    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { link_click: 200 }, eventosAntes: ["lead"] });
     expect(c.estado).toBe("incompleto");
     expect(c.faltando.map((f) => f.nome)).toContain("lead");
     expect(c.faltando[0]!.como).toBe("nunca_chegou");
   });
 
   it("a fonte não respondeu (actions ausente): NÃO MEDIDO, e não 'zero eventos'", () => {
-    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: null });
+    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: null, eventosAntes: ["lead"] });
     expect(c.estado).toBe("nao_medido");
     expect(c.comparacaoRodou).toBe(false);
   });
@@ -68,7 +68,7 @@ describe("os três estados — e o abismo entre 'íntegro' e 'não medido'", () 
     const c = conciliarCampanhaDaMeta({
       objetivo: "OUTCOME_LEADS",
       acoes: { leadgen_grouped: 12 },     // um alternativo assumiu o lugar
-      acoesAntes: { lead: 40, leadgen_grouped: 40 },
+      eventosAntes: ["lead", "leadgen_grouped"],
     });
     expect(c.estado).toBe("incompleto");
     const parou = c.faltando.find((f) => f.como === "parou_de_chegar")!;
@@ -80,6 +80,7 @@ describe("os três estados — e o abismo entre 'íntegro' e 'não medido'", () 
     const c = conciliar({
       plano: { canal: "meta_ads", objetivo: "X", eventos: [], fonte: "teste" },
       recebidos: [],
+      recebidosAntes: [],
     });
     expect(c.estado).toBe("nao_medido");
     expect(confiavel(c)).toBe(false);
@@ -95,7 +96,7 @@ describe("os três estados — e o abismo entre 'íntegro' e 'não medido'", () 
 
 describe("dado incompleto nunca sai limpo", () => {
   it("íntegro sai limpo — este é o ÚNICO caso", () => {
-    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { lead: 40 } });
+    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { lead: 40 }, eventosAntes: ["lead"] });
     const n = apresentarNumero(40, c, { rotulo: "Leads" });
     expect(n.texto).toBe("Leads: 40");
     expect(n.confiavel).toBe(true);
@@ -103,7 +104,7 @@ describe("dado incompleto nunca sai limpo", () => {
   });
 
   it("incompleto sai MARCADO, com o evento faltante no texto que a pessoa lê", () => {
-    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { link_click: 9 } });
+    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { link_click: 9 }, eventosAntes: ["lead"] });
     const n = apresentarNumero(12, c, { rotulo: "Leads" });
     expect(n.confiavel).toBe(false);
     expect(n.texto).toContain(MARCA_DE_INCOMPLETO);
@@ -112,7 +113,7 @@ describe("dado incompleto nunca sai limpo", () => {
   });
 
   it("não medido não mostra número nenhum — o valor cru não escapa para o texto", () => {
-    const c = conciliarCampanhaDaMeta({ objetivo: null, acoes: { lead: 40 } });
+    const c = conciliarCampanhaDaMeta({ objetivo: null, acoes: { lead: 40 }, eventosAntes: ["lead"] });
     const n = apresentarNumero(40, c);
     expect(n.texto).toContain(MARCA_DE_NAO_MEDIDO);
     expect(n.texto).not.toContain("40");
@@ -124,7 +125,7 @@ describe("dado incompleto nunca sai limpo", () => {
   });
 
   it("relatório todo íntegro é o único que fica em silêncio", () => {
-    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { lead: 1 } });
+    const c = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { lead: 1 }, eventosAntes: ["lead"] });
     expect(avisoDoRelatorio([c])).toBe("");
   });
 });
@@ -136,6 +137,7 @@ describe("o panorama inteiro herda o pior estado", () => {
     const i = medirIntegridade({
       desempenho: [campanha(), campanha({ campanhaId: "c2", acoes: { link_click: 5 } })],
       totais,
+      passado: { c1: ["lead"], c2: ["lead"] },
     });
     expect(i.estado).toBe("incompleto");
     expect(i.totais.gasto!.confiavel).toBe(false);
@@ -144,14 +146,14 @@ describe("o panorama inteiro herda o pior estado", () => {
   });
 
   it("panorama sem campanha nenhuma é NÃO MEDIDO, não íntegro", () => {
-    const i = medirIntegridade({ desempenho: [], totais });
+    const i = medirIntegridade({ desempenho: [], totais, passado: {} });
     expect(i.estado).toBe("nao_medido");
     expect(i.comparacaoRodou).toBe(false);
     expect(relatorioConfiavel(i)).toBe(false);
   });
 
   it("tudo íntegro: aviso vazio e total confiável", () => {
-    const i = medirIntegridade({ desempenho: [campanha()], totais });
+    const i = medirIntegridade({ desempenho: [campanha()], totais, passado: { c1: ["lead"] } });
     expect(i.estado).toBe("integro");
     expect(i.aviso).toBe("");
     expect(relatorioConfiavel(i)).toBe(true);
@@ -160,17 +162,17 @@ describe("o panorama inteiro herda o pior estado", () => {
 
 describe("a tentativa de recuperação é registrada, e a ausência dela também", () => {
   const plano = planoDoObjetivo("meta_ads", "OUTCOME_LEADS");
-  const quebrada = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { link_click: 1 } });
+  const quebrada = conciliarCampanhaDaMeta({ objetivo: "OUTCOME_LEADS", acoes: { link_click: 1 }, eventosAntes: ["lead"] });
 
   it("sem caminho de releitura: diz que NÃO tentou — e não finge fracasso", async () => {
-    const r = await tentarRecuperar({ conciliacao: quebrada, plano });
+    const r = await tentarRecuperar({ conciliacao: quebrada, plano, recebidosAntes: ["lead"] });
     expect(r.tentou).toBe(false);
     expect(r.recuperou).toBe(false);
     expect(r.relato).toMatch(/NÃO HOUVE TENTATIVA/);
   });
 
   it("releitura bem-sucedida: registra a tentativa e o resultado", async () => {
-    const r = await tentarRecuperar({ conciliacao: quebrada, plano, reler: async () => ["lead"] });
+    const r = await tentarRecuperar({ conciliacao: quebrada, plano, recebidosAntes: ["lead"], reler: async () => ["lead"] });
     expect(r.tentou).toBe(true);
     expect(r.recuperou).toBe(true);
     expect(r.conciliacao.estado).toBe("integro");
@@ -178,7 +180,7 @@ describe("a tentativa de recuperação é registrada, e a ausência dela também
 
   it("releitura que explode não vira recuperação: tentou, falhou, segue marcado", async () => {
     const r = await tentarRecuperar({
-      conciliacao: quebrada, plano,
+      conciliacao: quebrada, plano, recebidosAntes: ["lead"],
       reler: async () => { throw new Error("a Meta recusou"); },
     });
     expect(r.tentou).toBe(true);

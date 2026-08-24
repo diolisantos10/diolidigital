@@ -20,7 +20,10 @@ describe("o guardião da Meta continua fazendo o que fazia", () => {
     const r = conferirVerbaDoCanal({ canal: "meta_ads", orcamentoDiarioBRL: 900, tetoAprovadoBRL: 150 });
     expect(r.liberado).toBe(false);
     expect(r.motivo).toBe("passa_do_teto_do_cliente");
-    expect(r.escalaPara).toMatch(/CEO/);
+    // A recusa carrega o GESTO, nunca um nome de pessoa: proibição sem
+    // instrução gêmea empurra o operador para o contorno.
+    expect(r.comoDestravar).toBeTruthy();
+    expect(r.comoDestravar).not.toMatch(/fale com|procure o|CEO/i);
   });
 
   it("`conferirOrcamento` da Meta agora É o guardião do canal — mesma resposta", () => {
@@ -52,6 +55,11 @@ describe("ZERO SIGNIFICA ZERO — a regra que outro produto leu ao contrário", 
     expect(r.liberado).toBe(false);
     expect(r.motivo).toBe("canal_sem_teto");
     expect(r.erro).toContain("ZERO significa ZERO");
+    // O gesto, não a fila: a recusa diz que o canal não está integrado e quando
+    // o teto se define — nunca "fale com o CEO".
+    expect(r.erro).toContain("não está integrado");
+    expect(r.comoDestravar).toMatch(/por decisão/);
+    expect(r.comoDestravar).not.toMatch(/fale com|procure o|CEO/i);
   });
 
   it("nem um orçamento minúsculo passa por um teto zero", () => {
@@ -98,7 +106,16 @@ describe("TESTE DE CLASSE — o próximo canal sem guardião quebra o build", ()
       expect(g.variavelDeAmbiente).toMatch(/^ADS_TETO_DIARIO/);
       expect(Number.isFinite(g.tetoDiarioBRL)).toBe(true);
       expect(g.tetoDiarioBRL).toBeGreaterThanOrEqual(0);
-      expect(g.escalaPara.length).toBeGreaterThan(0);
+      expect(g.comoDestravar.length).toBeGreaterThan(0);
+      // O gesto é uma instrução, não uma fila. Nenhum guardião manda procurar
+      // alguém — isso é o que empurra o operador para o contorno.
+      expect(g.comoDestravar, `${canal}: o gesto vira fila`).not.toMatch(/fale com|procure o|espere/i);
+      // Canal sem integração tem teto ZERO por DECISÃO, e diz isso.
+      if (!g.temIntegracaoDeLeitura && !g.temIntegracaoDeEscrita) {
+        expect(g.tetoDiarioBRL, `${canal}: canal não integrado com teto acima de zero`).toBe(0);
+        expect(g.comoDestravar).toMatch(/não está integrado/);
+        expect(g.comoDestravar).toMatch(/por decisão/);
+      }
     }
   });
 

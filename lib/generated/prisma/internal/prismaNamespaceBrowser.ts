@@ -93,6 +93,7 @@ export const ModelName = {
   EvidenceItem: 'EvidenceItem',
   MetaConnection: 'MetaConnection',
   MetaAdCota: 'MetaAdCota',
+  MedicaoDeEventos: 'MedicaoDeEventos',
   MetaAdFreio: 'MetaAdFreio',
   MetaRitmoJanela: 'MetaRitmoJanela',
   MetaRitmoFreio: 'MetaRitmoFreio',
@@ -952,6 +953,19 @@ export const MetaAdCotaScalarFieldEnum = {
 } as const
 
 export type MetaAdCotaScalarFieldEnum = (typeof MetaAdCotaScalarFieldEnum)[keyof typeof MetaAdCotaScalarFieldEnum]
+
+
+export const MedicaoDeEventosScalarFieldEnum = {
+  id: 'id',
+  campanhaId: 'campanhaId',
+  contaId: 'contaId',
+  desde: 'desde',
+  ate: 'ate',
+  eventos: 'eventos',
+  lidoEm: 'lidoEm'
+} as const
+
+export type MedicaoDeEventosScalarFieldEnum = (typeof MedicaoDeEventosScalarFieldEnum)[keyof typeof MedicaoDeEventosScalarFieldEnum]
 
 
 export const MetaAdFreioScalarFieldEnum = {

@@ -339,6 +339,25 @@ export type MetaConnection = Prisma.MetaConnectionModel
  */
 export type MetaAdCota = Prisma.MetaAdCotaModel
 /**
+ * Model MedicaoDeEventos
+ * A SÉRIE DA MEDIÇÃO — o passado mínimo para saber que um evento PAROU.
+ * 
+ * 24/08/2026. O detector de "parou de chegar" existia e não tinha o que
+ * comparar: a casa lia o desempenho de um período e esquecia. Sem passado, um
+ * evento de conversão que some produz um número menor e mais nada.
+ * 
+ * ── O QUE ESTA TABELA GUARDA, E O QUE ELA SE RECUSA A GUARDAR ─────────────
+ * 
+ * Guarda **os NOMES dos eventos que chegaram**, por campanha e por período. Só
+ * isso. Não guarda quantidade, não guarda gasto, não guarda criativo, não
+ * guarda nada de público. A razão é dura: série histórica é a desculpa mais
+ * fácil do mundo para acumular dado de campanha de cliente sem necessidade, e
+ * a pergunta que esta tabela existe para responder é binária — "o evento X
+ * chegou neste período?". Nome basta. Quantidade não acrescenta nada à
+ * pergunta e acrescenta tudo ao estrago de um vazamento.
+ */
+export type MedicaoDeEventos = Prisma.MedicaoDeEventosModel
+/**
  * Model MetaAdFreio
  * O CASTIGO DA CONTA depois de um erro de limite da Meta.
  * 

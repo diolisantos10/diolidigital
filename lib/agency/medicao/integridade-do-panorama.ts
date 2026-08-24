@@ -33,9 +33,16 @@ export interface IntegridadeDaMedicao {
 export function medirIntegridade(entrada: {
   desempenho: DesempenhoDaCampanha[];
   totais: { gasto: number | null; impressoes: number | null; alcance: number | null; cliques: number | null };
-  /** As ações da MESMA campanha no período anterior, por id. Sem isso, "parou
-   *  de chegar" não é detectável — e a função diz isso em vez de calar. */
-  acoesAnteriores?: Record<string, Record<string, number>>;
+  /**
+   * O PASSADO, por id de campanha: os nomes de evento do período anterior
+   * (`serie.ts` → `passadoDasCampanhas`). Campanha ausente do mapa = sem
+   * passado registrado = NÃO MEDIDO, jamais íntegro.
+   *
+   * Sem `?`: quem mede é obrigado a ir buscar o passado ou a declarar `{}`.
+   * Um parâmetro opcional aqui é o mesmo detector desabastecido de antes, só
+   * que agora com a desculpa de já existir.
+   */
+  passado: Record<string, string[]>;
 }): IntegridadeDaMedicao {
   const porCampanha = entrada.desempenho.map((d) => ({
     campanhaId: d.campanhaId,
@@ -43,7 +50,7 @@ export function medirIntegridade(entrada: {
     conciliacao: conciliarCampanhaDaMeta({
       objetivo: d.objetivo,
       acoes: d.acoes,
-      acoesAntes: entrada.acoesAnteriores?.[d.campanhaId] ?? null,
+      eventosAntes: entrada.passado[d.campanhaId] ?? null,
     }),
   }));
 

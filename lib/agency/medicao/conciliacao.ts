@@ -34,6 +34,14 @@
 //      lugar dele, e o relatório troca a régua no meio do gráfico sem avisar.
 //      Comparar só contra o plano não pega isso; comparar contra o que a
 //      própria conta já entregou, pega.
+//
+// ── 24/08/2026 — O PASSADO PASSOU A SER OBRIGATÓRIO ─────────────────────────
+//
+// `recebidosAntes` não tem `?`: quem concilia é obrigado a dizer o que sabe do
+// passado, inclusive quando a resposta é "não sei" (`null`). E **"não sei" é
+// `nao_medido`, nunca `integro`**: sem período anterior não dá para afirmar que
+// nada parou de chegar, e primeiro período de cliente novo não nasce verde por
+// falta de passado. Quem abastece a série é `serie.ts`.
 
 import { planoDoObjetivo, nomesEsperados, type PlanoDeMensuracao } from "./plano-de-mensuracao";
 
@@ -69,8 +77,14 @@ export interface EntradaDaConciliacao {
    * diferente de `[]`, que é "a fonte respondeu e não veio evento nenhum".
    */
   recebidos: string[] | null;
-  /** Nomes de evento que a MESMA campanha entregou no período anterior. */
-  recebidosAntes?: string[] | null;
+  /**
+   * Nomes de evento que a MESMA campanha entregou no período ANTERIOR.
+   *
+   * `null` = não há período anterior conhecido → NÃO MEDIDO. Sem `?`: esquecer
+   * o passado tem de ser uma decisão escrita, não uma omissão silenciosa.
+   * `[]` = houve período anterior e nele não chegou evento nenhum.
+   */
+  recebidosAntes: string[] | null;
 }
 
 /**
@@ -127,7 +141,22 @@ export function conciliar(entrada: EntradaDaConciliacao): Conciliacao {
     });
   }
 
-  // 2. PAROU DE CHEGAR — entregava antes e não entrega mais.
+  // 2. SEM PASSADO NÃO SE AFIRMA INTEGRIDADE.
+  //
+  // Vem DEPOIS do "nunca chegou" de propósito: um evento declarado que não
+  // chegou é um achado concreto, e vale ser dito mesmo sem passado. Já a
+  // ausência de falta não vale nada sem o período anterior — é o "não
+  // perguntei" com cara de "está tudo bem".
+  if (faltando.length === 0 && entrada.recebidosAntes === null) {
+    return naoMedido(
+      `não há período anterior registrado para esta campanha — sem passado não dá para dizer que nenhum evento PAROU de chegar. `
+      + `Primeiro período não nasce íntegro: ele nasce NÃO MEDIDO, e vira íntegro na leitura seguinte.`,
+      esperados,
+      recebidos,
+    );
+  }
+
+  // 3. PAROU DE CHEGAR — entregava antes e não entrega mais.
   for (const antes of entrada.recebidosAntes ?? []) {
     if (chegou.has(antes)) continue;
     if (!esperados.includes(antes)) continue;  // só o que o plano declara.
@@ -181,11 +210,13 @@ export function confiavel(c: Conciliacao): boolean {
 export function conciliarCampanhaDaMeta(entrada: {
   objetivo: string | null;
   acoes: Record<string, number> | null;
-  acoesAntes?: Record<string, number> | null;
+  /** Os NOMES de evento do período anterior (`serie.ts`). `null` = não há
+   *  passado registrado → não medido. Sem `?`: ver a nota no topo. */
+  eventosAntes: string[] | null;
 }): Conciliacao {
   return conciliar({
     plano: planoDoObjetivo("meta_ads", entrada.objetivo),
     recebidos: entrada.acoes === null ? null : Object.keys(entrada.acoes),
-    recebidosAntes: entrada.acoesAntes ? Object.keys(entrada.acoesAntes) : null,
+    recebidosAntes: entrada.eventosAntes,
   });
 }

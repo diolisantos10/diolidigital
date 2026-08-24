@@ -18,6 +18,22 @@
 // Canal sem teto configurado ⇒ teto ZERO ⇒ nada gasta. Zero aqui significa
 // ZERO, nunca "sem limite".
 //
+// ── ⚖️ 24/08/2026 — O ZERO DOS QUATRO CANAIS É DECISÃO, NÃO PENDÊNCIA ───────
+//
+// Google, YouTube, TikTok e LinkedIn ficam em zero **por escolha registrada**,
+// e não esperando alguém setar variável. O motivo é factual: esta casa não tem
+// integração de leitura nem de escrita para nenhum deles. Não existe canal —
+// logo não existe verba, e zero é a resposta honesta.
+//
+// Isso muda o que a recusa precisa dizer. A frase não manda ninguém procurar o
+// CEO: **proibição sem instrução gêmea empurra o operador para o contorno**, e
+// "fale com o CEO" não é instrução, é fila. A frase diz o que é verdade — o
+// canal não está integrado — e diz quando o teto se define: junto com a
+// integração, por quem a construir.
+//
+// O teste de classe garante o resto: quem construir o canal não consegue
+// entregá-lo sem declarar guardião e teto.
+//
 // Isto não é hipótese: outro produto desta casa leu "teto padrão 0" como "sem
 // limite" e o resultado foi o oposto do pretendido. Por isso o zero não é um
 // número solto no meio de um `if` — ele é o estado `sem_teto`, tem frase
@@ -60,8 +76,11 @@ export interface Guardiao {
   variavelDeAmbiente: string;
   /** Existe caminho de escrita implementado nesta casa para o canal? */
   temIntegracaoDeEscrita: boolean;
-  /** Para quem escala quando o guardião barra. */
-  escalaPara: string;
+  /** Existe caminho de LEITURA implementado? Sem leitura não há medição, e sem
+   *  medição a verba é gasta às cegas — o canal não existe para esta casa. */
+  temIntegracaoDeLeitura: boolean;
+  /** O gesto concreto que destrava. Nunca "fale com fulano": o que FAZER. */
+  comoDestravar: string;
 }
 
 /**
@@ -94,7 +113,8 @@ export const GUARDIOES: Record<CanalDeMidia, Guardiao> = {
     tetoDiarioBRL: tetoDoAmbiente(process.env.ADS_TETO_DIARIO_BRL ?? "500"),
     variavelDeAmbiente: "ADS_TETO_DIARIO_BRL",
     temIntegracaoDeEscrita: true,
-    escalaPara: "CEO — é ele quem aprova teto de verba",
+    temIntegracaoDeLeitura: true,
+    comoDestravar: "ajustar ADS_TETO_DIARIO_BRL (reais por dia) — o canal está integrado e o teto é o número que se move.",
   },
   google_ads: {
     canal: "google_ads",
@@ -102,7 +122,11 @@ export const GUARDIOES: Record<CanalDeMidia, Guardiao> = {
     tetoDiarioBRL: tetoDoAmbiente(process.env.ADS_TETO_DIARIO_GOOGLE_BRL),
     variavelDeAmbiente: "ADS_TETO_DIARIO_GOOGLE_BRL",
     temIntegracaoDeEscrita: false,
-    escalaPara: "CEO — é ele quem aprova teto de verba",
+    temIntegracaoDeLeitura: false,
+    comoDestravar:
+      "Google Ads não está integrado nesta casa — não há leitura nem escrita para o canal, e por isso o teto é ZERO por decisão, não por esquecimento. "
+      + "O teto se define no dia em que a integração existir, por quem a construir, junto com ela: declarar aqui o teto e a variável ADS_TETO_DIARIO_GOOGLE_BRL no mesmo commit da integração. "
+      + "Até lá, o gesto certo é levar a verba para um canal integrado — não é esperar liberação.",
   },
   youtube_ads: {
     canal: "youtube_ads",
@@ -110,7 +134,11 @@ export const GUARDIOES: Record<CanalDeMidia, Guardiao> = {
     tetoDiarioBRL: tetoDoAmbiente(process.env.ADS_TETO_DIARIO_YOUTUBE_BRL),
     variavelDeAmbiente: "ADS_TETO_DIARIO_YOUTUBE_BRL",
     temIntegracaoDeEscrita: false,
-    escalaPara: "CEO — é ele quem aprova teto de verba",
+    temIntegracaoDeLeitura: false,
+    comoDestravar:
+      "YouTube Ads não está integrado nesta casa — não há leitura nem escrita para o canal, e por isso o teto é ZERO por decisão, não por esquecimento. "
+      + "O teto se define no dia em que a integração existir, por quem a construir, junto com ela: declarar aqui o teto e a variável ADS_TETO_DIARIO_YOUTUBE_BRL no mesmo commit da integração. "
+      + "Até lá, o gesto certo é levar a verba para um canal integrado — não é esperar liberação.",
   },
   tiktok_ads: {
     canal: "tiktok_ads",
@@ -118,7 +146,11 @@ export const GUARDIOES: Record<CanalDeMidia, Guardiao> = {
     tetoDiarioBRL: tetoDoAmbiente(process.env.ADS_TETO_DIARIO_TIKTOK_BRL),
     variavelDeAmbiente: "ADS_TETO_DIARIO_TIKTOK_BRL",
     temIntegracaoDeEscrita: false,
-    escalaPara: "CEO — é ele quem aprova teto de verba",
+    temIntegracaoDeLeitura: false,
+    comoDestravar:
+      "TikTok Ads não está integrado nesta casa — não há leitura nem escrita para o canal, e por isso o teto é ZERO por decisão, não por esquecimento. "
+      + "O teto se define no dia em que a integração existir, por quem a construir, junto com ela: declarar aqui o teto e a variável ADS_TETO_DIARIO_TIKTOK_BRL no mesmo commit da integração. "
+      + "Até lá, o gesto certo é levar a verba para um canal integrado — não é esperar liberação.",
   },
   linkedin_ads: {
     canal: "linkedin_ads",
@@ -126,7 +158,11 @@ export const GUARDIOES: Record<CanalDeMidia, Guardiao> = {
     tetoDiarioBRL: tetoDoAmbiente(process.env.ADS_TETO_DIARIO_LINKEDIN_BRL),
     variavelDeAmbiente: "ADS_TETO_DIARIO_LINKEDIN_BRL",
     temIntegracaoDeEscrita: false,
-    escalaPara: "CEO — é ele quem aprova teto de verba",
+    temIntegracaoDeLeitura: false,
+    comoDestravar:
+      "LinkedIn Ads não está integrado nesta casa — não há leitura nem escrita para o canal, e por isso o teto é ZERO por decisão, não por esquecimento. "
+      + "O teto se define no dia em que a integração existir, por quem a construir, junto com ela: declarar aqui o teto e a variável ADS_TETO_DIARIO_LINKEDIN_BRL no mesmo commit da integração. "
+      + "Até lá, o gesto certo é levar a verba para um canal integrado — não é esperar liberação.",
   },
 };
 
@@ -158,8 +194,13 @@ export interface VeredictoDeVerba {
   motivo?: MotivoDaRecusa;
   /** A frase que a pessoa lê, com o gesto que resolve. Vazia quando liberado. */
   erro?: string;
-  /** Para quem escalar. Preenchido em toda recusa. */
-  escalaPara?: string;
+  /**
+   * O GESTO que destrava, em português. Preenchido em TODA recusa.
+   *
+   * Nunca um nome de pessoa: proibição sem instrução gêmea empurra o operador
+   * para o contorno, e "fale com fulano" não é instrução, é fila.
+   */
+  comoDestravar?: string;
 }
 
 /**
@@ -186,8 +227,9 @@ export function conferirVerbaDoCanal(entrada: {
       motivo: "canal_sem_guardiao",
       erro:
         `o canal "${entrada.canal}" não tem guardião de verba declarado — canal sem guardião não recebe verba. `
-        + `Onde resolver: declarar o canal em lib/integrations/midia/guardioes.ts (GUARDIOES), com teto próprio.`,
-      escalaPara: "CEO — é ele quem aprova teto de verba",
+        + `O gesto: declarar o canal em lib/integrations/midia/guardioes.ts (GUARDIOES), com teto próprio, no mesmo commit da integração do canal. `
+        + `Enquanto isso, a verba vai para um canal integrado — não fica em fila.`,
+      comoDestravar: "declarar o canal e o teto em lib/integrations/midia/guardioes.ts, junto com a integração.",
     };
   }
 
@@ -197,9 +239,9 @@ export function conferirVerbaDoCanal(entrada: {
       liberado: false,
       motivo: "canal_sem_teto",
       erro:
-        `${g.rotulo} está sem teto configurado — teto ZERO significa ZERO, não "sem limite". Nada é gasto neste canal. `
-        + `Onde resolver: definir ${g.variavelDeAmbiente} (reais por dia) — quem seta é o CEO.`,
-      escalaPara: g.escalaPara,
+        `${g.rotulo} está com teto ZERO — e teto ZERO significa ZERO, não "sem limite". Nada é gasto neste canal. `
+        + g.comoDestravar,
+      comoDestravar: g.comoDestravar,
     };
   }
 
@@ -207,8 +249,8 @@ export function conferirVerbaDoCanal(entrada: {
     return {
       liberado: false,
       motivo: "sem_integracao_de_escrita",
-      erro: `${g.rotulo} tem teto configurado, mas esta casa não tem caminho de escrita implementado para o canal — nada é criado nem ativado por aqui.`,
-      escalaPara: g.escalaPara,
+      erro: `${g.rotulo} tem teto configurado, mas esta casa não tem caminho de escrita implementado para o canal — nada é criado nem ativado por aqui. ` + g.comoDestravar,
+      comoDestravar: g.comoDestravar,
     };
   }
 
@@ -218,7 +260,7 @@ export function conferirVerbaDoCanal(entrada: {
       liberado: false,
       motivo: "orcamento_invalido",
       erro: "orçamento diário inválido",
-      escalaPara: g.escalaPara,
+      comoDestravar: g.comoDestravar,
     };
   }
   if (v < PISO_DIARIO_BRL) {
@@ -226,7 +268,7 @@ export function conferirVerbaDoCanal(entrada: {
       liberado: false,
       motivo: "abaixo_do_piso",
       erro: `orçamento diário de R$ ${v} está abaixo do mínimo (R$ ${PISO_DIARIO_BRL}) — a campanha não entregaria`,
-      escalaPara: g.escalaPara,
+      comoDestravar: g.comoDestravar,
     };
   }
   if (!Number.isFinite(entrada.tetoAprovadoBRL) || entrada.tetoAprovadoBRL <= 0) {
@@ -234,7 +276,7 @@ export function conferirVerbaDoCanal(entrada: {
       liberado: false,
       motivo: "sem_teto_do_cliente",
       erro: "não há teto aprovado pelo cliente — sem isso não se cria campanha",
-      escalaPara: g.escalaPara,
+      comoDestravar: g.comoDestravar,
     };
   }
   if (v > entrada.tetoAprovadoBRL) {
@@ -242,7 +284,7 @@ export function conferirVerbaDoCanal(entrada: {
       liberado: false,
       motivo: "passa_do_teto_do_cliente",
       erro: `orçamento diário de R$ ${v} passa do teto que o cliente aprovou (R$ ${entrada.tetoAprovadoBRL})`,
-      escalaPara: g.escalaPara,
+      comoDestravar: g.comoDestravar,
     };
   }
   if (v > g.tetoDiarioBRL) {
@@ -250,7 +292,7 @@ export function conferirVerbaDoCanal(entrada: {
       liberado: false,
       motivo: "passa_do_teto_da_casa",
       erro: `orçamento diário de R$ ${v} passa do teto desta agência para ${g.rotulo} (R$ ${g.tetoDiarioBRL})`,
-      escalaPara: g.escalaPara,
+      comoDestravar: g.comoDestravar,
     };
   }
   return { liberado: true };

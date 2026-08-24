@@ -35,7 +35,8 @@ export interface TentativaDeRecuperacao {
 export async function tentarRecuperar(entrada: {
   conciliacao: Conciliacao;
   plano: PlanoDeMensuracao | null;
-  recebidosAntes?: string[] | null;
+  /** O passado conhecido da campanha. `null` = sem período anterior. */
+  recebidosAntes: string[] | null;
   /** Relê a fonte e devolve os nomes de evento. `null` = a fonte não respondeu. */
   reler?: () => Promise<string[] | null>;
 }): Promise<TentativaDeRecuperacao> {
