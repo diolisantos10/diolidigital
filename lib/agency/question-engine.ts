@@ -298,6 +298,7 @@ export function inferAnsweredQIds(scope: BriefingScope): string[] {
   if (scope.branding?.deliverables)                  a.push("branding_deliverables");
   if (scope.competitors?.length)                    a.push("competitors_refs");
   if (scope.budgetRange)                            a.push("budget_range");
+  if (scope.operacao)                               a.push("operacao_basica");
   if (scope.deadline)                               a.push("deadline");
   return a;
 }
@@ -566,6 +567,50 @@ const QUESTIONS: QuestionDef[] = [
     parse: (answer) => ({ budgetRange: answer.trim() }),
   },
 
+  // ── Q10.5 — OS BÁSICOS QUE A PRODUÇÃO USA ─────────────────────────────────
+  //
+  // ── Por que esta pergunta existe (24/08/2026) ────────────────────────────
+  // O briefing perguntava tudo que serve para VENDER e nada do que serve para
+  // PRODUZIR. No piloto de ponta a ponta a Qualidade barrou CINCO peças com o
+  // mesmo parecer: "CTAs prometem 'confirmar canais' e deixam PRECISO
+  // CONFIRMAR sem resolver — peça depende de informação não fornecida". O
+  // pacote fechou, ficou retido, e o cliente nunca soube.
+  //
+  // A lista NÃO é palpite: são os fatos que a Qualidade cobrou, e os mesmos que
+  // o piso de verdade confere na peça pronta (`classesSemInformacao`). O que
+  // ela não cobrou não entrou — pagamento, oferta e prazo continuam fora,
+  // porque nenhuma peça foi barrada por eles.
+  //
+  // ── AS TRÊS REGRAS QUE ESTA PERGUNTA RESPEITA ────────────────────────────
+  //
+  //  1. **Um bloco, uma vez.** Três perguntas soltas virariam interrogatório, e
+  //     prospect real desiste de formulário longo — isso custa mais que peça
+  //     retida.
+  //  2. **Não trava o briefing.** "Não tenho" e "prefiro não dizer" são
+  //     respostas válidas: a pergunta se fecha e a conversa segue. O que não
+  //     pode é a produção descobrir a falta depois.
+  //  3. **Só para quem vai ter peça de social.** Quem só contratou tráfego não
+  //     precisa responder o que não vai ser usado.
+  //
+  // ⛔ NÃO PEDE E-MAIL (regra do CEO) e NÃO PEDE O NÚMERO do WhatsApp — só se o
+  // negócio ATENDE por lá. O escopo inteiro é serializado para dentro do prompt
+  // do modelo, e `semPii` já remove sequências longas de dígitos: pedir número
+  // seria pedir o que a casa apaga em seguida.
+  {
+    id: "operacao_basica",
+    when: (s) => s.scope.wantsSocialMedia === true && !s.scope.operacao,
+    text: () => [
+      "Falta pouco! Três coisas rápidas — são as que a equipe usa na hora de escrever os posts:",
+      "",
+      "1. Qual o **@ do seu Instagram**?",
+      "2. **Horário e dias** que vocês funcionam?",
+      "3. Vocês atendem **que bairros ou cidades** — e atendem por WhatsApp?",
+      "",
+      "Se não tiver alguma delas, é só dizer que a gente segue. 🙂",
+    ].join("\n"),
+    parse: (answer) => ({ operacao: answer.trim() }),
+  },
+
   // Q11 — deadline
   {
     id: "deadline",
@@ -771,7 +816,23 @@ export function getNextQuestion(state: ConvState): QuestionDef | null {
 //
 // `deadline` continua opcional: começar em julho ou em agosto não muda o preço
 // que o cliente vai ler, e travar o envio por isso seria perder o lead por nada.
-const OPTIONAL_QIDS = new Set(["deadline"]);
+// ─── `operacao_basica` É OPCIONAL, E ISSO É REQUISITO (24/08/2026) ──────────
+//
+// A ordem do Diretor Geral ao autorizá-la foi explícita: **"nada disso pode
+// travar o briefing"**. Um teste desta casa pegou exatamente isso na primeira
+// tentativa — com ela obrigatória, o portão de envio parou de abrir e o
+// visitante ficaria sem botão por não ter dito o horário do restaurante.
+//
+// Perder o lead custa mais do que peça retida: a peça a casa reescreve, o
+// prospect que desistiu não volta. Ela é PERGUNTADA sempre, e responder "não
+// tenho" fecha a pergunta como qualquer outra resposta — o que ela nunca faz é
+// impedir o briefing de virar pedido.
+//
+// ⚠️ Não confundir com `budget_range`, que saiu daqui em 23/08 e por motivo
+// oposto: sem verba a casa MANDA PREÇO ERRADO, que é dano ativo. Sem os
+// básicos operacionais a casa produz uma peça mais fraca e a Qualidade a
+// segura — dano contido, e do lado de dentro.
+const OPTIONAL_QIDS = new Set(["deadline", "operacao_basica"]);
 
 // The still-pending questions that MUST be answered before a lead is complete.
 // Empty ⇒ the substantive protocol is fully covered.

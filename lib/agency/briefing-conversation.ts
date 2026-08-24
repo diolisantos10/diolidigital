@@ -96,6 +96,29 @@ export interface BriefingScope {
   branding?: BrandingScope;
   budgetRange?: string;
   deadline?: string;
+  /**
+   * OS BÁSICOS OPERACIONAIS — o que a PRODUÇÃO usa para escrever a peça.
+   *
+   * ── O buraco que este campo fecha (24/08/2026) ────────────────────────────
+   * O briefing perguntava tudo que serve para VENDER e nada do que serve para
+   * PRODUZIR. A consequência foi medida no piloto: a Qualidade barrou cinco
+   * peças seguidas, com o mesmo parecer — CTA prometendo "chame no WhatsApp
+   * [PRECISO CONFIRMAR]", reels sem confirmação visual, plano sem horário. O
+   * pacote inteiro ficou retido, e o cliente nunca soube.
+   *
+   * A produção descobria a falta DEPOIS de a peça estar escrita. Agora a casa
+   * pergunta antes, uma vez, em bloco — e "não tenho" é resposta válida: o que
+   * não pode é a peça ser escrita em cima de um dado que ninguém tem.
+   *
+   * ⚠️ Texto livre de propósito. Quem interpreta é `extrairVerdadeOperacional`,
+   * o MESMO extrator que o piso de verdade usa para conferir a peça depois —
+   * uma fonte, os dois lados. Um campo estruturado aqui seria a segunda régua.
+   *
+   * ⚠️ NÚMERO DE TELEFONE NÃO ENTRA, e não é esquecimento: `semPii` remove
+   * qualquer sequência de 8+ dígitos antes de o texto chegar ao modelo. A peça
+   * precisa saber que o negócio ATENDE por WhatsApp, não o número dele.
+   */
+  operacao?: string;
   // Qualification depth
   decisionMaker?: boolean;    // is the person the decision-maker?
   competitors?: string[];     // competitors / references the client admires

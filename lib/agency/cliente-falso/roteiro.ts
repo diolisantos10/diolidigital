@@ -175,6 +175,31 @@ export const ROTEIRO_PADRAO: Roteiro = {
       quandoPerguntam: /verba mensal dispon[íi]vel para os an[úu]ncios|vai direto para o google/i,
       responde: "Zero, não vou investir em anúncios agora." },
 
+    // ── OS BÁSICOS OPERACIONAIS (24/08/2026) ─────────────────────────────
+    // A casa passou a PERGUNTAR o @ do Instagram, o horário e a área atendida
+    // — os três fatos que a Qualidade cobrou nas cinco peças que barrou. O
+    // cliente falso responde porque um cliente de verdade responderia: são
+    // dados públicos do comércio dele, que ele dá sem pensar.
+    //
+    // ⚠️ ESTA RESPOSTA SÓ EXISTE PORQUE A PERGUNTA EXISTE. Enfiar estes fatos
+    // no roteiro sem a casa perguntar seria alimentar dado por um canal que a
+    // produção real não tem — o mesmo pecado de escrever `directionApprovedAt`
+    // no banco. A pergunta veio primeiro; a resposta veio depois.
+    //
+    // ⚠️ A ORDEM IMPORTA, e ela é o conserto de uma medição: este fato vem
+    // ANTES de `area` de propósito. `area` casa com /cidade/ e a pergunta em
+    // bloco fala em "bairros ou cidades" — na primeira volta ela respondeu só a
+    // área e engoliu o Instagram e o horário. Fato mais específico primeiro.
+    //
+    // ⚠️ SEM NÚMERO DE TELEFONE, de propósito: `semPii` apaga sequências de 8+
+    // dígitos antes de o texto chegar ao modelo. A peça precisa saber que o
+    // negócio ATENDE por WhatsApp, não o número dele.
+    { id: "operacao_basica", intencao: "responde_livre",
+      quandoPerguntam: /@ do seu instagram|hor[áa]rio e dias|bairros ou cidades/i,
+      responde:
+        "Nosso Instagram é @cantinadaprova. Abrimos de terça a domingo, das 11h30 às 15h "
+        + "e das 18h30 às 23h. Atendemos Pinheiros e Vila Madalena, e sim, atendemos por WhatsApp." },
+
     { id: "area", intencao: "responde_livre",
       quandoPerguntam: /onde est[ãa]o os clientes|cidade|raio/i,
       responde: "São Paulo, aqui no bairro mesmo — uns 3 km." },
