@@ -14,6 +14,71 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🟢 24/08/2026 — A DÉCIMA VERIFICAÇÃO FECHOU, E O DEFEITO ERA MAIOR QUE O SDR
+
+**3 rodadas ao vivo seguidas, 10 de 10 verificações em cada uma, 48 turnos
+atendidos pelo SDR de IA de verdade, ZERO barrados pelo guarda.** A décima — a
+que nunca tinha sido medida — está verde com o guarda exercitado, não por falta
+de medição.
+
+### O caminho, porque o número final esconde o trabalho
+
+| rodada | turnos do modelo | barrados | causa |
+|---|---|---|---|
+| antes | 5–6 de 16 | 10–11 | `malformado` ×9/×10 + `price_leak` ×1 |
+| depois da trava de formato | 15 de 16 | 1 | `price_leak` ×1 |
+| depois do conserto do eco | **16 de 16** | **0** | — |
+
+### O achado que reenquadrou tudo: não era defeito do SDR
+
+O laudo de forma foi unânime em duas rodadas independentes — *"o modelo não
+abriu JSON nenhum (respondeu em prosa)"*. Ao abrir `lib/ai/generate.ts` para
+consertar, o defeito apareceu inteiro: **quatro provedores declaravam como
+garantem formato e o Claude não garantia nem declarava** — a pior das três
+posições, porque parecia coberto. As 29 chamadas de IA desta casa corriam o
+mesmo risco; o SDR só foi onde alguém olhou, por ser o único com histórico longo
+em prosa empurrando o modelo para fora do formato a cada turno.
+
+**Regra nova, com trava:** todo provedor declara como garante formato
+(`lib/ai/formato-garantido.ts`). *"Não garanto, e por isto"* é resposta legítima
+— é a da Perplexity. **Silêncio é a única resposta proibida**, e o teste cobra o
+MOTIVO escrito, não só a chave presente.
+
+### O SDR entrou na camada multi-IA
+
+Ordem do CEO: *"nossos produtos podem ser utilizados por qualquer IA"*. A rota
+falava direto com a Anthropic, com `claude-sonnet-4-6` escrito na mão desde
+24/06 e nunca revisto. Agora provedor e modelo saem de onde já saem para todo o
+resto: chave e modelo em Integrações, fixação por cliente (que vence e nasce
+estrita), preferência da casa. **Não precisou de tela nova.**
+
+⚠️ **A porta que NÃO reabriu.** `resolveProviderKey` sem workspace cai num
+`findFirst` global, e a rota do SDR é pública: ligá-la na camada pelo caminho
+óbvio faria qualquer visitante gastar a chave de um inquilino escolhido por
+ordem de inserção. A rota anda na ordem da casa resolvendo cada provedor por
+`chaveDeRotaPublica` e entrega a chave PRONTA. Teste reproduz o furo antigo.
+
+### O `price_leak` virou fato, e não se alargou nada
+
+Era hipótese ("o modelo abreviou a régua"). O laudo de forma mediu: **1 degrau
+citado, 0 valores fora dela** — não era cotação nem régua abreviada, era o
+modelo **confirmando ao cliente o número que o próprio cliente tinha acabado de
+dar**. O guarda está certo: por regex, "R$ 500" ecoado é indistinguível de "R$
+500" cotado. A exceção NÃO foi alargada; o conserto foi o modelo parar de
+produzir a fala — confirma com palavras, nunca com o número.
+
+### 🔴 O que continua aberto
+
+- **Medir dois provedores lado a lado** com o cliente falso (o CEO perguntou se
+  não seria melhor migrar para GPT). Agora é barato: fixação por cliente +
+  `estrito` já existem e a bateria já roda ao vivo. **Não foi feito.**
+- **Só o Claude foi exercitado ao vivo.** Os outros quatro provedores têm
+  posição declarada e caminho de código, mas **nenhuma rodada real** passou por
+  eles. Declarado não é medido.
+- **A Perplexity segue sem trava de formato**, por limitação dela. Está escrito.
+
+---
+
 ## 🔴 23/08/2026 — A DÉCIMA VERIFICAÇÃO NÃO FECHOU, E O INSTRUMENTO ESTAVA MENTINDO SOBRE ELA
 
 **A ordem do CEO:** *"pode rodar com IA, quero o teste até o final"* — custo de
