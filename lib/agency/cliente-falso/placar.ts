@@ -162,31 +162,47 @@ function resumoDoSdr(p: Percurso): string {
  * não abriu JSON nenhum" é uma causa; "3× de um jeito, 6× de outro" são duas.
  */
 export function contarFormas(barrados: readonly string[]): [string, number][] {
-  const conta = new Map<string, number>();
+  // chave normalizada → { rótulo REAL a exibir, quantos, quantas variações }
+  const conta = new Map<string, { rotulo: string; n: number; variantes: Set<string> }>();
   for (const linha of barrados) {
     // Duas leituras simples e independentes valem mais que uma expressão
     // esperta: cada pedaço do corpo é opcional, e uma regex única que tenta
     // casar tudo de uma vez falha silenciosamente no dia em que um deles muda.
     const motivo = /barrada pelo guarda:\s*([^—\]]+?)\s*(?:—|\]|$)/.exec(linha)?.[1]?.trim();
     const forma = /—\s*na forma:\s*(.+?)\s*—\s*quem respondeu/.exec(linha)?.[1]?.trim();
-    // Laudo ausente é FATO, não lacuna a esconder: turno barrado por um guarda
-    // que não julga formato (preço, e-mail) não tem forma para reportar.
-    // ── POR QUE OS NÚMEROS SAEM DA CHAVE DE AGRUPAMENTO ────────────────────
-    // Medido na rodada de 24/08/2026: dez turnos barrados pela MESMA causa —
-    // "o modelo não abriu JSON nenhum (respondeu em prosa)" — viraram NOVE
-    // linhas no placar, porque o laudo carrega o tamanho do pacote e os
-    // tamanhos diferiam (201, 216, 242, 243, 252, 254, 262, 265, 319). Uma
-    // causa única lida como nove achados é o oposto do que este agrupamento
-    // existe para fazer: quem lê tem de enxergar "10× a mesma coisa", que é
-    // uma causa, e não nove coincidências. O tamanho continua no laudo do
-    // diário, onde ele é medição de um turno; aqui ele não distingue causa.
+
+    // ── POR QUE OS NÚMEROS SAEM DA CHAVE, MAS NÃO DO RÓTULO ────────────────
+    // Agrupar: os números saem. Dez turnos da mesma causa com tamanhos
+    // diferentes (201, 216, 242…) são UMA causa, não dez achados — foi o
+    // conserto de 24/08 de manhã.
+    //
+    // Exibir: os números VOLTAM, e este foi o defeito da tarde do mesmo dia.
+    // A versão anterior mostrava a própria chave normalizada, e o placar saiu
+    // com "N degrau(s) da régua citado(s), N valor(es) fora dela" — apagando
+    // exatamente a medição que o laudo existe para produzir. Normalizar é para
+    // CONTAR; quem lê precisa do número de verdade. Por isso guarda-se um
+    // exemplar real e conta-se pela chave.
     const semNumeros = forma?.replace(/\d+/g, "N");
     const chave = semNumeros
       ? `${motivo ?? "motivo não identificado"}: ${semNumeros}`
       : `${motivo ?? "motivo não identificado"} (sem laudo de forma — este guarda não julga formato)`;
-    conta.set(chave, (conta.get(chave) ?? 0) + 1);
+    const rotulo = forma
+      ? `${motivo ?? "motivo não identificado"}: ${forma}`
+      : chave;
+
+    const atual = conta.get(chave);
+    if (atual) {
+      atual.n += 1;
+      atual.variantes.add(rotulo);
+    } else {
+      conta.set(chave, { rotulo, n: 1, variantes: new Set([rotulo]) });
+    }
   }
-  return [...conta].sort((a, b) => b[1] - a[1]);
+  return [...conta.values()]
+    .sort((a, b) => b.n - a.n)
+    // Mais de um rótulo real sob a mesma causa = os números variam entre os
+    // turnos. Diz isso em vez de escolher um e fingir que valia para todos.
+    .map((v) => [v.variantes.size > 1 ? `${v.rotulo} (números variam entre os turnos)` : v.rotulo, v.n]);
 }
 
 function umaLinha(t: string): string {

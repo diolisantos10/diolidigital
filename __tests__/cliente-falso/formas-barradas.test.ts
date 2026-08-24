@@ -75,6 +75,32 @@ describe("contarFormas — o número vem com a causa junto", () => {
     expect(r).toHaveLength(2);
   });
 
+  // ── O DEFEITO DA TARDE DE 24/08, virado em teste ─────────────────────────
+  // A normalização que agrupa (números viram "N") passou a ser EXIBIDA, e o
+  // placar da rodada saiu com "N degrau(s) da régua citado(s), N valor(es) fora
+  // dela" — apagando exatamente a medição que o laudo existe para produzir.
+  // Normalizar é para CONTAR; quem lê precisa do número de verdade.
+  it("EXIBE os números de verdade — normalizar é para contar, não para mostrar", () => {
+    const linha =
+      "[resposta barrada pelo guarda: price_leak — o modelo citou preço — na forma: 1 degrau(s) da " +
+      "régua citado(s), 0 valor(es) fora dela — quem respondeu ao visitante foi o motor de regras.]";
+    const [[rotulo, n]] = contarFormas([linha]);
+    expect(n).toBe(1);
+    expect(rotulo, "o placar exibiu a chave normalizada em vez da medição").toContain("1 degrau(s)");
+    expect(rotulo).toContain("0 valor(es)");
+    expect(rotulo).not.toMatch(/N degrau/);
+  });
+
+  it("quando os números VARIAM sob a mesma causa, diz isso em vez de escolher um", () => {
+    const r = contarFormas([
+      MALFORMADO_PROSA.replace("297 caracteres", "201 caracteres"),
+      MALFORMADO_PROSA.replace("297 caracteres", "319 caracteres"),
+    ]);
+    expect(r).toHaveLength(1);
+    expect(r[0][1]).toBe(2);
+    expect(r[0][0]).toMatch(/números variam/);
+  });
+
   it("não quebra com linha fora do feitio esperado", () => {
     expect(() => contarFormas(["texto qualquer", ""])).not.toThrow();
     expect(contarFormas(["texto qualquer"])[0][1]).toBe(1);
