@@ -51,8 +51,10 @@ function conversaAteOrcamento() {
     // (ela é opcional e precisa ser feita com o portão ainda fechado), então
     // parar em "competitors respondida" passou a parar uma pergunta cedo demais
     // — e o teste passaria a medir a pergunta errada.
+    // `marca_basica` entrou logo depois de `operacao_basica` em 24/08/2026, pela
+    // mesma razão e na mesma posição — ver `causas-de-refacao.ts`.
     if (feitas.includes("competitors_refs") && feitas.includes("operacao_basica")
-        && !feitas.includes("budget_range")) return s;
+        && feitas.includes("marca_basica") && !feitas.includes("budget_range")) return s;
     s = processProspectMessage(respostas[i] ?? "Não", s);
   }
   throw new Error("a conversa nunca chegou na pergunta de orçamento — o cenário do print mudou");

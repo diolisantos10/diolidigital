@@ -14,6 +14,8 @@ import {
 } from "./anexo-nao-e-resposta";
 import { lerAreaDeAtendimento } from "./comercial/onde-o-negocio-vende";
 import { NUMERO_POR_EXTENSO, normalizar as normalizarSemAcento } from "./esteira/leitura-do-pedido";
+import { CAUSAS, type Causa } from "./esteira/causas-de-refacao";
+import { PERGUNTA, type CampoDaMarca } from "./esteira/campos-da-marca";
 
 // ── Text helpers ──────────────────────────────────────────────────────────────
 
@@ -307,6 +309,7 @@ export function inferAnsweredQIds(scope: BriefingScope): string[] {
   if (scope.competitors?.length)                    a.push("competitors_refs");
   if (scope.budgetRange)                            a.push("budget_range");
   if (scope.operacao)                               a.push("operacao_basica");
+  if (scope.marca)                                  a.push("marca_basica");
   if (scope.deadline)                               a.push("deadline");
   return a;
 }
@@ -334,6 +337,39 @@ const social = (s: ConvState): SocialScope => s.scope.social ?? { platforms: [] 
  * Pergunta nova entra ANTES da última obrigatória. Há teste que reprova quem
  * acrescentar no fim — `o-briefing-coleta-o-que-a-producao-usa.test.ts`.
  */
+/**
+ * OS ITENS DO BLOCO DE MARCA — derivados da MEDIÇÃO, nunca escolhidos a dedo.
+ *
+ * Só entra a causa que (a) aponta para este bloco, (b) tem um campo da
+ * constituição da marca que a responde, e (c) traz pelo menos uma medição com
+ * arquivo e data. Sem os três, a pergunta não tem lastro e não entra: o
+ * formulário longo é o jeito mais barato de perder um prospect.
+ */
+export function itensDoBlocoDeMarca(): Array<{ campo: CampoDaMarca; causa: Causa }> {
+  return CAUSAS
+    .filter((c) => c.perguntaQueEvita === "marca_basica" && c.campoDaMarca && c.evidencia.length > 0)
+    .map((c) => ({ campo: c.campoDaMarca as CampoDaMarca, causa: c }))
+    .slice(0, MAX_ITENS_NO_BLOCO);
+}
+
+/** Teto do bloco. Não é estética: é o preço de perder o prospect. Se a medição
+ *  apontar um quinto item, ele espera — e o que espera fica VISÍVEL em
+ *  `causasSemPergunta()`, em vez de virar silêncio. */
+export const MAX_ITENS_NO_BLOCO = 4;
+
+/** O texto do bloco. A redação de cada item é a que a ficha de marca já usa
+ *  com o dono do negócio (`PERGUNTA`) — uma redação só, um lugar só. */
+export function textoDoBlocoDeMarca(): string {
+  const itens = itensDoBlocoDeMarca();
+  return [
+    "Última coisa — e é a que faz a peça ter a cara de vocês, e não cara de agência:",
+    "",
+    ...itens.map((it, i) => `${i + 1}. ${PERGUNTA[it.campo]}`),
+    "",
+    "Se não tiver alguma, é só dizer \"não tenho\" — a gente segue e deixa isso marcado como pendente, em vez de inventar. 🙂",
+  ].join("\n");
+}
+
 const QUESTIONS: QuestionDef[] = [
   // Q0 — detect service (if nothing was understood from initial message)
   {
@@ -648,6 +684,53 @@ const QUESTIONS: QuestionDef[] = [
     parse: (answer) => ({ operacao: answer.trim() }),
   },
 
+  // ── Q9b — OS BÁSICOS DE MARCA ────────────────────────────────────────────
+  //
+  // ── POR QUE ESTA PERGUNTA EXISTE, E COM QUAL LASTRO (24/08/2026) ─────────
+  //
+  // `operacao_basica` fechou a metade OPERACIONAL do que a produção usa. A
+  // metade de MARCA continuou aberta, e foi ela que o case Farol 27 mediu: a
+  // cliente não tinha vetor do logo, paleta documentada, tom de voz, regras de
+  // aplicação, moodboard nem exemplos — e **nada disso foi perguntado a tempo**.
+  // Virou "PRECISO CONFIRMAR" DENTRO da peça, quando o trabalho já estava feito.
+  //
+  // Como a produção só começa depois do pagamento, o preço já está fechado
+  // quando a primeira peça é apresentada: **toda refação é prejuízo da casa**.
+  //
+  // ⚠️ O TEXTO DO BLOCO NÃO É ESCRITO AQUI, e isso é a trava contra formulário
+  // que cresce por gosto:
+  //
+  //   • QUAIS itens entram vem de `CAUSAS` (`esteira/causas-de-refacao.ts`) —
+  //     só entra o campo de marca que tem uma medição registrada, com arquivo e
+  //     data, dizendo que a falta dele custou peça. Pergunta sem lastro é
+  //     formulário mais longo, e formulário longo o cliente abandona.
+  //   • COMO cada item é perguntado vem de `PERGUNTA` (`campos-da-marca.ts`) —
+  //     a redação que a casa já usa com o dono do negócio. Uma segunda redação
+  //     para a mesma pergunta é como as duas verdades nascem.
+  //
+  // Há teste que reprova item sem medição e item cuja redação divergir da ficha.
+  //
+  // ── AS MESMAS QUATRO REGRAS DE `operacao_basica` ─────────────────────────
+  //  1. Um bloco, uma vez.
+  //  2. NÃO trava o briefing — está em `OPTIONAL_QIDS`. "Não tenho" fecha a
+  //     pergunta. O que não pode é a produção descobrir a falta depois.
+  //  3. Só para quem vai ter peça com a cara da marca (social ou identidade).
+  //  4. Vem ANTES da última obrigatória (`budget_range`), senão é feita com o
+  //     botão de enviar já na mão do cliente e ninguém responde.
+  //
+  // ── E A LACUNA FICA VISÍVEL ANTES DA PRODUÇÃO ────────────────────────────
+  // Falta de resposta NÃO vira invenção: o texto vai para `scope.marca`, o
+  // extrator de proibições o lê no briefing (`sincronizarDoBriefing`) e o que
+  // continuar faltando aparece como LACUNA no contrato de marca — que é lido
+  // por quem produz ANTES de escrever, e não depois.
+  {
+    id: "marca_basica",
+    when: (s) =>
+      (s.scope.wantsSocialMedia === true || s.scope.branding?.requested === true) && !s.scope.marca,
+    text: () => textoDoBlocoDeMarca(),
+    parse: (answer) => ({ marca: answer.trim() }),
+  },
+
   // Q10 — budget range
   {
     id: "budget_range",
@@ -881,7 +964,7 @@ export function getNextQuestion(state: ConvState): QuestionDef | null {
 // oposto: sem verba a casa MANDA PREÇO ERRADO, que é dano ativo. Sem os
 // básicos operacionais a casa produz uma peça mais fraca e a Qualidade a
 // segura — dano contido, e do lado de dentro.
-const OPTIONAL_QIDS = new Set(["deadline", "operacao_basica"]);
+const OPTIONAL_QIDS = new Set(["deadline", "operacao_basica", "marca_basica"]);
 
 /** A fila inteira, para quem precisa CONFERIR a ordem (teste da regra de
  *  classe). Somente leitura: mexer aqui é mexer no briefing. */

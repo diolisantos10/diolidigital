@@ -120,6 +120,30 @@ export interface BriefingScope {
    * precisa saber que o negócio ATENDE por WhatsApp, não o número dele.
    */
   operacao?: string;
+  /**
+   * OS BÁSICOS DE MARCA — o que a produção usa para a peça PARECER do cliente.
+   *
+   * ── O buraco que este campo fecha (24/08/2026) ────────────────────────────
+   * `operacao` fechou a metade OPERACIONAL (horário, área, canal). A metade de
+   * MARCA continuou aberta, e ela foi medida no case Farol 27: a cliente não
+   * tinha logo em vetor, paleta documentada, tom de voz, exemplos nem quem
+   * aprova — e **nada disso foi perguntado a tempo**. Virou "PRECISO CONFIRMAR"
+   * DENTRO da peça, depois de o trabalho estar feito e pago.
+   *
+   * Como a produção paga só depois do pagamento do cliente, refação é prejuízo
+   * da casa. Perguntar aqui custa uma linha de conversa; descobrir depois custa
+   * a peça inteira.
+   *
+   * ⚠️ Texto livre, pelo mesmo motivo de `operacao`: quem interpreta é a ficha
+   * de marca (`escrita-da-ficha.ts`) e o extrator de proibições, que são as
+   * mesmas réguas que conferem a peça depois. Campo estruturado aqui seria a
+   * segunda verdade.
+   *
+   * ⚠️ O CONTEÚDO DO BLOCO NÃO É PALPITE: ele é derivado de `CAUSAS`
+   * (`esteira/causas-de-refacao.ts`), onde cada item carrega a citação, o
+   * arquivo e a data da medição que o justifica.
+   */
+  marca?: string;
   // Qualification depth
   decisionMaker?: boolean;    // is the person the decision-maker?
   competitors?: string[];     // competitors / references the client admires

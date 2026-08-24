@@ -89,6 +89,44 @@ export interface ProibicaoRegistrada {
    *  acento). Lista vazia = proibição que nunca dispara, e por isso é descartada
    *  na leitura em vez de virar regra decorativa. */
   termos: string[];
+  /**
+   * A INSTRUÇÃO GÊMEA — o que usar NO LUGAR, nas palavras do cliente.
+   *
+   * ── Por que este campo existe (24/08/2026) ───────────────────────────────
+   * Proibição sozinha engessa a marca. "Não use 'imperdível'" sem dizer o que
+   * dizer no lugar deixa o produtor com duas saídas ruins: repetir a palavra
+   * (e ser barrado) ou **cortar o assunto da peça** — e aí ele é reprovado por
+   * obedecer. Esta casa já viu isso acontecer.
+   *
+   * `undefined` quando o cliente não disse. Nesse caso a instrução gêmea NÃO
+   * some: ela é gerada em código por `instrucaoGemea`, com o texto padrão
+   * "diga a mesma coisa de outro jeito, não corte o assunto".
+   */
+  substituto?: string;
+  /** De onde veio (briefing, pedido, ajuste, marca, equipe). Regra de marca sem
+   *  fonte não é auditável — e trava que não se explica é desligada. */
+  origem?: string;
+  /** Quando foi registrada, em ISO. Afirmação medida tem prazo de validade. */
+  registradaEm?: string;
+}
+
+/**
+ * A PROIBIÇÃO EM UMA LINHA, COM A INSTRUÇÃO GÊMEA JUNTO.
+ *
+ * Uma redação só, usada pelo contrato de marca (que vai a quem ESCREVE e a quem
+ * JULGA) e pelo motivo da violação. Duas redações para a mesma regra seria a
+ * segunda verdade — e é assim que o produtor obedece uma e é cobrado pela outra.
+ */
+export function instrucaoGemea(p: ProibicaoRegistrada): string {
+  const fonte = [p.origem, p.registradaEm?.slice(0, 10)].filter(Boolean).join(", ");
+  const selo = fonte ? ` (fonte: ${fonte})` : "";
+  if (p.substituto?.trim()) {
+    return `${p.frase} → em vez disso, use: ${p.substituto.trim()}${selo}`;
+  }
+  return (
+    `${p.frase} → o cliente não disse o que usar no lugar: diga a MESMA coisa de outro `
+    + `jeito. NÃO corte o assunto da peça por causa desta regra${selo}`
+  );
 }
 
 export interface ProibicoesDoCliente {
@@ -1370,7 +1408,13 @@ function conferirProibicoes(texto: string, proibicoes: ProibicoesDoCliente | und
         violacoes.push({
           id: "proibicao_do_cliente",
           trecho: termo,
-          motivo: `O cliente PROIBIU isto: "${p.frase}". Peça que viola uma proibição registrada é pior que peça sem graça — ele já tinha avisado.`,
+          // A INSTRUÇÃO GÊMEA VAI JUNTO DO "NÃO", sempre. O motivo é lido por
+          // quem REFAZ a peça: dizer só "isto é proibido" faz o produtor cortar
+          // o assunto e ser reprovado do outro lado. `instrucaoGemea` é a mesma
+          // redação que o contrato de marca usa — uma regra, um texto.
+          motivo:
+            `O cliente PROIBIU isto: ${instrucaoGemea(p)}. `
+            + "Peça que viola uma proibição registrada é pior que peça sem graça — ele já tinha avisado.",
         });
       }
     }

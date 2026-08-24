@@ -72,6 +72,95 @@ export interface Proibicao extends ProibicaoRegistrada {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// O QUE **NÃO** VIRA REGRA DE MARCA — e por que isto é metade do trabalho
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// ── O risco real, nomeado pelo CEO (24/08/2026) ────────────────────────────
+// A recusa do cliente vira regra permanente da marca. Isso é o remédio — e é
+// também o veneno, se entrar tudo:
+//
+//   • **"troca esse título"** é ajuste DAQUELA peça. Empurrado para a base de
+//     marca, ele proíbe uma palavra para sempre por causa da opinião de um dia.
+//   • **"não use 'imperdível'"** é regra da marca: vale na próxima peça e na de
+//     dezembro.
+//
+// A diferença não é de tom, é de ALCANCE, e o cliente a marca no texto: quando
+// ele fala da peça que está na frente dele ("nesse post", "nesse card", "aqui",
+// "esse título"), ele está pedindo ajuste. Quando ele fala em categoria
+// ("nunca", "jamais", "em nenhuma peça", "sempre"), está escrevendo regra.
+//
+// ⚠️ O AJUSTE PONTUAL NÃO SE PERDE. Ele continua chegando inteiro a quem refaz
+// — `refacao.ts` manda o comentário do cliente para o especialista com as
+// palavras dele. O que este filtro impede é ele virar PROIBIÇÃO PERMANENTE.
+// Regra da marca é o que sobrevive à peça; ajuste é o que morre com ela.
+
+/** O cliente está falando da peça que está na frente dele. */
+const PONTUAL = /\b(ness[ae]|nest[ae]|dess[ae]|dest[ae]|aqui|essa pe[çc]a|esse post|essa arte|esse card|esse t[íi]tulo|essa legenda|essa imagem|essa foto|dessa vez|s[óo] (nessa|nesse|aqui))\b/i;
+
+/** O cliente está falando em categoria — e aí é regra da marca, mesmo que ele
+ *  também aponte a peça ("nunca use isso, nem nesse post nem em nenhum outro"). */
+const CATEGORICO = /\b(nunca|jamais|em nenhum\w*|nenhuma pe[çc]a|sempre|em hip[óo]tese alguma|de jeito nenhum|nada de)\b/i;
+
+/**
+ * Esta frase é ajuste DAQUELA peça, e não regra da marca?
+ *
+ * Conservador na direção que dói menos: na dúvida, **não vira regra**. Uma
+ * regra que faltou a casa aprende na próxima recusa; uma regra errada e
+ * permanente engessa a marca e reprova o produtor por obedecer.
+ */
+export function ehAjustePontual(frase: string): boolean {
+  const t = (frase ?? "").toLowerCase();
+  if (CATEGORICO.test(t)) return false;
+  return PONTUAL.test(t);
+}
+
+/**
+ * O QUE USAR NO LUGAR, quando o cliente disse.
+ *
+ * Só lê o que ele ESCREVEU — nunca inventa substituto. Substituto inventado
+ * seria a agência colocando palavra na boca do cliente e depois obedecendo a
+ * si mesma.
+ */
+const PADROES_DE_SUBSTITUTO: RegExp[] = [
+  /\bem\s+vez\s+(?:disso|dele|dela|dessa|desse)?,?\s*(?:use|usem|usar|fale|falem|escreva|escrevam|diga|digam|coloque|prefir\w+)?\s*([^.;!?\n]{2,90})/i,
+  /\bno\s+lugar,?\s*(?:disso\s*)?(?:use|usem|usar|fale|falem|escreva|escrevam|diga|digam|coloque)?\s*([^.;!?\n]{2,90})/i,
+  /\bprefir(?:o|imos)\s+([^.;!?\n]{2,90})/i,
+  /\b(?:use|usem|usar|fale|falem|escreva|escrevam|diga|digam)\s+([^.;!?\n]{2,90})\s+no\s+lugar\b/i,
+  /\bpode\s+(?:usar|falar|dizer)\s+([^.;!?\n]{2,90})/i,
+];
+
+/**
+ * ONDE O "NÃO" ACABA E O "USE ISTO" COMEÇA.
+ *
+ * ⚠️ ESTE CORTE É OBRIGATÓRIO, e nasceu de um defeito real medido em
+ * 24/08/2026: a frase *"nunca use 'imperdível', em vez disso use 'vale a
+ * pena'"* virava UMA proibição com DOIS termos — `imperdivel` **e** `vale a
+ * pena`. A casa passava a barrar exatamente a palavra que o cliente mandou
+ * usar. É a forma mais pura da proibição cega: o produtor obedece a instrução
+ * gêmea e é reprovado por isso.
+ */
+const CORTE_DO_SUBSTITUTO = /\b(?:em\s+vez\s+(?:disso|dele|dela|dessa|desse)?|no\s+lugar|prefir(?:o|imos)|pode\s+(?:usar|falar|dizer))\b/i;
+
+/** O objeto da proibição, SEM o pedaço que já é o substituto. */
+function objetoSemSubstituto(objeto: string): string {
+  const m = CORTE_DO_SUBSTITUTO.exec(objeto);
+  const cortado = m ? objeto.slice(0, m.index) : objeto;
+  return cortado.replace(/[\s,;–—-]+$/, "").trim();
+}
+
+/** O substituto declarado nesta frase, ou `undefined`. */
+export function substitutoDeclarado(texto: string): string | undefined {
+  const t = (texto ?? "").trim();
+  if (!t) return undefined;
+  for (const re of PADROES_DE_SUBSTITUTO) {
+    const m = re.exec(t);
+    const achado = m?.[1]?.trim();
+    if (achado && achado.length >= 2) return achado.slice(0, 90);
+  }
+  return undefined;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // A EXTRAÇÃO — léxica, determinística, sem IA
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -156,7 +245,20 @@ export function extrairProibicoes(textoDoCliente: string, origem: OrigemDaProibi
       const objeto = (m[1] ?? "").trim();
       if (!objeto) continue;
 
-      const termos = termosDoObjeto(objeto);
+      // A FRASE INTEIRA em volta do achado. É dela que saem as duas leituras
+      // novas: se isto é ajuste da peça (e então não vira regra) e o que o
+      // cliente mandou usar no lugar. Ler só o OBJETO perderia as duas — elas
+      // vivem antes e depois dele ("nesse post não use X, prefiro Y").
+      const frase = sentencaEmVolta(t, m.index ?? 0);
+
+      // ── AJUSTE DAQUELA PEÇA NÃO VIRA REGRA DA MARCA ─────────────────────
+      // Ver o cabeçalho de `ehAjustePontual`. O pedido continua chegando a quem
+      // refaz; o que ele não faz é virar proibição permanente.
+      if (ehAjustePontual(frase)) continue;
+
+      // ⚠️ O OBJETO SAI SEM O SUBSTITUTO — ver `objetoSemSubstituto`. Sem este
+      // corte, "nunca use X, em vez disso use Y" bania Y também.
+      const termos = termosDoObjeto(objetoSemSubstituto(objeto));
       // Objeto sem nenhum termo aproveitável (só palavras vazias) NÃO vira
       // proibição vazia: proibição sem termo é uma regra que nunca dispara e
       // que o especialista lê como se estivesse valendo.
@@ -169,6 +271,9 @@ export function extrairProibicoes(textoDoCliente: string, origem: OrigemDaProibi
       achadas.push({
         frase: m[0].trim().slice(0, 160),
         termos,
+        // A INSTRUÇÃO GÊMEA, só quando o cliente a escreveu. Sem invenção: o
+        // padrão de "não disse o que usar" é gerado em código, na leitura.
+        substituto: substitutoDeclarado(frase),
         origem,
         registradaEm: agora,
       });
@@ -183,6 +288,18 @@ export function extrairProibicoes(textoDoCliente: string, origem: OrigemDaProibi
  * Trecho entre aspas vale inteiro ("nunca use a palavra 'imperdível'"): quando o
  * cliente destaca, ele já disse exatamente o que não pode.
  */
+/** A frase (entre pontuações fortes) que contém a posição dada. É o escopo em
+ *  que "nesse post" e "prefiro X" fazem sentido — a três frases de distância
+ *  eles são de outro assunto. */
+function sentencaEmVolta(texto: string, pos: number): string {
+  const antes = texto.lastIndexOf(".", pos);
+  const antes2 = Math.max(antes, texto.lastIndexOf("\n", pos), texto.lastIndexOf(";", pos), texto.lastIndexOf("!", pos), texto.lastIndexOf("?", pos));
+  const inicio = antes2 < 0 ? 0 : antes2 + 1;
+  const resto = texto.slice(pos).search(/[.;!?\n]/);
+  const fim = resto < 0 ? texto.length : pos + resto + 1;
+  return texto.slice(inicio, fim).trim();
+}
+
 function termosDoObjeto(objeto: string): string[] {
   const citados = [...objeto.matchAll(/["'“”‘’]([^"'“”‘’]{3,40})["'“”‘’]/g)].map((c) => c[1]!.trim());
   if (citados.length > 0) {
@@ -232,7 +349,16 @@ export async function lerProibicoes(clientId: string | null | undefined): Promis
       lidas: true,
       itens: itens
         .filter((i) => i && typeof i.frase === "string" && Array.isArray(i.termos) && i.termos.length > 0)
-        .map((i) => ({ frase: i.frase, termos: i.termos.filter((x) => typeof x === "string" && x.length >= 3) }))
+        // `substituto`, `origem` e `registradaEm` ATRAVESSAM a leitura. Sem
+        // eles o contrato de marca mostraria a proibição sem a instrução gêmea
+        // e sem fonte — e proibição cega é o que engessa a marca.
+        .map((i) => ({
+          frase: i.frase,
+          termos: i.termos.filter((x) => typeof x === "string" && x.length >= 3),
+          ...(typeof i.substituto === "string" && i.substituto.trim() ? { substituto: i.substituto } : {}),
+          ...(typeof i.origem === "string" ? { origem: i.origem } : {}),
+          ...(typeof i.registradaEm === "string" ? { registradaEm: i.registradaEm } : {}),
+        }))
         .filter((i) => i.termos.length > 0),
     };
   } catch (e) {
@@ -372,9 +498,17 @@ export const MAX_PROIBICOES_POR_RESPOSTA = 3;
 export function proibicaoDeclarada(linha: string, origem: OrigemDaProibicao): Proibicao | null {
   const frase = minusculas(linha ?? "").trim();
   if (!frase) return null;
+  // Mesma trava do caminho por negação: ajuste daquela peça não vira regra.
+  if (ehAjustePontual(frase)) return null;
   const termos = termosDoObjeto(frase);
   if (termos.length === 0) return null;
-  return { frase: frase.slice(0, 160), termos, origem, registradaEm: new Date().toISOString() };
+  return {
+    frase: frase.slice(0, 160),
+    termos,
+    substituto: substitutoDeclarado(frase),
+    origem,
+    registradaEm: new Date().toISOString(),
+  };
 }
 
 /**
