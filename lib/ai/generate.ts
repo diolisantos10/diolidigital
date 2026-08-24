@@ -7,15 +7,38 @@
 // central brain (/api/brain/reason) and the department agents use this, so a
 // key pasted in the UI immediately powers every department's reasoning.
 
-import type { OpenAIMessages } from "@/lib/agency/intelligence/openai-schemas";
+import type { OpenAIMessages, TurnoDeHistorico } from "@/lib/agency/intelligence/openai-schemas";
 import { resolveProviderKey, isAiProvider, type AiProvider } from "@/lib/ai/resolve-key";
 import { escolhaDoCliente } from "@/lib/ai/escolha-por-cliente";
 import { registrarChamadaDeIa, type UsoDeTokens } from "@/lib/ai/registro-de-custo";
 import { departamentoQuePaga } from "@/lib/ai/donos";
 
+/**
+ * O DESFECHO CRU DA GERAÇÃO — os dois campos que o SDR não pode perder.
+ *
+ * Ambos OPCIONAIS e ausentes para quem não pede: os 29 chamadores de turno
+ * único leem `data` e nada muda para eles. Quem precisa disto é o SDR, e
+ * precisa porque as duas coisas foram conquistadas caro em 16/08/2026:
+ *
+ *  • `motivoDeParada` separa `truncado` (a própria API confirma que cortou) de
+ *    `malformado` (ela diz que terminou e o que veio não é o formato). São duas
+ *    causas com dois consertos, e viravam a mesma linha no diário do piloto.
+ *  • `textoCru` é o que sobra quando o pacote não abre. É dele que sai o
+ *    `repararJsonTruncado` e, com ele, a regra mais cara desta casa: **o escopo
+ *    sobrevive mesmo quando a fala é barrada**. Sem o texto cru, os R$ 500/mês
+ *    e os 2 posts/dia que o cliente acabou de dizer viram pó de novo.
+ */
+export interface DesfechoDaGeracao {
+  /** `stop_reason` do provedor, cru. `null` quando ele não informa. */
+  motivoDeParada?: string | null;
+  /** O texto tal como veio. `null` no caminho de ferramenta, onde não há texto:
+   *  o pacote chega já como objeto, que é justamente a trava funcionando. */
+  textoCru?: string | null;
+}
+
 export type GenerateResult =
-  | { ok: true; data: unknown; model: string; provider: AiProvider; uso?: UsoDeTokens | null }
-  | { ok: false; error: string; uso?: UsoDeTokens | null };
+  | ({ ok: true; data: unknown; model: string; provider: AiProvider; uso?: UsoDeTokens | null } & DesfechoDaGeracao)
+  | ({ ok: false; error: string; uso?: UsoDeTokens | null } & DesfechoDaGeracao);
 
 /**
  * Tokens consumidos, como cada provedor os devolve. Ausência é `null`, nunca 0:
@@ -47,6 +70,13 @@ const TIMEOUT_MS = 60_000;
 // one, and the client-facing copy is the product. Whoever wants DeepSeek in
 // front says so explicitly (BRAIN_AI_PROVIDER=deepseek) — a cheap provider
 // should never quietly promote itself just because a key showed up.
+/** A ordem de preferência da casa, para quem precisa andar nela por fora —
+ *  hoje a rota pública do SDR, que resolve chave pela regra dela e não pode
+ *  usar `resolveProviderKey` sem workspace. Ver `lib/ai/chave-publica.ts`. */
+export function ordemDePreferenciaDaCasa(): AiProvider[] {
+  return preferenceOrder();
+}
+
 function preferenceOrder(): AiProvider[] {
   const env = (process.env.BRAIN_AI_PROVIDER ?? "").trim().toLowerCase();
   // Ordem = ranking de QUALIDADE para o trabalho padrão da casa (texto que vai
@@ -60,9 +90,9 @@ function preferenceOrder(): AiProvider[] {
   return base;
 }
 
-function withTimeout(): { signal: AbortSignal; clear: () => void } {
+function withTimeout(ms: number = TIMEOUT_MS): { signal: AbortSignal; clear: () => void } {
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const t = setTimeout(() => controller.abort(), ms);
   return { signal: controller.signal, clear: () => clearTimeout(t) };
 }
 
@@ -80,25 +110,76 @@ function extractJson(text: string): unknown | null {
 
 // ── Per-provider keyed calls (uniform result) ─────────────────────────────────
 
-async function callClaude(apiKey: string, model: string, m: OpenAIMessages, maxTokens: number): Promise<GenerateResult> {
-  const { signal, clear } = withTimeout();
+/**
+ * A FERRAMENTA QUE EXISTE PARA O MODELO NÃO PODER FALAR EM PROSA.
+ *
+ * `input_schema` é um objeto ABERTO de propósito. A camada é genérica: cada um
+ * dos 29 chamadores pede um formato diferente, descrito no PRÓPRIO system
+ * prompt dele. O que se garante aqui não é a FORMA do pacote — é que exista um
+ * pacote: com `tool_choice` fixo, a resposta chega pelo canal de entrada da
+ * ferramenta, já como objeto, e o caminho "responder em texto" deixa de estar
+ * disponível para o modelo. A forma continua sendo governada pelo prompt, como
+ * sempre foi; o que muda é que ela não pode mais chegar embrulhada em conversa.
+ */
+const FERRAMENTA_DO_PACOTE = {
+  name: "responder",
+  description:
+    "Devolve a resposta desta requisição como o objeto JSON descrito nas instruções do sistema. " +
+    "Use SEMPRE esta ferramenta: ela é o único canal de resposta.",
+  input_schema: { type: "object" as const, additionalProperties: true },
+};
+
+async function callClaude(apiKey: string, model: string, m: OpenAIMessages, maxTokens: number, timeoutMs?: number): Promise<GenerateResult> {
+  const { signal, clear } = withTimeout(timeoutMs);
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model, max_tokens: maxTokens, system: m.system, messages: [{ role: "user", content: m.user }] }),
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        system: m.system,
+        // O histórico entra ANTES da fala da vez. Ausente, o corpo fica
+        // idêntico ao de sempre — um único turno de usuário.
+        messages: [...(m.historico ?? []), { role: "user", content: m.user }],
+        // ── A TRAVA DE FORMATO DO CLAUDE (24/08/2026) ────────────────────────
+        // Ver `lib/ai/formato-garantido.ts` para o achado inteiro. Em resumo: a
+        // saída estruturada nativa não existe no claude-sonnet-4-6 e o prefill
+        // foi removido na família 4.6+. Uso de ferramenta forçado é o mecanismo
+        // que existe neste modelo, e resolve pela raiz — o modelo não pode
+        // responder em prosa porque não há canal de prosa disponível.
+        tools: [FERRAMENTA_DO_PACOTE],
+        tool_choice: { type: "tool", name: FERRAMENTA_DO_PACOTE.name },
+      }),
       signal,
     });
     if (!res.ok) return { ok: false, error: `Claude HTTP ${res.status}` };
-    const json = (await res.json()) as { content?: { text: string }[] };
+    const json = (await res.json()) as {
+      content?: { type?: string; text?: string; name?: string; input?: unknown }[];
+      stop_reason?: string;
+    };
     // O uso é lido ANTES de julgar o conteúdo: resposta 200 com JSON inválido
     // consumiu token igual e a conta tem que registrar isso. Só contar sucesso
     // faria a casa achar que erro é de graça.
     const uso = usoDoClaude(json);
-    const text = json.content?.[0]?.text;
-    if (!text) return { ok: false, error: "Resposta Claude vazia", uso };
+    const motivoDeParada = json.stop_reason ?? null;
+
+    // O caminho normal agora: o pacote chega como ENTRADA da ferramenta, já
+    // objeto. Não há texto para pescar, e é isso que fecha o buraco.
+    const blocoDaFerramenta = json.content?.find((b) => b.type === "tool_use" && b.name === FERRAMENTA_DO_PACOTE.name);
+    if (blocoDaFerramenta?.input && typeof blocoDaFerramenta.input === "object") {
+      return { ok: true, data: blocoDaFerramenta.input, model, provider: "claude", uso, motivoDeParada, textoCru: null };
+    }
+
+    // Sobrou texto em vez de ferramenta? Então a trava não pegou nesta chamada
+    // (modelo antigo, corte pelo teto antes do bloco fechar). O texto cru VOLTA
+    // para quem chamou — é dele que sai o resgate do escopo.
+    const text = json.content?.find((b) => b.type === "text")?.text ?? json.content?.[0]?.text ?? null;
+    if (!text) return { ok: false, error: "Resposta Claude vazia", uso, motivoDeParada, textoCru: null };
     const data = extractJson(text);
-    return data ? { ok: true, data, model, provider: "claude", uso } : { ok: false, error: "JSON inválido (Claude)", uso };
+    return data
+      ? { ok: true, data, model, provider: "claude", uso, motivoDeParada, textoCru: text }
+      : { ok: false, error: "JSON inválido (Claude)", uso, motivoDeParada, textoCru: text };
   } catch (err) {
     return { ok: false, error: err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede" };
   } finally {
@@ -126,16 +207,21 @@ async function callOpenAICompatible(
   model: string,
   m: OpenAIMessages,
   maxTokens: number,
+  timeoutMs?: number,
 ): Promise<GenerateResult> {
   const { url, label, jsonMode } = OPENAI_COMPATIBLE[provider];
-  const { signal, clear } = withTimeout();
+  const { signal, clear } = withTimeout(timeoutMs);
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model,
-        messages: [{ role: "system", content: m.system }, { role: "user", content: m.user }],
+        messages: [
+          { role: "system", content: m.system },
+          ...(m.historico ?? []),
+          { role: "user", content: m.user },
+        ],
         ...(jsonMode ? { response_format: { type: "json_object" as const } } : {}),
         temperature: 0.7,
         max_tokens: maxTokens,
@@ -143,12 +229,15 @@ async function callOpenAICompatible(
       signal,
     });
     if (!res.ok) return { ok: false, error: `${label} HTTP ${res.status}` };
-    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const json = (await res.json()) as { choices?: { message?: { content?: string }; finish_reason?: string }[] };
     const uso = usoOpenAICompativel(json);
+    const motivoDeParada = json.choices?.[0]?.finish_reason ?? null;
     const content = json.choices?.[0]?.message?.content;
-    if (!content) return { ok: false, error: `Resposta ${label} vazia`, uso };
+    if (!content) return { ok: false, error: `Resposta ${label} vazia`, uso, motivoDeParada, textoCru: null };
     const data = extractJson(content);
-    return data ? { ok: true, data, model, provider, uso } : { ok: false, error: `JSON inválido (${label})`, uso };
+    return data
+      ? { ok: true, data, model, provider, uso, motivoDeParada, textoCru: content }
+      : { ok: false, error: `JSON inválido (${label})`, uso, motivoDeParada, textoCru: content };
   } catch (err) {
     return { ok: false, error: err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede" };
   } finally {
@@ -156,8 +245,8 @@ async function callOpenAICompatible(
   }
 }
 
-async function callGemini(apiKey: string, model: string, m: OpenAIMessages, maxTokens: number): Promise<GenerateResult> {
-  const { signal, clear } = withTimeout();
+async function callGemini(apiKey: string, model: string, m: OpenAIMessages, maxTokens: number, timeoutMs?: number): Promise<GenerateResult> {
+  const { signal, clear } = withTimeout(timeoutMs);
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
     const res = await fetch(url, {
@@ -165,18 +254,31 @@ async function callGemini(apiKey: string, model: string, m: OpenAIMessages, maxT
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: m.system }] },
-        contents: [{ role: "user", parts: [{ text: m.user }] }],
+        // ⚠️ O Gemini chama o assistente de "model", não de "assistant" —
+        // mandar "assistant" aqui devolve 400.
+        contents: [
+          ...(m.historico ?? []).map((t) => ({
+            role: t.role === "assistant" ? "model" : "user",
+            parts: [{ text: t.content }],
+          })),
+          { role: "user", parts: [{ text: m.user }] },
+        ],
         generationConfig: { responseMimeType: "application/json", maxOutputTokens: maxTokens, temperature: 0.7 },
       }),
       signal,
     });
     if (!res.ok) return { ok: false, error: `Gemini HTTP ${res.status}` };
-    const json = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+    const json = (await res.json()) as {
+      candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
+    };
     const uso = usoDoGemini(json);
+    const motivoDeParada = json.candidates?.[0]?.finishReason ?? null;
     const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return { ok: false, error: "Resposta Gemini vazia", uso };
+    if (!text) return { ok: false, error: "Resposta Gemini vazia", uso, motivoDeParada, textoCru: null };
     const data = extractJson(text);
-    return data ? { ok: true, data, model, provider: "gemini", uso } : { ok: false, error: "JSON inválido (Gemini)", uso };
+    return data
+      ? { ok: true, data, model, provider: "gemini", uso, motivoDeParada, textoCru: text }
+      : { ok: false, error: "JSON inválido (Gemini)", uso, motivoDeParada, textoCru: text };
   } catch (err) {
     return { ok: false, error: err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede" };
   } finally {
@@ -243,12 +345,13 @@ function callProvider(
   messages: OpenAIMessages,
   maxTokens: number,
   attempts: number,
+  timeoutMs?: number,
 ): Promise<GenerateResult> {
-  if (provider === "claude") return callWithRetry(() => callClaude(apiKey, model, messages, maxTokens), attempts);
+  if (provider === "claude") return callWithRetry(() => callClaude(apiKey, model, messages, maxTokens, timeoutMs), attempts);
   if (provider === "openai" || provider === "deepseek" || provider === "perplexity") {
-    return callWithRetry(() => callOpenAICompatible(provider, apiKey, model, messages, maxTokens), attempts);
+    return callWithRetry(() => callOpenAICompatible(provider, apiKey, model, messages, maxTokens, timeoutMs), attempts);
   }
-  return callWithRetry(() => callGemini(apiKey, model, messages, maxTokens), attempts);
+  return callWithRetry(() => callGemini(apiKey, model, messages, maxTokens, timeoutMs), attempts);
 }
 
 // THE unified reasoning call. Walks the preference order and uses the first
@@ -310,6 +413,44 @@ export async function generate(options: {
   departmentId?: string | null;
   agentId: string;
   projectId?: string | null;
+  /**
+   * OS TURNOS ANTERIORES. Opcional — ausente, o comportamento é o de sempre.
+   * Ver `OpenAIMessages.historico`.
+   */
+  historico?: TurnoDeHistorico[];
+  /**
+   * A CHAVE JÁ RESOLVIDA POR QUEM CHAMOU — e por que isto existe.
+   *
+   * ⚠️ ROTA PÚBLICA. `resolveProviderKey(provider)` SEM `workspaceId` cai num
+   * `findFirst` global: "a primeira chave que existir no banco". Numa base com
+   * duas agências, qualquer visitante com um laço de requisições gasta a chave
+   * de uma delas, escolhida por ordem de inserção. `lib/ai/chave-publica.ts`
+   * existe exatamente para fechar essa porta, e ligar o SDR na camada NÃO PODE
+   * reabri-la.
+   *
+   * Então a regra é esta, e ela é inegociável: quem atende sem sessão resolve a
+   * chave pela regra da rota pública e a entrega PRONTA aqui. Com este campo
+   * preenchido, a camada usa exatamente este provedor e esta chave — não
+   * consulta o cofre, não anda na ordem de preferência, não tem reserva. A
+   * decisão de quem paga já foi tomada por quem sabia fazê-la com segurança.
+   */
+  chaveJaResolvida?: { provider: AiProvider; apiKey: string; model: string | null };
+  /** Teto de espera por chamada. Ausente = 60s, o de sempre. O SDR usa 30s:
+   *  é conversa ao vivo, e quem está do outro lado não espera um minuto. */
+  timeoutMs?: number;
+  /**
+   * Quantas vezes insistir no provedor preferido antes de desistir dele.
+   * Ausente = 3, o de sempre.
+   *
+   * O SDR manda 1, e o motivo é o prospect: insistir é virtude em trabalho de
+   * fundo (uma peça vale esperar), e é defeito numa conversa ao vivo. Com 3
+   * tentativas e teto de 30s, um provedor pendurado deixaria alguém olhando
+   * para a tela por 90 segundos — quando o certo, ali, é cair no motor de
+   * regras em 30 e seguir a conversa. Antes de entrar na camada esta rota não
+   * tinha repetição nenhuma; manter 1 preserva o comportamento que o prospect
+   * já tinha, em vez de herdar sem querer o de outro caso de uso.
+   */
+  tentativas?: number;
 }): Promise<GenerateResult> {
   const maxTokens = options.maxTokens ?? 2048;
 
@@ -330,12 +471,20 @@ export async function generate(options: {
   const semReserva = fixado ? fixado.estrito : (options.apenasOPreferido ?? false);
   const modeloFixado = fixado?.model ?? null;
 
-  const order = preferido
-    ? (semReserva
-        ? [preferido]
-        : [preferido, ...preferenceOrder().filter((p) => p !== preferido)])
-    : preferenceOrder();
-  const messages: OpenAIMessages = { system: options.system, user: options.user };
+  // Chave entregue pronta (rota pública): ela É a ordem inteira. Sem cofre,
+  // sem preferência, sem reserva — ver `chaveJaResolvida`.
+  const order = options.chaveJaResolvida
+    ? [options.chaveJaResolvida.provider]
+    : preferido
+      ? (semReserva
+          ? [preferido]
+          : [preferido, ...preferenceOrder().filter((p) => p !== preferido)])
+      : preferenceOrder();
+  const messages: OpenAIMessages = {
+    system: options.system,
+    user: options.user,
+    ...(options.historico?.length ? { historico: options.historico } : {}),
+  };
 
   const anotar = (p: {
     provider: string; model: string; status: "success" | "error";
@@ -372,18 +521,30 @@ export async function generate(options: {
   };
 
   let firstFailure: string | null = null;
+  // ── O DESFECHO DA PRIMEIRA TENTATIVA VIAJA JUNTO COM A FALHA ──────────────
+  // Pego por teste em 24/08/2026: o retorno final de erro montava um objeto
+  // NOVO e `motivoDeParada`/`textoCru` evaporavam ali. Quem precisa deles é
+  // justamente quem falhou — é do texto cru que sai o `repararJsonTruncado` e,
+  // com ele, a regra de que o escopo sobrevive mesmo sem a fala. Perder isso no
+  // caminho do erro seria perder exatamente no caso em que ele importa.
+  let desfechoDaPrimeira: DesfechoDaGeracao = {};
   const tried: string[] = [];
 
   for (const provider of order) {
-    const resolved = await resolveProviderKey(provider, options.workspaceId);
+    // ⚠️ A chave entregue pronta NUNCA passa por `resolveProviderKey` — é essa
+    // linha que impede a rota pública de cair no `findFirst` global.
+    const resolved =
+      options.chaveJaResolvida && options.chaveJaResolvida.provider === provider
+        ? { apiKey: options.chaveJaResolvida.apiKey, source: "ui" as const, model: options.chaveJaResolvida.model }
+        : await resolveProviderKey(provider, options.workspaceId);
     if (!resolved) continue;                       // sem chave não é falha, é ausência
 
     // Modelo fixado na tela do cliente vence o modelo salvo com a chave: quem
     // fixou "gemini-flash-lite-latest" naquele cliente fixou por um motivo.
     const model = (fixado && provider === fixado.provider ? modeloFixado : null) ?? resolved.model ?? modeloPadrao(provider);
-    const attempts = tried.length === 0 ? 3 : 1;
+    const attempts = tried.length === 0 ? (options.tentativas ?? 3) : 1;
     const comecou = Date.now();
-    const result = await callProvider(provider, resolved.apiKey, model, messages, maxTokens, attempts);
+    const result = await callProvider(provider, resolved.apiKey, model, messages, maxTokens, attempts, options.timeoutMs);
     const duracaoMs = Date.now() - comecou;
 
     if (result.ok) {
@@ -399,6 +560,9 @@ export async function generate(options: {
     }
 
     anotar({ provider, model, status: "error", uso: result.uso, duracaoMs, erro: result.error });
+    if (firstFailure === null) {
+      desfechoDaPrimeira = { motivoDeParada: result.motivoDeParada ?? null, textoCru: result.textoCru ?? null };
+    }
     firstFailure ??= result.error;
     tried.push(`${provider} (${result.error})`);
   }
@@ -407,7 +571,11 @@ export async function generate(options: {
     // Reporta a PRIMEIRA falha, não a última: a primeira é a do provedor que
     // devia ter atendido, e é a que a pessoa precisa investigar.
     const porFixacao = fixado ? ` [provedor fixado no cliente: ${fixado.provider}, sem reserva]` : "";
-    return { ok: false, error: `IA indisponível: ${firstFailure}${tried.length > 1 ? ` (reservas também falharam: ${tried.length - 1})` : ""}${porFixacao}` };
+    return {
+      ok: false,
+      error: `IA indisponível: ${firstFailure}${tried.length > 1 ? ` (reservas também falharam: ${tried.length - 1})` : ""}${porFixacao}`,
+      ...desfechoDaPrimeira,
+    };
   }
 
   // FAIL-CLOSED no que decide gasto: provedor fixado e sem chave = a casa DIZ

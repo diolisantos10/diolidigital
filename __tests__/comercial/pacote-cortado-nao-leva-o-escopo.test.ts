@@ -36,7 +36,17 @@ const db = vi.hoisted(() => ({
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
 const chaveDeRotaPublica = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/ai/chave-publica", () => ({ chaveDeRotaPublica }));
+// A rota passou a andar na ordem de provedores da casa (24/08/2026), então ela
+// chama `primeiraChaveDeRotaPublica`. O mock DERIVA da mesma função de sempre:
+// todo `chaveDeRotaPublica.mockResolvedValue(...)` deste arquivo continua
+// mandando, e nenhuma expectativa abaixo precisou mudar — só o encanamento.
+vi.mock("@/lib/ai/chave-publica", () => ({
+  chaveDeRotaPublica,
+  primeiraChaveDeRotaPublica: async () => {
+    const chave = await chaveDeRotaPublica("claude");
+    return chave ? { provider: "claude", chave } : null;
+  },
+}));
 
 import { POST } from "@/app/api/sdr/chat/route";
 

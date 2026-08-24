@@ -68,6 +68,12 @@ const OPERACIONAIS: DonoDeChamada[] = [
   { id: "esteira-producao",       label: "Produção de pedido avulso",      departmentId: "project-management", natureza: "operacao" },
 
   // ── Comercial e entrada ───────────────────────────────────────────────────
+  // O SDR é a PRIMEIRA porta e, em volume, a mais cara do comercial: uma
+  // conversa de briefing gasta ~16 chamadas. Até 24/08/2026 ele falava direto
+  // com a Anthropic, fora da camada — e por isso o gasto dele não aparecia em
+  // relatório nenhum. Entrar aqui é o que faz "quanto custou este prospect"
+  // passar a ter resposta.
+  { id: "comercial-sdr",          label: "Conversa do SDR com o prospect", departmentId: "client-service-sdr", natureza: "operacao" },
   { id: "comercial-qualificar",   label: "Qualificação de oportunidade",   departmentId: "client-service-sdr", natureza: "operacao" },
   { id: "comercial-negociacao",   label: "Negociação de proposta",         departmentId: "client-service-sdr", natureza: "operacao" },
   { id: "comercial-materiais",    label: "Material que falta do cliente",  departmentId: "client-service-sdr", natureza: "operacao" },

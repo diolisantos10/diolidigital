@@ -68,9 +68,30 @@ export interface AIRunContext {
   prompt: string;
 }
 
+/** Um turno anterior da conversa. `assistant` é a fala da casa. */
+export interface TurnoDeHistorico {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface OpenAIMessages {
   system: string;
   user: string;
+  /**
+   * OS TURNOS ANTERIORES, quando o chamador for uma CONVERSA e não um pedido
+   * de turno único.
+   *
+   * OPCIONAL, e ausente por padrão — de propósito. Os 29 chamadores desta casa
+   * (PM, esteira, radar, qualificação…) mandam `{system, user}` e continuam
+   * mandando exatamente isso: são pedidos de turno único, e para eles nada
+   * muda. Quem precisa disto é o SDR, que é a única conversa de verdade da
+   * casa — até 18 turnos alternados — e que por não caber aqui vinha falando
+   * direto com a Anthropic, com o modelo escrito na mão desde 24/06.
+   *
+   * O histórico entra ANTES do `user` em todo provedor; `user` continua sendo
+   * a fala da vez.
+   */
+  historico?: TurnoDeHistorico[];
 }
 
 function brandBrainBlock(ctx: AIRunContext): string {

@@ -585,6 +585,46 @@ export function ehPerguntaDeFaixa(reply: string): boolean {
   return citados.size >= 3;
 }
 
+/**
+ * QUANTOS DEGRAUS DA RÉGUA a fala citou, e quantos valores fora dela.
+ *
+ * ─── POR QUE ISTO EXISTE (24/08/2026) ───────────────────────────────────────
+ *
+ * A bateria ao vivo achou `price_leak ×1` em CADA rodada, sempre uma só. A
+ * leitura mais provável era a exceção da régua não fechando — `ehPerguntaDeFaixa`
+ * exige TRÊS degraus distintos, e o comentário dela já previa o caso: *"se o
+ * modelo abreviar as opções e citar só dois limites com R$, o turno é
+ * descartado"*. Batia com o dado (há exatamente um turno de pergunta de faixa
+ * por rodada), mas seguia sendo **hipótese, não fato medido**.
+ *
+ * Medir exigia saber o que a fala tinha — e a fala barrada NÃO é gravada, de
+ * propósito: repetir no diário o que o guarda impediu de sair seria contrabando.
+ * A saída é a mesma que funcionou no `malformado`: gravar a FORMA, nunca o
+ * conteúdo. Dois números respondem a pergunta inteira:
+ *
+ *   • `degraus` — quantos limites da régua apareceram. 2 = a hipótese
+ *     confirmada (o modelo abreviou as opções e a exceção, corretamente, não
+ *     fechou). 0 = não era a pergunta da faixa: era cotação de verdade, e o
+ *     guarda pegou o que existe para pegar.
+ *   • `foraDaRegua` — valores citados que NÃO são degrau. Qualquer coisa acima
+ *     de zero é cotação, não pergunta.
+ *
+ * ⚠️ Isto NÃO afrouxa a exceção e não deve virar desculpa para alargá-la. O
+ * comentário de `ehPerguntaDeFaixa` decidiu certo: descartar de vez em quando a
+ * pergunta certa é barato; deixar passar uma cotação, não. Aqui só se MEDE.
+ */
+export function formaDoPrecoNaFala(reply: string): { degraus: number; foraDaRegua: number } {
+  if (typeof reply !== "string") return { degraus: 0, foraDaRegua: 0 };
+  const degraus = new Set<string>();
+  let foraDaRegua = 0;
+  for (const m of reply.matchAll(VALOR_MONETARIO)) {
+    const bruto = (m[1] ?? m[2] ?? "").replace(/,\d{1,2}$/, "").replace(/[.,]/g, "");
+    if (LIMITES_DE_FAIXA.has(bruto)) degraus.add(bruto);
+    else foraDaRegua += 1;
+  }
+  return { degraus: degraus.size, foraDaRegua };
+}
+
 /** Ids de faixa aceitos vindos do modelo. Existe porque a rota faz allowlist:
  *  qualquer outra coisa que o modelo escreva em `budgetRange` é descartada. */
 export const FAIXAS_VALIDAS: readonly string[] = FAIXAS.map((f) => f.faixa);

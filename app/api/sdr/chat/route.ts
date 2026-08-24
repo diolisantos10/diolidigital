@@ -26,8 +26,10 @@ import { NextRequest, NextResponse } from "next/server";
 // de graça, numa rota pública que gasta chave de IA PAGA. `limiteExcedido` conta
 // no volume, é atômico e é fail-closed: contador fora do ar recusa, não libera.
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
-import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
-import { ehPerguntaDeFaixa, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
+import { primeiraChaveDeRotaPublica } from "@/lib/ai/chave-publica";
+import { generate, ordemDePreferenciaDaCasa } from "@/lib/ai/generate";
+import type { TurnoDeHistorico } from "@/lib/agency/intelligence/openai-schemas";
+import { ehPerguntaDeFaixa, formaDoPrecoNaFala, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
 // ATÉ 16/08/2026 ESTA ROTA NÃO ESCREVIA NADA. Zero chamadas a `prisma.`: o SDR
 // conversava, errava, e o diário do piloto mostrava `mensagens: 0` enquanto a
 // conversa acontecia. O porquê e as travas estão no cabeçalho do módulo.
@@ -55,8 +57,14 @@ import { sistemaDoSdr } from "@/lib/agency/comercial/prompt-do-sdr";
 // nunca uma letra do que o modelo escreveu.
 import { formaDaFalha, laudoEmUmaFrase } from "@/lib/agency/comercial/diagnostico-de-formato";
 
-const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
-const MODEL       = "claude-sonnet-4-6";
+// ── `CLAUDE_URL` E `MODEL` FORAM REMOVIDOS EM 24/08/2026, E É O PONTO ────────
+// Eram `"https://api.anthropic.com/v1/messages"` e `"claude-sonnet-4-6"`,
+// escritos na mão no commit `da64e7cf` de 24/06 e nunca mais revistos. Enquanto
+// isso o resto do produto escolhia provedor e modelo pela camada multi-IA.
+// Quem decide os dois agora é `lib/ai/generate.ts` — pela chave e pelo modelo
+// salvos em Integrações, pela fixação por cliente, ou pela preferência da casa.
+// NÃO reintroduza nenhum dos dois aqui: um endereço de provedor dentro de uma
+// rota é como este defeito nasceu, e ele custou 10 de 16 turnos do piloto.
 const TIMEOUT_MS  = 30_000;
 const MAX_HISTORY = 18; // conversation turns sent to the model
 
@@ -110,8 +118,16 @@ async function registrar(turno: TurnoDoSdr): Promise<void> {
   }
 }
 
-function buildClaudeMessages(messages: ConvMsg[], currentMessage: string, scope: Record<string, unknown> | undefined) {
-  const history = messages
+/**
+ * A conversa, no formato da CAMADA — histórico separado da fala da vez.
+ *
+ * Antes isto montava o corpo da Anthropic à mão (`buildClaudeMessages`), porque
+ * a camada só sabia turno único. Agora ela sabe conversa (`OpenAIMessages.
+ * historico`), e o SDR deixa de ter formato próprio: os mesmos turnos servem
+ * Claude, OpenAI, Gemini e DeepSeek sem uma linha por provedor aqui.
+ */
+function montarConversa(messages: ConvMsg[], currentMessage: string, scope: Record<string, unknown> | undefined) {
+  const historico: TurnoDeHistorico[] = messages
     .filter((m) => m.role !== "system")
     .slice(-MAX_HISTORY)
     .map((m) => ({
@@ -124,10 +140,7 @@ function buildClaudeMessages(messages: ConvMsg[], currentMessage: string, scope:
       ? `\n\n[Contexto interno — dados já captados: ${JSON.stringify(scope)}. Não repita perguntas já respondidas. Lembre-se: NUNCA cote preço e nunca peça e-mail. Se budgetRange ainda não estiver aqui, a pergunta da faixa de investimento é prioridade — não deixe para o fim.]`
       : "";
 
-  return [
-    ...history,
-    { role: "user" as const, content: currentMessage + scopeNote },
-  ];
+  return { historico, user: currentMessage + scopeNote };
 }
 
 function extractJson(text: string): Record<string, unknown> | null {
@@ -320,10 +333,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // pelo servidor. `resolveProviderKey("claude")` sem workspace caía num
   // `findFirst` global — a chave da primeira agência do banco, gasta por
   // qualquer pessoa com um laço de requisições. Ver `lib/ai/chave-publica.ts`.
-  const resolved = await chaveDeRotaPublica("claude");
-  if (!resolved) {
+  // Rota PÚBLICA: sem sessão e sem token, quem paga a conversa é resolvido pelo
+  // servidor — e agora o PROVEDOR também. Anda na ordem de preferência da casa
+  // (a mesma dos outros 29 caminhos de IA) resolvendo cada um pela regra desta
+  // rota, nunca pelo `findFirst` global. Ver `lib/ai/chave-publica.ts`.
+  const escolha = await primeiraChaveDeRotaPublica(ordemDePreferenciaDaCasa());
+  if (!escolha) {
     return NextResponse.json({ ok: false, reason: "not_configured" });
   }
+  const resolved = escolha.chave;
 
   let body: ChatRequest;
   try {
@@ -441,58 +459,65 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // As duas chaves que amarram a conversa, resolvidas uma vez por turno.
   const fio = { sessionId: body.sessionId, clientRequestId: body.clientRequestId };
 
-  const claudeMessages = buildClaudeMessages(body.messages, body.currentMessage, body.scope);
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const { historico, user } = montarConversa(body.messages, body.currentMessage, body.scope);
 
   try {
-    const res = await fetch(CLAUDE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": resolved.apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      // RECONCILIAÇÃO DE 16/08 (item 1 do despacho `esteira`): `max_tokens` vem
-      // do HEAD (MAX_TOKENS = 3.000 — o 1.280 do #178 é o valor VELHO, de antes
-      // do conserto do corte no meio do pacote; ver o comentário de MAX_TOKENS
-      // acima). `system` vem do #178 (`sistemaDoSdr()`, que soma o SYSTEM_PROMPT
-      // à ordem `scope`-antes-de-`reply` com o bloco de regras vindo da ficha do
-      // cargo). As duas metades sobrevivem juntas — nenhuma anula a outra.
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        system: sistemaDoSdr(),
-        messages: claudeMessages,
-      }),
-      signal: controller.signal,
+    // ── O SDR PASSOU A FALAR PELA CAMADA MULTI-IA (24/08/2026) ───────────────
+    //
+    // Até aqui esta rota chamava `https://api.anthropic.com/v1/messages` na mão,
+    // com `claude-sonnet-4-6` fixo no código desde 24/06 e nunca revisto —
+    // enquanto PM, social, marca, design, operações e anúncios já escolhiam
+    // provedor e modelo por `lib/ai/generate.ts`. Ordem do CEO: *"nossos
+    // produtos podem ser utilizados por qualquer IA"*. Era o defeito de fundo
+    // desta casa outra vez: um caminho herdando uma decisão que ninguém mais
+    // tomaria hoje, porque ninguém tinha motivo para olhar.
+    //
+    // ⚠️ A CHAVE VAI PRONTA, e essa linha é de segurança. A camada, chamada da
+    // porta comum, resolveria a chave com `resolveProviderKey(provider)` sem
+    // workspace — o `findFirst` global que `lib/ai/chave-publica.ts` existe para
+    // fechar. Aqui quem resolve continua sendo a regra da rota pública, provedor
+    // por provedor, e a camada recebe a decisão já tomada.
+    const r = await generate({
+      system: sistemaDoSdr(),
+      user,
+      historico,
+      maxTokens: MAX_TOKENS,
+      timeoutMs: TIMEOUT_MS,
+      tentativas: 1,
+      agentId: "comercial-sdr",
+      chaveJaResolvida: { provider: escolha.provider, apiKey: resolved.apiKey, model: resolved.model },
     });
 
-    if (!res.ok) {
-      console.error(`[sdr/chat] Claude HTTP ${res.status}`);
-      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: "provider_error" });
-      return NextResponse.json({ ok: false, reason: "provider_error" });
+    // ── AS QUATRO CONQUISTAS DESTA ROTA, PRESERVADAS ────────────────────────
+    // `motivoDeParada` e `textoCru` são os dois campos que a camada passou a
+    // devolver justamente para que nada abaixo se perdesse: a diferença entre
+    // `truncado` e `malformado` (16/08), o remendo do JSON cortado, e a regra
+    // de que o ESCOPO SOBREVIVE mesmo quando a fala é barrada.
+    const motivoDeParada = r.motivoDeParada ?? null;
+    const text = r.textoCru ?? "";
+
+    if (!r.ok && !text) {
+      // Falhou antes de produzir qualquer texto: erro de provedor, timeout ou
+      // rede. Nada a resgatar — e o motivo vai para o diário como sempre foi.
+      const motivo = /timeout/i.test(r.error) ? "timeout"
+        : /rede/i.test(r.error) ? "network_error"
+        : "provider_error";
+      console.error(`[sdr/chat] ${r.error}`);
+      await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: motivo });
+      return NextResponse.json({ ok: false, reason: motivo });
     }
 
-    // ── Ler stop_reason ANTES de julgar o JSON ────────────────────────────────
-    // A Anthropic diz, no envelope da resposta, POR QUE ela parou de gerar.
-    // `stop_reason === "max_tokens"` é CORTE — o teto acabou no meio da escrita.
-    // Qualquer outro valor com um JSON que não fecha é OUTRA coisa: o modelo
-    // terminou de escrever, e o que terminou de escrever não é JSON válido —
-    // bug de formatação, não falta de espaço. As duas causas viravam o MESMO
-    // `parse_error` no diário, e ninguém conseguia dizer qual das duas era o
-    // dia a dia real do piloto. Ver o bloco "O CONSERTO DE 16/08" acima.
-    const json = (await res.json()) as {
-      content?: { type: string; text: string }[];
-      stop_reason?: string;
-    };
-    const text = json.content?.[0]?.text ?? "";
-    const cortadoPeloTeto = json.stop_reason === "max_tokens";
+    // "cortado pelo teto" na língua de cada provedor: a Anthropic diz
+    // `max_tokens`, os compatíveis com OpenAI dizem `length`, o Gemini diz
+    // `MAX_TOKENS`. A pergunta é a mesma — a API confirma que cortou? — e a
+    // resposta continua separando `truncado` de `malformado`.
+    const cortadoPeloTeto = /^(max_tokens|length)$/i.test(motivoDeParada ?? "");
 
-    // `extractJson` falhando não é mais o fim da linha — antes de desistir, a
-    // seta que faltava: tenta fechar à força o que ficou aberto.
-    let parsed = extractJson(text);
+    // A camada já abriu o pacote quando conseguiu — inclusive pelo canal da
+    // ferramenta, onde ele nunca foi texto. Só quando ela NÃO conseguiu é que
+    // se cai no texto cru, no extrator e no remendo.
+    let parsed = (r.ok && r.data && typeof r.data === "object" ? (r.data as Record<string, unknown>) : null)
+      ?? extractJson(text);
     let precisouDeRemendo = false;
     if (!parsed) {
       parsed = repararJsonTruncado(text);
@@ -635,10 +660,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // vazamento. Barrar a frase é certo; jogar fora o número de orçamento
       // que o cliente informou (ex.: a faixa "R$ 500/mês") junto com ela não
       // é — é o mesmo dado que o piloto de 16/08 quase perdeu.
+      // A FORMA, nunca a fala. Dois números fecham a pergunta que ficou aberta
+      // em 24/08 ("é a exceção da régua não fechando, ou é cotação de verdade?"):
+      // 2 degraus = o modelo abreviou as opções e a exceção corretamente não
+      // fechou; 0 degraus com valor fora da régua = cotação, e o guarda pegou o
+      // que existe para pegar. Ver `formaDoPrecoNaFala`.
+      const forma = formaDoPrecoNaFala(replyText);
       await registrar({
         ...fio,
         doVisitante: body.currentMessage,
         motivoDaRecusa: "price_leak",
+        formaDaFalha:
+          `${forma.degraus} degrau(s) da régua citado(s), ${forma.foraDaRegua} valor(es) fora dela` +
+          ` (a exceção da pergunta de faixa exige 3 degraus e nenhum valor fora)`,
         escopoFoiSalvo,
       });
       return NextResponse.json({
@@ -663,7 +697,5 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // visitante some justamente nos turnos em que o sistema falhou com ele.
     await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: reason });
     return NextResponse.json({ ok: false, reason });
-  } finally {
-    clearTimeout(timeout);
   }
 }

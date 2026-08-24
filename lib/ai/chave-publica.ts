@@ -44,3 +44,34 @@ export async function chaveDeRotaPublica(provider: AiProvider): Promise<Resolved
   // fundos — é exatamente o caminho que esta função existe para fechar.
   return chaveDoAmbiente(provider);
 }
+
+/**
+ * O PRIMEIRO PROVEDOR COM CHAVE, andando na ordem da casa — e sempre pela regra
+ * desta rota, nunca pelo cofre global.
+ *
+ * ─── POR QUE ISTO EXISTE (24/08/2026) ───────────────────────────────────────
+ *
+ * O SDR falava direto com a Anthropic, com `claude-sonnet-4-6` escrito na mão
+ * desde 24/06 e nunca revisto — enquanto o resto do produto já escolhia
+ * provedor e modelo pela camada multi-IA. Ordem do CEO: *"nossos produtos podem
+ * ser utilizados por qualquer IA"*.
+ *
+ * Só que ligar o SDR na camada pela porta comum reabriria o buraco que o topo
+ * deste arquivo fecha: `resolveProviderKey(p)` sem workspace cai num `findFirst`
+ * global, e a rota é PÚBLICA e sem sessão. Esta função é a ponte: percorre a
+ * ordem de preferência da casa e resolve CADA provedor por `chaveDeRotaPublica`
+ * — a mesma regra de sempre, provedor por provedor. Multi-IA de verdade, sem
+ * ceder um milímetro na porta que protege a chave do inquilino.
+ *
+ * Devolve `null` quando nenhum provedor tem chave utilizável, que é o mesmo
+ * "não gasto" de antes: dinheiro não tem adoção posterior.
+ */
+export async function primeiraChaveDeRotaPublica(
+  ordem: readonly AiProvider[],
+): Promise<{ provider: AiProvider; chave: ResolvedKey } | null> {
+  for (const provider of ordem) {
+    const chave = await chaveDeRotaPublica(provider);
+    if (chave) return { provider, chave };
+  }
+  return null;
+}
