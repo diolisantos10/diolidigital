@@ -301,11 +301,16 @@ export async function sendWhatsAppDirect(
   input: WhatsAppMessageInput,
 ): Promise<PublishResult> {
   // ── TRAVA DE SAÍDA (24/08/2026) ─────────────────────────────────────────
-  // Esta é a porta MAIS INTERNA do WhatsApp: `sendWhatsAppMessage` passa por
-  // aqui, então travar aqui trava as duas. E vem ANTES de usar o token, pelo
-  // mesmo motivo do `sendEmail`: trava que mora depois da credencial só vale
-  // nas máquinas sem credencial — ou seja, vale por sorte de ambiente, e
-  // produção TEM credencial.
+  // Esta é a porta MAIS INTERNA do WhatsApp — a última antes da rede. Trava
+  // aqui vale para QUALQUER caminho que chegue até este ponto, inclusive o do
+  // `.env` que não passa por conexão salva.
+  //
+  // ⚠️ Ela NÃO é suficiente sozinha, e a primeira redação deste bloco dizia que
+  // era: afirmava "vem ANTES de usar o token", o que é verdade só para quem
+  // entra direto. Quem entra por `sendWhatsAppMessage` já LEU a credencial no
+  // caminho — e trava depois da credencial é exatamente o que o cabeçalho do
+  // `sendEmail` proíbe. Por isso a porta de cima tem trava própria. Medido em
+  // 24/08/2026 pelo cliente falso, que nunca conseguia chegar até aqui.
   //
   // Até hoje esta porta não tinha trava nenhuma, e o cabeçalho do `sendEmail`
   // afirmava que o WhatsApp era "link wa.me, não envio programático". Era
@@ -331,6 +336,17 @@ export async function sendWhatsAppMessage(
   workspaceId: string,
   input: WhatsAppMessageInput,
 ): Promise<PublishResult> {
+  // ── TRAVA DE SAÍDA, ANTES DA CREDENCIAL (24/08/2026) ────────────────────
+  // Esta é a porta de ENTRADA do WhatsApp: é ela que a esteira chama
+  // (`avisos.ts` → `tentarWhatsApp`). A trava de dentro (`sendWhatsAppDirect`)
+  // só é alcançada DEPOIS de `loadConnectionToken` — ou seja, num ambiente sem
+  // conexão salva a mensagem morria por falta de token, e não por trava. Isso
+  // não é proteção, é sorte de ambiente: em produção a conexão EXISTE.
+  const bloqueio = motivoDoBloqueioDeSaida("whatsapp", input.to ?? "", input.text);
+  if (bloqueio) {
+    registrarSaidaBloqueada({ canal: "whatsapp", destino: input.to ?? "", motivo: bloqueio });
+    return { ok: false, error: `bloqueado:${bloqueio}` };
+  }
   const conn = await loadConnectionToken(workspaceId, input.connectionId);
   if (!conn) return { ok: false, error: "Conexão WhatsApp não encontrada ou token inválido" };
   if (conn.platform !== "whatsapp") return { ok: false, error: "Conexão não é do WhatsApp" };

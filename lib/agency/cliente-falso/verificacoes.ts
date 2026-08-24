@@ -89,6 +89,24 @@ export type EstadoDaEsteira = {
   direcaoAprovada: boolean;
   /** Quantas entregas nasceram. É a prova de que algo andou de verdade. */
   entregas: number;
+  /** MARCO 0 — `pedirDirecao()` rodou: o cliente REALMENTE recebeu o pedido de aval. */
+  direcaoPedida: boolean;
+  /**
+   * O aval passou pela porta do CLIENTE (`POST /api/portal/esteira`,
+   * `decisao: "aprovar_direcao"`, token de portal validado)?
+   *
+   * Existe separado de `direcaoAprovada` pelo mesmo motivo que `viaRota` existe
+   * na aprovação de escopo: "o portão está aberto" e "o portão foi aberto por
+   * quem tem direito de abrir" são fatos diferentes, e confundir os dois é como
+   * um instrumento passa a mentir sem que ninguém perceba.
+   */
+  direcaoViaPortal: boolean;
+  /** Por que o aval do cliente não passou, quando não passou. */
+  direcaoMotivo: string | null;
+  /** `executionError` lido do banco — o que a casa REGISTROU, não o que estourou. */
+  execucaoPendencias: string | null;
+  /** Quantas vezes a execução foi tentada. Zero = o portão nem deixou começar. */
+  execucaoTentativas: number;
 };
 
 export type Percurso = {
@@ -545,6 +563,48 @@ export function oProjetoNasceComTarefas(p: Percurso): Achado {
   return { ...base, veredito: "passou", detalhe: `${p.esteira.tarefas} tarefa(s)` };
 }
 
+// ─── 13.5. O portão de direção abre PELA MÃO DO CLIENTE ─────────────────────
+//
+// ── Por que esta régua nasceu (24/08/2026) ──────────────────────────────────
+// A execução parava no portão de direção e havia um atalho de uma linha à mão:
+// gravar `directionApprovedAt` no banco e ver a esteira inteira ficar verde.
+// Seria medir um caminho que não existe — em produção ninguém escreve esse
+// campo, quem o escreve é `aprovarDirecao()`, chamada pela porta do portal.
+//
+// Por isso esta verificação não pergunta "o portão está aberto?". Pergunta
+// "QUEM abriu?". Portão aberto sem o cliente ter passado pela porta dele é
+// exatamente o atalho que se proibiu — e vira "quebrou", não "passou".
+export function oPortaoDeDirecaoAbrePeloCliente(p: Percurso): Achado {
+  const base = {
+    id: "direcao-pelo-cliente",
+    guarda: "O portão de direção só pode ser aberto pela ação do CLIENTE — nunca por escrita direta no banco.",
+  };
+  if (!p.esteira.projetoId) return { ...base, veredito: "nao-coberto", detalhe: "nenhum projeto para avalizar" };
+
+  // O caso que esta régua existe para pegar: o campo cedeu sem a porta ter sido
+  // usada. Se algum dia alguém "consertar" a bateria por dentro, cai aqui.
+  if (p.esteira.direcaoAprovada && !p.esteira.direcaoViaPortal) {
+    return { ...base, veredito: "quebrou",
+      detalhe: "a direção consta aprovada, mas NÃO passou pela porta do cliente — "
+             + "alguém escreveu o portão em vez de abri-lo" };
+  }
+  if (!p.esteira.direcaoPedida) {
+    return { ...base, veredito: "nao-coberto",
+      detalhe: `o MARCO 0 não rodou: ${p.esteira.direcaoMotivo ?? "sem motivo registrado"}` };
+  }
+  if (!p.esteira.direcaoViaPortal) {
+    return { ...base, veredito: "nao-coberto",
+      detalhe: `a direção foi pedida ao cliente, mas o aval não passou: ${p.esteira.direcaoMotivo ?? "sem motivo registrado"}` };
+  }
+  if (!p.esteira.direcaoAprovada) {
+    return { ...base, veredito: "quebrou",
+      detalhe: "a porta do cliente disse OK, mas o banco não registrou a aprovação — "
+             + "a rota respondeu sucesso sem ter feito o que diz que faz" };
+  }
+  return { ...base, veredito: "passou",
+    detalhe: "pedirDirecao() rodou e o cliente aprovou por POST /api/portal/esteira com token de portal validado" };
+}
+
 // ─── 14. A execução anda ────────────────────────────────────────────────────
 export function aExecucaoAnda(p: Percurso): Achado {
   const base = {
@@ -576,10 +636,34 @@ export function aExecucaoAnda(p: Percurso): Achado {
              + `projeto em "${p.esteira.execucaoStatus ?? "?"}", ${p.esteira.tarefas} tarefa(s), `
              + `${p.esteira.entregas} entrega(s). Portão fechado é a casa funcionando, não falha.` };
   }
+  // ── SEM IA CONECTADA NÃO É DEFEITO DA CASA — É A RODADA OFFLINE ──────────
+  // Medido em 24/08/2026, na primeira volta em que o portão de direção abriu de
+  // verdade: a execução TENTOU (2 tentativas) e as 7 tarefas de produção caíram
+  // com "Nenhuma IA conectada. Conecte uma chave em Integrações." Isso é a casa
+  // se comportando exatamente como deve numa rodada sem chave.
+  //
+  // A exceção é ESTREITA de propósito, e as três condições valem juntas:
+  //   • a rodada é offline (`sdrAoVivo === false`) — numa rodada AO VIVO, com
+  //     chave na mão, "nenhuma IA conectada" volta a ser achado de verdade;
+  //   • a casa REGISTROU o motivo no banco (`executionError`), em vez de falhar
+  //     em silêncio;
+  //   • a execução foi mesmo TENTADA. Zero tentativa não é "faltou chave", é
+  //     "não andou", e continua vermelho.
+  const faltouIA = !p.sdrAoVivo
+    && !!p.esteira.execucaoPendencias
+    && /nenhuma ia conectada/i.test(p.esteira.execucaoPendencias)
+    && p.esteira.execucaoTentativas > 0;
+  if (p.esteira.entregas === 0 && faltouIA) {
+    return { ...base, veredito: "nao-coberto",
+      detalhe: `a esteira andou até a produção (${p.esteira.execucaoTentativas} tentativa(s)) e parou por falta de `
+             + `chave de IA — rodada offline. Produzir de verdade só se mede com \`--ao-vivo\`.` };
+  }
   if (p.esteira.entregas === 0) {
     return { ...base, veredito: "quebrou",
       detalhe: `direção aprovada e a execução não produziu NADA (projeto em "${p.esteira.execucaoStatus ?? "?"}", `
-             + `${p.esteira.entregas} entregas) — rodar sem produzir é a rodada perdida em silêncio` };
+             + `${p.esteira.execucaoTentativas} tentativa(s), ${p.esteira.entregas} entregas) — `
+             + `rodar sem produzir é a rodada perdida em silêncio`
+             + (p.esteira.execucaoPendencias ? `. A casa registrou: ${p.esteira.execucaoPendencias}` : "") };
   }
   return { ...base, veredito: "passou", detalhe: `${p.esteira.entregas} entrega(s) produzida(s)` };
 }
@@ -617,6 +701,7 @@ export const VERIFICACOES: ((p: Percurso) => Achado)[] = [
   oEscopoAprovadoViraProjeto,
   aPortaAutenticadaFoiExercitada,
   oProjetoNasceComTarefas,
+  oPortaoDeDirecaoAbrePeloCliente,
   aExecucaoAnda,
   aPublicacaoNaoFoiExercitada,
 ];

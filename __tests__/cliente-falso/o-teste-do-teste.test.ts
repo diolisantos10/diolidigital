@@ -32,6 +32,10 @@ import {
   oClienteConsegueEnviar,
   oOrcamentoChega,
   type Percurso,
+
+  oPortaoDeDirecaoAbrePeloCliente,
+
+  aExecucaoAnda,
 } from "@/lib/agency/cliente-falso/verificacoes";
 import { ROTEIRO_PADRAO } from "@/lib/agency/cliente-falso/roteiro";
 import { emptyScope, emptyEstimate } from "@/lib/agency/briefing-conversation";
@@ -76,6 +80,8 @@ function percursoSao(): Percurso {
     esteira: {
       projetoId: "proj-falso-1", tarefas: 7, execucaoRodou: true, execucaoErro: null,
       execucaoStatus: "done", direcaoAprovada: true, entregas: 3,
+      direcaoPedida: true, direcaoViaPortal: true, direcaoMotivo: null,
+      execucaoPendencias: null, execucaoTentativas: 1,
     },
     // Percurso SÃO com SDR ao vivo = o modelo respondeu TODOS os turnos.
     // Sem esta linha, "são" incluiria uma rodada em que a IA nunca falou.
@@ -317,5 +323,70 @@ describe("o orçamento que ninguém entregava — a noite de 15 para 16/08/2026"
     const p = percursoSao();
     p.orcamentoEntregue = null;
     expect(oOrcamentoChega(p).veredito).toBe("quebrou");
+  });
+});
+
+describe("portão de direção — a régua que impede o atalho de uma linha", () => {
+  it("REPROVA o portão aberto sem o cliente ter passado pela porta dele", () => {
+    // Este é o atalho proibido: gravar `directionApprovedAt` no banco e ver a
+    // esteira inteira ficar verde. Mediria um caminho que não existe.
+    const p = percursoSao();
+    p.esteira = { ...p.esteira, direcaoAprovada: true, direcaoViaPortal: false };
+    const a = oPortaoDeDirecaoAbrePeloCliente(p);
+    expect(a.veredito).toBe("quebrou");
+    expect(a.detalhe).toMatch(/escreveu o portão/);
+  });
+
+  it("REPROVA a porta que responde OK sem o banco registrar nada", () => {
+    const p = percursoSao();
+    p.esteira = { ...p.esteira, direcaoViaPortal: true, direcaoAprovada: false };
+    expect(oPortaoDeDirecaoAbrePeloCliente(p).veredito).toBe("quebrou");
+  });
+
+  it("diz 'não coberto' — nunca 'passou' — quando o aval do cliente não passou", () => {
+    const p = percursoSao();
+    p.esteira = { ...p.esteira, direcaoViaPortal: false, direcaoAprovada: false, direcaoMotivo: "a porta do cliente recusou (403)" };
+    const a = oPortaoDeDirecaoAbrePeloCliente(p);
+    expect(a.veredito).toBe("nao-coberto");
+    expect(a.detalhe).toMatch(/403/);
+  });
+
+  it("aprova só o percurso em que MARCO 0 rodou E o cliente aprovou pela porta", () => {
+    expect(oPortaoDeDirecaoAbrePeloCliente(percursoSao()).veredito).toBe("passou");
+  });
+});
+
+describe("execução anda — a exceção da rodada offline é ESTREITA", () => {
+  const semIA = "pendências: Social Media · Copy dos posts (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.)";
+
+  it("na rodada OFFLINE, falta de chave é 'não coberto' — a esteira andou até a produção", () => {
+    const p = percursoSao();
+    p.sdrAoVivo = false;
+    p.esteira = { ...p.esteira, entregas: 0, execucaoStatus: "failed", execucaoPendencias: semIA, execucaoTentativas: 2 };
+    const a = aExecucaoAnda(p);
+    expect(a.veredito).toBe("nao-coberto");
+    expect(a.detalhe).toMatch(/ao-vivo/);
+  });
+
+  it("na rodada AO VIVO, 'nenhuma IA conectada' volta a ser achado de verdade", () => {
+    // Com chave na mão, a casa dizer que não tem IA é defeito — não condição.
+    const p = percursoSao();
+    p.sdrAoVivo = true;
+    p.esteira = { ...p.esteira, entregas: 0, execucaoStatus: "failed", execucaoPendencias: semIA, execucaoTentativas: 2 };
+    expect(aExecucaoAnda(p).veredito).toBe("quebrou");
+  });
+
+  it("zero tentativa não é 'faltou chave' — é 'não andou', e continua vermelho", () => {
+    const p = percursoSao();
+    p.sdrAoVivo = false;
+    p.esteira = { ...p.esteira, entregas: 0, execucaoStatus: "failed", execucaoPendencias: semIA, execucaoTentativas: 0 };
+    expect(aExecucaoAnda(p).veredito).toBe("quebrou");
+  });
+
+  it("execução que não produz por QUALQUER outro motivo continua vermelha", () => {
+    const p = percursoSao();
+    p.sdrAoVivo = false;
+    p.esteira = { ...p.esteira, entregas: 0, execucaoStatus: "failed", execucaoPendencias: "pendências: agente travou", execucaoTentativas: 2 };
+    expect(aExecucaoAnda(p).veredito).toBe("quebrou");
   });
 });

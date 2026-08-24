@@ -260,6 +260,8 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
   let esteira: EstadoDaEsteira = {
     projetoId: null, tarefas: 0, execucaoRodou: false, execucaoErro: null,
     execucaoStatus: null, direcaoAprovada: false, entregas: 0,
+    direcaoPedida: false, direcaoViaPortal: false, direcaoMotivo: null,
+    execucaoPendencias: null, execucaoTentativas: 0,
   };
 
   if (pedido) {
@@ -277,6 +279,17 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
         tropecos.push({ etapa: "projeto", erro: e instanceof Error ? e.message : String(e) });
       }
 
+      // ─── ETAPA 8.5: O PORTÃO DE DIREÇÃO, PELO CAMINHO DO CLIENTE ─────────
+      // Ver `avalizarADirecaoComoOCliente`. Nada aqui escreve
+      // `directionApprovedAt`: ou o cliente falso abre o portão do jeito que um
+      // cliente abre, ou o portão fica fechado e a verificação diz isso.
+      if (esteira.projetoId) {
+        const aval = await avalizarADirecaoComoOCliente(pedido.id, esteira.projetoId, tropecos);
+        esteira.direcaoPedida = aval.pedida;
+        esteira.direcaoViaPortal = aval.viaPortal;
+        esteira.direcaoMotivo = aval.motivo;
+      }
+
       // ─── ETAPA 9: A EXECUÇÃO ANDA? (e "andar" é PRODUZIR) ─────────────────
       // Mesma função que o relógio chama. Se ela não anda aqui, não anda lá.
       if (esteira.projetoId) {
@@ -288,10 +301,12 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
           // banco. Lido DEPOIS da chamada, do mesmo lugar que o painel lê.
           const depois = await prisma.project.findUnique({
             where: { id: esteira.projetoId },
-            select: { executionStatus: true, directionApprovedAt: true },
+            select: { executionStatus: true, directionApprovedAt: true, executionError: true, executionAttempts: true },
           });
           esteira.execucaoStatus = depois?.executionStatus ?? null;
           esteira.direcaoAprovada = !!depois?.directionApprovedAt;
+          esteira.execucaoPendencias = depois?.executionError ?? null;
+          esteira.execucaoTentativas = depois?.executionAttempts ?? 0;
           esteira.entregas = await prisma.deliverable.count({ where: { projectId: esteira.projetoId } });
         } catch (e) {
           esteira.execucaoErro = e instanceof Error ? e.message : String(e);
@@ -419,6 +434,32 @@ async function garantirACasa(): Promise<{ workspaceId: string; userId: string; n
       select: { id: true },
     }));
 
+  // ── UMA CONEXÃO DE WHATSAPP DE MENTIRA, PARA A TRAVA SER EXERCITADA ──────
+  // Medido em 24/08/2026: a esteira mandava dois avisos ao cliente (MARCO 0 e
+  // MARCO 1) e a trava de WhatsApp NUNCA era alcançada — `tentarWhatsApp`
+  // desistia antes, em "nenhuma conexão de WhatsApp no workspace". O placar
+  // dizia "2 mensagens barradas" e nenhuma delas era desta porta: proteção
+  // presumida, não medida. Exatamente o defeito que esta bateria existe para
+  // pegar, cometido por dentro dela.
+  //
+  // Com a conexão presente, o aviso percorre o caminho inteiro até bater na
+  // trava. É seguro porque a trava de `sendWhatsAppMessage` vem ANTES de
+  // `loadConnectionToken`: o token de mentira aqui nunca chega a ser lido, e
+  // não existe caminho em que ele possa virar chamada de rede.
+  const jaTem = await prisma.metaConnection.findFirst({ where: { workspaceId: ws.id, platform: "whatsapp" }, select: { id: true } });
+  if (!jaTem) {
+    await prisma.metaConnection.create({
+      data: {
+        workspaceId: ws.id,
+        platform: "whatsapp",
+        name: "WhatsApp Prova [TESTE]",
+        externalId: "000000000000000",
+        accessTokenEncrypted: "sem-token-nunca",
+        status: "connected",
+      },
+    });
+  }
+
   return { workspaceId: ws.id, userId: user.id, nome, email };
 }
 
@@ -499,5 +540,94 @@ async function aprovarOEscopo(
       : { tentou: true, viaRota: false, ok: false, motivo: `a criação do projeto falhou: ${r.error}` };
   } catch (e) {
     return { tentou: true, viaRota: false, ok: false, motivo: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * O PORTÃO DE DIREÇÃO, ABERTO PELO CAMINHO DE VERDADE.
+ *
+ * ── A condição, escrita antes do código (24/08/2026) ─────────────────────────
+ * A execução parava em `run-execution.ts:221` — `if (!project.directionApprovedAt)`
+ * —, e a saída fácil era gravar o campo no banco e ver a esteira andar. Isso
+ * mediria um caminho que não existe: em produção ninguém escreve esse campo à
+ * mão. Um verde assim é pior que o vermelho, porque some com a pergunta.
+ *
+ * Então o cliente falso avaliza a direção EXATAMENTE como um cliente avaliza:
+ *
+ *   1. MARCO 0 — `pedirDirecao(projectId)`: o gerente manda a direção e pede o
+ *      aval. É aqui que o aviso ao cliente (WhatsApp/e-mail) é tentado — e onde
+ *      as travas de saída recém-nascidas levam o primeiro exercício de verdade.
+ *   2. A agência cunha o link do portal (`createPortalAccess`), que é ato DA
+ *      AGÊNCIA, não do cliente — o mesmo que `/api/brain/portal-access` faz.
+ *      Isto é preparo, não é o portão.
+ *   3. O CLIENTE decide: `POST /api/portal/esteira` com
+ *      `{ decisao: "aprovar_direcao" }` e o token. Esta rota é a porta pública
+ *      do cliente, resolve o dono PELO TOKEN (nunca pelo corpo) e é a única
+ *      coisa que chama `aprovarDirecao()` do lado de fora.
+ *
+ * A rota do portal roda em processo porque, ao contrário da rota de staff, ela
+ * NÃO usa `cookies()` do `next/headers`: `tokenDoPortal` lê `request.cookies`
+ * do `NextRequest` e aceita o token pelo corpo. A credencial que este percurso
+ * apresenta é uma credencial de verdade, conferida por `validatePortalAccess`.
+ *
+ * Se qualquer degrau falhar, o portão fica FECHADO e o motivo sobe. Nenhum
+ * atalho: `directionApprovedAt` nunca é escrito por este arquivo.
+ */
+async function avalizarADirecaoComoOCliente(
+  clientRequestId: string,
+  projectId: string,
+  tropecos: Tropeco[],
+): Promise<{ pedida: boolean; viaPortal: boolean; motivo: string | null }> {
+  let pedida = false;
+
+  // ── 1. MARCO 0: a agência pede o aval ────────────────────────────────────
+  try {
+    const { pedirDirecao } = await import("@/lib/agency/esteira/marcos");
+    const r = await pedirDirecao(projectId);
+    pedida = r.ok;
+    if (!r.ok) {
+      tropecos.push({ etapa: "direcao-pedido", erro: r.erro ?? "pedirDirecao recusou sem motivo" });
+      return { pedida, viaPortal: false, motivo: `a direção nem chegou a ser pedida: ${r.erro ?? "sem motivo"}` };
+    }
+  } catch (e) {
+    const erro = e instanceof Error ? e.message : String(e);
+    tropecos.push({ etapa: "direcao-pedido", erro });
+    return { pedida: false, viaPortal: false, motivo: `pedirDirecao estourou: ${erro}` };
+  }
+
+  // ── 2. A agência cunha o acesso do portal (preparo, não é o portão) ──────
+  let token: string;
+  try {
+    const { createPortalAccess } = await import("@/lib/agency/persistence/portal-access-service");
+    const acesso = await createPortalAccess({
+      clientRequestId,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+    token = acesso.token;
+  } catch (e) {
+    const erro = e instanceof Error ? e.message : String(e);
+    tropecos.push({ etapa: "direcao-portal", erro });
+    return { pedida, viaPortal: false, motivo: `não consegui cunhar o acesso do portal: ${erro}` };
+  }
+
+  // ── 3. O CLIENTE aprova, pela porta do cliente ───────────────────────────
+  try {
+    const { POST } = await import("@/app/api/portal/esteira/route");
+    const req = new NextRequest("http://cliente-falso.local/api/portal/esteira", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token, decisao: "aprovar_direcao" }),
+    });
+    const res = await POST(req);
+    const corpo = (await res.json()) as { ok?: boolean; mensagem?: string; error?: string };
+    if (res.status < 400 && corpo.ok) return { pedida, viaPortal: true, motivo: null };
+
+    const motivo = `a porta do cliente recusou (${res.status}): ${corpo.error ?? corpo.mensagem ?? "sem motivo"}`;
+    tropecos.push({ etapa: "direcao-portal", erro: motivo });
+    return { pedida, viaPortal: false, motivo };
+  } catch (e) {
+    const erro = e instanceof Error ? e.message : String(e);
+    tropecos.push({ etapa: "direcao-portal", erro });
+    return { pedida, viaPortal: false, motivo: `a porta do cliente estourou: ${erro}` };
   }
 }
