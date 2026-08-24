@@ -952,7 +952,7 @@ async function aprovarAsPecasComoOCliente(
     // errado de um 400.
     const pistas = await prisma.activityEvent.findMany({
       where: { projectId, type: { in: ["apresentacao_bloqueada", "escada_reteve_entrega", "material_sem_destino"] } },
-      orderBy: { createdAt: "desc" }, take: 3, select: { type: true, message: true },
+      orderBy: { timestamp: "desc" }, take: 3, select: { type: true, message: true },
     }).catch(() => [] as Array<{ type: string; message: string }>);
     const aindaPedindo = await prisma.materialRequest.count({
       where: { projectId, status: "pending" },
