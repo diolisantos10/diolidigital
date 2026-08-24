@@ -38,6 +38,8 @@ import {
   aExecucaoAnda,
 
   aPortaAutenticadaFoiExercitada,
+
+  oPacoteFecha,
 } from "@/lib/agency/cliente-falso/verificacoes";
 import { ROTEIRO_PADRAO } from "@/lib/agency/cliente-falso/roteiro";
 import { emptyScope, emptyEstimate } from "@/lib/agency/briefing-conversation";
@@ -461,5 +463,31 @@ describe("execução anda — produzir e terminar são duas perguntas", () => {
     const a = aExecucaoAnda(p);
     expect(a.veredito).toBe("passou");
     expect(a.detalhe).not.toMatch(/NÃO fechou/);
+  });
+});
+
+describe("o pacote fecha — o alvo do piloto, medido pelo instrumento", () => {
+  it("REPROVA o projeto que produziu mas parou em blocked", () => {
+    const p = percursoSao();
+    p.sdrAoVivo = true;
+    p.esteira = { ...p.esteira, execucaoStatus: "blocked", entregas: 6, tarefas: 8,
+      execucaoPendencias: "[recusa] Copy dos posts" };
+    const a = oPacoteFecha(p);
+    expect(a.veredito).toBe("quebrou");
+    expect(a.detalhe).toMatch(/blocked/);
+  });
+
+  it("aprova só o projeto em done", () => {
+    const p = percursoSao();
+    p.sdrAoVivo = true;
+    p.esteira = { ...p.esteira, execucaoStatus: "done", entregas: 7, tarefas: 8, execucaoPendencias: null };
+    expect(oPacoteFecha(p).veredito).toBe("passou");
+  });
+
+  it("na rodada offline não acusa a casa por falta de chave", () => {
+    const p = percursoSao();
+    p.sdrAoVivo = false;
+    p.esteira = { ...p.esteira, execucaoStatus: "failed", entregas: 0, tarefas: 8 };
+    expect(oPacoteFecha(p).veredito).toBe("nao-coberto");
   });
 });

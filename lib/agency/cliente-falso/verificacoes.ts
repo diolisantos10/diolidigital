@@ -806,6 +806,43 @@ export function aExecucaoAnda(p: Percurso): Achado {
     detalhe: `${p.esteira.entregas} entrega(s) produzida(s) de ${p.esteira.tarefas} tarefa(s), projeto em "done"` };
 }
 
+// ─── 14.5. O PACOTE FECHA — que é o alvo do piloto ──────────────────────────
+//
+// ── Por que esta régua existe, separada de `execucao-anda` (24/08/2026) ─────
+// `execucao-anda` pergunta "PRODUZIU?" e a resposta pode ser sim com o projeto
+// parado em `blocked`. As duas perguntas são diferentes e as duas importam:
+// produzir 6 de 8 é a esteira andando; entregar o pacote é o que o cliente
+// comprou. Enquanto só a primeira era medida, uma rodada com tarefa recusada
+// passava batida — e o alvo do piloto ("o projeto chega a `done`") ficava sendo
+// conferido a olho no JSON, por mim, fora do instrumento. Régua que mora na
+// cabeça de quem lê não é régua.
+//
+// `blocked` NÃO é defeito de portão: é a casa recusando peça que não presta,
+// depois de duas passadas. O portão está certo. O que está errado é o pacote
+// não fechar — e o conserto é sempre do lado de quem produz.
+export function oPacoteFecha(p: Percurso): Achado {
+  const base = {
+    id: "pacote-fecha",
+    guarda: "O projeto tem de CHEGAR A `done` — pacote que não fecha é cliente sem entrega.",
+  };
+  if (!p.esteira.projetoId) return { ...base, veredito: "nao-coberto", detalhe: "nenhum projeto nesta rodada" };
+  if (!p.esteira.direcaoAprovada) {
+    return { ...base, veredito: "nao-coberto", detalhe: "o portão de direção não abriu — a produção nem começou" };
+  }
+  if (!p.sdrAoVivo && p.esteira.entregas === 0) {
+    return { ...base, veredito: "nao-coberto", detalhe: "rodada offline: sem chave de IA a produção não fecha, e isso não é defeito da casa" };
+  }
+  if (p.esteira.execucaoStatus !== "done") {
+    return {
+      ...base, veredito: "quebrou",
+      detalhe: `o projeto parou em "${p.esteira.execucaoStatus ?? "?"}" com ${p.esteira.entregas} de ${p.esteira.tarefas} tarefa(s) entregues`
+             + (p.esteira.execucaoPendencias ? ` — ${p.esteira.execucaoPendencias}` : "")
+             + ". Os portões estão certos; quem tem de melhorar é quem produz.",
+    };
+  }
+  return { ...base, veredito: "passou", detalhe: `projeto em "done" com ${p.esteira.entregas} entrega(s)` };
+}
+
 // ─── 15. A PARADA DECLARADA — publicação não é exercitada, e diz isso ───────
 //
 // Nunca devolve "passou". Publicar sai no perfil do cliente, é público, e
@@ -842,6 +879,7 @@ export const VERIFICACOES: ((p: Percurso) => Achado)[] = [
   oProjetoNasceComTarefas,
   oPortaoDeDirecaoAbrePeloCliente,
   aExecucaoAnda,
+  oPacoteFecha,
   aPublicacaoNaoFoiExercitada,
 ];
 
