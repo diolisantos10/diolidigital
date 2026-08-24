@@ -102,6 +102,66 @@ duas não.** Chamar isso de ~75% é honesto; chamar de "pronta" não é.
 
 ---
 
+## 🔴 24/08/2026 — A PAUTA DO MÊS ESTAVA NA FILA PARA VIRAR POST NO PERFIL DO CLIENTE
+
+**Um documento de planejamento interno — o calendário editorial do mês — era
+agendado para publicação no Instagram do cliente. Nunca aconteceu porque o
+pacote nunca chegou lá; não porque alguma trava tenha impedido.**
+
+### O antes e o depois, com arquivo e linha
+
+| | arquivo:linha | valor |
+|---|---|---|
+| **antes** | `lib/agency/execution/especialistas.ts:686` (commit `6e1d2940^`) | `deliverableType: "social"` |
+| **depois** | `lib/agency/execution/especialistas.ts:776` (commit `6e1d2940`) | `deliverableType: "plano-de-conteudo"` |
+
+O especialista é `id: "a3"`, `label: "Pauta do mês"` — o calendário editorial de
+4 semanas.
+
+### Por que é grave
+
+`deliverableType` decide **duas coisas independentes** nesta casa, e a etiqueta
+errada errava as duas:
+
+1. **Publicação.** `lib/agency/esteira/publicacao.ts:132` —
+   `const TIPOS_PUBLICAVEIS = ["social", "video"]`. Com a pauta marcada como
+   `social`, `agendarPostsDaEntrega` a colocava na fila de `SocialPost`. Um
+   documento interno de planejamento, com tema e formato de cada semana, entrava
+   na fila para **ir ao ar no perfil do cliente**.
+2. **Julgamento.** A Qualidade a avaliava como peça publicável e a reprovava —
+   corretamente, para o que lhe disseram que ela era: *"Esta é uma estratégia e
+   roadmap de 4 semanas, não é uma peça de comunicação pronta. Pode-se publicar
+   COMO ESTÁ? Não — é um blueprint."* Régua certa, etiqueta errada.
+
+### Por que ninguém tinha visto
+
+Porque **a pauta nunca chegou ao fim da esteira**. O pacote era retido antes —
+por material faltando, por contrato de saída, pela própria Qualidade. O defeito
+estava a uma apresentação de distância de acontecer, e só apareceu quando o
+piloto empurrou a esteira até o fim pela primeira vez.
+
+**É a lição do piloto inteiro:** defeito em etapa que nunca roda não é defeito
+ausente — é defeito não observado. Toda etapa que só existe no papel guarda uma
+destas.
+
+### O que foi feito
+
+- A pauta virou `plano-de-conteudo`: fora de `TIPOS_PUBLICAVEIS`, e julgada como
+  plano.
+- **Sem isentar nada:** `TIPOS_DE_PLANEJAMENTO` (o que o juiz avalia como plano)
+  é lista SEPARADA de `TIPOS_DE_DOCUMENTO_INTERNO` (o que a régua determinística
+  de texto dispensa). Juntá-las tiraria a pauta da régua de texto sem ninguém
+  ter pedido — e o cliente **lê** o calendário dele. Há teste travando as duas
+  metades.
+
+### O que fica aberto
+
+Nenhum outro `deliverableType` foi auditado com esta pergunta. Vale uma passada
+perguntando de cada um: *isto é para publicar?* e *isto é uma peça ou um plano?*
+— são perguntas diferentes, e a etiqueta responde às duas ao mesmo tempo.
+
+---
+
 ## 🟡 24/08/2026 — DOUTRINA: INFORMAR UMA RÉGUA NÃO É AFROUXAR UMA RÉGUA
 
 **Quando uma régua reprova o que deveria aprovar, pergunte primeiro se ela está
