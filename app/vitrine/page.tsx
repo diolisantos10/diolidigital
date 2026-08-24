@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DioliLogo } from "@/components/brand/DioliLogo";
 import {
-  SELF_SERVE_CATALOG,
+  CATALOGO_VENDAVEL,
   CATEGORY_LABEL,
   CATEGORY_COLOR,
   brlFixed,
@@ -258,15 +258,25 @@ function ServiceCard({
 
 // Balcão primeiro: é a linha de entrada, e quem chega com pouco dinheiro
 // desiste antes de rolar até o fim da lista.
-const CATEGORIES: SelfServeCategory[] = ["balcao", "social", "video", "design", "traffic"];
+const ORDEM_DAS_CATEGORIAS: SelfServeCategory[] = ["balcao", "social", "video", "design", "traffic"];
+
+// Só aparece a aba que tem item vendável atrás. Uma aba "Vídeo" que abre vazia
+// é a mesma promessa quebrada da vitrine antiga, com um clique a mais.
+const CATEGORIES: SelfServeCategory[] = ORDEM_DAS_CATEGORIAS.filter((c) =>
+  CATALOGO_VENDAVEL.some((s) => s.category === c),
+);
 
 export default function VitrinePage() {
   const [catFilter, setCatFilter]   = useState<SelfServeCategory | "all">("all");
   const [selected, setSelected]     = useState<MicroService | null>(null);
 
+  // `CATALOGO_VENDAVEL`, não `SELF_SERVE_CATALOG`: a vitrine só mostra o que a
+  // casa tem caminho de produzir. A lista é derivada da régua de capacidade —
+  // item novo sem produtor simplesmente não aparece, sem ninguém editar aqui.
+  // Esta é a metade "aviso"; a trava de verdade está em /api/self-serve/order.
   const displayed = catFilter === "all"
-    ? SELF_SERVE_CATALOG
-    : SELF_SERVE_CATALOG.filter((s) => s.category === catFilter);
+    ? CATALOGO_VENDAVEL
+    : CATALOGO_VENDAVEL.filter((s) => s.category === catFilter);
 
   return (
     <>
