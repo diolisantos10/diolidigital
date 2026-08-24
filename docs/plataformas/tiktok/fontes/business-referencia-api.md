@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — API Reference (índice completo dos endpoints v1.3)"
 url: https://business-api.tiktok.com/portal/docs/api-reference/v1.3
-capturado_em: 2026-08-23
-hash: b864f2939eb14071
+capturado_em: 2026-08-24
+hash: 5aa3ab948a2f53dc
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -4937,6 +4937,22 @@ Creative management > TikTok Posts Management > Query identity
 Get available attribution sources and data sources for an app.
 	
 No permission needed.
+
+-
+	
+/report/bid_protection/status/get/
+	
+Get bid protection statuses.
+	
+Ad Account Management > bid protection report
+
+-
+	
+/report/bid_protection/detail/get/
+	
+Get bid protection history.
+	
+Ad Account Management > bid protection report
 
 User
 	

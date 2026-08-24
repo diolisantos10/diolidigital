@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — Special Ad Categories (crédito, emprego, moradia, social)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/audiences/special-ad-category
-capturado_em: 2026-08-23
+capturado_em: 2026-08-24
 hash: 9dca7b3b6beed497
 ---
 

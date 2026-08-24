@@ -1,7 +1,7 @@
 ---
 titulo: "Google Analytics — política do Measurement Protocol, SDK e User-ID"
 url: https://developers.google.com/analytics/devguides/collection/protocol/ga4/policy?hl=pt-br
-capturado_em: 2026-08-23
+capturado_em: 2026-08-24
 hash: 61110fbc2853c00a
 ---
 

@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok Advertising Policies — Weight Management and Body Image"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-weight-management
-capturado_em: 2026-08-23
+capturado_em: 2026-08-24
 hash: 337edf36ad3c6101
 ---
 

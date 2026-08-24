@@ -1,8 +1,8 @@
 ---
 titulo: "Spark Ads — impulsionar post orgânico (do cliente ou de criador) como anúncio; exige código de autorização"
 url: https://ads.tiktok.com/help/article/spark-ads?lang=en
-capturado_em: 2026-08-23
-hash: 88312fb6071bd678
+capturado_em: 2026-08-24
+hash: 7bc0e16f5cbabd87
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -22,6 +22,8 @@ In-feed video
 TopView
 
 Top Feed
+
+TopReach
 
 Standard feed
 
@@ -207,6 +209,7 @@ Increase ROAS, along with TikTok’s new value-based optimization tool.
 
 Drive more appointments amongst existing and new audiences.
 
+*Was the information helpful?
 Related Articles
  How to create Spark Ads for Manual and Search Campaigns in TikTok Ads Manager
  TikTok Auction In-Feed Ads

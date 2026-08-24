@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Auction In-Feed Ads — especificações de criativo (formato, duração, resolução, sem marca d'água)"
 url: https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en
-capturado_em: 2026-08-23
-hash: 91eb5eaf6f979ec0
+capturado_em: 2026-08-24
+hash: 9ec1e98aac1c701d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -22,6 +22,8 @@ In-feed video
 TopView
 
 Top Feed
+
+TopReach
 
 Standard feed
 
