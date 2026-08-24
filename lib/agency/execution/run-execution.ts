@@ -27,6 +27,7 @@ import {
 } from "@/lib/agency/execution/especialistas";
 import {
   conferirPisoDeVerdade, resumirViolacoes, separarValoresInformados,
+  verdadeEmLinhas, classesSemInformacaoLegiveis,
   type VerdadeDoCliente,
 } from "@/lib/agency/execution/piso-de-verdade";
 import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
@@ -335,6 +336,44 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     })();
     const brand = client?.brandBrain ?? null;
 
+    // ── O TETO DE TOKENS TEM DE CABER O QUE FOI PEDIDO (24/08/2026) ─────────
+    //
+    // Era `maxTokens: 1800`, fixo, igual para todo especialista — e ficou fixo
+    // enquanto o contrato de saída passou a ser DERIVADO do cliente (15/08).
+    // O piloto mediu a consequência: cliente com 12 peças compradas, cada uma
+    // com legenda, direção de arte e storyboard de até 6 telas. A resposta era
+    // cortada no meio, o reparo do JSON truncado descartava o item incompleto,
+    // e o contrato recebia `items: []` — "entregou 0 peças de conteúdo".
+    //
+    // Zero não é preguiça do modelo: é a resposta dele amputada. E o laço de
+    // refação relia o mesmo teto, então nunca saía do lugar.
+    //
+    // A conta é por peça, com piso no teto histórico (nada encolhe para quem já
+    // funcionava) e um limite superior para um contrato absurdo não virar uma
+    // chamada de custo aberto.
+    const TETO_HISTORICO = 1800;
+    const TOKENS_POR_PECA = 420;
+    const TETO_MAXIMO = 8000;
+    const exigenciaDoCliente = exigenciaDeConteudo(
+      lerEscopoDeConteudo({
+        servicos: services,
+        escopo: JSON.stringify(scope),
+        contextoBruto: req.rawContext ?? "",
+      }),
+    );
+    const tetoDeTokens = Math.min(
+      TETO_MAXIMO,
+      Math.max(TETO_HISTORICO, exigenciaDoCliente.max * TOKENS_POR_PECA),
+    );
+
+    // ── A VERDADE OPERACIONAL, LIDA UMA VEZ SÓ ──────────────────────────────
+    // Ela alimenta DUAS coisas: o prompt do especialista (o que ele pode
+    // afirmar) e o piso de verdade (o que será conferido). Ler duas vezes
+    // abriria a porta para as duas divergirem — e divergindo, a régua cobra um
+    // fato que o prompt nunca entregou, que é exatamente o defeito que o piloto
+    // mediu em 24/08/2026.
+    const operacaoDoCliente = (await buildVerdadeOperacional(clientRequestId)) ?? undefined;
+
     const context: Ctx = {
       // A régua da marca, montada ANTES da produção e entregue no prompt de
       // todo especialista. Best-effort de propósito: contrato que falha não
@@ -389,6 +428,28 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         escopo: JSON.stringify(scope),
         contextoBruto: req.rawContext ?? "",
       }),
+      // ── A VERDADE QUE O PISO COBRA, ENTREGUE A QUEM PRODUZ (24/08/2026) ──
+      //
+      // O piloto barrou "Pesquisa de concorrência" com `area_nao_informada`: a
+      // peça afirmou área de atendimento que o cliente nunca informou. O piso
+      // estava certo; o defeito era o especialista NUNCA ter recebido a verdade
+      // que o piso confere. Ele escrevia às cegas e era pego depois de pronto.
+      //
+      // Mesmo remédio do `contratoDeMarca` (09/08), agora para os fatos
+      // operacionais: avisar ANTES em vez de barrar DEPOIS. As duas listas
+      // saem da mesma estrutura que a conferência lê, então não há como uma
+      // acompanhar a outra pela metade.
+      //
+      // `undefined` quando não há verdade montada — e o bloco cala, em vez de
+      // afirmar "o cliente não atestou nada", que seria falso.
+      ...(operacaoDoCliente
+        ? {
+            verdadeAtestada: {
+              linhas: verdadeEmLinhas(operacaoDoCliente),
+              semInformacao: classesSemInformacaoLegiveis(operacaoDoCliente),
+            },
+          }
+        : {}),
     };
 
     // ── A ENTREGA COBRE O MÊS QUE ELE PAGOU? ────────────────────────────────
@@ -452,7 +513,9 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // chama. Sem ela, o piso trata TODA classe como "não informada" e (por
       // ser fail-closed, de propósito) barraria qualquer peça com CTA de canal
       // ou horário. Não é opcional: é a fiação que faz o piso ser piso.
-      operacao: (await buildVerdadeOperacional(clientRequestId)) ?? undefined,
+      // A MESMA leitura que alimentou o prompt do especialista (acima). Uma
+      // verdade, dois usos: avisar quem produz e conferir o que foi produzido.
+      operacao: operacaoDoCliente,
       // A METADE NEGATIVA da verdade ancorada: o que o cliente PROIBIU. Lida do
       // banco pelo servidor, nunca montada por quem chama, e fail-closed —
       // leitura que falha reprova a peça em vez de liberá-la. Ver
@@ -579,7 +642,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       const result = await generate({
         system: `Você é o especialista de ${esp.label} do departamento de ${dept.label} de uma agência de marketing brasileira. Produza conteúdo real, específico e pronto para o cliente. Responda SOMENTE com JSON válido.`,
         user: esp.prompt(context) + (insightBlock ? `\n\n${insightBlock}` : ""),
-        maxTokens: 1800,
+        maxTokens: tetoDeTokens,
         workspaceId: project.workspaceId,
         preferredProvider: esp.provedor ?? "claude",
         // DE QUEM é a chamada. Duas coisas dependem disto e nenhuma é opcional:
@@ -616,7 +679,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
             parecer: `O CONTRATO DE SAÍDA NÃO FOI CUMPRIDO:\n- ${contrato.violacoes.join("\n- ")}`,
             instrucao: "Reentregue o JSON inteiro cumprindo exatamente essas contagens e formatos.",
           }),
-          maxTokens: 1800, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
+          maxTokens: tetoDeTokens, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
           clientId: project.clientId, departmentId: dept.id, agentId: esp.id, projectId,
         });
         correcoesDeContrato++;
@@ -691,7 +754,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
             parecer: `A VERIFICAÇÃO DE VERDADE REPROVOU a versão anterior: ${parecer}`,
             instrucao: 'Refaça sem esses dados — inclusive no campo "title". Onde faltar informação do cliente, escreva "PRECISO CONFIRMAR: <o quê>".',
           }),
-          maxTokens: 1800, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
+          maxTokens: tetoDeTokens, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
           clientId: project.clientId, departmentId: dept.id, agentId: esp.id, projectId,
         });
         correcoesDePiso++;
@@ -761,7 +824,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
             parecer: `A Qualidade REPROVOU a versão anterior por: ${audit.issues.join("; ") || audit.note}`,
             instrucao: "Refaça corrigindo exatamente esses pontos, mantendo o que já estava bom.",
           }),
-          maxTokens: 1800, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
+          maxTokens: tetoDeTokens, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
           clientId: project.clientId, departmentId: dept.id, agentId: esp.id, projectId,
         });
         revisions++;

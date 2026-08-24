@@ -1387,3 +1387,65 @@ export function resumirViolacoes(violacoes: Violacao[]): string {
   if (violacoes.length === 0) return "";
   return violacoes.map((v) => `${v.motivo} (encontrado: "${v.trecho}")`).join(" ");
 }
+
+// ─── A VERDADE, EM LINGUAGEM DE PROMPT ──────────────────────────────────────
+//
+// ── Por que mora aqui, e não no motor (24/08/2026) ──────────────────────────
+// Quem confere é este módulo; quem produz precisa ler EXATAMENTE a mesma
+// verdade, ou a régua cobra um fato que o prompt nunca entregou. Foi o que o
+// piloto mediu: "Pesquisa de concorrência" barrada em `area_nao_informada`
+// porque `ctxBlock` não mandava nada de operação ao especialista.
+//
+// Traduzir aqui garante que a lista do prompt e a lista da conferência saiam da
+// MESMA estrutura. Se um campo novo entrar em `VerdadeOperacional` e ninguém o
+// traduzir, ele fica de fora das duas — nunca de uma só.
+
+/** O nome de cada classe de fato na língua de quem escreve a peça. */
+const NOME_DA_CLASSE: Record<ClasseDeFato, string> = {
+  horario: "horário e dias de funcionamento",
+  area_de_atendimento: "área de atendimento, bairro, cidade ou raio de entrega",
+  pagamento: "formas de pagamento e parcelamento",
+  oferta: "promoção, desconto ou condição especial",
+  canal: "canais de contato (telefone, WhatsApp, site, redes)",
+  prazo: "prazo de entrega ou de execução",
+};
+
+/** As classes que o cliente não informou, com o nome legível. */
+export function classesSemInformacaoLegiveis(op: VerdadeOperacional): string[] {
+  return classesSemInformacao(op).map((c) => NOME_DA_CLASSE[c]);
+}
+
+/**
+ * Os fatos ATESTADOS, em linhas prontas para o prompt.
+ *
+ * Só entra o que tem conteúdo: uma linha "Formas de pagamento: (nada)" seria
+ * ruído no melhor caso e convite à invenção no pior.
+ */
+export function verdadeEmLinhas(op: VerdadeOperacional): string[] {
+  const linhas: string[] = [];
+  const juntar = (rotulo: string, valores: readonly string[] | undefined): void => {
+    const v = (valores ?? []).filter((x) => x.trim());
+    if (v.length > 0) linhas.push(`${rotulo}: ${v.join(", ")}`);
+  };
+
+  juntar("Horários atestados", op.horarios);
+  juntar("Janelas de funcionamento", op.janelas);
+  juntar("Dias atestados", op.dias);
+  juntar("Áreas atendidas", op.areas);
+  if ((op.areasNegadas ?? []).length > 0) {
+    // A negação vem com o aviso junto: é o pior dano por ocorrência do módulo,
+    // e o produtor precisa ler a consequência na mesma linha do fato.
+    linhas.push(
+      `Áreas que o cliente disse EXPRESSAMENTE que NÃO atende: ${op.areasNegadas!.join(", ")} `
+      + "— afirmar cobertura em qualquer uma delas inverte a palavra dele e reprova a peça.",
+    );
+  }
+  if (op.raioEntregaKm !== undefined) linhas.push(`Raio de entrega atestado: ${op.raioEntregaKm} km`);
+  juntar("Formas de pagamento", op.pagamentos);
+  if (op.parcelasMax !== undefined) linhas.push(`Parcelamento máximo atestado: ${op.parcelasMax}x`);
+  juntar("Canais de contato", op.canais);
+  juntar("Perfis e domínios", op.handles);
+  juntar("Ofertas atestadas", op.ofertas);
+  juntar("Prazos atestados", op.prazos);
+  return linhas;
+}

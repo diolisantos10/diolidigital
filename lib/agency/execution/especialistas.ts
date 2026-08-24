@@ -103,6 +103,35 @@ export interface Ctx {
    * inventado no lugar do dele.
    */
   escopoContratado?: EscopoDeConteudo;
+  /**
+   * O QUE O CLIENTE ATESTOU, e o que ele NUNCA contou.
+   *
+   * ── Por que isto nasceu (24/08/2026) ─────────────────────────────────────
+   * O piloto barrou "Pesquisa de concorrência" no piso de verdade com
+   * `area_nao_informada`: a peça afirmou uma área de atendimento que o cliente
+   * jamais informou. O piso está certo — afirmar sobre o que o cliente não
+   * contou é invenção, e essa é a regra de ouro da casa.
+   *
+   * O defeito estava do outro lado: **o especialista nunca recebeu a verdade
+   * que o piso cobra.** `ctxBlock` mandava segmento, público e tom, e nada
+   * sobre horário, área de atendimento, pagamento, oferta, canal ou prazo. O
+   * produtor escrevia às cegas contra uma régua que confere fato atestado, e o
+   * piso o pegava DEPOIS de a peça estar pronta e paga.
+   *
+   * É o mesmo defeito que o `contratoDeMarca` consertou em 09/08 para as
+   * proibições do cliente — "quem produzia era pego, nunca avisado" —, agora
+   * para os fatos operacionais. `classesSemInformacao()` já existia e servia só
+   * ao painel; aqui ela vira instrução para quem escreve.
+   *
+   * Ausente = quem montou o Ctx não tinha a verdade (teste, ferramenta). Nunca
+   * significa "o cliente não atestou nada" — a diferença está escrita no bloco.
+   */
+  verdadeAtestada?: {
+    /** As linhas de fato atestado, prontas para o prompt. */
+    linhas: string[];
+    /** As classes sobre as quais o cliente não contou NADA. */
+    semInformacao: string[];
+  };
 }
 
 /** Qual IA faz melhor este trabalho. Vazio = a preferência global da casa. */
@@ -193,6 +222,19 @@ export function contarCenas(cenas: string): number {
 const MIN_TELAS = 3;
 const MAX_TELAS = 6;
 
+/**
+ * A MISTURA DE FORMATOS — a mesma tabela para quem PEDE e para quem CONFERE.
+ *
+ * Estava escrita só dentro de `contratoDasLegendas`, e o prompt do especialista
+ * carregava a sua própria cópia em prosa ("1 a 2 CARROSSEL, 2 a 3 STORY..."). Duas
+ * cópias da mesma regra é uma que envelhece sem ninguém notar — foi exatamente o
+ * que aconteceu com o VOLUME: o contrato virou derivado do cliente em 15/08/2026
+ * e o prompt ficou preso em "6 a 8 peças". No piloto de 24/08 o cliente havia
+ * comprado 12 e o especialista, obediente ao prompt, nunca teve como acertar:
+ * cada refação relia o mesmo "6 a 8". A régua estava certa e o pedido, errado.
+ */
+export const MISTURA_DE_FORMATOS = { carrossel: [1, 2], story: [2, 3], feed: [2, 3] } as const;
+
 /** O contrato da pauta: 4 semanas de calendário, uma por item. */
 function contratoDaPauta(data: Record<string, unknown>): string[] {
   return exigirQuantidade(data, 4, 8, "semanas de calendário");
@@ -271,13 +313,12 @@ function contratoDasLegendas(data: Record<string, unknown>, c?: Ctx): string[] {
   // faz sentido quando há mais de um formato no escopo. Cliente de UM formato
   // só (o CityJobs: post simples de feed) não tem mistura para fazer, e exigi-la
   // é o defeito que este bloco corrige.
-  const misturaBase = { carrossel: [1, 2], story: [2, 3], feed: [2, 3] } as const;
   const daMistura = (["carrossel", "story", "feed"] as const).filter((f) =>
     exigencia.permitidos.includes(f as FormatoContratado),
   );
   if (daMistura.length > 1) {
     for (const f of daMistura) {
-      const [min, max] = misturaBase[f];
+      const [min, max] = MISTURA_DE_FORMATOS[f];
       const n = porFormato[f];
       if (n < min) problemas.push(`só ${n} peça(s) de ${f} — o contrato pede de ${min} a ${max}. Sem a mistura, o mês inteiro sai no mesmo formato.`);
       else if (n > max) problemas.push(`${n} peças de ${f} — o contrato pede no máximo ${max}.`);
@@ -362,7 +403,47 @@ function ctxBlock(c: Ctx): string {
     // TODOS os especialistas — inclusive a degradação, que é instrução tanto
     // quanto a síntese ("não descreva o que ninguém viu").
     c.feedRealDoCliente,
+    // ── A VERDADE ATESTADA, E O QUE ELE NUNCA CONTOU ────────────────────────
+    // Por último porque é o bloco que o especialista consulta enquanto escreve,
+    // e porque a lista do que FALTA precisa ser a última coisa lida antes das
+    // REGRAS INEGOCIÁVEIS — as duas dizem a mesma coisa e se reforçam.
+    blocoDaVerdade(c),
   ].filter(Boolean).join("\n");
+}
+
+/**
+ * O bloco que diz ao produtor o que ele PODE afirmar — e o que, se afirmar,
+ * será barrado no piso de verdade.
+ *
+ * A assimetria é de propósito: o que o cliente atestou vai como lista seca, e o
+ * que ele NÃO contou vai com a instrução do que fazer. Dizer "faltou área de
+ * atendimento" sem dizer "escreva PRECISO CONFIRMAR" deixa o modelo preencher
+ * com o que parece razoável, que é exatamente como a invenção entra.
+ */
+function blocoDaVerdade(c: Ctx): string {
+  const v = c.verdadeAtestada;
+  // Sem verdade montada, calar é a única saída honesta: um bloco dizendo "o
+  // cliente não atestou nada" seria FALSO quando quem montou o Ctx é um teste.
+  if (!v) return "";
+
+  const partes: string[] = [];
+  if (v.linhas.length > 0) {
+    partes.push(
+      "O QUE O CLIENTE ATESTOU (pode afirmar; veio das palavras dele):\n"
+      + v.linhas.map((l) => `- ${l}`).join("\n"),
+    );
+  }
+  if (v.semInformacao.length > 0) {
+    partes.push(
+      "O QUE O CLIENTE NUNCA CONTOU — NÃO AFIRME NADA DISTO:\n"
+      + v.semInformacao.map((l) => `- ${l}`).join("\n")
+      + "\nEstes campos são conferidos em código (piso de verdade) DEPOIS da peça pronta: "
+      + "afirmar qualquer um deles reprova a entrega inteira e ela não chega ao cliente. "
+      + 'Precisando de um deles, escreva "PRECISO CONFIRMAR: <o quê>" no lugar — '
+      + "ausência de informação não é informação.",
+    );
+  }
+  return partes.join("\n\n");
 }
 
 /** O rodapé que vai em TODO prompt: a regra de ouro da casa, aplicada ao
@@ -373,6 +454,66 @@ REGRAS INEGOCIÁVEIS
 - Se faltar um dado para fazer bem, escreva "PRECISO CONFIRMAR: <o quê>" naquele campo.
 - Português do Brasil. Específico deste negócio — nada que sirva para qualquer cliente.
 - Responda SOMENTE JSON válido, no formato pedido.`;
+
+/**
+ * O PEDIDO DE VOLUME, DERIVADO DO CONTRATO DO CLIENTE.
+ *
+ * Uma fonte só para o número que o prompt pede e o número que a régua cobra.
+ * Enquanto eram dois, o especialista era reprovado por obedecer ao prompt.
+ */
+function pedidoDeVolume(c: Ctx): string {
+  const e = exigenciaDeConteudo(c.escopoContratado ?? escopoNaoDeclarado());
+  const quantas = e.min === e.max ? `EXATAMENTE ${e.min} peças` : `de ${e.min} a ${e.max} peças`;
+  const linhas = [
+    `Escreva ${quantas}. Este número é o que o cliente COMPROU e é conferido em código: `
+    + "entregar menos reprova a entrega inteira, e ela não chega a ele.",
+  ];
+  if (e.cobreDoMes && e.cobreDoMes.entrega < e.cobreDoMes.contratado) {
+    // Honestidade com quem produz: ele não está entregando o mês inteiro, e não
+    // é falha dele. Sem esta linha, o especialista tenta "compensar" escrevendo
+    // mais do que o teto permite — e é barrado pelo outro lado da régua.
+    linhas.push(
+      `(O cliente comprou ${e.cobreDoMes.contratado} peças no mês; esta entrega traz ${e.cobreDoMes.entrega}, `
+      + "que é o teto por passada. O restante vem nas próximas — não tente compensar aqui.)",
+    );
+  }
+  linhas.push("Use a MISTURA de formatos que funciona para negócio local — não faça tudo feed:");
+  return linhas.join("\n");
+}
+
+/**
+ * A MISTURA, com os números exatos que o contrato confere — e a conta que sobra.
+ *
+ * O bloco calcula o que fazer com as peças ALÉM da mistura: com 12 peças
+ * compradas, os tetos de carrossel/story/feed somam 8, e as outras 4 têm de ser
+ * reel. Sem dizer isso, o modelo enche de feed e leva "12 peças de feed — o
+ * contrato pede no máximo 3".
+ */
+function misturaPedida(c: Ctx): string {
+  const e = exigenciaDeConteudo(c.escopoContratado ?? escopoNaoDeclarado());
+  const daMistura = (["carrossel", "story", "feed"] as const)
+    .filter((f) => e.permitidos.includes(f as FormatoContratado));
+  if (daMistura.length <= 1) {
+    // Cliente de um formato só não tem mistura a fazer, e o contrato também não
+    // a cobra. Pedir mistura aqui seria pedir o que a régua não quer.
+    return daMistura.length === 1
+      ? `Todas as peças são de formato "${daMistura[0]}" — é o único que este cliente contratou.`
+      : "";
+  }
+  const linhas = daMistura.map((f) => {
+    const [min, max] = MISTURA_DE_FORMATOS[f];
+    return `- ${f.toUpperCase()}: de ${min} a ${max} peças (conferido em código, mínimo E máximo).`;
+  });
+  const tetoDaMistura = daMistura.reduce((soma, f) => soma + MISTURA_DE_FORMATOS[f][1], 0);
+  if (e.min > tetoDaMistura && e.permitidos.includes("reel" as FormatoContratado)) {
+    linhas.push(
+      `- REEL: as ${e.min - tetoDaMistura} peças restantes. Os tetos acima somam ${tetoDaMistura}, `
+      + `e o contrato pede ${e.min} — o que passa disso TEM de ser reel, ou a entrega é reprovada por excesso de formato.`,
+    );
+  }
+  linhas.push(`Some tudo: o total tem de bater ${e.min === e.max ? e.min : `${e.min} a ${e.max}`}.`);
+  return linhas.join("\n");
+}
 
 /** Formato único de saída — o motor sabe transformar isto em entregável. */
 function formato(titulo: string, campos: string): string {
@@ -460,15 +601,16 @@ ${formato("Pauta do Mês — <negócio>", `"headline": "Semana N — tema", "not
 CONTEXTO
 ${ctxBlock(c)}
 
-Escreva de 6 a 8 peças, com a MISTURA de formatos que funciona para negócio local — não faça tudo feed:
-- 1 a 2 CARROSSEL: o formato que mais segura atenção. Use quando o assunto tem PASSOS ou LISTA ("3 sinais de que...", "como escolher..."). No campo "cenas", descreva de 3 a 6 telas, uma por linha, começando com "1)", "2)"...
+${pedidoDeVolume(c)}
+- CARROSSEL: o formato que mais segura atenção. Use quando o assunto tem PASSOS ou LISTA ("3 sinais de que...", "como escolher..."). No campo "cenas", descreva de 3 a 6 telas, uma por linha, começando com "1)", "2)"...
 
 STORYBOARD OBRIGATÓRIO — cada tela declara o PAPEL que cumpre na história, entre colchetes, logo depois do número:
 "1) [gancho] a cena da dor acontecendo · 2) [tensao] o custo de continuar assim · 3) [mecanismo] como funciona, na prática · 4) [acao] o próximo passo"
 Papéis: gancho (para o dedo, nomeia a dor) · tensao (o custo de continuar como está) · prova (evidência REAL do cliente) · mecanismo (como funciona) · resultado (o estado depois) · acao (o próximo passo).
 REGRAS QUE REPROVAM A PEÇA, e são conferidas em código: a primeira tela é sempre [gancho] e a última sempre [acao]; NENHUM papel se repete; NENHUMA cena descreve a mesma coisa que outra — cada tela pede uma imagem diferente porque cumpre um papel diferente. Descreva o que a imagem daquela tela MOSTRA (a imagem é o argumento, não fundo bonito). Se um papel exigir material que você não tem (um dado do cliente para [prova], por exemplo), escreva "PRECISO CONFIRMAR: <o quê>" naquela tela — nunca preencha com cena genérica.
-- 2 a 3 STORY: assunto do dia, bastidor, enquete. Story é vertical e vive 24h — nada que precise durar.
-- 2 a 3 FEED: o que fica no perfil e representa a marca.
+- STORY: assunto do dia, bastidor, enquete. Story é vertical e vive 24h — nada que precise durar.
+- FEED: o que fica no perfil e representa a marca.
+${misturaPedida(c)}
 ${REGRA}
 
 O CAMPO "pillar" É OBRIGATÓRIO EM TODA PEÇA. Escreva o pilar de conteúdo a que ela pertence, com as palavras da pauta deste cliente (ex.: "bastidor da região", "institucional — vaga validada"). Ele é conferido em código: peça sem pilar não entra no calendário do cliente. NÃO invente um pilar bonito — use o que a pauta do mês declarou.
