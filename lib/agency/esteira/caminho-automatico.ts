@@ -96,6 +96,54 @@ function lista(v: string | null | undefined): string[] {
  * Na dúvida, a resposta é SEMPRE "não é normal": um projeto que nasce errado
  * custa mais que um briefing que espera um dia.
  */
+/**
+ * ═══ O PREÇO QUE O CLIENTE ACEITOU ══════════════════════════════════════════
+ *
+ * A quarta pergunta ("quanto ele paga") existe porque projeto que nasce sem
+ * saber o que foi vendido cobra errado de alguém. Ela era respondida lendo
+ * PROSA — e prosa é a fonte mais fraca que existe para isso.
+ *
+ * Medido em 24/08/2026 no case Farol 27: o leitor devolveu `[5000, 30]`. O
+ * 5000 é o RÓTULO da faixa (`budgetRange: "acima de R$ 5.000"`), a etiqueta da
+ * régua e não um valor que alguém disse; o 30 é *"R$ 30 mil"* — a verba de
+ * MÍDIA de 60 dias — lido como trinta reais. Nenhum dos dois é o honorário
+ * mensal da agência, que é o número que esta pergunta quer.
+ *
+ * Quando a casa ENTREGOU um orçamento (`briefingJson.estimate`, o mesmo número
+ * escrito na proposta que o cliente abriu) e o cliente ACEITOU aquela proposta,
+ * a pergunta está respondida — e respondida pela fonte mais forte possível:
+ * o cliente concordando, por escrito, com um número que a casa derivou. Isso
+ * não afrouxa a régua, aperta: passa a valer um acordo em vez de um palpite
+ * sobre texto.
+ *
+ * ⚠️ **Falha fechada.** Sem estimativa gravada, ou com estimativa travada/zerada,
+ * esta função devolve `null` e a régua antiga — a da prosa — volta a decidir
+ * inteira. "Não recusou" nunca vira "aceitou", e "não achei o número" nunca
+ * vira "o número está bom".
+ */
+export function precoAceito(briefingJson: string | null): number | null {
+  if (!briefingJson) return null;
+  try {
+    const corpo = JSON.parse(briefingJson) as {
+      estimate?: { totalMin?: unknown; totalMax?: unknown; travadaPor?: unknown };
+    };
+    const e = corpo?.estimate;
+    if (!e || typeof e !== "object") return null;
+    // Mesma trava do CityJobs que `estimativaDe` aplica na entrega: número que
+    // a casa se recusou a sustentar não vira preço aqui tampouco.
+    if (typeof e.travadaPor === "string" && e.travadaPor.trim()) return null;
+    const min = typeof e.totalMin === "number" ? e.totalMin : NaN;
+    const max = typeof e.totalMax === "number" ? e.totalMax : NaN;
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+    // O PISO da faixa, não o teto: é o menor compromisso que o aceite garante,
+    // e errar para baixo aqui só torna a conferência do piso mais exigente.
+    const piso = Math.min(min, max);
+    return piso > 0 ? piso : null;
+  } catch {
+    return null;
+  }
+}
+
 export function avaliarCasoNormal(req: {
   services: string;
   briefingJson: string | null;
@@ -149,6 +197,23 @@ export function avaliarCasoNormal(req: {
   //    cobra dos clientes dele) não é VERBA (o que ele paga à agência). Um
   //    leitor próprio aqui seria a segunda régua que envelhece sozinha — o
   //    defeito que este mesmo dia já produziu duas vezes.
+  //
+  //    ⚠️ E há UMA fonte que dispensa a leitura de prosa, porque é mais forte
+  //    que ela: o preço que o cliente ACEITOU. Ver `precoAceito`. Esta função
+  //    só é chamada depois do aceite (`nascerDoAceite` exige `status`
+  //    "accepted"), então a estimativa gravada aqui é exatamente o número que
+  //    estava na proposta que ele abriu e aprovou.
+  const aceito = precoAceito(req.briefingJson);
+  if (aceito !== null) {
+    if (aceito < PISO_DA_TABELA) {
+      return {
+        normal: false,
+        motivo: `verba fora da tabela: o valor aceito (R$ ${aceito}) está abaixo do menor plano do site (R$ ${PISO_DA_TABELA}) — quem decide atender fora da tabela é gente`,
+      };
+    }
+    return { normal: true };
+  }
+
   const { verbas } = separarValoresInformados(scope, req.rawContext ?? "");
   if (verbas.length === 0) {
     return { normal: false, motivo: "verba fora do padrão: o briefing não traz um valor mensal legível" };

@@ -155,6 +155,8 @@ import {
 } from "@/lib/agency/comercial/verba-declarada";
 import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
 import { HOST_PADRAO } from "@/lib/agency/esteira/links-do-portal";
+import { computeEstimate } from "@/lib/agency/live-calculator";
+import { randomBytes } from "crypto";
 import { sendEmail } from "@/lib/email/send";
 import { orcamentoProntoEmail } from "@/lib/email/templates";
 import { provaDoProprioBriefing } from "@/lib/agency/consentimento/quem-pode-receber";
@@ -174,7 +176,7 @@ export type ResultadoDoOrcamento = {
   falhas: string[];
 };
 
-type EstimativaGuardada = {
+export type EstimativaGuardada = {
   totalMin?: number;
   totalMax?: number;
   items?: { label?: string; detail?: string; unit?: string }[];
@@ -188,6 +190,10 @@ type EstimativaGuardada = {
 /** Lê a estimativa que a sala de briefing gravou. Nunca lança: briefing com
  *  JSON quebrado vira "sem orçamento", que é tratado por gente — e não um erro
  *  que derruba a rodada inteira do relógio. */
+export function estimativaEntregue(briefingJson: string | null): EstimativaGuardada | null {
+  return estimativaDe(briefingJson);
+}
+
 function estimativaDe(briefingJson: string | null): EstimativaGuardada | null {
   if (!briefingJson) return null;
   try {
@@ -241,16 +247,122 @@ export function faixaDoOrcamento(e: EstimativaGuardada): string {
  *  hospedagem na caixa de entrada do cliente ABRE — carrega a página inteira —
  *  e por isso ninguém percebe que não é o endereço da marca. Ordem do CEO em
  *  16/08/2026; a trava que cobra isso é `__tests__/http/endereco-da-casa`. */
-async function linkDaConversa(clientRequestId: string): Promise<string | null> {
+/**
+ * ═══ A PORTA DE ACEITE DO CLIENTE — cunhada aqui, e só aqui ══════════════════
+ *
+ * ── O BURACO QUE ESTA FUNÇÃO FECHA (medido em produção, 24/08/2026) ─────────
+ *
+ * A versão anterior desta função só SABIA LER: procurava um `PortalAccess` do
+ * pedido e, quando não achava, devolvia `null`. E não havia quem criasse.
+ * Varredura no código inteiro: `createPortalAccess` só era chamado por
+ * `POST /api/brain/portal-access` (exige sessão de agência), pelo reset de
+ * admin (exige `CRON_SECRET`) e pelo arnês do cliente falso. **Nenhum caminho
+ * automático cunhava token para uma SOLICITAÇÃO.**
+ *
+ * A consequência, medida na produção do dia: zero clientes com projeto. O
+ * cursograma tem um "cliente aceitou?"; a porta do aceite
+ * (`POST /api/portal/briefing/aceite`) exige token de portal; o token só nascia
+ * de uma sessão de staff. **O caminho automático dispensava o painel e não
+ * dispensava a credencial** — o funil não foi destravado, a trava andou um
+ * passo para a frente.
+ *
+ * ── POR QUE CUNHAR AQUI NÃO É ABRIR PORTA NOVA ─────────────────────────────
+ *
+ *   • Quem cunha é o RELÓGIO, nunca um pedido de fora. Nenhuma rota pública
+ *     leva a esta função: ela roda dentro da rodada da esteira, sobre um
+ *     briefing que a própria casa já aceitou e já precificou.
+ *   • O token vai para UM endereço só: o que o cliente escreveu no próprio
+ *     briefing (`lerContato`), com o consentimento provado pelo briefing dele
+ *     (`provaDoProprioBriefing`) e barrado pelos cadeados de saída.
+ *   • O token abre a PROPOSTA daquele pedido — nada mais. O portal de 11 abas
+ *     continua exigindo um `Client`, que neste ponto ainda não existe.
+ *
+ * ── AS DUAS REGRAS HERDADAS DE `links-do-portal.ts` ────────────────────────
+ *
+ *   1. NÃO REVOGA NADA. Token vivo é reaproveitado — um link já enviado pode
+ *      estar na caixa de entrada do cliente, e trocá-lo o quebra em silêncio.
+ *   2. Segredo de verdade: `randomBytes(32)`, e não o `cuid()` sequencial do
+ *      `@default` do schema. Este link vai por e-mail e vale por uma decisão
+ *      comercial; identificador adivinhável não serve de credencial.
+ *
+ * Nunca lança: sem link o orçamento AINDA é entregue no portal e por e-mail.
+ * Falhar em cunhar não pode desfazer uma entrega.
+ */
+async function linkDaProposta(clientRequestId: string, clientId: string | null): Promise<string | null> {
   try {
-    const acesso = await prisma.portalAccess.findFirst({
+    const vivos = await prisma.portalAccess.findMany({
       where: { clientRequestId, revokedAt: null },
       orderBy: { grantedAt: "desc" },
+      select: { token: true, expiresAt: true },
+    });
+    const agora = Date.now();
+    const bom = vivos.find((a) => !a.expiresAt || a.expiresAt.getTime() > agora);
+    if (bom) return `${HOST_PADRAO}/proposta/${bom.token}`;
+
+    const novo = await prisma.portalAccess.create({
+      data: {
+        token: randomBytes(32).toString("base64url"),
+        clientRequestId,
+        ...(clientId ? { clientId } : {}),
+      },
       select: { token: true },
     });
-    return acesso ? `${HOST_PADRAO}/portal/access/${acesso.token}` : null;
+    return `${HOST_PADRAO}/proposta/${novo.token}`;
+  } catch (err) {
+    console.error(`[orcamento] não consegui cunhar a porta de aceite do pedido ${clientRequestId}:`, err);
+    return null;
+  }
+}
+
+/**
+ * ═══ A ESTIMATIVA, DERIVADA QUANDO A SALA DE BRIEFING NÃO GRAVOU UMA ════════
+ *
+ * O cabeçalho deste arquivo diz, e continua valendo: **não se inventa número.**
+ * O que mudou em 24/08/2026 é o que conta como invenção.
+ *
+ * Medido: o pedido do case ficou parado em `new` para sempre porque
+ * `briefingJson.estimate` não existia — e o relógio dizia, de cinco em cinco
+ * minutos, *"1 briefing(s) sem orçamento calculado — aguardando gente"*. A
+ * gente nunca veio. O escopo estruturado do cliente estava lá, inteiro.
+ *
+ * `computeEstimate` é a MESMA função que a sala de briefing roda ao vivo, sobre
+ * o MESMO `scope`, e é determinística. Rodá-la aqui não produz um número novo:
+ * produz o número que já teria sido gravado se a conversa tivesse chegado ao
+ * fim. É leitura, não palpite — e é o que `app/api/admin/reset-request` já faz.
+ *
+ * As duas travas continuam de pé, e são elas que separam isto de chutar:
+ *   • `travadaPor` — sem volume declarado, `computeEstimate` se RECUSA a somar
+ *     e a estimativa vale como AUSÊNCIA (o zero do CityJobs não volta);
+ *   • total zero ou negativo continua sendo "sem orçamento".
+ *
+ * Nunca lança: escopo torto vira `null`, que é "sem orçamento" — o estado que
+ * chama gente.
+ */
+export function derivarEstimativa(briefingJson: string | null): EstimativaGuardada | null {
+  if (!briefingJson) return null;
+  try {
+    const corpo = JSON.parse(briefingJson) as { scope?: Record<string, unknown> };
+    const scope = corpo?.scope;
+    if (!scope || typeof scope !== "object" || Array.isArray(scope)) return null;
+    const e = computeEstimate(scope as unknown as Parameters<typeof computeEstimate>[0]);
+    if (typeof e.travadaPor === "string" && e.travadaPor.trim()) return null;
+    if (!(e.totalMin > 0 || e.totalMax > 0)) return null;
+    return e as EstimativaGuardada;
   } catch {
     return null;
+  }
+}
+
+/** O `briefingJson` com a estimativa derivada gravada dentro dele — para que a
+ *  proposta que o cliente lê, o e-mail que ele recebe e a regra que decide o
+ *  nascimento do projeto leiam TODOS o mesmo número. Duas versões da mesma
+ *  conta é como o cliente aceita um preço e o sistema cobra outro. */
+function comEstimativa(briefingJson: string | null, e: EstimativaGuardada): string {
+  try {
+    const corpo = JSON.parse(briefingJson ?? "{}") as Record<string, unknown>;
+    return JSON.stringify({ ...corpo, estimate: e });
+  } catch {
+    return JSON.stringify({ estimate: e });
   }
 }
 
@@ -288,7 +400,12 @@ type ResultadoDoAviso =
  * fila, e o próximo não pode pagar pelo anterior.
  */
 async function avisarPorEmail(
-  pedido: { id: string; businessName: string | null; briefingJson: string | null; sdrHandoffJson: string | null },
+  pedido: {
+    id: string; businessName: string | null; briefingJson: string | null; sdrHandoffJson: string | null;
+    /** A porta de aceite deste pedido, já cunhada por quem chamou. `null` só
+     *  quando cunhar falhou — e aí o e-mail sai sem link em vez de não sair. */
+    linkDaProposta?: string | null;
+  },
   e: EstimativaGuardada,
 ): Promise<ResultadoDoAviso> {
   try {
@@ -310,7 +427,7 @@ async function avisarPorEmail(
       // declarada e manda ler a conversa, onde a diferença é nomeada e o que
       // cabe é oferecido. Repetir a conta aqui criaria duas versões dela.
       verbaEstourada: Boolean(e.confrontoDeVerba),
-      portalLink: (await linkDaConversa(pedido.id)) ?? undefined,
+      portalLink: pedido.linkDaProposta ?? undefined,
     });
 
     // O orçamento vai para quem PEDIU o orçamento, no e-mail que ele mesmo
@@ -389,7 +506,7 @@ async function gravarResultadoDoAviso(pedidoId: string, aviso: ResultadoDoAviso)
  * O texto que o cliente lê. Escrito para quem NÃO trabalha na agência: sem id,
  * sem nome de sistema, sem custo interno, sem prazo prometido.
  */
-export function textoDoOrcamento(negocio: string, e: EstimativaGuardada): string {
+export function textoDoOrcamento(negocio: string, e: EstimativaGuardada, linkDaProposta?: string | null): string {
   const linhas: string[] = [];
 
   linhas.push(`Recebemos seu briefing${negocio ? ` da ${negocio}` : ""} — obrigado pelo material.`);
@@ -446,6 +563,20 @@ export function textoDoOrcamento(negocio: string, e: EstimativaGuardada): string
       "a equipe confere e te manda a proposta fechada por aqui. Se algo acima " +
       "estiver diferente do que você precisa, é só responder nesta conversa.",
   );
+
+  // ── O CONVITE A RESPONDER — e a razão de ele existir ──────────────────────
+  // Até 24/08/2026 este texto terminava aqui: contava o preço e não dizia como
+  // dizer "sim". O cursograma tinha um "cliente aceitou?" que o cliente não
+  // tinha onde responder. O link aparece SÓ quando existe; sem ele, o texto
+  // continua exatamente o de antes — nunca se promete uma porta que não abriu.
+  if (linkDaProposta) {
+    linhas.push("");
+    linhas.push(
+      "Quando quiser seguir, é por aqui — dá para aceitar ou recusar, e a recusa " +
+        "também é resposta:",
+    );
+    linhas.push(linkDaProposta);
+  }
 
   return linhas.join("\n");
 }
@@ -505,7 +636,12 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
 
   for (const pedido of pedidos) {
     try {
-      const e = estimativaDe(pedido.briefingJson);
+      // A estimativa gravada pela sala de briefing continua sendo a primeira
+      // fonte. Só quando ela não existe é que a casa DERIVA — do escopo do
+      // próprio cliente, com a mesma função, e sem afrouxar nenhuma trava.
+      const guardada = estimativaDe(pedido.briefingJson);
+      const derivada = guardada ? null : derivarEstimativa(pedido.briefingJson);
+      const e = guardada ?? derivada;
       if (!e) {
         // Sem número derivado não se inventa número. Fica de pé como estava,
         // para a fila de gente — e conta como notícia, não como rotina.
@@ -513,7 +649,11 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
         continue;
       }
 
-      const corpo = textoDoOrcamento(pedido.businessName ?? "", e);
+      // A porta de aceite nasce JUNTO com a proposta. Antes de a mensagem ser
+      // escrita: o texto que o cliente lê precisa carregar o link, e um link
+      // que aparece só no e-mail some quando o e-mail falha.
+      const link = await linkDaProposta(pedido.id, pedido.clientId);
+      const corpo = textoDoOrcamento(pedido.businessName ?? "", e, link);
 
       await prisma.$transaction([
         prisma.portalMessage.create({
@@ -528,9 +668,17 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
         }),
         // Sair de `new` é o que impede mandar duas vezes, e é o que faz o
         // pedido aparecer na fila de proposta para a equipe.
+        //
+        // A estimativa derivada é GRAVADA na mesma transação. Sem isso, a
+        // proposta que o cliente abre e a regra que decide o nascimento do
+        // projeto recalculariam o número por conta própria — e duas versões da
+        // mesma conta é como o cliente aceita um preço e o sistema cobra outro.
         prisma.clientRequestDb.update({
           where: { id: pedido.id },
-          data: { status: "proposal_pending" },
+          data: {
+            status: "proposal_pending",
+            ...(derivada ? { briefingJson: comEstimativa(pedido.briefingJson, derivada) } : {}),
+          },
         }),
       ]);
 
@@ -540,7 +688,7 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
       // desta linha pode voltar atrás nisso.
       resultado.entregues += 1;
 
-      const aviso = await avisarPorEmail(pedido, e);
+      const aviso = await avisarPorEmail({ ...pedido, linkDaProposta: link }, e);
       // Grava SEMPRE — sucesso incluído. Ver o porquê em
       // `gravarResultadoDoAviso`: sem a marca de sucesso, o reenvio não teria
       // como saber quem já foi avisado e viraria máquina de duplicata.
@@ -753,7 +901,14 @@ async function tentarReenviosEmLote(
         continue;
       }
 
-      const aviso = await avisarPorEmail(pedido, e);
+      // O reenvio leva a MESMA porta de aceite. `linkDaProposta` reaproveita o
+      // token vivo — nada é revogado, e o link que o cliente já tem continua
+      // valendo. Só cunha quando não existe nenhum, que é o caso do pedido
+      // entregue antes de esta porta existir.
+      const aviso = await avisarPorEmail(
+        { ...pedido, linkDaProposta: await linkDaProposta(pedido.id, pedido.clientId ?? null) },
+        e,
+      );
       await gravarResultadoDoAviso(pedido.id, aviso);
 
       if (aviso.tipo === "avisado") resultado.reenviados += 1;
