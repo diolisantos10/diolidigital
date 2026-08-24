@@ -269,6 +269,55 @@ describe("o censo dos caminhos que gastam", () => {
   });
 });
 
+// ── A CLASSIFICAÇÃO TEM DE SER EXPLICADA, NÃO SÓ EXPLÍCITA ─────────────────
+//
+// Ordem do CEO, 24/08/2026: *"classificação sem motivo o próximo troca sem
+// saber o que está trocando — e essa é a mesma razão pela qual esta casa exige
+// motivo ao lado de todo número."*
+//
+// O censo acima garante que a escolha seja EXPLÍCITA. Só isso não basta:
+// explícita e inexplicada, ela é um carimbo — e carimbo o próximo troca sem
+// saber o que está trocando. Este teste é o que impede o motivo de encolher de
+// volta para "é interno".
+describe("todo caminho fora da trava tem motivo ESCRITO", () => {
+  const MINIMO = 100;
+
+  it("nenhum motivo é curto o bastante para ser carimbo", () => {
+    const curtos = Object.entries(CAMINHOS_QUE_GASTAM)
+      .filter(([, d]) => d.porque.trim().length < MINIMO)
+      .map(([f, d]) => `${f} (${d.porque.trim().length} caracteres: "${d.porque.trim()}")`);
+    expect(
+      curtos,
+      `Motivo com menos de ${MINIMO} caracteres é rótulo disfarçado de explicação.\n` +
+        "Escreva o que o próximo precisa saber para NÃO trocar a classificação sem entender:\n" +
+        "  • 'comercial' → por que este caminho acontece ANTES de existir dinheiro;\n" +
+        "  • 'interno'   → por que não há projeto de cliente do outro lado, E o que\n" +
+        "                  protege este gasto no lugar do pagamento (sessão? teto? CSRF?),\n" +
+        "                  porque \"não é produção\" não é o mesmo que \"não custa\";\n" +
+        "  • produção    → qual portão o guarda e por que ele fica onde fica.\n" +
+        curtos.map((c) => `  - ${c}`).join("\n"),
+    ).toEqual([]);
+  });
+
+  it("o motivo de um caminho INTERNO diz o que o protege no lugar do pagamento", () => {
+    // "interno" é a classe mais perigosa da lista: é a que autoriza gasto sem
+    // pagamento e sem a desculpa da vitrine. Se ela não disser o que segura o
+    // gasto, ela é só uma porta com nome bonito.
+    const semDefesa = Object.entries(CAMINHOS_QUE_GASTAM)
+      .filter(([f, d]) => !d.guardadoPor && f.startsWith("app/api/") && !f.includes("/sdr/"))
+      .filter(([, d]) => !/sess(ão|ao)|segredo|CSRF|teto|admin/i.test(d.porque))
+      .map(([f]) => f);
+    expect(
+      semDefesa,
+      "Estas rotas gastam dinheiro da casa fora da trava de pagamento e o motivo não diz\n" +
+        "o que as protege no lugar dela. Nomeie a defesa real (sessão de agência, segredo\n" +
+        "de admin, teto por usuário, guarda de CSRF) — ou ela não existe, e aí o conserto\n" +
+        "não é escrever o motivo, é pôr a defesa.\n" +
+        semDefesa.map((f) => `  - ${f}`).join("\n"),
+    ).toEqual([]);
+  });
+});
+
 describe("os portões estão armados", () => {
   it("cada guardião declarado REALMENTE chama conferirPagamento()", () => {
     for (const portao of PORTOES) {
