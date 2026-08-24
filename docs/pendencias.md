@@ -14,6 +14,56 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🔴 24/08/2026 — CI VERDE E A PRODUÇÃO 5 COMMITS ATRÁS: O DEPLOY FOI DESCARTADO EM SILÊNCIO
+
+**Achado pela segunda leitura**, e é exatamente por isso que ela existe: perguntar
+"qual commit está rodando" em vez de aceitar `ok: true`.
+
+Depois de a bateria fechar verde e a CI passar, a produção continuava servindo
+`a50eb547` — o commit ANTERIOR a todo o trabalho da camada multi-IA. Medido com
+o instrumento da própria casa (`npm run distancia`): **produção 5 commits atrás
+da branch**, com o SDR multi-IA inteiro dentro do buraco.
+
+O que o Railway fez com cada um:
+
+| commit | o que era | status |
+|---|---|---|
+| `a50eb547` | trabalho do outro Diretor | **SUCCESS — é o que está no ar** |
+| `f0cfab50` | reivindicação | SKIPPED |
+| `af7db632` | a camada multi-IA | SKIPPED |
+| `1469237b` | o conserto do eco (bateria verde) | REMOVED |
+| `c10c9b43` | pendências | SKIPPED |
+| `388b0c97` | HEAD, **com CI VERDE** | **SKIPPED, 1 min depois da CI fechar** |
+
+### O que foi descartado como causa, e o que sobrou
+
+- **Não foi CI vermelha.** `github-actions` fechou `success` em `388b0c97`.
+- **Não foram as duas check suites paradas.** `claude` e `railway-app` ficam
+  `queued` com zero runs em TODOS os commits — inclusive em `a50eb547`, que
+  subiu normalmente. Se fossem a causa, nada teria subido nunca.
+- **A hipótese que sobra:** dois pushes a 2 segundos um do outro (`c10c9b43` às
+  00:59:00 e `388b0c97` às 00:59:02) criaram dois deploys simultâneos em espera,
+  e os dois foram descartados — o mais velho por ser superado, e o mais novo
+  junto. É primo do incidente de 16/08 (produção travada 21 commits atrás), que
+  foi consertado do lado da CI (concorrência por SHA) mas **não do lado do
+  Railway**.
+
+⚠️ **NÃO CONFIRMADA.** Não há como provar daqui: `RAILWAY_TOKEN` não está neste
+ambiente, e `npm run deploy:emergencia` depende dele. Fica como hipótese
+declarada, não como fato.
+
+### O que se aprende, independentemente da causa
+
+**Deploy descartado é silencioso.** Não há e-mail vermelho, não há job falhando:
+a CI fica verde, o painel fica verde, e a produção simplesmente não anda. O
+sentinela (`sentinela-do-deploy.yml`) existe para pegar isto, mas ele roda de
+hora em hora — nesta janela, quem pegou foi a segunda leitura à mão.
+
+**Regra prática enquanto isso não tem trava:** não empurrar dois commits em
+poucos segundos. Ou se juntam num só, ou se espera o portão do primeiro fechar.
+
+---
+
 ## 🟢 24/08/2026 — A DÉCIMA VERIFICAÇÃO FECHOU, E O DEFEITO ERA MAIOR QUE O SDR
 
 **3 rodadas ao vivo seguidas, 10 de 10 verificações em cada uma, 48 turnos
