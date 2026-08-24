@@ -146,6 +146,20 @@ export type DesfechoDaAprovacaoDaPeca = {
   motivo: string | null;
 };
 
+/**
+ * O MATERIAL QUE A CASA PEDIU E O CLIENTE MANDOU.
+ *
+ * O motor só apresenta o pacote INTEIRO — nada travado esperando o cliente. Um
+ * pedido de material sem resposta deixa a esteira pronta e parada, e foi o que
+ * segurou a primeira rodada ao vivo do percurso completo.
+ */
+export type DesfechoDoMaterial = {
+  pedidos: number;
+  enviados: number;
+  viaPortal: boolean;
+  motivo: string | null;
+};
+
 /** O que sobrou da esteira depois da aprovação. */
 export type EstadoDaEsteira = {
   projetoId: string | null;
@@ -200,6 +214,7 @@ export type Percurso = {
   aprovacao: DesfechoDaAprovacao;
   /** Projeto, tarefas e execução, depois da aprovação. */
   aceite: DesfechoDoAceite;
+  material: DesfechoDoMaterial;
   aprovacaoDaPeca: DesfechoDaAprovacaoDaPeca;
   esteira: EstadoDaEsteira;
   /** O SDR de verdade rodou? Se não, a verificação do guarda não afirma nada. */

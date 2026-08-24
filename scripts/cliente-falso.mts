@@ -182,6 +182,7 @@ for (let n = 1; n <= rodadas; n++) {
     respostasDoSdr: percurso.respostasDoSdr,
     aprovacao: percurso.aprovacao,
     aceite: percurso.aceite,
+    material: percurso.material,
     aprovacaoDaPeca: percurso.aprovacaoDaPeca,
     esteira: percurso.esteira,
     turnosBarrados: percurso.turnosBarrados,

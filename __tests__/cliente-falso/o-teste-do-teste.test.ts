@@ -90,6 +90,7 @@ function percursoSao(): Percurso {
         { quem: "role \"client\"", status: 403, entrou: false },
       ] },
     aceite: { tentou: true, viaPortal: true, nasceuSozinho: true, motivo: null },
+    material: { pedidos: 1, enviados: 1, viaPortal: true, motivo: null },
     aprovacaoDaPeca: { tentou: true, apresentado: true, pedindoDecisao: 3, viaPortal: true,
       carimboDoCliente: 3, carimboDeOutro: 0, motivo: null },
     esteira: {

@@ -42,7 +42,7 @@ import {
   ROTEIRO_PADRAO, ARQUIVO_DO_CLIENTE_FALSO, OFERTA_DE_DOCUMENTO,
   fatoQueResponde, type Roteiro,
 } from "./roteiro";
-import type { Percurso, RespostaDoSdr, TurnoMedido, DesfechoDaAprovacao, DesfechoDoAceite, DesfechoDaAprovacaoDaPeca, TentativaDeIntruso, EstadoDaEsteira } from "./verificacoes";
+import type { Percurso, RespostaDoSdr, TurnoMedido, DesfechoDaAprovacao, DesfechoDoAceite, DesfechoDoMaterial, DesfechoDaAprovacaoDaPeca, TentativaDeIntruso, EstadoDaEsteira } from "./verificacoes";
 
 /**
  * Quantas vezes o cliente falso responde antes de desistir.
@@ -271,6 +271,7 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
     execucaoPendencias: null, execucaoTentativas: 0,
   };
   let aceite: DesfechoDoAceite = { tentou: false, viaPortal: false, nasceuSozinho: false, motivo: "não houve proposta para aceitar" };
+  let material: DesfechoDoMaterial = { pedidos: 0, enviados: 0, viaPortal: false, motivo: null };
   let aprovacaoDaPeca: DesfechoDaAprovacaoDaPeca = {
     tentou: false, apresentado: false, pedindoDecisao: 0, viaPortal: false,
     carimboDoCliente: 0, carimboDeOutro: 0, motivo: "não houve peça para aprovar",
@@ -352,6 +353,37 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
         }
       }
 
+      // ─── ETAPA 9.5: O CLIENTE MANDA O MATERIAL, E A ESTEIRA RETOMA ────────
+      // Medido ao vivo em 24/08/2026: o pacote fechou em `done` com 7 entregas
+      // e NUNCA foi apresentado. O motor está certo — só apresenta o pacote
+      // INTEIRO, e o especialista de identidade visual tinha aberto um pedido
+      // de material de marca. Apresentar metade é pior que esperar.
+      //
+      // Quem destrava é o CLIENTE, e a ordem aqui é a da vida real: a agência
+      // roda, PEDE, o cliente responde, e o relógio roda de novo. Por isso este
+      // passo vem DEPOIS da primeira passada — antes dela o pedido nem existe.
+      if (esteira.projetoId) {
+        material = await mandarOMaterialComoOCliente(pedido.id, esteira.projetoId, tropecos);
+        if (material.enviados > 0) {
+          // A SEGUNDA PASSADA é a mesma que o relógio dá. Sem ela, o material
+          // chega e ninguém produz o que estava travado.
+          try {
+            const { runProjectExecution } = await import("@/lib/agency/execution/run-execution");
+            await runProjectExecution(esteira.projetoId);
+            const depois = await prisma.project.findUnique({
+              where: { id: esteira.projetoId },
+              select: { executionStatus: true, executionError: true, executionAttempts: true },
+            });
+            esteira.execucaoStatus = depois?.executionStatus ?? esteira.execucaoStatus;
+            esteira.execucaoPendencias = depois?.executionError ?? null;
+            esteira.execucaoTentativas = depois?.executionAttempts ?? esteira.execucaoTentativas;
+            esteira.entregas = await prisma.deliverable.count({ where: { projectId: esteira.projetoId } });
+          } catch (e) {
+            tropecos.push({ etapa: "execucao-2a-passada", erro: e instanceof Error ? e.message : String(e) });
+          }
+        }
+      }
+
       // ─── ETAPA 10: O CLIENTE APROVA AS PEÇAS ──────────────────────────────
       // O fim do percurso, na ordem do CEO: "se for um post, tem que entregar
       // os posts até o final (...) você aprova como se fosse o cliente".
@@ -379,6 +411,7 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
       roteiro,
       aprovacao,
       aceite,
+      material,
       aprovacaoDaPeca,
       esteira,
       saudacao,
@@ -965,5 +998,82 @@ async function aprovarAsPecasComoOCliente(
     tentou: true, apresentado, pedindoDecisao, viaPortal: true,
     carimboDoCliente, carimboDeOutro,
     motivo: carimboDoCliente > 0 ? null : "a porta respondeu OK e nenhuma aprovação ficou com carimbo de cliente",
+  };
+}
+
+
+/**
+ * O CLIENTE MANDA O MATERIAL QUE A CASA PEDIU — pela porta dele.
+ *
+ * ── O que isto destrava, e por que não é atalho ─────────────────────────────
+ * O motor só apresenta o pacote INTEIRO: nada pulado por falha e nada travado
+ * esperando o cliente. Quando o especialista de identidade visual abre um
+ * pedido de material de marca, o pacote fica pronto e retido — e o cliente
+ * falso, que nunca respondia, deixava a esteira parada de propósito.
+ *
+ * Um cliente de verdade responde. Ele sobe o arquivo pelo portal, e é
+ * `POST /api/media` que resolve o `MaterialRequest` e devolve o agente à fila
+ * (`materialEnviadoPeloCliente`). É essa porta que se usa aqui — com token de
+ * portal, dono derivado do token, nunca do corpo.
+ *
+ * O arquivo é um PNG mínimo, gerado em memória e carimbado no nome como teste.
+ * Nada sai para lugar nenhum: o destino é o disco do ambiente descartável.
+ */
+async function mandarOMaterialComoOCliente(
+  clientRequestId: string,
+  projectId: string,
+  tropecos: Tropeco[],
+): Promise<DesfechoDoMaterial> {
+  const pendentes = await prisma.materialRequest.count({
+    where: { projectId, status: "pending" },
+  }).catch(() => 0);
+  if (pendentes === 0) return { pedidos: 0, enviados: 0, viaPortal: false, motivo: null };
+
+  let token: string;
+  try {
+    const { createPortalAccess } = await import("@/lib/agency/persistence/portal-access-service");
+    token = (await createPortalAccess({ clientRequestId, expiresAt: new Date(Date.now() + 864e5) })).token;
+  } catch (e) {
+    const erro = e instanceof Error ? e.message : String(e);
+    tropecos.push({ etapa: "material", erro });
+    return { pedidos: pendentes, enviados: 0, viaPortal: false, motivo: erro };
+  }
+
+  // Um PNG 1×1 de verdade — o menor arquivo válido possível. Precisa ser um
+  // arquivo real: a porta confere tipo e tamanho, e mandar lixo mediria a
+  // recusa da porta em vez do caminho do cliente.
+  const PNG_1x1 = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  );
+
+  try {
+    const { POST } = await import("@/app/api/media/route");
+    const form = new FormData();
+    form.set("file", new Blob([new Uint8Array(PNG_1x1)], { type: "image/png" }), "marca-cantina-da-prova-TESTE.png");
+    form.set("token", token);
+    const req = new NextRequest("http://cliente-falso.local/api/media", { method: "POST", body: form });
+    const res = await POST(req);
+    const corpo = (await res.json().catch(() => ({}))) as { error?: string };
+    if (res.status >= 400) {
+      const motivo = `a porta de material recusou (${res.status}): ${corpo.error ?? "sem motivo"}`;
+      tropecos.push({ etapa: "material", erro: motivo });
+      return { pedidos: pendentes, enviados: 0, viaPortal: false, motivo };
+    }
+  } catch (e) {
+    const erro = e instanceof Error ? e.message : String(e);
+    tropecos.push({ etapa: "material", erro });
+    return { pedidos: pendentes, enviados: 0, viaPortal: false, motivo: `a porta de material estourou: ${erro}` };
+  }
+
+  // A PROVA é o pedido ter saído de `pending` — não a resposta da rota.
+  const aindaPendentes = await prisma.materialRequest.count({
+    where: { projectId, status: "pending" },
+  }).catch(() => pendentes);
+  return {
+    pedidos: pendentes,
+    enviados: pendentes - aindaPendentes,
+    viaPortal: true,
+    motivo: aindaPendentes > 0 ? `${aindaPendentes} pedido(s) de material continuam pendentes depois do envio` : null,
   };
 }
