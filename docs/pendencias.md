@@ -14,6 +14,70 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🔴 24/08/2026 — A ESTEIRA DE BAIXO DEPENDE DE UM CLIQUE QUE NINGUÉM NUNCA DEU
+
+> **Texto pronto para o CEO.** Não é dívida de teste; é contradição de arquitetura.
+
+A metade de baixo da esteira — cliente, projeto, tarefas, departamentos, artes,
+entrega — **não é "não testada". Ela é inalcançável sem gente.**
+
+`createProjectFromRequest`, a função que transforma um pedido aprovado em
+**Cliente + Projeto**, só é chamada de **um lugar**: a rota
+`POST /api/brain/auto-scope/[id]/review`, que exige `requireSession` com papel de
+agência e usa `session.name` para registrar quem aprovou. **O relógio nunca
+chama essa função** — conferido: ela não está entre os 16 imports do
+`despertador.ts`.
+
+**Consequência:** por mais briefings que entrem, nenhum vira cliente até que uma
+pessoa entre no painel e aprove. É a explicação dos **zero clientes** medidos
+pelo outro Diretor — não é bug de execução, é uma esteira que espera um clique.
+
+**A contradição:** o dono desta casa disse hoje, com todas as letras, *"não testo
+mais nada"* e *"NÃO FAÇO NADA MANUAL"*. A esteira, como está, **exige exatamente
+o que ele disse que não vai fazer.** Automatizar o teste não resolve isso:
+o teste pode percorrer o caminho, mas em produção o funil continua parado
+esperando um humano que não vem.
+
+**O que decidir (é decisão de dono, não de engenharia):** ou a aprovação de
+escopo passa a ter um caminho automático — com regra explícita de quando a casa
+aprova sozinha e quando escala —, ou a casa assume que alguém aprova no painel
+todo dia. **Hoje ela não tem nenhum dos dois**, e é por isso que o funil não
+anda.
+
+---
+
+## 🟡 24/08/2026 — DOUTRINA: "MEDIDO" NO COMENTÁRIO É O QUE FAZ NINGUÉM REMEDIR
+
+**Afirmação medida tem prazo de validade, e a palavra "medido" no comentário é o
+que faz a próxima pessoa não remedir.**
+
+O caso que produziu a regra, e ele custou três portas abertas: o cabeçalho de
+`lib/email/send.ts` afirmava, **com a palavra "medido"**, que o e-mail era *"a
+Única porta de saída de mensagem da casa — não há outro remetente; o WhatsApp é
+link `wa.me`, não envio programático"*.
+
+**Era verdade quando foi escrito.** Depois nasceram `sendWhatsAppDirect` (POST
+no Graph da Meta, com token de produção), `publishPost` (Instagram) e
+`publicarNoGoogle` / `responderAvaliacao`. Em 24/08/2026 as quatro portas
+existiam e **três não tinham cadeado nenhum** — enquanto a casa inteira achava
+que estava coberta, porque estava escrito "medido".
+
+Isso é pior que um comentário errado: **é um comentário que desativa a
+desconfiança da próxima pessoa.** Quem abriu aquele arquivo leu "medido" e não
+remediu — inclusive eu teria não remedido, se não tivesse ido mapear a esteira
+por outro motivo.
+
+**A regra, a partir daqui:** toda afirmação de cobertura carrega **quando foi
+medida**. "Medido em 06/08/2026" convida a remedir; "medido" sozinho encerra o
+assunto para sempre. Afirmação sem data é afirmação que envelhece em silêncio.
+
+**E o corolário, que já está em `CADEADOS_POR_CANAL`:** declare quantos cadeados
+cada caminho tem DE VERDADE. A resposta a avaliação do Google tem **um só** — e
+está escrito que tem um só, em vez de arredondado para dois. Contar cadeado a
+mais no papel é o jeito mais fácil de dormir tranquilo com uma porta aberta.
+
+---
+
 ## 🔴 24/08/2026 — CI VERDE E A PRODUÇÃO 5 COMMITS ATRÁS: O DEPLOY FOI DESCARTADO EM SILÊNCIO
 
 **Achado pela segunda leitura**, e é exatamente por isso que ela existe: perguntar
