@@ -14,6 +14,46 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🟢 24/08/2026 — O PILOTO FECHOU: TRÊS RODADAS SEGUIDAS DE PONTA A PONTA
+
+**Um cliente falso entra pela porta pública, conversa com o SDR de IA, recebe
+orçamento, aceita, o projeto NASCE SOZINHO, ele avaliza a direção, a produção
+roda e o pacote fecha em `done`. Três vezes seguidas, sem uma quebra.**
+
+Medição (execuções 32689213474 do Actions, três rodadas consecutivas ao vivo):
+
+| | rodada 1 | rodada 2 | rodada 3 |
+|---|---|---|---|
+| turnos do SDR atendidos | 16/16 | 16/16 | 16/16 |
+| turnos barrados pelo guarda | 0 | 0 | 0 |
+| projeto nasceu sem painel | sim | sim | sim |
+| entregas / tarefas | 7/7 | 7/8 | 7/8 |
+| estado final do projeto | `done` | `done` | `done` |
+| verificações quebradas | nenhuma | nenhuma | nenhuma |
+
+17 de 18 verificações passam. A 18ª é a **parada declarada** da publicação, que
+segue não coberta de propósito — publicar sai no perfil do cliente, é público, e
+desfazer não desfaz o print.
+
+### O que NÃO está medido, e não pode ser vendido como pronto
+
+- **Publicação (Instagram/Google).** As travas de saída existem desde hoje e
+  **nunca foram exercitadas ao vivo**. Declarado, não presumido.
+- **Apresentação do pacote e aprovação da peça pelo cliente.** O motor apresenta
+  sozinho quando o pacote fecha (há teste), mas a bateria não exercita o cliente
+  aprovando. Não medido é não medido.
+- **Quatro dos cinco provedores de IA.** Só o Claude rodou ao vivo.
+- **Cliente externo.** Nenhum. Por decisão do Diretor Geral, a esteira roda com
+  projeto da própria casa até entregar limpa, e os leads reais parados desde
+  julho seguem sem resposta automática.
+
+### De 0 a 100%: onde a esteira está
+
+Oito etapas da porta de entrada até o post no ar. **Seis medidas e fechando;
+duas não.** Chamar isso de ~75% é honesto; chamar de "pronta" não é.
+
+---
+
 ## 🟡 24/08/2026 — DOUTRINA: A RÉGUA EVOLUI E O PEDIDO FICA PARA TRÁS
 
 **Quando uma régua passa a derivar de dado, todo lugar que PEDE aquilo tem de
