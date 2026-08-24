@@ -1,0 +1,13 @@
+{
+  "id": "cliente-falso-malformado",
+  "quem": "ses-1163d33e98",
+  "frente": "rodada ao vivo do cliente falso: causa do malformado",
+  "responsabilidade": "cliente-falso-malformado",
+  "arquivos": [
+    "lib/agency/cliente-falso/placar.ts",
+    ".github/workflows/cliente-falso-ao-vivo.yml"
+  ],
+  "abertaEm": "2026-08-24T00:08:56.618Z",
+  "encerradaEm": null,
+  "rotulo": "diretor-dd-verba"
+}
