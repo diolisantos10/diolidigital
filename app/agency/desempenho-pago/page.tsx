@@ -74,6 +74,14 @@ interface Conta {
   achados: Achado[];
   recomendacao: string;
   lacunas: string[];
+  /** A comparação esperado × recebido (24/08/2026). Vem SEMPRE da rota; quando
+   *  ausente, a tela trata como NÃO MEDIDO — nunca como íntegro. */
+  integridade?: {
+    estado: "integro" | "incompleto" | "nao_medido";
+    comparacaoRodou: boolean;
+    aviso: string;
+    porCampanha: Array<{ campanhaId: string; conciliacao: { estado: string; motivo: string; faltando: Array<{ nome: string; frase: string }> } }>;
+  };
 }
 
 interface Panorama {
@@ -154,6 +162,30 @@ function CartaoDaConta({ c }: { c: Conta }) {
           {c.periodo.desde} a {c.periodo.ate}
         </p>
       </header>
+
+      {/* ── A FAIXA DE INTEGRIDADE (24/08/2026) ──────────────────────────────
+          Ela vem ANTES dos números, e não depois, porque quem lê o número já
+          decidiu com ele antes de rolar a página. Ausente = NÃO MEDIDO: uma
+          rota antiga que não mandar o campo não deixa a tela verde. */}
+      {(() => {
+        const i = c.integridade;
+        if (!i || !i.comparacaoRodou || i.estado !== "integro") {
+          const texto = i?.aviso
+            || "NÃO MEDIDO — a comparação entre os eventos esperados e os recebidos não rodou para esta conta. Os números abaixo não foram verificados.";
+          return (
+            <p className="mb-3 rounded-[10px] border border-[#FDE68A] bg-[var(--warning-bg)] px-4 py-3 text-[12.5px] leading-relaxed text-[#92400E]">
+              <strong className="font-semibold">Integridade da medição: </strong>
+              {texto}
+            </p>
+          );
+        }
+        return (
+          <p className="mb-3 rounded-[10px] border border-[#86EFAC] bg-[var(--success-bg)] px-4 py-3 text-[12.5px] text-[#166534]">
+            <strong className="font-semibold">Integridade da medição: </strong>
+            comparação esperado × recebido rodou em {i.porCampanha.length} campanha(s) — nenhum evento faltando.
+          </p>
+        );
+      })()}
 
       {/* Os quatro números que a Meta exige ver na tela para aprovar
           ads_management / ads_read / business_management. */}

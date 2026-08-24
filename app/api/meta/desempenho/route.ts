@@ -30,6 +30,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { prisma } from "@/lib/db/client";
 import { lerPanoramaDaAgencia, ultimos30Dias } from "@/lib/integrations/meta/ads-leitura";
+import { medirIntegridade } from "@/lib/agency/medicao/integridade-do-panorama";
 
 export const dynamic = "force-dynamic";
 
@@ -108,5 +109,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  return NextResponse.json({ ok: true, ...r.dados });
+  // ── A COMPARAÇÃO ESPERADO × RECEBIDO (24/08/2026) ─────────────────────────
+  //
+  // Antes desta linha, a rota devolvia os totais e a tela os desenhava. Se um
+  // evento de conversão deixasse de chegar, o número saía menor com a mesma
+  // cara de um número inteiro. Agora todo panorama carrega a integridade da sua
+  // própria medição, e a tela não tem como mostrar o número sem ela — o campo
+  // vem sempre, inclusive quando não houve comparação nenhuma ("não medido",
+  // que é diferente de "íntegro").
+  const contas = r.dados.contas.map((c) => ({
+    ...c,
+    integridade: medirIntegridade({ desempenho: c.desempenho, totais: c.totais }),
+  }));
+
+  return NextResponse.json({ ok: true, ...r.dados, contas });
 }
