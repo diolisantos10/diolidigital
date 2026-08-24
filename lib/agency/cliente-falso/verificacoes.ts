@@ -74,6 +74,25 @@ export type DesfechoDaAprovacao = {
   ok: boolean;
   motivo: string | null;
   projetoId?: string | null;
+  /**
+   * A porta autenticada recusou TODAS as credenciais que não são de staff?
+   *
+   * `null` = não foi possível perguntar (a rota não rodou por HTTP). Só vira
+   * booleano quando um servidor de verdade atendeu — porque a pergunta "quem a
+   * porta deixa entrar?" não tem resposta honesta sem a porta de pé.
+   */
+  recusouQuemNaoEStaff: boolean | null;
+  /** Cada tentativa de intruso e o que a porta respondeu. É a prova no dado. */
+  intrusos: readonly TentativaDeIntruso[];
+};
+
+/** Uma credencial que NÃO deveria passar, e o que a porta fez com ela. */
+export type TentativaDeIntruso = {
+  /** Como a credencial foi forjada — "sem cookie", "role=client", … */
+  quem: string;
+  status: number;
+  /** `true` quando a porta ABRIU para quem não devia. É o achado. */
+  entrou: boolean;
 };
 
 /** O que sobrou da esteira depois da aprovação. */
@@ -546,8 +565,32 @@ export function aPortaAutenticadaFoiExercitada(p: Percurso): Achado {
     return { ...base, veredito: "nao-coberto",
       detalhe: p.aprovacao.motivo ?? "a rota autenticada não rodou; só a função por baixo dela" };
   }
-  return { ...base, veredito: p.aprovacao.ok ? "passou" : "quebrou",
-    detalhe: p.aprovacao.motivo ?? "a rota autenticada respondeu" };
+
+  // ── A PERGUNTA QUE FALTAVA: A PORTA RECUSA QUEM NÃO É STAFF? ─────────────
+  // Uma porta que deixa o staff entrar está metade medida. Rota autenticada
+  // que aceita qualquer um também deixa o staff entrar — e passaria numa régua
+  // que só olha o caso feliz. Por isso o caso INFELIZ é obrigatório aqui:
+  // qualquer intruso admitido é "quebrou", por mais verde que esteja o resto.
+  const admitidos = p.aprovacao.intrusos.filter((i) => i.entrou);
+  if (admitidos.length > 0) {
+    return { ...base, veredito: "quebrou",
+      falaExata: admitidos.map((i) => `${i.quem} → ${i.status}`).join("; "),
+      detalhe: `a rota autenticada ADMITIU ${admitidos.length} credencial(is) que não são de staff` };
+  }
+
+  if (!p.aprovacao.ok) {
+    return { ...base, veredito: "quebrou", detalhe: p.aprovacao.motivo ?? "a rota autenticada recusou o staff" };
+  }
+  if (p.aprovacao.recusouQuemNaoEStaff !== true) {
+    // Staff entrou, mas ninguém perguntou pelos outros. Meia medição não é
+    // aprovação — é "não coberto" com o motivo na cara.
+    return { ...base, veredito: "nao-coberto",
+      detalhe: "o staff entrou pela rota, mas as credenciais de intruso não foram testadas — "
+             + "metade da porta ficou sem medir" };
+  }
+  return { ...base, veredito: "passou",
+    detalhe: `o staff entrou e a porta recusou ${p.aprovacao.intrusos.length} credencial(is) de intruso: `
+           + p.aprovacao.intrusos.map((i) => `${i.quem} → ${i.status}`).join("; ") };
 }
 
 // ─── 13. Projeto sem tarefa é projeto que ninguém executa ───────────────────

@@ -42,7 +42,7 @@ import {
   ROTEIRO_PADRAO, ARQUIVO_DO_CLIENTE_FALSO, OFERTA_DE_DOCUMENTO,
   fatoQueResponde, type Roteiro,
 } from "./roteiro";
-import type { Percurso, RespostaDoSdr, TurnoMedido, DesfechoDaAprovacao, EstadoDaEsteira } from "./verificacoes";
+import type { Percurso, RespostaDoSdr, TurnoMedido, DesfechoDaAprovacao, TentativaDeIntruso, EstadoDaEsteira } from "./verificacoes";
 
 /**
  * Quantas vezes o cliente falso responde antes de desistir.
@@ -63,6 +63,13 @@ export type OpcoesDoPercurso = {
    * cabeçalho de `scripts/cliente-falso.mts`.
    */
   sdrAoVivo?: boolean;
+  /**
+   * Base de um servidor Next de teste já de pé (`http://127.0.0.1:<porta>`).
+   * Quando presente, a aprovação do escopo vai pela porta autenticada DE
+   * VERDADE, por HTTP — o único jeito de exercitar `cookies()`. Ver
+   * `servidor-de-teste.ts`.
+   */
+  baseUrlDoServidor?: string | null;
 };
 
 /** Etapa que não atravessou. Fica no percurso para o placar poder mostrar. */
@@ -256,7 +263,7 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
   // Tentamos a ROTA REAL primeiro, com uma sessão de staff de verdade (JWT
   // assinado com a mesma chave do login). Se a rota não puder ser exercida em
   // processo, o percurso NÃO finge que aprovou: ele diz qual metade rodou.
-  let aprovacao: DesfechoDaAprovacao = { tentou: false, viaRota: false, ok: false, motivo: "não houve pedido para aprovar" };
+  let aprovacao: DesfechoDaAprovacao = { tentou: false, viaRota: false, ok: false, motivo: "não houve pedido para aprovar", recusouQuemNaoEStaff: null, intrusos: [] };
   let esteira: EstadoDaEsteira = {
     projetoId: null, tarefas: 0, execucaoRodou: false, execucaoErro: null,
     execucaoStatus: null, direcaoAprovada: false, entregas: 0,
@@ -265,7 +272,7 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
   };
 
   if (pedido) {
-    aprovacao = await aprovarOEscopo(pedido.id, casa, tropecos);
+    aprovacao = await aprovarOEscopo(pedido.id, casa, tropecos, opts.baseUrlDoServidor ?? null);
 
     if (aprovacao.ok) {
       // ─── ETAPA 8: O PROJETO NASCEU? E COM TAREFAS? ────────────────────────
@@ -478,7 +485,17 @@ async function aprovarOEscopo(
   clientRequestId: string,
   casa: { workspaceId: string; userId: string; nome: string; email: string },
   tropecos: Tropeco[],
+  baseUrlDoServidor: string | null,
 ): Promise<DesfechoDaAprovacao> {
+  // ── CAMINHO A: UM SERVIDOR NEXT DE VERDADE, POR HTTP ────────────────────
+  // É o único jeito de exercitar a autenticação. Ver `servidor-de-teste.ts`.
+  if (baseUrlDoServidor) {
+    const viaHttp = await aprovarPelaPortaDeVerdade(clientRequestId, casa, baseUrlDoServidor, tropecos);
+    if (viaHttp) return viaHttp;
+    // Servidor de pé mas a porta não respondeu como porta: cai para os
+    // caminhos de sempre, e o motivo já foi anotado em `tropecos`.
+  }
+
   // Tentativa 1: a rota de verdade, com sessão de staff de verdade.
   try {
     const { SignJWT } = await import("jose");
@@ -501,7 +518,7 @@ async function aprovarOEscopo(
     const res = await POST(req, { params: Promise.resolve({ id: clientRequestId }) });
     const corpo = (await res.json()) as { ok?: boolean; projectId?: string; error?: string };
     if (res.status < 400 && corpo.ok) {
-      return { tentou: true, viaRota: true, ok: true, motivo: null, projetoId: corpo.projectId ?? null };
+      return { tentou: true, viaRota: true, ok: true, motivo: null, projetoId: corpo.projectId ?? null, recusouQuemNaoEStaff: null, intrusos: [] };
     }
 
     // ── 401/403 É LIMITAÇÃO DO INSTRUMENTO, NÃO RECUSA DA CASA ─────────────
@@ -525,6 +542,7 @@ async function aprovarOEscopo(
       return {
         tentou: true, viaRota: true, ok: false,
         motivo: `a rota de aprovação recusou (${res.status}): ${corpo.error ?? "sem motivo"}`,
+        recusouQuemNaoEStaff: null, intrusos: [],
       };
     }
   } catch (e) {
@@ -536,10 +554,10 @@ async function aprovarOEscopo(
     const { createProjectFromRequest } = await import("@/lib/agency/execution/create-project-from-request");
     const r = await createProjectFromRequest(clientRequestId, casa.nome);
     return r.ok
-      ? { tentou: true, viaRota: false, ok: true, motivo: "a rota autenticada não rodou em processo; a função foi chamada direto — a camada de autenticação NÃO foi exercida", projetoId: r.projectId }
-      : { tentou: true, viaRota: false, ok: false, motivo: `a criação do projeto falhou: ${r.error}` };
+      ? { tentou: true, viaRota: false, ok: true, motivo: "a rota autenticada não rodou em processo; a função foi chamada direto — a camada de autenticação NÃO foi exercida", projetoId: r.projectId, recusouQuemNaoEStaff: null, intrusos: [] }
+      : { tentou: true, viaRota: false, ok: false, motivo: `a criação do projeto falhou: ${r.error}`, recusouQuemNaoEStaff: null, intrusos: [] };
   } catch (e) {
-    return { tentou: true, viaRota: false, ok: false, motivo: e instanceof Error ? e.message : String(e) };
+    return { tentou: true, viaRota: false, ok: false, motivo: e instanceof Error ? e.message : String(e), recusouQuemNaoEStaff: null, intrusos: [] };
   }
 }
 
@@ -629,5 +647,104 @@ async function avalizarADirecaoComoOCliente(
     const erro = e instanceof Error ? e.message : String(e);
     tropecos.push({ etapa: "direcao-portal", erro });
     return { pedida, viaPortal: false, motivo: `a porta do cliente estourou: ${erro}` };
+  }
+}
+
+
+/**
+ * A PORTA AUTENTICADA, BATIDA COMO UM NAVEGADOR BATE.
+ *
+ * ── Por que o caso INFELIZ vem antes do feliz ───────────────────────────────
+ * Uma porta que deixa o staff entrar está metade medida: porta escancarada
+ * também deixa o staff entrar, e passaria numa régua que só olha o caso feliz.
+ * Então aqui as credenciais de intruso são tentadas PRIMEIRO, e o resultado
+ * delas manda na régua — se qualquer uma entrar, a verificação reprova, por
+ * mais verde que esteja o resto da rodada.
+ *
+ * As quatro formas de "não é staff", cada uma pegando uma trava diferente:
+ *   • sem cookie          → `getSession()` não acha sessão nenhuma;
+ *   • cookie ilegível     → a assinatura JWT não confere;
+ *   • `role: "client"`    → assinatura boa, papel errado (`requireSession`);
+ *   • staff COM `clientId`→ papel certo, mas é conta de cliente. É a trava
+ *     própria da rota, e a mais fácil de alguém apagar sem perceber.
+ *
+ * Nenhuma delas cria projeto: são todas recusas esperadas. A do staff, sim —
+ * e é ela que devolve o desfecho.
+ *
+ * Devolve `null` quando o servidor não se comportou como servidor (rede caiu,
+ * resposta ilegível). Aí o percurso cai para os caminhos em processo e a régua
+ * diz "não coberto" — nunca "passou".
+ */
+async function aprovarPelaPortaDeVerdade(
+  clientRequestId: string,
+  casa: { workspaceId: string; userId: string; nome: string; email: string },
+  baseUrl: string,
+  tropecos: Tropeco[],
+): Promise<DesfechoDaAprovacao | null> {
+  try {
+    const { SignJWT } = await import("jose");
+    const { getAuthSecret } = await import("@/lib/auth/secret");
+    const { SESSION_COOKIE } = await import("@/lib/auth/session");
+
+    const assinar = async (role: string, extra: Record<string, unknown> = {}): Promise<string> =>
+      new SignJWT({ userId: casa.userId, email: casa.email, name: casa.nome, role, workspaceId: casa.workspaceId, ...extra })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("1h")
+        .sign(getAuthSecret());
+
+    const url = `${baseUrl}/api/brain/auto-scope/${clientRequestId}/review`;
+    const bater = async (cookie: string | null): Promise<{ status: number; corpo: { ok?: boolean; projectId?: string; error?: string } }> => {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}) },
+        body: JSON.stringify({ decisions: {} }),
+        signal: AbortSignal.timeout(60_000),
+      });
+      let corpo: { ok?: boolean; projectId?: string; error?: string } = {};
+      try { corpo = await res.json(); } catch { /* corpo vazio conta como sem motivo */ }
+      return { status: res.status, corpo };
+    };
+
+    // ── 1. Os intrusos ────────────────────────────────────────────────────
+    const formas: Array<{ quem: string; cookie: string | null }> = [
+      { quem: "sem cookie", cookie: null },
+      { quem: "cookie ilegível", cookie: `${SESSION_COOKIE}=nao-e-um-jwt` },
+      { quem: 'role "client"', cookie: `${SESSION_COOKIE}=${await assinar("client")}` },
+      { quem: "staff com clientId", cookie: `${SESSION_COOKIE}=${await assinar("master", { clientId: "cliente-qualquer" })}` },
+    ];
+    const intrusos: TentativaDeIntruso[] = [];
+    for (const f of formas) {
+      const r = await bater(f.cookie);
+      // "Entrou" é 2xx com `ok` — a porta ter respondido 500 é outro problema,
+      // e não vira falso alarme de invasão.
+      const entrou = r.status < 400 && r.corpo.ok === true;
+      intrusos.push({ quem: f.quem, status: r.status, entrou });
+      if (entrou) {
+        return {
+          tentou: true, viaRota: true, ok: false,
+          motivo: `a porta autenticada ADMITIU "${f.quem}" (${r.status})`,
+          recusouQuemNaoEStaff: false, intrusos,
+        };
+      }
+    }
+
+    // ── 2. O staff de verdade ─────────────────────────────────────────────
+    const staff = await bater(`${SESSION_COOKIE}=${await assinar("master")}`);
+    if (staff.status < 400 && staff.corpo.ok) {
+      return {
+        tentou: true, viaRota: true, ok: true,
+        motivo: null, projetoId: staff.corpo.projectId ?? null,
+        recusouQuemNaoEStaff: true, intrusos,
+      };
+    }
+    return {
+      tentou: true, viaRota: true, ok: false,
+      motivo: `a porta autenticada recusou o STAFF (${staff.status}): ${staff.corpo.error ?? "sem motivo"}`,
+      recusouQuemNaoEStaff: true, intrusos,
+    };
+  } catch (e) {
+    tropecos.push({ etapa: "porta-autenticada", erro: e instanceof Error ? e.message : String(e) });
+    return null;
   }
 }

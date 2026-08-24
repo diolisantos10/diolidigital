@@ -36,6 +36,8 @@ import {
   oPortaoDeDirecaoAbrePeloCliente,
 
   aExecucaoAnda,
+
+  aPortaAutenticadaFoiExercitada,
 } from "@/lib/agency/cliente-falso/verificacoes";
 import { ROTEIRO_PADRAO } from "@/lib/agency/cliente-falso/roteiro";
 import { emptyScope, emptyEstimate } from "@/lib/agency/briefing-conversation";
@@ -76,7 +78,12 @@ function percursoSao(): Percurso {
     orcamentoEntregue: "A estimativa fica entre R$ 400 e R$ 480 por mês.",
     turnosBarrados: [],
     // Percurso SÃO com a esteira de baixo percorrida até a parada declarada.
-    aprovacao: { tentou: true, viaRota: true, ok: true, motivo: null, projetoId: "proj-falso-1" },
+    aprovacao: { tentou: true, viaRota: true, ok: true, motivo: null, projetoId: "proj-falso-1",
+      recusouQuemNaoEStaff: true,
+      intrusos: [
+        { quem: "sem cookie", status: 401, entrou: false },
+        { quem: "role \"client\"", status: 403, entrou: false },
+      ] },
     esteira: {
       projetoId: "proj-falso-1", tarefas: 7, execucaoRodou: true, execucaoErro: null,
       execucaoStatus: "done", direcaoAprovada: true, entregas: 3,
@@ -388,5 +395,46 @@ describe("execução anda — a exceção da rodada offline é ESTREITA", () => 
     p.sdrAoVivo = false;
     p.esteira = { ...p.esteira, entregas: 0, execucaoStatus: "failed", execucaoPendencias: "pendências: agente travou", execucaoTentativas: 2 };
     expect(aExecucaoAnda(p).veredito).toBe("quebrou");
+  });
+});
+
+describe("porta autenticada — medir só o caso feliz é medir metade", () => {
+  it("REPROVA a porta que admite quem não é staff, por mais verde que esteja o resto", () => {
+    // Porta escancarada também deixa o staff entrar. Se a régua só olhasse o
+    // caso feliz, ela daria verde para uma rota sem autenticação nenhuma.
+    const p = percursoSao();
+    p.aprovacao = { ...p.aprovacao, recusouQuemNaoEStaff: false, intrusos: [
+      { quem: "sem cookie", status: 401, entrou: false },
+      { quem: 'role "client"', status: 200, entrou: true },
+    ] };
+    const a = aPortaAutenticadaFoiExercitada(p);
+    expect(a.veredito).toBe("quebrou");
+    expect(a.falaExata).toMatch(/client/);
+  });
+
+  it("REPROVA mesmo quando o staff entrou normalmente — o intruso manda na régua", () => {
+    const p = percursoSao();
+    p.aprovacao = { ...p.aprovacao, ok: true, recusouQuemNaoEStaff: false, intrusos: [
+      { quem: "staff com clientId", status: 201, entrou: true },
+    ] };
+    expect(aPortaAutenticadaFoiExercitada(p).veredito).toBe("quebrou");
+  });
+
+  it("diz 'não coberto' quando o staff entrou mas ninguém testou os intrusos", () => {
+    const p = percursoSao();
+    p.aprovacao = { ...p.aprovacao, ok: true, recusouQuemNaoEStaff: null, intrusos: [] };
+    const a = aPortaAutenticadaFoiExercitada(p);
+    expect(a.veredito).toBe("nao-coberto");
+    expect(a.detalhe).toMatch(/metade da porta/);
+  });
+
+  it("só aprova quando o staff entrou E todos os intrusos foram recusados", () => {
+    expect(aPortaAutenticadaFoiExercitada(percursoSao()).veredito).toBe("passou");
+  });
+
+  it("REPROVA a porta que recusa o próprio staff", () => {
+    const p = percursoSao();
+    p.aprovacao = { ...p.aprovacao, ok: false, motivo: "a porta autenticada recusou o STAFF (403)" };
+    expect(aPortaAutenticadaFoiExercitada(p).veredito).toBe("quebrou");
   });
 });

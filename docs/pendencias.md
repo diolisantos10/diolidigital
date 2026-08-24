@@ -14,6 +14,62 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🟡 24/08/2026 — DOUTRINA: RÉGUA NASCE OTIMISTA
+
+**Verde só vale com prova no dado. Nunca com "não estourou".**
+
+Esta é a terceira vez **no mesmo dia** em que o instrumento cometeu, por dentro,
+exatamente o defeito que ele existe para pegar. Não são três descuidos: é um
+padrão, e o padrão tem nome.
+
+### As três vezes
+
+1. **`--ao-vivo` deu 10/10 com zero chamadas de IA.** A régua mediu "a rodada
+   terminou", não "o modelo falou".
+2. **`execucao-anda` deu VERDE com nada executado.** `runProjectExecution` não
+   estourou — e o projeto ficou em `executionStatus: idle`, com 0 tentativas, as
+   4 tarefas em `pending` e ZERO entregas. A régua mediu "não explodiu".
+3. **`nenhuma-saida-real` contava 2 bloqueios e nenhum era da porta de
+   WhatsApp.** `tentarWhatsApp` desistia antes, em *"nenhuma conexão de WhatsApp
+   no workspace"* — a trava nunca era alcançada. Proteção presumida, não medida.
+   E pior: a trava morava em `sendWhatsAppDirect`, **depois** de
+   `loadConnectionToken` — valia por sorte de ambiente, e produção tem
+   credencial.
+
+### Por que acontece sempre
+
+Porque a régua é escrita por quem acabou de fazer a coisa funcionar, e quem
+acabou de fazer funcionar **quer ver verde**. O caminho mais curto para o verde é
+sempre medir o efeito colateral mais fácil de observar — a função retornou, o
+laço terminou, o contador subiu — em vez do fato que interessa. Os dois se
+parecem enquanto tudo dá certo. Eles só divergem no dia em que algo quebra, que é
+exatamente o dia em que a régua precisava funcionar.
+
+### A regra, então
+
+**Toda verificação tem de nomear o FATO que prova o verde, e ler esse fato de
+onde o produto o guarda** — banco, arquivo, resposta HTTP —, nunca da ausência de
+exceção.
+
+Na prática, três perguntas antes de escrever qualquer régua nova:
+
+1. **Qual linha do banco muda se isto funcionar de verdade?** Se a resposta for
+   "nenhuma", a régua está medindo fluxo de controle, não resultado.
+2. **Esta régua ficaria verde numa casa que não faz nada?** Se ficaria, ela não é
+   uma régua. Foi assim que `execucao-anda` passou com zero entregas.
+3. **O caso INFELIZ está medido?** Porta que deixa o staff entrar está metade
+   medida: porta escancarada também deixa o staff entrar. Foi por isso que
+   `porta-autenticada` passou a tentar quatro credenciais de intruso **antes** da
+   credencial boa, e a reprovar se qualquer uma entrar — por mais verde que
+   esteja o resto da rodada.
+
+E o corolário que já era regra da casa, agora com três medições atrás dele:
+**quando não deu para medir, "não coberto" com o motivo — jamais "passou".**
+Instrumento que esconde o que não mediu mente, e mente na direção mais cara: a
+que faz a casa parar de olhar.
+
+---
+
 ## 🔴 24/08/2026 — A ESTEIRA DE BAIXO DEPENDE DE UM CLIQUE QUE NINGUÉM NUNCA DEU
 
 > **Texto pronto para o CEO.** Não é dívida de teste; é contradição de arquitetura.

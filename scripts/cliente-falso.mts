@@ -67,6 +67,12 @@ const BANCO = resolve(PASTA, "teste.db");
 const args = process.argv.slice(2);
 const querLimpar = args.includes("--limpar");
 const aoVivo = args.includes("--ao-vivo");
+// ── `--com-servidor`: sobe um Next de teste só para a porta AUTENTICADA ─────
+// É opt-in porque custa ~30s de boot por bateria e a rodada offline não precisa
+// dele para nada mais. Sem ele, a régua `porta-autenticada` fica em "não
+// coberto" e DIZ o porquê — jamais em "passou". Ver `servidor-de-teste.ts`,
+// inclusive as três travas (só loopback, banco descartável, CLIENTE_FALSO=1).
+const comServidor = args.includes("--com-servidor");
 const rodadas = Number(args.find((a) => a.startsWith("--rodadas="))?.split("=")[1] ?? 1) || 1;
 
 if (querLimpar) {
@@ -101,8 +107,25 @@ if (!existsSync(BANCO)) {
 }
 
 const { rodarPercurso } = await import("../lib/agency/cliente-falso/percurso.ts");
+const { subirServidorDeTeste } = await import("../lib/agency/cliente-falso/servidor-de-teste.ts");
 const { conferir } = await import("../lib/agency/cliente-falso/verificacoes.ts");
 const { placarEmTexto, linhaDoLaco } = await import("../lib/agency/cliente-falso/placar.ts");
+
+// O servidor sobe UMA vez para a bateria inteira: 30s por rodada seria pagar o
+// mesmo boot três vezes para medir a mesma porta.
+let servidor: { baseUrl: string; parar: () => Promise<void> } | null = null;
+if (comServidor) {
+  console.log("🌐 subindo um Next de teste em 127.0.0.1 (só loopback) para exercitar a porta autenticada…");
+  const r = await subirServidorDeTeste({ databaseUrl: `file:${BANCO}` });
+  servidor = r.servidor;
+  if (!servidor) {
+    // Não é motivo para matar a bateria: o resto continua medível, e a régua
+    // da porta vai dizer "não coberto" com este motivo.
+    console.log(`⚠️  o servidor de teste não subiu (${r.motivo}) — a porta autenticada fica sem medição`);
+  } else {
+    console.log(`✅ servidor de teste de pé em ${servidor.baseUrl}`);
+  }
+}
 
 let quebrouAlguma = false;
 let ultimoPlacar = "";
@@ -116,7 +139,7 @@ let ultimoJson: Record<string, unknown> | null = null;
 const resumoDasRodadas: Record<string, unknown>[] = [];
 
 for (let n = 1; n <= rodadas; n++) {
-  const { percurso, tropecos } = await rodarPercurso({ sdrAoVivo: aoVivo });
+  const { percurso, tropecos } = await rodarPercurso({ sdrAoVivo: aoVivo, baseUrlDoServidor: servidor?.baseUrl ?? null });
   const achados = conferir(percurso);
   if (achados.some((a) => a.veredito === "quebrou")) quebrouAlguma = true;
 
@@ -146,6 +169,11 @@ for (let n = 1; n <= rodadas; n++) {
     turnosBarrados: percurso.turnosBarrados,
     saidasBloqueadas: percurso.saidasBloqueadas,
   };
+}
+
+if (servidor) {
+  await servidor.parar();
+  console.log("🌐 servidor de teste derrubado.");
 }
 
 if (ultimoJson) ultimoJson.todasAsRodadas = resumoDasRodadas;
