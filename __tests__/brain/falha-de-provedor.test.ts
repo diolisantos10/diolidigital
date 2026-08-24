@@ -97,3 +97,20 @@ describe("a camada não pode voltar a esconder o motivo", () => {
     expect(fonte).toContain("precisamDeGente");
   });
 });
+
+describe("a bateria nomeia a falta de saldo em vez de dizer 'provider_error'", () => {
+  it("a rota do SDR classifica o motivo pela mensagem do provedor", async () => {
+    const fonte = await import("node:fs/promises").then((fs) =>
+      fs.readFile("app/api/sdr/chat/route.ts", "utf-8"));
+    expect(fonte).toContain("classificarFalhaDeProvedor");
+    expect(fonte).toContain("sem_saldo_no_provedor");
+  });
+
+  it("o placar trata falta de saldo como 'não coberto', não como culpa da casa", async () => {
+    const fonte = await import("node:fs/promises").then((fs) =>
+      fs.readFile("lib/agency/cliente-falso/verificacoes.ts", "utf-8"));
+    expect(fonte).toContain('"sem_saldo_no_provedor"');
+    // E DIZ, em português, que precisa de gente — não deixa virar mais uma sigla.
+    expect(fonte).toMatch(/SEM SALDO na conta do provedor/);
+  });
+});

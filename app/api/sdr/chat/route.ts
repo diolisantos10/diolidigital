@@ -27,6 +27,7 @@ import { NextRequest, NextResponse } from "next/server";
 // no volume, é atômico e é fail-closed: contador fora do ar recusa, não libera.
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
 import { primeiraChaveDeRotaPublica } from "@/lib/ai/chave-publica";
+import { classificarFalhaDeProvedor } from "@/lib/ai/falha-de-provedor";
 import { generate, ordemDePreferenciaDaCasa } from "@/lib/ai/generate";
 import type { TurnoDeHistorico } from "@/lib/agency/intelligence/openai-schemas";
 import { ehPerguntaDeFaixa, formaDoPrecoNaFala, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
@@ -507,8 +508,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!r.ok && !text) {
       // Falhou antes de produzir qualquer texto: erro de provedor, timeout ou
       // rede. Nada a resgatar — e o motivo vai para o diário como sempre foi.
+      // ── O MOTIVO DE VERDADE, QUANDO A MENSAGEM O DIZ (24/08/2026) ───────
+      // Em 24/08 o Claude caiu em produção por FALTA DE SALDO e este trecho
+      // gravou `provider_error` 16 vezes. O placar e o diário repetiram
+      // "provider_error", e nem o instrumento nem quem o lia tinham como saber
+      // que o problema era a conta do provedor — que é a única causa desta
+      // lista que NENHUMA pessoa da equipe resolve em código.
+      //
+      // `classificarFalhaDeProvedor` lê a mensagem do provedor (não o status,
+      // que foi justamente o que enganou) e devolve o motivo real. Sem
+      // reconhecer, cai em `provider_error` como sempre — a régua não inventa
+      // categoria.
+      const classificado = classificarFalhaDeProvedor(r.error);
       const motivo = /timeout/i.test(r.error) ? "timeout"
         : /rede/i.test(r.error) ? "network_error"
+        : classificado === "sem_saldo" ? "sem_saldo_no_provedor"
+        : classificado === "sem_chave" ? "sem_chave_no_provedor"
         : "provider_error";
       console.error(`[sdr/chat] ${r.error}`);
       await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: motivo });

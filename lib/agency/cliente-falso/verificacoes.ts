@@ -299,6 +299,18 @@ const RECUSA_ANTES_DO_MODELO = new Set([
   "teto_de_ritmo",         // 429: a própria bateria estourou o freio da rota
   "contador_indisponivel", // 503: o contador do freio fora do ar (fail-closed)
   "bad_request",           // o corpo não passou na porta da rota
+  // ── A CONTA DO PROVEDOR (24/08/2026) ───────────────────────────────────────
+  // Medido em produção às 07:29 e reproduzido na bateria no mesmo dia: sem
+  // saldo, o modelo NUNCA fala, e o motor de regras atende os 16 turnos. Contar
+  // como "quebrou" acusaria a casa por uma fatura não paga; contar como
+  // "passou" aprovaria um guarda que ninguém exercitou.
+  //
+  // ⚠️ "Não coberto" aqui NÃO quer dizer "sem importância": é o único motivo
+  // desta lista que NENHUMA pessoa da equipe resolve em código, e enquanto
+  // durar a casa atende pela reserva. O placar diz isso com todas as letras em
+  // `resumoDosMotivos`.
+  "sem_saldo_no_provedor",
+  "sem_chave_no_provedor",
 ]);
 
 export function nenhumTurnoBarradoPeloGuarda(p: Percurso): Achado {
@@ -369,7 +381,20 @@ function resumoDosMotivos(p: Percurso): string {
     conta.set(r.motivo, (conta.get(r.motivo) ?? 0) + 1);
   }
   if (conta.size === 0) return "";
-  return ` — motivos: ${[...conta].map(([m, n]) => `${m} ×${n}`).join(", ")}`;
+  const linha = ` — motivos: ${[...conta].map(([m, n]) => `${m} ×${n}`).join(", ")}`;
+
+  // ── O MOTIVO QUE PRECISA DE GENTE NÃO PODE SAIR COMO MAIS UM RÓTULO ───────
+  // "sem_saldo_no_provedor ×16" numa lista de siglas é fácil de ler e fácil de
+  // não entender. É o único motivo desta bateria que ninguém resolve em código,
+  // e enquanto durar a casa atende pela reserva — mais cara, e calada.
+  if (conta.has("sem_saldo_no_provedor")) {
+    return linha + ". ⛔ SEM SALDO na conta do provedor de IA: nenhuma pessoa da equipe resolve isto "
+      + "em código, e enquanto durar a casa atende pela RESERVA. Nada nesta rodada mede o guarda.";
+  }
+  if (conta.has("sem_chave_no_provedor")) {
+    return linha + ". ⛔ A CHAVE do provedor foi recusada: é configuração, e precisa de gente.";
+  }
+  return linha;
 }
 
 // ─── 5. O que o cliente declarou tem de chegar ao orçamento ─────────────────
