@@ -1,8 +1,26 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
+  // O portão de pagamento deriva o pedido pelo projeto do cliente quando a
+  // peça vem sem `clientRequestId` (cliente DIRETO).
+  project: { findFirst: vi.fn(async () => ({ clientRequestId: "cr-pago", id: "proj-pago", clientId: "cli-1" })), },
+  // O PORTÃO DE PAGAMENTO (lib/agency/financeiro/portao-de-pagamento.ts) roda
+  // antes de qualquer produção. Estes testes são sobre o que acontece DEPOIS de
+  // o cliente pagar, então a testemunha diz "pago". Quem testa a trava em si é
+  // __tests__/financeiro/portao-de-pagamento.test.ts.
+  pagamentoConfirmado: {
+    findUnique: vi.fn(async () => ({
+      valorCentavos: 7900,
+      origem: "mercadopago",
+      confirmadoEm: new Date("2026-08-25T00:00:00.000Z"),
+    })),
+  },
   socialPost: { findMany: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
   mediaAsset: { findFirst: vi.fn(), findUnique: vi.fn(), count: vi.fn() },
+  // O PORTÃO DE PAGAMENTO, chegando peça de cliente DIRETO (sem
+  // `clientRequestId`), procura o pedido do cliente e, não achando, cai na
+  // anistia pela IDADE do cadastro. Daí `findFirst` e o `createdAt` abaixo.
+  clientRequestDb: { findUnique: vi.fn(async () => null), findFirst: vi.fn(async () => null) },
   client: { findUnique: vi.fn() },
 }));
 const generateDesign = vi.hoisted(() => vi.fn());
@@ -69,6 +87,9 @@ beforeEach(() => {
   db.socialPost.findMany.mockResolvedValue([{ ...POST }]);
   db.socialPost.update.mockResolvedValue({});
   db.client.findUnique.mockResolvedValue({
+    // ANTERIOR ao corte do portão de pagamento: nas peças de cliente DIRETO
+    // (sem `clientRequestId`) é a anistia pela idade do cadastro que libera.
+    createdAt: new Date("2026-07-01T00:00:00.000Z"),
     name: "Padaria do João", industry: "Padaria",
     brandBrain: { primaryColor: "#8B4513", secondaryColor: "#F5DEB3", tone: "acolhedor" },
   });
@@ -390,7 +411,7 @@ describe("a peça sai do MOLDE — foto da IA + texto por código", () => {
   });
 
   it("cliente SEM marca cadastrada recebe o molde NEUTRO, nunca uma cor inventada", async () => {
-    db.client.findUnique.mockResolvedValue({ name: "Cliente Novo", industry: "Pet shop", brandBrain: null });
+    db.client.findUnique.mockResolvedValue({ createdAt: new Date("2026-07-01T00:00:00.000Z"), name: "Cliente Novo", industry: "Pet shop", brandBrain: null });
     await produzirArtesPendentes();
     expect(montarPeca.mock.calls[0]![0].molde.origem).toBe("neutro");
   });

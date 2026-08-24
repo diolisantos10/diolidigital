@@ -577,7 +577,7 @@ export async function produzirAgora(pedido: PedidoDeProducao): Promise<Relatorio
     const r: ArtesFeitas = await produzirArtesPendentes({ clientId }).catch((err) => ({
       produzidas: 0,
       falhas: [{ postId: "", erro: err instanceof Error ? err.message.slice(0, 160) : "erro" }],
-      desistiram: [], semOrcamento: [],
+      desistiram: [], semOrcamento: [], semPagamento: [],
     }));
     feito.imagensProduzidas += r.produzidas;
     feito.semOrcamento += r.semOrcamento.length;

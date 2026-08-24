@@ -531,7 +531,7 @@ export async function refazerComDirecao(pedido: PedidoDeRefazimento): Promise<Re
     .catch((e) => ({
       produzidas: 0,
       falhas: [{ postId: "", erro: e instanceof Error ? e.message : "erro na rodada de arte" }],
-      desistiram: [], semOrcamento: [],
+      desistiram: [], semOrcamento: [], semPagamento: [],
     }));
 
   relatorio.situacao = feito.produzidas > 0 ? "refeito" : "nada_a_refazer";

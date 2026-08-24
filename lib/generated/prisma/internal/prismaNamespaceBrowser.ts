@@ -119,7 +119,8 @@ export const ModelName = {
   FlagV2: 'FlagV2',
   ReconciliacaoV2: 'ReconciliacaoV2',
   HeartbeatDoRelogio: 'HeartbeatDoRelogio',
-  HandoffV2: 'HandoffV2'
+  HandoffV2: 'HandoffV2',
+  PagamentoConfirmado: 'PagamentoConfirmado'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1382,6 +1383,22 @@ export const HandoffV2ScalarFieldEnum = {
 } as const
 
 export type HandoffV2ScalarFieldEnum = (typeof HandoffV2ScalarFieldEnum)[keyof typeof HandoffV2ScalarFieldEnum]
+
+
+export const PagamentoConfirmadoScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  origem: 'origem',
+  provedorId: 'provedorId',
+  valorCentavos: 'valorCentavos',
+  moeda: 'moeda',
+  confirmadoEm: 'confirmadoEm',
+  registradoPor: 'registradoPor',
+  observacao: 'observacao',
+  createdAt: 'createdAt'
+} as const
+
+export type PagamentoConfirmadoScalarFieldEnum = (typeof PagamentoConfirmadoScalarFieldEnum)[keyof typeof PagamentoConfirmadoScalarFieldEnum]
 
 
 export const SortOrder = {

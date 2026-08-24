@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/db/client";
 import { produzirPedidoDeBalcao } from "@/lib/agency/balcao/producao";
+import { registrarPagamento } from "@/lib/agency/financeiro/portao-de-pagamento";
 
 // Valida o HMAC `x-signature` do Mercado Pago. Manifesto, conforme a doc:
 //   id:<data.id>;request-id:<x-request-id>;ts:<ts>;
@@ -67,9 +68,46 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const pm = (await pmRes.json()) as {
       status?: string;
       external_reference?: string;
+      transaction_amount?: number;
+      currency_id?: string;
+      date_approved?: string;
     };
 
+    // ⚠️ `=== "approved"` e nada mais. "não recusado" NÃO é "pago": `pending`,
+    // `in_process` e `authorized` são todos estados em que o dinheiro ainda não
+    // entrou, e um `!== "rejected"` aqui produziria de graça para cada boleto
+    // emitido e nunca compensado.
     if (pm.status === "approved" && pm.external_reference) {
+      // ── PRIMEIRO A TESTEMUNHA, DEPOIS A PRODUÇÃO ──────────────────────────
+      // Esta é a ÚNICA escrita automática de `PagamentoConfirmado` na casa, e é
+      // ela que o portão de `lib/agency/financeiro/portao-de-pagamento.ts` lê.
+      // Tem de vir ANTES de `produzirPedidoDeBalcao`, porque a produção do
+      // balcão passa pelo mesmo portão: gravar depois faria o pedido recém-pago
+      // bater na própria trava.
+      //
+      // O VALOR vem do provedor (`transaction_amount`, em reais), nunca do
+      // catálogo da casa: o catálogo diz o que a gente PEDIU, e o portão precisa
+      // saber o que ENTROU. Sem valor, ou com valor zerado, `registrarPagamento`
+      // recusa a linha — e sem linha não há produção. Falha fechada.
+      const centavos = Math.round((pm.transaction_amount ?? 0) * 100);
+      const registro = await registrarPagamento({
+        clientRequestId: pm.external_reference,
+        origem: "mercadopago",
+        valorCentavos: centavos,
+        provedorId: String(paymentId),
+        moeda: pm.currency_id ?? "BRL",
+        confirmadoEm: pm.date_approved ? new Date(pm.date_approved) : new Date(),
+      });
+      if (!registro.ok) {
+        // Sem testemunha não há produção — e é isso que tem de acontecer. O que
+        // NÃO pode acontecer é o silêncio: o pagamento entrou de verdade no
+        // provedor e a casa não conseguiu registrar. Isso é caso de gente olhar.
+        console.error(
+          `[self-serve/webhook] PAGAMENTO APROVADO NO PROVEDOR E NÃO REGISTRADO (pedido ${pm.external_reference}, pagamento ${paymentId}): ${registro.motivo}. ` +
+          "A produção NÃO vai começar até alguém registrar este pagamento à mão.",
+        );
+      }
+
       await prisma.clientRequestDb.update({
         where: { id: pm.external_reference },
         data:  { status: "in_progress" },

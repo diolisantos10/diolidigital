@@ -44,6 +44,7 @@ import {
   type MedicaoDoMes,
 } from "@/lib/agency/esteira/mes";
 import { registrarProducao, degrauAtual } from "@/lib/agency/escada/registro";
+import { conferirPagamento } from "@/lib/agency/financeiro/portao-de-pagamento";
 import type { Degrau, ResultadoDaPeca } from "@/lib/agency/escada/degraus";
 
 /** Conteúdo mínimo aceitável de uma entrega (gate de saída: nada vazio/lixo vai ao cliente). */
@@ -209,6 +210,40 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
   if (!project.clientRequestId) {
     await prisma.project.update({ where: { id: projectId }, data: { executionStatus: "failed", executionError: "Projeto sem solicitação vinculada" } });
     return { ok: false, status: "failed", produced: [], askedClient: [], skipped: [], error: "Projeto sem solicitação vinculada" };
+  }
+
+  // ── O PORTÃO DE PAGAMENTO ──────────────────────────────────────────────────
+  // "Eu vou pedir pra fazer um bolo, e só pago o bolo quando o bolo está feito?
+  //  Não — eu preciso do dinheiro pra comprar os insumos. Então a trava é o
+  //  pagamento." (CEO, 24/08/2026)
+  //
+  // Vem ANTES de tudo — antes do portão de direção e antes da trava de
+  // concorrência — porque é o portão mais barato e o mais duro: sem dinheiro
+  // não se gasta NADA, nem uma tentativa de execução, nem um token. Marcar
+  // "running" para logo desmarcar queimaria orçamento de retomada de um projeto
+  // que não pode nem começar.
+  //
+  // Ele guarda os NOVE chamadores de produção de uma vez, e é por isso que não
+  // foi espalhado por eles: um portão por chamador é um portão que o décimo
+  // chamador esquece. Quem garante que não nasce um décimo caminho por fora é
+  // `__tests__/financeiro/portao-de-pagamento.test.ts`.
+  //
+  // `skipped_running` (e não `failed`) de propósito: aguardar pagamento não é
+  // defeito do projeto, não gasta tentativa e não precisa que o cron "recupere"
+  // nada. O projeto volta a `idle` e espera — assim que o pagamento for
+  // registrado, a próxima rodada do despertador o pega sem intervenção.
+  const pagamento = await conferirPagamento(project.clientRequestId);
+  if (!pagamento.liberado) {
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { executionStatus: "idle", executionError: null },
+    }).catch(() => { /* best-effort */ });
+    return {
+      ok: true, status: "skipped_running", produced: [], askedClient: [], skipped: [],
+      // A INSTRUÇÃO GÊMEA sobe junto com a recusa: quem lê isto na tela ou no
+      // log fica sabendo o que fazer, não só que está barrado.
+      error: pagamento.mensagemAoCliente,
+    };
   }
 
   // ── O PORTÃO DE DIREÇÃO ────────────────────────────────────────────────────
