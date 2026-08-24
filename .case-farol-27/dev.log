@@ -1,0 +1,1151 @@
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3127
+- Network:       http://192.0.2.2:3127
+✓ Ready in 424ms
+[despertador] ligado — a agência vai olhar se há trabalho parado a cada 5 min
+- Experiments (use with caution):
+  · serverActions
+
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /auth/signin 200 in 3.2s (next.js: 2.9s, proxy.ts: 80ms, application-code: 200ms)
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+[despertador] backup ok — 1224 KB, {"Client":1,"Project":1,"Deliverable":11,"ClientRequestDb":1,"User":2}
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /auth/signin 200 in 70ms (next.js: 7ms, proxy.ts: 6ms, application-code: 57ms)
+⚠ Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr from "127.0.0.1".
+Cross-origin access to Next.js dev resources is blocked by default for safety.
+
+To allow this host in development, add it to "allowedDevOrigins" in next.config.js and restart the dev server:
+
+// next.config.js
+module.exports = {
+  allowedDevOrigins: ['127.0.0.1'],
+}
+
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /auth/signin?email=ceo%40case-farol-27.local&password=farol27 200 in 150ms (next.js: 6ms, proxy.ts: 6ms, application-code: 138ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /auth/signin?callbackUrl=%2Fagency%2Fclients%2Fcmt7g94wb000ds17dgj6uz2rt 200 in 61ms (next.js: 6ms, proxy.ts: 4ms, application-code: 51ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /auth/signin 200 in 155ms (next.js: 81ms, proxy.ts: 7ms, application-code: 68ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /auth/signin?email=ceo%40case-farol-27.local&password=farol27 200 in 60ms (next.js: 5ms, proxy.ts: 5ms, application-code: 49ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /auth/signin?callbackUrl=%2Fagency%2Fclients%2Fcmt7g94wb000ds17dgj6uz2rt 200 in 58ms (next.js: 5ms, proxy.ts: 5ms, application-code: 48ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /auth/signin 200 in 129ms (next.js: 64ms, proxy.ts: 5ms, application-code: 59ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /auth/signin?email=ceo%40case-farol-27.local&password=farol27 200 in 73ms (next.js: 6ms, proxy.ts: 5ms, application-code: 61ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /auth/signin?callbackUrl=%2Fagency%2Fclients%2Fcmt7g94wb000ds17dgj6uz2rt 200 in 65ms (next.js: 6ms, proxy.ts: 4ms, application-code: 56ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ POST /api/auth/signin 200 in 647ms (next.js: 500ms, proxy.ts: 5ms, application-code: 142ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ POST /api/auth/signin 200 in 113ms (next.js: 5ms, proxy.ts: 7ms, application-code: 101ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /agency/clients/cmt7g94wb000ds17dgj6uz2rt 200 in 3.7s (next.js: 2.4s, proxy.ts: 8ms, application-code: 1310ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /agency/clients/cmt7g94wb000ds17dgj6uz2rt 200 in 252ms (next.js: 55ms, proxy.ts: 8ms, application-code: 189ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ POST /api/auth/signin 200 in 109ms (next.js: 5ms, proxy.ts: 5ms, application-code: 100ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /agency/clients/cmt7g94wb000ds17dgj6uz2rt?tab=deliverables 200 in 292ms (next.js: 54ms, proxy.ts: 9ms, application-code: 229ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /agency/clients/cmt7g94wb000ds17dgj6uz2rt?tab=deliverables 200 in 206ms (next.js: 50ms, proxy.ts: 6ms, application-code: 150ms)
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+[despertador] arte falhou: Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ POST /api/auth/signin 200 in 109ms (next.js: 4ms, proxy.ts: 5ms, application-code: 99ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /portal/access/UEe7bMpvUY9RQc3lzIh8i5YeYV9SMR3JxYIS84bBFYM 200 in 1730ms (next.js: 1496ms, proxy.ts: 4ms, application-code: 230ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /portal/access/UEe7bMpvUY9RQc3lzIh8i5YeYV9SMR3JxYIS84bBFYM 200 in 226ms (next.js: 69ms, proxy.ts: 8ms, application-code: 150ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /api/brain/portal-data?token=UEe7bMpvUY9RQc3lzIh8i5YeYV9SMR3JxYIS84bBFYM 200 in 375ms (next.js: 331ms, proxy.ts: 5ms, application-code: 40ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /portal/access/UEe7bMpvUY9RQc3lzIh8i5YeYV9SMR3JxYIS84bBFYM 200 in 133ms (next.js: 56ms, proxy.ts: 4ms, application-code: 74ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ POST /api/portal/session 200 in 222ms (next.js: 203ms, proxy.ts: 5ms, application-code: 14ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /api/portal/vista?token=UEe7bMpvUY9RQc3lzIh8i5YeYV9SMR3JxYIS84bBFYM 200 in 328ms (next.js: 249ms, proxy.ts: 5ms, application-code: 74ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /api/portal/pedidos?token=UEe7bMpvUY9RQc3lzIh8i5YeYV9SMR3JxYIS84bBFYM 200 in 371ms (next.js: 356ms, proxy.ts: 4ms, application-code: 12ms)
+⚠ ./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+
+⚠ ./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+
+ GET /portal/access/UEe7bMpvUY9RQc3lzIh8i5YeYV9SMR3JxYIS84bBFYM 200 in 172ms (next.js: 58ms, proxy.ts: 5ms, application-code: 109ms)
+[?25h

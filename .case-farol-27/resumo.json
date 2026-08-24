@@ -1,0 +1,118 @@
+{
+  "clienteId": "cmt7g94wb000ds17dgj6uz2rt",
+  "projetoId": "cmt7g94wq000gs17dm3kdk5xn",
+  "pedidoId": "cmt7g94j30003s17d2oejk4pd",
+  "wsId": "cmt7g94bf0000s17d14tf0ftc",
+  "paginaDoCliente": "/agency/clients/cmt7g94wb000ds17dgj6uz2rt",
+  "portalDoCliente": "/portal/access/UEe7bMpvUY9RQc3lzIh8i5YeYV9SMR3JxYIS84bBFYM",
+  "login": {
+    "email": "ceo@case-farol-27.local",
+    "senha": "farol27"
+  },
+  "entregas": 11,
+  "pecas": 32,
+  "aprovacoes": 2,
+  "pendencias": 7,
+  "eventos": [
+    {
+      "n": 1,
+      "titulo": "WhatsApp ausente",
+      "veredito": "maquina",
+      "prova": "a casa NÃO tem como inventar número: `semPii` (lib/dioli-brain/client-snapshot.ts:84) apaga sequências de 8+ dígitos antes de o texto chegar ao modelo, e o question-engine não pede o número. Confirmado no banco: 0 peça(s) com número em 32. ⚠️ Ressalva medida: Client.phone ficou \"5511900000027\" — é o WhatsApp DE CONTATO que a Ana deu na porta, gravado pela ficha; NÃO é o número oficial de atendimento para CTA, e a casa não distingue os dois. Isso é uma falha: um dia alguém vai publicar o telefone pessoal da dona como CTA da loja. Pendência aberta pela MÁQUINA: MaterialRequest cmt7g95k1002cs17dwhfpwzjq. CTA provisório = direct."
+    },
+    {
+      "n": 2,
+      "titulo": "Conflito de logo",
+      "veredito": "a-mao",
+      "prova": "os registros existem (BrandUpdate cmt7g95k5002ds17dmkmmydj8 / cmt7g95k8002es17dspc5e3ht, MaterialRequest cmt7g95k9002fs17d1sgpdep5), mas NÃO há detector de divergência nem trava que suspenda a consolidação sozinha: quem comparou as duas versões e suspendeu fui eu. Falta na casa: um comparador de ativos de marca e um estado \"consolidação suspensa\"."
+    },
+    {
+      "n": 8,
+      "titulo": "Handoff sem aceite",
+      "veredito": "maquina",
+      "prova": "HandoffV2 cmt7g95kp002hs17deloi4zx7 nasceu em \"aguardando_recebimento\" — a MÁQUINA segura o bastão na fila da Branding até o Design aceitar. Nenhum aceite foi dado: a tarefa continua em aguardando_recebimento, exatamente como o evento pede."
+    },
+    {
+      "n": 3,
+      "titulo": "Peça desalinhada — Recusar/refazer",
+      "veredito": "maquina",
+      "prova": "reprovarPeca() aceitou: peça cmt7g95j80024s17dhmzr064w, volta 1, escalado=false, proibições novas gravadas=[\"otario\"]. A MÁQUINA exigiu motivo (mín. 12 chars) e autor, gravou ActivityEvent e devolveu a peça ao responsável. Histórico: 1 registro(s)."
+    },
+    {
+      "n": 4,
+      "titulo": "Ajuste simples — Pedir ajustes",
+      "veredito": "maquina",
+      "prova": "refazerPorPedidoDoCliente() rodou: refeitas=[], versõesNovas=[], escalado=true, motivo=não consegui refazer agora (provedor de IA indisponível). A proibição do termo virou regra do cliente pela MÁQUINA. O resto do plano ficou intacto (conteúdo mudou? false). ⚠️ A refação em si NÃO pôde reescrever o texto: exige IA e não há chave — a máquina escalou em vez de fingir."
+    },
+    {
+      "n": 5,
+      "titulo": "Cancelamento de UMA entrega",
+      "veredito": "maquina",
+      "prova": "a casa TEM a decisão canônica \"cancel\" (DECISAO_PARA_STATUS/DECISOES_QUE_EXIGEM_COMENTARIO) e ela exige justificativa. Aprovação cmt7g95mv002os17d2imboj5j → cancelled; Deliverable cmt7g95ms002ns17d0oya9yth → cancelled com feedback. Nada foi apagado: 10 entregas seguem vivas no mesmo projeto."
+    },
+    {
+      "n": 6,
+      "titulo": "Risco de verba — teto estourado",
+      "veredito": "a-mao",
+      "prova": "o guardião existe e FUNCIONA — conferirOrcamento({900, teto 150}) devolveu ok=false, erro=\"orçamento diário de R$ 900 passa do teto que o cliente aprovou (R$ 150)\" ANTES de qualquer chamada de rede. MAS ele é da Meta (lib/integrations/meta/ads.ts): **não existe módulo de TikTok** em lib/integrations (só google e meta). Para o TikTok o teto foi conferido reusando o guardião da Meta, à mão. Falta: guardião de verba do TikTok."
+    },
+    {
+      "n": 7,
+      "titulo": "Falha de tracking",
+      "veredito": "a-mao",
+      "prova": "NÃO existe monitor de integridade de evento nesta casa: nada compara eventos esperados × recebidos, nada alerta. Procurado em lib/agency/medicao (só leitura-da-conta.ts, que lê a Meta) e em lib/integrations (sem GA4/GTM). Detectei, alertei (ActivityEvent cmt7g95nt002rs17d4bv7c296), tentei recuperar e marquei o dado como não confiável — tudo à mão. Falta: dicionário de eventos esperados + reconciliação + alerta."
+    }
+  ],
+  "diario": [
+    {
+      "o": "SDR / Atendimento — conversa e captura de escopo",
+      "veredito": "maquina",
+      "prova": "13 turnos, pedido cmt7g94j30003s17d2oejk4pd"
+    },
+    {
+      "o": "Escopo automático + proposta",
+      "veredito": "maquina",
+      "prova": "estimativa R$ 500–1200, confiança \"high\""
+    },
+    {
+      "o": "Project Management — projeto e tarefas",
+      "veredito": "maquina",
+      "prova": "projeto cmt7g94wq000gs17dm3kdk5xn, 4 tarefas"
+    },
+    {
+      "o": "Execução / produção de peças",
+      "veredito": "nao-tratado",
+      "prova": "status \"failed\", 0 entregas, pendências: pendências: Estratégia · Posicionamento (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Estratégia · Pesquisa de concorrência (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Pauta do mês (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Copy dos posts (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Roteiro de vídeo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Plano de medição (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Otimização do próximo ciclo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.)"
+    },
+    {
+      "o": "Ficha do cliente criada a partir do briefing",
+      "veredito": "maquina",
+      "prova": "Client cmt7g94wb000ds17dgj6uz2rt nasceu de resolverOuCriarCliente"
+    },
+    {
+      "o": "Campos de ficha que a esteira não coleta (site, segmento fino)",
+      "veredito": "a-mao",
+      "prova": "prisma.client.update — não há tela nem etapa que colha isso do cliente"
+    },
+    {
+      "o": "Brand Hub / BrandBrain preenchido",
+      "veredito": "a-mao",
+      "prova": "BrandBrain do cliente cmt7g94wb000ds17dgj6uz2rt — a esteira TEM o modelo e a tela, mas quem escreve o conteúdo é a IA, e não havia chave"
+    },
+    {
+      "o": "Entregas gravadas no projeto",
+      "veredito": "a-mao",
+      "prova": "10 Deliverables criados à mão — a esteira falhou por falta de chave de IA. ids: cmt7g95gj0016s17dj519r08t, cmt7g95h40017s17dzcd8lnn1, cmt7g95h60018s17dhsn23f1u, cmt7g95h80019s17d2gulxrrc, cmt7g95ha001as17degetnea7, cmt7g95hc001bs17dspo0fnd3, cmt7g95he001cs17dga8dzjvj, cmt7g95hf001ds17dg5i8j54k, cmt7g95hl001es17d6tjdukwf, cmt7g95hq001fs17ddem6gs8l"
+    },
+    {
+      "o": "Calendário editorial de 30 dias (12 feed + 12 stories + 8 roteiros)",
+      "veredito": "a-mao",
+      "prova": "32 SocialPost criados à mão. A esteira TEM o caminho (run-execution → extrairPecas), mas ele exige IA e não havia chave."
+    },
+    {
+      "o": "Key visual e artes das peças",
+      "veredito": "nao-tratado",
+      "prova": "geração de imagem exige chave de IA (lib/ai/generate.ts → \"Nenhuma IA conectada\"); nenhuma arte foi produzida — mediaUrl vazio em todas as 32 peças"
+    }
+  ]
+}

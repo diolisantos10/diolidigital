@@ -1,0 +1,396 @@
+
+> dioli-agency-os-1@0.1.0 build
+> prisma generate && next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public
+
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+
+✔ Generated Prisma Client (7.8.0) to ./lib/generated/prisma in 490ms
+
+▲ Next.js 16.2.1 (Turbopack)
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+Turbopack build encountered 6 warnings:
+./instrumentation.ts:54:5
+A Node.js API is used (process.exit at line: 54) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m52 |[0m     [90m// parada limpa vira morte suja. O despertador já usa `unref`, então não[0m
+  [90m53 |[0m     [90m// segura o processo.[0m
+[31m[1m>[0m [90m54 |[0m     process.exit([35m0[0m);
+  [90m   |[0m     [31m[1m^^^^^^^^^^^^[0m
+  [90m55 |[0m   };
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+
+Ecmascript file had an error
+
+Import trace:
+  App Route:
+    ./instrumentation.ts
+    ./lib/agency/media/armazenamento.ts
+    ./app/api/media/route.ts
+
+
+./instrumentation.ts:57:3
+A Node.js API is used (process.on at line: 57) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m55 |[0m   };
+  [90m56 |[0m
+[31m[1m>[0m [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m59 |[0m }
+  [90m60 |[0m
+
+Ecmascript file had an error
+
+Import trace:
+  App Route:
+    ./instrumentation.ts
+    ./lib/agency/media/armazenamento.ts
+    ./app/api/media/route.ts
+
+
+./instrumentation.ts:58:3
+A Node.js API is used (process.on at line: 58) which is not supported in the Edge Runtime.
+    Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+  [90m56 |[0m
+  [90m57 |[0m   process.on([32m"SIGTERM"[0m, encerrar([32m"SIGTERM"[0m));
+[31m[1m>[0m [90m58 |[0m   process.on([32m"SIGINT"[0m, encerrar([32m"SIGINT"[0m));
+  [90m   |[0m   [31m[1m^^^^^^^^^^[0m
+  [90m59 |[0m }
+  [90m60 |[0m
+  [90m61 |[0m [36mexport[0m [36masync[0m [36mfunction[0m register(): [33mPromise[0m<[36mvoid[0m> {
+
+Ecmascript file had an error
+
+Import trace:
+  App Route:
+    ./instrumentation.ts
+    ./lib/agency/media/armazenamento.ts
+    ./app/api/media/route.ts
+
+
+./next.config.ts
+Encountered unexpected file in NFT list
+A file was traced that indicates that the whole project was traced unintentionally. Somewhere in the import trace below, there are:
+- filesystem operations (like path.join, path.resolve or fs.readFile), or
+- very dynamic requires (like require('./' + foo)).
+To resolve this, you can
+- remove them if possible, or
+- only use them in development, or
+- make sure they are statically scoped to some subfolder: path.join(process.cwd(), 'data', bar), or
+- add ignore comments: path.join(/*turbopackIgnore: true*/ process.cwd(), bar)
+
+Import trace:
+  App Route:
+    ./next.config.ts
+    ./lib/agency/media/armazenamento.ts
+    ./app/api/media/route.ts
+
+
+./next.config.ts
+Encountered unexpected file in NFT list
+A file was traced that indicates that the whole project was traced unintentionally. Somewhere in the import trace below, there are:
+- filesystem operations (like path.join, path.resolve or fs.readFile), or
+- very dynamic requires (like require('./' + foo)).
+To resolve this, you can
+- remove them if possible, or
+- only use them in development, or
+- make sure they are statically scoped to some subfolder: path.join(process.cwd(), 'data', bar), or
+- add ignore comments: path.join(/*turbopackIgnore: true*/ process.cwd(), bar)
+
+Output asset trace:
+  [output]/.next/server/app/api/portal/briefing/aceite/route.js
+  [output]/.next/server/chunks/[root-of-the-server]__0izaz1t._.js
+
+Import trace:
+  App Route:
+    ./next.config.ts
+    ./lib/agency/media/armazenamento.ts
+    ./app/api/media/route.ts
+
+
+./next.config.ts
+Encountered unexpected file in NFT list
+A file was traced that indicates that the whole project was traced unintentionally. Somewhere in the import trace below, there are:
+- filesystem operations (like path.join, path.resolve or fs.readFile), or
+- very dynamic requires (like require('./' + foo)).
+To resolve this, you can
+- remove them if possible, or
+- only use them in development, or
+- make sure they are statically scoped to some subfolder: path.join(process.cwd(), 'data', bar), or
+- add ignore comments: path.join(/*turbopackIgnore: true*/ process.cwd(), bar)
+
+Output asset trace:
+  [output]/.next/server/instrumentation.js
+  [output]/.next/server/chunks/_0wnvwdy._.js
+  [output]/.next/server/chunks/[root-of-the-server]__0lvunnv._.js
+
+Import trace:
+  App Route:
+    ./next.config.ts
+    ./lib/agency/media/armazenamento.ts
+    ./app/api/media/route.ts
+
+
+✓ Compiled successfully in 20.5s
+  Running TypeScript ...
+  Finished TypeScript in 39.7s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/153) ...
+  Generating static pages using 3 workers (38/153) 
+  Generating static pages using 3 workers (76/153) 
+  Generating static pages using 3 workers (114/153) 
+✓ Generating static pages using 3 workers (153/153) in 958ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /agency
+├ ƒ /agency/ads-agent
+├ ƒ /agency/agents
+├ ƒ /agency/approvals
+├ ƒ /agency/avisos-de-orcamento
+├ ƒ /agency/brain
+├ ƒ /agency/brand-assets
+├ ƒ /agency/brand-hub-agent
+├ ƒ /agency/catalog
+├ ƒ /agency/clients
+├ ƒ /agency/clients/[id]
+├ ƒ /agency/control-room
+├ ƒ /agency/dashboard
+├ ƒ /agency/dashboard/operacao
+├ ƒ /agency/deliverables
+├ ƒ /agency/desempenho-pago
+├ ƒ /agency/design-agent
+├ ƒ /agency/escada
+├ ƒ /agency/execution/[id]
+├ ƒ /agency/financeiro
+├ ƒ /agency/google
+├ ƒ /agency/inbox
+├ ƒ /agency/integrations
+├ ƒ /agency/leads
+├ ƒ /agency/operations-agent
+├ ƒ /agency/oportunidades
+├ ƒ /agency/orchestrator
+├ ƒ /agency/pipeline
+├ ƒ /agency/planner
+├ ƒ /agency/pm-agent
+├ ƒ /agency/pm-command
+├ ƒ /agency/produto-tecnologia
+├ ƒ /agency/projects
+├ ƒ /agency/projects/[id]
+├ ƒ /agency/radar
+├ ƒ /agency/requests
+├ ƒ /agency/requests/[id]/scope
+├ ƒ /agency/sem-permissao
+├ ƒ /agency/settings
+├ ƒ /agency/simulations/training
+├ ƒ /agency/social-media-agent
+├ ƒ /agency/strategy-agent
+├ ƒ /agency/tasks
+├ ƒ /agency/whatsapp
+├ ƒ /api/activity-events
+├ ƒ /api/admin/backfill-carrossel
+├ ƒ /api/admin/cards-de-aprovacao
+├ ƒ /api/admin/diagnostico-de-conexoes
+├ ƒ /api/admin/diagnostico-do-navegador
+├ ƒ /api/admin/limpar-producao
+├ ƒ /api/admin/links-do-portal
+├ ƒ /api/admin/produzir-pecas
+├ ƒ /api/admin/recompor-pecas
+├ ƒ /api/admin/reconciliar-drive
+├ ƒ /api/admin/refazer-com-direcao
+├ ƒ /api/admin/reset
+├ ƒ /api/admin/reset-request
+├ ƒ /api/admin/reverter-aprovacao-do-pacote
+├ ƒ /api/admin/training/sdr/run
+├ ƒ /api/admin/training/sdr/suggestions/[id]
+├ ƒ /api/agency/avisos-de-orcamento
+├ ƒ /api/agency/central
+├ ƒ /api/agency/clients/[id]/marca
+├ ƒ /api/agency/clients/[id]/marca/do-brand-book
+├ ƒ /api/agency/escada
+├ ƒ /api/agency/gasto-de-ia
+├ ƒ /api/agency/google
+├ ƒ /api/agency/leads
+├ ƒ /api/agency/material-de-marca
+├ ƒ /api/agency/oportunidades
+├ ƒ /api/agency/oportunidades/[id]
+├ ƒ /api/agency/oportunidades/caixa
+├ ƒ /api/agency/oportunidades/caixa/testar
+├ ƒ /api/agency/oportunidades/conexoes
+├ ƒ /api/agency/oportunidades/email
+├ ƒ /api/agency/provedor-do-cliente
+├ ƒ /api/agency/sala-dos-agentes
+├ ƒ /api/agents/ads/generate
+├ ƒ /api/agents/brand/analyze
+├ ƒ /api/agents/design/generate
+├ ƒ /api/agents/operations/generate
+├ ƒ /api/agents/pm/generate
+├ ƒ /api/agents/social/generate
+├ ƒ /api/ai-keys
+├ ƒ /api/ai-keys/test
+├ ƒ /api/ai-run-logs
+├ ƒ /api/ai/run
+├ ƒ /api/auth/google
+├ ƒ /api/auth/google/callback
+├ ƒ /api/auth/signin
+├ ƒ /api/avaliacoes
+├ ƒ /api/avisos
+├ ƒ /api/backup
+├ ƒ /api/brain/analyze-brand-book
+├ ƒ /api/brain/approvals
+├ ƒ /api/brain/artifacts
+├ ƒ /api/brain/auto-scope
+├ ƒ /api/brain/auto-scope/[id]/review
+├ ƒ /api/brain/briefing-extract
+├ ƒ /api/brain/changes
+├ ƒ /api/brain/changes/[id]
+├ ƒ /api/brain/client-requests
+├ ƒ /api/brain/evidence
+├ ƒ /api/brain/orchestrate
+├ ƒ /api/brain/orchestrate/apply
+├ ƒ /api/brain/portal-access
+├ ƒ /api/brain/portal-data
+├ ƒ /api/brain/reason
+├ ƒ /api/brain/updates
+├ ƒ /api/brain/updates/[id]/apply
+├ ƒ /api/brand-updates
+├ ƒ /api/brand-updates/[id]
+├ ƒ /api/briefings
+├ ƒ /api/briefings/[id]
+├ ƒ /api/campanhas
+├ ƒ /api/capacidades
+├ ƒ /api/clients
+├ ƒ /api/clients/[id]
+├ ƒ /api/clients/[id]/brand-brain
+├ ƒ /api/clients/[id]/fundir
+├ ƒ /api/clients/[id]/vinculos
+├ ƒ /api/cron/caixa-de-entrada
+├ ƒ /api/cron/execute
+├ ƒ /api/cron/radar
+├ ƒ /api/cron/radar/digest
+├ ƒ /api/cron/raio-x
+├ ƒ /api/cron/recompra
+├ ƒ /api/cron/training/sdr
+├ ƒ /api/cron/v2
+├ ƒ /api/deliverables
+├ ƒ /api/deliverables/[id]
+├ ƒ /api/diretor/pendencias
+├ ƒ /api/financeiro
+├ ƒ /api/generate-image
+├ ƒ /api/google/conectar
+├ ƒ /api/google/drive/callback
+├ ƒ /api/health
+├ ƒ /api/integration-configs
+├ ƒ /api/material-requests
+├ ƒ /api/material-requests/[id]
+├ ƒ /api/media
+├ ƒ /api/media/[id]
+├ ƒ /api/messages
+├ ƒ /api/messages/pedidos
+├ ƒ /api/meta/ativos
+├ ƒ /api/meta/callback
+├ ƒ /api/meta/config
+├ ƒ /api/meta/connect
+├ ƒ /api/meta/connect-parceiro
+├ ƒ /api/meta/connections
+├ ƒ /api/meta/contas-de-anuncio
+├ ƒ /api/meta/desempenho
+├ ƒ /api/meta/diagnostico
+├ ƒ /api/meta/dispatch
+├ ƒ /api/meta/exclusao-de-dados
+├ ƒ /api/meta/feed
+├ ƒ /api/meta/insights
+├ ƒ /api/meta/prontidao
+├ ƒ /api/meta/publish
+├ ƒ /api/meta/templates
+├ ƒ /api/meta/token
+├ ƒ /api/meta/webhooks
+├ ƒ /api/meta/whatsapp
+├ ƒ /api/meta/whatsapp/messages
+├ ƒ /api/pacotes-travados
+├ ƒ /api/piloto/diagnostico
+├ ƒ /api/piloto/diario
+├ ƒ /api/portal/approvals
+├ ƒ /api/portal/briefing/aceite
+├ ƒ /api/portal/conectar-meta
+├ ƒ /api/portal/conexoes
+├ ƒ /api/portal/drive
+├ ƒ /api/portal/drive/conectar
+├ ƒ /api/portal/drive/token-do-seletor
+├ ƒ /api/portal/esteira
+├ ƒ /api/portal/marca
+├ ƒ /api/portal/materiais
+├ ƒ /api/portal/messages
+├ ƒ /api/portal/messages/suggest
+├ ƒ /api/portal/meta-ativos
+├ ƒ /api/portal/metricas
+├ ƒ /api/portal/pedidos
+├ ƒ /api/portal/pedidos/orcamento
+├ ƒ /api/portal/projetos
+├ ƒ /api/portal/session
+├ ƒ /api/portal/transcricao
+├ ƒ /api/portal/vista
+├ ƒ /api/produto-tecnologia/cadeia
+├ ƒ /api/projects
+├ ƒ /api/projects/[id]
+├ ƒ /api/projects/[id]/esteira
+├ ƒ /api/projects/[id]/execute
+├ ƒ /api/projects/[id]/execution
+├ ƒ /api/projects/[id]/marketing
+├ ƒ /api/pulso
+├ ƒ /api/radar/insights
+├ ƒ /api/radar/insights/[id]
+├ ƒ /api/radar/scan
+├ ƒ /api/sdr/chat
+├ ƒ /api/sdr/transcribe
+├ ƒ /api/sdr/upload
+├ ƒ /api/self-serve/order
+├ ƒ /api/self-serve/webhook
+├ ƒ /api/session
+├ ƒ /api/social-posts
+├ ƒ /api/social-posts/[id]
+├ ƒ /api/social-posts/[id]/download
+├ ƒ /api/social-posts/[id]/reprovar
+├ ƒ /api/social-posts/aprovacao
+├ ƒ /api/social-posts/generate
+├ ƒ /api/social-posts/publicar-agora
+├ ƒ /api/strategy-rooms
+├ ƒ /api/strategy-rooms/[projectId]
+├ ƒ /api/tasks
+├ ƒ /api/tasks/[id]
+├ ƒ /api/top-down
+├ ƒ /api/v2/assistido
+├ ƒ /api/v2/central
+├ ƒ /api/v2/observabilidade
+├ ƒ /api/v2/pm-command
+├ ƒ /api/v2/retomar
+├ ƒ /api/v2/rollout
+├ ○ /auth/signin
+├ ƒ /auth/signout
+├ ○ /briefing
+├ ○ /contato
+├ ƒ /exclusao-de-dados
+├ ○ /icon.svg
+├ ○ /planos
+├ ƒ /portal/access
+├ ƒ /portal/access/[token]
+├ ○ /privacidade
+├ ○ /termos
+├ ○ /vitrine
+└ ○ /vitrine/sucesso
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+EXIT=0

@@ -1,0 +1,744 @@
+{
+  "percurso": {
+    "roteiro": {
+      "nomeDoNegocioNaTela": "Farol 27 Padaria & Café [TESTE]",
+      "nomeDoNegocioNaFala": "Farol 27",
+      "contatoDaPorta": {
+        "nome": "Ana Farol [TESTE]",
+        "email": "ana.farol@cliente-falso.invalid",
+        "whatsapp": "5511900000027"
+      },
+      "aberturaEspontanea": "Oi! Somos a Farol 27, uma padaria e café na Grande São Paulo — 3 lojas e uma cozinha central, 6 anos de casa.",
+      "turnoDaOfertaDeDocumento": 5,
+      "turnoDoAnexo": 6,
+      "quandoNaoEntende": "Desculpa, não entendi. Pode explicar de outro jeito?",
+      "fatos": [
+        {
+          "id": "nome_do_negocio",
+          "intencao": "apresenta",
+          "quandoPerguntam": {},
+          "responde": "O negócio se chama Farol 27 — Padaria & Café."
+        },
+        {
+          "id": "servico",
+          "intencao": "pede_servico",
+          "quandoPerguntam": {},
+          "responde": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Precisamos de identidade, conteúdo e anúncios."
+        },
+        {
+          "id": "objetivo",
+          "intencao": "declara_objetivo",
+          "quandoPerguntam": {},
+          "responde": "Vender assinaturas do Clube Farol 27 e parar de depender só do balcão."
+        },
+        {
+          "id": "publico",
+          "intencao": "declara_publico",
+          "quandoPerguntam": {},
+          "responde": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo."
+        },
+        {
+          "id": "modo",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Contrato mensal, mas com um projeto de lançamento de 8 semanas dentro."
+        },
+        {
+          "id": "canais",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Instagram, TikTok e WhatsApp."
+        },
+        {
+          "id": "volume",
+          "intencao": "declara_volume",
+          "quandoPerguntam": {},
+          "responde": "3 posts por semana no feed"
+        },
+        {
+          "id": "stories",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Stories sim, uns 3 por semana."
+        },
+        {
+          "id": "reels",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Sim, 8 vídeos curtos por mês para o TikTok."
+        },
+        {
+          "id": "video",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "A gente grava na loja com celular; roteiro e edição queremos de vocês."
+        },
+        {
+          "id": "fotos",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Temos fotos de loja e de produto, cardápios antigos, embalagens e prints das redes. Brand book a gente não tem."
+        },
+        {
+          "id": "copy",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Os textos ficam com vocês — não temos tom de voz definido."
+        },
+        {
+          "id": "trafego",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Sim, queremos anúncios."
+        },
+        {
+          "id": "plataforma_anuncios",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Meta e TikTok. A divisão entre os dois a gente não sabe fazer — quem decide é vocês."
+        },
+        {
+          "id": "verba_anuncios",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios."
+        },
+        {
+          "id": "operacao_basica",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Nosso Instagram é @farol27cafe. Abrimos todo dia das 6h30 às 20h. Atendemos a Grande São Paulo num raio de 3 km de cada loja, e sim, atendemos por WhatsApp — mas o número oficial ainda não está confirmado internamente."
+        },
+        {
+          "id": "area",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Grande São Paulo, 3 km em volta de cada uma das 3 lojas."
+        },
+        {
+          "id": "identidade",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Temos um logo em PNG, mas não temos vetor confirmado nem manual de marca."
+        },
+        {
+          "id": "referencias",
+          "intencao": "responde_livre",
+          "quandoPerguntam": {},
+          "responde": "Gostamos do jeito da Padaria Santa Tereza e do Coffee Lab."
+        },
+        {
+          "id": "verba",
+          "intencao": "declara_verba",
+          "quandoPerguntam": {},
+          "responde": "Nosso orçamento é de R$ 8000 por mês para a gestão."
+        },
+        {
+          "id": "prazo",
+          "intencao": "declara_prazo",
+          "quandoPerguntam": {},
+          "responde": "Queremos começar agora — o lançamento do Clube é em 8 semanas."
+        }
+      ],
+      "declarado": {
+        "postsPorSemana": 3,
+        "verbaMensal": 8000,
+        "fraseDaVerba": "R$ 8000 por mês",
+        "fraseDoVolume": "3 posts por semana no feed"
+      }
+    },
+    "aprovacao": {
+      "tentou": true,
+      "viaRota": false,
+      "ok": true,
+      "motivo": "a rota autenticada não rodou em processo; a função foi chamada direto — a camada de autenticação NÃO foi exercida",
+      "projetoId": "cmt7g94wq000gs17dm3kdk5xn",
+      "recusouQuemNaoEStaff": null,
+      "intrusos": []
+    },
+    "aceite": {
+      "tentou": true,
+      "viaPortal": true,
+      "nasceuSozinho": false,
+      "motivo": "o aceite foi registrado e o caminho automático PAROU: o briefing não é caso normal e espera uma pessoa"
+    },
+    "material": {
+      "pedidos": 5,
+      "enviados": 5,
+      "viaPortal": true,
+      "motivo": null
+    },
+    "aprovacaoDaPeca": {
+      "tentou": true,
+      "apresentado": false,
+      "pedindoDecisao": 0,
+      "viaPortal": false,
+      "carimboDoCliente": 0,
+      "carimboDeOutro": 0,
+      "motivo": "o pacote não foi apresentado ao cliente (MARCO 2 não rodou). Por quê: o motor não registrou motivo — nem bloqueio de apresentação, nem retenção da escada"
+    },
+    "esteira": {
+      "projetoId": "cmt7g94wq000gs17dm3kdk5xn",
+      "tarefas": 4,
+      "execucaoRodou": true,
+      "execucaoErro": null,
+      "execucaoStatus": "failed",
+      "direcaoAprovada": true,
+      "entregas": 0,
+      "direcaoPedida": true,
+      "direcaoViaPortal": true,
+      "direcaoMotivo": null,
+      "execucaoPendencias": "pendências: Estratégia · Posicionamento (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Estratégia · Pesquisa de concorrência (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Pauta do mês (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Copy dos posts (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Social Media · Roteiro de vídeo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Plano de medição (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.); Analytics · Otimização do próximo ciclo (IA: Nenhuma IA conectada. Conecte uma chave em Integrações.)",
+      "execucaoTentativas": 1
+    },
+    "saudacao": "Olá, Ana! Seja bem-vindo(a) à Dioli Studio.\n\nSou sua consultora de orçamento. Vou te ajudar a montar uma proposta personalizada para o seu negócio — com estimativa de investimento atualizada em tempo real.\n\n**Para começar, qual é o nome do seu negócio?**",
+    "turnos": [
+      {
+        "numero": 1,
+        "doCliente": "Oi! Somos a Farol 27, uma padaria e café na Grande São Paulo — 3 lojas e uma cozinha central, 6 anos de casa.",
+        "daCasa": "Prazer, Ana! E qual é o nome do seu negócio?",
+        "intencao": "apresenta",
+        "escopoDepois": {
+          "objectives": [],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027"
+        }
+      },
+      {
+        "numero": 2,
+        "doCliente": "O negócio se chama Farol 27 — Padaria & Café.",
+        "daCasa": "Ótimo! Agora me conta: o que você está precisando para o **Farol**?\n\nPode me contar mais? Você está buscando gestão de redes sociais, tráfego pago, criação de identidade visual — ou uma combinação?",
+        "intencao": "apresenta",
+        "escopoDepois": {
+          "objectives": [],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol"
+        }
+      },
+      {
+        "numero": 3,
+        "doCliente": "Queremos reposicionar a marca e lançar o Clube Farol 27, uma assinatura de café da manhã de R$ 149 por mês. Precisamos de identidade, conteúdo e anúncios.",
+        "daCasa": "Qual é o **principal objetivo** que você quer alcançar com esse trabalho? (ex: mais vendas, mais clientes, autoridade, engajamento)",
+        "intencao": "pede_servico",
+        "escopoDepois": {
+          "objectives": [],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol",
+          "wantsPaidTraffic": true
+        }
+      },
+      {
+        "numero": 4,
+        "doCliente": "Vender assinaturas do Clube Farol 27 e parar de depender só do balcão.",
+        "daCasa": "Quem é o seu **público-alvo** — o cliente ideal que você quer atingir? (idade, perfil, região, o que buscam)",
+        "intencao": "declara_objetivo",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol",
+          "wantsPaidTraffic": true
+        }
+      },
+      {
+        "numero": 5,
+        "doCliente": "Posso te mandar nosso briefing em PDF, ajuda?",
+        "daCasa": "Pode mandar sim, ajuda muito — é só usar o clipe (📎) aqui embaixo para anexar.\n\nVoltando ao que eu tinha te perguntado:\n\nQuem é o seu **público-alvo** — o cliente ideal que você quer atingir? (idade, perfil, região, o que buscam)",
+        "intencao": "oferece_documento",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol",
+          "wantsPaidTraffic": true
+        }
+      },
+      {
+        "numero": 6,
+        "doCliente": "📎 Enviei meu briefing: briefing-cantina-da-prova.pdf",
+        "daCasa": "Recebi o **briefing-cantina-da-prova.pdf** — obrigado. Vou considerar o que está nele no seu escopo.\n\nVoltando ao que eu tinha te perguntado:\n\nQuem é o seu **público-alvo** — o cliente ideal que você quer atingir? (idade, perfil, região, o que buscam)",
+        "intencao": "anexa_documento",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol",
+          "wantsPaidTraffic": true
+        }
+      },
+      {
+        "numero": 7,
+        "doCliente": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo.",
+        "daCasa": "Você imagina esse trabalho como um **contrato mensal** (gestão contínua) ou uma **campanha pontual** (projeto com prazo definido)?",
+        "intencao": "declara_publico",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol",
+          "wantsPaidTraffic": true,
+          "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo."
+        }
+      },
+      {
+        "numero": 8,
+        "doCliente": "Contrato mensal, mas com um projeto de lançamento de 8 semanas dentro.",
+        "daCasa": "Os anúncios seriam em qual plataforma: **Meta (Instagram/Facebook)**, **Google**, ou ambos?",
+        "intencao": "responde_livre",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol",
+          "serviceMode": "monthly",
+          "wantsPaidTraffic": true,
+          "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo."
+        }
+      },
+      {
+        "numero": 9,
+        "doCliente": "Meta e TikTok. A divisão entre os dois a gente não sabe fazer — quem decide é vocês.",
+        "daCasa": "Qual é a verba mensal disponível para os anúncios? (Esse valor vai direto para o Google/Meta — é separado da gestão)",
+        "intencao": "responde_livre",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol",
+          "serviceMode": "monthly",
+          "traffic": {
+            "platforms": [
+              "TikTok"
+            ]
+          },
+          "wantsPaidTraffic": true,
+          "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo."
+        }
+      },
+      {
+        "numero": 10,
+        "doCliente": "R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios.",
+        "daCasa": "Onde estão os clientes que você quer alcançar? Me diga a **cidade** (e o raio, se souber — ex: \"São Paulo, uns 10 km\"). Se você vende para o **Brasil inteiro**, pode dizer também.",
+        "intencao": "responde_livre",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol",
+          "serviceMode": "monthly",
+          "traffic": {
+            "platforms": [
+              "TikTok"
+            ],
+            "monthlyAdBudget": "R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios."
+          },
+          "wantsPaidTraffic": true,
+          "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo."
+        }
+      },
+      {
+        "numero": 11,
+        "doCliente": "Grande São Paulo, 3 km em volta de cada uma das 3 lojas.",
+        "daCasa": "Tem **concorrentes ou referências** (marcas, perfis) que você admira ou quer usar de inspiração?",
+        "intencao": "responde_livre",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol",
+          "serviceMode": "monthly",
+          "traffic": {
+            "platforms": [
+              "TikTok"
+            ],
+            "monthlyAdBudget": "R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios.",
+            "serviceArea": {
+              "alcance": "local",
+              "cidade": null,
+              "raioKm": 3,
+              "comoFoiDito": "Grande São Paulo, 3 km em volta de cada uma das 3 lojas."
+            }
+          },
+          "wantsPaidTraffic": true,
+          "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo."
+        }
+      },
+      {
+        "numero": 12,
+        "doCliente": "Gostamos do jeito da Padaria Santa Tereza e do Coffee Lab.",
+        "daCasa": "Para eu fechar o escopo do **Farol**: qual faixa de orçamento mensal você tem em mente para a gestão? (só a gestão — a verba de anúncios que você já me passou é à parte)",
+        "intencao": "responde_livre",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol",
+          "serviceMode": "monthly",
+          "traffic": {
+            "platforms": [
+              "TikTok"
+            ],
+            "monthlyAdBudget": "R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios.",
+            "serviceArea": {
+              "alcance": "local",
+              "cidade": null,
+              "raioKm": 3,
+              "comoFoiDito": "Grande São Paulo, 3 km em volta de cada uma das 3 lojas."
+            }
+          },
+          "wantsPaidTraffic": true,
+          "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo.",
+          "competitors": [
+            "Gostamos do jeito da Padaria Santa Tereza",
+            "do Coffee Lab."
+          ]
+        }
+      },
+      {
+        "numero": 13,
+        "doCliente": "Nosso orçamento é de R$ 8000 por mês para a gestão.",
+        "daCasa": "E para quando você quer começar?",
+        "intencao": "declara_verba",
+        "escopoDepois": {
+          "objectives": [
+            "Aumentar vendas"
+          ],
+          "wantsSocialMedia": false,
+          "branding": {
+            "requested": false,
+            "hasBrandBook": false,
+            "wantsRebrand": false
+          },
+          "prospectName": "Ana Farol [TESTE]",
+          "prospectPhone": "5511900000027",
+          "businessName": "Farol",
+          "serviceMode": "monthly",
+          "traffic": {
+            "platforms": [
+              "TikTok"
+            ],
+            "monthlyAdBudget": "R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios.",
+            "serviceArea": {
+              "alcance": "local",
+              "cidade": null,
+              "raioKm": 3,
+              "comoFoiDito": "Grande São Paulo, 3 km em volta de cada uma das 3 lojas."
+            }
+          },
+          "wantsPaidTraffic": true,
+          "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo.",
+          "competitors": [
+            "Gostamos do jeito da Padaria Santa Tereza",
+            "do Coffee Lab."
+          ],
+          "budgetRange": "Nosso orçamento é de R$ 8000 por mês para a gestão."
+        }
+      }
+    ],
+    "escopoFinal": {
+      "objectives": [
+        "Aumentar vendas"
+      ],
+      "wantsSocialMedia": false,
+      "branding": {
+        "requested": false,
+        "hasBrandBook": false,
+        "wantsRebrand": false
+      },
+      "prospectName": "Ana Farol [TESTE]",
+      "prospectPhone": "5511900000027",
+      "businessName": "Farol",
+      "serviceMode": "monthly",
+      "traffic": {
+        "platforms": [
+          "TikTok"
+        ],
+        "monthlyAdBudget": "R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios.",
+        "serviceArea": {
+          "alcance": "local",
+          "cidade": null,
+          "raioKm": 3,
+          "comoFoiDito": "Grande São Paulo, 3 km em volta de cada uma das 3 lojas."
+        }
+      },
+      "wantsPaidTraffic": true,
+      "targetAudience": "Moradores e trabalhadores num raio de 3 km das lojas, 25 a 45 anos, e empresas da região que pedem café da manhã corporativo.",
+      "competitors": [
+        "Gostamos do jeito da Padaria Santa Tereza",
+        "do Coffee Lab."
+      ],
+      "budgetRange": "Nosso orçamento é de R$ 8000 por mês para a gestão."
+    },
+    "estimativaFinal": {
+      "items": [
+        {
+          "label": "Tráfego Pago — gestão",
+          "detail": "Setup + gerenciamento mensal",
+          "minPrice": 500,
+          "maxPrice": 1200,
+          "unit": "mês"
+        }
+      ],
+      "totalMin": 500,
+      "totalMax": 1200,
+      "confidence": "high",
+      "missingForEstimate": [],
+      "included": [
+        "Criação e gestão de campanhas pagas",
+        "Otimização e relatórios mensais"
+      ],
+      "notIncluded": [
+        "Verba de mídia: R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios. (pago direto ao Google/Meta)"
+      ]
+    },
+    "portaoAbriu": true,
+    "bloqueioDoPortao": null,
+    "ultimaFalaDaCasa": "E para quando você quer começar?",
+    "pedido": {
+      "id": "cmt7g94j30003s17d2oejk4pd",
+      "status": "proposal_pending",
+      "businessName": "Farol 27 Padaria & Café [TESTE]"
+    },
+    "orcamentoEntregue": "Recebemos seu briefing da Farol 27 Padaria & Café [TESTE] — obrigado pelo material.\n\nPelo que você descreveu, a estimativa fica entre R$ 500 e R$ 1.200 por mês.\n\nO que entra nessa conta:\n• Tráfego Pago — gestão — Setup + gerenciamento mensal\n\nO que NÃO está incluído:\n• Verba de mídia: R$ 30 mil para 60 dias, ou seja R$ 15 mil por mês de anúncios. (pago direto ao Google/Meta)\n\nIsto é uma estimativa a partir do que você contou, não a proposta final — a equipe confere e te manda a proposta fechada por aqui. Se algo acima estiver diferente do que você precisa, é só responder nesta conversa.",
+    "turnosBarrados": [],
+    "respostasDoSdr": [],
+    "sdrAoVivo": false,
+    "saidasBloqueadas": [
+      {
+        "canal": "email",
+        "destino": "ana.farol@cliente-falso.invalid",
+        "assunto": "Recebemos seu pedido — Farol",
+        "motivo": "modo_cliente_falso",
+        "em": "2026-08-24T16:27:40.731Z"
+      },
+      {
+        "canal": "email",
+        "destino": "ana.farol@cliente-falso.invalid",
+        "assunto": "Seu orçamento está pronto — Farol 27 Padaria & Café [TESTE]",
+        "motivo": "modo_cliente_falso",
+        "em": "2026-08-24T16:27:40.771Z"
+      },
+      {
+        "canal": "whatsapp",
+        "destino": "5511900000027",
+        "motivo": "modo_cliente_falso",
+        "em": "2026-08-24T16:27:41.283Z"
+      },
+      {
+        "canal": "whatsapp",
+        "destino": "5511900000027",
+        "motivo": "modo_cliente_falso",
+        "em": "2026-08-24T16:27:41.336Z"
+      }
+    ]
+  },
+  "achados": [
+    {
+      "id": "nome-da-porta",
+      "guarda": "Nome dado na porta não pode ser perguntado outra vez, nem na tela nem no painel.",
+      "veredito": "passou"
+    },
+    {
+      "id": "oferta-de-documento",
+      "guarda": "Cliente que oferece documento não pode ser atropelado com a mesma pergunta.",
+      "veredito": "passou"
+    },
+    {
+      "id": "sem-fala-repetida",
+      "guarda": "A casa não pode dizer a mesma coisa duas vezes seguidas.",
+      "veredito": "passou"
+    },
+    {
+      "id": "guarda-nao-barrou",
+      "guarda": "Nenhuma resposta pode ser barrada pelo guarda — plano B atendendo em silêncio é falha.",
+      "veredito": "nao-coberto",
+      "detalhe": "rodada sem SDR ao vivo: não houve guarda para barrar, e silêncio não é aprovação"
+    },
+    {
+      "id": "declarado-chega-ao-orcamento",
+      "guarda": "Volume e verba que o cliente declarou têm de aparecer no orçamento; campo zerado não vira preço.",
+      "veredito": "quebrou",
+      "falaExata": "3 posts por semana no feed",
+      "detalhe": "volume chegou AUSENTE ao escopo e mesmo assim virou preço (R$ 500–1200, confiança \"high\")"
+    },
+    {
+      "id": "verba-estourada-nomeada",
+      "guarda": "Orçamento acima da verba declarada tem de nomear a diferença, na cara.",
+      "veredito": "nao-coberto",
+      "detalhe": "a estimativa (R$ 500) não passou da verba declarada (R$ 8000) — não há diferença a nomear"
+    },
+    {
+      "id": "fim-nao-contradiz-portao",
+      "guarda": "A casa não pode dizer que terminou enquanto o portão de envio está fechado.",
+      "veredito": "passou"
+    },
+    {
+      "id": "portao-abre",
+      "guarda": "Depois de contar tudo, o cliente tem de conseguir enviar o briefing.",
+      "veredito": "passou"
+    },
+    {
+      "id": "orcamento-chega",
+      "guarda": "O orçamento tem de chegar ao cliente depois do briefing enviado.",
+      "veredito": "passou"
+    },
+    {
+      "id": "nenhuma-saida-real",
+      "guarda": "O cliente falso não pode disparar e-mail, WhatsApp ou mensagem a pessoa de verdade.",
+      "veredito": "passou",
+      "detalhe": "4 tentativa(s) de envio barrada(s) pela trava"
+    },
+    {
+      "id": "escopo-vira-projeto",
+      "guarda": "Briefing aprovado tem de virar projeto — senão o funil para e ninguém vê.",
+      "veredito": "passou",
+      "detalhe": "projeto cmt7g94wq000gs17dm3kdk5xn criado"
+    },
+    {
+      "id": "nasce-sem-painel",
+      "guarda": "O briefing aceito pelo cliente tem de virar projeto sozinho — sem ninguém abrir o painel.",
+      "veredito": "nao-coberto",
+      "detalhe": "o aceite foi registrado e o caminho automático PAROU: o briefing não é caso normal e espera uma pessoa"
+    },
+    {
+      "id": "porta-autenticada",
+      "guarda": "A aprovação do escopo passa por uma rota autenticada — e é ela que precisa ser exercitada.",
+      "veredito": "nao-coberto",
+      "detalhe": "a rota autenticada não rodou em processo; a função foi chamada direto — a camada de autenticação NÃO foi exercida"
+    },
+    {
+      "id": "projeto-tem-tarefas",
+      "guarda": "Projeto criado tem de nascer com tarefas — projeto vazio não vira entrega.",
+      "veredito": "passou",
+      "detalhe": "4 tarefa(s)"
+    },
+    {
+      "id": "direcao-pelo-cliente",
+      "guarda": "O portão de direção só pode ser aberto pela ação do CLIENTE — nunca por escrita direta no banco.",
+      "veredito": "passou",
+      "detalhe": "pedirDirecao() rodou e o cliente aprovou por POST /api/portal/esteira com token de portal validado"
+    },
+    {
+      "id": "execucao-anda",
+      "guarda": "A execução do projeto tem de PRODUZIR — rodar sem estourar não é andar.",
+      "veredito": "nao-coberto",
+      "detalhe": "a esteira andou até a produção (1 tentativa(s)) e parou por falta de chave de IA — rodada offline. Produzir de verdade só se mede com `--ao-vivo`."
+    },
+    {
+      "id": "pacote-fecha",
+      "guarda": "O projeto tem de CHEGAR A `done` — pacote que não fecha é cliente sem entrega.",
+      "veredito": "nao-coberto",
+      "detalhe": "rodada offline: sem chave de IA a produção não fecha, e isso não é defeito da casa"
+    },
+    {
+      "id": "peca-aprovada-pelo-cliente",
+      "guarda": "A peça só está entregue quando o CLIENTE a aprova pela porta dele — nunca por carimbo da casa.",
+      "veredito": "nao-coberto",
+      "detalhe": "rodada offline: sem chave de IA nenhuma peça é produzida, então não há o que o cliente aprovar. Aprovação de peça só se mede com `--ao-vivo`."
+    },
+    {
+      "id": "fim-da-esteira",
+      "guarda": "A esteira termina na peça aprovada pelo cliente — publicar é escolha dele, depois.",
+      "veredito": "fora-de-escopo",
+      "detalhe": "publicar no Instagram/Google não é etapa desta esteira (decisão do CEO, 24/08/2026) e não entra na conta de completude. As travas desses canais seguem de pé — elas impedem vazamento, não marcam etapa."
+    }
+  ],
+  "tropecos": [
+    {
+      "etapa": "aprovacao-pela-rota",
+      "erro": "a rota devolveu 401: o cookie de sessão não chega a `cookies()` fora do servidor do Next"
+    }
+  ]
+}
