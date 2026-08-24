@@ -95,6 +95,21 @@ export type TentativaDeIntruso = {
   entrou: boolean;
 };
 
+/**
+ * O ACEITE DO CLIENTE — o ponto de decisão do cursograma.
+ *
+ * `nasceuSozinho` é o fato inteiro: o cliente disse sim pela porta dele e o
+ * projeto apareceu no banco SEM ninguém abrir o painel. Separado de `viaPortal`
+ * pelo mesmo motivo de sempre — "a porta respondeu OK" e "a casa fez o que a
+ * porta disse que faria" são fatos diferentes.
+ */
+export type DesfechoDoAceite = {
+  tentou: boolean;
+  viaPortal: boolean;
+  nasceuSozinho: boolean;
+  motivo: string | null;
+};
+
 /** O que sobrou da esteira depois da aprovação. */
 export type EstadoDaEsteira = {
   projetoId: string | null;
@@ -148,6 +163,7 @@ export type Percurso = {
   /** Como (e se) o escopo foi aprovado — a porta que exige gente. */
   aprovacao: DesfechoDaAprovacao;
   /** Projeto, tarefas e execução, depois da aprovação. */
+  aceite: DesfechoDoAceite;
   esteira: EstadoDaEsteira;
   /** O SDR de verdade rodou? Se não, a verificação do guarda não afirma nada. */
   sdrAoVivo: boolean;
@@ -551,6 +567,38 @@ export function oEscopoAprovadoViraProjeto(p: Percurso): Achado {
   return { ...base, veredito: "passou", detalhe: `projeto ${p.esteira.projetoId} criado` };
 }
 
+// ─── 11.5. O BRIEFING ACEITO VIRA PROJETO SOZINHO ───────────────────────────
+//
+// A pergunta que o cursograma faz e que, até 24/08/2026, o cliente não tinha
+// onde responder: "cliente aceitou?". Nada movia um briefing para fora de
+// `proposal_pending`, e a única porta adiante exigia sessão de staff — a
+// explicação dos ZERO clientes em produção.
+//
+// Esta régua não pergunta "existe um projeto?". Pergunta "o projeto nasceu do
+// ACEITE DO CLIENTE, sem ninguém abrir o painel?" — que é a coisa inteira.
+export function oAceiteDoClienteViraProjeto(p: Percurso): Achado {
+  const base = {
+    id: "nasce-sem-painel",
+    guarda: "O briefing aceito pelo cliente tem de virar projeto sozinho — sem ninguém abrir o painel.",
+  };
+  if (!p.aceite.tentou) return { ...base, veredito: "nao-coberto", detalhe: p.aceite.motivo ?? "não houve proposta para aceitar" };
+  if (!p.aceite.viaPortal) {
+    return { ...base, veredito: "quebrou", detalhe: p.aceite.motivo ?? "a porta do aceite não respondeu como porta" };
+  }
+  if (!p.aceite.nasceuSozinho) {
+    // Pode ser a regra de parada funcionando (briefing fora do caso normal) —
+    // e aí NÃO é quebra, é a casa recusando automatizar o excepcional. O motivo
+    // diz qual dos dois é, e o placar mostra o motivo.
+    const parouNaRegra = /caso normal|espera uma pessoa/i.test(p.aceite.motivo ?? "");
+    return {
+      ...base,
+      veredito: parouNaRegra ? "nao-coberto" : "quebrou",
+      detalhe: p.aceite.motivo ?? "o aceite passou e nenhum projeto nasceu",
+    };
+  }
+  return { ...base, veredito: "passou", detalhe: "o cliente aceitou pelo portal e o projeto nasceu sem painel" };
+}
+
 // ─── 12. A porta autenticada foi mesmo exercitada? ──────────────────────────
 //
 // "A esteira anda" e "a esteira anda quando alguém a destranca" são afirmações
@@ -789,6 +837,7 @@ export const VERIFICACOES: ((p: Percurso) => Achado)[] = [
   nenhumaSaidaReal,
   // ── A metade de baixo, que nunca tinha sido percorrida ──────────────────
   oEscopoAprovadoViraProjeto,
+  oAceiteDoClienteViraProjeto,
   aPortaAutenticadaFoiExercitada,
   oProjetoNasceComTarefas,
   oPortaoDeDirecaoAbrePeloCliente,

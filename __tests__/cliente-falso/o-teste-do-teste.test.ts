@@ -84,6 +84,7 @@ function percursoSao(): Percurso {
         { quem: "sem cookie", status: 401, entrou: false },
         { quem: "role \"client\"", status: 403, entrou: false },
       ] },
+    aceite: { tentou: true, viaPortal: true, nasceuSozinho: true, motivo: null },
     esteira: {
       projetoId: "proj-falso-1", tarefas: 7, execucaoRodou: true, execucaoErro: null,
       execucaoStatus: "done", direcaoAprovada: true, entregas: 3,

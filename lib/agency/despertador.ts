@@ -377,6 +377,30 @@ export async function baterORelogio(): Promise<{
     quebrou("decisao-do-dono", err);
   }
 
+  // ── O CAMINHO AUTOMÁTICO: O BRIEFING ACEITO VIRA PROJETO ──────────────────
+  // Mesmo molde da decisão do dono, logo acima, e pelo mesmo motivo: a única
+  // porta que fazia um briefing virar projeto exigia sessão de staff em
+  // produção, e nenhuma rodada de agente tem uma. O cliente aceitava e nada
+  // acontecia — a explicação dos zero clientes.
+  //
+  // Aqui o relógio aplica. A rota do portal já tenta criar no ato do aceite;
+  // esta perna é a rede: se aquela chamada morreu no meio, a rodada seguinte
+  // retoma. Idempotente por `clientRequestId` — briefing que já virou projeto
+  // não vira um segundo.
+  try {
+    const { aplicarCaminhoAutomatico } = await import("@/lib/agency/esteira/caminho-automatico");
+    const r = await aplicarCaminhoAutomatico();
+    if (r.criados > 0) log(`caminho automático: ${r.criados} briefing(s) aceito(s) viraram projeto`);
+    // Parada é ESTADO, não falha: é a regra funcionando. O que não pode é ser
+    // silêncio — briefing parado sem ninguém saber é o defeito de origem.
+    if (r.pararam > 0) {
+      estadoDe("caminho-automatico",
+        `${r.pararam} briefing(s) aceito(s) pararam por não serem caso normal e esperam uma pessoa — o motivo de cada um está em ActivityEvent (caminho_automatico_parou)`);
+    }
+  } catch (err) {
+    quebrou("caminho-automatico", err);
+  }
+
   // ── A REPESCAGEM ──────────────────────────────────────────────────────────
   // Vem colada na decisão porque é a outra metade dela. `escadaFiltraEntregas`
   // roda uma vez só, no ato de apresentar — e apresentar não se repete. Sem

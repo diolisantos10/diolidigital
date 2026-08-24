@@ -153,6 +153,7 @@ for (let n = 1; n <= rodadas; n++) {
     sdrQuedas: percurso.respostasDoSdr.filter((r) => !r.respondeu).map((r) => r.motivo),
     turnosBarrados: percurso.turnosBarrados.length,
     aprovouViaRota: percurso.aprovacao.viaRota,
+    nasceuSemPainel: percurso.aceite.nasceuSozinho,
     projetoId: percurso.esteira.projetoId,
     tarefas: percurso.esteira.tarefas,
   });
@@ -165,6 +166,7 @@ for (let n = 1; n <= rodadas; n++) {
     turnos: percurso.turnos.map((t) => ({ numero: t.numero, doCliente: t.doCliente, daCasa: t.daCasa })),
     respostasDoSdr: percurso.respostasDoSdr,
     aprovacao: percurso.aprovacao,
+    aceite: percurso.aceite,
     esteira: percurso.esteira,
     turnosBarrados: percurso.turnosBarrados,
     saidasBloqueadas: percurso.saidasBloqueadas,

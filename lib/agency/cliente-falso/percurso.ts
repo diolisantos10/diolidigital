@@ -42,7 +42,7 @@ import {
   ROTEIRO_PADRAO, ARQUIVO_DO_CLIENTE_FALSO, OFERTA_DE_DOCUMENTO,
   fatoQueResponde, type Roteiro,
 } from "./roteiro";
-import type { Percurso, RespostaDoSdr, TurnoMedido, DesfechoDaAprovacao, TentativaDeIntruso, EstadoDaEsteira } from "./verificacoes";
+import type { Percurso, RespostaDoSdr, TurnoMedido, DesfechoDaAprovacao, DesfechoDoAceite, TentativaDeIntruso, EstadoDaEsteira } from "./verificacoes";
 
 /**
  * Quantas vezes o cliente falso responde antes de desistir.
@@ -270,8 +270,16 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
     direcaoPedida: false, direcaoViaPortal: false, direcaoMotivo: null,
     execucaoPendencias: null, execucaoTentativas: 0,
   };
+  let aceite: DesfechoDoAceite = { tentou: false, viaPortal: false, nasceuSozinho: false, motivo: "não houve proposta para aceitar" };
 
   if (pedido) {
+    // ─── ETAPA 6.5: O CLIENTE ACEITA — E O PROJETO NASCE SOZINHO ───────────
+    // O caminho do cursograma: um único ponto de decisão depois do preço
+    // ("cliente aceitou?") e o projeto nasce. Roda ANTES da rota de staff de
+    // propósito: é o caminho NORMAL, e a rota de staff tem de continuar
+    // funcionando por cima dele (idempotente), não no lugar dele.
+    aceite = await aceitarAPropostaComoOCliente(pedido.id, tropecos);
+
     aprovacao = await aprovarOEscopo(pedido.id, casa, tropecos, opts.baseUrlDoServidor ?? null);
 
     if (aprovacao.ok) {
@@ -334,6 +342,7 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
     percurso: {
       roteiro,
       aprovacao,
+      aceite,
       esteira,
       saudacao,
       turnos,
@@ -746,5 +755,72 @@ async function aprovarPelaPortaDeVerdade(
   } catch (e) {
     tropecos.push({ etapa: "porta-autenticada", erro: e instanceof Error ? e.message : String(e) });
     return null;
+  }
+}
+
+
+/**
+ * O CLIENTE ACEITA A PROPOSTA — E O PROJETO NASCE SEM NINGUÉM ABRIR O PAINEL.
+ *
+ * ── O que esta etapa mede (24/08/2026) ──────────────────────────────────────
+ * O cursograma da agência tem UM ponto de decisão depois da precificação:
+ * "cliente aceitou?". Até hoje nada movia um briefing para fora de
+ * `proposal_pending` — a pergunta existia no desenho e o cliente não tinha onde
+ * responder. Era a explicação dos zero clientes em produção.
+ *
+ * Aqui o cliente falso responde pela porta dele (`POST /api/portal/briefing/aceite`,
+ * token de portal validado, dono derivado do token) e a casa faz o projeto
+ * nascer sozinha. Nada nesta função cria Cliente ou Projeto: se o caminho
+ * automático não funcionar, o projeto não aparece e a verificação diz isso.
+ */
+async function aceitarAPropostaComoOCliente(
+  clientRequestId: string,
+  tropecos: Tropeco[],
+): Promise<DesfechoDoAceite> {
+  let token: string;
+  try {
+    const { createPortalAccess } = await import("@/lib/agency/persistence/portal-access-service");
+    const acesso = await createPortalAccess({
+      clientRequestId,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+    token = acesso.token;
+  } catch (e) {
+    const erro = e instanceof Error ? e.message : String(e);
+    tropecos.push({ etapa: "aceite", erro });
+    return { tentou: true, viaPortal: false, nasceuSozinho: false, motivo: `não consegui cunhar o acesso do portal: ${erro}` };
+  }
+
+  try {
+    const { POST } = await import("@/app/api/portal/briefing/aceite/route");
+    const req = new NextRequest("http://cliente-falso.local/api/portal/briefing/aceite", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token, clientRequestId, decisao: "aceito" }),
+    });
+    const res = await POST(req);
+    const corpo = (await res.json()) as { ok?: boolean; projetoCriado?: boolean; aguardandoPessoa?: boolean; error?: string };
+    if (res.status >= 400 || !corpo.ok) {
+      const motivo = `a porta do aceite recusou (${res.status}): ${corpo.error ?? "sem motivo"}`;
+      tropecos.push({ etapa: "aceite", erro: motivo });
+      return { tentou: true, viaPortal: false, nasceuSozinho: false, motivo };
+    }
+
+    // A PROVA não é a resposta da rota — é o projeto no banco. Rota que diz
+    // "criado" sem linha no banco é o defeito que esta bateria persegue.
+    const proj = await prisma.project.findFirst({ where: { clientRequestId }, select: { id: true } });
+    if (!proj) {
+      return {
+        tentou: true, viaPortal: true, nasceuSozinho: false,
+        motivo: corpo.aguardandoPessoa
+          ? "o aceite foi registrado e o caminho automático PAROU: o briefing não é caso normal e espera uma pessoa"
+          : "a porta do aceite respondeu OK e nenhum projeto apareceu no banco",
+      };
+    }
+    return { tentou: true, viaPortal: true, nasceuSozinho: true, motivo: null };
+  } catch (e) {
+    const erro = e instanceof Error ? e.message : String(e);
+    tropecos.push({ etapa: "aceite", erro });
+    return { tentou: true, viaPortal: false, nasceuSozinho: false, motivo: `a porta do aceite estourou: ${erro}` };
   }
 }
