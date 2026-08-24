@@ -129,6 +129,19 @@ describe("a verdade atestada chega a quem produz", () => {
     expect(b).not.toContain("O QUE O CLIENTE ATESTOU");
   });
 
+  it("a regra do que PODE ser afirmado é categórica — lista de classes deixa vão", () => {
+    // Medido ao vivo: peça barrada em `horario_nao_informado` num briefing cuja
+    // lista de "nunca contou" NÃO trazia horário — o cliente atestara os DIAS
+    // ("de segunda a sexta") e nenhuma HORA. A lista de classes é resumo de
+    // painel; o piso confere fato a fato. Enumerar o proibido sempre deixa um
+    // fato no vão; a regra define o PERMITIDO.
+    const b = ctxBlock(ctx({ verdadeAtestada: { linhas: ["Dias atestados: uteis"], semInformacao: [] } }));
+    expect(b).toMatch(/Só afirme HORÁRIO/);
+    expect(b).toMatch(/LITERALMENTE na lista de atestados/);
+    // E nomeia a dedução como proibida, que é exatamente o que o modelo faz.
+    expect(b).toMatch(/dedução/);
+  });
+
   it("todo especialista recebe o bloco, não só o que alguém lembrou de alterar", () => {
     const c = ctx({ verdadeAtestada: { linhas: ["Horários atestados: 11:00, 23:00"], semInformacao: [] } });
     const semBloco = TODOS_OS_ESPECIALISTAS.filter((e) => !e.prompt(c).includes("O QUE O CLIENTE ATESTOU"));

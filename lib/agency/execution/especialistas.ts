@@ -436,13 +436,35 @@ function blocoDaVerdade(c: Ctx): string {
   if (v.semInformacao.length > 0) {
     partes.push(
       "O QUE O CLIENTE NUNCA CONTOU — NÃO AFIRME NADA DISTO:\n"
-      + v.semInformacao.map((l) => `- ${l}`).join("\n")
-      + "\nEstes campos são conferidos em código (piso de verdade) DEPOIS da peça pronta: "
-      + "afirmar qualquer um deles reprova a entrega inteira e ela não chega ao cliente. "
-      + 'Precisando de um deles, escreva "PRECISO CONFIRMAR: <o quê>" no lugar — '
-      + "ausência de informação não é informação.",
+      + v.semInformacao.map((l) => `- ${l}`).join("\n"),
     );
   }
+
+  // ── A REGRA CATEGÓRICA, E POR QUE A LISTA ACIMA NÃO BASTA ────────────────
+  //
+  // Medido em 24/08/2026, na segunda leva ao vivo: a peça foi barrada em
+  // `horario_nao_informado` num briefing em que a lista de "nunca contou" NÃO
+  // trazia horário. Não é contradição — é granularidade. A lista de classes
+  // (`classesSemInformacao`) é um resumo de painel: ela considera a classe
+  // "horário" coberta quando o cliente atestou os DIAS ("de segunda a sexta"),
+  // mesmo sem nunca ter dito uma HORA. O piso confere fato a fato, e reprova
+  // "das 12h às 15h" porque nenhuma hora foi atestada.
+  //
+  // Enquanto o aviso for uma lista de classes e a régua conferir fatos, sempre
+  // haverá um fato no vão entre as duas. A regra abaixo fecha o vão pelo único
+  // lado que fecha: em vez de enumerar o proibido, define o permitido.
+  partes.push(
+    "REGRA DO QUE PODE SER AFIRMADO — é assim que o piso de verdade confere, fato a fato:\n"
+    + "Só afirme HORÁRIO, DIA, ÁREA DE ATENDIMENTO, RAIO, PREÇO, PRAZO, FORMA DE PAGAMENTO, "
+    + "CANAL, PERFIL ou OFERTA que apareça LITERALMENTE na lista de atestados acima. "
+    + "Não vale deduzir do segmento, do público, do objetivo nem do bom senso — "
+    + '"restaurante abre no almoço" é dedução, não é fato do cliente.\n'
+    + 'Para qualquer um desses que você precise e não esteja atestado, escreva '
+    + '"PRECISO CONFIRMAR: <o quê>" no lugar do valor. Uma peça com PRECISO CONFIRMAR é '
+    + "entregue e revisada; uma peça com fato inventado é REPROVADA INTEIRA e não chega ao cliente.\n"
+    + "Peça boa sem número inventado existe: fale do que a marca faz, de quem ela serve e "
+    + "do que o cliente escreveu — nada disso precisa de hora, preço ou endereço.",
+  );
   return partes.join("\n\n");
 }
 
