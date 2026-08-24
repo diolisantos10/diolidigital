@@ -171,8 +171,23 @@ const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
  * régua determinística já usava — importada, não copiada. Duas listas da mesma
  * verdade é a doença que esta casa já pagou várias vezes.
  */
+/**
+ * OS TIPOS QUE SE JULGAM COMO PLANO — e por que a lista não é a mesma.
+ *
+ * `TIPOS_DE_DOCUMENTO_INTERNO` responde a outra pergunta: "a régua
+ * determinística de texto se aplica?". Ela isenta estratégia e relatório porque
+ * analisar um concorrente dispara o detector de jargão da peça.
+ *
+ * Aqui a pergunta é diferente: "isto é para publicar?". Um plano de conteúdo
+ * NÃO é para publicar — mas continua tendo de passar na régua de texto, porque
+ * o cliente vai ler o calendário dele. Duas perguntas, duas respostas: juntar as
+ * listas isentaria a pauta da régua de texto sem ninguém ter pedido.
+ */
+const TIPOS_DE_PLANEJAMENTO: readonly string[] = ["plano-de-conteudo"];
+
 function naturezaDaEntrega(tipo: string | null): string {
-  const interno = !reguaSeAplicaA(tipo);
+  const t = (tipo ?? "").trim().toLowerCase();
+  const interno = !reguaSeAplicaA(tipo) || TIPOS_DE_PLANEJAMENTO.includes(t);
   if (interno) {
     return [
       `NATUREZA DESTA ENTREGA: DOCUMENTO DE TRABALHO INTERNO (tipo "${tipo}").`,

@@ -339,6 +339,24 @@ describe("sem saber O QUE julga, o juiz não julga", () => {
     expect(prompt).toMatch(/pode ser publicada como está/);
   });
 
+  it("a pauta do mês é PLANO, não peça — e continua na régua de texto", async () => {
+    // Medido ao vivo: a pauta era do tipo `social`, a Qualidade a julgava como
+    // post e a reprovava com "pode-se publicar COMO ESTÁ? Não — é um blueprint".
+    // Estava certa sobre o artefato e errada sobre o que lhe disseram que ele era.
+    generate.mockResolvedValue({ ok: true, data: { verdict: "pass", issues: [], note: "ok" } });
+    await auditDeliverable({ ...base, tipoDaEntrega: "plano-de-conteudo" });
+    const prompt = generate.mock.calls[0]![0].user as string;
+    expect(prompt).toMatch(/DOCUMENTO DE TRABALHO INTERNO/);
+  });
+
+  it("plano de conteúdo NÃO é isento da régua determinística de texto", async () => {
+    // A trava contra a economia errada: juntar as duas listas isentaria a pauta
+    // da régua de texto sem ninguém ter pedido. O cliente LÊ o calendário dele.
+    const { reguaSeAplicaA } = await import("@/lib/agency/execution/regua-do-texto");
+    expect(reguaSeAplicaA("plano-de-conteudo")).toBe(true);
+    expect(reguaSeAplicaA("strategy")).toBe(false);
+  });
+
   it("INFORMAR não é AFROUXAR: os critérios de invenção continuam nos dois casos", async () => {
     // Se algum dia alguém "simplificar" o prompt do documento interno tirando os
     // critérios, isto fica vermelho. Nenhum critério sai — só a régua errada.

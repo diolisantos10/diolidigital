@@ -683,7 +683,22 @@ ${formato("Concorrência — <negócio>", `"headline": "nome do concorrente", "n
         // especialista para não invalidar entregas já produzidas.
         id: "a3",
         label: "Pauta do mês",
-        deliverableType: "social",
+        // ── É PLANO, NÃO É POST (24/08/2026) ───────────────────────────────
+        // Era `social`, o MESMO tipo das legendas prontas, e o tipo é o que a
+        // casa usa para decidir duas coisas independentes — e errava as duas:
+        //
+        //   • a Qualidade julgava a pauta como peça publicável e a reprovava
+        //     com "pode-se publicar COMO ESTÁ? Não — é um blueprint". Estava
+        //     certa sobre o artefato e errada sobre o que lhe disseram que ele
+        //     era;
+        //   • `TIPOS_PUBLICAVEIS` (`publicacao.ts`) inclui `social`, então o
+        //     calendário do mês entrava na fila para VIRAR POST. Um plano
+        //     interno agendado para ir ao ar no perfil do cliente.
+        //
+        // ⚠️ Isto NÃO a isenta de nada: `plano-de-conteudo` não está em
+        // `TIPOS_DE_DOCUMENTO_INTERNO`, então a régua determinística de texto
+        // continua conferindo a pauta palavra por palavra. Muda só o que ela É.
+        deliverableType: "plano-de-conteudo",
         contrato: contratoDaPauta,
         provedor: "claude",
         prompt: (c) => `Você é o especialista de PAUTA da Dioli Digital. Monte o plano de conteúdo do mês.
