@@ -35,7 +35,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { SELF_SERVE_CATALOG } from "@/lib/agency/self-serve-catalog";
+import { SELF_SERVE_CATALOG, ofertaVendavel } from "@/lib/agency/self-serve-catalog";
 import { consumirVaga, respostaDeRecusa } from "@/lib/security/limite-no-banco";
 import { clientIp } from "@/lib/security/rate-limit";
 import { resolverWorkspacePublico } from "@/lib/agency/persistence/client-request-service";
@@ -125,6 +125,38 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const service = SELF_SERVE_CATALOG.find((s) => s.id === serviceId);
   if (!service) {
     return NextResponse.json({ ok: false, error: "Serviço não encontrado." }, { status: 404 });
+  }
+
+  // ── GUARDA 6: NÃO SE COBRA POR CAMINHO QUE NÃO EXISTE (24/08/2026) ───────
+  // A vitrine vendia reel com legenda animada, logotipo e banner em PDF, e esta
+  // rota gravava a linha e criava a preferência do Mercado Pago — dinheiro
+  // entrando por uma porta sem produção do outro lado. Tirar da tela não basta:
+  // a tela é aviso, isto aqui é a trava. Quem tiver o id (link antigo, print,
+  // curl) bate na mesma recusa.
+  //
+  // O critério NÃO é uma lista de ids proibidos — envelheceria no próximo item.
+  // É a régua de `capacidade-de-producao.ts`: o item só passa se TODA capacidade
+  // que ele exige (declarada ou prometida no texto) tiver ponto de produção.
+  // Item novo sem produtor é recusado por omissão, que é o comportamento certo.
+  //
+  // A recusa vem ANTES de qualquer escrita: nenhum `ClientRequestDb`, nenhuma
+  // preferência de pagamento. 409 (conflito com o estado da casa), não 400 — o
+  // pedido não está malformado, a casa é que não entrega.
+  const veredito = ofertaVendavel(service.id);
+  if (!veredito.vendavel) {
+    console.warn(`[self-serve/order] item sem caminho de produção recusado: ${service.id} (falta: ${veredito.faltando.join(", ") || "declaração"})`);
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          `"${service.label}" saiu de venda: ${veredito.motivo}. ` +
+          "Preferimos recusar a cobrar por algo que não entregaríamos. " +
+          "Chame a Dioli no WhatsApp que a gente te mostra o que dá para fazer hoje.",
+        indisponivel: true,
+        whatsappUrl: `https://wa.me/${AGENCY_WHATSAPP}`,
+      },
+      { status: 409 },
+    );
   }
 
   // ── GUARDA 4: dedup por janela ───────────────────────────────────────────
