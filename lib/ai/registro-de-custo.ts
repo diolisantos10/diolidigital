@@ -42,6 +42,13 @@ import { estimarCusto } from "@/lib/ai/precos";
 export interface UsoDeTokens {
   entrada: number | null;
   saida: number | null;
+  /** Tokens GRAVADOS no cache de prompt (custam ~1,25x). `null` = provedor não
+   *  informa ou cache não foi pedido. Nunca 0 por ausência: zero significaria
+   *  "não gravou nada", que é outra afirmação. */
+  cacheEscrito?: number | null;
+  /** Tokens LIDOS do cache (custam ~0,1x). É o número que prova a economia —
+   *  se ele fica em zero entre chamadas iguais, algo invalidou o prefixo. */
+  cacheLido?: number | null;
 }
 
 export interface ChamadaDeIa {

@@ -484,6 +484,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       maxTokens: MAX_TOKENS,
       timeoutMs: TIMEOUT_MS,
       tentativas: 1,
+      // ── O CACHE, E O NÚMERO QUE O JUSTIFICA (24/08/2026) ──────────────────
+      // O prompt do SDR tem ~10.700 tokens e é reenviado a CADA turno. Medido
+      // numa conversa de 16 turnos: 171k dos 192k tokens de entrada eram o
+      // mesmo texto repetido — ~US$ 0,65 por briefing, em produção, de puro
+      // desperdício. É o caso exato para o qual o cache existe: prompt grande,
+      // estável (nada de relógio nem aleatório dentro dele) e reusado dezenas
+      // de vezes na mesma conversa.
+      cachearSistema: true,
       agentId: "comercial-sdr",
       chaveJaResolvida: { provider: escolha.provider, apiKey: resolved.apiKey, model: resolved.model },
     });

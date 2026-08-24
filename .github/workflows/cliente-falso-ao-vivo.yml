@@ -46,6 +46,10 @@ on:
         description: "Quantas rodadas seguidas (o SDR é não-determinístico; 3 é o mínimo para afirmar que roda limpo)"
         required: false
         default: "3"
+      medir_cache:
+        description: "Medir o cache do prompt (3 chamadas) em vez de rodar a bateria"
+        required: false
+        default: "false"
 
 # Uma bateria de cada vez. Duas em paralelo dividiriam o mesmo teto de ritmo da
 # rota (`sdr-chat`, 30 chamadas por minuto) e uma barraria a outra — e um 429
@@ -123,6 +127,20 @@ jobs:
           echo "CHAVE_ENCONTRADA_EM=${achado}" >> "$GITHUB_ENV"
           echo "✅ chave presente (em ${achado}). O valor não é impresso em passo nenhum."
 
+      # A MEDIÇÃO DO CACHE, quando pedida. Gasta 3 chamadas de IA e não roda a
+      # bateria — existe para provar a economia com número medido, não estimado.
+      - name: Medir o cache do prompt (opcional)
+        if: ${{ github.event.inputs.medir_cache == 'true' }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          ANTHROPIC_API_TOKEN: ${{ secrets.ANTHROPIC_API_TOKEN }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+        run: |
+          export ANTHROPIC_API_KEY="$(printenv "${CHAVE_ENCONTRADA_EM}")"
+          npm run medir-cache
+
       # ── POR QUE UMA RODADA POR VEZ, COM PAUSA, E NÃO `--rodadas=N` ──────────
       # `/api/sdr/chat` tem freio de ritmo de 30 chamadas por minuto por IP, e o
       # IP de todas as chamadas da bateria é o mesmo ("unknown", porque a
@@ -135,6 +153,7 @@ jobs:
       # `set -e` para na primeira rodada que quebrar: "errou, consertou" começa
       # por não enterrar a quebra debaixo das rodadas seguintes.
       - name: A bateria, ao vivo
+        if: ${{ github.event.inputs.medir_cache != 'true' }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
@@ -187,7 +206,7 @@ jobs:
       # silêncio parecendo sucesso. `if-no-files-found: error` fecha a outra
       # metade — some o arquivo, o passo grita em vez de dar de ombros.
       - name: Guardar os placares
-        if: always()
+        if: ${{ always() && github.event.inputs.medir_cache != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: placares-cliente-falso

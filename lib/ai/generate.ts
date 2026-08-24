@@ -46,9 +46,21 @@ export type GenerateResult =
  * comemoraria uma economia que não existe.
  */
 function usoDoClaude(json: unknown): UsoDeTokens | null {
-  const u = (json as { usage?: { input_tokens?: number; output_tokens?: number } })?.usage;
+  const u = (json as {
+    usage?: {
+      input_tokens?: number; output_tokens?: number;
+      cache_creation_input_tokens?: number; cache_read_input_tokens?: number;
+    };
+  })?.usage;
   if (!u) return null;
-  return { entrada: u.input_tokens ?? null, saida: u.output_tokens ?? null };
+  return {
+    entrada: u.input_tokens ?? null,
+    saida: u.output_tokens ?? null,
+    // `?? null` e não `?? 0`: provedor que parou de informar apareceria como
+    // "cache não usado", e a casa comemoraria uma economia que não existe.
+    cacheEscrito: u.cache_creation_input_tokens ?? null,
+    cacheLido: u.cache_read_input_tokens ?? null,
+  };
 }
 function usoOpenAICompativel(json: unknown): UsoDeTokens | null {
   const u = (json as { usage?: { prompt_tokens?: number; completion_tokens?: number } })?.usage;
@@ -129,7 +141,10 @@ const FERRAMENTA_DO_PACOTE = {
   input_schema: { type: "object" as const, additionalProperties: true },
 };
 
-async function callClaude(apiKey: string, model: string, m: OpenAIMessages, maxTokens: number, timeoutMs?: number): Promise<GenerateResult> {
+async function callClaude(
+  apiKey: string, model: string, m: OpenAIMessages, maxTokens: number,
+  timeoutMs?: number, cachearSistema?: boolean,
+): Promise<GenerateResult> {
   const { signal, clear } = withTimeout(timeoutMs);
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -138,7 +153,26 @@ async function callClaude(apiKey: string, model: string, m: OpenAIMessages, maxT
       body: JSON.stringify({
         model,
         max_tokens: maxTokens,
-        system: m.system,
+        // ── O CACHE DE PROMPT, E POR QUE ELE É OPT-IN ────────────────────────
+        // Medido em 24/08/2026: o prompt do SDR tem ~10.700 tokens e era
+        // reenviado nos 16 turnos de uma conversa — 171k dos 192k tokens de
+        // entrada de um briefing eram o MESMO texto, de novo e de novo. Isso
+        // valia em produção, não só no teste: cada prospect real custava por
+        // esse desperdício.
+        //
+        // O ponto de corte vai no `system`, e a ordem de renderização
+        // (`tools` → `system` → `messages`) faz ele cobrir a ferramenta também.
+        // O que varia — o histórico e a fala da vez — fica DEPOIS do corte, que
+        // é o que mantém o prefixo estável entre turnos.
+        //
+        // ⚠️ NÃO É PADRÃO, e a razão é dinheiro: gravar no cache custa ~1,25x.
+        // Para quem chama UMA vez com um prompt próprio (a maioria dos 29
+        // caminhos desta casa), o cache nunca seria lido e a gravação só
+        // encareceria. Ligar por igual "para economizar" faria o contrário.
+        // Quem reusa o mesmo prompt pede; quem não reusa não paga.
+        system: cachearSistema
+          ? [{ type: "text", text: m.system, cache_control: { type: "ephemeral" } }]
+          : m.system,
         // O histórico entra ANTES da fala da vez. Ausente, o corpo fica
         // idêntico ao de sempre — um único turno de usuário.
         messages: [...(m.historico ?? []), { role: "user", content: m.user }],
@@ -346,8 +380,9 @@ function callProvider(
   maxTokens: number,
   attempts: number,
   timeoutMs?: number,
+  cachearSistema?: boolean,
 ): Promise<GenerateResult> {
-  if (provider === "claude") return callWithRetry(() => callClaude(apiKey, model, messages, maxTokens, timeoutMs), attempts);
+  if (provider === "claude") return callWithRetry(() => callClaude(apiKey, model, messages, maxTokens, timeoutMs, cachearSistema), attempts);
   if (provider === "openai" || provider === "deepseek" || provider === "perplexity") {
     return callWithRetry(() => callOpenAICompatible(provider, apiKey, model, messages, maxTokens, timeoutMs), attempts);
   }
@@ -435,6 +470,15 @@ export async function generate(options: {
    * decisão de quem paga já foi tomada por quem sabia fazê-la com segurança.
    */
   chaveJaResolvida?: { provider: AiProvider; apiKey: string; model: string | null };
+  /**
+   * Pede CACHE do prompt de sistema. Ausente = desligado, o de sempre.
+   *
+   * Só ligue quando o MESMO `system` for reenviado várias vezes seguidas — é o
+   * caso de uma conversa (o SDR reenvia 10.700 tokens a cada um dos 16 turnos).
+   * Gravar no cache custa ~1,25x; para quem chama uma vez só, o cache nunca
+   * seria lido e a gravação apenas encareceria. Ver o comentário em `callClaude`.
+   */
+  cachearSistema?: boolean;
   /** Teto de espera por chamada. Ausente = 60s, o de sempre. O SDR usa 30s:
    *  é conversa ao vivo, e quem está do outro lado não espera um minuto. */
   timeoutMs?: number;
@@ -544,7 +588,7 @@ export async function generate(options: {
     const model = (fixado && provider === fixado.provider ? modeloFixado : null) ?? resolved.model ?? modeloPadrao(provider);
     const attempts = tried.length === 0 ? (options.tentativas ?? 3) : 1;
     const comecou = Date.now();
-    const result = await callProvider(provider, resolved.apiKey, model, messages, maxTokens, attempts, options.timeoutMs);
+    const result = await callProvider(provider, resolved.apiKey, model, messages, maxTokens, attempts, options.timeoutMs, options.cachearSistema);
     const duracaoMs = Date.now() - comecou;
 
     if (result.ok) {
