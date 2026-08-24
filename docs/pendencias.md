@@ -14,6 +14,58 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🟡 24/08/2026 — DOUTRINA: A RÉGUA EVOLUI E O PEDIDO FICA PARA TRÁS
+
+**Quando uma régua passa a derivar de dado, todo lugar que PEDE aquilo tem de
+derivar da mesma fonte — no mesmo commit.**
+
+O piloto de ponta a ponta encontrou quatro defeitos, e os quatro eram a mesma
+doença: a casa tem um lado que CONFERE e um lado que PEDE, e só o que confere
+foi atualizado.
+
+| O que conferia | O que pedia | Resultado medido |
+|---|---|---|
+| contrato de saída derivado do cliente (15/08) | prompt com "6 a 8 peças" à mão | cliente comprou 12; o especialista era reprovado **por obedecer** |
+| piso de verdade confere fato atestado | `ctxBlock` não mandava fato operacional nenhum | peça barrada em `area_nao_informada`; o produtor escrevia às cegas |
+| contrato conta `data.items` | forma pedida em prosa no prompt | pauta devolveu objeto sem `items` = "entregou 0", **intermitente** |
+| mistura conferida por faixa | prompt mandava a faixa + "o resto em reel" | modelo escolheu o meio: 11 de 12, impossível de acertar por dedução |
+
+### Por que sempre acontece assim, e não ao contrário
+
+Porque a régua é onde o defeito DÓI, então é onde alguém mexe. O pedido é onde o
+defeito NASCE, e ele não dói — ele só produz uma reprovação que parece culpa do
+modelo. Quem lê o laudo vê "entregou 0 peças" e conclui "a IA está ruim hoje". A
+conclusão certa era "o pedido e a régua discordam, e o pedido está errado".
+
+O sintoma é sempre o mesmo e é reconhecível: **o produtor é reprovado por fazer
+exatamente o que foi mandado fazer.** Quando aparecer isso, o defeito não está em
+quem produziu.
+
+### As três regras que ficam
+
+1. **Uma fonte por número.** Se a régua conta 12, o prompt não escreve 12 — ele
+   lê do mesmo lugar. Hoje `exigenciaDeConteudo` serve aos dois, e
+   `MISTURA_DE_FORMATOS` idem.
+2. **Não deixe aritmética para o modelo.** Faixa é da RÉGUA, que precisa aceitar
+   várias composições válidas. O PEDIDO precisa de um número. "1 a 2 carrossel,
+   2 a 3 story, e o resto em reel" obriga o modelo a descobrir que tinha de
+   estourar todos os tetos ao mesmo tempo — e ele descobre errado. Resolva a
+   conta em código e mande a receita pronta.
+3. **Enumerar o proibido nunca fecha; defina o permitido.** A lista "o cliente
+   não contou X" é resumo de painel e trabalha por CLASSE; o piso confere por
+   FATO. O cliente atestou os DIAS e não a HORA: a classe "horário" contava como
+   coberta e a peça foi barrada assim mesmo. Enquanto o aviso enumerar classes e
+   a régua conferir fatos, sempre haverá um fato no vão. A regra que fechou foi
+   inverter: *só afirme o que aparece literalmente na lista de atestados.*
+
+E o corolário de forma: **o que é conferido em código tem de ser exigido em
+código.** Forma pedida em prosa é instrução que o modelo pode desobedecer — e
+desobedece de vez em quando, que é o pior modo de falha. `ESQUEMA_DO_PACOTE`
+mora ao lado de `formato()` porque os dois descrevem a mesma forma; separá-los
+recriaria exatamente a doença desta seção.
+
+---
+
 ## 🟡 24/08/2026 — DOUTRINA: RÉGUA NASCE OTIMISTA
 
 **Verde só vale com prova no dado. Nunca com "não estourou".**
