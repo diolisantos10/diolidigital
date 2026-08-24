@@ -64,6 +64,23 @@ export function placarEmTexto(
     l.push("");
   }
 
+  // ── AS FALAS BARRADAS, TODAS, COM A FORMA DE CADA UMA ───────────────────
+  //
+  // A primeira rodada ao vivo (24/08/2026) barrou 10 turnos e o placar mostrou
+  // a forma de UM. Nove sobraram sem laudo — e "malformado ×9" sem a forma de
+  // cada um é o mesmo beco que o laudo existe para abrir: dá o número, não dá a
+  // causa. Duas amostras não fazem causa; uma, muito menos.
+  if (p.turnosBarrados.length > 0) {
+    l.push("### As falas que o guarda barrou, e a forma de cada uma");
+    l.push("");
+    l.push("O texto barrado NUNCA é gravado — o que aparece aqui é só a forma do pacote.");
+    l.push("");
+    for (const [forma, n] of contarFormas(p.turnosBarrados)) {
+      l.push(`- **${n}×** — ${forma}`);
+    }
+    l.push("");
+  }
+
   if (tropecos.length > 0) {
     l.push("### Etapas que não atravessaram");
     l.push("");
@@ -133,6 +150,33 @@ function resumoDoSdr(p: Percurso): string {
     : `quedas para o motor de regras: ${[...conta].map(([m, n]) => `${m} ×${n}`).join(", ")}`;
   return `ao vivo — ${respondidos} de ${total} turno(s) respondidos pelo modelo · ${quedas}`
        + ` · ${p.turnosBarrados.length} barrado(s) pelo guarda no diário`;
+}
+
+/**
+ * Agrupa as linhas de turno barrado pela FORMA que o laudo registrou.
+ *
+ * O corpo gravado tem o feitio
+ *   "[resposta barrada pelo guarda: MOTIVO — explicação — na forma: LAUDO — quem…]"
+ * e é o pedaço "na forma:" que responde qual das três causas foi. Agrupar é o
+ * que transforma nove linhas quase iguais numa frase que se lê: "9× o modelo
+ * não abriu JSON nenhum" é uma causa; "3× de um jeito, 6× de outro" são duas.
+ */
+export function contarFormas(barrados: readonly string[]): [string, number][] {
+  const conta = new Map<string, number>();
+  for (const linha of barrados) {
+    // Duas leituras simples e independentes valem mais que uma expressão
+    // esperta: cada pedaço do corpo é opcional, e uma regex única que tenta
+    // casar tudo de uma vez falha silenciosamente no dia em que um deles muda.
+    const motivo = /barrada pelo guarda:\s*([^—\]]+?)\s*(?:—|\]|$)/.exec(linha)?.[1]?.trim();
+    const forma = /—\s*na forma:\s*(.+?)\s*—\s*quem respondeu/.exec(linha)?.[1]?.trim();
+    // Laudo ausente é FATO, não lacuna a esconder: turno barrado por um guarda
+    // que não julga formato (preço, e-mail) não tem forma para reportar.
+    const chave = forma
+      ? `${motivo ?? "motivo não identificado"}: ${forma}`
+      : `${motivo ?? "motivo não identificado"} (sem laudo de forma — este guarda não julga formato)`;
+    conta.set(chave, (conta.get(chave) ?? 0) + 1);
+  }
+  return [...conta].sort((a, b) => b[1] - a[1]);
 }
 
 function umaLinha(t: string): string {

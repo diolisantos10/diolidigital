@@ -143,21 +143,39 @@ jobs:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           RODADAS: ${{ github.event.inputs.rodadas || '3' }}
         run: |
-          set -e
+          set -u
           # `resolve-key.ts` lê exatamente `ANTHROPIC_API_KEY`. Quando a chave foi
           # cadastrada com outro nome, a tradução acontece aqui — em memória, no
           # runner, sem passar por arquivo nem por log.
           export ANTHROPIC_API_KEY="$(printenv "${CHAVE_ENCONTRADA_EM}")"
+
+          # ── POR QUE NÃO HÁ MAIS `set -e` AQUI ────────────────────────────────
+          # Havia, e ele engoliu a prova. Na primeira rodada ao vivo (24/08/2026)
+          # a bateria quebrou e `set -e` abortou o passo ANTES do `cp` — o
+          # placar da rodada nunca foi copiado, o `upload-artifact` não achou
+          # arquivo nenhum, e a única cópia do laudo foi a que sobrou no log.
+          # A rodada que QUEBRA é justamente a que mais precisa deixar placar:
+          # sair rápido não pode custar a evidência de por que se saiu.
+          falhou=""
           for n in $(seq 1 "${RODADAS}"); do
             echo "════════════ rodada ${n} de ${RODADAS} ════════════"
-            npm run cliente-falso -- --ao-vivo
-            cp .cliente-falso/placar.md   ".cliente-falso/placar-rodada-${n}.md"
-            cp .cliente-falso/placar.json ".cliente-falso/placar-rodada-${n}.json"
+            npm run cliente-falso -- --ao-vivo || falhou="${n}"
+
+            # Copia SEMPRE, quebrando ou não — é isto que o artefato leva embora.
+            cp .cliente-falso/placar.md   ".cliente-falso/placar-rodada-${n}.md"   || true
+            cp .cliente-falso/placar.json ".cliente-falso/placar-rodada-${n}.json" || true
+
+            if [ -n "${falhou}" ]; then
+              echo "::error::a rodada ${n} quebrou — placar guardado no artefato desta execução."
+              break
+            fi
             if [ "${n}" -lt "${RODADAS}" ]; then
               echo "— pausa de 70s para a janela do freio de ritmo virar —"
               sleep 70
             fi
           done
+
+          if [ -n "${falhou}" ]; then exit 1; fi
 
       # `always()`: a rodada que QUEBRA é a que mais precisa deixar placar.
       - name: Guardar os placares
