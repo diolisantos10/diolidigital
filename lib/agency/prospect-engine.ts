@@ -8,6 +8,10 @@
 
 import type { ConvState, ConvMessage, BriefingScope } from "./briefing-conversation";
 import { nomeDoNegocioNoTexto } from "./comercial/nome-do-negocio-no-texto";
+import {
+  LIMITE_DE_INSISTENCIA, O_QUE_A_PERGUNTA_COLHE,
+  acrescentarRespostaSemEncaixe, reformular,
+} from "./comercial/pergunta-sem-encaixe";
 import { emptyScope, emptyEstimate } from "./briefing-conversation";
 import { computeEstimate } from "./live-calculator";
 import {
@@ -205,6 +209,16 @@ function getNextProspectQuestion(state: ConvState): QuestionDef | null {
 // ── SDR-aware question text override ─────────────────────────────────────────
 
 function buildSDRQuestionText(q: QuestionDef, state: ConvState, sdr: SDRAgentState): string {
+  // ── A MESMA FRASE NUNCA DUAS VEZES SEGUIDAS ────────────────────────────────
+  // Quando a pergunta já foi feita e está voltando, o texto MUDA. Repetir
+  // palavra por palavra é o que faz a pessoa concluir que não foi lida — e foi
+  // exatamente o que ela leu seis vezes no caso Farol 27. A reformulação admite
+  // que a casa não entendeu e abre uma saída explícita para quem quer algo que
+  // a casa não tem na prateleira. Ver `comercial/pergunta-sem-encaixe.ts`.
+  if ((state.perguntasFeitas?.[q.id] ?? 0) >= 1) {
+    const outraFormulacao = reformular(q.id);
+    if (outraFormulacao) return outraFormulacao;
+  }
   switch (q.id) {
     case "posts_per_week":
       return buildConsultativeFrequencyQuestion(state.scope);
@@ -415,7 +429,50 @@ export function processProspectMessage(
         // pergunta é barato; perder o lead no último passo, não.
         const exigeDadoParaFechar = isIdentity || currentQ.id === "detect_service";
         const stillPending = exigeDadoParaFechar && currentQ.when({ ...conv, scope: newScope });
-        if (stillPending) {
+
+        // ── E A INSISTÊNCIA TEM FIM (24/08/2026) ────────────────────────────
+        //
+        // O bloco acima nasceu certo e sem freio. "A pergunta só se fecha
+        // quando colhe o dado" é a regra correta — mas ela não dizia o que
+        // fazer quando o dado NÃO VEM NUNCA, porque o cliente está pedindo algo
+        // que a casa não tem. E o que a fila fazia no vazio era perguntar de
+        // novo. Medido na Farol 27: a MESMA frase, palavra por palavra, seis
+        // turnos seguidos, engolindo objetivo, público, verba de R$ 8.000 e
+        // prazo — cada um lido como tentativa de responder à pergunta do
+        // serviço e descartado em silêncio ao não encaixar.
+        //
+        // Ninguém responde seis vezes a mesma pergunta. O escopo errado que os
+        // outros defeitos produziam alguém ainda corrige; este produz um
+        // cliente que fecha a aba, e a casa nunca fica sabendo por quê.
+        //
+        // A PROIBIÇÃO e a INSTRUÇÃO GÊMEA andam juntas, e as duas estão aqui:
+        // depois de `LIMITE_DE_INSISTENCIA` tentativas a pergunta NÃO é feita
+        // outra vez — e, no lugar dela, a resposta crua do cliente é gravada
+        // como lacuna e a conversa AVANÇA. Ver `comercial/pergunta-sem-encaixe.ts`.
+        //
+        // ⚠️ Isto NÃO afrouxa o portão de envio. `canSubmitProposal` continua
+        // exigindo serviço no escopo: quem chega ao fim sem serviço lê o que
+        // falta, como já lia. O que muda é que ele chega ao fim tendo sido
+        // ouvido, com o pedido dele registrado em vez de descartado.
+        const vezesJaFeita = conv.perguntasFeitas?.[currentQ.id] ?? 0;
+        const insistiuDemais = stillPending && vezesJaFeita >= LIMITE_DE_INSISTENCIA;
+
+        // A RESPOSTA NUNCA É DESCARTADA EM SILÊNCIO — nem na primeira vez que
+        // não encaixa. O registro acontece sempre que a casa não entendeu; o
+        // que o limite decide é só se ela pergunta de novo ou segue em frente.
+        if (stillPending && text.trim()) {
+          newScope = {
+            ...newScope,
+            lacunasDeEscopo: acrescentarRespostaSemEncaixe(
+              newScope.lacunasDeEscopo,
+              currentQ.id,
+              text,
+              O_QUE_A_PERGUNTA_COLHE[currentQ.id] ?? "um dado do pedido",
+            ),
+          };
+        }
+
+        if (stillPending && !insistiuDemais) {
           newAnswered = [...new Set([...conv.answeredQIds, ...inferred])];
         } else {
           newAnswered = [...new Set([...conv.answeredQIds, currentQ.id, ...inferred])];
@@ -613,13 +670,38 @@ export function processProspectMessage(
     createdAt: new Date().toISOString(),
   };
 
+  // ── O QUE A CONVERSA JÁ GASTOU ────────────────────────────────────────────
+  // Contado aqui, no único lugar que sabe qual pergunta está saindo de verdade
+  // nesta resposta. Contar no lugar onde a pergunta é ESCOLHIDA daria números
+  // errados: `getNextProspectQuestion` roda mais de uma vez por turno, e nem
+  // toda escolha vira fala (objeção e negociação tomam a frente).
+  const perguntaQueSaiu = mencionaPergunta(replyText, nextQ, newSdr, mid) ? nextQ?.id : undefined;
+  const perguntasFeitas = perguntaQueSaiu
+    ? { ...(conv.perguntasFeitas ?? {}), [perguntaQueSaiu]: (conv.perguntasFeitas?.[perguntaQueSaiu] ?? 0) + 1 }
+    : conv.perguntasFeitas;
+
   return {
     conv: {
       ...mid,
       messages: [...mid.messages, assistantMsg],
       estimate: newEstimate,
       canSubmit: canSubmitProposal(mid, newSdr),
+      perguntasFeitas,
     },
     sdr: newSdr,
   };
+}
+
+/** A pergunta da vez saiu MESMO nesta resposta?
+ *
+ *  Nem todo turno faz pergunta: quando há objeção de preço ativa, a fala é
+ *  outra e a pergunta fica para depois. Contar uma pergunta que não foi feita
+ *  gastaria a insistência do cliente sem ele ter lido nada — e o limite passaria
+ *  a punir quem negociou preço. */
+function mencionaPergunta(
+  replyText: string, nextQ: QuestionDef | null, sdr: SDRAgentState, mid: ConvState,
+): boolean {
+  if (!nextQ) return false;
+  if (sdr.objection.active) return false;
+  return replyText.includes(buildSDRQuestionText(nextQ, mid, sdr));
 }

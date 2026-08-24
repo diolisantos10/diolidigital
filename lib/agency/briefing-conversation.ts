@@ -207,6 +207,19 @@ export interface ConvState {
   messages: ConvMessage[];
   scope: BriefingScope;
   answeredQIds: string[];
+  /**
+   * QUANTAS VEZES CADA PERGUNTA JÁ FOI FEITA — não respondida, FEITA.
+   *
+   * `answeredQIds` sabia o que a conversa colheu e não sabia o que ela já
+   * gastou. Sem esse segundo número não existe como distinguir "pergunta nova"
+   * de "sexta insistência", e foi assim que a fila repetiu a mesma frase seis
+   * turnos seguidos para a Farol 27 (24/08/2026), engolindo objetivo, público,
+   * verba e prazo pelo caminho. Ver `comercial/pergunta-sem-encaixe.ts`.
+   *
+   * Opcional porque conversa antiga não tem o campo — e ausência aqui é lida
+   * como zero, que é a verdade: nada foi contado.
+   */
+  perguntasFeitas?: Record<string, number>;
   isFirstMessage: boolean;
   estimate: LiveEstimate;
   canSubmit: boolean;
