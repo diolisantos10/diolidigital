@@ -38,6 +38,8 @@ import {
   aExecucaoAnda,
 
   aPortaAutenticadaFoiExercitada,
+
+  aPecaFicaPronta,
 } from "@/lib/agency/cliente-falso/verificacoes";
 import { ROTEIRO_PADRAO } from "@/lib/agency/cliente-falso/roteiro";
 import { emptyScope, emptyEstimate } from "@/lib/agency/briefing-conversation";
@@ -89,6 +91,15 @@ function percursoSao(): Percurso {
       execucaoStatus: "done", direcaoAprovada: true, entregas: 3,
       direcaoPedida: true, direcaoViaPortal: true, direcaoMotivo: null,
       execucaoPendencias: null, execucaoTentativas: 1,
+      // A metade de baixo do percurso SÃO: o pacote foi apresentado, as
+      // entregas viraram peça e a peça recebeu ARTE. Sem estes campos o
+      // percurso "são" pararia no briefing — que é justamente o defeito que a
+      // régua `peca-pronta` nasceu para pegar.
+      apresentou: true, apresentacaoMotivo: null,
+      pecas: 3, pecasComArte: 3,
+      arteAplicada: true, imagensProduzidas: 3, custoEstimadoUsd: 0.51,
+      producaoVeredito: "3 peça(s) criada(s) e 3 imagem(ns) produzida(s).",
+      producaoFalhas: [], pecasRetidas: [],
     },
     // Percurso SÃO com SDR ao vivo = o modelo respondeu TODOS os turnos.
     // Sem esta linha, "são" incluiria uma rodada em que a IA nunca falou.
@@ -436,5 +447,71 @@ describe("porta autenticada — medir só o caso feliz é medir metade", () => {
     const p = percursoSao();
     p.aprovacao = { ...p.aprovacao, ok: false, motivo: "a porta autenticada recusou o STAFF (403)" };
     expect(aPortaAutenticadaFoiExercitada(p).veredito).toBe("quebrou");
+  });
+});
+
+// ── A régua da PEÇA PRONTA — a que nasceu de "só vi um briefing" ────────────
+//
+// Cada caso abaixo é um estado real que a esteira produz. O que esta bateria
+// não pode fazer, em nenhum deles, é chamar de "passou" um percurso que parou
+// no texto — foi exatamente isso que deixou o CEO olhar sete entregas e não ver
+// uma arte.
+describe("a peça fica pronta", () => {
+  it("APROVA quando a peça tem arte gravada", () => {
+    const a = aPecaFicaPronta(percursoSao());
+    expect(a.veredito).toBe("passou");
+    expect(a.detalhe).toMatch(/3 de 3 peça/);
+  });
+
+  it("REPROVA o percurso que entrega texto e nenhuma peça de calendário", () => {
+    const p = percursoSao();
+    p.esteira = { ...p.esteira, pecas: 0, pecasComArte: 0, pecasRetidas: [] };
+    const a = aPecaFicaPronta(p);
+    expect(a.veredito).toBe("quebrou");
+    expect(a.detalhe).toMatch(/ZERO peça de calendário/);
+  });
+
+  it("REPROVA a arte aplicada que não deixou nenhuma peça pronta", () => {
+    const p = percursoSao();
+    p.esteira = { ...p.esteira, pecasComArte: 0, imagensProduzidas: 0, producaoFalhas: ["o gerador devolveu 500"] };
+    const a = aPecaFicaPronta(p);
+    expect(a.veredito).toBe("quebrou");
+    expect(a.detalhe).toMatch(/o gerador devolveu 500/);
+  });
+
+  it("NÃO reprova a Qualidade que reteve a entrega — portão fechado é a casa funcionando", () => {
+    const p = percursoSao();
+    p.esteira = {
+      ...p.esteira, pecas: 0, pecasComArte: 0,
+      pecasRetidas: [{ nome: "Copy dos posts", motivo: 'a Qualidade marcou esta entrega como "quality_flag"' }],
+    };
+    const a = aPecaFicaPronta(p);
+    expect(a.veredito).toBe("nao-coberto");
+    expect(a.detalhe).toMatch(/quality_flag/);
+  });
+
+  it("NÃO reprova a falta de chave de imagem — e NOMEIA a chave que falta", () => {
+    const p = percursoSao();
+    p.esteira = {
+      ...p.esteira, pecasComArte: 0, imagensProduzidas: 0,
+      producaoFalhas: ["Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs."],
+    };
+    const a = aPecaFicaPronta(p);
+    expect(a.veredito).toBe("nao-coberto");
+    expect(a.detalhe).toMatch(/OPENAI_API_KEY/);
+  });
+
+  it("nunca diz 'passou' na leitura pura — e mostra o custo que sairia", () => {
+    const p = percursoSao();
+    p.esteira = { ...p.esteira, arteAplicada: false, pecasComArte: 0, imagensProduzidas: 0 };
+    const a = aPecaFicaPronta(p);
+    expect(a.veredito).toBe("nao-coberto");
+    expect(a.detalhe).toMatch(/--com-arte/);
+  });
+
+  it("REPROVA o pacote que nunca foi apresentado — sem isso o calendário não nasce", () => {
+    const p = percursoSao();
+    p.esteira = { ...p.esteira, apresentou: false, apresentacaoMotivo: "entrega sem parecer da Qualidade" };
+    expect(aPecaFicaPronta(p).veredito).toBe("quebrou");
   });
 });

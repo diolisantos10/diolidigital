@@ -15,6 +15,7 @@
 //   npm run cliente-falso              # uma rodada, custo ZERO de IA
 //   npm run cliente-falso -- --rodadas=3
 //   npm run cliente-falso -- --ao-vivo # usa o SDR de IA de verdade (CUSTA)
+//   npm run cliente-falso -- --com-arte # PRODUZ a arte das peças (CUSTA imagem)
 //
 // O placar sai na tela E em `.cliente-falso/placar.md` (para ler) e
 // `.cliente-falso/placar.json` (para quem conserta).
@@ -73,6 +74,12 @@ const aoVivo = args.includes("--ao-vivo");
 // coberto" e DIZ o porquê — jamais em "passou". Ver `servidor-de-teste.ts`,
 // inclusive as três travas (só loopback, banco descartável, CLIENTE_FALSO=1).
 const comServidor = args.includes("--com-servidor");
+// ── `--com-arte`: a etapa 9.6 GRAVA e PAGA a imagem ─────────────────────────
+// Sem ele a produção de arte roda em LEITURA PURA — diz quantas imagens sairiam
+// e quanto custariam, sem gastar um centavo. É o mesmo contrato de
+// `POST /api/admin/produzir-pecas` sem `?aplicar=1`, e pelo mesmo motivo: gasto
+// que ninguém previu só se descobre na fatura.
+const comArte = args.includes("--com-arte");
 const rodadas = Number(args.find((a) => a.startsWith("--rodadas="))?.split("=")[1] ?? 1) || 1;
 
 if (querLimpar) {
@@ -139,7 +146,7 @@ let ultimoJson: Record<string, unknown> | null = null;
 const resumoDasRodadas: Record<string, unknown>[] = [];
 
 for (let n = 1; n <= rodadas; n++) {
-  const { percurso, tropecos } = await rodarPercurso({ sdrAoVivo: aoVivo, baseUrlDoServidor: servidor?.baseUrl ?? null });
+  const { percurso, tropecos } = await rodarPercurso({ sdrAoVivo: aoVivo, baseUrlDoServidor: servidor?.baseUrl ?? null, comArte });
   const achados = conferir(percurso);
   if (achados.some((a) => a.veredito === "quebrou")) quebrouAlguma = true;
 
@@ -155,6 +162,9 @@ for (let n = 1; n <= rodadas; n++) {
     aprovouViaRota: percurso.aprovacao.viaRota,
     projetoId: percurso.esteira.projetoId,
     tarefas: percurso.esteira.tarefas,
+    pecas: percurso.esteira.pecas,
+    pecasComArte: percurso.esteira.pecasComArte,
+    imagensProduzidas: percurso.esteira.imagensProduzidas,
   });
   ultimoPlacar = placarEmTexto(achados, percurso, tropecos);
   ultimoJson = {

@@ -53,6 +53,17 @@ import type { Percurso, RespostaDoSdr, TurnoMedido, DesfechoDaAprovacao, Tentati
  */
 const TETO_DE_TURNOS = 24;
 
+/**
+ * Quantas imagens a etapa 9.6 pode pedir numa rodada do piloto.
+ *
+ * Deliberadamente BAIXO. O teto padrão da porta é 40 por cliente por dia; um
+ * piloto que roda `--rodadas=3` com esse teto gastaria dezenas de imagens para
+ * responder uma pergunta de sim/não ("a esteira chega à peça pronta?"). Três é
+ * o menor número que ainda prova a rodada de arte em lote em vez de um acaso.
+ * O teto DIÁRIO por cliente continua valendo por baixo e tem a última palavra.
+ */
+const TETO_DE_ARTE_DO_PILOTO = 3;
+
 export type OpcoesDoPercurso = {
   roteiro?: Roteiro;
   /** Fio da conversa. Carimbado para o dado de teste ser reconhecível no banco. */
@@ -70,6 +81,15 @@ export type OpcoesDoPercurso = {
    * `servidor-de-teste.ts`.
    */
   baseUrlDoServidor?: string | null;
+  /**
+   * Manda a passada de produção GRAVAR e PAGAR a imagem (`aplicar: true`).
+   *
+   * Opt-in explícito, e nunca padrão, pelo mesmo motivo de `sdrAoVivo`: isto
+   * gasta dinheiro de verdade. Sem ele, a etapa 9.6 roda em LEITURA PURA — ela
+   * diz quantas imagens sairiam e quanto custariam, sem gastar um centavo, que
+   * é o mesmo contrato de `POST /api/admin/produzir-pecas` sem `?aplicar=1`.
+   */
+  comArte?: boolean;
 };
 
 /** Etapa que não atravessou. Fica no percurso para o placar poder mostrar. */
@@ -269,6 +289,10 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
     execucaoStatus: null, direcaoAprovada: false, entregas: 0,
     direcaoPedida: false, direcaoViaPortal: false, direcaoMotivo: null,
     execucaoPendencias: null, execucaoTentativas: 0,
+    apresentou: false, apresentacaoMotivo: null,
+    pecas: 0, pecasComArte: 0,
+    arteAplicada: false, imagensProduzidas: 0, custoEstimadoUsd: 0,
+    producaoVeredito: null, producaoFalhas: [], pecasRetidas: [],
   };
 
   if (pedido) {
@@ -318,6 +342,87 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
         } catch (e) {
           esteira.execucaoErro = e instanceof Error ? e.message : String(e);
           tropecos.push({ etapa: "execucao", erro: esteira.execucaoErro });
+        }
+      }
+
+      // ─── ETAPA 9.5: O PACOTE É APRESENTADO — e é isso que abre o calendário
+      //
+      // ── POR QUE ISTO FALTAVA, E O QUE CUSTOU ────────────────────────────
+      //
+      // O piloto parava na etapa 9. O CEO leu o resultado e disse: *"não vi as
+      // peças, só vi um briefing"*. A causa não era defeito escondido — a
+      // esteira tem TRÊS trechos (`produzir-agora.ts`: texto → peça de
+      // calendário → arte paga) e o percurso exercitava só o primeiro.
+      //
+      // `agendarPostsDaEntrega` devolve ZERO enquanto `presentedAt` for nulo
+      // (`publicacao.ts:287`), e é `apresentar()` quem grava esse campo — e
+      // quem já chama o agendador logo em seguida. Chamar o agendador direto
+      // daqui, ou escrever `presentedAt` na mão, seria pular o marco: o
+      // calendário nasceria sem o cliente ter visto o pacote, que é
+      // exatamente o que aquela guarda existe para impedir.
+      //
+      // O aviso ao cliente que o marco dispara cai na trava de saída, como
+      // todos os outros desta bateria — nenhuma pessoa de verdade é contatada.
+      if (esteira.projetoId && !esteira.execucaoErro) {
+        try {
+          const { apresentar } = await import("@/lib/agency/esteira/marcos");
+          const r = await apresentar(esteira.projetoId);
+          esteira.apresentou = r.ok;
+          if (!r.ok) esteira.apresentacaoMotivo = r.erro ?? "o marco recusou sem dizer por quê";
+        } catch (e) {
+          esteira.apresentacaoMotivo = e instanceof Error ? e.message : String(e);
+          tropecos.push({ etapa: "apresentacao", erro: esteira.apresentacaoMotivo });
+        }
+      }
+
+      // ─── ETAPA 9.6: A ARTE — pela MESMA porta paga que o operador usa ────
+      //
+      // `produzirAgora` é a porta de `POST /api/admin/produzir-pecas`, e o
+      // piloto entra por ela de propósito, em vez de chamar
+      // `produzirArtesPendentes` direto. Um caminho paralelo mediria um código
+      // que ninguém roda na vida real, e deixaria de fora tudo o que a porta
+      // carrega: o teto da passada, o teto DIÁRIO por cliente, a exigência de
+      // autor e motivo, o portão de direção, a conta antes da gravação, a
+      // guarda de renderizador e o registro em `ActivityEvent`.
+      //
+      // Sem `comArte`, roda em LEITURA PURA: custo ZERO, e o placar diz quanto
+      // sairia. Publicação continua fora: `produzirAgora` não chama Meta,
+      // Google nem TikTok, e a peça nasce em RASCUNHO.
+      if (esteira.projetoId) {
+        try {
+          const { produzirAgora } = await import("@/lib/agency/execution/produzir-agora");
+          const rel = await produzirAgora({
+            cliente: roteiro.nomeDoNegocioNaTela,
+            autor: "cliente-falso (piloto automático)",
+            motivo: "piloto de ponta a ponta: provar que a esteira chega à peça pronta",
+            teto: TETO_DE_ARTE_DO_PILOTO,
+            aplicar: opts.comArte === true,
+          });
+          esteira.arteAplicada = opts.comArte === true;
+          esteira.custoEstimadoUsd = rel.custo.estimadoUsd;
+          esteira.producaoVeredito = rel.veredito;
+          esteira.imagensProduzidas = rel.feito?.imagensProduzidas ?? 0;
+          esteira.producaoFalhas = rel.feito?.falhas ?? [];
+          esteira.pecasRetidas = rel.feito?.pecasRetidas ?? [];
+          if (!rel.renderizador.disponivel && rel.renderizador.motivo) {
+            esteira.producaoFalhas = [...esteira.producaoFalhas, rel.renderizador.motivo];
+          }
+          // ── A PROVA NÃO É O RELATÓRIO: É O QUE SOBROU NO BANCO ──────────
+          // Mesma regra da etapa 9. O relatório é o que a passada DIZ que fez;
+          // as duas contagens abaixo são o que o painel do cliente leria.
+          const cliente = await prisma.project.findUnique({
+            where: { id: esteira.projetoId }, select: { clientId: true },
+          });
+          if (cliente?.clientId) {
+            esteira.pecas = await prisma.socialPost.count({ where: { clientId: cliente.clientId } });
+            esteira.pecasComArte = await prisma.socialPost.count({
+              where: { clientId: cliente.clientId, mediaUrl: { not: null } },
+            });
+          }
+        } catch (e) {
+          const erro = e instanceof Error ? e.message : String(e);
+          esteira.producaoFalhas = [erro];
+          tropecos.push({ etapa: "producao-de-arte", erro });
         }
       }
     }

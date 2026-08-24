@@ -126,6 +126,39 @@ export type EstadoDaEsteira = {
   execucaoPendencias: string | null;
   /** Quantas vezes a execução foi tentada. Zero = o portão nem deixou começar. */
   execucaoTentativas: number;
+
+  // ── A METADE QUE FALTAVA: DA ENTREGA DE TEXTO ATÉ A PEÇA PRONTA ──────────
+  //
+  // Até 24/08/2026 o percurso PARAVA em `runProjectExecution`. O CEO olhou o
+  // resultado do piloto e disse a frase que originou estes campos: *"não vi as
+  // peças, só vi um briefing"*. Ele estava certo — as sete entregas eram texto,
+  // e o piloto nunca chegava perto do gerador de imagem.
+  //
+  // A esteira tem TRÊS trechos (ver `produzir-agora.ts`): o texto, a entrega
+  // virando PEÇA de calendário, e a ARTE (a parte paga). O piloto exercitava só
+  // o primeiro. Os campos abaixo medem os outros dois.
+
+  /** MARCO 2 — `apresentar()` rodou. É ele que destranca o calendário:
+   *  `agendarPostsDaEntrega` devolve zero enquanto `presentedAt` for nulo. */
+  apresentou: boolean;
+  /** Por que a apresentação não rodou, quando não rodou. */
+  apresentacaoMotivo: string | null;
+  /** Peças de calendário que existem para este cliente. Texto virou PEÇA. */
+  pecas: number;
+  /** Peças com arte gravada (`mediaUrl`). É a PEÇA PRONTA: arte + legenda. */
+  pecasComArte: number;
+  /** A passada de produção rodou com `aplicar` (gastando), ou só mediu? */
+  arteAplicada: boolean;
+  /** Imagens que a passada REALMENTE produziu. Não é estimativa. */
+  imagensProduzidas: number;
+  /** Custo estimado pela tabela pública — NÃO é fatura medida. */
+  custoEstimadoUsd: number;
+  /** O veredito que `produzirAgora` devolveu, palavra por palavra. */
+  producaoVeredito: string | null;
+  /** Falhas que a passada de arte registrou. */
+  producaoFalhas: string[];
+  /** Entregas que NÃO viraram peça, com o motivo (Qualidade, escada, pilar). */
+  pecasRetidas: { nome: string; motivo: string }[];
 };
 
 export type Percurso = {
@@ -711,7 +744,91 @@ export function aExecucaoAnda(p: Percurso): Achado {
   return { ...base, veredito: "passou", detalhe: `${p.esteira.entregas} entrega(s) produzida(s)` };
 }
 
-// ─── 15. A PARADA DECLARADA — publicação não é exercitada, e diz isso ───────
+// ─── 15. A PEÇA FICA PRONTA — arte + legenda, não só briefing ──────────────
+//
+// ── A ORDEM QUE CRIOU ESTA RÉGUA (24/08/2026) ──────────────────────────────
+//
+// O piloto rodou inteiro e entregou sete peças — todas de TEXTO. O CEO olhou e
+// disse: *"não vi as peças, só vi um briefing"*. Ele tinha razão, e a causa não
+// era um defeito escondido: `percurso.ts` simplesmente PARAVA em
+// `runProjectExecution`, o primeiro dos três trechos da esteira. Os outros dois
+// — a entrega virando peça de calendário e a ARTE — nunca eram chamados.
+//
+// Enquanto essa metade não fosse medida, o placar podia ficar todo verde com
+// zero arte no banco. Verde que não cobre o entregável final é o mesmo tipo de
+// mentira que esta bateria inteira existe para combater.
+//
+// ── O QUE ESTA RÉGUA NUNCA FAZ ─────────────────────────────────────────────
+//
+// Ela NÃO afrouxa portão nenhum. Entrega retida pela Qualidade ou pela escada
+// de exposição é a casa funcionando: aqui isso vira "não coberto" COM o motivo
+// de cada entrega, jamais "quebrou" e jamais um atalho. O único jeito de esta
+// régua ficar verde é uma peça atravessar os portões de verdade.
+export function aPecaFicaPronta(p: Percurso): Achado {
+  const base = {
+    id: "peca-pronta",
+    guarda: "A esteira tem de chegar à PEÇA PRONTA — arte + legenda —, não parar no texto.",
+  };
+  const e = p.esteira;
+
+  if (!e.projetoId) return { ...base, veredito: "nao-coberto", detalhe: "nenhum projeto para produzir" };
+  if (!e.direcaoAprovada) {
+    return { ...base, veredito: "nao-coberto",
+      detalhe: "o portão de direção está fechado — a produção não começa antes do aval do cliente, e esta régua não o pula" };
+  }
+  if (e.entregas === 0) {
+    // `execucao-anda` já acusa (ou explica) a ausência de texto. Repetir o
+    // vermelho aqui contaria o mesmo defeito duas vezes no placar.
+    return { ...base, veredito: "nao-coberto",
+      detalhe: "não há entrega de texto para virar peça — ver a régua `execucao-anda`" };
+  }
+  if (!e.apresentou) {
+    return { ...base, veredito: "quebrou",
+      detalhe: `o pacote não foi apresentado ao cliente${e.apresentacaoMotivo ? ` (${e.apresentacaoMotivo})` : ""} — `
+             + "sem `presentedAt` o calendário não nasce e nenhuma entrega vira peça" };
+  }
+
+  if (e.pecas === 0) {
+    if (e.pecasRetidas.length > 0) {
+      return { ...base, veredito: "nao-coberto",
+        detalhe: `${e.pecasRetidas.length} entrega(s) foram RETIDAS antes de virar peça — portão funcionando, não defeito: `
+               + e.pecasRetidas.map((r) => `"${r.nome}" — ${r.motivo}`).join(" | ") };
+    }
+    return { ...base, veredito: "quebrou",
+      detalhe: `${e.entregas} entrega(s) de texto no banco e ZERO peça de calendário, sem nenhum motivo registrado — `
+             + "entrega que some entre o texto e o calendário é trabalho pago que ninguém vê" };
+  }
+
+  if (!e.arteAplicada) {
+    return { ...base, veredito: "nao-coberto",
+      detalhe: `${e.pecas} peça(s) de calendário nasceram e a passada de arte rodou em LEITURA PURA — `
+             + `custo estimado US$ ${e.custoEstimadoUsd.toFixed(2)} (tabela pública, não é fatura). `
+             + "Nenhuma imagem foi paga. Para produzir de verdade: `npm run cliente-falso -- --com-arte`." };
+  }
+
+  if (e.pecasComArte === 0) {
+    // Falta de chave de imagem não é defeito da casa — é o mesmo caso da
+    // rodada offline em `execucao-anda`, e a exceção é igualmente ESTREITA:
+    // só vale quando a casa REGISTROU o motivo, nunca quando falhou calada.
+    const semChave = e.producaoFalhas.some((f) => /chave openai|not_configured|nenhuma ia conectada/i.test(f));
+    if (semChave) {
+      return { ...base, veredito: "nao-coberto",
+        detalhe: `${e.pecas} peça(s) esperando arte e nenhuma chave de imagem neste ambiente — a passada parou ANTES de `
+               + "gastar. Chave: `OPENAI_API_KEY` (ou Integrações → IAs, `int-openai`), lida em `lib/ai/resolve-key.ts`." };
+    }
+    return { ...base, veredito: "quebrou",
+      detalhe: `a passada de arte foi APLICADA e nenhuma peça ficou pronta (${e.imagensProduzidas} imagem(ns) produzida(s))`
+             + (e.producaoFalhas.length > 0 ? `. A casa registrou: ${e.producaoFalhas.slice(0, 3).join(" | ")}` : "")
+             + (e.producaoVeredito ? `. Veredito: ${e.producaoVeredito}` : "") };
+  }
+
+  return { ...base, veredito: "passou",
+    detalhe: `${e.pecasComArte} de ${e.pecas} peça(s) com ARTE gravada (${e.imagensProduzidas} imagem(ns) paga(s), `
+           + `custo estimado US$ ${e.custoEstimadoUsd.toFixed(2)} pela tabela pública — não é fatura). `
+           + "Nada foi publicado." };
+}
+
+// ─── 16. A PARADA DECLARADA — publicação não é exercitada, e diz isso ───────
 //
 // Nunca devolve "passou". Publicar sai no perfil do cliente, é público, e
 // desfazer não desfaz o print. Esta verificação existe para que a parada seja
@@ -746,6 +863,7 @@ export const VERIFICACOES: ((p: Percurso) => Achado)[] = [
   oProjetoNasceComTarefas,
   oPortaoDeDirecaoAbrePeloCliente,
   aExecucaoAnda,
+  aPecaFicaPronta,
   aPublicacaoNaoFoiExercitada,
 ];
 
