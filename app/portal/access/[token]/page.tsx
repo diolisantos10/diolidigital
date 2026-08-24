@@ -125,6 +125,8 @@ interface EstadoEsteira {
   aBolaEstaComVoce?: boolean;
   pendencias?: string[];
   pacote?: { pedeAprovacao: boolean; prontas: string[]; emProducao: string[] } | null;
+  /** A porta de aprovar a DIREÇÃO, medida no servidor. Ausente = não pede. */
+  direcao?: { pedeAprovacao: boolean } | null;
 }
 
 interface ConexaoView {
@@ -442,7 +444,14 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
   const pacoteDaEsteira = esteira?.pacote ?? null;
   const etapaEsteira = (esteira?.etapa ?? "").toLowerCase();
 
-  const decisaoDaEsteira: DecisaoDaEsteira | null = etapaEsteira.includes("confirme o caminho")
+  // ── A PORTA DE APROVAR A DIREÇÃO VEM DO SERVIDOR (24/08/2026) ─────────────
+  // Era um `includes` da frase "confirme o caminho" na etapa: o botão dependia de uma
+  // frase dentro da prosa da etapa. Bastou o projeto ter um pedido de material
+  // aberto para a etapa virar "Precisamos de uma coisa sua" e o botão sumir —
+  // com a conversa dizendo à cliente "é só aprovar" (case Farol 27). Verdade
+  // escrita em dois lugares já está errada em um deles: o que decide agora é o
+  // estado da etapa, medido em `lerFase.precisaAprovarDirecao`.
+  const decisaoDaEsteira: DecisaoDaEsteira | null = (esteira?.direcao?.pedeAprovacao ?? false)
     ? {
         titulo: "Confirme o caminho do projeto",
         descricao: "A equipe montou a direção do trabalho a partir do seu briefing. Com o seu sim, a produção começa; se algo não fizer sentido, fale com seu PM antes de aprovar.",

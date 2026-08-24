@@ -40,6 +40,12 @@ interface EstadoDoCliente {
    * significa NÃO PEDE, nunca "pede sem lista".
    */
   pacote?: { pedeAprovacao: boolean; prontas: string[]; emProducao: string[] } | null;
+  /**
+   * A porta de aprovar a DIREÇÃO, medida no servidor (24/08/2026). Mesmo molde
+   * de `pacote`, e ausente significa NÃO PEDE — nunca "pede porque a frase da
+   * etapa parece pedir".
+   */
+  direcao?: { pedeAprovacao: boolean } | null;
 }
 
 /**
@@ -223,7 +229,18 @@ export default function EsteiraDoCliente({
   const acoes: { rotulo: string; onClick: () => void; primaria?: boolean; carregando?: boolean }[] = [];
   const etapa = estado.etapa ?? "";
 
-  const pedeDirecao = etapa.toLowerCase().includes("confirme o caminho");
+  // ── A DIREÇÃO PEDE APROVAÇÃO? QUEM RESPONDE É O SERVIDOR ──────────────────
+  //
+  // Era um `includes` da frase "confirme o caminho" na etapa — a MESMA dívida
+  // que o pacote já tinha pago logo abaixo, sobrevivendo neste botão. Em
+  // 24/08/2026 (case Farol 27) o projeto ficou com pedido de material aberto,
+  // a etapa virou "Precisamos de uma coisa sua", e o botão de aprovar a direção
+  // desapareceu da tela enquanto a conversa dizia à cliente *"é só aprovar"*.
+  // A rota pública aceitava a aprovação o tempo todo: faltava a porta.
+  //
+  // Agora vem de `/api/portal/esteira → direcao.pedeAprovacao`, derivado do
+  // estado do projeto. `?? false` é o fail closed, igual ao do pacote.
+  const pedeDirecao = estado.direcao?.pedeAprovacao ?? false;
   // ── O PACOTE PEDE APROVAÇÃO? QUEM RESPONDE É O SERVIDOR ───────────────────
   //
   // Era `etapa.includes("tudo pronto")`. Em 08/08/2026 o CEO abriu o portal do
