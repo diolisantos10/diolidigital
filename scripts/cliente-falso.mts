@@ -155,6 +155,7 @@ for (let n = 1; n <= rodadas; n++) {
     aprovouViaRota: percurso.aprovacao.viaRota,
     nasceuSemPainel: percurso.aceite.nasceuSozinho,
     pecasAprovadasPeloCliente: percurso.aprovacaoDaPeca.carimboDoCliente,
+    entregasSemArbitro: percurso.esteira.entregasSemArbitro,
     projetoId: percurso.esteira.projetoId,
     tarefas: percurso.esteira.tarefas,
   });

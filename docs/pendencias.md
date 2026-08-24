@@ -102,6 +102,124 @@ duas não.** Chamar isso de ~75% é honesto; chamar de "pronta" não é.
 
 ---
 
+## ⛔ 24/08/2026 — UMA CHAVE DE IA SÓ TRAVA O PILOTO (decisão do CEO)
+
+**Com um único provedor de IA conectado, a esteira NÃO fecha — e os dois
+motivos que sobraram no piloto são o mesmo.**
+
+Estado medido na última rodada ao vivo: 7 entregas, projeto `done`, e o pacote
+retido. Nenhum defeito de código sobrou.
+
+### Motivo 1 — cinco de sete entregas ficam sem árbitro
+
+`escolherArbitro` nunca devolve o autor: aprovação de si mesmo não é aprovação.
+Com só a chave da Anthropic conectada, todo especialista que escreve em `claude`
+(11 dos 14) se auto-aprovaria — e o resultado é `nao_auditado`, que desde hoje
+**retém a apresentação** por ordem do Diretor Geral (peça que ninguém olhou não
+chega ao cliente).
+
+Motivo gravado em cada uma das cinco, literal:
+
+> *"NÃO AUDITADA: o único modelo disponível para julgar é o MESMO que escreveu a
+> peça — não existe aprovação independente aqui."*
+
+**Resolve com QUALQUER segunda chave** — `openai`, `gemini` ou `deepseek`. A
+fila de árbitros é `["claude", "openai", "gemini", "deepseek"]`.
+
+### Motivo 2 — a pesquisa de concorrência não tem com que pesquisar
+
+O especialista `Pesquisa de concorrência` declara `provedor: "perplexity"`, e é
+o único da casa que usa IA com fonte — porque é o único trabalho que exige
+**olhar para fora**. Sem essa chave, ele cai no provedor padrão e entrega um
+diagnóstico de lacunas em vez de uma análise. A Qualidade barra, corretamente:
+
+> *"3 dos 3 concorrentes listados estão marcados como 'PRECISO CONFIRMAR' sem
+> dados verificados (...) o núcleo da análise de concorrência — sua própria
+> razão de ser — permanece suspenso."*
+
+O cliente **deu** as referências ("Bráz", "Carlos Pizza"). O que falta é a
+capacidade de pesquisar, não o dado do briefing.
+
+**Resolve com a chave da Perplexity** — e só com ela: `perplexity` não entra na
+fila de árbitros de propósito ("é pesquisadora com fonte, não juíza de texto").
+
+### O que isto significa, sem rodeio
+
+- **As três rodadas limpas não fecham** enquanto houver uma chave só. Não é
+  defeito pendente: é capacidade que a casa não tem contratada.
+- **Não é conserto em código, e não deve virar um.** Afrouxar a imparcialidade
+  do árbitro para destravar o piloto seria trocar a trava mais cara da casa por
+  um verde de laboratório.
+- **É dinheiro e é decisão do CEO.** Duas chaves: uma segunda qualquer (árbitro)
+  e a da Perplexity (pesquisa).
+
+### O que a casa faz enquanto isso, e está correto
+
+Retém, com o motivo explícito em cada peça, e o placar conta quantas ficaram sem
+árbitro. A esteira não mente dizendo que entregou.
+
+---
+
+## 🔴 24/08/2026 — A PAUTA DO MÊS ESTAVA NA FILA PARA VIRAR POST NO PERFIL DO CLIENTE
+
+**Um documento de planejamento interno — o calendário editorial do mês — era
+agendado para publicação no Instagram do cliente. Nunca aconteceu porque o
+pacote nunca chegou lá; não porque alguma trava tenha impedido.**
+
+### O antes e o depois, com arquivo e linha
+
+| | arquivo:linha | valor |
+|---|---|---|
+| **antes** | `lib/agency/execution/especialistas.ts:686` (commit `6e1d2940^`) | `deliverableType: "social"` |
+| **depois** | `lib/agency/execution/especialistas.ts:776` (commit `6e1d2940`) | `deliverableType: "plano-de-conteudo"` |
+
+O especialista é `id: "a3"`, `label: "Pauta do mês"` — o calendário editorial de
+4 semanas.
+
+### Por que é grave
+
+`deliverableType` decide **duas coisas independentes** nesta casa, e a etiqueta
+errada errava as duas:
+
+1. **Publicação.** `lib/agency/esteira/publicacao.ts:132` —
+   `const TIPOS_PUBLICAVEIS = ["social", "video"]`. Com a pauta marcada como
+   `social`, `agendarPostsDaEntrega` a colocava na fila de `SocialPost`. Um
+   documento interno de planejamento, com tema e formato de cada semana, entrava
+   na fila para **ir ao ar no perfil do cliente**.
+2. **Julgamento.** A Qualidade a avaliava como peça publicável e a reprovava —
+   corretamente, para o que lhe disseram que ela era: *"Esta é uma estratégia e
+   roadmap de 4 semanas, não é uma peça de comunicação pronta. Pode-se publicar
+   COMO ESTÁ? Não — é um blueprint."* Régua certa, etiqueta errada.
+
+### Por que ninguém tinha visto
+
+Porque **a pauta nunca chegou ao fim da esteira**. O pacote era retido antes —
+por material faltando, por contrato de saída, pela própria Qualidade. O defeito
+estava a uma apresentação de distância de acontecer, e só apareceu quando o
+piloto empurrou a esteira até o fim pela primeira vez.
+
+**É a lição do piloto inteiro:** defeito em etapa que nunca roda não é defeito
+ausente — é defeito não observado. Toda etapa que só existe no papel guarda uma
+destas.
+
+### O que foi feito
+
+- A pauta virou `plano-de-conteudo`: fora de `TIPOS_PUBLICAVEIS`, e julgada como
+  plano.
+- **Sem isentar nada:** `TIPOS_DE_PLANEJAMENTO` (o que o juiz avalia como plano)
+  é lista SEPARADA de `TIPOS_DE_DOCUMENTO_INTERNO` (o que a régua determinística
+  de texto dispensa). Juntá-las tiraria a pauta da régua de texto sem ninguém
+  ter pedido — e o cliente **lê** o calendário dele. Há teste travando as duas
+  metades.
+
+### O que fica aberto
+
+Nenhum outro `deliverableType` foi auditado com esta pergunta. Vale uma passada
+perguntando de cada um: *isto é para publicar?* e *isto é uma peça ou um plano?*
+— são perguntas diferentes, e a etiqueta responde às duas ao mesmo tempo.
+
+---
+
 ## 🟡 24/08/2026 — DOUTRINA: INFORMAR UMA RÉGUA NÃO É AFROUXAR UMA RÉGUA
 
 **Quando uma régua reprova o que deveria aprovar, pergunte primeiro se ela está

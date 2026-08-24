@@ -43,11 +43,23 @@ export type ProvaEncontrada = ProvaDeCI & { shaCompleto: string | null };
 /**
  * A CI daquele commit. Aceita SHA curto ou completo — resolve antes de perguntar.
  *
- * Falha de rede devolve "não houve run", que é o caminho MAIS severo do
- * veredito (SEM_PROVA). Não conseguir perguntar nunca pode virar aprovação.
+ * ⚠️ Falha de rede NÃO devolve mais "não houve run". Devolve `perguntaFalhou`,
+ * que é um estado próprio: o portão continua fechado (não conseguir perguntar
+ * nunca vira aprovação — isso não mudou), mas o motivo que sai na tela passa a
+ * ser o verdadeiro. Este comentário já descreveu o comportamento antigo por
+ * tempo demais, e foi ele que ensinou errado: "devolve não houve run" era, ao
+ * pé da letra, a instrução para mentir. Ver a seção "O MOTIVO TEM QUE SER
+ * VERDADEIRO" em `sentinela-do-deploy.ts`.
  */
 export async function olharCI(commit: string, repo = REPO_PADRAO): Promise<ProvaEncontrada> {
   const vazio: ProvaEncontrada = { houveRun: false, conclusao: null, url: null, shaCompleto: null };
+  /** Não deu para perguntar. NÃO é "não há run" — é "não sei". */
+  const mudo = (motivo: string, shaCompleto: string | null = null): ProvaEncontrada => ({
+    ...vazio,
+    shaCompleto,
+    perguntaFalhou: true,
+    motivoDaFalha: motivo,
+  });
 
   let shaCompleto: string;
   if (/^[0-9a-f]{40}$/i.test(commit)) {
@@ -57,10 +69,10 @@ export async function olharCI(commit: string, repo = REPO_PADRAO): Promise<Prova
       const rc = await comTempoLimite(`https://api.github.com/repos/${repo}/commits/${commit}`, {
         headers: cabecalhosDoGitHub(),
       });
-      if (!rc.ok) return vazio;
+      if (!rc.ok) return mudo(`HTTP ${rc.status} ao resolver o commit ${commit}`);
       shaCompleto = ((await rc.json()) as { sha: string }).sha;
-    } catch {
-      return vazio;
+    } catch (e) {
+      return mudo(`falha de rede ao resolver o commit ${commit}: ${nomeDoErro(e)}`);
     }
   }
 
@@ -69,7 +81,7 @@ export async function olharCI(commit: string, repo = REPO_PADRAO): Promise<Prova
       `https://api.github.com/repos/${repo}/actions/runs?head_sha=${shaCompleto}&per_page=50`,
       { headers: cabecalhosDoGitHub() },
     );
-    if (!rr.ok) return { ...vazio, shaCompleto };
+    if (!rr.ok) return mudo(`HTTP ${rr.status} ao listar os runs`, shaCompleto);
     const j = (await rr.json()) as {
       workflow_runs: { name: string; conclusion: string | null; status: string; html_url: string }[];
     };
@@ -86,9 +98,15 @@ export async function olharCI(commit: string, repo = REPO_PADRAO): Promise<Prova
       url: escolhido.html_url,
       shaCompleto,
     };
-  } catch {
-    return { ...vazio, shaCompleto };
+  } catch (e) {
+    return mudo(`falha de rede ao listar os runs: ${nomeDoErro(e)}`, shaCompleto);
   }
+}
+
+/** O nome do erro, sem corpo e sem cabeçalho — é por aí que segredo vaza. */
+function nomeDoErro(e: unknown): string {
+  if (e instanceof Error) return e.name === "AbortError" ? "tempo esgotado" : e.name;
+  return "erro desconhecido";
 }
 
 /** O GitHub Actions em si está de pé? */

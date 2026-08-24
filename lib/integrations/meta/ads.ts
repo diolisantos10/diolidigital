@@ -51,13 +51,21 @@ import {
 } from "./ativos-autorizados";
 import { TIPO_DE_RITMO_DA_CASA } from "./ritmo";
 import { lerDoCacheNoBanco, guardarNoCacheNoBanco, limparCacheNoBanco } from "./cache-no-banco";
+import { GUARDIOES, PISO_DIARIO_BRL, conferirVerbaDoCanal } from "@/lib/integrations/midia/guardioes";
 
 /** Teto absoluto da casa, em reais por dia, independente do que for pedido.
- *  É a última linha de defesa: se todo o resto falhar, o estrago é limitado. */
-export const TETO_DIARIO_ABSOLUTO_BRL = Number(process.env.ADS_TETO_DIARIO_BRL ?? 500);
+ *  É a última linha de defesa: se todo o resto falhar, o estrago é limitado.
+ *
+ *  ── 24/08/2026 — O NÚMERO SAIU DAQUI ─────────────────────────────────────
+ *  Este teto era uma constante DESTE arquivo, e por isso era um teto da META,
+ *  não da casa: os outros canais que o motor de tráfego já orça (`tiktok_ads`,
+ *  `google_ads`, …) não passavam por trava nenhuma. O número passou a morar no
+ *  registro de guardiões, um por canal, e aqui fica só o reflexo do da Meta —
+ *  para não quebrar quem já importava a constante. */
+export const TETO_DIARIO_ABSOLUTO_BRL = GUARDIOES.meta_ads.tetoDiarioBRL;
 
 /** Piso da Meta para orçamento diário. Abaixo disto a campanha nem entrega. */
-export const PISO_DIARIO_BRL = 6;
+export { PISO_DIARIO_BRL };
 
 /**
  * Por que a recusa aconteceu — e, junto, QUAL GESTO a resolve.
@@ -354,23 +362,16 @@ export function conferirOrcamento(plano: {
   orcamentoDiarioBRL: number;
   tetoAprovadoBRL: number;
 }): { ok: boolean; erro?: string } {
-  const v = plano.orcamentoDiarioBRL;
-  if (!Number.isFinite(v) || v <= 0) {
-    return { ok: false, erro: "orçamento diário inválido" };
-  }
-  if (v < PISO_DIARIO_BRL) {
-    return { ok: false, erro: `orçamento diário de R$ ${v} está abaixo do mínimo da Meta (R$ ${PISO_DIARIO_BRL}) — a campanha não entregaria` };
-  }
-  if (!Number.isFinite(plano.tetoAprovadoBRL) || plano.tetoAprovadoBRL <= 0) {
-    return { ok: false, erro: "não há teto aprovado pelo cliente — sem isso não se cria campanha" };
-  }
-  if (v > plano.tetoAprovadoBRL) {
-    return { ok: false, erro: `orçamento diário de R$ ${v} passa do teto que o cliente aprovou (R$ ${plano.tetoAprovadoBRL})` };
-  }
-  if (v > TETO_DIARIO_ABSOLUTO_BRL) {
-    return { ok: false, erro: `orçamento diário de R$ ${v} passa do teto desta agência (R$ ${TETO_DIARIO_ABSOLUTO_BRL})` };
-  }
-  return { ok: true };
+  // ── 24/08/2026 — A CONFERÊNCIA É A MESMA DE TODO CANAL ───────────────────
+  // A lógica não mudou; mudou o dono dela. O guardião do `meta_ads` responde a
+  // mesma pergunta que o do `tiktok_ads` responde, com o teto do canal. Ter uma
+  // conferência por canal era o que fazia um canal ficar sem nenhuma.
+  const v = conferirVerbaDoCanal({
+    canal: "meta_ads",
+    orcamentoDiarioBRL: plano.orcamentoDiarioBRL,
+    tetoAprovadoBRL: plano.tetoAprovadoBRL,
+  });
+  return v.liberado ? { ok: true } : { ok: false, erro: v.erro };
 }
 
 /**

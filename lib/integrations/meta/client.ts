@@ -25,6 +25,7 @@ import type {
   WhatsAppMessageInput,
 } from "./types";
 import { motivoDoBloqueioDeSaida, registrarSaidaBloqueada } from "@/lib/agency/cliente-falso/trava-de-saida";
+import { avaliarConsentimento, comoDestravar, registrarAbordagemBarrada } from "@/lib/agency/consentimento/prova";
 
 function errMessage(e: unknown): string {
   if (e instanceof GraphApiError) return e.detail?.message ?? e.message;
@@ -320,6 +321,18 @@ export async function sendWhatsAppDirect(
     registrarSaidaBloqueada({ canal: "whatsapp", destino: input.to ?? "", motivo: bloqueio });
     return { ok: false, error: `bloqueado:${bloqueio}` };
   }
+  // ── TRAVA DE CONSENTIMENTO (24/08/2026) ─────────────────────────────────
+  // Vem JUNTO da trava do cliente falso, e pelo mesmo motivo: é a porta mais
+  // interna, e trava na porta interna vale para todo caminho que chegue aqui.
+  // A pergunta que ela faz é a que ninguém fazia: **a casa tem autorização
+  // para falar com este número?** Sem prova registrada, não sai — e o erro
+  // carrega a instrução de como destravar, porque proibição sem instrução
+  // gêmea empurra o operador para disparar pelo celular dele.
+  const consent = avaliarConsentimento(input.consentimento);
+  if (!consent.pode) {
+    registrarAbordagemBarrada({ canal: "whatsapp", destino: input.to ?? "", motivo: consent.motivo });
+    return { ok: false, error: `sem_consentimento:${consent.motivo}\n${comoDestravar(consent)}` };
+  }
   try {
     const res = await graphPostJson<{ messages?: Array<{ id: string }> }>(
       `${phoneNumberId}/messages`,
@@ -346,6 +359,18 @@ export async function sendWhatsAppMessage(
   if (bloqueio) {
     registrarSaidaBloqueada({ canal: "whatsapp", destino: input.to ?? "", motivo: bloqueio });
     return { ok: false, error: `bloqueado:${bloqueio}` };
+  }
+  // ── TRAVA DE CONSENTIMENTO (24/08/2026) ─────────────────────────────────
+  // Vem JUNTO da trava do cliente falso, e pelo mesmo motivo: é a porta mais
+  // interna, e trava na porta interna vale para todo caminho que chegue aqui.
+  // A pergunta que ela faz é a que ninguém fazia: **a casa tem autorização
+  // para falar com este número?** Sem prova registrada, não sai — e o erro
+  // carrega a instrução de como destravar, porque proibição sem instrução
+  // gêmea empurra o operador para disparar pelo celular dele.
+  const consent = avaliarConsentimento(input.consentimento);
+  if (!consent.pode) {
+    registrarAbordagemBarrada({ canal: "whatsapp", destino: input.to ?? "", motivo: consent.motivo });
+    return { ok: false, error: `sem_consentimento:${consent.motivo}\n${comoDestravar(consent)}` };
   }
   const conn = await loadConnectionToken(workspaceId, input.connectionId);
   if (!conn) return { ok: false, error: "Conexão WhatsApp não encontrada ou token inválido" };

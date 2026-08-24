@@ -62,6 +62,21 @@ export const CAMPOS_DA_ENTREGA = [
   ["cta", "CTA"],
   ["audience", "Público"],
   ["note", "Obs"],
+  // ── OS QUATRO CAMPOS DA BASE DE MARCA (24/08/2026) ───────────────────────
+  // Entraram com o especialista de branding. São aditivos: item que não os
+  // traz renderiza exatamente como antes.
+  //
+  // `estado` e `falta` são LOAD-BEARING pelo mesmo motivo que `cenas`: é por
+  // eles que `colher-marca.ts` lê, do texto entregue, o que a marca DECIDIU e
+  // o que continua em aberto. Sem a linha "Estado", uma lacuna declarada pelo
+  // especialista chegaria ao `BrandBrain` indistinguível de uma decisão — e
+  // ausência de informação viraria informação, que é a regra mais antiga da
+  // casa sendo quebrada na junta entre dois arquivos certos.
+  ["campo", "Campo"],
+  ["estado", "Estado"],
+  ["conteudo", "Conteúdo"],
+  ["fonte", "Fonte"],
+  ["falta", "Falta"],
 ] as const;
 
 /**

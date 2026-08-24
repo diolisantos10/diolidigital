@@ -370,3 +370,141 @@ describe("sem saber O QUE julga, o juiz não julga", () => {
     }
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEPOIS DA SEPARAÇÃO, A RÉGUA AINDA MORDE
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Em 24/08/2026 o contexto do juiz foi separado do contexto do autor: os FATOS
+// vão para os dois, as REGRAS DE REDAÇÃO só para quem escreve. O motivo está em
+// `fatosDaVerdade` — o juiz lia instruções do autor e cobrava OMISSÃO de fato,
+// reprovando peças que ele mesmo chamava de publicáveis.
+//
+// Separação é onde uma régua morre sem ninguém notar. Estes testes exigem que
+// ela continue pegando o que sempre pegou, nos DOIS tipos de entrega.
+describe("a régua continua mordendo depois de o juiz parar de ler o manual do autor", () => {
+  const flagrar = (note: string, issues: string[]) =>
+    generate.mockResolvedValue({ ok: true, data: { verdict: "flag", issues, note } });
+
+  for (const tipo of ["social", "strategy"]) {
+    it(`INVENÇÃO continua reprovando — tipo "${tipo}"`, async () => {
+      flagrar("inventou telefone que ninguém informou", ["telefone (11) 3333-4444 não foi informado pelo cliente"]);
+      const v = await auditDeliverable({ ...base, tipoDaEntrega: tipo });
+      expect(v.verdict).toBe("reprovado");
+      expect(v.issues.join(" ")).toMatch(/telefone/);
+    });
+
+    it(`PROMESSA FALSA continua reprovando — tipo "${tipo}"`, async () => {
+      flagrar("promete resultado que ninguém pode garantir", ["'dobre seu faturamento em 30 dias' é garantia irreal"]);
+      const v = await auditDeliverable({ ...base, tipoDaEntrega: tipo });
+      expect(v.verdict).toBe("reprovado");
+      expect(v.issues.join(" ")).toMatch(/garantia irreal/);
+    });
+
+    it(`o juiz recebe os CRITÉRIOS de julgamento — tipo "${tipo}"`, async () => {
+      generate.mockResolvedValue({ ok: true, data: { verdict: "pass", issues: [], note: "ok" } });
+      await auditDeliverable({ ...base, tipoDaEntrega: tipo });
+      const prompt = generate.mock.calls[0]![0].user as string;
+      expect(prompt).toMatch(/promessa falsa/);
+      expect(prompt).toMatch(/inventa n[úu]mero\/pre[çc]o\/dado/);
+    });
+  }
+});
+
+// ── TODA INSTRUÇÃO DE JULGAR PRECISA DO SEU LIMITE ─────────────────────────
+//
+// Medido ao vivo em 24/08/2026: com cinco critérios e um "flag só se houver
+// problema real", o juiz virou maximalista. Reprovou peças por não declararem
+// tipografia de uma marca sem identidade, por CTA genérico (que é o
+// comportamento CORRETO desta casa) e leu "terça a domingo" como contradição de
+// "ter, qua, qui, sex, sab, dom".
+//
+// Critério sem fronteira não vira rigor, vira invenção — a mesma doença de
+// "proibição sem instrução gêmea", do lado de quem julga.
+describe("o juiz recebe o LIMITE do que não é defeito", () => {
+  const promptDe = async (tipo: string) => {
+    generate.mockResolvedValue({ ok: true, data: { verdict: "pass", issues: [], note: "ok" } });
+    generate.mockClear();
+    await auditDeliverable({ ...base, tipoDaEntrega: tipo });
+    return generate.mock.calls[0]![0].user as string;
+  };
+
+  it("diz que NÃO citar um fato atestado não é defeito", async () => {
+    expect(await promptDe("social")).toMatch(/NÃO citar um fato atestado/);
+  });
+
+  it("protege o CTA genérico — que é o comportamento correto da casa", async () => {
+    const p = await promptDe("social");
+    expect(p).toMatch(/CTA gen[ée]rico/);
+    expect(p).toMatch(/chama a gente no direct/);
+  });
+
+  it("define CONTRADIÇÃO como afirmar o OPOSTO, não dizer de outro jeito", async () => {
+    const p = await promptDe("social");
+    expect(p).toMatch(/afirmar o OPOSTO do atestado/);
+    expect(p).toMatch(/Ter[çc]a a domingo/);
+  });
+
+  it("tira da mão do juiz o que já é conferido em código", async () => {
+    // Quantidade é contrato de saída, medido antes dele e sem IA.
+    expect(await promptDe("social")).toMatch(/Quantidade entregue/);
+  });
+
+  it("o limite vale para os DOIS tipos de entrega", async () => {
+    for (const tipo of ["social", "strategy"]) {
+      expect(await promptDe(tipo), `tipo ${tipo} ficou sem limite`).toMatch(/NÃO\*\* É MOTIVO PARA REPROVAR/);
+    }
+  });
+
+  it("e NENHUM critério de julgamento saiu junto", async () => {
+    for (const tipo of ["social", "strategy"]) {
+      const p = await promptDe(tipo);
+      expect(p).toMatch(/promessa falsa/);
+      expect(p).toMatch(/inventa n[úu]mero\/pre[çc]o\/dado/);
+      expect(p).toMatch(/clich[êe] vazio/);
+    }
+  });
+});
+
+// ── O MOTIVO DIZ QUAL CHAVE RESOLVE ────────────────────────────────────────
+//
+// Piloto de 24/08/2026: 5 de 7 entregas pararam em `juiz_nao_imparcial`, e a
+// mensagem antiga explicava o problema sem dizer o conserto. Quem abrisse o
+// portal daqui a um mês saberia que a peça não foi auditada e não saberia o que
+// fazer — e o conserto NÃO é reescrever a peça, é conectar um provedor.
+//
+// São DOIS travamentos com DUAS chaves e preços diferentes, e confundi-los
+// custa dinheiro errado: a segunda chave de árbitro NÃO destrava a pesquisa de
+// concorrência, e a da Perplexity NÃO serve de árbitro.
+describe("a mensagem de 'ninguém auditou' nomeia a chave que resolve", () => {
+  it("diz que não é defeito da peça e manda NÃO reescrever", async () => {
+    const { MOTIVO_EM_PALAVRAS } = await import("@/lib/agency/execution/quality-auditor");
+    expect(MOTIVO_EM_PALAVRAS.juiz_nao_imparcial).toMatch(/não reescreva/i);
+  });
+
+  it("nomeia as três chaves que servem de árbitro independente", async () => {
+    const { MOTIVO_EM_PALAVRAS } = await import("@/lib/agency/execution/quality-auditor");
+    const m = MOTIVO_EM_PALAVRAS.juiz_nao_imparcial;
+    for (const chave of ["openai", "gemini", "deepseek"]) {
+      expect(m, `a mensagem deixou de citar ${chave}`).toContain(chave);
+    }
+  });
+
+  it("NÃO oferece a Perplexity como árbitro — ela é pesquisadora, não juíza", async () => {
+    // Se ela entrar aqui, alguém compra a chave errada para destravar o árbitro.
+    const { MOTIVO_EM_PALAVRAS, escolherArbitro } = await import("@/lib/agency/execution/quality-auditor");
+    expect(MOTIVO_EM_PALAVRAS.juiz_nao_imparcial).not.toMatch(/perplexity/i);
+    expect(escolherArbitro("perplexity")).not.toBe("perplexity");
+    for (const autor of ["claude", "openai", "gemini", "deepseek"]) {
+      expect(escolherArbitro(autor)).not.toBe("perplexity");
+    }
+  });
+
+  it("o especialista de concorrência avisa que só a Perplexity o destrava", async () => {
+    // O outro travamento, escrito onde quem for mexer tropeça.
+    const fonte = await import("node:fs/promises").then((fs) =>
+      fs.readFile("lib/agency/execution/especialistas.ts", "utf-8"));
+    expect(fonte).toMatch(/SEM A CHAVE DA PERPLEXITY, ESTE ESPECIALISTA NÃO ENTREGA/);
+    expect(fonte).toMatch(/NÃO destrava isto/);
+  });
+});

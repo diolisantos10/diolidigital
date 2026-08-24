@@ -34,6 +34,12 @@ import {
   limparSaidasBloqueadas,
   saidasBloqueadas,
 } from "@/lib/agency/cliente-falso/trava-de-saida";
+// A trava de consentimento (24/08/2026) tornou `consentimento` obrigatório em
+// toda porta de saída. Aqui o assunto é OUTRO — o cadeado do cliente falso — e
+// por isso estas chamadas trazem um consentimento válido: o que está sendo
+// medido é o cadeado de teste, não o de consentimento (esse tem suíte própria
+// em `__tests__/consentimento/`).
+const CONSENTE = { natureza: "resposta", mensagemRecebidaId: "msg-1" } as const;
 
 const original = process.env.CLIENTE_FALSO;
 beforeEach(() => { limparSaidasBloqueadas(); delete process.env.CLIENTE_FALSO; });
@@ -51,7 +57,7 @@ describe("modo de teste fecha as QUATRO portas", () => {
   beforeEach(() => { process.env.CLIENTE_FALSO = "1"; });
 
   it("WhatsApp recusa, e recusa sem tocar na rede", async () => {
-    const r = await sendWhatsAppDirect("phone-1", "token-de-producao", { connectionId: "c", to: "5511988887777" });
+    const r = await sendWhatsAppDirect("phone-1", "token-de-producao", { connectionId: "c", consentimento: CONSENTE, to: "5511988887777" });
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/bloqueado:modo_cliente_falso/);
   });
@@ -75,7 +81,7 @@ describe("modo de teste fecha as QUATRO portas", () => {
   });
 
   it("toda recusa fica REGISTRADA — é o que deixa o placar afirmar 'nada saiu'", async () => {
-    await sendWhatsAppDirect("p", "t", { connectionId: "c", to: "5511988887777" });
+    await sendWhatsAppDirect("p", "t", { connectionId: "c", consentimento: CONSENTE, to: "5511988887777" });
     await publishPost("ws", { connectionId: "c", platform: "instagram", caption: "oi" });
     const canais = saidasBloqueadas().map((s) => s.canal);
     expect(canais).toContain("whatsapp");
@@ -86,12 +92,12 @@ describe("modo de teste fecha as QUATRO portas", () => {
 describe("o segundo cadeado, para quem tem um — vale SEM o modo de teste", () => {
   it("WhatsApp barra o telefone do roteiro mesmo com o modo desligado", async () => {
     expect(process.env.CLIENTE_FALSO).toBeUndefined();
-    const r = await sendWhatsAppDirect("p", "t", { connectionId: "c", to: TELEFONE_DO_CLIENTE_FALSO });
+    const r = await sendWhatsAppDirect("p", "t", { connectionId: "c", consentimento: CONSENTE, to: TELEFONE_DO_CLIENTE_FALSO });
     expect(r.error).toMatch(/bloqueado:telefone_de_teste/);
   });
 
   it("…e reconhece o mesmo número escrito com formatação", async () => {
-    const r = await sendWhatsAppDirect("p", "t", { connectionId: "c", to: "+55 11 90000-0001" });
+    const r = await sendWhatsAppDirect("p", "t", { connectionId: "c", consentimento: CONSENTE, to: "+55 11 90000-0001" });
     expect(r.error).toMatch(/bloqueado:telefone_de_teste/);
   });
 
@@ -103,7 +109,7 @@ describe("o segundo cadeado, para quem tem um — vale SEM o modo de teste", () 
 
 describe("cliente de verdade NÃO é censurado — trava que barra tudo é trava inútil", () => {
   it("WhatsApp de número real passa da trava (e só então tenta a rede)", async () => {
-    const r = await sendWhatsAppDirect("p", "t", { connectionId: "c", to: "5511988887777" });
+    const r = await sendWhatsAppDirect("p", "t", { connectionId: "c", consentimento: CONSENTE, to: "5511988887777" });
     // Não foi bloqueada: chegou na rede, que o teste faz explodir de propósito.
     expect(r.error).not.toMatch(/bloqueado:/);
     expect(saidasBloqueadas()).toHaveLength(0);

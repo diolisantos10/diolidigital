@@ -1,3 +1,5 @@
+import type { ConsentimentoDeSaida } from "@/lib/agency/consentimento/prova";
+
 // Shared types for the Meta integration (Instagram / Facebook / WhatsApp).
 // SERVER-ONLY types are fine to import from client components (types are erased
 // at build), but the modules that USE them (graph, oauth, client) are server-only.
@@ -88,6 +90,17 @@ export interface InsightsResult {
 
 export interface WhatsAppMessageInput {
   connectionId: string;
+  /**
+   * ⛔ OBRIGATÓRIO. Isto é RESPOSTA (a pessoa escreveu para a marca) ou
+   * ABORDAGEM (a casa fala primeiro)? E, sendo abordagem, qual é a prova do
+   * consentimento?
+   *
+   * É campo obrigatório de propósito: **a próxima porta de disparo que alguém
+   * abrir sem declarar consentimento não compila.** Ver
+   * `lib/agency/consentimento/prova.ts` — o Farol 27 mediu ~6 mil contatos
+   * declarados sem comprovação, e nada no código barrava o uso deles.
+   */
+  consentimento: ConsentimentoDeSaida;
   to: string; // E.164 phone number, e.g. "5511999998888"
   // Either a free-form text (only inside the 24h window) or a template.
   text?: string;

@@ -22,7 +22,7 @@ import { getActiveInsights, buildInsightBlock } from "@/lib/agency/radar/library
 import { moverTarefasDoAgente, marcarEntregue } from "@/lib/agency/esteira/tarefas";
 import { abrirPedido, cobrarCliente } from "@/lib/agency/esteira/pedidos";
 import {
-  DEPARTAMENTOS, ctxBlock, conferirContrato, ESQUEMA_DO_PACOTE,
+  DEPARTAMENTOS, ctxBlock, ctxBlockParaJuiz, conferirContrato, ESQUEMA_DO_PACOTE,
   type Ctx, type Departamento, type Especialista,
 } from "@/lib/agency/execution/especialistas";
 import {
@@ -805,7 +805,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // audita → se reprovar, o agente REVISA com o parecer → reentrega melhorada.
       // O cliente sempre DECIDE; nós garantimos que o que chega já está bom.
       let audit = await auditDeliverable({
-        deptLabel: nome, title, content: body, brandContext: ctxBlock(context),
+        deptLabel: nome, title, content: body, brandContext: ctxBlockParaJuiz(context),
         marketGuidelines: insightBlock, workspaceId: project.workspaceId,
         // O estado da leitura vai como DADO, não como substring para o auditor
         // farejar no contexto — ver o comentário dos três estados lá.
@@ -851,7 +851,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         body = fixedBody;
         title = fixedTitle;
         audit = await auditDeliverable({
-          deptLabel: nome, title, content: body, brandContext: ctxBlock(context),
+          deptLabel: nome, title, content: body, brandContext: ctxBlockParaJuiz(context),
           marketGuidelines: insightBlock, workspaceId: project.workspaceId,
           feed: { lida: feedDoCliente.lida, posts: feedDoCliente.posts },
           provedorDoAutor: esp.provedor ?? "claude",
@@ -957,6 +957,17 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     // Sem isto, a agência definia a paleta do cliente num entregável e no mês
     // seguinte lia a marca, encontrava nulo, escrevia genérico e propunha uma
     // identidade DIFERENTE. Criava a marca e esquecia dela.
+    // ── A BASE DE MARCA CRIADA VIRA A MARCA USADA ───────────────────────────
+    // Antes da identidade visual, e a ordem importa: a base é a constituição
+    // (quem a marca é, como fala, o que nunca diz) e a identidade é a cara. Se
+    // a base chegar depois, o campo já foi preenchido pela cara e a
+    // constituição não entra — os dois colhedores são conservadores e só
+    // escrevem em coluna vazia.
+    try {
+      const { colherBaseDeMarca } = await import("@/lib/agency/execution/colher-marca");
+      await colherBaseDeMarca(projectId, project.clientId);
+    } catch { /* best-effort: colher a marca não pode derrubar a produção */ }
+
     let colheuIdentidade = false;
     try {
       const { colherIdentidadeDaEntrega } = await import("@/lib/agency/execution/colher-identidade");

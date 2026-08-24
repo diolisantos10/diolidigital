@@ -6,6 +6,11 @@
 // Pricing is fixed (not min–max) because the buyer pays at checkout.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import {
+  conferirOferta,
+  type CapacidadeDeProducao,
+} from "@/lib/agency/capacidade-de-producao";
+
 export type SelfServeCategory = "social" | "video" | "design" | "traffic" | "balcao";
 
 export interface MicroService {
@@ -17,6 +22,14 @@ export interface MicroService {
   deliveryDays: number;    // business days
   category: SelfServeCategory;
   popular?: boolean;
+
+  // ── DE QUEM ESTE ITEM DEPENDE PARA EXISTIR ───────────────────────────────
+  // OBRIGATÓRIO, e obrigatório de propósito: item novo sem esta linha não
+  // compila. Antes de 24/08/2026 a vitrine vendia reel com legenda animada,
+  // logotipo e PDF — três coisas que a casa não produz — porque nada no tipo
+  // exigia dizer QUEM produz. A régua mora em `capacidade-de-producao.ts`;
+  // lista vazia é recusa, não isenção.
+  requer: CapacidadeDeProducao[];
 
   // Piso de negociação. Existe porque desconto sem chão vira leilão: cada
   // pedido puxa um pouco mais para baixo até a linha inteira dar prejuízo.
@@ -50,6 +63,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   // empurrar a produção à mão, o que mata a premissa (1).
   {
     id: "balcao-post-feed",
+    requer: ["arte-estatica-png", "texto-de-marca"],
     label: "Post para feed",
     description: "Uma arte para o feed com legenda pronta para publicar.",
     deliverables: [
@@ -65,6 +79,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "balcao-carrossel-5",
+    requer: ["arte-estatica-png", "texto-de-marca"],
     label: "Carrossel até 5 telas",
     description: "Sequência de até cinco telas com capa e legenda.",
     deliverables: [
@@ -81,6 +96,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "balcao-4-stories",
+    requer: ["arte-estatica-png", "texto-de-marca"],
     label: "4 stories",
     description: "Quatro stories verticais com margem protegida.",
     deliverables: [
@@ -96,6 +112,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "balcao-legenda",
+    requer: ["texto-de-marca"],
     label: "Legenda / copy avulsa",
     description: "Só o texto — para quem já tem a arte e trava na escrita.",
     deliverables: [
@@ -111,6 +128,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "balcao-auditoria-perfil",
+    requer: ["relatorio-de-auditoria-de-perfil"],
     label: "Auditoria de perfil",
     description: "Relatório do que está travando o seu Instagram hoje.",
     deliverables: [
@@ -126,6 +144,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "balcao-pacote-mes",
+    requer: ["arte-estatica-png", "texto-de-marca"],
     label: "Pacote mês — 8 peças",
     description: "Um mês de conteúdo: pauta, oito peças e calendário.",
     deliverables: [
@@ -149,6 +168,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   // vitrine mostra dois preços para o mesmo produto. Decisão pendente do CEO.
   {
     id: "pack-4-stories",
+    requer: ["arte-estatica-png", "texto-de-marca"],
     label: "Pack 4 Stories",
     description: "Quatro stories personalizados com design e copy prontos para publicar.",
     deliverables: ["4 stories 1080×1920", "Copy e hashtags", "Arquivo final (PNG/MP4)", "Entrega em 2 dias úteis"],
@@ -158,6 +178,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "pack-8-stories",
+    requer: ["arte-estatica-png", "texto-de-marca"],
     label: "Pack 8 Stories",
     description: "Oito stories — uma semana cheia de conteúdo com sequência estratégica.",
     deliverables: ["8 stories 1080×1920", "Copy e sequência narrativa", "Arquivo final (PNG/MP4)", "Entrega em 3 dias úteis"],
@@ -168,6 +189,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "pack-4-posts",
+    requer: ["arte-estatica-png", "texto-de-marca"],
     label: "4 Posts Feed",
     description: "Quatro posts para feed com design exclusivo e texto otimizado.",
     deliverables: ["4 artes 1080×1080", "Copy e legenda completa", "Arquivo final (PNG)", "Entrega em 3 dias úteis"],
@@ -177,6 +199,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "pack-8-posts",
+    requer: ["arte-estatica-png", "texto-de-marca"],
     label: "8 Posts Feed",
     description: "Oito posts — quinzena completa de conteúdo estratégico.",
     deliverables: ["8 artes 1080×1080", "Copy e legenda completa", "Calendário de publicação", "Entrega em 5 dias úteis"],
@@ -188,6 +211,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   // ── Video / Reels ────────────────────────────────────────────────────────
   {
     id: "1-reel",
+    requer: ["edicao-de-video-do-cliente", "texto-de-marca", "legenda-animada-em-video"],
     label: "1 Reel",
     description: "Um reel com roteiro, edição, música e legendas animadas.",
     deliverables: ["Roteiro e copy", "Edição completa", "Legendas animadas", "Entrega em 4 dias úteis"],
@@ -198,6 +222,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "pack-2-reels",
+    requer: ["edicao-de-video-do-cliente", "texto-de-marca", "legenda-animada-em-video"],
     label: "Pack 2 Reels",
     description: "Dois reels com roteiro, edição e identidade visual consistente.",
     deliverables: ["2 roteiros e copy", "2 vídeos editados", "Legendas animadas", "Entrega em 6 dias úteis"],
@@ -209,6 +234,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   // ── Design ───────────────────────────────────────────────────────────────
   {
     id: "banner-digital",
+    requer: ["arte-estatica-png", "arquivo-pdf"],
     label: "Banner Digital",
     description: "Banner para anúncio, capa de perfil ou materiais de divulgação.",
     deliverables: ["1 banner no formato solicitado", "Até 2 revisões", "Arquivo em PNG e PDF", "Entrega em 1 dia útil"],
@@ -218,6 +244,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "identidade-basica",
+    requer: ["logotipo-de-cliente"],
     label: "Identidade Básica",
     description: "Logo + paleta de cores + tipografia — a base visual do seu negócio.",
     deliverables: ["Logotipo (2 variações)", "Paleta de cores", "Tipografia definida", "Entrega em 5 dias úteis"],
@@ -229,6 +256,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   // ── Tráfego Pago ─────────────────────────────────────────────────────────
   {
     id: "setup-meta-ads",
+    requer: ["campanha-de-trafego-meta", "texto-de-marca"],
     label: "Setup Meta Ads",
     description: "Criação e configuração da sua primeira campanha no Meta (Facebook/Instagram).",
     deliverables: ["Estrutura de campanha", "Públicos e segmentação", "Copy dos anúncios", "Entrega em 3 dias úteis"],
@@ -290,3 +318,43 @@ export function prazoCurto(s: MicroService): string {
 export function prazoLongo(s: MicroService): string {
   return s.deliveryLabel ? `entrega ${s.deliveryLabel}` : `entrega em ${s.deliveryDays} dias úteis`;
 }
+
+// ─── A TRAVA DE VENDA ────────────────────────────────────────────────────────
+// `SELF_SERVE_CATALOG` continua sendo a tabela INTEIRA — preço, prazo e piso de
+// todo item, inclusive os que hoje não se produzem. Ele não encolhe porque meia
+// dúzia de módulos (triagem, recompra, 99freelas, balcão) buscam item por id e
+// precisam achar o preço de um pedido antigo mesmo depois de a oferta sair do ar.
+//
+// O que a vitrine mostra e o que a rota de pedido aceita é OUTRA coisa: só o que
+// tem caminho de produção. Duas listas derivadas do mesmo veredito — nenhuma
+// escrita à mão, nenhuma para esquecer de atualizar.
+
+/** O veredito de um item, pelo id. Item fora do catálogo é recusa. */
+export function ofertaVendavel(serviceId: string) {
+  const item = SELF_SERVE_CATALOG.find((s) => s.id === serviceId);
+  if (!item) {
+    return { vendavel: false, faltando: [], motivo: "item fora do catálogo" as string };
+  }
+  return conferirOferta(vistoDaOferta(item));
+}
+
+/** O que a régua lê de um item: o que ele declarou e TODO texto que o comprador
+ *  vê. O texto entra porque promessa escrita vale tanto quanto declaração. */
+function vistoDaOferta(item: MicroService) {
+  return {
+    requer: item.requer,
+    textos: [item.label, item.description, ...item.deliverables],
+  };
+}
+
+/** O catálogo que vai para a tela pública. Fail-closed: só entra quem passa. */
+export const CATALOGO_VENDAVEL: MicroService[] =
+  SELF_SERVE_CATALOG.filter((s) => conferirOferta(vistoDaOferta(s)).vendavel);
+
+/** O que saiu de venda, com o porquê — para painel interno e para o relatório
+ *  de quem for construir a capacidade que falta. */
+export const CATALOGO_SUSPENSO: Array<{ item: MicroService; motivo: string; faltando: string[] }> =
+  SELF_SERVE_CATALOG
+    .map((item) => ({ item, veredito: conferirOferta(vistoDaOferta(item)) }))
+    .filter(({ veredito }) => !veredito.vendavel)
+    .map(({ item, veredito }) => ({ item, motivo: veredito.motivo, faltando: veredito.faltando }));

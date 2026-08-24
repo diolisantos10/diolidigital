@@ -30,6 +30,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { prisma } from "@/lib/db/client";
 import { lerPanoramaDaAgencia, ultimos30Dias } from "@/lib/integrations/meta/ads-leitura";
+import { medirContaComSerie } from "@/lib/agency/medicao/medir-conta-com-serie";
 
 export const dynamic = "force-dynamic";
 
@@ -108,5 +109,26 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  return NextResponse.json({ ok: true, ...r.dados });
+  // ── A COMPARAÇÃO ESPERADO × RECEBIDO (24/08/2026) ─────────────────────────
+  //
+  // Antes desta linha, a rota devolvia os totais e a tela os desenhava. Se um
+  // evento de conversão deixasse de chegar, o número saía menor com a mesma
+  // cara de um número inteiro. Agora todo panorama carrega a integridade da sua
+  // própria medição, e a tela não tem como mostrar o número sem ela — o campo
+  // vem sempre, inclusive quando não houve comparação nenhuma ("não medido",
+  // que é diferente de "íntegro").
+  // ── A SÉRIE (24/08/2026) ──────────────────────────────────────────────────
+  //
+  // `medirContaComSerie` lê o passado da campanha, mede a integridade contra
+  // ele e grava este período para a leitura de amanhã. Sem o passado, "parou de
+  // chegar" é um detector desligado — e a conciliação devolve NÃO MEDIDO em vez
+  // de fingir integridade.
+  const contas = await Promise.all(r.dados.contas.map(async (c) => ({
+    ...c,
+    integridade: await medirContaComSerie({
+      contaId: c.conta.id, periodo: c.periodo, desempenho: c.desempenho, totais: c.totais,
+    }),
+  })));
+
+  return NextResponse.json({ ok: true, ...r.dados, contas });
 }

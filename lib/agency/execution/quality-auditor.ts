@@ -143,12 +143,25 @@ export function ficouSemArbitro(v: VereditoDaQualidade): boolean {
  *  não fica reprovada nem aprovada; fica declarada como não auditada. */
 export const AUDIT_TIMEOUT_MS = 45_000;
 
-const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
+export const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
   ia_indisponivel: "NÃO AUDITADA: a IA da Qualidade estava indisponível — nenhum árbitro olhou esta peça.",
   timeout: "NÃO AUDITADA: a IA da Qualidade não respondeu a tempo — nenhum árbitro olhou esta peça.",
   erro: "NÃO AUDITADA: a auditoria falhou com erro — nenhum árbitro olhou esta peça.",
   resposta_invalida: "NÃO AUDITADA: a IA da Qualidade respondeu fora do formato — o parecer não pôde ser lido.",
-  juiz_nao_imparcial: "NÃO AUDITADA: o único modelo disponível para julgar é o MESMO que escreveu a peça — não existe aprovação independente aqui.",
+  // ── O MOTIVO DIZ QUAL CHAVE RESOLVE (24/08/2026) ──────────────────────────
+  // Medido no piloto: 5 de 7 entregas pararam aqui, e a mensagem antiga
+  // explicava o problema sem dizer o conserto. Quem abrisse o portal daqui a um
+  // mês saberia que a peça não foi auditada e não saberia o que fazer — e o
+  // conserto NÃO é reescrever a peça, é conectar um provedor.
+  //
+  // A fila de árbitros é `FILA_DE_ARBITROS` (logo acima): qualquer uma das três
+  // resolve, e são chaves de preços diferentes. Nomear as três é dar a escolha
+  // a quem paga, em vez de mandá-lo adivinhar.
+  juiz_nao_imparcial:
+    "NÃO AUDITADA: o único modelo disponível para julgar é o MESMO que escreveu a peça — "
+    + "não existe aprovação independente aqui. NÃO é defeito da peça: não reescreva. "
+    + "CONSERTO: conectar uma SEGUNDA chave de IA (openai, gemini ou deepseek) em "
+    + "Integrações — qualquer uma delas serve como árbitro independente.",
   tipo_nao_declarado: "NÃO AUDITADA: quem pediu a auditoria não declarou o TIPO da entrega — sem saber se julga um post ou um plano, o juiz inventaria a régua.",
 };
 
@@ -184,6 +197,46 @@ const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
  * listas isentaria a pauta da régua de texto sem ninguém ter pedido.
  */
 const TIPOS_DE_PLANEJAMENTO: readonly string[] = ["plano-de-conteudo"];
+
+/**
+ * O QUE **NÃO** É MOTIVO PARA REPROVAR — a instrução gêmea do juiz.
+ *
+ * ── Por que existe (24/08/2026) ────────────────────────────────────────────
+ * O prompt listava cinco critérios e fechava com "flag só se houver problema
+ * real". Sem dizer o que NÃO é problema, o juiz virou maximalista: medido ao
+ * vivo, reprovou peças exigindo que declarassem tipografia de uma marca que
+ * ainda não tem identidade, que o CTA nomeasse canais (quando "chama a gente no
+ * direct" é EXATAMENTE o que a casa manda escrever para não depender de dado
+ * ausente), e leu "terça a domingo" como contradição de "ter, qua, qui, sex,
+ * sab, dom" — que é a mesma coisa.
+ *
+ * É a doutrina de "toda proibição precisa da instrução gêmea", aplicada ao
+ * contrário: **toda instrução de julgar precisa do seu limite.** Critério sem
+ * fronteira não vira rigor, vira invenção — do mesmo jeito que proibição sem
+ * alternativa empurra o autor para o comportamento adjacente.
+ *
+ * ⚠️ NENHUM CRITÉRIO SAI. Os cinco continuam inteiros, e invenção e promessa
+ * falsa continuam reprovando (há teste). O que este bloco faz é impedir que o
+ * juiz acrescente critérios que ninguém escreveu.
+ */
+const LIMITE_DO_JUIZ = [
+  "",
+  "O QUE **NÃO** É MOTIVO PARA REPROVAR — reprovar por isto trava o pacote inteiro sem defeito:",
+  "- A peça NÃO citar um fato atestado. Ela não é um cadastro: não precisa listar horário,",
+  "  endereço, canais nem dias. Só é defeito quando o que ela DIZ está errado.",
+  "- CTA genérico que não depende de dado ausente (\"chama a gente no direct\", \"manda mensagem\").",
+  "  É o comportamento CORRETO desta casa — peça que depende de dado que ninguém tem é que é defeito.",
+  "- Faltar diretriz visual, tipografia ou cor quando a marca ainda não tem identidade constituída.",
+  "- A peça NOMEAR o que ainda depende do cliente. Nomear a pendência é a função de um bom",
+  "  documento, não um defeito dele.",
+  "- Quantidade entregue (número de peças, de roteiros, de semanas). Isso é conferido em código",
+  "  pelo contrato de saída, antes de você — não é o seu trabalho e você não tem o contrato à vista.",
+  "- Preferência editorial sua: outro ângulo, outra ordem, mais diferenciação entre peças.",
+  "",
+  "CONTRADIÇÃO é a peça afirmar o OPOSTO do atestado — não uma forma diferente de dizer a mesma",
+  "coisa. \"Terça a domingo\" e \"ter, qua, qui, sex, sab, dom\" são o MESMO fato.",
+  "",
+].join("\n");
 
 function naturezaDaEntrega(tipo: string | null): string {
   const t = (tipo ?? "").trim().toLowerCase();
@@ -333,6 +386,7 @@ CONTEXTO DA MARCA:
 ${input.brandContext}
 ${input.marketGuidelines ? `\n${input.marketGuidelines}\n` : ""}
 Verifique: (1) está no tom e no segmento certos? (2) tem promessa falsa ou garantia irreal? (3) inventa número/preço/dado que não foi fornecido? (4) tem clichê vazio ou erro grave? (5) está alinhada às diretrizes ATUAIS de mercado acima (quando houver)?${criterioDoFeed}${avisoSemFeed}
+${LIMITE_DO_JUIZ}
 Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"note":"1 frase de parecer"}. verdict="flag" só se houver problema real.`,
       maxTokens: 500,
       workspaceId: input.workspaceId,
@@ -377,9 +431,21 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
     //   • REPROVAÇÃO continua valendo. Ela bloqueia, e um problema apontado pelo
     //     próprio modelo é um problema — jogá-la fora seria trocar um freio real
     //     por pureza de método.
-    //   • APROVAÇÃO vira `nao_auditado`. Não é reprovação (não bloqueia), mas
-    //     também não é aprovação: ninguém independente olhou. Fica declarada,
-    //     contável, e some do "aprovado pela Qualidade".
+    //   • APROVAÇÃO vira `nao_auditado`. Não é reprovação, mas também não é
+    //     aprovação: ninguém independente olhou. Fica declarada e contável, e
+    //     some do "aprovado pela Qualidade".
+    //
+    // ⚠️ ATUALIZAÇÃO DE 24/08/2026 — esta linha dizia "não bloqueia", e deixou
+    // de ser verdade por ordem do Diretor Geral: `nao_auditado` passou a RETER a
+    // apresentação (`marcos.apresentar`), porque peça que ninguém olhou não pode
+    // chegar ao cliente. O comentário está corrigido aqui porque doutrina que
+    // descreve o comportamento antigo é pior que doutrina nenhuma: ela ensina
+    // errado com a autoridade de estar escrita no código.
+    //
+    // CONSEQUÊNCIA MEDIDA, e é decisão de gente: com UM só provedor de IA
+    // conectado, todo especialista que escreve em `claude` se auto-aprovaria, e
+    // agora fica retido. No piloto de 24/08 isso foi 5 de 7 entregas. Não há
+    // conserto em código — exige uma segunda chave de provedor.
     if (result.provider === autor && veredito === "aprovado") {
       return { ...semArbitro("juiz_nao_imparcial"), issues, arbitro: result.provider };
     }

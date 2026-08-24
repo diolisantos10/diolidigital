@@ -7,6 +7,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { sendWhatsAppMessage, sendWhatsAppDirect } from "./client";
+import { provaParaTelefone } from "@/lib/agency/consentimento/quem-pode-receber";
 import { resolveWhatsAppEnv } from "./config";
 import { PROPOSAL_SENT_TEMPLATE } from "./templates";
 
@@ -175,9 +176,15 @@ export async function dispatchWhatsAppNotifications(
       : BASE_URL;
 
     // Send via the approved template (business-initiated, outside 24h window).
+    // A prova é lida do banco antes do envio. Notificação de proposta pronta é
+    // ABORDAGEM (a casa fala primeiro) — autorizada só porque o destinatário é
+    // o cliente que entregou o próprio número. Se o número não for de ninguém
+    // que a casa conheça, `sendWhatsApp*` recusa e diz o que falta.
+    const consentimento = await provaParaTelefone(ev.workspaceId, recipient.phone);
     const messageInput = {
       connectionId: waConn?.id ?? "",
       to: recipient.phone,
+      consentimento,
       templateName: PROPOSAL_SENT_TEMPLATE.name,
       templateLanguage: PROPOSAL_SENT_TEMPLATE.language,
       templateComponents: [

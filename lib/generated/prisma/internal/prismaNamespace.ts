@@ -426,6 +426,7 @@ export const ModelName = {
   EvidenceItem: 'EvidenceItem',
   MetaConnection: 'MetaConnection',
   MetaAdCota: 'MetaAdCota',
+  MedicaoDeEventos: 'MedicaoDeEventos',
   MetaAdFreio: 'MetaAdFreio',
   MetaRitmoJanela: 'MetaRitmoJanela',
   MetaRitmoFreio: 'MetaRitmoFreio',
@@ -467,7 +468,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3579,6 +3580,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MedicaoDeEventos: {
+      payload: Prisma.$MedicaoDeEventosPayload<ExtArgs>
+      fields: Prisma.MedicaoDeEventosFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MedicaoDeEventosFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicaoDeEventosPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MedicaoDeEventosFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicaoDeEventosPayload>
+        }
+        findFirst: {
+          args: Prisma.MedicaoDeEventosFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicaoDeEventosPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MedicaoDeEventosFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicaoDeEventosPayload>
+        }
+        findMany: {
+          args: Prisma.MedicaoDeEventosFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicaoDeEventosPayload>[]
+        }
+        create: {
+          args: Prisma.MedicaoDeEventosCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicaoDeEventosPayload>
+        }
+        createMany: {
+          args: Prisma.MedicaoDeEventosCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MedicaoDeEventosCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicaoDeEventosPayload>[]
+        }
+        delete: {
+          args: Prisma.MedicaoDeEventosDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicaoDeEventosPayload>
+        }
+        update: {
+          args: Prisma.MedicaoDeEventosUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicaoDeEventosPayload>
+        }
+        deleteMany: {
+          args: Prisma.MedicaoDeEventosDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MedicaoDeEventosUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MedicaoDeEventosUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicaoDeEventosPayload>[]
+        }
+        upsert: {
+          args: Prisma.MedicaoDeEventosUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicaoDeEventosPayload>
+        }
+        aggregate: {
+          args: Prisma.MedicaoDeEventosAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMedicaoDeEventos>
+        }
+        groupBy: {
+          args: Prisma.MedicaoDeEventosGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicaoDeEventosGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MedicaoDeEventosCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicaoDeEventosCountAggregateOutputType> | number
+        }
+      }
+    }
     MetaAdFreio: {
       payload: Prisma.$MetaAdFreioPayload<ExtArgs>
       fields: Prisma.MetaAdFreioFieldRefs
@@ -6359,6 +6434,19 @@ export const MetaAdCotaScalarFieldEnum = {
 export type MetaAdCotaScalarFieldEnum = (typeof MetaAdCotaScalarFieldEnum)[keyof typeof MetaAdCotaScalarFieldEnum]
 
 
+export const MedicaoDeEventosScalarFieldEnum = {
+  id: 'id',
+  campanhaId: 'campanhaId',
+  contaId: 'contaId',
+  desde: 'desde',
+  ate: 'ate',
+  eventos: 'eventos',
+  lidoEm: 'lidoEm'
+} as const
+
+export type MedicaoDeEventosScalarFieldEnum = (typeof MedicaoDeEventosScalarFieldEnum)[keyof typeof MedicaoDeEventosScalarFieldEnum]
+
+
 export const MetaAdFreioScalarFieldEnum = {
   contaId: 'contaId',
   ate: 'ate',
@@ -6983,6 +7071,7 @@ export type GlobalOmitConfig = {
   evidenceItem?: Prisma.EvidenceItemOmit
   metaConnection?: Prisma.MetaConnectionOmit
   metaAdCota?: Prisma.MetaAdCotaOmit
+  medicaoDeEventos?: Prisma.MedicaoDeEventosOmit
   metaAdFreio?: Prisma.MetaAdFreioOmit
   metaRitmoJanela?: Prisma.MetaRitmoJanelaOmit
   metaRitmoFreio?: Prisma.MetaRitmoFreioOmit

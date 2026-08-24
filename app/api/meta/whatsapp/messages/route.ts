@@ -13,6 +13,7 @@ import { loadConnectionToken } from "@/lib/integrations/meta/connections";
 import { resolveWhatsAppEnv } from "@/lib/integrations/meta/config";
 import { listThreads, listMessages, recordOutbound } from "@/lib/integrations/meta/inbox";
 import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
+import { provaParaTelefone } from "@/lib/agency/consentimento/quem-pode-receber";
 
 // Resolve the sending number + token for a workspace: stored connection wins,
 // else env vars.
@@ -63,7 +64,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const sender = await resolveSender(session.workspaceId);
   if (!sender) return NextResponse.json({ error: "Nenhum número WhatsApp conectado" }, { status: 503 });
 
-  const send = await sendWhatsAppDirect(sender.phoneNumberId, sender.token, { connectionId: "", to: contactWaId, text });
+  // ── RESPOSTA NÃO É ABORDAGEM, E A DIFERENÇA É CONFERIDA (24/08/2026) ──────
+  // Esta caixa responde quem escreveu para a marca — e responder é o que a
+  // pessoa pediu. Mas "é resposta" não pode ser afirmação de quem clica: o
+  // resolvedor procura a mensagem RECEBIDA daquele contato. Achou, é resposta e
+  // sai. Não achou, a caixa está sendo usada para abordar um número que nunca
+  // falou com a marca — exatamente o que uma base importada faz — e aí a trava
+  // fecha, dizendo o que falta.
+  const consentimento = await provaParaTelefone(session.workspaceId, contactWaId);
+  const send = await sendWhatsAppDirect(sender.phoneNumberId, sender.token, {
+    connectionId: "", to: contactWaId, text, consentimento,
+  });
   if (!send.ok) return NextResponse.json({ ok: false, error: send.error }, { status: 400 });
 
   await recordOutbound({

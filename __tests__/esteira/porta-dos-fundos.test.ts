@@ -160,15 +160,49 @@ describe("A PORTA DOS FUNDOS ESTÁ FECHADA — reprovada não chega ao cliente s
   });
 });
 
-describe("A MENSAGEM AO CLIENTE NÃO AFIRMA A REVISÃO QUE NÃO HOUVE", () => {
-  it("pacote `nao_auditado` é apresentado (não bloqueia) mas SEM alegar revisão", async () => {
-    // Peça que nunca teve juiz: a indisponibilidade não pode parar a operação
-    // inteira. Mas a casa também não pode dizer ao cliente, por escrito, que
-    // revisou — era a frase que o próprio código se recusava a declarar.
+describe("PEÇA QUE NINGUÉM OLHOU NÃO CHEGA AO CLIENTE", () => {
+  // ── A REGRA MUDOU EM 24/08/2026, POR ORDEM, E O MOTIVO É DOUTRINA ────────
+  //
+  // `quality-auditor.ts` sempre disse: "`nao_auditado` NUNCA pode ser lido como
+  // `aprovado`". Só que a consequência prática dizia o contrário — apenas
+  // `quality_flag` retinha a apresentação, e a peça que nenhum árbitro examinou
+  // seguia ao cliente como se tivesse passado.
+  //
+  // Medido no piloto: TRÊS de sete entregas saíram `quality_nao_auditado`
+  // (o único modelo disponível para julgar era o mesmo que escreveu a peça) e
+  // nada as segurava.
+  //
+  // O que estes testes AFIRMAVAM antes — "a mensagem não alega revisão que não
+  // houve" e "o time é avisado" — continua valendo inteiro; mudou apenas ONDE
+  // isso acontece: no escape declarado (`mesmoComRessalva`), que é a decisão de
+  // uma pessoa, e não mais no caminho automático.
+  it("pacote `nao_auditado` NÃO é apresentado — ausência de auditoria não é aprovação", async () => {
     estado.entregas = [{ ...REPROVADA, id: "d9", name: "Calendário", revisionStatus: "quality_nao_auditado" }];
 
     const r = await apresentar("p1");
-    expect(r.ok, "indisponibilidade NÃO bloqueia").toBe(true);
+    expect(r.ok).toBe(false);
+    expect(estado.projeto.presentedAt).toBeNull();
+  });
+
+  it("e o motivo diz NINGUÉM AUDITOU — não 'a Qualidade barrou'", async () => {
+    // Consertos diferentes: um se resolve reescrevendo a peça, o outro
+    // destravando a auditoria. Juntar os dois na mesma frase manda a equipe
+    // reescrever o que não tem defeito.
+    estado.entregas = [{ ...REPROVADA, id: "d9", name: "Calendário", revisionStatus: "quality_nao_auditado" }];
+
+    const r = await apresentar("p1");
+    expect(r.erro).toMatch(/NINGU[ÉE]M auditou/i);
+    expect(r.erro).toMatch(/n[ãa]o reescreva/i);
+    expect(r.erro).not.toMatch(/ressalva da Qualidade/);
+  });
+
+  it("no escape declarado, é apresentado — mas SEM alegar revisão", async () => {
+    // O intento original deste arquivo, preservado: a casa não pode dizer ao
+    // cliente, por escrito, que revisou o que ninguém revisou.
+    estado.entregas = [{ ...REPROVADA, id: "d9", name: "Calendário", revisionStatus: "quality_nao_auditado" }];
+
+    const r = await apresentar("p1", { mesmoComRessalva: true });
+    expect(r.ok).toBe(true);
     expect(ultimaMensagemAoCliente()).not.toContain("revisei tudo");
     expect(ultimaMensagemAoCliente(), "e sem alarmar o cliente à toa").toContain("Terminamos!");
   });
@@ -178,13 +212,16 @@ describe("A MENSAGEM AO CLIENTE NÃO AFIRMA A REVISÃO QUE NÃO HOUVE", () => {
       { ...REPROVADA, id: "d1", revisionStatus: "quality_ok" },
       { ...REPROVADA, id: "d2", name: "Calendário", revisionStatus: "quality_nao_auditado" },
     ];
-    await apresentar("p1");
+    // Sem o escape, o pacote misto agora fica retido pela peça sem árbitro.
+    expect((await apresentar("p1")).ok).toBe(false);
+    // Com o escape, vai — e continua não podendo alegar revisão do todo.
+    await apresentar("p1", { mesmoComRessalva: true });
     expect(ultimaMensagemAoCliente()).not.toContain("revisei tudo");
   });
 
   it("o TIME é avisado do que foi ao cliente sem árbitro — silêncio aqui é o buraco", async () => {
     estado.entregas = [{ ...REPROVADA, id: "d9", name: "Calendário", revisionStatus: "quality_nao_auditado" }];
-    await apresentar("p1");
+    await apresentar("p1", { mesmoComRessalva: true });
     const evento = ultimaChamada(db.activityEvent.create);
     expect(evento.type).toBe("apresentado_sem_auditoria");
     expect(evento.message).toContain("Calendário");
