@@ -410,3 +410,58 @@ describe("a régua continua mordendo depois de o juiz parar de ler o manual do a
     });
   }
 });
+
+// ── TODA INSTRUÇÃO DE JULGAR PRECISA DO SEU LIMITE ─────────────────────────
+//
+// Medido ao vivo em 24/08/2026: com cinco critérios e um "flag só se houver
+// problema real", o juiz virou maximalista. Reprovou peças por não declararem
+// tipografia de uma marca sem identidade, por CTA genérico (que é o
+// comportamento CORRETO desta casa) e leu "terça a domingo" como contradição de
+// "ter, qua, qui, sex, sab, dom".
+//
+// Critério sem fronteira não vira rigor, vira invenção — a mesma doença de
+// "proibição sem instrução gêmea", do lado de quem julga.
+describe("o juiz recebe o LIMITE do que não é defeito", () => {
+  const promptDe = async (tipo: string) => {
+    generate.mockResolvedValue({ ok: true, data: { verdict: "pass", issues: [], note: "ok" } });
+    generate.mockClear();
+    await auditDeliverable({ ...base, tipoDaEntrega: tipo });
+    return generate.mock.calls[0]![0].user as string;
+  };
+
+  it("diz que NÃO citar um fato atestado não é defeito", async () => {
+    expect(await promptDe("social")).toMatch(/NÃO citar um fato atestado/);
+  });
+
+  it("protege o CTA genérico — que é o comportamento correto da casa", async () => {
+    const p = await promptDe("social");
+    expect(p).toMatch(/CTA gen[ée]rico/);
+    expect(p).toMatch(/chama a gente no direct/);
+  });
+
+  it("define CONTRADIÇÃO como afirmar o OPOSTO, não dizer de outro jeito", async () => {
+    const p = await promptDe("social");
+    expect(p).toMatch(/afirmar o OPOSTO do atestado/);
+    expect(p).toMatch(/Ter[çc]a a domingo/);
+  });
+
+  it("tira da mão do juiz o que já é conferido em código", async () => {
+    // Quantidade é contrato de saída, medido antes dele e sem IA.
+    expect(await promptDe("social")).toMatch(/Quantidade entregue/);
+  });
+
+  it("o limite vale para os DOIS tipos de entrega", async () => {
+    for (const tipo of ["social", "strategy"]) {
+      expect(await promptDe(tipo), `tipo ${tipo} ficou sem limite`).toMatch(/NÃO\*\* É MOTIVO PARA REPROVAR/);
+    }
+  });
+
+  it("e NENHUM critério de julgamento saiu junto", async () => {
+    for (const tipo of ["social", "strategy"]) {
+      const p = await promptDe(tipo);
+      expect(p).toMatch(/promessa falsa/);
+      expect(p).toMatch(/inventa n[úu]mero\/pre[çc]o\/dado/);
+      expect(p).toMatch(/clich[êe] vazio/);
+    }
+  });
+});
