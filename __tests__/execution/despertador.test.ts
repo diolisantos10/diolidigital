@@ -23,6 +23,22 @@ beforeEach(() => {
   destravarPacote.mockResolvedValue({ projectId: "p1", corrigidas: [], persistentes: [], escalado: false });
 });
 
+
+/**
+ * A batida do relógio faz MAIS de uma varredura em `project.findMany`: desde
+ * `ligar-projeto.ts` a primeira é a dos projetos `idle` que ninguém ligou. Fixar
+ * `calls[0]` amarraria estes testes à ORDEM das pernas, e não ao que eles
+ * querem provar — as travas de `retomarProducao`. Escolhemos a chamada pela
+ * assinatura dela: só a de `retomarProducao` consulta por `OR` de estados.
+ */
+function varreduraDeRetomada() {
+  const chamada = db.project.findMany.mock.calls.find(
+    (c) => Array.isArray((c[0] as { where?: { OR?: unknown } } | undefined)?.where?.OR),
+  ) as [{ where: Record<string, any>; take: number; orderBy: unknown }] | undefined;
+  if (!chamada) throw new Error("retomarProducao não consultou project.findMany");
+  return chamada[0];
+}
+
 describe("o despertador — o que faz a agência trabalhar às 3 da manhã", () => {
   it("retoma a produção parada e dispara os avisos na mesma batida", async () => {
     db.project.findMany.mockResolvedValue([{ id: "p1" }, { id: "p2" }]);
@@ -38,13 +54,13 @@ describe("o despertador — o que faz a agência trabalhar às 3 da manhã", () 
     // Sem este filtro o relógio atropelaria o portão de direção — produziria
     // um mês inteiro de trabalho que o cliente ainda não avalizou.
     await baterORelogio();
-    const where = db.project.findMany.mock.calls[0]![0].where;
+    const where = varreduraDeRetomada().where;
     expect(where.directionApprovedAt).toEqual({ not: null });
   });
 
   it("acorda os três estados que ficariam parados para sempre", async () => {
     await baterORelogio();
-    const where = db.project.findMany.mock.calls[0]![0].where;
+    const where = varreduraDeRetomada().where;
     const estados = where.OR.map((o: { executionStatus: string }) => o.executionStatus);
     expect(estados).toContain("running"); // caiu no meio
     expect(estados).toContain("failed");  // falha momentânea de IA
@@ -53,18 +69,18 @@ describe("o despertador — o que faz a agência trabalhar às 3 da manhã", () 
 
   it("desiste depois de tentar demais — insistir para sempre queima dinheiro de IA", async () => {
     await baterORelogio();
-    const where = db.project.findMany.mock.calls[0]![0].where;
+    const where = varreduraDeRetomada().where;
     expect(where.executionAttempts).toEqual({ lt: 5 });
   });
 
   it("recuperação é recuperação, não enxurrada: no máximo 5 por rodada", async () => {
     await baterORelogio();
-    expect(db.project.findMany.mock.calls[0]![0].take).toBe(5);
+    expect(varreduraDeRetomada().take).toBe(5);
   });
 
   it("o mais antigo primeiro — quem espera há mais tempo tem a vez", async () => {
     await baterORelogio();
-    expect(db.project.findMany.mock.calls[0]![0].orderBy).toEqual({ executionRequestedAt: "asc" });
+    expect(varreduraDeRetomada().orderBy).toEqual({ executionRequestedAt: "asc" });
   });
 });
 
