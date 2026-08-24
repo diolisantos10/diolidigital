@@ -1,0 +1,16 @@
+{
+  "id": "sdr-na-camada-multi-ia",
+  "quem": "ses-1163d33e98",
+  "frente": "ligar o SDR na camada multi-IA e travar formato do Claude na camada",
+  "responsabilidade": "sdr-na-camada-multi-ia",
+  "arquivos": [
+    "lib/ai/generate.ts",
+    "lib/ai/formato-garantido.ts",
+    "app/api/sdr/chat/route.ts",
+    "lib/agency/intelligence/openai-schemas.ts",
+    "lib/ai/donos.ts"
+  ],
+  "abertaEm": "2026-08-24T00:30:31.344Z",
+  "encerradaEm": null,
+  "rotulo": "diretor-dd-verba"
+}
