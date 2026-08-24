@@ -55,6 +55,26 @@ describe("contarFormas — o número vem com a causa junto", () => {
     expect(r.map(([, n]) => n)).toEqual([9, 1]);
   });
 
+  // ── O ACHADO DA RODADA DE 24/08, virado em teste ─────────────────────────
+  // Dez turnos da MESMA causa viraram NOVE linhas no placar, porque o laudo
+  // carrega o tamanho do pacote e os tamanhos diferiam. Uma causa lida como
+  // nove achados é o oposto do que o agrupamento existe para fazer.
+  it("uma causa com tamanhos diferentes é UMA linha, não nove", () => {
+    const tamanhos = [201, 216, 216, 242, 243, 252, 254, 262, 265, 319];
+    const barrados = tamanhos.map((t) =>
+      MALFORMADO_PROSA.replace("297 caracteres", `${t} caracteres`),
+    );
+    const r = contarFormas(barrados);
+    expect(r).toHaveLength(1);
+    expect(r[0][1]).toBe(10);
+    expect(r[0][0]).toMatch(/não abriu JSON nenhum/);
+  });
+
+  it("ainda separa causas de FEITIO diferente — normalizar número não pode fundir tudo", () => {
+    const r = contarFormas([MALFORMADO_PROSA, MALFORMADO_PREAMBULO]);
+    expect(r).toHaveLength(2);
+  });
+
   it("não quebra com linha fora do feitio esperado", () => {
     expect(() => contarFormas(["texto qualquer", ""])).not.toThrow();
     expect(contarFormas(["texto qualquer"])[0][1]).toBe(1);

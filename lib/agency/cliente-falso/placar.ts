@@ -171,8 +171,18 @@ export function contarFormas(barrados: readonly string[]): [string, number][] {
     const forma = /—\s*na forma:\s*(.+?)\s*—\s*quem respondeu/.exec(linha)?.[1]?.trim();
     // Laudo ausente é FATO, não lacuna a esconder: turno barrado por um guarda
     // que não julga formato (preço, e-mail) não tem forma para reportar.
-    const chave = forma
-      ? `${motivo ?? "motivo não identificado"}: ${forma}`
+    // ── POR QUE OS NÚMEROS SAEM DA CHAVE DE AGRUPAMENTO ────────────────────
+    // Medido na rodada de 24/08/2026: dez turnos barrados pela MESMA causa —
+    // "o modelo não abriu JSON nenhum (respondeu em prosa)" — viraram NOVE
+    // linhas no placar, porque o laudo carrega o tamanho do pacote e os
+    // tamanhos diferiam (201, 216, 242, 243, 252, 254, 262, 265, 319). Uma
+    // causa única lida como nove achados é o oposto do que este agrupamento
+    // existe para fazer: quem lê tem de enxergar "10× a mesma coisa", que é
+    // uma causa, e não nove coincidências. O tamanho continua no laudo do
+    // diário, onde ele é medição de um turno; aqui ele não distingue causa.
+    const semNumeros = forma?.replace(/\d+/g, "N");
+    const chave = semNumeros
+      ? `${motivo ?? "motivo não identificado"}: ${semNumeros}`
       : `${motivo ?? "motivo não identificado"} (sem laudo de forma — este guarda não julga formato)`;
     conta.set(chave, (conta.get(chave) ?? 0) + 1);
   }

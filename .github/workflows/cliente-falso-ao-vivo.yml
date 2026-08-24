@@ -178,10 +178,19 @@ jobs:
           if [ -n "${falhou}" ]; then exit 1; fi
 
       # `always()`: a rodada que QUEBRA é a que mais precisa deixar placar.
+      #
+      # ⚠️ `include-hidden-files: true` NÃO É DETALHE. `.cliente-falso/` começa
+      # com ponto, e o padrão do `upload-artifact@v4` é ignorar tudo que é
+      # oculto — nas duas primeiras rodadas ao vivo (24/08/2026) o passo fechou
+      # VERDE dizendo "No files were found", e o placar só existiu no log. Passo
+      # verde que não subiu nada é a mesma doença que esta casa persegue: o
+      # silêncio parecendo sucesso. `if-no-files-found: error` fecha a outra
+      # metade — some o arquivo, o passo grita em vez de dar de ombros.
       - name: Guardar os placares
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: placares-cliente-falso
           path: .cliente-falso/placar-rodada-*
-          if-no-files-found: warn
+          include-hidden-files: true
+          if-no-files-found: error
