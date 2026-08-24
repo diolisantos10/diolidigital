@@ -22,6 +22,7 @@
 //     NÃO inventa — ele abre pedido e o gerente de projeto cobra o cliente.
 
 import type { InsightDomain } from "@/lib/agency/radar/library";
+import { contratoDaBaseDeMarca, blocoDosCamposDaMarca } from "@/lib/agency/execution/branding";
 // A trava de storyboard (`lib/agency/design/storyboard.ts`) roda nos DOIS pontos
 // da esteira: aqui, no contrato de saída do especialista, onde ele ainda pode
 // refazer; e em `artes.ts`, antes de gastar imagem. Mesma função, mesma régua.
@@ -701,9 +702,73 @@ function formato(titulo: string, campos: string): string {
 }
 
 export const DEPARTAMENTOS: Departamento[] = [
+  // ── BRANDING ──────────────────────────────────────────────────────────────
+  //
+  // VEM ANTES DE ESTRATÉGIA, e a ordem é a mensagem: branding é o que amarra o
+  // resto. Social, design e tráfego obedecem à base de marca; sem ela, cada
+  // casa inventa a sua e nenhuma está errada sozinha.
+  //
+  // ── POR QUE ESTE DEPARTAMENTO NÃO EXISTIA ATÉ 24/08/2026 ──────────────────
+  // O case Farol 27 percorreu os doze departamentos e mediu o buraco: o cliente
+  // pediu REPOSICIONAMENTO DE MARCA como serviço principal e a esteira não tinha
+  // quem fizesse. O Brand Hub e o Brand Book saíram à mão, fora da máquina — e o
+  // que sai fora da máquina não tem portão de qualidade, não alimenta o
+  // `BrandBrain` e não vira régua para as outras casas.
+  //
+  // ⚠️ ISTO NÃO É O KIT DE MARCA (`design-kit-de-marca`, tipo `brand-kit`), que é
+  // manual + arquivos de logo montado em código. Aqui é a CONSTITUIÇÃO: quem a
+  // marca é, com quem fala, como fala, o que nunca diz. O kit é a embalagem; a
+  // base é o conteúdo, e o conteúdo é que serve de régua.
+  //
+  // ⚠️ DEPENDE DE CHAVE DE IA, e isso está declarado em vez de maquiado: sem
+  // provedor configurado, `generate` falha e o motor registra
+  // "Branding · Base de marca (IA: <erro>)" em `skipped`. Ele NÃO entrega
+  // documento vazio com cara de entrega — o contrato de saída abaixo recusa
+  // exatamente isso.
+  {
+    id: "branding",
+    label: "Branding",
+    keywords: /branding|reposicionamento|marca|identidade de marca|brand|ess[êe]ncia/i,
+    insightDomain: "general",
+    especialistas: [
+      {
+        id: "branding-base-de-marca",
+        label: "Base de marca",
+        // ── O TIPO É SEPARADO DOS PUBLICÁVEIS, DE PROPÓSITO ────────────────
+        // `brand-foundation` está declarado em `tipos-de-entrega.ts` com
+        // `publicavel: false`. Um documento de marca NÃO pode entrar em fila de
+        // publicação — foi exatamente o que aconteceu com a Pauta do mês, que
+        // era `social` e entrou na fila para virar post no perfil do cliente.
+        // Publicar a base de marca seria publicar o gabarito das peças.
+        deliverableType: "brand-foundation",
+        contrato: contratoDaBaseDeMarca,
+        provedor: "claude",
+        prompt: (c) => `Você é o especialista de BASE DE MARCA da Dioli Digital. Escreva a CONSTITUIÇÃO da marca deste cliente — o documento que todas as outras casas (social, design, tráfego) vão obedecer.
+
+CONTEXTO
+${ctxBlock(c)}
+
+REGRA DE OURO DESTE DOCUMENTO: **lacuna é entrega.**
+O cliente não contou tudo, e o que ele não contou você NÃO INVENTA. Cada campo
+sai com um estado declarado:
+  "definido"        — o dono decidiu, e você diz em \`fonte\` onde isso está escrito no contexto acima;
+  "lacuna"          — ninguém decidiu ainda. \`conteudo\` fica VAZIO e \`falta\` diz o que precisa vir do cliente;
+  "herdado_default" — a casa empresta um mínimo enquanto a marca não se constitui. Diga em \`conteudo\` qual, e deixe claro que é da casa.
+
+Preencher um campo bonito sobre um cliente que não contou nada é pior que deixá-lo
+em branco: este documento vira RÉGUA das peças do mês inteiro.
+
+OS CAMPOS (um item por campo, exatamente estes, nesta ordem):
+${blocoDosCamposDaMarca()}
+${REGRA}
+Responda em JSON: {"title": "Base de marca — <negócio>", "summary": "1 frase sobre o que a marca é", "items": [{"campo": "proposito_e_promessa", "headline": "rótulo do campo em português", "estado": "definido|lacuna|herdado_default", "conteudo": "a decisão escrita, ou vazio se for lacuna", "fonte": "de onde veio (obrigatório quando definido)", "falta": "o que precisa vir do cliente (obrigatório quando lacuna)"}]}`,
+      },
+    ],
+  },
   // ── ESTRATÉGIA ────────────────────────────────────────────────────────────
-  // Vem primeiro de propósito: é a casa que decide o caminho que as outras
-  // seguem. A concorrência é o único trabalho da agência que EXIGE olhar para
+  // Vinha primeiro até 24/08/2026, quando BRANDING nasceu acima dela: a
+  // estratégia decide o caminho, mas quem a marca É vem antes de para onde ela
+  // vai. Segue sendo a casa que decide o caminho que as outras seguem. A concorrência é o único trabalho da agência que EXIGE olhar para
   // fora — por isso é o único especialista que usa uma IA de pesquisa.
   {
     id: "strategy",

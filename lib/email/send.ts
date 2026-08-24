@@ -18,9 +18,21 @@ import {
   motivoDoBloqueio,
   registrarSaidaBloqueada,
 } from "@/lib/agency/cliente-falso/trava-de-saida";
+import {
+  avaliarConsentimento, comoDestravar, registrarAbordagemBarrada,
+  type ConsentimentoDeSaida,
+} from "@/lib/agency/consentimento/prova";
 
 export interface SendEmailInput {
   to: string;
+  /**
+   * ⛔ OBRIGATÓRIO. A mesma pergunta do WhatsApp: isto é resposta a quem
+   * procurou a casa, ou abordagem? E, sendo abordagem, cadê a prova?
+   *
+   * Obrigatório de propósito — porta de saída nova sem consentimento declarado
+   * não compila. Ver `lib/agency/consentimento/prova.ts`.
+   */
+  consentimento: ConsentimentoDeSaida;
   subject: string;
   html: string;
   replyTo?: string;
@@ -70,6 +82,15 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   if (bloqueio) {
     registrarSaidaBloqueada({ canal: "email", destino: input.to, assunto: input.subject, motivo: bloqueio });
     return { ok: false, skipped: true, error: `bloqueado:${bloqueio}` };
+  }
+
+  // ── TRAVA DE CONSENTIMENTO — TAMBÉM ANTES DA CHAVE ──────────────────────
+  // Pelo mesmo motivo do bloco acima: trava que mora depois de ler a chave é
+  // trava que vale por sorte de ambiente.
+  const consent = avaliarConsentimento(input.consentimento);
+  if (!consent.pode) {
+    registrarAbordagemBarrada({ canal: "email", destino: input.to, motivo: consent.motivo });
+    return { ok: false, error: `sem_consentimento:${consent.motivo}\n${comoDestravar(consent)}` };
   }
 
   const apiKey = process.env.RESEND_API_KEY;
