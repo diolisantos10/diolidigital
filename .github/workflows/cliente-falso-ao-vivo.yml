@@ -127,6 +127,32 @@ jobs:
           echo "CHAVE_ENCONTRADA_EM=${achado}" >> "$GITHUB_ENV"
           echo "✅ chave presente (em ${achado}). O valor não é impresso em passo nenhum."
 
+      # ── A SONDA DO CORPO: QUE FORMA DE CONVERSA A API RECUSA ───────────────
+      #
+      # Nasceu de um `Claude HTTP 400` visto em PRODUÇÃO no departamento do SDR
+      # enquanto a bateria vinha 16/16 limpa. A diferença entre as duas era o
+      # achado, e deduzi-la do código seria adivinhar — a Anthropic DIZ o que
+      # recusou, e a sonda pergunta.
+      #
+      # Roda em toda rodada ao vivo, antes da bateria, porque é justamente a
+      # forma de conversa que a bateria NÃO monta (turno vazio, dois `user`
+      # seguidos, fala da vez em branco) que a produção monta sozinha. Custa
+      # ~7 chamadas de `max_tokens: 16`; requisição recusada não gera saída.
+      #
+      # Não derruba o passo: é diagnóstico. O que ela mede vira teste depois.
+      - name: Sonda do corpo do Claude (o que a API recusa)
+        if: ${{ github.event.inputs.medir_cache != 'true' }}
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          ANTHROPIC_API_TOKEN: ${{ secrets.ANTHROPIC_API_TOKEN }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+        run: |
+          export ANTHROPIC_API_KEY="$(printenv "${CHAVE_ENCONTRADA_EM}")"
+          npx tsx scripts/sonda-do-corpo-do-claude.mts
+
       # A MEDIÇÃO DO CACHE, quando pedida. Gasta 3 chamadas de IA e não roda a
       # bateria — existe para provar a economia com número medido, não estimado.
       - name: Medir o cache do prompt (opcional)

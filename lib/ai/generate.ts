@@ -142,16 +142,23 @@ const FERRAMENTA_DO_PACOTE = {
 };
 
 
-async function callClaude(
-  apiKey: string, model: string, m: OpenAIMessages, maxTokens: number,
-  timeoutMs?: number, cachearSistema?: boolean, esquema?: Record<string, unknown>,
-): Promise<GenerateResult> {
-  const { signal, clear } = withTimeout(timeoutMs);
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({
+/**
+ * O CORPO DA REQUISIÇÃO DO CLAUDE — montado num lugar só.
+ *
+ * ── Por que virou função exportada (24/08/2026) ─────────────────────────────
+ * Um `Claude HTTP 400` apareceu em produção no departamento do SDR e não havia
+ * como investigá-lo: o corpo era montado inline, dentro do `fetch`, e nenhum
+ * teste conseguia olhar para ele sem chamar a rede. Investigar virou adivinhar.
+ *
+ * Extraído, o mesmo corpo que a produção envia pode ser conferido em teste e
+ * medido contra a API de verdade pela sonda (`scripts/sonda-do-corpo-do-claude.mts`)
+ * — sem cópia, que seria a segunda régua de sempre.
+ */
+export function corpoDoClaude(
+  model: string, m: OpenAIMessages, maxTokens: number,
+  cachearSistema?: boolean, esquema?: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
         model,
         max_tokens: maxTokens,
         // ── O CACHE DE PROMPT, E POR QUE ELE É OPT-IN ────────────────────────
@@ -185,10 +192,46 @@ async function callClaude(
         // responder em prosa porque não há canal de prosa disponível.
         tools: [esquema ? { ...FERRAMENTA_DO_PACOTE, input_schema: esquema } : FERRAMENTA_DO_PACOTE],
         tool_choice: { type: "tool", name: FERRAMENTA_DO_PACOTE.name },
-      }),
+      };
+}
+
+async function callClaude(
+  apiKey: string, model: string, m: OpenAIMessages, maxTokens: number,
+  timeoutMs?: number, cachearSistema?: boolean, esquema?: Record<string, unknown>,
+): Promise<GenerateResult> {
+  const { signal, clear } = withTimeout(timeoutMs);
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify(corpoDoClaude(model, m, maxTokens, cachearSistema, esquema)),
       signal,
     });
-    if (!res.ok) return { ok: false, error: `Claude HTTP ${res.status}` };
+    if (!res.ok) {
+      // ── O MOTIVO VEM DA API, NÃO DE DEDUÇÃO (24/08/2026) ─────────────────
+      // Esta linha devolvia só `Claude HTTP 400` e JOGAVA FORA o corpo da
+      // resposta — que é exatamente onde a Anthropic escreve o que recusou.
+      // Um 400 apareceu em produção e a investigação começou sem o único dado
+      // que importava: o erro estava dentro de um cano que ninguém abriu.
+      //
+      // É a mesma doença que o servidor de teste teve HOJE ("morreu com código
+      // 1" sem dizer por quê). Diagnóstico que não chega a quem lê não existe.
+      //
+      // ⚠️ O corpo do erro NUNCA contém a chave (ela viaja em cabeçalho), mas é
+      // texto de terceiro: entra cortado e sem interpolação de mais nada.
+      // Ler o corpo NÃO PODE derrubar a chamada: se a leitura falhar, o que
+      // se perde é o detalhe — o status continua sendo reportado. Sem esta
+      // guarda, um corpo ilegível virava "erro de rede" e apagava o 400.
+      let detalhe = "";
+      try {
+        if (typeof res.text === "function") {
+          detalhe = (await res.text()).slice(0, 300).replace(/\s+/g, " ").trim();
+        }
+      } catch {
+        detalhe = "";
+      }
+      return { ok: false, error: `Claude HTTP ${res.status}${detalhe ? `: ${detalhe}` : ""}` };
+    }
     const json = (await res.json()) as {
       content?: { type?: string; text?: string; name?: string; input?: unknown }[];
       stop_reason?: string;
