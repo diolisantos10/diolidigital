@@ -1024,10 +1024,12 @@ async function mandarOMaterialComoOCliente(
   projectId: string,
   tropecos: Tropeco[],
 ): Promise<DesfechoDoMaterial> {
-  const pendentes = await prisma.materialRequest.count({
+  const abertos = await prisma.materialRequest.findMany({
     where: { projectId, status: "pending" },
-  }).catch(() => 0);
-  if (pendentes === 0) return { pedidos: 0, enviados: 0, viaPortal: false, motivo: null };
+    select: { id: true, type: true, description: true },
+    orderBy: { requestedAt: "asc" },
+  }).catch(() => [] as Array<{ id: string; type: string; description: string }>);
+  if (abertos.length === 0) return { pedidos: 0, enviados: 0, viaPortal: false, motivo: null };
 
   let token: string;
   try {
@@ -1036,7 +1038,7 @@ async function mandarOMaterialComoOCliente(
   } catch (e) {
     const erro = e instanceof Error ? e.message : String(e);
     tropecos.push({ etapa: "material", erro });
-    return { pedidos: pendentes, enviados: 0, viaPortal: false, motivo: erro };
+    return { pedidos: abertos.length, enviados: 0, viaPortal: false, motivo: erro };
   }
 
   // Um PNG 1×1 de verdade — o menor arquivo válido possível. Precisa ser um
@@ -1046,34 +1048,66 @@ async function mandarOMaterialComoOCliente(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
     "base64",
   );
+  const { POST } = await import("@/app/api/media/route");
 
-  try {
-    const { POST } = await import("@/app/api/media/route");
-    const form = new FormData();
-    form.set("file", new Blob([new Uint8Array(PNG_1x1)], { type: "image/png" }), "marca-cantina-da-prova-TESTE.png");
-    form.set("token", token);
-    const req = new NextRequest("http://cliente-falso.local/api/media", { method: "POST", body: form });
-    const res = await POST(req);
-    const corpo = (await res.json().catch(() => ({}))) as { error?: string };
-    if (res.status >= 400) {
-      const motivo = `a porta de material recusou (${res.status}): ${corpo.error ?? "sem motivo"}`;
-      tropecos.push({ etapa: "material", erro: motivo });
-      return { pedidos: pendentes, enviados: 0, viaPortal: false, motivo };
+  // ── UM ARQUIVO POR PEDIDO, COM O NOME DIZENDO QUAL É ────────────────────
+  //
+  // Medido ao vivo: mandar UM arquivo genérico com 5 pedidos em aberto não
+  // destrava nada — e a casa está certa. `casarMaterial` se recusa a adivinhar
+  // qual pedido um arquivo anônimo atende ("alguém precisa conferir antes de
+  // destravar"), porque casar errado marcaria como entregue o que o cliente
+  // nunca mandou.
+  //
+  // Um cliente de verdade não manda "arquivo.png": ele manda o logo dizendo que
+  // é o logo. Então cada envio carrega no NOME uma palavra do pedido que
+  // atende — que é o critério 1 de `casarMaterial`, e o mais forte dos três.
+  let enviados = 0;
+  let viaPortal = false;
+  const semDestino: string[] = [];
+
+  for (const pedido of abertos) {
+    // A palavra que identifica ESTE pedido e nenhum outro em aberto. Sem uma
+    // palavra exclusiva, o nome casaria com dois pedidos e a casa recusaria de
+    // novo — com razão.
+    const palavras = `${pedido.type} ${pedido.description}`
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 4);
+    const exclusiva = palavras.find((w) =>
+      abertos.filter((o) => `${o.type} ${o.description}`.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(w)).length === 1,
+    );
+    if (!exclusiva) {
+      semDestino.push(pedido.description.slice(0, 40));
+      continue;
     }
-  } catch (e) {
-    const erro = e instanceof Error ? e.message : String(e);
-    tropecos.push({ etapa: "material", erro });
-    return { pedidos: pendentes, enviados: 0, viaPortal: false, motivo: `a porta de material estourou: ${erro}` };
+
+    try {
+      const form = new FormData();
+      form.set("file", new Blob([new Uint8Array(PNG_1x1)], { type: "image/png" }), `${exclusiva}-TESTE.png`);
+      form.set("token", token);
+      const req = new NextRequest("http://cliente-falso.local/api/media", { method: "POST", body: form });
+      const res = await POST(req);
+      if (res.status < 400) viaPortal = true;
+      else {
+        const corpo = (await res.json().catch(() => ({}))) as { error?: string };
+        tropecos.push({ etapa: "material", erro: `a porta de material recusou (${res.status}): ${corpo.error ?? "sem motivo"}` });
+      }
+    } catch (e) {
+      tropecos.push({ etapa: "material", erro: e instanceof Error ? e.message : String(e) });
+    }
   }
 
   // A PROVA é o pedido ter saído de `pending` — não a resposta da rota.
   const aindaPendentes = await prisma.materialRequest.count({
     where: { projectId, status: "pending" },
-  }).catch(() => pendentes);
-  return {
-    pedidos: pendentes,
-    enviados: pendentes - aindaPendentes,
-    viaPortal: true,
-    motivo: aindaPendentes > 0 ? `${aindaPendentes} pedido(s) de material continuam pendentes depois do envio` : null,
-  };
+  }).catch(() => abertos.length);
+  enviados = abertos.length - aindaPendentes;
+
+  const motivo = aindaPendentes > 0
+    ? `${aindaPendentes} pedido(s) de material continuam pendentes depois do envio`
+      + (semDestino.length > 0 ? ` (sem palavra exclusiva para: ${semDestino.join("; ")})` : "")
+    : null;
+  return { pedidos: abertos.length, enviados, viaPortal, motivo };
 }
