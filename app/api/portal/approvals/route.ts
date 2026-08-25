@@ -21,12 +21,14 @@ import {
   DECISAO_PARA_ESTADO_CANONICO,
   DECISOES_QUE_EXIGEM_COMENTARIO,
   ACAO_DUVIDA,
+  STATUS_DA_PECA_RECUSADA,
 } from "@/lib/agency/portal/decisoes-do-portal";
 import { createProjectFromRequest } from "@/lib/agency/execution/create-project-from-request";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { negotiateProposal } from "@/lib/agency/execution/negotiate-proposal";
 import { assessResources } from "@/lib/agency/execution/assess-resources";
 import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
+import { pecasApontadasPeloAjuste } from "@/lib/agency/esteira/mira-da-peca";
 
 // V2 (M5): as QUATRO decisões do cliente + a dúvida vivem num contrato único
 // (`lib/agency/portal/decisoes-do-portal.ts`) — rota e tela leem a mesma
@@ -198,6 +200,62 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // TransicaoDeEstado com chave idempotente: a mesma decisão nunca audita
     // duas vezes, e auditoria NUNCA derruba a decisão do cliente (best-effort
     // declarado). client_approval → estado do mapa das quatro decisões.
+    //
+    // ── A CHAVE ERA DO CARD, E O CARD DECIDE MAIS DE UMA VEZ (5ª auditoria) ──
+    //
+    // Ela era `portal:<card>:decisao` — UMA por card, para sempre. Mas o ciclo
+    // do ajuste tem DUAS decisões no mesmo card: o cliente pede a mudança, o
+    // card reabre com a versão nova, e ele aprova. A segunda batia em
+    // `Unique constraint failed on (chaveIdempotencia)` e o erro era engolido
+    // como "rastro canônico não gravado (não-fatal)".
+    //
+    // Resultado medido: a autoria no card sobrevivia (`reviewedBy`), o registro
+    // IMUTÁVEL não. E o buraco passava porque o teste da RECUSA exige o rastro
+    // e o do AJUSTE não pedia — a única decisão que roda duas vezes era a única
+    // sem régua.
+    //
+    // A chave agora carrega a RODADA, e a rodada é o INSTANTE em que esta
+    // decisão foi carimbada — `reviewedAt`, que `updateApprovalStatus` acabou
+    // de escrever três linhas acima. Duas decisões do mesmo card são dois
+    // instantes; a mesma decisão é sempre o mesmo instante.
+    //
+    // ⚠️ Contar rastros no banco também resolveria, e foi a primeira tentativa.
+    // Foi descartada por uma razão que esta casa já pagou: era uma consulta a
+    // mais ANTES do `try`, e uma consulta que estoura ali derruba a decisão do
+    // cliente com 503 — exatamente o que a linha acima promete que nunca
+    // acontece ("auditoria NUNCA derruba a decisão do cliente"). A auditoria
+    // não pode cobrar um preço do cliente. Aqui não há consulta: o dado já
+    // está na mão.
+    //
+    // ⚠️ E ATÉ ONDE ISSO PROTEGE — MEDIDO, NÃO SUPOSTO (6ª auditoria)
+    //
+    // O duplo-clique HUMANO não chega até aqui: a rota devolve 409 para card
+    // que não está `pending` (bloco acima), e é lá que a idempotência do
+    // clique repetido mora.
+    //
+    // O que este comentário dizia antes — *"a chave única continua sendo a
+    // trava final contra duas requisições simultâneas"* — **não é mais
+    // verdade, e a doutrina da casa é que doutrina que descreve o
+    // comportamento antigo é pior que doutrina nenhuma.**
+    //
+    // Ela deixou de ser verdade quando a chave passou a carregar `reviewedAt`:
+    // `updateApprovalStatus` grava `reviewedAt: new Date()` SEM guarda de
+    // `status: "pending"`. Duas requisições verdadeiramente simultâneas passam
+    // as duas pelo 409 (que é ler-depois-escrever, sem trava no banco),
+    // carimbam dois instantes diferentes e produzem duas chaves diferentes —
+    // logo, DOIS rastros para uma decisão. A chave única segue impedindo o
+    // reprocessamento da MESMA decisão (mesmo instante), que é para o que ela
+    // serve; ela não é, e não era, a trava da corrida.
+    //
+    // A trava real da corrida continua sendo o 409, com a fraqueza declarada:
+    // é leitura seguida de escrita, não um compare-and-set. Fechá-la de
+    // verdade é um `updateMany({ where: { id, status: "pending" } })` em
+    // `updateApprovalStatus`, que atravessa todos os chamadores dela — está
+    // no registro da dívida, não escondido aqui. O dano do resíduo é rastro
+    // duplicado (ruído de auditoria); a decisão do cliente, o estado do card e
+    // as peças permanecem corretos, porque as duas requisições escrevem a
+    // MESMA decisão.
+    const rodadaDaDecisao = (updated.reviewedAt ?? new Date()).toISOString();
     try {
       await prisma.transicaoDeEstado.create({
         data: {
@@ -210,7 +268,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           motivo: body.comment?.trim() || `decisão do cliente: ${action}`,
           origem: "portal",
           versaoLida: 0,
-          chaveIdempotencia: `portal:${approvalRequestId}:decisao`,
+          chaveIdempotencia: `portal:${approvalRequestId}:decisao:${action}:${rodadaDaDecisao}`,
           correlationId: approval.clientRequestId ?? approval.clientId ?? approvalRequestId,
         },
       });
@@ -280,23 +338,75 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           const { agendarPecasAprovadas } = await import("@/lib/agency/esteira/publicacao");
           const r = await agendarPecasAprovadas({ clientId: approval.clientId, postIds: postsDoCard });
           if (r.ignorados.length > 0) {
-            // Peça aprovada que NÃO virou calendário não pode sumir em silêncio:
-            // é trabalho pago preso num estado que o relógio não lê.
-            console.error(
-              "[portal/approvals] peças aprovadas NÃO agendadas:",
-              r.ignorados.map((i) => `${i.postId}=${i.status}`).join(", "),
-            );
+            // ── `console.error` NÃO É PARADA DECLARADA (5ª auditoria) ──────
+            //
+            // Até aqui esta era a única coisa que acontecia com `ignorados`:
+            // uma linha de log. Nada no estado, nada para o PM, nada para o
+            // cliente. E o log do teste VERDE do ajuste imprimia o defeito
+            // (`…=revision_requested, …`) enquanto o teste passava por cima.
+            //
+            // Peça aprovada que não virou calendário é trabalho PAGO preso num
+            // estado que o relógio não lê. O critério F exige motivo, dono e
+            // próxima ação — e exige que quem precisa saber saiba.
+            const { declararPecasAprovadasQueNaoEntraramNaFila } =
+              await import("@/lib/agency/esteira/peca-aprovada-que-nao-agendou");
+            await declararPecasAprovadasQueNaoEntraramNaFila({
+              ignorados: r.ignorados,
+              clientId: approval.clientId,
+              clientRequestId: approval.clientRequestId,
+            });
           }
         } catch (e) { console.error("[portal/approvals] agendamento das peças falhou", e); }
       } else {
         // V2 (M5): cancelar ENCERRA — a peça sai do caminho do relógio
         // ("cancelled" é inerte para publicarAgendados) e nenhuma versão é
         // apagada. Ajuste/recusa seguem para revisão, como sempre.
-        const statusDosPosts = status === "cancelled" ? "cancelled" : "revision_requested";
-        await prisma.socialPost.updateMany({
-          where: { id: { in: postsDoCard }, clientId: approval.clientId },
-          data: { status: statusDosPosts },
-        }).catch((e) => console.error("[portal/approvals] propagação aos posts falhou", e));
+        // ── TRÊS DECISÕES, TRÊS ESTADOS (25/08/2026) ──────────────────────
+        // Eram dois: cancelar virava "cancelled" e TODO o resto virava
+        // "revision_requested" — inclusive a RECUSA. A peça recusada ficava
+        // marcada "em ajuste", que quer dizer "alguém está refazendo isto", que
+        // era mentira: ninguém estava, e o cliente tinha dito não.
+        // `rejected` é terminal para a máquina: `publicarAgendados` só lê
+        // "scheduled", e `ESTADOS_EXAMINAVEIS` não o inclui — a peça não volta
+        // a ser oferecida para decisão sozinha.
+        const statusDosPosts =
+          status === "cancelled" ? "cancelled"
+          : status === "rejected" ? STATUS_DA_PECA_RECUSADA
+          : "revision_requested";
+
+        // ── A MIRA VALE PARA O ESTADO, NÃO SÓ PARA O PIXEL (5ª auditoria) ──
+        //
+        // O achado, medido contra o controle: o cliente apontou UMA peça de
+        // quatro; a arte nova saiu certa, nela e só nela — e as OUTRAS TRÊS
+        // terminaram em `revision_requested`. `ESTADOS_PROMOVIVEIS`
+        // (esteira/publicacao.ts) não inclui esse estado, de propósito. Ou
+        // seja: três quartos do que o cliente pagou e aprovou nunca entravam
+        // na fila de entrega. Silenciosamente.
+        //
+        // A causa era esta linha: ela carimbava `revision_requested` em TODAS
+        // as peças do card. A mira que a rodada anterior construiu acertava a
+        // imagem paga e errava o estado — o mesmo defeito do risco 4 do plano
+        // ("refação sem mira"), visto do outro lado.
+        //
+        // Quem o cliente APONTOU entra em revisão. Quem ele NÃO apontou fica
+        // exatamente como estava: ele não disse nada sobre aquelas peças, e
+        // "ele não falou" não é "ele recusou" (guardrail 1 — ausência de
+        // informação não é informação). Elas seguem decidíveis, e o "sim" que
+        // vier no card reaberto as agenda pelo caminho de sempre.
+        //
+        // Vale SÓ para o ajuste. Recusa e cancelamento são do CARD inteiro: ele
+        // não está apontando uma peça, está dizendo não ao que recebeu.
+        const alvosDoEstado =
+          status === "revision_requested"
+            ? pecasApontadasPeloAjuste(postsDoCard, body.comment)
+            : postsDoCard;
+
+        if (alvosDoEstado.length > 0) {
+          await prisma.socialPost.updateMany({
+            where: { id: { in: alvosDoEstado }, clientId: approval.clientId },
+            data: { status: statusDosPosts },
+          }).catch((e) => console.error("[portal/approvals] propagação aos posts falhou", e));
+        }
       }
     }
 
@@ -360,7 +470,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // chaves, como na conversa (app/api/messages/conversa.ts).
     const clienteDoCard = approval.clientId ?? approval.clientRequest?.clientId ?? null;
     if (approval.department !== "proposal" && (approval.clientRequestId || clienteDoCard)) {
-      if (status === "rejected" || status === "revision_requested") {
+      // ── A RECUSA PARA. O AJUSTE REFAZ. (25/08/2026) ────────────────────
+      //
+      // Os dois caíam AQUI, na mesma chamada, e o efeito era idêntico: refazia
+      // com IA, criava versão nova e REABRIA o card em "pending". O cliente
+      // apertava "recusar" e a máquina respondia "então faça de novo" —
+      // devolvendo a peça para ele decidir outra vez, sem que ninguém da equipe
+      // soubesse que ele tinha dito não.
+      //
+      // Isso valia para TODOS os produtos da casa, não só para o que esbarrou
+      // nisso primeiro. Recusa não é pedido de segunda tentativa.
+      if (status === "rejected") {
+        try {
+          const { recusarPorPedidoDoCliente } = await import("@/lib/agency/esteira/refacao");
+          await recusarPorPedidoDoCliente({
+            clientRequestId: approval.clientRequestId,
+            clientId: clienteDoCard,
+            department: approval.department,
+            comentario: body.comment,
+            deliverableId: approval.deliverableVersion?.deliverableId ?? null,
+            // As peças que ele estava VENDO quando disse não.
+            postIds: postsDoCard,
+          });
+        } catch (e) { console.error("[portal/approvals] recusa error", e); }
+      } else if (status === "revision_requested") {
         try {
           const { refazerPorPedidoDoCliente } = await import("@/lib/agency/esteira/refacao");
           await refazerPorPedidoDoCliente({
@@ -376,7 +509,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             // cliente apertou (`status`) — as duas informações existiam e
             // nenhuma das duas atravessava a fronteira.
             deliverableId: approval.deliverableVersion?.deliverableId ?? null,
-            modo: status === "rejected" ? "recusa" : "ajuste",
+            // ── AS PEÇAS QUE ELE ESTAVA VENDO (25/08/2026) ─────────────────
+            //
+            // A recusa já recebia isto; o AJUSTE não. E era esse o buraco que a
+            // 4ª auditoria mediu: sem os `postIds`, `refazerPorPedidoDoCliente`
+            // refazia o TEXTO e nada chamava o rasterizador — o cliente pedia
+            // "a terceira mais clara", recebia 200, e 0 de 4 arquivos mudavam.
+            //
+            // A ORDEM importa e é a mesma que o cartão mostrou: é ela que faz
+            // "a terceira peça" ser a terceira imagem, e não outra.
+            postIds: postsDoCard,
+            // Só o AJUSTE chega aqui agora. `modo` continua no contrato de
+            // `refazerPorPedidoDoCliente` porque a agência ainda pode mandar
+            // refazer uma peça recusada DEPOIS de falar com o cliente — o que
+            // acabou é a máquina fazer isso sozinha, no lugar dele.
+            modo: "ajuste",
           });
         } catch (e) { console.error("[portal/approvals] refação error", e); }
       }

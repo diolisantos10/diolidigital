@@ -1,0 +1,16 @@
+-- Operação Salvaguarda — Instagram Story V1 (25/08/2026, 5ª auditoria)
+--
+-- A PARADA DA PEÇA PASSA A TER ONDE FALAR COM O CLIENTE.
+--
+-- O achado: o cliente pediu ajuste, o texto foi refeito, a arte NÃO saiu — e a
+-- tela dele mostrou a legenda nova sobre a imagem que ele acabara de recusar.
+-- A frase honesta existia no código, mas ia para a aba de mensagens e para o
+-- log do servidor. O Auditor varreu o HTML da tela de decisão: zero ocorrências
+-- de "não consegui", "não foi possível", "equipe", "erro", "problema".
+--
+-- `lastError` não servia: é do TIME e é técnico. Esta coluna é do CLIENTE, e
+-- quem escreve nela escreve MOTIVO, DONO e PRÓXIMA AÇÃO (critério F).
+--
+-- ADITIVA e NULA por padrão: nenhuma peça existente muda de comportamento.
+-- Nulo = a peça não está parada.
+ALTER TABLE "SocialPost" ADD COLUMN "avisoAoCliente" TEXT;

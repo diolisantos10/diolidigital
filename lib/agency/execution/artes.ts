@@ -45,6 +45,7 @@ import {
 } from "@/lib/agency/design/escolha-de-foto";
 import type { MaterialReal } from "@/lib/agency/design/storyboard";
 import { montarPeca } from "@/lib/agency/design/peca";
+import { motivoDaLegibilidade, type MedidaDaLegibilidade } from "@/lib/agency/design/legibilidade-do-titulo";
 import {
   renderizadorDisponivel, MIME_DA_PECA_RENDERIZADA, type MotivoDeFalhaDeRender,
 } from "@/lib/agency/design/renderizar";
@@ -229,7 +230,21 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // TODAS as telas ficam prontas, então um carrossel pela metade continua
       // aparecendo como pendente na rodada seguinte.
       ...(refazendo ? { id: { in: recorte.refazer! } } : { mediaUrl: null }),
-      status: { in: ["draft", "scheduled", "approved"] },
+      // ── POR QUE "revision_requested" SÓ ENTRA REFAZENDO (25/08/2026) ──────
+      //
+      // O Auditor mediu: o cliente pediu "a terceira peça mais clara", a rota
+      // devolveu 200 e **0 de 4 arquivos mudaram**. Uma das duas causas estava
+      // aqui — a rota do portal marca a peça apontada como `revision_requested`
+      // (`app/api/portal/approvals/route.ts`), e este `where` não a selecionava.
+      // A peça que o cliente pediu para mudar era exatamente a única que não
+      // podia ser produzida de novo.
+      //
+      // Ela entra SÓ no caminho nomeado (`refazer`), e a distinção não é
+      // estilo: na rodada de sempre a seleção é `mediaUrl: null`, e peça em
+      // revisão TEM arquivo — ela nunca seria alcançada de qualquer forma.
+      // Manter o estado fora do laço global deixa explícito que ninguém
+      // redesenha uma peça em revisão por conta do relógio: só quem a NOMEIA.
+      status: { in: refazendo ? ["draft", "scheduled", "approved", "revision_requested"] : ["draft", "scheduled", "approved"] },
       // O recorte por cliente é OPCIONAL e some quando ninguém o pede — sem ele
       // o `where` é idêntico ao de sempre. `clientId: undefined` seria ignorado
       // pelo Prisma de qualquer forma; a condicional está aqui para que a
@@ -799,8 +814,41 @@ function abrirOrcamentoDoDia(): OrcamentoDeImagens {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// `SocialPost.lastError` — O CAMPO COMPARTILHADO, DECLARADO (6ª auditoria)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O achado: `[titulo ilegivel]` passou a ser gravado no MESMO campo que
+// `contarTentativas` interpreta. É inofensivo HOJE — o contador exige o
+// prefixo `^[arte N/` e a marca de legibilidade nunca abre a linha — mas o
+// campo já acumulou significados sem ninguém declarar quais são, e "inofensivo
+// hoje" é exatamente o estado em que o terceiro escritor entra sem saber que
+// existe um leitor.
+//
+// Então fica dito, aqui, ao lado de quem lê:
+//
+//   ESCREVEM em `lastError`
+//     1. o laço de arte, com o contador de tentativas no INÍCIO da linha:
+//        `[arte N/MAX] <motivo>` — ver `marcarErro`;
+//     2. `comporComMolde`, com notas de degradação da peça, entre elas
+//        `MARCA_DE_TITULO_ILEGIVEL` e `[molde] …` — NUNCA no início da linha
+//        quando há contador, e nunca com o formato `[arte …`.
+//
+//   LEEM `lastError`
+//     a. `contarTentativas` (aqui) — só o PREFIXO `^[arte N/`. Qualquer outra
+//        coisa no campo vale zero, de propósito;
+//     b. `tituloSaiuIlegivel` — procura a marca em QUALQUER posição;
+//     c. `pecaSaiuSemTitulo` — as notas `[molde] …` da degradação;
+//     d. o time, com os olhos.
+//
+// A REGRA QUE MANTÉM ISSO DE PÉ: **o contador é um PREFIXO exclusivo.** Quem
+// acrescentar um significado novo a este campo escreve DEPOIS do início da
+// linha e com marcador próprio — nunca com o formato `[arte …`. A régua que
+// prende esta regra é `__tests__/execution/o-campo-de-um-significado-so.test.ts`.
+
 /** Quantas vezes esta peça já falhou. O contador mora no próprio `lastError`
- *  para não inventar mais uma coluna que um dia diverge do que aconteceu. */
+ *  para não inventar mais uma coluna que um dia diverge do que aconteceu —
+ *  ver a declaração do campo compartilhado logo acima. */
 export function contarTentativas(lastError: string | null): number {
   const m = lastError?.match(/^\[arte (\d+)\//);
   return m ? Number(m[1]) : 0;
@@ -1130,7 +1178,11 @@ const MOTIVOS_DE_INFRA: ReadonlySet<MotivoDeFalhaDeRender> = new Set([
  * Por isso o resultado DIZ o que ele é, e quem grava obedece.
  */
 type ResultadoDaComposicao =
-  | { ok: true; bytes: Buffer; mime: string; nota: string | null }
+  | { ok: true; bytes: Buffer; mime: string; nota: string | null;
+      /** A legibilidade do título medida NO ARQUIVO (`legibilidade-do-titulo.ts`).
+       *  Ausente na peça sem camada de texto — que é ausência de título, não
+       *  título ilegível, e as duas não podem virar a mesma coisa. */
+      legibilidadeDoTitulo?: MedidaDaLegibilidade | null }
   | { ok: false; motivo: MotivoDeFalhaDeRender; erro: string };
 
 export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposicao> {
@@ -1234,9 +1286,82 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
       bytes: r.bytes,
       mime: MIME_DA_PECA_RENDERIZADA,
       nota: comAviso(`[molde] texto barrado pela trava — ${barrado}`),
+      legibilidadeDoTitulo: r.legibilidadeDoTitulo,
     };
   }
-  return { ok: true, bytes: r.bytes, mime: MIME_DA_PECA_RENDERIZADA, nota: comAviso(null) };
+  // ── O TÍTULO ILEGÍVEL É DECLARADO, NÃO SUPOSTO ──────────────────────────
+  //
+  // Fecha a dívida nº 3 do `O_QUE_NAO_FOI_MEDIDO` do lado da PRODUÇÃO: o
+  // degradê do molde agora protege a faixa do título (`molde.ts`), e aqui se
+  // confere o RESULTADO no arquivo. Escolher sem conferir é o padrão que esta
+  // operação já pagou três vezes — foi a lição de `contraste.ts`, e ela vale
+  // igual para o par que ele não mede.
+  //
+  // Declara e NÃO derruba a peça, de propósito. A medida erra para o lado
+  // seguro (a média da faixa inclui os pixels da própria letra, o que BAIXA a
+  // razão), então uma peça no limite pode ser marcada sem estar perdida —
+  // e jogar fora uma peça paga por uma medida conservadora seria trocar um
+  // prejuízo por outro. O que não pode é sair calada: com a marca no
+  // `lastError`, o time vê, a régua do e2e reprova a regressão, e a peça não
+  // atravessa a casa fingindo que ninguém olhou.
+  const ilegivel = r.legibilidadeDoTitulo && !r.legibilidadeDoTitulo.suficiente
+    ? `${MARCA_DE_TITULO_ILEGIVEL} ${motivoDaLegibilidade(r.legibilidadeDoTitulo)}`
+    : null;
+
+  return {
+    ok: true, bytes: r.bytes, mime: MIME_DA_PECA_RENDERIZADA, nota: comAviso(ilegivel),
+    legibilidadeDoTitulo: r.legibilidadeDoTitulo,
+  };
+}
+
+/**
+ * A ASSINATURA, no `lastError`, de uma peça cujo TÍTULO não alcançou o piso de
+ * legibilidade sobre a foto.
+ *
+ * Constante exportada e não literal solta: quem escreve a marca e quem a
+ * procura têm de ser a MESMA palavra. Duas grafias parecidas em dois arquivos é
+ * como uma régua fica verde para sempre.
+ */
+export const MARCA_DE_TITULO_ILEGIVEL = "[titulo ilegivel]";
+
+/** A peça saiu com o título abaixo do piso de legibilidade sobre a foto? */
+export function tituloSaiuIlegivel(lastError: string | null | undefined): boolean {
+  return (lastError ?? "").includes(MARCA_DE_TITULO_ILEGIVEL);
+}
+
+/**
+ * A PEÇA FICOU SEM TÍTULO?
+ *
+ * Lê a nota que `comporComMolde` acabou de escrever em `SocialPost.lastError`.
+ * Mora AQUI, coladinha em quem escreve a nota, porque conhecimento de marcador
+ * separado de quem o emite envelhece calado: a frase muda de um lado e o leitor
+ * do outro passa a responder "não" para sempre, sem ninguém ficar vermelho.
+ *
+ * ── POR QUE ALGUÉM PRECISA PERGUNTAR ISSO (25/08/2026) ─────────────────────
+ *
+ * `comporComMolde` DEGRADA de propósito em três casos: o conteúdo não tem uma
+ * frase utilizável como chamada, o rasterizador reprovou a letra por conteúdo,
+ * ou a trava de texto barrou o título. Nos três a peça SAI — só com a foto e a
+ * assinatura — e a degradação fica declarada na nota.
+ *
+ * Degradar é certo para o CALENDÁRIO: uma peça a menos no mês é pior que uma
+ * peça sem headline. Não é certo para um produto que o cliente PEDIU e PAGOU:
+ * ali, "peça sem título" não é peça, é arquivo — e ele aprova sem ver o buraco,
+ * porque o cartão mostra uma imagem bonita e o banco diz que está tudo pronto.
+ *
+ * Decisão do CEO: **o produto canônico PARA.** Falha visível, com motivo e
+ * próxima ação, nunca peça capenga no portal. Quem age sobre esta resposta é
+ * `produtos/story-instagram-v1.ts`; nada muda para o calendário, que continua
+ * degradando e declarando como sempre fez.
+ */
+export function pecaSaiuSemTitulo(lastError: string | null | undefined): boolean {
+  const nota = lastError ?? "";
+  // Saiu SÓ com a foto: não houve camada de texto nenhuma.
+  if (nota.includes("[molde] peça entregue só com a foto")) return true;
+  // A trava barrou especificamente o TÍTULO. Chip ou faixa barrados não
+  // derrubam a peça — ela continua tendo headline, que é a pergunta daqui.
+  if (/\[molde\] texto barrado pela trava[^]*?\btitulo:/.test(nota)) return true;
+  return false;
 }
 
 // ─── AS PEÇAS QUE FICARAM SEM A CAMADA DE TEXTO ──────────────────────────────

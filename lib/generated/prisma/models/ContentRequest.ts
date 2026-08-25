@@ -69,6 +69,7 @@ export type ContentRequestMinAggregateOutputType = {
   quoteNote: string | null
   quoteStatus: string | null
   quoteDecidedAt: Date | null
+  produtoId: string | null
   taskId: string | null
   triagedBy: string | null
   triagedAt: Date | null
@@ -97,6 +98,7 @@ export type ContentRequestMaxAggregateOutputType = {
   quoteNote: string | null
   quoteStatus: string | null
   quoteDecidedAt: Date | null
+  produtoId: string | null
   taskId: string | null
   triagedBy: string | null
   triagedAt: Date | null
@@ -125,6 +127,7 @@ export type ContentRequestCountAggregateOutputType = {
   quoteNote: number
   quoteStatus: number
   quoteDecidedAt: number
+  produtoId: number
   taskId: number
   triagedBy: number
   triagedAt: number
@@ -165,6 +168,7 @@ export type ContentRequestMinAggregateInputType = {
   quoteNote?: true
   quoteStatus?: true
   quoteDecidedAt?: true
+  produtoId?: true
   taskId?: true
   triagedBy?: true
   triagedAt?: true
@@ -193,6 +197,7 @@ export type ContentRequestMaxAggregateInputType = {
   quoteNote?: true
   quoteStatus?: true
   quoteDecidedAt?: true
+  produtoId?: true
   taskId?: true
   triagedBy?: true
   triagedAt?: true
@@ -221,6 +226,7 @@ export type ContentRequestCountAggregateInputType = {
   quoteNote?: true
   quoteStatus?: true
   quoteDecidedAt?: true
+  produtoId?: true
   taskId?: true
   triagedBy?: true
   triagedAt?: true
@@ -336,6 +342,7 @@ export type ContentRequestGroupByOutputType = {
   quoteNote: string | null
   quoteStatus: string | null
   quoteDecidedAt: Date | null
+  produtoId: string | null
   taskId: string | null
   triagedBy: string | null
   triagedAt: Date | null
@@ -387,6 +394,7 @@ export type ContentRequestWhereInput = {
   quoteNote?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   quoteStatus?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   quoteDecidedAt?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
+  produtoId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   taskId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   triagedBy?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   triagedAt?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
@@ -416,6 +424,7 @@ export type ContentRequestOrderByWithRelationInput = {
   quoteNote?: Prisma.SortOrderInput | Prisma.SortOrder
   quoteStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   quoteDecidedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  produtoId?: Prisma.SortOrderInput | Prisma.SortOrder
   taskId?: Prisma.SortOrderInput | Prisma.SortOrder
   triagedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   triagedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -448,6 +457,7 @@ export type ContentRequestWhereUniqueInput = Prisma.AtLeast<{
   quoteNote?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   quoteStatus?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   quoteDecidedAt?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
+  produtoId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   taskId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   triagedBy?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   triagedAt?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
@@ -477,6 +487,7 @@ export type ContentRequestOrderByWithAggregationInput = {
   quoteNote?: Prisma.SortOrderInput | Prisma.SortOrder
   quoteStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   quoteDecidedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  produtoId?: Prisma.SortOrderInput | Prisma.SortOrder
   taskId?: Prisma.SortOrderInput | Prisma.SortOrder
   triagedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   triagedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -513,6 +524,7 @@ export type ContentRequestScalarWhereWithAggregatesInput = {
   quoteNote?: Prisma.StringNullableWithAggregatesFilter<"ContentRequest"> | string | null
   quoteStatus?: Prisma.StringNullableWithAggregatesFilter<"ContentRequest"> | string | null
   quoteDecidedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ContentRequest"> | Date | string | null
+  produtoId?: Prisma.StringNullableWithAggregatesFilter<"ContentRequest"> | string | null
   taskId?: Prisma.StringNullableWithAggregatesFilter<"ContentRequest"> | string | null
   triagedBy?: Prisma.StringNullableWithAggregatesFilter<"ContentRequest"> | string | null
   triagedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ContentRequest"> | Date | string | null
@@ -540,6 +552,7 @@ export type ContentRequestCreateInput = {
   quoteNote?: string | null
   quoteStatus?: string | null
   quoteDecidedAt?: Date | string | null
+  produtoId?: string | null
   taskId?: string | null
   triagedBy?: string | null
   triagedAt?: Date | string | null
@@ -569,6 +582,7 @@ export type ContentRequestUncheckedCreateInput = {
   quoteNote?: string | null
   quoteStatus?: string | null
   quoteDecidedAt?: Date | string | null
+  produtoId?: string | null
   taskId?: string | null
   triagedBy?: string | null
   triagedAt?: Date | string | null
@@ -596,6 +610,7 @@ export type ContentRequestUpdateInput = {
   quoteNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteDecidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  produtoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -625,6 +640,7 @@ export type ContentRequestUncheckedUpdateInput = {
   quoteNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteDecidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  produtoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -653,6 +669,7 @@ export type ContentRequestCreateManyInput = {
   quoteNote?: string | null
   quoteStatus?: string | null
   quoteDecidedAt?: Date | string | null
+  produtoId?: string | null
   taskId?: string | null
   triagedBy?: string | null
   triagedAt?: Date | string | null
@@ -680,6 +697,7 @@ export type ContentRequestUpdateManyMutationInput = {
   quoteNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteDecidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  produtoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -708,6 +726,7 @@ export type ContentRequestUncheckedUpdateManyInput = {
   quoteNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteDecidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  produtoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -746,6 +765,7 @@ export type ContentRequestCountOrderByAggregateInput = {
   quoteNote?: Prisma.SortOrder
   quoteStatus?: Prisma.SortOrder
   quoteDecidedAt?: Prisma.SortOrder
+  produtoId?: Prisma.SortOrder
   taskId?: Prisma.SortOrder
   triagedBy?: Prisma.SortOrder
   triagedAt?: Prisma.SortOrder
@@ -779,6 +799,7 @@ export type ContentRequestMaxOrderByAggregateInput = {
   quoteNote?: Prisma.SortOrder
   quoteStatus?: Prisma.SortOrder
   quoteDecidedAt?: Prisma.SortOrder
+  produtoId?: Prisma.SortOrder
   taskId?: Prisma.SortOrder
   triagedBy?: Prisma.SortOrder
   triagedAt?: Prisma.SortOrder
@@ -807,6 +828,7 @@ export type ContentRequestMinOrderByAggregateInput = {
   quoteNote?: Prisma.SortOrder
   quoteStatus?: Prisma.SortOrder
   quoteDecidedAt?: Prisma.SortOrder
+  produtoId?: Prisma.SortOrder
   taskId?: Prisma.SortOrder
   triagedBy?: Prisma.SortOrder
   triagedAt?: Prisma.SortOrder
@@ -889,6 +911,7 @@ export type ContentRequestCreateWithoutClientInput = {
   quoteNote?: string | null
   quoteStatus?: string | null
   quoteDecidedAt?: Date | string | null
+  produtoId?: string | null
   taskId?: string | null
   triagedBy?: string | null
   triagedAt?: Date | string | null
@@ -916,6 +939,7 @@ export type ContentRequestUncheckedCreateWithoutClientInput = {
   quoteNote?: string | null
   quoteStatus?: string | null
   quoteDecidedAt?: Date | string | null
+  produtoId?: string | null
   taskId?: string | null
   triagedBy?: string | null
   triagedAt?: Date | string | null
@@ -972,6 +996,7 @@ export type ContentRequestScalarWhereInput = {
   quoteNote?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   quoteStatus?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   quoteDecidedAt?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
+  produtoId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   taskId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   triagedBy?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   triagedAt?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
@@ -999,6 +1024,7 @@ export type ContentRequestCreateManyClientInput = {
   quoteNote?: string | null
   quoteStatus?: string | null
   quoteDecidedAt?: Date | string | null
+  produtoId?: string | null
   taskId?: string | null
   triagedBy?: string | null
   triagedAt?: Date | string | null
@@ -1026,6 +1052,7 @@ export type ContentRequestUpdateWithoutClientInput = {
   quoteNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteDecidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  produtoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1053,6 +1080,7 @@ export type ContentRequestUncheckedUpdateWithoutClientInput = {
   quoteNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteDecidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  produtoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1080,6 +1108,7 @@ export type ContentRequestUncheckedUpdateManyWithoutClientInput = {
   quoteNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   quoteDecidedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  produtoId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   triagedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1110,6 +1139,7 @@ export type ContentRequestSelect<ExtArgs extends runtime.Types.Extensions.Intern
   quoteNote?: boolean
   quoteStatus?: boolean
   quoteDecidedAt?: boolean
+  produtoId?: boolean
   taskId?: boolean
   triagedBy?: boolean
   triagedAt?: boolean
@@ -1139,6 +1169,7 @@ export type ContentRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   quoteNote?: boolean
   quoteStatus?: boolean
   quoteDecidedAt?: boolean
+  produtoId?: boolean
   taskId?: boolean
   triagedBy?: boolean
   triagedAt?: boolean
@@ -1168,6 +1199,7 @@ export type ContentRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   quoteNote?: boolean
   quoteStatus?: boolean
   quoteDecidedAt?: boolean
+  produtoId?: boolean
   taskId?: boolean
   triagedBy?: boolean
   triagedAt?: boolean
@@ -1197,6 +1229,7 @@ export type ContentRequestSelectScalar = {
   quoteNote?: boolean
   quoteStatus?: boolean
   quoteDecidedAt?: boolean
+  produtoId?: boolean
   taskId?: boolean
   triagedBy?: boolean
   triagedAt?: boolean
@@ -1208,7 +1241,7 @@ export type ContentRequestSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ContentRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "clientId" | "clientRequestId" | "projectId" | "title" | "description" | "objective" | "desiredFor" | "attachmentsJson" | "status" | "scopeDecision" | "quotedPrice" | "quoteNote" | "quoteStatus" | "quoteDecidedAt" | "taskId" | "triagedBy" | "triagedAt" | "promisedFor" | "deliverableId" | "productionAttempts" | "declineReason" | "createdAt" | "updatedAt", ExtArgs["result"]["contentRequest"]>
+export type ContentRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "clientId" | "clientRequestId" | "projectId" | "title" | "description" | "objective" | "desiredFor" | "attachmentsJson" | "status" | "scopeDecision" | "quotedPrice" | "quoteNote" | "quoteStatus" | "quoteDecidedAt" | "produtoId" | "taskId" | "triagedBy" | "triagedAt" | "promisedFor" | "deliverableId" | "productionAttempts" | "declineReason" | "createdAt" | "updatedAt", ExtArgs["result"]["contentRequest"]>
 export type ContentRequestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
 }
@@ -1307,6 +1340,22 @@ export type $ContentRequestPayload<ExtArgs extends runtime.Types.Extensions.Inte
      */
     quoteStatus: string | null
     quoteDecidedAt: Date | null
+    /**
+     * O PRODUTO CANÔNICO que a triagem decidiu entregar (`produtos/registro.ts`).
+     * 
+     * Nasceu na Operação Salvaguarda (25/08/2026) para consertar um defeito de
+     * classe: **o formato pedido pelo cliente não sobrevivia à triagem.** Story,
+     * post e carrossel caíam no mesmo atendimento, com o mesmo item de catálogo
+     * (`balcao-post-feed`) e o mesmo especialista — e não existia campo nenhum
+     * onde "isto é um story" pudesse ser gravado. O critério de aceite "o formato
+     * permanece `story` em todas as transições" era uma pergunta sem sujeito.
+     * 
+     * Nulo = pedido sem produto canônico declarado, que é o estado de todos os
+     * pedidos anteriores a esta data e de todos os atendimentos ainda não
+     * migrados. Nulo NÃO é "story" e NÃO é um produto padrão: quem lê trata a
+     * ausência como ausência e segue pelo caminho de sempre.
+     */
+    produtoId: string | null
     /**
      * A tarefa criada na triagem. É por aqui que o pedido encontra a esteira.
      */
@@ -1786,6 +1835,7 @@ export interface ContentRequestFieldRefs {
   readonly quoteNote: Prisma.FieldRef<"ContentRequest", 'String'>
   readonly quoteStatus: Prisma.FieldRef<"ContentRequest", 'String'>
   readonly quoteDecidedAt: Prisma.FieldRef<"ContentRequest", 'DateTime'>
+  readonly produtoId: Prisma.FieldRef<"ContentRequest", 'String'>
   readonly taskId: Prisma.FieldRef<"ContentRequest", 'String'>
   readonly triagedBy: Prisma.FieldRef<"ContentRequest", 'String'>
   readonly triagedAt: Prisma.FieldRef<"ContentRequest", 'DateTime'>

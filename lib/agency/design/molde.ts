@@ -578,8 +578,43 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
   // depende da sorte do que a IA desenhou naquele canto. A cor do degradê é a
   // PRIMÁRIA da marca, então até a sombra pertence à identidade do cliente.
   // Na composição dividida ele não existe: o campo sólido já resolve.
+  // ═══════════════════════════════════════════════════════════════════════
+  // O DEGRADÊ PROTEGE OS DOIS LADOS (Auditor, 4ª e 5ª rodadas)
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // Ele tinha UMA metade: subia do pé e ficava transparente acima de 62%. E o
+  // TÍTULO não mora no pé — mora no ALTO. Medido no arquivo que a corrente
+  // produziu: caixa do título em y=290..530 de 1920, ou seja, inteiramente na
+  // faixa em que o degradê já era transparente. **O título estava sobre a foto
+  // crua, sem nenhuma proteção**, e o contraste medido ficou em 2,15–2,35:1
+  // contra um piso de 3:1 para texto grande.
+  //
+  // Era a dívida nº 3 do `O_QUE_NAO_FOI_MEDIDO`, escrita pela casa contra si
+  // mesma ("o título é branco sobre foto de alto ruído, e ninguém mede esse
+  // par"), e o Auditor confirmou com os olhos na 4ª rodada: praticamente
+  // ilegível. É a dívida de maior consequência para quem paga — o título é a
+  // primeira coisa que o cliente do cliente lê, e a única se estiver com pressa.
+  //
+  // A segunda metade desce do topo com a MESMA cor (a primária da marca) e a
+  // mesma gramática do degradê de baixo: até a sombra pertence à identidade do
+  // cliente. Ela cobre a faixa do título e some antes do meio, para não virar
+  // um véu sobre a foto inteira — a foto continua sendo a peça.
+  //
+  // ⚠️ Isto NÃO é um aviso escrito, é o mecanismo: quem confere o resultado é
+  // `legibilidade-do-titulo.ts`, que mede os PIXELS do JPEG dentro da caixa do
+  // título. Degradê sem régua seria a mesma "boa intenção escrita" que esta
+  // operação já pagou três vezes.
+  const degradeDoPe = `${molde.primaria} 0%, ${molde.primaria}F2 26%, ${molde.primaria}00 62%`;
+  //
+  // Os pontos de parada NÃO são gosto: a caixa do título medida na corrente vai
+  // de 15% a 28% da altura. O véu segura a força até 30% — ou seja, ATRAVESSA a
+  // faixa inteira do título — e só então abre, sumindo em 52%. Um degradê que
+  // começasse a abrir em 18% deixava a última linha do título de fora, e era
+  // exatamente a linha que sumia (medido: 2,89:1, abaixo do piso de 3).
+  const degradeDoTopo =
+    `${molde.primaria}F2 0%, ${molde.primaria}F0 20%, ${molde.primaria}D9 32%, ${molde.primaria}00 52%`;
   const scrim = temFundo && !dividida
-    ? `linear-gradient(to top, ${molde.primaria} 0%, ${molde.primaria}F2 26%, ${molde.primaria}00 62%)`
+    ? `linear-gradient(to top, ${degradeDoPe}), linear-gradient(to bottom, ${degradeDoTopo})`
     : "none";
 
   const tinta = temFundo || dividida ? tintaSobre(molde.primaria) : molde.tinta;

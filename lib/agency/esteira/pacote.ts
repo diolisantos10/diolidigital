@@ -72,6 +72,15 @@ export type PecaDoCard = {
   capa: string | null;
   /** TODAS as telas do carrossel (mediaUrlsJson), na ordem de publicação. */
   telas: string[];
+  /**
+   * A PARADA DESTA PEÇA, nas palavras que o cliente lê — `SocialPost.avisoAoCliente`.
+   *
+   * Existe porque a 5ª auditoria varreu o HTML da tela de decisão e não achou
+   * NADA: a peça mostrava o texto refeito sobre a imagem que o cliente acabara
+   * de recusar, e a frase honesta da casa vivia só na aba de mensagens e no
+   * log do servidor. Nulo = a peça não está parada.
+   */
+  avisoAoCliente: string | null;
 };
 
 /** O filtro de aprovação do portal — os DOIS estados (com solicitação e cliente
@@ -158,6 +167,7 @@ export async function montarPecas(aprovacoes: AprovacaoDb[]): Promise<Map<string
         select: {
           id: true, clientId: true, clientRequestId: true, caption: true, format: true,
           pillar: true, scheduledFor: true, mediaUrl: true, mediaUrlsJson: true,
+          avisoAoCliente: true,
         },
       })
     : [];
@@ -188,6 +198,7 @@ export async function montarPecas(aprovacoes: AprovacaoDb[]): Promise<Map<string
         scheduledFor: p.scheduledFor ? p.scheduledFor.toISOString() : null,
         capa: p.mediaUrl,
         telas: lerLista(p.mediaUrlsJson),
+        avisoAoCliente: p.avisoAoCliente,
       });
     }
 
@@ -205,6 +216,10 @@ export async function montarPecas(aprovacoes: AprovacaoDb[]): Promise<Map<string
           scheduledFor: null,
           capa: midias[0] ?? null,
           telas: midias,
+          // Peça de fallback (versão vinculada por FK, sem `SocialPost`): não
+          // há onde uma parada ser gravada, e ausência de campo não é ausência
+          // de parada — é ausência de informação. Nulo, declarado.
+          avisoAoCliente: null,
         });
       }
     }

@@ -682,6 +682,20 @@ model ContentRequest {
   /// pendente | aceito | recusado. Nulo = não há orçamento na mesa.
   quoteStatus     String?
   quoteDecidedAt  DateTime?
+  /// O PRODUTO CANÔNICO que a triagem decidiu entregar (`produtos/registro.ts`).
+  ///
+  /// Nasceu na Operação Salvaguarda (25/08/2026) para consertar um defeito de
+  /// classe: **o formato pedido pelo cliente não sobrevivia à triagem.** Story,
+  /// post e carrossel caíam no mesmo atendimento, com o mesmo item de catálogo
+  /// (`balcao-post-feed`) e o mesmo especialista — e não existia campo nenhum
+  /// onde "isto é um story" pudesse ser gravado. O critério de aceite "o formato
+  /// permanece `story` em todas as transições" era uma pergunta sem sujeito.
+  ///
+  /// Nulo = pedido sem produto canônico declarado, que é o estado de todos os
+  /// pedidos anteriores a esta data e de todos os atendimentos ainda não
+  /// migrados. Nulo NÃO é "story" e NÃO é um produto padrão: quem lê trata a
+  /// ausência como ausência e segue pelo caminho de sempre.
+  produtoId       String?
   /// A tarefa criada na triagem. É por aqui que o pedido encontra a esteira.
   taskId          String?
   /// Quem triou e quando — pedido parado sem dono é vazamento.
@@ -1431,6 +1445,22 @@ model SocialPost {
   // Último motivo de falha, em linguagem de gente. Fica visível ao time em vez
   // de morrer no log do servidor.
   lastError       String?
+  /// A PARADA DESTA PEÇA, NAS PALAVRAS QUE O CLIENTE LÊ (25/08/2026).
+  ///
+  /// `lastError` é para o TIME e é técnico. Este campo é para o CLIENTE, e ele
+  /// existe porque a 5ª auditoria mediu o buraco: o ajuste refez o TEXTO, a
+  /// arte não saiu, e a tela do cliente mostrou a legenda NOVA sobre a imagem
+  /// que ele acabara de recusar. A frase honesta existia — mas só na aba de
+  /// mensagens e no log. Ele varreu o HTML da tela de decisão: zero ocorrências
+  /// de "não consegui", "não foi possível", "equipe", "erro", "problema".
+  ///
+  /// Regra: quem escreve aqui escreve MOTIVO, DONO e PRÓXIMA AÇÃO (critério F),
+  /// em português de gente. `montarPecas` leva ao portal e `PecaDoCard` põe na
+  /// tela, ACIMA da imagem — antes de o cliente decidir, nunca depois.
+  ///
+  /// Nulo = a peça não está parada. Quem resolve a parada LIMPA o campo: aviso
+  /// que sobrevive ao conserto vira ruído, e ruído ninguém lê.
+  avisoAoCliente  String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

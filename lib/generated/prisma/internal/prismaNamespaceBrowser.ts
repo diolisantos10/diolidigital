@@ -433,6 +433,7 @@ export const ContentRequestScalarFieldEnum = {
   quoteNote: 'quoteNote',
   quoteStatus: 'quoteStatus',
   quoteDecidedAt: 'quoteDecidedAt',
+  produtoId: 'produtoId',
   taskId: 'taskId',
   triagedBy: 'triagedBy',
   triagedAt: 'triagedAt',
@@ -846,6 +847,7 @@ export const SocialPostScalarFieldEnum = {
   publishedAt: 'publishedAt',
   publishedBy: 'publishedBy',
   lastError: 'lastError',
+  avisoAoCliente: 'avisoAoCliente',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

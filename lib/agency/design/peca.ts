@@ -18,6 +18,7 @@
 import { FORMATOS, montarHtmlDaPeca, textosDaPeca, type FormatoDaPeca, type Molde, type PecaDoMolde } from "./molde";
 import type { Composicao } from "./repertorio";
 import { renderizarHtml, type MotivoDeFalhaDeRender } from "./renderizar";
+import { medirLegibilidadeDoTitulo, type MedidaDaLegibilidade } from "./legibilidade-do-titulo";
 import {
   travaDeTextoNaArte, travaDeRotuloNaArte, travaDeRotuloDeBeneficio, travaDeChamadaNaArte,
   FORMA_DO_SELO, FORMA_DA_ASSINATURA,
@@ -89,6 +90,18 @@ export type ResultadoDaPeca =
        *  o cliente recebia a peça cinza e nada dizia que aquele cinza era
        *  AUSÊNCIA de marca. Quem grava a peça grava isto. */
       lacunasDoMolde: string[];
+      /**
+       * A LEGIBILIDADE DO TÍTULO, MEDIDA NO ARQUIVO QUE SAIU.
+       *
+       * Fecha a dívida nº 3 do `O_QUE_NAO_FOI_MEDIDO`: "o título é branco sobre
+       * foto de alto ruído, e ninguém mede esse par". Agora mede-se — nos
+       * pixels do JPEG, dentro da caixa que o título ocupa no DOM.
+       *
+       * `null` = não deu para medir (peça sem título, ou a decodificação
+       * falhou). **Nulo não é aprovação**: quem lê trata ausência de medida
+       * como ausência de medida.
+       */
+      legibilidadeDoTitulo: MedidaDaLegibilidade | null;
     }
   | { ok: false; erro: string; motivo: MotivoDeFalhaDeRender };
 
@@ -204,9 +217,23 @@ export async function montarPeca(p: PedidoDePeca): Promise<ResultadoDaPeca> {
   });
   if (!r.ok) return r;
 
+  // ── A LEGIBILIDADE DO TÍTULO, NO ARQUIVO ────────────────────────────────
+  //
+  // Mede, não decide. A decisão de barrar é de quem produz (`artes.ts`), que é
+  // quem sabe o que fazer com uma peça reprovada — e é lá que a escada de
+  // exposição e o registro moram. Medir aqui é o certo porque é aqui que os
+  // BYTES e a CAIXA DO TÍTULO existem no mesmo escopo, e uma segunda medição
+  // noutro lugar teria de re-renderizar para reencontrar a caixa.
+  const caixa = r.conferencia.tituloCaixa;
+  const tintaDoTitulo = r.conferencia.tituloTinta;
+  const legibilidadeDoTitulo = caixa && tintaDoTitulo
+    ? await medirLegibilidadeDoTitulo(r.bytes, caixa, tintaDoTitulo)
+    : null;
+
   return {
     ok: true,
     bytes: r.bytes,
+    legibilidadeDoTitulo,
     largura: r.largura,
     altura: r.altura,
     textosPintados: esperados,

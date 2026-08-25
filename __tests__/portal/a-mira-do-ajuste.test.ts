@@ -46,6 +46,7 @@ const validatePortalAccess = vi.hoisted(() => vi.fn());
 const updateApprovalStatus = vi.hoisted(() => vi.fn());
 const addApprovalComment = vi.hoisted(() => vi.fn());
 const refazer = vi.hoisted(() => vi.fn());
+const recusar = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
@@ -58,7 +59,10 @@ vi.mock("@/lib/agency/execution/create-project-from-request", () => ({ createPro
 vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution: vi.fn() }));
 vi.mock("@/lib/agency/execution/negotiate-proposal", () => ({ negotiateProposal: vi.fn() }));
 vi.mock("@/lib/agency/execution/assess-resources", () => ({ assessResources: vi.fn() }));
-vi.mock("@/lib/agency/esteira/refacao", () => ({ refazerPorPedidoDoCliente: refazer }));
+vi.mock("@/lib/agency/esteira/refacao", () => ({
+  refazerPorPedidoDoCliente: refazer,
+  recusarPorPedidoDoCliente: recusar,
+}));
 
 import { POST } from "@/app/api/portal/approvals/route";
 
@@ -118,13 +122,38 @@ describe("os DOIS atos do cliente chegam como dois atos", () => {
     expect(refazer.mock.calls[0]![0].modo).toBe("ajuste");
   });
 
-  it('"recusar e refazer" viaja como recusa — e com o MOTIVO dele', async () => {
+  it('"recusar" NÃO viaja para a refação — a máquina PARA', async () => {
+    // ── O QUE MUDOU EM 25/08/2026, E POR QUE ─────────────────────────────
+    //
+    // Este teste afirmava que "recusar" chegava a `refazerPorPedidoDoCliente`
+    // com `modo: "recusa"`. Estava certo sobre o que o código FAZIA, e a
+    // investigação que o produziu continua valendo inteira: os dois atos
+    // chegavam como um só, e o motivo do cliente se perdia.
+    //
+    // Só que mandar a recusa para a REFAÇÃO — ainda que com outro prompt —
+    // significa responder a um "não" com outra tentativa automática, e reabrir
+    // o card para o cliente decidir de novo. Medido na Operação Salvaguarda:
+    // **em nenhum produto da casa a recusa ficava recusada.**
+    //
+    // Decisão do CEO: recusar PARA. A metade valiosa deste teste (os dois atos
+    // são dois atos, e o motivo dele chega) continua afirmada — agora com os
+    // dois destinos certos.
     updateApprovalStatus.mockResolvedValue({ id: "ap1", status: "rejected", reviewedAt: new Date() });
     await POST(req({ action: "reject", comment: "vocês mexeram na peça errada" }));
-    const arg = refazer.mock.calls[0]![0];
-    expect(arg.modo, "recusar e pedir ajuste eram o MESMO objeto até 24/08/2026").toBe("recusa");
-    // O motivo é a metade que faltava investigar: ele CHEGA. Quem repetia o
-    // erro não era o recado perdido — era o alvo errado lendo o recado certo.
+
+    expect(refazer, "recusa não manda a máquina tentar de novo sozinha").not.toHaveBeenCalled();
+    expect(recusar).toHaveBeenCalledTimes(1);
+
+    // O MOTIVO CHEGA — é a metade que a investigação original descobriu.
+    const arg = recusar.mock.calls[0]![0];
     expect(arg.comentario).toBe("vocês mexeram na peça errada");
+    // E a MIRA continua valendo: a recusa sabe qual entrega o cliente apontou.
+    expect(arg.deliverableId, "sem isto a recusa carimbaria o departamento inteiro").toBe("pauta-do-mes");
+  });
+
+  it('"pedir ajuste" NÃO passa pela recusa — os destinos não se cruzam', async () => {
+    await POST(req({ action: "request_revision", comment: "troca só o título" }));
+    expect(recusar).not.toHaveBeenCalled();
+    expect(refazer).toHaveBeenCalledTimes(1);
   });
 });
