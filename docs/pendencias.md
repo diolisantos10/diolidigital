@@ -14,6 +14,38 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🔴 25/08/2026 — RAIO-X DO DESIGN: o que ficou aberto
+
+**O que provocou:** o CEO reprovou peças e perguntou *"tem ou não tem como
+melhorar a ficha desses designers?"*. O raio-x foi rodado à mão, no código,
+somente leitura. O relatório de negócio subiu como página.
+
+**🟢 Fechado nesta sessão:** a régua de qualidade visual (bloco 15 de
+`agentes/linha/design/_departamento.md`), as 7 fichas de Design com as oito
+travas conferíveis, e — o que faltava de verdade — os marcadores
+`REGRAS-DO-CARGO` nas 7, que são o que faz a ficha **chegar ao agente** em
+runtime. Portão em `__tests__/v2/regua-visual-chega-no-agente.test.ts`.
+
+### O que continua aberto, com dono
+
+| # | Achado | Prova | Dono |
+|---|---|---|---|
+| 1 | **A tela `/agency/design-agent` não passa por trava nenhuma.** Pede a imagem crua à IA e oferece salvar como entregável do cliente. Não usa molde, portão de pixel nem trava de texto | `app/agency/design-agent/page.tsx:568` | Produto/Tecnologia |
+| 2 | **80 das 81 fichas não chegam ao agente.** A fiação de `blocoDeRegrasParaPrompt` é genérica e vale para todas; só o SDR e agora as 7 de Design têm os marcadores. Nas outras 74, o que a ficha manda é invisível para quem executa | `grep REGRAS-DO-CARGO agentes/linha/**` | Diretor da Dioli Digital |
+| 3 | **`sharp` não está declarado no projeto.** O portão de pixel — o único que lê imagem — depende dele, e ele vem de carona como dependência **opcional** do Next 16. Some a dependência, o portão é fail-closed e nenhuma peça com fundo gerado sai | `package.json` (ausente) · `package-lock.json:11005` `"optional": true` | Produto/Tecnologia |
+| 4 | **Departamento de Qualidade inteiro desligado**, incluindo o `approval-gate`, cuja missão escrita é "nada segue ao cliente sem aprovação interna registrada". Ligar é decisão do dono, na escada — não se conserta em código | `agentes/linha/quality/*.md` — 7 de 7 com `"ativa": false` | CEO |
+| 5 | **`creative-director` desligado, `graphic-designer` ligado.** As mãos operam sem a cabeça: a única ficha com mandato de direção está fora da allowlist do piloto assistido | `LIGADAS_PELO_CEO` em `__tests__/v2/fichas-da-linha.test.ts` | CEO |
+
+### O que o raio-x NÃO cobriu (guardrail 1: isto não é "está tudo bem")
+
+- **De qual dos dois caminhos vieram as peças reprovadas.** Os dois existem e
+  funcionam. Sem um arquivo reprovado em mãos, dizer qual seria chute.
+- **Se `v2_execucao` está ligada para algum cliente hoje.** É decisão por
+  cliente, guardada no banco, e a sessão não alcançou o banco.
+- **A varredura determinística de `lib/raio-x/` não foi executada.** Este raio-x
+  foi leitura de código; a comparação com ontem, que é metade do valor do
+  protocolo, não existe para estes achados.
+
 ## 🔴 24/08/2026 — SEM SALDO NA CONTA DA ANTHROPIC (precisa de gente)
 
 **A conta do provedor de IA está sem saldo. Ninguém resolve isto em código.**
