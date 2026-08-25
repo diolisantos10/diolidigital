@@ -478,6 +478,41 @@ export async function baterORelogio(): Promise<{
     quebrou("repescagem-da-escada", err);
   }
 
+  // ── E O PEDIDO RETIDO, QUE NEM CHEGOU A VIRAR ENTREGA ────────────────────
+  //
+  // A perna acima repesca a ENTREGA que ficou `interno`. Ela nunca alcançou o
+  // caso medido em 25/08/2026: às 17:02 a escada reteve a peça do balcão e o
+  // PEDIDO parou em `precisa_decisao` — antes de existir `Deliverable` para
+  // repescar; às 17:03, 64 segundos depois, o relógio abriu o degrau para a
+  // mesma cliente. Nada voltou a olhar o pedido, e foi preciso retriá-lo à
+  // mão. Era um dos dois empurrões manuais que sobravam, e a meta é zero.
+  //
+  // Está AQUI, e não num relógio novo, de propósito: esta casa perdeu dez dias
+  // com um cron próprio que morreu em silêncio com o painel verde. E está
+  // nesta ORDEM de propósito: a decisão do dono já foi aplicada mais acima
+  // nesta mesma rodada, então o degrau que abriu e o pedido que volta
+  // acontecem na mesma batida — não na seguinte.
+  try {
+    const { repescarPedidosRetidosPelaEscada } = await import("@/lib/agency/escada/repescagem");
+    const r = await repescarPedidosRetidosPelaEscada();
+    if (r.rearmados > 0) {
+      log(`escada: ${r.rearmados} pedido(s) retido(s) voltaram sozinhos para a fila — o degrau abriu`);
+    }
+    // Degrau ainda fechado é a escada FUNCIONANDO: estado, nunca falha. Um
+    // alarme que grita a cada 5 minutos sobre o comportamento correto é o
+    // alarme que quem lê aprende a pular — o achado de 24/08/2026.
+    if (r.aindaRetidos.length > 0) {
+      estadoDe("repescagem-de-pedido",
+        `${r.aindaRetidos.length} pedido(s) seguem retidos pela escada: ${r.aindaRetidos[0].motivo}`);
+    }
+    // Teto esgotado é PARADA DECLARADA, e essa acorda gente: o pedido não volta
+    // mais sozinho, e quem não for avisado nunca vai saber.
+    for (const x of r.desistidos) quebrou("repescagem-de-pedido", x.motivo);
+    for (const a of r.avisos) quebrou("repescagem-de-pedido", a);
+  } catch (err) {
+    quebrou("repescagem-de-pedido", err);
+  }
+
   // A virada vem ANTES da retomada de propósito: ela é quem abre o mês novo e
   // marca o projeto como "pending". Assim o mês nasce e já é produzido na mesma
   // rodada, em vez de esperar mais cinco minutos.

@@ -512,6 +512,23 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     const porque = escada.retidos[0]?.motivo ?? "retida pela escada de exposição";
     await moverTarefa(pedido.taskId, "pending");
     await registrar(projeto, "escada_reteve_entrega", `${nome} para ${contexto.businessName}: peça produzida e NÃO entregue — ${porque}`);
+    // ── O CARIMBO QUE FAZ O PEDIDO VOLTAR SOZINHO (25/08/2026) ──────────────
+    //
+    // Sem esta linha, o pedido parava aqui e ficava. Medido em produção: às
+    // 17:02 a escada reteve, às 17:03 o relógio abriu o degrau para a MESMA
+    // cliente, e nada voltou a olhar o pedido — foi preciso retriá-lo à mão.
+    // Um dos dois empurrões manuais que sobravam na esteira.
+    //
+    // O carimbo é o que separa "parado pela escada" (condição que deixa de
+    // valer sozinha) de "parado pela Qualidade" (que exige gente). Só o
+    // primeiro é rearmado, por `repescarPedidosRetidosPelaEscada`.
+    //
+    // Best-effort: se o carimbo falhar, o pedido continua parado e visível
+    // como sempre esteve — nunca o contrário.
+    await prisma.contentRequest.update({
+      where: { id: pedidoId },
+      data: { escadaRetidaEm: new Date() },
+    }).catch(() => { /* sem carimbo, sem repescagem: fica como estava, e aparece */ });
     return await parar(pedidoId, "A peça ficou pronta, mas este time ainda está em rodagem interna nesta conta. A equipe vai revisar antes de te entregar.");
   }
 
@@ -630,7 +647,7 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     const medida = dimensaoExigida(produto);
     await prisma.contentRequest.update({
       where: { id: pedidoId },
-      data: { status: "entregue", declineReason: null, productionAttempts: 0 },
+      data: { status: "entregue", declineReason: null, productionAttempts: 0, escadaRetidaEm: null },
     });
     if (pedido.taskId) {
       await prisma.task.update({
@@ -678,7 +695,7 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
 
   await prisma.contentRequest.update({
     where: { id: pedidoId },
-    data: { status: "entregue", deliverableId: entregavel.id, declineReason: null, productionAttempts: 0 },
+    data: { status: "entregue", deliverableId: entregavel.id, declineReason: null, productionAttempts: 0, escadaRetidaEm: null },
   });
   if (pedido.taskId) {
     await prisma.task.update({
