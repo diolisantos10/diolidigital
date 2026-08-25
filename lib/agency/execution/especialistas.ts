@@ -1018,7 +1018,14 @@ ${ctxBlock(c)}
 
 Descreva de 3 a 4 peças: o que aparece, a composição, onde entra o texto, e a sensação que ela precisa provocar. Específico ao segmento — nada de "imagem bonita do produto".
 ${REGRA}
-${formato("Criativos de Social — <negócio>", `"headline": "nome da peça", "direction": "composição e enquadramento", "palette": "cores desta peça", "note": "texto que entra na arte"`)}`,
+
+O CAMPO "direction" É A DIREÇÃO DE ARTE, E ELE VIRA O PEDIDO À CÂMERA. É CONFERIDO EM CÓDIGO (\`lib/agency/design/direcao-fotografavel.ts\`) ANTES de qualquer imagem ser paga: direção que não descreve uma foto não vira imagem e volta para você reescrever. Escreva a FOTO que existe, numa destas duas famílias:
+  A) CENA DE AMBIENTE — SUJEITO (quem aparece e o que está fazendo) + LUGAR (onde, com nome) + LUZ (a hora do dia ou a luz da cena).
+     ex.: "galpão de logística em Suzano no fim da tarde, operador conferindo caixas, luz baixa entrando pelo portão"
+  B) TOMADA CONTROLADA (close-up de produto), quando a peça é sobre uma COISA — diga o ENQUADRAMENTO FECHADO com todas as letras ("close-up de", "macro de", "detalhe de", "primeiro plano de"), o que aparece ATRÁS (fundo, superfície, estúdio, bancada) e a LUZ.
+     ex.: "macro do disco de freio desgastado sobre a bancada, fundo desfocado cinza escuro, luz fria de fluorescente da oficina"
+A LUZ É OBRIGATÓRIA NAS DUAS FAMÍLIAS. Nada de "estilo moderno", "cores vibrantes", "visual limpo e premium" ou "imagem bonita do produto" — nada disso é fotografável, e o gerador resolve tudo isso com símbolo, ícone e cor chapada.
+${formato("Criativos de Social — <negócio>", `"headline": "nome da peça", "direction": "a direção de arte: a FOTO que existe, com sujeito/lugar/luz ou enquadramento/fundo/luz", "palette": "cores desta peça", "note": "texto que entra na arte"`)}`,
       },
       {
         id: "design-criativo-trafego",

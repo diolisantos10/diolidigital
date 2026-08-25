@@ -702,7 +702,15 @@ function blocoDoProduto(produto: ProdutoCanonico | null): string {
     `Entregue EXATAMENTE ${produto.quantidadeDePecas} peças. Nem uma a menos: o preço da tabela cobre ${produto.quantidadeDePecas}.`,
     `Cada peça é um STORY VERTICAL de ${d.largura}×${d.altura} — tela cheia do celular, não arte de feed.`,
     "Para CADA peça, o campo `headline` é o TÍTULO QUE VAI APARECER NA IMAGEM: curto, forte, no máximo 8 palavras.",
-    "O campo `note` é o texto de apoio da peça — uma frase. O campo `direction` é o que a IMAGEM mostra (cenário, luz, enquadramento) e NUNCA vira letra.",
+    "O campo `note` é o texto de apoio da peça — uma frase. O campo `direction` é o que a IMAGEM mostra e NUNCA vira letra.",
+    // A régua de `direcao-fotografavel.ts` roda em código antes de pagar imagem.
+    // Ela existia e NUNCA chegava a este prompt: o bloco dizia "cenário, luz,
+    // enquadramento" e omitia o SUJEITO, que é uma das três famílias exigidas.
+    // Regra escrita que não atravessa a porta é a doença que esta casa já nomeou.
+    "`direction` É CONFERIDO EM CÓDIGO antes de qualquer imagem ser paga. Descreva a FOTO que existe, numa destas duas famílias:",
+    '  A) CENA DE AMBIENTE — SUJEITO (quem aparece, fazendo o quê) + LUGAR (onde) + LUZ. ex.: "galpão em Suzano no fim da tarde, operador conferindo caixas, luz baixa pelo portão".',
+    '  B) TOMADA CONTROLADA (close-up de produto) — ENQUADRAMENTO FECHADO com todas as letras ("close-up de", "macro de", "detalhe de") + o que aparece ATRÁS (fundo, superfície, bancada, estúdio) + LUZ. ex.: "macro do disco de freio desgastado sobre a bancada, fundo desfocado cinza escuro, luz fria de fluorescente da oficina".',
+    "A LUZ É OBRIGATÓRIA NAS DUAS. Direção que não descreve uma foto não vira imagem: ela volta para você reescrever, e a peça não sai enquanto isso.",
     "Story tem barra de progresso em cima e caixa de resposta embaixo: nada de conteúdo essencial nas bordas.",
     "──────── FIM DO PRODUTO ────────",
   ].join("\n");
