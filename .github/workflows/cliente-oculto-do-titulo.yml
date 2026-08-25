@@ -126,7 +126,11 @@ jobs:
             -G "$BASE/api/admin/links-do-portal" --data-urlencode "clientes=$CLIENTE" $EMITIR
 
           SIT=$(jq -r '[.. | objects | select(has("situacao"))][0].situacao // "?"' /tmp/links.json)
-          URL=$(jq -r '[.. | objects | select(has("url")) | .url | strings][0] // ""' /tmp/links.json)
+          # O campo e `link` (`links-do-portal.ts`), nao `url`. Ler so `url`
+          # devolvia vazio COM o link vivo na mao — e o job dizia "sem link"
+          # sobre um cliente que tem link. Ausencia de leitura nao e ausencia
+          # de link.
+          URL=$(jq -r '[.. | objects | (.link? // .url?) | strings][0] // ""' /tmp/links.json)
           TOKEN="${URL##*/portal/access/}"
           if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ] || [ "$TOKEN" = "$URL" ]; then
             echo "::error::Sem link vivo para $CLIENTE (situacao: $SIT). Nada foi emitido — quem emite e o CEO."
