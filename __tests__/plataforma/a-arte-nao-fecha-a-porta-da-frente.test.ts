@@ -20,8 +20,16 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+/** O formato exato do `where` que `teto-de-custo.ts` monta. Tipado de propósito:
+ *  é ele que este arquivo inteiro está medindo. */
+type ConsultaDeGasto = { where: { workspaceId: string; createdAt: unknown; agentId?: string } };
+
 const db = vi.hoisted(() => ({
-  aIRunLog: { findMany: vi.fn(async (): Promise<{ custoEstimadoUsd: number | null }[]> => []) },
+  aIRunLog: {
+    findMany: vi.fn(
+      async (_consulta: { where: { agentId?: string } }): Promise<{ custoEstimadoUsd: number | null }[]> => [],
+    ),
+  },
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
@@ -36,11 +44,17 @@ const {
 /** O retrato do dia 25/08/2026, em duas linhas: o que a porta gastou e o que a
  *  casa gastou. É o mesmo formato do relatório de produção. */
 function contadorReal({ porta, casa }: { porta: number; casa: number }) {
-  db.aIRunLog.findMany.mockImplementation(async (args: unknown) => {
-    const where = (args as { where?: { agentId?: string } } | undefined)?.where ?? {};
-    const total = where.agentId === AGENTE_DA_PORTA_PUBLICA ? porta : casa;
-    return [{ custoEstimadoUsd: total }];
-  });
+  db.aIRunLog.findMany.mockImplementation(async (consulta) => [
+    { custoEstimadoUsd: consulta.where.agentId === AGENTE_DA_PORTA_PUBLICA ? porta : casa },
+  ]);
+}
+
+/** A última consulta que o módulo mandou ao banco. Sem ela, o teste "filtra
+ *  pelo agente" provaria só que o mock foi chamado. */
+function ultimaConsulta(): ConsultaDeGasto {
+  const chamadas = db.aIRunLog.findMany.mock.calls;
+  expect(chamadas.length, "o módulo não consultou o contador").toBeGreaterThan(0);
+  return chamadas[chamadas.length - 1]![0] as ConsultaDeGasto;
 }
 
 beforeEach(() => {
@@ -90,7 +104,7 @@ describe("o teto da porta conta o que a PORTA gastou", () => {
   it("a consulta do gasto da porta filtra pelo agente que atende a porta", async () => {
     contadorReal({ porta: 1, casa: 9 });
     await gastoNaJanelaUsd("ws", Date.now(), AGENTE_DA_PORTA_PUBLICA);
-    const where = db.aIRunLog.findMany.mock.calls.at(-1)![0]!.where;
+    const { where } = ultimaConsulta();
     expect(where.agentId).toBe(AGENTE_DA_PORTA_PUBLICA);
     expect(AGENTE_DA_PORTA_PUBLICA).toBe("comercial-sdr");
   });
@@ -98,7 +112,7 @@ describe("o teto da porta conta o que a PORTA gastou", () => {
   it("sem agente, a consulta conta TUDO — o freio da casa não pode ter filtro", async () => {
     contadorReal({ porta: 1, casa: 9 });
     await gastoNaJanelaUsd("ws");
-    const where = db.aIRunLog.findMany.mock.calls.at(-1)![0]!.where;
+    const { where } = ultimaConsulta();
     expect(where.agentId).toBeUndefined();
   });
 });
