@@ -116,3 +116,41 @@ describe("o teto da porta conta o que a PORTA gastou", () => {
     expect(where.agentId).toBeUndefined();
   });
 });
+
+// ─── E A CASA PRECISA SABER QUANDO A PORTA FECHA ─────────────────────────────
+//
+// O achado mais fundo de 25/08 não foi o teto errado: foi que a casa não tinha
+// COMO SABER. Medido: zero ocorrências de `teto_de_custo` no despertador e no
+// coletor do Diretor, e nenhuma linha sobre a porta em `/api/pulso`.
+//
+// O visitante não vê erro nenhum — `PublicBriefingRoom` lê `ok:false` como
+// "sem novidade da IA" e cai no motor de regras, calado e de propósito. Esse é
+// o desenho certo para ELE, e é exatamente o que torna a degradação invisível
+// para a casa. Porta que se fecha sem barulho é pior que porta que trava: a que
+// trava, alguém conserta. Foi preciso um cliente oculto para descobrir.
+//
+// Este teste é de FONTE porque a pergunta é "quem avisa?", e nenhum teste de
+// comportamento responde isso — o alarme passa nos testes dele estando
+// desligado do relógio.
+
+describe("a porta da frente faz barulho quando fecha", () => {
+  it("⛔ o despertador confere a porta pública e GRITA quando ela está fechada", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const desp = fs.readFileSync(path.join(process.cwd(), "lib/agency/despertador.ts"), "utf8");
+    expect(desp, "ninguém confere a porta pública a cada rodada").toContain("podeGastarNaPortaPublica");
+    // `quebrou("porta-publica", …)` é o que faz a linha aparecer em
+    // `/api/pulso` → `falhas24h`, que é onde o CEO já olha. Sem esta perna, o
+    // conserto do teto valeria só até o próximo dia movimentado.
+    expect(desp, "a porta fechada não vira falha visível").toContain('"porta-publica"');
+    expect(desp).toContain("A PORTA DA FRENTE está fechada");
+  });
+
+  it("o alarme distingue os dois motivos — eles pedem providências opostas", () => {
+    // "a internet gastou a cota" se resolve subindo o teto da porta.
+    // "a casa se sangrou sozinha" se resolve achando o laço de produção.
+    // Um motivo só mandaria o CEO fazer a coisa errada metade das vezes.
+    const motivos = new Set(["teto_estourado", "teto_do_workspace_estourado"]);
+    expect(motivos.size).toBe(2);
+  });
+});

@@ -1037,6 +1037,42 @@ export async function baterORelogio(): Promise<{
     quebrou("gerente-geral", err);
   }
 
+  // ── A PORTA DA FRENTE TEM ALARME (25/08/2026) ─────────────────────────────
+  //
+  // O cliente oculto bateu em `/api/sdr/chat` e levou `teto_de_custo` NOVE
+  // vezes. A casa estava com a porta da frente fechada para a internet inteira
+  // — e **nenhum instrumento dela sabia disso**. Medido: zero ocorrências de
+  // `teto_de_custo` no despertador e no coletor do Diretor, e nenhuma linha
+  // sobre a porta em `/api/pulso`.
+  //
+  // O visitante não vê erro: `PublicBriefingRoom` lê `ok:false` como
+  // "sem novidade da IA" e cai no motor de REGRAS, calado e de propósito. É o
+  // desenho certo para o visitante — e é exatamente o que faz a degradação ser
+  // invisível para a casa. Porta que se fecha sem barulho é pior que porta que
+  // trava: a que trava, alguém conserta.
+  //
+  // Aqui ela passa a fazer barulho, no mesmo lugar em que o CEO já olha.
+  // Note que este alarme distingue os DOIS motivos: "a internet gastou a cota"
+  // e "a casa se sangrou sozinha" pedem providências opostas.
+  try {
+    const { podeGastarNaPortaPublica } = await import("@/lib/ai/teto-de-custo");
+    const { workspaceDaRotaPublica } = await import("@/lib/ai/chave-publica");
+    const veredicto = await podeGastarNaPortaPublica(await workspaceDaRotaPublica());
+    if (!veredicto.pode) {
+      const quanto =
+        veredicto.gastoUsd !== null && veredicto.tetoUsd !== null
+          ? ` (gasto US$${veredicto.gastoUsd.toFixed(2)} de US$${veredicto.tetoUsd.toFixed(2)})`
+          : "";
+      quebrou(
+        "porta-publica",
+        `A PORTA DA FRENTE está fechada — o SDR de IA não atende visitante nenhum: ${veredicto.motivo}${quanto}. ` +
+          "Quem chega cai no motor de regras, sem aviso na tela dele.",
+      );
+    }
+  } catch (err) {
+    quebrou("porta-publica", err);
+  }
+
   // ── A BATIDA DA V2, PENDURADA AQUI (25/08/2026) ───────────────────────────
   //
   // A perna acima faz a varredura do Gerente Geral e ENFILEIRA o aviso de
