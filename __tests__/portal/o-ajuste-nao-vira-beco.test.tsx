@@ -330,6 +330,56 @@ describe("🔴 O BECO — pedir ajuste NÃO pode consumir o direito de decidir",
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+describe("🔴 OS RETORNOS ANTECIPADOS — medido em produção 20min após o 1º conserto", () => {
+// ═══════════════════════════════════════════════════════════════════════════
+  //
+  // O primeiro conserto lia `feita.devolveADecisao`, um campo que `refacao.ts`
+  // preenchia no FIM do caminho principal. Aquela função tem SEIS retornos
+  // antecipados e nenhum deles passava por essa linha: o campo voltava
+  // `undefined` — falso — e a porta continuava trancada.
+  //
+  // Cliente oculto em produção (b82bdec, 18:20): card novo sobre 4 peças, ajuste
+  // pedido, refação devolveu "sem entrega correspondente", e as três portas
+  // responderam 409 de novo. **Um campo que alguém precisa lembrar de preencher
+  // é prompt, não trava.** Agora quem decide é uma função pura sobre o que
+  // SEMPRE existe na saída.
+
+  beforeEach(async () => {
+    // O card aponta um departamento em que o projeto não tem entrega nenhuma —
+    // é o caminho `alvos.length === 0`, o mesmo que produção percorreu.
+    await prisma.approvalRequest.update({
+      where: { id: approvalId },
+      data: { department: "paid-traffic", deliverableVersionId: null },
+    });
+  });
+
+  it("sem entrega correspondente: a porta continua ABERTA nas três decisões", async () => {
+    const r = await POST(req({ action: "request_revision", comment: PEDIDO }));
+    expect(r.status).toBe(200);
+
+    const card = await prisma.approvalRequest.findUniqueOrThrow({ where: { id: approvalId } });
+    expect(card.status, "era aqui que o 409 nascia de novo").toBe("pending");
+
+    for (const acao of ["approve", "reject", "cancel"] as const) {
+      await prisma.approvalRequest.update({
+        where: { id: approvalId }, data: { status: "pending", reviewedAt: null },
+      });
+      const res = await POST(req({ action: acao, comment: "decidi assim." }));
+      expect(res.status, `${acao} tem de continuar possível`).toBe(200);
+    }
+  });
+
+  it("e ele lê o porquê no card, mesmo sem parada classificada", async () => {
+    await POST(req({ action: "request_revision", comment: PEDIDO }));
+    const cs = await prisma.approvalComment.findMany({
+      where: { approvalRequestId: approvalId, isClientVisible: true, authorRole: "internal" },
+    });
+    expect(cs.length, "silêncio aqui é metade do defeito de volta").toBeGreaterThan(0);
+    expect(cs[0]!.body).toMatch(/continua SUA para decidir/i);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 describe("A INSTRUÇÃO GÊMEA — ele lê o PORQUÊ, e é uma conversa, não um erro", () => {
 // ═══════════════════════════════════════════════════════════════════════════
 

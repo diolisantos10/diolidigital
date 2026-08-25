@@ -29,6 +29,7 @@ import { negotiateProposal } from "@/lib/agency/execution/negotiate-proposal";
 import { assessResources } from "@/lib/agency/execution/assess-resources";
 import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
 import { pecasApontadasPeloAjuste } from "@/lib/agency/esteira/mira-da-peca";
+import { devolveADecisao, classificarParada } from "@/lib/agency/esteira/porta-do-ajuste";
 
 // V2 (M5): as QUATRO decisões do cliente + a dúvida vivem num contrato único
 // (`lib/agency/portal/decisoes-do-portal.ts`) — rota e tela leem a mesma
@@ -561,7 +562,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           // caminho já mexeu no card, nada acontece — esta linha jamais
           // sobrepõe um estado que não é o que a rota acabou de deixar. Não
           // é prompt pedindo cuidado; é a condição na cláusula.
-          if (feita.devolveADecisao) {
+          // ⚠️ A PERGUNTA É FEITA AQUI, E NÃO LIDA DE UM CAMPO — e a razão foi
+          // medida em produção 20 minutos depois do primeiro conserto.
+          //
+          // A primeira versão lia `feita.devolveADecisao`, um campo que
+          // `refacao.ts` preenchia no FIM do caminho principal. Só que aquela
+          // função tem SEIS retornos antecipados (sem projeto, sem entrega
+          // correspondente, portão de pagamento, pedido sem descrição…) e
+          // nenhum deles passava por essa linha: o campo voltava `undefined`,
+          // que é falso, e a porta continuava trancada.
+          //
+          // Foi exatamente o que aconteceu no cliente oculto de produção: card
+          // novo, ajuste pedido, "sem entrega correspondente" — e 409 nas três
+          // portas outra vez. Um campo que alguém precisa lembrar de preencher
+          // é prompt, não trava.
+          //
+          // A função pura decide sobre o que SEMPRE existe na saída (`refeitas`
+          // e `arte`). Todo caminho de retorno passa a ser coberto por
+          // construção, inclusive os que ainda nem foram escritos.
+          if (devolveADecisao(feita)) {
             await prisma.approvalRequest.updateMany({
               where: { id: approvalRequestId, status: "revision_requested" },
               // `reviewedAt`/`reviewedBy` voltam a nulo porque a decisão
@@ -578,7 +597,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             // está olhando quando decide. A mensagem na aba de conversa e o
             // aviso na peça continuam — três superfícies, porque nesta
             // operação o aviso já morreu numa coluna três vezes.
-            if (feita.parada) {
+            // Sem parada CLASSIFICADA (caminhos antigos de retorno antecipado),
+            // o cliente ainda lê o porquê: a classe conservadora é "precisa de
+            // gente", que é verdade em todos eles. Silêncio aqui seria repetir
+            // metade do defeito — porta aberta e nenhuma explicação.
+            const parada = feita.parada
+              ?? classificarParada({ causa: "sem_entrega", detalhe: feita.motivo });
+            {
               await addApprovalComment({
                 approvalRequestId,
                 authorName:      "Gerente de projeto",
@@ -587,7 +612,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 // o comportamento certo: a bola volta para o cliente.
                 authorRole:      "internal",
                 kind:            "answer",
-                body:            feita.parada.avisoAoCliente,
+                body:            parada.avisoAoCliente,
                 isClientVisible: true,
               }).catch((e) => console.error("[portal/approvals] aviso da parada não gravado", e));
             }

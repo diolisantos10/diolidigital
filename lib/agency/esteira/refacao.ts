@@ -59,7 +59,6 @@ import { pecasApontadasPeloAjuste } from "@/lib/agency/esteira/mira-da-peca";
 import {
   classificarParada,
   causaDasViolacoesDoPiso,
-  devolveADecisao,
   MAX_TENTATIVAS_TRANSITORIAS,
   CONVITE_A_DECIDIR,
   type ParadaDoAjuste,
@@ -103,11 +102,6 @@ export interface RefacaoFeita {
    * `esteira/porta-do-ajuste.ts`.
    */
   parada?: ParadaDoAjuste | null;
-  /**
-   * O cliente TEM de continuar podendo decidir a peça que já está na mão dele?
-   * `true` sempre que a casa não colocou peça nova na mão dele.
-   */
-  devolveADecisao?: boolean;
 }
 
 /** Onde uma mensagem deste pedido é gravada. As DUAS chaves quando ambas são
@@ -877,9 +871,17 @@ export async function refazerPorPedidoDoCliente(input: {
   //      onde ele decide, não só na aba de mensagens (que foi exatamente onde
   //      o aviso da rodada anterior ficou preso). Quando a razão é uma regra
   //      dele, a frase diz isso com todas as letras: é conversa, não erro.
-  //   2. O CLIENTE CONTINUA PODENDO DECIDIR. `saida.devolveADecisao` é o sinal
-  //      que a rota lê para reabrir o card sobre a peça que ele JÁ TEM.
-  saida.devolveADecisao = devolveADecisao(saida);
+  //   2. O CLIENTE CONTINUA PODENDO DECIDIR. Quem responde a isso é
+  //      `devolveADecisao(saida)`, e a ROTA é quem a chama — não um campo
+  //      preenchido aqui.
+  //
+  //      ⚠️ A primeira versão gravava um campo `saida.devolveADecisao` NESTA
+  //      linha. Medido em produção 20 minutos depois: esta função tem seis
+  //      retornos antecipados (sem projeto, sem entrega correspondente, portão
+  //      de pagamento…) e nenhum deles chega aqui. O campo voltava `undefined`,
+  //      a rota lia falso, e o 409 renascia inteiro. Campo que alguém precisa
+  //      lembrar de preencher é prompt; função pura sobre o que sempre existe
+  //      na saída é trava.
 
   // O texto foi refeito e a IMAGEM não: isso também é uma parada, e ela não
   // tinha classe nenhuma. Sem esta linha, o caminho "arte não saiu" chegava à
