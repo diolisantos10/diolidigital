@@ -90,6 +90,102 @@ const SUJEITO =
  *  e coisa nenhuma faz algo sozinha numa fotografia. */
 const GERUNDIO = /\b\p{L}{3,}(?:a|e|i)ndo\b/u;
 
+// ── A QUARTA FAMÍLIA: A TOMADA CONTROLADA (25/08/2026) ──────────────────────
+//
+// MEDIDO, e é o que obriga esta mudança: rodando a régua acima contra três
+// famílias de direção,
+//
+//   • cena de ambiente com pessoa (o corpus de onde ela nasceu) ... 8 de 8 passam
+//   • close-up de produto ....................................... 0 de 5 passam
+//   • conceito abstrato (o que ela existe para barrar) .......... 0 de 3 passam
+//
+// A linha do meio é o defeito. Um story de produto — "o disco de freio que a
+// sua oficina troca" — é uma direção CERTA e cara de fotografar, e ela reprovava
+// mesmo quando nomeava a luz com todas as letras. A régua nasceu de um corpus só
+// (CityJobs: vaga, pessoa, bairro do Alto Tietê) e nunca viu a família em que a
+// câmera chega perto de uma COISA. Ausência de vocabulário não é ausência de
+// foto (guardrail 1).
+//
+// ── E POR QUE ISTO NÃO É AFROUXAR ───────────────────────────────────────────
+//
+// A tomada controlada NÃO ganha desconto: ela ganha um caminho PRÓPRIO, e esse
+// caminho custa MAIS palavras, não menos. Para atravessar por aqui a direção
+// tem de declarar duas coisas que antes ela não precisava dizer:
+//
+//   1. o ENQUADRAMENTO FECHADO, com todas as letras ("close-up", "macro",
+//      "detalhe de", "primeiro plano"); e
+//   2. o que a câmera vê ATRÁS — o fundo, a superfície, o estúdio.
+//
+// Uma direção mais vaga do que as que reprovavam ontem continua reprovando hoje.
+// "imagem bonita do produto, visual limpo e premium" não nomeia enquadramento
+// nem fundo, e segue barrada.
+//
+// O que a família concede, e por quê:
+//
+//   • SUJEITO — "close-up DO disco de freio": o enquadramento fechado leva um
+//     complemento, e esse complemento É o que está na foto. Regra de FORMA, como
+//     a de nome próprio depois de "em" (linha 39): nenhuma lista fechada de
+//     objetos do mundo daria conta, e a lista incompleta viraria a negação do
+//     silêncio. Conceito não sobrevive a esta forma — ninguém escreve "close-up
+//     da confiança de quem encontra uma vaga".
+//   • LUGAR — numa tomada controlada o fundo É o lugar. É o que o fotógrafo
+//     monta, e é a única coisa que a câmera vai enxergar além do objeto. Exigir
+//     um galpão atrás de um macro de pastilha de freio é exigir uma foto que
+//     ninguém pediu.
+//   • LUZ — **NADA MUDA, e é aqui que a economia mora.** A tomada controlada não
+//     recebe nenhuma folga de luz. Direção que não nomeia a luz continua
+//     reprovando, porque é exatamente a direção sem luz que o gerador resolve
+//     com cor chapada e ícone — e é o portão do pixel, DEPOIS de pago, que
+//     descobriria. Das três famílias, luz é a que custa dinheiro quando falta.
+
+/** ENQUADRAMENTO FECHADO declarado com todas as letras. Vocabulário pequeno e
+ *  de precisão alta: são termos de câmera, não adjetivos de agência. */
+const ENQUADRAMENTO_FECHADO =
+  /close-?up|\bclose\b|\bmacro\b|primeir[oa]s? plano|plano[- ]detalhe|\bdetalhe\b|enquadramento fechado|\bc[âa]mera perto\b/i;
+
+/** O QUE A CÂMERA VÊ ATRÁS. Numa tomada controlada, é o lugar. */
+const FUNDO_OU_SUPERFICIE =
+  /\bfundo\b|\bfundos\b|\bbackdrop\b|est[úu]dio|superf[íi]cie|\bbancada\b|\bmesa\b|\btampo\b|\bseamless\b|fundo infinito|\bsobre (?:um |uma |o |a )?(?:pano|tecido|madeira|concreto|m[áa]rmore|metal)/i;
+
+/**
+ * "close-up DO disco de freio", "macro DA pastilha", "detalhe DE um filtro".
+ *
+ * O enquadramento fechado leva complemento, e o complemento é o sujeito da foto.
+ * Regra de FORMA e não de lista — mesma escolha da regra de nome próprio.
+ */
+const SUJEITO_DA_TOMADA_FECHADA =
+  /(?:close-?up|\bclose\b|\bmacro\b|primeir[oa] plano|plano[- ]detalhe|\bdetalhe\b)\s+(?:de|do|da|dos|das|d[ao]s? um[a]?|de um[a]?)\s+(\p{L}{3,})/iu;
+
+/**
+ * A ABSTRAÇÃO DE AGÊNCIA COMO COMPLEMENTO — o buraco que a forma sozinha deixa.
+ *
+ * Achado por caso adversarial ao escrever a régua desta mudança: "close-up de
+ * QUALIDADE, fundo de confiança, luz de excelência" atravessava. A forma estava
+ * satisfeita — enquadramento, complemento, fundo e a palavra "luz" — e a foto
+ * não existia. É exatamente o conceito de sempre, vestindo a roupa da família
+ * nova.
+ *
+ * Lista FECHADA e curta, e ela só pode APERTAR: uma palavra que falte aqui não
+ * abre porta nenhuma, apenas deixa a direção seguir para as outras conferências.
+ * Nenhuma destas palavras é uma coisa que uma câmera consegue enquadrar.
+ */
+const ABSTRACAO_DE_AGENCIA =
+  /^(?:qualidade|confian[çc]a|excel[êe]ncia|profissionalismo|sofistica[çc][ãa]o|modernidade|inova[çc][ãa]o|cuidado|seguran[çc]a|sucesso|credibilidade|tradi[çc][ãa]o|compromisso|experi[êe]ncia|satisfa[çc][ãa]o|eleg[âa]ncia|premium|exclusividade|bem|conforto|agilidade|efici[êe]ncia|dedica[çc][ãa]o|respeito|transpar[êe]ncia|honestidade|paix[ãa]o|energia|for[çc]a|estilo|conceito|sensa[çc][ãa]o|import[âa]ncia|valor|impacto)$/i;
+
+/** O enquadramento fechado nomeia uma COISA que a câmera enquadra? A forma
+ *  precisa estar lá E o complemento precisa ser algo do mundo físico. */
+function nomeiaOQueEstaEnquadrado(t: string): boolean {
+  const m = t.match(SUJEITO_DA_TOMADA_FECHADA);
+  return !!m && !ABSTRACAO_DE_AGENCIA.test(m[1]!);
+}
+
+/** A direção declara uma TOMADA CONTROLADA? Exige as DUAS declarações: o
+ *  enquadramento fechado e o que está atrás. Uma só não basta — "fundo
+ *  desfocado" sozinho descreve qualquer fotografia do mundo. */
+function ehTomadaControlada(t: string): boolean {
+  return ENQUADRAMENTO_FECHADO.test(t) && FUNDO_OU_SUPERFICIE.test(t);
+}
+
 /**
  * A direção de arte nomeia uma cena fotografável?
  *
@@ -100,8 +196,17 @@ export function conferirDirecaoFotografavel(direcao: string | null | undefined):
   const t = (direcao ?? "").trim();
   const achou: SinalDeCena[] = [];
 
-  if (SUJEITO.test(t) || GERUNDIO.test(t)) achou.push("sujeito");
-  if (LUGAR.test(t) || LUGAR_POR_NOME_PROPRIO.test(t)) achou.push("lugar");
+  // A tomada controlada é conferida UMA vez e reusada: as duas concessões que
+  // ela faz (sujeito e lugar) têm de vir da MESMA leitura, ou a direção passaria
+  // metade por uma família e metade por outra.
+  const tomadaControlada = ehTomadaControlada(t);
+
+  if (SUJEITO.test(t) || GERUNDIO.test(t) || (tomadaControlada && nomeiaOQueEstaEnquadrado(t))) {
+    achou.push("sujeito");
+  }
+  if (LUGAR.test(t) || LUGAR_POR_NOME_PROPRIO.test(t) || tomadaControlada) achou.push("lugar");
+  // LUZ não tem porta alternativa, de propósito: ver o bloco da tomada
+  // controlada. Luz que falta é a que o portão do pixel só descobre depois de pago.
   if (LUZ.test(t)) achou.push("luz");
 
   const faltou = (["sujeito", "lugar", "luz"] as SinalDeCena[]).filter((s) => !achou.includes(s));
@@ -117,6 +222,9 @@ export function conferirDirecaoFotografavel(direcao: string | null | undefined):
       `direção de arte não descreve uma foto: falta ${listar(faltou)}. ` +
       "Uma direção fotografável nomeia QUEM aparece, ONDE e sob QUE LUZ — " +
       'ex.: "galpão em Suzano no fim da tarde, operador conferindo caixas". ' +
+      "Se a foto for um CLOSE-UP DE PRODUTO, diga o enquadramento e o fundo com todas as " +
+      'letras — ex.: "macro do disco de freio desgastado, fundo desfocado cinza escuro, luz ' +
+      'fria de fluorescente da oficina". A LUZ é obrigatória nos dois casos. ' +
       "Conceito sem lugar nem hora vira desenho vetorial, e o portão do pixel reprova. " +
       "A peça NÃO foi gerada e nada foi gasto: reescreva a direção.",
   };

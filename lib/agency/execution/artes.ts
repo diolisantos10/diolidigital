@@ -56,6 +56,10 @@ import { conferirFundoDaPeca, motivoDoFundoEmUmaLinha } from "@/lib/agency/desig
 // O PRÉ-PORTÃO, de custo zero. Roda ANTES de `generateDesign` e nunca depois:
 // ver o bloco no ponto de chamada e o cabeçalho do arquivo.
 import { conferirDirecaoFotografavel } from "@/lib/agency/design/direcao-fotografavel";
+import {
+  reescreverDirecao, contarReescritasDaDirecao,
+} from "@/lib/agency/design/reescrever-direcao";
+import { generate } from "@/lib/ai/generate";
 import { cerebroDaMarca } from "@/lib/agency/design/repertorio-registrado";
 import {
   composicaoParaFuncao, composicaoDoPostSimples, direcaoDeAmplitude,
@@ -482,13 +486,80 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // "post sem direção (peça anterior a 15/08) continua saindo pela
       // legenda"), e revogá-lo aqui congelaria o acervo inteiro anterior a
       // 15/08. O buraco está declarado em `docs/pendencias.md`.
-      const direcaoEscrita = (post.artDirection ?? "").trim();
+      //
+      // ── E O CAMINHO DE VOLTA, QUE FALTAVA (25/08/2026) ────────────────────
+      //
+      // Até hoje este portão reprovava e gravava "reescreva a direção" — e
+      // NINGUÉM reescrevia. Medido em produção: 4 peças, 4 rodadas do
+      // despertador, `mediaUrl: null` nas quatro, US$ 0,00 gastos e nenhum
+      // arquivo. `marcarErro(..., null)` nem gastava tentativa, então a peça
+      // voltava a cada 5 minutos para sempre, reprovando igual, em silêncio.
+      // Fila morta com aviso bonito.
+      //
+      // Agora a direção reprovada VOLTA a quem a escreveu, com o motivo da
+      // recusa na mão, e passa pela MESMA régua antes de qualquer imagem ser
+      // pedida (`design/reescrever-direcao.ts`). O portão não afrouxou: a régua
+      // é a mesma função, sem tolerância. O que mudou é que a proibição passou a
+      // dizer o que fazer no lugar.
+      let direcaoEscrita = (post.artDirection ?? "").trim();
       if (direcaoEscrita) {
         const veredito = conferirDirecaoFotografavel(direcaoEscrita);
         if (!veredito.fotografavel) {
-          saida.desistiram.push(post.id);
-          await marcarErro(post.id, veredito.motivo, null);
-          continue;
+          // O contador mora no `lastError` e ATRAVESSA RODADAS: sem isto, cada
+          // rodada do despertador recomeçaria do zero e a peça gastaria duas
+          // chamadas de texto a cada 5 minutos, para sempre — trocaria uma fila
+          // morta de graça por uma fila morta que custa.
+          const jaGastas = contarReescritasDaDirecao(post.lastError);
+          const r = await reescreverDirecao(
+            {
+              direcaoOriginal: direcaoEscrita,
+              legenda: post.caption,
+              pilar: post.pillar,
+              negocio: marca.nome,
+              segmento: marca.segmento,
+              formato: post.format,
+            },
+            veredito,
+            async (pedido) => {
+              const g = await generate({
+                system: pedido.system,
+                user: pedido.user,
+                maxTokens: 400,
+                workspaceId: post.workspaceId,
+                // O dono da linha de custo tem NOME PRÓPRIO, e não é
+                // `design-engine`: aquele é o dono da IMAGEM. Um gasto de TEXTO
+                // somado ao de imagem faria "quanto custou a arte deste cliente"
+                // misturar US$ 0,003 com US$ 0,167 na mesma linha.
+                agentId: "design-reescrever-direcao",
+                clientId: post.clientId ?? null,
+              });
+              if (!g.ok) return { ok: false as const, error: g.error };
+              const direcao = (g.data as { direction?: unknown })?.direction;
+              const texto = typeof direcao === "string" ? direcao : (g.textoCru ?? "");
+              return { ok: true as const, texto };
+            },
+            jaGastas,
+          );
+
+          if (!r.ok) {
+            // PARADA DECLARADA: motivo, dono e próxima ação já vêm escritos.
+            // `desistiram` e `marcarErro(..., null)` continuam certos — não foi
+            // a máquina de arte que falhou, e nenhuma tentativa de ARTE foi
+            // gasta. O que impede o laço eterno agora é o contador da reescrita.
+            saida.desistiram.push(post.id);
+            await marcarErro(post.id, r.motivo, null);
+            continue;
+          }
+
+          // A direção reescrita é GRAVADA. Se ela ficasse só na memória desta
+          // rodada, a rodada seguinte releria a direção velha do banco e pagaria
+          // a reescrita de novo — e o entregável continuaria mentindo sobre o
+          // que foi pedido à câmera.
+          direcaoEscrita = r.direcao;
+          await prisma.socialPost.update({
+            where: { id: post.id },
+            data: { artDirection: r.direcao, lastError: null },
+          }).catch(() => { /* best-effort: a imagem desta rodada não depende disto */ });
         }
       }
 
@@ -499,7 +570,10 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
           // A direção de arte que o especialista escreveu, e que até hoje era
           // gravada no entregável e descartada na leitura. `null` cai na
           // legenda — o comportamento de antes, mantido de propósito.
-          direcaoDeArte: post.artDirection,
+          // A direção REESCRITA quando houve reescrita; a do banco quando não
+          // houve. Ler `post.artDirection` aqui mandaria ao gerador exatamente a
+          // direção que a régua acabou de recusar.
+          direcaoDeArte: direcaoEscrita || post.artDirection,
           pilar: post.pillar,
           negocio: marca.nome,
           segmento: marca.segmento,

@@ -153,6 +153,9 @@ const montarPeca = vi.hoisted(() => vi.fn());
 const estiloVisualPersistido = vi.hoisted(() => vi.fn());
 const estiloVistoPersistido = vi.hoisted(() => vi.fn());
 const conferirFundoDaPeca = vi.hoisted(() => vi.fn());
+// O caminho de VOLTA da direção reprovada (25/08/2026) chama o especialista de
+// texto. Ele é testemunha aqui: o que este arquivo mede é o dinheiro de IMAGEM.
+const generate = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/ai/design-engine", () => ({ generateDesign }));
@@ -166,6 +169,7 @@ vi.mock("@/lib/agency/design/portao-do-fundo", () => ({
 vi.mock("@/lib/agency/execution/leitura-do-cliente", () => ({ estiloVisualPersistido, estiloVistoPersistido }));
 vi.mock("@/lib/integrations/meta/client", () => ({ publishPost: vi.fn() }));
 vi.mock("@/lib/integrations/meta/connections", () => ({ conexaoDoCliente: vi.fn() }));
+vi.mock("@/lib/ai/generate", () => ({ generate }));
 
 const { produzirArtesPendentes } = await import("@/lib/agency/execution/artes");
 
@@ -190,6 +194,9 @@ describe("produzirArtesPendentes não paga por direção abstrata", () => {
     estiloVisualPersistido.mockResolvedValue("");
     estiloVistoPersistido.mockResolvedValue("");
 
+    // O especialista insiste no conceito: a reescrita automática também reprova.
+    generate.mockResolvedValue({ ok: true, data: { direction: "a confiança de quem encontra uma vaga, visual premium" } });
+
     const r = await produzirArtesPendentes();
 
     // Nada foi pedido ao modelo de imagem: é o ponto inteiro deste portão.
@@ -198,9 +205,11 @@ describe("produzirArtesPendentes não paga por direção abstrata", () => {
     expect(r.desistiram).toContain("sp1");
     // `desistiram`, não `falhas`: nenhuma tentativa a mais conserta isto.
     expect(r.falhas).toEqual([]);
-    // E o motivo chega escrito na peça, para quem vai reescrever a direção.
-    const erroGravado = db.socialPost.update.mock.calls[0]![0].data.lastError as string;
-    expect(erroGravado).toMatch(/não descreve uma foto/i);
+    // E o motivo chega escrito na peça — agora com o desfecho DECLARADO, porque
+    // desde 25/08 a direção reprovada tem caminho de volta e ele foi até o fim.
+    const erroGravado = db.socialPost.update.mock.calls.at(-1)![0].data.lastError as string;
+    expect(erroGravado).toMatch(/Dono:/);
+    expect(erroGravado).toMatch(/Próxima ação:/);
   });
 
   it("a direção fotografável passa e a imagem é pedida normalmente", async () => {
@@ -232,5 +241,112 @@ describe("produzirArtesPendentes não paga por direção abstrata", () => {
     const r = await produzirArtesPendentes();
     expect(generateDesign).toHaveBeenCalledTimes(1);
     expect(r.desistiram).not.toContain("sp1");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O CAMINHO QUE PRODUZ DE VERDADE — a peça reprovada VIRA IMAGEM (25/08/2026)
+//
+// Este é o teste que o defeito exigia. Sete auditorias homologaram a corrente do
+// Story sem que nada saísse, porque mediam o portão (que estava certo) e não o
+// MOTOR (que parava nele). Aqui a peça entra em `produzirArtesPendentes` — a
+// mesma função que o despertador chama em produção — com a direção que reprovou
+// em produção, e o que se mede é se sai imagem do outro lado.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("a direção reprovada é reescrita DENTRO do motor, e a peça sai", () => {
+  const PIXEL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const BOA = "macro do disco de freio desgastado sobre a bancada, fundo desfocado cinza escuro, luz fria de fluorescente da oficina";
+
+  function cenarioDaOficina(direcao: string) {
+    vi.clearAllMocks();
+    db.socialPost.findMany.mockResolvedValue([{
+      id: "story-farol-1", workspaceId: "ws1", clientId: "c1", clientRequestId: "cr1",
+      caption: "Freio que range não é manha: é aviso.",
+      artDirection: direcao, pillar: "educativo — manutenção",
+      format: "story", mediaUrl: null, lastError: null,
+    }]);
+    db.socialPost.update.mockResolvedValue({});
+    db.mediaAsset.count.mockResolvedValue(0);
+    db.mediaAsset.findFirst.mockResolvedValue(null);
+    db.client.findUnique.mockResolvedValue({
+      name: "OFICINA FAROL TESTE", industry: "oficina mecânica",
+      brandBrain: { primaryColor: "#0D2B4D", secondaryColor: "#E11D48", tone: "direto" },
+    });
+    estiloVisualPersistido.mockResolvedValue("");
+    estiloVistoPersistido.mockResolvedValue("");
+    generateDesign.mockResolvedValue({ ok: true, url: PIXEL, model: "gpt-image-1" });
+    guardarArquivo.mockResolvedValue({ ok: true, arquivo: { id: "m9", fileName: "story.jpg", sizeBytes: 100, url: "/api/media/m9" } });
+    conferirFundoDaPeca.mockResolvedValue({ ok: true });
+    montarPeca.mockResolvedValue({
+      ok: true, bytes: Buffer.from("peca"), largura: 1080, altura: 1920,
+      textosPintados: [], textoRecusado: [], encolheu: false, origemDoMolde: "marca", lacunasDoMolde: [],
+    });
+  }
+
+  it("A PEÇA QUE MORREU EM PRODUÇÃO AGORA SAI: reescreve, aprova e gera a imagem", async () => {
+    // Exatamente a direção que o especialista escreveu e que reprovou 4 de 4.
+    cenarioDaOficina("disco de freio desgastado, fundo desfocado cinza escuro");
+    generate.mockResolvedValue({ ok: true, data: { direction: BOA } });
+
+    const r = await produzirArtesPendentes();
+
+    // 1. O especialista foi chamado — a proibição passou a dizer o que fazer.
+    expect(generate).toHaveBeenCalledTimes(1);
+    // 2. A imagem FOI pedida: a fila deixou de ser morta.
+    expect(generateDesign).toHaveBeenCalledTimes(1);
+    // 3. E o gerador recebeu a direção REESCRITA, não a que a régua recusou.
+    const promptDaImagem = generateDesign.mock.calls[0]![0].prompt as string;
+    expect(promptDaImagem).toContain("macro do disco de freio desgastado");
+    expect(promptDaImagem).not.toContain("disco de freio desgastado, fundo desfocado cinza escuro");
+    // 4. A peça saiu produzida e não desistiu.
+    expect(r.produzidas).toBe(1);
+    expect(r.desistiram).not.toContain("story-farol-1");
+    // 5. A direção reescrita foi GRAVADA — a rodada seguinte não paga de novo.
+    const gravou = db.socialPost.update.mock.calls
+      .map((c) => c[0].data as { artDirection?: string })
+      .find((d) => typeof d.artDirection === "string");
+    expect(gravou?.artDirection).toBe(BOA);
+  });
+
+  it("o close-up JÁ COMPLETO não gasta reescrita nenhuma — a régua entende a família", async () => {
+    cenarioDaOficina(BOA);
+    const r = await produzirArtesPendentes();
+    expect(generate).not.toHaveBeenCalled();
+    expect(generateDesign).toHaveBeenCalledTimes(1);
+    expect(r.produzidas).toBe(1);
+  });
+
+  it("reescrita que não conserta NÃO vira imagem — o portão não virou porta dos fundos", async () => {
+    cenarioDaOficina("disco de freio desgastado, fundo desfocado cinza escuro");
+    generate.mockResolvedValue({ ok: true, data: { direction: "visual premium e moderno do produto" } });
+
+    const r = await produzirArtesPendentes();
+
+    expect(generate).toHaveBeenCalledTimes(2);          // o teto, e só o teto
+    expect(generateDesign).not.toHaveBeenCalled();      // nenhum dólar de imagem
+    expect(r.desistiram).toContain("story-farol-1");
+    const erro = db.socialPost.update.mock.calls.at(-1)![0].data.lastError as string;
+    expect(erro).toMatch(/Dono: o especialista/);
+    expect(erro).toMatch(/Próxima ação:/);
+  });
+
+  it("O TETO ATRAVESSA RODADAS: peça que já esgotou não chama o especialista de novo", async () => {
+    // A rodada anterior gravou a parada declarada. O despertador traz a peça de
+    // volta (ela continua sem `mediaUrl`), e ela NÃO pode gastar texto de novo.
+    cenarioDaOficina("disco de freio desgastado, fundo desfocado cinza escuro");
+    db.socialPost.findMany.mockResolvedValue([{
+      id: "story-farol-1", workspaceId: "ws1", clientId: "c1", clientRequestId: "cr1",
+      caption: "Freio que range não é manha: é aviso.",
+      artDirection: "disco de freio desgastado, fundo desfocado cinza escuro",
+      pillar: "educativo — manutenção", format: "story", mediaUrl: null,
+      lastError: "[direcao 2/2] a direção de arte foi recusada e 2 reescrita(s) automática(s) não a consertaram",
+    }]);
+
+    const r = await produzirArtesPendentes();
+
+    expect(generate).not.toHaveBeenCalled();
+    expect(generateDesign).not.toHaveBeenCalled();
+    expect(r.desistiram).toContain("story-farol-1");
   });
 });
