@@ -60,10 +60,13 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     pedidosAbertos(projectId),
     cicloAberto(projectId),
     prisma.deliverable.groupBy({
-      by: ["status", "revisionStatus"],
+      // `qualityArbitragem` entra no agrupamento porque a pergunta "quem
+      // julgou" não é respondível por `revisionStatus` — foi essa fusão que
+      // deixou o Farol 27 exibir auditoria independente onde não houve nenhuma.
+      by: ["status", "revisionStatus", "qualityArbitragem"],
       where: { projectId },
       _count: { _all: true },
-    }).catch(() => [] as Array<{ status: string; revisionStatus: string | null; _count: { _all: number } }>),
+    }).catch(() => [] as Array<{ status: string; revisionStatus: string | null; qualityArbitragem: string | null; _count: { _all: number } }>),
     projeto.clientRequestId
       ? prisma.clientRequestDb.findUnique({ where: { id: projeto.clientRequestId }, select: { status: true } }).catch(() => null)
       : Promise.resolve(null),
@@ -88,6 +91,8 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     posts.find((p) => p.status === status)?._count._all ?? 0;
 
   let total = 0, emRevisao = 0, comRessalva = 0, aprovados = 0, semAuditoria = 0;
+  // As três palavras, contadas separadas. Ver `RetratoDoProjeto.entregaveis`.
+  let julgadasPorArbitroIndependente = 0, autojulgadas = 0, arbitragemNaoMedida = 0;
   for (const linha of entregaveis) {
     const n = linha._count._all;
     total += n;
@@ -101,6 +106,20 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     // nenhum do sistema, embora o dado estivesse gravado no banco desde o
     // primeiro dia do estado novo.
     if (linha.revisionStatus === "quality_nao_auditado") semAuditoria += n;
+
+    // ── QUEM JULGOU — pergunta diferente, coluna diferente ──────────────────
+    // Só as peças que RECEBERAM um veredito entram nesta conta: `nao_auditado`
+    // já tem a coluna dele (`semAuditoria`) e contá-lo aqui de novo faria o
+    // mesmo número aparecer duas vezes com dois significados.
+    const teveVeredito = linha.revisionStatus === "quality_ok" || linha.revisionStatus === "quality_flag";
+    if (teveVeredito) {
+      if (linha.qualityArbitragem === "arbitro_independente") julgadasPorArbitroIndependente += n;
+      else if (linha.qualityArbitragem === "autojulgado") autojulgadas += n;
+      // NULO É "NÃO MEDIDO", NUNCA "INDEPENDENTE". Peça anterior a 25/08/2026
+      // não tem a medição; empurrá-la para a coluna verde reconstruiria o
+      // defeito que esta coluna existe para consertar.
+      else arbitragemNaoMedida += n;
+    }
   }
 
   const statusSolicitacao = solicitacao?.status ?? null;
@@ -118,7 +137,10 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     aprovadoPeloClienteEm: projeto.clientApprovedAt,
     execucao: projeto.executionStatus,
     tarefas,
-    entregaveis: { total, emRevisao, comRessalva, aprovados, semAuditoria },
+    entregaveis: {
+      total, emRevisao, comRessalva, aprovados, semAuditoria,
+      julgadasPorArbitroIndependente, autojulgadas, arbitragemNaoMedida,
+    },
     pedidosAbertos: pendencias.length,
     // Quantos desses pedidos o cliente DE FATO recebeu (`askedClientAt`). É a
     // conta que separa "esperando o cliente" de "esquecemos de perguntar" — e

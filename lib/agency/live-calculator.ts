@@ -11,6 +11,7 @@
 
 import type { BriefingScope, LiveEstimate, EstimateItem, EstimateConfidence, SocialScope } from "./briefing-conversation";
 import { confrontoDeVerba, divergenciaDeVerba } from "./comercial/verba-declarada";
+import { quantidadeQueCabe, lerCanais } from "./contrato-de-quantidade";
 import { lacunasAbertas } from "./comercial/lacuna-de-escopo";
 
 // ── Social Media Plans ────────────────────────────────────────────────────────
@@ -223,9 +224,51 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
       const pkgId = detectPackage(postsPerMonth);
       const pkg   = getPackageDef(pkgId);
 
+      // ═══ A PROPOSTA NASCE DO BRIEFING ════════════════════════════════════
+      //
+      // ── O DEFEITO, MEDIDO EM PRODUÇÃO (case Farol 27, 25/08/2026) ────────
+      //
+      // Este bloco lia o volume do cliente, escolhia o plano — e daí em diante
+      // escrevia a proposta com os números da TABELA, jogando fora o que ele
+      // tinha acabado de pedir. A cliente pediu 4 posts/semana, ZERO stories e
+      // 6 reels/mês; a proposta prometeu "5 posts + 7 stories/semana · 4
+      // reels/mês", que é o `Plano Starter` recitado de cor.
+      //
+      // Três danos, todos medidos:
+      //   1. A proposta CONTRADIZ o briefing que a cliente acabou de dar. Ela
+      //      pediu 0 stories e leu 7 — é a prova, na primeira página, de que
+      //      ninguém escutou.
+      //   2. Os 6 reels que ela pediu como BASE viraram "Reels extras (2/mês)"
+      //      cobrados por fora, porque o "extra" era medido contra a tabela e
+      //      não contra o pedido dela.
+      //   3. O contrato da produção admite no máximo 3 stories
+      //      (`contrato-de-quantidade.ts`). A proposta prometia 7. O
+      //      especialista obedecia à proposta, o contrato recusava, três
+      //      tentativas, `blocked`. Impasse por construção.
+      //
+      // ── A REGRA QUE ESTE BLOCO PASSA A SEGUIR ────────────────────────────
+      //
+      // O plano continua escolhendo o PREÇO — faixa por volume é dele. As
+      // QUANTIDADES passam a vir do briefing, cortadas pelos tetos lidos da
+      // FONTE ÚNICA (`contrato-de-quantidade.ts`, o mesmo objeto que a produção
+      // confere). A proposta ficou incapaz de prometer o que a casa recusa.
+      //
+      // E quando o pedido passa do que a casa faz, isso vira CONVERSA agora, na
+      // proposta, e não um `blocked` silencioso três etapas depois: a recusa sai
+      // por escrito com a instrução gêmea — o que não cabe E o que cabe.
+      const posts   = quantidadeQueCabe("feed",  postsPerWeek);
+      const stories = quantidadeQueCabe("story", s?.storiesPerWeek);
+      const reels   = Math.max(0, Math.floor(s?.reelsPerMonth ?? 0));
+
+      const cadencia = [
+        `${posts.oferecido} posts/semana`,
+        stories.oferecido > 0 ? `${stories.oferecido} stories/semana` : null,
+        reels > 0 ? `${reels} reels/mês` : null,
+      ].filter(Boolean).join(" · ");
+
       items.push({
         label:    pkg.label,
-        detail:   `${pkg.postsPerWeek} posts + ${pkg.storiesPerWeek} stories/semana${pkg.reelsPerMonth > 0 ? ` · ${pkg.reelsPerMonth} reels/mês` : ""}`,
+        detail:   cadencia,
         minPrice: pkg.minPrice,
         maxPrice: pkg.maxPrice,
         unit:     "mês",
@@ -233,9 +276,18 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
       totalMin += pkg.minPrice;
       totalMax += pkg.maxPrice;
 
-      included.push(`${pkg.postsPerWeek} posts/semana (${pkg.postsPerMonth}/mês)`);
-      included.push(`${pkg.storiesPerWeek} stories/semana`);
-      if (pkg.reelsPerMonth > 0) included.push(`${pkg.reelsPerMonth} reels/mês (edição)`);
+      included.push(`${posts.oferecido} posts/semana (${posts.oferecido * 4}/mês)`);
+
+      // Stories: ZERO PEDIDO É ZERO OFERECIDO, e dito com todas as letras. O
+      // silêncio aqui seria lido como "esqueceram" — e a produção precisa saber
+      // que o formato está fora, senão ela o cobra de volta.
+      if (stories.oferecido > 0) included.push(`${stories.oferecido} stories/semana`);
+      else notIncluded.push("Stories — você pediu que não entrassem, e não entraram");
+
+      // Os reels que ele pediu são ESCOPO, nunca "extra". O extra media contra
+      // a tabela; agora não há contra o que medir: o pedido dele é a base.
+      if (reels > 0) included.push(`${reels} reels/mês (edição)`);
+
       if (pkg.copy)     included.push("Copywriting (textos)");
       if (pkg.design)   included.push("Design personalizado das artes");
       if (pkg.calendar) included.push("Calendário editorial e estratégia");
@@ -244,26 +296,24 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
       if (pkg.community !== "none")
         included.push(pkg.community === "full" ? "Gestão de comunidade completa" : "Gestão de comunidade (básica)");
 
+      // A recusa, VISÍVEL e com o que cabe no lugar. Falha fechada não é falha
+      // muda: o cliente decide sabendo, antes de assinar.
+      for (const q of [posts, stories]) if (q.recusa) notIncluded.push(q.recusa.frase);
+
       // Client-side overrides
       if (s?.needsCopy === false) notIncluded.push("Copy — fornecida pelo cliente");
       if (s?.hasPhotos === false) notIncluded.push("Produção fotográfica (orçar separado)");
 
-      // Extra reels beyond what the plan includes → add-on
-      if (s?.reelsPerMonth !== undefined && s.reelsPerMonth > pkg.reelsPerMonth) {
-        const extra = s.reelsPerMonth - pkg.reelsPerMonth;
-        const rMin  = extra * P.reel.min;
-        const rMax  = extra * P.reel.max;
-        items.push({
-          label:    `Reels extras (${extra}/mês)`,
-          detail:   "Além do incluso no plano",
-          minPrice: rMin,
-          maxPrice: rMax,
-          unit:     "mês",
-        });
-        totalMin += rMin;
-        totalMax += rMax;
-        included.push(`${s.reelsPerMonth} reels/mês no total`);
+      // ── OS CANAIS PEDIDOS SÃO OS CANAIS PROPOSTOS ────────────────────────
+      // O canal que a casa não atende é DITO, nunca trocado em silêncio. Quem
+      // decide o que existe é o registro de guardiões da mídia — a mesma régua
+      // que barra a verba na hora de criar campanha.
+      const canais = lerCanais(s?.platforms);
+      const atendidos = canais.filter((c) => c.atendido);
+      if (atendidos.length > 0) {
+        included.push(`Publicação em ${atendidos.map((c) => c.comoOClientePediu).join(" e ")}`);
       }
+      for (const c of canais) if (!c.atendido && c.frase) notIncluded.push(c.frase);
     }
   }
 
@@ -283,7 +333,22 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
       totalMax += P.trafficMgmt.max;
       included.push("Criação e gestão de campanhas pagas");
       included.push("Otimização e relatórios mensais");
-      notIncluded.push(`Verba de mídia: ${scope.traffic.monthlyAdBudget} (pago direto ao Google/Meta)`);
+      // ── "GOOGLE/META" ERA TEXTO FIXO NO CÓDIGO (25/08/2026) ────────────
+      // A cliente do Farol 27 pediu **Meta e TikTok** e leu que a verba dela
+      // iria para o **Google**. Um canal que ela não pediu, inventado por uma
+      // string; e o que ela pediu, apagado. Para quem lê, é a prova de que a
+      // proposta não foi escrita para ela.
+      //
+      // Agora os canais saem do que ELA escreveu, e os que a casa não atende
+      // aparecem por escrito — trocar em silêncio seria a mesma mentira, só
+      // que descoberta depois de ela pagar.
+      const canaisDeMidia = lerCanais(scope.traffic.platforms);
+      const atendidos = canaisDeMidia.filter((c) => c.atendido);
+      const destino = atendidos.length > 0
+        ? atendidos.map((c) => c.comoOClientePediu).join(" e ")
+        : "a plataforma de anúncios";
+      notIncluded.push(`Verba de mídia: ${scope.traffic.monthlyAdBudget} (pago direto a ${destino})`);
+      for (const c of canaisDeMidia) if (!c.atendido && c.frase) notIncluded.push(c.frase);
     }
   }
 
@@ -371,9 +436,30 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
   // negociado, é o preço com desconto que precisa caber na verba dele.
   const confronto = confrontoDeVerba(scope.budgetRange, discountedMin ?? totalMin);
 
+  // ── O QUE O CLIENTE VEIO BUSCAR, CITADO PELO NOME ───────────────────────
+  //
+  // Farol 27, 25/08/2026: o projeto inteiro existia para lançar o **Clube
+  // Farol 27**, e a proposta não mencionava o clube uma única vez. Isso não é
+  // estética — é a peça comercial falhando no essencial: quem lê procura o
+  // próprio objetivo na primeira página e, não achando, entende que comprou
+  // um pacote de prateleira. Proposta que não cita o motivo não fecha venda.
+  //
+  // Sai daqui, junto do número, para viajar gravado em `briefingJson.estimate`
+  // — quem escreve o texto não tem como esquecer o que não precisa lembrar.
+  const objetivos = (scope.objectives ?? [])
+    .filter((o): o is string => typeof o === "string" && o.trim().length > 0)
+    .map((o) => o.trim())
+    .slice(0, 3);
+
+  // Um canal pedido nas DUAS frentes (social e tráfego) gera a mesma recusa
+  // duas vezes. Repetir a frase não a torna mais verdadeira — torna o texto
+  // desleixado, e desleixo numa proposta é o cliente lendo que ninguém releu.
+  const notIncluidoSemRepetir = [...new Set(notIncluded)];
+
   return {
+    objetivos: objetivos.length > 0 ? objetivos : undefined,
     items, totalMin, totalMax, confidence,
-    missingForEstimate: missing, included, notIncluded,
+    missingForEstimate: missing, included, notIncluded: notIncluidoSemRepetir,
     discountPct, discountReason, discountedMin, discountedMax,
     confrontoDeVerba: confronto ?? undefined,
     lacunasAbertas: lacunas.length > 0 ? lacunas : undefined,

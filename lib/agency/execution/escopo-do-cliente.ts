@@ -116,7 +116,7 @@ export const SEMANAS_POR_MES = 4;
  */
 function volumeDoCampoEstruturado(
   escopo: string | undefined,
-): { pecasPorMes: number; procedencia: string } | null {
+): { pecasPorMes: number; procedencia: string; zerados: FormatoContratado[] } | null {
   if (!escopo || !escopo.trim().startsWith("{")) return null;
   let corpo: unknown;
   try {
@@ -156,7 +156,36 @@ function volumeDoCampoEstruturado(
     }
   }
 
-  return { pecasPorMes: total, procedencia: `campo do briefing (${partes.join(" + ")}) = ${total}/mês` };
+  // ── ZERO DECLARADO É EXCLUSÃO, NÃO LACUNA (25/08/2026) ────────────────────
+  //
+  // Medido no case Farol 27: a cliente escreveu `storiesPerWeek: 0` — ela NÃO
+  // quer stories, e disse isso no campo estruturado. A leitura de exclusões
+  // abaixo varre PROSA ("sem stories"), e um zero não é prosa: `excluidos`
+  // saía vazio, `permitidos` continha `story`, e o contrato da produção passava
+  // a COBRAR de 2 a 3 stories de quem tinha pedido nenhum.
+  //
+  // Repare que isto NÃO é inferir: `volumeDeclarado` já ensina que zero é "o
+  // dado não chegou" quando o campo é o volume que ESCOLHE o plano. Aqui o
+  // caso é outro e o oposto: o campo do formato só existe porque alguém o
+  // preencheu, e o zero é a resposta dele. Só entra formato cujo campo veio
+  // como número zero de verdade — ausente continua sendo ausente.
+  const zerados: FormatoContratado[] = [];
+  const bruto = social as unknown as Record<string, unknown>;
+  const zeroEm = (campo: string) => typeof bruto[campo] === "number" && bruto[campo] === 0;
+  if (zeroEm("storiesPerWeek")) zerados.push("story");
+  // Vídeo entra por DOIS campos (`reelsPerMonth` e `videosPerMonth`). Só é
+  // exclusão quando NENHUM dos dois traz número positivo — senão zerar um
+  // apagaria o que o cliente comprou pelo outro.
+  const positivoEm = (campo: string) => typeof bruto[campo] === "number" && (bruto[campo] as number) > 0;
+  if ((zeroEm("reelsPerMonth") || zeroEm("videosPerMonth")) && !positivoEm("reelsPerMonth") && !positivoEm("videosPerMonth")) {
+    zerados.push("reel");
+  }
+
+  return {
+    pecasPorMes: total,
+    procedencia: `campo do briefing (${partes.join(" + ")}) = ${total}/mês`,
+    zerados,
+  };
 }
 
 /**
@@ -211,6 +240,9 @@ export function lerEscopoDeConteudo(fontes: {
     pecasPorMes = doCampo.pecasPorMes;
     procedencia.push(`volume: ${doCampo.procedencia}`);
   }
+  /** Os formatos que o cliente ZEROU no campo estruturado — exclusão escrita
+   *  em número, e não em prosa. Entram no mesmo conjunto das de frase. */
+  const zeradosNoCampo = doCampo?.zerados ?? [];
 
   if (pecasPorMes === null) {
     const porMes = /(\d{1,3})\s*(?:posts?|pe[cç]as?|publicac[oõ]es|conte[uú]dos?)[^.\n]{0,30}?(?:\/\s*m[eê]s|por m[eê]s|mensa)/.exec(texto);
@@ -261,6 +293,7 @@ export function lerEscopoDeConteudo(fontes: {
     excluidos.add(f);
     procedencia.push(`${f} fora do escopo: "${onde.trim().slice(0, 80)}"`);
   };
+  for (const f of zeradosNoCampo) excluir(f, "o cliente declarou 0 no campo do briefing");
   const formatosEm = (trecho: string): FormatoContratado[] =>
     FORMATOS_CONTRATAVEIS.filter((f) => NOMES[f].test(trecho));
 

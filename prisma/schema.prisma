@@ -509,6 +509,21 @@ model Deliverable {
   type            String
   status          String   @default("draft")
   revisionStatus  String?
+  /// QUEM julgou esta peça — o provedor de IA que deu o veredito. NULO = nenhum
+  /// modelo julgou (retida, ou reprovada pela régua determinística de código).
+  ///
+  /// `revisionStatus` responde "qual foi o veredito"; este campo responde "quem
+  /// julgou". Eram a mesma coluna até 25/08/2026, e por isso uma peça julgada
+  /// pelo próprio autor era indistinguível de uma julgada por árbitro
+  /// independente em TODA tela da casa. Ver `quality-auditor.ts`.
+  qualityArbiter  String?
+  /// A arbitragem em UMA palavra: `arbitro_independente` | `autojulgado` |
+  /// `sem_arbitro`. Escrita só por `arbitragemDoVeredito` — ponto único de
+  /// tradução, para nenhuma tela comparar provedor com autor na mão.
+  ///
+  /// NULO = peça anterior a 25/08/2026, quando a casa não media isto. Nulo é
+  /// "não medido", NUNCA "independente": ausência de medição não é verde.
+  qualityArbitragem String?
   /// Contrato de visibilidade do Hub (interno | aguardando_publicacao |
   /// compartilhado). Nasce "interno" de propósito: a auditoria do Hub provou
   /// que o padrão fail-open ("o que a rota esquecer de filtrar, vaza") é o

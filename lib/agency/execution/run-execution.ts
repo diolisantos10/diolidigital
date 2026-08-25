@@ -14,7 +14,7 @@ import { generate } from "@/lib/ai/generate";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import { planProduction, type ProductionPlan } from "@/lib/agency/execution/pm-conductor";
 import {
-  auditDeliverable, revisionStatusDoVeredito,
+  auditDeliverable, revisionStatusDoVeredito, camposDaQualidade,
   foiReprovadaPelaQualidade, ficouSemArbitro,
   type VereditoDaQualidade,
 } from "@/lib/agency/execution/quality-auditor";
@@ -908,7 +908,11 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         data: {
           projectId, name: title, type: esp.deliverableType, status: "in_review", content: body,
           ownerAgentId: esp.id, cycleId: cicloId,
-          revisionStatus: revisionStatusDoVeredito(audit.verdict),
+          // O veredito E QUEM JULGOU, juntos e por um ponto só. Antes daqui o
+          // `audit.arbitro` era calculado e jogado fora — a casa sabia quem
+          // tinha julgado e não gravava, e por isso a tela não podia distinguir
+          // árbitro independente de auto-julgamento. Ver `camposDaQualidade`.
+          ...camposDaQualidade(audit),
           // ── O PARECER INTEIRO, NÃO SÓ A FRASE DE RESUMO (24/08/2026) ────────
           // Era `audit.note`, e o juiz às vezes devolve `note` vazia com os
           // problemas em `issues`. Medido no piloto: duas peças reprovadas com
@@ -1218,7 +1222,12 @@ async function entregarKit(
       // IA). Marcá-lo `quality_ok` era declarar uma aprovação que nunca houve —
       // o mesmo bug do fail-open, com outra roupa. `quality_nao_auditado` diz a
       // verdade e, como não bloqueia, o kit continua chegando ao cliente.
+      // Sem julgamento nenhum, e é isso que fica escrito nos três campos:
+      // `sem_arbitro`, sem provedor. Nulo aqui seria "não medido"; a verdade é
+      // que foi medido e o resultado é "ninguém olhou".
       revisionStatus: revisionStatusDoVeredito("nao_auditado"),
+      qualityArbiter: null,
+      qualityArbitragem: "sem_arbitro",
     },
     });
     return { ok: true };

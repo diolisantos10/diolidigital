@@ -238,7 +238,21 @@ const MAX_TELAS = 6;
  * comprado 12 e o especialista, obediente ao prompt, nunca teve como acertar:
  * cada refação relia o mesmo "6 a 8". A régua estava certa e o pedido, errado.
  */
-export const MISTURA_DE_FORMATOS = { carrossel: [1, 2], story: [2, 3], feed: [2, 3] } as const;
+/**
+ * ⚠️ 25/08/2026 — A TABELA MUDOU DE CASA, E NENHUM NÚMERO MUDOU.
+ *
+ * Ela agora mora em `lib/agency/contrato-de-quantidade.ts` e aqui só é
+ * REEXPORTADA. O motivo foi medido no case Farol 27: a proposta prometia
+ * 7 stories/semana, esta tabela admite 3, e as duas verdades viviam em
+ * arquivos que não se conheciam. O especialista obedecia à proposta, este
+ * contrato recusava, três tentativas, `blocked` — impasse por construção.
+ *
+ * Quem VENDE passou a ler DAQUI (o mesmo objeto, provado por identidade em
+ * `__tests__/comercial/a-proposta-nasce-do-briefing`), e por isso a proposta
+ * não tem mais como prometer o que este contrato proíbe.
+ */
+import { LIMITES_POR_FORMATO } from "@/lib/agency/contrato-de-quantidade";
+export { LIMITES_POR_FORMATO as MISTURA_DE_FORMATOS };
 
 /** O contrato da pauta: 4 semanas de calendário, uma por item. */
 function contratoDaPauta(data: Record<string, unknown>): string[] {
@@ -323,7 +337,7 @@ function contratoDasLegendas(data: Record<string, unknown>, c?: Ctx): string[] {
   );
   if (daMistura.length > 1) {
     for (const f of daMistura) {
-      const [min, max] = MISTURA_DE_FORMATOS[f];
+      const [min, max] = LIMITES_POR_FORMATO[f];
       const n = porFormato[f];
       if (n < min) problemas.push(`só ${n} peça(s) de ${f} — o contrato pede de ${min} a ${max}. Sem a mistura, o mês inteiro sai no mesmo formato.`);
       else if (n > max) problemas.push(`${n} peças de ${f} — o contrato pede no máximo ${max}.`);
@@ -647,14 +661,14 @@ function receitaDeFormatos(e: ExigenciaDeConteudo): Record<string, number> {
   const daMistura = (["carrossel", "story", "feed"] as const)
     .filter((f) => e.permitidos.includes(f as FormatoContratado));
   const receita: Record<string, number> = {};
-  for (const f of daMistura) receita[f] = MISTURA_DE_FORMATOS[f][0];
+  for (const f of daMistura) receita[f] = LIMITES_POR_FORMATO[f][0];
 
   let faltam = e.min - Object.values(receita).reduce((a, b) => a + b, 0);
 
   // Sobe cada formato até o teto, na ordem da mistura, enquanto faltar peça.
   for (const f of daMistura) {
     if (faltam <= 0) break;
-    const espaco = MISTURA_DE_FORMATOS[f][1] - receita[f]!;
+    const espaco = LIMITES_POR_FORMATO[f][1] - receita[f]!;
     const usa = Math.min(espaco, faltam);
     receita[f]! += usa;
     faltam -= usa;

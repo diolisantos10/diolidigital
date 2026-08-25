@@ -29,7 +29,7 @@ import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
 import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import {
-  auditDeliverable, revisionStatusDoVeredito,
+  auditDeliverable, revisionStatusDoVeredito, arbitragemDoVeredito,
   foiAprovadaPelaQualidade, foiReprovadaPelaQualidade,
 } from "@/lib/agency/execution/quality-auditor";
 
@@ -282,6 +282,12 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
         content: novoCorpo,
         version: { increment: 1 },
         revisionStatus: status,
+        // ⚠️ `revisionStatus` aqui NÃO sai do veredito: quando ninguém olhou de
+        // novo, a peça CONTINUA barrada pela reprovação anterior (ver acima). Já
+        // "quem julgou" sai do veredito desta passada e de mais nada — herdar o
+        // árbitro da rodada passada seria afirmar uma auditoria que não houve.
+        qualityArbiter: veredito.arbitro ?? null,
+        qualityArbitragem: arbitragemDoVeredito(veredito),
         lastFeedback: parecer.slice(0, 500),
       },
     });

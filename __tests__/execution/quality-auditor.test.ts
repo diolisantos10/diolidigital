@@ -13,6 +13,9 @@ import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 // post ou um plano, o juiz inventa a régua — foi o que reprovou o
 // "Posicionamento" por ele ser um documento de estratégia. Ver a trava em
 // `auditDeliverable`.
+/** Quantos árbitros independentes existem para um autor `claude`. */
+const FILA_DE_ARBITROS_INDEPENDENTES = 3;
+
 const base = { deptLabel: "Social Media", title: "Pacote", content: "conteúdo da entrega", brandContext: "marca X", workspaceId: "ws1", tipoDaEntrega: "social" };
 
 beforeEach(() => vi.clearAllMocks());
@@ -61,7 +64,12 @@ describe("quality-auditor — três estados: aprovado · reprovado · nao_audita
     vi.useFakeTimers();
     generate.mockImplementation(() => new Promise(() => { /* nunca resolve */ }));
     const p = auditDeliverable(base);
-    await vi.advanceTimersByTimeAsync(AUDIT_TIMEOUT_MS + 10);
+    // Um teto por ÁRBITRO, e a fila tem três (openai, gemini, deepseek): desde
+    // 25/08/2026 o auditor anda ele mesmo na fila em vez de deixar `generate`
+    // cair no autor. Três pendurados = três tetos, e só então a retenção.
+    for (let i = 0; i < FILA_DE_ARBITROS_INDEPENDENTES + 1; i++) {
+      await vi.advanceTimersByTimeAsync(AUDIT_TIMEOUT_MS + 10);
+    }
     const v = await p;
     vi.useRealTimers();
     expect(v.verdict).toBe("nao_auditado");
