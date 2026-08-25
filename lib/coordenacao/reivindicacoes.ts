@@ -395,14 +395,32 @@ export function conferirRegistro(reivindicacoes: Reivindicacao[], agora: Date, t
       const b = reivindicacoes[j]!;
 
       // `conferirColisao` foi escrita para o comando `abrir`, onde só o lado
-      // "existente" pode estar encerrado — a "nova" ainda nem tem
-      // `encerradaEm`. Aqui os dois lados são reivindicações DE VERDADE, e o
-      // laço par a par passa `a` no papel de "nova": se `a` já estiver
-      // encerrada, `conferirColisao` nunca olha para isso (ela só checa o
-      // estado de `b`) e o par seria acusado de colidir mesmo com `a` morta.
-      // Por isso a checagem simétrica mora aqui, não dentro de
+      // "existente" pode estar morto — a "nova" acabou de nascer, então ela
+      // nunca é nem encerrada nem velha. Aqui os dois lados são reivindicações
+      // DE VERDADE, e o laço par a par passa `a` no papel de "nova":
+      // `conferirColisao` só olha o estado de `b`, e o de `a` passaria em
+      // branco. Por isso a checagem simétrica mora aqui, e não dentro de
       // `conferirColisao` — mexer nela quebraria o uso do `abrir`.
-      if (estaViva(a, agora, tetoHoras) === "encerrada" || estaViva(b, agora, tetoHoras) === "encerrada") continue;
+      //
+      // ── E ELA VALE PARA "VELHA", NÃO SÓ PARA "ENCERRADA" (25/08/2026) ────
+      //
+      // Estava só `=== "encerrada"`, e o efeito foi medido no branch padrão:
+      // uma reivindicação ABERTA EM 16/08 e nunca encerrada — 213 horas, quase
+      // nove vezes o teto de 24h — reprovou a CI de uma frente aberta hoje, e
+      // com ela TODA implantação do repositório. A sessão dona daquele arquivo
+      // não existe mais para encerrá-lo.
+      //
+      // Isso contradizia o guardrail 5 escrito no cabeçalho deste arquivo, que
+      // `estaViva` já implementa: *sessão que morre sem encerrar não pode
+      // travar a frente para sempre — trava eterna é trava que alguém arranca
+      // por fora, e aí ela para de proteger qualquer coisa.* O teto existia, e
+      // este laço era o único lugar da casa que não o consultava: bastava a
+      // morta cair na posição `a` do par.
+      //
+      // A régua agora é a que o tipo do resultado já prometia — "um problema
+      // por par de reivindicações VIVAS em conflito". Nada foi afrouxado: duas
+      // reivindicações vivas dentro do teto colidem exatamente como antes.
+      if (estaViva(a, agora, tetoHoras) !== "viva" || estaViva(b, agora, tetoHoras) !== "viva") continue;
 
       const r = conferirColisao(a, [b], agora, tetoHoras);
       if (r.colide) {

@@ -119,6 +119,39 @@ describe("✅ o sentinela NÃO INVENTA problema no caso limpo", () => {
     expect(() => lerReivindicacoesDoDisco(join(tmpdir(), "esta-pasta-nao-existe-" + Date.now()))).not.toThrow();
   });
 
+  // ── A TRAVA ETERNA, MEDIDA NO BRANCH PADRÃO (25/08/2026) ──────────────────
+  //
+  // Uma reivindicação aberta em 16/08 e nunca encerrada (213h, quase 9x o teto
+  // de 24h) reprovava a CI de uma frente aberta HOJE — e com ela toda
+  // implantação do repositório. A sessão dona não existia mais para encerrá-la.
+  //
+  // `estaViva` já sabia dizer "velha"; `conferirRegistro` só consultava
+  // "encerrada", então bastava a morta cair na primeira posição do par. Era o
+  // guardrail 5 do próprio arquivo sendo contrariado pelo único laço que não o
+  // lia: *trava eterna é trava que alguém arranca por fora.*
+  //
+  // Os DOIS testes abaixo andam juntos de propósito — um prova que a morta
+  // solta, o outro que a viva continua barrando. Só o primeiro seria uma régua
+  // que aprova qualquer coisa.
+  it("reivindicação VELHA (além do teto) NÃO trava uma frente aberta hoje", () => {
+    const pasta = pastaTemporaria();
+    const antiga = new Date(AGORA.getTime() - 213 * 60 * 60 * 1000).toISOString();
+    // A morta na PRIMEIRA posição do par: é exatamente o caso que passava
+    // batido, porque `conferirColisao` só olha o estado do segundo.
+    gravar(pasta, "a.json", { ...BASE, abertaEm: antiga, id: "fila-antiga", quem: "sessao-morta", responsabilidade: "esteira-orcamento-fila", arquivos: ["lib/agency/esteira/orcamento-do-briefing.ts"] });
+    gravar(pasta, "b.json", { ...BASE, id: "porta-de-hoje", quem: "sessao-viva", responsabilidade: "porta-de-resposta", arquivos: ["lib/agency/esteira/orcamento-do-briefing.ts"] });
+
+    expect(conferirRegistroNoDisco(pasta, AGORA).ok).toBe(true);
+  });
+
+  it("mas duas VIVAS no mesmo arquivo continuam colidindo — nada foi afrouxado", () => {
+    const pasta = pastaTemporaria();
+    gravar(pasta, "a.json", { ...BASE, id: "fila-de-hoje", quem: "sessao-a", responsabilidade: "esteira-orcamento-fila", arquivos: ["lib/agency/esteira/orcamento-do-briefing.ts"] });
+    gravar(pasta, "b.json", { ...BASE, id: "porta-de-hoje", quem: "sessao-b", responsabilidade: "porta-de-resposta", arquivos: ["lib/agency/esteira/orcamento-do-briefing.ts"] });
+
+    expect(conferirRegistroNoDisco(pasta, AGORA).ok).toBe(false);
+  });
+
   it("O REGISTRO REAL deste repositório — o que roda de verdade em `npm test` — está limpo", () => {
     const r = conferirRegistroNoDisco(REGISTRO_REAL, new Date());
     expect(r.ok, `reivindicacoes/ tem colisão viva: ${r.problemas.join(" | ")}`).toBe(true);
