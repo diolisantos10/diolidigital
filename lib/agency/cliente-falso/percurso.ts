@@ -270,7 +270,8 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
     direcaoPedida: false, direcaoViaPortal: false, direcaoMotivo: null,
     execucaoPendencias: null, execucaoTentativas: 0,
     entregasSemArbitro: 0, motivoSemArbitro: null,
-    entregasComArbitroIndependente: 0, entregasAutojulgadas: 0, entregasArbitragemNaoMedida: 0,
+    entregasComArbitroIndependente: 0, entregasAutojulgadas: 0,
+    entregasDecididasPorPessoa: 0, entregasArbitragemNaoMedida: 0,
   };
   let aceite: DesfechoDoAceite = { tentou: false, viaPortal: false, nasceuSozinho: false, motivo: "não houve proposta para aceitar" };
   let material: DesfechoDoMaterial = { pedidos: 0, enviados: 0, viaPortal: false, motivo: null };
@@ -375,11 +376,13 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
             julgadas.find((g) => g.qualityArbitragem === v)?._count._all ?? 0;
           esteira.entregasComArbitroIndependente = quantas("arbitro_independente");
           esteira.entregasAutojulgadas = quantas("autojulgado");
+          esteira.entregasDecididasPorPessoa = quantas("decisao_humana");
           // Nulo é NÃO MEDIDO. Some tudo que não é uma das duas palavras
           // conhecidas: palavra desconhecida também não é verde.
           esteira.entregasArbitragemNaoMedida =
             julgadas.reduce((n, g) => n + g._count._all, 0)
-            - esteira.entregasComArbitroIndependente - esteira.entregasAutojulgadas;
+            - esteira.entregasComArbitroIndependente - esteira.entregasAutojulgadas
+            - esteira.entregasDecididasPorPessoa;
         } catch (e) {
           esteira.execucaoErro = e instanceof Error ? e.message : String(e);
           tropecos.push({ etapa: "execucao", erro: esteira.execucaoErro });

@@ -95,6 +95,8 @@ export async function pecasEmTexto(projectId: string, nomeDoCliente: string): Pr
       : null;
     const quem = e.qualityArbitragem === "arbitro_independente"
       ? `por árbitro independente${e.qualityArbiter ? ` (${e.qualityArbiter})` : " (régua determinística da casa)"}`
+      : e.qualityArbitragem === "decisao_humana"
+        ? `por uma **PESSOA** pela tela${e.qualityArbiter ? ` (${e.qualityArbiter.replace(/^pessoa:/, "")})` : ""} — decisão de gente, não auditoria`
       : e.qualityArbitragem === "autojulgado"
         ? `pelo **PRÓPRIO autor**${e.qualityArbiter ? ` (${e.qualityArbiter})` : ""} — NÃO é julgamento independente`
         : "— **não medido** quem julgou (peça anterior à medição)";

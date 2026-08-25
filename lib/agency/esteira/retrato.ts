@@ -92,7 +92,7 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
 
   let total = 0, emRevisao = 0, comRessalva = 0, aprovados = 0, semAuditoria = 0;
   // As três palavras, contadas separadas. Ver `RetratoDoProjeto.entregaveis`.
-  let julgadasPorArbitroIndependente = 0, autojulgadas = 0, arbitragemNaoMedida = 0;
+  let julgadasPorArbitroIndependente = 0, autojulgadas = 0, decididasPorPessoa = 0, arbitragemNaoMedida = 0;
   for (const linha of entregaveis) {
     const n = linha._count._all;
     total += n;
@@ -115,6 +115,9 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     if (teveVeredito) {
       if (linha.qualityArbitragem === "arbitro_independente") julgadasPorArbitroIndependente += n;
       else if (linha.qualityArbitragem === "autojulgado") autojulgadas += n;
+      // Uma PESSOA decidiu pela tela. Somar isto a "árbitro independente" seria
+      // exatamente a mentira que estas colunas existem para impedir.
+      else if (linha.qualityArbitragem === "decisao_humana") decididasPorPessoa += n;
       // NULO É "NÃO MEDIDO", NUNCA "INDEPENDENTE". Peça anterior a 25/08/2026
       // não tem a medição; empurrá-la para a coluna verde reconstruiria o
       // defeito que esta coluna existe para consertar.
@@ -139,7 +142,7 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     tarefas,
     entregaveis: {
       total, emRevisao, comRessalva, aprovados, semAuditoria,
-      julgadasPorArbitroIndependente, autojulgadas, arbitragemNaoMedida,
+      julgadasPorArbitroIndependente, autojulgadas, decididasPorPessoa, arbitragemNaoMedida,
     },
     pedidosAbertos: pendencias.length,
     // Quantos desses pedidos o cliente DE FATO recebeu (`askedClientAt`). É a
