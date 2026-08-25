@@ -26,6 +26,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirApiInterna } from "@/lib/agency/organizacao/guarda";
 import { segredoConfere } from "@/lib/security/crypto";
+import { lerRespostaDaResend } from "@/lib/email/diagnostico";
 
 export const dynamic = "force-dynamic";
 
@@ -95,20 +96,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
   }
 
-  const chaveValida = status === 200;
-  // Domínio verificado é o que autoriza um remetente próprio. A resposta traz
-  // a lista crua da Resend (nome e status de cada domínio) porque resumir isso
-  // aqui seria criar uma segunda versão da verdade.
-  const clienteRecebeEmail = chaveValida && configuracao.remetenteCadastrado;
+  // ⚠️ A LEITURA NÃO É O STATUS. Ver `lib/email/diagnostico.ts`: em produção
+  // esta sonda tomou um 401 que significava "chave de envio válida" e o
+  // chamou de "chave recusada" — o mesmo defeito que ela foi escrita para
+  // acabar. O motivo está na mensagem.
+  const leitura = lerRespostaDaResend(status, corpo);
+  const clienteRecebeEmail = leitura.chaveValida && configuracao.remetenteCadastrado;
 
   return NextResponse.json({
     medido: true,
     clienteRecebeEmail,
-    motivo: !chaveValida
-      ? `a Resend recusou a chave — HTTP ${status}: ${corpo}`
+    motivo: !leitura.chaveValida
+      ? leitura.motivo
       : !configuracao.remetenteCadastrado
-        ? "chave válida, mas RESEND_FROM não está no ambiente: a casa envia pelo remetente compartilhado da Resend, que só entrega para o dono da conta Resend. Cliente nenhum recebe."
-        : "chave válida e remetente próprio configurado — confira abaixo se o domínio do remetente aparece como verificado.",
+        ? `${leitura.motivo} MAS RESEND_FROM não está no ambiente: a casa envia pelo remetente compartilhado da Resend (onboarding@resend.dev), que só entrega para o dono da conta Resend. Cliente nenhum recebe.`
+        : `${leitura.motivo} Remetente próprio configurado — confira se o domínio dele está verificado na Resend.`,
+    leitura,
     configuracao,
     // A mensagem REAL do provedor, não a nossa leitura dela.
     resend: { status, corpo },
