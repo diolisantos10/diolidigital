@@ -42,10 +42,10 @@ on:
         required: true
         default: "NOME TESTE"
       acao:
-        description: "medir = leitura pura. pedir-ajuste = manda o pedido de verdade e compara o sha256 do arquivo."
+        description: "preparar = cria o cliente de teste e faz nascer UMA peça paga. medir = leitura pura. pedir-ajuste = manda o pedido e compara o sha256."
         required: true
         type: choice
-        options: ["medir", "pedir-ajuste"]
+        options: ["preparar", "medir", "pedir-ajuste"]
         default: "medir"
       titulo:
         description: "O TÍTULO NOVO que o cliente está pedindo. É ele que tem de virar pixel."
@@ -60,6 +60,7 @@ jobs:
       - name: Cliente oculto em producao
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          MASTER_PASSWORD: ${{ secrets.SEED_MASTER_PASSWORD }}
           CLIENTE: ${{ inputs.cliente }}
           ACAO: ${{ inputs.acao }}
           TITULO: ${{ inputs.titulo }}
@@ -77,10 +78,40 @@ jobs:
           echo "— commit no ar:"
           curl -s --max-time 30 "$BASE/api/health" | jq -r '"  " + .commit + " (" + .branch + ")"'
 
-          # ── 1. O LINK DO PORTAL, SEM EMITIR NADA ───────────────────────────
+          # ── 0. PREPARAR · O CLIENTE DE TESTE E A PRIMEIRA PECA ─────────────
+          #
+          # So roda em `preparar`, e so para o cliente de teste (a trava acima).
+          # Nada aqui fura o portao de pagamento: o pagamento e registrado pela
+          # rota LEGITIMA da agencia (`/api/admin/pagamentos`), que e o caminho
+          # que o proprio portao manda usar quando o cliente paga por Pix.
+          if [ "$ACAO" = "preparar" ]; then
+            if [ -z "${MASTER_PASSWORD:-}" ]; then
+              echo "::error::SEED_MASTER_PASSWORD nao esta nos secrets."; exit 1
+            fi
+            jq -Rn --arg p "$MASTER_PASSWORD" '{email:"master@dioli.studio", password:$p}' > /tmp/cred.json
+            curl -s --max-time 60 -c /tmp/cookies.txt -o /tmp/signin.json -w "  signin HTTP %{http_code}\n" \
+              -X POST "$BASE/api/auth/signin" -H "content-type: application/json" --data @/tmp/cred.json
+            rm -f /tmp/cred.json
+            jq -e '.ok == true' /tmp/signin.json >/dev/null || { echo "::error::login falhou"; exit 1; }
+
+            # O cliente de teste. Nome SEM colchetes: `Client.name` e rasterizado
+            # no molde e a trava de texto reprova pontuacao. Contato .invalid.
+            curl -s --max-time 60 -b /tmp/cookies.txt -o /tmp/cli.json -w "  cliente HTTP %{http_code}\n" \
+              -X POST "$BASE/api/clients" -H "content-type: application/json" -H "sec-fetch-site: same-origin" \
+              --data '{"name":"NOME TESTE","industry":"padaria de bairro","email":"contato@nometeste.invalid","phone":"","website":""}'
+            CID=$(jq -r '.id // ""' /tmp/cli.json)
+            echo "  cliente de teste: ${CID:-(ja existia ou falhou)}"
+            echo "::notice::Cliente de teste criado. Rode 'preparar-pedido' a seguir (proximo passo do job)."
+          fi
+
+          # ── 1. O LINK DO PORTAL ────────────────────────────────────────────
+          # Em `preparar` o token e EMITIDO (o cliente acabou de nascer e nao tem
+          # nenhum). Nas outras acoes, nunca: `emitir` fica de fora.
+          EMITIR=""
+          [ "$ACAO" = "preparar" ] && EMITIR="--data-urlencode emitir=1"
           curl -s --max-time 60 -o /tmp/links.json -w "  links HTTP %{http_code}\n" \
             -H "Authorization: Bearer $CRON_SECRET" \
-            -G "$BASE/api/admin/links-do-portal" --data-urlencode "clientes=$CLIENTE"
+            -G "$BASE/api/admin/links-do-portal" --data-urlencode "clientes=$CLIENTE" $EMITIR
 
           SIT=$(jq -r '[.. | objects | select(has("situacao"))][0].situacao // "?"' /tmp/links.json)
           URL=$(jq -r '[.. | objects | select(has("url")) | .url | strings][0] // ""' /tmp/links.json)
@@ -91,6 +122,34 @@ jobs:
           fi
           echo "::add-mask::$TOKEN"
           echo "  link do portal: vivo (situacao: $SIT) — o token NAO e impresso"
+
+          # ── 1b. PREPARAR · O PEDIDO PAGO QUE VIRA PECA ─────────────────────
+          if [ "$ACAO" = "preparar" ]; then
+            # O pedido, como o cliente o escreve. Traz a CHAMADA PARA ACAO
+            # ("vir na loja") de proposito: sem ela o briefing minimo para — e o
+            # que se quer aqui e a peca nascer, nao provar aquele portao.
+            jq -Rn --arg t "$TOKEN" '{token:$t,
+              descricao:"Quero um post para o feed do Instagram sobre o pao de fermentacao natural que sai do forno as sete da manha.",
+              objetivo:"quero que a pessoa venha na loja de manha comprar o pao"}' > /tmp/ped.json
+            curl -s --max-time 300 -o /tmp/ped_r.json -w "  pedido HTTP %{http_code}\n" \
+              -X POST "$BASE/api/portal/pedidos" -H "content-type: application/json" -H "sec-fetch-site: same-origin" \
+              --data @/tmp/ped.json
+            rm -f /tmp/ped.json
+            PED=$(jq -r '.pedido.id // ""' /tmp/ped_r.json)
+            echo "  pedido: $PED  status: $(jq -r '.pedido.status // "?"' /tmp/ped_r.json)"
+            jq -r '"  devolutiva: " + ((.pedido.recado // .recado // "(sem recado)") | .[0:200])' /tmp/ped_r.json
+
+            # O cliente ACEITA o orcamento. E a decisao dele, pela rota dele.
+            jq -Rn --arg t "$TOKEN" --arg p "$PED" '{token:$t, pedidoId:$p, decisao:"aceito"}' > /tmp/orc.json
+            curl -s --max-time 300 -o /tmp/orc_r.json -w "  orcamento HTTP %{http_code}\n" \
+              -X POST "$BASE/api/portal/pedidos/orcamento" -H "content-type: application/json" -H "sec-fetch-site: same-origin" \
+              --data @/tmp/orc.json
+            rm -f /tmp/orc.json
+            jq -r '"  " + ((.recado // .error // "(sem recado)") | .[0:200])' /tmp/orc_r.json
+
+            echo "::notice::Preparacao feita. O pedido pode ter parado no portao de pagamento — leia a devolutiva acima. Nada foi furado."
+            exit 0
+          fi
 
           # ── 2. ITEM 3 · A PARADA TEM BOTAO? ────────────────────────────────
           # O que a tela do cliente recebe. Cada `pergunta.opcoes[]` e um botao
