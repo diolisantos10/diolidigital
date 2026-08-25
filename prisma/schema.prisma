@@ -1445,6 +1445,22 @@ model SocialPost {
   // Último motivo de falha, em linguagem de gente. Fica visível ao time em vez
   // de morrer no log do servidor.
   lastError       String?
+  /// A PARADA DESTA PEÇA, NAS PALAVRAS QUE O CLIENTE LÊ (25/08/2026).
+  ///
+  /// `lastError` é para o TIME e é técnico. Este campo é para o CLIENTE, e ele
+  /// existe porque a 5ª auditoria mediu o buraco: o ajuste refez o TEXTO, a
+  /// arte não saiu, e a tela do cliente mostrou a legenda NOVA sobre a imagem
+  /// que ele acabara de recusar. A frase honesta existia — mas só na aba de
+  /// mensagens e no log. Ele varreu o HTML da tela de decisão: zero ocorrências
+  /// de "não consegui", "não foi possível", "equipe", "erro", "problema".
+  ///
+  /// Regra: quem escreve aqui escreve MOTIVO, DONO e PRÓXIMA AÇÃO (critério F),
+  /// em português de gente. `montarPecas` leva ao portal e `PecaDoCard` põe na
+  /// tela, ACIMA da imagem — antes de o cliente decidir, nunca depois.
+  ///
+  /// Nulo = a peça não está parada. Quem resolve a parada LIMPA o campo: aviso
+  /// que sobrevive ao conserto vira ruído, e ruído ninguém lê.
+  avisoAoCliente  String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

@@ -95,3 +95,54 @@ describe("o cliente NÃO apontou peça nenhuma — e a mira diz isso", () => {
     expect(pecaApontadaPeloCliente("o pão custa 12 reais, corrige", QUATRO)).toBeNull();
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A MIRA APLICADA À LISTA REAL — `pecasApontadasPeloAjuste`
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ── O QUE FOI MEDIDO CONTRA A CASA (Auditor, 5ª rodada, 25/08/2026) ────────
+//
+// A mira existia em UM lugar só: o laço de arte. A rota do portal carimbava
+// `revision_requested` em TODAS as peças do cartão e só depois a mira era
+// aplicada — ao PIXEL. Contra o controle:
+//
+//              peça 1              peça 2              peça 3     peça 4
+//   ajuste:    revision_requested  revision_requested  scheduled  revision_requested
+//   controle:  scheduled           scheduled           scheduled  scheduled
+//
+// `ESTADOS_PROMOVIVEIS` não inclui `revision_requested`, de propósito. Três
+// quartos do que o cliente pagou e aprovou nunca entravam na fila de entrega.
+//
+// Agora o ESTADO e o ARQUIVO perguntam à MESMA função. Duas contas parecidas em
+// dois arquivos foi exatamente como isso nasceu.
+import { pecasApontadasPeloAjuste } from "@/lib/agency/esteira/mira-da-peca";
+
+const CARTAO = ["p1", "p2", "p3", "p4"];
+
+describe("a mira aplicada ao cartão — o ESTADO e o ARQUIVO leem a mesma resposta", () => {
+  it("a frase da sonda alcança SÓ a terceira", () => {
+    expect(pecasApontadasPeloAjuste(CARTAO, "A TERCEIRA peça está escura demais")).toEqual(["p3"]);
+  });
+
+  it("sem mira o ajuste alcança o cartão inteiro — ele reclamou de tudo", () => {
+    expect(pecasApontadasPeloAjuste(CARTAO, "está tudo escuro demais")).toEqual(CARTAO);
+  });
+
+  it("comentário ausente não vira mira em nada (guardrail 1)", () => {
+    expect(pecasApontadasPeloAjuste(CARTAO, null)).toEqual(CARTAO);
+    expect(pecasApontadasPeloAjuste(CARTAO, undefined)).toEqual(CARTAO);
+    expect(pecasApontadasPeloAjuste(CARTAO, "")).toEqual(CARTAO);
+  });
+
+  it("mira fora da faixa não é mira — 'a peça 7' num cartão de 4", () => {
+    expect(pecasApontadasPeloAjuste(CARTAO, "a peça 7 está escura")).toEqual(CARTAO);
+  });
+
+  it("cartão sem peça não alcança nada — e não estoura", () => {
+    expect(pecasApontadasPeloAjuste([], "a terceira está escura")).toEqual([]);
+  });
+
+  it("contagem antes do plural continua sendo contagem, não referência", () => {
+    expect(pecasApontadasPeloAjuste(CARTAO, "quero 3 stories mais claros")).toEqual(CARTAO);
+  });
+});

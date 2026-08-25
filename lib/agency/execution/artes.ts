@@ -45,6 +45,7 @@ import {
 } from "@/lib/agency/design/escolha-de-foto";
 import type { MaterialReal } from "@/lib/agency/design/storyboard";
 import { montarPeca } from "@/lib/agency/design/peca";
+import { motivoDaLegibilidade, type MedidaDaLegibilidade } from "@/lib/agency/design/legibilidade-do-titulo";
 import {
   renderizadorDisponivel, MIME_DA_PECA_RENDERIZADA, type MotivoDeFalhaDeRender,
 } from "@/lib/agency/design/renderizar";
@@ -1144,7 +1145,11 @@ const MOTIVOS_DE_INFRA: ReadonlySet<MotivoDeFalhaDeRender> = new Set([
  * Por isso o resultado DIZ o que ele é, e quem grava obedece.
  */
 type ResultadoDaComposicao =
-  | { ok: true; bytes: Buffer; mime: string; nota: string | null }
+  | { ok: true; bytes: Buffer; mime: string; nota: string | null;
+      /** A legibilidade do título medida NO ARQUIVO (`legibilidade-do-titulo.ts`).
+       *  Ausente na peça sem camada de texto — que é ausência de título, não
+       *  título ilegível, e as duas não podem virar a mesma coisa. */
+      legibilidadeDoTitulo?: MedidaDaLegibilidade | null }
   | { ok: false; motivo: MotivoDeFalhaDeRender; erro: string };
 
 export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposicao> {
@@ -1248,9 +1253,47 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
       bytes: r.bytes,
       mime: MIME_DA_PECA_RENDERIZADA,
       nota: comAviso(`[molde] texto barrado pela trava — ${barrado}`),
+      legibilidadeDoTitulo: r.legibilidadeDoTitulo,
     };
   }
-  return { ok: true, bytes: r.bytes, mime: MIME_DA_PECA_RENDERIZADA, nota: comAviso(null) };
+  // ── O TÍTULO ILEGÍVEL É DECLARADO, NÃO SUPOSTO ──────────────────────────
+  //
+  // Fecha a dívida nº 3 do `O_QUE_NAO_FOI_MEDIDO` do lado da PRODUÇÃO: o
+  // degradê do molde agora protege a faixa do título (`molde.ts`), e aqui se
+  // confere o RESULTADO no arquivo. Escolher sem conferir é o padrão que esta
+  // operação já pagou três vezes — foi a lição de `contraste.ts`, e ela vale
+  // igual para o par que ele não mede.
+  //
+  // Declara e NÃO derruba a peça, de propósito. A medida erra para o lado
+  // seguro (a média da faixa inclui os pixels da própria letra, o que BAIXA a
+  // razão), então uma peça no limite pode ser marcada sem estar perdida —
+  // e jogar fora uma peça paga por uma medida conservadora seria trocar um
+  // prejuízo por outro. O que não pode é sair calada: com a marca no
+  // `lastError`, o time vê, a régua do e2e reprova a regressão, e a peça não
+  // atravessa a casa fingindo que ninguém olhou.
+  const ilegivel = r.legibilidadeDoTitulo && !r.legibilidadeDoTitulo.suficiente
+    ? `${MARCA_DE_TITULO_ILEGIVEL} ${motivoDaLegibilidade(r.legibilidadeDoTitulo)}`
+    : null;
+
+  return {
+    ok: true, bytes: r.bytes, mime: MIME_DA_PECA_RENDERIZADA, nota: comAviso(ilegivel),
+    legibilidadeDoTitulo: r.legibilidadeDoTitulo,
+  };
+}
+
+/**
+ * A ASSINATURA, no `lastError`, de uma peça cujo TÍTULO não alcançou o piso de
+ * legibilidade sobre a foto.
+ *
+ * Constante exportada e não literal solta: quem escreve a marca e quem a
+ * procura têm de ser a MESMA palavra. Duas grafias parecidas em dois arquivos é
+ * como uma régua fica verde para sempre.
+ */
+export const MARCA_DE_TITULO_ILEGIVEL = "[titulo ilegivel]";
+
+/** A peça saiu com o título abaixo do piso de legibilidade sobre a foto? */
+export function tituloSaiuIlegivel(lastError: string | null | undefined): boolean {
+  return (lastError ?? "").includes(MARCA_DE_TITULO_ILEGIVEL);
 }
 
 /**

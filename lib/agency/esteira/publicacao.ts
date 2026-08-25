@@ -233,6 +233,23 @@ export function motivoParaNaoVirarCalendario(
 }
 
 /**
+ * O ESTADO QUE A FILA DE ENTREGA LÊ. Um só, e é este.
+ *
+ * Exportado em 25/08/2026 para que a régua do ajuste (o e2e do Story) meça a
+ * MESMA constante que `publicarAgendados` consulta, em vez de repetir a
+ * palavra "scheduled" num `expect`. Uma régua que copia a literal fica verde no
+ * dia em que a fila passar a ler outra coisa — e é justamente aí que a peça do
+ * cliente para de sair.
+ *
+ * ⚠️ É um VALOR, não uma lista, e isso foi medido: como lista, a consulta virava
+ * `status: { in: [...] }` e três réguas que guardam o FORMATO da consulta de
+ * `publicarAgendados` ficaram vermelhas. Elas estão certas — é o formato que
+ * impede uma condição de se perder no dia em que alguém mexer no filtro. Quem
+ * se adapta é a constante.
+ */
+export const ESTADO_QUE_A_FILA_LE = "scheduled";
+
+/**
  * Estados de onde uma peça PODE ser promovida a "scheduled".
  *
  * "draft" é o caminho normal (data proposta, sem aval). "approved" é o legado
@@ -605,7 +622,7 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
 
   const pendentes = await prisma.socialPost.findMany({
     where: {
-      status: "scheduled",
+      status: ESTADO_QUE_A_FILA_LE,
       scheduledFor: { lte: agora },
       ...(opcoes.apenasPostId ? { id: opcoes.apenasPostId } : {}),
     },
@@ -916,7 +933,13 @@ async function promoverParaAgendado(
     const quando = original && original > proximo ? original : new Date(proximo);
     await prisma.socialPost.update({
       where: { id: post.id },
-      data: { status: "scheduled", scheduledFor: quando },
+      data: {
+        status: "scheduled", scheduledFor: quando,
+        // A PEÇA ENTROU NA FILA — logo, não está mais parada. O aviso da
+        // parada anterior sai junto: aviso que sobrevive ao conserto vira
+        // ruído, e ruído ensina a ignorar o aviso da próxima vez.
+        avisoAoCliente: null,
+      },
     });
     proximo = new Date(Math.max(quando.getTime(), proximo.getTime()) + 24 * 60 * 60_000);
   }

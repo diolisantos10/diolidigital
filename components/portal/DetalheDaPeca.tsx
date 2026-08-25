@@ -27,6 +27,14 @@ export interface PecaAberta {
   capa: string | null;
   /** Todas as telas do carrossel, na ordem de publicação. */
   telas: string[];
+  /**
+   * A PARADA DESTA PEÇA, em português de gente — vem de `SocialPost.avisoAoCliente`.
+   *
+   * Quando existe, ela é a PRIMEIRA coisa da peça, ACIMA da imagem: o cliente
+   * precisa ler antes de decidir, não depois de rolar. Opcional porque cards
+   * antigos (e a peça de fallback por FK) não têm o campo.
+   */
+  avisoAoCliente?: string | null;
 }
 
 export function rotuloDeFormatoDaPeca(f: string): string {
@@ -230,6 +238,16 @@ export function DetalheDaPeca({
         </div>
 
         <div className="overflow-y-auto">
+          {/* A parada vem antes da arte, aqui pela mesma razão que no card do
+              cliente: quem lê "a imagem ainda é a anterior" DEPOIS de olhar a
+              imagem já concluiu que refizeram. Ver AprovacoesDoCliente. */}
+          {peca.avisoAoCliente && (
+            <div role="status" className="border-b border-[#FCD34D] bg-[#FFFBEB] px-4 py-3">
+              <p className="whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-[#92400E]">
+                {peca.avisoAoCliente}
+              </p>
+            </div>
+          )}
           {telas.length > 0 ? (
             <CarrosselDeTelas telas={telas} token={token} alt={rotuloDeFormatoDaPeca(peca.format)} format={peca.format} />
           ) : (

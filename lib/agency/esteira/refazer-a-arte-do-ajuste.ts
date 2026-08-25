@@ -56,7 +56,9 @@
 
 import { prisma } from "@/lib/db/client";
 import { produzirArtesPendentes, type ArtesFeitas } from "@/lib/agency/execution/artes";
-import { pecaApontadaPeloCliente, type MiraDoCliente } from "@/lib/agency/esteira/mira-da-peca";
+import {
+  pecaApontadaPeloCliente, pecasApontadasPeloAjuste, type MiraDoCliente,
+} from "@/lib/agency/esteira/mira-da-peca";
 import type { PecaDoEspecialista } from "@/lib/agency/produtos/story-instagram-v1";
 
 export interface ArteDoAjuste {
@@ -118,7 +120,10 @@ export async function refazerArteDoAjuste(entrada: {
   }
 
   const mira = pecaApontadaPeloCliente(entrada.comentario, postIds.length);
-  const alvos = mira ? [postIds[mira.indice - 1]!] : postIds;
+  // A MESMA função que a rota do portal usa para mirar o ESTADO. Duas contas
+  // parecidas em dois arquivos foi exatamente como a 5ª auditoria encontrou a
+  // arte certa na peça certa e três peças presas em `revision_requested`.
+  const alvos = pecasApontadasPeloAjuste(postIds, entrada.comentario);
   const preservadas = postIds.filter((id) => !alvos.includes(id));
 
   // O ARQUIVO DE ANTES, guardado para poder afirmar que ele MUDOU. Sem isto o
@@ -201,7 +206,14 @@ export async function refazerArteDoAjuste(entrada: {
   if (refeitas.length > 0) {
     await prisma.socialPost.updateMany({
       where: { id: { in: refeitas.map((r) => r.postId) }, status: "revision_requested" },
-      data: { status: "draft" },
+      data: {
+        status: "draft",
+        // A PARADA ACABOU: o aviso da tentativa anterior SAI. Aviso que
+        // sobrevive ao conserto vira ruído, e ruído ninguém lê — e pior:
+        // ensina o cliente a ignorar o aviso da próxima vez, que é quando
+        // ele vai importar.
+        avisoAoCliente: null,
+      },
     }).catch(() => { /* best-effort: o arquivo novo já existe e é o que importa */ });
   }
 
@@ -222,7 +234,49 @@ export async function refazerArteDoAjuste(entrada: {
       "A arte anterior continua de pé — nenhuma peça foi apagada. " +
       "Dono: a agência (produção). Próxima ação: a rodada de arte retenta; o cliente NÃO deve ser chamado " +
       "a decidir de novo sobre a mesma imagem.";
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // E A FRASE HONESTA VAI PARA A TELA DELE (Auditor, 5ª rodada, 25/08/2026)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // O achado: o Auditor derrubou o gerador durante o ajuste. A casa se portou
+    // bem por dentro — o card não reabriu, a equipe foi escalada com dono e
+    // próxima ação, a mensagem honesta foi escrita. Só que na TELA do cliente
+    // a peça apareceu com o TEXTO REFEITO sobre a IMAGEM QUE ELE ACABARA DE
+    // RECUSAR, e ele varreu o HTML inteiro: **zero** ocorrências de "não
+    // consegui", "não foi possível", "equipe", "erro", "problema".
+    //
+    // A mensagem existia — na aba de conversa e no log. É a MESMA classe do
+    // aviso "sem árbitro" que ficava na coluna e nunca virava pixel: régua
+    // verde sobre o componente errado.
+    //
+    // Por que o texto novo FICA (e não volta atrás): é a correção que ele
+    // pediu, e ela está certa. O que estava errado era a tela deixá-lo
+    // acreditar que a IMAGEM também mudou. A peça agora diz, no lugar em que
+    // ele decide: a imagem ainda é a anterior, quem está com isso, e o que
+    // acontece a seguir.
+    await prisma.socialPost.updateMany({
+      where: { id: { in: naoMudaram } },
+      data: { avisoAoCliente: AVISO_DA_ARTE_QUE_NAO_SAIU },
+    }).catch(() => { /* best-effort: a escalada e a mensagem no portal continuam de pé */ });
   }
 
   return saida;
 }
+
+/**
+ * O QUE O CLIENTE LÊ NA PEÇA quando o ajuste refez o texto e a arte não saiu.
+ *
+ * Exportado porque é o que o teste afirma: a régua tem de medir a FRASE que
+ * chega ao HTML, não a coluna que a guarda. Motivo, dono e próxima ação, nesta
+ * ordem — critério F ("toda parada mostra motivo, dono e próxima ação").
+ *
+ * ⚠️ Não diz "erro" nem nome de componente: quem lê é o cliente, e o que ele
+ * precisa saber é o que mudou, o que NÃO mudou e quem está com a bola.
+ */
+export const AVISO_DA_ARTE_QUE_NAO_SAIU =
+  "⚠️ A IMAGEM DESTA PEÇA AINDA É A ANTERIOR — a que você pediu para mudar. " +
+  "Eu já ajustei o TEXTO com base no que você escreveu, mas não consegui gerar a imagem nova agora. " +
+  "Não vou te pedir para aprovar de novo a mesma arte que você acabou de recusar. " +
+  "Quem está com isso: a nossa equipe de produção. " +
+  "Próxima ação: assim que a imagem nova ficar pronta, esta peça volta para a sua aba de aprovações e eu te aviso.";

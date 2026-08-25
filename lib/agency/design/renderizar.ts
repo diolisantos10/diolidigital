@@ -65,6 +65,22 @@ export interface ConferenciaDaLetra {
   encolheu: boolean;
   /** Tamanho final do título, em px. Só para o registro de oficina. */
   tituloPx: number | null;
+  /**
+   * A CAIXA DO TÍTULO no pixel do arquivo — depois de encolher, que é quando
+   * ela é verdade.
+   *
+   * Existe para que a legibilidade do título sobre FOTOGRAFIA possa ser medida
+   * no arquivo que saiu, e não estimada. `contraste.ts` mede pares de superfície
+   * CHAPADA e diz, com todas as letras, que não mede texto sobre foto. Sem esta
+   * caixa, ninguém tinha onde olhar: era a dívida nº 3 do `O_QUE_NAO_FOI_MEDIDO`
+   * — "o título é branco sobre foto de alto ruído, e ninguém mede esse par".
+   *
+   * `null` = peça sem título (a degradação declarada de `comporComMolde`).
+   */
+  tituloCaixa: { x: number; y: number; largura: number; altura: number } | null;
+  /** A TINTA com que o título foi escrito, em `#rrggbb`. Sem ela a caixa mede
+   *  um fundo e não um PAR, e contraste é sempre um par. */
+  tituloTinta: string | null;
 }
 
 export type ResultadoDeRender =
@@ -152,6 +168,25 @@ function codigoDoConferidor(passos: number, topo: number, base: number): string 
       for (var i = 0; i < alvos.length; i++) if (transborda(alvos[i])) return true;
       return false;
     }
+    /* Sem regex de propósito: este bloco vive dentro de um TEMPLATE LITERAL,
+       e ali "\\d" vira "d" antes de chegar ao navegador. Custou um render
+       ("Invalid regular expression: Unterminated group") para descobrir; fica
+       escrito para não custar dois. Parse por separadores é imune a isso. */
+    function paraHex(cor) {
+      var dentro = String(cor || "");
+      var ab = dentro.indexOf("(");
+      if (ab < 0) return null;
+      var partes = dentro.slice(ab + 1).split(")")[0].split(",");
+      if (partes.length < 3) return null;
+      var saida = "#";
+      for (var k = 0; k < 3; k++) {
+        var n = parseInt(String(partes[k]).trim(), 10);
+        if (!(n >= 0 && n <= 255)) return null;
+        var hx = n.toString(16);
+        saida += hx.length === 1 ? "0" + hx : hx;
+      }
+      return saida;
+    }
     var titulo = document.querySelector('[data-papel="titulo"]');
     var encolheu = false;
     var px = titulo ? parseFloat(getComputedStyle(titulo).fontSize) : 0;
@@ -163,12 +198,25 @@ function codigoDoConferidor(passos: number, topo: number, base: number): string 
     }
     var textos = [];
     for (var j = 0; j < alvos.length; j++) textos.push(alvos[j].textContent || "");
+    var caixa = null, tinta = null;
+    if (titulo) {
+      var rt = titulo.getBoundingClientRect();
+      if (rt.width > 0 && rt.height > 0) {
+        caixa = {
+          x: Math.round(rt.left), y: Math.round(rt.top),
+          largura: Math.round(rt.width), altura: Math.round(rt.height),
+        };
+        tinta = paraHex(getComputedStyle(titulo).color);
+      }
+    }
     return {
       encolheu: encolheu,
       tituloPx: titulo ? px : null,
       cortado: algumTransborda() || conteudoEstourou(),
       zonaMorta: invade(),
       textosNoDom: textos,
+      tituloCaixa: caixa,
+      tituloTinta: tinta,
     };
   })()`;
 }
@@ -262,6 +310,8 @@ export async function renderizarHtml(p: PedidoDeRender): Promise<ResultadoDeRend
       cortado: boolean;
       zonaMorta: boolean;
       textosNoDom: string[];
+      tituloCaixa: { x: number; y: number; largura: number; altura: number } | null;
+      tituloTinta: string | null;
     };
 
     // ── PORTÃO 0: nenhum caractere invisível, nem no pedido nem no DOM ──────
@@ -326,6 +376,8 @@ export async function renderizarHtml(p: PedidoDeRender): Promise<ResultadoDeRend
         conferidos: p.textosEsperados.filter((t) => t.trim()).length,
         encolheu: ajuste.encolheu,
         tituloPx: ajuste.tituloPx,
+        tituloCaixa: ajuste.tituloCaixa,
+        tituloTinta: ajuste.tituloTinta,
       },
     };
   } catch (e) {

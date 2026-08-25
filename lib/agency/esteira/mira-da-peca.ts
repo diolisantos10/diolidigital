@@ -126,3 +126,37 @@ export function pecaApontadaPeloCliente(
   const [indice, trecho] = [...achados.entries()][0]!;
   return { indice, trecho };
 }
+
+/**
+ * AS PEÇAS QUE O AJUSTE ALCANÇA — a mira aplicada à lista real do cartão.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * POR QUE ISTO É UMA FUNÇÃO, E NÃO DUAS CONTAS PARECIDAS
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * A 5ª auditoria mediu o estrago de a mira existir em UM lugar só. A rota do
+ * portal (`/api/portal/approvals`) carimbava `revision_requested` em TODAS as
+ * peças do cartão, e só depois `refazer-a-arte-do-ajuste.ts` aplicava a mira —
+ * ao PIXEL. Resultado contra o controle: a peça apontada saía com arte nova e
+ * chegava a `scheduled`; as outras três ficavam presas em `revision_requested`,
+ * que `ESTADOS_PROMOVIVEIS` não inclui. Três quartos do que o cliente pagou e
+ * aprovou nunca entravam na fila de entrega.
+ *
+ * Duas contas parecidas em dois arquivos é como isso nasce. Agora quem quer
+ * saber "quais peças este ajuste alcança" — o ESTADO, na rota, e o ARQUIVO, no
+ * laço de arte — pergunta aqui, e a resposta é a mesma pergunta feita uma vez.
+ *
+ * Sem mira devolve a lista INTEIRA: ele reclamou de tudo, e refazer tudo é o
+ * comportamento conservador correto (ver o contrato de `pecaApontadaPeloCliente`).
+ */
+export function pecasApontadasPeloAjuste(
+  /** As peças NA ORDEM em que o cartão as mostrou. */
+  postIds: string[],
+  /** As palavras do cliente. Ausente ou vazio = nenhuma mira. */
+  comentario: string | null | undefined,
+): string[] {
+  const ids = postIds.filter(Boolean);
+  if (ids.length === 0) return [];
+  const mira = pecaApontadaPeloCliente(comentario ?? "", ids.length);
+  return mira ? [ids[mira.indice - 1]!] : ids;
+}

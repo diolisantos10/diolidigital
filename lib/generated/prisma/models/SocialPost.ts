@@ -48,6 +48,7 @@ export type SocialPostMinAggregateOutputType = {
   publishedAt: Date | null
   publishedBy: string | null
   lastError: string | null
+  avisoAoCliente: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -76,6 +77,7 @@ export type SocialPostMaxAggregateOutputType = {
   publishedAt: Date | null
   publishedBy: string | null
   lastError: string | null
+  avisoAoCliente: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -104,6 +106,7 @@ export type SocialPostCountAggregateOutputType = {
   publishedAt: number
   publishedBy: number
   lastError: number
+  avisoAoCliente: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -134,6 +137,7 @@ export type SocialPostMinAggregateInputType = {
   publishedAt?: true
   publishedBy?: true
   lastError?: true
+  avisoAoCliente?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -162,6 +166,7 @@ export type SocialPostMaxAggregateInputType = {
   publishedAt?: true
   publishedBy?: true
   lastError?: true
+  avisoAoCliente?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -190,6 +195,7 @@ export type SocialPostCountAggregateInputType = {
   publishedAt?: true
   publishedBy?: true
   lastError?: true
+  avisoAoCliente?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -291,6 +297,7 @@ export type SocialPostGroupByOutputType = {
   publishedAt: Date | null
   publishedBy: string | null
   lastError: string | null
+  avisoAoCliente: string | null
   createdAt: Date
   updatedAt: Date
   _count: SocialPostCountAggregateOutputType | null
@@ -340,6 +347,7 @@ export type SocialPostWhereInput = {
   publishedAt?: Prisma.DateTimeNullableFilter<"SocialPost"> | Date | string | null
   publishedBy?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   lastError?: Prisma.StringNullableFilter<"SocialPost"> | string | null
+  avisoAoCliente?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialPost"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialPost"> | Date | string
 }
@@ -368,6 +376,7 @@ export type SocialPostOrderByWithRelationInput = {
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   lastError?: Prisma.SortOrderInput | Prisma.SortOrder
+  avisoAoCliente?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -399,6 +408,7 @@ export type SocialPostWhereUniqueInput = Prisma.AtLeast<{
   publishedAt?: Prisma.DateTimeNullableFilter<"SocialPost"> | Date | string | null
   publishedBy?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   lastError?: Prisma.StringNullableFilter<"SocialPost"> | string | null
+  avisoAoCliente?: Prisma.StringNullableFilter<"SocialPost"> | string | null
   createdAt?: Prisma.DateTimeFilter<"SocialPost"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SocialPost"> | Date | string
 }, "id">
@@ -427,6 +437,7 @@ export type SocialPostOrderByWithAggregationInput = {
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   publishedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   lastError?: Prisma.SortOrderInput | Prisma.SortOrder
+  avisoAoCliente?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.SocialPostCountOrderByAggregateInput
@@ -461,6 +472,7 @@ export type SocialPostScalarWhereWithAggregatesInput = {
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SocialPost"> | Date | string | null
   publishedBy?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
   lastError?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
+  avisoAoCliente?: Prisma.StringNullableWithAggregatesFilter<"SocialPost"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SocialPost"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"SocialPost"> | Date | string
 }
@@ -489,6 +501,7 @@ export type SocialPostCreateInput = {
   publishedAt?: Date | string | null
   publishedBy?: string | null
   lastError?: string | null
+  avisoAoCliente?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -517,6 +530,7 @@ export type SocialPostUncheckedCreateInput = {
   publishedAt?: Date | string | null
   publishedBy?: string | null
   lastError?: string | null
+  avisoAoCliente?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -545,6 +559,7 @@ export type SocialPostUpdateInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoAoCliente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -573,6 +588,7 @@ export type SocialPostUncheckedUpdateInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoAoCliente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -601,6 +617,7 @@ export type SocialPostCreateManyInput = {
   publishedAt?: Date | string | null
   publishedBy?: string | null
   lastError?: string | null
+  avisoAoCliente?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -629,6 +646,7 @@ export type SocialPostUpdateManyMutationInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoAoCliente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -657,6 +675,7 @@ export type SocialPostUncheckedUpdateManyInput = {
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   publishedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avisoAoCliente?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -685,6 +704,7 @@ export type SocialPostCountOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   publishedBy?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
+  avisoAoCliente?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -713,6 +733,7 @@ export type SocialPostMaxOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   publishedBy?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
+  avisoAoCliente?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -741,6 +762,7 @@ export type SocialPostMinOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
   publishedBy?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
+  avisoAoCliente?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -771,6 +793,7 @@ export type SocialPostSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   publishedAt?: boolean
   publishedBy?: boolean
   lastError?: boolean
+  avisoAoCliente?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["socialPost"]>
@@ -799,6 +822,7 @@ export type SocialPostSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   publishedAt?: boolean
   publishedBy?: boolean
   lastError?: boolean
+  avisoAoCliente?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["socialPost"]>
@@ -827,6 +851,7 @@ export type SocialPostSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   publishedAt?: boolean
   publishedBy?: boolean
   lastError?: boolean
+  avisoAoCliente?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["socialPost"]>
@@ -855,11 +880,12 @@ export type SocialPostSelectScalar = {
   publishedAt?: boolean
   publishedBy?: boolean
   lastError?: boolean
+  avisoAoCliente?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type SocialPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "clientId" | "clientRequestId" | "caption" | "networks" | "format" | "pillar" | "mediaUrl" | "mediaUrlsJson" | "scenesJson" | "artDirection" | "scriptJson" | "visibility" | "scheduledFor" | "status" | "deliverableId" | "externalPostId" | "permalink" | "publishedAt" | "publishedBy" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["socialPost"]>
+export type SocialPostOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "workspaceId" | "clientId" | "clientRequestId" | "caption" | "networks" | "format" | "pillar" | "mediaUrl" | "mediaUrlsJson" | "scenesJson" | "artDirection" | "scriptJson" | "visibility" | "scheduledFor" | "status" | "deliverableId" | "externalPostId" | "permalink" | "publishedAt" | "publishedBy" | "lastError" | "avisoAoCliente" | "createdAt" | "updatedAt", ExtArgs["result"]["socialPost"]>
 
 export type $SocialPostPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SocialPost"
@@ -936,6 +962,24 @@ export type $SocialPostPayload<ExtArgs extends runtime.Types.Extensions.Internal
      */
     publishedBy: string | null
     lastError: string | null
+    /**
+     * A PARADA DESTA PEÇA, NAS PALAVRAS QUE O CLIENTE LÊ (25/08/2026).
+     * 
+     * `lastError` é para o TIME e é técnico. Este campo é para o CLIENTE, e ele
+     * existe porque a 5ª auditoria mediu o buraco: o ajuste refez o TEXTO, a
+     * arte não saiu, e a tela do cliente mostrou a legenda NOVA sobre a imagem
+     * que ele acabara de recusar. A frase honesta existia — mas só na aba de
+     * mensagens e no log. Ele varreu o HTML da tela de decisão: zero ocorrências
+     * de "não consegui", "não foi possível", "equipe", "erro", "problema".
+     * 
+     * Regra: quem escreve aqui escreve MOTIVO, DONO e PRÓXIMA AÇÃO (critério F),
+     * em português de gente. `montarPecas` leva ao portal e `PecaDoCard` põe na
+     * tela, ACIMA da imagem — antes de o cliente decidir, nunca depois.
+     * 
+     * Nulo = a peça não está parada. Quem resolve a parada LIMPA o campo: aviso
+     * que sobrevive ao conserto vira ruído, e ruído ninguém lê.
+     */
+    avisoAoCliente: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["socialPost"]>
@@ -1384,6 +1428,7 @@ export interface SocialPostFieldRefs {
   readonly publishedAt: Prisma.FieldRef<"SocialPost", 'DateTime'>
   readonly publishedBy: Prisma.FieldRef<"SocialPost", 'String'>
   readonly lastError: Prisma.FieldRef<"SocialPost", 'String'>
+  readonly avisoAoCliente: Prisma.FieldRef<"SocialPost", 'String'>
   readonly createdAt: Prisma.FieldRef<"SocialPost", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"SocialPost", 'DateTime'>
 }

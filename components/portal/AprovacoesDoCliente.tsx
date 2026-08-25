@@ -204,6 +204,29 @@ function PecaDoCard({ peca, indice, total, token }: { peca: PecaAberta; indice: 
         )}
       </div>
 
+      {/* ── A PARADA DESTA PEÇA, ANTES DA IMAGEM (Auditor, 5ª rodada) ──────
+          O achado: o cliente pediu ajuste, o texto foi refeito, a arte não
+          saiu — e esta peça apareceu com a legenda NOVA sobre a imagem que ele
+          acabara de recusar. A casa sabia: escalou a equipe com dono e próxima
+          ação e escreveu a frase honesta. Só que na aba de MENSAGENS e no log.
+          O Auditor varreu o HTML desta tela: zero ocorrências de "não
+          consegui", "não foi possível", "equipe", "erro", "problema".
+
+          Fica ACIMA da imagem de propósito. Embaixo, ele lê depois de já ter
+          olhado a arte e concluído "então refizeram" — e a conclusão errada já
+          está formada. Critério F: toda parada mostra motivo, dono e próxima
+          ação, no momento em que a pessoa decide. */}
+      {peca.avisoAoCliente && (
+        <div
+          role="status"
+          className="border-y border-[#FCD34D] bg-[#FFFBEB] px-3.5 py-3"
+        >
+          <p className="whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-[#92400E]">
+            {peca.avisoAoCliente}
+          </p>
+        </div>
+      )}
+
       {telas.length > 0 ? (
         <CarrosselDeTelas telas={telas} token={token} alt={rotuloDeFormatoDaPeca(peca.format)} format={peca.format} />
       ) : (

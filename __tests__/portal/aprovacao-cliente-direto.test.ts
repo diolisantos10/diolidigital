@@ -219,14 +219,40 @@ describe("decisão do cliente propaga status aos posts do card", () => {
     expect(gravados.filter((p) => relogio(p, daquiUmMes))).toHaveLength(6);
   });
 
-  it("pedir ajuste COM comentário → posts viram 'revision_requested' e o comentário vai ao registro", async () => {
+  it("pedir ajuste COM comentário → SÓ A PEÇA APONTADA vira 'revision_requested'", async () => {
+    // ═══════════════════════════════════════════════════════════════════════
+    // ⚠️ ESTA RÉGUA MUDOU DE LADO EM 25/08/2026 (Auditor, 5ª rodada)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Ela exigia `{ id: { in: SEIS_IDS } }` — as SEIS peças em
+    // `revision_requested` por causa de um comentário que aponta UMA. Era a
+    // régua carimbando o defeito como contrato.
+    //
+    // O que ele mediu, contra o controle: `ESTADOS_PROMOVIVEIS`
+    // (`esteira/publicacao.ts`) não inclui `revision_requested`, de propósito.
+    // Então as peças não apontadas ficavam INAGENDÁVEIS — trabalho pago e
+    // aprovado que a fila de entrega nunca lê, sem ninguém ficar vermelho.
+    //
+    // Repare que o comentário deste próprio teste sempre disse "a peça 2".
+    // A mira estava escrita aqui desde o começo; só o efeito é que ignorava.
     updateApprovalStatus.mockResolvedValue({ id: "ap-cal", status: "revision_requested", reviewedAt: new Date() });
     const res = await decidir(reqDecisao({ action: "request_revision", comment: "troca a capa da peça 2" }));
     expect(res.status).toBe(200);
     expect(db.socialPost.updateMany).toHaveBeenCalledWith({
-      where: { id: { in: SEIS_IDS }, clientId: "cli-foocci" },
+      where: { id: { in: [SEIS_IDS[1]] }, clientId: "cli-foocci" },
       data: { status: "revision_requested" },
     });
+
+    // E as outras CINCO não são tocadas — é isso que as mantém agendáveis.
+    const alvos = db.socialPost.updateMany.mock.calls[0]![0].where.id.in as string[];
+    for (const [i, id] of SEIS_IDS.entries()) {
+      if (i === 1) continue;
+      expect(
+        alvos,
+        `a peça ${i + 1} não foi apontada e não pode entrar em revisão — ` +
+        "revisão é estado que a fila de entrega não lê",
+      ).not.toContain(id);
+    }
     expect(addApprovalComment).toHaveBeenCalledWith(expect.objectContaining({
       approvalRequestId: "ap-cal", authorRole: "client", isClientVisible: true,
       body: "troca a capa da peça 2",

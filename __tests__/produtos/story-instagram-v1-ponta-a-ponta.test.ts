@@ -279,6 +279,7 @@ import { POST as postOrcamento } from "@/app/api/portal/pedidos/orcamento/route"
 import { POST as postAprovacao } from "@/app/api/portal/approvals/route";
 import { POST as postPagamento } from "@/app/api/admin/pagamentos/route";
 import { GET as getMidia } from "@/app/api/media/[id]/route";
+import { tituloSaiuIlegivel } from "@/lib/agency/execution/artes";
 
 const PEDIDO_DO_CLIENTE =
   "Quero 4 stories para o Instagram da padaria falando do pão de fermentação natural, " +
@@ -324,14 +325,29 @@ const DEGRADACOES_ACEITAS_E_DECLARADAS = [
  *  2. REPERTÓRIO DE MARCA — o repertório criativo é código por marca e o
  *     cliente fictício não tem um. A composição base foi a única exercitada.
  *     Dívida de prova.
- *  3. CONTRASTE SOBRE FUNDO FOTOGRÁFICO — o portão de contraste mede pares de
- *     superfície CHAPADA. Na peça que saiu, o título é branco sobre foto de
- *     alto ruído, e **ninguém mede esse par**. O portão não reprova porque não
- *     olha para lá. Dívida de prova, e a de maior consequência visual das três.
- *     O Auditor conferiu com os olhos, na 4ª rodada: o título está
- *     praticamente ilegível. A régua da marca (item 3-B) mede a TINTA no
- *     rodapé, não a legibilidade do título — dizer que uma cobre a outra
- *     seria a régua mirada no irmão outra vez.
+ *  3. CONTRASTE SOBRE FUNDO FOTOGRÁFICO — **FECHADA em 25/08/2026.** Ela dizia
+ *     que o portão de contraste mede pares de superfície CHAPADA e que o par
+ *     "título branco sobre foto de alto ruído" não era medido por ninguém. O
+ *     Auditor conferiu com os olhos na 4ª rodada e confirmou: praticamente
+ *     ilegível.
+ *
+ *     Agora é medido, e no ARQUIVO: `legibilidade-do-titulo.ts` lê os pixels do
+ *     JPEG dentro da caixa que o título ocupa no DOM (`tituloCaixa`, tomada
+ *     depois do encolhimento) e mede o PIOR pedaço do fundo contra a tinta —
+ *     pior e não média, porque a pessoa lê a linha inteira, não a média dela.
+ *
+ *     O número, na corrente: **2,15–2,35:1 antes, 3,20–3,74:1 depois**, com
+ *     piso de 3:1 (WCAG, texto grande). A causa estava achada e era mecânica: o
+ *     degradê do molde subia do PÉ e já era transparente acima de 62%, enquanto
+ *     a caixa do título fica em y=290..530 de 1920 — o título estava sobre a
+ *     foto crua. O degradê ganhou a segunda metade (`molde.ts`).
+ *
+ *     ⚠️ O QUE **AINDA NÃO** É: uma trava que impeça a peça de sair. A produção
+ *     DECLARA (`[titulo ilegivel]`, com o número, no `lastError`) e esta suíte
+ *     REPROVA, mas uma peça abaixo do piso ainda seria gravada. É escolha
+ *     declarada: a medida erra para o lado seguro (a média da faixa inclui os
+ *     pixels da própria letra, o que baixa a razão), e jogar fora uma peça paga
+ *     por uma medida conservadora troca um prejuízo por outro. Fica na mesa.
  * 3-B. A RÉGUA DA MARCA (25/08/2026) mede o que dá para medir: a primária do
  *     cliente está na tinta do rodapé do JPEG. Ela NÃO julga se a peça está
  *     "na cara da marca", não vê tipografia e não vê o logo.
@@ -348,7 +364,9 @@ const DEGRADACOES_ACEITAS_E_DECLARADAS = [
 export const O_QUE_NAO_FOI_MEDIDO = [
   "logo real do cliente numa peça",
   "repertório de marca registrado",
-  "contraste de texto sobre fundo fotográfico de alto ruído",
+  // Medido desde 25/08/2026 (ver item 3 acima). O que continua fora é a TRAVA:
+  // a produção declara e a suíte reprova, mas nada impede a peça de ser gravada.
+  "trava de produção para título abaixo do piso de legibilidade (hoje só declarado + régua de teste)",
   "pixels e legibilidade em navegador real",
   "publicação na Meta (fase 5)",
   "mira do ajuste por descrição do assunto (só ordinal explícito é lido)",
@@ -673,6 +691,40 @@ describe("caso normal — o pedido do cliente vira JPEG 1080x1920 aprovável", (
         }
       }
 
+      // ── 4-A2. O TÍTULO É LEGÍVEL SOBRE A FOTO (dívida nº 3, fechada) ────
+      //
+      // ═══════════════════════════════════════════════════════════════════
+      // A DÍVIDA QUE A CASA ESCREVEU CONTRA SI MESMA, E QUE AGORA TEM RÉGUA
+      // ═══════════════════════════════════════════════════════════════════
+      //
+      // Item 3 do `O_QUE_NAO_FOI_MEDIDO`: *"o portão de contraste mede pares de
+      // superfície CHAPADA. Na peça que saiu, o título é branco sobre foto de
+      // alto ruído, e ninguém mede esse par."* O Auditor abriu a peça na 4ª
+      // rodada e confirmou com os olhos: praticamente ilegível. Era a dívida de
+      // maior consequência para quem paga — o título é a primeira coisa que o
+      // cliente do cliente lê, e a única se estiver com pressa.
+      //
+      // MEDIDO na corrente, antes do conserto: a caixa do título ficava em
+      // y=290..530 de 1920, e o degradê do molde subia do PÉ e já era
+      // transparente acima de 62%. O título estava sobre a FOTO CRUA, sem
+      // proteção nenhuma. Contraste no pior pedaço: **2,15 a 2,35:1**, contra
+      // um piso de 3:1 para texto grande.
+      //
+      // O conserto é MECANISMO, não aviso: o degradê ganhou a segunda metade,
+      // descendo do topo na primária da marca e segurando a força ATRAVESSANDO
+      // a faixa do título (`molde.ts`). Depois: **3,20 a 3,74:1**.
+      //
+      // Esta régua mede o ARQUIVO — os pixels do JPEG que a rota pública acabou
+      // de servir, dentro da caixa que o título ocupa no DOM. Não é a coluna,
+      // não é a constante do molde, não é a intenção do degradê.
+      for (const p of posts) {
+        expect(
+          tituloSaiuIlegivel(p.lastError),
+          `a peça ${p.id} saiu com o título abaixo do piso de legibilidade sobre a foto — ` +
+          `a produção declarou: ${p.lastError ?? "(vazio)"}`,
+        ).toBe(false);
+      }
+
       // ── 4-B. A RÉGUA DA MARCA OLHA A PEÇA FINAL (critério D) ────────────
       //
       // Achado 7 da 4ª auditoria: nada nesta casa media o JPEG contra a marca.
@@ -941,6 +993,194 @@ describe("caso de ajuste — a peça apontada volta como ARQUIVO NOVO", () => {
     const baixado = await baixarMidia(noFim[TERCEIRA]!.mediaUrl!, c.token);
     expect(baixado.status).toBe(200);
     expect(baixado.bytes.length).toBeGreaterThan(10_000);
+
+    // ── 7. 🔴 AS QUATRO PEÇAS ANDAM (Auditor, 5ª rodada, 25/08/2026) ─────
+    //
+    // O BLOQUEIO do item F, medido por ele contra um controle sem ajuste:
+    //
+    //              peça 1              peça 2              peça 3     peça 4
+    //   ajuste:    revision_requested  revision_requested  scheduled  revision_requested
+    //   controle:  scheduled           scheduled           scheduled  scheduled
+    //
+    // A rota carimbava `revision_requested` em TODAS as peças do cartão. A mira
+    // construída na rodada anterior acertava a IMAGEM PAGA e errava o ESTADO —
+    // e `ESTADOS_PROMOVIVEIS` (`esteira/publicacao.ts`) não inclui esse estado,
+    // de propósito. Resultado: **três quartos do que o cliente pagou e aprovou
+    // nunca entravam na fila de entrega**. Em silêncio.
+    //
+    // É o espelho do risco 4 do plano ("refação sem mira"), do outro lado.
+    //
+    // E repare no que esta régua NÃO é: não é ler a coluna do ajuste. É medir
+    // o mesmo que o Auditor mediu — onde a peça PARA depois de o cliente ter
+    // aprovado, que é o que decide se ela vai ao ar ou não.
+    const { ESTADO_QUE_A_FILA_LE } = await import("@/lib/agency/esteira/publicacao");
+    for (const [i, p] of noFim.entries()) {
+      expect(
+        p.status,
+        `a peça ${i + 1} ficou em '${p.status}' depois de o cliente APROVAR: ` +
+        "trabalho pago e aprovado que a fila de entrega nunca lê, sem ninguém ficar vermelho. " +
+        "O controle (o mesmo pedido sem ajuste) põe as quatro em 'scheduled'",
+      ).toBe(ESTADO_QUE_A_FILA_LE);
+    }
+
+    // ── 8. 🟠 A APROVAÇÃO DA VERSÃO NOVA DEIXA RASTRO CANÔNICO ──────────
+    //
+    // O achado: `TransicaoDeEstado` estourava com
+    // `Unique constraint failed on (chaveIdempotencia)` na SEGUNDA decisão do
+    // mesmo card, e o erro era engolido como "rastro canônico não gravado
+    // (não-fatal)". A chave era `portal:<card>:decisao` — UMA por card, para
+    // sempre — e o ciclo do ajuste tem DUAS decisões no mesmo card.
+    //
+    // O buraco passava porque o teste da RECUSA exige o rastro e o do AJUSTE
+    // não pedia: a única decisão que roda duas vezes era a única sem régua.
+    // A autoria no card sobrevivia; o registro IMUTÁVEL, não.
+    const rastros = await prisma.transicaoDeEstado.findMany({
+      where: { entidadeTipo: "ApprovalRequest", entidadeId: card!.id },
+      orderBy: { criadoEm: "asc" },
+    });
+    expect(
+      rastros.length,
+      "o ciclo do ajuste tem DUAS decisões do cliente (pedir a mudança e aprovar a nova) " +
+      "e só a primeira deixou registro imutável",
+    ).toBe(2);
+    // O estado canônico vem do MAPA da casa, não de uma literal copiada para
+    // dentro do `expect` — copiar aqui faria a régua ficar verde no dia em que
+    // o mapa mudasse e o rastro passasse a dizer outra coisa.
+    const { DECISAO_PARA_ESTADO_CANONICO } = await import("@/lib/agency/portal/decisoes-do-portal");
+    expect(rastros[0]!.para, "a primeira decisão foi o pedido de ajuste")
+      .toBe(DECISAO_PARA_ESTADO_CANONICO.request_revision);
+    expect(rastros[1]!.para, "a segunda foi a aprovação da versão nova")
+      .toBe(DECISAO_PARA_ESTADO_CANONICO.approve);
+    expect(rastros[0]!.para, "e as duas decisões não podem cair no mesmo estado")
+      .not.toBe(rastros[1]!.para);
+    for (const t of rastros) {
+      expect(t.atorId, "registro sem autor não é registro").toBe(`cliente:${c.nome}`);
+    }
+  }, 900_000);
+
+  it("🟠 A ARTE DO AJUSTE FALHA: o cliente LÊ isso na peça, não só no log", async () => {
+    // ═══════════════════════════════════════════════════════════════════════
+    // O ACHADO (Auditor, 5ª rodada, 25/08/2026)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Ele derrubou o gerador DURANTE o ajuste. Por dentro a casa se portou bem:
+    // o card corretamente NÃO reabriu, e a equipe foi escalada com boa mensagem
+    // (`refacao_escalada`, com dono e próxima ação).
+    //
+    // Mas na TELA do cliente a peça 3 exibia o **texto refeito** sobre a
+    // **imagem que ele acabara de recusar**. Ele varreu o HTML inteiro: **zero**
+    // ocorrências de "não consegui", "não foi possível", "equipe", "erro",
+    // "problema".
+    //
+    // A mensagem do commit anterior afirmava "o cliente lê a frase honesta".
+    // **Ele não lia.** A frase ia para a aba de MENSAGENS e para o log. É a
+    // mesma classe do aviso "sem árbitro" que ficava na coluna e nunca virava
+    // pixel — corrigido ali e repetido aqui.
+    //
+    // ── A PERGUNTA OBRIGATÓRIA ────────────────────────────────────────────
+    // *O teste alcança o que o cliente de verdade vê?* Se a resposta for "a
+    // coluna" ou "o log", errou de novo. Então esta régua tem DUAS pernas e
+    // nenhuma delas é a coluna: o card sai pela PORTA REAL do portal, e o
+    // componente REAL é montado com ele. O que se afirma é o HTML.
+    const c = await abrirClienteFicticio("Padaria da Arte que Não Saiu");
+    await pagar(c, 9900);
+    const { pedidoId } = await pedirPeloPortal(c);
+    const { posts, card } = await pecasDoPedido(pedidoId);
+    expect(posts.length).toBe(4);
+    const TERCEIRA = 2;
+    const urlAntes = posts.map((p) => p.mediaUrl!);
+
+    // O gerador cai NO MEIO DO AJUSTE — depois de a peça já existir. É esta
+    // ordem que produz o defeito: o texto é refeito, a imagem não.
+    const renderizar = await import("@/lib/agency/design/renderizar");
+    const espiao = vi.spyOn(renderizar, "renderizadorDisponivel")
+      .mockResolvedValue({ disponivel: false, caminho: null });
+
+    let naTela = "";
+    try {
+      const r = await postAprovacao(req("/api/portal/approvals", {
+        token: c.token, approvalRequestId: card!.id, action: "request_revision",
+        comment: "A terceira peça está escura demais, quero ela mais clara.", authorName: c.nome,
+      }));
+      expect(r.status).toBe(200);
+
+      const agora = await prisma.socialPost.findMany({
+        where: { id: { in: posts.map((p) => p.id) } }, orderBy: { createdAt: "asc" },
+      });
+
+      // Controle: o cenário é MESMO o que o Auditor montou — a arte não saiu.
+      expect(
+        agora[TERCEIRA]!.mediaUrl,
+        "este teste só vale se a arte realmente NÃO saiu; com arte nova ele mediria outro caso",
+      ).toBe(urlAntes[TERCEIRA]);
+
+      // E o card corretamente NÃO reabre: não se pede ao cliente que decida de
+      // novo sobre a mesma imagem. Isso já estava certo, e continua.
+      const cardDepois = await prisma.approvalRequest.findUniqueOrThrow({ where: { id: card!.id } });
+      expect(cardDepois.status, "o card não reabre com a arte recusada").not.toBe("pending");
+
+      // ── A PORTA REAL DO PORTAL ─────────────────────────────────────────
+      const { GET: portalData } = await import("@/app/api/brain/portal-data/route");
+      const resposta = await portalData(
+        new NextRequest(`http://local/api/brain/portal-data?token=${c.token}`),
+      );
+      expect(resposta.status, "a porta real do portal responde").toBe(200);
+      const dados = await resposta.json();
+      const cardDoPortal = (dados.approvals ?? []).find((a: { id: string }) => a.id === card!.id);
+      expect(cardDoPortal, "o card chega ao portal do cliente").toBeTruthy();
+      expect(cardDoPortal.pecas.length, "e chega COM as peças").toBe(4);
+
+      // ── O COMPONENTE REAL, MONTADO COM O CARD REAL ─────────────────────
+      const { createElement } = await import("react");
+      const { renderToStaticMarkup } = await import("react-dom/server");
+      const { AprovacoesDoCliente } = await import("@/components/portal/AprovacoesDoCliente");
+      naTela = renderToStaticMarkup(
+        createElement(AprovacoesDoCliente, {
+          aprovacoes: [cardDoPortal],
+          token: c.token,
+          abertaId: cardDoPortal.id,
+          onAbrir: () => {},
+          enviando: false,
+          erro: null,
+          onDecidir: async () => true,
+        }),
+      );
+    } finally {
+      espiao.mockRestore();
+    }
+
+    if (GUARDAR_EVIDENCIA) {
+      mkdirSync(PASTA_DE_EVIDENCIA, { recursive: true });
+      writeFileSync(`${PASTA_DE_EVIDENCIA}/tela-do-cliente-arte-do-ajuste-nao-saiu.html`, naTela, "utf8");
+    }
+
+    const soTexto = naTela.replace(/<[^>]+>/g, " ");
+
+    // Controle: a tela que estamos medindo é MESMO a tela da peça.
+    expect(soTexto, "esta é a tela em que o cliente vê as peças").toMatch(/Peça 3 de 4/);
+
+    // ── AS PALAVRAS QUE ELE PROCUROU E NÃO ACHOU ───────────────────────
+    expect(
+      soTexto,
+      "o cliente está vendo o texto refeito sobre a imagem que ele acabou de recusar, " +
+      "e nada na TELA dele diz isso",
+    ).toMatch(/não consegui gerar a imagem nova/i);
+    expect(soTexto, "e a tela diz o que NÃO mudou — a imagem ainda é a anterior")
+      .toMatch(/a imagem desta peça ainda é a anterior/i);
+
+    // MOTIVO, DONO E PRÓXIMA AÇÃO — as três, com estas palavras (critério F).
+    expect(soTexto, "dono").toMatch(/equipe de produção/i);
+    expect(soTexto, "próxima ação").toMatch(/próxima ação/i);
+
+    // E o aviso não pode se disfarçar de "refizemos".
+    expect(soTexto, "e não promete o que não entregou")
+      .toMatch(/não vou te pedir para aprovar de novo/i);
+
+    // ── A PARADA É SÓ DA PEÇA PARADA ───────────────────────────────────
+    // Alarme nas quatro ensinaria o cliente a ignorar o alarme — e aí ele
+    // ignora o da vez em que importa.
+    const avisos = (soTexto.match(/A IMAGEM DESTA PEÇA AINDA É A ANTERIOR/gi) ?? []).length;
+    expect(avisos, "só a peça apontada está parada; as outras três não podem alarmar").toBe(1);
   }, 900_000);
 
   it("comentário é OBRIGATÓRIO no ajuste — sem as palavras do cliente não se refaz", async () => {
