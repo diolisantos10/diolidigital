@@ -101,14 +101,14 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
     // sendo o negócio melhor, R$ 24,75 cada), em vez de um avulso tão caro que
     // só existe para empurrar o pacote.
     id: "balcao-1-story",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "1 story",
     description: "Um story vertical com margem protegida.",
     deliverables: [
       "1 story 1080×1920",
       "Margem protegida: nada de texto cortado por barra ou botão",
       "Texto da tela",
-      "Arquivo PNG no portal do cliente",
+      "Arquivo JPEG no portal do cliente",
     ],
     price: 35,
     precoMinimo: 25,
