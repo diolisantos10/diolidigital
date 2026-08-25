@@ -42,6 +42,8 @@ export type DeliverableMinAggregateOutputType = {
   type: string | null
   status: string | null
   revisionStatus: string | null
+  qualityArbiter: string | null
+  qualityArbitragem: string | null
   visibility: string | null
   content: string | null
   clientFeedback: string | null
@@ -62,6 +64,8 @@ export type DeliverableMaxAggregateOutputType = {
   type: string | null
   status: string | null
   revisionStatus: string | null
+  qualityArbiter: string | null
+  qualityArbitragem: string | null
   visibility: string | null
   content: string | null
   clientFeedback: string | null
@@ -82,6 +86,8 @@ export type DeliverableCountAggregateOutputType = {
   type: number
   status: number
   revisionStatus: number
+  qualityArbiter: number
+  qualityArbitragem: number
   visibility: number
   content: number
   clientFeedback: number
@@ -112,6 +118,8 @@ export type DeliverableMinAggregateInputType = {
   type?: true
   status?: true
   revisionStatus?: true
+  qualityArbiter?: true
+  qualityArbitragem?: true
   visibility?: true
   content?: true
   clientFeedback?: true
@@ -132,6 +140,8 @@ export type DeliverableMaxAggregateInputType = {
   type?: true
   status?: true
   revisionStatus?: true
+  qualityArbiter?: true
+  qualityArbitragem?: true
   visibility?: true
   content?: true
   clientFeedback?: true
@@ -152,6 +162,8 @@ export type DeliverableCountAggregateInputType = {
   type?: true
   status?: true
   revisionStatus?: true
+  qualityArbiter?: true
+  qualityArbitragem?: true
   visibility?: true
   content?: true
   clientFeedback?: true
@@ -259,6 +271,8 @@ export type DeliverableGroupByOutputType = {
   type: string
   status: string
   revisionStatus: string | null
+  qualityArbiter: string | null
+  qualityArbitragem: string | null
   visibility: string
   content: string | null
   clientFeedback: string | null
@@ -302,6 +316,8 @@ export type DeliverableWhereInput = {
   type?: Prisma.StringFilter<"Deliverable"> | string
   status?: Prisma.StringFilter<"Deliverable"> | string
   revisionStatus?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  qualityArbiter?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  qualityArbitragem?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   visibility?: Prisma.StringFilter<"Deliverable"> | string
   content?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   clientFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
@@ -324,6 +340,8 @@ export type DeliverableOrderByWithRelationInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   revisionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  qualityArbiter?: Prisma.SortOrderInput | Prisma.SortOrder
+  qualityArbitragem?: Prisma.SortOrderInput | Prisma.SortOrder
   visibility?: Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   clientFeedback?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -349,6 +367,8 @@ export type DeliverableWhereUniqueInput = Prisma.AtLeast<{
   type?: Prisma.StringFilter<"Deliverable"> | string
   status?: Prisma.StringFilter<"Deliverable"> | string
   revisionStatus?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  qualityArbiter?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  qualityArbitragem?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   visibility?: Prisma.StringFilter<"Deliverable"> | string
   content?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   clientFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
@@ -371,6 +391,8 @@ export type DeliverableOrderByWithAggregationInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   revisionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  qualityArbiter?: Prisma.SortOrderInput | Prisma.SortOrder
+  qualityArbitragem?: Prisma.SortOrderInput | Prisma.SortOrder
   visibility?: Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   clientFeedback?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -399,6 +421,8 @@ export type DeliverableScalarWhereWithAggregatesInput = {
   type?: Prisma.StringWithAggregatesFilter<"Deliverable"> | string
   status?: Prisma.StringWithAggregatesFilter<"Deliverable"> | string
   revisionStatus?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
+  qualityArbiter?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
+  qualityArbitragem?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
   visibility?: Prisma.StringWithAggregatesFilter<"Deliverable"> | string
   content?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
   clientFeedback?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
@@ -418,6 +442,8 @@ export type DeliverableCreateInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  qualityArbiter?: string | null
+  qualityArbitragem?: string | null
   visibility?: string
   content?: string | null
   clientFeedback?: string | null
@@ -440,6 +466,8 @@ export type DeliverableUncheckedCreateInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  qualityArbiter?: string | null
+  qualityArbitragem?: string | null
   visibility?: string
   content?: string | null
   clientFeedback?: string | null
@@ -460,6 +488,8 @@ export type DeliverableUpdateInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbiter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbitragem?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -482,6 +512,8 @@ export type DeliverableUncheckedUpdateInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbiter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbitragem?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -503,6 +535,8 @@ export type DeliverableCreateManyInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  qualityArbiter?: string | null
+  qualityArbitragem?: string | null
   visibility?: string
   content?: string | null
   clientFeedback?: string | null
@@ -522,6 +556,8 @@ export type DeliverableUpdateManyMutationInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbiter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbitragem?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -542,6 +578,8 @@ export type DeliverableUncheckedUpdateManyInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbiter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbitragem?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -572,6 +610,8 @@ export type DeliverableCountOrderByAggregateInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   revisionStatus?: Prisma.SortOrder
+  qualityArbiter?: Prisma.SortOrder
+  qualityArbitragem?: Prisma.SortOrder
   visibility?: Prisma.SortOrder
   content?: Prisma.SortOrder
   clientFeedback?: Prisma.SortOrder
@@ -596,6 +636,8 @@ export type DeliverableMaxOrderByAggregateInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   revisionStatus?: Prisma.SortOrder
+  qualityArbiter?: Prisma.SortOrder
+  qualityArbitragem?: Prisma.SortOrder
   visibility?: Prisma.SortOrder
   content?: Prisma.SortOrder
   clientFeedback?: Prisma.SortOrder
@@ -616,6 +658,8 @@ export type DeliverableMinOrderByAggregateInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   revisionStatus?: Prisma.SortOrder
+  qualityArbiter?: Prisma.SortOrder
+  qualityArbitragem?: Prisma.SortOrder
   visibility?: Prisma.SortOrder
   content?: Prisma.SortOrder
   clientFeedback?: Prisma.SortOrder
@@ -700,6 +744,8 @@ export type DeliverableCreateWithoutProjectInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  qualityArbiter?: string | null
+  qualityArbitragem?: string | null
   visibility?: string
   content?: string | null
   clientFeedback?: string | null
@@ -720,6 +766,8 @@ export type DeliverableUncheckedCreateWithoutProjectInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  qualityArbiter?: string | null
+  qualityArbitragem?: string | null
   visibility?: string
   content?: string | null
   clientFeedback?: string | null
@@ -769,6 +817,8 @@ export type DeliverableScalarWhereInput = {
   type?: Prisma.StringFilter<"Deliverable"> | string
   status?: Prisma.StringFilter<"Deliverable"> | string
   revisionStatus?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  qualityArbiter?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  qualityArbitragem?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   visibility?: Prisma.StringFilter<"Deliverable"> | string
   content?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   clientFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
@@ -788,6 +838,8 @@ export type DeliverableCreateWithoutVersionsInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  qualityArbiter?: string | null
+  qualityArbitragem?: string | null
   visibility?: string
   content?: string | null
   clientFeedback?: string | null
@@ -809,6 +861,8 @@ export type DeliverableUncheckedCreateWithoutVersionsInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  qualityArbiter?: string | null
+  qualityArbitragem?: string | null
   visibility?: string
   content?: string | null
   clientFeedback?: string | null
@@ -844,6 +898,8 @@ export type DeliverableUpdateWithoutVersionsInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbiter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbitragem?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -865,6 +921,8 @@ export type DeliverableUncheckedUpdateWithoutVersionsInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbiter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbitragem?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -884,6 +942,8 @@ export type DeliverableCreateManyProjectInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  qualityArbiter?: string | null
+  qualityArbitragem?: string | null
   visibility?: string
   content?: string | null
   clientFeedback?: string | null
@@ -903,6 +963,8 @@ export type DeliverableUpdateWithoutProjectInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbiter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbitragem?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -923,6 +985,8 @@ export type DeliverableUncheckedUpdateWithoutProjectInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbiter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbitragem?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -943,6 +1007,8 @@ export type DeliverableUncheckedUpdateManyWithoutProjectInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbiter?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  qualityArbitragem?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -994,6 +1060,8 @@ export type DeliverableSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   type?: boolean
   status?: boolean
   revisionStatus?: boolean
+  qualityArbiter?: boolean
+  qualityArbitragem?: boolean
   visibility?: boolean
   content?: boolean
   clientFeedback?: boolean
@@ -1017,6 +1085,8 @@ export type DeliverableSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   type?: boolean
   status?: boolean
   revisionStatus?: boolean
+  qualityArbiter?: boolean
+  qualityArbitragem?: boolean
   visibility?: boolean
   content?: boolean
   clientFeedback?: boolean
@@ -1038,6 +1108,8 @@ export type DeliverableSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   type?: boolean
   status?: boolean
   revisionStatus?: boolean
+  qualityArbiter?: boolean
+  qualityArbitragem?: boolean
   visibility?: boolean
   content?: boolean
   clientFeedback?: boolean
@@ -1059,6 +1131,8 @@ export type DeliverableSelectScalar = {
   type?: boolean
   status?: boolean
   revisionStatus?: boolean
+  qualityArbiter?: boolean
+  qualityArbitragem?: boolean
   visibility?: boolean
   content?: boolean
   clientFeedback?: boolean
@@ -1071,7 +1145,7 @@ export type DeliverableSelectScalar = {
   updatedAt?: boolean
 }
 
-export type DeliverableOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "projectId" | "name" | "type" | "status" | "revisionStatus" | "visibility" | "content" | "clientFeedback" | "lastFeedback" | "ownerAgentId" | "cycleId" | "version" | "revisionHistory" | "createdAt" | "updatedAt", ExtArgs["result"]["deliverable"]>
+export type DeliverableOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "projectId" | "name" | "type" | "status" | "revisionStatus" | "qualityArbiter" | "qualityArbitragem" | "visibility" | "content" | "clientFeedback" | "lastFeedback" | "ownerAgentId" | "cycleId" | "version" | "revisionHistory" | "createdAt" | "updatedAt", ExtArgs["result"]["deliverable"]>
 export type DeliverableInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   versions?: boolean | Prisma.Deliverable$versionsArgs<ExtArgs>
@@ -1101,6 +1175,25 @@ export type $DeliverablePayload<ExtArgs extends runtime.Types.Extensions.Interna
     type: string
     status: string
     revisionStatus: string | null
+    /**
+     * QUEM julgou esta peça — o provedor de IA que deu o veredito. NULO = nenhum
+     * modelo julgou (retida, ou reprovada pela régua determinística de código).
+     * 
+     * `revisionStatus` responde "qual foi o veredito"; este campo responde "quem
+     * julgou". Eram a mesma coluna até 25/08/2026, e por isso uma peça julgada
+     * pelo próprio autor era indistinguível de uma julgada por árbitro
+     * independente em TODA tela da casa. Ver `quality-auditor.ts`.
+     */
+    qualityArbiter: string | null
+    /**
+     * A arbitragem em UMA palavra: `arbitro_independente` | `autojulgado` |
+     * `sem_arbitro`. Escrita só por `arbitragemDoVeredito` — ponto único de
+     * tradução, para nenhuma tela comparar provedor com autor na mão.
+     * 
+     * NULO = peça anterior a 25/08/2026, quando a casa não media isto. Nulo é
+     * "não medido", NUNCA "independente": ausência de medição não é verde.
+     */
+    qualityArbitragem: string | null
     /**
      * Contrato de visibilidade do Hub (interno | aguardando_publicacao |
      * compartilhado). Nasce "interno" de propósito: a auditoria do Hub provou
@@ -1556,6 +1649,8 @@ export interface DeliverableFieldRefs {
   readonly type: Prisma.FieldRef<"Deliverable", 'String'>
   readonly status: Prisma.FieldRef<"Deliverable", 'String'>
   readonly revisionStatus: Prisma.FieldRef<"Deliverable", 'String'>
+  readonly qualityArbiter: Prisma.FieldRef<"Deliverable", 'String'>
+  readonly qualityArbitragem: Prisma.FieldRef<"Deliverable", 'String'>
   readonly visibility: Prisma.FieldRef<"Deliverable", 'String'>
   readonly content: Prisma.FieldRef<"Deliverable", 'String'>
   readonly clientFeedback: Prisma.FieldRef<"Deliverable", 'String'>

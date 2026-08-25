@@ -369,6 +369,8 @@ export const DeliverableScalarFieldEnum = {
   type: 'type',
   status: 'status',
   revisionStatus: 'revisionStatus',
+  qualityArbiter: 'qualityArbiter',
+  qualityArbitragem: 'qualityArbitragem',
   visibility: 'visibility',
   content: 'content',
   clientFeedback: 'clientFeedback',

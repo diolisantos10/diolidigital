@@ -143,6 +143,32 @@ export function placarEmTexto(
   //
   // A casa não deixou de medir: ela MEDIU QUE NÃO PODIA MEDIR, e essa é uma
   // afirmação diferente. O número aparece sempre que for maior que zero.
+  // ── QUEM JULGOU CADA PEÇA — TRÊS PALAVRAS, NUNCA UMA ─────────────────────
+  //
+  // Farol 27, rodada 5 (em produção, 25/08/2026): as 8 chamadas ao juiz
+  // `gpt-4o` voltaram HTTP 429, os 10 julgamentos restantes saíram do MESMO
+  // `claude-haiku-4-5` que escreveu as peças, e este placar não mudou uma
+  // linha. Auto-aprovação disfarçada de auditoria — o pior defeito desta casa,
+  // porque não quebra: deriva, e deixa um verde que ninguém desconfia.
+  //
+  // A linha abaixo separa o que era uma palavra só em três, e NÃO as soma.
+  {
+    const e = p.esteira;
+    const julgadas = e.entregasComArbitroIndependente + e.entregasAutojulgadas + e.entregasArbitragemNaoMedida;
+    if (julgadas > 0 || e.entregasSemArbitro > 0) {
+      l.push(`**Quem auditou as ${e.entregas} entrega(s):**`);
+      l.push(`- ✅ **${e.entregasComArbitroIndependente}** julgada(s) por **árbitro independente** (outro modelo, não o autor)`);
+      if (e.entregasAutojulgadas > 0) {
+        l.push(`- 🟠 **${e.entregasAutojulgadas}** julgada(s) pelo **PRÓPRIO autor** — isto NÃO é aprovação independente`);
+      }
+      if (e.entregasArbitragemNaoMedida > 0) {
+        l.push(`- ⚪ **${e.entregasArbitragemNaoMedida}** sem medição de quem julgou (peça anterior à medição) — não medido NÃO é verde`);
+      }
+      l.push(`- ⛔ **${e.entregasSemArbitro}** que **NINGUÉM** julgou — retida, não apresentada`);
+      l.push("");
+    }
+  }
+
   if (p.esteira.entregasSemArbitro > 0) {
     l.push(`**Entregas que NINGUÉM auditou:** ${p.esteira.entregasSemArbitro} de ${p.esteira.entregas} `
          + `— não é defeito das peças, é falta de árbitro independente.`);

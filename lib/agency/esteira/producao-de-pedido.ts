@@ -44,7 +44,7 @@ import {
   separarValoresInformados, type VerdadeDoCliente,
 } from "@/lib/agency/execution/piso-de-verdade";
 import {
-  auditDeliverable, revisionStatusDoVeredito,
+  auditDeliverable, revisionStatusDoVeredito, camposDaQualidade,
   foiReprovadaPelaQualidade, ficouSemArbitro,
 } from "@/lib/agency/execution/quality-auditor";
 import { comoTexto, MINIMO_DE_CONTEUDO, temSubstancia } from "@/lib/agency/esteira/conteudo";
@@ -429,7 +429,8 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
       content: body,
       ownerAgentId: esp.id,
       visibility: "compartilhado",
-      revisionStatus: revisionStatusDoVeredito(audit.verdict),
+      // Veredito + QUEM julgou, por um ponto só. Ver `camposDaQualidade`.
+      ...camposDaQualidade(audit),
       // ── O PARECER INTEIRO, NÃO SÓ A FRASE DE RESUMO (24/08/2026) ────────
       // Era `audit.note`, e o juiz às vezes devolve `note` vazia com os
       // problemas em `issues`. Medido no piloto: duas peças reprovadas com

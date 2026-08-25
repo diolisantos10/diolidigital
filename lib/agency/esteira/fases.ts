@@ -63,6 +63,24 @@ export interface RetratoDoProjeto {
      *  — que é a única pergunta que torna a indisponibilidade não-bloqueante
      *  aceitável. Opcional só para não quebrar retrato montado à mão em teste. */
     semAuditoria?: number;
+    // ── AS TRÊS PALAVRAS, NA CONTA (25/08/2026) ────────────────────────────
+    //
+    // Farol 27, rodada 5: 8 chamadas ao juiz `gpt-4o` em HTTP 429, 10
+    // julgamentos vindos do MESMO `claude-haiku-4-5` que escreveu as peças, e
+    // esta conta não mudou uma linha. O placar dizia que houve auditoria.
+    //
+    // "Auditada" era uma palavra só para três coisas diferentes. Agora são
+    // três, e a soma delas NUNCA é apresentada como um número só:
+    /** Julgadas por OUTRO modelo, que não o autor. É a única que conta como
+     *  auditoria de verdade. */
+    julgadasPorArbitroIndependente?: number;
+    /** Julgadas pelo PRÓPRIO autor. Vale como freio (reprovação bloqueia),
+     *  nunca como aprovação — e nunca pode ser somada à conta de cima. */
+    autojulgadas?: number;
+    /** Peças gravadas antes de 25/08/2026, quando a casa não media quem
+     *  julgava. NÃO MEDIDO nunca é verde: fica na própria coluna em vez de
+     *  engordar qualquer uma das outras. */
+    arbitragemNaoMedida?: number;
   };
   /** Pedidos de material abertos e ainda sem resposta do cliente. */
   pedidosAbertos: number;

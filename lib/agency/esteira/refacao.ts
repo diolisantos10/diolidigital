@@ -47,7 +47,7 @@ import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import { lerProibicoes, registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
 import {
-  auditDeliverable, revisionStatusDoVeredito,
+  auditDeliverable, revisionStatusDoVeredito, arbitragemDoVeredito, type Arbitragem,
   foiAprovadaPelaQualidade, foiReprovadaPelaQualidade,
 } from "@/lib/agency/execution/quality-auditor";
 import { entregaMostradaPorDepartamento } from "@/lib/agency/esteira/pacote";
@@ -489,6 +489,10 @@ export async function refazerPorPedidoDoCliente(input: {
     const jaTinhaVeredito =
       entrega.revisionStatus === "quality_ok" || entrega.revisionStatus === "quality_flag";
     let statusDaVersaoNova = revisionStatusDoVeredito("nao_auditado");
+    // QUEM julgou ESTA versão. Nasce "ninguém", que é a verdade do caminho em
+    // que o árbitro é o cliente — e só muda se um árbitro de verdade responder.
+    let arbitroDaVersaoNova: string | null = null;
+    let arbitragemDaVersaoNova: Arbitragem = "sem_arbitro";
     let parecerDaQualidade: string | null = null;
     if (jaTinhaVeredito) {
       const veredito = await auditDeliverable({
@@ -502,6 +506,10 @@ export async function refazerPorPedidoDoCliente(input: {
         projectId: projeto.id,
       }).catch(() => null);
 
+      if (veredito) {
+        arbitroDaVersaoNova = veredito.arbitro ?? null;
+        arbitragemDaVersaoNova = arbitragemDoVeredito(veredito);
+      }
       if (veredito && foiAprovadaPelaQualidade(veredito.verdict)) {
         statusDaVersaoNova = revisionStatusDoVeredito("aprovado");
         parecerDaQualidade = `Reauditada após pedido do cliente e APROVADA. ${veredito.note}`;
@@ -546,6 +554,10 @@ export async function refazerPorPedidoDoCliente(input: {
         // devíamos ao sistema não era um juiz a mais; era parar de afirmar um
         // veredito que não existe.
         revisionStatus: statusDaVersaoNova,
+        // O veredito pode ser herdado (peça que já estava barrada segue
+        // barrada); o ÁRBITRO nunca é. Ver os comentários acima.
+        qualityArbiter: arbitroDaVersaoNova,
+        qualityArbitragem: arbitragemDaVersaoNova,
         clientFeedback: comentario.slice(0, 500),
         lastFeedback: (parecerDaQualidade
           ? `${recusou ? "Refeita após recusa do cliente" : "Refeita a pedido do cliente"}: ${comentario} — ${parecerDaQualidade}`
