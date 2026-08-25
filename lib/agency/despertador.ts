@@ -888,7 +888,13 @@ export async function baterORelogio(): Promise<{
     for (const a of r.avisosQueFalharam) quebrou("orcamento", a);
     // Briefing sem número derivado NÃO ganha número inventado — vai para gente,
     // e isso é notícia: é cliente esperando com a casa sem resposta.
-    if (r.semOrcamento > 0) quebrou("orcamento", `${r.semOrcamento} briefing(s) sem orçamento calculado — aguardando gente`);
+    // O AVISO AO CLIENTE, contado à parte (25/08/2026). Até aqui a linha
+    // abaixo saía a cada 5 minutos e era TUDO que acontecia: o cliente do
+    // outro lado não recebia uma palavra. O pedido sumia em silêncio, e o
+    // silêncio virava rotina de log. Agora ele é avisado, uma vez, com o que
+    // falta, o motivo, o dono e a próxima ação — e o número diz quantos foram.
+    if (r.faltaAvisada > 0) log(`${r.faltaAvisada} cliente(s) avisado(s) de que o pedido está parado por falta de informação`);
+    if (r.semOrcamento > 0) quebrou("orcamento", `${r.semOrcamento} briefing(s) sem orçamento calculado — aguardando gente (o cliente JÁ foi avisado do que falta)`);
     for (const f of r.falhas) quebrou("orcamento", f);
   } catch (err) {
     quebrou("orcamento", err);

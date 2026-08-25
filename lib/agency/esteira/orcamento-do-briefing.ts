@@ -173,6 +173,16 @@ export type ResultadoDoOrcamento = {
   semCanal: number;
   /** O e-mail não saiu, mas a entrega valeu. Vira notícia no despertador. */
   avisosQueFalharam: string[];
+  /**
+   * Quantos clientes foram AVISADOS de que o pedido deles está parado por falta
+   * de informação — o que falta, por quê, quem tem a bola e a próxima ação.
+   *
+   * Conta separada de `avisados` (o toque no ombro do orçamento PRONTO) porque
+   * são notícias opostas: uma diz "chegou", a outra diz "não chega enquanto
+   * faltar isto". Somar as duas num número só seria apresentar uma parada como
+   * entrega.
+   */
+  faltaAvisada: number;
   falhas: string[];
 };
 
@@ -611,6 +621,142 @@ export function textoDoOrcamento(negocio: string, e: EstimativaGuardada, linkDaP
   return linhas.join("\n");
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// O PEDIDO QUE IA SUMIR EM SILÊNCIO
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Um briefing sem o volume de posts não vira preço — e isso está CERTO: é a
+// trava do CityJobs, e ela existe para o zero não virar "Plano Essencial".
+//
+// O que estava errado é o que acontecia depois: nada. O pedido ficava em
+// `scope_ready`, o relógio escrevia "aguardando gente" a cada 5 minutos, e o
+// cliente do outro lado não recebia uma palavra. Ele mandou o briefing e ficou
+// olhando para um portal que não dizia nem que estava parado, nem por quê.
+//
+// ── POR QUE UMA VEZ SÓ, E COMO SE SABE QUE JÁ FOI ──────────────────────────
+// A varredura roda a cada 5 minutos. Sem marca, este aviso seria 288 mensagens
+// por dia no portal do cliente — o jeito mais rápido de ensinar alguém a não
+// ler o portal (é a mesma lição de `pedidos.ts`). A marca mora no próprio
+// `briefingJson`, ao lado da estimativa, porque é o mesmo objeto que já viaja
+// com o pedido: coluna nova para um booleano seria a sexta porta.
+//
+// A marca é uma DATA, não um `true`: quando alguém precisar saber há quanto
+// tempo o cliente está esperando, a resposta está no dado, não num log.
+
+/** Onde a marca do aviso mora dentro do `briefingJson`. */
+const MARCA_DA_FALTA = "faltaAvisadaEm";
+
+function jaAvisouDaFalta(briefingJson: string | null): boolean {
+  if (!briefingJson) return false;
+  try {
+    const c = JSON.parse(briefingJson) as Record<string, unknown>;
+    return typeof c[MARCA_DA_FALTA] === "string" && (c[MARCA_DA_FALTA] as string).trim() !== "";
+  } catch {
+    // JSON quebrado: NÃO se conclui "já avisei". Concluir isso do ilegível é
+    // transformar um defeito de dado no silêncio que este bloco veio acabar.
+    return false;
+  }
+}
+
+function comMarcaDaFalta(briefingJson: string | null): string {
+  try {
+    const c = JSON.parse(briefingJson ?? "{}") as Record<string, unknown>;
+    return JSON.stringify({ ...c, [MARCA_DA_FALTA]: new Date().toISOString() });
+  } catch {
+    return JSON.stringify({ [MARCA_DA_FALTA]: new Date().toISOString() });
+  }
+}
+
+/**
+ * O que exatamente falta, nas palavras que a casa já escreveu.
+ *
+ * NÃO inventa a lista. `computeEstimate` grava `travadaPor` (a frase em
+ * português) e `missingForEstimate` (os campos), e os dois estavam guardados no
+ * banco sem nenhuma tela que os abrisse. Quando nenhum dos dois existe, o texto
+ * NÃO chuta o que falta: diz que a conta não fechou e passa a bola a gente, com
+ * nome. Ausência de informação não é informação.
+ */
+export function textoDaFalta(briefingJson: string | null): string {
+  let travada = "";
+  let faltando: string[] = [];
+  try {
+    const c = JSON.parse(briefingJson ?? "{}") as { estimate?: EstimativaGuardada; scope?: unknown };
+    const e = c?.estimate;
+    if (e && typeof e.travadaPor === "string") travada = e.travadaPor.trim();
+    if (e && Array.isArray(e.missingForEstimate)) {
+      faltando = e.missingForEstimate.filter((x): x is string => typeof x === "string" && !!x.trim());
+    }
+    if (!travada) {
+      // A estimativa pode nem ter sido gravada — o briefing entrou e a conta
+      // nunca rodou. Deriva AGORA, só para saber o motivo. Não vira preço:
+      // `derivarEstimativa` já devolve null quando está travada.
+      const scope = (c as { scope?: Record<string, unknown> })?.scope;
+      if (scope && typeof scope === "object" && !Array.isArray(scope)) {
+        const bruta = computeEstimate(scope as unknown as Parameters<typeof computeEstimate>[0]);
+        if (typeof bruta.travadaPor === "string") travada = bruta.travadaPor.trim();
+        if (Array.isArray(bruta.missingForEstimate) && faltando.length === 0) {
+          faltando = bruta.missingForEstimate.filter((x): x is string => typeof x === "string" && !!x.trim());
+        }
+      }
+    }
+  } catch { /* JSON quebrado cai no texto honesto lá embaixo */ }
+
+  const linhas: string[] = ["Oi! Seu briefing chegou inteiro e está aqui comigo — mas o orçamento ainda não saiu, e eu prefiro te dizer por quê a te deixar esperando."];
+  linhas.push("");
+  linhas.push(travada || "A minha conta não fechou com o que veio no briefing, e eu não vou te mandar um número que eu não consigo sustentar.");
+  if (faltando.length > 0) {
+    linhas.push("");
+    linhas.push(faltando.length === 1 ? "O que falta é:" : "O que falta é:");
+    for (const f of faltando.slice(0, 6)) linhas.push(`• ${f}`);
+  }
+  linhas.push("");
+  // DONO e PRÓXIMA AÇÃO, com todas as letras. Parada sem dono é a parada que
+  // ninguém retoma — e o cliente não tem como cobrar quem não foi nomeado.
+  linhas.push("Quem está com isso agora é a equipe comercial. Assim que esse número chegar, o orçamento sai na hora e aparece aqui no portal.");
+  linhas.push("Pode me responder por aqui mesmo com o que falta — é o caminho mais rápido.");
+  return linhas.join("\n");
+}
+
+/**
+ * Avisa o cliente de que o pedido dele está parado, e por quê. Uma vez.
+ *
+ * Devolve `true` só quando a mensagem EFETIVAMENTE foi escrita no portal.
+ * `false` cobre os dois casos benignos (já avisado) e o de falha — e a falha
+ * sai no log, nomeada, em vez de virar um `true` que mente para o contador.
+ */
+async function avisarQueFaltaInformacao(pedido: {
+  id: string;
+  clientId: string | null;
+  briefingJson: string | null;
+}): Promise<boolean> {
+  if (jaAvisouDaFalta(pedido.briefingJson)) return false;
+  try {
+    await prisma.$transaction([
+      prisma.portalMessage.create({
+        data: {
+          clientRequestId: pedido.id,
+          clientId: pedido.clientId,
+          authorRole: "team",
+          authorName: "Gerente de projeto",
+          body: textoDaFalta(pedido.briefingJson),
+          readByTeam: true,
+        },
+      }),
+      // A marca vai na MESMA transação da mensagem. Marcar antes deixaria o
+      // cliente sem aviso e a casa achando que avisou; marcar depois, numa
+      // escrita própria, deixaria a janela para a mensagem sair duas vezes.
+      prisma.clientRequestDb.update({
+        where: { id: pedido.id },
+        data: { briefingJson: comMarcaDaFalta(pedido.briefingJson) },
+      }),
+    ]);
+    return true;
+  } catch (e) {
+    console.warn("[orcamento] não consegui avisar o cliente da falta:", e instanceof Error ? e.message : e);
+    return false;
+  }
+}
+
 /**
  * Entrega o orçamento de quem acabou de entregar briefing.
  *
@@ -623,6 +769,7 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
     semOrcamento: 0,
     avisados: 0,
     semCanal: 0,
+    faltaAvisada: 0,
     avisosQueFalharam: [],
     falhas: [],
   };
@@ -676,6 +823,24 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
         // Sem número derivado não se inventa número. Fica de pé como estava,
         // para a fila de gente — e conta como notícia, não como rotina.
         resultado.semOrcamento += 1;
+        // ── NADA SOME EM SILÊNCIO (25/08/2026) ────────────────────────────
+        //
+        // Até aqui era só `continue`. Medido em produção: um briefing entregue
+        // SEM o número de posts por semana ficava em `scope_ready`, o relógio o
+        // marcava como "aguardando gente" a cada 5 minutos, e **o cliente nunca
+        // era avisado de nada**. Ele sumia sem barulho.
+        //
+        // Pior: o motivo JÁ ESTAVA ESCRITO. `computeEstimate` grava
+        // `travadaPor` ("O volume de posts não chegou no pedido…") e
+        // `missingForEstimate` — em português, prontos para serem lidos, dentro
+        // de uma coluna que nenhuma tela do cliente abria. **Coluna gravada não
+        // é cliente informado.** Ausência de informação não é informação, e
+        // silêncio não é espera.
+        //
+        // Agora o cliente recebe, UMA vez, o que falta, por que falta, quem
+        // está com a bola e qual é a próxima ação. Best-effort: o aviso é
+        // comunicação, e comunicação não derruba a rodada dos outros clientes.
+        if (await avisarQueFaltaInformacao(pedido)) resultado.faltaAvisada += 1;
         continue;
       }
 

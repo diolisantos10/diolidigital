@@ -283,6 +283,30 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
     } catch { /* a porta de pedir continua funcionando sem a lista */ }
   }, [q]);
 
+  // ── A PORTA DA PERGUNTA (25/08/2026) ──────────────────────────────────────
+  // Manda a resposta do cliente e RECARREGA a lista: a mesma requisição roda a
+  // triagem de novo, então o cartão que volta já é o estado novo. Sem o
+  // recarregamento o cliente responderia, leria "anotado", e continuaria vendo
+  // o selo amarelo — que é indistinguível de não ter sido escutado.
+  const responderPergunta = useCallback(
+    async (input: { pedidoId: string; opcaoId?: string; numero?: number }) => {
+      try {
+        const res = await fetch(`/api/portal/pedidos/responder${q}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) return { ok: false, erro: typeof j.error === "string" ? j.error : "Não consegui registrar sua resposta agora." };
+        await carregarPedidos();
+        return { ok: true, recado: typeof j.recado === "string" ? j.recado : undefined };
+      } catch {
+        return { ok: false, erro: "Sem conexão agora. Sua resposta não foi registrada — tente de novo." };
+      }
+    },
+    [q, carregarPedidos],
+  );
+
   const carregarEsteira = useCallback(async () => {
     try {
       const res = await fetch(`/api/portal/esteira${q}`, { cache: "no-store" });
@@ -924,7 +948,11 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
                     </div>
                   ) : (
                     <div style={{ marginTop: 13 }}>
-                      <MeusPedidos pedidos={pedidos} aoIrParaAprovacoes={(id) => irPara("aprovacoes", idDeOrcamento(id))} />
+                      <MeusPedidos
+                        pedidos={pedidos}
+                        aoIrParaAprovacoes={(id) => irPara("aprovacoes", idDeOrcamento(id))}
+                        aoResponderPergunta={responderPergunta}
+                      />
                     </div>
                   )}
                 </article>
