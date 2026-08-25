@@ -46,24 +46,73 @@ import { normalizar } from "@/lib/agency/esteira/leitura-do-pedido";
 import type { ProdutoCanonico } from "./registro";
 
 /**
- * OS VERBOS DE AÇÃO que uma chamada usa, no português que o cliente escreve.
+ * AS CHAMADAS PARA AÇÃO, no português que o cliente escreve.
  *
- * Lista larga de propósito: o custo de um falso POSITIVO aqui é deixar passar
- * um pedido sem CTA (que o especialista ainda pode resolver perguntando), e o
- * custo de um falso NEGATIVO é parar o pedido de alguém que escreveu a chamada
- * com outras palavras. O segundo incomoda mais, então a lista é generosa.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ POR QUE ISTO DEIXOU DE SER UMA LISTA DE RAÍZES (Auditor, 25/08/2026)
+ * ═══════════════════════════════════════════════════════════════════════════
  *
- * Busca por raiz, não por palavra inteira: "agendar", "agende", "agendamento"
- * são a mesma intenção e não vale manter três linhas para isso.
+ * A versão anterior era uma lista de raízes casada com `includes` sobre o texto
+ * cru. O Auditor mediu: de 8 frases **sem** chamada para ação, **4 passaram**.
+ *
+ *     "quero divulgar a nossa marca no bairro"  → passou pela raiz `marc`
+ *     "somos uma marca de bairro"               → passou pela raiz `marc`
+ *     "o pedido é falar do nosso pão"           → passou pela raiz `pedi`
+ *
+ * **A palavra mais frequente de um briefing de marca desarmava o portão.**
+ * "marca" e "pedido" são SUBSTANTIVOS aqui — e o portão os leu como os verbos
+ * "marcar" e "pedir". Um portão que aprova por omissão é pior que portão
+ * nenhum: ele produz a peça sem a ação, e a peça sem ação manda o cliente do
+ * cliente para lugar nenhum.
+ *
+ * ── O QUE MUDOU ───────────────────────────────────────────────────────────
+ *
+ * A régua passou a procurar FORMAS VERBAIS, com fronteira de palavra, e não
+ * pedaços de palavra soltos. Onde a forma é ambígua entre verbo e substantivo
+ * ("marca", "pedido", "conta"), ela só conta como chamada quando vem com o
+ * complemento que a torna uma AÇÃO ("marque um horário", "peça pelo link").
+ *
+ * ── E O VIÉS CONTINUA DECLARADO ───────────────────────────────────────────
+ *
+ * Ela continua generosa de propósito: o custo de um falso POSITIVO é deixar
+ * passar um pedido cuja ação estava implícita; o custo de um falso NEGATIVO é
+ * parar o pedido de quem escreveu a chamada com outras palavras. O segundo
+ * incomoda mais o cliente, então a dúvida pende para deixar passar — mas
+ * "marca" e "pedido" não são dúvida, são erro de leitura.
  */
-const VERBOS_DE_CHAMADA = [
-  "cham", "liga", "ligue", "whats", "zap", "direct", "dm",
-  "compr", "pedi", "peca", "encomend", "reserv", "agend", "marc",
-  "visit", "venha", "vem ", "passa la", "conhec", "experiment",
-  "clic", "acess", "link na bio", "arrast", "desliz", "toca aqui",
-  "saiba mais", "confir", "garant", "aproveit", "inscrev", "cadastr",
-  "responde", "comenta", "compartilh", "salv", "segue", "siga",
-  "fale", "fala com", "consult", "orcament", "solicit",
+const CHAMADAS_PARA_ACAO: RegExp[] = [
+  // Canal direto — nomear o canal É a ação.
+  /\bwhats\s?app|\bwhatsapp\b|\bwpp\b|\bzap\b/,
+  /\bdirect\b|\bdm\b|\binbox\b/,
+  /\blink (?:na|da) bio\b|\bsaiba mais\b|\btoca aqui\b|\barrast[ae]\b|\bdesliz[ae]\b/,
+  // Chamar / ligar / falar / responder.
+  /\bcham(?:a|e|ar|em|ando|ar-nos)\b/,
+  /\blig(?:a|ue|ar|uem|ando)\b/,
+  // "falar" sozinho NÃO é chamada: "falar do pão" é o assunto da peça, não a
+  // ação do seguidor. Só conta com o complemento que a torna ação.
+  /\bfal(?:a|e|ar|em)\s+(?:com|conosco|comigo|pelo|pela|no |na )/,
+  /\bresponde?r?\b|\bcoment(?:a|e|ar|em)\b|\bcompartilh(?:a|e|ar|em)\b/,
+  /\bsalv(?:a|e|ar|em)\b|\bsegu(?:e|ir|em)\b|\bsiga(?:m)?\b/,
+  // Comprar / pedir / encomendar.
+  /\bcompr(?:a|e|ar|em|ando)\b/,
+  /\bencomend(?:a|e|ar|em|ando)\b/,
+  /\bpedir\b|\bpe[çc]am?\s+(?:pelo|pela|no|na|aqui|agora|ja|o |a |um|uma|seu|sua)/,
+  // Marcar / agendar / reservar — "marca" sozinho é SUBSTANTIVO e não conta.
+  /\bagend(?:a|e|ar|em|ando)\b/,
+  /\breserv(?:a|e|ar|em|ando)\b/,
+  // ⚠️ O RADICAL MUDA DE LETRA: "marque" é mar-QUE, não marc-que. A régua
+  //    anterior errava a própria conjugação que dizia cobrir.
+  /\bmar(?:car|que|quem)\b|\bmarc(?:a|am)\s+(?:um|uma|seu|sua|hor[aá]rio|consulta|visita|hora)\b/,
+  // Ir até o lugar.
+  /\bvisit(?:a|e|ar|em)\b|\bvenham?\b|\bvem\b|\bvir\s+(?:na|no|at[eé]|aqui|conhecer)\b|\bpassa(?:r|m)? (?:l[aá]|aqui|na loja)\b/,
+  /\bconhe[çc](?:a|am|er)\b|\bexperiment(?:a|e|ar|em)\b|\bprov(?:a|e|ar|em)\b/,
+  // Clicar / acessar / se inscrever.
+  // Mesma armadilha do "marque": "clique" é cli-QUE.
+  /\bcli(?:ca|car|cando|que|quem|ck)\b|\bacess(?:a|e|ar|em|ando)\b/,
+  /\binscrev(?:a|er|am)\b|\bcadastr(?:a|e|ar|em|o)\b|\bgarant(?:a|ir|am)\b|\baproveit(?:a|e|ar|em)\b/,
+  /\bconf(?:ira|iram|erir)\b/,
+  // Pedir orçamento / consultar.
+  /\bor[çc]amento\b|\bconsult(?:a|e|ar|em)\b|\bsolicit(?:a|e|ar|em)\b/,
 ];
 
 /**
@@ -131,7 +180,7 @@ export interface VereditoDoBriefing {
 export function temChamadaParaAcao(texto: string | null | undefined): boolean {
   const t = normalizar(texto ?? "");
   if (!t) return false;
-  return VERBOS_DE_CHAMADA.some((v) => t.includes(v));
+  return CHAMADAS_PARA_ACAO.some((re) => re.test(t));
 }
 
 /**

@@ -108,6 +108,38 @@ const QUATRO_STORIES = {
 };
 
 /**
+ * ── O QUE O ESPECIALISTA DEVOLVE QUANDO O CLIENTE PEDE AJUSTE ──────────────
+ *
+ * O gerador de texto é dublado (é chamada paga; o que está sob teste é o
+ * TRANSPORTE, não a redação do modelo). Mas um dublê que devolve o MESMO texto
+ * numa refação não é um dublê fiel: ele encena um modelo que ignorou o cliente.
+ * Com ele, a imagem refeita sairia byte a byte idêntica — e o teste do ajuste
+ * ficaria verde sobre um ajuste que não ajustou.
+ *
+ * Este dublê faz o que o modelo real faz com "a terceira está escura demais,
+ * quero ela mais clara": reescreve a TERCEIRA (título, texto e direção de arte,
+ * agora com luz) e **preserva as outras três palavra por palavra** — que é o
+ * que o prompt da refação manda fazer.
+ *
+ * O que continua não dublado, e é o que está sob teste: QUAL peça recebe
+ * imagem nova. Isso é decisão da casa (`mira-da-peca.ts`), não do modelo — o
+ * dublê devolve as quatro, como um modelo devolveria.
+ */
+const QUATRO_STORIES_COM_A_TERCEIRA_MAIS_CLARA = {
+  ...QUATRO_STORIES,
+  items: QUATRO_STORIES.items.map((it, i) =>
+    i === 2
+      ? {
+          headline: "A padaria acende antes do sol",
+          direction: "o padeiro abrindo o forno na cozinha da padaria ao amanhecer, luz clara de manhã entrando pela janela",
+          palette: "creme e dourado claro",
+          note: "Quando o bairro acorda, o primeiro pão já saiu do forno.",
+        }
+      : it,
+  ),
+};
+
+/**
  * A MESMA peça, com uma afirmação que NADA sustenta.
  *
  * "a melhor padaria da cidade" é superlativo não sustentável — a classe que
@@ -171,6 +203,12 @@ vi.mock("@/lib/ai/generate", () => ({
       // um estado próprio, que a casa declara e que não vale como aprovação.
       if (!roteiro.juizResponde) return { ok: false, error: "provedor do árbitro indisponível" };
       return { ok: true, data: PARECER_APROVADO };
+    }
+    // A REFAÇÃO. O marcador é a frase que só o prompt de ajuste escreve
+    // (`esteira/refacao.ts`) — o dublê responde ao PEDIDO, não a um interruptor
+    // escondido no teste.
+    if (/O QUE O CLIENTE PEDIU, com as palavras dele/.test(texto)) {
+      return { ok: true, data: QUATRO_STORIES_COM_A_TERCEIRA_MAIS_CLARA };
     }
     return { ok: true, data: roteiro.peca === "superlativo" ? PECA_COM_SUPERLATIVO : QUATRO_STORIES };
   }),
@@ -290,11 +328,22 @@ const DEGRADACOES_ACEITAS_E_DECLARADAS = [
  *     superfície CHAPADA. Na peça que saiu, o título é branco sobre foto de
  *     alto ruído, e **ninguém mede esse par**. O portão não reprova porque não
  *     olha para lá. Dívida de prova, e a de maior consequência visual das três.
+ *     O Auditor conferiu com os olhos, na 4ª rodada: o título está
+ *     praticamente ilegível. A régua da marca (item 3-B) mede a TINTA no
+ *     rodapé, não a legibilidade do título — dizer que uma cobre a outra
+ *     seria a régua mirada no irmão outra vez.
+ * 3-B. A RÉGUA DA MARCA (25/08/2026) mede o que dá para medir: a primária do
+ *     cliente está na tinta do rodapé do JPEG. Ela NÃO julga se a peça está
+ *     "na cara da marca", não vê tipografia e não vê o logo.
  *  4. PIXELS EM NAVEGADOR — a camada visual é medida por HTML renderizado
  *     (`react-dom/server`) e por CSS compilado, nunca aplicando um ao outro e
  *     medindo a caixa resultante. Legibilidade tipográfica também não é medida.
  *  5. PUBLICAÇÃO META (fase H) — fora de escopo por ordem do plano. Nenhuma
  *     conta real foi tocada.
+ *  6. A MIRA DO AJUSTE lê ORDINAIS EXPLÍCITOS ("a terceira", "peça 3", "a
+ *     última"). Cliente que aponta a peça pelo ASSUNTO ("aquela do forno")
+ *     não é entendido, e aí a casa refaz o conjunto — caro, mas atende. Não
+ *     medido: mira por descrição.
  */
 export const O_QUE_NAO_FOI_MEDIDO = [
   "logo real do cliente numa peça",
@@ -302,6 +351,7 @@ export const O_QUE_NAO_FOI_MEDIDO = [
   "contraste de texto sobre fundo fotográfico de alto ruído",
   "pixels e legibilidade em navegador real",
   "publicação na Meta (fase 5)",
+  "mira do ajuste por descrição do assunto (só ordinal explícito é lido)",
 ];
 
 let workspaceId = "";
@@ -324,10 +374,33 @@ interface ClienteDeTeste {
 }
 
 async function abrirClienteFicticio(nome: string): Promise<ClienteDeTeste> {
+  // ── A CONVENÇÃO DOS FICTÍCIOS (Auditor, 4ª rodada) ───────────────────────
+  //
+  // Marcador no nome e contato em `.invalid`. Inerte neste banco efêmero — e a
+  // convenção não existe por causa deste banco: as travas de saída desta casa
+  // barram POR DADO, e um fictício que não se parece com fictício é exatamente
+  // o registro que atravessa quando alguém aponta a suíte para o lugar errado.
+  // `.invalid` é reservado por RFC 2606: nenhum servidor de e-mail o entrega.
+  //
+  // ⚠️ **SEM COLCHETES, e isso foi MEDIDO aqui, não escolhido por estilo.**
+  //
+  // A grafia `[TESTE]` da convenção derrubou as três rodadas do caso normal na
+  // primeira tentativa: `Client.name` é a ASSINATURA que o molde rasteriza na
+  // peça (`artes.ts`, `assinatura: marca.nome`), e a trava de texto reprova
+  // rótulo com pontuação — "rótulo com caractere que não é de rótulo". Toda
+  // peça passou a sair com `[molde] texto barrado pela trava`, ou seja, sem a
+  // camada de texto.
+  //
+  // A trava está CERTA e não foi afrouxada: assinatura de marca com colchete
+  // não é assinatura. Quem se adapta é a convenção — o marcador vira palavra,
+  // que é o que o cliente fictício quer dizer de qualquer forma, e a peça sai
+  // assinada dizendo TESTE, o que é ainda mais difícil de confundir com a peça
+  // de um cliente real.
+  const nomeFicticio = `${nome} TESTE`;
   const cliente = await prisma.client.create({
     data: {
-      workspaceId, name: nome, industry: "Alimentação",
-      email: `${nome.replace(/\W+/g, "-").toLowerCase()}@teste.dioli`,
+      workspaceId, name: nomeFicticio, industry: "Alimentação",
+      email: `${nome.replace(/\W+/g, "-").toLowerCase()}@teste.invalid`,
       // ── A MARCA DO CLIENTE ────────────────────────────────────────────────
       //
       // Sem isto, `moldeDoCliente` devolve `origem: "neutro"` e a peça sai no
@@ -350,7 +423,7 @@ async function abrirClienteFicticio(nome: string): Promise<ClienteDeTeste> {
   const solicitacao = await prisma.clientRequestDb.create({
     data: {
       workspaceId, clientId: cliente.id,
-      businessName: nome, segment: "Alimentação",
+      businessName: nomeFicticio, segment: "Alimentação",
       services: JSON.stringify(["social media"]),
       objectives: JSON.stringify([OBJETIVO_DO_CLIENTE]),
       briefingJson: JSON.stringify({ scope: { targetAudience: "moradores do bairro" } }),
@@ -360,7 +433,7 @@ async function abrirClienteFicticio(nome: string): Promise<ClienteDeTeste> {
   const projeto = await prisma.project.create({
     data: {
       workspaceId, clientId: cliente.id, clientRequestId: solicitacao.id,
-      name: `Social — ${nome}`, goal: OBJETIVO_DO_CLIENTE,
+      name: `Social — ${nomeFicticio}`, goal: OBJETIVO_DO_CLIENTE,
       stage: "producao", directionApprovedAt: new Date(),
     },
   });
@@ -369,7 +442,7 @@ async function abrirClienteFicticio(nome: string): Promise<ClienteDeTeste> {
   });
   return {
     clientId: cliente.id, clientRequestId: solicitacao.id,
-    projectId: projeto.id, token: acesso.token, nome,
+    projectId: projeto.id, token: acesso.token, nome: nomeFicticio,
   };
 }
 
@@ -600,6 +673,33 @@ describe("caso normal — o pedido do cliente vira JPEG 1080x1920 aprovável", (
         }
       }
 
+      // ── 4-B. A RÉGUA DA MARCA OLHA A PEÇA FINAL (critério D) ────────────
+      //
+      // Achado 7 da 4ª auditoria: nada nesta casa media o JPEG contra a marca.
+      // O contrato de marca ia ao PRODUTOR, o juiz auditava o TEXTO e o portão
+      // de contraste media cores DECLARADAS antes de a imagem existir. Três
+      // réguas, nenhuma abrindo o arquivo.
+      //
+      // Aqui a pergunta cai sobre os bytes que a rota pública serviu — e a
+      // régua sabe reprovar: `__tests__/produtos/a-marca-esta-na-peca-final.test.ts`
+      // rasteriza a mesma peça no molde neutro e ela fica vermelha.
+      {
+        const { conferirMarcaNaPecaFinal } = await import("@/lib/agency/produtos/regua-da-marca-na-peca");
+        const marcaDoCliente = await prisma.brandBrain.findFirstOrThrow({ where: { clientId: c.clientId } });
+        for (const p of posts) {
+          const arquivo = await baixarMidia(p.mediaUrl!, c.token);
+          const v = await conferirMarcaNaPecaFinal({
+            bytes: arquivo.bytes,
+            corDaMarca: marcaDoCliente.primaryColor!,
+            ondeEsta: `peça ${p.id}`,
+          });
+          expect(
+            v.ok,
+            `a peça foi entregue como "com a marca aplicada" e o arquivo não carrega a marca: ${v.motivo}`,
+          ).toBe(true);
+        }
+      }
+
       // ── 5. O CARD DO PORTAL TEM A PEÇA DENTRO ───────────────────────────
       expect(card, "o cliente tem onde decidir").toBeTruthy();
       expect(card!.clientVisible).toBe(true);
@@ -609,20 +709,53 @@ describe("caso normal — o pedido do cliente vira JPEG 1080x1920 aprovável", (
         "o card aponta as peças — é o que põe a imagem no cartão",
       ).toEqual(posts.map((p) => p.id));
 
-      // A prova de que o portal renderiza a IMAGEM, e não só texto: é
-      // `montarPecas` que o portal usa, e é ela que se pergunta aqui.
-      const { montarPecas } = await import("@/lib/agency/esteira/pacote");
-      const mapa = await montarPecas([{
-        id: card!.id, clientId: card!.clientId, clientRequestId: card!.clientRequestId,
-        sourcePostIdsJson: card!.sourcePostIdsJson, deliverableVersion: null,
-        reviewNote: card!.reviewNote, department: card!.department,
-      } as never]);
-      const noCartao = mapa.get(card!.id) ?? [];
-      expect(noCartao.length, "o cartão mostra as quatro peças").toBe(posts.length);
-      for (const peca of noCartao) {
-        expect(peca.capa, "cartão sem corpo visual é reprovação imediata").toBeTruthy();
+      // ── A PROVA DE QUE O CLIENTE VÊ A IMAGEM, PELA PORTA REAL ──────────
+      //
+      // ⚠️ Esta passagem chamava `montarPecas` DIRETO — função interna. O
+      // Auditor apontou (4ª rodada) que é a mesma classe que o contrato lista
+      // como reprovação imediata: "teste que chama função interna e ignora a
+      // porta real do portal". Não foi consumada porque o teste do sem-árbitro
+      // já cobria o componente pela porta real, mas o caso normal sozinho não
+      // provaria nada — e é o caso normal que se repete três vezes.
+      //
+      // Agora a pergunta vai à MESMA porta que o navegador do cliente chama, e
+      // a resposta é montada no MESMO componente que ele enxerga.
+      const { GET: portalDataNormal } = await import("@/app/api/brain/portal-data/route");
+      const respostaDoPortal = await portalDataNormal(
+        new NextRequest(`http://local/api/brain/portal-data?token=${c.token}`),
+      );
+      expect(respostaDoPortal.status, "a porta real do portal responde").toBe(200);
+      const dadosDoPortal = await respostaDoPortal.json();
+      const cardNoPortal = (dadosDoPortal.approvals ?? []).find((a: { id: string }) => a.id === card!.id);
+      expect(cardNoPortal, "o card chega ao portal do cliente").toBeTruthy();
+      expect(cardNoPortal.semConteudo, "card sem corpo visual é reprovação imediata").not.toBe(true);
+      expect(cardNoPortal.pecas.length, "o cartão leva as quatro peças").toBe(posts.length);
+      for (const peca of cardNoPortal.pecas) {
+        expect(peca.capa, "peça sem capa é cartão sem corpo visual").toBeTruthy();
         expect(peca.format).toBe("story");
       }
+
+      // E o componente REAL monta com esse card: o que se afirma é o HTML.
+      const { createElement: criarElemento } = await import("react");
+      const { renderToStaticMarkup: paraHtml } = await import("react-dom/server");
+      const { AprovacoesDoCliente: TelaDoCliente } = await import("@/components/portal/AprovacoesDoCliente");
+      const htmlDoCartao = paraHtml(
+        criarElemento(TelaDoCliente, {
+          aprovacoes: [cardNoPortal], token: c.token, abertaId: cardNoPortal.id,
+          onAbrir: () => {}, enviando: false, erro: null, onDecidir: async () => true,
+        }),
+      );
+      const imagensNaTela = [...htmlDoCartao.matchAll(/<img[^>]+\/api\/media\//g)];
+      expect(
+        imagensNaTela.length,
+        "o cliente é chamado a aprovar sem ver a peça — 'card sem corpo visual' é reprovação imediata",
+      ).toBe(posts.length);
+      expect(htmlDoCartao, "e os botões de decisão estão na mesma tela").toContain("Aprovar");
+      // A proporção do Story, na tela em que ele decide: quadrado corta o topo
+      // e a base, que é onde o molde põe o título e a assinatura da marca.
+      const { proporcaoDaPeca: proporcaoNaTela } = await import("@/lib/agency/portal/proporcao-da-peca");
+      expect(htmlDoCartao).toContain(proporcaoNaTela("story"));
+      expect(htmlDoCartao, "formato quadrado é reprovação imediata").not.toMatch(/aspect-square/);
 
       // ── 6. O CLIENTE APROVA, PELA PORTA DO PORTAL ───────────────────────
       const rAprovacao = await postAprovacao(req("/api/portal/approvals", {
@@ -653,15 +786,53 @@ describe("caso normal — o pedido do cliente vira JPEG 1080x1920 aprovável", (
 // CASO DE AJUSTE
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe("caso de ajuste — a versão anterior fica, e o feedback gruda na decisão", () => {
-  it("o cliente pede mudança: o card volta à revisão, com o comentário preso a ele", async () => {
+describe("caso de ajuste — a peça apontada volta como ARQUIVO NOVO", () => {
+  it("o cliente aponta a TERCEIRA peça: só ela ganha imagem nova, e ele aprova a versão nova", async () => {
+    // ═══════════════════════════════════════════════════════════════════════
+    // ⚠️ O QUE FOI MEDIDO CONTRA MIM (Auditor, 4ª rodada, 25/08/2026)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Sonda dele, na corrente rodando: o cliente escreveu "A TERCEIRA peça
+    // está escura demais, quero ela mais clara". A rota devolveu **200** e
+    // **0 de 4 arquivos mudaram** — `mediaUrl` idêntica, bytes idênticos
+    // (923.426 → 923.426). Três batidas do relógio depois, continuava 0 de 4.
+    //
+    // E a versão anterior DESTE teste afirmava o defeito como se fosse virtude:
+    //
+    //     expect(agora.map(p => p.mediaUrl)).toEqual(arquivosAntes)
+    //     // rotulado "nenhum arquivo anterior foi apagado"
+    //
+    // Leia de novo: essa linha EXIGIA que os arquivos fossem os mesmos. Ela
+    // transformava "o ajuste não fez nada" em verde — régua verde sobre o
+    // componente errado, dentro do teste que devia proteger o cliente.
+    //
+    // **Preservar a versão anterior e PRODUZIR uma nova são coisas diferentes.**
+    // Este teste agora exige as duas, e exige a MIRA: a terceira muda, as
+    // outras três não. Refazer as quatro gastaria quatro imagens pagas para
+    // destruir três peças que estavam boas.
     const c = await abrirClienteFicticio("Padaria do Ajuste");
     await pagar(c, 9900);
     const { pedidoId } = await pedirPeloPortal(c);
     const { posts, card } = await pecasDoPedido(pedidoId);
     expect(posts.length).toBe(4);
 
-    const arquivosAntes = posts.map((p) => p.mediaUrl);
+    // Os arquivos de ANTES, e os BYTES de antes: `mediaUrl` diferente com bytes
+    // iguais também seria mentira, e é barato demais conferir para não conferir.
+    const urlAntes = posts.map((p) => p.mediaUrl!);
+    const bytesAntes = await Promise.all(urlAntes.map(async (u) => (await baixarMidia(u, c.token)).bytes.length));
+
+    // ── QUANTAS IMAGENS PAGAS O AJUSTE VAI GASTAR ────────────────────────
+    //
+    // A régua de "somente a peça apontada volta" NÃO pode ser só "as outras
+    // não mudaram": o dublê do especialista preserva o texto das outras três
+    // palavra por palavra, então mesmo refazendo as quatro os arquivos delas
+    // sairiam idênticos e a régua ficaria verde sobre quatro imagens PAGAS
+    // jogadas fora. Foi assim que a mira quase passou sem trava.
+    //
+    // O que a mira protege é dinheiro e é a peça boa. Então o que se conta é a
+    // CHAMADA PAGA — `generateDesign`, a mesma que o teto diário conta.
+    const design2 = await import("@/lib/ai/design-engine");
+    const imagensAntesDoAjuste = vi.mocked(design2.generateDesign).mock.calls.length;
 
     const r = await postAprovacao(req("/api/portal/approvals", {
       token: c.token, approvalRequestId: card!.id, action: "request_revision",
@@ -669,22 +840,63 @@ describe("caso de ajuste — a versão anterior fica, e o feedback gruda na deci
     }));
     expect(r.status).toBe(200);
 
+    expect(
+      vi.mocked(design2.generateDesign).mock.calls.length - imagensAntesDoAjuste,
+      "o cliente apontou UMA peça e a casa comprou imagem para mais de uma — " +
+      "refação sem mira é o risco 4 do plano: gasta o dinheiro da casa para PIORAR " +
+      "as três peças que estavam boas",
+    ).toBe(1);
+
     const depois = await prisma.approvalRequest.findUniqueOrThrow({
       where: { id: card!.id }, include: { comments: true },
     });
 
-    // ── O QUE A CASA FAZ COM UM PEDIDO DE AJUSTE ─────────────────────────
-    //
-    // A decisão do cliente grava "revision_requested" e dispara
-    // `refazerPorPedidoDoCliente`, que refaz a entrega e **reabre o card com a
-    // VERSÃO NOVA na mesa** (`esteira/refacao.ts`): status volta a "pending",
-    // `reviewedBy`/`reviewedAt` são limpos e `deliverableVersionId` aponta a
-    // versão recém-nascida.
-    //
-    // Isto está CERTO e é o que se afirma aqui: o "sim" anterior não pode valer
-    // para uma versão que o cliente ainda não viu. Um teste que exigisse o card
-    // parado em "revision_requested" estaria exigindo que a refação NÃO
-    // acontecesse.
+    // ── 1. A PEÇA APONTADA GANHOU ARQUIVO NOVO ───────────────────────────
+    const agora = await prisma.socialPost.findMany({
+      where: { id: { in: posts.map((p) => p.id) } }, orderBy: { createdAt: "asc" },
+    });
+    expect(agora.length).toBe(4);
+
+    const TERCEIRA = 2; // índice 0-based da peça que ele apontou
+    expect(
+      agora[TERCEIRA]!.mediaUrl,
+      "o cliente pediu ajuste NA TERCEIRA e recebeu de volta exatamente a mesma imagem — " +
+      "'ajustável' é a régua do concluído, e ela não é atendida por um 200",
+    ).not.toBe(urlAntes[TERCEIRA]);
+    expect(agora[TERCEIRA]!.mediaUrl, "e o arquivo novo existe").toBeTruthy();
+
+    // ── 2. E É UM JPEG 1080×1920 DE VERDADE, servido pela rota pública ────
+    // Arquivo novo que não abre, ou que abre com outra dimensão, é pior que
+    // arquivo velho: o cliente aprova o que a casa não pode publicar.
+    const nova = await baixarMidia(agora[TERCEIRA]!.mediaUrl!, c.token);
+    expect(nova.status, "a imagem nova é servida ao cliente").toBe(200);
+    expect(nova.mime).toBe("image/jpeg");
+    const { default: sharp } = await import("sharp");
+    const exigidaNoAjuste = dimensaoExigida(INSTAGRAM_STORY_ESTATICO_V1);
+    const medidaNova = await sharp(nova.bytes).metadata();
+    expect(medidaNova.width).toBe(exigidaNoAjuste.largura);
+    expect(medidaNova.height).toBe(exigidaNoAjuste.altura);
+    expect(nova.bytes.length, "e os BYTES são outros — não é a mesma imagem com nome novo")
+      .not.toBe(bytesAntes[TERCEIRA]);
+
+    // ── 3. SOMENTE A PEÇA APONTADA VOLTA ─────────────────────────────────
+    // Risco 4 do plano ("refação sem mira"). As outras três não foram tocadas:
+    // nem arquivo novo, nem imagem paga gasta.
+    for (const i of [0, 1, 3]) {
+      expect(
+        agora[i]!.mediaUrl,
+        `a peça ${i + 1} não foi apontada e não podia mudar — refazer o que estava bom é prejuízo da casa e frustração dele`,
+      ).toBe(urlAntes[i]);
+    }
+
+    // ── 4. A VERSÃO ANTERIOR É PRESERVADA ────────────────────────────────
+    // O arquivo velho da TERCEIRA não foi apagado: ele continua servível. É
+    // isto que a frase do contrato quer dizer — e é diferente de "não mudou".
+    for (const u of urlAntes) {
+      expect((await baixarMidia(u, c.token)).status, "o arquivo anterior continua acessível").toBe(200);
+    }
+
+    // ── 5. O CARD REABRE COM A VERSÃO NOVA ───────────────────────────────
     expect(depois.status, "o card reabre com a versão nova para o cliente decidir").toBe("pending");
     expect(depois.reviewedBy, "o sim anterior não vale para a versão nova").toBeNull();
 
@@ -692,27 +904,44 @@ describe("caso de ajuste — a versão anterior fica, e o feedback gruda na deci
     expect(depois.comments.some((x) => /escura demais/.test(x.body))).toBe(true);
     expect(depois.comments.some((x) => x.authorRole === "client")).toBe(true);
 
-    // E EXISTE UMA VERSÃO NOVA, com o pedido do cliente citado nela.
+    // E EXISTE UMA VERSÃO NOVA DO TEXTO, com o pedido do cliente citado nela.
+    const deliverableId = (await prisma.contentRequest.findUniqueOrThrow({ where: { id: pedidoId } })).deliverableId!;
     const versoes = await prisma.deliverableVersion.findMany({
-      where: { deliverableId: (await prisma.contentRequest.findUniqueOrThrow({ where: { id: pedidoId } })).deliverableId! },
-      orderBy: { number: "asc" },
+      where: { deliverableId }, orderBy: { number: "asc" },
     });
     expect(versoes.length, "o ajuste produz uma versão nova").toBeGreaterThanOrEqual(1);
     expect(versoes.some((v) => /escura demais/.test(v.note ?? "")), "a versão nova cita o que o cliente pediu").toBe(true);
 
-    // ── A VERSÃO ANTERIOR É PRESERVADA ───────────────────────────────────
-    // Ajustar e recusar nunca apagam o que já existia: os arquivos continuam
-    // lá, e continuam servíveis pela rota pública.
-    const agora = await prisma.socialPost.findMany({
+    // Nenhuma peça foi para o caminho do relógio por causa de um AJUSTE.
+    for (const p of agora) expect(p.status, "peça em ajuste não vai ao ar").not.toBe("scheduled");
+
+    // ── 6. O CLIENTE APROVA A VERSÃO NOVA — o ciclo fecha ────────────────
+    //
+    // Achado 4 da 4ª auditoria: o caso de ajuste terminava sem a SEGUNDA
+    // decisão do cliente, que é justamente o que fecha o ciclo. Um ajuste que
+    // nunca é aprovado não prova que o cliente conseguiu chegar ao fim.
+    const rAprova = await postAprovacao(req("/api/portal/approvals", {
+      token: c.token, approvalRequestId: card!.id, action: "approve", authorName: c.nome,
+    }));
+    expect(rAprova.status, "o cliente consegue aprovar a versão nova pelo portal").toBe(200);
+
+    const fechado = await prisma.approvalRequest.findUniqueOrThrow({ where: { id: card!.id } });
+    expect(fechado.status, "a versão nova fica aprovada").toBe("approved");
+    expect(fechado.reviewedBy, "aprovação sem autoria do cliente é reprovação imediata").toBe(`client:${c.nome}`);
+    expect(fechado.reviewedAt).toBeTruthy();
+
+    // E o que ele aprovou é a imagem NOVA — não a que ele tinha recusado.
+    const noFim = await prisma.socialPost.findMany({
       where: { id: { in: posts.map((p) => p.id) } }, orderBy: { createdAt: "asc" },
     });
-    expect(agora.map((p) => p.mediaUrl), "nenhum arquivo anterior foi apagado").toEqual(arquivosAntes);
-    for (const p of agora) {
-      expect((await baixarMidia(p.mediaUrl!, c.token)).status, "o arquivo anterior continua acessível").toBe(200);
-      // E nenhuma peça foi para o caminho do relógio por causa de um AJUSTE.
-      expect(p.status, "peça em ajuste não vai ao ar").not.toBe("scheduled");
-    }
-  }, 600_000);
+    expect(noFim[TERCEIRA]!.mediaUrl).toBe(agora[TERCEIRA]!.mediaUrl);
+    expect(noFim[TERCEIRA]!.mediaUrl).not.toBe(urlAntes[TERCEIRA]);
+
+    // E ele consegue BAIXAR o arquivo aprovado.
+    const baixado = await baixarMidia(noFim[TERCEIRA]!.mediaUrl!, c.token);
+    expect(baixado.status).toBe(200);
+    expect(baixado.bytes.length).toBeGreaterThan(10_000);
+  }, 900_000);
 
   it("comentário é OBRIGATÓRIO no ajuste — sem as palavras do cliente não se refaz", async () => {
     const c = await abrirClienteFicticio("Padaria do Ajuste Mudo");

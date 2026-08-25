@@ -411,6 +411,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             // cliente apertou (`status`) — as duas informações existiam e
             // nenhuma das duas atravessava a fronteira.
             deliverableId: approval.deliverableVersion?.deliverableId ?? null,
+            // ── AS PEÇAS QUE ELE ESTAVA VENDO (25/08/2026) ─────────────────
+            //
+            // A recusa já recebia isto; o AJUSTE não. E era esse o buraco que a
+            // 4ª auditoria mediu: sem os `postIds`, `refazerPorPedidoDoCliente`
+            // refazia o TEXTO e nada chamava o rasterizador — o cliente pedia
+            // "a terceira mais clara", recebia 200, e 0 de 4 arquivos mudavam.
+            //
+            // A ORDEM importa e é a mesma que o cartão mostrou: é ela que faz
+            // "a terceira peça" ser a terceira imagem, e não outra.
+            postIds: postsDoCard,
             // Só o AJUSTE chega aqui agora. `modo` continua no contrato de
             // `refazerPorPedidoDoCliente` porque a agência ainda pode mandar
             // refazer uma peça recusada DEPOIS de falar com o cliente — o que

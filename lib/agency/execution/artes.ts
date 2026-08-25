@@ -229,7 +229,21 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // TODAS as telas ficam prontas, então um carrossel pela metade continua
       // aparecendo como pendente na rodada seguinte.
       ...(refazendo ? { id: { in: recorte.refazer! } } : { mediaUrl: null }),
-      status: { in: ["draft", "scheduled", "approved"] },
+      // ── POR QUE "revision_requested" SÓ ENTRA REFAZENDO (25/08/2026) ──────
+      //
+      // O Auditor mediu: o cliente pediu "a terceira peça mais clara", a rota
+      // devolveu 200 e **0 de 4 arquivos mudaram**. Uma das duas causas estava
+      // aqui — a rota do portal marca a peça apontada como `revision_requested`
+      // (`app/api/portal/approvals/route.ts`), e este `where` não a selecionava.
+      // A peça que o cliente pediu para mudar era exatamente a única que não
+      // podia ser produzida de novo.
+      //
+      // Ela entra SÓ no caminho nomeado (`refazer`), e a distinção não é
+      // estilo: na rodada de sempre a seleção é `mediaUrl: null`, e peça em
+      // revisão TEM arquivo — ela nunca seria alcançada de qualquer forma.
+      // Manter o estado fora do laço global deixa explícito que ninguém
+      // redesenha uma peça em revisão por conta do relógio: só quem a NOMEIA.
+      status: { in: refazendo ? ["draft", "scheduled", "approved", "revision_requested"] : ["draft", "scheduled", "approved"] },
       // O recorte por cliente é OPCIONAL e some quando ninguém o pede — sem ele
       // o `where` é idêntico ao de sempre. `clientId: undefined` seria ignorado
       // pelo Prisma de qualquer forma; a condicional está aqui para que a

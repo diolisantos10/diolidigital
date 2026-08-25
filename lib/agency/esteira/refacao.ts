@@ -53,6 +53,8 @@ import {
 } from "@/lib/agency/execution/quality-auditor";
 import { entregaMostradaPorDepartamento } from "@/lib/agency/esteira/pacote";
 import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pagamento";
+import { refazerArteDoAjuste, type ArteDoAjuste } from "@/lib/agency/esteira/refazer-a-arte-do-ajuste";
+import { pecasDoEspecialista } from "@/lib/agency/esteira/producao-de-pedido";
 
 /** Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente. */
 export const MAX_REFACOES_DO_CLIENTE = 2;
@@ -63,6 +65,17 @@ export interface RefacaoFeita {
   /** Ids das `DeliverableVersion` recém-nascidas — a rodada nova de aprovação
    *  precisa registrar QUAL versão será decidida (Fase 2, T3/T7). */
   versoesNovas: string[];
+  /**
+   * O QUE ACONTECEU COM AS IMAGENS. `null` = a entrega não tem peça visual
+   * (pauta, roteiro, relatório) e não havia arte para refazer.
+   *
+   * ⚠️ Este campo nasceu do defeito da 4ª auditoria (25/08/2026): a refação
+   * refazia o TEXTO, criava a versão nova, reabria o card — e **0 de 4
+   * arquivos mudavam**. "Refeita" sem arquivo novo é a mesma classe de mentira
+   * de estado que `done` sem `mediaUrl`. Agora a refação só se declara feita
+   * do lado visual quando o `mediaUrl` de fato mudou.
+   */
+  arte: ArteDoAjuste | null;
   /** Virou assunto de gente — e por quê. */
   escalado: boolean;
   motivo?: string;
@@ -114,8 +127,15 @@ export async function refazerPorPedidoDoCliente(input: {
    * conservador é o certo quando o chamador não declarou.
    */
   modo?: "ajuste" | "recusa";
+  /**
+   * AS PEÇAS QUE O CARD ESTAVA MOSTRANDO, na ordem em que ele as mostrou.
+   * Vêm de `ApprovalRequest.sourcePostIdsJson` — o mesmo campo que a recusa já
+   * recebia. É por elas que o texto refeito vira IMAGEM refeita; sem elas a
+   * refação continua sendo só de texto, que era o defeito de 25/08/2026.
+   */
+  postIds?: string[];
 }): Promise<RefacaoFeita> {
-  const saida: RefacaoFeita = { refeitas: [], versoesNovas: [], escalado: false, avisouCliente: false };
+  const saida: RefacaoFeita = { refeitas: [], versoesNovas: [], arte: null, escalado: false, avisouCliente: false };
 
   const clientRequestId = input.clientRequestId?.trim() || null;
   // O dono: quando só veio a solicitação, o cliente é derivado dela. Derivação,
@@ -383,6 +403,11 @@ export async function refazerPorPedidoDoCliente(input: {
   // ter ouvido.
   const recusou = input.modo === "recusa";
 
+  // O JSON REFEITO, guardado para virar imagem. A refação já o tem em mãos; o
+  // que faltava era ele atravessar para o lado visual. Ver o bloco "O TEXTO
+  // NOVO VIRA IMAGEM NOVA", abaixo.
+  let dadosRefeitos: Record<string, unknown> | null = null;
+
   for (const entrega of alvos) {
     if (entrega.version > MAX_REFACOES_DO_CLIENTE) {
       saida.escalado = true;
@@ -567,6 +592,8 @@ export async function refazerPorPedidoDoCliente(input: {
       },
     });
 
+    dadosRefeitos = dados;
+
     const novaVersao = await registrarNovaVersao({
       deliverableId: entrega.id,
       number: entrega.version + 1,
@@ -578,7 +605,54 @@ export async function refazerPorPedidoDoCliente(input: {
     saida.refeitas.push(entrega.name);
   }
 
-  if (saida.refeitas.length > 0) {
+  // ═══════════════════════════════════════════════════════════════════════
+  // O TEXTO NOVO VIRA IMAGEM NOVA — a metade que faltava (Auditor, 25/08/2026)
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // Até aqui esta função refazia o TEXTO e criava a versão. Nada chamava o
+  // rasterizador: a sonda do Auditor pediu "a TERCEIRA peça está escura
+  // demais", recebeu 200, e **0 de 4 arquivos mudaram** — mesma `mediaUrl`,
+  // mesmos bytes. O card reabria em `pending` e o cliente era chamado a
+  // decidir de novo sobre exatamente as imagens que ele acabara de recusar.
+  //
+  // A mira da PEÇA (qual das quatro) mora em `mira-da-peca.ts` e a fiação +
+  // o laço de arte em `refazer-a-arte-do-ajuste.ts`. Nenhum dos dois compõe
+  // imagem: quem compõe é `produzirArtesPendentes`, o laço de sempre.
+  //
+  // Só no AJUSTE. A recusa tem caminho próprio (`recusarPorPedidoDoCliente`),
+  // que retira a peça em vez de redesenhá-la.
+  const pecasDoCard = (input.postIds ?? []).filter((x) => typeof x === "string" && x.length > 0);
+  if (!recusou && saida.refeitas.length > 0 && alvos.length === 1 && pecasDoCard.length > 0) {
+    saida.arte = await refazerArteDoAjuste({
+      clientId: projeto.clientId ?? clientId,
+      postIds: pecasDoCard,
+      // O JSON refeito do especialista, lido pelo MESMO leitor da produção.
+      pecasNovas: pecasDoEspecialista(dadosRefeitos ?? {}),
+      comentario,
+    }).catch((e: unknown): ArteDoAjuste => ({
+      refeitas: [], preservadas: [], mira: null,
+      motivo: `não consegui refazer as imagens (${e instanceof Error ? e.message : "erro desconhecido"}). ` +
+        "A arte anterior continua de pé. Dono: a agência (produção).",
+    }));
+    if (saida.arte.motivo) {
+      saida.escalado = true;
+      saida.motivo = saida.arte.motivo;
+    }
+  }
+
+  // ── QUANDO O CARD **NÃO** PODE REABRIR ──────────────────────────────────
+  //
+  // Se a entrega TEM peças visuais e nenhuma ganhou arquivo novo, reabrir em
+  // `pending` seria pedir ao cliente que decidisse outra vez sobre a mesma
+  // imagem — com a tela dizendo "refizemos". É a mentira de estado que esta
+  // rodada veio fechar. Nesse caso o card fica em "Ajustes solicitados", a
+  // equipe é acionada (`escalar`, abaixo) e o cliente recebe a mensagem
+  // honesta de que a casa está trabalhando nisso.
+  const arteDevia = saida.arte != null && pecasDoCard.length > 0;
+  const arteSaiu = (saida.arte?.refeitas.length ?? 0) > 0;
+  const podeReabrir = !arteDevia || arteSaiu;
+
+  if (saida.refeitas.length > 0 && podeReabrir) {
     // A aprovação volta a ficar pendente: a peça mudou, e o "sim" anterior não
     // vale para uma versão que o cliente ainda não viu. A rodada nova aponta
     // para a versão recém-nascida — quando a refação produziu UMA versão; com
@@ -604,10 +678,28 @@ export async function refazerPorPedidoDoCliente(input: {
       },
     }).catch(() => { /* best-effort */ });
 
+    // ── O QUE A MENSAGEM PODE AFIRMAR ────────────────────────────────────
+    // "Refiz" só é dito sobre o que de fato mudou. Quando o cliente apontou
+    // UMA peça, a mensagem diz qual e diz que as outras ficaram como estavam —
+    // é isso que o transforma de "eles mexeram em tudo" em "eles ouviram".
+    const arte = saida.arte;
+    const linhaDaArte: string[] = [];
+    if (arte && arte.refeitas.length > 0) {
+      linhaDaArte.push(
+        arte.mira
+          ? `Refiz a imagem da peça ${arte.mira.indice} — foi a que você apontou ("${arte.mira.trecho}").`
+          : `Refiz a imagem de ${arte.refeitas.length} peça(s).`,
+      );
+      if (arte.preservadas.length > 0) {
+        linhaDaArte.push(`As outras ${arte.preservadas.length} ficaram exatamente como estavam.`);
+      }
+    }
+
     saida.avisouCliente = await escreverNoPortal(ancora, [
       "Refiz o que você pediu! ✏️",
       "",
       ...saida.refeitas.map((n) => `• ${n}`),
+      ...(linhaDaArte.length > 0 ? ["", ...linhaDaArte] : []),
       "",
       `Ajustei com base no que você falou: "${comentario.slice(0, 200)}"`,
       "Dá uma olhada na aba de aprovações e me diz se ficou como você queria.",
@@ -616,9 +708,18 @@ export async function refazerPorPedidoDoCliente(input: {
 
   if (saida.escalado) {
     await escalar(dono, negocio, saida.motivo ?? "refação não concluída", comentario);
+    // O SILÊNCIO CONTINUA IMPOSSÍVEL. Duas ausências diferentes, duas frases —
+    // e a segunda nasceu em 25/08/2026: o texto foi refeito e a IMAGEM não.
+    // Dizer "refiz" ali seria a mesma mentira de estado do card reabrindo com
+    // a arte velha; ficar calado seria pior ainda.
     if (saida.refeitas.length === 0) {
       saida.avisouCliente = await escreverNoPortal(ancora,
         "Recebi seu pedido e já estou olhando com atenção. Te retorno em breve com o ajuste. 💛");
+    } else if (!podeReabrir) {
+      saida.avisouCliente = await escreverNoPortal(ancora,
+        "Recebi seu pedido e já ajustei o texto — mas a imagem nova ainda não ficou pronta, " +
+        "e eu não vou te pedir para aprovar de novo a mesma arte que você acabou de recusar. " +
+        "A equipe está com isso agora e eu te aviso assim que a peça nova estiver na sua aba de aprovações. 💛");
     }
   }
 

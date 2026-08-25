@@ -60,6 +60,7 @@ import { produzirArtesPendentes, pecaSaiuSemTitulo, type ArtesFeitas } from "@/l
 import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
 import { moldeDoCliente } from "@/lib/agency/design/molde";
 import { conferirContraste, motivoDoContraste } from "@/lib/agency/design/contraste";
+import { conferirMarcaNaPecaFinal, type VereditoDaMarcaNaPeca } from "./regua-da-marca-na-peca";
 import { lerArquivo } from "@/lib/agency/media/armazenamento";
 import {
   conferirArquivoDoProduto, medidaEmUmaLinha, type MedidaDoArquivo,
@@ -145,6 +146,14 @@ export interface ProvaDaPeca {
   mediaUrl: string;
   mediaAssetId: string;
   medida: MedidaDoArquivo;
+  /**
+   * A MARCA, MEDIDA NO ARQUIVO QUE SAIU. `null` só quando o molde é neutro —
+   * o cliente não declarou cor, e não há marca contra a qual medir.
+   *
+   * Critério D do contrato: "a régua da marca analisa a peça final". Até
+   * 25/08/2026 nenhuma régua desta casa abria o JPEG e perguntava isso.
+   */
+  marca: VereditoDaMarcaNaPeca | null;
   /** A medida em uma linha, pronta para o relatório de evidência. */
   resumo: string;
 }
@@ -461,12 +470,38 @@ export async function entregarStoryInstagramV1(p: PedidoDeStory): Promise<Result
       continue;
     }
 
+    // ── A RÉGUA DA MARCA, SOBRE O ARQUIVO ────────────────────────────────
+    //
+    // Critério D: "a régua da marca analisa a peça final". As outras três
+    // réguas de marca desta casa olham para outra coisa — o contrato vai ao
+    // PRODUTOR antes de produzir, o juiz audita o TEXTO, e o portão de
+    // contraste mede cores DECLARADAS antes da imagem existir. Nenhuma abria o
+    // JPEG. Esta abre, e mede a tinta da marca no rodapé da peça — que é onde
+    // `montarHtmlDaPeca` pinta a primária do cliente.
+    //
+    // Molde NEUTRO não é medido, pela mesma razão do portão de contraste: sem
+    // cor declarada não há marca contra a qual medir, e reprovar aqui cobraria
+    // do cliente uma cor que ele nunca deu. A ausência já é declarada.
+    let marca: VereditoDaMarcaNaPeca | null = null;
+    if (moldeDaPeca.origem === "marca") {
+      marca = await conferirMarcaNaPecaFinal({
+        bytes,
+        corDaMarca: moldeDaPeca.primaria,
+        ondeEsta: `peça ${id}, mídia ${asset.id}`,
+      });
+      if (!marca.ok) {
+        reprovados.push(`${id}: ${marca.motivo}`);
+        continue;
+      }
+    }
+
     provas.push({
       postId: id,
       format: post.format,
       mediaUrl: post.mediaUrl!,
       mediaAssetId: asset.id,
       medida: veredito.medida,
+      marca,
       resumo: medidaEmUmaLinha(veredito.medida),
     });
   }

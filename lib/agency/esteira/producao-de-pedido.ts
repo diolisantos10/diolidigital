@@ -722,7 +722,13 @@ function blocoDoProduto(produto: ProdutoCanonico | null): string {
  * que é o comportamento certo: entregar uma peça com título vazio é entregar
  * uma peça quebrada com cara de peça.
  */
-function pecasDoEspecialista(data: Record<string, unknown>): PecaDoEspecialista[] {
+// Exportada em 25/08/2026 para o AJUSTE. A refação precisava transformar o
+// JSON refeito do especialista nas mesmas peças que a produção cria — e a
+// alternativa era um segundo leitor (ou reler o markdown, que é uma volta com
+// perda: `extrairPecas` procura "- Legenda:" e este especialista escreve
+// `note`, então a peça voltava vazia). Duas leituras do mesmo JSON divergiriam
+// no primeiro ajuste, e aí a imagem refeita traria o texto de outra peça.
+export function pecasDoEspecialista(data: Record<string, unknown>): PecaDoEspecialista[] {
   const campo = (it: Record<string, unknown>, nome: string): string =>
     typeof it[nome] === "string" ? (it[nome] as string).trim() : "";
 
