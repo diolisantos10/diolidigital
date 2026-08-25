@@ -259,11 +259,32 @@ async function cuidarDosPedidos(): Promise<number> {
   const { MAX_TENTATIVAS_DE_PRODUCAO } = await import("@/lib/agency/esteira/producao-de-pedido");
   const paraProduzir = await prisma.contentRequest.findMany({
     where: {
-      deliverableId: null,
       // Depois do teto, o pedido já virou `precisa_decisao` — insistir aqui só
       // queimaria IA para chegar sempre ao mesmo lugar.
       productionAttempts: { lt: MAX_TENTATIVAS_DE_PRODUCAO },
-      OR: [{ status: "triado" }, { status: "em_producao", updatedAt: { lt: travadoAntesDe } }],
+      // ── O QUE O RELÓGIO ENXERGA (25/08/2026) ─────────────────────────────
+      //
+      // Era `deliverableId: null` seco, e para a entrega de TEXTO isso está
+      // certo: lá o entregável só existe quando o trabalho terminou.
+      //
+      // A corrente VISUAL grava o entregável ANTES da arte, de propósito — é a
+      // chave de idempotência que faz a retomada reencontrar o mesmo trabalho
+      // em vez de criar outras quatro peças pagas. Consequência não intencional:
+      // uma corrente que morresse no meio (provedor de imagem caído, Chromium
+      // sumido) ficava com entregável gravado e status "em_producao", e este
+      // `where` NUNCA mais a via. O pedido do cliente ficava preso para sempre,
+      // e o único jeito de destravá-lo era alguém escrever no banco.
+      //
+      // Agora o relógio reconhece as duas formas. Produto canônico com
+      // entregável e sem cartão é corrente parada no meio — e retomá-la não
+      // duplica nada: `entregarStoryInstagramV1` reaproveita as peças que já
+      // existem para aquele entregável.
+      OR: [
+        { deliverableId: null, status: "triado" },
+        { deliverableId: null, status: "em_producao", updatedAt: { lt: travadoAntesDe } },
+        { produtoId: { not: null }, deliverableId: { not: null }, status: "triado" },
+        { produtoId: { not: null }, deliverableId: { not: null }, status: "em_producao", updatedAt: { lt: travadoAntesDe } },
+      ],
     },
     orderBy: { createdAt: "asc" },
     take: MAX_POR_RODADA,

@@ -148,6 +148,24 @@ describe("o caminho legítimo — story vira story", () => {
     expect(pedidos.get("pc-1")!.produtoId).toBe(ID_STORY_V1);
   });
 
+  it("quem pede UM story NÃO é cobrado pelo pacote de quatro — para e pergunta", async () => {
+    // A trava da quantidade era fail-closed só PARA MENOS: impedia orçar 1
+    // quando ele pediu 11, e deixava passar cobrar 4 de quem pediu 1. Cobrar a
+    // mais não é arredondamento.
+    novoPedido("Quero 1 story pro Instagram da padaria mostrando o pão saindo do forno.");
+    classificaComo("story-instagram");
+
+    const r = await triarPedido("pc-1");
+    expect(r.ok, "cobrar quatro de quem pediu um não vira orçamento").toBe(false);
+
+    const pedido = pedidos.get("pc-1")!;
+    expect(pedido.status).toBe("precisa_decisao");
+    expect(String(pedido.declineReason), "a frase diz os dois números").toMatch(/1 peça/);
+    expect(String(pedido.declineReason)).toMatch(/pacote de 4/);
+    expect(pedido.quotedPrice ?? null, "e nada foi cobrado").toBeNull();
+    expect(db.task.create).not.toHaveBeenCalled();
+  });
+
   it("pedir QUATRO stories não é barrado pela contagem — o item já é de um conjunto", async () => {
     // `cobre: "pacote"`. Declarar este item como unidade faria a trava da
     // quantidade parar exatamente o cliente que escreveu o número certo.

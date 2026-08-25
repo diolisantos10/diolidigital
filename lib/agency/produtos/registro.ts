@@ -75,6 +75,16 @@ export interface ProdutoCanonico {
   /** Vai ao ar no perfil do cliente? Todo produto canônico de peça vai — o que
    *  não vai é documento, e documento não passa por aqui. */
   publicavel: true;
+  /**
+   * O briefing deste produto exige CHAMADA PARA AÇÃO antes de produzir?
+   *
+   * Item 3 da entrada mínima do plano de recuperação. Declarado por produto e
+   * não ligado para a casa inteira: obrigar CTA num relatório ou numa pauta do
+   * mês barraria o pedido correto de quem não tem ação nenhuma a pedir.
+   *
+   * Ver `briefing-minimo.ts` para por que a ausência dela custa caro num Story.
+   */
+  exigeChamadaParaAcao: boolean;
   /** Por que este produto existe separado dos vizinhos. Documentação que o
    *  código carrega, no padrão de `tipos-de-entrega.ts`. */
   porque: string;
@@ -113,6 +123,10 @@ export const INSTAGRAM_STORY_ESTATICO_V1: ProdutoCanonico = {
   itemDeCatalogo: "balcao-4-stories",
   quantidadeDePecas: 4,
   publicavel: true,
+  // Story é peça de CONVERSÃO: ocupa a tela inteira por poucos segundos e some.
+  // Sem dizer o que a pessoa deve fazer, a peça é um cartaz — e pior, quem
+  // preenche a lacuna é o modelo, que inventa a ação e o canal junto.
+  exigeChamadaParaAcao: true,
   porque:
     "Story é vertical 1080×1920 com zona morta de interface em cima e embaixo. " +
     "Entregá-lo como peça de feed (1080×1350) não é uma aproximação: é o texto " +

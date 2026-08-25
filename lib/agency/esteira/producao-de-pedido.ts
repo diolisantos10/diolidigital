@@ -55,6 +55,7 @@ import { TRAVA_MS, pararComMotivo, avisarCliente } from "@/lib/agency/esteira/tr
 import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
 import { produtoCanonico, dimensaoExigida, type ProdutoCanonico } from "@/lib/agency/produtos/registro";
 import { entregarStoryInstagramV1, type PecaDoEspecialista } from "@/lib/agency/produtos/story-instagram-v1";
+import { conferirBriefingMinimo } from "@/lib/agency/produtos/briefing-minimo";
 
 /** Uma correção por freio. Se o modelo repetiu a violação COM o parecer e o
  *  texto anterior na frente, insistir só queima IA — e a peça não pode ir ao
@@ -312,6 +313,35 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   // produto declarado, que é o caso de todos os atendimentos ainda não
   // migrados — e nulo segue EXATAMENTE pelo caminho de sempre, sem desvio.
   const produto = produtoCanonico(pedido.produtoId);
+
+  // ── PORTÃO 0 · O BRIEFING MÍNIMO, ANTES DE GASTAR UM CENTAVO ──────────────
+  //
+  // Item B do contrato de aceite: "o briefing mínimo é cobrado ANTES da
+  // produção". Estava inteiro descoberto — a casa lia o briefing "quando
+  // existe" e produzia sem ele, descobrindo a falta depois de já ter gasto IA e
+  // imagem.
+  //
+  // Roda antes do primeiro `generate` de propósito. E o que sai daqui é uma
+  // SOLICITAÇÃO ACIONÁVEL, não um erro: a pergunta vai para o cliente com
+  // exemplos do que responder, e o pedido fica visível esperando a resposta
+  // dele — não parado num balde.
+  // O texto conferido é o que o cliente escreveu SOBRE A PEÇA — o pedido dele e
+  // o briefing —, nunca o OBJETIVO. Objetivo é o porquê ("fazer o bairro
+  // conhecer o pão"), e ele usa verbos parecidos com os de uma chamada. Aceitar
+  // o objetivo como CTA faria o portão passar verde em quase todo pedido, que é
+  // como uma trava vira enfeite.
+  const briefing = conferirBriefingMinimo(
+    produto,
+    [req?.rawContext ?? "", pedido.description].filter(Boolean).join("\n"),
+  );
+  if (!briefing.completo) {
+    await moverTarefa(pedido.taskId, "pending");
+    await registrar(
+      projeto, "briefing_minimo_incompleto",
+      `${nome} para ${contexto.businessName}: produção NÃO iniciada — falta ${briefing.faltas.join(", ")}. Nenhuma IA foi chamada.`,
+    );
+    return await parar(pedidoId, briefing.pergunta);
+  }
 
   const promptBase = `${esp.prompt(contexto)}\n${pedidoNoPrompt}${blocoDoProduto(produto)}`;
 

@@ -490,7 +490,24 @@ function corpoDoCardDeStory(
   return [
     titulo,
     "",
-    `${provas.length} story(ies) vertical(is), com a marca aplicada e a margem protegida do Instagram respeitada.`,
+    // ── O QUE ESTA FRASE PODE AFIRMAR, E POR QUÊ ──────────────────────────
+    //
+    // A versão anterior dizia "margem protegida do Instagram respeitada" e não
+    // media nada: copiava a constante do molde e escrevia a conclusão na tela
+    // do CLIENTE. Régua verde sobre o componente errado — e desta vez a
+    // afirmação sem lastro ia para fora de casa.
+    //
+    // O que se pode afirmar é o que o MECANISMO garante, e ele garante isto:
+    // `renderizarHtml` mede no DOM se algum texto invadiu a zona morta e, se
+    // invadiu, REPROVA a rasterização (`texto_na_zona_morta`). A peça então sai
+    // sem camada de texto — e `pecaSaiuSemTitulo` PARA esta corrente antes do
+    // cartão existir. Logo: se este cartão existe, o texto passou pela medição.
+    //
+    // A frase diz o mecanismo, não a conclusão nua. Quem lê pode conferir.
+    `${provas.length} story(ies) vertical(is) de ${provas[0]?.medida.largura ?? "?"}×${provas[0]?.medida.altura ?? "?"}, ` +
+    "com a marca do cliente aplicada. O texto de cada peça foi conferido contra a área segura do Instagram " +
+    "na hora de virar imagem: peça com texto sob a barra de progresso ou sob a caixa de resposta é reprovada " +
+    "pelo rasterizador e não chega até aqui.",
     "Veja cada peça acima e me diga: aprova, quer ajustar (conte o que mudar) ou recusa.",
     "",
     ...linhas,

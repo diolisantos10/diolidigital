@@ -763,6 +763,40 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     }
   }
 
+  // ── TRAVA 2-B · O PACOTE NÃO É ARREDONDAMENTO PARA CIMA ───────────────────
+  //
+  // A TRAVA 2, logo acima, é fail-closed só PARA MENOS: ela impede orçar 1
+  // quando o cliente pediu 11. O outro lado ficou aberto — e nele mora um
+  // defeito comercial de verdade: **quem pede 1 story recebe e paga 4.**
+  //
+  // Item de `cobre: "pacote"` pulava a contagem inteira, porque "o preço dele já
+  // é de um conjunto". Isso vale para o MÊS e para a IDENTIDADE, que não têm
+  // unidade. Não vale para um pacote de peças CONTÁVEIS: ali o cliente sabe
+  // dizer quantas quer, e cobrar quatro de quem pediu uma não é arredondamento,
+  // é cobrar a mais.
+  //
+  // Só age quando existem os DOIS fatos — o produto declara quantas peças o
+  // preço cobre, e o cliente escreveu um número menor. Silêncio do cliente não
+  // vira conclusão: quem não disse quantas recebe o pacote, que é o que a
+  // tabela vende.
+  //
+  // E, como sempre nesta casa: **pergunta, nunca cobra.**
+  const produtoDoAtendimento = produtoCanonico(atendimento.produtoId);
+  if (
+    produtoDoAtendimento &&
+    typeof leitura.quantidade === "number" &&
+    leitura.quantidade > 0 &&
+    leitura.quantidade < produtoDoAtendimento.quantidadeDePecas
+  ) {
+    return await parar(
+      pedidoId,
+      `Você pediu ${leitura.quantidade} ${leitura.quantidade === 1 ? "peça" : "peças"}, e o que eu tenho na ` +
+      `tabela é o pacote de ${produtoDoAtendimento.quantidadeDePecas} (${item.label}, R$ ${preco}). ` +
+      "Não vou te cobrar o pacote inteiro por menos peças sem você mandar: a equipe confirma com você se " +
+      "prefere o pacote ou um orçamento avulso, e responde por aqui.",
+    );
+  }
+
   const prazo = somarDiasUteis(new Date(), item.deliveryDays);
 
   // ── ESCOPO: CONSULTA, NÃO PALPITE ─────────────────────────────────────────

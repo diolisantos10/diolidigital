@@ -30,7 +30,12 @@
 // Duas chamadas PAGAS a provedores externos, e nada mais:
 //
 //   • o gerador de texto — o que está sob teste é o TRANSPORTE, não a redação
-//     do modelo (mesma razão declarada em `esteira/jornada-real.test.ts`);
+//     do modelo (mesma razão declarada em `esteira/jornada-real.test.ts`). Isto
+//     inclui a OPINIÃO do juiz de Qualidade, que é uma chamada paga como as
+//     outras. **A metade determinística do juiz NÃO é dublada** e é ela que
+//     reprova a peça no teste da Qualidade abaixo — sem consultar modelo
+//     nenhum. O terceiro estado (sem árbitro) também é exercitado de verdade,
+//     derrubando o provedor;
 //   • o gerador de imagem — devolve uma foto sintética REAL, com estrutura
 //     suficiente para passar no portão do fundo de verdade. Um dublê chapado
 //     seria barrado por ele, e corretamente.
@@ -102,6 +107,24 @@ const QUATRO_STORIES = {
   ],
 };
 
+/**
+ * A MESMA peça, com uma afirmação que NADA sustenta.
+ *
+ * "a melhor padaria da cidade" é superlativo não sustentável — a classe que
+ * `conferirReguaDoTexto` (dentro de `auditDeliverable`) reprova em CÓDIGO,
+ * antes de consultar qualquer modelo. É a reprovação de Qualidade mais honesta
+ * que existe para provar em teste: nenhum dublê pode "convencê-la".
+ */
+const PECA_COM_SUPERLATIVO = {
+  ...{ title: "Stories — Padaria da Esquina", summary: "Quatro stories verticais." },
+  items: [
+    { headline: "A melhor padaria da cidade", direction: "as mãos do padeiro virando a massa na bancada da padaria, luz de janela pela manhã", palette: "âmbar", note: "Somos a melhor padaria da cidade, líder de mercado no bairro." },
+    { headline: "A casca que estala", direction: "o padeiro partindo o pão ao meio sobre o balcão da padaria, luz de lâmpada quente", palette: "dourado", note: "Somos a melhor padaria da cidade, líder de mercado no bairro." },
+    { headline: "Quem acorda antes de você", direction: "o padeiro abrindo o forno na cozinha da padaria na madrugada, penumbra e contraluz", palette: "laranja", note: "Somos a melhor padaria da cidade, líder de mercado no bairro." },
+    { headline: "Farinha boa", direction: "as mãos do padeiro peneirando farinha na bancada da cozinha, luz natural de janela", palette: "bege", note: "Somos a melhor padaria da cidade, líder de mercado no bairro." },
+  ],
+};
+
 const CLASSIFICACAO_DE_STORY = {
   atendimentoId: "story-instagram",
   confianca: 95,
@@ -112,14 +135,44 @@ const CLASSIFICACAO_DE_STORY = {
  *  próprio, e não é o objeto deste arquivo. */
 const PARECER_APROVADO = { verdict: "aprovado", issues: [], note: "peça no tom da marca" };
 
-// A mesma função `generate` atende a triagem e a produção na esteira real, e
-// aqui também: o dublê distingue pelo conteúdo do prompt, em vez de manter dois.
+/**
+ * O ROTEIRO DA RODADA — o que os provedores PAGOS respondem nesta prova.
+ *
+ * Dirigível de propósito. Um dublê que responde sempre a mesma coisa só
+ * consegue provar o caminho feliz, e o caminho feliz é justamente o que não
+ * precisa de prova.
+ *
+ * ⚠️ O QUE ESTÁ SENDO DUBLADO É O PROVEDOR, NÃO O JUIZ. `auditDeliverable`
+ * roda INTEIRA e de verdade: a régua determinística de texto
+ * (`conferirReguaDoTexto`), a escolha do árbitro independente do autor, o mapa
+ * veredito → `revisionStatus` e os TRÊS estados (aprovado / reprovado / sem
+ * árbitro). O que o roteiro decide é só a opinião do modelo — e a reprovação
+ * mais importante desta suíte (`peca` = PECA_COM_SUPERLATIVO) nem chega a
+ * consultar modelo nenhum: ela é barrada pela régua de código, antes de
+ * qualquer chamada.
+ */
+const roteiro = vi.hoisted(() => ({
+  /** O que o especialista devolve. */
+  peca: "boa" as "boa" | "superlativo",
+  /** O provedor do JUIZ responde, ou cai? Cair = "sem árbitro", que NUNCA é
+   *  aprovação. */
+  juizResponde: true,
+}));
+
+// A mesma função `generate` atende a triagem, a produção e o juiz na esteira
+// real, e aqui também: o dublê distingue pelo conteúdo do prompt, em vez de
+// manter dois.
 vi.mock("@/lib/ai/generate", () => ({
   generate: vi.fn(async (p: { system?: string; user?: string }) => {
     const texto = `${p.system ?? ""}\n${p.user ?? ""}`;
     if (/atendimentoId/.test(texto)) return { ok: true, data: CLASSIFICACAO_DE_STORY };
-    if (/verdict/i.test(texto)) return { ok: true, data: PARECER_APROVADO };
-    return { ok: true, data: QUATRO_STORIES };
+    if (/agente de Qualidade/i.test(texto)) {
+      // O provedor do juiz CAIU. `auditDeliverable` devolve `nao_auditado` —
+      // um estado próprio, que a casa declara e que não vale como aprovação.
+      if (!roteiro.juizResponde) return { ok: false, error: "provedor do árbitro indisponível" };
+      return { ok: true, data: PARECER_APROVADO };
+    }
+    return { ok: true, data: roteiro.peca === "superlativo" ? PECA_COM_SUPERLATIVO : QUATRO_STORIES };
   }),
   anyProviderConfigured: vi.fn(async () => true),
 }));
@@ -191,8 +244,35 @@ import { GET as getMidia } from "@/app/api/media/[id]/route";
 
 const PEDIDO_DO_CLIENTE =
   "Quero 4 stories para o Instagram da padaria falando do pão de fermentação natural, " +
-  "aqueles verticais de tela cheia.";
+  // A CHAMADA PARA AÇÃO — item 3 da entrada mínima do plano. Sem ela o portão
+  // do briefing PARA o pedido antes de gastar um centavo, e há um teste abaixo
+  // provando exatamente isso.
+  "aqueles verticais de tela cheia. Quero que a pessoa venha encomendar na loja.";
 const OBJETIVO_DO_CLIENTE = "fazer o pessoal do bairro conhecer o pão de fermentação natural";
+
+/**
+ * AS DEGRADAÇÕES QUE ESTE PILOTO ACEITA — lista FECHADA, com o motivo de cada
+ * uma. Tudo que a peça gravar fora daqui reprova o teste.
+ *
+ * Não é indulgência: é o contrário. A régua anterior proibia UMA string
+ * conhecida e deixava passar todas as outras. Esta obriga a nomear cada
+ * degradação que de fato acontece — e a decidir, uma por uma, se ela é
+ * aceitável no piloto.
+ */
+const DEGRADACOES_ACEITAS_E_DECLARADAS = [
+  // O repertório criativo é CÓDIGO POR MARCA (`design/repertorio-registrado.ts`,
+  // hoje: Foocci e CityJobs). Um cliente fictício não tem repertório — e
+  // inventar um dentro do código de produção só para o teste ficar bonito seria
+  // a pior troca possível. A peça sai na composição base da casa, declarado.
+  // ⚠️ É DÍVIDA DE PROVA, não "funciona": marca COM repertório não foi medida
+  // por esta suíte.
+  "[composição foto-cheia]",
+  // O logo real do cliente é ARQUIVO, e o cliente fictício não enviou nenhum. A
+  // peça é assinada com o monograma das iniciais, e a casa declara isso.
+  // ⚠️ Também é dívida de prova: assinatura com o arquivo oficial não foi
+  // exercitada.
+  "[sem logo]",
+];
 
 let workspaceId = "";
 
@@ -416,12 +496,29 @@ describe("caso normal — o pedido do cliente vira JPEG 1080x1920 aprovável", (
         // decisão do cliente, não a produção.
         expect(p.status).toBe("draft");
 
-        // ── A MARCA FOI APLICADA ───────────────────────────────────────────
-        // `[molde neutro]` é a declaração que a casa grava quando a peça sai no
-        // cinza padrão em vez da identidade do cliente. Ela NÃO pode aparecer
-        // aqui: seria entregar molde neutro chamando de marca do cliente, que é
-        // um dos riscos nomeados no plano.
+        // ── A MARCA FOI APLICADA, E TODA DEGRADAÇÃO É CONHECIDA ────────────
+        //
+        // A primeira versão desta régua proibia a string `molde neutro` e
+        // pronto. Estava MIRADA NO IRMÃO: as peças gravavam outra degradação
+        // ("[composição foto-cheia] esta marca não registrou o formato de post
+        // simples") e a régua passava verde por cima dela.
+        //
+        // Proibir uma string conhecida só pega o defeito que já se conhece. A
+        // régua certa é a inversa: **toda degradação presente tem de estar numa
+        // lista fechada e declarada.** Degradação nova aparece vermelha aqui, em
+        // vez de passar calada — que é exatamente como a de cima passou.
+        //
+        // ⚠️ `molde neutro` NÃO está na lista, e não pode estar: entregar o
+        // cinza padrão chamando de identidade do cliente é um dos riscos
+        // nomeados no plano de recuperação, não uma degradação aceitável.
         expect(p.lastError ?? "", `peça ${p.id} saiu sem a marca do cliente`).not.toMatch(/molde neutro/);
+        for (const marcador of (p.lastError ?? "").match(/\[[^\]]+\]/g) ?? []) {
+          expect(
+            DEGRADACOES_ACEITAS_E_DECLARADAS,
+            `peça ${p.id} gravou uma degradação que este teste não conhece: ${marcador} — ` +
+            "declare-a (com o porquê) ou conserte-a; passar calado é como a anterior passou",
+          ).toContain(marcador);
+        }
 
         // ── O TEXTO RASTERIZADO É O TEXTO APROVADO ─────────────────────────
         // `[molde] texto barrado pela trava` é o que a casa grava quando o
@@ -757,6 +854,161 @@ describe("caso de falha — a corrente para com motivo, e nunca com falso entreg
       espiao.mockRestore();
     }
   }, 600_000);
+
+  it("TEXTO NA ZONA MORTA para a corrente — a frase da margem é MERECIDA, não copiada", async () => {
+    // O cartão do cliente afirma que o texto foi conferido contra a área segura
+    // do Instagram. Esta é a prova de que a afirmação tem lastro: quando o
+    // rasterizador REPROVA por invasão da zona morta (`texto_na_zona_morta` —
+    // o motivo real, medido no DOM), a corrente para e o cartão não nasce.
+    //
+    // Sem isto, a frase seria conclusão sem régua indo para a tela do cliente.
+    const c = await abrirClienteFicticio("Padaria da Zona Morta");
+    await pagar(c, 9900);
+
+    const renderizar = await import("@/lib/agency/design/renderizar");
+    const espiao = vi.spyOn(renderizar, "renderizarHtml").mockResolvedValue({
+      ok: false, motivo: "texto_na_zona_morta",
+      erro: "o título caiu sob a barra de progresso do Instagram",
+    });
+
+    try {
+      const { pedidoId } = await pedirPeloPortal(c);
+      const { pedido, card } = await pecasDoPedido(pedidoId);
+      expect(pedido.status, "peça com texto na zona morta NUNCA vira entrega").not.toBe("entregue");
+      expect(card, "e o cliente não recebe cartão nenhum afirmando margem respeitada").toBeNull();
+    } finally {
+      espiao.mockRestore();
+    }
+  }, 600_000);
+
+  it("BRIEFING INCOMPLETO para ANTES de gastar: sem chamada para ação, pergunta", async () => {
+    // Item B do contrato: "o briefing mínimo é cobrado ANTES da produção".
+    // Estava inteiro descoberto — a casa produzia e descobria a falta depois de
+    // já ter gasto IA e imagem.
+    //
+    // O que sai daqui é uma SOLICITAÇÃO ACIONÁVEL: a pergunta chega ao cliente
+    // com exemplos do que responder.
+    const c = await abrirClienteFicticio("Padaria Sem Chamada");
+    await pagar(c, 9900);
+
+    const geradorDeTexto = await import("@/lib/ai/generate");
+    const design = await import("@/lib/ai/design-engine");
+    const textosAntes = vi.mocked(geradorDeTexto.generate).mock.calls.length;
+    const imagensAntes = vi.mocked(design.generateDesign).mock.calls.length;
+
+    const r = await postPedido(req("/api/portal/pedidos", {
+      token: c.token,
+      // O que comunicar e o objetivo estão lá. A CHAMADA PARA AÇÃO, não.
+      descricao: "Quero 4 stories verticais para o Instagram da padaria falando do pão de fermentação natural.",
+      objetivo: OBJETIVO_DO_CLIENTE,
+    }));
+    const corpo = await r.json() as Record<string, unknown>;
+    const pedidoId = (corpo.pedido as Record<string, unknown>).id as string;
+
+    // O orçamento é aceito — o portão do briefing é DEPOIS do aceite e ANTES da
+    // produção, que é exatamente onde o critério o quer.
+    const emEspera = await prisma.contentRequest.findUniqueOrThrow({ where: { id: pedidoId } });
+    if (emEspera.quoteStatus === "pendente") {
+      await postOrcamento(req("/api/portal/pedidos/orcamento", {
+        token: c.token, pedidoId, decisao: "aceito",
+      }));
+    }
+
+    const { pedido, posts, card } = await pecasDoPedido(pedidoId);
+    expect(pedido.status, "sem briefing mínimo não se produz").not.toBe("entregue");
+    expect(pedido.status).toBe("precisa_decisao");
+    // A PERGUNTA é acionável: diz o que falta e dá exemplos do que responder.
+    expect(pedido.declineReason ?? "").toMatch(/O QUE VOCÊ QUER QUE A PESSOA FAÇA/i);
+    expect(pedido.declineReason ?? "").toMatch(/WhatsApp|loja|link da bio/i);
+
+    expect(posts.length, "nenhuma peça criada").toBe(0);
+    expect(card, "e o cliente não é chamado a decidir sobre nada").toBeNull();
+
+    // ── O DINHEIRO: NADA FOI GASTO ────────────────────────────────────────
+    // Nem imagem, nem UMA chamada de texto ao especialista. O portão roda antes
+    // do primeiro `generate` da produção.
+    expect(
+      vi.mocked(design.generateDesign).mock.calls.length,
+      "nenhuma imagem paga",
+    ).toBe(imagensAntes);
+    // A triagem usa `generate` (classificação); a PRODUÇÃO não chegou a usar.
+    // Uma chamada a mais que a da triagem já seria o especialista tendo rodado.
+    expect(
+      vi.mocked(geradorDeTexto.generate).mock.calls.length - textosAntes,
+      "só a triagem falou com o modelo — o especialista nem foi acionado",
+    ).toBeLessThanOrEqual(1);
+  }, 600_000);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUALIDADE — OS TRÊS ESTADOS, E O QUE CADA UM FAZ COM O CLIENTE
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("qualidade — reprovada não chega ao cliente como aprovada", () => {
+  it("REPROVADA pela régua de código (sem IA): a peça NÃO chega ao portal", async () => {
+    // A reprovação aqui é DETERMINÍSTICA: `conferirReguaDoTexto`, dentro de
+    // `auditDeliverable`, barra "a melhor padaria da cidade" (superlativo não
+    // sustentável) ANTES de consultar qualquer modelo. Nenhum dublê pode
+    // convencê-la — é por isso que ela é a prova certa deste critério.
+    const c = await abrirClienteFicticio("Padaria do Superlativo");
+    await pagar(c, 9900);
+    roteiro.peca = "superlativo";
+
+    try {
+      const { pedidoId } = await pedirPeloPortal(c);
+      const { pedido, posts, card } = await pecasDoPedido(pedidoId);
+
+      expect(pedido.status, "peça reprovada NUNCA vira entrega").not.toBe("entregue");
+      expect(card, "reprovada pela Qualidade não chega ao cliente").toBeNull();
+      expect(posts.length, "e não gastou imagem: a Qualidade barra antes da arte").toBe(0);
+
+      // A parada é declarada, com dono e próxima ação.
+      expect(pedido.declineReason ?? "").toMatch(/revis|reprov|não foi entregue/i);
+
+      // E o rastro nomeia QUEM barrou — sem isso, a equipe discute com o juiz
+      // uma recusa que não é dele.
+      const eventos = await prisma.activityEvent.findMany({ where: { clientId: c.clientId } });
+      expect(
+        eventos.some((e) => /qualidade_reprovou|piso_de_verdade_barrou|regua/i.test(e.type ?? "")),
+        "a reprovação deixa rastro com o nome de quem barrou",
+      ).toBe(true);
+    } finally {
+      roteiro.peca = "boa";
+    }
+  }, 600_000);
+
+  it("SEM ÁRBITRO é estado próprio — nunca carimbado como aprovado", async () => {
+    // O provedor do juiz cai. `auditDeliverable` devolve `nao_auditado`, e a
+    // casa NÃO trata isso como aprovação: a entrega fica com o
+    // `revisionStatus` do terceiro estado e a ausência de parecer fica dita.
+    const c = await abrirClienteFicticio("Padaria Sem Árbitro");
+    await pagar(c, 9900);
+    roteiro.juizResponde = false;
+
+    try {
+      const { pedidoId } = await pedirPeloPortal(c);
+      const { pedido } = await pecasDoPedido(pedidoId);
+
+      const { REVISION_STATUS_DA_QUALIDADE } = await import("@/lib/agency/execution/quality-auditor");
+      const entrega = await prisma.deliverable.findUniqueOrThrow({
+        where: { id: pedido.deliverableId! },
+      });
+      expect(
+        entrega.revisionStatus,
+        "sem árbitro NÃO é aprovado — é 'ninguém olhou', e fica dito",
+      ).toBe(REVISION_STATUS_DA_QUALIDADE.nao_auditado);
+      expect(entrega.revisionStatus).not.toBe(REVISION_STATUS_DA_QUALIDADE.aprovado);
+
+      // E a casa DECLARA a ausência de parecer, em vez de deixá-la invisível.
+      const eventos = await prisma.activityEvent.findMany({ where: { clientId: c.clientId } });
+      expect(
+        eventos.some((e) => /qualidade_nao_auditou/.test(e.type ?? "")),
+        "ausência de árbitro invisível é ausência que ninguém corrige",
+      ).toBe(true);
+    } finally {
+      roteiro.juizResponde = true;
+    }
+  }, 600_000);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -778,6 +1030,64 @@ describe("reentrada não cria segunda peça", () => {
     expect(depois.posts.map((p) => p.id), "as MESMAS quatro peças, não oito")
       .toEqual(antes.posts.map((p) => p.id));
     expect(await prisma.approvalRequest.count({ where: { department: `pedido:${pedidoId}` } })).toBe(1);
+  }, 600_000);
+
+  it("O RELÓGIO recupera a corrente parada — sem ninguém escrever no banco", async () => {
+    // ── POR QUE ESTE TESTE EXISTE (25/08/2026) ───────────────────────────
+    //
+    // A "retomada" que eu tinha provado só andava porque o TESTE escrevia
+    // `status: "triado"` no banco. Isso não é recuperação: é empurrão
+    // disfarçado de prova. O critério F pede que o RELÓGIO recupere estados
+    // transitórios sem criar duplicata.
+    //
+    // E o defeito era real: o `where` do despertador exigia
+    // `deliverableId: null`, e a corrente visual grava o elo ANTES da arte.
+    // Uma corrente morta no meio ficava invisível para o relógio PARA SEMPRE —
+    // o pedido do cliente preso, destravável só por escrita manual no banco.
+    //
+    // Aqui ninguém escreve nada: a corrente morre, o relógio bate, e ele
+    // conclui.
+    const c = await abrirClienteFicticio("Padaria do Relógio");
+    await pagar(c, 9900);
+
+    // Primeira passada: o gerador de imagem cai. As peças nascem, o entregável
+    // é gravado, e nenhuma peça recebe arquivo.
+    const design = await import("@/lib/ai/design-engine");
+    vi.mocked(design.generateDesign).mockResolvedValueOnce({
+      ok: false, reason: "provider_error", error: "provedor fora do ar",
+    } as never);
+
+    const { pedidoId } = await pedirPeloPortal(c);
+    const parado = await pecasDoPedido(pedidoId);
+    expect(parado.pedido.status, "nenhuma falha termina em 'entregue'").not.toBe("entregue");
+    expect(parado.card, "sem arquivo, o cliente não é chamado a decidir").toBeNull();
+    expect(parado.posts.length, "as peças existem esperando arquivo").toBe(4);
+    expect(parado.pedido.deliverableId, "o elo está gravado — é a chave da retomada").toBeTruthy();
+
+    // O ESTADO TRANSITÓRIO, como a vida o deixa: a corrente morreu no meio, o
+    // pedido ficou em "em_producao" e o relógio da trava já expirou. NENHUMA
+    // outra coluna é tocada — nem status, nem deliverableId, nem tentativas.
+    const TRAVA_MS = (await import("@/lib/agency/esteira/triagem")).TRAVA_MS;
+    await prisma.contentRequest.update({
+      where: { id: pedidoId },
+      data: { status: "em_producao", updatedAt: new Date(Date.now() - TRAVA_MS - 60_000) },
+    });
+
+    // ── O RELÓGIO BATE ────────────────────────────────────────────────────
+    const { baterORelogio } = await import("@/lib/agency/despertador");
+    await baterORelogio();
+
+    const feito = await pecasDoPedido(pedidoId);
+    expect(feito.pedido.status, "o relógio concluiu sozinho").toBe("entregue");
+    expect(feito.card, "e o cliente ganhou onde decidir").toBeTruthy();
+    // SEM DUPLICATA — o critério F pede as duas metades juntas.
+    expect(feito.posts.map((p) => p.id), "as MESMAS quatro peças, não oito")
+      .toEqual(parado.posts.map((p) => p.id));
+    expect(await prisma.approvalRequest.count({ where: { department: `pedido:${pedidoId}` } })).toBe(1);
+    for (const p of feito.posts) {
+      expect(p.format).toBe("story");
+      expect((await baixarMidia(p.mediaUrl!, c.token)).status).toBe(200);
+    }
   }, 600_000);
 
   it("RETOMADA de corrente que parou no meio reaproveita as peças — não cria outras quatro", async () => {
