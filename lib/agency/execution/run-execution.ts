@@ -34,7 +34,7 @@ import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-client
 // O contrato de SAÍDA passa a derivar do contrato de ENTRADA. Ver
 // `escopo-do-cliente.ts` para por que os números fixos eram o defeito.
 import {
-  lerEscopoDeConteudo, exigenciaDeConteudo, avisoDeCobertura,
+  lerEscopoDeConteudo, exigenciaDeConteudo, avisoDeCobertura, levaDevidaEm,
 } from "@/lib/agency/execution/escopo-do-cliente";
 import { lerProibicoes, sincronizarDoBriefing } from "@/lib/agency/esteira/proibicoes";
 import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
@@ -321,16 +321,35 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     // "este projeto não tem ciclo". Para quem lê um ciclo para MOSTRAR, engolir
     // o erro é aceitável; para quem o usa como CHAVE DE IDEMPOTÊNCIA, é o mês
     // inteiro pulado. A consulta é a mesma; o tratamento do erro é o oposto.
-    const cicloId = await prisma.cycle
+    const cicloAberto = await prisma.cycle
       .findFirst({
         where: { projectId, status: { in: ["aberto", "entregue"] } },
         orderBy: { reference: "desc" },
-        select: { id: true },
+        select: { id: true, startsOn: true },
       })
-      .then((c) => c?.id ?? null)
+      .then((c) => c ?? null)
       .catch((e) => {
         throw new Error(`não consegui ler o ciclo aberto do projeto (${e instanceof Error ? e.message : "erro"}) — a produção PARA aqui: seguir com ciclo nulo pularia o mês inteiro e o marcaria como concluído`);
       });
+    const cicloId = cicloAberto?.id ?? null;
+
+    // ── QUAL LEVA DO MÊS ESTA PASSADA ESCREVE (25/08/2026) ────────────────────
+    //
+    // O mês deixou de sair numa passada só. `levaDevidaEm` conta do começo do
+    // ciclo: leva 1 nos primeiros dez dias, 2 nos dez seguintes, 3 daí em
+    // diante. Ver o porquê do número e do ritmo em `escopo-do-cliente.ts`.
+    //
+    // Sem ciclo aberto (o pacote inicial) é sempre a leva 1 — aquele pacote
+    // nasce antes de o projeto virar rotina e não tem calendário de mês.
+    //
+    // ⚠️ FALHA PARA A LEVA 1, e é o lado seguro: data ilegível produz de novo o
+    // lote que já existe e o motor pula por idempotência, em vez de abrir uma
+    // leva que ninguém comprou.
+    const levaDaPassada = (() => {
+      const inicio = cicloAberto?.startsOn ? new Date(`${cicloAberto.startsOn}T00:00:00Z`) : null;
+      if (!inicio || Number.isNaN(inicio.getTime())) return 1;
+      return levaDevidaEm(inicio, new Date());
+    })();
 
     const [req, client, artifacts, existing, materiaisResolvidos, feedDoCliente] = await Promise.all([
       prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } }),
@@ -344,7 +363,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // não existia.
       prisma.deliverable.findMany({
         where: { projectId, cycleId: cicloId },
-        select: { ownerAgentId: true },
+        select: { ownerAgentId: true, leva: true },
       }),
       // O que o cliente já entregou. Sem isto, quem depende de material seria
       // cobrado para sempre — inclusive depois de o cliente ter respondido.
@@ -395,6 +414,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         escopo: JSON.stringify(scope),
         contextoBruto: req.rawContext ?? "",
       }),
+      levaDaPassada,
     );
     const tetoDeTokens = Math.min(
       TETO_MAXIMO,
@@ -410,6 +430,9 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     const operacaoDoCliente = (await buildVerdadeOperacional(clientRequestId)) ?? undefined;
 
     const context: Ctx = {
+      // Qual leva do mês está sendo escrita AGORA. É ela que dá o tamanho do
+      // lote ao especialista e à régua que o confere — as duas leem daqui.
+      leva: levaDaPassada,
       // A régua da marca, montada ANTES da produção e entregue no prompt de
       // todo especialista. Best-effort de propósito: contrato que falha não
       // pode derrubar a esteira — e a falta dele não fica muda, porque o próprio
@@ -576,7 +599,27 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     };
 
     const agents = (() => { try { return JSON.parse(project.agents ?? "[]"); } catch { return []; } })() as string[];
-    const producedAgents = new Set(existing.map((d) => d.ownerAgentId).filter(Boolean));
+    // ── A IDEMPOTÊNCIA GANHOU UMA DIMENSÃO: A LEVA (25/08/2026) ──────────────
+    //
+    // Era por especialista DENTRO DO CICLO, e valia o mês inteiro: depois da
+    // primeira passada, o especialista de conteúdo era pulado até o mês virar.
+    // É exatamente por isso que o teto real da casa era 12 peças/mês — não por
+    // custo (cada peça sai por ~R$ 1,30), por construção.
+    //
+    // Agora quem produz PEÇA é idempotente por (ciclo, LEVA, especialista);
+    // todo o resto continua idempotente por (ciclo, especialista). A distinção
+    // é deliberada e é onde mora o dinheiro: pauta do mês, base de marca,
+    // estratégia e relatório são UM por ciclo — repeti-los a cada leva
+    // triplicaria a conta de IA para entregar três vezes o mesmo documento.
+    //
+    // `leva: null` é entrega anterior a esta mudança e conta como leva 1.
+    const produzemPeca = new Set(["social-copy"]);
+    const producedAgents = new Set(
+      existing
+        .filter((d) => !produzemPeca.has(d.ownerAgentId ?? "") || (d.leva ?? 1) >= levaDaPassada)
+        .map((d) => d.ownerAgentId)
+        .filter(Boolean),
+    );
 
     // ── O DIRETOR REGE OS DEPARTAMENTOS; O DEPARTAMENTO REGE OS SEUS ───────────
     // Duas camadas, e é o ponto da estrutura: o plano do PM ordena as CASAS
@@ -605,6 +648,9 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     const toRun: Array<{ dept: Departamento; esp: Especialista }> = orderedDepts.flatMap((dept) =>
       dept.especialistas
         .filter((esp) => !producedAgents.has(esp.id))
+        // Fora do escopo do cliente nem é escalado — não abre pedido, não gasta
+        // token, não vira entrega que ninguém comprou. Ver `soQuando`.
+        .filter((esp) => !esp.soQuando || esp.soQuando(context))
         .map((esp) => ({ dept, esp })),
     );
 
@@ -907,7 +953,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       const entregavel = await prisma.deliverable.create({
         data: {
           projectId, name: title, type: esp.deliverableType, status: "in_review", content: body,
-          ownerAgentId: esp.id, cycleId: cicloId,
+          ownerAgentId: esp.id, cycleId: cicloId, leva: levaDaPassada,
           // O veredito E QUEM JULGOU, juntos e por um ponto só. Antes daqui o
           // `audit.arbitro` era calculado e jogado fora — a casa sabia quem
           // tinha julgado e não gravava, e por isso a tela não podia distinguir

@@ -59,6 +59,40 @@ export function pisoDoFormato(f: FormatoComLimite): number {
 }
 
 /**
+ * ── O TETO SEMANAL DA CASA (25/08/2026) ────────────────────────────────────
+ *
+ * Até hoje o teto da proposta era o teto da MISTURA — 3 stories, 3 posts — e
+ * eles eram a forma de um lote de 12 peças, não a capacidade da casa. Com a
+ * capacidade em levas, a capacidade é `TETO_MENSAL` peças por mês, e o que a
+ * proposta não pode passar é ISSO, repartido por semana.
+ *
+ * É derivado, nunca digitado: quem mudar `ENTREGAS_POR_MES` ou o teto por
+ * passada move este número junto. Um teto de venda escrito à mão ao lado de um
+ * teto de produção é a família de defeito que este arquivo inteiro existe para
+ * não repetir.
+ *
+ * ⚠️ O teto por passada mora em `execution/escopo-do-cliente.ts` e vale 12; ele
+ * NÃO é importado aqui porque este arquivo é lido pela sala de briefing, que
+ * roda no navegador, e aquele módulo arrasta a produção junto. O valor é
+ * repetido como constante local e o teste
+ * `a-vitrine-nao-promete-acima-do-teto` prova que os dois são o mesmo número —
+ * é a mesma prova por identidade que guarda a mistura.
+ */
+/** Levas de produção por ciclo. TRÊS — ver `PLANO_DE_LEVAS` em
+ *  `execution/escopo-do-cliente.ts` para o porquê do número e do ritmo.
+ *  O teto mensal da casa é este número vezes `TETO_DE_PECAS_POR_ENTREGA`. */
+export const ENTREGAS_POR_MES = 3;
+
+export const TETO_DE_PECAS_POR_PASSADA_ESPELHO = 12;
+
+/** O que a casa entrega num mês, pelo que o código faz. */
+export const TETO_MENSAL = TETO_DE_PECAS_POR_PASSADA_ESPELHO * ENTREGAS_POR_MES;
+
+/** O que a proposta pode prometer por semana, somando TODOS os formatos.
+ *  Quatro semanas por mês (e não 4,33): o calendário do cliente é mensal. */
+export const TETO_SEMANAL_DA_CASA = Math.floor(TETO_MENSAL / 4);
+
+/**
  * O que a casa PODE oferecer de um formato, dado o que o cliente pediu.
  *
  * ── AS TRÊS RESPOSTAS, E NENHUMA É SILENCIOSA ──────────────────────────────
@@ -69,7 +103,7 @@ export function pisoDoFormato(f: FormatoComLimite): number {
  *   • Pediu dentro do teto: oferece exatamente o que ele pediu.
  *   • Pediu acima do teto: oferece o TETO e devolve a recusa POR ESCRITO, com
  *     a instrução gêmea — toda proibição diz também o que é possível. Recusar
- *     7 stories sem dizer "até 3 por semana" é mandar o cliente adivinhar.
+ *     12 posts sem dizer "até 9 por semana" é mandar o cliente adivinhar.
  *
  * Devolver a recusa como DADO, e não como texto solto, é o ponto: quem chama
  * não tem como esquecer de mostrá-la, porque ela vem junto do número.
@@ -92,31 +126,85 @@ const NOME_NO_PLURAL: Record<FormatoComLimite, string> = {
   feed: "posts",
 };
 
+function pedidoLegivel(pedidoPorSemana: number | undefined): number {
+  if (typeof pedidoPorSemana !== "number" || !Number.isFinite(pedidoPorSemana) || pedidoPorSemana <= 0) return 0;
+  return Math.floor(pedidoPorSemana);
+}
+
+function recusaDe(formato: FormatoComLimite, pedido: number, teto: number): QuantidadeQueCabe["recusa"] {
+  const nome = NOME_NO_PLURAL[formato];
+  return {
+    pedido,
+    teto,
+    frase:
+      `Você pediu ${pedido} ${nome} por semana e a nossa entrega vai até ${teto} por semana — ` +
+      `é o que a produção fecha com a qualidade que a gente assina. ` +
+      `A proposta está montada com ${teto} ${nome}/semana; ` +
+      `se ${pedido} for essencial pra você, a gente conversa sobre uma segunda frente antes de fechar.`,
+  };
+}
+
 export function quantidadeQueCabe(
   formato: FormatoComLimite,
   pedidoPorSemana: number | undefined,
 ): QuantidadeQueCabe {
-  const nome = NOME_NO_PLURAL[formato];
-  const teto = tetoDoFormato(formato);
+  const pedido = pedidoLegivel(pedidoPorSemana);
+  if (pedido === 0) return { oferecido: 0, recusa: null };
+  if (pedido <= TETO_SEMANAL_DA_CASA) return { oferecido: pedido, recusa: null };
+  return { oferecido: TETO_SEMANAL_DA_CASA, recusa: recusaDe(formato, pedido, TETO_SEMANAL_DA_CASA) };
+}
 
-  if (typeof pedidoPorSemana !== "number" || !Number.isFinite(pedidoPorSemana) || pedidoPorSemana <= 0) {
-    return { oferecido: 0, recusa: null };
-  }
-  const pedido = Math.floor(pedidoPorSemana);
-  if (pedido <= teto) return { oferecido: pedido, recusa: null };
-
-  return {
-    oferecido: teto,
-    recusa: {
-      pedido,
-      teto,
-      frase:
-        `Você pediu ${pedido} ${nome} por semana e a nossa entrega vai até ${teto} por semana — ` +
-        `é o que a produção fecha com a qualidade que a gente assina. ` +
-        `A proposta está montada com ${teto} ${nome}/semana; ` +
-        `se ${pedido} for essencial pra você, a gente conversa sobre uma segunda frente antes de fechar.`,
-    },
+/**
+ * O QUE CABE NA SEMANA, LIDO EM BLOCO — porque o teto é do TOTAL.
+ *
+ * ── O buraco que uma leitura formato a formato deixa ────────────────────────
+ *
+ * `quantidadeQueCabe` sozinha responde por UM formato. Chamada duas vezes, ela
+ * aprova 9 posts E 9 stories: 18 peças por semana, 72 por mês, contra uma casa
+ * que entrega 36. Cada resposta certa, a soma errada — é a mesma
+ * junta que arrebentou no case Farol 27, onde cada peça passava no seu teste.
+ *
+ * Aqui o teto é aplicado ao TOTAL. Quando o pedido inteiro cabe, cada formato
+ * sai exatamente como o cliente pediu. Quando não cabe, o corte é proporcional
+ * ao que ele pediu (quem pediu mais cede mais), nunca zerando um formato que
+ * ele pediu enquanto sobra espaço — e cada formato cortado volta com a recusa
+ * escrita, com o que cabe no lugar.
+ */
+export function quantidadesQueCabemNaSemana(
+  pedidos: Partial<Record<FormatoComLimite, number | undefined>>,
+): Record<FormatoComLimite, QuantidadeQueCabe> {
+  const fs = ["carrossel", "story", "feed"] as const;
+  const pedido: Record<FormatoComLimite, number> = {
+    carrossel: pedidoLegivel(pedidos.carrossel),
+    story: pedidoLegivel(pedidos.story),
+    feed: pedidoLegivel(pedidos.feed),
   };
+  const total = fs.reduce((s2, f) => s2 + pedido[f], 0);
+
+  const resposta = {} as Record<FormatoComLimite, QuantidadeQueCabe>;
+  if (total <= TETO_SEMANAL_DA_CASA) {
+    for (const f of fs) resposta[f] = { oferecido: pedido[f], recusa: null };
+    return resposta;
+  }
+
+  // Corte proporcional, pelo maior resto — a soma bate com o teto, sempre.
+  const exatos = fs.map((f) => ({ f, exato: (pedido[f] * TETO_SEMANAL_DA_CASA) / total }));
+  const oferta: Record<FormatoComLimite, number> = { carrossel: 0, story: 0, feed: 0 };
+  for (const { f, exato } of exatos) oferta[f] = Math.floor(exato);
+  let sobra = TETO_SEMANAL_DA_CASA - fs.reduce((s2, f) => s2 + oferta[f], 0);
+  for (const { f } of [...exatos].sort((a, b) => (b.exato % 1) - (a.exato % 1))) {
+    if (sobra <= 0) break;
+    if (pedido[f] === 0) continue;
+    oferta[f] += 1;
+    sobra -= 1;
+  }
+
+  for (const f of fs) {
+    resposta[f] = pedido[f] > oferta[f]
+      ? { oferecido: oferta[f], recusa: recusaDe(f, pedido[f], oferta[f]) }
+      : { oferecido: oferta[f], recusa: null };
+  }
+  return resposta;
 }
 
 // ═══ OS CANAIS ══════════════════════════════════════════════════════════════
@@ -198,79 +286,128 @@ export function lerCanais(pedidos: readonly string[] | undefined): CanalPedido[]
     .map(lerCanal);
 }
 
-// ═══ O TETO MENSAL, E A DÍVIDA QUE A VITRINE JÁ CARREGA ═════════════════════
+// ═══ O TETO MENSAL — A DÍVIDA FOI PAGA PELA CAPACIDADE (25/08/2026) ════════
 //
-// ── O QUE FOI MEDIDO EM 25/08/2026 ──────────────────────────────────────────
+// ── O QUE ESTE BLOCO DIZIA ATÉ HOJE ─────────────────────────────────────────
 //
-// O conserto do case Farol 27 fechou a proposta; ao fechá-la, ficou à vista um
-// buraco maior, e este bloco é o registro dele.
+// Dizia que a casa entregava UMA passada por mês, de 12 peças, e que a tabela
+// de planos anunciava de 2,8× a 13,3× isso. Nenhum plano cabia. A escolha
+// estava escalada ao CEO em dois consertos opostos: baixar a vitrine até 12, ou
+// fazer a PRODUÇÃO entregar mais.
 //
-// A casa entrega UMA passada por mês. Não é opinião — é o que o código faz:
-// `esteira/mes.ts::virarOsMesesVencidos` vira o ciclo vencido e marca o projeto
-// como `pending`; o despertador (`despertador.ts::retomarProducao`) roda UM
-// `runProjectExecution` para quem está `pending`. Não existe segunda passada
-// agendada em lugar nenhum do repositório — `retomarProducao` só RETOMA o que
-// travou, e o motor é idempotente por ciclo.
+// ── O QUE MUDOU, E POR QUE É (b) ────────────────────────────────────────────
 //
-// Logo o teto real de saída é `TETO_DE_PECAS_POR_ENTREGA` (12) peças POR MÊS,
-// com a mistura acima limitando feed a 3, story a 3 e carrossel a 2.
+// O CEO bateu o martelo em (b), com o número que dissolveu o dilema: **cada
+// peça custa à casa ~R$ 1,30** entre texto e imagem. 32 peças custam ~R$ 45
+// contra um plano de R$ 1.790. O limite de 12 nunca foi de dinheiro — era de
+// SOFTWARE: `retomarProducao` rodava uma vez por ciclo e a idempotência do
+// motor era por especialista DENTRO DO CICLO, então a segunda passada do mês
+// não tinha como existir.
 //
-// E a tabela de planos (`SOCIAL_PACKAGES`) anuncia, por mês:
+// A capacidade passou a ser entregue em LEVAS dentro do mesmo ciclo (ver
+// `lib/agency/esteira/levas.ts` e `execution/escopo-do-cliente.ts`): três
+// levas, uma a cada dez dias, cada uma limitada pelo mesmo
+// `TETO_DE_PECAS_POR_ENTREGA` de sempre. Nenhum teto foi afrouxado; o que
+// mudou é quantas vezes ele é aplicado no mês.
 //
-//     plano       feed  story  reel   total   teto   quanto passa
-//     essencial     12     20     2      34     12       2,8×
-//     starter       20     28     4      52     12       4,3×
-//     growth        28     40     6      74     12       6,2×
-//     pro           40     56    10     106     12       8,8×
-//     premium       60     84    16     160     12      13,3×
+// ⚠️ **Nenhum relógio novo foi criado.** As levas pegam carona no despertador
+// que já bate a cada 5 minutos — a mesma perna que já retomava produção parada.
+// Esta casa perdeu dez dias com um cron que morreu em silêncio com o painel
+// verde; um segundo agendador seria o mesmo defeito com outra roupa.
 //
-// Por formato é pior: o Premium anuncia 60 feed/mês contra um teto de 3 por
-// passada — vinte vezes. NENHUM plano cabe.
+// ── A CATRACA CONTINUA, E AGORA MORDE NO ZERO ───────────────────────────────
 //
-// ── POR QUE ISTO NÃO SE CONSERTA AQUI ───────────────────────────────────────
-//
-// Há dois consertos possíveis e eles são opostos:
-//
-//   a) baixar o que a vitrine PROMETE até caber em 12 peças/mês — o que
-//      transforma o "Premium — operação de marca completa" em 12 peças e
-//      destrói o produto; ou
-//   b) fazer a PRODUÇÃO entregar mais — mais passadas por mês, teto por passada
-//      maior, ou a mistura deixando de ser número absoluto.
-//
-// (b) é quase certamente o certo, e é justamente por isso que não é decisão de
-// quem escreve o código: mexe no custo de cada cliente e na capacidade da casa.
-// **Está escalado ao CEO e parado aqui até ele bater o martelo.**
-//
-// ── O QUE ESTE BLOCO FAZ ENQUANTO ISSO: CATRACA ─────────────────────────────
-//
-// A dívida fica DECLARADA, com o número medido, e o teste
-// `__tests__/comercial/a-vitrine-nao-promete-acima-do-teto` a trava:
-//
-//   • plano NOVO acima do teto: **quebra o build**. A dívida não cresce em
-//     silêncio, que é como esta aqui nasceu.
-//   • plano existente que PIORE: **quebra o build**.
-//   • plano que MELHORE: quebra também, pedindo para baixar o número aqui —
-//     catraca só gira para um lado, e dívida paga tem que sair do registro.
-//
-// Nada disso é permissão. É o contrário: é a dívida virando número que alguém
-// tem de olhar, em vez de uma promessa que só a entrega desmente.
+// `DIVIDA_DA_VITRINE` está VAZIO, e é isso que o registro tem de mostrar:
+// dívida paga sai do registro. O teste
+// `__tests__/comercial/a-vitrine-nao-promete-acima-do-teto` passou a exigir que
+// TODO plano caiba em `TETO_MENSAL` — plano novo acima do teto quebra o build,
+// e plano existente que suba acima dele também. A catraca não afrouxou: ela
+// girou para o lado bom e travou lá.
 
-/** Passadas de produção por mês. UMA — ver a medição acima. Se um dia houver
- *  agendamento de segunda passada, é este número que muda, e o teto mensal
- *  inteiro se move com ele. */
-export const ENTREGAS_POR_MES = 1;
 
 /**
- * O QUE CADA PLANO PROMETE A MAIS DO QUE A CASA ENTREGA, medido em 25/08/2026.
+ * A DÍVIDA DA VITRINE — vazia desde 25/08/2026.
  *
- * `pecasPorMes` é `postsPerWeek*4 + storiesPerWeek*4 + reelsPerMonth` lido da
- * tabela. O teste refaz a conta: número aqui que não bata com a tabela quebra
- * o build nos dois sentidos.
+ * Era o registro dos planos que prometiam mais do que a casa entregava. Fica
+ * declarado como registro VAZIO, e não apagado: o teste lê este objeto para
+ * dizer "plano que não cabe no teto precisa entrar aqui com o número medido, e
+ * aí a dívida da casa cresceu e alguém tem de saber".
  */
-export const DIVIDA_DA_VITRINE: Record<string, number> = {
-  essencial: 34,
-  starter: 52,
-  growth: 74,
-  pro: 106,
-  premium: 160,
-};
+export const DIVIDA_DA_VITRINE: Record<string, number> = {};
+
+// ═══ A MISTURA DE UM LOTE — proporção, e não número absoluto ════════════════
+//
+// ── POR QUE A MISTURA PRECISOU DEIXAR DE SER ABSOLUTA ───────────────────────
+//
+// `LIMITES_POR_FORMATO` descreve a forma de um lote de 12 peças, e o que sobrava
+// ia para REEL — o único formato sem teto na mistura. Duas coisas quebraram esse
+// arranjo no mesmo dia:
+//
+//   1. **Reel saiu da casa.** A Dioli não edita vídeo, e vender reel é a mesma
+//      dívida que saiu da vitrine em D-0A3: promessa sem produtor. Sem reel, o
+//      excedente não tem para onde ir e a régua reprova o lote inteiro.
+//   2. **Os lotes deixaram de ter 12 peças.** Com levas, o Essencial entrega
+//      lotes de 4 — e a mistura absoluta pede no MÍNIMO 1+2+2 = 5. Ou seja, a
+//      régua antiga já era impossível para o lote pequeno, não só para o grande.
+//
+// Então a mistura vira PROPORÇÃO: os pesos são os tetos históricos de cada
+// formato (carrossel 2, story 3, feed 3 — a mesma tabela, sem um número novo), e
+// o lote é repartido entre os formatos CONTRATADOS na razão desses pesos.
+//
+// Isto não afrouxa: a variedade continua exigida (nenhum formato do escopo fica
+// em zero quando o lote comporta), e o total continua sendo o que o cliente
+// comprou. O que deixou de existir é o teto absoluto que só fazia sentido para
+// um lote de 12 com reel absorvendo a sobra.
+
+/** Quanto a régua tolera para cima e para baixo do número exato da receita.
+ *  UMA peça: o suficiente para o especialista não ser reprovado por um
+ *  arredondamento, e pouco o bastante para o mês não sair todo num formato. */
+export const TOLERANCIA_DA_MISTURA = 1;
+
+export type ReceitaDeLote = Record<FormatoComLimite, number>;
+
+/**
+ * A RECEITA EXATA de um lote: quantas peças de cada formato contratado.
+ *
+ * Reparte `lote` entre `permitidos` na razão dos tetos de `LIMITES_POR_FORMATO`,
+ * pelo método do maior resto — que é o único que garante que a soma bate com o
+ * lote sem sobrar aritmética para o modelo. Aritmética deixada para o modelo é
+ * aritmética que uma hora sai errada.
+ *
+ * `permitidos` é o que o CLIENTE comprou. Formato fora do escopo não entra na
+ * receita nem com peso zero: ele não existe para este cliente.
+ */
+export function receitaDoLote(
+  lote: number,
+  permitidos: readonly FormatoComLimite[],
+): ReceitaDeLote {
+  const vazia = { carrossel: 0, story: 0, feed: 0 } as ReceitaDeLote;
+  const fs = (["carrossel", "story", "feed"] as const).filter((f) => permitidos.includes(f));
+  if (fs.length === 0 || !Number.isFinite(lote) || lote <= 0) return vazia;
+
+  const pesoTotal = fs.reduce((s, f) => s + tetoDoFormato(f), 0);
+  const exatos = fs.map((f) => ({ f, exato: (lote * tetoDoFormato(f)) / pesoTotal }));
+  const receita = { ...vazia };
+  for (const { f, exato } of exatos) receita[f] = Math.floor(exato);
+
+  // O maior resto leva as peças que a divisão inteira deixou na mesa.
+  let sobra = lote - fs.reduce((s, f) => s + receita[f], 0);
+  const porResto = [...exatos].sort((a, b) => (b.exato % 1) - (a.exato % 1));
+  for (let i = 0; sobra > 0; i++, sobra--) receita[porResto[i % porResto.length]!.f] += 1;
+
+  return receita;
+}
+
+/** A RÉGUA de um lote: a receita com a tolerância de uma peça para cada lado.
+ *  É esta faixa que o contrato de saída confere, e é ela que o pedido do
+ *  especialista recita — os dois saem da MESMA função, para não existir a
+ *  segunda tabela que envelhece sozinha. */
+export function misturaDoLote(
+  lote: number,
+  permitidos: readonly FormatoComLimite[],
+): Record<FormatoComLimite, readonly [number, number]> {
+  const r = receitaDoLote(lote, permitidos);
+  const faixa = (n: number): readonly [number, number] =>
+    [Math.max(0, n - TOLERANCIA_DA_MISTURA), n + TOLERANCIA_DA_MISTURA] as const;
+  return { carrossel: faixa(r.carrossel), story: faixa(r.story), feed: faixa(r.feed) };
+}

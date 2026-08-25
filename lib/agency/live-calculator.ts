@@ -11,12 +11,12 @@
 
 import type { BriefingScope, LiveEstimate, EstimateItem, EstimateConfidence, SocialScope } from "./briefing-conversation";
 import { confrontoDeVerba, divergenciaDeVerba } from "./comercial/verba-declarada";
-import { quantidadeQueCabe, lerCanais } from "./contrato-de-quantidade";
+import { quantidadesQueCabemNaSemana, lerCanais } from "./contrato-de-quantidade";
 import { lacunasAbertas } from "./comercial/lacuna-de-escopo";
 
 // ── Social Media Plans ────────────────────────────────────────────────────────
 
-export type SocialPackage = "essencial" | "starter" | "growth" | "pro" | "premium";
+export type SocialPackage = "essencial" | "crescimento" | "completo";
 
 export type ReportLevel = "none" | "basic" | "advanced";
 export type CommunityLevel = "none" | "basic" | "full";
@@ -39,103 +39,107 @@ export interface PackageDef {
   description: string;
 }
 
-// Agency-grade volume (per week), startup-friendly pricing. Cadence is weekly
-// because that's how a real operation runs — not a handful of posts a month.
+// ═══ A TABELA DA CASA — aprovada pelo CEO em 25/08/2026 ═════════════════════
+//
+// ── O QUE ELA SUBSTITUI, E POR QUÊ ──────────────────────────────────────────
+//
+// A tabela anterior tinha cinco planos (essencial → premium) que prometiam, por
+// mês, de 34 a 160 peças. A casa entregava 12. NENHUM plano cabia — de 2,8× a
+// 13,3× de dívida, medida em 25/08/2026 e registrada em `DIVIDA_DA_VITRINE`.
+//
+// A dívida foi paga pelos DOIS lados, e nesta ordem, que é a que importa:
+//
+//   1. **a capacidade subiu primeiro** — três levas de até 12 peças por ciclo,
+//      36 peças/mês de teto (ver `execution/escopo-do-cliente.ts`);
+//   2. **só então a tabela subiu**, com números que cabem nessa capacidade.
+//
+// Subir a promessa antes da capacidade teria feito a casa voltar a prometer o
+// que não entrega — desta vez por escrito e aprovado pelo CEO, que é pior.
+//
+// ── O QUE MUDOU EM CADA COISA ───────────────────────────────────────────────
+//
+// • **Três planos, não cinco.** Cinco degraus para uma casa de três tamanhos de
+//   entrega eram degrau de tabela, não de produto.
+// • **Preço fechado, não faixa.** `minPrice === maxPrice`. Faixa de preço numa
+//   proposta automática é o vendedor decidindo sozinho quanto cobrar.
+// • **Stories saíram do plano.** Viraram avulso (1 story R$ 35, 4 stories
+//   R$ 99, em `self-serve-catalog.ts`). O plano vende PEÇA de feed/carrossel,
+//   que é o que a esteira produz do começo ao fim.
+// • **Vídeo e reel NÃO entram, em plano nenhum.** A casa não edita vídeo.
+//   Vender isso seria a mesma dívida que saiu da vitrine em D-0A3: promessa sem
+//   produtor. O que se tira é a PROMESSA, não o produtor — que não existe.
+//
+// ⚠️ A CATRACA MORDE ESTA TABELA. `__tests__/comercial/
+// a-vitrine-nao-promete-acima-do-teto` refaz a conta de cada linha daqui contra
+// `TETO_MENSAL` e quebra o build se um plano passar. Editar um número aqui sem
+// mexer na capacidade não compila.
 export const SOCIAL_PACKAGES: PackageDef[] = [
   {
     id: "essencial",
     label: "Plano Essencial",
     postsPerWeek: 3,
-    storiesPerWeek: 5,
+    storiesPerWeek: 0,
     postsPerMonth: 12,
-    storiesPerMonth: 20,
-    reelsPerMonth: 2,
+    storiesPerMonth: 0,
+    reelsPerMonth: 0,
     copy: true,
     design: true,
     calendar: false,
     reports: "none",
     community: "none",
-    minPrice: 600,
-    maxPrice: 900,
-    description: "3 posts + 5 stories/semana + 2 reels/mês — presença consistente",
+    minPrice: 590,
+    maxPrice: 590,
+    description: "12 peças/mês (3 por semana) — Instagram, arte + legenda, portal com aprovação",
   },
   {
-    id: "starter",
-    label: "Plano Starter",
+    id: "crescimento",
+    label: "Plano Crescimento",
     postsPerWeek: 5,
-    storiesPerWeek: 7,
+    storiesPerWeek: 0,
     postsPerMonth: 20,
-    storiesPerMonth: 28,
-    reelsPerMonth: 4,
+    storiesPerMonth: 0,
+    reelsPerMonth: 0,
     copy: true,
     design: true,
     calendar: true,
     reports: "basic",
     community: "none",
-    minPrice: 900,
-    maxPrice: 1400,
-    description: "5 posts + 7 stories/semana + 4 reels/mês — ritmo profissional",
+    minPrice: 990,
+    maxPrice: 990,
+    description: "20 peças/mês (5 por semana) — Instagram e Facebook, com relatório mensal",
   },
   {
-    id: "growth",
-    label: "Plano Growth",
-    postsPerWeek: 7,
-    storiesPerWeek: 10,
-    postsPerMonth: 28,
-    storiesPerMonth: 40,
-    reelsPerMonth: 6,
-    copy: true,
-    design: true,
-    calendar: true,
-    reports: "basic",
-    community: "basic",
-    minPrice: 1500,
-    maxPrice: 2400,
-    description: "1 post/dia + 10 stories/semana + 6 reels/mês — ritmo constante",
-  },
-  {
-    id: "pro",
-    label: "Plano Pro",
-    postsPerWeek: 10,
-    storiesPerWeek: 14,
-    postsPerMonth: 40,
-    storiesPerMonth: 56,
-    reelsPerMonth: 10,
+    id: "completo",
+    label: "Plano Completo",
+    postsPerWeek: 8,
+    storiesPerWeek: 0,
+    postsPerMonth: 32,
+    storiesPerMonth: 0,
+    reelsPerMonth: 0,
     copy: true,
     design: true,
     calendar: true,
     reports: "advanced",
     community: "full",
-    minPrice: 2500,
-    maxPrice: 4000,
-    description: "10 posts + 14 stories/semana + 10 reels/mês — presença forte",
-  },
-  {
-    id: "premium",
-    label: "Plano Premium",
-    postsPerWeek: 15,
-    storiesPerWeek: 21,
-    postsPerMonth: 60,
-    storiesPerMonth: 84,
-    reelsPerMonth: 16,
-    copy: true,
-    design: true,
-    calendar: true,
-    reports: "advanced",
-    community: "full",
-    minPrice: 4000,
-    maxPrice: 6500,
-    description: "15 posts + 21 stories/semana + 16 reels/mês — operação de marca completa",
+    minPrice: 1790,
+    maxPrice: 1790,
+    description: "32 peças/mês (8 por semana) — com plano de mídia e acompanhamento de campanha",
   },
 ];
 
-// Receives posts-per-MONTH (scope stores postsPerWeek; estimate passes *4).
+/**
+ * Qual plano cabe o volume que o cliente pediu.
+ *
+ * Recebe peças por MÊS. Os cortes são os próprios volumes da tabela: quem pede
+ * até 12 é Essencial, até 20 é Crescimento, daí para cima é Completo — e acima
+ * de 32 continua sendo Completo, porque é o maior que a casa faz. A recusa do
+ * excedente não é escondida aqui: ela sai por escrito em
+ * `quantidadesQueCabemNaSemana`, junto do número que cabe.
+ */
 export function detectPackage(postsPerMonth: number): SocialPackage {
-  if (postsPerMonth <= 14) return "essencial"; // ~3/semana
-  if (postsPerMonth <= 24) return "starter";   // ~5/semana
-  if (postsPerMonth <= 34) return "growth";    // ~7/semana
-  if (postsPerMonth <= 50) return "pro";       // ~10/semana
-  return "premium";                             // 15+/semana
+  if (postsPerMonth <= 12) return "essencial";
+  if (postsPerMonth <= 20) return "crescimento";
+  return "completo";
 }
 
 export function getPackageDef(id: SocialPackage): PackageDef {
@@ -256,9 +260,23 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
       // E quando o pedido passa do que a casa faz, isso vira CONVERSA agora, na
       // proposta, e não um `blocked` silencioso três etapas depois: a recusa sai
       // por escrito com a instrução gêmea — o que não cabe E o que cabe.
-      const posts   = quantidadeQueCabe("feed",  postsPerWeek);
-      const stories = quantidadeQueCabe("story", s?.storiesPerWeek);
-      const reels   = Math.max(0, Math.floor(s?.reelsPerMonth ?? 0));
+      // ── O TETO É DO TOTAL, NÃO DE CADA FORMATO (25/08/2026) ──────────────
+      //
+      // Eram duas leituras independentes, e cada uma acertava sozinha: 9 posts
+      // passavam, 9 stories passavam, e a soma prometia 72 peças/mês a uma casa
+      // que entrega 36. Cada peça certa, a junta arrebentada — a mesma família
+      // do case Farol 27. Agora o pedido inteiro é lido de uma vez.
+      const cabem  = quantidadesQueCabemNaSemana({ feed: postsPerWeek, story: s?.storiesPerWeek });
+      const posts   = cabem.feed;
+      const stories = cabem.story;
+      // ── REEL SAIU DA CASA (decisão do CEO, 25/08/2026) ───────────────────
+      //
+      // A Dioli não edita vídeo. Vender reel é a mesma dívida que saiu da
+      // vitrine em D-0A3: promessa sem produtor. Nenhum plano os inclui e a
+      // estimativa não os cota — o que o cliente pediu é DITO, e dito como
+      // recusa, nunca somado em silêncio a um preço que ninguém pode cumprir.
+      const reelsPedidos = Math.max(0, Math.floor(s?.reelsPerMonth ?? 0));
+      const reels = 0;
 
       const cadencia = [
         `${posts.oferecido} posts/semana`,
@@ -284,9 +302,13 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
       if (stories.oferecido > 0) included.push(`${stories.oferecido} stories/semana`);
       else notIncluded.push("Stories — você pediu que não entrassem, e não entraram");
 
-      // Os reels que ele pediu são ESCOPO, nunca "extra". O extra media contra
-      // a tabela; agora não há contra o que medir: o pedido dele é a base.
-      if (reels > 0) included.push(`${reels} reels/mês (edição)`);
+      if (reelsPedidos > 0) {
+        notIncluded.push(
+          `Reels e vídeo — você pediu ${reelsPedidos} por mês e a Dioli NÃO produz vídeo hoje: ` +
+          "não gravamos, não editamos e não geramos. Estamos dizendo isso agora, e não depois de você " +
+          "assinar. O que entra no plano é peça de feed e carrossel, com arte e legenda prontas.",
+        );
+      }
 
       if (pkg.copy)     included.push("Copywriting (textos)");
       if (pkg.design)   included.push("Design personalizado das artes");

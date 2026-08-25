@@ -95,6 +95,27 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
     popular: true,
   },
   {
+    // O PREÇO QUE FALTAVA NA TABELA (CEO, 25/08/2026). O balcão vendia 4 stories
+    // por R$ 99 e não vendia UM — e quem quer um story não compra quatro: ele
+    // some da conversa. R$ 35 mantém a escada honesta (4 por R$ 99 continua
+    // sendo o negócio melhor, R$ 24,75 cada), em vez de um avulso tão caro que
+    // só existe para empurrar o pacote.
+    id: "balcao-1-story",
+    requer: ["arte-estatica-png", "texto-de-marca"],
+    label: "1 story",
+    description: "Um story vertical com margem protegida.",
+    deliverables: [
+      "1 story 1080×1920",
+      "Margem protegida: nada de texto cortado por barra ou botão",
+      "Texto da tela",
+      "Arquivo PNG no portal do cliente",
+    ],
+    price: 35,
+    precoMinimo: 25,
+    deliveryDays: 1,
+    category: "balcao",
+  },
+  {
     id: "balcao-4-stories",
     requer: ["arte-estatica-png", "texto-de-marca"],
     label: "4 stories",

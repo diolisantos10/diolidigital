@@ -377,6 +377,7 @@ export const DeliverableScalarFieldEnum = {
   lastFeedback: 'lastFeedback',
   ownerAgentId: 'ownerAgentId',
   cycleId: 'cycleId',
+  leva: 'leva',
   version: 'version',
   revisionHistory: 'revisionHistory',
   createdAt: 'createdAt',

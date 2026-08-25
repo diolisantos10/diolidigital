@@ -539,6 +539,15 @@ model Deliverable {
   /// ela a idempotência por especialista vale para sempre e a agência entrega
   /// uma vez só na vida do cliente.
   cycleId         String?
+  /// De que LEVA do ciclo esta entrega é (1, 2, 3…). NULO = entrega anterior a
+  /// 25/08/2026, quando o mês inteiro saía numa passada só — leia nulo como
+  /// leva 1, nunca como "sem leva".
+  ///
+  /// É a chave que faz a SEGUNDA passada do mês existir: a idempotência do
+  /// motor é por especialista dentro do ciclo, e sem esta coluna o especialista
+  /// de conteúdo que já produziu no dia 1 nunca mais produziria naquele ciclo —
+  /// que é exatamente por que o teto real da casa era 12 peças/mês.
+  leva            Int?
   version         Int      @default(1)
   // JSON-encoded revision history
   revisionHistory String   @default("[]")

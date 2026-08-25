@@ -286,6 +286,8 @@ export async function baterORelogio(): Promise<{
   retomados: number;
   /** Projetos que estavam parados em `idle` e entraram na fila nesta rodada. */
   ligados: number;
+  /** Levas do mês (2ª e 3ª passadas) que venceram e entraram na fila. */
+  levasAbertas: number;
   avisos: number;
   destravadas: number;
   publicados: number;
@@ -308,6 +310,8 @@ export async function baterORelogio(): Promise<{
   let retomados = 0;
   /** Projetos que saíram de `idle` sozinhos nesta rodada. */
   let ligados = 0;
+  /** Levas do mês que venceram e entraram na fila nesta rodada. */
+  let levasAbertas = 0;
   let pedidos = 0;
   let avisos = 0;
   let respondidas = 0;
@@ -502,6 +506,29 @@ export async function baterORelogio(): Promise<{
     }
   } catch (err) {
     quebrou("ligar-projeto", err);
+  }
+
+  // ── AS LEVAS DO MÊS (25/08/2026) ─────────────────────────────────────────
+  //
+  // Vem ANTES da retomada pelo mesmo motivo da virada e do "ligar projeto": ela
+  // põe o projeto em `pending`, que é o estado que `retomarProducao` sabe ler.
+  // Assim a leva vencida entra na fila e produz na MESMA rodada.
+  //
+  // NÃO é um relógio novo: é uma perna do relógio que já existe. Esta casa
+  // perdeu dez dias com um cron que morreu em silêncio com o painel verde.
+  //
+  // A trava de pagamento continua inteira: `pending` não gasta nada, e
+  // `runProjectExecution` confere o portão antes de qualquer token.
+  try {
+    const { abrirLevasVencidas, resumoDasLevas } = await import("@/lib/agency/esteira/levas");
+    const r = await abrirLevasVencidas();
+    levasAbertas = r.abertas.length;
+    if (r.abertas.length > 0) log(`levas: ${resumoDasLevas(r)}`);
+    // Leva que não abriu e não avisou é o cliente recebendo menos do que pagou,
+    // invisível — que é exatamente como o teto de 12 peças viveu meses.
+    for (const a of r.avisos) quebrou("levas-do-mes", a);
+  } catch (err) {
+    quebrou("levas-do-mes", err);
   }
 
   try {
@@ -936,12 +963,12 @@ export async function baterORelogio(): Promise<{
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
-    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas },
+    moveu: { pedidos, mesesVirados, retomados, levasAbertas, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas },
     falhas,
     estados,
   });
 
-  return { retomados, ligados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, backup };
+  return { retomados, ligados, levasAbertas, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, backup };
 }
 
 /**

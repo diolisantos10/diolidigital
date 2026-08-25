@@ -29,15 +29,27 @@ export interface MarginProfile {
   targetPrice: number;
 }
 
-// Social plans — cost basis reflects an AI-native operation (low marginal cost,
-// high margin). Floor is ~1.6–1.8× cost so even the deepest discount stays
-// comfortably profitable. Target is at/above the client-facing maxPrice.
+// ── O CUSTO MEDIDO, E O QUE AINDA NÃO É MEDIÇÃO (25/08/2026) ────────────────
+//
+// `costBasis` era um número redondo herdado, sem procedência. A medição do
+// ciclo de 32 peças deu o custo REAL de IA da casa: **~R$ 1,30 por peça** entre
+// texto e imagem — R$ 16 no Essencial, R$ 26 no Crescimento, R$ 42 no Completo.
+// É esse número que dissolveu a dívida da vitrine: 32 peças custam ~R$ 45
+// contra um plano de R$ 1.790. O limite de 12 peças/mês nunca foi de dinheiro.
+//
+// ⚠️ O que está aqui é o custo de IA MEDIDO mais uma folga declarada para
+// ferramenta e revisão. **Hora de gente NÃO está medida nesta casa** e por isso
+// não está somada — somar um número que ninguém mediu faria a margem parecer
+// pior ou melhor por invenção, e as duas mentem. Quando houver medição de hora,
+// ela entra aqui com procedência, como esta entrou.
+//
+// `floorPrice` é ~70% do preço de tabela: é piso COMERCIAL (o quanto a casa
+// aceita descontar), não piso de custo — a distância entre os dois é o que
+// torna o desconto possível sem virar prejuízo.
 export const SOCIAL_MARGINS: Record<SocialPackage, MarginProfile> = {
-  essencial: { costBasis: 280,  floorPrice: 520,  targetPrice: 900  },
-  starter:   { costBasis: 420,  floorPrice: 820,  targetPrice: 1400 },
-  growth:    { costBasis: 620,  floorPrice: 1300, targetPrice: 2400 },
-  pro:       { costBasis: 980,  floorPrice: 2200, targetPrice: 4000 },
-  premium:   { costBasis: 1500, floorPrice: 3600, targetPrice: 6500 },
+  essencial:   { costBasis: 60,  floorPrice: 420,  targetPrice: 590  },
+  crescimento: { costBasis: 90,  floorPrice: 690,  targetPrice: 990  },
+  completo:    { costBasis: 140, floorPrice: 1250, targetPrice: 1790 },
 };
 
 // Add-on departments.

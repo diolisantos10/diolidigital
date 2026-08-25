@@ -29,6 +29,7 @@
 // perguntar ao cliente.
 
 import { volumeDeclarado } from "@/lib/agency/live-calculator";
+import { ENTREGAS_POR_MES } from "@/lib/agency/contrato-de-quantidade";
 import type { SocialScope } from "@/lib/agency/briefing-conversation";
 
 /** Os formatos que a esteira sabe produzir. */
@@ -331,15 +332,104 @@ export function lerEscopoDeConteudo(fontes: {
 /**
  * O TETO POR ENTREGA — e ele é de custo, não de contrato.
  *
- * O cliente pode ter comprado 60 posts no mês; UMA passada do especialista não
- * pode devolver 60 legendas boas, e cada peça vira arte paga. Este teto existe
+ * O cliente pode ter comprado 32 posts no mês; UMA passada do especialista não
+ * pode devolver 32 legendas boas, e cada peça vira arte paga. Este teto existe
  * para que o volume mensal seja entregue em várias passadas, não numa só.
  *
- * ⚠️ **O teto não é a entrega do mês.** Quando ele morde, quem chama precisa
- * dizer isso em voz alta — senão o cliente compra 60 e o sistema entrega 8 em
- * silêncio, para sempre, que é exatamente o que acontecia até hoje.
+ * ⚠️ **O teto não é a entrega do mês.** Ele é o teto de UMA LEVA. Quantas levas
+ * o mês tem está em `ENTREGAS_POR_MES`, e o produto dos dois é o que a casa
+ * entrega — a conta que a catraca da vitrine confere.
  */
 export const TETO_DE_PECAS_POR_ENTREGA = 12;
+
+// ═══ AS LEVAS — a capacidade que faz o plano Completo caber ═════════════════
+//
+// ── O QUE ESTAVA QUEBRADO ───────────────────────────────────────────────────
+//
+// A casa entregava UMA passada por mês. Não por escolha comercial: por
+// construção. `retomarProducao` (`despertador.ts`) só pega projeto `pending`, e
+// depois da primeira passada do ciclo o projeto vira `done`; a idempotência do
+// motor é por especialista DENTRO DO CICLO. Não havia como existir uma segunda.
+//
+// Resultado medido em 25/08/2026: teto real de 12 peças/mês contra planos que
+// anunciavam de 34 a 160. NENHUM plano cabia.
+//
+// ── O QUE DISSOLVEU O DILEMA ────────────────────────────────────────────────
+//
+// Cada peça custa à casa ~R$ 1,30 entre texto e imagem. 32 peças custam ~R$ 45
+// contra um plano de R$ 1.790. **O limite de 12 era escolha de software, não de
+// dinheiro.** Então o conserto é o motor entregar mais vezes, e não a vitrine
+// prometer menos.
+//
+// ── O NÚMERO, E O MOTIVO AO LADO DELE ───────────────────────────────────────
+//
+// **TRÊS levas, uma a cada DEZ dias.**
+//
+//   • **Por que três, e não duas nem seis.** Três é o menor número de levas
+//     cujo teto (3 × 12 = 36) cobre as 32 peças do plano mais caro da casa. Duas
+//     dariam 24 e o Completo não caberia; seis dariam 72 de teto que ninguém
+//     vende, e cada leva a mais é uma rodada a mais de julgamento da Qualidade e
+//     de chamada paga de IA. Capacidade que ninguém vende é custo sem receita.
+//
+//   • **Por que dez dias, e não "tudo no dia 1".** Se as 32 peças saíssem de uma
+//     vez, o cliente receberia 32 cartões no mesmo dia e a Qualidade julgaria 32
+//     de uma vez. Ninguém aprova 32 peças numa sentada — o portal vira um muro e
+//     a aprovação para, que é o oposto do que a capacidade nova serve. Dez dias
+//     dão três levas dentro de qualquer mês (30 e 31 dias) e põem ~11 peças na
+//     mão do cliente de cada vez: pouco mais de uma semana de publicação, que é
+//     o horizonte que uma pessoa consegue olhar de uma sentada.
+//
+//   • **Por que o teto por leva NÃO subiu.** Ele é de custo e de qualidade, e
+//     nada no que foi medido diz que uma passada devolve mais de 12 legendas
+//     boas. Afrouxá-lo seria trocar a promessa que não se entrega por uma
+//     entrega que não se aprova.
+//
+// ── E NENHUM RELÓGIO NOVO ───────────────────────────────────────────────────
+//
+// As levas pegam carona no despertador que já bate a cada 5 minutos
+// (`lib/agency/esteira/levas.ts::abrirLevasVencidas`). Esta casa já perdeu dez
+// dias com um cron que morreu em silêncio com o painel verde; um segundo
+// agendador seria o mesmo defeito com outra roupa.
+
+/** Quantas levas um ciclo tem. Vem da fonte única do quanto. */
+export const LEVAS_POR_CICLO = ENTREGAS_POR_MES;
+
+/** Dias entre uma leva e a seguinte. Ver o motivo no bloco acima. */
+export const DIAS_ENTRE_LEVAS = 10;
+
+/** O que a casa entrega num mês, pelo que o código faz. */
+export const TETO_MENSAL_DE_PECAS = TETO_DE_PECAS_POR_ENTREGA * LEVAS_POR_CICLO;
+
+/**
+ * COMO O MÊS COMPRADO SE REPARTE ENTRE AS LEVAS.
+ *
+ * Reparte o mais igualmente possível, com as sobras nas PRIMEIRAS levas — um
+ * cliente que cancelar no meio do ciclo recebeu a maior parte do que pagou, e
+ * não a menor. Nenhuma leva passa de `TETO_DE_PECAS_POR_ENTREGA`; o que não
+ * couber em `LEVAS_POR_CICLO × teto` simplesmente não é prometido, e quem chama
+ * fica sabendo pela conta não fechar (é `avisoDeCobertura` que diz isso em voz
+ * alta).
+ */
+export function planoDeLevas(pecasPorMes: number): number[] {
+  if (!Number.isFinite(pecasPorMes) || pecasPorMes <= 0) return [];
+  const total = Math.min(Math.floor(pecasPorMes), TETO_MENSAL_DE_PECAS);
+  const base = Math.floor(total / LEVAS_POR_CICLO);
+  const sobra = total - base * LEVAS_POR_CICLO;
+  return Array.from({ length: LEVAS_POR_CICLO }, (_, i) => base + (i < sobra ? 1 : 0))
+    .filter((n) => n > 0);
+}
+
+/**
+ * QUAL LEVA ESTÁ VENCIDA AGORA, contando do começo do ciclo.
+ *
+ * 1 nos primeiros dez dias, 2 nos dez seguintes, 3 daí em diante — e nunca mais
+ * que `LEVAS_POR_CICLO`, porque um ciclo que atrasou não vira crédito de peça.
+ */
+export function levaDevidaEm(inicioDoCiclo: Date, agora: Date): number {
+  const dias = Math.floor((agora.getTime() - inicioDoCiclo.getTime()) / 86_400_000);
+  if (!Number.isFinite(dias) || dias < 0) return 1;
+  return Math.min(LEVAS_POR_CICLO, Math.floor(dias / DIAS_ENTRE_LEVAS) + 1);
+}
 
 export interface ExigenciaDeConteudo {
   min: number;
@@ -347,51 +437,65 @@ export interface ExigenciaDeConteudo {
   /** Os formatos que o especialista PODE entregar. */
   permitidos: FormatoContratado[];
   /** Quanto do mês esta entrega cobre. `null` quando o volume não é legível. */
-  cobreDoMes: { entrega: number; contratado: number } | null;
+  cobreDoMes: { entrega: number; contratado: number; leva: number; levas: number } | null;
   /** O que ficou sem resposta no contrato do cliente. */
   lacunas: string[];
 }
 
 /**
- * A exigência do especialista, DERIVADA do contrato do cliente.
+ * A exigência do especialista, DERIVADA do contrato do cliente e DA LEVA.
  *
  * Sem contrato legível, cai na régua histórica da casa (6 a 8, todos os
  * formatos) — DECLARANDO a lacuna. É a leitura conservadora: parar a produção
  * de todo cliente cujo briefing não escreveu o volume seria trocar um dano por
- * um maior.
+ * um maior. Cliente sem volume legível continua com UMA leva: não se multiplica
+ * gasto por um número que ninguém leu.
  */
-export function exigenciaDeConteudo(escopo: EscopoDeConteudo): ExigenciaDeConteudo {
+export function exigenciaDeConteudo(escopo: EscopoDeConteudo, leva = 1): ExigenciaDeConteudo {
   const permitidos = FORMATOS_CONTRATAVEIS.filter((f) => !escopo.excluidos.includes(f));
 
   if (escopo.pecasPorMes === null) {
     return { min: 6, max: 8, permitidos, cobreDoMes: null, lacunas: escopo.lacunas };
   }
 
-  const porEntrega = Math.min(escopo.pecasPorMes, TETO_DE_PECAS_POR_ENTREGA);
+  const plano = planoDeLevas(escopo.pecasPorMes);
+  const indice = Math.min(Math.max(1, Math.floor(leva)), plano.length || 1);
+  const porEntrega = Math.min(plano[indice - 1] ?? 0, TETO_DE_PECAS_POR_ENTREGA);
   return {
     min: porEntrega,
     max: porEntrega,
     permitidos,
-    cobreDoMes: { entrega: porEntrega, contratado: escopo.pecasPorMes },
+    cobreDoMes: {
+      entrega: plano.reduce((a, b) => a + b, 0),
+      contratado: escopo.pecasPorMes,
+      leva: indice,
+      levas: plano.length,
+    },
     lacunas: escopo.lacunas,
   };
 }
 
 /**
- * A frase que sobe quando a entrega não cobre o mês comprado.
+ * A frase que sobe quando a entrega do MÊS não cobre o mês comprado.
  *
  * Vazia quando cobre, ou quando o volume não é legível (aí a lacuna já foi
  * nomeada em outro lugar). Não é parecer para o especialista — ele não tem como
  * resolver isto sozinho: é aviso para gente.
+ *
+ * ⚠️ Repare no que ela mede AGORA: o mês inteiro contra o contrato, e não uma
+ * passada contra o contrato. Antes das levas, esta frase disparava para todo
+ * cliente de mais de 12 peças — inclusive os que a casa hoje entrega inteiros —
+ * e um aviso que dispara sempre é um aviso que ninguém lê.
  */
 export function avisoDeCobertura(e: ExigenciaDeConteudo, cliente: string): string {
   if (!e.cobreDoMes) return "";
   const { entrega, contratado } = e.cobreDoMes;
   if (entrega >= contratado) return "";
   return (
-    `${cliente} comprou ${contratado} peças no mês e esta entrega traz ${entrega}. ` +
-    `Faltam ${contratado - entrega} para o contrato fechar — o teto por entrega é ${TETO_DE_PECAS_POR_ENTREGA} ` +
-    "(uma passada não devolve o mês inteiro com qualidade, e cada peça vira arte paga). " +
-    "O mês só fecha com mais passadas; enquanto isso, o cliente está recebendo menos do que pagou."
+    `${cliente} comprou ${contratado} peças no mês e a casa entrega ${entrega}. ` +
+    `Faltam ${contratado - entrega} para o contrato fechar — o teto do mês é ${TETO_MENSAL_DE_PECAS} ` +
+    `(${LEVAS_POR_CICLO} levas de até ${TETO_DE_PECAS_POR_ENTREGA} peças; uma passada não devolve o mês ` +
+    "inteiro com qualidade, e cada peça vira arte paga). " +
+    "O cliente está recebendo menos do que pagou, e isto é pergunta para gente."
   );
 }

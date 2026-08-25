@@ -134,7 +134,7 @@ describe("recusa por corte (truncado) com escopo salvo — o número sobrevive",
     // 14 posts/semana * 4 = 56/mês — detecta o Plano Premium (>50), NÃO o
     // Plano Essencial de 3/semana que o piloto cotou errado.
     expect(estimate.missingForEstimate).not.toContain("Frequência de posts por semana");
-    const socialItem = estimate.items.find((i) => /Premium/i.test(i.label));
+    const socialItem = estimate.items.find((i) => /Completo/i.test(i.label));
     expect(socialItem).toBeDefined();
     expect(estimate.included.some((s) => /posts\/semana \(\d+\/mês\)/.test(s))).toBe(true);
     // Checagem exata (não substring): nenhum item do plano é literalmente

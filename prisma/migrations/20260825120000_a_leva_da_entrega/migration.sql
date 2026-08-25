@@ -1,0 +1,21 @@
+-- A LEVA DA ENTREGA (25/08/2026)
+--
+-- A casa entregava UMA passada por mês, e não por escolha comercial: por
+-- construção. A idempotência do motor é por especialista DENTRO DO CICLO
+-- (`run-execution.ts`), então depois da primeira passada o especialista de
+-- conteúdo era pulado até o mês virar. Teto real: 12 peças/mês, contra planos
+-- que anunciavam de 34 a 160.
+--
+-- Esta coluna é o que permite a segunda e a terceira passada do mesmo ciclo:
+-- a chave de idempotência do conteúdo passa a ser (ciclo, leva, especialista).
+--
+-- ADITIVA e NULLABLE: nenhuma linha existente é tocada e nenhuma leitura antiga
+-- quebra. O banco é SQLite num volume do Railway com dados de piloto VIVOS.
+--
+-- ⚠️ NULO significa "entrega anterior às levas", e todo leitor a trata como
+-- leva 1 — nunca como "sem leva", que faria a entrega do mês 1 ser reproduzida.
+--
+-- Rollback: a coluna pode ser ignorada sem efeito; o código degrada para uma
+-- leva por ciclo, que é o comportamento de antes.
+
+ALTER TABLE "Deliverable" ADD COLUMN "leva" INTEGER;

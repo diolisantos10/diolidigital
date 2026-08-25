@@ -342,10 +342,37 @@ describe("a esteira, de ponta a ponta, com banco real", () => {
     expect(status?.leitura.progresso).toBe(100);
   });
 
-  it("10. rodar o motor de novo não duplica nada — a esteira é idempotente", async () => {
-    const antes = await prisma.deliverable.count({ where: { projectId } });
+  it("10. rodar o motor de novo não duplica nada DENTRO DA LEVA — e a leva nova traz só peça", async () => {
+    // ── O QUE MUDOU EM 25/08/2026 ──────────────────────────────────────────
+    //
+    // A idempotência ganhou uma dimensão: (ciclo, LEVA, especialista). Rodar o
+    // motor de novo continua não duplicando nada — mas se uma leva do mês
+    // venceu, ele produz o lote DELA, que é justamente a capacidade que faz o
+    // plano Completo (32 peças/mês) caber.
+    //
+    // O que este teste guarda é o limite disso: a leva nova traz APENAS quem
+    // produz peça. Pauta do mês, estratégia e relatório são UM por ciclo —
+    // repeti-los a cada leva triplicaria a conta de IA para entregar três vezes
+    // o mesmo documento.
+    const antes = await prisma.deliverable.findMany({
+      where: { projectId }, select: { ownerAgentId: true, leva: true },
+    });
+
+    await runProjectExecution(projectId);
+    const meio = await prisma.deliverable.findMany({
+      where: { projectId }, select: { ownerAgentId: true, leva: true },
+    });
+    const novos = meio.filter((d) =>
+      !antes.some((a) => a.ownerAgentId === d.ownerAgentId && (a.leva ?? 1) === (d.leva ?? 1)));
+    // Se veio alguém novo, é porque uma leva venceu — e só quem produz PEÇA.
+    for (const d of novos) {
+      expect(d.ownerAgentId, `"${d.ownerAgentId}" foi refeito numa leva nova e não produz peça`).toBe("social-copy");
+    }
+
+    // E agora a prova da idempotência: rodar OUTRA vez, na MESMA leva, não
+    // escreve mais nada. É esta segunda chamada que pega o motor duplicando.
     await runProjectExecution(projectId);
     const depois = await prisma.deliverable.count({ where: { projectId } });
-    expect(depois).toBe(antes);
+    expect(depois).toBe(meio.length);
   });
 });

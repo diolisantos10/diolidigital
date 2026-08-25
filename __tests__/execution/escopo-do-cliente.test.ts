@@ -24,6 +24,7 @@ import { describe, it, expect } from "vitest";
 import {
   lerEscopoDeConteudo, exigenciaDeConteudo, avisoDeCobertura, escopoNaoDeclarado,
   TETO_DE_PECAS_POR_ENTREGA,
+  TETO_MENSAL_DE_PECAS, LEVAS_POR_CICLO,
 } from "@/lib/agency/execution/escopo-do-cliente";
 import { DEPARTAMENTOS, type Ctx } from "@/lib/agency/execution/especialistas";
 
@@ -96,7 +97,9 @@ describe("exigenciaDeConteudo deriva do contrato", () => {
     const e = exigenciaDeConteudo(lerEscopoDeConteudo({ contextoBruto: CONTRATO_CITYJOBS }));
     expect(e.permitidos).toEqual(["feed"]);
     expect(e.min).toBe(TETO_DE_PECAS_POR_ENTREGA);
-    expect(e.cobreDoMes).toEqual({ entrega: TETO_DE_PECAS_POR_ENTREGA, contratado: 60 });
+    // 60 peças não cabem nem no teto do MÊS (36 = 3 levas de 12). O que a
+    // entrega cobre é o mês inteiro da casa, e a diferença sobe como aviso.
+    expect(e.cobreDoMes).toEqual({ entrega: TETO_MENSAL_DE_PECAS, contratado: 60, leva: 1, levas: LEVAS_POR_CICLO });
   });
 
   it("sem contrato legível, cai na régua histórica — com a lacuna dita", () => {
@@ -110,7 +113,7 @@ describe("exigenciaDeConteudo deriva do contrato", () => {
     const e = exigenciaDeConteudo(lerEscopoDeConteudo({ contextoBruto: CONTRATO_CITYJOBS }));
     const aviso = avisoDeCobertura(e, "CityJobs");
     expect(aviso).toContain("60");
-    expect(aviso).toContain(String(60 - TETO_DE_PECAS_POR_ENTREGA));
+    expect(aviso).toContain(String(60 - TETO_MENSAL_DE_PECAS));
     expect(aviso).toContain("menos do que pagou");
   });
 

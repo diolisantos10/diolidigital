@@ -128,14 +128,18 @@ export const PLANOS: Plano[] = [
     inclui: [
       "Tudo do Presença, com 14 peças por mês",
       "4 sequências de stories por mês, no formato vertical protegido",
-      "4 roteiros de reels — cena a cena, prontos para gravar",
       "Plano de medição: o que vamos medir e qual número significa sucesso, combinado antes",
       "Pesquisa de concorrência atualizada a cada ciclo",
       "Reunião mensal de leitura dos números",
       "3 rodadas de ajuste por peça",
     ],
     naoInclui: [
-      "A gravação e a edição do vídeo — o roteiro está incluído, o vídeo pronto se compra à parte",
+      // 25/08/2026 — decisão do CEO. Esta linha prometia "4 roteiros de reels"
+      // em `inclui`. Vídeo e reel NÃO entram em plano nenhum: a casa não grava,
+      // não edita e não gera vídeo, e o roteiro sozinho é a mesma dívida de
+      // D-0A3 — promessa sem produtor. O que se tira é a PROMESSA; o produtor
+      // não existe para ser tirado.
+      "Vídeo e reel, em qualquer forma — roteiro, gravação, edição ou geração",
       "Tráfego pago e verba de mídia",
       "Site e material impresso",
     ],
@@ -175,7 +179,7 @@ export const FORA_DE_TODO_PLANO = [
   {
     titulo: "Vídeo",
     texto:
-      "Gravação, edição e vídeo gerado por IA. O roteiro está incluído a partir do Conteúdo; o vídeo pronto é sempre orçado à parte.",
+      "Gravação, edição, roteiro e vídeo gerado por IA. A casa não produz vídeo hoje — em nenhum plano, em nenhuma forma. Quando houver quem produza, entra na tabela; até lá, não é escopo.",
   },
   {
     titulo: "Marca",

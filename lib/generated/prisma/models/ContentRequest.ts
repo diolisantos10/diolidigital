@@ -865,14 +865,6 @@ export type ContentRequestUncheckedUpdateManyWithoutClientNestedInput = {
   deleteMany?: Prisma.ContentRequestScalarWhereInput | Prisma.ContentRequestScalarWhereInput[]
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type ContentRequestCreateWithoutClientInput = {
   estadoCanonico?: string | null
   id?: string

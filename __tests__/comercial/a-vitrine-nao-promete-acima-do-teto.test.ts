@@ -1,97 +1,198 @@
-// A VITRINE NÃO PROMETE ACIMA DO QUE A CASA ENTREGA — a catraca.
+// A VITRINE NÃO PROMETE ACIMA DO QUE A CASA ENTREGA — a catraca, agora no zero.
 //
 // ═══ O ACHADO (25/08/2026) ══════════════════════════════════════════════════
 //
 // Fechando o case Farol 27 ficou à vista um buraco maior que o conserto: a
-// tabela de planos anuncia de 2,8× a 13,3× o que a produção entrega num mês.
+// tabela de planos anunciava de 2,8× a 13,3× o que a produção entregava num
+// mês. A casa fazia UMA passada por mês, de 12 peças, e o Premium anunciava
+// 160.
 //
-// A casa faz UMA passada por mês (`mes.ts::virarOsMesesVencidos` marca o
-// projeto `pending`; `despertador.ts::retomarProducao` roda UM
-// `runProjectExecution`; não há segunda passada agendada em lugar nenhum), e
-// a passada tem teto de `TETO_DE_PECAS_POR_ENTREGA` peças.
+// ═══ O QUE MUDOU, E POR QUE A CATRACA APERTOU EM VEZ DE AFROUXAR ════════════
 //
-// É a mesma família de um defeito que esta casa já registrou como decisão —
-// **vitrine é promessa; promessa sem produtor é dívida.** Lá era vender o que
-// não se produz; aqui é vender MAIS do que se produz. O dano é o mesmo: o
-// cliente assina uma coisa e recebe outra, e a casa descobre na entrega.
+// O CEO escolheu o conserto (b): a PRODUÇÃO passou a entregar mais. Três levas
+// de até 12 peças por ciclo, uma a cada dez dias, sem relógio novo — pegando
+// carona no despertador que já bate a cada 5 minutos. Teto mensal: 36.
 //
-// ═══ POR QUE ESTE TESTE NÃO EXIGE ZERO HOJE ═════════════════════════════════
+// Com a capacidade no lugar, a tabela nova coube: 12, 20 e 32 peças/mês. E aí a
+// catraca deixou de segurar o tamanho de uma dívida e passou a exigir que ela
+// seja ZERO — que é o único estado em que a vitrine e a entrega dizem a mesma
+// coisa.
 //
-// Exigir zero agora obrigaria a baixar o Premium — "operação de marca
-// completa" — para 12 peças/mês, o que não conserta nada: destrói o produto.
-// O conserto certo é quase certamente a PRODUÇÃO entregar mais, e isso mexe em
-// custo e capacidade: é decisão do CEO, não de quem escreve o código. Está
-// escalado.
-//
-// Então a catraca segura o tamanho da dívida no lugar. Ela gira para um lado
-// só: piorar quebra, criar plano novo acima do teto quebra, e melhorar também
-// quebra — pedindo para baixar o número declarado, porque dívida paga tem de
-// sair do registro. O que ela impede é a única coisa que não se pode admitir
-// duas vezes: a dívida crescer em silêncio, que é exatamente como esta nasceu.
+// ⚠️ A ORDEM É PARTE DA REGRA: a capacidade sobe primeiro, a tabela depois. Este
+// teste é o que impede a ordem inversa — um plano novo acima do teto não
+// compila, e não existe caminho de aprová-lo sem mexer na capacidade.
 
 import { describe, it, expect } from "vitest";
 import { SOCIAL_PACKAGES } from "@/lib/agency/live-calculator";
+import { PLANOS } from "@/lib/agency/planos";
+import {
+  MISTURA_DE_FORMATOS,
+} from "@/lib/agency/execution/especialistas";
 import {
   LIMITES_POR_FORMATO, DIVIDA_DA_VITRINE, ENTREGAS_POR_MES,
+  TETO_MENSAL, TETO_DE_PECAS_POR_PASSADA_ESPELHO, TETO_SEMANAL_DA_CASA,
+  receitaDoLote, misturaDoLote,
 } from "@/lib/agency/contrato-de-quantidade";
-import { TETO_DE_PECAS_POR_ENTREGA } from "@/lib/agency/execution/escopo-do-cliente";
-
-/** O que a casa entrega num mês, pelo que o código faz. */
-const TETO_MENSAL = TETO_DE_PECAS_POR_ENTREGA * ENTREGAS_POR_MES;
+import {
+  TETO_DE_PECAS_POR_ENTREGA, TETO_MENSAL_DE_PECAS, LEVAS_POR_CICLO,
+  DIAS_ENTRE_LEVAS, planoDeLevas, levaDevidaEm,
+} from "@/lib/agency/execution/escopo-do-cliente";
 
 /** O que o plano anuncia por mês. A mesma conta que a descrição dele mostra. */
 const prometidoPorMes = (p: (typeof SOCIAL_PACKAGES)[number]) =>
   p.postsPerWeek * 4 + p.storiesPerWeek * 4 + p.reelsPerMonth;
 
 describe("a medição, para ninguém ter de refazê-la de cabeça", () => {
-  it("a casa faz UMA passada por mês, e a passada tem teto de 12 peças", () => {
-    expect(ENTREGAS_POR_MES).toBe(1);
-    expect(TETO_MENSAL).toBe(12);
+  it("a casa faz TRÊS levas por ciclo, de até 12 peças — 36/mês", () => {
+    expect(ENTREGAS_POR_MES).toBe(3);
+    expect(LEVAS_POR_CICLO).toBe(3);
+    expect(TETO_DE_PECAS_POR_ENTREGA).toBe(12);
+    expect(TETO_MENSAL_DE_PECAS).toBe(36);
+  });
+
+  it("o teto que a VENDA usa e o teto que a PRODUÇÃO aplica são o mesmo número", () => {
+    // `contrato-de-quantidade` não pode importar o motor (a sala de briefing
+    // roda no navegador), então ele espelha o número. Espelho sem prova é a
+    // segunda tabela que envelhece sozinha — a prova é esta.
+    expect(TETO_DE_PECAS_POR_PASSADA_ESPELHO).toBe(TETO_DE_PECAS_POR_ENTREGA);
+    expect(TETO_MENSAL).toBe(TETO_MENSAL_DE_PECAS);
+    expect(TETO_SEMANAL_DA_CASA).toBe(9);
+  });
+
+  it("o ritmo das levas cabe em qualquer mês", () => {
+    // Três levas de dez em dez dias entram em fevereiro e em janeiro igual.
+    expect(DIAS_ENTRE_LEVAS * (LEVAS_POR_CICLO - 1)).toBeLessThan(28);
   });
 });
 
-describe("a catraca: nenhum plano promete MAIS do que já está declarado", () => {
-  for (const p of SOCIAL_PACKAGES) {
-    it(`${p.id}: a dívida declarada é a dívida real`, () => {
-      const declarada = DIVIDA_DA_VITRINE[p.id];
-      expect(
-        declarada,
-        `O plano "${p.id}" não está no registro DIVIDA_DA_VITRINE. Plano novo ` +
-        `precisa caber em ${TETO_MENSAL} peças/mês — ou entrar no registro com ` +
-        "o número medido, e aí a dívida da casa cresceu e alguém tem de saber.",
-      ).toBeDefined();
+describe("a catraca: a dívida é ZERO, e o registro tem de mostrar isso", () => {
+  it("o registro da dívida está VAZIO — dívida paga sai do registro", () => {
+    expect(Object.keys(DIVIDA_DA_VITRINE)).toEqual([]);
+  });
 
+  for (const p of SOCIAL_PACKAGES) {
+    it(`${p.id}: cabe no que a casa entrega`, () => {
       const real = prometidoPorMes(p);
       expect(
         real,
-        `"${p.id}" promete ${real} peças/mês e o registro diz ${declarada}. ` +
-        (real > (declarada ?? 0)
-          ? "A dívida CRESCEU — a vitrine passou a prometer mais do que já prometia, e a casa continua entregando 12."
-          : "A dívida DIMINUIU — ótimo, e o número declarado tem de descer junto: catraca só gira para um lado."),
-      ).toBe(declarada);
+        `O plano "${p.id}" promete ${real} peças/mês e a casa entrega ${TETO_MENSAL}. ` +
+        "A capacidade sobe PRIMEIRO (levas, em `escopo-do-cliente.ts`); a tabela, depois. " +
+        "Subir a promessa antes da capacidade é a casa voltar a prometer o que não entrega — " +
+        "desta vez por escrito e aprovada, que é pior.",
+      ).toBeLessThanOrEqual(TETO_MENSAL);
+      expect(DIVIDA_DA_VITRINE[p.id], `"${p.id}" cabe no teto e não pode estar no registro de dívida.`).toBeUndefined();
     });
   }
 
-  it("plano NOVO acima do teto quebra o build — a dívida não cresce em silêncio", () => {
-    const planoNovo = { id: "hipotetico", postsPerWeek: 4, storiesPerWeek: 4, reelsPerMonth: 4 };
+  it("a tabela é a aprovada pelo CEO: 590/12, 990/20, 1790/32, sem vídeo", () => {
+    expect(SOCIAL_PACKAGES.map((p) => [p.id, p.minPrice, p.maxPrice, prometidoPorMes(p)])).toEqual([
+      ["essencial", 590, 590, 12],
+      ["crescimento", 990, 990, 20],
+      ["completo", 1790, 1790, 32],
+    ]);
+    // Preço FECHADO, não faixa: proposta automática com faixa é o vendedor
+    // decidindo sozinho quanto cobrar.
+    for (const p of SOCIAL_PACKAGES) expect(p.minPrice).toBe(p.maxPrice);
+  });
+
+  it("plano NOVO acima do teto quebra o build — a dívida não volta em silêncio", () => {
+    const planoNovo = { id: "hipotetico", postsPerWeek: 10, storiesPerWeek: 5, reelsPerMonth: 4 };
+    // 40 + 20 + 4 = 64 > 36. É esta conjunção que o teste acima aplica a cada
+    // plano de verdade: ou cabe, ou entra no registro e alguém tem de saber.
     const cabe = prometidoPorMes(planoNovo as never) <= TETO_MENSAL;
     const registrado = DIVIDA_DA_VITRINE[planoNovo.id] !== undefined;
-    // É esta conjunção que o teste acima aplica a cada plano de verdade.
     expect(cabe || registrado).toBe(false);
   });
 });
 
-describe("por formato é pior que no total, e o registro não pode esconder isso", () => {
-  it("nenhum plano cabe na mistura por formato — medido, para o CEO decidir com número", () => {
-    const estouros = SOCIAL_PACKAGES.map((p) => ({
-      plano: p.id,
-      feed: p.postsPerWeek * 4 / LIMITES_POR_FORMATO.feed[1],
-      story: p.storiesPerWeek * 4 / LIMITES_POR_FORMATO.story[1],
-    }));
-    // Todos estouram. Se um dia algum couber, este teste quebra e manda
-    // atualizar o registro — inclusive para melhor.
-    expect(estouros.every((e) => e.feed > 1 && e.story > 1)).toBe(true);
-    // O pior deles, nomeado: o Premium promete 20× o teto de feed por passada.
-    expect(Math.max(...estouros.map((e) => e.feed))).toBe(20);
+describe("VÍDEO E REEL NÃO ENTRAM — promessa sem produtor é a dívida de D-0A3", () => {
+  it("nenhum plano da tabela promete reel", () => {
+    for (const p of SOCIAL_PACKAGES) {
+      expect(p.reelsPerMonth, `"${p.id}" promete ${p.reelsPerMonth} reels e a casa não edita vídeo.`).toBe(0);
+      expect(/reel|v[ií]deo/i.test(p.description), `a descrição de "${p.id}" promete vídeo.`).toBe(false);
+    }
+  });
+
+  it("nenhum plano da página pública promete reel, roteiro de reel ou vídeo", () => {
+    // A SEGUNDA tabela da casa (`/planos`) estava fora da catraca — e prometia
+    // "4 roteiros de reels" no plano Conteúdo. Duas tabelas, uma régua só.
+    for (const p of PLANOS) {
+      for (const linha of p.inclui) {
+        expect(/reels?|v[ií]deo/i.test(linha), `o plano "${p.id}" INCLUI "${linha}" — vídeo não entra em plano nenhum.`).toBe(false);
+      }
+    }
+  });
+
+  it("os planos públicos também cabem no teto do mês", () => {
+    for (const p of PLANOS) {
+      const m = /(\d+)\s*peças por mês/.exec(p.inclui.join(" · "));
+      if (!m) continue;
+      expect(Number(m[1]), `o plano público "${p.id}" promete ${m[1]} peças/mês contra um teto de ${TETO_MENSAL}.`)
+        .toBeLessThanOrEqual(TETO_MENSAL);
+    }
+  });
+});
+
+describe("a mistura vira proporção do lote — e continua sendo UMA tabela só", () => {
+  it("MISTURA_DE_FORMATOS e LIMITES_POR_FORMATO são o MESMO objeto", () => {
+    expect(MISTURA_DE_FORMATOS).toBe(LIMITES_POR_FORMATO);
+  });
+
+  it("a receita SEMPRE soma o lote — nenhuma aritmética sobra para o modelo", () => {
+    for (const lote of [1, 3, 4, 7, 10, 11, 12]) {
+      for (const permitidos of [
+        ["feed"], ["carrossel", "feed"], ["carrossel", "story", "feed"],
+      ] as const) {
+        const r = receitaDoLote(lote, permitidos);
+        const soma = r.carrossel + r.story + r.feed;
+        expect(soma, `lote ${lote} com [${permitidos}] somou ${soma}`).toBe(lote);
+        // Formato fora do escopo NÃO recebe peça: entregar o que o cliente
+        // excluiu é entregar outra coisa.
+        for (const f of ["carrossel", "story", "feed"] as const) {
+          if (!permitidos.includes(f as never)) expect(r[f]).toBe(0);
+        }
+      }
+    }
+  });
+
+  it("o lote grande do Completo e o lote pequeno do Essencial cabem os dois", () => {
+    // Era aqui que a régua absoluta reprovava os DOIS extremos: o lote de 11
+    // porque os tetos somavam 8, e o lote de 4 porque os mínimos somavam 5.
+    for (const lote of [4, 11]) {
+      const regua = misturaDoLote(lote, ["carrossel", "story", "feed"]);
+      const somaDosMinimos = regua.carrossel[0] + regua.story[0] + regua.feed[0];
+      const somaDosTetos = regua.carrossel[1] + regua.story[1] + regua.feed[1];
+      expect(somaDosMinimos).toBeLessThanOrEqual(lote);
+      expect(somaDosTetos).toBeGreaterThanOrEqual(lote);
+    }
+  });
+});
+
+describe("o mês comprado se reparte entre as levas", () => {
+  it("32 peças viram três levas, nenhuma acima do teto da passada", () => {
+    const plano = planoDeLevas(32);
+    expect(plano).toEqual([11, 11, 10]);
+    expect(plano.reduce((a, b) => a + b, 0)).toBe(32);
+    for (const n of plano) expect(n).toBeLessThanOrEqual(TETO_DE_PECAS_POR_ENTREGA);
+  });
+
+  it("12 e 20 também se repartem — ninguém recebe o mês num dia só", () => {
+    expect(planoDeLevas(12)).toEqual([4, 4, 4]);
+    expect(planoDeLevas(20)).toEqual([7, 7, 6]);
+  });
+
+  it("o que passa do teto do mês NÃO é prometido", () => {
+    expect(planoDeLevas(100).reduce((a, b) => a + b, 0)).toBe(TETO_MENSAL_DE_PECAS);
+  });
+
+  it("a leva devida anda de dez em dez dias e para na terceira", () => {
+    const inicio = new Date("2026-09-01T00:00:00Z");
+    const em = (dia: number) => levaDevidaEm(inicio, new Date(`2026-09-${String(dia).padStart(2, "0")}T12:00:00Z`));
+    expect(em(1)).toBe(1);
+    expect(em(10)).toBe(1);
+    expect(em(11)).toBe(2);
+    expect(em(21)).toBe(3);
+    // Ciclo atrasado não vira crédito de peça.
+    expect(levaDevidaEm(inicio, new Date("2026-12-01T00:00:00Z"))).toBe(3);
   });
 });

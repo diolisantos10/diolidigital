@@ -108,7 +108,7 @@ describe("volume zerado não vira orçamento", () => {
     );
 
     expect(e.travadaPor).toBeUndefined();
-    expect(e.items.map((i) => i.label)).toContain("Plano Premium");
+    expect(e.items.map((i) => i.label)).toContain("Plano Completo");
     expect(e.totalMin).toBeGreaterThan(0);
   });
 
