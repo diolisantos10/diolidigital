@@ -30,6 +30,10 @@ import { CarrosselDeTelas, rotuloDeFormatoDaPeca, type PecaAberta } from "@/comp
 import { proporcaoDaPeca } from "@/lib/agency/portal/proporcao-da-peca";
 import { urlDeMidiaDoPortal } from "@/lib/agency/portal/midia";
 import { juntarTranscricao } from "@/lib/ai/transcricao";
+// As frases da RECUSA vêm do contrato das quatro decisões, não desta tela: a
+// recusa é terminal na máquina, e três literais soltos aqui foi como a tela
+// passou a prometer uma refação que nunca acontecia. Ver TEXTOS_DA_RECUSA.
+import { TEXTOS_DA_RECUSA } from "@/lib/agency/portal/decisoes-do-portal";
 import { BotaoDeDitado } from "./Ditado";
 import { emReais, type PedidoDoCliente } from "./SolicitarAlgo";
 
@@ -321,15 +325,19 @@ function TagVersao({ n }: { n: number | null }) {
   );
 }
 
+/** Os quatro painéis que o card abre. Nulo = nenhum, que é como ele nasce. */
+type ModoDaDecisao = "ajuste" | "duvida" | "refazer" | "cancelar" | null;
+
 // ── Detalhe: um card, três caminhos ──────────────────────────────────────────
 
-function DetalheDaAprovacao({
+export function DetalheDaAprovacao({
   ap,
   token,
   enviando,
   erro,
   onDecidir,
   onVoltar,
+  modoInicial = null,
 }: {
   ap: AprovacaoDoPortal;
   token: string;
@@ -337,8 +345,19 @@ function DetalheDaAprovacao({
   erro: string | null;
   onDecidir: (acao: AcaoDeAprovacao, comentario?: string) => Promise<boolean>;
   onVoltar: () => void;
+  /**
+   * Em qual dos quatro painéis o card abre. Nulo (o padrão, e o que a tela
+   * real usa) abre fechado: o cliente escolhe.
+   *
+   * Existe porque as frases de cada painel só aparecem depois de um clique, e
+   * um clique não sobrevive à renderização estática — sem esta costura, o
+   * texto que promete o que a máquina faz fica fora do alcance de qualquer
+   * régua. E foi assim que três frases da RECUSA divergiram do código ao mesmo
+   * tempo, prometendo uma refação que nunca aconteceu.
+   */
+  modoInicial?: ModoDaDecisao;
 }) {
-  const [modo, setModo] = useState<"ajuste" | "duvida" | "refazer" | "cancelar" | null>(null);
+  const [modo, setModo] = useState<ModoDaDecisao>(modoInicial);
   const [texto, setTexto] = useState("");
   const [erroLocal, setErroLocal] = useState<string | null>(null);
 
@@ -371,7 +390,7 @@ function DetalheDaAprovacao({
   const AVISO_SEM_TEXTO: Record<string, string> = {
     ajuste: "Escreva o que precisa mudar — é este comentário que orienta a nova versão.",
     duvida: "Escreva a dúvida antes de enviar.",
-    refazer: "Conte o que desalinhou — a equipe refaz a partir da sua justificativa.",
+    refazer: TEXTOS_DA_RECUSA.avisoSemTexto,
     cancelar: "Escreva a ressalva do cancelamento — ela fica registrada com a decisão.",
   };
 
@@ -516,7 +535,7 @@ function DetalheDaAprovacao({
               style={{ touchAction: "manipulation" }}
               className="text-[var(--text-muted)] underline underline-offset-2 hover:text-[#DC2626] disabled:opacity-50"
             >
-              Recusar e pedir refação
+              {TEXTOS_DA_RECUSA.botao}
             </button>
             <span aria-hidden className="text-[var(--text-muted)]">·</span>
             <button
@@ -534,7 +553,7 @@ function DetalheDaAprovacao({
           <div className="mt-4">
             <label htmlFor="texto-decisao" className="block text-[13px] font-semibold text-[var(--text-primary)] mb-1.5">
               {modo === "ajuste" ? "Descreva o ajuste"
-                : modo === "refazer" ? "Por que esta entrega desalinhou?"
+                : modo === "refazer" ? TEXTOS_DA_RECUSA.titulo
                 : modo === "cancelar" ? "Ressalva do cancelamento"
                 : "Escreva sua dúvida"}
             </label>
@@ -545,7 +564,7 @@ function DetalheDaAprovacao({
               placeholder={modo === "ajuste"
                 ? "O que precisa mudar? Seja específico — a equipe refaz a partir disto."
                 : modo === "refazer"
-                ? "O que saiu do combinado? A equipe refaz do zero a partir da sua justificativa."
+                ? TEXTOS_DA_RECUSA.exemplo
                 : modo === "cancelar"
                 ? "Por que esta entrega não segue? A ressalva fica registrada; nenhuma versão é apagada."
                 : "Qual é a sua dúvida sobre esta peça?"}
@@ -569,6 +588,11 @@ function DetalheDaAprovacao({
             <p className="text-[12px] text-[var(--text-muted)] mt-1.5">
               {modo === "ajuste"
                 ? "O comentário é obrigatório: é ele que orienta a nova versão. A versão atual fica preservada."
+                : modo === "refazer"
+                // A nota da recusa era a da DÚVIDA ("o prazo pausa até a agência
+                // responder") — a terceira frase da tela a descrever um efeito
+                // que a recusa não tem.
+                ? TEXTOS_DA_RECUSA.nota
                 : "A dúvida fica presa a este card e não muda sua decisão. O prazo pausa até a agência responder."}
             </p>
             {(erroLocal || erro) && (

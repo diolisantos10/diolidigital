@@ -69,6 +69,7 @@ import { createApprovalRequest } from "@/lib/agency/persistence/approval-service
 import { produzirArtesPendentes, pecaSaiuSemTitulo, type ArtesFeitas } from "@/lib/agency/execution/artes";
 import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
 import { moldeDoCliente } from "@/lib/agency/design/molde";
+import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
 import { conferirContraste, motivoDoContraste } from "@/lib/agency/design/contraste";
 import { conferirMarcaNaPecaFinal, type VereditoDaMarcaNaPeca } from "./regua-da-marca-na-peca";
 import { lerArquivo } from "@/lib/agency/media/armazenamento";
@@ -94,6 +95,63 @@ export interface PecaDoEspecialista {
   direcaoDeArte: string | null;
   /** O pilar de conteúdo, quando o especialista declarou um. */
   pilar: string | null;
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * O TEXTO QUE A PEÇA CARREGA — uma redação só, para o nascimento E para o ajuste
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * ── O DEFEITO (cliente oculto, 26/08/2026) ────────────────────────────────
+ *
+ * O cliente pediu "troca o título para X". A refação rodou, o especialista
+ * devolveu `headline: "X"` — e **nada mudou na tela dele**: a arte continuou
+ * com o título antigo rasterizado e a legenda do post no calendário continuou
+ * idêntica.
+ *
+ * A causa é de fiação, não de IA. `SocialPost` **não tem coluna de título**:
+ * o que vira pixel é `tituloDaFonte(post.caption)` — a primeira frase da
+ * LEGENDA (`execution/artes.ts`, `fonteAuditada: post.caption`). E tanto o
+ * nascimento quanto o ajuste gravavam `caption = peca.legenda`, jogando o
+ * `headline` fora. Ou seja: **o campo que o prompt chama de "o TÍTULO QUE VAI
+ * APARECER NA IMAGEM" nunca chegava a imagem nenhuma.** Mudar só o título
+ * mudava só o markdown do entregável.
+ *
+ * ── POR QUE A EMENDA É NA LEGENDA, E NÃO UMA COLUNA NOVA ──────────────────
+ *
+ * A trava de texto desta casa é literal: o que vira pixel tem de ser trecho
+ * literal de `caption` (`travaDeTextoNaArte`, com `fonteAuditada =
+ * post.caption`). Uma coluna `titulo` separada criaria um segundo texto que
+ * vira pixel sem passar pela mesma fonte auditada — a segunda porta, que é
+ * sempre a que fica aberta.
+ *
+ * Então o título entra ONDE ele já é lido: como PRIMEIRA LINHA da legenda.
+ * Com isso, numa escrita só:
+ *   • `tituloDaFonte(caption)` devolve o título novo → o PIXEL muda;
+ *   • `SocialPost.caption` muda → a legenda do post no calendário muda;
+ *   • o piso de verdade e o contrato continuam julgando o mesmo texto (o
+ *     `headline` já entra no corpo do entregável por `corpoLegivel`).
+ *
+ * ── E ELA NÃO DUPLICA ─────────────────────────────────────────────────────
+ *
+ * Quando a legenda JÁ começa pelo título (o caso comum do especialista que
+ * repete a chamada na primeira frase), nada é prefixado: o texto sai byte por
+ * byte o que sempre foi. Sem título utilizável, idem.
+ */
+export function captionDaPeca(peca: PecaDoEspecialista): string {
+  const legenda = peca.legenda.trim();
+  const titulo = (peca.titulo ?? "").trim();
+  if (!titulo) return legenda.slice(0, 2000);
+  if (!legenda) return titulo.slice(0, 2000);
+
+  // A comparação é feita pela MESMA função que escolhe o que vira pixel. Uma
+  // comparação própria aqui ("a legenda começa com o título?") divergiria do
+  // rasterizador no primeiro emoji, na primeira reticência, no primeiro
+  // homóglifo — e a peça sairia com o título duplicado sem ninguém entender.
+  const jaEhOTitulo = tituloDaFonte(legenda);
+  if (jaEhOTitulo && jaEhOTitulo === tituloDaFonte(titulo)) return legenda.slice(0, 2000);
+
+  return `${titulo}\n${legenda}`.slice(0, 2000);
 }
 
 export interface PedidoDeStory {
@@ -319,7 +377,8 @@ export async function entregarStoryInstagramV1(p: PedidoDeStory): Promise<Result
           clientId: p.clientId,
           clientRequestId: p.clientRequestId,
           deliverableId: p.deliverableId,
-          caption: peca.legenda.slice(0, 2000),
+          // O TÍTULO VAI JUNTO — é dele que sai o pixel. Ver `captionDaPeca`.
+          caption: captionDaPeca(peca),
           networks: JSON.stringify([produto.rede]),
           format: produto.formatoDoPost,
           pillar: peca.pilar,

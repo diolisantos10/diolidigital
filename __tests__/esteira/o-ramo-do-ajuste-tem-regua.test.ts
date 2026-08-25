@@ -85,6 +85,9 @@ import {
   AVISO_DA_ARTE_QUE_NAO_SAIU,
 } from "@/lib/agency/esteira/refazer-a-arte-do-ajuste";
 import type { PecaDoEspecialista } from "@/lib/agency/produtos/story-instagram-v1";
+// A MESMA função que `comporComMolde` usa para escolher o que vira pixel.
+// Reimplementar a conta aqui seria régua verde sobre o componente errado.
+import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
 
 let workspaceId = "";
 let clientId = "";
@@ -223,8 +226,68 @@ describe("a mira alcança o ARQUIVO e o ESTADO — não um sem o outro", () => {
       comentario: "a peça 3 está escura",
     });
     const terceira = await prisma.socialPost.findUniqueOrThrow({ where: { id: ids[2]! } });
-    expect(terceira.caption).toBe("legenda NOVA da terceira, mais clara");
+    // O TÍTULO VAI NA FRENTE, e não é enfeite: é dele que sai o pixel
+    // (`tituloDaFonte(post.caption)`, em `execution/artes.ts`). Ver o teste
+    // logo abaixo, que é o que prova por quê.
+    expect(terceira.caption).toBe("título 3\nlegenda NOVA da terceira, mais clara");
     expect(terceira.artDirection).toBe("cena mais clara, luz de manhã");
+  });
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // 🔴 O DEFEITO DO PILOTO (26/08/2026): o título novo não chegava ao pixel
+  // ═════════════════════════════════════════════════════════════════════════
+  //
+  // O cliente pediu "troca o título". O especialista devolveu `headline` novo,
+  // a refação gravou `caption = nova.legenda` — e jogou o título fora. Como
+  // `SocialPost` NÃO tem coluna de título e o que vira pixel é
+  // `tituloDaFonte(post.caption)`, o arquivo saía novo com o MESMO título
+  // rasterizado, e a legenda do post no calendário não mudava.
+  //
+  // A régua tem de medir as DUAS pontas, e é isso que a torna prova de
+  // mutação: desfazer `captionDaPeca` deixa a primeira asserção vermelha
+  // (a fonte do título não mudou) e a segunda também (o post não mudou).
+  it("🔴 TÍTULO NOVO chega ao PIXEL e ao POST — não só ao markdown do entregável", async () => {
+    const ids = await cartaoComATerceiraEmRevisao();
+
+    // Só o TÍTULO muda. A legenda fica idêntica de propósito: é o caso exato
+    // do piloto, e é o único em que o defeito aparece.
+    const soOTitulo = [1, 2, 3, 4].map((i) => ({
+      titulo: i === 3 ? "Pão quentinho às sete da manhã" : `título ${i}`,
+      legenda: `legenda velha ${i}`,
+      pilar: null,
+      direcaoDeArte: null,
+    })) as unknown as PecaDoEspecialista[];
+
+    const r = await refazerArteDoAjuste({
+      postIds: ids, pecasNovas: soOTitulo, clientId,
+      comentario: "muda o título da terceira peça para Pão quentinho às sete da manhã",
+    });
+    expect(r.refeitas.map((x) => x.postId), "só a terceira ganha arquivo novo").toEqual([ids[2]]);
+
+    const terceira = await prisma.socialPost.findUniqueOrThrow({ where: { id: ids[2]! } });
+
+    // ── PONTA 1 · O PIXEL ────────────────────────────────────────────────
+    // A pergunta obrigatória: o teste alcança o código que responde ao
+    // cliente? Alcança — `tituloDaFonte` é LITERALMENTE a função que
+    // `comporComMolde` chama para escolher o que rasterizar, importada aqui,
+    // não uma reimplementação da conta.
+    expect(
+      tituloDaFonte(terceira.caption),
+      "é esta função que escolhe o que vira letra na arte; se ela ainda devolve o título velho, " +
+      "o cliente recebe arquivo novo com o título que ele mandou trocar",
+    ).toBe("Pão quentinho às sete da manhã");
+
+    // ── PONTA 2 · O POST ─────────────────────────────────────────────────
+    // A legenda do post é o que o calendário mostra e o que vai para a rede.
+    expect(terceira.caption, "o texto do post mudou").not.toBe("legenda velha 3");
+    expect(terceira.caption).toContain("Pão quentinho às sete da manhã");
+
+    // E as outras três continuam intocadas: título novo numa peça não pode
+    // reescrever a peça da vizinha.
+    for (const i of [0, 1, 3]) {
+      const p = await prisma.socialPost.findUniqueOrThrow({ where: { id: ids[i]! } });
+      expect(p.caption, `a peça ${i + 1} não foi apontada`).toBe(`legenda velha ${i + 1}`);
+    }
   });
 
   it("SEM MIRA o cliente reclamou de tudo — e tudo volta, que é o conservador correto", async () => {

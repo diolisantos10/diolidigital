@@ -261,6 +261,44 @@ describe("briefing mínimo — as três incondicionais, e as condicionais declar
     expect(v.faltas.length, "as três, e a pergunta nomeia cada uma").toBe(3);
   });
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // 🔴 ERRO DE REDAÇÃO EM PRODUÇÃO (piloto, 26/08/2026)
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // A frase era literal: *"Falta uma coisa para eu fazer o story certo"* — e
+  // saía IGUAL num pedido de POST DE FEED. O cliente que comprou um post de
+  // feed lia a agência dele confundindo o que ele acabou de pedir, no primeiro
+  // contato do pedido.
+  //
+  // É a mesma classe do bloco do prompt que mandava fazer story num pedido de
+  // feed (consertado em 25/08): texto de formato escrito na mão enquanto o
+  // registro tem o campo. **O formato vem do PEDIDO.**
+  it("🔴 o formato da frase vem do PEDIDO — feed não é chamado de story", async () => {
+    const { conferirBriefingMinimo } = await import("@/lib/agency/produtos/briefing-minimo");
+    const { INSTAGRAM_POST_FEED_V1 } = await import("@/lib/agency/produtos/registro");
+    const semNada = { oQueComunicar: "oi", objetivo: "" };
+
+    const feed = conferirBriefingMinimo(INSTAGRAM_POST_FEED_V1, semNada);
+    expect(feed.completo).toBe(false);
+    expect(feed.pergunta, "o pedido é de FEED e a casa dizia 'story'").not.toMatch(/story/i);
+    expect(feed.pergunta).toMatch(/post de feed/i);
+
+    // E o story continua sendo chamado de story: apagar a palavra em vez de
+    // derivá-la trocaria uma frase errada por uma frase vaga.
+    const story = conferirBriefingMinimo(INSTAGRAM_STORY_ESTATICO_V1, semNada);
+    expect(story.pergunta).toMatch(/o story certo/i);
+
+    // As duas contagens da frase (uma falta / várias) — a mentira estava nas
+    // duas, e consertar só a primeira deixaria a segunda de pé.
+    const umaSo = conferirBriefingMinimo(INSTAGRAM_POST_FEED_V1, {
+      oQueComunicar: "Quero um post sobre o pão de fermentação natural da casa.",
+      objetivo: "mostrar que a padaria existe no bairro",
+    });
+    expect(umaSo.faltas).toEqual(["chamada-para-acao"]);
+    expect(umaSo.pergunta).not.toMatch(/story/i);
+    expect(umaSo.pergunta).toMatch(/post de feed/i);
+  });
+
   it("briefing completo passa — a régua não é freio de mão puxado", async () => {
     const { conferirBriefingMinimo } = await import("@/lib/agency/produtos/briefing-minimo");
     expect(conferirBriefingMinimo(INSTAGRAM_STORY_ESTATICO_V1, completo).completo).toBe(true);

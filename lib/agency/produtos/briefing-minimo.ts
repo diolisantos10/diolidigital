@@ -257,11 +257,42 @@ export function conferirBriefingMinimo(
     condicionaisDeclarados: CONDICIONAIS,
     pergunta:
       (faltas.length === 1
-        ? "Falta uma coisa para eu fazer o story certo: "
-        : `Faltam ${faltas.length} coisas para eu fazer o story certo: `) +
+        ? `Falta uma coisa para eu fazer ${nomeDaPeca(produto)}: `
+        : `Faltam ${faltas.length} coisas para eu fazer ${nomeDaPeca(produto)}: `) +
       perguntas.join(" · ") +
       " Me diz e eu já produzo.",
   };
+}
+
+/**
+ * O NOME DA PEÇA, DERIVADO DO PEDIDO — nunca a palavra "story" digitada aqui.
+ *
+ * ── O defeito, achado em PRODUÇÃO (cliente oculto, 26/08/2026) ────────────
+ *
+ * A frase era literal: *"Falta uma coisa para eu fazer o story certo"* — e ela
+ * saía igual num pedido de POST DE FEED. O cliente que comprou um post de feed
+ * lia a agência dele confundindo o que ele acabou de pedir, no primeiro
+ * contato do pedido. É a mesma classe do bloco do prompt que mandava fazer
+ * story num pedido de feed (`producao-de-pedido.ts`, 25/08/2026): texto de
+ * formato escrito na mão enquanto o registro tem o campo.
+ *
+ * O artigo E a concordância vêm juntos de propósito ("o story certo", "a peça
+ * certa"): quem monta a frase acima não pode ter de saber o gênero de cada
+ * formato — foi assim que "a peça certo" quase entrou no lugar da mentira.
+ *
+ * ⚠️ Sem produto declarado a frase é neutra ("a peça"). Esta função nunca é
+ * chamada com `null` no caminho vivo (só há pergunta quando
+ * `exigeBriefingMinimo`), mas inventar "story" no fallback seria reabrir o
+ * mesmo buraco por outra porta.
+ */
+function nomeDaPeca(produto: ProdutoCanonico | null): string {
+  switch (produto?.formatoDoPost) {
+    case "story":    return "o story certo";
+    case "feed":     return "o post de feed certo";
+    case "carousel": return "o carrossel certo";
+    case "reel":     return "o reel certo";
+    default:         return "a peça certa";
+  }
 }
 
 /** O menor texto que ainda é uma resposta. Mesma régua da porta do portal

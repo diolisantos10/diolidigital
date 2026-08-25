@@ -138,6 +138,8 @@ const { lerPergunta, responderPergunta } = await import("@/lib/agency/esteira/po
 const { contratoDoPedido } = await import("@/lib/agency/esteira/contrato-do-pedido");
 const { conferirContrato, TODOS_OS_ESPECIALISTAS } = await import("@/lib/agency/execution/especialistas");
 const { RespostaAoPedido } = await import("@/components/portal/SolicitarAlgo");
+const { serializarPergunta } = await import("@/lib/agency/esteira/porta-da-pergunta");
+const { paradaDoPisoDeVerdade, paradaDaQualidade } = await import("@/lib/agency/esteira/porta-da-peca-barrada");
 
 /** A classificação que o modelo devolve: um post de feed, com confiança alta. */
 const CLASSIFICOU_FEED = {
@@ -503,5 +505,80 @@ describe("a chamada para ação tem porta, e a resposta destrava a produção", 
     expect(escrito.confirmedCta).toBe("chamar a loja no WhatsApp");
     expect(escrito.status, "voltar para `novo` reabriria preço e escopo de uma compra fechada").toBe("triado");
     expect(escrito.pendingQuestionJson, "pergunta que sobrevive à resposta é a mesma pergunta duas vezes").toBeNull();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 AS DUAS PARADAS QUE SOBRARAM (piloto, 26/08/2026)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O piso de verdade e a Qualidade paravam a produção — CERTO, e nada aqui
+// afrouxa isso — e as duas prometiam "a equipe vai refazer". Nenhum varredor
+// desta casa lê pedido em `precisa_decisao` para refazer coisa nenhuma: era
+// uma promessa que ninguém cumpria, sobre um cartão sem um único botão.
+//
+// A régua deste bloco é a que a casa já escreveu: *botão que cai na mesma
+// parada é pior que botão nenhum*. Por isso ela não confere só que existe
+// botão — confere que cada opção tem dono e próxima ação, e que nenhuma
+// oferece ao cliente aprovar o que a casa mesma reprovou.
+describe("as paradas da PRODUÇÃO também têm porta", () => {
+  const AS_DUAS = [
+    ["piso de verdade", paradaDoPisoDeVerdade()],
+    ["Qualidade", paradaDaQualidade("o gancho não existe")],
+  ] as const;
+
+  for (const [nome, parada] of AS_DUAS) {
+    it(`${nome}: motivo com dono e próxima ação, e nenhuma promessa que a máquina não cumpre`, () => {
+      expect(parada.motivo, "dono").toMatch(/Quem está com isso:/);
+      expect(parada.motivo, "próxima ação").toMatch(/Próxima ação:/);
+      // As duas frases exatas que estavam em produção prometendo o que nada faz.
+      expect(parada.motivo).not.toMatch(/equipe vai (revisar|refazer)/i);
+    });
+
+    it(`${nome}: toda opção que não resolve ESCALA — com dono e próxima ação`, () => {
+      expect(parada.porta.opcoes.length).toBeGreaterThanOrEqual(2);
+      for (const o of parada.porta.opcoes) {
+        // Nenhuma destas opções é resolvível por máquina: o piso já mandou o
+        // modelo refazer sem os dados uma vez e ele repetiu a violação, e a
+        // Qualidade reprovou a peça duas vezes. Um botão que dispara a mesma
+        // rodada devolveria a mesma parada, cobrando outra rodada de IA.
+        expect(o.escalar, `a opção "${o.rotulo}" não escala nem resolve — é botão que cai no mesmo beco`).toBe(true);
+        expect(o.dono, `a opção "${o.rotulo}" escala sem dono — escalada anônima é engavetar`).toBeTruthy();
+        expect(o.proximaAcao, `a opção "${o.rotulo}" escala sem próxima ação`).toBeTruthy();
+      }
+    });
+
+    it(`${nome}: a porta atravessa o leitor da rota e vira BOTÃO na tela do cliente`, () => {
+      // O caminho inteiro: serializa como `pararComMotivo` serializa, lê como
+      // `/api/portal/pedidos` lê, e renderiza o componente que o cliente abre.
+      // Medir a estrutura sem chegar ao HTML seria régua verde sobre o
+      // componente errado — o defeito que esta casa já cometeu três vezes.
+      const pergunta = comoARotaEntrega(serializarPergunta(parada.porta));
+      expect(pergunta, "a porta não sobreviveu ao leitor da rota").not.toBeNull();
+
+      const html = renderToStaticMarkup(
+        <RespostaAoPedido
+          pedido={{
+            id: "pc-1", titulo: "Post para o feed", status: "precisa_decisao",
+            motivo: parada.motivo, pergunta: pergunta!,
+          } as never}
+          aoResponder={async () => ({ ok: true })}
+        />,
+      );
+      expect(html).toContain(pergunta!.texto);
+      for (const o of pergunta!.opcoes) {
+        expect(html, `a opção "${o.rotulo}" não virou botão na tela`).toContain(o.rotulo);
+      }
+      expect((html.match(/<button/g) ?? []).length).toBeGreaterThanOrEqual(pergunta!.opcoes.length);
+    });
+  }
+
+  it("a Qualidade NUNCA oferece entregar o que a casa reprovou", () => {
+    // Comprar do cliente a aprovação do que sabemos estar ruim transfere para
+    // ele um risco que é nosso — o oposto exato do motivo pelo qual o freio
+    // existe.
+    for (const o of paradaDaQualidade().porta.opcoes) {
+      expect(o.rotulo).not.toMatch(/assim mesmo|do mesmo jeito|publicar|aprovar/i);
+    }
   });
 });
