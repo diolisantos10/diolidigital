@@ -98,7 +98,11 @@ jobs:
           # que o proprio portao manda usar quando o cliente paga por Pix.
           if [ "$ACAO" = "preparar" ]; then
             if [ -z "${MASTER_PASSWORD:-}" ]; then
-              echo "::error::SEED_MASTER_PASSWORD nao esta nos secrets."; exit 1
+              # Medido em 26/08/2026: o secret esta VAZIO neste repositorio.
+              # Sem ele nao ha sessao de agencia, e sem sessao de agencia nao da
+              # para criar o cliente de teste — `/api/clients` exige master ou
+              # PM. Quem seta segredo e o CEO, sempre; este job nao contorna.
+              echo "::error::SEED_MASTER_PASSWORD esta vazio nos secrets do repositorio. Sem ele o cliente de teste nao nasce, e quem seta segredo e o CEO. Nada foi criado."; exit 1
             fi
             jq -Rn --arg p "$MASTER_PASSWORD" '{email:"master@dioli.studio", password:$p}' > /tmp/cred.json
             curl -s --max-time 60 -c /tmp/cookies.txt -o /tmp/signin.json -w "  signin HTTP %{http_code}\n" \
