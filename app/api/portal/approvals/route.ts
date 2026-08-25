@@ -21,6 +21,7 @@ import {
   DECISAO_PARA_ESTADO_CANONICO,
   DECISOES_QUE_EXIGEM_COMENTARIO,
   ACAO_DUVIDA,
+  STATUS_DA_PECA_RECUSADA,
 } from "@/lib/agency/portal/decisoes-do-portal";
 import { createProjectFromRequest } from "@/lib/agency/execution/create-project-from-request";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
@@ -292,7 +293,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         // V2 (M5): cancelar ENCERRA — a peça sai do caminho do relógio
         // ("cancelled" é inerte para publicarAgendados) e nenhuma versão é
         // apagada. Ajuste/recusa seguem para revisão, como sempre.
-        const statusDosPosts = status === "cancelled" ? "cancelled" : "revision_requested";
+        // ── TRÊS DECISÕES, TRÊS ESTADOS (25/08/2026) ──────────────────────
+        // Eram dois: cancelar virava "cancelled" e TODO o resto virava
+        // "revision_requested" — inclusive a RECUSA. A peça recusada ficava
+        // marcada "em ajuste", que quer dizer "alguém está refazendo isto", que
+        // era mentira: ninguém estava, e o cliente tinha dito não.
+        // `rejected` é terminal para a máquina: `publicarAgendados` só lê
+        // "scheduled", e `ESTADOS_EXAMINAVEIS` não o inclui — a peça não volta
+        // a ser oferecida para decisão sozinha.
+        const statusDosPosts =
+          status === "cancelled" ? "cancelled"
+          : status === "rejected" ? STATUS_DA_PECA_RECUSADA
+          : "revision_requested";
         await prisma.socialPost.updateMany({
           where: { id: { in: postsDoCard }, clientId: approval.clientId },
           data: { status: statusDosPosts },
@@ -360,7 +372,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // chaves, como na conversa (app/api/messages/conversa.ts).
     const clienteDoCard = approval.clientId ?? approval.clientRequest?.clientId ?? null;
     if (approval.department !== "proposal" && (approval.clientRequestId || clienteDoCard)) {
-      if (status === "rejected" || status === "revision_requested") {
+      // ── A RECUSA PARA. O AJUSTE REFAZ. (25/08/2026) ────────────────────
+      //
+      // Os dois caíam AQUI, na mesma chamada, e o efeito era idêntico: refazia
+      // com IA, criava versão nova e REABRIA o card em "pending". O cliente
+      // apertava "recusar" e a máquina respondia "então faça de novo" —
+      // devolvendo a peça para ele decidir outra vez, sem que ninguém da equipe
+      // soubesse que ele tinha dito não.
+      //
+      // Isso valia para TODOS os produtos da casa, não só para o que esbarrou
+      // nisso primeiro. Recusa não é pedido de segunda tentativa.
+      if (status === "rejected") {
+        try {
+          const { recusarPorPedidoDoCliente } = await import("@/lib/agency/esteira/refacao");
+          await recusarPorPedidoDoCliente({
+            clientRequestId: approval.clientRequestId,
+            clientId: clienteDoCard,
+            department: approval.department,
+            comentario: body.comment,
+            deliverableId: approval.deliverableVersion?.deliverableId ?? null,
+            // As peças que ele estava VENDO quando disse não.
+            postIds: postsDoCard,
+          });
+        } catch (e) { console.error("[portal/approvals] recusa error", e); }
+      } else if (status === "revision_requested") {
         try {
           const { refazerPorPedidoDoCliente } = await import("@/lib/agency/esteira/refacao");
           await refazerPorPedidoDoCliente({
@@ -376,7 +411,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             // cliente apertou (`status`) — as duas informações existiam e
             // nenhuma das duas atravessava a fronteira.
             deliverableId: approval.deliverableVersion?.deliverableId ?? null,
-            modo: status === "rejected" ? "recusa" : "ajuste",
+            // Só o AJUSTE chega aqui agora. `modo` continua no contrato de
+            // `refazerPorPedidoDoCliente` porque a agência ainda pode mandar
+            // refazer uma peça recusada DEPOIS de falar com o cliente — o que
+            // acabou é a máquina fazer isso sozinha, no lugar dele.
+            modo: "ajuste",
           });
         } catch (e) { console.error("[portal/approvals] refação error", e); }
       }

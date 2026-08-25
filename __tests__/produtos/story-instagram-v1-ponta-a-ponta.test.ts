@@ -614,42 +614,80 @@ describe("caso de recusa — a peça não entra na fila de publicação", () => 
 
     const r = await postAprovacao(req("/api/portal/approvals", {
       token: c.token, approvalRequestId: card!.id, action: "reject",
-      comment: "Não é essa a linha que eu quero para a padaria.", authorName: c.nome,
+      comment: "Não é essa a linha que eu quero para a padaria. Nunca use fundo escuro nas nossas peças.", authorName: c.nome,
     }));
     expect(r.status).toBe(200);
 
-    // ── O QUE A CASA FAZ COM UMA RECUSA, HOJE ────────────────────────────
+    // ── A RECUSA FICA RECUSADA (25/08/2026) ───────────────────────────────
     //
-    // `/api/portal/approvals` grava "rejected" e, em seguida, chama
-    // `refazerPorPedidoDoCliente` — a MESMA função do pedido de ajuste. Ela
-    // refaz a entrega e reabre o card com a versão nova ("pending").
-    //
-    // Isto é comportamento ANTIGO e COMPARTILHADO por todos os produtos desta
-    // casa, não algo que a corrente do Story introduziu. O contrato de aceite
-    // pede que "o estado fique recusado", e hoje ele não fica: a recusa é
-    // tratada como pedido de refação. **Está registrado como pendência da
-    // entrega, e não foi mexido aqui** — alterar o tratamento da recusa mudaria
-    // o comportamento de todos os outros produtos de uma vez.
-    //
-    // O que este teste garante, e é a metade que protege o cliente, é o
-    // SUBSTANTIVO do critério: recusar não publica e não agenda nada.
+    // Até esta data `/api/portal/approvals` mandava "recusar" e "pedir ajuste"
+    // para a MESMA função: refazia com IA, criava versão nova e REABRIA o card
+    // em "pending". Em nenhum produto da casa a recusa ficava recusada — o
+    // cliente dizia não e a máquina respondia "então faça de novo".
+    const depois = await prisma.approvalRequest.findUniqueOrThrow({ where: { id: card!.id } });
+    expect(depois.status, "o estado FICA recusado — a máquina não reabre").toBe("rejected");
+    expect(depois.reviewedBy, "recusa sem autor não é recusa").toBe(`client:${c.nome}`);
+    expect(depois.reviewedAt).toBeTruthy();
+
+    // A DECISÃO DEIXA RASTRO, com autoria e com o motivo do cliente.
     const decisoes = await prisma.transicaoDeEstado.findMany({
       where: { entidadeId: card!.id, entidadeTipo: "ApprovalRequest" },
     });
-    expect(decisoes.length, "a decisão do cliente deixa rastro canônico").toBeGreaterThan(0);
-    expect(decisoes[0]!.atorId, "com autoria — recusa sem autor não é recusa").toBe(`cliente:${c.nome}`);
-    expect(decisoes[0]!.motivo ?? "", "com o motivo que o cliente escreveu").toMatch(/linha que eu quero/);
+    expect(decisoes.length).toBeGreaterThan(0);
+    expect(decisoes[0]!.atorId).toBe(`cliente:${c.nome}`);
+    expect(decisoes[0]!.motivo ?? "").toMatch(/linha que eu quero/);
 
     const comentarios = await prisma.approvalComment.findMany({ where: { approvalRequestId: card!.id } });
     expect(comentarios.some((x) => /linha que eu quero/.test(x.body))).toBe(true);
 
+    // ── NENHUMA VERSÃO NOVA FOI FABRICADA ────────────────────────────────
+    // É a metade que prova que a máquina PAROU: recusar não dispara refação.
+    const entrega = (await prisma.contentRequest.findUniqueOrThrow({ where: { id: pedidoId } })).deliverableId!;
+    const versoes = await prisma.deliverableVersion.findMany({ where: { deliverableId: entrega } });
+    expect(versoes.length, "recusa NÃO manda a máquina tentar de novo sozinha").toBe(0);
+
+    // A entrega fica carimbada como recusada PELO CLIENTE — não como reprovada
+    // pela Qualidade, que é outro problema com outro conserto.
+    const { REVISION_STATUS_DA_RECUSA } = await import("@/lib/agency/esteira/refacao");
+    const deliverable = await prisma.deliverable.findUniqueOrThrow({ where: { id: entrega } });
+    expect(deliverable.revisionStatus).toBe(REVISION_STATUS_DA_RECUSA);
+    expect(deliverable.clientFeedback ?? "").toMatch(/linha que eu quero/);
+
+    // ── AS PEÇAS SAEM DO CAMINHO DO RELÓGIO, COM ESTADO PRÓPRIO ──────────
+    const { STATUS_DA_PECA_RECUSADA } = await import("@/lib/agency/portal/decisoes-do-portal");
     for (const p of await prisma.socialPost.findMany({ where: { id: { in: posts.map((x) => x.id) } } })) {
-      // "scheduled" é o ÚNICO estado que `publicarAgendados` lê. Nenhuma peça
-      // recusada pode estar nele.
+      expect(p.status, "peça recusada tem estado próprio, não 'em ajuste'").toBe(STATUS_DA_PECA_RECUSADA);
+      // "scheduled" é o ÚNICO estado que `publicarAgendados` lê.
       expect(p.status).not.toBe("scheduled");
       expect(p.publishedAt, "nada foi publicado").toBeNull();
       expect(p.externalPostId).toBeNull();
     }
+
+    // ── O PM RECEBE A PRÓXIMA AÇÃO ───────────────────────────────────────
+    const escalado = await prisma.activityEvent.findMany({
+      where: { clientId: c.clientId },
+    });
+    expect(
+      escalado.some((e) => /RECUSOU/.test(e.message ?? "") && /PRÓXIMA AÇÃO/.test(e.message ?? "")),
+      "recusa sem próxima ação é peça engavetada",
+    ).toBe(true);
+
+    // ── A RECUSA VIRA REGRA ──────────────────────────────────────────────
+    // O que ele recusou não pode reaparecer na peça seguinte. O ajuste já
+    // registrava proibição desde 06/08; a recusa não registrava nada, porque
+    // nem chegava a este caminho. Agora registra — com origem própria, para que
+    // "o que ele já RECUSOU?" seja uma pergunta respondível.
+    const { lerProibicoes } = await import("@/lib/agency/esteira/proibicoes");
+    const proibicoes = await lerProibicoes(c.clientId);
+    expect(proibicoes.lidas, "leitura fail-closed: não lida NÃO é 'não há'").toBe(true);
+    expect(
+      proibicoes.itens.some((x) => /fundo escuro/i.test(x.frase ?? "") || x.termos.some((t) => /fundo escuro/i.test(t))),
+      "a recusa do cliente virou regra para as próximas peças",
+    ).toBe(true);
+    expect(
+      proibicoes.itens.some((x) => x.origem === "recusa"),
+      "e ficou marcada como vinda de uma RECUSA, não de um ajuste",
+    ).toBe(true);
   }, 600_000);
 });
 
@@ -688,24 +726,21 @@ describe("caso de falha — a corrente para com motivo, e nunca com falso entreg
     }
   }, 600_000);
 
-  it("ARQUIVO FORA DO PADRÃO: o pedido não é entregue e o cliente não decide nada", async () => {
-    // A falha silenciosa histórica desta casa: o molde degrada e a peça sai
-    // como FOTO CRUA (PNG, sem camada de texto) em vez de JPEG 1080x1920. O
-    // estado do banco fica bonito — `mediaUrl` preenchido — e o defeito passa.
+  it("PEÇA SEM TÍTULO para a corrente — não vai capenga para o portal", async () => {
+    // `comporComMolde` DEGRADA de propósito quando a chamada não vira pixel: a
+    // peça sai só com a foto e a assinatura, e a degradação fica declarada em
+    // `lastError`. Para o calendário isso está certo — uma peça a menos no mês
+    // é pior que uma peça sem headline.
     //
-    // Aqui a composição devolve um PNG de 1080x1350 de propósito. É a mutação
-    // que prova que a conferência do arquivo final está VALENDO: sem ela, este
-    // pedido seria carimbado "entregue" com o arquivo errado dentro.
-    const c = await abrirClienteFicticio("Padaria da Foto Crua");
+    // Para um produto que o cliente PEDIU e PAGOU, não: o estado do banco não
+    // denuncia nada (`mediaUrl` preenchido), o cartão mostra uma imagem, e ele
+    // aprova sem ver o buraco. Decisão do CEO: a corrente PARA.
+    //
+    // A alavanca é o rasterizador reprovando a letra por CONTEÚDO — o caminho
+    // real dessa degradação, não um atalho de teste.
+    const c = await abrirClienteFicticio("Padaria Sem Título");
     await pagar(c, 9900);
 
-    // A alavanca é o RASTERIZADOR, e é a mesma que a vida real puxa: quando o
-    // texto não cabe (`texto_cortado`), `comporComMolde` DEGRADA de propósito e
-    // devolve a FOTO CRUA — PNG, sem camada de texto — em vez de derrubar a
-    // peça. O estado do banco fica bonito: `mediaUrl` preenchido, peça "pronta".
-    //
-    // Sem a conferência do arquivo final, é assim que um PNG sem marca chega ao
-    // cliente com cara de entrega. É esta a mutação.
     const renderizar = await import("@/lib/agency/design/renderizar");
     const espiao = vi.spyOn(renderizar, "renderizarHtml").mockResolvedValue({
       ok: false, motivo: "texto_cortado", erro: "o título não coube depois de encolher",
@@ -715,9 +750,9 @@ describe("caso de falha — a corrente para com motivo, e nunca com falso entreg
       const { pedidoId } = await pedirPeloPortal(c);
       const { pedido, card } = await pecasDoPedido(pedidoId);
 
-      expect(pedido.status, "arquivo que não serve NUNCA vira entrega").not.toBe("entregue");
-      expect(pedido.declineReason ?? "").toMatch(/image\/png|1080×1350|1080x1350|conferência do arquivo/i);
-      expect(card, "o cliente não é chamado a aprovar uma peça que não serve").toBeNull();
+      expect(pedido.status, "peça sem título NUNCA vira entrega").not.toBe("entregue");
+      expect(pedido.declineReason ?? "").toMatch(/SEM TÍTULO|só com a foto/i);
+      expect(card, "o cliente não é chamado a aprovar peça capenga").toBeNull();
     } finally {
       espiao.mockRestore();
     }

@@ -46,6 +46,7 @@ import { TODOS_OS_ESPECIALISTAS, conferirContrato } from "@/lib/agency/execution
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import { lerProibicoes, registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { STATUS_DA_PECA_RECUSADA } from "@/lib/agency/portal/decisoes-do-portal";
 import {
   auditDeliverable, revisionStatusDoVeredito,
   foiAprovadaPelaQualidade, foiReprovadaPelaQualidade,
@@ -673,3 +674,244 @@ async function escalar(
  *  `extrairPecas` lia `cenas=[]` e `publicacao.ts:1046` rebaixava a peça
  *  para feed. Comentário dizendo "igual ao motor" não é mecanismo; import é. */
 const renderizar = renderizarEntrega;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A RECUSA — O "NÃO" DO CLIENTE É UM ATO, NÃO UM PEDIDO DE SEGUNDA TENTATIVA
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ── O DEFEITO, MEDIDO (25/08/2026) ──────────────────────────────────────────
+//
+// `/api/portal/approvals` mandava "pedir ajuste" e "recusar" para a MESMA
+// função — `refazerPorPedidoDoCliente` — e a única coisa que `modo: "recusa"`
+// mudava era o PROMPT. O efeito era idêntico nos dois casos: refazia com IA,
+// criava versão nova e **reabria o card em "pending"**.
+//
+// Quer dizer: **em nenhum produto desta casa a recusa ficava recusada.** O
+// cliente apertava "recusar", e a máquina respondia "então faça de novo" — e
+// devolvia a peça para ele decidir outra vez, sem que ninguém da equipe
+// soubesse que ele tinha dito não.
+//
+// Isso não é um defeito do Story. É um defeito da casa inteira, e o Story só
+// foi o primeiro produto a esbarrar nele.
+//
+// ── OS DOIS ATOS, AGORA COM DOIS EFEITOS ────────────────────────────────────
+//
+//   • "pedir ajuste" → `refazerPorPedidoDoCliente`. A máquina refaz. O cliente
+//     quer a peça, com uma coisa diferente.
+//   • "recusar"      → esta função. **A máquina PARA.** O cliente disse que
+//     não é isso — e responder a um "não" com outra tentativa automática é
+//     não ter ouvido. Quem decide o próximo passo é gente.
+//
+// ── O QUE ELA NÃO FAZ, E É O PONTO ──────────────────────────────────────────
+//
+// Não chama IA. Não cria versão. Não reabre o card. Não devolve a peça para a
+// fila de entrega nem para a de publicação. Custa zero e não pode ser barrada
+// por portão de pagamento: **cobrar do cliente o direito de dizer não seria a
+// pior trava que esta casa já escreveu.**
+//
+// ── O QUE ELA FAZ ───────────────────────────────────────────────────────────
+//
+//   1. registra a PROIBIÇÃO — a recusa vira regra, como o ajuste já virava;
+//   2. carimba a entrega como recusada pelo cliente, com as palavras dele;
+//   3. tira as peças do caminho do relógio, com estado próprio;
+//   4. **escala para o PM**, com a próxima ação escrita;
+//   5. responde ao cliente a verdade: não vamos publicar, e alguém vai falar
+//      com você.
+
+// O estado da peça recusada vem do CONTRATO das quatro decisões
+// (`portal/decisoes-do-portal.ts`), que é onde ele pertence e onde a rota do
+// portal também o lê. Reexportado para quem já importa deste módulo — uma
+// verdade, dois nomes de import, nunca dois valores.
+export { STATUS_DA_PECA_RECUSADA };
+
+/** O `revisionStatus` da entrega recusada PELO CLIENTE. Não é `quality_flag`:
+ *  aquele é o veredito do juiz da casa, e confundir os dois faria o painel
+ *  contar recusa de cliente como reprovação interna — dois problemas
+ *  diferentes, com dois consertos diferentes. */
+export const REVISION_STATUS_DA_RECUSA = "recusado_pelo_cliente";
+
+export interface RecusaRegistrada {
+  /** Os nomes das entregas carimbadas como recusadas. */
+  entregasRecusadas: string[];
+  /** As peças tiradas do caminho do relógio. */
+  pecasRetiradas: string[];
+  /** O PM foi acionado com a próxima ação? */
+  escalado: boolean;
+  avisouCliente: boolean;
+  /** Por que não deu para registrar por inteiro, quando não deu. */
+  motivo?: string;
+}
+
+/**
+ * O CLIENTE RECUSOU. A corrente PARA aqui.
+ *
+ * Aceita as duas chaves de dono, como a irmã, e pelo mesmo motivo: o cliente
+ * criado direto não tem solicitação nenhuma.
+ *
+ * **Sem motivo não há recusa.** É a mesma régua de `reprovacao.ts` ("recusar
+ * sem dizer por quê é o gesto que parece produtivo e não ensina nada"), agora
+ * do lado do cliente. A rota já exige o comentário; esta guarda existe porque
+ * a trava do dano real tem de morar onde o dano acontece, não só na porta.
+ */
+export async function recusarPorPedidoDoCliente(input: {
+  clientRequestId?: string | null;
+  clientId?: string | null;
+  department: string;
+  comentario?: string;
+  /** A entrega que o cliente apontou, quando o card a nomeia por FK. */
+  deliverableId?: string | null;
+  /** As peças do card. Vêm de `sourcePostIdsJson` — é o que liga a recusa às
+   *  imagens que ele estava vendo. */
+  postIds?: string[];
+}): Promise<RecusaRegistrada> {
+  const saida: RecusaRegistrada = {
+    entregasRecusadas: [], pecasRetiradas: [], escalado: false, avisouCliente: false,
+  };
+
+  const clientRequestId = input.clientRequestId?.trim() || null;
+  let clientId = input.clientId?.trim() || null;
+  const req = clientRequestId
+    ? await prisma.clientRequestDb.findUnique({
+        where: { id: clientRequestId },
+        select: { businessName: true, clientId: true },
+      }).catch(() => null)
+    : null;
+  if (!clientId) clientId = req?.clientId ?? null;
+
+  if (!clientRequestId && !clientId) {
+    return { ...saida, escalado: true, motivo: "recusa sem dono: nem clientRequestId nem clientId" };
+  }
+
+  const comentario = input.comentario?.trim();
+  const ancora: AncoraDoPedido = { clientId, clientRequestId };
+
+  if (!comentario) {
+    // Recusa muda não é recusa: ninguém sabe o que refazer, e a próxima peça
+    // nasce com o mesmo defeito. Perguntar é o único caminho honesto.
+    const avisou = await escreverNoPortal(ancora,
+      "Vi que você recusou. Para eu não repetir o erro, me conta em uma frase o que não serviu — " +
+      "e enquanto isso NÃO vou publicar nada. 💛");
+    return { ...saida, avisouCliente: avisou, motivo: "recusa sem motivo — perguntei ao cliente" };
+  }
+
+  // ── A RECUSA VIRA REGRA ──────────────────────────────────────────────────
+  // Mesmo mecanismo do ajuste, e com mais razão ainda: o que ele recusou não
+  // pode reaparecer na peça seguinte. Best-effort — registro não derruba a
+  // recusa, que já aconteceu.
+  if (clientId) {
+    await registrarProibicoes(clientId, comentario, "recusa").catch(() => { /* rastro */ });
+  }
+
+  const projeto = await prisma.project.findFirst({
+    where: { OR: [
+      ...(clientRequestId ? [{ clientRequestId }] : []),
+      ...(clientId ? [{ clientId }] : []),
+    ] },
+    select: {
+      id: true, workspaceId: true, clientId: true,
+      client: { select: { name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  }).catch(() => null);
+
+  const cliente = clientId
+    ? await prisma.client.findUnique({
+        where: { id: clientId }, select: { name: true, workspaceId: true },
+      }).catch(() => null)
+    : null;
+
+  const negocio = req?.businessName ?? projeto?.client?.name ?? cliente?.name ?? "o cliente";
+  const dono = {
+    id: projeto?.id ?? null,
+    workspaceId: projeto?.workspaceId ?? cliente?.workspaceId ?? null,
+    clientId: projeto?.clientId ?? clientId,
+  };
+
+  // ── A ENTREGA FICA CARIMBADA COMO RECUSADA ───────────────────────────────
+  // Pelo vínculo do card quando ele existe; sem vínculo, pelas entregas
+  // compartilhadas do departamento que ele apontou — a MESMA regra que decidiu
+  // o que ele leu na tela. Nunca "todas as entregas do projeto".
+  if (projeto) {
+    const idsDoDepartamento = TODOS_OS_ESPECIALISTAS
+      .filter((e) => e.departamentoId === input.department)
+      .map((e) => e.id);
+
+    // ── O CARD DO PEDIDO AVULSO NOMEIA O PEDIDO, NÃO O DEPARTAMENTO ───────
+    //
+    // `department` de um card de pedido é `pedido:<id>` — a grafia existe
+    // justamente para que o caminho de volta exista sem adivinhação por ordem
+    // (ver `producao-de-pedido.ts`). Sem ler esse prefixo, a busca por
+    // especialistas do "departamento `pedido:cmt…`" não acha ninguém, e a
+    // recusa passaria SEM carimbar a entrega — silenciosamente, que é o tipo de
+    // buraco que esta função inteira veio fechar.
+    //
+    // Derivação, nunca invenção: o id vem do próprio card.
+    const idDoPedido = input.department.startsWith("pedido:")
+      ? input.department.slice("pedido:".length).trim()
+      : null;
+    const entregaDoPedido = idDoPedido
+      ? (await prisma.contentRequest.findUnique({
+          where: { id: idDoPedido }, select: { deliverableId: true },
+        }).catch(() => null))?.deliverableId ?? null
+      : null;
+
+    const idAlvo = input.deliverableId ?? entregaDoPedido;
+
+    const alvos = await prisma.deliverable.findMany({
+      where: idAlvo
+        ? { id: idAlvo }
+        : {
+            projectId: projeto.id,
+            visibility: "compartilhado",
+            ownerAgentId: { in: idsDoDepartamento.length > 0 ? idsDoDepartamento : ["__nenhum__"] },
+          },
+      select: { id: true, name: true },
+    }).catch(() => [] as Array<{ id: string; name: string }>);
+
+    for (const alvo of alvos) {
+      await prisma.deliverable.update({
+        where: { id: alvo.id },
+        data: {
+          revisionStatus: REVISION_STATUS_DA_RECUSA,
+          clientFeedback: comentario.slice(0, 2000),
+        },
+      }).catch(() => { /* rastro */ });
+      saida.entregasRecusadas.push(alvo.name);
+    }
+  }
+
+  // ── AS PEÇAS SAEM DO CAMINHO DO RELÓGIO ──────────────────────────────────
+  // Filtradas pelo DONO, sempre: um id de peça de outro cliente dentro do JSON
+  // do card não é tocado. Mesma guarda que a rota já aplica.
+  const ids = (input.postIds ?? []).filter((x) => typeof x === "string" && x.length > 0);
+  if (ids.length > 0 && clientId) {
+    const alcancadas = await prisma.socialPost.updateMany({
+      where: { id: { in: ids }, clientId },
+      data: { status: STATUS_DA_PECA_RECUSADA },
+    }).catch(() => ({ count: 0 }));
+    if (alcancadas.count > 0) saida.pecasRetiradas = ids;
+  }
+
+  // ── O PM RECEBE A PRÓXIMA AÇÃO ───────────────────────────────────────────
+  // É o critério E do contrato de aceite, e é o que separa "recusado" de
+  // "engavetado": alguém tem de saber que o cliente disse não, hoje.
+  await escalar(dono, negocio,
+    `O CLIENTE RECUSOU a entrega do departamento "${input.department}". ` +
+    `A peça NÃO foi refeita automaticamente e NÃO entra na fila de publicação — ` +
+    "recusa não é pedido de segunda tentativa. " +
+    "PRÓXIMA AÇÃO: falar com o cliente e decidir se refaz com direção nova, se muda o escopo ou se devolve.",
+    comentario,
+  ).catch(() => { /* o escalonamento é rastro; a recusa já valeu */ });
+  saida.escalado = true;
+
+  saida.avisouCliente = await escreverNoPortal(ancora, [
+    "Entendido — recusa registrada, e eu NÃO vou publicar nada disso. 🛑",
+    "",
+    `O que você disse ficou anotado: "${comentario.slice(0, 300)}"`,
+    "",
+    "Não vou simplesmente tentar de novo no escuro: alguém da equipe vai falar com você para " +
+    "acertar a direção antes de qualquer peça nova.",
+  ].join("\n"));
+
+  return saida;
+}

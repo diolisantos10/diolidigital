@@ -1239,6 +1239,41 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
   return { ok: true, bytes: r.bytes, mime: MIME_DA_PECA_RENDERIZADA, nota: comAviso(null) };
 }
 
+/**
+ * A PEÇA FICOU SEM TÍTULO?
+ *
+ * Lê a nota que `comporComMolde` acabou de escrever em `SocialPost.lastError`.
+ * Mora AQUI, coladinha em quem escreve a nota, porque conhecimento de marcador
+ * separado de quem o emite envelhece calado: a frase muda de um lado e o leitor
+ * do outro passa a responder "não" para sempre, sem ninguém ficar vermelho.
+ *
+ * ── POR QUE ALGUÉM PRECISA PERGUNTAR ISSO (25/08/2026) ─────────────────────
+ *
+ * `comporComMolde` DEGRADA de propósito em três casos: o conteúdo não tem uma
+ * frase utilizável como chamada, o rasterizador reprovou a letra por conteúdo,
+ * ou a trava de texto barrou o título. Nos três a peça SAI — só com a foto e a
+ * assinatura — e a degradação fica declarada na nota.
+ *
+ * Degradar é certo para o CALENDÁRIO: uma peça a menos no mês é pior que uma
+ * peça sem headline. Não é certo para um produto que o cliente PEDIU e PAGOU:
+ * ali, "peça sem título" não é peça, é arquivo — e ele aprova sem ver o buraco,
+ * porque o cartão mostra uma imagem bonita e o banco diz que está tudo pronto.
+ *
+ * Decisão do CEO: **o produto canônico PARA.** Falha visível, com motivo e
+ * próxima ação, nunca peça capenga no portal. Quem age sobre esta resposta é
+ * `produtos/story-instagram-v1.ts`; nada muda para o calendário, que continua
+ * degradando e declarando como sempre fez.
+ */
+export function pecaSaiuSemTitulo(lastError: string | null | undefined): boolean {
+  const nota = lastError ?? "";
+  // Saiu SÓ com a foto: não houve camada de texto nenhuma.
+  if (nota.includes("[molde] peça entregue só com a foto")) return true;
+  // A trava barrou especificamente o TÍTULO. Chip ou faixa barrados não
+  // derrubam a peça — ela continua tendo headline, que é a pergunta daqui.
+  if (/\[molde\] texto barrado pela trava[^]*?\btitulo:/.test(nota)) return true;
+  return false;
+}
+
 // ─── AS PEÇAS QUE FICARAM SEM A CAMADA DE TEXTO ──────────────────────────────
 
 /** A assinatura, no `lastError`, de uma peça que saiu como foto crua porque não

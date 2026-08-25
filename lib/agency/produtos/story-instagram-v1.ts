@@ -56,7 +56,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
-import { produzirArtesPendentes, type ArtesFeitas } from "@/lib/agency/execution/artes";
+import { produzirArtesPendentes, pecaSaiuSemTitulo, type ArtesFeitas } from "@/lib/agency/execution/artes";
 import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
 import { lerArquivo } from "@/lib/agency/media/armazenamento";
 import {
@@ -359,6 +359,27 @@ export async function entregarStoryInstagramV1(p: PedidoDeStory): Promise<Result
       mimeDeclarado: asset.mimeType,
       ondeEsta: `peça ${id}, mídia ${asset.id}`,
     });
+
+    // ── PEÇA SEM TÍTULO NÃO É PEÇA, É ARQUIVO ─────────────────────────────
+    //
+    // `comporComMolde` degrada de propósito quando a chamada não sai (conteúdo
+    // sem frase utilizável, letra reprovada pelo rasterizador, trava de texto
+    // barrando o título): a peça vai embora só com a foto e a assinatura, e a
+    // degradação fica DECLARADA na nota.
+    //
+    // Declarar basta para o calendário — uma peça a menos no mês é pior que uma
+    // peça sem headline. Não basta aqui: este produto o cliente PEDIU e PAGOU,
+    // e o estado do banco não o denuncia — `mediaUrl` fica preenchido, o cartão
+    // mostra uma imagem, e ele aprova sem ver o buraco. Aí a culpa é nossa.
+    //
+    // Decisão do CEO (25/08/2026): a corrente PARA. Entregar o que sabemos
+    // estar incompleto é pior que não entregar.
+    if (pecaSaiuSemTitulo(post.lastError)) {
+      reprovados.push(
+        `${id}: a peça saiu SEM TÍTULO — a chamada não virou pixel. ${post.lastError ?? ""}`.trim(),
+      );
+      continue;
+    }
 
     // O FORMATO, conferido no fim da corrente. É o critério A ("o formato
     // permanece `story` em todas as transições") deixando de ser afirmação.
