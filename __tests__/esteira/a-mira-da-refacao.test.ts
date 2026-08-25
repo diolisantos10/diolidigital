@@ -16,7 +16,7 @@ const db = vi.hoisted(() => ({
   // quantas peças o cliente comprou (`contrato-do-pedido.ts`). `null` = peça
   // sem produto canônico, e aí vale o contrato do ESPECIALISTA, que é o
   // comportamento que estas suítes provam.
-  contentRequest: { findFirst: vi.fn(async () => null) },
+  contentRequest: { findFirst: vi.fn<() => Promise<{ produtoId: string | null } | null>>(async () => null) },
   pagamentoConfirmado: {
     findUnique: vi.fn(async () => ({
       valorCentavos: 7900, origem: "mercadopago",
@@ -281,7 +281,6 @@ describe("o ajuste de um pedido AVULSO de uma peça não morre no contrato de lo
     // O pedido que gerou esta peça: um POST DE FEED, que a tabela vende como
     // UMA peça por R$ 79.
     db.contentRequest.findFirst.mockResolvedValue({ produtoId: "instagram_post_feed_v1" });
-    db.contentRequest.findUnique?.mockResolvedValue?.({ deliverableId: "arte-do-feed" });
     generate.mockResolvedValue(UMA_PECA_REFEITA);
   });
 
