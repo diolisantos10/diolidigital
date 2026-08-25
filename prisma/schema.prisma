@@ -730,11 +730,31 @@ model ContentRequest {
   /// Por que foi recusado — ou por que PAROU. Em linguagem que o cliente lê:
   /// é o mesmo campo que carrega o motivo do `precisa_decisao`.
   declineReason   String?
+  /// QUANDO A ESCADA DE EXPOSIÇÃO RETEVE ESTE PEDIDO. Nulo = não foi ela.
+  ///
+  /// Nasceu em 25/08/2026 e tem UM leitor nomeado, que é a razão de existir:
+  /// `repescarPedidosRetidosPelaEscada` (`escada/repescagem.ts`). Sem esta
+  /// coluna, um pedido parado em `precisa_decisao` pela escada é
+  /// indistinguível de um parado pela Qualidade ou pelo piso de verdade — e
+  /// retentar os outros dois seria abrir a porta dos fundos dos dois portões.
+  ///
+  /// NÃO é derivável de `declineReason`: aquele campo é texto para o cliente
+  /// ler, e casar defeito por substring é a régua que quebra na primeira vez
+  /// que alguém melhora a frase.
+  escadaRetidaEm  DateTime?
+  /// Quantas vezes a repescagem já rearmou este pedido depois de a escada o
+  /// reter. É o FREIO: em `MAX_REPESCAGENS_DO_PEDIDO` a repescagem para de
+  /// tentar e declara a parada (motivo, dono e próxima ação). Sem teto, um
+  /// degrau que abre e fecha faria a casa reproduzir a mesma peça para sempre,
+  /// com IA paga em cada volta.
+  escadaRepescagens Int    @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   @@index([clientId, status])
   @@index([status, createdAt])
+  /// A consulta da repescagem: os retidos pela escada, e só eles.
+  @@index([escadaRetidaEm])
 }
 
 // ─── Brand Brain ─────────────────────────────────────────────────────────────

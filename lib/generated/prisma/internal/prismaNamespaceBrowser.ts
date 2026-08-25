@@ -442,6 +442,8 @@ export const ContentRequestScalarFieldEnum = {
   deliverableId: 'deliverableId',
   productionAttempts: 'productionAttempts',
   declineReason: 'declineReason',
+  escadaRetidaEm: 'escadaRetidaEm',
+  escadaRepescagens: 'escadaRepescagens',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

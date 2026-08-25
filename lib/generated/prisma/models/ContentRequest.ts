@@ -45,11 +45,13 @@ export type AggregateContentRequest = {
 export type ContentRequestAvgAggregateOutputType = {
   quotedPrice: number | null
   productionAttempts: number | null
+  escadaRepescagens: number | null
 }
 
 export type ContentRequestSumAggregateOutputType = {
   quotedPrice: number | null
   productionAttempts: number | null
+  escadaRepescagens: number | null
 }
 
 export type ContentRequestMinAggregateOutputType = {
@@ -77,6 +79,8 @@ export type ContentRequestMinAggregateOutputType = {
   deliverableId: string | null
   productionAttempts: number | null
   declineReason: string | null
+  escadaRetidaEm: Date | null
+  escadaRepescagens: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -106,6 +110,8 @@ export type ContentRequestMaxAggregateOutputType = {
   deliverableId: string | null
   productionAttempts: number | null
   declineReason: string | null
+  escadaRetidaEm: Date | null
+  escadaRepescagens: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -135,6 +141,8 @@ export type ContentRequestCountAggregateOutputType = {
   deliverableId: number
   productionAttempts: number
   declineReason: number
+  escadaRetidaEm: number
+  escadaRepescagens: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -144,11 +152,13 @@ export type ContentRequestCountAggregateOutputType = {
 export type ContentRequestAvgAggregateInputType = {
   quotedPrice?: true
   productionAttempts?: true
+  escadaRepescagens?: true
 }
 
 export type ContentRequestSumAggregateInputType = {
   quotedPrice?: true
   productionAttempts?: true
+  escadaRepescagens?: true
 }
 
 export type ContentRequestMinAggregateInputType = {
@@ -176,6 +186,8 @@ export type ContentRequestMinAggregateInputType = {
   deliverableId?: true
   productionAttempts?: true
   declineReason?: true
+  escadaRetidaEm?: true
+  escadaRepescagens?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -205,6 +217,8 @@ export type ContentRequestMaxAggregateInputType = {
   deliverableId?: true
   productionAttempts?: true
   declineReason?: true
+  escadaRetidaEm?: true
+  escadaRepescagens?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -234,6 +248,8 @@ export type ContentRequestCountAggregateInputType = {
   deliverableId?: true
   productionAttempts?: true
   declineReason?: true
+  escadaRetidaEm?: true
+  escadaRepescagens?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -350,6 +366,8 @@ export type ContentRequestGroupByOutputType = {
   deliverableId: string | null
   productionAttempts: number
   declineReason: string | null
+  escadaRetidaEm: Date | null
+  escadaRepescagens: number
   createdAt: Date
   updatedAt: Date
   _count: ContentRequestCountAggregateOutputType | null
@@ -402,6 +420,8 @@ export type ContentRequestWhereInput = {
   deliverableId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   productionAttempts?: Prisma.IntFilter<"ContentRequest"> | number
   declineReason?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
+  escadaRetidaEm?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
+  escadaRepescagens?: Prisma.IntFilter<"ContentRequest"> | number
   createdAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
   client?: Prisma.XOR<Prisma.ClientScalarRelationFilter, Prisma.ClientWhereInput>
@@ -432,6 +452,8 @@ export type ContentRequestOrderByWithRelationInput = {
   deliverableId?: Prisma.SortOrderInput | Prisma.SortOrder
   productionAttempts?: Prisma.SortOrder
   declineReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  escadaRetidaEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  escadaRepescagens?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   client?: Prisma.ClientOrderByWithRelationInput
@@ -465,6 +487,8 @@ export type ContentRequestWhereUniqueInput = Prisma.AtLeast<{
   deliverableId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   productionAttempts?: Prisma.IntFilter<"ContentRequest"> | number
   declineReason?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
+  escadaRetidaEm?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
+  escadaRepescagens?: Prisma.IntFilter<"ContentRequest"> | number
   createdAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
   client?: Prisma.XOR<Prisma.ClientScalarRelationFilter, Prisma.ClientWhereInput>
@@ -495,6 +519,8 @@ export type ContentRequestOrderByWithAggregationInput = {
   deliverableId?: Prisma.SortOrderInput | Prisma.SortOrder
   productionAttempts?: Prisma.SortOrder
   declineReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  escadaRetidaEm?: Prisma.SortOrderInput | Prisma.SortOrder
+  escadaRepescagens?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ContentRequestCountOrderByAggregateInput
@@ -532,6 +558,8 @@ export type ContentRequestScalarWhereWithAggregatesInput = {
   deliverableId?: Prisma.StringNullableWithAggregatesFilter<"ContentRequest"> | string | null
   productionAttempts?: Prisma.IntWithAggregatesFilter<"ContentRequest"> | number
   declineReason?: Prisma.StringNullableWithAggregatesFilter<"ContentRequest"> | string | null
+  escadaRetidaEm?: Prisma.DateTimeNullableWithAggregatesFilter<"ContentRequest"> | Date | string | null
+  escadaRepescagens?: Prisma.IntWithAggregatesFilter<"ContentRequest"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ContentRequest"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ContentRequest"> | Date | string
 }
@@ -560,6 +588,8 @@ export type ContentRequestCreateInput = {
   deliverableId?: string | null
   productionAttempts?: number
   declineReason?: string | null
+  escadaRetidaEm?: Date | string | null
+  escadaRepescagens?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   client: Prisma.ClientCreateNestedOneWithoutContentRequestsInput
@@ -590,6 +620,8 @@ export type ContentRequestUncheckedCreateInput = {
   deliverableId?: string | null
   productionAttempts?: number
   declineReason?: string | null
+  escadaRetidaEm?: Date | string | null
+  escadaRepescagens?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -618,6 +650,8 @@ export type ContentRequestUpdateInput = {
   deliverableId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   client?: Prisma.ClientUpdateOneRequiredWithoutContentRequestsNestedInput
@@ -648,6 +682,8 @@ export type ContentRequestUncheckedUpdateInput = {
   deliverableId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -677,6 +713,8 @@ export type ContentRequestCreateManyInput = {
   deliverableId?: string | null
   productionAttempts?: number
   declineReason?: string | null
+  escadaRetidaEm?: Date | string | null
+  escadaRepescagens?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -705,6 +743,8 @@ export type ContentRequestUpdateManyMutationInput = {
   deliverableId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -734,6 +774,8 @@ export type ContentRequestUncheckedUpdateManyInput = {
   deliverableId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -773,6 +815,8 @@ export type ContentRequestCountOrderByAggregateInput = {
   deliverableId?: Prisma.SortOrder
   productionAttempts?: Prisma.SortOrder
   declineReason?: Prisma.SortOrder
+  escadaRetidaEm?: Prisma.SortOrder
+  escadaRepescagens?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -780,6 +824,7 @@ export type ContentRequestCountOrderByAggregateInput = {
 export type ContentRequestAvgOrderByAggregateInput = {
   quotedPrice?: Prisma.SortOrder
   productionAttempts?: Prisma.SortOrder
+  escadaRepescagens?: Prisma.SortOrder
 }
 
 export type ContentRequestMaxOrderByAggregateInput = {
@@ -807,6 +852,8 @@ export type ContentRequestMaxOrderByAggregateInput = {
   deliverableId?: Prisma.SortOrder
   productionAttempts?: Prisma.SortOrder
   declineReason?: Prisma.SortOrder
+  escadaRetidaEm?: Prisma.SortOrder
+  escadaRepescagens?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -836,6 +883,8 @@ export type ContentRequestMinOrderByAggregateInput = {
   deliverableId?: Prisma.SortOrder
   productionAttempts?: Prisma.SortOrder
   declineReason?: Prisma.SortOrder
+  escadaRetidaEm?: Prisma.SortOrder
+  escadaRepescagens?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -843,6 +892,7 @@ export type ContentRequestMinOrderByAggregateInput = {
 export type ContentRequestSumOrderByAggregateInput = {
   quotedPrice?: Prisma.SortOrder
   productionAttempts?: Prisma.SortOrder
+  escadaRepescagens?: Prisma.SortOrder
 }
 
 export type ContentRequestCreateNestedManyWithoutClientInput = {
@@ -911,6 +961,8 @@ export type ContentRequestCreateWithoutClientInput = {
   deliverableId?: string | null
   productionAttempts?: number
   declineReason?: string | null
+  escadaRetidaEm?: Date | string | null
+  escadaRepescagens?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -939,6 +991,8 @@ export type ContentRequestUncheckedCreateWithoutClientInput = {
   deliverableId?: string | null
   productionAttempts?: number
   declineReason?: string | null
+  escadaRetidaEm?: Date | string | null
+  escadaRepescagens?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -996,6 +1050,8 @@ export type ContentRequestScalarWhereInput = {
   deliverableId?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   productionAttempts?: Prisma.IntFilter<"ContentRequest"> | number
   declineReason?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
+  escadaRetidaEm?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
+  escadaRepescagens?: Prisma.IntFilter<"ContentRequest"> | number
   createdAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
 }
@@ -1024,6 +1080,8 @@ export type ContentRequestCreateManyClientInput = {
   deliverableId?: string | null
   productionAttempts?: number
   declineReason?: string | null
+  escadaRetidaEm?: Date | string | null
+  escadaRepescagens?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1052,6 +1110,8 @@ export type ContentRequestUpdateWithoutClientInput = {
   deliverableId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1080,6 +1140,8 @@ export type ContentRequestUncheckedUpdateWithoutClientInput = {
   deliverableId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1108,6 +1170,8 @@ export type ContentRequestUncheckedUpdateManyWithoutClientInput = {
   deliverableId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1139,6 +1203,8 @@ export type ContentRequestSelect<ExtArgs extends runtime.Types.Extensions.Intern
   deliverableId?: boolean
   productionAttempts?: boolean
   declineReason?: boolean
+  escadaRetidaEm?: boolean
+  escadaRepescagens?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
@@ -1169,6 +1235,8 @@ export type ContentRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   deliverableId?: boolean
   productionAttempts?: boolean
   declineReason?: boolean
+  escadaRetidaEm?: boolean
+  escadaRepescagens?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
@@ -1199,6 +1267,8 @@ export type ContentRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   deliverableId?: boolean
   productionAttempts?: boolean
   declineReason?: boolean
+  escadaRetidaEm?: boolean
+  escadaRepescagens?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
@@ -1229,11 +1299,13 @@ export type ContentRequestSelectScalar = {
   deliverableId?: boolean
   productionAttempts?: boolean
   declineReason?: boolean
+  escadaRetidaEm?: boolean
+  escadaRepescagens?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ContentRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "clientId" | "clientRequestId" | "projectId" | "title" | "description" | "objective" | "desiredFor" | "attachmentsJson" | "status" | "scopeDecision" | "quotedPrice" | "quoteNote" | "quoteStatus" | "quoteDecidedAt" | "produtoId" | "taskId" | "triagedBy" | "triagedAt" | "promisedFor" | "deliverableId" | "productionAttempts" | "declineReason" | "createdAt" | "updatedAt", ExtArgs["result"]["contentRequest"]>
+export type ContentRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "clientId" | "clientRequestId" | "projectId" | "title" | "description" | "objective" | "desiredFor" | "attachmentsJson" | "status" | "scopeDecision" | "quotedPrice" | "quoteNote" | "quoteStatus" | "quoteDecidedAt" | "produtoId" | "taskId" | "triagedBy" | "triagedAt" | "promisedFor" | "deliverableId" | "productionAttempts" | "declineReason" | "escadaRetidaEm" | "escadaRepescagens" | "createdAt" | "updatedAt", ExtArgs["result"]["contentRequest"]>
 export type ContentRequestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
 }
@@ -1385,6 +1457,28 @@ export type $ContentRequestPayload<ExtArgs extends runtime.Types.Extensions.Inte
      * é o mesmo campo que carrega o motivo do `precisa_decisao`.
      */
     declineReason: string | null
+    /**
+     * QUANDO A ESCADA DE EXPOSIÇÃO RETEVE ESTE PEDIDO. Nulo = não foi ela.
+     * 
+     * Nasceu em 25/08/2026 e tem UM leitor nomeado, que é a razão de existir:
+     * `repescarPedidosRetidosPelaEscada` (`escada/repescagem.ts`). Sem esta
+     * coluna, um pedido parado em `precisa_decisao` pela escada é
+     * indistinguível de um parado pela Qualidade ou pelo piso de verdade — e
+     * retentar os outros dois seria abrir a porta dos fundos dos dois portões.
+     * 
+     * NÃO é derivável de `declineReason`: aquele campo é texto para o cliente
+     * ler, e casar defeito por substring é a régua que quebra na primeira vez
+     * que alguém melhora a frase.
+     */
+    escadaRetidaEm: Date | null
+    /**
+     * Quantas vezes a repescagem já rearmou este pedido depois de a escada o
+     * reter. É o FREIO: em `MAX_REPESCAGENS_DO_PEDIDO` a repescagem para de
+     * tentar e declara a parada (motivo, dono e próxima ação). Sem teto, um
+     * degrau que abre e fecha faria a casa reproduzir a mesma peça para sempre,
+     * com IA paga em cada volta.
+     */
+    escadaRepescagens: number
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["contentRequest"]>
@@ -1835,6 +1929,8 @@ export interface ContentRequestFieldRefs {
   readonly deliverableId: Prisma.FieldRef<"ContentRequest", 'String'>
   readonly productionAttempts: Prisma.FieldRef<"ContentRequest", 'Int'>
   readonly declineReason: Prisma.FieldRef<"ContentRequest", 'String'>
+  readonly escadaRetidaEm: Prisma.FieldRef<"ContentRequest", 'DateTime'>
+  readonly escadaRepescagens: Prisma.FieldRef<"ContentRequest", 'Int'>
   readonly createdAt: Prisma.FieldRef<"ContentRequest", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ContentRequest", 'DateTime'>
 }
