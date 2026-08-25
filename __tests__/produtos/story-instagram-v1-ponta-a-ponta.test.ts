@@ -1155,10 +1155,29 @@ describe("caso de ajuste — a peça apontada volta como ARQUIVO NOVO", () => {
         "este teste só vale se a arte realmente NÃO saiu; com arte nova ele mediria outro caso",
       ).toBe(urlAntes[TERCEIRA]);
 
-      // E o card corretamente NÃO reabre: não se pede ao cliente que decida de
-      // novo sobre a mesma imagem. Isso já estava certo, e continua.
+      // ═══════════════════════════════════════════════════════════════════
+      // ⚠️ ESTA AFIRMAÇÃO VIROU AO CONTRÁRIO EM 26/08/2026 — e a inversão é o
+      //    conserto, não uma concessão.
+      // ═══════════════════════════════════════════════════════════════════
+      //
+      // Ela dizia: `not.toBe("pending")` — "o card não reabre com a arte
+      // recusada". A INTENÇÃO estava certa e continua valendo: a casa não
+      // CONVIDA o cliente a aprovar de novo a mesma imagem, e é por isso que a
+      // peça segue em `revision_requested` (inagendável) e a tela dele carrega,
+      // logo abaixo, a frase que diz que a imagem ainda é a anterior.
+      //
+      // Mas "não convidar" tinha virado "NÃO DEIXAR". Medido em produção com
+      // cliente oculto (26/08/2026): com o card carimbado, `POST
+      // /api/portal/approvals` passava a devolver **409 "já decidido"** para
+      // aprovar, RECUSAR e CANCELAR. O cliente ficava preso — sem arquivo novo
+      // e sem nenhuma saída — numa entrega de quatro peças que ele já pagou.
+      // Um clique em "pedir ajuste" comia o direito de decidir.
+      //
+      // Pedir ajuste não pode consumir o direito de decidir a peça que já está
+      // na mão dele. O card volta a ser decidível; o que muda é o que a TELA
+      // diz — e é isso que as asserções de HTML abaixo continuam cobrando.
       const cardDepois = await prisma.approvalRequest.findUniqueOrThrow({ where: { id: card!.id } });
-      expect(cardDepois.status, "o card não reabre com a arte recusada").not.toBe("pending");
+      expect(cardDepois.status, "o cliente não pode ficar preso: a porta continua aberta").toBe("pending");
 
       // ── A PORTA REAL DO PORTAL ─────────────────────────────────────────
       const { GET: portalData } = await import("@/app/api/brain/portal-data/route");

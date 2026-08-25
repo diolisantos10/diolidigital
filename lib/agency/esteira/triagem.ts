@@ -56,6 +56,7 @@ import { generate } from "@/lib/ai/generate";
 import { SELF_SERVE_CATALOG } from "@/lib/agency/self-serve-catalog";
 import { DEPARTAMENTOS, TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 import { lerPedido, explicarLeitura } from "@/lib/agency/esteira/leitura-do-pedido";
+import { serializarPergunta, type PerguntaAoCliente } from "@/lib/agency/esteira/porta-da-pergunta";
 import {
   lerOperacao, executarOperacaoDeCalendario, contarAoCliente, OPERACOES,
 } from "@/lib/agency/esteira/operacoes";
@@ -824,7 +825,19 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
   // contradiz o que está escrito. Cliente pediu o INSUMO e o modelo escolheu a
   // PEÇA FINAL? A resposta certa é PERGUNTAR: são trabalhos e preços
   // diferentes, e cobrar reel de quem pediu roteiro é o erro de 06/08/2026.
-  const leitura = lerPedido(pedido.description);
+  // ── O NÚMERO QUE O CLIENTE CONFIRMOU MANDA SOBRE A LEITURA DO TEXTO ───────
+  //
+  // A leitura é léxica e roda no texto ORIGINAL, que continua dizendo "1 story"
+  // depois de o cliente ter respondido "pode ser o pacote de 4" pela porta da
+  // pergunta. Sem esta linha, a releitura reproduziria exatamente a mesma
+  // parada, para sempre — a porta abriria para o mesmo beco.
+  //
+  // Só sobrepõe o NÚMERO. O verbo (insumo × peça) continua vindo do texto dele:
+  // confirmar quantidade não é autorização para reinterpretar o que ele pediu.
+  const leituraDoTexto = lerPedido(pedido.description);
+  const leitura = typeof pedido.confirmedQuantity === "number" && pedido.confirmedQuantity > 0
+    ? { ...leituraDoTexto, quantidade: pedido.confirmedQuantity, motivoDaContagem: "contada" as const }
+    : leituraDoTexto;
   if (leitura.entregavel === "insumo" && atendimento.entrega === "peca") {
     return await parar(
       pedidoId,
@@ -920,9 +933,28 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
   // preço dele já é de um conjunto.
   if (atendimento.cobre === 1) {
     if (leitura.quantidade === null && leitura.motivoDaContagem !== "sem_peca_citada") {
+      // A PORTA: aqui o que falta é literalmente um NÚMERO, e o cliente sabe
+      // dizê-lo. `aceitaNumero` é o único lugar da casa que aceita texto livre
+      // do cliente como resposta — e só porque "3" é conferível. Qualquer coisa
+      // que não seja um número entre 1 e 200 volta com a pergunta de novo, em
+      // vez de virar um palpite.
       return await parar(
         pedidoId,
-        `Consigo fazer ${item.label.toLowerCase()}, mas ${explicarLeitura(leitura)} — e eu não vou orçar uma peça só se você precisa de várias. Me diz quantas são (ou a equipe confirma com você) e eu devolvo o valor certo.`,
+        `Consigo fazer ${item.label.toLowerCase()}, mas ${explicarLeitura(leitura)} — e eu não vou orçar uma peça só se você precisa de várias. Me diz quantas são e eu devolvo o valor certo.`,
+        {
+          pergunta: "Quantas peças são?",
+          aceitaNumero: true,
+          opcoes: [
+            { id: "uma", rotulo: "É uma peça só", quantidade: 1 },
+            {
+              id: "equipe",
+              rotulo: "Prefiro que a equipe confirme comigo",
+              escalar: true,
+              dono: "a equipe comercial",
+              proximaAcao: "te chama por aqui para fechar a quantidade e o valor",
+            },
+          ],
+        },
       );
     }
     if (typeof leitura.quantidade === "number" && leitura.quantidade > 1) {
@@ -959,12 +991,33 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     leitura.quantidade > 0 &&
     leitura.quantidade < produtoDoAtendimento.quantidadeDePecas
   ) {
+    // ── A INSTRUÇÃO GÊMEA DA PROIBIÇÃO (25/08/2026) ─────────────────────────
+    //
+    // A proibição ("não te cobro 4 se você pediu 1") continua exatamente igual.
+    // O que faltava era o caminho DEPOIS do "pode ser o pacote de 4": em
+    // produção a cliente respondeu isso no chat e o pedido não andou, porque
+    // `precisa_decisao` não tinha saída pelo lado dela e o chat não tem quem
+    // decida escopo. Agora a resposta é um botão com EFEITO — confirmar o
+    // pacote grava a quantidade e a triagem roda de novo, com o preço da tabela.
+    const n = produtoDoAtendimento.quantidadeDePecas;
     return await parar(
       pedidoId,
       `Você pediu ${leitura.quantidade} ${leitura.quantidade === 1 ? "peça" : "peças"}, e o que eu tenho na ` +
-      `tabela é o pacote de ${produtoDoAtendimento.quantidadeDePecas} (${item.label}, R$ ${preco}). ` +
-      "Não vou te cobrar o pacote inteiro por menos peças sem você mandar: a equipe confirma com você se " +
-      "prefere o pacote ou um orçamento avulso, e responde por aqui.",
+      `tabela é o pacote de ${n} (${item.label}, R$ ${preco}). ` +
+      "Não vou te cobrar o pacote inteiro por menos peças sem você mandar. Me diz aqui como você prefere:",
+      {
+        pergunta: `Você pediu ${leitura.quantidade}, e a minha tabela tem o pacote de ${n}. Como você prefere?`,
+        opcoes: [
+          { id: "pacote", rotulo: `Pode ser o pacote de ${n} — R$ ${preco}`, quantidade: n },
+          {
+            id: "avulso",
+            rotulo: `Quero orçamento avulso de ${leitura.quantidade}`,
+            escalar: true,
+            dono: "a equipe comercial",
+            proximaAcao: `te manda o valor de ${leitura.quantidade} ${leitura.quantidade === 1 ? "peça" : "peças"} por aqui`,
+          },
+        ],
+      },
     );
   }
 
@@ -1102,14 +1155,33 @@ async function decidirEscopo(projectId: string, departamentoId: string): Promise
 // Parar com motivo — o único jeito de um pedido sair da esteira sem sumir
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function parar(pedidoId: string, motivo: string): Promise<ResultadoDaTriagem> {
-  await pararComMotivo(pedidoId, motivo);
+async function parar(
+  pedidoId: string,
+  motivo: string,
+  /**
+   * ── A INSTRUÇÃO GÊMEA DA PROIBIÇÃO (25/08/2026) ──────────────────────────
+   * As respostas possíveis, quando a casa sabe quais são. Sem isto, `parar`
+   * escrevia um motivo bonito em prosa e o cliente ficava com um selo amarelo
+   * e nenhum botão — a Ana respondeu "pode ser o pacote de 4" no chat livre e
+   * o pedido não andou. Ver `lib/agency/esteira/porta-da-pergunta.ts`.
+   *
+   * Opcional de propósito: nem toda parada tem resposta enumerável. Onde não
+   * tem, o comportamento é exatamente o de antes — o que NÃO se faz é inventar
+   * uma opção para o cartão não ficar feio.
+   */
+  porta?: Omit<PerguntaAoCliente, "abertaEm">,
+): Promise<ResultadoDaTriagem> {
+  await pararComMotivo(pedidoId, motivo, porta);
   return { ok: false, parou: true, motivo };
 }
 
 /** Grava `precisa_decisao` + o motivo em português. Os dois lados leem: o
  *  cliente pelo `/api/portal/pedidos`, a agência pela caixa de entrada. */
-export async function pararComMotivo(pedidoId: string, motivo: string): Promise<void> {
+export async function pararComMotivo(
+  pedidoId: string,
+  motivo: string,
+  porta?: Omit<PerguntaAoCliente, "abertaEm">,
+): Promise<void> {
   await prisma.contentRequest.update({
     where: { id: pedidoId },
     data: {
@@ -1117,6 +1189,10 @@ export async function pararComMotivo(pedidoId: string, motivo: string): Promise<
       declineReason: motivo.slice(0, 600),
       triagedBy: "Triagem automática",
       triagedAt: new Date(),
+      // Grava a porta JUNTO com a pergunta, na mesma escrita. Duas escritas
+      // deixariam uma janela em que o cliente lê a pergunta e não acha o botão
+      // — que é literalmente o defeito que isto conserta.
+      pendingQuestionJson: porta ? serializarPergunta(porta) : null,
     },
   }).catch(() => { /* o pedido pode ter sido apagado no meio; não derruba nada */ });
 }

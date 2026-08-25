@@ -46,12 +46,14 @@ export type ContentRequestAvgAggregateOutputType = {
   quotedPrice: number | null
   productionAttempts: number | null
   escadaRepescagens: number | null
+  confirmedQuantity: number | null
 }
 
 export type ContentRequestSumAggregateOutputType = {
   quotedPrice: number | null
   productionAttempts: number | null
   escadaRepescagens: number | null
+  confirmedQuantity: number | null
 }
 
 export type ContentRequestMinAggregateOutputType = {
@@ -81,6 +83,8 @@ export type ContentRequestMinAggregateOutputType = {
   declineReason: string | null
   escadaRetidaEm: Date | null
   escadaRepescagens: number | null
+  pendingQuestionJson: string | null
+  confirmedQuantity: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -112,6 +116,8 @@ export type ContentRequestMaxAggregateOutputType = {
   declineReason: string | null
   escadaRetidaEm: Date | null
   escadaRepescagens: number | null
+  pendingQuestionJson: string | null
+  confirmedQuantity: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -143,6 +149,8 @@ export type ContentRequestCountAggregateOutputType = {
   declineReason: number
   escadaRetidaEm: number
   escadaRepescagens: number
+  pendingQuestionJson: number
+  confirmedQuantity: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -153,12 +161,14 @@ export type ContentRequestAvgAggregateInputType = {
   quotedPrice?: true
   productionAttempts?: true
   escadaRepescagens?: true
+  confirmedQuantity?: true
 }
 
 export type ContentRequestSumAggregateInputType = {
   quotedPrice?: true
   productionAttempts?: true
   escadaRepescagens?: true
+  confirmedQuantity?: true
 }
 
 export type ContentRequestMinAggregateInputType = {
@@ -188,6 +198,8 @@ export type ContentRequestMinAggregateInputType = {
   declineReason?: true
   escadaRetidaEm?: true
   escadaRepescagens?: true
+  pendingQuestionJson?: true
+  confirmedQuantity?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -219,6 +231,8 @@ export type ContentRequestMaxAggregateInputType = {
   declineReason?: true
   escadaRetidaEm?: true
   escadaRepescagens?: true
+  pendingQuestionJson?: true
+  confirmedQuantity?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -250,6 +264,8 @@ export type ContentRequestCountAggregateInputType = {
   declineReason?: true
   escadaRetidaEm?: true
   escadaRepescagens?: true
+  pendingQuestionJson?: true
+  confirmedQuantity?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -368,6 +384,8 @@ export type ContentRequestGroupByOutputType = {
   declineReason: string | null
   escadaRetidaEm: Date | null
   escadaRepescagens: number
+  pendingQuestionJson: string | null
+  confirmedQuantity: number | null
   createdAt: Date
   updatedAt: Date
   _count: ContentRequestCountAggregateOutputType | null
@@ -422,6 +440,8 @@ export type ContentRequestWhereInput = {
   declineReason?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   escadaRetidaEm?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
   escadaRepescagens?: Prisma.IntFilter<"ContentRequest"> | number
+  pendingQuestionJson?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
+  confirmedQuantity?: Prisma.IntNullableFilter<"ContentRequest"> | number | null
   createdAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
   client?: Prisma.XOR<Prisma.ClientScalarRelationFilter, Prisma.ClientWhereInput>
@@ -454,6 +474,8 @@ export type ContentRequestOrderByWithRelationInput = {
   declineReason?: Prisma.SortOrderInput | Prisma.SortOrder
   escadaRetidaEm?: Prisma.SortOrderInput | Prisma.SortOrder
   escadaRepescagens?: Prisma.SortOrder
+  pendingQuestionJson?: Prisma.SortOrderInput | Prisma.SortOrder
+  confirmedQuantity?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   client?: Prisma.ClientOrderByWithRelationInput
@@ -489,6 +511,8 @@ export type ContentRequestWhereUniqueInput = Prisma.AtLeast<{
   declineReason?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   escadaRetidaEm?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
   escadaRepescagens?: Prisma.IntFilter<"ContentRequest"> | number
+  pendingQuestionJson?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
+  confirmedQuantity?: Prisma.IntNullableFilter<"ContentRequest"> | number | null
   createdAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
   client?: Prisma.XOR<Prisma.ClientScalarRelationFilter, Prisma.ClientWhereInput>
@@ -521,6 +545,8 @@ export type ContentRequestOrderByWithAggregationInput = {
   declineReason?: Prisma.SortOrderInput | Prisma.SortOrder
   escadaRetidaEm?: Prisma.SortOrderInput | Prisma.SortOrder
   escadaRepescagens?: Prisma.SortOrder
+  pendingQuestionJson?: Prisma.SortOrderInput | Prisma.SortOrder
+  confirmedQuantity?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ContentRequestCountOrderByAggregateInput
@@ -560,6 +586,8 @@ export type ContentRequestScalarWhereWithAggregatesInput = {
   declineReason?: Prisma.StringNullableWithAggregatesFilter<"ContentRequest"> | string | null
   escadaRetidaEm?: Prisma.DateTimeNullableWithAggregatesFilter<"ContentRequest"> | Date | string | null
   escadaRepescagens?: Prisma.IntWithAggregatesFilter<"ContentRequest"> | number
+  pendingQuestionJson?: Prisma.StringNullableWithAggregatesFilter<"ContentRequest"> | string | null
+  confirmedQuantity?: Prisma.IntNullableWithAggregatesFilter<"ContentRequest"> | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ContentRequest"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ContentRequest"> | Date | string
 }
@@ -590,6 +618,8 @@ export type ContentRequestCreateInput = {
   declineReason?: string | null
   escadaRetidaEm?: Date | string | null
   escadaRepescagens?: number
+  pendingQuestionJson?: string | null
+  confirmedQuantity?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   client: Prisma.ClientCreateNestedOneWithoutContentRequestsInput
@@ -622,6 +652,8 @@ export type ContentRequestUncheckedCreateInput = {
   declineReason?: string | null
   escadaRetidaEm?: Date | string | null
   escadaRepescagens?: number
+  pendingQuestionJson?: string | null
+  confirmedQuantity?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -652,6 +684,8 @@ export type ContentRequestUpdateInput = {
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
+  pendingQuestionJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedQuantity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   client?: Prisma.ClientUpdateOneRequiredWithoutContentRequestsNestedInput
@@ -684,6 +718,8 @@ export type ContentRequestUncheckedUpdateInput = {
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
+  pendingQuestionJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedQuantity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -715,6 +751,8 @@ export type ContentRequestCreateManyInput = {
   declineReason?: string | null
   escadaRetidaEm?: Date | string | null
   escadaRepescagens?: number
+  pendingQuestionJson?: string | null
+  confirmedQuantity?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -745,6 +783,8 @@ export type ContentRequestUpdateManyMutationInput = {
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
+  pendingQuestionJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedQuantity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -776,6 +816,8 @@ export type ContentRequestUncheckedUpdateManyInput = {
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
+  pendingQuestionJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedQuantity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -817,6 +859,8 @@ export type ContentRequestCountOrderByAggregateInput = {
   declineReason?: Prisma.SortOrder
   escadaRetidaEm?: Prisma.SortOrder
   escadaRepescagens?: Prisma.SortOrder
+  pendingQuestionJson?: Prisma.SortOrder
+  confirmedQuantity?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -825,6 +869,7 @@ export type ContentRequestAvgOrderByAggregateInput = {
   quotedPrice?: Prisma.SortOrder
   productionAttempts?: Prisma.SortOrder
   escadaRepescagens?: Prisma.SortOrder
+  confirmedQuantity?: Prisma.SortOrder
 }
 
 export type ContentRequestMaxOrderByAggregateInput = {
@@ -854,6 +899,8 @@ export type ContentRequestMaxOrderByAggregateInput = {
   declineReason?: Prisma.SortOrder
   escadaRetidaEm?: Prisma.SortOrder
   escadaRepescagens?: Prisma.SortOrder
+  pendingQuestionJson?: Prisma.SortOrder
+  confirmedQuantity?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -885,6 +932,8 @@ export type ContentRequestMinOrderByAggregateInput = {
   declineReason?: Prisma.SortOrder
   escadaRetidaEm?: Prisma.SortOrder
   escadaRepescagens?: Prisma.SortOrder
+  pendingQuestionJson?: Prisma.SortOrder
+  confirmedQuantity?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -893,6 +942,7 @@ export type ContentRequestSumOrderByAggregateInput = {
   quotedPrice?: Prisma.SortOrder
   productionAttempts?: Prisma.SortOrder
   escadaRepescagens?: Prisma.SortOrder
+  confirmedQuantity?: Prisma.SortOrder
 }
 
 export type ContentRequestCreateNestedManyWithoutClientInput = {
@@ -963,6 +1013,8 @@ export type ContentRequestCreateWithoutClientInput = {
   declineReason?: string | null
   escadaRetidaEm?: Date | string | null
   escadaRepescagens?: number
+  pendingQuestionJson?: string | null
+  confirmedQuantity?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -993,6 +1045,8 @@ export type ContentRequestUncheckedCreateWithoutClientInput = {
   declineReason?: string | null
   escadaRetidaEm?: Date | string | null
   escadaRepescagens?: number
+  pendingQuestionJson?: string | null
+  confirmedQuantity?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1052,6 +1106,8 @@ export type ContentRequestScalarWhereInput = {
   declineReason?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
   escadaRetidaEm?: Prisma.DateTimeNullableFilter<"ContentRequest"> | Date | string | null
   escadaRepescagens?: Prisma.IntFilter<"ContentRequest"> | number
+  pendingQuestionJson?: Prisma.StringNullableFilter<"ContentRequest"> | string | null
+  confirmedQuantity?: Prisma.IntNullableFilter<"ContentRequest"> | number | null
   createdAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ContentRequest"> | Date | string
 }
@@ -1082,6 +1138,8 @@ export type ContentRequestCreateManyClientInput = {
   declineReason?: string | null
   escadaRetidaEm?: Date | string | null
   escadaRepescagens?: number
+  pendingQuestionJson?: string | null
+  confirmedQuantity?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1112,6 +1170,8 @@ export type ContentRequestUpdateWithoutClientInput = {
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
+  pendingQuestionJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedQuantity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1142,6 +1202,8 @@ export type ContentRequestUncheckedUpdateWithoutClientInput = {
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
+  pendingQuestionJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedQuantity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1172,6 +1234,8 @@ export type ContentRequestUncheckedUpdateManyWithoutClientInput = {
   declineReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   escadaRetidaEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   escadaRepescagens?: Prisma.IntFieldUpdateOperationsInput | number
+  pendingQuestionJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  confirmedQuantity?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1205,6 +1269,8 @@ export type ContentRequestSelect<ExtArgs extends runtime.Types.Extensions.Intern
   declineReason?: boolean
   escadaRetidaEm?: boolean
   escadaRepescagens?: boolean
+  pendingQuestionJson?: boolean
+  confirmedQuantity?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
@@ -1237,6 +1303,8 @@ export type ContentRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   declineReason?: boolean
   escadaRetidaEm?: boolean
   escadaRepescagens?: boolean
+  pendingQuestionJson?: boolean
+  confirmedQuantity?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
@@ -1269,6 +1337,8 @@ export type ContentRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   declineReason?: boolean
   escadaRetidaEm?: boolean
   escadaRepescagens?: boolean
+  pendingQuestionJson?: boolean
+  confirmedQuantity?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
@@ -1301,11 +1371,13 @@ export type ContentRequestSelectScalar = {
   declineReason?: boolean
   escadaRetidaEm?: boolean
   escadaRepescagens?: boolean
+  pendingQuestionJson?: boolean
+  confirmedQuantity?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ContentRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "clientId" | "clientRequestId" | "projectId" | "title" | "description" | "objective" | "desiredFor" | "attachmentsJson" | "status" | "scopeDecision" | "quotedPrice" | "quoteNote" | "quoteStatus" | "quoteDecidedAt" | "produtoId" | "taskId" | "triagedBy" | "triagedAt" | "promisedFor" | "deliverableId" | "productionAttempts" | "declineReason" | "escadaRetidaEm" | "escadaRepescagens" | "createdAt" | "updatedAt", ExtArgs["result"]["contentRequest"]>
+export type ContentRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"estadoCanonico" | "id" | "clientId" | "clientRequestId" | "projectId" | "title" | "description" | "objective" | "desiredFor" | "attachmentsJson" | "status" | "scopeDecision" | "quotedPrice" | "quoteNote" | "quoteStatus" | "quoteDecidedAt" | "produtoId" | "taskId" | "triagedBy" | "triagedAt" | "promisedFor" | "deliverableId" | "productionAttempts" | "declineReason" | "escadaRetidaEm" | "escadaRepescagens" | "pendingQuestionJson" | "confirmedQuantity" | "createdAt" | "updatedAt", ExtArgs["result"]["contentRequest"]>
 export type ContentRequestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
 }
@@ -1479,6 +1551,35 @@ export type $ContentRequestPayload<ExtArgs extends runtime.Types.Extensions.Inte
      * com IA paga em cada volta.
      */
     escadaRepescagens: number
+    /**
+     * ── A PORTA DA PERGUNTA (25/08/2026) ────────────────────────────────────
+     * 
+     * A pergunta ESTRUTURADA que a casa fez ao cliente, com as respostas
+     * possíveis e o efeito de cada uma (`lib/agency/esteira/porta-da-pergunta.ts`).
+     * 
+     * `declineReason` diz ao cliente POR QUE parou, em prosa. Isto diz COMO ele
+     * responde. Eram a mesma coisa e não são: a Ana leu o motivo, respondeu no
+     * chat "pode ser o pacote de 4" e o pedido não andou, porque prosa não tem
+     * botão e o chat livre não tem quem decida escopo. Proibição sem instrução
+     * gêmea é beco.
+     * 
+     * Nulo = não há pergunta aberta. É o estado normal, e é o que o cartão do
+     * portal lê para NÃO mostrar botão nenhum. Respondida, volta a nulo na mesma
+     * escrita — pergunta que sobrevive à resposta é a mesma pergunta duas vezes.
+     */
+    pendingQuestionJson: string | null
+    /**
+     * A quantidade que o CLIENTE confirmou respondendo à pergunta acima.
+     * 
+     * Existe porque a leitura da quantidade é léxica e roda no texto ORIGINAL
+     * (`leitura-do-pedido.ts`) — que continua dizendo "1 story" depois de o
+     * cliente ter dito "pode ser o pacote de 4". Sem esta coluna, rodar a
+     * triagem de novo daria exatamente a mesma parada, para sempre.
+     * 
+     * Nulo = o cliente não confirmou número nenhum, e aí vale a leitura do
+     * texto. Nulo NUNCA vira 1: quantidade inventada é erro de dinheiro.
+     */
+    confirmedQuantity: number | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["contentRequest"]>
@@ -1931,6 +2032,8 @@ export interface ContentRequestFieldRefs {
   readonly declineReason: Prisma.FieldRef<"ContentRequest", 'String'>
   readonly escadaRetidaEm: Prisma.FieldRef<"ContentRequest", 'DateTime'>
   readonly escadaRepescagens: Prisma.FieldRef<"ContentRequest", 'Int'>
+  readonly pendingQuestionJson: Prisma.FieldRef<"ContentRequest", 'String'>
+  readonly confirmedQuantity: Prisma.FieldRef<"ContentRequest", 'Int'>
   readonly createdAt: Prisma.FieldRef<"ContentRequest", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ContentRequest", 'DateTime'>
 }
