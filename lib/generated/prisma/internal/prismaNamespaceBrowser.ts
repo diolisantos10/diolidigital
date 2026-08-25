@@ -447,6 +447,7 @@ export const ContentRequestScalarFieldEnum = {
   pendingQuestionJson: 'pendingQuestionJson',
   confirmedQuantity: 'confirmedQuantity',
   confirmedDeliverable: 'confirmedDeliverable',
+  confirmedCta: 'confirmedCta',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

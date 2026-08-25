@@ -93,6 +93,17 @@ export interface OpcaoDaPergunta {
    * parada, para sempre — a porta abriria para o mesmo beco.
    */
   entregavel?: "peca" | "insumo";
+  /**
+   * Escolher esta opção CONFIRMA a chamada para ação da peça — o que a pessoa
+   * deve fazer depois de ver o post — e manda a PRODUÇÃO continuar de onde
+   * parou.
+   *
+   * ⚠️ É o único efeito que NÃO volta para a triagem, e a diferença importa:
+   * este pedido já foi triado, precificado e aceito. Devolvê-lo à triagem
+   * reabriria preço e escopo de uma compra já fechada. O que falta aqui é uma
+   * informação de PRODUÇÃO, então quem retoma é a produção.
+   */
+  cta?: string;
 }
 
 export interface PerguntaAoCliente {
@@ -164,7 +175,7 @@ export async function responderPergunta(input: {
 }): Promise<ResultadoDaResposta> {
   const pedido = await prisma.contentRequest.findFirst({
     where: { id: input.pedidoId, clientId: input.clientId },
-    select: { id: true, status: true, pendingQuestionJson: true, clientRequestId: true, title: true },
+    select: { id: true, status: true, pendingQuestionJson: true, clientRequestId: true, title: true, taskId: true, projectId: true },
   }).catch(() => null);
 
   // "Não é seu" e "não existe" saem iguais: a distinção já é o vazamento.
@@ -182,6 +193,7 @@ export async function responderPergunta(input: {
   let escolhida: OpcaoDaPergunta | null = null;
   let quantidade: number | null = null;
   let entregavel: "peca" | "insumo" | null = null;
+  let cta: string | null = null;
   let textoDaResposta = "";
 
   if (input.opcaoId) {
@@ -192,6 +204,7 @@ export async function responderPergunta(input: {
     textoDaResposta = escolhida.rotulo;
     if (typeof escolhida.quantidade === "number") quantidade = escolhida.quantidade;
     if (escolhida.entregavel === "peca" || escolhida.entregavel === "insumo") entregavel = escolhida.entregavel;
+    if (typeof escolhida.cta === "string" && escolhida.cta.trim()) cta = escolhida.cta.trim().slice(0, 200);
   } else if (input.numero != null) {
     if (!pergunta.aceitaNumero) {
       return { ok: false, erro: "Esta pergunta se responde escolhendo uma das opções.", codigo: 422, pergunta };
@@ -230,6 +243,51 @@ export async function responderPergunta(input: {
       data: { pendingQuestionJson: null, declineReason: recado.slice(0, 600) },
     });
     return { ok: true, status: "precisa_decisao", recado };
+  }
+
+  // ── A CHAMADA PARA AÇÃO RETOMA A PRODUÇÃO, NÃO A TRIAGEM ─────────────────
+  //
+  // Este pedido já foi triado, precificado e o cliente já aceitou o valor. O
+  // que faltava era uma informação de PRODUÇÃO — o que a pessoa deve fazer
+  // depois de ver a peça. Mandá-lo de volta para a triagem reabriria preço e
+  // escopo de uma compra fechada, e um segundo orçamento na tela de quem já
+  // aprovou o primeiro é a casa se desdizendo.
+  //
+  // ⚠️ E a volta é para "triado", que é o ÚNICO estado que `produzirPedido`
+  // aceita. Sem tarefa ou sem projeto, não há produção a retomar: a resposta
+  // fica gravada, a pergunta fechada, e o pedido continua visível para gente —
+  // nunca um sucesso falso.
+  if (cta != null) {
+    const podeRetomar = !!pedido.taskId && !!pedido.projectId;
+    await prisma.contentRequest.update({
+      where: { id: pedido.id },
+      data: {
+        pendingQuestionJson: null,
+        confirmedCta: cta,
+        declineReason: podeRetomar ? null : "Anotei a sua resposta. A equipe retoma a produção deste pedido por aqui.",
+        ...(podeRetomar ? { status: "triado" } : {}),
+      },
+    });
+    if (!podeRetomar) {
+      return { ok: true, status: "precisa_decisao", recado: `Anotei: ${textoDaResposta}. A equipe retoma a produção e te avisa por aqui.` };
+    }
+    const { produzirPedido } = await import("@/lib/agency/esteira/producao-de-pedido");
+    const feito = await produzirPedido(pedido.id).catch((e: unknown) => {
+      console.error("[porta-da-pergunta] a produção falhou depois da resposta:", e);
+      return null;
+    });
+    if (feito?.ok) {
+      return { ok: true, status: "entregue", recado: `Anotei: ${textoDaResposta}. A peça está pronta no portal para você decidir.` };
+    }
+    // A resposta ESTÁ guardada e a pergunta ESTÁ fechada. O que falhou foi o
+    // passo seguinte — e o pedido em "triado" é retomado pelo despertador.
+    return {
+      ok: true,
+      status: "triado",
+      recado: feito && !feito.ok
+        ? `Anotei: ${textoDaResposta}. ${feito.motivo}`
+        : `Anotei: ${textoDaResposta}. Estou produzindo a sua peça e te aviso por aqui.`,
+    };
   }
 
   await prisma.contentRequest.update({

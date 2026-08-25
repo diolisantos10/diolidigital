@@ -785,6 +785,20 @@ model ContentRequest {
   /// Nulo = o cliente não confirmou nada, e vale a leitura do texto. Nulo NUNCA
   /// vira "peca": escolher o entregável por ele é cobrar o trabalho errado.
   confirmedDeliverable String?
+  /// A CHAMADA PARA AÇÃO que o CLIENTE confirmou respondendo à porta da
+  /// pergunta — "chamar no WhatsApp", "vir na loja", "pedir pelo link da bio".
+  ///
+  /// O portão do briefing mínimo (`produtos/briefing-minimo.ts`) PARA a
+  /// produção quando o texto do cliente não traz chamada para ação, e está
+  /// certo: sem ela quem inventa a ação (e o canal junto) é o modelo. O que
+  /// faltava era o caminho DEPOIS da parada — medido em produção com cliente
+  /// oculto em 26/08/2026: o pedido parou com o motivo escrito e `pergunta:
+  /// null`, e um cliente que só sabe usar o portal não tinha onde responder.
+  ///
+  /// Nulo = o cliente não confirmou ação nenhuma, e vale a leitura léxica do
+  /// texto dele. Nulo NUNCA vira uma CTA padrão: ação inventada manda o cliente
+  /// do cliente para um lugar que talvez não exista.
+  confirmedCta String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

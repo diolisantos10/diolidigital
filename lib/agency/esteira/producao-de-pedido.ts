@@ -331,8 +331,15 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   // conhecer o pão"), e ele usa verbos parecidos com os de uma chamada. Aceitar
   // o objetivo como CTA faria o portão passar verde em quase todo pedido, que é
   // como uma trava vira enfeite.
+  // ── A CHAMADA PARA AÇÃO QUE O CLIENTE CONFIRMOU PELA PORTA ───────────────
+  //
+  // Entra no MESMO campo que a leitura léxica varre. Sem esta linha, responder
+  // a porta não adiantaria nada: o texto original continua sem chamada para
+  // ação, e o portão barraria de novo — a porta abriria para o mesmo beco, que
+  // é o defeito que ela veio fechar.
+  const ctaConfirmada = pedido.confirmedCta?.trim() ?? "";
   const briefing = conferirBriefingMinimo(produto, {
-    oQueComunicar: [req?.rawContext ?? "", pedido.description].filter(Boolean).join("\n"),
+    oQueComunicar: [req?.rawContext ?? "", pedido.description, ctaConfirmada].filter(Boolean).join("\n"),
     objetivo: pedido.objective ?? "",
   });
   if (!briefing.completo) {
@@ -341,10 +348,38 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
       projeto, "briefing_minimo_incompleto",
       `${nome} para ${contexto.businessName}: produção NÃO iniciada — falta ${briefing.faltas.join(", ")}. Nenhuma IA foi chamada.`,
     );
-    return await parar(pedidoId, briefing.pergunta);
+    // ── A INSTRUÇÃO GÊMEA (26/08/2026) ────────────────────────────────────
+    //
+    // MEDIDO EM PRODUÇÃO, cliente oculto: o pedido parou aqui com o motivo
+    // escrito e `pergunta: null`. O cliente novo — que já tinha pagado — não
+    // tinha onde responder, e a resposta certa ("chamar no WhatsApp") é
+    // literalmente uma das quatro que o próprio motivo lista.
+    //
+    // A porta existe SÓ para a falta da chamada para ação, e de propósito: "o
+    // que comunicar" e "o objetivo" são texto livre que o portal já cobra na
+    // porta de entrada (422 com a pergunta), e enumerá-los aqui seria inventar
+    // opções para o cliente escolher o que ele quer dizer.
+    //
+    // ⚠️ NADA é afrouxado: quem não responder continua parado. O que muda é
+    // que responder passou a ser possível — e a resposta é ESCOLHIDA por ele,
+    // nunca inferida. A opção de escapar para gente vai junto, com dono e
+    // próxima ação, porque a ação de verdade pode não estar entre as quatro.
+    const soFaltaACta = briefing.faltas.length === 1 && briefing.faltas[0] === "chamada-para-acao";
+    return await parar(
+      pedidoId,
+      briefing.pergunta,
+      soFaltaACta ? { pergunta: "O que você quer que a pessoa faça depois de ver a peça?", opcoes: PORTAS_DA_CHAMADA } : undefined,
+    );
   }
 
-  const promptBase = `${esp.prompt(contexto)}\n${pedidoNoPrompt}${blocoDoProduto(produto)}`;
+  // A chamada confirmada VIRA INSTRUÇÃO, e não só um carimbo de coluna. Uma
+  // resposta que destrava o portão e não chega a quem escreve é o aviso gravado
+  // numa coluna que nunca virou pixel — o defeito que esta casa já cometeu três
+  // vezes nesta operação.
+  const blocoDaChamada = ctaConfirmada
+    ? `\n\nCHAMADA PARA AÇÃO, DITA PELO PRÓPRIO CLIENTE: ${ctaConfirmada}. A peça precisa levar a pessoa a fazer exatamente isso. NÃO invente outro canal nem outra ação.`
+    : "";
+  const promptBase = `${esp.prompt(contexto)}\n${pedidoNoPrompt}${blocoDoProduto(produto)}${blocoDaChamada}`;
 
   const gerar = (user: string) => generate({
     system: `Você é o especialista de ${esp.label} do departamento de ${dept.label} de uma agência de marketing brasileira. Produza conteúdo real, específico e pronto para o cliente. Responda SOMENTE com JSON válido.`,
@@ -723,6 +758,34 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
 // ── auxiliares ──────────────────────────────────────────────────────────────
 
 /**
+ * AS QUATRO CHAMADAS PARA AÇÃO QUE O PORTAL OFERECE — e a saída para gente.
+ *
+ * São exatamente as que o motivo do portão já cita em prosa
+ * (`produtos/briefing-minimo.ts`): uma redação, dois lugares seria a segunda
+ * verdade nascendo. O texto de cada opção é o que vai para o especialista como
+ * instrução, então ele é escrito para ser lido por quem produz, não só clicado.
+ *
+ * ⚠️ NÃO HÁ OPÇÃO PADRÃO e não há campo de texto livre. Ação inventada manda o
+ * cliente do cliente para um lugar que talvez não exista — é o dano que este
+ * portão nasceu para impedir, e ele não pode voltar pela porta da resposta.
+ */
+const PORTAS_DA_CHAMADA = {
+  opcoes: [
+    { id: "whatsapp", rotulo: "Chamar no WhatsApp", cta: "chamar a loja no WhatsApp" },
+    { id: "loja", rotulo: "Vir na loja", cta: "vir até a loja" },
+    { id: "bio", rotulo: "Pedir pelo link da bio", cta: "pedir pelo link da bio do perfil" },
+    { id: "direct", rotulo: "Encomendar pelo direct", cta: "encomendar pelo direct do Instagram" },
+    {
+      id: "outra",
+      rotulo: "É outra coisa — quero falar com a equipe",
+      escalar: true,
+      dono: "a equipe de atendimento",
+      proximaAcao: "te chama por aqui para anotar a ação certa e retomar a produção",
+    },
+  ],
+}.opcoes;
+
+/**
  * A INSTRUÇÃO DO PRODUTO, anexada ao prompt do especialista.
  *
  * ⚠️ ISTO É AVISO, NÃO TRAVA. A regra da casa é literal: "prompt é aviso;
@@ -861,8 +924,16 @@ async function registrar(
 /** PARADA DEFINITIVA. A peça existiu e foi RECUSADA (piso, contrato, juiz), ou
  *  falta algo estrutural. Retentar é re-rolar o dado sem nada ter mudado no
  *  mundo — então para, chama, e o motivo fica visível dos dois lados. */
-async function parar(pedidoId: string, motivo: string): Promise<ResultadoDaProducao> {
-  await pararComMotivo(pedidoId, motivo);
+async function parar(
+  pedidoId: string,
+  motivo: string,
+  /** A INSTRUÇÃO GÊMEA da proibição: as respostas possíveis, quando a casa sabe
+   *  quais são. Opcional de propósito — nem toda parada da produção tem resposta
+   *  enumerável, e onde não tem, inventar uma opção só para o cartão não ficar
+   *  feio seria porta que não abre. Ver `esteira/porta-da-pergunta.ts`. */
+  porta?: Parameters<typeof pararComMotivo>[2],
+): Promise<ResultadoDaProducao> {
+  await pararComMotivo(pedidoId, motivo, porta);
   return { ok: false, parou: true, motivo };
 }
 

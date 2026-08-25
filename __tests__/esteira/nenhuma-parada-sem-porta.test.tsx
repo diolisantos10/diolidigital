@@ -31,6 +31,8 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { escadaToda } from "../_escada";
 
 interface Registro { [k: string]: unknown }
@@ -63,7 +65,7 @@ const db = {
       if (!r) throw new Error("não encontrado");
       return Promise.resolve(r);
     }),
-    findFirst: vi.fn(() => Promise.resolve(null)),
+    findFirst: vi.fn<() => Promise<Registro | null>>(() => Promise.resolve(null)),
     update: vi.fn(({ where, data }: { where: { id: string }; data: Registro }) => {
       const r = pedidos.get(where.id)!;
       Object.assign(r, data, { updatedAt: new Date() });
@@ -81,16 +83,32 @@ const db = {
       id: "cli-novo", name: "Cantina da Prova", workspaceId: "ws-1", industry: "Alimentação",
       email: "contato@cantina.invalid", phone: null, brandBrain: null,
     })),
+    findUniqueOrThrow: vi.fn(() => Promise.resolve({
+      id: "cli-novo", name: "Cantina da Prova", workspaceId: "ws-1", industry: "Alimentação",
+      email: "contato@cantina.invalid", phone: null, brandBrain: null,
+    })),
   },
   // ⚠️ O CLIENTE NOVO: nenhum projeto. É o cenário do beco A, letra por letra.
   project: {
     findFirst: vi.fn<() => Promise<{ id: string; name: string } | null>>(() => Promise.resolve(null)),
     findUnique: vi.fn(() => Promise.resolve({ clientRequestId: null })),
+    findUniqueOrThrow: vi.fn(() => Promise.resolve({
+      id: "prj-1", name: "Pedidos de Cantina da Prova", goal: "", workspaceId: "ws-1",
+      clientId: "cli-novo", clientRequestId: null,
+    })),
     create: vi.fn((_a: { data: Registro }) => Promise.resolve({ id: "prj-novo", name: "Pedidos de Cantina da Prova" })),
   },
   cycle: { findFirst: vi.fn(() => Promise.resolve(null)) },
   clientRequestDb: { findUnique: vi.fn(() => Promise.resolve(null)) },
-  task: { create: vi.fn(() => Promise.resolve({ id: "task-1" })) },
+  task: {
+    create: vi.fn(() => Promise.resolve({ id: "task-1" })),
+    findUnique: vi.fn(() => Promise.resolve({ id: "task-1", agentId: "design-criativo-social" })),
+    update: vi.fn(() => Promise.resolve({})),
+  },
+  materialRequest: { findMany: vi.fn(() => Promise.resolve([] as { type: string }[])) },
+  deliverable: { findFirst: vi.fn(() => Promise.resolve(null)), create: vi.fn(() => Promise.resolve({ id: "del-1" })) },
+  approvalRequest: { findFirst: vi.fn(() => Promise.resolve(null)) },
+  activityEvent: { create: vi.fn(() => Promise.resolve({})) },
   timelineEvent: { create: vi.fn(() => Promise.resolve({})) },
   portalMessage: { create: vi.fn(() => Promise.resolve({})) },
   brainArtifact: {
@@ -116,7 +134,7 @@ vi.mock("@/app/api/messages/conversa", () => ({
 }));
 
 const { triarPedido } = await import("@/lib/agency/esteira/triagem");
-const { lerPergunta } = await import("@/lib/agency/esteira/porta-da-pergunta");
+const { lerPergunta, responderPergunta } = await import("@/lib/agency/esteira/porta-da-pergunta");
 const { contratoDoPedido } = await import("@/lib/agency/esteira/contrato-do-pedido");
 const { conferirContrato, TODOS_OS_ESPECIALISTAS } = await import("@/lib/agency/execution/especialistas");
 const { RespostaAoPedido } = await import("@/components/portal/SolicitarAlgo");
@@ -335,5 +353,123 @@ describe("a porta chega ao HTML que o cliente recebe", () => {
     // do texto original daria exatamente a mesma parada, para sempre.
     const bruta = lerPergunta(pedido.pendingQuestionJson as string | null)!;
     expect(bruta.opcoes.find((o) => o.id === "peca")?.entregavel).toBe("peca");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 C · A CHAMADA PARA AÇÃO — o beco que a RODADA DE PRODUÇÃO encontrou
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Achado no ar, com cliente oculto, DEPOIS dos dois primeiros consertos: o
+// cliente novo pediu, foi triado, aprovou os R$ 79 — e a produção parou no
+// portão do briefing mínimo com
+//
+//   "O QUE VOCÊ QUER QUE A PESSOA FAÇA depois de ver a peça? Pode ser em três
+//    palavras — 'chamar no WhatsApp', 'vir na loja', …"
+//
+// e `"pergunta": null`. **A resposta certa era literalmente uma das quatro que
+// o próprio motivo lista**, e não havia onde clicar. Mesmíssima família dos
+// becos A e B: proibição em código, instrução gêmea em lugar nenhum.
+//
+// ⚠️ O PORTÃO NÃO FOI AFROUXADO. Quem não responde continua parado, e não há
+// opção padrão nem texto livre — ação inventada manda o cliente do cliente para
+// um lugar que talvez não exista, que é o dano que o portão existe para
+// impedir. O que mudou é que responder passou a ser possível.
+//
+// MUTAÇÃO CONFERIDA: tirar a porta do `parar()` do briefing mínimo quebra o
+// primeiro `it`; não somar `confirmedCta` ao texto que o portão lê quebra o
+// segundo — a porta abriria para o mesmo beco.
+
+describe("a chamada para ação tem porta, e a resposta destrava a produção", () => {
+  it("a produção PARA e a parada carrega as quatro ações — provado rodando a produção", async () => {
+    // Nada de ler o arquivo-fonte: a régua é o que fica GRAVADO para o cliente
+    // ler. O pedido é o de produção, letra por letra — diz o que comunicar e
+    // para quê, e não diz o que a pessoa deve fazer.
+    const pedido = novoPedido({
+      status: "triado", taskId: "task-1", projectId: "prj-1",
+      produtoId: "instagram_post_feed_v1",
+      quoteStatus: "aceito", scopeDecision: "extra", quotedPrice: 79,
+    });
+
+    const { produzirPedido } = await import("@/lib/agency/esteira/producao-de-pedido");
+    const r = await produzirPedido(pedido.id as string);
+
+    expect(r.ok, `motivo: ${JSON.stringify(r)}`).toBe(false);
+    expect(pedido.status, `motivo: ${JSON.stringify(r)}`).toBe("precisa_decisao");
+    expect(String(pedido.declineReason)).toMatch(/O QUE VOCÊ QUER QUE A PESSOA FAÇA/);
+
+    // ⚠️ E AGORA A METADE QUE FALTAVA: a porta.
+    const porta = lerPergunta(pedido.pendingQuestionJson as string | null);
+    expect(porta, "a parada do briefing mínimo continuava sendo um beco").not.toBeNull();
+    expect(porta!.opcoes.map((o) => o.rotulo)).toEqual([
+      "Chamar no WhatsApp", "Vir na loja", "Pedir pelo link da bio",
+      "Encomendar pelo direct", "É outra coisa — quero falar com a equipe",
+    ]);
+    // Nenhuma opção padrão, nenhum texto livre: ação inventada manda o cliente
+    // do cliente para um lugar que talvez não exista.
+    expect(porta!.aceitaNumero).toBe(false);
+    // As quatro carregam o EFEITO; a quinta escala, com dono e próxima ação.
+    for (const o of porta!.opcoes.slice(0, 4)) expect(o.cta?.trim()).toBeTruthy();
+    const humana = porta!.opcoes[4]!;
+    expect(humana.escalar).toBe(true);
+    expect(humana.dono?.trim()).toBeTruthy();
+    expect(humana.proximaAcao?.trim()).toBeTruthy();
+  });
+
+  it("com a CTA gravada, a produção ATRAVESSA o portão — senão a porta dava no mesmo beco", async () => {
+    // ⚠️ A régua roda a PRODUÇÃO, não o conferente sozinho. Conferir
+    // `conferirBriefingMinimo` com a concatenação já feita provaria que a
+    // função soma strings — e deixaria passar exatamente o defeito que
+    // importa: a resposta do cliente não CHEGAR a quem confere. Foi o que essa
+    // casa já fez três vezes nesta operação.
+    const pedido = novoPedido({
+      status: "triado", taskId: "task-1", projectId: "prj-1",
+      produtoId: "instagram_post_feed_v1",
+      quoteStatus: "aceito", scopeDecision: "extra", quotedPrice: 79,
+      confirmedCta: "chamar a loja no WhatsApp",
+    });
+    // A IA fora do ar: a produção não vai concluir, e não é isso que se mede.
+    // O que se mede é ONDE ela para — e não pode ser mais no briefing mínimo.
+    generate.mockResolvedValue({ ok: false, error: "provedor indisponível no teste" });
+
+    const { produzirPedido } = await import("@/lib/agency/esteira/producao-de-pedido");
+    await produzirPedido(pedido.id as string);
+
+    expect(String(pedido.declineReason ?? ""),
+      "a CTA que o cliente respondeu não chegou ao portão — a porta abriu para o mesmo beco")
+      .not.toMatch(/O QUE VOCÊ QUER QUE A PESSOA FAÇA/);
+    expect(pedido.status, "parada do briefing mínimo não pode mais acontecer aqui").not.toBe("precisa_decisao");
+
+    // E ela vira INSTRUÇÃO para quem escreve, não só carimbo de coluna.
+    const prompt = String(generate.mock.calls[0]?.[0] ? (generate.mock.calls[0][0] as { user?: string }).user ?? "" : "");
+    expect(prompt).toContain("chamar a loja no WhatsApp");
+  });
+
+  it("a resposta com CTA volta para `triado` e RETOMA A PRODUÇÃO — não a triagem", async () => {
+    // Reabrir a triagem de um pedido já precificado e ACEITO poria um segundo
+    // orçamento na tela de quem já aprovou o primeiro.
+    const pedido = novoPedido({
+      status: "precisa_decisao", taskId: "task-1", projectId: "prj-1",
+      quoteStatus: "aceito", scopeDecision: "extra", quotedPrice: 79,
+      pendingQuestionJson: JSON.stringify({
+        pergunta: "O que você quer que a pessoa faça depois de ver a peça?",
+        opcoes: [{ id: "whatsapp", rotulo: "Chamar no WhatsApp", cta: "chamar a loja no WhatsApp" }],
+        abertaEm: new Date().toISOString(),
+      }),
+    });
+    db.contentRequest.findFirst.mockResolvedValue(pedido);
+
+    const r = await responderPergunta({ clientId: "cli-novo", pedidoId: pedido.id as string, opcaoId: "whatsapp" });
+
+    expect(r.ok).toBe(true);
+    // A escrita da RESPOSTA, e não a última do arquivo: `produzirPedido` roda
+    // logo depois e escreve por conta própria.
+    const escrito = db.contentRequest.update.mock.calls
+      .map((c) => c[0].data as Registro)
+      .find((d) => "confirmedCta" in d)!;
+    expect(escrito, "a resposta do cliente não foi gravada").toBeTruthy();
+    expect(escrito.confirmedCta).toBe("chamar a loja no WhatsApp");
+    expect(escrito.status, "voltar para `novo` reabriria preço e escopo de uma compra fechada").toBe("triado");
+    expect(escrito.pendingQuestionJson, "pergunta que sobrevive à resposta é a mesma pergunta duas vezes").toBeNull();
   });
 });
