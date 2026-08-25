@@ -83,7 +83,7 @@ const db = {
       id: "cli-novo", name: "Cantina da Prova", workspaceId: "ws-1", industry: "Alimentação",
       email: "contato@cantina.invalid", phone: null, brandBrain: null,
     })),
-    findUniqueOrThrow: vi.fn(() => Promise.resolve({
+    findUniqueOrThrow: vi.fn<() => Promise<Record<string, unknown>>>(() => Promise.resolve({
       id: "cli-novo", name: "Cantina da Prova", workspaceId: "ws-1", industry: "Alimentação",
       email: "contato@cantina.invalid", phone: null, brandBrain: null,
     })),
@@ -401,19 +401,51 @@ describe("a chamada para ação tem porta, e a resposta destrava a produção", 
     // ⚠️ E AGORA A METADE QUE FALTAVA: a porta.
     const porta = lerPergunta(pedido.pendingQuestionJson as string | null);
     expect(porta, "a parada do briefing mínimo continuava sendo um beco").not.toBeNull();
-    expect(porta!.opcoes.map((o) => o.rotulo)).toEqual([
-      "Chamar no WhatsApp", "Vir na loja", "Pedir pelo link da bio",
-      "Encomendar pelo direct", "É outra coisa — quero falar com a equipe",
-    ]);
     // Nenhuma opção padrão, nenhum texto livre: ação inventada manda o cliente
     // do cliente para um lugar que talvez não exista.
     expect(porta!.aceitaNumero).toBe(false);
-    // As quatro carregam o EFEITO; a quinta escala, com dono e próxima ação.
-    for (const o of porta!.opcoes.slice(0, 4)) expect(o.cta?.trim()).toBeTruthy();
-    const humana = porta!.opcoes[4]!;
+    expect(porta!.opcoes.map((o) => o.id)).toEqual(["whatsapp", "loja", "bio", "direct", "outra"]);
+
+    // ── E A PORTA SABE O QUE A CASA SUSTENTA (medido em produção) ─────────
+    //
+    // Este cliente NÃO tem telefone. O piso barra "chame no WhatsApp" como
+    // `canal_nao_informado`, e está certo. Então o WhatsApp não pode ser um
+    // botão que produz: ele ESCALA, e a casa pede o número — em vez de gastar
+    // uma produção inteira para descobrir que não o tem.
+    const zap = porta!.opcoes.find((o) => o.id === "whatsapp")!;
+    expect(zap.cta, "sem telefone na casa, este botão leva a peça direto para o piso").toBeUndefined();
+    expect(zap.escalar).toBe(true);
+    expect(zap.dono?.trim()).toBeTruthy();
+    expect(zap.proximaAcao?.trim()).toBeTruthy();
+
+    // O que a casa sustenta sozinha continua sendo botão que produz.
+    for (const id of ["loja", "bio", "direct"]) {
+      expect(porta!.opcoes.find((o) => o.id === id)!.cta?.trim(), id).toBeTruthy();
+    }
+    const humana = porta!.opcoes.find((o) => o.id === "outra")!;
     expect(humana.escalar).toBe(true);
     expect(humana.dono?.trim()).toBeTruthy();
     expect(humana.proximaAcao?.trim()).toBeTruthy();
+  });
+
+  it("com telefone na casa, o WhatsApp volta a ser botão que produz", async () => {
+    // A outra metade da derivação. Sem ela, "escala sempre" passaria no teste
+    // acima e a porta nunca produziria nada.
+    db.client.findUniqueOrThrow.mockResolvedValue({
+      id: "cli-novo", name: "Cantina da Prova", workspaceId: "ws-1", industry: "Alimentação",
+      email: "contato@cantina.invalid", phone: "(11) 98940-0692", brandBrain: null,
+    });
+    const pedido = novoPedido({
+      status: "triado", taskId: "task-1", projectId: "prj-1",
+      produtoId: "instagram_post_feed_v1",
+      quoteStatus: "aceito", scopeDecision: "extra", quotedPrice: 79,
+    });
+    const { produzirPedido } = await import("@/lib/agency/esteira/producao-de-pedido");
+    await produzirPedido(pedido.id as string);
+
+    const zap = lerPergunta(pedido.pendingQuestionJson as string | null)!.opcoes.find((o) => o.id === "whatsapp")!;
+    expect(zap.cta, "com telefone atestado, o piso aceita o canal — o botão tem de produzir").toBeTruthy();
+    expect(zap.escalar).toBeFalsy();
   });
 
   it("com a CTA gravada, a produção ATRAVESSA o portão — senão a porta dava no mesmo beco", async () => {

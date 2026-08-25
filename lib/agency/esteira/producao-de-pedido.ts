@@ -57,6 +57,7 @@ import { produtoCanonico, dimensaoExigida, type ProdutoCanonico } from "@/lib/ag
 import { entregarStoryInstagramV1, type PecaDoEspecialista } from "@/lib/agency/produtos/story-instagram-v1";
 import { conferirBriefingMinimo } from "@/lib/agency/produtos/briefing-minimo";
 import { contratoDoPedido } from "@/lib/agency/esteira/contrato-do-pedido";
+import type { OpcaoDaPergunta } from "@/lib/agency/esteira/porta-da-pergunta";
 
 /** Uma correção por freio. Se o modelo repetiu a violação COM o parecer e o
  *  texto anterior na frente, insistir só queima IA — e a peça não pode ir ao
@@ -368,7 +369,9 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     return await parar(
       pedidoId,
       briefing.pergunta,
-      soFaltaACta ? { pergunta: "O que você quer que a pessoa faça depois de ver a peça?", opcoes: PORTAS_DA_CHAMADA } : undefined,
+      soFaltaACta
+        ? { pergunta: "O que você quer que a pessoa faça depois de ver a peça?", opcoes: portasDaChamada(verdade) }
+        : undefined,
     );
   }
 
@@ -758,7 +761,7 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
 // ── auxiliares ──────────────────────────────────────────────────────────────
 
 /**
- * AS QUATRO CHAMADAS PARA AÇÃO QUE O PORTAL OFERECE — e a saída para gente.
+ * AS CHAMADAS PARA AÇÃO QUE O PORTAL OFERECE — derivadas do que a casa SUSTENTA.
  *
  * São exatamente as que o motivo do portão já cita em prosa
  * (`produtos/briefing-minimo.ts`): uma redação, dois lugares seria a segunda
@@ -768,22 +771,55 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
  * ⚠️ NÃO HÁ OPÇÃO PADRÃO e não há campo de texto livre. Ação inventada manda o
  * cliente do cliente para um lugar que talvez não exista — é o dano que este
  * portão nasceu para impedir, e ele não pode voltar pela porta da resposta.
+ *
+ * ⚠️ E A LISTA NÃO É FIXA — MEDIDO EM PRODUÇÃO, 26/08/2026. A primeira versão
+ * oferecia "Chamar no WhatsApp" a todo mundo. A cliente oculta clicou, a
+ * produção retomou (a porta funcionou) e o PISO DE VERDADE barrou a peça:
+ * aquele cliente não tinha telefone nem canal declarado, então "chame no
+ * WhatsApp" era `canal_nao_informado` — afirmação sem lastro. O piso estava
+ * CERTO; a porta é que oferecia um caminho que a casa não podia sustentar.
+ *
+ * Porta que leva a uma parada é meia porta. Onde o canal não tem lastro, a
+ * opção continua na tela — some seria esconder o que o cliente quer — mas
+ * escala com dono e próxima ação: a casa pede o número em vez de gastar uma
+ * produção inteira para descobrir que não o tem.
  */
-const PORTAS_DA_CHAMADA = {
-  opcoes: [
-    { id: "whatsapp", rotulo: "Chamar no WhatsApp", cta: "chamar a loja no WhatsApp" },
+function portasDaChamada(verdade: VerdadeDoCliente): OpcaoDaPergunta[] {
+  // ── O QUE A CASA CONSEGUE SUSTENTAR ──────────────────────────────────────
+  //
+  // Derivação, nunca invenção. O piso confere o CANAL contra o que o cliente
+  // contou (`piso-de-verdade.ts`, regra 5): sem telefone e sem canal declarado,
+  // "chame no WhatsApp" é `canal_nao_informado` — afirmação sem lastro.
+  const canais = new Set((verdade.operacao?.canais ?? []).map((c) => c.toLowerCase()));
+  const temTelefone = verdade.telefones.length > 0 || canais.has("whatsapp") || canais.has("telefone");
+  // A peça é para o Instagram por construção (é o produto). Direct e link da
+  // bio vivem DENTRO do próprio post: apontar para eles não afirma um canal
+  // externo que o cliente nunca declarou.
+  const instagramCabe = true;
+
+  const paraGente = (proximaAcao: string) => ({
+    escalar: true as const, dono: "a equipe de atendimento", proximaAcao,
+  });
+
+  return [
+    temTelefone
+      ? { id: "whatsapp", rotulo: "Chamar no WhatsApp", cta: "chamar a loja no WhatsApp" }
+      // ⚠️ NÃO É UM BOTÃO QUEBRADO, É A VERDADE: sem telefone seu na casa, uma
+      // peça que mandar chamar no WhatsApp é barrada pelo piso — e a resposta
+      // certa é pegar o número com você, não gastar uma produção para descobrir.
+      : { id: "whatsapp", rotulo: "Chamar no WhatsApp — preciso te passar o número",
+          ...paraGente("te pede o WhatsApp por aqui e retoma a produção com ele") },
     { id: "loja", rotulo: "Vir na loja", cta: "vir até a loja" },
-    { id: "bio", rotulo: "Pedir pelo link da bio", cta: "pedir pelo link da bio do perfil" },
-    { id: "direct", rotulo: "Encomendar pelo direct", cta: "encomendar pelo direct do Instagram" },
-    {
-      id: "outra",
-      rotulo: "É outra coisa — quero falar com a equipe",
-      escalar: true,
-      dono: "a equipe de atendimento",
-      proximaAcao: "te chama por aqui para anotar a ação certa e retomar a produção",
-    },
-  ],
-}.opcoes;
+    ...(instagramCabe
+      ? [
+          { id: "bio", rotulo: "Pedir pelo link da bio", cta: "pedir pelo link da bio do perfil" },
+          { id: "direct", rotulo: "Encomendar pelo direct", cta: "encomendar pelo direct do Instagram" },
+        ]
+      : []),
+    { id: "outra", rotulo: "É outra coisa — quero falar com a equipe",
+      ...paraGente("te chama por aqui para anotar a ação certa e retomar a produção") },
+  ];
+}
 
 /**
  * A INSTRUÇÃO DO PRODUTO, anexada ao prompt do especialista.
