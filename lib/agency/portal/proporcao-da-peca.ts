@@ -29,7 +29,7 @@
 
 /**
  * A proporção `largura / altura` de cada formato, na forma que o Tailwind
- * entende (`aspect-[9/16]`).
+ * entende (`aspect-[ 9/16 ]`).
  *
  * As chaves são os valores de `SocialPost.format`, que é o que o cartão recebe.
  */
@@ -48,6 +48,49 @@ const PROPORCAO_POR_FORMATO: Record<string, string> = {
 };
 
 /**
+ * ⚠️ A CLASSE É ESCRITA POR EXTENSO, E ISSO NÃO É REDUNDÂNCIA.
+ *
+ * ── O DEFEITO (medido pelo Auditor, 25/08/2026) ───────────────────────────
+ *
+ * A versão anterior montava a classe por interpolação:
+ *
+ *     return `aspect-[${PROPORCAO_POR_FORMATO[f] ?? "4/5"}]`;
+ *
+ * O scanner do Tailwind v4 NÃO executa código: ele varre o texto-fonte
+ * procurando candidatos a classe. `aspect-[${...}]` não é um candidato — logo
+ * a regra `aspect-[ 9/16 ]` só existia no CSS compilado porque a string aparecia
+ * POR ACIDENTE em outro lugar do repositório: um comentário JSDoc e um arquivo
+ * de teste. O Auditor apagou os dois, recompilou, e TODAS as regras
+ * `aspect-[ … ]` sumiram do CSS. A trava do cartão dependia de um comentário
+ * estar no disco — isso não é trava, é sorte.
+ *
+ * E `aspect-[ 1/1 ]` nunca chegou a existir: nenhuma string dessas aparecia em
+ * lugar nenhum, então a peça quadrada recebia uma classe sem efeito.
+ *
+ * ── A CORREÇÃO ────────────────────────────────────────────────────────────
+ *
+ * A classe COMPLETA é literal aqui. O scanner lê `aspect-[ 9/16 ]`,
+ * `aspect-[ 4/5 ]` e `aspect-[ 1/1 ]` como texto e emite as três regras. Nada
+ * depende mais de comentário nem de teste estar no disco.
+ *
+ * `__tests__/portal/o-cartao-nao-corta-o-story.test.tsx` COMPILA o CSS de
+ * verdade e confere que cada uma destas regras existe nele — atributo no HTML
+ * não prova regra no CSS.
+ */
+const CLASSE_POR_FORMATO: Record<string, string> = {
+  story: "aspect-[9/16]",
+  feed: "aspect-[4/5]",
+  carousel: "aspect-[4/5]",
+  carrossel: "aspect-[4/5]",
+  reel: "aspect-[9/16]",
+  quadrado: "aspect-[1/1]",
+  square: "aspect-[1/1]",
+};
+
+/** O padrão conservador, também literal pelo mesmo motivo. */
+const CLASSE_PADRAO = "aspect-[4/5]";
+
+/**
  * A classe de proporção para esta peça.
  *
  * Formato desconhecido cai em `4/5` — o vertical do feed, que é o volume da
@@ -56,8 +99,11 @@ const PROPORCAO_POR_FORMATO: Record<string, string> = {
  */
 export function proporcaoDaPeca(format: string | null | undefined): string {
   const f = (format ?? "").trim().toLowerCase();
-  return `aspect-[${PROPORCAO_POR_FORMATO[f] ?? "4/5"}]`;
+  return CLASSE_POR_FORMATO[f] ?? CLASSE_PADRAO;
 }
 
 /** A tabela crua, para o teste que a confere contra `FORMATOS`. */
 export const PROPORCOES_DECLARADAS = PROPORCAO_POR_FORMATO;
+
+/** As classes literais, para o teste que confere cada uma contra o CSS compilado. */
+export const CLASSES_DECLARADAS = CLASSE_POR_FORMATO;

@@ -179,7 +179,18 @@ export function conferirBriefingMinimo(
   }
 
   // 3. CHAMADA PARA AÇÃO.
-  if (!temChamadaParaAcao(`${entrada.oQueComunicar}`)) {
+  //
+  // ⚠️ Procurada nos DOIS campos, e isso foi um achado do Auditor (25/08/2026).
+  //
+  // A versão anterior olhava só `oQueComunicar`. Mas "para quê" e "o que a
+  // pessoa deve fazer" são a MESMA pergunta na cabeça de quem escreve: o
+  // cliente que preenche o objetivo com "quero que chamem no WhatsApp" JÁ
+  // respondeu a chamada para ação — e era barrado assim mesmo, com um pedido
+  // de informação que ele acabara de dar. Cobrar duas vezes o que já foi dito
+  // é a mesma falta de "não pedir de novo o material que já chegou".
+  //
+  // O campo onde a frase caiu é detalhe de formulário; a informação é a mesma.
+  if (!temChamadaParaAcao(`${entrada.oQueComunicar}\n${entrada.objetivo}`)) {
     faltas.push("chamada-para-acao");
     perguntas.push(
       "O QUE VOCÊ QUER QUE A PESSOA FAÇA depois de ver a peça? Pode ser em três palavras — " +

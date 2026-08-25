@@ -592,7 +592,11 @@ function corpoDoCardDeStory(
     "com a marca do cliente aplicada. O texto de cada peça foi conferido contra a área segura do Instagram " +
     "na hora de virar imagem: peça com texto sob a barra de progresso ou sob a caixa de resposta é reprovada " +
     "pelo rasterizador e não chega até aqui.",
-    "Veja cada peça acima e me diga: aprova, quer ajustar (conte o que mudar) ou recusa.",
+    // "acima" virou "abaixo" em 25/08/2026: o corpo do cartão passou a ser
+    // renderizado ANTES das peças (o aviso de "sem árbitro" mora nele e aviso
+    // depois de quatro imagens é aviso que ninguém lê). Texto que aponta para o
+    // lado errado manda o cliente procurar a peça onde ela não está.
+    "Veja cada peça abaixo e me diga: aprova, quer ajustar (conte o que mudar) ou recusa.",
     "",
     ...linhas,
   ].join("\n");

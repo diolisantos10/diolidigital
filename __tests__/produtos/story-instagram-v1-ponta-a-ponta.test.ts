@@ -274,6 +274,36 @@ const DEGRADACOES_ACEITAS_E_DECLARADAS = [
   "[sem logo]",
 ];
 
+/**
+ * O QUE ESTA SUÍTE NÃO MEDE — declarado, para não ser confundido com verde.
+ *
+ * Régua verde sobre o componente errado é pior que régua nenhuma. O corolário:
+ * um verde que não diz o que ficou de fora vira, na leitura de quem não
+ * construiu, uma promessa maior do que a que foi feita. Então fica escrito:
+ *
+ *  1. LOGO REAL — nenhum arquivo de logo oficial foi assinado numa peça; a
+ *     assinatura exercitada é o monograma. Dívida de prova.
+ *  2. REPERTÓRIO DE MARCA — o repertório criativo é código por marca e o
+ *     cliente fictício não tem um. A composição base foi a única exercitada.
+ *     Dívida de prova.
+ *  3. CONTRASTE SOBRE FUNDO FOTOGRÁFICO — o portão de contraste mede pares de
+ *     superfície CHAPADA. Na peça que saiu, o título é branco sobre foto de
+ *     alto ruído, e **ninguém mede esse par**. O portão não reprova porque não
+ *     olha para lá. Dívida de prova, e a de maior consequência visual das três.
+ *  4. PIXELS EM NAVEGADOR — a camada visual é medida por HTML renderizado
+ *     (`react-dom/server`) e por CSS compilado, nunca aplicando um ao outro e
+ *     medindo a caixa resultante. Legibilidade tipográfica também não é medida.
+ *  5. PUBLICAÇÃO META (fase H) — fora de escopo por ordem do plano. Nenhuma
+ *     conta real foi tocada.
+ */
+export const O_QUE_NAO_FOI_MEDIDO = [
+  "logo real do cliente numa peça",
+  "repertório de marca registrado",
+  "contraste de texto sobre fundo fotográfico de alto ruído",
+  "pixels e legibilidade em navegador real",
+  "publicação na Meta (fase 5)",
+];
+
 let workspaceId = "";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -898,9 +928,14 @@ describe("caso de falha — a corrente para com motivo, e nunca com falso entreg
 
     const r = await postPedido(req("/api/portal/pedidos", {
       token: c.token,
-      // O que comunicar e o objetivo estão lá. A CHAMADA PARA AÇÃO, não.
+      // O que comunicar e o objetivo estão lá. A CHAMADA PARA AÇÃO, não —
+      // e não está em NENHUM dos dois campos. Desde 25/08/2026 a régua procura
+      // a ação também no objetivo (achado 6.7 do Auditor), então o objetivo
+      // usado aqui não pode ser o do caso normal: `OBJETIVO_DO_CLIENTE` diz
+      // "conhecer o pão", e "conhecer" É uma chamada para ação. Um objetivo
+      // que só descreve intenção da marca é o que isola a falta de verdade.
       descricao: "Quero 4 stories verticais para o Instagram da padaria falando do pão de fermentação natural.",
-      objetivo: OBJETIVO_DO_CLIENTE,
+      objetivo: "aumentar a presença digital da padaria no bairro",
     }));
     const corpo = await r.json() as Record<string, unknown>;
     const pedidoId = (corpo.pedido as Record<string, unknown>).id as string;
@@ -1081,26 +1116,118 @@ describe("qualidade — reprovada não chega ao cliente como aprovada", () => {
 
       // ── 2. E NÃO COMO APROVAÇÃO (a metade que faltava) ─────────────────
       //
-      // A régua agora olha exatamente o que o cliente vê: o corpo do cartão
-      // que o portal renderiza. Se ele não disser, a peça chegou calada.
+      // ⚠️ O QUE FOI MEDIDO CONTRA MIM DE NOVO (Auditor, 25/08/2026) ────────
+      //
+      // A versão anterior desta metade afirmava sobre `card.reviewNote` — uma
+      // COLUNA DO BANCO — e escrevia no comentário "a régua agora olha
+      // exatamente o que o cliente vê". Não olhava. O componente do portal
+      // descartava o corpo inteiro quando o card tinha peças
+      // (`corpo = temPecas ? null : ...`), e o aviso, gravado e correto, nunca
+      // virava pixel. Régua verde sobre o componente errado — que é o pior
+      // defeito desta casa, porque MATA a dúvida e deixa o furo.
+      //
+      // Agora a régua tem duas pernas e nenhuma delas é a coluna:
+      //
+      //   a) o card sai pela PORTA REAL do portal (`GET /api/brain/portal-data`,
+      //      a mesma que o navegador do cliente chama, com o token do cliente);
+      //   b) o componente REAL (`AprovacoesDoCliente`) é MONTADO com esse card
+      //      e o que se afirma é o HTML que sai dele.
+      //
+      // Se o aviso não estiver na tela, este teste fica vermelho — mesmo com a
+      // coluna gravada certinho.
       expect(card, "a casa entrega mesmo sem árbitro — mas não pode entregar calada").toBeTruthy();
-      const oQueOClienteLe = card!.reviewNote ?? "";
+
+      const { GET: portalData } = await import("@/app/api/brain/portal-data/route");
+      const resposta = await portalData(
+        new NextRequest(`http://local/api/brain/portal-data?token=${c.token}`),
+      );
+      expect(resposta.status, "a porta real do portal responde").toBe(200);
+      const dados = await resposta.json();
+      const cardDoPortal = (dados.approvals ?? []).find((a: { id: string }) => a.id === card!.id);
+      expect(cardDoPortal, "o card do pedido chega ao portal do cliente").toBeTruthy();
       expect(
-        oQueOClienteLe,
-        "o cliente é chamado a aprovar uma peça que ninguém julgou e nada na tela dele diz isso",
+        cardDoPortal.pecas.length,
+        "e chega COM as peças — é justamente este caso que a tela descartava",
+      ).toBeGreaterThan(0);
+
+      // O componente de verdade, montado com o card de verdade. `createElement`
+      // e não JSX só porque este arquivo é `.ts`; é o mesmo componente que a
+      // página do portal renderiza, sem dublê e sem variante de teste.
+      const { createElement } = await import("react");
+      const { renderToStaticMarkup } = await import("react-dom/server");
+      const { AprovacoesDoCliente } = await import("@/components/portal/AprovacoesDoCliente");
+      const naTela = renderToStaticMarkup(
+        createElement(AprovacoesDoCliente, {
+          aprovacoes: [cardDoPortal],
+          token: c.token,
+          // `abertaId` = o card ABERTO: é a tela em que os botões Aprovar /
+          // Solicitar ajustes / Recusar aparecem. Se o aviso não estiver AQUI,
+          // ele não existe no momento em que o cliente decide.
+          abertaId: cardDoPortal.id,
+          onAbrir: () => {},
+          enviando: false,
+          erro: null,
+          onDecidir: async () => true,
+        }),
+      );
+
+      // Controle: a tela que estamos medindo é MESMO a tela de decisão.
+      expect(naTela, "esta é a tela em que o cliente aprova").toContain("Aprovar");
+
+      // A evidência que uma PESSOA pode abrir: o HTML que saiu do componente,
+      // com o card que veio da porta real. Produzida pela corrente, não à mão.
+      if (GUARDAR_EVIDENCIA) {
+        mkdirSync(PASTA_DE_EVIDENCIA, { recursive: true });
+        writeFileSync(`${PASTA_DE_EVIDENCIA}/tela-do-cliente-sem-arbitro.html`, naTela, "utf8");
+      }
+
+      const soTexto = naTela.replace(/<[^>]+>/g, " ");
+      expect(
+        soTexto,
+        "o cliente é chamado a aprovar uma peça que ninguém julgou e nada na TELA dele diz isso",
       ).toMatch(/NÃO PASSOU PELA NOSSA REVISÃO DE QUALIDADE/i);
-      expect(oQueOClienteLe, "e o aviso não pode se disfarçar de aprovação")
+      expect(soTexto, "e o aviso não pode se disfarçar de aprovação")
         .toMatch(/NÃO quer dizer que a peça está aprovada/i);
 
-      // ── 3. O AVISO VEM ANTES DAS PEÇAS ─────────────────────────────────
-      // Aviso depois de quatro blocos de peça é aviso que ninguém lê.
-      const posicaoDoAviso = oQueOClienteLe.indexOf("NÃO PASSOU PELA NOSSA REVISÃO");
-      const posicaoDaPrimeiraPeca = oQueOClienteLe.indexOf("**1.");
+      // ── 3. O AVISO VEM ANTES DA PEÇA, NO DOM ───────────────────────────
+      // Aviso depois de quatro imagens é aviso que ninguém lê. A ordem medida
+      // é a do HTML, não a de uma string do banco.
+      const posicaoDoAviso = naTela.search(/NÃO PASSOU PELA NOSSA REVISÃO/i);
+      const posicaoDaPrimeiraImagem = naTela.search(/<img[^>]+\/api\/media\//);
       expect(posicaoDoAviso).toBeGreaterThanOrEqual(0);
+      expect(posicaoDaPrimeiraImagem, "as peças estão na tela").toBeGreaterThanOrEqual(0);
       expect(
         posicaoDoAviso,
-        "conclusão primeiro: o cliente precisa ler o aviso ANTES de decidir",
-      ).toBeLessThan(posicaoDaPrimeiraPeca);
+        "conclusão primeiro: o cliente lê o aviso ANTES de ver a peça e decidir",
+      ).toBeLessThan(posicaoDaPrimeiraImagem);
+
+      // ── 4. A MUTAÇÃO QUE PROVA A RÉGUA ─────────────────────────────────
+      // O mesmo componente, o mesmo card, com o aviso removido do corpo: se a
+      // tela fosse cega ao aviso (o defeito de origem), os dois HTMLs seriam
+      // iguais. Eles não podem ser.
+      const semAviso = renderToStaticMarkup(
+        createElement(AprovacoesDoCliente, {
+          aprovacoes: [{
+            ...cardDoPortal,
+            reviewNote: String(cardDoPortal.reviewNote ?? "").replace(
+              /⚠️ ATENÇÃO[\s\S]*?revisar primeiro\./,
+              "",
+            ),
+          }],
+          token: c.token,
+          abertaId: cardDoPortal.id,
+          onAbrir: () => {},
+          enviando: false,
+          erro: null,
+          onDecidir: async () => true,
+        }),
+      );
+      expect(
+        semAviso,
+        "MUTAÇÃO: tirar o aviso do corpo TEM de mudar a tela — se não muda, a tela não lê o aviso",
+      ).not.toMatch(/NÃO PASSOU PELA NOSSA REVISÃO/i);
+      expect(semAviso.length, "e o resto da tela continua de pé").toBeGreaterThan(500);
+
     } finally {
       roteiro.juizResponde = true;
     }

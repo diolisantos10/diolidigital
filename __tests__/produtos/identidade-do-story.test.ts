@@ -262,7 +262,10 @@ describe("briefing mínimo — as três incondicionais, e as condicionais declar
   it("cada falta tem pergunta PRÓPRIA — solicitação acionável é a que se sabe responder", async () => {
     const { conferirBriefingMinimo } = await import("@/lib/agency/produtos/briefing-minimo");
     const semCta = conferirBriefingMinimo(INSTAGRAM_STORY_ESTATICO_V1, {
-      ...completo, oQueComunicar: "Quero 4 stories sobre o pão de fermentação natural da casa.",
+      // Nem no "o que comunicar" NEM no "para quê" — a régua olha os dois
+      // campos desde 25/08/2026 (ver o teste do achado 6.7 abaixo).
+      oQueComunicar: "Quero 4 stories sobre o pão de fermentação natural da casa.",
+      objetivo: "mostrar que a padaria existe no bairro",
     });
     expect(semCta.faltas).toEqual(["chamada-para-acao"]);
     expect(semCta.pergunta).toMatch(/O QUE VOCÊ QUER QUE A PESSOA FAÇA/);
@@ -272,6 +275,34 @@ describe("briefing mínimo — as três incondicionais, e as condicionais declar
     expect(semObjetivo.faltas).toEqual(["objetivo"]);
     expect(semObjetivo.pergunta).toMatch(/PARA QUÊ/);
     expect(semObjetivo.pergunta, "e NÃO cobra o que não falta").not.toMatch(/PESSOA FAÇA/);
+  });
+
+  it("a CHAMADA PARA AÇÃO vale escrita no OBJETIVO — não se cobra o que já foi dito", async () => {
+    // ── ACHADO 6.7 DO AUDITOR (25/08/2026) ────────────────────────────────
+    //
+    // A régua só procurava a chamada em `oQueComunicar`. Mas "para quê" e "o
+    // que a pessoa deve fazer" são a mesma pergunta na cabeça de quem escreve:
+    // o cliente que respondia "quero que chamem no WhatsApp" no campo de
+    // OBJETIVO era barrado e cobrado de novo pela informação que acabara de
+    // dar. O campo onde a frase caiu é detalhe de formulário.
+    const { conferirBriefingMinimo } = await import("@/lib/agency/produtos/briefing-minimo");
+    const ctaNoObjetivo = conferirBriefingMinimo(INSTAGRAM_STORY_ESTATICO_V1, {
+      oQueComunicar: "Quero 4 stories sobre o pão de fermentação natural da casa.",
+      objetivo: "quero que as pessoas chamem no WhatsApp para encomendar",
+    });
+    expect(
+      ctaNoObjetivo.faltas,
+      "a ação está escrita, no campo ao lado — cobrar de novo é fazer o cliente se repetir",
+    ).not.toContain("chamada-para-acao");
+    expect(ctaNoObjetivo.completo).toBe(true);
+
+    // E a régua não virou passe-livre: sem a ação em NENHUM dos dois campos,
+    // ela continua barrando.
+    const semAcaoEmLugarNenhum = conferirBriefingMinimo(INSTAGRAM_STORY_ESTATICO_V1, {
+      oQueComunicar: "Quero 4 stories sobre o pão de fermentação natural da casa.",
+      objetivo: "aumentar a presença digital da padaria",
+    });
+    expect(semAcaoEmLugarNenhum.faltas).toContain("chamada-para-acao");
   });
 
   it("os itens CONDICIONAIS do plano ficam DECLARADOS, com quem cuida deles", async () => {
