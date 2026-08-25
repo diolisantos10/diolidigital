@@ -32,6 +32,7 @@
 
 import { prisma } from "@/lib/db/client";
 
+import { AUTOR_DO_REGISTRO_DO_SDR } from "@/lib/agency/gerencia/voz-unica";
 /** Cuid não tem `:`. É o que garante que fio de sessão pública e id de cliente
  *  real vivem em espaços que nunca se encontram. */
 const PREFIXO_DE_SESSAO = "sdr:";
@@ -209,7 +210,7 @@ export async function registrarTurnoDoSdr(turno: TurnoDoSdr): Promise<number> {
 
   const doSdr = corpoGravavel(turno.doSdr ?? "");
   if (doSdr) {
-    linhas.push({ authorRole: "team", authorName: "SDR", body: doSdr });
+    linhas.push({ authorRole: "team", authorName: AUTOR_DO_REGISTRO_DO_SDR, body: doSdr });
   } else if (turno.motivoDaRecusa) {
     const explicacao = EXPLICACAO_DA_RECUSA[turno.motivoDaRecusa];
     // `escopoFoiSalvo` chega de `app/api/sdr/chat/route.ts` como `true`/`false`
@@ -242,7 +243,7 @@ export async function registrarTurnoDoSdr(turno: TurnoDoSdr): Promise<number> {
     const forma = turno.formaDaFalha ? ` — na forma: ${turno.formaDaFalha}` : "";
     linhas.push({
       authorRole: "team",
-      authorName: "SDR",
+      authorName: AUTOR_DO_REGISTRO_DO_SDR,
       body:
         `${PREFIXO_TURNO_BARRADO} ${turno.motivoDaRecusa}` +
         `${explicacao ? ` — ${explicacao}` : ""}` +
@@ -297,7 +298,7 @@ export async function falasDoSdrNoFio(sessionId: unknown, teto = 40): Promise<st
   const fio = fioDaConversa(sessionId);
   try {
     const linhas = await prisma.portalMessage.findMany({
-      where: { clientId: fio, authorRole: "team", authorName: "SDR" },
+      where: { clientId: fio, authorRole: "team", authorName: AUTOR_DO_REGISTRO_DO_SDR },
       orderBy: { createdAt: "asc" },
       take: teto,
       select: { body: true },

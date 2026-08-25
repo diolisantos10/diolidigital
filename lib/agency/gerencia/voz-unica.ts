@@ -24,16 +24,17 @@
 // FAZ: define a voz canônica num lugar só e RECUSA remetente que não seja o
 // Gerente Geral — a recusa é valor de retorno, não boa intenção escrita.
 //
-// NÃO FAZ (declarado, com dono): não reescreveu as 19 ocorrências. Duas
-// razões honestas — havia outra frente mexendo em `lib/agency/esteira/`,
-// `execution/` e no portal no mesmo dia, e reescrever à mão 19 chamadas de
-// `portalMessage.create` sem cliente oculto passando por cada uma delas
-// trocaria uma dívida declarada por um defeito silencioso. O que existe hoje
-// é o TETO: `__tests__/gerencia/voz-unica.test.ts` congela a lista exata dos
-// arquivos que ainda falam por conta própria. A dívida não pode crescer, e
-// arquivo novo que tente falar com o cliente por fora fica vermelho na CI.
+// ── A DÍVIDA FOI ZERADA (25/08/2026, mesma data, rodada seguinte) ───────────
 //
-// Ponto fraco declarado é dívida; silencioso é armadilha.
+// A versão anterior deste arquivo declarava a dívida e a CONGELAVA: 19
+// ocorrências em 14 arquivos continuavam escrevendo o nome da casa à mão, e a
+// catraca só impedia que crescesse. Agora a catraca é absoluta — **nenhum
+// arquivo fora deste escreve o nome da casa**, e a lista congelada está VAZIA.
+//
+// As 16 falas com o cliente passaram a importar `VOZ_DO_CLIENTE` daqui. As 3
+// restantes eram outra coisa, e são tratadas como outra coisa logo abaixo
+// (`AUTOR_DO_REGISTRO_DO_SDR`) — achatá-las na voz do cliente teria consertado
+// a catraca e quebrado o produto.
 
 import { GERENTE_GERAL, ehGerente } from "./cadeia";
 
@@ -48,11 +49,33 @@ export const VOZ_DO_CLIENTE = "Gerente de projeto";
 export const CARGO_DA_VOZ = GERENTE_GERAL;
 
 /**
- * As vozes que a casa ainda usa em paralelo, com o número exato de arquivos.
- * É uma CATRACA: o teste reprova quando a lista cresce. Migrar uma delas é
- * apagar a entrada aqui e ver o teste continuar verde.
+ * As vozes que a casa ainda usava em paralelo. **Vazia desde 25/08/2026** — e
+ * o teste reprova se voltar a ter item sem que a migração tenha acontecido.
  */
-export const VOZES_LEGADAS_A_MIGRAR: readonly string[] = ["Equipe Dioli", "SDR"];
+export const VOZES_LEGADAS_A_MIGRAR: readonly string[] = [];
+
+/**
+ * O AUTOR DO REGISTRO INTERNO DA CONVERSA COMERCIAL — e por que ele NÃO virou
+ * "Gerente de projeto".
+ *
+ * `lib/agency/comercial/registro-da-conversa.ts` grava `PortalMessage` com
+ * `authorName: "SDR"`, e é fácil confundir isso com uma fala ao cliente. Não é.
+ * Duas diferenças que decidem:
+ *
+ *   1. **A linha não vai ao portal de nenhum cliente.** O `clientId` dela é o
+ *      `fio` da sessão (`fioDaConversa(sessionId)`) — um identificador
+ *      sintético de conversa anônima na porta pública. Quem responde ao
+ *      visitante é a rota do chat; esta tabela é o DIÁRIO daquele atendimento.
+ *   2. **O nome é chave de leitura, não rótulo.** `falasDoSdrNoFio` busca
+ *      exatamente `authorName: "SDR"` para o SDR reler o que já perguntou.
+ *      Renomear o escritor sem migrar as linhas históricas cegaria o SDR para
+ *      o próprio passado — ele repetiria perguntas já feitas. Trocar o rótulo
+ *      no meio de uma conversa em curso conserta o código e quebra a pessoa.
+ *
+ * O que muda: o literal deixa de ser uma decisão tomada de novo em três
+ * lugares. Ele mora aqui, com o motivo, e quem o usa importa daqui.
+ */
+export const AUTOR_DO_REGISTRO_DO_SDR = "SDR";
 
 export interface MensagemAoCliente {
   clienteId: string;

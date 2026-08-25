@@ -21,6 +21,7 @@ import { generate } from "@/lib/ai/generate";
 import { computeEstimate } from "@/lib/agency/live-calculator";
 import { segredoConfere } from "@/lib/security/crypto";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // ⚠️ O PIOR DOS SEIS: com este segredo a rota roda SEM escopo de workspace —
   // apaga projeto de qualquer inquilino. Comparar com `===` deixava o segredo
@@ -232,7 +233,7 @@ Se estiver tudo certo, é só clicar em Aprovar aqui embaixo. Assim que você ap
 
     const msg = `📋 ${target.businessName}, sua proposta já está aqui no portal! Abre a aba "Aprovações", dá uma olhada com calma e, se gostar, é só aprovar. Qualquer dúvida ou ajuste, me chama por aqui. 💛`;
     await prisma.portalMessage.create({
-      data: { clientRequestId: target.id, authorRole: "team", authorName: "Equipe Dioli", body: msg, readByTeam: true },
+      data: { clientRequestId: target.id, authorRole: "team", authorName: VOZ_DO_CLIENTE, body: msg, readByTeam: true },
     });
     const approval = await createApprovalRequest({ clientRequestId: target.id, department: "proposal", requestedBy: "Agência", clientVisible: true });
     await prisma.approvalRequest.update({ where: { id: approval.id }, data: { reviewNote: proposalText } });

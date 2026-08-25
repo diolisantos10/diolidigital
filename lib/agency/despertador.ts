@@ -1037,6 +1037,28 @@ export async function baterORelogio(): Promise<{
     quebrou("gerente-geral", err);
   }
 
+  // ── A BATIDA DA V2, PENDURADA AQUI (25/08/2026) ───────────────────────────
+  //
+  // A perna acima faz a varredura do Gerente Geral e ENFILEIRA o aviso de
+  // atraso ao cliente no outbox. Quem tira o aviso da fila e o entrega é o
+  // processador do outbox, que vivia só dentro de `POST /api/cron/v2` — e essa
+  // rota **nunca teve um chamador**. Resultado medido: a casa gravava a
+  // intenção de avisar e nunca avisava. Coluna gravada não é cliente informado.
+  //
+  // Nenhum relógio novo nasceu: é a mesma batida de 5 em 5 minutos, com mais
+  // uma perna. `rodarGerenteGeral: false` porque a rodada já aconteceu logo
+  // acima — dois placares da mesma rodada mentiriam sobre quantas houve.
+  try {
+    const { baterORelogioDaV2 } = await import("@/lib/agency/v2-recovery/batida-da-v2");
+    const v2 = await baterORelogioDaV2(new Date(), { rodarGerenteGeral: false });
+    if (v2.outbox.enviados > 0 || v2.outbox.mortos > 0 || v2.ausencias.length > 0) {
+      log(`V2: outbox ${v2.outbox.enviados} enviado(s), ${v2.outbox.mortos} morto(s); ${v2.ausencias.length} relógio(s) ausente(s)`);
+    }
+    for (const r of v2.ausencias) quebrou("v2-batida", `relógio ausente: ${r.relogio}`);
+  } catch (err) {
+    quebrou("v2-batida", err);
+  }
+
   if (ligados > 0 || retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
     log(`rodada: ${ligados} projeto(s) ligado(s), ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
   }

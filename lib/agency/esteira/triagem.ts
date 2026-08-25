@@ -64,6 +64,7 @@ import { registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
 import { ID_STORY_V1, ID_POST_FEED_V1, produtoCanonico } from "@/lib/agency/produtos/registro";
 import { pediuStoryPorEscrito, pediuFeedPorEscrito } from "@/lib/agency/produtos/leitura-de-formato";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 /**
  * O que o cliente já anexou, dito ao modelo em uma linha.
  *
@@ -1429,7 +1430,7 @@ export async function avisarCliente(clientId: string, corpo: string): Promise<vo
         clientId: conversa.ancora.clientId,
         clientRequestId: conversa.ancora.clientRequestId,
         authorRole: "team",
-        authorName: "Equipe Dioli",
+        authorName: VOZ_DO_CLIENTE,
         body: corpo,
         readByTeam: true,
         readByClient: false,

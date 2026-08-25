@@ -57,6 +57,7 @@ import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pag
 import { refazerArteDoAjuste, type ArteDoAjuste } from "@/lib/agency/esteira/refazer-a-arte-do-ajuste";
 import { pecasDoEspecialista } from "@/lib/agency/esteira/producao-de-pedido";
 import { pecasApontadasPeloAjuste } from "@/lib/agency/esteira/mira-da-peca";
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 import {
   classificarParada,
   causaDasViolacoesDoPiso,
@@ -1043,7 +1044,7 @@ async function escreverNoPortal(ancora: AncoraDoPedido, corpo: string): Promise<
       data: {
         ...(ancora.clientRequestId ? { clientRequestId: ancora.clientRequestId } : {}),
         ...(ancora.clientId ? { clientId: ancora.clientId } : {}),
-        authorRole: "team", authorName: "Gerente de projeto", body: corpo, readByTeam: true,
+        authorRole: "team", authorName: VOZ_DO_CLIENTE, body: corpo, readByTeam: true,
       },
     });
     return true;

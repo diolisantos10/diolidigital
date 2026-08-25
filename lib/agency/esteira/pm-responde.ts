@@ -32,6 +32,7 @@
 import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 /** Teto por rodada. O relógio bate de 5 em 5 min; enxurrada nunca. */
 const MAX_POR_RODADA = 5;
 
@@ -219,7 +220,7 @@ async function responderUma(mensagem: Mensagem): Promise<"respondida" | "sem-ia"
         clientId: mensagem.clientId,
         clientRequestId: mensagem.clientRequestId,
         authorRole: "team",
-        authorName: "Gerente de projeto",
+        authorName: VOZ_DO_CLIENTE,
         body: texto,
         readByTeam: true,
       },
