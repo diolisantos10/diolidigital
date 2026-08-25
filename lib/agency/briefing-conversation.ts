@@ -180,6 +180,10 @@ export interface EstimateItem {
 export type EstimateConfidence = "none" | "low" | "medium" | "high";
 
 export interface LiveEstimate {
+  /** O que o cliente disse que veio buscar, nas palavras dele. Viaja com o
+   *  número para que a proposta cite o motivo do projeto — ver o caso do
+   *  Clube Farol 27 em `live-calculator.computeEstimate`. */
+  objetivos?: string[];
   items: EstimateItem[];
   totalMin: number;
   totalMax: number;

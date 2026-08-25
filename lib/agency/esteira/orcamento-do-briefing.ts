@@ -177,6 +177,8 @@ export type ResultadoDoOrcamento = {
 };
 
 export type EstimativaGuardada = {
+  /** O que o cliente veio buscar, nas palavras dele. Ver o Clube Farol 27. */
+  objetivos?: string[];
   totalMin?: number;
   totalMax?: number;
   items?: { label?: string; detail?: string; unit?: string }[];
@@ -510,6 +512,25 @@ export function textoDoOrcamento(negocio: string, e: EstimativaGuardada, linkDaP
   const linhas: string[] = [];
 
   linhas.push(`Recebemos seu briefing${negocio ? ` da ${negocio}` : ""} — obrigado pelo material.`);
+
+  // ── O MOTIVO DO PROJETO, NA SEGUNDA LINHA (25/08/2026) ────────────────────
+  // Medido no Farol 27: o projeto inteiro existia para lançar o Clube Farol 27
+  // e a proposta não citava o clube uma vez sequer. Quem lê procura o próprio
+  // objetivo antes do preço; não achando, entende que recebeu um pacote de
+  // prateleira — e a peça comercial falhou antes do número.
+  //
+  // Vem GRAVADO com a estimativa (`computeEstimate`), e não reescrito aqui:
+  // são as palavras do cliente, não uma paráfrase da casa.
+  const objetivos = (e.objetivos ?? []).filter((o) => typeof o === "string" && o.trim());
+  if (objetivos.length > 0) {
+    linhas.push("");
+    linhas.push(
+      objetivos.length === 1
+        ? `Entendemos que o que você quer é: ${objetivos[0]!.trim()}. É para isso que esta proposta foi montada.`
+        : `Entendemos que o que você quer é: ${objetivos.map((o) => o.trim()).join("; ")}. É para isso que esta proposta foi montada.`,
+    );
+  }
+
   linhas.push("");
 
   const min = e.totalMin ?? 0;
