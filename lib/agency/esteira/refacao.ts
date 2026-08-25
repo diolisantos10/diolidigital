@@ -49,7 +49,7 @@ import { lerProibicoes, registrarProibicoes } from "@/lib/agency/esteira/proibic
 import { STATUS_DA_PECA_RECUSADA } from "@/lib/agency/portal/decisoes-do-portal";
 import {
   auditDeliverable, revisionStatusDoVeredito, arbitragemDoVeredito, type Arbitragem,
-  foiAprovadaPelaQualidade, foiReprovadaPelaQualidade,
+  foiAprovadaPelaQualidade, foiReprovadaPelaQualidade, camposDaDecisaoHumana,
 } from "@/lib/agency/execution/quality-auditor";
 import { entregaMostradaPorDepartamento } from "@/lib/agency/esteira/pacote";
 import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pagamento";
@@ -985,7 +985,18 @@ export async function recusarPorPedidoDoCliente(input: {
       await prisma.deliverable.update({
         where: { id: alvo.id },
         data: {
-          revisionStatus: REVISION_STATUS_DA_RECUSA,
+          // ── QUEM DISSE NÃO TEM NOME ────────────────────────────────────
+          // `revisionStatus` é veredito, e veredito sem árbitro gravado é o
+          // defeito do Farol 27: valor medido e não persistido é o mesmo que
+          // não medido. Aqui quem julgou não é IA — é o CLIENTE, pela tela do
+          // portal, autenticado por token. Por isso `camposDaDecisaoHumana`
+          // (arbitragem `decisao_humana`) e não `camposDaQualidade`: dizer
+          // "árbitro independente" numa recusa de cliente seria mentir sobre a
+          // origem do veredito. O nome vem do dono do card, nunca inventado.
+          ...camposDaDecisaoHumana(
+            REVISION_STATUS_DA_RECUSA,
+            `cliente:${clientId ?? clientRequestId ?? "desconhecido"}`,
+          ),
           clientFeedback: comentario.slice(0, 2000),
         },
       }).catch(() => { /* rastro */ });
