@@ -360,6 +360,44 @@ const DEGRADACOES_ACEITAS_E_DECLARADAS = [
  *     última"). Cliente que aponta a peça pelo ASSUNTO ("aquela do forno")
  *     não é entendido, e aí a casa refaz o conjunto — caro, mas atende. Não
  *     medido: mira por descrição.
+ *
+ * ══ ACRESCENTADOS NA 6ª AUDITORIA (25/08/2026) ═══════════════════════════════
+ *
+ * O Auditor conferiu este registro item a item e nada tinha sumido caladamente.
+ * Mas ele achou DOIS pontos fracos que pertenciam aqui e não estavam. Ponto
+ * fraco declarado é dívida; ponto fraco SILENCIOSO é armadilha.
+ *
+ *  7. O NÚMERO DO CONTRASTE VALE PARA O DUBLÊ, NÃO PARA TODA FOTO.
+ *     Os 3,20–3,74:1 do item 3 foram medidos sobre a foto que `generateDesign`
+ *     produz AQUI: ruído de sha256 ampliado, cuja média cai perto do cinza
+ *     médio. Fundo claro de verdade — céu estourado, parede branca, prato sob
+ *     luz dura — é o caso adversarial que este dublê NÃO representa.
+ *     O Auditor estendeu por conta própria, trocou o dublê por uma foto clara e
+ *     o piso continuou de pé; isso é notícia boa e não é a mesma coisa que uma
+ *     régua permanente. O que esta suíte prova é: **o piso segura para a foto
+ *     deste dublê.** A cobertura por famílias de fundo (claro, escuro, saturado)
+ *     não existe.
+ *
+ *  8. O 409 DO CARD É LER-DEPOIS-ESCREVER, NÃO COMPARE-AND-SET.
+ *     `/api/portal/approvals` lê `approval.status !== "pending"` e só depois
+ *     escreve. Duas requisições verdadeiramente SIMULTÂNEAS passam as duas,
+ *     e como `updateApprovalStatus` grava `reviewedAt: new Date()` sem guarda
+ *     de estado, elas carimbam dois instantes, produzem duas chaves de
+ *     idempotência e deixam DOIS rastros canônicos para uma decisão.
+ *     O dano é ruído de auditoria: as duas escrevem a MESMA decisão, então o
+ *     card, as peças e a resposta ao cliente ficam corretos. Fechar de verdade
+ *     é um `updateMany({ where: { id, status: "pending" } })` em
+ *     `updateApprovalStatus`, que atravessa todos os chamadores dela — fora do
+ *     escopo desta operação, e por isso declarado aqui em vez de escondido num
+ *     comentário que jurava uma garantia que a chave não dá.
+ *     NÃO MEDIDO: a corrida em si. O achado é por leitura do código.
+ *
+ *  9. A FIAÇÃO DA PARADA DECLARADA (item 1 da 6ª auditoria) FOI PAGA, com a
+ *     ressalva do banco. `__tests__/portal/aprovacao-cliente-direto.test.ts`
+ *     agora atravessa rota real → promoção real → declaração real e reprova a
+ *     mutação exata que o Auditor usou (trocar a chamada por `console.error`).
+ *     O que continua dublado ali é o PRISMA: o teste mede as ESCRITAS pedidas,
+ *     não as linhas gravadas. O e2e desta suíte é quem toca banco de verdade.
  */
 export const O_QUE_NAO_FOI_MEDIDO = [
   "logo real do cliente numa peça",
@@ -370,6 +408,9 @@ export const O_QUE_NAO_FOI_MEDIDO = [
   "pixels e legibilidade em navegador real",
   "publicação na Meta (fase 5)",
   "mira do ajuste por descrição do assunto (só ordinal explícito é lido)",
+  // ── Acrescentados na 6ª auditoria (ver itens 7 e 8 acima) ──────────────────
+  "contraste do título sobre FAMÍLIAS de fundo (o número medido vale para a foto do dublê: ruído de sha256, média perto do cinza médio)",
+  "a corrida real de duas decisões simultâneas no mesmo card (o 409 é ler-depois-escrever; o resíduo é rastro canônico duplicado)",
 ];
 
 let workspaceId = "";

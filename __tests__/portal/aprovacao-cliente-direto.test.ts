@@ -24,6 +24,7 @@ const db = vi.hoisted(() => ({
   deliverable: { findMany: vi.fn() },
   materialRequest: { create: vi.fn() },
   portalMessage: { create: vi.fn() },
+  activityEvent: { create: vi.fn() },
   mediaAsset: { findUnique: vi.fn() },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
@@ -104,6 +105,8 @@ beforeEach(() => {
   requireSession.mockResolvedValue(SESSAO_MASTER);
   db.socialPost.findMany.mockResolvedValue(SEIS_POSTS);
   db.socialPost.updateMany.mockResolvedValue({ count: 6 });
+  db.activityEvent.create.mockResolvedValue({});
+  db.portalMessage.create.mockResolvedValue({});
   db.socialPost.update.mockResolvedValue({});
   db.socialPost.findFirst.mockResolvedValue(null);
   db.approvalRequest.findMany.mockResolvedValue([]);
@@ -363,5 +366,89 @@ describe("mídia sem credencial no DOM (modo cookie)", () => {
     });
     const res = await servirMidia(req, { params: Promise.resolve({ id: "m1" }) });
     expect(res.status).toBe(404);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A FIAÇÃO DA PARADA DECLARADA — item 1 da 6ª auditoria
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// O achado, e ele é da classe que pegou esta operação cinco vezes: o Auditor
+// devolveu o `console.error` no lugar da chamada a
+// `declararPecasAprovadasQueNaoEntraramNaFila` em `/api/portal/approvals` e
+// rodou a suíte inteira — 419 arquivos, VERDE. Os únicos testes que tocavam a
+// função a chamavam DIRETO.
+//
+// Ou seja: a peça funcionava e a régua mirava o COMPONENTE, nunca o FIO. O
+// mecanismo mais caro da rodada — a parada declarada, o bloqueio do item F —
+// podia ser apagado sem uma única régua ficar vermelha. Verde que some em
+// silêncio é pior que régua nenhuma: a régua nenhuma deixa a dúvida viva.
+//
+// Este bloco atravessa o fio inteiro pela porta do cliente: a ROTA real chama
+// a promoção REAL (`agendarPecasAprovadas`), que devolve `ignorados`, que
+// chega à declaração REAL, que escreve nos TRÊS destinatários. Nada aqui é
+// dublê a não ser o banco. Apague a chamada na rota e os três caem juntos.
+
+describe("a fiação da parada declarada — o clique do cliente chega aos três destinatários", () => {
+  /** As seis peças do card PRESAS: aprovadas pelo cliente e num estado que
+   *  `ESTADOS_PROMOVIVEIS` não aceita. É o caso do item F, medido de ponta a
+   *  ponta e não montado na mão. */
+  function seisPecasPresas() {
+    db.socialPost.findMany.mockResolvedValue(
+      SEIS_POSTS.map((p) => ({ ...p, workspaceId: "ws1", status: "revision_requested" })),
+    );
+  }
+
+  it("aprovar peça presa → aviso NA PEÇA, ActivityEvent do PM e PortalMessage do cliente", async () => {
+    seisPecasPresas();
+    const res = await decidir(reqDecisao({ action: "approve" }));
+
+    // A decisão do cliente vale, sempre: a declaração é best-effort e nunca
+    // derruba o 200 de quem acabou de aprovar.
+    expect(res.status).toBe(200);
+
+    // 1. A PEÇA fala — é o que vira PIXEL na tela de decisão.
+    expect(db.socialPost.updateMany).toHaveBeenCalledTimes(1);
+    const aviso = db.socialPost.updateMany.mock.calls[0]![0];
+    expect(aviso.where.id.in).toEqual(SEIS_IDS);
+    expect(aviso.data.avisoAoCliente).toContain("NÃO ENTROU NA FILA");
+    // Motivo, dono e próxima ação — as três palavras do critério F.
+    expect(aviso.data.avisoAoCliente).toContain("Quem está com isso");
+    expect(aviso.data.avisoAoCliente).toContain("Próxima ação");
+
+    // 2. O PM recebe, no workspace das peças.
+    expect(db.activityEvent.create).toHaveBeenCalledTimes(1);
+    const aoPm = db.activityEvent.create.mock.calls[0]![0].data;
+    expect(aoPm.workspaceId).toBe("ws1");
+    expect(aoPm.type).toBe("peca_aprovada_nao_agendada");
+    expect(aoPm.message).toContain("6 peça(s) APROVADAS");
+    expect(aoPm.message).toContain("Próxima ação");
+
+    // 3. O CLIENTE recebe na conversa, na língua dele.
+    expect(db.portalMessage.create).toHaveBeenCalledTimes(1);
+    const aoCliente = db.portalMessage.create.mock.calls[0]![0].data;
+    expect(aoCliente.clientId).toBe("cli-foocci");
+    expect(aoCliente.body).toContain("não entrou na fila de entrega");
+    expect(aoCliente.body).toContain("não precisa aprovar de novo");
+  });
+
+  it("caso normal — NADA disso acontece: alarme sem parada mata o alarme verdadeiro", async () => {
+    // As seis promovem normalmente. Sem esta metade, a régua acima ficaria
+    // verde para um código que declara parada em toda aprovação.
+    const res = await decidir(reqDecisao({ action: "approve" }));
+    expect(res.status).toBe(200);
+    expect(db.socialPost.updateMany).not.toHaveBeenCalled();
+    expect(db.activityEvent.create).not.toHaveBeenCalled();
+    expect(db.portalMessage.create).not.toHaveBeenCalled();
+  });
+
+  it("peça JÁ na fila não vira alarme — `scheduled` em `ignorados` é sucesso, não parada", async () => {
+    db.socialPost.findMany.mockResolvedValue(
+      SEIS_POSTS.map((p) => ({ ...p, workspaceId: "ws1", status: "scheduled" })),
+    );
+    const res = await decidir(reqDecisao({ action: "approve" }));
+    expect(res.status).toBe(200);
+    expect(db.activityEvent.create).not.toHaveBeenCalled();
+    expect(db.portalMessage.create).not.toHaveBeenCalled();
   });
 });

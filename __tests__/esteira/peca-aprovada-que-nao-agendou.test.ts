@@ -35,6 +35,8 @@ import { declararPecasAprovadasQueNaoEntraramNaFila } from "@/lib/agency/esteira
 let workspaceId = "";
 let clientId = "";
 let clientRequestId = "";
+let outroWorkspaceId = "";
+let outroClientId = "";
 
 async function peca(status: string): Promise<string> {
   const p = await prisma.socialPost.create({
@@ -61,6 +63,13 @@ beforeAll(async () => {
     },
   });
   clientRequestId = r.id;
+
+  // A SEGUNDA CASA — para o item 4 da 6ª auditoria. Existe só para provar que
+  // a parada de cada workspace é arquivada NO workspace dela.
+  const ws2 = await prisma.agencyWorkspace.create({ data: { name: "Outra Agência", slug: `parada2-${Date.now()}` } });
+  outroWorkspaceId = ws2.id;
+  const c2 = await prisma.client.create({ data: { workspaceId: outroWorkspaceId, name: "Bar Preso" } });
+  outroClientId = c2.id;
 });
 
 beforeEach(async () => {
@@ -135,5 +144,62 @@ describe("trabalho pago e aprovado que a fila não lê não some em silêncio", 
     });
     expect(r.presas).toBe(0);
     expect(await prisma.activityEvent.count()).toBe(0);
+  });
+
+  // ── ITEM 4 DA 6ª AUDITORIA: O PM DE CADA CASA ─────────────────────────────
+  //
+  // O achado: isto era `donoDaPeca(alvos[0]!)` — UM `ActivityEvent`, no
+  // workspace da PRIMEIRA peça da lista, com o texto falando de TODAS. Peça
+  // presa de outro workspace tinha a parada arquivada no lugar errado: visível
+  // para quem não pode agir, invisível para quem pode. E o `ActivityEvent` é o
+  // único canal do PM — perdido ali, perdido de vez.
+  it("peças presas de workspaces DIFERENTES avisam cada PM na casa dele", async () => {
+    const daCasa = await peca("revision_requested");
+    const daOutraCasa = (await prisma.socialPost.create({
+      data: {
+        workspaceId: outroWorkspaceId, clientId: outroClientId,
+        format: "story", status: "rejected", caption: "peça da outra casa",
+      },
+    })).id;
+
+    const r = await declararPecasAprovadasQueNaoEntraramNaFila({
+      ignorados: [
+        { postId: daCasa, status: "revision_requested" },
+        { postId: daOutraCasa, status: "rejected" },
+      ],
+      // O clientId do CARD é o da primeira casa — de propósito: é assim que a
+      // rota do portal chama, e é o caso em que o id do cliente pode vazar
+      // para o evento da casa vizinha.
+      clientId, clientRequestId,
+    });
+    expect(r.presas).toBe(2);
+
+    const eventos = await prisma.activityEvent.findMany({ where: { type: "peca_aprovada_nao_agendada" } });
+    expect(eventos.length, "um aviso por CASA, não um aviso na casa da primeira peça").toBe(2);
+
+    const daPrimeira = eventos.find((e) => e.workspaceId === workspaceId);
+    const daSegunda = eventos.find((e) => e.workspaceId === outroWorkspaceId);
+    expect(daSegunda, "a parada da outra casa não pode ficar arquivada na primeira").toBeTruthy();
+
+    // Cada aviso fala das peças DELE, com a contagem DELE. Um aviso que
+    // enumera a peça do vizinho é um vazamento entre workspaces, e a contagem
+    // errada faz o PM procurar um trabalho preso que não é dele.
+    expect(daPrimeira!.message).toContain(daCasa);
+    expect(daPrimeira!.message).not.toContain(daOutraCasa);
+    expect(daPrimeira!.message).toContain("1 peça(s) APROVADAS");
+    expect(daSegunda!.message).toContain(daOutraCasa);
+    expect(daSegunda!.message).not.toContain(daCasa);
+    expect(daSegunda!.message, "e diz o estado real em que ELA travou").toMatch(/RECUSADA/);
+
+    // E o id de cliente de cada evento é o da CASA dele: o cliente do card não
+    // é plantado no registro do workspace vizinho.
+    expect(daPrimeira!.clientId).toBe(clientId);
+    expect(daSegunda!.clientId, "cliente de uma casa não entra no registro da outra").toBe(outroClientId);
+
+    // As duas peças continuam falando com o cliente, cada uma na sua tela.
+    for (const id of [daCasa, daOutraCasa]) {
+      const p = await prisma.socialPost.findUniqueOrThrow({ where: { id } });
+      expect(p.avisoAoCliente).toMatch(/não entrou na fila de entrega/i);
+    }
   });
 });

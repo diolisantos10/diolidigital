@@ -108,28 +108,57 @@ export async function declararPecasAprovadasQueNaoEntraramNaFila(entrada: {
   }).catch(() => { /* best-effort declarado: os outros dois registros seguem */ });
 
   // ── 2. O PM RECEBE MOTIVO, DONO E PRÓXIMA AÇÃO ───────────────────────
-  const aoPm =
-    `${presas.length} peça(s) APROVADAS pelo cliente não entraram na fila de entrega: ` +
-    presas.map((p) => `${p.postId} (${oQueEsseEstadoQuerDizer(p.status)})`).join(" · ") + ". " +
-    "Isto é trabalho pago e aprovado que o relógio não lê. " +
-    "Dono: a agência (produção). " +
-    "Próxima ação: colocar cada peça num estado que a fila aceita (rascunho ou aprovada) e reagendar — " +
-    "NÃO pedir ao cliente que aprove de novo, ele já aprovou.";
+  //
+  // ── UM AVISO POR WORKSPACE, E NÃO O DA PRIMEIRA PEÇA (6ª auditoria) ──────
+  //
+  // Isto era `donoDaPeca(alvos[0]!)`: o `ActivityEvent` ia inteiro para o
+  // workspace da PRIMEIRA peça da lista, com o texto falando de todas. Quando
+  // as peças presas eram de workspaces diferentes, a parada das outras ficava
+  // ARQUIVADA NO LUGAR ERRADO — visível para quem não pode agir e invisível
+  // para quem pode. E o `ActivityEvent` é o único canal do PM: perdido ali,
+  // perdido de vez.
+  //
+  // Um card misturar workspaces não é o caminho comum (a rota filtra por
+  // `clientId` do card), mas "não é comum" não é "não acontece", e o preço do
+  // silêncio aqui é trabalho pago que ninguém procura. Cada workspace recebe o
+  // aviso das peças DELE, com a contagem DELE.
+  const aoPm = textoAoPm(presas);
 
-  const dono = await donoDaPeca(alvos[0]!);
-  if (dono.workspaceId) {
+  const donos = await donosDasPecas(alvos);
+  const porWorkspace = new Map<string, typeof presas>();
+  const semDestinatario: typeof presas = [];
+  for (const p of presas) {
+    const ws = donos.get(p.postId)?.workspaceId ?? null;
+    if (!ws) { semDestinatario.push(p); continue; }
+    const lista = porWorkspace.get(ws) ?? [];
+    lista.push(p);
+    porWorkspace.set(ws, lista);
+  }
+
+  for (const [ws, doWorkspace] of porWorkspace) {
     await prisma.activityEvent.create({
       data: {
-        workspaceId: dono.workspaceId,
-        clientId: entrada.clientId ?? dono.clientId,
+        workspaceId: ws,
+        // O cliente da PEÇA vem primeiro, e o do card é só o fallback: num
+        // card que atravessa workspaces, carimbar o clientId do card no
+        // evento do OUTRO workspace planta um id de cliente que não mora lá.
+        // No caminho comum os dois são o mesmo valor (a rota filtra as peças
+        // pelo clientId do card), então isto não muda nada onde nada precisa
+        // mudar.
+        clientId: donos.get(doWorkspace[0]!.postId)?.clientId ?? entrada.clientId ?? null,
         type: "peca_aprovada_nao_agendada",
-        message: aoPm.slice(0, 900),
+        message: textoAoPm(doWorkspace).slice(0, 900),
       },
     }).catch(() => { /* best-effort declarado */ });
-  } else {
+  }
+
+  if (semDestinatario.length > 0) {
     // Sem workspace o `ActivityEvent` nem existe no modelo. O log é o último
     // recurso — e ele GRITA, porque acabou de ficar sem destinatário.
-    console.error("[esteira] PEÇA APROVADA PRESA E SEM DESTINATÁRIO (sem workspace):", aoPm);
+    console.error(
+      "[esteira] PEÇA APROVADA PRESA E SEM DESTINATÁRIO (sem workspace):",
+      textoAoPm(semDestinatario),
+    );
   }
 
   // ── 3. O CLIENTE É AVISADO NA CONVERSA, ALÉM DA PEÇA ─────────────────
@@ -153,9 +182,31 @@ export async function declararPecasAprovadasQueNaoEntraramNaFila(entrada: {
   return { presas: presas.length, aoPm, aoCliente };
 }
 
-async function donoDaPeca(postId: string): Promise<{ workspaceId: string | null; clientId: string | null }> {
-  const p = await prisma.socialPost
-    .findUnique({ where: { id: postId }, select: { workspaceId: true, clientId: true } })
-    .catch(() => null);
-  return { workspaceId: p?.workspaceId ?? null, clientId: p?.clientId ?? null };
+/** O texto do PM para um conjunto de peças presas — motivo, dono e próxima ação.
+ *  Uma função só porque o aviso por workspace e o log sem destinatário precisam
+ *  dizer a MESMA coisa sobre conjuntos DIFERENTES: duas cópias divergiriam no
+ *  primeiro ajuste de frase, e a contagem de uma passaria a mentir sobre a
+ *  lista da outra. */
+function textoAoPm(presas: Array<{ postId: string; status: string }>): string {
+  return (
+    `${presas.length} peça(s) APROVADAS pelo cliente não entraram na fila de entrega: ` +
+    presas.map((p) => `${p.postId} (${oQueEsseEstadoQuerDizer(p.status)})`).join(" · ") + ". " +
+    "Isto é trabalho pago e aprovado que o relógio não lê. " +
+    "Dono: a agência (produção). " +
+    "Próxima ação: colocar cada peça num estado que a fila aceita (rascunho ou aprovada) e reagendar — " +
+    "NÃO pedir ao cliente que aprove de novo, ele já aprovou."
+  );
+}
+
+/** Onde cada peça mora. UMA consulta para todas: o dono não pode custar uma
+ *  ida ao banco por peça num caminho que roda dentro do clique do cliente. */
+async function donosDasPecas(
+  postIds: string[],
+): Promise<Map<string, { workspaceId: string | null; clientId: string | null }>> {
+  const linhas = await prisma.socialPost
+    .findMany({ where: { id: { in: postIds } }, select: { id: true, workspaceId: true, clientId: true } })
+    .catch(() => [] as Array<{ id: string; workspaceId: string | null; clientId: string | null }>);
+  return new Map(
+    linhas.map((l) => [l.id, { workspaceId: l.workspaceId ?? null, clientId: l.clientId ?? null }]),
+  );
 }

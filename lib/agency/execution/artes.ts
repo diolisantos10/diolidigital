@@ -814,8 +814,41 @@ function abrirOrcamentoDoDia(): OrcamentoDeImagens {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// `SocialPost.lastError` — O CAMPO COMPARTILHADO, DECLARADO (6ª auditoria)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O achado: `[titulo ilegivel]` passou a ser gravado no MESMO campo que
+// `contarTentativas` interpreta. É inofensivo HOJE — o contador exige o
+// prefixo `^[arte N/` e a marca de legibilidade nunca abre a linha — mas o
+// campo já acumulou significados sem ninguém declarar quais são, e "inofensivo
+// hoje" é exatamente o estado em que o terceiro escritor entra sem saber que
+// existe um leitor.
+//
+// Então fica dito, aqui, ao lado de quem lê:
+//
+//   ESCREVEM em `lastError`
+//     1. o laço de arte, com o contador de tentativas no INÍCIO da linha:
+//        `[arte N/MAX] <motivo>` — ver `marcarErro`;
+//     2. `comporComMolde`, com notas de degradação da peça, entre elas
+//        `MARCA_DE_TITULO_ILEGIVEL` e `[molde] …` — NUNCA no início da linha
+//        quando há contador, e nunca com o formato `[arte …`.
+//
+//   LEEM `lastError`
+//     a. `contarTentativas` (aqui) — só o PREFIXO `^[arte N/`. Qualquer outra
+//        coisa no campo vale zero, de propósito;
+//     b. `tituloSaiuIlegivel` — procura a marca em QUALQUER posição;
+//     c. `pecaSaiuSemTitulo` — as notas `[molde] …` da degradação;
+//     d. o time, com os olhos.
+//
+// A REGRA QUE MANTÉM ISSO DE PÉ: **o contador é um PREFIXO exclusivo.** Quem
+// acrescentar um significado novo a este campo escreve DEPOIS do início da
+// linha e com marcador próprio — nunca com o formato `[arte …`. A régua que
+// prende esta regra é `__tests__/execution/o-campo-de-um-significado-so.test.ts`.
+
 /** Quantas vezes esta peça já falhou. O contador mora no próprio `lastError`
- *  para não inventar mais uma coluna que um dia diverge do que aconteceu. */
+ *  para não inventar mais uma coluna que um dia diverge do que aconteceu —
+ *  ver a declaração do campo compartilhado logo acima. */
 export function contarTentativas(lastError: string | null): number {
   const m = lastError?.match(/^\[arte (\d+)\//);
   return m ? Number(m[1]) : 0;

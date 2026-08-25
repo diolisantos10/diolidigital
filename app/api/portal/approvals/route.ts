@@ -227,10 +227,34 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // não pode cobrar um preço do cliente. Aqui não há consulta: o dado já
     // está na mão.
     //
-    // E o duplo-clique não chega até aqui de qualquer forma — a rota devolve
-    // 409 para card que não está `pending` (bloco acima), e é lá que a
-    // idempotência do clique repetido mora. A chave única continua sendo a
-    // trava final contra duas requisições simultâneas.
+    // ⚠️ E ATÉ ONDE ISSO PROTEGE — MEDIDO, NÃO SUPOSTO (6ª auditoria)
+    //
+    // O duplo-clique HUMANO não chega até aqui: a rota devolve 409 para card
+    // que não está `pending` (bloco acima), e é lá que a idempotência do
+    // clique repetido mora.
+    //
+    // O que este comentário dizia antes — *"a chave única continua sendo a
+    // trava final contra duas requisições simultâneas"* — **não é mais
+    // verdade, e a doutrina da casa é que doutrina que descreve o
+    // comportamento antigo é pior que doutrina nenhuma.**
+    //
+    // Ela deixou de ser verdade quando a chave passou a carregar `reviewedAt`:
+    // `updateApprovalStatus` grava `reviewedAt: new Date()` SEM guarda de
+    // `status: "pending"`. Duas requisições verdadeiramente simultâneas passam
+    // as duas pelo 409 (que é ler-depois-escrever, sem trava no banco),
+    // carimbam dois instantes diferentes e produzem duas chaves diferentes —
+    // logo, DOIS rastros para uma decisão. A chave única segue impedindo o
+    // reprocessamento da MESMA decisão (mesmo instante), que é para o que ela
+    // serve; ela não é, e não era, a trava da corrida.
+    //
+    // A trava real da corrida continua sendo o 409, com a fraqueza declarada:
+    // é leitura seguida de escrita, não um compare-and-set. Fechá-la de
+    // verdade é um `updateMany({ where: { id, status: "pending" } })` em
+    // `updateApprovalStatus`, que atravessa todos os chamadores dela — está
+    // no registro da dívida, não escondido aqui. O dano do resíduo é rastro
+    // duplicado (ruído de auditoria); a decisão do cliente, o estado do card e
+    // as peças permanecem corretos, porque as duas requisições escrevem a
+    // MESMA decisão.
     const rodadaDaDecisao = (updated.reviewedAt ?? new Date()).toISOString();
     try {
       await prisma.transicaoDeEstado.create({
