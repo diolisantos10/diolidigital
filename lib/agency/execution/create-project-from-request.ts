@@ -31,6 +31,28 @@ export async function createProjectFromRequest(clientRequestId: string, approved
   const req = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
   if (!req) return { ok: false, error: "Solicitação não encontrada" };
 
+  // ⛔ O ACEITE VEM ANTES DO PROJETO, E FALHA ALTO.
+  //
+  // `approvedBy` é o registro de QUEM aprovou — é o fato que o Gerente Geral
+  // exige mais abaixo para despachar as tarefas. As quatro portas que chamam
+  // esta função sempre o preenchem (`session.name`, `client:<id>`, "caminho
+  // automático", o nome da casa no cliente falso), mas `session.name` vem do
+  // banco e nada GARANTE que não seja vazio.
+  //
+  // Sem esta guarda, um `approvedBy` em branco produziria o pior resultado
+  // possível: o projeto NASCE, o Gerente Geral recusa as 6 tarefas por falta
+  // de aceite, e sobra um projeto vazio no portal do cliente — silencioso,
+  // porque nada falhou. Ausência de informação não é informação: aqui ela
+  // recusa, e diz o nome do campo que faltou.
+  if (!approvedBy?.trim()) {
+    return {
+      ok: false,
+      error:
+        "Projeto não nasce sem aceite registrado: `approvedBy` veio vazio. " +
+        "Quem aprovou precisa estar gravado — é esse o fato que o Gerente Geral exige para despachar o trabalho.",
+    };
+  }
+
   // Idempotency: existing project wins (never duplicate on re-approval / retry).
   const existing = await prisma.project.findFirst({ where: { clientRequestId }, orderBy: { createdAt: "asc" } });
   if (existing) return { ok: true, projectId: existing.id, created: false };
@@ -140,7 +162,10 @@ export async function createProjectFromRequest(clientRequestId: string, approved
   // automático) passam QUEM aprovou em `approvedBy`. É esse o registro do
   // aceite, e é ele que a linha abaixo lê. Chamada sem `approvedBy` não produz
   // "quase nenhuma tarefa": produz zero, e diz por quê.
-  const aceiteComercial = Boolean(approvedBy?.trim());
+  // Já conferido no topo da função, e conferido lá de propósito: o projeto não
+  // chega a ser criado sem ele. Aqui é a passagem do fato, não uma segunda
+  // decisão — duas decisões sobre o mesmo fato divergem.
+  const aceiteComercial = true;
   const plano = despacharPlanoPeloGerenteGeral(
     proposal.tasks.map((t) => ({
       title: t.title,

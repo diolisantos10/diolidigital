@@ -133,6 +133,23 @@ describe("nenhum criador de tarefa escolhe agente por conta própria", () => {
     ).toEqual([]);
   });
 
+  it("⛔ projeto NÃO NASCE sem aceite registrado — nem vazio", () => {
+    // O pior resultado possível seria o projeto nascer, o Gerente Geral recusar
+    // todas as tarefas por falta de aceite, e sobrar um projeto VAZIO no portal
+    // do cliente — silencioso, porque nada falhou. `approvedBy` vem de
+    // `session.name`, que sai do banco: nada garante que não seja vazio.
+    const texto = fs.readFileSync(
+      path.join(process.cwd(), "lib/agency/execution/create-project-from-request.ts"),
+      "utf8",
+    );
+    expect(texto, "a guarda do aceite sumiu").toContain("Projeto não nasce sem aceite registrado");
+    // E ela vem ANTES do `prisma.project.create` — depois seria tarde: o
+    // projeto já existiria.
+    expect(texto.indexOf("Projeto não nasce sem aceite registrado")).toBeLessThan(
+      texto.indexOf("prisma.project.create"),
+    );
+  });
+
   it("as duas portas que criam projeto despacham pelo Gerente Geral", () => {
     for (const p of [
       "lib/agency/execution/create-project-from-request.ts",
