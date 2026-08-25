@@ -58,6 +58,8 @@ import { prisma } from "@/lib/db/client";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import { produzirArtesPendentes, pecaSaiuSemTitulo, type ArtesFeitas } from "@/lib/agency/execution/artes";
 import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
+import { moldeDoCliente } from "@/lib/agency/design/molde";
+import { conferirContraste, motivoDoContraste } from "@/lib/agency/design/contraste";
 import { lerArquivo } from "@/lib/agency/media/armazenamento";
 import {
   conferirArquivoDoProduto, medidaEmUmaLinha, type MedidaDoArquivo,
@@ -100,12 +102,35 @@ export interface PedidoDeStory {
   assinadoPor: string;
   /** O agente dono das peças. */
   ownerAgentId: string;
+  /**
+   * NINGUÉM JULGOU ESTA PEÇA?
+   *
+   * ── O buraco, medido pelo Auditor (25/08/2026) ──────────────────────────
+   *
+   * A casa decidiu, e a decisão está certa, que a operação NÃO para porque um
+   * provedor caiu: `ficouSemArbitro` registra e deixa passar. O problema é o
+   * que acontecia depois — o pedido virava `entregue`, o cartão abria, quatro
+   * peças iam para a mesa do cliente, e o terceiro estado existia **só numa
+   * coluna interna** (`revisionStatus = nao_auditado`) e num evento.
+   *
+   * O critério D tem duas metades: "falta de árbitro aparece como estado
+   * próprio **E NÃO COMO APROVAÇÃO**". A segunda não estava de pé. O cliente
+   * era convidado a aprovar uma peça que ninguém tinha julgado, e **nada na
+   * tela dele dizia isso**.
+   *
+   * Coluna gravada não é cliente informado. Havia duas saídas honestas — a
+   * peça não chega, ou ela chega DIZENDO O QUE É. Esta corrente escolhe a
+   * segunda, porque bloquear inverteria uma decisão que a casa tomou para
+   * todos os produtos; o que ela não pode é a peça chegar calada.
+   */
+  semArbitro?: { motivo: string | null } | null;
 }
 
 /** ONDE a corrente parou. Código, e não frase: cada etapa leva a um conserto
  *  diferente, e uma contagem de falhas não diz qual (guardrail 6 da casa). */
 export type EtapaDaCorrente =
   | "renderizador"
+  | "contraste-da-marca"
   | "quantidade"
   | "criacao-das-pecas"
   | "producao-da-arte"
@@ -170,6 +195,46 @@ export async function entregarStoryInstagramV1(p: PedidoDeStory): Promise<Result
         "Dono: a agência (infraestrutura). Próxima ação: conferir `playwright` em `dependencies` e o pacote " +
         "`chromium` em `railpack.json → deploy.aptPackages`. Diagnóstico ao vivo em GET /api/capacidades → `montar-molde`.",
     };
+  }
+
+  // ── PORTÃO 1-B · O CONTRASTE DA MARCA, CONFERIDO ──────────────────────────
+  //
+  // `tintaSobre()` ESCOLHE a tinta por luminância. Ninguém CONFERIA o
+  // resultado — e existe uma faixa de cores de marca (o cinza médio é o caso de
+  // livro) em que as duas opções ficam ruins e a heurística devolve a menos
+  // ruim em silêncio. A peça sai legível na tela de quem a produziu e ilegível
+  // na de quem a lê.
+  //
+  // Confere ANTES de gastar: cor de marca é dado de cadastro, e descobrir isso
+  // depois de quatro imagens pagas é pagar para aprender o que uma conta
+  // responde de graça.
+  //
+  // ⚠️ Mede as SUPERFÍCIES CHAPADAS (assinatura, blocos), que é onde a escolha
+  // de `tintaSobre` é aplicada. Texto sobre FOTO é outro problema, com outro
+  // par de travas (`portao-do-fundo.ts` e o degradê do molde) — dizer que este
+  // portão cobre aquele caso seria a régua mirada no irmão de novo.
+  const marcaDoCliente = await prisma.brandBrain.findFirst({
+    where: { clientId: p.clientId },
+    select: { primaryColor: true, secondaryColor: true, typography: true },
+  }).catch(() => null);
+  const moldeDaPeca = moldeDoCliente(marcaDoCliente);
+  // Molde NEUTRO não passa por aqui: o cinza padrão da casa é degradação
+  // declarada, com conserto próprio (cadastrar a marca), e barrá-la aqui
+  // trocaria uma declaração honesta por uma parada que confunde.
+  if (moldeDaPeca.origem === "marca") {
+    const contraste = conferirContraste(moldeDaPeca.primaria, moldeDaPeca.tinta);
+    if (!contraste) {
+      return {
+        ok: false,
+        etapa: "contraste-da-marca",
+        motivo:
+          `não consegui MEDIR o contraste entre a cor da marca (${moldeDaPeca.primaria}) e a tinta ` +
+          `(${moldeDaPeca.tinta}). Sem medida não há aprovação. Dono: o Brand Hub do cliente.`,
+      };
+    }
+    if (!contraste.suficiente) {
+      return { ok: false, etapa: "contraste-da-marca", motivo: motivoDoContraste(contraste) };
+    }
   }
 
   // ── PORTÃO 2 · A QUANTIDADE QUE O PREÇO COBRE ─────────────────────────────
@@ -440,7 +505,7 @@ export async function entregarStoryInstagramV1(p: PedidoDeStory): Promise<Result
       department: `pedido:${p.pedidoId}`,
       requestedBy: p.assinadoPor,
       clientVisible: true,
-      reviewNote: corpoDoCardDeStory(p.titulo, produto, escolhidas, provas),
+      reviewNote: corpoDoCardDeStory(p.titulo, produto, escolhidas, provas, p.semArbitro ?? null),
       sourcePostIds: postIds,
     });
   } catch (e) {
@@ -475,6 +540,7 @@ function corpoDoCardDeStory(
   produto: ProdutoCanonico,
   pecas: PecaDoEspecialista[],
   provas: ProvaDaPeca[],
+  semArbitro: { motivo: string | null } | null,
 ): string {
   const linhas = pecas.map((peca, i) => {
     const prova = provas[i];
@@ -487,9 +553,27 @@ function corpoDoCardDeStory(
     ].filter(Boolean).join("\n");
   });
 
+  // ── A DECLARAÇÃO VEM ANTES DE TUDO ────────────────────────────────────
+  //
+  // Conclusão primeiro, e aqui a conclusão é um AVISO: o cliente precisa ler
+  // isto ANTES de decidir, não depois de rolar quatro blocos de peça. É o que
+  // separa "aprovação informada" de "aprovação às cegas" — e aprovação às
+  // cegas num piloto 100% IA é a assinatura do cliente num trabalho que
+  // ninguém conferiu.
+  const avisoSemArbitro = semArbitro
+    ? [
+        "⚠️ ATENÇÃO — ESTA PEÇA NÃO PASSOU PELA NOSSA REVISÃO DE QUALIDADE.",
+        `A revisão automática da casa não rodou desta vez${semArbitro.motivo ? ` (${semArbitro.motivo})` : ""}. ` +
+        "Isso NÃO quer dizer que a peça está aprovada por nós — quer dizer que ninguém da nossa revisão " +
+        "olhou para ela. Confira com atenção antes de aprovar, ou peça para a equipe revisar primeiro.",
+        "",
+      ]
+    : [];
+
   return [
     titulo,
     "",
+    ...avisoSemArbitro,
     // ── O QUE ESTA FRASE PODE AFIRMAR, E POR QUÊ ──────────────────────────
     //
     // A versão anterior dizia "margem protegida do Instagram respeitada" e não

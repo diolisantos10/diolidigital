@@ -27,6 +27,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CarrosselDeTelas, rotuloDeFormatoDaPeca, type PecaAberta } from "@/components/portal/DetalheDaPeca";
+import { proporcaoDaPeca } from "@/lib/agency/portal/proporcao-da-peca";
 import { urlDeMidiaDoPortal } from "@/lib/agency/portal/midia";
 import { juntarTranscricao } from "@/lib/ai/transcricao";
 import { BotaoDeDitado } from "./Ditado";
@@ -181,9 +182,9 @@ function PecaDoCard({ peca, indice, total, token }: { peca: PecaAberta; indice: 
       </div>
 
       {telas.length > 0 ? (
-        <CarrosselDeTelas telas={telas} token={token} alt={rotuloDeFormatoDaPeca(peca.format)} />
+        <CarrosselDeTelas telas={telas} token={token} alt={rotuloDeFormatoDaPeca(peca.format)} format={peca.format} />
       ) : (
-        <div className="flex aspect-square w-full items-center justify-center bg-[var(--accent)] px-6 text-center">
+        <div className={`flex ${proporcaoDaPeca(peca.format)} w-full items-center justify-center bg-[var(--accent)] px-6 text-center`}>
           <span className="text-[13px] leading-relaxed text-[var(--text-muted)]">arte em produção</span>
         </div>
       )}

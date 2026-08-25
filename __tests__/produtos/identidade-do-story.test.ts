@@ -192,3 +192,102 @@ describe("a conferência do arquivo olha os BYTES, e falha fechada", () => {
     expect(v.problemas.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe("contraste — escolher não é conferir", () => {
+  it("mede a razão da WCAG com a MESMA luminância que o molde usa para escolher", async () => {
+    const { razaoDeContraste, CONTRASTE_MINIMO } = await import("@/lib/agency/design/contraste");
+    // Os dois extremos, com o número exato da norma.
+    expect(razaoDeContraste("#000000", "#FFFFFF")).toBe(21);
+    expect(razaoDeContraste("#FFFFFF", "#FFFFFF")).toBe(1);
+    expect(CONTRASTE_MINIMO).toBe(4.5);
+  });
+
+  it("PEGA a faixa em que `tintaSobre` escolhe a menos ruim e ninguém percebe", async () => {
+    // O caso de livro: cinza médio. A heurística escolhe branco — e branco
+    // sobre #808080 dá 3,95:1, abaixo do piso. Era exatamente isto que saía sem
+    // régua nenhuma.
+    const { conferirContraste } = await import("@/lib/agency/design/contraste");
+    const { tintaSobre } = await import("@/lib/agency/design/molde");
+    const m = conferirContraste("#808080", tintaSobre("#808080"))!;
+    expect(m.tinta, "a heurística escolheu branco").toBe("#FFFFFF");
+    expect(m.razao).toBeLessThan(4.5);
+    expect(m.suficiente, "e o resultado dela NÃO serve — é o que ninguém conferia").toBe(false);
+  });
+
+  it("aprova a marca do piloto, com o número na mão", async () => {
+    const { conferirContraste } = await import("@/lib/agency/design/contraste");
+    const { tintaSobre } = await import("@/lib/agency/design/molde");
+    const m = conferirContraste("#7A3B12", tintaSobre("#7A3B12"))!;
+    expect(m.suficiente).toBe(true);
+    expect(m.razao).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("cor inválida NÃO vira aprovação — sem medida não há veredito", async () => {
+    const { conferirContraste, razaoDeContraste } = await import("@/lib/agency/design/contraste");
+    expect(razaoDeContraste("nao-e-cor", "#FFFFFF")).toBeNull();
+    expect(conferirContraste("nao-e-cor", "#FFFFFF")).toBeNull();
+  });
+
+  it("a frase da recusa traz o NÚMERO e o dono — placar sem número não é prova", async () => {
+    const { conferirContraste, motivoDoContraste } = await import("@/lib/agency/design/contraste");
+    const { tintaSobre } = await import("@/lib/agency/design/molde");
+    const frase = motivoDoContraste(conferirContraste("#808080", tintaSobre("#808080"))!);
+    expect(frase).toMatch(/3\.95:1/);
+    expect(frase).toMatch(/4\.5:1/);
+    expect(frase).toMatch(/Brand Hub/);
+  });
+});
+
+describe("briefing mínimo — as três incondicionais, e as condicionais declaradas", () => {
+  const completo = {
+    oQueComunicar: "Quero 4 stories sobre o pão de fermentação natural. Quero que a pessoa venha encomendar na loja.",
+    objetivo: "fazer o pessoal do bairro conhecer o pão",
+  };
+
+  it("cobra as TRÊS incondicionais do §4 — não uma", async () => {
+    const { conferirBriefingMinimo } = await import("@/lib/agency/produtos/briefing-minimo");
+    const v = conferirBriefingMinimo(INSTAGRAM_STORY_ESTATICO_V1, { oQueComunicar: "oi", objetivo: "" });
+    expect(v.completo).toBe(false);
+    expect(v.faltas).toContain("o-que-comunicar");
+    expect(v.faltas).toContain("objetivo");
+    expect(v.faltas).toContain("chamada-para-acao");
+    expect(v.faltas.length, "as três, e a pergunta nomeia cada uma").toBe(3);
+  });
+
+  it("briefing completo passa — a régua não é freio de mão puxado", async () => {
+    const { conferirBriefingMinimo } = await import("@/lib/agency/produtos/briefing-minimo");
+    expect(conferirBriefingMinimo(INSTAGRAM_STORY_ESTATICO_V1, completo).completo).toBe(true);
+  });
+
+  it("cada falta tem pergunta PRÓPRIA — solicitação acionável é a que se sabe responder", async () => {
+    const { conferirBriefingMinimo } = await import("@/lib/agency/produtos/briefing-minimo");
+    const semCta = conferirBriefingMinimo(INSTAGRAM_STORY_ESTATICO_V1, {
+      ...completo, oQueComunicar: "Quero 4 stories sobre o pão de fermentação natural da casa.",
+    });
+    expect(semCta.faltas).toEqual(["chamada-para-acao"]);
+    expect(semCta.pergunta).toMatch(/O QUE VOCÊ QUER QUE A PESSOA FAÇA/);
+    expect(semCta.pergunta, "com exemplos do que responder").toMatch(/WhatsApp|loja|link da bio/);
+
+    const semObjetivo = conferirBriefingMinimo(INSTAGRAM_STORY_ESTATICO_V1, { ...completo, objetivo: "" });
+    expect(semObjetivo.faltas).toEqual(["objetivo"]);
+    expect(semObjetivo.pergunta).toMatch(/PARA QUÊ/);
+    expect(semObjetivo.pergunta, "e NÃO cobra o que não falta").not.toMatch(/PESSOA FAÇA/);
+  });
+
+  it("os itens CONDICIONAIS do plano ficam DECLARADOS, com quem cuida deles", async () => {
+    // O plano escreveu "quando houver" e "quando indispensável". Transformar
+    // condicional em obrigatório barraria o pedido correto de quem não tem
+    // oferta nem precisa de material. A decisão fica legível de fora — em vez
+    // de ser reencontrada como buraco na próxima auditoria.
+    const { conferirBriefingMinimo } = await import("@/lib/agency/produtos/briefing-minimo");
+    const v = conferirBriefingMinimo(INSTAGRAM_STORY_ESTATICO_V1, completo);
+    expect(v.condicionaisDeclarados.length).toBe(2);
+    expect(v.condicionaisDeclarados.join(" ")).toMatch(/piso de verdade/);
+    expect(v.condicionaisDeclarados.join(" ")).toMatch(/MaterialRequest/);
+  });
+
+  it("produto sem exigência declarada passa direto — nenhum outro produto muda", async () => {
+    const { conferirBriefingMinimo } = await import("@/lib/agency/produtos/briefing-minimo");
+    expect(conferirBriefingMinimo(null, { oQueComunicar: "", objetivo: "" }).completo).toBe(true);
+  });
+});

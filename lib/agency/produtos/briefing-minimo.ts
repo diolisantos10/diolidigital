@@ -66,14 +66,56 @@ const VERBOS_DE_CHAMADA = [
   "fale", "fala com", "consult", "orcament", "solicit",
 ];
 
-/** O que falta, com nome. Código e não frase: cada falta leva a uma pergunta
- *  diferente, e uma contagem não diz qual (guardrail 6 da casa). */
-export type FaltaNoBriefing = "chamada-para-acao";
+/**
+ * O que falta, com NOME. Código e não frase: cada falta leva a uma pergunta
+ * diferente, e uma contagem não diz qual (guardrail 6 da casa).
+ *
+ * ── AS SEIS ENTRADAS DO PLANO, E O QUE CADA UMA É AQUI (25/08/2026) ────────
+ *
+ * O Auditor pegou este tipo com UM valor só enquanto o arquivo se chamava
+ * "briefing mínimo" e o plano (§4) lista seis entradas. Cobrar um sexto e
+ * chamar de mínimo é a mesma classe de erro que esta operação vem consertando:
+ * o nome promete a régua inteira, o código tem um pedaço.
+ *
+ *   1. o que comunicar        → `o-que-comunicar`  (INCONDICIONAL, aqui)
+ *   2. objetivo               → `objetivo`         (INCONDICIONAL, aqui)
+ *   3. chamada para ação      → `chamada-para-acao`(INCONDICIONAL, aqui)
+ *   4. oferta, preço ou data  → CONDICIONAL — "quando houver"
+ *   5. material/referência    → CONDICIONAL — "quando indispensável"
+ *   6. cliente e projeto      → estrutural: derivado do token do portal, e a
+ *                               produção nem começa sem os dois (`produzirPedido`
+ *                               recusa pedido sem projeto e sem tarefa).
+ *
+ * ── POR QUE 4 E 5 NÃO VIRAM OBRIGAÇÃO, E ISSO É DECISÃO, NÃO OMISSÃO ──────
+ *
+ * O plano escreveu "quando houver" e "quando indispensável" com todas as
+ * letras. Transformar um condicional em obrigatório BARRA O PEDIDO CORRETO de
+ * quem não tem oferta nenhuma e não precisa de material nenhum — e trava que
+ * reprova o legítimo é desligada por quem a encontra, levando junto as que
+ * funcionavam.
+ *
+ * Quem cuida do item 4 quando ele EXISTE é o piso de verdade: preço, data e
+ * oferta afirmados na peça sem lastro no que o cliente informou são barrados lá,
+ * em código, sem rede. Quem cuida do item 5 é `assess-resources` + a fila de
+ * `MaterialRequest`, que pede o material que falta e **não pede de novo o que já
+ * chegou** (`materiaisEntregues`, em `producao-de-pedido.ts`).
+ *
+ * Isto está escrito aqui para que a ausência deles seja LIDA como decisão
+ * declarada, e não encontrada de novo como buraco.
+ */
+export type FaltaNoBriefing =
+  | "o-que-comunicar"
+  | "objetivo"
+  | "chamada-para-acao";
 
 export interface VereditoDoBriefing {
   /** Pode produzir? */
   completo: boolean;
   faltas: FaltaNoBriefing[];
+  /** Os itens CONDICIONAIS do plano, com o motivo de não serem cobrados aqui.
+   *  Existe para que a decisão seja legível de fora, em vez de ter que ser
+   *  reencontrada lendo o código. */
+  condicionaisDeclarados: string[];
   /**
    * A PERGUNTA, em português de gente, pronta para ir ao cliente. Vazia quando
    * não falta nada.
@@ -101,23 +143,69 @@ export function temChamadaParaAcao(texto: string | null | undefined): boolean {
  */
 export function conferirBriefingMinimo(
   produto: ProdutoCanonico | null,
-  textoDoCliente: string,
+  entrada: { oQueComunicar: string; objetivo: string },
 ): VereditoDoBriefing {
-  if (!produto?.exigeChamadaParaAcao) {
-    return { completo: true, faltas: [], pergunta: "" };
+  const CONDICIONAIS = [
+    "oferta/preço/data — o plano diz \"quando houver\"; quem confere, quando existe, é o piso de verdade",
+    "material/referência — o plano diz \"quando indispensável\"; quem pede o que falta (e não pede de novo o que já chegou) é a fila de MaterialRequest",
+  ];
+  const vazio: VereditoDoBriefing = {
+    completo: true, faltas: [], condicionaisDeclarados: CONDICIONAIS, pergunta: "",
+  };
+  if (!produto?.exigeBriefingMinimo) return { ...vazio, condicionaisDeclarados: [] };
+
+  const faltas: FaltaNoBriefing[] = [];
+  const perguntas: string[] = [];
+
+  // 1. O QUE COMUNICAR. Conferido AQUI e não só na porta do portal de
+  // propósito: o balcão e o pedido por mensagem chegam à mesma corrente por
+  // outras portas, e uma trava que mora só numa delas é uma porta trancada num
+  // prédio com três entradas.
+  if (!temSubstancia(entrada.oQueComunicar)) {
+    faltas.push("o-que-comunicar");
+    perguntas.push(
+      "Me conta com um pouco mais de detalhe O QUE você quer comunicar nessa peça — " +
+      'uma frase já basta ("o pão de fermentação natural que sai às 7h").',
+    );
   }
 
-  if (temChamadaParaAcao(textoDoCliente)) {
-    return { completo: true, faltas: [], pergunta: "" };
+  // 2. OBJETIVO. Mesmo raciocínio: sem o porquê, quem escolhe o ângulo é o
+  // modelo, e escolher ângulo é decidir o que a peça diz.
+  if (!temSubstancia(entrada.objetivo)) {
+    faltas.push("objetivo");
+    perguntas.push(
+      "E PARA QUÊ? Saber o objetivo muda a peça inteira — sem ele a equipe escolheria o ângulo no chute.",
+    );
   }
+
+  // 3. CHAMADA PARA AÇÃO.
+  if (!temChamadaParaAcao(`${entrada.oQueComunicar}`)) {
+    faltas.push("chamada-para-acao");
+    perguntas.push(
+      "O QUE VOCÊ QUER QUE A PESSOA FAÇA depois de ver a peça? Pode ser em três palavras — " +
+      '"chamar no WhatsApp", "vir na loja", "pedir pelo link da bio", "encomendar pelo direct". ' +
+      "Sem isso eu teria que inventar a ação, e peça com ação inventada manda o seu cliente " +
+      "para um lugar que talvez nem exista.",
+    );
+  }
+
+  if (faltas.length === 0) return vazio;
 
   return {
     completo: false,
-    faltas: ["chamada-para-acao"],
+    faltas,
+    condicionaisDeclarados: CONDICIONAIS,
     pergunta:
-      "Falta uma coisa para eu fazer o story certo: O QUE VOCÊ QUER QUE A PESSOA FAÇA depois de ver a peça? " +
-      'Pode ser em três palavras — "chamar no WhatsApp", "vir na loja", "pedir pelo link da bio", ' +
-      '"encomendar pelo direct". Sem isso eu teria que inventar a ação, e peça com ação inventada ' +
-      "manda o seu cliente para um lugar que talvez nem exista. Me diz e eu já produzo.",
+      (faltas.length === 1
+        ? "Falta uma coisa para eu fazer o story certo: "
+        : `Faltam ${faltas.length} coisas para eu fazer o story certo: `) +
+      perguntas.join(" · ") +
+      " Me diz e eu já produzo.",
   };
+}
+
+/** O menor texto que ainda é uma resposta. Mesma régua da porta do portal
+ *  (`MINIMO_DE_DESCRICAO`): "oi" e "?" não são briefing. */
+function temSubstancia(v: string | null | undefined): boolean {
+  return (v ?? "").trim().length >= 8;
 }

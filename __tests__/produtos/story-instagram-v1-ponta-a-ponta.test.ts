@@ -938,6 +938,80 @@ describe("caso de falha — a corrente para com motivo, e nunca com falso entreg
       "só a triagem falou com o modelo — o especialista nem foi acionado",
     ).toBeLessThanOrEqual(1);
   }, 600_000);
+
+  it("CONTRASTE INSUFICIENTE da marca para a corrente — antes de gastar imagem", async () => {
+    // `tintaSobre` ESCOLHE a tinta; até agora ninguém CONFERIA o resultado. O
+    // cinza médio é o caso de livro: a heurística escolhe branco e entrega
+    // 3,95:1 — abaixo do piso — em silêncio. A peça sai legível na tela de quem
+    // a produziu e ilegível na de quem a lê.
+    const c = await abrirClienteFicticio("Padaria do Cinza");
+    await pagar(c, 9900);
+    // A marca deste cliente cai exatamente naquela faixa.
+    await prisma.brandBrain.updateMany({
+      where: { clientId: c.clientId },
+      data: { primaryColor: "#808080", secondaryColor: "#909090" },
+    });
+
+    const design = await import("@/lib/ai/design-engine");
+    const imagensAntes = vi.mocked(design.generateDesign).mock.calls.length;
+
+    const { pedidoId } = await pedirPeloPortal(c);
+    const { pedido, posts, card } = await pecasDoPedido(pedidoId);
+
+    expect(pedido.status, "marca que não dá contraste NÃO vira entrega").not.toBe("entregue");
+    // A frase tem o NÚMERO e o dono — quem conserta precisa saber de quanto
+    // para quanto, e de quem é a próxima ação.
+    expect(pedido.declineReason ?? "").toMatch(/3\.95:1/);
+    expect(pedido.declineReason ?? "").toMatch(/Brand Hub/);
+    expect(card, "e o cliente não é chamado a aprovar peça ilegível").toBeNull();
+    expect(posts.length, "nenhuma peça criada").toBe(0);
+    expect(
+      vi.mocked(design.generateDesign).mock.calls.length,
+      "nem uma imagem paga: cor de marca é dado de cadastro, se descobre de graça",
+    ).toBe(imagensAntes);
+  }, 600_000);
+
+  it("MATERIAL JÁ ENVIADO não é pedido de novo — o produtor sabe o que já chegou", async () => {
+    // ── O laço cruel que isto impede ─────────────────────────────────────
+    // O cliente manda o logo, a produção retoma, o campo continua vazio e o
+    // especialista pede o logo DE NOVO. Ele é cobrado para sempre por algo que
+    // já entregou. `materiaisEntregues` existe para isso — e o Auditor apontou
+    // que ninguém exercitava.
+    //
+    // O que se afirma aqui é a metade MENSURÁVEL: o fato de que o material já
+    // entregue CHEGA ao produtor. O que o modelo faz com o fato é opinião dele,
+    // e opinião não se afirma em teste.
+    const c = await abrirClienteFicticio("Padaria do Material");
+    await pagar(c, 9900);
+
+    // O cliente já mandou o logo, e a solicitação já foi atendida.
+    await prisma.materialRequest.create({
+      data: {
+        projectId: c.projectId,
+        type: "logo",
+        description: "arquivo do logo da padaria",
+        status: "received",
+      },
+    });
+
+    const geradorDeTexto = await import("@/lib/ai/generate");
+    vi.mocked(geradorDeTexto.generate).mockClear();
+
+    const { pedidoId } = await pedirPeloPortal(c);
+    const { pedido } = await pecasDoPedido(pedidoId);
+    expect(pedido.status).toBe("entregue");
+
+    // O prompt do ESPECIALISTA (não o da triagem, não o do juiz) carrega o que
+    // já chegou.
+    const prompts = vi.mocked(geradorDeTexto.generate).mock.calls
+      .map((a) => `${(a[0] as { system?: string }).system ?? ""}\n${(a[0] as { user?: string }).user ?? ""}`);
+    const doEspecialista = prompts.filter((t) => !/atendimentoId/.test(t) && !/agente de Qualidade/i.test(t));
+    expect(doEspecialista.length, "o especialista foi acionado").toBeGreaterThan(0);
+    expect(
+      doEspecialista.some((t) => /logo/i.test(t)),
+      "o material já entregue tem de chegar a quem produz — senão ele pede de novo",
+    ).toBe(true);
+  }, 600_000);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -977,34 +1051,56 @@ describe("qualidade — reprovada não chega ao cliente como aprovada", () => {
     }
   }, 600_000);
 
-  it("SEM ÁRBITRO é estado próprio — nunca carimbado como aprovado", async () => {
-    // O provedor do juiz cai. `auditDeliverable` devolve `nao_auditado`, e a
-    // casa NÃO trata isso como aprovação: a entrega fica com o
-    // `revisionStatus` do terceiro estado e a ausência de parecer fica dita.
+  it("SEM ÁRBITRO: o CLIENTE lê que ninguém julgou — coluna gravada não é cliente informado", async () => {
+    // ── O QUE FOI MEDIDO CONTRA MIM (25/08/2026) ─────────────────────────
+    //
+    // A versão anterior deste teste olhava SÓ a coluna interna
+    // (`revisionStatus = nao_auditado`) e o evento. E a coluna estava certa —
+    // enquanto isso o pedido virava `entregue`, o cartão abria e quatro peças
+    // iam para a mesa do cliente **sem uma palavra dizendo que ninguém as
+    // julgou**. Régua mirada no irmão, de novo.
+    //
+    // O critério D tem DUAS metades: estado próprio **e não como aprovação**.
+    // A segunda só existe se o cliente conseguir LER a diferença.
     const c = await abrirClienteFicticio("Padaria Sem Árbitro");
     await pagar(c, 9900);
     roteiro.juizResponde = false;
 
     try {
       const { pedidoId } = await pedirPeloPortal(c);
-      const { pedido } = await pecasDoPedido(pedidoId);
+      const { pedido, card } = await pecasDoPedido(pedidoId);
 
+      // ── 1. O ESTADO PRÓPRIO (primeira metade — já valia) ───────────────
       const { REVISION_STATUS_DA_QUALIDADE } = await import("@/lib/agency/execution/quality-auditor");
-      const entrega = await prisma.deliverable.findUniqueOrThrow({
-        where: { id: pedido.deliverableId! },
-      });
-      expect(
-        entrega.revisionStatus,
-        "sem árbitro NÃO é aprovado — é 'ninguém olhou', e fica dito",
-      ).toBe(REVISION_STATUS_DA_QUALIDADE.nao_auditado);
+      const entrega = await prisma.deliverable.findUniqueOrThrow({ where: { id: pedido.deliverableId! } });
+      expect(entrega.revisionStatus).toBe(REVISION_STATUS_DA_QUALIDADE.nao_auditado);
       expect(entrega.revisionStatus).not.toBe(REVISION_STATUS_DA_QUALIDADE.aprovado);
 
-      // E a casa DECLARA a ausência de parecer, em vez de deixá-la invisível.
       const eventos = await prisma.activityEvent.findMany({ where: { clientId: c.clientId } });
+      expect(eventos.some((e) => /qualidade_nao_auditou/.test(e.type ?? ""))).toBe(true);
+
+      // ── 2. E NÃO COMO APROVAÇÃO (a metade que faltava) ─────────────────
+      //
+      // A régua agora olha exatamente o que o cliente vê: o corpo do cartão
+      // que o portal renderiza. Se ele não disser, a peça chegou calada.
+      expect(card, "a casa entrega mesmo sem árbitro — mas não pode entregar calada").toBeTruthy();
+      const oQueOClienteLe = card!.reviewNote ?? "";
       expect(
-        eventos.some((e) => /qualidade_nao_auditou/.test(e.type ?? "")),
-        "ausência de árbitro invisível é ausência que ninguém corrige",
-      ).toBe(true);
+        oQueOClienteLe,
+        "o cliente é chamado a aprovar uma peça que ninguém julgou e nada na tela dele diz isso",
+      ).toMatch(/NÃO PASSOU PELA NOSSA REVISÃO DE QUALIDADE/i);
+      expect(oQueOClienteLe, "e o aviso não pode se disfarçar de aprovação")
+        .toMatch(/NÃO quer dizer que a peça está aprovada/i);
+
+      // ── 3. O AVISO VEM ANTES DAS PEÇAS ─────────────────────────────────
+      // Aviso depois de quatro blocos de peça é aviso que ninguém lê.
+      const posicaoDoAviso = oQueOClienteLe.indexOf("NÃO PASSOU PELA NOSSA REVISÃO");
+      const posicaoDaPrimeiraPeca = oQueOClienteLe.indexOf("**1.");
+      expect(posicaoDoAviso).toBeGreaterThanOrEqual(0);
+      expect(
+        posicaoDoAviso,
+        "conclusão primeiro: o cliente precisa ler o aviso ANTES de decidir",
+      ).toBeLessThan(posicaoDaPrimeiraPeca);
     } finally {
       roteiro.juizResponde = true;
     }
@@ -1032,21 +1128,32 @@ describe("reentrada não cria segunda peça", () => {
     expect(await prisma.approvalRequest.count({ where: { department: `pedido:${pedidoId}` } })).toBe(1);
   }, 600_000);
 
-  it("O RELÓGIO recupera a corrente parada — sem ninguém escrever no banco", async () => {
-    // ── POR QUE ESTE TESTE EXISTE (25/08/2026) ───────────────────────────
+  it("O RELÓGIO recupera a corrente que MORREU no meio (processo caiu), sem duplicar", async () => {
+    // ── O NOME ANTERIOR MENTIA, E O AUDITOR PEGOU ────────────────────────
     //
-    // A "retomada" que eu tinha provado só andava porque o TESTE escrevia
-    // `status: "triado"` no banco. Isso não é recuperação: é empurrão
-    // disfarçado de prova. O critério F pede que o RELÓGIO recupere estados
-    // transitórios sem criar duplicata.
+    // Ele dizia "sem ninguém escrever no banco" — e o teste escrevia. Nome de
+    // teste é doutrina, e doutrina que descreve outra coisa é pior que
+    // doutrina nenhuma. O nome agora diz o que o teste faz.
     //
-    // E o defeito era real: o `where` do despertador exigia
-    // `deliverableId: null`, e a corrente visual grava o elo ANTES da arte.
-    // Uma corrente morta no meio ficava invisível para o relógio PARA SEMPRE —
-    // o pedido do cliente preso, destravável só por escrita manual no banco.
+    // ── O QUE ESTÁ SENDO REPRODUZIDO, COM PRECISÃO ───────────────────────
     //
-    // Aqui ninguém escreve nada: a corrente morre, o relógio bate, e ele
-    // conclui.
+    // Falha COM MOTIVO (provedor recusou, arquivo não serve) termina em
+    // `precisa_decisao`, e o relógio NÃO a retenta de propósito: parada com
+    // dono e próxima ação é para gente resolver, não para a máquina insistir.
+    // Isso é afirmado no fim deste teste.
+    //
+    // O que o relógio recupera é o outro caso: o PROCESSO MORREU no meio —
+    // contêiner reiniciado, timeout, deploy no meio da rodada — e o pedido
+    // ficou preso em `em_producao` sem ninguém para terminá-lo. Não existe
+    // maneira de matar um processo de dentro do próprio processo, então a
+    // morte é encenada da única forma possível: deixando no banco exatamente o
+    // estado que ela deixa. É encenação declarada, não empurrão disfarçado.
+    //
+    // ── E O DEFEITO QUE ISTO PEGOU ERA REAL ──────────────────────────────
+    //
+    // O `where` do despertador exigia `deliverableId: null`, e a corrente
+    // visual grava o elo ANTES da arte. Uma corrente morta assim ficava
+    // invisível ao relógio PARA SEMPRE.
     const c = await abrirClienteFicticio("Padaria do Relógio");
     await pagar(c, 9900);
 
@@ -1064,21 +1171,32 @@ describe("reentrada não cria segunda peça", () => {
     expect(parado.posts.length, "as peças existem esperando arquivo").toBe(4);
     expect(parado.pedido.deliverableId, "o elo está gravado — é a chave da retomada").toBeTruthy();
 
-    // O ESTADO TRANSITÓRIO, como a vida o deixa: a corrente morreu no meio, o
-    // pedido ficou em "em_producao" e o relógio da trava já expirou. NENHUMA
-    // outra coluna é tocada — nem status, nem deliverableId, nem tentativas.
+    // ── A PARADA COM MOTIVO NÃO É RETENTADA PELO RELÓGIO ─────────────────
+    // Primeiro o relógio bate SOBRE o estado real da falha. Ele não pode mexer:
+    // `precisa_decisao` é trabalho de gente.
+    const { baterORelogio } = await import("@/lib/agency/despertador");
+    expect(parado.pedido.status).toBe("precisa_decisao");
+    await baterORelogio();
+    const aindaParado = await pecasDoPedido(pedidoId);
+    expect(
+      aindaParado.pedido.status,
+      "parada com dono e próxima ação é para gente — a máquina não insiste sozinha",
+    ).toBe("precisa_decisao");
+    expect(aindaParado.card).toBeNull();
+
+    // ── AGORA O CASO DO RELÓGIO: O PROCESSO MORREU ───────────────────────
+    // Encenação declarada: o estado que uma morte de processo deixa. Nenhuma
+    // outra coluna é tocada — nem `deliverableId`, nem tentativas, nem peças.
     const TRAVA_MS = (await import("@/lib/agency/esteira/triagem")).TRAVA_MS;
     await prisma.contentRequest.update({
       where: { id: pedidoId },
       data: { status: "em_producao", updatedAt: new Date(Date.now() - TRAVA_MS - 60_000) },
     });
 
-    // ── O RELÓGIO BATE ────────────────────────────────────────────────────
-    const { baterORelogio } = await import("@/lib/agency/despertador");
     await baterORelogio();
 
     const feito = await pecasDoPedido(pedidoId);
-    expect(feito.pedido.status, "o relógio concluiu sozinho").toBe("entregue");
+    expect(feito.pedido.status, "o relógio terminou o trabalho sozinho").toBe("entregue");
     expect(feito.card, "e o cliente ganhou onde decidir").toBeTruthy();
     // SEM DUPLICATA — o critério F pede as duas metades juntas.
     expect(feito.posts.map((p) => p.id), "as MESMAS quatro peças, não oito")

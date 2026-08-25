@@ -330,10 +330,10 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   // conhecer o pão"), e ele usa verbos parecidos com os de uma chamada. Aceitar
   // o objetivo como CTA faria o portão passar verde em quase todo pedido, que é
   // como uma trava vira enfeite.
-  const briefing = conferirBriefingMinimo(
-    produto,
-    [req?.rawContext ?? "", pedido.description].filter(Boolean).join("\n"),
-  );
+  const briefing = conferirBriefingMinimo(produto, {
+    oQueComunicar: [req?.rawContext ?? "", pedido.description].filter(Boolean).join("\n"),
+    objetivo: pedido.objective ?? "",
+  });
   if (!briefing.completo) {
     await moverTarefa(pedido.taskId, "pending");
     await registrar(
@@ -583,6 +583,10 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
       pecas: pecasDoEspecialista(data),
       assinadoPor: `${esp.label} (${dept.label})`,
       ownerAgentId: esp.id,
+      // NINGUÉM JULGOU? O cartão do cliente tem de DIZER isso. Registrar só na
+      // coluna interna deixava o cliente aprovando às cegas uma peça que a
+      // revisão da casa não olhou — a segunda metade do critério D.
+      semArbitro: ficouSemArbitro(audit.verdict) ? { motivo: audit.motivo ?? null } : null,
     });
 
     if (!corrente.ok) {
