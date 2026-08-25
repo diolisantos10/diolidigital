@@ -1,7 +1,7 @@
 ---
 titulo: "Verificação de negócio (Business Verification) — quando é exigida"
 url: https://developers.facebook.com/documentation/development/release/business-verification
-capturado_em: 2026-08-24
+capturado_em: 2026-08-25
 hash: e3ba4ccc5bd84f3b
 ---
 

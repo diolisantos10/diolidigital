@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — Overview (TikTok API for Business)"
 url: https://business-api.tiktok.com/portal/docs/marketing-api-overview/v1.3
-capturado_em: 2026-08-24
+capturado_em: 2026-08-25
 hash: 8a6fbe1496428a6a
 ---
 

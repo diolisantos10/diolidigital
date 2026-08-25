@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — /file/video/ad/upload/ (upload de vídeo de anúncio: formatos, tamanho, hash)"
 url: https://business-api.tiktok.com/portal/docs?id=1737587322856449
-capturado_em: 2026-08-24
-hash: 894fddd00761e7a6
+capturado_em: 2026-08-25
+hash: c2108afa255c013b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -21,6 +21,7 @@ Organic API
 Business Messaging API
 API Reference
 Accounts
+Ads
 Ad Accounts
 Ad Comments
 Ad Comments - Blocked Words

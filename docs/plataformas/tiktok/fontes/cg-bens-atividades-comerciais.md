@@ -1,8 +1,8 @@
 ---
 titulo: "Diretrizes da Comunidade — Bens regulamentados e atividades comerciais (divulgação de conteúdo comercial) (pt-BR)"
 url: https://www.tiktok.com/community-guidelines/pt-br/regulated-commercial-activities
-capturado_em: 2026-08-24
-hash: d27962c9e1d56c71
+capturado_em: 2026-08-25
+hash: 18781635bb9ce8d1
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,9 +11,11 @@ hash: d27962c9e1d56c71
 Produtos, serviços e atividades comerciais regulamentados
 Diretrizes da Comunidade
 
-Publicado em 14 de agosto de 2025
+Em 24 de setembro de 2026, atualizaremos nossas Diretrizes da Comunidade para que você possa continuar criando, descobrindo e compartilhando conteúdo com segurança no TikTok. Confira as novas Diretrizes da Comunidade aqui.
 
-Em vigor a partir de 13 de setembro de 2025
+Publicação: 14 de agosto de 2025
+
+Em vigor: 13 de setembro de 2025
 
 O TikTok é um lugar para compartilhar e aprender sobre todos os tipos de produto e serviço. Alguns deles, porém, podem envolver riscos mais elevados, como dependência, perigo ou golpes. Realizamos a moderação de conteúdo relacionado a atividades regulamentadas ou comerciais com o objetivo de evitar danos físicos ou financeiros. Em alguns casos, quando possíveis danos podem ser mitigados por meio de controles adicionais, é permitida a publicidade paga limitada de contas corporativas registradas e verificadas que atendem às políticas e aos requisitos legais do TikTok.
 

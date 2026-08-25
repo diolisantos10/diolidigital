@@ -1,14 +1,14 @@
 ---
 titulo: "Content Posting API — Photo Post (/v2/post/publish/content/init/)"
 url: https://developers.tiktok.com/doc/content-posting-api-reference-photo-post
-capturado_em: 2026-08-24
-hash: 72d8df58c88d57a8
+capturado_em: 2026-08-25
+hash: 539972c9c8dc0746
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Last updated August 4, 2026
+Last updated August 24, 2026
 Photo
 Overview
 
@@ -159,6 +159,20 @@ The media source information
 	
 
 true
+
+is_aigc
+
+	
+
+bool
+
+	
+
+Set to `true` if the photo is AI generated content. If set, the photo will be labeled with an AI-generated tag in the description.
+
+	
+
+false
 
 Post Info Object
 

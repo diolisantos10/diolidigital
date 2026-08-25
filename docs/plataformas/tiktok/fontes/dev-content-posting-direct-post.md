@@ -1,18 +1,15 @@
 ---
 titulo: "Content Posting API — Direct Post (creator_info, init, privacidade, disclosure comercial)"
 url: https://developers.tiktok.com/doc/content-posting-api-reference-direct-post
-capturado_em: 2026-08-24
-hash: 80065421e341bbd5
+capturado_em: 2026-08-25
+hash: 8309cf5d3c50a474
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Last updated August 4, 2026
+Last updated August 24, 2026
 Direct Post
-
-New: Content Posting API now supports posting photos!
-
 Overview
 
 To directly post a video to users' TikTok accounts, you must invoke the Content Posting API - Direct Post endpoint to perform the following actions:
@@ -629,7 +626,6 @@ curl --location --request PUT 'https://open-upload.tiktokapis.com/upload/?upload
 --header 'Content-Length: 30567100'\
 --header 'Content-Type: video/mp4' \
 --data '@/path/to/file/example.mp4'
-
 Was this document helpful?
 On this page
 Overview

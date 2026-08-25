@@ -1,8 +1,8 @@
 ---
 titulo: "Diretrizes da Comunidade do TikTok — Visão geral (pt-BR)"
 url: https://www.tiktok.com/community-guidelines/pt-br/overview
-capturado_em: 2026-08-24
-hash: e154d598cdd40057
+capturado_em: 2026-08-25
+hash: d7e0264c8cd6d275
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,9 +11,11 @@ hash: e154d598cdd40057
 Diretrizes da Comunidade
 Diretrizes da Comunidade
 
-Publicado em 14 de agosto de 2025
+Em 24 de setembro de 2026, atualizaremos nossas Diretrizes da Comunidade para que você possa continuar criando, descobrindo e compartilhando conteúdo com segurança no TikTok. Confira as novas Diretrizes da Comunidade aqui.
 
-Em vigor a partir de 13 de setembro de 2025
+Publicação: 14 de agosto de 2025
+
+Em vigor: 13 de setembro de 2025
 
 No TikTok, as pessoas descobrem coisas que amam, constroem comunidades e se expressam. Nossa missão é simples: queremos inspirar a criatividade e proporcionar momentos de alegria.
 
