@@ -280,6 +280,14 @@ export interface ResultadoDaMudanca {
   degrau: Degrau;
   erro?: string;
   faltam?: string[];
+  /**
+   * POR QUE ISTO FOI CONCEDIDO SEM EVIDÊNCIA.
+   *
+   * Só é preenchido quando a mudança saiu por uma DECISÃO DO DONO declarada. É
+   * o oposto de uma exceção silenciosa: quem chama a rota recebe, na resposta,
+   * a decisão que autorizou — id, data, quem, e a frase.
+   */
+  porDecisaoDoDono?: { id: string; quem: string; em: string; motivo: string };
 }
 
 /**
@@ -366,6 +374,25 @@ export async function descerDegrau(p: {
  * Exige a MESMA evidência do degrau de allowlist. Sem isto, a lista seria a
  * porta dos fundos: o departamento fica em "allowlist" com um cliente herdado e
  * alguém acrescenta os outros nove à mão — wide sem nunca ter subido.
+ *
+ * ── A EXCEÇÃO QUE JÁ EXISTIA, E QUE ESTA PORTA NÃO CONHECIA (25/08/2026) ────
+ *
+ * Medido em produção: às 13:47 a escada RETEVE um Story ("design está em
+ * ALLOWLIST e o cliente não está na lista"); às 13:48 o despertador aplicou
+ * `DECISOES_DO_DONO` e incluiu o mesmo cliente sozinho. E esta função, chamada
+ * pela porta certa (`POST /api/agency/escada`, ação `liberar_cliente`), recusou
+ * com 409 "evidência insuficiente".
+ *
+ * Duas verdades sobre a mesma liberação, e a casa obedecia às duas — que é como
+ * uma escada vira enfeite: quem quisesse o resultado esperava cinco minutos
+ * pelo relógio em vez de passar pela porta que pergunta.
+ *
+ * A regra é a decisão do dono, porque é ela que tem PROCEDÊNCIA (datada,
+ * assinada, com a fala literal, versionada, validada). Então quem obedece é
+ * esta função — **e a régua de evidência não foi afrouxada em um milímetro**:
+ * ela continua valendo, inteira, para todo cliente que a decisão não cobre.
+ * O que esta porta ganhou foi CONHECER a decisão, e conceder em nome dela
+ * exatamente o que o relógio concederia sozinho na rodada seguinte.
  */
 export async function liberarCliente(p: {
   workspaceId: string;
@@ -381,15 +408,64 @@ export async function liberarCliente(p: {
   if (atual !== "allowlist") {
     return { ok: false, degrau: atual, erro: `só faz sentido em allowlist — o departamento está em ${atual}` };
   }
+  // ── A DECISÃO DO DONO, PERGUNTADA ANTES DA EVIDÊNCIA ──────────────────────
+  //
+  // Antes, e não depois: se a decisão cobre este cliente, a resposta certa é
+  // "sim, por esta decisão" — e devolver primeiro um 409 de evidência sobre um
+  // caso já autorizado é justamente a contradição medida em 25/08/2026.
+  //
+  // Import dinâmico porque `decisoes-do-dono.ts` importa deste módulo
+  // (`degraus`), e um import estático cruzado aqui fecharia o ciclo.
+  const { decisaoQueCobre, provaDaDecisao } = await import("./decisoes-do-dono");
+  const cobertura = await decisaoQueCobre({
+    workspaceId: p.workspaceId,
+    departmentId: p.departmentId,
+    clientId: p.clientId,
+  }).catch(() => null);
+
+  if (cobertura) {
+    const lista = new Set(lerClientes(linha?.clientesLiberados));
+    lista.add(p.clientId);
+    await prisma.departmentLadder.update({
+      where: { workspaceId_departmentId: { workspaceId: p.workspaceId, departmentId: p.departmentId } },
+      data: {
+        clientesLiberados: JSON.stringify([...lista]),
+        // A assinatura diz as DUAS coisas: qual decisão autorizou e quem pediu.
+        // "decidido por: usuario:42" sozinho esconderia que a autorização não
+        // era dele.
+        decididoPor: `decisao-do-dono:${cobertura.decisao.id} (pedido por ${p.quem})`,
+        motivo: cobertura.motivo,
+        provaJson: provaDaDecisao({
+          decisao: cobertura.decisao, de: atual, para: atual, clientes: [...lista], porQuem: p.quem,
+        }),
+      },
+    });
+    return {
+      ok: true,
+      degrau: atual,
+      porDecisaoDoDono: {
+        id: cobertura.decisao.id, quem: cobertura.decisao.quem,
+        em: cobertura.decisao.em, motivo: cobertura.motivo,
+      },
+    };
+  }
+
   const desde = new Date(Date.now() - JANELA_DE_EVIDENCIA_DIAS * 24 * 60 * 60_000);
   const registros = await prisma.departmentLadderRecord.findMany({
     where: { workspaceId: p.workspaceId, departmentId: p.departmentId, criadoEm: { gte: desde } },
     select: { resultado: true, clientId: true },
   }).catch(() => [] as Array<{ resultado: string; clientId: string | null }>);
   // A régua é a de ENTRAR em allowlist, aplicada a cada novo cliente.
+  // INTOCADA: quem a decisão do dono não cobre continua precisando do número.
   const avaliacao = avaliarSubida("sombra", registros);
   if (!avaliacao?.pode) {
-    return { ok: false, degrau: atual, erro: "evidência insuficiente para liberar mais um cliente", faltam: avaliacao?.faltam ?? [] };
+    return {
+      ok: false, degrau: atual,
+      erro:
+        "evidência insuficiente para liberar mais um cliente — e nenhuma decisão do dono declarada cobre " +
+        "este cliente neste departamento",
+      faltam: avaliacao?.faltam ?? [],
+    };
   }
   const lista = new Set(lerClientes(linha?.clientesLiberados));
   lista.add(p.clientId);

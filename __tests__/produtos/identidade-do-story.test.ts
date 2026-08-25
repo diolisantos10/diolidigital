@@ -84,7 +84,14 @@ describe("a triagem separa story de feed, e a carta não mistura mais", () => {
     // Era exatamente esta palavra, nesta frase, que fazia o formato do cliente
     // morrer na triagem: o modelo lia "ou um story" e escolhia o id do feed.
     expect(feed.quando.toLowerCase()).not.toMatch(/story/);
-    expect(feed.produtoId, "o feed ainda não foi migrado, e isso é declarado").toBeUndefined();
+    // ── ESTA LINHA DIZIA `toBeUndefined()` (até 25/08/2026) ───────────────
+    //
+    // Com o comentário "o feed ainda não foi migrado, e isso é declarado". A
+    // declaração era honesta e o estado era o DEFEITO: sem produto canônico, o
+    // pedido de feed desviava para o caminho de texto e o cliente pagava R$ 79
+    // por um card sem arquivo. Agora o feed tem produtor.
+    const { ID_POST_FEED_V1 } = await import("@/lib/agency/produtos/registro");
+    expect(feed.produtoId, "o feed produz — e é o produto que diz qual arquivo sai").toBe(ID_POST_FEED_V1);
   });
 });
 

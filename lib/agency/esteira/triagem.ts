@@ -60,7 +60,7 @@ import {
   lerOperacao, executarOperacaoDeCalendario, contarAoCliente, OPERACOES,
 } from "@/lib/agency/esteira/operacoes";
 import { registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
-import { ID_STORY_V1, produtoCanonico } from "@/lib/agency/produtos/registro";
+import { ID_STORY_V1, ID_POST_FEED_V1, produtoCanonico } from "@/lib/agency/produtos/registro";
 import { pediuStoryPorEscrito, pediuFeedPorEscrito } from "@/lib/agency/produtos/leitura-de-formato";
 
 /**
@@ -167,6 +167,39 @@ export interface Atendimento {
    * como se estraga o que estava de pé.
    */
   produtoId?: string;
+  /**
+   * ESTE ATENDIMENTO NÃO TEM PRODUTO CANÔNICO — e aqui está escrito QUEM produz.
+   *
+   * ── Por que este campo existe (25/08/2026) ───────────────────────────────
+   *
+   * O defeito medido em produção: `post-ou-carrossel` era uma peça
+   * (`entrega: "peca"`), tinha item de tabela (R$ 79) e **não tinha produtor**.
+   * O cliente pagava e recebia um card de texto com a descrição da arte. A casa
+   * já conhecia essa doença — foi ela que tirou reel, logotipo e banner da
+   * vitrine em D-0A3 — mas a régua morava só na VITRINE
+   * (`capacidade-de-producao.ts`). A porta do PORTAL, que é texto livre e passa
+   * pela triagem, não tinha régua nenhuma.
+   *
+   * Agora tem, e ela é catraca de CARREGAMENTO (`conferirAtendimento`): todo
+   * atendimento de `entrega: "peca"` com item de tabela é obrigado a ter
+   * `produtoId` **ou** declarar aqui, por escrito, por que não tem. Um terceiro
+   * estado — peça, com preço, sem produtor e sem declaração — derruba o módulo
+   * em vez de cobrar do cliente.
+   *
+   * O texto responde UMA pergunta: **se não é a corrente visual, quem produz o
+   * que este cliente vai receber?** Três respostas são legítimas, e as três
+   * ficam escritas:
+   *
+   *   • outro motor da casa produz (o ciclo do calendário, por exemplo);
+   *   • ninguém produz, e a venda já está fechada em outro lugar (a régua de
+   *     capacidade da vitrine, D-0A3);
+   *   • ninguém produz, e é ESTA linha que fecha a venda — o caso do carrossel.
+   *
+   * No terceiro caso o atendimento fica com `itemDeCatalogo: null`, e o texto
+   * daqui vai INTEIRO para a resposta ao cliente: parada declarada é parada que
+   * a pessoa entende.
+   */
+  semProdutorProprio?: string;
 }
 
 export const ATENDIMENTOS: Atendimento[] = [
@@ -194,6 +227,14 @@ export const ATENDIMENTOS: Atendimento[] = [
     entrega: "peca",
     itemDeCatalogo: "1-reel",
     cobre: 1,
+    // A venda deste item JÁ está fechada, e não é aqui: `1-reel` exige a
+    // capacidade `legenda-animada-em-video`, que `capacidade-de-producao.ts`
+    // declara AUSENTE (`ponto: null`) — a rota `/api/self-serve/order` o recusa
+    // desde D-0A3. Esta linha não fecha nada de novo; ela responde à pergunta
+    // da catraca dizendo onde a resposta mora.
+    semProdutorProprio:
+      "ninguém, e a venda já está fechada: `1-reel` depende de `legenda-animada-em-video`, capacidade " +
+      "declarada AUSENTE na régua de capacidade (D-0A3). Quem recusa é a régua, não esta carta.",
   },
   {
     // ── STORY É PRODUTO, NÃO SINÔNIMO DE POST (25/08/2026) ─────────────────
@@ -230,18 +271,64 @@ export const ATENDIMENTOS: Atendimento[] = [
     produtoId: ID_STORY_V1,
   },
   {
-    id: "post-ou-carrossel",
+    // ── POST E CARROSSEL DEIXARAM DE SER A MESMA LINHA (25/08/2026) ────────
+    //
+    // Até hoje havia UM atendimento, `post-ou-carrossel`, apontando os dois
+    // para `balcao-post-feed` (R$ 79, uma peça) e sem `produtoId` nenhum.
+    // Duas consequências medidas em produção com cliente oculto:
+    //
+    //   • sem `produtoId`, `producao-de-pedido.ts` desviava para o caminho de
+    //     TEXTO. O cliente pagava e recebia um card com a DESCRIÇÃO da arte —
+    //     nenhum `SocialPost`, nenhum arquivo para baixar;
+    //   • o carrossel era cobrado a preço de post avulso, com o item certo
+    //     (`balcao-carrossel-5`, R$ 129, capa + 4 telas) parado na tabela sem
+    //     ninguém escolher. É o achado 2.2 outra vez.
+    //
+    // Separar é o conserto inteiro do segundo ponto: são dois trabalhos, dois
+    // preços e duas quantidades, e um id só nunca ia conseguir carregar os
+    // dois. `story-instagram` continua ANTES dos dois, porque o caso específico
+    // tem de ser lido antes do genérico.
+    id: "post-feed",
     especialistaId: "design-criativo-social",
     departamentoId: "design",
-    label: "Peça para o feed (post ou carrossel)",
+    label: "Post para o feed (uma arte)",
     // "story" SAIU desta frase em 25/08/2026, e a saída é a metade que importa
     // do conserto: enquanto a palavra estivesse aqui, o modelo continuaria
     // mandando story para o preço e para o formato de feed — com a carta
     // dizendo, por escrito, que era o lugar certo.
-    quando: "o cliente quer uma arte ou um carrossel para o FEED do perfil — a peça que fica publicada, não a que some em 24h",
+    quando:
+      "o cliente quer UMA arte para o FEED do perfil — a peça que fica publicada, não a que some em 24h. " +
+      "Escolha este quando ele fala de post, arte, publicação ou peça de feed, e NÃO fala de sequência de telas",
     entrega: "peca",
     itemDeCatalogo: "balcao-post-feed",
     cobre: 1,
+    produtoId: ID_POST_FEED_V1,
+  },
+  {
+    id: "carrossel",
+    especialistaId: "design-criativo-social",
+    departamentoId: "design",
+    label: "Carrossel para o feed (capa + 4 telas)",
+    quando:
+      "o cliente quer um CARROSSEL — a sequência de telas que se arrasta para o lado no feed. " +
+      "Escolha este quando ele escrever carrossel, carousel, ou descrever várias telas em sequência para o mesmo post",
+    entrega: "peca",
+    // ── SEM PREÇO, DE PROPÓSITO ────────────────────────────────────────────
+    //
+    // O item `balcao-carrossel-5` (R$ 129) EXISTE na tabela, e mesmo assim este
+    // atendimento não aponta para ele: cobrar por esta porta é justamente o que
+    // estava errado. Ver `semProdutor` abaixo e o bloco "CARROSSEL: A VENDA FOI
+    // FECHADA" em `produtos/registro.ts`.
+    //
+    // Este atendimento continua existindo — e existir é metade do conserto: sem
+    // ele, o carrossel voltaria a cair em `post-feed` e a ser cobrado R$ 79
+    // como se fosse uma arte só.
+    itemDeCatalogo: null,
+    cobre: "pacote",
+    semProdutorProprio:
+      "carrossel é uma SEQUÊNCIA de telas, e a nossa linha de produção automática de peça avulsa " +
+      "hoje entrega uma peça por vez. Enquanto as duas não se encontram, eu NÃO vou te cobrar por um " +
+      "carrossel — a equipe monta o seu com a mão e te responde por aqui com o valor.",
   },
   {
     id: "legenda-copy",
@@ -262,6 +349,13 @@ export const ATENDIMENTOS: Atendimento[] = [
     entrega: "peca",
     itemDeCatalogo: "balcao-pacote-mes",
     cobre: "pacote",
+    // Este NÃO é peça avulsa: é o CICLO. Quem produz é o motor grande — o
+    // projeto entra em execução (`executionStatus: "pending"`) e o despertador
+    // roda o calendário do mês, que cria os `SocialPost` e chama a fila de arte.
+    // Não passa pela corrente visual de peça avulsa, e não deve passar.
+    semProdutorProprio:
+      "o motor de ciclo (o calendário do mês), acordado pelo despertador — não a corrente visual de peça " +
+      "avulsa. Pacote do mês não é um arquivo, é uma agenda de peças.",
   },
   {
     id: "banner-ou-criativo-de-anuncio",
@@ -272,6 +366,11 @@ export const ATENDIMENTOS: Atendimento[] = [
     entrega: "peca",
     itemDeCatalogo: "banner-digital",
     cobre: 1,
+    // Mesma situação do reel: `banner-digital` exige `arquivo-pdf`, capacidade
+    // declarada AUSENTE. A venda já está fechada pela régua de capacidade.
+    semProdutorProprio:
+      "ninguém, e a venda já está fechada: `banner-digital` depende de `arquivo-pdf`, capacidade declarada " +
+      "AUSENTE na régua de capacidade (D-0A3).",
   },
   {
     id: "identidade-visual",
@@ -282,6 +381,12 @@ export const ATENDIMENTOS: Atendimento[] = [
     entrega: "peca",
     itemDeCatalogo: "identidade-basica",
     cobre: "pacote",
+    // Mesma família do reel e do banner: `identidade-basica` exige
+    // `logotipo-de-cliente`, capacidade declarada AUSENTE — a casa só deriva um
+    // monograma das iniciais (`monogramaDe`), e a própria peça declara a falta.
+    semProdutorProprio:
+      "ninguém, e a venda já está fechada: `identidade-basica` depende de `logotipo-de-cliente`, capacidade " +
+      "declarada AUSENTE na régua de capacidade (D-0A3).",
   },
   {
     id: "campanha-de-trafego",
@@ -292,6 +397,13 @@ export const ATENDIMENTOS: Atendimento[] = [
     entrega: "peca",
     itemDeCatalogo: "setup-meta-ads",
     cobre: "pacote",
+    // O que sai daqui não é ARQUIVO: é campanha criada PAUSADA na conta do
+    // cliente (`criarCampanhaPausada`, capacidade presente). A corrente visual
+    // de peça avulsa não tem o que fazer aqui, e o departamento de tráfego tem
+    // portões próprios (parecer do especialista da plataforma).
+    semProdutorProprio:
+      "o integrador da Meta (`criarCampanhaPausada`), não a corrente visual: o que se entrega é campanha " +
+      "pausada na conta do cliente, não um arquivo de imagem.",
   },
 ];
 
@@ -315,6 +427,38 @@ for (const a of ATENDIMENTOS) {
   // descobre no fim da corrente que não tem produto — depois de gastar IA e
   // imagem. Erro de digitação tem de derrubar o módulo, não o pedido do
   // cliente.
+  // ── A CATRACA DO PRODUTOR (25/08/2026) ────────────────────────────────────
+  //
+  // "Item sem produtor não é vendável" (D-0A3/D-0B1) valia na VITRINE e não
+  // valia aqui. `post-ou-carrossel` era `entrega: "peca"`, apontava para um item
+  // de R$ 79 e não dizia em lugar nenhum quem produzia o arquivo — e foi por
+  // esse buraco que o cliente pagou e recebeu um card de texto.
+  //
+  // A pergunta que passou a ser obrigatória: **quem produz o que este cliente
+  // vai receber?** Todo atendimento que entrega PEÇA responde de uma das duas
+  // formas, e o silêncio derruba o módulo no carregamento (não o pedido do
+  // cliente no fim da corrente):
+  //
+  //   • `produtoId` — a corrente visual produz o arquivo, e o registro diz qual;
+  //   • `semProdutorProprio` — a declaração escrita de quem produz no lugar
+  //     dela, ou de que ninguém produz.
+  //
+  // ⚠️ Vale só para `entrega: "peca"`. Insumo é TEXTO, e texto o caminho de
+  // sempre entrega — foi ele que sempre entregou, e é ele que continua certo.
+  if (a.entrega === "peca" && a.produtoId === undefined && !a.semProdutorProprio?.trim()) {
+    throw new Error(
+      `triagem.ts: o atendimento "${a.id}" entrega PEÇA e não diz quem produz o arquivo — nem \`produtoId\` ` +
+      "(a corrente visual) nem `semProdutorProprio` (a declaração de quem produz no lugar dela). " +
+      "Peça sem produtor declarado é o defeito de 25/08/2026: o cliente paga e recebe um card de texto.",
+    );
+  }
+  // Declarar as duas coisas é dizer "produz pela corrente" e "não produz pela
+  // corrente" ao mesmo tempo.
+  if (a.produtoId !== undefined && a.semProdutorProprio?.trim()) {
+    throw new Error(
+      `triagem.ts: o atendimento "${a.id}" declara produto "${a.produtoId}" E \`semProdutorProprio\`. Uma das duas é falsa.`,
+    );
+  }
   if (a.produtoId !== undefined) {
     const produto = produtoCanonico(a.produtoId);
     if (!produto) {
@@ -715,7 +859,20 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
   // O caso positivo é o único em que age: silêncio do cliente não vira
   // conclusão nenhuma (ver o cabeçalho de `leitura-de-formato.ts`).
   const textoDoPedido = [pedido.description, pedido.objective].filter(Boolean).join("\n");
-  const ehItemDeFeed = atendimento.itemDeCatalogo === "balcao-post-feed";
+  // ── A PERGUNTA CERTA É O FORMATO, NÃO O ID DO ITEM (25/08/2026) ─────────
+  //
+  // Isto era `atendimento.itemDeCatalogo === "balcao-post-feed"`, e a régua
+  // ficou MIRADA NO IRMÃO no mesmo dia em que o carrossel ganhou item próprio:
+  // um pedido que dissesse "story" e caísse em `carrossel` (`balcao-carrossel-5`,
+  // 1080×1350) passava direto por esta trava, porque o id não batia. A régua
+  // que só conhece o nome de um item envelhece na primeira linha nova de
+  // tabela. Agora ela pergunta o que de fato importa — **o produto deste
+  // atendimento é peça de feed?** — e o registro responde.
+  const produtoDoAtendimento = produtoCanonico(atendimento.produtoId);
+  const ehItemDeFeed =
+    produtoDoAtendimento !== null
+      ? produtoDoAtendimento.formatoDaPeca !== "story"
+      : atendimento.itemDeCatalogo === "balcao-post-feed";
   if (ehItemDeFeed && pediuStoryPorEscrito(textoDoPedido)) {
     return await parar(
       pedidoId,
@@ -726,6 +883,19 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
         : "Você pediu STORY, e a classificação automática mandou este pedido para o preço e o formato de peça de " +
           "FEED. São produtos diferentes — o story é vertical (1080×1920) e tem margem protegida — e eu não vou " +
           "cobrar nem produzir o formato errado. A equipe confirma com você e responde por aqui.",
+    );
+  }
+
+  // ── TRAVA 1-C · SEM PRODUTOR, NÃO SE COBRA ────────────────────────────────
+  //
+  // Vem ANTES do preço de propósito: o pedido não pode nem chegar perto de uma
+  // linha de tabela. É a régua de D-0A3 ("vitrine é promessa; promessa sem
+  // produtor é dívida") chegando na porta do portal, onde ela não existia.
+  if (atendimento.itemDeCatalogo === null && atendimento.semProdutorProprio?.trim()) {
+    return await parar(
+      pedidoId,
+      `Entendi o que você quer (${atendimento.label.toLowerCase()}), e eu não vou cobrar por isso agora: ` +
+      `${atendimento.semProdutorProprio}`,
     );
   }
 
@@ -781,7 +951,8 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
   // tabela vende.
   //
   // E, como sempre nesta casa: **pergunta, nunca cobra.**
-  const produtoDoAtendimento = produtoCanonico(atendimento.produtoId);
+  // Lido uma vez só, lá em cima na TRAVA 1-B — duas leituras do mesmo registro
+  // na mesma função é a segunda verdade nascendo dentro de um arquivo só.
   if (
     produtoDoAtendimento &&
     typeof leitura.quantidade === "number" &&

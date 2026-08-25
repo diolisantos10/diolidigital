@@ -370,13 +370,34 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   let data = primeira.data as Record<string, unknown>;
 
   // ── FREIO 1 · CONTRATO DE SAÍDA ───────────────────────────────────────────
-  let contrato = conferirContrato(esp, data);
+  //
+  // ── QUANDO HÁ PRODUTO, QUEM MANDA NA CONTAGEM É O PRODUTO (25/08/2026) ──
+  //
+  // O contrato do especialista de criativo de social é `exigirQuantidade(3, 8)`
+  // — uma régua de LOTE, escrita para o pacote do mês. O Story passou por ela
+  // por coincidência (4 cabe em 3..8). O post de feed, que é UMA peça por
+  // R$ 79, batia de frente: a produção descrevia 1 peça, o contrato exigia 3, o
+  // pedido parava em `precisa_decisao` e o cliente ficava sem nada.
+  //
+  // Duas verdades sobre a mesma quantidade — e a que o CLIENTE PAGOU é a do
+  // produto (`quantidadeDePecas`, derivada do item de tabela). Então, quando o
+  // pedido tem produto canônico, é ele que confere a contagem, com piso e teto
+  // no MESMO número: nem a menos (entregar menos por preço cheio) nem a mais
+  // (imagem paga que ninguém comprou).
+  //
+  // ⚠️ Isto NÃO afrouxa nada: `exigirQuantidade(n, n)` é mais estrito que
+  // `(3, 8)`, não menos. E o pedido SEM produto continua caindo no contrato do
+  // especialista, byte por byte como sempre.
+  const contratoDoPedido = produto
+    ? { contrato: (d: Record<string, unknown>) => exigirQuantidadeExata(d, produto.quantidadeDePecas, produto.label) }
+    : esp;
+  let contrato = conferirContrato(contratoDoPedido, data);
   if (!contrato.cumpriu) {
     const refeito = await gerar(refazer(promptBase, data, `O CONTRATO DE FORMATO NÃO FOI CUMPRIDO:\n- ${contrato.violacoes.join("\n- ")}`,
       "Reentregue o JSON inteiro cumprindo exatamente essas contagens e formatos."));
     if (refeito.ok) {
       const novo = refeito.data as Record<string, unknown>;
-      const conferido = conferirContrato(esp, novo);
+      const conferido = conferirContrato(contratoDoPedido, novo);
       // Só troca se MELHOROU: resposta mais recente não é resposta melhor.
       if (conferido.violacoes.length <= contrato.violacoes.length) { data = novo; contrato = conferido; }
     }
@@ -700,10 +721,18 @@ function blocoDoProduto(produto: ProdutoCanonico | null): string {
     "",
     `──────── O PRODUTO DESTE PEDIDO: ${produto.label} ────────`,
     `Entregue EXATAMENTE ${produto.quantidadeDePecas} peças. Nem uma a menos: o preço da tabela cobre ${produto.quantidadeDePecas}.`,
-    `Cada peça é um STORY VERTICAL de ${d.largura}×${d.altura} — tela cheia do celular, não arte de feed.`,
+    // ── O FORMATO SAI DO REGISTRO, NÃO DAQUI (25/08/2026) ─────────────────
+    //
+    // Estas duas linhas diziam "Cada peça é um STORY VERTICAL" e "Story tem
+    // barra de progresso em cima", escritas na mão, para QUALQUER produto.
+    // Enquanto o registro tinha um produto só, a mentira não aparecia. No
+    // minuto em que o feed e o carrossel entraram, o especialista de uma peça
+    // de feed passaria a receber, por escrito, a ordem de fazer um story — e
+    // prompt é aviso, mas aviso errado é aviso que atrapalha.
+    `Cada peça mede ${d.largura}×${d.altura}.`,
+    ...produto.instrucoesDeFormato,
     "Para CADA peça, o campo `headline` é o TÍTULO QUE VAI APARECER NA IMAGEM: curto, forte, no máximo 8 palavras.",
     "O campo `note` é o texto de apoio da peça — uma frase. O campo `direction` é o que a IMAGEM mostra (cenário, luz, enquadramento) e NUNCA vira letra.",
-    "Story tem barra de progresso em cima e caixa de resposta embaixo: nada de conteúdo essencial nas bordas.",
     "──────── FIM DO PRODUTO ────────",
   ].join("\n");
 }
@@ -746,6 +775,22 @@ export function pecasDoEspecialista(data: Record<string, unknown>): PecaDoEspeci
       pilar: campo(it, "pillar") || campo(it, "pilar") || null,
     };
   });
+}
+
+/**
+ * A contagem EXATA que o produto vende. Lê os itens pela MESMA função que o
+ * contrato do especialista usa (`itensDe`) — uma segunda leitura aqui faria o
+ * conferente e o produtor discordarem sobre quantas peças existem.
+ */
+function exigirQuantidadeExata(data: Record<string, unknown>, quantas: number, oQue: string): string[] {
+  const n = itensDe(data).length;
+  if (n === quantas) return [];
+  return [
+    `entregou ${n} peça(s) e o cliente comprou ${quantas} (${oQue}). ` +
+    (n < quantas
+      ? "Entregar a menos por um preço cheio é erro de dinheiro."
+      : "Entregar a mais é imagem paga que ninguém comprou."),
+  ];
 }
 
 /** O JSON do especialista vira o markdown que o cliente lê. O `summary` sobe

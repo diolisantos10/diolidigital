@@ -2,7 +2,7 @@
 //
 // ── O defeito que estes testes impedem de voltar ─────────────────────────────
 //
-// Até 25/08/2026 o atendimento `post-ou-carrossel` dizia, na própria frase que
+// Até 25/08/2026 o atendimento `post-ou-carrossel` (hoje `post-feed`) dizia, na própria frase que
 // o modelo lê: "o cliente quer uma arte, um post, um carrossel ou um story".
 // Ele apontava para `balcao-post-feed` — peça de FEED, 1080×1350, R$ 79.
 //
@@ -100,7 +100,8 @@ vi.mock("@/app/api/messages/conversa", () => ({
   conversaDoCliente: () => Promise.resolve({ ancora: { clientId: "cli-1", clientRequestId: null } }),
 }));
 
-const { triarPedido, precoDaTabela } = await import("@/lib/agency/esteira/triagem");
+const { triarPedido, precoDaTabela, ATENDIMENTOS } = await import("@/lib/agency/esteira/triagem");
+const { ID_POST_FEED_V1 } = await import("@/lib/agency/produtos/registro");
 const { ID_STORY_V1 } = await import("@/lib/agency/produtos/registro");
 
 function novoPedido(descricao: string, objetivo = "aparecer mais no Instagram") {
@@ -179,7 +180,7 @@ describe("o caminho legítimo — story vira story", () => {
 describe("a TRAVA 1-B — o pedido de story nunca vira dinheiro no produto de feed", () => {
   it("cliente escreveu STORY e o modelo mandou para o item de FEED: PARA, e não cobra", async () => {
     novoPedido("Quero um story pro Instagram da padaria mostrando o pão saindo do forno.");
-    classificaComo("post-ou-carrossel");
+    classificaComo("post-feed");
 
     const r = await triarPedido("pc-1");
     expect(r.ok, "classificação que contradiz o texto do cliente não vira orçamento").toBe(false);
@@ -196,7 +197,7 @@ describe("a TRAVA 1-B — o pedido de story nunca vira dinheiro no produto de fe
 
   it("pedido que cita os DOIS formatos também para — e a frase diz que são dois", async () => {
     novoPedido("Quero um post pro feed e um story, os dois falando da promoção da manhã.");
-    classificaComo("post-ou-carrossel");
+    classificaComo("post-feed");
 
     const r = await triarPedido("pc-1");
     expect(r.ok).toBe(false);
@@ -209,20 +210,101 @@ describe("a TRAVA 1-B — o pedido de story nunca vira dinheiro no produto de fe
     // A metade que prova que a trava não é um freio de mão puxado: quem pede
     // arte de feed continua atravessando, com o preço de feed.
     novoPedido("Quero uma arte nova pro feed da padaria, aquela do pão de queijo.");
-    classificaComo("post-ou-carrossel");
+    classificaComo("post-feed");
 
     const r = await triarPedido("pc-1");
     expect(r.ok, "o produto de feed NÃO foi afetado por esta mudança").toBe(true);
     if (!r.ok || !r.triado) return;
     expect(r.triado.atendimento.itemDeCatalogo).toBe("balcao-post-feed");
     expect(r.triado.preco).toBe(precoDaTabela("balcao-post-feed"));
-    expect(pedidos.get("pc-1")!.produtoId ?? null, "feed ainda não é produto canônico, e isso é honesto").toBeNull();
+    // ── ESTA LINHA DIZIA `toBeNull()` (até 25/08/2026) ────────────────────
+    //
+    // Com o comentário "feed ainda não é produto canônico, e isso é honesto".
+    // Era honesto e era o DEFEITO: sem produto, `producao-de-pedido.ts` desvia
+    // para o caminho de texto — o cliente pagava R$ 79 e recebia um card com a
+    // descrição da arte, sem nenhum arquivo. Agora o feed produz.
+    expect(pedidos.get("pc-1")!.produtoId ?? null, "o produto de feed viaja com o pedido").toBe(ID_POST_FEED_V1);
   });
 
   it("a palavra dentro de 'storytelling' NÃO dispara a trava", async () => {
     novoPedido("Quero uma arte pro feed com um storytelling bom na legenda.");
-    classificaComo("post-ou-carrossel");
+    classificaComo("post-feed");
     const r = await triarPedido("pc-1");
     expect(r.ok, "trava que dispara no lugar errado é desligada por quem a encontra").toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// O CARROSSEL — MEDIDO EM PRODUÇÃO EM 25/08/2026, COM OS DOIS DEFEITOS JUNTOS
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O cliente pedia carrossel, caía em `post-ou-carrossel`, era cobrado R$ 79
+// (o item de UMA arte de feed) e recebia um card de TEXTO com a descrição da
+// arte — nenhum arquivo. O item certo, `balcao-carrossel-5` (R$ 129, capa + 4
+// telas), estava na tabela e ninguém escolhia.
+//
+// A casa produz carrossel por outra gramática (UM `SocialPost` com `scenesJson`
+// e função de storyboard por tela), e casar as duas não coube nesta rodada.
+// Então, pela regra de D-0A3 — promessa sem produtor é dívida — **a venda foi
+// fechada nesta porta**, como foi feito com reel, logotipo e banner.
+describe("o carrossel — não é mais cobrado a preço de post, e não é mais cobrado", () => {
+  it("carrossel PARA com motivo declarado, e nenhum preço é dito", async () => {
+    novoPedido("Quero um carrossel pro Instagram da padaria contando como o pão é feito, tela por tela.");
+    classificaComo("carrossel");
+
+    const r = await triarPedido("pc-1");
+    expect(r.ok, "carrossel sem produtor não vira orçamento").toBe(false);
+
+    const pedido = pedidos.get("pc-1")!;
+    expect(pedido.status).toBe("precisa_decisao");
+    // A parada é ACIONÁVEL: diz que não vai cobrar e diz quem responde.
+    expect(String(pedido.declineReason)).toMatch(/n[ãa]o vou cobrar/i);
+    expect(String(pedido.declineReason)).toMatch(/equipe/i);
+    expect(pedido.quotedPrice ?? null, "nada foi cobrado").toBeNull();
+    expect(db.task.create, "e nada entrou na fila de produção").not.toHaveBeenCalled();
+  });
+
+  it("e o pedido de carrossel NÃO cai mais no item de R$ 79 do post de feed", () => {
+    const carrossel = ATENDIMENTOS.find((a) => a.id === "carrossel")!;
+    expect(carrossel, "o atendimento de carrossel existe — sem ele o pedido volta a cair no feed").toBeTruthy();
+    expect(carrossel.itemDeCatalogo, "carrossel com item de tabela é carrossel sendo cobrado").toBeNull();
+    expect(carrossel.semProdutorProprio, "e a razão está escrita, não subentendida").toBeTruthy();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A CATRACA: PEÇA SEM PRODUTOR DECLARADO NÃO CARREGA
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O defeito nasceu de um SILÊNCIO: `post-ou-carrossel` entregava peça, cobrava
+// R$ 79 e não dizia em lugar nenhum quem produzia o arquivo. Nada quebrava —
+// quebrava o cliente, depois de pagar.
+//
+// Agora todo atendimento de `entrega: "peca"` responde "quem produz?" de uma
+// das duas formas, e o silêncio derruba o módulo no carregamento.
+describe("catraca — todo atendimento que entrega PEÇA diz quem produz", () => {
+  it("nenhum atendimento da carta fica em silêncio sobre o produtor", () => {
+    for (const a of ATENDIMENTOS.filter((x) => x.entrega === "peca")) {
+      expect(
+        Boolean(a.produtoId) || Boolean(a.semProdutorProprio?.trim()),
+        `o atendimento "${a.id}" entrega peça e não diz quem produz o arquivo`,
+      ).toBe(true);
+      // E nunca as duas: "produz pela corrente" e "não produz pela corrente" ao
+      // mesmo tempo é uma das duas ser falsa.
+      expect(Boolean(a.produtoId) && Boolean(a.semProdutorProprio?.trim()), `"${a.id}" declara as duas`).toBe(false);
+    }
+  });
+
+  it("peça com preço e sem produtor declarado NÃO passa pela régua da carta", () => {
+    // A mesma pergunta da catraca, feita aqui sobre a forma que o defeito real
+    // tinha: `entrega: "peca"`, item de tabela, `produtoId` ausente.
+    const comoEraOPostOuCarrossel = {
+      id: "post-ou-carrossel", entrega: "peca" as const,
+      itemDeCatalogo: "balcao-post-feed", produtoId: undefined, semProdutorProprio: undefined,
+    };
+    expect(
+      Boolean(comoEraOPostOuCarrossel.produtoId) || Boolean(comoEraOPostOuCarrossel.semProdutorProprio),
+      "esta é a forma exata que cobrou R$ 79 e entregou texto — ela não pode voltar em silêncio",
+    ).toBe(false);
   });
 });

@@ -86,6 +86,22 @@ export interface ProdutoCanonico {
    * Ver `briefing-minimo.ts` para por que a ausência dela custa caro num Story.
    */
   exigeBriefingMinimo: boolean;
+  /**
+   * AS LINHAS DE FORMATO QUE VÃO NO PROMPT DO ESPECIALISTA.
+   *
+   * ⚠️ AVISO, NÃO TRAVA — a regra da casa é literal ("prompt é aviso; código é
+   * trava"), e o que confere formato e quantidade continua sendo código:
+   * `conferirContrato`, o portão de quantidade da corrente e a conferência dos
+   * bytes do arquivo final.
+   *
+   * Existe como CAMPO, e obrigatório, por um defeito com endereço: até
+   * 25/08/2026 `blocoDoProduto` (`esteira/producao-de-pedido.ts`) escrevia
+   * "Cada peça é um STORY VERTICAL" **na mão**, para qualquer produto. No dia
+   * em que o segundo produto entrasse no registro, o especialista de uma peça
+   * de FEED receberia, por escrito, a ordem de fazer um story. Campo
+   * obrigatório é o que faz o produto novo não compilar sem dizer o que é.
+   */
+  instrucoesDeFormato: readonly string[];
   /** Por que este produto existe separado dos vizinhos. Documentação que o
    *  código carrega, no padrão de `tipos-de-entrega.ts`. */
   porque: string;
@@ -128,14 +144,108 @@ export const INSTAGRAM_STORY_ESTATICO_V1: ProdutoCanonico = {
   // Sem dizer o que a pessoa deve fazer, a peça é um cartaz — e pior, quem
   // preenche a lacuna é o modelo, que inventa a ação e o canal junto.
   exigeBriefingMinimo: true,
+  instrucoesDeFormato: [
+    "Cada peça é um STORY VERTICAL de tela cheia do celular — não é arte de feed.",
+    "Story tem barra de progresso em cima e caixa de resposta embaixo: nada de conteúdo essencial nas bordas.",
+  ],
   porque:
     "Story é vertical 1080×1920 com zona morta de interface em cima e embaixo. " +
     "Entregá-lo como peça de feed (1080×1350) não é uma aproximação: é o texto " +
     "do cliente cortado pela barra de progresso e pela caixa de resposta.",
 };
 
+
+/** O id do post de feed. Mesma razão de `ID_STORY_V1` para ser constante. */
+export const ID_POST_FEED_V1 = "instagram_post_feed_v1";
+
+/**
+ * POST PARA O FEED — o produto que a casa COBRAVA e NÃO PRODUZIA.
+ *
+ * ── O defeito, medido em produção em 25/08/2026 ────────────────────────────
+ *
+ * `post-ou-carrossel` (`esteira/triagem.ts`) não declarava `produtoId`. Sem
+ * produto, `producao-de-pedido.ts` desviava para o caminho de TEXTO: criava um
+ * `Deliverable` com a descrição da arte, abria um card no portal e carimbava o
+ * pedido como "entregue". Nenhum `SocialPost`, nenhum `mediaUrl`, nenhuma
+ * imagem. O cliente pagava R$ 79, lia "2 entregas disponíveis para você" e não
+ * tinha arquivo nenhum para baixar.
+ *
+ * É a mesma dívida que a casa tirou da vitrine em D-0A3 — vitrine é promessa;
+ * promessa sem produtor é dívida — só que aqui o dinheiro já tinha entrado.
+ *
+ * ── Por que produzir, e não parar de cobrar ────────────────────────────────
+ *
+ * Porque não falta capacidade nenhuma: `FORMATOS.feed` já existe no molde
+ * (1080×1350, margens declaradas), `execution/artes.ts` já produz a arte e a
+ * corrente visual de `story-instagram-v1.ts` já é escrita CONTRA
+ * `ProdutoCanonico` — ela lê `formatoDoPost`, `formatoDaPeca` e
+ * `quantidadeDePecas` do registro, e não a palavra "story". Ligar o feed é
+ * declarar o produto, não escrever um segundo motor. Fechar a venda de algo
+ * que a casa sabe fazer seria trocar uma dívida por outra.
+ */
+export const INSTAGRAM_POST_FEED_V1: ProdutoCanonico = {
+  id: ID_POST_FEED_V1,
+  label: "Post para o feed do Instagram",
+  rede: "instagram",
+  formatoDoPost: "feed",
+  formatoDaPeca: "feed",
+  mimeExigido: MIME_DE_IMAGEM_ACEITO,
+  itemDeCatalogo: "balcao-post-feed",
+  quantidadeDePecas: 1,
+  publicavel: true,
+  // Mesma razão do story: a peça é de conversão e o cliente pagou por uma peça
+  // só. Sem chamada, quem preenche a lacuna é o modelo — ele inventa a ação e
+  // o canal junto, e aqui não há outras três peças para diluir o estrago.
+  exigeBriefingMinimo: true,
+  instrucoesDeFormato: [
+    "Cada peça é uma ARTE DE FEED VERTICAL — a peça que FICA publicada no perfil, não a que some em 24h.",
+    "Não é story: não há barra de progresso nem caixa de resposta, mas o corte do grid do perfil come as bordas.",
+  ],
+  porque:
+    "Feed é 1080×1350 e fica publicado. Entregá-lo como story (1080×1920) é a " +
+    "peça cortada no grid do perfil; entregá-lo como TEXTO — que é o que a casa " +
+    "fazia — é cobrar R$ 79 por um card sem arquivo.",
+};
+
+// ── CARROSSEL: A VENDA FOI FECHADA, NÃO LIGADA (25/08/2026) ─────────────────
+//
+// O carrossel tinha os DOIS defeitos ao mesmo tempo: era cobrado a preço de
+// post avulso (`balcao-post-feed`, R$ 79, com o item certo — `balcao-carrossel-5`,
+// R$ 129 — parado na tabela sem ninguém escolher) E entregue como texto.
+//
+// Ele NÃO virou produto canônico nesta rodada, e o motivo é mecânico, não de
+// gosto: **a casa produz carrossel por uma gramática diferente da que esta
+// corrente fala.**
+//
+//   • a corrente visual (`story-instagram-v1.ts`) cria N `SocialPost`, um por
+//     peça, e confere os bytes de CADA UM contra `dimensaoExigida`;
+//   • o produtor de carrossel da casa (`montarCarrossel`, em
+//     `execution/artes.ts`) é o inverso: UM `SocialPost` com `scenesJson`, e
+//     cada cena precisa declarar a sua FUNÇÃO no storyboard (gancho, tensão,
+//     prova, mecanismo, resultado, ação) para passar por `conferirStoryboard`.
+//
+// Casar as duas gramáticas é trabalho de verdade — inclui o especialista passar
+// a emitir cenas com função declarada e a conferência do arquivo aprender a
+// medir N telas de um post só. Declarar aqui um `ProdutoCanonico` de carrossel
+// sem isso ligaria a corrente a um produtor que não existe nessa forma, e o
+// cliente voltaria a pagar por algo que para no meio — trocar uma dívida por
+// outra.
+//
+// Então, pela regra desta casa (D-0A3: vitrine é promessa; promessa sem
+// produtor é dívida), **a venda foi fechada**: o atendimento `carrossel` da
+// triagem existe para o pedido não ser mais cobrado como post de feed, e ele
+// PARA com o motivo declarado, sem preço. Foi o que a casa já fez com reel,
+// logotipo e banner.
+//
+// ⚠️ O que NÃO foi tocado nesta rodada: o item `balcao-carrossel-5` continua na
+// vitrine, e a compra por lá segue pelo motor grande (o ciclo), que é o caminho
+// que chama `montarCarrossel`. Esse caminho NÃO foi medido por este trabalho —
+// está declarado no relatório como o que ficou sem medida, não como o que
+// funciona.
+
 export const PRODUTOS_CANONICOS: readonly ProdutoCanonico[] = [
   INSTAGRAM_STORY_ESTATICO_V1,
+  INSTAGRAM_POST_FEED_V1,
 ];
 
 const PORID = new Map(PRODUTOS_CANONICOS.map((p) => [p.id, p]));

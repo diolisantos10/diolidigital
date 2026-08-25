@@ -1,4 +1,14 @@
-// story-instagram-v1.ts — A ÚNICA PORTA DA CORRENTE DO STORY. SERVER-ONLY.
+// story-instagram-v1.ts — A ÚNICA PORTA DA CORRENTE VISUAL. SERVER-ONLY.
+//
+// ⚠️ O NOME DO ARQUIVO É HISTÓRICO, E O QUE ELE ATENDE JÁ NÃO É (25/08/2026).
+//
+// Este módulo nunca soube o que é um story: ele recebe um `ProdutoCanonico` e
+// lê `formatoDoPost`, `formatoDaPeca` e `quantidadeDePecas` do REGISTRO. Foi
+// escrito assim de propósito, e a prova é que ligar o post de feed custou uma
+// entrada em `produtos/registro.ts` e um `produtoId` na carta de atendimentos —
+// nenhuma linha de motor nova. Renomear arquivo e função é trabalho de
+// renomeação pura, e ele fica registrado como pendência em vez de ser
+// misturado a um conserto de defeito medido.
 //
 // ═══════════════════════════════════════════════════════════════════════════
 // O QUE ESTE ARQUIVO CONSERTA (Operação Salvaguarda, 25/08/2026)
@@ -581,7 +591,7 @@ function corpoDoCardDeStory(
     const prova = provas[i];
     return [
       `**${i + 1}. ${peca.titulo}**`,
-      `- Formato: Story (${produto.rede})`,
+      `- Formato: ${produto.label} (${produto.rede})`,
       peca.pilar ? `- Pilar: ${peca.pilar}` : "",
       `- Texto da peça: ${peca.legenda.trim()}`,
       prova ? `- Arquivo: ${prova.resumo}` : "",
@@ -623,9 +633,14 @@ function corpoDoCardDeStory(
     // cartão existir. Logo: se este cartão existe, o texto passou pela medição.
     //
     // A frase diz o mecanismo, não a conclusão nua. Quem lê pode conferir.
-    `${provas.length} story(ies) vertical(is) de ${provas[0]?.medida.largura ?? "?"}×${provas[0]?.medida.altura ?? "?"}, ` +
+    // O NOME DA PEÇA SAI DO PRODUTO (25/08/2026). Esta linha dizia
+    // "story(ies) vertical(is)" para qualquer produto — inofensivo enquanto só
+    // havia story no registro, e uma mentira na tela do cliente no dia
+    // seguinte: quem comprou carrossel leria "5 story(ies) vertical(is)".
+    `${provas.length} peça(s) — ${produto.label} — de ` +
+    `${provas[0]?.medida.largura ?? "?"}×${provas[0]?.medida.altura ?? "?"}, ` +
     "com a marca do cliente aplicada. O texto de cada peça foi conferido contra a área segura do Instagram " +
-    "na hora de virar imagem: peça com texto sob a barra de progresso ou sob a caixa de resposta é reprovada " +
+    "na hora de virar imagem: peça com texto invadindo a zona morta da interface é reprovada " +
     "pelo rasterizador e não chega até aqui.",
     // "acima" virou "abaixo" em 25/08/2026: o corpo do cartão passou a ser
     // renderizado ANTES das peças (o aviso de "sem árbitro" mora nele e aviso
