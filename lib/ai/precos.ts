@@ -31,7 +31,7 @@
 // "sem preço na tabela: N chamadas" — que é a verdade e é acionável.
 
 /** Sobe a cada mudança de preço. Carimbado em cada linha do `AIRunLog`. */
-export const TABELA_VERSAO = "2026-08-06.1";
+export const TABELA_VERSAO = "2026-08-24.1";
 
 /**
  * `conferidoEm: null` significa **preço de tabela copiado da documentação
@@ -130,6 +130,87 @@ export function estimarCusto(
   // Seis casas: uma chamada barata custa US$ 0,0003 e arredondar para centavo a
   // transformaria em zero — mil chamadas de zero somam zero.
   return { usd: Math.round(usd * 1_000_000) / 1_000_000, versao: TABELA_VERSAO };
+}
+
+// ─── IMAGEM NÃO SE COBRA POR TOKEN (24/08/2026) ──────────────────────────────
+//
+// O defeito que este bloco fecha, medido em produção no case Farol 27: a casa
+// contabilizou 47 chamadas de TEXTO (US$ 0,53) e ZERO chamadas de imagem — não
+// porque nenhuma imagem foi gerada, mas porque `generateDesign` nunca escreveu
+// no `AIRunLog`. O item MAIS CARO da casa (~US$ 0,17–0,25 por imagem, contra
+// frações de centavo por texto) era o único invisível: fora do relatório de
+// gasto e, pior, fora do TETO por workspace, que soma justamente aquela tabela.
+//
+// A tabela acima não serve para imagem: o `images/generations` cobra por IMAGEM
+// PRODUZIDA, por tamanho e por qualidade, e não por token. Uma segunda régua,
+// portanto — mas no MESMO arquivo, com a MESMA versão de tabela carimbada e a
+// MESMA regra de que desconhecido custa `null`, nunca zero.
+//
+// ⚠️ É PREÇO DE TABELA PÚBLICA, NÃO FATURA — vale aqui palavra por palavra o
+// que o cabeçalho deste arquivo diz. Esta casa não lê o faturamento do provedor.
+
+/** Os três recortes que a casa pede ao gerador. Ver `DesignSize`. */
+export type TamanhoDeImagem = "quadrada" | "retrato" | "paisagem";
+
+/**
+ * Preço de UMA imagem, em USD, por modelo → tamanho → qualidade.
+ *
+ * A qualidade é a string tal como é ENVIADA ao provedor (`high`/`medium` para
+ * o `gpt-image-1`, `hd`/`standard` para o `dall-e-3`) — e não a palavra que a
+ * casa usa por dentro. Casar pelo que sai no corpo da requisição é o que
+ * impede a tabela de descrever um pedido que ninguém faz.
+ */
+export const PRECOS_DE_IMAGEM: Record<string, Record<TamanhoDeImagem, Record<string, number>>> = {
+  "gpt-image-1": {
+    // 1024×1024
+    quadrada:  { low: 0.011, medium: 0.042, high: 0.167 },
+    // 1024×1536
+    retrato:   { low: 0.016, medium: 0.063, high: 0.25 },
+    // 1536×1024
+    paisagem:  { low: 0.016, medium: 0.063, high: 0.25 },
+  },
+  "dall-e-3": {
+    // 1024×1024
+    quadrada:  { standard: 0.04, hd: 0.08 },
+    // 1024×1792
+    retrato:   { standard: 0.08, hd: 0.12 },
+    // 1792×1024
+    paisagem:  { standard: 0.08, hd: 0.12 },
+  },
+};
+
+/**
+ * O preço de tabela de UMA imagem no recorte que `artes.ts` pede sem opção
+ * (`gpt-image-1`, qualidade alta). Mora AQUI, junto das outras verdades de
+ * preço, e é importado por quem mostra a conta — `produzir-agora.ts` mantinha
+ * a sua própria cópia destes dois números, e verdade escrita em dois lugares já
+ * está errada em um deles.
+ */
+export const PRECO_DE_TABELA_USD = {
+  /** 1024×1024, qualidade alta. */
+  quadrada: PRECOS_DE_IMAGEM["gpt-image-1"]!.quadrada.high!,
+  /** 1024×1536, qualidade alta — é o `story`. */
+  retrato: PRECOS_DE_IMAGEM["gpt-image-1"]!.retrato.high!,
+} as const;
+
+/**
+ * O custo estimado de UMA imagem. Modelo, tamanho ou qualidade fora da tabela
+ * devolvem `null` — **nunca zero**, pelo mesmo motivo do texto: um modelo de
+ * imagem novo entrando na casa apareceria como economia justamente enquanto a
+ * casa gasta com o que ainda não sabe medir.
+ */
+export function estimarCustoDeImagem(
+  model: string,
+  tamanho: TamanhoDeImagem,
+  qualidade: string,
+  quantas = 1,
+): CustoEstimado {
+  const porTamanho = PRECOS_DE_IMAGEM[model.trim().toLowerCase()];
+  const unitario = porTamanho?.[tamanho]?.[qualidade.trim().toLowerCase()];
+  if (unitario === undefined || !Number.isFinite(quantas) || quantas < 0) {
+    return { usd: null, versao: TABELA_VERSAO };
+  }
+  return { usd: Math.round(unitario * quantas * 1_000_000) / 1_000_000, versao: TABELA_VERSAO };
 }
 
 /** O aviso que TODA tela e TODA resposta de API que mostra dinheiro repete. */

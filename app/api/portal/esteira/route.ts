@@ -123,6 +123,10 @@ async function trilhaDoProjetoDireto(clientId: string) {
     progresso: Math.round(((atual === -1 ? etapas.length : atual) / etapas.length) * 100),
     trilha,
     pendencias: [],
+    // Sem solicitação de briefing não há direção para avalizar por esta porta —
+    // e `false` aqui é MEDIDO, não omissão: este ramo não tem projeto com
+    // portão de direção pendente (ele só existe quando há `clientRequestId`).
+    direcao: { pedeAprovacao: false },
     ciclo: null,
   };
 }
@@ -173,6 +177,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     //
     // `prontas` sobe com nome de cliente porque o card TEM de listar o que
     // está dentro — ele estava pedindo assinatura sem dizer em quê.
+    // ── A PORTA DE APROVAR A DIREÇÃO ──────────────────────────────────────
+    // Mesmo molde do card do pacote, logo abaixo, e pelo mesmo motivo: as duas
+    // telas do portal desenhavam este botão casando o TEXTO da etapa com a
+    // frase "confirme o caminho". Bastou a etapa virar "Precisamos de uma
+    // coisa sua" para o botão sumir enquanto a conversa dizia "é só aprovar"
+    // (case Farol 27, 24/08/2026). Agora quem decide é o ESTADO, medido aqui.
+    direcao: { pedeAprovacao: status.leitura.precisaAprovarDirecao },
     pacote: {
       pedeAprovacao: status.pacote.pedeAprovacao,
       prontas: status.pacote.prontas.map((i) => i.titulo),

@@ -284,6 +284,8 @@ async function cuidarDosPedidos(): Promise<number> {
 /** Uma batida do relógio. Nunca lança — o relógio não pode morrer. */
 export async function baterORelogio(): Promise<{
   retomados: number;
+  /** Projetos que estavam parados em `idle` e entraram na fila nesta rodada. */
+  ligados: number;
   avisos: number;
   destravadas: number;
   publicados: number;
@@ -304,6 +306,8 @@ export async function baterORelogio(): Promise<{
   backup: boolean;
 }> {
   let retomados = 0;
+  /** Projetos que saíram de `idle` sozinhos nesta rodada. */
+  let ligados = 0;
   let pedidos = 0;
   let avisos = 0;
   let respondidas = 0;
@@ -470,6 +474,36 @@ export async function baterORelogio(): Promise<{
     quebrou("pedidos-do-cliente", err);
   }
 
+  // ── O PROJETO QUE NASCEU E NINGUÉM LIGA (24/08/2026) ──────────────────────
+  // Vem ANTES da retomada de propósito: é ela que tira o projeto de `idle` e o
+  // põe em `pending`, que é o estado que `retomarProducao` sabe ler. Assim o
+  // projeto liga e produz na MESMA rodada, em vez de esperar mais cinco minutos.
+  //
+  // A trava de pagamento continua inteira e é conferida duas vezes — aqui e
+  // dentro de `runProjectExecution`. Ver `esteira/ligar-projeto.ts`.
+  try {
+    const { ligarProjetosParados } = await import("@/lib/agency/esteira/ligar-projeto");
+    const r = await ligarProjetosParados();
+    ligados = r.ligados;
+    if (r.ligados > 0) log(`${r.ligados} projeto(s) saíram de "idle" sozinhos e entraram na fila de produção`);
+    // Esperar pagamento e esperar o aval do cliente são ESTADO, não falha: é a
+    // régua funcionando. O que não pode é ser silêncio — projeto parado que
+    // ninguém enxerga é o defeito de origem.
+    if (r.aguardandoPagamento > 0) {
+      estadoDe("ligar-projeto",
+        `${r.aguardandoPagamento} projeto(s) parados por falta de pagamento confirmado — o cliente foi avisado no portal, com o que fazer para liberar`);
+    }
+    if (r.aguardandoDirecao > 0) {
+      estadoDe("ligar-projeto",
+        `${r.aguardandoDirecao} projeto(s) pagos esperando o cliente aprovar a direção — o pedido de aval está no portal dele`);
+    }
+    for (const d of r.desfechos) {
+      if (d.desfecho === "sem_acao") quebrou("ligar-projeto", `${d.projectId}: ${d.motivo}`);
+    }
+  } catch (err) {
+    quebrou("ligar-projeto", err);
+  }
+
   try {
     retomados = await retomarProducao();
   } catch (err) {
@@ -509,6 +543,33 @@ export async function baterORelogio(): Promise<{
     }
   } catch (err) {
     quebrou("material-do-drive", err);
+  }
+
+  // ── A COLHEITA, ANTES DA ARTE — 24/08/2026 ───────────────────────────────
+  //
+  // Vem aqui porque a perna de arte logo abaixo lê `SocialPost`, e nada nesta
+  // rodada enchia essa tabela: `agendarPostsDaEntrega` só era chamada por três
+  // eventos que já passaram (apresentar, virar mês, repescagem da escada).
+  // Entrega que ficava elegível DEPOIS deles nunca mais era colhida — e a
+  // rodada de arte trabalhava sobre nada, a cada 5 minutos. Medido no case
+  // Farol 27: 14 entregas de texto, 0 peça esperando arte, 2 peças prontas
+  // para nascer e paradas.
+  //
+  // Não gasta, não publica e não afrouxa portão nenhum: a peça nasce `draft` e
+  // os portões (escada, Qualidade, pilar) continuam por dentro da MESMA função
+  // que a porta manual usa. Ver `colherPecasDasEntregas`.
+  //
+  // Falhar aqui NÃO pode derrubar a rodada.
+  try {
+    const { colherPecasDasEntregas } = await import("@/lib/agency/execution/produzir-agora");
+    const r = await colherPecasDasEntregas();
+    if (r.criadas > 0) log(`colheita: ${r.criadas} entrega(s) viraram peça de calendário em ${r.projetos} projeto(s)`);
+    // Trabalho pago que não virou peça é NOTÍCIA, nunca silêncio — mesma regra
+    // de `naoInterpretadas` e `retidas` em `publicacao.ts`.
+    for (const x of r.retidas) log(`colheita reteve "${x.nome}": ${x.motivo}`);
+    for (const f of r.falhas) quebrou("colheita-de-pecas", f);
+  } catch (err) {
+    quebrou("colheita-de-pecas", err);
   }
 
   // A arte vem ANTES da publicação, e por um motivo prático: o Instagram exige
@@ -858,8 +919,8 @@ export async function baterORelogio(): Promise<{
     quebrou("pm-varredura", err);
   }
 
-  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
-    log(`rodada: ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
+  if (ligados > 0 || retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
+    log(`rodada: ${ligados} projeto(s) ligado(s), ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
   }
 
   // A BATIDA É GRAVADA SEMPRE — inclusive (e principalmente) a rodada em que
@@ -880,7 +941,7 @@ export async function baterORelogio(): Promise<{
     estados,
   });
 
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, backup };
+  return { retomados, ligados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, backup };
 }
 
 /**

@@ -120,6 +120,11 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     tarefas,
     entregaveis: { total, emRevisao, comRessalva, aprovados, semAuditoria },
     pedidosAbertos: pendencias.length,
+    // Quantos desses pedidos o cliente DE FATO recebeu (`askedClientAt`). É a
+    // conta que separa "esperando o cliente" de "esquecemos de perguntar" — e
+    // é a MESMA lista que o portal já filtrava para montar `pendencias`
+    // (`app/api/portal/esteira/route.ts`), agora também vista pela etapa.
+    pedidosCobrados: pendencias.filter((p) => p.jaFoiPedido).length,
     cicloAberto: ciclo !== null,
     redesConectadas: conexoes > 0,
     postsPublicados: contarPosts("published"),

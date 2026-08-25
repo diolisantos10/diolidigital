@@ -119,10 +119,30 @@ describe("na refação, o contrato não vira reprovação silenciosa", () => {
   });
 
   it("a ausência de AUDITOR aqui continua sendo declarada, não escondida", () => {
-    // O estado não mente: a peça é gravada como `nao_auditado`. Se alguém
-    // trocar isso por `aprovado` sem chamar um juiz, a porta dos fundos que a
-    // auditoria de 04/08 fechou volta a existir.
+    // O estado não mente: a peça que ninguém julgou é gravada como
+    // `nao_auditado`. A porta dos fundos que a auditoria de 04/08 fechou era
+    // gravar `aprovado` SEM chamar um juiz.
     expect(s).toContain('revisionStatusDoVeredito("nao_auditado")');
-    expect(s.includes('revisionStatusDoVeredito("aprovado")'), "a refação voltou a se declarar aprovada sem juiz").toBe(false);
+    // 24/08/2026: a refação passou a poder gravar `aprovado` — mas só depois de
+    // um juiz olhar. A trava deixou de ser "a palavra não aparece" e passou a
+    // ser "a palavra não aparece sem `auditDeliverable` antes dela", que é a
+    // regra que se queria desde o começo.
+    const iAudit = s.indexOf("auditDeliverable({");
+    const iAprovado = s.indexOf('revisionStatusDoVeredito("aprovado")');
+    if (iAprovado >= 0) {
+      expect(iAudit, "a refação voltou a se declarar aprovada sem juiz").toBeGreaterThan(-1);
+      expect(iAudit, "o `aprovado` tem de vir DEPOIS da chamada ao juiz").toBeLessThan(iAprovado);
+    }
+  });
+
+  // ── A MIRA (Farol 27, rodada 4) ──────────────────────────────────────────
+  it("o verde da Qualidade não é herdado por uma versão que ninguém julgou", () => {
+    // Peça que já tinha veredito é REAUDITADA; sem parecer novo, a que estava
+    // barrada continua barrada e a que estava verde não continua verde.
+    const i = s.indexOf("const jaTinhaVeredito");
+    expect(i).toBeGreaterThan(-1);
+    const trecho = s.slice(i, i + 2600);
+    expect(trecho).toContain("auditDeliverable({");
+    expect(trecho).toContain('revisionStatusDoVeredito("reprovado")');
   });
 });
