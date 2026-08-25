@@ -213,6 +213,18 @@ beforeEach(async () => {
     postIds.push(sp.id);
   }
 
+  // ── UMA SEGUNDA ENTREGA NO MESMO PROJETO ────────────────────────────────
+  // Não é enfeite: é o controle da mira. Com uma entrega só, "mirar a peça
+  // certa" e "mirar tudo" produzem o mesmo resultado, e o defeito medido em
+  // produção (o ajuste de UM pedido reescrevendo CINCO entregas) passaria.
+  await prisma.deliverable.create({
+    data: {
+      projectId, name: "Direção Visual", type: "plano-de-conteudo", ownerAgentId: "a3",
+      version: 1, visibility: "compartilhado",
+      content: "# Direção Visual\n\n## Semana 1\n- Legenda: paleta quente\n\n## Semana 2\n- Legenda: paleta quente\n\n## Semana 3\n- Legenda: paleta quente\n\n## Semana 4\n- Legenda: paleta quente",
+    },
+  });
+
   const ap = await prisma.approvalRequest.create({
     data: {
       clientId, department: "social-media", clientVisible: true, status: "pending",
@@ -403,6 +415,75 @@ describe("TRANSITÓRIO ≠ CONFLITO — tentar de novo o que vai falhar igual é
     await POST(req({ action: "request_revision", comment: PEDIDO }));
     const p = await pecas();
     expect(p[2]!.avisoAoCliente).not.toMatch(/regra que você mesmo registrou/i);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+describe("O CARD DO PEDIDO AVULSO — `pedido:<id>` não é um departamento", () => {
+// ═══════════════════════════════════════════════════════════════════════════
+  //
+  // ⚠️ MEDIDO EM PRODUÇÃO (26/08/2026), e é o SEGUNDO motivo pelo qual nenhum
+  // arquivo novo saiu naquele ajuste — independente da proibição.
+  //
+  // O card do pedido avulso nasce com `department: "pedido:<id>"` e SEM
+  // `deliverableVersionId`. A recusa já lia esse prefixo desde 25/08; o ajuste
+  // não. Sem ele a mira caía no fallback "o departamento" — e como não existe
+  // especialista nenhum com `departamentoId: "pedido:cmt…"`, o filtro sumia e o
+  // alvo virava TODA entrega do ciclo.
+  //
+  // Duas consequências, e a segunda é a que apaga a peça paga: o cliente
+  // apontava UMA e a máquina reescrevia CINCO; e o laço de arte exige
+  // `alvos.length === 1` (a mira da imagem só é decidível sobre uma entrega),
+  // então com cinco ele NUNCA rodava. Nenhum `mediaUrl` mudava, acontecesse o
+  // que acontecesse com o texto.
+
+  let pedidoId = "";
+  let alvoId = "";
+
+  beforeEach(async () => {
+    ia.modo = "limpa";
+    const alvo = await prisma.deliverable.findFirstOrThrow({ where: { projectId, name: "Pauta do Mês" } });
+    alvoId = alvo.id;
+    const pedido = await prisma.contentRequest.create({
+      data: {
+        clientId, projectId, title: "Quatro peças de agosto",
+        description: "quatro peças para a semana", objective: "movimento no salão",
+        deliverableId: alvoId, status: "entregue",
+      },
+    });
+    pedidoId = pedido.id;
+    // O card como a produção o cria: nomeia o PEDIDO e não tem versão vinculada.
+    await prisma.approvalRequest.update({
+      where: { id: approvalId },
+      data: { department: `pedido:${pedidoId}`, deliverableVersionId: null },
+    });
+  });
+
+  it("🎯 a mira acha a entrega DO PEDIDO — e só ela", async () => {
+    const outraAntes = await prisma.deliverable.findFirstOrThrow({ where: { projectId, name: "Direção Visual" } });
+
+    const res = await POST(req({ action: "request_revision", comment: PEDIDO }));
+    expect(res.status).toBe(200);
+
+    const alvoDepois = await prisma.deliverable.findUniqueOrThrow({ where: { id: alvoId } });
+    expect(alvoDepois.version, "a entrega do pedido foi refeita").toBe(2);
+
+    const outraDepois = await prisma.deliverable.findUniqueOrThrow({ where: { id: outraAntes.id } });
+    expect(outraDepois.version, "a entrega que ele NÃO apontou não é tocada").toBe(1);
+    expect(outraDepois.content, "byte a byte").toBe(outraAntes.content);
+  });
+
+  it("🖼️ e o ARQUIVO da peça apontada muda — só o dela", async () => {
+    const antes = await pecas();
+    await POST(req({ action: "request_revision", comment: PEDIDO }));
+    const depois = await pecas();
+
+    // Sem a leitura do prefixo, `alvos.length` era 2 aqui e o laço de arte não
+    // rodava: as quatro `mediaUrl` voltavam iguais.
+    expect(depois[2]!.mediaUrl, "a terceira ganhou arquivo NOVO").not.toBe(antes[2]!.mediaUrl);
+    for (const i of [0, 1, 3]) {
+      expect(depois[i]!.mediaUrl, `a peça ${i + 1} ficou idêntica`).toBe(antes[i]!.mediaUrl);
+    }
   });
 });
 

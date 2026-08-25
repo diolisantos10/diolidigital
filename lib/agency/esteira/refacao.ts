@@ -342,7 +342,37 @@ export async function refazerPorPedidoDoCliente(input: {
   //   3. sem nenhuma das duas, o departamento — o comportamento antigo, que
   //      continua certo para o chamador que não sabe de peça nenhuma.
   let alvos = naoBarradas;
-  const idExplicito = input.deliverableId?.trim() || null;
+  // ── 1.5. O CARD DO PEDIDO AVULSO NOMEIA O PEDIDO, NÃO O DEPARTAMENTO ────
+  //
+  // ⚠️ MEDIDO EM PRODUÇÃO (cliente oculto, 26/08/2026), e é o segundo motivo
+  // pelo qual nenhum arquivo novo saiu naquele ajuste.
+  //
+  // `department` de um card de pedido é `pedido:<id>` — a grafia existe para
+  // que o caminho de volta exista sem adivinhação (`producao-de-pedido.ts`).
+  // `recusarPorPedidoDoCliente` já lia esse prefixo desde 25/08. **O AJUSTE
+  // não lia.** Consequência, na ordem em que ela acontece:
+  //
+  //   • `entregaMostradaPorDepartamento` não tem chave `"pedido:cmt…"`, então
+  //     a mira falhava e caía no fallback nº 3 — "o departamento";
+  //   • sem especialista nenhum nesse "departamento", o filtro por
+  //     `ownerAgentId` some e o alvo vira TODA entrega do ciclo. O cliente
+  //     apontou uma peça e a máquina reescreveu cinco;
+  //   • e o laço de arte exige `alvos.length === 1` (a mira da imagem só é
+  //     decidível sobre UMA entrega). Com cinco, ele **nunca roda** — nenhum
+  //     `mediaUrl` muda, aconteça o que acontecer com o texto.
+  //
+  // Derivação, nunca invenção: o id vem do próprio card, e a leitura carrega o
+  // projeto no `where` — entrega de outro cliente não entra por aqui.
+  const idDoPedido = input.department.startsWith("pedido:")
+    ? input.department.slice("pedido:".length).trim()
+    : null;
+  const entregaDoPedido = idDoPedido
+    ? (await prisma.contentRequest.findUnique({
+        where: { id: idDoPedido }, select: { deliverableId: true },
+      }).catch(() => null))?.deliverableId ?? null
+    : null;
+
+  const idExplicito = input.deliverableId?.trim() || entregaDoPedido;
   if (idExplicito) {
     // A posse é conferida nas duas pontas: entre as candidatas (que já nascem
     // filtradas por projeto) ou, se o card aponta para fora do ciclo corrente,
