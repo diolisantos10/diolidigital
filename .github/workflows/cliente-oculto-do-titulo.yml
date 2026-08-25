@@ -38,7 +38,7 @@ on:
   workflow_dispatch:
     inputs:
       cliente:
-        description: "Cliente do teste. Só o de teste."
+        description: "Cliente do teste. Decidir: só NOME TESTE. Ler (medir): também Farol 27, o de teste da casa."
         required: true
         default: "NOME TESTE"
       acao:
@@ -71,9 +71,21 @@ jobs:
           if [ -z "${CRON_SECRET:-}" ]; then
             echo "::error::CRON_SECRET nao esta nos secrets — nada foi medido."; exit 1
           fi
-          if [ "$CLIENTE" != "NOME TESTE" ]; then
-            echo "::error::Este botao so roda no cliente de teste (NOME TESTE). Voce pediu '$CLIENTE'."; exit 1
-          fi
+          # ── QUEM ESTE BOTAO PODE TOCAR ─────────────────────────────────────
+          #
+          # Decidir (preparar/pedir-ajuste) so no cliente que este job criou:
+          # `NOME TESTE`. Nenhum outro, nunca.
+          #
+          # LER e outra coisa, e a diferenca e o ponto: `medir` nao escreve nada
+          # — nao emite token, nao abre pedido, nao decide. Nele o cliente de
+          # teste da propria casa (`Farol 27`, o do case, o mesmo que
+          # `prova-da-mira.yml` ja usa) tambem entra, porque e o unico lugar em
+          # producao onde ha parada de verdade para conferir se ela tem botao.
+          case "$ACAO:$CLIENTE" in
+            *":NOME TESTE") ;;
+            "medir:Farol 27") ;;
+            *) echo "::error::'$ACAO' so roda em 'NOME TESTE' (e 'medir' tambem em 'Farol 27'). Voce pediu '$CLIENTE'."; exit 1 ;;
+          esac
 
           echo "— commit no ar:"
           curl -s --max-time 30 "$BASE/api/health" | jq -r '"  " + .commit + " (" + .branch + ")"'
