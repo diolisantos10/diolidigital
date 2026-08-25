@@ -55,8 +55,49 @@ const SISTEMA = [
   "  com a equipe e te falo' é a resposta certa.",
   "- Nunca diga que já fez algo que o contexto não mostra feito.",
   "",
-  "Responda APENAS com o texto da mensagem, sem aspas e sem assinatura.",
+  // ── O FORMATO DA RESPOSTA — E POR QUE NÃO É PROSA SOLTA (25/08/2026) ──────
+  //
+  // Este prompt pedia *"responda APENAS com o texto da mensagem"* e o leitor
+  // abaixo fazia `typeof r.data === "string" ? r.data : ""`. Só que
+  // `lib/ai/generate.ts` NÃO devolve string: o caminho do Claude força
+  // `tool_choice` na ferramenta `responder` e devolve o INPUT DELA, um objeto —
+  // e quando sobra texto cru, ele tenta `extractJson` e falha com
+  // "JSON inválido".
+  //
+  // Ou seja: `r.data` nunca era string, `texto` era sempre "", e toda mensagem
+  // caía em `sem-ia`. **O PM automático desta casa nunca respondeu uma única
+  // mensagem de cliente** — e o log dizia, a cada 5 minutos, "N mensagem(ns)
+  // sem resposta automática — aguardando gente", que se lê como "a IA está
+  // fora", não como "o leitor e a camada discordam do formato".
+  //
+  // Medido na produção em 25/08/2026, no mesmo minuto em que a mesma camada de
+  // IA produzia arte com sucesso (`[arte] peça … recebeu arte … US$ 0.167`):
+  // **5 mensagens acumuladas**, exatamente as do relato do cliente oculto. A
+  // causa NÃO era o departamento em sombra — a escada não filtra `pm-responde`
+  // em lugar nenhum. Era esta linha.
+  'Responda pela ferramenta "responder", com este objeto e nada mais:',
+  '{ "mensagem": "o texto que o cliente vai ler" }',
 ].join("\n");
+
+/**
+ * Tira o texto da resposta da camada de IA.
+ *
+ * Aceita as três formas que ela pode devolver, porque as três acontecem de
+ * verdade: o objeto da ferramenta (o caminho normal do Claude), uma string (os
+ * provedores que respondem texto puro) e o objeto de um provedor que devolveu a
+ * mensagem sob outra chave. O que NÃO se faz é inventar texto: sem nada
+ * legível, devolve "" e a mensagem fica na fila para gente.
+ */
+export function textoDaResposta(data: unknown): string {
+  if (typeof data === "string") return data.trim();
+  if (data && typeof data === "object") {
+    for (const chave of ["mensagem", "resposta", "reply", "texto", "message"]) {
+      const v = (data as Record<string, unknown>)[chave];
+      if (typeof v === "string" && v.trim()) return v.trim();
+    }
+  }
+  return "";
+}
 
 export type ResultadoDaResposta = {
   respondidas: number;
@@ -158,7 +199,14 @@ async function responderUma(mensagem: Mensagem): Promise<"respondida" | "sem-ia"
     clientId: cliente?.id,
   });
 
-  const texto = r.ok && typeof r.data === "string" ? r.data.trim() : "";
+  // ── O TEXTO CRU É A REDE, NÃO O CAMINHO ──────────────────────────────────
+  // Quando o modelo responde fora da ferramenta, `generate` devolve
+  // `ok: false` COM `textoCru`. Isso é uma resposta escrita pelo modelo que
+  // seria jogada fora — e jogar fora resposta pronta é o defeito deste arquivo
+  // pela segunda vez.
+  const texto = r.ok
+    ? textoDaResposta(r.data)
+    : (typeof r.textoCru === "string" ? r.textoCru.trim() : "");
   if (!texto) {
     // Fica na fila, NÃO LIDA, que é onde um humano a encontra. Resposta falsa
     // seria pior que silêncio: o cliente pararia de cobrar.
