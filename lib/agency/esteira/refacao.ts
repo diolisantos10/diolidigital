@@ -55,6 +55,15 @@ import { entregaMostradaPorDepartamento } from "@/lib/agency/esteira/pacote";
 import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pagamento";
 import { refazerArteDoAjuste, type ArteDoAjuste } from "@/lib/agency/esteira/refazer-a-arte-do-ajuste";
 import { pecasDoEspecialista } from "@/lib/agency/esteira/producao-de-pedido";
+import { pecasApontadasPeloAjuste } from "@/lib/agency/esteira/mira-da-peca";
+import {
+  classificarParada,
+  causaDasViolacoesDoPiso,
+  devolveADecisao,
+  MAX_TENTATIVAS_TRANSITORIAS,
+  CONVITE_A_DECIDIR,
+  type ParadaDoAjuste,
+} from "@/lib/agency/esteira/porta-do-ajuste";
 
 /** Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente. */
 export const MAX_REFACOES_DO_CLIENTE = 2;
@@ -80,6 +89,25 @@ export interface RefacaoFeita {
   escalado: boolean;
   motivo?: string;
   avisouCliente: boolean;
+  /**
+   * A PARADA, CLASSIFICADA — `null` quando o ajuste saiu inteiro.
+   *
+   * Nasceu do beco medido em 26/08/2026: a refação parava (certíssimo, o texto
+   * novo violava uma regra que a própria cliente tinha registrado), o card
+   * ficava carimbado `revision_requested` para sempre, e a porta do portal
+   * passava a devolver 409 para aprovar, recusar E cancelar.
+   *
+   * `motivo` sozinho não bastava: é uma string livre, e quem chama não
+   * conseguia distinguir "o provedor caiu" (retenta) de "o pedido dele briga
+   * com uma regra dele" (não adianta retentar — é conversa). Ver
+   * `esteira/porta-do-ajuste.ts`.
+   */
+  parada?: ParadaDoAjuste | null;
+  /**
+   * O cliente TEM de continuar podendo decidir a peça que já está na mão dele?
+   * `true` sempre que a casa não colocou peça nova na mão dele.
+   */
+  devolveADecisao?: boolean;
 }
 
 /** Onde uma mensagem deste pedido é gravada. As DUAS chaves quando ambas são
@@ -408,15 +436,59 @@ export async function refazerPorPedidoDoCliente(input: {
   // NOVO VIRA IMAGEM NOVA", abaixo.
   let dadosRefeitos: Record<string, unknown> | null = null;
 
+  /**
+   * REGISTRA A PARADA — uma porta só para o `escalado`.
+   *
+   * Antes cada ramo escrevia `saida.escalado = true; saida.motivo = "..."` na
+   * mão, e a string livre era tudo o que sobrava para quem chamava. Nenhum
+   * chamador conseguia distinguir "o provedor caiu" de "o pedido dele briga
+   * com uma regra dele" — e a segunda é a única que não se resolve tentando de
+   * novo.
+   *
+   * ⚠️ O CONFLITO COM REGRA DO CLIENTE TEM PRIORIDADE sobre as outras paradas
+   * do mesmo pedido. Com mais de uma entrega no alvo, a última a falhar
+   * sobrescrevia a anterior — e perder o conflito ali trocaria a CONVERSA que
+   * resolve por um "a equipe está olhando" que não resolve nada.
+   */
+  function registrarParada(nova: ParadaDoAjuste): void {
+    saida.escalado = true;
+    const jaTemConflito = saida.parada?.classe === "conflito_com_regra_do_cliente";
+    if (jaTemConflito && nova.classe !== "conflito_com_regra_do_cliente") return;
+    saida.parada = nova;
+    saida.motivo = nova.motivoInterno;
+  }
+
   for (const entrega of alvos) {
     if (entrega.version > MAX_REFACOES_DO_CLIENTE) {
-      saida.escalado = true;
-      saida.motivo = `"${entrega.name}" já foi refeita ${entrega.version - 1}x a pedido do cliente`;
+      registrarParada(classificarParada({
+        causa: "teto_de_refacoes",
+        detalhe: `"${entrega.name}" já foi refeita ${entrega.version - 1}x a pedido do cliente`,
+      }));
       continue;
     }
 
     const esp = TODOS_OS_ESPECIALISTAS.find((e) => e.id === entrega.ownerAgentId);
-    const r = await generate({
+
+    // ── A RETENTATIVA, COM FREIO (26/08/2026) ──────────────────────────────
+    //
+    // Antes: UMA chamada. Provedor fora do ar por dois segundos = pedido do
+    // cliente parado até alguém perceber. Agora tenta de novo — e só o que
+    // vale a pena tentar.
+    //
+    // O que ENTRA no laço: provedor indisponível e saída vazia. São falhas da
+    // máquina, não do pedido: a mesma chamada um segundo depois passa.
+    //
+    // O que NÃO entra, de propósito: contrato de saída e PISO DE VERDADE. Os
+    // dois rodam em código, sem IA — e o piso é justamente onde a proibição do
+    // cliente barra. Retentar ali daria o mesmo resultado, gastando dinheiro de
+    // IA para adiar a única coisa que resolve, que é FALAR com ele.
+    let r: Awaited<ReturnType<typeof generate>> | null = null;
+    let corpo = "";
+    let tentativas = 0;
+    let causaTransitoria: "provedor_indisponivel" | "saida_vazia" | null = null;
+    while (tentativas < MAX_TENTATIVAS_TRANSITORIAS) {
+      tentativas++;
+      r = await generate({
       system:
         `Você é o especialista de ${esp?.label ?? "produção"} de uma agência de marketing brasileira. ` +
         (recusou
@@ -451,22 +523,27 @@ export async function refazerPorPedidoDoCliente(input: {
       agentId: "esteira-refacao",
       clientId: projeto.clientId ?? null,
       projectId: projeto.id,
-    });
+      });
 
-    if (!r.ok) {
-      // IA fora do ar não gasta tentativa — o problema não é a peça.
-      saida.escalado = true;
-      saida.motivo = "não consegui refazer agora (provedor de IA indisponível)";
+      if (!r.ok) { causaTransitoria = "provedor_indisponivel"; continue; }
+      corpo = renderizar(r.data as Record<string, unknown>);
+      if (corpo.length < 60) { causaTransitoria = "saida_vazia"; continue; }
+      causaTransitoria = null;
+      break;
+    }
+
+    // ── PARADA DECLARADA AO ESGOTAR O TETO ──────────────────────────────────
+    // Motivo, dono e próxima ação — e o cliente NÃO fica bloqueado por isso.
+    if (!r || !r.ok || causaTransitoria) {
+      registrarParada(classificarParada({
+        causa: causaTransitoria ?? "provedor_indisponivel",
+        detalhe: r && !r.ok ? "o provedor de IA não respondeu" : "a refação saiu vazia",
+        tentativas,
+      }));
       continue;
     }
 
     const dados = r.data as Record<string, unknown>;
-    const corpo = renderizar(dados);
-    if (corpo.length < 60) {
-      saida.escalado = true;
-      saida.motivo = "a refação saiu vazia";
-      continue;
-    }
 
     // ── O CONTRATO DE SAÍDA VALE AQUI TAMBÉM ────────────────────────────────
     //
@@ -481,16 +558,34 @@ export async function refazerPorPedidoDoCliente(input: {
     // vendo continua de pé e o caso vira decisão de gente, com o motivo.
     const contrato = esp ? conferirContrato(esp, dados) : { cumpriu: true, violacoes: [] as string[] };
     if (!contrato.cumpriu) {
-      saida.escalado = true;
-      saida.motivo = `a refação saiu fora do formato contratado (${contrato.violacoes.join("; ")})`;
+      registrarParada(classificarParada({
+        causa: "fora_do_contrato",
+        detalhe: `a refação saiu fora do formato contratado (${contrato.violacoes.join("; ")})`,
+      }));
       continue;
     }
 
     // O piso vale igual: peça refeita a pedido do cliente vai direto ao cliente.
     const piso = conferirPisoDeVerdade(corpo, verdade);
     if (!piso.aprovado) {
-      saida.escalado = true;
-      saida.motivo = `a refação inventou dado: ${resumirViolacoes(piso.violacoes)}`;
+      // ── A RECUSA CONTINUA. O RÓTULO DELA É QUE ESTAVA ERRADO ────────────
+      //
+      // Esta linha dizia SEMPRE `"a refação inventou dado: …"`. Foi o que o
+      // cliente oculto leu no log de produção quando o piso barrou por
+      // PROIBIÇÃO REGISTRADA — a casa se acusando de inventar dado no exato
+      // momento em que estava respeitando uma regra do cliente.
+      //
+      // Não é firula de redação: é a bifurcação que decide se vale a pena
+      // tentar de novo. Dado inventado é problema de produção (gente).
+      // Proibição do cliente é CONVERSA com ele — e nenhuma retentativa
+      // atravessa uma régua determinística. Ver `porta-do-ajuste.ts`.
+      const causa = causaDasViolacoesDoPiso(piso.violacoes);
+      registrarParada(classificarParada({
+        causa,
+        detalhe: causa === "proibicao_do_cliente"
+          ? regraProibidaLegivel(piso.violacoes)
+          : `a refação inventou dado: ${resumirViolacoes(piso.violacoes)}`,
+      }));
       continue;
     }
 
@@ -706,20 +801,120 @@ export async function refazerPorPedidoDoCliente(input: {
     ].join("\n"));
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // A CASA NÃO ENTREGOU PEÇA NOVA — E AÍ ELA DEVE DUAS COISAS, JUNTAS
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // (26/08/2026, cliente oculto.) Até aqui, quando o ajuste não saía, a casa
+  // fazia UMA das duas metades: escalava a equipe e escrevia uma frase gentil
+  // na aba de mensagens. E deixava o card carimbado "ajustes solicitados" para
+  // sempre — a partir dali a porta do portal devolvia 409 para aprovar,
+  // recusar E cancelar. Um clique em "pedir ajuste" comia o direito de decidir
+  // sobre quatro peças pagas.
+  //
+  // As duas metades agora andam juntas, e nenhuma delas existe sem a outra:
+  //
+  //   1. O CLIENTE É INFORMADO, NA TELA, do que aconteceu e POR QUÊ — no card
+  //      onde ele decide, não só na aba de mensagens (que foi exatamente onde
+  //      o aviso da rodada anterior ficou preso). Quando a razão é uma regra
+  //      dele, a frase diz isso com todas as letras: é conversa, não erro.
+  //   2. O CLIENTE CONTINUA PODENDO DECIDIR. `saida.devolveADecisao` é o sinal
+  //      que a rota lê para reabrir o card sobre a peça que ele JÁ TEM.
+  saida.devolveADecisao = devolveADecisao(saida);
+
+  // O texto foi refeito e a IMAGEM não: isso também é uma parada, e ela não
+  // tinha classe nenhuma. Sem esta linha, o caminho "arte não saiu" chegava à
+  // rota sem `parada` e o cliente ficava sem a frase no card.
+  if (!podeReabrir && !saida.parada) {
+    saida.escalado = true;
+    saida.parada = classificarParada({
+      causa: "arte_nao_saiu",
+      detalhe: saida.arte?.motivo ?? "a imagem nova não ficou pronta",
+    });
+    saida.motivo = saida.parada.motivoInterno;
+  }
+
+  // ── A FRASE VAI PARA A PEÇA, QUE É ONDE ELE DECIDE ─────────────────────
+  //
+  // `SocialPost.avisoAoCliente` é renderizado ACIMA da imagem
+  // (`components/portal/AprovacoesDoCliente.tsx`) e no detalhe da peça. É a
+  // única superfície desta casa em que uma parada vira PIXEL. Escrever só no
+  // log e na conversa é a régua verde sobre o componente errado — três vezes
+  // nesta operação o aviso morreu numa coluna.
+  //
+  // Só nas peças que ele APONTOU: alarme falso nas outras mata o alarme
+  // verdadeiro. Quando o ajuste não mirou peça nenhuma (entrega sem arte), a
+  // frase chega pelo card, escrita pela rota.
+  if (saida.parada && !recusou) {
+    // A MESMA conta que a rota usa para carimbar o ESTADO
+    // (`pecasApontadasPeloAjuste`). Duas contas divergentes poriam o aviso numa
+    // peça e a revisão em outra — e o cliente leria o alarme na peça errada.
+    const apontadas = pecasApontadasPeloAjuste(pecasDoCard, comentario);
+    if (apontadas.length > 0 && clientId) {
+      // ── E O ESTADO DA PEÇA VOLTA A SER VERDADE ─────────────────────────
+      //
+      // `revision_requested` quer dizer "alguém está refazendo isto", e
+      // `ESTADOS_PROMOVIVEIS` (esteira/publicacao.ts) não a inclui de
+      // propósito: peça em revisão não vai ao ar.
+      //
+      // Quando NADA foi refeito, a peça no card é byte a byte a mesma que ele
+      // já tinha — e ninguém está refazendo. Deixá-la em revisão faria o "sim"
+      // dele não agendar nada: ele aprovaria o card, a peça cairia em
+      // `ignorados`, e o beco reapareceria do outro lado.
+      //
+      // ⚠️ Quando o TEXTO foi refeito e só a ARTE não saiu, a peça FICA em
+      // revisão — a imagem no ar seria a que ele acabou de recusar. Aí o card
+      // continua decidível (recusar, cancelar, pedir outro ajuste) e o aviso
+      // acima explica por quê. As duas coisas são diferentes e o código as
+      // trata como diferentes.
+      const nadaMudou = saida.refeitas.length === 0;
+
+      // ⚠️ QUANDO A ARTE NÃO SAIU, A FRASE JÁ EXISTE — e é melhor que a minha.
+      //
+      // `refazer-a-arte-do-ajuste.ts` já escreveu `AVISO_DA_ARTE_QUE_NAO_SAIU`
+      // nesta mesma coluna, e ela diz a coisa específica que o cliente precisa
+      // saber: "a IMAGEM ainda é a anterior; o TEXTO já mudou". Sobrescrever
+      // com a frase genérica seria a segunda verdade sobre o mesmo fato — e a
+      // pior das duas. O que faltava ali era só a segunda metade: o convite a
+      // decidir. Então ela é ACRESCENTADA, não trocada.
+      const soFaltouAArte = saida.parada.causa === "arte_nao_saiu";
+      const jaEscritos = soFaltouAArte
+        ? await prisma.socialPost.findMany({
+            where: { id: { in: apontadas }, clientId },
+            select: { id: true, avisoAoCliente: true },
+          }).catch(() => [])
+        : [];
+      const jaTemFrase = new Map(jaEscritos.map((p) => [p.id, p.avisoAoCliente]));
+
+      for (const id of apontadas) {
+        const anterior = jaTemFrase.get(id);
+        const texto = anterior?.trim()
+          ? `${anterior.trim()}\n\n${CONVITE_A_DECIDIR}`
+          : saida.parada.avisoAoCliente;
+        await prisma.socialPost.updateMany({
+          where: { id, clientId },
+          data: {
+            avisoAoCliente: texto,
+            ...(nadaMudou ? { status: "draft" } : {}),
+          },
+        }).catch(() => { /* best-effort: a escalada e o card continuam de pé */ });
+      }
+    }
+  }
+
   if (saida.escalado) {
     await escalar(dono, negocio, saida.motivo ?? "refação não concluída", comentario);
-    // O SILÊNCIO CONTINUA IMPOSSÍVEL. Duas ausências diferentes, duas frases —
-    // e a segunda nasceu em 25/08/2026: o texto foi refeito e a IMAGEM não.
-    // Dizer "refiz" ali seria a mesma mentira de estado do card reabrindo com
-    // a arte velha; ficar calado seria pior ainda.
-    if (saida.refeitas.length === 0) {
+    // O SILÊNCIO CONTINUA IMPOSSÍVEL — e agora ele também não é VAGO.
+    //
+    // A frase de antes ("Recebi seu pedido e já estou olhando com atenção")
+    // era verdadeira e inútil: não dizia o que travou, e mandava o cliente
+    // esperar por gente que, no caso medido, nunca ia vir — porque o que
+    // faltava não era trabalho da equipe, era uma resposta DELE.
+    if (saida.parada) {
+      saida.avisouCliente = await escreverNoPortal(ancora, saida.parada.avisoAoCliente);
+    } else if (saida.refeitas.length === 0) {
       saida.avisouCliente = await escreverNoPortal(ancora,
         "Recebi seu pedido e já estou olhando com atenção. Te retorno em breve com o ajuste. 💛");
-    } else if (!podeReabrir) {
-      saida.avisouCliente = await escreverNoPortal(ancora,
-        "Recebi seu pedido e já ajustei o texto — mas a imagem nova ainda não ficou pronta, " +
-        "e eu não vou te pedir para aprovar de novo a mesma arte que você acabou de recusar. " +
-        "A equipe está com isso agora e eu te aviso assim que a peça nova estiver na sua aba de aprovações. 💛");
     }
   }
 
@@ -779,6 +974,22 @@ async function escalar(
       message: mensagem,
     },
   }).catch(() => { /* best-effort */ });
+}
+
+/**
+ * A REGRA DO CLIENTE, com as palavras dele, tirada das violações do piso.
+ *
+ * O piso já monta a frase com a INSTRUÇÃO GÊMEA junto (`instrucaoGemea`) — é
+ * ela que o cliente precisa ler, porque diz o que fazer no lugar. O que sai
+ * daqui vai direto para a TELA dele, então nada de id de violação nem nome de
+ * módulo.
+ */
+function regraProibidaLegivel(violacoes: ReadonlyArray<{ id: string; trecho: string; motivo: string }>): string {
+  const doCliente = violacoes.filter((v) => v.id === "proibicao_do_cliente");
+  if (doCliente.length === 0) return "";
+  return doCliente
+    .map((v) => `«${v.trecho}» — ${v.motivo.replace(/^O cliente PROIBIU isto:\s*/i, "").split(". Peça que viola")[0]!.trim()}`)
+    .join(" · ");
 }
 
 /** O markdown que o cliente lê. Era uma CÓPIA que se declarava "mesmo
