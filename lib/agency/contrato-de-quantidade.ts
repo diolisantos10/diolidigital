@@ -197,3 +197,80 @@ export function lerCanais(pedidos: readonly string[] | undefined): CanalPedido[]
     .filter(Boolean)
     .map(lerCanal);
 }
+
+// ═══ O TETO MENSAL, E A DÍVIDA QUE A VITRINE JÁ CARREGA ═════════════════════
+//
+// ── O QUE FOI MEDIDO EM 25/08/2026 ──────────────────────────────────────────
+//
+// O conserto do case Farol 27 fechou a proposta; ao fechá-la, ficou à vista um
+// buraco maior, e este bloco é o registro dele.
+//
+// A casa entrega UMA passada por mês. Não é opinião — é o que o código faz:
+// `esteira/mes.ts::virarOsMesesVencidos` vira o ciclo vencido e marca o projeto
+// como `pending`; o despertador (`despertador.ts::retomarProducao`) roda UM
+// `runProjectExecution` para quem está `pending`. Não existe segunda passada
+// agendada em lugar nenhum do repositório — `retomarProducao` só RETOMA o que
+// travou, e o motor é idempotente por ciclo.
+//
+// Logo o teto real de saída é `TETO_DE_PECAS_POR_ENTREGA` (12) peças POR MÊS,
+// com a mistura acima limitando feed a 3, story a 3 e carrossel a 2.
+//
+// E a tabela de planos (`SOCIAL_PACKAGES`) anuncia, por mês:
+//
+//     plano       feed  story  reel   total   teto   quanto passa
+//     essencial     12     20     2      34     12       2,8×
+//     starter       20     28     4      52     12       4,3×
+//     growth        28     40     6      74     12       6,2×
+//     pro           40     56    10     106     12       8,8×
+//     premium       60     84    16     160     12      13,3×
+//
+// Por formato é pior: o Premium anuncia 60 feed/mês contra um teto de 3 por
+// passada — vinte vezes. NENHUM plano cabe.
+//
+// ── POR QUE ISTO NÃO SE CONSERTA AQUI ───────────────────────────────────────
+//
+// Há dois consertos possíveis e eles são opostos:
+//
+//   a) baixar o que a vitrine PROMETE até caber em 12 peças/mês — o que
+//      transforma o "Premium — operação de marca completa" em 12 peças e
+//      destrói o produto; ou
+//   b) fazer a PRODUÇÃO entregar mais — mais passadas por mês, teto por passada
+//      maior, ou a mistura deixando de ser número absoluto.
+//
+// (b) é quase certamente o certo, e é justamente por isso que não é decisão de
+// quem escreve o código: mexe no custo de cada cliente e na capacidade da casa.
+// **Está escalado ao CEO e parado aqui até ele bater o martelo.**
+//
+// ── O QUE ESTE BLOCO FAZ ENQUANTO ISSO: CATRACA ─────────────────────────────
+//
+// A dívida fica DECLARADA, com o número medido, e o teste
+// `__tests__/comercial/a-vitrine-nao-promete-acima-do-teto` a trava:
+//
+//   • plano NOVO acima do teto: **quebra o build**. A dívida não cresce em
+//     silêncio, que é como esta aqui nasceu.
+//   • plano existente que PIORE: **quebra o build**.
+//   • plano que MELHORE: quebra também, pedindo para baixar o número aqui —
+//     catraca só gira para um lado, e dívida paga tem que sair do registro.
+//
+// Nada disso é permissão. É o contrário: é a dívida virando número que alguém
+// tem de olhar, em vez de uma promessa que só a entrega desmente.
+
+/** Passadas de produção por mês. UMA — ver a medição acima. Se um dia houver
+ *  agendamento de segunda passada, é este número que muda, e o teto mensal
+ *  inteiro se move com ele. */
+export const ENTREGAS_POR_MES = 1;
+
+/**
+ * O QUE CADA PLANO PROMETE A MAIS DO QUE A CASA ENTREGA, medido em 25/08/2026.
+ *
+ * `pecasPorMes` é `postsPerWeek*4 + storiesPerWeek*4 + reelsPerMonth` lido da
+ * tabela. O teste refaz a conta: número aqui que não bata com a tabela quebra
+ * o build nos dois sentidos.
+ */
+export const DIVIDA_DA_VITRINE: Record<string, number> = {
+  essencial: 34,
+  starter: 52,
+  growth: 74,
+  pro: 106,
+  premium: 160,
+};
