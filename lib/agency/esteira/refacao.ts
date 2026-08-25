@@ -46,7 +46,11 @@ import { TODOS_OS_ESPECIALISTAS, conferirContrato } from "@/lib/agency/execution
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import { lerProibicoes, registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
-import { revisionStatusDoVeredito } from "@/lib/agency/execution/quality-auditor";
+import {
+  auditDeliverable, revisionStatusDoVeredito,
+  foiAprovadaPelaQualidade, foiReprovadaPelaQualidade,
+} from "@/lib/agency/execution/quality-auditor";
+import { entregaMostradaPorDepartamento } from "@/lib/agency/esteira/pacote";
 import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pagamento";
 
 /** Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente. */
@@ -74,9 +78,10 @@ interface AncoraDoPedido {
 /**
  * Refaz o que o cliente pediu para mudar.
  *
- * `department` vem da `ApprovalRequest`: é a casa que produziu a peça. Refaz as
- * entregas daquele departamento no ciclo corrente — não o pacote inteiro. O
- * cliente que reclamou do texto do social não quer o logo dele redesenhado.
+ * `department` vem da `ApprovalRequest`: é a casa que produziu a peça, e serve
+ * para achar a PEÇA — não para ser o alvo. O alvo é uma entrega só: aquela que
+ * o cliente estava olhando quando apertou o botão. Ele reclamou de um título da
+ * Pauta do Mês; não pediu os Roteiros de Vídeo de volta.
  *
  * Aceita as DUAS chaves de dono e exige pelo menos uma. `clientRequestId` é o
  * caminho do fluxo Brain; `clientId` é o do cliente criado direto, que não tem
@@ -87,6 +92,27 @@ export async function refazerPorPedidoDoCliente(input: {
   clientId?: string | null;
   department: string;
   comentario?: string;
+  /**
+   * A PEÇA que o cliente apontou. Vem do vínculo por FK do card
+   * (`ApprovalRequest.deliverableVersion.deliverableId`) quando ele existe.
+   * Ausente, a peça é derivada do card genérico pela MESMA regra que decidiu o
+   * que ele leu na tela (`entregaMostradaPorDepartamento`).
+   */
+  deliverableId?: string | null;
+  /**
+   * Os DOIS atos do cliente, que ele distingue e o código passou a distinguir:
+   *
+   *   • `"ajuste"` — "pedir ajuste": ele quer UMA coisa diferente e o resto
+   *     fica. Refazer do zero aqui é devolver pior o que ele já tinha aceitado.
+   *   • `"recusa"` — "recusar e refazer": a peça inteira volta ao autor, com o
+   *     motivo dele na mão.
+   *
+   * Até 24/08/2026 os dois caíam no MESMO prompt, palavra por palavra: o
+   * portal mapeava `request_revision` e `reject` para a mesma chamada e nada
+   * lá dentro sabia qual dos dois tinha sido. Default `"ajuste"` — o ato
+   * conservador é o certo quando o chamador não declarou.
+   */
+  modo?: "ajuste" | "recusa";
 }): Promise<RefacaoFeita> {
   const saida: RefacaoFeita = { refeitas: [], versoesNovas: [], escalado: false, avisouCliente: false };
 
@@ -209,23 +235,22 @@ export async function refazerPorPedidoDoCliente(input: {
       ...(cicloAtual ? { cycleId: cicloAtual.id } : {}),
       ...(idsDoDepartamento.length > 0 ? { ownerAgentId: { in: idsDoDepartamento } } : {}),
     },
-    select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true, revisionStatus: true },
+    select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true, revisionStatus: true, type: true },
   });
 
-  // ── A PEÇA REPROVADA PELA QUALIDADE NÃO ENTRA AQUI (6ª auditoria, 04/08/2026)
+  // ── A PEÇA REPROVADA PELA QUALIDADE NÃO ENTRA DE CARONA (6ª auditoria, 04/08/2026)
   //
-  // Este caminho grava `quality_nao_auditado` por cima do estado anterior. Numa
-  // peça `quality_flag` isso é ABSOLVIÇÃO: a ressalva some, e `apresentar`
-  // (marcos.ts) — que só barra `quality_flag` — passa a mostrar ao cliente a
-  // peça que a própria casa reprovou. E o gatilho é alcançável sem má-fé: o
-  // card de aprovação é POR DEPARTAMENTO e fica visível mesmo sendo de ciclo
-  // anterior, então um clique legítimo em "pedir revisão" levava a peça barrada
-  // de carona.
+  // Este caminho grava um estado por cima do anterior. Numa peça `quality_flag`
+  // isso seria ABSOLVIÇÃO: a ressalva some, e `apresentar` (marcos.ts) — que
+  // barra `quality_flag` — passa a mostrar ao cliente a peça que a própria casa
+  // reprovou. O gatilho é alcançável sem má-fé: o card de aprovação é POR
+  // DEPARTAMENTO, então um clique legítimo em "pedir revisão" levava a peça
+  // barrada de carona.
   //
-  // O argumento "aqui o árbitro é o cliente" não cobre esta peça: ela NUNCA foi
-  // apresentada, logo o cliente não a viu e não pode arbitrar sobre ela. Peça
-  // reprovada é assunto do `pacote-travado`, que refaz COM o parecer da
-  // Qualidade na mão e REAUDITA antes de liberar.
+  // O argumento "aqui o árbitro é o cliente" não cobre a peça de CARONA: ela
+  // não foi apresentada, logo ele não a viu e não pode arbitrar sobre ela.
+  // Cobre — e só ela — a peça que ele APONTOU, e é essa a exceção da mira logo
+  // abaixo.
   //
   // A exclusão é feita aqui, e não no `where`, de propósito: `revisionStatus` é
   // anulável, e `{ not: "quality_flag" }` depende da semântica de NULL do ORM
@@ -233,20 +258,79 @@ export async function refazerPorPedidoDoCliente(input: {
   // é decidível pela leitura — e ainda me deixa contar as barradas, que é o que
   // permite falar a verdade certa ao cliente logo abaixo.
   const barradas = candidatas.filter((d) => d.revisionStatus === "quality_flag");
-  const alvos = candidatas.filter((d) => d.revisionStatus !== "quality_flag");
+  const naoBarradas = candidatas.filter((d) => d.revisionStatus !== "quality_flag");
+
+  // ── A MIRA: A PEÇA QUE ELE APONTOU, NÃO O DEPARTAMENTO INTEIRO ──────────
+  //
+  // ⚠️ MEDIDO EM PRODUÇÃO (Farol 27, rodada 4, 24/08/2026) — o pior defeito da
+  // rodada. O cliente abriu o card que mostrava a **Pauta do Mês**, apertou
+  // "Pedir ajuste" e escreveu que queria trocar um título. A máquina reescreveu
+  // os **Roteiros de Vídeo** — outra peça, que estava boa — e não encostou na
+  // Pauta. Ele recusou dizendo com todas as letras *"vocês mexeram na peça
+  // errada"*, e ela refez a peça errada de novo.
+  //
+  // A causa era o alvo ser o DEPARTAMENTO. Social Media tem três especialistas
+  // (Pauta do mês `a3` · Copy `social-copy` · Roteiro `social-roteiro-video`),
+  // então "pedir ajuste no card de social" varria os três — e destruía o que
+  // estava bom para não corrigir o que ele apontou.
+  //
+  // Por que isso é caro em dinheiro, e não só em irritação: refação é prejuízo
+  // da casa. O preço já está fechado e o pagamento vem antes da produção. Errar
+  // o alvo gasta uma rodada de IA para PIORAR a entrega, e obriga outra rodada
+  // para consertar o que ela quebrou.
+  //
+  // A mira, em ordem de firmeza:
+  //
+  //   1. o `deliverableId` que o chamador declarou — o vínculo por FK do card
+  //      (`ApprovalRequest.deliverableVersion`). É a única forma que prova QUE
+  //      PEÇA estava na mesa, e por isso é a única que pode trazer de volta uma
+  //      peça `quality_flag`: se o card apontava para ela, ele a viu;
+  //   2. a peça que o card GENÉRICO estava mostrando, pela MESMA função que
+  //      montou o texto que ele leu (`entregaMostradaPorDepartamento`) — "o que
+  //      ele viu" e "o que volta ao autor" viram a mesma peça por construção.
+  //      Aqui a barrada continua fora: a derivação é uma inferência, e
+  //      inferência não é prova de que ele viu a peça;
+  //   3. sem nenhuma das duas, o departamento — o comportamento antigo, que
+  //      continua certo para o chamador que não sabe de peça nenhuma.
+  let alvos = naoBarradas;
+  const idExplicito = input.deliverableId?.trim() || null;
+  if (idExplicito) {
+    // A posse é conferida nas duas pontas: entre as candidatas (que já nascem
+    // filtradas por projeto) ou, se o card aponta para fora do ciclo corrente,
+    // por uma leitura que carrega `projectId` no `where` — id de peça de outro
+    // cliente não é refeito por aqui.
+    const apontada =
+      candidatas.find((d) => d.id === idExplicito)
+      ?? await prisma.deliverable.findFirst({
+        where: { id: idExplicito, projectId: projeto.id },
+        select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true, revisionStatus: true, type: true },
+      }).catch(() => null);
+    if (apontada) alvos = [apontada];
+  } else {
+    const mostrada = await entregaMostradaPorDepartamento(projeto.id)
+      .then((m) => m.get(input.department)?.id ?? null)
+      .catch(() => null);
+    const apontada = mostrada ? naoBarradas.find((d) => d.id === mostrada) : undefined;
+    if (apontada) alvos = [apontada];
+  }
+
+  // A barrada que É o alvo não é "de carona": ela é o pedido. Escalar sobre ela
+  // como se tivesse ficado de fora seria dizer a gente o contrário do que a
+  // máquina acabou de fazer.
+  const barradasDeCarona = barradas.filter((b) => !alvos.some((a) => a.id === b.id));
 
   if (alvos.length === 0) {
     // Duas ausências diferentes, duas frases diferentes. Dizer "não achei sua
     // entrega" quando a entrega EXISTE e está barrada é mentira — e das que o
     // cliente descobre sozinho no mês seguinte.
-    const tudoBarrado = barradas.length > 0;
+    const tudoBarrado = barradasDeCarona.length > 0;
     const motivo = tudoBarrado
       ? "entrega do departamento está reprovada pela Qualidade — o pedido do cliente precisa entrar na refação dela"
       : "sem entrega correspondente";
     await escalar(
       dono, negocio,
       tudoBarrado
-        ? `pedido de mudança do cliente sobre entrega BARRADA pela Qualidade (${barradas.map((d) => d.name).join(", ")}) — junte o que ele pediu à correção antes de apresentar`
+        ? `pedido de mudança do cliente sobre entrega BARRADA pela Qualidade (${barradasDeCarona.map((d) => d.name).join(", ")}) — junte o que ele pediu à correção antes de apresentar`
         : `pedido de mudança do cliente sem entrega correspondente (departamento "${input.department}")`,
       comentario,
     );
@@ -259,9 +343,9 @@ export async function refazerPorPedidoDoCliente(input: {
   // Parcial: o cliente pediu ajuste num departamento onde ALGUMA peça está
   // barrada. As boas seguem refeitas abaixo; a barrada continua com a Qualidade,
   // mas o pedido dele não pode se perder no caminho — vira registro para gente.
-  if (barradas.length > 0) {
+  if (barradasDeCarona.length > 0) {
     await escalar(dono, negocio,
-      `o pedido do cliente também toca entrega(s) barrada(s) pela Qualidade (${barradas.map((d) => d.name).join(", ")}) — essas não foram refeitas por aqui`,
+      `o pedido do cliente também toca entrega(s) barrada(s) pela Qualidade (${barradasDeCarona.map((d) => d.name).join(", ")}) — essas não foram refeitas por aqui`,
       comentario);
   }
 
@@ -289,6 +373,15 @@ export async function refazerPorPedidoDoCliente(input: {
     proibicoes: await lerProibicoes(projeto.clientId),
   };
 
+  // ── OS DOIS ATOS SÃO DOIS ATOS ──────────────────────────────────────────
+  // "Pedir ajuste" e "recusar e refazer" chegavam aqui idênticos: mesma
+  // função, mesmo prompt, mesma frase "preserve o resto". O cliente distingue
+  // os dois no portal (são dois botões, com dois textos), e o especialista
+  // precisa saber qual deles aconteceu — recusar é dizer "isto aqui não
+  // serve", e responder a isso preservando o que ele acabou de recusar é não
+  // ter ouvido.
+  const recusou = input.modo === "recusa";
+
   for (const entrega of alvos) {
     if (entrega.version > MAX_REFACOES_DO_CLIENTE) {
       saida.escalado = true;
@@ -300,16 +393,22 @@ export async function refazerPorPedidoDoCliente(input: {
     const r = await generate({
       system:
         `Você é o especialista de ${esp?.label ?? "produção"} de uma agência de marketing brasileira. ` +
-        "O CLIENTE — não a Qualidade, o cliente que paga — pediu mudança na sua entrega. " +
+        (recusou
+          ? "O CLIENTE — não a Qualidade, o cliente que paga — RECUSOU esta entrega e mandou refazer. "
+          : "O CLIENTE — não a Qualidade, o cliente que paga — pediu um AJUSTE nesta entrega. ") +
         "O pedido dele é a instrução final: atenda o que ele pediu, sem discutir e sem defender a versão anterior. " +
-        "Mude o que ele apontou e preserve o resto — refazer do zero o que ele não reclamou faz o cliente sentir que perdeu o que já tinha aprovado. " +
+        (recusou
+          ? "Ele recusou a entrega INTEIRA: refaça-a por completo atendendo o motivo que ele deu. Não tente salvar a versão anterior — foi ela que ele recusou. "
+          : "Mude o que ele apontou e preserve o resto — refazer do zero o que ele não reclamou faz o cliente sentir que perdeu o que já tinha aprovado. ") +
         "Responda SOMENTE com JSON válido, no mesmo formato.",
       user: [
         `NEGÓCIO: ${negocio}`,
         `ENTREGA ATUAL — "${entrega.name}":`,
         entrega.content ?? "",
         "",
-        `O QUE O CLIENTE PEDIU, com as palavras dele: "${comentario}"`,
+        recusou
+          ? `POR QUE ELE RECUSOU, com as palavras dele: "${comentario}"`
+          : `O QUE O CLIENTE PEDIU, com as palavras dele: "${comentario}"`,
         entrega.clientFeedback ? `\nELE JÁ TINHA PEDIDO ANTES: "${entrega.clientFeedback}" — não repita o erro anterior.` : "",
         "",
         'Onde faltar informação do cliente, escreva "PRECISO CONFIRMAR: <o quê>" — nunca invente para preencher.',
@@ -369,6 +468,57 @@ export async function refazerPorPedidoDoCliente(input: {
       continue;
     }
 
+    // ── AFIRMAÇÃO MEDIDA TEM PRAZO DE VALIDADE ─────────────────────────────
+    //
+    // A peça que a Qualidade já JULGOU não pode sair daqui carregando o
+    // veredito antigo: ele foi dado sobre um texto que não existe mais. Isso
+    // corta os dois lados do mesmo defeito:
+    //
+    //   • verde velho — a peça que passou pela auditoria e foi reescrita não
+    //     herda o "aprovado". O que foi medido foi a versão anterior;
+    //   • barrada absolvida — a peça `quality_flag` que agora É o alvo do
+    //     ajuste (e por isso deixou de ser pulada) não pode virar "não
+    //     auditada" por cima da ressalva. Sem árbitro, ela CONTINUA barrada:
+    //     ausência de parecer não é absolvição (a mesma regra de
+    //     `pacote-travado.ts`).
+    //
+    // Peça que NUNCA teve juiz continua sem juiz e sem chamada de IA extra:
+    // neste caminho o árbitro é o cliente, que decide a versão nova na rodada
+    // de aprovação reaberta logo abaixo. O custo do juiz só é pago onde havia
+    // uma afirmação a vencer.
+    const jaTinhaVeredito =
+      entrega.revisionStatus === "quality_ok" || entrega.revisionStatus === "quality_flag";
+    let statusDaVersaoNova = revisionStatusDoVeredito("nao_auditado");
+    let parecerDaQualidade: string | null = null;
+    if (jaTinhaVeredito) {
+      const veredito = await auditDeliverable({
+        deptLabel: esp?.departamentoLabel ?? "Produção",
+        title: typeof dados.title === "string" && dados.title.trim() ? dados.title : entrega.name,
+        content: corpo,
+        brandContext: negocio,
+        tipoDaEntrega: entrega.type,
+        workspaceId: projeto.workspaceId,
+        clientId: projeto.clientId ?? null,
+        projectId: projeto.id,
+      }).catch(() => null);
+
+      if (veredito && foiAprovadaPelaQualidade(veredito.verdict)) {
+        statusDaVersaoNova = revisionStatusDoVeredito("aprovado");
+        parecerDaQualidade = `Reauditada após pedido do cliente e APROVADA. ${veredito.note}`;
+      } else if (veredito && foiReprovadaPelaQualidade(veredito.verdict)) {
+        statusDaVersaoNova = revisionStatusDoVeredito("reprovado");
+        parecerDaQualidade = `Reauditada após pedido do cliente e REPROVADA: ${veredito.issues.join("; ") || veredito.note}`;
+      } else if (entrega.revisionStatus === "quality_flag") {
+        // Sem árbitro sobre uma peça que já estava barrada: a única opinião que
+        // existe sobre ela continua sendo "reprovada".
+        statusDaVersaoNova = revisionStatusDoVeredito("reprovado");
+        parecerDaQualidade = "Refeita a pedido do cliente, mas sem parecer novo da Qualidade — segue barrada.";
+      } else {
+        // Estava verde e ninguém olhou a versão nova: o verde não se herda.
+        parecerDaQualidade = "Refeita a pedido do cliente — a aprovação anterior da Qualidade não vale para esta versão.";
+      }
+    }
+
     // A versão que o cliente estava vendo vira registro imutável ANTES da
     // sobrescrita — era exatamente aqui que a v1 sumia do mundo (Hub, Fase 1,
     // 1.9). `content` continua sendo gravado, mas agora como cache da corrente.
@@ -395,9 +545,12 @@ export async function refazerPorPedidoDoCliente(input: {
         // contra o dono do briefing — e o briefing do cliente manda. O que
         // devíamos ao sistema não era um juiz a mais; era parar de afirmar um
         // veredito que não existe.
-        revisionStatus: revisionStatusDoVeredito("nao_auditado"),
+        revisionStatus: statusDaVersaoNova,
         clientFeedback: comentario.slice(0, 500),
-        lastFeedback: `Refeita a pedido do cliente: ${comentario}`.slice(0, 500),
+        lastFeedback: (parecerDaQualidade
+          ? `${recusou ? "Refeita após recusa do cliente" : "Refeita a pedido do cliente"}: ${comentario} — ${parecerDaQualidade}`
+          : `${recusou ? "Refeita após recusa do cliente" : "Refeita a pedido do cliente"}: ${comentario}`
+        ).slice(0, 500),
       },
     });
 
@@ -406,7 +559,7 @@ export async function refazerPorPedidoDoCliente(input: {
       number: entrega.version + 1,
       content: corpo,
       createdBy: entrega.ownerAgentId,
-      note: `Refeita a pedido do cliente: "${comentario.slice(0, 300)}"`,
+      note: `${recusou ? "Refeita após RECUSA do cliente" : "Refeita a pedido do cliente"}: "${comentario.slice(0, 260)}"`,
     });
     if (novaVersao) saida.versoesNovas.push(novaVersao.id);
     saida.refeitas.push(entrega.name);

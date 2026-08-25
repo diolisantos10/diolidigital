@@ -284,6 +284,8 @@ async function cuidarDosPedidos(): Promise<number> {
 /** Uma batida do relógio. Nunca lança — o relógio não pode morrer. */
 export async function baterORelogio(): Promise<{
   retomados: number;
+  /** Projetos que estavam parados em `idle` e entraram na fila nesta rodada. */
+  ligados: number;
   avisos: number;
   destravadas: number;
   publicados: number;
@@ -304,6 +306,8 @@ export async function baterORelogio(): Promise<{
   backup: boolean;
 }> {
   let retomados = 0;
+  /** Projetos que saíram de `idle` sozinhos nesta rodada. */
+  let ligados = 0;
   let pedidos = 0;
   let avisos = 0;
   let respondidas = 0;
@@ -468,6 +472,36 @@ export async function baterORelogio(): Promise<{
     pedidos = await cuidarDosPedidos();
   } catch (err) {
     quebrou("pedidos-do-cliente", err);
+  }
+
+  // ── O PROJETO QUE NASCEU E NINGUÉM LIGA (24/08/2026) ──────────────────────
+  // Vem ANTES da retomada de propósito: é ela que tira o projeto de `idle` e o
+  // põe em `pending`, que é o estado que `retomarProducao` sabe ler. Assim o
+  // projeto liga e produz na MESMA rodada, em vez de esperar mais cinco minutos.
+  //
+  // A trava de pagamento continua inteira e é conferida duas vezes — aqui e
+  // dentro de `runProjectExecution`. Ver `esteira/ligar-projeto.ts`.
+  try {
+    const { ligarProjetosParados } = await import("@/lib/agency/esteira/ligar-projeto");
+    const r = await ligarProjetosParados();
+    ligados = r.ligados;
+    if (r.ligados > 0) log(`${r.ligados} projeto(s) saíram de "idle" sozinhos e entraram na fila de produção`);
+    // Esperar pagamento e esperar o aval do cliente são ESTADO, não falha: é a
+    // régua funcionando. O que não pode é ser silêncio — projeto parado que
+    // ninguém enxerga é o defeito de origem.
+    if (r.aguardandoPagamento > 0) {
+      estadoDe("ligar-projeto",
+        `${r.aguardandoPagamento} projeto(s) parados por falta de pagamento confirmado — o cliente foi avisado no portal, com o que fazer para liberar`);
+    }
+    if (r.aguardandoDirecao > 0) {
+      estadoDe("ligar-projeto",
+        `${r.aguardandoDirecao} projeto(s) pagos esperando o cliente aprovar a direção — o pedido de aval está no portal dele`);
+    }
+    for (const d of r.desfechos) {
+      if (d.desfecho === "sem_acao") quebrou("ligar-projeto", `${d.projectId}: ${d.motivo}`);
+    }
+  } catch (err) {
+    quebrou("ligar-projeto", err);
   }
 
   try {
@@ -660,6 +694,15 @@ export async function baterORelogio(): Promise<{
     log(`portão de pagamento: ${r.clientesComProjeto} cliente(s) com projeto, ` +
         `${r.projetosVivos} projeto(s) vivo(s), ${r.semProvaDePagamento} sem prova de pagamento, ` +
         `${r.paradosPeloPortao} parado(s)`);
+    // QUEM, não só quantos. "1 cliente com projeto" não permite decidir nada
+    // sobre a régua; saber que projeto é, em que estado, e se ele tem pedido a
+    // que ligar um pagamento, permite.
+    for (const c of r.quemTemProjeto) {
+      const detalhe = c.projetos
+        .map((pr) => `${pr.nome} [${pr.estado}${pr.temPedido ? "" : ", SEM PEDIDO"}${pr.pago ? ", pago" : ""}]`)
+        .join("; ");
+      log(`portão de pagamento — ${c.cliente}: ${detalhe}`);
+    }
   } catch (err) {
     quebrou("vigia-do-portao-de-pagamento", err);
   }
@@ -876,8 +919,8 @@ export async function baterORelogio(): Promise<{
     quebrou("pm-varredura", err);
   }
 
-  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
-    log(`rodada: ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
+  if (ligados > 0 || retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
+    log(`rodada: ${ligados} projeto(s) ligado(s), ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
   }
 
   // A BATIDA É GRAVADA SEMPRE — inclusive (e principalmente) a rodada em que
@@ -898,7 +941,7 @@ export async function baterORelogio(): Promise<{
     estados,
   });
 
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, backup };
+  return { retomados, ligados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, backup };
 }
 
 /**

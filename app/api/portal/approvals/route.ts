@@ -106,7 +106,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // 2. Load the approval and verify it belongs to this token's scope.
     const approval = await prisma.approvalRequest.findUnique({
       where: { id: approvalRequestId },
-      include: { clientRequest: { select: { id: true, clientId: true } } },
+      include: {
+        clientRequest: { select: { id: true, clientId: true } },
+        // QUAL PEÇA este card decide. É o vínculo por FK, e é ele que a refação
+        // usa para mirar a entrega certa em vez do departamento inteiro.
+        deliverableVersion: { select: { deliverableId: true } },
+      },
     });
     if (!approval) {
       return NextResponse.json({ error: "Approval not found" }, { status: 404 });
@@ -363,6 +368,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             clientId: clienteDoCard,
             department: approval.department,
             comentario: body.comment,
+            // ── A PEÇA, E QUAL DOS DOIS ATOS FOI ─────────────────────────────
+            // Até 24/08/2026 esta chamada mandava só o DEPARTAMENTO, e mandava
+            // o mesmo objeto para "pedir ajuste" e para "recusar". Os dois
+            // buracos eram visíveis daqui: o card sabe qual versão está sendo
+            // decidida (`deliverableVersionId`) e a rota sabe qual botão o
+            // cliente apertou (`status`) — as duas informações existiam e
+            // nenhuma das duas atravessava a fronteira.
+            deliverableId: approval.deliverableVersion?.deliverableId ?? null,
+            modo: status === "rejected" ? "recusa" : "ajuste",
           });
         } catch (e) { console.error("[portal/approvals] refação error", e); }
       }

@@ -66,6 +66,24 @@ export interface RetratoDoProjeto {
   };
   /** Pedidos de material abertos e ainda sem resposta do cliente. */
   pedidosAbertos: number;
+  /**
+   * ── QUANTOS DESSES PEDIDOS O CLIENTE DE FATO RECEBEU ─────────────────────
+   *
+   * `pedidosAbertos` conta o que está PENDENTE no banco. Não é a mesma coisa
+   * que o cliente ter sido perguntado: `MaterialRequest` nasce com
+   * `askedClientAt` vazio, e quem o preenche é `cobrarCliente`.
+   *
+   * Medido na produção em 24/08/2026 (case Farol 27): CINCO pedidos abertos,
+   * `askedClientAt: null` nos cinco, `pendencias: []` na visão do cliente — e a
+   * etapa dizendo, na cara dele, *"Responder os 5 pedidos que te mandamos na
+   * conversa"*. Nada tinha sido mandado. Cobrar o que nunca se pediu é pior do
+   * que não pedir: manda o cliente procurar uma mensagem que não existe.
+   *
+   * OPCIONAL, e o `undefined` é deliberado — a mesma regra de
+   * `decisoesDisponiveis`: retrato montado à mão que ainda não mede isto
+   * continua lendo a fase antiga. O que NÃO se faz é escrever `0` sem medir.
+   */
+  pedidosCobrados?: number;
   /** Existe ciclo mensal em andamento? */
   cicloAberto?: boolean;
   /** O cliente já conectou o Instagram? Sem isso a agência não publica nada — e
@@ -100,6 +118,26 @@ export interface RetratoDoProjeto {
 
 export interface LeituraDaFase {
   fase: FaseId;
+  /**
+   * ── A PORTA DE APROVAR A DIREÇÃO, MEDIDA NO ESTADO ───────────────────────
+   *
+   * `true` quando a direção deste projeto ainda espera o aval do cliente — e é
+   * ISTO que as telas usam para desenhar o botão.
+   *
+   * Por que precisou existir (24/08/2026, case Farol 27): as duas telas do
+   * portal derivavam o botão do TEXTO da etapa
+   * (`etapa.includes("confirme o caminho")`). O projeto tinha pedido de
+   * material aberto, `lerFase` devolveu a etapa "Precisamos de uma coisa sua"
+   * — que vem ANTES do portão de direção nesta mesma função — e o botão
+   * simplesmente sumiu, com a conversa dizendo ao cliente *"é só aprovar"*. A
+   * rota pública aceitava a aprovação o tempo todo: faltava a porta, não a
+   * fechadura.
+   *
+   * Verdade escrita em dois lugares já está errada em um deles. A frase é
+   * redação; o estado é fato. Mesmo molde de `pacote.pedeAprovacao`, que esta
+   * casa já aplicou ao botão do pacote em 08/08/2026 pelo mesmo motivo.
+   */
+  precisaAprovarDirecao: boolean;
   semaforo: Semaforo;
   responsavel: Responsavel;
   /** 0–100. Quanto do caminho até a entrega ao cliente já andou. */
@@ -170,6 +208,15 @@ function preenchido(v: Date | string | null | undefined): boolean {
  * abriu uma tarefa nova. O estado mais avançado alcançado é o que vale.
  */
 export function lerFase(r: RetratoDoProjeto): LeituraDaFase {
+  // ── A PORTA DE DIREÇÃO É ESTADO, NÃO REDAÇÃO ──────────────────────────────
+  // Calculada UMA vez, no topo, e carimbada em TODAS as saídas — inclusive nas
+  // que falam de outra coisa. Era exatamente aí que o botão se perdia: a etapa
+  // "Precisamos de uma coisa sua" (material) devolve antes do portão de
+  // direção, e a direção continuava pendente sem que a tela tivesse como saber.
+  // A mesma condição do portão, escrita uma vez só.
+  const precisaAprovarDirecao =
+    r.propostaAceita && r.tarefas.total > 0 && !preenchido(r.direcaoAprovadaEm);
+
   const montar = (
     fase: FaseId,
     semaforo: Semaforo,
@@ -178,6 +225,7 @@ export function lerFase(r: RetratoDoProjeto): LeituraDaFase {
     cliente: LeituraDaFase["paraCliente"],
   ): LeituraDaFase => ({
     fase, semaforo, responsavel,
+    precisaAprovarDirecao,
     progresso: Math.round((posicaoNaTrilha(fase) / (TRILHA.length - 1)) * 100),
     paraEquipe: equipe, paraCliente: cliente,
   });
@@ -287,8 +335,21 @@ export function lerFase(r: RetratoDoProjeto): LeituraDaFase {
   }
 
   // ── Produção travada esperando material do cliente ────────────────────────
-  if (r.pedidosAbertos > 0 || r.tarefas.bloqueadas > 0) {
-    const quantos = Math.max(r.pedidosAbertos, r.tarefas.bloqueadas);
+  //
+  // ⚠️ FALHA FECHADA: SÓ SE COBRA O QUE FOI PEDIDO (24/08/2026).
+  //
+  // A bola só é do CLIENTE pelos pedidos que efetivamente chegaram até ele
+  // (`pedidosCobrados`, derivado de `askedClientAt`). Pedido aberto no banco e
+  // nunca enviado é bola da AGÊNCIA — e dizer "responda os 5 pedidos que te
+  // mandamos" sobre mensagens que nunca saíram manda o cliente procurar o que
+  // não existe. Ver `RetratoDoProjeto.pedidosCobrados`.
+  //
+  // `undefined` (ninguém mediu) mantém a leitura antiga de propósito: ausência
+  // de informação não é informação, e assumir "zero cobrados" esconderia a
+  // espera legítima de todo chamador que ainda não passa o número.
+  const cobrados = r.pedidosCobrados ?? r.pedidosAbertos;
+  if (cobrados > 0 || (r.pedidosCobrados === undefined && r.tarefas.bloqueadas > 0)) {
+    const quantos = Math.max(cobrados, r.tarefas.bloqueadas);
     return montar("aguardando_cliente", "travado", "cliente",
       { titulo: "Parado esperando o cliente",
         agora: `${quantos} pedido(s) de material sem resposta. A produção não anda sem isso.`,
@@ -296,6 +357,21 @@ export function lerFase(r: RetratoDoProjeto): LeituraDaFase {
       { titulo: "Precisamos de uma coisa sua",
         agora: "A criação está em andamento, mas faltou material para continuar.",
         oQueEsperamosDeVoce: `Responder ${quantos === 1 ? "o pedido" : `os ${quantos} pedidos`} que te mandamos na conversa.` });
+  }
+
+  // Há material pendente, mas NENHUM pedido saiu daqui para o cliente. A
+  // produção está parada e a bola é nossa: quem tem de agir é a agência, que
+  // precisa MANDAR o pedido. O cliente não é cobrado por uma mensagem que não
+  // recebeu — e a parada não vira silêncio, vira uma etapa com dono.
+  if (r.pedidosAbertos > 0 || r.tarefas.bloqueadas > 0) {
+    const quantos = Math.max(r.pedidosAbertos, r.tarefas.bloqueadas);
+    return montar("aguardando_cliente", "travado", "pm",
+      { titulo: "Material pendente que NUNCA foi pedido ao cliente",
+        agora: `${quantos} pedido(s) de material abertos e nenhum deles chegou ao cliente (\`askedClientAt\` vazio).`,
+        proximoPasso: "Mandar o pedido ao cliente numa mensagem só. Enquanto não sair, não se cobra resposta." },
+      { titulo: "Estamos preparando o que falta",
+        agora: "A criação está em andamento. Se precisarmos de algo seu, a gente te manda o pedido por aqui.",
+        oQueEsperamosDeVoce: "" });
   }
 
   // ── Produção rodando ──────────────────────────────────────────────────────
