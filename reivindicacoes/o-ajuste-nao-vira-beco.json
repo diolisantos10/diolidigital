@@ -1,0 +1,14 @@
+{
+  "id": "o-ajuste-nao-vira-beco",
+  "quem": "ses-a83f213539",
+  "frente": "O ajuste que nao pode entregar deixa de virar beco: instrucao gemea na tela + o cliente continua podendo decidir",
+  "responsabilidade": "o-ajuste-nao-vira-beco",
+  "arquivos": [
+    "lib/agency/esteira/porta-do-ajuste.ts",
+    "lib/agency/esteira/refacao.ts",
+    "app/api/portal/approvals/route.ts"
+  ],
+  "abertaEm": "2026-08-25T18:01:49.061Z",
+  "encerradaEm": null,
+  "rotulo": "beco-do-ajuste"
+}

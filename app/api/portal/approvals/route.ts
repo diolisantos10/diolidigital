@@ -496,7 +496,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       } else if (status === "revision_requested") {
         try {
           const { refazerPorPedidoDoCliente } = await import("@/lib/agency/esteira/refacao");
-          await refazerPorPedidoDoCliente({
+          const feita = await refazerPorPedidoDoCliente({
             clientRequestId: approval.clientRequestId,
             clientId: clienteDoCard,
             department: approval.department,
@@ -525,6 +525,73 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             // acabou é a máquina fazer isso sozinha, no lugar dele.
             modo: "ajuste",
           });
+
+          // ═══════════════════════════════════════════════════════════════
+          // O AJUSTE NÃO PODE VIRAR BECO (26/08/2026, cliente oculto)
+          // ═══════════════════════════════════════════════════════════════
+          //
+          // ── O QUE FOI MEDIDO ──────────────────────────────────────────
+          // A cliente apontou a terceira de quatro peças pagas. A refação
+          // reescreveu o texto e o PISO DE VERDADE barrou — o texto novo
+          // usava justamente o que ela tinha registrado como proibido.
+          // **Parar foi certo e continua certo**; nada aqui afrouxa isso.
+          //
+          // O defeito era o depois: sem peça nova, o card ficava carimbado
+          // `revision_requested` para sempre, e a partir dali esta mesma
+          // rota devolvia **409 "já decidido"** para aprovar, recusar E
+          // cancelar. Um clique consumia o direito de decidir sobre quatro
+          // peças que ela já tinha pago e que estavam na mão dela.
+          //
+          // Para um humano isso é uma semana perdida. Para um AGENTE DE IA
+          // representando uma marca — o que vem por aí — é laço infinito.
+          //
+          // ── POR QUE ISSO NÃO CRIA O DEFEITO OPOSTO ────────────────────
+          // "Deixar decidir sempre" abriria a janela em que ele aprova a
+          // peça ENQUANTO a refação dela roda, e a casa entrega a versão
+          // velha depois de ter mandado refazer.
+          //
+          // Não há janela aqui, e o motivo é o MOMENTO: o `await` acima
+          // esperou a refação INTEIRA — texto, arte e a reabertura que ela
+          // mesma faz quando nasceu versão nova. Quando esta linha roda, ou
+          // existe peça nova (e o card já reabriu apontando para ELA, e
+          // `devolveADecisao` é falso), ou a refação parou de vez.
+          //
+          // E a escrita é um COMPARE-AND-SET: `updateMany` com
+          // `status: "revision_requested"` no `where`. Se qualquer outro
+          // caminho já mexeu no card, nada acontece — esta linha jamais
+          // sobrepõe um estado que não é o que a rota acabou de deixar. Não
+          // é prompt pedindo cuidado; é a condição na cláusula.
+          if (feita.devolveADecisao) {
+            await prisma.approvalRequest.updateMany({
+              where: { id: approvalRequestId, status: "revision_requested" },
+              // `reviewedAt`/`reviewedBy` voltam a nulo porque a decisão
+              // ANTERIOR (o pedido de ajuste) já cumpriu o seu papel e está
+              // gravada no comentário e no rastro canônico. Deixá-los aqui
+              // faria o portal mostrar "decidido por você" sobre um card que
+              // está pedindo decisão.
+              data: { status: "pending", reviewedAt: null, reviewedBy: null },
+            }).catch((e) => console.error("[portal/approvals] devolução da decisão falhou", e));
+
+            // ── E ELE LÊ O PORQUÊ NO PRÓPRIO CARD ───────────────────────
+            // O comentário do card é renderizado no histórico da aprovação
+            // (`components/portal/AprovacoesDoCliente.tsx`), que é onde ele
+            // está olhando quando decide. A mensagem na aba de conversa e o
+            // aviso na peça continuam — três superfícies, porque nesta
+            // operação o aviso já morreu numa coluna três vezes.
+            if (feita.parada) {
+              await addApprovalComment({
+                approvalRequestId,
+                authorName:      "Gerente de projeto",
+                // "internal" é a grafia desta casa para "a agência falou"
+                // (`approval-service.ts`); ela também DESPAUSA o prazo, que é
+                // o comportamento certo: a bola volta para o cliente.
+                authorRole:      "internal",
+                kind:            "answer",
+                body:            feita.parada.avisoAoCliente,
+                isClientVisible: true,
+              }).catch((e) => console.error("[portal/approvals] aviso da parada não gravado", e));
+            }
+          }
         } catch (e) { console.error("[portal/approvals] refação error", e); }
       }
 

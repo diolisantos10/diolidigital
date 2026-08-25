@@ -112,8 +112,14 @@ describe("na refação, o contrato não vira reprovação silenciosa", () => {
   it("encolheu, ESCALA com o motivo — a versão que o cliente vê fica de pé", () => {
     const i = s.indexOf("conferirContrato(");
     const trecho = s.slice(i, i + 500);
-    expect(trecho).toContain("saida.escalado = true");
-    expect(trecho).toContain("saida.motivo");
+    // ⚠️ 26/08/2026 — `saida.escalado = true; saida.motivo = "..."` na mão virou
+    // `registrarParada(classificarParada({...}))`. A escalada continua (é o que
+    // `registrarParada` faz, numa porta só); o que mudou é que a parada agora
+    // sai CLASSIFICADA — sem isso, quem chama não distinguia "o provedor caiu"
+    // (retenta) de "o pedido dele briga com uma regra dele" (é conversa), e o
+    // cliente ficava preso num card que ninguém mais podia decidir.
+    expect(trecho).toContain("registrarParada(");
+    expect(trecho).toContain('causa: "fora_do_contrato"');
     // E não grava: `deliverable.update` não pode aparecer antes do `continue`.
     expect(trecho.slice(0, trecho.indexOf("continue;")).includes("deliverable.update")).toBe(false);
   });
