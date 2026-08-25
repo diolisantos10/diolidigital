@@ -663,6 +663,40 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // dinheiro, ele impede que peça amadora saia em nome de um cliente
       // pagante. Gasta tentativa: regerar É o remédio certo para este caso
       // (diferente do pilar bloqueado, onde regerar só inventa número novo).
+      // ── ⚠️ DÍVIDA DECLARADA: A RÉGUA NÃO ALCANÇA A PEÇA COMPOSTA ─────────
+      //
+      // O raciocínio acima está certo e é medido (29× no fundo cru contra 1,2×
+      // na peça composta). A consequência, porém, é um vão — e o cliente
+      // oculto de 25/08/2026 caiu nele, em PRODUÇÃO:
+      //
+      //   SocialPost cmt8xk6ks00790xqofkbfqpab (TRATTORIA DA ANA TESTE)
+      //   /api/media/med_35f7fcb6_mt8xpfoj — HTTP 200, 1080x1350, 19.207 bytes
+      //   sha256 394850e7fdc09af5c2cd4ac633b368866f68d0cdb594d2d3d0ca1921238fa7aa
+      //
+      //   A peça saiu com a FOTO AUSENTE (retângulo cinza chapado no lugar
+      //   dela), o TÍTULO CORTADO no meio da frase ("O ambiente cheio", quando
+      //   a legenda é "O ambiente cheio que faz você querer estar aqui
+      //   também.") e SEM assinatura de marca. Comparada: a peça irmã do mesmo
+      //   cliente (med_1f79e9f3_mt8xj2gu, 150.203 bytes) saiu correta. O
+      //   tamanho do arquivo já denunciava — 19 KB para 1080x1350.
+      //
+      //   E ela está `status: "draft"`, `visibility: "compartilhado"` — ou
+      //   seja, VISÍVEL NO PORTAL DO CLIENTE (`app/api/portal/vista/route.ts`
+      //   filtra exatamente por esse carimbo).
+      //
+      // O `lastError` da peça declara honestamente a falta de MARCA (molde
+      // neutro, monograma no lugar do logo). Não declara a foto ausente nem o
+      // título cortado: essas duas ninguém mediu.
+      //
+      // A pergunta obrigatória desta casa é *"o teste alcança o código que
+      // responde ao cliente?"*. Aqui, não: o portão protege o FUNDO, e o
+      // cliente recebe a COMPOSIÇÃO. Régua verde sobre o componente errado.
+      //
+      // O conserto NÃO é mover este portão (o número de 1,2× diz que ali ele
+      // vira roleta). É uma régua NOVA sobre o arquivo final, antes de
+      // `visibility: "compartilhado"`, capaz de responder três coisas que esta
+      // não responde: a foto entrou? o texto coube? a assinatura está lá?
+      // Fica com dono e sem contorno inventado.
       const portao = await conferirFundoDaPeca({ bytes, mime: "image/png" });
       if (!portao.ok) {
         const erro = motivoDoFundoEmUmaLinha(portao);
