@@ -32,6 +32,7 @@ vi.mock("@/lib/agency/media/armazenamento", () => ({
 }));
 
 import {
+  agendarPecasAprovadas,
   agendarPostsDaEntrega,
   aprovarCalendario,
   publicarAgendados,
@@ -484,5 +485,64 @@ describe("publicar carrossel", () => {
     db.socialPost.findMany.mockResolvedValue([{ ...CARROSSEL, mediaUrlsJson: "{quebrado" }]);
     const r = await publicarAgendados();
     expect(r.falhas[0]!.erro).toMatch(/ainda não tem as artes/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A LIMPEZA DO AVISO NA PROMOÇÃO — item 2 da 6ª auditoria
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// O achado: o Auditor apagou `avisoAoCliente: null` de `promoverParaAgendado`
+// e a suíte inteira ficou VERDE. Uma peça que já tinha sido declarada presa
+// ("⚠️ você aprovou esta peça, mas ela ainda não entrou na fila") continuaria
+// mostrando esse aviso ao cliente DEPOIS de entrar na fila — o ruído que o
+// comentário do próprio arquivo diz combater, e que ensina o cliente a ignorar
+// o aviso verdadeiro da próxima vez.
+//
+// A limpeza GÊMEA, em `refazer-a-arte-do-ajuste.ts`, tem régua e fica vermelha
+// quando cai. Uma tinha, a outra não — e verde que pode sumir em silêncio é
+// exatamente o que esta operação passou seis rodadas consertando.
+//
+// `promoverParaAgendado` é interna e é A ÚNICA escrita de "scheduled" da casa;
+// esta régua a alcança pela porta que o cliente usa (`agendarPecasAprovadas`),
+// que é o mesmo fio que a rota do portal atravessa. Régua sobre a constante do
+// módulo não valeria: mediria a intenção, não a escrita.
+
+describe("quem entra na fila para de dizer que não entrou", () => {
+  beforeEach(() => {
+    db.socialPost.update.mockResolvedValue({});
+  });
+
+  it("promover LIMPA o aviso da parada — aviso que sobrevive ao conserto vira ruído", async () => {
+    db.socialPost.findMany.mockResolvedValue([
+      { id: "sp1", scheduledFor: null, status: "draft" },
+      { id: "sp2", scheduledFor: null, status: "approved" },
+    ]);
+
+    const r = await agendarPecasAprovadas({ clientId: "c1", postIds: ["sp1", "sp2"] });
+    expect(r.agendados).toBe(2);
+
+    expect(db.socialPost.update).toHaveBeenCalledTimes(2);
+    for (const call of db.socialPost.update.mock.calls) {
+      expect(call[0].data.status).toBe("scheduled");
+      // A asserção que fica VERMELHA quando a linha some: `undefined` não é
+      // `null`. Prisma ignora a chave ausente e o aviso velho sobrevive no
+      // banco — que é precisamente o defeito.
+      expect(call[0].data).toHaveProperty("avisoAoCliente");
+      expect(call[0].data.avisoAoCliente).toBeNull();
+    }
+  });
+
+  it("a peça que a fila NÃO aceita não é tocada — e volta declarada em `ignorados`", async () => {
+    // O outro lado da mesma régua: limpar o aviso de quem continua preso seria
+    // apagar a única coisa que o cliente tem para saber que a peça parou.
+    db.socialPost.findMany.mockResolvedValue([
+      { id: "sp1", scheduledFor: null, status: "revision_requested" },
+    ]);
+
+    const r = await agendarPecasAprovadas({ clientId: "c1", postIds: ["sp1"] });
+    expect(r.agendados).toBe(0);
+    expect(r.ignorados).toEqual([{ postId: "sp1", status: "revision_requested" }]);
+    expect(db.socialPost.update).not.toHaveBeenCalled();
   });
 });

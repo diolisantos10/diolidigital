@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { urlDeMidiaDoPortal } from "@/lib/agency/portal/midia";
+import { proporcaoDaPeca } from "@/lib/agency/portal/proporcao-da-peca";
 
 export interface PecaAberta {
   id: string;
@@ -26,6 +27,14 @@ export interface PecaAberta {
   capa: string | null;
   /** Todas as telas do carrossel, na ordem de publicação. */
   telas: string[];
+  /**
+   * A PARADA DESTA PEÇA, em português de gente — vem de `SocialPost.avisoAoCliente`.
+   *
+   * Quando existe, ela é a PRIMEIRA coisa da peça, ACIMA da imagem: o cliente
+   * precisa ler antes de decidir, não depois de rolar. Opcional porque cards
+   * antigos (e a peça de fallback por FK) não têm o campo.
+   */
+  avisoAoCliente?: string | null;
 }
 
 export function rotuloDeFormatoDaPeca(f: string): string {
@@ -47,12 +56,22 @@ export function CarrosselDeTelas({
   telas,
   token,
   alt,
+  format,
 }: {
   /** URLs /api/media/… na ordem de publicação (≥ 1). */
   telas: string[];
   /** Vazio em modo cookie — a credencial não entra no DOM (A4). */
   token: string;
   alt: string;
+  /**
+   * O `SocialPost.format` da peça — é ele que dá a PROPORÇÃO do quadro.
+   *
+   * Sem isto, o cartão mostrava tudo em `aspect-square object-cover`: um Story
+   * (1080×1920) perdia ~44% da altura, e o que sumia era o topo e a base — o
+   * TÍTULO e a ASSINATURA DA MARCA. O cliente aprovava uma peça vendo uma
+   * versão dela que a casa nunca publicaria.
+   */
+  format?: string | null;
 }) {
   const trilho = useRef<HTMLDivElement>(null);
   const [atual, setAtual] = useState(0);
@@ -91,7 +110,7 @@ export function CarrosselDeTelas({
               src={urlDeMidiaDoPortal(t, token) ?? undefined}
               alt={`${alt} — tela ${i + 1} de ${telas.length}`}
               loading={i === 0 ? "eager" : "lazy"}
-              className="aspect-square w-full object-cover"
+              className={`${proporcaoDaPeca(format)} w-full object-cover`}
               draggable={false}
             />
           </div>
@@ -219,8 +238,18 @@ export function DetalheDaPeca({
         </div>
 
         <div className="overflow-y-auto">
+          {/* A parada vem antes da arte, aqui pela mesma razão que no card do
+              cliente: quem lê "a imagem ainda é a anterior" DEPOIS de olhar a
+              imagem já concluiu que refizeram. Ver AprovacoesDoCliente. */}
+          {peca.avisoAoCliente && (
+            <div role="status" className="border-b border-[#FCD34D] bg-[#FFFBEB] px-4 py-3">
+              <p className="whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-[#92400E]">
+                {peca.avisoAoCliente}
+              </p>
+            </div>
+          )}
           {telas.length > 0 ? (
-            <CarrosselDeTelas telas={telas} token={token} alt={rotuloDeFormatoDaPeca(peca.format)} />
+            <CarrosselDeTelas telas={telas} token={token} alt={rotuloDeFormatoDaPeca(peca.format)} format={peca.format} />
           ) : (
             <div className="flex aspect-square w-full items-center justify-center bg-[var(--accent)] px-6 text-center">
               <span className="text-[13px] leading-relaxed text-[var(--text-muted)]">

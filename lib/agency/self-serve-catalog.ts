@@ -63,13 +63,13 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   // empurrar a produção à mão, o que mata a premissa (1).
   {
     id: "balcao-post-feed",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "Post para feed",
     description: "Uma arte para o feed com legenda pronta para publicar.",
     deliverables: [
       "1 arte 1080×1350 (feed vertical)",
       "Legenda pronta, no tom da marca",
-      "Arquivo PNG no portal do cliente",
+      "Arquivo JPEG no portal do cliente",
       "Escopo fechado: sem rodada de revisão",
     ],
     price: 79,
@@ -79,14 +79,14 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "balcao-carrossel-5",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "Carrossel até 5 telas",
     description: "Sequência de até cinco telas com capa e legenda.",
     deliverables: [
       "Capa + até 4 telas de miolo (1080×1350)",
       "Sequência com começo, meio e fim",
       "Legenda pronta, no tom da marca",
-      "Arquivos PNG numerados na ordem de publicação",
+      "Arquivos JPEG numerados na ordem de publicação",
     ],
     price: 129,
     precoMinimo: 79,
@@ -117,14 +117,14 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "balcao-4-stories",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "4 stories",
     description: "Quatro stories verticais com margem protegida.",
     deliverables: [
       "4 stories 1080×1920",
       "Margem protegida: nada de texto cortado por barra ou botão",
       "Texto de cada tela",
-      "Arquivos PNG no portal do cliente",
+      "Arquivos JPEG no portal do cliente",
     ],
     price: 99,
     precoMinimo: 59,
@@ -165,7 +165,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "balcao-pacote-mes",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "Pacote mês — 8 peças",
     description: "Um mês de conteúdo: pauta, oito peças e calendário.",
     deliverables: [
@@ -189,20 +189,20 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   // vitrine mostra dois preços para o mesmo produto. Decisão pendente do CEO.
   {
     id: "pack-4-stories",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "Pack 4 Stories",
     description: "Quatro stories personalizados com design e copy prontos para publicar.",
-    deliverables: ["4 stories 1080×1920", "Copy e hashtags", "Arquivo final (PNG/MP4)", "Entrega em 2 dias úteis"],
+    deliverables: ["4 stories 1080×1920", "Copy e hashtags", "Arquivo final (JPEG/MP4)", "Entrega em 2 dias úteis"],
     price: 150,
     deliveryDays: 2,
     category: "social",
   },
   {
     id: "pack-8-stories",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "Pack 8 Stories",
     description: "Oito stories — uma semana cheia de conteúdo com sequência estratégica.",
-    deliverables: ["8 stories 1080×1920", "Copy e sequência narrativa", "Arquivo final (PNG/MP4)", "Entrega em 3 dias úteis"],
+    deliverables: ["8 stories 1080×1920", "Copy e sequência narrativa", "Arquivo final (JPEG/MP4)", "Entrega em 3 dias úteis"],
     price: 270,
     deliveryDays: 3,
     category: "social",
@@ -210,17 +210,17 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "pack-4-posts",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "4 Posts Feed",
     description: "Quatro posts para feed com design exclusivo e texto otimizado.",
-    deliverables: ["4 artes 1080×1080", "Copy e legenda completa", "Arquivo final (PNG)", "Entrega em 3 dias úteis"],
+    deliverables: ["4 artes 1080×1080", "Copy e legenda completa", "Arquivo final (JPEG)", "Entrega em 3 dias úteis"],
     price: 220,
     deliveryDays: 3,
     category: "social",
   },
   {
     id: "pack-8-posts",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "8 Posts Feed",
     description: "Oito posts — quinzena completa de conteúdo estratégico.",
     deliverables: ["8 artes 1080×1080", "Copy e legenda completa", "Calendário de publicação", "Entrega em 5 dias úteis"],
@@ -255,7 +255,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   // ── Design ───────────────────────────────────────────────────────────────
   {
     id: "banner-digital",
-    requer: ["arte-estatica-png", "arquivo-pdf"],
+    requer: ["arte-estatica-jpeg", "arquivo-pdf"],
     label: "Banner Digital",
     description: "Banner para anúncio, capa de perfil ou materiais de divulgação.",
     deliverables: ["1 banner no formato solicitado", "Até 2 revisões", "Arquivo em PNG e PDF", "Entrega em 1 dia útil"],

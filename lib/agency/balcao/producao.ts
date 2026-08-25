@@ -22,6 +22,8 @@
 
 import { prisma } from "@/lib/db/client";
 import { SELF_SERVE_CATALOG } from "@/lib/agency/self-serve-catalog";
+import { PRODUTOS_CANONICOS, type ProdutoCanonico } from "@/lib/agency/produtos/registro";
+import { ATENDIMENTOS, somarDiasUteis } from "@/lib/agency/esteira/triagem";
 
 export type ResultadoDeProducao =
   | { ok: true; projectId: string; clientId: string; jaExistia: boolean }
@@ -123,9 +125,20 @@ export async function produzirPedidoDeBalcao(clientRequestId: string): Promise<R
       // Pagou, então a direção já está aprovada: não existe rodada de conceito
       // num item de R$ 79 — o que existe é a peça, e ela sai agora.
       directionApprovedAt: new Date(),
-      // O despertador (a cada 5 min) pega daqui e produz. Zero hora humana.
-      executionStatus: "pending",
-      executionRequestedAt: new Date(),
+      // ── QUEM PRODUZ ESTE PEDIDO ───────────────────────────────────────────
+      //
+      // O caminho de sempre é o motor grande, acordado pelo despertador
+      // (`executionStatus: "pending"`, a cada 5 min). Ele continua valendo para
+      // todo item de balcão — menos um.
+      //
+      // O item do produto canônico com corrente visual NÃO entra aqui: ele é
+      // atendido por `produzirPedido`, a mesma e única porta do pedido avulso e
+      // do portal. Deixar os dois ligados produziria a peça DUAS vezes, por dois
+      // caminhos diferentes, e o segundo caminho é sempre o que ninguém audita.
+      // Ver o bloco "O BALCÃO ENTRA PELA MESMA PORTA", abaixo.
+      ...(temCorrenteVisual(serviceId)
+        ? {}
+        : { executionStatus: "pending", executionRequestedAt: new Date() }),
     },
     select: { id: true },
   });
@@ -148,5 +161,152 @@ export async function produzirPedidoDeBalcao(clientRequestId: string): Promise<R
     });
   }
 
+  // ── O BALCÃO ENTRA PELA MESMA PORTA (25/08/2026) ─────────────────────────
+  //
+  // A ordem da Operação Salvaguarda é literal: "uma função orquestradora deve
+  // ser a ÚNICA porta desta corrente — pedido avulso, balcão e portal chamam
+  // ela. Não deixe caminho paralelo vivo."
+  //
+  // O balcão não tinha `ContentRequest`: ele criava projeto e deixava o motor
+  // grande produzir um CICLO. Para o produto com corrente visual isso seria uma
+  // segunda porta, com fechadura diferente — e a segunda porta é sempre a que
+  // fica aberta.
+  //
+  // Então o pedido de balcão do produto canônico nasce como pedido JÁ TRIADO,
+  // com o produto declarado, e atravessa exatamente a mesma corrente do pedido
+  // do portal: mesmos freios, mesma conferência de arquivo, mesmo card.
+  //
+  // ⚠️ NADA muda para os outros itens de balcão: `temCorrenteVisual` é falso
+  // para todos eles, e eles seguem pelo motor grande, byte por byte como antes.
+  const produto = produtoDoItemDeBalcao(serviceId);
+  if (produto) {
+    const encaminhado = await encaminharParaACorrenteVisual({
+      produto,
+      clientRequestId: pedido.id,
+      clientId: cliente.id,
+      projectId: projeto.id,
+      titulo: escopo.nome,
+      descricao: escopo.objetivo,
+    });
+    if (!encaminhado.ok) {
+      // O pedido foi PAGO. Não conseguir encaminhar não pode virar silêncio: o
+      // projeto existe, o cliente existe, e a falha fica dita para quem lê o
+      // resultado do webhook.
+      return { ok: false, motivo: `pedido de balcão criado, mas a corrente do produto não iniciou: ${encaminhado.motivo}` };
+    }
+  }
+
   return { ok: true, projectId: projeto.id, clientId: cliente.id, jaExistia: false };
+}
+
+/** O item de balcão entrega um produto canônico com corrente visual? */
+function produtoDoItemDeBalcao(serviceId: string): ProdutoCanonico | null {
+  return PRODUTOS_CANONICOS.find((p) => p.itemDeCatalogo === serviceId) ?? null;
+}
+
+function temCorrenteVisual(serviceId: string): boolean {
+  return produtoDoItemDeBalcao(serviceId) !== null;
+}
+
+/**
+ * O pedido de balcão vira um `ContentRequest` JÁ TRIADO e entra na porta única.
+ *
+ * Já triado, e não "novo": a triagem existe para descobrir O QUE o cliente quer
+ * a partir de texto livre. Aqui não há o que descobrir — ele **comprou um item
+ * de catálogo pelo id**. Mandar isso a um classificador de IA seria pagar para
+ * adivinhar um fato que já está na mesa, e adivinhar erraria de vez em quando.
+ *
+ * Preço e prazo continuam saindo da tabela, e o pagamento continua conferido
+ * pelo portão de sempre dentro da corrente (`artes.ts`).
+ */
+async function encaminharParaACorrenteVisual(e: {
+  produto: ProdutoCanonico;
+  clientRequestId: string;
+  clientId: string;
+  projectId: string;
+  titulo: string;
+  descricao: string;
+}): Promise<{ ok: true } | { ok: false; motivo: string }> {
+  const atendimento = ATENDIMENTOS.find((a) => a.produtoId === e.produto.id);
+  if (!atendimento) return { ok: false, motivo: `nenhum atendimento da carta entrega o produto "${e.produto.id}"` };
+
+  const item = SELF_SERVE_CATALOG.find((s) => s.id === e.produto.itemDeCatalogo);
+  if (!item) return { ok: false, motivo: `o item "${e.produto.itemDeCatalogo}" sumiu do catálogo` };
+
+  const prazo = somarDiasUteis(new Date(), item.deliveryDays);
+
+  try {
+    // ── A TAREFA PASSA PELO PORTÃO DO PM ─────────────────────────────────────
+    //
+    // `criarTarefas` é o ponto único (`lib/agency/tarefas/criar-tarefas.ts`), e
+    // gravar `prisma.task.create` aqui seria um segundo caminho — a lista de
+    // exceções desta casa existe justamente para não crescer. O plano de
+    // recuperação manda PRESERVAR o "Project Manager como elo central"; entrar
+    // pela porta dele é o que isso significa na prática.
+    //
+    // O portão exige DONO e PRAZO explícitos, e os dois existem aqui sem
+    // invenção: o dono é o especialista que a carta de atendimentos amarra ao
+    // produto, e o prazo sai de `deliveryDays` da tabela.
+    const { criarTarefas } = await import("@/lib/agency/tarefas/criar-tarefas");
+    const criacao = await criarTarefas(e.projectId, [{
+      title: e.titulo,
+      description: `Compra de balcão: ${e.titulo}.\n\n${e.descricao}`,
+      agentId: atendimento.especialistaId,
+      status: "pending",
+      dueDate: prazo.toISOString().slice(0, 10),
+    }]);
+    if (criacao.criadas !== 1) {
+      const parecer = criacao.veredicto.reprovadas.map((r) => r.parecer).join(" · ");
+      return { ok: false, motivo: `o portão do PM não aprovou a tarefa desta compra${parecer ? `: ${parecer}` : ""}` };
+    }
+
+    // O id vem de volta por leitura porque `criarTarefas` grava em lote e não
+    // devolve ids. Não há ambiguidade: o projeto acabou de nascer nesta função
+    // e esta é a sua primeira e única tarefa.
+    const tarefa = await prisma.task.findFirst({
+      where: { projectId: e.projectId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+    if (!tarefa) return { ok: false, motivo: "a tarefa foi aprovada pelo portão do PM e não foi encontrada depois de gravada" };
+
+    const pedido = await prisma.contentRequest.create({
+      data: {
+        clientId: e.clientId,
+        clientRequestId: e.clientRequestId,
+        projectId: e.projectId,
+        taskId: tarefa.id,
+        title: e.titulo,
+        description: e.descricao,
+        objective: `Entregar o que o cliente comprou no balcão: ${item.label}.`,
+        // JÁ TRIADO: o cliente escolheu o item pelo id, não há classificação a
+        // fazer. E o produto viaja com o pedido, que é o ponto inteiro.
+        status: "triado",
+        produtoId: e.produto.id,
+        // Balcão é pago à vista e fechado: não há orçamento na mesa, então o
+        // escopo é "ciclo" e a produção não espera aceite nenhum.
+        scopeDecision: "ciclo",
+        promisedFor: prazo,
+        triagedBy: "balcao",
+        triagedAt: new Date(),
+      },
+      select: { id: true },
+    });
+
+    // A MESMA porta do portal e do pedido avulso. Import dinâmico para não
+    // arrastar o motor de produção (Playwright, motor de imagem) para dentro do
+    // webhook de pagamento, que precisa responder rápido.
+    const { produzirPedido } = await import("@/lib/agency/esteira/producao-de-pedido");
+    void produzirPedido(pedido.id).catch((err: unknown) => {
+      // A produção é assíncrona de propósito: o webhook do Mercado Pago tem
+      // janela curta, e segurar a resposta dele até a arte ficar pronta faria o
+      // provedor reenviar o evento. O pedido fica visível no portal de qualquer
+      // forma, e o despertador retoma o que parar.
+      console.error("[balcao] a corrente do produto falhou", err);
+    });
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, motivo: err instanceof Error ? err.message : "erro desconhecido" };
+  }
 }

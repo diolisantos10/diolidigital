@@ -46,12 +46,15 @@ import { TODOS_OS_ESPECIALISTAS, conferirContrato } from "@/lib/agency/execution
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import { lerProibicoes, registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { STATUS_DA_PECA_RECUSADA } from "@/lib/agency/portal/decisoes-do-portal";
 import {
   auditDeliverable, revisionStatusDoVeredito, arbitragemDoVeredito, type Arbitragem,
-  foiAprovadaPelaQualidade, foiReprovadaPelaQualidade,
+  foiAprovadaPelaQualidade, foiReprovadaPelaQualidade, camposDaDecisaoHumana,
 } from "@/lib/agency/execution/quality-auditor";
 import { entregaMostradaPorDepartamento } from "@/lib/agency/esteira/pacote";
 import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pagamento";
+import { refazerArteDoAjuste, type ArteDoAjuste } from "@/lib/agency/esteira/refazer-a-arte-do-ajuste";
+import { pecasDoEspecialista } from "@/lib/agency/esteira/producao-de-pedido";
 
 /** Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente. */
 export const MAX_REFACOES_DO_CLIENTE = 2;
@@ -62,6 +65,17 @@ export interface RefacaoFeita {
   /** Ids das `DeliverableVersion` recém-nascidas — a rodada nova de aprovação
    *  precisa registrar QUAL versão será decidida (Fase 2, T3/T7). */
   versoesNovas: string[];
+  /**
+   * O QUE ACONTECEU COM AS IMAGENS. `null` = a entrega não tem peça visual
+   * (pauta, roteiro, relatório) e não havia arte para refazer.
+   *
+   * ⚠️ Este campo nasceu do defeito da 4ª auditoria (25/08/2026): a refação
+   * refazia o TEXTO, criava a versão nova, reabria o card — e **0 de 4
+   * arquivos mudavam**. "Refeita" sem arquivo novo é a mesma classe de mentira
+   * de estado que `done` sem `mediaUrl`. Agora a refação só se declara feita
+   * do lado visual quando o `mediaUrl` de fato mudou.
+   */
+  arte: ArteDoAjuste | null;
   /** Virou assunto de gente — e por quê. */
   escalado: boolean;
   motivo?: string;
@@ -113,8 +127,15 @@ export async function refazerPorPedidoDoCliente(input: {
    * conservador é o certo quando o chamador não declarou.
    */
   modo?: "ajuste" | "recusa";
+  /**
+   * AS PEÇAS QUE O CARD ESTAVA MOSTRANDO, na ordem em que ele as mostrou.
+   * Vêm de `ApprovalRequest.sourcePostIdsJson` — o mesmo campo que a recusa já
+   * recebia. É por elas que o texto refeito vira IMAGEM refeita; sem elas a
+   * refação continua sendo só de texto, que era o defeito de 25/08/2026.
+   */
+  postIds?: string[];
 }): Promise<RefacaoFeita> {
-  const saida: RefacaoFeita = { refeitas: [], versoesNovas: [], escalado: false, avisouCliente: false };
+  const saida: RefacaoFeita = { refeitas: [], versoesNovas: [], arte: null, escalado: false, avisouCliente: false };
 
   const clientRequestId = input.clientRequestId?.trim() || null;
   // O dono: quando só veio a solicitação, o cliente é derivado dela. Derivação,
@@ -382,6 +403,11 @@ export async function refazerPorPedidoDoCliente(input: {
   // ter ouvido.
   const recusou = input.modo === "recusa";
 
+  // O JSON REFEITO, guardado para virar imagem. A refação já o tem em mãos; o
+  // que faltava era ele atravessar para o lado visual. Ver o bloco "O TEXTO
+  // NOVO VIRA IMAGEM NOVA", abaixo.
+  let dadosRefeitos: Record<string, unknown> | null = null;
+
   for (const entrega of alvos) {
     if (entrega.version > MAX_REFACOES_DO_CLIENTE) {
       saida.escalado = true;
@@ -566,6 +592,8 @@ export async function refazerPorPedidoDoCliente(input: {
       },
     });
 
+    dadosRefeitos = dados;
+
     const novaVersao = await registrarNovaVersao({
       deliverableId: entrega.id,
       number: entrega.version + 1,
@@ -577,7 +605,54 @@ export async function refazerPorPedidoDoCliente(input: {
     saida.refeitas.push(entrega.name);
   }
 
-  if (saida.refeitas.length > 0) {
+  // ═══════════════════════════════════════════════════════════════════════
+  // O TEXTO NOVO VIRA IMAGEM NOVA — a metade que faltava (Auditor, 25/08/2026)
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // Até aqui esta função refazia o TEXTO e criava a versão. Nada chamava o
+  // rasterizador: a sonda do Auditor pediu "a TERCEIRA peça está escura
+  // demais", recebeu 200, e **0 de 4 arquivos mudaram** — mesma `mediaUrl`,
+  // mesmos bytes. O card reabria em `pending` e o cliente era chamado a
+  // decidir de novo sobre exatamente as imagens que ele acabara de recusar.
+  //
+  // A mira da PEÇA (qual das quatro) mora em `mira-da-peca.ts` e a fiação +
+  // o laço de arte em `refazer-a-arte-do-ajuste.ts`. Nenhum dos dois compõe
+  // imagem: quem compõe é `produzirArtesPendentes`, o laço de sempre.
+  //
+  // Só no AJUSTE. A recusa tem caminho próprio (`recusarPorPedidoDoCliente`),
+  // que retira a peça em vez de redesenhá-la.
+  const pecasDoCard = (input.postIds ?? []).filter((x) => typeof x === "string" && x.length > 0);
+  if (!recusou && saida.refeitas.length > 0 && alvos.length === 1 && pecasDoCard.length > 0) {
+    saida.arte = await refazerArteDoAjuste({
+      clientId: projeto.clientId ?? clientId,
+      postIds: pecasDoCard,
+      // O JSON refeito do especialista, lido pelo MESMO leitor da produção.
+      pecasNovas: pecasDoEspecialista(dadosRefeitos ?? {}),
+      comentario,
+    }).catch((e: unknown): ArteDoAjuste => ({
+      refeitas: [], preservadas: [], mira: null,
+      motivo: `não consegui refazer as imagens (${e instanceof Error ? e.message : "erro desconhecido"}). ` +
+        "A arte anterior continua de pé. Dono: a agência (produção).",
+    }));
+    if (saida.arte.motivo) {
+      saida.escalado = true;
+      saida.motivo = saida.arte.motivo;
+    }
+  }
+
+  // ── QUANDO O CARD **NÃO** PODE REABRIR ──────────────────────────────────
+  //
+  // Se a entrega TEM peças visuais e nenhuma ganhou arquivo novo, reabrir em
+  // `pending` seria pedir ao cliente que decidisse outra vez sobre a mesma
+  // imagem — com a tela dizendo "refizemos". É a mentira de estado que esta
+  // rodada veio fechar. Nesse caso o card fica em "Ajustes solicitados", a
+  // equipe é acionada (`escalar`, abaixo) e o cliente recebe a mensagem
+  // honesta de que a casa está trabalhando nisso.
+  const arteDevia = saida.arte != null && pecasDoCard.length > 0;
+  const arteSaiu = (saida.arte?.refeitas.length ?? 0) > 0;
+  const podeReabrir = !arteDevia || arteSaiu;
+
+  if (saida.refeitas.length > 0 && podeReabrir) {
     // A aprovação volta a ficar pendente: a peça mudou, e o "sim" anterior não
     // vale para uma versão que o cliente ainda não viu. A rodada nova aponta
     // para a versão recém-nascida — quando a refação produziu UMA versão; com
@@ -603,10 +678,28 @@ export async function refazerPorPedidoDoCliente(input: {
       },
     }).catch(() => { /* best-effort */ });
 
+    // ── O QUE A MENSAGEM PODE AFIRMAR ────────────────────────────────────
+    // "Refiz" só é dito sobre o que de fato mudou. Quando o cliente apontou
+    // UMA peça, a mensagem diz qual e diz que as outras ficaram como estavam —
+    // é isso que o transforma de "eles mexeram em tudo" em "eles ouviram".
+    const arte = saida.arte;
+    const linhaDaArte: string[] = [];
+    if (arte && arte.refeitas.length > 0) {
+      linhaDaArte.push(
+        arte.mira
+          ? `Refiz a imagem da peça ${arte.mira.indice} — foi a que você apontou ("${arte.mira.trecho}").`
+          : `Refiz a imagem de ${arte.refeitas.length} peça(s).`,
+      );
+      if (arte.preservadas.length > 0) {
+        linhaDaArte.push(`As outras ${arte.preservadas.length} ficaram exatamente como estavam.`);
+      }
+    }
+
     saida.avisouCliente = await escreverNoPortal(ancora, [
       "Refiz o que você pediu! ✏️",
       "",
       ...saida.refeitas.map((n) => `• ${n}`),
+      ...(linhaDaArte.length > 0 ? ["", ...linhaDaArte] : []),
       "",
       `Ajustei com base no que você falou: "${comentario.slice(0, 200)}"`,
       "Dá uma olhada na aba de aprovações e me diz se ficou como você queria.",
@@ -615,9 +708,18 @@ export async function refazerPorPedidoDoCliente(input: {
 
   if (saida.escalado) {
     await escalar(dono, negocio, saida.motivo ?? "refação não concluída", comentario);
+    // O SILÊNCIO CONTINUA IMPOSSÍVEL. Duas ausências diferentes, duas frases —
+    // e a segunda nasceu em 25/08/2026: o texto foi refeito e a IMAGEM não.
+    // Dizer "refiz" ali seria a mesma mentira de estado do card reabrindo com
+    // a arte velha; ficar calado seria pior ainda.
     if (saida.refeitas.length === 0) {
       saida.avisouCliente = await escreverNoPortal(ancora,
         "Recebi seu pedido e já estou olhando com atenção. Te retorno em breve com o ajuste. 💛");
+    } else if (!podeReabrir) {
+      saida.avisouCliente = await escreverNoPortal(ancora,
+        "Recebi seu pedido e já ajustei o texto — mas a imagem nova ainda não ficou pronta, " +
+        "e eu não vou te pedir para aprovar de novo a mesma arte que você acabou de recusar. " +
+        "A equipe está com isso agora e eu te aviso assim que a peça nova estiver na sua aba de aprovações. 💛");
     }
   }
 
@@ -685,3 +787,255 @@ async function escalar(
  *  `extrairPecas` lia `cenas=[]` e `publicacao.ts:1046` rebaixava a peça
  *  para feed. Comentário dizendo "igual ao motor" não é mecanismo; import é. */
 const renderizar = renderizarEntrega;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A RECUSA — O "NÃO" DO CLIENTE É UM ATO, NÃO UM PEDIDO DE SEGUNDA TENTATIVA
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ── O DEFEITO, MEDIDO (25/08/2026) ──────────────────────────────────────────
+//
+// `/api/portal/approvals` mandava "pedir ajuste" e "recusar" para a MESMA
+// função — `refazerPorPedidoDoCliente` — e a única coisa que `modo: "recusa"`
+// mudava era o PROMPT. O efeito era idêntico nos dois casos: refazia com IA,
+// criava versão nova e **reabria o card em "pending"**.
+//
+// Quer dizer: **em nenhum produto desta casa a recusa ficava recusada.** O
+// cliente apertava "recusar", e a máquina respondia "então faça de novo" — e
+// devolvia a peça para ele decidir outra vez, sem que ninguém da equipe
+// soubesse que ele tinha dito não.
+//
+// Isso não é um defeito do Story. É um defeito da casa inteira, e o Story só
+// foi o primeiro produto a esbarrar nele.
+//
+// ── OS DOIS ATOS, AGORA COM DOIS EFEITOS ────────────────────────────────────
+//
+//   • "pedir ajuste" → `refazerPorPedidoDoCliente`. A máquina refaz. O cliente
+//     quer a peça, com uma coisa diferente.
+//   • "recusar"      → esta função. **A máquina PARA.** O cliente disse que
+//     não é isso — e responder a um "não" com outra tentativa automática é
+//     não ter ouvido. Quem decide o próximo passo é gente.
+//
+// ── O QUE ELA NÃO FAZ, E É O PONTO ──────────────────────────────────────────
+//
+// Não chama IA. Não cria versão. Não reabre o card. Não devolve a peça para a
+// fila de entrega nem para a de publicação. Custa zero e não pode ser barrada
+// por portão de pagamento: **cobrar do cliente o direito de dizer não seria a
+// pior trava que esta casa já escreveu.**
+//
+// ── O QUE ELA FAZ ───────────────────────────────────────────────────────────
+//
+//   1. registra a PROIBIÇÃO — a recusa vira regra, como o ajuste já virava;
+//   2. carimba a entrega como recusada pelo cliente, com as palavras dele;
+//   3. tira as peças do caminho do relógio, com estado próprio;
+//   4. **escala para o PM**, com a próxima ação escrita;
+//   5. responde ao cliente a verdade: não vamos publicar, e alguém vai falar
+//      com você.
+
+// O estado da peça recusada vem do CONTRATO das quatro decisões
+// (`portal/decisoes-do-portal.ts`), que é onde ele pertence e onde a rota do
+// portal também o lê. Reexportado para quem já importa deste módulo — uma
+// verdade, dois nomes de import, nunca dois valores.
+export { STATUS_DA_PECA_RECUSADA };
+
+/** O `revisionStatus` da entrega recusada PELO CLIENTE. Não é `quality_flag`:
+ *  aquele é o veredito do juiz da casa, e confundir os dois faria o painel
+ *  contar recusa de cliente como reprovação interna — dois problemas
+ *  diferentes, com dois consertos diferentes. */
+export const REVISION_STATUS_DA_RECUSA = "recusado_pelo_cliente";
+
+export interface RecusaRegistrada {
+  /** Os nomes das entregas carimbadas como recusadas. */
+  entregasRecusadas: string[];
+  /** As peças tiradas do caminho do relógio. */
+  pecasRetiradas: string[];
+  /** O PM foi acionado com a próxima ação? */
+  escalado: boolean;
+  avisouCliente: boolean;
+  /** Por que não deu para registrar por inteiro, quando não deu. */
+  motivo?: string;
+}
+
+/**
+ * O CLIENTE RECUSOU. A corrente PARA aqui.
+ *
+ * Aceita as duas chaves de dono, como a irmã, e pelo mesmo motivo: o cliente
+ * criado direto não tem solicitação nenhuma.
+ *
+ * **Sem motivo não há recusa.** É a mesma régua de `reprovacao.ts` ("recusar
+ * sem dizer por quê é o gesto que parece produtivo e não ensina nada"), agora
+ * do lado do cliente. A rota já exige o comentário; esta guarda existe porque
+ * a trava do dano real tem de morar onde o dano acontece, não só na porta.
+ */
+export async function recusarPorPedidoDoCliente(input: {
+  clientRequestId?: string | null;
+  clientId?: string | null;
+  department: string;
+  comentario?: string;
+  /** A entrega que o cliente apontou, quando o card a nomeia por FK. */
+  deliverableId?: string | null;
+  /** As peças do card. Vêm de `sourcePostIdsJson` — é o que liga a recusa às
+   *  imagens que ele estava vendo. */
+  postIds?: string[];
+}): Promise<RecusaRegistrada> {
+  const saida: RecusaRegistrada = {
+    entregasRecusadas: [], pecasRetiradas: [], escalado: false, avisouCliente: false,
+  };
+
+  const clientRequestId = input.clientRequestId?.trim() || null;
+  let clientId = input.clientId?.trim() || null;
+  const req = clientRequestId
+    ? await prisma.clientRequestDb.findUnique({
+        where: { id: clientRequestId },
+        select: { businessName: true, clientId: true },
+      }).catch(() => null)
+    : null;
+  if (!clientId) clientId = req?.clientId ?? null;
+
+  if (!clientRequestId && !clientId) {
+    return { ...saida, escalado: true, motivo: "recusa sem dono: nem clientRequestId nem clientId" };
+  }
+
+  const comentario = input.comentario?.trim();
+  const ancora: AncoraDoPedido = { clientId, clientRequestId };
+
+  if (!comentario) {
+    // Recusa muda não é recusa: ninguém sabe o que refazer, e a próxima peça
+    // nasce com o mesmo defeito. Perguntar é o único caminho honesto.
+    const avisou = await escreverNoPortal(ancora,
+      "Vi que você recusou. Para eu não repetir o erro, me conta em uma frase o que não serviu — " +
+      "e enquanto isso NÃO vou publicar nada. 💛");
+    return { ...saida, avisouCliente: avisou, motivo: "recusa sem motivo — perguntei ao cliente" };
+  }
+
+  // ── A RECUSA VIRA REGRA ──────────────────────────────────────────────────
+  // Mesmo mecanismo do ajuste, e com mais razão ainda: o que ele recusou não
+  // pode reaparecer na peça seguinte. Best-effort — registro não derruba a
+  // recusa, que já aconteceu.
+  if (clientId) {
+    await registrarProibicoes(clientId, comentario, "recusa").catch(() => { /* rastro */ });
+  }
+
+  const projeto = await prisma.project.findFirst({
+    where: { OR: [
+      ...(clientRequestId ? [{ clientRequestId }] : []),
+      ...(clientId ? [{ clientId }] : []),
+    ] },
+    select: {
+      id: true, workspaceId: true, clientId: true,
+      client: { select: { name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  }).catch(() => null);
+
+  const cliente = clientId
+    ? await prisma.client.findUnique({
+        where: { id: clientId }, select: { name: true, workspaceId: true },
+      }).catch(() => null)
+    : null;
+
+  const negocio = req?.businessName ?? projeto?.client?.name ?? cliente?.name ?? "o cliente";
+  const dono = {
+    id: projeto?.id ?? null,
+    workspaceId: projeto?.workspaceId ?? cliente?.workspaceId ?? null,
+    clientId: projeto?.clientId ?? clientId,
+  };
+
+  // ── A ENTREGA FICA CARIMBADA COMO RECUSADA ───────────────────────────────
+  // Pelo vínculo do card quando ele existe; sem vínculo, pelas entregas
+  // compartilhadas do departamento que ele apontou — a MESMA regra que decidiu
+  // o que ele leu na tela. Nunca "todas as entregas do projeto".
+  if (projeto) {
+    const idsDoDepartamento = TODOS_OS_ESPECIALISTAS
+      .filter((e) => e.departamentoId === input.department)
+      .map((e) => e.id);
+
+    // ── O CARD DO PEDIDO AVULSO NOMEIA O PEDIDO, NÃO O DEPARTAMENTO ───────
+    //
+    // `department` de um card de pedido é `pedido:<id>` — a grafia existe
+    // justamente para que o caminho de volta exista sem adivinhação por ordem
+    // (ver `producao-de-pedido.ts`). Sem ler esse prefixo, a busca por
+    // especialistas do "departamento `pedido:cmt…`" não acha ninguém, e a
+    // recusa passaria SEM carimbar a entrega — silenciosamente, que é o tipo de
+    // buraco que esta função inteira veio fechar.
+    //
+    // Derivação, nunca invenção: o id vem do próprio card.
+    const idDoPedido = input.department.startsWith("pedido:")
+      ? input.department.slice("pedido:".length).trim()
+      : null;
+    const entregaDoPedido = idDoPedido
+      ? (await prisma.contentRequest.findUnique({
+          where: { id: idDoPedido }, select: { deliverableId: true },
+        }).catch(() => null))?.deliverableId ?? null
+      : null;
+
+    const idAlvo = input.deliverableId ?? entregaDoPedido;
+
+    const alvos = await prisma.deliverable.findMany({
+      where: idAlvo
+        ? { id: idAlvo }
+        : {
+            projectId: projeto.id,
+            visibility: "compartilhado",
+            ownerAgentId: { in: idsDoDepartamento.length > 0 ? idsDoDepartamento : ["__nenhum__"] },
+          },
+      select: { id: true, name: true },
+    }).catch(() => [] as Array<{ id: string; name: string }>);
+
+    for (const alvo of alvos) {
+      await prisma.deliverable.update({
+        where: { id: alvo.id },
+        data: {
+          // ── QUEM DISSE NÃO TEM NOME ────────────────────────────────────
+          // `revisionStatus` é veredito, e veredito sem árbitro gravado é o
+          // defeito do Farol 27: valor medido e não persistido é o mesmo que
+          // não medido. Aqui quem julgou não é IA — é o CLIENTE, pela tela do
+          // portal, autenticado por token. Por isso `camposDaDecisaoHumana`
+          // (arbitragem `decisao_humana`) e não `camposDaQualidade`: dizer
+          // "árbitro independente" numa recusa de cliente seria mentir sobre a
+          // origem do veredito. O nome vem do dono do card, nunca inventado.
+          ...camposDaDecisaoHumana(
+            REVISION_STATUS_DA_RECUSA,
+            `cliente:${clientId ?? clientRequestId ?? "desconhecido"}`,
+          ),
+          clientFeedback: comentario.slice(0, 2000),
+        },
+      }).catch(() => { /* rastro */ });
+      saida.entregasRecusadas.push(alvo.name);
+    }
+  }
+
+  // ── AS PEÇAS SAEM DO CAMINHO DO RELÓGIO ──────────────────────────────────
+  // Filtradas pelo DONO, sempre: um id de peça de outro cliente dentro do JSON
+  // do card não é tocado. Mesma guarda que a rota já aplica.
+  const ids = (input.postIds ?? []).filter((x) => typeof x === "string" && x.length > 0);
+  if (ids.length > 0 && clientId) {
+    const alcancadas = await prisma.socialPost.updateMany({
+      where: { id: { in: ids }, clientId },
+      data: { status: STATUS_DA_PECA_RECUSADA },
+    }).catch(() => ({ count: 0 }));
+    if (alcancadas.count > 0) saida.pecasRetiradas = ids;
+  }
+
+  // ── O PM RECEBE A PRÓXIMA AÇÃO ───────────────────────────────────────────
+  // É o critério E do contrato de aceite, e é o que separa "recusado" de
+  // "engavetado": alguém tem de saber que o cliente disse não, hoje.
+  await escalar(dono, negocio,
+    `O CLIENTE RECUSOU a entrega do departamento "${input.department}". ` +
+    `A peça NÃO foi refeita automaticamente e NÃO entra na fila de publicação — ` +
+    "recusa não é pedido de segunda tentativa. " +
+    "PRÓXIMA AÇÃO: falar com o cliente e decidir se refaz com direção nova, se muda o escopo ou se devolve.",
+    comentario,
+  ).catch(() => { /* o escalonamento é rastro; a recusa já valeu */ });
+  saida.escalado = true;
+
+  saida.avisouCliente = await escreverNoPortal(ancora, [
+    "Entendido — recusa registrada, e eu NÃO vou publicar nada disso. 🛑",
+    "",
+    `O que você disse ficou anotado: "${comentario.slice(0, 300)}"`,
+    "",
+    "Não vou simplesmente tentar de novo no escuro: alguém da equipe vai falar com você para " +
+    "acertar a direção antes de qualquer peça nova.",
+  ].join("\n"));
+
+  return saida;
+}

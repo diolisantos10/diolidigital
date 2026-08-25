@@ -27,6 +27,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CarrosselDeTelas, rotuloDeFormatoDaPeca, type PecaAberta } from "@/components/portal/DetalheDaPeca";
+import { proporcaoDaPeca } from "@/lib/agency/portal/proporcao-da-peca";
 import { urlDeMidiaDoPortal } from "@/lib/agency/portal/midia";
 import { juntarTranscricao } from "@/lib/ai/transcricao";
 import { BotaoDeDitado } from "./Ditado";
@@ -134,6 +135,29 @@ function corpoDaPeca(ap: AprovacaoDoPortal): string | null {
   return semTitulo || ap.reviewNote;
 }
 
+/**
+ * O CABEÇALHO do card quando há peças estruturadas — e ele existe por um
+ * defeito medido pelo Auditor (25/08/2026).
+ *
+ * A regra antiga era `corpo = temPecas ? null : corpoDaPeca(ap)`. Com peças, o
+ * corpo INTEIRO era descartado — e junto com ele ia embora a única frase que
+ * avisa o cliente de que NINGUÉM revisou aquela peça. O aviso estava gravado no
+ * banco e a tela o jogava fora: coluna gravada não é cliente informado.
+ *
+ * O motivo original da supressão era legítimo e continua valendo: os blocos
+ * numerados (`**1. ...`) repetem legenda por legenda o que a imagem já mostra.
+ * Então o corte agora é CIRÚRGICO — some só a lista de peças, fica tudo que
+ * vem antes dela: o aviso de "sem árbitro", a frase da área segura e a
+ * instrução de decidir. Nada que fale COM o cliente é descartado.
+ */
+function cabecalhoDoCorpo(ap: AprovacaoDoPortal): string | null {
+  const corpo = corpoDaPeca(ap);
+  if (!corpo) return null;
+  const inicioDaLista = corpo.search(/^\*\*\d+\.\s/m);
+  const cabecalho = (inicioDaLista >= 0 ? corpo.slice(0, inicioDaLista) : corpo).trim();
+  return cabecalho || null;
+}
+
 /** O reviewNote chega com negrito em markdown (**assim**) — o cliente não pode
  *  ver asterisco cru. Só negrito: qualquer outra marca passa como texto. */
 function ComNegrito({ texto }: { texto: string }) {
@@ -180,10 +204,33 @@ function PecaDoCard({ peca, indice, total, token }: { peca: PecaAberta; indice: 
         )}
       </div>
 
+      {/* ── A PARADA DESTA PEÇA, ANTES DA IMAGEM (Auditor, 5ª rodada) ──────
+          O achado: o cliente pediu ajuste, o texto foi refeito, a arte não
+          saiu — e esta peça apareceu com a legenda NOVA sobre a imagem que ele
+          acabara de recusar. A casa sabia: escalou a equipe com dono e próxima
+          ação e escreveu a frase honesta. Só que na aba de MENSAGENS e no log.
+          O Auditor varreu o HTML desta tela: zero ocorrências de "não
+          consegui", "não foi possível", "equipe", "erro", "problema".
+
+          Fica ACIMA da imagem de propósito. Embaixo, ele lê depois de já ter
+          olhado a arte e concluído "então refizeram" — e a conclusão errada já
+          está formada. Critério F: toda parada mostra motivo, dono e próxima
+          ação, no momento em que a pessoa decide. */}
+      {peca.avisoAoCliente && (
+        <div
+          role="status"
+          className="border-y border-[#FCD34D] bg-[#FFFBEB] px-3.5 py-3"
+        >
+          <p className="whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-[#92400E]">
+            {peca.avisoAoCliente}
+          </p>
+        </div>
+      )}
+
       {telas.length > 0 ? (
-        <CarrosselDeTelas telas={telas} token={token} alt={rotuloDeFormatoDaPeca(peca.format)} />
+        <CarrosselDeTelas telas={telas} token={token} alt={rotuloDeFormatoDaPeca(peca.format)} format={peca.format} />
       ) : (
-        <div className="flex aspect-square w-full items-center justify-center bg-[var(--accent)] px-6 text-center">
+        <div className={`flex ${proporcaoDaPeca(peca.format)} w-full items-center justify-center bg-[var(--accent)] px-6 text-center`}>
           <span className="text-[13px] leading-relaxed text-[var(--text-muted)]">arte em produção</span>
         </div>
       )}
@@ -308,9 +355,9 @@ function DetalheDaAprovacao({
   const semCorpo = ap.semConteudo === true;
   const pendente = ap.status === "pending" && !semCorpo;
   const temPecas = ap.pecas.length > 0;
-  // Com peças estruturadas, o reviewNote não renderiza: ele é o RESUMO em texto
-  // das mesmas legendas — mostrá-lo duplicaria tudo que a peça já mostra.
-  const corpo = temPecas ? null : corpoDaPeca(ap);
+  // Com peças estruturadas, a LISTA de legendas não renderiza (duplicaria a
+  // imagem) — mas o cabeçalho sim: é onde mora o aviso de peça não revisada.
+  const corpo = temPecas ? cabecalhoDoCorpo(ap) : corpoDaPeca(ap);
   const prazo = dataCurta(ap.expiresAt);
   const vencida = pendente && !ap.questionOpen && ap.expiresAt != null && new Date(ap.expiresAt) < new Date();
 
@@ -363,6 +410,16 @@ function DetalheDaAprovacao({
           <Badge status={ap.status} questionOpen={ap.questionOpen} semConteudo={semCorpo} />
         </div>
 
+        {/* ── O AVISO VEM ANTES DA PEÇA ──────────────────────────────────
+            Ordem no DOM não é detalhe: aviso depois de quatro imagens é aviso
+            que ninguém lê. O cliente precisa saber que ninguém revisou ANTES
+            de olhar a peça e clicar em Aprovar. */}
+        {corpo && (
+          <div className="mt-4 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] p-4">
+            <p className="text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap"><ComNegrito texto={corpo} /></p>
+          </div>
+        )}
+
         {temPecas && (
           // Largura de post, não de página: em tablet/desktop a peça capada em
           // ~480px é o tamanho em que o cliente a verá no feed — imagem maior
@@ -374,11 +431,7 @@ function DetalheDaAprovacao({
           </div>
         )}
 
-        {corpo && (
-          <div className="mt-4 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] p-4">
-            <p className="text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap"><ComNegrito texto={corpo} /></p>
-          </div>
-        )}
+
 
         {/* O estado honesto: o material ainda não subiu, e por isso NÃO há o
             que decidir. Nenhum botão de decisão aparece — nem "Aprovar", nem
@@ -831,6 +884,77 @@ export interface DecisaoDaEsteira {
  * item a item (aquele já mostra a peça antes de perguntar), e nenhum redesenho
  * da tela. Isto é conserto, não reforma.
  */
+/**
+ * ── A CONFIRMAÇÃO DA DECISÃO EM MASSA — E POR QUE ELA É UM COMPONENTE ──────
+ *
+ * Isto é EXATAMENTE o que o cliente vê depois de apertar o atalho; não há
+ * segunda versão para teste. Virou componente próprio por uma razão de prova:
+ * o estado `confirmando` mora num `useState`, e a suíte desta casa renderiza
+ * com `react-dom/server`, que não clica em nada. Enquanto a confirmação estava
+ * enterrada no `else` do `DecisaoEmMassa`, o critério E ("nenhuma decisão em
+ * massa inclui peça invisível") só tinha régua por LEITURA DE FONTE — e leitura
+ * de fonte não é o que o cliente lê.
+ *
+ * Extraído, o teste monta este componente com as props reais e afirma sobre o
+ * HTML: a peça sem corpo não aparece na lista do que vai ser aprovado, e
+ * aparece nomeada na linha do que fica DE FORA.
+ */
+export function ConfirmacaoEmMassa({
+  decisao,
+  enviando,
+  onCancelar,
+}: {
+  decisao: DecisaoDaEsteira;
+  enviando: boolean;
+  onCancelar: () => void;
+}) {
+  const n = decisao.itens.length;
+  return (
+    <div className="mt-3.5 rounded-[12px] border border-[var(--border-strong)] bg-[var(--bg-elevated)] p-4">
+      <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-snug">
+        {n === 1 ? "Confirma aprovar esta entrega?" : `Confirma aprovar estas ${n} entregas de uma vez?`}
+      </p>
+      {n > 0 && (
+        <ul className="mt-2 space-y-1">
+          {decisao.itens.map((item) => (
+            <li key={item} className="text-[13px] text-[var(--text-primary)] leading-relaxed flex gap-2">
+              <span aria-hidden className="text-[var(--text-subtle)]">•</span>
+              <span className="min-w-0">{item}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {decisao.emProducao && decisao.emProducao.length > 0 && (
+        <p className="text-[12px] text-[var(--text-muted)] mt-2 leading-relaxed">
+          Fora desta aprovação (ainda em produção): {decisao.emProducao.join(", ")}.
+        </p>
+      )}
+      <p className="text-[12px] text-[var(--text-muted)] mt-2.5 leading-relaxed max-w-[58ch]">
+        Aprovar libera a publicação. Se você entrou aqui só para ver as peças, feche esta confirmação
+        e abra cada uma na lista acima — lá dá para ver a arte, aprovar uma por uma ou pedir ajustes.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          disabled={enviando}
+          onClick={() => void decisao.decidir().then((ok) => { if (ok) onCancelar(); })}
+          style={{ touchAction: "manipulation" }}
+          className="h-11 px-5 rounded-[10px] text-[14px] font-semibold bg-[#070A1F] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+        >
+          {enviando ? "Registrando…" : n === 1 ? "Sim, aprovar esta entrega" : `Sim, aprovar as ${n} entregas`}
+        </button>
+        <button
+          disabled={enviando}
+          onClick={onCancelar}
+          style={{ touchAction: "manipulation" }}
+          className="h-11 px-5 rounded-[10px] text-[14px] font-semibold border border-[var(--border)] bg-white text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-50"
+        >
+          Não, quero ver as peças
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DecisaoEmMassa({
   decisao,
   enviando,
@@ -841,7 +965,6 @@ function DecisaoEmMassa({
   erro: string | null;
 }) {
   const [confirmando, setConfirmando] = useState(false);
-  const n = decisao.itens.length;
 
   return (
     <div className="rounded-[14px] border border-[var(--border-strong)] bg-white p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
@@ -858,50 +981,11 @@ function DecisaoEmMassa({
           {decisao.rotulo}
         </button>
       ) : (
-        // ── A CONFIRMAÇÃO NOMEIA O QUE VAI SER APROVADO ────────────────────
-        // Sem esta lista, confirmar seria só um segundo clique no escuro.
-        <div className="mt-3.5 rounded-[12px] border border-[var(--border-strong)] bg-[var(--bg-elevated)] p-4">
-          <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-snug">
-            {n === 1 ? "Confirma aprovar esta entrega?" : `Confirma aprovar estas ${n} entregas de uma vez?`}
-          </p>
-          {n > 0 && (
-            <ul className="mt-2 space-y-1">
-              {decisao.itens.map((item) => (
-                <li key={item} className="text-[13px] text-[var(--text-primary)] leading-relaxed flex gap-2">
-                  <span aria-hidden className="text-[var(--text-subtle)]">•</span>
-                  <span className="min-w-0">{item}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {decisao.emProducao && decisao.emProducao.length > 0 && (
-            <p className="text-[12px] text-[var(--text-muted)] mt-2 leading-relaxed">
-              Fora desta aprovação (ainda em produção): {decisao.emProducao.join(", ")}.
-            </p>
-          )}
-          <p className="text-[12px] text-[var(--text-muted)] mt-2.5 leading-relaxed max-w-[58ch]">
-            Aprovar libera a publicação. Se você entrou aqui só para ver as peças, feche esta confirmação
-            e abra cada uma na lista acima — lá dá para ver a arte, aprovar uma por uma ou pedir ajustes.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              disabled={enviando}
-              onClick={() => void decisao.decidir().then((ok) => { if (ok) setConfirmando(false); })}
-              style={{ touchAction: "manipulation" }}
-              className="h-11 px-5 rounded-[10px] text-[14px] font-semibold bg-[#070A1F] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {enviando ? "Registrando…" : n === 1 ? "Sim, aprovar esta entrega" : `Sim, aprovar as ${n} entregas`}
-            </button>
-            <button
-              disabled={enviando}
-              onClick={() => setConfirmando(false)}
-              style={{ touchAction: "manipulation" }}
-              className="h-11 px-5 rounded-[10px] text-[14px] font-semibold border border-[var(--border)] bg-white text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-50"
-            >
-              Não, quero ver as peças
-            </button>
-          </div>
-        </div>
+        <ConfirmacaoEmMassa
+          decisao={decisao}
+          enviando={enviando}
+          onCancelar={() => setConfirmando(false)}
+        />
       )}
       {erro && <p role="alert" className="text-[13px] font-semibold text-[var(--danger)] mt-2">{erro}</p>}
     </div>

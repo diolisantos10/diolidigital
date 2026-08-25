@@ -60,6 +60,8 @@ import {
   lerOperacao, executarOperacaoDeCalendario, contarAoCliente, OPERACOES,
 } from "@/lib/agency/esteira/operacoes";
 import { registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { ID_STORY_V1, produtoCanonico } from "@/lib/agency/produtos/registro";
+import { pediuStoryPorEscrito, pediuFeedPorEscrito } from "@/lib/agency/produtos/leitura-de-formato";
 
 /**
  * O que o cliente já anexou, dito ao modelo em uma linha.
@@ -148,6 +150,23 @@ export interface Atendimento {
    * item de unidade quando ele pediu vários é erro de dinheiro.
    */
   cobre: 1 | "pacote";
+  /**
+   * O PRODUTO CANÔNICO que este atendimento entrega (`produtos/registro.ts`).
+   *
+   * ── Por que existe (Operação Salvaguarda, 25/08/2026) ────────────────────
+   * Até aqui o atendimento amarrava especialista, departamento e preço — e não
+   * amarrava O QUE SAI. Story, post e carrossel dividiam esta mesma linha, e o
+   * formato pedido pelo cliente morria aqui: não havia campo onde ele pudesse
+   * sobreviver. "O formato permanece `story` em todas as transições" era uma
+   * pergunta sem sujeito.
+   *
+   * `undefined` = atendimento sem produto canônico declarado, que é o estado de
+   * todos os outros hoje. Isso NÃO os quebra e NÃO os promove: eles seguem
+   * exatamente pelo caminho de sempre. A migração de cada um é trabalho
+   * próprio, com prova própria — mexer em seis produtos para consertar um é
+   * como se estraga o que estava de pé.
+   */
+  produtoId?: string;
 }
 
 export const ATENDIMENTOS: Atendimento[] = [
@@ -177,11 +196,49 @@ export const ATENDIMENTOS: Atendimento[] = [
     cobre: 1,
   },
   {
+    // ── STORY É PRODUTO, NÃO SINÔNIMO DE POST (25/08/2026) ─────────────────
+    //
+    // Esta linha nasceu de um defeito com endereço: até hoje o story caía em
+    // `post-ou-carrossel` logo abaixo, que aponta para `balcao-post-feed` —
+    // peça de feed, 1080×1350, R$ 79. A palavra "story" existia SÓ na frase
+    // `quando` daquele atendimento: o modelo lia, escolhia o id certo pela
+    // descrição errada, e o formato que o cliente pediu não sobrevivia à
+    // triagem. Ele pagava por feed e recebia (quando recebia) feed.
+    //
+    // O item de tabela correto já existia e nunca era escolhido:
+    // `balcao-4-stories`, 1080×1920, margem protegida. Era o achado 2.2 do
+    // plano de recuperação — "o produto correto existe, mas não é usado".
+    //
+    // Este atendimento vem ANTES do de feed de propósito: a carta é lida na
+    // ordem por quem escreve o prompt, e o caso específico tem de ser lido
+    // antes do genérico.
+    id: "story-instagram",
+    especialistaId: "design-criativo-social",
+    departamentoId: "design",
+    label: "Stories para Instagram (imagem vertical)",
+    quando:
+      "o cliente quer STORY / STORIES para o Instagram — a peça VERTICAL de tela cheia que some em 24h, " +
+      "não a arte do feed. Escolha este quando ele escrever story, stories, ou descrever peça vertical para stories",
+    entrega: "peca",
+    itemDeCatalogo: "balcao-4-stories",
+    // "pacote", e não 1: o item de tabela cobre QUATRO stories por R$ 99.
+    // Declará-lo como unidade faria a TRAVA 2 (a quantidade) parar todo pedido
+    // que dissesse "quero 4 stories" — o cliente escreveria o número certo do
+    // produto certo e a casa responderia que não sabe orçar. `cobre` responde
+    // "o preço já é de um conjunto?", e aqui a resposta é sim.
+    cobre: "pacote",
+    produtoId: ID_STORY_V1,
+  },
+  {
     id: "post-ou-carrossel",
     especialistaId: "design-criativo-social",
     departamentoId: "design",
     label: "Peça para o feed (post ou carrossel)",
-    quando: "o cliente quer uma arte, um post, um carrossel ou um story para publicar",
+    // "story" SAIU desta frase em 25/08/2026, e a saída é a metade que importa
+    // do conserto: enquanto a palavra estivesse aqui, o modelo continuaria
+    // mandando story para o preço e para o formato de feed — com a carta
+    // dizendo, por escrito, que era o lugar certo.
+    quando: "o cliente quer uma arte ou um carrossel para o FEED do perfil — a peça que fica publicada, não a que some em 24h",
     entrega: "peca",
     itemDeCatalogo: "balcao-post-feed",
     cobre: 1,
@@ -250,6 +307,28 @@ for (const a of ATENDIMENTOS) {
   }
   if (a.itemDeCatalogo !== null && !SELF_SERVE_CATALOG.some((s) => s.id === a.itemDeCatalogo)) {
     throw new Error(`triagem.ts: atendimento "${a.id}" aponta para o item "${a.itemDeCatalogo}", que não está no catálogo — sem item não há preço nem prazo, e preço não se inventa`);
+  }
+  // ── O PRODUTO CANÔNICO, CONFERIDO NO CARREGAMENTO (25/08/2026) ────────────
+  //
+  // Mesma catraca das três de cima, e pelo mesmo motivo: um `produtoId` com
+  // erro de digitação produziria um pedido que atravessa a triagem inteira e só
+  // descobre no fim da corrente que não tem produto — depois de gastar IA e
+  // imagem. Erro de digitação tem de derrubar o módulo, não o pedido do
+  // cliente.
+  if (a.produtoId !== undefined) {
+    const produto = produtoCanonico(a.produtoId);
+    if (!produto) {
+      throw new Error(`triagem.ts: atendimento "${a.id}" declara o produto "${a.produtoId}", que não existe em produtos/registro.ts`);
+    }
+    // O produto também aponta o item de catálogo. Os dois têm de dizer a MESMA
+    // coisa: se divergirem, um dos dois está cobrando o preço errado, e não há
+    // como saber qual — então nenhum dos dois vale.
+    if (produto.itemDeCatalogo !== a.itemDeCatalogo) {
+      throw new Error(
+        `triagem.ts: atendimento "${a.id}" cobra pelo item "${a.itemDeCatalogo}" e o produto "${produto.id}" ` +
+        `declara "${produto.itemDeCatalogo}". Duas verdades de preço para o mesmo trabalho: conserte a divergência.`,
+      );
+    }
   }
 }
 
@@ -615,6 +694,41 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     );
   }
 
+  // ── TRAVA 1-B · O FORMATO CONTRA O ITEM DE FEED ───────────────────────────
+  //
+  // Irmã da TRAVA 1, no eixo do FORMATO, e nascida do mesmo tipo de defeito.
+  // A leitura é léxica, roda no texto do PRÓPRIO cliente e não usa IA
+  // (`produtos/leitura-de-formato.ts`).
+  //
+  // O fato: o cliente escreveu "story" com todas as letras. Se, com esse fato
+  // na mesa, a classificação apontar para um item de FEED, o mapeamento que a
+  // Operação Salvaguarda veio fechar está prestes a acontecer de novo — story
+  // cobrado a preço de feed e produzido em 1080×1350.
+  //
+  // ⚠️ POR QUE PARAR E NÃO CORRIGIR SOZINHO. Trocar o atendimento aqui seria a
+  // triagem escolhendo por conta própria um produto que o classificador não
+  // escolheu — e o texto pode legitimamente pedir as DUAS coisas ("um post pro
+  // feed e um story"), que são dois trabalhos e dois preços. A casa já tem a
+  // resposta certa para divergência: **pergunta, nunca cobra.** É a mesma
+  // conduta da TRAVA 1, três blocos acima.
+  //
+  // O caso positivo é o único em que age: silêncio do cliente não vira
+  // conclusão nenhuma (ver o cabeçalho de `leitura-de-formato.ts`).
+  const textoDoPedido = [pedido.description, pedido.objective].filter(Boolean).join("\n");
+  const ehItemDeFeed = atendimento.itemDeCatalogo === "balcao-post-feed";
+  if (ehItemDeFeed && pediuStoryPorEscrito(textoDoPedido)) {
+    return await parar(
+      pedidoId,
+      pediuFeedPorEscrito(textoDoPedido)
+        ? "Você citou story E peça de feed no mesmo pedido. São dois formatos diferentes, com preços diferentes " +
+          "(o story é vertical, 1080×1920; a do feed é 1080×1350), e eu não vou escolher por você nem cobrar os " +
+          "dois como se fossem um. A equipe confirma o que entra e responde por aqui."
+        : "Você pediu STORY, e a classificação automática mandou este pedido para o preço e o formato de peça de " +
+          "FEED. São produtos diferentes — o story é vertical (1080×1920) e tem margem protegida — e eu não vou " +
+          "cobrar nem produzir o formato errado. A equipe confirma com você e responde por aqui.",
+    );
+  }
+
   // ── PREÇO E PRAZO: TABELA ─────────────────────────────────────────────────
   const preco = precoDaTabela(atendimento.itemDeCatalogo);
   const item = SELF_SERVE_CATALOG.find((s) => s.id === atendimento.itemDeCatalogo);
@@ -647,6 +761,40 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
         `Você pediu ${leitura.quantidade} peças e a minha tabela tem preço fechado de uma (${item.label}). Não vou orçar uma e cobrar o resto depois: a equipe te manda o valor das ${leitura.quantidade} por aqui.`,
       );
     }
+  }
+
+  // ── TRAVA 2-B · O PACOTE NÃO É ARREDONDAMENTO PARA CIMA ───────────────────
+  //
+  // A TRAVA 2, logo acima, é fail-closed só PARA MENOS: ela impede orçar 1
+  // quando o cliente pediu 11. O outro lado ficou aberto — e nele mora um
+  // defeito comercial de verdade: **quem pede 1 story recebe e paga 4.**
+  //
+  // Item de `cobre: "pacote"` pulava a contagem inteira, porque "o preço dele já
+  // é de um conjunto". Isso vale para o MÊS e para a IDENTIDADE, que não têm
+  // unidade. Não vale para um pacote de peças CONTÁVEIS: ali o cliente sabe
+  // dizer quantas quer, e cobrar quatro de quem pediu uma não é arredondamento,
+  // é cobrar a mais.
+  //
+  // Só age quando existem os DOIS fatos — o produto declara quantas peças o
+  // preço cobre, e o cliente escreveu um número menor. Silêncio do cliente não
+  // vira conclusão: quem não disse quantas recebe o pacote, que é o que a
+  // tabela vende.
+  //
+  // E, como sempre nesta casa: **pergunta, nunca cobra.**
+  const produtoDoAtendimento = produtoCanonico(atendimento.produtoId);
+  if (
+    produtoDoAtendimento &&
+    typeof leitura.quantidade === "number" &&
+    leitura.quantidade > 0 &&
+    leitura.quantidade < produtoDoAtendimento.quantidadeDePecas
+  ) {
+    return await parar(
+      pedidoId,
+      `Você pediu ${leitura.quantidade} ${leitura.quantidade === 1 ? "peça" : "peças"}, e o que eu tenho na ` +
+      `tabela é o pacote de ${produtoDoAtendimento.quantidadeDePecas} (${item.label}, R$ ${preco}). ` +
+      "Não vou te cobrar o pacote inteiro por menos peças sem você mandar: a equipe confirma com você se " +
+      "prefere o pacote ou um orçamento avulso, e responde por aqui.",
+    );
   }
 
   const prazo = somarDiasUteis(new Date(), item.deliveryDays);
@@ -685,6 +833,14 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
       scopeDecision: escopo,
       projectId: projeto.id,
       taskId: tarefa.id,
+      // ── O PRODUTO VIAJA COM O PEDIDO (25/08/2026) ─────────────────────────
+      // É a linha que faz o formato pedido pelo cliente SOBREVIVER à triagem.
+      // Sem ela, a produção teria de adivinhar o produto a partir do agente da
+      // tarefa — e `design-criativo-social` atende story E feed, então a
+      // adivinhação escolheria errado metade das vezes, em silêncio.
+      // `?? null` e não `undefined`: reprocessar um pedido que trocou de
+      // atendimento tem de LIMPAR o produto antigo, nunca herdá-lo.
+      produtoId: atendimento.produtoId ?? null,
       promisedFor: prazo,
       declineReason: null,
       // O ORÇAMENTO só existe no escopo EXTRA. No ciclo, a peça já está paga
