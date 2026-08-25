@@ -43,7 +43,7 @@ import { renderizarEntrega, ESQUEMA_DA_ENTREGA } from "@/lib/agency/esteira/rend
 import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { generate } from "@/lib/ai/generate";
 import { TODOS_OS_ESPECIALISTAS, conferirContrato } from "@/lib/agency/execution/especialistas";
-import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
+import { conferirPisoDeVerdade, resumirViolacoes, instrucaoGemea, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import { lerProibicoes, registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
 import { STATUS_DA_PECA_RECUSADA } from "@/lib/agency/portal/decisoes-do-portal";
@@ -431,6 +431,26 @@ export async function refazerPorPedidoDoCliente(input: {
   // ter ouvido.
   const recusou = input.modo === "recusa";
 
+  // ── A REGRA QUE JULGA TEM DE SER A REGRA QUE O PRODUTOR LEU (26/08/2026) ──
+  //
+  // As proibições do cliente entravam SÓ no piso — a régua de saída. O prompt
+  // desta refação nunca as viu. A casa julgava por uma regra que nunca contou
+  // a quem escreve, e o desfecho medido em produção foi exatamente esse: o
+  // modelo usou o termo proibido porque ninguém lhe disse que era proibido, o
+  // piso barrou (certo), e o pedido do cliente morreu no meio.
+  //
+  // Isto NÃO é o conserto do beco — o beco é o que acontece depois da recusa,
+  // e ele está fechado abaixo. Isto é a metade que evita chegar lá.
+  //
+  // `instrucaoGemea` é a MESMA redação que o piso usa no motivo da violação:
+  // uma regra, um texto. Duas redações seriam a segunda verdade, e o produtor
+  // obedeceria uma para ser cobrado pela outra.
+  //
+  // ⚠️ E a instrução gêmea vai junto de propósito: "não use X" sozinho faz o
+  // modelo CORTAR o assunto da peça, e aí o cliente perde o conteúdo que
+  // comprou por causa de uma regra de forma.
+  const regrasDoCliente = (verdade.proibicoes?.itens ?? []).map((p) => `• ${instrucaoGemea(p)}`);
+
   // O JSON REFEITO, guardado para virar imagem. A refação já o tem em mãos; o
   // que faltava era ele atravessar para o lado visual. Ver o bloco "O TEXTO
   // NOVO VIRA IMAGEM NOVA", abaixo.
@@ -489,41 +509,50 @@ export async function refazerPorPedidoDoCliente(input: {
     while (tentativas < MAX_TENTATIVAS_TRANSITORIAS) {
       tentativas++;
       r = await generate({
-      system:
-        `Você é o especialista de ${esp?.label ?? "produção"} de uma agência de marketing brasileira. ` +
-        (recusou
-          ? "O CLIENTE — não a Qualidade, o cliente que paga — RECUSOU esta entrega e mandou refazer. "
-          : "O CLIENTE — não a Qualidade, o cliente que paga — pediu um AJUSTE nesta entrega. ") +
-        "O pedido dele é a instrução final: atenda o que ele pediu, sem discutir e sem defender a versão anterior. " +
-        (recusou
-          ? "Ele recusou a entrega INTEIRA: refaça-a por completo atendendo o motivo que ele deu. Não tente salvar a versão anterior — foi ela que ele recusou. "
-          : "Mude o que ele apontou e preserve o resto — refazer do zero o que ele não reclamou faz o cliente sentir que perdeu o que já tinha aprovado. ") +
-        "Responda SOMENTE com JSON válido, no mesmo formato.",
-      user: [
-        `NEGÓCIO: ${negocio}`,
-        `ENTREGA ATUAL — "${entrega.name}":`,
-        entrega.content ?? "",
-        "",
-        recusou
-          ? `POR QUE ELE RECUSOU, com as palavras dele: "${comentario}"`
-          : `O QUE O CLIENTE PEDIU, com as palavras dele: "${comentario}"`,
-        entrega.clientFeedback ? `\nELE JÁ TINHA PEDIDO ANTES: "${entrega.clientFeedback}" — não repita o erro anterior.` : "",
-        "",
-        'Onde faltar informação do cliente, escreva "PRECISO CONFIRMAR: <o quê>" — nunca invente para preencher.',
-        // `cenas` NÃO é opcional aqui, e a razão não é de formato: se o item
-        // tinha telas e volta sem elas, `extrairPecas` lê `cenas=[]` e
-        // `publicacao.ts:1046` REBAIXA o carrossel para feed. O cliente comprou
-        // 5 telas e recebe uma imagem, sem ninguém ficar vermelho.
-        ESQUEMA_DA_ENTREGA,
-        "Se o item já tinha CENAS (telas de carrossel), devolva TODAS elas no mesmo formato numerado. Carrossel que volta sem telas deixa de ser carrossel.",
-      ].join("\n"),
-      maxTokens: 1800,
-      workspaceId: projeto.workspaceId,
-      preferredProvider: esp?.provedor ?? "claude",
-      agentId: "esteira-refacao",
-      clientId: projeto.clientId ?? null,
-      projectId: projeto.id,
-      });
+        system:
+          `Você é o especialista de ${esp?.label ?? "produção"} de uma agência de marketing brasileira. ` +
+          (recusou
+            ? "O CLIENTE — não a Qualidade, o cliente que paga — RECUSOU esta entrega e mandou refazer. "
+            : "O CLIENTE — não a Qualidade, o cliente que paga — pediu um AJUSTE nesta entrega. ") +
+          "O pedido dele é a instrução final: atenda o que ele pediu, sem discutir e sem defender a versão anterior. " +
+          (recusou
+            ? "Ele recusou a entrega INTEIRA: refaça-a por completo atendendo o motivo que ele deu. Não tente salvar a versão anterior — foi ela que ele recusou. "
+            : "Mude o que ele apontou e preserve o resto — refazer do zero o que ele não reclamou faz o cliente sentir que perdeu o que já tinha aprovado. ") +
+          "Responda SOMENTE com JSON válido, no mesmo formato.",
+        user: [
+          `NEGÓCIO: ${negocio}`,
+          `ENTREGA ATUAL — "${entrega.name}":`,
+          entrega.content ?? "",
+          "",
+          recusou
+            ? `POR QUE ELE RECUSOU, com as palavras dele: "${comentario}"`
+            : `O QUE O CLIENTE PEDIU, com as palavras dele: "${comentario}"`,
+          entrega.clientFeedback ? `\nELE JÁ TINHA PEDIDO ANTES: "${entrega.clientFeedback}" — não repita o erro anterior.` : "",
+          "",
+          'Onde faltar informação do cliente, escreva "PRECISO CONFIRMAR: <o quê>" — nunca invente para preencher.',
+          ...(regrasDoCliente.length > 0
+            ? [
+                "",
+                "REGRAS QUE O PRÓPRIO CLIENTE REGISTROU — elas são conferidas EM CÓDIGO na saída,",
+                "e a peça que violar qualquer uma NÃO é entregue (nem quando o pedido de ajuste",
+                "parecer pedir o contrário). Atenda o pedido dele RESPEITANDO estas regras:",
+                ...regrasDoCliente,
+              ]
+            : []),
+          // `cenas` NÃO é opcional aqui, e a razão não é de formato: se o item
+          // tinha telas e volta sem elas, `extrairPecas` lê `cenas=[]` e
+          // `publicacao.ts:1046` REBAIXA o carrossel para feed. O cliente comprou
+          // 5 telas e recebe uma imagem, sem ninguém ficar vermelho.
+          ESQUEMA_DA_ENTREGA,
+          "Se o item já tinha CENAS (telas de carrossel), devolva TODAS elas no mesmo formato numerado. Carrossel que volta sem telas deixa de ser carrossel.",
+        ].join("\n"),
+        maxTokens: 1800,
+        workspaceId: projeto.workspaceId,
+        preferredProvider: esp?.provedor ?? "claude",
+        agentId: "esteira-refacao",
+        clientId: projeto.clientId ?? null,
+        projectId: projeto.id,
+        });
 
       if (!r.ok) { causaTransitoria = "provedor_indisponivel"; continue; }
       corpo = renderizar(r.data as Record<string, unknown>);

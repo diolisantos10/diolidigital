@@ -64,11 +64,16 @@ const DB_PATH = vi.hoisted(() => {
 const ia = vi.hoisted(() => ({
   modo: "viola-proibicao" as "viola-proibicao" | "limpa" | "fora-do-ar",
   chamadas: 0,
+  /** O prompt do usuário da ÚLTIMA chamada — é nele que a regra do cliente
+   *  precisa aparecer, senão a casa julga por uma régua que nunca contou a
+   *  quem escreve. */
+  ultimoPrompt: "",
 }));
 
 vi.mock("@/lib/ai/generate", () => ({
-  generate: vi.fn(async () => {
+  generate: vi.fn(async (entrada: { user?: string }) => {
     ia.chamadas++;
+    ia.ultimoPrompt = entrada?.user ?? "";
     if (ia.modo === "fora-do-ar") return { ok: false, error: "provider down" };
     const proibido = ia.modo === "viola-proibicao";
     return {
@@ -173,6 +178,7 @@ beforeEach(async () => {
   vi.clearAllMocks();
   ia.modo = "viola-proibicao";
   ia.chamadas = 0;
+  ia.ultimoPrompt = "";
   arte.produz = true;
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: null, clientId } });
 
@@ -251,6 +257,19 @@ describe("A RECUSA CONTINUA — a casa não entrega peça que viola regra do cli
     expect(escalada?.message).toMatch(/proibi[çc][ãa]o REGISTRADA pelo pr[óo]prio cliente/i);
     expect(escalada?.message, "rótulo errado manda a investigação para o lado errado")
       .not.toMatch(/inventou dado/i);
+  });
+
+  it("a regra do cliente chega a QUEM ESCREVE, não só a quem julga", async () => {
+    // ── A METADE QUE EVITA CHEGAR NO BECO ────────────────────────────────
+    // As proibições entravam SÓ no piso (a régua de SAÍDA). O prompt desta
+    // refação nunca as via: a casa julgava por uma regra que nunca contou a
+    // quem escreve, e foi assim que o caso medido aconteceu — o modelo usou o
+    // termo proibido porque ninguém lhe disse que era proibido.
+    await POST(req({ action: "request_revision", comment: PEDIDO }));
+    expect(ia.ultimoPrompt, "a regra, com as palavras dele").toMatch(/pizza/i);
+    // E a INSTRUÇÃO GÊMEA junto: "não use X" sozinho faz o modelo CORTAR o
+    // assunto, e o cliente perde o conteúdo que comprou por uma regra de forma.
+    expect(ia.ultimoPrompt, "a instrução gêmea").toMatch(/diga a MESMA coisa de outro jeito/i);
   });
 
   it("💰 conflito com regra do cliente NÃO é retentado — seria queimar dinheiro de IA", async () => {
