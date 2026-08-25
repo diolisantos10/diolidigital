@@ -158,6 +158,10 @@ vi.mock("@/app/api/messages/conversa", () => ({
 
 const { triarPedido, ATENDIMENTOS, somarDiasUteis, precoDaTabela } = await import("@/lib/agency/esteira/triagem");
 const { produzirPedido, atenderPedido } = await import("@/lib/agency/esteira/producao-de-pedido");
+// A porta é lida pelo MESMO leitor da rota do portal (`/api/portal/pedidos`).
+// Ler o JSON à mão aqui deixaria o teste concordar com uma porta que a tela
+// não consegue abrir.
+const { lerPergunta } = await import("@/lib/agency/esteira/porta-da-pergunta");
 
 /** Três roteiros: é o que o contrato de saída de `social-roteiro-video` exige. */
 function roteirosValidos() {
@@ -371,6 +375,67 @@ describe("metade 2 — o que a máquina não sabe classificar PARA, e com motivo
     // E não sumiu: virou decisão visível.
     expect(pedidos.get("pc-1")!.status).toBe("precisa_decisao");
     expect(String(pedidos.get("pc-1")!.declineReason)).toMatch(/confirmar/i);
+
+    // ── E A PARADA TEM PORTA (26/08/2026) ────────────────────────────────
+    //
+    // Até aqui a frase era "A equipe vai revisar com você antes de entregar" e
+    // o cartão do portal não tinha um único botão. Nenhum varredor desta casa
+    // lê pedido em `precisa_decisao` para revisar coisa nenhuma: a promessa
+    // era um relógio que ninguém deu corda. Prompt é aviso, código é trava —
+    // e o aviso não pode prometer o que a trava não faz.
+    const motivo = String(pedidos.get("pc-1")!.declineReason);
+    expect(motivo, "a frase não pode prometer uma refação que nada dispara")
+      .not.toMatch(/equipe vai (revisar|refazer)/i);
+    expect(motivo, "dono").toMatch(/Quem está com isso:/);
+    expect(motivo, "próxima ação").toMatch(/Próxima ação:/);
+
+    const porta = lerPergunta(pedidos.get("pc-1")!.pendingQuestionJson as string | null);
+    expect(porta, "parada do piso continuava sem porta — selo amarelo e nenhum botão").not.toBeNull();
+    expect(porta!.opcoes.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // 🔴 A SEGUNDA PARADA SEM PORTA: a Qualidade da própria casa
+  // ═══════════════════════════════════════════════════════════════════════
+  it("peça reprovada pela QUALIDADE não vai ao cliente — e a parada tem porta", async () => {
+    novoPedido({
+      status: "triado", scopeDecision: "extra", quoteStatus: "aceito", quotedPrice: 350,
+      projectId: "prj-1", taskId: "task-1",
+    });
+    // A reprovação vem da régua DETERMINÍSTICA de texto, dentro de
+    // `auditDeliverable` — o superlativo sem lastro. É de propósito: assim o
+    // teste não depende da ordem das chamadas de IA, e a reprovação acontece
+    // pela mesma trava que reprova em produção, sem provedor no caminho.
+    const comSuperlativo = () => {
+      const d = roteirosValidos();
+      d.items[0]!.caption = "A melhor comida da cidade, sem dúvida nenhuma.";
+      return d;
+    };
+    // Produção, correção do juiz, e a peça continua reprovada.
+    generate.mockResolvedValue({ ok: true, data: comSuperlativo() });
+
+    const r = await produzirPedido("pc-1");
+    expect(r.ok).toBe(false);
+    expect(criarCard, "a casa NÃO entrega o que ela mesma reprovou").not.toHaveBeenCalled();
+    expect(pedidos.get("pc-1")!.status).toBe("precisa_decisao");
+
+    const motivo = String(pedidos.get("pc-1")!.declineReason);
+    // A frase antiga: "A equipe vai refazer e te avisar." Nada refazia.
+    expect(motivo, "a frase prometia uma refação que nenhuma linha desta casa fazia")
+      .not.toMatch(/vai refazer/i);
+    expect(motivo, "dono").toMatch(/Quem está com isso:/);
+    expect(motivo, "próxima ação").toMatch(/Próxima ação:/);
+
+    const porta = lerPergunta(pedidos.get("pc-1")!.pendingQuestionJson as string | null);
+    expect(porta, "parada da Qualidade continuava sem porta").not.toBeNull();
+    expect(porta!.opcoes.length).toBeGreaterThanOrEqual(2);
+    // ⚠️ E NUNCA um botão que compra do cliente o risco que é nosso: a casa
+    // reprovou a própria peça; "aprovar assim mesmo" seria transferir para ele
+    // o que este freio existe para segurar.
+    for (const o of porta!.opcoes) {
+      expect(o.rotulo, "nenhuma opção pode oferecer entregar o que a casa reprovou")
+        .not.toMatch(/assim mesmo|do mesmo jeito|aprovar/i);
+    }
   });
 
   it("IA fora do ar é PISCADA, não decisão: volta para a fila e o despertador retoma", async () => {

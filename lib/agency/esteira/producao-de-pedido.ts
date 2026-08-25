@@ -58,6 +58,7 @@ import { entregarStoryInstagramV1, type PecaDoEspecialista } from "@/lib/agency/
 import { conferirBriefingMinimo } from "@/lib/agency/produtos/briefing-minimo";
 import { contratoDoPedido } from "@/lib/agency/esteira/contrato-do-pedido";
 import type { OpcaoDaPergunta } from "@/lib/agency/esteira/porta-da-pergunta";
+import { paradaDoPisoDeVerdade, paradaDaQualidade } from "@/lib/agency/esteira/porta-da-peca-barrada";
 
 /** Uma correção por freio. Se o modelo repetiu a violação COM o parecer e o
  *  texto anterior na frente, insistir só queima IA — e a peça não pode ir ao
@@ -485,10 +486,13 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   if (!piso.aprovado) {
     await moverTarefa(pedido.taskId, "pending");
     await registrar(projeto, "piso_de_verdade_barrou", `${nome} para ${contexto.businessName}: ${resumirViolacoes(piso.violacoes)}`);
-    return await parar(
-      pedidoId,
-      "A peça afirmou dados que a agência não tem como confirmar, então ela NÃO foi publicada. A equipe vai revisar com você antes de entregar.",
-    );
+    // ── E A PARADA GANHOU PORTA (26/08/2026) ──────────────────────────────
+    // A frase daqui era "A equipe vai revisar com você antes de entregar" — e
+    // nada revisava: nenhum varredor lê pedido em `precisa_decisao`. E o
+    // cartão do portal não tinha um único botão. Motivo, dono, próxima ação e
+    // os botões de verdade vivem em `porta-da-peca-barrada.ts`.
+    const barrado = paradaDoPisoDeVerdade();
+    return await parar(pedidoId, barrado.motivo, barrado.porta);
   }
 
   // ── FREIO 3 · O JUIZ ──────────────────────────────────────────────────────
@@ -526,7 +530,11 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     const parecer = audit.issues.join("; ") || audit.note || "qualidade insuficiente";
     await moverTarefa(pedido.taskId, "pending");
     await registrar(projeto, "qualidade_reprovou", `${nome} para ${contexto.businessName}: REPROVADA — ${parecer}. NÃO foi apresentada ao cliente.`);
-    return await parar(pedidoId, "A nossa própria revisão reprovou a peça, então ela não foi entregue. A equipe vai refazer e te avisar.");
+    // Mesma história do piso: "A equipe vai refazer e te avisar" era uma
+    // promessa que nenhuma linha desta casa cumpria, e o cliente ficava sem
+    // botão. Ver `porta-da-peca-barrada.ts`.
+    const barrada = paradaDaQualidade(parecer);
+    return await parar(pedidoId, barrada.motivo, barrada.porta);
   }
   if (ficouSemArbitro(audit.verdict)) {
     // NÃO bloqueia — a operação não para porque um provedor caiu. Mas fica

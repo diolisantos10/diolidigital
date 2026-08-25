@@ -59,7 +59,7 @@ import { produzirArtesPendentes, type ArtesFeitas } from "@/lib/agency/execution
 import {
   pecaApontadaPeloCliente, pecasApontadasPeloAjuste, type MiraDoCliente,
 } from "@/lib/agency/esteira/mira-da-peca";
-import type { PecaDoEspecialista } from "@/lib/agency/produtos/story-instagram-v1";
+import { captionDaPeca, type PecaDoEspecialista } from "@/lib/agency/produtos/story-instagram-v1";
 
 export interface ArteDoAjuste {
   /** As peças cujo ARQUIVO mudou — `mediaUrl` diferente do que estava lá. */
@@ -147,7 +147,16 @@ export async function refazerArteDoAjuste(entrada: {
     await prisma.socialPost.update({
       where: { id: postId },
       data: {
-        caption: nova.legenda.slice(0, 2000),
+        // ── O TÍTULO NOVO TAMBÉM (cliente oculto, 26/08/2026) ────────────
+        //
+        // Aqui era `nova.legenda.slice(0, 2000)`, e o `headline` refeito ia
+        // para o lixo. Como o pixel sai de `tituloDaFonte(post.caption)`
+        // (`execution/artes.ts`), o cliente que pedia "troca o título" recebia
+        // 200, arquivo NOVO — e o MESMO título rasterizado, porque a fonte do
+        // título não tinha mudado. E a legenda do post no calendário também
+        // não mudava. A MESMA função do nascimento, para os dois não
+        // divergirem no primeiro ajuste.
+        caption: captionDaPeca(nova),
         // Direção ausente no texto novo NÃO apaga a que existia: apagar
         // mandaria a peça para o fallback (a legenda como cena), que é o
         // defeito que `refazer-com-direcao.ts` foi escrito para consertar.
