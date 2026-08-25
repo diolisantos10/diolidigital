@@ -10,6 +10,9 @@ import { prisma } from "@/lib/db/client";
 import { processarOutbox, type ArmazemDeOutbox, type Executor } from "@/lib/agency/v2-recovery/processador-outbox";
 import { detectarAusencias, RELOGIOS_ESPERADOS } from "@/lib/agency/v2-recovery/heartbeat";
 import { detectarParados, type ItemMonitorado } from "@/lib/agency/v2-recovery/detector-de-parados";
+import { rodadaDoGerenteGeral } from "@/lib/agency/gerencia/rodada";
+import { entregarAvisoAoCliente } from "@/lib/agency/gerencia/aviso-ao-cliente";
+import type { ArmazemDeFlags } from "@/lib/agency/flags-v2/flags";
 
 /** Executores por tipo de efeito. Tipo sem executor vira falha declarada →
  *  retry → fila morta: efeito novo só nasce quando o executor dele existir. */
@@ -21,7 +24,37 @@ const EXECUTORES: Record<string, Executor> = {
   registro_de_teste: async (payload, correlationId) => {
     console.log("[cron/v2] efeito de teste processado", { payload, correlationId });
   },
+
+  // ── A FALA DO GERENTE GERAL COM O CLIENTE ────────────────────────────────
+  //
+  // Enfileirada por `lib/agency/gerencia/rodada.ts` quando um prazo PROMETIDO
+  // queima. "Coluna gravada não é cliente informado" — mas informar o cliente
+  // é efeito com consequência externa, e nesta casa efeito externo nasce
+  // FECHADO: só sai com a flag `v2_execucao` ligada NO ESCOPO DAQUELE cliente
+  // (allowlist; jamais global). Sem linha de flag, o efeito falha declarado,
+  // volta para a fila e nada é enviado — que é o comportamento certo enquanto
+  // o CEO não mandar ligar, com motivo e dono.
+  mensagem_ao_cliente: async (payload, correlationId) => {
+    await entregarAvisoAoCliente(payload, correlationId, {
+      armazemDeFlags: armazemDeFlags(),
+      async gravarMensagem({ clienteId, autorNome, corpo }) {
+        await prisma.portalMessage.create({
+          data: { clientId: clienteId, authorRole: "team", authorName: autorNome, body: corpo, readByTeam: true },
+        });
+      },
+    });
+    console.log("[cron/v2] Gerente Geral avisou o cliente sobre atraso", { correlationId });
+  },
 };
+
+function armazemDeFlags(): ArmazemDeFlags {
+  return {
+    async buscar(chave, escopos) {
+      const linhas = await prisma.flagV2.findMany({ where: { chave, escopo: { in: escopos } } });
+      return linhas.map((l) => ({ chave: l.chave, escopo: l.escopo, ligada: l.ligada }));
+    },
+  };
+}
 
 function armazemDePrisma(): ArmazemDeOutbox {
   return {
@@ -105,5 +138,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error(`[cron/v2] ${parados.parados.length} item(ns) parados além do SLA`);
   }
 
-  return NextResponse.json({ agora: agora.toISOString(), outbox, ausencias, parados });
+  // 5. O LAÇO QUE NÃO PARA — o Gerente Geral percorre os projetos abertos e
+  //    diz, de cada um: no prazo ou atrasado, de quem é a bola e qual a
+  //    próxima ação. Atraso vira BloqueioV2 (dono + ação), e prazo prometido
+  //    queimado vira aviso ao cliente na fila. Erro aqui não derruba a batida:
+  //    o relógio da V2 continua sendo o do outbox e do detector.
+  let gerenteGeral: unknown = null;
+  try {
+    gerenteGeral = await rodadaDoGerenteGeral(agora);
+  } catch (err) {
+    console.error("[cron/v2] rodada do Gerente Geral falhou", err);
+    gerenteGeral = { erro: err instanceof Error ? err.message : String(err) };
+  }
+
+  return NextResponse.json({ agora: agora.toISOString(), outbox, ausencias, parados, gerenteGeral });
 }

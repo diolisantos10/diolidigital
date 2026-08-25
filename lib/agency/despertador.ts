@@ -1008,6 +1008,35 @@ export async function baterORelogio(): Promise<{
     quebrou("pm-varredura", err);
   }
 
+  // ── O LAÇO DO GERENTE GERAL (25/08/2026) ──────────────────────────────────
+  //
+  // Ordem do CEO: o GG "é o agente que não para: está sempre checando quem
+  // está atrasado e quem não está" e "valida se cada projeto está saindo
+  // dentro do cronograma".
+  //
+  // A perna acima (a varredura do PM) olha HANDOFF e TAREFA e termina em
+  // `log(...)`. Esta olha o PROJETO — a unidade que o cliente conhece — e
+  // termina em `BloqueioV2`, com dono, ação e escalada. Linha de log some no
+  // reinício do contêiner; linha com dono ocupa espaço até alguém resolver.
+  //
+  // ⚠️ Ela mora AQUI, e não em `POST /api/cron/v2`, por um achado de
+  // 25/08/2026: **nenhum agendador chama `/api/cron/v2`** — nem workflow do
+  // GitHub, nem perna do despertador, nem `scripts/`. O relógio da V2 está
+  // construído e MUDO desde o M6. A chamada foi mantida lá também (é o lugar
+  // certo quando alguém ligar o agendador), mas quem faz o laço rodar de
+  // verdade hoje é esta perna. Motor construído e mudo é o defeito que esta
+  // casa já viu duas vezes.
+  try {
+    const { rodadaDoGerenteGeral } = await import("@/lib/agency/gerencia/rodada");
+    const r = await rodadaDoGerenteGeral();
+    if (r.atrasados > 0 || r.bloqueiosAbertos > 0 || r.avisosEnfileirados > 0) {
+      log(`Gerente Geral: ${r.frase}`);
+    }
+    for (const e of r.estadosSemRegua) quebrou("gerente-geral", `estado sem régua de SLA: ${e}`);
+  } catch (err) {
+    quebrou("gerente-geral", err);
+  }
+
   if (ligados > 0 || retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
     log(`rodada: ${ligados} projeto(s) ligado(s), ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
   }
