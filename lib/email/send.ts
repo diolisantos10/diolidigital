@@ -47,6 +47,9 @@ export interface SendEmailResult {
 
 const DEFAULT_FROM = "Dioli Studio <onboarding@resend.dev>";
 
+/** Motivo devolvido quando a chave não está configurada (ou está em branco). */
+export const SEM_CHAVE = "sem_chave: RESEND_API_KEY não configurada (ausente ou vazia) no ambiente";
+
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   // ⛔ A TRAVA VEM ANTES DE TUDO — inclusive antes de ler a chave.
   //
@@ -93,10 +96,31 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     return { ok: false, error: `sem_consentimento:${consent.motivo}\n${comoDestravar(consent)}` };
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
+  // `.trim()` de propósito: variável CADASTRADA COM VALOR EM BRANCO (ou só
+  // espaço) é o modo de falha mais traiçoeiro do Railway — o nome aparece na
+  // lista, então quem audita conclui "está configurada", e o header
+  // `Authorization: Bearer ` sairia vazio para a Resend, que responderia um
+  // 401 genérico. Aqui isso vira o MESMO caso de "não configurada", dito com
+  // essa palavra.
+  const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
     // E-mail not configured — no-op so the calling flow never breaks.
-    return { ok: false, skipped: true };
+    //
+    // ⚠️ O `error` NÃO É DECORAÇÃO (medido em 25/08/2026). Antes daqui este
+    // ramo devolvia `{ ok:false, skipped:true }` mudo, e o bloco de cima —
+    // a trava de saída — devolve `{ ok:false, skipped:true, error:"bloqueado:…" }`.
+    // Dois motivos OPOSTOS, a mesma forma. Quem chamava (`orcamento-do-briefing.ts`)
+    // lia só `r.skipped` e gravava no banco a frase fixa "RESEND_API_KEY ausente".
+    // Resultado medido em produção: dois pedidos do CLIENTE FALSO, com contato
+    // `@cliente-falso.invalid`, barrados corretamente pela trava `.invalid` e
+    // registrados na tela do CEO como "RESEND_API_KEY ausente" — a chave EXISTE
+    // no Railway. A tela mandava o CEO configurar uma chave que já estava lá,
+    // e escondia que a trava de teste é que tinha funcionado.
+    //
+    // Status de erro não é motivo; o motivo está na mensagem. Quem devolve
+    // `skipped` devolve TAMBÉM por quê, e quem grava copia o porquê recebido em
+    // vez de adivinhar.
+    return { ok: false, skipped: true, error: SEM_CHAVE };
   }
 
   const from = process.env.RESEND_FROM?.trim() || DEFAULT_FROM;

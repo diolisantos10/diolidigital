@@ -77,7 +77,10 @@ function sendBriefingConfirmation(body: Record<string, unknown>, briefingJson: u
   // e a referência aponta o pedido, para ser conferível depois.
   sendEmail({ to: email, subject, html, consentimento: provaDoProprioBriefing(String(body.id ?? "novo-pedido")) })
     .then((r) => {
-      if (r.skipped) console.warn("[client-requests] confirmation e-mail skipped — RESEND_API_KEY not set");
+      // O motivo é o que `sendEmail` devolveu, nunca um palpite: `skipped`
+      // hoje significa OU falta de chave OU a trava de saída do cliente falso
+      // (`bloqueado:…`). Ver o comentário longo em `lib/email/send.ts`.
+      if (r.skipped) console.warn("[client-requests] confirmation e-mail skipped:", r.error ?? "sem motivo declarado");
       else if (!r.ok) console.error("[client-requests] confirmation e-mail failed:", r.error);
     })
     .catch((e) => console.error("[client-requests] confirmation e-mail threw:", e));

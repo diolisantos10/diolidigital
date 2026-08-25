@@ -23,6 +23,10 @@ const db = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
+// `send.ts` está mockado, então o módulo real não entrega a constante aqui —
+// o valor de verdade é exercitado em `__tests__/cliente-falso/a-trava-de-saida.test.ts`,
+// contra o `sendEmail` real. Aqui só interessa que o motivo ATRAVESSE.
+const SEM_CHAVE = "sem_chave: RESEND_API_KEY não configurada (ausente ou vazia) no ambiente";
 const email = vi.hoisted(() => ({ sendEmail: vi.fn() }));
 vi.mock("@/lib/email/send", () => email);
 
@@ -507,13 +511,34 @@ describe("a falha do aviso vira estado gravado — não some com a rodada", () =
   });
 
   it("RESEND_API_KEY ausente grava 'skipped', distinto de 'falhou' — é configuração, não defeito do pedido", async () => {
-    email.sendEmail.mockResolvedValue({ ok: false, skipped: true });
+    email.sendEmail.mockResolvedValue({ ok: false, skipped: true, error: SEM_CHAVE });
     db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
     await entregarOrcamentosPendentes();
 
     const args = db.$executeRawUnsafe.mock.calls[0];
     expect(args[1]).toBe("skipped");
     expect(args[2]).toMatch(/RESEND_API_KEY/);
+  });
+
+  // ── O DEFEITO MEDIDO EM PRODUÇÃO EM 25/08/2026 ────────────────────────────
+  // A tela do CEO mostrava DOIS pedidos com o motivo "RESEND_API_KEY ausente"
+  // e contato `@cliente-falso.invalid` — enquanto `RESEND_API_KEY` estava
+  // cadastrada no Railway. O e-mail não saiu porque a TRAVA DE SAÍDA barrou o
+  // domínio de teste, que é ela funcionando; mas o motivo gravado mandava o CEO
+  // configurar uma chave que já existia, e escondia a trava.
+  //
+  // `sendEmail` devolve `skipped: true` nos dois casos. Ler só a forma e chutar
+  // o motivo é o defeito. Este teste mata a mutação que o traria de volta: se
+  // alguém reescrever `detalhe` como frase fixa, ele fica vermelho.
+  it("skipped por TRAVA DE SAÍDA grava a trava — nunca 'RESEND_API_KEY ausente'", async () => {
+    email.sendEmail.mockResolvedValue({ ok: false, skipped: true, error: "bloqueado:dominio_inexistente" });
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    await entregarOrcamentosPendentes();
+
+    const args = db.$executeRawUnsafe.mock.calls[0];
+    expect(args[1]).toBe("skipped");
+    expect(args[2]).toMatch(/bloqueado:dominio_inexistente/);
+    expect(args[2]).not.toMatch(/RESEND_API_KEY/);
   });
 
   it("caso limpo intacto: quem foi avisado de primeira grava 'avisado', nunca estado de erro", async () => {

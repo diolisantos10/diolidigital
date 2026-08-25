@@ -447,7 +447,16 @@ async function avisarPorEmail(
     // variável de ambiente — e evita reenviar achando que vai resolver
     // sozinho quando o que falta é configurar a chave.
     if (r.skipped) {
-      const detalhe = "RESEND_API_KEY ausente";
+      // O MOTIVO VEM DE QUEM SABE (25/08/2026). Aqui havia a frase fixa
+      // "RESEND_API_KEY ausente", escrita quando `skipped` só tinha um motivo
+      // possível. Passou a ter dois — a trava de saída do cliente falso também
+      // devolve `skipped` — e a frase fixa virou mentira medida em produção:
+      // dois pedidos com contato `@cliente-falso.invalid` (barrados pela trava,
+      // como deviam) apareceram na tela do CEO como falta de chave, com a chave
+      // cadastrada no Railway. Copiar o motivo recebido é o que impede a
+      // próxima divergência: `sendEmail` ganha um motivo novo, a tela mostra o
+      // motivo novo, sem ninguém precisar lembrar deste arquivo.
+      const detalhe = r.error ?? "skipped sem motivo declarado por sendEmail";
       console.warn(`[orcamento] aviso não enviado (${detalhe}) — pedido ${pedido.id}`);
       return { tipo: "skipped", detalhe };
     }
