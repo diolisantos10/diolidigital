@@ -56,6 +56,7 @@ import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
 import { produtoCanonico, dimensaoExigida, type ProdutoCanonico } from "@/lib/agency/produtos/registro";
 import { entregarStoryInstagramV1, type PecaDoEspecialista } from "@/lib/agency/produtos/story-instagram-v1";
 import { conferirBriefingMinimo } from "@/lib/agency/produtos/briefing-minimo";
+import { contratoDoPedido } from "@/lib/agency/esteira/contrato-do-pedido";
 
 /** Uma correção por freio. Se o modelo repetiu a violação COM o parecer e o
  *  texto anterior na frente, insistir só queima IA — e a peça não pode ir ao
@@ -388,16 +389,19 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   // ⚠️ Isto NÃO afrouxa nada: `exigirQuantidade(n, n)` é mais estrito que
   // `(3, 8)`, não menos. E o pedido SEM produto continua caindo no contrato do
   // especialista, byte por byte como sempre.
-  const contratoDoPedido = produto
-    ? { contrato: (d: Record<string, unknown>) => exigirQuantidadeExata(d, produto.quantidadeDePecas, produto.label) }
-    : esp;
-  let contrato = conferirContrato(contratoDoPedido, data);
+  // ⚠️ 26/08/2026 — a régua saiu daqui para `contrato-do-pedido.ts` e NENHUM
+  // número mudou. O motivo é de classe: a REFAÇÃO chamava `conferirContrato(esp)`
+  // e continuava cobrando `3 a 8` de um pedido de UMA peça. Duas cópias da mesma
+  // conta é uma que envelhece sem ninguém notar, e o cliente descobriu a
+  // diferença pedindo ajuste — três produções barradas seguidas.
+  const contratoDaEntrega = contratoDoPedido(esp, pedido.produtoId);
+  let contrato = conferirContrato(contratoDaEntrega, data);
   if (!contrato.cumpriu) {
     const refeito = await gerar(refazer(promptBase, data, `O CONTRATO DE FORMATO NÃO FOI CUMPRIDO:\n- ${contrato.violacoes.join("\n- ")}`,
       "Reentregue o JSON inteiro cumprindo exatamente essas contagens e formatos."));
     if (refeito.ok) {
       const novo = refeito.data as Record<string, unknown>;
-      const conferido = conferirContrato(contratoDoPedido, novo);
+      const conferido = conferirContrato(contratoDaEntrega, novo);
       // Só troca se MELHOROU: resposta mais recente não é resposta melhor.
       if (conferido.violacoes.length <= contrato.violacoes.length) { data = novo; contrato = conferido; }
     }
@@ -434,7 +438,7 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     const corrigido = corpoLegivel(novo);
     if (!temSubstancia(corrigido)) break;
     // A correção do piso não pode DESFAZER o contrato de saída.
-    if (!conferirContrato(esp, novo).cumpriu) break;
+    if (!conferirContrato(contratoDaEntrega, novo).cumpriu) break;
     data = novo;
     body = corrigido;
     if (typeof novo.title === "string" && novo.title.trim()) title = novo.title.trim();
@@ -469,7 +473,7 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
       const novoTitulo = typeof corrigido.title === "string" && corrigido.title.trim() ? corrigido.title.trim() : title;
       // As travas que já rodaram continuam valendo depois da revisão: nem a
       // Qualidade pode encolher a entrega nem reintroduzir dado inventado.
-      if (temSubstancia(novoCorpo) && conferirContrato(esp, corrigido).cumpriu && conferirPeca(novoTitulo, novoCorpo).aprovado) {
+      if (temSubstancia(novoCorpo) && conferirContrato(contratoDaEntrega, corrigido).cumpriu && conferirPeca(novoTitulo, novoCorpo).aprovado) {
         data = corrigido; body = novoCorpo; title = novoTitulo;
         audit = await auditDeliverable({
           deptLabel: nome, title, content: body, brandContext: contextoDaMarca,
@@ -805,22 +809,6 @@ export function pecasDoEspecialista(data: Record<string, unknown>): PecaDoEspeci
       pilar: campo(it, "pillar") || campo(it, "pilar") || null,
     };
   });
-}
-
-/**
- * A contagem EXATA que o produto vende. Lê os itens pela MESMA função que o
- * contrato do especialista usa (`itensDe`) — uma segunda leitura aqui faria o
- * conferente e o produtor discordarem sobre quantas peças existem.
- */
-function exigirQuantidadeExata(data: Record<string, unknown>, quantas: number, oQue: string): string[] {
-  const n = itensDe(data).length;
-  if (n === quantas) return [];
-  return [
-    `entregou ${n} peça(s) e o cliente comprou ${quantas} (${oQue}). ` +
-    (n < quantas
-      ? "Entregar a menos por um preço cheio é erro de dinheiro."
-      : "Entregar a mais é imagem paga que ninguém comprou."),
-  ];
 }
 
 /** O JSON do especialista vira o markdown que o cliente lê. O `summary` sobe

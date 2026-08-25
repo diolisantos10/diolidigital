@@ -634,6 +634,36 @@ export async function triarPedido(pedidoId: string): Promise<ResultadoDaTriagem>
   }
 }
 
+/**
+ * A PORTA MÍNIMA — para a parada que a máquina NÃO sabe resolver sozinha.
+ *
+ * ⚠️ Ela é honesta sobre o que é: não destrava nada por si. O que ela faz é
+ * garantir que a parada tenha **onde o cliente responde**, com MOTIVO (já no
+ * `declineReason`), DONO e PRÓXIMA AÇÃO escritos — e que a resposta dele vire
+ * mensagem na conversa, em vez de morrer no chat livre onde ninguém decide.
+ *
+ * Onde existe caminho de máquina, a porta tem EFEITO (`quantidade`,
+ * `entregavel`) e o cliente segue sozinho. Onde não existe — classificação sem
+ * confiança, formato divergente, item sem preço de tabela — a casa **não
+ * finge** um botão que daria na mesma parada. Ver o relatório: estas continuam
+ * exigindo gente, e isso está declarado, não escondido.
+ */
+function portaDeEscalada(dono: string, proximaAcao: string, pergunta: string) {
+  return {
+    pergunta,
+    opcoes: [
+      { id: "seguir", rotulo: "Sim, quero seguir com este pedido", escalar: true, dono, proximaAcao },
+      {
+        id: "falar",
+        rotulo: "Prefiro falar com alguém antes",
+        escalar: true,
+        dono: "a equipe de atendimento",
+        proximaAcao: "te chama por aqui para entender o que você precisa",
+      },
+    ],
+  };
+}
+
 async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTriagem> {
   const pedido = await prisma.contentRequest.findUniqueOrThrow({ where: { id: pedidoId } });
 
@@ -741,22 +771,6 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     };
   }
 
-  // O projeto que recebe. NUNCA inventado: sem projeto aberto, a tarefa não é
-  // executada por ninguém — seria criar o próximo balde.
-  const projeto = pedido.projectId
-    ? await prisma.project.findFirst({ where: { id: pedido.projectId, clientId: cliente.id }, select: { id: true, name: true } })
-    : await prisma.project.findFirst({
-        where: { clientId: cliente.id },
-        orderBy: { createdAt: "desc" },
-        select: { id: true, name: true },
-      });
-  if (!projeto) {
-    return await parar(
-      pedidoId,
-      `${cliente.name} não tem projeto aberto, então o pedido não tem onde ser executado. A equipe precisa abrir o projeto antes.`,
-    );
-  }
-
   // ── A CLASSIFICAÇÃO ───────────────────────────────────────────────────────
   const user = [
     "CARTA DE ATENDIMENTOS (escolha UM id):",
@@ -809,12 +823,16 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     return await parar(
       pedidoId,
       `Este pedido não se encaixa direto em nenhum dos serviços que a máquina produz sozinha${motivoDoModelo ? ` (${motivoDoModelo})` : ""}. A equipe vai te responder por aqui.`,
+      portaDeEscalada("a equipe de atendimento", "monta este pedido com você e te responde por aqui",
+        "Quer que a equipe siga com este pedido do jeito que você descreveu?"),
     );
   }
   if (confianca < CONFIANCA_MINIMA) {
     return await parar(
       pedidoId,
       `Não tenho certeza do que você precisa${motivoDoModelo ? ` — ${motivoDoModelo}` : ""}. Para não fazer a peça errada, a equipe vai confirmar com você.`,
+      portaDeEscalada("a equipe de atendimento", "confirma com você o que entra e retoma o pedido por aqui",
+        "Quer que a equipe confirme com você o que este pedido inclui?"),
     );
   }
 
@@ -835,19 +853,71 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
   // Só sobrepõe o NÚMERO. O verbo (insumo × peça) continua vindo do texto dele:
   // confirmar quantidade não é autorização para reinterpretar o que ele pediu.
   const leituraDoTexto = lerPedido(pedido.description);
-  const leitura = typeof pedido.confirmedQuantity === "number" && pedido.confirmedQuantity > 0
+  const comQuantidade = typeof pedido.confirmedQuantity === "number" && pedido.confirmedQuantity > 0
     ? { ...leituraDoTexto, quantidade: pedido.confirmedQuantity, motivoDaContagem: "contada" as const }
     : leituraDoTexto;
+  // ── E O ENTREGÁVEL CONFIRMADO MANDA SOBRE A LEITURA, PELO MESMO MOTIVO ────
+  //
+  // Irmã exata da linha acima. A leitura é léxica e roda no texto ORIGINAL, que
+  // continua ambíguo ("quero os roteiros e as artes") depois de o cliente ter
+  // respondido "só as peças prontas" pela porta. Sem esta linha, a releitura
+  // reproduziria a mesma parada, para sempre.
+  //
+  // Só sobrepõe o ENTREGÁVEL. Quantidade e formato continuam vindo de onde
+  // vinham: confirmar um eixo não é autorização para reinterpretar os outros.
+  const leitura = pedido.confirmedDeliverable === "peca" || pedido.confirmedDeliverable === "insumo"
+    ? { ...comQuantidade, entregavel: pedido.confirmedDeliverable as "peca" | "insumo" }
+    : comQuantidade;
   if (leitura.entregavel === "insumo" && atendimento.entrega === "peca") {
+    // ── A INSTRUÇÃO GÊMEA (26/08/2026) ────────────────────────────────────
+    // A proibição ("não vou orçar a coisa errada") continua igual. O que
+    // faltava era o caminho depois dela. UM dos dois lados é resolvível por
+    // máquina — "eu quero a peça pronta" grava o entregável e a triagem roda de
+    // novo com o preço da tabela. O outro NÃO é: roteiro avulso não tem linha
+    // de tabela nesta casa, e por isso ele escala com dono e próxima ação, em
+    // vez de fingir um botão que daria na mesma parada.
     return await parar(
       pedidoId,
-      "Pelo que você escreveu, o que você precisa é do TEXTO (roteiro/copy) para produzir você mesmo — não da peça pronta, que é outro trabalho e outro preço. Não vou orçar a coisa errada: a equipe confirma com você qual dos dois é e responde por aqui.",
+      "Pelo que você escreveu, o que você precisa é do TEXTO (roteiro/copy) para produzir você mesmo — não da peça pronta, que é outro trabalho e outro preço. Não vou orçar a coisa errada. Me diz aqui qual dos dois é:",
+      {
+        pergunta: "Você quer o TEXTO para produzir, ou a PEÇA pronta?",
+        opcoes: [
+          { id: "peca", rotulo: "Quero a PEÇA pronta (arte finalizada)", entregavel: "peca" },
+          {
+            id: "insumo",
+            rotulo: "Quero só o TEXTO (roteiro/copy)",
+            escalar: true,
+            dono: "a equipe comercial",
+            proximaAcao: "te manda por aqui o orçamento do texto avulso, que não tem preço fechado na tabela",
+          },
+        ],
+      },
     );
   }
   if (leitura.entregavel === "ambiguo") {
     return await parar(
       pedidoId,
-      "Seu pedido tem as duas coisas: o TEXTO para você gravar e as peças prontas. São trabalhos diferentes, com preços diferentes, e eu não vou escolher por você. A equipe confirma o que entra e responde por aqui.",
+      "Seu pedido tem as duas coisas: o TEXTO para você gravar e as peças prontas. São trabalhos diferentes, com preços diferentes, e eu não vou escolher por você. Me diz aqui o que entra:",
+      {
+        pergunta: "O que entra neste pedido?",
+        opcoes: [
+          { id: "peca", rotulo: "Só as PEÇAS prontas", entregavel: "peca" },
+          {
+            id: "insumo",
+            rotulo: "Só o TEXTO (roteiro/copy)",
+            escalar: true,
+            dono: "a equipe comercial",
+            proximaAcao: "te manda por aqui o orçamento do texto avulso, que não tem preço fechado na tabela",
+          },
+          {
+            id: "ambos",
+            rotulo: "As duas coisas",
+            escalar: true,
+            dono: "a equipe comercial",
+            proximaAcao: "te manda por aqui o valor dos dois trabalhos, separados",
+          },
+        ],
+      },
     );
   }
 
@@ -896,6 +966,14 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
         : "Você pediu STORY, e a classificação automática mandou este pedido para o preço e o formato de peça de " +
           "FEED. São produtos diferentes — o story é vertical (1080×1920) e tem margem protegida — e eu não vou " +
           "cobrar nem produzir o formato errado. A equipe confirma com você e responde por aqui.",
+      // ⚠️ SEM EFEITO DE MÁQUINA, E DE PROPÓSITO. Confirmar o formato aqui
+      // exigiria trocar o ATENDIMENTO — o produto, o item de tabela e o preço
+      // — que é justamente a decisão que esta trava se recusa a tomar sozinha.
+      // Um botão "quero story" que caísse na mesma classificação daria na mesma
+      // parada, e porta que não abre é pior que porta nenhuma: mata a dúvida e
+      // deixa o defeito. Fica declarado como o que é.
+      portaDeEscalada("a equipe comercial", "confirma o formato com você e te devolve o valor certo por aqui",
+        "Quer que a equipe confirme o formato com você?"),
     );
   }
 
@@ -909,6 +987,8 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
       pedidoId,
       `Entendi o que você quer (${atendimento.label.toLowerCase()}), e eu não vou cobrar por isso agora: ` +
       `${atendimento.semProdutorProprio}`,
+      portaDeEscalada("a equipe de atendimento", "te explica por aqui o que a casa consegue fazer hoje e o que não consegue",
+        "Quer que a equipe fale com você sobre este pedido?"),
     );
   }
 
@@ -921,6 +1001,8 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     return await parar(
       pedidoId,
       `Entendi o que você precisa (${atendimento.label.toLowerCase()}), mas isso não tem preço fechado na minha tabela — e eu não vou chutar um valor. A equipe te manda o orçamento por aqui.`,
+      portaDeEscalada("a equipe comercial", "te manda o orçamento deste pedido por aqui",
+        "Quer que a equipe te mande o orçamento deste pedido?"),
     );
   }
 
@@ -961,6 +1043,21 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
       return await parar(
         pedidoId,
         `Você pediu ${leitura.quantidade} peças e a minha tabela tem preço fechado de uma (${item.label}). Não vou orçar uma e cobrar o resto depois: a equipe te manda o valor das ${leitura.quantidade} por aqui.`,
+        {
+          pergunta: `Você pediu ${leitura.quantidade} peças, e a minha tabela tem preço fechado de uma. Como você prefere?`,
+          opcoes: [
+            // ESTE tem efeito de máquina: reduzir para UMA é o que a tabela
+            // sabe fazer sozinha, e é o cliente quem manda reduzir.
+            { id: "uma", rotulo: `Pode ser 1 peça só — ${item.label}`, quantidade: 1 },
+            {
+              id: "todas",
+              rotulo: `Quero orçamento das ${leitura.quantidade}`,
+              escalar: true,
+              dono: "a equipe comercial",
+              proximaAcao: `te manda o valor das ${leitura.quantidade} peças por aqui`,
+            },
+          ],
+        },
       );
     }
   }
@@ -1022,6 +1119,76 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
   }
 
   const prazo = somarDiasUteis(new Date(), item.deliveryDays);
+
+  // ── ONDE ESTE PEDIDO É EXECUTADO ──────────────────────────────────────────
+  //
+  // ⚠️ ESTE BLOCO MUDOU DE LUGAR E DE CONDUTA EM 26/08/2026. Ele rodava LÁ EM
+  // CIMA, antes da classificação, e dizia: *"o projeto NUNCA é inventado: sem
+  // projeto aberto a tarefa não é executada por ninguém — seria criar o próximo
+  // balde"*. Parava em `precisa_decisao` com "a equipe precisa abrir o projeto
+  // antes" — **e sem porta nenhuma.**
+  //
+  // Medido em produção (cliente oculto, 26/08/2026): foi um dos empurrões
+  // manuais. Um cliente novo, que só sabe usar o portal, fica preso na PRIMEIRA
+  // tentativa dele — e o cliente desta agência vai ser um agente de IA
+  // representando uma marca, que não liga nem xinga: fica preso pedindo, para
+  // sempre.
+  //
+  // O que mudou, e por quê:
+  //
+  //   1. **A pergunta passou a ser feita no fim, não no começo.** Projeto é o
+  //      CONTÊINER de execução — só é preciso quando o pedido vai mesmo ser
+  //      executado. Perguntar antes de classificar reprovava por falta de
+  //      contêiner pedidos que nem chegariam a precisar de um.
+  //
+  //   2. **Quando a casa sabe exatamente o que vendeu, ela abre o contêiner.**
+  //      Aqui já existem `atendimento` (classificado, acima da confiança
+  //      mínima), `item` de catálogo e `preco` de TABELA. Abrir o contêiner
+  //      nesse ponto não inventa escopo, prazo nem valor: é a consequência
+  //      mecânica de uma venda que a casa sabe fazer. É, aliás, exatamente o
+  //      que o balcão já fazia desde sempre (`lib/agency/balcao/producao.ts`:
+  //      pagou → `prisma.project.create`). O portal era o único lugar onde a
+  //      mesma compra não tinha onde acontecer.
+  //
+  // E o que NÃO mudou, que é o ponto:
+  //
+  //   • O contêiner nasce SEM aval nenhum — `stage: "briefing"`, sem
+  //     `directionApprovedAt`. Projeto novo não tem ciclo aberto, então
+  //     `decidirEscopo` devolve **"extra"** logo abaixo, e "extra" é o caminho
+  //     que EXIGE orçamento aceito antes de qualquer produção. Abrir o
+  //     contêiner é o contrário de afrouxar: joga o pedido no caminho pago.
+  //   • Nenhum preço, prazo ou escopo é inventado aqui: todos já vieram da
+  //     tabela, acima.
+  //   • E se a criação falhar, a parada continua existindo — agora **com
+  //     porta**: motivo, dono e próxima ação, e um botão em que o cliente diz
+  //     que quer seguir assim mesmo. Proibição sem instrução gêmea é beco.
+  const projeto = await projetoQueRecebe(pedido.projectId, cliente, atendimento.label);
+  if (!projeto) {
+    return await parar(
+      pedidoId,
+      `Entendi o que você quer (${atendimento.label.toLowerCase()}), mas não consegui abrir aqui dentro o espaço ` +
+      "onde este pedido é executado. Não vou fingir que ele entrou na fila: a equipe abre e te responde por aqui.",
+      {
+        pergunta: "Quer que a equipe abra o espaço deste pedido e siga com ele?",
+        opcoes: [
+          {
+            id: "seguir",
+            rotulo: "Sim, pode seguir com o pedido",
+            escalar: true,
+            dono: "a equipe de operações",
+            proximaAcao: "abre o espaço deste pedido e retoma a produção por aqui",
+          },
+          {
+            id: "falar",
+            rotulo: "Prefiro falar com alguém antes",
+            escalar: true,
+            dono: "a equipe de atendimento",
+            proximaAcao: "te chama por aqui para entender o que você precisa",
+          },
+        ],
+      },
+    );
+  }
 
   // ── ESCOPO: CONSULTA, NÃO PALPITE ─────────────────────────────────────────
   const escopo = await decidirEscopo(projeto.id, atendimento.departamentoId);
@@ -1111,6 +1278,60 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
       podeProduzirAgora: escopo === "ciclo",
     },
   };
+}
+
+/**
+ * O CONTÊINER DE EXECUÇÃO DESTE PEDIDO — o que existe, ou um novo.
+ *
+ * Ordem de firmeza, e ela importa:
+ *
+ *   1. o projeto que o PRÓPRIO pedido já aponta (`ContentRequest.projectId`),
+ *      conferido contra o dono — pedido não muda de projeto por acidente;
+ *   2. o projeto mais recente do cliente — o comportamento histórico da casa;
+ *   3. um contêiner novo, e só aqui há escrita.
+ *
+ * ⚠️ O QUE ESTE CONTÊINER NÃO É. Ele não é uma proposta, não é um contrato e
+ * não é um aval: nasce em `briefing`, sem `directionApprovedAt`, sem ciclo e
+ * sem `executionStatus`. Sem ciclo aberto, `decidirEscopo` devolve "extra" — o
+ * caminho que segura a produção até o cliente aceitar o orçamento da tabela.
+ *
+ * Devolve `null` se a escrita falhar. `null` vira parada COM PORTA em quem
+ * chama — nunca uma produção que segue sem lugar para acontecer.
+ */
+async function projetoQueRecebe(
+  projectIdDoPedido: string | null,
+  cliente: { id: string; name: string; workspaceId: string },
+  rotuloDoAtendimento: string,
+): Promise<{ id: string; name: string } | null> {
+  const existente = projectIdDoPedido
+    ? await prisma.project.findFirst({
+        where: { id: projectIdDoPedido, clientId: cliente.id },
+        select: { id: true, name: true },
+      }).catch(() => null)
+    : await prisma.project.findFirst({
+        where: { clientId: cliente.id },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, name: true },
+      }).catch(() => null);
+  if (existente) return existente;
+
+  return await prisma.project.create({
+    data: {
+      workspaceId: cliente.workspaceId,
+      clientId: cliente.id,
+      // O nome diz a VERDADE do que ele é: o espaço dos pedidos que o cliente
+      // faz pelo portal. Nome que promete um projeto de agência inteiro seria a
+      // primeira mentira dentro do painel.
+      name: `Pedidos de ${cliente.name}`,
+      goal: `Atender os pedidos avulsos que ${cliente.name} faz pelo portal (primeiro: ${rotuloDoAtendimento.toLowerCase()}).`,
+      type: "balcao",
+      stage: "briefing",
+    },
+    select: { id: true, name: true },
+  }).catch((e: unknown) => {
+    console.error("[triagem] não consegui abrir o espaço do pedido:", e);
+    return null;
+  });
 }
 
 /**

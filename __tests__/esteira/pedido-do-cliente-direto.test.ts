@@ -17,6 +17,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
+  // O PEDIDO QUE GEROU A PEÇA — a refação lê `produtoId` daqui para saber
+  // quantas peças o cliente comprou (`contrato-do-pedido.ts`). `null` = peça
+  // sem produto canônico, e aí vale o contrato do ESPECIALISTA, que é o
+  // comportamento que estas suítes provam.
+  contentRequest: { findFirst: vi.fn(async () => null) },
   // O PORTÃO DE PAGAMENTO (lib/agency/financeiro/portao-de-pagamento.ts) roda
   // antes de qualquer produção. Estes testes são sobre o que acontece DEPOIS de
   // o cliente pagar, então a testemunha diz "pago". Quem testa a trava em si é

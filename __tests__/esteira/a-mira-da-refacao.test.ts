@@ -12,6 +12,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
+  // O PEDIDO QUE GEROU A PEÇA — a refação lê `produtoId` daqui para saber
+  // quantas peças o cliente comprou (`contrato-do-pedido.ts`). `null` = peça
+  // sem produto canônico, e aí vale o contrato do ESPECIALISTA, que é o
+  // comportamento que estas suítes provam.
+  contentRequest: { findFirst: vi.fn(async () => null) },
   pagamentoConfirmado: {
     findUnique: vi.fn(async () => ({
       valorCentavos: 7900, origem: "mercadopago",
@@ -233,3 +238,96 @@ describe("recusar e pedir ajuste são dois atos, e o especialista sabe qual foi"
   });
 });
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔴 O AJUSTE DO PEDIDO AVULSO DE UMA PEÇA — o beco B, medido em produção
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O contrato de saída de `design-criativo-social` é `exigirQuantidade(3, 8)` —
+// régua de LOTE, escrita para o pacote do mês, nunca revista para o avulso. A
+// produção inicial já tinha sido consertada em 25/08 (`producao-de-pedido.ts`);
+// a REFAÇÃO ficou de fora e cobrava `3 a 8` de um pedido de UMA peça.
+//
+// Medido em produção com cliente oculto (26/08/2026): TRÊS tentativas de
+// produzir peça nova barradas, e por isso o arquivo do ajuste não pôde ser
+// provado. O cliente pediu ajuste e não recebeu arquivo novo nenhum.
+//
+// ⚠️ O CONTRATO NÃO FOI AFROUXADO. `3..8` virou `n === n` — o número exato que
+// ele pagou. O segundo `it` abaixo é quem prova isso: entregar a MAIS também
+// reprova, e reprova onde a régua de lote aprovava.
+//
+// MUTAÇÃO CONFERIDA: voltar `conferirContrato(esp, dados)` no lugar de
+// `contratoDoPedido(esp, …)` quebra o primeiro `it` imediatamente.
+
+describe("o ajuste de um pedido AVULSO de uma peça não morre no contrato de lote", () => {
+  const ARTE = {
+    ...PAUTA, id: "arte-do-feed", name: "Post para o feed", ownerAgentId: "design-criativo-social",
+  };
+  const UMA_PECA_REFEITA = {
+    ok: true,
+    data: {
+      title: "Post para o feed",
+      summary: "A arte com o gancho novo que o cliente pediu.",
+      items: [{
+        headline: "O prato do dia",
+        direction: "close-up do prato montado sobre a bancada de madeira, luz da janela pela manhã",
+        palette: "terrosos", note: "Hoje tem.",
+      }],
+    },
+  };
+
+  beforeEach(() => {
+    db.deliverable.findMany.mockResolvedValue([{ ...ARTE }]);
+    // O pedido que gerou esta peça: um POST DE FEED, que a tabela vende como
+    // UMA peça por R$ 79.
+    db.contentRequest.findFirst.mockResolvedValue({ produtoId: "instagram_post_feed_v1" });
+    db.contentRequest.findUnique?.mockResolvedValue?.({ deliverableId: "arte-do-feed" });
+    generate.mockResolvedValue(UMA_PECA_REFEITA);
+  });
+
+  it("uma peça pedida, uma peça refeita: a peça É GRAVADA, e o ajuste chega ao cliente", async () => {
+    const r = await refazerPorPedidoDoCliente({
+      clientRequestId: "cr1", department: "social-media", deliverableId: "arte-do-feed",
+      comentario: "deixa o prato mais perto", modo: "ajuste",
+    });
+    expect(r.escalado, `parou com: ${r.motivo ?? ""}`).toBeFalsy();
+    expect(r.refeitas).toEqual(["Post para o feed"]);
+    expect(tocados()).toEqual(["arte-do-feed"]);
+  });
+
+  it("e o contrato ficou MAIS estrito: quatro peças num pedido de uma é barrado", async () => {
+    // A régua de LOTE aprovaria (4 cabe em 3..8). A do PEDIDO não — entregar a
+    // mais é imagem paga que ninguém comprou.
+    generate.mockResolvedValue({
+      ok: true,
+      data: {
+        title: "Post para o feed",
+        summary: "Quatro versões.",
+        items: [1, 2, 3, 4].map((n) => ({
+          headline: `Versão ${n}`,
+          direction: "close-up do prato sobre a bancada, luz da janela pela manhã",
+          note: "Hoje tem.",
+        })),
+      },
+    });
+    const r = await refazerPorPedidoDoCliente({
+      clientRequestId: "cr1", department: "social-media", deliverableId: "arte-do-feed",
+      comentario: "deixa o prato mais perto", modo: "ajuste",
+    });
+    expect(r.escalado).toBe(true);
+    expect(String(r.motivo)).toMatch(/contrat/i);
+    expect(tocados(), "peça fora do contrato não se grava").toEqual([]);
+  });
+
+  it("peça SEM pedido de produto continua sob o contrato do especialista", async () => {
+    // Ausência de produto é ausência de informação: 1 peça volta a reprovar,
+    // que é o comportamento histórico e o certo para a peça de ciclo.
+    db.contentRequest.findFirst.mockResolvedValue(null);
+    const r = await refazerPorPedidoDoCliente({
+      clientRequestId: "cr1", department: "social-media", deliverableId: "arte-do-feed",
+      comentario: "deixa o prato mais perto", modo: "ajuste",
+    });
+    expect(r.escalado).toBe(true);
+    expect(tocados()).toEqual([]);
+  });
+});

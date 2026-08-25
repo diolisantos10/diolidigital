@@ -83,6 +83,16 @@ export interface OpcaoDaPergunta {
   escalar?: boolean;
   dono?: string;
   proximaAcao?: string;
+  /**
+   * Escolher esta opção CONFIRMA qual dos dois trabalhos o cliente quer — a
+   * PEÇA pronta ou o INSUMO (texto/roteiro) — e manda a triagem rodar de novo.
+   *
+   * Existe pelo mesmo motivo que `quantidade`: a leitura do entregável é léxica
+   * e roda no texto ORIGINAL, que continua ambíguo depois de o cliente ter
+   * dito qual é. Sem gravar a escolha dele, a releitura reproduziria a mesma
+   * parada, para sempre — a porta abriria para o mesmo beco.
+   */
+  entregavel?: "peca" | "insumo";
 }
 
 export interface PerguntaAoCliente {
@@ -171,6 +181,7 @@ export async function responderPergunta(input: {
   // ── A ESCOLHA. NADA DE ADIVINHAR ──────────────────────────────────────────
   let escolhida: OpcaoDaPergunta | null = null;
   let quantidade: number | null = null;
+  let entregavel: "peca" | "insumo" | null = null;
   let textoDaResposta = "";
 
   if (input.opcaoId) {
@@ -180,6 +191,7 @@ export async function responderPergunta(input: {
     }
     textoDaResposta = escolhida.rotulo;
     if (typeof escolhida.quantidade === "number") quantidade = escolhida.quantidade;
+    if (escolhida.entregavel === "peca" || escolhida.entregavel === "insumo") entregavel = escolhida.entregavel;
   } else if (input.numero != null) {
     if (!pergunta.aceitaNumero) {
       return { ok: false, erro: "Esta pergunta se responde escolhendo uma das opções.", codigo: 422, pergunta };
@@ -229,6 +241,9 @@ export async function responderPergunta(input: {
       // dizendo "1 story". Sem esta coluna, rodar a triagem de novo daria
       // exatamente a mesma parada, para sempre.
       ...(quantidade != null ? { confirmedQuantity: quantidade } : {}),
+      // O ENTREGÁVEL CONFIRMADO PELO CLIENTE, pela mesma razão exata: a leitura
+      // léxica continua lendo o texto antigo, que continua ambíguo.
+      ...(entregavel != null ? { confirmedDeliverable: entregavel } : {}),
       declineReason: null,
       // Volta para a fila da triagem. `novo` (e não `em_triagem`) porque a
       // trava atômica de `atenderPedido` é quem move para `em_triagem`; entrar

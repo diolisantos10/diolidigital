@@ -43,6 +43,7 @@ import { renderizarEntrega, ESQUEMA_DA_ENTREGA } from "@/lib/agency/esteira/rend
 import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { generate } from "@/lib/ai/generate";
 import { TODOS_OS_ESPECIALISTAS, conferirContrato } from "@/lib/agency/execution/especialistas";
+import { contratoDoPedido } from "@/lib/agency/esteira/contrato-do-pedido";
 import { conferirPisoDeVerdade, resumirViolacoes, instrucaoGemea, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import { lerProibicoes, registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
@@ -609,7 +610,26 @@ export async function refazerPorPedidoDoCliente(input: {
     // "O cliente mandou" vale para o CONTEÚDO, não para a contagem: ninguém
     // pediu para receber menos. Encolheu, não grava — a versão que ele está
     // vendo continua de pé e o caso vira decisão de gente, com o motivo.
-    const contrato = esp ? conferirContrato(esp, dados) : { cumpriu: true, violacoes: [] as string[] };
+    // ── E O CONTRATO CONHECE O TAMANHO DO PEDIDO (26/08/2026) ─────────────
+    //
+    // Era `conferirContrato(esp, …)` — a régua de LOTE do especialista, `3 a 8
+    // criativos`, escrita para o pacote do mês. Um pedido avulso de UMA peça
+    // batia de frente nela em TODA refação: a produção descrevia 1 peça, o
+    // contrato exigia 3, e o ajuste do cliente morria em `fora_do_contrato`.
+    //
+    // ⚠️ Isto NÃO afrouxa nada. `contratoDoPedido` troca `3..8` por `n === n`,
+    // que é mais estrito: nem a menos (entrega magra por preço cheio) nem a
+    // mais (imagem paga que ninguém comprou). Pedido sem produto canônico
+    // declarado continua caindo no contrato do especialista, como sempre.
+    //
+    // E o produto vem do PEDIDO QUE GEROU ESTA PEÇA, nunca do card: o card diz
+    // qual peça está na mesa, o pedido diz o que foi comprado. Por isso a
+    // leitura é pela PEÇA (`deliverableId`) e vale para todo alvo — inclusive
+    // quando o ajuste veio pelo card genérico do departamento.
+    const contrato = conferirContrato(
+      contratoDoPedido(esp, await produtoQueComprouAPeca(entrega.id)),
+      dados,
+    );
     if (!contrato.cumpriu) {
       registrarParada(classificarParada({
         causa: "fora_do_contrato",
@@ -990,6 +1010,32 @@ export async function refazerPorPedidoDoCliente(input: {
  * une `clientId` com as solicitações dele. Carimbar só uma partia o histórico
  * do cliente que ganha (ou troca de) solicitação depois.
  */
+/**
+ * O PRODUTO QUE COMPROU ESTA PEÇA — e portanto quantas peças ela deve ter.
+ *
+ * A pergunta é feita à PEÇA e não ao card: o card diz o que está na mesa, o
+ * pedido diz o que foi pago. `null` (peça do ciclo, peça anterior ao produto
+ * canônico, peça sem pedido) devolve `null`, e `null` faz o contrato do
+ * ESPECIALISTA valer — ausência de produto não vira quantidade inventada.
+ */
+async function produtoQueComprouAPeca(deliverableId: string): Promise<string | null> {
+  try {
+    const pedido = await prisma.contentRequest.findFirst({
+      where: { deliverableId },
+      select: { produtoId: true },
+    });
+    return pedido?.produtoId ?? null;
+  } catch (e) {
+    // Leitura que falha NÃO vira quantidade inventada: cai no contrato do
+    // ESPECIALISTA, que é a régua histórica e a mais exigente das duas para
+    // baixo. Falhar para o lado de barrar é recuperável; falhar para o lado de
+    // gravar entrega magra não é. Mas fica RUIDOSO — silêncio aqui esconderia o
+    // conserto do beco B tendo parado de funcionar.
+    console.warn("[refacao] não consegui ler o produto do pedido desta peça:", e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
 async function escreverNoPortal(ancora: AncoraDoPedido, corpo: string): Promise<boolean> {
   if (!ancora.clientId && !ancora.clientRequestId) return false;
   try {

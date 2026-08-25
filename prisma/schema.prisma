@@ -773,6 +773,18 @@ model ContentRequest {
   /// Nulo = o cliente não confirmou número nenhum, e aí vale a leitura do
   /// texto. Nulo NUNCA vira 1: quantidade inventada é erro de dinheiro.
   confirmedQuantity Int?
+  /// O ENTREGÁVEL que o CLIENTE confirmou respondendo à porta da pergunta:
+  /// "peca" (a arte pronta) ou "insumo" (o texto/roteiro para ele produzir).
+  ///
+  /// Irmã de `confirmedQuantity`, e pelo mesmo motivo: a leitura do entregável
+  /// é léxica e roda no texto ORIGINAL (`leitura-do-pedido.ts`). Quando ela lê
+  /// "ambíguo" ou lê INSUMO onde a classificação escolheu PEÇA, a triagem para
+  /// e pergunta — e sem esta coluna, rodar a triagem de novo depois da resposta
+  /// daria exatamente a mesma parada, para sempre.
+  ///
+  /// Nulo = o cliente não confirmou nada, e vale a leitura do texto. Nulo NUNCA
+  /// vira "peca": escolher o entregável por ele é cobrar o trabalho errado.
+  confirmedDeliverable String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
