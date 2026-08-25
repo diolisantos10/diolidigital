@@ -54,8 +54,123 @@ function tamanhoLegivel(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+/**
+ * ── O PEDIDO DE MATERIAL, DO LADO DO CLIENTE (25/08/2026) ───────────────────
+ *
+ * A esteira mandava a cliente *"responder os 5 pedidos que te mandamos na
+ * conversa"* e o portal não tinha onde. `MaterialRequest` só era lida pelas
+ * telas da EQUIPE. A tela cobrava do cliente uma resposta que ele não tinha
+ * onde dar.
+ *
+ * Mora AQUI, e não numa aba nova, porque é aqui que ele já vem mandar arquivo:
+ * a pergunta e a porta de responder no mesmo lugar, não em duas telas.
+ */
+export interface PedidoDeMaterialNaTela {
+  id: string;
+  tipo: string;
+  descricao: string;
+  pedidoEm: string;
+}
+
+function PedidosDeMaterial({
+  pedidos,
+  token,
+  aoResponder,
+}: {
+  pedidos: PedidoDeMaterialNaTela[];
+  token: string;
+  aoResponder: () => void;
+}) {
+  const [aberto, setAberto] = useState<string | null>(null);
+  const [texto, setTexto] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  if (pedidos.length === 0) return null;
+
+  async function mandar(pedidoId: string) {
+    setEnviando(true);
+    setErro(null);
+    try {
+      const res = await fetch("/api/portal/materiais", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pedidoId, resposta: texto, ...(token ? { token } : {}) }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { error?: string; pergunta?: string };
+      if (!res.ok) {
+        setErro(j.pergunta ?? j.error ?? "Não consegui registrar sua resposta agora.");
+        return;
+      }
+      setAberto(null);
+      setTexto("");
+      aoResponder();
+    } catch {
+      setErro("A conexão caiu. Sua resposta NÃO foi registrada — tente de novo.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <article className="cp-card" style={{ marginTop: 13 }}>
+      <TituloDeSecao
+        sobretitulo="A PRODUÇÃO ESTÁ ESPERANDO"
+        titulo={pedidos.length === 1 ? "Uma coisa sua para a gente seguir" : `${pedidos.length} coisas suas para a gente seguir`}
+      />
+      <p style={{ marginTop: 13, color: "var(--cp-muted)" }}>
+        Cada item abaixo travou uma parte da produção. Você pode mandar o arquivo na caixa
+        acima, ou responder aqui em uma frase — “não tenho”, “já está no Drive” e “mandei
+        agora” também são respostas, e todas destravam.
+      </p>
+      <ul style={{ marginTop: 13, listStyle: "none", padding: 0, display: "grid", gap: 10 }}>
+        {pedidos.map((p) => (
+          <li key={p.id} style={{ border: "1px solid var(--cp-border)", borderRadius: 10, padding: "12px 14px" }}>
+            <b style={{ display: "block", fontSize: 13.5, lineHeight: 1.4 }}>{p.descricao}</b>
+            <small style={{ color: "var(--cp-muted)" }}>
+              {ICONE_DA_CATEGORIA[p.tipo] ?? "📦"} pedido em {new Date(p.pedidoEm).toLocaleDateString("pt-BR")}
+            </small>
+            {aberto === p.id ? (
+              <div style={{ marginTop: 10 }}>
+                <textarea
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  rows={2}
+                  placeholder="Ex.: já mandei na caixa acima / não tenho esse material / usa o que está no Drive"
+                  style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--cp-border)", fontSize: 13, resize: "none" }}
+                />
+                <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => void mandar(p.id)}
+                    disabled={enviando || texto.trim().length < 3}
+                    style={{ touchAction: "manipulation" }}
+                  >
+                    Responder
+                  </button>
+                  <button onClick={() => { setAberto(null); setErro(null); }} style={{ touchAction: "manipulation" }}>
+                    Cancelar
+                  </button>
+                </div>
+                {erro && <small style={{ color: "#B91C1C", display: "block", marginTop: 6 }}>{erro}</small>}
+              </div>
+            ) : (
+              <button
+                onClick={() => { setAberto(p.id); setTexto(""); setErro(null); }}
+                style={{ marginTop: 10, touchAction: "manipulation" }}
+              >
+                Responder este
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
 export function MateriaisDaMarca({ token }: { token: string }) {
   const [materiais, setMateriais] = useState<MaterialNaTela[] | null>(null);
+  const [pedidos, setPedidos] = useState<PedidoDeMaterialNaTela[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
 
@@ -66,7 +181,7 @@ export function MateriaisDaMarca({ token }: { token: string }) {
       // A4: sem token na URL quando o cookie httpOnly já autentica.
       const url = token ? `/api/portal/materiais?token=${encodeURIComponent(token)}` : "/api/portal/materiais";
       const res = await fetch(url);
-      const dados = (await res.json()) as { materiais?: MaterialNaTela[]; error?: string };
+      const dados = (await res.json()) as { materiais?: MaterialNaTela[]; pedidos?: PedidoDeMaterialNaTela[]; error?: string };
       if (!res.ok) {
         // ERRO É ERRO. Cair para lista vazia aqui faria a tela dizer "você ainda
         // não mandou nada" para quem já mandou — e ele reenviaria tudo.
@@ -75,6 +190,7 @@ export function MateriaisDaMarca({ token }: { token: string }) {
         return;
       }
       setMateriais(dados.materiais ?? []);
+      setPedidos(Array.isArray(dados.pedidos) ? dados.pedidos : []);
     } catch {
       setErro("A conexão caiu ao buscar seus materiais. Eles não se perderam.");
       setMateriais(null);
@@ -99,6 +215,11 @@ export function MateriaisDaMarca({ token }: { token: string }) {
 
   return (
     <>
+      {/* PRIMEIRO o que a casa espera DELE. O que ele já mandou vem depois:
+          quem abre esta tela porque foi cobrado precisa achar a porta antes de
+          rolar por uma lista de arquivos antigos. */}
+      <PedidosDeMaterial pedidos={pedidos} token={token} aoResponder={() => void carregar()} />
+
       <article className="cp-card" style={{ marginTop: 13 }}>
         <TituloDeSecao
           sobretitulo="MATERIAL DA MARCA"

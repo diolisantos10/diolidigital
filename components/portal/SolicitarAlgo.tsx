@@ -48,6 +48,17 @@ export interface PedidoDoCliente {
    *  (terceira saída, 07/08/2026). Não é aceite nem recusa: a bola está com a
    *  agência revisando prazo, escopo ou preço. */
   orcamento?: "pendente" | "aceito" | "recusado" | "ajuste_solicitado" | null;
+  /**
+   * ── A PORTA DA PERGUNTA (25/08/2026) ────────────────────────────────────
+   * A pergunta que a casa fez, com as respostas possíveis. Presente só quando
+   * há uma aberta. Sem isto o cartão de `precisa_decisao` era um selo amarelo
+   * e um parágrafo — a cliente respondeu no chat livre e o pedido não andou.
+   */
+  pergunta?: {
+    texto: string;
+    aceitaNumero: boolean;
+    opcoes: { id: string; rotulo: string }[];
+  } | null;
 }
 
 /** Atalhos de objetivo — um toque em vez de uma redação. Deliberadamente largos:
@@ -364,13 +375,112 @@ export function TextoQueVoceEscreveu({ descricao, objetivo }: { descricao: strin
 // estado do pedido e, quando há orçamento esperando, um CAMINHO para lá — nunca
 // um segundo botão que decide.
 
+// ─────────────────────────────────────────────────────────────────────────────
+// A PORTA DA PERGUNTA — os pixels
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Coluna gravada não é cliente informado. `pendingQuestionJson` no banco não
+// serve de nada enquanto não for um BOTÃO que o cliente clica: foi exatamente
+// isso que aconteceu com o motivo do `precisa_decisao`, que estava gravado,
+// aparecia como texto, e não dava saída nenhuma a quem lia.
+export function RespostaAoPedido({
+  pedido,
+  aoResponder,
+}: {
+  pedido: PedidoDoCliente;
+  /** Manda a resposta e recarrega a lista. Devolve o recado da casa, ou o erro. */
+  aoResponder: (input: { pedidoId: string; opcaoId?: string; numero?: number })
+    => Promise<{ ok: boolean; recado?: string; erro?: string }>;
+}) {
+  const [enviando, setEnviando] = useState(false);
+  const [numero, setNumero] = useState("");
+  const [recado, setRecado] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const q = pedido.pergunta;
+  if (!q) return null;
+
+  async function mandar(input: { opcaoId?: string; numero?: number }) {
+    setEnviando(true);
+    setErro(null);
+    try {
+      const r = await aoResponder({ pedidoId: pedido.id, ...input });
+      if (r.ok) setRecado(r.recado ?? "Anotei sua resposta.");
+      else setErro(r.erro ?? "Não consegui registrar sua resposta agora. Tente de novo.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  // Respondido: o cliente lê o que a casa fez com a resposta dele. É a metade
+  // que fecha o ciclo — "a casa escutou e andou", e não só "recebido".
+  if (recado) {
+    return (
+      <div className="mt-3 rounded-[10px] bg-[var(--success-bg)] px-3.5 py-3">
+        <p className="text-[12.5px] text-[var(--text-primary)] leading-relaxed">{recado}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-[10px] border border-[var(--warning)] bg-[var(--warning-bg)] px-3.5 py-3">
+      <p className="text-[12.5px] font-semibold text-[var(--text-primary)] leading-snug">{q.texto}</p>
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        {q.opcoes.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            disabled={enviando}
+            onClick={() => mandar({ opcaoId: o.id })}
+            style={{ touchAction: "manipulation" }}
+            className="h-9 px-3.5 rounded-[9px] border border-[var(--border-strong)] bg-white disabled:opacity-40 text-[12.5px] font-semibold text-[var(--text-primary)] hover:bg-[var(--accent)] transition-colors"
+          >
+            {o.rotulo}
+          </button>
+        ))}
+      </div>
+      {/* O campo de número só aparece onde o que falta é literalmente uma
+          contagem. Em toda outra pergunta, texto livre voltaria a ser o chat
+          sem leitor — que é o defeito, não o conserto. */}
+      {q.aceitaNumero && (
+        <div className="mt-2.5 flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            max={200}
+            inputMode="numeric"
+            value={numero}
+            onChange={(e) => setNumero(e.target.value)}
+            placeholder="quantas?"
+            className="h-9 w-28 px-2.5 rounded-[8px] border border-[var(--border)] bg-white text-[13px] outline-none focus:border-[var(--text-primary)]"
+          />
+          <button
+            type="button"
+            disabled={enviando || !numero.trim()}
+            onClick={() => mandar({ numero: Number(numero) })}
+            style={{ touchAction: "manipulation" }}
+            className="h-9 px-3.5 rounded-[9px] bg-[var(--text-primary)] disabled:opacity-40 text-white text-[12.5px] font-semibold"
+          >
+            Confirmar
+          </button>
+        </div>
+      )}
+      {erro && <p className="mt-2 text-[12px] text-[#B91C1C]">{erro}</p>}
+    </div>
+  );
+}
+
 export function MeusPedidos({
   pedidos,
   aoIrParaAprovacoes,
+  aoResponderPergunta,
 }: {
   pedidos: PedidoDoCliente[];
   /** Leva o cliente até Aprovações, no card daquele orçamento. */
   aoIrParaAprovacoes?: (pedidoId: string) => void;
+  /** A porta da pergunta. Ausente = o cartão volta a ser só leitura. */
+  aoResponderPergunta?: (input: { pedidoId: string; opcaoId?: string; numero?: number })
+    => Promise<{ ok: boolean; recado?: string; erro?: string }>;
 }) {
   if (pedidos.length === 0) return null;
 
@@ -433,6 +543,13 @@ export function MeusPedidos({
                 </p>
               )}
               {p.motivo && <p className="text-[12px] text-[var(--text-secondary)] mt-1">{p.motivo}</p>}
+
+              {/* A PORTA. O motivo acima diz por que parou; isto é onde ele
+                  responde. Sem os dois juntos, "a equipe confirma com você"
+                  é uma promessa que o cliente não tem como cobrar. */}
+              {p.pergunta && aoResponderPergunta && (
+                <RespostaAoPedido pedido={p} aoResponder={aoResponderPergunta} />
+              )}
 
               {/* O CAMINHO, não o botão. A decisão vive em Aprovações. */}
               {pendente && aoIrParaAprovacoes && (

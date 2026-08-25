@@ -748,6 +748,31 @@ model ContentRequest {
   /// degrau que abre e fecha faria a casa reproduzir a mesma peça para sempre,
   /// com IA paga em cada volta.
   escadaRepescagens Int    @default(0)
+  /// ── A PORTA DA PERGUNTA (25/08/2026) ────────────────────────────────────
+  ///
+  /// A pergunta ESTRUTURADA que a casa fez ao cliente, com as respostas
+  /// possíveis e o efeito de cada uma (`lib/agency/esteira/porta-da-pergunta.ts`).
+  ///
+  /// `declineReason` diz ao cliente POR QUE parou, em prosa. Isto diz COMO ele
+  /// responde. Eram a mesma coisa e não são: a Ana leu o motivo, respondeu no
+  /// chat "pode ser o pacote de 4" e o pedido não andou, porque prosa não tem
+  /// botão e o chat livre não tem quem decida escopo. Proibição sem instrução
+  /// gêmea é beco.
+  ///
+  /// Nulo = não há pergunta aberta. É o estado normal, e é o que o cartão do
+  /// portal lê para NÃO mostrar botão nenhum. Respondida, volta a nulo na mesma
+  /// escrita — pergunta que sobrevive à resposta é a mesma pergunta duas vezes.
+  pendingQuestionJson String?
+  /// A quantidade que o CLIENTE confirmou respondendo à pergunta acima.
+  ///
+  /// Existe porque a leitura da quantidade é léxica e roda no texto ORIGINAL
+  /// (`leitura-do-pedido.ts`) — que continua dizendo "1 story" depois de o
+  /// cliente ter dito "pode ser o pacote de 4". Sem esta coluna, rodar a
+  /// triagem de novo daria exatamente a mesma parada, para sempre.
+  ///
+  /// Nulo = o cliente não confirmou número nenhum, e aí vale a leitura do
+  /// texto. Nulo NUNCA vira 1: quantidade inventada é erro de dinheiro.
+  confirmedQuantity Int?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

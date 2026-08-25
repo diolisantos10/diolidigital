@@ -113,16 +113,42 @@ describe("entrega o número que já estava calculado", () => {
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ O QUE ESTE BLOCO GARANTIA, E O QUE MUDOU EM 25/08/2026
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Este bloco exigia `portalMessage.create` NUNCA chamado, e chamava isso de
+// "não inventa número". Duas coisas estavam grudadas numa asserção só:
+//
+//   1. **não inventar PREÇO** — verdadeiro, obrigatório, e continua exigido
+//      aqui (`entregues: 0`, sem `proposal_pending`);
+//   2. **não dizer NADA ao cliente** — que não era garantia nenhuma: era o
+//      defeito. Medido em produção em 25/08: um briefing sem o número de posts
+//      por semana travava em `scope_ready`, o relógio escrevia "aguardando
+//      gente" a cada 5 minutos, e o cliente do outro lado nunca era avisado.
+//      Ele sumia sem barulho.
+//
+// A régua nova separa as duas: o preço continua proibido, e o SILÊNCIO passa a
+// ser proibido também. Ausência de informação não é informação, e silêncio não
+// é espera.
+
 describe("NÃO inventa número — a metade que importa", () => {
-  it("briefing sem estimativa não vira mensagem nenhuma", async () => {
+  it("briefing sem estimativa não vira PREÇO — e não vira silêncio", async () => {
     db.clientRequestDb.findMany.mockResolvedValue([pedido({ briefingJson: JSON.stringify({ scope: {} }) })]);
     const r = await entregarOrcamentosPendentes();
 
     expect(r.entregues).toBe(0);
     expect(r.semOrcamento).toBe(1);
-    expect(db.portalMessage.create).not.toHaveBeenCalled();
-    // E continua em `new`: fica para gente resolver, não some da fila.
-    expect(db.clientRequestDb.update).not.toHaveBeenCalled();
+    // NÃO avança para a fila que promete um número que ele não tem.
+    const avancou = db.clientRequestDb.update.mock.calls.some(
+      (c: unknown[]) => "status" in (c[0] as { data: Record<string, unknown> }).data,
+    );
+    expect(avancou).toBe(false);
+    // E o cliente É avisado, uma vez, do que falta.
+    expect(r.faltaAvisada).toBe(1);
+    expect(db.portalMessage.create).toHaveBeenCalledTimes(1);
+    const corpo = db.portalMessage.create.mock.calls[0][0].data.body as string;
+    expect(corpo).not.toMatch(/R\$/);
   });
 
   it("JSON quebrado não derruba a rodada nem inventa valor", async () => {
@@ -130,7 +156,10 @@ describe("NÃO inventa número — a metade que importa", () => {
     const r = await entregarOrcamentosPendentes();
     expect(r.semOrcamento).toBe(1);
     expect(r.falhas).toEqual([]);
-    expect(db.portalMessage.create).not.toHaveBeenCalled();
+    // JSON quebrado NÃO conclui "já avisei": o cliente é avisado, com o texto
+    // honesto ("a minha conta não fechou"), sem chutar o que falta.
+    expect(r.faltaAvisada).toBe(1);
+    expect(db.portalMessage.create.mock.calls[0][0].data.body).not.toMatch(/R\$/);
   });
 
   it("estimativa zerada é o mesmo que estimativa nenhuma", async () => {
@@ -139,7 +168,8 @@ describe("NÃO inventa número — a metade que importa", () => {
     ]);
     const r = await entregarOrcamentosPendentes();
     expect(r.semOrcamento).toBe(1);
-    expect(db.portalMessage.create).not.toHaveBeenCalled();
+    expect(r.entregues).toBe(0);
+    expect(r.faltaAvisada).toBe(1);
   });
 
   it("um pedido com erro não impede o seguinte de ser entregue", async () => {
@@ -235,14 +265,20 @@ describe("estimativa travada nao vira orcamento — o CityJobs de 16/08", () => 
     },
   });
 
-  it("nao manda mensagem nenhuma ao cliente", async () => {
+  it("nao manda ORCAMENTO nenhum — manda o motivo", async () => {
     db.clientRequestDb.findMany.mockResolvedValue([pedido({ briefingJson: travada })]);
     const r = await entregarOrcamentosPendentes();
 
     // Numero que nao se sustenta nao vira preco nesta casa. Nesta casa valor
     // vem de calculo, e a IA nunca inventa.
     expect(r.entregues).toBe(0);
-    expect(db.portalMessage.create).not.toHaveBeenCalled();
+    const corpo = db.portalMessage.create.mock.calls[0][0].data.body as string;
+    // R$ 1.800 estava gravado e nao pode aparecer: e o numero que nao se sustenta.
+    expect(corpo).not.toMatch(/1\.800|3\.400|R\$/);
+    // O que aparece e o MOTIVO, que ja estava guardado na coluna e nunca virava
+    // pixel — mais o dono e a proxima acao.
+    expect(corpo).toContain("volume de posts");
+    expect(corpo).toContain("equipe comercial");
   });
 
   it("conta como semOrcamento — o pedido fica parado, mas nunca em silencio", async () => {
@@ -260,8 +296,25 @@ describe("estimativa travada nao vira orcamento — o CityJobs de 16/08", () => 
     db.clientRequestDb.findMany.mockResolvedValue([pedido({ briefingJson: travada })]);
     await entregarOrcamentosPendentes();
     // Sem `proposal_pending`: o pedido nao avanca para uma fila que promete um
-    // numero que ele nao tem.
-    expect(db.clientRequestDb.update).not.toHaveBeenCalled();
+    // numero que ele nao tem. A UNICA escrita permitida aqui e a marca do
+    // aviso, que nao muda estado nenhum.
+    for (const c of db.clientRequestDb.update.mock.calls) {
+      expect(Object.keys(c[0].data)).toEqual(["briefingJson"]);
+    }
+  });
+
+  it("avisa UMA vez: a segunda rodada nao repete a mensagem", async () => {
+    // A varredura roda de 5 em 5 min. Sem a marca seriam 288 mensagens por dia
+    // — o jeito mais rapido de ensinar o cliente a nao ler o portal.
+    const jaAvisado = JSON.stringify({
+      ...JSON.parse(travada),
+      faltaAvisadaEm: "2026-08-25T12:00:00.000Z",
+    });
+    db.clientRequestDb.findMany.mockResolvedValue([pedido({ briefingJson: jaAvisado })]);
+    const r = await entregarOrcamentosPendentes();
+    expect(r.semOrcamento).toBe(1);
+    expect(r.faltaAvisada).toBe(0);
+    expect(db.portalMessage.create).not.toHaveBeenCalled();
   });
 });
 
