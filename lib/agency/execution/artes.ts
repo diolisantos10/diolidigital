@@ -57,7 +57,7 @@ import { conferirFundoDaPeca, motivoDoFundoEmUmaLinha } from "@/lib/agency/desig
 // ver o bloco no ponto de chamada e o cabeçalho do arquivo.
 import { conferirDirecaoFotografavel } from "@/lib/agency/design/direcao-fotografavel";
 import {
-  reescreverDirecao, contarReescritasDaDirecao,
+  reescreverDirecao, contarReescritasDaDirecao, MAX_REESCRITAS_DA_DIRECAO,
 } from "@/lib/agency/design/reescrever-direcao";
 import { generate } from "@/lib/ai/generate";
 import { cerebroDaMarca } from "@/lib/agency/design/repertorio-registrado";
@@ -555,6 +555,16 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
           // rodada, a rodada seguinte releria a direção velha do banco e pagaria
           // a reescrita de novo — e o entregável continuaria mentindo sobre o
           // que foi pedido à câmera.
+          // ── A REESCRITA APARECE NO LOG DA RODADA ────────────────────────
+          // Um mecanismo que ninguém consegue ver rodando é um mecanismo que
+          // ninguém consegue auditar — e foi assim que sete auditorias
+          // homologaram uma corrente que não entregava nada. O despertador já
+          // conta arte produzida e arte falhada; a direção reescrita é o terceiro
+          // desfecho, e até aqui ele era mudo.
+          console.log(
+            `[arte] direção reescrita (${r.reescritas}/${MAX_REESCRITAS_DA_DIRECAO}) na peça ${post.id}: ` +
+            `faltava ${veredito.faltou.join(", ")} — agora "${r.direcao.slice(0, 120)}"`,
+          );
           direcaoEscrita = r.direcao;
           await prisma.socialPost.update({
             where: { id: post.id },
