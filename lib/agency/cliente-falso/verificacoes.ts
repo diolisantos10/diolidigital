@@ -207,6 +207,8 @@ export type EstadoDaEsteira = {
   entregasComArbitroIndependente: number;
   /** Julgadas pelo MESMO modelo que escreveu. Não é aprovação independente. */
   entregasAutojulgadas: number;
+  /** Decididas por uma PESSOA pela tela — nem árbitro, nem auto-julgamento. */
+  entregasDecididasPorPessoa: number;
   /** Gravadas antes de a casa medir quem julgava. NÃO MEDIDO nunca é verde. */
   entregasArbitragemNaoMedida: number;
   /** O motivo mais comum de não ter havido árbitro, em uma frase. */

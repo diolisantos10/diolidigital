@@ -77,6 +77,9 @@ export interface RetratoDoProjeto {
     /** Julgadas pelo PRÓPRIO autor. Vale como freio (reprovação bloqueia),
      *  nunca como aprovação — e nunca pode ser somada à conta de cima. */
     autojulgadas?: number;
+    /** Decididas por uma PESSOA pela tela. Quarta coisa, quarta coluna: não é
+     *  árbitro independente, não é auto-julgamento, não é ausência. */
+    decididasPorPessoa?: number;
     /** Peças gravadas antes de 25/08/2026, quando a casa não media quem
      *  julgava. NÃO MEDIDO nunca é verde: fica na própria coluna em vez de
      *  engordar qualquer uma das outras. */

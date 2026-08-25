@@ -160,13 +160,47 @@ export function filaDeArbitros(autor?: string | null): AiProvider[] {
 //                              Vale como freio (reprovação bloqueia), NUNCA
 //                              como aprovação — ver a degradação assimétrica.
 //   • `sem_arbitro`          → ninguém olhou. Retém.
-export type Arbitragem = "arbitro_independente" | "autojulgado" | "sem_arbitro";
+//   • `decisao_humana`      → quem decidiu foi uma PESSOA, pela tela. É uma
+//                              quarta coisa, e a palavra é própria por isso:
+//                              não é auto-julgamento (nenhum modelo julgou a si
+//                              mesmo) e muito menos árbitro independente. Ver
+//                              `camposDaDecisaoHumana`.
+export type Arbitragem = "arbitro_independente" | "autojulgado" | "sem_arbitro" | "decisao_humana";
 
 export const ARBITRAGEM_EM_PALAVRAS: Record<Arbitragem, string> = {
   arbitro_independente: "julgada por árbitro independente",
   autojulgado: "julgada pelo PRÓPRIO autor — não é aprovação independente",
   sem_arbitro: "NÃO julgada — ninguém auditou",
+  decisao_humana: "decidida por uma PESSOA pela tela — não é auditoria de árbitro nenhum",
 };
+
+/**
+ * OS CAMPOS DE BANCO quando quem decidiu foi UMA PESSOA, pela tela.
+ *
+ * ── Por que uma QUARTA palavra (25/08/2026, ordem do Diretor Geral) ─────────
+ * `app/api/deliverables/[id]` grava `revisionStatus` vindo do corpo da
+ * requisição. Sem esta função, ela escreveria o veredito e deixaria
+ * `qualityArbitragem` como estava — herdando o carimbo da auditoria anterior,
+ * ou ficando nulo. Nos dois casos a tela volta a mentir, e sem má-fé nenhuma:
+ * basta alguém usar a tela.
+ *
+ * E não bastava reusar uma palavra existente. "Um humano decidiu" NÃO é
+ * `autojulgado` (nenhum modelo julgou a si mesmo), NÃO é `sem_arbitro` (alguém
+ * olhou, e com mais autoridade que qualquer modelo) e MUITO menos
+ * `arbitro_independente` (não houve árbitro). É uma quarta coisa e ganhou o
+ * nome dela — do mesmo jeito honesto que as outras três.
+ *
+ * `qualityArbiter` guarda QUEM, com prefixo `pessoa:`: o prefixo é o que
+ * impede a coluna de ser lida como nome de provedor de IA por quem abrir o
+ * banco daqui a um mês.
+ */
+export function camposDaDecisaoHumana(revisionStatus: string, quem: string): {
+  revisionStatus: string;
+  qualityArbiter: string;
+  qualityArbitragem: Arbitragem;
+} {
+  return { revisionStatus, qualityArbiter: `pessoa:${quem}`, qualityArbitragem: "decisao_humana" };
+}
 
 /**
  * Quem julgou esta peça, na linguagem das três palavras acima.
@@ -198,6 +232,22 @@ export type RevisionStatusDaQualidade =
 export function revisionStatusDoVeredito(v: VereditoDaQualidade): RevisionStatusDaQualidade {
   return REVISION_STATUS_DA_QUALIDADE[v];
 }
+
+/**
+ * OS `revisionStatus` QUE SÃO VEREDITO DA QUALIDADE.
+ *
+ * Nem todo `revisionStatus` é veredito: `revision_requested`, `resolved` e
+ * `none` são estados do fluxo com o cliente e não afirmam auditoria nenhuma.
+ * Só os três daqui dizem "a Qualidade decidiu isto" — e só eles obrigam quem
+ * grava a dizer TAMBÉM quem decidiu.
+ */
+export const VEREDITOS_NO_BANCO: readonly string[] =
+  Object.values(REVISION_STATUS_DA_QUALIDADE);
+
+export function eVereditoDaQualidade(revisionStatus?: string | null): boolean {
+  return typeof revisionStatus === "string" && VEREDITOS_NO_BANCO.includes(revisionStatus);
+}
+
 
 /**
  * OS CAMPOS DE BANCO que um veredito grava — os três de uma vez.

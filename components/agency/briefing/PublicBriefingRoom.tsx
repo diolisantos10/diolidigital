@@ -708,11 +708,22 @@ function ProposalCard({
 }) {
   const [useFallback, setUseFallback] = useState(false);
 
+  // ── DUAS QUANTIDADES NA MESMA TELA (25/08/2026) ──────────────────────────
+  //
+  // Esta linha mostrava `pkg.description` — a cadência da TABELA, ex. "5 posts
+  // + 7 stories/semana + 4 reels/mês" — logo acima de `estimate.included`, que
+  // desde o conserto do case Farol 27 traz o que a casa REALMENTE entrega,
+  // derivado do briefing e cortado pelo contrato de quantidade.
+  //
+  // Ou seja: a mesma tela dizia 5 posts em cima e 3 posts embaixo. Verdade
+  // escrita em dois lugares já está errada em um deles — e aqui as duas
+  // estavam à vista uma da outra, para o cliente ler.
+  //
+  // Fica só o NOME do plano. A quantidade tem um dono só, e é a estimativa.
   let pkgDesc: string | null = null;
   if (scope.wantsSocialMedia && scope.social?.postsPerWeek !== undefined) {
     const ppm = scope.social.postsPerWeek * 4;
-    const pkg = getPackageDef(detectPackage(ppm));
-    pkgDesc = pkg.description;
+    pkgDesc = getPackageDef(detectPackage(ppm)).label;
   }
 
   const timeline = scope.serviceMode === "one_off" ? "A definir por escopo" : "Início imediato após aprovação";

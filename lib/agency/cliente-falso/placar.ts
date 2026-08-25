@@ -154,12 +154,16 @@ export function placarEmTexto(
   // A linha abaixo separa o que era uma palavra só em três, e NÃO as soma.
   {
     const e = p.esteira;
-    const julgadas = e.entregasComArbitroIndependente + e.entregasAutojulgadas + e.entregasArbitragemNaoMedida;
+    const julgadas = e.entregasComArbitroIndependente + e.entregasAutojulgadas
+      + e.entregasDecididasPorPessoa + e.entregasArbitragemNaoMedida;
     if (julgadas > 0 || e.entregasSemArbitro > 0) {
       l.push(`**Quem auditou as ${e.entregas} entrega(s):**`);
       l.push(`- ✅ **${e.entregasComArbitroIndependente}** julgada(s) por **árbitro independente** (outro modelo, não o autor)`);
       if (e.entregasAutojulgadas > 0) {
         l.push(`- 🟠 **${e.entregasAutojulgadas}** julgada(s) pelo **PRÓPRIO autor** — isto NÃO é aprovação independente`);
+      }
+      if (e.entregasDecididasPorPessoa > 0) {
+        l.push(`- 👤 **${e.entregasDecididasPorPessoa}** decidida(s) por uma **PESSOA** pela tela — decisão de gente, não auditoria de árbitro`);
       }
       if (e.entregasArbitragemNaoMedida > 0) {
         l.push(`- ⚪ **${e.entregasArbitragemNaoMedida}** sem medição de quem julgou (peça anterior à medição) — não medido NÃO é verde`);
