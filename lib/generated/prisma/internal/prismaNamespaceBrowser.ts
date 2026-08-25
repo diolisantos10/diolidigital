@@ -431,6 +431,7 @@ export const ContentRequestScalarFieldEnum = {
   quoteNote: 'quoteNote',
   quoteStatus: 'quoteStatus',
   quoteDecidedAt: 'quoteDecidedAt',
+  produtoId: 'produtoId',
   taskId: 'taskId',
   triagedBy: 'triagedBy',
   triagedAt: 'triagedAt',

@@ -175,7 +175,11 @@ export interface Especialista {
 // nunca usar" (identidade visual) mora dentro de um campo de texto livre e
 // continua sem trava — está declarado, não esquecido.
 
-function itensDe(data: Record<string, unknown>): Array<Record<string, unknown>> {
+/** Os itens do JSON do especialista. Exportada em 25/08/2026 para que a
+ *  corrente do Story leia as peças da MESMA forma que o contrato de saída as
+ *  conta — uma segunda leitura aqui faria o produtor e o conferente
+ *  discordarem sobre quantas peças existem. */
+export function itensDe(data: Record<string, unknown>): Array<Record<string, unknown>> {
   return Array.isArray(data.items)
     ? data.items.filter((x): x is Record<string, unknown> => typeof x === "object" && x !== null)
     : [];

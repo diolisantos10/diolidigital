@@ -155,7 +155,7 @@ describe("3. falha fechada — o item novo sem produtor NÃO passa", () => {
     // Este é o caso que a lista escrita à mão nunca pegaria: o autor tagueia o
     // item com algo que funciona e escreve na vitrine algo que não existe.
     const v = conferirOferta({
-      requer: ["arte-estatica-png"],
+      requer: ["arte-estatica-jpeg"],
       textos: ["Kit Marca Express", "Sua marca pronta", "Logotipo em 3 variações", "Arquivo em PDF"],
     });
     expect(v.vendavel).toBe(false);
@@ -170,13 +170,13 @@ describe("3. falha fechada — o item novo sem produtor NÃO passa", () => {
     ["logotipo", ["Logotipo (2 variações)"]],
     ["PDF", ["Arquivo em PNG e PDF"]],
   ])("promessa de %s derruba a oferta mesmo com requer generoso", (_nome, textos) => {
-    const v = conferirOferta({ requer: ["arte-estatica-png", "texto-de-marca"], textos });
+    const v = conferirOferta({ requer: ["arte-estatica-jpeg", "texto-de-marca"], textos });
     expect(v.vendavel).toBe(false);
   });
 
   it("uma oferta honesta continua vendável — a régua não é um 'não' para tudo", () => {
     const v = conferirOferta({
-      requer: ["arte-estatica-png", "texto-de-marca"],
+      requer: ["arte-estatica-jpeg", "texto-de-marca"],
       textos: ["Post para feed", "1 arte 1080×1350", "Legenda pronta", "Arquivo PNG no portal"],
     });
     expect(v.vendavel).toBe(true);
@@ -234,7 +234,7 @@ describe("5. a tabela de planos não promete capacidade ausente", () => {
       // derruba a linha é o marcador de capacidade ausente no texto dela.
       for (const linha of plano.inclui) {
         const v = conferirOferta({
-          requer: ["arte-estatica-png", "texto-de-marca", "publicacao-instagram-facebook", "campanha-de-trafego-meta"],
+          requer: ["arte-estatica-jpeg", "texto-de-marca", "publicacao-instagram-facebook", "campanha-de-trafego-meta"],
           textos: [linha],
         });
         expect(

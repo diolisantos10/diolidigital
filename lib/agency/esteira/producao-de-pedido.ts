@@ -36,7 +36,7 @@ import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import {
-  DEPARTAMENTOS, TODOS_OS_ESPECIALISTAS, ctxBlock, conferirContrato,
+  DEPARTAMENTOS, TODOS_OS_ESPECIALISTAS, ctxBlock, conferirContrato, itensDe,
   type Ctx,
 } from "@/lib/agency/execution/especialistas";
 import {
@@ -53,6 +53,8 @@ import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
 import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
 import { TRAVA_MS, pararComMotivo, avisarCliente } from "@/lib/agency/esteira/triagem";
 import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
+import { produtoCanonico, dimensaoExigida, type ProdutoCanonico } from "@/lib/agency/produtos/registro";
+import { entregarStoryInstagramV1, type PecaDoEspecialista } from "@/lib/agency/produtos/story-instagram-v1";
 
 /** Uma correção por freio. Se o modelo repetiu a violação COM o parecer e o
  *  texto anterior na frente, insistir só queima IA — e a peça não pode ir ao
@@ -83,12 +85,37 @@ export async function produzirPedido(pedidoId: string): Promise<ResultadoDaProdu
   if (!pedido) return { ok: false, parou: false, motivo: "pedido não encontrado" };
 
   // Já produzido: devolve o que existe. Reentrada é caso normal, não erro.
+  //
+  // ── MAS "TEM ENTREGÁVEL" NÃO É "ESTÁ ENTREGUE" (25/08/2026) ──────────────
+  //
+  // Este atalho respondia `ok: true` com `approvalRequestId: ""` sempre que
+  // houvesse `deliverableId`. Para as entregas de texto isso é inofensivo — lá
+  // o entregável e o card nascem na mesma respiração.
+  //
+  // Na corrente visual, não: o `deliverableId` é gravado ANTES da produção da
+  // arte, de propósito, para ser a chave de idempotência da retentativa. Uma
+  // corrente que parou no renderizador deixa entregável SEM card — e este
+  // atalho responderia "ok, já está pronto, o card é ''". É exatamente o falso
+  // `done` que a Operação Salvaguarda veio matar, reaparecendo pela porta da
+  // reentrada.
+  //
+  // A pergunta certa não é "existe entregável?", é **"o cliente tem onde
+  // decidir?"**. Sem card, o trabalho não terminou: a produção reentra e a
+  // corrente retoma de onde parou (as peças já criadas são reaproveitadas).
   if (pedido.deliverableId) {
     const card = await prisma.approvalRequest.findFirst({
       where: { clientId: pedido.clientId, department: `pedido:${pedido.id}` },
       select: { id: true },
     });
-    return { ok: true, deliverableId: pedido.deliverableId, approvalRequestId: card?.id ?? "", jaExistia: true };
+    if (card) {
+      return { ok: true, deliverableId: pedido.deliverableId, approvalRequestId: card.id, jaExistia: true };
+    }
+    if (!pedido.produtoId) {
+      // Caminho de texto: sem produto canônico, o comportamento é o de sempre.
+      return { ok: true, deliverableId: pedido.deliverableId, approvalRequestId: "", jaExistia: true };
+    }
+    // Produto canônico sem card: a corrente parou no meio. Cai fora do atalho
+    // e reentra na produção.
   }
 
   if (pedido.status !== "triado" && pedido.status !== "em_producao") {
@@ -115,10 +142,25 @@ export async function produzirPedido(pedidoId: string): Promise<ResultadoDaProdu
   const tomou = await prisma.contentRequest.updateMany({
     where: {
       id: pedido.id,
-      deliverableId: null,
+      // `deliverableId: null` continua sendo a trava para o caminho de texto:
+      // lá, entregável gravado quer dizer trabalho terminado.
+      //
+      // Na corrente visual o entregável é gravado ANTES da arte (é a chave de
+      // idempotência da retomada), então exigi-lo nulo transformaria a trava em
+      // ARMADILHA: a corrente que parou no meio nunca mais seria retomada, e o
+      // pedido ficaria preso com entregável e sem peça. A retomada de produto
+      // canônico é reconhecida pelo par (produto declarado + entregável já
+      // gravado) — e ela NÃO duplica trabalho: `entregarStoryInstagramV1`
+      // reaproveita as peças que já existem para aquele entregável.
+      // As quatro combinações escritas por extenso, e de propósito: um `AND`
+      // aninhado dentro de um `OR` é a forma de `where` que ninguém relê
+      // corretamente seis meses depois — e a que os dublês de banco desta casa
+      // não sabem avaliar, o que faria a trava passar em teste sem travar nada.
       OR: [
-        { status: "triado" },
-        { status: "em_producao", updatedAt: { lt: travadoAntesDe } },
+        { deliverableId: null, status: "triado" },
+        { deliverableId: null, status: "em_producao", updatedAt: { lt: travadoAntesDe } },
+        { produtoId: { not: null }, deliverableId: { not: null }, status: "triado" },
+        { produtoId: { not: null }, deliverableId: { not: null }, status: "em_producao", updatedAt: { lt: travadoAntesDe } },
       ],
     },
     data: { status: "em_producao" },
@@ -265,7 +307,13 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     "Entregue exatamente o que ele pediu, dentro do formato acima. Não escreva preço, prazo nem promessa comercial na peça.",
   ].filter(Boolean).join("\n");
 
-  const promptBase = `${esp.prompt(contexto)}\n${pedidoNoPrompt}`;
+  // ── O PRODUTO CANÔNICO DESTE PEDIDO ───────────────────────────────────────
+  // Gravado pela triagem (`ContentRequest.produtoId`). `null` = pedido sem
+  // produto declarado, que é o caso de todos os atendimentos ainda não
+  // migrados — e nulo segue EXATAMENTE pelo caminho de sempre, sem desvio.
+  const produto = produtoCanonico(pedido.produtoId);
+
+  const promptBase = `${esp.prompt(contexto)}\n${pedidoNoPrompt}${blocoDoProduto(produto)}`;
 
   const gerar = (user: string) => generate({
     system: `Você é o especialista de ${esp.label} do departamento de ${dept.label} de uma agência de marketing brasileira. Produza conteúdo real, específico e pronto para o cliente. Responda SOMENTE com JSON válido.`,
@@ -420,7 +468,30 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   // `visibility: "compartilhado"` já aqui, e é o único caso da casa em que isso
   // é correto por natureza: o cliente PEDIU esta peça específica. Não há pacote
   // para juntar nem apresentação para esperar — segurar seria recriar o balde.
-  const entregavel = await prisma.deliverable.create({
+  // ── O ENTREGÁVEL, UMA VEZ SÓ POR PEDIDO ───────────────────────────────────
+  //
+  // Na retomada de uma corrente visual que parou no meio, criar um entregável
+  // NOVO quebraria a idempotência das peças: `entregarStoryInstagramV1` acha as
+  // peças já criadas pelo `deliverableId`, e um id novo faria a corrente criar
+  // outras quatro — com imagem paga em cada uma. Reaproveitar o entregável é o
+  // que faz "retomar" significar retomar.
+  const entregavelExistente = pedido.produtoId && pedido.deliverableId
+    ? await prisma.deliverable.findUnique({ where: { id: pedido.deliverableId }, select: { id: true } }).catch(() => null)
+    : null;
+
+  const entregavel = entregavelExistente
+    ? await prisma.deliverable.update({
+        where: { id: entregavelExistente.id },
+        data: {
+          name: title,
+          content: body,
+          status: "in_review",
+          revisionStatus: revisionStatusDoVeredito(audit.verdict),
+          lastFeedback: [audit.note, ...audit.issues].filter(Boolean).join(" · ") || null,
+        },
+        select: { id: true },
+      })
+    : await prisma.deliverable.create({
     data: {
       projectId,
       name: title,
@@ -440,6 +511,103 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     },
     select: { id: true },
   });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // O PRODUTO COM CORRENTE VISUAL SAI POR OUTRA PORTA (25/08/2026)
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Daqui para baixo está o caminho ANTIGO, e ele continua correto para o que
+  // ele sempre atendeu: entregas de TEXTO (roteiro, legenda, plano). O defeito
+  // nunca foi este bloco — foi ele ser o ÚNICO. Peça que precisa virar ARQUIVO
+  // saía por aqui, virava um `Deliverable` de texto e um card sem imagem, e o
+  // pedido era carimbado "entregue". `done` sem mídia.
+  //
+  // O produto canônico com corrente visual sai por `entregarStoryInstagramV1`,
+  // que é a ÚNICA porta dessa corrente. Ela cria a peça publicável, chama o
+  // gerador que já existe, CONFERE O ARQUIVO NOS BYTES e só então abre o card.
+  //
+  // ⚠️ Os três freios acima (contrato, piso de verdade, juiz) e a escada JÁ
+  // rodaram. Este desvio não os pula e não os repete: ele recebe o conteúdo
+  // auditado e acrescenta o quarto freio, o do artefato.
+  if (produto) {
+    // O ELO, GRAVADO ANTES DA CORRENTE VISUAL. É o que faz a retentativa
+    // reencontrar o mesmo trabalho em vez de começar outro — sem ele, uma
+    // falha no meio (renderizador que caiu) produziria quatro peças novas a
+    // cada rodada do despertador, com imagem paga em cada uma.
+    // O status NÃO muda aqui: o pedido só é "entregue" com arquivo conferido.
+    await prisma.contentRequest.update({
+      where: { id: pedidoId },
+      data: { deliverableId: entregavel.id },
+    });
+
+    const corrente = await entregarStoryInstagramV1({
+      pedidoId,
+      produto,
+      workspaceId: projeto.workspaceId,
+      clientId: pedido.clientId,
+      clientRequestId: projeto.clientRequestId ?? pedido.clientRequestId ?? null,
+      projectId,
+      deliverableId: entregavel.id,
+      titulo: title,
+      pecas: pecasDoEspecialista(data),
+      assinadoPor: `${esp.label} (${dept.label})`,
+      ownerAgentId: esp.id,
+    });
+
+    if (!corrente.ok) {
+      // NENHUMA FALHA TERMINA EM `done`. A tarefa volta para gente, o pedido
+      // vira `precisa_decisao` com o motivo (que já vem com dono e próxima
+      // ação), e o cliente NÃO é chamado a decidir sobre nada.
+      await moverTarefa(pedido.taskId, "pending");
+      await registrar(
+        projeto,
+        `corrente_do_produto_parou:${corrente.etapa}`,
+        `${nome} para ${contexto.businessName}: ${produto.id} PAROU em "${corrente.etapa}" — ${corrente.motivo}`,
+      );
+      return await parar(
+        pedidoId,
+        `A sua peça foi produzida, mas NÃO passou na conferência do arquivo final, então eu não vou te ` +
+        `entregar um arquivo que não serve. Motivo: ${corrente.motivo}`,
+      );
+    }
+
+    const medida = dimensaoExigida(produto);
+    await prisma.contentRequest.update({
+      where: { id: pedidoId },
+      data: { status: "entregue", declineReason: null, productionAttempts: 0 },
+    });
+    if (pedido.taskId) {
+      await prisma.task.update({
+        where: { id: pedido.taskId },
+        data: { status: "done", deliverableId: entregavel.id },
+      }).catch(() => { /* a tarefa é rastro; não desfaz a entrega */ });
+    }
+    await prisma.timelineEvent.create({
+      data: {
+        projectId, type: "deliverable", dept: dept.id,
+        label: `Pedido do cliente entregue: ${title}`,
+        // O rastro cita o que foi MEDIDO, não o veredito. "Entregue" sem
+        // número é a palavra que esta operação inteira veio desmentir.
+        detail:
+          `${produto.id} · ${corrente.provas.length} peça(s) · ` +
+          corrente.provas.map((v) => `${v.postId}: ${v.resumo}`).join(" · "),
+      },
+    }).catch(() => { /* rastro */ });
+
+    await avisarCliente(
+      pedido.clientId,
+      `Seu pedido "${pedido.title}" está pronto: ${corrente.provas.length} peça(s) de ` +
+      `${medida.largura}×${medida.altura}. Já estão na aba de aprovações para você VER a imagem e me dizer ` +
+      "se aprova, se quer ajustar ou se recusa.",
+    );
+
+    return {
+      ok: true,
+      deliverableId: entregavel.id,
+      approvalRequestId: corrente.approvalRequestId,
+      jaExistia: false,
+    };
+  }
 
   // O card no portal. `department` carrega o id do pedido para que o caminho de
   // volta exista: sem isso, achar de qual pedido veio o card é adivinhação por
@@ -476,6 +644,68 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
 }
 
 // ── auxiliares ──────────────────────────────────────────────────────────────
+
+/**
+ * A INSTRUÇÃO DO PRODUTO, anexada ao prompt do especialista.
+ *
+ * ⚠️ ISTO É AVISO, NÃO TRAVA. A regra da casa é literal: "prompt é aviso;
+ * código é trava". O número de peças e o formato são conferidos em CÓDIGO —
+ * pelo contrato de saída (`conferirContrato`), pelo portão de quantidade da
+ * corrente (`entregarStoryInstagramV1`) e pela conferência dos bytes do arquivo
+ * final. Este bloco existe para que o especialista ACERTE de primeira, não para
+ * que alguém confie que ele acertou.
+ *
+ * Sem produto declarado devolve string vazia — o prompt fica byte por byte o
+ * que sempre foi.
+ */
+function blocoDoProduto(produto: ProdutoCanonico | null): string {
+  if (!produto) return "";
+  const d = dimensaoExigida(produto);
+  return [
+    "",
+    `──────── O PRODUTO DESTE PEDIDO: ${produto.label} ────────`,
+    `Entregue EXATAMENTE ${produto.quantidadeDePecas} peças. Nem uma a menos: o preço da tabela cobre ${produto.quantidadeDePecas}.`,
+    `Cada peça é um STORY VERTICAL de ${d.largura}×${d.altura} — tela cheia do celular, não arte de feed.`,
+    "Para CADA peça, o campo `headline` é o TÍTULO QUE VAI APARECER NA IMAGEM: curto, forte, no máximo 8 palavras.",
+    "O campo `note` é o texto de apoio da peça — uma frase. O campo `direction` é o que a IMAGEM mostra (cenário, luz, enquadramento) e NUNCA vira letra.",
+    "Story tem barra de progresso em cima e caixa de resposta embaixo: nada de conteúdo essencial nas bordas.",
+    "──────── FIM DO PRODUTO ────────",
+  ].join("\n");
+}
+
+/**
+ * O JSON do especialista vira as peças da corrente visual.
+ *
+ * Lê `items` pela MESMA função que o contrato de saída usa para contá-los
+ * (`itensDe`, de `especialistas.ts`). Uma segunda leitura aqui faria o
+ * conferente e o produtor discordarem sobre quantas peças existem — e a
+ * discordância apareceria como "entregou 4" de um lado e "achei 3" do outro,
+ * sem ninguém saber qual estava certo.
+ *
+ * ⚠️ NADA é inventado para completar campo. Peça sem `headline` ou sem texto
+ * sai com string vazia e é DESCARTADA pelo portão de quantidade da corrente —
+ * que é o comportamento certo: entregar uma peça com título vazio é entregar
+ * uma peça quebrada com cara de peça.
+ */
+function pecasDoEspecialista(data: Record<string, unknown>): PecaDoEspecialista[] {
+  const campo = (it: Record<string, unknown>, nome: string): string =>
+    typeof it[nome] === "string" ? (it[nome] as string).trim() : "";
+
+  return itensDe(data).map((it): PecaDoEspecialista => {
+    // O texto da peça: `note` é onde o especialista de criativo escreve "o
+    // texto que entra na arte" (o prompt dele diz isso com todas as letras);
+    // `caption` é onde o de copy escreve. Ler os dois evita que a peça nasça
+    // muda porque o especialista usou o rótulo do vizinho.
+    const texto = campo(it, "note") || campo(it, "caption") || campo(it, "body");
+    const direcao = campo(it, "direction") || campo(it, "visual");
+    return {
+      titulo: campo(it, "headline") || campo(it, "title"),
+      legenda: texto,
+      direcaoDeArte: direcao.length >= 10 ? direcao.slice(0, 1200) : null,
+      pilar: campo(it, "pillar") || campo(it, "pilar") || null,
+    };
+  });
+}
 
 /** O JSON do especialista vira o markdown que o cliente lê. O `summary` sobe
  *  para o topo — `comoTexto` pula `title`/`summary` no corpo de propósito. */
