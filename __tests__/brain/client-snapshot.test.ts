@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const findUniqueRequest = vi.fn();
 const findUniqueBrand = vi.fn();
 const findUniqueClient = vi.fn();
+const findManyPortalMessage = vi.fn();
 
 vi.mock("@/lib/db/client", () => ({
   prisma: {
@@ -17,6 +18,9 @@ vi.mock("@/lib/db/client", () => ({
     // esta suíte prova. Vazia = "este cliente não proibiu nada".
     brainArtifact: { findFirst: () => Promise.resolve(null) },
     client: { findUnique: (...a: unknown[]) => findUniqueClient(...a) },
+    // A CONVERSA DO PORTAL entrou na verdade do cliente em 26/08/2026 — o que
+    // ELE escreveu ali é fala dele. Ver `falasDoClienteNoPortal`.
+    portalMessage: { findMany: (...a: unknown[]) => findManyPortalMessage(...a) },
   },
 }));
 
@@ -28,6 +32,8 @@ beforeEach(() => {
   findUniqueBrand.mockReset();
   findUniqueClient.mockReset();
   findUniqueClient.mockResolvedValue(null);
+  findManyPortalMessage.mockReset();
+  findManyPortalMessage.mockResolvedValue([]);
 });
 
 describe("buildClientSnapshot", () => {
@@ -208,5 +214,84 @@ describe("buildVerdadeDoCliente — o servidor lê a verdade, ninguém a entrega
     expect(serializado).not.toMatch(/contato@aurora/);
     // Mas o canal continua atestado: a palavra "WhatsApp" é fato, o número é PII.
     expect(snap!.operacao!.canais).toContain("whatsapp");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A CONVERSA DO PORTAL É FALA DO CLIENTE — achado do cliente oculto, 26/08/2026
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Pedido cmt9exi95001f0xo74bhonn77 (CANTINA DO PORTO TESTE), em PRODUÇÃO:
+//
+//   • o SDR nunca perguntou o horário (preencheu `operacao` com a frase de
+//     OBJETIVO do cliente, e a pergunta passou por respondida);
+//   • o piso de verdade reprovou a Estratégia com a frase certa — "Horário de
+//     funcionamento. O cliente nunca informou isso";
+//   • o projeto do cliente PAGANTE ficou `blocked`, com zero peças;
+//   • e o cliente TINHA escrito o horário, na conversa do portal, que é o único
+//     canal dele: "abrimos de terça a domingo, das 18h às 23h30".
+//
+// `palavrasDoCliente` lia `rawContext`, `briefingJson` e `sdrHandoffJson` e
+// NUNCA lia `PortalMessage`. "Coluna gravada não é cliente informado" é a
+// lição que esta casa já escreveu; esta é a outra metade: **cliente informado
+// não é coluna lida.**
+
+describe("a verdade do cliente inclui o que ELE escreveu no portal", () => {
+  const PEDIDO = {
+    id: "req-porto",
+    clientId: "cli-porto",
+    businessName: "CANTINA DO PORTO TESTE",
+    segment: "Food & Beverage",
+    services: JSON.stringify(["social_media"]),
+    objectives: JSON.stringify(["encher o salão terça a quinta"]),
+    rawContext: "Cantina italiana em Mogi das Cruzes, salão vazio de terça a quinta.",
+    briefingJson: null,
+    sdrHandoffJson: null,
+  };
+
+  it("o horário que o cliente respondeu no portal vira verdade atestada", async () => {
+    findUniqueRequest.mockResolvedValue({ ...PEDIDO });
+    findUniqueBrand.mockResolvedValue(null);
+    findManyPortalMessage.mockResolvedValue([
+      { body: "Respondendo: nao tenho app. E o horario: abrimos de terça a domingo, das 18h as 23h30." },
+    ]);
+
+    const verdade = await buildVerdadeDoCliente("req-porto");
+    expect(verdade).not.toBeNull();
+    expect(verdade!.operacao?.horarios.length ?? 0).toBeGreaterThan(0);
+  });
+
+  it("SEM a fala no portal, continua sendo ausência — o piso segue fail-closed", async () => {
+    findUniqueRequest.mockResolvedValue({ ...PEDIDO });
+    findUniqueBrand.mockResolvedValue(null);
+    findManyPortalMessage.mockResolvedValue([]);
+
+    const verdade = await buildVerdadeDoCliente("req-porto");
+    expect(verdade!.operacao?.horarios.length ?? 0).toBe(0);
+  });
+
+  it("⛔ SÓ o que o CLIENTE disse: a consulta filtra authorRole e ancora no PEDIDO", async () => {
+    // É a trava, não um detalhe de consulta. Sem `authorRole: "client"`, bastaria
+    // um agente da casa escrever "vocês abrem às 9h" no portal para o piso de
+    // verdade aceitar aquilo como fato do cliente — a agência atestando as
+    // próprias invenções, pela porta que existe para impedir exatamente isso.
+    findUniqueRequest.mockResolvedValue({ ...PEDIDO });
+    findUniqueBrand.mockResolvedValue(null);
+    await buildVerdadeDoCliente("req-porto");
+
+    const where = (findManyPortalMessage.mock.calls[0]![0] as { where: Record<string, unknown> }).where;
+    expect(where.authorRole).toBe("client");
+    // Ancorado no PEDIDO, não no cliente: verdade de um pedido não atesta outro.
+    expect(where.clientRequestId).toBe("req-porto");
+  });
+
+  it("conversa ilegível vira ausência de fala, nunca erro — o piso não trava a casa", async () => {
+    findUniqueRequest.mockResolvedValue({ ...PEDIDO });
+    findUniqueBrand.mockResolvedValue(null);
+    findManyPortalMessage.mockRejectedValue(new Error("banco fora"));
+
+    const verdade = await buildVerdadeDoCliente("req-porto");
+    expect(verdade).not.toBeNull();
+    expect(verdade!.operacao?.horarios.length ?? 0).toBe(0);
   });
 });
