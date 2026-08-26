@@ -2,8 +2,8 @@
 
 > Produção `https://www.diolidigital.com.br`. Cliente oculto **CANTO DO GRAO
 > NOME TESTE** (Rafael, `rafael@cantodograo-teste.invalid`). Turnos de SDR
-> **novos**, nada reaproveitado. Duas passadas completas, em dois commits
-> diferentes — a segunda depois do deploy do conserto que a primeira produziu.
+> **novos**, nada reaproveitado. **Três** passadas completas, em três commits
+> diferentes — cada uma depois do deploy do conserto que a anterior produziu.
 > Nenhuma publicação, nenhuma mensagem a pessoa real, nenhum recurso real
 > tocado. O WhatsApp usado é fictício e o e-mail é `.invalid`.
 
@@ -24,7 +24,8 @@ imagem" como falha.
 
 ## 2. As medições, uma a uma, com o que sustenta cada uma
 
-Commit medido na 1ª passada: `0f4d890`. Na 2ª: `6b02ec3`.
+Commit medido na 1ª passada: `0f4d890`. Na 2ª: `6b02ec3`. Na 3ª: **`6ada12e`**,
+que é o que está no ar agora.
 
 | defeito da 8ª volta | medição no ar | veredito |
 |---|---|---|
@@ -32,7 +33,7 @@ Commit medido na 1ª passada: `0f4d890`. Na 2ª: `6b02ec3`.
 | **Retratação não propaga** | *"esquece o WhatsApp, prefiro e-mail"* → `prospectPhone` sumiu, `canaisRetratados: ["whatsapp"]`, `preferredChannel: "email"` | ✅ fechou |
 | **…e a 3ª memória** | o `contato` da PORTA foi enviado **com o WhatsApp preenchido de propósito** — o caminho exato pelo qual o número voltou na 8ª. Gravado: `contato.whatsapp = null`, `scope.prospectPhone` ausente, coluna vazia | ✅ fechou |
 | **Repergunta o respondido** | nenhuma fala do SDR saiu duas vezes igual nas duas passadas | ✅ nesta volta |
-| **Fala do cliente em 3ª pessoa** | 1ª passada: limpa. **2ª passada: FALHOU** — ver §3.2 | ⚠️ consertado depois, ver §4 |
+| **Fala do cliente em 3ª pessoa** | 1ª passada: limpa. **2ª passada: FALHOU** (ver §3.2). 3ª passada: limpa | ⚠️ ver a ressalva em §3.2 |
 | **Proposta parada sem dono** | a perna nova aparece no Pulso e **achou parada de verdade** — ver §3.3 | ✅ fechou |
 
 O que **não foi exercitado nesta volta**, e por isso não tem nota: o portal do
@@ -86,8 +87,14 @@ sinal trocado: **um texto só usado em duas vozes**.
 
 Minha trava anterior não pegou porque ela roda sobre a fala do MODELO, e esta
 fala é a que a CASA escreve depois. Consertado (PR #350): duas colunas, uma
-fonte. **Não medido no ar** — o deploy ainda estava na fila quando esta medição
-foi escrita.
+fonte.
+
+⚠️ **RESSALVA, e ela importa.** A 3ª passada (commit `6ada12e`, com o conserto
+no ar) saiu limpa — **mas o modelo não repetiu pergunta nenhuma naquela passada**,
+então o caminho da reformulação **não foi exercitado**. Verde por ausência não é
+verde: o que está provado é o teste (que exige segunda pessoa em TODAS as
+reformulações e que as duas colunas cubram as mesmas perguntas), não o ar.
+Declarado como dívida.
 
 ### 3.3 ✅ O olho novo achou dois clientes parados há DEZ DIAS
 
@@ -118,7 +125,7 @@ propósito (ver o cabeçalho de `proposta-parada.ts`).
 |---|---|
 | nenhum | — |
 
-**Zero empurrões por defeito da casa nesta volta.** A 8ª teve um
+**Zero empurrões por defeito da casa nas três passadas.** A 8ª teve um
 (`action:"send-proposal"`); esta não precisou de nenhum, porque a jornada parou
 antes da produção — e parou por **bloqueio do CEO** (conta zerada), não por
 defeito.
@@ -134,9 +141,10 @@ paradas foram lidas, são 137 linhas no Pulso, e duas delas são as de §3.3.
 |---|---|---|
 | 1ª (6 turnos de SDR) | 6 | Gemini (fallback — Claude e OpenAI sem saldo) |
 | 2ª (6 turnos de SDR) | 6 | idem |
+| 3ª (6 turnos de SDR) | 6 | idem |
 
 **US$ 0,00 nas contas bloqueadas** (elas recusam antes de cobrar). O custo real
-da volta foi de 12 chamadas ao Gemini, dentro da reserva — a casa registra o
+da volta foi de 18 chamadas ao Gemini, dentro da reserva — a casa registra o
 gasto por chamada no `AIRunLog` e o Pulso não acusou nenhuma cobrança nova nas
 contas zeradas. Nenhuma imagem foi gerada, então **zero custo de arte**.
 
@@ -164,4 +172,10 @@ contas zeradas. Nenhuma imagem foi gerada, então **zero custo de arte**.
   e de produção;
 * o **ajuste completando** sobre a peça apontada — a dívida que a 8ª volta já
   havia declarado, e que continua de pé pelo mesmo motivo;
-* a fala em **segunda pessoa** (PR #350) — mérito de teste, deploy na fila.
+* a fala em **segunda pessoa** (PR #350) — no ar, mas o caminho da reformulação
+  não foi exercitado na passada que a mediu (ver a ressalva em §3.2);
+* **o SDR não reconhece a retratação em voz alta.** Nas três passadas, ao ouvir
+  *"esquece o WhatsApp, prefiro e-mail"*, o dado foi corretamente apagado das três
+  memórias — e a FALA seguinte não disse uma palavra sobre isso, foi direto para a
+  próxima pergunta. O dano está fechado; a cortesia não. É defeito de conversa,
+  não de dado, e fica declarado em vez de silencioso.
