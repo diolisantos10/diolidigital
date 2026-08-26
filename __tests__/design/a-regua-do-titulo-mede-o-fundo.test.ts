@@ -37,6 +37,7 @@
 
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
+import { createHash } from "node:crypto";
 import {
   medirLegibilidadeDoTitulo, tituloReprovaAPeca,
   CONTRASTE_MINIMO_DO_TITULO, CONTRASTE_QUE_BARRA_O_TITULO,
@@ -177,5 +178,80 @@ describe("4. e ela continua achando o pedaço que engole o título", () => {
     expect(m).toBeTruthy();
     expect(m!.razaoNoPior, "o pior pedaço decide, não a média").toBeLessThan(m!.razaoNaMedia);
     expect(m!.suficiente).toBe(false);
+  });
+});
+
+describe("5. 🔴 SOBRE FOTO — o regime em que a régua de fato vive", () => {
+  // ═══════════════════════════════════════════════════════════════════════
+  // O CI PEGOU ISTO, E PEGOU COM RAZÃO
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // A primeira versão do conserto agrupava o fundo por COR. Ela acertava fundo
+  // chapado e degradê — os dois casos deste arquivo até aqui — e **quebrava
+  // exatamente onde a régua vive**: sobre foto.
+  //
+  // Numa foto as cores se espalham por milhares de baldes, nenhum alcança a
+  // massa mínima, a régua caía no ramo fail-closed e BARRAVA. O e2e da peça
+  // (`story-instagram-v1-ponta-a-ponta`) reprovou no CI com `mediaUrl` nulo:
+  // a peça não ganhou arquivo. Um portão que barra sobre foto barra a peça de
+  // todo cliente — e o portão tinha acabado de nascer.
+  //
+  // O conserto foi o eixo, não o limiar: **contraste é função de luminância**,
+  // e `razaoDeContraste` só olha luminância. Mil cores diferentes com a mesma
+  // claridade são UM pedaço de fundo.
+  //
+  // Este bloco existe para que a próxima pessoa não descubra isso de novo pelo
+  // CI. O fundo aqui é o MESMO ruído sha256 do e2e da casa — alta entropia,
+  // como foto — porque um sintético chapado nunca teria pego o defeito.
+
+  /** Ruído de alta entropia, com claridade média controlada. */
+  async function foto(escala: number, offset: number): Promise<Buffer> {
+    const l = 160, a = 60;
+    const d = Buffer.allocUnsafe(l * a * 3);
+    let b = createHash("sha256").update("salvaguarda-story-v1").digest();
+    for (let i = 0; i < d.length; i += 32) {
+      b.copy(d, i, 0, Math.min(32, d.length - i));
+      b = createHash("sha256").update(b).digest();
+    }
+    for (let i = 0; i < d.length; i++) {
+      d[i] = Math.max(0, Math.min(255, Math.round(offset + (d[i]! - 128) * escala)));
+    }
+    return sharp(d, { raw: { width: l, height: a, channels: 3 } })
+      .resize(L, A, { kernel: "nearest" }).png().toBuffer();
+  }
+
+  async function medirSobreFoto(escala: number, offset: number) {
+    const txt = Buffer.from(
+      `<svg width="${L}" height="${A}"><text x="40" y="170" font-family="DejaVu Sans, sans-serif" ` +
+      `font-size="120" font-weight="bold" fill="${TINTA}">Sabor de casa</text></svg>`);
+    const bytes = await sharp(await foto(escala, offset))
+      .composite([{ input: txt, top: 0, left: 0 }]).png().toBuffer();
+    return medirLegibilidadeDoTitulo(bytes, CAIXA, TINTA);
+  }
+
+  it("🔴 foto de claridade média NÃO é barrada — é o fundo do e2e da casa", async () => {
+    const m = await medirSobreFoto(1.0, 128);
+    expect(m, "sobre foto a régua tem de MEDIR, nunca cair no fail-closed").toBeTruthy();
+    expect(
+      tituloReprovaAPeca(m),
+      `a régua devolveu ${m!.razaoNoPior} para a foto do e2e — barrar aqui é barrar a peça de todo cliente`,
+    ).toBe(false);
+    expect(m!.suficiente).toBe(true);
+  });
+
+  it("foto ESCURA passa com folga — é o caso bom, e ele não pode ser reprovado", async () => {
+    for (const [esc, off] of [[0.4, 70], [1.0, 60]] as Array<[number, number]>) {
+      const m = await medirSobreFoto(esc, off);
+      expect(m!.suficiente, `foto escura (esc=${esc} off=${off}) foi reprovada`).toBe(true);
+      expect(tituloReprovaAPeca(m)).toBe(false);
+    }
+  });
+
+  it("foto CLARA é barrada — o título branco some nela, e aí barrar é o certo", async () => {
+    for (const [esc, off] of [[0.4, 180], [1.0, 200]] as Array<[number, number]>) {
+      const m = await medirSobreFoto(esc, off);
+      expect(m!.suficiente).toBe(false);
+      expect(tituloReprovaAPeca(m), `foto clara (esc=${esc} off=${off}) passou`).toBe(true);
+    }
   });
 });

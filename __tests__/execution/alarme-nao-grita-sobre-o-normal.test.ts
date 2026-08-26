@@ -35,6 +35,7 @@ const db = vi.hoisted(() => ({ project: { findMany: vi.fn(), update: vi.fn() } }
 const runProjectExecution = vi.hoisted(() => vi.fn());
 const dispatchWhatsAppNotifications = vi.hoisted(() => vi.fn());
 const entregarOrcamentosPendentes = vi.hoisted(() => vi.fn());
+const responderMensagensDeClientes = vi.hoisted(() => vi.fn());
 const registrarBatida = vi.hoisted(() => vi.fn());
 const destravarPacote = vi.hoisted(() => vi.fn());
 const pacotesTravados = vi.hoisted(() => vi.fn());
@@ -44,6 +45,7 @@ vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution }))
 vi.mock("@/lib/integrations/meta/notifications", () => ({ dispatchWhatsAppNotifications }));
 vi.mock("@/lib/agency/esteira/pacote-travado", () => ({ destravarPacote, pacotesTravados }));
 vi.mock("@/lib/agency/esteira/orcamento-do-briefing", () => ({ entregarOrcamentosPendentes }));
+vi.mock("@/lib/agency/esteira/pm-responde", () => ({ responderMensagensDeClientes }));
 vi.mock("@/lib/agency/pulso", () => ({ registrarBatida }));
 
 import { baterORelogio } from "@/lib/agency/despertador";
@@ -72,6 +74,7 @@ beforeEach(() => {
   pacotesTravados.mockResolvedValue([]);
   destravarPacote.mockResolvedValue({ projectId: "p1", corrigidas: [], persistentes: [], escalado: false });
   registrarBatida.mockResolvedValue(undefined);
+  responderMensagensDeClientes.mockResolvedValue({ respondidas: 0, semIA: 0, novasSemIA: 0, falhas: [] });
 });
 
 describe("o alarme do orçamento", () => {
@@ -129,5 +132,37 @@ describe("o alarme dos PREÇOS — o oposto: anormal contínuo grita sempre", ()
     expect(precos[0]!.erro).toMatch(/não existem na página pública \/planos/);
     expect(precos[0]!.erro).toMatch(/Dono: o CEO/);
     expect(precos[0]!.erro).toMatch(/Próxima ação:/);
+  });
+});
+
+describe("a MESMA doença noutra perna: o PM (medida na mesma volta)", () => {
+  // `/api/pulso` de 26/08/2026: *"5 mensagem(ns) sem resposta automática —
+  // aguardando gente"* × **57 em 24h**. O despacho não tinha nomeado esta
+  // perna; a jornada de cliente oculto a encontrou ao lado da outra. Mesma
+  // causa, mesma regra: a mensagem fica `readByTeam: false` até uma pessoa
+  // abrir a tela, e o relógio recontava a fila a cada 5 minutos.
+  it("🔴 a fila parada NÃO alarma toda rodada", async () => {
+    entregarOrcamentosPendentes.mockResolvedValue(rodada(0, 0));
+    responderMensagensDeClientes.mockResolvedValue({ respondidas: 0, semIA: 5, novasSemIA: 0, falhas: [] });
+    await baterORelogio();
+    expect(anotado().falhas.filter((f) => f.perna === "pm-responde")).toEqual([]);
+  });
+
+  it("mas o estado continua dito, no pulso", async () => {
+    entregarOrcamentosPendentes.mockResolvedValue(rodada(0, 0));
+    responderMensagensDeClientes.mockResolvedValue({ respondidas: 0, semIA: 5, novasSemIA: 0, falhas: [] });
+    await baterORelogio();
+    const e = anotado().estados.find((x) => x.perna === "pm-responde");
+    expect(e).toBeTruthy();
+    expect(e!.texto).toContain("5 mensagem(ns) na fila");
+  });
+
+  it("a mensagem NOVA alarma — é a transição, e é ela que alguém precisa ver", async () => {
+    entregarOrcamentosPendentes.mockResolvedValue(rodada(0, 0));
+    responderMensagensDeClientes.mockResolvedValue({ respondidas: 0, semIA: 5, novasSemIA: 2, falhas: [] });
+    await baterORelogio();
+    const a = anotado().falhas.filter((f) => f.perna === "pm-responde");
+    expect(a).toHaveLength(1);
+    expect(a[0]!.erro).toMatch(/2 mensagem\(ns\) NOVA\(s\)/);
   });
 });

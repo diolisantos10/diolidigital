@@ -156,10 +156,32 @@ const FAIXAS = 6;
  */
 const MASSA_MINIMA_DO_PEDACO = 0.08;
 
-/** Largura da faixa de cor no histograma, por canal. 16 níveis por canal: fino
- *  o bastante para separar o fundo claro do escuro, grosso o bastante para o
- *  ruído de compressão de um JPEG cair todo no mesmo balde. */
-const PASSO_DO_HISTOGRAMA = 16;
+/**
+ * Em quantos degraus de LUMINÂNCIA o fundo é agrupado.
+ *
+ * ── POR QUE LUMINÂNCIA E NÃO COR (a lição que custou um CI) ────────────────
+ *
+ * A primeira versão agrupava por COR (16 níveis por canal, 4.096 baldes). Ela
+ * acertava fundo chapado e degradê e **quebrava exatamente onde a régua vive**:
+ * sobre FOTO.
+ *
+ * Medido: o e2e da peça (`story-instagram-v1-ponta-a-ponta`) usa um fundo de
+ * ruído sha256 — alta entropia, como uma foto de verdade. Ali as cores se
+ * espalham por milhares de baldes, NENHUM alcança a massa mínima, e a régua
+ * caía no ramo fail-closed e BARRAVA a peça. O CI reprovou, e reprovou com
+ * razão: um portão que barra sobre foto barra a peça de todo cliente.
+ *
+ * A correção não é afrouxar a massa — é agrupar pelo eixo certo. **Contraste é
+ * função de luminância, não de matiz**: `razaoDeContraste` só olha luminância.
+ * Agrupar por cor era separar em baldes diferentes dois pixels que a régua
+ * trata como iguais. Numa foto, mil cores diferentes com a mesma claridade são
+ * UM pedaço de fundo — e é ele que engole (ou não) o título.
+ *
+ * 24 degraus: fino o bastante para o pedaço claro do degradê não se misturar
+ * com o escuro (a razão entre degraus vizinhos é pequena), grosso o bastante
+ * para o ruído de uma foto cair em poucos baldes gordos.
+ */
+const DEGRAUS_DE_LUMINANCIA = 24;
 
 /**
  * O PIOR PEDAÇO DE FUNDO DE VERDADE — por massa, não por posição na cauda.
@@ -168,14 +190,12 @@ const PASSO_DO_HISTOGRAMA = 16;
  * franja da letra) e devolve, entre as que sobraram, a de PIOR contraste.
  */
 function piorPedacoReal(
-  pixels: ReadonlyArray<{ razao: number; cor: string; r: number; g: number; b: number }>,
+  pixels: ReadonlyArray<{ razao: number; cor: string; lum: number }>,
 ): { razao: number; cor: string } | null {
-  const baldes = new Map<string, { n: number; razao: number; cor: string }>();
+  const baldes = new Map<number, { n: number; razao: number; cor: string }>();
   for (const p of pixels) {
-    const chave =
-      `${Math.floor(p.r / PASSO_DO_HISTOGRAMA)}:` +
-      `${Math.floor(p.g / PASSO_DO_HISTOGRAMA)}:` +
-      `${Math.floor(p.b / PASSO_DO_HISTOGRAMA)}`;
+    // A luminância WCAG já está calculada por pixel; o balde é o degrau dela.
+    const chave = Math.min(DEGRAUS_DE_LUMINANCIA - 1, Math.floor(p.lum * DEGRAUS_DE_LUMINANCIA));
     const atual = baldes.get(chave);
     // Guarda o PIOR pixel do balde como representante: dentro de um balde as
     // cores são vizinhas, e escolher o pior mantém o erro do lado seguro.
@@ -293,7 +313,7 @@ export async function medirLegibilidadeDoTitulo(
 
     let r = 0, g = 0, b = 0, n = 0;
     // A razão de CADA pixel de fundo desta faixa, para a estatística abaixo.
-    const razoesDoFundo: Array<{ razao: number; cor: string; r: number; g: number; b: number }> = [];
+    const razoesDoFundo: Array<{ razao: number; cor: string; lum: number }> = [];
     for (let y = fy0; y < fy1; y += PASSO_DA_AMOSTRA) {
       for (let x = x0; x < x1; x += PASSO_DA_AMOSTRA) {
         const i = (y * w + x) * c;
@@ -304,7 +324,7 @@ export async function medirLegibilidadeDoTitulo(
         if (ehTinta(pr, pg, pb, alvo)) continue;
         const cor = hex(pr, pg, pb);
         const razao = razaoDeContraste(cor, tinta);
-        if (razao !== null) razoesDoFundo.push({ razao, cor, r: pr, g: pg, b: pb });
+        if (razao !== null) razoesDoFundo.push({ razao, cor, lum: luminancia(cor) ?? 0 });
       }
     }
     if (n === 0) continue;

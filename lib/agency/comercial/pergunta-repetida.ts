@@ -111,17 +111,42 @@ const PERGUNTAS: { id: string; padrao: RegExp }[] = [
 export function identificarPergunta(fala: unknown): string | null {
   if (typeof fala !== "string" || !fala.includes("?")) return null;
 
+  // ── O CLASSIFICADOR LÊ AS PERGUNTAS, NÃO A FALA INTEIRA (6ª rodada) ───────
+  //
+  // Ele testava a string TODA. Isso bastava enquanto a fala do SDR era só a
+  // pergunta — e quebrou no minuto em que o fecho passou a ECOAR o cliente
+  // (ver `oQueDizerNoLugar`): a frase *"Anotei: «Ainda não sei quanto posso
+  // investir». Qual é o objetivo do negócio?"* era classificada como a
+  // PERGUNTA DA FAIXA, porque a palavra "investir" — dita pelo CLIENTE —
+  // casava a regra da linha de baixo.
+  //
+  // A consequência não é cosmética: `vezesJaPerguntada` contaria o eco como
+  // mais uma insistência da casa, e o freio da repetição passaria a se
+  // disparar sozinho contra a própria fala. Pego por régua
+  // (`laco-do-sdr-de-ia.test.ts`) antes de subir.
+  //
+  // A regra certa é a que o nome da função sempre disse: só as frases que SÃO
+  // pergunta descrevem o que a casa perguntou. Uma citação nunca é pergunta da
+  // casa, e nem toda frase com "?" no texto é dela — mas as que não têm "?"
+  // seguramente não são.
+  const soAsPerguntas = fala
+    .split(/(?<=[?!.])\s+|\n+/)
+    .filter((t) => t.includes("?"))
+    .join(" ");
+  if (!soAsPerguntas.trim()) return null;
+  const texto = soAsPerguntas;
+
   // A faixa vem do detector da casa, não de uma regex nova: é o MESMO
   // `ehPerguntaDeFaixa` que a rota já usa para abrir exceção no guarda de
   // preço. Se um dia a régua de faixas mudar, muda num lugar só.
-  if (ehPerguntaDeFaixa(fala)) return "budget_range";
+  if (ehPerguntaDeFaixa(texto)) return "budget_range";
   // A pergunta da faixa ABREVIADA (o modelo cita dois degraus em vez de três)
   // não fecha `ehPerguntaDeFaixa` — e ainda assim é a mesma pergunta, e é
   // exatamente a que mais se repetiu na medição. Um contador que não a conta
   // não conta o caso que existe para contar.
-  if (/investir|investimento|or[çc]amento|verba|faixa\s+de/i.test(fala)) return "budget_range";
+  if (/investir|investimento|or[çc]amento|verba|faixa\s+de/i.test(texto)) return "budget_range";
 
-  for (const p of PERGUNTAS) if (p.padrao.test(fala)) return p.id;
+  for (const p of PERGUNTAS) if (p.padrao.test(texto)) return p.id;
   return null;
 }
 
@@ -202,20 +227,81 @@ export function oQueDizerNoLugar(
   perguntaId: string,
   escopo: Record<string, unknown> | undefined,
   jaPerguntadas: readonly string[],
+  /**
+   * O QUE O CLIENTE ACABOU DE DIZER, e a fala anterior da casa.
+   *
+   * ═══════════════════════════════════════════════════════════════════════
+   * POR QUE ESTE PARÂMETRO EXISTE (cliente oculto, 6ª rodada)
+   * ═══════════════════════════════════════════════════════════════════════
+   *
+   * MEDIDO EM PRODUÇÃO: o fecho desta função — a máquina que existe para
+   * acabar com a frase repetida — saiu **nove turnos seguidos, palavra por
+   * palavra**. Quando a sondagem já fechou, `proximaEmAberto` devolve `null`
+   * e o texto abaixo é sempre o mesmo; o guarda dispara a cada turno em que o
+   * modelo repete a pergunta, e reemite o mesmo fecho para sempre.
+   *
+   * E ele saiu nos turnos em que o cliente ESTAVA RESPONDENDO — o e-mail
+   * dele, o horário de funcionamento, a área atendida. A casa disse nove
+   * vezes *"vou seguir sem esse dado"* sobre dados que acabara de receber.
+   * Pior que a pergunta repetida: a pergunta admite que quer algo; isto
+   * afirma que desistiu.
+   *
+   * ── A CORREÇÃO, E POR QUE NÃO FOI SIMPLESMENTE "NÃO SUBSTITUIR" ─────────
+   *
+   * A primeira tentativa foi deixar a fala do MODELO passar quando o fecho já
+   * tivesse saído. Ela derrubou a trava irmã na hora
+   * (`laco-do-sdr-de-ia.test.ts`): sem a substituição, a MESMA PERGUNTA do
+   * modelo chegava ao cliente três vezes — exatamente o defeito que este
+   * módulo nasceu para matar. As duas regras estão certas e não se escolhe
+   * entre elas.
+   *
+   * O que estava errado era o fecho ser um TEXTO FIXO. A partir da segunda
+   * vez ele passa a carregar **as palavras que o cliente acabou de dizer** —
+   * então ele nunca é a mesma frase duas vezes, por construção, e nunca mais
+   * afirma que a casa está ignorando o que ela acabou de ouvir.
+   */
+  falaDoCliente?: string,
 ): string {
   const nome = primeiroNome(escopo);
-  const abertura = nome
+
+  // ── A ABERTURA ECOA O CLIENTE A PARTIR DA SEGUNDA VEZ ────────────────────
+  //
+  // `falaDoCliente` presente ⇒ o chamador já viu este fecho sair antes neste
+  // fio (é ele quem sabe). Aí a abertura deixa de ser o texto fixo e passa a
+  // carregar as palavras que ele acabou de dizer: nunca a mesma frase duas
+  // vezes, por construção — e nunca mais "sigo sem esse dado" para quem está,
+  // justamente, falando.
+  const eco = trechoDoCliente(falaDoCliente);
+  const abertura = eco
+    ? `Anotei: "${eco}". `
+    : nome
     ? `Entendi, ${nome} — e tudo bem. Anotei isso do seu jeito e vou seguir sem esse dado por enquanto; a equipe confirma com você depois. `
     : "Entendi — e tudo bem. Anotei isso do seu jeito e vou seguir sem esse dado por enquanto; a equipe confirma com você depois. ";
 
+  // A conversa AVANÇA — a pergunta seguinte em aberto sai junto. É a instrução
+  // gêmea da proibição, e ela vale nas duas aberturas.
   const proxima = proximaEmAberto(escopo, [...jaPerguntadas, perguntaId]);
   if (proxima) return abertura + proxima;
 
   return (
     abertura +
-    "Já tenho o essencial aqui. Dá uma conferida no resumo do seu pedido, ao lado — " +
-    "se estiver tudo certo, é só confirmar que eu preparo seu orçamento personalizado."
+    (eco
+      ? "Já tenho o essencial do seu pedido — está tudo no resumo, ao lado. Quando estiver certo, é só enviar que eu preparo o seu orçamento."
+      : "Já tenho o essencial aqui. Dá uma conferida no resumo do seu pedido, ao lado — se estiver tudo certo, é só confirmar que eu preparo seu orçamento personalizado.")
   );
+}
+
+/** A fala do cliente, curta o bastante para caber numa frase e longa o
+ *  bastante para ele se reconhecer nela. Corta na palavra, não no meio dela —
+ *  eco cortado no meio de uma palavra parece defeito, e defeito na fala é o
+ *  que faz a pessoa desconfiar do resto. */
+function trechoDoCliente(fala: string | undefined): string | null {
+  const t = (fala ?? "").trim().replace(/\s+/g, " ");
+  if (t.length < 3) return null;
+  if (t.length <= 120) return t;
+  const corte = t.slice(0, 120);
+  const ate = corte.lastIndexOf(" ");
+  return `${(ate > 40 ? corte.slice(0, ate) : corte).trim()}…`;
 }
 
 /** A fila do protocolo de descoberta, na ordem do prompt. Cada item sabe se já

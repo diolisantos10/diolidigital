@@ -103,6 +103,14 @@ export function textoDaResposta(data: unknown): string {
 export type ResultadoDaResposta = {
   respondidas: number;
   semIA: number;
+  /**
+   * Quantas dessas mensagens são NOVAS na fila — as que chegaram na última
+   * janela. É a TRANSIÇÃO; `semIA` é o estado de pé.
+   *
+   * Ver `JANELA_DE_NOVIDADE` para o porquê e para o limite exato do que esta
+   * aproximação garante.
+   */
+  novasSemIA: number;
   falhas: string[];
 };
 
@@ -112,8 +120,40 @@ export type ResultadoDaResposta = {
  * Chamado pelo despertador a cada passada. Erro numa conversa não derruba as
  * outras: o cliente seguinte não pode pagar pelo anterior.
  */
+/**
+ * O QUE CONTA COMO "NOVA NA FILA" — e o limite exato desta aproximação.
+ *
+ * ── A DOENÇA, MEDIDA EM PRODUÇÃO (cliente oculto, 6ª rodada) ──────────────
+ *
+ * `/api/pulso` de 26/08/2026: *"5 mensagem(ns) sem resposta automática —
+ * aguardando gente"* disparado **57 vezes em 24h**, mais 2 e mais 1 de outras
+ * contagens. É a MESMA doença do alarme do orçamento (76×), noutra perna, e o
+ * despacho não a tinha nomeado: `semIA` é um ESTADO DE PÉ, a mensagem fica
+ * `readByTeam: false` até uma pessoa abrir a tela, e o relógio recontava a
+ * mesma fila a cada 5 minutos.
+ *
+ * Nada estava quebrado: a casa não tem IA para aquela conversa e a deixou para
+ * gente, que é o certo. Alarme sobre o normal ensina a ignorar alarme.
+ *
+ * ── POR QUE UMA JANELA, E NÃO UMA MARCA ────────────────────────────────────
+ *
+ * O orçamento tinha onde carimbar (`faltaAvisadaEm`, dentro do `briefingJson`
+ * que já viaja com o pedido). `PortalMessage` não tem campo sobrando, e
+ * `readByTeam` não serve: marcá-la esconderia a mensagem de quem precisa
+ * respondê-la — trocaria ruído por silêncio, que é pior.
+ *
+ * Então a transição é derivada da IDADE. E o que esta aproximação garante,
+ * dito com o número na mão: com a cadência de 5 minutos do relógio, uma mesma
+ * mensagem pode alarmar no máximo **3 vezes** (15 ÷ 5), contra 288. Não é
+ * exato como a marca; é honesto e é bem menor que o problema.
+ *
+ * ⚠️ E o estado de pé NÃO some: `semIA` continua saindo toda rodada por
+ * `estadoDe`, no pulso. Calar o alarme nunca pode virar calar o fato.
+ */
+const JANELA_DE_NOVIDADE_MS = 15 * 60_000;
+
 export async function responderMensagensDeClientes(): Promise<ResultadoDaResposta> {
-  const resultado: ResultadoDaResposta = { respondidas: 0, semIA: 0, falhas: [] };
+  const resultado: ResultadoDaResposta = { respondidas: 0, semIA: 0, novasSemIA: 0, falhas: [] };
 
   const pendentes = await prisma.portalMessage.findMany({
     where: { authorRole: "client", readByTeam: false },
@@ -126,7 +166,12 @@ export async function responderMensagensDeClientes(): Promise<ResultadoDaRespost
     try {
       const feito = await responderUma(mensagem);
       if (feito === "respondida") resultado.respondidas += 1;
-      else resultado.semIA += 1;
+      else {
+        resultado.semIA += 1;
+        if (Date.now() - mensagem.createdAt.getTime() <= JANELA_DE_NOVIDADE_MS) {
+          resultado.novasSemIA += 1;
+        }
+      }
     } catch (err) {
       resultado.falhas.push(err instanceof Error ? err.message : String(err));
     }

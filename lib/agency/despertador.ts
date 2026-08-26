@@ -993,7 +993,17 @@ export async function baterORelogio(): Promise<{
     // Sem IA a mensagem FICA na fila para um humano — mas isso é notícia, não
     // rotina: cliente esperando em silêncio é o defeito que este bloco existe
     // para acabar.
-    if (r.semIA > 0) quebrou("pm-responde", `${r.semIA} mensagem(ns) sem resposta automática — aguardando gente`);
+    // A MESMA regra do alarme do orçamento, e pelo mesmo motivo medido: `semIA`
+    // é ESTADO DE PÉ (a mensagem fica na fila até gente abrir a tela) e
+    // disparava 57 vezes em 24h sobre comportamento correto. Alarme na
+    // TRANSIÇÃO (`novasSemIA`), estado no pulso. Ver `JANELA_DE_NOVIDADE_MS`
+    // em `pm-responde.ts` — inclusive o limite exato do que ela garante.
+    if (r.novasSemIA > 0) {
+      quebrou("pm-responde", `${r.novasSemIA} mensagem(ns) NOVA(s) sem resposta automática — aguardando gente`);
+    }
+    if (r.semIA > 0) {
+      estadoDe("pm-responde", `${r.semIA} mensagem(ns) na fila sem resposta automática — aguardando gente`);
+    }
     for (const f of r.falhas) quebrou("pm-responde", f);
   } catch (err) {
     quebrou("pm-responde", err);
