@@ -6,7 +6,7 @@
 > propostas reais paradas há dez dias continuam intocadas.
 >
 > Linha de base: `e3a1a43` no ar, 482 arquivos / 6.745 testes.
-> Fecho: 485 → **489 arquivos / 6.778 testes**, verdes.
+> Fecho: **488 arquivos / 6.802 testes**, verdes — **6 arquivos e 57 testes novos**.
 
 ---
 
