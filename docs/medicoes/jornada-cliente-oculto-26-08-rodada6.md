@@ -236,6 +236,20 @@ Os dois estão fechados no PR seguinte.
 
 ---
 
+## O que a volta achou e eu NÃO consertei — com o dono de cada um
+
+Declarado, não escondido. Cada um tem por que ficou de fora.
+
+| achado | por que não mexi | dono |
+|---|---|---|
+| **O plano incluiu "Paid Strategy" para quem disse "anúncios não"** (escopo aceito: `wantsPaidTraffic: false`) | é saída de IA do orquestrador, e a trava certa é um contrato de plano contra o escopo — obra maior que uma linha, e eu não a começo no fim de uma rodada longa. É o achado de maior valor para a próxima | agência (produção) |
+| **O cancelamento não tem estado** — o PM ouve e responde sozinho em ~4 min, e o pedido fica `proposal_pending` para sempre | quem pode cancelar, em que estados e o que acontece com o dinheiro é decisão de produto | **CEO** |
+| **`relógio ausente: cron-execute`**, 25× em 24h | uma rodada anterior declarou esta rota consertada; mexer sem entender o que mudou é trocar um alarme por outro | agência (plataforma) |
+| **`caixa-de-entrada: Command failed`**, 1× | ocorrência única, sem repro | agência (plataforma) |
+| **Se a FK `SocialPost.deliverableId` está preenchida em produção** | não tenho janela para o campo e não abro o banco de produção. Ver a seção do diagnóstico errado | agência |
+
+---
+
 ## O que depende só do CEO
 
 1. **Qual tabela de preço vale** — a da vitrine (49/297/790/1.390/2.590) ou a da
