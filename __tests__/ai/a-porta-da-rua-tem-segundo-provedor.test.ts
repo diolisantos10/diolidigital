@@ -56,44 +56,59 @@ describe("a lista de provedores da porta pública", () => {
 });
 
 describe("qual falha faz a porta andar para o próximo provedor", () => {
-  // Esta é a régua do LAÇO da rota. Só duas falhas fazem andar, e as duas são
-  // de CONTA: custam zero e não melhoram com o tempo. As outras passam sozinhas,
-  // e trocar de provedor nelas multiplicaria gasto e trocaria a VOZ do SDR no
-  // meio da conversa por um soluço de rede.
-  const anda = (msg: string): boolean => {
-    const c = classificarFalhaDeProvedor(msg);
-    return c === "sem_saldo" || c === "sem_chave";
-  };
+  // A régua do LAÇO da rota, e ela é a MESMA da casa: `lib/ai/generate.ts` cai
+  // para o próximo provedor em QUALQUER falha que não tenha produzido texto.
+  //
+  // ⚠️ CORREÇÃO DE ROTA DECLARADA. O primeiro conserto desta frente (07:47Z) só
+  // andava em `sem_saldo` e `sem_chave`, com o argumento de que 429 passa
+  // sozinho. Medido no turno seguinte, em produção: claude devolveu `sem_saldo`
+  // (andou), a OpenAI devolveu **HTTP 429** — que naquela conta é a conta
+  // zerada vestida de teto de ritmo — e a porta continuou fechada com Gemini
+  // funcionando ao lado. A régua estava mais dura que a doutrina da casa.
+  //
+  // O argumento de custo não se sustenta: só se anda sobre um turno JÁ PERDIDO.
+  // Gastar uma chamada num provedor que funciona é estritamente melhor que
+  // devolver silêncio.
+  const anda = (r: { ok: boolean; error?: string; textoCru?: string | null }): boolean =>
+    !r.ok && !r.textoCru;
 
   it("🔴 a frase EXATA da Anthropic que fechou a porta faz andar", () => {
-    expect(anda('Claude HTTP 400: {"type":"error","error":{"type":"invalid_request_error",'
-      + '"message":"Your credit balance is too low to access the Anthropic API."}}')).toBe(true);
+    expect(anda({ ok: false, error: 'Claude HTTP 400: "Your credit balance is too low"' })).toBe(true);
+    expect(classificarFalhaDeProvedor("Your credit balance is too low to access the Anthropic API")).toBe("sem_saldo");
   });
 
-  it("🔴 a frase EXATA da OpenAI medida na véspera faz andar", () => {
-    expect(anda("You have no credits remaining. Add credits to continue using the API at "
-      + "https://platform.openai.com/settings/organization/billing/.")).toBe(true);
+  it("🔴 o HTTP 429 da OpenAI — a conta zerada vestida de teto de ritmo — TAMBÉM faz andar", () => {
+    // Este é o teste que o meu primeiro conserto reprovaria. Ele existe porque
+    // a produção o reprovou primeiro.
+    expect(anda({ ok: false, error: "OpenAI HTTP 429" })).toBe(true);
   });
 
-  it("chave inválida também é conta — insistir daria a mesma resposta", () => {
-    expect(anda("OpenAI HTTP 401: invalid_api_key")).toBe(true);
+  it("provedor fora do ar e timeout fazem andar — o turno já está perdido", () => {
+    expect(anda({ ok: false, error: "Claude HTTP 503 service unavailable" })).toBe(true);
+    expect(anda({ ok: false, error: "timeout" })).toBe(true);
   });
 
-  it("MUTAÇÃO — 429 NÃO faz andar: teto de ritmo passa sozinho", () => {
-    // Sem esta asserção, uma régua frouxa trocaria de provedor a cada soluço e
-    // multiplicaria o gasto — os 15 `gpt-4o HTTP 429` da janela medida viraram
-    // 15 chamadas pagas num segundo provedor, por nada.
-    expect(anda("OpenAI HTTP 429")).toBe(false);
+  it("🔴 MUTAÇÃO — resposta que VEIO não faz andar, nem quando falhou", () => {
+    // É a trava que impede o desperdício de verdade. Texto cru, mesmo truncado
+    // ou malformado, tem ESCOPO a resgatar — as quatro conquistas desta rota
+    // vivem disso, e regerar num segundo provedor jogaria fora o que o cliente
+    // acabou de dizer.
+    expect(anda({ ok: false, error: "JSON malformado", textoCru: '{"reply":"oi, tudo b' })).toBe(false);
   });
 
-  it("MUTAÇÃO — provedor fora do ar e timeout NÃO fazem andar", () => {
-    expect(anda("Claude HTTP 503 service unavailable")).toBe(false);
-    expect(anda("timeout")).toBe(false);
+  it("MUTAÇÃO — sucesso nunca faz andar", () => {
+    expect(anda({ ok: true, textoCru: '{"reply":"oi"}' })).toBe(false);
+    // Sucesso sem textoCru também não: `ok` já resolve sozinho.
+    expect(anda({ ok: true })).toBe(false);
   });
 
-  it("MUTAÇÃO — falha que a casa não reconhece NÃO faz andar", () => {
-    // Ausência de classificação não é permissão. Guardrail 1.
-    expect(anda("Resposta DeepSeek vazia")).toBe(false);
-    expect(anda("")).toBe(false);
+  it("a casa continua sabendo NOMEAR a falha, mesmo sem usá-la para decidir", () => {
+    // O motivo classificado não decide mais o laço, mas continua indo ao log e
+    // ao diário — é ele que separa "o CEO precisa pôr saldo" de "o provedor
+    // soluçou". Perder essa distinção seria trocar um defeito por outro.
+    expect(classificarFalhaDeProvedor("You have no credits remaining.")).toBe("sem_saldo");
+    expect(classificarFalhaDeProvedor("OpenAI HTTP 429")).toBe("teto_de_ritmo");
+    expect(classificarFalhaDeProvedor("OpenAI HTTP 401: invalid_api_key")).toBe("sem_chave");
+    expect(classificarFalhaDeProvedor("Resposta DeepSeek vazia")).toBeNull();
   });
 });
