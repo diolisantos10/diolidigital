@@ -1055,6 +1055,13 @@ export async function baterORelogio(): Promise<{
     if (r.semOrcamento > 0) {
       estadoDe("orcamento", `${r.semOrcamento} briefing(s) parados sem orçamento calculado — aguardando gente (o cliente JÁ foi avisado do que falta)`);
     }
+    // A PROPOSTA QUE NÃO NASCEU SEM PORTA (26/08/2026). O texto com dono e
+    // próxima ação já vai em `falhas` — este número é o placar, para quem
+    // compara rodadas ver se a trava disparou uma vez (falha transitória, que
+    // a batida seguinte cura) ou toda batida (alguém precisa olhar).
+    if (r.semPortaDeAceite > 0) {
+      log(`${r.semPortaDeAceite} proposta(s) NÃO escrita(s) por falta de porta de aceite — o pedido continua na fila`);
+    }
     for (const f of r.falhas) quebrou("orcamento", f);
   } catch (err) {
     quebrou("orcamento", err);

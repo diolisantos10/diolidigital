@@ -363,19 +363,32 @@ describe("o cliente FICA SABENDO que o orçamento ficou pronto", () => {
     expect(html).not.toContain("O que NÃO está incluído");
   });
 
-  it("quando NÃO dá para cunhar a porta, o e-mail sai assim mesmo — sem botão que não leva a lugar nenhum", async () => {
-    // Cunhar falhou (banco fora do ar, por exemplo). A entrega vale: falhar em
-    // fabricar o link não pode desfazer um orçamento já entregue.
+  // ═══════════════════════════════════════════════════════════════════════
+  // ⚠️ ESTE TESTE DIZIA O CONTRÁRIO ATÉ 26/08/2026 — e o contrário era o BUG
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // Ele exigia que, sem conseguir cunhar a porta, a entrega seguisse em frente
+  // e o e-mail saísse "sem botão que não leva a lugar nenhum". A produção
+  // mediu o preço dessa regra: DUAS solicitações reais, DEZ DIAS em
+  // `proposal_pending`, com número calculado e `porta de aceite AUSENTE` — o
+  // cliente sem meio de responder, e o pedido fora de `new`, portanto fora do
+  // alcance do relógio para sempre.
+  //
+  // Um orçamento sem porta não é um orçamento entregue pela metade: é uma
+  // venda que morre calada. A regra passa a ser parar e chamar gente.
+  it("sem conseguir cunhar a porta, NADA é entregue — nem portal, nem e-mail", async () => {
     db.portalAccess.findMany.mockResolvedValue([]);
     db.portalAccess.create.mockRejectedValue(new Error("banco fora do ar"));
     db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
     const r = await entregarOrcamentosPendentes();
 
-    expect(r.avisados).toBe(1);
-    const html = email.sendEmail.mock.calls[0][0].html as string;
-    expect(html).not.toContain("Ver o orçamento completo");
-    // E continua dizendo por onde responder: aviso sem saída é aviso pela metade.
-    expect(html).toMatch(/responder/i);
+    expect(r.entregues).toBe(0);
+    expect(r.avisados).toBe(0);
+    expect(r.semPortaDeAceite).toBe(1);
+    expect(email.sendEmail).not.toHaveBeenCalled();
+    expect(db.portalMessage.create).not.toHaveBeenCalled();
+    // Continua em `new`: a batida seguinte tenta de novo, sem gente.
+    expect(db.clientRequestDb.update).not.toHaveBeenCalled();
   });
 });
 

@@ -183,3 +183,69 @@ describe("3. falha fechada — silêncio nunca vira aceite", () => {
     expect(r.normal === false && r.motivo).toMatch(/abaixo do menor plano/);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. SEM PORTA NÃO SE ESCREVE PROPOSTA (26/08/2026)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// O bloco 2 prova que a porta NASCE. Este prova o que acontece quando ela não
+// consegue nascer — que é o estado exato medido na 9ª volta em produção: DUAS
+// solicitações reais, DEZ DIAS em `proposal_pending`, com número calculado e
+// `porta de aceite AUSENTE`. O cliente não tinha botão para responder.
+//
+// Antes deste conserto, `linkDaProposta` devolvia `null` sem lançar e a
+// entrega seguia em frente: mensagem escrita, pedido fora de `new`, nenhuma
+// porta — e, fora de `new`, nunca mais alcançado pelo relógio. Silêncio
+// definitivo, fabricado em silêncio.
+describe("4. sem porta de aceite, a proposta NÃO nasce — e a casa para com dono", () => {
+  /** O banco recusa a escrita do token. É o único caminho pelo qual
+   *  `linkDaProposta` devolve `null`. */
+  function cunhagemQuebrada() {
+    db.clientRequestDb.findMany.mockResolvedValue([PEDIDO_FAROL]);
+    db.portalAccess.findMany.mockResolvedValue([]);
+    db.portalAccess.create.mockRejectedValue(new Error("SQLITE_READONLY"));
+  }
+
+  it("não escreve a mensagem, não tira o pedido de `new` e não manda e-mail", async () => {
+    cunhagemQuebrada();
+    const r = await entregarOrcamentosPendentes();
+
+    // MUTAÇÃO QUE PROVA: apague o `if (!link) { … continue; }` de
+    // `orcamento-do-briefing.ts` e as quatro linhas abaixo caem juntas —
+    // reproduzindo, no teste, a proposta sem porta que a produção mediu.
+    expect(r.entregues).toBe(0);
+    expect(db.portalMessage.create).not.toHaveBeenCalled();
+    expect(db.clientRequestDb.update).not.toHaveBeenCalled();
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("vira notícia com DONO e PRÓXIMA AÇÃO — nunca um silêncio", async () => {
+    cunhagemQuebrada();
+    const r = await entregarOrcamentosPendentes();
+
+    expect(r.semPortaDeAceite).toBe(1);
+    expect(r.falhas).toHaveLength(1);
+    const f = r.falhas[0]!;
+    expect(f).toContain("farol27");
+    expect(f).toContain("porta de aceite");
+    expect(f).toMatch(/Dono: Atendimento/);
+    expect(f).toMatch(/Próxima ação:/);
+  });
+
+  it("o pedido continua na fila: a batida seguinte entrega sozinha quando o banco volta", async () => {
+    cunhagemQuebrada();
+    await entregarOrcamentosPendentes();
+
+    // O banco volta. Nada de gente, nada de empurrão à mão.
+    db.portalAccess.create.mockImplementation(
+      async ({ data }: { data: { token: string } }) => ({ token: data.token }),
+    );
+    const r2 = await entregarOrcamentosPendentes();
+
+    expect(r2.entregues).toBe(1);
+    expect(r2.semPortaDeAceite).toBe(0);
+    // E a proposta que enfim nasceu nasceu COM a porta dentro do texto.
+    const corpo = db.portalMessage.create.mock.calls[0][0].data.body as string;
+    expect(corpo).toContain("/proposta/");
+  });
+});

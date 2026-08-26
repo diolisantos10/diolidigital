@@ -193,6 +193,14 @@ export type ResultadoDoOrcamento = {
    * entrega.
    */
   faltaAvisada: number;
+  /**
+   * Quantas propostas NÃO foram escritas porque a porta de aceite do cliente
+   * não pôde ser cunhada. Ver o bloco "SEM PORTA NÃO SE ESCREVE PROPOSTA".
+   *
+   * Conta separada de `falhas` porque é um número que se compara entre
+   * rodadas: `falhas` é texto para gente ler, este é o placar da trava.
+   */
+  semPortaDeAceite: number;
   falhas: string[];
 };
 
@@ -792,6 +800,7 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
     avisados: 0,
     semCanal: 0,
     faltaAvisada: 0,
+    semPortaDeAceite: 0,
     avisosQueFalharam: [],
     falhas: [],
   };
@@ -905,6 +914,47 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
       // escrita: o texto que o cliente lê precisa carregar o link, e um link
       // que aparece só no e-mail some quando o e-mail falha.
       const link = await linkDaProposta(pedido.id, pedido.clientId);
+
+      // ── SEM PORTA NÃO SE ESCREVE PROPOSTA (26/08/2026) ────────────────────
+      //
+      // Medido em produção na 9ª volta: DUAS solicitações reais ficaram DEZ
+      // DIAS (14.388 min) em `proposal_pending`, com número calculado, e
+      // `porta de aceite AUSENTE`. O cliente não tinha botão para responder
+      // nem que quisesse. A vigilância nova (`proposta-parada.ts`) as ENXERGA
+      // — mas enxergar não é resolver, e quem OLHA não age de propósito.
+      //
+      // A origem estava aqui, e não era o token: era esta função seguir em
+      // frente com `link = null`. `linkDaProposta` nunca lança ("sem link o
+      // orçamento AINDA é entregue"), então uma falha ao cunhar produzia,
+      // em silêncio, exatamente o estado medido: mensagem escrita, pedido
+      // fora de `new`, e nenhuma porta. Uma vez fora de `new`, a entrega não
+      // se repete — o silêncio virava definitivo.
+      //
+      // A regra passa a ser a da casa: **nada pronto fica parado sem dono e
+      // sem próxima ação.** Sem porta, a entrega PARA aqui:
+      //
+      //   • o pedido continua em `new`, que é o único estado do qual a
+      //     próxima batida do relógio o alcança de novo. Falha transitória de
+      //     banco se cura sozinha na batida seguinte, sem gente;
+      //   • nada é escrito ao cliente. Escrever a proposta e depois voltar
+      //     atrás é pior: o portal mostraria o número sem meio de aceitar;
+      //   • vira ALARME com dono e próxima ação, não linha de log. É estado
+      //     ANORMAL — alguém precisa olhar se ele persistir.
+      //
+      // Nunca é o caminho normal: `linkDaProposta` só devolve `null` quando o
+      // banco recusa a escrita do token. O caminho feliz reaproveita o token
+      // vivo e nem chega aqui.
+      if (!link) {
+        resultado.semPortaDeAceite += 1;
+        resultado.falhas.push(
+          `pedido ${pedido.id} (${pedido.businessName?.trim() || "negócio não informado"}): ` +
+            "não consegui cunhar a porta de aceite — a proposta NÃO foi escrita e o pedido continua na fila. " +
+            "Dono: Atendimento. Próxima ação: destravar a criação de PortalAccess deste pedido; " +
+            "sem porta o cliente não tem como responder nem que queira.",
+        );
+        continue;
+      }
+
       const corpo = textoDoOrcamento(pedido.businessName ?? "", e, link);
 
       await prisma.$transaction([
