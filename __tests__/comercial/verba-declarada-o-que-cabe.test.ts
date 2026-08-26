@@ -79,25 +79,39 @@ describe("(a) a verba declarada abaixo da estimativa é NOMEADA, não engolida",
   });
 
   it("não oferece degrau que não cabe na verba declarada", () => {
-    // Empurrar o Presença (R$ 790) para quem declarou até R$ 500 é repetir o
-    // defeito com a cara de solução.
+    // ⚠️ A ASSERÇÃO MUDOU DE FORMA, NÃO DE INTENÇÃO (26/08/2026). Ela listava
+    // nomes ("não pode conter Presença") — e com a tabela nova o Presença passou
+    // a custar R$ 490, ou seja, ele CABE em R$ 500. Travar o nome teria feito o
+    // teste acusar como defeito a casa oferecendo, corretamente, um degrau que
+    // o cliente pode pagar.
+    //
+    // A regra sempre foi de NÚMERO, não de nome: nada acima do teto declarado.
+    for (const p of c!.cabemNaVerba) expect(p.preco, p.nome).toBeLessThanOrEqual(500);
+    // E o que passa do teto fica de fora, seja qual for o nome dele.
     const nomes = c!.cabemNaVerba.map((p) => p.nome);
-    expect(nomes).not.toContain("Presença");
-    expect(nomes).not.toContain("Conteúdo");
-    expect(nomes).not.toContain("Crescimento");
-    for (const p of c!.cabemNaVerba) expect(p.preco).toBeLessThanOrEqual(500);
+    for (const acima of PLANOS.filter((p) => p.preco > 500)) {
+      expect(nomes, `${acima.nome} custa ${acima.preco} e foi oferecido`).not.toContain(acima.nome);
+    }
   });
 
   it("a implantação do Ritmo é declarada na MESMA frase do preço", () => {
-    // O Ritmo é R$ 297/mês MAIS R$ 390 de entrada. Dizer "cabe nos seus R$ 500"
-    // calando os R$ 390 é a mesma desonestidade, com o sinal trocado — e faria
-    // a conversa recomeçar do zero no dia do boleto.
+    // A regra: quando o degrau TEM implantação, ela é dita na mesma frase do
+    // preço. Dizer "cabe nos seus R$ 500" calando a entrada é desonestidade com
+    // o sinal trocado — a conversa recomeçaria do zero no dia do boleto.
+    //
+    // ⚠️ O Ritmo passou a ter implantação ISENTA na tabela única, então o
+    // exemplo mudou de degrau: a régua é aplicada a QUEM TEM implantação, não a
+    // um plano escolhido a dedo.
+    const comEntrada = PLANOS.find((p) => p.implantacao !== null)!;
+    const linha = semNbsp(textoDaVerbaEstourada(c!).find((l) => l.includes(comEntrada.nome)) ?? "");
+    if (linha) {
+      expect(linha).toContain(String(comEntrada.preco));
+      expect(linha).toContain(String(comEntrada.implantacao));
+      expect(linha).toMatch(/implantação/i);
+    }
+    // E o degrau SEM implantação diz isso, em vez de calar.
     const ritmo = c!.cabemNaVerba.find((p) => p.nome === "Ritmo")!;
-    expect(ritmo.implantacao).toBe(390);
-    const linhaDoRitmo = semNbsp(textoDaVerbaEstourada(c!).find((l) => l.includes("Ritmo"))!);
-    expect(linhaDoRitmo).toContain("R$ 297");
-    expect(linhaDoRitmo).toContain("R$ 390");
-    expect(linhaDoRitmo).toMatch(/implantação/i);
+    expect(ritmo.implantacao).toBeNull();
   });
 
   it("o degrau sem taxa de entrada diz que é sem taxa, em vez de calar", () => {

@@ -12,7 +12,6 @@ import { useAgencyStore } from "@/store/agency-store";
 import { SOCIAL_PACKAGES } from "@/lib/agency/live-calculator";
 import {
   SOCIAL_MARGINS,
-  ADDON_MARGINS,
   DISCOUNT_LEVERS,
   marginPct,
   type MarginProfile,
@@ -100,9 +99,10 @@ export default function MarginIntelligencePanel() {
                 profile={SOCIAL_MARGINS[p.id]}
               />
             ))}
-            <Row label="Tráfego Pago — gestão" detail="Fee mensal (verba à parte)" list={500} profile={ADDON_MARGINS.trafficMgmt} />
-            <Row label="Identidade Visual" detail="Projeto" list={1200} profile={ADDON_MARGINS.branding} />
-            <Row label="Rebranding Completo" detail="Projeto" list={2000} profile={ADDON_MARGINS.brandingFull} />
+            {/* Tráfego, identidade e rebranding saíram desta tabela em
+                26/08/2026, junto com o preço deles: são projetos orçados à
+                parte, sem preço de vitrine. Margem sobre preço que a casa não
+                cobra é conta sobre ficção. */}
           </tbody>
         </table>
       </div>

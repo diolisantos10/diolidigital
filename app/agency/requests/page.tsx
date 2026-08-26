@@ -19,6 +19,7 @@ import type { SDRHandoff } from "@/lib/agency/sdr-agent";
 import type { Priority } from "@/lib/agency/mock-data";
 import { DEMO_CLIENT_ID } from "@/lib/agency/demo-client";
 import { usePMOrchestrator } from "@/lib/dioli-brain/use-pm-orchestrator";
+import { precoDoItemEmTexto, somaDosItens } from "@/lib/agency/comercial/preco-do-item";
 
 // ── Proposal Edit Types ───────────────────────────────────────────────────────
 
@@ -1205,8 +1206,10 @@ export default function AgencyRequestsPage() {
                       <V2ScopePanel scope={req.v2Scope} estimate={proposalDrafts[req.id] ? {
                         ...req.v2Estimate!,
                         items: proposalDrafts[req.id].items,
-                        totalMin: proposalDrafts[req.id].items.reduce((s, i) => s + i.minPrice, 0),
-                        totalMax: proposalDrafts[req.id].items.reduce((s, i) => s + i.maxPrice, 0),
+                        // Soma pela fonte única: item sem preço ("orçado à
+                        // parte") não entra — nem como zero.
+                        totalMin: somaDosItens(proposalDrafts[req.id].items).min,
+                        totalMax: somaDosItens(proposalDrafts[req.id].items).max,
                       } : req.v2Estimate} />
                       {isEditorRole && req.v2Estimate && req.v2Estimate.confidence !== "none" && (
                         <div className="flex items-center gap-2">
@@ -1618,7 +1621,7 @@ function V2ScopePanel({ scope, estimate }: { scope: BriefingScope; estimate?: Li
               <div key={i} className="flex items-center justify-between text-[11px]">
                 <span className="text-[var(--text-secondary)]">{item.label}</span>
                 <span className="text-[var(--text-primary)] font-medium">
-                  {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}/{item.unit}
+                  {precoDoItemEmTexto(item, fmtBRL)}{item.minPrice !== null ? `/${item.unit}` : ""}
                 </span>
               </div>
             ))}
@@ -2177,8 +2180,8 @@ function ProposalEditModal({
                       <span className="text-[var(--text-muted)] shrink-0">Mín R$</span>
                       <input
                         type="number"
-                        value={it.minPrice}
-                        onChange={(e) => patchItem(it._key, { minPrice: Number(e.target.value) })}
+                        value={it.minPrice ?? ""}
+                        onChange={(e) => patchItem(it._key, { minPrice: e.target.value === "" ? null : Number(e.target.value) })}
                         className="w-20 text-[12px] font-semibold text-[var(--text-primary)] bg-[var(--bg)] border border-[var(--border)] rounded-[5px] px-2 py-1 outline-none focus:border-[var(--navy)]"
                       />
                     </div>
@@ -2186,8 +2189,8 @@ function ProposalEditModal({
                       <span className="text-[var(--text-muted)] shrink-0">Máx R$</span>
                       <input
                         type="number"
-                        value={it.maxPrice}
-                        onChange={(e) => patchItem(it._key, { maxPrice: Number(e.target.value) })}
+                        value={it.maxPrice ?? ""}
+                        onChange={(e) => patchItem(it._key, { maxPrice: e.target.value === "" ? null : Number(e.target.value) })}
                         className="w-20 text-[12px] font-semibold text-[var(--text-primary)] bg-[var(--bg)] border border-[var(--border)] rounded-[5px] px-2 py-1 outline-none focus:border-[var(--navy)]"
                       />
                     </div>

@@ -55,6 +55,7 @@
 // alimenta o estado visível na tela — produz um aviso, não `null`, para os
 // dois motivos de erro, com textos que não se misturam.
 
+import { PLANOS } from "@/lib/agency/planos";
 import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   fetchSdrReply,
@@ -134,7 +135,10 @@ describe("recusa por corte (truncado) com escopo salvo — o número sobrevive",
     // 14 posts/semana * 4 = 56/mês — detecta o Plano Premium (>50), NÃO o
     // Plano Essencial de 3/semana que o piloto cotou errado.
     expect(estimate.missingForEstimate).not.toContain("Frequência de posts por semana");
-    const socialItem = estimate.items.find((i) => /Completo/i.test(i.label));
+    // O maior degrau chama-se Conteúdo desde a tabela única (26/08/2026) — e o
+    // nome não é digitado aqui: sai da própria tabela.
+    const maior = PLANOS.filter((x) => x.pecasPorMes > 0).at(-1)!;
+    const socialItem = estimate.items.find((i) => i.label === `Plano ${maior.nome}`);
     expect(socialItem).toBeDefined();
     expect(estimate.included.some((s) => /posts\/semana \(\d+\/mês\)/.test(s))).toBe(true);
     // Checagem exata (não substring): nenhum item do plano é literalmente

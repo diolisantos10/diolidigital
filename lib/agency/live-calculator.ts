@@ -13,10 +13,19 @@ import type { BriefingScope, LiveEstimate, EstimateItem, EstimateConfidence, Soc
 import { confrontoDeVerba, divergenciaDeVerba } from "./comercial/verba-declarada";
 import { quantidadesQueCabemNaSemana, lerCanais } from "./contrato-de-quantidade";
 import { lacunasAbertas } from "./comercial/lacuna-de-escopo";
+// A FONTE ÚNICA DE PREÇO. Não é import de conveniência: é o mecanismo que
+// impede esta calculadora de voltar a ter uma tabela própria.
+import { PLANOS } from "./planos";
 
 // ── Social Media Plans ────────────────────────────────────────────────────────
 
-export type SocialPackage = "essencial" | "crescimento" | "completo";
+/**
+ * ⚠️ OS IDS SÃO OS DA TABELA ÚNICA (26/08/2026). Eram `essencial | crescimento
+ * | completo` — nomes que só existiam aqui, e que produziram a proposta de
+ * "Plano Essencial · R$ 590" para um cliente que tinha acabado de ler uma
+ * página onde esse plano não existe.
+ */
+export type SocialPackage = "ritmo" | "presenca" | "conteudo";
 
 export type ReportLevel = "none" | "basic" | "advanced";
 export type CommunityLevel = "none" | "basic" | "full";
@@ -73,105 +82,88 @@ export interface PackageDef {
 // a-vitrine-nao-promete-acima-do-teto` refaz a conta de cada linha daqui contra
 // `TETO_MENSAL` e quebra o build se um plano passar. Editar um número aqui sem
 // mexer na capacidade não compila.
-// ── ⚠️ DUAS TABELAS VIVAS — ACHADO DO CLIENTE OCULTO (26/08/2026) ──────────
+// ── ✅ UMA TABELA SÓ (26/08/2026) — ESTA LISTA É DERIVADA, NÃO ESCRITA ──────
 //
-// **Esta tabela NÃO é a tabela da página pública, e as duas estão no ar.**
+// Aqui viviam Essencial R$ 590 · Crescimento R$ 990 · Completo R$ 1.790: uma
+// SEGUNDA tabela de preço, no ar ao lado da da vitrine. Medido em produção
+// (pedido cmt9exi95001f0xo74bhonn77): o cliente recebeu *"Plano Essencial —
+// 2 posts/semana · R$ 590/mês"* e a página que ele acabara de ler não tinha
+// esse nome nem esse preço. "Crescimento" existia nas duas, com preços 2,6×
+// diferentes.
 //
-// `lib/agency/planos.ts` abre dizendo, com todas as letras: "OS PLANOS DA CASA
-// — fonte única (...) Esta lista é a fonte da página pública `/planos` E DE
-// QUALQUER PROPOSTA QUE A ESTEIRA EMITIR. Preço de plano escrito em dois
-// lugares vira dois preços diferentes na semana em que um deles muda — e o
-// cliente sempre acha o menor."
+// A decisão de PREÇO foi tomada pelo Diretor Geral em 26/08/2026, por delegação
+// expressa do CEO — ver o cabeçalho de `lib/agency/planos.ts`, onde a tabela
+// mora agora, com o número do mercado ao lado de cada degrau.
 //
-// Quem emitiu a proposta do cliente oculto foi ESTE arquivo, não aquele.
-// Medido em produção, no pedido cmt9exi95001f0xo74bhonn77:
+// **O que importa aqui é a FORMA do conserto, não o número.** Esta lista deixou
+// de ser escrita e passou a ser DERIVADA de `PLANOS`. Não é "os dois arquivos
+// concordam": é não haver dois números para concordar. Trocar o preço na
+// vitrine troca o preço da proposta no mesmo instante, e não existe edição
+// possível que os faça divergir — que é a única forma de "fonte única" que
+// sobrevive ao próximo conserto apressado.
 //
-//   • proposta recebida: **"Plano Essencial — 2 posts/semana · R$ 590/mês"**;
-//   • `https://www.diolidigital.com.br/planos`, no mesmo minuto: **cinco**
-//     degraus — Pulso R$ 49, Ritmo R$ 297, Presença R$ 790, Conteúdo R$ 1.390,
-//     Crescimento R$ 2.590. A página diz "Cinco degraus" no subtítulo.
-//
-// Ou seja: o cliente foi cotado num plano cujo NOME e cujo PREÇO não existem
-// em lugar nenhum da página que ele acabou de ler. E "Crescimento" existe nas
-// DUAS tabelas com preços 2,6× diferentes (R$ 990 aqui, R$ 2.590 lá).
-//
-// Isto é exatamente o que a decisão do Diretor Geral de 24/08/2026 nomeou —
-// ela está citada em `esteira/caminho-automatico.ts`: *"A tabela do site é a
-// única viva (duas tabelas vivas cobram errado de alguém)."* A decisão foi
-// tomada e as duas tabelas continuam vivas.
-//
-// **NÃO CONSERTADO AQUI, E DE PROPÓSITO.** Qual das duas é a verdadeira é
-// decisão de PREÇO, e preço é do CEO — trocar os números daqui pelos de lá
-// mudaria, sozinho, quanto a casa cobra de todo mundo. O que esta nota faz é
-// impedir que a divergência siga silenciosa. Ponto fraco declarado é dívida;
-// silencioso é armadilha. Registro: `docs/medicoes/duas-tabelas-vivas-26-08.md`.
-export const SOCIAL_PACKAGES: PackageDef[] = [
-  {
-    id: "essencial",
-    label: "Plano Essencial",
-    postsPerWeek: 3,
+// ⚠️ A CATRACA CONTINUA MORDENDO: `a-vitrine-nao-promete-acima-do-teto` refaz a
+// conta de cada linha contra `TETO_MENSAL`, e `a-tabela-e-uma-so` prova a
+// derivação por mutação.
+
+/** Os planos que ENTREGAM PEÇA. O Pulso fica de fora por definição: ele mede e
+ *  não produz, então não é pacote de conteúdo — e cotá-lo para quem pediu posts
+ *  seria vender medição a quem quer peça. */
+const PLANOS_COM_PECA = PLANOS.filter((p) => p.pecasPorMes > 0);
+
+/** O que cada degrau tem além da peça. Mora aqui e não em `planos.ts` porque é
+ *  vocabulário da CALCULADORA (níveis de relatório e de comunidade), não da
+ *  vitrine — e a vitrine não deve ganhar campos que só a proposta lê. */
+const MATRIZ: Record<SocialPackage, Pick<PackageDef, "calendar" | "reports" | "community">> = {
+  ritmo:    { calendar: true,  reports: "none",     community: "none" },
+  presenca: { calendar: true,  reports: "basic",    community: "full" },
+  conteudo: { calendar: true,  reports: "advanced", community: "full" },
+};
+
+export const SOCIAL_PACKAGES: PackageDef[] = PLANOS_COM_PECA.map((plano) => {
+  const id = plano.id as SocialPackage;
+  // A cadência sai do VOLUME contratado, não de um segundo número: peças por
+  // mês ÷ 4 semanas. Duas contas para a mesma cadência divergiriam no primeiro
+  // conserto de uma delas.
+  const postsPerWeek = Math.round(plano.pecasPorMes / 4);
+  return {
+    id,
+    label: `Plano ${plano.nome}`,
+    postsPerWeek,
     storiesPerWeek: 0,
-    postsPerMonth: 12,
+    postsPerMonth: plano.pecasPorMes,
     storiesPerMonth: 0,
+    // Vídeo e reel não entram em plano nenhum — a casa não produz.
     reelsPerMonth: 0,
     copy: true,
     design: true,
-    calendar: false,
-    reports: "none",
-    community: "none",
-    minPrice: 590,
-    maxPrice: 590,
-    description: "12 peças/mês (3 por semana) — Instagram, arte + legenda, portal com aprovação",
-  },
-  {
-    id: "crescimento",
-    label: "Plano Crescimento",
-    postsPerWeek: 5,
-    storiesPerWeek: 0,
-    postsPerMonth: 20,
-    storiesPerMonth: 0,
-    reelsPerMonth: 0,
-    copy: true,
-    design: true,
-    calendar: true,
-    reports: "basic",
-    community: "none",
-    minPrice: 990,
-    maxPrice: 990,
-    description: "20 peças/mês (5 por semana) — Instagram e Facebook, com relatório mensal",
-  },
-  {
-    id: "completo",
-    label: "Plano Completo",
-    postsPerWeek: 8,
-    storiesPerWeek: 0,
-    postsPerMonth: 32,
-    storiesPerMonth: 0,
-    reelsPerMonth: 0,
-    copy: true,
-    design: true,
-    calendar: true,
-    reports: "advanced",
-    community: "full",
-    minPrice: 1790,
-    maxPrice: 1790,
-    description: "32 peças/mês (8 por semana) — com plano de mídia e acompanhamento de campanha",
-  },
-];
+    ...MATRIZ[id],
+    // PREÇO FECHADO: `minPrice === maxPrice`, e os dois são O PREÇO DA VITRINE.
+    // Faixa de preço numa proposta automática é o vendedor decidindo sozinho
+    // quanto cobrar.
+    minPrice: plano.preco,
+    maxPrice: plano.preco,
+    description: `${plano.pecasPorMes} peças/mês (${postsPerWeek} por semana) — ${plano.salto}`,
+  };
+});
 
 /**
  * Qual plano cabe o volume que o cliente pediu.
  *
- * Recebe peças por MÊS. Os cortes são os próprios volumes da tabela: quem pede
- * até 12 é Essencial, até 20 é Crescimento, daí para cima é Completo — e acima
- * de 32 continua sendo Completo, porque é o maior que a casa faz. A recusa do
- * excedente não é escondida aqui: ela sai por escrito em
+ * Recebe peças por MÊS e devolve o MENOR degrau que comporta o pedido. Acima do
+ * maior, continua sendo o maior — porque é o maior que a casa faz; a recusa do
+ * excedente não é escondida aqui, ela sai por escrito em
  * `quantidadesQueCabemNaSemana`, junto do número que cabe.
+ *
+ * ⚠️ OS CORTES SÃO DERIVADOS (26/08/2026). Eram `<= 12`, `<= 20` digitados —
+ * uma segunda cópia dos volumes da tabela, dentro de um `if`. No dia em que o
+ * volume de um plano mudasse, o corte continuaria no número velho e a casa
+ * cotaria o degrau errado sem nada ficar vermelho. Agora ele lê os próprios
+ * volumes, na ordem em que a tabela os declara.
  */
 export function detectPackage(postsPerMonth: number): SocialPackage {
-  if (postsPerMonth <= 12) return "essencial";
-  if (postsPerMonth <= 20) return "crescimento";
-  return "completo";
+  const cabe = SOCIAL_PACKAGES.find((p) => postsPerMonth <= p.postsPerMonth);
+  return (cabe ?? SOCIAL_PACKAGES[SOCIAL_PACKAGES.length - 1]!).id;
 }
 
 export function getPackageDef(id: SocialPackage): PackageDef {
@@ -190,14 +182,35 @@ export const COMMUNITY_LABEL: Record<CommunityLevel, string> = {
   full: "Completa",
 };
 
-// ── Add-on prices (separate departments) ──────────────────────────────────────
+// ── ⚠️ A TABELA DE ADICIONAIS MORREU (26/08/2026) ────────────────────────────
+//
+// Aqui viviam quatro preços que a proposta somava ao total:
+//
+//   reel         R$ 150–400    trafficMgmt  R$ 500–1.200
+//   branding     R$ 1.200–2.500   brandingFull R$ 2.000–4.000
+//
+// **Nenhum deles existe em `/planos`.** A página lista os três últimos em
+// `FORA_DE_TODO_PLANO` — "projeto próprio, orçado caso a caso", sem número — e
+// o reel a casa não produz de forma nenhuma. Ou seja: a esteira cotava, num
+// documento que vai ao cliente e vira expectativa de preço, valores que a
+// vitrine nunca prometeu e que ninguém decidiu como tabela.
+//
+// A ordem do CEO fecha isso em uma linha: **o que a casa não vende na vitrine,
+// ela não cota na proposta.** Uma fonte só, e nada de números vivendo em
+// arquivo de calculadora.
+//
+// O que NÃO acontece: o pedido do cliente sumir. Tráfego e identidade visual
+// continuam entrando na proposta como ITEM — com escopo, sem preço, dizendo com
+// todas as letras que são orçados à parte. Ausência de preço declarada é
+// honestidade; preço inventado é dívida que o cliente cobra depois.
+//
+// ⚠️ Faixa de preço numa proposta automática já era um problema conhecido desta
+// casa ("faixa é o vendedor decidindo sozinho quanto cobrar") — estes quatro
+// eram as últimas faixas vivas.
 
-const P = {
-  reel:         { min:  150, max:  400 }, // extra reel beyond the plan
-  trafficMgmt:  { min:  500, max: 1200 }, // paid-traffic management fee
-  branding:     { min: 1200, max: 2500 }, // visual identity
-  brandingFull: { min: 2000, max: 4000 }, // full brand book / rebrand
-};
+/** O item que a proposta escreve sem número. `null` em `minPrice`/`maxPrice`
+ *  não é zero e nunca soma: é "orçado à parte", dito na cara. */
+const ORCADO_A_PARTE = { minPrice: null, maxPrice: null } as const;
 
 // ── O volume declarado — zero não é resposta, zero é campo faltando ───────────
 //
@@ -376,15 +389,16 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
     if (!scope.traffic?.monthlyAdBudget) {
       missing.push("Verba mensal de anúncios");
     } else {
+      // SEM PREÇO, e dito. `/planos` lista tráfego pago em `FORA_DE_TODO_PLANO`
+      // sem número; cotar R$ 500–1.200 aqui era a esteira prometendo um preço
+      // que a vitrine não tem. O item continua na proposta — o cliente pediu, e
+      // sumir com o pedido dele seria pior — mas orçado à parte, na cara.
       items.push({
         label:    "Tráfego Pago — gestão",
-        detail:   "Setup + gerenciamento mensal",
-        minPrice: P.trafficMgmt.min,
-        maxPrice: P.trafficMgmt.max,
+        detail:   "Setup + gerenciamento mensal · orçado à parte, fora da mensalidade",
+        ...ORCADO_A_PARTE,
         unit:     "mês",
       });
-      totalMin += P.trafficMgmt.min;
-      totalMax += P.trafficMgmt.max;
       included.push("Criação e gestão de campanhas pagas");
       included.push("Otimização e relatórios mensais");
       // ── "GOOGLE/META" ERA TEXTO FIXO NO CÓDIGO (25/08/2026) ────────────
@@ -413,16 +427,15 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
   // branding é o caso comum, não a exceção. Encontrado ao rodar o primeiro
   // projeto de verdade em produção, não em teste.
   if (scope.branding?.requested) {
-    const bp = scope.branding.wantsRebrand ? P.brandingFull : P.branding;
+    // Mesma regra do tráfego: `/planos` diz "projeto com começo e fim, orçado
+    // caso a caso", sem número. A proposta diz o mesmo.
     items.push({
       label:    "Identidade Visual",
-      detail:   scope.branding.wantsRebrand ? "Rebranding completo" : "Criação de identidade visual",
-      minPrice: bp.min,
-      maxPrice: bp.max,
+      detail:   (scope.branding.wantsRebrand ? "Rebranding completo" : "Criação de identidade visual") +
+                " · projeto orçado à parte",
+      ...ORCADO_A_PARTE,
       unit:     "projeto",
     });
-    totalMin += bp.min;
-    totalMax += bp.max;
     included.push("Identidade visual completa");
   }
 

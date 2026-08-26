@@ -78,10 +78,15 @@ describe("podeFechar — barra o que está abaixo do piso", () => {
     expect(podeFechar("stories", 50).pode).toBe(false);     // piso 59
     expect(podeFechar("copy", 20).pode).toBe(false);        // piso 29
     expect(podeFechar("auditoria", 89).pode).toBe(false);   // piso 99
-    expect(podeFechar("ritmo", 199).pode).toBe(false);      // piso 229
-    expect(podeFechar("presenca", 600).pode).toBe(false);   // piso 690
-    expect(podeFechar("conteudo", 990).pode).toBe(false);   // piso 1190
-    expect(podeFechar("crescimento", 1990).pode).toBe(false); // piso 2190
+    // ⚠️ TABELA ÚNICA (26/08/2026): os pisos dos planos passaram a ser
+    // DERIVADOS (78% do cheio) e o Crescimento saiu da tabela. Os números não
+    // são mais digitados aqui — a régua é "um real abaixo do piso não fecha",
+    // qualquer que seja o piso.
+    for (const id of ["ritmo", "presenca", "conteudo"] as const) {
+      const piso = TABELA_DE_PISO[id].piso;
+      expect(podeFechar(id, piso - 1).pode, `${id} fechou abaixo do piso`).toBe(false);
+      expect(podeFechar(id, piso).pode, `${id} não fechou NO piso`).toBe(true);
+    }
   });
 
   it("FAIL-CLOSED: item desconhecido barra, e o piso não é zero", () => {
@@ -131,7 +136,8 @@ describe("podeFechar — deixa passar o que está no piso ou acima", () => {
   });
 
   it("avisa para pedir moeda de troca sempre que houver desconto", () => {
-    const r = podeFechar("presenca", 700); // cheio 790, piso 690
+    // Um real acima do piso: há desconto, logo há contrapartida a pedir.
+    const r = podeFechar("presenca", TABELA_DE_PISO.presenca.piso + 1);
     expect(r.pode).toBe(true);
     expect(r.motivo).toMatch(/moeda de troca/i);
   });
@@ -146,9 +152,11 @@ describe("podeFechar — deixa passar o que está no piso ou acima", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("chegouNoPiso — parar de baixar preço e cortar escopo", () => {
   it("no piso, devolve a frase de saída com a versão menor", () => {
-    const s = chegouNoPiso("crescimento", 2190);
+    // O Crescimento saiu da tabela em 26/08/2026 — o maior degrau é o Conteúdo,
+    // e a versão menor dele é o degrau de baixo (Presença).
+    const s = chegouNoPiso("conteudo", TABELA_DE_PISO.conteudo.piso);
     expect(s.noPiso).toBe(true);
-    expect(s.versaoMenor).toContain("Conteúdo");
+    expect(s.versaoMenor).toContain("Presença");
     expect(s.frase).toMatch(/n[ãa]o desço mais/i);
     // A saída é escopo, nunca margem: a frase oferece outra coisa, não outro preço.
     expect(s.frase).toContain(s.versaoMenor);
@@ -204,10 +212,12 @@ describe("moedasDeTroca — desconto nunca sai de graça", () => {
   });
 
   it("barganhaPara calcula o desconto sozinho — o chamador não faz conta na mão", () => {
-    const { veredicto, barganha } = barganhaPara("crescimento", 2200); // cheio 2590
+    const cheio = TABELA_DE_PISO.conteudo.cheio;
+    const oferta = TABELA_DE_PISO.conteudo.piso + 10;
+    const { veredicto, barganha } = barganhaPara("conteudo", oferta);
     expect(veredicto.pode).toBe(true);
-    expect(barganha.desconto).toBe(390);
-    expect(barganha.quantidade).toBe(4);
+    // A conta é da função, não do teste: desconto é cheio − oferta.
+    expect(barganha.desconto).toBe(cheio - oferta);
   });
 
   it("desconto abaixo do piso não gera barganha nenhuma — não há acordo a fazer", () => {

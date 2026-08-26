@@ -10,6 +10,8 @@ import {
   conferirOferta,
   type CapacidadeDeProducao,
 } from "@/lib/agency/capacidade-de-producao";
+// A TABELA ÚNICA. O balcão vende avulso; a MENSALIDADE dele é a da casa.
+import { PLANOS } from "@/lib/agency/planos";
 
 export type SelfServeCategory = "social" | "video" | "design" | "traffic" | "balcao";
 
@@ -43,6 +45,10 @@ export interface MicroService {
   // mão — e prazo, como preço, mora em um lugar só.
   deliveryLabel?: string;
 }
+
+/** O Ritmo, lido da TABELA ÚNICA. O balcão não tem preço de mensalidade
+ *  próprio: a mensalidade da casa é uma só. */
+const RITMO = PLANOS.find((p) => p.id === "ritmo")!;
 
 export const SELF_SERVE_CATALOG: MicroService[] = [
   // ── Balcão ───────────────────────────────────────────────────────────────
@@ -164,18 +170,31 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
     category: "balcao",
   },
   {
+    // ── ESTE ITEM É O PLANO RITMO, VENDIDO NO BALCÃO (26/08/2026) ──────────
+    //
+    // Ele tinha preço PRÓPRIO (R$ 297 / piso R$ 229) e volume próprio (8
+    // peças) — a mesma mensalidade da vitrine, com outro número. Duas verdades
+    // sobre o mesmo produto: quem entrasse pelo balcão pagava um preço e quem
+    // entrasse pela página pagava outro, pelo mesmo mês de conteúdo.
+    //
+    // Agora ele É o Ritmo: preço, piso e volume vêm de `PLANOS`. O balcão
+    // continua sendo o lugar do AVULSO; este item é a porta de entrada do
+    // recorrente, e porta de entrada não pode cobrar diferente do que a casa
+    // cobra por dentro.
     id: "balcao-pacote-mes",
     requer: ["arte-estatica-jpeg", "texto-de-marca"],
-    label: "Pacote mês — 8 peças",
-    description: "Um mês de conteúdo: pauta, oito peças e calendário.",
+    label: `Pacote mês — ${RITMO.pecasPorMes} peças`,
+    description: `Um mês de conteúdo: pauta, ${RITMO.pecasPorMes} peças e calendário.`,
     deliverables: [
       "Pauta do mês enviada antes da produção",
-      "8 peças (posts e/ou carrosséis)",
+      `${RITMO.pecasPorMes} peças (posts e/ou carrosséis)`,
       "Calendário com a data de cada publicação",
       "Aprovação peça a peça no portal do cliente",
     ],
-    price: 297,
-    precoMinimo: 229,
+    price: RITMO.preco,
+    // O piso do recorrente é o mesmo da negociação (78% do cheio) — uma régua,
+    // não duas. Ver `negociacao.planosNegociaveis`.
+    precoMinimo: Math.round(RITMO.preco * 0.78),
     deliveryDays: 30,
     deliveryLabel: "mensal",
     category: "balcao",

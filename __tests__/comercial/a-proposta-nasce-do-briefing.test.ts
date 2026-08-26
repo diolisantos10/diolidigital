@@ -24,6 +24,7 @@
 // cliente pediu, cortado pelos limites LIDOS DA FONTE ÚNICA, e diz em voz alta
 // o que não cabe e o que cabe no lugar.
 
+import { PLANOS } from "@/lib/agency/planos";
 import { describe, it, expect } from "vitest";
 import { computeEstimate, SOCIAL_PACKAGES, detectPackage } from "@/lib/agency/live-calculator";
 import { MISTURA_DE_FORMATOS } from "@/lib/agency/execution/especialistas";
@@ -61,13 +62,15 @@ const paraOCliente = (e: ReturnType<typeof computeEstimate>) =>
 
 describe("o lado A da contradição: a tabela promete o que a cliente não pediu", () => {
   it("a faixa do plano é escolhida pelo volume — isso continua valendo", () => {
-    // A tabela é outra desde 25/08/2026 (três planos, aprovados pelo CEO) e a
-    // regra não mudou: o volume escolhe o plano, e o plano é PREÇO. 16 peças/mês
-    // caem no Crescimento (até 20).
-    expect(detectPackage(4 * 4)).toBe("crescimento");
-    const crescimento = SOCIAL_PACKAGES.find((p) => p.id === "crescimento")!;
-    expect(crescimento.postsPerWeek).toBe(5);
-    expect(crescimento.minPrice).toBe(990);
+    // A tabela é a ÚNICA desde 26/08/2026 (derivada de `PLANOS`) e a regra não
+    // mudou: o volume escolhe o plano, e o plano é PREÇO. 16 peças/mês caem no
+    // Presença (até 20).
+    expect(detectPackage(4 * 4)).toBe("presenca");
+    const presenca = SOCIAL_PACKAGES.find((p) => p.id === "presenca")!;
+    expect(presenca.postsPerWeek).toBe(5);
+    // O preço NÃO é digitado aqui: é o da vitrine, e a prova de que é o mesmo
+    // número mora em `a-tabela-e-uma-so.test.ts`.
+    expect(presenca.minPrice).toBe(PLANOS.find((p) => p.id === "presenca")!.preco);
   });
 });
 

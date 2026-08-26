@@ -14,6 +14,7 @@ import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
+import { precoDoItemEmTexto } from "@/lib/agency/comercial/preco-do-item";
 
 // ── Public types ───────────────────────────────────────────────────────────────
 
@@ -360,8 +361,8 @@ function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
         <div key={i} className="flex items-start gap-2 text-[11px]">
           <span className="text-[var(--text-muted)] flex-1 leading-relaxed">{item.label}</span>
           <span className="text-[var(--text-secondary)] shrink-0 text-right">
-            {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}
-            <span className="text-[var(--text-subtle)]">/{item.unit}</span>
+            {precoDoItemEmTexto(item, fmtBRL)}
+            {item.minPrice !== null && <span className="text-[var(--text-subtle)]">/{item.unit}</span>}
           </span>
         </div>
       ))}

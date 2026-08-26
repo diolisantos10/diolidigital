@@ -190,8 +190,17 @@ export interface BriefingScope {
 export interface EstimateItem {
   label: string;
   detail: string;
-  minPrice: number;
-  maxPrice: number;
+  /**
+   * `null` = ORÇADO À PARTE, e nunca zero (26/08/2026).
+   *
+   * A tabela única só precifica os PLANOS. O que a vitrine lista sem número —
+   * tráfego pago, identidade visual, site — entra na proposta como item COM
+   * escopo e SEM preço: cotar um valor que a vitrine não promete é "duas
+   * tabelas vivas" com outro rosto. E zero seria pior que `null`, porque zero
+   * SOMA — e somar zero diz ao cliente que aquilo é de graça.
+   */
+  minPrice: number | null;
+  maxPrice: number | null;
   unit: string;
 }
 

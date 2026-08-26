@@ -84,12 +84,15 @@ describe("a catraca: a dívida é ZERO, e o registro tem de mostrar isso", () =>
     });
   }
 
-  it("a tabela é a aprovada pelo CEO: 590/12, 990/20, 1790/32, sem vídeo", () => {
-    expect(SOCIAL_PACKAGES.map((p) => [p.id, p.minPrice, p.maxPrice, prometidoPorMes(p)])).toEqual([
-      ["essencial", 590, 590, 12],
-      ["crescimento", 990, 990, 20],
-      ["completo", 1790, 1790, 32],
-    ]);
+  it("a tabela é a ÚNICA (26/08/2026) — derivada de `PLANOS`, e o teto encosta na capacidade", () => {
+    // ⚠️ NADA AQUI É DIGITADO. A fotografia anterior travava 590/12 · 990/20 ·
+    // 1790/32 — os números da segunda tabela, que não existiam na vitrine.
+    // Repetir esse erro seria travar os números NOVOS num teste: a régua passa
+    // a ser a DERIVAÇÃO, e o número, consequência.
+    const daVitrine = PLANOS.filter((p) => p.pecasPorMes > 0);
+    expect(SOCIAL_PACKAGES.map((p) => [p.id, p.minPrice, p.maxPrice, prometidoPorMes(p)])).toEqual(
+      daVitrine.map((p) => [p.id, p.preco, p.preco, p.pecasPorMes]),
+    );
     // Preço FECHADO, não faixa: proposta automática com faixa é o vendedor
     // decidindo sozinho quanto cobrar.
     for (const p of SOCIAL_PACKAGES) expect(p.minPrice).toBe(p.maxPrice);

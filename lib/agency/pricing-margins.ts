@@ -15,6 +15,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { SOCIAL_PACKAGES, type SocialPackage } from "./live-calculator";
+import { PLANOS } from "./planos";
+import { PRECO_DE_TABELA_USD } from "@/lib/ai/precos";
 
 // ── Margin profile ────────────────────────────────────────────────────────────
 // For each sellable line, we model:
@@ -46,18 +48,52 @@ export interface MarginProfile {
 // `floorPrice` é ~70% do preço de tabela: é piso COMERCIAL (o quanto a casa
 // aceita descontar), não piso de custo — a distância entre os dois é o que
 // torna o desconto possível sem virar prejuízo.
-export const SOCIAL_MARGINS: Record<SocialPackage, MarginProfile> = {
-  essencial:   { costBasis: 60,  floorPrice: 420,  targetPrice: 590  },
-  crescimento: { costBasis: 90,  floorPrice: 690,  targetPrice: 990  },
-  completo:    { costBasis: 140, floorPrice: 1250, targetPrice: 1790 },
-};
+// ── ⚠️ DERIVADO DA TABELA ÚNICA (26/08/2026) ────────────────────────────────
+//
+// `targetPrice` era digitado aqui: 590 · 990 · 1790 — a MESMA segunda tabela de
+// `live-calculator`, numa terceira cópia. Margem calculada contra um preço que
+// a casa não cobra não mede margem nenhuma.
+//
+// Agora o preço-alvo é o preço da vitrine, e o `costBasis` é a conta de IA de
+// verdade: `PRECO_DE_TABELA_USD.quadrada` (US$ 0,167 por peça) × as peças do
+// plano, convertido pela taxa declarada abaixo — não mais um número redondo
+// sem procedência.
+//
+// ⚠️ E CONTINUA VALENDO o que o cabeçalho já dizia: **hora de gente NÃO está
+// medida nesta casa** e não está somada. É o custo real do Presença e do
+// Conteúdo, e ele é dívida declarada, não número omitido.
 
-// Add-on departments.
-export const ADDON_MARGINS = {
-  trafficMgmt:  { costBasis: 220, floorPrice: 450,  targetPrice: 1200 },
-  branding:     { costBasis: 480, floorPrice: 1050, targetPrice: 2500 },
-  brandingFull: { costBasis: 820, floorPrice: 1750, targetPrice: 4000 },
-} as const;
+/** A taxa usada para trazer o custo de IA (cobrado em USD) para a moeda da
+ *  tabela. Declarada como constante para a conta poder ser refeita por quem
+ *  ler — número de câmbio escondido dentro de uma multiplicação é palpite. */
+export const USD_EM_REAIS = 5.6;
+
+/** O custo de IA de imagem de um plano, no mês cheio, em reais. */
+function custoDeIaDoPlano(pecasPorMes: number): number {
+  return Math.round(pecasPorMes * PRECO_DE_TABELA_USD.quadrada * USD_EM_REAIS);
+}
+
+export const SOCIAL_MARGINS: Record<SocialPackage, MarginProfile> = Object.fromEntries(
+  PLANOS.filter((p) => p.pecasPorMes > 0).map((p) => [
+    p.id,
+    {
+      costBasis: custoDeIaDoPlano(p.pecasPorMes),
+      // Piso COMERCIAL: ~70% do preço de tabela, como sempre foi. É o quanto a
+      // casa aceita descontar — não é piso de custo, e a distância entre os
+      // dois é o que torna o desconto possível sem virar prejuízo.
+      floorPrice: Math.round(p.preco * 0.7),
+      targetPrice: p.preco,
+    },
+  ]),
+) as Record<SocialPackage, MarginProfile>;
+
+// ── OS ADICIONAIS SAÍRAM DAQUI JUNTO COM O PREÇO DELES ──────────────────────
+//
+// `ADDON_MARGINS` guardava alvo de R$ 1.200 (tráfego), R$ 2.500 e R$ 4.000
+// (identidade) — os mesmos quatro preços que a esteira parou de cotar, porque
+// a vitrine não os promete. Margem sobre preço que a casa não cobra é conta
+// sobre ficção. Quando esses projetos ganharem preço de tabela, a margem deles
+// nasce derivada, como a dos planos.
 
 // ── Discount levers ───────────────────────────────────────────────────────────
 // Legitimate reasons the SDR may apply a discount. Each has a max percentage.
@@ -173,17 +209,15 @@ export function computeDealFloor(args: {
     add(pkg?.label ?? "Plano Social", SOCIAL_MARGINS[args.socialPackage]);
   }
   // Extra reels: thin-margin add-on (~R$120 cost each, floor ~R$200).
-  if (args.extraReels && args.extraReels > 0) {
-    const cost = args.extraReels * 120;
-    const floor = args.extraReels * 200;
-    const target = args.extraReels * 400;
-    lines.push({ label: `Reels extras (${args.extraReels})`, cost, floor, target });
-    totalCost += cost; totalFloor += floor; totalTarget += target;
-  }
-  if (args.wantsTraffic) add("Tráfego Pago — gestão", ADDON_MARGINS.trafficMgmt);
-  if (args.wantsBranding) {
-    add("Identidade Visual", args.wantsRebrand ? ADDON_MARGINS.brandingFull : ADDON_MARGINS.branding);
-  }
+  // ── OS TRÊS ADICIONAIS SAÍRAM DA CONTA (26/08/2026) ───────────────────────
+  //
+  // Reel, tráfego pago e identidade visual somavam margem aqui sobre preços
+  // (R$ 400/reel, R$ 1.200, R$ 2.500/4.000) que a vitrine não pratica e que a
+  // esteira parou de cotar. Reel a casa nem produz.
+  //
+  // O que sobra é o que a casa VENDE: os planos. Uma margem a menos, e ela era
+  // sobre ficção — margem inventada é pior que margem faltando, porque decide
+  // desconto de verdade em cima de um número que não existe.
 
   return { totalCost, totalFloor, totalTarget, lines };
 }

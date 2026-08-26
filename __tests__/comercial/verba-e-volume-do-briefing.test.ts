@@ -108,7 +108,9 @@ describe("volume zerado não vira orçamento", () => {
     );
 
     expect(e.travadaPor).toBeUndefined();
-    expect(e.items.map((i) => i.label)).toContain("Plano Completo");
+    // O topo da tabela — pelo nome que ela tem hoje, lido dela mesma.
+    const maior = PLANOS.filter((x) => x.pecasPorMes > 0).at(-1)!;
+    expect(e.items.map((i) => i.label)).toContain(`Plano ${maior.nome}`);
     expect(e.totalMin).toBeGreaterThan(0);
   });
 
@@ -146,8 +148,14 @@ describe("verba declarada não pode ser ignorada em silêncio", () => {
     // para você" — toda faixa tem produto nesta casa.
     expect(nomes).toContain("Pulso");
     expect(nomes).toContain("Ritmo");
-    // O que NÃO cabe não é oferecido: R$ 790 não entra numa verba de R$ 500.
-    expect(nomes).not.toContain("Presença");
+    // ⚠️ A REGRA É DE NÚMERO, NÃO DE NOME (26/08/2026). Ela dizia "não pode
+    // conter Presença" porque o Presença custava R$ 790; hoje custa R$ 490 e
+    // CABE — travar o nome faria o teste acusar a casa de oferecer, certo, um
+    // degrau que o cliente pode pagar.
+    for (const p of c!.cabemNaVerba) expect(p.preco, p.nome).toBeLessThanOrEqual(500);
+    for (const acima of PLANOS.filter((p) => p.preco > 500)) {
+      expect(nomes, `${acima.nome} custa ${acima.preco}`).not.toContain(acima.nome);
+    }
   });
 
   it("NUNCA inventa preço — todo valor ofertado vem da tabela do conselho", () => {
@@ -193,11 +201,15 @@ describe("verba declarada não pode ser ignorada em silêncio", () => {
       }),
     );
 
-    // Essencial: piso R$ 600 cheio → R$ 360 com 40%. Cabe em R$ 1.500 dos dois
-    // jeitos, mas o que importa é a conta usar o descontado.
+    // O que importa é a conta usar o DESCONTADO, não o cheio.
     expect(e.discountedMin).toBeLessThan(e.totalMin);
-    expect(confrontoDeVerba("entre R$ 150 e R$ 500", e.discountedMin!)).toBeNull();
-    expect(confrontoDeVerba("entre R$ 150 e R$ 500", e.totalMin)).toBeTruthy();
+    // ⚠️ Os limites são derivados do próprio total (26/08/2026): com a tabela
+    // nova o preço cheio já cabe em R$ 500, e uma faixa digitada faria o teste
+    // medir a tabela em vez de medir a REGRA. A régua é: existe um teto em que
+    // o cheio estoura e o descontado não — e o confronto tem de ver os dois.
+    const teto = `entre R$ 150 e R$ ${Math.floor((e.discountedMin! + e.totalMin) / 2)}`;
+    expect(confrontoDeVerba(teto, e.discountedMin!)).toBeNull();
+    expect(confrontoDeVerba(teto, e.totalMin)).toBeTruthy();
   });
 
   it("o texto da verba não constrange e nunca deixa o cliente sem próximo passo", () => {

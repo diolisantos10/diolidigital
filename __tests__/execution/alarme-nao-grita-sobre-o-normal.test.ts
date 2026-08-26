@@ -120,18 +120,42 @@ describe("o alarme do orçamento", () => {
   });
 });
 
-describe("o alarme dos PREÇOS — o oposto: anormal contínuo grita sempre", () => {
-  it("enquanto houver DUAS tabelas de preço vivas, a casa grita — com dono e próxima ação", async () => {
+describe("o alarme dos PREÇOS — ele existe, e agora fica CALADO", () => {
+  // ⚠️ ESTE TESTE MUDOU DE SINAL EM 26/08/2026, e a mudança é a notícia.
+  //
+  // Ele exigia que a casa gritasse a cada batida — e gritava com razão: a
+  // esteira cotava 590/990/1790, preços que não existiam em `/planos`. O
+  // alarme era o certo a fazer enquanto a decisão fosse do CEO.
+  //
+  // A decisão foi tomada (tabela única, `planos.ts`) e o conserto não foi
+  // "concordar os números": `SOCIAL_PACKAGES` passou a ser DERIVADO da vitrine.
+  // Não há mais dois números para divergir, então o alarme não tem mais o que
+  // dizer — e **alarme calado por ausência de defeito é o desfecho certo**, ao
+  // contrário de alarme calado por alguém tê-lo desligado.
+  //
+  // A trava de verdade mudou de lugar, como a ordem do CEO mandou: é código,
+  // em `__tests__/comercial/a-tabela-e-uma-so.test.ts`, provada por mutação.
+  // Este teste guarda a outra metade: que a PERNA continua no relógio, pronta
+  // para gritar se alguém reintroduzir uma tabela paralela.
+  it("com UMA tabela só, o alarme de preços não dispara", async () => {
     entregarOrcamentosPendentes.mockResolvedValue(rodada(0, 0));
     await baterORelogio();
     const precos = anotado().falhas.filter((f) => f.perna === "precos");
     expect(
       precos,
-      "a esteira cota preços que não existem em /planos; quem decide qual tabela vale é o CEO",
-    ).toHaveLength(1);
-    expect(precos[0]!.erro).toMatch(/não existem na página pública \/planos/);
-    expect(precos[0]!.erro).toMatch(/Dono: o CEO/);
-    expect(precos[0]!.erro).toMatch(/Próxima ação:/);
+      "nada divergiu, e mesmo assim o alarme de preço disparou — ou a perna quebrou, ou voltou uma segunda tabela",
+    ).toHaveLength(0);
+  });
+
+  it("e a perna CONTINUA no relógio — a régua dela ainda pega a divergência", async () => {
+    // A prova de que o silêncio acima é ausência de defeito, e não perna morta:
+    // a mesma pergunta, feita sobre uma tabela inventada, ainda acusa.
+    const { SOCIAL_PACKAGES } = await import("@/lib/agency/live-calculator");
+    const { PLANOS } = await import("@/lib/agency/planos");
+    const daVitrine = new Set(PLANOS.map((p) => p.preco));
+    const inventada = [...SOCIAL_PACKAGES, { label: "Plano Fantasma", minPrice: 4990, maxPrice: 4990 }];
+    const fora = inventada.filter((p) => !daVitrine.has(p.minPrice) || !daVitrine.has(p.maxPrice));
+    expect(fora.map((p) => p.label)).toEqual(["Plano Fantasma"]);
   });
 });
 

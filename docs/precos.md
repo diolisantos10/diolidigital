@@ -6,13 +6,22 @@
 >
 > | O quê | Onde |
 > |---|---|
-> | Os 5 planos (nome, preço, implantação, escopo) | **`lib/agency/planos.ts`** |
-> | Pisos de negociação e moedas de troca | **`lib/agency/comercial/negociacao.ts`** |
+> | Os 4 planos (nome, preço, implantação, peças/mês, escopo) | **`lib/agency/planos.ts`** |
+> | Pisos de negociação e moedas de troca (planos DERIVADOS de `planos.ts`) | **`lib/agency/comercial/negociacao.ts`** |
+> | O que a proposta automática cota (DERIVADO de `planos.ts`) | **`lib/agency/live-calculator.ts`** |
+> | Margem por plano (DERIVADA de `planos.ts`) | **`lib/agency/pricing-margins.ts`** |
 > | O balcão (post R$ 79, carrossel R$ 129) | **`lib/agency/self-serve-catalog.ts`** |
 >
-> **Mudou um preço? Mude nos DOIS, no mesmo commit.** Não é disciplina, é
-> portão: `__tests__/comercial/preco-uma-fonte-so.test.ts` lê a tabela "Os cinco
-> degraus" daqui, compara com `PLANOS` e **reprova a build** se divergirem.
+> **Mudou um preço? Mude em `planos.ts` e neste documento, no mesmo commit — e
+> em mais lugar nenhum, porque não há mais lugar nenhum.** Desde 26/08/2026 as
+> tabelas concorrentes (`SOCIAL_PACKAGES`, os adicionais da calculadora,
+> `SOCIAL_MARGINS`, o `cheio` de `TABELA_DE_PISO`) são **derivadas**, não
+> escritas: não existe edição possível que as faça divergir.
+>
+> Não é disciplina, é portão: `preco-uma-fonte-so.test.ts` lê a tabela "Os
+> quatro degraus" daqui e compara com `PLANOS`; `a-tabela-e-uma-so.test.ts`
+> prova a derivação por mutação e **quebra** se um preço que a esteira cota não
+> existir na vitrine.
 >
 > ⚠️ **O balcão NÃO contém os 5 planos, e isso é de propósito** — são produtos
 > diferentes (ver "Preço por serviço", abaixo). Uma auditoria já leu o balcão
@@ -38,24 +47,59 @@ Também ficam fora, pelo mesmo motivo (custo que não é conteúdo): **posiciona
 e identidade visual** (projeto com começo e fim), **site e landing** e a **verba
 de mídia**.
 
-## Os cinco degraus
+## Os quatro degraus
 
-| Plano | Preço | Implantação | O que muda em relação ao degrau de baixo |
-|---|---|---|---|
-| **Pulso** | R$ 49/mês | isenta | Observa, mede e avisa. Zero peça, zero hora humana. |
-| **Ritmo** | R$ 297/mês | R$ 390 | **+ 8 peças/mês** prontas e aprovadas no portal. **Você publica.** Ainda zero hora humana. |
-| **Presença** | R$ 790/mês | R$ 1.290 | + 10 peças, **nós publicamos**, Google gerenciado, avaliações e **um humano no atendimento**. |
-| **Conteúdo** | R$ 1.390/mês | R$ 1.900 | + 14 peças, stories, **roteiros de reels**, plano de medição, reunião mensal. |
-| **Crescimento** | R$ 2.590/mês | R$ 2.900 | + 18 peças, criativos de anúncio e a campanha desenhada — rodando **na conta do cliente**. |
+> **Fechada em 26/08/2026 pelo Diretor Geral**, por delegação expressa do CEO
+> (*"estou tirando essa missão das minhas costas e colocando na tua"*), com uma
+> régua só: **agência nova, sem fama nenhuma — preço de entrada, abaixo do
+> mercado, por decisão e não por acaso.**
 
-**A regra que sustenta a base da tabela, e ela é inegociável: gente entra a
-partir do Presença.** Abaixo disso a operação é máquina, e é só por isso que
-R$ 49 e R$ 297 podem existir sem dar prejuízo. Se a publicação do Ritmo virar
-nossa, o degrau quebra.
+| Plano | Preço | Implantação | Peças/mês | Mercado (ago/2026) | O que muda em relação ao degrau de baixo |
+|---|---|---|---|---|---|
+| **Pulso** | R$ 49/mês | isenta | 0 | não existe | Observa, mede e avisa. Zero peça, zero hora humana. |
+| **Ritmo** | R$ 290/mês | isenta | 12 | R$ 800–1.500 (básico) | **+ 12 peças/mês** prontas e aprovadas no portal. **Você publica.** Ainda zero hora humana. |
+| **Presença** | R$ 490/mês | R$ 390 | 20 | R$ 800–1.500 | + 20 peças, **nós publicamos**, avaliações e **um humano no atendimento**. |
+| **Conteúdo** | R$ 790/mês | R$ 690 | 36 | R$ 2.000–4.000 (esse volume) | + 36 peças — a capacidade INTEIRA da casa —, stories, plano de medição, reunião mensal. |
 
-**Por que não há plano de R$ 4.990:** ele exigiria a agência operando o Meta Ads
-todo dia dentro da conta do cliente, e a conta de anúncios da casa está restrita
-desde 03/08. Vender operação diária hoje é vender o que não se pode entregar.
+**Peça extra: R$ 90** (mercado: R$ 120–190).
+
+### Por que abaixo, degrau a degrau
+
+O mercado brasileiro em agosto/2026 cobra **R$ 800 a R$ 1.500/mês** pela gestão
+básica de redes sociais de um pequeno negócio local, e **R$ 2.000 a R$ 4.000**
+para média empresa. **O teto desta tabela (R$ 790) fica abaixo do piso do
+mercado (R$ 800)** — não é um degrau que ficou barato, é a tabela inteira
+posicionada abaixo do menor preço praticado. É o que "pegar cliente barato"
+quer dizer para quem não tem nome.
+
+### O teto de volume é a capacidade provada
+
+A casa produz **3 levas × 12 = 36 peças/mês**. O degrau mais alto entrega
+exatamente 36, e nenhum plano passa disso — *vitrine é promessa, e vender mais
+do que se produz é a mesma dívida com outro rosto*.
+
+### A conta fecha
+
+Cada peça custa ~US$ 0,17 de IA de imagem (~R$ 0,95 a R$ 5,60/US$):
+
+| Plano | Peças | Custo de IA/mês | Receita | % da receita |
+|---|---|---|---|---|
+| Ritmo | 12 | ~R$ 11 | R$ 290 | 3,8% |
+| Presença | 20 | ~R$ 19 | R$ 490 | 3,9% |
+| Conteúdo | 36 | ~R$ 33 | R$ 790 | 4,2% |
+
+⚠️ **O que NÃO está nesta conta:** a hora humana do Presença para cima. Ela é o
+custo real desses dois degraus e **não há medição dela nesta casa** — é dívida
+declarada, não número omitido.
+
+**A regra que sustenta a base da tabela: gente entra a partir do Presença.**
+Abaixo disso a operação é máquina, e é só por isso que R$ 49 e R$ 290 podem
+existir sem dar prejuízo. Se a publicação do Ritmo virar nossa, o degrau quebra.
+
+**Por que o Crescimento (R$ 2.590) saiu:** R$ 2.590 é a faixa de média empresa —
+preço de quem já tem nome, e a tabela inteira diz o contrário sobre quem esta
+casa é. O que ele vendia (campanha paga desenhada) continua existindo como
+projeto orçado à parte, sem preço de tabela.
 
 O escopo numerado de cada plano, com o que NÃO está incluído item a item, está
 na vitrine.

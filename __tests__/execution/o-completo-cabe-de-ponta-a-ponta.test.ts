@@ -26,6 +26,7 @@
 // real, e a resposta do dublê é conferida pelo contrato real: entrega fora do
 // tamanho da leva é reprovada aqui como seria em produção.
 
+import { PLANOS } from "@/lib/agency/planos";
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { execSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
@@ -160,10 +161,13 @@ async function avancarPara(diaDoCiclo: number) {
 
 describe("o CONTRATO aceita 32 peças", () => {
   it("o briefing de 8 posts/semana escolhe o Completo, e o Completo são 32/mês", () => {
-    expect(detectPackage(8 * 4)).toBe("completo");
-    const completo = SOCIAL_PACKAGES.find((p) => p.id === "completo")!;
-    expect(completo.postsPerMonth).toBe(32);
-    expect(completo.minPrice).toBe(1790);
+    // O maior degrau passou a se chamar Conteúdo (tabela única, 26/08/2026) e
+    // entrega 36 — a capacidade INTEIRA da casa, não 32. 32 continua caindo
+    // nele, porque ele é o maior que a casa faz.
+    expect(detectPackage(8 * 4)).toBe("conteudo");
+    const maior = SOCIAL_PACKAGES.find((p) => p.id === "conteudo")!;
+    expect(maior.postsPerMonth).toBe(36);
+    expect(maior.minPrice).toBe(PLANOS.find((p) => p.id === "conteudo")!.preco);
   });
 
   it("a casa LÊ 32 peças do briefing e as reparte em três levas", () => {

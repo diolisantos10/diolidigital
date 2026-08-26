@@ -35,7 +35,8 @@
 // pedido é sempre o que não custa margem (pagamento à vista, prazo). Quem
 // resolve a contradição no papel é o Diretor com o CEO — está em aberto.
 
-import { precoEmReais } from "../planos";
+import { precoEmReais, PLANOS } from "../planos";
+import { SELF_SERVE_CATALOG } from "../self-serve-catalog";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. FAIXAS DE INVESTIMENTO — o que se oferece para cada bolso
@@ -165,10 +166,11 @@ export type ItemNegociavel =
   | "stories"
   | "copy"
   | "auditoria"
+  // ⚠️ Os planos vêm da TABELA ÚNICA. `crescimento` saiu em 26/08/2026, junto
+  // com o degrau — não se negocia o que não se vende.
   | "ritmo"
   | "presenca"
-  | "conteudo"
-  | "crescimento";
+  | "conteudo";
 
 export interface LinhaDaTabela {
   id: ItemNegociavel;
@@ -186,45 +188,96 @@ export interface LinhaDaTabela {
 }
 
 export const TABELA_DE_PISO: Record<ItemNegociavel, LinhaDaTabela> = {
-  post: {
-    id: "post", nome: "Post único com arte e legenda", cheio: 79, piso: 49, recorrente: false,
-    versaoMenor: "só a legenda pronta, com a arte por conta dele",
-  },
-  carrossel: {
-    id: "carrossel", nome: "Carrossel", cheio: 129, piso: 79, recorrente: false,
-    versaoMenor: "um post único no lugar do carrossel",
-  },
-  stories: {
-    id: "stories", nome: "Sequência de stories", cheio: 99, piso: 59, recorrente: false,
-    versaoMenor: "uma sequência mais curta, com menos telas",
-  },
-  copy: {
-    id: "copy", nome: "Copy / legenda", cheio: 39, piso: 29, recorrente: false,
-    // A copy é o item mais barato da casa: não existe degrau abaixo dela.
-    // Aqui a saída é prazo, não escopo — e isso está dito com todas as letras.
-    versaoMenor: "sem versão menor: a saída é prazo maior de entrega, não preço",
-  },
-  auditoria: {
-    id: "auditoria", nome: "Auditoria de perfil", cheio: 149, piso: 99, recorrente: false,
-    versaoMenor: "uma leitura mais curta, só com o diagnóstico, sem o plano de ação",
-  },
-  ritmo: {
-    id: "ritmo", nome: "Plano Ritmo", cheio: 297, piso: 229, recorrente: true,
-    versaoMenor: "menos peças por mês dentro do próprio Ritmo, ou o Pulso (R$ 49) para começar medindo",
-  },
-  presenca: {
-    id: "presenca", nome: "Plano Presença", cheio: 790, piso: 690, recorrente: true,
-    versaoMenor: "o Ritmo (R$ 297), em que ele mesmo publica",
-  },
-  conteudo: {
-    id: "conteudo", nome: "Plano Conteúdo", cheio: 1390, piso: 1190, recorrente: true,
-    versaoMenor: "o Presença (R$ 790), sem stories e sem roteiro de reels",
-  },
-  crescimento: {
-    id: "crescimento", nome: "Plano Crescimento", cheio: 2590, piso: 2190, recorrente: true,
-    versaoMenor: "o Conteúdo (R$ 1.390), sem os criativos de anúncio",
-  },
+  // ── OS AVULSOS SÃO DERIVADOS DO BALCÃO (26/08/2026) ──────────────────────
+  //
+  // `cheio` e `piso` eram digitados aqui — 79/49, 129/79, 99/59, 39/29,
+  // 149/99 — e são, número por número, o `price` e o `precoMinimo` do mesmo
+  // item em `self-serve-catalog.ts`. Concordavam por sorte. Agora vêm de lá,
+  // pela mesma razão que os planos vêm de `planos.ts`: verdade escrita em dois
+  // lugares já está errada em um deles.
+  ...(avulsoDoBalcao("post", "balcao-post-feed", "Post único com arte e legenda",
+    "só a legenda pronta, com a arte por conta dele") as Record<"post", LinhaDaTabela>),
+  ...(avulsoDoBalcao("carrossel", "balcao-carrossel-5", "Carrossel",
+    "um post único no lugar do carrossel") as Record<"carrossel", LinhaDaTabela>),
+  ...(avulsoDoBalcao("stories", "balcao-4-stories", "Sequência de stories",
+    "uma sequência mais curta, com menos telas") as Record<"stories", LinhaDaTabela>),
+  // A copy é o item mais barato da casa: não existe degrau abaixo dela. Aqui a
+  // saída é prazo, não escopo — e isso está dito com todas as letras.
+  ...(avulsoDoBalcao("copy", "balcao-legenda", "Copy / legenda",
+    "sem versão menor: a saída é prazo maior de entrega, não preço") as Record<"copy", LinhaDaTabela>),
+  ...(avulsoDoBalcao("auditoria", "balcao-auditoria-perfil", "Auditoria de perfil",
+    "uma leitura mais curta, só com o diagnóstico, sem o plano de ação") as Record<"auditoria", LinhaDaTabela>),
+  // ── OS PLANOS SÃO DERIVADOS DA TABELA ÚNICA (26/08/2026) ─────────────────
+  //
+  // `cheio` era digitado aqui: 297 · 790 · 1390 · 2590 — uma quarta cópia dos
+  // preços da vitrine. Ela CONCORDAVA com a vitrine por sorte; nada a obrigava.
+  // No dia em que um preço mudasse num lugar só, o comercial negociaria contra
+  // um "cheio" que ninguém cobra — e desconto sobre preço errado é prejuízo com
+  // aparência de disciplina.
+  //
+  // `piso` é ~78% do cheio: piso COMERCIAL, o quanto a casa aceita descontar
+  // num recorrente. Derivado do mesmo número, pela mesma razão.
+  //
+  // O plano Crescimento saiu da tabela (ver `planos.ts`) e sai daqui junto: não
+  // se negocia o que não se vende.
+  ...(planosNegociaveis() as Record<"ritmo" | "presenca" | "conteudo", LinhaDaTabela>),
 };
+
+/**
+ * Uma linha de negociação a partir do item do BALCÃO. Preço cheio e piso saem
+ * do catálogo; o que mora aqui é o vocabulário da negociação (o nome que o
+ * comercial usa e a versão menor que ele oferece no lugar do desconto).
+ *
+ * Item sem `precoMinimo` no catálogo NÃO ganha piso inventado: cai em 70% do
+ * cheio, que é a mesma régua comercial dos planos — e nunca em zero, que
+ * autorizaria dar o trabalho de graça.
+ */
+function avulsoDoBalcao(
+  id: ItemNegociavel,
+  idNoCatalogo: string,
+  nome: string,
+  versaoMenor: string,
+): Record<string, LinhaDaTabela> {
+  const item = SELF_SERVE_CATALOG.find((s) => s.id === idNoCatalogo);
+  if (!item) {
+    // Fail-closed com barulho: um id de catálogo que sumiu não pode virar uma
+    // linha de negociação silenciosamente ausente — o comercial pediria piso e
+    // receberia `undefined`, que `dentroDoPiso` já trata como recusa.
+    throw new Error(`negociacao.ts: o item "${idNoCatalogo}" não existe em SELF_SERVE_CATALOG`);
+  }
+  return {
+    [id]: {
+      id,
+      nome,
+      cheio: item.price,
+      piso: item.precoMinimo ?? Math.round(item.price * 0.7),
+      recorrente: false,
+      versaoMenor,
+    } satisfies LinhaDaTabela,
+  };
+}
+
+/** Uma linha de negociação por plano que ENTREGA PEÇA — o Pulso não se negocia
+ *  (R$ 49 não tem degrau abaixo e não há escopo a tirar). */
+function planosNegociaveis(): Record<string, LinhaDaTabela> {
+  const comPeca = PLANOS.filter((p) => p.pecasPorMes > 0);
+  return Object.fromEntries(
+    comPeca.map((p: (typeof PLANOS)[number], i: number) => {
+      const abaixo = i > 0 ? comPeca[i - 1]! : PLANOS[0]!;
+      return [
+        p.id,
+        {
+          id: p.id as ItemNegociavel,
+          nome: `Plano ${p.nome}`,
+          cheio: p.preco,
+          piso: Math.round(p.preco * 0.78),
+          recorrente: true,
+          versaoMenor: `o ${abaixo.nome} (${precoEmReais(abaixo.preco)})`,
+        } satisfies LinhaDaTabela,
+      ];
+    }),
+  );
+}
 
 export interface VeredictoDePreco {
   pode: boolean;
