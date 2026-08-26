@@ -49,6 +49,7 @@ describe("o histórico que chega ao provedor", () => {
         { role: "user", content: undefined as unknown as string },
         { role: "assistant", content: "resposta anterior" },
       ],
+      agentId: "comercial-sdr",
       chaveJaResolvida: { provider: "claude", apiKey: "k", model: "claude-haiku-4-5-20251001" },
     });
 
@@ -68,6 +69,7 @@ describe("o histórico que chega ao provedor", () => {
       system: "s",
       user: "a fala da vez",
       historico: [{ role: "user", content: "   \n  " }],
+      agentId: "comercial-sdr",
       chaveJaResolvida: { provider: "claude", apiKey: "k", model: "claude-haiku-4-5-20251001" },
     });
     expect(corpoEnviado().messages).toHaveLength(1);
@@ -83,6 +85,7 @@ describe("o histórico que chega ao provedor", () => {
         { role: "user", content: "a" },
         { role: "assistant", content: "b" },
       ],
+      agentId: "comercial-sdr",
       chaveJaResolvida: { provider: "claude", apiKey: "k", model: "claude-haiku-4-5-20251001" },
     });
     expect(corpoEnviado().messages).toEqual([
@@ -96,6 +99,7 @@ describe("o histórico que chega ao provedor", () => {
     await generate({
       system: "s",
       user: "c",
+      agentId: "comercial-sdr",
       chaveJaResolvida: { provider: "claude", apiKey: "k", model: "claude-haiku-4-5-20251001" },
     });
     expect(corpoEnviado().messages).toEqual([{ role: "user", content: "c" }]);
