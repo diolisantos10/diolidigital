@@ -16,8 +16,9 @@
 // dela: ela mede o FUNDO CRU, antes de a marca ser composta por cima. O
 // raciocínio está medido — 29× de separação no fundo cru contra 1,2× na peça já
 // composta —, e mover aquele portão para a peça composta reprovaria a casa
-// inteira. Medido nesta árvore, sobre as 12 peças vivas em produção: na peça
-// COMPOSTA elas têm de 242 a 568 cores distintas e até 48% de cor dominante,
+// inteira. Medido nesta árvore, sobre as 14 peças vivas GUARDADAS EM
+// `docs/entregas/pecas-vivas-27-08/` (Fase 2): na peça COMPOSTA elas têm de
+// **159 a 532** cores distintas e até 35% de cor dominante,
 // contra os pisos de 600 cores e 45% do portão do fundo. **O portão do fundo
 // reprovaria TODAS as peças boas da casa.**
 //
@@ -33,11 +34,12 @@
 //
 //   | amostra                          | cores | dominante | textura |
 //   |----------------------------------|-------|-----------|---------|
-//   | 12 peças REAIS (pior caso)       |   163 |     0,353 |  0,0066 |
-//   | 12 peças REAIS (melhor caso)     |   532 |     0,079 |  0,0181 |
+//   | 14 peças REAIS (pior caso)       |   159 |     0,353 |  0,0066 |
+//   | 14 peças REAIS (melhor caso)     |   532 |     0,079 |  0,0181 |
+//   | mutante: degradê (pior caso)     |    52 |         — |  0,0033 |
 //   | mutante: a foto NÃO entrou       |     1 |     1,000 |  0,0000 |
 //
-// Não é "por pouco": é 163 contra 1. Os pisos ficam frouxos de propósito, pela
+// Não é "por pouco": é 159 contra 1. Os pisos ficam frouxos de propósito, pela
 // mesma razão escrita em `trava-de-fundo.ts` — régua rente ao caso conhecido
 // reprova a próxima peça legítima e acaba desligada por quem não sabe o que ela
 // protege.
@@ -81,14 +83,62 @@ export interface MedidaDaPecaFinal {
 
 // ── OS PISOS ────────────────────────────────────────────────────────────────
 //
-// Calibrados contra as 12 peças REAIS que estavam em produção em 26/08/2026 e
-// contra um mutante construído a partir de uma delas — nunca contra imagem
-// inventada para o teste passar.
-/** Piso de cores na faixa da foto. Pior peça real: 163. */
+// Calibrados contra as **14 peças REAIS** de produção guardadas em
+// `docs/entregas/pecas-vivas-27-08/`, e contra mutantes construídos a partir de
+// CADA UMA delas — nunca contra imagem inventada para o teste passar.
+//
+// ── A DÍVIDA DO DEGRADÊ, PAGA (Fase 2, 27/08/2026) ─────────────────────────
+//
+// A Fase 1 mediu que o degradê PASSAVA por esta régua e declarou por que não a
+// consertou: só uma peça viva estava guardada nesta árvore, e *"calibrar um
+// piso novo sobre uma amostra de um é exatamente como se inventa uma régua que
+// reprova a casa inteira."* A dívida era guardar as 12 e recalibrar.
+//
+// As peças estão guardadas (14, não 12) e a recalibração foi feita — e ela
+// mostra que **o eixo estava errado**. A Fase 1 procurou o conserto na TEXTURA,
+// onde a separação é de 2× e por isso o piso não podia subir. Medido agora, o
+// degradê construído sobre cada uma das 14:
+//
+//   • CORES:   pior peça real 159 · pior degradê 52 → **3,06× de separação**
+//   • textura: pior peça real 0,0066 · pior degradê 0,0033 → 2,00× (inalterado)
+//
+// ── E O PISO CONTINUA EM 24, POR DECISÃO MEDIDA — NÃO POR OMISSÃO ─────────
+//
+// Com a amostra na mão, a tentativa foi feita: `PISO_DE_CORES_NA_FOTO = 90`, a
+// média geométrica de 52 e 159. **A própria régua desta casa recusou.** O
+// teste "a separação é de ORDEM DE GRANDEZA, não 'por pouco'" exige
+// `pior peça real > PISO × 5`, e 159 não é 5× nenhum piso que fique acima de
+// 52. A conta não fecha porque a separação TOTAL é 3,06× — melhor que os 2× da
+// textura, e ainda assim menos que a ordem de grandeza que sustenta os outros
+// critérios (159 contra 1).
+//
+// Não existe piso que pegue o degradê E mantenha 5× de folga. Essa é a
+// resposta que a amostra deu, e ela é um FATO novo — a Fase 1 não podia
+// tê-la porque media sobre uma peça só.
+//
+// Por que aceitar o não da régua, em vez de afrouxar o corrimão: as duas
+// falhas não custam igual. Piso frouxo deixa passar UM degradê, que o cliente
+// vê e recusa — visível, reversível, com dono. Piso rente reprova uma peça
+// legítima, o cliente fica sem entrega, e o remédio histórico desta casa para
+// isso é alguém desligar a régua — que é como se perde também o que ela pegava.
+// O guardrail 4 vale aqui: exija o mecanismo, não a boa intenção. O mecanismo
+// (5×) disse não.
+//
+// A dívida, portanto, muda de forma em vez de sumir: **não é mais "faltam as
+// peças" (elas estão em `docs/entregas/pecas-vivas-27-08/`), é "falta um
+// discriminador de alta margem"** — do tipo já sugerido pela Fase 1, "as linhas
+// da faixa sobem em ordem", que separa degradê de foto por construção e não por
+// limiar. Enquanto ele não existir, o degradê passa, e isso está escrito aqui e
+// medido no teste, não escondido.
+/** Piso de cores na faixa da foto. Pior peça real: 159 · pior degradê: 52.
+ *  Continua FROUXO de propósito: ver o bloco acima — não há piso que pegue o
+ *  degradê com os 5× de folga que esta casa exige. */
 export const PISO_DE_CORES_NA_FOTO = 24;
 /** Teto da cor dominante na faixa da foto. Pior peça real: 0,353. */
 export const TETO_DA_DOMINANTE_NA_FOTO = 0.90;
-/** Piso de textura na faixa da foto. Pior peça real: 0,0066. */
+/** Piso de textura na faixa da foto. Pior peça real: 0,0066 · pior degradê
+ *  0,0033 — 2× só, e por isso este piso continua FROUXO de propósito. Quem
+ *  pega o degradê é o piso de CORES, acima. */
 export const PISO_DE_TEXTURA_NA_FOTO = 0.0015;
 /**
  * Piso de bytes por megapixel.

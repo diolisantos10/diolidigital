@@ -1,0 +1,100 @@
+[
+ {
+  "arquivo": "med_fe5546e4_mt8tc1b4.jpg",
+  "cliente": "OFICINA FAROL TESTE",
+  "formato": "story",
+  "bytes": 145991,
+  "sha256": "fe5546e4b026bd3b14cc4c798d163851e94fc7424f6288f8afcc3e2538297849"
+ },
+ {
+  "arquivo": "med_aa3bf400_mt8x7ks4.jpg",
+  "cliente": "TRATTORIA DA ANA TESTE",
+  "formato": "story",
+  "bytes": 112615,
+  "sha256": "aa3bf40098b17b4ed14942b49148b05f8335f78d8697e2f5b2ae6e2c6ba65efe"
+ },
+ {
+  "arquivo": "med_78f44713_mtakx2e0.jpg",
+  "cliente": "TRATTORIA DA ANA TESTE",
+  "formato": "feed",
+  "bytes": 103968,
+  "sha256": "78f4471335d83bfb430a07b34118898ca8a335e720152cf630d368d751bd7892"
+ },
+ {
+  "arquivo": "med_1076bf7b_mt8xmzr3.jpg",
+  "cliente": "TRATTORIA DA ANA TESTE",
+  "formato": "feed",
+  "bytes": 138713,
+  "sha256": "1076bf7b156ed4f785a1e209fc34f3249a6e39852930c04a41ba35dfe6353d9f"
+ },
+ {
+  "arquivo": "med_d2b01266_mt8xqd4b.jpg",
+  "cliente": "TRATTORIA DA ANA TESTE",
+  "formato": "feed",
+  "bytes": 145752,
+  "sha256": "d2b012660a7c23335e95c3186b9da44cd936b778483b6c77e9b919b7833a696e"
+ },
+ {
+  "arquivo": "med_2e8d9295_mt94wrqg.jpg",
+  "cliente": "CANTINA DA PROVA",
+  "formato": "feed",
+  "bytes": 115784,
+  "sha256": "2e8d929516050b910b2205cf67f367b6d3b940169937cb477d9f8efa4f3c600b"
+ },
+ {
+  "arquivo": "med_f3eb95df_mt8x4lxp.jpg",
+  "cliente": "TRATTORIA DA ANA TESTE",
+  "formato": "story",
+  "bytes": 161189,
+  "sha256": "f3eb95dff4ece12badd4a069392944e92b70709e75b582092a016709c35145d4"
+ },
+ {
+  "arquivo": "med_79871500_mt8zyi06.jpg",
+  "cliente": "TRATTORIA DA ANA TESTE",
+  "formato": "feed",
+  "bytes": 151873,
+  "sha256": "79871500c5014ab8a09ad43eedbe22911b918bf3e531fa47406e8bbb756ace2d"
+ },
+ {
+  "arquivo": "med_1bd0f36b_mt95glw1.jpg",
+  "cliente": "CANTINA DA PROVA",
+  "formato": "feed",
+  "bytes": 142487,
+  "sha256": "1bd0f36bb6ee5509534ab36028b3c01c7f939aeae1aec73d942dacff461ad15b"
+ },
+ {
+  "arquivo": "med_6204aff4_mt8x6au6.jpg",
+  "cliente": "TRATTORIA DA ANA TESTE",
+  "formato": "story",
+  "bytes": 133359,
+  "sha256": "6204aff43bcea6108e37c9979d2a8ad2499c92213d6697d27517d65b6e8fbcb7"
+ },
+ {
+  "arquivo": "med_1f79e9f3_mt8xj2gu.jpg",
+  "cliente": "TRATTORIA DA ANA TESTE",
+  "formato": "feed",
+  "bytes": 150203,
+  "sha256": "1f79e9f3781ea11dc20ff1b58a3704162d1f5b5847b8156e122b68adda67bf8b"
+ },
+ {
+  "arquivo": "med_e30ced04_mt8x8xru.jpg",
+  "cliente": "TRATTORIA DA ANA TESTE",
+  "formato": "story",
+  "bytes": 138817,
+  "sha256": "e30ced04220cd1a02b94376e651bf08f8fe682719a99a5c0c4d4725f64ec2992"
+ },
+ {
+  "arquivo": "med_fdf9b2e0_mt9h1g8i.jpg",
+  "cliente": "CANTINA DO PORTO TESTE",
+  "formato": "feed",
+  "bytes": 130953,
+  "sha256": "fdf9b2e098d8c6f6c67996c0250f78d74b71b1926427daf9f9848f59aeef2b38"
+ },
+ {
+  "arquivo": "med_96e37c4f_mt9h2a2j.jpg",
+  "cliente": "CANTINA DO PORTO TESTE",
+  "formato": "feed",
+  "bytes": 108934,
+  "sha256": "96e37c4fe34881a3c12b59cedcbb12d8a9b7d5bbce73eee562cf822dec337c6d"
+ }
+]
