@@ -15,6 +15,7 @@ import {
   type VerdadeOperacional,
 } from "@/lib/agency/execution/piso-de-verdade";
 import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { nomeDoNegocio } from "@/lib/agency/comercial/negocio-do-lead";
 
 export interface ClientKnowledgeSnapshot {
   clientRequestId: string;
@@ -204,6 +205,13 @@ export async function buildClientSnapshot(
     ? await prisma.brandBrain.findUnique({ where: { clientId: request.clientId } })
     : null;
 
+  // O nome do CADASTRO é a terceira memória do nome do negócio. Best-effort: a
+  // falta dele não pode derrubar o snapshot — ele é o último recurso, não o
+  // primeiro. Ver `nomeDoNegocio`.
+  const cadastro = request.clientId
+    ? await prisma.client.findUnique({ where: { id: request.clientId }, select: { name: true } }).catch(() => null)
+    : null;
+
   // Map DB BrandBrain → snapshot fields. Fields the DB model does not carry stay
   // undefined (never invented). `tone` maps to brandVoice; colors are derived from
   // the two color fields; typography → fonts.
@@ -271,7 +279,15 @@ export async function buildClientSnapshot(
 
   return {
     clientRequestId: request.id,
-    businessName: request.businessName,
+    // O nome olha as três memórias — coluna, escopo do briefing e cadastro. A
+    // coluna sozinha grava `""` quando a porta não soube o nome, e foi assim
+    // que uma entrega nasceu com "PRECISO CONFIRMAR: nome do negócio" no título
+    // com o nome no escopo desde o primeiro turno (8ª volta, 26/08/2026).
+    businessName: nomeDoNegocio({
+      businessName: request.businessName,
+      briefingJson: request.briefingJson,
+      clientName: cadastro?.name,
+    }) ?? "",
     segment: request.segment,
     services: Array.isArray(services) ? services : [],
     objectives: Array.isArray(objectives) ? objectives : [],

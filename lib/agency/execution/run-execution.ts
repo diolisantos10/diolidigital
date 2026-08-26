@@ -46,6 +46,7 @@ import {
 import { registrarProducao, degrauAtual } from "@/lib/agency/escada/registro";
 import { conferirPagamento } from "@/lib/agency/financeiro/portao-de-pagamento";
 import type { Degrau, ResultadoDaPeca } from "@/lib/agency/escada/degraus";
+import { nomeDoNegocio, tituloSemConfissao } from "@/lib/agency/comercial/negocio-do-lead";
 
 /** Conteúdo mínimo aceitável de uma entrega (gate de saída: nada vazio/lixo vai ao cliente). */
 const MIN_DELIVERABLE_CHARS = 40;
@@ -438,7 +439,14 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // pode derrubar a esteira — e a falta dele não fica muda, porque o próprio
       // texto do contrato declara "marca não constituída" quando é o caso.
       contratoDeMarca: (await contratoDeMarca(project.clientId).catch(() => null))?.texto,
-      businessName: req.businessName || client?.name || "o cliente",
+      // O NOME OLHA AS TRÊS MEMÓRIAS, não só a coluna. Medido na 8ª volta: uma
+      // entrega de Estratégia nasceu com "PRECISO CONFIRMAR: nome do negócio"
+      // no título, e o nome estava no escopo desde o primeiro turno — a coluna
+      // é `String` não-nulo e grava `""` quando a porta não soube o nome.
+      // Ver `nomeDoNegocio`, em `comercial/negocio-do-lead.ts`.
+      businessName:
+        nomeDoNegocio({ businessName: req.businessName, briefingJson: req.briefingJson, clientName: client?.name })
+        ?? "o cliente",
       segment: req.segment || (typeof scope.segment === "string" ? scope.segment : "") || client?.industry || "",
       targetAudience: typeof scope.targetAudience === "string" ? scope.targetAudience : (brand?.targetAudience ?? ""),
       tone: brand?.tone ?? "",
@@ -800,7 +808,17 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         continue;
       }
 
-      let title = typeof data.title === "string" ? data.title : `${nome} — ${context.businessName}`;
+      // ── E O TÍTULO NÃO PERGUNTA O QUE A CASA JÁ SABE ────────────────────
+      // Trava, não conserto de dado: quando o nome é conhecido e o especialista
+      // ainda assim confessa a lacuna NO RÓTULO, o rótulo vira o padrão
+      // determinístico. A confissão continua valendo no corpo, onde ela é uma
+      // pergunta com contexto — no título ela é a etiqueta do trabalho.
+      const tituloPadrao = `${nome} — ${context.businessName}`;
+      let title = tituloSemConfissao(
+        typeof data.title === "string" ? data.title : tituloPadrao,
+        tituloPadrao,
+        nomeDoNegocio({ businessName: req.businessName, briefingJson: req.briefingJson, clientName: client?.name }),
+      );
       let body = deliverableMarkdown(data);
       // Gate de saída: nada vazio/curto demais chega ao cliente.
       if (!body || body.length < MIN_DELIVERABLE_CHARS) {
