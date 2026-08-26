@@ -32,13 +32,17 @@ import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { textoDoOrcamento, estimativaEntregue } from "@/lib/agency/esteira/orcamento-do-briefing";
-import { STATUS_ACEITO } from "@/lib/agency/esteira/caminho-automatico";
+import { STATUS_ACEITO, ESPERANDO_DECISAO_DA_PROPOSTA } from "@/lib/agency/esteira/caminho-automatico";
 
 export const dynamic = "force-dynamic";
 
-/** Os estados em que a proposta ESTÁ na mesa esperando o cliente. Lista
- *  fechada: estado desconhecido não é "pode decidir". */
-const ESPERANDO_DECISAO = ["proposal_pending", "proposal", "negotiation"];
+/** Os estados em que a proposta ESTÁ na mesa esperando o cliente.
+ *
+ *  A lista MUDOU DE ENDEREÇO em 26/08/2026 e continua a mesma: ela agora mora
+ *  em `esteira/caminho-automatico.ts`, porque quem ESCREVE a decisão passou a
+ *  ler exatamente esta — e era a falta disso que deixava a casa dizer
+ *  "decidido" aqui e decidir de novo lá. Ver o comentário na declaração. */
+const ESPERANDO_DECISAO = ESPERANDO_DECISAO_DA_PROPOSTA;
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = tokenDoPortal(request, new URL(request.url).searchParams.get("token"));

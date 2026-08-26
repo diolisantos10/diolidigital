@@ -18,7 +18,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
+import { donoDoPortal } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { lerFichaDeMarca, proximasPerguntas } from "@/lib/agency/esteira/ficha-de-marca";
 import { montarVistaDoCliente } from "@/lib/agency/portal/vista-do-cliente";
@@ -29,8 +29,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = tokenDoPortal(request, new URL(request.url).searchParams.get("token"));
   if (!token) return NextResponse.json({ error: "token é obrigatório" }, { status: 400 });
 
-  const dono = await resolvePortalClient(token);
-  if (!dono) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  // ── TOKEN VÁLIDO SEM FICHA DE CLIENTE NÃO É ACESSO NEGADO (6ª rodada) ─────
+  //
+  // Medido em produção: um prospect recém-orçado, com o link que a casa acabou
+  // de mandar, recebia 200 na esteira e nas mensagens (com a proposta dele
+  // dentro) e **403 "Acesso negado"** aqui — porque a ficha de `Client` só
+  // nasce quando ele ACEITA. Ausência de ficha virava afirmação de que ele não
+  // podia entrar. Ver `donoDoPortal`.
+  //
+  // Token inválido, expirado ou revogado continua 403, sem um milímetro de
+  // folga. O que muda é só o caso em que o acesso é legítimo e ainda não há o
+  // que mostrar — e aí a casa mostra o vazio, com todas as letras.
+  const dono = await donoDoPortal(token);
+  if (dono === "invalido") return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  if (dono === "sem-cliente") return NextResponse.json({ ok: true, aindaSemFicha: true });
 
   try {
     const [cliente, projetos, campanhas, posts, ficha, solicitacao] = await Promise.all([

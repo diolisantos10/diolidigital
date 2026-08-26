@@ -18,6 +18,8 @@ import {
   ehAvisoDeAnexo, ehOfertaDeDocumento, recadoDeRecebimento, RETOMADA_DA_PERGUNTA,
 } from "./anexo-nao-e-resposta";
 import { emailValido, whatsappValido } from "./comercial/contato-do-lead";
+import { lerBasicosOperacionais, reformularBasicosOperacionais } from "./comercial/resposta-que-responde";
+import { emailNoTexto } from "./comercial/contato-do-lead";
 import {
   isYes, parseInitialMessage, inferAnsweredQIds, mergeScopeDelta,
   buildAcknowledgment, detectNegotiation, getNextQuestion,
@@ -51,6 +53,22 @@ function respostaEhCanalDeContato(texto: string): boolean {
   const t = texto.trim();
   if (!t) return false;
   if (emailValido(t)) return true;
+  // ── O E-MAIL NO MEIO DA FRASE ENTRA NA MESMA TRAVA (6ª rodada) ────────────
+  //
+  // A trava de 16/08 perguntava se a resposta INTEIRA era um canal de contato.
+  // Achado por régua nesta rodada (`a-casa-ouve-o-que-ja-foi-dito.test.ts`):
+  // *"Pode mandar tudo pro marina@cantina.invalid, tá?"* não é um e-mail
+  // inteiro — então passava, caía no fallback da resposta crua, e a FRASE
+  // INTEIRA, com o endereço dentro, virava `businessName`.
+  //
+  // É o defeito de 16/08 entrando pela porta do lado: um e-mail na tela do CEO
+  // como nome do negócio, e — pior que naquele dia — PII gravada no campo que
+  // viaja para dentro do prompt do modelo.
+  //
+  // A regra vale só para o FALLBACK da resposta crua: `nomeDoNegocioNoTexto`
+  // continua livre para achar um nome de verdade numa frase que também traz um
+  // e-mail. O que morre é o palpite, não a leitura.
+  if (emailNoTexto(t)) return true;
   if (/^@/.test(t)) return true;
   if (/^[\d\s()+.-]+$/.test(t) && whatsappValido(t)) return true;
   return false;
@@ -197,6 +215,16 @@ const IDENTITY_QUESTIONS: QuestionDef[] = [
   },
 ];
 
+/** A última coisa que o cliente disse. É dela que sai o "o que ainda falta" da
+ *  reformulação — reler o histórico evita carregar mais um campo de estado só
+ *  para lembrar de uma frase que já está guardada. */
+function ultimaFalaDoCliente(state: ConvState): string {
+  for (let i = state.messages.length - 1; i >= 0; i--) {
+    if (state.messages[i]!.role === "client") return state.messages[i]!.text;
+  }
+  return "";
+}
+
 // ── Question ordering ─────────────────────────────────────────────────────────
 
 function getNextProspectQuestion(state: ConvState): QuestionDef | null {
@@ -216,6 +244,13 @@ function buildSDRQuestionText(q: QuestionDef, state: ConvState, sdr: SDRAgentSta
   // que a casa não entendeu e abre uma saída explícita para quem quer algo que
   // a casa não tem na prateleira. Ver `comercial/pergunta-sem-encaixe.ts`.
   if ((state.perguntasFeitas?.[q.id] ?? 0) >= 1) {
+    // `operacao_basica` pede TRÊS coisas, então a reformulação dela não é uma
+    // frase fixa: ela nomeia o que a resposta anterior NÃO trouxe. A leitura
+    // sai do mesmo lugar que decidiu não preencher o campo, para as duas nunca
+    // discordarem sobre o que ficou faltando.
+    if (q.id === "operacao_basica") {
+      return reformularBasicosOperacionais(lerBasicosOperacionais(ultimaFalaDoCliente(state)));
+    }
     const outraFormulacao = reformular(q.id);
     if (outraFormulacao) return outraFormulacao;
   }
@@ -427,7 +462,21 @@ export function processProspectMessage(
         // é informação.** Uma pergunta só se fecha quando colhe o dado que ela
         // existe para colher — o `when` dela é quem sabe disso. Repetir a
         // pergunta é barato; perder o lead no último passo, não.
-        const exigeDadoParaFechar = isIdentity || currentQ.id === "detect_service";
+        // ── `operacao_basica` ENTRA NA MESMA REGRA (6ª rodada) ──────────────
+        //
+        // Ela é OPCIONAL para o portão de envio e continua sendo — não trava o
+        // briefing, e isso é ordem do Diretor Geral. O que muda é outra coisa:
+        // ela deixa de se fechar por ter sido FEITA. `parse` só devolve
+        // `operacao` quando a resposta carrega horário, área ou @ (o mesmo
+        // leitor do piso de verdade), então `when` continua verdadeiro e a
+        // pergunta volta UMA vez, reformulada, nomeando o que falta.
+        //
+        // Sem isto o conserto do `parse` seria meio conserto: o campo ficaria
+        // corretamente vazio e a pergunta nunca mais voltaria — a casa trocaria
+        // "dado errado" por "dado nenhum", calada, que é o mesmo silêncio com
+        // outro rótulo.
+        const exigeDadoParaFechar =
+          isIdentity || currentQ.id === "detect_service" || currentQ.id === "operacao_basica";
         const stillPending = exigeDadoParaFechar && currentQ.when({ ...conv, scope: newScope });
 
         // ── E A INSISTÊNCIA TEM FIM (24/08/2026) ────────────────────────────
@@ -507,6 +556,61 @@ export function processProspectMessage(
       fitStatus,
       acknowledgedAt: new Date().toISOString(),
     };
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // A CASA LEU O NÚMERO — ENTÃO ELA NÃO PERGUNTA O NÚMERO OUTRA VEZ
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Medido no cliente oculto (6ª rodada): a MESMA pergunta de faixa de
+    // investimento saiu **três vezes**. A causa não é a fila de perguntas, é a
+    // ordem dos ramos lá em cima:
+    //
+    //   • `detectNegotiation` roda ANTES da pergunta da vez. Uma frase como
+    //     "tá caro, meu teto é R$ 2.000" é objeção E é a resposta da verba;
+    //   • quando ela casa como negociação, `currentQ.parse` **nunca roda** —
+    //     `budgetRange` continua vazio, `when` continua verdadeiro, e a
+    //     pergunta volta no turno seguinte. E de novo.
+    //
+    // Enquanto isso `parseBudgetAmount` — duas linhas acima — já tinha lido
+    // R$ 2.000 do mesmo texto e guardado em `budgetSignal`. A casa tinha o
+    // dado e perguntava assim mesmo. Não é rigor, é surdez com aparência de
+    // método.
+    //
+    // O conserto é um leitor só: quem leu o número FECHA a pergunta do número.
+    // A frase crua é gravada (não o número formatado) porque é ela que o
+    // confronto de verba lê — e porque as palavras do cliente valem mais que a
+    // nossa interpretação delas.
+    //
+    // ⚠️ Não afrouxa nada: `budget_range` continua FORA de `OPTIONAL_QIDS`, o
+    // portão de envio continua exigindo verba, e quem nunca disse número
+    // continua sendo perguntado. O que acabou é perguntar a quem já disse.
+    if (!newScope.budgetRange && text.trim()) {
+      newScope = mergeScopeDelta(newScope, { budgetRange: text.trim() });
+      newAnswered = [...new Set([...newAnswered, "budget_range"])];
+    }
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // O CONTATO QUE ELE DEU DE GRAÇA NÃO CAI NO CHÃO (6ª rodada)
+  // ═════════════════════════════════════════════════════════════════════════
+  //
+  // Medido: o cliente escreveu o e-mail dele no meio da conversa. A casa não
+  // guardou, não usou e não agradeceu — e o briefing terminou sem canal
+  // nenhum, porque ele tinha pulado a porta. O SDR é PROIBIDO de PEDIR e-mail
+  // (regra do CEO) e isso continua valendo palavra por palavra; proibição de
+  // pedir nunca foi licença para ignorar o que foi oferecido.
+  //
+  // ⛔ E ele NÃO entra no `scope`: o escopo inteiro vai para dentro do prompt
+  // do modelo, e e-mail não trafega por ali. Mora no estado do SDR, que não
+  // sobe para a rota. Ver `SDRAgentState.contatoOferecido`.
+  //
+  // ⚠️ SÓ E-MAIL. O telefone tem caminho próprio e MEDIDO (`prospectPhone`, da
+  // porta e da pergunta de canal); inventar aqui um segundo leitor de telefone
+  // seria criar a divergência que este arquivo passa o tempo todo fechando —
+  // e nenhuma medição desta rodada disse que o telefone se perde.
+  const emailOferecido = ignoraLeitura ? null : emailNoTexto(text);
+  if (emailOferecido) {
+    newSdr.contatoOferecido = { ...(newSdr.contatoOferecido ?? {}), email: emailOferecido };
   }
 
   // Objection state — only price-related objections block submission
@@ -653,6 +757,19 @@ export function processProspectMessage(
     replyText = nextQ
       ? `${recado}\n\n${RETOMADA_DA_PERGUNTA}\n\n${replyText}`
       : `${recado}\n\n${replyText}`;
+  }
+
+  // ── O CONTATO OFERECIDO É ACUSADO, EM VOZ ALTA ────────────────────────────
+  //
+  // Guardar calado seria PII escondida; agradecer sem guardar seria teatro.
+  // São as duas coisas — e o aviso vem ANTES da próxima pergunta pelo mesmo
+  // motivo do recado do anexo logo acima: quem dá um dado e recebe de volta
+  // outra pergunta conclui que ninguém leu.
+  //
+  // A frase NÃO repete o endereço. Ele já está na tela, escrito por ele, e
+  // reescrever PII em cada turno é como o e-mail vira histórico de conversa.
+  if (emailOferecido && !mensagemSemResposta) {
+    replyText = `Anotei o seu e-mail — é por ele que a proposta chega. 👍\n\n${replyText}`;
   }
 
   // ── Finalise SDR state ────────────────────────────────────────────────────

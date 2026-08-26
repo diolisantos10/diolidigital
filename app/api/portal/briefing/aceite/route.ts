@@ -31,7 +31,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
-import { nascerDoAceite, STATUS_ACEITO } from "@/lib/agency/esteira/caminho-automatico";
+import { nascerDoAceite, STATUS_ACEITO, ESPERANDO_DECISAO_DA_PROPOSTA } from "@/lib/agency/esteira/caminho-automatico";
 
 export const maxDuration = 300;
 
@@ -94,6 +94,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const pedidoId = texto(corpo.clientRequestId);
   if (pedidoId && pedidoId !== solicitacao.id) {
     return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
+  }
+
+  // ── A PORTA SÓ DECIDE O QUE AINDA ESTÁ ABERTO (cliente oculto, 6ª rodada) ─
+  //
+  // Medido em produção: recusei, a leitura passou a dizer `decidivel: false` e
+  // `jaRecusado: true` — e este MESMO endpoint aceitou logo em seguida, criando
+  // o projeto. A rota que lê dizia "não há mais o que decidir" e a que escreve
+  // decidia assim mesmo. O aviso existia; a trava não.
+  //
+  // A direção perigosa é a outra: aceitar e depois recusar marcava a
+  // solicitação `rejected` com o projeto JÁ CRIADO — possivelmente pago,
+  // possivelmente produzindo. Um clique derrubaria no papel um projeto que
+  // continua andando de verdade.
+  //
+  // A lista é a MESMA que a leitura usa (`ESPERANDO_DECISAO_DA_PROPOSTA`), e é
+  // por isso que ela saiu de dentro daquela rota: duas listas iguais divergem
+  // no primeiro conserto de uma delas.
+  //
+  // ⚠️ Mudar de ideia NÃO acabou — mudou de porta. 409 com a frase que diz
+  // onde: a conversa do portal, com gente do outro lado. Reverter um contrato
+  // não é ato de um clique, e nunca foi.
+  if (!ESPERANDO_DECISAO_DA_PROPOSTA.includes(solicitacao.status)) {
+    return NextResponse.json({
+      ok: false,
+      jaDecidido: true,
+      status: solicitacao.status,
+      mensagem:
+        solicitacao.status === STATUS_ACEITO
+          ? "Esta proposta já foi aceita e o seu projeto já está em andamento. Se você quer mudar alguma coisa, é só escrever na conversa aqui do portal — a equipe responde."
+          : "Esta proposta já foi respondida. Se você mudou de ideia, é só escrever na conversa aqui do portal — a equipe retoma com você.",
+    }, { status: 409 });
   }
 
   if (decisao === "recusado") {

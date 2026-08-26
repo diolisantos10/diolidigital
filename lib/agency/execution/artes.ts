@@ -45,7 +45,7 @@ import {
 } from "@/lib/agency/design/escolha-de-foto";
 import type { MaterialReal } from "@/lib/agency/design/storyboard";
 import { montarPeca } from "@/lib/agency/design/peca";
-import { motivoDaLegibilidade, type MedidaDaLegibilidade } from "@/lib/agency/design/legibilidade-do-titulo";
+import { motivoDaLegibilidade, tituloReprovaAPeca, type MedidaDaLegibilidade } from "@/lib/agency/design/legibilidade-do-titulo";
 import {
   renderizadorDisponivel, MIME_DA_PECA_RENDERIZADA, type MotivoDeFalhaDeRender,
 } from "@/lib/agency/design/renderizar";
@@ -832,6 +832,29 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
     );
     if (!vereditoDaPeca.ok) {
       const erro = motivoDaPecaFinalEmUmaLinha(vereditoDaPeca);
+      saida.falhas.push({ postId: post.id, erro });
+      await marcarErro(post.id, erro, tentativas + 1);
+      continue;
+    }
+
+    // ── O TÍTULO ILEGÍVEL PASSA A BARRAR, COM A MARGEM MEDIDA ─────────────
+    //
+    // Até aqui a legibilidade do título era só DECLARADA (`comAviso`, logo
+    // abaixo). Era a decisão certa enquanto a régua errava até 86% — ver a
+    // medição inteira em `CONTRASTE_QUE_BARRA_O_TITULO`. Com a régua
+    // consertada e o erro residual medido em −6% a −15%, a faixa abaixo de
+    // 2,55 é a faixa em que o fundo real está abaixo do piso da WCAG mesmo no
+    // pior erro da régua — nenhuma peça legítima cai aqui.
+    //
+    // Barra no MESMO lugar que a régua da peça final: ANTES de `guardarArquivo`.
+    // A peça reprovada não ganha arquivo, não ganha `mediaUrl`, não chega ao
+    // portal — e a tentativa é GASTA, para o laço regerar, que é o remédio
+    // certo (a foto de fundo muda e o título volta a caber).
+    //
+    // Entre 2,55 e 3,00 nada muda: continua declarado no `lastError`, a peça
+    // sai, o time vê. Duas faixas, duas respostas.
+    if (tituloReprovaAPeca(composta.legibilidadeDoTitulo)) {
+      const erro = `${MARCA_DE_TITULO_ILEGIVEL} ${motivoDaLegibilidade(composta.legibilidadeDoTitulo!)}`;
       saida.falhas.push({ postId: post.id, erro });
       await marcarErro(post.id, erro, tentativas + 1);
       continue;

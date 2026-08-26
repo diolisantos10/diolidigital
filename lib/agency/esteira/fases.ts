@@ -24,6 +24,7 @@ export type FaseId =
   | "orcamento"
   | "negociacao"
   | "desenho"
+  | "aguardando_pagamento"
   | "direcao"
   | "producao"
   | "aguardando_cliente"
@@ -43,6 +44,17 @@ export interface RetratoDoProjeto {
   statusDaSolicitacao?: string | null;
   /** O cliente já aceitou a proposta? */
   propostaAceita: boolean;
+  /**
+   * O PAGAMENTO deste pedido está confirmado?
+   *
+   * Lido da MESMA testemunha que LIBERA a produção (`PagamentoConfirmado`, a
+   * tabela que `conferirPagamento` consulta). Ler outra fonte aqui faria a
+   * etapa do cliente divergir da trava — que é exatamente o defeito que este
+   * campo veio fechar.
+   *
+   * `undefined` = ninguém mediu, e isso NÃO é `false`. Ver o ramo em `lerFase`.
+   */
+  pagamentoConfirmado?: boolean;
   /** A direção (estratégia/conceito) já foi aprovada pelo cliente? */
   direcaoAprovadaEm?: Date | string | null;
   /** As entregas já foram apresentadas ao cliente de uma vez? */
@@ -209,6 +221,10 @@ const POSICAO: Partial<Record<FaseId, number>> = (() => {
   TRILHA.forEach((t, i) => { m[t.fase] = i; });
   m.negociacao = m.orcamento;
   m.aguardando_cliente = m.producao;
+  // Fora da trilha visível de propósito: o cliente não precisa de um degrau
+  // "pagamento" no caminho dele. Ele herda a posição do DESENHO — que é onde a
+  // esteira de fato está parada enquanto o dinheiro não entra.
+  m.aguardando_pagamento = m.desenho;
   m.encerrado = TRILHA.length - 1;
   return m;
 })();
@@ -353,6 +369,53 @@ export function lerFase(r: RetratoDoProjeto): LeituraDaFase {
       { titulo: "Conferindo tudo antes de te mostrar",
         agora: "Terminamos a produção e estamos na conferência final.",
         oQueEsperamosDeVoce: "" });
+  }
+
+  // ── O DINHEIRO VEM ANTES DO AVAL, E ISSO PASSOU A SER LIDO AQUI ──────────
+  //
+  // ═══════════════════════════════════════════════════════════════════════
+  // A TERCEIRA CONTRADIÇÃO DO PORTAL (cliente oculto, 6ª rodada)
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // Medido: `/api/portal/esteira` dizia ao cliente *"Ainda estamos
+  // produzindo"* enquanto `/api/portal/projetos` dizia *"Esperando a sua
+  // aprovação"* — no MESMO projeto, no MESMO portal, na mesma tela.
+  //
+  // A causa não era um bug de leitura: eram **dois escritores da mesma
+  // verdade**. `retrato.ts`/`lerFase` (aqui) alimentava a esteira; e
+  // `/api/portal/projetos` tinha um `etapaLegivel()` local, uma segunda
+  // gramática que ninguém tinha declarado ser uma segunda gramática. Cada uma
+  // sabia algo que a outra não sabia: esta aqui via as decisões disponíveis e
+  // os pedidos cobrados; a de lá via o PAGAMENTO — e nenhuma via as duas.
+  //
+  // Verdade escrita em dois lugares já está errada em um deles. O conserto é
+  // matar o segundo escritor e trazer para cá o que só ele sabia: o pagamento.
+  //
+  // ── E ELE VEM ANTES DO MATERIAL, QUE É POSIÇÃO E NÃO GOSTO ──────────────
+  //
+  // Medido na mesma volta: com o projeto NÃO PAGO, a esteira dizia ao cliente
+  // *"Precisamos de uma coisa sua — a criação está em andamento, mas faltou
+  // material"* e pedia CINCO materiais. Nada estava em andamento: sem
+  // pagamento não se produz uma linha. A casa cobrava do cliente o trabalho
+  // dele antes de a esteira poder fazer o dela, e dizia que estava criando.
+  //
+  // Os ramos daqui para baixo TODOS descrevem produção. Produção não começa
+  // antes do dinheiro — é a mesma ordem que a esteira cobra de verdade
+  // (`conferirPagamento`, no portão da arte). A leitura tinha de dizer o que
+  // de fato trava agora, e o que trava agora é o pagamento.
+  //
+  // ⚠️ FAIL-CLOSED: `undefined` (ninguém mediu o pagamento) NÃO entra neste
+  // ramo. Ausência de informação não é informação — o chamador que ainda não
+  // passa o número mantém a leitura antiga, e nunca ganha de graça um
+  // "aguardando pagamento" que não foi medido.
+  if (r.propostaAceita && r.pagamentoConfirmado === false) {
+    return montar("aguardando_pagamento", "esperando", "cliente",
+      { titulo: "Parado esperando o pagamento",
+        agora: "A proposta foi aceita e nenhum pagamento foi confirmado — a produção não começa sem isso.",
+        proximoPasso: "Confirmar o pagamento com o cliente. Enquanto não entrar, nada é produzido." },
+      { titulo: "Aguardando o pagamento para começar",
+        agora: "Está tudo combinado! Assim que o pagamento for confirmado, a produção começa.",
+        oQueEsperamosDeVoce: "Concluir o pagamento para a gente começar." });
   }
 
   // ── Produção travada esperando material do cliente ────────────────────────

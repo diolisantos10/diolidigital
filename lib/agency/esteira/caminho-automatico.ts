@@ -243,6 +243,42 @@ export function avaliarCasoNormal(req: {
 export const STATUS_ACEITO = "accepted";
 
 /**
+ * OS ESTADOS EM QUE A PROPOSTA ESTÁ NA MESA — a porta de decisão aberta.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * POR QUE ESTA LISTA SAIU DE DENTRO DA ROTA DE LEITURA (6ª rodada)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Ela morava em `app/api/portal/briefing/proposta/route.ts`, que é quem LÊ. E
+ * o cabeçalho daquela rota já dizia, com todas as letras: *"`decidivel` é
+ * FATO, não convite. Pedido já decidido devolve o que valeu — e a tela não
+ * desenha botão nenhum."*
+ *
+ * A intenção estava escrita. A trava, não. Medido em produção pelo cliente
+ * oculto:
+ *
+ *   POST aceite {recusado} → 200, status vira `rejected`
+ *   GET  proposta          → `decidivel: false`, `jaRecusado: true`
+ *   POST aceite {aceito}   → **200, e o projeto NASCE**
+ *
+ * A rota de leitura dizia ao cliente que não havia mais o que decidir, e a de
+ * escrita decidia assim mesmo. É "prompt é aviso; código é trava" na forma
+ * mais limpa: o aviso estava do lado que lê, e o lado que age não o conhecia.
+ *
+ * E a direção perigosa é a OUTRA: aceitar e depois recusar marcava a
+ * solicitação como `rejected` com o projeto já criado — possivelmente pago,
+ * possivelmente produzindo. Um clique derrubaria no papel um projeto que
+ * continua andando de verdade, sem ninguém ficar vermelho.
+ *
+ * Agora a lista é UMA, e quem lê e quem escreve leem a mesma. Mudar de ideia
+ * continua possível — pela conversa, com gente do outro lado, que é onde uma
+ * reversão de contrato pertence.
+ */
+export const ESPERANDO_DECISAO_DA_PROPOSTA: readonly string[] = [
+  "proposal_pending", "proposal", "negotiation",
+];
+
+/**
  * O registro do que o caminho automático fez ou recusou a fazer.
  *
  * `ActivityEvent` exige workspace. Solicitação sem workspace não tem onde ser
@@ -310,8 +346,60 @@ export async function nascerDoAceite(
     return { ok: false, motivo: veredito.motivo, esperaGente: true };
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // A RESERVA: O BANCO É QUE DECIDE QUEM CRIA (cliente oculto, 6ª rodada)
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // MEDIDO EM PRODUÇÃO: **dois projetos para a MESMA solicitação**, criados
+  // com 9 segundos de diferença — `cmt9l4803004s0xmnk0907s0m` e
+  // `cmt9l4eu0005e0xmngtcm4w3o`, ambos de `cmt9jxkhn003e0xmnpfqq3qbx`. O
+  // cliente abriu o portal e viu o projeto dele duas vezes, com dois nomes
+  // diferentes.
+  //
+  // A idempotência lá em cima EXISTE e não bastou, porque ela é
+  // check-then-act e a janela entre o check e o act é enorme:
+  // `createProjectFromRequest` chama IA para desenhar o plano e demora
+  // segundos. Dois chamadores — a rota do aceite (o clique do cliente) e o
+  // relógio, que varre `accepted` — passaram os dois pelo `findFirst`, os dois
+  // acharam vazio, e os dois criaram.
+  //
+  // Ler para decidir não trava nada: entre a leitura e a escrita cabe outro
+  // processo inteiro. Quem tem de decidir é o BANCO, numa escrita só.
+  //
+  // `updateMany` com o status na cláusula `where` é essa escrita: ela é
+  // atômica, e devolve `count: 1` para EXATAMENTE UM chamador. Quem levar o 1
+  // cria; quem levar 0 perdeu a corrida e volta apontando para o projeto do
+  // vencedor — que é a resposta certa, não um erro.
+  //
+  // `in_progress` não é status novo: é o mesmo que `createProjectFromRequest`
+  // já gravava — só que no FIM, depois da janela. Aqui ele vira a reserva, que
+  // é o papel que ele sempre teve sem ninguém ter dito.
+  const reserva = await prisma.clientRequestDb.updateMany({
+    where: { id: clientRequestId, status: STATUS_ACEITO },
+    data: { status: "in_progress" },
+  });
+  if (reserva.count === 0) {
+    // Alguém já está criando (ou acabou de criar). Espera-se dele o projeto —
+    // e se ele ainda não gravou, o relógio da próxima passada encontra.
+    const doVencedor = await prisma.project.findFirst({
+      where: { clientRequestId }, orderBy: { createdAt: "asc" }, select: { id: true },
+    });
+    return doVencedor
+      ? { ok: true, projectId: doVencedor.id, jaExistia: true }
+      : { ok: false, motivo: "outro processo já está criando este projeto", esperaGente: false };
+  }
+
   const { createProjectFromRequest } = await import("@/lib/agency/execution/create-project-from-request");
   const criacao = await createProjectFromRequest(clientRequestId, quem);
+  if (!criacao.ok) {
+    // A criação morreu com a reserva na mão: devolve o status para que a
+    // próxima passada do relógio possa tentar de novo. Reserva que não se
+    // devolve é um pedido preso para sempre — trocaria o projeto duplicado
+    // por um projeto que nunca nasce, que é pior e mais silencioso.
+    await prisma.clientRequestDb
+      .updateMany({ where: { id: clientRequestId, status: "in_progress" }, data: { status: STATUS_ACEITO } })
+      .catch(() => undefined);
+  }
   if (!criacao.ok) return { ok: false, motivo: criacao.error ?? "a criação do projeto falhou", esperaGente: false };
 
   // A esteira anda: nasce o projeto, o cliente já recebe a direção para avalizar.

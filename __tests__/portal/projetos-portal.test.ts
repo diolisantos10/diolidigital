@@ -20,9 +20,19 @@ const db = vi.hoisted(() => ({
   pagamentoConfirmado: { findMany: vi.fn() },
 }));
 const resolvePortalClient = vi.hoisted(() => vi.fn());
+// 6ª rodada: a etapa deixou de ser escrita nesta rota. Ela vem do leitor único
+// (`esteira/retrato`), o MESMO de `/api/portal/esteira` — ver
+// `o-cartao-do-projeto-nao-mente.test.ts` e `uma-verdade-so.test.ts`.
+const statusDoProjeto = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ resolvePortalClient }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ resolvePortalClient,
+  // 6ª rodada: as rotas de leitura passaram a usar `donoDoPortal`, que separa
+  // "token inválido" de "ainda não há ficha de cliente". O dublê DERIVA do
+  // mesmo `resolvePortalClient` deste arquivo — nenhuma expectativa mudou.
+  donoDoPortal: async (t: string) => (await resolvePortalClient(t)) ?? "invalido",
+}));
+vi.mock("@/lib/agency/esteira/retrato", () => ({ statusDoProjeto }));
 
 import { GET } from "@/app/api/portal/projetos/route";
 
@@ -53,6 +63,9 @@ beforeEach(() => {
   // O cliente destes testes JÁ PAGOU — o assunto deles é outro.
   db.pagamentoConfirmado.findMany.mockResolvedValue([{ clientRequestId: "cr-foocci" }]);
   db.socialPost.findMany.mockResolvedValue([POST_NO_BANCO]);
+  statusDoProjeto.mockResolvedValue({
+    leitura: { paraCliente: { titulo: "Criando o seu material" } },
+  });
 });
 
 describe("GET /api/portal/projetos — o dono vem do token", () => {
@@ -99,20 +112,25 @@ describe("GET /api/portal/projetos — o que o cliente recebe", () => {
       id: "p1",
       nome: "Foocci — Lançamento (donos de restaurante)",
       objetivo: "Lançar o app para donos de restaurante",
-      etapa: "Em produção",
+      etapa: "Criando o seu material",
     });
     expect(json.projetos[0].criadoEm).toBeTruthy();
   });
 
-  it("a etapa é derivada dos carimbos, nunca do stage escrito à mão", async () => {
+  it("a etapa é do LEITOR ÚNICO, por projeto — nunca do `stage` escrito à mão", async () => {
     db.project.findMany.mockResolvedValue([
-      { ...PROJETO_NO_BANCO, id: "p2", presentedAt: new Date(), clientApprovedAt: null },
-      { ...PROJETO_NO_BANCO, id: "p3", presentedAt: new Date(), clientApprovedAt: new Date() },
+      { ...PROJETO_NO_BANCO, id: "p2", stage: "mentira_escrita_a_mao" },
+      { ...PROJETO_NO_BANCO, id: "p3", stage: "outra_mentira" },
     ]);
+    statusDoProjeto.mockImplementation(async (id: string) => ({
+      leitura: { paraCliente: { titulo: id === "p2" ? "Tudo pronto para você ver" : "Colocando no ar" } },
+    }));
     const res = await GET(req("http://localhost/api/portal/projetos?token=tok-a"));
     const json = await res.json();
-    expect(json.projetos[0].etapa).toBe("Esperando a sua aprovação");
-    expect(json.projetos[1].etapa).toBe("Aprovado por você — colocando no ar");
+    expect(json.projetos[0].etapa).toBe("Tudo pronto para você ver");
+    expect(json.projetos[1].etapa).toBe("Colocando no ar");
+    expect(statusDoProjeto).toHaveBeenCalledWith("p2");
+    expect(statusDoProjeto).toHaveBeenCalledWith("p3");
   });
 
   it("NENHUM campo interno atravessa: proposalPricing, custo e erro de execução não existem no payload", async () => {

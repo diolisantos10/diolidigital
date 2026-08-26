@@ -300,6 +300,35 @@ function aplicarTravasDeEscopo(bruto: Record<string, unknown>): Record<string, u
   delete scopePatch.prospectEmail;
   delete scopePatch.negotiation;
 
+  // ── PLACEHOLDER NÃO É NOME (cliente oculto, 6ª rodada) ────────────────────
+  //
+  // MEDIDO EM PRODUÇÃO. O modelo devolveu `prospectName: "<UNKNOWN>"` — o jeito
+  // dele de dizer *"não sei"* —, a casa gravou isso como o nome da pessoa, e a
+  // consultora passou a chamar o cliente assim **na cara dele**:
+  //
+  //     "Entendi, <UNKNOWN> — e tudo bem."
+  //
+  // Nove turnos seguidos. `primeiroNome` (`pergunta-repetida.ts`) só perguntava
+  // se o campo tinha texto; texto ele tinha.
+  //
+  // É o guardrail 1 na forma mais literal que ele já apareceu nesta casa:
+  // **ausência de informação não é informação.** O modelo declarou ausência e a
+  // casa a promoveu a fato. Fail-closed: o campo some, e o resto do sistema
+  // trata o nome como desconhecido — que é a verdade, e que ele já sabe fazer
+  // (a saudação sem nome existe e é a original).
+  //
+  // Vale para os DOIS campos de identidade: um `<UNKNOWN>` em `businessName`
+  // viraria o nome do negócio na fila do CEO, na proposta e na peça.
+  const EH_PLACEHOLDER =
+    /^\s*(?:<[^>]*>|\[[^\]]*\]|\{[^}]*\}|n\/?a|null|none|undefined|unknown|desconhecid[oa]|n[ãa]o\s+(?:informad[oa]|sabe|dispon[íi]vel)|sem\s+nome|[-–—]{1,}|\?+|\.{2,})\s*$/i;
+  for (const campo of ["prospectName", "businessName"] as const) {
+    const v = scopePatch[campo];
+    if (typeof v === "string" && EH_PLACEHOLDER.test(v)) {
+      console.warn(`[sdr/chat] ${campo}="${v}" é placeholder, não nome — descartado`);
+      delete scopePatch[campo];
+    }
+  }
+
   // NOME DA PESSOA NÃO É NOME DO NEGÓCIO — e aqui a regra é trava, não aviso.
   // 16/08/2026: o cliente confirmou "City Jobs" por voz, anexou o brand book
   // do City Jobs, e o pedido chegou ao Gerente de Projeto como "briefing da
@@ -913,7 +942,56 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         );
         const jaPerguntadas = [...new Set([...doCorpo, ...doBanco].map(identificarPergunta).filter((x): x is string => x !== null))];
         const escopoParaAFila = { ...(body.scope ?? {}), ...scopeDaVez };
-        replyText = oQueDizerNoLugar(perguntaDaVez, escopoParaAFila, jaPerguntadas);
+        const ASSINATURA_DO_FECHO = "Anotei isso do seu jeito e vou seguir sem esse dado";
+        const jaDisseOFecho = [...doCorpo, ...doBanco].some((f) => f.includes(ASSINATURA_DO_FECHO));
+        // A partir da SEGUNDA vez o fecho ecoa as palavras do cliente — assim
+        // ele nunca é a mesma frase duas vezes, e nunca mais diz "sigo sem
+        // esse dado" para quem está falando. Ver `oQueDizerNoLugar`.
+        const noLugar = oQueDizerNoLugar(
+          perguntaDaVez, escopoParaAFila, jaPerguntadas,
+          jaDisseOFecho ? body.currentMessage : undefined,
+        );
+
+        // ═══════════════════════════════════════════════════════════════════
+        // ⛔ O REMÉDIO VIROU A DOENÇA (cliente oculto, 6ª rodada)
+        // ═══════════════════════════════════════════════════════════════════
+        //
+        // ⚠️ E o conserto NÃO é deixar de substituir. A primeira tentativa foi
+        // exatamente essa — deixar a fala do modelo passar quando o fecho já
+        // tivesse saído — e ela derrubou a trava irmã na hora
+        // (`laco-do-sdr-de-ia.test.ts`): sem a substituição, a MESMA PERGUNTA
+        // chegava ao cliente três vezes. As duas regras estão certas.
+        // Quem muda é o FECHO, que passa a ecoar o cliente.
+        //
+        // MEDIDO EM PRODUÇÃO: esta substituição — a máquina que existe para
+        // acabar com a frase repetida — saiu **NOVE TURNOS SEGUIDOS, palavra
+        // por palavra**:
+        //
+        //   "Entendi, <UNKNOWN> — e tudo bem. Anotei isso do seu jeito e vou
+        //    seguir sem esse dado por enquanto; a equipe confirma com você
+        //    depois. Já tenho o essencial aqui. […]"
+        //
+        // E saiu nos turnos em que o cliente ESTAVA RESPONDENDO: o e-mail dele,
+        // o horário de funcionamento, a área atendida. A casa disse nove vezes
+        // "vou seguir sem esse dado" sobre dados que acabara de receber. Para
+        // quem está do outro lado, isso é pior que a pergunta repetida — a
+        // pergunta ao menos admite que quer algo; isto afirma que desistiu.
+        //
+        // A causa: quando a sondagem já fechou, `proximaEmAberto` devolve
+        // `null` e `oQueDizerNoLugar` cai sempre no MESMO fecho. O guarda
+        // dispara de novo a cada turno em que o modelo repete a pergunta, e
+        // reemite o mesmo fecho para sempre.
+        //
+        // A regra que faltava é a que o próprio módulo já pregava, aplicada a
+        // ele mesmo: **a mesma frase não sai duas vezes.** Se este fecho já foi
+        // dito neste fio, a substituição não acontece — a fala do MODELO passa,
+        // porque nesse ponto ela é a coisa mais responsiva que existe, e a
+        // lacuna continua sendo registrada de qualquer jeito.
+        //
+        // A checagem usa as falas que já estão na mão (`doCorpo`/`doBanco`):
+        // nenhuma leitura nova, e nenhuma segunda contagem de "já disse" que um
+        // dia divergiria da primeira.
+        replyText = noLugar;
         scopeDaVez = { ...scopeDaVez, lacunasDeEscopo: lacunas };
         console.warn(`[sdr/chat] pergunta "${perguntaDaVez}" já feita ${jaFeita}x — registrada como lacuna, a conversa avança`);
       } else if (jaFeita === LIMITE_DE_INSISTENCIA - 1) {

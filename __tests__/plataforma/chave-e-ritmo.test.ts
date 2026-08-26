@@ -88,7 +88,12 @@ const resolvePortalClient = vi.hoisted(() => vi.fn());
 const resolveProviderKey = vi.hoisted(() => vi.fn());
 const transcreverAudio = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ resolvePortalClient }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ resolvePortalClient,
+  // 6ª rodada: as rotas de leitura passaram a usar `donoDoPortal`, que separa
+  // "token inválido" de "ainda não há ficha de cliente". O dublê DERIVA do
+  // mesmo `resolvePortalClient` deste arquivo — nenhuma expectativa mudou.
+  donoDoPortal: async (t: string) => (await resolvePortalClient(t)) ?? "invalido",
+}));
 vi.mock("@/lib/ai/resolve-key", () => ({ resolveProviderKey }));
 vi.mock("@/lib/ai/transcricao", async () => {
   const real = await vi.importActual<typeof import("@/lib/ai/transcricao")>("@/lib/ai/transcricao");

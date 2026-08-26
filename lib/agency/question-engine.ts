@@ -16,6 +16,7 @@ import { lerAreaDeAtendimento } from "./comercial/onde-o-negocio-vende";
 import { NUMERO_POR_EXTENSO, normalizar as normalizarSemAcento } from "./esteira/leitura-do-pedido";
 import { CAUSAS, type Causa } from "./esteira/causas-de-refacao";
 import { PERGUNTA, type CampoDaMarca } from "./esteira/campos-da-marca";
+import { lerBasicosOperacionais } from "./comercial/resposta-que-responde";
 
 // ── Text helpers ──────────────────────────────────────────────────────────────
 
@@ -681,7 +682,23 @@ const QUESTIONS: QuestionDef[] = [
       "",
       "Se não tiver alguma delas, é só dizer que a gente segue. 🙂",
     ].join("\n"),
-    parse: (answer) => ({ operacao: answer.trim() }),
+    // ── RESPOSTA QUE NÃO RESPONDE NÃO PREENCHE CAMPO (6ª rodada) ──────────
+    //
+    // Aqui era `({ operacao: answer.trim() })` — qualquer texto enchia o campo.
+    // Medido no cliente oculto: o cliente respondeu com a frase do OBJETIVO
+    // dele, `operacao` ficou cheio, o `when` acima passou a devolver `false`, e
+    // a pergunta do HORÁRIO passou por respondida sem ter sido. Três passos
+    // adiante o piso de verdade barrou a peça por falta de horário de
+    // funcionamento — essa foi a raiz.
+    //
+    // Quem decide agora é `lerBasicosOperacionais`, que usa o MESMO
+    // `extrairVerdadeOperacional` do piso. Duas pontas, um leitor: não existe
+    // mais texto que encha `operacao` e do qual o piso não tire nada.
+    //
+    // Delta vazio ⇒ `operacao` continua indefinido ⇒ o `when` continua
+    // verdadeiro ⇒ a pergunta volta. Quem limita a volta é o motor
+    // (`LIMITE_DE_INSISTENCIA`, no `prospect-engine`) — nunca esta linha.
+    parse: (answer) => (lerBasicosOperacionais(answer).responde ? { operacao: answer.trim() } : {}),
   },
 
   // ── Q9b — OS BÁSICOS DE MARCA ────────────────────────────────────────────

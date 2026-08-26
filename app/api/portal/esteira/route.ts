@@ -17,6 +17,7 @@ import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { statusPelaSolicitacao } from "@/lib/agency/esteira/retrato";
+import { lerFase } from "@/lib/agency/esteira/fases";
 import { aprovarDirecao, aprovarPacote } from "@/lib/agency/esteira/marcos";
 
 export const maxDuration = 300;
@@ -148,10 +149,55 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const status = await statusPelaSolicitacao(alvo.id);
   if (!status) {
+    // ═══════════════════════════════════════════════════════════════════════
+    // A QUARTA CONTRADIÇÃO DO PORTAL (cliente oculto, 6ª rodada)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Medido em produção, MESMO token, MESMO minuto:
+    //   • `/api/portal/messages` → a proposta dele, com o valor, a lista do que
+    //     entra e o link de aceitar ou recusar;
+    //   • esta rota            → *"Ainda estamos organizando tudo. Seu projeto
+    //     está sendo preparado."*
+    //
+    // A frase era um literal cravado aqui, disparado sempre que não existe
+    // linha de `Project` — e `Project` só nasce DEPOIS do aceite. Ou seja: em
+    // toda a fase comercial, a esteira dizia ao cliente que nada tinha
+    // acontecido, enquanto a proposta esperava a assinatura dele na aba do
+    // lado. É a mesma família das três anteriores: um segundo escritor da
+    // etapa, aqui na forma de um texto fixo.
+    //
+    // `lerFase` já sabia responder isto — os ramos comerciais (`orcamento`,
+    // `negociacao`, `sondagem`) existem e nunca eram alcançados por esta porta.
+    // O conserto é ler a solicitação e passá-la ao MESMO leitor, em vez de
+    // escrever a quarta versão da verdade.
+    const solicitacao = await prisma.clientRequestDb
+      .findUnique({ where: { id: alvo.id }, select: { status: true, businessName: true } })
+      .catch(() => null);
+    const leitura = lerFase({
+      statusDaSolicitacao: solicitacao?.status ?? null,
+      propostaAceita: false,
+      tarefas: { total: 0, entregues: 0, produzindo: 0, bloqueadas: 0 },
+      entregaveis: { total: 0, emRevisao: 0, comRessalva: 0, aprovados: 0 },
+      pedidosAbertos: 0, pedidosCobrados: 0,
+      cicloAberto: false, postsPublicados: 0, postsAgendados: 0,
+    });
     return NextResponse.json({
-      ok: true, temProjeto: false,
-      titulo: "Ainda estamos organizando tudo",
-      agora: "Seu projeto está sendo preparado. Em breve você acompanha tudo por aqui.",
+      ok: true,
+      temProjeto: false,
+      projeto: solicitacao?.businessName ?? null,
+      etapa: leitura.paraCliente.titulo,
+      // `titulo` fica no lugar por compatibilidade com quem já o lia — mas
+      // agora ele diz a MESMA coisa que `etapa`, e as duas saem do leitor
+      // único. Duas chaves com dois textos é como esta casa se contradiz.
+      titulo: leitura.paraCliente.titulo,
+      agora: leitura.paraCliente.agora,
+      oQueEsperamosDeVoce: leitura.paraCliente.oQueEsperamosDeVoce,
+      aBolaEstaComVoce: leitura.responsavel === "cliente",
+      progresso: leitura.progresso,
+      trilha: [],
+      pendencias: [],
+      direcao: { pedeAprovacao: false },
+      ciclo: null,
     });
   }
 

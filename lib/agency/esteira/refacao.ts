@@ -54,7 +54,7 @@ import {
 } from "@/lib/agency/execution/quality-auditor";
 import { entregaMostradaPorDepartamento } from "@/lib/agency/esteira/pacote";
 import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pagamento";
-import { refazerArteDoAjuste, type ArteDoAjuste } from "@/lib/agency/esteira/refazer-a-arte-do-ajuste";
+import { refazerArteDoAjuste, AVISO_DA_ARTE_QUE_NAO_SAIU, type ArteDoAjuste } from "@/lib/agency/esteira/refazer-a-arte-do-ajuste";
 import { pecasDoEspecialista } from "@/lib/agency/esteira/producao-de-pedido";
 import { pecasApontadasPeloAjuste } from "@/lib/agency/esteira/mira-da-peca";
 import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
@@ -368,7 +368,47 @@ export async function refazerPorPedidoDoCliente(input: {
       }).catch(() => null))?.deliverableId ?? null
     : null;
 
-  const idExplicito = input.deliverableId?.trim() || entregaDoPedido;
+  // ── 1.6. AS PEÇAS QUE ELE ESTAVA VENDO DIZEM QUAL É A ENTREGA ───────────
+  //
+  // ⚠️ MEDIDO EM PRODUÇÃO (cliente oculto, 6ª rodada): o cliente pediu ajuste,
+  // a rota devolveu 200, e **0 de 2 arquivos mudaram** — sha256 reconferido
+  // seis minutos depois, idêntico.
+  //
+  // A rodada anterior fechou o caminho do TÍTULO e o caminho do `pedido:<id>`.
+  // Este é outro, e é o do card genérico: sem `deliverableId` no card e sem
+  // entrada em `entregaMostradaPorDepartamento`, a mira caía no fallback nº 3
+  // (o departamento) e `alvos` ficava com VÁRIAS entregas. Aí, três linhas
+  // abaixo, `alvos.length === 1` reprova e o laço de arte **nunca roda**.
+  // Nenhum `mediaUrl` muda, e — o pior — nada diz isso a ninguém: `saida.arte`
+  // fica `null`, `arteDevia` fica `false`, e o card REABRE em `pending` como se
+  // tivesse dado tudo certo. O cliente é chamado a decidir outra vez sobre
+  // exatamente a imagem que ele acabou de recusar.
+  //
+  // O dado que faltava já estava no banco: `SocialPost.deliverableId` é a chave
+  // de idempotência de quem gerou a peça. As peças que o card mostrou APONTAM
+  // para a entrega que as fez, por FK. Isso é PROVA, não inferência — a mesma
+  // firmeza do nível 1, e por isso entra logo depois dele.
+  //
+  // Fail-closed em dois pontos, os dois de propósito:
+  //   • as peças têm de apontar para UMA entrega só. Duas entregas no mesmo
+  //     card e a posição volta a ser indecidível — refazer o texto de uma na
+  //     imagem da outra é pior que não refazer;
+  //   • a entrega apontada tem de estar entre as candidatas do projeto. FK que
+  //     leva para fora do ciclo corrente não é atalho para refazer peça alheia.
+  const pecasDoCardParaMira = (input.postIds ?? []).filter((x) => typeof x === "string" && x.length > 0);
+  let entregaDasPecas: string | null = null;
+  if (!input.deliverableId?.trim() && !entregaDoPedido && pecasDoCardParaMira.length > 0) {
+    const donas = await prisma.socialPost
+      .findMany({
+        where: { id: { in: pecasDoCardParaMira }, deliverableId: { not: null } },
+        select: { deliverableId: true },
+      })
+      .catch(() => [] as Array<{ deliverableId: string | null }>);
+    const unicas = [...new Set(donas.map((d) => d.deliverableId).filter((x): x is string => !!x))];
+    if (unicas.length === 1) entregaDasPecas = unicas[0]!;
+  }
+
+  const idExplicito = input.deliverableId?.trim() || entregaDoPedido || entregaDasPecas;
   if (idExplicito) {
     // A posse é conferida nas duas pontas: entre as candidatas (que já nascem
     // filtradas por projeto) ou, se o card aponta para fora do ciclo corrente,
@@ -807,6 +847,41 @@ export async function refazerPorPedidoDoCliente(input: {
       saida.escalado = true;
       saida.motivo = saida.arte.motivo;
     }
+  } else if (!recusou && saida.refeitas.length > 0 && pecasDoCard.length > 0) {
+    // ═══════════════════════════════════════════════════════════════════════
+    // O LAÇO DE ARTE NÃO RODOU — E ISSO NUNCA MAIS SAI CALADO (6ª rodada)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Este `else` não existia, e a falta dele é metade do defeito medido.
+    // Quando a mira não colapsa em UMA entrega, o `if` acima não entra,
+    // `saida.arte` fica `null` — e três linhas abaixo `arteDevia` se calcula
+    // como `saida.arte != null && …`, ou seja, **false**. `podeReabrir` vira
+    // `true`, o card reabre em `pending`, a rota devolve 200, e o cliente é
+    // chamado a decidir de novo sobre a MESMA imagem que ele acabou de
+    // recusar. Nenhum log, nenhum vermelho, nenhuma escalada.
+    //
+    // "Não rodou" e "rodou e não mudou nada" tinham comportamentos opostos
+    // sendo o mesmo fato para quem paga: o arquivo continua igual. Agora os
+    // dois passam pela mesma porta.
+    //
+    // A régua é `refeitas.length === 0`, então `arteDevia` fica verdadeiro,
+    // `podeReabrir` fica falso, a equipe é escalada com dono e próxima ação, e
+    // a peça recebe na TELA o aviso honesto de que a imagem ainda é a anterior
+    // — a mesma frase do outro caminho (`AVISO_DA_ARTE_QUE_NAO_SAIU`), porque
+    // duas redações para o mesmo fato é como as duas verdades nascem.
+    const motivo =
+      `a mira da imagem não fechou: o seu pedido alcançou ${alvos.length} entrega(s) e a ` +
+      "correspondência peça↔texto só é decidível sobre UMA — escrever o texto de uma peça na " +
+      "imagem de outra é pior do que não refazer. O TEXTO foi ajustado; as imagens NÃO foram tocadas " +
+      "e nenhuma peça foi apagada. Dono: a agência (produção). Próxima ação: apontar a entrega do card " +
+      "(`deliverableId`) ou ligar as peças à entrega (`SocialPost.deliverableId`) e refazer a arte.";
+    saida.arte = { refeitas: [], preservadas: pecasDoCard, mira: null, motivo };
+    saida.escalado = true;
+    saida.motivo = motivo;
+    await prisma.socialPost.updateMany({
+      where: { id: { in: pecasDoCard } },
+      data: { avisoAoCliente: AVISO_DA_ARTE_QUE_NAO_SAIU },
+    }).catch(() => { /* best-effort: a escalada continua de pé */ });
   }
 
   // ── QUANDO O CARD **NÃO** PODE REABRIR ──────────────────────────────────
@@ -817,7 +892,11 @@ export async function refazerPorPedidoDoCliente(input: {
   // rodada veio fechar. Nesse caso o card fica em "Ajustes solicitados", a
   // equipe é acionada (`escalar`, abaixo) e o cliente recebe a mensagem
   // honesta de que a casa está trabalhando nisso.
-  const arteDevia = saida.arte != null && pecasDoCard.length > 0;
+  // ── "DEVIA TER SAÍDO ARTE?" É PERGUNTA SOBRE A PEÇA, NÃO SOBRE O OBJETO ──
+  // Era `saida.arte != null && …`, e o `null` do laço que nem rodou respondia
+  // "não devia" — a falha se autoabsolvia. A pergunta certa é a do cliente:
+  // este card mostrava imagem? Se mostrava, arte devia sair.
+  const arteDevia = !recusou && pecasDoCard.length > 0;
   const arteSaiu = (saida.arte?.refeitas.length ?? 0) > 0;
   const podeReabrir = !arteDevia || arteSaiu;
 
