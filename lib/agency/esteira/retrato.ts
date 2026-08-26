@@ -55,7 +55,7 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
   }).catch(() => null);
   if (!projeto) return null;
 
-  const [tarefas, pendencias, ciclo, entregaveis, solicitacao, posts, conexoes, pacote] = await Promise.all([
+  const [tarefas, pendencias, ciclo, entregaveis, solicitacao, posts, conexoes, pacote, pagamentoConfirmado] = await Promise.all([
     contarTarefas(projectId),
     pedidosAbertos(projectId),
     cicloAberto(projectId),
@@ -85,6 +85,23 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     // Nunca lança e nunca devolve "pronto" por engano: falha de leitura vira
     // pacote vazio, e pacote vazio não pede aprovação. Ver `pacote.ts`.
     retratoDoPacote(projectId),
+    // ── O PAGAMENTO, LIDO PELA MESMA TESTEMUNHA DA TRAVA ──────────────────
+    //
+    // `PagamentoConfirmado` é a tabela que `conferirPagamento` consulta para
+    // LIBERAR a produção. Vem para cá porque `/api/portal/projetos` sabia disto
+    // e a esteira não — e foi essa assimetria que produziu a terceira
+    // contradição do portal (ver o ramo novo em `lerFase`).
+    //
+    // ⚠️ `undefined` quando não há como medir (projeto sem pedido de origem, ou
+    // leitura que falhou): ausência de informação não é informação, e um
+    // `false` de banco lento faria a etapa do cliente dizer "aguardando
+    // pagamento" sobre um projeto pago.
+    projeto.clientRequestId
+      ? prisma.pagamentoConfirmado
+          .count({ where: { clientRequestId: projeto.clientRequestId, valorCentavos: { gt: 0 } } })
+          .then((n) => n > 0)
+          .catch(() => undefined)
+      : Promise.resolve(undefined as boolean | undefined),
   ]);
 
   const contarPosts = (status: string) =>
@@ -135,6 +152,7 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
       Boolean(projeto.presentedAt) ||
       STATUS_ACEITE.includes((statusSolicitacao ?? "").toLowerCase()) ||
       (projeto.stage ?? "") !== "briefing",
+    ...(pagamentoConfirmado === undefined ? {} : { pagamentoConfirmado }),
     direcaoAprovadaEm: projeto.directionApprovedAt,
     apresentadoEm: projeto.presentedAt,
     aprovadoPeloClienteEm: projeto.clientApprovedAt,

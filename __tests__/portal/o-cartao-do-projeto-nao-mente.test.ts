@@ -15,6 +15,28 @@
 // A causa era um `else`: a função tinha três ramos, e o último devolvia
 // "Em produção" para tudo o que não tinha sido apresentado. `directionApprovedAt`
 // chegava até ela e não era lido por ninguém.
+//
+// ═══════════════════════════════════════════════════════════════════════════
+// A 6ª RODADA: A FUNÇÃO CERTA ERA O PROBLEMA (26/08/2026)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O conserto acima deixou `etapaLegivel` CORRETA — e o cliente oculto voltou e
+// encontrou a TERCEIRA contradição do portal, com a função corrigida no lugar:
+// `/api/portal/esteira` dizia "Ainda estamos produzindo" e esta rota dizia
+// "Esperando a sua aprovação", no mesmo projeto, no mesmo minuto.
+//
+// Porque o defeito nunca foi o conteúdo dos ramos: era haver DOIS ESCRITORES
+// da mesma verdade. `etapaLegivel` contava carimbos; `lerFase` contava também
+// os entregáveis com corpo — e com `presentedAt` carimbado e nenhuma decisão
+// disponível, as duas respondiam coisas opostas, cada uma certa dentro do que
+// enxergava.
+//
+// `etapaLegivel` foi APAGADA. As asserções de comportamento deste arquivo
+// mudaram de endereço, não de exigência: elas agora perguntam ao leitor único
+// (`lerFase`), que é quem passou a responder — e o pagamento, que só esta rota
+// sabia ler, subiu junto para lá. O que a ROTA ainda deve provar é uma coisa
+// só, e ela está no último bloco: que ela repassa o leitor único sem inventar
+// palavra nenhuma no caminho.
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
@@ -25,14 +47,17 @@ const db = vi.hoisted(() => ({
   pagamentoConfirmado: { findMany: vi.fn() },
 }));
 const resolvePortalClient = vi.hoisted(() => vi.fn());
+const statusDoProjeto = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ resolvePortalClient }));
+vi.mock("@/lib/agency/esteira/retrato", () => ({ statusDoProjeto }));
 vi.mock("@/lib/agency/persistence/portal-cookie", () => ({
   tokenDoPortal: (_r: unknown, q: string | null) => q,
 }));
 
 import { GET } from "@/app/api/portal/projetos/route";
+import { lerFase } from "@/lib/agency/esteira/fases";
 
 const PROJETO = {
   id: "p1", name: "Reativação — CANTINA DO PORTO TESTE", goal: "encher o salão",
@@ -53,43 +78,93 @@ beforeEach(() => {
   db.project.findMany.mockResolvedValue([{ ...PROJETO }]);
   db.socialPost.findMany.mockResolvedValue([]);
   db.pagamentoConfirmado.findMany.mockResolvedValue([]);
-});
-
-describe("a etapa que o cliente lê no cartão", () => {
-  it("SEM pagamento não é 'Em produção' — é o que falta, e é ação DELE", async () => {
-    expect(await etapa()).toBe("Aguardando o pagamento para começar");
-  });
-
-  it("PAGO mas sem aval da direção: espera o cliente, não 'produz'", async () => {
-    db.pagamentoConfirmado.findMany.mockResolvedValue([{ clientRequestId: "cr1" }]);
-    expect(await etapa()).toBe("Esperando o seu aval no caminho");
-  });
-
-  it("pago e com o aval: aí sim, em produção", async () => {
-    db.pagamentoConfirmado.findMany.mockResolvedValue([{ clientRequestId: "cr1" }]);
-    db.project.findMany.mockResolvedValue([{ ...PROJETO, directionApprovedAt: new Date() }]);
-    expect(await etapa()).toBe("Em produção");
-  });
-
-  it("os dois ramos antigos continuam de pé", async () => {
-    db.pagamentoConfirmado.findMany.mockResolvedValue([{ clientRequestId: "cr1" }]);
-    db.project.findMany.mockResolvedValue([{ ...PROJETO, directionApprovedAt: new Date(), presentedAt: new Date() }]);
-    expect(await etapa()).toBe("Esperando a sua aprovação");
-    db.project.findMany.mockResolvedValue([{ ...PROJETO, clientApprovedAt: new Date() }]);
-    expect(await etapa()).toBe("Aprovado por você — colocando no ar");
+  statusDoProjeto.mockResolvedValue({
+    leitura: { paraCliente: { titulo: "Aguardando o pagamento para começar" } },
   });
 });
 
-describe("a leitura do pagamento é fail-closed", () => {
-  it("banco tossindo NÃO vira 'pago' — o cartão erra para 'ainda não começou'", async () => {
-    db.pagamentoConfirmado.findMany.mockRejectedValue(new Error("banco fora"));
+describe("a etapa que o cliente lê — agora no leitor ÚNICO (`lerFase`)", () => {
+  const base = {
+    propostaAceita: true,
+    tarefas: { total: 3, entregues: 0, produzindo: 0, bloqueadas: 0 },
+    entregaveis: { total: 0, emRevisao: 0, comRessalva: 0, aprovados: 0 },
+    pedidosAbertos: 0,
+    pedidosCobrados: 0,
+    cicloAberto: false,
+    redesConectadas: true,
+    postsPublicados: 0,
+    postsAgendados: 0,
+  } as const;
+
+  it("SEM pagamento não é 'Em produção' — é o que falta, e é ação DELE", () => {
+    const l = lerFase({ ...base, pagamentoConfirmado: false });
+    expect(l.paraCliente.titulo).toBe("Aguardando o pagamento para começar");
+    expect(l.responsavel, "a bola é do cliente").toBe("cliente");
+  });
+
+  it("PAGO mas sem aval da direção: espera o cliente, não 'produz'", () => {
+    const l = lerFase({ ...base, pagamentoConfirmado: true });
+    expect(l.paraCliente.titulo).toBe("Confirme o caminho");
+    expect(l.fase).toBe("direcao");
+  });
+
+  it("pago e com o aval: aí sim, produzindo", () => {
+    const l = lerFase({
+      ...base, pagamentoConfirmado: true,
+      direcaoAprovadaEm: new Date("2026-08-20"),
+      tarefas: { total: 3, entregues: 1, produzindo: 2, bloqueadas: 0 },
+    });
+    expect(l.fase).toBe("producao");
+  });
+
+  it("⚠️ NÃO MEDIDO não é 'não pagou' — quem não passa o número mantém a leitura antiga", () => {
+    // Ausência de informação não é informação. Um `false` de banco lento faria
+    // a etapa dizer "aguardando pagamento" sobre um projeto pago.
+    const l = lerFase({ ...base });
+    expect(l.paraCliente.titulo).not.toBe("Aguardando o pagamento para começar");
+  });
+
+  it("o ramo que produzia a contradição: apresentado SEM nada para decidir", () => {
+    // `presentedAt` carimbado e `decisoesDisponiveis === 0`. `etapaLegivel`
+    // respondia "Esperando a sua aprovação" — pedindo assinatura sobre nada.
+    const l = lerFase({
+      ...base, pagamentoConfirmado: true,
+      direcaoAprovadaEm: new Date("2026-08-20"),
+      apresentadoEm: new Date("2026-08-25"),
+      decisoesDisponiveis: 0,
+    });
+    expect(l.paraCliente.titulo).toBe("Ainda estamos produzindo");
+    expect(l.responsavel, "sem corpo para assinar, a bola é da AGÊNCIA").not.toBe("cliente");
+  });
+
+  it("apresentado COM corpo: aí sim a bola é dele", () => {
+    const l = lerFase({
+      ...base, pagamentoConfirmado: true,
+      direcaoAprovadaEm: new Date("2026-08-20"),
+      apresentadoEm: new Date("2026-08-25"),
+      decisoesDisponiveis: 2,
+    });
+    expect(l.paraCliente.titulo).toBe("Tudo pronto para você ver");
+    expect(l.responsavel).toBe("cliente");
+  });
+});
+
+describe("a rota repassa o leitor único, sem inventar palavra no caminho", () => {
+  it("a etapa do cartão é LITERALMENTE `leitura.paraCliente.titulo`", async () => {
+    statusDoProjeto.mockResolvedValue({
+      leitura: { paraCliente: { titulo: "Aguardando o pagamento para começar" } },
+    });
     expect(await etapa()).toBe("Aguardando o pagamento para começar");
   });
 
-  it("pagamento de VALOR ZERO não conta — a consulta exige dinheiro", async () => {
-    await etapa();
-    const where = db.pagamentoConfirmado.findMany.mock.calls[0]![0].where as Record<string, unknown>;
-    expect(where.valorCentavos).toEqual({ gt: 0 });
+  it("leitor que não respondeu NÃO vira afirmação — foi um `else` afirmativo que mentiu antes", async () => {
+    statusDoProjeto.mockResolvedValue(null);
+    expect(await etapa()).toBe("Não consegui ler a etapa agora");
+  });
+
+  it("leitor que EXPLODIU também não vira afirmação", async () => {
+    statusDoProjeto.mockRejectedValue(new Error("banco fora"));
+    expect(await etapa()).toBe("Não consegui ler a etapa agora");
   });
 
   it("o id do PEDIDO não vaza para a resposta do cliente", async () => {

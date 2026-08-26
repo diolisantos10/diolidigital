@@ -857,6 +857,39 @@ export async function baterORelogio(): Promise<{
     quebrou("backup", err);
   }
 
+  // ── DUAS TABELAS DE PREÇO VIVAS: A CASA GRITA ATÉ O CEO DECIDIR ──────────
+  //
+  // Achado do cliente oculto (26/08/2026): a proposta cotou "Plano Essencial
+  // R$ 590" e a página pública `/planos`, no mesmo minuto, mostrava outros
+  // cinco degraus — nenhum deles com esse nome nem com esse preço. E
+  // "Crescimento" existe nas duas com R$ 990 e R$ 2.590, 2,6× de diferença.
+  //
+  // Qual das duas é a verdadeira é decisão de PREÇO, e preço é do CEO — este
+  // bloco NÃO escolhe e não muda número nenhum. Ele grita.
+  //
+  // ⚠️ E este é o oposto do alarme que esta mesma rodada CALOU ("briefing sem
+  // orçamento", que gritava sobre comportamento correto). Aqui não há
+  // comportamento correto acontecendo: enquanto as duas tabelas divergirem,
+  // alguém está sendo cobrado errado em toda proposta que a esteira emite. É
+  // notícia todo dia porque é defeito todo dia — e some no minuto em que houver
+  // uma tabela só.
+  try {
+    const { SOCIAL_PACKAGES } = await import("@/lib/agency/live-calculator");
+    const { PLANOS } = await import("@/lib/agency/planos");
+    const daVitrine = new Set(PLANOS.map((p) => p.preco));
+    const fora = SOCIAL_PACKAGES
+      .filter((p) => !daVitrine.has(p.minPrice) || !daVitrine.has(p.maxPrice))
+      .map((p) => `${p.label} R$ ${p.minPrice}`);
+    if (fora.length > 0) {
+      quebrou("precos",
+        `${fora.length} preço(s) que a esteira COTA não existem na página pública /planos (${fora.join(" · ")}). ` +
+        "Duas tabelas vivas cobram errado de alguém. Dono: o CEO. " +
+        "Próxima ação: decidir qual tabela vale — a da vitrine ou a da proposta.");
+    }
+  } catch (err) {
+    quebrou("precos", err);
+  }
+
   try {
     const r = await dispatchWhatsAppNotifications();
     avisos = typeof r?.sent === "number" ? r.sent : 0;
@@ -894,7 +927,50 @@ export async function baterORelogio(): Promise<{
     // silêncio virava rotina de log. Agora ele é avisado, uma vez, com o que
     // falta, o motivo, o dono e a próxima ação — e o número diz quantos foram.
     if (r.faltaAvisada > 0) log(`${r.faltaAvisada} cliente(s) avisado(s) de que o pedido está parado por falta de informação`);
-    if (r.semOrcamento > 0) quebrou("orcamento", `${r.semOrcamento} briefing(s) sem orçamento calculado — aguardando gente (o cliente JÁ foi avisado do que falta)`);
+    // ═══════════════════════════════════════════════════════════════════════
+    // ALARME QUE GRITA SOBRE O NORMAL ENSINA A IGNORAR ALARME (6ª rodada)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Medido no cliente oculto: *"2 briefing(s) sem orçamento calculado"*
+    // disparou **76 vezes em 24h** — para um comportamento CORRETO. Dois
+    // briefings chegaram sem o dado que fecha a conta, a casa se recusou a
+    // inventar número (certo), avisou o cliente do que falta (certo), e ficou
+    // esperando gente (certo). Nada estava quebrado. O alarme gritava mesmo
+    // assim, a cada batida do relógio, porque ele perguntava a coisa errada.
+    //
+    // `semOrcamento` é um ESTADO DE PÉ, não um evento. Estado de pé multiplicado
+    // por 288 batidas de relógio por dia vira ruído — e ruído ninguém lê. O
+    // custo não é a linha: é que a notícia REAL do dia seguinte chega na mesma
+    // caixa e recebe o mesmo desprezo já treinado. Esta casa já escreveu essa
+    // lição duas vezes (`pedidos.ts`, e o aviso do próprio orçamento em 25/08)
+    // e depois gritou por cima dela.
+    //
+    // A regra: **alarme é sobre a TRANSIÇÃO; log é sobre o estado.**
+    //
+    //   • `faltaAvisada` é a transição — ela só é maior que zero no ciclo em
+    //     que um briefing NOVO entrou no buraco, porque `avisarQueFaltaInformacao`
+    //     carimba `faltaAvisadaEm` no `briefingJson` e nunca avisa duas vezes.
+    //     Um briefing, um alarme, para sempre. Reusa a marca que já existe: uma
+    //     segunda contagem de "já gritei" divergiria da primeira no primeiro
+    //     conserto de uma delas;
+    //   • `semOrcamento` continua sendo dito TODA rodada — por `estadoDe`, que
+    //     é o canal que esta casa já tinha para "fatos que são ESTADO, não
+    //     quebra" (`EstadoDaRodada`, em `pulso.ts`). Ele não some de lugar
+    //     nenhum: quem quiser saber quantos estão parados agora lê o pulso.
+    //
+    // ⚠️ ISTO NÃO CONTRADIZ A PORTA DE RESET, no topo desta função, que denuncia
+    // a cada batida de propósito. A diferença não é a duração, é a NATUREZA: lá
+    // o estado de pé é ANORMAL (alguém deixou ligada a variável que apaga a
+    // produção) e enquanto durar é notícia; aqui o estado de pé é a casa
+    // fazendo a coisa certa — recusando-se a inventar um número que não tem.
+    // Alarme sobre o anormal contínuo é vigilância; alarme sobre o normal
+    // contínuo é o treino que faz a vigilância ser ignorada.
+    if (r.faltaAvisada > 0) {
+      quebrou("orcamento", `${r.faltaAvisada} briefing(s) NOVO(s) sem orçamento calculado — aguardando gente (o cliente JÁ foi avisado do que falta)`);
+    }
+    if (r.semOrcamento > 0) {
+      estadoDe("orcamento", `${r.semOrcamento} briefing(s) parados sem orçamento calculado — aguardando gente (o cliente JÁ foi avisado do que falta)`);
+    }
     for (const f of r.falhas) quebrou("orcamento", f);
   } catch (err) {
     quebrou("orcamento", err);

@@ -1727,7 +1727,20 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
     const scope = conv.scope;
     const mergedScope: BriefingScope = {
       ...scope,
-      prospectEmail: contato?.email || scope.prospectEmail,
+      // ── O E-MAIL QUE ELE DEU NA CONVERSA É O ÚLTIMO RECURSO (6ª rodada) ──
+      //
+      // Ordem, e ela é intencional: a PORTA primeiro (declaração explícita num
+      // campo de contato), o escopo depois, e por último o que ele escreveu no
+      // meio da conversa. Palpite nunca passa na frente de declaração.
+      //
+      // Sem esta terceira parcela, quem pulava a porta e escreveu o e-mail na
+      // conversa entregava o briefing SEM canal nenhum: o dado existia, o
+      // consumidor existia, e não havia ligação entre os dois — a "seta
+      // faltando" que esta casa já conhece (D-003). Medido no cliente oculto.
+      //
+      // ⛔ Ele vem de `sdr.contatoOferecido`, NUNCA do `scope`: e-mail não
+      // trafega pelo caminho do modelo. Ver `SDRAgentState.contatoOferecido`.
+      prospectEmail: contato?.email || scope.prospectEmail || sdr.contatoOferecido?.email,
       prospectPhone: contato?.whatsapp || scope.prospectPhone,
       prospectName:  scope.prospectName ?? contato?.nome ?? "",
     };

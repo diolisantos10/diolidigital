@@ -22,47 +22,46 @@ import { prisma } from "@/lib/db/client";
 import { PECA_VISIVEL_AO_CLIENTE } from "@/lib/agency/portal/peca-visivel-ao-cliente";
 import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { statusDoProjeto } from "@/lib/agency/esteira/retrato";
 
-/**
- * A etapa em português de gente, derivada dos carimbos do Project — a mesma
- * leitura da esteira para cliente direto (trilhaDoProjetoDireto, corrigida no
- * lançamento). Nunca do campo `stage` escrito à mão: status digitado mente.
- *
- * ── O CLIENTE OCULTO PEGOU ESTA FUNÇÃO MENTINDO (26/08/2026) ───────────────
- *
- * Ela tinha três ramos e o último era um `else` que dizia **"Em produção"**
- * para tudo o que não tinha sido apresentado. Medido em produção, no projeto
- * cmt9f1f7w001y0xo781zi2jt4 (CANTINA DO PORTO TESTE):
- *
- *   • o despertador dizia "1 projeto(s) parados por falta de pagamento
- *     confirmado";
- *   • `/api/portal/messages` dizia ao cliente, corretamente, "Este projeto
- *     está aguardando o pagamento";
- *   • e `/api/portal/projetos` — o CARTÃO do projeto, que é o que ele vê
- *     primeiro — dizia **"Em produção"**.
- *
- * Duas superfícies do MESMO portal, contando coisas opostas. E o `else` mentia
- * do jeito mais caro: dizendo que o trabalho está andando quando ele está
- * parado esperando uma ação DELE. O docstring acima já dizia "status digitado
- * mente" — e o rótulo derivado mentia igual, por omissão de ramo.
- *
- * `directionApprovedAt` estava no `select`, chegava aqui e **não era lido por
- * ninguém**. Agora é: sem o aval da direção, o projeto não está em produção —
- * está esperando o cliente.
- */
-function etapaLegivel(p: {
-  presentedAt: Date | null;
-  clientApprovedAt: Date | null;
-  directionApprovedAt: Date | null;
-}, pago: boolean): string {
-  if (p.clientApprovedAt) return "Aprovado por você — colocando no ar";
-  if (p.presentedAt) return "Esperando a sua aprovação";
-  // Antes de qualquer trabalho: o dinheiro e o aval, nesta ordem — que é a
-  // ordem em que a esteira os cobra (`ligar-projeto`, no despertador).
-  if (!pago) return "Aguardando o pagamento para começar";
-  if (!p.directionApprovedAt) return "Esperando o seu aval no caminho";
-  return "Em produção";
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// A ETAPA NÃO É ESCRITA AQUI — E ESSE É O CONSERTO (cliente oculto, 6ª rodada)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Aqui morava `etapaLegivel()`: uma função de sete linhas que derivava a etapa
+// do cliente dos carimbos do `Project` mais o pagamento. Ela estava CERTA — e
+// era o problema.
+//
+// Medido em produção: `/api/portal/esteira` dizia ao cliente **"Ainda estamos
+// produzindo"** enquanto esta rota — o CARTÃO, que é o que ele vê primeiro —
+// dizia **"Esperando a sua aprovação"**, com 2 cartões pedindo decisão. Mesmo
+// portal, mesmo projeto, duas frases opostas. É a TERCEIRA contradição que o
+// cliente oculto encontra nesta mesma superfície, e as três tiveram a mesma
+// causa: dois escritores da mesma verdade.
+//
+// O ramo exato da divergência: com `presentedAt` carimbado e NENHUMA decisão
+// disponível (`decisoesDisponiveis === 0`), `lerFase` responde "ainda estamos
+// produzindo" — corretamente, porque não há corpo para o cliente assinar — e
+// `etapaLegivel` respondia "esperando a sua aprovação" no primeiro `if`,
+// porque `presentedAt` era tudo o que ela olhava. Ela não tinha COMO saber:
+// nunca contou entregável nenhum.
+//
+// Verdade escrita em dois lugares já está errada em um deles. Não se conserta
+// alinhando as duas redações — isso dura até o próximo conserto de uma delas.
+// Mata-se o segundo escritor.
+//
+// Agora as duas rotas leem `statusDoProjeto` (`esteira/retrato.ts`), o mesmo
+// leitor, e devolvem a MESMA string. O que só esta rota sabia — o pagamento —
+// subiu para o leitor único (`RetratoDoProjeto.pagamentoConfirmado`), então
+// nada se perdeu no caminho: a esteira ficou MAIS informada, não menos.
+//
+// A régua que prende isto é `__tests__/portal/uma-verdade-so.test.ts`: ela
+// reprova qualquer volta em que as duas rotas discordem sobre o mesmo projeto.
+//
+// ⚠️ Custo assumido: uma leitura de `statusDoProjeto` POR projeto do cliente.
+// Cliente de agência tem 1–3 projetos, e correção vale mais que contagem de
+// consulta. Quando um cliente tiver dezenas, a conta vira lote — não volta a
+// ser uma segunda gramática.
 
 /** O estado do post como o CLIENTE entende — espelho do CalendarioDoMes. */
 function statusLegivel(s: string): string {
@@ -95,9 +94,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         select: {
           id: true, name: true, goal: true, createdAt: true,
           presentedAt: true, clientApprovedAt: true, directionApprovedAt: true,
-          // O pedido é o que liga o projeto à testemunha de pagamento. Entra no
-          // select porque `etapaLegivel` passou a precisar dele — e continua
-          // sem VAZAR: o id do pedido não vai para a resposta.
+          // O pedido continua no select porque a leitura do pagamento (agora em
+          // `statusDoProjeto`) nasce dele — e continua sem VAZAR: o id do
+          // pedido não vai para a resposta.
           clientRequestId: true,
         },
       }),
@@ -119,25 +118,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }),
     ]);
 
-    // ── QUEM JÁ PAGOU, LIDO PELA MESMA TESTEMUNHA DA ESTEIRA ───────────────
+    // ── A ETAPA VEM DO LEITOR ÚNICO, UM PROJETO POR VEZ ───────────────────
     //
-    // `PagamentoConfirmado` é a mesma tabela que `conferirPagamento` consulta
-    // para LIBERAR a produção. Ler outra fonte aqui faria o cartão do cliente
-    // divergir da trava — que é exatamente o defeito que este bloco conserta.
+    // A leitura do pagamento que morava aqui subiu para `statusDoProjeto` (ela
+    // era o que ESTA rota sabia e a esteira não). Aqui sobrou o que sempre
+    // devia ter sobrado: pedir a etapa a quem a escreve.
     //
-    // Falha de leitura NÃO vira "pago": o `catch` devolve conjunto vazio, e
-    // conjunto vazio faz o cartão dizer "aguardando o pagamento". Errar para o
-    // lado de "ainda não começou" é honesto; errar para "em produção" é a
-    // mentira que o cliente oculto encontrou.
-    const idsDePedido = projetos.map((p) => p.clientRequestId).filter((id): id is string => !!id);
-    const pagos = new Set<string>(
-      idsDePedido.length === 0 ? [] :
-      (await prisma.pagamentoConfirmado
-        .findMany({ where: { clientRequestId: { in: idsDePedido }, valorCentavos: { gt: 0 } },
-                    select: { clientRequestId: true } })
-        .catch(() => [] as { clientRequestId: string }[])
-      ).map((r) => r.clientRequestId),
-    );
+    // `null` (projeto que o leitor não encontrou) NÃO vira "Em produção" nem
+    // qualquer outra afirmação: vira a frase que diz que a etapa não foi lida.
+    // Ausência de informação não é informação — foi um `else` afirmativo que
+    // produziu a mentira anterior nesta mesma função.
+    const etapas = new Map<string, string>();
+    await Promise.all(projetos.map(async (p) => {
+      const st = await statusDoProjeto(p.id).catch(() => null);
+      etapas.set(p.id, st?.leitura.paraCliente.titulo ?? "Não consegui ler a etapa agora");
+    }));
 
     return NextResponse.json({
       ok: true,
@@ -145,7 +140,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         id: p.id,
         nome: p.name,
         objetivo: p.goal,
-        etapa: etapaLegivel(p, !!p.clientRequestId && pagos.has(p.clientRequestId)),
+        etapa: etapas.get(p.id) ?? "Não consegui ler a etapa agora",
         criadoEm: p.createdAt,
       })),
       calendario: posts.map((p) => ({
