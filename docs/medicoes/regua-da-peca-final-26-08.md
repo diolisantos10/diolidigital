@@ -78,3 +78,36 @@ dublê é tudo em volta.
    conserto é a forma da assinatura, em `trava-de-texto.ts`. Dono: quem mantém
    a trava de texto.
 3. **Não vale para vídeo.** O caminho do reel grava `mediaUrl` sem passar aqui.
+
+---
+
+# Correção de rota: `cron-execute` NÃO estava mudo
+
+O primeiro diagnóstico desta rodada foi **errado**, e o registro fica porque o
+erro é instrutivo.
+
+O pulso dizia `relógio ausente: cron-execute`, 7 vezes em 24h. A leitura óbvia
+era "ninguém chama essa rota". Conferido:
+
+- `.github/workflows/cron-execute.yml` **existe** e dispara por `schedule`;
+- **759 execuções** registradas; as **30 últimas, todas `success`**;
+- `POST /api/cron/execute` sem token responde **401**, não 503 — logo o
+  `CRON_SECRET` está configurado no servidor.
+
+A rota rodava. O que ela nunca fazia era **registrar a própria batida** em
+`HeartbeatDoRelogio` — só `cron-v2` gravava a dele. Relógio vivo carimbado de
+morto, para sempre.
+
+E havia uma segunda metade: a tolerância era 30 minutos para todos os relógios.
+Medido em 26/08 sobre os 30 disparos reais das últimas 20h, o intervalo do
+workflow foi **mediana 41,6 min, p90 57,6 min, máximo 67,8 min** — `schedule` do
+GitHub é best-effort. Com 30 minutos, o alarme dispararia sobre um relógio
+**saudável** em metade das janelas.
+
+Alarme que grita sobre o normal é alarme que ensina a ignorar alarme — a mesma
+lição que `instrumentation.ts` já registrou sobre o "crash" que era rodízio de
+contêiner.
+
+**Conserto:** a rota grava a batida antes do trabalho (ela responde "fui
+chamado", não "recuperei algo"), e a tolerância passa a ser por relógio, com o
+número saído da medida. Nenhum relógio novo nasceu.

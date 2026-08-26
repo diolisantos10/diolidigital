@@ -1,37 +1,45 @@
 // POST /api/cron/execute — a REDE DE SEGURANÇA da produção.
 //
-// ── ⚠️ LEIA ANTES DE LIGAR UM AGENDADOR PARA ESTA ROTA (26/08/2026) ─────────
+// ── O RELÓGIO QUE BATIA E NÃO DIZIA (26/08/2026) ───────────────────────────
 //
-// **Esta rota nunca foi chamada, e isso está CERTO — o trabalho dela acontece.**
+// O instrumento da própria casa gritava "relógio ausente: cron-execute" a cada
+// batida do despertador — 7 vezes em 24h no `/api/pulso`. A leitura óbvia era
+// "ninguém chama esta rota". **Ela está errada, e foi conferida:**
 //
-// Medido em 25/08 e confirmado em 26/08: nenhum agendador bate aqui — não há
-// workflow do GitHub, nem cron da hospedagem, nem chamada em `scripts/`. É a
-// mesma situação de `POST /api/cron/v2`, e a casa já pagou por confundir as
-// duas coisas: motor construído e MUDO é o defeito que ela viu duas vezes.
+//   • `.github/workflows/cron-execute.yml` existe e dispara por `schedule`;
+//   • 759 execuções registradas, e as 30 últimas TODAS `success`;
+//   • a rota responde 401 (e não 503) a POST sem token, o que prova que o
+//     `CRON_SECRET` está configurado no servidor.
 //
-// A diferença é que aqui não há trabalho perdido. O relógio desta casa é o
-// DESPERTADOR dentro do app (`lib/agency/despertador.ts`, ligado por
-// `instrumentation.ts`, batida de 5 em 5 minutos), e a perna `retomarProducao()`
-// dele faz o que esta rota faz — com os MESMOS números (5 por rodada, 5
-// tentativas, 10 min de "running" travado), a MESMA função de recuperação
-// (`runProjectExecution`) e um candidato A MAIS: `executionStatus: "pending"`,
-// que é a direção aprovada cujo disparo não chegou a acontecer. A perna do
-// despertador é um SUPERCONJUNTO estrito desta rota.
+// A rota rodava. O que ela nunca fazia era **registrar a própria batida** em
+// `HeartbeatDoRelogio` — só `cron-v2` gravava a dele (`batida-da-v2.ts`). Um
+// relógio vivo carimbado de morto, para sempre.
 //
-// Por isso NÃO nasceu relógio novo aqui. A rota fica como porta de entrada para
-// quem um dia ligar um agendador externo — e `__tests__/plataforma/o-segundo-relogio-nao-diverge.test.ts`
-// impede que as duas metades divirjam em silêncio, que é o único jeito de esta
-// decisão virar defeito.
+// Isso é pior que um alarme inútil: é um alarme que ENSINA A IGNORAR ALARME —
+// a lição que esta casa já escreveu em `instrumentation.ts` sobre o "crash" que
+// era rodízio de contêiner. Quando `cron-execute` morrer de verdade, a linha no
+// pulso vai ser a mesma das outras sete da semana.
 //
-// Se alguém ligar um agendador aqui, ele NÃO duplica trabalho: o núcleo é
-// idempotente e a janela de 10 min protege o "running".
-
+// Duas metades, e as duas são de medida:
+//   1. a rota GRAVA a batida (aqui embaixo, antes de qualquer trabalho: a
+//      batida é "eu fui chamado", não "eu consegui recuperar algo");
+//   2. a TOLERÂNCIA passa a ser por relógio (`heartbeat.ts`). `schedule` do
+//      GitHub é best-effort: medido em 26/08 sobre 30 disparos reais, o
+//      intervalo mediano foi de 41,6 min e o máximo de 67,8 — com os 30 min
+//      antigos, o alarme dispararia sobre um relógio saudável na metade das
+//      janelas.
 //
-// Protegido por Authorization: Bearer <CRON_SECRET> (mesmo padrão do cron de
-// treino). Recupera projetos cuja produção travou, SEM depender do navegador:
-//   • executionStatus = "running" há mais de 10 min → caiu no meio (aba/timeout);
-//   • executionStatus = "failed" e ainda com tentativas disponíveis → re-tenta.
-// Roda o MESMO núcleo idempotente (nunca duplica). Bounded: no máx N por passada.
+// ── E NENHUM RELÓGIO NOVO NASCEU ───────────────────────────────────────────
+//
+// Nem precisava: a perna `retomarProducao()` do despertador
+// (`lib/agency/despertador.ts`, dentro do servidor, de 5 em 5 min) faz o mesmo
+// trabalho desta rota — com os MESMOS números (5 por passada, 5 tentativas, 10
+// min de "running" travado), a MESMA função de recuperação
+// (`runProjectExecution`) e um candidato A MAIS (`pending`). Esta rota é o
+// reforço de fora, para o caso de o servidor estar de pé e parado.
+//
+// `__tests__/plataforma/o-segundo-relogio-nao-diverge.test.ts` impede que as
+// duas metades divirjam em silêncio, que é o único jeito de isso virar defeito.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
@@ -61,6 +69,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (token !== cronSecret) {
     return NextResponse.json({ error: "Unauthorized — invalid CRON_SECRET" }, { status: 401 });
   }
+
+  // A BATIDA É GRAVADA ANTES DO TRABALHO, e de propósito: ela responde "esta
+  // rota foi chamada", não "esta rota recuperou algo". Gravar só no fim faria a
+  // passada que não achou candidato — que é a maioria delas, e a que prova que
+  // o relógio está vivo — continuar sem deixar rastro.
+  //
+  // Best-effort: uma falha ao gravar o diagnóstico não pode derrubar a
+  // recuperação de produção que é o trabalho de verdade daqui.
+  await prisma.heartbeatDoRelogio
+    .upsert({
+      where: { relogio: "cron-execute" },
+      update: { ultimaBatida: new Date() },
+      create: { relogio: "cron-execute", ultimaBatida: new Date() },
+    })
+    .catch((e: unknown) => {
+      console.error("[cron-execute] não consegui gravar a batida do relógio:", e);
+    });
 
   const staleBefore = new Date(Date.now() - STALE_RUNNING_MS);
   // Candidatos: travados em "running" (caíram no meio) OU "failed" com tentativas

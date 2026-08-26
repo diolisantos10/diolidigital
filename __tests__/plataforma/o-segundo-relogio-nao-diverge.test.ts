@@ -1,7 +1,11 @@
 // O SEGUNDO RELÓGIO NÃO DIVERGE — e é por isso que ele pode continuar mudo.
 //
-// `POST /api/cron/execute` nunca teve um chamador. A casa mediu isso em
-// 25/08/2026 e a resposta honesta NÃO foi "ligue um agendador": foi que a perna
+// O instrumento da casa dizia "relógio ausente: cron-execute". A leitura óbvia
+// — "ninguém chama esta rota" — está ERRADA: o workflow existe, disparou 759
+// vezes, e as 30 últimas foram todas `success`. O que faltava era a rota
+// GRAVAR a própria batida. Ver o cabeçalho de `app/api/cron/execute/route.ts`.
+//
+// E nenhum relógio novo nasceu, porque nenhum precisava: a perna
 // `retomarProducao()` do despertador (que roda de 5 em 5 minutos, dentro do
 // app) já faz o mesmo trabalho, com os mesmos números e um candidato a mais.
 //
@@ -53,6 +57,34 @@ describe("as duas metades recuperam a MESMA coisa", () => {
     // que faz a perna viva ser superconjunto — se ele sumir, a afirmação do
     // cabeçalho da rota deixa de ser verdade.
     expect(despertador).toContain('executionStatus: "pending"');
+  });
+
+  it("a rota GRAVA a própria batida — relógio vivo não pode ser carimbado de morto", () => {
+    // O defeito de 26/08/2026: a rota rodava e nunca dizia que rodou, então o
+    // pulso a chamava de ausente para sempre. Alarme que grita sobre o normal
+    // ensina a ignorar alarme.
+    expect(rota).toContain("heartbeatDoRelogio");
+    expect(rota).toContain('relogio: "cron-execute"');
+  });
+
+  it("a tolerância de cada relógio sai de medida, não de um número só para todos", async () => {
+    const { TOLERANCIA_POR_RELOGIO, detectarAusencias } = await import("@/lib/agency/v2-recovery/heartbeat");
+    // Medido em 26/08 sobre 30 disparos reais: mediana 41,6 min, máximo 67,8.
+    // Com os 30 min antigos, um relógio SAUDÁVEL virava alarme.
+    expect(TOLERANCIA_POR_RELOGIO["cron-execute"]!).toBeGreaterThan(68);
+
+    const agora = new Date("2026-08-26T12:00:00Z");
+    const batidaDeUmaHoraAtras = [{ relogio: "cron-execute", ultimaBatida: new Date("2026-08-26T11:00:00Z") }];
+    expect(detectarAusencias(["cron-execute"], batidaDeUmaHoraAtras, agora, 30)).toEqual([]);
+
+    // E ainda pega o relógio morto de verdade: três janelas perdidas.
+    const batidaDeOntem = [{ relogio: "cron-execute", ultimaBatida: new Date("2026-08-25T12:00:00Z") }];
+    expect(detectarAusencias(["cron-execute"], batidaDeOntem, agora, 30)).toHaveLength(1);
+
+    // Relógio SEM tolerância própria continua no piso do argumento — nada passa
+    // a ter alarme frouxo por omissão.
+    const novo = [{ relogio: "cron-novo", ultimaBatida: new Date("2026-08-26T11:00:00Z") }];
+    expect(detectarAusencias(["cron-novo"], novo, agora, 30)).toHaveLength(1);
   });
 
   it("a rota declara, no próprio arquivo, que quem faz o trabalho é o despertador", () => {
