@@ -9,7 +9,10 @@ vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution }))
 vi.mock("@/lib/integrations/meta/notifications", () => ({ dispatchWhatsAppNotifications }));
 const destravarPacote = vi.hoisted(() => vi.fn());
 const pacotesTravados = vi.hoisted(() => vi.fn());
-const reauditarSemArbitro = vi.hoisted(() => vi.fn(async () => ({ aprovadas: [], reprovadas: [], aindaSemArbitro: [] })));
+type ResultadoDaReauditoria = { aprovadas: string[]; reprovadas: string[]; aindaSemArbitro: string[] };
+const reauditarSemArbitro = vi.hoisted(() =>
+  vi.fn(async (): Promise<ResultadoDaReauditoria> => ({ aprovadas: [], reprovadas: [], aindaSemArbitro: [] })),
+);
 vi.mock("@/lib/agency/esteira/pacote-travado", () => ({ destravarPacote, pacotesTravados, reauditarSemArbitro }));
 
 import { baterORelogio, transicaoDeEstado } from "@/lib/agency/despertador";
@@ -197,9 +200,7 @@ describe("a peça liberada pelo JUIZ também devolve o projeto ao fluxo", () => 
     pacotesTravados.mockResolvedValue([
       { projectId: "p9", esperandoDecisao: false, naoAuditadas: [{ id: "d1", name: "Legendas" }] },
     ]);
-    reauditarSemArbitro.mockResolvedValue({
-      projectId: "p9", aprovadas: ["Legendas"], reprovadas: [], aindaSemArbitro: [],
-    });
+    reauditarSemArbitro.mockResolvedValue({ aprovadas: ["Legendas"], reprovadas: [], aindaSemArbitro: [] });
     destravarPacote.mockResolvedValue({ projectId: "p9", corrigidas: [], persistentes: [], escalado: false });
 
     const r = await baterORelogio();
@@ -211,9 +212,7 @@ describe("a peça liberada pelo JUIZ também devolve o projeto ao fluxo", () => 
     pacotesTravados.mockResolvedValue([
       { projectId: "p9", esperandoDecisao: false, naoAuditadas: [{ id: "d1", name: "Legendas" }] },
     ]);
-    reauditarSemArbitro.mockResolvedValue({
-      projectId: "p9", aprovadas: [], reprovadas: [], aindaSemArbitro: ["Legendas"],
-    });
+    reauditarSemArbitro.mockResolvedValue({ aprovadas: [], reprovadas: [], aindaSemArbitro: ["Legendas"] });
     destravarPacote.mockResolvedValue({ projectId: "p9", corrigidas: [], persistentes: [], escalado: false });
 
     const r = await baterORelogio();
