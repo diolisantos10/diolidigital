@@ -33,8 +33,131 @@
 import { resolveProviderKey } from "./resolve-key";
 import { registrarChamadaDeIa } from "@/lib/ai/registro-de-custo";
 import type { TamanhoDeImagem } from "@/lib/ai/precos";
+import { classificarFalhaDeProvedor, ROTULO_DA_FALHA, type MotivoDaFalha } from "@/lib/ai/falha-de-provedor";
 
 const IMAGES_URL = "https://api.openai.com/v1/images/generations";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+
+// ═════════════════════════════════════════════════════════════════════════════
+// A FILA DE ESCORREGAMENTO DA IMAGEM (26/08/2026, ordem do CEO)
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// ── O que produziu esta fila ────────────────────────────────────────────────
+//
+// Até aqui **só a OpenAI gerava arte**. Ela cair ou ficar sem saldo parava a
+// produção da casa INTEIRA — foi o que derrubou Design para 3 e deixou oito
+// departamentos sem nota. O texto, na mesma volta, não parou: a fila de
+// `lib/ai/generate.ts` escorregou para o Gemini e o cliente foi atendido.
+//
+// A arte passa a ter a MESMA disciplina, e de propósito a mesma gramática:
+// tenta um produtor; **sem saldo, 429, resposta vazia, JSON/imagem inválida,
+// timeout ou 5xx → escorrega para o próximo.**
+//
+// ── A EXCEÇÃO QUE NÃO É DETALHE: FALTA DE CHAVE NÃO ESCORREGA ───────────────
+//
+// Chave ausente ou inválida é CONFIGURAÇÃO — alguém conecta e volta. Escorregar
+// por cima dela é a casa trocar de produtor em silêncio por um problema que uma
+// pessoa resolve em um minuto, e depois ninguém saber que a chave está errada
+// porque nada nunca falhou. Aqui, `sem_chave` PARA a fila, com dono e próxima
+// ação. É a diferença entre "o provedor está fora" e "nós configuramos errado".
+//
+// (Um produtor que simplesmente não tem chave configurada não entra na fila —
+// isso não é falha, é ausência. O que para é a chave que EXISTE e é recusada,
+// e a fila vazia inteira.)
+//
+// ── OS DOIS FREIOS QUE VÊM JUNTO, E NENHUM É OPCIONAL ──────────────────────
+//
+//   • **Fundo diferente é peça diferente.** As réguas de peça (portão de fundo,
+//     régua da peça final, contraste) rodam sobre os BYTES, depois deste
+//     arquivo, e não perguntam quem produziu. Nada aqui as afrouxa por
+//     provedor — provado em `__tests__/design/a-fila-da-imagem.test.ts`.
+//   • **Fila esgotada para com o MOTIVO CERTO.** Se todos caírem, o erro que
+//     sobe é o mais grave da fila, com o rótulo da casa (`SEM SALDO na conta do
+//     provedor…`), nunca "não consegui gerar a tela 1 de 4". Status de erro não
+//     é motivo.
+
+/** Quem sabe produzir imagem nesta casa. Ordem = ranking de qualidade. */
+export type ProdutorDeImagem = "openai" | "gemini";
+
+const ORDEM_BASE: ProdutorDeImagem[] = ["openai", "gemini"];
+
+function ehProdutorDeImagem(v: string): v is ProdutorDeImagem {
+  return v === "openai" || v === "gemini";
+}
+
+/**
+ * A ordem dos produtores de imagem. `BRAIN_IMAGE_PROVIDER` põe um na frente —
+ * nunca REMOVE os outros, pelo mesmo motivo da fila do texto: escolher o
+ * preferido não é desligar a reserva.
+ *
+ * FUNÇÃO, não constante de módulo: como constante a env seria lida uma vez no
+ * import e trocá-la no Railway não surtiria efeito até o processo reiniciar —
+ * a lição já escrita em `modeloPadrao` de `generate.ts`.
+ */
+export function ordemDosProdutoresDeImagem(): ProdutorDeImagem[] {
+  const env = (process.env.BRAIN_IMAGE_PROVIDER ?? "").trim().toLowerCase();
+  if (ehProdutorDeImagem(env)) return [env, ...ORDEM_BASE.filter((p) => p !== env)];
+  return ORDEM_BASE;
+}
+
+/**
+ * Este motivo faz a fila ESCORREGAR para o próximo produtor?
+ *
+ * A régua é a irmã de `isTransientError` (`generate.ts`) e a lista é a da ordem
+ * do CEO: sem saldo, teto de ritmo (429), indisponível (5xx/timeout/rede) e a
+ * resposta que não veio ou não é imagem. `sem_chave` é o único que NÃO
+ * escorrega — ver o bloco acima.
+ *
+ * `null` (motivo não reconhecido) escorrega: quem não sabe o que aconteceu com
+ * o produtor A não tem argumento para negar o produtor B ao cliente. O risco
+ * dos dois lados é assimétrico — errar escorregando custa uma chamada; errar
+ * parando custa a peça.
+ */
+export function escorregaParaOProximo(motivo: MotivoDaFalha | null): boolean {
+  return motivo !== "sem_chave";
+}
+
+/** Qual das falhas da fila é a que a casa CONTA quando todas caem. Sem saldo
+ *  primeiro: é a única que nenhuma pessoa resolve em código, e é a que tem de
+ *  chegar ao CEO. */
+const GRAVIDADE: MotivoDaFalha[] = ["sem_saldo", "sem_chave", "indisponivel", "teto_de_ritmo"];
+
+function aPiorFalha(falhas: readonly QuedaDeProdutor[]): QuedaDeProdutor | null {
+  for (const m of GRAVIDADE) {
+    const achou = falhas.find((f) => f.motivo === m);
+    if (achou) return achou;
+  }
+  return falhas[0] ?? null;
+}
+
+/** Uma queda de produtor na fila — o que ele era, o que disse e como a casa
+ *  classificou. É o que vira o motivo final quando a fila esgota. */
+export interface QuedaDeProdutor {
+  produtor: ProdutorDeImagem;
+  motivo: MotivoDaFalha | null;
+  erro: string;
+}
+
+/**
+ * A frase que sobe quando a fila INTEIRA cai — com o motivo real, o dono e a
+ * próxima ação. Nunca "não consegui gerar": status de erro não é motivo.
+ */
+export function motivoDaFilaEsgotada(quedas: readonly QuedaDeProdutor[]): string {
+  if (quedas.length === 0) {
+    return "nenhum produtor de imagem está conectado. Dono: CEO. " +
+      "Próxima ação: conectar uma chave de imagem (OpenAI ou Gemini) em Integrações → IAs.";
+  }
+  const pior = aPiorFalha(quedas)!;
+  const rotulo = pior.motivo ? ROTULO_DA_FALHA[pior.motivo] : pior.erro;
+  const quem = quedas.map((q) => q.produtor).join(" → ");
+  const acao =
+    pior.motivo === "sem_saldo"
+      ? "Dono: CEO. Próxima ação: pôr crédito na conta do provedor — nenhuma pessoa da equipe resolve isto em código."
+      : pior.motivo === "sem_chave"
+      ? "Dono: CEO. Próxima ação: conferir a chave em Integrações → IAs."
+      : "Dono: Operações. Próxima ação: tentar de novo na próxima rodada; se insistir, é notícia.";
+  return `a fila de imagem caiu inteira (${quem}): ${rotulo}. ${acao}`;
+}
 
 export type DesignSize = "square" | "portrait" | "landscape";
 export type DesignQuality = "standard" | "high";
@@ -66,10 +189,16 @@ export interface DesignRequest {
 export interface DesignResult {
   ok: boolean;
   url?: string;          // hosted URL or base64 data URL — always renderable
+  /** QUEM produziu — o produtor da fila, não o modelo. Freio 3 da ordem do
+   *  CEO: é ele que vai para o carimbo do arquivo (`produtorDaPeca`). */
+  provider?: ProdutorDeImagem;
   model?: string;        // which model actually produced it
   revisedPrompt?: string; // model's rewritten prompt (dall-e-3 returns this)
   error?: string;
   reason?: "not_configured" | "provider_error" | "timeout" | "network_error" | "bad_request";
+  /** Cada produtor que caiu nesta chamada, na ordem. Vazio = ninguém caiu (ou
+   *  ninguém foi tentado). É a prova por trás da frase de `motivoDaFilaEsgotada`. */
+  quedas?: QuedaDeProdutor[];
 }
 
 // Map our friendly sizes to each model's accepted dimensions.
@@ -86,18 +215,21 @@ const SIZE_DALLE: Record<DesignSize, string> = {
 
 const TIMEOUT_MS = 90_000;
 
-// Generates one design asset. Tries gpt-image-1 first; on a model-access error
-// it transparently retries with dall-e-3.
+/**
+ * Gera UMA peça de arte, andando a fila de produtores.
+ *
+ * Ver o bloco "A FILA DE ESCORREGAMENTO DA IMAGEM", no topo do arquivo, para o
+ * porquê de cada regra. O resumo do caminho:
+ *
+ *   1. produtor sem chave configurada NÃO entra na fila (ausência não é falha);
+ *   2. fila vazia → para, com dono e próxima ação;
+ *   3. o primeiro produtor com chave tenta. Deu certo, acabou;
+ *   4. falhou → classifica. `sem_chave` PARA a fila; qualquer outro motivo
+ *      escorrega para o próximo;
+ *   5. fila esgotada → para com o motivo MAIS GRAVE dos que caíram, no rótulo
+ *      da casa.
+ */
 export async function generateDesign(req: DesignRequest): Promise<DesignResult> {
-  const resolved = await resolveProviderKey("openai", req.workspaceId);
-  if (!resolved) {
-    return {
-      ok: false,
-      reason: "not_configured",
-      error: "Nenhuma chave OpenAI configurada. Adicione em Integrações → IAs.",
-    };
-  }
-
   const prompt = (req.prompt ?? "").trim();
   if (!prompt) {
     return { ok: false, reason: "bad_request", error: "Prompt vazio." };
@@ -105,11 +237,59 @@ export async function generateDesign(req: DesignRequest): Promise<DesignResult> 
 
   const size = req.size ?? "square";
   const quality = req.quality ?? "high";
+  const quedas: QuedaDeProdutor[] = [];
 
-  // First attempt: gpt-image-1 (returns base64).
+  for (const produtor of ordemDosProdutoresDeImagem()) {
+    const resolved = await resolveProviderKey(produtor, req.workspaceId);
+    // Ausência de chave é ausência, não queda: o produtor simplesmente não está
+    // nesta casa. Contá-la como falha faria a frase final acusar um provedor
+    // que ninguém pediu.
+    if (!resolved) continue;
+
+    const r =
+      produtor === "openai"
+        ? await produzirPelaOpenAi(req, resolved.apiKey, size, quality)
+        : await produzirPeloGemini(req, resolved.apiKey, size, quality);
+
+    if (r.ok) return r;
+
+    const motivo = classificarFalhaDeProvedor(r.error);
+    quedas.push({ produtor, motivo, erro: r.error ?? "" });
+
+    // `bad_request` é problema NOSSO (prompt recusado pelo provedor por
+    // conteúdo, tamanho inválido). Escorregar levaria o mesmo pedido ruim ao
+    // produtor seguinte e gastaria de novo para ouvir a mesma coisa.
+    if (r.reason === "bad_request") break;
+    if (!escorregaParaOProximo(motivo)) break;
+  }
+
+  const motivoFinal = motivoDaFilaEsgotada(quedas);
+  const pior = quedas.length > 0 ? aPiorFalha(quedas) : null;
+  return {
+    ok: false,
+    // `not_configured` quando o problema é chave (nenhuma, ou recusada): é o
+    // código que os chamadores já leem como "do CEO, não da casa".
+    reason: quedas.length === 0 || pior?.motivo === "sem_chave" ? "not_configured" : "provider_error",
+    error: motivoFinal,
+    quedas,
+  };
+}
+
+/**
+ * O produtor OpenAI: `gpt-image-1` e, quando a conta não tem acesso a ele,
+ * `dall-e-3`. Os dois modelos são o MESMO produtor da fila — a troca entre
+ * eles é interna e não conta como escorregamento.
+ */
+async function produzirPelaOpenAi(
+  req: DesignRequest,
+  apiKey: string,
+  size: DesignSize,
+  quality: DesignQuality,
+): Promise<DesignResult> {
+  const prompt = req.prompt.trim();
   const qualidadeGpt = quality === "high" ? "high" : "medium";
   const comecoGpt = Date.now();
-  const first = await callOpenAiImage(resolved.apiKey, {
+  const first = await callOpenAiImage(apiKey, {
     model: "gpt-image-1",
     prompt,
     size: SIZE_GPT[size],
@@ -118,13 +298,12 @@ export async function generateDesign(req: DesignRequest): Promise<DesignResult> 
   // A LINHA SAI AQUI, e não só no sucesso: uma chamada que a OpenAI recusou é
   // notícia para o relatório (ela custa zero, ver `registro-de-custo.ts`), e
   // uma que deu certo é o dinheiro de verdade saindo.
-  registrarNoLivroCaixa(req, "gpt-image-1", TAMANHO_DA_CONTA[size], qualidadeGpt, first, Date.now() - comecoGpt, false);
-  if (first.ok || !first.modelAccessIssue) return toResult(first, "gpt-image-1");
+  registrarNoLivroCaixa(req, "openai", "gpt-image-1", TAMANHO_DA_CONTA[size], qualidadeGpt, first, Date.now() - comecoGpt, false);
+  if (first.ok || !first.modelAccessIssue) return toResult(first, "openai", "gpt-image-1");
 
-  // Fallback: dall-e-3 (returns hosted URL).
   const qualidadeDalle = quality === "high" ? "hd" : "standard";
   const comecoDalle = Date.now();
-  const second = await callOpenAiImage(resolved.apiKey, {
+  const second = await callOpenAiImage(apiKey, {
     model: "dall-e-3",
     prompt: prompt.slice(0, 4000), // dall-e-3 hard limit
     size: SIZE_DALLE[size],
@@ -133,10 +312,99 @@ export async function generateDesign(req: DesignRequest): Promise<DesignResult> 
   // `fallbackUsed`: sem isto o relatório mostraria duas chamadas irmãs sem dizer
   // que a segunda só existiu porque a primeira não tinha acesso ao modelo.
   registrarNoLivroCaixa(
-    req, "dall-e-3", TAMANHO_DA_CONTA[size], qualidadeDalle, second, Date.now() - comecoDalle, true,
+    req, "openai", "dall-e-3", TAMANHO_DA_CONTA[size], qualidadeDalle, second, Date.now() - comecoDalle, true,
     first.error ?? "gpt-image-1 indisponível para esta conta",
   );
-  return toResult(second, "dall-e-3");
+  return toResult(second, "openai", "dall-e-3");
+}
+
+/**
+ * O produtor Gemini — o SEGUNDO da fila, e a razão de a arte não parar mais
+ * quando a conta da OpenAI zera.
+ *
+ * Mesma porta `:generateContent` que a fila do texto já usa (`callGemini` em
+ * `generate.ts`), com o modelo de imagem: a resposta vem em `inlineData`
+ * (base64), que este arquivo já sabe entregar como data URL — todo consumidor
+ * renderiza igual, venha de quem vier.
+ */
+async function produzirPeloGemini(
+  req: DesignRequest,
+  apiKey: string,
+  size: DesignSize,
+  quality: DesignQuality,
+): Promise<DesignResult> {
+  const model = process.env.GEMINI_IMAGE_MODEL?.trim() || "gemini-2.5-flash-image";
+  const comeco = Date.now();
+  const raw = await callGeminiImage(apiKey, model, req.prompt.trim(), size);
+  // O Gemini não cobra por tamanho/qualidade como a OpenAI. A linha sai com a
+  // mesma forma para o livro-caixa não ter duas gramáticas — e `estimarCustoDe
+  // Imagem` devolve `null` para um modelo fora da tabela, que é o comportamento
+  // certo: "não sei medir" nunca vira zero.
+  registrarNoLivroCaixa(req, "gemini", model, TAMANHO_DA_CONTA[size], quality, raw, Date.now() - comeco, true,
+    "a fila de imagem escorregou para o Gemini");
+  return toResult(raw, "gemini", model);
+}
+
+/** O recorte que cada produtor entende. O Gemini não recebe dimensão na API —
+ *  ela vai como INSTRUÇÃO no prompt, que é o único canal que ele tem. */
+const PROPORCAO_NO_PROMPT: Record<DesignSize, string> = {
+  square: "quadrada (1:1)",
+  portrait: "vertical (2:3, retrato)",
+  landscape: "horizontal (3:2, paisagem)",
+};
+
+async function callGeminiImage(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  size: DesignSize,
+): Promise<RawCall> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`${GEMINI_URL}/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: `${prompt}\n\nProporção da imagem: ${PROPORCAO_NO_PROMPT[size]}.` }] }],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const errJson = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+      // ⚠️ O STATUS ENTRA NA MENSAGEM DE PROPÓSITO. `classificarFalhaDeProvedor`
+      // lê a MENSAGEM, e a do Gemini nem sempre diz "429" com todas as letras —
+      // sem o número, um teto de ritmo viraria "motivo não reconhecido".
+      const msg = errJson.error?.message
+        ? `Gemini HTTP ${res.status}: ${errJson.error.message}`
+        : `Gemini HTTP ${res.status}`;
+      return { ok: false, status: res.status, error: msg, reason: "provider_error" };
+    }
+
+    const json = (await res.json()) as {
+      candidates?: { content?: { parts?: { inlineData?: { mimeType?: string; data?: string } }[] } }[];
+    };
+    const parte = json.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
+    const dados = parte?.inlineData?.data;
+    if (!dados) {
+      // Resposta sem imagem É motivo de escorregar (a lista da ordem: "resposta
+      // vazia"). A frase carrega a palavra que `classificarFalhaDeProvedor`
+      // não reconhece — e não reconhecer também escorrega, de propósito.
+      return { ok: false, error: "Resposta Gemini vazia (sem imagem).", reason: "provider_error" };
+    }
+    const mime = parte?.inlineData?.mimeType?.trim() || "image/png";
+    return { ok: true, url: `data:${mime};base64,${dados}` };
+  } catch (err) {
+    const isAbort = err instanceof Error && err.name === "AbortError";
+    return {
+      ok: false,
+      error: isAbort ? "Tempo esgotado ao gerar imagem (Gemini)." : "Erro de rede ao contatar o Gemini.",
+      reason: isAbort ? "timeout" : "network_error",
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 /** O nome que a casa usa para cada recorte, na tabela de preço de imagem. */
@@ -152,6 +420,9 @@ const TAMANHO_DA_CONTA: Record<DesignSize, TamanhoDeImagem> = {
  */
 function registrarNoLivroCaixa(
   req: DesignRequest,
+  /** QUEM produziu. Era fixo em `"openai"` — com a fila, um gasto do Gemini
+   *  gravado como OpenAI faria o alarme de SEM SALDO acusar a conta errada. */
+  provider: ProdutorDeImagem,
   model: string,
   tamanho: TamanhoDeImagem,
   qualidade: string,
@@ -164,7 +435,7 @@ function registrarNoLivroCaixa(
     // Sem dono não há conta, e ficar calado faria o relatório de gasto parecer
     // completo quando não é. Mesma frase de `lib/ai/generate.ts`, de propósito:
     // as duas linhas são procuradas com o mesmo `grep`.
-    console.warn(`[custo-de-ia] chamada SEM workspace, fora da conta — openai/${model}`);
+    console.warn(`[custo-de-ia] chamada SEM workspace, fora da conta — ${provider}/${model}`);
     return;
   }
   // Sem `await`: a contabilidade não segura a entrega da peça.
@@ -175,7 +446,7 @@ function registrarNoLivroCaixa(
     agentId: req.conta?.agentId ?? null,
     clientId: req.conta?.clientId ?? null,
     projectId: req.conta?.projectId ?? null,
-    provider: "openai",
+    provider,
     model,
     status: raw.ok ? "success" : "error",
     // Imagem não tem token. O preço vem da tabela de IMAGEM.
@@ -221,7 +492,18 @@ async function callOpenAiImage(
       const errJson = (await res.json().catch(() => ({}))) as {
         error?: { message?: string; code?: string };
       };
-      const msg = errJson.error?.message ?? `OpenAI HTTP ${res.status}`;
+      // ⚠️ O STATUS ENTRA NA MENSAGEM (26/08/2026). Antes a mensagem do
+      // provedor substituía o status, e `classificarFalhaDeProvedor` — que lê a
+      // MENSAGEM, nunca o status sozinho — ficava sem o número. Medido ao
+      // escrever a fila: uma chave inválida devolve *"Incorrect API key
+      // provided"*, sem a palavra "invalid api key" e sem o 401. A régua
+      // devolvia `null`, e `null` ESCORREGA — ou seja, uma chave errada faria a
+      // casa trocar de produtor em silêncio, que é exatamente o que a ordem
+      // proíbe. É a mesma lição de 24/08 ("nunca do status sozinho") valendo
+      // agora no sentido inverso: nem da mensagem sozinha.
+      const msg = errJson.error?.message
+        ? `OpenAI HTTP ${res.status}: ${errJson.error.message}`
+        : `OpenAI HTTP ${res.status}`;
       // 400/403 on gpt-image-1 usually means the org isn't verified for it →
       // signal that the caller should fall back to dall-e-3.
       const modelAccessIssue =
@@ -262,7 +544,7 @@ async function callOpenAiImage(
   }
 }
 
-function toResult(raw: RawCall, model: string): DesignResult {
-  if (raw.ok) return { ok: true, url: raw.url, model, revisedPrompt: raw.revisedPrompt };
-  return { ok: false, error: raw.error, reason: raw.reason ?? "provider_error" };
+function toResult(raw: RawCall, provider: ProdutorDeImagem, model: string): DesignResult {
+  if (raw.ok) return { ok: true, url: raw.url, provider, model, revisedPrompt: raw.revisedPrompt };
+  return { ok: false, provider, model, error: raw.error, reason: raw.reason ?? "provider_error" };
 }

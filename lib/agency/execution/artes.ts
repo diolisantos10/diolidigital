@@ -35,6 +35,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { generateDesign } from "@/lib/ai/design-engine";
+import { produtorDaPeca } from "@/lib/ai/produtor-da-peca";
 import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
 import { estiloVisualPersistido, estiloVistoPersistido } from "@/lib/agency/execution/leitura-do-cliente";
 import { moldeDoCliente, moldeComLogo, formatoDoPost, MIMES_DE_LOGO, type Molde } from "@/lib/agency/design/molde";
@@ -463,6 +464,10 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
     const proporcao = post.format === "story" ? "portrait" : "square";
 
     let bytes: Buffer | null = null;
+    /** DE QUEM ESTA PEÇA NASCEU. Ver o freio 3 da fila de imagem. "design" é o
+     *  valor de quem NÃO passou pelo gerador (a foto real do cliente, o
+     *  re-render local) — e continua sendo o de sempre. */
+    let carimboDoProdutor = "design";
     let mimeDaFoto = "image/png";
 
     if (fotoDoCliente) {
@@ -647,6 +652,16 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // nunca subia, `MAX_TENTATIVAS_POR_PECA` nunca era atingido, e a peça
       // voltava na rodada seguinte (a cada 5 minutos, para sempre) gerando uma
       // imagem paga por rodada sem NUNCA entregar nada.
+      // ── O ARQUIVO DIZ DE QUEM NASCEU (26/08/2026, freio 3 da fila) ───────
+      //
+      // Com a fila de imagem, a mesma peça pode nascer da OpenAI hoje e do
+      // Gemini amanhã. O livro-caixa registra o produtor por CHAMADA, mas ele
+      // não acompanha o arquivo — e a pergunta que a casa vai fazer daqui a um
+      // mês é sobre a PEÇA: *"a qualidade caiu junto com a troca?"*. Sem a
+      // marca aqui, responder exige cruzar horários, que é adivinhação com
+      // cara de dado.
+      carimboDoProdutor = produtorDaPeca(r);
+
       bytes = await baixarImagem(r.url).catch(() => null);
       if (!bytes) {
         const erro = "não consegui baixar a imagem gerada";
@@ -731,7 +746,7 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
         clientId: post.clientId,
         clientRequestId: post.clientRequestId,
         kind: "generated",
-        uploadedBy: "design",
+        uploadedBy: carimboDoProdutor,
       });
       if (!fundo.ok) {
         saida.falhas.push({ postId: post.id, erro: fundo.motivo });
@@ -872,7 +887,9 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       clientId: post.clientId,
       clientRequestId: post.clientRequestId,
       kind: "generated",
-      uploadedBy: "design",
+      // A PEÇA FINAL carrega o mesmo carimbo do fundo de que ela nasceu — freio
+      // 3 da fila de imagem.
+      uploadedBy: carimboDoProdutor,
     });
     if (!guardado.ok) {
       saida.falhas.push({ postId: post.id, erro: guardado.motivo });
@@ -2478,6 +2495,10 @@ async function montarCarrossel(
       return { ok: false, gerou, erro: `não consegui gerar a tela ${i + 1} de ${cenas.length}: ${porque}${classe}` };
     }
 
+    // O ARQUIVO DIZ DE QUEM NASCEU — tela a tela, porque a fila pode escorregar
+    // no meio de um carrossel e as telas passariam a ter produtores diferentes.
+    const carimboDaTela = produtorDaPeca(r);
+
     const bytes = await baixarImagem(r.url).catch(() => null);
     if (!bytes) return { ok: false, gerou, erro: `não consegui baixar a tela ${i + 1}` };
 
@@ -2564,7 +2585,7 @@ async function montarCarrossel(
       clientId: post.clientId,
       clientRequestId: post.clientRequestId,
       kind: "generated",
-      uploadedBy: "design",
+      uploadedBy: carimboDaTela,
     });
     if (!g.ok) return { ok: false, gerou, erro: g.motivo };
     urls.push(`/api/media/${g.arquivo.id}`);
