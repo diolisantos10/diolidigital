@@ -46,8 +46,17 @@ describe("as outras formas que o briefing assume", () => {
   }
 });
 
+// ⚠️ ESTE BLOCO É O QUE SEGURA A RÉGUA ESTREITA. A trava BARRA PUBLICAÇÃO: um
+// falso positivo aqui custa o post de um cliente de verdade. As cinco últimas
+// frases foram as que derrubaram a primeira redação do padrão 2 (qualquer
+// sujeito com "de|para|sobre"), e por isso ficam.
 describe("a legenda legítima passa inteira", () => {
   const ficam = [
+    "Conteúdo de qualidade para você",
+    "Copy de vendas para a sua marca",
+    "Post de hoje é sobre a casa",
+    "Legenda de quem entende do assunto",
+    "Peça de resistência da casa: a lasanha",
     "Terça é dia de cacio e pepe.",
     "A massa é feita na hora, todos os dias. Vem provar.",
     "O ambiente cheio que faz você querer estar aqui também.",

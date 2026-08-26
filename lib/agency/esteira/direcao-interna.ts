@@ -58,7 +58,13 @@ const PADROES: RegExp[] = [
   new RegExp(`^\\s*(?:o|a|este|esta|esse|essa|um|uma)?\\s*(?:${SUJEITOS})\\b[^.!?\\n]*\\b(?:destacando|destaca|comunicando|comunica|mostrando|mostra|apresentando|apresenta|refor[çc]ando|refor[çc]a|explorando|explora|traduzindo|traduz|evidenciando|evidencia|que\\s+(?:comunica|mostra|destaca|apresenta|refor[çc]a|traduz|explora))\\b[^.!?\\n]*[.!?]?`, "i"),
   // "Imagem com o prato em primeiro plano", "Arte em tom quente" — descrição da
   // peça, não fala com ninguém.
-  new RegExp(`^\\s*(?:o|a|este|esta|um|uma)?\\s*(?:${SUJEITOS})\\b\\s+(?:com|em|para|sobre|de)\\b[^.!?\\n]*[.!?]?$`, "i"),
+  //
+  // ⚠️ ESTREITADO ANTES DE IR AO AR. A primeira redação aceitava qualquer
+  // sujeito da lista com "de|para|sobre" — e casava "Conteúdo de qualidade para
+  // você", que é legenda legítima de cliente. Como esta régua BARRA PUBLICAÇÃO,
+  // o falso positivo custa o post de um cliente real; então só os sujeitos
+  // VISUAIS entram, e só com "com|em".
+  new RegExp(`^\\s*(?:o|a|este|esta|um|uma)?\\s*(?:imagem|arte|pe[çc]a|card|criativo|carrossel|story)\\b\\s+(?:com|em)\\b[^.!?\\n]*[.!?]?$`, "i"),
   // "Objetivo: …", "Direção de arte: …", "Briefing: …" — rótulo interno.
   /^\s*(?:objetivo|direção de arte|direcao de arte|direção|direcao|briefing|refer[êe]ncia|inten[çc][ãa]o|pilar|formato|p[úu]blico|cta)\s*:\s*.*$/i,
 ];
