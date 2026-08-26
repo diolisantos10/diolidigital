@@ -202,7 +202,10 @@ async function destravarPacotesBarrados(): Promise<number> {
       // A ordem importa: reauditar é barato e pode liberar o pacote inteiro
       // sem uma linha reescrita. Só o que o juiz REPROVAR desce para a
       // reescrita, na mesma rodada.
-      if (t.naoAuditadas.length > 0) {
+      // `?? []` porque esta perna NÃO pode morrer por um campo ausente: o
+      // `catch` lá embaixo engoliria o projeto inteiro e a reescrita — que já
+      // funcionava — deixaria de rodar por causa da novidade.
+      if ((t.naoAuditadas ?? []).length > 0) {
         const rr = await reauditarSemArbitro(t.projectId);
         corrigidas += rr.aprovadas.length;
         if (rr.aindaSemArbitro.length > 0) {
