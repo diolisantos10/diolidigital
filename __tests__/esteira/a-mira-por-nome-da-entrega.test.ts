@@ -110,3 +110,54 @@ describe("a mira por nome, sobre o texto real do cliente de 26/08", () => {
     }
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OS NOMES REAIS DE PRODUÇÃO — não os limpos que eu escrevi primeiro
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ⚠️ PEGO ANTES DE MEDIR. Lidos de `GET /api/deliverables` no projeto
+// `cmt9l4eu0005e0xmngtcm4w3o`, em produção, no dia da medição: no banco a
+// entrega se chama **"Legendas Prontas — Cantina Oculta"** e o cliente escreveu
+// **"LEGENDAS PRONTAS"**. Os testes acima, com nomes limpos, passavam — e a
+// régua NÃO alcançaria o caso que ela existe para consertar.
+//
+// É a pergunta obrigatória desta casa: *o teste alcança o que o cliente de
+// verdade vê?* Aqui a resposta era não, e é este bloco que a torna sim.
+
+describe("os nomes REAIS do banco, com o cliente costurado no fim", () => {
+  const REAIS = [
+    { id: "d-posicionamento", name: "Posicionamento — Cantina Oculta" },
+    { id: "d-concorrencia", name: "Concorrência — PRECISO CONFIRMAR" },
+    { id: "d-pauta", name: "Pauta do Mês — Cantina Oculta" },
+    { id: "d-legendas", name: "Legendas Prontas — Cantina Oculta" },
+    { id: "d-medicao", name: "Plano de Medição — Cantina Oculta" },
+    { id: "d-otimizacao", name: "Otimização do próximo ciclo — Cantina Oculta" },
+  ];
+
+  it("🔴 aponta as Legendas e PROÍBE a Pauta, com o sufixo do cliente no nome", () => {
+    const m = miraPorNomeDaEntrega(O_QUE_ELE_ESCREVEU, REAIS);
+    expect(m.apontadas).toEqual(["d-legendas"]);
+    expect(m.proibidas).toEqual(["d-pauta"]);
+  });
+
+  it("o nome INTEIRO, com sufixo e tudo, também casa", () => {
+    const m = miraPorNomeDaEntrega("mexam em Legendas Prontas — Cantina Oculta, por favor", REAIS);
+    expect(m.apontadas).toEqual(["d-legendas"]);
+  });
+
+  it("MUTAÇÃO — a cauda sozinha NÃO é mira: o cliente citar o próprio nome não aponta nada", () => {
+    // Sem isto, "a Cantina Oculta precisa de mais posts" viraria mira em TODAS
+    // as seis entregas de uma vez.
+    const m = miraPorNomeDaEntrega("a Cantina Oculta precisa de mais posts", REAIS);
+    expect(m.apontadas).toEqual([]);
+    expect(m.proibidas).toEqual([]);
+  });
+
+  it("MUTAÇÃO — a cabeça continua tendo de vir INTEIRA", () => {
+    // "numa legenda" está na frase real dele e não pode contar por
+    // "Legendas Prontas".
+    const m = miraPorNomeDaEntrega("o horário está errado numa legenda", REAIS);
+    expect(m.apontadas).toEqual([]);
+    expect(m.proibidas).toEqual([]);
+  });
+});
