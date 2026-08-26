@@ -299,6 +299,10 @@ function aplicarTravasDeEscopo(
    *  escopo: ele serve às travas e não pode virar dado gravado por engano.
    *  Hoje só a trava da faixa o usa — ver `faixaDoTexto`. */
   falaDoCliente?: string,
+  /** A faixa que a conversa JÁ tinha estabelecida, vinda do escopo acumulado do
+   *  cliente. Entra por PARÂMETRO pelo mesmo motivo de `falaDoCliente`: serve à
+   *  trava e não pode virar dado gravado por engano. Ver o bloco da faixa. */
+  faixaJaEstabelecida?: unknown,
 ): Record<string, unknown> {
   const scopePatch = { ...bruto };
 
@@ -385,10 +389,51 @@ function aplicarTravasDeEscopo(
   // usa os DOIS leitores que a casa já tem — `parseBudgetAmount` para achar o
   // valor na fala e `ofertaParaFaixa` para escolher o degrau — e nenhum
   // terceiro. O rótulo do modelo só vale quando não há número de onde derivar.
+  // ── E A TRAVA TEM DE SOBREVIVER AO TURNO SEGUINTE (27/08/2026) ───────────
+  //
+  // MEDIDO EM PRODUÇÃO, na travessia paga desta rodada, com o modelo de
+  // verdade. O cliente disse *"Meu orçamento é uns R$ 790 por mês."* e o turno
+  // saiu CERTO: `faixaDoTexto` leu 790 e gravou "entre R$ 500 e R$ 1.500". Dois
+  // turnos depois — falando de CONTATO e de FOTOS, sem um número à vista — o
+  // modelo reemitiu `budgetRange: "entre R$ 150 e R$ 500"`, `faixaDoTexto`
+  // devolveu `null` (não havia número naquela fala, e está certo), o rótulo do
+  // modelo passou pela allowlist e **reescreveu a verba do cliente para baixo.**
+  // O escopo final da conversa saiu com teto de R$ 500 para quem declarou 790.
+  //
+  // O estrago é o MESMO da 6ª volta, que este bloco existe para fechar, só que
+  // deslocado no tempo: `tetoDaFaixa` devolve 500, o confronto de verba compara
+  // a proposta contra um teto que o cliente nunca deu, e a casa esconde dele o
+  // Conteúdo (R$ 790) — que é exatamente o plano do número que ele disse — para
+  // oferecer os dois degraus de baixo. E não há alarme: `divergenciaDeVerba` só
+  // acorda em uma ordem de grandeza (fator 10), e 790/500 é 1,6.
+  //
+  // A regra da 6ª volta ("quando o cliente disse um número, o número manda")
+  // estava certa e continua inteira — faltava dizer POR QUANTO TEMPO ela manda.
+  // Resposta: até o cliente dizer outro número ou escolher outro degrau do
+  // cardápio. O rótulo do modelo volta a valer só para PREENCHER faixa que
+  // ainda não existe, nunca para TROCAR a que veio da boca do cliente.
+  //
+  // Fail-closed no sentido do cliente: na dúvida entre o que ELE disse e o que
+  // o modelo lembrou, vale o dele.
   const daFala = faixaDoTexto(falaDoCliente);
-  const faixaNormalizada = daFala ?? normalizarFaixa(scopePatch.budgetRange);
-  if (faixaNormalizada) scopePatch.budgetRange = faixaNormalizada;
-  else delete scopePatch.budgetRange;
+  const jaEstabelecida = normalizarFaixa(faixaJaEstabelecida);
+  const doModelo = normalizarFaixa(scopePatch.budgetRange);
+  const faixaNormalizada =
+    daFala ??
+    // Sem número nesta fala: a faixa já estabelecida manda, e o rótulo do
+    // modelo só entra quando não há nenhuma.
+    (jaEstabelecida ?? doModelo);
+  if (faixaNormalizada) {
+    if (!daFala && jaEstabelecida && doModelo && doModelo !== jaEstabelecida) {
+      console.warn(
+        `[sdr/chat] o modelo tentou trocar a faixa de "${jaEstabelecida}" para "${doModelo}" ` +
+          `numa fala sem número — mantida a do cliente`,
+      );
+    }
+    scopePatch.budgetRange = faixaNormalizada;
+  } else {
+    delete scopePatch.budgetRange;
+  }
 
   return scopePatch;
 }
@@ -474,6 +519,9 @@ async function segundaChanceSemPreco(args: {
   /** A fala do cliente deste turno — as travas de escopo precisam dela
    *  (a faixa de verba é derivada do número que ele disse). */
   falaDoCliente?: string;
+  /** Ver `aplicarTravasDeEscopo`: a segunda chance passa pelas MESMAS travas,
+   *  e uma trava que existe num caminho e não no outro é trava que não existe. */
+  faixaJaEstabelecida?: unknown;
 }): Promise<{ reply: string; scope: Record<string, unknown> } | null> {
   const r = await generate({
     system: args.system,
@@ -510,7 +558,7 @@ async function segundaChanceSemPreco(args: {
   const bruto = pacote.scope && typeof pacote.scope === "object" && !Array.isArray(pacote.scope)
     ? (pacote.scope as Record<string, unknown>)
     : {};
-  return { reply: fala, scope: aplicarTravasDeEscopo(bruto, args.falaDoCliente) };
+  return { reply: fala, scope: aplicarTravasDeEscopo(bruto, args.falaDoCliente, args.faixaJaEstabelecida) };
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -819,7 +867,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       parsed.scope && typeof parsed.scope === "object" && !Array.isArray(parsed.scope)
         ? (parsed.scope as Record<string, unknown>)
         : {};
-    const scopePatch = aplicarTravasDeEscopo(scopePatchBruto, body.currentMessage);
+    const scopePatch = aplicarTravasDeEscopo(
+      scopePatchBruto,
+      body.currentMessage,
+      (body.scope as Record<string, unknown> | undefined)?.budgetRange,
+    );
     const temScopeUtil = Object.keys(scopePatch).length > 0;
 
     // `temScopeUtil` sozinho não basta para os guardas abaixo: ele confunde
@@ -960,6 +1012,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         contaDoWorkspace: workspaceDaConta,
         guardaBarra: vazaPreco,
         falaDoCliente: body.currentMessage,
+        faixaJaEstabelecida: (body.scope as Record<string, unknown> | undefined)?.budgetRange,
       });
 
       if (segunda) {
