@@ -33,6 +33,7 @@ import type { AiProvider } from "@/lib/ai/resolve-key";
 import type { TurnoDeHistorico } from "@/lib/agency/intelligence/openai-schemas";
 import { ehPerguntaDeFaixa, faixaEscolhidaNaFala, formaDoPrecoNaFala, normalizarFaixa, ofertaParaFaixa } from "@/lib/agency/comercial/negociacao";
 import { parseBudgetAmount } from "@/lib/agency/sdr-agent";
+import { escopoComRetratacao } from "@/lib/agency/comercial/retratacao";
 // ATÉ 16/08/2026 ESTA ROTA NÃO ESCREVIA NADA. Zero chamadas a `prisma.`: o SDR
 // conversava, errava, e o diário do piloto mostrava `mensagens: 0` enquanto a
 // conversa acontecia. O porquê e as travas estão no cabeçalho do módulo.
@@ -1110,6 +1111,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           console.warn(`[sdr/chat] pergunta "${perguntaDaVez}" na 2ª vez — reformulada`);
         }
       }
+    }
+
+    // ── A RETRATAÇÃO, APLICADA SOBRE O ESCOPO ACUMULADO ────────────────────
+    //
+    // MEDIDO EM PRODUÇÃO (8ª volta): "esquece o WhatsApp, prefiro e-mail". O
+    // modelo OUVIU — o turno seguinte já não trazia `prospectPhone` — e o
+    // número reapareceu inteiro na solicitação gravada. Ouvir não bastava
+    // porque nenhuma das três memórias desta conversa sabe APAGAR: o escopo
+    // acumulado aqui sobrescreve, o `mergeScopeGaps` do navegador só preenche
+    // buraco, e a porta de gravação lê o contato da PORTA antes do escopo.
+    //
+    // O que atravessa merge é o que CRESCE, e por isso a retratação sai daqui
+    // como uma MARCA (`canaisRetratados`), não como um campo que sumiu. A marca
+    // vai no patch de resposta e viaja para as outras duas memórias, que a
+    // OBEDECEM — em vez de cada uma reimplementar um apagamento próprio.
+    //
+    // ⚠️ Lê-se sobre o escopo ACUMULADO (`body.scope` + o patch da vez), nunca
+    // só sobre o patch: a marca de um turno anterior tem de continuar valendo
+    // mesmo num turno em que o cliente não falou de canal nenhum — que é
+    // exatamente o turno em que o número voltou.
+    const acumulado = escopoComRetratacao({ ...(body.scope ?? {}), ...scopeDaVez }, body.currentMessage);
+    const retratados = acumulado.canaisRetratados;
+    if (Array.isArray(retratados) && retratados.length > 0) {
+      scopeDaVez = { ...scopeDaVez, canaisRetratados: retratados };
+      // O campo derrubado sai TAMBÉM do patch: mandá-lo de volta preenchido
+      // faria o navegador regravar o que o cliente acabou de desdizer.
+      delete (scopeDaVez as Record<string, unknown>).prospectPhone;
+      if (typeof acumulado.preferredChannel === "string") {
+        scopeDaVez = { ...scopeDaVez, preferredChannel: acumulado.preferredChannel };
+      }
+      console.warn(`[sdr/chat] canal(is) retratado(s) pelo cliente: ${retratados.join(", ")}`);
     }
 
     await registrar({ ...fio, doVisitante: body.currentMessage, doSdr: replyText });

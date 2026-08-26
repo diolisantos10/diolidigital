@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { canalFoiRetratado } from "@/lib/agency/comercial/retratacao";
 import { createClientRequest, listClientRequests, updateClientRequest, getClientRequest, deleteClientRequest } from "@/lib/agency/persistence/client-request-service";
 import { requireSession } from "@/lib/auth/api-guard";
 import {
@@ -228,13 +229,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // O que NÃO acontece no caso sem contato: nenhuma inferência. O `rawContext`
   // não é vasculhado atrás de um telefone. Arroba de Instagram no meio da
   // conversa é PISTA para o CEO ler, nunca contato (`pistasDeContato`).
+  //
+  // ── E O CANAL QUE O CLIENTE DESDISSE NÃO ENTRA POR AQUI (8ª volta) ────────
+  //
+  // Esta é a TERCEIRA memória da conversa, e a última. O cliente escreveu
+  // "esquece o WhatsApp, prefiro e-mail"; o número reapareceu em
+  // `contato.whatsapp` na solicitação gravada — porque a linha abaixo lê o
+  // contato da PORTA, que é anterior à retratação, antes do escopo.
+  //
+  // A trava é aqui, no SERVIDOR, pelo mesmo motivo que o gate de contato: esta
+  // rota é pública e um POST direto passa por cima de qualquer decisão de tela.
+  // A tela já obedece à marca; se ela deixar de obedecer, o número continua não
+  // entrando. Ver `lib/agency/comercial/retratacao.ts`.
+  const escopoDoBriefing = (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope;
+  const whatsappRetratado = canalFoiRetratado(escopoDoBriefing, "whatsapp");
+  if (whatsappRetratado) {
+    console.warn("[client-requests] WhatsApp retratado pelo cliente — não entra no contato da solicitação");
+  }
   const contatoDeclarado = montarContato({
     nome:     (body.contato as Record<string, unknown> | undefined)?.nome
-              ?? (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope?.prospectName,
+              ?? escopoDoBriefing?.prospectName,
     email:    (body.contato as Record<string, unknown> | undefined)?.email
-              ?? (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope?.prospectEmail,
-    whatsapp: (body.contato as Record<string, unknown> | undefined)?.whatsapp
-              ?? (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope?.prospectPhone,
+              ?? escopoDoBriefing?.prospectEmail,
+    whatsapp: whatsappRetratado
+              ? undefined
+              : (body.contato as Record<string, unknown> | undefined)?.whatsapp
+                ?? escopoDoBriefing?.prospectPhone,
   });
 
   const briefingJson =
