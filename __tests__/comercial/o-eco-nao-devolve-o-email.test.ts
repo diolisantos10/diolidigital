@@ -121,3 +121,52 @@ describe("2. a faixa de verba vem do NÚMERO que ele disse", () => {
     expect(await turno("Não sei ainda.", "uns trocados")).toBeUndefined();
   });
 });
+
+// ── A CLASSE, NÃO A INSTÂNCIA (27/08/2026) ─────────────────────────────────
+//
+// A primeira máscara tapou o e-mail, porque foi o e-mail que a medição pegou.
+// O cano, porém, é "contato do cliente voltando para dentro do prompt" — e a
+// FILA desta casa PERGUNTA o telefone ("e-mail ou WhatsApp?"). A resposta
+// natural é um número, e o eco o devolvia inteiro. Mesmo defeito, outro campo:
+// é a lição do "allowlist não é correção" aplicada ao próprio conserto.
+describe("3. o eco também não devolve o TELEFONE dele", () => {
+  it("o número sai do eco com a mesma marca de máscara", () => {
+    const saida = oQueDizerNoLugar(
+      "canal_de_contato",
+      { prospectName: "Marina" },
+      [],
+      "Pode me chamar no (11) 98877-6655 que eu respondo rápido",
+    );
+    expect(saida).not.toContain("98877");
+    expect(saida).not.toContain("6655");
+    expect(saida).toContain("[telefone do cliente]");
+    // A frase continua sendo dele — só o número sai.
+    expect(saida).toContain("Pode me chamar");
+  });
+
+  it("MUTAÇÃO: número que NÃO é telefone sobrevive — a máscara não come a fala dele", () => {
+    const saida = oQueDizerNoLugar(
+      "prazo",
+      { prospectName: "Marina" },
+      [],
+      "Quero 3 posts por semana, das 18h às 23h, com teto de R$ 1.500,00 por mês",
+    );
+    expect(saida).toContain("3 posts por semana");
+    expect(saida).toContain("18h");
+    expect(saida).toContain("1.500");
+    expect(saida).not.toContain("[telefone do cliente]");
+  });
+
+  it("os dois juntos, na mesma frase, saem os dois", () => {
+    const saida = oQueDizerNoLugar(
+      "canal_de_contato",
+      { prospectName: "Marina" },
+      [],
+      `Manda pro ${EMAIL} ou no 11988776655`,
+    );
+    expect(saida).not.toContain(EMAIL);
+    expect(saida).not.toContain("11988776655");
+    expect(saida).toContain("[e-mail do cliente]");
+    expect(saida).toContain("[telefone do cliente]");
+  });
+});

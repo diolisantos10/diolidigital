@@ -315,7 +315,7 @@ function trechoDoCliente(fala: string | undefined): string | null {
   //
   // A frase continua sendo dele — só o endereço sai. Ele já o escreveu na
   // tela; a casa não precisa devolvê-lo para provar que ouviu.
-  const t = semEmailNoEco(fala ?? "").trim().replace(/\s+/g, " ");
+  const t = semContatoNoEco(fala ?? "").trim().replace(/\s+/g, " ");
   if (t.length < 3) return null;
   if (t.length <= 120) return t;
   const corte = t.slice(0, 120);
@@ -359,15 +359,39 @@ function primeiroNome(escopo: Record<string, unknown> | undefined): string | nul
 }
 
 
-/** O texto sem o e-mail do cliente. Mesmo motivo e mesmo formato da máscara de
+/** O texto sem o CONTATO do cliente. Mesmo motivo e mesmo formato da máscara de
  *  `pergunta-sem-encaixe.ts` — a marca é a MESMA palavra nos dois lugares, para
- *  quem lê o histórico reconhecer o que aconteceu sem ter de adivinhar. */
-function semEmailNoEco(texto: string): string {
+ *  quem lê o histórico reconhecer o que aconteceu sem ter de adivinhar.
+ *
+ *  ── POR QUE O TELEFONE ENTROU DEPOIS (27/08/2026) ─────────────────────────
+ *
+ *  A primeira versão desta função tapava só o e-mail, porque foi o e-mail que
+ *  a medição pegou. E era a mesma armadilha que esta rodada já pagou uma vez
+ *  com outro nome: **allowlist não é correção**. O cano não era "o e-mail do
+ *  cliente" — era "o contato do cliente voltando para dentro do prompt". A
+ *  pergunta "como você prefere receber as novidades: e-mail ou WhatsApp?" está
+ *  na FILA deste mesmo arquivo, ou seja, a casa PEDE o telefone; a resposta
+ *  natural é um número, e o eco o devolvia inteiro.
+ *
+ *  Tapa-se a CLASSE, não a instância medida.
+ *
+ *  O piso de 10 dígitos é o mesmo de `whatsappValido` e pelo mesmo motivo:
+ *  "3 posts por semana", "18h às 23h" e "R$ 1.500,00" não podem virar
+ *  telefone, senão a máscara come a fala do cliente e o eco deixa de ser o
+ *  eco dele. */
+function semContatoNoEco(texto: string): string {
   let saida = texto;
   for (let i = 0; i < 8; i++) {
     const achado = emailNoTexto(saida);
     if (!achado) break;
     saida = saida.split(achado).join("[e-mail do cliente]");
   }
-  return saida;
+  return saida.replace(RE_TELEFONE_NO_ECO, (m) => {
+    const digitos = m.replace(/\D/g, "");
+    return digitos.length >= 10 && digitos.length <= 13 ? "[telefone do cliente]" : m;
+  });
 }
+
+/** Sequência que PODE ser telefone: dígitos com os separadores usuais. Quem
+ *  decide é a contagem de dígitos, dentro do `replace` — a regex só recorta. */
+const RE_TELEFONE_NO_ECO = /\+?\d[\d\s().-]{8,}\d/g;
