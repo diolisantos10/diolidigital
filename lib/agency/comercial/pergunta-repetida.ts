@@ -458,6 +458,17 @@ export function falaSobreOClienteEmTerceiraPessoa(fala: unknown): boolean {
 const RE_TERCEIRA_PESSOA =
   /\b(?:ele|ela|o\s+cliente|a\s+cliente|o\s+dono|a\s+dona)\b\s+(?:j[áa]\s+)?(?:tem|t[êe]m|possui|quer|querem|pretende|precisa|deseja|costuma|trabalha|vende|usa|faz)\b/i;
 
+/**
+ * AS REDAÇÕES DA FILA, para quem precisa CONFERIR que uma fala saiu daqui.
+ *
+ * Existe por causa de uma régua fraca: o teste da voz do SDR conferia que a
+ * fala posta no lugar da frase em terceira pessoa "tinha 'você'". Metade das
+ * perguntas desta fila não tem a palavra — e uma régua que erra sobre a fala
+ * boa é uma régua que alguém desliga. Conferir PERTENCIMENTO à fila é a
+ * pergunta certa, e ela não tem como envelhecer junto com a redação.
+ */
+export const PERGUNTAS_DA_FILA: readonly string[] = FILA.map((f) => f.pergunta);
+
 function proximaEmAberto(escopo: Record<string, unknown> | undefined, jaPerguntadas: readonly string[]): string | null {
   const e = escopo ?? {};
   for (const item of FILA) {
