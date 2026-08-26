@@ -69,9 +69,15 @@ describe("a consulta do destravador alcança o projeto BLOQUEADO", () => {
     expect(whereDaConsulta().presentedAt).toBeNull();
   });
 
-  it("a consulta continua exigindo entrega REPROVADA — não varre projeto são", async () => {
+  it("a consulta continua exigindo entrega BARRADA — não varre projeto são", async () => {
     await pacotesTravados();
-    expect(whereDaConsulta().deliverables).toEqual({ some: { revisionStatus: "quality_flag" } });
+    // 26/08/2026: passou a alcançar TAMBÉM a peça que ninguém auditou. O pacote
+    // parado por ausência de juiz é tão travado quanto o parado por reprovação
+    // (ver `__tests__/esteira/pacote-sem-arbitro-nao-some.test.ts`) — e a régua
+    // continua exigindo UM DOS DOIS estados, para não varrer projeto são.
+    expect(whereDaConsulta().deliverables).toEqual({
+      some: { revisionStatus: { in: ["quality_flag", "quality_nao_auditado"] } },
+    });
   });
 
   it("o recorte por workspace continua valendo quando é pedido", async () => {

@@ -120,7 +120,7 @@ describe("o relógio nunca pode morrer", () => {
 // projeto real. O relogio e quem fecha esse ciclo agora.
 describe("o relógio destrava o que a Qualidade barrou", () => {
   it("refaz as entregas reprovadas e re-enfileira o projeto", async () => {
-    pacotesTravados.mockResolvedValue([{ projectId: "p9", esperandoDecisao: false }]);
+    pacotesTravados.mockResolvedValue([{ projectId: "p9", esperandoDecisao: false, naoAuditadas: [] }]);
     destravarPacote.mockResolvedValue({ projectId: "p9", corrigidas: ["Analytics · Plano"], persistentes: [], escalado: false });
 
     const r = await baterORelogio();
@@ -139,7 +139,7 @@ describe("o relógio destrava o que a Qualidade barrou", () => {
   });
 
   it("escalou → não re-enfileira, porque a bola é do Diretor", async () => {
-    pacotesTravados.mockResolvedValue([{ projectId: "p9", esperandoDecisao: false }]);
+    pacotesTravados.mockResolvedValue([{ projectId: "p9", esperandoDecisao: false, naoAuditadas: [] }]);
     destravarPacote.mockResolvedValue({ projectId: "p9", corrigidas: ["X"], persistentes: ["Y"], escalado: true });
     await baterORelogio();
     expect(db.project.update).not.toHaveBeenCalled();

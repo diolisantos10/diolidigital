@@ -35,6 +35,7 @@
 // Módulo PURO: sem banco, sem rede, sem IA. Quem grava é quem chamou.
 
 import { entrarPeloGerenteGeral, type Demanda } from "./despacho";
+import { conferirContraOEscopo, type EscopoContratado } from "./contrato-do-plano";
 import { GERENTE_GERAL, ehGerente, departamentoDoGerente, existeDepartamentoCanonico } from "./cadeia";
 import { deSlugLegado } from "@/lib/agency/catalogo-v2/adaptadores";
 import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
@@ -157,6 +158,16 @@ export interface ContextoDaEntrada {
   aceiteComercial: boolean;
   clienteId?: string;
   correlationId: string;
+  /**
+   * O ESCOPO QUE O CLIENTE ACEITOU — a metade negativa dele.
+   *
+   * Ausente = ninguem leu o escopo, e o contrato nao barra nada (o
+   * comportamento de antes de 26/08/2026). Presente com recusa registrada, a
+   * tarefa que vende o servico recusado e RECUSADA com motivo, e a recusa sai
+   * pelo mesmo cano das outras (`recusadas`), com dono e frase. Ver
+   * `lib/agency/gerencia/contrato-do-plano.ts`.
+   */
+  escopo?: EscopoContratado;
 }
 
 /**
@@ -190,6 +201,20 @@ export function despacharPlanoPeloGerenteGeral(
       aceiteComercial: ctx.aceiteComercial,
       correlationId: ctx.correlationId,
     };
+
+    // ── O CONTRATO DO PLANO CONTRA O ESCOPO (26/08/2026) ──────────────────
+    // Antes do despacho, nao depois: tarefa que vende o que o cliente recusou
+    // nao chega a ter gerente. O caso medido em producao foi "Planejamento de
+    // Paid Strategy (Opcional)" para quem escreveu "anuncios nao, agora nao".
+    const contrato = conferirContraOEscopo(
+      { title: tarefa.title, description: tarefa.description },
+      canonico,
+      ctx.escopo,
+    );
+    if (!contrato.ok) {
+      recusadas.push({ tarefa, motivo: contrato.motivo });
+      continue;
+    }
 
     const despacho = entrarPeloGerenteGeral(demanda);
     if (despacho.decisao === "recusado") {

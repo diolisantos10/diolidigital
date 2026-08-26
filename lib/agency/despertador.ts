@@ -24,7 +24,7 @@
 import { prisma } from "@/lib/db/client";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { dispatchWhatsAppNotifications } from "@/lib/integrations/meta/notifications";
-import { destravarPacote, pacotesTravados } from "@/lib/agency/esteira/pacote-travado";
+import { destravarPacote, pacotesTravados, reauditarSemArbitro } from "@/lib/agency/esteira/pacote-travado";
 import { publicarAgendados } from "@/lib/agency/esteira/publicacao";
 import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
@@ -191,6 +191,28 @@ async function destravarPacotesBarrados(): Promise<number> {
   // IA cara, e um pacote travado não é urgência de segundos.
   for (const t of travados.filter((p) => !p.esperandoDecisao).slice(0, MAX_POR_RODADA)) {
     try {
+      // ── PRIMEIRO O JUIZ QUE FALTOU, DEPOIS A REESCRITA (26/08/2026) ───────
+      //
+      // Peça `quality_nao_auditado` NÃO tem defeito conhecido: falta parecer.
+      // `apresentar()` a segura dizendo "não reescreva, destrave a auditoria",
+      // e até aqui ninguém destravava — o pacote não aparecia nem nesta perna
+      // nem em `/api/pacotes-travados`. Medido no cliente oculto de 26/08, com
+      // o provedor devolvendo HTTP 429.
+      //
+      // A ordem importa: reauditar é barato e pode liberar o pacote inteiro
+      // sem uma linha reescrita. Só o que o juiz REPROVAR desce para a
+      // reescrita, na mesma rodada.
+      // `?? []` porque esta perna NÃO pode morrer por um campo ausente: o
+      // `catch` lá embaixo engoliria o projeto inteiro e a reescrita — que já
+      // funcionava — deixaria de rodar por causa da novidade.
+      if ((t.naoAuditadas ?? []).length > 0) {
+        const rr = await reauditarSemArbitro(t.projectId);
+        corrigidas += rr.aprovadas.length;
+        if (rr.aindaSemArbitro.length > 0) {
+          log(`pacote ${t.projectId}: ${rr.aindaSemArbitro.length} peça(s) continuam sem árbitro — a auditoria é que está fora, não a peça`);
+        }
+      }
+
       const r = await destravarPacote(t.projectId);
       corrigidas += r.corrigidas.length;
       // Voltou a ter peça boa? A produção é re-enfileirada para que o fluxo
