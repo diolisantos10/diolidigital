@@ -130,8 +130,23 @@ export function miraPorNomeDaEntrega(
     // nome de uma letra não é nome.
     if (nome.length < 3) continue;
 
-    // O nome INTEIRO, com limite de palavra nas pontas. Nome parcial é palpite.
-    const alvo = new RegExp(`(?:^|[^a-z0-9])${nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|[^a-z0-9])`);
+    // ── O NOME NO BANCO CARREGA O CLIENTE; O CLIENTE NÃO REPETE O PRÓPRIO NOME
+    //
+    // ⚠️ PEGO ANTES DE MEDIR, contra os nomes REAIS de produção. No banco a
+    // entrega se chama **"Legendas Prontas — Cantina Oculta"**; o cliente
+    // escreveu **"LEGENDAS PRONTAS"**. A regra do nome inteiro, sozinha, não
+    // casaria — e a mira por nome nasceria sem alcançar o caso que ela existe
+    // para consertar. Régua verde sobre o nome errado é pior que régua nenhuma.
+    //
+    // O separador é o travessão (ou hífen cercado de espaço) com que a casa
+    // costura "<entrega> — <cliente>". A CABEÇA é o nome da entrega; a cauda é
+    // o dono. Só a cabeça vira alternativa, e ela continua tendo de aparecer
+    // INTEIRA no texto dele: "Legendas" sozinho segue não valendo.
+    const cabeca = nome.split(/\s+[—–-]\s+/)[0]!.trim();
+    const formas = [...new Set([nome, cabeca])].filter((f) => f.length >= 3);
+    const alvo = new RegExp(
+      formas.map((f) => `(?:^|[^a-z0-9])${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|[^a-z0-9])`).join("|"),
+    );
 
     let citou = false;
     let protegeu = false;
