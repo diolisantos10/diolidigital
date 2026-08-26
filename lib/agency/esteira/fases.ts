@@ -233,6 +233,32 @@ export function posicaoNaTrilha(fase: FaseId): number {
   return POSICAO[fase] ?? 0;
 }
 
+/**
+ * O PISO DA TRILHA — o degrau mais avançado que os CARIMBOS já provam.
+ *
+ * Só entram fatos irreversíveis, e é isso que faz o piso ser monótono sem
+ * guardar estado em lugar nenhum: um carimbo de data não volta atrás. Contagem
+ * (`tarefas.produzindo`, `execucao`) NÃO entra — é justamente ela que oscila, e
+ * foi a oscilação dela que fez a barra do cliente andar para trás.
+ *
+ * ⚠️ Fail-open para baixo: sem carimbo nenhum o piso é 0 e a leitura fica
+ * exatamente como sempre foi. Ausência de carimbo não promove ninguém.
+ */
+export function pisoDaTrilha(r: RetratoDoProjeto): number {
+  let piso = 0;
+  const nao_abaixo_de = (fase: FaseId) => { piso = Math.max(piso, posicaoNaTrilha(fase)); };
+
+  if (r.propostaAceita) nao_abaixo_de("desenho");
+  // Direção aprovada é botão que o CLIENTE apertou: a etapa de desenho acabou.
+  if (preenchido(r.direcaoAprovadaEm)) nao_abaixo_de("producao");
+  // Apresentado é o pacote na mão dele.
+  if (preenchido(r.apresentadoEm)) nao_abaixo_de("aprovacao_cliente");
+  if (preenchido(r.aprovadoPeloClienteEm)) nao_abaixo_de("implementacao");
+  if ((r.postsPublicados ?? 0) > 0) nao_abaixo_de("implementacao");
+  if (r.cicloAberto) nao_abaixo_de("ciclo");
+  return piso;
+}
+
 function preenchido(v: Date | string | null | undefined): boolean {
   return v !== null && v !== undefined && String(v).trim().length > 0;
 }
@@ -254,6 +280,25 @@ export function lerFase(r: RetratoDoProjeto): LeituraDaFase {
   const precisaAprovarDirecao =
     r.propostaAceita && r.tarefas.total > 0 && !preenchido(r.direcaoAprovadaEm);
 
+  // ── ANDAMENTO NÃO ANDA PARA TRÁS NA FRENTE DO CLIENTE (8ª volta) ──────────
+  //
+  // MEDIDO EM PRODUÇÃO, 26/08/2026: às 08:49 o portal dizia "Criando o seu
+  // material · 50%"; às 08:55, "Montando seu planejamento · 25%". O cliente viu
+  // a barra andar PARA TRÁS.
+  //
+  // A causa não é este arquivo estar errado sobre o AGORA — é ele não ter
+  // memória do ANTES. Um reinício de contêiner às 08:54 pôs `executionStatus`
+  // em `pending` e zerou `tarefas.produzindo`; o ramo de produção deixou de
+  // casar, e a leitura escorregou para o ramo do DESENHO, que vem depois na
+  // ordem de testes mas ANTES na trilha. Tecnicamente coerente, e mentiroso.
+  //
+  // O piso não é memória guardada em lugar nenhum — seria uma segunda verdade a
+  // divergir. Ele é DERIVADO dos carimbos, que são irreversíveis por natureza:
+  // direção aprovada não desaprova, apresentação não desapresenta. Enquanto a
+  // fase corrente estiver ATRÁS do que os carimbos provam, quem manda é o
+  // carimbo.
+  const piso = pisoDaTrilha(r);
+
   const montar = (
     fase: FaseId,
     semaforo: Semaforo,
@@ -263,7 +308,7 @@ export function lerFase(r: RetratoDoProjeto): LeituraDaFase {
   ): LeituraDaFase => ({
     fase, semaforo, responsavel,
     precisaAprovarDirecao,
-    progresso: Math.round((posicaoNaTrilha(fase) / (TRILHA.length - 1)) * 100),
+    progresso: Math.round((Math.max(posicaoNaTrilha(fase), piso) / (TRILHA.length - 1)) * 100),
     paraEquipe: equipe, paraCliente: cliente,
   });
 
@@ -498,6 +543,28 @@ export function lerFase(r: RetratoDoProjeto): LeituraDaFase {
         oQueEsperamosDeVoce: "Aprovar a direção. Mudar agora é rápido; depois da produção, custa caro." });
   }
 
+  // ── Direção JÁ APROVADA e a produção não está rodando ────────────────────
+  //
+  // O outro lado do piso, e o que de fato foi medido: com a direção aprovada, o
+  // projeto não volta a ser "Montando seu planejamento" — aquela etapa já
+  // passou, e o cliente já apertou o botão que a encerrou. Dizer "Fechamos
+  // negócio! Agora estamos desenhando" a quem aprovou a direção meia hora antes
+  // não é só um número menor: é uma frase falsa.
+  //
+  // O dono é o PM, não o cliente e não os agentes: produção liberada e parada é
+  // trabalho da casa, e a próxima ação é retomar (o que o relógio faz sozinho —
+  // `retomarProducao`). O semáforo é "esperando", nunca "andando": afirmar que
+  // anda o que está parado é a mentira que a leitura toda existe para não contar.
+  if (r.propostaAceita && preenchido(r.direcaoAprovadaEm)) {
+    return montar("producao", "esperando", "pm",
+      { titulo: "Produção liberada e parada",
+        agora: `A direção foi aprovada pelo cliente e a produção não está rodando (execução: ${r.execucao ?? "não medida"}).`,
+        proximoPasso: "O relógio retoma sozinho na próxima batida. Se não retomar, ver o erro na tela do projeto." },
+      { titulo: "Criando o seu material",
+        agora: "Você aprovou a direção e o seu material entrou na fila de criação.",
+        oQueEsperamosDeVoce: "" });
+  }
+
   // ── Aceitou, o PM está desenhando ────────────────────────────────────────
   if (r.propostaAceita) {
     return montar("desenho", "andando", "pm",
@@ -522,7 +589,27 @@ export function lerFase(r: RetratoDoProjeto): LeituraDaFase {
         oQueEsperamosDeVoce: "" });
   }
 
-  if (status === "quoted" || status === "proposal_sent" || status === "qualified") {
+  // ── A PROPOSTA ESCRITA E O PORTAL DIZENDO "CONHECENDO O SEU NEGÓCIO" ──────
+  //
+  // MEDIDO EM PRODUÇÃO (8ª volta): a solicitação ficou **27 minutos** em
+  // `proposal_pending` com a proposta escrita — 6 artefatos, o texto do
+  // orçamento já no portal — e a tela do cliente marcando "Conhecendo o seu
+  // negócio · 0%". A tela mentiu por 27 minutos.
+  //
+  // A causa é vocabulário: `proposal_pending` é o estado CANÔNICO desta casa
+  // depois que `entregarOrcamentosPendentes` entrega a proposta
+  // (`orcamento-do-briefing.ts`), está em `client-requests.ts` como "Aguardando
+  // Proposta"... e não estava nesta lista. Não havia ramo: a leitura caía no
+  // último `return`, que é a SONDAGEM — o começo de tudo.
+  //
+  // Verdade escrita em dois lugares já está errada em um deles: os estados
+  // vivem em `client-requests.ts` e eram recopiados aqui como string literal.
+  // Enquanto a lista for literal, ela vai divergir de novo — dívida declarada,
+  // com dono. O que este ramo fecha é o buraco medido.
+  if (
+    status === "quoted" || status === "proposal_sent" ||
+    status === "qualified" || status === "proposal_pending" || status === "proposal"
+  ) {
     return montar("orcamento", "esperando", "cliente",
       { titulo: "Proposta enviada",
         agora: "O orçamento foi para o cliente. Aguardando resposta.",
