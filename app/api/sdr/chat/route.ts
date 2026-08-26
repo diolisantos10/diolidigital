@@ -1047,6 +1047,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // conserto é a redação canônica da fila, que é escrita na segunda pessoa —
     // a mesma substituição, por um motivo diferente.
     const escopoAcumulado = { ...(body.scope ?? {}), ...scopeDaVez };
+    let jaSubstituida = false;
     if (perguntaDaVez) {
       const jaRespondida = perguntaJaRespondida(perguntaDaVez, escopoAcumulado);
       const emTerceiraPessoa = falaSobreOClienteEmTerceiraPessoa(replyText);
@@ -1054,6 +1055,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const proxima = proximaPerguntaEmAberto(escopoAcumulado, jaRespondida ? [perguntaDaVez] : []);
         if (proxima) {
           replyText = proxima;
+          jaSubstituida = true;
           console.warn(
             `[sdr/chat] pergunta "${perguntaDaVez}" ${jaRespondida ? "JÁ RESPONDIDA no escopo" : "falava do cliente em 3ª pessoa"} — substituída pela próxima em aberto`,
           );
@@ -1063,6 +1065,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           replyText =
             "Já tenho o essencial do seu pedido — está tudo no resumo, ao lado. " +
             "Se estiver certo, é só confirmar que eu preparo o seu orçamento.";
+          jaSubstituida = true;
           console.warn(`[sdr/chat] pergunta "${perguntaDaVez}" JÁ RESPONDIDA e nada em aberto — fecho`);
         }
         // Terceira pessoa sem nada em aberto: a fala do modelo passa. Substituir
@@ -1071,7 +1074,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    if (perguntaDaVez) {
+    // ── E O CONTADOR NÃO AGE SOBRE UMA FALA QUE JÁ NÃO É A DO MODELO ────────
+    //
+    // ⚠️ DEFEITO MEU, MEDIDO NA 9ª VOLTA, no ar, uma hora depois de eu escrever
+    // o bloco acima. O cliente respondeu *"Já temos fotos boas do café e dos
+    // doces"* e a casa devolveu:
+    //
+    //     "Entendi, Rafael — e tudo bem. Anotei isso do seu jeito e vou seguir
+    //      sem esse dado por enquanto; a equipe confirma com você depois."
+    //
+    // Sobre um dado que ela ACABARA de receber — `social.hasPhotos` estava no
+    // patch DAQUELE MESMO turno. É o "remédio virou a doença" da 6ª volta
+    // voltando por uma porta que eu abri: `perguntaDaVez` é calculada da fala
+    // ORIGINAL do modelo, e o contador abaixo continuava agindo sobre ela mesmo
+    // depois de o bloco de cima já ter trocado a fala inteira.
+    //
+    // Substituída a fala, o contador não tem mais o que contar: a pergunta que
+    // ele mediria não vai mais sair. Contar uma fala que não foi dita é a mesma
+    // família de erro que este arquivo passa o tempo todo fechando.
+    if (perguntaDaVez && !jaSubstituida) {
       const doCorpo = body.messages
         .filter((m) => m.role === "assistant" && typeof m.text === "string")
         .map((m) => m.text);
