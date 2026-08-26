@@ -211,3 +211,26 @@ describe("as tabelas concorrentes morreram — não coexistem", () => {
     expect(readFileSync("lib/agency/live-calculator.ts", "utf8")).toContain('from "./planos"');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe("a página não mente sobre a própria página", () => {
+  it("nenhum número da vitrine é escrito à mão em `/planos`", () => {
+    // MEDIDO NO AR em 26/08/2026, minutos depois do deploy da tabela nova: a
+    // página servia Pulso 49 · Ritmo 290 · Presença 490 · Conteúdo 790 e o
+    // subtítulo dizia **"Cinco degraus"**, com a meta-descrição prometendo
+    // "ao R$ 2.590 que cresce" — um plano que tinha acabado de sair.
+    //
+    // Não foi a tabela que falhou: foi o TEXTO em volta dela, que ninguém
+    // deriva. É a mesma classe de defeito dos preços, um andar acima.
+    const pagina = readFileSync("app/planos/page.tsx", "utf8")
+      .split("\n").filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*")).join("\n");
+    for (const p of PLANOS) {
+      expect(
+        new RegExp(`(?<![\\d.])${p.preco}(?![\\d.])`).test(pagina),
+        `a página digita o preço ${p.preco} — ele tem de vir de PLANOS`,
+      ).toBe(false);
+    }
+    // E a CONTAGEM de degraus também não: "Cinco degraus" era literal.
+    expect(/\b(tr[êe]s|quatro|cinco|seis)\s+degraus/i.test(pagina), "a contagem de degraus está escrita à mão").toBe(false);
+  });
+});
