@@ -42,6 +42,19 @@ export type Plano = {
 
 export const PECA_EXTRA = 180;
 
+// ── ⚠️ ESTA "FONTE ÚNICA" NÃO É A ÚNICA (26/08/2026) ───────────────────────
+//
+// O cabeçalho acima diz que esta lista é a fonte "de qualquer proposta que a
+// esteira emitir". Medido pelo cliente oculto em produção: **não é.** Quem
+// emite a proposta automática é `lib/agency/live-calculator.ts`, que tem uma
+// tabela PRÓPRIA, de três planos (Essencial R$ 590, Crescimento R$ 990,
+// Completo R$ 1.790), enquanto esta página vende cinco (R$ 49 a R$ 2.590).
+//
+// O cliente oculto foi cotado em "Plano Essencial · R$ 590" — nome e preço que
+// não existem nesta lista nem na página. Ver a nota gêmea em
+// `live-calculator.ts` e o registro em `docs/medicoes/duas-tabelas-vivas-26-08.md`.
+//
+// Qual das duas vale é decisão do CEO. Não se conserta preço por dedução.
 export const PLANOS: Plano[] = [
   {
     id: "pulso",

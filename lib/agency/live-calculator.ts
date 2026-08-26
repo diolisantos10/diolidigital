@@ -73,6 +73,38 @@ export interface PackageDef {
 // a-vitrine-nao-promete-acima-do-teto` refaz a conta de cada linha daqui contra
 // `TETO_MENSAL` e quebra o build se um plano passar. Editar um número aqui sem
 // mexer na capacidade não compila.
+// ── ⚠️ DUAS TABELAS VIVAS — ACHADO DO CLIENTE OCULTO (26/08/2026) ──────────
+//
+// **Esta tabela NÃO é a tabela da página pública, e as duas estão no ar.**
+//
+// `lib/agency/planos.ts` abre dizendo, com todas as letras: "OS PLANOS DA CASA
+// — fonte única (...) Esta lista é a fonte da página pública `/planos` E DE
+// QUALQUER PROPOSTA QUE A ESTEIRA EMITIR. Preço de plano escrito em dois
+// lugares vira dois preços diferentes na semana em que um deles muda — e o
+// cliente sempre acha o menor."
+//
+// Quem emitiu a proposta do cliente oculto foi ESTE arquivo, não aquele.
+// Medido em produção, no pedido cmt9exi95001f0xo74bhonn77:
+//
+//   • proposta recebida: **"Plano Essencial — 2 posts/semana · R$ 590/mês"**;
+//   • `https://www.diolidigital.com.br/planos`, no mesmo minuto: **cinco**
+//     degraus — Pulso R$ 49, Ritmo R$ 297, Presença R$ 790, Conteúdo R$ 1.390,
+//     Crescimento R$ 2.590. A página diz "Cinco degraus" no subtítulo.
+//
+// Ou seja: o cliente foi cotado num plano cujo NOME e cujo PREÇO não existem
+// em lugar nenhum da página que ele acabou de ler. E "Crescimento" existe nas
+// DUAS tabelas com preços 2,6× diferentes (R$ 990 aqui, R$ 2.590 lá).
+//
+// Isto é exatamente o que a decisão do Diretor Geral de 24/08/2026 nomeou —
+// ela está citada em `esteira/caminho-automatico.ts`: *"A tabela do site é a
+// única viva (duas tabelas vivas cobram errado de alguém)."* A decisão foi
+// tomada e as duas tabelas continuam vivas.
+//
+// **NÃO CONSERTADO AQUI, E DE PROPÓSITO.** Qual das duas é a verdadeira é
+// decisão de PREÇO, e preço é do CEO — trocar os números daqui pelos de lá
+// mudaria, sozinho, quanto a casa cobra de todo mundo. O que esta nota faz é
+// impedir que a divergência siga silenciosa. Ponto fraco declarado é dívida;
+// silencioso é armadilha. Registro: `docs/medicoes/duas-tabelas-vivas-26-08.md`.
 export const SOCIAL_PACKAGES: PackageDef[] = [
   {
     id: "essencial",

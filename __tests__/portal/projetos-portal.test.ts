@@ -14,6 +14,10 @@ import { NextRequest } from "next/server";
 const db = vi.hoisted(() => ({
   project: { findMany: vi.fn() },
   socialPost: { findMany: vi.fn() },
+  // Desde 26/08/2026 a etapa também depende do PAGAMENTO: o cartão parou de
+  // dizer "Em produção" para projeto parado. Ver
+  // `__tests__/portal/o-cartao-do-projeto-nao-mente.test.ts`.
+  pagamentoConfirmado: { findMany: vi.fn() },
 }));
 const resolvePortalClient = vi.hoisted(() => vi.fn());
 
@@ -29,6 +33,7 @@ const PROJETO_NO_BANCO = {
   goal: "Lançar o app para donos de restaurante",
   createdAt: new Date("2026-08-01T10:00:00Z"),
   presentedAt: null, clientApprovedAt: null, directionApprovedAt: new Date("2026-08-02T10:00:00Z"),
+  clientRequestId: "cr-foocci",
 };
 
 const POST_NO_BANCO = {
@@ -45,6 +50,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   resolvePortalClient.mockResolvedValue({ clientId: "cli-foocci", workspaceId: "ws1" });
   db.project.findMany.mockResolvedValue([PROJETO_NO_BANCO]);
+  // O cliente destes testes JÁ PAGOU — o assunto deles é outro.
+  db.pagamentoConfirmado.findMany.mockResolvedValue([{ clientRequestId: "cr-foocci" }]);
   db.socialPost.findMany.mockResolvedValue([POST_NO_BANCO]);
 });
 
