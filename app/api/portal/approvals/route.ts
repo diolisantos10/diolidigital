@@ -186,6 +186,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Card de CALENDÁRIO (origem: /api/social-posts/aprovacao): o reviewNote é
     // o corpo que o cliente leu — a decisão não pode reescrevê-lo com o
     // comentário (que já fica registrado como ApprovalComment logo abaixo).
+    // ── ⚠️ CARD SEM PEÇAS = AJUSTE QUE NÃO ALCANÇA A ARTE (26/08/2026) ────
+    //
+    // Tudo o que refaz ARTE, daqui para baixo, vive dentro de
+    // `if (postsDoCard.length > 0 …)`. Quando o card não carrega peças, esse
+    // ramo inteiro é pulado — em silêncio.
+    //
+    // Medido pelo cliente oculto em produção (projeto
+    // cmt9f1f7w001y0xo781zi2jt4): ele pediu "as duas artes mais claras", a rota
+    // devolveu 200 com `revision_requested`, e SEIS MINUTOS depois os dois
+    // arquivos eram byte a byte os mesmos (sha256 reconferido). O que mudou foi
+    // um TEXTO — `Pauta do Mês`, v2, com `lastFeedback: "Refeita a pedido do
+    // cliente: As duas artes estao escuras dem…"`. Pior que não fazer nada: o
+    // registro diz "refeita a pedido do cliente".
+    //
+    // A causa é estrutural: o card da esteira PADRÃO nasce em
+    // `esteira/marcos.ts → apresentar()`, e os `SocialPost` só são criados
+    // DEPOIS, em `esteira/publicacao.ts → agendarPostsDaEntrega()`. Na hora em
+    // que o card nasce, não há peça para ligar. Os caminhos de PRODUTO
+    // (`produtos/story-instagram-v1.ts:609`, `esteira/producao-de-pedido.ts:740`)
+    // criam o card depois das peças e por isso funcionam.
+    //
+    // NÃO consertado aqui: ligar o card às peças muda o momento em que o
+    // cliente é chamado a decidir, em toda a esteira padrão — é decisão de
+    // desenho, com dono (`marcos.ts` + `publicacao.ts`). Registro completo em
+    // `docs/medicoes/o-ajuste-nao-alcanca-a-arte-26-08.md`.
     const postsDoCard = lerListaDeIds(approval.sourcePostIdsJson);
 
     // 3. Apply the decision. reviewedBy records the client identity.

@@ -128,7 +128,9 @@ describe("GET /api/portal/projetos — o calendário sai com as telas", () => {
   it("a consulta continua exigindo visibility 'compartilhado' — interno não entra no calendário", async () => {
     await projetosPortal(new NextRequest("http://localhost/api/portal/projetos?token=tok-a"));
     expect(db.socialPost.findMany.mock.calls[0]![0].where).toEqual({
-      clientId: "cli-foocci", visibility: "compartilhado",
+      // `mediaUrl: { not: null }` desde 26/08/2026 — peça sem arte não é
+      // entrega. Ver `lib/agency/portal/peca-visivel-ao-cliente.ts`.
+      clientId: "cli-foocci", visibility: "compartilhado", mediaUrl: { not: null },
     });
   });
 

@@ -56,3 +56,35 @@ describe("o portal do cliente só lista peça que TEM arquivo", () => {
     expect(where.clientRequestId).toBe("cr1");
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A MESMA REGRA NAS DUAS SUPERFÍCIES — porque a primeira versão esqueceu uma
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// O primeiro conserto fechou `/api/social-posts` e deixou o CALENDÁRIO de
+// `/api/portal/projetos` lendo a mesma tabela com o filtro antigo. Medido em
+// produção minutos depois: `{"posts":[]}` numa rota e três peças SEM ARTE na
+// outra, com `statusLegivel: "Esperando você"` — pedindo decisão sobre cartão
+// vazio. Duas consultas com a mesma regra escrita à mão divergem no primeiro
+// conserto de uma delas.
+
+describe("a regra da peça visível é UMA, e as duas rotas a carregam", () => {
+  it("a cláusula exige os dois campos, e o de mídia é POSITIVO", async () => {
+    const { PECA_VISIVEL_AO_CLIENTE } = await import("@/lib/agency/portal/peca-visivel-ao-cliente");
+    expect(PECA_VISIVEL_AO_CLIENTE.visibility).toBe("compartilhado");
+    // `not: null` e não uma lista de estados a excluir: estado de mídia novo
+    // não pode passar a vazar por omissão.
+    expect(PECA_VISIVEL_AO_CLIENTE.mediaUrl).toEqual({ not: null });
+  });
+
+  it("as duas rotas IMPORTAM a cláusula — nenhuma escreve o filtro à mão", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    for (const rota of ["app/api/social-posts/route.ts", "app/api/portal/projetos/route.ts"]) {
+      const fonte = readFileSync(join(process.cwd(), rota), "utf8");
+      expect(fonte, rota).toContain("PECA_VISIVEL_AO_CLIENTE");
+      // E não sobrou nenhuma consulta de peça com o filtro velho escrito à mão.
+      expect(fonte.includes('visibility: "compartilhado", mediaUrl'), rota).toBe(false);
+    }
+  });
+});
