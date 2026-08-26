@@ -52,6 +52,7 @@
 
 import { ehPerguntaDeFaixa } from "./negociacao";
 import { LIMITE_DE_INSISTENCIA, reformular } from "./pergunta-sem-encaixe";
+import { emailNoTexto } from "./contato-do-lead";
 
 export { LIMITE_DE_INSISTENCIA };
 
@@ -296,7 +297,25 @@ export function oQueDizerNoLugar(
  *  eco cortado no meio de uma palavra parece defeito, e defeito na fala é o
  *  que faz a pessoa desconfiar do resto. */
 function trechoDoCliente(fala: string | undefined): string | null {
-  const t = (fala ?? "").trim().replace(/\s+/g, " ");
+  // ⛔ SEM O E-MAIL DELE, e este parágrafo é uma dívida minha, não uma
+  // precaução teórica.
+  //
+  // O eco nasceu nesta mesma rodada para acabar com a frase de despedida
+  // repetida. Ele foi para produção e, na volta seguinte, a casa respondeu:
+  //
+  //   EU : "Pode mandar tudo pro marina2.oculta@trattoria-oculta.invalid."
+  //   SDR: Anotei: "Pode mandar tudo pro marina2.oculta@trattoria-oculta.invalid."
+  //
+  // E essa fala vira histórico: ela volta em `messages` a cada turno seguinte,
+  // ou seja, **o endereço passou a viajar para dentro do prompt do modelo pela
+  // porta que eu abri** — exatamente a doutrina que o resto desta rodada
+  // existe para proteger (`aplicarTravasDeEscopo` apaga `prospectEmail`,
+  // `pergunta-sem-encaixe` mascara a lacuna, `contatoOferecido` mora fora do
+  // escopo). Consertei o cano e abri um segundo, no mesmo dia.
+  //
+  // A frase continua sendo dele — só o endereço sai. Ele já o escreveu na
+  // tela; a casa não precisa devolvê-lo para provar que ouviu.
+  const t = semEmailNoEco(fala ?? "").trim().replace(/\s+/g, " ");
   if (t.length < 3) return null;
   if (t.length <= 120) return t;
   const corte = t.slice(0, 120);
@@ -337,4 +356,18 @@ function primeiroNome(escopo: Record<string, unknown> | undefined): string | nul
   const n = escopo?.prospectName;
   if (typeof n !== "string" || !n.trim()) return null;
   return n.trim().split(/\s+/)[0];
+}
+
+
+/** O texto sem o e-mail do cliente. Mesmo motivo e mesmo formato da máscara de
+ *  `pergunta-sem-encaixe.ts` — a marca é a MESMA palavra nos dois lugares, para
+ *  quem lê o histórico reconhecer o que aconteceu sem ter de adivinhar. */
+function semEmailNoEco(texto: string): string {
+  let saida = texto;
+  for (let i = 0; i < 8; i++) {
+    const achado = emailNoTexto(saida);
+    if (!achado) break;
+    saida = saida.split(achado).join("[e-mail do cliente]");
+  }
+  return saida;
 }

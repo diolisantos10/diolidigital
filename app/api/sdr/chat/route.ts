@@ -31,7 +31,8 @@ import { classificarFalhaDeProvedor } from "@/lib/ai/falha-de-provedor";
 import { generate, ordemDePreferenciaDaCasa } from "@/lib/ai/generate";
 import type { AiProvider } from "@/lib/ai/resolve-key";
 import type { TurnoDeHistorico } from "@/lib/agency/intelligence/openai-schemas";
-import { ehPerguntaDeFaixa, formaDoPrecoNaFala, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
+import { ehPerguntaDeFaixa, formaDoPrecoNaFala, normalizarFaixa, ofertaParaFaixa } from "@/lib/agency/comercial/negociacao";
+import { parseBudgetAmount } from "@/lib/agency/sdr-agent";
 // ATÉ 16/08/2026 ESTA ROTA NÃO ESCREVIA NADA. Zero chamadas a `prisma.`: o SDR
 // conversava, errava, e o diário do piloto mostrava `mensagens: 0` enquanto a
 // conversa acontecia. O porquê e as travas estão no cabeçalho do módulo.
@@ -290,7 +291,13 @@ export function repararJsonTruncado(text: string): Record<string, unknown> | nul
 // enquanto a outra muda — por isso a extração, não por estética.
 //
 // Guarda que existe em um caminho e não no outro é guarda que não existe.
-function aplicarTravasDeEscopo(bruto: Record<string, unknown>): Record<string, unknown> {
+function aplicarTravasDeEscopo(
+  bruto: Record<string, unknown>,
+  /** O que o cliente acabou de dizer. Entra por PARÂMETRO, nunca como campo do
+   *  escopo: ele serve às travas e não pode virar dado gravado por engano.
+   *  Hoje só a trava da faixa o usa — ver `faixaDoTexto`. */
+  falaDoCliente?: string,
+): Record<string, unknown> {
   const scopePatch = { ...bruto };
 
   // E-mail comes from Google login; the negotiation itself happens after login
@@ -356,11 +363,52 @@ function aplicarTravasDeEscopo(bruto: Record<string, unknown>): Record<string, u
   // Guarda o RÓTULO, não o id: o painel público do briefing renderiza este
   // campo direto na tela ("Orçamento: ..."), e id interno não é linguagem de
   // cliente.
-  const faixaNormalizada = normalizarFaixa(scopePatch.budgetRange);
+  // ── E A FAIXA CERTA VEM DO NÚMERO, NÃO DO RÓTULO QUE O MODELO ESCOLHEU ───
+  //
+  // MEDIDO EM PRODUÇÃO (cliente oculto, 6ª rodada, DEPOIS do deploy desta
+  // mesma rodada): o cliente disse *"Tá caro. Meu teto é R$ 900 por mês."* e o
+  // escopo saiu com **"entre R$ 150 e R$ 500"** — metade do teto que ele
+  // declarou, com todas as letras, na frase anterior.
+  //
+  // A allowlist estava funcionando: "entre R$ 150 e R$ 500" É um rótulo válido.
+  // Ela responde "este rótulo existe?", e a pergunta que importa é outra —
+  // "este rótulo é o do número que ele disse?". **Allowlist não é correção.**
+  //
+  // O estrago é de preço: `tetoDaFaixa` devolve 500 para essa faixa, o
+  // confronto de verba passa a comparar a proposta contra um teto que o cliente
+  // nunca deu, e a casa ou vende abaixo do que ele podia pagar ou barra uma
+  // proposta legítima. É a mesma família do CityJobs, com o sinal trocado.
+  //
+  // A regra: **quando o cliente disse um número, o número manda.** `faixaDoTexto`
+  // usa os DOIS leitores que a casa já tem — `parseBudgetAmount` para achar o
+  // valor na fala e `ofertaParaFaixa` para escolher o degrau — e nenhum
+  // terceiro. O rótulo do modelo só vale quando não há número de onde derivar.
+  const daFala = faixaDoTexto(falaDoCliente);
+  const faixaNormalizada = daFala ?? normalizarFaixa(scopePatch.budgetRange);
   if (faixaNormalizada) scopePatch.budgetRange = faixaNormalizada;
   else delete scopePatch.budgetRange;
 
   return scopePatch;
+}
+
+/**
+ * A FAIXA DERIVADA DO QUE O CLIENTE DISSE — ou `null` quando ele não disse
+ * número nenhum.
+ *
+ * Dois leitores da casa, em sequência, e nenhum terceiro: `parseBudgetAmount`
+ * acha o valor na fala (é o mesmo que o motor de regras usa) e `ofertaParaFaixa`
+ * escolhe o degrau (é o mesmo que a negociação usa). Uma régua nova aqui seria
+ * a segunda gramática que envelhece sozinha.
+ *
+ * `null` é honesto e é o caso comum: a maioria das falas não traz valor, e aí
+ * quem responde é o rótulo do modelo, como sempre foi.
+ */
+function faixaDoTexto(fala: unknown): string | null {
+  if (typeof fala !== "string" || !fala.trim()) return null;
+  const valor = parseBudgetAmount(fala);
+  if (valor === undefined || !Number.isFinite(valor) || valor <= 0) return null;
+  const oferta = ofertaParaFaixa(valor);
+  return normalizarFaixa(oferta.rotulo);
 }
 
 // RECONCILIAÇÃO DE 16/08: a outra sessão resolvia esta mesma pergunta — "o
@@ -405,6 +453,9 @@ async function segundaChanceSemPreco(args: {
   historico: TurnoDeHistorico[];
   contaDoWorkspace: string | null;
   guardaBarra: (fala: string) => boolean;
+  /** A fala do cliente deste turno — as travas de escopo precisam dela
+   *  (a faixa de verba é derivada do número que ele disse). */
+  falaDoCliente?: string;
 }): Promise<{ reply: string; scope: Record<string, unknown> } | null> {
   const r = await generate({
     system: args.system,
@@ -441,7 +492,7 @@ async function segundaChanceSemPreco(args: {
   const bruto = pacote.scope && typeof pacote.scope === "object" && !Array.isArray(pacote.scope)
     ? (pacote.scope as Record<string, unknown>)
     : {};
-  return { reply: fala, scope: aplicarTravasDeEscopo(bruto) };
+  return { reply: fala, scope: aplicarTravasDeEscopo(bruto, args.falaDoCliente) };
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -711,7 +762,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       parsed.scope && typeof parsed.scope === "object" && !Array.isArray(parsed.scope)
         ? (parsed.scope as Record<string, unknown>)
         : {};
-    const scopePatch = aplicarTravasDeEscopo(scopePatchBruto);
+    const scopePatch = aplicarTravasDeEscopo(scopePatchBruto, body.currentMessage);
     const temScopeUtil = Object.keys(scopePatch).length > 0;
 
     // `temScopeUtil` sozinho não basta para os guardas abaixo: ele confunde
@@ -851,6 +902,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         historico,
         contaDoWorkspace: workspaceDaConta,
         guardaBarra: vazaPreco,
+        falaDoCliente: body.currentMessage,
       });
 
       if (segunda) {
