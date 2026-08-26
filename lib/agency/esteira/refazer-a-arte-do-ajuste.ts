@@ -61,6 +61,7 @@ import {
 } from "@/lib/agency/esteira/mira-da-peca";
 import { captionDaPeca, type PecaDoEspecialista } from "@/lib/agency/produtos/story-instagram-v1";
 import { medirLuz } from "@/lib/agency/design/medir-luz";
+import { conferirDataDaPeca, type DiaDaSemana } from "@/lib/agency/esteira/calendario-do-cliente";
 import { lerArquivo } from "@/lib/agency/media/armazenamento";
 import {
   lerPedidoDeArte, compararPeca, type ComparacaoDaPeca,
@@ -153,9 +154,39 @@ export async function refazerArteDoAjuste(entrada: {
   // ── A FIAÇÃO: O TEXTO NOVO CHEGA À PEÇA ─────────────────────────────────
   // Sem isto, o laço de arte redesenharia a peça com a legenda VELHA — imagem
   // nova, texto que o cliente já recusou. Pior que não refazer.
+  // O calendário DESTE cliente, lido das peças que ele já tem: é com ele que
+  // um dia da semana citado no texto novo é confrontado quando a peça ainda
+  // não tem hora marcada. Calendário vazio não acusa ninguém.
+  const agenda = await prisma.socialPost.findMany({
+    where: { id: { in: postIds } },
+    select: { id: true, scheduledFor: true, caption: true },
+  }).catch(() => [] as Array<{ id: string; scheduledFor: Date | null; caption: string }>);
+  const porPost = new Map(agenda.map((a) => [a.id, a]));
+  const diasDoCalendario = [...new Set(
+    agenda.map((a) => a.scheduledFor).filter((d): d is Date => d instanceof Date).map((d) => d.getDay() as DiaDaSemana),
+  )];
+
+  const datasIncoerentes: string[] = [];
+
   for (const postId of alvos) {
     const nova = pecasNovas[postIds.indexOf(postId)];
     if (!nova) continue;
+
+    // ── A DATA COERENTE (27/08/2026) ─────────────────────────────────────
+    //
+    // "Sexta é dia de estar aqui" num calendário terça-a-quinta. A legenda
+    // nova que briga com a data da peça NÃO é gravada: a anterior fica de pé
+    // (o cliente não pediu para mudar o texto, e o texto que ele tinha
+    // dizia a verdade) e o caso vira escalada, com dono e próxima ação.
+    const doBanco = porPost.get(postId);
+    const captionNova = captionDaPeca(nova);
+    const dataNova = conferirDataDaPeca({
+      texto: captionNova,
+      agendadaPara: doBanco?.scheduledFor ?? null,
+      diasDoCalendario,
+    });
+    const textoRecusado = !dataNova.passa;
+    if (textoRecusado) datasIncoerentes.push(`${postId}: ${dataNova.motivo}`);
     // Os MESMOS campos que `story-instagram-v1.ts` grava ao criar a peça — nem
     // um a mais, nem um a menos. Divergir aqui faria a peça refeita ser um
     // outro tipo de peça.
@@ -171,7 +202,8 @@ export async function refazerArteDoAjuste(entrada: {
         // título não tinha mudado. E a legenda do post no calendário também
         // não mudava. A MESMA função do nascimento, para os dois não
         // divergirem no primeiro ajuste.
-        caption: captionDaPeca(nova),
+        // Legenda com dia incoerente não entra: fica a que estava lá.
+        ...(textoRecusado ? {} : { caption: captionNova }),
         // Direção ausente no texto novo NÃO apaga a que existia: apagar
         // mandaria a peça para o fallback (a legenda como cena), que é o
         // defeito que `refazer-com-direcao.ts` foi escrito para consertar.
@@ -303,6 +335,10 @@ export async function refazerArteDoAjuste(entrada: {
       .map((x) => `${x.postId}: ${x.comparacao.motivo} [${x.comparacao.linhas.join(" | ")}]`)
       .join(" · ");
     saida.motivo = `${reprovadasPelaRegua.length} de ${refeitas.length} peça(s) refeitas foram REPROVADAS pela régua da refação e NÃO foram entregues. ${detalhe}`;
+  } else if (datasIncoerentes.length > 0) {
+    saida.motivo =
+      `${datasIncoerentes.length} peça(s) voltaram com um DIA DA SEMANA que não bate com a data delas — o texto novo ` +
+      `NÃO foi gravado e a legenda anterior continua de pé (${datasIncoerentes.join(" · ")})`;
   } else if (regua.some((x) => x.comparacao.naoMedidos.length > 0)) {
     // Entregou, mas há pedido do cliente que a casa não sabe medir. Não é
     // falha — é ponto fraco declarado, que é dívida; calado seria armadilha.
