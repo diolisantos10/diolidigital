@@ -110,6 +110,7 @@
 
 import { prisma } from "@/lib/db/client";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 /** Card DECIDIDO POR APROVAÇÃO: reabre sem precisar provar mudança — o cliente
  *  disse "sim" ao que viu, e o que ele viu não era tudo. */
 const STATUS_REABRIVEL = "approved";
@@ -481,7 +482,7 @@ export async function reabrirAprovacoesDosPosts(entrada: {
       prisma.approvalComment.create({
         data: {
           approvalRequestId: card.id,
-          authorName: "Equipe Dioli",
+          authorName: VOZ_DO_CLIENTE,
           authorRole: "internal",
           kind: "comment",
           body: textoDoRegistro({
@@ -937,7 +938,7 @@ export async function reabrirCardPorDecisaoDaDirecao(entrada: {
     await tx.approvalComment.create({
       data: {
         approvalRequestId: card.id,
-        authorName: "Equipe Dioli",
+        authorName: VOZ_DO_CLIENTE,
         authorRole: "internal",
         kind: "comment",
         body: textoDaDecisaoDaDirecao({ pecas, pedido: pedidoDeAjuste }),

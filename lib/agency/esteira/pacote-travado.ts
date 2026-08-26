@@ -370,11 +370,46 @@ function listar(bruto: string | null | undefined): string {
 const renderizar = renderizarEntrega;
 
 /** Os pacotes que estão travados agora — o que o painel do Diretor precisa ver. */
+/**
+ * OS ESTADOS DE EXECUÇÃO EM QUE UM PACOTE PODE ESTAR TRAVADO.
+ *
+ * ── O DEFEITO, MEDIDO EM PRODUÇÃO (25/08/2026) ────────────────────────────
+ *
+ * Dois instrumentos da mesma casa discordavam, e a discordância era o achado:
+ *
+ *   GET /api/diretor/pendencias  → 6 entregas em `quality_flag`, paradas
+ *                                  22–25 h. "Confira se a refação automática
+ *                                  travou."
+ *   GET /api/pacotes-travados    → `{"total":0,"aguardandoDecisao":0}`
+ *
+ * E `destravadas: 0` em todas as batidas do despertador. O destravador não
+ * estava falhando: ele não estava VENDO. Esta consulta exigia
+ * `executionStatus: "done"` — e os dois projetos com as 6 entregas reprovadas
+ * estavam em `executionStatus: "blocked"`, com `executionAttempts: 3`.
+ *
+ * Ou seja: a rede de segurança só resgatava o projeto cuja execução tinha
+ * terminado BEM. O projeto que quebrou — que é o que precisa de resgate —
+ * ficava invisível para sempre, e a única saída era alguém perceber na mão.
+ * Zero paradas lidas não é verde; é vazio.
+ *
+ * `blocked` entra porque é a palavra que o próprio banco usa para "travado", e
+ * o nome deste módulo é `pacote-travado`. A proteção contra laço infinito NÃO
+ * mora aqui — mora em `MAX_TENTATIVAS_DE_REFAZER` (a peça na terceira versão
+ * vira `persistente` e escala), que continua igual.
+ */
+export const EXECUCOES_QUE_PODEM_ESTAR_TRAVADAS = ["done", "blocked"] as const;
+
 export async function pacotesTravados(workspaceId?: string) {
   const projetos = await prisma.project.findMany({
     where: {
+      // ⚠️ `presentedAt: null` FICA. Peça que o cliente JÁ VIU não se refaz por
+      // conta própria: ele aprovou ou comentou aquela versão, e trocá-la por
+      // baixo é a casa mudando o que ela mesma apresentou. Consequência
+      // declarada: o projeto `cmt7savmn001u0xpajd03nq73`, apresentado em
+      // 24/08 com 4 entregas reprovadas, continua FORA do alcance automático —
+      // é decisão de gente, e aparece em `/api/diretor/pendencias` para isso.
       presentedAt: null,
-      executionStatus: "done",
+      executionStatus: { in: [...EXECUCOES_QUE_PODEM_ESTAR_TRAVADAS] },
       ...(workspaceId ? { workspaceId } : {}),
       deliverables: { some: { revisionStatus: "quality_flag" } },
     },

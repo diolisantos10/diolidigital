@@ -31,6 +31,7 @@ import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-sit
 import { pecasApontadasPeloAjuste } from "@/lib/agency/esteira/mira-da-peca";
 import { devolveADecisao, classificarParada } from "@/lib/agency/esteira/porta-do-ajuste";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 // V2 (M5): as QUATRO decisões do cliente + a dúvida vivem num contrato único
 // (`lib/agency/portal/decisoes-do-portal.ts`) — rota e tela leem a mesma
 // tabela. `cancel` encerra a entrega com ressalva e auditoria; nada apaga
@@ -433,7 +434,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             const list = gate.missing.map((m) => `• ${m.description}`).join("\n");
             await prisma.portalMessage.create({
               data: {
-                clientRequestId: approval.clientRequestId, authorRole: "team", authorName: "Equipe Dioli",
+                clientRequestId: approval.clientRequestId, authorRole: "team", authorName: VOZ_DO_CLIENTE,
                 body: `Seu projeto foi aprovado! 🎉 Pra gente começar a produzir com qualidade, só precisamos de alguns materiais seus:\n\n${list}\n\nÉ só enviar na aba "Materiais" aqui do portal — assim que chegarem, os agentes começam na hora. 💛`,
                 readByTeam: false,
               },

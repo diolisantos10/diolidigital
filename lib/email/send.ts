@@ -45,10 +45,47 @@ export interface SendEmailResult {
   error?: string;
 }
 
-const DEFAULT_FROM = "Dioli Studio <onboarding@resend.dev>";
+/**
+ * O remetente compartilhado da Resend. **NÃO é mais um fallback de envio** —
+ * ver `SEM_REMETENTE` logo abaixo. Fica declarado aqui porque é o valor que a
+ * Resend usaria, e nomear o que se recusa a fazer vale mais que apagá-lo.
+ */
+const REMETENTE_COMPARTILHADO_DA_RESEND = "Dioli Studio <onboarding@resend.dev>";
 
 /** Motivo devolvido quando a chave não está configurada (ou está em branco). */
 export const SEM_CHAVE = "sem_chave: RESEND_API_KEY não configurada (ausente ou vazia) no ambiente";
+
+/**
+ * ⛔ O REMETENTE AUSENTE VIRA RECUSA — e o motivo, em 25/08/2026, é MEDIDO.
+ *
+ * `GET /api/agency/diagnostico-de-email` em produção, nesta data, respondeu:
+ * `RESEND_API_KEY` **válida** (`restricted_api_key`, que é o certo para chave
+ * de aplicação) e `RESEND_FROM` **ausente**. Sem ela, esta função caía no
+ * remetente compartilhado da Resend — que entrega SÓ para o dono da conta
+ * Resend. Cliente nenhum recebe.
+ *
+ * E o envio voltava `{ ok: true, id }`. Esse é o defeito, e ele é pior que o
+ * silêncio: `orcamento-do-briefing.ts` gravava `avisoOrcamentoStatus =
+ * "avisado"`, e a fila de reenvio **nunca busca "avisado"** (é justamente essa
+ * regra que impede o cliente de receber o orçamento duas vezes). Ou seja: cada
+ * aviso que "saiu" ficava marcado como entregue **para sempre**, e nem o dia em
+ * que o `RESEND_FROM` existir os traria de volta. Régua verde sobre o
+ * componente errado mata a dúvida e deixa o defeito.
+ *
+ * Agora é recusa `skipped` — o mesmo balde de "sem chave", que a fila de
+ * reenvio BUSCA (`falhou`/`skipped`). Consequência: no minuto em que o CEO
+ * cadastrar `RESEND_FROM` num domínio verificado, todo mundo que ficou sem
+ * aviso é avisado, sem duplicar quem já recebeu.
+ *
+ * ⚠️ O QUE ISTO **NÃO** RESOLVE, e é do CEO: cadastrar `RESEND_FROM` no
+ * Railway com um endereço de domínio VERIFICADO na conta Resend. Não há
+ * contorno em código — e inventar um remetente num domínio não verificado
+ * trocaria este erro claro por um 403 da Resend.
+ */
+export const SEM_REMETENTE =
+  `sem_remetente: RESEND_FROM não está no ambiente. Sem ela a casa enviaria por ${REMETENTE_COMPARTILHADO_DA_RESEND}, ` +
+  "que a Resend entrega SÓ para o dono da conta — cliente nenhum receberia, e a casa registraria 'avisado'. " +
+  "Ação do CEO: cadastrar RESEND_FROM no Railway com um endereço de domínio verificado na Resend.";
 
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   // ⛔ A TRAVA VEM ANTES DE TUDO — inclusive antes de ler a chave.
@@ -123,7 +160,12 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     return { ok: false, skipped: true, error: SEM_CHAVE };
   }
 
-  const from = process.env.RESEND_FROM?.trim() || DEFAULT_FROM;
+  // ⛔ FAIL-CLOSED NO REMETENTE. Antes daqui havia `|| DEFAULT_FROM`, e era
+  // uma porta que dizia "entreguei" sem entregar. Ver `SEM_REMETENTE`.
+  const from = process.env.RESEND_FROM?.trim();
+  if (!from) {
+    return { ok: false, skipped: true, error: SEM_REMETENTE };
+  }
 
   try {
     const res = await fetch("https://api.resend.com/emails", {

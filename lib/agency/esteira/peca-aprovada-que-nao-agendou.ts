@@ -40,6 +40,7 @@
 
 import { prisma } from "@/lib/db/client";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 /** O estado em que a peça travou → o que isso quer dizer para uma pessoa. */
 function oQueEsseEstadoQuerDizer(status: string): string {
   switch (status) {
@@ -168,7 +169,7 @@ export async function declararPecasAprovadasQueNaoEntraramNaFila(entrada: {
         ...(entrada.clientRequestId ? { clientRequestId: entrada.clientRequestId } : {}),
         ...(entrada.clientId ? { clientId: entrada.clientId } : {}),
         authorRole: "team",
-        authorName: "Gerente de projeto",
+        authorName: VOZ_DO_CLIENTE,
         body:
           `Recebi sua aprovação! Só que ${presas.length === 1 ? "uma peça" : `${presas.length} peças`} ` +
           "não entrou na fila de entrega por um travamento do nosso lado. " +

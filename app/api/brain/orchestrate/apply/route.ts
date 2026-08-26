@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { naoEncontrado, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import { prisma } from "@/lib/db/client";
-import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
+import { despacharPlanoPeloGerenteGeral, frazeDoDespacho } from "@/lib/agency/gerencia/entrada-da-demanda";
 import { pedirDirecao } from "@/lib/agency/esteira/marcos";
 import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
@@ -24,14 +24,8 @@ const VALID_DEPTS = [
 ] as const;
 // Reasoning dept → DepartmentDef id (for resolving the owning agent). Analytics has
 // no dedicated DepartmentDef, so its tasks route to the PM agent.
-const DEPT_TO_DEF: Record<string, DepartmentId> = {
-  strategy: "strategy",
-  "social-media": "social-media",
-  design: "design",
-  "paid-traffic": "paid-traffic",
-  analytics: "project-management",
-  "project-management": "project-management",
-};
+// `DEPT_TO_DEF` morreu aqui em 25/08/2026: traduzir departamento virou
+// trabalho de `lib/agency/gerencia/entrada-da-demanda.ts`.
 const VALID_PRIORITIES = ["critical", "high", "medium", "low"];
 
 interface IncomingTask {
@@ -161,14 +155,41 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Map each proposal task to a Task row. department → owning agent id (for routing).
     // PORTÃO DO PM (`lib/agency/tarefas/portao-do-pm.ts`): sem dono ou sem prazo
     // a tarefa NÃO é gravada. O prazo sai do `estimatedDays` da própria proposta.
-    await criarTarefas(
-      project.id,
+    // A SEGUNDA PORTA DA MESMA DEMANDA — e ela passa pelo Gerente Geral igual.
+    // Regra desta casa: duas cópias da mesma decisão divergem, e é assim que
+    // uma porta passa a respeitar a hierarquia e a outra não. As duas usam
+    // `despacharPlanoPeloGerenteGeral`. O aceite aqui é o operador da agência
+    // que apertou o botão — `session.name`, o mesmo que vai em `approvedBy`.
+    const plano = despacharPlanoPeloGerenteGeral(
       proposal.tasks.map((t) => ({
         title: t.title,
         description: t.description || null,
-        agentId: getDepartmentDef(DEPT_TO_DEF[t.department])?.primaryAgentId ?? null,
+        department: t.department,
+        estimatedDays: (t as { estimatedDays?: number }).estimatedDays ?? null,
+      })),
+      { aceiteComercial: Boolean(session.name?.trim()), clienteId: clientId ?? undefined, correlationId: `projeto:${project.id}` },
+    );
+    console.log(`[brain/orchestrate/apply] ${frazeDoDespacho(plano)}`);
+    for (const r of plano.recusadas) {
+      await prisma.activityEvent
+        .create({
+          data: {
+            workspaceId: session.workspaceId,
+            projectId: project.id,
+            type: "gerente_geral_recusou_demanda",
+            message: `Gerente Geral recusou "${r.tarefa.title}": ${r.motivo}`,
+          },
+        })
+        .catch((e) => console.error("[brain/orchestrate/apply] recusa do GG não registrada", e));
+    }
+    await criarTarefas(
+      project.id,
+      plano.despachadas.map((d) => ({
+        title: d.tarefa.title,
+        description: d.tarefa.description || null,
+        agentId: d.executorId,
         status: "pending",
-        dueDate: prazoAPartirDaEstimativa((t as { estimatedDays?: number }).estimatedDays),
+        dueDate: prazoAPartirDaEstimativa(d.tarefa.estimatedDays ?? undefined),
       })),
     );
 

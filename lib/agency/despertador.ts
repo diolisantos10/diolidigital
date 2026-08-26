@@ -1037,6 +1037,64 @@ export async function baterORelogio(): Promise<{
     quebrou("gerente-geral", err);
   }
 
+  // ── A PORTA DA FRENTE TEM ALARME (25/08/2026) ─────────────────────────────
+  //
+  // O cliente oculto bateu em `/api/sdr/chat` e levou `teto_de_custo` NOVE
+  // vezes. A casa estava com a porta da frente fechada para a internet inteira
+  // — e **nenhum instrumento dela sabia disso**. Medido: zero ocorrências de
+  // `teto_de_custo` no despertador e no coletor do Diretor, e nenhuma linha
+  // sobre a porta em `/api/pulso`.
+  //
+  // O visitante não vê erro: `PublicBriefingRoom` lê `ok:false` como
+  // "sem novidade da IA" e cai no motor de REGRAS, calado e de propósito. É o
+  // desenho certo para o visitante — e é exatamente o que faz a degradação ser
+  // invisível para a casa. Porta que se fecha sem barulho é pior que porta que
+  // trava: a que trava, alguém conserta.
+  //
+  // Aqui ela passa a fazer barulho, no mesmo lugar em que o CEO já olha.
+  // Note que este alarme distingue os DOIS motivos: "a internet gastou a cota"
+  // e "a casa se sangrou sozinha" pedem providências opostas.
+  try {
+    const { podeGastarNaPortaPublica } = await import("@/lib/ai/teto-de-custo");
+    const { workspaceDaRotaPublica } = await import("@/lib/ai/chave-publica");
+    const veredicto = await podeGastarNaPortaPublica(await workspaceDaRotaPublica());
+    if (!veredicto.pode) {
+      const quanto =
+        veredicto.gastoUsd !== null && veredicto.tetoUsd !== null
+          ? ` (gasto US$${veredicto.gastoUsd.toFixed(2)} de US$${veredicto.tetoUsd.toFixed(2)})`
+          : "";
+      quebrou(
+        "porta-publica",
+        `A PORTA DA FRENTE está fechada — o SDR de IA não atende visitante nenhum: ${veredicto.motivo}${quanto}. ` +
+          "Quem chega cai no motor de regras, sem aviso na tela dele.",
+      );
+    }
+  } catch (err) {
+    quebrou("porta-publica", err);
+  }
+
+  // ── A BATIDA DA V2, PENDURADA AQUI (25/08/2026) ───────────────────────────
+  //
+  // A perna acima faz a varredura do Gerente Geral e ENFILEIRA o aviso de
+  // atraso ao cliente no outbox. Quem tira o aviso da fila e o entrega é o
+  // processador do outbox, que vivia só dentro de `POST /api/cron/v2` — e essa
+  // rota **nunca teve um chamador**. Resultado medido: a casa gravava a
+  // intenção de avisar e nunca avisava. Coluna gravada não é cliente informado.
+  //
+  // Nenhum relógio novo nasceu: é a mesma batida de 5 em 5 minutos, com mais
+  // uma perna. `rodarGerenteGeral: false` porque a rodada já aconteceu logo
+  // acima — dois placares da mesma rodada mentiriam sobre quantas houve.
+  try {
+    const { baterORelogioDaV2 } = await import("@/lib/agency/v2-recovery/batida-da-v2");
+    const v2 = await baterORelogioDaV2(new Date(), { rodarGerenteGeral: false });
+    if (v2.outbox.enviados > 0 || v2.outbox.mortos > 0 || v2.ausencias.length > 0) {
+      log(`V2: outbox ${v2.outbox.enviados} enviado(s), ${v2.outbox.mortos} morto(s); ${v2.ausencias.length} relógio(s) ausente(s)`);
+    }
+    for (const r of v2.ausencias) quebrou("v2-batida", `relógio ausente: ${r.relogio}`);
+  } catch (err) {
+    quebrou("v2-batida", err);
+  }
+
   if (ligados > 0 || retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
     log(`rodada: ${ligados} projeto(s) ligado(s), ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
   }

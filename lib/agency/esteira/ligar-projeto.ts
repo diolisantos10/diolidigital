@@ -59,6 +59,7 @@
 import { prisma } from "@/lib/db/client";
 import { conferirPagamento } from "@/lib/agency/financeiro/portao-de-pagamento";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 /** Teto por rodada — o mesmo de tudo que o despertador toca. Recuperar alguns é
  *  recuperação; recuperar 200 é uma enxurrada que ninguém pediu. */
 const MAX_POR_RODADA = 5;
@@ -179,7 +180,7 @@ export async function ligarProjetosParados(agora: Date = new Date()): Promise<Ro
             data: {
               clientRequestId: p.clientRequestId!,
               authorRole: "team",
-              authorName: "Gerente de projeto",
+              authorName: VOZ_DO_CLIENTE,
               body: pagamento.mensagemAoCliente,
               readByTeam: true,
             },

@@ -8,7 +8,6 @@
 import { prisma } from "@/lib/db/client";
 import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
 import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
-import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
 import { generate } from "@/lib/ai/generate";
 import { semearMarcaDoBriefing } from "@/lib/agency/execution/semear-marca";
 import { coletarMaterialDeProduto } from "@/lib/agency/esteira/material-de-produto";
@@ -16,12 +15,13 @@ import { sincronizarDoBriefing } from "@/lib/agency/esteira/proibicoes";
 import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
 import { resolverOuCriarCliente, registrarReaproveitamento } from "@/lib/agency/execution/cliente-do-briefing";
+import { despacharPlanoPeloGerenteGeral, frazeDoDespacho } from "@/lib/agency/gerencia/entrada-da-demanda";
 
-const DEPT_TO_DEF: Record<string, DepartmentId> = {
-  strategy: "strategy", social: "social-media", design: "design",
-  traffic: "paid-traffic", analytics: "project-management", quality: "project-management",
-};
-const VALID_TASK_DEPTS = ["strategy", "social-media", "design", "paid-traffic", "analytics", "project-management"];
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
+// A tabela `DEPT_TO_DEF` e a lista `VALID_TASK_DEPTS` morreram aqui em
+// 25/08/2026. Traduzir departamento e filtrar o que não existe passou a ser
+// trabalho de `lib/agency/gerencia/entrada-da-demanda.ts` — um lugar só, e um
+// que RECUSA em vez de despejar o desconhecido no PM.
 
 type Result =
   | { ok: true; projectId: string; created: boolean }
@@ -30,6 +30,28 @@ type Result =
 export async function createProjectFromRequest(clientRequestId: string, approvedBy: string): Promise<Result> {
   const req = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
   if (!req) return { ok: false, error: "Solicitação não encontrada" };
+
+  // ⛔ O ACEITE VEM ANTES DO PROJETO, E FALHA ALTO.
+  //
+  // `approvedBy` é o registro de QUEM aprovou — é o fato que o Gerente Geral
+  // exige mais abaixo para despachar as tarefas. As quatro portas que chamam
+  // esta função sempre o preenchem (`session.name`, `client:<id>`, "caminho
+  // automático", o nome da casa no cliente falso), mas `session.name` vem do
+  // banco e nada GARANTE que não seja vazio.
+  //
+  // Sem esta guarda, um `approvedBy` em branco produziria o pior resultado
+  // possível: o projeto NASCE, o Gerente Geral recusa as 6 tarefas por falta
+  // de aceite, e sobra um projeto vazio no portal do cliente — silencioso,
+  // porque nada falhou. Ausência de informação não é informação: aqui ela
+  // recusa, e diz o nome do campo que faltou.
+  if (!approvedBy?.trim()) {
+    return {
+      ok: false,
+      error:
+        "Projeto não nasce sem aceite registrado: `approvedBy` veio vazio. " +
+        "Quem aprovou precisa estar gravado — é esse o fato que o Gerente Geral exige para despachar o trabalho.",
+    };
+  }
 
   // Idempotency: existing project wins (never duplicate on re-approval / retry).
   const existing = await prisma.project.findFirst({ where: { clientRequestId }, orderBy: { createdAt: "asc" } });
@@ -120,17 +142,66 @@ export async function createProjectFromRequest(clientRequestId: string, approved
   // O prazo não é inventado aqui — sai do `estimatedDays` que o próprio PM
   // estimou na proposta. Sem estimativa utilizável, a tarefa é barrada e o
   // bloqueio vira `ActivityEvent`, em vez de virar uma linha sem prazo no banco.
+  // ── A DEMANDA ENTRA PELO GERENTE GERAL (25/08/2026) ──────────────────────
+  //
+  // Aqui era o buraco da hierarquia. `lib/agency/gerencia/despacho.ts` provou o
+  // julgamento do Gerente Geral em 25/08, mas ESTE — o caminho por onde o
+  // briefing do atendimento/SDR realmente vira trabalho — não passava por ele:
+  // cada tarefa nascia apontando direto para um agente de LINHA (`a2`, `a3`,
+  // `a4`), escolhido por quem criava o projeto. O gerente do departamento
+  // descobria o trabalho depois do agente dele.
+  //
+  // Agora o plano inteiro entra por `despacharPlanoPeloGerenteGeral`, que faz a
+  // cadeia de dois saltos: GG → gerente do departamento → agente de linha. E o
+  // `?? "project-management"` que existia aqui morreu junto: departamento que o
+  // modelo invente é RECUSADO com motivo, não despejado no PM em silêncio.
+  //
+  // ⚠️ O ACEITE COMERCIAL É FATO, NÃO CONVENIÊNCIA. Esta função só é alcançável
+  // depois de uma aprovação — as três portas que a chamam
+  // (`/api/brain/auto-scope/[id]/review`, `/api/portal/approvals` e o caminho
+  // automático) passam QUEM aprovou em `approvedBy`. É esse o registro do
+  // aceite, e é ele que a linha abaixo lê. Chamada sem `approvedBy` não produz
+  // "quase nenhuma tarefa": produz zero, e diz por quê.
+  // Já conferido no topo da função, e conferido lá de propósito: o projeto não
+  // chega a ser criado sem ele. Aqui é a passagem do fato, não uma segunda
+  // decisão — duas decisões sobre o mesmo fato divergem.
+  const aceiteComercial = true;
+  const plano = despacharPlanoPeloGerenteGeral(
+    proposal.tasks.map((t) => ({
+      title: t.title,
+      description: t.description || null,
+      department: t.department,
+      estimatedDays: t.estimatedDays,
+    })),
+    { aceiteComercial, clienteId: clientId, correlationId: `projeto:${project.id}` },
+  );
+  console.log(`[projeto] ${frazeDoDespacho(plano)}`);
+  // Recusa não pode virar silêncio: ela ocupa lugar no histórico do projeto,
+  // com dono e motivo, para alguém poder resolver.
+  for (const r of plano.recusadas) {
+    await prisma.activityEvent
+      .create({
+        data: {
+          workspaceId,
+          projectId: project.id,
+          type: "gerente_geral_recusou_demanda",
+          message: `Gerente Geral recusou "${r.tarefa.title}": ${r.motivo}`,
+        },
+      })
+      .catch((e) => console.error("[projeto] não consegui registrar a recusa do GG:", e));
+  }
+
   await criarTarefas(
     project.id,
-    proposal.tasks
-      .filter((t) => VALID_TASK_DEPTS.includes(t.department))
-      .map((t) => ({
-        title: t.title,
-        description: t.description || null,
-        agentId: getDepartmentDef(DEPT_TO_DEF[t.department] ?? "project-management")?.primaryAgentId ?? null,
-        status: "pending",
-        dueDate: prazoAPartirDaEstimativa(t.estimatedDays),
-      })),
+    plano.despachadas.map((d) => ({
+      title: d.tarefa.title,
+      description: d.tarefa.description || null,
+      // O dono de execução é o agente que o GERENTE do departamento atribuiu —
+      // nunca um agente escolhido por quem criou o projeto.
+      agentId: d.executorId,
+      status: "pending",
+      dueDate: prazoAPartirDaEstimativa(d.tarefa.estimatedDays ?? undefined),
+    })),
   );
 
   // A ETAPA DE ONBOARDING QUE NÃO EXISTIA: pedir o PRODUTO do cliente.
@@ -158,7 +229,7 @@ export async function createProjectFromRequest(clientRequestId: string, approved
         const body = "🗓️ Seu projeto foi aprovado! Aqui está o cronograma de como tudo vai acontecer:\n\n" +
           weeks.map((w) => `*${w.label ?? "Etapa"}*\n${(w.items ?? []).map((i) => `• ${i}`).join("\n")}`).join("\n\n");
         await prisma.portalMessage.create({
-          data: { clientRequestId, authorRole: "team", authorName: "Equipe Dioli", body, readByTeam: true },
+          data: { clientRequestId, authorRole: "team", authorName: VOZ_DO_CLIENTE, body, readByTeam: true },
         });
       }
     }

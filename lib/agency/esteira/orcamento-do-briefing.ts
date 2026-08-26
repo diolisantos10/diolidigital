@@ -161,6 +161,7 @@ import { sendEmail } from "@/lib/email/send";
 import { orcamentoProntoEmail } from "@/lib/email/templates";
 import { provaDoProprioBriefing } from "@/lib/agency/consentimento/quem-pode-receber";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 /** Teto por rodada. O relógio bate de 5 em 5 min; enxurrada nunca. */
 const MAX_POR_RODADA = 5;
 
@@ -737,7 +738,7 @@ async function avisarQueFaltaInformacao(pedido: {
           clientRequestId: pedido.id,
           clientId: pedido.clientId,
           authorRole: "team",
-          authorName: "Gerente de projeto",
+          authorName: VOZ_DO_CLIENTE,
           body: textoDaFalta(pedido.briefingJson),
           readByTeam: true,
         },
@@ -856,7 +857,7 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
             clientRequestId: pedido.id,
             clientId: pedido.clientId,
             authorRole: "team",
-            authorName: "Gerente de projeto",
+            authorName: VOZ_DO_CLIENTE,
             body: corpo,
             readByTeam: true,
           },
