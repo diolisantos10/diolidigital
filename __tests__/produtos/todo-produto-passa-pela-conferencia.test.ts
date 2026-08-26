@@ -82,3 +82,82 @@ describe("a corrente é a porta de TODO produto — não a do story", () => {
     expect(carrossel.semProdutorProprio?.trim()).toBeTruthy();
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A MEDIÇÃO PEDIDA NA FASE 1 (26/08/2026) — QUEM ESTAVA CERTO
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Dois auditores discordaram: um disse que `PRODUTOS_CANONICOS` tinha UM item
+// e que o feed estava de fora; o outro disse que já eram DOIS e que o feed
+// passava. **Medido: o segundo estava certo** — e as duas asserções do topo
+// deste arquivo são a medida.
+//
+// O que NENHUM dos dois tinha medido, e é o que este bloco fecha: a promessa
+// escrita em `semProdutorProprio`. Cinco atendimentos entregam PEÇA, têm
+// PREÇO na tabela e NÃO passam pela conferência dos bytes. Três deles se
+// defendem por escrito — *"a venda já está fechada pela régua de capacidade"*.
+//
+// Prosa não fecha venda. Enquanto a frase não for conferida contra o
+// MECANISMO, ela é uma declaração otimista de quem escreveu — e o dia em que
+// alguém promover a capacidade sem reabrir a corrente é o dia em que a casa
+// volta a cobrar por peça e entregar texto (o defeito de 25/08).
+
+import { SELF_SERVE_CATALOG } from "@/lib/agency/self-serve-catalog";
+import { conferirOferta } from "@/lib/agency/capacidade-de-producao";
+
+describe("todo produto VENDIDO tem conferência — ou a venda está fechada por MECANISMO", () => {
+  const pecasComPreco = ATENDIMENTOS.filter((a) => a.entrega === "peca" && a.itemDeCatalogo !== null);
+
+  it("existe mais de um atendimento de peça com preço — a medição não é vazia", () => {
+    expect(pecasComPreco.length).toBeGreaterThan(1);
+  });
+
+  for (const a of pecasComPreco) {
+    it(`${a.id}: ou a corrente confere o arquivo, ou a rota de compra RECUSA o item`, () => {
+      if (a.produtoId) {
+        // Caminho 1 — a corrente visual produz e `conferirArquivoDoProduto`
+        // mede os bytes. Já provado peça a peça no topo deste arquivo.
+        expect(PRODUTOS_CANONICOS.map((p) => p.id)).toContain(a.produtoId);
+        return;
+      }
+
+      // Caminho 2 — sem produto canônico, o arquivo NUNCA é conferido. Então a
+      // única coisa que impede o cliente de pagar por ele é a régua de
+      // capacidade. Ela tem de dizer NÃO, e a carta tem de dizer POR QUÊ.
+      expect(a.semProdutorProprio?.trim(), `${a.id} entrega peça, cobra, e não diz quem produz`).toBeTruthy();
+
+      const item = SELF_SERVE_CATALOG.find((s) => s.id === a.itemDeCatalogo);
+      expect(item, `${a.id} aponta para o item "${a.itemDeCatalogo}", fora do catálogo`).toBeTruthy();
+
+      const veredito = conferirOferta({
+        requer: item!.requer,
+        textos: [item!.label, item!.description ?? ""].filter(Boolean) as string[],
+      });
+
+      // A EXCEÇÃO DECLARADA, e ela é UMA: quem NÃO entrega arquivo de imagem.
+      // Pacote do mês é uma AGENDA (o motor de ciclo cria os `SocialPost` e a
+      // fila de arte confere cada um no lugar certo); campanha de tráfego é
+      // campanha PAUSADA na conta do cliente, não arquivo. Conferir bytes de
+      // um arquivo que não existe seria régua verde sobre o componente errado
+      // — pior do que régua nenhuma.
+      const naoEhArquivo = /motor de ciclo|integrador da Meta/.test(a.semProdutorProprio!);
+      if (naoEhArquivo) {
+        expect(veredito.vendavel, `${a.id} declara produtor próprio fora da corrente e a régua o barrou`).toBe(true);
+        return;
+      }
+
+      // MUTAÇÃO QUE PROVA: em `capacidade-de-producao.ts`, dê um `ponto` a
+      // `legenda-animada-em-video` (ou a `arquivo-pdf`, ou a
+      // `logotipo-de-cliente`) sem ligar a corrente visual do produto. Esta
+      // linha fica VERMELHA — que é a casa dizendo "você reabriu a venda de
+      // algo que ninguém confere".
+      expect(
+        veredito.vendavel,
+        `${a.id} entrega PEÇA, cobra pelo item "${a.itemDeCatalogo}", NÃO passa pela conferência ` +
+          `do arquivo e a régua de capacidade o considera VENDÁVEL. A carta diz: "${a.semProdutorProprio}". ` +
+          "Ou declare o produto canônico (e ganhe a conferência dos bytes), ou feche a venda de verdade.",
+      ).toBe(false);
+      expect(veredito.faltando.length).toBeGreaterThan(0);
+    });
+  }
+});
