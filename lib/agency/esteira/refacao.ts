@@ -39,7 +39,8 @@
 // cliente que não chega a ninguém é a pior falha que esta casa conhece.
 
 import { prisma } from "@/lib/db/client";
-import { renderizarEntrega, ESQUEMA_DA_ENTREGA, quantosItens } from "@/lib/agency/esteira/renderizar-entrega";
+import { renderizarEntrega, ESQUEMA_DA_ENTREGA, quantosItens, itensDaEntrega } from "@/lib/agency/esteira/renderizar-entrega";
+import { escopoDoAjuste, congelarItens, motivoDoCongelamento } from "@/lib/agency/esteira/escopo-do-ajuste";
 import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { generate } from "@/lib/ai/generate";
 import { TODOS_OS_ESPECIALISTAS, conferirContrato } from "@/lib/agency/execution/especialistas";
@@ -105,6 +106,15 @@ export interface RefacaoFeita {
    * `esteira/porta-do-ajuste.ts`.
    */
   parada?: ParadaDoAjuste | null;
+  /**
+   * OS CAMPOS QUE O AJUSTE NÃO TEVE DIREITO DE MUDAR — `"2:caption"`, item e
+   * campo. Vazio quando o pedido era amplo (ou quando nada tentou mudar).
+   *
+   * É a prova do congelamento (27/08/2026): sem este campo, "o resto ficou
+   * como estava" seria uma afirmação sem medida — e foi exatamente uma
+   * afirmação sem medida que deixou a legenda ser reescrita na rodada paga.
+   */
+  congelados: string[];
 }
 
 /** Onde uma mensagem deste pedido é gravada. As DUAS chaves quando ambas são
@@ -160,7 +170,9 @@ export async function refazerPorPedidoDoCliente(input: {
    */
   postIds?: string[];
 }): Promise<RefacaoFeita> {
-  const saida: RefacaoFeita = { refeitas: [], versoesNovas: [], arte: null, escalado: false, avisouCliente: false };
+  const saida: RefacaoFeita = { refeitas: [], versoesNovas: [], arte: null, escalado: false, avisouCliente: false, congelados: [] };
+  /** Os campos que o congelamento segurou nesta rodada. Ver `escopo-do-ajuste.ts`. */
+  const congelamentos: string[] = [];
 
   const clientRequestId = input.clientRequestId?.trim() || null;
   // O dono: quando só veio a solicitação, o cliente é derivado dela. Derivação,
@@ -732,7 +744,40 @@ export async function refazerPorPedidoDoCliente(input: {
       continue;
     }
 
-    const dados = r.data as Record<string, unknown>;
+    let dados = r.data as Record<string, unknown>;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // O CONGELAMENTO — o ajuste só mexe no que o cliente apontou (27/08/2026)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // A regra do Diretor Geral, virada mecânica. O prompt acima JÁ pedia
+    // "mude o que ele apontou e preserve o resto" — e a rodada paga mediu o
+    // resultado disso: pedido VISUAL, legenda reescrita, com dia da semana
+    // que não existe no calendário dele e o briefing dentro do texto.
+    // *Prompt é aviso; código é trava.*
+    //
+    // O anterior é lido do texto que o cliente está vendo, pelo leitor inverso
+    // do próprio renderizador (`itensDaEntrega`) — nunca por um segundo
+    // vocabulário.
+    //
+    // ⚠️ RECUSA NÃO CONGELA. Quando ele RECUSOU a entrega inteira, o pedido é
+    // justamente refazer tudo: segurar campos ali devolveria a ele pedaços da
+    // versão que ele acabou de recusar. O congelamento é do AJUSTE.
+    const escopo = escopoDoAjuste(comentario);
+    if (!recusou) {
+      const itensNovos = Array.isArray(dados.items)
+        ? (dados.items as unknown[]).map((x) => (x && typeof x === "object" ? { ...(x as Record<string, unknown>) } : {}))
+        : [];
+      const congelado = congelarItens(itensDaEntrega(entrega.content), itensNovos, escopo);
+      if (congelado.segurados.length > 0) {
+        dados = { ...dados, items: congelado.itens };
+        // O corpo é RE-RENDERIZADO a partir dos itens congelados: `corpo` foi
+        // escrito dentro do laço de tentativa, com o que o modelo devolveu.
+        corpo = renderizar(dados);
+        congelamentos.push(...congelado.segurados);
+        console.warn(`[refacao] ${motivoDoCongelamento(escopo, congelado)}`);
+      }
+    }
 
     // ── O CONTRATO DE SAÍDA VALE AQUI TAMBÉM ────────────────────────────────
     //
@@ -906,6 +951,7 @@ export async function refazerPorPedidoDoCliente(input: {
     });
     if (novaVersao) saida.versoesNovas.push(novaVersao.id);
     saida.refeitas.push(entrega.name);
+    saida.congelados = [...congelamentos];
   }
 
   // ═══════════════════════════════════════════════════════════════════════

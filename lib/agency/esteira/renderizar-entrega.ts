@@ -165,3 +165,42 @@ export function renderizarEntrega(data: Record<string, unknown>): string {
   });
   return linhas.join("\n").trim();
 }
+
+/**
+ * O MARKDOWN VOLTA A SER ITENS — a leitura inversa completa de
+ * `renderizarEntrega`, e por isso mora aqui, coladinha nela.
+ *
+ * Existe por um pedido só, e ele é a regra do congelamento (27/08/2026): para
+ * segurar o campo que o cliente NÃO pediu para mudar, é preciso saber o que
+ * havia nele. O `Deliverable` guarda o texto renderizado — o JSON do
+ * especialista que o gerou não sobrevive à gravação.
+ *
+ * ⚠️ Lê pela MESMA lista `CAMPOS_DA_ENTREGA` que o renderizador escreve. Um
+ * segundo vocabulário aqui leria "- Legenda:" como campo desconhecido e
+ * devolveria item vazio — e item vazio, no congelamento, vira "não havia nada
+ * antes", que libera exatamente o que devia ser segurado.
+ *
+ * O `headline` volta do cabeçalho `**1. …**`, que é onde o renderizador o põe.
+ * Texto sem cabeçalho nenhum devolve lista vazia — nunca um item adivinhado.
+ */
+export function itensDaEntrega(markdown: string | null | undefined): Record<string, string>[] {
+  if (!markdown) return [];
+  const porRotulo = new Map<string, string>(CAMPOS_DA_ENTREGA.map(([k, label]) => [label.toLowerCase(), k]));
+  const itens: Record<string, string>[] = [];
+  let atual: Record<string, string> | null = null;
+
+  for (const linha of markdown.split("\n")) {
+    const cab = linha.match(/^\*\*\d+\.\s+(.*?)\*\*\s*$/);
+    if (cab) {
+      atual = { headline: (cab[1] ?? "").trim() };
+      itens.push(atual);
+      continue;
+    }
+    if (!atual) continue;
+    const campo = linha.match(/^-\s+([^:]+):\s*(.*)$/);
+    if (!campo) continue;
+    const chave = porRotulo.get((campo[1] ?? "").trim().toLowerCase());
+    if (chave) atual[chave] = (campo[2] ?? "").trim();
+  }
+  return itens;
+}
