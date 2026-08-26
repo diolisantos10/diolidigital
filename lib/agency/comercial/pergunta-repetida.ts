@@ -163,9 +163,14 @@ export function vezesJaPerguntada(falasDoSdr: readonly string[], perguntaId: str
   return n;
 }
 
-/** O que a pergunta colhe, em português — para a lacuna que gente vai ler.
+/** O que a pergunta colhe, em português — para a lacuna que GENTE vai ler.
  *  Complementa `O_QUE_A_PERGUNTA_COLHE` (que cobre os ids do motor de regras)
- *  com os ids que só o motor de IA pergunta. */
+ *  com os ids que só o motor de IA pergunta.
+ *
+ *  ⚠️ ESTE TEXTO É DA CASA PARA A CASA. Ele fala do cliente em TERCEIRA pessoa
+ *  de propósito ("se ele já tem fotos"), porque quem o lê é um colega lendo uma
+ *  lacuna sobre um terceiro. Nunca use este texto numa fala que vai para a cara
+ *  do cliente — para isso existe `COMO_SE_PERGUNTA_AO_CLIENTE`, logo abaixo. */
 export const O_QUE_A_PERGUNTA_DE_IA_COLHE: Record<string, string> = {
   budget_range:     "a faixa de investimento",
   canais_sociais:   "em quais redes sociais o negócio está",
@@ -183,6 +188,47 @@ export const O_QUE_A_PERGUNTA_DE_IA_COLHE: Record<string, string> = {
 };
 
 /**
+ * ─── O MESMO TEXTO SERVIA A DUAS PLATEIAS, E UMA DELAS ERA A ERRADA ─────────
+ *
+ * MEDIDO NO AR na 9ª volta (26/08/2026). A reformulação da casa saiu assim, na
+ * cara do cliente:
+ *
+ *     "Deixa eu tentar de outro jeito: você consegue me dizer se **ele** já tem
+ *      fotos, vídeos ou logo prontos?"
+ *
+ * O SDR falava COM o cliente e SOBRE o cliente na mesma frase — tratando o dono
+ * do negócio como um terceiro ausente. Quem está do outro lado lê isso como
+ * estar sendo discutido, não atendido.
+ *
+ * ⚠️ E o "ele" NÃO era do modelo. Era NOSSO: `segundaFormulacao` costurava a
+ * frase com `O_QUE_A_PERGUNTA_DE_IA_COLHE`, que é escrito para a LACUNA — um
+ * texto da casa para a casa, sobre um terceiro. Uma tabela, duas plateias, e
+ * uma delas recebendo a voz errada. É a irmã do defeito que esta casa mais
+ * repete ("verdade escrita em dois lugares"), com o sinal trocado: **um texto
+ * só usado em duas vozes**.
+ *
+ * Duas colunas, uma fonte: o que a pergunta COLHE (terceira pessoa, para o
+ * colega) e como ela se PERGUNTA (segunda pessoa, para o cliente). O teste
+ * abaixo exige que toda pergunta de IA tenha as duas — tabela que cresce pela
+ * metade é a que volta a vazar a voz errada.
+ */
+export const COMO_SE_PERGUNTA_AO_CLIENTE: Record<string, string> = {
+  budget_range:     "qual faixa de investimento faz sentido para você",
+  canais_sociais:   "em quais redes sociais o seu negócio está",
+  material_pronto:  "se vocês já têm fotos, vídeos ou logo prontos",
+  volume_de_posts:  "quantos posts por semana você quer",
+  quem_escreve:     "quem escreve os textos e grava os vídeos aí",
+  verba_de_midia:   "quanto você pensa em colocar por mês em anúncios",
+  publico_alvo:     "quem é o cliente típico de vocês",
+  objetivo:         "qual é o seu objetivo principal agora",
+  concorrentes:     "quais concorrentes ou referências você admira",
+  prazo:            "para quando você quer isso de pé",
+  decisor:          "quem decide a contratação aí",
+  canal_de_contato: "por onde você prefere ser respondido",
+  modalidade:       "se você quer gestão mensal, projeto pontual ou parceria contínua",
+};
+
+/**
  * A SEGUNDA formulação da pergunta — nunca a mesma frase duas vezes.
  *
  * Para os dois ids do motor de regras vale a reformulação que já existe
@@ -194,7 +240,12 @@ export const O_QUE_A_PERGUNTA_DE_IA_COLHE: Record<string, string> = {
 export function segundaFormulacao(perguntaId: string): string | null {
   const daCasa = reformular(perguntaId);
   if (daCasa) return daCasa;
-  const colhe = O_QUE_A_PERGUNTA_DE_IA_COLHE[perguntaId];
+  // A VOZ DA FALA É A DO CLIENTE. `O_QUE_A_PERGUNTA_DE_IA_COLHE` fica de fora
+  // desta frase de propósito — ver `COMO_SE_PERGUNTA_AO_CLIENTE`. Sem
+  // reformulação em segunda pessoa a casa NÃO improvisa com a da lacuna: ela
+  // devolve `null`, e quem chama registra e avança. Falta de texto nunca vira
+  // licença para falar do cliente na frente dele.
+  const colhe = COMO_SE_PERGUNTA_AO_CLIENTE[perguntaId];
   if (!colhe) return null;
   // ⚠️ A REFORMULAÇÃO PRECISA CONTINUAR SENDO RECONHECÍVEL COMO A MESMA
   // PERGUNTA — pego por teste, e o defeito era silencioso e caro. A primeira
