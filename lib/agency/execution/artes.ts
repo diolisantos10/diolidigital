@@ -53,6 +53,14 @@ import { tituloDaFonte, chamadaDaMarca } from "@/lib/agency/design/trava-de-text
 // O PORTÃO DE PIXEL. Ficou sete dias em `lib/` sem um único chamador — este é
 // o chamador. Ver `portao-do-fundo.ts` para por que ele mede o fundo CRU.
 import { conferirFundoDaPeca, motivoDoFundoEmUmaLinha } from "@/lib/agency/design/portao-do-fundo";
+// ── A RÉGUA DO ARQUIVO QUE VAI AO CLIENTE (26/08/2026) ──────────────────────
+// O portão acima mede o FUNDO CRU e está certo no que mede. Esta mede a PEÇA
+// COMPOSTA — o arquivo que o portal entrega. Ver o cabeçalho de
+// `regua-da-peca-final.ts` para por que são duas réguas e não uma.
+import {
+  reguaDaPecaFinal, motivoDaPecaFinalEmUmaLinha, type DeclaracaoDaComposicao,
+} from "@/lib/agency/design/regua-da-peca-final";
+import { medirPecaFinal } from "@/lib/agency/design/medir-peca-final";
 // O PRÉ-PORTÃO, de custo zero. Roda ANTES de `generateDesign` e nunca depois:
 // ver o bloco no ponto de chamada e o cabeçalho do arquivo.
 import { conferirDirecaoFotografavel } from "@/lib/agency/design/direcao-fotografavel";
@@ -692,11 +700,12 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // responde ao cliente?"*. Aqui, não: o portão protege o FUNDO, e o
       // cliente recebe a COMPOSIÇÃO. Régua verde sobre o componente errado.
       //
-      // O conserto NÃO é mover este portão (o número de 1,2× diz que ali ele
-      // vira roleta). É uma régua NOVA sobre o arquivo final, antes de
-      // `visibility: "compartilhado"`, capaz de responder três coisas que esta
-      // não responde: a foto entrou? o texto coube? a assinatura está lá?
-      // Fica com dono e sem contorno inventado.
+      // ✅ DÍVIDA PAGA EM 26/08/2026. A régua nova existe: mora em
+      // `design/regua-da-peca-final.ts`, mede a PEÇA COMPOSTA (a faixa da foto,
+      // não o quadro inteiro) e roda LOGO ANTES de `guardarArquivo`, mais abaixo
+      // neste mesmo laço. Peça reprovada por ela não ganha arquivo, não ganha
+      // `mediaUrl` e por isso não chega ao portal. Este portão continua onde
+      // está, medindo o que ele mede bem: o fundo cru.
       const portao = await conferirFundoDaPeca({ bytes, mime: "image/png" });
       if (!portao.ok) {
         const erro = motivoDoFundoEmUmaLinha(portao);
@@ -796,6 +805,35 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
     if (!composta.ok) {
       saida.falhas.push({ postId: post.id, erro: composta.erro });
       await marcarErro(post.id, composta.erro, tentativas + 1);
+      continue;
+    }
+
+    // ── A RÉGUA DA PEÇA FINAL, ANTES DE O ARQUIVO EXISTIR (26/08/2026) ─────
+    //
+    // Aqui morava o vão que o cliente oculto caiu em 25/08/2026: a peça
+    // composta ia para o armazenamento e para `mediaUrl` SEM NINGUÉM OLHAR o
+    // arquivo. O portão do fundo já tinha rodado — e ele mede o fundo CRU, que
+    // naquele caso estava certo; o que quebrou foi a COMPOSIÇÃO, e a
+    // composição não tinha régua nenhuma.
+    //
+    // A ordem importa e é o conserto: a régua roda ANTES de `guardarArquivo`,
+    // então a peça reprovada não ganha arquivo, não ganha `mediaUrl`, e por
+    // consequência não aparece no portal — que é o que o carimbo
+    // `compartilhado` mostraria. **Nada nesse estado recebe o carimbo porque
+    // nada nesse estado chega a ter arquivo.**
+    //
+    // Fail-closed em todos os ramos, inclusive o de não conseguir medir: ver
+    // `reguaDaPecaFinal(null, ...)`. A tentativa é GASTA — regerar é o remédio
+    // certo aqui, do mesmo jeito que no portão do fundo.
+    const medidaDaPeca = await medirPecaFinal(composta.bytes).catch(() => null);
+    const vereditoDaPeca = reguaDaPecaFinal(
+      medidaDaPeca,
+      composta.declaracao ?? { textosPintados: [], tituloPedido: "", assinaturaPedida: "" },
+    );
+    if (!vereditoDaPeca.ok) {
+      const erro = motivoDaPecaFinalEmUmaLinha(vereditoDaPeca);
+      saida.falhas.push({ postId: post.id, erro });
+      await marcarErro(post.id, erro, tentativas + 1);
       continue;
     }
 
@@ -1300,8 +1338,55 @@ type ResultadoDaComposicao =
       /** A legibilidade do título medida NO ARQUIVO (`legibilidade-do-titulo.ts`).
        *  Ausente na peça sem camada de texto — que é ausência de título, não
        *  título ilegível, e as duas não podem virar a mesma coisa. */
-      legibilidadeDoTitulo?: MedidaDaLegibilidade | null }
+      legibilidadeDoTitulo?: MedidaDaLegibilidade | null;
+      /** O QUE O RASTERIZADOR CONFERIU NO DOM, e o que a peça deveria carregar.
+       *  É a metade da `regua-da-peca-final.ts` que não se responde no pixel —
+       *  ver o docstring de `reguaDaLetraDaPecaFinal`. Ausente é ausente: a
+       *  régua reprova quem chega sem ela apenas quando há letra a cobrar. */
+      declaracao?: DeclaracaoDaComposicao }
   | { ok: false; motivo: MotivoDeFalhaDeRender; erro: string };
+
+/**
+ * O QUE A PEÇA DEVERIA CARREGAR × O QUE O RASTERIZADOR CONFIRMOU NO DOM.
+ *
+ * Alimenta `reguaDaLetraDaPecaFinal`. Duas escolhas que precisam estar escritas
+ * porque são elas que decidem se a régua tem dente:
+ *
+ * • **SÓ SE COBRA O QUE UMA TRAVA NÃO RECUSOU.** Título e assinatura barrados
+ *   por `travaDeTextoNaArte`/`travaDeRotuloNaArte` são degradação DECLARADA,
+ *   antiga, com motivo escrito em `textoRecusado` e dono conhecido. Cobrá-los
+ *   aqui criaria uma SEGUNDA política sobre o mesmo estado — o erro que esta
+ *   casa já cometeu com `nao_auditado` — e, pior, pararia a produção inteira de
+ *   um cliente por causa da FORMA do nome dele. Medido: a marca
+ *   "Padaria da Arte que Não Saiu TESTE" (seis palavras) é recusada pela forma
+ *   da assinatura, e a primeira versão desta régua bloqueou as quatro peças
+ *   dela em `__tests__/produtos/story-instagram-v1-ponta-a-ponta.test.ts`.
+ *
+ * • **⚠️ DÍVIDA DECLARADA, com dono.** Isso deixa um buraco de pé: a marca cujo
+ *   nome não passa na forma da assinatura continua recebendo arte SEM
+ *   assinatura, e o cliente não lê esse fato — ele mora no `lastError`. O
+ *   conserto não é esta régua: é a forma da assinatura aceitar (ou encurtar,
+ *   com regra) nome de marca comprido, em `trava-de-texto.ts`. Dono: quem
+ *   mantém a trava de texto. Ponto fraco declarado é dívida; silencioso é
+ *   armadilha.
+ *
+ * • **O QUE ESTA RÉGUA FECHA, então, é o outro buraco — e é o do incidente:** a
+ *   peça que TINHA título e assinatura aprovados, foi rasterizada, e mesmo
+ *   assim saiu com a caixa vazia.
+ */
+function declaracaoDaComposicao(
+  textosPintados: readonly string[],
+  tituloPedido: string | null,
+  assinaturaPedida: string | null | undefined,
+  textoRecusado: readonly { papel: string; detalhe: string }[],
+): DeclaracaoDaComposicao {
+  const recusou = (papel: string) => textoRecusado.some((t) => t.papel === papel);
+  return {
+    textosPintados,
+    tituloPedido: recusou("titulo") ? "" : (tituloPedido ?? "").trim(),
+    assinaturaPedida: recusou("assinatura") ? "" : (assinaturaPedida ?? "").trim(),
+  };
+}
 
 export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposicao> {
   // ── O MOLDE NEUTRO PRECISA SER DECLARADO PARA FORA ────────────────────────
@@ -1348,6 +1433,10 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
       bytes: p.fotoBytes,
       mime: mimeDaFotoCrua,
       nota: comAviso("[molde] peça entregue só com a foto: o conteúdo não tem uma frase utilizável como chamada."),
+      // Degradação DECLARADA: não há camada de texto, então não há letra a
+      // cobrar. A régua da peça final continua valendo no PIXEL (a foto tem de
+      // ter entrado) — o que ela não faz é exigir título que ninguém pediu.
+      declaracao: { textosPintados: [], tituloPedido: "", assinaturaPedida: "" },
     };
   }
 
@@ -1394,6 +1483,7 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
       // ausente e a do material do cliente não podem sumir só porque o texto
       // não coube. Nota que some é declaração que nunca existiu.
       nota: comAviso(`[molde] peça entregue só com a foto (sem camada de texto): ${r.motivo} — ${r.erro}`),
+      declaracao: { textosPintados: [], tituloPedido: "", assinaturaPedida: "" },
     };
   }
   if (r.textoRecusado.length > 0) {
@@ -1405,6 +1495,7 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
       mime: MIME_DA_PECA_RENDERIZADA,
       nota: comAviso(`[molde] texto barrado pela trava — ${barrado}`),
       legibilidadeDoTitulo: r.legibilidadeDoTitulo,
+      declaracao: declaracaoDaComposicao(r.textosPintados, titulo, p.assinatura, r.textoRecusado),
     };
   }
   // ── O TÍTULO ILEGÍVEL É DECLARADO, NÃO SUPOSTO ──────────────────────────
@@ -1429,6 +1520,7 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
   return {
     ok: true, bytes: r.bytes, mime: MIME_DA_PECA_RENDERIZADA, nota: comAviso(ilegivel),
     legibilidadeDoTitulo: r.legibilidadeDoTitulo,
+    declaracao: declaracaoDaComposicao(r.textosPintados, titulo, p.assinatura, r.textoRecusado),
   };
 }
 
@@ -1734,6 +1826,19 @@ export async function recomporPecas(
         postId: post.id,
         erro: `a peça recomposta continua em formato que a plataforma recusa — NADA foi gravado. ${formatoDaPecaNova.motivo}`,
       });
+      continue;
+    }
+
+    // A MESMA RÉGUA DA PEÇA FINAL. Recomposição que sai quebrada é peça
+    // quebrada igual — e esta rota grava `mediaUrl` direto no post que o portal
+    // já mostra, então ela é ainda mais curta até o cliente.
+    const medidaDaRecomposta = await medirPecaFinal(composta.bytes).catch(() => null);
+    const vereditoDaRecomposta = reguaDaPecaFinal(
+      medidaDaRecomposta,
+      composta.declaracao ?? { textosPintados: [], tituloPedido: "", assinaturaPedida: "" },
+    );
+    if (!vereditoDaRecomposta.ok) {
+      saida.falhas.push({ postId: post.id, erro: motivoDaPecaFinalEmUmaLinha(vereditoDaRecomposta) });
       continue;
     }
 

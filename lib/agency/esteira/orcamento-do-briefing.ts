@@ -162,8 +162,17 @@ import { orcamentoProntoEmail } from "@/lib/email/templates";
 import { provaDoProprioBriefing } from "@/lib/agency/consentimento/quem-pode-receber";
 
 import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
-/** Teto por rodada. O relógio bate de 5 em 5 min; enxurrada nunca. */
+/** Teto de ENTREGAS por rodada. O relógio bate de 5 em 5 min; enxurrada nunca. */
 const MAX_POR_RODADA = 5;
+/**
+ * Quantos pedidos a rodada LÊ antes de escolher quais servir.
+ *
+ * Ler é barato (uma consulta), servir é caro (transação, e-mail, link). São
+ * dois tetos diferentes porque o defeito de 25/08/2026 foi confundi-los: com um
+ * teto só, os 5 pedidos mais antigos que nunca geram orçamento ocupavam as 5
+ * vagas para sempre. Ver o bloco em `entregarOrcamentosPendentes`.
+ */
+const JANELA_DE_LEITURA = 50;
 
 export type ResultadoDoOrcamento = {
   entregues: number;
@@ -205,6 +214,18 @@ export type EstimativaGuardada = {
  *  que derruba a rodada inteira do relógio. */
 export function estimativaEntregue(briefingJson: string | null): EstimativaGuardada | null {
   return estimativaDe(briefingJson);
+}
+
+/**
+ * ESTE PEDIDO TEM NÚMERO? — a mesma pergunta que a rodada faz lá embaixo, e
+ * feita pela MESMA função.
+ *
+ * Existe para que a partição da fila (quem serve primeiro) e a decisão de
+ * entregar não possam divergir. Se um dia `derivarEstimativa` mudar, as duas
+ * mudam juntas — que é o contrário do que aconteceu com o teto da janela.
+ */
+export function temNumero(briefingJson: string | null): boolean {
+  return (estimativaDe(briefingJson) ?? derivarEstimativa(briefingJson)) !== null;
 }
 
 function estimativaDe(briefingJson: string | null): EstimativaGuardada | null {
@@ -804,13 +825,48 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
   // A lição, que vale mais que a linha: durante três teorias eu procurei o
   // pedido nos estados que EU imaginava, em vez de perguntar ao banco em que
   // estado ele estava. Diagnóstico por dedução perde para uma leitura.
-  const pedidos = await prisma.clientRequestDb
+  // ── O ENTUPIMENTO DA JANELA, E O CONSERTO (26/08/2026) ────────────────────
+  //
+  // Medido em produção em 25/08/2026 (`docs/medicoes/elo-9-orcamento.md`):
+  // **86 falhas em 24h**, e dois briefings batendo há 38 rodadas em "sem
+  // orçamento calculado — aguardando gente". A causa não era IA, nem rede, nem
+  // ambiente: era **aritmética de fila**.
+  //
+  // A consulta pegava os 5 MAIS ANTIGOS. Um pedido que nunca gera orçamento
+  // também **nunca muda de estado** — então ele volta na janela para sempre.
+  // Bastam 5 desses para a esteira parar **para todo mundo**, inclusive para
+  // quem já tem orçamento pronto. E o modo de falha é silencioso: a rodada
+  // devolve `entregues=0, semOrcamento=5` todo ciclo, que parece número
+  // estável e inofensivo. Provado por experimento controlado na medição: com 6
+  // pedidos velhos à frente, `entregues=0`; sem eles, `entregues=1`, mesma
+  // estimativa, mesmo pedido.
+  //
+  // O conserto NÃO é aumentar o teto (isso só adia) nem dar estado terminal a
+  // quem espera gente (o pedido continua vivo e o cliente continua esperando).
+  // É separar as duas filas: **lê-se uma janela larga e servem-se PRIMEIRO os
+  // que têm número**. Quem não tem continua sendo atendido — com as vagas que
+  // sobrarem, e sem nunca mais bloquear quem tem.
+  //
+  // A leitura continua limitada (`JANELA_DE_LEITURA`): fila que se lê inteira é
+  // a próxima parada da casa quando o banco crescer.
+  const janela = await prisma.clientRequestDb
     .findMany({
       where: { status: { in: ["new", "lead_incompleto", "scope_ready"] } },
       orderBy: { createdAt: "asc" },
-      take: MAX_POR_RODADA,
+      take: JANELA_DE_LEITURA,
     })
     .catch(() => []);
+
+  // A partição é feita com a MESMA função que decide lá embaixo — `temNumero`
+  // chama `estimativaDe`/`derivarEstimativa`, e não uma segunda régua parecida.
+  // Duas réguas para a mesma pergunta divergem no primeiro conserto de uma
+  // delas, e aí a fila volta a entupir sem ninguém entender por quê.
+  const comNumero = janela.filter((p) => temNumero(p.briefingJson));
+  const semNumero = janela.filter((p) => !temNumero(p.briefingJson));
+  const pedidos = [
+    ...comNumero.slice(0, MAX_POR_RODADA),
+    ...semNumero.slice(0, Math.max(0, MAX_POR_RODADA - Math.min(comNumero.length, MAX_POR_RODADA))),
+  ];
 
   for (const pedido of pedidos) {
     try {

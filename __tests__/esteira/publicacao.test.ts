@@ -198,14 +198,21 @@ describe("o calendário só recebe o que a escada liberou e a Qualidade aprovou"
     expect(r.retidas[0]!.motivo).toMatch(/ausência não é aprovação/i);
   });
 
-  it("entrega NÃO AUDITADA vira post — é a política já declarada da casa", async () => {
-    // `quality-auditor.ts:19-24` e `run-execution.ts:771-786`: "ninguém olhou"
-    // NÃO bloqueia, fica declarado. Barrar aqui criaria uma segunda política
-    // sobre o mesmo estado. Este teste existe para que mudar isso seja uma
-    // decisão, e não um efeito colateral.
+  it("entrega NÃO AUDITADA NÃO vira post — auditor mudo nunca é aprovado", async () => {
+    // ── A DECISÃO VIROU EM 26/08/2026, E É UMA DECISÃO ────────────────────
+    // Até aqui este teste afirmava o contrário, com o comentário certo: "este
+    // teste existe para que mudar isso seja uma decisão, e não um efeito
+    // colateral". A decisão foi tomada com a medida na mão — 9 entregas
+    // chegaram ao cliente sem árbitro nenhum (cliente oculto em produção,
+    // 25/08/2026) — e igualou esta política à que `marcos.ts:208` já aplicava
+    // na APRESENTAÇÃO desde 24/08. Duas políticas sobre o mesmo estado eram o
+    // defeito; a que ficou é a fail-closed.
     db.deliverable.findMany.mockResolvedValue(entrega({ revisionStatus: "quality_nao_auditado" }));
     const r = await agendarPostsDaEntrega("p1");
-    expect(r.criados).toBe(2);
+    expect(r.criados).toBe(0);
+    // E ela NÃO some: sai com nome e motivo, para ser destravada por quem
+    // conectar a auditoria. Peça retida em silêncio seria o defeito oposto.
+    expect(r.retidas[0]!.motivo).toContain("quality_nao_auditado");
   });
 
   it("a retenção NÃO é silenciosa — vira ActivityEvent com nome e motivo", async () => {

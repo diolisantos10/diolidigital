@@ -130,11 +130,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // foi explicitamente compartilhado sai pelo token. "interno" NUNCA — é a
     // regra fail-closed da Fase 1 (2.2) virando código. E sempre dentro do
     // workspace do token: o inquilino é parte do filtro, não uma suposição.
+    // ── O CARIMBO NÃO BASTA: TEM DE HAVER PEÇA (26/08/2026) ────────────────
+    //
+    // `visibility: "compartilhado"` é carimbado no NASCIMENTO do post, em cinco
+    // lugares da esteira — antes de a arte existir. É o desenho certo (a
+    // escada de exposição decide o QUE o cliente pode ver, não o QUANDO), e ele
+    // deixa um vão medido em produção em 26/08/2026: **três posts em `draft`,
+    // carimbados `compartilhado`, com `mediaUrl: null`** porque o portão do
+    // fundo reprovou a arte três vezes. O cliente abria o portal e via cartão
+    // de peça sem peça — e nada na tela dizia que aquilo era produção em curso.
+    //
+    // Peça sem arquivo não é entrega; é trabalho em andamento. Ela volta a
+    // aparecer sozinha na rodada em que a arte sair — e a arte só sai depois de
+    // `regua-da-peca-final.ts`, que é a outra metade deste conserto.
+    //
+    // Fail-closed de propósito: o filtro é positivo (`not: null`), então um
+    // estado novo de mídia não passa a vazar por omissão.
     const posts = await prisma.socialPost.findMany({
       where: {
         workspaceId: escopo.workspaceId,
         clientRequestId: escopo.reqId,
         visibility: "compartilhado",
+        mediaUrl: { not: null },
       },
       orderBy: { scheduledFor: "asc" },
     });

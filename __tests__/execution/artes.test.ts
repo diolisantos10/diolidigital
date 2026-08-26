@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const db = vi.hoisted(() => ({
   // O portão de pagamento deriva o pedido pelo projeto do cliente quando a
@@ -104,11 +106,23 @@ beforeEach(() => {
   estiloVistoPersistido.mockResolvedValue("");
   conferirFundoDaPeca.mockResolvedValue({ ok: true });
   montarPeca.mockResolvedValue({
-    ok: true, bytes: Buffer.from("peca-com-texto"), largura: 1080, altura: 1350,
-    textosPintados: ["PRODUTO", "Pão saindo do forno às 6 da manhã"], textoRecusado: [],
+    ok: true, bytes: PECA_COMPOSTA_REAL, largura: 1080, altura: 1350,
+    textosPintados: ["PRODUTO", "Pão saindo do forno às 6 da manhã, ainda fumegando", "Padaria do João"], textoRecusado: [],
     encolheu: false, origemDoMolde: "marca",
   });
 });
+
+// ── A PEÇA COMPOSTA DE VERDADE (26/08/2026) ──────────────────────────────────
+//
+// `montarPeca` é dublê aqui, e o dublê devolvia `Buffer.from("peca-com-texto")`.
+// Isso deixou de ser inofensivo quando a `regua-da-peca-final.ts` entrou no
+// caminho vivo: string não é imagem, a medida sai `null`, e a régua reprova —
+// como ela deve. Estes testes passam a devolver o ARQUIVO REAL que estava em
+// produção. Se um dia alguém tirar a régua do caminho, nada aqui quebra; quem
+// prova que ela está ligada é `__tests__/design/a-regua-alcanca-a-peca.test.ts`.
+const PECA_COMPOSTA_REAL = readFileSync(
+  join(process.cwd(), "docs/entregas/peca-final-26-08/boa-med_1f79e9f3_mt8xj2gu.jpg"),
+);
 
 describe("o Design passa a produzir imagem, não descrição de imagem", () => {
   it("gera a arte e amarra ao post", async () => {
@@ -402,7 +416,7 @@ describe("a peça sai do MOLDE — foto da IA + texto por código", () => {
     expect(pedido.titulo).toContain("Pão saindo do forno");
     // A arte gravada é a do molde, não a foto crua.
     const arte = guardarArquivo.mock.calls.find((c) => (c[0] as { fileName: string }).fileName.startsWith("arte-"));
-    expect((arte![0] as { bytes: Buffer }).bytes.toString()).toBe("peca-com-texto");
+    expect((arte![0] as { bytes: Buffer }).bytes.equals(PECA_COMPOSTA_REAL)).toBe(true);
   });
 
   it("o molde vem da MARCA do cliente — mesma cara em toda peça", async () => {
@@ -460,8 +474,11 @@ describe("a peça sai do MOLDE — foto da IA + texto por código", () => {
 
   it("texto barrado pela trava não derruba a peça — ela sai, e o barrado fica dito", async () => {
     montarPeca.mockResolvedValue({
-      ok: true, bytes: Buffer.from("so-foto"), largura: 1080, altura: 1350,
-      textosPintados: [], encolheu: false, origemDoMolde: "marca",
+      ok: true, bytes: PECA_COMPOSTA_REAL, largura: 1080, altura: 1350,
+      // A assinatura CONTINUA pintada quando é o TÍTULO que a trava barra — é
+      // o que a peça real faz, e a `regua-da-peca-final.ts` cobra exatamente
+      // isso: peça de cliente pagante não sai em nome de ninguém.
+      textosPintados: ["Padaria do João"], encolheu: false, origemDoMolde: "marca",
       textoRecusado: [{ papel: "titulo", motivo: "classe_de_fato_proibida", detalhe: "preço — fica na legenda" }],
     });
     const r = await produzirArtesPendentes();
@@ -524,7 +541,7 @@ describe("re-render de texto: barato por construção", () => {
 
   it("o texto novo continua passando pela trava — o re-render não é porta dos fundos", async () => {
     montarPeca.mockResolvedValue({
-      ok: true, bytes: Buffer.from("x"), largura: 1080, altura: 1350, textosPintados: [],
+      ok: true, bytes: PECA_COMPOSTA_REAL, largura: 1080, altura: 1350, textosPintados: [],
       encolheu: false, origemDoMolde: "marca",
       textoRecusado: [{ papel: "titulo", motivo: "sem_lastro_no_conteudo_auditado", detalhe: "não é trecho literal" }],
     });
