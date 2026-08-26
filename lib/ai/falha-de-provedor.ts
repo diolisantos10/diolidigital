@@ -51,7 +51,17 @@ export function classificarFalhaDeProvedor(mensagem: string | null | undefined):
 
   // Saldo primeiro: é o mais caro de confundir, e o texto é bem específico nos
   // provedores que a casa usa.
-  if (/credit balance is too low|insufficient[_ ]?(quota|credit|balance|funds)|billing|quota exceeded|payment required|exceeded your current quota/.test(m)) {
+  // ⚠️ `no credits remaining` ENTROU DEPOIS, e o vão custou uma volta inteira.
+  // Medido no livro-caixa de produção (25–26/08/2026): as 4 falhas de imagem
+  // que impediram TODA a arte daquela volta diziam, palavra por palavra,
+  // *"You have no credits remaining. Add credits to continue using the API"* —
+  // a conta da OpenAI zerada. Esta régua devolvia `null` para essa frase, então
+  // o placar, o diário e o alarme registravam "provider_error" genérico e
+  // ninguém tinha como saber que a única causa desta lista que NENHUMA pessoa
+  // resolve em código estava em jogo. É o mesmo defeito que o comentário abaixo
+  // conta sobre o Claude em 24/08 — a lição valeu para um provedor e não foi
+  // estendida ao outro.
+  if (/credit balance is too low|no credits remaining|insufficient[_ ]?(quota|credit|balance|funds)|billing|quota exceeded|payment required|exceeded your current quota/.test(m)) {
     return "sem_saldo";
   }
   if (/\b(401|403)\b|invalid[_ ]?api[_ ]?key|unauthorized|authentication|api key not valid|não tem chave|sem chave|not_configured/.test(m)) {

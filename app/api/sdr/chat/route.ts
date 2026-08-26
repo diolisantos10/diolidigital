@@ -679,17 +679,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // por provedor, e a camada recebe a decisão já tomada.
     // ── O LAÇO QUE CAI PARA O PRÓXIMO PROVEDOR ────────────────────────────
     //
-    // Só duas falhas fazem andar, e as duas são de CONTA: `sem_saldo` e
-    // `sem_chave`. Elas custam zero e não melhoram com o tempo — insistir no
-    // mesmo provedor é garantir a mesma resposta. Todo o resto (`teto_de_ritmo`,
-    // `indisponivel`, timeout, JSON malformado) fica onde estava, de propósito:
-    // esses passam sozinhos, e trocar de provedor neles multiplicaria gasto e
-    // trocaria a VOZ do SDR no meio da conversa por um soluço de rede.
+    // A condição é a MESMA da casa, e isso é uma correção de rota minha,
+    // declarada. Meu primeiro conserto (26/08, 07:47Z) só andava em `sem_saldo`
+    // e `sem_chave`, com o argumento de que `429` "passa sozinho" e trocar de
+    // provedor nele multiplicaria gasto. Medido em produção no turno seguinte:
+    // claude devolveu `sem_saldo` (andou, certo) e a OpenAI devolveu
+    // **HTTP 429** — que naquela conta é a conta zerada vestida de teto de
+    // ritmo. A porta continuou fechada, com Gemini funcionando ao lado. Errei o
+    // diagnóstico: a régua estava mais dura que a doutrina da própria casa.
+    //
+    // `lib/ai/generate.ts` — os outros 29 caminhos — cai para o próximo
+    // provedor em QUALQUER falha, e o argumento de custo não se sustenta aqui:
+    // só se anda sobre um turno que JÁ ESTÁ PERDIDO. O visitante receberia
+    // `ok:false` e nada mais. Gastar uma chamada num provedor que funciona é
+    // estritamente melhor que devolver silêncio com um provedor bom parado.
+    //
+    // `!r.textoCru` é a trava que impede o desperdício de verdade: resposta que
+    // veio (mesmo truncada ou malformada) NÃO faz andar — ela tem escopo a
+    // resgatar, e as quatro conquistas desta rota vivem disso.
     let r = await chamarOSdr(escolha);
     for (let i = 1; i < provedores.length && !r.ok && !r.textoCru; i++) {
-      const classe = classificarFalhaDeProvedor(r.error);
-      if (classe !== "sem_saldo" && classe !== "sem_chave") break;
-      console.warn(`[sdr/chat] ${escolha.provider} sem conta utilizável (${classe}) — tentando ${provedores[i]!.provider}`);
+      console.warn(`[sdr/chat] ${escolha.provider} falhou (${classificarFalhaDeProvedor(r.error) ?? "não classificada"}: ${r.error}) — tentando ${provedores[i]!.provider}`);
       escolha = provedores[i]!;
       resolved = escolha.chave;
       r = await chamarOSdr(escolha);
