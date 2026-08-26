@@ -69,6 +69,7 @@ import { createApprovalRequest } from "@/lib/agency/persistence/approval-service
 import { produzirArtesPendentes, pecaSaiuSemTitulo, type ArtesFeitas } from "@/lib/agency/execution/artes";
 import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
 import { moldeDoCliente } from "@/lib/agency/design/molde";
+import { limparDirecaoInterna } from "@/lib/agency/esteira/direcao-interna";
 import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
 import { conferirContraste, motivoDoContraste } from "@/lib/agency/design/contraste";
 import { conferirMarcaNaPecaFinal, type VereditoDaMarcaNaPeca } from "./regua-da-marca-na-peca";
@@ -139,8 +140,32 @@ export interface PecaDoEspecialista {
  * byte o que sempre foi. Sem título utilizável, idem.
  */
 export function captionDaPeca(peca: PecaDoEspecialista): string {
-  const legenda = peca.legenda.trim();
-  const titulo = (peca.titulo ?? "").trim();
+  // ── A TRAVA DA DIREÇÃO INTERNA (27/08/2026, medida em produção) ──────────
+  //
+  // Este é o FUNIL: toda legenda que vira `SocialPost.caption` — no nascimento
+  // e no ajuste — passa por aqui, e é `caption` que vira pixel
+  // (`tituloDaFonte`) e que vai para o Instagram do cliente. A peneira mora no
+  // funil de propósito: uma segunda porta seria a que fica aberta.
+  //
+  // Na rodada paga, a legenda voltou como "Sexta é dia de estar aqui\nPost
+  // destacando a atmosfera acolhedora da trattoria." — a segunda linha é o
+  // BRIEFING dentro do post. Ver `esteira/direcao-interna.ts`.
+  //
+  // ⚠️ A limpeza NUNCA esvazia o que existia: se sobrar nada, o texto original
+  // fica de pé e quem barra é o portão de publicação (`prontidao-de-publicacao`),
+  // com gente no meio. Apagar a legenda do cliente para tirar uma frase é
+  // trocar um estrago por outro maior.
+  const legendaCrua = peca.legenda.trim();
+  const tituloCru = (peca.titulo ?? "").trim();
+  const legendaLimpa = limparDirecaoInterna(legendaCrua);
+  const tituloLimpo = limparDirecaoInterna(tituloCru);
+  // Sobrou ALGUM texto limpo? Então é ele que vai ao ar — inclusive quando o
+  // que sobrou é só o título e a legenda inteira era briefing (o caso medido).
+  // A volta ao texto cru só acontece quando a limpeza levaria a peça a ficar
+  // MUDA, e aí quem barra é o portão de publicação, com gente no meio.
+  const sobrouAlgo = legendaLimpa.length > 0 || tituloLimpo.length > 0;
+  const legenda = sobrouAlgo ? legendaLimpa : legendaCrua;
+  const titulo = sobrouAlgo ? tituloLimpo : tituloCru;
   if (!titulo) return legenda.slice(0, 2000);
   if (!legenda) return titulo.slice(0, 2000);
 
