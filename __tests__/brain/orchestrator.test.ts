@@ -113,8 +113,19 @@ describe("orchestratePMReasoning", () => {
     const depts = p.tasks.map((t) => t.department);
     expect(depts).toContain("strategy");
     expect(depts).toContain("paid-traffic"); // wantsTraffic
-    // Missing brand fields → alignment task, not invented data.
-    expect(p.tasks.some((t) => t.department === "project-management")).toBe(true);
+    // ── O ALINHAMENTO DEIXOU DE SER TAREFA (8ª volta, 26/08/2026) ──────────
+    //
+    // Esta asserção mudou de lado, e o motivo precisa ficar escrito. A tarefa
+    // de alinhamento nascia em `project-management` — cujo gerente, no
+    // manifesto, é o PRÓPRIO Gerente Geral. Medido em produção:
+    // `gerente_geral_recusou_demanda`, "não despacha para si mesmo". O plano
+    // continha, por construção, uma tarefa que a casa recusaria.
+    //
+    // Coletar dado que falta não é entrega de departamento nenhum. O campo
+    // ausente continua sendo dito — como AVISO, que tem leitor de verdade
+    // (a tela do pedido) e agora carrega dono e próxima ação.
+    expect(p.tasks.some((t) => t.department === "project-management")).toBe(false);
+    expect(p.warnings.some((w) => w.includes("Brand Brain incompleto"))).toBe(true);
   });
 
   it("cair para regras nunca é silencioso — o motivo vai num aviso", async () => {

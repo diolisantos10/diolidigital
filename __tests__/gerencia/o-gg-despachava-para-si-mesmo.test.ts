@@ -42,15 +42,21 @@ describe("o fato que produziu a recusa", () => {
 });
 
 describe("a origem parou de chamar errado", () => {
-  it("a tarefa do Brand Brain incompleto vai para BRANDING e é DESPACHADA", () => {
+  it("o Brand Brain incompleto vira AVISO com dono e próxima ação — não tarefa do plano", () => {
     const proposta = proposeProjectRuleBased(snapshot({
       businessName: "GRAO DO BECO NOME TESTE", segment: "cafeteria",
       services: ["social media"], objectives: ["vender mais"],
       missingFields: ["tom de voz", "paleta", "público", "posicionamento", "tagline"],
     }));
 
-    const alinhamento = proposta.tasks.find((t) => t.title.includes("Brand Brain"));
-    expect(alinhamento?.department).toBe("branding");
+    // Coletar dado que falta não é entrega de departamento nenhum: é a casa
+    // falando com o cliente, e disso a casa já cuida por outro cano.
+    expect(proposta.tasks.find((t) => t.title.includes("Brand Brain"))).toBeUndefined();
+    const aviso = proposta.warnings.find((w) => w.includes("Brand Brain incompleto"));
+    expect(aviso).toBeTruthy();
+    expect(aviso).toContain("Dono:");
+    expect(aviso).toContain("Próxima ação:");
+    expect(aviso).toContain("tom de voz");
 
     const plano = despacharPlanoPeloGerenteGeral(
       proposta.tasks.map((t) => ({ title: t.title, description: t.description ?? null, department: t.department, estimatedDays: t.estimatedDays })),
@@ -72,7 +78,7 @@ describe("a origem parou de chamar errado", () => {
     const { system } = buildPMOrchestratorMessages({
       businessName: "N", segment: "", services: [], objectives: [], rawContext: "",
     });
-    expect(system).toContain("branding");
+    expect(system).not.toMatch(/department"\):\n[^\n]*project-management/);
     expect(system).toMatch(/NUNCA use "project-management"/);
   });
 
@@ -83,7 +89,7 @@ describe("a origem parou de chamar errado", () => {
     };
     expect(validatePMOrchestratorOutput(cru)).toBeNull();
 
-    const bom = { ...cru, tasks: [{ ...cru.tasks[0], department: "branding" }] };
-    expect(validatePMOrchestratorOutput(bom)?.tasks[0].department).toBe("branding");
+    const bom = { ...cru, tasks: [{ ...cru.tasks[0], department: "strategy" }] };
+    expect(validatePMOrchestratorOutput(bom)?.tasks[0].department).toBe("strategy");
   });
 });
