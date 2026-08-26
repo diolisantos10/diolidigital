@@ -604,10 +604,31 @@ export async function generate(options: {
           ? [preferido]
           : [preferido, ...preferenceOrder().filter((p) => p !== preferido)])
       : preferenceOrder();
+  // ── TURNO SEM TEXTO NÃO VAI AO PROVEDOR (medido, 26/08/2026) ─────────────
+  //
+  // ⚠️ MEDIDO NO LIVRO-CAIXA DE PRODUÇÃO: 4 chamadas do `comercial-sdr`
+  // devolveram **HTTP 400 — `messages.0.content: Field required`**, quatro
+  // segundos seguidos, e o turno inteiro do prospect se perdeu. `content` era
+  // `undefined`, então `JSON.stringify` apagava o campo e a Anthropic recusava
+  // o corpo. Índice 0 = o primeiro turno do HISTÓRICO, não a fala da vez.
+  //
+  // A origem é lá atrás (`montarConversa` do SDR faz `content: m.text` e o
+  // navegador pode mandar mensagem sem `text`), mas o conserto é AQUI, e de
+  // propósito: são 29 caminhos chamando esta camada, e qualquer um deles pode
+  // montar um turno vazio. Uma trava por chamador é a doença que esta casa já
+  // pagou — quem lembrasse de um esqueceria dos outros.
+  //
+  // Descartar é o certo, e não abortar: um turno vazio não tem informação
+  // nenhuma a perder, e derrubar a conversa por causa dele entregaria ao
+  // cliente exatamente o silêncio que o 400 já entregava.
+  const historicoLimpo = (options.historico ?? []).filter(
+    (t) => typeof t?.content === "string" && t.content.trim().length > 0,
+  );
+
   const messages: OpenAIMessages = {
     system: options.system,
     user: options.user,
-    ...(options.historico?.length ? { historico: options.historico } : {}),
+    ...(historicoLimpo.length ? { historico: historicoLimpo } : {}),
   };
 
   // A conta pode vir por dois caminhos, e o de cima manda: quem passou

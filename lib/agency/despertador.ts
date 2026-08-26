@@ -25,6 +25,7 @@ import { prisma } from "@/lib/db/client";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { dispatchWhatsAppNotifications } from "@/lib/integrations/meta/notifications";
 import { destravarPacote, pacotesTravados, reauditarSemArbitro } from "@/lib/agency/esteira/pacote-travado";
+import { apresentarPacotesProntos } from "@/lib/agency/esteira/pacote-travado";
 import { publicarAgendados } from "@/lib/agency/esteira/publicacao";
 import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
@@ -634,6 +635,16 @@ export async function baterORelogio(): Promise<{
     destravadas = await destravarPacotesBarrados();
   } catch (err) {
     quebrou("destravamento-de-pacote", err);
+  }
+
+  // Depois do destravamento, de propósito: a rodada que acabou de liberar uma
+  // peça é a mesma que pode entregar o pacote. Antes, o projeto liberado
+  // esperaria mais 5 minutos parado — e foi assim que ele esperou horas.
+  try {
+    const apresentados = await apresentarPacotesProntos(MAX_POR_RODADA);
+    if (apresentados > 0) estadoDe("pacote-pronto", `${apresentados} pacote(s) prontos e parados foram apresentados ao cliente`);
+  } catch (err) {
+    quebrou("apresentacao-de-pacote-pronto", err);
   }
 
   // ── O MATERIAL PRESO — 15/08/2026 ────────────────────────────────────────

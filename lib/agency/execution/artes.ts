@@ -2451,10 +2451,32 @@ async function montarCarrossel(
       // de 6 telas custa 6 imagens, e contá-lo como uma esconderia o item que
       // mais multiplica gasto nesta casa.
       conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine" },
-    }).catch(() => ({ ok: false as const, url: undefined }));
+    }).catch((e) => ({ ok: false as const, url: undefined, error: e instanceof Error ? e.message : "erro", reason: undefined }));
     gerou++;
 
-    if (!r.ok || !r.url) return { ok: false, gerou, erro: `não consegui gerar a tela ${i + 1} de ${cenas.length}` };
+    // ── O MOTIVO REAL SOBE. ANTES ELE MORRIA AQUI ─────────────────────────
+    //
+    // ⚠️ MEDIDO (cliente oculto, 7ª volta, 26/08/2026). Quatro posts nasceram
+    // `draft` com `mediaUrl: null` e a única coisa que a casa sabia dizer era
+    // *"arte: não consegui gerar a tela 1 de 4"*. Uma frase que não distingue
+    // código quebrado de chave sem crédito — e a diferença é entre uma dívida
+    // de engenharia e um bloqueio do CEO.
+    //
+    // O motivo EXISTIA o tempo todo. `generateDesign` devolve `error` e
+    // `reason`, e `AIRunLog` já gravava a frase inteira. Conferido no
+    // livro-caixa de produção: as 4 falhas de imagem daquela volta eram, todas,
+    // **"You have no credits remaining"** — conta da OpenAI zerada, não código.
+    // O `.catch(() => …)` desta linha jogava isso fora, e o irmão desta função
+    // (o post simples, linha ~637) já fazia certo. Duas contas parecidas em dois
+    // lugares, de novo.
+    //
+    // `reason` vem junto porque é o campo que se lê sem interpretar prosa:
+    // `not_configured` e `provider_error` são do CEO; `bad_request` é da casa.
+    if (!r.ok || !r.url) {
+      const porque = r.error?.trim() || "o gerador de imagem não devolveu nada";
+      const classe = r.reason ? ` [${r.reason}]` : "";
+      return { ok: false, gerou, erro: `não consegui gerar a tela ${i + 1} de ${cenas.length}: ${porque}${classe}` };
+    }
 
     const bytes = await baixarImagem(r.url).catch(() => null);
     if (!bytes) return { ok: false, gerou, erro: `não consegui baixar a tela ${i + 1}` };

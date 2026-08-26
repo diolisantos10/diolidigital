@@ -19,6 +19,7 @@ import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { statusPelaSolicitacao } from "@/lib/agency/esteira/retrato";
 import { lerFase } from "@/lib/agency/esteira/fases";
 import { aprovarDirecao, aprovarPacote } from "@/lib/agency/esteira/marcos";
+import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 
 export const maxDuration = 300;
 
@@ -257,7 +258,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!projeto) return NextResponse.json({ error: "Projeto não encontrado" }, { status: 404 });
 
   if (body.decisao === "aprovar_direcao") {
-    const r = await aprovarDirecao(projeto.id);
+    // ── RESPONDE CEDO, TRABALHA ATRÁS (medido, 7ª volta, 26/08/2026) ───────
+    //
+    // ⚠️ MEDIDO EM PRODUÇÃO: este clique segurava o cliente **mais de 2
+    // minutos** dentro da requisição. `aprovarDirecao()` rodava a PRODUÇÃO
+    // INTEIRA — seis entregas, dezenas de chamadas de IA — antes de devolver
+    // qualquer coisa ao navegador dele.
+    //
+    // Isso é ruim de dois jeitos, e o segundo é pior: o cliente fica olhando
+    // um botão girando e conclui que travou (e clica de novo); e qualquer
+    // tempo-limite no meio do caminho — proxy, navegador, celular que dorme —
+    // mata a resposta de uma produção que JÁ ACONTECEU. Ele não vê confirmação
+    // nenhuma de uma coisa que a casa fez inteira e cobrou.
+    //
+    // `produzirAgora: false` faz `aprovarDirecao` gravar `directionApprovedAt`,
+    // deixar o projeto em `executionStatus: "pending"` e avisar o cliente — que
+    // é o que ele precisa saber AGORA. A produção sai logo depois, sem `await`.
+    //
+    // E o `void` não é a única garantia, de propósito: `retomarProducao()` no
+    // despertador já varre exatamente `directionApprovedAt != null` +
+    // `executionStatus: "pending"`. Se este processo morrer no meio, o relógio
+    // pega o projeto na batida seguinte. Promessa solta sozinha seria esperança;
+    // com a rede do relógio atrás, é resposta cedo com trabalho garantido.
+    const r = await aprovarDirecao(projeto.id, { produzirAgora: false });
+    if (r.ok) {
+      void runProjectExecution(projeto.id).catch((e) => {
+        // Nunca derruba a resposta já enviada. O relógio retoma na próxima
+        // batida — este log é só para o motivo não sumir.
+        console.error(`[portal/esteira] produção de ${projeto.id} falhou fora da requisição:`,
+          e instanceof Error ? e.message : e);
+      });
+    }
     return NextResponse.json({ ok: r.ok, mensagem: r.ok ? "Direção aprovada. A produção já começou." : r.erro },
       { status: r.ok ? 200 : 409 });
   }

@@ -554,3 +554,129 @@ export async function reauditarSemArbitro(projectId: string): Promise<{
 
   return saida;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// O PACOTE PRONTO QUE NINGUÉM APRESENTOU
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ⚠️ MEDIDO EM PRODUÇÃO (cliente oculto, 7ª volta, 26/08/2026), e foi o ÚNICO
+// empurrão manual por defeito da casa naquela volta.
+//
+// O projeto `cmt9l4eu0005e0xmngtcm4w3o` ficou assim: direção aprovada,
+// pagamento registrado, todos os pedidos de material resolvidos, **as 6
+// entregas `quality_ok`**, `presentedAt: null`, `executionStatus: pending`.
+// Tudo verde. O relógio bateu, pegou o projeto, o motor rodou — e **nada
+// aconteceu, sem um evento sequer**. Foi preciso apresentar pela rota de
+// operador para o cliente ver alguma coisa.
+//
+// A causa é uma ausência, não um erro: a ÚNICA consulta da casa que procura
+// projeto não apresentado é `pacotesTravados()`, e ela exige uma entrega
+// TRAVADA (`quality_flag` ou `quality_nao_auditado`). Pacote sem nada travado e
+// não apresentado não está em lista nenhuma — invisível, silencioso, e o
+// cliente esperando. Zero paradas lidas não é verde; é vazio.
+//
+// Esta consulta é o complemento exato da outra: `pacotesTravados()` acha o que
+// está PARADO POR DEFEITO; esta acha o que está PARADO POR NADA. Juntas, nenhum
+// projeto não apresentado fica sem dono.
+//
+// ── AS TRÊS TRAVAS, E POR QUE CADA UMA ────────────────────────────────────
+//
+// 1. `directionApprovedAt` não pode ser nulo. Sem direção aprovada não existe
+//    pacote a apresentar — `apresentar()` recusaria, e chamá-la aqui só geraria
+//    ruído a cada 5 minutos.
+// 2. NENHUMA entrega em `quality_flag` nem `quality_nao_auditado`. Este é o
+//    ponto em que esta perna poderia virar o contorno que a casa proibiu: se
+//    ela pegasse pacote com ressalva, seria `mesmoComRessalva` por outro nome,
+//    automático e sem gente. Ela NÃO pega, e `apresentar()` continua recusando
+//    por conta própria — a trava é dupla de propósito.
+// 3. QUIETO HÁ UM TEMPO. Um pacote em produção tem entregas verdes enquanto as
+//    outras ainda nascem; apresentar no meio disso mostraria meio pacote ao
+//    cliente, que é exatamente o que o marco 2 existe para evitar. `running`
+//    fica fora pelo estado, e o silêncio de `updatedAt` cobre o resto.
+export const QUIETO_HA_MINUTOS = 15;
+
+export async function pacotesProntosNaoApresentados(workspaceId?: string) {
+  const corte = new Date(Date.now() - QUIETO_HA_MINUTOS * 60_000);
+  const projetos = await prisma.project.findMany({
+    where: {
+      presentedAt: null,
+      directionApprovedAt: { not: null },
+      executionStatus: { not: "running" },
+      updatedAt: { lt: corte },
+      ...(workspaceId ? { workspaceId } : {}),
+      // Tem o que apresentar…
+      deliverables: { some: {} },
+      // …e nada travado. `none` sobre a lista NOMEADA, e não `every` sobre o
+      // complemento: estado novo que aparecer no banco cai no lado seguro
+      // (entra na lista e é apresentável) só se não for um dos dois travados —
+      // e se um terceiro estado travado nascer, `apresentar()` ainda barra.
+      NOT: { deliverables: { some: { revisionStatus: { in: ["quality_flag", "quality_nao_auditado"] } } } },
+    },
+    select: {
+      id: true, name: true, clientId: true, updatedAt: true,
+      _count: { select: { deliverables: true } },
+    },
+    orderBy: { updatedAt: "asc" },
+  });
+
+  return projetos.map((p) => ({
+    projectId: p.id,
+    projeto: p.name,
+    clientId: p.clientId,
+    /** Há quanto tempo ele está pronto e parado. É este número que vira notícia. */
+    paradoDesde: p.updatedAt,
+    entregas: p._count.deliverables,
+  }));
+}
+
+/**
+ * O PACOTE PRONTO QUE NINGUÉM APRESENTOU — a perna que não existia.
+ *
+ * ⚠️ MEDIDO EM PRODUÇÃO (cliente oculto, 7ª volta, 26/08/2026). Foi o ÚNICO
+ * empurrão manual por defeito da casa naquela volta: o pacote ficou com a
+ * direção aprovada, o pagamento registrado, os pedidos de material resolvidos e
+ * **as 6 entregas `quality_ok`** — e `presentedAt` continuou `null`. O relógio
+ * bateu, pegou o projeto, o motor rodou, e **nada aconteceu, sem um evento
+ * sequer**. Foi preciso apresentar pela rota de operador.
+ *
+ * A casa tinha rede para o pacote parado POR DEFEITO (`destravarPacotesBarrados`)
+ * e nenhuma para o parado POR NADA. Nada pronto pode ficar parado sem dono e
+ * sem próxima ação.
+ *
+ * ── ESTA PERNA NÃO É UM CONTORNO, E A DIFERENÇA É O TODO ──────────────────
+ *
+ * `apresentar()` é chamada **sem `mesmoComRessalva`**, e nunca com. Se a
+ * Qualidade retiver o pacote, ela retém — isso é RESULTADO, e o pacote volta
+ * para a perna do destravamento, que é onde ele tem conserto. A consulta já
+ * exclui pacote com ressalva; a recusa de `apresentar()` é a segunda trava, e
+ * as duas são de propósito. Uma perna automática que apresentasse assim mesmo
+ * seria `mesmoComRessalva` por outro nome — o único freio da casa, desligado
+ * sem gente e sem testemunha.
+ *
+ * O que ela devolve é o número de pacotes que CHEGARAM AO CLIENTE. Recusa não
+ * conta como apresentação: contar seria a mesma mentira de estado que "destravei
+ * 8" enquanto o cliente continuava sem ver a entrega (26/08, dívida anterior).
+ */
+export async function apresentarPacotesProntos(maxPorRodada = 5): Promise<number> {
+  const { apresentar } = await import("@/lib/agency/esteira/marcos");
+  const prontos = await pacotesProntosNaoApresentados();
+  let apresentados = 0;
+  for (const p of prontos.slice(0, maxPorRodada)) {
+    try {
+      const horas = Math.round((Date.now() - new Date(p.paradoDesde).getTime()) / 3_600_000);
+      const r = await apresentar(p.projectId);
+      if (r.ok && !r.erro) {
+        apresentados++;
+        console.log(`[despertador] pacote ${p.projectId} ("${p.projeto}") estava PRONTO e parado há ~${horas}h — apresentado ao cliente (${p.entregas} entrega(s))`);
+      } else if (r.erro) {
+        // Retido é notícia, não silêncio: quem lê o pulso precisa saber que a
+        // casa viu o pacote e por que ele não foi.
+        console.log(`[despertador] pacote ${p.projectId} pronto há ~${horas}h NÃO foi apresentado: ${r.erro}`);
+      }
+    } catch (err) {
+      console.log(`[despertador] pacote ${p.projectId} falhou ao apresentar: ${err instanceof Error ? err.message : "erro"}`);
+    }
+  }
+  return apresentados;
+}
+
