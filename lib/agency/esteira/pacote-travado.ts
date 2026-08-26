@@ -411,25 +411,146 @@ export async function pacotesTravados(workspaceId?: string) {
       presentedAt: null,
       executionStatus: { in: [...EXECUCOES_QUE_PODEM_ESTAR_TRAVADAS] },
       ...(workspaceId ? { workspaceId } : {}),
-      deliverables: { some: { revisionStatus: "quality_flag" } },
+      // ── O PACOTE QUE NINGUÉM AUDITOU TAMBÉM ESTÁ TRAVADO (26/08/2026) ────
+      //
+      // Medido em produção, cliente oculto, projeto `cmt9l4eu0005e0xmngtcm4w3o`:
+      // a auditoria bateu no `HTTP 429` do provedor, a peça ficou
+      // `quality_nao_auditado`, e `apresentar()` a segurou — corretamente, com
+      // a frase certa: *"não reescreva, destrave a auditoria"*.
+      //
+      // E aí o pacote sumiu. Este filtro só via `quality_flag`, então:
+      //   • `/api/pacotes-travados` não listava o projeto;
+      //   • o despertador não passava por ele;
+      //   • ninguém reauditava, nunca.
+      //
+      // Proibição sem instrução gêmea empurra o operador para o contorno — e o
+      // contorno aqui é `mesmoComRessalva`, que desliga o único freio da casa.
+      // O pacote parado por AUSÊNCIA de juiz é tão travado quanto o parado por
+      // reprovação; o conserto é que é outro, e por isso o campo é outro.
+      deliverables: { some: { revisionStatus: { in: ["quality_flag", "quality_nao_auditado"] } } },
     },
     select: {
       id: true, name: true, clientId: true, updatedAt: true,
       deliverables: {
-        where: { revisionStatus: "quality_flag" },
-        select: { id: true, name: true, lastFeedback: true, version: true },
+        where: { revisionStatus: { in: ["quality_flag", "quality_nao_auditado"] } },
+        select: { id: true, name: true, lastFeedback: true, version: true, revisionStatus: true },
       },
     },
     orderBy: { updatedAt: "asc" },
   });
 
-  return projetos.map((p) => ({
-    projectId: p.id,
-    projeto: p.name,
-    clientId: p.clientId,
-    desde: p.updatedAt,
-    reprovadas: p.deliverables,
-    /** Já esgotou as tentativas? Então está esperando gente, não a máquina. */
-    esperandoDecisao: p.deliverables.some((d) => d.version > MAX_TENTATIVAS_DE_REFAZER),
-  }));
+  return projetos.map((p) => {
+    // DUAS LISTAS, NUNCA UMA. "A Qualidade barrou" e "ninguém olhou" são fatos
+    // diferentes com consertos diferentes — juntá-los mandaria a equipe
+    // reescrever o que não tem defeito. É a mesma separação que `apresentar()`
+    // já faz na frase de recusa.
+    // A não auditada é a exceção NOMEADA; todo o resto que a consulta trouxe é
+    // reprovação. A direção do `filter` importa: se um dia o estado chegar
+    // vazio ou com nome novo, a peça cai na lista que GRITA (reprovadas), não
+    // na que some. Peça que não está em nenhuma das duas é peça invisível — foi
+    // exatamente esse o defeito que este bloco existe para não repetir.
+    const naoAuditadas = p.deliverables.filter((d) => d.revisionStatus === "quality_nao_auditado");
+    const reprovadas = p.deliverables.filter((d) => d.revisionStatus !== "quality_nao_auditado");
+    return {
+      projectId: p.id,
+      projeto: p.name,
+      clientId: p.clientId,
+      desde: p.updatedAt,
+      reprovadas,
+      /** Peças que NENHUM árbitro examinou. Não se reescreve: reaudita-se. */
+      naoAuditadas,
+      /** Já esgotou as tentativas? Então está esperando gente, não a máquina.
+       *  Vale só para as reprovadas: a nunca auditada não tem tentativa de
+       *  reescrita — ela espera um juiz, e um juiz pode voltar a qualquer hora. */
+      esperandoDecisao: reprovadas.some((d) => d.version > MAX_TENTATIVAS_DE_REFAZER),
+    };
+  });
+}
+
+/**
+ * A INSTRUÇÃO GÊMEA DA PROIBIÇÃO: reauditar o que ninguém olhou.
+ *
+ * `apresentar()` barra a peça `quality_nao_auditado` e diz, com todas as
+ * letras, *"não é defeito da peça: não reescreva, destrave a auditoria"*. Esta
+ * função é o "destravar" — e ela existe porque, sem ela, aquela frase era um
+ * pedido a um humano que nunca ficava sabendo do pacote.
+ *
+ * ⚠️ **NÃO REESCREVE NADA.** A peça não tem defeito conhecido: o que falta é
+ * juiz. Reescrever aqui seria trocar um problema de disponibilidade por uma
+ * versão nova sem motivo, e queimar IA de produção para isso.
+ *
+ * Fail-closed: árbitro que continua fora do ar deixa a peça exatamente como
+ * está — barrada. Ausência de parecer nunca vira aprovação.
+ */
+export async function reauditarSemArbitro(projectId: string): Promise<{
+  projectId: string;
+  aprovadas: string[];
+  reprovadas: string[];
+  aindaSemArbitro: string[];
+}> {
+  const saida = { projectId, aprovadas: [] as string[], reprovadas: [] as string[], aindaSemArbitro: [] as string[] };
+
+  const projeto = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, workspaceId: true, clientId: true, clientRequestId: true, presentedAt: true },
+  });
+  if (!projeto || projeto.presentedAt) return saida;
+
+  const semJuiz = await prisma.deliverable.findMany({
+    where: { projectId, revisionStatus: "quality_nao_auditado" },
+    select: { id: true, name: true, content: true, type: true, ownerAgentId: true },
+  });
+  if (semJuiz.length === 0) return saida;
+
+  const req = projeto.clientRequestId
+    ? await prisma.clientRequestDb.findUnique({
+        where: { id: projeto.clientRequestId },
+        select: { businessName: true, segment: true, services: true, objectives: true },
+      })
+    : null;
+  const negocio = req?.businessName ?? "o cliente";
+  const contextoDaMarca = [
+    `Negócio: ${negocio}`,
+    req?.segment ? `Segmento: ${req.segment}` : "",
+    listar(req?.services) ? `Serviços contratados: ${listar(req?.services)}` : "",
+    listar(req?.objectives) ? `Objetivos: ${listar(req?.objectives)}` : "",
+  ].filter(Boolean).join("\n");
+
+  for (const entrega of semJuiz) {
+    const esp = TODOS_OS_ESPECIALISTAS.find((e) => e.id === entrega.ownerAgentId);
+    const veredito = await auditDeliverable({
+      deptLabel: esp?.departamentoLabel ?? "Produção",
+      title: entrega.name,
+      content: entrega.content ?? "",
+      brandContext: contextoDaMarca,
+      workspaceId: projeto.workspaceId,
+      tipoDaEntrega: entrega.type,
+      clientId: projeto.clientId ?? null,
+      projectId: projeto.id,
+    }).catch(() => null);
+
+    // Sem parecer, NADA muda: a peça continua `quality_nao_auditado` e volta a
+    // aparecer na próxima rodada. É de propósito que não há teto de tentativas
+    // aqui — o teto existe para reescrita cara; reaudição espera o provedor
+    // voltar, e o custo de uma auditoria é a fração barata do pacote.
+    if (!veredito || (!foiAprovadaPelaQualidade(veredito.verdict) && !foiReprovadaPelaQualidade(veredito.verdict))) {
+      saida.aindaSemArbitro.push(entrega.name);
+      continue;
+    }
+
+    const aprovada = foiAprovadaPelaQualidade(veredito.verdict);
+    await prisma.deliverable.update({
+      where: { id: entrega.id },
+      data: {
+        revisionStatus: aprovada ? revisionStatusDoVeredito("aprovado") : revisionStatusDoVeredito("reprovado"),
+        qualityArbiter: veredito.arbitro ?? null,
+        qualityArbitragem: arbitragemDoVeredito(veredito),
+        lastFeedback: veredito.note ?? null,
+      },
+    }).catch(() => { /* best-effort: uma escrita perdida volta na próxima rodada */ });
+
+    (aprovada ? saida.aprovadas : saida.reprovadas).push(entrega.name);
+  }
+
+  return saida;
 }
