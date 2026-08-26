@@ -430,6 +430,34 @@ Estas regras valem para **todo** trabalho de interface neste projeto. Não são 
    **iterar sozinho** (ajustar e re-screenshotar) antes de mostrar. Ao apresentar,
    mostrar o **antes e depois**.
 
+## Antes de dar `push`: `tsc --noEmit` DEPOIS de escrever o teste
+
+O CI desta casa roda `npx tsc --noEmit` antes do `vitest`, e **três PRs
+seguidos foram barrados nele pelo mesmo motivo**, sempre em arquivo de teste
+novo que estava verde localmente:
+
+```
+error TS2322: Type 'string' is not assignable to type 'never'.
+error TS2493: Tuple type '[]' of length '0' has no element at index '0'.
+```
+
+A raiz é sempre a mesma: um mock criado com `vi.hoisted(() => vi.fn())` **sem
+assinatura**. O TypeScript infere `never[]` para as listas e `[]` para
+`mock.calls`, então `mock.calls[0][0]` e qualquer `string` dentro de um
+`mockResolvedValue` viram erro — e `vitest` não reclama, porque ele não checa
+tipo. Teste verde não é teste que compila.
+
+Duas regras, as duas baratas:
+
+1. **Anote o retorno do mock** quando ele devolver listas ou objetos:
+   `vi.fn(async (): Promise<{ aprovadas: string[] }> => ({ aprovadas: [] }))`.
+2. **Rode `npx tsc --noEmit` depois de escrever o teste, não antes.** Rodar
+   antes e commitar depois é o erro que produziu as três barradas.
+
+E a régua geral que vale para qualquer conserto por script: **`replace` sem
+`assert` não é conserto, é esperança.** Um `python -c` que imprime "ok" está
+falando do script, não do arquivo — confira o arquivo.
+
 ## Como rodar e ver o app localmente
 
 ```sh

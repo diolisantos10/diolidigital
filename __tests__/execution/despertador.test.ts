@@ -9,7 +9,11 @@ vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution }))
 vi.mock("@/lib/integrations/meta/notifications", () => ({ dispatchWhatsAppNotifications }));
 const destravarPacote = vi.hoisted(() => vi.fn());
 const pacotesTravados = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/agency/esteira/pacote-travado", () => ({ destravarPacote, pacotesTravados }));
+type ResultadoDaReauditoria = { aprovadas: string[]; reprovadas: string[]; aindaSemArbitro: string[] };
+const reauditarSemArbitro = vi.hoisted(() =>
+  vi.fn(async (): Promise<ResultadoDaReauditoria> => ({ aprovadas: [], reprovadas: [], aindaSemArbitro: [] })),
+);
+vi.mock("@/lib/agency/esteira/pacote-travado", () => ({ destravarPacote, pacotesTravados, reauditarSemArbitro }));
 
 import { baterORelogio, transicaoDeEstado } from "@/lib/agency/despertador";
 
@@ -179,5 +183,40 @@ describe("transição de estado — o que já foi dito não se repete", () => {
     const t = transicaoDeEstado(["decisao-do-dono::sem cliente"], []);
     expect(t.terminaram).toEqual(["decisao-do-dono::sem cliente"]);
     expect(t.comecaram).toEqual([]);
+  });
+});
+
+// ── DESTRAVAR A AUDITORIA E NÃO DEVOLVER O PACOTE É MEIO CONSERTO ───────────
+//
+// Medido em produção 20 minutos depois do deploy do conserto da reauditoria: o
+// relógio disse `destravadas: 8`, a peça passou a `quality_ok` julgada pelo
+// Gemini — e o pacote continuou sem ser apresentado, porque a re-enfileiração
+// olhava só o resultado da REESCRITA. Não havia nada a reescrever.
+//
+// Instrumento dizendo "destravei" com o cliente sem ver a entrega é pior que
+// instrumento calado.
+describe("a peça liberada pelo JUIZ também devolve o projeto ao fluxo", () => {
+  it("reauditoria aprovou e a reescrita não fez nada → o projeto é re-enfileirado", async () => {
+    pacotesTravados.mockResolvedValue([
+      { projectId: "p9", esperandoDecisao: false, naoAuditadas: [{ id: "d1", name: "Legendas" }] },
+    ]);
+    reauditarSemArbitro.mockResolvedValue({ aprovadas: ["Legendas"], reprovadas: [], aindaSemArbitro: [] });
+    destravarPacote.mockResolvedValue({ projectId: "p9", corrigidas: [], persistentes: [], escalado: false });
+
+    const r = await baterORelogio();
+    expect(r.destravadas).toBe(1);
+    expect(db.project.update.mock.calls.at(0)?.[0].data.executionStatus).toBe("pending");
+  });
+
+  it("MUTAÇÃO: nada liberado por ninguém → NÃO re-enfileira", async () => {
+    pacotesTravados.mockResolvedValue([
+      { projectId: "p9", esperandoDecisao: false, naoAuditadas: [{ id: "d1", name: "Legendas" }] },
+    ]);
+    reauditarSemArbitro.mockResolvedValue({ aprovadas: [], reprovadas: [], aindaSemArbitro: ["Legendas"] });
+    destravarPacote.mockResolvedValue({ projectId: "p9", corrigidas: [], persistentes: [], escalado: false });
+
+    const r = await baterORelogio();
+    expect(r.destravadas).toBe(0);
+    expect(db.project.update).not.toHaveBeenCalled();
   });
 });

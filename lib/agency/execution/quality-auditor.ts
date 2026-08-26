@@ -353,6 +353,45 @@ export function eLimiteDeTaxa(erro?: string | null): boolean {
       || e.includes("quota");
 }
 
+/**
+ * O árbitro RESPONDEU, mas o que veio não dá para ler como parecer: corpo
+ * vazio, JSON quebrado, ou JSON válido sem veredito reconhecível.
+ *
+ * ── Por que isto ganhou nome próprio (26/08/2026) ──────────────────────────
+ * Medido na 7ª volta de cliente oculto, em produção: OpenAI devolveu 429,
+ * DeepSeek devolveu corpo VAZIO e Gemini devolveu JSON INVÁLIDO. A peça foi
+ * retida — o que está certo — mas retida DEPOIS DE UMA VOLTA SÓ, porque a
+ * segunda volta na fila era guardada por `if (!houve429) break`. Ou seja: a
+ * casa desistia de dois árbitros vivos que tinham apenas gaguejado.
+ *
+ * `generate` já classifica "vazia" e "json" como TRANSITÓRIOS e repete por
+ * dentro (`isTransientError` / `callWithRetry`). O auditor discordava do seu
+ * próprio motor: tratava como veredito final o que o motor chama de soluço.
+ * Agora as duas metades concordam.
+ *
+ * O que NÃO muda: continua fail-closed. Mais uma volta é mais uma CHANCE de
+ * achar juiz — nunca um caminho para aprovar sem juiz. Fila esgotada retém.
+ */
+export function eRespostaIlegivel(erro?: string | null): boolean {
+  const e = (erro ?? "").toLowerCase();
+  return e.includes("vazia") || e.includes("json inválido") || e.includes("json invalido")
+      || e.includes("resposta ilegível");
+}
+
+/**
+ * Esta falha merece outra volta na fila inteira?
+ *
+ * Só o que o tempo conserta: fila cheia (429), soluço de formato (vazio/JSON
+ * quebrado), timeout e queda de rede. Falta de chave NÃO merece — provedor sem
+ * chave não ganha chave esperando, e insistir só atrasa a retenção honesta.
+ */
+export function mereceOutraVolta(erro?: string | null): boolean {
+  if (eFaltaDeChave(erro)) return false;
+  const e = (erro ?? "").toLowerCase();
+  return eLimiteDeTaxa(erro) || eRespostaIlegivel(erro)
+      || e.includes("timeout") || e.includes("rede") || /http 5\d\d/.test(e);
+}
+
 /** O erro é "esse provedor não tem chave"? Ausência de chave NÃO é falha do
  *  provedor — é o árbitro não existir nesta casa. Motivos diferentes, consertos
  *  diferentes: um pede espera, o outro pede uma chave nova. */
@@ -648,23 +687,44 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
     let ultimaFalha: string | null = null;
     let houve429 = false;
     let houveTimeout = false;
+    // Alguém RESPONDEU ilegível em QUALQUER ponto da fila — não só por último.
+    // `ultimaFalha` sozinha é memória de um item só: com três árbitros, o
+    // "resposta vazia" do DeepSeek era apagado pelo "JSON inválido" do Gemini,
+    // e a retenção saía carimbada `ia_indisponivel` — "o provedor caiu" — sobre
+    // dois provedores que estavam de pé e falando. Motivo errado manda o dono
+    // investigar a coisa errada.
+    let houveIlegivel = false;
+    // Alguma falha da volta merece outra volta? Ver `mereceOutraVolta`.
+    let valeOutraVolta = false;
     let todosSemChave = fila.length > 0;
 
     for (let volta = 0; volta < VOLTAS_DO_ARBITRO; volta++) {
       if (volta > 0) {
-        // Só vale outra volta se o que derrubou a fila foi VOLUME. Provedor sem
-        // chave não ganha chave esperando, e resposta ilegível não melhora.
-        if (!houve429) break;
+        // Só vale outra volta se o que derrubou a fila for coisa que o TEMPO
+        // conserta: volume (429), soluço de formato (corpo vazio / JSON
+        // quebrado), timeout, rede. Provedor sem chave não ganha chave
+        // esperando — esse continua sem segunda volta.
+        //
+        // A versão anterior escrevia aqui "resposta ilegível não melhora", e
+        // isso é falso pelo próprio motor da casa: `generate.isTransientError`
+        // trata "vazia" e "json" como transitórios e repete. A 7ª volta de
+        // cliente oculto pagou a conta — DeepSeek vazio + Gemini JSON inválido,
+        // uma volta só, peça retida sem segunda chance.
+        if (!valeOutraVolta) break;
         await new Promise((r) => setTimeout(r, ESPERA_ENTRE_VOLTAS_MS * volta));
       }
 
       for (const candidato of fila) {
         const tentativa = await chamarArbitro(candidato);
 
-        if (tentativa.tipo === "timeout") { houveTimeout = true; todosSemChave = false; continue; }
+        if (tentativa.tipo === "timeout") {
+          houveTimeout = true; todosSemChave = false; valeOutraVolta = true; continue;
+        }
         if (tentativa.tipo === "falha") {
           ultimaFalha = tentativa.erro;
           if (eLimiteDeTaxa(tentativa.erro)) houve429 = true;
+          if (eRespostaIlegivel(tentativa.erro)) houveIlegivel = true;
+          if (mereceOutraVolta(tentativa.erro)) valeOutraVolta = true;
           if (!eFaltaDeChave(tentativa.erro)) todosSemChave = false;
           continue;
         }
@@ -680,7 +740,12 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
         // Resposta que não traz veredito legível NÃO é aprovação. Este `return`
         // é o conserto do `d.verdict === "flag" ? "flag" : "pass"` antigo, onde
         // `{}`, `null` e "talvez" todos viravam aprovação silenciosa.
-        if (veredito === null) { todosSemChave = false; ultimaFalha = "resposta ilegível"; continue; }
+        // JSON válido, veredito inelegível. É soluço de formato como qualquer
+        // outro: próximo árbitro AGORA, e a fila inteira de novo depois.
+        if (veredito === null) {
+          todosSemChave = false; ultimaFalha = "resposta ilegível";
+          houveIlegivel = true; valeOutraVolta = true; continue;
+        }
 
         const issues = Array.isArray(tentativa.data.issues)
           ? tentativa.data.issues.filter((x): x is string => typeof x === "string") : [];
@@ -704,7 +769,9 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
     if (houve429) return semArbitro("limite_de_taxa");
     if (todosSemChave || fila.length === 0) return semArbitro("juiz_nao_imparcial");
     if (houveTimeout && ultimaFalha === null) return semArbitro("timeout");
-    if (ultimaFalha === "resposta ilegível") return semArbitro("resposta_invalida");
+    // `houveIlegivel`, não `ultimaFalha === "resposta ilegível"`: o motivo é
+    // sobre a FILA INTEIRA, e não sobre quem falou por último.
+    if (houveIlegivel) return semArbitro("resposta_invalida");
     return semArbitro("ia_indisponivel");
   } catch {
     return semArbitro("erro");

@@ -24,6 +24,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { destravarPorMaterial } from "@/lib/agency/esteira/materiais";
 import {
   montarMateriaisDaMarca,
   DEPARTAMENTO_DO_BRAND_BOOK,
@@ -218,7 +219,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // produção dele com uma resposta que não é dele.
   const pedido = await prisma.materialRequest.findFirst({
     where: { id: pedidoId, status: "pending", project: { clientId: dono.clientId } },
-    select: { id: true, description: true, project: { select: { clientRequestId: true } } },
+    // `projectId` e `requestedByAgentId` entram aqui porque o destrave precisa
+    // deles — sem o agente, a tarefa dele fica marcada como bloqueada para
+    // sempre mesmo depois de o cliente responder.
+    select: {
+      id: true, description: true, projectId: true, requestedByAgentId: true,
+      project: { select: { clientRequestId: true } },
+    },
   }).catch(() => null);
   if (!pedido) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
@@ -248,8 +255,39 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Não consegui registrar sua resposta agora. Tente de novo." }, { status: 503 });
   }
 
+  // ── A PROMESSA QUE ESTA ROTA FAZ, E QUE ELA NÃO CUMPRIA (26/08/2026) ──────
+  //
+  // O `recado` abaixo diz ao cliente, com todas as letras: *"A produção volta a
+  // andar com isso"*. Até esta linha existir, ela não voltava. Esta rota era a
+  // ÚNICA porta que o cliente tem para fechar um pedido de material — dizer
+  // "mandei", "não tenho", "já está no Drive" — e fechava o pedido sem mover a
+  // tarefa do agente travado e sem devolver o projeto para a fila. A porta da
+  // EQUIPE (`PATCH /api/material-requests/[id]`) sempre destravou; a do CLIENTE
+  // não. Duas portas, um destrave.
+  //
+  // Medido em produção em 26/08/2026: 30 pedidos no workspace, 30 `pending`,
+  // ZERO fechados desde sempre. Promessa escrita ao cliente que o código não
+  // cumpre é a pior classe de defeito: não quebra, não acusa, e o cliente
+  // espera.
+  //
+  // Best-effort de propósito: a resposta do cliente JÁ FOI GRAVADA na transação
+  // acima. Se o destrave falhar, o que não pode acontecer é perder a resposta
+  // dele e mandá-lo digitar de novo — o despertador reencontra o projeto pela
+  // fila, mas ninguém reencontra uma frase que o cliente já deu.
+  const retomada = await destravarPorMaterial({
+    projectId: pedido.projectId,
+    requestedByAgentId: pedido.requestedByAgentId,
+  }).catch((e) => {
+    console.error("[portal/materiais] resposta gravada, destrave falhou:", e instanceof Error ? e.message : e);
+    return null;
+  });
+
   return NextResponse.json({
     ok: true,
     recado: "Anotado. A produção volta a andar com isso — se faltar mais alguma coisa, a gente te avisa por aqui.",
+    // O que a casa REALMENTE fez, para a tela não ter que adivinhar: quantos
+    // pedidos ainda faltam e se a produção foi mesmo re-enfileirada agora.
+    aindaFaltam: retomada?.aindaFaltam ?? null,
+    producaoRetomada: retomada?.producaoRetomada ?? false,
   });
 }
