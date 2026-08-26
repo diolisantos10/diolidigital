@@ -63,6 +63,31 @@ export interface RetratoDoProjeto {
   aprovadoPeloClienteEm?: Date | string | null;
   /** idle | pending | running | done | failed */
   execucao?: string | null;
+  /**
+   * ── O CARIMBO DA PRODUÇÃO CONCLUÍDA (Fase 1, 26/08/2026) ─────────────────
+   *
+   * Quando uma passada de produção terminou com TUDO resolvido. Derivado de
+   * `executionFinishedAt` com `executionError` vazio — o único par que a casa
+   * grava e não apaga.
+   *
+   * ── POR QUE PRECISOU EXISTIR ─────────────────────────────────────────────
+   *
+   * A 10ª volta consertou a barra que caía de 50% para 25% pondo um PISO
+   * derivado dos carimbos. A régua de propriedade escrita nesta fase
+   * (`o-andamento-e-monotonico.test.ts`) achou o conserto INCOMPLETO: o degrau
+   * `revisao_interna` (63%) não sai de carimbo nenhum — sai de CONTAGEM
+   * (`tarefas.entregues === tarefas.total`, ou `execucao === "done"`). O mesmo
+   * reinício de contêiner que produziu o defeito original leva a barra de
+   * **63% para 50%**, pelo mesmo caminho e sem que nada fique vermelho.
+   *
+   * Contagem não pode virar piso — é ela que oscila. Carimbo pode. Este é o
+   * carimbo que faltava, e ele já estava no banco: ninguém o estava lendo.
+   *
+   * ⚠️ Fail-open para baixo, como o resto do piso: leitura que falha vira
+   * `undefined` e a barra fica exatamente como sempre foi. Ausência de carimbo
+   * não promove ninguém.
+   */
+  producaoConcluidaEm?: Date | string | null;
   tarefas: { total: number; entregues: number; produzindo: number; bloqueadas: number };
   entregaveis: {
     total: number;
@@ -220,7 +245,19 @@ const POSICAO: Partial<Record<FaseId, number>> = (() => {
   const m: Partial<Record<FaseId, number>> = {};
   TRILHA.forEach((t, i) => { m[t.fase] = i; });
   m.negociacao = m.orcamento;
-  m.aguardando_cliente = m.producao;
+  // ── ESPERAR MATERIAL NÃO É ESTAR PRODUZINDO (Fase 1, 26/08/2026) ─────────
+  //
+  // Herdava a posição da PRODUÇÃO (50%). Mas o ramo do material devolve ANTES
+  // do portão de direção em `lerFase` — ou seja, um projeto que ainda nem tem
+  // direção aprovada lia 50% só porque havia pedido de material aberto. E aí,
+  // quando o cliente RESPONDIA, o pedido fechava e a leitura caía para o portão
+  // de direção: **50% → 38%**. O cliente fazia a parte dele e a barra andava
+  // para trás. Achado pela régua de propriedade (`o-andamento-e-monotonico`).
+  //
+  // Herdando o DESENHO, o número antes da direção é o honesto (25%) e o de
+  // depois continua 50% — porque aí o piso do carimbo `direcaoAprovadaEm`
+  // segura, que é exatamente o trabalho do piso.
+  m.aguardando_cliente = m.desenho;
   // Fora da trilha visível de propósito: o cliente não precisa de um degrau
   // "pagamento" no caminho dele. Ele herda a posição do DESENHO — que é onde a
   // esteira de fato está parada enquanto o dinheiro não entra.
@@ -251,6 +288,10 @@ export function pisoDaTrilha(r: RetratoDoProjeto): number {
   if (r.propostaAceita) nao_abaixo_de("desenho");
   // Direção aprovada é botão que o CLIENTE apertou: a etapa de desenho acabou.
   if (preenchido(r.direcaoAprovadaEm)) nao_abaixo_de("producao");
+  // Produção concluída é passada que TERMINOU com tudo resolvido — o degrau da
+  // revisão interna deixou de depender de contagem. Ver
+  // `RetratoDoProjeto.producaoConcluidaEm`.
+  if (preenchido(r.producaoConcluidaEm)) nao_abaixo_de("revisao_interna");
   // Apresentado é o pacote na mão dele.
   if (preenchido(r.apresentadoEm)) nao_abaixo_de("aprovacao_cliente");
   if (preenchido(r.aprovadoPeloClienteEm)) nao_abaixo_de("implementacao");

@@ -49,6 +49,9 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     select: {
       id: true, name: true, clientRequestId: true, stage: true,
       executionStatus: true, directionApprovedAt: true, presentedAt: true, clientApprovedAt: true,
+      // O carimbo da produção concluída — já estava no banco e ninguém lia.
+      // Ver `RetratoDoProjeto.producaoConcluidaEm`.
+      executionFinishedAt: true, executionError: true,
       workspaceId: true, clientId: true,
       client: { select: { name: true } },
     },
@@ -157,6 +160,12 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     apresentadoEm: projeto.presentedAt,
     aprovadoPeloClienteEm: projeto.clientApprovedAt,
     execucao: projeto.executionStatus,
+    // ── O CARIMBO, NÃO O STATUS ────────────────────────────────────────────
+    // `executionStatus` oscila (um reinício de contêiner o põe em `pending`);
+    // `executionFinishedAt` não é apagado nunca. O par com `executionError`
+    // vazio é o único que diz "uma passada TERMINOU com tudo resolvido" — que
+    // é o que o degrau da revisão interna significa. Ver `pisoDaTrilha`.
+    producaoConcluidaEm: projeto.executionError ? null : projeto.executionFinishedAt,
     tarefas,
     entregaveis: {
       total, emRevisao, comRessalva, aprovados, semAuditoria,
