@@ -111,7 +111,13 @@ export function proposeProjectRuleBased(snapshot: ClientKnowledgeSnapshot): Proj
     tasks.push({
       title: "Alinhar Brand Brain com o cliente",
       description: `Coletar campos ausentes antes da produção em escala: ${snapshot.missingFields.join(", ")}.`,
-      department: "project-management",
+      // O Brand Brain é do BRANDING, e branding tem gerente de verdade.
+      // Enquanto esta linha dizia `project-management`, a tarefa era despachada
+      // ao gerente daquele departamento — que é o PRÓPRIO Gerente Geral — e
+      // recusada com "não despacha para si mesmo", toda vez que o Brand Brain
+      // estivesse incompleto. Medido em produção na 8ª volta.
+      // Ver `ORCHESTRATOR_DEPTS`, em `lib/agency/intelligence/openai-schemas.ts`.
+      department: "branding",
       priority: snapshot.missingFields.length >= 5 ? "high" : "medium",
       estimatedDays: 2,
     });
