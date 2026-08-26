@@ -1,7 +1,7 @@
 ---
 titulo: "Graph API — primeiros passos (chamadas, Explorer, host)"
 url: https://developers.facebook.com/docs/graph-api/get-started
-capturado_em: 2026-08-25
+capturado_em: 2026-08-26
 hash: b29e9710d3753e28
 ---
 

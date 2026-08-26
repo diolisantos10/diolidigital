@@ -1,7 +1,7 @@
 ---
 titulo: "Graph API — requisições seguras (appsecret_proof, segredo do app)"
 url: https://developers.facebook.com/docs/graph-api/guides/secure-requests
-capturado_em: 2026-08-25
+capturado_em: 2026-08-26
 hash: 9b45c6ffe1e45158
 ---
 
