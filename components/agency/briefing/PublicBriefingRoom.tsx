@@ -8,6 +8,7 @@ import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live
 import { montarAvisoDeAnexo } from "@/lib/agency/anexo-nao-e-resposta";
 import { semMarcacao } from "@/lib/agency/texto-sem-marcacao";
 import { unirLacunas, type LacunaDeEscopo } from "@/lib/agency/comercial/lacuna-de-escopo";
+import { escopoComRetratacao, canalFoiRetratado, CAMPO_DO_CANAL } from "@/lib/agency/comercial/retratacao";
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
@@ -1100,6 +1101,18 @@ export function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknow
   if (!patch || typeof patch !== "object") return base;
   const out: BriefingScope = { ...base };
 
+  // ── A RETRATAÇÃO ATRAVESSA O GAP-FILL PORQUE ELA SÓ CRESCE ───────────────
+  //
+  // Este merge é gap-fill DECLARADO: por construção ele não apaga nada. Foi
+  // por aqui que o telefone retratado voltou em produção (8ª volta) — o
+  // servidor tinha ouvido "esquece o WhatsApp" e mandado o patch sem o campo,
+  // e "campo ausente" aqui significa "preserva o que já havia".
+  //
+  // A marca (`canaisRetratados`) é a única forma que atravessa: ela é positiva
+  // e cumulativa. O apagamento acontece DEPOIS do merge, uma vez, lendo a
+  // marca — e não vira uma segunda regra de deleção espalhada pelos campos.
+  // Ver `lib/agency/comercial/retratacao.ts`.
+
   const fillStr = (key: "prospectName" | "businessName" | "segment" | "targetAudience" | "prospectPhone" | "budgetRange" | "deadline") => {
     if (!out[key] && typeof patch[key] === "string" && (patch[key] as string).trim()) {
       out[key] = (patch[key] as string).trim();
@@ -1235,6 +1248,20 @@ export function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknow
                          : Array.isArray(pt.platforms) ? (pt.platforms as unknown[]).filter((x): x is string => typeof x === "string") : [],
       monthlyAdBudget: cur.monthlyAdBudget ?? (typeof pt.monthlyAdBudget === "string" ? pt.monthlyAdBudget : undefined),
     };
+  }
+
+  const saida = out as unknown as Record<string, unknown>;
+  const retratado = escopoComRetratacao({ ...saida, ...patch }, "");
+  const marcas = retratado.canaisRetratados;
+  if (Array.isArray(marcas) && marcas.length > 0) {
+    saida.canaisRetratados = marcas;
+    for (const canal of marcas) {
+      const campo = CAMPO_DO_CANAL[canal as "whatsapp" | "email"];
+      if (campo) delete saida[campo];
+    }
+    if (typeof retratado.preferredChannel === "string") {
+      saida.preferredChannel = retratado.preferredChannel;
+    }
   }
 
   return out;
@@ -1741,7 +1768,18 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
       // ⛔ Ele vem de `sdr.contatoOferecido`, NUNCA do `scope`: e-mail não
       // trafega pelo caminho do modelo. Ver `SDRAgentState.contatoOferecido`.
       prospectEmail: contato?.email || scope.prospectEmail || sdr.contatoOferecido?.email,
-      prospectPhone: contato?.whatsapp || scope.prospectPhone,
+      // ── O QUE ELE DESDISSE NA CONVERSA VENCE O QUE ELE DEIXOU NA PORTA ────
+      //
+      // Aqui era o SEGUNDO cano do número retratado (8ª volta): a porta vem
+      // primeiro nesta linha — e ela é ANTERIOR à retratação. O cliente deixou
+      // o WhatsApp ao entrar, disse "esquece o WhatsApp" dez turnos depois, e
+      // este `||` devolvia o número da porta na hora do envio.
+      //
+      // Declaração mais NOVA manda sobre declaração mais VELHA. A porta continua
+      // ganhando de palpite; ela não ganha de retratação.
+      prospectPhone: canalFoiRetratado(scope, "whatsapp")
+        ? undefined
+        : contato?.whatsapp || scope.prospectPhone,
       prospectName:  scope.prospectName ?? contato?.nome ?? "",
     };
     const rawText = buildRawText(conv.messages);
@@ -1759,7 +1797,12 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
       businessName:     mergedScope.businessName ?? "",
       segment:          mergedScope.segment ?? "",
       sdrHandoff:       buildHandoffSummary(conv, sdr),
-      contato,
+      // E o `contato` bruto vai pelo mesmo crivo: ele é gravado como
+      // `briefingJson.contato` e é DELE que a solicitação tira `contato.whatsapp`
+      // — o terceiro lugar onde o número retratado reapareceu.
+      contato: contato && canalFoiRetratado(scope, "whatsapp")
+        ? { ...contato, whatsapp: "" }
+        : contato,
     });
   }
 

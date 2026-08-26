@@ -40,6 +40,7 @@ import { cobrarPedidosEsquecidos } from "@/lib/agency/esteira/pedidos";
 import { fazerBackup, estadoDoBackup } from "@/lib/agency/backup";
 import { registrarBatida, type FalhaDaRodada, type EstadoDaRodada } from "@/lib/agency/pulso";
 import { vigiarAMadrugada } from "@/lib/agency/vigia-da-madrugada";
+import { propostasParadas, apenasNaoEntregues, fraseDaParada, MINUTOS_DE_PACIENCIA } from "@/lib/agency/esteira/proposta-parada";
 
 /** De quanto em quanto tempo a agência olha se tem trabalho parado. */
 const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5 * 60_000);
@@ -645,6 +646,41 @@ export async function baterORelogio(): Promise<{
     if (apresentados > 0) estadoDe("pacote-pronto", `${apresentados} pacote(s) prontos e parados foram apresentados ao cliente`);
   } catch (err) {
     quebrou("apresentacao-de-pacote-pronto", err);
+  }
+
+  // ── A MESMA PERGUNTA, UMA ETAPA ANTES NO FUNIL (8ª volta, 26/08/2026) ─────
+  //
+  // A perna acima cuida do PACOTE pronto e parado. Uma etapa antes, a PROPOSTA
+  // escrita e parada não tinha olho nenhum: a solicitação do cliente oculto
+  // ficou 27 minutos em `proposal_pending` com a proposta pronta, zero cards,
+  // zero eventos, e o portal dele dizendo "Conhecendo o seu negócio · 0%".
+  // Foi o único empurrão por defeito da volta inteira.
+  //
+  // Ela não aparecia em varredura nenhuma porque não estava FALHANDO: estava
+  // num estado válido, quieta, com o número certo dentro. Estado terminal
+  // silencioso é a forma mais cara de defeito que esta casa conhece.
+  //
+  // ⚠️ DOIS BALDES, e a separação é o ponto:
+  //   • proposta que nunca CHEGOU ao cliente → `quebrou`. É defeito da casa, tem
+  //     dono (Atendimento) e próxima ação, e acorda quem lê alarme;
+  //   • proposta entregue e sem resposta → `estadoDe`. Não é defeito, é a espera
+  //     legítima do funil — mas é NOMEADA, porque proposta que envelhece calada
+  //     é venda que morre sem ninguém saber.
+  //
+  // Esta perna OLHA e não age: ela não escreve proposta, não cria card e não
+  // muda status. Agir sozinha aqui seria mandar ao cliente uma proposta que
+  // ninguém sabe por que parou — e o conserto de um funil parado não pode ser
+  // um segundo caminho de entrega divergindo do primeiro.
+  try {
+    const paradas = await propostasParadas();
+    const naoEntregues = apenasNaoEntregues(paradas);
+    for (const p of naoEntregues) quebrou("proposta-parada", fraseDaParada(p));
+    const semResposta = paradas.filter((p) => p.dono === "cliente");
+    if (semResposta.length > 0) {
+      estadoDe("proposta-parada", `${semResposta.length} proposta(s) entregue(s) e sem resposta do cliente há mais de ${MINUTOS_DE_PACIENCIA} min`);
+    }
+  } catch (err) {
+    quebrou("proposta-parada", err);
   }
 
   // ── O MATERIAL PRESO — 15/08/2026 ────────────────────────────────────────

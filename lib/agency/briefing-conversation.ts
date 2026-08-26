@@ -166,6 +166,24 @@ export interface BriefingScope {
   prospectName?: string;
   prospectEmail?: string;
   prospectPhone?: string;
+  /** Por onde o cliente escolheu ser avisado: "email" | "whatsapp". */
+  preferredChannel?: string;
+  /**
+   * OS CANAIS QUE O CLIENTE DESDISSE — e por que isto é um campo, e não uma
+   * ausência.
+   *
+   * 8ª volta do cliente oculto (26/08/2026): ele escreveu "esquece o WhatsApp,
+   * prefiro e-mail" e o número reapareceu em `briefingJson.scope.prospectPhone`
+   * e em `contato.whatsapp`. O modelo tinha ouvido — o turno seguinte já não
+   * trazia o telefone. O que não existia era um jeito de a retratação
+   * ATRAVESSAR os merges: o escopo acumulado do servidor sobrescreve, o
+   * `mergeScopeGaps` do navegador só preenche buraco, e a porta de gravação lê
+   * o contato da PORTA antes do escopo. Deleção some no primeiro merge.
+   *
+   * Uma lista que só CRESCE atravessa os três sem que nenhum deles aprenda a
+   * apagar. Ver `lib/agency/comercial/retratacao.ts`.
+   */
+  canaisRetratados?: string[];
 }
 
 // ── Live estimate ─────────────────────────────────────────────────────────────

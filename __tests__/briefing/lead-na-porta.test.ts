@@ -70,13 +70,24 @@ describe("dá para entrar sem deixar contato — e a consequência é dita na ho
 describe("o contato da porta chega ao pedido", () => {
   it("o contato declarado na porta tem precedência sobre o da conversa", () => {
     // Capturar e não enviar seria a mesma seta faltando de sempre.
-    expect(PAGINA).toMatch(/const contato = contatoDaPorta \?\? data\.contato/);
+    expect(PAGINA).toMatch(/const contatoBruto = contatoDaPorta \?\? data\.contato/);
     expect(PAGINA).toMatch(/contato,/);
   });
 
   it("nome, e-mail e telefone da porta preenchem o cadastro do prospect", () => {
     expect(PAGINA).toMatch(/prospectName: contatoDaPorta\?\.nome/);
     expect(PAGINA).toMatch(/prospectEmail: contatoDaPorta\?\.email/);
-    expect(PAGINA).toMatch(/prospectPhone: contatoDaPorta\?\.whatsapp/);
+    expect(PAGINA).toMatch(/contatoDaPorta\?\.whatsapp/);
+  });
+
+  // ── E A PRECEDÊNCIA TEM UM LIMITE (8ª volta, 26/08/2026) ─────────────────
+  //
+  // A porta ganha da CONVERSA porque declaração explícita ganha de palpite. Ela
+  // não ganha da RETRATAÇÃO: quem escreve "esquece o WhatsApp" dez turnos depois
+  // de entrar está fazendo a declaração mais NOVA. Medido em produção — o número
+  // da porta voltava inteiro para `contato.whatsapp` na solicitação gravada.
+  it("o canal que o cliente desdisse NÃO volta pela porta", () => {
+    expect(PAGINA).toMatch(/canalFoiRetratado\(data\.v2Scope, "whatsapp"\)/);
+    expect(PAGINA).toMatch(/whatsappRetratado \? "" :/);
   });
 });

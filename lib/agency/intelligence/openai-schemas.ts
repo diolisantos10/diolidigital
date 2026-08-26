@@ -214,7 +214,8 @@ export function buildPMOrchestratorMessages(input: PMOrchestratorInput): OpenAIM
   const system = `Você é o PM Orchestrator da Dioli Agência. Responda SEMPRE em português do Brasil.
 A partir do briefing do cliente, proponha UM projeto com tarefas distribuídas por departamento.
 Departamentos válidos (use exatamente estes ids no campo "department"):
-strategy, social-media, design, paid-traffic, analytics, project-management.
+strategy, social-media, design, paid-traffic, analytics.
+NUNCA use "project-management": coordenar o projeto é o SEU trabalho, não uma entrega do plano — e o gerente desse departamento é você mesmo.
 NUNCA invente fatos ausentes — se faltar informação, gere uma tarefa de coleta/alinhamento.
 Retorne APENAS um objeto JSON válido com exatamente estas chaves:
 {
@@ -240,7 +241,27 @@ Gere um plano de projeto acionável (nome, objetivo, estágio inicial e 4–8 ta
 }
 
 const PRIORITIES = ["critical", "high", "medium", "low"];
-const ORCHESTRATOR_DEPTS = ["strategy", "social-media", "design", "paid-traffic", "analytics", "project-management"];
+// ── POR QUE `project-management` SAIU DAQUI (8ª volta, 26/08/2026) ──────────
+//
+// MEDIDO EM PRODUÇÃO: `gerente_geral_recusou_demanda` — *"O Gerente Geral não
+// despacha para si mesmo — demanda que volta para o topo não anda."*
+//
+// A trava está CERTA e não se afrouxa. Quem estava errado é quem chamava: no
+// manifesto (`architecture.manifest.json`), o gerente do departamento
+// `project-management` é o próprio `gerente-geral`. Então TODA tarefa que
+// nascesse com esse departamento produzia, por construção, um despacho do
+// Gerente Geral para ele mesmo — e uma recusa. Não era um caso de borda: era
+// aritmética da cadeia de comando, e acontecia sempre.
+//
+// A porta que oferecia o departamento ao modelo era esta lista, e ela parou de
+// oferecê-lo. Coordenação de projeto não vira tarefa do plano em lugar nenhum:
+// o Gerente Geral coordena por ser o Gerente Geral, não por receber um card.
+// Reintroduzir `project-management` aqui é reintroduzir a recusa.
+//
+// ⚠️ E o conserto não é trocar por outro departamento. Tentei mandar para
+// `branding` e a jornada ponta-a-ponta reprovou: o departamento passou a receber
+// trabalho de PRODUÇÃO que o cliente não comprou. Ver `proposeProjectRuleBased`.
+const ORCHESTRATOR_DEPTS = ["strategy", "social-media", "design", "paid-traffic", "analytics"];
 
 export interface ValidatedTaskProposal {
   title: string;

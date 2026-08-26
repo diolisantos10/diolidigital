@@ -33,6 +33,7 @@ import type { AiProvider } from "@/lib/ai/resolve-key";
 import type { TurnoDeHistorico } from "@/lib/agency/intelligence/openai-schemas";
 import { ehPerguntaDeFaixa, faixaEscolhidaNaFala, formaDoPrecoNaFala, normalizarFaixa, ofertaParaFaixa } from "@/lib/agency/comercial/negociacao";
 import { parseBudgetAmount } from "@/lib/agency/sdr-agent";
+import { escopoComRetratacao } from "@/lib/agency/comercial/retratacao";
 // ATÉ 16/08/2026 ESTA ROTA NÃO ESCREVIA NADA. Zero chamadas a `prisma.`: o SDR
 // conversava, errava, e o diário do piloto mostrava `mensagens: 0` enquanto a
 // conversa acontecia. O porquê e as travas estão no cabeçalho do módulo.
@@ -56,6 +57,7 @@ import {
 import {
   identificarPergunta, vezesJaPerguntada, segundaFormulacao, oQueDizerNoLugar,
   LIMITE_DE_INSISTENCIA, O_QUE_A_PERGUNTA_DE_IA_COLHE,
+  perguntaJaRespondida, proximaPerguntaEmAberto, falaSobreOClienteEmTerceiraPessoa,
 } from "@/lib/agency/comercial/pergunta-repetida";
 import { acrescentarRespostaSemEncaixe, O_QUE_A_PERGUNTA_COLHE } from "@/lib/agency/comercial/pergunta-sem-encaixe";
 // ── O TETO DE GASTO DA PORTA DA RUA (24/08/2026) ────────────────────────────
@@ -1023,6 +1025,52 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // silêncio, que é pior que a repetição: o cliente fica olhando uma tela
     // muda.
     const perguntaDaVez = identificarPergunta(replyText);
+
+    // ── A PERGUNTA QUE O ESCOPO DESTE MESMO TURNO JÁ RESPONDEU (8ª volta) ────
+    //
+    // MEDIDO EM PRODUÇÃO: o SDR reperguntou o que o cliente ACABARA de
+    // responder. O contador logo abaixo não pega este caso — ele conta
+    // REPETIÇÕES e só freia na segunda. Aqui a pergunta saiu uma vez, e uma vez
+    // já era demais: `reply` e `scope` vêm do MESMO pacote do modelo, então ele
+    // grava o dado e pergunta o dado no mesmo fôlego.
+    //
+    // A régua olha o escopo ACUMULADO (o que o cliente já tinha dito + o que ele
+    // acabou de dizer), que é o mesmo lugar onde a fila lê "isto foi
+    // respondido?". Nenhuma segunda gramática: `perguntaJaRespondida` usa a
+    // FILA que já existe.
+    //
+    // E a proibição vem com a instrução gêmea: no lugar da pergunta respondida
+    // sai a PRÓXIMA em aberto. Calar deixaria o cliente olhando uma tela muda.
+    //
+    // ── E FALA-SE COM O CLIENTE, NÃO SOBRE ELE ──────────────────────────────
+    // Medido na mesma volta: *"você consegue me dizer se ELE já tem fotos?"*. O
+    // conserto é a redação canônica da fila, que é escrita na segunda pessoa —
+    // a mesma substituição, por um motivo diferente.
+    const escopoAcumulado = { ...(body.scope ?? {}), ...scopeDaVez };
+    if (perguntaDaVez) {
+      const jaRespondida = perguntaJaRespondida(perguntaDaVez, escopoAcumulado);
+      const emTerceiraPessoa = falaSobreOClienteEmTerceiraPessoa(replyText);
+      if (jaRespondida || emTerceiraPessoa) {
+        const proxima = proximaPerguntaEmAberto(escopoAcumulado, jaRespondida ? [perguntaDaVez] : []);
+        if (proxima) {
+          replyText = proxima;
+          console.warn(
+            `[sdr/chat] pergunta "${perguntaDaVez}" ${jaRespondida ? "JÁ RESPONDIDA no escopo" : "falava do cliente em 3ª pessoa"} — substituída pela próxima em aberto`,
+          );
+        } else if (jaRespondida) {
+          // Sondagem fechada e nada em aberto: a pergunta respondida vira o
+          // fecho, nunca a mesma pergunta de novo.
+          replyText =
+            "Já tenho o essencial do seu pedido — está tudo no resumo, ao lado. " +
+            "Se estiver certo, é só confirmar que eu preparo o seu orçamento.";
+          console.warn(`[sdr/chat] pergunta "${perguntaDaVez}" JÁ RESPONDIDA e nada em aberto — fecho`);
+        }
+        // Terceira pessoa sem nada em aberto: a fala do modelo passa. Substituir
+        // por um fecho tiraria do cliente a última pergunta da sondagem por uma
+        // questão de redação — o remédio seria pior que a doença.
+      }
+    }
+
     if (perguntaDaVez) {
       const doCorpo = body.messages
         .filter((m) => m.role === "assistant" && typeof m.text === "string")
@@ -1110,6 +1158,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           console.warn(`[sdr/chat] pergunta "${perguntaDaVez}" na 2ª vez — reformulada`);
         }
       }
+    }
+
+    // ── A RETRATAÇÃO, APLICADA SOBRE O ESCOPO ACUMULADO ────────────────────
+    //
+    // MEDIDO EM PRODUÇÃO (8ª volta): "esquece o WhatsApp, prefiro e-mail". O
+    // modelo OUVIU — o turno seguinte já não trazia `prospectPhone` — e o
+    // número reapareceu inteiro na solicitação gravada. Ouvir não bastava
+    // porque nenhuma das três memórias desta conversa sabe APAGAR: o escopo
+    // acumulado aqui sobrescreve, o `mergeScopeGaps` do navegador só preenche
+    // buraco, e a porta de gravação lê o contato da PORTA antes do escopo.
+    //
+    // O que atravessa merge é o que CRESCE, e por isso a retratação sai daqui
+    // como uma MARCA (`canaisRetratados`), não como um campo que sumiu. A marca
+    // vai no patch de resposta e viaja para as outras duas memórias, que a
+    // OBEDECEM — em vez de cada uma reimplementar um apagamento próprio.
+    //
+    // ⚠️ Lê-se sobre o escopo ACUMULADO (`body.scope` + o patch da vez), nunca
+    // só sobre o patch: a marca de um turno anterior tem de continuar valendo
+    // mesmo num turno em que o cliente não falou de canal nenhum — que é
+    // exatamente o turno em que o número voltou.
+    const acumulado = escopoComRetratacao({ ...(body.scope ?? {}), ...scopeDaVez }, body.currentMessage);
+    const retratados = acumulado.canaisRetratados;
+    if (Array.isArray(retratados) && retratados.length > 0) {
+      scopeDaVez = { ...scopeDaVez, canaisRetratados: retratados };
+      // O campo derrubado sai TAMBÉM do patch: mandá-lo de volta preenchido
+      // faria o navegador regravar o que o cliente acabou de desdizer.
+      delete (scopeDaVez as Record<string, unknown>).prospectPhone;
+      if (typeof acumulado.preferredChannel === "string") {
+        scopeDaVez = { ...scopeDaVez, preferredChannel: acumulado.preferredChannel };
+      }
+      console.warn(`[sdr/chat] canal(is) retratado(s) pelo cliente: ${retratados.join(", ")}`);
     }
 
     await registrar({ ...fio, doVisitante: body.currentMessage, doSdr: replyText });

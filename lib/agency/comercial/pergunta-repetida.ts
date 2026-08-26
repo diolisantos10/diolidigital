@@ -336,6 +336,77 @@ const FILA: { id: string; respondida: (e: Record<string, unknown>) => boolean; p
   { id: "canal_de_contato", respondida: (e) => temTexto(e.prospectPhone) || temTexto(e.preferredChannel), pergunta: "Como você prefere receber as novidades do seu projeto: por e-mail ou WhatsApp?" },
 ];
 
+/**
+ * ─── A PERGUNTA QUE O ESCOPO JÁ RESPONDEU (8ª volta, 26/08/2026) ────────────
+ *
+ * MEDIDO EM PRODUÇÃO: o SDR reperguntou o que o cliente ACABARA de responder.
+ * O contador desta casa não pega esse caso — ele conta REPETIÇÕES e só freia na
+ * segunda; aqui a pergunta saiu uma vez só, e uma vez já era uma vez demais,
+ * porque a resposta estava no escopo do MESMO turno.
+ *
+ * É a regra da 6ª volta ("quem leu o número FECHA a pergunta do número")
+ * generalizada para a fila inteira: o `scope` e a `reply` vêm do MESMO pacote do
+ * modelo, então ele pode gravar o dado e perguntar o dado no mesmo fôlego. A
+ * fila já sabia responder "isto foi respondido?" — o que faltava era alguém
+ * fazer a pergunta antes de a fala sair.
+ *
+ * `false` para pergunta desconhecida, e isso é deliberado: freio que barra o que
+ * não consegue identificar cala o SDR, e SDR calado é pior que SDR repetitivo.
+ */
+export function perguntaJaRespondida(perguntaId: string, escopo: Record<string, unknown> | undefined): boolean {
+  const item = FILA.find((f) => f.id === perguntaId);
+  if (!item) return false;
+  return item.respondida(escopo ?? {});
+}
+
+/**
+ * A próxima pergunta em aberto, para quem precisa SUBSTITUIR uma pergunta já
+ * respondida. Exportada porque proibir sem dizer o que fazer no lugar empurra a
+ * máquina para o silêncio — a instrução gêmea da proibição, como sempre.
+ *
+ * `null` = a sondagem fechou. Quem chama decide o fecho.
+ */
+export function proximaPerguntaEmAberto(
+  escopo: Record<string, unknown> | undefined,
+  jaPerguntadas: readonly string[] = [],
+): string | null {
+  return proximaEmAberto(escopo, jaPerguntadas);
+}
+
+/**
+ * ─── "VOCÊ CONSEGUE ME DIZER SE **ELE** JÁ TEM FOTOS?" ──────────────────────
+ *
+ * Medido na mesma volta. O SDR falava COM o cliente e SOBRE o cliente na mesma
+ * frase — tratando o dono do negócio como um terceiro ausente. Quem está do
+ * outro lado lê isso como estar sendo discutido, não atendido.
+ *
+ * A régua é apertada de propósito: só casa PRONOME de terceira pessoa, ou "o
+ * cliente", **dentro de uma pergunta**. Um "ele" que se refere ao Instagram, ao
+ * post ou ao logo é uso legítimo e comum — por isso o pronome tem de vir colado
+ * a um verbo de POSSE ou de VONTADE do dono ("ele já tem", "ele quer", "ele
+ * pretende"), que é a forma medida e a que não tem segundo sentido aqui.
+ *
+ * O que se faz com o `true` é decisão de quem chama. Nesta casa é substituição
+ * pela redação canônica da fila — que já é escrita na segunda pessoa —, nunca
+ * silêncio: apagar a pergunta deixaria o cliente sem nada para responder.
+ */
+export function falaSobreOClienteEmTerceiraPessoa(fala: unknown): boolean {
+  if (typeof fala !== "string" || !fala.includes("?")) return false;
+  for (const trecho of fala.split(/(?<=\?)/)) {
+    if (!trecho.includes("?")) continue;
+    if (RE_TERCEIRA_PESSOA.test(trecho)) return true;
+  }
+  return false;
+}
+
+/** "ele/ela/o cliente" + um verbo de posse ou vontade DO DONO. É a forma medida
+ *  ("você consegue me dizer se ele já tem fotos?") e a que não tem outro
+ *  sentido: coisa não "quer" nem "pretende", e "ele já tem" com sujeito-coisa é
+ *  raro o bastante para valer o risco — enquanto tratar o cliente como terceiro
+ *  é dano garantido em toda ocorrência. */
+const RE_TERCEIRA_PESSOA =
+  /\b(?:ele|ela|o\s+cliente|a\s+cliente|o\s+dono|a\s+dona)\b\s+(?:j[áa]\s+)?(?:tem|t[êe]m|possui|quer|querem|pretende|precisa|deseja|costuma|trabalha|vende|usa|faz)\b/i;
+
 function proximaEmAberto(escopo: Record<string, unknown> | undefined, jaPerguntadas: readonly string[]): string | null {
   const e = escopo ?? {};
   for (const item of FILA) {
