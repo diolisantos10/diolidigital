@@ -39,7 +39,9 @@
 //   • a produção gravar um MIME que a trava recusa;
 //   • os bytes não serem o que o MIME diz que são.
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const db = vi.hoisted(() => ({
   // O portão de pagamento deriva o pedido pelo projeto do cliente quando a
@@ -103,10 +105,34 @@ const guardados = new Map<string, { fileName: string; mimeType: string; bytes: B
 const MAGICO_JPEG = Buffer.from([0xff, 0xd8, 0xff]);
 const MAGICO_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 
-/** Uma "foto gerada" diferente a cada chamada — a trava de storyboard reprova
- *  duas telas com os mesmos bytes, e com razão. */
+// ── POR QUE A "FOTO GERADA" AQUI É UMA FOTO DE VERDADE (26/08/2026) ─────────
+//
+// Até esta data, `fotoGerada` devolvia uma STRING codificada em base64 e
+// carimbada `data:image/png`. Servia para exercitar a fiação — e passou a não
+// servir mais: `regua-da-peca-final.ts` mede o ARQUIVO COMPOSTO, e o molde
+// rasterizado sobre uma "foto" que não é imagem produz exatamente o defeito que
+// aquela régua existe para pegar (campo chapado no lugar da foto). O teste
+// falhava com razão: o fixture fabricava o incidente.
+//
+// A foto é a fotografia REAL que entrou nas peças refeitas do CityJobs, e cada
+// chamada devolve bytes DIFERENTES (a trava de storyboard reprova duas telas
+// com os mesmos bytes, e com razão) — variando a qualidade do JPEG, que muda os
+// bytes sem mudar a fotografia.
+const FOTO_REAL = readFileSync(
+  join(process.cwd(), "docs/entregas/cityjobs-08-08/fotos/p1-recorte.jpg"),
+);
+const fotosVariadas = new Map<number, string>();
+async function prepararFotos(quantas: number): Promise<void> {
+  const { default: sharp } = await import("sharp");
+  for (let n = 1; n <= quantas; n++) {
+    const bytes = await sharp(FOTO_REAL).jpeg({ quality: 96 - n }).toBuffer();
+    fotosVariadas.set(n, `data:image/jpeg;base64,${bytes.toString("base64")}`);
+  }
+}
 function fotoGerada(n: number): string {
-  return `data:image/png;base64,${Buffer.from(`foto-gerada-${n}-${"x".repeat(n)}`).toString("base64")}`;
+  const url = fotosVariadas.get(n);
+  if (!url) throw new Error(`foto ${n} não foi preparada — aumente o argumento de prepararFotos`);
+  return url;
 }
 
 const POST = {
@@ -123,6 +149,8 @@ const CENAS = [
   "[tensao] A massa descansando sem ninguém para assar quando o dia começa",
   "[acao] O pão saindo quentinho para o balcão da manhã",
 ];
+
+beforeAll(async () => { await prepararFotos(12); });
 
 beforeEach(() => {
   vi.clearAllMocks();

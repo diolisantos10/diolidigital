@@ -1,5 +1,32 @@
 // POST /api/cron/execute — a REDE DE SEGURANÇA da produção.
 //
+// ── ⚠️ LEIA ANTES DE LIGAR UM AGENDADOR PARA ESTA ROTA (26/08/2026) ─────────
+//
+// **Esta rota nunca foi chamada, e isso está CERTO — o trabalho dela acontece.**
+//
+// Medido em 25/08 e confirmado em 26/08: nenhum agendador bate aqui — não há
+// workflow do GitHub, nem cron da hospedagem, nem chamada em `scripts/`. É a
+// mesma situação de `POST /api/cron/v2`, e a casa já pagou por confundir as
+// duas coisas: motor construído e MUDO é o defeito que ela viu duas vezes.
+//
+// A diferença é que aqui não há trabalho perdido. O relógio desta casa é o
+// DESPERTADOR dentro do app (`lib/agency/despertador.ts`, ligado por
+// `instrumentation.ts`, batida de 5 em 5 minutos), e a perna `retomarProducao()`
+// dele faz o que esta rota faz — com os MESMOS números (5 por rodada, 5
+// tentativas, 10 min de "running" travado), a MESMA função de recuperação
+// (`runProjectExecution`) e um candidato A MAIS: `executionStatus: "pending"`,
+// que é a direção aprovada cujo disparo não chegou a acontecer. A perna do
+// despertador é um SUPERCONJUNTO estrito desta rota.
+//
+// Por isso NÃO nasceu relógio novo aqui. A rota fica como porta de entrada para
+// quem um dia ligar um agendador externo — e `__tests__/plataforma/o-segundo-relogio-nao-diverge.test.ts`
+// impede que as duas metades divirjam em silêncio, que é o único jeito de esta
+// decisão virar defeito.
+//
+// Se alguém ligar um agendador aqui, ele NÃO duplica trabalho: o núcleo é
+// idempotente e a janela de 10 min protege o "running".
+
+//
 // Protegido por Authorization: Bearer <CRON_SECRET> (mesmo padrão do cron de
 // treino). Recupera projetos cuja produção travou, SEM depender do navegador:
 //   • executionStatus = "running" há mais de 10 min → caiu no meio (aba/timeout);

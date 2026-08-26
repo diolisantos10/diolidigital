@@ -626,3 +626,62 @@ describe("a falha do aviso vira estado gravado — não some com a rodada", () =
     expect(r.falhas).toEqual([]);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A FILA NÃO ENTUPE MAIS — 86 falhas em 24h eram ARITMÉTICA, não IA
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Medição de 25/08/2026 (`docs/medicoes/elo-9-orcamento.md`): a rodada pegava
+// os 5 mais antigos, e pedido sem estimativa nunca muda de estado — logo nunca
+// sai da janela. Cinco desses paravam a esteira para todo mundo, com
+// `entregues=0, semOrcamento=5` a cada 5 minutos, calado.
+//
+// A prova aqui é a mesma do experimento controlado da medição: MESMO pedido,
+// MESMA estimativa, mudando só quantos pedidos sem orçamento estão à frente.
+
+describe("a fila do orçamento não entope com quem nunca gera número", () => {
+  /** Um pedido ANTIGO e sem estimativa nenhuma: ele volta para sempre. */
+  function velhoSemNumero(n: number) {
+    return pedido({
+      id: `velho${n}`,
+      createdAt: new Date(`2026-07-0${n}T00:00:00Z`),
+      briefingJson: JSON.stringify({ contato: CONTATO }),
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.clientRequestDb.update.mockResolvedValue({});
+    db.portalMessage.create.mockResolvedValue({});
+    db.portalAccess.findMany.mockResolvedValue([]);
+    db.portalAccess.create.mockResolvedValue({ token: "tok" });
+    email.sendEmail.mockResolvedValue({ ok: true });
+  });
+
+  it("com SEIS pedidos velhos sem número na frente, o orçamento pronto SAI mesmo assim", async () => {
+    // Antes de 26/08/2026 este caso devolvia `entregues=0, semOrcamento=5`.
+    db.clientRequestDb.findMany.mockResolvedValue([
+      ...[1, 2, 3, 4, 5, 6].map(velhoSemNumero),
+      pedido({ id: "novo-com-numero" }),
+    ]);
+    const r = await entregarOrcamentosPendentes();
+    expect(r.entregues).toBe(1);
+  });
+
+  it("quem não tem número CONTINUA sendo atendido — com as vagas que sobram", async () => {
+    // A partição não é uma fila de exclusão: sem ninguém com número na frente,
+    // os sem número ocupam a rodada inteira e recebem o aviso do que falta.
+    db.clientRequestDb.findMany.mockResolvedValue([1, 2, 3].map(velhoSemNumero));
+    const r = await entregarOrcamentosPendentes();
+    expect(r.entregues).toBe(0);
+    expect(r.semOrcamento).toBe(3);
+  });
+
+  it("o teto de ENTREGAS por rodada continua valendo — a janela larga é só de leitura", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue(
+      Array.from({ length: 9 }, (_, i) => pedido({ id: `com-numero-${i}` })),
+    );
+    const r = await entregarOrcamentosPendentes();
+    expect(r.entregues).toBe(5);
+  });
+});

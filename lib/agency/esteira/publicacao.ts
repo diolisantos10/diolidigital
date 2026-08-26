@@ -182,17 +182,33 @@ const HORA_PADRAO = 10;
  * o único ponto de tradução veredito → banco, e ele mesmo avisa que "string
  * comparada à mão é como o bug volta".
  *
- * `nao_auditado` ENTRA, e isto é obediência a uma decisão já tomada — não
- * descuido. A casa declarou, em `quality-auditor.ts:19-24` e aplicou em
- * `run-execution.ts:771-786`, que "ninguém olhou" **não bloqueia**: a operação
- * não pode parar porque um provedor caiu, e o fato fica declarado no banco e num
- * `ActivityEvent`. Barrar aqui criaria uma SEGUNDA política sobre o mesmo estado,
- * divergindo da que já roda em três arquivos. Se a casa quiser que "não
- * auditado" bloqueie, isso se muda lá, uma vez, para todo mundo.
+ * ── `nao_auditado` SAIU DAQUI EM 26/08/2026 ────────────────────────────────
+ *
+ * Até esta data ele ENTRAVA, e o comentário desta linha dizia por quê: a casa
+ * havia decidido que "ninguém olhou" não bloqueia, para a operação não parar
+ * quando um provedor de IA cai. A decisão era coerente e estava aplicada em
+ * três arquivos. Ela também estava MEDIDA — e o que a medição mostrou é que ela
+ * custava exatamente o que ela prometia evitar, do lado errado:
+ *
+ *   **9 entregas chegaram ao cliente sem auditoria nenhuma** (cliente oculto em
+ *   produção, 25/08/2026). Não "com ressalva na tela": sem árbitro nenhum,
+ *   indistinguíveis das aprovadas para quem abre o portal.
+ *
+ * A própria casa já tinha corrigido METADE disso em 24/08, e no arquivo ao
+ * lado: `esteira/marcos.ts:208` retém a APRESENTAÇÃO de entrega
+ * `quality_nao_auditado`. Ou seja, desde 24/08 havia DUAS políticas sobre o
+ * mesmo estado — a apresentação retinha, o calendário deixava passar —, e o
+ * comentário que estava aqui pedia justamente que isso não acontecesse. Elas
+ * ficam iguais agora, e a que sobrevive é a fail-closed.
+ *
+ * **Auditor mudo nunca é aprovado.** Peça retida não some: ela sai com nome e
+ * motivo em `AgendamentoFeito.retidas` e num `ActivityEvent`, e destravá-la é
+ * conectar a auditoria — não reescrever a peça, que não tem defeito conhecido.
+ * O caminho de escape continua existindo e continua sendo de GENTE
+ * (`mesmoComRessalva`, em `marcos.ts`).
  */
 const REVISOES_QUE_PODEM_VIRAR_POST: readonly string[] = [
   REVISION_STATUS_DA_QUALIDADE.aprovado,
-  REVISION_STATUS_DA_QUALIDADE.nao_auditado,
 ];
 
 /** A visibilidade que a escada de exposição carimba em quem ela liberou. */

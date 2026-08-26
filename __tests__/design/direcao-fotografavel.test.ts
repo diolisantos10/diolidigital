@@ -9,6 +9,7 @@
 // já gerada. Essa é a jurisdição do portão do pixel.
 
 import { describe, it, expect, vi } from "vitest";
+import { PECA_COMPOSTA_REAL } from "../_helpers/peca-composta";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { conferirDirecaoFotografavel } from "@/lib/agency/design/direcao-fotografavel";
@@ -234,8 +235,9 @@ describe("produzirArtesPendentes não paga por direção abstrata", () => {
     guardarArquivo.mockResolvedValue({ ok: true, arquivo: { id: "m1", fileName: "arte.png", sizeBytes: 100, url: "/api/media/m1" } });
     conferirFundoDaPeca.mockResolvedValue({ ok: true });
     montarPeca.mockResolvedValue({
-      ok: true, bytes: Buffer.from("peca"), largura: 1080, altura: 1350,
-      textosPintados: [], textoRecusado: [], encolheu: false, origemDoMolde: "marca", lacunasDoMolde: [],
+      ok: true, bytes: PECA_COMPOSTA_REAL, largura: 1080, altura: 1350,
+      textosPintados: ["A vaga que você procura pode ser aqui do lado", "CityJobs"],
+      textoRecusado: [], encolheu: false, origemDoMolde: "marca", lacunasDoMolde: [],
     });
 
     const r = await produzirArtesPendentes();
@@ -279,8 +281,9 @@ describe("a direção reprovada é reescrita DENTRO do motor, e a peça sai", ()
     guardarArquivo.mockResolvedValue({ ok: true, arquivo: { id: "m9", fileName: "story.jpg", sizeBytes: 100, url: "/api/media/m9" } });
     conferirFundoDaPeca.mockResolvedValue({ ok: true });
     montarPeca.mockResolvedValue({
-      ok: true, bytes: Buffer.from("peca"), largura: 1080, altura: 1920,
-      textosPintados: [], textoRecusado: [], encolheu: false, origemDoMolde: "marca", lacunasDoMolde: [],
+      ok: true, bytes: PECA_COMPOSTA_REAL, largura: 1080, altura: 1920,
+      textosPintados: ["Freio que range não é manha: é aviso", "OFICINA FAROL TESTE"],
+      textoRecusado: [], encolheu: false, origemDoMolde: "marca", lacunasDoMolde: [],
     });
   }
 
