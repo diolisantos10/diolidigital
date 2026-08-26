@@ -6096,3 +6096,86 @@ Arquivos: `lib/agency/escada/decisoes-do-dono.ts`, `lib/agency/pulso.ts`,
 `lib/agency/despertador.ts`. Testes que reprovam contra o código antigo:
 `__tests__/qualidade/decisao-do-dono-na-escada.test.ts` (3) e
 `__tests__/execution/despertador.test.ts` (3).
+
+## 🔴 27/08/2026 — O AJUSTE DO CLIENTE CHEGOU AO FIM, E ENTREGOU O CONTRÁRIO DO QUE ELE PEDIU
+
+**Medido na rodada paga da Fase 2, em produção, como cliente oculto.** É o item 4
+da lista do CEO ("o ajuste COMPLETANDO sobre a peça apontada"). A mecânica
+funcionou inteira — e o resultado é ruim. As duas coisas são verdade e as duas
+precisam estar escritas.
+
+### O que funcionou (e está provado)
+
+Cliente pediu ajuste pelo portal na peça `cmt8xk6ks00790xqofkbfqpab`
+(TRATTORIA DA ANA TESTE). A refação **chegou ao fim sozinha, em menos de um
+minuto**:
+
+| | antes | depois |
+|---|---|---|
+| arquivo | `med_35f7fcb6_mt8xpfoj` | `med_78f44713_mtakx2e0` |
+| sha256 | `35f7fcb6ad062c56…` | `78f4471335d83bfb…` |
+| bytes | 143.254 | 103.968 |
+
+**Exatamente 1 peça mudou; as outras 8 do cliente ficaram byte a byte
+idênticas** (sha256 conferido nas nove, pela porta do cliente). A mira acerta.
+Os dois arquivos estão em `docs/entregas/refacao-27-08/`.
+
+### O que a peça nova entregou
+
+O cliente escreveu, palavra por palavra:
+
+> *"o fundo ficou escuro demais e o prato some. Refaça ESSA peça com mais luz e
+> o prato em primeiro plano."*
+
+Medido nos dois arquivos:
+
+| faixa | antes | depois |
+|---|---|---|
+| luminância média | 40,5 | **29,8** (−26%) |
+| terço de cima | 64,2 | **42,1** |
+| terço do meio | 36,1 | **25,5** |
+| terço de baixo (onde o prato ficaria) | 21,2 | 21,9 |
+
+**Ele pediu mais luz e recebeu 26% menos.** A zona morta da base, que era a
+queixa dele, continua exatamente onde estava — a refação escureceu justamente o
+que ainda era legível.
+
+### E a legenda foi reescrita sem ele pedir
+
+O pedido era VISUAL. A refação regenerou o entregável inteiro
+(`refacao.ts:864`, `prisma.deliverable.update`), e a legenda da peça mudou de:
+
+> "O ambiente cheio que faz você querer estar aqui também."
+
+para:
+
+> "Sexta é dia de estar aqui\n**Post destacando a atmosfera acolhedora da
+> trattoria.**"
+
+Dois problemas, e o segundo é o grave:
+
+1. **"Sexta"** num calendário cujas outras peças são todas terça-a-quinta
+   ("Terça tem prato especial", "Terça é dia de cacio e pepe", "Terça a quinta é
+   quando a gente mais convida os amigos").
+2. **A segunda linha é direção interna, não legenda.** "Post destacando a
+   atmosfera acolhedora da trattoria" é a descrição DO post dentro do próprio
+   post. Se essa peça fosse publicada, o Instagram do cliente sairia com o
+   briefing colado na legenda.
+
+### O que isto custa e o que falta decidir
+
+Nenhuma régua pegou nada disso: o portão do fundo mede o fundo cru, a régua da
+peça final mede se a foto entrou. **Nenhuma das duas pergunta se a peça nova é
+melhor que a anterior, nem se ela atende o que o cliente pediu.** Uma refação
+pode piorar a peça indefinidamente e toda régua da casa continua verde.
+
+Não consertado nesta rodada, e o motivo é honesto: exige decidir **o que a
+refação tem direito de mudar**. Hoje "ajuste" e "reescrever a entrega" são a
+mesma porta. As perguntas para o CEO:
+
+- pedido visual pode reescrever a LEGENDA? (recomendação: não — pixel e texto
+  deveriam ser dois pedidos);
+- a casa deve medir a peça nova CONTRA a anterior antes de mostrá-la ao cliente
+  (ex.: "ele pediu mais luz e a luz caiu" é reprovação)?
+- a linha de direção do entregável nunca pode virar legenda — isto é conserto de
+  leitura e cabe em qualquer rodada.
