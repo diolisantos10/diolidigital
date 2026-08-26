@@ -49,7 +49,13 @@ const DONO = { clientId: "cli-do-token", workspaceId: "ws-do-token" };
 const OUTRO = { clientId: "cli-de-outra-pessoa", workspaceId: "ws-alheio" };
 
 const url = (q = "") => `http://localhost/api/portal/meta-ativos${q}`;
-const req = (q = "", init?: RequestInit) => new NextRequest(url(q), init);
+// ⚠️ O `RequestInit` daqui é o do NEXT, não o do DOM — os dois têm o mesmo
+// nome e `signal` incompatível, e foi exatamente esta a classe de erro que
+// barrou o CI desta casa cinco vezes (e que a catraca nova pegou antes do
+// push desta vez). Deriva-se do próprio construtor: nome que se digita
+// envelhece; tipo derivado, não.
+type IniciarPedido = ConstructorParameters<typeof NextRequest>[1];
+const req = (q = "", init?: IniciarPedido) => new NextRequest(url(q), init);
 
 beforeEach(() => {
   vi.clearAllMocks();
