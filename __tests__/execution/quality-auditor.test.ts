@@ -6,6 +6,7 @@ vi.mock("@/lib/ai/generate", () => ({ generate }));
 import {
   auditDeliverable, revisionStatusDoVeredito, escolherArbitro,
   foiAprovadaPelaQualidade, ficouSemArbitro, AUDIT_TIMEOUT_MS,
+  VOLTAS_DO_ARBITRO, ESPERA_ENTRE_VOLTAS_MS,
 } from "@/lib/agency/execution/quality-auditor";
 import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 
@@ -66,9 +67,15 @@ describe("quality-auditor — três estados: aprovado · reprovado · nao_audita
     const p = auditDeliverable(base);
     // Um teto por ÁRBITRO, e a fila tem três (openai, gemini, deepseek): desde
     // 25/08/2026 o auditor anda ele mesmo na fila em vez de deixar `generate`
-    // cair no autor. Três pendurados = três tetos, e só então a retenção.
-    for (let i = 0; i < FILA_DE_ARBITROS_INDEPENDENTES + 1; i++) {
-      await vi.advanceTimersByTimeAsync(AUDIT_TIMEOUT_MS + 10);
+    // cair no autor. Três pendurados = três tetos.
+    //
+    // E desde 26/08/2026 são DUAS VOLTAS na fila: timeout é falha que o tempo
+    // conserta, então ela merece outra volta (`mereceOutraVolta`). O relógio
+    // do teste tem de andar o bastante para as duas voltas E para a espera
+    // entre elas — senão o teste mede meia máquina e chama de retenção o que
+    // ainda era a primeira volta.
+    for (let i = 0; i < VOLTAS_DO_ARBITRO * FILA_DE_ARBITROS_INDEPENDENTES + 1; i++) {
+      await vi.advanceTimersByTimeAsync(AUDIT_TIMEOUT_MS + ESPERA_ENTRE_VOLTAS_MS + 10);
     }
     const v = await p;
     vi.useRealTimers();
