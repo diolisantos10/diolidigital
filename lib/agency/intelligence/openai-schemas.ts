@@ -261,7 +261,13 @@ const PRIORITIES = ["critical", "high", "medium", "low"];
 // ⚠️ E o conserto não é trocar por outro departamento. Tentei mandar para
 // `branding` e a jornada ponta-a-ponta reprovou: o departamento passou a receber
 // trabalho de PRODUÇÃO que o cliente não comprou. Ver `proposeProjectRuleBased`.
-const ORCHESTRATOR_DEPTS = ["strategy", "social-media", "design", "paid-traffic", "analytics"];
+/** Exportada para a CATRACA GENÉRICA (26/08/2026): a régua que guarda esta
+ *  lista não pode ser a palavra "project-management" digitada num teste. O que
+ *  produziu a recusa foi uma PROPRIEDADE — o gerente daquele departamento ser o
+ *  próprio Gerente Geral —, e é a propriedade que tem de ser conferida. No dia
+ *  em que o manifesto fizer o GG gerente de outro departamento, a régua literal
+ *  passaria verde sobre o mesmo defeito. */
+export const ORCHESTRATOR_DEPTS = ["strategy", "social-media", "design", "paid-traffic", "analytics"];
 
 export interface ValidatedTaskProposal {
   title: string;

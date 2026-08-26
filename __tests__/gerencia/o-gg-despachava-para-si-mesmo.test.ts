@@ -9,7 +9,7 @@
 // um despacho do GG para ele mesmo — e uma recusa. Não era borda: era sempre.
 
 import { describe, it, expect } from "vitest";
-import { validatePMOrchestratorOutput, buildPMOrchestratorMessages } from "@/lib/agency/intelligence/openai-schemas";
+import { validatePMOrchestratorOutput, buildPMOrchestratorMessages, ORCHESTRATOR_DEPTS } from "@/lib/agency/intelligence/openai-schemas";
 import { proposeProjectRuleBased } from "@/lib/dioli-brain/pm-orchestrator";
 import { despacharPlanoPeloGerenteGeral } from "@/lib/agency/gerencia/entrada-da-demanda";
 import { gerenteDe, GERENTE_GERAL } from "@/lib/agency/gerencia/cadeia";
@@ -91,5 +91,37 @@ describe("a origem parou de chamar errado", () => {
 
     const bom = { ...cru, tasks: [{ ...cru.tasks[0], department: "strategy" }] };
     expect(validatePMOrchestratorOutput(bom)?.tasks[0].department).toBe("strategy");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A CATRACA GENÉRICA — a propriedade, não a palavra (26/08/2026)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Tudo acima confere o literal `"project-management"`. Isso guarda o defeito de
+// ontem e não guarda o de amanhã: o que produziu a recusa não foi o NOME do
+// departamento, foi a PROPRIEDADE de o gerente dele ser o próprio Gerente
+// Geral. No dia em que o manifesto promover outro departamento ao GG, cada
+// régua literal acima passa verde sobre exatamente o mesmo defeito.
+//
+// (E é a lição que o auditor anterior deixou escrita no próprio código: ele
+// tratou como ROTEAMENTO — trocar o departamento — o que era CLASSE. A régua
+// literal é a versão dessa mesma confusão dentro do teste.)
+describe("catraca — nenhum departamento oferecido tem o GG por gerente", () => {
+  it("a lista que o orquestrador de IA pode usar não contém nenhum", () => {
+    for (const dept of ORCHESTRATOR_DEPTS) {
+      expect(
+        gerenteDe(dept),
+        `o departamento "${dept}" tem o Gerente Geral por gerente — toda tarefa nele volta para o topo`,
+      ).not.toBe(GERENTE_GERAL);
+    }
+  });
+
+  it("e nenhum departamento que a proposta rule-based emite, para nenhum serviço", () => {
+    for (const servicos of [["social media"], ["tráfego pago"], ["design"], ["social media", "tráfego pago"], []]) {
+      for (const t of proposeProjectRuleBased(snapshot({ services: servicos, missingFields: ["tom de voz"] })).tasks) {
+        expect(gerenteDe(t.department), `${servicos.join()} → "${t.title}" (${t.department})`).not.toBe(GERENTE_GERAL);
+      }
+    }
   });
 });
