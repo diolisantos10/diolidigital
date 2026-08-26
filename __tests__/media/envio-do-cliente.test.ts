@@ -28,7 +28,12 @@ const materialEnviadoPeloCliente = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/auth/session", () => ({ getSession }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, resolvePortalClient }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, resolvePortalClient,
+  // 6ª rodada: as rotas de leitura passaram a usar `donoDoPortal`, que separa
+  // "token inválido" de "ainda não há ficha de cliente". O dublê DERIVA do
+  // mesmo `resolvePortalClient` deste arquivo — nenhuma expectativa mudou.
+  donoDoPortal: async (t: string) => (await resolvePortalClient(t)) ?? "invalido",
+}));
 vi.mock("@/lib/agency/media/armazenamento", () => ({
   guardarArquivo, MAX_BYTES_POR_ARQUIVO: 25 * 1024 * 1024,
 }));

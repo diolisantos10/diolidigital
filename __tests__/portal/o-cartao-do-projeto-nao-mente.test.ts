@@ -50,7 +50,12 @@ const resolvePortalClient = vi.hoisted(() => vi.fn());
 const statusDoProjeto = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ resolvePortalClient }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ resolvePortalClient,
+  // 6ª rodada: as rotas de leitura passaram a usar `donoDoPortal`, que separa
+  // "token inválido" de "ainda não há ficha de cliente". O dublê DERIVA do
+  // mesmo `resolvePortalClient` deste arquivo — nenhuma expectativa mudou.
+  donoDoPortal: async (t: string) => (await resolvePortalClient(t)) ?? "invalido",
+}));
 vi.mock("@/lib/agency/esteira/retrato", () => ({ statusDoProjeto }));
 vi.mock("@/lib/agency/persistence/portal-cookie", () => ({
   tokenDoPortal: (_r: unknown, q: string | null) => q,
@@ -95,6 +100,33 @@ describe("a etapa que o cliente lê — agora no leitor ÚNICO (`lerFase`)", () 
     postsPublicados: 0,
     postsAgendados: 0,
   } as const;
+
+  it("🔴 SEM pagamento, o material NÃO é cobrado antes — medido na 6ª rodada", () => {
+    // Com o projeto não pago, a esteira dizia *"Precisamos de uma coisa sua —
+    // a criação está em andamento"* e pedia CINCO materiais. Nada estava em
+    // andamento: sem pagamento não se produz uma linha. A casa cobrava o
+    // trabalho DELE antes de poder fazer o dela, e dizia que estava criando.
+    const l = lerFase({
+      ...base, pagamentoConfirmado: false,
+      direcaoAprovadaEm: new Date("2026-08-20"),
+      pedidosAbertos: 5, pedidosCobrados: 5,
+      tarefas: { total: 5, entregues: 0, produzindo: 0, bloqueadas: 5 },
+    });
+    expect(l.paraCliente.titulo).toBe("Aguardando o pagamento para começar");
+    expect(l.paraCliente.agora, "não se diz 'em andamento' sobre o que não começou")
+      .not.toMatch(/em andamento/i);
+    expect(l.paraCliente.oQueEsperamosDeVoce).not.toMatch(/pedidos que te mandamos/i);
+  });
+
+  it("PAGO e com material pendente: aí sim o material é a parada", () => {
+    const l = lerFase({
+      ...base, pagamentoConfirmado: true,
+      direcaoAprovadaEm: new Date("2026-08-20"),
+      pedidosAbertos: 5, pedidosCobrados: 5,
+      tarefas: { total: 5, entregues: 0, produzindo: 0, bloqueadas: 5 },
+    });
+    expect(l.paraCliente.titulo).toBe("Precisamos de uma coisa sua");
+  });
 
   it("SEM pagamento não é 'Em produção' — é o que falta, e é ação DELE", () => {
     const l = lerFase({ ...base, pagamentoConfirmado: false });

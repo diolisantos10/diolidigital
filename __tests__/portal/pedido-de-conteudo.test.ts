@@ -40,6 +40,10 @@ vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/agency/persistence/portal-access-service", () => ({
   resolvePortalClient,
   validatePortalAccess: vi.fn(),
+  // 6ª rodada: a leitura da lista passou a usar `donoDoPortal`, que separa
+  // "token inválido" de "ainda não há ficha de cliente" — o prospect recém-
+  // orçado levava 403 na cara. O dublê DERIVA do mesmo `resolvePortalClient`.
+  donoDoPortal: async (t: string) => (await resolvePortalClient(t)) ?? "invalido",
 }));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
