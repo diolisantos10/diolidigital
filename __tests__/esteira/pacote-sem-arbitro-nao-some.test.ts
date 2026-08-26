@@ -18,7 +18,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
   project: { findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
-  deliverable: { findMany: vi.fn(), update: vi.fn(async () => ({})) },
+  deliverable: { findMany: vi.fn(), update: vi.fn(async (_args: { where: { id: string }; data: Record<string, unknown> }) => ({})) },
   clientRequestDb: { findUnique: vi.fn(async () => null) },
   client: { findUnique: vi.fn(async () => null) },
   activityEvent: { create: vi.fn(async () => ({})) },
@@ -107,7 +107,8 @@ describe("a instrução gêmea: reauditar, nunca reescrever", () => {
     const r = await reauditarSemArbitro("proj-oculto");
     expect(r.aprovadas).toEqual(["Legendas Prontas"]);
 
-    const escrita = db.deliverable.update.mock.calls[0][0];
+    const escrita = db.deliverable.update.mock.calls.at(0)?.[0] as { data: Record<string, unknown> };
+    expect(escrita).toBeDefined();
     expect(escrita.data.revisionStatus).toBe("quality_ok");
     expect(escrita.data.qualityArbiter).toBe("gemini");
     // A PROVA DE QUE NÃO REESCREVE: nem `content` nem `name` entram na escrita.
@@ -123,7 +124,8 @@ describe("a instrução gêmea: reauditar, nunca reescrever", () => {
 
     const r = await reauditarSemArbitro("proj-oculto");
     expect(r.reprovadas).toEqual(["Legendas Prontas"]);
-    expect(db.deliverable.update.mock.calls[0][0].data.revisionStatus).toBe("quality_flag");
+    const escrita = db.deliverable.update.mock.calls.at(0)?.[0] as { data: Record<string, unknown> };
+    expect(escrita.data.revisionStatus).toBe("quality_flag");
   });
 
   it("FAIL-CLOSED: árbitro ainda fora do ar não muda NADA — ausência de parecer não é aprovação", async () => {
