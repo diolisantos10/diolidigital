@@ -57,6 +57,7 @@ import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pag
 import { refazerArteDoAjuste, AVISO_DA_ARTE_QUE_NAO_SAIU, type ArteDoAjuste } from "@/lib/agency/esteira/refazer-a-arte-do-ajuste";
 import { pecasDoEspecialista } from "@/lib/agency/esteira/producao-de-pedido";
 import { pecasApontadasPeloAjuste } from "@/lib/agency/esteira/mira-da-peca";
+import { miraPorNomeDaEntrega } from "@/lib/agency/esteira/mira-por-nome";
 import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 import {
   classificarParada,
@@ -427,6 +428,82 @@ export async function refazerPorPedidoDoCliente(input: {
       .catch(() => null);
     const apontada = mostrada ? naoBarradas.find((d) => d.id === mostrada) : undefined;
     if (apontada) alvos = [apontada];
+  }
+
+  // ── 0. O QUE ELE ESCREVEU MANDA MAIS QUE ONDE ELE CLICOU ────────────────
+  //
+  // ⚠️ MEDIDO EM PRODUÇÃO POR sha256 (cliente oculto, 7ª volta, 26/08/2026) —
+  // o pior achado da operação. O cliente escreveu "nas LEGENDAS PRONTAS: tirem
+  // (…). A pauta do mês está boa, NÃO MEXAM NELA." A casa refez a Pauta do Mês
+  // (v1→v2, `fe9ceede…`→`c9d28b2d…`) e deixou as Legendas Prontas intactas
+  // (v1, `873510ae…`). **A mira não estava ausente: estava invertida.**
+  //
+  // A causa está inteira nos degraus 1 a 3 acima: todos são ESTRUTURAIS —
+  // respondem "que peça estava na mesa", nunca "que peça ele apontou". Quando
+  // as duas divergem, a estrutura acerta a mesa e erra o cliente. E a divergência
+  // é normal: um card de departamento mostra uma entrega e o cliente escreve
+  // sobre outra do mesmo pacote, que ele acabou de ler na mesma tela.
+  //
+  // Por isso este degrau roda DEPOIS e SOBREPÕE: as palavras do cliente são a
+  // instrução; a estrutura é a inferência de contexto que só vale enquanto ele
+  // não disse o nome. Ver `esteira/mira-por-nome.ts`.
+  //
+  // A leitura é do CICLO inteiro, não de `candidatas`: `candidatas` já vem
+  // filtrada pelo departamento do card, e a peça que ele nomeou pode ser de
+  // outro especialista do mesmo pacote — foi exatamente o caso medido. O
+  // `where` carrega `projectId`, então nada de outro cliente entra por aqui.
+  const doCiclo = await prisma.deliverable.findMany({
+    where: { projectId: projeto.id, ...(cicloAtual ? { cycleId: cicloAtual.id } : {}) },
+    select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true, revisionStatus: true, type: true },
+  }).catch(() => [] as typeof candidatas);
+
+  const miraNome = miraPorNomeDaEntrega(comentario, doCiclo.map((d) => ({ id: d.id, name: d.name })));
+
+  // A PEÇA QUE ELE NOMEOU vira o alvo. Barrada pela Qualidade continua fora:
+  // nomear uma peça não prova que ele a viu apresentada — a exceção da barrada
+  // continua sendo só o vínculo por FK do card (degrau 1).
+  if (miraNome.apontadas.length > 0) {
+    const nomeadas = doCiclo.filter(
+      (d) => miraNome.apontadas.includes(d.id) && d.revisionStatus !== "quality_flag",
+    );
+    if (nomeadas.length > 0) alvos = nomeadas;
+  }
+
+  // ── A PROIBIÇÃO ESCRITA É TRAVA, NÃO DICA ───────────────────────────────
+  //
+  // "A pauta do mês está boa, não mexam nela." Ainda que TODA a escada
+  // estrutural aponte para ela — e no caso medido apontava — ela sai do alvo.
+  // Este é o pedaço que segura o dano irrecuperável: não achar a peça certa é
+  // caro; destruir a peça que ele pediu para preservar não tem volta, porque a
+  // versão nova já foi cobrada e ele acredita que foi atendido.
+  const tiradasPelaProibicao = alvos.filter((a) => miraNome.proibidas.includes(a.id));
+  if (tiradasPelaProibicao.length > 0) {
+    alvos = alvos.filter((a) => !miraNome.proibidas.includes(a.id));
+    // Silêncio aqui seria a mesma doença de sempre: a casa deixaria de fazer
+    // algo e ninguém saberia. A equipe fica sabendo QUE peça foi poupada e por
+    // qual frase dele.
+    await escalar(
+      dono, negocio,
+      `o cliente PROIBIU tocar em ${tiradasPelaProibicao.map((d) => d.name).join(", ")} ` +
+      `("${tiradasPelaProibicao.map((d) => miraNome.trechos[d.id] ?? "").filter(Boolean).join(" / ")}") — ` +
+      `essa(s) entrega(s) foi(ram) retirada(s) do alvo do ajuste`,
+      comentario,
+    );
+  }
+
+  // Ele proibiu a única peça que a escada achou e não nomeou nenhuma outra.
+  // Refazer assim mesmo seria repetir o defeito de 26/08 com a proibição na
+  // mão. Vira conversa, não rodada de IA.
+  if (alvos.length === 0 && tiradasPelaProibicao.length > 0) {
+    const avisou = await escreverNoPortal(ancora,
+      `Entendi — e não vou mexer em ${tiradasPelaProibicao.map((d) => d.name).join(", ")}, como você pediu. ` +
+      "Só me confirma em qual entrega você quer o ajuste que eu já refaço certo. 💛");
+    return {
+      ...saida,
+      escalado: true,
+      avisouCliente: avisou,
+      motivo: `cliente proibiu tocar em ${tiradasPelaProibicao.map((d) => d.name).join(", ")} e não nomeou outra entrega`,
+    };
   }
 
   // A barrada que É o alvo não é "de carona": ela é o pedido. Escalar sobre ela
