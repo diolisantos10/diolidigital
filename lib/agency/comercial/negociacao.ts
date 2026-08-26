@@ -679,3 +679,86 @@ export function normalizarFaixa(valor: unknown): string | null {
   const achou = FAIXAS.find((f) => f.faixa === limpo || f.rotulo.toLowerCase() === limpo);
   return achou ? achou.rotulo : null;
 }
+
+/**
+ * A FAIXA QUE O CLIENTE ESCOLHEU DO CARDÁPIO — quando ele repetiu o rótulo.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * POR QUE ISTO EXISTE (cliente oculto, 8ª volta, 26/08/2026)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * ⚠️ MEDIDO EM PRODUÇÃO, no 3º turno da jornada. O SDR ofereceu a régua inteira
+ * — "até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, …" — e o
+ * cliente respondeu, palavra por palavra:
+ *
+ *     "Entre R$ 500 e R$ 1.500."
+ *
+ * O escopo saiu com **`budgetRange: "entre R$ 150 e R$ 500"`** — o degrau de
+ * BAIXO. E o SDR respondeu "Anotei sua faixa de investimento": a casa confirmou
+ * ter registrado o que ele disse, e registrou outra coisa. É a mesma família da
+ * mira invertida, agora num campo de DINHEIRO.
+ *
+ * ── A CAUSA, E ELA É UM CONSERTO ANTERIOR ─────────────────────────────────
+ *
+ * A 6ª volta acertou uma regra: *"quando o cliente disse um número, o número
+ * manda"* — nasceu de *"meu teto é R$ 900"* virar "entre R$ 150 e R$ 500".
+ * Certa para uma FALA COM VALOR.
+ *
+ * Só que aqui o cliente não disse um valor: ele **repetiu um RÓTULO do cardápio
+ * que a casa acabou de oferecer**. `parseBudgetAmount` pegou o primeiro número
+ * do rótulo (500) e `ofertaParaFaixa(500)` escolheu, corretamente pela própria
+ * régua (`500 > 150 && 500 <= 500`), o degrau de baixo — porque 500 é o TETO de
+ * um degrau e o PISO do seguinte. A regra do número atropelou a escolha explícita.
+ *
+ * ── A HIERARQUIA CERTA ────────────────────────────────────────────────────
+ *
+ * Escolher do cardápio é a evidência MAIS FORTE que existe: não há o que
+ * derivar, ele apontou o degrau. Por isso esta função roda ANTES do número, e
+ * o número continua mandando em tudo o que não for uma escolha explícita.
+ *
+ * Casa por NÚMEROS, não por texto: os dois valores da fala têm de ser os dois
+ * limites de um degrau. Uma comparação de string tropeçaria em "R$ 1.500" contra
+ * "R$1500" e em maiúscula, acento e pontuação — e uma régua frouxa aqui erra
+ * para o lado caro ou barato do bolso do cliente.
+ */
+export function faixaEscolhidaNaFala(fala: unknown): string | null {
+  if (typeof fala !== "string" || !fala.trim()) return null;
+  const t = fala.toLowerCase();
+
+  // Os números da fala, com a pontuação brasileira desfeita: "1.500" é mil e
+  // quinhentos, não um e meio.
+  const numeros = [...t.matchAll(/\d[\d.,]*/g)]
+    .map((m) => Number(m[0].replace(/\.(?=\d{3}\b)/g, "").replace(",", ".")))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (numeros.length === 0) return null;
+
+  // 1. O DEGRAU FECHADO — "entre R$ 500 e R$ 1.500". Os dois limites, na fala.
+  //    É o caso medido, e o mais forte: dois números que casam com um degrau
+  //    inteiro não são coincidência.
+  for (const f of FAIXAS) {
+    if (!Number.isFinite(f.ate)) continue;
+    if (numeros.includes(f.de) && numeros.includes(f.ate)) return f.rotulo;
+  }
+
+  // 2. O DEGRAU ABERTO PARA CIMA — "acima de R$ 5.000", "mais de 5000".
+  //    Sem isto, `ofertaParaFaixa(5000)` devolveria "entre R$ 1.500 e R$ 5.000",
+  //    pela mesma aritmética de borda que causou o defeito medido.
+  if (/\b(?:acima|mais)\s+de\b/.test(t)) {
+    const f = FAIXAS.find((x) => numeros.includes(x.de));
+    if (f) return f.rotulo;
+  }
+
+  // 3. O DEGRAU ABERTO PARA BAIXO — "até R$ 150". Aqui a aritmética de borda já
+  //    acerta (150 <= 150), mas a escolha explícita não deve depender disso.
+  // `é` não é caractere de palavra: um `\b` depois dele NUNCA casa, e a régua
+  // devolvia `null` para "até R$ 150" — o próprio teste de cardápio pegou.
+  // É a mesma armadilha que `mira-da-peca.ts` já registrou sobre `ª`/`º`.
+  if (/\bat[ée](?![a-z])/.test(t)) {
+    const f = FAIXAS.find((x) => Number.isFinite(x.ate) && numeros.includes(x.ate));
+    if (f) return f.rotulo;
+  }
+
+  // Ele falou de dinheiro, mas não apontou um degrau. Quem responde é o número
+  // — a regra da 6ª volta, intacta.
+  return null;
+}
