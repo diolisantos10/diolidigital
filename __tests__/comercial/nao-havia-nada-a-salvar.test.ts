@@ -58,6 +58,13 @@ vi.mock("@/lib/ai/chave-publica", () => ({
     const chave = await chaveDeRotaPublica("claude");
     return chave ? { provider: "claude", chave } : null;
   },
+  // A rota passou a pedir a LISTA (medido 26/08/2026: a porta da rua ficou
+  // fechada com um provedor bom parado ao lado). O mock continua derivando da
+  // mesma função de sempre — um provedor, que é o cenário destes testes.
+  chavesDeRotaPublica: async () => {
+    const chave = await chaveDeRotaPublica("claude");
+    return chave ? [{ provider: "claude", chave }] : [];
+  },
 }));
 
 import { POST } from "@/app/api/sdr/chat/route";

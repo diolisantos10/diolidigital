@@ -26,7 +26,7 @@ import { NextRequest, NextResponse } from "next/server";
 // de graça, numa rota pública que gasta chave de IA PAGA. `limiteExcedido` conta
 // no volume, é atômico e é fail-closed: contador fora do ar recusa, não libera.
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
-import { primeiraChaveDeRotaPublica, workspaceDaRotaPublica } from "@/lib/ai/chave-publica";
+import { chavesDeRotaPublica, workspaceDaRotaPublica } from "@/lib/ai/chave-publica";
 import { classificarFalhaDeProvedor } from "@/lib/ai/falha-de-provedor";
 import { generate, ordemDePreferenciaDaCasa } from "@/lib/ai/generate";
 import type { AiProvider } from "@/lib/ai/resolve-key";
@@ -507,11 +507,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // servidor — e agora o PROVEDOR também. Anda na ordem de preferência da casa
   // (a mesma dos outros 29 caminhos de IA) resolvendo cada um pela regra desta
   // rota, nunca pelo `findFirst` global. Ver `lib/ai/chave-publica.ts`.
-  const escolha = await primeiraChaveDeRotaPublica(ordemDePreferenciaDaCasa());
-  if (!escolha) {
+  //
+  // ⚠️ A LISTA INTEIRA, não só o primeiro (medido 26/08/2026, 07:24:54Z). O
+  // primeiro turno desta jornada devolveu `sem_saldo_no_provedor`: a conta da
+  // Anthropic zerou, a da OpenAI já estava zerada — e havia Gemini com chave
+  // funcionando na mesma base. A porta da rua da agência ficou fechada para
+  // toda a internet com um provedor bom parado ao lado, porque **ter chave não
+  // é ter saldo** e esta rota escolhia por chave e não olhava mais. Ver
+  // `chavesDeRotaPublica` e o laço logo abaixo.
+  const provedores = await chavesDeRotaPublica(ordemDePreferenciaDaCasa());
+  if (provedores.length === 0) {
     return NextResponse.json({ ok: false, reason: "not_configured" });
   }
-  const resolved = escolha.chave;
+  let escolha = provedores[0]!;
+  let resolved = escolha.chave;
 
   let body: ChatRequest;
   try {
@@ -668,7 +677,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // workspace — o `findFirst` global que `lib/ai/chave-publica.ts` existe para
     // fechar. Aqui quem resolve continua sendo a regra da rota pública, provedor
     // por provedor, e a camada recebe a decisão já tomada.
-    const r = await generate({
+    // ── O LAÇO QUE CAI PARA O PRÓXIMO PROVEDOR ────────────────────────────
+    //
+    // Só duas falhas fazem andar, e as duas são de CONTA: `sem_saldo` e
+    // `sem_chave`. Elas custam zero e não melhoram com o tempo — insistir no
+    // mesmo provedor é garantir a mesma resposta. Todo o resto (`teto_de_ritmo`,
+    // `indisponivel`, timeout, JSON malformado) fica onde estava, de propósito:
+    // esses passam sozinhos, e trocar de provedor neles multiplicaria gasto e
+    // trocaria a VOZ do SDR no meio da conversa por um soluço de rede.
+    let r = await chamarOSdr(escolha);
+    for (let i = 1; i < provedores.length && !r.ok && !r.textoCru; i++) {
+      const classe = classificarFalhaDeProvedor(r.error);
+      if (classe !== "sem_saldo" && classe !== "sem_chave") break;
+      console.warn(`[sdr/chat] ${escolha.provider} sem conta utilizável (${classe}) — tentando ${provedores[i]!.provider}`);
+      escolha = provedores[i]!;
+      resolved = escolha.chave;
+      r = await chamarOSdr(escolha);
+    }
+
+    async function chamarOSdr(quem: { provider: AiProvider; chave: { apiKey: string; model?: string | null } }) {
+      return generate({
       system: sistemaDoSdr(),
       user,
       historico,
@@ -690,8 +718,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // `contaDoWorkspace` em `lib/ai/generate.ts`). Sem esta linha, todo turno
       // desta rota saía no log como "fora da conta" e não havia teto possível.
       contaDoWorkspace: workspaceDaConta,
-      chaveJaResolvida: { provider: escolha.provider, apiKey: resolved.apiKey, model: resolved.model },
-    });
+      chaveJaResolvida: { provider: quem.provider, apiKey: quem.chave.apiKey, model: quem.chave.model ?? null },
+      });
+    }
 
     // ── AS QUATRO CONQUISTAS DESTA ROTA, PRESERVADAS ────────────────────────
     // `motivoDeParada` e `textoCru` são os dois campos que a camada passou a
