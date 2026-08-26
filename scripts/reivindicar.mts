@@ -82,6 +82,9 @@ import {
   type Reivindicacao,
 } from "../lib/coordenacao/reivindicacoes.ts";
 import { lerReivindicacoesDoDisco } from "../lib/coordenacao/leitura-do-registro.ts";
+import {
+  vereditoDoPortao, refsDaEntradaPadrao, PASTA_QUE_PASSA_DIRETO,
+} from "../lib/coordenacao/portao-de-push.ts";
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PASTA_REIVINDICACOES = join(RAIZ, "reivindicacoes");
@@ -1338,62 +1341,47 @@ function comandoInstalarGancho(argv: string[]): void {
 // aí ele deixa de existir. Falta de ferramenta AVISA e deixa passar. O que
 // barra é o veredito de verdade — `tsc` que rodou e reprovou.
 
-/** O que o gancho recebe do git na linha de comando: `<nome> <url>`. O git
- *  também manda as refs pela ENTRADA PADRÃO, e é de lá que sai o destino real
- *  do push — `git push origin HEAD:outra-branch` tem `<nome> = origin`, nunca
- *  a branch. Ler o nome do remoto como se fosse a branch seria uma catraca que
- *  mede a coisa errada. */
-function refsDoPush(): { remota: string }[] {
-  let bruto = "";
-  try {
-    bruto = readFileSync(0, "utf8");
-  } catch {
-    return [];
-  }
-  const refs: { remota: string }[] = [];
-  for (const linha of bruto.split("\n")) {
-    const partes = linha.trim().split(/\s+/);
-    // <local ref> <local sha> <remote ref> <remote sha>
-    if (partes.length < 4) continue;
-    const remota = partes[2]!.replace(/^refs\/heads\//, "");
-    if (remota) refs.push({ remota });
-  }
-  return refs;
-}
-
+/**
+ * A CASCA. A DECISÃO mora em `lib/coordenacao/portao-de-push.ts`, e o motivo
+ * está escrito lá: o teste da primeira versão passou aqui e REPROVOU no CI,
+ * porque media o repositório em volta em vez de medir a régua.
+ */
 function comandoPortaoDePush(argv: string[]): void {
   const branchDeDeploy = branchAlvo(argv);
-  const refs = refsDoPush();
+
+  let bruto = "";
+  try { bruto = readFileSync(0, "utf8"); } catch { bruto = ""; }
+  const refs = refsDaEntradaPadrao(bruto);
 
   // ── CATRACA 1 ────────────────────────────────────────────────────────────
-  const paraDeploy = refs.some((r) => r.remota === branchDeDeploy);
-  if (paraDeploy) {
-    const base = gitOuNulo(["merge-base", "HEAD", `origin/${branchDeDeploy}`])
-      ?? gitOuNulo(["rev-parse", `origin/${branchDeDeploy}`]);
-    const tocados = base
-      ? (gitOuNulo(["diff", "--name-only", `${base}..HEAD`]) ?? "").split("\n").map((l) => l.trim()).filter(Boolean)
-      : [];
-    const foraDaReivindicacao = tocados.filter((f) => !f.startsWith("reivindicacoes/"));
-    if (!base) {
-      console.warn(
-        "⚠️  portao-de-push: não consegui comparar com a branch de deploy (sem `origin/" +
-          branchDeDeploy + "` local). Não barro por falta de informação — mas confira que este push é um merge de PR.",
-      );
-    } else if (foraDaReivindicacao.length > 0) {
-      console.error(
-        `🚫 PUSH DIRETO NA BRANCH DE DEPLOY (${branchDeDeploy}) — barrado aqui.\n\n` +
-          `   ${foraDaReivindicacao.length} arquivo(s) fora de \`reivindicacoes/\`:\n` +
-          foraDaReivindicacao.slice(0, 10).map((f) => `     • ${f}`).join("\n") +
-          (foraDaReivindicacao.length > 10 ? `\n     … e mais ${foraDaReivindicacao.length - 10}` : "") +
-          "\n\n   A regra desta casa é PR + CI. Abra a sua branch e o PR:\n" +
-          "     git switch -c claude/<o-que-voce-esta-fazendo>\n" +
-          "     git push -u origin HEAD\n\n" +
-          "   `reivindicacoes/` continua passando direto — é a única fonte que duas\n" +
-          "   sessões isoladas compartilham, e barrá-la quebraria a trava de colisão.",
-      );
-      process.exit(1);
-    }
+  //
+  // `arquivosTocados: null` é "não consegui comparar", NUNCA "nada mudou". Num
+  // checkout raso (CI) `origin/<deploy>` não existe local, e a régua trata a
+  // ausência como ausência.
+  const base = gitOuNulo(["merge-base", "HEAD", `origin/${branchDeDeploy}`])
+    ?? gitOuNulo(["rev-parse", `origin/${branchDeDeploy}`]);
+  const arquivosTocados = base
+    ? (gitOuNulo(["diff", "--name-only", `${base}..HEAD`]) ?? "")
+        .split("\n").map((l) => l.trim()).filter(Boolean)
+    : null;
+
+  const veredito = vereditoDoPortao({ refs, branchDeDeploy, arquivosTocados });
+  if (veredito.barrar) {
+    const fora = veredito.foraDaReivindicacao;
+    console.error(
+      `🚫 PUSH DIRETO NA BRANCH DE DEPLOY (${branchDeDeploy}) — barrado aqui.\n\n` +
+        `   ${fora.length} arquivo(s) fora de \`${PASTA_QUE_PASSA_DIRETO}\`:\n` +
+        fora.slice(0, 10).map((f) => `     • ${f}`).join("\n") +
+        (fora.length > 10 ? `\n     … e mais ${fora.length - 10}` : "") +
+        "\n\n   A regra desta casa é PR + CI. Abra a sua branch e o PR:\n" +
+        "     git switch -c claude/<o-que-voce-esta-fazendo>\n" +
+        "     git push -u origin HEAD\n\n" +
+        `   \`${PASTA_QUE_PASSA_DIRETO}\` continua passando direto — é a única fonte que duas\n` +
+        "   sessões isoladas compartilham, e barrá-la quebraria a trava de colisão.",
+    );
+    process.exit(1);
   }
+  if (veredito.aviso) console.warn(`⚠️  portao-de-push: ${veredito.aviso}`);
 
   // ── CATRACA 2 ────────────────────────────────────────────────────────────
   const r = spawnSync("npx", ["tsc", "--noEmit"], { cwd: RAIZ, encoding: "utf8" });

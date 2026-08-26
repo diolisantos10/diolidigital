@@ -6,7 +6,7 @@
 > propostas reais paradas há dez dias continuam intocadas.
 >
 > Linha de base: `e3a1a43` no ar, 482 arquivos / 6.745 testes.
-> Fecho: **488 arquivos / 6.802 testes**, verdes — **6 arquivos e 57 testes novos**.
+> Fecho: **488 arquivos / 6.809 testes**, verdes — **6 arquivos e 64 testes novos**.
 
 ---
 
@@ -44,7 +44,7 @@ atendimento, com uma exceção nomeada: quem não entrega ARQUIVO (pacote do mê
 
 ---
 
-## 3. Os cinco defeitos novos
+## 3. Os seis defeitos novos
 
 ### 🔴 1. A barra caía de 63% para 50% — o conserto da 10ª volta era parcial
 
@@ -73,7 +73,32 @@ quem segura os 50% é o piso do carimbo — que é o trabalho do piso.
 seguinte. **Catraca que não confere o código de saída é catraca que aprova
 tudo.**
 
-### 🔴 4. `meta-ativos` — a rota do pior incidente, sem uma régua
+### 🔴 4. O meu próprio teste media o repositório, não a régua — **achado pelo CI**
+
+A primeira versão de `as-catracas-do-push.test.ts` chamava o SCRIPT de verdade,
+no repositório de verdade, e cobrava `exit 1`. **Passou aqui e REPROVOU no CI.**
+
+No runner o checkout é raso: `origin/<branch de deploy>` não existe local, a
+régua cai no ramo fail-open — **corretamente** — e não barra nada.
+
+A régua estava certa. O **teste** é que media o repositório em volta em vez de
+medir a régua. É a lição que esta casa tem escrita em três lugares e que eu
+mesmo repeti: *régua verde sobre o componente errado é pior que régua nenhuma*
+— e aqui ela apareceu na forma inversa, régua VERMELHA sobre o componente
+errado, que é o mesmo defeito com o sinal trocado.
+
+Conserto pelo padrão da casa: **régua pura + casca**
+(`lib/coordenacao/portao-de-push.ts` decide; `scripts/reivindicar.mts` fala com
+o git), como `trava-de-fundo`/`medir-fundo` e `regua-da-peca-final`/
+`medir-peca-final`. A decisão passou a ser exercitável sem montar meia casa e
+sem depender de que git o runner tem.
+
+E o conserto pagou juros na hora: com a régua isolada, o teste achou que
+`refsDaEntradaPadrao` aceitava **qualquer frase de quatro palavras** como ref —
+"linha solta sem colunas" virava uma branch chamada `sem`. Passou a exigir
+`refs/` na terceira coluna.
+
+### 🔴 5. `meta-ativos` — a rota do pior incidente, sem uma régua
 
 06/08/2026: um clique no portal e a agência passou a alcançar 14 contas de
 anúncio e as contas pessoais do CEO. A rota que nasceu desse incidente tinha
@@ -81,7 +106,7 @@ anúncio e as contas pessoais do CEO. A rota que nasceu desse incidente tinha
 uma — derivação pelo token nos três verbos, "conecte primeiro" que não vira
 lista vazia mentirosa, e allowlist de tipo no DELETE.
 
-### 🔴 5. `conectar-meta` — a segurança morava num argumento
+### 🔴 6. `conectar-meta` — a segurança morava num argumento
 
 `tokenDoPortal(request)`, com UM argumento. Quase toda rota do portal passa
 DOIS (`?token=` por compatibilidade). Aqui não se passa, e o motivo é o que
