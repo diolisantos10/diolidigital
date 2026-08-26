@@ -188,6 +188,54 @@ por FK está provada por régua, não por medição em produção.
 
 ---
 
+## A VOLTA DE CONFERÊNCIA — depois do deploy (`e53f5d6`, 04:49 UTC)
+
+Rodei tudo de novo contra produção com os consertos no ar.
+
+### Passou ✅
+
+| o que | como estava | como está |
+|---|---|---|
+| nome do cliente | `<UNKNOWN>`, dito 9× na cara dele | **"Marina"** |
+| a despedida | a mesma frase 9× | ecoa o cliente, nunca repete |
+| esteira × cartão | "Precisamos de uma coisa sua" × "Aguardando o pagamento" | **as duas dizem "Aguardando o pagamento para começar"** |
+| 3 abas do portal | 403 "Acesso negado" | **200**, com `aindaSemFicha: true` |
+| esteira na fase comercial | "Ainda estamos organizando tudo" | "Conhecendo o seu negócio" / "Proposta na sua mão" |
+| decidir duas vezes | 200, e o projeto nascia | **409**, com para onde ir |
+| alarme do orçamento | 102× em 24h como FALHA | saiu de `falhas`, entrou em `estados` |
+| alarme do PM | 57× em 24h como FALHA | saiu de `falhas` |
+
+E o alarme dos preços apareceu, exatamente como foi desenhado — na rodada do
+relógio, com dono e próxima ação:
+
+> **3 preço(s) que a esteira COTA não existem na página pública /planos**
+> (Plano Essencial R$ 590 · Plano Crescimento R$ 990 · Plano Completo R$ 1790).
+> Duas tabelas vivas cobram errado de alguém. **Dono: o CEO.**
+> Próxima ação: decidir qual tabela vale — a da vitrine ou a da proposta.
+
+### E a volta trouxe dois defeitos novos — um deles MEU
+
+**1. O eco que eu abri devolvia o e-mail do cliente.**
+
+```
+EU : "Pode mandar tudo pro marina2.oculta@trattoria-oculta.invalid."
+SDR: Anotei: "Pode mandar tudo pro marina2.oculta@trattoria-oculta.invalid."
+```
+
+Essa fala vira histórico e volta em `messages` a cada turno: **o endereço passou
+a viajar para dentro do prompt do modelo pela porta que eu abri hoje** — a mesma
+doutrina que o resto da rodada existe para proteger. Consertei um cano e abri
+outro, no mesmo dia.
+
+**2. Allowlist não é correção.** O cliente disse *"Tá caro. Meu teto é R$ 900 por
+mês."* e o escopo saiu com **"entre R$ 150 e R$ 500"** — metade do que ele
+declarou na frase anterior. A allowlist responde *"este rótulo existe?"*; a
+pergunta que importa é *"este rótulo é o do número que ele disse?"*.
+
+Os dois estão fechados no PR seguinte.
+
+---
+
 ## O que depende só do CEO
 
 1. **Qual tabela de preço vale** — a da vitrine (49/297/790/1.390/2.590) ou a da
