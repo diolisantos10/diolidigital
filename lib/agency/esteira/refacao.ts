@@ -39,7 +39,7 @@
 // cliente que não chega a ninguém é a pior falha que esta casa conhece.
 
 import { prisma } from "@/lib/db/client";
-import { renderizarEntrega, ESQUEMA_DA_ENTREGA } from "@/lib/agency/esteira/renderizar-entrega";
+import { renderizarEntrega, ESQUEMA_DA_ENTREGA, quantosItens } from "@/lib/agency/esteira/renderizar-entrega";
 import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { generate } from "@/lib/ai/generate";
 import { TODOS_OS_ESPECIALISTAS, conferirContrato } from "@/lib/agency/execution/especialistas";
@@ -688,6 +688,23 @@ export async function refazerPorPedidoDoCliente(input: {
           // 5 telas e recebe uma imagem, sem ninguém ficar vermelho.
           ESQUEMA_DA_ENTREGA,
           "Se o item já tinha CENAS (telas de carrossel), devolva TODAS elas no mesmo formato numerado. Carrossel que volta sem telas deixa de ser carrossel.",
+          // ── O NÚMERO DE ITENS, DITO ANTES DE ESCREVER (26/08/2026) ──────
+          //
+          // O contrato de saída já barra a entrega magra, e continua barrando.
+          // Mas barrar é o segundo melhor desfecho: o pedido do cliente morre
+          // em `fora_do_contrato` e vira gente. O melhor é o produtor SABER o
+          // número — o caso medido é ele pedir "muda só o gancho do primeiro"
+          // e o modelo devolver um item só, com os outros sumindo.
+          //
+          // O número vem da ENTREGA ATUAL, contada pela leitura inversa do
+          // renderizador (`quantosItens`) — nunca de uma segunda régua. Zero
+          // (texto sem cabeçalho de item) não vira palpite: a linha não sai.
+          ...(quantosItens(entrega.content) > 0
+            ? [
+                `A ENTREGA ATUAL TEM ${quantosItens(entrega.content)} ITEM(NS). Devolva EXATAMENTE ${quantosItens(entrega.content)} — ` +
+                  "mudar o que ele apontou nunca é motivo para os outros sumirem: ele pagou por todos.",
+              ]
+            : []),
         ].join("\n"),
         maxTokens: 1800,
         workspaceId: projeto.workspaceId,
