@@ -64,7 +64,7 @@
  */
 
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -1232,7 +1232,15 @@ const CONTEUDO_DO_GANCHO = `#!/bin/sh
 # Sem rede, "conferir" avisa e deixa passar (a régua fica dentro dele, não
 # aqui): portão que barra por falha de infraestrutura ensina todo mundo a usar
 # --no-verify, e aí ele deixa de existir.
-npx tsx "$(git rev-parse --show-toplevel)/scripts/reivindicar.mts" conferir
+npx tsx "$(git rev-parse --show-toplevel)/scripts/reivindicar.mts" conferir || exit 1
+
+# ── AS DUAS CATRACAS DA FASE 1 (26/08/2026) ────────────────────────────────
+#
+# Prompt é aviso; código é trava. As duas regras abaixo estavam escritas no
+# CLAUDE.md e foram furadas assim mesmo — uma vez o push direto na branch de
+# deploy, CINCO vezes o CI barrado no \`tsc --noEmit\`. Regra que só existe em
+# prosa é uma regra que a próxima sessão não lê.
+npx tsx "$(git rev-parse --show-toplevel)/scripts/reivindicar.mts" portao-de-push "$@"
 `;
 
 /** Escreve o gancho de fato. Lança em vez de chamar `process.exit` — quem
@@ -1301,6 +1309,111 @@ function comandoInstalarGancho(argv: string[]): void {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// portao-de-push — AS DUAS CATRACAS DA FASE 1 (26/08/2026)
+// ─────────────────────────────────────────────────────────────────────────
+//
+// ── CATRACA 1: NINGUÉM EMPURRA DIRETO NA BRANCH DE DEPLOY ──────────────────
+//
+// A regra está no CLAUDE.md e foi furada uma vez, declarada por quem furou. O
+// remédio de prosa já falhou; este é o de código.
+//
+// ⚠️ COM UMA EXCEÇÃO, E ELA NÃO É CONVENIÊNCIA: `reivindicacoes/` é a ÚNICA
+// fonte que duas sessões isoladas compartilham, e o próprio `abrir`/`encerrar`
+// publica lá com `git push origin HEAD:<branch de deploy>`. Barrar isso
+// quebraria a trava de colisão da casa — trocaria uma catraca por outra.
+// Então a catraca é precisa: push na branch de deploy que mexa em QUALQUER
+// coisa fora de `reivindicacoes/` é barrado.
+//
+// ── CATRACA 2: `tsc --noEmit`, COM O CÓDIGO DE SAÍDA CONFERIDO ─────────────
+//
+// O CLAUDE.md tem uma seção inteira sobre isto e a casa barrou o CI CINCO
+// vezes pelo mesmo motivo, sempre em arquivo de teste novo que estava verde no
+// `vitest` — que não checa tipo. "Teste verde não é teste que compila" estava
+// escrito; o que faltava era alguém conferir.
+//
+// ── POR QUE NÃO BARRA POR FALHA DE INFRAESTRUTURA ─────────────────────────
+//
+// Mesma regra do `conferir` logo acima, e ela é da casa: portão que barra por
+// falta de rede ou por `tsc` ausente ensina todo mundo a usar `--no-verify`, e
+// aí ele deixa de existir. Falta de ferramenta AVISA e deixa passar. O que
+// barra é o veredito de verdade — `tsc` que rodou e reprovou.
+
+/** O que o gancho recebe do git na linha de comando: `<nome> <url>`. O git
+ *  também manda as refs pela ENTRADA PADRÃO, e é de lá que sai o destino real
+ *  do push — `git push origin HEAD:outra-branch` tem `<nome> = origin`, nunca
+ *  a branch. Ler o nome do remoto como se fosse a branch seria uma catraca que
+ *  mede a coisa errada. */
+function refsDoPush(): { remota: string }[] {
+  let bruto = "";
+  try {
+    bruto = readFileSync(0, "utf8");
+  } catch {
+    return [];
+  }
+  const refs: { remota: string }[] = [];
+  for (const linha of bruto.split("\n")) {
+    const partes = linha.trim().split(/\s+/);
+    // <local ref> <local sha> <remote ref> <remote sha>
+    if (partes.length < 4) continue;
+    const remota = partes[2]!.replace(/^refs\/heads\//, "");
+    if (remota) refs.push({ remota });
+  }
+  return refs;
+}
+
+function comandoPortaoDePush(argv: string[]): void {
+  const branchDeDeploy = branchAlvo(argv);
+  const refs = refsDoPush();
+
+  // ── CATRACA 1 ────────────────────────────────────────────────────────────
+  const paraDeploy = refs.some((r) => r.remota === branchDeDeploy);
+  if (paraDeploy) {
+    const base = gitOuNulo(["merge-base", "HEAD", `origin/${branchDeDeploy}`])
+      ?? gitOuNulo(["rev-parse", `origin/${branchDeDeploy}`]);
+    const tocados = base
+      ? (gitOuNulo(["diff", "--name-only", `${base}..HEAD`]) ?? "").split("\n").map((l) => l.trim()).filter(Boolean)
+      : [];
+    const foraDaReivindicacao = tocados.filter((f) => !f.startsWith("reivindicacoes/"));
+    if (!base) {
+      console.warn(
+        "⚠️  portao-de-push: não consegui comparar com a branch de deploy (sem `origin/" +
+          branchDeDeploy + "` local). Não barro por falta de informação — mas confira que este push é um merge de PR.",
+      );
+    } else if (foraDaReivindicacao.length > 0) {
+      console.error(
+        `🚫 PUSH DIRETO NA BRANCH DE DEPLOY (${branchDeDeploy}) — barrado aqui.\n\n` +
+          `   ${foraDaReivindicacao.length} arquivo(s) fora de \`reivindicacoes/\`:\n` +
+          foraDaReivindicacao.slice(0, 10).map((f) => `     • ${f}`).join("\n") +
+          (foraDaReivindicacao.length > 10 ? `\n     … e mais ${foraDaReivindicacao.length - 10}` : "") +
+          "\n\n   A regra desta casa é PR + CI. Abra a sua branch e o PR:\n" +
+          "     git switch -c claude/<o-que-voce-esta-fazendo>\n" +
+          "     git push -u origin HEAD\n\n" +
+          "   `reivindicacoes/` continua passando direto — é a única fonte que duas\n" +
+          "   sessões isoladas compartilham, e barrá-la quebraria a trava de colisão.",
+      );
+      process.exit(1);
+    }
+  }
+
+  // ── CATRACA 2 ────────────────────────────────────────────────────────────
+  const r = spawnSync("npx", ["tsc", "--noEmit"], { cwd: RAIZ, encoding: "utf8" });
+  if (r.error) {
+    console.warn("⚠️  portao-de-push: não consegui rodar `tsc --noEmit` — deixo passar. Ferramenta ausente não é defeito do código.");
+    return;
+  }
+  if (r.status !== 0) {
+    console.error(
+      "🚫 `tsc --noEmit` REPROVOU — barrado aqui, e não no CI.\n\n" +
+        (r.stdout ?? "").split("\n").slice(0, 20).join("\n") +
+        "\n\n   Esta casa barrou o CI CINCO vezes pelo mesmo motivo, sempre em arquivo\n" +
+        "   de teste novo que estava verde no `vitest` — que não checa tipo.\n" +
+        "   Teste verde não é teste que compila.",
+    );
+    process.exit(1);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 
 function main(): void {
   const [subcomando, ...resto] = process.argv.slice(2);
@@ -1316,8 +1429,10 @@ function main(): void {
       return comandoListar(resto);
     case "instalar-gancho":
       return comandoInstalarGancho(resto);
+    case "portao-de-push":
+      return comandoPortaoDePush(resto);
     default:
-      console.error("Uso: npm run reivindicar -- <abrir|conferir|encerrar|listar|instalar-gancho> [opções]");
+      console.error("Uso: npm run reivindicar -- <abrir|conferir|encerrar|listar|instalar-gancho|portao-de-push> [opções]");
       process.exit(1);
   }
 }

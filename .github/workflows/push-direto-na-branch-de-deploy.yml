@@ -1,0 +1,73 @@
+# O PUSH DIRETO NA BRANCH DE DEPLOY, VISTO DO SERVIDOR (Fase 1, 26/08/2026).
+#
+# ── O QUE ISTO É, E O QUE ELE NÃO É ─────────────────────────────────────────
+#
+# É um ALARME, não uma trava — e a distinção é a lei desta casa ("prompt é
+# aviso; código é trava"). Quando este workflow roda, o push JÁ ACONTECEU: ele
+# não impede nada, ele grita.
+#
+# A trava de verdade seria PROTEÇÃO DE BRANCH no GitHub (exigir PR + o check
+# `quality` para escrever nesta branch). Ela NÃO foi instalada nesta rodada, e
+# o motivo está declarado no relatório da Fase 1: esta sessão não tem como
+# chamar a API de proteção de branch (sem `gh` no ambiente, e o conector do
+# GitHub não expõe esse endpoint). **É trabalho do CEO ou de quem administra o
+# repositório**, e é o único jeito de a regra virar trava do lado do servidor.
+#
+# Enquanto ela não existe, esta casa tem duas metades:
+#   • o gancho `pre-push` (`scripts/reivindicar.mts portao-de-push`) — barra
+#     ANTES, e é furável com `--no-verify` ou por quem empurra pela web;
+#   • este alarme — não barra, mas nenhum push direto passa em silêncio.
+#
+# Silêncio é o que fez o furo de antes não ter dono.
+
+name: Push direto na branch de deploy
+
+on:
+  push:
+    branches:
+      - claude/dioli-agency-os-architecture-kk7kp
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  de-onde-veio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: O commit veio de um PR?
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # A pergunta é uma só e ela é de FATO, não de estilo: existe um pull
+          # request associado a este commit? Merge de PR tem; push direto não.
+          pulls=$(gh api "repos/$REPO/commits/$SHA/pulls" \
+            -H "Accept: application/vnd.github+json" --jq 'length' || echo "erro")
+
+          if [ "$pulls" = "erro" ]; then
+            # FALHA ABERTA, DE PROPÓSITO. Alarme que grita por instabilidade da
+            # API do GitHub ensina a ignorar alarme — a mesma lição que o
+            # `concurrency` do CI já registrou sobre o e-mail vermelho.
+            echo "::warning::não consegui perguntar ao GitHub de onde veio $SHA — não afirmo nada."
+            exit 0
+          fi
+
+          if [ "$pulls" -gt 0 ]; then
+            echo "✅ $SHA chegou por pull request. É o caminho da casa."
+            exit 0
+          fi
+
+          echo "::error::PUSH DIRETO NA BRANCH DE DEPLOY — $SHA não tem pull request nenhum associado."
+          echo ""
+          echo "A regra desta casa é PR + CI, e ela já foi furada uma vez."
+          echo "O gancho pre-push barra isto antes (npm install o instala sozinho);"
+          echo "quem chegou até aqui furou o gancho, ou empurrou por fora dele."
+          echo ""
+          echo "A trava de verdade é PROTEÇÃO DE BRANCH, e ela depende do dono do"
+          echo "repositório: exigir pull request e o check 'quality' nesta branch."
+          exit 1
