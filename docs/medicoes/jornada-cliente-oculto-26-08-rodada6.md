@@ -142,9 +142,37 @@ Experimento controlado, fundo chapado, tinta branca:
 | `#767676` | 4,54:1 | — | 4,00 (−11,9%) |
 | `#a0a0a0` | 2,61:1 | — | 2,22 (−14,9%) |
 
-Erro de até **86%**, colapsando em 1,00 a partir de ~30% de cobertura de letra. A
-marca `[titulo ilegivel] 2,61:1` do despacho — e a `2.49:1` e `2.61:1` que
-encontrei vivas nas peças de `CANTINA DO PORTO TESTE` — podiam ser títulos de 7:1.
+Erro de até **86%**, colapsando em 1,00 a partir de ~30% de cobertura de letra.
+
+### E a peça do despacho, medida pelas duas réguas
+
+Baixei o arquivo que carrega a marca `[titulo ilegivel] 2,61:1`:
+
+```
+/api/media/med_96e37c4f_mt9h2a2j
+HTTP 200 · 108.934 B · image/jpeg · 1080×1350
+sha256 96e37c4fe34881a3c12b59cedcbb12d8a9b7d5bbce73eee562cf822dec337c6d
+```
+
+A régua NOVA, faixa a faixa do quadro:
+
+| faixa (y) | razão | fundo | veredito |
+|---|---|---|---|
+| 0 | 17,24:1 | `#1b1b1a` | passa |
+| 135 | **2,70:1** | `#9e9d9d` | **declara** |
+| 270 | **2,96:1** | `#969695` | **declara** |
+| 405 | 11,66:1 | `#3b3834` | passa |
+| 540–1215 | 8,9 a 18,3:1 | escuros | passa |
+
+**Esta peça é de verdade marginal** — há um pedaço claro real sob o título — e ela
+cai exatamente na faixa do meio: **declarada, não barrada**. Nenhuma peça paga foi
+jogada fora pela decisão nova.
+
+E isto refina a acusação, para ela ficar exata: a régua antiga **não estava sempre
+errada — ela era ilimitada**. O erro dela cresce com a cobertura de letra. Nesta
+peça a cobertura era baixa e o número saiu perto; numa peça com 30% de letra ele
+colapsa em 1,00 para qualquer fundo. O problema nunca foi o valor de um caso — era
+não haver como saber, olhando o número, se ele descrevia o fundo ou a tinta.
 
 ---
 
