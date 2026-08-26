@@ -10,6 +10,7 @@ import { requireSession } from "@/lib/auth/api-guard";
 import { naoEncontrado, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import { prisma } from "@/lib/db/client";
 import { despacharPlanoPeloGerenteGeral, frazeDoDespacho } from "@/lib/agency/gerencia/entrada-da-demanda";
+import { escopoDoBriefingJson } from "@/lib/agency/gerencia/contrato-do-plano";
 import { pedirDirecao } from "@/lib/agency/esteira/marcos";
 import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
@@ -167,7 +168,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         department: t.department,
         estimatedDays: (t as { estimatedDays?: number }).estimatedDays ?? null,
       })),
-      { aceiteComercial: Boolean(session.name?.trim()), clienteId: clientId ?? undefined, correlationId: `projeto:${project.id}` },
+      {
+        aceiteComercial: Boolean(session.name?.trim()),
+        clienteId: clientId ?? undefined,
+        correlationId: `projeto:${project.id}`,
+        // O ESCOPO DO CLIENTE, LIDO DO BANCO PELO SERVIDOR — nunca do corpo da
+        // requisicao. Escopo que vem de quem chama nao e escopo, e a proposta
+        // deste corpo e justamente a saida de IA que o contrato existe para
+        // conferir.
+        escopo: escopoDoBriefingJson(req.briefingJson),
+      },
     );
     console.log(`[brain/orchestrate/apply] ${frazeDoDespacho(plano)}`);
     for (const r of plano.recusadas) {

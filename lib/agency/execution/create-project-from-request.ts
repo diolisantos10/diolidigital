@@ -16,6 +16,7 @@ import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
 import { resolverOuCriarCliente, registrarReaproveitamento } from "@/lib/agency/execution/cliente-do-briefing";
 import { despacharPlanoPeloGerenteGeral, frazeDoDespacho } from "@/lib/agency/gerencia/entrada-da-demanda";
+import { escopoDoBriefingJson } from "@/lib/agency/gerencia/contrato-do-plano";
 
 import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 // A tabela `DEPT_TO_DEF` e a lista `VALID_TASK_DEPTS` morreram aqui em
@@ -173,7 +174,14 @@ export async function createProjectFromRequest(clientRequestId: string, approved
       department: t.department,
       estimatedDays: t.estimatedDays,
     })),
-    { aceiteComercial, clienteId: clientId, correlationId: `projeto:${project.id}` },
+    {
+      aceiteComercial,
+      clienteId: clientId,
+      correlationId: `projeto:${project.id}`,
+      // O escopo sai da SOLICITACAO lida do banco, nao da proposta: a proposta
+      // e saida de IA, e conferir a IA contra ela mesma nao confere nada.
+      escopo: escopoDoBriefingJson(req.briefingJson),
+    },
   );
   console.log(`[projeto] ${frazeDoDespacho(plano)}`);
   // Recusa não pode virar silêncio: ela ocupa lugar no histórico do projeto,
