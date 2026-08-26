@@ -979,7 +979,7 @@ export async function refazerPorPedidoDoCliente(input: {
       pecasNovas: pecasDoEspecialista(dadosRefeitos ?? {}),
       comentario,
     }).catch((e: unknown): ArteDoAjuste => ({
-      refeitas: [], preservadas: [], mira: null,
+      refeitas: [], preservadas: [], mira: null, regua: [], reprovadasPelaRegua: [],
       motivo: `não consegui refazer as imagens (${e instanceof Error ? e.message : "erro desconhecido"}). ` +
         "A arte anterior continua de pé. Dono: a agência (produção).",
     }));
@@ -1015,7 +1015,7 @@ export async function refazerPorPedidoDoCliente(input: {
       "imagem de outra é pior do que não refazer. O TEXTO foi ajustado; as imagens NÃO foram tocadas " +
       "e nenhuma peça foi apagada. Dono: a agência (produção). Próxima ação: apontar a entrega do card " +
       "(`deliverableId`) ou ligar as peças à entrega (`SocialPost.deliverableId`) e refazer a arte.";
-    saida.arte = { refeitas: [], preservadas: pecasDoCard, mira: null, motivo };
+    saida.arte = { refeitas: [], preservadas: pecasDoCard, mira: null, motivo, regua: [], reprovadasPelaRegua: [] };
     saida.escalado = true;
     saida.motivo = motivo;
     await prisma.socialPost.updateMany({

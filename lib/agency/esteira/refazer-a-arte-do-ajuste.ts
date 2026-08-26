@@ -60,6 +60,11 @@ import {
   pecaApontadaPeloCliente, pecasApontadasPeloAjuste, type MiraDoCliente,
 } from "@/lib/agency/esteira/mira-da-peca";
 import { captionDaPeca, type PecaDoEspecialista } from "@/lib/agency/produtos/story-instagram-v1";
+import { medirLuz } from "@/lib/agency/design/medir-luz";
+import { lerArquivo } from "@/lib/agency/media/armazenamento";
+import {
+  lerPedidoDeArte, compararPeca, type ComparacaoDaPeca,
+} from "@/lib/agency/esteira/regua-da-refacao";
 
 export interface ArteDoAjuste {
   /** As peças cujo ARQUIVO mudou — `mediaUrl` diferente do que estava lá. */
@@ -70,6 +75,16 @@ export interface ArteDoAjuste {
   mira: MiraDoCliente | null;
   /** Não deu para refazer, e por quê — em português, com dono e próxima ação. */
   motivo?: string;
+  /**
+   * A RÉGUA QUE FALTAVA: a peça nova medida contra a anterior (27/08/2026).
+   *
+   * Uma entrada por peça apontada que ganhou arquivo novo. `entrega: false`
+   * significa que o arquivo novo foi DESCARTADO e a arte anterior continua de
+   * pé — a casa não entrega peça pior fingindo normalidade.
+   */
+  regua: Array<{ postId: string; comparacao: ComparacaoDaPeca }>;
+  /** As peças cujo arquivo novo foi reprovado pela régua e não foi entregue. */
+  reprovadasPelaRegua: string[];
 }
 
 /**
@@ -98,7 +113,7 @@ export async function refazerArteDoAjuste(entrada: {
   /** As palavras do cliente — é delas que sai a mira. */
   comentario: string;
 }): Promise<ArteDoAjuste> {
-  const vazio: ArteDoAjuste = { refeitas: [], preservadas: [], mira: null };
+  const vazio: ArteDoAjuste = { refeitas: [], preservadas: [], mira: null, regua: [], reprovadasPelaRegua: [] };
   const postIds = entrada.postIds.filter(Boolean);
   if (postIds.length === 0) {
     // Entrega sem peça visual (relatório, pauta, roteiro): a refação de TEXTO
@@ -198,6 +213,58 @@ export async function refazerArteDoAjuste(entrada: {
     else naoMudaram.push(p.id);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // A RÉGUA QUE FALTAVA: A PEÇA NOVA CONTRA A ANTERIOR (27/08/2026)
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // Aqui, e não depois: a peça só volta a ser DECIDÍVEL pelo cliente se ela
+  // atender o que ele pediu. Medir depois de reabrir o card seria medir uma
+  // peça que já está na mão dele.
+  //
+  // O que a régua reprova NÃO é entregue: o `mediaUrl` volta para o arquivo
+  // anterior, a peça segue em `revision_requested` (inagendável), o cliente lê
+  // uma frase honesta e a equipe é escalada. **A tentativa paga dele não é
+  // queimada** — quem refaz a partir daqui é gente, com direção explícita.
+  //
+  // ⚠️ A régua NÃO inventa medida: "o prato em primeiro plano" sai declarado
+  // como não-medido, com dono e próxima ação, mesmo quando a luz melhorou.
+  const pedidoDeArte = lerPedidoDeArte(entrada.comentario);
+  const regua: ArteDoAjuste["regua"] = [];
+  const reprovadasPelaRegua: string[] = [];
+
+  if (refeitas.length > 0) {
+    for (const r of refeitas) {
+      const comparacao = compararPeca({
+        antes: await medirArquivoDaPeca(r.de),
+        depois: await medirArquivoDaPeca(r.para),
+        pedido: pedidoDeArte,
+      });
+      regua.push({ postId: r.postId, comparacao });
+      if (!comparacao.entrega) reprovadasPelaRegua.push(r.postId);
+    }
+
+    // ── O QUE REPROVOU VOLTA ATRÁS, no banco ────────────────────────────────
+    // O `MediaAsset` novo NÃO é apagado (ele é a prova do que a máquina
+    // produziu, e apagar arquivo pago é decisão de gente); o que volta é o
+    // ponteiro da peça.
+    for (const postId of reprovadasPelaRegua) {
+      const alvo = refeitas.find((r) => r.postId === postId)!;
+      const comparacao = regua.find((x) => x.postId === postId)!.comparacao;
+      await prisma.socialPost.update({
+        where: { id: postId },
+        data: {
+          mediaUrl: alvo.de,
+          lastError: `régua da refação: ${comparacao.motivo}`.slice(0, 500),
+          avisoAoCliente: AVISO_DA_PECA_QUE_PIOROU,
+        },
+      }).catch(() => { /* best-effort: a escalada abaixo continua de pé */ });
+    }
+  }
+
+  // A partir daqui, "refeitas" é só o que a régua deixou passar: é este o
+  // conjunto que reabre o card e que o cliente vê.
+  const entregues = refeitas.filter((r) => !reprovadasPelaRegua.includes(r.postId));
+
   // ── A PEÇA QUE GANHOU ARTE NOVA VOLTA A SER DECIDÍVEL ───────────────────
   //
   // `revision_requested` é uma trava real: `ESTADOS_PROMOVIVEIS`
@@ -212,9 +279,9 @@ export async function refazerArteDoAjuste(entrada: {
   //
   // E a trava fica de pé onde ela protege: peça cujo arquivo NÃO mudou
   // continua em `revision_requested`, inagendável, com a arte anterior.
-  if (refeitas.length > 0) {
+  if (entregues.length > 0) {
     await prisma.socialPost.updateMany({
-      where: { id: { in: refeitas.map((r) => r.postId) }, status: "revision_requested" },
+      where: { id: { in: entregues.map((r) => r.postId) }, status: "revision_requested" },
       data: {
         status: "draft",
         // A PARADA ACABOU: o aviso da tentativa anterior SAI. Aviso que
@@ -226,7 +293,25 @@ export async function refazerArteDoAjuste(entrada: {
     }).catch(() => { /* best-effort: o arquivo novo já existe e é o que importa */ });
   }
 
-  const saida: ArteDoAjuste = { refeitas, preservadas, mira };
+  const saida: ArteDoAjuste = { refeitas: entregues, preservadas, mira, regua, reprovadasPelaRegua };
+
+  // A régua reprovou? Isso é escalada, sempre — mesmo quando outras peças
+  // saíram bem. Peça pior nunca sai de mansinho.
+  if (reprovadasPelaRegua.length > 0) {
+    const detalhe = regua
+      .filter((x) => reprovadasPelaRegua.includes(x.postId))
+      .map((x) => `${x.postId}: ${x.comparacao.motivo} [${x.comparacao.linhas.join(" | ")}]`)
+      .join(" · ");
+    saida.motivo = `${reprovadasPelaRegua.length} de ${refeitas.length} peça(s) refeitas foram REPROVADAS pela régua da refação e NÃO foram entregues. ${detalhe}`;
+  } else if (regua.some((x) => x.comparacao.naoMedidos.length > 0)) {
+    // Entregou, mas há pedido do cliente que a casa não sabe medir. Não é
+    // falha — é ponto fraco declarado, que é dívida; calado seria armadilha.
+    const naoMedidos = [...new Set(regua.flatMap((x) => x.comparacao.naoMedidos))];
+    console.warn(
+      `[regua-da-refacao] a peça foi entregue, mas o cliente pediu o que esta casa NÃO mede: ${naoMedidos.join("; ")}. ` +
+      "Dono: a equipe (produção). Próxima ação: olho humano na peça.",
+    );
+  }
 
   if (naoMudaram.length > 0) {
     const porQue = (id: string): string => {
@@ -283,6 +368,38 @@ export async function refazerArteDoAjuste(entrada: {
  * ⚠️ Não diz "erro" nem nome de componente: quem lê é o cliente, e o que ele
  * precisa saber é o que mudou, o que NÃO mudou e quem está com a bola.
  */
+/**
+ * O QUE O CLIENTE LÊ quando a peça nova foi reprovada pela régua.
+ *
+ * Diz a verdade inteira: a imagem que ele está vendo continua sendo a anterior,
+ * a máquina tentou e o resultado ficou pior do que o que ele já tinha, ninguém
+ * vai pedir que ele decida de novo sobre isso, e a tentativa dele NÃO foi
+ * gasta. Motivo, dono e próxima ação — e nenhum nome de componente.
+ */
+export const AVISO_DA_PECA_QUE_PIOROU =
+  "⚠️ A IMAGEM DESTA PEÇA AINDA É A ANTERIOR. Eu refiz a arte com o que você escreveu, medi a peça nova contra a " +
+  "que você já tinha — e ela ficou PIOR justamente no que você pediu. Não vou te entregar isso. " +
+  "Quem está com isso: a nossa equipe de produção, que vai refazer com direção explícita. " +
+  "Sua solicitação continua valendo: você não gastou uma rodada com esta tentativa.";
+
+/**
+ * Os bytes de uma peça, a partir do `mediaUrl` que ela carrega.
+ *
+ * Só entende o caminho da casa (`/api/media/<id>` → `MediaAsset.storagePath`).
+ * URL externa, `data:` ou ausente devolvem `null`, e `null` é "não medi" —
+ * nunca "está bom".
+ */
+async function medirArquivoDaPeca(mediaUrl: string | null) {
+  if (!mediaUrl || !mediaUrl.startsWith("/api/media/")) return null;
+  const id = mediaUrl.split("/api/media/")[1]?.split("?")[0] ?? "";
+  if (!id) return null;
+  const asset = await prisma.mediaAsset.findUnique({ where: { id }, select: { storagePath: true } }).catch(() => null);
+  if (!asset?.storagePath) return null;
+  const bytes = await lerArquivo(asset.storagePath).catch(() => null);
+  if (!bytes || bytes.length === 0) return null;
+  return medirLuz(bytes).catch(() => null);
+}
+
 export const AVISO_DA_ARTE_QUE_NAO_SAIU =
   "⚠️ A IMAGEM DESTA PEÇA AINDA É A ANTERIOR — a que você pediu para mudar. " +
   "Eu já ajustei o TEXTO com base no que você escreveu, mas não consegui gerar a imagem nova agora. " +
