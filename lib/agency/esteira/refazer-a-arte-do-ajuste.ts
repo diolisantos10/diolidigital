@@ -151,9 +151,7 @@ export async function refazerArteDoAjuste(entrada: {
   });
   const urlAntes = new Map(antes.map((p) => [p.id, p.mediaUrl]));
 
-  // ── A FIAÇÃO: O TEXTO NOVO CHEGA À PEÇA ─────────────────────────────────
-  // Sem isto, o laço de arte redesenharia a peça com a legenda VELHA — imagem
-  // nova, texto que o cliente já recusou. Pior que não refazer.
+  // ── O CALENDÁRIO DESTE CLIENTE (27/08/2026) ─────────────────────────────
   // O calendário DESTE cliente, lido das peças que ele já tem: é com ele que
   // um dia da semana citado no texto novo é confrontado quando a peça ainda
   // não tem hora marcada. Calendário vazio não acusa ninguém.
@@ -168,6 +166,9 @@ export async function refazerArteDoAjuste(entrada: {
 
   const datasIncoerentes: string[] = [];
 
+  // ── A FIAÇÃO: O TEXTO NOVO CHEGA À PEÇA ─────────────────────────────────
+  // Sem isto, o laço de arte redesenharia a peça com a legenda VELHA — imagem
+  // nova, texto que o cliente já recusou. Pior que não refazer.
   for (const postId of alvos) {
     const nova = pecasNovas[postIds.indexOf(postId)];
     if (!nova) continue;
