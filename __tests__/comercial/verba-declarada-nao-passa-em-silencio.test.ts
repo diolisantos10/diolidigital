@@ -54,7 +54,10 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const db = vi.hoisted(() => ({
   clientRequestDb: { findMany: vi.fn(), update: vi.fn() },
   portalMessage: { create: vi.fn() },
-  portalAccess: { findFirst: vi.fn() },
+  // `findMany` + `create` são o que `linkDaProposta` usa para CUNHAR a porta
+  // de aceite. Sem elas a cunhagem falha e, desde 26/08/2026, a entrega PARA —
+  // sem porta não se escreve proposta. `findFirst` fica por compatibilidade.
+  portalAccess: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn() },
   $transaction: vi.fn(async (ops: unknown[]) => ops),
   $executeRawUnsafe: vi.fn().mockResolvedValue(1),
   $queryRawUnsafe: vi.fn().mockResolvedValue([]),
@@ -114,6 +117,10 @@ beforeEach(() => {
   db.portalMessage.create.mockReset();
   db.portalAccess.findFirst.mockReset();
   db.portalAccess.findFirst.mockResolvedValue({ token: "tok-diego" });
+  db.portalAccess.findMany.mockReset();
+  db.portalAccess.findMany.mockResolvedValue([{ token: "tok-diego", expiresAt: null }]);
+  db.portalAccess.create.mockReset();
+  db.portalAccess.create.mockResolvedValue({ token: "tok-diego" });
   db.$transaction.mockClear();
   db.$executeRawUnsafe.mockReset();
   db.$executeRawUnsafe.mockResolvedValue(1);

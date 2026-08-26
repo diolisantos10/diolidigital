@@ -33,7 +33,7 @@ import type { AiProvider } from "@/lib/ai/resolve-key";
 import type { TurnoDeHistorico } from "@/lib/agency/intelligence/openai-schemas";
 import { ehPerguntaDeFaixa, faixaEscolhidaNaFala, formaDoPrecoNaFala, normalizarFaixa, ofertaParaFaixa } from "@/lib/agency/comercial/negociacao";
 import { parseBudgetAmount } from "@/lib/agency/sdr-agent";
-import { escopoComRetratacao } from "@/lib/agency/comercial/retratacao";
+import { escopoComRetratacao, canaisRetratados, cortesiaDaRetratacao } from "@/lib/agency/comercial/retratacao";
 // ATÉ 16/08/2026 ESTA ROTA NÃO ESCREVIA NADA. Zero chamadas a `prisma.`: o SDR
 // conversava, errava, e o diário do piloto mostrava `mensagens: 0` enquanto a
 // conversa acontecia. O porquê e as travas estão no cabeçalho do módulo.
@@ -1210,6 +1210,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         scopeDaVez = { ...scopeDaVez, preferredChannel: acumulado.preferredChannel };
       }
       console.warn(`[sdr/chat] canal(is) retratado(s) pelo cliente: ${retratados.join(", ")}`);
+    }
+
+    // ── E A CASA DIZ, EM VOZ ALTA, O QUE ACABOU DE APAGAR (26/08/2026) ─────
+    //
+    // MEDIDO EM PRODUÇÃO nas três passadas da 9ª volta: o dado saía das três
+    // memórias (certo) e a fala seguinte não dizia uma palavra sobre isso —
+    // ia direto para a próxima pergunta. Do lado do cliente, apagar em
+    // silêncio e não apagar são a mesma coisa: ele pediu, não ouviu resposta,
+    // e não tem como saber se foi atendido.
+    //
+    // ⚠️ SÓ NO TURNO EM QUE ELE PEDIU. A marca é acumulativa de propósito (é o
+    // que a faz atravessar os três merges); a CORTESIA não pode ser — repetir
+    // "apaguei o seu WhatsApp" em todo turno seguinte seria a casa relembrando
+    // o cliente de uma coisa que ele resolveu há dez turnos. Por isso a
+    // leitura é da fala DESTE turno, e não da marca acumulada.
+    const retratadosAgora = canaisRetratados(body.currentMessage);
+    const cortesia = cortesiaDaRetratacao(retratadosAgora, acumulado.preferredChannel);
+    if (cortesia) {
+      // Emenda, nunca substitui: a pergunta que o SDR ia fazer continua sendo
+      // feita. Trocar a fala inteira pelo reconhecimento custaria um turno de
+      // sondagem por uma questão de educação.
+      replyText = `${cortesia}\n\n${replyText}`.trim();
     }
 
     await registrar({ ...fio, doVisitante: body.currentMessage, doSdr: replyText });

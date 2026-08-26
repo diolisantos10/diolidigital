@@ -166,3 +166,63 @@ export function canalFoiRetratado(escopo: unknown, canal: CanalRetratavel): bool
   if (!escopo || typeof escopo !== "object") return false;
   return lerRetratados((escopo as Record<string, unknown>).canaisRetratados).includes(canal);
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// A CORTESIA — o dano estava fechado, e a conversa não (9ª volta, 26/08/2026)
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// Medido em produção, nas TRÊS passadas: ao ouvir *"esquece o WhatsApp, prefiro
+// e-mail"*, o dado foi corretamente apagado das três memórias — e a fala
+// seguinte do SDR **não disse uma palavra sobre isso**, foi direto para a
+// próxima pergunta.
+//
+// Do lado do cliente, apagar em silêncio e não apagar são indistinguíveis. Ele
+// pediu uma coisa, recebeu outra pergunta, e não tem como saber se foi ouvido —
+// então repete, ou desconfia. É a mesma classe de defeito que "coluna gravada
+// não é cliente informado": o estado certo, invisível.
+//
+// ⚠️ POR QUE A FRASE É DA CASA, E NÃO DO MODELO. A retratação é lida em código,
+// por régua determinística, depois que o modelo já falou. Pedir ao modelo que
+// reconheça o que a régua decidiu criaria duas verdades — o turno em que ele
+// esquecesse de dizer, ou dissesse sobre o canal errado, seria pior que o
+// silêncio. Uma régua, um texto.
+//
+// ⚠️ E ELA FALA COM O CLIENTE, NUNCA SOBRE ELE. É a lição do "ele" na cara do
+// cliente (PR #350): texto da casa que chega à plateia do cliente é escrito na
+// SEGUNDA pessoa, sempre.
+
+/** Como o cliente chama cada canal — a palavra dele, não a do banco. */
+const NOME_NA_BOCA_DO_CLIENTE: Record<CanalRetratavel, string> = {
+  whatsapp: "WhatsApp",
+  email: "e-mail",
+};
+
+/**
+ * O reconhecimento em voz alta do que a casa acabou de apagar — com a
+ * instrução gêmea (por onde ela passa a falar) colada, porque dizer "não uso
+ * mais o seu WhatsApp" sem dizer o que fica no lugar deixa o cliente sem saber
+ * por onde a resposta vem.
+ *
+ * `null` quando não há nada a reconhecer — e `null` NÃO é uma frase vazia:
+ * quem chama não deve emendar nada na fala do SDR nesse caso.
+ */
+export function cortesiaDaRetratacao(
+  canaisDesteTurno: readonly CanalRetratavel[],
+  canalQueFica?: unknown,
+): string | null {
+  if (canaisDesteTurno.length === 0) return null;
+  const apagados = [...canaisDesteTurno].sort().map((c) => NOME_NA_BOCA_DO_CLIENTE[c]);
+  const lista = apagados.length === 1 ? apagados[0] : `${apagados.slice(0, -1).join(", ")} e ${apagados.at(-1)}`;
+
+  const fica =
+    canalQueFica === "email" || canalQueFica === "whatsapp"
+      ? NOME_NA_BOCA_DO_CLIENTE[canalQueFica as CanalRetratavel]
+      : null;
+
+  // Sem canal restante (ele retratou os dois) a casa NÃO promete um caminho que
+  // não tem: diz o que fez e devolve a escolha a ele. Inventar "falo por aqui
+  // mesmo" seria prometer um canal que a solicitação gravada não guarda.
+  return fica
+    ? `Anotado: apaguei o seu ${lista} daqui e não uso mais esse canal — falo com você por ${fica}.`
+    : `Anotado: apaguei o seu ${lista} daqui e não uso mais esse canal. Me diga por onde você prefere que eu fale com você.`;
+}
