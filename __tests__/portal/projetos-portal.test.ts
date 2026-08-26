@@ -79,8 +79,12 @@ describe("GET /api/portal/projetos — o dono vem do token", () => {
 
   it("o calendário filtra por visibility 'compartilhado' — interno não sai nem por engano", async () => {
     await GET(req("http://localhost/api/portal/projetos?token=tok-a"));
+    // ⚠️ `mediaUrl: { not: null }` entrou em 26/08/2026, junto: o cliente
+    // oculto viu este calendário oferecer TRÊS peças sem arte, com "Esperando
+    // você". A regra é a mesma de `/api/social-posts` e mora num lugar só
+    // (`PECA_VISIVEL_AO_CLIENTE`).
     expect(db.socialPost.findMany.mock.calls[0]![0].where).toEqual({
-      clientId: "cli-foocci", visibility: "compartilhado",
+      clientId: "cli-foocci", visibility: "compartilhado", mediaUrl: { not: null },
     });
   });
 });

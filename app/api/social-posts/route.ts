@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import { PECA_VISIVEL_AO_CLIENTE } from "@/lib/agency/portal/peca-visivel-ao-cliente";
 import { requireSession } from "@/lib/auth/api-guard";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
@@ -150,8 +151,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       where: {
         workspaceId: escopo.workspaceId,
         clientRequestId: escopo.reqId,
-        visibility: "compartilhado",
-        mediaUrl: { not: null },
+        ...PECA_VISIVEL_AO_CLIENTE,
       },
       orderBy: { scheduledFor: "asc" },
     });

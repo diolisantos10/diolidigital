@@ -19,6 +19,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import { PECA_VISIVEL_AO_CLIENTE } from "@/lib/agency/portal/peca-visivel-ao-cliente";
 import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 
@@ -103,7 +104,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       prisma.socialPost.findMany({
         // Por clientId: pega também os posts agendados sem clientRequestId —
         // o buraco exato que deixou o calendário da Foocci invisível.
-        where: { clientId: dono.clientId, visibility: "compartilhado" },
+        //
+        // `PECA_VISIVEL_AO_CLIENTE` entrou em 26/08/2026: o cliente oculto viu
+        // este calendário oferecer TRÊS peças sem arte, com "Esperando você" —
+        // pedindo decisão sobre cartão vazio. A regra é a mesma de
+        // `/api/social-posts` e mora num lugar só, porque a primeira versão
+        // deste conserto fechou aquela rota e esqueceu esta.
+        where: { clientId: dono.clientId, ...PECA_VISIVEL_AO_CLIENTE },
         orderBy: { scheduledFor: "asc" },
         select: {
           id: true, caption: true, networks: true, format: true, pillar: true,
