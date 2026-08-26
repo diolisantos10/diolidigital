@@ -10,6 +10,8 @@ import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-ser
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 
 interface DbPost {
+  /** Quem gerou a peça. Ver o comentário em `toDTO`. */
+  deliverableId?: string | null;
   id: string; clientId: string | null; clientRequestId: string | null;
   caption: string; networks: string; format: string; pillar: string | null;
   mediaUrl: string | null; mediaUrlsJson: string | null; scenesJson?: string | null;
@@ -42,6 +44,21 @@ function toDTO(p: DbPost) {
   if (p.scriptJson) { try { script = JSON.parse(p.scriptJson); } catch { /* null */ } }
   return {
     id: p.id, clientId: p.clientId, clientRequestId: p.clientRequestId,
+    // ── QUEM GEROU A PEÇA, VISÍVEL PARA QUEM MEDE (6ª rodada) ──────────────
+    //
+    // `SocialPost.deliverableId` é a chave que liga a peça à entrega que a
+    // fez — e é ela que a mira do ajuste passou a usar para saber QUAL entrega
+    // refazer (`esteira/refacao.ts`). O DTO da agência não a devolvia, e a
+    // consequência foi imediata: durante a jornada de cliente oculto eu li
+    // "dlv = nulo" em três peças e quase registrei como causa-raiz que a FK
+    // nunca era escrita. Não era nulo — era invisível.
+    //
+    // Ausência de informação não é informação, e a régua vale para quem audita
+    // também. Campo que decide comportamento e não aparece em lugar nenhum é
+    // campo que vai ser diagnosticado errado.
+    //
+    // ⛔ Fica FORA de `toPortalDTO`: é id interno, e o cliente não vê id.
+    deliverableId: p.deliverableId ?? null,
     caption: p.caption, networks, format: p.format, pillar: p.pillar,
     mediaUrl: p.mediaUrl,
     // As telas do carrossel (mediaUrlsJson). O cliente aprova a IMAGEM, não a
@@ -250,6 +267,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         workspaceId:     session.workspaceId,
         clientId,
         clientRequestId,
+        // ── A TERCEIRA PORTA TAMBÉM CARREGA A CHAVE (6ª rodada) ────────────
+        //
+        // `publicacao.ts` e `story-instagram-v1.ts` gravam `deliverableId` ao
+        // criar a peça; esta rota — a terceira porta, por onde a equipe cria à
+        // mão — não gravava. "Guarda que existe em um caminho e não no outro é
+        // guarda que não existe": a peça nascida por aqui chegaria ao ajuste
+        // sem dizer de qual entrega veio, e a mira cairia no fallback que esta
+        // rodada acabou de consertar.
+        deliverableId:   typeof body.deliverableId === "string" && body.deliverableId.trim()
+          ? body.deliverableId.trim() : null,
         caption:         typeof body.caption === "string" ? body.caption : "",
         networks:        JSON.stringify(networks),
         format:          typeof body.format === "string" ? body.format : "feed",
