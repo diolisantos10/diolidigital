@@ -31,7 +31,7 @@ import { classificarFalhaDeProvedor } from "@/lib/ai/falha-de-provedor";
 import { generate, ordemDePreferenciaDaCasa } from "@/lib/ai/generate";
 import type { AiProvider } from "@/lib/ai/resolve-key";
 import type { TurnoDeHistorico } from "@/lib/agency/intelligence/openai-schemas";
-import { ehPerguntaDeFaixa, formaDoPrecoNaFala, normalizarFaixa, ofertaParaFaixa } from "@/lib/agency/comercial/negociacao";
+import { ehPerguntaDeFaixa, faixaEscolhidaNaFala, formaDoPrecoNaFala, normalizarFaixa, ofertaParaFaixa } from "@/lib/agency/comercial/negociacao";
 import { parseBudgetAmount } from "@/lib/agency/sdr-agent";
 // ATÉ 16/08/2026 ESTA ROTA NÃO ESCREVIA NADA. Zero chamadas a `prisma.`: o SDR
 // conversava, errava, e o diário do piloto mostrava `mensagens: 0` enquanto a
@@ -405,6 +405,22 @@ function aplicarTravasDeEscopo(
  */
 function faixaDoTexto(fala: unknown): string | null {
   if (typeof fala !== "string" || !fala.trim()) return null;
+  // ── A ESCOLHA DO CARDÁPIO VEM ANTES DO NÚMERO (medido, 26/08/2026) ───────
+  //
+  // O SDR ofereceu a régua inteira e o cliente respondeu "Entre R$ 500 e
+  // R$ 1.500". O escopo saiu com "entre R$ 150 e R$ 500" — o degrau de baixo —
+  // e o SDR ainda respondeu "Anotei sua faixa de investimento". A casa
+  // confirmou ter registrado o que ele disse e registrou outra coisa, num
+  // campo de DINHEIRO.
+  //
+  // A causa é a regra certa da 6ª volta aplicada ao caso errado: ele não disse
+  // um VALOR, repetiu um RÓTULO. `parseBudgetAmount` pegou o primeiro número
+  // (500) e `ofertaParaFaixa(500)` escolheu o degrau de baixo pela própria
+  // régua (500 é teto de um degrau e piso do seguinte). Ver
+  // `faixaEscolhidaNaFala` — escolher do cardápio é a evidência mais forte que
+  // existe, e o número segue mandando em todo o resto.
+  const escolhida = faixaEscolhidaNaFala(fala);
+  if (escolhida) return escolhida;
   const valor = parseBudgetAmount(fala);
   if (valor === undefined || !Number.isFinite(valor) || valor <= 0) return null;
   const oferta = ofertaParaFaixa(valor);
