@@ -88,3 +88,54 @@ describe("fala-se COM o cliente, não SOBRE ele", () => {
     expect(falaSobreOClienteEmTerceiraPessoa(null)).toBe(false);
   });
 });
+
+// ── O "ELE" ERA NOSSO, NÃO DO MODELO (medido no ar, 9ª volta) ───────────────
+//
+// A reformulação da própria casa saiu assim, na cara do cliente:
+//
+//   "Deixa eu tentar de outro jeito: você consegue me dizer se ELE já tem
+//    fotos, vídeos ou logo prontos?"
+//
+// `segundaFormulacao` costurava a frase com `O_QUE_A_PERGUNTA_DE_IA_COLHE`, que
+// é escrito para a LACUNA — um texto da casa para a casa, sobre um terceiro.
+// Uma tabela, duas plateias, e uma delas recebendo a voz errada.
+
+import {
+  segundaFormulacao, O_QUE_A_PERGUNTA_DE_IA_COLHE, COMO_SE_PERGUNTA_AO_CLIENTE,
+} from "@/lib/agency/comercial/pergunta-repetida";
+
+describe("a voz da fala é a do cliente", () => {
+  it("a frase medida no ar não sai mais em terceira pessoa", () => {
+    const fala = segundaFormulacao("material_pronto")!;
+    expect(fala).toBeTruthy();
+    expect(falaSobreOClienteEmTerceiraPessoa(fala)).toBe(false);
+    expect(fala).not.toMatch(/\bele j[áa] tem\b/i);
+    // E continua sendo reconhecível como a MESMA pergunta — senão o contador
+    // para de contar e as duas reformulações viram infinitas.
+    expect(fala).toContain("?");
+    expect(identificarPergunta(fala)).toBe("material_pronto");
+  });
+
+  it("NENHUMA reformulação de IA fala do cliente em terceira pessoa", () => {
+    for (const id of Object.keys(COMO_SE_PERGUNTA_AO_CLIENTE)) {
+      const fala = segundaFormulacao(id);
+      if (!fala) continue;
+      expect(falaSobreOClienteEmTerceiraPessoa(fala), `${id}: ${fala}`).toBe(false);
+      expect(fala, `${id}`).not.toMatch(/\b(?:ele|dele)\b/i);
+    }
+  });
+
+  it("as duas colunas cobrem as MESMAS perguntas — tabela pela metade vaza a voz errada", () => {
+    expect(Object.keys(COMO_SE_PERGUNTA_AO_CLIENTE).sort())
+      .toEqual(Object.keys(O_QUE_A_PERGUNTA_DE_IA_COLHE).sort());
+  });
+
+  it("a coluna da LACUNA continua em terceira pessoa — ela é da casa para a casa", () => {
+    // Não é descuido: quem lê a lacuna é um colega lendo sobre um terceiro.
+    expect(O_QUE_A_PERGUNTA_DE_IA_COLHE.material_pronto).toContain("ele");
+  });
+
+  it("sem texto em segunda pessoa a casa NÃO improvisa com o da lacuna", () => {
+    expect(segundaFormulacao("pergunta_que_nao_existe")).toBeNull();
+  });
+});
