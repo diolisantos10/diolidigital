@@ -249,7 +249,9 @@ export async function generateDesign(req: DesignRequest): Promise<DesignResult> 
     const r =
       produtor === "openai"
         ? await produzirPelaOpenAi(req, resolved.apiKey, size, quality)
-        : await produzirPeloGemini(req, resolved.apiKey, size, quality);
+        // `quedas` entra aqui para o livro-caixa saber se ALGUÉM caiu antes —
+        // ver o bloco em `produzirPeloGemini`.
+        : await produzirPeloGemini(req, resolved.apiKey, size, quality, quedas);
 
     if (r.ok) return r;
 
@@ -332,6 +334,8 @@ async function produzirPeloGemini(
   apiKey: string,
   size: DesignSize,
   quality: DesignQuality,
+  /** Quem já caiu nesta chamada, ANTES do Gemini. Ver o bloco abaixo. */
+  quedasAntes: readonly QuedaDeProdutor[] = [],
 ): Promise<DesignResult> {
   const model = process.env.GEMINI_IMAGE_MODEL?.trim() || "gemini-2.5-flash-image";
   const comeco = Date.now();
@@ -340,8 +344,25 @@ async function produzirPeloGemini(
   // mesma forma para o livro-caixa não ter duas gramáticas — e `estimarCustoDe
   // Imagem` devolve `null` para um modelo fora da tabela, que é o comportamento
   // certo: "não sei medir" nunca vira zero.
-  registrarNoLivroCaixa(req, "gemini", model, TAMANHO_DA_CONTA[size], quality, raw, Date.now() - comeco, true,
-    "a fila de imagem escorregou para o Gemini");
+  //
+  // ── E O MOTIVO SÓ SE ESCREVE QUANDO ELE ACONTECEU (27/08/2026) ────────────
+  //
+  // MEDIDO EM PRODUÇÃO, na rodada paga. Com `BRAIN_IMAGE_PROVIDER=gemini` o
+  // Gemini é o PRIMEIRO da fila e produziu de primeira — ninguém caiu. Mesmo
+  // assim a linha saiu com `fallbackUsed: true` e
+  // `fallbackReason: "a fila de imagem escorregou para o Gemini"`, porque as duas
+  // coisas eram constantes escritas à mão neste ponto.
+  //
+  // O estrago é de LEITURA, e ela é a única defesa que a casa tem: quem for
+  // responder *"com que frequência a OpenAI cai?"* conta uma queda que nunca
+  // existiu. É a irmã do defeito de 26/08 em `provedoresCaidos` — o dado estava
+  // sendo escrito, e escrito errado. Preferir escolher o produtor não é a
+  // reserva entrando; são fatos diferentes e agora o livro os separa.
+  const escorregou = quedasAntes.length > 0;
+  registrarNoLivroCaixa(req, "gemini", model, TAMANHO_DA_CONTA[size], quality, raw, Date.now() - comeco, escorregou,
+    escorregou
+      ? `a fila de imagem escorregou para o Gemini (caiu: ${quedasAntes.map((q) => q.produtor).join(", ")})`
+      : undefined);
   return toResult(raw, "gemini", model);
 }
 
@@ -504,6 +525,40 @@ async function callOpenAiImage(
       const msg = errJson.error?.message
         ? `OpenAI HTTP ${res.status}: ${errJson.error.message}`
         : `OpenAI HTTP ${res.status}`;
+      // ── A RECUSA DE CONTEÚDO VEM PRIMEIRO, E ELA É PEDIDO RUIM ───────────
+      //
+      // MEDIDO EM PRODUÇÃO (rodada paga, 26/08/2026, rodada D da fila). A OpenAI
+      // devolveu, palavra por palavra:
+      //
+      //   "OpenAI HTTP 400: Your request was rejected by the safety system."
+      //
+      // Isso é o pedido NOSSO sendo recusado — não é o provedor fora do ar, e
+      // **não melhora tentando de novo, nem com outro produtor**. O cabeçalho
+      // deste arquivo já diz a regra: *"`bad_request` é problema NOSSO. Escorregar
+      // levaria o mesmo pedido ruim ao produtor seguinte e gastaria de novo para
+      // ouvir a mesma coisa."* A regra existia; o classificador não a alcançava.
+      //
+      // Dois vazamentos de dinheiro fechados aqui, os dois medidos:
+      //
+      //   1. `reason` saía "provider_error", então `generateDesign` NÃO quebrava
+      //      a fila — na ordem padrão (openai → gemini) uma recusa de conteúdo
+      //      escorregaria e **pagaria uma segunda imagem** para ouvir o mesmo não.
+      //      Pior: se o Gemini gerasse, a casa entregaria ao cliente a arte que a
+      //      OpenAI tinha recusado — sem ninguém saber que ela foi recusada.
+      //   2. `modelAccessIssue` casava por `not.*allowed`, e a frase da OpenAI
+      //      para conteúdo é *"...is not allowed by our safety system"*. Ou seja,
+      //      a recusa de conteúdo se disfarçava de "conta sem acesso ao modelo" e
+      //      disparava a segunda chamada PAGA ao dall-e-3, que recusa igual.
+      //
+      // Por isso a régua da recusa é lida ANTES da régua de acesso ao modelo: das
+      // duas frases que casam, a de segurança é a específica.
+      const recusaDeConteudo =
+        res.status === 400 &&
+        /safety system|content policy|content_policy|rejected as a result of our safety|moderation/i.test(msg);
+      if (recusaDeConteudo) {
+        return { ok: false, status: res.status, error: msg, modelAccessIssue: false, reason: "bad_request" };
+      }
+
       // 400/403 on gpt-image-1 usually means the org isn't verified for it →
       // signal that the caller should fall back to dall-e-3.
       const modelAccessIssue =
