@@ -80,8 +80,20 @@ O freio funcionou, e funcionou bem. `ActivityEvent` do projeto:
 > `qualidade_nao_auditou` — "Social Media · Copy dos posts: **SEM AUDITORIA
 > (limite_de_taxa)**"
 
-A causa é externa e legítima: `quality-auditor` levou `OpenAI HTTP 429` nas
-chamadas de árbitro independente (visível em `/api/ai-run-logs`).
+A causa é externa, e eu a descrevi PELA METADE na primeira leitura — corrijo
+aqui. Não foi só o `HTTP 429` da OpenAI: para esta peça **os três árbitros
+independentes falharam**, cada um do seu jeito, e está tudo em `/api/ai-run-logs`:
+
+```
+quality-auditor  OpenAI HTTP 429          (6x na janela)
+quality-auditor  Resposta DeepSeek vazia  (2x)
+quality-auditor  JSON inválido (Gemini)   (2x)
+```
+
+Isso muda o tamanho da promessa do conserto, e o conserto não pode prometer o
+que não entrega: **a reauditoria torna o pacote visível e o faz tentar de novo;
+ela não inventa um árbitro.** Se os três continuarem falhando, a peça continua
+barrada — de propósito. O que deixa de existir é o pacote invisível.
 
 E aí vem o defeito, que é da casa:
 
