@@ -295,7 +295,23 @@ describe("guarda de preço barra a FALA, não o escopo que já tinha chegado", (
     // pelas mesmas travas de sempre, mesmo vindo de um guarda diferente.
     expect(corpo.scope.prospectEmail).toBeUndefined(); // login com Google, nunca do chat
     expect(corpo.scope.businessName).toBeUndefined();  // igual ao prospectName — descartado
-    expect(corpo.scope.budgetRange).toBeUndefined();   // "R$ 999" não é faixa da allowlist
+    // ── A FAIXA: o rótulo do modelo morre, o NÚMERO DO CLIENTE decide ──────
+    //
+    // Esta linha exigia `undefined`, e exigia por um motivo certo: "R$ 999" não
+    // é rótulo da allowlist, e rótulo inventado tem de sumir. Isso continua
+    // valendo — e a asserção ficou mais afiada em 26/08/2026.
+    //
+    // A fala do cliente aqui é *"quanto custa? quero 2 posts por dia, uns
+    // **R$ 500** por mês"*. Ele DISSE um número. Desde a 6ª rodada a faixa é
+    // derivada dele (`faixaDoTexto`), porque a allowlist responde "este rótulo
+    // existe?" e a pergunta que importa é "este rótulo é o do número que ele
+    // disse?" — medido em produção com um cliente que declarou R$ 900 e teve
+    // R$ 500 gravado como teto.
+    //
+    // Então o que se afirma agora é mais forte que "o campo some": o palpite do
+    // modelo é descartado E o que ele mesmo declarou é guardado.
+    expect(corpo.scope.budgetRange).not.toBe("R$ 999");
+    expect(corpo.scope.budgetRange).toBe("entre R$ 150 e R$ 500");
 
     const linhas = gravadas();
     const doSdr = linhas.find((l) => l.authorName === "SDR");
