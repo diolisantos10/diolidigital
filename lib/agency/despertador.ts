@@ -205,9 +205,11 @@ async function destravarPacotesBarrados(): Promise<number> {
       // `?? []` porque esta perna NÃO pode morrer por um campo ausente: o
       // `catch` lá embaixo engoliria o projeto inteiro e a reescrita — que já
       // funcionava — deixaria de rodar por causa da novidade.
+      let liberadasPeloJuiz = 0;
       if ((t.naoAuditadas ?? []).length > 0) {
         const rr = await reauditarSemArbitro(t.projectId);
-        corrigidas += rr.aprovadas.length;
+        liberadasPeloJuiz = rr.aprovadas.length;
+        corrigidas += liberadasPeloJuiz;
         if (rr.aindaSemArbitro.length > 0) {
           log(`pacote ${t.projectId}: ${rr.aindaSemArbitro.length} peça(s) continuam sem árbitro — a auditoria é que está fora, não a peça`);
         }
@@ -217,7 +219,20 @@ async function destravarPacotesBarrados(): Promise<number> {
       corrigidas += r.corrigidas.length;
       // Voltou a ter peça boa? A produção é re-enfileirada para que o fluxo
       // normal (auditoria + apresentação automática) siga daqui.
-      if (r.corrigidas.length > 0 && !r.escalado) {
+      //
+      // ── `liberadasPeloJuiz` ENTROU NESTA CONDIÇÃO DEPOIS, E É DÍVIDA MINHA ──
+      //
+      // Medido em produção 20 minutos depois do deploy do próprio conserto: a
+      // reauditoria funcionou (`moveu: {destravadas: 8}`, a peça passou a
+      // `quality_ok` julgada pelo Gemini) e **o pacote continuou sem ser
+      // apresentado**. Só `r.corrigidas` — o resultado da REESCRITA — mandava
+      // nesta condição, e a reescrita não tinha feito nada porque não havia
+      // nada a reescrever.
+      //
+      // Ou seja: eu destravei a auditoria e não devolvi o pacote ao fluxo.
+      // Meio conserto é pior que nenhum, porque o instrumento passa a dizer
+      // "destravei 8" enquanto o cliente continua sem ver a entrega.
+      if ((r.corrigidas.length > 0 || liberadasPeloJuiz > 0) && !r.escalado) {
         await prisma.project.update({
           where: { id: t.projectId },
           data: { executionStatus: "pending", executionRequestedAt: new Date(), executionAttempts: 0 },
