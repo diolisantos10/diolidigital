@@ -6179,3 +6179,97 @@ mesma porta. As perguntas para o CEO:
   (ex.: "ele pediu mais luz e a luz caiu" é reprovação)?
 - a linha de direção do entregável nunca pode virar legenda — isto é conserto de
   leitura e cabe em qualquer rodada.
+
+## 🟢 27/08/2026 — O AJUSTE PASSOU A OBEDECER AO PEDIDO: CONGELAMENTO, RÉGUA E PORTA
+
+Fecha os sete itens abertos pela rodada paga em que a refação entregou o
+contrário do pedido. **Tudo o que está aqui foi provado em custo ZERO** — a
+travessia paga não rodou, e o motivo está no fim desta seção.
+
+### 1. O ajuste só mexe no que o cliente apontou (`escopo-do-ajuste.ts`)
+
+`escopoDoAjuste` lê as faces citadas (arte, legenda, título, data, formato,
+pilar, CTA) e `congelarItens` descarta o valor novo dos campos das outras. O
+anterior é lido do texto que o cliente está vendo, por `itensDaEntrega` — a
+leitura inversa de `renderizarEntrega`, pela MESMA lista `CAMPOS_DA_ENTREGA`.
+
+Duas fronteiras: pedido **amplo** ("não gostei, refaz") sai `incerto` e não
+congela nada; **recusa** da entrega inteira nunca congela.
+
+Sobre o caso medido: "o fundo ficou escuro demais…" → face `arte`, e
+`caption`/`note`/`headline` congelados. A legenda "Sexta é dia de estar aqui /
+Post destacando…" não teria sido gravada.
+
+### 2. Direção interna é trava de código (`direcao-interna.ts`)
+
+A peneira mora em `captionDaPeca` — o funil por onde toda legenda passa, no
+nascimento e no ajuste, e a mesma fonte que vira pixel. A última porta é
+`publicacao.ts`, antes da Meta: ali **não se limpa** (reescrever na saída seria
+a agência mudando o que o cliente aprovou) — barra, com dono e próxima ação.
+
+⚠️ A régua foi ESTREITADA antes do merge: a primeira redação casava "Conteúdo de
+qualidade para você". Como ela barra publicação, falso positivo custa o post de
+um cliente real.
+
+### 3. A régua que faltava (`design/medir-luz.ts` + `regua-da-refacao.ts`)
+
+A peça nova é medida contra a anterior. Sobre os dois arquivos guardados:
+
+| | antes | depois |
+|---|---|---|
+| luminância média | 39,9 | 29,5 |
+| terço de cima | 63,4 | 41,8 |
+
+(A auditoria escreveu 40,5 → 29,8 e 64,2 → 42,1; a diferença é da amostra de
+160px e está declarada no teste.) Veredito: **`piorou` → não entrega.** O
+`mediaUrl` volta ao arquivo anterior, a peça segue inagendável, o cliente lê a
+verdade e a equipe é escalada — **sem queimar a tentativa paga dele**.
+
+**O que a régua NÃO alcança, e sai declarado:** "o prato em primeiro plano",
+"o prato some", enquadramento, ângulo e gosto. Isso é olho humano, e a régua diz
+isso mesmo quando a luz melhorou.
+
+### 4. Data coerente (`calendario-do-cliente.ts`)
+
+O dia citado tem de ser o dia da peça; sem hora marcada, tem de estar no
+calendário do cliente; sem os dois, `nao_medido`. Faixa é faixa ("de terça a
+quinta" são três dias).
+
+### 5. O beco de OFICINA FAROL ganhou porta (`porta-do-ajuste.ts`)
+
+Teto e pedido repetido têm dono com rosto (o gerente do projeto) e três caminhos
+concretos. `valeChamarAIa` impede o pedido repetido de queimar outra tentativa
+paga, com memória curta no carimbo `[parada:<causa>]`.
+
+`PARADAS_QUE_NAO_MUDAM` é curta de propósito: `fora_do_contrato` e
+`dado_inventado` retentam — nascem da saída do modelo, que varia.
+
+### 6. A reversão do pacote cobre o card de calendário
+
+Desagenda `scheduled → draft`, com compare-and-set e três exclusões (publicada
+não volta; aprovada por `client:` não volta; peça de outro pedido nem é olhada).
+
+### 7. O provedor reserva de imagem entrou no livro-caixa
+
+Gemini de imagem: US$ 0,039. **Correção de diagnóstico:** o gasto NÃO ficava
+fora do teto — entrava com o palpite de US$ 0,05, **28% acima do preço real**.
+Teto que fecha com número errado fecha na hora errada.
+
+### ⛔ O QUE NÃO FOI MEDIDO — a travessia paga não rodou
+
+**Custo desta rodada: US$ 0,00.** O saldo da OpenAI continua onde estava.
+
+A Fase 2 exigia autenticar como master contra a produção, e a senha só pode
+entrar por variável de ambiente. **O ambiente de execução recusou o comando que
+carregava a credencial** — não é defeito da casa nem falta de caminho: é a
+permissão do sandbox. Sem sessão não há token de portal, e sem token não há
+pedido de ajuste.
+
+**Continua NÃO MEDIDO ao vivo, portanto:**
+- o cliente pedindo mais luz e recebendo mais luz **em produção**;
+- a legenda não mencionada ficando intacta **em produção**;
+- a régua reprovando uma peça pior **em produção** (o caminho está provado em
+  teste e sobre os dois arquivos reais, que é o mais perto que custo zero chega).
+
+**Depende só do CEO:** liberar a execução do comando com a credencial (uma regra
+de permissão de Bash na sessão) ou fazer ele mesmo a volta pelo portal.

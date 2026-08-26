@@ -80,6 +80,12 @@ beforeEach(() => {
   db.approvalRequest.findMany.mockResolvedValue([card("ap1"), card("ap2", { department: "design" })]);
   db.approvalRequest.updateMany.mockResolvedValue({ count: 2 });
   db.activityEvent.create.mockResolvedValue({});
+  // ── 27/08/2026: a reversão passou a cobrir o CARD DE CALENDÁRIO ───────────
+  // `aprovarPacote` não parava nos cards: ele promovia as peças a `scheduled`,
+  // que é o estado que o relógio publica. Por padrão, aqui, nenhuma peça está
+  // na fila — os casos que exercitam a fila mockam a lista.
+  db.socialPost.findMany.mockResolvedValue([]);
+  db.socialPost.updateMany.mockResolvedValue({ count: 0 });
   db.$transaction.mockImplementation(async (ops: unknown[]) => ops);
 });
 
@@ -318,7 +324,18 @@ describe("rodar duas vezes não faz mal", () => {
 // ─── 7. NÃO PUBLICA E NÃO MEXE EM PEÇA ──────────────────────────────────────
 
 describe("nada publica, nada muda de status", () => {
-  it("nenhum SocialPost é escrito", async () => {
+  // ⚠️ ESTA GARANTIA MUDOU EM 27/08/2026, E DE PROPÓSITO.
+  //
+  // Ela dizia "nenhum SocialPost é escrito" — e era exatamente o buraco: o
+  // clique do pacote promovia as peças a `scheduled` (via `aprovarCalendario`),
+  // e a reversão desfazia a papelada deixando a CONSEQUÊNCIA de pé. Na rodada
+  // paga de 27/08 foi preciso usar `/reprovar` para tirar UMA peça de teste da
+  // fila de publicação.
+  //
+  // O que continua valendo, e é o que este caso passa a medir: sem peça na
+  // fila, nada é escrito; e nenhuma peça é APAGADA nem publicada — o único
+  // caminho de escrita é `scheduled → draft`, com compare-and-set.
+  it("sem peça na fila, nenhum SocialPost é escrito", async () => {
     await reverterAprovacaoDoPacote({ ...PEDIDO, aplicar: true });
     expect(db.socialPost.update).not.toHaveBeenCalled();
     expect(db.socialPost.updateMany).not.toHaveBeenCalled();
@@ -359,5 +376,68 @@ describe("quem é alvo e quem não é", () => {
     expect(lerCarimbo("Quality Director")).toBe("outro");
     // "client:" pelado não é ninguém — e não pode contar como o cliente.
     expect(lerCarimbo("client:")).toBe("outro");
+  });
+});
+
+// ─── O CARD DE CALENDÁRIO (27/08/2026) ──────────────────────────────────────
+//
+// PROVA POR MUTAÇÃO (onde): apagar o bloco `desagenda` de
+// `lib/agency/esteira/reverter-aprovacao-do-pacote.ts` (a leitura das peças
+// `scheduled` ou o `socialPost.updateMany`) reprova este bloco inteiro.
+
+describe("a reversão tira a peça da FILA DE PUBLICAÇÃO", () => {
+  const NA_FILA = [
+    { id: "post-1", caption: "Terça tem prato especial", scheduledFor: new Date("2026-09-01T12:00:00.000Z") },
+    { id: "post-2", caption: "Bastidores da massa", scheduledFor: new Date("2026-09-03T12:00:00.000Z") },
+  ];
+
+  beforeEach(() => {
+    db.socialPost.findMany.mockResolvedValue(NA_FILA);
+    db.socialPost.updateMany.mockResolvedValue({ count: 2 });
+  });
+
+  it("a leitura pura MOSTRA as peças que sairiam — item por item", async () => {
+    const r = await reverterAprovacaoDoPacote({ ...PEDIDO });
+    expect(r.situacao).toBe("so_medi");
+    expect(r.pecasDesagendadas).toBe(2);
+    expect(r.projetos[0]!.desagenda.map((d) => d.postId)).toEqual(["post-1", "post-2"]);
+    expect(r.projetos[0]!.desagenda[0]!.caption).toContain("Terça");
+    expect(r.veredito).toContain("FILA DE PUBLICAÇÃO");
+    expect(db.socialPost.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("aplicando, elas voltam a rascunho — com compare-and-set", async () => {
+    const r = await reverterAprovacaoDoPacote({ ...PEDIDO, aplicar: true });
+    expect(r.pecasDesagendadas).toBe(2);
+    const chamada = db.socialPost.updateMany.mock.calls[0]![0];
+    expect(chamada.data).toEqual({ status: "draft" });
+    expect(chamada.where.status).toBe("scheduled");
+    expect(chamada.where.publishedAt).toBe(null);
+    expect(chamada.where.id.in).toEqual(["post-1", "post-2"]);
+  });
+
+  it("o rastro diz quais peças saíram", async () => {
+    await reverterAprovacaoDoPacote({ ...PEDIDO, aplicar: true });
+    const msg = String(db.activityEvent.create.mock.calls[0]![0].data.message);
+    expect(msg).toContain("post-1");
+    expect(msg).toContain("fora da fila de publicação");
+  });
+
+  it("a peça com aprovação `client:` DE VERDADE não sai da fila", async () => {
+    // O mesmo cliente tem um card aprovado por ele, apontando a peça 2.
+    db.approvalRequest.findMany.mockResolvedValue([
+      card("ap1"),
+      card("ap-do-cliente", { reviewedBy: "client:Ana", sourcePostIdsJson: '["post-2"]', status: "approved" }),
+    ]);
+    const r = await reverterAprovacaoDoPacote({ ...PEDIDO });
+    expect(r.projetos[0]!.desagenda.map((d) => d.postId)).toEqual(["post-1"]);
+  });
+
+  it("peça já PUBLICADA nunca entra — a seleção não a lê", async () => {
+    const r = await reverterAprovacaoDoPacote({ ...PEDIDO });
+    expect(r.pecasDesagendadas).toBe(2);
+    const filtro = db.socialPost.findMany.mock.calls[0]![0].where;
+    expect(filtro.status).toBe("scheduled");
+    expect(filtro.publishedAt).toBe(null);
   });
 });

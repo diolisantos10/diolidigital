@@ -79,7 +79,11 @@ export type CausaDaParada =
   | "dado_inventado"
   | "teto_de_refacoes"
   | "arte_nao_saiu"
-  | "sem_entrega";
+  | "sem_entrega"
+  /** O MESMO pedido, de novo, sobre uma peça que já parou pelo mesmo motivo.
+   *  Chamar a IA outra vez daria o mesmo resultado e queimaria mais uma
+   *  tentativa PAGA do cliente. Ver `valeChamarAIa`. */
+  | "pedido_repetido_sem_mudanca";
 
 export interface ParadaDoAjuste {
   causa: CausaDaParada;
@@ -99,6 +103,91 @@ export interface ParadaDoAjuste {
  *  outro problema, e insistir nela adia a declaração de parada — que é a única
  *  coisa que faz alguém agir. */
 export const MAX_TENTATIVAS_TRANSITORIAS = 2;
+
+/**
+ * Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente.
+ *
+ * Mora aqui, e não em `refacao.ts`, porque é a PORTA que precisa citá-lo na
+ * frase que o cliente lê — e o número escrito à mão numa frase divergiria do
+ * número que trava o laço no primeiro ajuste que alguém mexesse.
+ */
+export const MAX_REFACOES_DO_CLIENTE = 2;
+
+/**
+ * VALE CHAMAR A IA DE NOVO?
+ *
+ * A pergunta que a rodada paga de 27/08/2026 mostrou que ninguém fazia. Um
+ * cliente com 3 peças e ~9 tentativas pagas, ZERO entregues: cada clique dele
+ * disparava uma chamada nova de IA que ia parar exatamente no mesmo lugar.
+ *
+ * A regra: **pedido igual sobre uma parada que não se retenta não gasta
+ * dinheiro de novo.** O ajuste vira porta (a família `precisa_de_gente`), não
+ * uma tentativa a mais.
+ *
+ * ⚠️ Pedido DIFERENTE sempre passa. Cliente que reescreve o pedido está
+ * dizendo outra coisa, e recusar isso seria trocar o beco por outro pior — o
+ * de não poder mais pedir nada.
+ */
+/**
+ * AS PARADAS QUE UMA SEGUNDA CHAMADA NÃO RESOLVE.
+ *
+ * ⚠️ A lista é CURTA de propósito, e o que está fora dela importa tanto quanto
+ * o que está dentro: `fora_do_contrato` e `dado_inventado` nascem da SAÍDA do
+ * modelo, que varia entre chamadas — a segunda tentativa pode muito bem sair
+ * certa, e barrá-la seria a casa recusando trabalho que ela sabe fazer.
+ *
+ * Aqui ficam só as paradas em que o resultado é o MESMO por construção: a
+ * régua determinística da proibição do cliente, o teto de refações, e o
+ * próprio pedido repetido.
+ */
+export const PARADAS_QUE_NAO_MUDAM: ReadonlySet<CausaDaParada> = new Set<CausaDaParada>([
+  "proibicao_do_cliente",
+  "teto_de_refacoes",
+  "pedido_repetido_sem_mudanca",
+]);
+
+export function valeChamarAIa(entrada: {
+  causaAnterior: CausaDaParada | null;
+  pedidoAnterior: string | null | undefined;
+  pedidoNovo: string;
+}): boolean {
+  if (!entrada.causaAnterior) return true;
+  if (!PARADAS_QUE_NAO_MUDAM.has(entrada.causaAnterior)) return true;
+  return !mesmoPedido(entrada.pedidoAnterior, entrada.pedidoNovo);
+}
+
+/** Dois pedidos são o MESMO? Compara o conteúdo, não a digitação: caixa,
+ *  acento, pontuação e espaço não fazem um pedido novo. */
+export function mesmoPedido(a: string | null | undefined, b: string | null | undefined): boolean {
+  const normal = (t: string | null | undefined): string =>
+    (t ?? "")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const x = normal(a);
+  const y = normal(b);
+  return x.length > 0 && x === y;
+}
+
+/**
+ * A CAUSA DA PARADA ANTERIOR, lida do rastro que a refação deixou.
+ *
+ * A refação carimba `[parada:<causa>]` no `lastFeedback` da entrega. É um
+ * rastro e não uma coluna nova de propósito: coluna exige migração, e o que se
+ * precisa aqui é de memória curta — "a última vez que esta peça parou, parou
+ * por quê". Texto sem carimbo devolve `null`, que é "não sei" e libera a
+ * chamada: não saber nunca vira uma recusa de atender o cliente.
+ */
+export function causaDaParadaAnterior(lastFeedback: string | null | undefined): CausaDaParada | null {
+  const m = (lastFeedback ?? "").match(/\[parada:([a-z_]+)\]/);
+  const causa = m?.[1];
+  if (!causa) return null;
+  return causa in CLASSE_DA_CAUSA ? (causa as CausaDaParada) : null;
+}
+
+/** O carimbo que a refação grava. Uma redação só, nos dois lados da leitura. */
+export function carimboDaParada(causa: CausaDaParada): string {
+  return `[parada:${causa}]`;
+}
 
 /**
  * O CONVITE A DECIDIR — a segunda metade da instrução gêmea, uma redação só.
@@ -121,6 +210,7 @@ const CLASSE_DA_CAUSA: Record<CausaDaParada, ClasseDaParada> = {
   teto_de_refacoes:      "precisa_de_gente",
   arte_nao_saiu:         "precisa_de_gente",
   sem_entrega:           "precisa_de_gente",
+  pedido_repetido_sem_mudanca: "precisa_de_gente",
 };
 
 /**
@@ -217,6 +307,57 @@ export function classificarParada(entrada: {
         "Próxima ação: a rodada retenta e eu te aviso aqui assim que a peça nova ficar pronta.",
         "",
         `A peça abaixo continua a ANTERIOR. ${CONVITE_A_DECIDIR}`,
+      ].join("\n"),
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // O BECO SEM SAÍDA — a porta que faltava (27/08/2026)
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // MEDIDO na rodada paga: um cliente (OFICINA FAROL) com **3 peças, ~9
+  // tentativas pagas e ZERO entregues**. Cada peça esgotava o teto e parava
+  // na frase genérica "alguém da equipe te responde aqui" — que é verdadeira,
+  // é honesta, e **não é uma porta**: ela não diz o que ELE pode fazer agora,
+  // e o "alguém" não tem prazo nem rosto. Ficar esperando é o único caminho.
+  //
+  // *Botão que cai na mesma parada é pior que botão nenhum.* Aqui a peça que
+  // esgotou o teto ganha caminho de volta com opções CONCRETAS — e o pedido
+  // repetido para de queimar tentativa paga em laço.
+  if (entrada.causa === "teto_de_refacoes" || entrada.causa === "pedido_repetido_sem_mudanca") {
+    const repetido = entrada.causa === "pedido_repetido_sem_mudanca";
+    return {
+      causa: entrada.causa,
+      classe,
+      retentavel,
+      motivoInterno:
+        (repetido
+          ? "o cliente repetiu o MESMO pedido sobre uma peça que já parou pelo mesmo motivo — a IA NÃO foi chamada de novo, " +
+            "de propósito: daria o mesmo resultado e queimaria outra tentativa paga"
+          : `o teto de ${MAX_REFACOES_DO_CLIENTE} refações desta peça foi atingido`) +
+        (detalhe ? ` (${detalhe})` : "") +
+        ". Isto NÃO se retenta sozinho, e mais uma rodada de IA só aumenta a frustração dele. " +
+        "Dono: o gerente de projeto (uma pessoa, não a fila). " +
+        "Próxima ação: falar com o cliente sobre o que ele quer — o desentendimento é sobre o PEDIDO, não sobre a peça.",
+      avisoAoCliente: [
+        repetido
+          ? "⚠️ VOCÊ PEDIU A MESMA COISA DE NOVO, E EU PAREI DE TENTAR — de propósito."
+          : "⚠️ JÁ TENTEI ESTA PEÇA O NÚMERO DE VEZES QUE EU SEI TENTAR.",
+        "",
+        repetido
+          ? "A máquina já tentou este mesmo ajuste e parou pelo mesmo motivo. Tentar de novo daria o mesmo resultado " +
+            "e consumiria mais uma das suas rodadas — então eu não gastei nenhuma."
+          : "Refazer mais uma vez sozinho não vai te dar uma peça melhor: quando chega aqui, o que falta é a gente " +
+            "se entender sobre o que você quer, e isso é conversa, não rodada de máquina. Você NÃO perde nada por isso.",
+        "",
+        "Quem está com isso agora: o gerente do seu projeto — uma pessoa, não uma fila.",
+        "",
+        "E você tem três caminhos, todos abertos AGORA:",
+        "  1. me escrever aqui, com mais detalhe, o que exatamente está errado — com um exemplo, se tiver;",
+        "  2. ficar com a peça anterior como está (ela continua sua, e continua aprovável);",
+        "  3. recusar ou cancelar esta peça — e ela não conta como entregue.",
+        "",
+        CONVITE_A_DECIDIR,
       ].join("\n"),
     };
   }

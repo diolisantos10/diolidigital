@@ -230,7 +230,19 @@ vi.mock("@/lib/ai/generate", () => ({
 // O portão do fundo continua VALENDO nesta suíte. Ele não foi contornado: o
 // dublê foi feito fotografável.
 vi.mock("@/lib/ai/design-engine", () => ({
-  generateDesign: vi.fn(async () => {
+  // ── 27/08/2026: O DUBLÊ PASSOU A OBEDECER AO PEDIDO DE LUZ ───────────────
+  //
+  // Ele devolvia SEMPRE a mesma foto (semente fixa) — inclusive depois de o
+  // cliente pedir "quero ela mais clara". Isso não era fidelidade: era encenar
+  // um gerador que ignora a direção de arte, exatamente o que a nova régua da
+  // refação (`esteira/regua-da-refacao.ts`) existe para barrar. Com a régua
+  // ligada, o dublê antigo derrubava o caso do ajuste — e estava CERTO em
+  // derrubar: a peça voltava com a mesma luz de antes.
+  //
+  // Agora o dublê clareia quando a direção de arte fala em luz/claro, que é o
+  // que um gerador de verdade faz. A semente segue fixa: a mesma foto em toda
+  // rodada, clara ou escura.
+  generateDesign: vi.fn(async (req?: { prompt?: string }) => {
     const { default: sharp } = await import("sharp");
     const { createHash } = await import("node:crypto");
     const l = 160, a = 284;
@@ -243,8 +255,21 @@ vi.mock("@/lib/ai/design-engine", () => ({
       bloco.copy(dados, i, 0, Math.min(32, dados.length - i));
       bloco = createHash("sha256").update(bloco).digest();
     }
+    // ⚠️ A PALAVRA "luz" SOZINHA NÃO SERVE: o compositor a acrescenta a TODO
+    // prompt ("… Luz: …"). Casar por ela clarearia as quatro peças igualmente e
+    // a refação sairia com a mesma luz de antes — que é exatamente o que a
+    // régua barra. O que separa as duas cenas do caso é a HORA: a peça original
+    // é "madrugada, penumbra"; a refeita é "ao amanhecer, luz clara".
+    const cena = req?.prompt ?? "";
+    const brilho = /penumbra|madrugada|contraluz|noite/i.test(cena)
+      ? 0.7
+      : /amanhecer|luz clara|luz natural|dourado/i.test(cena)
+        ? 1.6
+        : 1;
     const png = await sharp(dados, { raw: { width: l, height: a, channels: 3 } })
       .resize(1080, 1920, { kernel: "nearest" })
+      // `brightness > 1` sobe a luminância de verdade — é o que a régua mede.
+      .modulate({ brightness: brilho })
       .png()
       .toBuffer();
     // A forma REAL de `DesignResult`: uma `url` renderável. Inventar um campo

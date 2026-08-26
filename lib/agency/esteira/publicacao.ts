@@ -56,6 +56,8 @@ import { conferirFormatoDeMidia, type MidiaConferida } from "@/lib/integrations/
 import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
 import { AUTOR_DA_ESTEIRA } from "@/lib/agency/esteira/registro-de-publicacao";
 import { REVISION_STATUS_DA_QUALIDADE } from "@/lib/agency/execution/quality-auditor";
+import { frasesDeDirecaoInterna } from "@/lib/agency/esteira/direcao-interna";
+import { conferirDataDaPeca } from "@/lib/agency/esteira/calendario-do-cliente";
 
 /** Quantos posts publicamos por rodada do relógio. Publicação é irreversível e
  *  a Meta limita chamadas — melhor ir devagar e nunca em enxurrada. */
@@ -867,6 +869,40 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
         await falhar(veredito.motivo);
         continue;
       }
+    }
+
+    // ── DIREÇÃO INTERNA NÃO VAI AO AR (27/08/2026, medido em produção) ─────
+    //
+    // A peneira mora em `captionDaPeca`, no nascimento e no ajuste. Esta é a
+    // ÚLTIMA porta, e ela existe porque `SocialPost.caption` também é escrito
+    // por outros caminhos (portal, painel, importação) que não passam por lá.
+    //
+    // Aqui NÃO se limpa o texto: publicar uma legenda diferente da que o
+    // cliente aprovou seria a agência reescrevendo a peça na saída, calada.
+    // Barra, grava o motivo e deixa para gente — com dono e próxima ação.
+    const internas = frasesDeDirecaoInterna(post.caption);
+    if (internas.length > 0) {
+      await falhar(
+        `a legenda desta peça contém DIREÇÃO INTERNA (${internas.map((i) => `"${i.frase.slice(0, 60)}"`).join(" · ")}) — ` +
+        "isso é briefing, não legenda, e publicado sairia no perfil do cliente. " +
+        "Dono: a agência (produção). Próxima ação: corrigir a legenda da peça e reagendar.",
+      );
+      continue;
+    }
+
+    // ── O DIA CITADO NO TEXTO É O DIA DA PEÇA? (27/08/2026) ────────────────
+    //
+    // A peça medida na rodada paga saiu com "Sexta é dia de estar aqui" num
+    // calendário todo terça-a-quinta. Publicada, ela convida o público do
+    // cliente para um dia que não é o dela — e quem lê não tem como saber qual
+    // das duas informações vale.
+    //
+    // Aqui a data está no banco (`scheduledFor`), então a pergunta é forte e a
+    // resposta é determinística. Texto que não cita dia nenhum passa direto.
+    const data = conferirDataDaPeca({ texto: post.caption, agendadaPara: post.scheduledFor });
+    if (!data.passa) {
+      await falhar(data.motivo);
+      continue;
     }
 
     let r;

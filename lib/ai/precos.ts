@@ -31,7 +31,7 @@
 // "sem preço na tabela: N chamadas" — que é a verdade e é acionável.
 
 /** Sobe a cada mudança de preço. Carimbado em cada linha do `AIRunLog`. */
-export const TABELA_VERSAO = "2026-08-24.1";
+export const TABELA_VERSAO = "2026-08-27.1";
 
 /**
  * `conferidoEm: null` significa **preço de tabela copiado da documentação
@@ -168,6 +168,36 @@ export const PRECOS_DE_IMAGEM: Record<string, Record<TamanhoDeImagem, Record<str
     retrato:   { low: 0.016, medium: 0.063, high: 0.25 },
     // 1536×1024
     paisagem:  { low: 0.016, medium: 0.063, high: 0.25 },
+  },
+  // ── O PROVEDOR RESERVA DE IMAGEM (27/08/2026) ────────────────────────────
+  //
+  // Ele estava FORA da tabela. Consequência medida: toda imagem produzida pelo
+  // Gemini — que é a reserva que segura a operação quando a conta da OpenAI
+  // zera, ou seja, justamente quando a casa mais produz por ali — voltava de
+  // `estimarCustoDeImagem` como `null`. O livro-caixa gravava "não sei quanto
+  // custou", e o teto diário contava o palpite de
+  // `CUSTO_DE_CHAMADA_SEM_PRECO_USD` (US$ 0,05) no lugar do preço real.
+  //
+  // ⚠️ A correção do diagnóstico, e ela fica escrita: o gasto NÃO ficava fora
+  // do teto — o palpite entrava na soma. O defeito era outro e é sério do
+  // mesmo jeito: **a casa cobrava de si mesma um preço inventado**, 28% acima
+  // do preço de tabela, no provedor que ela usa quando o outro cai. Um teto
+  // que fecha com número errado fecha na hora errada.
+  //
+  // O preço não varia por tamanho nem por qualidade neste modelo: ele cobra por
+  // TOKEN DE SAÍDA, e uma imagem são 1.290 tokens a US$ 30/1M — US$ 0,039 por
+  // imagem, qualquer recorte. As três linhas repetem o mesmo número de
+  // propósito: a forma da tabela é (modelo → tamanho → qualidade), e um modelo
+  // que não usa duas dessas dimensões não é motivo para a tabela ter duas
+  // gramáticas.
+  //
+  // As duas chaves de qualidade são as que a casa ENVIA (`DesignQuality`:
+  // "standard" | "high") — casar pelo que sai no corpo da requisição é a regra
+  // que o cabeçalho desta tabela já dava.
+  "gemini-2.5-flash-image": {
+    quadrada:  { standard: 0.039, high: 0.039 },
+    retrato:   { standard: 0.039, high: 0.039 },
+    paisagem:  { standard: 0.039, high: 0.039 },
   },
   "dall-e-3": {
     // 1024×1024

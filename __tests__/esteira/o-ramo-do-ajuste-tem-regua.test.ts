@@ -415,7 +415,10 @@ describe("fail-closed — o que este módulo se RECUSA a fazer", () => {
     const r = await refazerArteDoAjuste({
       postIds: [], pecasNovas: [], clientId, comentario: "muda o tom do relatório",
     });
-    expect(r).toEqual({ refeitas: [], preservadas: [], mira: null });
+    // `regua`/`reprovadasPelaRegua` entraram em 27/08/2026 (a peça nova medida
+    // contra a anterior). Entrega sem peça visual não mede nada — e continua
+    // não sendo falha.
+    expect(r).toEqual({ refeitas: [], preservadas: [], mira: null, regua: [], reprovadasPelaRegua: [] });
   });
 
   it("MIRA FORA DA FAIXA não é mira — 'a peça 7' num cartão de 4 refaz o conjunto", async () => {
