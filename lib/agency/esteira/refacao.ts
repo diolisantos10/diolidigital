@@ -64,12 +64,20 @@ import {
   classificarParada,
   causaDasViolacoesDoPiso,
   MAX_TENTATIVAS_TRANSITORIAS,
+  MAX_REFACOES_DO_CLIENTE,
   CONVITE_A_DECIDIR,
+  valeChamarAIa,
+  PARADAS_QUE_NAO_MUDAM,
+  causaDaParadaAnterior,
+  carimboDaParada,
   type ParadaDoAjuste,
 } from "@/lib/agency/esteira/porta-do-ajuste";
 
-/** Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente. */
-export const MAX_REFACOES_DO_CLIENTE = 2;
+/** Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente.
+ *  O número mora em `porta-do-ajuste.ts`, com a frase que o cliente lê — duas
+ *  cópias divergem, e a que divergir vai ser a da tela. Reexportado porque
+ *  meio mundo já importa daqui. */
+export { MAX_REFACOES_DO_CLIENTE } from "@/lib/agency/esteira/porta-do-ajuste";
 
 export interface RefacaoFeita {
   /** Entregas efetivamente refeitas, pelo nome. */
@@ -293,7 +301,7 @@ export async function refazerPorPedidoDoCliente(input: {
       ...(cicloAtual ? { cycleId: cicloAtual.id } : {}),
       ...(idsDoDepartamento.length > 0 ? { ownerAgentId: { in: idsDoDepartamento } } : {}),
     },
-    select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true, revisionStatus: true, type: true },
+    select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true, lastFeedback: true, revisionStatus: true, type: true },
   });
 
   // ── A PEÇA REPROVADA PELA QUALIDADE NÃO ENTRA DE CARONA (6ª auditoria, 04/08/2026)
@@ -431,7 +439,7 @@ export async function refazerPorPedidoDoCliente(input: {
       candidatas.find((d) => d.id === idExplicito)
       ?? await prisma.deliverable.findFirst({
         where: { id: idExplicito, projectId: projeto.id },
-        select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true, revisionStatus: true, type: true },
+        select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true, lastFeedback: true, revisionStatus: true, type: true },
       }).catch(() => null);
     if (apontada) alvos = [apontada];
   } else {
@@ -466,7 +474,7 @@ export async function refazerPorPedidoDoCliente(input: {
   // `where` carrega `projectId`, então nada de outro cliente entra por aqui.
   const doCiclo = await prisma.deliverable.findMany({
     where: { projectId: projeto.id, ...(cicloAtual ? { cycleId: cicloAtual.id } : {}) },
-    select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true, revisionStatus: true, type: true },
+    select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true, lastFeedback: true, revisionStatus: true, type: true },
   }).catch(() => [] as typeof candidatas);
 
   const miraNome = miraPorNomeDaEntrega(comentario, doCiclo.map((d) => ({ id: d.id, name: d.name })));
@@ -625,7 +633,24 @@ export async function refazerPorPedidoDoCliente(input: {
    * sobrescrevia a anterior — e perder o conflito ali trocaria a CONVERSA que
    * resolve por um "a equipe está olhando" que não resolve nada.
    */
-  function registrarParada(nova: ParadaDoAjuste): void {
+  /**
+   * As paradas a CARIMBAR na entrega — `[parada:<causa>]` no `lastFeedback`.
+   * É a memória curta que impede o pedido repetido de queimar outra tentativa
+   * paga (`valeChamarAIa`, em `porta-do-ajuste.ts`). Gravadas depois do laço,
+   * de uma vez: escrever dentro do laço faria uma parada de uma entrega
+   * atropelar o texto de outra.
+   */
+  const carimbos: Array<{ id: string; causa: ParadaDoAjuste["causa"] }> = [];
+
+  function registrarParada(nova: ParadaDoAjuste, entregaId?: string): void {
+    // ⚠️ SÓ O QUE NÃO MUDA VIRA MEMÓRIA (`PARADAS_QUE_NAO_MUDAM`). Uma queda
+    // de provedor, uma saída fora do contrato ou um dado inventado NÃO deixam
+    // rastro: os três podem sair certos na chamada seguinte, e barrar a
+    // próxima tentativa do cliente por causa deles seria a casa recusando
+    // trabalho que ela sabe fazer. Além disso, esses caminhos não escrevem no
+    // `Deliverable` de propósito — gravar seria mexer na peça sem ter refeito
+    // nada (`refacao.test.ts`, "não finge que refez").
+    if (entregaId && PARADAS_QUE_NAO_MUDAM.has(nova.causa)) carimbos.push({ id: entregaId, causa: nova.causa });
     saida.escalado = true;
     const jaTemConflito = saida.parada?.classe === "conflito_com_regra_do_cliente";
     if (jaTemConflito && nova.classe !== "conflito_com_regra_do_cliente") return;
@@ -638,7 +663,7 @@ export async function refazerPorPedidoDoCliente(input: {
       registrarParada(classificarParada({
         causa: "teto_de_refacoes",
         detalhe: `"${entrega.name}" já foi refeita ${entrega.version - 1}x a pedido do cliente`,
-      }));
+      }), entrega.id);
       continue;
     }
 
@@ -657,6 +682,27 @@ export async function refazerPorPedidoDoCliente(input: {
     // dois rodam em código, sem IA — e o piso é justamente onde a proibição do
     // cliente barra. Retentar ali daria o mesmo resultado, gastando dinheiro de
     // IA para adiar a única coisa que resolve, que é FALAR com ele.
+    // ── O PEDIDO REPETIDO NÃO QUEIMA OUTRA TENTATIVA PAGA (27/08/2026) ────
+    //
+    // Medido: um cliente com 3 peças, ~9 tentativas pagas e ZERO entregues.
+    // Cada clique dele disparava uma chamada de IA que ia parar exatamente no
+    // mesmo lugar — e o dinheiro saía do mesmo teto que protege a casa.
+    //
+    // Pedido IGUAL sobre uma parada que não se retenta vira PORTA, não
+    // tentativa. Pedido diferente sempre passa: quem reescreve está dizendo
+    // outra coisa.
+    if (!valeChamarAIa({
+      causaAnterior: causaDaParadaAnterior(entrega.lastFeedback),
+      pedidoAnterior: entrega.clientFeedback,
+      pedidoNovo: comentario,
+    })) {
+      registrarParada(classificarParada({
+        causa: "pedido_repetido_sem_mudanca",
+        detalhe: `"${entrega.name}" já parou por ${causaDaParadaAnterior(entrega.lastFeedback)} com este mesmo pedido`,
+      }), entrega.id);
+      continue;
+    }
+
     let r: Awaited<ReturnType<typeof generate>> | null = null;
     let corpo = "";
     let tentativas = 0;
@@ -740,7 +786,7 @@ export async function refazerPorPedidoDoCliente(input: {
         causa: causaTransitoria ?? "provedor_indisponivel",
         detalhe: r && !r.ok ? "o provedor de IA não respondeu" : "a refação saiu vazia",
         tentativas,
-      }));
+      }), entrega.id);
       continue;
     }
 
@@ -814,7 +860,7 @@ export async function refazerPorPedidoDoCliente(input: {
       registrarParada(classificarParada({
         causa: "fora_do_contrato",
         detalhe: `a refação saiu fora do formato contratado (${contrato.violacoes.join("; ")})`,
-      }));
+      }), entrega.id);
       continue;
     }
 
@@ -838,7 +884,7 @@ export async function refazerPorPedidoDoCliente(input: {
         detalhe: causa === "proibicao_do_cliente"
           ? regraProibidaLegivel(piso.violacoes)
           : `a refação inventou dado: ${resumirViolacoes(piso.violacoes)}`,
-      }));
+      }), entrega.id);
       continue;
     }
 
@@ -952,6 +998,25 @@ export async function refazerPorPedidoDoCliente(input: {
     if (novaVersao) saida.versoesNovas.push(novaVersao.id);
     saida.refeitas.push(entrega.name);
     saida.congelados = [...congelamentos];
+  }
+
+  // ── O CARIMBO DA PARADA ─────────────────────────────────────────────────
+  //
+  // A memória curta que impede o beco de OFICINA FAROL: a próxima vez que
+  // este mesmo pedido chegar sobre esta mesma peça, a casa não paga outra
+  // chamada de IA para chegar ao mesmo lugar — ela abre a porta.
+  //
+  // Grava também o pedido do cliente em `clientFeedback`: as duas metades da
+  // comparação (a causa e o pedido) têm de sobreviver juntas, senão a memória
+  // responde "não sei" e a tentativa é queimada de novo.
+  for (const c of carimbos) {
+    await prisma.deliverable.update({
+      where: { id: c.id },
+      data: {
+        clientFeedback: comentario.slice(0, 500),
+        lastFeedback: `${carimboDaParada(c.causa)} ${saida.motivo ?? ""}`.slice(0, 500),
+      },
+    }).catch(() => { /* best-effort: a parada já está na resposta e no portal */ });
   }
 
   // ═══════════════════════════════════════════════════════════════════════
