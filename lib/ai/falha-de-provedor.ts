@@ -119,12 +119,32 @@ export async function provedoresCaidos(minutos = 60): Promise<ProvedorCaido[]> {
       where: { status: "error", createdAt: { gte: desde } },
       orderBy: { createdAt: "desc" },
       take: 200,
-      select: { provider: true, fallbackReason: true, outputSummary: true, createdAt: true },
+      // ⚠️ `erro` ENTROU DEPOIS, E A AUSÊNCIA DELE CEGAVA O ALARME INTEIRO.
+      //
+      // MEDIDO EM PRODUÇÃO (26/08/2026, `GET /api/pulso`): o estado saiu como
+      // **"openai:  (21x na última hora)"** — o provedor nomeado e o motivo
+      // VAZIO, com a conta da OpenAI e a da Anthropic as duas zeradas.
+      //
+      // A causa: a mensagem do provedor é gravada na coluna **`erro`**
+      // (`registrarChamadaDeIa`), e esta consulta lia `fallbackReason` e
+      // `outputSummary`. `fallbackReason` só existe quando houve reserva;
+      // `outputSummary` é nulo numa chamada que falhou. Logo `texto` era `""`
+      // em TODA linha de erro, `classificarFalhaDeProvedor("")` devolvia `null`
+      // e **nada nunca chegava a `precisamDeGente`**.
+      //
+      // Ou seja: o alarme de SEM SALDO — o único que existe para acordar quem
+      // põe crédito na conta — **nunca pôde disparar, para provedor nenhum,
+      // desde que foi escrito em 24/08**. O dado estava lá o tempo todo, uma
+      // coluna ao lado. É a mesma lição do próprio arquivo, uma camada abaixo:
+      // não faltava escrita, faltava LEITURA — e desta vez a leitura apontava
+      // para o campo errado.
+      select: { provider: true, erro: true, fallbackReason: true, outputSummary: true, createdAt: true },
     });
 
     const porProvedor = new Map<string, ProvedorCaido>();
     for (const l of linhas) {
-      const texto = l.fallbackReason ?? l.outputSummary ?? "";
+      // `erro` primeiro: é onde a mensagem do provedor realmente mora.
+      const texto = l.erro ?? l.fallbackReason ?? l.outputSummary ?? "";
       const motivo = classificarFalhaDeProvedor(texto);
       // A chave junta provedor E motivo: o mesmo provedor pode cair por dois
       // motivos na mesma hora, e somá-los apagaria o mais grave dos dois.
