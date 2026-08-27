@@ -76,10 +76,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
   }
 
+  const aviso = await avisoDeAgendamentoManual();
+
   return NextResponse.json({
     negocio: pedido.businessName ?? "",
     // Sem link: quem lê isto JÁ está na página da proposta.
-    texto: textoDoOrcamento(pedido.businessName ?? "", e, null, await avisoDeAgendamentoManual()),
+    texto: textoDoOrcamento(pedido.businessName ?? "", e, null, aviso),
+    // ⚠️ O AVISO SAI TAMBÉM COMO CAMPO PRÓPRIO, e não só dentro do texto.
+    //
+    // Dentro do corpo ele é uma linha no meio de um bloco longo, e o cliente
+    // decide olhando os botões. A ordem do CEO é que ele esteja visível ANTES
+    // do aceite — então a tela precisa poder desenhá-lo como aviso, destacado,
+    // colado nos botões. `null` quando a publicação automática já existe: aí
+    // não há o que avisar, e o bloco some sozinho.
+    avisoDeAgendamento: aviso,
     decidivel: ESPERANDO_DECISAO.includes(pedido.status),
     status: pedido.status,
     jaAceito: pedido.status === STATUS_ACEITO,

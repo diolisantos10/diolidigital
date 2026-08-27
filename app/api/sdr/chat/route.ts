@@ -22,6 +22,14 @@
 import {
   promessasSoltas, limparPromessaSolta, motivoDaPromessa,
 } from "@/lib/agency/comercial/promessa-que-a-maquina-nao-cumpre";
+import { prisma } from "@/lib/db/client";
+import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { estimativaEntregue, textoDoOrcamento } from "@/lib/agency/esteira/orcamento-do-briefing";
+import { avisoDeAgendamentoManual } from "@/lib/agency/esteira/aviso-de-agendamento-manual";
+import {
+  contextoDaNegociacao, servicoDaProposta, falaQueRespeitaOPiso,
+} from "@/lib/agency/comercial/negociacao-da-proposta";
+import type { ServicoDaCasa } from "@/lib/agency/financeiro/tabela-de-precos";
 import { NextRequest, NextResponse } from "next/server";
 // O TETO SAIU DA MEMÓRIA DO PROCESSO E FOI PARA O BANCO (raio-x de 05/08/2026).
 // `rateLimited` zerava em todo deploy e não atravessava réplica — numa casa em
@@ -128,6 +136,17 @@ interface ChatRequest {
   sessionId?: unknown;
   /** O briefing, quando já existe. Conferido antes de virar vínculo. */
   clientRequestId?: unknown;
+  /**
+   * `"negociacao"` = a conversa está na PÁGINA DO ORÇAMENTO, e o assunto é a
+   * decisão, não o levantamento. Ausente = a sala de briefing de sempre.
+   */
+  contexto?: unknown;
+  /**
+   * O token da proposta. ⚠️ É dele que sai QUEM é o cliente e QUANTO foi
+   * orçado — nunca do corpo. Derivação, nunca comparação: um `clientRequestId`
+   * informado seria um id que qualquer pessoa digita.
+   */
+  propostaToken?: unknown;
 }
 
 /**
@@ -608,6 +627,58 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, reason: "bad_request" }, { status: 400 });
   }
 
+  // ═══ O SDR NA PÁGINA DO ORÇAMENTO (27/08/2026) ══════════════════════════
+  //
+  // Ordem do CEO: *"a página onde vai estar o orçamento tem que ter o agente de
+  // SDR pronto para negociar valores e não deixar o cliente desistir."*
+  //
+  // É o MESMO SDR, o mesmo funil e os mesmos guardas — só o assunto muda. Um
+  // segundo SDR seria a segunda cópia da voz da casa, e verdade escrita em dois
+  // lugares já está errada em um deles.
+  //
+  // ⚠️ TUDO VEM DO TOKEN. Quem é o cliente, o que foi orçado e por quanto saem
+  // de `validatePortalAccess` — nada disso é aceito do corpo, porque corpo é o
+  // que qualquer pessoa digita. É a mesma gramática da rota da proposta.
+  //
+  // Falha ao derivar NÃO vira negociação sem contexto: vira a sala de briefing
+  // de sempre, e a fala continua passando pelo piso lá embaixo com
+  // `servicoDaNegociacao = null`, que recusa qualquer valor. Fail-closed.
+  let servicoDaNegociacao: ServicoDaCasa | null = null;
+  let blocoDaNegociacao = "";
+  if (body.contexto === "negociacao" && typeof body.propostaToken === "string" && body.propostaToken.trim()) {
+    try {
+      const acesso = await validatePortalAccess(body.propostaToken.trim());
+      if (acesso.valid && acesso.record) {
+        const doToken = acesso.record.clientRequestId ?? null;
+        const doCliente = acesso.record.clientId ?? null;
+        const pedido = doToken
+          ? await prisma.clientRequestDb.findUnique({ where: { id: doToken } })
+          : doCliente
+            ? await prisma.clientRequestDb.findFirst({ where: { clientId: doCliente }, orderBy: { createdAt: "desc" } })
+            : null;
+        const e = pedido ? estimativaEntregue(pedido.briefingJson) : null;
+        if (pedido && e) {
+          servicoDaNegociacao = servicoDaProposta(e.totalMin, e.totalMax);
+          const aviso = await avisoDeAgendamentoManual();
+          blocoDaNegociacao = contextoDaNegociacao({
+            negocio: pedido.businessName ?? "",
+            servico: servicoDaNegociacao,
+            textoDaProposta: textoDoOrcamento(pedido.businessName ?? "", e, null, aviso),
+            avisoDeAgendamento: aviso,
+          });
+        }
+      }
+    } catch (err) {
+      // Contexto é melhoria, não condição: uma leitura que falha não pode
+      // derrubar a conversa do cliente. Ele segue sem o bloco — e o piso
+      // continua barrando valor, porque `servicoDaNegociacao` fica `null`.
+      console.warn(`[sdr/chat] contexto da negociação não carregou: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  const sistemaDaVez = blocoDaNegociacao
+    ? `${sistemaDoSdr()}\n\n${blocoDaNegociacao}`
+    : sistemaDoSdr();
+
   // ─── FREIO POR `sessionId` — parecer do `seguranca`, 16/08/2026 ────────────
   //
   // SOMADO ao freio de IP lá em cima, NUNCA no lugar dele: são defesas contra
@@ -782,7 +853,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     async function chamarOSdr(quem: { provider: AiProvider; chave: { apiKey: string; model?: string | null } }) {
       return generate({
-      system: sistemaDoSdr(),
+      system: sistemaDaVez,
       user,
       historico,
       maxTokens: MAX_TOKENS,
@@ -1015,7 +1086,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       const segunda = await segundaChanceSemPreco({
         escolha: { provider: escolha.provider, chave: { apiKey: resolved.apiKey, model: resolved.model } },
-        system: sistemaDoSdr(),
+        system: sistemaDaVez,
         user,
         historico,
         contaDoWorkspace: workspaceDaConta,
@@ -1321,6 +1392,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const limpo = limparPromessaSolta(replyText);
       // Se limpar esvaziou a fala, a casa diz a verdade em vez de nada.
       replyText = limpo || O_QUE_DIZER_NO_LUGAR_AO_CLIENTE;
+    }
+
+    // ⛔ O PISO, SOBRE A FALA PRONTA (27/08/2026) ─────────────────────────────
+    //
+    // A ordem do CEO manda o SDR negociar — e a decisão do Financeiro é que
+    // **o desconto é ZERO até o custo estar medido**. As duas cabem juntas
+    // porque a manga dele não é preço: é TROCAR DE DEGRAU.
+    //
+    // Esta trava roda DEPOIS do modelo, de propósito. O bloco de contexto já
+    // diz "você não pode dar desconto" — mas prompt é aviso, e um modelo que
+    // resolva ser generoso encontra a recusa aqui, não uma recomendação.
+    //
+    // `servicoDaNegociacao` é `null` fora da página do orçamento, e aí qualquer
+    // valor citado é recusado: ausência de piso não é piso zero, é ausência de
+    // autorização. Na sala de briefing isso não muda nada — lá o SDR já é
+    // proibido de falar preço por outro guarda (`vazaPreco`).
+    if (blocoDaNegociacao) {
+      const doPiso = falaQueRespeitaOPiso(replyText, servicoDaNegociacao);
+      if (doPiso.corrigida) {
+        console.warn(`[sdr/chat] fala abaixo do piso, corrigida: ${doPiso.motivo}`);
+        replyText = doPiso.fala;
+      }
     }
 
     await registrar({ ...fio, doVisitante: body.currentMessage, doSdr: replyText });
