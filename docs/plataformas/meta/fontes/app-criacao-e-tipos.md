@@ -1,8 +1,8 @@
 ---
 titulo: "Desenvolvimento — criar um app, tipos de app e painel"
 url: https://developers.facebook.com/documentation/development/create-an-app
-capturado_em: 2026-08-26
-hash: f9b6ba51cd4da6bc
+capturado_em: 2026-08-27
+hash: 8cb918705986f5a9
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -41,12 +41,24 @@ Gerenciar produtos com a API de Catálogo
 Gerencie catálogos e os produtos que você deseja promover nas tecnologias da Meta.
 Permitir que as pessoas transfiram seus respectivos dados para outros apps
 Dê aos usuários a capacidade de transferir suas respectivas informações dos apps da Meta para outros serviços.
+Interagir com os clientes no Messenger from Meta
+Responda às mensagens enviadas para a Página do Facebook da sua empresa. Você pode configurar respostas automáticas ou usar um agente humano para responder.
 Autenticar e solicitar dados de usuários com o Login do Facebook
 Nosso caso de uso mais comum. Uma maneira rápida e segura para os usuários entrarem no seu app ou jogo e para o app solicitar a eles permissões de acesso aos dados e personalizar a experiência.
 Compartilhe ou crie campanhas de arrecadação de fundos no Facebook e no Instagram
 Arrecade fundos e alcance mais pessoas com a API de Campanha de Arrecadação de Fundos da Meta. Crie ou compartilhe campanhas de arrecadação de fundos existentes no Facebook e no Instagram.
+Gerenciar mensagens e conteúdo no Instagram
+Publique posts, compartilhe stories, responda a comentários, mensagens diretas e muito mais com a API do Instagram.
 Lance um jogo instantâneo no Facebook e no Messenger
 Lance um jogo Instantâneo que as pessoas possam encontrar e jogar diretamente no Feed ou em mensagens/conversas, tanto em desktops quanto em dispositivos móveis.
+Acessar a API de Vídeo ao Vivo
+Use a API de Vídeo ao Vivo para transmitir vídeos ao vivo no Facebook.
+Mensurar dados de desempenho do anúncio com a API de Marketing
+Maximize o ROI com dados de desempenho do anúncio para otimizar os orçamentos para anúncios e os criativos, além de criar públicos personalizados, conectar clientes a catálogos de produtos e melhorar o alcance.
+Criar e gerenciar anúncios com a API de Marketing
+Crie, gerencie e otimize campanhas de anúncios nas tecnologias da Meta. De forma programática, estenda, interrompa ou atualize as campanhas de anúncios e muito mais.
+Capturar e gerenciar leads de anúncios com a API de Marketing
+Ofereça aos clientes em potencial um meio rápido e seguro de se cadastrar para receber informações sobre sua empresa ou seus produtos.
 Incorporar conteúdo do Facebook, Instagram e Threads em outros sites
 Use a API do oEmbed para incorporar conteúdo do Facebook, Instagram e Threads, como fotos e vídeos, em outros sites.
 Gerenciar tudo na sua Página
@@ -55,18 +67,8 @@ Acessar a API do Threads
 Use a API do Threads e escolha se quer autenticar usuários, recuperar informações dos usuários, postar threads, responder a threads, gerenciar configurações de resposta e/ou coletar insights do seu perfil do Threads ou de perfis que você gerencia em nome de outras pessoas.
 Participar do ThreatExchange
 Participe do ThreatExchange para compartilhar sinais com outros membros sobre ameaças online, incluindo terrorismo, malware, material de abuso sexual infantil e outros conteúdos prejudiciais, ajudando a manter as pessoas seguras na internet.
-Mensurar dados de desempenho do anúncio com a API de Marketing
-Maximize o ROI com dados de desempenho do anúncio para otimizar os orçamentos para anúncios e os criativos, além de criar públicos personalizados, conectar clientes a catálogos de produtos e melhorar o alcance.
-Criar e gerenciar anúncios com a API de Marketing
-Crie, gerencie e otimize campanhas de anúncios nas tecnologias da Meta. De forma programática, estenda, interrompa ou atualize as campanhas de anúncios e muito mais.
-Capturar e gerenciar leads de anúncios com a API de Marketing
-Ofereça aos clientes em potencial um meio rápido e seguro de se cadastrar para receber informações sobre sua empresa ou seus produtos.
-Interagir com os clientes no Messenger from Meta
-Responda às mensagens enviadas para a Página do Facebook da sua empresa. Você pode configurar respostas automáticas ou usar um agente humano para responder.
 Conectar-se com clientes pelo WhatsApp
 Comece uma conversa no WhatsApp, envie notificações, crie anúncios de clique para o WhatsApp e forneça suporte. É necessário um portfólio empresarial.
-Gerenciar mensagens e conteúdo no Instagram
-Publique posts, compartilhe stories, responda a comentários, mensagens diretas e muito mais com a API do Instagram.
 O que são permissões e recursos?
 Permissões são a forma como o app solicita a uma pessoa o acesso aos seus dados armazenados nos servidores da Meta. Saiba mais.
 Recursos são mecanismos de autorização que permitem ao app acessar determinados pontos de extremidade sem precisar do consentimento explícito do usuário para utilizar seus dados com uma finalidade específica. Saiba mais.
@@ -76,6 +78,14 @@ A tabela a seguir mostra as permissões e os recursos necessários e opcionais e
 Use Case
 Required Permissions/Features
 Optional Permissions/Features
+Acessar a API de Vídeo ao Vivo
+publish_video
+pages_read_engagement
+Live Video API
+public_profile
+business_management
+pages_manage_posts
+email
 Acessar a API do Threads
 threads_basic
 threads_read_replies

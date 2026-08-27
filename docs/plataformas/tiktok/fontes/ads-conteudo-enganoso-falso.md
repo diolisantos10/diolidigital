@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Misleading and False Content"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-misleading-and-false-content?lang=en
-capturado_em: 2026-08-25
-hash: 2a9a4c639932674c
+capturado_em: 2026-08-27
+hash: ad73eec68becb976
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -20,6 +20,43 @@ Policies and security
 Advertising Policies
 
 Advertising policies
+
+TikTok Advertising Policies
+Advertiser Account Policy
+About TikTok advertising restrictions for people under the age of 18
+About the TikTok Industry Pilot Program
+Protecting minors on TikTok: advertising initiatives
+Ad Serving Policy
+Ad format and functionality
+Adult content
+Age Targeting Restrictions
+Alcohol
+Alcohol: Market-specific requirements
+Animals and Environment
+Audience Expiration Policy
+Dangerous Products or Services
+Deceptive practices
+Discrimination, Harassment, and Bullying
+Financial Services
+Gambling and Games
+Healthcare and Pharmaceuticals
+Housing, Employment, and Credit ("HEC") Ad Policy
+Intellectual Property Infringement
+Misinformation
+Misleading and false content
+Other Products and Services
+Suicide and Self-Harm
+Politics, Governments, and Elections
+Teen Safety and Well-Being
+TikTok After Conversion Experience Policy
+TikTok Ad After Conversion Experience Management Guidelines
+TikTok Ad After Conversion Experience: Customer Review Guidelines
+TikTok’s Anti-Discrimination Ad Policy
+Violence and Dangerous Activities
+Weight Management and Body Image
+Key TikTok Ad Policy Updates
+Ad content appeals quota strategy on TikTok Ads Manager
+How to submit an account appeal in TikTok Ads Manager
 
 Advertising policy resources
 

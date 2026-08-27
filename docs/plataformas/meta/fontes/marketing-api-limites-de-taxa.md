@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — limites de taxa por app e por conta de anúncio"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/overview/rate-limiting
-capturado_em: 2026-08-26
-hash: a97f2d896be7e958
+capturado_em: 2026-08-27
+hash: 626c8cf63db3f3cf
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,7 +11,7 @@ hash: a97f2d896be7e958
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Limitação de volume da API de Marketing
-Updated: 5 de mai de 2026
+Updated: 19 de ago de 2026
 Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
@@ -65,6 +65,14 @@ POST /campaigngroup
 Quando você exceder esse limite, distribua as solicitações de maneira uniforme ao longo do tempo, em vez de enviá-las em intermitências.
 Código de erro relacionado:613, Error subcode: 5044001, Message: Your ad account {ad_account_id} has exceeded the maximum allowed rate of mutation requests. To resolve this, reduce the frequency of your create, update operations on campaigns, ad sets, and ads.
 Quando esse erro for encontrado, implemente a limitação de solicitações para permanecer abaixo de 100 QPS por conta de anúncios.
+Limitação de volume de solicitações simultâneas
+Solicitações POST simultâneas e frequentes para o mesmo objeto causam com frequência conflito de bloqueio no nível do banco de dados. Isso torna sua integração pouco confiável no nível do app e da plataforma. Para evitar isso, as solicitações que editam o mesmo objeto ao mesmo tempo têm limitação de volume.
+A limitação de volume ocorre no nível do objeto, por app.
+Aplicada a: solicitações POST que editam o mesmo objeto, em cada endpoint.
+Limite padrão: uma edição por objeto a cada 30 segundos. É possível configurar um limite diferente para cada endpoint.
+Esse limite é independente do limite de QPS no nível da conta de anúncios. As solicitações podem ficar abaixo de 100 QPS para uma conta de anúncios e ainda ser limitadas quando direcionadas a um único objeto.
+Código de erro relacionado:613, Error subcode: 4841018, Message: Calls to this api have exceeded the rate limit.
+O código 613 e esta mensagem são compartilhados com outros limites de volume. Por isso, identifique esse tipo de limitação pelo subcódigo de erro 4841018 ("Número excessivo de pedidos simultâneos"). Quando esse erro for encontrado, evite editar o mesmo objeto com muita frequência, espaçe suas solicitações e tente novamente com pelo menos 30 segundos de intervalo entre as tentativas.
 Limitação de volume da plataforma de insights sobre anúncios
 A limitação de volume está no nível do app.
 A limitação de volume é determinada pela capacidade dos serviços a jusante e de infraestrutura de back-end.
@@ -87,7 +95,7 @@ custom_audience – para cada conta de anúncios em um período de uma hora: nã
 ads_insights – para cada conta de anúncios em um período de uma hora: (190.000 se o app estiver no nível de acesso Total da API de Anúncios ou 600 se o app estiver no nível de Desenvolvimento) + 400 * Número de anúncios ativos - 0,001 * Erros do usuário.
 Gerenciamento de catálogos – para cada conta de anúncios em um período de uma hora: 20.000 + 20.000 * log2 (usuários únicos).
 Lote de catálogo – para cada conta de anúncios em um período de uma hora: 200 + 200 * log2 (usuários únicos).
-A limitação de volume da API de Marketing também pode ser determinada pelo tempo total de CPU e pelo tempo total de mural na conta de anúncios. Você terá mais cota se o app tiver acesso total à API de Marketing. Para saber mais, verifique o cabeçalho HTTP [X-Business-Use-Case](/docs/graph-api/overview/rate-limiting#headers-2) e Limites de volume de casos de uso de empresas.
+A limitação de volume da API de Marketing também pode ser determinada pelo tempo total de CPU e pelo tempo total de mural na conta de anúncios. Você terá mais cota se o app tiver acesso total à API de Marketing; para saber mais, verifique o cabeçalho HTTP [X-Business-Use-Case](/docs/graph-api/overview/rate-limiting#headers-2) e Limites de volume de casos de uso de empresas.
 Código de erro relacionado:80000, 80003, 80004, 80014, Message: There have been too many calls from this ad-account. Wait a bit and try again. For more info, please refer to /docs/graph-api/overview/rate-limiting.
 Verifique o ponto de extremidade da API e o cabeçalho HTTP X-Business-Use-Case para confirmar o tipo de limitação. Veja mais detalhes em Limites de volume de casos de uso de empresas. Quando esse erro for encontrado, reduza novamente as alterações à conta de anúncios.
 Limitação de volume de gastos com anúncios em nível de conta de anúncios
@@ -114,7 +122,7 @@ Se continuar recebendo erros de limitação de volume, considere atualizar para 
 Verifique os códigos de erro: determine os códigos de erro específicos relacionados com a limitação na resposta da API.
 Verifique os cabeçalhos HTTP:
 X-Ad-Account-Usage contém acc_id_util_pct, reset_time_duration e ads_api_access_tier.
-X-Business-Use-Case contém as informações call_count, total_cputime, total_time e estimated_time_to_regain_access, etc. para o ponto de extremidade do caso de uso de negócios.
+X-Business-Use-Case contém as informações call_count, total_cputime, total_time e estimated_time_to_regain_access, etc. para o endpoint do caso de uso de negócios.
 X-FB-Ads-Insights-Throttle contém app_id_util_pct, acc_id_util_pct e ads_api_access_tier para os pontos de extremidade da API de Insights sobre Anúncios.
 Verifique o Painel de Apps: fornecemos consoles no Painel de Apps que fornecem aos desenvolvedores um insight aprofundado sobre o sistema de limitação de volume e ajuda-os a diagnosticar e prevenir problemas de limitação de volume.
 Identifique a causa
@@ -127,7 +135,7 @@ Otimize solicitações: combine várias solicitações menores em solicitações
 Estratégia de recuo: implemente um recuo exponencial ao receber erros de limitação, aumentando gradualmente o tempo entre as tentativas. Você também pode examinar cabeçalhos HTTP para a estimativa de tempo de redefinição.
 Outras dicas de mitigação
 Verifique se há necessidade de fazer essas chamadas e reduza-as se for desnecessário.
-Para pontos de extremidade que aceitam solicitações assíncronas, como a API de Insights sobre Anúncios, use solicitações assíncronas para consultar uma grande quantidade de dados.
+Para os pontos de extremidade que aceitam solicitações assíncronas como a API de Insights de Anúncios, use solicitações assíncronas para consultar uma grande quantidade de dados.
 Você também pode tentar passar uma lista de identificações se precisar consultar vários do mesmo tipo de objetos de anúncio.
 Para a API de Insights, use Level Parameters ou filtre para reduzir o número de chamadas.
 Você achou esta página útil?

@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads — contornar sistemas (circumventing systems)"
 url: https://support.google.com/adspolicy/answer/15938075?hl=pt-BR
-capturado_em: 2026-08-26
+capturado_em: 2026-08-27
 hash: fc84922b3af463c0
 ---
 

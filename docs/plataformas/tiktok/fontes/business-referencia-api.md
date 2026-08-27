@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — API Reference (índice completo dos endpoints v1.3)"
 url: https://business-api.tiktok.com/portal/docs/api-reference/v1.3
-capturado_em: 2026-08-26
-hash: 096ee7e077f749d3
+capturado_em: 2026-08-27
+hash: e27912ab11d51752
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -3435,7 +3435,7 @@ MCP Authorization
 	
 Get authorization server metadata.
 	
-N/A
+No permission needed
 
 -
 	
@@ -3443,7 +3443,7 @@ N/A
 	
 Discover authorization servers.
 	
-N/A
+No permission needed
 
 -
 	
@@ -3451,7 +3451,7 @@ N/A
 	
 Register a client application.
 	
-N/A
+No permission needed
 
 -
 	
@@ -3459,7 +3459,7 @@ N/A
 	
 Request user authorization.
 	
-N/A
+No permission needed
 
 -
 	
@@ -3467,7 +3467,7 @@ N/A
 	
 Exchange an MCP authorization code for tokens.
 	
-N/A
+No permission needed
 
 -
 	
@@ -3475,7 +3475,7 @@ N/A
 	
 Refresh an MCP access token.
 	
-N/A
+No permission needed
 
 -
 	
@@ -3483,7 +3483,7 @@ N/A
 	
 Revoke an MCP token.
 	
-N/A
+No permission needed
 
 -
 	
@@ -3491,7 +3491,7 @@ N/A
 	
 Use MCP tools.
 	
-N/A
+No permission needed
 
 Mentions
 	
@@ -4419,7 +4419,7 @@ No permission needed.
 	
 Get authorized TTO Creator Marketplace accounts.
 	
-TikTok Creator Marketplace (TCM) > Read TCM Account
+TikTok One > Read TTO Account
 
 -
 	
@@ -4427,7 +4427,7 @@ TikTok Creator Marketplace (TCM) > Read TCM Account
 	
 Check TTO Creator status.
 	
-TikTok Creator Marketplace (TCM) > Read TCM Account
+TikTok One > Get Creators Onboarding Status and Invite Creators to TTO
 
 -
 	
@@ -4435,7 +4435,7 @@ TikTok Creator Marketplace (TCM) > Read TCM Account
 	
 Get the details of a TTO Creator Marketplace account.
 	
-TikTok Creator Marketplace (TCM) > Read TCM Account
+TikTok One > Read TTO Account
 
 -
 	
@@ -4475,7 +4475,7 @@ TikTok Creator > Creator Media > Get Creator Media
 	
 Get TTO creator ranking or search labels.
 	
-TikTok Creator Marketplace (TCM) > Read TCM Account
+TikTok One > Read TTO Account
 
 -
 	
@@ -4483,7 +4483,7 @@ TikTok Creator Marketplace (TCM) > Read TCM Account
 	
 Get top TTO creator rankings.
 	
-TikTok Creator Marketplace (TCM) > Read TCM Account
+TikTok One > Read TTO Account
 
 -
 	
@@ -4491,7 +4491,7 @@ TikTok Creator Marketplace (TCM) > Read TCM Account
 	
 Discover TTO creators.
 	
-TikTok Creator Marketplace (TCM) > Read TCM Account
+TikTok One > Read TTO Account
 
 -
 	
@@ -4499,7 +4499,7 @@ TikTok Creator Marketplace (TCM) > Read TCM Account
 	
 Create a Brand Profile for your TTO account.
 	
-TikTok Creator Marketplace (TCM) > Create and Update TCM Account
+TikTok One > Create and Update TTO Account
 
 -
 	
@@ -4507,7 +4507,7 @@ TikTok Creator Marketplace (TCM) > Create and Update TCM Account
 	
 Get the Brand Profiles for your TTO account.
 	
-TikTok Creator Marketplace (TCM) > Create and Update TCM Account
+TikTok One > Read TTO Account
 
 -
 	
@@ -4515,7 +4515,7 @@ TikTok Creator Marketplace (TCM) > Create and Update TCM Account
 	
 Create or update a TTO Creator Marketplace campaign.
 	
-TikTok Creator Marketplace (TCM) > Create and Update TCM Account
+TikTok One > Create and Update TTO Account
 
 -
 	
@@ -4523,7 +4523,7 @@ TikTok Creator Marketplace (TCM) > Create and Update TCM Account
 	
 Update a TTO Creator Marketplace campaign.
 	
-TikTok Creator Marketplace (TCM) > Create and Update TCM Account
+TikTok One > Create and Update TTO Account
 
 -
 	
@@ -4531,7 +4531,7 @@ TikTok Creator Marketplace (TCM) > Create and Update TCM Account
 	
 Get TTO Creator Marketplace campaigns.
 	
-TikTok Creator Marketplace (TCM) > Read TCM Account
+TikTok One > Read TTO Account
 
 -
 	
@@ -4539,7 +4539,7 @@ TikTok Creator Marketplace (TCM) > Read TCM Account
 	
 Send or revoke a TTO video linking request.
 	
-TikTok Creator Marketplace (TCM) > Create and Update TCM Account
+TikTok One > Create and Update TTO Account
 
 -
 	
@@ -4547,7 +4547,7 @@ TikTok Creator Marketplace (TCM) > Create and Update TCM Account
 	
 Get TTO video linking requests.
 	
-TikTok Creator Marketplace (TCM) > Read TCM Account
+TikTok One > Read TTO Account
 
 -
 	
@@ -4555,7 +4555,7 @@ TikTok Creator Marketplace (TCM) > Read TCM Account
 	
 Report on TTO Creator Marketplace videos.
 	
-TikTok Creator Marketplace (TCM) > Read TCM Account
+TikTok One > Read TTO Account
 
 -
 	
@@ -4563,7 +4563,7 @@ TikTok Creator Marketplace (TCM) > Read TCM Account
 	
 Apply for Spark Ads authorization for a given order.
 	
-TikTok Creator Marketplace (TCM) > Send Spark Ads Invitation to Creators and Get the Status
+TikTok One > Send Spark Ads Invitation to Creators and Get the Status
 
 -
 	
@@ -4571,7 +4571,7 @@ TikTok Creator Marketplace (TCM) > Send Spark Ads Invitation to Creators and Get
 	
 Get the authorization status of a given order.
 	
-TikTok Creator Marketplace (TCM) > Send Spark Ads Invitation to Creators and Get the Status
+TikTok One > Send Spark Ads Invitation to Creators and Get the Status
 
 -
 	
@@ -4579,7 +4579,7 @@ TikTok Creator Marketplace (TCM) > Send Spark Ads Invitation to Creators and Get
 	
 Create a webpage anchor.
 	
-TikTok Creator Marketplace (TCM) > Create and Update TCM Account
+TikTok One > Create and Update TTO Account
 
 -
 	
@@ -4587,7 +4587,7 @@ TikTok Creator Marketplace (TCM) > Create and Update TCM Account
 	
 Get webpage anchors.
 	
-TikTok Creator Marketplace (TCM) > Read TCM Account
+TikTok One > Read TTO Account
 
 -
 	
@@ -4595,7 +4595,7 @@ TikTok Creator Marketplace (TCM) > Read TCM Account
 	
 Delete a draft anchor.
 	
-TikTok Creator Marketplace (TCM) > Create and Update TCM Account
+TikTok One > Create and Update TTO Account
 
 -
 	
@@ -4603,7 +4603,7 @@ TikTok Creator Marketplace (TCM) > Create and Update TCM Account
 	
 Join a TTO Creator Marketplace campaign as a creator.
 	
-TikTok Creator > Creator Order > Update Creator TCM Order
+TikTok Creator > Creator Campaign > Update Creator TTO Campaign
 
 -
 	
@@ -4611,7 +4611,7 @@ TikTok Creator > Creator Order > Update Creator TCM Order
 	
 Link a video to a TTO Creator Marketplace campaign as a creator.
 	
-TikTok Creator > Creator Order > Update Creator TCM Order
+TikTok Creator > Creator Campaign > Update Creator TTO Campaign
 
 -
 	
@@ -4619,7 +4619,7 @@ TikTok Creator > Creator Order > Update Creator TCM Order
 	
 Get TTO video linking requests as a creator.
 	
-TikTok Creator > Creator Order > Update Creator TCM Order
+TikTok Creator > Creator Campaign > Update Creator TTO Campaign
 
 -
 	
@@ -4627,7 +4627,7 @@ TikTok Creator > Creator Order > Update Creator TCM Order
 	
 Approve or reject a TTO video linking request as a creator.
 	
-TikTok Creator > Creator Order > Update Creator TCM Order
+TikTok Creator > Creator Campaign > Update Creator TTO Campaign
 
 TikTok Store
 	
