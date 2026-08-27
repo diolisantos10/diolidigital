@@ -58,6 +58,11 @@ const db = vi.hoisted(() => ({
   pagamentoConfirmado: { findUnique: vi.fn() },
   isencaoDeParceria: { findUnique: vi.fn() },
   clientRequestDb: { findUnique: vi.fn() },
+  // A RECORRÊNCIA entrou no portão em 27/08/2026 e é a PRIMEIRA pergunta que ele
+  // faz. Sem estes dois dublês, toda liberação abaixo cairia em
+  // `leitura_indisponivel` — que é recusa, e é o lado certo de falhar.
+  assinaturaRecorrente: { findUnique: vi.fn() },
+  cobrancaRecorrente: { findFirst: vi.fn() },
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
@@ -76,6 +81,13 @@ describe("o veredito do portão de pagamento", () => {
     // estado de repouso da casa.
     db.isencaoDeParceria.findUnique.mockResolvedValue(null);
     db.clientRequestDb.findUnique.mockReset();
+    // O padrão é o pedido NÃO ser mensal. Assinatura é fato declarado, nunca o
+    // estado de repouso — e `sem_assinatura` devolve a decisão às regras de
+    // sempre, que é exatamente o que estes casos medem.
+    db.assinaturaRecorrente.findUnique.mockReset();
+    db.assinaturaRecorrente.findUnique.mockResolvedValue(null);
+    db.cobrancaRecorrente.findFirst.mockReset();
+    db.cobrancaRecorrente.findFirst.mockResolvedValue(null);
   });
 
   it("LIBERA com registro de pagamento de valor positivo", async () => {

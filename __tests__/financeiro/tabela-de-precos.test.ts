@@ -13,7 +13,9 @@ import {
   podeOfertar, podePrometerVolume, pisoDoServico, margemNoPiso,
   servicoPorChave, coberturaDeCusto, volumeQueACasaVende, aCasaProduz,
   MARGEM_MINIMA_PCT, fechaMargemMinima, servicosQueNaoFechamAMargem,
+  margemNoPisoPct, precoQueFechaAMargemMinima,
 } from "@/lib/agency/financeiro/tabela-de-precos";
+import { medido } from "@/lib/agency/financeiro/dinheiro";
 
 describe("a tabela é a fonte única", () => {
   it("os três planos entram com o preço fechado em D-0B6 — e não são remarcados", () => {
@@ -84,9 +86,83 @@ describe("o piso: sem faixa autorizada, desconto nenhum", () => {
     }
   });
 
-  it("o piso desce SE — e só se — o CEO autorizar uma faixa declarada", () => {
+  // ⚠️ ESTE TESTE MUDOU DE RESPOSTA EM 27/08/2026, E A MUDANÇA É A ORDEM DO CEO.
+  //
+  // Ele afirmava que uma faixa autorizada baixava o piso: 79000 − 10% = 71100.
+  // Estava certo até a ordem *"margem mínima nesse início: dez por cento de
+  // lucro"*. Com o custo `nao_medido`, ninguém consegue PROVAR que 71100 deixa
+  // 10% — pode deixar 40% e pode ser prejuízo, e os dados da casa sustentam as
+  // duas hipóteses igualmente. O que não se prova não vale, e o piso NÃO desce.
+  //
+  // Não é o teste que ficou chato: é a régua que subiu, e o teste seguiu a régua.
+  it("faixa autorizada NÃO baixa o piso enquanto o custo tiver buraco", () => {
     const s = { ...servicoPorChave("plano_conteudo")!, descontoAutorizadoPct: 10 };
-    expect(pisoDoServico(s)).toBe(71100); // 79000 − 10%
+    expect(s.custo.estado).toBe("nao_medido");
+    expect(pisoDoServico(s)).toBe(79000);
+    // E o SDR bate na trava mesmo com a autorização escrita ao lado dele.
+    expect(margemNoPisoPct(s)).toBeNull();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A MARGEM MÍNIMA DE 10% — ordem do CEO, 27/08/2026
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("⛔ dez por cento de lucro é o chão, e é código", () => {
+  const comCusto = (centavos: number, desconto: number | null) => ({
+    ...servicoPorChave("plano_conteudo")!,
+    custo: medido(centavos, "manual" as const),
+    descontoAutorizadoPct: desconto,
+  });
+
+  // A LEITURA ESCOLHIDA, ESCRITA: 10% DO PREÇO, não 10% em cima do custo.
+  // "custo × 1,10" daria 9,1% de margem e passaria por baixo da ordem sem
+  // ninguém ver a diferença. Onde há duas leituras, a casa fica com a que
+  // protege — e diz qual escolheu.
+  it("o piso é custo ÷ 0,90, não custo × 1,10", () => {
+    expect(precoQueFechaAMargemMinima(9000)).toBe(10000);
+    expect(precoQueFechaAMargemMinima(45000)).toBe(50000);
+  });
+
+  // MUTAÇÃO QUE DERRUBA: trocar `Math.max(comDesconto, comMargemMinima)` por
+  // `comDesconto` em `pisoDoServico`. O CEO autoriza 40% num serviço cujo custo
+  // come 70% do preço, e o SDR fecha a venda no prejuízo achando que cumpriu a
+  // regra.
+  it("o piso SOBE quando o desconto autorizado passaria por baixo dos 10%", () => {
+    // Custo R$ 553,00 sobre preço R$ 790,00. Com 40% autorizados o preço iria a
+    // R$ 474,00 — prejuízo de R$ 79,00. O piso sobe para 55300 ÷ 0,90.
+    const s = comCusto(55300, 40);
+    expect(pisoDoServico(s)).toBe(61445);
+    // ≥ 10, nunca 9,99. O `Math.ceil` do piso é de propósito: arredondar para
+    // baixo entregaria 9,9992% e chamaria de dez por cento.
+    expect(margemNoPisoPct(s)!).toBeGreaterThanOrEqual(MARGEM_MINIMA_PCT);
+    expect(margemNoPisoPct(s)!).toBeLessThan(MARGEM_MINIMA_PCT + 0.01);
+    expect(podeOfertar("plano_conteudo", 47400).pode).toBe(false);
+  });
+
+  it("quando o desconto CABE nos 10%, ele vale — a trava não estrangula a venda", () => {
+    // Custo R$ 100,00, desconto 10% → R$ 711,00, margem de 85,9%. Passa.
+    const s = comCusto(10000, 10);
+    expect(pisoDoServico(s)).toBe(71100);
+    expect(margemNoPisoPct(s)!).toBeGreaterThan(10);
+  });
+
+  // MUTAÇÃO QUE DERRUBA: tirar o `if (s.custo.estado !== "medido") return
+  // s.precoFinalCentavos;`. É a linha que impede *margem otimista sobre custo
+  // incompleto* — a que dá confiança falsa ao negociador para descer o preço até
+  // um lugar que parece lucro e é prejuízo.
+  it("custo NÃO MEDIDO anula qualquer faixa autorizada, em todos os serviços", () => {
+    for (const s of TABELA_DE_PRECOS) {
+      const comFaixa = { ...s, descontoAutorizadoPct: 40 };
+      expect(pisoDoServico(comFaixa), `${s.nome} deixou o desconto passar`).toBe(s.precoFinalCentavos);
+      expect(margemNoPisoPct(comFaixa)).toBeNull();
+    }
+  });
+
+  it("a margem no piso NUNCA é um número quando o custo não é um número", () => {
+    for (const s of TABELA_DE_PRECOS) {
+      expect(margemNoPisoPct(s), `${s.nome} inventou uma margem`).toBeNull();
+    }
   });
 });
 
@@ -240,9 +316,14 @@ describe("os 10% de lucro são chão, não meta", () => {
       ...servicoPorChave("plano_conteudo")!,
       custo: { estado: "medido", centavos: 50000, moeda: "BRL", origem: "manual" },
     } as never as Parameters<typeof pisoDoServico>[0];
-    expect(pisoDoServico({ ...base, descontoAutorizadoPct: 30 })).toBe(55300);
-    expect(pisoDoServico({ ...base, descontoAutorizadoPct: 40 })).toBe(55000);
-    // 55000 = 50000 × 1,10 — o chão, não o desconto.
+    // ⚠️ ESTES NÚMEROS MUDARAM NA UNIFICAÇÃO DE 27/08/2026, e a mudança é a
+    // doutrina: "dez por cento de lucro" passou a ser 10% DO PREÇO
+    // (custo ÷ 0,90 = R$ 555,56) e não 10% em cima do custo (× 1,10 = R$ 550,00,
+    // que entrega 9,09% e chamaria de dez). O porquê está em
+    // `precoQueFechaAMargemMinima`. Agora o chão vence os DOIS descontos.
+    expect(pisoDoServico({ ...base, descontoAutorizadoPct: 30 })).toBe(55556);
+    expect(pisoDoServico({ ...base, descontoAutorizadoPct: 40 })).toBe(55556);
+    // 55556 = ceil(50000 ÷ 0,90) — o chão, não o desconto.
   });
 
   it("serviço que não fecha 10% nem no preço de tabela aparece POR NOME", () => {

@@ -454,7 +454,9 @@ export const ModelName = {
   HeartbeatDoRelogio: 'HeartbeatDoRelogio',
   HandoffV2: 'HandoffV2',
   PagamentoConfirmado: 'PagamentoConfirmado',
-  IsencaoDeParceria: 'IsencaoDeParceria'
+  IsencaoDeParceria: 'IsencaoDeParceria',
+  AssinaturaRecorrente: 'AssinaturaRecorrente',
+  CobrancaRecorrente: 'CobrancaRecorrente'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -470,7 +472,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "isencaoDeParceria"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5728,6 +5730,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AssinaturaRecorrente: {
+      payload: Prisma.$AssinaturaRecorrentePayload<ExtArgs>
+      fields: Prisma.AssinaturaRecorrenteFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AssinaturaRecorrenteFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssinaturaRecorrentePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AssinaturaRecorrenteFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssinaturaRecorrentePayload>
+        }
+        findFirst: {
+          args: Prisma.AssinaturaRecorrenteFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssinaturaRecorrentePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AssinaturaRecorrenteFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssinaturaRecorrentePayload>
+        }
+        findMany: {
+          args: Prisma.AssinaturaRecorrenteFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssinaturaRecorrentePayload>[]
+        }
+        create: {
+          args: Prisma.AssinaturaRecorrenteCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssinaturaRecorrentePayload>
+        }
+        createMany: {
+          args: Prisma.AssinaturaRecorrenteCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AssinaturaRecorrenteCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssinaturaRecorrentePayload>[]
+        }
+        delete: {
+          args: Prisma.AssinaturaRecorrenteDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssinaturaRecorrentePayload>
+        }
+        update: {
+          args: Prisma.AssinaturaRecorrenteUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssinaturaRecorrentePayload>
+        }
+        deleteMany: {
+          args: Prisma.AssinaturaRecorrenteDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AssinaturaRecorrenteUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AssinaturaRecorrenteUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssinaturaRecorrentePayload>[]
+        }
+        upsert: {
+          args: Prisma.AssinaturaRecorrenteUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssinaturaRecorrentePayload>
+        }
+        aggregate: {
+          args: Prisma.AssinaturaRecorrenteAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAssinaturaRecorrente>
+        }
+        groupBy: {
+          args: Prisma.AssinaturaRecorrenteGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssinaturaRecorrenteGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AssinaturaRecorrenteCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssinaturaRecorrenteCountAggregateOutputType> | number
+        }
+      }
+    }
+    CobrancaRecorrente: {
+      payload: Prisma.$CobrancaRecorrentePayload<ExtArgs>
+      fields: Prisma.CobrancaRecorrenteFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CobrancaRecorrenteFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CobrancaRecorrentePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CobrancaRecorrenteFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CobrancaRecorrentePayload>
+        }
+        findFirst: {
+          args: Prisma.CobrancaRecorrenteFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CobrancaRecorrentePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CobrancaRecorrenteFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CobrancaRecorrentePayload>
+        }
+        findMany: {
+          args: Prisma.CobrancaRecorrenteFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CobrancaRecorrentePayload>[]
+        }
+        create: {
+          args: Prisma.CobrancaRecorrenteCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CobrancaRecorrentePayload>
+        }
+        createMany: {
+          args: Prisma.CobrancaRecorrenteCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CobrancaRecorrenteCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CobrancaRecorrentePayload>[]
+        }
+        delete: {
+          args: Prisma.CobrancaRecorrenteDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CobrancaRecorrentePayload>
+        }
+        update: {
+          args: Prisma.CobrancaRecorrenteUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CobrancaRecorrentePayload>
+        }
+        deleteMany: {
+          args: Prisma.CobrancaRecorrenteDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CobrancaRecorrenteUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CobrancaRecorrenteUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CobrancaRecorrentePayload>[]
+        }
+        upsert: {
+          args: Prisma.CobrancaRecorrenteUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CobrancaRecorrentePayload>
+        }
+        aggregate: {
+          args: Prisma.CobrancaRecorrenteAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCobrancaRecorrente>
+        }
+        groupBy: {
+          args: Prisma.CobrancaRecorrenteGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CobrancaRecorrenteGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CobrancaRecorrenteCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CobrancaRecorrenteCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -7034,7 +7184,9 @@ export const PagamentoConfirmadoScalarFieldEnum = {
   confirmadoEm: 'confirmadoEm',
   registradoPor: 'registradoPor',
   observacao: 'observacao',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  taxaCentavos: 'taxaCentavos',
+  liquidoCentavos: 'liquidoCentavos'
 } as const
 
 export type PagamentoConfirmadoScalarFieldEnum = (typeof PagamentoConfirmadoScalarFieldEnum)[keyof typeof PagamentoConfirmadoScalarFieldEnum]
@@ -7054,6 +7206,47 @@ export const IsencaoDeParceriaScalarFieldEnum = {
 } as const
 
 export type IsencaoDeParceriaScalarFieldEnum = (typeof IsencaoDeParceriaScalarFieldEnum)[keyof typeof IsencaoDeParceriaScalarFieldEnum]
+
+
+export const AssinaturaRecorrenteScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
+  planoId: 'planoId',
+  valorCentavos: 'valorCentavos',
+  moeda: 'moeda',
+  provedor: 'provedor',
+  provedorAssinaturaId: 'provedorAssinaturaId',
+  estado: 'estado',
+  motivoDoEstado: 'motivoDoEstado',
+  dono: 'dono',
+  proximaCobrancaEm: 'proximaCobrancaEm',
+  ultimaCobrancaEm: 'ultimaCobrancaEm',
+  cobrancasFalhadas: 'cobrancasFalhadas',
+  canceladaEm: 'canceladaEm',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AssinaturaRecorrenteScalarFieldEnum = (typeof AssinaturaRecorrenteScalarFieldEnum)[keyof typeof AssinaturaRecorrenteScalarFieldEnum]
+
+
+export const CobrancaRecorrenteScalarFieldEnum = {
+  id: 'id',
+  assinaturaId: 'assinaturaId',
+  provedorPagamentoId: 'provedorPagamentoId',
+  competencia: 'competencia',
+  valorCentavos: 'valorCentavos',
+  moeda: 'moeda',
+  taxaCentavos: 'taxaCentavos',
+  liquidoCentavos: 'liquidoCentavos',
+  estado: 'estado',
+  motivo: 'motivo',
+  confirmadoEm: 'confirmadoEm',
+  createdAt: 'createdAt'
+} as const
+
+export type CobrancaRecorrenteScalarFieldEnum = (typeof CobrancaRecorrenteScalarFieldEnum)[keyof typeof CobrancaRecorrenteScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -7293,6 +7486,8 @@ export type GlobalOmitConfig = {
   handoffV2?: Prisma.HandoffV2Omit
   pagamentoConfirmado?: Prisma.PagamentoConfirmadoOmit
   isencaoDeParceria?: Prisma.IsencaoDeParceriaOmit
+  assinaturaRecorrente?: Prisma.AssinaturaRecorrenteOmit
+  cobrancaRecorrente?: Prisma.CobrancaRecorrenteOmit
 }
 
 /* Types for Logging */

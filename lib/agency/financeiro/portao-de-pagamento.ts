@@ -50,6 +50,7 @@
 // na frente é a trava desfeita por um catch distraído.
 
 import { prisma } from "@/lib/db/client";
+import { mensalidadeEmDia, O_QUE_DIZER } from "@/lib/agency/financeiro/assinatura";
 
 /**
  * ── O CORTE DE VIGÊNCIA (a anistia declarada) ──────────────────────────────
@@ -85,7 +86,11 @@ export type MotivoDeLiberacao =
   | "anterior_ao_portao"
   /** Parceria isenta e VIGENTE. Libera a esteira sem afirmar que houve
    *  dinheiro — ver `IsencaoDeParceria` no schema. */
-  | "parceria_isenta";
+  | "parceria_isenta"
+  /** Pedido MENSAL com a competência do mês corrente paga. Palavra própria, de
+   *  propósito: é diferente de `pagamento_confirmado`, que fala de uma entrada
+   *  única e não expira. */
+  | "mensalidade_em_dia";
 
 export type MotivoDeRecusa =
   | "pedido_ausente"
@@ -95,6 +100,10 @@ export type MotivoDeRecusa =
   /** Havia isenção de parceria, mas ela VENCEU. Diferente de nunca ter havido:
    *  o operador precisa saber que existiu e acabou, para renovar ou cobrar. */
   | "parceria_vencida"
+  /** Pedido mensal cujo MÊS CORRENTE não tem cobrança aprovada. */
+  | "mes_nao_pago"
+  /** Assinatura cancelada e o mês corrente não pago. */
+  | "assinatura_cancelada"
   | "leitura_indisponivel";
 
 export type VereditoDePagamento =
@@ -132,6 +141,12 @@ const INSTRUCAO_GEMEA: Record<MotivoDeRecusa, string> = {
     "A parceria que cobria este projeto chegou ao fim da validade combinada, então a produção fica aguardando. " +
     "Fale com a Dioli no WhatsApp: dá para renovar a parceria ou seguir com um dos planos — a gente resolve por lá.",
 
+  // ── AS DUAS DA RECORRÊNCIA ───────────────────────────────────────────────
+  // O texto vem de `assinatura.O_QUE_DIZER` para não existir em dois lugares —
+  // duas cópias da mesma frase já estão diferentes na semana em que uma muda.
+  mes_nao_pago: O_QUE_DIZER.mes_nao_pago,
+  assinatura_cancelada: O_QUE_DIZER.cancelada,
+
   valor_nao_positivo:
     "O pagamento deste projeto está registrado com valor zerado, e valor zerado não é pagamento. " +
     "A produção fica aguardando. Mande o comprovante para a Dioli no WhatsApp que a gente corrige o registro e libera.",
@@ -157,6 +172,33 @@ export async function conferirPagamento(
 ): Promise<VereditoDePagamento> {
   if (!clientRequestId) {
     return recusar("pedido_ausente", "produção pedida sem `clientRequestId` — não há pedido a que ligar o pagamento");
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // ⛔ A MENSALIDADE VEM **ANTES** DE TUDO, E ESSA ORDEM É A CORREÇÃO INTEIRA
+  // ═════════════════════════════════════════════════════════════════════════
+  //
+  // `PagamentoConfirmado` é ÚNICA por pedido e não expira. Num pedido MENSAL, o
+  // pagamento do mês 1 ficaria ali para sempre — e a checagem abaixo diria
+  // "pago" no mês 2, no mês 12 e no mês 40, para um cliente que parou de pagar
+  // no primeiro. A trava fail-closed da casa vazava, e vazava em silêncio, com
+  // o teste verde: ninguém tinha escrito um caso que passasse do mês 1.
+  //
+  // Perguntar a mensalidade PRIMEIRO é o que fecha o vazamento. E ela só decide
+  // quando SE APLICA: `sem_assinatura` não libera nada — devolve a decisão às
+  // regras de sempre, que é o que mantém intacto todo pedido avulso já existente.
+  const mensal = await mensalidadeEmDia(clientRequestId);
+  if (mensal.tipo === "leitura_indisponivel") {
+    return recusar("leitura_indisponivel", mensal.detalhe);
+  }
+  if (mensal.tipo === "mes_nao_pago") {
+    return recusar("mes_nao_pago", `${mensal.detalhe} — dono: ${mensal.dono}`);
+  }
+  if (mensal.tipo === "cancelada") {
+    return recusar("assinatura_cancelada", `${mensal.detalhe} — dono: ${mensal.dono}`);
+  }
+  if (mensal.tipo === "em_dia") {
+    return { liberado: true, motivo: "mensalidade_em_dia", detalhe: mensal.detalhe };
   }
 
   // ── A LEITURA, EM DUAS ETAPAS E NESTA ORDEM ──────────────────────────────
@@ -317,6 +359,10 @@ export async function registrarPagamento(entrada: {
   provedorId?: string | null;
   moeda?: string;
   confirmadoEm?: Date;
+  /** A taxa que o gateway REALMENTE reteve, em centavos. `null`/ausente = NÃO
+   *  MEDIDA — nunca zero. Ver `lib/agency/financeiro/taxa-do-gateway.ts`. */
+  taxaCentavos?: number | null;
+  liquidoCentavos?: number | null;
   /** Obrigatório quando `origem = "manual"`: registro manual sempre tem dono. */
   registradoPor?: string | null;
   observacao?: string | null;
@@ -335,6 +381,8 @@ export async function registrarPagamento(entrada: {
     valorCentavos: Math.round(entrada.valorCentavos),
     moeda: entrada.moeda ?? "BRL",
     confirmadoEm: entrada.confirmadoEm ?? new Date(),
+    taxaCentavos: entrada.taxaCentavos ?? null,
+    liquidoCentavos: entrada.liquidoCentavos ?? null,
     registradoPor: entrada.registradoPor ?? null,
     observacao: entrada.observacao ?? null,
   };
