@@ -329,6 +329,18 @@ export interface LinhaDeProjeto {
   custoDeIaUsd: Dinheiro;
   chamadasDeIa: number;
   resultado: Dinheiro;
+  /**
+   * A PARCERIA, quando este centro de custo é um parceiro com isenção VIVA.
+   *
+   * Ordem do CEO (D-0B9): *"Tudo tem que ser medido, inclusive as parcerias."*
+   * Sem este campo a linha do parceiro era indistinguível da do caloteiro: as
+   * duas apareciam como "nada lançado". Aqui a receita vira R$ 0,00 de origem
+   * `parceria`, o custo continua contado normalmente, e a margem negativa fica
+   * visível COM O NOME de quem autorizou o investimento.
+   *
+   * Ausente = não é parceria. Nunca use a ausência para concluir que é.
+   */
+  parceria?: { autorizadaPor: string; validaAte: Date; escopo: string };
 }
 
 /**
@@ -366,6 +378,28 @@ export async function porProjeto(
 
   const ia = await custoDeIaNoPeriodo(workspaceId, periodo, nomeDoCliente);
 
+  // ─── AS PARCERIAS VIVAS ───────────────────────────────────────────────────
+  // Só as VÁLIDAS no fim do período: uma isenção vencida não explica mais um
+  // R$ 0, e apresentá-la como se explicasse esconderia justamente o mês em que
+  // a casa continuou produzindo de graça depois do combinado.
+  //
+  // Leitura que falha NÃO vira "não há parceria": vira mapa vazio E a linha
+  // segue como estava (`nao_lancado`), que é o estado conservador — dizer "R$ 0
+  // por parceria" sem ter lido a parceria seria inventar a autorização.
+  const parcerias = new Map<string, { autorizadaPor: string; validaAte: Date; escopo: string }>();
+  try {
+    const vivas = (await prisma.isencaoDeParceria.findMany({
+      where: { validaAte: { gte: periodo.inicio } },
+      select: { clientId: true, autorizadaPor: true, validaAte: true, escopo: true },
+    })) as Array<{ clientId: string | null; autorizadaPor: string; validaAte: Date; escopo: string }>;
+    for (const v of vivas) {
+      if (!v.clientId) continue; // isenção sem cliente não sabe a qual linha pertence
+      parcerias.set(v.clientId, { autorizadaPor: v.autorizadaPor, validaAte: v.validaAte, escopo: v.escopo });
+    }
+  } catch {
+    // mapa vazio — ver o comentário acima
+  }
+
   const chaves = new Map<string, string>();
   const chaveDe = (clientId: string | null, centro: string | null) => {
     // O centro de custo escrito à mão é resolvido para o cliente ANTES de virar
@@ -390,9 +424,16 @@ export async function porProjeto(
 
   return [...chaves.entries()].map(([id, label]) => {
     const linhaIa = ia.porCliente.find((l) => l.id === id || (id === "sem-centro-de-custo" && l.id === "sem-cliente"));
+    const parceria = parcerias.get(id);
+    // A receita LANÇADA vence a parceria: se entrou dinheiro deste cliente no
+    // período, o fato é o dinheiro. Parceria explica a AUSÊNCIA de receita, não
+    // apaga a presença dela.
     const receita: Dinheiro = receitas.has(id)
       ? medido(receitas.get(id)!, "manual")
-      : { estado: "nao_lancado", motivo: "nenhuma receita lançada para este centro de custo no período" };
+      : parceria
+        // Conhecida e igual a zero — não é "a janela está vazia".
+        ? medido(0, "parceria")
+        : { estado: "nao_lancado", motivo: "nenhuma receita lançada para este centro de custo no período" };
     const custo: Dinheiro = custos.has(id)
       ? medido(custos.get(id)!, "manual")
       : { estado: "nao_lancado", motivo: "nenhum custo em reais lançado para este centro de custo no período" };
@@ -401,6 +442,9 @@ export async function porProjeto(
       custoDeIaUsd: linhaIa?.valor ?? { estado: "nao_lancado", motivo: "nenhuma chamada de IA atribuída" },
       chamadasDeIa: linhaIa?.chamadas ?? 0,
       resultado: subtrair({ rotulo: "receita", valor: receita }, { rotulo: "custo", valor: custo }),
+      // Só vai o que EXISTE: campo ausente significa "não é parceria", e é
+      // assim que o leitor deve entender a ausência.
+      ...(parceria ? { parceria } : {}),
     };
   }).sort((a, b) => {
     const va = a.resultado.estado === "medido" ? a.resultado.centavos : Number.MAX_SAFE_INTEGER;

@@ -135,11 +135,11 @@ export async function concederIsencaoDeParceria(
   // O pedido tem de EXISTIR. Isenção órfã é produção liberada de graça sem
   // cliente a que responder — o mesmo buraco que os testes-guarda da casa
   // pegaram na fusão de cliente e no reset de inauguração.
-  let existe: { id: string } | null;
+  let existe: { id: string; clientId: string | null } | null;
   try {
     existe = await prisma.clientRequestDb.findUnique({
       where: { id: clientRequestId },
-      select: { id: true },
+      select: { id: true, clientId: true },
     });
   } catch (e) {
     return recusar("leitura_indisponivel", `não consegui conferir o pedido (${e instanceof Error ? e.message : "erro"})`);
@@ -150,7 +150,13 @@ export async function concederIsencaoDeParceria(
     const criada = await prisma.isencaoDeParceria.create({
       data: {
         clientRequestId,
-        clientId: textoUtil(pedido.clientId) ?? null,
+        // ⚠️ DERIVADO DO PEDIDO quando não vier informado — e isso NÃO é
+        // conveniência. O DRE agrupa por cliente: uma isenção sem `clientId`
+        // não sabe a qual linha pertence, e a parceria fica invisível no
+        // relatório que deveria mostrar a margem negativa dela. Isenção que
+        // ninguém enxerga no financeiro é exatamente o gasto não medido que a
+        // ordem do CEO (D-0B9) proíbe.
+        clientId: textoUtil(pedido.clientId) ?? existe.clientId ?? null,
         autorizadaPor,
         validaAte,
         escopo,

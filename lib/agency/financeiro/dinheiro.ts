@@ -29,7 +29,23 @@ export type OrigemDoNumero =
   | "contrato"         // valor de contrato/plano assinado
   | "extrato"          // conciliação bancária
   | "importado"        // rotina automática
+  | "parceria"         // R$ 0 POR DECISÃO — ver o bloco abaixo
   | "derivado";        // soma/subtração dos acima — carrega a origem mais fraca
+
+// ─── POR QUE "parceria" É UMA ORIGEM, e não a ausência de lançamento ────────
+//
+// Ordem do CEO (D-0B9): *"Todo gasto tem que ser salvo, medido e contabilizado.
+// Independente se é parceria ou não, porque alguém vai pagar por esse
+// investimento. Tudo tem que ser medido, inclusive as parcerias."*
+//
+// A receita de um parceiro é **conhecida e igual a zero**. Isso não é
+// `nao_lancado` — `nao_lancado` quer dizer "a janela está vazia", que o leitor
+// entende como *esqueceram de lançar* ou *o cliente não pagou*. Num relatório,
+// a parceria autorizada ficava idêntica ao caloteiro e ao descuido.
+//
+// Com origem própria, a linha diz o que é: **R$ 0,00, por parceria**, com o
+// custo contado normalmente ao lado e a margem negativa à vista. *Parceria não
+// é grátis: é investimento, e investimento se mede.*
 
 export type Dinheiro =
   | { estado: "medido"; centavos: number; moeda: "BRL" | "USD"; origem: OrigemDoNumero }
