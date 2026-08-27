@@ -157,6 +157,7 @@ import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
 import { HOST_PADRAO } from "@/lib/agency/esteira/links-do-portal";
 import { computeEstimate } from "@/lib/agency/live-calculator";
 import { randomBytes } from "crypto";
+import { avisoDeAgendamentoManual } from "@/lib/agency/esteira/aviso-de-agendamento-manual";
 import { sendEmail } from "@/lib/email/send";
 import { orcamentoProntoEmail } from "@/lib/email/templates";
 import { provaDoProprioBriefing } from "@/lib/agency/consentimento/quem-pode-receber";
@@ -560,7 +561,19 @@ async function gravarResultadoDoAviso(pedidoId: string, aviso: ResultadoDoAviso)
  * O texto que o cliente lê. Escrito para quem NÃO trabalha na agência: sem id,
  * sem nome de sistema, sem custo interno, sem prazo prometido.
  */
-export function textoDoOrcamento(negocio: string, e: EstimativaGuardada, linkDaProposta?: string | null): string {
+export function textoDoOrcamento(
+  negocio: string,
+  e: EstimativaGuardada,
+  linkDaProposta?: string | null,
+  /**
+   * O aviso de que a publicação automática ainda não existe, quando ele deve
+   * existir. Vem PRONTO de `avisoDeAgendamentoManual()` — este texto não
+   * pergunta o estado do canal, para não criar uma segunda leitura dele.
+   *
+   * `null`/ausente = a publicação automática está no ar e não há o que avisar.
+   */
+  avisoDeAgendamento?: string | null,
+): string {
   const linhas: string[] = [];
 
   linhas.push(`Recebemos seu briefing${negocio ? ` da ${negocio}` : ""} — obrigado pelo material.`);
@@ -636,6 +649,20 @@ export function textoDoOrcamento(negocio: string, e: EstimativaGuardada, linkDaP
       "a equipe confere e te manda a proposta fechada por aqui. Se algo acima " +
       "estiver diferente do que você precisa, é só responder nesta conversa.",
   );
+
+  // ── O QUE ELE PRECISA SABER ANTES DE ACEITAR (27/08/2026) ────────────────
+  //
+  // Ordem do CEO: a casa avisa que a publicação automática no Instagram ainda
+  // não está disponível e que o agendamento é manual por enquanto.
+  //
+  // ⚠️ A POSIÇÃO É A METADE DA ORDEM: o aviso vem ANTES do convite a aceitar.
+  // *Quem aceita tem de saber o que está comprando* — um aviso depois do botão
+  // é um aviso que chega tarde, e guardrail 5 (nunca vender como pronto o que
+  // está em piloto) morre exatamente aí.
+  if (avisoDeAgendamento) {
+    linhas.push("");
+    linhas.push(avisoDeAgendamento);
+  }
 
   // ── O CONVITE A RESPONDER — e a razão de ele existir ──────────────────────
   // Até 24/08/2026 este texto terminava aqui: contava o preço e não dizia como
@@ -958,7 +985,11 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
         continue;
       }
 
-      const corpo = textoDoOrcamento(pedido.businessName ?? "", e, link);
+      // O aviso do agendamento manual entra aqui, lido do estado REAL do canal
+      // — no dia em que a Meta liberar, ele some sozinho de toda proposta nova.
+      const corpo = textoDoOrcamento(
+        pedido.businessName ?? "", e, link, await avisoDeAgendamentoManual(),
+      );
 
       await prisma.$transaction([
         prisma.portalMessage.create({

@@ -19,6 +19,9 @@
 // Lei 2: the rule-based engine remains the authoritative fallback. If this route
 // fails (no key, timeout, bad JSON), the client falls back to it.
 
+import {
+  promessasSoltas, limparPromessaSolta, motivoDaPromessa,
+} from "@/lib/agency/comercial/promessa-que-a-maquina-nao-cumpre";
 import { NextRequest, NextResponse } from "next/server";
 // O TETO SAIU DA MEMÓRIA DO PROCESSO E FOI PARA O BANCO (raio-x de 05/08/2026).
 // `rateLimited` zerava em todo deploy e não atravessava réplica — numa casa em
@@ -560,6 +563,12 @@ async function segundaChanceSemPreco(args: {
     : {};
   return { reply: fala, scope: aplicarTravasDeEscopo(bruto, args.falaDoCliente, args.faixaJaEstabelecida) };
 }
+
+/** O que a casa diz quando a fala do modelo, tirada a promessa, ficou vazia.
+ *  Verdade + próxima ação, que é o que faltava na tela do cliente 001. */
+const O_QUE_DIZER_NO_LUGAR_AO_CLIENTE =
+  "Seu escopo está pronto. Confira o resumo do seu pedido aqui na tela e confirme " +
+  "para a casa calcular o seu orçamento.";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const barrado = await limiteExcedido(req, "sdr-chat", 30, 60_000);
@@ -1285,6 +1294,33 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // feita. Trocar a fala inteira pelo reconhecimento custaria um turno de
       // sondagem por uma questão de educação.
       replyText = `${cortesia}\n\n${replyText}`.trim();
+    }
+
+    // ⛔ A ÚLTIMA TRAVA ANTES DA BOCA DO SDR (27/08/2026) ────────────────────
+    //
+    // Medido em produção com o CLIENTE 001 na tela: o SDR disse *"eu finalizo o
+    // orçamento e envio para você"* e depois *"vou preparar seu orçamento
+    // personalizado… estou à disposição"*, e se despediu. **Nada nesta casa
+    // dispara esse envio.** O cliente entregou tudo e ficou numa tela sem um
+    // único botão.
+    //
+    // O prompt JÁ mandava apontar o resumo e o botão de confirmar — os textos
+    // prontos de `prospect-engine.ts` dizem isso. O que saiu foi texto livre do
+    // modelo inventando um compromisso da casa em primeira pessoa. *Prompt é
+    // aviso; código é trava*, e a trava mora na saída, que é por onde a frase
+    // passa em qualquer caminho.
+    //
+    // Limpar (e não barrar o turno) é a escolha certa AQUI, e a diferença em
+    // relação à legenda é de dono: a legenda é do cliente e reescrevê-la seria a
+    // agência mudando o que ele aprovou; esta fala é da própria casa e ainda
+    // está na mão dela. Barrar o turno inteiro deixaria o cliente sem resposta
+    // nenhuma — trocaria uma promessa falsa por um silêncio, que é pior.
+    const promessas = promessasSoltas(replyText);
+    if (promessas.length > 0) {
+      console.warn(`[sdr/chat] ${motivoDaPromessa(promessas)}`);
+      const limpo = limparPromessaSolta(replyText);
+      // Se limpar esvaziou a fala, a casa diz a verdade em vez de nada.
+      replyText = limpo || O_QUE_DIZER_NO_LUGAR_AO_CLIENTE;
     }
 
     await registrar({ ...fio, doVisitante: body.currentMessage, doSdr: replyText });

@@ -120,7 +120,8 @@ export const ModelName = {
   ReconciliacaoV2: 'ReconciliacaoV2',
   HeartbeatDoRelogio: 'HeartbeatDoRelogio',
   HandoffV2: 'HandoffV2',
-  PagamentoConfirmado: 'PagamentoConfirmado'
+  PagamentoConfirmado: 'PagamentoConfirmado',
+  IsencaoDeParceria: 'IsencaoDeParceria'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1410,6 +1411,22 @@ export const PagamentoConfirmadoScalarFieldEnum = {
 } as const
 
 export type PagamentoConfirmadoScalarFieldEnum = (typeof PagamentoConfirmadoScalarFieldEnum)[keyof typeof PagamentoConfirmadoScalarFieldEnum]
+
+
+export const IsencaoDeParceriaScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
+  autorizadaPor: 'autorizadaPor',
+  validaAte: 'validaAte',
+  escopo: 'escopo',
+  pecasContratadas: 'pecasContratadas',
+  tetoDeIaCentavosUsd: 'tetoDeIaCentavosUsd',
+  observacao: 'observacao',
+  createdAt: 'createdAt'
+} as const
+
+export type IsencaoDeParceriaScalarFieldEnum = (typeof IsencaoDeParceriaScalarFieldEnum)[keyof typeof IsencaoDeParceriaScalarFieldEnum]
 
 
 export const SortOrder = {

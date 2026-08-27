@@ -140,6 +140,15 @@ export interface VistaDoCliente {
   campanhas: CampanhaView[];
   brandHub: BrandHubView;
   conta: ContaView;
+  /**
+   * O aviso de que a publicação automática no Instagram ainda não existe, e de
+   * que a equipe agenda à mão por enquanto. `null` quando ela JÁ existe.
+   *
+   * Ordem do CEO em 27/08/2026, e ele fica no topo da vista de propósito:
+   * *coluna gravada não é cliente informado* — o aviso tem de estar onde o
+   * cliente olha, junto do calendário, não escondido num campo.
+   */
+  avisoDeAgendamento: string | null;
 }
 
 export interface BrutosDoPortal {
@@ -152,6 +161,10 @@ export interface BrutosDoPortal {
   campanhas: RegistroBruto[];
   servicos: string[];
   marca: { respondidas?: unknown; total?: unknown; perguntas?: unknown; campos?: unknown } | null;
+  /** Vem PRONTO de `avisoDeAgendamentoManual()`. Esta função é pura e não
+   *  pergunta o estado do canal — uma segunda leitura dele divergiria da
+   *  primeira no dia da virada. */
+  avisoDeAgendamento?: string | null;
 }
 
 // ── Traduções: banco → português de gente ───────────────────────────────────
@@ -257,6 +270,10 @@ export function montarVistaDoCliente(brutos: BrutosDoPortal): VistaDoCliente {
       clienteDesde: dataIso(cliente.createdAt),
       servicos: brutos.servicos.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()),
     },
+    // `?? null` e não `?? AVISO`: quem sabe o estado do canal é quem chama. Um
+    // default com texto aqui faria a vista MENTIR quando o canal já estivesse
+    // liberado e o chamador simplesmente não tivesse passado o campo.
+    avisoDeAgendamento: brutos.avisoDeAgendamento ?? null,
   };
 }
 

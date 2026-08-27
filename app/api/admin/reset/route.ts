@@ -181,6 +181,11 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   // entregas, tarefas, briefings, ciclos, avisos e o cérebro de marca.
   await prisma.$transaction(async (tx) => {
     await tx.evidenceItem.deleteMany({});
+    // A isenção de parceria (27/08/2026). Ela é o que LIBERA produção sem
+    // pagamento — uma isenção sobrevivente ao reset é a pior sobra possível:
+    // um pedido novo herdaria o direito de produzir de graça de um cliente que
+    // não existe mais. O teste-guarda desta casa exigiu esta linha.
+    await tx.isencaoDeParceria.deleteMany({});
     await tx.portalAccess.deleteMany({});
     await tx.portalMessage.deleteMany({});
     // O pedido de conteúdo é operacional: cascatearia só junto com o cliente,

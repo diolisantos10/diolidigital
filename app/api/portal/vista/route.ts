@@ -16,6 +16,7 @@
 // O dono vem SEMPRE do token (derivação, nunca comparação — regra da casa de
 // 03/08/2026). `clientId` de query não entra.
 
+import { avisoDeAgendamentoManual } from "@/lib/agency/esteira/aviso-de-agendamento-manual";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { donoDoPortal } from "@/lib/agency/persistence/portal-access-service";
@@ -101,6 +102,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       : [];
 
     const vista = montarVistaDoCliente({
+      // O aviso do agendamento manual é lido do estado REAL do canal, a cada
+      // abertura do portal. No dia em que a Meta liberar, ele some sozinho.
+      avisoDeAgendamento: await avisoDeAgendamentoManual(),
       cliente,
       projetos,
       posts,
