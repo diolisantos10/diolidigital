@@ -63,7 +63,7 @@ trava.*
 |---|---|---|
 | **IA (imagem + texto)** | ✅ **MEDIDO** — `AIRunLog`, ~US$ 0,17/peça; 3,8–4,2% da receita nos três planos | Financeiro (a casa mede sozinha) |
 | Taxa do gateway (Mercado Pago) | ❌ **NÃO MEDIDO** — nenhum pagamento real passou pelo gateway ainda; o caminho da medição foi construído neste PR (`fee_details` do provedor) | **CEO — definir `MERCADOPAGO_WEBHOOK_SECRET` no Railway.** Sem ele o webhook recusa tudo com 401 e nenhum pagamento chega a ser registrado. |
-| Infraestrutura (Railway, banco, volume) | ❌ **NÃO MEDIDO** — a fatura existe, o rateio por cliente não existe em código nenhum | CEO — informar a fatura mensal; o rateio a casa deriva |
+| Infraestrutura (Railway, banco, volume) | 🟡 **MEIO MEDIDO** — o **consumo** foi medido na fonte (Railway, produção, 7 dias, 10.081 amostras/métrica, 27/08/2026): ~0,0033 vCPU, ~0,367 GB de memória, ~0,772 GB de disco somando app e banco. O **preço** não | **CEO — informar o total DEBITADO pela Railway no último mês fechado.** Não a tabela de preços: plano, crédito e franquia mudam o número, e um preço de catálogo aqui viraria margem que o negociador gastaria de verdade |
 | Domínio e e-mail (Resend) | ❌ **NÃO MEDIDO** | CEO — informar o custo mensal |
 | Hora humana | ❌ **NÃO MEDIDO** — não há apontamento de horas. É o custo REAL do Presença e do Conteúdo | CEO — decidir se haverá apontamento, ou um custo/hora de referência |
 | Impostos | ❌ **NÃO MEDIDO** — regime tributário não declarado à casa | CEO — informar o regime e a alíquota efetiva |
@@ -84,7 +84,26 @@ passaria por baixo da ordem do CEO sem ninguém ver a diferença.
 
 ---
 
-## 3. TODA CONCESSÃO FICA REGISTRADA
+## 3. A ORDEM DE ATAQUE (decisão do Diretor Geral, 27/08)
+
+Desconto **zero** enquanto o custo não estiver medido — e **medir é a prioridade
+um**, porque é ela que destrava a negociação. Na ordem do que é fácil e grande:
+
+1. **Taxa do gateway** — o caminho está construído (`fee_details` do provedor
+   gravado a cada pagamento). Destrava com `MERCADOPAGO_WEBHOOK_SECRET`.
+2. **Infraestrutura** — consumo medido; falta um número do extrato.
+3. **E-mail e impostos** — depois.
+4. **Hora humana** — pode ficar declarada como **zero enquanto não houver gente
+   na esteira**, desde que escrito. ⚠️ E hoje **há**: Presença e Conteúdo têm
+   produtor `humano`. Nesses dois degraus a hora humana **não** é zero, e é o
+   maior buraco que sobra.
+
+A cada parcela medida, o relatório diz **o antes e o depois do piso** — o CEO vê
+a manga do negociador crescer com base em fato.
+
+---
+
+## 4. TODA CONCESSÃO FICA REGISTRADA
 
 Não há caminho para um desconto de boca. Quando houver faixa autorizada, ela
 mora em `descontoAutorizadoPct` **do serviço**, com quem autorizou e qual foi o
