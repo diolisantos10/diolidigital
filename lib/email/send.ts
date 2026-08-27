@@ -10,10 +10,11 @@
 // Configuration (Railway Variables):
 //   RESEND_API_KEY   required to actually send (starts with "re_")
 //   RESEND_FROM      sender address. Must be on a domain verified in Resend,
-//                    e.g. "Dioli Studio <contato@dioli.studio>". Falls back to
+//                    e.g. "Dioli Digital <contato@diolidigital.com.br>". Falls back to
 //                    Resend's shared onboarding sender, which can ONLY deliver
 //                    to the Resend account owner's own address (testing only).
 
+import { NOME_DA_EMPRESA } from "@/lib/marca";
 import {
   motivoDoBloqueio,
   registrarSaidaBloqueada,
@@ -50,7 +51,7 @@ export interface SendEmailResult {
  * ver `SEM_REMETENTE` logo abaixo. Fica declarado aqui porque é o valor que a
  * Resend usaria, e nomear o que se recusa a fazer vale mais que apagá-lo.
  */
-const REMETENTE_COMPARTILHADO_DA_RESEND = "Dioli Studio <onboarding@resend.dev>";
+const REMETENTE_COMPARTILHADO_DA_RESEND = `${NOME_DA_EMPRESA} <onboarding@resend.dev>`;
 
 /** Motivo devolvido quando a chave não está configurada (ou está em branco). */
 export const SEM_CHAVE = "sem_chave: RESEND_API_KEY não configurada (ausente ou vazia) no ambiente";

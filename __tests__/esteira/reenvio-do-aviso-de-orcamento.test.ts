@@ -104,13 +104,24 @@ describe("o reenvio FAZ SAIR o que ficou preso", () => {
     expect(gravacaoFinal[1]).toBe("avisado");
   });
 
-  it("manda a MESMA faixa que já está escrita no portal — nunca recalcula", async () => {
+  it("o reenvio também NÃO estampa preço — a mesma regra do envio original", async () => {
+    // ⚠️ ESTE TESTE EXIGIA A FAIXA ATÉ 27/08/2026. A ordem do CEO — *"eu não
+    // acho que o valor tem que estar estampado no e-mail"* — vale para as DUAS
+    // portas de saída, e é justamente por isso que ele foi invertido em vez de
+    // apagado: o reenvio é o caminho que ninguém olha, e seria por ele que o
+    // preço voltaria à caixa de entrada sem ninguém perceber.
     db.$queryRawUnsafe.mockResolvedValue([linhaPresa()]);
     await reenviarAvisosQueFalharam(CASA_INTEIRA);
 
     const html = email.sendEmail.mock.calls[0][0].html as string;
-    expect(html).toMatch(/1\.390/);
-    expect(html).toMatch(/2\.590/);
+    const visivel = html.replace(/<[^>]*>/g, " ");
+    expect(visivel).not.toMatch(/1\.390|2\.590/);
+    expect(visivel).not.toMatch(/R\$/);
+    // Sem preço e sem botão (este cenário não tem token cunhado), o e-mail
+    // ainda tem de dizer ONDE o orçamento está — senão o cliente fica com um
+    // aviso que não leva a lugar nenhum, que é o defeito oposto ao que a ordem
+    // do CEO consertou.
+    expect(html).toMatch(/conversa com a gente/i);
   });
 
   it("não existe um segundo caminho de envio: usa o mesmo `sendEmail` e o mesmo template da entrega original", async () => {

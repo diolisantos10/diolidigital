@@ -464,7 +464,10 @@ async function avisarPorEmail(
     const { subject, html } = orcamentoProntoEmail({
       prospectName: contato.nome ?? undefined,
       businessName: pedido.businessName ?? undefined,
-      faixa: faixaDoOrcamento(e),
+      // ⛔ A FAIXA NÃO VAI MAIS NO E-MAIL (ordem do CEO, 27/08/2026):
+      // *"eu não acho que o valor tem que estar estampado no e-mail"*. Preço lido
+      // sozinho, sem ninguém para conversar, é preço que o cliente compara e
+      // descarta em silêncio. O valor mora no portal, junto do SDR.
       // Sinalizador, não conta: o e-mail reconhece que a faixa passou da verba
       // declarada e manda ler a conversa, onde a diferença é nomeada e o que
       // cabe é oferecido. Repetir a conta aqui criaria duas versões dela.

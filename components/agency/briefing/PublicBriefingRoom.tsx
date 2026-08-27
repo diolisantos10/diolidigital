@@ -1,5 +1,6 @@
 "use client";
 
+import { NOME_DA_EMPRESA } from "@/lib/marca";
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
 import { initProspectConvState, processProspectMessage, type ProspectConvState, type ContatoInicial } from "@/lib/agency/prospect-engine";
@@ -1863,7 +1864,7 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
           <div>
             <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Consultora de Orçamento</div>
-            <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">Conversa com a Dioli Studio</div>
+            <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">Conversa com a {NOME_DA_EMPRESA}</div>
           </div>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-[var(--success)]" />
