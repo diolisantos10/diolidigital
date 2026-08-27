@@ -48,6 +48,7 @@ import {
   type ServicoDaCasa,
 } from "@/lib/agency/financeiro/tabela-de-precos";
 import { emReais, medido } from "@/lib/agency/financeiro/dinheiro";
+import { dataPorExtenso, type IsencaoVisivel } from "@/lib/agency/comercial/aviso-de-isencao";
 
 /** Só para leitura humana no prompt e nas mensagens. */
 function reais(centavos: number): string {
@@ -91,6 +92,28 @@ export function contextoDaNegociacao(entrada: {
   servico: ServicoDaCasa | null;
   textoDaProposta: string;
   avisoDeAgendamento: string | null;
+  /**
+   * A ISENÇÃO POR PARCERIA deste cliente, quando ela existe e está VIVA.
+   *
+   * ── Por que ela muda o assunto (27/08/2026) ───────────────────────────────
+   * Este bloco inteiro foi escrito para NEGOCIAR PREÇO: o que pode ofertar, o
+   * degrau de baixo, o que fazer quando o cliente diz que está caro. **Nada
+   * disso existe para quem não paga.** Um SDR oferecendo "trocar para um plano
+   * mais barato" a um parceiro isento está negociando um desconto sobre zero —
+   * e, pior, está dizendo a ele que há uma conta a pagar.
+   *
+   * Sob parceria a conversa é sobre ESCOPO: o que entra, o que não entra.
+   *
+   * ⚠️ Ausente/`null` = cliente PAGANTE, e o bloco sai exatamente como saía. E
+   * quem decide não é o modelo nem o visitante: é `parceriaVivaDoCliente`, no
+   * servidor, a partir do `clientId` derivado do token da proposta.
+   *
+   * ⛔ ISTO NÃO É A TRAVA, e não afrouxa a que existe. `pisoRespeitado` continua
+   * rodando sobre a fala PRONTA, com as mesmas regras — inclusive a de recusar
+   * qualquer valor quando não há serviço conhecido. *Prompt é aviso; código é
+   * trava.*
+   */
+  isento?: IsencaoVisivel | null;
 }): string {
   const linhas: string[] = [];
   linhas.push(
@@ -104,7 +127,30 @@ export function contextoDaNegociacao(entrada: {
     "",
   );
 
-  if (entrada.servico) {
+  if (entrada.isento) {
+    // ⚠️ ANTES do bloco de preço, e no lugar dele: os dois na mesma janela
+    // deixariam o modelo escolher, e a escolha errada é uma cobrança.
+    const ate = dataPorExtenso(entrada.isento.validaAte);
+    linhas.push(
+      "⛔ ESTE CLIENTE NÃO PAGA NADA. PARCERIA ISENTA, 100%, JÁ DECIDIDA PELA CASA.",
+      "",
+      `A casa autorizou esta parceria fora desta conversa (por ${entrada.isento.autorizadaPor})` +
+        `${ate ? `, válida até ${ate}` : ""}. Isso NÃO foi deduzido do que ele escreveu.`,
+      ...(entrada.isento.escopo.trim() ? [`O que a parceria cobre: ${entrada.isento.escopo.trim()}.`] : []),
+      "",
+      "O QUE MUDA, e é a conversa inteira:",
+      "- NÃO HÁ PREÇO A NEGOCIAR. Não há piso a defender, não há desconto a dar e não há degrau a trocar.",
+      "- NÃO ofereça plano mais barato, não fale de mensalidade, não sugira 'o que cabe no orçamento'.",
+      "- O valor que aparece na proposta é REFERÊNCIA do que o trabalho vale. Se ele perguntar,",
+      "  diga isso com todas as letras: nada será cobrado dele.",
+      "- O ASSUNTO É O ESCOPO: o que entra, o que não entra, o que ele quer trocar por outra coisa.",
+      "",
+      "O QUE NÃO MUDA:",
+      "- Você continua PROIBIDO de prometer o que não foi acordado e de inventar prazo ou resultado.",
+      "- O que a casa não produz continua não sendo oferecido.",
+      "",
+    );
+  } else if (entrada.servico) {
     const s = entrada.servico;
     linhas.push(
       `O QUE FOI OFERTADO: ${s.nome}, ${reais(s.precoFinalCentavos)}/mês, ${s.pecasPorMes} peças/mês.`,

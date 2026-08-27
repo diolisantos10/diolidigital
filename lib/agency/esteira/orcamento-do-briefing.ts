@@ -154,6 +154,8 @@ import {
   type ConfrontoDeVerba,
 } from "@/lib/agency/comercial/verba-declarada";
 import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
+import { textoDaIsencao, type IsencaoVisivel } from "@/lib/agency/comercial/aviso-de-isencao";
+import { parceriaVivaDoCliente } from "@/lib/agency/financeiro/parceria-do-parceiro";
 import { HOST_PADRAO } from "@/lib/agency/esteira/links-do-portal";
 import { computeEstimate } from "@/lib/agency/live-calculator";
 import { randomBytes } from "crypto";
@@ -448,6 +450,10 @@ async function avisarPorEmail(
     /** A porta de aceite deste pedido, já cunhada por quem chamou. `null` só
      *  quando cunhar falhou — e aí o e-mail sai sem link em vez de não sair. */
     linkDaProposta?: string | null;
+    /** De quem é o pedido — é daqui que sai a pergunta da parceria. Ausente
+     *  (pedido órfão, consulta antiga sem a coluna) = cliente pagante, que é o
+     *  comportamento seguro e o de sempre. */
+    clientId?: string | null;
   },
   e: EstimativaGuardada,
 ): Promise<ResultadoDoAviso> {
@@ -474,6 +480,18 @@ async function avisarPorEmail(
       // cabe é oferecido. Repetir a conta aqui criaria duas versões dela.
       verbaEstourada: Boolean(e.confrontoDeVerba),
       portalLink: pedido.linkDaProposta ?? undefined,
+      // ── A ISENÇÃO, DITA NO E-MAIL (27/08/2026) ─────────────────────────
+      // O parceiro recebia "seu orçamento está pronto" sem uma palavra sobre
+      // não pagar, clicava, e encontrava preço. A linha entra aqui.
+      //
+      // ⛔ SINALIZADOR, NUNCA CONTA — e a ordem do CEO de hoje continua de pé:
+      // *"eu não acho que o valor tem que estar estampado no e-mail"*. Dizer
+      // "isento" não é dizer preço, e por isso o que sobe é um BOOLEANO: não há
+      // número a vazar por um campo que não existe.
+      //
+      // Fail-closed: leitura que falha vira `false` (ver
+      // `isencaoVisivelDoCliente`), e o e-mail sai como o do pagante.
+      isentoPorParceria: (await isencaoVisivelDoCliente(pedido.clientId)) !== null,
     });
 
     // O orçamento vai para quem PEDIU o orçamento, no e-mail que ele mesmo
@@ -558,6 +576,31 @@ async function gravarResultadoDoAviso(pedidoId: string, aviso: ResultadoDoAviso)
 }
 
 /**
+ * A ISENÇÃO deste cliente, no formato que o cliente pode ver — ou `null`.
+ *
+ * ── UMA FONTE DA VERDADE ───────────────────────────────────────────────────
+ * `parceriaVivaDoCliente` é a MESMA função que o portão de pagamento consulta.
+ * Não há uma segunda régua aqui: esta função só recorta (fora o teto de IA e as
+ * peças, que são conta interna) e converte a data para texto. *Verdade escrita
+ * em dois lugares já está errada em um deles.*
+ *
+ * ⛔ FAIL-CLOSED, herdado inteiro: parceria inexistente, revogada, VENCIDA (a
+ * validade é conferida a cada leitura) ou banco fora do ar → `null`, e o
+ * cliente segue PAGANTE, com preço no texto e o portão fechando normalmente.
+ * O `catch` está aqui pelo mesmo motivo: uma leitura que estoure não pode nem
+ * derrubar a entrega do orçamento, nem virar isenção.
+ */
+async function isencaoVisivelDoCliente(clientId: string | null | undefined): Promise<IsencaoVisivel | null> {
+  try {
+    const p = await parceriaVivaDoCliente(clientId);
+    if (!p) return null;
+    return { autorizadaPor: p.autorizadaPor, validaAte: p.validaAte.toISOString(), escopo: p.escopo };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * O texto que o cliente lê. Escrito para quem NÃO trabalha na agência: sem id,
  * sem nome de sistema, sem custo interno, sem prazo prometido.
  */
@@ -573,10 +616,32 @@ export function textoDoOrcamento(
    * `null`/ausente = a publicação automática está no ar e não há o que avisar.
    */
   avisoDeAgendamento?: string | null,
+  /**
+   * A ISENÇÃO POR PARCERIA deste cliente, quando ela existe e está VIVA.
+   *
+   * Medido em 27/08/2026: `grep -rn "parceria"` neste arquivo devolvia ZERO. A
+   * casa liberava a esteira do parceiro sem cobrar nada e mandava a ele um
+   * texto de orçamento idêntico ao do pagante — com preço e com convite a
+   * fechar. O mecanismo existia; nenhum texto que o cliente lê o chamava.
+   *
+   * ⛔ Ausente/`null` = cliente PAGANTE, e o texto sai exatamente como saía.
+   * Quem decide é `parceriaVivaDoCliente`, no servidor; este texto só veste um
+   * fato que chegou pronto.
+   */
+  isencao?: IsencaoVisivel | null,
 ): string {
   const linhas: string[] = [];
 
   linhas.push(`Recebemos seu briefing${negocio ? ` da ${negocio}` : ""} — obrigado pelo material.`);
+
+  // ── A ISENÇÃO VEM ANTES DO NÚMERO, e a posição é a metade da correção ────
+  // Quem está esperando o orçamento lê de cima para baixo. Encontrar o valor
+  // primeiro é ler uma cobrança; a frase que a desmente, cinco linhas abaixo,
+  // chega depois de o cliente já ter feito a conta na cabeça.
+  if (isencao) {
+    linhas.push("");
+    linhas.push(...textoDaIsencao(isencao));
+  }
 
   // ── O MOTIVO DO PROJETO, NA SEGUNDA LINHA (25/08/2026) ────────────────────
   // Medido no Farol 27: o projeto inteiro existia para lançar o Clube Farol 27
@@ -989,6 +1054,11 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
       // — no dia em que a Meta liberar, ele some sozinho de toda proposta nova.
       const corpo = textoDoOrcamento(
         pedido.businessName ?? "", e, link, await avisoDeAgendamentoManual(),
+        // A isenção entra na MENSAGEM DO PORTAL também, e não só na página da
+        // proposta: é este texto que fica na conversa do cliente para sempre, e
+        // um parceiro relendo a conversa daqui a um mês não pode reencontrar
+        // um preço sem a frase que diz que ele não paga.
+        await isencaoVisivelDoCliente(pedido.clientId),
       );
 
       await prisma.$transaction([

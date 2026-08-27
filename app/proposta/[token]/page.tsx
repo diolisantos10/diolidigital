@@ -28,6 +28,10 @@
 //     passa por cima de qualquer coisa escrita aqui.
 
 import { use, useCallback, useEffect, useState } from "react";
+// ⚠️ Só TEXTO PURO vem daqui. Este arquivo é um client component: qualquer
+// import que arraste o Prisma reprova o `npm run build` (a lição já paga,
+// escrita no topo de `lib/agency/comercial/parceria-declarada.ts`).
+import { textoDaIsencao, type IsencaoVisivel } from "@/lib/agency/comercial/aviso-de-isencao";
 
 type Proposta = {
   negocio: string;
@@ -40,6 +44,15 @@ type Proposta = {
   /** O aviso de que a publicação automática ainda não existe. `null` quando ela
    *  já existe — e aí o bloco some sozinho, sem ninguém apagar texto. */
   avisoDeAgendamento?: string | null;
+  /**
+   * A ISENÇÃO POR PARCERIA — ausente/`null` quando este cliente é PAGANTE.
+   *
+   * ⚠️ Quem a preenche é o SERVIDOR (`parceriaVivaDoCliente`, a partir do
+   * `clientId` que a rota derivou do token). A tela nunca decide isto, e nunca
+   * há um caminho em que "não veio no JSON" vire isenção: ausência é cliente
+   * pagante, com preço e com o portão fechando — o comportamento de sempre.
+   */
+  isencaoDeParceria?: IsencaoVisivel | null;
 };
 
 type Fala = { role: "user" | "assistant"; text: string };
@@ -85,7 +98,24 @@ export const CONVERSA_INDISPONIVEL =
 // funil da sala de briefing, com os mesmos guardas. O que muda é o `contexto`:
 // o servidor deriva do TOKEN quem é o cliente e quanto foi orçado, e o piso é
 // aplicado sobre a fala pronta, no servidor.
-export function ConversaDaProposta({ token, negocio }: { token: string; negocio: string }) {
+export function ConversaDaProposta({
+  token,
+  negocio,
+  /**
+   * Este cliente é PARCEIRO ISENTO? Só muda o CONVITE desta caixa: quem não
+   * paga não tem "dúvida no valor" a resolver, e um convite a negociar preço
+   * seria a casa insinuando uma cobrança que ela mesma dispensou.
+   *
+   * ⛔ Isto NÃO afrouxa nada no servidor: a fala continua passando pelo piso
+   * (`pisoRespeitado`), que recusa valor sem serviço conhecido. Tela é
+   * sugestão; a trava é o código do outro lado.
+   */
+  isento = false,
+}: {
+  token: string;
+  negocio: string;
+  isento?: boolean;
+}) {
   const [falas, setFalas] = useState<Fala[]>([]);
   const [texto, setTexto] = useState("");
   const [pensando, setPensando] = useState(false);
@@ -133,9 +163,13 @@ export function ConversaDaProposta({ token, negocio }: { token: string; negocio:
       style={{ marginTop: 32, border: "1px solid #EAEAE4", borderRadius: 12, overflow: "hidden" }}
     >
       <div style={{ background: "#F5F5F1", padding: "14px 18px", borderBottom: "1px solid #EAEAE4" }}>
-        <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Ficou com dúvida no valor?</p>
+        <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
+          {isento ? "Quer ajustar o escopo?" : "Ficou com dúvida no valor?"}
+        </p>
         <p style={{ margin: "4px 0 0", fontSize: 14, color: "#6B7280" }}>
-          Fale comigo antes de decidir — dá para ajustar o plano ao que cabe.
+          {isento
+            ? "Fale comigo antes de aceitar — dá para acertar o que entra e o que não entra."
+            : "Fale comigo antes de decidir — dá para ajustar o plano ao que cabe."}
         </p>
       </div>
 
@@ -177,7 +211,7 @@ export function ConversaDaProposta({ token, negocio }: { token: string; negocio:
           id="fala-da-proposta"
           value={texto}
           onChange={(ev) => setTexto(ev.target.value)}
-          placeholder="Ex.: achei caro, tem algo mais enxuto?"
+          placeholder={isento ? "Ex.: dá para trocar uma peça por outra?" : "Ex.: achei caro, tem algo mais enxuto?"}
           disabled={pensando}
           style={{ flex: 1, border: "1px solid #D6D6CE", borderRadius: 10, padding: "12px 14px", fontSize: 15, minWidth: 0 }}
         />
@@ -215,6 +249,14 @@ export function CorpoDaProposta({
 }) {
   const decidindoAgora = dados.decidivel && !!dados.texto && !resposta;
 
+  // ── A ISENÇÃO, SE O SERVIDOR DISSE QUE EXISTE ────────────────────────────
+  //
+  // FAIL-CLOSED por construção: só há isenção quando o campo chegou preenchido
+  // do servidor. Campo ausente, `null`, JSON velho de um cache, rota que falhou
+  // ao ler o banco — tudo cai aqui como cliente PAGANTE, que é o comportamento
+  // de hoje. Não existe caminho nesta tela em que "não sei" vire "isento".
+  const isento = dados.isencaoDeParceria ?? null;
+
   return (
     <main style={CAIXA}>
       <p style={{ margin: 0, fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase", color: "#9B9B95", fontWeight: 600 }}>
@@ -223,6 +265,26 @@ export function CorpoDaProposta({
       <h1 style={{ margin: "6px 0 28px", fontSize: 28, lineHeight: 1.25 }}>
         {dados.negocio || "Seu projeto"}
       </h1>
+
+      {/* ⚠️ O AVISO DE ISENÇÃO VEM ANTES DO TEXTO, e a POSIÇÃO É A ORDEM.
+          O parceiro está abrindo esta página para ver o orçamento; se ele
+          encontrar o número primeiro, já leu uma cobrança — e a frase que
+          desmente vem tarde. O valor continua aparecendo logo abaixo, como
+          REFERÊNCIA do que o trabalho vale, e isso é bom: mostra o tamanho do
+          investimento da casa. Some inteiro para cliente pagante. */}
+      {isento && (
+        <section
+          role="note"
+          aria-label="Isenção por parceria"
+          style={{ marginBottom: 24, background: "#DCFCE7", color: "#166534", border: "1px solid #86EFAC", borderRadius: 12, padding: "18px 20px" }}
+        >
+          {textoDaIsencao(isento).map((linha, i) => (
+            <p key={i} style={{ margin: i === 0 ? 0 : "8px 0 0", fontSize: i === 0 ? 17 : 15, fontWeight: i === 0 ? 700 : 400, lineHeight: 1.6 }}>
+              {linha}
+            </p>
+          ))}
+        </section>
+      )}
 
       {dados.texto ? (
         <div style={{ whiteSpace: "pre-wrap", fontSize: 16, background: "#FAFAF8", border: "1px solid #EAEAE4", borderRadius: 12, padding: 24 }}>
@@ -265,7 +327,11 @@ export function CorpoDaProposta({
             disabled={enviando !== null}
             style={{ ...BOTAO, background: "#166534", color: "#fff", opacity: enviando ? 0.6 : 1 }}
           >
-            {enviando === "aceito" ? "Registrando…" : "Aceitar e começar"}
+            {/* ⚠️ O BOTÃO NÃO CONVIDA A PAGAR QUEM NÃO PAGA. Sob parceria ele
+                aceita o ESCOPO, e o rótulo diz isso: "aceitar e começar" ao
+                lado de um preço é um botão de compra, e o parceiro leria como
+                tal. Para o pagante o rótulo é o de sempre. */}
+            {enviando === "aceito" ? "Registrando…" : isento ? "Aceitar o escopo e começar" : "Aceitar e começar"}
           </button>
           <button
             type="button"
@@ -281,7 +347,7 @@ export function CorpoDaProposta({
       {/* A CONVERSA. Só aparece enquanto há decisão a tomar: negociar uma
           proposta já aceita (ou já recusada) seria reabrir pelas costas o que o
           cliente fechou. */}
-      {decidindoAgora && <ConversaDaProposta token={token} negocio={dados.negocio} />}
+      {decidindoAgora && <ConversaDaProposta token={token} negocio={dados.negocio} isento={!!isento} />}
 
       {!dados.decidivel && !resposta && dados.texto && (
         <p style={{ marginTop: 24, fontSize: 15, color: "#6B7280" }}>
