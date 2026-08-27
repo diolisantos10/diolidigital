@@ -29,6 +29,24 @@ import { join, resolve, extname } from "node:path";
  * padrão a procurar. Ele reconhece a FORMA de um segredo escrito, não um
  * segredo específico. Nunca cole aqui a senha que você quer proibir: isso
  * seria escrevê-la no repositório de novo, com a desculpa de estar testando.
+ *
+ * ── O QUE ESTA CATRACA **NÃO** PEGA ──────────────────────────────────────
+ *
+ * Ponto fraco declarado é dívida; silencioso é armadilha. Então, por escrito:
+ *
+ * 1. **Segredo em palavras, sem nenhum dígito.** `naoEhSegredo` absolve
+ *    qualquer valor sem dígito, porque sem essa regra todo nome de cookie,
+ *    rota e campo do banco vira alarme e o teste é desligado em uma semana.
+ *    O preço é real: `portalToken: "dioli-digital-portal-token"` em
+ *    `prisma/seed.ts` PASSA por aqui. Ele só nasce com `SEED_PILOTO=true`
+ *    (ausente em produção) e é assunto do portal, não do seed — mas um token
+ *    de acesso previsível é um token fraco, e fica registrado.
+ * 2. **O histórico do git.** A varredura olha o estado ATUAL dos arquivos.
+ *    Um segredo já commitado e depois removido continua no histórico e
+ *    continua vazado — tirar do código não é o mesmo que rotacionar.
+ * 3. **Segredo de fornecedor sem prefixo reconhecível.** A lista de prefixos
+ *    cobre os que esta casa usa; um fornecedor novo entra sem ser visto até
+ *    alguém acrescentá-lo em `PREFIXOS_DE_FORNECEDOR`.
  */
 
 const RAIZ = resolve(__dirname, "..", "..");
