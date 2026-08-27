@@ -6734,6 +6734,7 @@ export const ClientRequestDbScalarFieldEnum = {
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   chaveDoProspect: 'chaveDoProspect',
+  fioDaConversa: 'fioDaConversa',
   avisoOrcamentoStatus: 'avisoOrcamentoStatus',
   avisoOrcamentoDetalhe: 'avisoOrcamentoDetalhe',
   avisoOrcamentoEm: 'avisoOrcamentoEm',
