@@ -80,13 +80,21 @@ import { prisma } from "@/lib/db/client";
  */
 export const CORTE_DO_PORTAO_DE_PAGAMENTO = new Date("2026-08-25T00:00:00.000Z");
 
-export type MotivoDeLiberacao = "pagamento_confirmado" | "anterior_ao_portao";
+export type MotivoDeLiberacao =
+  | "pagamento_confirmado"
+  | "anterior_ao_portao"
+  /** Parceria isenta e VIGENTE. Libera a esteira sem afirmar que houve
+   *  dinheiro — ver `IsencaoDeParceria` no schema. */
+  | "parceria_isenta";
 
 export type MotivoDeRecusa =
   | "pedido_ausente"
   | "pedido_nao_encontrado"
   | "sem_registro_de_pagamento"
   | "valor_nao_positivo"
+  /** Havia isenção de parceria, mas ela VENCEU. Diferente de nunca ter havido:
+   *  o operador precisa saber que existiu e acabou, para renovar ou cobrar. */
+  | "parceria_vencida"
   | "leitura_indisponivel";
 
 export type VereditoDePagamento =
@@ -116,6 +124,13 @@ const INSTRUCAO_GEMEA: Record<MotivoDeRecusa, string> = {
     "Este projeto está aguardando o pagamento. A produção começa assim que o pagamento for confirmado — é com ele que a gente compra os insumos do trabalho. " +
     "Se você já pagou por Pix ou transferência, mande o comprovante para a Dioli no WhatsApp que a gente confirma e libera na hora. " +
     "Se ainda não pagou, peça o link de pagamento por lá.",
+
+  // A parceria acabou. O cliente NÃO leva bronca — ele não fez nada errado, e o
+  // combinado tinha data desde o começo. A instrução gêmea aponta a renovação,
+  // que é a próxima ação de verdade, e nomeia gente.
+  parceria_vencida:
+    "A parceria que cobria este projeto chegou ao fim da validade combinada, então a produção fica aguardando. " +
+    "Fale com a Dioli no WhatsApp: dá para renovar a parceria ou seguir com um dos planos — a gente resolve por lá.",
 
   valor_nao_positivo:
     "O pagamento deste projeto está registrado com valor zerado, e valor zerado não é pagamento. " +
@@ -186,6 +201,68 @@ export async function conferirPagamento(
       liberado: true,
       motivo: "pagamento_confirmado",
       detalhe: `pago via ${pagamento.origem}: R$ ${(pagamento.valorCentavos / 100).toFixed(2)} em ${pagamento.confirmadoEm.toISOString().slice(0, 10)}`,
+    };
+  }
+
+  // ── A TERCEIRA TESTEMUNHA: A PARCERIA (27/08/2026) ───────────────────────
+  //
+  // O primeiro cliente real da agência (Foocci) entra por parceria e não paga
+  // nada. Ele travava aqui — e o portão estava certo.
+  //
+  // ⚠️ ELA VEM **DEPOIS** DO PAGAMENTO, E ISSO IMPORTA: quem pagou é liberado
+  // por ter pagado, sempre. A isenção nunca reescreve a razão de um pagante.
+  //
+  // ⛔ E ELA NÃO É UM PAGAMENTO. Não há linha em `PagamentoConfirmado`, não há
+  // receita, e o motivo devolvido é `parceria_isenta` — outra palavra, de
+  // propósito, para que o financeiro NUNCA some isto como venda. *Parceria não
+  // é grátis: é investimento, e investimento se mede.*
+  //
+  // As duas travas que a fazem não virar porta escancarada:
+  //   • **dono** — `autorizadaPor` é obrigatório no schema. Isenção sem dono é
+  //     buraco: em seis meses ninguém sabe quem liberou.
+  //   • **validade** — `validaAte` é obrigatório. Parceria eterna vira
+  //     esquecimento, e a casa produz de graça anos depois do combinado. Uma
+  //     isenção vencida NÃO libera: devolve `parceria_vencida`, que é uma
+  //     recusa com nome próprio — o operador precisa saber que existiu e acabou.
+  //
+  // Fail-closed como o resto: leitura que falha é recusa, nunca liberação.
+  let isencao: { autorizadaPor: string; validaAte: Date; escopo: string } | null;
+  try {
+    isencao = await prisma.isencaoDeParceria.findUnique({
+      where: { clientRequestId },
+      select: { autorizadaPor: true, validaAte: true, escopo: true },
+    });
+  } catch (e) {
+    return recusar(
+      "leitura_indisponivel",
+      `não consegui ler a isenção de parceria (${e instanceof Error ? e.message : "erro"}) — a produção PARA aqui`,
+    );
+  }
+
+  if (isencao) {
+    const agora = new Date();
+    if (!(isencao.validaAte instanceof Date) || Number.isNaN(isencao.validaAte.getTime())) {
+      // Data ilegível não é "vale para sempre". Sem validade conferível, não há
+      // isenção — o mesmo princípio do "sem data legível, sem anistia".
+      return recusar(
+        "parceria_vencida",
+        `isenção de parceria com validade ilegível (autorizada por ${isencao.autorizadaPor}) — sem validade conferível não há isenção`,
+      );
+    }
+    if (isencao.validaAte.getTime() < agora.getTime()) {
+      return recusar(
+        "parceria_vencida",
+        `isenção de parceria venceu em ${isencao.validaAte.toISOString().slice(0, 10)} ` +
+          `(autorizada por ${isencao.autorizadaPor}) — renovar ou passar a cobrar`,
+      );
+    }
+    return {
+      liberado: true,
+      motivo: "parceria_isenta",
+      detalhe:
+        `parceria isenta autorizada por ${isencao.autorizadaPor}, válida até ` +
+        `${isencao.validaAte.toISOString().slice(0, 10)} — escopo: ${isencao.escopo}. ` +
+        "NÃO houve pagamento: receita R$ 0,00, custo real, margem negativa assumida.",
     };
   }
 

@@ -14,38 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model PagamentoConfirmado
- * ─── A TESTEMUNHA DE QUE O DINHEIRO ENTROU (24/08/2026) ──────────────────────
  * 
- * Regra do CEO, literal: *"o cliente fecha um projeto com a gente, ele vai ter
- * que pagar antes de o projeto começar a ser feito. Eu vou pedir pra fazer um
- * bolo, e só pago o bolo quando o bolo está feito? Não — eu preciso do dinheiro
- * pra comprar os insumos. Então a trava é o pagamento."*
- * 
- * ── POR QUE UMA TABELA NOVA, e não uma coluna ou um estado existente ────────
- * 
- * Até hoje a casa não tinha NENHUM registro de pagamento. O que existia era
- * `ClientRequestDb.status = "in_progress"`, escrito pelo webhook do Mercado
- * Pago (`app/api/self-serve/webhook/route.ts`) — e escrito TAMBÉM por
- * `app/api/brain/orchestrate/apply/route.ts` e `app/api/v2/assistido/route.ts`,
- * que não têm nada a ver com dinheiro. Um estado que três caminhos escrevem,
- * dois deles sem cobrar nada, não é prova de pagamento: é uma palavra que por
- * acaso aparece nos dois lugares. Usá-lo como testemunha seria exatamente o
- * defeito que esta casa já viu — "não recusou" lido como "pagou".
- * 
- * `LancamentoFinanceiro` também não serve: ele é o DRE (regime de competência,
- * aceita `natureza: "estimado"` e `origem: "manual"` sem prova), e mexer nele
- * altera o que o CEO lê como resultado. Testemunha de portão e livro-caixa são
- * coisas diferentes.
- * 
- * Então: um registro PRÓPRIO, escrito por um caminho só, cuja EXISTÊNCIA é a
- * prova. Ausência de linha é ausência de prova — nunca "provavelmente pagou".
- * 
- * ADITIVA: tabela nova, nenhuma tabela existente é tocada. O banco é SQLite num
- * volume do Railway com dados de piloto VIVOS.
- * 
- * Rollback: DROP TABLE "PagamentoConfirmado". Sem a tabela, a leitura falha e
- * o portão RECUSA tudo que nasceu depois do corte — degrada para parado, nunca
- * para produzindo de graça.
  */
 export type PagamentoConfirmadoModel = runtime.Types.Result.DefaultSelection<Prisma.$PagamentoConfirmadoPayload>
 

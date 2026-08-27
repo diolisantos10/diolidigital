@@ -120,6 +120,7 @@ export const ModelName = {
   ReconciliacaoV2: 'ReconciliacaoV2',
   HeartbeatDoRelogio: 'HeartbeatDoRelogio',
   HandoffV2: 'HandoffV2',
+  IsencaoDeParceria: 'IsencaoDeParceria',
   PagamentoConfirmado: 'PagamentoConfirmado'
 } as const
 
@@ -1394,6 +1395,22 @@ export const HandoffV2ScalarFieldEnum = {
 } as const
 
 export type HandoffV2ScalarFieldEnum = (typeof HandoffV2ScalarFieldEnum)[keyof typeof HandoffV2ScalarFieldEnum]
+
+
+export const IsencaoDeParceriaScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
+  autorizadaPor: 'autorizadaPor',
+  validaAte: 'validaAte',
+  escopo: 'escopo',
+  pecasContratadas: 'pecasContratadas',
+  tetoDeIaCentavosUsd: 'tetoDeIaCentavosUsd',
+  observacao: 'observacao',
+  createdAt: 'createdAt'
+} as const
+
+export type IsencaoDeParceriaScalarFieldEnum = (typeof IsencaoDeParceriaScalarFieldEnum)[keyof typeof IsencaoDeParceriaScalarFieldEnum]
 
 
 export const PagamentoConfirmadoScalarFieldEnum = {
