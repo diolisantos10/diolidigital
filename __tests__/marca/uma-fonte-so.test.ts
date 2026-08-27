@@ -65,6 +65,41 @@ describe("o nome velho não volta por superfície de cliente", () => {
   });
 });
 
+describe("o tamanho declarado do logo bate com a arte de verdade", () => {
+  /** Lê largura e altura do cabeçalho IHDR de um PNG. 8 bytes de assinatura,
+   *  4 de tamanho do chunk, 4 do tipo "IHDR", e então dois uint32 big-endian. */
+  function dimensoesDoPng(caminho: string): { largura: number; altura: number } {
+    const b = readFileSync(caminho);
+    return { largura: b.readUInt32BE(16), altura: b.readUInt32BE(20) };
+  }
+
+  it("o e-mail não estica o logo", async () => {
+    // O defeito que este teste nasceu para pegar: o molde declarava 150 × 34
+    // (proporção 4,41) sobre um arquivo de 512 × 130 (proporção 3,94). Cliente
+    // de e-mail EXIGE width/height no `<img>` — sem eles o layout pula e a
+    // linha do `alt` colapsa —, então a saída não é remover os atributos: é
+    // fazer os dois números descreverem a arte que existe.
+    const { LOGO_LARGURA, LOGO_ALTURA, LOGO_BRANCO_URL } = await import("@/lib/marca");
+
+    // O arquivo é o MESMO que a URL pública serve: `public/brand/<nome>`.
+    const nomeDoArquivo = LOGO_BRANCO_URL.split("/brand/")[1];
+    expect(nomeDoArquivo, "a URL do logo precisa apontar para public/brand/").toBeTruthy();
+
+    const arte = dimensoesDoPng(`public/brand/${nomeDoArquivo}`);
+    const proporcaoDaArte = arte.largura / arte.altura;
+    const proporcaoDeclarada = LOGO_LARGURA / LOGO_ALTURA;
+
+    // Tolerância de meio pixel na altura renderizada — é o arredondamento
+    // inevitável de encaixar uma proporção real em pixels inteiros. Mais que
+    // isso já é distorção que o olho vê.
+    const alturaIdeal = LOGO_LARGURA / proporcaoDaArte;
+    expect(
+      Math.abs(LOGO_ALTURA - alturaIdeal),
+      `declarado ${LOGO_LARGURA}×${LOGO_ALTURA} (${proporcaoDeclarada.toFixed(2)}) para uma arte ${arte.largura}×${arte.altura} (${proporcaoDaArte.toFixed(2)}) — o logo sai esticado`,
+    ).toBeLessThanOrEqual(0.5);
+  });
+});
+
 describe("o número do WhatsApp também tem uma fonte só", () => {
   it("a marca NÃO redigita o número — ela lê do comercial", () => {
     // O número já viveu em oito arquivos ao mesmo tempo (ver

@@ -46,7 +46,7 @@
 // recebe, então nada de HTML vindo de fora.
 
 import {
-  CORES, LOGO_ALT, LOGO_BRANCO_URL, NOME_DA_EMPRESA,
+  CORES, LOGO_ALT, LOGO_ALTURA, LOGO_BRANCO_URL, LOGO_LARGURA, NOME_DA_EMPRESA,
   WHATSAPP_CONVITE, WHATSAPP_LEGIVEL, WHATSAPP_LINK,
 } from "@/lib/marca";
 
@@ -66,13 +66,16 @@ const FONTE =
 /**
  * O CABEÇALHO: barra navy com o logo branco.
  *
- * A altura fixa (`height="34"`) importa — sem ela, o cliente de e-mail que
- * bloqueia imagem colapsa a linha e o `alt` fica ilegível, grudado na borda.
+ * A altura fixa importa — sem ela, o cliente de e-mail que bloqueia imagem
+ * colapsa a linha e o `alt` fica ilegível, grudado na borda. E ela vem de
+ * `LOGO_ALTURA`, não digitada: o par 150 × 34 que estava aqui NÃO batia com a
+ * proporção do arquivo (512 × 130), e o logo chegava esticado em toda caixa de
+ * entrada. Ver o comentário de `LOGO_LARGURA` em `lib/marca.ts`.
  */
 function cabecalho(): string {
   return `<tr><td style="background:${CORES.navy};padding:26px 32px">
-  <img src="${LOGO_BRANCO_URL}" alt="${LOGO_ALT}" width="150" height="34"
-       style="display:block;border:0;outline:none;text-decoration:none;height:34px;width:150px;max-width:150px;color:#FFFFFF;font-family:${FONTE};font-size:16px;font-weight:700;letter-spacing:.02em">
+  <img src="${LOGO_BRANCO_URL}" alt="${LOGO_ALT}" width="${LOGO_LARGURA}" height="${LOGO_ALTURA}"
+       style="display:block;border:0;outline:none;text-decoration:none;height:${LOGO_ALTURA}px;width:${LOGO_LARGURA}px;max-width:${LOGO_LARGURA}px;color:#FFFFFF;font-family:${FONTE};font-size:16px;font-weight:700;letter-spacing:.02em">
 </td></tr>
 <tr><td style="height:3px;line-height:3px;font-size:0;background:${CORES.menta}">&nbsp;</td></tr>`;
 }

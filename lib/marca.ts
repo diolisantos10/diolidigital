@@ -104,6 +104,25 @@ export const LOGO_BRANCO_URL = `${SITE_DA_EMPRESA}/brand/dioli-logo-h-white-512.
  */
 export const LOGO_ALT = NOME_DA_EMPRESA;
 
+/**
+ * O TAMANHO DECLARADO DO LOGO NO E-MAIL — e por que ele não é chute.
+ *
+ * Cliente de e-mail EXIGE `width` e `height` no `<img>`: sem eles, o layout
+ * pula quando a imagem carrega, e quem bloqueia imagem vê a linha do `alt`
+ * colapsar contra a borda. Só que declarar um tamanho que não bate com a
+ * proporção do arquivo **estica o logo** — e logo esticado é o oposto de "cara
+ * de empresa grande".
+ *
+ * Foi o que estava acontecendo: 150 × 34 (proporção 4,41) sobre um arquivo de
+ * 512 × 130 (proporção 3,94). O logo chegava achatado em toda caixa de entrada.
+ *
+ * 150 × 38 é a proporção do arquivo real, arredondada ao pixel inteiro.
+ * `__tests__/marca/uma-fonte-so.test.ts` lê o cabeçalho do PNG e reprova se os
+ * dois deixarem de bater — inclusive se alguém trocar a arte por outra.
+ */
+export const LOGO_LARGURA = 150;
+export const LOGO_ALTURA = 38;
+
 // ── AS CORES ────────────────────────────────────────────────────────────────
 //
 // Amostradas do Brand Book v1 (`docs/brand/`), pelos mesmos valores que
