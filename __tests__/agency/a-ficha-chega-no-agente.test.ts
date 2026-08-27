@@ -89,8 +89,21 @@ describe("a ficha chega no agente — o caminho existe", () => {
     // obrigada a chamar `sistemaDoSdr()` — que é quem, no módulo novo, soma o
     // bloco da ficha ao prompt base — e continua proibida de voltar a mandar
     // `SYSTEM_PROMPT` cru.
+    //
+    // ⚠️ A LETRA MUDOU EM 27/08/2026, A REGRA NÃO. A rota passou a montar
+    // `sistemaDaVez`, que é `sistemaDoSdr()` MAIS o bloco de contexto quando a
+    // conversa acontece na página do orçamento (o SDR negociador). O que este
+    // teste protege é que a ficha CHEGUE — não o nome da variável.
+    //
+    // Por isso a asserção passou a exigir as duas metades: que a rota chame
+    // `sistemaDoSdr()` (é ele quem soma a ficha ao prompt base) e que o que vai
+    // para `system:` DERIVE dele. Continuar exigindo o literal
+    // `system: sistemaDoSdr()` proibiria acrescentar contexto para sempre — e
+    // um teste que congela a forma, em vez da regra, vira obstáculo à primeira
+    // mudança legítima.
     expect(PROMPT_DO_SDR).toContain("blocoDeRegrasParaPrompt");
-    expect(ROTA_DO_SDR).toContain("system: sistemaDoSdr()");
+    expect(ROTA_DO_SDR).toContain("sistemaDoSdr()");
+    expect(ROTA_DO_SDR).toMatch(/system:\s*sistemaDa?Vez|system:\s*sistemaDoSdr\(\)/);
     expect(ROTA_DO_SDR).not.toContain("system: SYSTEM_PROMPT,");
   });
 
