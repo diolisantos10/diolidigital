@@ -205,3 +205,54 @@ arquivo:
 O risco de não decidir está escrito no próprio código: *"um alarme que ENSINA A
 IGNORAR ALARME — quando `cron-execute` morrer de verdade, a linha no pulso vai
 ser a mesma das outras sete da semana."*
+
+---
+
+## 9. A quarta ocorrência do padrão foi MINHA — e a correção
+
+Depois de caçar duas ocorrências de *"código certo, ligado em lugar nenhum"* e
+escrever uma catraca contra elas, **eu criei a terceira**: construí a
+conferência da isenção, escrevi a instrução gêmea em documento, e **não fiz
+porta alcançável**. O resultado literal foi *"não concedi porque não alcanço o
+banco"*.
+
+**Isso não era limite de ambiente.** Era a mesma família — *trava construída sem
+fechadura* — com o nome trocado. Porta que só existe em documento é pior que
+porta nenhuma, **porque parece resolvida**.
+
+O precedente certo já estava na casa e eu passei por cima dele:
+`POST /api/admin/pagamentos` registra um Pix recebido fora do gateway — ato
+administrativo sensível que move a trava de dinheiro — com sessão, CSRF e dono
+na linha, e **nunca foi considerado furar a trava, porque é auditado**.
+
+Corrigido: `POST /api/admin/isencoes-de-parceria`, mesmo molde, mais
+idempotência precisa e `registradaPor` saindo da sessão. Ver PR #361.
+
+## 10. O que AINDA falta para conceder — e agora tem nome certo
+
+A porta existe e é auditável. **O que falta é credencial.** Medido às 03:5x:
+
+| rota da casa | resposta |
+|---|---|
+| `/api/health` | 200 |
+| `/api/pulso` · `/api/projects` · `/api/admin/links-do-portal` · `/api/agency/oportunidades` | **401** |
+
+Todas exigem sessão de agência. A senha do master vem de
+**`SEED_MASTER_PASSWORD`**, rotacionada a cada boot pelo seed, e é segredo do
+Railway — que volta **redigido** para app OAuth. Esta sessão **não a possui, e
+não vai caçá-la**: segredo é do CEO (guardrail 2).
+
+**A diferença importa, e é a lição desta rodada:**
+
+- *"não há porta"* — era **defeito meu**, e está consertado;
+- *"há porta e falta a chave"* — é **bloqueio do CEO**, com nome próprio.
+
+**Para conceder a isenção do Foocci basta o CEO** (ou quem tenha sessão de
+agência) abrir o painel e chamar a rota com o corpo já escrito em
+`docs/comercial/como-conceder-uma-isencao-de-parceria.md`, citando **D-0B9**.
+Falta apenas o `clientRequestId`, que aparece na ficha do pedido no painel.
+
+**A jornada (aceite → produção → peça → aprovar/ajustar/recusar/cancelar)
+continua não percorrida**, e o motivo é este — não é falta de trava, não é falta
+de porta, e não é decisão pendente do CEO sobre a parceria: essa ele já deu, em
+D-0B9.
