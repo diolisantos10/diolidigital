@@ -214,11 +214,57 @@ export function servicoPorChave(chave: string): ServicoDaCasa | null {
  * `nao_medido`, não há como provar que a margem no piso não é negativa.
  */
 export function pisoDoServico(s: ServicoDaCasa): number {
+  // Sem faixa autorizada, não há o que descer.
   if (s.descontoAutorizadoPct === null || s.descontoAutorizadoPct <= 0) {
     return s.precoFinalCentavos;
   }
   const pct = Math.min(s.descontoAutorizadoPct, 100);
-  return Math.round(s.precoFinalCentavos * (1 - pct / 100));
+  const comDesconto = Math.round(s.precoFinalCentavos * (1 - pct / 100));
+
+  // ⛔ O CHÃO DE LUCRO DO CEO (27/08/2026): *"margem mínima nesse início: dez
+  // por cento de lucro"*.
+  //
+  // A faixa autorizada NÃO passa por cima dele. Se o desconto autorizado
+  // levasse o preço abaixo de custo + 10%, quem vence é o chão — *piso com
+  // margem negativa é proibido*, e um desconto autorizado sobre um custo que
+  // subiu depois é exatamente como se vende abaixo do custo sem ninguém errar
+  // uma conta.
+  //
+  // Com o custo `nao_medido`, este ramo NÃO roda: não se calcula 10% sobre um
+  // número que não existe. Aí vale a regra de cima — piso = preço cheio —, que
+  // é o "assuma o custo como desconhecido-para-cima" levado ao limite.
+  if (s.custo.estado === "medido") {
+    const chaoDeLucro = Math.round(s.custo.centavos * (1 + MARGEM_MINIMA_PCT / 100));
+    return Math.max(comDesconto, chaoDeLucro);
+  }
+  return comDesconto;
+}
+
+/**
+ * O lucro mínimo que o CEO aceita, em pontos percentuais sobre o custo.
+ *
+ * *"Margem mínima nesse início: dez por cento de lucro, está ótimo."* — CEO,
+ * 27/08/2026. É chão, não meta: nada nesta casa se vende abaixo dele.
+ */
+export const MARGEM_MINIMA_PCT = 10;
+
+/**
+ * O preço deste serviço fecha os 10%? `null` quando o custo não é medido — e
+ * `null` aqui é a resposta honesta, não um "sim" tímido.
+ *
+ * Serviço que não fecha 10% nem no preço de tabela é serviço que dá prejuízo, e
+ * o CEO pediu para saber por nome. Ver `servicosQueNaoFechamAMargem()`.
+ */
+export function fechaMargemMinima(s: ServicoDaCasa): boolean | null {
+  if (s.custo.estado !== "medido") return null;
+  return s.precoFinalCentavos >= Math.round(s.custo.centavos * (1 + MARGEM_MINIMA_PCT / 100));
+}
+
+/** Os serviços que dão prejuízo no preço de tabela, por nome. Lista vazia
+ *  significa "nenhum" OU "não dá para saber" — `coberturaDeCusto()` separa os
+ *  dois, e o relatório precisa dizer qual dos dois é. */
+export function servicosQueNaoFechamAMargem(): ServicoDaCasa[] {
+  return TABELA_DE_PRECOS.filter((s) => fechaMargemMinima(s) === false);
 }
 
 /** A margem que sobra no piso. `nao_medido` enquanto o custo tiver buraco. */

@@ -12,6 +12,7 @@ import {
   TABELA_DE_PRECOS, TETO_DE_PECAS_POR_MES, CUSTOS_NAO_MEDIDOS,
   podeOfertar, podePrometerVolume, pisoDoServico, margemNoPiso,
   servicoPorChave, coberturaDeCusto, volumeQueACasaVende, aCasaProduz,
+  MARGEM_MINIMA_PCT, fechaMargemMinima, servicosQueNaoFechamAMargem,
 } from "@/lib/agency/financeiro/tabela-de-precos";
 
 describe("a tabela é a fonte única", () => {
@@ -209,5 +210,47 @@ describe("vídeo: 'não fazemos', nunca 'a definir'", () => {
   it("o que a casa produz responde que sim", () => {
     expect(aCasaProduz("plano_conteudo").produz).toBe(true);
     expect(aCasaProduz("Post avulso").produz).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O CHÃO DE LUCRO — "margem mínima nesse início: dez por cento" (CEO, 27/08)
+// ─────────────────────────────────────────────────────────────────────────────
+describe("os 10% de lucro são chão, não meta", () => {
+  it("o número é 10, cravado — não a constante contra ela mesma", () => {
+    // A lição da prova de mutação do teto de capacidade: um teste que compara a
+    // constante com ela mesma acompanha a mudança em vez de barrá-la.
+    expect(MARGEM_MINIMA_PCT).toBe(10);
+  });
+
+  it("com custo NÃO MEDIDO, a resposta é `null` — nunca um 'sim' tímido", () => {
+    for (const s of TABELA_DE_PRECOS) {
+      expect(fechaMargemMinima(s)).toBeNull();
+    }
+    // E a lista de prejuízo vem vazia POR NÃO SABER, não por estar tudo bem.
+    // Quem separa os dois é `coberturaDeCusto`, e o relatório tem de dizer qual.
+    expect(servicosQueNaoFechamAMargem()).toEqual([]);
+    expect(coberturaDeCusto().medidos).toBe(0);
+  });
+
+  it("o chão VENCE a faixa autorizada quando ela desceria demais", () => {
+    // Custo R$ 500 medido → chão = R$ 550. Um desconto de 30% sobre R$ 790
+    // daria R$ 553, que passa; 40% daria R$ 474, que o chão barra em R$ 550.
+    const base = {
+      ...servicoPorChave("plano_conteudo")!,
+      custo: { estado: "medido", centavos: 50000, moeda: "BRL", origem: "manual" },
+    } as never as Parameters<typeof pisoDoServico>[0];
+    expect(pisoDoServico({ ...base, descontoAutorizadoPct: 30 })).toBe(55300);
+    expect(pisoDoServico({ ...base, descontoAutorizadoPct: 40 })).toBe(55000);
+    // 55000 = 50000 × 1,10 — o chão, não o desconto.
+  });
+
+  it("serviço que não fecha 10% nem no preço de tabela aparece POR NOME", () => {
+    const caro = {
+      ...servicoPorChave("balcao_post")!,
+      custo: { estado: "medido", centavos: 9000, moeda: "BRL", origem: "manual" },
+    } as never as Parameters<typeof fechaMargemMinima>[0];
+    // R$ 79 de preço contra R$ 90 de custo: prejuízo declarado.
+    expect(fechaMargemMinima(caro)).toBe(false);
   });
 });
