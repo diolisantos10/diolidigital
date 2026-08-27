@@ -189,7 +189,7 @@ async function main() {
       "Comunicar identidade premium japonesa",
     ],
     rawContext: [
-      "[Dioli] Olá! Sou a consultora da Dioli Studio. Com quem estou falando e qual é o nome do seu negócio?",
+      "[Dioli] Olá! Sou a consultora da Dioli Digital. Com quem estou falando e qual é o nome do seu negócio?",
       "[Prospect] Oi! Sou a equipe do Sushi Cazza, restaurante japonês premium aqui em São Paulo.",
       "[Dioli] Que ótimo! Me conta mais: o que vocês oferecem?",
       "[Prospect] Fazemos rodízio japonês premium. R$ 99,00 por pessoa. Crianças de 6 a 10 anos pagam R$ 49,90.",
@@ -205,7 +205,7 @@ async function main() {
     source: "briefing",
     briefingJson: {
       transcript: [
-        { id: "1", role: "assistant", text: "Olá! Sou a consultora da Dioli Studio. Com quem estou falando e qual é o nome do seu negócio?" },
+        { id: "1", role: "assistant", text: "Olá! Sou a consultora da Dioli Digital. Com quem estou falando e qual é o nome do seu negócio?" },
         { id: "2", role: "user",      text: "Oi! Sou a equipe do Sushi Cazza, restaurante japonês premium aqui em São Paulo." },
         { id: "3", role: "assistant", text: "Que ótimo! Me conta mais sobre o Sushi Cazza. O que vocês oferecem e qual é o diferencial?" },
         { id: "4", role: "user",      text: "Fazemos rodízio japonês premium. R$ 99,00 por pessoa. Crianças de 6 a 10 anos pagam R$ 49,90. Jantar 18h–23h, almoço 11h–15h seg–sáb. Delivery e presencial." },

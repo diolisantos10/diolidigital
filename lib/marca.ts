@@ -25,6 +25,8 @@
 //     variável de ambiente do Railway — **código nenhum pode consertá-la**.
 //     Ela é do CEO.
 
+import { WHATSAPP_DA_DIOLI } from "@/lib/agency/comercial/link-do-whatsapp";
+
 /** O nome da empresa. Um só, e é este. */
 export const NOME_DA_EMPRESA = "Dioli Digital";
 
@@ -42,8 +44,22 @@ export const SITE_DA_EMPRESA = "https://www.diolidigital.com.br";
 // lê `(11) 98940-0692`. Manter os dois derivados de uma constante só impede o
 // clássico "consertaram o texto e esqueceram o href".
 
-/** Só dígitos, com país. É o que o `wa.me` aceita. */
-export const WHATSAPP_DIGITOS = "5511989400692";
+/**
+ * Só dígitos, com país. É o que o `wa.me` aceita.
+ *
+ * ⛔ **NÃO É DIGITADO AQUI.** Ele vem de
+ * `lib/agency/comercial/link-do-whatsapp.ts`, que já era a fonte única do
+ * número para a tela de briefing e para a home — e onde está escrito que o
+ * mesmo número chegou a viver em OITO arquivos ao mesmo tempo. Reescrevê-lo
+ * aqui teria criado o nono: o e-mail é a única superfície da casa que ninguém
+ * consegue corrigir depois de enviada, e um número desatualizado num botão de
+ * WhatsApp é um cliente que fala com o vazio.
+ *
+ * A dependência aponta para o comercial porque é lá que o número nasce; a
+ * marca só o veste. Se um dia o comercial passar a depender da marca, esta é a
+ * seta que precisa ser invertida — e não duplicada.
+ */
+export const WHATSAPP_DIGITOS: string = WHATSAPP_DA_DIOLI;
 
 /** Como uma pessoa lê o número. */
 export const WHATSAPP_LEGIVEL = "(11) 98940-0692";

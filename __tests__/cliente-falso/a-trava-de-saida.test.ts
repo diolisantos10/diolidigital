@@ -19,6 +19,7 @@ import {
   motivoDoBloqueio, modoClienteFalso, limparSaidasBloqueadas, saidasBloqueadas,
   DOMINIO_DO_CLIENTE_FALSO,
 } from "@/lib/agency/cliente-falso/trava-de-saida";
+import { briefingConfirmationEmail } from "@/lib/email/templates";
 import { sendEmail, SEM_CHAVE } from "@/lib/email/send";
 // Ver a nota gêmea em `travas-das-quatro-portas.test.ts`: consentimento é
 // obrigatório desde 24/08/2026, e o que este arquivo mede é o outro cadeado.
@@ -100,11 +101,19 @@ describe("a trava dentro de sendEmail — antes da chave, não depois", () => {
 // TRAVA barrou, com a chave cadastrada no Railway. Motivo é mensagem, nunca
 // forma.
 // ─────────────────────────────────────────────────────────────────────────────
+//
+// ⚠️ 27/08/2026: os dois casos abaixo passaram a mandar um corpo DE VERDADE.
+// Antes diziam `html: "a"`, e desde a trava do molde (`lib/email/trava-do-molde.ts`)
+// isso é recusado ANTES da leitura da chave — o teste passaria a medir a recusa
+// do molde achando que media a da chave. Régua verde sobre o componente errado
+// é pior que régua nenhuma.
 describe("skipped diz POR QUÊ — a trava e a falta de chave não se confundem", () => {
+  const DO_MOLDE = briefingConfirmationEmail({ prospectName: "NOME TESTE", businessName: "Padaria do Teste" });
+
   it("sem chave, o motivo é a chave — e vem escrito", async () => {
     delete process.env.CLIENTE_FALSO;
     delete process.env.RESEND_API_KEY;
-    const r = await sendEmail({ to: "quem.pediu@gmail.com", subject: "a", html: "a", consentimento: CONSENTE_EMAIL });
+    const r = await sendEmail({ to: "quem.pediu@gmail.com", subject: DO_MOLDE.subject, html: DO_MOLDE.html, consentimento: CONSENTE_EMAIL });
     expect(r.skipped).toBe(true);
     expect(r.error).toBe(SEM_CHAVE);
     expect(r.error).toMatch(/RESEND_API_KEY/);
@@ -116,7 +125,7 @@ describe("skipped diz POR QUÊ — a trava e a falta de chave não se confundem"
     // espaços passaria do `if` e a Resend responderia 401 sem dizer o motivo.
     delete process.env.CLIENTE_FALSO;
     process.env.RESEND_API_KEY = "   ";
-    const r = await sendEmail({ to: "quem.pediu@gmail.com", subject: "a", html: "a", consentimento: CONSENTE_EMAIL });
+    const r = await sendEmail({ to: "quem.pediu@gmail.com", subject: DO_MOLDE.subject, html: DO_MOLDE.html, consentimento: CONSENTE_EMAIL });
     expect(r.skipped).toBe(true);
     expect(r.error).toBe(SEM_CHAVE);
   });
