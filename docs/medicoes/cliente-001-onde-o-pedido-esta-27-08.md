@@ -111,3 +111,42 @@ sobre o componente errado. O fio foi ligado nas duas telas, e apareceu um
 respondia `"Produção pela Dioli"` — um SIM para um serviço sem produtor.
 
 Custo: **US$ 0,00**.
+
+---
+
+## 7. O achado maior da rodada: a isenção era inconcedível
+
+Depois de fechar o §6, uma pergunta simples sobre o caminho do Foocci —
+*"a isenção de parceria existe, mas alguém consegue criá-la?"* — devolveu o
+achado mais caro do dia.
+
+Varredura do repositório inteiro por `isencaoDeParceria`:
+
+| uso | arquivo | o quê |
+|---|---|---|
+| `findUnique` | `lib/agency/financeiro/portao-de-pagamento.ts:273` | **lê** |
+| `deleteMany` | `app/api/admin/reset/route.ts:188` | **apaga** |
+| vínculo | `lib/agency/persistence/cliente-vinculos.ts:68` | fusão de cliente |
+
+**Nada, em lugar nenhum, criava uma.**
+
+O portão está bem construído — dono obrigatório, validade obrigatória, validade
+ilegível recusada, fail-closed em leitura que falha. E consultava uma tabela que
+ninguém conseguia preencher. **Trava perfeita numa porta sem maçaneta.**
+
+Consequência exata: **o cliente 001 era inconcedível**. O commit de ontem
+chamado *"o cliente 001 entra sem furar o portão de pagamento"* **não fazia o
+cliente 001 entrar** — ele construiu a trava e não a fechadura.
+
+Consertado no PR #361: `lib/agency/financeiro/conceder-isencao.ts` (a
+conferência, sem nenhum valor padrão) e `scripts/conceder-isencao-de-parceria.mts`
+(só a boca). Não é rota HTTP, e isso é decisão declarada, não esquecimento.
+
+⚠️ **O ato em si continua não praticado.** Conceder a isenção do Foocci exige o
+id real do pedido e acesso ao banco de produção — os dois fora do alcance desta
+sessão. O que mudou é que passou a ser **possível**, e o ato é nominal e humano.
+
+**Este é o mesmo defeito do §6, pela segunda vez no mesmo dia:** código certo,
+testado, provado por mutação, e ligado em lugar nenhum. Vale como aviso de
+classe — *a pergunta "quem CHAMA isto?" merece ser feita antes de dar um
+conserto por fechado.*
