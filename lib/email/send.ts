@@ -87,6 +87,20 @@ export const SEM_REMETENTE =
   "que a Resend entrega SÓ para o dono da conta — cliente nenhum receberia, e a casa registraria 'avisado'. " +
   "Ação do CEO: cadastrar RESEND_FROM no Railway com um endereço de domínio verificado na Resend.";
 
+/**
+ * `diolisantos10@gmail.com` → `d…@gmail.com`.
+ *
+ * Domínio inteiro, parte local reduzida à inicial. Um endereço SEM `@` (que
+ * nunca deveria chegar aqui, mas chegar não pode derrubar um envio que já
+ * aconteceu) vira `(destino ilegível)` em vez de vazar a string crua.
+ */
+export function mascararDestino(destino: string): string {
+  const alvo = (destino ?? "").trim();
+  const at = alvo.lastIndexOf("@");
+  if (at <= 0 || at === alvo.length - 1) return "(destino ilegível)";
+  return `${alvo[0]}…${alvo.slice(at)}`;
+}
+
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   // ⛔ A TRAVA VEM ANTES DE TUDO — inclusive antes de ler a chave.
   //
@@ -191,6 +205,35 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     }
 
     const data = (await res.json().catch(() => ({}))) as { id?: string };
+
+    // ⛔ O RECIBO DO ENVIO — e por que ele precisou existir (27/08/2026).
+    //
+    // Até aqui, o único ramo desta função que deixava rastro era o ramo do
+    // ERRO. O sucesso saía calado: `id` era devolvido a quem chamou, e os dois
+    // chamadores da casa o descartam — `client-requests` é fire-and-forget e só
+    // loga quando falha; `orcamento-do-briefing` grava a PALAVRA "avisado" numa
+    // coluna e joga o `id` fora. Resultado medido: **a casa não tinha como
+    // provar que uma única mensagem saiu.** Coluna gravada não é cliente
+    // informado, e log só de erro é verde por ausência — que não é verde.
+    //
+    // E não havia como remediar depois: a chave desta casa é
+    // `restricted_api_key` (medido em `/api/agency/diagnostico-de-email`, que
+    // recebe 401 `"This API key is restricted to only send emails"` ao tentar
+    // LER). Chave de envio não lista o que enviou. Ou seja: o `id` da Resend
+    // existe por um instante, na resposta deste `fetch`, e se não for anotado
+    // aqui **não existe em lugar nenhum do mundo a que esta casa tenha acesso**.
+    //
+    // Por isso o recibo é `console.info` e não `debug`: é a prova de entrega.
+    //
+    // ⚠️ O DESTINATÁRIO VAI MASCARADO. O endereço de um cliente é dado pessoal,
+    // e log de plataforma é lido por quem não precisa dele. O domínio fica
+    // inteiro (é o que responde "o e-mail foi para o lugar certo?") e a parte
+    // local vira inicial + reticências — o bastante para casar com um pedido
+    // conhecido, insuficiente para virar lista de contatos.
+    console.info(
+      `[email/send] entregue à Resend: id=${data.id ?? "(sem id na resposta)"} para=${mascararDestino(input.to)} assunto=${JSON.stringify(input.subject)}`,
+    );
+
     return { ok: true, id: data.id };
   } catch (e) {
     const reason = e instanceof Error ? e.message : "unknown";
