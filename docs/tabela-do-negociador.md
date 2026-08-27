@@ -84,7 +84,29 @@ passaria por baixo da ordem do CEO sem ninguém ver a diferença.
 
 ---
 
-## 3. A ORDEM DE ATAQUE (decisão do Diretor Geral, 27/08)
+## 3. ⚠️ DUAS LEITURAS DE "DEZ POR CENTO DE LUCRO" — e qual ficou de pé
+
+Duas sessões desta casa escreveram a ordem do CEO no mesmo dia, e escreveram
+contas diferentes:
+
+| leitura | conta | sobre custo de R$ 500 | margem sobre a receita |
+|---|---|---|---|
+| 10% **em cima do custo** | custo × 1,10 | R$ 550,00 | **9,09%** |
+| 10% **do preço** (a que ficou) | custo ÷ 0,90 | R$ 555,56 | **10,00%** |
+
+**Ficou a segunda.** "Dez por cento de lucro" é dez por cento que *sobra*, e o
+que sobra se mede contra o que entra — `× 1,10` entrega 9,09% e chamaria de dez.
+E onde duas leituras da mesma ordem são defensáveis, a casa fica com a que
+protege, e escreve qual escolheu para o CEO poder discordar sabendo da
+diferença. Ela é de **R$ 5,56 em cada R$ 500 de custo**: pouco por venda, doze
+vezes por ano numa assinatura.
+
+Se o CEO quiser a primeira, é um número num arquivo só
+(`precoQueFechaAMargemMinima`).
+
+---
+
+## 4. A ORDEM DE ATAQUE (decisão do Diretor Geral, 27/08)
 
 Desconto **zero** enquanto o custo não estiver medido — e **medir é a prioridade
 um**, porque é ela que destrava a negociação. Na ordem do que é fácil e grande:
@@ -103,7 +125,7 @@ a manga do negociador crescer com base em fato.
 
 ---
 
-## 4. TODA CONCESSÃO FICA REGISTRADA
+## 5. TODA CONCESSÃO FICA REGISTRADA
 
 Não há caminho para um desconto de boca. Quando houver faixa autorizada, ela
 mora em `descontoAutorizadoPct` **do serviço**, com quem autorizou e qual foi o
