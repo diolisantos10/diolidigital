@@ -131,6 +131,49 @@ async function assinaturaAtiva() {
 beforeEach(() => banco.limpar());
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ⛔ A TRAVA DE CLASSE DO ATALHO
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// `mensalidadeEmDia` devolve `sem_assinatura` quando o client Prisma não tem o
+// acessador da tabela — para não quebrar dezesseis suítes de outras frentes cujo
+// dublê de banco foi escrito antes desta tabela existir e que não falam de
+// dinheiro mensal.
+//
+// Esse atalho é a única porta pela qual a recorrência poderia sumir em silêncio:
+// o dia em que alguém tirar o model do `schema.prisma`, ou o `prisma generate`
+// falhar, todo cliente mensal voltaria a produzir de graça — e o portão ficaria
+// verde. Então o atalho tem um teste de classe em cima dele, e é este.
+describe("⛔ o client de verdade conhece a assinatura", () => {
+  // MUTAÇÃO QUE DERRUBA: apagar `model AssinaturaRecorrente` do
+  // `prisma/schema.prisma` e regerar. Aí o atalho passaria a valer em produção,
+  // e o vazamento de validade infinita voltaria inteiro, mudo.
+  it("o schema e o client gerado têm a tabela — o atalho NUNCA vale em produção", async () => {
+    // Estático de propósito: instanciar o `PrismaClient` exigiria uma conexão, e
+    // um teste de classe que depende de banco de pé não é teste de classe.
+    const { readFileSync, existsSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const raiz = process.cwd();
+
+    const schema = readFileSync(join(raiz, "prisma/schema.prisma"), "utf8");
+    expect(schema).toMatch(/^model AssinaturaRecorrente \{/m);
+    expect(schema).toMatch(/^model CobrancaRecorrente \{/m);
+
+    // E o CLIENT GERADO, que é o que `mensalidadeEmDia` realmente consulta.
+    // Schema certo com client velho é o mesmo buraco com outra cara.
+    for (const m of ["AssinaturaRecorrente", "CobrancaRecorrente"]) {
+      expect(
+        existsSync(join(raiz, `lib/generated/prisma/models/${m}.ts`)),
+        `o client gerado não tem ${m} — rode \`prisma generate\``,
+      ).toBe(true);
+    }
+
+    // As DUAS chaves únicas de "não cobrar duas vezes" continuam no schema.
+    expect(schema).toMatch(/@@unique\(\[assinaturaId, competencia\]\)/);
+    expect(schema).toMatch(/provedorPagamentoId\s+String\s+@unique/);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 describe("a competência é UTC — e isso não é preciosismo", () => {
   it("31/08 23h em UTC−3 (que é 01/09 02h UTC) é competência de SETEMBRO", () => {
     expect(competenciaDe(new Date("2026-09-01T02:00:00.000Z"))).toBe("2026-09");

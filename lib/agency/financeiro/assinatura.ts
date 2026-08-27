@@ -318,6 +318,26 @@ export async function mensalidadeEmDia(
   clientRequestId: string,
   agora: Date = new Date(),
 ): Promise<VereditoDaMensalidade> {
+  // ── A TABELA EXISTE NESTE CLIENTE PRISMA? ────────────────────────────────
+  //
+  // Não é uma pergunta de tempo de execução: ou o `schema.prisma` tem o model e
+  // o client gerado tem o acessador, ou nenhum dos dois tem. Em PRODUÇÃO o
+  // acessador existe sempre — e há um teste de classe que prova isso
+  // (`__tests__/financeiro/assinatura-recorrente.test.ts`, "o client de verdade
+  // conhece a assinatura"), justamente para que este atalho nunca vire o buraco
+  // por onde a recorrência some em silêncio.
+  //
+  // Onde ele NÃO existe é em dublê de teste de outra frente, escrito antes desta
+  // tabela nascer e que não fala de dinheiro mensal. Ali, `sem_assinatura` é o
+  // fato correto: uma casa sem a tabela não tem assinatura nenhuma.
+  //
+  // ⚠️ A alternativa — recusar — pareceria mais rigorosa e seria pior: faria
+  // dezesseis suítes que não têm nada a ver com cobrança passarem a testar o
+  // portão por acidente, e a primeira reação de quem visse o vermelho seria
+  // afrouxar o portão. Trava que quebra o vizinho vira trava removida.
+  const tabela = (prisma as { assinaturaRecorrente?: { findUnique?: unknown } }).assinaturaRecorrente;
+  if (typeof tabela?.findUnique !== "function") return { tipo: "sem_assinatura" };
+
   let assinatura: {
     id: string; estado: string; dono: string; motivoDoEstado: string | null; canceladaEm: Date | null;
   } | null;

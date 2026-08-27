@@ -125,8 +125,12 @@ export const CUSTOS_NAO_MEDIDOS: ReadonlyArray<{ rotulo: string; motivo: string;
   },
   {
     rotulo: "infraestrutura (Railway, banco, volume)",
-    motivo: "a fatura existe, o rateio por cliente não existe em código nenhum",
-    dono: "CEO — informar a fatura mensal; o rateio a casa deriva",
+    motivo:
+      "MEIO MEDIDA em 27/08/2026: o CONSUMO foi medido na fonte (Railway, produção, 7 dias, " +
+      "10.081 amostras — ver `custo-de-infraestrutura.ts`). O que falta é a FATURA: a casa não sabe " +
+      "qual plano está contratado, nem se há crédito ou franquia. Multiplicar consumo medido por preço " +
+      "de catálogo daria um número com cara de medido e sangue de chute",
+    dono: "CEO — informar o total DEBITADO pela Railway no último mês fechado (não a tabela de preços)",
   },
   {
     rotulo: "domínio e e-mail (Resend)",
