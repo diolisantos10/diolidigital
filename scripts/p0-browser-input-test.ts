@@ -11,8 +11,10 @@
 //   5. Operational gap check per department
 //   6. Final verdict
 
+import { credencialDoMaster } from "./lib/credencial-do-master";
+
 const BASE   = process.env.BASE_URL ?? "http://127.0.0.1:8125";
-const MASTER = { email: "master@dioli.studio", password: "dioli2025" };
+const MASTER = credencialDoMaster();
 
 let failures = 0;
 const gaps: string[] = [];

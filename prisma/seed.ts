@@ -143,7 +143,10 @@ async function main() {
       create: {
         email:        "cliente@diolidigital.com.br",
         name:         "Dioli Digital",
-        passwordHash: await hash("cliente2025", 12),
+        // Mesma regra do master: senha do ambiente, nunca do código. Este
+        // usuário só nasce com SEED_PILOTO=true, mas "é só o piloto" foi
+        // exatamente o argumento que deixou a senha do master no repositório.
+        passwordHash: await hash(exigirSenha("SEED_PILOTO_CLIENT_PASSWORD"), 12),
         role:         "client",
         workspaceId:  workspace.id,
         clientId:     pilotClient.id,
