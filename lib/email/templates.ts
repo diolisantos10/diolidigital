@@ -190,3 +190,188 @@ export function orcamentoProntoEmail(input: OrcamentoProntoInput): {
     }),
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OS TRÊS E-MAILS QUE FALTAVAM — 27/08/2026
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// A casa tinha DOIS e-mails: a confirmação do briefing e o orçamento. Faltavam
+// os três momentos em que o cliente mais precisa de notícia — e a falta não era
+// cosmética:
+//
+//   1. **A peça ficou pronta e ninguém batia na porta dele.** A entrega
+//      acontecia, o portal era atualizado, e o cliente só descobria se abrisse
+//      o portal por conta própria. É o e-mail mais importante que faltava:
+//      a agência terminava o trabalho e ficava esperando em silêncio.
+//   2. **O atraso era contado para a casa, não para o cliente.** O Gerente
+//      Geral detectava o prazo queimado e gravava uma `PortalMessage`. O
+//      comentário em `batida-da-v2.ts` já dizia a régua certa — *"coluna
+//      gravada não é cliente informado"* — logo acima do código que gravava a
+//      coluna e parava ali.
+//   3. **O cliente não recebia o caminho de volta.** Foi por isso que uma
+//      travessia inteira precisou cunhar link à mão.
+//
+// ── TODOS SAEM PELO MOLDE, E ISSO É TRAVA, NÃO COMBINADO ───────────────────
+// `lib/email/trava-do-molde.ts` recusa na porta o que não tem o cabeçalho da
+// marca, o rodapé assinado, ou o que estampa valor. Nenhum destes três escreve
+// `<!DOCTYPE>`, rodapé ou nome próprio: tudo vem de `moldeDoEmail`.
+//
+// ── E NENHUM DELES TEM PREÇO ───────────────────────────────────────────────
+// Ordem do CEO: o e-mail é CONVITE, não proposta. Preço lido sozinho, sem
+// ninguém do outro lado, é preço que o cliente compara e descarta em silêncio.
+
+/** O que estes três precisam saber sobre quem vai ler. */
+interface DestinatarioDoAviso {
+  prospectName?: string;
+  businessName?: string;
+  /** O caminho de volta. Sem ele, não nasce botão — botão que não leva a lugar
+   *  nenhum é pior que ausência de botão. */
+  portalLink?: string;
+}
+
+function saudacaoDe(nome?: string): string {
+  const n = nome?.trim();
+  return n ? `Olá, ${esc(n)}!` : "Olá!";
+}
+
+export interface PecaProntaInput extends DestinatarioDoAviso {
+  /** Quantas peças ficaram prontas. Governa o plural — e só isso. */
+  quantasPecas?: number;
+  /**
+   * O aviso de que a publicação automática ainda não existe.
+   *
+   * ⚠️ DERIVADO, nunca constante: quem chama passa
+   * `avisoDeAgendamentoManual()`, que sai de `freioSolto()`. No dia em que a
+   * Meta liberar, o aviso some sozinho. Uma constante aqui criaria texto
+   * fóssil — a tela continuaria negando algo que a casa passou a ter, e
+   * ninguém apaga texto que não dá erro.
+   */
+  avisoDePublicacaoManual?: string | null;
+}
+
+/**
+ * "SUA PEÇA ESTÁ PRONTA" — o e-mail que faltava, e o mais importante deles.
+ *
+ * Dispara no evento REAL: `apresentar()` → `falarComOCliente` →
+ * `avisarCliente({ tipo: "entrega" })`. Não há segundo caminho de envio, e é de
+ * propósito: *verdade escrita em dois lugares já está errada em um deles.*
+ */
+export function pecaProntaEmail(input: PecaProntaInput): { subject: string; html: string } {
+  const biz = input.businessName?.trim();
+  const n = typeof input.quantasPecas === "number" && input.quantasPecas > 0 ? input.quantasPecas : null;
+  const quantas =
+    n === null ? "O seu material" : n === 1 ? "A sua peça" : `As suas ${n} peças`;
+
+  const corpo: string[] = [
+    blocoDeTexto(
+      `${quantas} ${n === 1 || n === null ? "está pronta" : "estão prontas"} e ${
+        n !== null && n > 1 ? "esperam" : "espera"
+      } a sua olhada. Está tudo no seu portal, na aba de aprovações.`,
+    ),
+    blocoDeTexto(
+      "Lá você pode aprovar, pedir ajuste, recusar ou cancelar — cada peça, uma por uma. " +
+        "Se algo não ficou como você imaginava, é só dizer o que mudar: refazer faz parte.",
+    ),
+  ];
+
+  if (input.portalLink) corpo.push(blocoDeBotao(input.portalLink, "Ver o meu material"));
+
+  // O aviso da publicação manual entra AQUI e não em outro lugar: é neste
+  // e-mail que o cliente passa a esperar o material no ar. Quem vai aprovar
+  // precisa saber o que acontece depois do sim.
+  if (input.avisoDePublicacaoManual) corpo.push(blocoDeTexto(input.avisoDePublicacaoManual));
+
+  return {
+    subject: biz ? `Seu material está pronto — ${biz}` : "Seu material está pronto",
+    html: moldeDoEmail({
+      saudacao: saudacaoDe(input.prospectName),
+      previa: "Está no seu portal, na aba de aprovações. É só abrir e dizer o que achou.",
+      corpo,
+      notaDoRodape: "Este é um aviso automático. Suas peças e a conversa ficam no seu portal.",
+    }),
+  };
+}
+
+export interface AvisoDeAtrasoInput extends DestinatarioDoAviso {
+  /** O que atrasou, em palavras do cliente. Sem jargão, sem nome de coluna. */
+  oQueAtrasou?: string;
+}
+
+/**
+ * "AVISO DE ATRASO" — a casa avisando ANTES de o cliente perguntar.
+ *
+ * ⛔ ESTE E-MAIL NÃO PROMETE DATA NOVA, e a omissão é decisão. Uma data nova
+ * dada no susto é a segunda promessa quebrada esperando para acontecer — e a
+ * primeira acabou de ser. A casa reconhece, diz que está em cima, e chama para
+ * a conversa, onde a data sai com quem responde por ela.
+ *
+ * Também NÃO carrega direção interna: por que atrasou é assunto da casa. O
+ * cliente recebe o fato e o próximo passo.
+ */
+export function avisoDeAtrasoEmail(input: AvisoDeAtrasoInput): { subject: string; html: string } {
+  const biz = input.businessName?.trim();
+  const oQue = input.oQueAtrasou?.trim();
+
+  const corpo: string[] = [
+    blocoDeTexto(
+      oQue
+        ? `Passei para te avisar: ${esc(oQue)} não vai sair no prazo que combinamos.`
+        : "Passei para te avisar: uma entrega sua não vai sair no prazo que combinamos.",
+    ),
+    blocoDeTexto(
+      "Preferimos te contar agora a deixar você descobrir pelo silêncio. " +
+        "Estamos em cima, e assim que tiver uma data que a gente consiga cumprir, ela vai para o seu portal — " +
+        "com quem responde por ela do outro lado.",
+    ),
+  ];
+
+  if (input.portalLink) corpo.push(blocoDeBotao(input.portalLink, "Falar com a gente"));
+
+  return {
+    subject: biz ? `Um aviso sobre o seu prazo — ${biz}` : "Um aviso sobre o seu prazo",
+    html: moldeDoEmail({
+      saudacao: saudacaoDe(input.prospectName),
+      previa: "Uma entrega sua vai atrasar. Preferimos te contar agora.",
+      corpo,
+      notaDoRodape: "Este é um aviso automático. A conversa completa fica no seu portal.",
+    }),
+  };
+}
+
+/**
+ * "SEU LINK DO PORTAL" — o caminho de volta.
+ *
+ * O portal é onde tudo acontece (peças, aprovações, conversa, orçamento) e o
+ * cliente não recebia o endereço dele. Foi por isso que uma travessia inteira
+ * precisou cunhar link à mão.
+ *
+ * ⚠️ SEM LINK, ESTE E-MAIL NÃO EXISTE — quem chama recebe `null`. Um e-mail
+ * chamado "seu link do portal" sem link é a definição de promessa vazia, e ele
+ * NASCERIA fora do único motivo de existir.
+ */
+export function linkDoPortalEmail(
+  input: DestinatarioDoAviso,
+): { subject: string; html: string } | null {
+  if (!input.portalLink) return null;
+  const biz = input.businessName?.trim();
+
+  return {
+    subject: biz ? `Seu acesso ao portal — ${biz}` : "Seu acesso ao portal",
+    html: moldeDoEmail({
+      saudacao: saudacaoDe(input.prospectName),
+      previa: "É por aqui que você acompanha tudo. Guarde este link.",
+      corpo: [
+        blocoDeTexto(
+          "Este é o seu caminho de volta. No portal ficam as suas peças, as aprovações, " +
+            "os pedidos de material e a conversa com a gente — tudo no mesmo lugar.",
+        ),
+        blocoDeBotao(input.portalLink, "Abrir o meu portal"),
+        blocoDeTexto(
+          "Guarde este e-mail: o link é só seu e não pede senha. " +
+            "Se em algum momento ele parar de funcionar, é só responder aqui que a gente manda outro.",
+        ),
+      ],
+      notaDoRodape: "Este é um aviso automático. O portal é o seu acesso a tudo o que fazemos para você.",
+    }),
+  };
+}

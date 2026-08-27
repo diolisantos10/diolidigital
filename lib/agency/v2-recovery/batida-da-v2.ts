@@ -31,8 +31,13 @@ import { entregarAvisoAoCliente } from "@/lib/agency/gerencia/aviso-ao-cliente";
 import type { ArmazemDeFlags } from "@/lib/agency/flags-v2/flags";
 
 /** Executores por tipo de efeito. Tipo sem executor vira falha declarada →
- *  retry → fila morta: efeito novo só nasce quando o executor dele existir. */
-const EXECUTORES: Record<string, Executor> = {
+ *  retry → fila morta: efeito novo só nasce quando o executor dele existir.
+ *
+ *  EXPORTADO para que o teste alcance o EFEITO REAL, e não uma cópia dele.
+ *  A mutação que removia o aviso de atraso ao cliente daqui sobrevivia à suíte
+ *  inteira — 656 testes verdes com o gatilho arrancado. Gatilho que nenhum
+ *  teste alcança é gatilho que a próxima refatoração apaga sem ninguém ver. */
+export const EXECUTORES: Record<string, Executor> = {
   // O primeiro executor real: um registro de log estruturado — usado pelos
   // testes de ponta e pelo piloto sintético do M7. Efeitos com consequência
   // externa (mensagem, publicação) ganham executor quando o fluxo que os
@@ -57,6 +62,36 @@ const EXECUTORES: Record<string, Executor> = {
         await prisma.portalMessage.create({
           data: { clientId: clienteId, authorRole: "team", authorName: autorNome, body: corpo, readByTeam: true },
         });
+
+        // ── "COLUNA GRAVADA NÃO É CLIENTE INFORMADO" — a régua estava escrita
+        // aqui em cima desde sempre, e o código parava na coluna (27/08/2026).
+        //
+        // A `PortalMessage` só chega a quem ABRE o portal. O cliente cujo prazo
+        // queimou é exatamente o que não está olhando — ele está esperando. O
+        // aviso agora sai pelo canal ÚNICO do cliente (`avisarCliente`), que
+        // tenta WhatsApp, cai para e-mail, e vira fila manual se os dois
+        // falharem. Não é um segundo caminho de envio: é O caminho, que este
+        // ponto não usava.
+        //
+        // Best-effort: perder o aviso é ruim, perder o registro é pior — e o
+        // registro acima já está feito.
+        try {
+          const cliente = await prisma.client.findUnique({
+            where: { id: clienteId },
+            select: { workspaceId: true },
+          });
+          if (cliente?.workspaceId) {
+            const { avisarCliente } = await import("@/lib/agency/esteira/avisos");
+            await avisarCliente({
+              workspaceId: cliente.workspaceId,
+              clientId: clienteId,
+              tipo: "atraso",
+              texto: corpo,
+            });
+          }
+        } catch (e) {
+          console.warn("[cron/v2] o atraso foi gravado mas não consegui avisar o cliente:", e instanceof Error ? e.message : e);
+        }
       },
     });
     console.log("[cron/v2] Gerente Geral avisou o cliente sobre atraso", { correlationId });
