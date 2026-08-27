@@ -69,6 +69,9 @@ export const VINCULOS_SOLTOS = [
   // O convite aponta para o cliente parceiro: fundir clientes tem de levar o
   // convite junto, senão o link entregue passa a apontar para um cliente que
   // não existe mais — e um convite órfão é uma credencial sem dono.
+  // A AUTORIZAÇÃO da parceria é do cliente: fundir clientes tem de levá-la
+  // junto, senão o parceiro perde a parceria na fusão — e volta a ser cobrado.
+  { chave: "parceriaDoCliente",      rotulo: "parcerias do cliente" },
   { chave: "conviteDeParceria",      rotulo: "convites de parceria" },
   // A assinatura recorrente (27/08/2026). Entra aqui pela MESMA razão da isenção,
   // e por uma pior: ela é uma COBRANÇA MENSAL VIVA. Fusão que largasse uma

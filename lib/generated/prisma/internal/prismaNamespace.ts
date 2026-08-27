@@ -454,6 +454,7 @@ export const ModelName = {
   HeartbeatDoRelogio: 'HeartbeatDoRelogio',
   HandoffV2: 'HandoffV2',
   PagamentoConfirmado: 'PagamentoConfirmado',
+  ParceriaDoCliente: 'ParceriaDoCliente',
   ConviteDeParceria: 'ConviteDeParceria',
   IsencaoDeParceria: 'IsencaoDeParceria',
   AssinaturaRecorrente: 'AssinaturaRecorrente',
@@ -473,7 +474,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5657,6 +5658,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ParceriaDoCliente: {
+      payload: Prisma.$ParceriaDoClientePayload<ExtArgs>
+      fields: Prisma.ParceriaDoClienteFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ParceriaDoClienteFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ParceriaDoClientePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ParceriaDoClienteFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ParceriaDoClientePayload>
+        }
+        findFirst: {
+          args: Prisma.ParceriaDoClienteFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ParceriaDoClientePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ParceriaDoClienteFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ParceriaDoClientePayload>
+        }
+        findMany: {
+          args: Prisma.ParceriaDoClienteFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ParceriaDoClientePayload>[]
+        }
+        create: {
+          args: Prisma.ParceriaDoClienteCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ParceriaDoClientePayload>
+        }
+        createMany: {
+          args: Prisma.ParceriaDoClienteCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ParceriaDoClienteCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ParceriaDoClientePayload>[]
+        }
+        delete: {
+          args: Prisma.ParceriaDoClienteDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ParceriaDoClientePayload>
+        }
+        update: {
+          args: Prisma.ParceriaDoClienteUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ParceriaDoClientePayload>
+        }
+        deleteMany: {
+          args: Prisma.ParceriaDoClienteDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ParceriaDoClienteUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ParceriaDoClienteUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ParceriaDoClientePayload>[]
+        }
+        upsert: {
+          args: Prisma.ParceriaDoClienteUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ParceriaDoClientePayload>
+        }
+        aggregate: {
+          args: Prisma.ParceriaDoClienteAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateParceriaDoCliente>
+        }
+        groupBy: {
+          args: Prisma.ParceriaDoClienteGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ParceriaDoClienteGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ParceriaDoClienteCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ParceriaDoClienteCountAggregateOutputType> | number
+        }
+      }
+    }
     ConviteDeParceria: {
       payload: Prisma.$ConviteDeParceriaPayload<ExtArgs>
       fields: Prisma.ConviteDeParceriaFieldRefs
@@ -7267,6 +7342,24 @@ export const PagamentoConfirmadoScalarFieldEnum = {
 export type PagamentoConfirmadoScalarFieldEnum = (typeof PagamentoConfirmadoScalarFieldEnum)[keyof typeof PagamentoConfirmadoScalarFieldEnum]
 
 
+export const ParceriaDoClienteScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  autorizadaPor: 'autorizadaPor',
+  registradaPor: 'registradaPor',
+  validaAte: 'validaAte',
+  escopo: 'escopo',
+  pecasContratadas: 'pecasContratadas',
+  tetoDeIaCentavosUsd: 'tetoDeIaCentavosUsd',
+  revogadaEm: 'revogadaEm',
+  observacao: 'observacao',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ParceriaDoClienteScalarFieldEnum = (typeof ParceriaDoClienteScalarFieldEnum)[keyof typeof ParceriaDoClienteScalarFieldEnum]
+
+
 export const ConviteDeParceriaScalarFieldEnum = {
   id: 'id',
   token: 'token',
@@ -7577,6 +7670,7 @@ export type GlobalOmitConfig = {
   heartbeatDoRelogio?: Prisma.HeartbeatDoRelogioOmit
   handoffV2?: Prisma.HandoffV2Omit
   pagamentoConfirmado?: Prisma.PagamentoConfirmadoOmit
+  parceriaDoCliente?: Prisma.ParceriaDoClienteOmit
   conviteDeParceria?: Prisma.ConviteDeParceriaOmit
   isencaoDeParceria?: Prisma.IsencaoDeParceriaOmit
   assinaturaRecorrente?: Prisma.AssinaturaRecorrenteOmit

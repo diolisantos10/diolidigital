@@ -635,7 +635,7 @@ export type HandoffV2 = Prisma.HandoffV2Model
  */
 export type PagamentoConfirmado = Prisma.PagamentoConfirmadoModel
 /**
- * Model ConviteDeParceria
+ * Model ParceriaDoCliente
  * A TERCEIRA TESTEMUNHA: a parceria isenta de pagamento.
  * 
  * ─── POR QUE ELA É UMA TABELA PRÓPRIA, E NÃO UMA LINHA DE PAGAMENTO ─────────
@@ -673,6 +673,41 @@ export type PagamentoConfirmado = Prisma.PagamentoConfirmadoModel
  * que continua sendo a fonte da verdade. A isenção é conferida VIVA a cada uso;
  * revogá-la ou deixá-la vencer mata o convite no mesmo instante, sem precisar
  * caçar link nenhum.
+ * A PARCERIA É DO PARCEIRO — não do pedido. Quebra do nó circular (27/08/2026).
+ * 
+ * ── O NÓ, medido em quatro pontos ──────────────────────────────────────────
+ * `IsencaoDeParceria` exige `clientRequestId` ("isenção sem pedido não isenta
+ * nada"), o portão de pagamento a lê por pedido, o convite exigia isenção viva,
+ * e o pedido nasce do briefing. Ou seja:
+ * 
+ * convite → isenção → pedido → briefing → (convite)
+ * 
+ * A porta existia e **não podia ser aberta a primeira vez**. É a família
+ * "trava construída sem fechadura", agora em forma de círculo — e o efeito
+ * prático era exato: **não havia como cunhar o link do primeiro parceiro**.
+ * 
+ * (Precisão: o PEDIDO não ficava trancado — `budget_range` fecha com qualquer
+ * resposta. O parceiro conseguia terminar o briefing respondendo justamente a
+ * pergunta que a parceria deveria poupar. O que estava trancado era o CONVITE,
+ * e portanto o tratamento de parceiro.)
+ * 
+ * ── O conserto ─────────────────────────────────────────────────────────────
+ * A autorização passa a viver no nível do PARCEIRO e existe ANTES de qualquer
+ * pedido. É daqui que o convite nasce, e é isto que rompe o círculo.
+ * 
+ * ⚠️ E ela vira a ÚNICA FONTE DA VERDADE: a `IsencaoDeParceria` de cada pedido
+ * passa a ser DERIVADA desta linha, não um ato manual novo. *Verdade escrita
+ * em dois lugares já está errada em um deles.*
+ * 
+ * O que NÃO muda: teto de custo obrigatório (sem ele o parceiro come o crédito
+ * do pagante), validade obrigatória (parceria eterna vira esquecimento), dono
+ * nominal, e NUNCA um pagamento falso de R$ 0 — receita de parceria é R$ 0 com
+ * o custo contado normalmente, e a margem negativa fica à vista.
+ */
+export type ParceriaDoCliente = Prisma.ParceriaDoClienteModel
+/**
+ * Model ConviteDeParceria
+ * 
  */
 export type ConviteDeParceria = Prisma.ConviteDeParceriaModel
 /**

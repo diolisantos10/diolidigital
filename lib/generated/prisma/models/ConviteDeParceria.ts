@@ -14,43 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model ConviteDeParceria
- * A TERCEIRA TESTEMUNHA: a parceria isenta de pagamento.
  * 
- * ─── POR QUE ELA É UMA TABELA PRÓPRIA, E NÃO UMA LINHA DE PAGAMENTO ─────────
- * 
- * O primeiro cliente real da agência (Foocci, 27/08/2026) entra por parceria:
- * não paga nada. E hoje ele TRAVA no portão de pagamento — e o portão está
- * certo.
- * 
- * A tentação era registrar um `PagamentoConfirmado` de R$ 0,00. Duas razões
- * para não fazer isso, e as duas são do CEO:
- * 1. **Receita fantasma.** Uma linha de pagamento diz "entrou dinheiro". Não
- * entrou. O financeiro passaria a somar vendas que não existem.
- * 2. **Destruiria a testemunha.** `PagamentoConfirmado` recusa valor ≤ 0 no
- * código E no portão, de propósito — é o que garante que toda linha ali
- * seja dinheiro de verdade. Furar isso para o parceiro fura para todos.
- * 
- * Então a isenção é OUTRO fato, com OUTRA tabela: ela libera a esteira sem
- * nunca afirmar que houve pagamento. *Parceria não é grátis — é investimento,
- * e investimento se mede.*
- * O CONVITE DO PARCEIRO — a única coisa que faz a casa SABER que a conversa é dele.
- * 
- * ── Por que ele existe (27/08/2026) ─────────────────────────────────────────
- * O parceiro não paga, então a pergunta obrigatória da verba não protege
- * ninguém e só trava o pedido dele — foi o que parou a conversa das 13:43. Mas
- * dispensar a pergunta exige SABER que é parceria, e na sala de briefing o
- * visitante é ANÔNIMO: só `sessionId`. `clientRequestId` vem do corpo, e a casa
- * já o trata como não-confiável ("um id que qualquer pessoa digita").
- * 
- * ⚠️ **A verdade tem que vir de um token que a casa CUNHOU** — nunca do que o
- * interlocutor afirma. É o mesmo molde de `PortalAccess`, e a mesma regra de
- * 03/08: em caminho público, o `clientId` sai SEMPRE do token — derivação,
- * nunca comparação.
- * 
- * E o convite NÃO é a autorização: ele só APONTA para a `IsencaoDeParceria`,
- * que continua sendo a fonte da verdade. A isenção é conferida VIVA a cada uso;
- * revogá-la ou deixá-la vencer mata o convite no mesmo instante, sem precisar
- * caçar link nenhum.
  */
 export type ConviteDeParceriaModel = runtime.Types.Result.DefaultSelection<Prisma.$ConviteDeParceriaPayload>
 

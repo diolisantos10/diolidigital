@@ -121,6 +121,7 @@ export const ModelName = {
   HeartbeatDoRelogio: 'HeartbeatDoRelogio',
   HandoffV2: 'HandoffV2',
   PagamentoConfirmado: 'PagamentoConfirmado',
+  ParceriaDoCliente: 'ParceriaDoCliente',
   ConviteDeParceria: 'ConviteDeParceria',
   IsencaoDeParceria: 'IsencaoDeParceria',
   AssinaturaRecorrente: 'AssinaturaRecorrente',
@@ -1416,6 +1417,24 @@ export const PagamentoConfirmadoScalarFieldEnum = {
 } as const
 
 export type PagamentoConfirmadoScalarFieldEnum = (typeof PagamentoConfirmadoScalarFieldEnum)[keyof typeof PagamentoConfirmadoScalarFieldEnum]
+
+
+export const ParceriaDoClienteScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  autorizadaPor: 'autorizadaPor',
+  registradaPor: 'registradaPor',
+  validaAte: 'validaAte',
+  escopo: 'escopo',
+  pecasContratadas: 'pecasContratadas',
+  tetoDeIaCentavosUsd: 'tetoDeIaCentavosUsd',
+  revogadaEm: 'revogadaEm',
+  observacao: 'observacao',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ParceriaDoClienteScalarFieldEnum = (typeof ParceriaDoClienteScalarFieldEnum)[keyof typeof ParceriaDoClienteScalarFieldEnum]
 
 
 export const ConviteDeParceriaScalarFieldEnum = {

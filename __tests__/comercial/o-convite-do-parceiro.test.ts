@@ -26,7 +26,10 @@ const db = vi.hoisted(() => ({
   conviteDeParceria: {
     create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn(),
   },
-  isencaoDeParceria: { findFirst: vi.fn() },
+  // ⚠️ A FONTE DA VERDADE MUDOU (27/08/2026): era `isencaoDeParceria` (por
+  // PEDIDO) e virou `parceriaDoCliente` (por PARCEIRO). Foi essa troca que
+  // rompeu o nó circular — ver `__tests__/financeiro/a-parceria-e-do-parceiro`.
+  parceriaDoCliente: { findUnique: vi.fn() },
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
@@ -39,6 +42,12 @@ const DEPOIS = new Date("2026-09-27T00:00:00.000Z");   // isenção viva
 const ANTES = new Date("2026-08-01T00:00:00.000Z");    // já passou
 
 const ISENCAO_VIVA = { autorizadaPor: "Dioli Santos (CEO)", validaAte: DEPOIS };
+/** A linha como `ParceriaDoCliente` a guarda — a fonte da verdade de hoje. */
+const PARCERIA_VIVA = {
+  id: "p1", clientId: "cli_foocci", autorizadaPor: "Dioli Santos (CEO)",
+  validaAte: DEPOIS, escopo: "Social Media", pecasContratadas: 12,
+  tetoDeIaCentavosUsd: 200, revogadaEm: null,
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -52,46 +61,46 @@ beforeEach(() => {
 
 // ════════════════════════════════════════════════════════════════════════════
 describe("cunhar: não se entrega chave sem autorização viva", () => {
-  it("recusa quando o cliente NÃO tem isenção viva — credencial que espera autorização é credencial sem autorização", async () => {
-    db.isencaoDeParceria.findFirst.mockResolvedValue(null);
+  it("recusa quando o cliente NÃO tem parceria viva — credencial que espera autorização é credencial sem autorização", async () => {
+    db.parceriaDoCliente.findUnique.mockResolvedValue(null);
     const r = await cunharConviteDeParceria(
       { clientId: "cli_foocci", criadoPor: "user_master", expiraEm: DEPOIS }, AGORA,
     );
     expect(r.ok).toBe(false);
-    expect(!r.ok && r.recusa).toBe("sem_isencao_viva");
+    expect(!r.ok && r.recusa).toBe("sem_parceria_viva");
     // Nada foi escrito: recusar DEPOIS de escrever é liberar.
     expect(db.conviteDeParceria.create).not.toHaveBeenCalled();
   });
 
   it("recusa convite SEM DONO — convite sem dono é buraco", async () => {
-    db.isencaoDeParceria.findFirst.mockResolvedValue(ISENCAO_VIVA);
+    db.parceriaDoCliente.findUnique.mockResolvedValue(PARCERIA_VIVA);
     const r = await cunharConviteDeParceria({ clientId: "cli_foocci", criadoPor: "  " }, AGORA);
     expect(!r.ok && r.recusa).toBe("sem_dono");
     expect(db.conviteDeParceria.create).not.toHaveBeenCalled();
   });
 
-  it("⚠️ recusa convite que passa da ISENÇÃO — parceria eterna pela porta dos fundos", async () => {
-    db.isencaoDeParceria.findFirst.mockResolvedValue(ISENCAO_VIVA);
+  it("⚠️ recusa convite que passa da PARCERIA — parceria eterna pela porta dos fundos", async () => {
+    db.parceriaDoCliente.findUnique.mockResolvedValue(PARCERIA_VIVA);
     const r = await cunharConviteDeParceria(
       // Isenção vence 27/09; o convite pediria 27/12. Sem a trava, seriam três
       // meses de parceria que ninguém autorizou.
       { clientId: "cli_foocci", criadoPor: "user_master", expiraEm: new Date("2026-12-27T00:00:00.000Z") },
       AGORA,
     );
-    expect(!r.ok && r.recusa).toBe("passa_da_isencao");
+    expect(!r.ok && r.recusa).toBe("passa_da_parceria");
     expect(db.conviteDeParceria.create).not.toHaveBeenCalled();
   });
 
   it("recusa convite que já nasce vencido", async () => {
-    db.isencaoDeParceria.findFirst.mockResolvedValue(ISENCAO_VIVA);
+    db.parceriaDoCliente.findUnique.mockResolvedValue(PARCERIA_VIVA);
     const r = await cunharConviteDeParceria(
       { clientId: "cli_foocci", criadoPor: "user_master", expiraEm: ANTES }, AGORA,
     );
     expect(!r.ok && r.recusa).toBe("ja_vencido");
   });
 
-  it("cunha com isenção viva — e o token NÃO é adivinhável", async () => {
-    db.isencaoDeParceria.findFirst.mockResolvedValue(ISENCAO_VIVA);
+  it("cunha com parceria viva — e o token NÃO é adivinhável", async () => {
+    db.parceriaDoCliente.findUnique.mockResolvedValue(PARCERIA_VIVA);
     const a = await cunharConviteDeParceria({ clientId: "cli_foocci", criadoPor: "user_master" }, AGORA);
     const b = await cunharConviteDeParceria({ clientId: "cli_foocci", criadoPor: "user_master" }, AGORA);
     expect(a.ok && b.ok).toBe(true);
@@ -112,9 +121,9 @@ describe("resolver: o lado que decide — e ele é fail-closed em TODO ramo", ()
     expiraEm: new Date("2026-09-10T00:00:00.000Z"), revogadoEm: null,
   };
 
-  it("convite válido + isenção viva → parceiro RECONHECIDO", async () => {
+  it("convite válido + parceria viva → parceiro RECONHECIDO", async () => {
     db.conviteDeParceria.findUnique.mockResolvedValue(conviteBom);
-    db.isencaoDeParceria.findFirst.mockResolvedValue(ISENCAO_VIVA);
+    db.parceriaDoCliente.findUnique.mockResolvedValue(PARCERIA_VIVA);
     const r = await resolverConviteDeParceria("tok_bom", AGORA);
     expect(r).not.toBeNull();
     // ⚠️ O clientId sai do TOKEN — derivação, nunca comparação com o corpo.
@@ -136,24 +145,24 @@ describe("resolver: o lado que decide — e ele é fail-closed em TODO ramo", ()
 
   it("convite VENCIDO → anônimo. Convite não é senha eterna", async () => {
     db.conviteDeParceria.findUnique.mockResolvedValue({ ...conviteBom, expiraEm: ANTES });
-    db.isencaoDeParceria.findFirst.mockResolvedValue(ISENCAO_VIVA);
+    db.parceriaDoCliente.findUnique.mockResolvedValue(PARCERIA_VIVA);
     expect(await resolverConviteDeParceria("tok_velho", AGORA)).toBeNull();
   });
 
   it("convite REVOGADO → anônimo, mesmo dentro do prazo", async () => {
     db.conviteDeParceria.findUnique.mockResolvedValue({ ...conviteBom, revogadoEm: AGORA });
-    db.isencaoDeParceria.findFirst.mockResolvedValue(ISENCAO_VIVA);
+    db.parceriaDoCliente.findUnique.mockResolvedValue(PARCERIA_VIVA);
     expect(await resolverConviteDeParceria("tok_vazado", AGORA)).toBeNull();
   });
 
-  it("⚠️ ISENÇÃO vencida mata o convite NA HORA — sem caçar link nenhum", async () => {
+  it("⚠️ PARCERIA revogada/vencida mata o convite NA HORA — sem caçar link nenhum", async () => {
     // ── A MUTAÇÃO QUE ESTE `expect` MATA ───────────────────────────────────
     // Confira a isenção só na CUNHAGEM (tire a chamada de `isencaoViva` de
     // `resolverConviteDeParceria`) e esta linha fica VERMELHA: um convite de 14
     // dias sobreviveria à parceria que ele representa, e revogar a isenção
     // deixaria de ter efeito sobre os links já entregues.
     db.conviteDeParceria.findUnique.mockResolvedValue(conviteBom);
-    db.isencaoDeParceria.findFirst.mockResolvedValue(null);
+    db.parceriaDoCliente.findUnique.mockResolvedValue(null);
     expect(await resolverConviteDeParceria("tok_bom", AGORA)).toBeNull();
   });
 
@@ -165,7 +174,7 @@ describe("resolver: o lado que decide — e ele é fail-closed em TODO ramo", ()
 
   it("a trilha de uso NÃO pode barrar parceiro legítimo", async () => {
     db.conviteDeParceria.findUnique.mockResolvedValue(conviteBom);
-    db.isencaoDeParceria.findFirst.mockResolvedValue(ISENCAO_VIVA);
+    db.parceriaDoCliente.findUnique.mockResolvedValue(PARCERIA_VIVA);
     db.conviteDeParceria.update.mockRejectedValue(new Error("trilha falhou"));
     // Credencial sem trilha é ruim; trilha que derruba acesso é pior.
     expect(await resolverConviteDeParceria("tok_bom", AGORA)).not.toBeNull();
