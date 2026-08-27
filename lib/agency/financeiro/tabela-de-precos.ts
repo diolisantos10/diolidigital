@@ -115,13 +115,22 @@ export const CUSTO_DE_IA_POR_PECA_USD = 0.17;
 export const CUSTOS_NAO_MEDIDOS: ReadonlyArray<{ rotulo: string; motivo: string; dono: string }> = [
   {
     rotulo: "taxa do gateway (Mercado Pago)",
-    motivo: "não há constante de taxa em lugar nenhum do repositório — medido por varredura em 27/08/2026",
-    dono: "CEO — pegar a taxa efetiva no extrato do Mercado Pago",
+    motivo:
+      "o gateway foi ligado em 27/08/2026 e NENHUM pagamento real passou por ele ainda — " +
+      "a partir deste PR o webhook grava `fee_details` do provedor em `PagamentoConfirmado.taxaCentavos`, " +
+      "e a taxa passa a ser MEDIDA (não estimada) no primeiro pagamento aprovado. " +
+      "⚠️ E há um bloqueio antes disso: `MERCADOPAGO_WEBHOOK_SECRET` NÃO existe nas variáveis de produção, " +
+      "então hoje todo aviso do Mercado Pago volta 401 e nenhum pagamento chega a ser registrado.",
+    dono: "CEO — definir MERCADOPAGO_WEBHOOK_SECRET no Railway com o valor do painel do Mercado Pago",
   },
   {
     rotulo: "infraestrutura (Railway, banco, volume)",
-    motivo: "a fatura existe, o rateio por cliente não existe em código nenhum",
-    dono: "CEO — informar a fatura mensal; o rateio a casa deriva",
+    motivo:
+      "MEIO MEDIDA em 27/08/2026: o CONSUMO foi medido na fonte (Railway, produção, 7 dias, " +
+      "10.081 amostras — ver `custo-de-infraestrutura.ts`). O que falta é a FATURA: a casa não sabe " +
+      "qual plano está contratado, nem se há crédito ou franquia. Multiplicar consumo medido por preço " +
+      "de catálogo daria um número com cara de medido e sangue de chute",
+    dono: "CEO — informar o total DEBITADO pela Railway no último mês fechado (não a tabela de preços)",
   },
   {
     rotulo: "domínio e e-mail (Resend)",
@@ -218,6 +227,21 @@ export function pisoDoServico(s: ServicoDaCasa): number {
   if (s.descontoAutorizadoPct === null || s.descontoAutorizadoPct <= 0) {
     return s.precoFinalCentavos;
   }
+
+  // ⛔ TRAVA 1 — CUSTO COM BURACO ANULA O DESCONTO AUTORIZADO.
+  //
+  // Esta linha é a que o CEO comprou quando disse "margem mínima de dez por
+  // cento": sem custo, não há como PROVAR que o preço com desconto deixa 10% —
+  // pode deixar 40% e pode ser prejuízo, e as duas hipóteses são igualmente
+  // sustentadas pelos dados que a casa tem. *Margem calculada sobre custo
+  // incompleto é pior que margem nenhuma: dá confiança falsa ao negociador para
+  // descer o preço até um lugar que parece lucro e é prejuízo.*
+  //
+  // Repare no que isso protege: alguém pode autorizar 15% de desconto neste
+  // arquivo, num dia corrido, e a trava continua segurando sozinha. Não depende
+  // de ninguém lembrar da regra.
+  if (s.custo.estado !== "medido") return s.precoFinalCentavos;
+
   const pct = Math.min(s.descontoAutorizadoPct, 100);
   const comDesconto = Math.round(s.precoFinalCentavos * (1 - pct / 100));
 
@@ -225,28 +249,52 @@ export function pisoDoServico(s: ServicoDaCasa): number {
   // por cento de lucro"*.
   //
   // A faixa autorizada NÃO passa por cima dele. Se o desconto autorizado
-  // levasse o preço abaixo de custo + 10%, quem vence é o chão — *piso com
-  // margem negativa é proibido*, e um desconto autorizado sobre um custo que
-  // subiu depois é exatamente como se vende abaixo do custo sem ninguém errar
-  // uma conta.
+  // levasse o preço abaixo do chão, quem vence é o chão — *piso com margem
+  // negativa é proibido*, e um desconto autorizado sobre um custo que subiu
+  // depois é exatamente como se vende abaixo do custo sem ninguém errar uma
+  // conta.
   //
-  // Com o custo `nao_medido`, este ramo NÃO roda: não se calcula 10% sobre um
-  // número que não existe. Aí vale a regra de cima — piso = preço cheio —, que
-  // é o "assuma o custo como desconhecido-para-cima" levado ao limite.
-  if (s.custo.estado === "medido") {
-    const chaoDeLucro = Math.round(s.custo.centavos * (1 + MARGEM_MINIMA_PCT / 100));
-    return Math.max(comDesconto, chaoDeLucro);
-  }
-  return comDesconto;
+  // Com o custo `nao_medido` este ramo NÃO roda: não se calcula 10% sobre um
+  // número que não existe. Vale a regra de cima — piso = preço cheio.
+  return Math.max(comDesconto, precoQueFechaAMargemMinima(s.custo.centavos));
 }
 
 /**
- * O lucro mínimo que o CEO aceita, em pontos percentuais sobre o custo.
+ * O lucro mínimo que o CEO aceita, em pontos percentuais.
  *
  * *"Margem mínima nesse início: dez por cento de lucro, está ótimo."* — CEO,
  * 27/08/2026. É chão, não meta: nada nesta casa se vende abaixo dele.
  */
 export const MARGEM_MINIMA_PCT = 10;
+
+/**
+ * ⚠️ **DUAS LEITURAS DA MESMA ORDEM, E A CASA FICOU COM A QUE PROTEGE.**
+ *
+ * "Dez por cento de lucro" cabe em duas contas diferentes, e elas dão preços
+ * diferentes:
+ *
+ *   • **10% EM CIMA DO CUSTO** — `custo × 1,10`. Sobre custo de R$ 500 dá
+ *     R$ 550, e a margem sobre a RECEITA é de **9,09%**.
+ *   • **10% DO PREÇO** — `custo ÷ 0,90`. Sobre o mesmo custo dá R$ 555,56, e a
+ *     margem sobre a receita é de **10,0%** cravados.
+ *
+ * Duas sessões desta casa escreveram as duas, em paralelo, no mesmo dia — e a
+ * primeira versão a entrar usava `× 1,10`. Isto aqui é a unificação, e ela
+ * ficou com `÷ 0,90` por duas razões:
+ *
+ *   1. **"Dez por cento de lucro" é dez por cento QUE SOBRA**, e o que sobra se
+ *      mede contra o que entra. `× 1,10` entrega 9,09% e chamaria de dez.
+ *   2. Onde duas leituras da mesma ordem são defensáveis, a casa fica com a que
+ *      protege — e escreve qual escolheu, para o CEO poder discordar sabendo da
+ *      diferença. Ela é de R$ 5,56 em cada R$ 500 de custo: pouco por venda,
+ *      doze vezes por ano numa assinatura.
+ *
+ * `Math.ceil` de propósito: arredondar para baixo entregaria 9,9992% e chamaria
+ * de dez por cento.
+ */
+export function precoQueFechaAMargemMinima(custoCentavos: number): number {
+  return Math.ceil(custoCentavos / (1 - MARGEM_MINIMA_PCT / 100));
+}
 
 /**
  * O preço deste serviço fecha os 10%? `null` quando o custo não é medido — e
@@ -257,7 +305,7 @@ export const MARGEM_MINIMA_PCT = 10;
  */
 export function fechaMargemMinima(s: ServicoDaCasa): boolean | null {
   if (s.custo.estado !== "medido") return null;
-  return s.precoFinalCentavos >= Math.round(s.custo.centavos * (1 + MARGEM_MINIMA_PCT / 100));
+  return s.precoFinalCentavos >= precoQueFechaAMargemMinima(s.custo.centavos);
 }
 
 /** Os serviços que dão prejuízo no preço de tabela, por nome. Lista vazia
@@ -265,6 +313,17 @@ export function fechaMargemMinima(s: ServicoDaCasa): boolean | null {
  *  dois, e o relatório precisa dizer qual dos dois é. */
 export function servicosQueNaoFechamAMargem(): ServicoDaCasa[] {
   return TABELA_DE_PRECOS.filter((s) => fechaMargemMinima(s) === false);
+}
+
+/**
+ * A margem que sobra no piso, em pontos percentuais **do preço**. `null` quando
+ * o custo não é medido — **nunca um número otimista**.
+ */
+export function margemNoPisoPct(s: ServicoDaCasa): number | null {
+  if (s.custo.estado !== "medido") return null;
+  const piso = pisoDoServico(s);
+  if (piso <= 0) return null;
+  return ((piso - s.custo.centavos) / piso) * 100;
 }
 
 /** A margem que sobra no piso. `nao_medido` enquanto o custo tiver buraco. */

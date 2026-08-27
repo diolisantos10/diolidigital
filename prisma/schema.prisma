@@ -2651,6 +2651,24 @@ model PagamentoConfirmado {
 
   createdAt       DateTime @default(now())
 
+
+  /// ── A TAXA DO GATEWAY, MEDIDA (27/08/2026) ────────────────────────────────
+  ///
+  /// O CEO mandou pôr a taxa do Mercado Pago no custo. A casa NÃO a conhecia: não
+  /// havia constante de taxa em lugar nenhum do repositório, e a única fonte
+  /// honesta dela — `fee_details[]` do próprio pagamento, que é o que o provedor
+  /// REALMENTE reteve — era lida pelo webhook e jogada fora.
+  ///
+  /// ⚠️ NULO É "NÃO MEDIDO", NUNCA "TAXA ZERO". `taxaDoGatewayMedida()` só soma
+  /// linhas com número; sem nenhuma, ela devolve `nao_medido` e o piso sobe. Ler
+  /// nulo como zero daria ao negociador margem que não existe — que é exatamente
+  /// o defeito que esta coluna nasce para não deixar acontecer.
+  taxaCentavos    Int?
+
+  /// O que sobrou depois da taxa (`net_received_amount`). Também opcional, também
+  /// nulo = não medido.
+  liquidoCentavos Int?
+
   @@index([confirmadoEm])
 }
 
@@ -2709,4 +2727,133 @@ model IsencaoDeParceria {
   createdAt       DateTime @default(now())
 
   @@index([validaAte])
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// A ASSINATURA RECORRENTE — a agência aprende a cobrar o SEGUNDO mês.
+/// ═══════════════════════════════════════════════════════════════════════════
+///
+/// ─── O DEFEITO QUE ELA FECHA (achado do CEO, 27/08/2026) ───────────────────
+///
+/// A vitrine vende PLANO MENSAL. O código só sabia criar cobrança AVULSA — uma
+/// `preference` de Checkout Pro, que cobra uma vez e acabou. Do segundo mês em
+/// diante a casa **entregava e não recebia**, e ninguém receberia um aviso: não
+/// existe nada que fique vermelho quando um dinheiro simplesmente não chega.
+///
+/// ⛔ E havia um segundo defeito, dentro do primeiro e pior: o portão de
+/// pagamento libera pela EXISTÊNCIA de uma linha em `PagamentoConfirmado`. O
+/// pagamento do mês 1 ficava lá para sempre — logo, do mês 2 ao mês 40, o portão
+/// dizia "pago" para quem parou de pagar no primeiro. A trava fail-closed da
+/// casa tinha um vazamento com data de validade infinita.
+///
+/// Por isso a assinatura é uma tabela própria: ela é o fato "este pedido é
+/// mensal", e é a presença dela que faz o portão passar a exigir a competência
+/// do MÊS CORRENTE em vez de aceitar qualquer pagamento antigo.
+model AssinaturaRecorrente {
+  id                   String   @id @default(cuid())
+
+  /// O pedido que virou assinatura. `@unique` pela mesma razão do pagamento: um
+  /// pedido tem UMA assinatura, e o reenvio do webhook cai na mesma linha.
+  clientRequestId      String   @unique
+
+  clientId             String?
+
+  /// `ritmo` | `presenca` | `conteudo` — o id de `lib/agency/planos.ts`. O preço
+  /// NÃO se digita aqui livremente: `criarAssinatura` o lê da tabela de preços e
+  /// recusa valor abaixo do piso.
+  planoId              String
+
+  /// CENTAVOS. Mesma disciplina do resto da casa.
+  valorCentavos        Int
+  moeda                String   @default("BRL")
+
+  provedor             String   @default("mercadopago")
+
+  /// O `preapproval.id` do provedor. `@unique` — é a segunda chave de
+  /// idempotência: dois avisos do mesmo preapproval nunca viram duas assinaturas.
+  provedorAssinaturaId String   @unique
+
+  /// `pendente` (criada, cliente ainda não autorizou) · `ativa` · `inadimplente`
+  /// (cobrança falhou e o mês corrente não está pago) · `cancelada`.
+  ///
+  /// ⚠️ Nenhum destes estados libera produção sozinho. Quem libera é a COBRANÇA
+  /// do mês corrente. Assinatura `ativa` com o mês não pago **não produz** — é
+  /// justamente o buraco que esta tabela existe para tapar.
+  estado               String
+
+  /// Por que está neste estado, em português. Cancelamento e falha de cobrança
+  /// **não podem virar beco**: o operador precisa saber o que houve.
+  motivoDoEstado       String?
+
+  /// ⚠️ OBRIGATÓRIO. Quem cuida quando a cobrança falha. Inadimplência sem dono
+  /// é cliente parado que ninguém liga — o mesmo princípio de `autorizadaPor`
+  /// na isenção de parceria.
+  dono                 String
+
+  proximaCobrancaEm    DateTime?
+  ultimaCobrancaEm     DateTime?
+
+  /// Quantas cobranças seguidas falharam. Zera a cada aprovação.
+  cobrancasFalhadas    Int      @default(0)
+
+  canceladaEm          DateTime?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  cobrancas            CobrancaRecorrente[]
+
+  @@index([estado])
+  @@index([proximaCobrancaEm])
+}
+
+/// UMA COBRANÇA MENSAL. É esta linha, e só ela, que libera o mês.
+///
+/// ─── AS DUAS TRAVAS DE "NÃO COBRAR DUAS VEZES", E SÃO DIFERENTES ───────────
+///
+///   1. `provedorPagamentoId @unique` — **o webhook reenviado**. O Mercado Pago
+///      reenvia o mesmo aviso por horas quando não recebe 200. Sem esta trava,
+///      cada reenvio viraria uma linha de receita nova e o DRE inflaria sozinho.
+///   2. `@@unique([assinaturaId, competencia])` — **o mês cobrado duas vezes**.
+///      Esta é outra falha: dois pagamentos DIFERENTES (ids diferentes, portanto
+///      a trava 1 não pega) caindo na mesma competência é o cliente pagando
+///      setembro duas vezes. O banco recusa a segunda, e quem grava trata a
+///      recusa devolvendo a linha que já existe.
+///
+/// Uma trava só não bastava — e era a trava 2 que faltaria a quem só pensasse
+/// em reenvio de webhook.
+model CobrancaRecorrente {
+  id                   String   @id @default(cuid())
+
+  assinaturaId         String
+  assinatura           AssinaturaRecorrente @relation(fields: [assinaturaId], references: [id], onDelete: Cascade)
+
+  /// O id do pagamento no provedor. Ver trava 1 acima.
+  provedorPagamentoId  String   @unique
+
+  /// O MÊS que esta cobrança paga, em `AAAA-MM`. Ver trava 2 acima. É por este
+  /// campo que o portão pergunta "o mês corrente está pago?" — não pela data do
+  /// pagamento, que pode chegar adiantada ou atrasada.
+  competencia          String
+
+  valorCentavos        Int
+  moeda                String   @default("BRL")
+
+  /// A taxa do gateway nesta cobrança. Nulo = NÃO MEDIDO, nunca zero.
+  taxaCentavos         Int?
+  liquidoCentavos      Int?
+
+  /// `aprovada` (o dinheiro entrou) · `recusada` (o provedor tentou e falhou).
+  /// ⚠️ Só `aprovada` libera. "Não recusada" não é "paga" — `pending` e
+  /// `in_process` são estados em que o dinheiro ainda não entrou.
+  estado               String
+
+  /// Por que foi recusada, quando foi. É o que o dono lê para agir.
+  motivo               String?
+
+  confirmadoEm         DateTime
+  createdAt            DateTime @default(now())
+
+  @@unique([assinaturaId, competencia])
+  @@index([competencia])
 }

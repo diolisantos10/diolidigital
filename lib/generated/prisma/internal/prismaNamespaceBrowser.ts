@@ -121,7 +121,9 @@ export const ModelName = {
   HeartbeatDoRelogio: 'HeartbeatDoRelogio',
   HandoffV2: 'HandoffV2',
   PagamentoConfirmado: 'PagamentoConfirmado',
-  IsencaoDeParceria: 'IsencaoDeParceria'
+  IsencaoDeParceria: 'IsencaoDeParceria',
+  AssinaturaRecorrente: 'AssinaturaRecorrente',
+  CobrancaRecorrente: 'CobrancaRecorrente'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1407,7 +1409,9 @@ export const PagamentoConfirmadoScalarFieldEnum = {
   confirmadoEm: 'confirmadoEm',
   registradoPor: 'registradoPor',
   observacao: 'observacao',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  taxaCentavos: 'taxaCentavos',
+  liquidoCentavos: 'liquidoCentavos'
 } as const
 
 export type PagamentoConfirmadoScalarFieldEnum = (typeof PagamentoConfirmadoScalarFieldEnum)[keyof typeof PagamentoConfirmadoScalarFieldEnum]
@@ -1427,6 +1431,47 @@ export const IsencaoDeParceriaScalarFieldEnum = {
 } as const
 
 export type IsencaoDeParceriaScalarFieldEnum = (typeof IsencaoDeParceriaScalarFieldEnum)[keyof typeof IsencaoDeParceriaScalarFieldEnum]
+
+
+export const AssinaturaRecorrenteScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
+  planoId: 'planoId',
+  valorCentavos: 'valorCentavos',
+  moeda: 'moeda',
+  provedor: 'provedor',
+  provedorAssinaturaId: 'provedorAssinaturaId',
+  estado: 'estado',
+  motivoDoEstado: 'motivoDoEstado',
+  dono: 'dono',
+  proximaCobrancaEm: 'proximaCobrancaEm',
+  ultimaCobrancaEm: 'ultimaCobrancaEm',
+  cobrancasFalhadas: 'cobrancasFalhadas',
+  canceladaEm: 'canceladaEm',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AssinaturaRecorrenteScalarFieldEnum = (typeof AssinaturaRecorrenteScalarFieldEnum)[keyof typeof AssinaturaRecorrenteScalarFieldEnum]
+
+
+export const CobrancaRecorrenteScalarFieldEnum = {
+  id: 'id',
+  assinaturaId: 'assinaturaId',
+  provedorPagamentoId: 'provedorPagamentoId',
+  competencia: 'competencia',
+  valorCentavos: 'valorCentavos',
+  moeda: 'moeda',
+  taxaCentavos: 'taxaCentavos',
+  liquidoCentavos: 'liquidoCentavos',
+  estado: 'estado',
+  motivo: 'motivo',
+  confirmadoEm: 'confirmadoEm',
+  createdAt: 'createdAt'
+} as const
+
+export type CobrancaRecorrenteScalarFieldEnum = (typeof CobrancaRecorrenteScalarFieldEnum)[keyof typeof CobrancaRecorrenteScalarFieldEnum]
 
 
 export const SortOrder = {

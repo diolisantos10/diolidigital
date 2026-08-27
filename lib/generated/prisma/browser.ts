@@ -633,3 +633,46 @@ export type PagamentoConfirmado = Prisma.PagamentoConfirmadoModel
  * e investimento se mede.*
  */
 export type IsencaoDeParceria = Prisma.IsencaoDeParceriaModel
+/**
+ * Model AssinaturaRecorrente
+ * ═══════════════════════════════════════════════════════════════════════════
+ * A ASSINATURA RECORRENTE — a agência aprende a cobrar o SEGUNDO mês.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * ─── O DEFEITO QUE ELA FECHA (achado do CEO, 27/08/2026) ───────────────────
+ * 
+ * A vitrine vende PLANO MENSAL. O código só sabia criar cobrança AVULSA — uma
+ * `preference` de Checkout Pro, que cobra uma vez e acabou. Do segundo mês em
+ * diante a casa **entregava e não recebia**, e ninguém receberia um aviso: não
+ * existe nada que fique vermelho quando um dinheiro simplesmente não chega.
+ * 
+ * ⛔ E havia um segundo defeito, dentro do primeiro e pior: o portão de
+ * pagamento libera pela EXISTÊNCIA de uma linha em `PagamentoConfirmado`. O
+ * pagamento do mês 1 ficava lá para sempre — logo, do mês 2 ao mês 40, o portão
+ * dizia "pago" para quem parou de pagar no primeiro. A trava fail-closed da
+ * casa tinha um vazamento com data de validade infinita.
+ * 
+ * Por isso a assinatura é uma tabela própria: ela é o fato "este pedido é
+ * mensal", e é a presença dela que faz o portão passar a exigir a competência
+ * do MÊS CORRENTE em vez de aceitar qualquer pagamento antigo.
+ */
+export type AssinaturaRecorrente = Prisma.AssinaturaRecorrenteModel
+/**
+ * Model CobrancaRecorrente
+ * UMA COBRANÇA MENSAL. É esta linha, e só ela, que libera o mês.
+ * 
+ * ─── AS DUAS TRAVAS DE "NÃO COBRAR DUAS VEZES", E SÃO DIFERENTES ───────────
+ * 
+ * 1. `provedorPagamentoId @unique` — **o webhook reenviado**. O Mercado Pago
+ * reenvia o mesmo aviso por horas quando não recebe 200. Sem esta trava,
+ * cada reenvio viraria uma linha de receita nova e o DRE inflaria sozinho.
+ * 2. `@@unique([assinaturaId, competencia])` — **o mês cobrado duas vezes**.
+ * Esta é outra falha: dois pagamentos DIFERENTES (ids diferentes, portanto
+ * a trava 1 não pega) caindo na mesma competência é o cliente pagando
+ * setembro duas vezes. O banco recusa a segunda, e quem grava trata a
+ * recusa devolvendo a linha que já existe.
+ * 
+ * Uma trava só não bastava — e era a trava 2 que faltaria a quem só pensasse
+ * em reenvio de webhook.
+ */
+export type CobrancaRecorrente = Prisma.CobrancaRecorrenteModel

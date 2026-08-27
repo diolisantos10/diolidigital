@@ -66,6 +66,20 @@ export const VINCULOS_SOLTOS = [
   // sem cliente a que responder. Os dois testes-guarda da casa pegaram esta
   // omissão antes do merge, que é exatamente para isso que eles existem.
   { chave: "isencaoDeParceria",      rotulo: "isenções de parceria" },
+  // A assinatura recorrente (27/08/2026). Entra aqui pela MESMA razão da isenção,
+  // e por uma pior: ela é uma COBRANÇA MENSAL VIVA. Fusão que largasse uma
+  // assinatura órfã deixaria o Mercado Pago cobrando todo mês um cliente que não
+  // existe mais na casa — dinheiro entrando sem ninguém a quem entregar, que é o
+  // avesso exato do defeito que a recorrência veio consertar.
+  //
+  // Unicidade por `clientRequestId`, não por `clientId`: um cliente pode ter mais
+  // de um pedido mensal, então ela NÃO é `unicoPorCliente` e as linhas do
+  // absorvido se movem todas.
+  //
+  // ⚠️ As COBRANÇAS caem por cascata da assinatura (`onDelete: Cascade`), então
+  // não têm linha própria aqui — e é por isso que apagar a assinatura não deixa
+  // histórico de pagamento pendurado no vazio.
+  { chave: "assinaturaRecorrente",   rotulo: "assinaturas mensais" },
   // Unicidade por (workspaceId, clientId): não dá para ter dois do mesmo dono.
   { chave: "googleDriveConnection",  rotulo: "conexões do Drive",   unicoPorCliente: true },
   { chave: "clientAiProvider",       rotulo: "provedores de IA",    unicoPorCliente: true },
