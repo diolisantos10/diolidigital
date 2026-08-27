@@ -245,7 +245,7 @@ describe("a lista das conversas paradas", () => {
     // depende deles — segue derivando só do contato declarado.
     const base = {
       fio: "sdr:a", escopo: {}, turnos: 3, paradaEm: new Date(),
-      clienteDoConvite: null, workspaceId: "ws_1",
+      clienteDoConvite: null, atribuicao: null, workspaceId: "ws_1",
     };
 
     expect(proximaAcaoDoRastro({ ...base, contato: { email: "m@x.invalid" } })).toContain("e-mail");

@@ -22,10 +22,19 @@
 // varre os rastros e promove a pedido as conversas que cumprem TRÊS condições
 // ao mesmo tempo — nunca duas:
 //
-//   1. **Parceria VIVA**, do cliente que o SERVIDOR derivou do convite
-//      (`clienteDoConvite` no rastro). Só nesta primeira volta: o parceiro é
-//      quem a casa já autorizou nominalmente, e a pergunta de verba que travou
-//      a conversa dele é irrelevante por definição.
+//   1. **Parceria VIVA**, do cliente que a casa sabe ser o dono do rastro. Só
+//      nesta primeira volta: o parceiro é quem a casa já autorizou
+//      nominalmente, e a pergunta de verba que travou a conversa dele é
+//      irrelevante por definição.
+//
+//      O dono sai de `donoDeclaradoDoRastro` (régua pura), e ele tem DUAS
+//      fontes, ambas verdade de dentro da casa: o `clienteDoConvite` derivado
+//      pelo servidor do token, e a `atribuicao` declarada por um operador com
+//      sessão de agência. A segunda foi acrescentada em 28/08 porque o rastro
+//      do primeiro cliente real é **v1** e não carrega o convite — sem ela, o
+//      cliente que este arquivo existe para salvar era justamente o que ficava
+//      de fora. ⛔ Nenhuma terceira fonte: continua PROIBIDO deduzir dono do
+//      e-mail digitado no chat.
 //   2. **Escopo que já dá para orçar** — a régua pura
 //      (`regua-da-conversa-completa.ts`), que devolve pendência NOMEADA quando
 //      falta algo. *Metade de briefing virando pedido é pior que pedido nenhum:
@@ -70,6 +79,7 @@
 
 import { conversaJaDaParaOrcar, fraseDaPendencia } from "@/lib/agency/comercial/regua-da-conversa-completa";
 import { conversasSemPedido, resolverRastroPeloFio, type RastroDaConversa } from "@/lib/agency/comercial/conversa-sem-pedido";
+import { donoDeclaradoDoRastro } from "@/lib/agency/comercial/dono-do-rastro";
 import { parceriaVivaDoCliente, derivarIsencaoDoPedido } from "@/lib/agency/financeiro/parceria-do-parceiro";
 import { createClientRequest } from "@/lib/agency/persistence/client-request-service";
 import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
@@ -160,11 +170,23 @@ export async function promoverConversasParadas(
   for (const rastro of rastros) {
     try {
       // ── 1. PARCERIA VIVA, OU NADA ────────────────────────────────────────
-      // `clienteDoConvite` é o cliente que o servidor DERIVOU do token do
-      // convite. Ausente (rastro v1, ou visitante sem convite) → não se
-      // adivinha de quem é a conversa.
-      if (!rastro.clienteDoConvite) { r.semParceria++; continue; }
-      const parceria = await parceriaVivaDoCliente(rastro.clienteDoConvite, agora);
+      // DUAS fontes de dono, e as DUAS são verdade de dentro da casa:
+      // `clienteDoConvite`, derivado pelo servidor do token do convite; e a
+      // `atribuicao`, DECLARADA por um operador com sessão de agência que
+      // responde pelo ato (`atribuir-conversa-orfa.ts`). A segunda existe
+      // porque o rastro do primeiro cliente real é **v1** e não sabe de quem
+      // é — e fazer o cliente repetir o briefing seria inaceitável.
+      //
+      // ⛔ Nenhuma terceira fonte. Continua PROIBIDO deduzir dono do e-mail
+      // digitado no chat: bastaria um visitante escrever o e-mail de um
+      // parceiro. A régua é a mesma de sempre — só a origem do `clientId`
+      // ganhou uma segunda porta, e ela também é confiável.
+      //
+      // Sem nenhuma das duas (rastro v1 não atribuído, visitante anônimo) →
+      // não se adivinha de quem é a conversa. Fail-closed.
+      const dono = donoDeclaradoDoRastro(rastro);
+      if (!dono) { r.semParceria++; continue; }
+      const parceria = await parceriaVivaDoCliente(dono.clientId, agora);
       if (!parceria) { r.semParceria++; continue; }
 
       // ── 2. A RÉGUA DO "JÁ DÁ PARA ATENDER" ───────────────────────────────
@@ -192,6 +214,14 @@ export async function promoverConversasParadas(
           conversaParadaEm: rastro.paradaEm.toISOString(),
           promovidoEm: agora.toISOString(),
           parceriaAutorizadaPor: parceria.autorizadaPor,
+          // ── A TRILHA QUE SOBREVIVE AO RASTRO ────────────────────────────
+          // O rastro é APAGADO três linhas abaixo (`resolverRastroPeloFio`).
+          // Sem esta cópia, a resposta para "por que este pedido é do FOOCCI?"
+          // morreria junto com ele. `donoDeclaradoPor` diz QUAL das duas
+          // portas respondeu; `atribuicao` traz quem declarou, quando e sobre
+          // qual fio — quando foi a casa que disse.
+          donoDeclaradoPor: dono.origem,
+          atribuicao: dono.atribuicao,
         },
       };
       const contato = lerContato({ briefingJson });

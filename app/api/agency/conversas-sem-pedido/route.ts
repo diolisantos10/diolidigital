@@ -50,6 +50,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         paradaEm: r.paradaEm.toISOString(),
         contato: r.contato,
         escopo: r.escopo,
+        // De quem a conversa é, quando a casa sabe. `clienteDoConvite` é o
+        // cliente DERIVADO do token; `atribuicao` é o ato DECLARADO por um
+        // operador (`POST .../atribuir`). Ambos aparecem aqui porque quem vai
+        // atribuir precisa ver o que já está atribuído — atribuir às cegas é
+        // como nasce a reatribuição por engano.
+        clienteDoConvite: r.clienteDoConvite,
+        atribuicao: r.atribuicao,
         // O dono é sempre o mesmo e é dito em voz alta: conversa parada na sala
         // é trabalho de quem atende, não da esteira. A esteira não retoma
         // conversa — ela não tem como, e fingir que tem é a promessa falsa que

@@ -62,6 +62,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { fioDaConversa } from "@/lib/agency/comercial/registro-da-conversa";
+import { atribuicaoValida, type AtribuicaoDaCasa } from "@/lib/agency/comercial/dono-do-rastro";
 
 /** O tipo do evento. Uma constante porque é lido em três lugares, e verdade
  *  escrita em três lugares já está errada em dois. */
@@ -94,17 +95,23 @@ export type RastroDaConversa = {
   /** De quem é a conversa, quando o SERVIDOR conseguiu derivar — ver
    *  `clienteDoConvite` na carga. `null` é o caso comum (visitante anônimo). */
   clienteDoConvite: string | null;
+  /** De quem a CASA declarou que é a conversa, por ato de um operador com
+   *  sessão de agência (`atribuir-conversa-orfa.ts`). É a segunda — e única
+   *  outra — fonte honesta de dono, para os rastros v1 que não sabem de quem
+   *  são. `null` é o caso comum. */
+  atribuicao: AtribuicaoDaCasa | null;
   /** A quem a parada pertence. Necessário para o pedido nascer com dono. */
   workspaceId: string;
 };
 
 /** O que sai gravado no `message`. Formato próprio e versionado: um leitor de
  *  amanhã precisa saber que forma está lendo antes de confiar nela. */
-type CargaDoRastro = {
-  /** `1` é a forma original (sem `clienteDoConvite`); `2` a acrescenta. As duas
-   *  continuam sendo lidas: um rastro gravado ontem não pode virar ilegível
-   *  hoje — ele é justamente o cliente que a casa já quase perdeu uma vez. */
-  v: 1 | 2;
+export type CargaDoRastro = {
+  /** `1` é a forma original (sem `clienteDoConvite`); `2` a acrescenta; `3`
+   *  acrescenta `atribuicao`. As TRÊS continuam sendo lidas: um rastro gravado
+   *  ontem não pode virar ilegível hoje — ele é justamente o cliente que a casa
+   *  já quase perdeu uma vez, e é um v1 que este conserto veio salvar. */
+  v: 1 | 2 | 3;
   escopo: Record<string, unknown>;
   contato: ContatoDoRastro | null;
   turnos: number;
@@ -124,6 +131,18 @@ type CargaDoRastro = {
    * promoção automática exige para NÃO agir. Fail-closed.
    */
   clienteDoConvite?: string | null;
+  /**
+   * ═══ O ATO DECLARADO PELA CASA ═════════════════════════════════════════
+   *
+   * Escrito EXCLUSIVAMENTE por `atribuirRastroAoCliente`, chamada de uma rota
+   * com sessão de AGÊNCIA. Nunca chega pelo corpo da rota pública do SDR: o
+   * turno do chat sequer conhece este campo, e `guardarRastroDaConversa` o
+   * PRESERVA do que já estava gravado em vez de aceitar um valor novo — ver a
+   * leitura da carga existente lá embaixo.
+   *
+   * Declarar não é deduzir: a diferença está por extenso em `dono-do-rastro.ts`.
+   */
+  atribuicao?: AtribuicaoDaCasa | null;
 };
 
 /** Só os três campos que a PESSOA declara. Copiar o objeto inteiro do corpo da
@@ -137,6 +156,26 @@ function contatoLimpo(bruto: unknown): ContatoDoRastro | null {
   if (texto(b.email))    contato.email    = texto(b.email);
   if (texto(b.whatsapp)) contato.whatsapp = texto(b.whatsapp);
   return Object.keys(contato).length > 0 ? contato : null;
+}
+
+/**
+ * A CARGA, LIDA DE UMA VEZ SÓ — usada pela listagem e pela atribuição.
+ *
+ * Uma segunda cópia deste `JSON.parse` em outro arquivo seria uma segunda régua
+ * de "que forma é esta", e duas réguas divergem na primeira versão nova. Carga
+ * ilegível vira `null`: quem chama decide o que fazer com "não sei ler", e
+ * nenhum caminho trata `null` como permissão.
+ */
+export function lerCargaDoRastro(message: string): CargaDoRastro | null {
+  try {
+    const bruto = JSON.parse(message) as unknown;
+    if (!bruto || typeof bruto !== "object") return null;
+    const v = (bruto as CargaDoRastro).v;
+    if (v !== 1 && v !== 2 && v !== 3) return null;
+    return bruto as CargaDoRastro;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -184,16 +223,6 @@ export async function guardarRastroDaConversa(input: {
   if (Object.keys(escopo).length === 0) return false;
 
   const cliente = typeof input.clienteDoConvite === "string" ? input.clienteDoConvite.trim() : "";
-  const carga: CargaDoRastro = {
-    v: 2,
-    escopo,
-    contato: contatoLimpo(input.contato),
-    turnos: typeof input.turnos === "number" && input.turnos > 0 ? Math.floor(input.turnos) : 1,
-    // Ausente vira `null`, nunca string vazia: `null` é "não sei de quem é", e
-    // é o valor que a promoção automática lê como "não agir".
-    clienteDoConvite: cliente || null,
-  };
-  const message = JSON.stringify(carga).slice(0, TETO_DA_CARGA);
 
   try {
     // Um por fio. `findFirst` + `update`/`create` em vez de `upsert` porque
@@ -202,8 +231,32 @@ export async function guardarRastroDaConversa(input: {
     // sobre índice já resolvem.
     const existente = await prisma.activityEvent.findFirst({
       where: { type: TIPO_CONVERSA_SEM_PEDIDO, clientId: fio },
-      select: { id: true },
+      select: { id: true, message: true },
     });
+
+    // ⚠️ A ATRIBUIÇÃO DA CASA SOBREVIVE AO PRÓXIMO TURNO.
+    //
+    // Este `update` reescreve a carga inteira. Sem esta linha, um operador
+    // atribuiria a conversa órfã e o turno seguinte do cliente — ou uma aba
+    // esquecida aberta — apagaria o ato em silêncio, sem ninguém saber. A
+    // atribuição NÃO chega por `input`: ela só pode ser preservada do que já
+    // estava gravado, o que também é a trava de que a rota pública do SDR não
+    // consegue escrevê-la nem por acidente.
+    const anterior = existente ? lerCargaDoRastro(existente.message) : null;
+    const atribuicao = atribuicaoValida(anterior?.atribuicao);
+
+    const carga: CargaDoRastro = {
+      v: 3,
+      escopo,
+      contato: contatoLimpo(input.contato),
+      turnos: typeof input.turnos === "number" && input.turnos > 0 ? Math.floor(input.turnos) : 1,
+      // Ausente vira `null`, nunca string vazia: `null` é "não sei de quem é", e
+      // é o valor que a promoção automática lê como "não agir".
+      clienteDoConvite: cliente || null,
+      atribuicao,
+    };
+    const message = JSON.stringify(carga).slice(0, TETO_DA_CARGA);
+
     if (existente) {
       await prisma.activityEvent.update({
         where: { id: existente.id },
@@ -308,17 +361,10 @@ export async function conversasSemPedido(
 
   const rastros: RastroDaConversa[] = [];
   for (const l of linhas) {
-    let carga: CargaDoRastro | null = null;
-    try {
-      const bruto = JSON.parse(l.message) as unknown;
-      const v = bruto && typeof bruto === "object" ? (bruto as CargaDoRastro).v : null;
-      if (v === 1 || v === 2) carga = bruto as CargaDoRastro;
-    } catch {
-      // Carga ilegível não derruba a lista inteira: uma linha corrompida
-      // esconderia todas as outras conversas perdidas, que é o contrário do
-      // motivo desta função existir.
-      carga = null;
-    }
+    // Carga ilegível não derruba a lista inteira: uma linha corrompida
+    // esconderia todas as outras conversas perdidas, que é o contrário do
+    // motivo desta função existir.
+    const carga = lerCargaDoRastro(l.message);
     if (!carga) continue;
     rastros.push({
       fio: l.clientId ?? "",
@@ -331,6 +377,9 @@ export async function conversasSemPedido(
       clienteDoConvite: typeof carga.clienteDoConvite === "string" && carga.clienteDoConvite
         ? carga.clienteDoConvite
         : null,
+      // Conferida campo a campo pela régua pura: meia atribuição não é
+      // atribuição, e uma forma que não confere não vira dono.
+      atribuicao: atribuicaoValida(carga.atribuicao),
       workspaceId: l.workspaceId,
     });
   }
