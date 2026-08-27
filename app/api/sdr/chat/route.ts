@@ -88,6 +88,8 @@ import { guardarRastroDaConversa } from "@/lib/agency/comercial/conversa-sem-ped
 // teste não pode morar num arquivo com essa restrição. Ver o cabeçalho do
 // módulo novo para o raciocínio completo.
 import { sistemaDoSdr } from "@/lib/agency/comercial/prompt-do-sdr";
+import { blocoDoParceiro } from "@/lib/agency/comercial/prompt-do-sdr";
+import { resolverConviteDeParceria } from "@/lib/agency/comercial/convite-de-parceria";
 // "malformado" sozinho é um nome, não um achado — ver o cabeçalho do módulo.
 // Ele devolve FORMA (houve `{`? sobrou texto fora? onde o parser desistiu?),
 // nunca uma letra do que o modelo escreveu.
@@ -148,6 +150,13 @@ interface ChatRequest {
    * informado seria um id que qualquer pessoa digita.
    */
   propostaToken?: unknown;
+  /**
+   * O CONVITE DO PARCEIRO. ⚠️ É um token que a CASA cunhou — o servidor resolve
+   * quem é o cliente A PARTIR dele e confere a isenção viva. Nada aqui é
+   * acreditado: um convite desconhecido, vencido ou revogado vale exatamente o
+   * mesmo que nenhum, e o visitante segue anônimo.
+   */
+  convite?: unknown;
 }
 
 /**
@@ -717,9 +726,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       console.warn(`[sdr/chat] contexto da negociação não carregou: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
-  const sistemaDaVez = blocoDaNegociacao
-    ? `${sistemaDoSdr()}\n\n${blocoDaNegociacao}`
-    : sistemaDoSdr();
+  // ── O CONVITE DO PARCEIRO, RESOLVIDO PELO SERVIDOR (27/08/2026) ───────────
+  //
+  // MEDIDO ÀS 13:43: o interlocutor do primeiro cliente real disse o que
+  // precisava e o SDR respondeu perguntando quanto ele pretende investir por
+  // mês. A conversa parou ali e nenhum pedido nasceu. Ele entra por PARCERIA e
+  // não paga nada — a pergunta que travou o pedido dele é a única que a
+  // parceria torna irrelevante.
+  //
+  // ⚠️ A parceria NÃO se adivinha, e a fonte NÃO é o corpo: `resolver` recebe o
+  // token e devolve o cliente e a isenção VIVA. Convite ausente, desconhecido,
+  // vencido ou revogado → `null` → visitante anônimo, e a verba continua sendo
+  // perguntada. É o comportamento seguro e é o de sempre.
+  const conviteDoParceiro = await resolverConviteDeParceria(body.convite);
+
+  const sistemaDaVez = [
+    sistemaDoSdr(),
+    blocoDaNegociacao || null,
+    conviteDoParceiro ? blocoDoParceiro(conviteDoParceiro.parceria.autorizadaPor) : null,
+  ].filter(Boolean).join("\n\n");
 
   // ─── FREIO POR `sessionId` — parecer do `seguranca`, 16/08/2026 ────────────
   //

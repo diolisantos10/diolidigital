@@ -186,6 +186,9 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     // um pedido novo herdaria o direito de produzir de graça de um cliente que
     // não existe mais. O teste-guarda desta casa exigiu esta linha.
     await tx.isencaoDeParceria.deleteMany({});
+    // Convite é credencial ligada a cliente: inauguração que deixasse convites
+    // para trás entregaria a casa nova com chaves da casa velha na rua.
+    await tx.conviteDeParceria.deleteMany({});
     // A ASSINATURA RECORRENTE (27/08/2026), e a sobra dela é de outro tipo — pior.
     // A isenção sobrevivente libera produção de graça; a assinatura sobrevivente
     // libera produção com a competência de um cliente que não existe mais, E

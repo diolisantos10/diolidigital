@@ -275,6 +275,21 @@ export interface ConvState {
    * como zero, que é a verdade: nada foi contado.
    */
   perguntasFeitas?: Record<string, number>;
+  /**
+   * A PARCERIA DECLARADA desta conversa — quando existe uma, e válida.
+   *
+   * ⚠️ MORA AQUI, E **NÃO** EM `scope`, POR UMA RAZÃO DE SEGURANÇA (27/08/2026).
+   * `scope` chega no CORPO da requisição do SDR (`body.scope`) — o visitante
+   * escreve o que quiser nele. Um campo de parceria dentro do escopo seria uma
+   * chave que qualquer pessoa digita: bastaria mandar `parceria: true` para
+   * pular a pergunta da verba, e a régua que existe para a casa não mandar
+   * preço errado cairia por uma linha de JSON.
+   *
+   * Este campo é preenchido pelo SERVIDOR, a partir de `IsencaoDeParceria`
+   * (ver `comercial/parceria-declarada.ts`). Ausente = a casa NÃO SABE que é
+   * parceria, e continua perguntando a verba — que é o comportamento de sempre.
+   */
+  parceriaDeclarada?: { autorizadaPor: string; validaAte: Date } | null;
   isFirstMessage: boolean;
   estimate: LiveEstimate;
   canSubmit: boolean;
