@@ -30,6 +30,8 @@ import {
   contextoDaNegociacao, servicoDaProposta, falaQueRespeitaOPiso,
 } from "@/lib/agency/comercial/negociacao-da-proposta";
 import type { ServicoDaCasa } from "@/lib/agency/financeiro/tabela-de-precos";
+import { parceriaVivaDoCliente } from "@/lib/agency/financeiro/parceria-do-parceiro";
+import type { IsencaoVisivel } from "@/lib/agency/comercial/aviso-de-isencao";
 import { NextRequest, NextResponse } from "next/server";
 // O TETO SAIU DA MEMÓRIA DO PROCESSO E FOI PARA O BANCO (raio-x de 05/08/2026).
 // `rateLimited` zerava em todo deploy e não atravessava réplica — numa casa em
@@ -723,11 +725,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         if (pedido && e) {
           servicoDaNegociacao = servicoDaProposta(e.totalMin, e.totalMax);
           const aviso = await avisoDeAgendamentoManual();
+          // ── O SDR NÃO NEGOCIA PREÇO COM QUEM NÃO PAGA (27/08/2026) ───────
+          //
+          // A parceria vem da MESMA fonte que o portão de pagamento consulta, e
+          // do `clientId` que ESTE servidor acabou de derivar do token — nunca
+          // do corpo, nunca do que o visitante escreveu. Vencida, revogada ou
+          // banco fora do ar → `null` → o SDR de sempre, com piso e degraus.
+          const p = await parceriaVivaDoCliente(pedido.clientId).catch(() => null);
+          const isento: IsencaoVisivel | null = p
+            ? { autorizadaPor: p.autorizadaPor, validaAte: p.validaAte.toISOString(), escopo: p.escopo }
+            : null;
           blocoDaNegociacao = contextoDaNegociacao({
             negocio: pedido.businessName ?? "",
             servico: servicoDaNegociacao,
-            textoDaProposta: textoDoOrcamento(pedido.businessName ?? "", e, null, aviso),
+            textoDaProposta: textoDoOrcamento(pedido.businessName ?? "", e, null, aviso, isento),
             avisoDeAgendamento: aviso,
+            isento,
           });
         }
       }

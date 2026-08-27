@@ -34,6 +34,8 @@ import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-ser
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { textoDoOrcamento, estimativaEntregue } from "@/lib/agency/esteira/orcamento-do-briefing";
 import { STATUS_ACEITO, ESPERANDO_DECISAO_DA_PROPOSTA } from "@/lib/agency/esteira/caminho-automatico";
+import { parceriaVivaDoCliente } from "@/lib/agency/financeiro/parceria-do-parceiro";
+import type { IsencaoVisivel } from "@/lib/agency/comercial/aviso-de-isencao";
 
 export const dynamic = "force-dynamic";
 
@@ -78,10 +80,36 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const aviso = await avisoDeAgendamentoManual();
 
+  // ═══ A ISENÇÃO POR PARCERIA — A FECHADURA QUE FALTAVA (27/08/2026) ════════
+  //
+  // Medido: `grep -rn "parceria" app/proposta/` devolvia ZERO. O portão de
+  // pagamento já liberava a esteira com `parceria_isenta`, e o parceiro abria
+  // ESTA página e via preço e um botão de aceitar como qualquer pagante. A
+  // trava existia; nada que o cliente vê a chamava.
+  //
+  // ⚠️ A VERDADE VEM DO SERVIDOR, e de uma fonte só: `parceriaVivaDoCliente`,
+  // a mesma que o portão consulta. O `clientId` é DERIVADO do pedido que o
+  // token apontou — nunca do corpo, nunca de um parâmetro, nunca do que o
+  // visitante escreve. Não há o que forjar porque não há o que passar.
+  //
+  // ⛔ FAIL-CLOSED: `parceriaVivaDoCliente` devolve `null` para parceria
+  // inexistente, revogada, VENCIDA (a validade é conferida a cada leitura, não
+  // uma vez) e para banco fora do ar. Todo `null` vira `isencaoDeParceria:
+  // null`, e a tela desenha o cliente pagante de sempre. *"Não sei" nunca vira
+  // "isento".*
+  const parceria = await parceriaVivaDoCliente(pedido.clientId);
+  const isencaoDeParceria: IsencaoVisivel | null = parceria
+    ? {
+        autorizadaPor: parceria.autorizadaPor,
+        validaAte: parceria.validaAte.toISOString(),
+        escopo: parceria.escopo,
+      }
+    : null;
+
   return NextResponse.json({
     negocio: pedido.businessName ?? "",
     // Sem link: quem lê isto JÁ está na página da proposta.
-    texto: textoDoOrcamento(pedido.businessName ?? "", e, null, aviso),
+    texto: textoDoOrcamento(pedido.businessName ?? "", e, null, aviso, isencaoDeParceria),
     // ⚠️ O AVISO SAI TAMBÉM COMO CAMPO PRÓPRIO, e não só dentro do texto.
     //
     // Dentro do corpo ele é uma linha no meio de um bloco longo, e o cliente
@@ -90,6 +118,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // colado nos botões. `null` quando a publicação automática já existe: aí
     // não há o que avisar, e o bloco some sozinho.
     avisoDeAgendamento: aviso,
+    // ⚠️ CAMPO PRÓPRIO, e não só a linha dentro do texto — pela mesma razão do
+    // aviso de agendamento logo acima: dentro do corpo ele é uma linha no meio
+    // de um bloco longo, e o cliente decide olhando o topo e os botões. É este
+    // campo que deixa a tela desenhar o aviso destacado, ANTES do número.
+    isencaoDeParceria,
     decidivel: ESPERANDO_DECISAO.includes(pedido.status),
     status: pedido.status,
     jaAceito: pedido.status === STATUS_ACEITO,

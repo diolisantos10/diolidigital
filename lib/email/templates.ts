@@ -32,6 +32,10 @@ import {
   blocoDeBotao, blocoDeTexto, blocoRotulado, esc, moldeDoEmail,
 } from "@/lib/email/molde";
 import { CORES } from "@/lib/marca";
+// A frase da isenção mora em UM lugar (`aviso-de-isencao.ts`, texto puro, sem
+// banco), e é o mesmo lugar de onde a página da proposta lê. Duas cópias da
+// mesma promessa já estão diferentes na semana em que uma muda.
+import { LINHA_DE_ISENCAO_NO_EMAIL } from "@/lib/agency/comercial/aviso-de-isencao";
 
 export { esc };
 
@@ -127,6 +131,24 @@ export interface OrcamentoProntoInput {
    * diferença, mostra o que cabe e negocia é a conversa do portal.
    */
   verbaEstourada?: boolean;
+  /**
+   * Este cliente entra por PARCERIA VIVA e não paga nada.
+   *
+   * ── Por que existe (27/08/2026) ────────────────────────────────────────
+   * Medido: `grep -rn "parceria" lib/email/templates.ts` → ZERO. O parceiro
+   * recebia este mesmo e-mail — "seu orçamento está pronto" —, clicava, e
+   * encontrava preço e um botão de aceitar como qualquer pagante. A casa sabia
+   * que ele não paga e não contava a ele em lugar nenhum.
+   *
+   * ⛔ É UM BOOLEANO DE PROPÓSITO, e isso é a trava: um campo com valor,
+   * validade ou escopo seria um campo que alguém volta a preencher com número
+   * — a mesma razão pela qual `faixa` deixou de ser parâmetro desta função. O
+   * e-mail diz que é isento; **não diz preço**.
+   *
+   * Ausente/`false` = cliente pagante, e o e-mail sai exatamente como saía.
+   * Quem decide é `parceriaVivaDoCliente`, no servidor.
+   */
+  isentoPorParceria?: boolean;
 }
 
 export function orcamentoProntoEmail(input: OrcamentoProntoInput): {
@@ -157,7 +179,19 @@ export function orcamentoProntoEmail(input: OrcamentoProntoInput): {
     ),
   ];
 
-  if (input.verbaEstourada) {
+  // ── A ISENÇÃO VEM ANTES DE TUDO O MAIS (27/08/2026) ──────────────────────
+  // É a primeira coisa que o parceiro tem de ler, e por isso é o primeiro bloco
+  // depois da abertura: quem clica no botão sem ter lido isto abre a página
+  // achando que vai encontrar uma cobrança.
+  if (input.isentoPorParceria) {
+    corpo.push(blocoDeTexto(LINHA_DE_ISENCAO_NO_EMAIL));
+  }
+
+  // ⚠️ A VERBA NÃO É ASSUNTO DE QUEM NÃO PAGA. Dizer a um parceiro isento que
+  // o escopo passou da verba dele é cobrar com outras palavras, na linha
+  // seguinte à que promete que nada será cobrado — as duas frases juntas se
+  // desmentem, e o cliente fica com a pior das duas.
+  if (input.verbaEstourada && !input.isentoPorParceria) {
     corpo.push(
       blocoDeTexto(
         "Você comentou uma verba mais enxuta do que o escopo que a gente montou — isso está nomeado lá na conversa, junto do que cabe no seu momento. Preferimos conversar sobre isso com você do que mandar um número solto.",
