@@ -41,10 +41,15 @@ export type PedidoDeIsencao = {
   /** Teto de custo de IA, em centavos de dólar. Zero é ZERO, nunca "liberado". */
   tetoDeIaCentavosUsd: number;
   observacao?: string | null;
+  /**
+   * QUEM APERTOU O BOTÃO. Sai da SESSÃO na rota, nunca do corpo — ver o bloco
+   * na migração. Ausente no caminho por script, onde não há sessão.
+   */
+  registradaPor?: string | null;
 };
 
 export type ResultadoDaConcessao =
-  | { ok: true; id: string; validaAte: Date }
+  | { ok: true; id: string; validaAte: Date; jaExistia: boolean }
   | { ok: false; motivo: string; recusa: string };
 
 function recusar(recusa: string, motivo: string): ResultadoDaConcessao {
@@ -81,6 +86,7 @@ export async function concederIsencaoDeParceria(
   pedido: PedidoDeIsencao,
   agora: Date = new Date(),
 ): Promise<ResultadoDaConcessao> {
+  const registradaPor = textoUtil(pedido.registradaPor);
   const clientRequestId = textoUtil(pedido.clientRequestId);
   if (!clientRequestId) return recusar("sem_pedido", "isenção sem pedido não isenta nada");
 
@@ -163,17 +169,62 @@ export async function concederIsencaoDeParceria(
         pecasContratadas,
         tetoDeIaCentavosUsd,
         observacao: textoUtil(pedido.observacao) ?? null,
+        // QUEM APERTOU O BOTÃO. Vem da SESSÃO na rota, nunca do corpo — ver a
+        // migração `20260827190000_quem_concedeu_a_isencao`. Nulo no caminho
+        // por script, onde não há sessão: nulo significa "não veio pela rota",
+        // NUNCA "sem dono" — `autorizadaPor` é obrigatório nos dois caminhos.
+        registradaPor,
       },
       select: { id: true, validaAte: true },
     });
-    return { ok: true, id: criada.id, validaAte: criada.validaAte };
+
+    return { ok: true, id: criada.id, validaAte: criada.validaAte, jaExistia: false };
   } catch (e) {
-    // `clientRequestId` é `@unique`: a segunda concessão para o mesmo pedido
-    // cai aqui. Isso é recusa com nome, não erro — renovar é OUTRO ato.
     const msg = e instanceof Error ? e.message : "erro";
-    if (/unique|constraint/i.test(msg)) {
+    if (!/unique|constraint/i.test(msg)) {
+      return recusar("escrita_falhou", `não consegui gravar a isenção (${msg})`);
+    }
+
+    // ─── IDEMPOTÊNCIA, e ela é PRECISA ────────────────────────────────────
+    // `clientRequestId` é `@unique`, então uma segunda linha NUNCA nasce — isso
+    // já estava garantido. O que se decide aqui é o que RESPONDER.
+    //
+    // Repetir a MESMA concessão (rede caiu, operador clicou duas vezes) tem de
+    // devolver sucesso: senão o operador vê um erro, acredita que não concedeu,
+    // e vai procurar outro caminho — que é como se inventa contorno.
+    //
+    // Repetir com termos DIFERENTES (outra validade, outro teto) NÃO é
+    // idempotência: é uma tentativa de alterar uma isenção já auditada, e ela
+    // é recusada. Responder "ok" aqui seria a casa dizendo que gravou o que
+    // não gravou — o pior modo de falha possível numa trava de gasto.
+    let atual: { id: string; validaAte: Date; escopo: string; pecasContratadas: number; tetoDeIaCentavosUsd: number; autorizadaPor: string } | null = null;
+    try {
+      atual = await prisma.isencaoDeParceria.findUnique({
+        where: { clientRequestId },
+        select: { id: true, validaAte: true, escopo: true, pecasContratadas: true, tetoDeIaCentavosUsd: true, autorizadaPor: true },
+      });
+    } catch {
+      atual = null;
+    }
+    if (!atual) {
       return recusar("ja_existe", `o pedido ${clientRequestId} já tem isenção — renovar é outro ato, não uma segunda linha`);
     }
-    return recusar("escrita_falhou", `não consegui gravar a isenção (${msg})`);
+
+    const iguais =
+      atual.autorizadaPor === autorizadaPor &&
+      atual.escopo === escopo &&
+      atual.pecasContratadas === pecasContratadas &&
+      atual.tetoDeIaCentavosUsd === tetoDeIaCentavosUsd &&
+      atual.validaAte instanceof Date &&
+      atual.validaAte.getTime() === validaAte.getTime();
+
+    if (iguais) return { ok: true, id: atual.id, validaAte: atual.validaAte, jaExistia: true };
+
+    return recusar(
+      "ja_existe_com_outros_termos",
+      `o pedido ${clientRequestId} já tem isenção, com termos DIFERENTES dos enviados ` +
+        `(vale até ${atual.validaAte.toISOString().slice(0, 10)}, autorizada por ${atual.autorizadaPor}). ` +
+        "Alterar uma isenção auditada não é conceder — renovar é outro ato, e precisa de dono próprio.",
+    );
   }
 }

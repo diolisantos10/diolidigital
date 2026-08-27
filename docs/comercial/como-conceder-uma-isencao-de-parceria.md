@@ -1,15 +1,32 @@
 # Como conceder uma isenção de parceria
 
-> **Instrução gêmea da proibição.** A concessão **não é rota HTTP** — é decisão
-> declarada (libera produção de graça; uma porta dessas na internet custa o
-> crédito da casa, que é finito e sem recarga automática). *Toda proibição
-> precisa da instrução gêmea*: se não se pode clicar, tem que estar escrito como
-> se faz.
+> Há **dois caminhos**, e os dois exigem gente: a **rota da agência** (o normal)
+> e o **script** (para quem já está no ambiente).
+
+## ⚠️ Correção de rumo, registrada — 27/08/2026
+
+A primeira versão deste documento dizia que a concessão **não era rota HTTP**,
+"por decisão". A decisão estava **errada**, e o erro tem nome: é o mesmo padrão
+que esta casa caçou duas vezes na mesma noite — **trava construída sem
+fechadura**. O resultado literal foi *"não concedi porque não alcanço o banco"*.
+
+**Porta que só existe em documento é pior que porta nenhuma, porque parece
+resolvida.**
+
+O precedente certo já estava aqui: `POST /api/admin/pagamentos` registra um Pix
+recebido fora do gateway — ato administrativo sensível, que move a trava de
+dinheiro — e é uma rota da agência **com sessão, CSRF e dono na linha**. Nunca
+foi considerado furar a trava, porque **é auditado e tem dono**. A concessão de
+parceria é da mesma natureza e recebeu a mesma porta.
+
+*Onde duas leituras são defensáveis, a casa fica com a que protege* — e a que
+protege é a que **funciona com auditoria**, não a que não funciona.
 
 ## Quem faz
 
-**Um humano com acesso ao ambiente de produção.** Não há automação, e é de
-propósito: a concessão é ato **nominal, raro e revisável**.
+**Uma pessoa com sessão de agência** (master, PM ou direção). A concessão é ato
+**nominal, raro e revisável** — nunca automática, nunca pelo cliente, nunca por
+token de portal.
 
 ## O que você precisa ter em mãos, antes de começar
 
@@ -26,7 +43,33 @@ propósito: a concessão é ato **nominal, raro e revisável**.
 silenciosa de escancarar a porta: quem esquece o teto receberia um teto em vez
 de um erro, e a casa descobriria no extrato.
 
-## Passo a passo
+## Caminho 1 — a rota da agência (o normal)
+
+`POST /api/admin/isencoes-de-parceria`, autenticado com sessão de agência, do
+próprio navegador que está logado no painel:
+
+```json
+{
+  "clientRequestId": "<id do pedido>",
+  "autorizadaPor": "Dioli Santos (CEO) — D-0B9",
+  "validaAte": "2026-11-27",
+  "escopo": "Social Media — parceria de lançamento, cliente 001",
+  "pecasContratadas": 12,
+  "tetoDeIaCentavosUsd": 200
+}
+```
+
+As guardas, iguais às de `/api/admin/pagamentos`:
+
+| guarda | o que faz |
+|---|---|
+| **sessão de agência** | sessão de portal (com `clientId`) recebe **403** — o cliente não declara a própria isenção |
+| **CSRF** | mutação cross-site recebe **403**: isto libera gasto real |
+| **dono da sessão** | `registradaPor` sai da **sessão**, nunca do corpo. `autorizadaPor` é a *fonte* da autorização e é digitada — um campo que o operador escolhe não pode ser a única testemunha |
+| **fail-closed** | faltou campo, **não concede**. Nada é escrito antes de todas as conferências passarem |
+| **idempotente** | repetir a **mesma** concessão devolve **200** com `jaExistia: true` e não altera nada. Repetir com termos **diferentes** devolve **409** — alterar isenção auditada não é conceder |
+
+## Caminho 2 — o script
 
 **1. Ache o id do pedido.** É o `ClientRequestDb.id` do pedido do parceiro
 (um `cuid`). Ele aparece no painel da agência, na ficha do pedido, e nos alarmes

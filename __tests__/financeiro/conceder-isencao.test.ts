@@ -9,7 +9,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const db = vi.hoisted(() => ({
   clientRequestDb: { findUnique: vi.fn() },
-  isencaoDeParceria: { create: vi.fn() },
+  isencaoDeParceria: { create: vi.fn(), findUnique: vi.fn() },
+  $executeRawUnsafe: vi.fn(),
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
@@ -36,6 +37,8 @@ beforeEach(() => {
   db.clientRequestDb.findUnique.mockResolvedValue({ id: "req_foocci" });
   db.isencaoDeParceria.create.mockReset();
   db.isencaoDeParceria.create.mockResolvedValue({ id: "isen_1", validaAte: VALIDO });
+  db.isencaoDeParceria.findUnique.mockReset().mockResolvedValue(null);
+  db.$executeRawUnsafe.mockReset().mockResolvedValue(1);
 });
 
 describe("a porta existe e concede o que deve", () => {
@@ -114,10 +117,90 @@ describe("isenção órfã e concessão dupla", () => {
     expect(r.ok === false && r.recusa).toBe("leitura_indisponivel");
   });
 
-  it("a segunda concessão para o mesmo pedido é recusa com nome, não erro cru", async () => {
+  it("uma segunda LINHA nunca nasce — a unicidade é do banco, e é ela que garante", async () => {
     db.isencaoDeParceria.create.mockRejectedValue(new Error("Unique constraint failed on the fields: (`clientRequestId`)"));
+    await concederIsencaoDeParceria(bom(), AGORA);
+    expect(db.isencaoDeParceria.create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("idempotência — e ela é PRECISA, não um 'ok' genérico", () => {
+  const existente = {
+    id: "isen_1",
+    validaAte: VALIDO,
+    escopo: "Social Media — parceria de lançamento, cliente 001",
+    pecasContratadas: 12,
+    tetoDeIaCentavosUsd: 200,
+    autorizadaPor: "Dioli Santos (CEO)",
+  };
+
+  function jaExiste(over: Record<string, unknown> = {}) {
+    db.isencaoDeParceria.create.mockRejectedValue(new Error("Unique constraint failed"));
+    db.isencaoDeParceria.findUnique.mockResolvedValue({ ...existente, ...over });
+  }
+
+  it("MESMOS termos repetidos: sucesso, e diz que já existia", async () => {
+    jaExiste();
     const r = await concederIsencaoDeParceria(bom(), AGORA);
+    expect(r.ok).toBe(true);
+    expect(r.ok === true && r.jaExistia).toBe(true);
+    expect(r.ok === true && r.id).toBe("isen_1");
+  });
+
+  it("o operador que clica duas vezes NÃO recebe erro — erro aqui empurra para o contorno", async () => {
+    jaExiste();
+    const primeira = await concederIsencaoDeParceria(bom(), AGORA);
+    const segunda = await concederIsencaoDeParceria(bom(), AGORA);
+    expect(primeira.ok).toBe(true);
+    expect(segunda.ok).toBe(true);
+  });
+
+  const diferentes: [string, Record<string, unknown>][] = [
+    ["outra validade",     { validaAte: new Date("2027-01-01T00:00:00.000Z") }],
+    ["outro teto de IA",   { tetoDeIaCentavosUsd: 99_999 }],
+    ["outro escopo",       { escopo: "tudo, para sempre" }],
+    ["outras peças",       { pecasContratadas: 36 }],
+    ["outro autorizador",  { autorizadaPor: "alguém sem sobrenome" }],
+  ];
+  for (const [nome, over] of diferentes) {
+    it(`termos DIFERENTES (${nome}) são RECUSADOS — alterar isenção auditada não é conceder`, async () => {
+      jaExiste(over);
+      const r = await concederIsencaoDeParceria(bom(), AGORA);
+      expect(r.ok).toBe(false);
+      expect(r.ok === false && r.recusa).toBe("ja_existe_com_outros_termos");
+    });
+  }
+
+  it("não conseguir LER a existente não vira 'ok' — o silêncio não confirma nada", async () => {
+    db.isencaoDeParceria.create.mockRejectedValue(new Error("Unique constraint failed"));
+    db.isencaoDeParceria.findUnique.mockRejectedValue(new Error("banco fora"));
+    const r = await concederIsencaoDeParceria(bom(), AGORA);
+    expect(r.ok).toBe(false);
     expect(r.ok === false && r.recusa).toBe("ja_existe");
-    expect(r.ok === false && r.motivo).toMatch(/renovar é outro ato/i);
+  });
+});
+
+describe("quem apertou o botão fica na linha", () => {
+  it("registradaPor entra na MESMA escrita da isenção — uma transação, não duas", async () => {
+    await concederIsencaoDeParceria(bom({ registradaPor: "u_master" }), AGORA);
+    expect(db.isencaoDeParceria.create.mock.calls[0][0].data.registradaPor).toBe("u_master");
+  });
+
+  it("sem sessão (caminho por script) fica NULO — e a isenção vale igual", async () => {
+    const r = await concederIsencaoDeParceria(bom(), AGORA);
+    expect(r.ok).toBe(true);
+    expect(db.isencaoDeParceria.create.mock.calls[0][0].data.registradaPor).toBeNull();
+  });
+
+  it("nulo significa 'não veio pela rota', NUNCA 'sem dono' — autorizadaPor continua lá", async () => {
+    await concederIsencaoDeParceria(bom(), AGORA);
+    const data = db.isencaoDeParceria.create.mock.calls[0][0].data;
+    expect(data.registradaPor).toBeNull();
+    expect(data.autorizadaPor).toBeTruthy();
+  });
+
+  it("o corpo em branco não vira operador — espaço não é nome de gente", async () => {
+    await concederIsencaoDeParceria(bom({ registradaPor: "   " }), AGORA);
+    expect(db.isencaoDeParceria.create.mock.calls[0][0].data.registradaPor).toBeNull();
   });
 });

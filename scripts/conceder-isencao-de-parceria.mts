@@ -4,10 +4,18 @@
 // NADA que escreve. O cliente 001 (Foocci), que entra por parceria e não paga,
 // era inconcedível: trava perfeita numa porta sem maçaneta.
 //
-// ⛔ NÃO É ROTA. Isto libera produção de graça, e uma porta dessas na internet
-// não custa um bug: custa o crédito da casa, que é finito e sem recarga
-// automática. Vira rota no dia em que o CEO decidir, com a autenticação de
-// `/api/admin/pagamentos`.
+// ⚠️ ESTE NÃO É MAIS O ÚNICO CAMINHO — e a correção está registrada.
+//
+// A primeira versão deste script dizia "NÃO É ROTA, por decisão". A decisão
+// estava errada: sem rota, a concessão ficou inalcançável para quem não está
+// no ambiente, e o resultado foi literal — "não concedi porque não alcanço o
+// banco". Trava construída sem fechadura, com o nome trocado.
+//
+// A porta normal agora é `POST /api/admin/isencoes-de-parceria`, com sessão de
+// agência, CSRF e dono da sessão na linha — o molde de `/api/admin/pagamentos`.
+// Este script continua existindo para quem JÁ está no ambiente, e os dois
+// passam pela MESMA conferência: um script que reimplementasse a regra seria o
+// segundo caminho que ninguém testa.
 //
 // A conferência inteira mora em `lib/agency/financeiro/conceder-isencao.ts`.
 // Este arquivo é só a boca: um script que reimplementasse a regra seria o

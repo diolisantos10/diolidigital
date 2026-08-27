@@ -1,0 +1,15 @@
+-- QUEM APERTOU O BOTÃO — distinto de QUEM AUTORIZOU.
+--
+-- `autorizadaPor` é nominal e vem do corpo da requisição: é o CEO, citando
+-- D-0B9. Isso é a FONTE DA AUTORIZAÇÃO, e é informação que o operador digita.
+--
+-- Com a concessão virando rota HTTP, o corpo passa a ser digitável por quem
+-- tem sessão de agência — e um campo que o operador escolhe não pode ser a
+-- única testemunha do ato. `registradaPor` sai da SESSÃO, nunca do corpo, pelo
+-- mesmo motivo que `PagamentoConfirmado.registradoPor` sai: quem confirmou
+-- fica na linha, e não é o operador quem escolhe o próprio nome.
+--
+-- Aditiva e NULA por padrão: as isenções que nascerem por script (sem sessão)
+-- continuam válidas com este campo vazio, e vazio significa "não veio pela
+-- rota" — nunca "não teve dono", porque `autorizadaPor` continua obrigatório.
+ALTER TABLE "IsencaoDeParceria" ADD COLUMN "registradaPor" TEXT;

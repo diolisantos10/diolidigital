@@ -2723,6 +2723,16 @@ model IsencaoDeParceria {
   /// casa é finito e sem recarga automática. Zero é ZERO, não "liberado".
   tetoDeIaCentavosUsd Int
 
+  /// QUEM APERTOU O BOTÃO, quando a concessão veio pela rota — sai da SESSÃO,
+  /// nunca do corpo. `autorizadaPor` é a FONTE da autorização (o CEO, citando
+  /// D-0B9) e é digitada pelo operador; um campo que o operador escolhe não
+  /// pode ser a única testemunha do ato. Mesmo princípio de
+  /// `PagamentoConfirmado.registradoPor`.
+  ///
+  /// Nulo = veio pelo script, sem sessão. NUNCA significa "sem dono":
+  /// `autorizadaPor` continua obrigatório nos dois caminhos.
+  registradaPor   String?
+
   observacao      String?
   createdAt       DateTime @default(now())
 
