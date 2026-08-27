@@ -31,7 +31,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { SOCIAL_PACKAGES, detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live-calculator";
 import { PLANOS, PECA_EXTRA, CAPACIDADE_MENSAL, precoEmReais } from "@/lib/agency/planos";
-import { TABELA_DE_PISO } from "@/lib/agency/comercial/negociacao";
+import { TABELA_DE_PISO, FAIXAS } from "@/lib/agency/comercial/negociacao";
 import { SOCIAL_MARGINS } from "@/lib/agency/pricing-margins";
 import { somaDosItens, temPreco } from "@/lib/agency/comercial/preco-do-item";
 
@@ -78,9 +78,19 @@ describe("uma fonte só — e a prova é a derivação, não a coincidência", (
       const linha = TABELA_DE_PISO[plano.id as keyof typeof TABELA_DE_PISO];
       expect(linha, `${plano.id} sumiu da tabela de piso`).toBeDefined();
       expect(linha.cheio).toBe(plano.preco);
-      // Piso comercial abaixo do cheio, sempre: piso ≥ cheio é desconto que
-      // não existe, e um comercial descobriria isso na frente do cliente.
-      expect(linha.piso).toBeLessThan(linha.cheio);
+      // ⚠️ ESTE TESTE EXIGIA `piso < cheio` ATÉ 27/08/2026 — ou seja, EXIGIA a
+      // existência de um desconto. E o desconto existia mesmo: um `preco * 0.78`
+      // escondido numa multiplicação, 22% que ninguém autorizou.
+      //
+      // Ordem do CEO em 27/08: *"desconto que a casa não autorizou não existe;
+      // sem faixa configurada, desconto nenhum"*. E a razão é mais dura que a
+      // ordem: o piso precisa de margem positiva PROVADA, e o custo desta casa
+      // está medido pela metade (só IA). Não se prova que 78% do preço cobre um
+      // custo que ninguém conhece.
+      //
+      // O piso agora vem de `tabela-de-precos.ts`. Enquanto não houver faixa
+      // autorizada, ele É o cheio.
+      expect(linha.piso).toBe(plano.preco);
     }
     // E o degrau que saiu da tabela saiu da negociação junto: não se negocia o
     // que não se vende.
@@ -232,5 +242,49 @@ describe("a página não mente sobre a própria página", () => {
     }
     // E a CONTAGEM de degraus também não: "Cinco degraus" era literal.
     expect(/\b(tr[êe]s|quatro|cinco|seis)\s+degraus/i.test(pagina), "a contagem de degraus está escrita à mão").toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A BOCA DO SDR — 27/08/2026
+//
+// As FAIXAS de `negociacao.ts` são o texto que o SDR usa para OFERECER. Elas
+// eram strings digitadas à mão e tinham apodrecido em produção: ofereciam o
+// Ritmo por R$ 297 com 8 peças, o Presença por R$ 790 (que é o preço do
+// Conteúdo), o Conteúdo por R$ 1.390 e o **Crescimento por R$ 2.590 — um plano
+// que já não existe**. Quatro preços errados na boca de quem fecha negócio.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("o que o SDR OFERECE sai da tabela, não de texto digitado", () => {
+  it("nenhuma faixa carrega preço de plano digitado à mão", () => {
+    const precosVivos = PLANOS.map((p) => String(p.preco));
+    for (const f of FAIXAS) {
+      const texto = `${f.principal} ${f.alternativa}`;
+      // Todo "R$ N/mês" que aparecer numa oferta tem de ser um preço VIVO.
+      for (const m of texto.matchAll(/R\$\s?([\d.]+)\s*\/\s*mês/g)) {
+        const numero = m[1]!.replace(/\./g, "");
+        expect(precosVivos, `oferta com preço morto: ${m[0]}`).toContain(numero);
+      }
+    }
+  });
+
+  it("o plano descontinuado não é oferecido em lugar nenhum", () => {
+    const tudo = FAIXAS.map((f) => `${f.principal} ${f.alternativa}`).join(" ");
+    expect(tudo).not.toMatch(/2\.590/);
+    expect(tudo).not.toMatch(/1\.390/);
+    expect(tudo).not.toMatch(/\b297\b/);
+  });
+
+  it("os três planos vivos aparecem com o preço e o volume da tabela", () => {
+    const tudo = FAIXAS.map((f) => `${f.principal} ${f.alternativa}`).join(" ");
+    for (const id of ["ritmo", "presenca", "conteudo"] as const) {
+      const p = PLANOS.find((x) => x.id === id)!;
+      expect(tudo, `${p.nome} não é oferecido`).toContain(p.nome);
+    }
+    // E o preço que aparece junto do nome é o preço vivo.
+    const presenca = PLANOS.find((p) => p.id === "presenca")!;
+    // `precoEmReais` usa o espaço INQUEBRÁVEL que o pt-BR insere depois do
+    // "R$". Comparar com espaço comum reprova um texto correto — a mesma
+    // armadilha já documentada em orcamento-do-briefing.test.ts.
+    expect(tudo).toContain(`Plano ${presenca.nome} (${precoEmReais(presenca.preco)}/mês, ${presenca.pecasPorMes} peças)`);
   });
 });

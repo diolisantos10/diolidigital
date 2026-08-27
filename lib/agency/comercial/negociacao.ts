@@ -26,16 +26,21 @@
 // (as faixas e as regras de conduta). A trava do piso é executada no servidor,
 // aqui — trava, não aviso.
 //
-// ─── CONFLITO CONHECIDO, DECLARADO E NÃO ESCONDIDO ───────────────────────────
-// `docs/precos.md` (05/08/2026) diz: "Desconto sai do prazo ou da implantação,
-// nunca da mensalidade". A decisão do CEO desta tarefa (05/08/2026) autoriza
-// piso ABAIXO da mensalidade cheia dos planos (Ritmo 297→229 etc.). As duas
-// regras não cabem juntas. Este módulo implementa a decisão mais recente E
-// mantém a anterior viva como PREFERÊNCIA: em `moedasDeTroca`, o primeiro
-// pedido é sempre o que não custa margem (pagamento à vista, prazo). Quem
-// resolve a contradição no papel é o Diretor com o CEO — está em aberto.
+// ─── O CONFLITO QUE ESTAVA ABERTO AQUI FOI FECHADO (27/08/2026) ──────────────
+// Este cabeçalho declarava uma contradição viva: `docs/precos.md` dizia
+// "desconto sai do prazo ou da implantação, nunca da mensalidade", e este
+// módulo descontava a mensalidade em 22% (`preco * 0.78`).
+//
+// O CEO decidiu, e decidiu para o lado mais apertado: *"desconto que a casa não
+// autorizou não existe; sem faixa configurada, desconto nenhum"*. O piso agora
+// vem de `lib/agency/financeiro/tabela-de-precos.ts`, que é a fonte única — e
+// lá ele só desce se houver faixa DECLARADA, o que hoje não há.
+//
+// `moedasDeTroca` continua sendo a primeira resposta, e agora é a ÚNICA: o que
+// se negocia é prazo, escopo e degrau — nunca a mensalidade.
 
 import { precoEmReais, PLANOS } from "../planos";
+import { pisoDoServico, servicoPorChave } from "@/lib/agency/financeiro/tabela-de-precos";
 import { SELF_SERVE_CATALOG } from "../self-serve-catalog";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,6 +73,31 @@ export interface Oferta {
 
 /** As cinco faixas, na ordem. Ordem importa: `ofertaParaFaixa` percorre de baixo
  *  para cima e devolve a primeira que couber. */
+/**
+ * COMO O SDR NOMEIA UM PLANO. Nome e preço vêm de `planos.ts` — nunca digitados.
+ *
+ * ⛔ AQUI MORAVA O DEFEITO MAIS CARO DESTE ARQUIVO, e ele estava vivo em
+ * produção: as ofertas eram strings digitadas à mão, e tinham envelhecido sem
+ * que ninguém relesse. O SDR que conversa com prospect de verdade estava
+ * oferecendo, em 27/08/2026:
+ *
+ *   • *"Plano Ritmo (R$ 297/mês): 8 peças"*      → hoje é R$ 290 e 12 peças
+ *   • *"Plano Presença (R$ 790/mês)"*            → hoje é R$ 490 (R$ 790 é o CONTEÚDO)
+ *   • *"Plano Conteúdo (R$ 1.390/mês)"*          → hoje é R$ 790
+ *   • *"Plano Crescimento (R$ 2.590/mês)"*       → **este plano NÃO EXISTE MAIS**
+ *
+ * Quatro preços errados e um plano descontinuado sendo vendido. Não é detalhe
+ * de texto: é a casa cobrando o número errado na boca de quem fecha negócio.
+ *
+ * A lição é a da casa inteira: *verdade escrita em dois lugares já está errada
+ * em um deles* — e a cópia que apodrece é sempre a que ninguém relê.
+ */
+function ofertaDoPlano(id: "ritmo" | "presenca" | "conteudo"): string {
+  const p = PLANOS.find((x) => x.id === id);
+  if (!p) return "Plano sob consulta";
+  return `Plano ${p.nome} (${precoEmReais(p.preco)}/mês, ${p.pecasPorMes} peças)`;
+}
+
 export const FAIXAS: Oferta[] = [
   {
     faixa: "balcao",
@@ -86,7 +116,7 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 150 e R$ 500",
     de: 150,
     ate: 500,
-    principal: "Plano Ritmo (R$ 297/mês): pauta, 8 peças prontas por mês e aprovação no portal — quem publica é o cliente",
+    principal: `${ofertaDoPlano("ritmo")}: pauta, peças prontas e aprovação no portal — quem publica é o cliente`,
     alternativa: "Pacote de peças avulsas montado dentro do que ele tem para gastar",
     condicao: "No Ritmo a publicação é do cliente. Publicar por ele derruba a conta do degrau.",
     confirmarAntes: false,
@@ -96,7 +126,7 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 500 e R$ 1.500",
     de: 500,
     ate: 1500,
-    principal: "Plano Presença (R$ 790/mês): é aqui que entra gente da nossa equipe, publicação e Google gerenciado",
+    principal: `${ofertaDoPlano("presenca")}: é aqui que entra gente da nossa equipe, publicação e Google gerenciado`,
     alternativa: "Projeto de marca (identidade visual ou posicionamento), com começo e fim",
     condicao: "Projeto de marca não é mensalidade — é entrega com prazo próprio.",
     confirmarAntes: false,
@@ -106,8 +136,8 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 1.500 e R$ 5.000",
     de: 1500,
     ate: 5000,
-    principal: "Plano Crescimento (R$ 2.590/mês): conteúdo, criativos de anúncio e a campanha desenhada",
-    alternativa: "Plano Conteúdo (R$ 1.390/mês), quando ele ainda não vai colocar verba em anúncio",
+    principal: `${ofertaDoPlano("conteudo")}: o volume inteiro da casa, stories, plano de medição e reunião mensal`,
+    alternativa: "Projeto orçado à parte (campanha paga desenhada), com escopo, prazo e preço fechados antes de começar",
     // A verba de mídia fica FORA. Se ela entrar na conta da faixa, o cliente
     // acha que R$ 2.000 cobrem plano + anúncio, e a agência trabalha de graça.
     condicao: "A verba de mídia é sempre à parte, paga por ele direto à plataforma. Zero promessa de retorno.",
@@ -119,7 +149,7 @@ export const FAIXAS: Oferta[] = [
     de: 5000,
     ate: Number.POSITIVE_INFINITY,
     principal: "Projeto em fases: cada fase com escopo, prazo e preço fechados antes de começar",
-    alternativa: "Plano Crescimento como base, com as fases entrando por cima mês a mês",
+    alternativa: `${ofertaDoPlano("conteudo")} como base, com as fases entrando por cima mês a mês`,
     condicao: "Fase seguinte só é vendida com a anterior entregue. Nada de escopo aberto.",
     confirmarAntes: false,
   },
@@ -270,7 +300,27 @@ function planosNegociaveis(): Record<string, LinhaDaTabela> {
           id: p.id as ItemNegociavel,
           nome: `Plano ${p.nome}`,
           cheio: p.preco,
-          piso: Math.round(p.preco * 0.78),
+          // ⛔ AQUI HAVIA `Math.round(p.preco * 0.78)` — um desconto de 22%
+          // que NINGUÉM autorizou, embutido numa multiplicação.
+          //
+          // Ordem do CEO em 27/08/2026: *"desconto que a casa não autorizou não
+          // existe; sem faixa configurada, desconto nenhum"*. E o motivo é mais
+          // duro que a ordem: o piso tem de ter margem positiva PROVADA, e o
+          // custo desta casa está medido pela metade (só IA; gateway, infra,
+          // e-mail, hora humana e impostos são NÃO MEDIDOS — ver
+          // `tabela-de-precos.ts`). Não se prova que 78% do preço cobre um custo
+          // que ninguém conhece. Um coeficiente escolhido a olho é exatamente a
+          // "régua verde sobre o componente errado".
+          //
+          // O piso passa a vir da tabela única. Hoje ele é o preço cheio. No dia
+          // em que o CEO autorizar uma faixa, ela entra lá — num campo só, com
+          // dono — e este arquivo obedece sem ser tocado.
+          piso: pisoDoServico(servicoPorChave(`plano_${p.id}`) ?? {
+            chave: `plano_${p.id}`, nome: p.nome, precoFinalCentavos: p.preco * 100,
+            pecasPorMes: p.pecasPorMes, produtor: "humano",
+            custo: { estado: "nao_medido", motivo: "plano fora da tabela financeira" },
+            descontoAutorizadoPct: null,
+          }) / 100,
           recorrente: true,
           versaoMenor: `o ${abaixo.nome} (${precoEmReais(abaixo.preco)})`,
         } satisfies LinhaDaTabela,
