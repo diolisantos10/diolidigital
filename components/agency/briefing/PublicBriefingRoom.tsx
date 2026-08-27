@@ -1032,6 +1032,35 @@ export const MOTIVOS_COM_ESCOPO_APROVEITAVEL: ReadonlySet<string> = new Set([
   "malformado",
 ]);
 
+/**
+ * O CONVITE DO PARCEIRO, LIDO DA URL — e só daqui.
+ *
+ * ── Por que esta função existe (27/08/2026) ────────────────────────────────
+ * A rota do SDR já aceitava `convite` e já sabia resolvê-lo pelo servidor. Mas
+ * **nada nesta sala mandava o campo** — o link `?convite=…` chegava ao
+ * navegador e morria aqui. Era a oitava "trava sem fechadura" da casa em 24h, e
+ * a mais cara delas: um link entregue ao parceiro que não faria absolutamente
+ * nada, com todo mundo achando que faria.
+ *
+ * *A pergunta obrigatória é "quem CHAMA isto?"* — e a resposta era "ninguém".
+ *
+ * ⚠️ O token é só TRANSPORTADO. Ele não decide nada aqui: quem resolve quem é o
+ * parceiro, e se a parceria está viva, é o SERVIDOR
+ * (`resolverConviteDeParceria`). Um token inventado à mão na barra de endereço
+ * vale exatamente o mesmo que nenhum — o visitante segue anônimo e a verba
+ * continua sendo perguntada.
+ */
+export function conviteDaUrl(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const t = new URLSearchParams(window.location.search).get("convite")?.trim();
+    return t ? t : undefined;
+  } catch {
+    // URL malformada não pode derrubar a sala de briefing de ninguém.
+    return undefined;
+  }
+}
+
 // Exportada para teste direto (16/08): o contrato "scope sobrevive quando a
 // fala não sobrevive" é lógica, não prosa de prompt — e lógica se testa
 // chamando a função, não lendo o arquivo como texto.
@@ -1054,6 +1083,9 @@ export async function fetchSdrReply(
         currentMessage,
         scope,
         sessionId,
+        // O convite viaja em TODO turno: a decisão é do servidor a cada vez, e
+        // não um estado que a sala guarda e poderia perder no meio da conversa.
+        convite: conviteDaUrl(),
       }),
     });
   } catch {
