@@ -13,14 +13,28 @@ import { hash } from "bcryptjs";
  */
 function exigirSenha(nomeDaVariavel) {
   const valor = process.env[nomeDaVariavel];
-  if (!valor || valor.trim().length < 12) {
+
+  // A PARADA é só por AUSÊNCIA. Ausência de chave nunca vira porta aberta.
+  if (!valor) {
     throw new Error(
-      `${nomeDaVariavel} ausente ou fraca (mínimo 12 caracteres). ` +
-        `O seed NÃO inventa senha e NÃO cai num padrão. Defina a variável no ` +
-        `painel da hospedagem e reinicie. ATENÇÃO: esta casa NÃO tem fluxo de ` +
-        `"esqueci minha senha" — a variável é a única via de recuperação.`,
+      `${nomeDaVariavel} não está definida. O seed NÃO inventa senha e NÃO cai ` +
+        `num padrão. Defina a variável no painel da hospedagem e reinicie. ` +
+        `ATENÇÃO: esta casa NÃO tem fluxo de "esqueci minha senha" — a ` +
+        `variável é a única via de recuperação.`,
     );
   }
+
+  // Senha CURTA é outro assunto, e vira aviso, não parada.
+  //
+  // ⚠️ Isto é deliberado. Um mínimo de comprimento imposto aqui derrubaria o
+  // seed de uma produção que hoje sobe bem, por uma política que ninguém
+  // conferiu contra o valor vivo — e o efeito seria a conta do dono parar de
+  // ser rotacionada em silêncio. Recusar-se a subir por causa de uma senha
+  // que JÁ está em uso é trocar um risco por um pior.
+  if (valor.length < 12) {
+    console.warn(`⚠ ${nomeDaVariavel} tem menos de 12 caracteres — troque por uma mais longa no painel.`);
+  }
+
   return valor;
 }
 

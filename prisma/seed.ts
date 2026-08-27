@@ -22,12 +22,19 @@ const prisma  = new PrismaClient({ adapter });
  */
 function exigirSenha(nomeDaVariavel: string): string {
   const valor = process.env[nomeDaVariavel];
-  if (!valor || valor.trim().length < 12) {
+
+  // A parada é por AUSÊNCIA. Comprimento é política, e política curta vira
+  // aviso — nunca uma recusa de subir por causa de uma senha que já está em
+  // uso. Mesma regra de scripts/seed-db.mjs, e pelo mesmo motivo.
+  if (!valor) {
     throw new Error(
-      `${nomeDaVariavel} ausente ou fraca (mínimo 12 caracteres). ` +
-        `O seed NÃO inventa senha e NÃO cai num padrão — defina a variável de ` +
-        `ambiente e rode de novo. Em produção ela vive só no painel da hospedagem.`,
+      `${nomeDaVariavel} não está definida. O seed NÃO inventa senha e NÃO cai ` +
+        `num padrão — defina a variável de ambiente e rode de novo. Em produção ` +
+        `ela vive só no painel da hospedagem.`,
     );
+  }
+  if (valor.length < 12) {
+    console.warn(`⚠ ${nomeDaVariavel} tem menos de 12 caracteres — troque por uma mais longa.`);
   }
   return valor;
 }
