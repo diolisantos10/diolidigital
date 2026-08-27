@@ -11,9 +11,13 @@
 //   • `briefingConfirmationEmail` — sai ANTES de existir número. Nunca leva
 //     valor, porque valor nenhum foi derivado ainda. Inventar aqui seria
 //     alucinar preço.
-//   • `orcamentoProntoEmail` — sai DEPOIS, e leva EXATAMENTE a faixa que o
-//     cálculo derivou e que já está escrita na conversa do portal. Nunca um
-//     número próprio: quem monta o texto passa o valor pronto.
+//   • `orcamentoProntoEmail` — sai DEPOIS, e **também não leva valor**. Ele é
+//     um CONVITE: "está pronto" + o botão para o portal, onde o número mora
+//     junto do SDR que responde por ele. Ordem do CEO em 27/08/2026.
+//
+// ⛔ **NENHUM E-MAIL DESTA CASA ESTAMPA PREÇO.** Não é estilo: preço lido
+// sozinho, sem ninguém do outro lado, é preço que o cliente compara e descarta
+// em silêncio — e a agência nem fica sabendo que houve uma objeção.
 //
 // O que NENHUM dos dois pode ter: promessa de prazo. Ordem do CEO em
 // 16/08/2026 — *"em relação à confirmação de promessa, de orçamento em um dia,
@@ -96,28 +100,29 @@ export function briefingConfirmationEmail(input: BriefingConfirmationInput): {
 // do portal recebera tudo — e ninguém avisou o destinatário. É o defeito D-003:
 // caixa certa, seta faltando.
 //
-// Ele é um TOQUE NO OMBRO: o essencial (a faixa que já está no portal) e o link
-// para ver o resto. **Não substitui o portal** — a conversa continua sendo a
-// fonte da verdade. Um e-mail que tentasse ser a conversa inteira criaria uma
-// segunda verdade, e duas verdades divergem no primeiro ajuste de escopo.
+// Ele é um TOQUE NO OMBRO com um botão: avisa que ficou pronto e leva ao portal.
+// **Não substitui o portal** — a conversa continua sendo a fonte da verdade, e é
+// lá que o valor aparece. Um e-mail que tentasse ser a conversa inteira criaria
+// uma segunda verdade, e duas verdades divergem no primeiro ajuste de escopo.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface OrcamentoProntoInput {
   prospectName?: string;
   businessName?: string;
-  /** A faixa JÁ DERIVADA e já escrita no portal. Este template não calcula
-   *  nada: recebe o número pronto ou não mostra número nenhum. */
-  faixa?: string;
-  /** O endereço da conversa no portal. Ausente quando não há token — o e-mail
-   *  sai assim mesmo, com o caminho de responder, em vez de não sair. */
+  /**
+   * O endereço da conversa no portal — onde o valor mora e onde o SDR atende.
+   * É o destino do botão, e por isso virou a peça mais importante deste e-mail.
+   */
   portalLink?: string;
-  /** A estimativa passou da verba que o cliente declarou.
+  /**
+   * A estimativa passou da verba que o cliente declarou.
    *
-   *  Existe porque o CityJobs, em 16/08/2026, disse *"algo em torno de R$ 500
-   *  por mês"* e recebeu R$ 1.800–3.400 sem uma palavra sobre a diferença.
-   *  Aqui entra só o RECONHECIMENTO, sem número e sem oferta: quem nomeia a
-   *  diferença e lista o que cabe é a conversa. Duas versões da mesma conta em
-   *  dois lugares divergem no primeiro ajuste. */
+   * Existe porque o CityJobs, em 16/08/2026, disse *"algo em torno de R$ 500
+   * por mês"* e recebeu R$ 1.800–3.400 sem uma palavra sobre a diferença.
+   *
+   * ⚠️ Aqui entra só o RECONHECIMENTO, **sem número nenhum** — quem nomeia a
+   * diferença, mostra o que cabe e negocia é a conversa do portal.
+   */
   verbaEstourada?: boolean;
 }
 
@@ -128,29 +133,31 @@ export function orcamentoProntoEmail(input: OrcamentoProntoInput): {
   const name = input.prospectName?.trim();
   const biz = input.businessName?.trim();
   const greeting = name ? `Olá, ${esc(name)}!` : "Olá!";
-  const faixa = input.faixa?.trim();
 
+  // ⛔ ESTE E-MAIL É UM CONVITE, NÃO UMA PROPOSTA (ordem do CEO, 27/08/2026):
+  //
+  //   *"Eu não acho que o valor tem que estar estampado no e-mail. Tem que ser
+  //   um e-mail clicável, tipo: 'seu orçamento está pronto, clique aqui'."*
+  //
+  // O motivo é comercial e vale a pena escrever: **preço lido sozinho, sem
+  // ninguém do outro lado, é preço que o cliente compara e descarta em
+  // silêncio.** Ninguém fica sabendo que ele desistiu, e não houve conversa
+  // nenhuma. No portal o número aparece junto de quem responde por ele.
+  //
+  // Por isso `faixa` NÃO É MAIS PARÂMETRO desta função: campo que existe é
+  // campo que alguém volta a preencher.
   const corpo: string[] = [
     blocoDeTexto(
       biz
-        ? `O orçamento da ${biz} está pronto e já está na sua conversa com a gente.`
-        : "O seu orçamento está pronto e já está na sua conversa com a gente.",
+        ? `O orçamento da ${biz} está pronto. Ele fica na sua conversa com a gente — é lá que a gente detalha o que entra, ajusta o que precisar e responde o que você quiser perguntar.`
+        : "O seu orçamento está pronto. Ele fica na sua conversa com a gente — é lá que a gente detalha o que entra, ajusta o que precisar e responde o que você quiser perguntar.",
     ),
   ];
-
-  if (faixa) {
-    corpo.push(
-      blocoRotulado(
-        "Estimativa",
-        `<p style="margin:0;font-size:26px;font-weight:700;line-height:1.2;color:${CORES.navy}">${esc(faixa)}</p>`,
-      ),
-    );
-  }
 
   if (input.verbaEstourada) {
     corpo.push(
       blocoDeTexto(
-        "Você comentou uma verba menor que isso — a gente nomeia a diferença na conversa e mostra o que cabe no seu momento. Preferimos te dizer agora do que mandar um número que não cabe.",
+        "Você comentou uma verba mais enxuta do que o escopo que a gente montou — isso está nomeado lá na conversa, junto do que cabe no seu momento. Preferimos conversar sobre isso com você do que mandar um número solto.",
       ),
     );
   }
@@ -159,12 +166,12 @@ export function orcamentoProntoEmail(input: OrcamentoProntoInput): {
   // é pior que ausência de botão: o cliente clica, não acontece nada, e conclui
   // que a agência está quebrada.
   if (input.portalLink) {
-    corpo.push(blocoDeBotao(input.portalLink, "Ver o orçamento completo"));
+    corpo.push(blocoDeBotao(input.portalLink, "Ver o meu orçamento"));
   }
 
   corpo.push(
     blocoDeTexto(
-      "É uma estimativa a partir do que você contou, não a proposta final — o detalhamento, o que entra e o que fica de fora estão lá na conversa. Se algo estiver diferente do que você precisa, é só responder por lá.",
+      "É uma estimativa a partir do que você contou, não a proposta final. Se algo estiver diferente do que você precisa, é só dizer por lá — dá para trocar o plano, tirar e acrescentar.",
     ),
   );
 

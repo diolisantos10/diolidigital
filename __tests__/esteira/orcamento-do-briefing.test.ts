@@ -356,10 +356,10 @@ describe("o cliente FICA SABENDO que o orçamento ficou pronto", () => {
 
     const html = email.sendEmail.mock.calls[0][0].html as string;
     // Mandar a mensagem inteira por e-mail criaria uma segunda verdade, que
-    // diverge do portal no primeiro ajuste de escopo. O e-mail leva o
-    // essencial (a faixa) e o caminho de ver o resto.
+    // diverge do portal no primeiro ajuste de escopo. Desde 27/08 o e-mail não
+    // leva NEM a faixa: leva o aviso e o botão. O valor mora no portal.
     expect(html).toMatch(/conversa/i);
-    expect(html).toContain("Ver o orçamento completo");
+    expect(html).toContain("Ver o meu orçamento");
     expect(html).not.toContain("O que NÃO está incluído");
   });
 
@@ -468,9 +468,25 @@ describe("o texto do e-mail entra na MESMA regra do texto do orçamento", () => 
     orcamentoProntoEmail({
       prospectName: "Dioli",
       businessName: "CityJobs",
-      faixa: "R$ 1.390 a R$ 2.590 por mês",
       portalLink: "https://www.diolidigital.com.br/portal/access/tok123",
     });
+
+  it("NÃO estampa preço — ordem do CEO em 27/08", () => {
+    // *"eu não acho que o valor tem que estar estampado no e-mail. Tem que ser
+    // um e-mail clicável, tipo: 'seu orçamento está pronto, clique aqui'."*
+    // Preço lido sozinho, sem ninguém do outro lado, é preço que o cliente
+    // compara e descarta em silêncio.
+    const { subject, html } = pronto();
+    // Só o texto VISÍVEL: dentro dos atributos moram o telefone do WhatsApp e o
+    // nome do arquivo do logo (…-512.png), que são números legítimos.
+    const visivel = html.replace(/<[^>]*>/g, " ");
+    for (const t of [subject, visivel]) {
+      expect(t).not.toMatch(/R\$/);
+      expect(t).not.toMatch(/\b\d{1,3}\.\d{3}\b/);   // 1.390, 2.590…
+      expect(t).not.toMatch(/\b(290|490|790)\b/);     // a tabela fechada
+      expect(t).not.toMatch(/por mês|mensal/i);
+    }
+  });
 
   it("NÃO promete prazo — ordem do CEO em 16/08", () => {
     // *"em relação à confirmação de promessa, de orçamento em um dia, não
@@ -488,13 +504,17 @@ describe("o texto do e-mail entra na MESMA regra do texto do orçamento", () => 
     expect(pronto().html).toMatch(/não a proposta final/i);
   });
 
-  it("mostra a faixa que veio pronta e não inventa número nenhum", () => {
+  it("NÃO carrega a faixa — nem quando quem chama tem o número na mão", () => {
+    // ⚠️ ESTE TESTE DIZIA O CONTRÁRIO ATÉ 27/08/2026, e o contrário virou ordem:
+    // *"eu não acho que o valor tem que estar estampado no e-mail."*
+    // A esteira SEGUE calculando a faixa e escrevendo no portal — o que mudou é
+    // que ela não atravessa mais a fronteira do e-mail. `faixa` deixou de ser
+    // parâmetro desta função de propósito: campo que existe é campo que alguém
+    // volta a preencher.
     const { html } = pronto();
-    expect(html).toMatch(/1\.390/);
-    expect(html).toMatch(/2\.590/);
+    expect(html).not.toMatch(/1\.390|2\.590/);
+    expect(html).not.toMatch(/R\$/);
 
-    // Sem faixa não aparece valor: o template NÃO calcula. Se quem chama não
-    // derivou número, número não existe — nesta casa valor vem de cálculo.
     const sem = orcamentoProntoEmail({ businessName: "CityJobs" });
     expect(sem.html).not.toMatch(/R\$/);
   });
@@ -532,7 +552,7 @@ describe("o texto do e-mail entra na MESMA regra do texto do orçamento", () => 
     ]);
     return entregarOrcamentosPendentes().then(() => {
       const html = email.sendEmail.mock.calls[0][0].html as string;
-      expect(html).toMatch(/verba menor/i);
+      expect(html).toMatch(/verba mais enxuta/i);
       // Reconhecimento, não conta. Quem nomeia a diferença e oferece o que cabe
       // é a conversa — duas versões da mesma conta divergem no primeiro ajuste.
       expect(html).not.toMatch(/2\.900|R\$\s?500\b/);
@@ -542,7 +562,7 @@ describe("o texto do e-mail entra na MESMA regra do texto do orçamento", () => 
   it("sem confronto de verba o e-mail não inventa ressalva nenhuma", async () => {
     db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
     await entregarOrcamentosPendentes();
-    expect(email.sendEmail.mock.calls[0][0].html as string).not.toMatch(/verba menor/i);
+    expect(email.sendEmail.mock.calls[0][0].html as string).not.toMatch(/verba mais enxuta/i);
   });
 });
 

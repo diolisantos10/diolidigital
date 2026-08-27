@@ -28,7 +28,7 @@ const MENSAGENS = [
   })],
   ["orçamento pronto", orcamentoProntoEmail({
     prospectName: "NOME TESTE", businessName: "Padaria do Teste",
-    faixa: "R$ 1.800 a R$ 3.400", portalLink: "https://www.diolidigital.com.br/portal/access/abc",
+    portalLink: "https://www.diolidigital.com.br/portal/access/abc",
     verbaEstourada: true,
   })],
 ] as const;
@@ -93,6 +93,19 @@ describe.each(MENSAGENS)("%s", (_nome, { subject, html }) => {
     ]) {
       expect(html).not.toContain(proibido);
     }
+  });
+
+  it("não estampa preço — o valor mora no portal, junto de quem responde por ele", () => {
+    // Ordem do CEO em 27/08/2026. Vale para TODOS os e-mails da casa, não só
+    // para o do orçamento: por isso esta trava roda sobre as duas mensagens.
+    expect(html).not.toMatch(/R\$/);
+    expect(subject).not.toMatch(/R\$/);
+    // Só o texto VISÍVEL: dentro dos atributos moram o telefone do WhatsApp e
+    // o nome do arquivo do logo (…-512.png), que são números legítimos.
+    const visivel = html.replace(/<[^>]*>/g, " ");
+    expect(visivel).not.toMatch(/\b\d{1,3}\.\d{3}\b/);  // 1.800, 3.400…
+    expect(visivel).not.toMatch(/\b(290|490|790)\b/);    // a tabela fechada
+    expect(visivel).not.toMatch(/por mês|mensal/i);
   });
 
   it("não promete prazo — ordem do CEO de 16/08/2026", () => {
