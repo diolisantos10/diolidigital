@@ -240,7 +240,13 @@ describe("a lista das conversas paradas", () => {
   });
 
   it("a próxima ação é DERIVADA do que o rastro tem, nunca constante", async () => {
-    const base = { fio: "sdr:a", escopo: {}, turnos: 3, paradaEm: new Date() };
+    // `clienteDoConvite`/`workspaceId` entraram no rastro em 27/08/2026 para a
+    // promoção automática saber DE QUEM é a conversa. A próxima ação não
+    // depende deles — segue derivando só do contato declarado.
+    const base = {
+      fio: "sdr:a", escopo: {}, turnos: 3, paradaEm: new Date(),
+      clienteDoConvite: null, workspaceId: "ws_1",
+    };
 
     expect(proximaAcaoDoRastro({ ...base, contato: { email: "m@x.invalid" } })).toContain("e-mail");
     expect(proximaAcaoDoRastro({ ...base, contato: { whatsapp: "551190000" } })).toContain("WhatsApp");

@@ -80,6 +80,16 @@ export interface CreateClientRequestInput {
    * já em `completed` para sair da fila e fugir do raio-x.
    */
   status?: "new" | "lead_incompleto";
+  /**
+   * O FIO DA CONVERSA DE ORIGEM — só quando o pedido nasceu de uma conversa
+   * parada que a casa recuperou sozinha. Ver a coluna homônima no schema.
+   *
+   * ⚠️ NUNCA vem do corpo de rota pública: quem preenche é
+   * `promover-conversas-paradas.ts`, e o valor é o fio já higienizado pelo
+   * servidor. É ele que carrega o índice único que impede duas batidas do
+   * relógio de gerarem dois pedidos — a trava é do banco, não deste arquivo.
+   */
+  fioDaConversa?: string;
 }
 
 export interface UpdateClientRequestInput {
@@ -141,6 +151,10 @@ export async function createClientRequest(input: CreateClientRequestInput): Prom
   const raw = await prisma.clientRequestDb.create({
     data: {
       chaveDoProspect,
+      // Ausente vira `undefined` (coluna nula), NUNCA string vazia: duas linhas
+      // com "" colidiriam no índice único e o segundo pedido legítimo da porta
+      // da frente seria recusado por uma trava que não é dele.
+      fioDaConversa:   input.fioDaConversa?.trim() || undefined,
       businessName:    input.businessName,
       segment:         input.segment         ?? "",
       services:        JSON.stringify(input.services    ?? []),

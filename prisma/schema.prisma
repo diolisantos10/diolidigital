@@ -1351,6 +1351,22 @@ model ClientRequestDb {
   /// é a inferência que esta casa proíbe.
   chaveDoProspect String?
 
+  /// ── DE QUAL CONVERSA ESTE PEDIDO NASCEU (27/08/2026, aditiva) ────────────
+  ///
+  /// Preenchida SÓ quando o pedido nasceu de uma conversa parada que a casa
+  /// recuperou sozinha (`lib/agency/comercial/promover-conversas-paradas.ts`).
+  /// Guarda o fio (`sdr:...`) da conversa de origem. Nula em todo pedido que
+  /// veio pela porta da frente — e nula NÃO significa "veio da conversa".
+  ///
+  /// ⚠️ **É ELA A TRAVA DA IDEMPOTÊNCIA, e não um `if`.** O relógio bate de 5
+  /// em 5 minutos e duas batidas podem se cruzar na mesma conversa; uma
+  /// checagem em código ("já existe pedido?") é uma janela entre a leitura e a
+  /// escrita, e é nessa janela que nascem dois pedidos para o mesmo cliente. O
+  /// índice único abaixo fecha isso no BANCO: a segunda escrita não passa, e
+  /// quem promove trata a violação como "já promovida" — não como erro.
+  /// *A trava real é o índice único.*
+  fioDaConversa String? @unique
+
   /// ── O AVISO DE ORÇAMENTO QUE FALHA NUNCA MAIS SOME (16/08/2026, aditiva) ──
   ///
   /// Motivo completo em `lib/agency/esteira/orcamento-do-briefing.ts`. Resumo:

@@ -178,7 +178,18 @@ interface ChatRequest {
  * `workspaceId` opcional porque o caminho `not_configured` corta antes de o dono
  * estar resolvido — aí ela resolve sozinha. Nunca lança; ver o módulo.
  */
-async function guardarRastroDoTurno(body: ChatRequest, workspaceId?: string | null): Promise<void> {
+async function guardarRastroDoTurno(
+  body: ChatRequest,
+  workspaceId?: string | null,
+  /**
+   * O cliente DERIVADO do convite pelo servidor — `resolverConviteDeParceria`,
+   * nunca o corpo. É o único elo honesto entre um fio de sessão pública e um
+   * cliente de verdade, e é o que autoriza a promoção automática da conversa
+   * parada (`promover-conversas-paradas.ts`) a existir sem adivinhar de quem é
+   * a conversa. Ausente → `null` → a promoção NÃO age.
+   */
+  clienteDoConvite?: string | null,
+): Promise<void> {
   const escopo = body.scope as Record<string, unknown> | undefined;
   await guardarRastroDaConversa({
     sessionId: body.sessionId,
@@ -193,6 +204,7 @@ async function guardarRastroDoTurno(body: ChatRequest, workspaceId?: string | nu
       whatsapp: escopo?.prospectPhone,
     },
     turnos: Array.isArray(body.messages) ? body.messages.length + 1 : 1,
+    clienteDoConvite: clienteDoConvite ?? null,
   });
 }
 
@@ -885,7 +897,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   //
   // Nunca lança e nunca bloqueia: `guardarRastroDaConversa` devolve `false` e
   // segue. Rastro é nosso; a conversa é do cliente.
-  await guardarRastroDoTurno(body, workspaceDaConta);
+  // O terceiro argumento é o que fecha a fechadura da décima trava: sem ele o
+  // rastro sabe O QUE foi dito e não sabe POR QUEM, e a promoção automática não
+  // teria como reconhecer o parceiro sem adivinhar. Sai de `conviteDoParceiro`,
+  // que o SERVIDOR resolveu por token algumas linhas acima.
+  await guardarRastroDoTurno(body, workspaceDaConta, conviteDoParceiro?.clientId ?? null);
 
   const veredicto = await podeGastarNaPortaPublica(workspaceDaConta);
   if (!veredicto.pode) {

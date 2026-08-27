@@ -91,15 +91,39 @@ export type RastroDaConversa = {
   turnos: number;
   /** Quando ela parou. */
   paradaEm: Date;
+  /** De quem é a conversa, quando o SERVIDOR conseguiu derivar — ver
+   *  `clienteDoConvite` na carga. `null` é o caso comum (visitante anônimo). */
+  clienteDoConvite: string | null;
+  /** A quem a parada pertence. Necessário para o pedido nascer com dono. */
+  workspaceId: string;
 };
 
 /** O que sai gravado no `message`. Formato próprio e versionado: um leitor de
  *  amanhã precisa saber que forma está lendo antes de confiar nela. */
 type CargaDoRastro = {
-  v: 1;
+  /** `1` é a forma original (sem `clienteDoConvite`); `2` a acrescenta. As duas
+   *  continuam sendo lidas: um rastro gravado ontem não pode virar ilegível
+   *  hoje — ele é justamente o cliente que a casa já quase perdeu uma vez. */
+  v: 1 | 2;
   escopo: Record<string, unknown>;
   contato: ContatoDoRastro | null;
   turnos: number;
+  /**
+   * ═══ DE QUEM É ESTA CONVERSA — DERIVADO, NUNCA ACEITO ═══════════════════
+   *
+   * O `clientId` real de quem conversa NÃO existe na sala pública: o fio
+   * (`sdr:...`) é texto do navegador e não é identidade de ninguém. A ÚNICA
+   * origem honesta é o convite de parceria, que o servidor resolve por token
+   * (`resolverConviteDeParceria`) e devolve o cliente — *derivação, não
+   * comparação*.
+   *
+   * ⛔ NUNCA sai do corpo da requisição, e NUNCA se deduz de e-mail digitado no
+   * chat: bastaria alguém escrever o e-mail de um parceiro para ser promovido a
+   * pedido isento. Convite ausente, vencido ou revogado → `null` → a conversa
+   * fica sendo o que sempre foi (uma parada com dono humano), e é isso que a
+   * promoção automática exige para NÃO agir. Fail-closed.
+   */
+  clienteDoConvite?: string | null;
 };
 
 /** Só os três campos que a PESSOA declara. Copiar o objeto inteiro do corpo da
@@ -134,6 +158,8 @@ export async function guardarRastroDaConversa(input: {
   escopo: unknown;
   contato?: unknown;
   turnos?: number;
+  /** O cliente DERIVADO do convite de parceria pelo servidor. Ver a carga. */
+  clienteDoConvite?: string | null;
 }): Promise<boolean> {
   const fio = fioDaConversa(input.sessionId);
 
@@ -157,11 +183,15 @@ export async function guardarRastroDaConversa(input: {
       : {};
   if (Object.keys(escopo).length === 0) return false;
 
+  const cliente = typeof input.clienteDoConvite === "string" ? input.clienteDoConvite.trim() : "";
   const carga: CargaDoRastro = {
-    v: 1,
+    v: 2,
     escopo,
     contato: contatoLimpo(input.contato),
     turnos: typeof input.turnos === "number" && input.turnos > 0 ? Math.floor(input.turnos) : 1,
+    // Ausente vira `null`, nunca string vazia: `null` é "não sei de quem é", e
+    // é o valor que a promoção automática lê como "não agir".
+    clienteDoConvite: cliente || null,
   };
   const message = JSON.stringify(carga).slice(0, TETO_DA_CARGA);
 
@@ -228,20 +258,52 @@ export async function resolverRastroDaConversa(sessionId: unknown): Promise<numb
 }
 
 /**
+ * O MESMO "resolver", pelo FIO JÁ PRONTO.
+ *
+ * `resolverRastroDaConversa` recebe o id CRU do navegador e o higieniza. Quem
+ * já tem o fio (`sdr:...`) não pode passar por lá: `fioDaConversa("sdr:abc")`
+ * tira os dois-pontos e devolve `sdr:sdrabc` — apagaria um rastro que não
+ * existe e deixaria o verdadeiro de pé, ressuscitando a conversa a cada rodada.
+ *
+ * Não lança, pelo mesmo motivo da irmã: rastro que sobra é ruído visível, e
+ * ruído visível custa muito menos que um briefing perdido.
+ */
+export async function resolverRastroPeloFio(fio: string): Promise<number> {
+  const limpo = fio.trim();
+  if (!limpo || limpo.endsWith("sem-sessao")) return 0;
+  try {
+    const r = await prisma.activityEvent.deleteMany({
+      where: { type: TIPO_CONVERSA_SEM_PEDIDO, clientId: limpo },
+    });
+    return r.count;
+  } catch (e) {
+    console.error(
+      `[conversa-sem-pedido] rastro não resolvido: ${e instanceof Error ? e.message : String(e)}`,
+    );
+    return 0;
+  }
+}
+
+/**
  * AS CONVERSAS QUE PARARAM — com dono e próxima ação.
  *
  * Ordenadas pela mais recente: uma conversa de dez minutos atrás ainda dá para
  * salvar; uma de dez dias virou história.
  */
 export async function conversasSemPedido(
-  workspaceId: string,
+  /** `null` lê TODOS os workspaces — e só o relógio faz isso. Ele não tem
+   *  sessão, logo não tem workspace, e a promoção precisa varrer a casa
+   *  inteira. Toda porta com gente do outro lado passa o workspace da sessão:
+   *  é a mesma fronteira de inquilino que `orcamento-do-briefing.ts` já
+   *  declarou, e ela não se afrouxa por conveniência de leitura. */
+  workspaceId: string | null,
   teto = 50,
 ): Promise<RastroDaConversa[]> {
   const linhas = await prisma.activityEvent.findMany({
-    where: { type: TIPO_CONVERSA_SEM_PEDIDO, workspaceId },
+    where: { type: TIPO_CONVERSA_SEM_PEDIDO, ...(workspaceId ? { workspaceId } : {}) },
     orderBy: { timestamp: "desc" },
     take: Math.min(teto, 200),
-    select: { clientId: true, message: true, timestamp: true },
+    select: { clientId: true, message: true, timestamp: true, workspaceId: true },
   });
 
   const rastros: RastroDaConversa[] = [];
@@ -249,9 +311,8 @@ export async function conversasSemPedido(
     let carga: CargaDoRastro | null = null;
     try {
       const bruto = JSON.parse(l.message) as unknown;
-      if (bruto && typeof bruto === "object" && (bruto as CargaDoRastro).v === 1) {
-        carga = bruto as CargaDoRastro;
-      }
+      const v = bruto && typeof bruto === "object" ? (bruto as CargaDoRastro).v : null;
+      if (v === 1 || v === 2) carga = bruto as CargaDoRastro;
     } catch {
       // Carga ilegível não derruba a lista inteira: uma linha corrompida
       // esconderia todas as outras conversas perdidas, que é o contrário do
@@ -265,6 +326,12 @@ export async function conversasSemPedido(
       contato: carga.contato ?? null,
       turnos: carga.turnos ?? 1,
       paradaEm: l.timestamp,
+      // Rastro v1 não tem o campo — e ausência é `null`, "não sei de quem é",
+      // nunca um cliente escolhido para a linha caber.
+      clienteDoConvite: typeof carga.clienteDoConvite === "string" && carga.clienteDoConvite
+        ? carga.clienteDoConvite
+        : null,
+      workspaceId: l.workspaceId,
     });
   }
   return rastros;

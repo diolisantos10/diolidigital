@@ -1,0 +1,21 @@
+-- A CONVERSA RECUPERADA VIRA PEDIDO — e a trava que impede o pedido dobrado é
+-- ESTE ÍNDICE, não um `if` em código.
+--
+-- Medido em 27/08/2026: o primeiro cliente real (FOOCCI, cmtc145qf007a0xo4txmjss11)
+-- conversou com o SDR às 01:34 e às 13:43, entregou o briefing inteiro, e NENHUM
+-- pedido nasceu — 24 horas de atraso no orçamento. Desde o mesmo dia a casa
+-- GRAVA essas conversas (`ActivityEvent type=conversa_sem_pedido`) e ninguém
+-- agia sobre o registro: décima ocorrência de "trava construída sem fechadura".
+--
+-- A promoção passa a acontecer no relógio de 5 em 5 minutos. Duas batidas podem
+-- se cruzar na mesma conversa, e uma checagem em código ("já existe pedido para
+-- este fio?") deixa uma janela entre a leitura e a escrita — é nessa janela que
+-- nascem dois pedidos, dois orçamentos e dois e-mails para o mesmo cliente. O
+-- índice único fecha no banco: a segunda escrita falha com P2002 e quem promove
+-- lê isso como "já promovida".
+--
+-- Aditiva: coluna nova e nula em tudo que já existe. Nulo aqui NÃO significa
+-- "veio da conversa" — significa "veio pela porta da frente", e um índice único
+-- em SQLite não conta NULLs, então os pedidos antigos não colidem entre si.
+ALTER TABLE "ClientRequestDb" ADD COLUMN "fioDaConversa" TEXT;
+CREATE UNIQUE INDEX "ClientRequestDb_fioDaConversa_key" ON "ClientRequestDb"("fioDaConversa");

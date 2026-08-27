@@ -376,6 +376,8 @@ export async function baterORelogio(): Promise<{
   let avisos = 0;
   let respondidas = 0;
   let orcamentos = 0;
+  /** Conversas paradas de parceiro que viraram pedido sozinhas nesta rodada. */
+  let conversasPromovidas = 0;
   let destravadas = 0;
   let publicados = 0;
   let mesesVirados = 0;
@@ -991,6 +993,39 @@ export async function baterORelogio(): Promise<{
     avisos = typeof r?.sent === "number" ? r.sent : 0;
   } catch (err) {
     quebrou("avisos", err);
+  }
+
+  // ── A CONVERSA PARADA DO PARCEIRO VIRA PEDIDO ────────────────────────────
+  //
+  // 27/08/2026: o primeiro cliente real (FOOCCI) conversou com o SDR às 01:34 e
+  // às 13:43, entregou o briefing inteiro, e nenhum pedido nasceu — a conversa
+  // travou na pergunta de verba, que para um PARCEIRO a casa não deveria nem
+  // fazer. 24 horas de atraso no orçamento de quem já tinha contado tudo.
+  //
+  // O rastro dessas conversas já era gravado desde o mesmo dia, e NINGUÉM AGIA
+  // SOBRE ELE: a casa passou a GRAVAR o cliente perdido e continuou PERDENDO
+  // ele. Décima ocorrência de "trava construída sem fechadura".
+  //
+  // ⚠️ FICA IMEDIATAMENTE ANTES DO ORÇAMENTO, e a ordem é a entrega: o pedido
+  // que nasce aqui entra em `new` e a perna seguinte, NESTA MESMA batida, lê a
+  // fila e entrega o orçamento dele. Mover este bloco para depois custaria mais
+  // cinco minutos ao cliente e faria o teste de ponta a ponta virar teatro.
+  try {
+    const { promoverConversasParadas } = await import("@/lib/agency/comercial/promover-conversas-paradas");
+    const r = await promoverConversasParadas();
+    conversasPromovidas = r.promovidos.length;
+    for (const p of r.promovidos) {
+      log(`conversa parada ${p.fio} virou o pedido ${p.clientRequestId} (parceiro ${p.clientId})`);
+    }
+    // Pendência é conversa de PARCEIRO que não dá para orçar ainda. Vira
+    // notícia com o que falta — nomeado —, porque é cliente esperando e é gente
+    // que resolve. Conversa sem parceria NÃO entra aqui: ela é o caminho de
+    // sempre (parada com dono humano), e gritar sobre o normal ensina a ignorar
+    // alarme — a lição que este mesmo arquivo pagou com 76 disparos em 24h.
+    for (const p of r.pendencias) quebrou("conversa-recuperada", p);
+    for (const f of r.falhas) quebrou("conversa-recuperada", f);
+  } catch (err) {
+    quebrou("conversa-recuperada", err);
   }
 
   // ── O ORÇAMENTO SAI DA GAVETA ─────────────────────────────────────────────
