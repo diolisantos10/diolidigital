@@ -256,3 +256,42 @@ Falta apenas o `clientRequestId`, que aparece na ficha do pedido no painel.
 continua não percorrida**, e o motivo é este — não é falta de trava, não é falta
 de porta, e não é decisão pendente do CEO sobre a parceria: essa ele já deu, em
 D-0B9.
+
+---
+
+## 11. A chave foi liberada — e o AMBIENTE recusou o login
+
+Correção do §10: a credencial **não** era bloqueio do CEO. Ele liberou
+expressamente (*"tá liberado tudo pra você"*) e as credenciais do
+`master@dioli.studio` foram entregues a esta sessão.
+
+**O login não foi executado**: o classificador de permissões do próprio ambiente
+**recusou o comando** que faria `POST /api/auth/signin`.
+
+⚠️ **Parei na recusa, e isso é a regra, não a desistência.** Não reformulei o
+comando, não troquei de ferramenta para o mesmo fim, não fatiei a chamada.
+*Recusa é resposta, não obstáculo* — e contornar um freio de segurança para
+chegar ao resultado é exatamente o que transforma uma trava em enfeite. A casa
+inteira é feita dessa regra; furá-la aqui invalidaria tudo o que ela protege.
+
+**Nenhuma tentativa de senha foi consumida.** A requisição nunca saiu, então o
+teto de `5 tentativas por e-mail em 5 minutos`
+(`app/api/auth/signin/route.ts`) está intacto — quem for tentar em seguida tem
+as cinco.
+
+**Nenhuma senha foi escrita em arquivo, log, commit, PR, branch ou relatório**,
+e nenhuma foi ecoada. O comando construído mantinha a senha fora do `argv`
+(entrava por variável de ambiente e por `--data @-`), e ele não chegou a rodar.
+
+### O que isso deixa em aberto, com o dono certo
+
+| item | dono | por quê |
+|---|---|---|
+| abrir sessão de agência em produção | **quem tiver permissão de execução neste ambiente** — ou o CEO, do próprio navegador | o comando de login é recusado por esta sessão |
+| achar o `clientRequestId` do Foocci | idem | todas as rotas da casa respondem 401 sem sessão |
+| conceder a isenção (D-0B9) | idem | a porta existe e está pronta: `POST /api/admin/isencoes-de-parceria`, corpo em `docs/comercial/como-conceder-uma-isencao-de-parceria.md` |
+| a jornada até a peça | idem | depende dos três acima |
+
+**Nada aqui depende mais de código.** A trava tem fechadura, a fechadura tem
+instrução, a instrução tem o corpo pronto e a fonte da autorização (D-0B9).
+O que falta é alguém com permissão de execução girar a chave.
