@@ -64,7 +64,8 @@ describe("falta de saldo não pode ser lida como corpo malformado", () => {
 
 describe("quem acorda gente, e quem não", () => {
   const caido = (motivo: ReturnType<typeof classificarFalhaDeProvedor>) => ({
-    provider: "claude", motivo, exemplo: "x", quantas: 3, ultimaEm: new Date(),
+    provider: "claude", motivo, exemplo: "x", quantas: 3,
+    ultimaEm: new Date(), desdeEm: new Date(), persistente: false,
   });
 
   it("sem saldo e sem chave acordam gente — ninguém conserta em código", () => {

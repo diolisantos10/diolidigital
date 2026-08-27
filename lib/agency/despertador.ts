@@ -458,12 +458,24 @@ export async function baterORelogio(): Promise<{
   // durar a casa serve pela reserva — que é pior e mais cara, calada. Teto de
   // ritmo passa sozinho e não vira alarme.
   try {
-    const { provedoresCaidos, precisamDeGente, ROTULO_DA_FALHA } = await import("@/lib/ai/falha-de-provedor");
+    const { provedoresCaidos, precisamDeGente, ROTULO_DA_FALHA, haQuantoTempo } =
+      await import("@/lib/ai/falha-de-provedor");
     const caidos = await provedoresCaidos(60);
     for (const c of precisamDeGente(caidos)) {
+      // ── QUEBRADO HÁ HORAS ≠ SOLUÇO DE AGORA (27/08/2026) ─────────────────
+      // Medido: 27 alarmes idênticos de 5 em 5 min, das 13:38 às 15:48, todos
+      // "credit balance is too low", todos com o MESMO peso de um erro
+      // isolado. Alarme que grita sobre o normal ensina a ignorar alarme — e
+      // este gritava sobre o quebrado, o que é pior: acostuma a casa a ver
+      // vermelho e não olhar. Continua gritando (a conta segue zerada), mas
+      // agora a frase diz HÁ QUANTO TEMPO, e é o tempo que separa "pega o
+      // cartão de crédito" de "olha isso daqui a pouco".
+      const quanto = c.persistente
+        ? `PARADO ${haQuantoTempo(c)} — ${c.quantas} chamada(s) na última hora, sempre igual`
+        : `${c.quantas} chamada(s) na última hora`;
       quebrou(
         "provedor-de-ia",
-        `${c.provider}: ${ROTULO_DA_FALHA[c.motivo!]} — ${c.quantas} chamada(s) na última hora. Exemplo: ${c.exemplo}`,
+        `${c.provider}: ${ROTULO_DA_FALHA[c.motivo!]} — ${quanto}. Exemplo: ${c.exemplo}`,
       );
     }
     // Os passageiros ficam como ESTADO: visíveis sem gritar. Um provedor
