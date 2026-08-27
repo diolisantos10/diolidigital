@@ -60,6 +60,12 @@ export const VINCULOS_SOLTOS = [
   { chave: "aIRunLog",               rotulo: "registros de IA" },
   { chave: "departmentLadderRecord", rotulo: "registros de escada" },
   { chave: "user",                   rotulo: "usuários" },
+  // A isenção de parceria (27/08/2026). Entra aqui porque ela é um COMPROMISSO
+  // com aquele cliente — funde junto e some junto. Deixá-la de fora faria a
+  // fusão largar uma isenção órfã, e isenção órfã é produção liberada de graça
+  // sem cliente a que responder. Os dois testes-guarda da casa pegaram esta
+  // omissão antes do merge, que é exatamente para isso que eles existem.
+  { chave: "isencaoDeParceria",      rotulo: "isenções de parceria" },
   // Unicidade por (workspaceId, clientId): não dá para ter dois do mesmo dono.
   { chave: "googleDriveConnection",  rotulo: "conexões do Drive",   unicoPorCliente: true },
   { chave: "clientAiProvider",       rotulo: "provedores de IA",    unicoPorCliente: true },

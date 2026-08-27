@@ -56,7 +56,7 @@
 // Presença R$ 490/20 e Conteúdo R$ 790/36 estão fechados por decisão do CEO
 // (D-0B6). Ela CERCA os planos — piso, margem e avulsos —, não os remarca.
 
-import { emReais, medido, somar, type Dinheiro } from "@/lib/agency/financeiro/dre";
+import { emReais, medido, somar, type Dinheiro } from "@/lib/agency/financeiro/dinheiro";
 import { PLANOS } from "@/lib/agency/planos";
 
 /** Teto de produção da casa, em peças/mês. Vender acima disto é dívida com

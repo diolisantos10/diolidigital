@@ -27,6 +27,7 @@
 // ⚠️ Esta rota NÃO é o portal de 11 abas. Aquele exige um `Client`, e aqui o
 // `Client` ainda não existe — é justamente o aceite que o faz nascer.
 
+import { avisoDeAgendamentoManual } from "@/lib/agency/esteira/aviso-de-agendamento-manual";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     negocio: pedido.businessName ?? "",
     // Sem link: quem lê isto JÁ está na página da proposta.
-    texto: textoDoOrcamento(pedido.businessName ?? "", e),
+    texto: textoDoOrcamento(pedido.businessName ?? "", e, null, await avisoDeAgendamentoManual()),
     decidivel: ESPERANDO_DECISAO.includes(pedido.status),
     status: pedido.status,
     jaAceito: pedido.status === STATUS_ACEITO,

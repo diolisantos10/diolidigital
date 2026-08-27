@@ -47,78 +47,20 @@ import { donoDaChamada } from "@/lib/ai/donos";
  */
 export const MEDICAO_DE_IA_COMPLETA_DESDE = new Date("2026-08-07T00:00:00.000Z");
 
-// ─── Dinheiro: um número, ou a razão de não haver número ──────────────────────
+// ─── Dinheiro ────────────────────────────────────────────────────────────────
+//
+// O vocabulário mudou de casa em 27/08/2026 (`dinheiro.ts`) e é REEXPORTADO
+// daqui para que nenhum chamador antigo precise mudar. O motivo da mudança está
+// no cabeçalho de lá: importar a palavra "não medido" arrastava o roster de
+// agentes junto, e isso fechou um ciclo de import quando a tabela de preços
+// entrou no caminho do SDR.
 
-export type OrigemDoNumero =
-  | "registro_de_ia"   // AIRunLog — chamada medida, preço da tabela da casa
-  | "manual"           // alguém lançou à mão
-  | "contrato"         // valor de contrato/plano assinado
-  | "extrato"          // conciliação bancária
-  | "importado"        // rotina automática
-  | "derivado";        // soma/subtração dos acima — carrega a origem mais fraca
+export {
+  medido, emReais, somar, subtrair,
+  type Dinheiro, type OrigemDoNumero,
+} from "@/lib/agency/financeiro/dinheiro";
 
-export type Dinheiro =
-  | { estado: "medido"; centavos: number; moeda: "BRL" | "USD"; origem: OrigemDoNumero }
-  /** Ninguém mediu. Diferente de "custou zero" e diferente de "não houve". */
-  | { estado: "nao_medido"; motivo: string }
-  /** A janela existe e está vazia: não houve lançamento. Isto SIM é zero real. */
-  | { estado: "nao_lancado"; motivo: string };
-
-export function medido(centavos: number, origem: OrigemDoNumero, moeda: "BRL" | "USD" = "BRL"): Dinheiro {
-  return { estado: "medido", centavos, moeda, origem };
-}
-
-/** Formata para a tela. Nunca devolve "R$ 0,00" para o que não foi medido. */
-export function emReais(d: Dinheiro): string {
-  if (d.estado === "nao_medido") return "não medido";
-  if (d.estado === "nao_lancado") return "nada lançado";
-  const valor = (d.centavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return d.moeda === "USD" ? `US$ ${valor}` : `R$ ${valor}`;
-}
-
-/**
- * Soma que se recusa a inventar.
- *
- * Se QUALQUER parcela não foi medida, a soma não é medida — ela vira
- * `nao_medido` nomeando quem faltou. Tratar a parcela ausente como zero é
- * exatamente como um DRE passa a mentir para baixo sem ninguém errar uma conta.
- * Parcelas todas `nao_lancado` somam `nao_lancado`, que é zero de verdade.
- */
-export function somar(parcelas: Array<{ rotulo: string; valor: Dinheiro }>): Dinheiro {
-  const faltando = parcelas.filter((p) => p.valor.estado === "nao_medido").map((p) => p.rotulo);
-  if (faltando.length) {
-    return { estado: "nao_medido", motivo: `depende de ${faltando.join(", ")}, que não foi medido` };
-  }
-  const medidas = parcelas.filter((p) => p.valor.estado === "medido");
-  if (medidas.length === 0) {
-    return { estado: "nao_lancado", motivo: "nenhum lançamento no período" };
-  }
-  const moedas = new Set(medidas.map((p) => (p.valor as { moeda: string }).moeda));
-  if (moedas.size > 1) {
-    // Somar BRL com USD sem câmbio declarado produziria um número que não
-    // existe em moeda nenhuma. É a regra 3 aplicada onde ela mais dói.
-    return { estado: "nao_medido", motivo: "há valores em moedas diferentes e não há câmbio declarado" };
-  }
-  return {
-    estado: "medido",
-    centavos: medidas.reduce((s, p) => s + (p.valor as { centavos: number }).centavos, 0),
-    moeda: [...moedas][0] as "BRL" | "USD",
-    origem: "derivado",
-  };
-}
-
-/** Subtração com a mesma disciplina da soma. */
-export function subtrair(a: { rotulo: string; valor: Dinheiro }, b: { rotulo: string; valor: Dinheiro }): Dinheiro {
-  return somar([
-    a,
-    {
-      rotulo: b.rotulo,
-      valor: b.valor.estado === "medido"
-        ? { ...b.valor, centavos: -b.valor.centavos, origem: "derivado" as const }
-        : b.valor,
-    },
-  ]);
-}
+import { medido, emReais, somar, subtrair, type Dinheiro, type OrigemDoNumero } from "@/lib/agency/financeiro/dinheiro";
 
 // ─── O período ────────────────────────────────────────────────────────────────
 

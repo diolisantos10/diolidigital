@@ -135,9 +135,24 @@ describe("podeFechar — deixa passar o que está no piso ou acima", () => {
     }
   });
 
-  it("avisa para pedir moeda de troca sempre que houver desconto", () => {
-    // Um real acima do piso: há desconto, logo há contrapartida a pedir.
+  it("no plano NÃO há mais desconto a pedir — o piso virou o cheio", () => {
+    // ⚠️ ESTE TESTE MEDIA `piso + 1` E ESPERAVA "moeda de troca", porque o piso
+    // dos planos era 78% do cheio — um desconto de 22% que ninguém autorizou.
+    // Ordem do CEO em 27/08/2026: sem faixa configurada, desconto nenhum.
+    // Um real acima do piso agora é um real ACIMA DO CHEIO: não há desconto,
+    // logo não há contrapartida a pedir.
+    expect(TABELA_DE_PISO.presenca.piso).toBe(TABELA_DE_PISO.presenca.cheio);
     const r = podeFechar("presenca", TABELA_DE_PISO.presenca.piso + 1);
+    expect(r.pode).toBe(true);
+    expect(r.motivo).not.toMatch(/moeda de troca/i);
+  });
+
+  it("a moeda de troca continua existindo onde AINDA há desconto: o balcão", () => {
+    // O mecanismo não morreu — ele só não se aplica mais aos planos. O balcão
+    // tem `precoMinimo` próprio no catálogo, e ali há espaço de verdade.
+    const linha = TABELA_DE_PISO.post;
+    expect(linha.piso).toBeLessThan(linha.cheio);
+    const r = podeFechar("post", linha.piso + 1);
     expect(r.pode).toBe(true);
     expect(r.motivo).toMatch(/moeda de troca/i);
   });
@@ -167,7 +182,10 @@ describe("chegouNoPiso — parar de baixar preço e cortar escopo", () => {
   });
 
   it("acima do piso, ainda há espaço — mas com contrapartida", () => {
-    const s = chegouNoPiso("ritmo", 280);
+    // R$ 280 era "acima do piso" quando o piso do Ritmo era R$ 226 (78% de 290).
+    // Com o piso igual ao cheio, R$ 280 virou ABAIXO do piso. O que este teste
+    // mede é o degrau "acima do piso", então o valor sobe junto com o piso.
+    const s = chegouNoPiso("ritmo", TABELA_DE_PISO.ritmo.piso + 10);
     expect(s.noPiso).toBe(false);
     expect(s.frase).toMatch(/contrapartida/i);
   });
@@ -212,9 +230,11 @@ describe("moedasDeTroca — desconto nunca sai de graça", () => {
   });
 
   it("barganhaPara calcula o desconto sozinho — o chamador não faz conta na mão", () => {
-    const cheio = TABELA_DE_PISO.conteudo.cheio;
-    const oferta = TABELA_DE_PISO.conteudo.piso + 10;
-    const { veredicto, barganha } = barganhaPara("conteudo", oferta);
+    // Medido no BALCÃO, que é onde ainda há faixa de desconto: nos planos o
+    // piso virou o cheio (ordem do CEO, 27/08) e não há desconto a calcular.
+    const cheio = TABELA_DE_PISO.post.cheio;
+    const oferta = TABELA_DE_PISO.post.piso + 10;
+    const { veredicto, barganha } = barganhaPara("post", oferta);
     expect(veredicto.pode).toBe(true);
     // A conta é da função, não do teste: desconto é cheio − oferta.
     expect(barganha.desconto).toBe(cheio - oferta);
