@@ -6273,3 +6273,94 @@ pedido de ajuste.
 
 **Depende só do CEO:** liberar a execução do comando com a credencial (uma regra
 de permissão de Bash na sessão) ou fazer ele mesmo a volta pelo portal.
+
+## 🟢 27/08/2026 — O E-MAIL QUE CHEGOU, A TABELA DE PREÇOS E O SDR QUE PROMETIA
+
+### O que ficou provado NO AR
+
+**PROVA 1 — o e-mail chega de verdade. ✅** Um e-mail real saiu pelo caminho
+normal da casa (`POST /api/brain/client-requests`, a confirmação de briefing) e
+chegou à caixa do CEO. Ele leu e devolveu consertos — que é a prova mais forte
+que existe de que chegou.
+
+⚠️ **A casa não conseguiu provar o envio sozinha, e isso era defeito.** O `id`
+que a Resend devolve era descartado pelos dois chamadores. E não dava para
+remediar depois: a chave é `restricted_api_key` — a Resend responde `401 "This
+API key is restricted to only send emails"` a qualquer LEITURA. Chave de envio
+não lista o que enviou. Consertado: `sendEmail` grava o recibo (id + destino
+mascarado + assunto).
+
+### ⛔ PROVA 2 — as sete travas: 2 provadas no ar, 5 NÃO MEDIDAS
+
+A travessia foi montada em produção com cliente próprio (`NOME TESTE`), 3 peças
+reais e token de portal. O pedido de ajuste ("a primeira peça ficou com o fundo
+escuro demais… mais luz") entrou pela rota do cliente e voltou `200`.
+
+| trava | estado | número que sustenta |
+|---|---|---|
+| 5. o ajuste toca só a peça apontada | ✅ **provada no ar** | peça 1 → `revision_requested`; peças 2 e 3 intactas, `mediaUrl` idêntica (o id da mídia É o prefixo do sha256 — arquivo diferente, URL diferente) |
+| 6. peça travada tem porta | ✅ **provada no ar** | o card voltou a `pending` e o cliente conseguiu agir de novo — sem o 409 "já decidido" |
+| 1, 2, 3, 4, 7 | ⛔ **NÃO MEDIDAS** | nenhuma arte foi regenerada |
+
+**O motivo é bom, e é a trava funcionando:** `conferirPagamentoDaAncora` recusou
+antes de qualquer chamada paga — cliente criado hoje, sem pedido e sem
+pagamento, cai em `sem_registro_de_pagamento`. **O portão de pagamento segurou
+uma produção não paga em produção.** Custo da travessia: **US$ 0,00**.
+
+Para medir as outras cinco ao vivo seria preciso dar contrato pago (ou isenção)
+ao cliente de teste — mexer em registro financeiro de produção. Não foi feito.
+
+### O QUE MUDOU NO E-MAIL (ordens do CEO, no dia)
+
+O e-mail chegou assinado **"DIOLI STUDIO"**, sem logo, com o WhatsApp escrito
+como número solto. O nome estava **digitado à mão em seis arquivos**.
+
+Agora: `lib/marca.ts` (fonte única do nome, WhatsApp e paleta) + `lib/email/molde.ts`
+(casca única: cabeçalho navy com logo, botão de WhatsApp, rodapé). Logo por URL
+absoluta e pública (medido: 200 sem cookie), `alt` = nome da empresa porque
+Gmail e Outlook bloqueiam imagem por padrão, layout em tabela, 600px.
+
+E **o preço saiu do e-mail** por ordem do CEO: ele virou convite + botão. Preço
+lido sozinho, sem ninguém do outro lado, é preço que o cliente compara e
+descarta em silêncio.
+
+### 🔴 O ACHADO MAIS CARO: o SDR vendia quatro preços mortos
+
+As `FAIXAS` de `negociacao.ts` eram strings digitadas à mão e apodreceram:
+
+| o SDR oferecia | é hoje |
+|---|---|
+| Ritmo **R$ 297**, 8 peças | R$ 290, **12 peças** |
+| Presença **R$ 790** | **R$ 490** (790 é o Conteúdo) |
+| Conteúdo **R$ 1.390** | **R$ 790** |
+| Crescimento **R$ 2.590** | **não existe mais** |
+
+E um **desconto de 22% que ninguém autorizou** (`piso: preco * 0.78`). Um teste
+até então EXIGIA `piso < cheio` — exigia o desconto. Foi invertido.
+
+### A TABELA DE PREÇOS — e a honestidade sobre custo
+
+O CEO esperava que o Financeiro já tivesse os custos. **Foi medido: não tem.**
+Só a IA é medida (US$ 13,74 em 1.747 chamadas/30d — e **485 delas sem preço
+gravado**). Gateway, infra, e-mail, hora humana e impostos: **NÃO MEDIDOS**,
+cada um com dono.
+
+Como margem no piso = preço − custo, e o custo é `nao_medido`, **não se prova
+que a margem não é negativa** → o piso não desce. Os 10% de lucro do CEO estão
+em código como CHÃO (vencem a faixa de desconto), mas não rodam enquanto o custo
+não existir: não se calcula 10% sobre um número que não existe.
+
+### ⛔ O QUE CONTINUA ABERTO
+
+- **O deploy está PARADO.** O merge de #355 está no branch, mas a CI do commit
+  de merge ficou vermelha por um teste que depende de navegador de verdade
+  (`story-instagram-v1-ponta-a-ponta`: `Protocol error (Page.captureScreenshot):
+  Unable to capture screenshot`). A suíte inteira passa localmente (7.027).
+  Railway tem `checkSuites: true` e **corretamente recusa** deployar branch
+  vermelho. **Um teste que depende de navegador gateia todo deploy da casa** —
+  isso é dívida de infraestrutura, não de código.
+- **`RESEND_FROM` é do CEO** e decide o nome no campo "De:".
+- **Resíduo em produção que não consegui limpar:** o cliente `NOME TESTE` e 1
+  card de aprovação. A casa RECUSA apagar cliente com trabalho pendurado ("funda
+  em vez de apagar") — comportamento correto, e não há rota para apagar o card.
+  O token do portal expira sozinho em 29/08 (foi cunhado com 2 dias).
