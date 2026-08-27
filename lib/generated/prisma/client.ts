@@ -599,7 +599,7 @@ export type HeartbeatDoRelogio = Prisma.HeartbeatDoRelogioModel
  */
 export type HandoffV2 = Prisma.HandoffV2Model
 /**
- * Model IsencaoDeParceria
+ * Model PagamentoConfirmado
  * ─── A TESTEMUNHA DE QUE O DINHEIRO ENTROU (24/08/2026) ──────────────────────
  * 
  * Regra do CEO, literal: *"o cliente fecha um projeto com a gente, ele vai ter
@@ -632,6 +632,10 @@ export type HandoffV2 = Prisma.HandoffV2Model
  * Rollback: DROP TABLE "PagamentoConfirmado". Sem a tabela, a leitura falha e
  * o portão RECUSA tudo que nasceu depois do corte — degrada para parado, nunca
  * para produzindo de graça.
+ */
+export type PagamentoConfirmado = Prisma.PagamentoConfirmadoModel
+/**
+ * Model IsencaoDeParceria
  * A TERCEIRA TESTEMUNHA: a parceria isenta de pagamento.
  * 
  * ─── POR QUE ELA É UMA TABELA PRÓPRIA, E NÃO UMA LINHA DE PAGAMENTO ─────────
@@ -653,8 +657,3 @@ export type HandoffV2 = Prisma.HandoffV2Model
  * e investimento se mede.*
  */
 export type IsencaoDeParceria = Prisma.IsencaoDeParceriaModel
-/**
- * Model PagamentoConfirmado
- * 
- */
-export type PagamentoConfirmado = Prisma.PagamentoConfirmadoModel

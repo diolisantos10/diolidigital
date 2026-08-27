@@ -120,8 +120,8 @@ export const ModelName = {
   ReconciliacaoV2: 'ReconciliacaoV2',
   HeartbeatDoRelogio: 'HeartbeatDoRelogio',
   HandoffV2: 'HandoffV2',
-  IsencaoDeParceria: 'IsencaoDeParceria',
-  PagamentoConfirmado: 'PagamentoConfirmado'
+  PagamentoConfirmado: 'PagamentoConfirmado',
+  IsencaoDeParceria: 'IsencaoDeParceria'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1397,22 +1397,6 @@ export const HandoffV2ScalarFieldEnum = {
 export type HandoffV2ScalarFieldEnum = (typeof HandoffV2ScalarFieldEnum)[keyof typeof HandoffV2ScalarFieldEnum]
 
 
-export const IsencaoDeParceriaScalarFieldEnum = {
-  id: 'id',
-  clientRequestId: 'clientRequestId',
-  clientId: 'clientId',
-  autorizadaPor: 'autorizadaPor',
-  validaAte: 'validaAte',
-  escopo: 'escopo',
-  pecasContratadas: 'pecasContratadas',
-  tetoDeIaCentavosUsd: 'tetoDeIaCentavosUsd',
-  observacao: 'observacao',
-  createdAt: 'createdAt'
-} as const
-
-export type IsencaoDeParceriaScalarFieldEnum = (typeof IsencaoDeParceriaScalarFieldEnum)[keyof typeof IsencaoDeParceriaScalarFieldEnum]
-
-
 export const PagamentoConfirmadoScalarFieldEnum = {
   id: 'id',
   clientRequestId: 'clientRequestId',
@@ -1427,6 +1411,22 @@ export const PagamentoConfirmadoScalarFieldEnum = {
 } as const
 
 export type PagamentoConfirmadoScalarFieldEnum = (typeof PagamentoConfirmadoScalarFieldEnum)[keyof typeof PagamentoConfirmadoScalarFieldEnum]
+
+
+export const IsencaoDeParceriaScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
+  autorizadaPor: 'autorizadaPor',
+  validaAte: 'validaAte',
+  escopo: 'escopo',
+  pecasContratadas: 'pecasContratadas',
+  tetoDeIaCentavosUsd: 'tetoDeIaCentavosUsd',
+  observacao: 'observacao',
+  createdAt: 'createdAt'
+} as const
+
+export type IsencaoDeParceriaScalarFieldEnum = (typeof IsencaoDeParceriaScalarFieldEnum)[keyof typeof IsencaoDeParceriaScalarFieldEnum]
 
 
 export const SortOrder = {
