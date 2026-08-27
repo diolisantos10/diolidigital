@@ -13,6 +13,25 @@ const url = dbUrl.startsWith("file:./")
 const adapter = new PrismaLibSql({ url });
 const prisma  = new PrismaClient({ adapter });
 
+/**
+ * Lê uma senha do ambiente ou PARA a execução.
+ *
+ * Fail-closed, como o resto da casa: ausência de chave nunca vira porta
+ * aberta, nem senha padrão, nem senha inventada. O erro diz o NOME da
+ * variável — nunca o valor de nenhuma delas.
+ */
+function exigirSenha(nomeDaVariavel: string): string {
+  const valor = process.env[nomeDaVariavel];
+  if (!valor || valor.trim().length < 12) {
+    throw new Error(
+      `${nomeDaVariavel} ausente ou fraca (mínimo 12 caracteres). ` +
+        `O seed NÃO inventa senha e NÃO cai num padrão — defina a variável de ` +
+        `ambiente e rode de novo. Em produção ela vive só no painel da hospedagem.`,
+    );
+  }
+  return valor;
+}
+
 async function main() {
   console.log("🌱 Seeding Dioli Agency OS…");
 
@@ -25,8 +44,17 @@ async function main() {
   console.log(`✓ Workspace: ${workspace.name} (${workspace.id})`);
 
   // ── Users ─────────────────────────────────────────────────────────────────
-  const masterHash = await hash("dioli2025", 12);
-  const staffHash  = await hash("staff2025", 12);
+  // ── SENHA NÃO MORA NO CÓDIGO ──────────────────────────────────────────────
+  // Até 26/08/2026 estas duas linhas carregavam a senha em TEXTO PURO. Quem
+  // lesse o repositório entrava como dono da agência. A senha agora vem só do
+  // ambiente — e a ausência da variável não vira porta aberta: o seed PARA.
+  //
+  // Nada de fallback aleatório: senha aleatória por boot parece segura e é
+  // pior — cria um master que existe e ninguém consegue usar, e esta casa não
+  // tem fluxo de "esqueci minha senha" (app/api/auth/ só tem signin, signout
+  // e o Google do briefing). Falhar com motivo claro é a saída honesta.
+  const masterHash = await hash(exigirSenha("SEED_MASTER_PASSWORD"), 12);
+  const staffHash  = await hash(exigirSenha("SEED_STAFF_PASSWORD"), 12);
 
   const master = await prisma.user.upsert({
     where:  { email: "master@dioli.studio" },
@@ -76,7 +104,7 @@ async function main() {
     },
   });
 
-  console.log(`✓ Users: master@dioli.studio + 3 staff (password: dioli2025 / staff2025)`);
+  console.log(`✓ Users: master@dioli.studio + 3 staff (senhas vindas do ambiente)`);
 
   // ── DADO DE PILOTO: SÓ QUANDO ALGUÉM PEDE ────────────────────────────────
   //
@@ -227,7 +255,7 @@ async function main() {
   console.log(`\n✅ Seed complete!`);
   console.log(`\n📋 Access info:`);
   console.log(`   Agency:  http://localhost:3000/agency/dashboard`);
-  console.log(`   Login:   master@dioli.studio / dioli2025`);
+  console.log(`   Login:   master@dioli.studio (senha: variável SEED_MASTER_PASSWORD)`);
 }
 
 main()
