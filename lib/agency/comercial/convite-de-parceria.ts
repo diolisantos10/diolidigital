@@ -35,7 +35,8 @@
 
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/db/client";
-import { parceriaVale, type ParceriaDeclarada } from "./parceria-declarada";
+import { type ParceriaDeclarada } from "./parceria-declarada";
+import { parceriaVivaDoCliente } from "@/lib/agency/financeiro/parceria-do-parceiro";
 
 /** Quanto vale um convite quando ninguém diz. Curto de propósito: ver `expiraEm`. */
 export const VALIDADE_PADRAO_DIAS = 14;
@@ -65,21 +66,30 @@ function comoData(v: Date | string | null | undefined): Date | null {
 }
 
 /**
- * A isenção VIVA deste cliente — a fonte da verdade, lida agora.
+ * A AUTORIZAÇÃO VIVA deste parceiro — a fonte da verdade, lida agora.
+ *
+ * ⚠️ ANTES ISTO LIA `IsencaoDeParceria`, E ERA O NÓ (27/08/2026).
+ *
+ * A isenção é POR PEDIDO (`conceder-isencao.ts`: *"isenção sem pedido não
+ * isenta nada"*). Como o pedido nasce do briefing, e o briefing do parceiro só
+ * corre liso com o convite, o resultado era um círculo fechado:
+ *
+ *     convite → isenção → pedido → briefing → (convite)
+ *
+ * Não havia como cunhar o link do PRIMEIRO parceiro. A porta existia e não
+ * podia ser aberta a primeira vez.
+ *
+ * Agora a fonte é `ParceriaDoCliente`, que vive no nível do PARCEIRO e existe
+ * ANTES de qualquer pedido — e o círculo se rompe no elo certo, sem afrouxar
+ * nada: a autorização continua nominal, com validade e com teto.
  *
  * Separada de propósito: é a MESMA leitura na cunhagem e no uso. Fossem duas,
  * um dia divergiriam e o convite passaria a valer mais que a parceria que ele
  * representa.
  */
-async function isencaoViva(clientId: string, agora: Date): Promise<ParceriaDeclarada | null> {
-  const linha = await prisma.isencaoDeParceria.findFirst({
-    where: { clientId, validaAte: { gte: agora } },
-    orderBy: { validaAte: "desc" },
-    select: { autorizadaPor: true, validaAte: true },
-  });
-  if (!linha) return null;
-  const p = { autorizadaPor: linha.autorizadaPor, validaAte: linha.validaAte };
-  return parceriaVale(p, agora) ? p : null;
+async function autorizacaoViva(clientId: string, agora: Date): Promise<ParceriaDeclarada | null> {
+  const p = await parceriaVivaDoCliente(clientId, agora);
+  return p ? { autorizadaPor: p.autorizadaPor, validaAte: p.validaAte } : null;
 }
 
 /**
@@ -110,12 +120,12 @@ export async function cunharConviteDeParceria(
   }
 
   try {
-    const isencao = await isencaoViva(clientId, agora);
+    const isencao = await autorizacaoViva(clientId, agora);
     if (!isencao) {
       return recusar(
-        "sem_isencao_viva",
-        "Este cliente não tem isenção de parceria viva. Conceda a isenção primeiro " +
-          "(POST /api/admin/isencoes-de-parceria) — o convite só aponta para ela.",
+        "sem_parceria_viva",
+        "Este cliente não tem parceria viva. Autorize a parceria primeiro " +
+          "(POST /api/agency/parcerias) — o convite só aponta para ela, e não a cria.",
       );
     }
     // ⚠️ O CONVITE NUNCA SOBREVIVE À PARCERIA. Sem esta trava, um convite de 90
@@ -124,8 +134,8 @@ export async function cunharConviteDeParceria(
     // eterna, e foi para matar isso que `validaAte` é obrigatória na isenção.
     if (expiraEm.getTime() > isencao.validaAte.getTime()) {
       return recusar(
-        "passa_da_isencao",
-        `O convite não pode valer além da isenção, que vence em ${isencao.validaAte.toISOString()}.`,
+        "passa_da_parceria",
+        `O convite não pode valer além da parceria, que vence em ${isencao.validaAte.toISOString()}.`,
       );
     }
 
@@ -176,9 +186,9 @@ export async function resolverConviteDeParceria(
     if (convite.revogadoEm) return null;
     if (convite.expiraEm.getTime() <= agora.getTime()) return null;
 
-    // A ISENÇÃO É CONFERIDA AGORA, não na cunhagem. É isto que faz revogar a
+    // A PARCERIA É CONFERIDA AGORA, não na cunhagem. É isto que faz revogar a
     // parceria matar o convite no mesmo instante, sem caçar link nenhum.
-    const parceria = await isencaoViva(convite.clientId, agora);
+    const parceria = await autorizacaoViva(convite.clientId, agora);
     if (!parceria) return null;
 
     // Trilha, depois da decisão e sem poder derrubá-la.

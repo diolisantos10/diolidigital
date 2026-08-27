@@ -51,6 +51,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { mensalidadeEmDia, O_QUE_DIZER } from "@/lib/agency/financeiro/assinatura";
+import { derivarIsencaoDoPedido } from "@/lib/agency/financeiro/parceria-do-parceiro";
 
 /**
  * ── O CORTE DE VIGÊNCIA (a anistia declarada) ──────────────────────────────
@@ -268,6 +269,28 @@ export async function conferirPagamento(
   //     recusa com nome próprio — o operador precisa saber que existiu e acabou.
   //
   // Fail-closed como o resto: leitura que falha é recusa, nunca liberação.
+  //
+  // ── A ISENÇÃO DO PEDIDO É DERIVADA DA PARCERIA DO PARCEIRO (27/08/2026) ──
+  //
+  // Antes, a isenção era um ato manual POR PEDIDO — e isso fechava um círculo:
+  // o convite do parceiro exigia isenção viva, a isenção exigia um pedido, o
+  // pedido nascia do briefing, e o briefing do parceiro só corria liso com o
+  // convite. Não havia como abrir a porta a primeira vez.
+  //
+  // Agora a autorização vive no PARCEIRO (`ParceriaDoCliente`) e a isenção
+  // deste pedido é CONSEQUÊNCIA dela: se o pedido é de um parceiro vivo e ainda
+  // não tem linha de isenção, ela é escrita aqui, com os MESMOS termos da
+  // autorização. *Verdade escrita em dois lugares já está errada em um deles* —
+  // então a fonte é uma só, e a linha por pedido vira registro de auditoria.
+  //
+  // Idempotente e fail-closed: sem parceria viva nada é escrito e o pedido
+  // segue pagante, com o portão fechando normalmente. E derivar NUNCA inventa
+  // pagamento: continua sem linha em `PagamentoConfirmado`, receita R$ 0.
+  const doParceiro = await prisma.clientRequestDb
+    .findUnique({ where: { id: clientRequestId }, select: { clientId: true } })
+    .catch(() => null);
+  await derivarIsencaoDoPedido(clientRequestId, doParceiro?.clientId).catch(() => null);
+
   let isencao: { autorizadaPor: string; validaAte: Date; escopo: string } | null;
   try {
     isencao = await prisma.isencaoDeParceria.findUnique({

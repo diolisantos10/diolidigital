@@ -34,19 +34,54 @@ derivação, nunca comparação.*
 
 ---
 
-## A ordem dos atos (a segunda não funciona sem a primeira)
+## ⚠️ O nó circular que existia — e por que a ordem mudou (27/08/2026)
 
-### 1. Conceder a isenção — **a autorização**
+A primeira versão fazia o convite apontar para a `IsencaoDeParceria`. Só que a
+isenção é **por pedido** (*"isenção sem pedido não isenta nada"*), o pedido nasce
+do briefing, e o briefing do parceiro só corre liso **com o convite**:
 
 ```
-POST /api/admin/isencoes-de-parceria     (sessão de agência)
-{ "clientRequestId": "...", "autorizadaPor": "Dioli Santos (CEO), D-0B9",
-  "validaAte": "2026-11-27T00:00:00.000Z", "escopo": "...",
+convite → isenção → pedido → briefing → (convite)
+```
+
+**A porta existia e não podia ser aberta a primeira vez.** Era a sétima "trava
+sem fechadura" da casa, agora em círculo.
+
+*(Precisão: o **pedido** nunca ficou trancado — `budget_range` fecha com qualquer
+resposta. O parceiro conseguia terminar o briefing respondendo justamente a
+pergunta que a parceria deveria poupar. O que estava trancado era o **convite**.)*
+
+**O conserto:** a autorização passou a viver no nível do **parceiro**
+(`ParceriaDoCliente`), existindo **antes de qualquer pedido**. É dela que o
+convite nasce — e a isenção de cada pedido virou **consequência** dela.
+
+> *Verdade escrita em dois lugares já está errada em um deles.*
+
+---
+
+## A ordem dos atos (a segunda não funciona sem a primeira)
+
+### 1. Autorizar a parceria — **a autorização**, no nível do parceiro
+
+```
+POST /api/agency/parcerias               (sessão de agência)
+{ "clientId": "cli_...", "autorizadaPor": "Dioli Santos (CEO), D-0B9",
+  "validaAte": "2026-11-27T00:00:00.000Z",
+  "escopo": "Social Media — parceria de lançamento",
   "pecasContratadas": 12, "tetoDeIaCentavosUsd": 200 }
 ```
 
-O convite **não é** a autorização — ele só **aponta** para a isenção. Sem isenção
-viva, a cunhagem é **recusada** (`sem_isencao_viva`): credencial que espera
+**Não precisa de pedido.** É este ato que rompe o círculo.
+
+- `autorizadaPor` é **nominal** (a fonte: o CEO, citando D-0B9); `registradaPor`
+  sai da **sessão**.
+- **Teto e validade são obrigatórios.** Teto ausente é **erro**, nunca zero —
+  sem teto o parceiro come o crédito do cliente pagante.
+- ⛔ **Não é pagamento.** Nenhuma linha em `PagamentoConfirmado`. Receita R$ 0,
+  custo contado normalmente, margem negativa à vista.
+
+O convite **não é** a autorização — ele só **aponta** para ela. Sem parceria
+viva, a cunhagem é **recusada** (`sem_parceria_viva`): credencial que espera
 autorização é credencial **sem** autorização.
 
 ### 2. Cunhar o convite — **a chave**
@@ -66,8 +101,8 @@ Resposta (**o token aparece UMA vez — não há rota que o releia**):
 
 - `criadoPor` sai da **sessão**, nunca do corpo — quem cunhou fica na linha.
 - `expiraEm` é **prazo próprio** (padrão: 14 dias) e **nunca** pode passar da
-  validade da isenção (`passa_da_isencao`). Parceria eterna pela porta dos fundos
-  continua sendo parceria eterna.
+  validade da parceria (`passa_da_parceria`). Parceria eterna pela porta dos
+  fundos continua sendo parceria eterna.
 
 ### 3. Entregar o **link** ao parceiro
 
@@ -88,11 +123,32 @@ DELETE /api/agency/convites-de-parceria?token=…
 |---|---|
 | Passou de `expiraEm` | Morre. |
 | `DELETE` (revogação) | Morre na hora. |
-| **A isenção venceu** | **Morre na hora** — a isenção é conferida **viva a cada uso**, não só na cunhagem. |
-| **A isenção foi revogada** | **Morre na hora**, sem precisar caçar link nenhum. |
+| **A parceria venceu** | **Morre na hora** — a parceria é conferida **viva a cada uso**, não só na cunhagem. |
+| **A parceria foi revogada** (`DELETE /api/agency/parcerias?clientId=…`) | **Morre na hora**, sem precisar caçar link nenhum. |
 | Banco fora do ar | Vale como convite nenhum — *"não sei" significa **continua perguntando***. |
 
 ---
+
+## A isenção de cada pedido é **derivada** — ninguém a concede à mão
+
+Quando um pedido do parceiro chega ao portão de pagamento, a casa lê a parceria
+viva do cliente e **escreve a isenção daquele pedido** com **os mesmos termos**
+da autorização (validade, escopo, peças, teto). Uma fonte, um valor.
+
+- **Idempotente:** já havendo isenção, nada é reescrito — a do pedido é o fato
+  **daquele momento**, e reescrevê-la mudaria a história de uma produção que já
+  correu.
+- **Sem parceria viva, nada é derivado:** o pedido segue pagante e o portão
+  fecha normalmente.
+- `POST /api/admin/isencoes-de-parceria` continua existindo para o caso avulso
+  (isentar **um** pedido de quem **não** é parceiro recorrente).
+
+## O que morre quando se revoga a parceria
+
+| Morre | Continua |
+|---|---|
+| Os **convites** do parceiro (conferem a parceria a cada uso) | As isenções **já derivadas** de pedidos anteriores — são o registro do que valia naquele momento |
+| A derivação de **novos** pedidos (voltam a travar no portão) | O histórico de custo e a margem já medidos |
 
 ## O que o convite **não** faz
 

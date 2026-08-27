@@ -188,6 +188,8 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     await tx.isencaoDeParceria.deleteMany({});
     // Convite é credencial ligada a cliente: inauguração que deixasse convites
     // para trás entregaria a casa nova com chaves da casa velha na rua.
+    // A autorização de parceria é do cliente: casa nova não herda parceiro velho.
+    await tx.parceriaDoCliente.deleteMany({});
     await tx.conviteDeParceria.deleteMany({});
     // A ASSINATURA RECORRENTE (27/08/2026), e a sobra dela é de outro tipo — pior.
     // A isenção sobrevivente libera produção de graça; a assinatura sobrevivente

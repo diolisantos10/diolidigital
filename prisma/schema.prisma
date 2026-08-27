@@ -2709,6 +2709,75 @@ model PagamentoConfirmado {
 /// que continua sendo a fonte da verdade. A isenção é conferida VIVA a cada uso;
 /// revogá-la ou deixá-la vencer mata o convite no mesmo instante, sem precisar
 /// caçar link nenhum.
+/// A PARCERIA É DO PARCEIRO — não do pedido. Quebra do nó circular (27/08/2026).
+///
+/// ── O NÓ, medido em quatro pontos ──────────────────────────────────────────
+/// `IsencaoDeParceria` exige `clientRequestId` ("isenção sem pedido não isenta
+/// nada"), o portão de pagamento a lê por pedido, o convite exigia isenção viva,
+/// e o pedido nasce do briefing. Ou seja:
+///
+///     convite → isenção → pedido → briefing → (convite)
+///
+/// A porta existia e **não podia ser aberta a primeira vez**. É a família
+/// "trava construída sem fechadura", agora em forma de círculo — e o efeito
+/// prático era exato: **não havia como cunhar o link do primeiro parceiro**.
+///
+/// (Precisão: o PEDIDO não ficava trancado — `budget_range` fecha com qualquer
+/// resposta. O parceiro conseguia terminar o briefing respondendo justamente a
+/// pergunta que a parceria deveria poupar. O que estava trancado era o CONVITE,
+/// e portanto o tratamento de parceiro.)
+///
+/// ── O conserto ─────────────────────────────────────────────────────────────
+/// A autorização passa a viver no nível do PARCEIRO e existe ANTES de qualquer
+/// pedido. É daqui que o convite nasce, e é isto que rompe o círculo.
+///
+/// ⚠️ E ela vira a ÚNICA FONTE DA VERDADE: a `IsencaoDeParceria` de cada pedido
+/// passa a ser DERIVADA desta linha, não um ato manual novo. *Verdade escrita
+/// em dois lugares já está errada em um deles.*
+///
+/// O que NÃO muda: teto de custo obrigatório (sem ele o parceiro come o crédito
+/// do pagante), validade obrigatória (parceria eterna vira esquecimento), dono
+/// nominal, e NUNCA um pagamento falso de R$ 0 — receita de parceria é R$ 0 com
+/// o custo contado normalmente, e a margem negativa fica à vista.
+model ParceriaDoCliente {
+  id       String @id @default(cuid())
+
+  /// ⚠️ `@unique`: um cliente tem UMA parceria. Duas linhas vivas para o mesmo
+  /// parceiro seriam duas verdades sobre o mesmo fato — exatamente o que este
+  /// modelo existe para acabar.
+  clientId String @unique
+
+  /// ⚠️ NOMINAL E OBRIGATÓRIO — a FONTE da autorização (o CEO, citando D-0B9).
+  /// Parceria sem dono é buraco: em seis meses ninguém sabe quem liberou.
+  autorizadaPor String
+
+  /// QUEM APERTOU O BOTÃO, da SESSÃO e nunca do corpo. Distinto de
+  /// `autorizadaPor`: um campo que o operador digita não pode ser a única
+  /// testemunha do ato. Nulo = veio por script, não "não teve dono".
+  registradaPor String?
+
+  /// ⚠️ OBRIGATÓRIA. Vencida não libera nada e o pedido volta a travar no portão.
+  validaAte DateTime
+
+  /// O que a parceria cobre, em texto do operador. Sem escopo, cobre tudo.
+  escopo String
+
+  /// Quantas peças a parceria dá direito. Zero é ZERO — nunca "sem limite".
+  pecasContratadas Int
+
+  /// ⛔ TETO DE CUSTO DE IA, EM CENTAVOS DE DÓLAR. Sem teto, o parceiro come o
+  /// crédito do cliente pagante — finito e sem recarga automática.
+  tetoDeIaCentavosUsd Int
+
+  /// Revogação explícita, independente do vencimento. Revogar aqui mata os
+  /// convites do parceiro na hora, porque eles conferem esta linha a cada uso.
+  revogadaEm DateTime?
+
+  observacao String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 model ConviteDeParceria {
   id         String    @id @default(cuid())
 
