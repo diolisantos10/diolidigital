@@ -26,16 +26,17 @@
 // IMPRIMIR `0` como se fosse a resposta, sem dizer que a pergunta nunca foi
 // respondida com um número maior).
 //
-// Este teste prova a cadeia de funções puras exportadas do componente — não
-// há jsdom/@testing-library nesta casa (mesmo precedente de
-// `escopo-sobrevive-a-recusa.test.ts`) — mais uma leitura de FONTE do
-// `ScopeSection`, que é JSX e não é função pura exportável sem renderer.
+// Este teste prova a cadeia de funções puras exportadas do componente E o HTML
+// do `ScopeSection`, renderizado com `renderToStaticMarkup` (o mesmo caminho de
+// `nenhuma-parada-sem-porta.test.tsx`; não há jsdom/@testing-library nesta
+// casa). Até 27/08/2026 a segunda metade era uma leitura de FONTE com regex —
+// ver a nota de inversão no segundo bloco.
 
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { buildExtractedSummary } from "@/components/agency/briefing/PublicBriefingRoom";
-import { emptyScope } from "@/lib/agency/briefing-conversation";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
+import { buildExtractedSummary, ScopeSection } from "@/components/agency/briefing/PublicBriefingRoom";
+import { emptyScope, type BriefingScope } from "@/lib/agency/briefing-conversation";
 
 describe("buildExtractedSummary nunca afirma '0 posts/mês' — a fala do Diego não se repete", () => {
   it("postsPerWeek: 0 explícito NÃO vira '0 posts/mês' nas quantidades", () => {
@@ -99,47 +100,58 @@ describe("buildExtractedSummary nunca afirma '0 posts/mês' — a fala do Diego 
 });
 
 describe("o quadro do escopo (ScopeSection) trata Posts, Stories e Reels com a MESMA regra", () => {
-  const CAMINHO = join(process.cwd(), "components/agency/briefing/PublicBriefingRoom.tsx");
-  const FONTE = readFileSync(CAMINHO, "utf8");
+  // ⚠️ ESTE BLOCO FOI REESCRITO EM 27/08/2026, e a inversão fica declarada.
+  //
+  // Ele lia a FONTE do componente com regex e exigia o literal
+  //   `scope.social.postsPerWeek > 0 ? ... : "Não incluído"` + `dim: ... === 0`
+  // nos três blocos. Isso congelava a FORMA, não a regra — e virou obstáculo à
+  // primeira mudança legítima: as três linhas passaram a sair de UMA função
+  // (`linhaDeVolume`), que é justamente "nenhuma segunda forma de escrever a
+  // regra" levada ao limite. Três cópias idênticas do ternário eram o problema
+  // que o teste tolerava, não a solução que ele protegia.
+  //
+  // A REGRA — a do Diego, 16/08/2026 — continua inteira e agora é medida onde
+  // importa: no HTML que o cliente lê. `ScopeSection` foi exportada para isso.
+  // Zero nunca aparece como "0/mês"; os três campos respondem igual; número de
+  // verdade continua aparecendo.
 
-  // Recorta só o corpo de `ScopeSection` para não deixar outra ocorrência do
-  // arquivo (ex.: `buildExtractedSummary`) mascarar o teste.
-  const inicio = FONTE.indexOf("function ScopeSection(");
-  const fim = FONTE.indexOf("// ── Estimate section", inicio);
-  const SCOPE_SECTION = FONTE.slice(inicio, fim);
+  function texto(scope: BriefingScope): string {
+    return renderToStaticMarkup(createElement(ScopeSection, { scope }))
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ");
+  }
 
-  it("existe de fato a função ScopeSection para recortar (trava contra refatoração que renomeia)", () => {
-    expect(inicio).toBeGreaterThan(-1);
-    expect(fim).toBeGreaterThan(inicio);
+  const base: BriefingScope = {
+    ...emptyScope(),
+    wantsSocialMedia: true,
+    social: { platforms: ["instagram"] },
+  };
+
+  it("ScopeSection continua existindo e exportada (trava contra refatoração que a esconda)", () => {
+    expect(typeof ScopeSection).toBe("function");
   });
 
-  it("a linha de Posts usa a mesma guarda `> 0` que Stories e Reels já usavam", () => {
-    // ANTES do conserto, esta linha era:
-    //   rows.push({ label: "Posts", value: `${scope.social.postsPerWeek * 4}/mês` });
-    // — sem checar se o número era maior que zero, e sem `dim`. Esta asserção
-    // reprova exatamente essa forma antiga: se alguém reintroduzi-la, o teste
-    // fica vermelho de novo.
-    expect(SCOPE_SECTION).not.toMatch(
-      /rows\.push\(\{\s*label:\s*"Posts",\s*value:\s*`\$\{scope\.social\.postsPerWeek \* 4\}\/mês`\s*\}\)/,
-    );
-    expect(SCOPE_SECTION).toMatch(/scope\.social\.postsPerWeek > 0 \? `\$\{scope\.social\.postsPerWeek \* 4\}\/mês` : "Não incluído"/);
-    expect(SCOPE_SECTION).toMatch(/dim:\s*scope\.social\.postsPerWeek === 0/);
+  it("zero NÃO vira '0/mês' em NENHUM dos três campos — a fala do Diego não se repete", () => {
+    const t = texto({ ...base, social: { platforms: ["instagram"], postsPerWeek: 0, storiesPerWeek: 0, reelsPerMonth: 0 } });
+    expect(t).not.toMatch(/0\/mês/);
+    expect(t).toMatch(/Posts\s*Não incluído/);
   });
 
-  it("o padrão de Posts é textualmente o MESMO de Stories e Reels — nenhuma segunda forma de escrever a regra", () => {
-    const posPosts = SCOPE_SECTION.indexOf('label: "Posts"');
-    const posStories = SCOPE_SECTION.indexOf('label: "Stories"');
-    const posReels = SCOPE_SECTION.indexOf('label: "Reels"');
-    expect(posPosts).toBeGreaterThan(-1);
-    expect(posStories).toBeGreaterThan(posPosts);
-    expect(posReels).toBeGreaterThan(posStories);
-
-    // Mesma estrutura de três linhas (label / value ternário / dim) nos três blocos.
-    for (const label of ["Posts", "Stories", "Reels"]) {
-      const bloco = SCOPE_SECTION.slice(SCOPE_SECTION.indexOf(`label: "${label}"`) - 20, SCOPE_SECTION.indexOf(`label: "${label}"`) + 220);
-      expect(bloco).toContain("? `${");
-      expect(bloco).toContain('` : "Não incluído"');
-      expect(bloco).toMatch(/dim:\s*scope\.social\.\w+ === 0/);
+  it("os três campos respondem à MESMA regra — nenhum deles é a exceção", () => {
+    for (const social of [
+      { platforms: ["instagram"], postsPerWeek: 0 },
+      { platforms: ["instagram"], storiesPerWeek: 0 },
+      { platforms: ["instagram"], reelsPerMonth: 0 },
+    ]) {
+      const t = texto({ ...base, social });
+      expect(t).toMatch(/Não incluído/);
+      expect(t).not.toMatch(/0\/mês/);
     }
+  });
+
+  it("número de verdade continua aparecendo — a guarda não apaga dado real", () => {
+    // 3 posts/semana = 12/mês, que É um degrau da casa: sai limpo, sem encaixe.
+    const t = texto({ ...base, social: { platforms: ["instagram"], postsPerWeek: 3 } });
+    expect(t).toMatch(/Posts\s*12\/mês/);
   });
 });
