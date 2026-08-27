@@ -6,6 +6,7 @@
 // 4. Submission gate: identity + service complete, no unresolved price objection
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { NOME_DA_EMPRESA } from "@/lib/marca";
 import type { ConvState, ConvMessage, BriefingScope } from "./briefing-conversation";
 import { nomeDoNegocioNoTexto } from "./comercial/nome-do-negocio-no-texto";
 import {
@@ -314,8 +315,8 @@ export function initProspectConvState(contatoInicial?: ContatoInicial): Prospect
   // acabou de ser dado, nenhuma correção adiante apaga a impressão de que
   // ninguém prestou atenção. Sem nome (porta pulada), o texto original vale.
   const texto = primeiroNome
-    ? `Olá, ${primeiroNome}! Seja bem-vindo(a) à Dioli Studio.\n\nSou sua consultora de orçamento. Vou te ajudar a montar uma proposta personalizada para o seu negócio — com estimativa de investimento atualizada em tempo real.\n\n**Para começar, qual é o nome do seu negócio?**`
-    : "Olá! Seja bem-vindo(a) à Dioli Studio.\n\nSou sua consultora de orçamento. Vou te ajudar a montar uma proposta personalizada para o seu negócio — com estimativa de investimento atualizada em tempo real.\n\n**Para começar, qual é o seu nome e o nome do seu negócio?**";
+    ? `Olá, ${primeiroNome}! Seja bem-vindo(a) à ${NOME_DA_EMPRESA}.\n\nSou sua consultora de orçamento. Vou te ajudar a montar uma proposta personalizada para o seu negócio — com estimativa de investimento atualizada em tempo real.\n\n**Para começar, qual é o nome do seu negócio?**`
+    : `Olá! Seja bem-vindo(a) à ${NOME_DA_EMPRESA}.\n\nSou sua consultora de orçamento. Vou te ajudar a montar uma proposta personalizada para o seu negócio — com estimativa de investimento atualizada em tempo real.\n\n**Para começar, qual é o seu nome e o nome do seu negócio?**`;
 
   const welcome: ConvMessage = {
     id: "welcome",
