@@ -75,6 +75,8 @@ export const NAO_MANDA_MENSAGEM_A_PESSOA: Record<string, string> = {
     "Manda o TEXTO do briefing para a IA extrair campos (o e-mail citado é um campo extraído, não um destinatário). Não há envio a pessoa.",
   "app/api/self-serve/order/route.ts":
     "Cria a cobrança no provedor de pagamento. O e-mail vai como dado do pagador para o gateway — não é mensagem para o pagador.",
+  "app/api/self-serve/assinatura/route.ts":
+    "Mesmo caso da rota irmã, para a cobrança MENSAL: cria o `preapproval` no Mercado Pago e o `payer_email` vai como dado do pagador, para o gateway saber a quem cobrar. Nenhuma mensagem sai desta casa — quem eventualmente escreve ao cliente é o provedor, sobre a cobrança que ele mesmo autorizou.",
   "app/contato/ContatoForm.tsx":
     "O formulário de contato do site: o visitante escreve PARA a Dioli, e o destino é a caixa da própria casa. É mensagem ENTRANDO, e quem a envia é a pessoa, por vontade dela. Foi a varredura que encontrou esta — nenhuma lista à mão a tinha.",
   "app/api/agency/diagnostico-de-email/route.ts":
