@@ -86,6 +86,9 @@ export function briefingConfirmationEmail(input: BriefingConfirmationInput): {
     subject: biz ? `Recebemos seu pedido — ${biz}` : "Recebemos seu pedido de orçamento",
     html: moldeDoEmail({
       saudacao: greeting,
+      // A prévia da caixa de entrada. Ela diz o que aconteceu, não repete o
+      // assunto: quem lê os dois lado a lado ganha uma informação a mais.
+      previa: "Seu pedido chegou. A equipe já está com ele em mãos.",
       corpo,
       notaDoRodape: "Este é um e-mail automático de confirmação.",
     }),
@@ -179,6 +182,9 @@ export function orcamentoProntoEmail(input: OrcamentoProntoInput): {
     subject: biz ? `Seu orçamento está pronto — ${biz}` : "Seu orçamento está pronto",
     html: moldeDoEmail({
       saudacao: greeting,
+      // ⛔ SEM VALOR AQUI TAMBÉM. A prévia é lida ANTES de abrir o e-mail — um
+      // preço nela seria o preço mais exposto de todos.
+      previa: "Ele está na sua conversa com a gente. É só abrir e ver.",
       corpo,
       notaDoRodape: "Este é um aviso automático. A conversa completa fica no seu portal.",
     }),
