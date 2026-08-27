@@ -15,14 +15,23 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { sendEmail, mascararDestino } from "@/lib/email/send";
+import { briefingConfirmationEmail } from "@/lib/email/templates";
+
+// ⚠️ Corpo de verdade, pelo mesmo motivo do teste do remetente: desde
+// 27/08/2026 a trava do molde recusa HTML escrito à mão, e um recibo só existe
+// para envio que a porta deixou passar.
+const DO_MOLDE = briefingConfirmationEmail({
+  prospectName: "NOME TESTE",
+  businessName: "Padaria do Teste",
+});
 
 const consentimento = { natureza: "resposta", mensagemRecebidaId: "ClientRequestDb#teste" } as const;
 const base = {
   // Não pode ser `.invalid`: a trava do cliente falso barra antes do envio.
   to: "nome.teste@exemplo-de-teste.com",
   consentimento,
-  subject: "Recebemos seu pedido",
-  html: "<p>oi</p>",
+  subject: DO_MOLDE.subject,
+  html: DO_MOLDE.html,
 };
 
 const guardado = { chave: process.env.RESEND_API_KEY, from: process.env.RESEND_FROM, falso: process.env.CLIENTE_FALSO };
@@ -30,7 +39,7 @@ const guardado = { chave: process.env.RESEND_API_KEY, from: process.env.RESEND_F
 beforeEach(() => {
   delete process.env.CLIENTE_FALSO;
   process.env.RESEND_API_KEY = "re_chave_de_teste";
-  process.env.RESEND_FROM = "Dioli Studio <contato@exemplo-de-teste.com>";
+  process.env.RESEND_FROM = "Dioli Digital <contato@exemplo-de-teste.com>";
 });
 afterEach(() => {
   vi.unstubAllGlobals();

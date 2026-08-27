@@ -46,7 +46,7 @@
 // recebe, então nada de HTML vindo de fora.
 
 import {
-  CORES, LOGO_ALT, LOGO_BRANCO_URL, NOME_DA_EMPRESA,
+  CORES, LOGO_ALT, LOGO_ALTURA, LOGO_BRANCO_URL, LOGO_LARGURA, NOME_DA_EMPRESA,
   WHATSAPP_CONVITE, WHATSAPP_LEGIVEL, WHATSAPP_LINK,
 } from "@/lib/marca";
 
@@ -66,13 +66,16 @@ const FONTE =
 /**
  * O CABEÇALHO: barra navy com o logo branco.
  *
- * A altura fixa (`height="34"`) importa — sem ela, o cliente de e-mail que
- * bloqueia imagem colapsa a linha e o `alt` fica ilegível, grudado na borda.
+ * A altura fixa importa — sem ela, o cliente de e-mail que bloqueia imagem
+ * colapsa a linha e o `alt` fica ilegível, grudado na borda. E ela vem de
+ * `LOGO_ALTURA`, não digitada: o par 150 × 34 que estava aqui NÃO batia com a
+ * proporção do arquivo (512 × 130), e o logo chegava esticado em toda caixa de
+ * entrada. Ver o comentário de `LOGO_LARGURA` em `lib/marca.ts`.
  */
 function cabecalho(): string {
   return `<tr><td style="background:${CORES.navy};padding:26px 32px">
-  <img src="${LOGO_BRANCO_URL}" alt="${LOGO_ALT}" width="150" height="34"
-       style="display:block;border:0;outline:none;text-decoration:none;height:34px;width:150px;max-width:150px;color:#FFFFFF;font-family:${FONTE};font-size:16px;font-weight:700;letter-spacing:.02em">
+  <img src="${LOGO_BRANCO_URL}" alt="${LOGO_ALT}" width="${LOGO_LARGURA}" height="${LOGO_ALTURA}"
+       style="display:block;border:0;outline:none;text-decoration:none;height:${LOGO_ALTURA}px;width:${LOGO_LARGURA}px;max-width:${LOGO_LARGURA}px;color:#FFFFFF;font-family:${FONTE};font-size:16px;font-weight:700;letter-spacing:.02em">
 </td></tr>
 <tr><td style="height:3px;line-height:3px;font-size:0;background:${CORES.menta}">&nbsp;</td></tr>`;
 }
@@ -85,14 +88,25 @@ function cabecalho(): string {
  * **continua escrito embaixo**, em texto, para quem lê com estilo/imagem
  * bloqueados ou quer digitar o número à mão — botão que some não pode levar o
  * contato junto.
+ *
+ * ⚠️ ELE É O BOTÃO **SECUNDÁRIO**, e isso é decisão de leitura, não de gosto.
+ * Todo e-mail da casa tem uma ação principal ("ver o meu orçamento", "abrir o
+ * portal"), e ela é sólida em navy. Se o WhatsApp fosse sólido também, os dois
+ * competiriam com o mesmo peso e o e-mail deixaria de ter UMA resposta óbvia —
+ * o cliente escolhe entre dois iguais, e escolher é atrito. Aqui ele é
+ * contornado: presente e clicável, sem disputar a vez.
+ *
+ * A linha fina acima dele separa "o assunto do e-mail" de "como falar com a
+ * gente" — o rodapé de contato de uma empresa que atende, não um número
+ * jogado no fim de um parágrafo.
  */
 function botaoDeWhatsapp(): string {
-  return `<tr><td style="padding:8px 32px 28px">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate">
+  return `<tr><td style="padding:8px 32px 28px;border-top:1px solid ${CORES.linha}">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;margin-top:20px">
     <tr>
-      <td align="center" bgcolor="${CORES.navy}" style="border-radius:12px;background:${CORES.navy}">
+      <td align="center" bgcolor="${CORES.cartao}" style="border-radius:12px;background:${CORES.cartao};border:1.5px solid ${CORES.navy}">
         <a href="${WHATSAPP_LINK}"
-           style="display:inline-block;padding:14px 26px;font-family:${FONTE};font-size:15px;font-weight:600;line-height:1;color:#FFFFFF;text-decoration:none;border-radius:12px">
+           style="display:inline-block;padding:13px 24px;font-family:${FONTE};font-size:15px;font-weight:600;line-height:1;color:${CORES.navy};text-decoration:none;border-radius:12px">
           ${WHATSAPP_CONVITE}
         </a>
       </td>
@@ -139,9 +153,33 @@ export function blocoDeBotao(href: string, rotulo: string): string {
 </td></tr>`;
 }
 
+/**
+ * O PREHEADER — a linha que o Gmail e o Outlook mostram AO LADO do assunto, na
+ * lista de mensagens, antes de a pessoa abrir.
+ *
+ * Ele existe querendo ou não. Sem esta linha, o cliente de e-mail pega o
+ * primeiro texto que encontra no HTML — que aqui seria o `alt` do logo. A
+ * prévia da caixa de entrada viraria *"Seu orçamento está pronto — Dioli
+ * Digital Dioli Digital"*. É o detalhe que separa e-mail de empresa de e-mail
+ * de script.
+ *
+ * A técnica: texto escondido por `display:none` **mais** um bloco de espaços
+ * invisíveis (`&#847;&zwnj;&nbsp;`) que empurra para longe qualquer texto que
+ * viesse depois. Os dois juntos, porque cada cliente ignora um deles.
+ */
+function preheader(texto: string): string {
+  const empurrador = "&#847;&zwnj;&nbsp;".repeat(60);
+  return `<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all">${esc(texto)}${empurrador}</div>`;
+}
+
 export interface MoldeInput {
   /** A primeira linha grande — "Olá, Fulano!". */
   saudacao: string;
+  /**
+   * A prévia da caixa de entrada. Ver `preheader()`: ela aparece com ou sem
+   * você — quem não a escreve entrega o `alt` do logo no lugar dela.
+   */
+  previa: string;
   /** Os blocos do corpo, já montados pelos ajudantes acima. */
   corpo: string[];
   /** A linha pequena do rodapé, depois do nome da empresa. */
@@ -162,6 +200,7 @@ export function moldeDoEmail(input: MoldeInput): string {
 <meta name="color-scheme" content="light">
 </head>
 <body style="margin:0;padding:0;background:${CORES.fundo};font-family:${FONTE}">
+  ${preheader(input.previa)}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${CORES.fundo};padding:32px 12px">
     <tr><td align="center">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"

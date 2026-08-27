@@ -108,6 +108,29 @@ describe.each(MENSAGENS)("%s", (_nome, { subject, html }) => {
     expect(visivel).not.toMatch(/por mês|mensal/i);
   });
 
+  it("tem uma PRÉVIA de caixa de entrada, e ela não é o alt do logo", () => {
+    // O preheader existe querendo ou não: sem ele, o Gmail pega o primeiro
+    // texto do HTML — o `alt` do logo — e a prévia vira "Dioli Digital Dioli
+    // Digital". Ver `preheader()` em `lib/email/molde.ts`.
+    const escondido = html.match(/<div style="display:none[^"]*"[^>]*>([\s\S]*?)<\/div>/);
+    expect(escondido, "o e-mail não tem preheader").not.toBeNull();
+    const previa = escondido![1].replace(/&#847;|&zwnj;|&nbsp;/g, "").trim();
+    expect(previa.length).toBeGreaterThan(10);
+    expect(previa).not.toBe(NOME_DA_EMPRESA);
+    // E a prévia é lida ANTES de abrir: um preço nela seria o mais exposto de
+    // todos.
+    expect(previa).not.toMatch(/R\$|\d{1,3}\.\d{3}/);
+  });
+
+  it("os dois botões têm PESOS diferentes — uma ação principal só", () => {
+    // O WhatsApp é contornado (fundo branco + borda navy); a ação principal do
+    // e-mail é sólida em navy. Dois botões sólidos iguais fariam o cliente
+    // escolher entre dois iguais, e escolher é atrito.
+    const doWhats = html.match(/<a href="https:\/\/wa\.me\/[^"]+"\s*\n?\s*style="([^"]*)"/);
+    expect(doWhats, "o botão de WhatsApp precisa existir").not.toBeNull();
+    expect(doWhats![1]).not.toContain("color:#FFFFFF");
+  });
+
   it("não promete prazo — ordem do CEO de 16/08/2026", () => {
     expect(html).not.toMatch(/em (1|um) dia|até amanhã|em 24 ?h/i);
   });

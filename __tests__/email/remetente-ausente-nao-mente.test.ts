@@ -15,6 +15,18 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { sendEmail, SEM_REMETENTE, SEM_CHAVE } from "@/lib/email/send";
+import { orcamentoProntoEmail } from "@/lib/email/templates";
+
+// ⚠️ O CORPO É UM E-MAIL DE VERDADE, e isso passou a ser obrigatório em
+// 27/08/2026. Aqui dizia `html: "<p>oi</p>"`. Desde a trava do molde
+// (`lib/email/trava-do-molde.ts`), HTML escrito à mão NÃO SAI desta casa — e um
+// teste da porta que empurra um corpo que a porta recusa mediria a recusa
+// errada, não o remetente.
+const DO_MOLDE = orcamentoProntoEmail({
+  prospectName: "NOME TESTE",
+  businessName: "Padaria do Teste",
+  portalLink: "https://www.diolidigital.com.br/portal/access/abc",
+});
 
 // Resposta a quem procurou a casa — a natureza que a esteira usa para avisar
 // sobre um briefing que o próprio cliente enviou.
@@ -24,8 +36,8 @@ const base = {
   // `.invalid` antes de tudo, e barraria o que este teste quer medir.
   to: "nome.teste@exemplo-de-teste.com",
   consentimento,
-  subject: "Seu orçamento",
-  html: "<p>oi</p>",
+  subject: DO_MOLDE.subject,
+  html: DO_MOLDE.html,
 };
 
 const guardado = { chave: process.env.RESEND_API_KEY, from: process.env.RESEND_FROM };
@@ -64,12 +76,12 @@ describe("sem RESEND_FROM a casa RECUSA em vez de fingir que entregou", () => {
 
   it("com remetente cadastrado, o envio acontece — a trava não fecha a porta boa", async () => {
     process.env.RESEND_API_KEY = "re_chave_de_teste_com_tamanho";
-    process.env.RESEND_FROM = "Dioli Studio <contato@exemplo-verificado.com>";
+    process.env.RESEND_FROM = "Dioli Digital <contato@exemplo-verificado.com>";
     const r = await sendEmail(base);
     expect(r.ok).toBe(true);
     expect(globalThis.fetch).toHaveBeenCalledOnce();
     const corpo = JSON.parse((vi.mocked(globalThis.fetch).mock.calls[0]![1] as { body: string }).body);
-    expect(corpo.from).toBe("Dioli Studio <contato@exemplo-verificado.com>");
+    expect(corpo.from).toBe("Dioli Digital <contato@exemplo-verificado.com>");
   });
 
   it("a falta de CHAVE continua sendo um motivo DIFERENTE da falta de remetente", async () => {

@@ -15,6 +15,7 @@
 //                    to the Resend account owner's own address (testing only).
 
 import { NOME_DA_EMPRESA } from "@/lib/marca";
+import { motivoParaNaoEnviar } from "@/lib/email/trava-do-molde";
 import {
   motivoDoBloqueio,
   registrarSaidaBloqueada,
@@ -146,6 +147,25 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   if (!consent.pode) {
     registrarAbordagemBarrada({ canal: "email", destino: input.to, motivo: consent.motivo });
     return { ok: false, error: `sem_consentimento:${consent.motivo}\n${comoDestravar(consent)}` };
+  }
+
+  // ── TRAVA DO MOLDE — TAMBÉM ANTES DA CHAVE ──────────────────────────────
+  //
+  // Pelo mesmo motivo dos dois blocos acima: o que decide se o e-mail pode sair
+  // é o CONTEÚDO, não o ambiente. Se esta trava morasse depois do `if
+  // (!apiKey)`, ela valeria só nas máquinas sem chave — e produção tem chave.
+  //
+  // O que ela recusa e por quê está em `lib/email/trava-do-molde.ts`. Em uma
+  // frase: e-mail que não nasceu do molde da casa, ou que estampa valor, não
+  // sai. **Prompt é aviso; código é trava** — e esta é a trava.
+  const foraDoMolde = motivoParaNaoEnviar(input.html, input.subject);
+  if (foraDoMolde) {
+    console.error(`[email/send] recusado: ${foraDoMolde} para=${mascararDestino(input.to)}`);
+    // O motivo já vem prefixado com a sua própria etiqueta
+    // (`fora_do_molde:`, `valor_no_corpo:`, `nome_aposentado:`) — repetir o
+    // prefixo aqui produziria "fora_do_molde:fora_do_molde:", que é ruído na
+    // tela de quem lê o erro.
+    return { ok: false, error: foraDoMolde };
   }
 
   // `.trim()` de propósito: variável CADASTRADA COM VALOR EM BRANCO (ou só
