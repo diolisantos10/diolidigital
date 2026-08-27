@@ -11,6 +11,8 @@
 //   BASE_URL=http://127.0.0.1:8125 npx tsx scripts/test-pilot-safety.ts
 // (server must be running with a seeded DB — see scripts in package.json)
 
+import { credencialDoMaster } from "./lib/credencial-do-master";
+
 const BASE = process.env.BASE_URL ?? "http://127.0.0.1:8125";
 
 let failures = 0;
@@ -54,7 +56,7 @@ async function main() {
   const signin = await fetch(`${BASE}/api/auth/signin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: "master@dioli.studio", password: "dioli2025" }),
+    body: JSON.stringify(credencialDoMaster()),
   });
   const setCookie = signin.headers.get("set-cookie") ?? "";
   const sessionCookie = setCookie.split(";")[0]; // "dioli-session=…"

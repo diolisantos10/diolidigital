@@ -5747,21 +5747,25 @@ seria vender o que a casa não tem.
   hoje a resposta honesta é: sem os gates, sobe sem proteção.
 - **A senha do master mora no Railway — e é o único lugar onde ela existe.**
   Conferido no painel em 01/08/2026: `SEED_MASTER_PASSWORD` e `SEED_STAFF_PASSWORD`
-  **estão definidas** em produção, e o login com elas funciona. A senha `dioli2025`
-  dos scripts do repositório é rejeitada — ela não vale nada, e quem tentar por ali
-  vai concluir errado que perdeu o acesso.
+  **estão definidas** em produção, e o login com elas funciona.
 
-  Vale saber por quê, porque é frágil: o `seed-db.mjs` usa `INSERT OR IGNORE` (não
-  toca usuário existente) e gera senha **aleatória a cada boot** quando a env não
-  está definida. Se alguém apagar essas duas variáveis, a única via de recuperação
-  é redefini-las e reiniciar — **não existe fluxo de "esqueci minha senha"** no
-  sistema (`app/api/auth/` só tem `signin`, `signout` e o Google do briefing, que
-  nem cria sessão).
+  **26/08/2026 — a senha antiga saiu do repositório inteiro.** Ela já era
+  rejeitada em produção (o `seed-db.mjs` roda `UPDATE` a cada boot com a env),
+  mas continuava escrita em `prisma/seed.ts` e em dez scripts, ensinando a
+  credencial errada a quem lesse o código. Agora não existe mais senha em texto
+  puro no repositório, e `__tests__/seguranca/nenhum-segredo-em-texto-puro.test.ts`
+  quebra a rodada se alguma voltar.
 
-  > A mensagem que o próprio seed imprime — *"use o fluxo de redefinição de
-  > senha"* — **está errada**: esse fluxo não existe. Corrigir a mensagem, ou
-  > construir o fluxo, é fila normal; sem isso a próxima pessoa perde uma hora
-  > procurando uma tela que não está lá.
+  O seed também deixou de inventar senha **aleatória por boot** quando a env
+  falta: isso escondia o defeito num aviso de log e criava um master que
+  ninguém consegue usar. Agora ele **para com motivo** (fail-closed). O boot de
+  produção não fica refém — `start.sh` chama o seed com `|| echo`.
+
+  **Continua em aberto e é frágil:** se alguém apagar essas duas variáveis, a
+  única via de recuperação é redefini-las e reiniciar — **não existe fluxo de
+  "esqueci minha senha"** (`app/api/auth/` só tem `signin`, `signout` e o Google
+  do briefing, que nem cria sessão). A mensagem errada do seed, que mandava usar
+  um fluxo inexistente, foi corrigida.
 
 ---
 

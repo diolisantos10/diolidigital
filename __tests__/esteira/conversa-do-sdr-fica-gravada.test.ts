@@ -228,6 +228,7 @@ describe("o que o prospect cola no chat não pode virar credencial persistida", 
   // numa tabela que o diário lê e a equipe abre. Chave que atravessa isso está
   // vazada, e vazada de forma persistente.
   it("mascara os formatos conhecidos de chave, token e senha", () => {
+    // segredo-permitido: chave FALSA — insumo do teste que prova a redação.
     expect(semSegredo("minha chave é sk-ant-api03-AbCdEfGhIjKlMnOpQrSt")).not.toContain("sk-ant-api03");
     expect(semSegredo("token do face: EAAG1234567890abcdefghijklmnop")).not.toContain("EAAG1234567890");
     expect(semSegredo("Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.abc")).not.toContain("eyJhbGciOiJIUzI1NiJ9");
@@ -247,11 +248,13 @@ describe("o que o prospect cola no chat não pode virar credencial persistida", 
 
     await chamar({
       messages: [],
+      // segredo-permitido: chave FALSA de fixture.
       currentMessage: "o acesso do meta é sk-ant-api03-AbCdEfGhIjKlMnOpQrSt, pode usar",
       sessionId: "s7",
     });
 
     const doVisitante = gravadas()[0]!.body;
+    // segredo-permitido: chave FALSA de fixture.
     expect(doVisitante).not.toContain("sk-ant-api03-AbCdEfGhIjKlMnOpQrSt");
     expect(doVisitante).toContain("o acesso do meta é");
   });

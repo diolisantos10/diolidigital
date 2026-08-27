@@ -33,7 +33,7 @@ vi.mock("@/lib/auth/session", () => ({
 import { GET as connectParceiro } from "@/app/api/meta/connect-parceiro/route";
 import { GET as listarConexoes } from "@/app/api/portal/conexoes/route";
 
-const TOKEN = "tok-parceiro-1";
+const TOKEN = "tok-parceiro-1"; // segredo-permitido: rótulo de fixture, não credencial
 
 /**
  * O `Host` vai junto porque TODO navegador manda `Host` — é obrigatório em

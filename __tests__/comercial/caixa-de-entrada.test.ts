@@ -432,6 +432,7 @@ describe("o cofre recusa a senha da conta e aceita a senha de app como o Google 
   });
 
   it("a senha da CONTA é recusada, com o motivo escrito", async () => {
+    // segredo-permitido: senha FALSA de fixture, insumo do teste do cofre.
     const r = await guardarCredencial({ workspaceId: WS, usuario: "agenciadioli@gmail.com", senha: "MinhaSenha123!" });
     expect(r.ok).toBe(false);
     expect(r.ok === false && r.erro).toMatch(/senha de aplicativo/i);

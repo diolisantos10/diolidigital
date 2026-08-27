@@ -3,7 +3,7 @@
 #
 # Usage:
 #   BASE_URL=https://dioli-agency-os-1-production.up.railway.app \
-#   EMAIL=master@dioli.studio PASSWORD=dioli2025 \
+#   EMAIL=master@dioli.studio PASSWORD="$SEED_MASTER_PASSWORD" \
 #   bash scripts/smoke-test-auth.sh
 #
 # Or locally:
@@ -15,7 +15,12 @@ set -euo pipefail
 
 BASE="${BASE_URL:-http://localhost:3000}"
 EMAIL="${EMAIL:-master@dioli.studio}"
-PASSWORD="${PASSWORD:-dioli2025}"
+# Senha do AMBIENTE, nunca do código: sem variável o smoke para.
+PASSWORD="${PASSWORD:-${SEED_MASTER_PASSWORD:-}}"
+if [ -z "$PASSWORD" ]; then
+  echo "✗ Defina PASSWORD (ou SEED_MASTER_PASSWORD) — este smoke não tem senha padrão."
+  exit 1
+fi
 
 COOKIE_JAR=$(mktemp)
 trap 'rm -f "$COOKIE_JAR"' EXIT

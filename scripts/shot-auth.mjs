@@ -8,7 +8,15 @@ const path = process.argv[2] || "/agency/dashboard";
 const name = process.argv[3] || "page";
 const base = process.argv[4] || "http://localhost:3000";
 const EMAIL = process.env.LOGIN_EMAIL || "master@dioli.studio";
-const PASS = process.env.LOGIN_PASS || "dioli2025";
+// Senha do AMBIENTE, nunca do código. Sem variável o script para: uma captura
+// de tela não justifica deixar a credencial de dono da agência escrita aqui.
+const PASS = process.env.LOGIN_PASS || process.env.SEED_MASTER_PASSWORD;
+if (!PASS) {
+  console.error(
+    "✗ Defina LOGIN_PASS (ou SEED_MASTER_PASSWORD) — este script não tem senha padrão.",
+  );
+  process.exit(1);
+}
 const outDir = process.env.SHOT_DIR || "/tmp/claude-0/-home-user-dioli-agency-os-1/983c67cf-eb46-5de4-84ee-e27eb4a1080e/scratchpad/shots";
 
 const EXECS = [

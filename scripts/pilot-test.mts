@@ -1,6 +1,8 @@
 // Pilot readiness test: simulates the full Sushi Cazza briefing → pipeline → portal flow
 // Parts 5–8 of the pilot sprint (API-based, browser not available in remote env)
 
+import { credencialDoMaster } from "./lib/credencial-do-master";
+
 const BASE = "http://localhost:3000";
 
 async function api(method: string, path: string, body?: unknown, cookie?: string) {
@@ -27,10 +29,7 @@ async function api(method: string, path: string, body?: unknown, cookie?: string
 
 // ── Step 0: Login ──────────────────────────────────────────────────────────────
 console.log("\n=== STEP 0: Login ===");
-const loginRes = await api("POST", "/api/auth/signin", {
-  email: "master@dioli.studio",
-  password: "dioli2025",
-});
+const loginRes = await api("POST", "/api/auth/signin", credencialDoMaster());
 console.log("Login status:", loginRes.status);
 if (loginRes.status !== 200) {
   console.error("LOGIN FAILED:", loginRes.json);

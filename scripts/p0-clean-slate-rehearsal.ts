@@ -15,8 +15,10 @@
 //   9. Client action test (approve one item as client)
 //  10. Final report
 
+import { credencialDoMaster } from "./lib/credencial-do-master";
+
 const BASE   = process.env.BASE_URL ?? "http://127.0.0.1:8125";
-const MASTER = { email: "master@dioli.studio", password: "dioli2025" };
+const MASTER = credencialDoMaster();
 
 let failures = 0;
 let warnings = 0;

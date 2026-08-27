@@ -5,6 +5,8 @@
 // Usage:
 //   BASE_URL=https://dioli-agency-os-1-production.up.railway.app npx tsx scripts/p3-clean-portal.ts
 
+import { credencialDoMaster } from "./lib/credencial-do-master";
+
 const BASE    = process.env.BASE_URL ?? "http://127.0.0.1:8125";
 const REQ_ID  = process.env.REQ_ID  ?? "cmqjt0vvl00030przszcogyjr";
 const OLD_TOKEN = "cmqjt10n8000l0przhzb7vxdh"; // QA token — must not go to client
@@ -29,7 +31,7 @@ async function signin(): Promise<string> {
   const res = await fetch(`${BASE}/api/auth/signin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: "master@dioli.studio", password: "dioli2025" }),
+    body: JSON.stringify(credencialDoMaster()),
   });
   const cookie = res.headers.get("set-cookie")?.split(";")[0] ?? "";
   if (!res.ok || !cookie.startsWith("dioli-session="))

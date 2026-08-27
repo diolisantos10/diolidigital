@@ -10,9 +10,11 @@
 // Credentials default to the seeded master account; override with
 // TEST_EMAIL / TEST_PASSWORD env vars.
 
+import { exigirSenhaDoAmbiente } from "./lib/credencial-do-master";
+
 const BASE = process.env.BASE_URL ?? "http://127.0.0.1:8125";
 const EMAIL = process.env.TEST_EMAIL ?? "master@dioli.studio";
-const PASSWORD = process.env.TEST_PASSWORD ?? "dioli2025";
+const PASSWORD = process.env.TEST_PASSWORD ?? exigirSenhaDoAmbiente("SEED_MASTER_PASSWORD");
 
 let failures = 0;
 let cookie = "";

@@ -4,6 +4,8 @@
 // Usage:
 //   BASE_URL=https://dioli-agency-os-1-production.up.railway.app npx tsx scripts/prod-pilot-full.ts
 
+import { credencialDoMaster } from "./lib/credencial-do-master";
+
 const BASE = process.env.BASE_URL ?? "http://127.0.0.1:8125";
 const PROD_LABEL = BASE.includes("railway") ? "RAILWAY PRODUCTION" : "LOCAL";
 
@@ -36,7 +38,7 @@ async function signin(): Promise<string> {
   const res = await fetch(`${BASE}/api/auth/signin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: "master@dioli.studio", password: "dioli2025" }),
+    body: JSON.stringify(credencialDoMaster()),
   });
   const cookie = res.headers.get("set-cookie")?.split(";")[0] ?? "";
   if (!res.ok || !cookie.startsWith("dioli-session="))
