@@ -97,6 +97,10 @@ export default function BriefingPage() {
           objectives:     data.extractedSummary.objectives,
           rawContext:     data.rawText,
           source:         "briefing",
+          // O fio da conversa. O servidor usa só para RESOLVER o rastro que os
+          // turnos do SDR deixaram (`conversa-sem-pedido.ts`) — nunca como
+          // identidade de ninguém: ele vem do navegador e é sujo por definição.
+          sessionId:      data.sessionId,
           // O contato vai como CAMPO PRÓPRIO, não enterrado no escopo. Quem
           // decide o que fazer com ele (proposta ou lead incompleto) é o
           // servidor — a tela só entrega o fato.

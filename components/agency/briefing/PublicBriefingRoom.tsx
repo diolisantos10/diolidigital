@@ -43,6 +43,18 @@ export interface PublicBriefingRoomSubmitData {
    * proposta. Ver `lib/agency/comercial/contato-do-lead.ts`.
    */
   contato: { nome: string; email: string; whatsapp: string } | null;
+  /**
+   * O FIO DA CONVERSA que produziu este briefing (o mesmo `sessionId` mandado a
+   * cada turno para `/api/sdr/chat`).
+   *
+   * Ele viaja no envio por um motivo só: a partir de 27/08/2026 cada turno do
+   * SDR guarda um RASTRO da conversa (`conversa-sem-pedido.ts`), para que uma
+   * conversa abandonada no meio deixe de sumir em silêncio. Quando o briefing
+   * finalmente sobe, esse rastro precisa ser RESOLVIDO — senão toda conversa
+   * bem-sucedida ficaria para sempre na lista de "paradas", e uma lista que
+   * acusa o que está certo é uma lista que se aprende a ignorar.
+   */
+  sessionId: string;
 }
 
 interface PublicBriefingRoomProps {
@@ -1803,6 +1815,8 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
       businessName:     mergedScope.businessName ?? "",
       segment:          mergedScope.segment ?? "",
       sdrHandoff:       buildHandoffSummary(conv, sdr),
+      // O fio, para que o rastro desta conversa seja resolvido no servidor.
+      sessionId:        tempClientId,
       // E o `contato` bruto vai pelo mesmo crivo: ele é gravado como
       // `briefingJson.contato` e é DELE que a solicitação tira `contato.whatsapp`
       // — o terceiro lugar onde o número retratado reapareceu.
