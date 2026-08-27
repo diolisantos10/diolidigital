@@ -144,6 +144,20 @@ describe("o parceiro abre a proposta e a casa diz que ele não paga", () => {
     expect(html, "o título da isenção sumiu da página que o parceiro abre").toContain(TITULO_DA_ISENCAO);
     expect(html, "a página não diz com todas as letras que nada será cobrado").toContain(NADA_SERA_COBRADO);
     expect(html, "a página não diz até quando a parceria vale").toContain("2027");
+
+    // ⚠️ E O BLOCO DESTACADO, EM SI. Sem esta linha a régua era CEGA à mutação
+    // que importa: as mesmas frases também viajam dentro do corpo do orçamento
+    // (`textoDoOrcamento`), então apagar o bloco da tela deixava o teste VERDE
+    // — medido, rodando a mutação (a) contra a primeira versão deste arquivo.
+    // Régua verde sobre o componente errado é pior que régua nenhuma.
+    //
+    // O bloco é o que o CEO pediu: o aviso ANTES do número, destacado, e não
+    // uma linha no meio de um texto longo que o cliente lê de banda.
+    expect(html, "o bloco destacado da isenção sumiu — sobrou só a linha no meio do texto").toContain(
+      'aria-label="Isenção por parceria"',
+    );
+    // E ele vem ANTES do valor: quem lê o número primeiro já leu uma cobrança.
+    expect(html.indexOf('aria-label="Isenção por parceria"')).toBeLessThan(html.indexOf("790"));
   });
 
   it("diz o escopo autorizado — parceria sem escopo à vista cobre tudo na cabeça de quem lê", async () => {
