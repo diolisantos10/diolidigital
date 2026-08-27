@@ -28,6 +28,9 @@ export default defineConfig({
     // `react-dom/server`, que já está no projeto. Nenhuma dependência nova foi
     // instalada (o `node_modules` é compartilhado com outros worktrees).
     include: ["__tests__/**/*.test.ts", "__tests__/**/*.test.tsx"],
+    // Ver `vitest.setup.ts`: há estado de PROCESSO que é correto em produção e
+    // veneno entre casos de teste. Ele é limpo aqui, para a suíte inteira.
+    setupFiles: ["./vitest.setup.ts"],
     globals: true,
     // ── POR QUE ESTES TIMEOUTS SÃO MAIORES QUE O PADRÃO ──────────────────────
     // Em 02/08/2026 a suíte ficou vermelha duas vezes SEM nenhuma mudança de

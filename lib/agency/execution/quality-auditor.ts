@@ -29,6 +29,9 @@
 
 import { generate } from "@/lib/ai/generate";
 import type { AiProvider } from "@/lib/ai/resolve-key";
+import {
+  eFalhaTerminal, filtrarForaDeJogo, porQueEstaFora,
+} from "@/lib/ai/provedor-fora-de-jogo";
 // ── A RÉGUA DETERMINÍSTICA, ANTES DA OPINIÃO (13/08/2026) ────────────────────
 //
 // Este juiz é UMA chamada de IA com cinco perguntas em prosa e a instrução
@@ -71,7 +74,24 @@ export type MotivoDeNaoAuditar =
    * motivo — o motivo está na mensagem.** Um `400` era falta de saldo; um `404`
    * era host morto; um `429` é fila cheia.
    */
-  | "limite_de_taxa";
+  | "limite_de_taxa"
+  /**
+   * Um ou mais árbitros independentes estão SEM SALDO (ou com a chave
+   * recusada) — e por isso a peça ficou sem juiz.
+   *
+   * ── Por que é um motivo próprio (27/08/2026) ──────────────────────────────
+   * Medido no log de produção, 13:38→15:48, 27 batidas idênticas de 5 em 5
+   * min: a conta da Anthropic zerada, `claude` abrindo a fila em toda chamada,
+   * HTTP 400 *"Your credit balance is too low"*, e a retenção saindo carimbada
+   * `ia_indisponivel` — "o provedor caiu". Ele não caiu: está de pé, e não foi
+   * pago. `ia_indisponivel` manda investigar um servidor; `limite_de_taxa`
+   * manda esperar. As duas mandam a pessoa fazer a coisa errada, e a coisa
+   * certa — pôr crédito na conta — é a única que NINGUÉM faz em código.
+   *
+   * Doutrina da casa, agora pela terceira vez: **status de erro não é motivo —
+   * o motivo está na mensagem.**
+   */
+  | "provedor_sem_saldo";
 
 export interface QualityVerdict {
   verdict: VereditoDaQualidade;
@@ -299,6 +319,13 @@ export const AUDIT_TIMEOUT_MS = 45_000;
 
 export const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
   ia_indisponivel: "NÃO AUDITADA: a IA da Qualidade estava indisponível — nenhum árbitro olhou esta peça.",
+  // ── A FRASE QUE MANDA A PESSOA CERTA FAZER A COISA CERTA (27/08/2026) ─────
+  // "IA indisponível" faz o dono investigar um servidor; "limite de taxa" faz
+  // ele esperar. Nenhuma das duas põe crédito na conta — que é a única coisa
+  // que destrava esta peça. A retenção continua sendo o RESULTADO CERTO; o que
+  // muda é ela finalmente dizer o que destrava.
+  provedor_sem_saldo:
+    "NÃO AUDITADA: os árbitros independentes desta peça estão SEM SALDO na conta do provedor (ou com a chave recusada) — nenhum juiz imparcial pôde olhar. A peça fica RETIDA até alguém recarregar a conta ou conectar outra chave. Isto NÃO se resolve reescrevendo a peça e NÃO passa esperando.",
   timeout: "NÃO AUDITADA: a IA da Qualidade não respondeu a tempo — nenhum árbitro olhou esta peça.",
   erro: "NÃO AUDITADA: a auditoria falhou com erro — nenhum árbitro olhou esta peça.",
   resposta_invalida: "NÃO AUDITADA: a IA da Qualidade respondeu fora do formato — o parecer não pôde ser lido.",
@@ -387,6 +414,13 @@ export function eRespostaIlegivel(erro?: string | null): boolean {
  */
 export function mereceOutraVolta(erro?: string | null): boolean {
   if (eFaltaDeChave(erro)) return false;
+  // ⚠️ TERMINAL VENCE O 429, E TEM DE VIR ANTES DELE. A OpenAI anuncia conta
+  // zerada com *"You exceeded your current quota"* — e `eLimiteDeTaxa` procura
+  // a palavra "quota". Sem esta linha, uma conta sem saldo seria lida como
+  // fila cheia: a casa daria mais uma volta inteira, esperaria, e ainda
+  // carimbaria a retenção de `limite_de_taxa` — "espere e passa" sobre algo
+  // que não passa sozinho nunca. Saldo não volta esperando.
+  if (eFalhaTerminal(erro)) return false;
   const e = (erro ?? "").toLowerCase();
   return eLimiteDeTaxa(erro) || eRespostaIlegivel(erro)
       || e.includes("timeout") || e.includes("rede") || /http 5\d\d/.test(e);
@@ -496,8 +530,12 @@ function naturezaDaEntrega(tipo: string | null): string {
   ].join("\n");
 }
 
-function semArbitro(motivo: MotivoDeNaoAuditar): QualityVerdict {
-  return { verdict: "nao_auditado", issues: [], note: MOTIVO_EM_PALAVRAS[motivo], motivo };
+function semArbitro(motivo: MotivoDeNaoAuditar, detalhe?: string): QualityVerdict {
+  // `detalhe` carrega a PROVA (qual provedor, com que motivo). O rótulo é a
+  // interpretação; o detalhe é o fato — e é o fato que diz em qual conta pôr
+  // crédito. Sem ele a frase seria verdadeira e inútil.
+  const note = detalhe ? `${MOTIVO_EM_PALAVRAS[motivo]} (${detalhe})` : MOTIVO_EM_PALAVRAS[motivo];
+  return { verdict: "nao_auditado", issues: [], note, motivo };
 }
 
 /** Lê o veredito do JSON do modelo SEM inventar o benefício da dúvida.
@@ -592,7 +630,23 @@ export async function auditDeliverable(input: {
   }
 
   const autor = (input.provedorDoAutor ?? "claude").trim().toLowerCase();
-  const fila = filaDeArbitros(autor);
+  // ── A FILA DE JUÍZES NÃO GASTA VAGA COM QUEM NÃO TEM SALDO (27/08/2026) ───
+  //
+  // `filaDeArbitros` continua sendo quem manda, e ela tira o AUTOR primeiro —
+  // essa trava não se toca. O que muda é o passo seguinte: de quem sobrou,
+  // saem também os que a casa acabou de ver sem saldo ou com a chave recusada.
+  //
+  // Isto importa MAIS aqui do que em qualquer outro lugar. A fila do árbitro
+  // tem 3 nomes, e um deles morto significa 1 chance em 3 desperdiçada — duas
+  // vezes, porque `VOLTAS_DO_ARBITRO` é 2. Cada porta fechada é latência que a
+  // peça espera para no fim ser retida por falta de juiz. A Qualidade parava
+  // de auditar por causa de uma conta zerada em OUTRO provedor.
+  //
+  // ⚠️ `filtrarForaDeJogo` só REMOVE nomes — nunca acrescenta. É por isso que
+  // ela não tem como devolver o autor: ele nunca entrou. A independência
+  // continua garantida pela construção, e a conferência de cinto lá embaixo
+  // (`tentativa.provider !== autor`) continua de pé por cima dela.
+  const { fila, barrados } = filtrarForaDeJogo(filaDeArbitros(autor));
   // O critério do feed real (pedido do CEO, 04/08/2026) tem TRÊS estados, e a
   // versão anterior só enxergava dois porque decidia farejando o texto do
   // contexto (`includes("FEED REAL DO CLIENTE")`). Conta conectada com ZERO
@@ -687,6 +741,8 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
     let ultimaFalha: string | null = null;
     let houve429 = false;
     let houveTimeout = false;
+    // Algum árbitro está SEM SALDO / com a chave recusada? Nunca vira "espere".
+    let houveSemSaldo = barrados.length > 0;
     // Alguém RESPONDEU ilegível em QUALQUER ponto da fila — não só por último.
     // `ultimaFalha` sozinha é memória de um item só: com três árbitros, o
     // "resposta vazia" do DeepSeek era apagado pelo "JSON inválido" do Gemini,
@@ -722,6 +778,12 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
         }
         if (tentativa.tipo === "falha") {
           ultimaFalha = tentativa.erro;
+          // Terminal PRIMEIRO, e com `continue`: sem isto, a mensagem de conta
+          // zerada da OpenAI ("exceeded your current quota") acenderia
+          // `houve429` e a retenção sairia como "espere que passa".
+          if (eFalhaTerminal(tentativa.erro)) {
+            houveSemSaldo = true; todosSemChave = false; continue;
+          }
           if (eLimiteDeTaxa(tentativa.erro)) houve429 = true;
           if (eRespostaIlegivel(tentativa.erro)) houveIlegivel = true;
           if (mereceOutraVolta(tentativa.erro)) valeOutraVolta = true;
@@ -766,6 +828,17 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
     }
 
     // Fila esgotada. A peça NÃO é julgada — é retida, com o motivo real.
+    // ── O MOTIVO REAL VEM PRIMEIRO ────────────────────────────────────────
+    // *Status de erro não é motivo; o motivo está na mensagem.* Entre "está
+    // sem saldo" e "está com a fila cheia", quem manda é o que NINGUÉM
+    // conserta esperando — senão a casa espera para sempre por uma recarga que
+    // ninguém pediu, porque ninguém foi avisado.
+    if (houveSemSaldo) {
+      return semArbitro(
+        "provedor_sem_saldo",
+        barrados.length > 0 ? barrados.map(porQueEstaFora).join("; ") : (ultimaFalha ?? undefined),
+      );
+    }
     if (houve429) return semArbitro("limite_de_taxa");
     if (todosSemChave || fila.length === 0) return semArbitro("juiz_nao_imparcial");
     if (houveTimeout && ultimaFalha === null) return semArbitro("timeout");

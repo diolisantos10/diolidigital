@@ -28,59 +28,10 @@
 // Tratar todas como "erro de IA" é o que deixou um provedor cair em produção e
 // só aparecer numa linha de diário que alguém precisaria ir ler.
 
-export type MotivoDaFalha = "sem_saldo" | "sem_chave" | "teto_de_ritmo" | "indisponivel";
-
-/** O rótulo humano de cada motivo — para painel e alarme. */
-export const ROTULO_DA_FALHA: Record<MotivoDaFalha, string> = {
-  sem_saldo: "SEM SALDO na conta do provedor — só uma pessoa resolve, e a casa está servindo pela reserva",
-  sem_chave: "sem chave conectada",
-  teto_de_ritmo: "teto de ritmo do provedor (passa sozinho)",
-  indisponivel: "provedor indisponível",
-};
-
-/**
- * Lê o motivo da MENSAGEM do provedor. Nunca do status sozinho — foi
- * exatamente o status sozinho que mandou a investigação para o lado errado.
- *
- * Devolve `null` quando não reconhece: dizer "não sei" é honesto, e é melhor
- * que encaixar à força numa categoria e fazer o painel mentir.
- */
-export function classificarFalhaDeProvedor(mensagem: string | null | undefined): MotivoDaFalha | null {
-  const m = (mensagem ?? "").toLowerCase();
-  if (!m) return null;
-
-  // Saldo primeiro: é o mais caro de confundir, e o texto é bem específico nos
-  // provedores que a casa usa.
-  // ⚠️ `no credits remaining` ENTROU DEPOIS, e o vão custou uma volta inteira.
-  // Medido no livro-caixa de produção (25–26/08/2026): as 4 falhas de imagem
-  // que impediram TODA a arte daquela volta diziam, palavra por palavra,
-  // *"You have no credits remaining. Add credits to continue using the API"* —
-  // a conta da OpenAI zerada. Esta régua devolvia `null` para essa frase, então
-  // o placar, o diário e o alarme registravam "provider_error" genérico e
-  // ninguém tinha como saber que a única causa desta lista que NENHUMA pessoa
-  // resolve em código estava em jogo. É o mesmo defeito que o comentário abaixo
-  // conta sobre o Claude em 24/08 — a lição valeu para um provedor e não foi
-  // estendida ao outro.
-  if (/credit balance is too low|no credits remaining|insufficient[_ ]?(quota|credit|balance|funds)|billing|quota exceeded|payment required|exceeded your current quota/.test(m)) {
-    return "sem_saldo";
-  }
-  if (/\b(401|403)\b|invalid[_ ]?api[_ ]?key|unauthorized|authentication|api key not valid|não tem chave|sem chave|not_configured/.test(m)) {
-    return "sem_chave";
-  }
-  if (/\b429\b|rate[_ ]?limit|too many requests|overloaded/.test(m)) {
-    return "teto_de_ritmo";
-  }
-  if (/\b(500|502|503|504)\b|timeout|abort|network|fetch failed|erro de rede|indispon/.test(m)) {
-    return "indisponivel";
-  }
-  return null;
-}
-
-/** O motivo já legível, para quem só vai mostrar. `null` vira o texto cru. */
-export function motivoLegivel(mensagem: string | null | undefined): string {
-  const c = classificarFalhaDeProvedor(mensagem);
-  return c ? ROTULO_DA_FALHA[c] : (mensagem ?? "motivo não informado");
-}
+export {
+  ROTULO_DA_FALHA, classificarFalhaDeProvedor, motivoLegivel, type MotivoDaFalha,
+} from "./motivo-da-falha";
+import { classificarFalhaDeProvedor, type MotivoDaFalha } from "./motivo-da-falha";
 
 // ─── O ALARME: PROVEDOR CAÍDO TEM DE APARECER, NÃO FICAR NO DIÁRIO ──────────
 //
@@ -103,7 +54,37 @@ export type ProvedorCaido = {
   exemplo: string;
   quantas: number;
   ultimaEm: Date;
+  /** A falha MAIS ANTIGA desta janela. Com `ultimaEm`, dá o TEMPO da queda. */
+  desdeEm: Date;
+  /**
+   * Está quebrado HÁ HORAS, ou acabou de gaguejar?
+   *
+   * ── Por que o alarme precisa dessa diferença (27/08/2026) ────────────────
+   * Medido em produção: 27 batidas idênticas de 5 em 5 minutos, das 13:38 às
+   * 15:48, todas *"credit balance is too low"*. O alarme dava a cada uma delas
+   * exatamente o mesmo peso que daria a um erro isolado. Erro isolado é notícia;
+   * a 27ª repetição idêntica em duas horas é ruído — e ruído a cada 5 min é o
+   * jeito mais barato de ensinar uma casa a ignorar alarme. Pior: este grita
+   * sobre o QUEBRADO, então acostuma justamente com a linha vermelha.
+   *
+   * A resposta não é calar (a conta continua zerada e continua doendo): é
+   * DIZER O QUE É. Uma porta fechada há duas horas pede uma pessoa e um cartão
+   * de crédito; um soluço de agora não pede nada.
+   */
+  persistente: boolean;
 };
+
+/** Repetições e duração a partir das quais uma queda deixa de ser soluço. */
+export const REPETICOES_PARA_PERSISTENTE = 3;
+export const DURACAO_PARA_PERSISTENTE_MS = 15 * 60_000;
+
+/** "há 2h11" — o número que separa a porta fechada do soluço, para gente ler. */
+export function haQuantoTempo(c: ProvedorCaido): string {
+  const ms = Math.max(0, c.ultimaEm.getTime() - c.desdeEm.getTime());
+  const min = Math.round(ms / 60_000);
+  if (min < 60) return `há ${min}min`;
+  return `há ${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}`;
+}
 
 /**
  * Quais provedores falharam na janela, e POR QUÊ — lido do que já se grava.
@@ -152,14 +133,28 @@ export async function provedoresCaidos(minutos = 60): Promise<ProvedorCaido[]> {
       const atual = porProvedor.get(chave);
       if (atual) {
         atual.quantas++;
+        // As linhas vêm em ordem DECRESCENTE, então cada nova é mais antiga que
+        // a anterior: a última que chega é o começo da queda. `Math.min` em vez
+        // de atribuição direta para não depender dessa ordem — quem trocar o
+        // `orderBy` amanhã não deve poder quebrar o alarme em silêncio.
+        if (l.createdAt < atual.desdeEm) atual.desdeEm = l.createdAt;
       } else {
         porProvedor.set(chave, {
           provider: l.provider, motivo, quantas: 1,
-          exemplo: texto.slice(0, 200), ultimaEm: l.createdAt,
+          exemplo: texto.slice(0, 200), ultimaEm: l.createdAt, desdeEm: l.createdAt,
+          persistente: false,
         });
       }
     }
-    return [...porProvedor.values()].sort((a, b) => b.quantas - a.quantas);
+    const todos = [...porProvedor.values()];
+    // O carimbo só pode ser posto DEPOIS de contar a janela inteira — na
+    // primeira linha toda queda parece um soluço.
+    for (const c of todos) {
+      c.persistente =
+        c.quantas >= REPETICOES_PARA_PERSISTENTE &&
+        c.ultimaEm.getTime() - c.desdeEm.getTime() >= DURACAO_PARA_PERSISTENTE_MS;
+    }
+    return todos.sort((a, b) => b.quantas - a.quantas);
   } catch {
     // Banco fora do ar não pode derrubar o relógio. A próxima rodada olha de
     // novo — e a ausência de alarme aqui nunca é dita como "está tudo bem".
