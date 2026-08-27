@@ -11,7 +11,7 @@ import { describe, it, expect } from "vitest";
 import {
   TABELA_DE_PRECOS, TETO_DE_PECAS_POR_MES, CUSTOS_NAO_MEDIDOS,
   podeOfertar, podePrometerVolume, pisoDoServico, margemNoPiso,
-  servicoPorChave, coberturaDeCusto,
+  servicoPorChave, coberturaDeCusto, volumeQueACasaVende, aCasaProduz,
 } from "@/lib/agency/financeiro/tabela-de-precos";
 
 describe("a tabela é a fonte única", () => {
@@ -150,5 +150,64 @@ describe("o SDR não promete o que a casa não produz", () => {
     expect(v.pode).toBe(false);
     expect(v.motivo).toMatch(/capacidade/i);
     expect(podePrometerVolume(100).pode).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OS DOIS DEFEITOS DO PAINEL DO CLIENTE 001 — 27/08/2026
+//   "Posts: 28/mês"  → 28 não existe na tabela (12 · 20 · 36)
+//   "Vídeo: A definir" → vídeo não tem produtor; "a definir" é promessa em branco
+// ─────────────────────────────────────────────────────────────────────────────
+describe("28 peças/mês: a casa encaixa num degrau e DIZ que encaixou", () => {
+  it("28 vira o degrau que COBRE o pedido — 36, nunca 20", () => {
+    const r = volumeQueACasaVende(28);
+    expect(r.vende).toBe(true);
+    if (r.vende) {
+      expect(r.degrau.pecasPorMes).toBe(36);
+      // Arredondar para baixo entregaria menos do que foi pedido, calado.
+      expect(r.degrau.pecasPorMes).toBeGreaterThanOrEqual(28);
+      // E o cliente lê o encaixe, em vez de descobrir na fatura.
+      expect(r.frase).toMatch(/28/);
+      expect(r.frase).toMatch(/36/);
+      expect(r.frase).toMatch(/recebe mais, não menos/i);
+    }
+  });
+
+  it("o volume exato não inventa conversa", () => {
+    const r = volumeQueACasaVende(20);
+    expect(r.vende).toBe(true);
+    if (r.vende) {
+      expect(r.degrau.pecasPorMes).toBe(20);
+      expect(r.frase).not.toMatch(/recebe mais/i);
+    }
+  });
+
+  it("acima da capacidade a casa NÃO vende — e diz por quê", () => {
+    const r = volumeQueACasaVende(60);
+    expect(r.vende).toBe(false);
+    expect(r.frase).toMatch(/capacidade/i);
+  });
+});
+
+describe("vídeo: 'não fazemos', nunca 'a definir'", () => {
+  it("serviço sem produtor recebe uma recusa clara", () => {
+    const r = aCasaProduz("Vídeo institucional");
+    expect(r.produz).toBe(false);
+    expect(r.frase).toMatch(/não fazemos/i);
+  });
+
+  it("⛔ a resposta NUNCA é indefinição — promessa com assinatura em branco", () => {
+    for (const servico of ["Vídeo", "Reel", "Stories em vídeo", "TikTok"]) {
+      const r = aCasaProduz(servico);
+      expect(r.produz).toBe(false);
+      expect(r.frase.toLowerCase()).not.toContain("a definir");
+      expect(r.frase.toLowerCase()).not.toContain("sob consulta");
+      expect(r.frase.toLowerCase()).not.toContain("a combinar");
+    }
+  });
+
+  it("o que a casa produz responde que sim", () => {
+    expect(aCasaProduz("plano_conteudo").produz).toBe(true);
+    expect(aCasaProduz("Post avulso").produz).toBe(true);
   });
 });

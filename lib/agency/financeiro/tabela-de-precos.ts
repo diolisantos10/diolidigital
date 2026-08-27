@@ -326,3 +326,69 @@ export function coberturaDeCusto(): { medidos: number; total: number; parcelasEm
     parcelasEmFalta: CUSTOS_NAO_MEDIDOS.length,
   };
 }
+
+// ─── O QUE A CASA RESPONDE SOBRE UM PEDIDO (27/08/2026) ─────────────────────
+//
+// Medido no escopo do cliente 001, no painel: **"Posts: 28/mês"** e **"Vídeo: A
+// definir"**. As duas linhas são defeito, e por razões diferentes:
+//
+//   • **28 não existe na tabela** (12 · 20 · 36). Mostrar o pedido cru como se
+//     fosse o contratado é o caminho mais curto para um preço inventado — e
+//     para o cliente descobrir na fatura que comprou outra coisa.
+//   • **"A definir" para vídeo é a pior resposta possível.** Vídeo **não tem
+//     produtor** nesta casa. "A definir" soa como "ainda vamos combinar", o
+//     cliente conta com aquilo, e a casa descobre depois que não produz.
+//     *Vitrine é promessa; promessa sem produtor é dívida.* A resposta honesta
+//     é curta: **não fazemos**.
+
+/** O que a casa responde a um volume pedido. */
+export type RespostaDeVolume =
+  | { vende: true; degrau: ServicoDaCasa; pedido: number; frase: string }
+  | { vende: false; pedido: number; frase: string };
+
+/**
+ * Encaixa o volume pedido no degrau que a casa VENDE — e diz isso em voz alta.
+ *
+ * O degrau escolhido é o menor que **cobre** o pedido: quem pede 28 recebe 36,
+ * nunca 20. Arredondar para baixo entregaria menos do que foi pedido sem
+ * ninguém avisar, que é a forma silenciosa de quebrar contrato.
+ */
+export function volumeQueACasaVende(pecasPedidas: number): RespostaDeVolume {
+  const pedido = Math.max(0, Math.round(Number(pecasPedidas) || 0));
+  const teto = podePrometerVolume(pedido);
+  if (!teto.pode) {
+    return { vende: false, pedido, frase: teto.motivo ?? "acima da capacidade da casa" };
+  }
+  const degraus = TABELA_DE_PRECOS
+    .filter((s) => s.pecasPorMes > 0 && s.chave.startsWith("plano_"))
+    .sort((a, b) => a.pecasPorMes - b.pecasPorMes);
+  const degrau = degraus.find((d) => d.pecasPorMes >= pedido);
+  if (!degrau) {
+    return { vende: false, pedido, frase: `${pedido} peças/mês não cabe em nenhum plano da casa` };
+  }
+  const frase = degrau.pecasPorMes === pedido
+    ? `${pedido} peças/mês: plano ${degrau.nome}.`
+    : `Você pediu ${pedido} peças/mês. A casa vende em degraus, e o que cobre esse volume é o ` +
+      `plano ${degrau.nome}, com ${degrau.pecasPorMes} peças/mês — você recebe mais, não menos.`;
+  return { vende: true, degrau, pedido, frase };
+}
+
+/**
+ * A casa produz este serviço? Se não, a resposta é **não fazemos** — nunca
+ * "a definir".
+ *
+ * ⛔ NUNCA devolva texto de indefinição aqui. "A definir" e "sob consulta" são
+ * promessas com a assinatura em branco: o cliente conta, a casa não produz, e a
+ * conversa difícil acontece depois de ele já ter dito sim.
+ */
+export function aCasaProduz(servico: string): { produz: boolean; frase: string } {
+  const s = servicoPorChave(servico)
+    ?? TABELA_DE_PRECOS.find((x) => x.nome.toLowerCase() === servico.trim().toLowerCase());
+  if (s) return { produz: true, frase: `${s.nome}: sim, a casa produz.` };
+  return {
+    produz: false,
+    frase:
+      `${servico}: **não fazemos** hoje — não temos quem produza, e por isso não está na nossa tabela. ` +
+      "Preferimos dizer isso agora do que prometer e não entregar.",
+  };
+}
