@@ -7201,6 +7201,7 @@ export const IsencaoDeParceriaScalarFieldEnum = {
   escopo: 'escopo',
   pecasContratadas: 'pecasContratadas',
   tetoDeIaCentavosUsd: 'tetoDeIaCentavosUsd',
+  registradaPor: 'registradaPor',
   observacao: 'observacao',
   createdAt: 'createdAt'
 } as const

@@ -63,6 +63,7 @@ export type IsencaoDeParceriaMinAggregateOutputType = {
   escopo: string | null
   pecasContratadas: number | null
   tetoDeIaCentavosUsd: number | null
+  registradaPor: string | null
   observacao: string | null
   createdAt: Date | null
 }
@@ -76,6 +77,7 @@ export type IsencaoDeParceriaMaxAggregateOutputType = {
   escopo: string | null
   pecasContratadas: number | null
   tetoDeIaCentavosUsd: number | null
+  registradaPor: string | null
   observacao: string | null
   createdAt: Date | null
 }
@@ -89,6 +91,7 @@ export type IsencaoDeParceriaCountAggregateOutputType = {
   escopo: number
   pecasContratadas: number
   tetoDeIaCentavosUsd: number
+  registradaPor: number
   observacao: number
   createdAt: number
   _all: number
@@ -114,6 +117,7 @@ export type IsencaoDeParceriaMinAggregateInputType = {
   escopo?: true
   pecasContratadas?: true
   tetoDeIaCentavosUsd?: true
+  registradaPor?: true
   observacao?: true
   createdAt?: true
 }
@@ -127,6 +131,7 @@ export type IsencaoDeParceriaMaxAggregateInputType = {
   escopo?: true
   pecasContratadas?: true
   tetoDeIaCentavosUsd?: true
+  registradaPor?: true
   observacao?: true
   createdAt?: true
 }
@@ -140,6 +145,7 @@ export type IsencaoDeParceriaCountAggregateInputType = {
   escopo?: true
   pecasContratadas?: true
   tetoDeIaCentavosUsd?: true
+  registradaPor?: true
   observacao?: true
   createdAt?: true
   _all?: true
@@ -240,6 +246,7 @@ export type IsencaoDeParceriaGroupByOutputType = {
   escopo: string
   pecasContratadas: number
   tetoDeIaCentavosUsd: number
+  registradaPor: string | null
   observacao: string | null
   createdAt: Date
   _count: IsencaoDeParceriaCountAggregateOutputType | null
@@ -276,6 +283,7 @@ export type IsencaoDeParceriaWhereInput = {
   escopo?: Prisma.StringFilter<"IsencaoDeParceria"> | string
   pecasContratadas?: Prisma.IntFilter<"IsencaoDeParceria"> | number
   tetoDeIaCentavosUsd?: Prisma.IntFilter<"IsencaoDeParceria"> | number
+  registradaPor?: Prisma.StringNullableFilter<"IsencaoDeParceria"> | string | null
   observacao?: Prisma.StringNullableFilter<"IsencaoDeParceria"> | string | null
   createdAt?: Prisma.DateTimeFilter<"IsencaoDeParceria"> | Date | string
 }
@@ -289,6 +297,7 @@ export type IsencaoDeParceriaOrderByWithRelationInput = {
   escopo?: Prisma.SortOrder
   pecasContratadas?: Prisma.SortOrder
   tetoDeIaCentavosUsd?: Prisma.SortOrder
+  registradaPor?: Prisma.SortOrderInput | Prisma.SortOrder
   observacao?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -305,6 +314,7 @@ export type IsencaoDeParceriaWhereUniqueInput = Prisma.AtLeast<{
   escopo?: Prisma.StringFilter<"IsencaoDeParceria"> | string
   pecasContratadas?: Prisma.IntFilter<"IsencaoDeParceria"> | number
   tetoDeIaCentavosUsd?: Prisma.IntFilter<"IsencaoDeParceria"> | number
+  registradaPor?: Prisma.StringNullableFilter<"IsencaoDeParceria"> | string | null
   observacao?: Prisma.StringNullableFilter<"IsencaoDeParceria"> | string | null
   createdAt?: Prisma.DateTimeFilter<"IsencaoDeParceria"> | Date | string
 }, "id" | "clientRequestId">
@@ -318,6 +328,7 @@ export type IsencaoDeParceriaOrderByWithAggregationInput = {
   escopo?: Prisma.SortOrder
   pecasContratadas?: Prisma.SortOrder
   tetoDeIaCentavosUsd?: Prisma.SortOrder
+  registradaPor?: Prisma.SortOrderInput | Prisma.SortOrder
   observacao?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.IsencaoDeParceriaCountOrderByAggregateInput
@@ -339,6 +350,7 @@ export type IsencaoDeParceriaScalarWhereWithAggregatesInput = {
   escopo?: Prisma.StringWithAggregatesFilter<"IsencaoDeParceria"> | string
   pecasContratadas?: Prisma.IntWithAggregatesFilter<"IsencaoDeParceria"> | number
   tetoDeIaCentavosUsd?: Prisma.IntWithAggregatesFilter<"IsencaoDeParceria"> | number
+  registradaPor?: Prisma.StringNullableWithAggregatesFilter<"IsencaoDeParceria"> | string | null
   observacao?: Prisma.StringNullableWithAggregatesFilter<"IsencaoDeParceria"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"IsencaoDeParceria"> | Date | string
 }
@@ -352,6 +364,7 @@ export type IsencaoDeParceriaCreateInput = {
   escopo: string
   pecasContratadas: number
   tetoDeIaCentavosUsd: number
+  registradaPor?: string | null
   observacao?: string | null
   createdAt?: Date | string
 }
@@ -365,6 +378,7 @@ export type IsencaoDeParceriaUncheckedCreateInput = {
   escopo: string
   pecasContratadas: number
   tetoDeIaCentavosUsd: number
+  registradaPor?: string | null
   observacao?: string | null
   createdAt?: Date | string
 }
@@ -378,6 +392,7 @@ export type IsencaoDeParceriaUpdateInput = {
   escopo?: Prisma.StringFieldUpdateOperationsInput | string
   pecasContratadas?: Prisma.IntFieldUpdateOperationsInput | number
   tetoDeIaCentavosUsd?: Prisma.IntFieldUpdateOperationsInput | number
+  registradaPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   observacao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -391,6 +406,7 @@ export type IsencaoDeParceriaUncheckedUpdateInput = {
   escopo?: Prisma.StringFieldUpdateOperationsInput | string
   pecasContratadas?: Prisma.IntFieldUpdateOperationsInput | number
   tetoDeIaCentavosUsd?: Prisma.IntFieldUpdateOperationsInput | number
+  registradaPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   observacao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -404,6 +420,7 @@ export type IsencaoDeParceriaCreateManyInput = {
   escopo: string
   pecasContratadas: number
   tetoDeIaCentavosUsd: number
+  registradaPor?: string | null
   observacao?: string | null
   createdAt?: Date | string
 }
@@ -417,6 +434,7 @@ export type IsencaoDeParceriaUpdateManyMutationInput = {
   escopo?: Prisma.StringFieldUpdateOperationsInput | string
   pecasContratadas?: Prisma.IntFieldUpdateOperationsInput | number
   tetoDeIaCentavosUsd?: Prisma.IntFieldUpdateOperationsInput | number
+  registradaPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   observacao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -430,6 +448,7 @@ export type IsencaoDeParceriaUncheckedUpdateManyInput = {
   escopo?: Prisma.StringFieldUpdateOperationsInput | string
   pecasContratadas?: Prisma.IntFieldUpdateOperationsInput | number
   tetoDeIaCentavosUsd?: Prisma.IntFieldUpdateOperationsInput | number
+  registradaPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   observacao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -443,6 +462,7 @@ export type IsencaoDeParceriaCountOrderByAggregateInput = {
   escopo?: Prisma.SortOrder
   pecasContratadas?: Prisma.SortOrder
   tetoDeIaCentavosUsd?: Prisma.SortOrder
+  registradaPor?: Prisma.SortOrder
   observacao?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -461,6 +481,7 @@ export type IsencaoDeParceriaMaxOrderByAggregateInput = {
   escopo?: Prisma.SortOrder
   pecasContratadas?: Prisma.SortOrder
   tetoDeIaCentavosUsd?: Prisma.SortOrder
+  registradaPor?: Prisma.SortOrder
   observacao?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -474,6 +495,7 @@ export type IsencaoDeParceriaMinOrderByAggregateInput = {
   escopo?: Prisma.SortOrder
   pecasContratadas?: Prisma.SortOrder
   tetoDeIaCentavosUsd?: Prisma.SortOrder
+  registradaPor?: Prisma.SortOrder
   observacao?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -494,6 +516,7 @@ export type IsencaoDeParceriaSelect<ExtArgs extends runtime.Types.Extensions.Int
   escopo?: boolean
   pecasContratadas?: boolean
   tetoDeIaCentavosUsd?: boolean
+  registradaPor?: boolean
   observacao?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["isencaoDeParceria"]>
@@ -507,6 +530,7 @@ export type IsencaoDeParceriaSelectCreateManyAndReturn<ExtArgs extends runtime.T
   escopo?: boolean
   pecasContratadas?: boolean
   tetoDeIaCentavosUsd?: boolean
+  registradaPor?: boolean
   observacao?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["isencaoDeParceria"]>
@@ -520,6 +544,7 @@ export type IsencaoDeParceriaSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   escopo?: boolean
   pecasContratadas?: boolean
   tetoDeIaCentavosUsd?: boolean
+  registradaPor?: boolean
   observacao?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["isencaoDeParceria"]>
@@ -533,11 +558,12 @@ export type IsencaoDeParceriaSelectScalar = {
   escopo?: boolean
   pecasContratadas?: boolean
   tetoDeIaCentavosUsd?: boolean
+  registradaPor?: boolean
   observacao?: boolean
   createdAt?: boolean
 }
 
-export type IsencaoDeParceriaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientRequestId" | "clientId" | "autorizadaPor" | "validaAte" | "escopo" | "pecasContratadas" | "tetoDeIaCentavosUsd" | "observacao" | "createdAt", ExtArgs["result"]["isencaoDeParceria"]>
+export type IsencaoDeParceriaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientRequestId" | "clientId" | "autorizadaPor" | "validaAte" | "escopo" | "pecasContratadas" | "tetoDeIaCentavosUsd" | "registradaPor" | "observacao" | "createdAt", ExtArgs["result"]["isencaoDeParceria"]>
 
 export type $IsencaoDeParceriaPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "IsencaoDeParceria"
@@ -580,6 +606,17 @@ export type $IsencaoDeParceriaPayload<ExtArgs extends runtime.Types.Extensions.I
      * casa é finito e sem recarga automática. Zero é ZERO, não "liberado".
      */
     tetoDeIaCentavosUsd: number
+    /**
+     * QUEM APERTOU O BOTÃO, quando a concessão veio pela rota — sai da SESSÃO,
+     * nunca do corpo. `autorizadaPor` é a FONTE da autorização (o CEO, citando
+     * D-0B9) e é digitada pelo operador; um campo que o operador escolhe não
+     * pode ser a única testemunha do ato. Mesmo princípio de
+     * `PagamentoConfirmado.registradoPor`.
+     * 
+     * Nulo = veio pelo script, sem sessão. NUNCA significa "sem dono":
+     * `autorizadaPor` continua obrigatório nos dois caminhos.
+     */
+    registradaPor: string | null
     observacao: string | null
     createdAt: Date
   }, ExtArgs["result"]["isencaoDeParceria"]>
@@ -1013,6 +1050,7 @@ export interface IsencaoDeParceriaFieldRefs {
   readonly escopo: Prisma.FieldRef<"IsencaoDeParceria", 'String'>
   readonly pecasContratadas: Prisma.FieldRef<"IsencaoDeParceria", 'Int'>
   readonly tetoDeIaCentavosUsd: Prisma.FieldRef<"IsencaoDeParceria", 'Int'>
+  readonly registradaPor: Prisma.FieldRef<"IsencaoDeParceria", 'String'>
   readonly observacao: Prisma.FieldRef<"IsencaoDeParceria", 'String'>
   readonly createdAt: Prisma.FieldRef<"IsencaoDeParceria", 'DateTime'>
 }

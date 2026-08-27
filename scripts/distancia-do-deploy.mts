@@ -23,6 +23,7 @@ import { historicoDaBranch, olharFilaDeDeploy } from "../lib/plataforma/leitura-
 import { olharProducao } from "../lib/plataforma/consulta-da-producao.ts";
 import { julgarDistancia, type VereditoDaDistancia } from "../lib/plataforma/distancia-do-deploy.ts";
 import path from "node:path";
+import { trabalhoSoNoDisco } from "../lib/plataforma/trabalho-so-no-disco.ts";
 
 const PRODUCAO = process.env.SENTINELA_URL ?? "https://dioli-agency-os-1-production.up.railway.app";
 const BRANCH = process.env.DISTANCIA_BRANCH ?? "claude/dioli-agency-os-architecture-kk7kp";
@@ -111,13 +112,44 @@ function imprimir(v: VereditoDaDistancia): void {
 async function main(): Promise<void> {
   const v = await medirDistancia();
 
+  // ── A CATRACA DO DISCO, ANTES DA DISTÂNCIA (27/08/2026) ───────────────────
+  //
+  // Este script mede a produção contra `origin/<branch>` — e por isso, no dia em
+  // que 14 commits ficaram presos num disco (entre eles a porta da isenção de
+  // parceria, testada e 404 na internet), ele disse EM_DIA com exit 0. Produção
+  // == origin era verdade; "está pronto" não era.
+  //
+  // O disco é conferido PRIMEIRO porque a resposta dele muda o significado da
+  // outra: "produção em dia" com trabalho preso no disco não é em dia, é uma
+  // medição da metade visível. Sair 0 aqui seria repetir o dia inteiro.
+  const disco = trabalhoSoNoDisco();
+
   if (process.argv.includes("--json")) {
-    console.log(JSON.stringify(v));
+    console.log(JSON.stringify({ ...v, disco }));
   } else {
     imprimir(v);
+    imprimirDisco(disco);
   }
 
-  process.exit(codigoDeSaida(v));
+  // O pior dos dois manda. Um disco com trabalho preso sai 1 mesmo com a
+  // produção em dia — e "não consegui olhar o git" sai 2, porque silêncio nunca
+  // vira sinal verde.
+  const doDisco = disco.codigo === "SO_NO_DISCO" ? 1 : disco.codigo === "NAO_CONSEGUI_OLHAR" ? 2 : 0;
+  process.exit(Math.max(codigoDeSaida(v), doDisco));
+}
+
+function imprimirDisco(d: ReturnType<typeof trabalhoSoNoDisco>): void {
+  if (d.codigo === "TUDO_EMPURRADO") {
+    console.log("✅ Nada preso no disco.");
+    console.log("");
+    return;
+  }
+  console.log(`${d.codigo === "SO_NO_DISCO" ? "🚨" : "⚠️ "} ${d.resumo}`);
+  console.log(`   → ${d.acao}`);
+  for (const c of d.commits.slice(0, 10)) console.log(`  ${c.commitCurto}  ${c.assunto}`);
+  const resto = d.commits.length - 10;
+  if (resto > 0) console.log(`  ... e mais ${resto}`);
+  console.log("");
 }
 
 const executadoDireto = process.argv[1] && import.meta.url === `file://${path.resolve(process.argv[1])}`;

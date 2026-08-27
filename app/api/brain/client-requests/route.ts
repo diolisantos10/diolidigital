@@ -13,6 +13,7 @@ import { sendEmail } from "@/lib/email/send";
 import { briefingConfirmationEmail } from "@/lib/email/templates";
 import { lerContato, montarContato } from "@/lib/agency/comercial/contato-do-lead";
 import { provaDoProprioBriefing } from "@/lib/agency/consentimento/quem-pode-receber";
+import { resolverRastroDaConversa } from "@/lib/agency/comercial/conversa-sem-pedido";
 
 // ── OS TETOS DA ÚNICA PORTA PÚBLICA DE GRAVAÇÃO (raio-x de 16/08/2026) ────────
 //
@@ -308,6 +309,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       sdrHandoffJson:  body.sdrHandoffJson  != null              ? body.sdrHandoffJson as object : undefined,
       attachmentsJson,
     });
+
+    // ── A CONVERSA VIROU PEDIDO: O RASTRO DEIXA DE SER UMA PARADA ──────────
+    //
+    // Cada turno do SDR guarda um rastro do escopo acumulado
+    // (`conversa-sem-pedido.ts`, 27/08/2026), para que uma conversa abandonada
+    // no meio não suma em silêncio. Este é o outro lado: quando o briefing
+    // sobe de verdade, aquele rastro precisa sair da lista de paradas.
+    //
+    // Sem isto a lista mentiria PARA CIMA — toda conversa bem-sucedida
+    // apareceria para sempre como abandonada, e um alarme que acusa o que está
+    // certo é o alarme cego que esta casa já pagou uma vez no `cron-execute`.
+    //
+    // Depois do `create` e fora do caminho de erro: resolver ANTES de gravar
+    // apagaria o rastro de uma conversa cujo pedido ainda pode falhar — e aí a
+    // perda seria total e silenciosa, exatamente o que este conserto existe
+    // para impedir. Nunca lança.
+    await resolverRastroDaConversa(body.sessionId);
 
     if (contato.temComoFalar) {
       // Automatically generate the full scope as soon as the briefing lands —

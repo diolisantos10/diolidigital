@@ -16,6 +16,7 @@ import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra"
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
 import { precoDoItemEmTexto } from "@/lib/agency/comercial/preco-do-item";
+import { linhaDeVolume, linhaDeVideo, linhaDeModalidade, type LinhaDeEscopo } from "@/lib/agency/comercial/escopo-na-voz-da-casa";
 
 // ── Public types ───────────────────────────────────────────────────────────────
 
@@ -42,6 +43,18 @@ export interface PublicBriefingRoomSubmitData {
    * proposta. Ver `lib/agency/comercial/contato-do-lead.ts`.
    */
   contato: { nome: string; email: string; whatsapp: string } | null;
+  /**
+   * O FIO DA CONVERSA que produziu este briefing (o mesmo `sessionId` mandado a
+   * cada turno para `/api/sdr/chat`).
+   *
+   * Ele viaja no envio por um motivo só: a partir de 27/08/2026 cada turno do
+   * SDR guarda um RASTRO da conversa (`conversa-sem-pedido.ts`), para que uma
+   * conversa abandonada no meio deixe de sumir em silêncio. Quando o briefing
+   * finalmente sobe, esse rastro precisa ser RESOLVIDO — senão toda conversa
+   * bem-sucedida ficaria para sempre na lista de "paradas", e uma lista que
+   * acusa o que está certo é uma lista que se aprende a ignorar.
+   */
+  sessionId: string;
 }
 
 interface PublicBriefingRoomProps {
@@ -207,7 +220,12 @@ const PKG_STYLE: Record<string, { bg: string; text: string }> = {
 
 // ── Scope section ─────────────────────────────────────────────────────────────
 
-function ScopeSection({ scope }: { scope: BriefingScope }) {
+/** EXPORTADA para que o teste alcance o HTML que o cliente lê de verdade, e
+ *  não só as funções que o alimentam. A pergunta obrigatória desta casa é "o
+ *  teste alcança o código que responde ao cliente?" — provar `linhaDeVolume`
+ *  isolada deixaria passar exatamente a falha que originou este trabalho: a
+ *  função certa que tela nenhuma chamava. */
+export function ScopeSection({ scope }: { scope: BriefingScope }) {
   let pkgLabel: string | null = null;
   let pkgStyle: { bg: string; text: string } | null = null;
 
@@ -219,42 +237,29 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
     pkgStyle = PKG_STYLE[pkgId];
   }
 
-  const rows: { label: string; value: string; dim?: boolean }[] = [];
+  const rows: LinhaDeEscopo[] = [];
 
-  if (scope.serviceMode === "monthly")  rows.push({ label: "Modalidade", value: "Gestão mensal" });
-  if (scope.serviceMode === "one_off")  rows.push({ label: "Modalidade", value: "Projeto pontual" });
-  if (scope.serviceMode === "umbrella") rows.push({ label: "Modalidade", value: "Parceria contínua (guarda-chuva)" });
+  // A modalidade passa pela voz da casa: "projeto pontual" com peças/MÊS são
+  // duas afirmações que cobram diferente, e a tela não pode fazer as duas.
+  rows.push(linhaDeModalidade(scope));
 
   if (scope.wantsSocialMedia) {
     rows.push({ label: "Serviço", value: "Social Media" });
     if (scope.social?.platforms.length)
       rows.push({ label: "Canais", value: scope.social.platforms.join(", ") });
+    // O volume sai no DEGRAU que a casa vende (12 · 20 · 36), com o número que
+    // o cliente pediu ao lado. 28 não existe na tabela, e mostrar 28 como se
+    // fosse o contratado é o caminho mais curto para um preço inventado.
     if (scope.social?.postsPerWeek !== undefined)
-      rows.push({
-        label: "Posts",
-        value: scope.social.postsPerWeek > 0 ? `${scope.social.postsPerWeek * 4}/mês` : "Não incluído",
-        dim: scope.social.postsPerWeek === 0,
-      });
+      rows.push(linhaDeVolume("Posts", scope.social.postsPerWeek * 4));
     if (scope.social?.storiesPerWeek !== undefined)
-      rows.push({
-        label: "Stories",
-        value: scope.social.storiesPerWeek > 0 ? `${scope.social.storiesPerWeek * 4}/mês` : "Não incluído",
-        dim: scope.social.storiesPerWeek === 0,
-      });
+      rows.push(linhaDeVolume("Stories", scope.social.storiesPerWeek * 4));
     if (scope.social?.reelsPerMonth !== undefined)
-      rows.push({
-        label: "Reels",
-        value: scope.social.reelsPerMonth > 0 ? `${scope.social.reelsPerMonth}/mês (edição)` : "Não incluído",
-        dim: scope.social.reelsPerMonth === 0,
-      });
-    if (scope.social?.hasVideomaker !== undefined || scope.social?.needsVideoProduction !== undefined) {
-      const v = scope.social?.needsVideoProduction
-        ? "Produção pela Dioli"
-        : scope.social?.hasVideomaker
-        ? "Videomaker próprio"
-        : "A definir";
-      rows.push({ label: "Vídeo", value: v, dim: v === "A definir" });
-    }
+      rows.push(linhaDeVolume("Reels", scope.social.reelsPerMonth));
+    // Vídeo não tem produtor. A tela dizia "Produção pela Dioli" a quem pedia,
+    // e "A definir" a quem não pedia — um sim e um talvez, os dois falsos.
+    const video = linhaDeVideo(scope.social);
+    if (video) rows.push(video);
     if (scope.social?.hasPhotos !== undefined)
       rows.push({ label: "Fotos", value: scope.social.hasPhotos ? "Disponíveis" : "Sem produção", dim: !scope.social.hasPhotos });
     if (scope.social?.creativesReady !== undefined)
@@ -295,10 +300,21 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
           conversor de markdown como o balão de chat — em 16/08/2026 o asterisco
           chegou cru na tela, no print do CEO. Limpar aqui protege todo campo,
           venha de onde vier. */}
+      {/* `detalhe` NÃO é decoração. É onde a casa explica o que corrigiu no
+          pedido — o degrau que cobre 28, o vídeo que não temos, a modalidade
+          que trocou. Corrigir sem dizer por quê é o cliente descobrir na
+          fatura; por isso `alerta` destaca em vez de apagar. */}
       {rows.map((r, i) => (
         <div key={i} className="flex items-start gap-2 text-[11px]">
           <span className="text-[var(--text-muted)] shrink-0 w-[68px]">{r.label}</span>
-          <span className={r.dim ? "text-[var(--text-subtle)]" : "text-[var(--text-primary)] font-medium"}>{semMarcacao(r.value)}</span>
+          <span className="min-w-0">
+            <span className={r.dim ? "text-[var(--text-subtle)]" : r.alerta ? "text-[var(--warning)] font-semibold" : "text-[var(--text-primary)] font-medium"}>
+              {semMarcacao(r.value)}
+            </span>
+            {r.detalhe ? (
+              <span className="block text-[10px] leading-[1.45] text-[var(--text-muted)] mt-0.5">{semMarcacao(r.detalhe)}</span>
+            ) : null}
+          </span>
         </div>
       ))}
     </div>
@@ -1799,6 +1815,8 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
       businessName:     mergedScope.businessName ?? "",
       segment:          mergedScope.segment ?? "",
       sdrHandoff:       buildHandoffSummary(conv, sdr),
+      // O fio, para que o rastro desta conversa seja resolvido no servidor.
+      sessionId:        tempClientId,
       // E o `contato` bruto vai pelo mesmo crivo: ele é gravado como
       // `briefingJson.contato` e é DELE que a solicitação tira `contato.whatsapp`
       // — o terceiro lugar onde o número retratado reapareceu.

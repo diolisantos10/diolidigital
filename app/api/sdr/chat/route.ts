@@ -77,6 +77,7 @@ import { acrescentarRespostaSemEncaixe, O_QUE_A_PERGUNTA_COLHE } from "@/lib/age
 // custam o que custam, e o teto de ritmo fica verde a fatura inteira. Ver
 // `lib/ai/teto-de-custo.ts`.
 import { podeGastarNaPortaPublica } from "@/lib/ai/teto-de-custo";
+import { guardarRastroDaConversa } from "@/lib/agency/comercial/conversa-sem-pedido";
 // A MONTAGEM DO PROMPT (SYSTEM_PROMPT + a ficha do cargo, via
 // `sistemaDoSdr()`) saiu daqui e foi para `lib/agency/comercial/
 // prompt-do-sdr.ts` (despacho `esteira`, 16/08 — segunda rodada). Motivo:
@@ -156,6 +157,36 @@ interface ChatRequest {
  * banco não pode transformar uma resposta pronta em tela de erro para o
  * prospect. Falhou? Fica no log do servidor e a conversa segue.
  */
+/**
+ * GUARDA O ESCOPO DO TURNO — a régua de 27/08/2026: *nenhuma conversa de
+ * cliente pode terminar sem deixar rastro recuperável.*
+ *
+ * Chamada nos DOIS caminhos que a conversa pode tomar sem chegar ao modelo
+ * (`not_configured` e `teto_de_custo`) e no caminho normal. É de propósito que
+ * ela não fique só no caminho feliz: a conversa continua pelo motor de regras
+ * nos três, e o que a pessoa contou vale o mesmo nos três.
+ *
+ * `workspaceId` opcional porque o caminho `not_configured` corta antes de o dono
+ * estar resolvido — aí ela resolve sozinha. Nunca lança; ver o módulo.
+ */
+async function guardarRastroDoTurno(body: ChatRequest, workspaceId?: string | null): Promise<void> {
+  const escopo = body.scope as Record<string, unknown> | undefined;
+  await guardarRastroDaConversa({
+    sessionId: body.sessionId,
+    workspaceId: workspaceId !== undefined ? workspaceId : await workspaceDaRotaPublica(),
+    escopo,
+    // O contato sai do PRÓPRIO escopo, que é onde a sala já acumula o que a
+    // pessoa declarou (na porta ou na conversa). Não se deduz de arroba de
+    // Instagram nem de nome de negócio — a inferência que esta casa proíbe.
+    contato: {
+      nome:     escopo?.prospectName,
+      email:    escopo?.prospectEmail,
+      whatsapp: escopo?.prospectPhone,
+    },
+    turnos: Array.isArray(body.messages) ? body.messages.length + 1 : 1,
+  });
+}
+
 async function registrar(turno: TurnoDoSdr): Promise<void> {
   try {
     await registrarTurnoDoSdr(turno);
@@ -609,13 +640,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // toda a internet com um provedor bom parado ao lado, porque **ter chave não
   // é ter saldo** e esta rota escolhia por chave e não olhava mais. Ver
   // `chavesDeRotaPublica` e o laço logo abaixo.
-  const provedores = await chavesDeRotaPublica(ordemDePreferenciaDaCasa());
-  if (provedores.length === 0) {
-    return NextResponse.json({ ok: false, reason: "not_configured" });
-  }
-  let escolha = provedores[0]!;
-  let resolved = escolha.chave;
-
+  // ⚠️ O CORPO É LIDO ANTES DA CONFERÊNCIA DE PROVEDOR, e a ordem é o conserto
+  // (27/08/2026). Até aqui `not_configured` devolvia ANTES de `req.json()` — e
+  // como o cliente cai no motor de regras e SEGUE conversando, uma casa com os
+  // provedores zerados atendia a conversa inteira sem nunca ler o escopo que
+  // vinha no corpo. Nenhum turno deixava rastro exatamente na noite em que a
+  // conta zera, que é a noite em que menos se pode perder um lead. Ler o corpo
+  // é uma operação pura: não gasta, não escreve, não chama ninguém.
   let body: ChatRequest;
   try {
     body = (await req.json()) as ChatRequest;
@@ -626,6 +657,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!Array.isArray(body.messages) || typeof body.currentMessage !== "string") {
     return NextResponse.json({ ok: false, reason: "bad_request" }, { status: 400 });
   }
+
+  const provedores = await chavesDeRotaPublica(ordemDePreferenciaDaCasa());
+  if (provedores.length === 0) {
+    // A conversa não morre aqui — o motor de regras assume no navegador. Por
+    // isso o rastro é guardado ANTES de sair: sem esta linha, uma casa sem
+    // provedor perde todo escopo de toda conversa, em silêncio.
+    await guardarRastroDoTurno(body);
+    return NextResponse.json({ ok: false, reason: "not_configured" });
+  }
+  let escolha = provedores[0]!;
+  let resolved = escolha.chave;
 
   // ═══ O SDR NA PÁGINA DO ORÇAMENTO (27/08/2026) ══════════════════════════
   //
@@ -801,6 +843,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // O visitante recebe `ok:false` e o motor de regras assume, exatamente como
   // no `not_configured` acima: a conversa continua, a chave paga é que para.
   const workspaceDaConta = await workspaceDaRotaPublica();
+
+  // ── O RASTRO DA CONVERSA QUE PODE NÃO VIRAR PEDIDO (27/08/2026) ───────
+  //
+  // Até aqui o escopo acumulado chegava neste corpo a cada turno e era jogado
+  // fora: o ÚNICO caminho que gravava um `ClientRequestDb` era o botão de
+  // enviar, travado por `canSubmitProposal` (nome + negócio + serviço + zero
+  // perguntas obrigatórias em aberto). Conversa que morria antes disso — como a
+  // do cliente 001 às 01:34 de 27/08, medida como ausente em produção — não
+  // deixava linha nenhuma. O motivo completo está no cabeçalho do módulo.
+  //
+  // Fica ANTES do teto de gasto de propósito: quando o teto barra, a conversa
+  // continua pelo motor de regras, e o que a pessoa já contou vale exatamente o
+  // mesmo. Guardar o rastro é escrita em banco, não chamada paga — o teto de
+  // gasto não tem nada a dizer sobre ele.
+  //
+  // Nunca lança e nunca bloqueia: `guardarRastroDaConversa` devolve `false` e
+  // segue. Rastro é nosso; a conversa é do cliente.
+  await guardarRastroDoTurno(body, workspaceDaConta);
+
   const veredicto = await podeGastarNaPortaPublica(workspaceDaConta);
   if (!veredicto.pode) {
     await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: `teto_de_custo:${veredicto.motivo}` });
