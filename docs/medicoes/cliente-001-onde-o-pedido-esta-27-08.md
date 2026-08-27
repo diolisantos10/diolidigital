@@ -150,3 +150,58 @@ sessão. O que mudou é que passou a ser **possível**, e o ato é nominal e hum
 testado, provado por mutação, e ligado em lugar nenhum. Vale como aviso de
 classe — *a pergunta "quem CHAMA isto?" merece ser feita antes de dar um
 conserto por fechado.*
+
+---
+
+## 8. O `cron-execute` atrasado 293 min — causa medida
+
+Ordem: *"relógio que atrasa cinco horas e ninguém nota é alarme cego."*
+Medido nos disparos reais do workflow (781 execuções registradas):
+
+| disparo (UTC) | conclusão |
+|---|---|
+| 26/08 20:43 · 21:12 · 21:47 · 22:08 | success |
+| **26/08 22:08 → 27/08 03:19** | **nada. 310 minutos de silêncio** |
+| 27/08 03:19:24 | success |
+
+**A causa não é a rota, e não é o servidor.** É o `schedule` do GitHub Actions:
+os tiques da madrugada foram **descartados**, sem aviso — o comportamento que o
+próprio workflow já documenta (*"em repositório público, na fila compartilhada,
+a maioria dos tiques é simplesmente descartada"*). Há inclusive um run
+`queued` que **nunca rodou** (26/08 15:09) — o descarte visível.
+
+O alarme às 03:02 leu 293 min contados desde 22:08. **Ele estava certo:** o
+relógio realmente esteve ausente cinco horas.
+
+### O que isso NÃO significa
+
+**A produção não ficou desatendida.** O trabalho desta rota é feito também pelo
+despertador DENTRO do servidor, de 5 em 5 min — e ele bateu a noite toda
+(medido: 03:01:33 ligado, batidas às 03:02 e 03:07). Esta rota é o **reforço de
+fora**, para o caso de o servidor estar de pé e parado. O que atrasou foi o
+reforço, não a rede.
+
+### A decisão que eu NÃO tomei
+
+A tolerância é **180 min** (`heartbeat.ts:44`), calibrada em 26/08 sobre 30
+disparos cujo máximo foi **203 min**. A janela desta noite (**310 min**) passa
+das duas.
+
+Seria fácil subir a tolerância para 360 e apagar o alarme. **Não fiz, de
+propósito** — é exatamente o erro que esta casa já pegou numa mutação: régua que
+acompanha a mudança em vez de barrá-la. Uma noite não é amostra, e afrouxar
+régua por causa de um dia ruim é como toda régua morre.
+
+**Dono: Plataforma.** As duas saídas honestas, e a escolha é de quem tem o
+arquivo:
+
+1. **separar as duas perguntas** — "a produção está desatendida?" (o despertador
+   de dentro responde) e "o reforço de fora atrasou?". Hoje o alarme mistura as
+   duas, e é por isso que ele assusta mais do que informa. *Esta é a que eu
+   recomendaria*;
+2. recalibrar a tolerância **sobre uma amostra nova**, medida, não sobre esta
+   noite.
+
+O risco de não decidir está escrito no próprio código: *"um alarme que ENSINA A
+IGNORAR ALARME — quando `cron-execute` morrer de verdade, a linha no pulso vai
+ser a mesma das outras sete da semana."*
