@@ -17,6 +17,7 @@ import { NUMERO_POR_EXTENSO, normalizar as normalizarSemAcento } from "./esteira
 import { CAUSAS, type Causa } from "./esteira/causas-de-refacao";
 import { PERGUNTA, type CampoDaMarca } from "./esteira/campos-da-marca";
 import { lerBasicosOperacionais } from "./comercial/resposta-que-responde";
+import { parceriaVale } from "./comercial/parceria-declarada";
 
 // ── Text helpers ──────────────────────────────────────────────────────────────
 
@@ -749,9 +750,31 @@ const QUESTIONS: QuestionDef[] = [
   },
 
   // Q10 — budget range
+  // ── Q10 — A VERBA, E QUEM ESTÁ DISPENSADO DELA (27/08/2026) ──────────────
+  //
+  // MEDIDO EM PRODUÇÃO, 13:43: o interlocutor do primeiro cliente real disse o
+  // que precisava ("SaaS de CRM que vende para restaurantes, queremos
+  // Instagram") e a casa respondeu perguntando **quanto ele pretende investir
+  // por mês**. A conversa parou nessa pergunta, o pedido não nasceu e nenhum
+  // orçamento foi enviado.
+  //
+  // Ele entra por PARCERIA (D-0B9/D-0C2) e **não paga nada**. O motivo inteiro
+  // de esta pergunta ser obrigatória — escrito logo abaixo, em `OPTIONAL_QIDS`
+  // — é *sem verba a casa MANDA PREÇO ERRADO*. Para quem não vai receber preço
+  // nenhum, esse motivo não existe: a pergunta deixa de proteger alguém e passa
+  // a só cobrar um pedágio, e um pedágio obrigatório trava o pedido.
+  //
+  // ⚠️ A dispensa vem de `parceriaDeclarada`, que o SERVIDOR preenche a partir
+  // de `IsencaoDeParceria` — nunca do `scope`, que o visitante escreve. Sem o
+  // registro, a casa NÃO SABE que é parceria e PERGUNTA, como sempre perguntou:
+  // *ausência de informação não é informação*.
+  //
+  // E `main_objective` continua obrigatória para todo mundo: o parceiro segue
+  // sendo perguntado o que ele quer ALCANÇAR. O que sai é só a pergunta sobre
+  // o bolso de quem não tem bolso nesta relação.
   {
     id: "budget_range",
-    when: (s) => !s.scope.budgetRange,
+    when: (s) => !s.scope.budgetRange && !dispensadoDeVerba(s),
     text: () => "Para fecharmos o escopo: qual faixa de orçamento mensal você tem em mente para a gestão? (sem contar a verba de anúncios)",
     parse: (answer) => ({ budgetRange: answer.trim() }),
   },
@@ -992,6 +1015,22 @@ export const QIDS_OPCIONAIS: ReadonlySet<string> = OPTIONAL_QIDS;
 
 // The still-pending questions that MUST be answered before a lead is complete.
 // Empty ⇒ the substantive protocol is fully covered.
+/**
+ * Esta conversa está DISPENSADA da pergunta da verba?
+ *
+ * Só quando existe parceria DECLARADA e ainda válida. Vencida não vale, e
+ * ausente não vale — nos dois casos a casa pergunta, que é o comportamento
+ * seguro e o de sempre.
+ *
+ * Uma função só, usada pelo `when` da pergunta E pelo portão de envio, de
+ * propósito: fossem duas réguas, um dia elas divergiriam e a pergunta deixaria
+ * de ser feita enquanto o portão continuaria exigindo a resposta — que é
+ * exatamente a conversa travada que este conserto veio matar.
+ */
+export function dispensadoDeVerba(state: ConvState, agora: Date = new Date()): boolean {
+  return parceriaVale(state.parceriaDeclarada, agora);
+}
+
 export function remainingRequiredQuestions(state: ConvState): QuestionDef[] {
   return QUESTIONS.filter(
     (q) => !OPTIONAL_QIDS.has(q.id) && !state.answeredQIds.includes(q.id) && q.when(state),
