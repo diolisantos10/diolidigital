@@ -2691,6 +2691,61 @@ model PagamentoConfirmado {
 /// Então a isenção é OUTRO fato, com OUTRA tabela: ela libera a esteira sem
 /// nunca afirmar que houve pagamento. *Parceria não é grátis — é investimento,
 /// e investimento se mede.*
+/// O CONVITE DO PARCEIRO — a única coisa que faz a casa SABER que a conversa é dele.
+///
+/// ── Por que ele existe (27/08/2026) ─────────────────────────────────────────
+/// O parceiro não paga, então a pergunta obrigatória da verba não protege
+/// ninguém e só trava o pedido dele — foi o que parou a conversa das 13:43. Mas
+/// dispensar a pergunta exige SABER que é parceria, e na sala de briefing o
+/// visitante é ANÔNIMO: só `sessionId`. `clientRequestId` vem do corpo, e a casa
+/// já o trata como não-confiável ("um id que qualquer pessoa digita").
+///
+/// ⚠️ **A verdade tem que vir de um token que a casa CUNHOU** — nunca do que o
+/// interlocutor afirma. É o mesmo molde de `PortalAccess`, e a mesma regra de
+/// 03/08: em caminho público, o `clientId` sai SEMPRE do token — derivação,
+/// nunca comparação.
+///
+/// E o convite NÃO é a autorização: ele só APONTA para a `IsencaoDeParceria`,
+/// que continua sendo a fonte da verdade. A isenção é conferida VIVA a cada uso;
+/// revogá-la ou deixá-la vencer mata o convite no mesmo instante, sem precisar
+/// caçar link nenhum.
+model ConviteDeParceria {
+  id         String    @id @default(cuid())
+
+  /// 256 bits de aleatório, base64url. `cuid` é resistente a colisão e POBRE em
+  /// entropia — e este token é credencial. Mesma decisão de `PortalAccess.token`.
+  token      String    @unique
+
+  /// O cliente parceiro. É ELE que o servidor deriva do token; nada vindo do
+  /// corpo da requisição pode dizer quem é o dono desta conversa.
+  clientId   String
+
+  /// ⚠️ NOMINAL E OBRIGATÓRIO — quem cunhou o convite fica na linha. Sai da
+  /// SESSÃO na rota, nunca do corpo: um campo que o operador escolhe não pode
+  /// ser a única testemunha do ato (a lição de `IsencaoDeParceria.registradaPor`).
+  criadoPor  String
+
+  /// ⚠️ OBRIGATÓRIO, E É PRAZO **PRÓPRIO** — não herda o da isenção. Convite não
+  /// pode virar senha eterna: um link que circula por e-mail e vale para sempre
+  /// é pior que a pergunta que ele dispensa. A cunhagem ainda o obriga a nunca
+  /// ultrapassar a validade da isenção — parceria eterna pela porta dos fundos
+  /// continua sendo parceria eterna.
+  expiraEm   DateTime
+
+  /// Revogação explícita, para o link que vazou. Independente do vencimento.
+  revogadoEm DateTime?
+
+  /// Trilha de uso: quantas vezes e quando. Convite é credencial, e credencial
+  /// sem trilha é a que ninguém percebe sendo usada.
+  usos       Int       @default(0)
+  ultimoUsoEm DateTime?
+
+  observacao String?
+  createdAt  DateTime  @default(now())
+
+  @@index([clientId])
+}
+
 model IsencaoDeParceria {
   id              String   @id @default(cuid())
 

@@ -43,14 +43,35 @@
 // envio continua fechado sem ela. É ela que escolhe o degrau, e mandar preço a
 // quem nunca foi perguntado quanto pode gastar continua proibido.
 
-// ⚠️ NENHUM `import` DE BANCO NO TOPO, E ISSO É REQUISITO — a lição de hoje de
-// manhã, uma camada adiante. `question-engine.ts` importa a régua daqui
-// (`parceriaVale`) e é o coração do briefing: arrastar o cliente Prisma para
-// dentro dele pelo topo deste arquivo poria o banco no caminho de toda
-// pergunta, e em todo teste de conversa que nunca precisou de banco nenhum.
+// ⚠️⚠️ NENHUM `import` DE BANCO NESTE ARQUIVO — NEM ESTÁTICO, NEM DINÂMICO.
 //
-// A régua é pura; só a LEITURA precisa do banco, e ela o carrega quando é
-// chamada — o mesmo molde que `despertador.ts` já usa.
+// ── E ISTO FOI MEDIDO, NÃO SUPOSTO (27/08/2026) ────────────────────────────
+//
+// A primeira versão deste módulo fazia a leitura do banco aqui, com um
+// `await import("@/lib/db/client")` dentro da função — dinâmico, justamente
+// para "não arrastar o Prisma". **Não bastou, e o BUILD DE PRODUÇÃO reprovou:**
+//
+//   #5 [Client Component Browser]:
+//     ./lib/db/client.ts
+//     ./lib/agency/comercial/parceria-declarada.ts
+//     ./lib/agency/question-engine.ts
+//     ./lib/agency/sdr-agent.ts
+//     ./components/agency/briefing/PublicBriefingRoom.tsx
+//     ./app/briefing/page.tsx
+//
+// `question-engine` é o coração do briefing e roda **no NAVEGADOR** — a sala
+// pública é um client component. O empacotador segue o import dinâmico do mesmo
+// jeito, e o cliente Prisma inteiro ia junto para o browser.
+//
+// `tsc --noEmit` passou. Os 7.290 testes passaram. **Quem pegou foi o `npm run
+// build` do CI** — que é exatamente o que o comentário do workflow diz que ele
+// existe para pegar: *"CI que não roda o build não protege o deploy — protege o
+// editor."*
+//
+// Por isso a régua PURA mora aqui e a LEITURA mora em `parceria-do-cliente.ts`,
+// que só o servidor importa. É a mesma separação de `motivo-da-falha.ts` x
+// `falha-de-provedor.ts`, feita hoje de manhã — e aqui ela não é higiene, é
+// condição de o site compilar.
 
 /**
  * O fato, como a casa o registrou. Os dois campos existem porque os dois
@@ -76,44 +97,4 @@ export function parceriaVale(
 ): boolean {
   if (!p) return false;
   return p.validaAte.getTime() >= agora.getTime();
-}
-
-/**
- * A parceria DECLARADA deste cliente, se houver uma válida.
- *
- * Lê `IsencaoDeParceria` — a tabela que já é a verdade da casa sobre quem não
- * paga. Não cria nada, não deduz nada e não aceita nada vindo do corpo da
- * requisição: quem chama passa um `clientId` que o SERVIDOR derivou.
- *
- * ⚠️ `clientId` ausente devolve `null`, e isso é a resposta certa, não uma
- * falha: um visitante anônimo na sala de briefing não tem como ser reconhecido
- * como parceiro, e fingir que tem seria adivinhar. Ver o bloco "o que continua
- * aberto" no topo do teste desta frente.
- */
-export async function parceriaDoCliente(
-  clientId: string | null | undefined,
-  agora: Date = new Date(),
-): Promise<ParceriaDeclarada | null> {
-  const id = (clientId ?? "").trim();
-  if (!id) return null;
-  try {
-    const { prisma } = await import("@/lib/db/client");
-    const linha = await prisma.isencaoDeParceria.findFirst({
-      where: { clientId: id, validaAte: { gte: agora } },
-      orderBy: { validaAte: "desc" },
-      select: { autorizadaPor: true, validaAte: true },
-    });
-    if (!linha) return null;
-    const p = { autorizadaPor: linha.autorizadaPor, validaAte: linha.validaAte };
-    // Confere a validade DE NOVO, em código, e não só no `where`. A consulta
-    // pode mudar amanhã; a régua de "vencida não vale" é desta camada.
-    return parceriaVale(p, agora) ? p : null;
-  } catch {
-    // ── FAIL-CLOSED, E ESTE `catch` É A METADE QUE IMPORTA ─────────────────
-    // Banco fora do ar devolve "não sei se é parceria" — e "não sei" tem de
-    // significar **continua perguntando a verba**, nunca "trata como parceiro".
-    // Um erro de leitura que dispensasse a pergunta transformaria uma queda de
-    // banco em porta aberta para todo visitante.
-    return null;
-  }
 }

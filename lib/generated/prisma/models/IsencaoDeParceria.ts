@@ -14,25 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model IsencaoDeParceria
- * A TERCEIRA TESTEMUNHA: a parceria isenta de pagamento.
  * 
- * ─── POR QUE ELA É UMA TABELA PRÓPRIA, E NÃO UMA LINHA DE PAGAMENTO ─────────
- * 
- * O primeiro cliente real da agência (Foocci, 27/08/2026) entra por parceria:
- * não paga nada. E hoje ele TRAVA no portão de pagamento — e o portão está
- * certo.
- * 
- * A tentação era registrar um `PagamentoConfirmado` de R$ 0,00. Duas razões
- * para não fazer isso, e as duas são do CEO:
- * 1. **Receita fantasma.** Uma linha de pagamento diz "entrou dinheiro". Não
- * entrou. O financeiro passaria a somar vendas que não existem.
- * 2. **Destruiria a testemunha.** `PagamentoConfirmado` recusa valor ≤ 0 no
- * código E no portão, de propósito — é o que garante que toda linha ali
- * seja dinheiro de verdade. Furar isso para o parceiro fura para todos.
- * 
- * Então a isenção é OUTRO fato, com OUTRA tabela: ela libera a esteira sem
- * nunca afirmar que houve pagamento. *Parceria não é grátis — é investimento,
- * e investimento se mede.*
  */
 export type IsencaoDeParceriaModel = runtime.Types.Result.DefaultSelection<Prisma.$IsencaoDeParceriaPayload>
 

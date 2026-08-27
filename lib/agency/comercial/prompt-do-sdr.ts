@@ -251,3 +251,43 @@ mesmo perdendo a fala:
 export function sistemaDoSdr(): string {
   return SYSTEM_PROMPT + blocoDeRegrasParaPrompt("conversational-sdr");
 }
+
+
+/**
+ * O BLOCO QUE DESLIGA A PERGUNTA DA VERBA — só para parceiro com convite válido.
+ *
+ * ── Por que ele existe (27/08/2026) ────────────────────────────────────────
+ * A regra 4 e o bloco NEGOCIAÇÃO mandam o SDR perguntar a faixa de investimento,
+ * e mandam com razão: *sem verba a casa MANDA PREÇO ERRADO*. Só que esse motivo
+ * evapora para quem entra por PARCERIA — o parceiro não paga, nenhum preço vai
+ * ser mandado a ele, e não há degrau a escolher. Medido às 13:43: a conversa do
+ * primeiro cliente real parou exatamente nessa pergunta.
+ *
+ * ⚠️ Este bloco só entra quando o SERVIDOR resolveu um convite cunhado pela
+ * casa (`resolverConviteDeParceria`). Ele NUNCA entra por o visitante ter
+ * dito que é parceiro — é por isso que o texto abaixo não pede ao modelo para
+ * julgar nada: quando ele aparece, a decisão já foi tomada fora do modelo.
+ *
+ * O que ele NÃO afrouxa: continua proibido cotar preço, continua proibido
+ * prometer o que não foi acordado, e o levantamento continua inteiro. Sai UMA
+ * pergunta, e entra a razão de ela ter saído.
+ */
+export function blocoDoParceiro(autorizadaPor: string): string {
+  return [
+    "PARCERIA CONFIRMADA — ESTE CONTATO NÃO PAGA, E NÃO SE PERGUNTA VERBA A ELE.",
+    "",
+    `A casa confirmou, fora desta conversa, que este contato entra por PARCERIA (autorizada por ${autorizadaPor}).`,
+    "Isso NÃO foi deduzido do que ele escreveu — já estava decidido antes de você falar com ele.",
+    "",
+    "O QUE MUDA, e é só isto:",
+    "- NÃO pergunte faixa de investimento, orçamento mensal, quanto ele pode ou pretende investir.",
+    "- NÃO cite as faixas do bloco NEGOCIAÇÃO. Para ele elas não existem: não há preço a escolher.",
+    "- Se ELE trouxer dinheiro no assunto, diga com naturalidade que a parceria já está acertada e",
+    "  que essa parte não é com ele — e siga o levantamento.",
+    "",
+    "O QUE NÃO MUDA:",
+    "- Você continua PROIBIDO de cotar preço e de prometer o que não foi acordado.",
+    "- O levantamento continua INTEIRO: o que ele quer ALCANÇAR, para quem vende, como opera, a marca.",
+    "  A pergunta que sai é a do bolso; a que mais importa — o objetivo — continua sendo sua.",
+  ].join("\n");
+}

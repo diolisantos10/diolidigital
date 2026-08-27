@@ -611,7 +611,7 @@ export type HandoffV2 = Prisma.HandoffV2Model
  */
 export type PagamentoConfirmado = Prisma.PagamentoConfirmadoModel
 /**
- * Model IsencaoDeParceria
+ * Model ConviteDeParceria
  * A TERCEIRA TESTEMUNHA: a parceria isenta de pagamento.
  * 
  * ─── POR QUE ELA É UMA TABELA PRÓPRIA, E NÃO UMA LINHA DE PAGAMENTO ─────────
@@ -631,6 +631,29 @@ export type PagamentoConfirmado = Prisma.PagamentoConfirmadoModel
  * Então a isenção é OUTRO fato, com OUTRA tabela: ela libera a esteira sem
  * nunca afirmar que houve pagamento. *Parceria não é grátis — é investimento,
  * e investimento se mede.*
+ * O CONVITE DO PARCEIRO — a única coisa que faz a casa SABER que a conversa é dele.
+ * 
+ * ── Por que ele existe (27/08/2026) ─────────────────────────────────────────
+ * O parceiro não paga, então a pergunta obrigatória da verba não protege
+ * ninguém e só trava o pedido dele — foi o que parou a conversa das 13:43. Mas
+ * dispensar a pergunta exige SABER que é parceria, e na sala de briefing o
+ * visitante é ANÔNIMO: só `sessionId`. `clientRequestId` vem do corpo, e a casa
+ * já o trata como não-confiável ("um id que qualquer pessoa digita").
+ * 
+ * ⚠️ **A verdade tem que vir de um token que a casa CUNHOU** — nunca do que o
+ * interlocutor afirma. É o mesmo molde de `PortalAccess`, e a mesma regra de
+ * 03/08: em caminho público, o `clientId` sai SEMPRE do token — derivação,
+ * nunca comparação.
+ * 
+ * E o convite NÃO é a autorização: ele só APONTA para a `IsencaoDeParceria`,
+ * que continua sendo a fonte da verdade. A isenção é conferida VIVA a cada uso;
+ * revogá-la ou deixá-la vencer mata o convite no mesmo instante, sem precisar
+ * caçar link nenhum.
+ */
+export type ConviteDeParceria = Prisma.ConviteDeParceriaModel
+/**
+ * Model IsencaoDeParceria
+ * 
  */
 export type IsencaoDeParceria = Prisma.IsencaoDeParceriaModel
 /**

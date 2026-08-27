@@ -66,6 +66,10 @@ export const VINCULOS_SOLTOS = [
   // sem cliente a que responder. Os dois testes-guarda da casa pegaram esta
   // omissão antes do merge, que é exatamente para isso que eles existem.
   { chave: "isencaoDeParceria",      rotulo: "isenções de parceria" },
+  // O convite aponta para o cliente parceiro: fundir clientes tem de levar o
+  // convite junto, senão o link entregue passa a apontar para um cliente que
+  // não existe mais — e um convite órfão é uma credencial sem dono.
+  { chave: "conviteDeParceria",      rotulo: "convites de parceria" },
   // A assinatura recorrente (27/08/2026). Entra aqui pela MESMA razão da isenção,
   // e por uma pior: ela é uma COBRANÇA MENSAL VIVA. Fusão que largasse uma
   // assinatura órfã deixaria o Mercado Pago cobrando todo mês um cliente que não
