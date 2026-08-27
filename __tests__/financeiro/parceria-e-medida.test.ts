@@ -127,7 +127,13 @@ describe("as bordas — a parceria explica a ausência, nunca apaga o fato", () 
     expect(where.validaAte).toBeDefined();
   });
 
-  it("isenção SEM cliente não é atribuída a ninguém — melhor invisível que na linha errada", async () => {
+  // ⚠️ O QUE ESTE CASO PROVA, E O QUE NÃO PROVA. Ele mede o RESULTADO (a
+  // isenção órfã não gruda em linha nenhuma) e isso vale. Ele NÃO prova a
+  // guarda `if (!v.clientId) continue` de `dre.ts`: a mutação que remove
+  // aquela linha sobrevive a esta suíte, porque hoje a chave nula já não casa
+  // com nada. A guarda é defesa em profundidade e está declarada como tal no
+  // próprio arquivo. Verde por ausência não é verde — então fica escrito.
+  it("isenção SEM cliente não gruda em linha nenhuma (mede o RESULTADO, não a guarda)", async () => {
     custoSemReceita();
     db.isencaoDeParceria.findMany.mockResolvedValue([
       { clientId: null, autorizadaPor: "X", validaAte: new Date("2026-11-27"), escopo: "y" },

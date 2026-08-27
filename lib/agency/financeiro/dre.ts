@@ -393,7 +393,14 @@ export async function porProjeto(
       select: { clientId: true, autorizadaPor: true, validaAte: true, escopo: true },
     })) as Array<{ clientId: string | null; autorizadaPor: string; validaAte: Date; escopo: string }>;
     for (const v of vivas) {
-      if (!v.clientId) continue; // isenção sem cliente não sabe a qual linha pertence
+      // ⚠️ DEFESA EM PROFUNDIDADE, e ela NÃO é load-bearing hoje — está escrito
+      // porque a mutação que a remove SOBREVIVEU à suíte, e ponto fraco
+      // silencioso é armadilha. Hoje um `clientId` nulo viraria uma chave que
+      // `parcerias.get(id)` nunca casa, então remover esta linha não muda
+      // nada. Ela existe para o dia em que a chave passar a ter um padrão
+      // (`v.clientId ?? "sem-centro-de-custo"`): aí a isenção órfã grudaria na
+      // linha do vala-comum e explicaria um R$ 0 que não é dela.
+      if (!v.clientId) continue;
       parcerias.set(v.clientId, { autorizadaPor: v.autorizadaPor, validaAte: v.validaAte, escopo: v.escopo });
     }
   } catch {
