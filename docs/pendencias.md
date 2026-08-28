@@ -15,6 +15,34 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟡 28/08/2026 — DUAS FRENTES ADIADAS POR ORDEM (depois da manhã do cliente)
+
+O Diretor Geral carimbou as duas para depois da entrada do primeiro cliente real.
+Ficam aqui para não sumirem.
+
+### 1. Varredura de rotas sem conferência de posse — do `seguranca`
+
+O conserto do vazamento da ficha de marca (#376) fechou **uma** rota. O PR #169
+mencionava outros pontos com o mesmo padrão — `liberarCliente` da escada, a fila
+comercial — e **eu não os auditei**. `lib/agency/esteira/posse-do-cliente.ts` já
+exporta `clienteEDesteWorkspace` para eles.
+
+**A pergunta da varredura:** que outras rotas recebem um id pela URL ou pelo
+corpo e não conferem de quem é o recurso? É frente do especialista de segurança,
+não um apêndice de outra tarefa.
+
+### 2. Por que a branch de deploy virou história órfã — a causa-raiz
+
+`claude/dioli-agency-os-architecture-kk7kp` não tem ancestral comum com sete PRs
+abertos (150 commits contra 870). Eles são **impossíveis de mergear** e ficaram
+12 dias presos, com **US$ 1.198 já pagos** dentro deles — incluindo um conserto
+de segurança que só foi recuperado em 28/08.
+
+**Medi o efeito, não a causa.** Se aconteceu uma vez, acontece de novo, e o custo
+está calculado. Ver `triagem-dos-prs-parados-28-08.md` e
+`o-custo-de-construir-28-08.md`.
+
+
 ## 🔴 P0 28/08/2026 — A FICHA DE MARCA VAZA ENTRE INQUILINOS (aberto há 12 dias)
 
 **Denunciado pelo PR #169 em 16/08, provado lá, e o conserto nunca entrou.**
