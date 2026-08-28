@@ -14,6 +14,45 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+
+## 🔴 28/08/2026 — O PARCEIRO AINDA É PERGUNTADO SOBRE VERBA (cliente entra amanhã)
+
+**Medido por travessia executável, não por leitura:**
+`__tests__/comercial/a-jornada-do-parceiro.test.ts` — 14 testes, banco real, IA
+dublada, 10 mutações rodadas. Diagnóstico inteiro em
+`docs/diagnosticos/a-jornada-do-parceiro-de-ponta-a-ponta.md`.
+
+`dispensadoDeVerba` (`question-engine.ts:1030`) lê `state.parceriaDeclarada`. O
+campo existe no tipo (`briefing-conversation.ts:292`), é lido, tem comentário
+dizendo que "o SERVIDOR preenche" — e **nenhuma linha de produção escreve nele**.
+Fora o teste, ele aparece em 5 lugares e em nenhum como escrita.
+
+A causa é mecânica: quem decide a fila de perguntas é o `question-engine`, que
+roda **no navegador**. O servidor resolve o convite mas devolve só
+`{ok, reply, needsClarification, scope}` — a parceria nunca volta para quem
+decide a pergunta. No servidor o convite alimenta o **prompt** e o **rastro**,
+nada mais.
+
+### O que o parceiro vive amanhã
+
+- é perguntado a faixa de orçamento mensal — a MESMA pergunta que travou a
+  conversa do primeiro cliente real às 13:43 de 27/08;
+- o botão de fechar o pedido fica travado (`canSubmitProposal` exige fila vazia);
+- **o pedido nasce assim mesmo**, pela via de recuperação, em até 5 minutos — a
+  régua da promoção não exige verba. Feio, não fatal.
+
+### O que JÁ funciona (medido, não suposto)
+
+Convite chega em todo turno e sobrevive a recarregamento · isenção derivada da
+parceria · portão devolve `parceria_isenta` · zero pagamento falso de R$ 0 ·
+e-mail do briefing chega ao pedido · trava `.invalid` não barra endereço real ·
+proposta diz "100% isento" antes do número e o botão não convida a pagar.
+
+### Dívida declarada
+
+A mutação "a rota da proposta esquece a parceria" **sobreviveu**: o teste prova a
+régua e a fonte, mas não atravessa a rota. Nada foi renderizado — a ordem visual
+foi lida no JSX, não vista.
 ## 🔴 28/08/2026 — A FUSÃO DE CLIENTE ABORTA SE OS DOIS LADOS TIVEREM PARCERIA
 
 **Achado durante o diagnóstico do cadastro duplicado da FOOCCI (PR #370,

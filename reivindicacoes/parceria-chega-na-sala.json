@@ -1,0 +1,13 @@
+{
+  "id": "parceria-chega-na-sala",
+  "quem": "ses-b6c221003f",
+  "frente": "Ligar a parceria à sala: o parceiro para de ser perguntado sobre verba",
+  "responsabilidade": "parceria-chega-na-sala",
+  "arquivos": [
+    "app/api/sdr/chat/route.ts",
+    "components/agency/briefing/PublicBriefingRoom.tsx"
+  ],
+  "abertaEm": "2026-08-28T02:17:27.590Z",
+  "encerradaEm": null,
+  "rotulo": "diolidigital-f0"
+}
