@@ -189,8 +189,18 @@ describe("o HTML que o parceiro LÊ — renderizado com o corpo QUE A ROTA DEVOL
     const corpo = await chamarRota(tokenDoParceiro);
     const html = htmlDaProposta(corpo, tokenDoParceiro);
 
-    const ondeIsencao = html.indexOf(TITULO_DA_ISENCAO);
-    expect(ondeIsencao, "a frase da isenção não saiu no HTML do parceiro").toBeGreaterThan(-1);
+    // ⚠️ MEDE A SEÇÃO DESTACADA, NÃO A PRIMEIRA OCORRÊNCIA DA FRASE.
+    //
+    // Isto foi corrigido depois de uma mutação SOBREVIVER: inverti a ordem dos
+    // blocos na tela e o teste continuou verde. A causa é que a frase aparece
+    // DUAS vezes no HTML — uma na seção destacada e outra dentro do corpo do
+    // orçamento (`textoDoOrcamento` também a inclui). `indexOf` pegava a de
+    // dentro do texto, que vem antes do número de qualquer jeito, e o teste
+    // media a ordem do TEXTO em vez da ordem da TELA.
+    //
+    // O marcador da seção é o `aria-label` — que é o que existe uma vez só.
+    const ondeIsencao = html.indexOf('aria-label="Isenção por parceria"');
+    expect(ondeIsencao, "a seção destacada da isenção não saiu no HTML do parceiro").toBeGreaterThan(-1);
 
     // O número aparece no corpo do orçamento, e tem de vir DEPOIS: se ele
     // encontrar o preço primeiro, já leu uma cobrança, e a frase que desmente
@@ -201,6 +211,12 @@ describe("o HTML que o parceiro LÊ — renderizado com o corpo QUE A ROTA DEVOL
       ondeIsencao,
       "o parceiro lê o preço ANTES de saber que não paga — a ordem da tela se inverteu",
     ).toBeLessThan(ondeNumero);
+
+    // E a seção vem antes do BLOCO do orçamento, não só antes do número solto:
+    // é o bloco inteiro que o olho encontra primeiro.
+    const ondeCorpo = html.indexOf("white-space:pre-wrap");
+    expect(ondeCorpo, "o bloco do orçamento sumiu — o teste não está medindo a tela certa").toBeGreaterThan(-1);
+    expect(ondeIsencao).toBeLessThan(ondeCorpo);
   });
 
   it("6. o botão NÃO convida a pagar quem não paga", async () => {
