@@ -169,10 +169,14 @@ function medirOQuePushLevaria(branch: string): { commitsAlemDaReivindicacao: num
 function exigirBranchAlinhado(branch: string): void {
   const veredito = soLevaAReivindicacao(medirOQuePushLevaria(branch));
   if (veredito.pode) return;
-  throw new Error(
-    `reivindicação NÃO empurrada: ${veredito.motivo}\n` +
-    `   (nada foi escrito, commitado ou empurrado — o disco está como estava.)`,
-  );
+  // ⚠️ IMPRIME E SAI, no padrão das outras recusas deste arquivo (🚫 +
+  // `process.exit(1)`) — e NÃO `throw`. Medido exercitando: o `try/catch` de
+  // `comandoAbrir` só envolve `commitarEEmpurrar`, então um `throw` daqui subia
+  // como STACK TRACE de Node na cara de quem rodou o comando. Recusa que sai
+  // como stack não é lida: ela parece defeito da ferramenta, não decisão dela.
+  console.error(`🚫 reivindicação NÃO empurrada: ${veredito.motivo}`);
+  console.error("   (nada foi escrito, commitado ou empurrado — o disco está como estava.)");
+  process.exit(1);
 }
 
 /** `git fetch origin <branch>` — o primeiro passo de `abrir` e `conferir`,
