@@ -49,6 +49,7 @@ import { conferirPagamento } from "@/lib/agency/financeiro/portao-de-pagamento";
 import { initProspectConvState, processProspectMessage } from "@/lib/agency/prospect-engine";
 import { remainingRequiredQuestions, dispensadoDeVerba } from "@/lib/agency/question-engine";
 import { canSubmitProposal } from "@/lib/agency/sdr-agent";
+import { lerParceriaDoServidor } from "@/components/agency/briefing/PublicBriefingRoom";
 import type { BriefingScope } from "@/lib/agency/briefing-conversation";
 import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
 import { motivoDoBloqueioDeSaida } from "@/lib/agency/cliente-falso/trava-de-saida";
@@ -138,23 +139,20 @@ describe("a jornada do parceiro, de ponta a ponta, com banco real", () => {
     expect(await resolverConviteDeParceria(undefined)).toBeNull();
   });
 
-  // ── PONTO 2 — O DEFEITO ───────────────────────────────────────────────────
+  // ── PONTO 2 — CONSERTADO EM 28/08/2026 ───────────────────────────────────
   //
-  // 🔴 ESTE TESTE AFIRMA O DEFEITO DE HOJE, NÃO O COMPORTAMENTO DESEJADO.
+  // Estes dois testes AFIRMAVAM o defeito: com parceria viva, o parceiro
+  // continuava sendo perguntado sobre verba, porque `state.parceriaDeclarada`
+  // era lido por `dispensadoDeVerba` e NENHUMA linha de produção escrevia nele.
   //
-  // `dispensadoDeVerba` lê `state.parceriaDeclarada`. Esse campo existe no tipo
-  // (`briefing-conversation.ts:292`), é lido (`question-engine.ts:1031`) e o
-  // comentário ao lado dele afirma que "o SERVIDOR preenche" — mas **nenhuma
-  // linha de produção escreve nele**. A sala monta o `ConvState` em
-  // `PublicBriefingRoom.tsx:1676` sem o campo, e `/api/sdr/chat` devolve apenas
-  // `{ok, reply, needsClarification, scope}`: a parceria que o servidor
-  // resolveu nunca volta para quem decide a fila de perguntas.
+  // O conserto ligou os dois lados: `/api/sdr/chat` passou a devolver
+  // `parceria` (derivada do TOKEN, no servidor) e a sala passou a escrevê-la no
+  // `ConvState`. Agora eles afirmam o comportamento CERTO.
   //
-  // Resultado: o parceiro É perguntado sobre verba, que é exatamente a pergunta
-  // que travou a conversa do primeiro cliente real às 13:43 de 27/08.
-  //
-  // Quando o conserto chegar, este teste falha — e é assim que ele avisa.
-  it("🔴 2. DEFEITO VIVO: o parceiro AINDA é perguntado sobre verba", () => {
+  // ⚠️ A fronteira é `lerParceriaDoServidor`, e é ela que os testes exercitam —
+  // é onde a string do JSON vira `Date`. Um `validaAte` string passaria no
+  // `tsc` (o campo é tipado) e falharia em silêncio na comparação de tempo.
+  it("2. com parceria viva, `budget_range` SAI da fila do parceiro", () => {
     let estado = initProspectConvState();
     for (const fala of [
       "oi, sou o Marcos da FOOCCI",
@@ -165,37 +163,56 @@ describe("a jornada do parceiro, de ponta a ponta, com banco real", () => {
       estado = processProspectMessage(fala, estado);
     }
 
-    // A sala nunca soube da parceria: o campo chega vazio.
-    expect(
-      estado.conv.parceriaDeclarada,
-      "se isto deixou de ser nulo, o conserto chegou — troque este teste pelo inverso",
-    ).toBeFalsy();
+    // Sem a parceria (visitante comum) a pergunta continua sendo feita — o
+    // comportamento de sempre, e o seguro.
+    expect(remainingRequiredQuestions(estado.conv).map((q) => q.id)).toContain("budget_range");
 
-    // E por isso a dispensa nunca vale.
-    expect(dispensadoDeVerba(estado.conv)).toBe(false);
+    // A parceria como o SERVIDOR a manda: `validaAte` é string ISO no JSON.
+    const daRota = lerParceriaDoServidor({
+      autorizadaPor: "Dioli Santos (CEO), citando D-0B9",
+      validaAte: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+    });
+    expect(daRota, "a fronteira recusou uma parceria legítima do servidor").not.toBeNull();
 
-    const pendentes = remainingRequiredQuestions(estado.conv).map((q) => q.id);
+    const comParceria = { ...estado.conv, parceriaDeclarada: daRota };
+    expect(dispensadoDeVerba(comParceria)).toBe(true);
     expect(
-      pendentes,
-      "a pergunta que a parceria deveria poupar do parceiro continua na fila",
-    ).toContain("budget_range");
+      remainingRequiredQuestions(comParceria).map((q) => q.id),
+      "a pergunta que a parceria torna irrelevante continua na fila do parceiro",
+    ).not.toContain("budget_range");
+
+    // ⛔ E o que NÃO afrouxou: `main_objective` continua obrigatória para todo
+    // mundo. O que saiu foi só a pergunta sobre o bolso de quem não tem bolso.
+    const aindaObrigatorias = remainingRequiredQuestions(comParceria).map((q) => q.id);
+    expect(aindaObrigatorias.length + 1).toBe(
+      remainingRequiredQuestions(estado.conv).map((q) => q.id).length,
+    );
   });
 
-  it("🔴 2b. DEFEITO VIVO: o botão de fechar o pedido fica travado para o parceiro", () => {
+  it("2b. a fronteira recusa tudo que não for parceria legível — e 'não sei' é cliente comum", () => {
+    expect(lerParceriaDoServidor(null)).toBeNull();
+    expect(lerParceriaDoServidor(undefined)).toBeNull();
+    expect(lerParceriaDoServidor({})).toBeNull();
+    // Sem dono não é parceria: dono nominal é a trava do schema.
+    expect(lerParceriaDoServidor({ validaAte: new Date().toISOString() })).toBeNull();
+    expect(lerParceriaDoServidor({ autorizadaPor: "  ", validaAte: new Date().toISOString() })).toBeNull();
+    // ⛔ Data ilegível NÃO vira "vale para sempre".
+    expect(lerParceriaDoServidor({ autorizadaPor: "Dioli", validaAte: "ontem de manhã" })).toBeNull();
+    // Um `Date` cru (não-string) também não passa: o transporte é JSON.
+    expect(lerParceriaDoServidor({ autorizadaPor: "Dioli", validaAte: new Date() })).toBeNull();
+  });
+
+  it("2c. parceria VENCIDA que chegue do servidor não dispensa ninguém", () => {
+    const vencida = lerParceriaDoServidor({
+      autorizadaPor: "Dioli Santos (CEO)",
+      validaAte: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+    });
+    // Ela é LEGÍVEL (a fronteira devolve), mas não VALE — quem julga é
+    // `parceriaVale`, a mesma régua do portão.
+    expect(vencida).not.toBeNull();
     let estado = initProspectConvState();
-    for (const fala of [
-      "oi, sou o Marcos da FOOCCI",
-      "somos um SaaS de CRM que vende para restaurantes",
-      "queremos Instagram, uns 3 posts por semana",
-      "queremos aparecer para donos de restaurante",
-    ]) {
-      estado = processProspectMessage(fala, estado);
-    }
-    // `canSubmitProposal` exige fila vazia, e `budget_range` continua nela.
-    expect(
-      canSubmitProposal(estado.conv, estado.sdr),
-      "se isto virou true, o parceiro passou a fechar pela sala — atualize o diagnóstico",
-    ).toBe(false);
+    estado = processProspectMessage("oi, sou o Marcos da FOOCCI", estado);
+    expect(dispensadoDeVerba({ ...estado.conv, parceriaDeclarada: vencida })).toBe(false);
   });
 
   // ── O QUE FECHA A PORTA — descoberto por MUTAÇÃO ─────────────────────────

@@ -872,12 +872,71 @@ function ProposalCard({
 // um booleano/null. Ver `avisoParaResultadoSdr` e `causaDaFalhaDeUpload` —
 // são os únicos dois lugares que traduzem motivo em texto, para não haver
 // dois textos divergentes para o mesmo fato em pontos diferentes da tela.
+/**
+ * A PARCERIA COMO A SALA A GUARDA — `Date`, não string.
+ *
+ * `parceriaVale` compara `validaAte.getTime()`, e uma string vinda do JSON
+ * passaria no `tsc` (o campo é tipado) e falharia em silêncio na comparação.
+ * A conversão é aqui, uma vez, na fronteira.
+ */
+export type ParceriaDaSala = { autorizadaPor: string; validaAte: Date };
+
+/**
+ * Lê a parceria que o SERVIDOR declarou na resposta do turno.
+ *
+ * Devolve `null` para tudo que não seja uma parceria legível: campo ausente,
+ * `null`, formato errado, data ilegível. *Ausência de informação não é
+ * informação* — e aqui o "não sei" seguro é **cliente comum**, que continua
+ * sendo perguntado sobre verba, como sempre foi.
+ *
+ * Exportada para teste direto: é uma fronteira de dado, e fronteira se testa
+ * chamando a função — não lendo o arquivo como texto.
+ */
+export function lerParceriaDoServidor(bruto: unknown): ParceriaDaSala | null {
+  if (!bruto || typeof bruto !== "object") return null;
+  const p = bruto as { autorizadaPor?: unknown; validaAte?: unknown };
+  const dono = typeof p.autorizadaPor === "string" ? p.autorizadaPor.trim() : "";
+  if (!dono) return null;
+  if (typeof p.validaAte !== "string") return null;
+  const ate = new Date(p.validaAte);
+  // Data ilegível NÃO vira "vale para sempre" — vira cliente comum.
+  if (Number.isNaN(ate.getTime())) return null;
+  return { autorizadaPor: dono, validaAte: ate };
+}
+
+/**
+ * APLICA a parceria no estado da conversa — a única escrita de
+ * `parceriaDeclarada` que existe nesta sala.
+ *
+ * Exportada pelo mesmo motivo que `fetchSdrReply` e `mergeScopeGaps`: é a
+ * ligação que decide se `budget_range` sai da fila do parceiro, e ligação se
+ * testa CHAMANDO, não lendo o arquivo como texto.
+ *
+ * ── Por que uma função e não um spread solto (28/08/2026) ──────────────────
+ * Havia dois lugares escrevendo o campo (o turno bom e o fallback da IA), e
+ * duas escritas do mesmo fato divergem no primeiro dia de pressa — uma some
+ * numa remontagem e ninguém percebe, que é exatamente como este campo passou a
+ * existir sem nunca ser escrito. Uma função só, chamada nos dois.
+ */
+export function comParceria(conv: ConvState, parceria: ParceriaDaSala | null): ConvState {
+  return { ...conv, parceriaDeclarada: parceria };
+}
+
 export type SdrOutcome =
   /** Passou pela rede e pelo parser: `reply` pode ainda ser `null` — é o caso
    *  já existente de fala barrada por CORTE (truncado/malformado) com
    *  `scope` resgatável (ver `MOTIVOS_COM_ESCOPO_APROVEITAVEL`). Isso não é
    *  erro de rede; o motor de regras sempre soube responder aqui. */
-  | { kind: "resposta"; reply: string | null; scope: Record<string, unknown> }
+  | {
+      kind: "resposta";
+      reply: string | null;
+      scope: Record<string, unknown>;
+      /** A parceria DECLARADA, vinda do servidor (28/08/2026). `null` =
+       *  visitante comum. Ver `lerParceriaDoServidor` e o bloco no retorno
+       *  de `app/api/sdr/chat/route.ts`. ⛔ Nunca sai do corpo que o
+       *  visitante escreve: o servidor a derivou do TOKEN do convite. */
+      parceria: ParceriaDaSala | null;
+    }
   /** HTTP 429 — `limite-no-banco.ts` recusou porque a PESSOA está mandando
    *  rápido demais. Não é falha do sistema; é ritmo dela. */
   | { kind: "barrado" }
@@ -1102,9 +1161,9 @@ export async function fetchSdrReply(
     return res.status === 429 ? { kind: "barrado" } : { kind: "quebrado" };
   }
 
-  let data: { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown };
+  let data: { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown; parceria?: unknown };
   try {
-    data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown };
+    data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown; parceria?: unknown };
   } catch {
     return { kind: "quebrado" };
   }
@@ -1137,7 +1196,15 @@ export async function fetchSdrReply(
   // (o servidor respondeu 200): "sem novidade da IA", nenhum aviso na tela.
   if (replyUsavel === null && Object.keys(scopeRecuperado).length === 0) return { kind: "sem_novidade" };
 
-  return { kind: "resposta", reply: replyUsavel, scope: scopeRecuperado };
+  return {
+    kind: "resposta",
+    reply: replyUsavel,
+    scope: scopeRecuperado,
+    // Só quando o servidor disse `ok: true`. Um pacote barrado por corte
+    // aproveita o `scope`, mas NÃO a parceria: ali o turno estava fora do
+    // roteiro, e parceria é a maior porta desta sala.
+    parceria: data.ok === true ? lerParceriaDoServidor((data as { parceria?: unknown }).parceria) : null,
+  };
 }
 
 function asNum(v: unknown): number | undefined {
@@ -1472,6 +1539,26 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
   // não depois. Se entrasse por `useEffect`, a saudação já teria sido escrita
   // pedindo o nome e a correção chegaria tarde demais para a pessoa que leu.
   const [state,          setState]          = useState<ProspectConvState>(() => initProspectConvState(contatoDaPorta));
+  // ── A PARCERIA VIVE FORA DO `ConvState` (28/08/2026) ──────────────────
+  // `processProspectMessage` remonta o `conv` a cada turno a partir do
+  // anterior; guardar a parceria só lá dentro faria ela sobreviver por
+  // acidente, não por desenho. Aqui ela é explícita e é REAFIRMADA pelo
+  // servidor a cada turno bom.
+  //
+  // ⚠️ Um turno em que a IA falha NÃO apaga a parceria: `outcome.kind` só é
+  // "resposta" quando o servidor respondeu, e é só aí que ela é reescrita.
+  // Zerar num erro de rede faria a pergunta de verba voltar no meio da
+  // conversa do parceiro — o defeito que este conserto veio matar,
+  // reaparecendo de forma intermitente, que é pior que constante.
+  //
+  // ⛔ E isto NÃO libera produção: quem decide se a casa produz de graça é
+  // o portão, no servidor, a cada conferência. Aqui só se decide se uma
+  // PERGUNTA é feita.
+  // ⚠️ REF, não `useState`: `runTurn` é um `useCallback` cuja lista de
+  // dependências não inclui este valor — um estado comum ficaria preso no
+  // closure e o SEGUNDO turno do parceiro leria a parceria do PRIMEIRO
+  // (ou seja, `null`). É o mesmo motivo de `stateRef` existir aqui em cima.
+  const parceriaRef = useRef<ParceriaDaSala | null>(null);
   const [inputText,      setInputText]      = useState("");
   const [showMaterials,  setShowMaterials]  = useState(false);
   const [linkAtts,       setLinkAtts]       = useState<RequestAttachment[]>([]);
@@ -1673,12 +1760,25 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
         const assistantMsg: ConvMessage = outcome.reply
           ? { ...ruleAssistant, text: outcome.reply }
           : ruleAssistant;
-        const newConv: ConvState = {
+        // A parceria que o servidor declarou NESTE turno. Reafirmada a cada
+        // turno bom: se ela foi revogada, o servidor manda `null` e a pergunta
+        // de verba volta — a decisão continua sendo dele, nunca um estado que
+        // a sala guardou e nunca mais conferiu.
+        // Reescreve SEMPRE que o servidor respondeu — inclusive com `null`,
+        // que é como uma revogação chega até aqui.
+        parceriaRef.current = outcome.parceria;
+        const parceriaAgora = outcome.parceria;
+
+        const convDoTurno: ConvState = {
           ...ruleResult.conv,
           scope: mergedScope,
           estimate,
           messages: [...userVisible, assistantMsg],
         };
+        // ⚠️ É ESTA LINHA que tira `budget_range` da fila do parceiro
+        // (`dispensadoDeVerba`, question-engine.ts:1030). O campo existia, era
+        // lido, e ninguém escrevia nele.
+        const newConv = comParceria(convDoTurno, parceriaAgora);
         setState({
           conv: { ...newConv, canSubmit: canSubmitProposal(newConv, ruleResult.sdr) },
           sdr: ruleResult.sdr,
@@ -1688,7 +1788,13 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
         // sempre, para os três motivos (barrado, quebrado, sem_novidade).
         // `fireAiExtract` não muda: seu silêncio é fallback de segundo plano,
         // correto, e não é aqui que o defeito mora.
-        setState(ruleResult);
+        // A parceria já conhecida SOBREVIVE ao turno que falhou: o motor de
+        // regras remonta o `conv` e apagaria o campo sem esta linha.
+        const convComParceria = comParceria(ruleResult.conv, parceriaRef.current);
+        setState({
+          conv: { ...convComParceria, canSubmit: canSubmitProposal(convComParceria, ruleResult.sdr) },
+          sdr: ruleResult.sdr,
+        });
         void fireAiExtract(text, priorMessages);
 
         // `avisoParaResultadoSdr` devolve `null` para "sem_novidade" (não é
