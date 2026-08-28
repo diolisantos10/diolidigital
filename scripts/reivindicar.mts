@@ -333,7 +333,21 @@ function commitarEEmpurrar(
   exigirBranchAlinhado(branch);
 
   git(["add", caminhoRelativo]);
-  git(["commit", "-m", mensagem]);
+  // ⛔ `--only <caminho>` — MEDIDO EM 28/08/2026, EXERCITANDO O COMANDO.
+  //
+  // `git commit -m` sem `--only` commita **tudo o que estiver no index**, não só
+  // o que este comando adicionou. Provando o conserto do push, o próprio
+  // conserto (dois arquivos que eu tinha deixado staged) subiu junto com a
+  // reivindicação, para o deploy, sem PR e sem CI — a MESMA família do defeito
+  // que este arquivo está consertando, um andar abaixo.
+  //
+  // O portão do push conferia COMMITS além da base e via zero, corretamente: o
+  // vazamento não estava nos commits, estava no ÍNDICE. Duas portas, e eu só
+  // tinha fechado uma.
+  //
+  // `--only` faz o commit conter exatamente os caminhos nomeados, ignorando o
+  // resto do index — e o que estava staged continua staged, intocado.
+  git(["commit", "--only", "-m", mensagem, "--", caminhoRelativo]);
 
   // `--no-verify` É DELIBERADO — não é atalho, é o CONSERTO do deadlock medido
   // em 16/08/2026. Sem ele, este push aciona o gancho pre-push, que roda
