@@ -43,7 +43,18 @@ está calculado. Ver `triagem-dos-prs-parados-28-08.md` e
 `o-custo-de-construir-28-08.md`.
 
 
-## 🔴 P0 28/08/2026 — A FICHA DE MARCA VAZA ENTRE INQUILINOS (aberto há 12 dias)
+## 🟢 28/08/2026 — A FICHA DE MARCA VAZAVA ENTRE INQUILINOS (CONSERTADO)
+
+> **Fechado pelo PR #376**, conferido na branch de deploy: `posse-do-cliente.ts`
+> está lá e a rota da marca chama `clienteOuNulo` nas duas pontas (404, nunca
+> 403). Ficou aberto 12 dias porque o conserto existia desde 16/08 preso num PR
+> que não mergeia mais.
+>
+> ⚠️ **O que NÃO foi feito e continua aberto:** a varredura de OUTRAS rotas com
+> o mesmo padrão — ver a seção das frentes adiadas, no topo. Uma rota fechada
+> não é uma classe de defeito fechada.
+>
+> O texto abaixo fica como está: é a história que produziu a regra.
 
 **Denunciado pelo PR #169 em 16/08, provado lá, e o conserto nunca entrou.**
 Medido de novo hoje contra a base de deploy — continua aberto.
