@@ -189,6 +189,55 @@ Commitei **antes** de mutar. Cada mutação foi **executada**, não raciocinada.
 
 ---
 
+## ✅ ADENDO DE 28/08/2026 — as dívidas foram fechadas
+
+O diagnóstico abaixo foi escrito ANTES do conserto e das dívidas fechadas. O que
+mudou desde então, e vale mais que o texto original onde os dois divergirem:
+
+### O defeito do ponto 2 foi CONSERTADO (PR #372, mergeado)
+
+A rota do SDR passou a devolver `parceria` (derivada do token, nunca do corpo),
+`lerParceriaDoServidor` virou a fronteira que converte e recusa o ilegível, e a
+sala escreve o campo via `comParceria` — em `useRef`, porque `runTurn` é um
+`useCallback` sem esse valor nas dependências.
+
+### As três dívidas declaradas, e o que aconteceu com cada uma
+
+| Dívida original | Estado |
+|---|---|
+| a mutação 10 sobreviveu (a rota da proposta) | ✅ **fechada** — `a-proposta-do-parceiro-atravessa-a-rota.test.tsx` chama a rota real contra banco real e **mata a mutação (4 testes caem)** |
+| nada foi renderizado | ✅ **fechada** — o HTML é renderizado com `renderToStaticMarkup` a partir do **corpo que a rota devolveu**, nunca de objeto montado à mão |
+| a perna do e-mail não foi disparada | ✅ **fechada sem enviar** — `sendEmail` dublado, a rodada roda inteira e o que passaria pela porta é **medido**: destinatário e corpo |
+
+### A mutação que me pegou nesta rodada
+
+Inverti a ordem dos blocos na tela e **meu próprio teste continuou verde**. A
+causa: a frase da isenção aparece **duas vezes** no HTML — na seção destacada e
+dentro do corpo do orçamento (`textoDoOrcamento` também a inclui). O `indexOf`
+pegava a de dentro do texto, que vem antes do número de qualquer jeito, e eu
+media a ordem do **texto** em vez da ordem da **tela**.
+
+Corrigido para medir o `aria-label` da seção, que existe uma vez só. *Régua
+verde sobre o componente errado é pior que régua nenhuma.*
+
+### A mutação que sobreviveu por REDUNDÂNCIA, e fica assim
+
+"O portão para de derivar a isenção" sobrevive porque a promoção já derivou;
+remover as duas mata. **É desenho redundante aparecendo na medição, não buraco
+de teste** — avaliado e aceito pelo Diretor Geral em 28/08. Não gastar tempo nela.
+
+### O que CONTINUA não provado
+
+- **Que o Resend aceita a mensagem e que ela chega à caixa de entrada.** Só se
+  prova enviando, e enviar a pessoa real é proibido.
+- **A sala de briefing não foi renderizada** (a da proposta foi). Renderizar um
+  componente COM ESTADO exigiria `@testing-library/react` + jsdom, que este repo
+  não tem — o vitest roda em `environment: "node"`. É decisão de
+  infraestrutura, não de esforço.
+- **Nenhuma conversa real foi rodada**: a IA está dublada em toda parte.
+
+---
+
 ## 🚩 O que eu NÃO consegui provar
 
 Ponto fraco declarado é dívida; silencioso é armadilha.
