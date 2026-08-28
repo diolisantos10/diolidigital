@@ -73,7 +73,7 @@ const ESCOPO_DO_PARCEIRO: Partial<BriefingScope> = {
   // `volumeDeclarado` (live-calculator.ts:241) só olha aqui, e sem ele
   // `computeEstimate` TRAVA — a conta não fecha e a promoção recusa, com a
   // pendência nomeada. Foi o que esta travessia mediu na primeira rodada.
-  social: { postsPerWeek: 3 },
+  social: { platforms: ["instagram"], postsPerWeek: 3 },
   objectives: ["aparecer para donos de restaurante"],
 };
 
