@@ -1428,8 +1428,12 @@ se corrige o que a rota mediu, não o Diretor.
 - [ ] 🔴 Tela dos avisos de orçamento presos e o alinhamento API-vs-página — em
       andamento, `pm-9ab49074` (`agencia/api-alinha-com-a-pagina`, aberta
       19:00).
-- [ ] 🔴 Barra branca no topo (relato do CEO, 15/08) — em andamento,
-      `pm-defeitos-do-ceo` (`layout-barra-do-topo`, aberta 18:52).
+- [x] ✅ Barra branca no topo (relato do CEO, 15/08) — **RESOLVIDO em
+      28/08**. Era a `AgencyTopBar`, a barra fixa do celular: pintada com
+      `--bg` (#F7F8FA, o fundo da PÁGINA) quando ela é o topo da sidebar no
+      celular. Passou a sair de #0B0F2A, a parada de 0% do gradiente da
+      sidebar. Medido a 375px em /agency/dashboard, /agency/brain e
+      /agency/tasks, tema claro e escuro: rgb(247,248,250) → rgb(11,15,42).
 
 ---
 
@@ -6108,10 +6112,15 @@ identidade em `prospect-engine` —, e não foi tocado nesta peça.
   disparando em `[conv.messages, aiThinking]`, nas duas telas
   (`PublicBriefingRoom`, `SDRSimulator`). **Não reproduzi.** Falta ao CEO dizer
   QUAL tela e em que aparelho — sem isso, qualquer mexida aqui é chute.
-- **"Barra branca no topo atrapalhando as telas" (15/08).** O cabeçalho de
-  `/briefing` é `#070A1F` (escuro) e o layout raiz não tem barra. Screenshot nos
-  três tamanhos: nenhuma barra branca. **Não reproduzi nesta tela** — pode ser
-  outra rota.
+- **"Barra branca no topo atrapalhando as telas" (15/08).** ❌ **ESTE VERBETE
+  ESTAVA ERRADO — o defeito EXISTIA e foi corrigido em 28/08.** Fica aqui
+  porque o erro de método é a lição, não o defeito. Duas coisas esconderam a
+  barra de quem foi procurar: (1) olharam `/briefing`, uma tela **pública**, e
+  a barra vive no shell da **agência**; (2) ela é `md:hidden` — só existe
+  abaixo de 768px, e a captura usada era `fullPage`, que **achata elemento
+  fixo**. Screenshot de página inteira não é prova de ausência de barra fixa.
+  Procurar no lugar errado com o instrumento errado devolve "não reproduzi", e
+  "não reproduzi" arquivado como se fosse "não existe" custou 13 dias.
 
 ## 🟢 24/08/2026 — O DESPERTADOR GRITOU 4.600 VEZES SOBRE UMA CASA VAZIA
 
