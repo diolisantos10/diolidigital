@@ -1,0 +1,13 @@
+{
+  "id": "posse-da-ficha-de-marca",
+  "quem": "ses-b6c221003f",
+  "frente": "Fechar o vazamento da ficha de marca entre inquilinos",
+  "responsabilidade": "posse-da-ficha-de-marca",
+  "arquivos": [
+    "app/api/agency/clients/[id]/marca/route.ts",
+    "lib/agency/esteira/posse-do-cliente.ts"
+  ],
+  "abertaEm": "2026-08-28T03:18:36.922Z",
+  "encerradaEm": null,
+  "rotulo": "diolidigital-f0"
+}
