@@ -15,6 +15,44 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🔴 28/08/2026 — ORDEM DO CEO: departamento financeiro por produto (não feita)
+
+**Ordem repassada pelo Diretor do Foocci em 28/08.** Palavras do CEO: *"Todo
+produto precisa ter o seu departamento financeiro… Railway, assinatura e tudo
+mais… Esses departamentos precisam reportar pra um novo departamento, que é o
+departamento financeiro da empresa, que fica lá dentro da Control Room."*
+
+**O padrão já existe: `diolisantos10/FOOCCI` → `docs/financeiro-padrao-da-casa.md`.**
+É para copiar, não reinventar — se cada produto criar as próprias colunas, a
+Control Room não soma, só traduz. *Regra não se copia, se aponta.*
+
+**Não construído em 28/08** por estar em vigor a regra de não desestabilizar a
+casa antes da entrada do primeiro cliente real. É trabalho de poucas horas.
+
+### O que a medição já apurou (`docs/diagnosticos/o-custo-de-construir-28-08.md`)
+
+- Total visível de sessões de Claude Code: **US$ 6.913 (R$ 35.671)** — piso, não fechamento.
+- **Control Room / Diretor Geral: US$ 4.272 — 61,8% de tudo, em 4 sessões.**
+  Uma única sessão custou US$ 2.995. **É o maior bolso da casa e ninguém media.**
+- Dioli Digital: US$ 1.588 em 17 sessões.
+- O Railway da casa inteira custa US$ 40,99/mês: o total de sessões equivale a
+  **14 anos** de servidor de todos os nove projetos.
+
+⚠️ **Isto não é desperdício provado** — coordenação cara que destrava seis
+produtos pode ser o melhor dinheiro da casa. O ponto é que **ninguém sabia**.
+
+### 🔴 E US$ 1.198 foram pagos por trabalho que nunca chegou
+
+Onze sessões da Dioli Digital de 15-16/08, paradas desde então — **75% de tudo
+que o produto gastou**. Os assuntos delas são os mesmos dos PRs #169-#172, que
+**não conseguem mais ser mergeados** (base órfã, ver
+`triagem-dos-prs-parados-28-08.md`). A casa pagou para diagnosticar, o
+diagnóstico virou PR, a base foi recriada por baixo, e 12 dias depois um dos
+defeitos ainda estava **vivo em produção** (o vazamento da ficha de marca, #376).
+
+*A casa não perdeu tempo: perdeu dinheiro já gasto, e não sabia.*
+
+
 ## 🔴 28/08/2026 — O PARCEIRO AINDA É PERGUNTADO SOBRE VERBA (cliente entra amanhã)
 
 **Medido por travessia executável, não por leitura:**
