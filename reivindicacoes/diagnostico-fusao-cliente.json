@@ -1,0 +1,12 @@
+{
+  "id": "diagnostico-fusao-cliente",
+  "quem": "ses-b6c221003f",
+  "frente": "Diagnóstico da fusão de cliente duplicado (FOOCCI)",
+  "responsabilidade": "diagnostico-fusao-cliente",
+  "arquivos": [
+    "docs/diagnosticos/fusao-de-cliente-duplicado.md"
+  ],
+  "abertaEm": "2026-08-28T01:45:47.154Z",
+  "encerradaEm": null,
+  "rotulo": "diolidigital-f0"
+}
