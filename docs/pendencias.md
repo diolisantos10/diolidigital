@@ -73,6 +73,59 @@ cliente. O furo **exige credencial interna da agência** e **não está no camin
 do cliente que entra pelo portal**. É P0 e está aberto há 12 dias — mas não era
 P0 daquela manhã. Conserto de rota sem teste de posse, de madrugada, trocaria um
 risco conhecido por um desconhecido.
+## 🔴 28/08/2026 — `npm run reivindicar` EMPURRA O SEU BRANCH INTEIRO PARA O DEPLOY
+
+**Aconteceu comigo hoje, e o resultado foi quatro commits de um PR aberto
+pousando direto na branch de deploy, sem revisão e sem CI prévio.**
+
+### O que a ferramenta faz
+
+`scripts/reivindicar.mts:305`:
+
+```
+git push --no-verify origin HEAD:<branch de deploy>
+```
+
+`HEAD:` não empurra "o commit da reivindicação" — empurra **tudo que o seu HEAD
+tem e o remoto não**. E `--no-verify` pula o gancho pré-push, que seria a única
+defesa.
+
+O desenho está explicado no topo do arquivo (linhas 30-38) e é coerente com a
+premissa dele: worktree de agente, branch privada, cujo único commit pendente é
+o da própria reivindicação. **A premissa não vale para uma sessão que trabalha
+num branch de feature** — e nada avisa quando ela não vale.
+
+### A medição
+
+Rodei `npm run reivindicar -- encerrar` com o branch `claude/fechar-a-divida-da-proposta`
+em cima (4 commits, PR #373 aberto, esperando revisão). O push foi recusado
+porque a base tinha andado; o script **rebaseou e reempurrou** — levando os
+quatro commits junto. `git log` da branch de deploy os mostra fora de qualquer PR.
+
+### Por que não foi pior desta vez, e por que isso é sorte
+
+O conteúdo eram **dois testes e um documento — zero linha de produção** — e
+estava validado antes (`tsc` limpo, 2.478 testes verdes, build compilando). A
+branch de deploy foi reconferida depois e está sã: `tsc` limpo, 688 testes de
+comercial verdes, `npm run build` compilando.
+
+**Com código de produção no branch, o mesmo comando teria publicado alteração de
+comportamento sem revisão e sem CI.** A regra da casa é "nunca empurre direto no
+branch de deploy" — e a ferramenta oficial da casa faz exatamente isso, em
+silêncio.
+
+### O que fazer (nenhuma iniciada — é conserto de ferramenta, precisa de decisão)
+
+1. Empurrar **só o commit da reivindicação**, não o `HEAD` inteiro — por exemplo
+   criando o commit sobre `origin/<branch>` e empurrando esse objeto, nunca `HEAD:`.
+2. **Recusar** quando o HEAD tiver commits não empurrados além do da
+   reivindicação, dizendo o que faria — recusa barata, dano caro.
+3. Reavaliar o `--no-verify`: ele desliga a única trava que existia.
+
+### A lição operacional, até isso ser consertado
+
+⚠️ **Não rode `npm run reivindicar` com trabalho não empurrado no branch atual.**
+Empurre o seu PR primeiro, ou rode o comando a partir de um branch limpo.
 
 
 ## 🔴 28/08/2026 — O PARCEIRO AINDA É PERGUNTADO SOBRE VERBA (cliente entra amanhã)
