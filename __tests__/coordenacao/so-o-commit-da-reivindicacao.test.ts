@@ -106,12 +106,19 @@ describe("o portão do push da reivindicação", () => {
 describe("o script CHAMA o portão — e na ordem certa", () => {
   const fonte = fs.readFileSync(path.join(process.cwd(), "scripts/reivindicar.mts"), "utf8");
 
-  it("importa e chama `soLevaAReivindicacao`", () => {
+  it("o portão existe, chama a régua, e é CHAMADO pelos dois comandos", () => {
     expect(fonte).toContain("so-o-commit-da-reivindicacao");
+    // A régua pura, dentro do portão do script.
     expect(
-      /const veredito = soLevaAReivindicacao\(estado\)/.test(fonte),
-      "o portão foi escrito e ninguém o chama — exatamente o defeito que ele conserta",
+      /function exigirBranchAlinhado[\s\S]{0,400}soLevaAReivindicacao\(/.test(fonte),
+      "o portão parou de consultar a régua",
     ).toBe(true);
+    // E o portão é chamado — em `abrir`, em `encerrar` e na segunda trava.
+    const chamadas = (fonte.match(/^\s*exigirBranchAlinhado\(branch\);/gm) ?? []).length;
+    expect(
+      chamadas,
+      "o portão foi escrito e ninguém o chama — exatamente o defeito que ele conserta",
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it("⛔ o `HEAD:<branch>` NÃO voltou — é a linha que causou o incidente", () => {
@@ -119,42 +126,53 @@ describe("o script CHAMA o portão — e na ordem certa", () => {
       /push[^\n]*HEAD:\$\{branch\}/.test(fonte),
       "`HEAD:${branch}` está de volta no push: ele empurra tudo o que o HEAD tiver",
     ).toBe(false);
-    // E o push nomeia o SHA.
     expect(fonte).toContain("`${sha}:${branch}`");
   });
 
-  it("⚠️ o portão roda ANTES do commit — recusar depois deixa commit órfão", () => {
-    const ondePortao = fonte.indexOf("const veredito = soLevaAReivindicacao(estado)");
-    const ondeCommit = fonte.indexOf('git(["commit", "-m", mensagem])');
-    expect(ondePortao).toBeGreaterThan(-1);
-    expect(ondeCommit).toBeGreaterThan(-1);
+  it("⛔ o commit usa `--only` — o ÍNDICE era a segunda porta", () => {
+    // Medido em 28/08 exercitando o próprio conserto: sem `--only`, o que
+    // estivesse staged subia junto com a reivindicação, para o deploy.
     expect(
-      ondePortao,
-      "o portão passou para depois do commit — quem for barrado fica com um commit local para limpar",
-    ).toBeLessThan(ondeCommit);
+      /git\(\["commit", "--only", "-m", mensagem, "--", caminhoRelativo\]\)/.test(fonte),
+      "o commit voltou a levar tudo o que estiver no índice, não só a reivindicação",
+    ).toBe(true);
   });
 
-  it("a recusa INTERROMPE — não é aviso impresso", () => {
-    const trecho = fonte.slice(
-      fonte.indexOf("const veredito = soLevaAReivindicacao(estado)"),
-      fonte.indexOf('git(["add", caminhoRelativo])'),
+  it("⚠️ o portão roda ANTES de escrever o arquivo — a recusa promete que nada foi tocado", () => {
+    // Cada `writeFileSync` de reivindicação tem de ter o portão ANTES dele.
+    for (const marca of [
+      "writeFileSync(caminhoAbsoluto,",
+      "writeFileSync(join(RAIZ, caminhoRelativo),",
+    ]) {
+      const ondeEscreve = fonte.indexOf(marca);
+      expect(ondeEscreve, `não achei a escrita: ${marca}`).toBeGreaterThan(-1);
+      const antes = fonte.slice(Math.max(0, ondeEscreve - 400), ondeEscreve);
+      expect(
+        antes.includes("exigirBranchAlinhado(branch);"),
+        `a escrita "${marca}" ficou sem o portão antes dela — a recusa passaria a mentir`,
+      ).toBe(true);
+    }
+  });
+
+  it("a recusa INTERROMPE o processo — não é aviso impresso", () => {
+    const bloco = fonte.slice(
+      fonte.indexOf("function exigirBranchAlinhado"),
+      fonte.indexOf("function exigirBranchAlinhado") + 1200,
     );
     expect(
-      /throw new Error/.test(trecho),
-      "a recusa virou console.log: aviso não trava nada, e prompt é sugestão",
+      /process\.exit\(1\)/.test(bloco),
+      "a recusa virou aviso: aviso não trava nada, e prompt é sugestão",
     ).toBe(true);
   });
 
-  it("o `--no-verify` que ficou tem justificativa escrita ao lado", () => {
+  it("o `--no-verify` que ficou tem justificativa escrita no arquivo", () => {
     // O Diretor Geral autorizou tirá-lo OU justificá-lo no código. Ele fica: o
-    // deadlock de 16/08 é real (o gancho chama `conferir`, que barra o push
-    // pela própria reivindicação). A justificativa tem de estar no arquivo.
-    const trecho = fonte.slice(fonte.indexOf("const tentarPush"), fonte.indexOf("const tentarPush") + 200);
+    // deadlock de 16/08 é real — o gancho chama `conferir`, que barraria o push
+    // pela própria reivindicação que ele está empurrando.
     expect(fonte).toContain("--no-verify");
     expect(
-      /deadlock|gancho pre-push chama|16\/08/.test(fonte),
+      /deadlock|gancho pre-push chama/.test(fonte),
       "o --no-verify ficou sem a justificativa escrita que o autoriza",
     ).toBe(true);
-    expect(trecho).toContain("no-verify");
   });
 });
