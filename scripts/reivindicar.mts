@@ -155,6 +155,26 @@ function medirOQuePushLevaria(branch: string): { commitsAlemDaReivindicacao: num
   return { commitsAlemDaReivindicacao: titulos.length, titulos, mediu: true };
 }
 
+/**
+ * O PORTÃO, COMO OS COMANDOS O CHAMAM — e ele roda ANTES de tocar o disco.
+ *
+ * ⚠️ A POSIÇÃO É METADE DO CONSERTO. A primeira versão conferia dentro de
+ * `commitarEEmpurrar`, que roda DEPOIS do `writeFileSync` — a recusa saía com a
+ * frase "o disco está como estava" e **o arquivo já estava lá**. Medido
+ * exercitando o comando de verdade, não lendo o código: a recusa mentia.
+ *
+ * Recusa que mente sobre o próprio efeito é pior que recusa nenhuma — quem lê
+ * confia e não limpa. Agora ela roda antes de escrever, e a frase é verdade.
+ */
+function exigirBranchAlinhado(branch: string): void {
+  const veredito = soLevaAReivindicacao(medirOQuePushLevaria(branch));
+  if (veredito.pode) return;
+  throw new Error(
+    `reivindicação NÃO empurrada: ${veredito.motivo}\n` +
+    `   (nada foi escrito, commitado ou empurrado — o disco está como estava.)`,
+  );
+}
+
 /** `git fetch origin <branch>` — o primeiro passo de `abrir` e `conferir`,
  *  porque conferir só o disco local não descobre nada sobre a OUTRA sessão. */
 function buscarRemoto(branch: string): { ok: true } | { ok: false; erro: string } {
@@ -299,26 +319,14 @@ function commitarEEmpurrar(
   // sem autostash.
   autostashNoRebase = false,
 ): void {
-  // ═══ O PORTÃO DO PUSH (28/08/2026) ═══════════════════════════════════════
+  // ═══ SEGUNDA TRAVA (28/08/2026) ══════════════════════════════════════════
   //
-  // ⛔ CONFERIDO **ANTES** DE COMMITAR, e a ordem é o ponto: recusar depois do
-  // commit deixaria um commit local órfão para quem foi barrado limpar — a
-  // mesma lição que `abrir` já aprendeu ("commitava primeiro e só descobria o
-  // problema no push").
-  //
-  // O que se mede: quantos commits o HEAD tem que a base remota não tem. Em
-  // worktree de agente — a premissa original deste comando — o número é ZERO, e
-  // nada muda. Fora dela, é o número de commits que um `HEAD:<branch>` levaria
-  // clandestinamente para o deploy. Foi assim que quatro commits de um PR
-  // aberto subiram sem PR e sem CI em 28/08.
-  const estado = medirOQuePushLevaria(branch);
-  const veredito = soLevaAReivindicacao(estado);
-  if (!veredito.pode) {
-    throw new Error(
-      `reivindicação NÃO empurrada: ${veredito.motivo}\n` +
-      `   (nada foi commitado nem empurrado — o disco está como estava.)`,
-    );
-  }
+  // `abrir` e `encerrar` já chamaram `exigirBranchAlinhado` ANTES de escrever o
+  // arquivo — é lá que a recusa é barata e honesta. Esta aqui existe porque um
+  // caminho novo pode chegar a este ponto sem passar por lá, e o dano deste
+  // ponto em diante é irreversível: um push para o deploy não se desfaz.
+  // Duas travas para o mesmo dano, de propósito.
+  exigirBranchAlinhado(branch);
 
   git(["add", caminhoRelativo]);
   git(["commit", "-m", mensagem]);
@@ -947,6 +955,9 @@ function comandoAbrir(argv: string[]): void {
 
   mkdirSync(PASTA_REIVINDICACOES, { recursive: true });
   const caminhoAbsoluto = join(PASTA_REIVINDICACOES, nomeArquivo);
+  // ⛔ ANTES de escrever: a recusa promete que nada foi tocado, e a promessa
+  // tem de ser verdade. Ver `exigirBranchAlinhado`.
+  exigirBranchAlinhado(branch);
   writeFileSync(caminhoAbsoluto, `${JSON.stringify(reivindicacao, null, 2)}\n`, "utf8");
 
   try {
@@ -1212,6 +1223,8 @@ function comandoEncerrar(argv: string[]): void {
   mkdirSync(PASTA_REIVINDICACOES, { recursive: true });
   const nomeArquivo = nomeDoArquivo(id);
   const caminhoRelativo = join("reivindicacoes", nomeArquivo);
+  // ⛔ ANTES de escrever — mesma razão do `abrir`.
+  exigirBranchAlinhado(branch);
   writeFileSync(join(RAIZ, caminhoRelativo), `${JSON.stringify(encerrada, null, 2)}\n`, "utf8");
 
   try {
