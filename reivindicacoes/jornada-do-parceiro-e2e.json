@@ -1,0 +1,12 @@
+{
+  "id": "jornada-do-parceiro-e2e",
+  "quem": "ses-b6c221003f",
+  "frente": "Validar a jornada do parceiro ponta-a-ponta (Marcos/Foocci)",
+  "responsabilidade": "jornada-do-parceiro-e2e",
+  "arquivos": [
+    "docs/diagnosticos/a-jornada-do-parceiro-de-ponta-a-ponta.md"
+  ],
+  "abertaEm": "2026-08-28T01:59:22.240Z",
+  "encerradaEm": null,
+  "rotulo": "diolidigital-f0"
+}
