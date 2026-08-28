@@ -15,6 +15,36 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🔴 P0 28/08/2026 — A FICHA DE MARCA VAZA ENTRE INQUILINOS (aberto há 12 dias)
+
+**Denunciado pelo PR #169 em 16/08, provado lá, e o conserto nunca entrou.**
+Medido de novo hoje contra a base de deploy — continua aberto.
+
+`app/api/agency/clients/[id]/marca/route.ts`, `GET` e `PUT`: conferem que existe
+sessão (`if (!sessao)`) e **não conferem de quem é o cliente**. O `id` vem cru da
+URL. A camada de baixo também não filtra:
+`ficha-de-marca.ts:309` faz `brandBrain.findUnique({ where: { clientId } })` sem
+`workspaceId`, e `escrita-da-ficha.ts:213` usa o `clientId` recebido direto.
+
+**Qualquer sessão válida de qualquer workspace LÊ e ESCREVE a ficha de marca de
+qualquer cliente de qualquer outro workspace** — basta trocar o id na URL. Vale
+para `design_staff`, o perfil mais baixo. O #169 provou com sessão do workspace A
+sobre cliente do workspace B: 200 nas duas.
+
+### O conserto existe e está preso
+
+`lib/agency/esteira/posse-do-cliente.ts` foi escrito no #169, está ausente da
+base, e **o #169 não consegue mais ser mergeado** (história órfã — ver
+`docs/diagnosticos/triagem-dos-prs-parados-28-08.md`). O caminho é COPIAR o
+arquivo para um PR novo sobre a base atual, com teste de posse próprio.
+
+### Por que não foi consertado em 28/08
+
+Ordem em vigor era triagem, e nada podia desestabilizar o deploy antes do
+cliente. O furo **exige credencial interna da agência** e **não está no caminho
+do cliente que entra pelo portal**. É P0 e está aberto há 12 dias — mas não era
+P0 daquela manhã. Conserto de rota sem teste de posse, de madrugada, trocaria um
+risco conhecido por um desconhecido.
 ## 🔴 28/08/2026 — ORDEM DO CEO: departamento financeiro por produto (não feita)
 
 **Ordem repassada pelo Diretor do Foocci em 28/08.** Palavras do CEO: *"Todo
@@ -1466,8 +1496,12 @@ se corrige o que a rota mediu, não o Diretor.
 - [ ] 🔴 Tela dos avisos de orçamento presos e o alinhamento API-vs-página — em
       andamento, `pm-9ab49074` (`agencia/api-alinha-com-a-pagina`, aberta
       19:00).
-- [ ] 🔴 Barra branca no topo (relato do CEO, 15/08) — em andamento,
-      `pm-defeitos-do-ceo` (`layout-barra-do-topo`, aberta 18:52).
+- [x] ✅ Barra branca no topo (relato do CEO, 15/08) — **RESOLVIDO em
+      28/08**. Era a `AgencyTopBar`, a barra fixa do celular: pintada com
+      `--bg` (#F7F8FA, o fundo da PÁGINA) quando ela é o topo da sidebar no
+      celular. Passou a sair de #0B0F2A, a parada de 0% do gradiente da
+      sidebar. Medido a 375px em /agency/dashboard, /agency/brain e
+      /agency/tasks, tema claro e escuro: rgb(247,248,250) → rgb(11,15,42).
 
 ---
 
@@ -6146,10 +6180,15 @@ identidade em `prospect-engine` —, e não foi tocado nesta peça.
   disparando em `[conv.messages, aiThinking]`, nas duas telas
   (`PublicBriefingRoom`, `SDRSimulator`). **Não reproduzi.** Falta ao CEO dizer
   QUAL tela e em que aparelho — sem isso, qualquer mexida aqui é chute.
-- **"Barra branca no topo atrapalhando as telas" (15/08).** O cabeçalho de
-  `/briefing` é `#070A1F` (escuro) e o layout raiz não tem barra. Screenshot nos
-  três tamanhos: nenhuma barra branca. **Não reproduzi nesta tela** — pode ser
-  outra rota.
+- **"Barra branca no topo atrapalhando as telas" (15/08).** ❌ **ESTE VERBETE
+  ESTAVA ERRADO — o defeito EXISTIA e foi corrigido em 28/08.** Fica aqui
+  porque o erro de método é a lição, não o defeito. Duas coisas esconderam a
+  barra de quem foi procurar: (1) olharam `/briefing`, uma tela **pública**, e
+  a barra vive no shell da **agência**; (2) ela é `md:hidden` — só existe
+  abaixo de 768px, e a captura usada era `fullPage`, que **achata elemento
+  fixo**. Screenshot de página inteira não é prova de ausência de barra fixa.
+  Procurar no lugar errado com o instrumento errado devolve "não reproduzi", e
+  "não reproduzi" arquivado como se fosse "não existe" custou 13 dias.
 
 ## 🟢 24/08/2026 — O DESPERTADOR GRITOU 4.600 VEZES SOBRE UMA CASA VAZIA
 
