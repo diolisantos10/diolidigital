@@ -904,6 +904,24 @@ export function lerParceriaDoServidor(bruto: unknown): ParceriaDaSala | null {
   return { autorizadaPor: dono, validaAte: ate };
 }
 
+/**
+ * APLICA a parceria no estado da conversa — a única escrita de
+ * `parceriaDeclarada` que existe nesta sala.
+ *
+ * Exportada pelo mesmo motivo que `fetchSdrReply` e `mergeScopeGaps`: é a
+ * ligação que decide se `budget_range` sai da fila do parceiro, e ligação se
+ * testa CHAMANDO, não lendo o arquivo como texto.
+ *
+ * ── Por que uma função e não um spread solto (28/08/2026) ──────────────────
+ * Havia dois lugares escrevendo o campo (o turno bom e o fallback da IA), e
+ * duas escritas do mesmo fato divergem no primeiro dia de pressa — uma some
+ * numa remontagem e ninguém percebe, que é exatamente como este campo passou a
+ * existir sem nunca ser escrito. Uma função só, chamada nos dois.
+ */
+export function comParceria(conv: ConvState, parceria: ParceriaDaSala | null): ConvState {
+  return { ...conv, parceriaDeclarada: parceria };
+}
+
 export type SdrOutcome =
   /** Passou pela rede e pelo parser: `reply` pode ainda ser `null` — é o caso
    *  já existente de fala barrada por CORTE (truncado/malformado) com
@@ -1751,16 +1769,16 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
         parceriaRef.current = outcome.parceria;
         const parceriaAgora = outcome.parceria;
 
-        const newConv: ConvState = {
+        const convDoTurno: ConvState = {
           ...ruleResult.conv,
           scope: mergedScope,
           estimate,
           messages: [...userVisible, assistantMsg],
-          // ⚠️ É ESTE CAMPO que tira `budget_range` da fila do parceiro
-          // (`dispensadoDeVerba`, question-engine.ts:1030). Ele existia, era
-          // lido, e ninguém escrevia nele.
-          parceriaDeclarada: parceriaAgora,
         };
+        // ⚠️ É ESTA LINHA que tira `budget_range` da fila do parceiro
+        // (`dispensadoDeVerba`, question-engine.ts:1030). O campo existia, era
+        // lido, e ninguém escrevia nele.
+        const newConv = comParceria(convDoTurno, parceriaAgora);
         setState({
           conv: { ...newConv, canSubmit: canSubmitProposal(newConv, ruleResult.sdr) },
           sdr: ruleResult.sdr,
@@ -1772,7 +1790,7 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
         // correto, e não é aqui que o defeito mora.
         // A parceria já conhecida SOBREVIVE ao turno que falhou: o motor de
         // regras remonta o `conv` e apagaria o campo sem esta linha.
-        const convComParceria: ConvState = { ...ruleResult.conv, parceriaDeclarada: parceriaRef.current };
+        const convComParceria = comParceria(ruleResult.conv, parceriaRef.current);
         setState({
           conv: { ...convComParceria, canSubmit: canSubmitProposal(convComParceria, ruleResult.sdr) },
           sdr: ruleResult.sdr,

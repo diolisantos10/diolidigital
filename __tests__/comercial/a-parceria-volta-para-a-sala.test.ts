@@ -56,7 +56,9 @@ const resolverConviteDeParceria = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/agency/comercial/convite-de-parceria", () => ({ resolverConviteDeParceria }));
 
 import { POST } from "@/app/api/sdr/chat/route";
-import { lerParceriaDoServidor } from "@/components/agency/briefing/PublicBriefingRoom";
+import { lerParceriaDoServidor, comParceria } from "@/components/agency/briefing/PublicBriefingRoom";
+import { initProspectConvState, processProspectMessage } from "@/lib/agency/prospect-engine";
+import { remainingRequiredQuestions, dispensadoDeVerba } from "@/lib/agency/question-engine";
 
 const VALIDA_ATE = new Date(Date.now() + 30 * 24 * 3600 * 1000);
 
@@ -189,6 +191,75 @@ describe("a rota do SDR devolve a parceria para quem decide a pergunta", () => {
 
 // ── O ÚLTIMO ELO: A SALA ESCREVE O CAMPO ────────────────────────────────────
 //
+// `comParceria` é a ÚNICA escrita de `parceriaDeclarada` nesta sala, e é
+// chamada nos dois caminhos do turno (o bom e o fallback da IA). Testá-la é
+// testar comportamento — o conv que sai dela dispensa a verba de verdade.
+//
+// 🚩 O QUE ISTO NÃO É: render. Este repositório roda o vitest em
+// `environment: "node"` e **não tem `@testing-library/react` nem jsdom**
+// instalados — não existe hoje ferramenta aqui para renderizar um componente
+// COM ESTADO e dirigir turnos. O que existe é `renderToStaticMarkup`
+// (`a-tela-do-cliente-001.test.tsx`), que alcança componente puro e não
+// alcança um hook. Por isso o padrão da casa é este: a lógica sai para uma
+// função exportada e se testa chamando — como `fetchSdrReply` e
+// `mergeScopeGaps` já fazem neste mesmo arquivo.
+//
+// A dívida que fica, e agora com o nome certo: **não é "ninguém escreveu o
+// teste de render", é "a casa não tem como escrevê-lo"** — precisaria de
+// decisão de infraestrutura (instalar testing-library + jsdom).
+describe("`comParceria` — a única escrita do campo, testada chamando", () => {
+  function conversaDoParceiro() {
+    let estado = initProspectConvState();
+    for (const fala of [
+      "oi, sou o Marcos da FOOCCI",
+      "somos um SaaS de CRM que vende para restaurantes",
+      "queremos Instagram, uns 3 posts por semana",
+    ]) {
+      estado = processProspectMessage(fala, estado);
+    }
+    return estado.conv;
+  }
+
+  it("o conv que sai dela DISPENSA a verba — não só carrega o campo", () => {
+    const conv = conversaDoParceiro();
+    expect(remainingRequiredQuestions(conv).map((q) => q.id)).toContain("budget_range");
+
+    const parceria = lerParceriaDoServidor({
+      autorizadaPor: "Dioli Santos (CEO)",
+      validaAte: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+    });
+    const comEla = comParceria(conv, parceria);
+
+    expect(dispensadoDeVerba(comEla)).toBe(true);
+    expect(
+      remainingRequiredQuestions(comEla).map((q) => q.id),
+      "o conv saiu de `comParceria` sem dispensar a verba — o parceiro continua sendo perguntado",
+    ).not.toContain("budget_range");
+  });
+
+  it("com `null` ela devolve um conv que CONTINUA perguntando — fail-closed", () => {
+    const conv = conversaDoParceiro();
+    const semEla = comParceria(conv, null);
+    expect(dispensadoDeVerba(semEla)).toBe(false);
+    expect(remainingRequiredQuestions(semEla).map((q) => q.id)).toContain("budget_range");
+  });
+
+  it("não muda mais nada do conv — ela aplica UM campo, não remonta o estado", () => {
+    const conv = conversaDoParceiro();
+    const saida = comParceria(conv, null);
+    // Tudo que não é `parceriaDeclarada` tem de sair idêntico: uma função que
+    // remonta o estado por engano perderia escopo ou mensagens no meio da
+    // conversa de alguém.
+    expect({ ...saida, parceriaDeclarada: undefined }).toEqual({ ...conv, parceriaDeclarada: undefined });
+  });
+});
+
+// ── E o guarda estrutural, que continua valendo pelo que ele cobre ──────────
+//
+// O teste acima prova que a FUNÇÃO faz a coisa certa. Ele não prova que os dois
+// caminhos do turno a CHAMAM — e era exatamente assim que o campo existia sem
+// nunca ser escrito. Guarda de texto é o que sobra quando o render não existe.
+//
 // ⚠️ ISTO É GUARDA ESTRUTURAL, NÃO RENDER — e a diferença está declarada de
 // propósito. A mutação "a sala deixa de escrever `parceriaDeclarada`"
 // SOBREVIVEU a 668 testes: o elo final mora dentro de um componente React, e
@@ -210,7 +281,7 @@ describe("a sala escreve `parceriaDeclarada` nos DOIS caminhos do turno", () => 
 
   it("o caminho do turno bom leva a parceria para o ConvState", () => {
     expect(
-      /parceriaDeclarada:\s*parceriaAgora/.test(fonte),
+      /comParceria\(convDoTurno,\s*parceriaAgora\)/.test(fonte),
       "o turno bom parou de escrever `parceriaDeclarada` — o parceiro volta a ser perguntado sobre verba",
     ).toBe(true);
   });
@@ -220,7 +291,7 @@ describe("a sala escreve `parceriaDeclarada` nos DOIS caminhos do turno", () => 
     // verba voltaria no meio da conversa do parceiro — intermitente, que é pior
     // que constante.
     expect(
-      /parceriaDeclarada:\s*parceriaRef\.current/.test(fonte),
+      /comParceria\(ruleResult\.conv,\s*parceriaRef\.current\)/.test(fonte),
       "o fallback parou de preservar a parceria — a pergunta volta quando a IA falha",
     ).toBe(true);
   });
