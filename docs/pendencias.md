@@ -14,6 +14,50 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+## 🔴 28/08/2026 — A FUSÃO DE CLIENTE ABORTA SE OS DOIS LADOS TIVEREM PARCERIA
+
+**Achado durante o diagnóstico do cadastro duplicado da FOOCCI (PR #370,
+`docs/diagnosticos/fusao-de-cliente-duplicado.md`). Nada consertado ainda —
+o Diretor Geral pediu diagnóstico primeiro.**
+
+`ParceriaDoCliente.clientId` é `@unique` no schema, e a lista de vínculos
+**não** o marca como `unicoPorCliente` (`lib/agency/persistence/cliente-vinculos.ts:74`).
+O mesmo vale para `BrandBrain` (`:101`, na lista de cascata).
+
+### A consequência
+
+Se os dois cadastros de uma fusão tiverem parceria — ou os dois tiverem cérebro
+de marca — o `updateMany` viola a restrição, o Prisma joga `P2002` e **a
+transação inteira aborta**. A rota não tem `try/catch` em volta do
+`$transaction` (`app/api/clients/[id]/fundir/route.ts:60-70`): sai **500 cru**, e
+a tela mostra só "não foi possível concluir".
+
+O banco fica protegido — a transação garante isso. **O operador é que fica
+travado sem saber por quê**, na única ferramenta que a casa tem para desfazer
+cadastro duplicado.
+
+### Por que o teste-guarda não pegou
+
+`__tests__/agency/fundir-cliente.test.ts:138` confere **presença** na lista, não
+**unicidade**. Um `@unique` novo no schema entra sem flag e nada acusa. O teste
+foi escrito para o furo anterior (modelo esquecido da lista) e não cobre este.
+
+### A perda silenciosa, de quebra
+
+`completarCampos` nunca sobrescreve campo preenchido — correto. Mas quando os
+dois lados têm **e-mail diferente**, o do absorvido é descartado **sem entrar em
+`movidos` nem em `descartados`**: a fusão perde um dado e não conta a ninguém.
+
+### O que falta fazer (nenhuma iniciada)
+
+1. Marcar `parceriaDoCliente` e `brandBrain` como `unicoPorCliente`.
+2. `try/catch` na rota de fusão — mensagem legível em vez de 500 cru.
+3. Estender o teste-guarda para conferir **unicidade**, não só presença.
+4. Trava de idempotência em `POST /api/clients` — foi o double-submit (7s de
+   diferença) que criou a FOOCCI duas vezes, e nada impede a repetição.
+5. Registrar em `descartados` o campo divergente que hoje some calado.
+
+
 ## 🔴 24/08/2026 — SEM SALDO NA CONTA DA ANTHROPIC (precisa de gente)
 
 **A conta do provedor de IA está sem saldo. Ninguém resolve isto em código.**
