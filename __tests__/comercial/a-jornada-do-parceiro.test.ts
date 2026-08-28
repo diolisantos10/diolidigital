@@ -195,6 +195,56 @@ describe("a jornada do parceiro, de ponta a ponta, com banco real", () => {
     ).toBe(false);
   });
 
+  // ── O QUE FECHA A PORTA — descoberto por MUTAÇÃO ─────────────────────────
+  //
+  // A mutação "a validade da parceria deixa de valer" SOBREVIVEU à primeira
+  // versão desta suíte: a parceria daqui nasce viva, então apagar o teste de
+  // validade não mudava nada. Um teste que só exercita o caminho feliz não
+  // prova a trava — prova o contrário dela. Estes dois fecham o buraco.
+  it("1c. parceria VENCIDA não abre a porta — o link do parceiro morre com ela", async () => {
+    const outro = await prisma.client.create({ data: { workspaceId, name: "Parceiro Vencido" } });
+    await prisma.parceriaDoCliente.create({
+      data: {
+        clientId: outro.id,
+        autorizadaPor: "Dioli Santos (CEO)",
+        validaAte: new Date(Date.now() - 24 * 3600 * 1000), // ontem
+        escopo: "piloto encerrado",
+        pecasContratadas: 4,
+        tetoDeIaCentavosUsd: 100,
+      },
+    });
+    const convite = await prisma.conviteDeParceria.create({
+      data: {
+        token: `tok-vencido-${Date.now()}`,
+        clientId: outro.id,
+        criadoPor: "Dioli Santos (CEO)",
+        expiraEm: new Date(Date.now() + 7 * 24 * 3600 * 1000), // o CONVITE ainda vale
+      },
+    });
+
+    expect(await parceriaVivaDoCliente(outro.id)).toBeNull();
+    // O convite não vencido NÃO salva a parceria vencida: a régua é a parceria.
+    expect(
+      await resolverConviteDeParceria(convite.token),
+      "um convite dentro da validade abriu a porta de uma parceria que já acabou",
+    ).toBeNull();
+  });
+
+  it("1d. parceria REVOGADA mata o link no mesmo instante — sem caçar link nenhum", async () => {
+    const antes = await resolverConviteDeParceria(tokenDoConvite);
+    expect(antes).not.toBeNull();
+
+    await prisma.parceriaDoCliente.update({
+      where: { clientId },
+      data: { revogadaEm: new Date() },
+    });
+    expect(await resolverConviteDeParceria(tokenDoConvite)).toBeNull();
+
+    // Devolvido ao estado vivo: os passos seguintes desta travessia dependem dele.
+    await prisma.parceriaDoCliente.update({ where: { clientId }, data: { revogadaEm: null } });
+    expect(await resolverConviteDeParceria(tokenDoConvite)).not.toBeNull();
+  });
+
   // ── PONTOS 3 a 5 — A VIA QUE SALVA A JORNADA ──────────────────────────────
   it("3. a conversa do parceiro deixa rastro CARIMBADO com o cliente do convite", async () => {
     const gravou = await guardarRastroDaConversa({
