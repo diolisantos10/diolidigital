@@ -15,6 +15,38 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🔴 P0 28/08/2026 — A FICHA DE MARCA VAZA ENTRE INQUILINOS (aberto há 12 dias)
+
+**Denunciado pelo PR #169 em 16/08, provado lá, e o conserto nunca entrou.**
+Medido de novo hoje contra a base de deploy — continua aberto.
+
+`app/api/agency/clients/[id]/marca/route.ts`, `GET` e `PUT`: conferem que existe
+sessão (`if (!sessao)`) e **não conferem de quem é o cliente**. O `id` vem cru da
+URL. A camada de baixo também não filtra:
+`ficha-de-marca.ts:309` faz `brandBrain.findUnique({ where: { clientId } })` sem
+`workspaceId`, e `escrita-da-ficha.ts:213` usa o `clientId` recebido direto.
+
+**Qualquer sessão válida de qualquer workspace LÊ e ESCREVE a ficha de marca de
+qualquer cliente de qualquer outro workspace** — basta trocar o id na URL. Vale
+para `design_staff`, o perfil mais baixo. O #169 provou com sessão do workspace A
+sobre cliente do workspace B: 200 nas duas.
+
+### O conserto existe e está preso
+
+`lib/agency/esteira/posse-do-cliente.ts` foi escrito no #169, está ausente da
+base, e **o #169 não consegue mais ser mergeado** (história órfã — ver
+`docs/diagnosticos/triagem-dos-prs-parados-28-08.md`). O caminho é COPIAR o
+arquivo para um PR novo sobre a base atual, com teste de posse próprio.
+
+### Por que não foi consertado em 28/08
+
+Ordem em vigor era triagem, e nada podia desestabilizar o deploy antes do
+cliente. O furo **exige credencial interna da agência** e **não está no caminho
+do cliente que entra pelo portal**. É P0 e está aberto há 12 dias — mas não era
+P0 daquela manhã. Conserto de rota sem teste de posse, de madrugada, trocaria um
+risco conhecido por um desconhecido.
+
+
 ## 🔴 28/08/2026 — O PARCEIRO AINDA É PERGUNTADO SOBRE VERBA (cliente entra amanhã)
 
 **Medido por travessia executável, não por leitura:**
