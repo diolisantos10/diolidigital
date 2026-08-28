@@ -1538,6 +1538,40 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       reply: replyText,
       needsClarification: parsed.needsClarification === true,
       scope: scopeDaVez,
+      // ── A PARCERIA VOLTA PARA QUEM DECIDE A PERGUNTA (28/08/2026) ────────
+      //
+      // O servidor já resolvia o convite oito passos acima
+      // (`resolverConviteDeParceria`) e usava o resultado em DUAS coisas: o
+      // bloco de prompt e o rastro da conversa. Nenhuma delas decide a fila de
+      // perguntas — e a fila é o que fazia o parceiro ser interrogado sobre
+      // uma verba que ele não paga.
+      //
+      // ⚠️ QUEM DECIDE A FILA RODA NO NAVEGADOR. `question-engine.ts` é
+      // importado pela sala pública, que é client component (o topo de
+      // `parceria-declarada.ts` conta a história: um import de banco aqui
+      // reprovou o build de produção). Então a única forma de a régua
+      // `dispensadoDeVerba` saber da parceria é o servidor CONTAR — e era essa
+      // linha que não existia. `parceriaDeclarada` era um campo lido por
+      // `question-engine.ts:1031`, comentado como "o SERVIDOR preenche", e que
+      // NENHUMA linha de produção escrevia. *A pergunta obrigatória é "quem
+      // CHAMA isto?" — e a resposta era "ninguém".*
+      //
+      // ⛔ SAI DO SERVIDOR, NUNCA DO CORPO. `conviteDoParceiro` é o que
+      // `resolverConviteDeParceria` devolveu a partir do TOKEN — não é
+      // `body.scope`, que o visitante escreve. Um token inventado na barra de
+      // endereço resolve `null`, e `null` vira `parceria: null`: o visitante
+      // segue anônimo e a verba continua sendo perguntada, que é o
+      // comportamento de sempre e o seguro.
+      //
+      // ⛔ E ISTO NÃO LIBERA PRODUÇÃO. Quem decide se a casa produz de graça
+      // continua sendo o portão (`parceriaVivaDoCliente`, no servidor, a cada
+      // conferência). Esta linha só decide se uma PERGUNTA é feita.
+      parceria: conviteDoParceiro
+        ? {
+            autorizadaPor: conviteDoParceiro.parceria.autorizadaPor,
+            validaAte: conviteDoParceiro.parceria.validaAte.toISOString(),
+          }
+        : null,
     });
   } catch (err) {
     const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : "network_error";
