@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Weight Management and Body Image"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-weight-management
-capturado_em: 2026-08-27
-hash: 337edf36ad3c6101
+capturado_em: 2026-08-28
+hash: 84b2ea748438ca62
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -109,6 +109,16 @@ Weight management supplements
 Austria, Belgium, Bulgaria, Croatia, Cyprus, Czech Republic, Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Ireland, Italy, Israel, Latvia, Lithuania, Luxembourg, Netherlands, Norway, Poland, Portugal, Romania, Serbia, Slovakia, Slovenia, Spain, Sweden, Switzerland, United Kingdom
 
 Examples of what is allowed in select countries* (subject to age restrictions, and full compliance with all advertising policies):
+
+Weight loss supplements
+
+Meal replacement products
+
+United States and Canada
+
+Examples of what may be allowed subject to age restrictions, applicable local licensing requirements, and full compliance with all advertising policies:
+
+Weight loss surgical procedures (Work with a TikTok sales representative to determine eligibility and obtain permission to run ads)
 
 Weight loss supplements
 

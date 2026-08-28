@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Financial Services (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-financial-services
-capturado_em: 2026-08-27
-hash: 417d796691a15eb7
+capturado_em: 2026-08-28
+hash: d5bf9f783d6b694f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -784,7 +784,7 @@ Examples of what is not allowed:
 
 Bail bonds
 
-Complex speculative investments such as contracts for differences (CFDs), financial spread betting, penny stocks, binary options, and mini-bonds
+Complex speculative investments such as financial spread betting, penny stocks, binary options, and mini-bonds
 
 Credit repair services
 
@@ -1254,7 +1254,7 @@ Pyramid schemes
 
 Virtual currencies or cryptocurrencies, such as Bitcoin and Ethereum
 
-Finland, France, Germany
+Finland
 
 Ads for financial services and products may be allowed if the following requirements are met:
 
@@ -1279,6 +1279,74 @@ Investment services
 Loans
 
 Foreign Exchange (FX) services
+
+Ads for cryptocurrency exchange services and custodial wallets may be allowed if the following requirements are met:
+
+Be licensed by local and regional authorities
+
+Work with a TikTok Sales Representative to obtain permission via an application process
+
+Restrict ads to viewers aged 18 years and older
+
+Ads for non-fungible tokens (NFTs) may be allowed if the following requirements are met:
+
+Be licensed by local and regional authorities
+
+Obtain our permission via an application process
+
+Restrict ads to audiences aged 18 years and older
+
+Examples of what is not allowed:
+
+Advisory services
+
+Bail bonds
+
+Credit repair services
+
+Get-rich-quick schemes
+
+High-risk investment products, such as binary options
+
+Multi-level marketing
+
+Peer-to-peer (P2P) lending
+
+Penny auctions
+
+Pyramid schemes
+
+Virtual currencies, such as Bitcoin and Ethereum
+
+Non-custodial wallets
+
+France, Germany
+
+Ads for financial services and products may be allowed if the following requirements are met:
+
+Comply with relevant laws and regulations
+
+Comply with disclosure requirements, including disclaimers
+
+Be licensed by local and regional authorities
+
+The ad must be restricted to audiences aged 18 years and older
+
+Examples of what may be allowed:
+
+Buy now, pay later (BNPL) services
+
+Credit cards
+
+Debt consolidation services and refinancing
+
+Investment services
+
+Loans
+
+Foreign Exchange (FX) services
+
+Precious metal trading
 
 Ads for cryptocurrency exchange services and custodial wallets may be allowed if the following requirements are met:
 
@@ -1557,6 +1625,8 @@ Debt consolidation services and refinancing
 Investment services
 
 Loans
+
+Precious metal trading
 
 Ads for cryptocurrency exchange services and custodial wallets may be allowed if the following requirements are met:
 
@@ -3043,6 +3113,8 @@ Debt consolidation services and refinancing
 Investment services
 
 Loans
+
+Precious metal trading
 
 Ads for loans and credit cards may be allowed if the following requirements are met:
 

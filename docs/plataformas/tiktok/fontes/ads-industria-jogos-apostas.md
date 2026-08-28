@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Gambling and Games (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-gambling-and-games
-capturado_em: 2026-08-27
-hash: 27e9ddaa819d6fa4
+capturado_em: 2026-08-28
+hash: d970cd017aefad04
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -528,6 +528,8 @@ Lotteries are allowed if the following requirements are met:
 National lottery: Only "Caixa Econômica Federal" is allowed to advertise.
 
 State-level lotteries: allowed to advertise.
+
+Passive lotteries: allowed to advertise.
 
 Work with a TikTok Sales Representative to determine eligibility and obtain permission to run ads.
 
@@ -1533,9 +1535,17 @@ Offline gambling is not allowed.
 
 Online gambling is allowed if the following requirement is met:
 
-Work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+Advertisers must work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+The ads must be age-targeted to the appropriate audience and ads must be licensed by local regulators where necessary.
 
 Non-casino games are not allowed.
+
+Exception: Fantasy Sports and Rewarded Gaming are allowed if the following requirements are met:
+
+Advertisers must work with a TikTok sales representative to determine eligibility and obtain permission to run ads
+
+The ads must be age-targeted to the appropriate audience and ads must be licensed by local regulators where necessary
 
 Social casino games are not allowed.
 
@@ -1811,9 +1821,19 @@ Nigeria
 
 Offline gambling is not allowed.
 
-Online gambling is not allowed.
+Online gambling is allowed if the following requirement is met:
+
+Advertisers must work with a TikTok sales representative to determine eligibility and obtain permission to run ads.
+
+The ads must be age-targeted to the appropriate audience and ads must be licensed by local regulators where necessary.
 
 Non-casino games are not allowed.
+
+Exception: Fantasy Sports and Rewarded Gaming are allowed if the following requirements are met:
+
+Advertisers must work with a TikTok sales representative to determine eligibility and obtain permission to run ads
+
+The ads must be age-targeted to the appropriate audience and ads must be licensed by local regulators where necessary
 
 Social casino games are not allowed.
 
