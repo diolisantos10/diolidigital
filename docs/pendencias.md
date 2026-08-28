@@ -43,7 +43,18 @@ está calculado. Ver `triagem-dos-prs-parados-28-08.md` e
 `o-custo-de-construir-28-08.md`.
 
 
-## 🔴 P0 28/08/2026 — A FICHA DE MARCA VAZA ENTRE INQUILINOS (aberto há 12 dias)
+## 🟢 28/08/2026 — A FICHA DE MARCA VAZAVA ENTRE INQUILINOS (CONSERTADO)
+
+> **Fechado pelo PR #376**, conferido na branch de deploy: `posse-do-cliente.ts`
+> está lá e a rota da marca chama `clienteOuNulo` nas duas pontas (404, nunca
+> 403). Ficou aberto 12 dias porque o conserto existia desde 16/08 preso num PR
+> que não mergeia mais.
+>
+> ⚠️ **O que NÃO foi feito e continua aberto:** a varredura de OUTRAS rotas com
+> o mesmo padrão — ver a seção das frentes adiadas, no topo. Uma rota fechada
+> não é uma classe de defeito fechada.
+>
+> O texto abaixo fica como está: é a história que produziu a regra.
 
 **Denunciado pelo PR #169 em 16/08, provado lá, e o conserto nunca entrou.**
 Medido de novo hoje contra a base de deploy — continua aberto.
@@ -73,7 +84,12 @@ cliente. O furo **exige credencial interna da agência** e **não está no camin
 do cliente que entra pelo portal**. É P0 e está aberto há 12 dias — mas não era
 P0 daquela manhã. Conserto de rota sem teste de posse, de madrugada, trocaria um
 risco conhecido por um desconhecido.
-## 🔴 28/08/2026 — `npm run reivindicar` EMPURRA O SEU BRANCH INTEIRO PARA O DEPLOY
+## 🟢 28/08/2026 — `npm run reivindicar` EMPURRAVA O SEU BRANCH INTEIRO (CONSERTADO)
+
+> **Fechado no mesmo dia, pelo PR #378.** O portão recusa antes de escrever, o
+> push nomeia o SHA em vez de `HEAD:`, e o commit usa `--only` — o índice era
+> uma segunda porta, descoberta exercitando o comando. O relato do incidente
+> está no #374. O texto abaixo fica como está: é a história que produziu a regra.
 
 **Aconteceu comigo hoje, e o resultado foi quatro commits de um PR aberto
 pousando direto na branch de deploy, sem revisão e sem CI prévio.**
@@ -126,9 +142,54 @@ silêncio.
 
 ⚠️ **Não rode `npm run reivindicar` com trabalho não empurrado no branch atual.**
 Empurre o seu PR primeiro, ou rode o comando a partir de um branch limpo.
+## 🔴 28/08/2026 — ORDEM DO CEO: departamento financeiro por produto (não feita)
+
+**Ordem repassada pelo Diretor do Foocci em 28/08.** Palavras do CEO: *"Todo
+produto precisa ter o seu departamento financeiro… Railway, assinatura e tudo
+mais… Esses departamentos precisam reportar pra um novo departamento, que é o
+departamento financeiro da empresa, que fica lá dentro da Control Room."*
+
+**O padrão já existe: `diolisantos10/FOOCCI` → `docs/financeiro-padrao-da-casa.md`.**
+É para copiar, não reinventar — se cada produto criar as próprias colunas, a
+Control Room não soma, só traduz. *Regra não se copia, se aponta.*
+
+**Não construído em 28/08** por estar em vigor a regra de não desestabilizar a
+casa antes da entrada do primeiro cliente real. É trabalho de poucas horas.
+
+### O que a medição já apurou (`docs/diagnosticos/o-custo-de-construir-28-08.md`)
+
+- Total visível de sessões de Claude Code: **US$ 6.913 (R$ 35.671)** — piso, não fechamento.
+- **Control Room / Diretor Geral: US$ 4.272 — 61,8% de tudo, em 4 sessões.**
+  Uma única sessão custou US$ 2.995. **É o maior bolso da casa e ninguém media.**
+- Dioli Digital: US$ 1.588 em 17 sessões.
+- O Railway da casa inteira custa US$ 40,99/mês: o total de sessões equivale a
+  **14 anos** de servidor de todos os nove projetos.
+
+⚠️ **Isto não é desperdício provado** — coordenação cara que destrava seis
+produtos pode ser o melhor dinheiro da casa. O ponto é que **ninguém sabia**.
+
+### 🔴 E US$ 1.198 foram pagos por trabalho que nunca chegou
+
+Onze sessões da Dioli Digital de 15-16/08, paradas desde então — **75% de tudo
+que o produto gastou**. Os assuntos delas são os mesmos dos PRs #169-#172, que
+**não conseguem mais ser mergeados** (base órfã, ver
+`triagem-dos-prs-parados-28-08.md`). A casa pagou para diagnosticar, o
+diagnóstico virou PR, a base foi recriada por baixo, e 12 dias depois um dos
+defeitos ainda estava **vivo em produção** (o vazamento da ficha de marca, #376).
+
+*A casa não perdeu tempo: perdeu dinheiro já gasto, e não sabia.*
 
 
-## 🔴 28/08/2026 — O PARCEIRO AINDA É PERGUNTADO SOBRE VERBA (cliente entra amanhã)
+## 🟢 28/08/2026 — O PARCEIRO ERA PERGUNTADO SOBRE VERBA (CONSERTADO, no ar)
+
+> **Fechado pelo PR #372**, conferido na branch de deploy: a rota do SDR devolve
+> a parceria derivada do token e a sala a escreve no estado que decide a fila de
+> perguntas (`comParceria`). Era a décima primeira "trava sem fechadura" da casa
+> — o campo existia, era lido, e nenhuma linha de produção escrevia nele.
+>
+> A travessia que provou isso é `__tests__/comercial/a-jornada-do-parceiro.test.ts`.
+>
+> O texto abaixo fica como está: é a história que produziu a regra.
 
 **Medido por travessia executável, não por leitura:**
 `__tests__/comercial/a-jornada-do-parceiro.test.ts` — 14 testes, banco real, IA
