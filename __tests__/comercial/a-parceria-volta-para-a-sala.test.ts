@@ -18,6 +18,8 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
+import fs from "node:fs";
+import path from "node:path";
 
 const db = vi.hoisted(() => ({
   aIRunLog: { findMany: vi.fn(async () => []) },
@@ -182,5 +184,51 @@ describe("a rota do SDR devolve a parceria para quem decide a pergunta", () => {
       corpo.parceria,
       "um visitante se declarou parceiro pelo corpo da requisição e a rota acreditou",
     ).toBeNull();
+  });
+});
+
+// ── O ÚLTIMO ELO: A SALA ESCREVE O CAMPO ────────────────────────────────────
+//
+// ⚠️ ISTO É GUARDA ESTRUTURAL, NÃO RENDER — e a diferença está declarada de
+// propósito. A mutação "a sala deixa de escrever `parceriaDeclarada`"
+// SOBREVIVEU a 668 testes: o elo final mora dentro de um componente React, e
+// não há render nesta suíte.
+//
+// A casa já usa este padrão onde o mecanismo não cabe numa chamada de função
+// (`fundir-cliente.test.ts` lê o `schema.prisma` como texto pelo mesmo motivo).
+// Ele não prova que a tela funciona; prova que **o campo não sumiu do código** —
+// que é exatamente o modo como esta regressão voltaria: alguém remontando o
+// `ConvState` e esquecendo a linha, como já estava esquecida antes de 28/08.
+//
+// 🚩 O que ele NÃO cobre, e fica escrito: a sala não foi renderizada. Um teste
+// de render é a dívida desta frente.
+describe("a sala escreve `parceriaDeclarada` nos DOIS caminhos do turno", () => {
+  const fonte = fs.readFileSync(
+    path.join(process.cwd(), "components/agency/briefing/PublicBriefingRoom.tsx"),
+    "utf8",
+  );
+
+  it("o caminho do turno bom leva a parceria para o ConvState", () => {
+    expect(
+      /parceriaDeclarada:\s*parceriaAgora/.test(fonte),
+      "o turno bom parou de escrever `parceriaDeclarada` — o parceiro volta a ser perguntado sobre verba",
+    ).toBe(true);
+  });
+
+  it("o caminho de FALLBACK preserva a parceria já conhecida", () => {
+    // Sem isto, um turno em que a IA falha apagaria a dispensa e a pergunta de
+    // verba voltaria no meio da conversa do parceiro — intermitente, que é pior
+    // que constante.
+    expect(
+      /parceriaDeclarada:\s*parceriaRef\.current/.test(fonte),
+      "o fallback parou de preservar a parceria — a pergunta volta quando a IA falha",
+    ).toBe(true);
+  });
+
+  it("a parceria mora em REF, não em estado — senão o 2º turno lê a do 1º", () => {
+    expect(
+      /const parceriaRef = useRef<ParceriaDaSala \| null>\(null\)/.test(fonte),
+      "trocar o ref por estado devolve o bug de closure: `runTurn` não tem esse valor nas dependências",
+    ).toBe(true);
   });
 });
