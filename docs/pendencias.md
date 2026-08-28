@@ -180,7 +180,16 @@ defeitos ainda estava **vivo em produção** (o vazamento da ficha de marca, #37
 *A casa não perdeu tempo: perdeu dinheiro já gasto, e não sabia.*
 
 
-## 🔴 28/08/2026 — O PARCEIRO AINDA É PERGUNTADO SOBRE VERBA (cliente entra amanhã)
+## 🟢 28/08/2026 — O PARCEIRO ERA PERGUNTADO SOBRE VERBA (CONSERTADO, no ar)
+
+> **Fechado pelo PR #372**, conferido na branch de deploy: a rota do SDR devolve
+> a parceria derivada do token e a sala a escreve no estado que decide a fila de
+> perguntas (`comParceria`). Era a décima primeira "trava sem fechadura" da casa
+> — o campo existia, era lido, e nenhuma linha de produção escrevia nele.
+>
+> A travessia que provou isso é `__tests__/comercial/a-jornada-do-parceiro.test.ts`.
+>
+> O texto abaixo fica como está: é a história que produziu a regra.
 
 **Medido por travessia executável, não por leitura:**
 `__tests__/comercial/a-jornada-do-parceiro.test.ts` — 14 testes, banco real, IA
