@@ -1,0 +1,12 @@
+{
+  "id": "triagem-prs-parados",
+  "quem": "ses-b6c221003f",
+  "frente": "Triagem dos 8 PRs parados",
+  "responsabilidade": "triagem-prs-parados",
+  "arquivos": [
+    "docs/diagnosticos/triagem-dos-prs-parados-28-08.md"
+  ],
+  "abertaEm": "2026-08-28T03:06:16.705Z",
+  "encerradaEm": null,
+  "rotulo": "diolidigital-f0"
+}

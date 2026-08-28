@@ -15,6 +15,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import { clienteOuNulo } from "@/lib/agency/esteira/posse-do-cliente";
 import { lerFichaDeMarca, proximasPerguntas, CAMPOS_DA_MARCA, type CampoDaMarca } from "@/lib/agency/esteira/ficha-de-marca";
 import { COLUNA, gravarRespostaDeMarca } from "@/lib/agency/esteira/escrita-da-ficha";
 
@@ -25,6 +26,25 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   if (!sessao) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await ctx.params;
+
+  // ── DE QUEM É ESTE CLIENTE? (28/08/2026) ─────────────────────────────────
+  //
+  // Havia sessão conferida e POSSE não conferida: `id` vinha cru da URL e
+  // `lerFichaDeMarca` faz `brandBrain.findUnique({ where: { clientId } })` sem
+  // `workspaceId`. Qualquer sessão válida de QUALQUER workspace lia a ficha de
+  // marca de QUALQUER cliente — bastava trocar o id no endereço. Valia para
+  // `design_staff`, o papel mais baixo.
+  //
+  // Medido pelo PR #169 em 16/08 (sessão do workspace A sobre cliente do B:
+  // 200 nas duas pontas), consertado lá, e o conserto ficou preso: aquele PR
+  // não mergeia mais (história órfã — ver #375). O arquivo veio de lá.
+  //
+  // ⚠️ 404 E NUNCA 403: 403 confirmaria que o id existe e é de outra conta, e
+  // essa confirmação já é vazamento — vira oráculo de enumeração.
+  if (!(await clienteOuNulo(id, sessao))) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const ficha = await lerFichaDeMarca(id);
   return NextResponse.json({
     ...ficha,
@@ -52,6 +72,14 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (!sessao) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await ctx.params;
+
+  // A mesma pergunta do GET, e por um motivo pior: aqui se ESCREVE. Sem esta
+  // linha, uma sessão de outro inquilino adulterava a ficha de marca alheia —
+  // e a ficha é o que a produção lê para escrever a peça do cliente.
+  if (!(await clienteOuNulo(id, sessao))) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const corpo = (await req.json().catch(() => ({}))) as { campos?: Record<string, unknown> };
   const entrada = corpo.campos ?? {};
 
