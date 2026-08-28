@@ -50,6 +50,9 @@ import { initProspectConvState, processProspectMessage } from "@/lib/agency/pros
 import { remainingRequiredQuestions, dispensadoDeVerba } from "@/lib/agency/question-engine";
 import { canSubmitProposal } from "@/lib/agency/sdr-agent";
 import type { BriefingScope } from "@/lib/agency/briefing-conversation";
+import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
+import { motivoDoBloqueioDeSaida } from "@/lib/agency/cliente-falso/trava-de-saida";
+import { textoDaIsencao, TITULO_DA_ISENCAO } from "@/lib/agency/comercial/aviso-de-isencao";
 
 let workspaceId = "";
 let clientId = "";
@@ -302,6 +305,37 @@ describe("a jornada do parceiro, de ponta a ponta, com banco real", () => {
     expect(isencao!.pecasContratadas).toBe(parceria!.pecasContratadas);
   });
 
+  // ── PONTO 3 — O E-MAIL, que é a pergunta que o CEO fez ───────────────────
+  //
+  // "por que o orçamento não chegou no e-mail?" O cadastro do parceiro nasce SEM
+  // e-mail (ver o `beforeAll`), então o único endereço que existe é o que ele
+  // digitou no briefing. Se o pedido promovido não carregar esse contato, o
+  // aviso de orçamento não tem para onde ir.
+  it("5b. o pedido promovido carrega o e-mail que o parceiro digitou NO BRIEFING", async () => {
+    const pedido = await prisma.clientRequestDb.findFirst({ where: { clientId } });
+    const contato = lerContato({ briefingJson: pedido!.briefingJson });
+
+    expect(contato.email, "o contato do briefing não chegou no pedido — o orçamento não teria para onde ir").toBe(
+      "marcos@foocci.com.br",
+    );
+    expect(contato.temComoFalar).toBe(true);
+    expect(pedido!.status, "sem contato o pedido nasceria `lead_incompleto`").toBe("new");
+
+    // E o cadastro do cliente continua sem e-mail: o endereço veio do briefing,
+    // não da ficha. É exatamente o caso do primeiro cliente real.
+    const ficha = await prisma.client.findUnique({ where: { id: clientId } });
+    expect(ficha!.email).toBeNull();
+  });
+
+  it("5c. a trava de contato falso NÃO barra o endereço legítimo do parceiro", () => {
+    // A trava existe para `.invalid` (RFC 2606) e para o modo de cliente falso.
+    expect(motivoDoBloqueioDeSaida("email", "marcos@foocci.com.br")).toBeNull();
+    // E continua barrando o que ela existe para barrar.
+    expect(motivoDoBloqueioDeSaida("email", "qualquer@cliente-falso.invalid")).toBe("dominio_inexistente");
+    // Domínio REAL que só contém a palavra não é censurado.
+    expect(motivoDoBloqueioDeSaida("email", "fulano@x.invalid.com.br")).toBeNull();
+  });
+
   it("6. o portão de pagamento LIBERA por parceria — e não por pagamento", async () => {
     const pedido = await prisma.clientRequestDb.findFirst({ where: { clientId } });
     const veredito = await conferirPagamento(pedido!.id);
@@ -311,6 +345,36 @@ describe("a jornada do parceiro, de ponta a ponta, com banco real", () => {
       `a produção do parceiro ficou barrada: ${"motivo" in veredito ? veredito.motivo : "?"}`,
     ).toBe(true);
     expect(veredito.motivo).toBe("parceria_isenta");
+  });
+
+  // ── PONTO 4 — O QUE O PARCEIRO LÊ NA PROPOSTA ────────────────────────────
+  //
+  // Alcança o TEXTO, não a estrutura: é a frase que ele lê na tela que decide
+  // se ele acha que vai ser cobrado.
+  it("6b. a proposta diz 100% ISENTO, com prazo, e sem preço na frase", async () => {
+    const pedido = await prisma.clientRequestDb.findFirst({ where: { clientId } });
+    // A MESMA fonte que `app/api/portal/briefing/proposta/route.ts:100` usa.
+    const parceria = await parceriaVivaDoCliente(pedido!.clientId);
+    expect(parceria, "sem isto a proposta do parceiro sairia como a de um pagante").not.toBeNull();
+
+    const linhas = textoDaIsencao({
+      autorizadaPor: parceria!.autorizadaPor,
+      validaAte: parceria!.validaAte.toISOString(),
+      escopo: parceria!.escopo,
+    });
+
+    // O título leva ponto final na composição (`textoDaIsencao`).
+    expect(linhas[0]).toBe(`${TITULO_DA_ISENCAO}.`);
+    expect(linhas[0]).toContain("100% isento");
+    // O prazo aparece — parceria eterna vira esquecimento.
+    expect(linhas.join(" ")).toMatch(/vale at[ée]/i);
+    // ⛔ A frase da isenção NUNCA carrega preço: dizer "isento" não é dizer valor.
+    // ⚠️ Só "R$": o ANO da validade é um número de 4 dígitos legítimo, e uma
+    // regex de dígitos barraria a própria data que o teste acima exige.
+    expect(
+      linhas.join(" "),
+      "a frase da isenção vazou um preço — ela existe justamente para não ser sobre dinheiro",
+    ).not.toMatch(/R\$/);
   });
 
   it("7. ⛔ nenhum pagamento falso de R$ 0 foi inventado — receita de parceria é ZERO", async () => {
