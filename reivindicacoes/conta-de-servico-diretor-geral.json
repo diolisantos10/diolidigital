@@ -1,0 +1,13 @@
+{
+  "id": "conta-de-servico-diretor-geral",
+  "quem": "ses-0f653c553f",
+  "frente": "conta de servico do Diretor Geral: chave propria, travas no codigo, rastro append-only",
+  "responsabilidade": "conta-de-servico-diretor-geral",
+  "arquivos": [
+    "lib/auth/conta-de-servico.ts",
+    "prisma/schema.prisma"
+  ],
+  "abertaEm": "2026-08-29T21:13:08.435Z",
+  "encerradaEm": null,
+  "rotulo": "diretor-conta-servico"
+}
