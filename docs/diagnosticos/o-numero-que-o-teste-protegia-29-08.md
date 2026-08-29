@@ -85,7 +85,94 @@ erro (dígito redigitado).
 
 ## O que ficou DECLARADO e não consertado
 
-<!-- O Diretor completa esta seção. -->
+A varredura de irmãos foi feita pelo especialista `qualidade` (leitura, sem
+escrita) sobre `lib/`, `app/`, `components/` e `scripts/`, ignorando
+`lib/generated/`. **Um só número errado chegava ao cliente, e é o que este PR
+conserta.** O resto está abaixo, com o comando que o achou — varredura que não
+mostra por onde passou não é varredura.
+
+### 🟡 MESMO DEFEITO, ainda coincidente — vai virar frente própria
+
+`lib/agency/planos.ts`, dentro do próprio array `PLANOS`, escreve o volume à
+mão no texto de `inclui[]`, a poucas linhas do campo estruturado `pecasPorMes`
+do MESMO objeto:
+
+| Linha | String literal | `pecasPorMes` do mesmo plano | Bate? |
+|---|---|---|---|
+| `planos.ts:169` | `"12 peças por mês — carrossel de até 6 telas ou post único, com a arte pronta"` | `ritmo` = 12 | sim |
+| `planos.ts:194` | `"Tudo do Ritmo, com 20 peças por mês"` | `presenca` = 20 | sim |
+| `planos.ts:229` | `"Tudo do Presença, com 36 peças por mês — a capacidade INTEIRA da casa"` | `conteudo` = `CAPACIDADE_MENSAL` = 36 | sim |
+
+Comando que achou:
+
+```
+grep -rn 'peças por mês\|peças/mês\|peças por mes' lib app components scripts \
+  --include=*.ts --include=*.tsx
+```
+
+**Chega ao cliente:** sim — `p.inclui` é renderizado em `app/planos/page.tsx`,
+página pública `/planos`.
+
+**O agravante, e é o mesmo desta ficha:** existe um teste que LÊ esses números
+(`__tests__/comercial/a-vitrine-nao-promete-acima-do-teto.test.ts:129-136`,
+regex `/(\d+)\s*peças por mês/`) e só confere se são `<= TETO_MENSAL`. Ele
+**não** confere `número da frase === p.pecasPorMes`. Mude `pecasPorMes` para 10
+e deixe a frase dizendo 12: o teste continua verde e o cliente continua lendo
+12 na vitrine. É o mesmo formato do defeito que abriu este documento, com uma
+rodada de atraso.
+
+**Por que NÃO foi consertado aqui, e não é preguiça:** hoje os três batem —
+nenhum número errado chega a ninguém. E `planos.ts` é a fonte de preço da casa,
+vizinha de uma frente viva (`comercial-rotulo-de-recorrencia`, que segura
+`financeiro/tabela-de-precos.ts` e `comercial/negociacao-da-proposta.ts`, ambos
+importando `PLANOS`). A própria máquina de reivindicação recusou abrir esta
+frente a partir deste branch — *"este branch tem 1 commit que o deploy não tem"*
+—, que é a casa dizendo, por mecanismo, que isto é outra frente e outro PR.
+Misturar os dois faria um PR sobre número redigitado ficar impossível de
+mesclar por causa do arquivo mais disputado do repositório.
+
+**Fica agendado como frente própria:** `esteira/volume-redigitado-no-inclui` —
+uma constante por plano, usada nas duas pontas (`inclui[]` e `pecasPorMes`), e
+a asserção que falta no teste da vitrine. Nenhum valor muda.
+
+### ⚪ PODRIDÃO DE COMENTÁRIO — não chega a ninguém, não foi tocada
+
+- `lib/agency/comercial/verba-declarada.ts:241` — comentário diz *"o Ritmo é
+  R$ 297/mês MAIS R$ 390 na entrada"*. A fonte diz `preco: 290` e
+  `implantacao: null`. **Duas vezes errado, e é comentário:** o texto executado
+  logo abaixo usa `precoEmReais(p.preco)` e `p.implantacao` de verdade.
+- `lib/agency/planos.ts:9` — comentário de cabeçalho diz *"é só por isso que
+  R$ 49 e R$ 297 fecham"*. Pulso = 49 bate; Ritmo = 290, não bate.
+
+Ambos são cicatriz do dia em que o Ritmo era R$ 297. Não chegam ao cliente e
+não têm teste que os proteja. Ficam declarados porque comentário que mente ao
+lado do código certo é o que produz o próximo "8 peças por mês" — só que na
+cabeça de quem lê, não no arquivo.
+
+### ⚪ A BORDA QUE A TRAVA NOVA NÃO COBRE
+
+`numerosDePecasNoRotulo` confia nos números que estão dentro de
+`Ancora.itemLabel`, porque o rótulo vem de `SELF_SERVE_CATALOG`, que deriva de
+`PLANOS`. Se um dia alguém cadastrar um `label` de catálogo digitado à mão com
+número que não veio da fonte, esta trava o aceita. Quem cobre essa borda é a
+régua do catálogo, não esta. Declarado, não escondido.
+
+### ⚪ O QUE NÃO FOI MEDIDO, de propósito
+
+O cron (`POST /api/cron/recompra`) **não foi disparado** e nenhuma mensagem foi
+enviada a pessoa real — ordem explícita da ficha. A leitura da frase literal
+que sai ao cliente foi feita executando `redigirToque` e `registrarToque` com o
+banco mockado. O que isso NÃO prova: que a rota do cron, com banco real,
+seleciona os mesmos clientes. Isso continua sem medição ao vivo.
+
+### ⚪ AMBIENTE, não repositório
+
+`node_modules/tsx/dist/cli.mjs` está corrompido nesta máquina (48 bytes de lixo
+de shell, `/bin/bash: line 1: unalias: unsetenv: not found`), então
+`npm run reivindicar` quebra com erro obscuro. Contorno usado:
+`node node_modules/tsx/dist/cli.cjs scripts/reivindicar.mts ...`, que está
+íntegro. **`node_modules` não é versionado — isto não é defeito deste
+repositório e NADA foi "consertado" no código nem no `package.json`.**
 
 ## Rodada 2 (29/08/2026) — a trava nasceu com só a metade que barra
 
