@@ -1,28 +1,16 @@
 {
   "id": "conta-de-servico-diretor-geral",
   "quem": "ses-0f653c553f",
-  "frente": "conta de servico do Diretor Geral: chave propria, seis travas no codigo, rastro append-only e 12 rotas ligadas",
+  "frente": "conta de servico do Diretor Geral: chave propria, travas no codigo, rastro append-only",
   "responsabilidade": "conta-de-servico-diretor-geral",
   "arquivos": [
     "lib/auth/conta-de-servico.ts",
     "lib/auth/mandato-do-diretor-geral.ts",
     "lib/auth/guarda-do-diretor-geral.ts",
     "lib/auth/rastro-do-diretor-geral.ts",
-    "prisma/schema.prisma",
-    "__tests__/seguranca/conta-de-servico-falha-fechada.test.ts",
-    "__tests__/seguranca/mandato-do-diretor-geral.test.ts",
-    "__tests__/seguranca/diretor-geral-rotas-pode.test.ts",
-    "__tests__/seguranca/diretor-geral-rotas-nunca.test.ts",
-    "__tests__/seguranca/diretor-geral-rotas-credenciais.test.ts",
-    "__tests__/seguranca/conta-de-servico-nunca-em-log.test.ts",
-    "__tests__/seguranca/whatsapp-mensagens-guarda-do-diretor-geral.test.ts"
+    "prisma/schema.prisma"
   ],
-  "abertaEm": "2026-08-29T23:19:17.152Z",
+  "abertaEm": "2026-08-29T23:26:47.447Z",
   "encerradaEm": null,
-  "rotulo": "diretor-conta-servico",
-  "forcadaPor": {
-    "quem": "ses-0f653c553f",
-    "motivo": "Responsabilidade DIFERENTE da frente de ses-0a159f9505 (seguranca/posse-pagamento-parceria). A colisao vem de reivindicacao de DIRETORIO INTEIRO (__tests__/seguranca) feita por uma frente estreita sobre posse nas cinco rotas de pagamento e parceria. Meus arquivos sao NOVOS, com nomes proprios, e respondem a outra pergunta: o mandato da conta de servico do Diretor Geral. Nenhuma das quatro rotas da frente deles foi tocada por mim. Rodei a suite INTEIRA sobre o trabalho dos dois: 544 arquivos, 7585 testes, zero vermelho. Erro meu declarado: a reivindicacao original listava so 2 arquivos e o escopo cresceu muito alem dela; eu deveria te-la atualizado na hora. A OUTRA colisao apontada pelo gancho (docs/pendencias.md, de ses-4727fe33a7) era REAL e NAO foi forcada: devolvi o arquivo e o texto vai no relatorio ao Diretor.",
-    "em": "2026-08-29T23:19:17.152Z"
-  }
+  "rotulo": "diretor-conta-servico"
 }
