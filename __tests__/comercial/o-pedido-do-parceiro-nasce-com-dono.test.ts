@@ -23,6 +23,8 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
+import fs from "node:fs";
+import path from "node:path";
 
 const db = vi.hoisted(() => ({
   clientRequestDb: { create: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
@@ -124,5 +126,33 @@ describe("o briefing do parceiro vira pedido DELE", () => {
       resolverConviteDeParceria,
       "a rota não consultou o servidor sobre o convite",
     ).toHaveBeenCalledWith("tok-123");
+  });
+});
+
+// ── O OUTRO LADO DA FRONTEIRA: A SALA MANDA O CONVITE ──────────────────────
+//
+// 🚩 GUARDA ESTRUTURAL, declarado. A mutação "a sala para de mandar o convite"
+// SOBREVIVEU aos testes acima — eles chamam a rota direto, e o submit mora num
+// componente React que este repositório não consegue renderizar com estado
+// (vitest em `environment: "node"`, sem testing-library).
+//
+// Ele não prova que a tela funciona. Prova que **a linha não sumiu** — que é
+// exatamente como esta regressão voltaria, e como ela nasceu: o convite existia
+// na URL, era mandado ao SDR em todo turno, e simplesmente não ia no submit.
+describe("a sala leva o convite no submit — o elo do lado do cliente", () => {
+  const fonte = fs.readFileSync(path.join(process.cwd(), "app/briefing/page.tsx"), "utf8");
+
+  it("🔴 o submit do briefing envia `convite`", () => {
+    expect(
+      /convite:\s*conviteDaUrl\(\)/.test(fonte),
+      "o submit parou de mandar o convite — o pedido do parceiro volta a nascer órfão e a proposta dele volta a COBRAR",
+    ).toBe(true);
+  });
+
+  it("o convite sai da URL, não de um estado guardado", () => {
+    // `conviteDaUrl()` lê `window.location.search` na hora. Um estado guardado
+    // se perderia num recarregamento no meio do briefing.
+    expect(fonte).toContain("conviteDaUrl");
+    expect(fonte).toMatch(/import \{[^}]*conviteDaUrl[^}]*\} from "@\/components\/agency\/briefing\/PublicBriefingRoom"/);
   });
 });

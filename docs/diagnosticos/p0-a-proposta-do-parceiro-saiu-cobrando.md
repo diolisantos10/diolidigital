@@ -69,3 +69,40 @@ adivinhado.**
 3. **A trava continua de pé:** `clientId` do corpo segue proibido. O que entra é
    um token que o servidor valida — token inventado resolve `null` e o pedido
    nasce órfão, como hoje.
+
+
+---
+
+## ✅ CONSERTADO — e as mutações que ele sobreviveu
+
+Duas linhas, nos dois lados da fronteira:
+
+1. `app/briefing/page.tsx` envia `convite: conviteDaUrl()` no submit;
+2. `/api/brain/client-requests` resolve o **token** com
+   `resolverConviteDeParceria` e amarra o `clientId` **derivado**.
+
+**A trava da rota pública não foi afrouxada** — `clientId` do corpo continua
+recusado. Token inventado resolve `null` e o pedido nasce órfão, como sempre.
+
+| # | Mutação | Derrubou |
+|---|---|---|
+| 1 | a rota ignora o convite (o defeito original) | o teste do pedido amarrado |
+| 2 | a rota aceita `clientId` do corpo | o teste da trava |
+| 3 | a sala para de mandar o convite | ⚠️ **sobreviveu** → guarda → **agora derruba 1** |
+
+⚠️ A mutação 3 sobreviveu pelo mesmo motivo de sempre: o submit mora num
+componente React que este repositório não renderiza com estado. O guarda é de
+texto, e está declarado como tal no próprio teste.
+
+**Validação:** `tsc` limpo · 2.430 testes verdes · `npm run build` compila.
+
+## 🚩 O que continua sem medição
+
+- **O defeito 3 (volume "1 posts/semana")** — a concordância é bug de texto; o
+  volume vem do briefing, e **não sei se o Marcos pediu 1 post/semana ou se a
+  casa entendeu errado**. Sem a conversa dele, é palpite.
+- **O defeito 4 (o briefing veio errado)** — **preciso do rastro da conversa**,
+  que está no banco de produção. Nenhuma sala nossa tem credencial.
+- **Não toquei no visual da proposta**, conforme a ordem. O único arquivo de tela
+  que abri foi `app/briefing/page.tsx`, e só para acrescentar o campo `convite`
+  no submit — **regra, não aparência**.
