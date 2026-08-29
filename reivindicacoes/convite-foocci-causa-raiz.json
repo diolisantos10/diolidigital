@@ -1,0 +1,14 @@
+{
+  "id": "convite-foocci-causa-raiz",
+  "quem": "ses-69fa836d5e",
+  "frente": "causa-raiz do convite da Foocci: medir qual dos seis motivos recusou, e consertar",
+  "responsabilidade": "convite-foocci-causa-raiz",
+  "arquivos": [
+    "app/api/piloto/diagnostico/route.ts",
+    "lib/agency/persistence/cliente-vinculos.ts",
+    "lib/agency/comercial/retrato-dos-convites.ts"
+  ],
+  "abertaEm": "2026-08-29T21:14:05.535Z",
+  "encerradaEm": null,
+  "rotulo": "sala-convite-2908"
+}
