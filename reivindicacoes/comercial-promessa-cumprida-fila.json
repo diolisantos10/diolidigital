@@ -1,15 +1,18 @@
 {
   "id": "comercial/promessa-cumprida-fila",
   "quem": "ses-a03a77af11",
-  "frente": "cumprir a promessa de contato do SDR: fila visivel do lead prometido (nao mexe na regua do #356)",
+  "frente": "cumprir a promessa de contato do SDR: a fila que existe (conversas-sem-pedido) ganha tela em /agency/leads, e o carimbo de quando a promessa foi feita",
   "responsabilidade": "comercial/promessa-cumprida-fila",
   "arquivos": [
     "lib/agency/esteira/promessa-de-contato.ts",
-    "app/agency/quem-procurou",
+    "lib/agency/comercial/conversa-sem-pedido.ts",
+    "app/api/agency/conversas-sem-pedido/route.ts",
+    "app/api/sdr/chat/route.ts",
+    "app/agency/leads/page.tsx",
     "__tests__/agency/promessa",
     "docs/diagnosticos/a-promessa-que-ninguem-cumpre-29-08.md"
   ],
-  "abertaEm": "2026-08-29T03:05:06.002Z",
-  "encerradaEm": "2026-08-29T03:17:39.073Z",
+  "abertaEm": "2026-08-29T03:17:53.568Z",
+  "encerradaEm": null,
   "rotulo": "pm-promessa-2908"
 }
