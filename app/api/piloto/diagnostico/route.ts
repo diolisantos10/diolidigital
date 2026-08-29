@@ -33,12 +33,37 @@
 // que roda no terminal de quem já tem acesso ao banco. Numa resposta HTTP de
 // diagnóstico ela seria PII trafegando sem necessidade: o id basta para o CEO
 // dimensionar e decidir.
+//
+// ─── SEÇÃO `parcerias` (29/08/2026) — O RETRATO DOS CONVITES ────────────────
+//
+// Responde, sem terminal e sem o parceiro voltar para reclamar: em que estado
+// está CADA `ConviteDeParceria`, e existe algum CLIENTE DUPLICADO (mesmo nome,
+// dois cadastros) onde a parceria vive só em um deles? É a pergunta por trás
+// do caso investigado em `docs/diagnosticos/fusao-de-cliente-duplicado.md` — a
+// FOOCCI nasceu duas vezes em 27/08, e se o link do parceiro aponta para o
+// cadastro sem a parceria viva, ele é tratado como pagante.
+//
+// A decisão de cada linha vem de `decidirConvite`
+// (`lib/agency/comercial/regra-do-convite.ts`) — a MESMA função que
+// `examinarConviteDeParceria` usa para resolver o link em produção
+// (`app/api/sdr/chat/route.ts:766` → `resolverConviteDeParceria` →
+// `examinarConviteDeParceria`). Uma segunda versão desta decisão divergiria
+// cedo ou tarde, e o diagnóstico passaria a mentir sobre o que a casa faz.
+//
+// Como sempre nesta rota: só leitura (`findMany`), respeita `LIMITE`, e
+// **nunca** o token inteiro — só os 8 primeiros caracteres (`retrato-dos-convites.ts`).
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { segredoConfere } from "@/lib/security/crypto";
 import { retratoDoLote as retratoDoVolume, type PedidoGravado } from "@/lib/agency/comercial/volume-subestimado";
 import { retratoDoLote as retratoDoNegocio, type LinhaDeNegocio } from "@/lib/agency/comercial/diagnostico-do-negocio";
+import {
+  montarRetratoDosConvites,
+  type LinhaDeConviteBruta,
+  type LinhaDeParceriaBruta,
+  type LinhaDeClienteBruta,
+} from "@/lib/agency/comercial/retrato-dos-convites";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +124,33 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const volume = retratoDoVolume(linhas as unknown as PedidoGravado[]);
     const negocio = retratoDoNegocio(linhas as unknown as LinhaDeNegocio[]);
 
+    // ── SOMENTE LEITURA. `findMany`, e nada mais — igual ao resto da rota. ──
+    const agora = new Date();
+    const [convitesBrutos, parceriasBrutas, clientesBrutos] = await Promise.all([
+      prisma.conviteDeParceria.findMany({
+        select: { token: true, clientId: true, expiraEm: true, revogadoEm: true, usos: true, ultimoUsoEm: true },
+        orderBy: { createdAt: "asc" },
+        take: LIMITE,
+      }),
+      prisma.parceriaDoCliente.findMany({
+        select: { clientId: true, revogadaEm: true, validaAte: true },
+        orderBy: { createdAt: "asc" },
+        take: LIMITE,
+      }),
+      prisma.client.findMany({
+        select: { id: true, name: true },
+        orderBy: { createdAt: "asc" },
+        take: LIMITE,
+      }),
+    ]);
+
+    const parcerias = montarRetratoDosConvites(
+      convitesBrutos as LinhaDeConviteBruta[],
+      parceriasBrutas as LinhaDeParceriaBruta[],
+      clientesBrutos as LinhaDeClienteBruta[],
+      agora,
+    );
+
     return NextResponse.json({
       medido: true,
       lidos: linhas.length,
@@ -115,6 +167,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         recuperavel_do_briefing: negocio.recuperar,
         vira_ausencia_declarada: negocio.declarar,
         ids_a_corrigir: negocio.mudancas.map((m) => m.id),
+      },
+      // O retrato de CADA convite (motivo AGORA, cliente para onde aponta,
+      // prefixo do token — nunca o token inteiro) e a denúncia de cliente
+      // duplicado: grupos de nome colidente, com quem do grupo tem parceria
+      // viva. É a pergunta "o link do parceiro aponta para o cadastro certo?"
+      // respondida sem terminal.
+      parcerias: {
+        total_convites: parcerias.convites.length,
+        por_motivo: parcerias.porMotivo,
+        convites: parcerias.convites,
+        clientes_de_nome_colidente: parcerias.gruposDeNomeColidente,
       },
       // O que fazer com o número — para quem lê o JSON não ter de perguntar.
       correcao: "npx tsx scripts/volume-subestimado.mts | scripts/nome-do-negocio.mts (simulam por padrão; escrever exige duas confirmações e é decisão do CEO)",
