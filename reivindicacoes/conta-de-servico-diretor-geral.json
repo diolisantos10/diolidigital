@@ -8,9 +8,21 @@
     "lib/auth/mandato-do-diretor-geral.ts",
     "lib/auth/guarda-do-diretor-geral.ts",
     "lib/auth/rastro-do-diretor-geral.ts",
-    "prisma/schema.prisma"
+    "prisma/schema.prisma",
+    "__tests__/seguranca/conta-de-servico-falha-fechada.test.ts",
+    "__tests__/seguranca/conta-de-servico-nunca-em-log.test.ts",
+    "__tests__/seguranca/diretor-geral-rotas-credenciais.test.ts",
+    "__tests__/seguranca/diretor-geral-rotas-nunca.test.ts",
+    "__tests__/seguranca/diretor-geral-rotas-pode.test.ts",
+    "__tests__/seguranca/mandato-do-diretor-geral.test.ts",
+    "__tests__/seguranca/whatsapp-mensagens-guarda-do-diretor-geral.test.ts"
   ],
-  "abertaEm": "2026-08-29T23:26:47.447Z",
+  "abertaEm": "2026-08-29T23:27:22.680Z",
   "encerradaEm": null,
-  "rotulo": "diretor-conta-servico"
+  "rotulo": "diretor-conta-servico",
+  "forcadaPor": {
+    "quem": "ses-0f653c553f",
+    "motivo": "Colisao de GRANULARIDADE, nao de trabalho: ses-0a159f9505 reivindicou o DIRETORIO INTEIRO __tests__/seguranca para uma frente estreita (posse nas cinco rotas de pagamento e parceria). Conferido arquivo a arquivo pelo Diretor: os 7 testes desta frente sao todos NOVOS (conta-de-servico-*, diretor-geral-*, mandato-*, whatsapp-*-diretor-geral) e nenhum toca parcerias, convites-de-parceria, isencoes-de-parceria, admin/pagamentos ou docs/diagnosticos. Zero sobreposicao real. Portao verde: tsc limpo, 550 arquivos e 7649 testes passando. Forcado apos auditoria, nao por conveniencia.",
+    "em": "2026-08-29T23:27:22.680Z"
+  }
 }
