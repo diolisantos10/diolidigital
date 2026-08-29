@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — guia de criativos (formatos, especificações)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/creative
-capturado_em: 2026-08-28
+capturado_em: 2026-08-29
 hash: eb8ed39ac92e6fcb
 ---
 

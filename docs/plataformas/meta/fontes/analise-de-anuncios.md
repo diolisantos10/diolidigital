@@ -1,7 +1,7 @@
 ---
 titulo: "Central de Ajuda — processo de análise de anúncios"
 url: https://www.facebook.com/business/help/204798856225114
-capturado_em: 2026-08-28
+capturado_em: 2026-08-29
 hash: a901214d8e729593
 ---
 
