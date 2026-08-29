@@ -59,7 +59,17 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const db = vi.hoisted(() => ({
   departmentLadder: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn(), findMany: vi.fn() },
   departmentLadderRecord: { findMany: vi.fn(), create: vi.fn() },
-  client: { findMany: vi.fn() },
+  // `findFirst` entrou em 29/08 com a conferência de posse do `clientId` que a
+  // rota recebe no CORPO (varredura de posse, rodada 2 lote A). O dublê responde
+  // "o cliente é deste workspace" porque este teste é sobre a ESCADA concordar
+  // com a decisão do dono, não sobre posse — a posse tem teste próprio em
+  // `__tests__/seguranca/o-cliente-do-vizinho-na-escada.test.ts`. Sem esta linha
+  // o teste morria em `prisma.client.findFirst is not a function`, que é falha do
+  // dublê e não da rota.
+  client: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(async (_args: { where?: Record<string, unknown> }): Promise<{ id: string } | null> => ({ id: "cliente" })),
+  },
   agencyWorkspace: { findMany: vi.fn() },
   deliverable: { findMany: vi.fn() },
 }));
