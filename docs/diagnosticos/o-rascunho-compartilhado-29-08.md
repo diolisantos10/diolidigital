@@ -97,7 +97,44 @@ fazer com este achado.
 
 ---
 
-## 5. O mecanismo construído
+## 5. O que EU reproduzi — e foi dentro da própria trava
+
+A auditoria independente (`qualidade`, só leitura) apontou que o módulo não
+resolvia symlink. Eu **conferi executando**, não lendo — a casa perdeu tempo
+sete vezes hoje aceitando "verifiquei" sem execução.
+
+**Cenário:** frente A escreve `body.md` no espaço dela. Frente B cria, **dentro
+do próprio espaço**, um symlink apontando para o arquivo de A. B chama
+`escreverRascunho("link.md", "B ATROPELOU A", frenteB)`.
+
+Antes do conserto:
+
+```
+(b) symlink -> lancou? NAO LANCOU
+(b) conteudo de A agora: "B ATROPELOU A"
+```
+
+**O incidente relatado pelo Diretor — arquivo de uma frente sobrescrito em
+silêncio, sem erro, sem aviso, sem conflito — reproduzido DENTRO do mecanismo
+que existe para matá-lo.** `path.resolve` normaliza texto e não segue link
+simbólico; `writeFileSync` segue.
+
+Depois do conserto (`realpath` dos dois lados, em `caminhoDeRascunho` e em
+`conferirEscritaEm`), o **mesmo** script:
+
+```
+(b) symlink -> lancou? Error
+(b) conteudo de A agora: "ORIGINAL DE A"
+```
+
+A lição, e escreva-a como lição: **a trava tinha a régua certa e a fonte
+errada.** A comparação por segmento de caminho estava correta desde a rodada 1
+— mas comparava o caminho que o texto DIZ, não o que o filesystem FAZ. Régua
+boa sobre fonte mentirosa continua sendo defeito silencioso.
+
+---
+
+## 6. O mecanismo construído
 
 `lib/rascunho/espaco-da-frente.ts` — núcleo puro (sem I/O) + casca fina de I/O,
 seguindo o mesmo desenho de `lib/coordenacao/reivindicacoes.ts`.
@@ -148,24 +185,28 @@ $ npm run rascunho -- conferir /tmp/claude-0/-home-user-diolidigital/1af959ce-..
 
 ---
 
-## 6. O portão — visto vermelho, não afirmado
+## 7. O portão — visto vermelho, não afirmado
 
-Três mutações aplicadas uma a uma, cada uma com `assert` de âncora (não
-`replace` na esperança), e o arquivo restaurado com sha256 conferido idêntico
-(`12e1eecb2165d713`) depois de cada uma:
+Hoje são **5** mutações, cada uma aplicada com `assert` de âncora (`replace`
+sem `assert` é esperança, não conserto) e o arquivo restaurado com `sha256`
+conferido idêntico (`f5fcfc5bbde4b8e3`):
 
-| Trava removida | Resultado |
+| Trava removida | Testes que morreram |
 |---|---|
-| `conferirDono` nunca lança | **2 testes falharam** (19 passaram de 21) |
-| `estaDentroDoEspaco` vira `startsWith` de texto cru | **2 testes falharam** |
-| `conferirEscritaEm` passa sempre | **4 testes falharam** (17 de 21) |
+| `conferirDono` nunca lança | 2 |
+| `estaDentroDoEspaco` vira `startsWith` de texto cru | 2 |
+| `conferirEscritaEm` passa sempre | 5 |
+| dono ancestral com mesmo id deixa de isentar | 1 |
+| `realpathAproximado` vira identidade (a trava de symlink) | 2 |
 
-Verde íntegro: `npx tsc --noEmit` sem erro; `npm test` → **536 arquivos, 7.464
-testes passando, 1 pulado**.
+Números verdes finais: **28 testes** no arquivo novo, `npx tsc --noEmit`
+limpo, **7.472** testes na suíte inteira, `npm run build` verde. (Os números
+anteriores deste documento — 21 testes e 7.464 na suíte — ficaram
+desatualizados e foram substituídos pelos acima.)
 
 ---
 
-## 7. O limite deste mecanismo — sem esconder
+## 8. O limite deste mecanismo — sem esconder
 
 A chave é o **raiz do worktree**. Duas sessões que compartilhem o MESMO
 worktree calculam o MESMO espaço e **continuam podendo se atropelar** — este
@@ -183,4 +224,8 @@ sessão é justamente o que o achado 2 mostra estar quebrado no ambiente.
 2. **O achado 2 (`CLAUDE_CODE_SESSION_ID` constante) não foi consertado por
    este PR** — é escalação para o Diretor, e cruza com PR #389 em
    `lib/coordenacao/*`.
-3. **Este mecanismo não cobre duas sessões no mesmo worktree** — ver seção 7.
+3. **Este mecanismo não cobre duas sessões no mesmo worktree** — ver seção 8.
+4. **Os quatro achados da auditoria do `qualidade` foram confirmados por
+   execução pelo PM** (não aceitos por leitura) e fechados nesta mesma branch
+   — e o achado do symlink (seção 5) foi o único caso em que a perda de
+   conteúdo foi de fato reproduzida.
