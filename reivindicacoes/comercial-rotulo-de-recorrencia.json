@@ -1,0 +1,13 @@
+{
+  "id": "comercial-rotulo-de-recorrencia",
+  "quem": "ses-d01eeef352",
+  "frente": "rotulo de recorrencia no degrau abaixo do SDR da proposta",
+  "responsabilidade": "comercial-rotulo-de-recorrencia",
+  "arquivos": [
+    "lib/agency/financeiro/tabela-de-precos.ts",
+    "lib/agency/comercial/negociacao-da-proposta.ts"
+  ],
+  "abertaEm": "2026-08-29T05:01:27.806Z",
+  "encerradaEm": null,
+  "rotulo": "pm-avulso-2908"
+}
