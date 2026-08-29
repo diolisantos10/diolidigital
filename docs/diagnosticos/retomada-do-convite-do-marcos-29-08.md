@@ -95,3 +95,28 @@ nenhum registro de entrega existe (ruim).
 - ⛔ Não mexer no cadastro de produção da FOOCCI **sem necessidade** — e se mexer,
   dizer exatamente o quê.
 - ⛔ Não escrever o conserto antes de ter o motivo medido.
+
+---
+
+## Pendência de higiene: duas reivindicações vivas de frente JÁ ENTREGUE
+
+*Reivindicação eterna vira ruído que todo mundo aprende a ignorar.* Estas duas
+precisam ser encerradas — não foram, porque `encerrar` exige branch alinhada com
+a base e esta branch está à frente (é o PR #400). **Encerre depois do merge:**
+
+| Responsabilidade | Estado real |
+|---|---|
+| `esteira-beco-da-proposta-ajustada` | **entregue** no commit `e08ae2e` |
+| `convite-foocci-causa-raiz` | **parcial** — a régua está entregue; a medição em produção NÃO foi feita. Só encerre depois de responder qual dos seis motivos foi. |
+
+Comando: `npm run reivindicar -- encerrar` a partir de uma branch alinhada.
+
+⚠️ **Cuidado ao rodar `reivindicar` nesta casa** — ver a contradição registrada no
+commit `3ec0386`: um commit empurrou uma reivindicação para a branch de deploy no
+mesmo segundo em que o terminal imprimiu *"nada foi escrito, commitado ou
+empurrado"*, e o arquivo não ficou no worktree. A ordem do código foi conferida e
+**está correta**; a contradição **não foi resolvida**. O teste que prova a ordem
+por processo existe agora
+(`__tests__/coordenacao/reivindicar-guarda-antes-de-escrever.test.ts`) e a
+mutação foi vista vermelha. **Confira o remoto depois de rodar o comando** — não
+confie só na mensagem impressa.
