@@ -1,0 +1,103 @@
+name: Fila parada (cobrança diária)
+
+# ── POR QUE ESTE ARQUIVO EXISTE ────────────────────────────────────────────
+#
+# Esta casa já mantém o registro (`reivindicacoes/*.json`) e o histórico de
+# PRs no GitHub, mas ninguém LIA os dois juntos todo dia. Medido em
+# 29/08/2026: 4 reivindicações vencidas (3 há 12+ dias) e 34 PRs abertos sem
+# NENHUM review formal — só 3 com qualquer comentário. Trabalho parado só
+# aparecia quando alguém lembrava de olhar. Este workflow faz a leitura
+# sozinha, todo dia, e falha em voz alta quando há algo para cobrar.
+#
+# A régua mora em `lib/coordenacao/fila-parada.ts` (pura). O I/O — disco e
+# API do GitHub — mora em `scripts/varrer-fila-parada.mts`. Este arquivo só
+# agenda e comita o relatório; não decide nada sozinho.
+#
+# ⛔ NÃO precisa de histórico completo (nenhum `git log`, nenhum ancestral) —
+# não altere `fetch-depth` por causa deste workflow.
+
+on:
+  schedule:
+    # 07:41 UTC = 04:41 BRT — de madrugada, antes do CEO acordar, e longe do
+    # topo da hora (slots já ocupados hoje: 0 6, 17 6, 0 9, 0 9, 0 10,
+    # 17 * * * *, */10 — 41 7 * * * está livre).
+    - cron: "41 7 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  varrer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # ⚠️ Esta é a branch de trabalho da casa — NÃO a de
+          # `raio-x-noturno.yml` (que aponta para uma branch MORTA,
+          # `claude/dioli-pm-role-pow56e`, o mesmo defeito do PR #152 parado
+          # há 13 dias). Confira isto se algum dia copiar este workflow.
+          ref: claude/dioli-agency-os-architecture-kk7kp
+          # O passo de commit precisa de credencial para empurrar o relatório.
+          persist-credentials: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Varrer a fila parada
+        id: varrer
+        # O relatório precisa ser comitado MESMO com a fila suja — esse é o
+        # caso normal desta rotina. O job só falha de verdade no último passo.
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run varrer-fila
+
+      - name: Resumo da varredura
+        if: always()
+        run: |
+          {
+            echo "## Fila parada"
+            echo ""
+            if [ -f docs/relatorios/fila-parada.md ]; then
+              cat docs/relatorios/fila-parada.md
+            else
+              echo "_Sem relatório — a varredura ficou CEGA (ver o passo \"Varrer a fila parada\")._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar o relatório no repositório
+        if: always()
+        run: |
+          if [ -z "$(git status --porcelain docs/relatorios/fila-parada.md)" ]; then
+            echo "Relatório sem mudança — nada para comitar."
+            exit 0
+          fi
+          git config user.name  "fila-parada"
+          git config user.email "noreply@dioli.studio"
+          git add docs/relatorios/fila-parada.md
+          git commit -m "Fila parada: varredura de $(TZ=America/Sao_Paulo date +%d/%m/%Y)"
+          # Rotina nunca atropela trabalho de gente: rebase antes de empurrar;
+          # se ainda assim colidir, perde a vez.
+          git pull --rebase origin claude/dioli-agency-os-architecture-kk7kp || exit 0
+          git push origin HEAD:claude/dioli-agency-os-architecture-kk7kp
+
+      - name: Falhar quando há algo para cobrar
+        if: always()
+        run: |
+          if [ "${{ steps.varrer.outcome }}" = "success" ]; then
+            echo "Fila limpa — nada cobrável."
+            exit 0
+          fi
+          TOTAL=$(grep -oE '[0-9]+ item\(ns\) cobrável' docs/relatorios/fila-parada.md 2>/dev/null | grep -oE '^[0-9]+' || true)
+          if [ -n "$TOTAL" ]; then
+            echo "::error::Fila parada: ${TOTAL} item(ns) cobrável(is). Ver docs/relatorios/fila-parada.md."
+          else
+            echo "::error::A varredura da fila parada falhou sem produzir relatório — a metade de PRs (GITHUB_TOKEN/API do GitHub) provavelmente ficou CEGA. Ver o log do passo \"Varrer a fila parada\"."
+          fi
+          exit 1
