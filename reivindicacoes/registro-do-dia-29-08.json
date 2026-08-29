@@ -1,0 +1,13 @@
+{
+  "id": "registro-do-dia-29-08",
+  "quem": "ses-4727fe33a7",
+  "frente": "registrar o estado de 29/08: pendencias, decisoes e relatorio do dia",
+  "responsabilidade": "registro-do-dia-29-08",
+  "arquivos": [
+    "docs/pendencias.md",
+    "docs/decisoes.md",
+    "docs/relatorios/2026-08-29-dioli-digital.md"
+  ],
+  "abertaEm": "2026-08-29T04:27:02.219Z",
+  "encerradaEm": null
+}
