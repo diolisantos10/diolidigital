@@ -30,6 +30,54 @@
 - Nada do que está aberto foi resolvido por este bloco: este bloco só registra
   o estado para o próximo turno não perguntar nada a ninguém.
 
+### ⏱️ ADENDO DA MESMA NOITE (29/08, ~05:30) — o que mudou depois que o bloco acima foi escrito
+
+O bloco acima foi escrito por volta das 04:45. Uma hora depois o estado já era
+outro — o próprio bloco é a prova de que registro sem carimbo de hora engana.
+**Nada acima foi apagado; isto só acrescenta.**
+
+- **#394 abriu** — é este registro. Aponta para o commit `ed44e28a`, 312
+  inserções, zero remoções, três arquivos.
+- **#392 abriu e o "EM ANDAMENTO" acima está VENCIDO:** o diagnóstico do quadro
+  do CEO (#159) treze dias depois foi entregue. O bloco acima diz "ainda sem
+  desfecho escrito" — **isso deixou de valer**; o desfecho está no #392.
+- **#395 abriu e resolve o achado novo de negociação registrado acima:** a
+  natureza da cobrança (`recorrente_mensal` / `uma_vez`) virou **dado
+  obrigatório e sem valor padrão**, com um formatador só, e item de natureza
+  indeterminada passa a **não entrar** na lista de degraus (fail-closed). Ou
+  seja: o item 4 de "o que o próximo turno faz primeiro" **já foi feito** —
+  não o refaça.
+- **#393 abriu, em RASCUNHO** — a fila da promessa de contato do SDR.
+
+#### 🔴 Furo vivo NOVO, achado pelo #395 e conferido aqui — NÃO consertado por ninguém
+
+`lib/agency/esteira/recompra.ts:262` promete ao cliente **"8 peças por mês"**.
+Conferido nos arquivos deste worktree: o Ritmo custa R$ 290 (`lib/agency/planos.ts:159`)
+e entrega **12** peças (`lib/agency/planos.ts:183`). A casa promete **menos do
+que entrega** no toque de recompra, e isso chega ao cliente sem revisão humana.
+
+**A parte pior:** `__tests__/esteira/recompra.test.ts:132` **exige** a string
+`"8 peças por mês"`. A suíte não deixou o erro passar — ela **protege** o erro.
+Quem consertar o número derruba o teste, e vai achar que quebrou algo. É a
+assinatura de "régua verde sobre o componente errado", desta vez dentro do
+próprio portão. Frente própria, ainda **sem dono**.
+
+#### 🔴 Achado de coordenação: o diretório de rascunho é COMPARTILHADO entre sessões
+
+A pasta de trabalho temporária desta casa **não é isolada por sessão** — ela é
+por repositório. Durante esta frente, outra sessão viva **sobrescreveu
+silenciosamente** um arquivo de trabalho meu (o corpo do PR), sem erro, sem
+aviso e sem conflito: o conteúdo simplesmente virou o dela.
+
+- É a **mesma classe** da colisão de worktree de 29/08, num lugar onde ninguém
+  estava olhando.
+- **A reivindicação NÃO cobre isto.** Ela coordena arquivo versionado; arquivo
+  de rascunho não entra no registro e não gera colisão.
+- Mitigação até existir mecanismo: **nome de arquivo de rascunho leva o id da
+  sessão**, ou o rascunho mora dentro da worktree da frente. Nome genérico
+  (`prbody.md`, `saida.txt`, `body.md`) é colisão esperando acontecer — e a
+  listagem da pasta mostra vários nomes genéricos de várias frentes.
+
 ### Os PRs abertos em 29/08 — estado conferido pela API, nenhum mesclado
 
 - **#380** (28/08, não é rascunho) — P0: varredura de posse por path param —
