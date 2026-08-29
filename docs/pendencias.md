@@ -30,6 +30,60 @@
 - Nada do que está aberto foi resolvido por este bloco: este bloco só registra
   o estado para o próximo turno não perguntar nada a ninguém.
 
+### ⏱️ SEGUNDO ADENDO (29/08, fim do turno) — duas decisões novas e a camada de despacho caindo
+
+Mesma regra do adendo anterior: **nada acima foi apagado; isto só acrescenta.**
+
+**Duas decisões novas subiram ao CEO, fechando em DEZ a fila dele:**
+
+- **9 · Publicar os quatro consertos que saíram depois** — o número errado do
+  pacote consertado na raiz (o texto parou de redigitar e passa a ler da fonte),
+  o rótulo falso do item avulso, o mesmo volume escrito duas vezes em
+  `planos.ts` (campo + frase de `inclui[]`, que vai para a `/planos` pública), e
+  a trava do rascunho isolado por frente. PRs #395, #396, #397, #398.
+- **10 · Duas conversas com a mesma identidade** — 🔴 **defeito confirmado pelo
+  Diretor, escalado e NÃO consertado.** A identidade de quem reivindica ancora
+  em `CLAUDE_CODE_SESSION_ID` (`scripts/reivindicar.mts:534` e `:606`;
+  `lib/coordenacao/reivindicacoes.ts:36`, `:153`, `:199` — é a **primeira**
+  preferência), e nesta máquina a variável vale **o mesmo para todas as frentes
+  e subagentes**. Como `conferirColisao` faz `if (existente.quem === nova.quem)
+  continue`, **duas frentes distintas se reconhecem como a mesma pessoa e nunca
+  colidem** — em silêncio, e com o prefixo `ses-` que anuncia identidade *não
+  degradada*. Explica retroativamente as três colisões de hoje que a
+  reivindicação não avisou. O conserto empilha em #389 (não mesclado).
+
+**🔴 A camada de despacho caiu no fim do turno.** A ferramenta de acionar
+especialistas foi desativada nesta sessão — saída literal, colada como a régua
+de `SEM_AGENTE` exige:
+
+```
+Error: No such tool available: Agent. Agent is disabled for this session, in subagents as well as here.
+```
+
+Também caíram a publicação de artefato e a leitura de avisos agendados. **Se
+havia instrução num aviso agendado, ela não alcançou este turno** — lacuna
+declarada, não suposição resolvida.
+
+**Decisão do Diretor ao perder a camada:** não abrir frente nova na mão. Com
+dezesseis pacotes prontos e nenhum publicado, mais código sem publicar aumenta a
+dívida em vez de reduzi-la. O que falta agora é **decisão, não trabalho**.
+
+**Três erros de medição do próprio Diretor, registrados contra a régua dele:**
+
+1. Mediu #159 contra o **ancestral comum** em vez do **deploy** — e concluiu que
+   nenhuma função sumia. Contra o deploy somem três, que
+   `app/api/sdr/chat/route.ts` importa.
+2. Leu **um arquivo** (`negotiate-proposal.ts`) e afirmou sobre **a casa** que
+   ela "nunca oferece condição a quem acha caro". `degrausAbaixo` oferece.
+3. Afirmou que `.fichas/` já era ignorado, medindo em **branch não mesclada**.
+   No deploy a linha 86 é `scratchpad/`; a regra do `.fichas/` não está lá.
+
+**Todos os três foram pegos por outra pessoa, nenhum por ele.** É a mesma
+assinatura — régua certa, moldura errada — e é a razão de a conferência não se
+delegar, mas também de ela não bastar sozinha.
+
+---
+
 ### ⏱️ ADENDO DA MESMA NOITE (29/08, ~05:30) — o que mudou depois que o bloco acima foi escrito
 
 O bloco acima foi escrito por volta das 04:45. Uma hora depois o estado já era
