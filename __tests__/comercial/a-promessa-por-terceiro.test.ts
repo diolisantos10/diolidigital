@@ -52,7 +52,6 @@ describe("a família da promessa por terceiro", () => {
     "A equipe entra em contato para alinhar os detalhes.",
     "Nosso time retorna assim que analisar.",
     "Alguém do atendimento te avisa.",
-    "O pessoal responde por aqui mesmo.",
     "Vou levar isso para a equipe.",
     "Vou passar para o time comercial.",
   ]) {
@@ -71,6 +70,12 @@ describe("⛔ o que NÃO pode ser barrado — senão a régua vira mordaça", ()
     "A equipe usa esse dado na hora de escrever os posts.",
     "Seu escopo está pronto. Confira o resumo e confirme abaixo.",
     "É aqui que entra gente da nossa equipe, publicação e Google gerenciado.",
+    // ⚠️ CANAL declarado dispensa a régua — decisão do #356 ("quem promete é
+    // gente, e gente cumpre"), que este conserto NÃO reverte. A tensão com a
+    // reclamação do CEO (faltou PRAZO) está declarada no código e foi levada ao
+    // Diretor Geral: é decisão de doutrina, não minha.
+    "Nossa equipe entra em contato com você por este e-mail.",
+    "O pessoal responde por aqui mesmo.",
   ]) {
     it(`✅ deixa passar: "${frase.slice(0, 44)}…"`, () => {
       expect(

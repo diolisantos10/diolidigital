@@ -117,17 +117,21 @@ const PROMESSA_POR_TERCEIRO: ReadonlyArray<{ re: RegExp; porque: string }> = [
   {
     // "a equipe / o time / alguém / nosso pessoal" + "entra em contato / retorna
     // / responde / avisa" — em qualquer ordem razoável, sem prazo declarado.
-    // ⚠️ O lookahead NEGATIVO separa promessa de INFORMAÇÃO — e o que dispensa a
-    // régua é o PRAZO, não o canal.
+    // ⚠️ O lookahead NEGATIVO separa promessa de INFORMAÇÃO: dispensa quando há
+    // CANAL **ou** PRAZO. A frase do cliente 001 não tinha nenhum dos dois.
     //
-    // Foi o prazo que faltou ao cliente 001: ele não soube **se esperava ali**.
-    // "O pessoal responde por aqui mesmo" diz o canal e deixa a pessoa no
-    // escuro do mesmo jeito; "em até 1 dia útil" é o que resolve. Canal sozinho
-    // não paga a dívida.
+    // ── POR QUE CANAL SOZINHO AINDA DISPENSA, e isto é deliberado ──────────
+    // O #356 já decidiu que "Nossa equipe entra em contato por este e-mail"
+    // PASSA — o teste dele diz, com todas as letras: *"quem promete é gente, e
+    // gente cumpre"*. Essa decisão é anterior a este conserto e **não é minha
+    // para reverter no meio de um P0**.
     //
-    // E a régua não pode barrar demais: régua que barra frase legítima é
-    // desligada na primeira reclamação.
-    re: /\b(a|o)?\s*(equipe|time|pessoal|atendimento|consultor\w*|algu[ée]m)\b[^.!?\n]{0,60}?\b(entra\s+em\s+contato|entrar[áa]?\s+em\s+contato|retorna|retornar[áa]?|responde|responder[áa]?|te\s+avisa|avisar[áa]?|te\s+procura)\b(?![^.!?\n]{0,90}\b(em\s+at[ée]|at[ée]\s+\d|prazo|hoje|amanh[ãa]|\d+\s*(h\b|horas|dias?|dia\s+[úu]til))\b)/gi,
+    // 🚩 E há uma tensão real aqui, levada ao Diretor Geral em 29/08: o CEO
+    // reclamou justamente da falta de PRAZO. Canal sem prazo ainda deixa o
+    // cliente sem saber **se espera ali**. Exigir os dois barraria a frase que
+    // o #356 aprovou — por isso a régua atual pede um OU outro, e a pergunta
+    // "canal basta?" está aberta para quem decide doutrina, não para mim.
+    re: /\b(a|o)?\s*(equipe|time|pessoal|atendimento|consultor\w*|algu[ée]m)\b[^.!?\n]{0,60}?\b(entra\s+em\s+contato|entrar[áa]?\s+em\s+contato|retorna|retornar[áa]?|responde|responder[áa]?|te\s+avisa|avisar[áa]?|te\s+procura)\b(?![^.!?\n]{0,90}\b(por\s+(este\s+|esse\s+)?e-?mail|por\s+whats\w*|por\s+aqui|neste\s+chat|em\s+at[ée]|at[ée]\s+\d|prazo|hoje|amanh[ãa]|\d+\s*(h\b|horas|dias?|dia\s+[úu]til))\b)/gi,
     porque:
       "promete que ALGUÉM entra em contato. Se nada avisa essa pessoa, é dívida que a casa não paga — " +
       "e o cliente fica esperando um retorno que ninguém agendou.",
