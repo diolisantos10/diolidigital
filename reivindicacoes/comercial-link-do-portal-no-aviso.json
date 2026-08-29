@@ -1,0 +1,15 @@
+{
+  "id": "comercial/link-do-portal-no-aviso",
+  "quem": "ses-a03a77af11",
+  "frente": "o link do aviso nasce do token que a porta valida: fonte unica de link de portal e fail-closed sem PortalAccess vivo",
+  "responsabilidade": "comercial/link-do-portal-no-aviso",
+  "arquivos": [
+    "lib/agency/esteira/avisos.ts",
+    "lib/agency/esteira/link-do-portal-do-cliente.ts",
+    "__tests__/agency/link-do-portal",
+    "docs/diagnosticos/o-link-que-a-casa-recusa-29-08.md"
+  ],
+  "abertaEm": "2026-08-29T04:41:55.724Z",
+  "encerradaEm": null,
+  "rotulo": "pm-promessa-2908"
+}
