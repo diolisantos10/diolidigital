@@ -1,0 +1,15 @@
+{
+  "id": "comercial/promessa-cumprida-fila",
+  "quem": "ses-a03a77af11",
+  "frente": "cumprir a promessa de contato do SDR: fila visivel do lead prometido (nao mexe na regua do #356)",
+  "responsabilidade": "comercial/promessa-cumprida-fila",
+  "arquivos": [
+    "lib/agency/esteira/promessa-de-contato.ts",
+    "app/agency/quem-procurou",
+    "__tests__/agency/promessa",
+    "docs/diagnosticos/a-promessa-que-ninguem-cumpre-29-08.md"
+  ],
+  "abertaEm": "2026-08-29T03:05:06.002Z",
+  "encerradaEm": null,
+  "rotulo": "pm-promessa-2908"
+}
