@@ -64,6 +64,15 @@ Também caíram a publicação de artefato e a leitura de avisos agendados. **Se
 havia instrução num aviso agendado, ela não alcançou este turno** — lacuna
 declarada, não suposição resolvida.
 
+🔴 **A leitura do aviso agendado foi tentada DUAS vezes e recusou as duas** —
+`Error: No such tool available: ReadNotifications`. Duas tentativas fazem disso
+fato operacional, não falha passageira: **existe ordem agendada na fila que esta
+sessão não consegue ler**, e quem a despachou não tem como saber. É a mesma
+assinatura do aviso com link morto gravado como "enviado" — o remetente acredita
+que entregou. **Quem agendou precisa reenviar por outro caminho.** As
+ferramentas do GitHub caíram na sequência; o último ato possível foi este
+registro, empurrado por `git`.
+
 **Decisão do Diretor ao perder a camada:** não abrir frente nova na mão. Com
 dezesseis pacotes prontos e nenhum publicado, mais código sem publicar aumenta a
 dívida em vez de reduzi-la. O que falta agora é **decisão, não trabalho**.
