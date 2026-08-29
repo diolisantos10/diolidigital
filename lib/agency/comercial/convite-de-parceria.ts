@@ -224,15 +224,42 @@ export async function examinarConviteDeParceria(
       ? { clientId: registro.clientId, expiraEm: registro.expiraEm, revogadoEm: registro.revogadoEm }
       : null;
 
+    // ⚠️ DECIDE PRIMEIRO SEM A PARCERIA — e só vai ao banco se ela puder mudar
+    // a resposta (29/08/2026).
+    //
+    // `decidirConvite` julga `token_desconhecido` → `revogado` → `vencido`
+    // ANTES de olhar a parceria: nesses três a parceria é irrelevante, e ler o
+    // banco por ela é uma consulta que não muda desfecho nenhum. Passar a
+    // parceria como `null` nesta primeira volta é seguro justamente porque ela
+    // só pesa no quarto teste — se a resposta for `parceria_nao_esta_viva`, a
+    // decisão ainda NÃO está tomada e a leitura acontece logo abaixo.
+    //
+    // Não é só economia de consulta: é FIDELIDADE DO MOTIVO. Enquanto a leitura
+    // da parceria ficava no caminho de um convite revogado, o motivo verdadeiro
+    // dependia de um `catch` que mora em OUTRO módulo
+    // (`parceriaVivaDoCliente`, em `lib/agency/financeiro/parceria-do-parceiro.ts`,
+    // que absorve a falha e devolve `null`). Bastaria alguém deixar aquele erro
+    // propagar — mudança que parece limpeza — para um convite revogado passar a
+    // relatar `erro_de_banco`. *Alarme que mente sobre a causa é pior que alarme
+    // nenhum*, e a casa acabou de gastar um PR inteiro (#399) para esta recusa
+    // deixar de ser muda. Agora a verdade de `revogado` e `vencido` não depende
+    // de `catch` de terceiro: aquele código não é mais alcançado.
+    const semAParceria = decidirConvite(linha, null, agora);
+    if (semAParceria && semAParceria !== "parceria_nao_esta_viva") {
+      return { convite: null, motivo: semAParceria };
+    }
+
     // A PARCERIA É CONFERIDA AGORA, não na cunhagem. É isto que faz revogar a
     // parceria matar o convite no mesmo instante, sem caçar link nenhum.
-    // Só consulta se o token foi encontrado — sem convite não há clientId a
-    // olhar, e "token_desconhecido" já é a decisão de `decidirConvite`.
-    const parceria = registro ? await autorizacaoViva(registro.clientId, agora) : null;
+    // `registro` é não-nulo aqui por construção: token ausente teria saído
+    // acima como `token_desconhecido`.
+    const parceria = await autorizacaoViva(registro!.clientId, agora);
     const linhaDeParceria: LinhaDeParceria = parceria ? { revogadaEm: null, validaAte: parceria.validaAte } : null;
 
     // A MESMA régua que decide em lote no diagnóstico (`retrato-dos-convites.ts`).
-    // Duas versões desta decisão divergiriam cedo ou tarde.
+    // Duas versões desta decisão divergiriam cedo ou tarde. E é a MESMA chamada
+    // de antes, com os MESMOS argumentos: o que mudou foi QUANDO se lê o banco,
+    // nunca o que se conclui.
     const motivo = decidirConvite(linha, linhaDeParceria, agora);
     if (motivo) return { convite: null, motivo };
 
