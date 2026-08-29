@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const db = vi.hoisted(() => ({
   client: { findUnique: vi.fn() },
   metaConnection: { findFirst: vi.fn() },
-  clientNotice: { create: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+  clientNotice: { create: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
 }));
 const sendWhatsAppMessage = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
@@ -18,7 +18,7 @@ beforeEach(() => {
   db.metaConnection.findFirst.mockResolvedValue({ id: "conn1" });
   db.clientNotice.create.mockResolvedValue({ id: "n1" });
   db.clientNotice.findMany.mockResolvedValue([]);
-  db.clientNotice.update.mockResolvedValue({});
+  db.clientNotice.updateMany.mockResolvedValue({ count: 1 });
   sendWhatsAppMessage.mockResolvedValue({ ok: true });
 });
 
@@ -117,15 +117,18 @@ describe("a fila para o time disparar", () => {
   });
 
   it("marcar como enviado registra quem mandou", async () => {
-    expect(await marcarComoEnviado("n1", "dioli@studio")).toBe(true);
-    const d = db.clientNotice.update.mock.calls[0][0].data;
-    expect(d.status).toBe("enviado");
-    expect(d.channel).toBe("manual");
-    expect(d.sentBy).toBe("dioli@studio");
+    expect(await marcarComoEnviado("n1", "ws1", "dioli@studio")).toBe(true);
+    const chamada = db.clientNotice.updateMany.mock.calls[0][0];
+    expect(chamada.where).toMatchObject({ id: "n1", workspaceId: "ws1" });
+    expect(chamada.data.status).toBe("enviado");
+    expect(chamada.data.channel).toBe("manual");
+    expect(chamada.data.sentBy).toBe("dioli@studio");
   });
 
   it("dispensar sai da fila sem fingir que foi enviado", async () => {
-    expect(await dispensar("n1", "dioli@studio")).toBe(true);
-    expect(db.clientNotice.update.mock.calls[0][0].data.status).toBe("dispensado");
+    expect(await dispensar("n1", "ws1", "dioli@studio")).toBe(true);
+    const chamada = db.clientNotice.updateMany.mock.calls[0][0];
+    expect(chamada.where).toMatchObject({ id: "n1", workspaceId: "ws1" });
+    expect(chamada.data.status).toBe("dispensado");
   });
 });

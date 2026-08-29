@@ -275,3 +275,70 @@ rota não recebe id de recurso pelo corpo/query (só sessão ou nenhum id).
   parceria (autorização humana obrigatória, sem exceção) e os seis itens da
   seção "O QUE NÃO VARRI" (tempo — a casa tem 152 rotas e eu priorizei
   escrita antes de leitura, como o método sugerido pedia).
+
+---
+
+## 🔎 AUDITORIA DO PM — o que eu conferi, e o que eu corrijo neste documento
+
+Saída de especialista não sobe crua. O que segue é o que o PM mediu por conta
+própria, e vale sobre o texto acima onde houver divergência.
+
+### O que conferi e passou
+
+- **A mutação mata o teste, nas duas formas.** Tirando `workspaceId` do `where`
+  de `historicoDaPeca`, `o-historico-da-peca-do-vizinho.test.ts` fica vermelho
+  ("a busca da peça não levou o workspace de quem pergunta"). Voltando ao
+  `findUnique` original, os **três** casos do arquivo ficam vermelhos. O conserto
+  tem quem o mate.
+- **Os furos 2/3/4 são reais** — conferidos à mão. `app/api/agency/parcerias/route.ts`
+  tem guarda de sessão, de papel e de CSRF, e **nenhuma de posse**: o `clientId`
+  do corpo vai direto para `autorizarParceriaDoCliente`. E
+  `lib/agency/financeiro/parceria-do-parceiro.ts` **não menciona `workspaceId`
+  em nenhuma linha** — o modelo `ParceriaDoCliente` não tem essa coluna, então a
+  posse ali só pode ser DERIVADA do `Client`, como foi feito ontem com
+  `BrainUpdate`. A escalação está correta.
+- **Nenhum 403 novo foi introduzido.**
+
+### 🔴 O que eu CORRIJO
+
+**O universo de rotas não é 152. São 188.** O comando abaixo é o que vale:
+
+```sh
+find app/api -name "route.ts" | wc -l   # → 188
+```
+
+Com 45 arquivos examinados, a cobertura da rodada 1 é de **45 de 188 (24%)**, e
+não a fração que o número errado sugeria. **143 rotas não foram citadas.** O
+documento é honesto sobre ter deixado coisa de fora — a seção "O QUE NÃO VARRI"
+existe e é boa —, mas o denominador estava errado, e denominador errado faz
+cobertura parcial parecer cobertura quase completa. É o mesmo defeito que esta
+casa já pagou com "31 checagens" em prosa: número em texto não se corrige sozinho.
+
+### O que fiz com essa lacuna, em vez de declará-la
+
+Triagem mecânica das 143 não citadas, por leitura de corpo/query cruzada com uso
+de id:
+
+```sh
+# as 143 que ficaram de fora, e a triagem entre "candidata" e "descartada"
+find app/api -name "route.ts" | sort > /tmp/todas.txt
+# candidata = lê `.json()` ou `searchParams` E tem `body.<algo>Id` /
+# `searchParams.get("<algo>Id")` ou `where: { id`
+```
+
+Resultado: **46 candidatas** e **97 descartadas** (não recebem id de recurso pela
+requisição). As 46 foram divididas em dois lotes e despachadas em **rodada 2**,
+em paralelo — resultado em `varredura-de-posse-rodada2-lote-A.md` e
+`-lote-B.md`. A cobertura não fica declarada como dívida: fica fechada na mesma
+sessão.
+
+### O defeito de processo que apareceu aqui, e que vale mais que o achado
+
+O teste novo veio com `vi.hoisted(() => vi.fn())` com o **retorno** anotado e o
+**argumento** não. `npx tsc --noEmit` quebrou com dois `TS2493` — exatamente a
+armadilha que o `CLAUDE.md` desta casa descreve, num teste escrito no mesmo dia
+em que a regra foi lida. O especialista **não tem como saber**: a sandbox recusa
+`npx` para ele. Quem roda o portão é o PM, e é por isso que a divisão existe.
+A regra escrita no manual precisa virar linha de código no arquivo de exemplo —
+foi o que se fez em `o-historico-da-peca-do-vizinho.test.ts`, com o comentário
+explicando o porquê no topo do mock, para a próxima cópia já nascer certa.
