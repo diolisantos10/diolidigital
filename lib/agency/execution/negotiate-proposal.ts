@@ -65,5 +65,43 @@ ${priceLine}
 
   const approval = await createApprovalRequest({ clientRequestId, department: "proposal", requestedBy: "SDR", clientVisible: true });
   await prisma.approvalRequest.update({ where: { id: approval.id }, data: { reviewNote: proposalText } });
-  await prisma.clientRequestDb.update({ where: { id: clientRequestId }, data: { status: "scope_ready" } });
+  // ═══ O ESTADO É O DA PROPOSTA NORMAL — E NÃO PODE SER OUTRO ═══════════════
+  //
+  // MEDIDO AO VIVO (29/08/2026, `curl`): esta linha gravava `scope_ready`, e o
+  // cliente que pedia ajuste caía num beco com as duas portas da proposta
+  // dizendo coisas OPOSTAS sobre o mesmo estado, e as duas mentindo:
+  //
+  //   GET  /api/portal/briefing/proposta → `decidivel:false`,
+  //        "a proposta ainda está sendo montada" → a tela não desenha botão;
+  //   POST /api/portal/briefing/aceite   → **409** "Esta proposta já foi
+  //        respondida" — e o cliente nunca respondeu.
+  //
+  // Logo acima desta linha a casa cria um `ApprovalRequest` VISÍVEL ao cliente
+  // com a frase "é só aprovar aqui embaixo que a gente começa". A proposta
+  // ajustada produz, para o cliente, o MESMO artefato que a proposta normal —
+  // então ela tem de nascer no MESMO estado que a proposta normal
+  // (`orcamento-do-briefing.ts`, `status: "proposal_pending"`).
+  //
+  // ⛔ NÃO conserte isto pelo outro lado, acrescentando `scope_ready` a
+  // `ESPERANDO_DECISAO_DA_PROPOSTA`. `scope_ready` é escrito em DOIS lugares
+  // com significados opostos: aqui ("o cliente decide") e em
+  // `lib/dioli-brain/run-auto-scope.ts` ("o cérebro gerou o escopo, a AGÊNCIA
+  // revisa" — é o crachá "N para revisar" de `app/agency/requests/page.tsx`).
+  // Alargar a lista deixaria o cliente aprovar sozinho um escopo que a agência
+  // ainda não viu. Um nome de estado carregando dois fatos opostos é a doença;
+  // alargar a lista espalharia a doença.
+  //
+  // ⚖️ POR QUE `proposal_pending` E NÃO `negotiation`, que também está na lista:
+  // `negotiation` pertence a OUTRO vocabulário. Ele é palavra da máquina V2
+  // (`estados-v2/maquina.ts`), que vive na coluna `estadoCanonico` — coluna
+  // diferente desta. Em `status`, `negotiation` é invisível para a casa
+  // inteira: não está em `ClientRequestStatus` (`client-requests.ts`), não tem
+  // ramo em `esteira/fases.ts` (cairia na SONDAGEM — a mentira dos 27 minutos
+  // de "Conhecendo o seu negócio · 0%"), não está em `ESTADOS_COM_PROPOSTA`
+  // (`esteira/proposta-parada.ts` — a proposta ajustada nunca entraria na
+  // varredura do que está parado), não tem filtro em `/agency/requests` e é
+  // EXPLICITAMENTE dispensado de régua de SLA em
+  // `v2-recovery/detector-de-parados.ts`. Seria trocar um beco por uma fila
+  // invisível. `proposal_pending` é lido pelos cinco.
+  await prisma.clientRequestDb.update({ where: { id: clientRequestId }, data: { status: "proposal_pending" } });
 }
