@@ -1,12 +1,14 @@
 {
   "id": "coordenacao/sentinela-vs-forcada",
-  "quem": "ses-e83d64678d",
-  "frente": "sentinela reprova reivindicacao FORCADA com motivo: decisao registrada deve virar aviso, nunca reprovacao",
+  "quem": "ses-8a8ff505a9",
+  "frente": "honrar a forcada com motivo: colisao forcada vira AVISO ALTO, nao reprovacao do sentinela nem bloqueio de push",
   "responsabilidade": "coordenacao/sentinela-vs-forcada",
   "arquivos": [
     "lib/coordenacao/reivindicacoes.ts",
-    "__tests__/coordenacao/registro-de-reivindicacao.test.ts"
+    "__tests__/coordenacao/forcada-honrada.test.ts",
+    "docs/diagnosticos/a-saida-de-emergencia-que-nao-abre.md"
   ],
-  "abertaEm": "2026-08-16T20:59:46.519Z",
-  "encerradaEm": null
+  "abertaEm": "2026-08-29T03:12:10.422Z",
+  "encerradaEm": null,
+  "rotulo": "ses-pm-forcar"
 }
