@@ -171,36 +171,97 @@ export type ConviteResolvido = {
  * pode ser o que decide o acesso, e uma escrita que falha não pode barrar um
  * parceiro legítimo.
  */
-export async function resolverConviteDeParceria(
+/**
+ * POR QUE um convite não virou parceria.
+ *
+ * `null` significa que virou — resolveu. Todo o resto é uma recusa, e cada
+ * recusa tem nome próprio. Antes disto os cinco caminhos devolviam o mesmo
+ * `null` indistinguível: o parceiro virava visitante anônimo, era cobrado, e a
+ * casa não tinha como saber que isso havia acontecido. *Mecanismo cuja falha é
+ * invisível não é mecanismo seguro — é mecanismo mudo.*
+ *
+ * `sem_token` é o único que NÃO é anormal: é o visitante que chegou sem link,
+ * que é a maioria. Os outros cinco nunca são normais.
+ */
+export type MotivoDaRecusaDoConvite =
+  | "sem_token"
+  | "token_desconhecido"
+  | "revogado"
+  | "vencido"
+  | "parceria_nao_esta_viva"
+  | "erro_de_banco";
+
+export type ConviteExaminado = {
+  convite: ConviteResolvido | null;
+  motivo: MotivoDaRecusaDoConvite | null;
+};
+
+/**
+ * O mesmo exame de sempre, mas ele DIZ o que decidiu.
+ *
+ * A decisão é byte a byte a de antes — fail-closed em todo ramo. O que muda é
+ * que a recusa deixa de ser muda.
+ */
+export async function examinarConviteDeParceria(
   token: unknown,
   agora: Date = new Date(),
-): Promise<ConviteResolvido | null> {
+): Promise<ConviteExaminado> {
   const t = typeof token === "string" ? token.trim() : "";
-  if (!t) return null;
+  if (!t) return { convite: null, motivo: "sem_token" };
   try {
     const convite = await prisma.conviteDeParceria.findUnique({
       where: { token: t },
       select: { id: true, clientId: true, expiraEm: true, revogadoEm: true },
     });
-    if (!convite) return null;
-    if (convite.revogadoEm) return null;
-    if (convite.expiraEm.getTime() <= agora.getTime()) return null;
+    if (!convite) return { convite: null, motivo: "token_desconhecido" };
+    if (convite.revogadoEm) return { convite: null, motivo: "revogado" };
+    if (convite.expiraEm.getTime() <= agora.getTime()) return { convite: null, motivo: "vencido" };
 
     // A PARCERIA É CONFERIDA AGORA, não na cunhagem. É isto que faz revogar a
     // parceria matar o convite no mesmo instante, sem caçar link nenhum.
     const parceria = await autorizacaoViva(convite.clientId, agora);
-    if (!parceria) return null;
+    if (!parceria) return { convite: null, motivo: "parceria_nao_esta_viva" };
 
     // Trilha, depois da decisão e sem poder derrubá-la.
     void prisma.conviteDeParceria
       .update({ where: { id: convite.id }, data: { usos: { increment: 1 }, ultimoUsoEm: agora } })
       .catch(() => { /* trilha não barra parceiro legítimo */ });
 
-    return { clientId: convite.clientId, parceria };
+    return { convite: { clientId: convite.clientId, parceria }, motivo: null };
   } catch {
     // Banco fora do ar = "não sei se é parceria" = CONTINUA PERGUNTANDO.
-    return null;
+    return { convite: null, motivo: "erro_de_banco" };
   }
+}
+
+/**
+ * RESOLVE um convite: token → cliente → isenção viva.
+ *
+ * Devolve `null` em TODO caminho que não seja "este token é bom E a parceria
+ * está viva agora". Quem chama trata `null` como *visitante anônimo* — que é o
+ * comportamento de sempre, e o seguro.
+ *
+ * ⚠️ **Recusa com token na mão nunca é silenciosa.** Quando alguém APRESENTOU
+ * um token e ele não valeu, isto grita no log com marcador estável. É a
+ * diferença entre "ninguém tinha convite" e "um parceiro foi tratado como
+ * estranho" — e foi exatamente essa diferença que a casa não soube ver quando
+ * um parceiro recebeu cobrança na tela.
+ */
+export async function resolverConviteDeParceria(
+  token: unknown,
+  agora: Date = new Date(),
+): Promise<ConviteResolvido | null> {
+  const { convite, motivo } = await examinarConviteDeParceria(token, agora);
+  if (motivo && motivo !== "sem_token") {
+    // Não vaza o token: ele é credencial. Só o motivo e um prefixo curto para
+    // casar com o link que a pessoa diz ter usado.
+    const t = typeof token === "string" ? token.trim() : "";
+    console.warn(
+      `[CONVITE-RECUSADO] motivo=${motivo} prefixo=${t.slice(0, 8)}… ` +
+      `— alguem apresentou um convite e foi tratado como visitante anonimo`,
+    );
+  }
+  return convite;
 }
 
 /** Revoga um convite (o link que vazou). Idempotente. */
