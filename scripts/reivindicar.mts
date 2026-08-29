@@ -77,6 +77,7 @@ import {
   nomeDoArquivo,
   normalizarCaminho,
   normalizarResponsabilidade,
+  TETO_HORAS_PADRAO,
   validarReivindicacao,
   type AncoraDeSessao,
   type Reivindicacao,
@@ -965,7 +966,13 @@ function comandoAbrir(argv: string[]): void {
   };
   if (rotulo) reivindicacao.rotulo = rotulo;
   if (resultado.colide && forcar) {
-    reivindicacao.forcadaPor = { quem, motivo, em: agora.toISOString() };
+    // `contra` (28/08/2026, "a saída que abre") — os `quem` contra os quais
+    // esta força foi exercida. `resultado.quemColidiu` já está calculado
+    // pela conferência de colisão logo acima: é EXATAMENTE o mesmo valor,
+    // não um recálculo. Sem `contra`, esta força nunca seria honrada mais
+    // tarde (nem pelo sentinela, nem pelo gancho pre-push) — ver
+    // `honraForcada` em `lib/coordenacao/reivindicacoes.ts`.
+    reivindicacao.forcadaPor = { quem, motivo, em: agora.toISOString(), contra: resultado.quemColidiu };
   }
   if (infoAncora.degradado && aceitarIdentidadeDegradada) {
     reivindicacao.degradadaPor = { motivo: motivoIdentidadeDegradada, em: agora.toISOString() };
@@ -1163,9 +1170,27 @@ function comandoConferir(argv: string[]): void {
     responsabilidade: `__conferir-apenas-arquivos__/${Date.now()}`,
     arquivos,
   };
-  const resultado = conferirColisao(propostaSomenteArquivos, existentes, new Date());
+  const agoraConferir = new Date();
+  // ── A SAÍDA DE EMERGÊNCIA QUE ABRE (28/08/2026) ────────────────────────────
+  // Aqui a "nova" é a proposta-isca acima — SEM `forcadaPor`, porque quem
+  // está conferindo não é uma reivindicação, é o gancho pre-push. A força
+  // está em reivindicações VIVAS que EU MESMO já gravei no registro remoto
+  // ("quem === quem", esta sessão). Passar essas para `conferirColisao` é o
+  // que faz uma colisão contra `existente` ser HONRADA quando eu já forcei
+  // nomeadamente contra aquele `existente.quem` — sem isso, quem força fica
+  // preso: a reivindicação abre, mas o próprio push que ela protege continua
+  // barrado (ver o diagnóstico em `docs/diagnosticos/`).
+  const forcadasDoAutor = existentes.filter(
+    (r) => r.quem === quem && r.forcadaPor !== undefined && estaViva(r, agoraConferir) === "viva",
+  );
+  const resultado = conferirColisao(propostaSomenteArquivos, existentes, agoraConferir, TETO_HORAS_PADRAO, forcadasDoAutor);
 
   for (const a of resultado.avisos) console.log(`⚠️  ${a}`);
+
+  // `resultado.forcadas` imprime ANTES do desfecho, colidindo ou não — é
+  // registro de que a força foi honrada, nunca uma linha escondida atrás de
+  // um "sem colisão" silencioso.
+  for (const linha of resultado.forcadas) console.log(linha);
 
   // Aviso de vizinhança — ver o comentário na função. Roda sempre, colidindo
   // ou não: é indício, não bloqueio, então não depende de `resultado.colide`.
