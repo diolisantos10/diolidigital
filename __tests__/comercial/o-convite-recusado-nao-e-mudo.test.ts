@@ -161,6 +161,10 @@ describe("a recusa COM token na mão grita; sem token, cala", () => {
 
   it("⛔ o aviso NUNCA carrega o token inteiro: ele é credencial", async () => {
     db.conviteDeParceria.findUnique.mockResolvedValue(null);
+    // Valor inventado aqui mesmo: nunca existiu em lugar nenhum e não abre
+    // nada. Ele existe justamente para PROVAR que o aviso não o publica — a
+    // catraca de segredos e este teste querem exatamente a mesma coisa.
+    // segredo-permitido
     const TOKEN = "tok_secreto_que_vale_como_senha_0123456789";
     await resolverConviteDeParceria(TOKEN, AGORA);
 
