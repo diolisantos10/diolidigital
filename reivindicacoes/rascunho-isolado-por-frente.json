@@ -1,0 +1,15 @@
+{
+  "id": "rascunho-isolado-por-frente",
+  "quem": "ses-c932160562",
+  "frente": "espaco de rascunho isolado por frente: trava contra sobrescrita silenciosa entre sessoes",
+  "responsabilidade": "rascunho-isolado-por-frente",
+  "arquivos": [
+    "lib/rascunho/espaco-da-frente.ts",
+    "__tests__/rascunho/espaco-da-frente.test.ts",
+    "scripts/rascunho.mts",
+    "docs/diagnosticos/o-rascunho-compartilhado-29-08.md"
+  ],
+  "abertaEm": "2026-08-29T05:37:39.626Z",
+  "encerradaEm": null,
+  "rotulo": "pm-rascunho"
+}
