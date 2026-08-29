@@ -1,0 +1,17 @@
+{
+  "id": "seguranca/posse-pagamento-parceria",
+  "quem": "ses-0a159f9505",
+  "frente": "escopo de posse nas cinco rotas de pagamento e parceria (PR rascunho que nao mescla)",
+  "responsabilidade": "seguranca/posse-pagamento-parceria",
+  "arquivos": [
+    "app/api/agency/parcerias/route.ts",
+    "app/api/agency/convites-de-parceria/route.ts",
+    "app/api/admin/isencoes-de-parceria/route.ts",
+    "app/api/admin/pagamentos/route.ts",
+    "__tests__/seguranca",
+    "docs/diagnosticos/os-cinco-consertos-que-esperam-palavra.md"
+  ],
+  "abertaEm": "2026-08-29T02:35:34.257Z",
+  "encerradaEm": null,
+  "rotulo": "pm-cinco-esperam"
+}
