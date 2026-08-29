@@ -92,6 +92,7 @@ describe("o coração: o convite aponta para o cadastro SEM a parceria", () => {
 
   it("(c) o retrato aponta o mesmo convite como 'parceria_nao_esta_viva' E denuncia o grupo — B tem parceria viva, A não", () => {
     const convitesBrutos = [
+      // segredo-permitido: fixture inventada. Convite real é randomBytes(32).base64url (43 caracteres); o banco aqui é vi.mock.
       { token: "tok_do_marcos_1234567890", clientId: CLIENT_A, expiraEm: DEPOIS, revogadoEm: null, usos: 0, ultimoUsoEm: null },
     ];
     const parceriasBrutas = [
@@ -125,6 +126,7 @@ describe("o coração: o convite aponta para o cadastro SEM a parceria", () => {
     const real = await examinarConviteDeParceria("tok_do_marcos", AGORA);
 
     const retrato = montarRetratoDosConvites(
+      // segredo-permitido: a mesma fixture inventada do caso (c), para provar que retrato e exame real concordam. Sem banco real.
       [{ token: "tok_do_marcos_1234567890", clientId: CLIENT_A, expiraEm: DEPOIS, revogadoEm: null, usos: 0, ultimoUsoEm: null }],
       [{ clientId: CLIENT_B, revogadaEm: null, validaAte: DEPOIS }],
       [{ id: CLIENT_A, name: "FOOCCI" }, { id: CLIENT_B, name: "FOOCCI" }],
@@ -233,6 +235,7 @@ describe("(f) o retrato e o exame real concordam, linha a linha", () => {
       expect(real.motivo).toBe(caso.esperado);
 
       const retrato = montarRetratoDosConvites(
+        // segredo-permitido: fixture do laço dos seis motivos — o que se mede é o MOTIVO devolvido, não o valor, que é de mentira.
         [{ token: "tok_1234567890", clientId: CLIENT, expiraEm: caso.convite.expiraEm, revogadoEm: caso.convite.revogadoEm, usos: 0, ultimoUsoEm: null }],
         caso.parceria ? [{ clientId: caso.parceria.clientId, revogadaEm: caso.parceria.revogadaEm, validaAte: caso.parceria.validaAte }] : [],
         [{ id: CLIENT, name: "Qualquer Nome" }],
@@ -250,6 +253,7 @@ describe("(f) o retrato e o exame real concordam, linha a linha", () => {
 describe("(d) o retrato não escreve nada", () => {
   it("nenhum create/update/updateMany/delete foi chamado ao montar o retrato", () => {
     const convitesBrutos = [
+      // segredo-permitido: fixture do caso "o retrato não escreve" — valor inventado para um cliente inventado (cli_1).
       { token: "tok_abc12345", clientId: "cli_1", expiraEm: DEPOIS, revogadoEm: null, usos: 3, ultimoUsoEm: DEPOIS },
       { token: "tok_def67890", clientId: "cli_2", expiraEm: JA_PASSOU, revogadoEm: null, usos: 0, ultimoUsoEm: null },
     ];
