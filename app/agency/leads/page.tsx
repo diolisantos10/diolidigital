@@ -17,6 +17,18 @@
 // A tela NÃO aborda ninguém, não envia mensagem e não escreve nada. O dossiê é
 // determinístico (`lib/agency/comercial/dossie-do-lead.ts`): nenhuma linha aqui
 // é escrita por IA sobre um cliente que ninguém conferiu.
+//
+// ─── A SEGUNDA FONTE (29/08/2026) ───────────────────────────────────────────
+//
+// `GET /api/agency/conversas-sem-pedido` guarda as conversas do SDR que
+// pararam ANTES de virar briefing — inclusive as que a casa PROMETEU
+// responder ("nossa equipe entra em contato") e não cumpriu. A rota existia,
+// provada por grep, e nenhuma tela chamava: trava sem fechadura. A seção
+// "Conversas que pararam na sala", abaixo da lista de leads, é a fechadura.
+//
+// As duas fontes são independentes: uma pode carregar enquanto a outra falha,
+// e cada uma trata os três estados (carregando / vazio / não medido) sozinha
+// — misturar os dois estados numa tela só é o mesmo erro, em dobro.
 
 import { useCallback, useEffect, useState } from "react";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
@@ -32,29 +44,143 @@ type Resposta =
    *  exatamente como esta fila ficou invisível por sete semanas. */
   | { estado: "nao_medido"; motivo: string };
 
+/** Uma linha de `GET /api/agency/conversas-sem-pedido` — ver o cabeçalho da
+ *  rota para o porquê de cada campo. Só os campos que esta tela usa entram
+ *  aqui; `clienteDoConvite`, `atribuicao` e `dono` existem na rota para quem
+ *  atribui (fora do escopo desta rodada, que é só leitura). */
+export type ConversaParada = {
+  fio: string;
+  turnos: number;
+  /** ISO. */
+  paradaEm: string;
+  contato: { nome?: string; email?: string; whatsapp?: string } | null;
+  /** O que o SDR acumulou — forma livre, nunca despejada crua na tela. */
+  escopo: Record<string, unknown>;
+  /** Já vem pronta da rota (`proximaAcaoDoRastro`). Não se reescreve aqui. */
+  proximaAcao: string;
+  /** Quando a casa prometeu contato humano pela primeira vez. `null` = nunca
+   *  prometeu. `venceEm` NÃO existe neste tipo de propósito — a rota devolve
+   *  sempre `null` porque não há SLA ratificado, e esta tela não inventa um. */
+  prometidoEm: string | null;
+};
+
+export type RespostaConversasParadas =
+  | { estado: "carregando" }
+  | { estado: "ok"; total: number; conversas: ConversaParada[] }
+  /** Mesma lei da fila de leads: falha de leitura NUNCA vira lista vazia. */
+  | { estado: "nao_medido"; motivo: string };
+
+/**
+ * A ORDEM DA FILA DE DÍVIDA — dívida mais velha primeiro, sempre.
+ *
+ * `GET /api/agency/conversas-sem-pedido` devolve `timestamp: desc` (mais
+ * recente primeiro) porque essa é a ordem certa para o contrato PRÓPRIO da
+ * rota, documentado nela, e que serve mais de um leitor — não se mexe lá por
+ * causa de uma tela. Esta função ordena de novo, no cliente, só para a leitura
+ * que esta seção faz: uma fila de dívida, onde o cabeçalho da página já
+ * promete "o mais antigo em cima".
+ *
+ * A regra: quem tem promessa (`prometidoEm`) vem primeiro — é dívida que a
+ * casa criou por conta própria, ao dizer "entramos em contato" — da promessa
+ * MAIS ANTIGA para a mais nova; depois vêm as sem promessa, da parada mais
+ * antiga para a mais nova. Sem promessa no topo inverteria a régua: quem
+ * ainda não recebeu nada da casa não pode furar a fila de quem já recebeu uma
+ * palavra e está esperando ela ser cumprida.
+ *
+ * Nunca muta o array recebido — quem chama pode reusar `resposta.conversas`
+ * depois, e mutar aqui seria um efeito colateral escondido numa função que
+ * parece só de leitura.
+ */
+export function ordemDaFila(conversas: ConversaParada[]): ConversaParada[] {
+  return [...conversas].sort((a, b) => {
+    if (a.prometidoEm && b.prometidoEm) {
+      return new Date(a.prometidoEm).getTime() - new Date(b.prometidoEm).getTime();
+    }
+    if (a.prometidoEm && !b.prometidoEm) return -1;
+    if (!a.prometidoEm && b.prometidoEm) return 1;
+    return new Date(a.paradaEm).getTime() - new Date(b.paradaEm).getTime();
+  });
+}
+
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+
+/**
+ * A FONTE DE `/api/agency/leads`, extraída para fora do componente.
+ *
+ * Mesma razão da irmã abaixo (`carregarConversasParadas`): esta casa não tem
+ * jsdom (`vitest.config.ts` usa `environment: "node"`), então `useEffect`
+ * nunca roda em teste. Extraindo o `fetch` para uma função pura e exportada,
+ * o teste de comportamento chama ela direto — sem precisar montar o React.
+ */
+export async function carregarLeads(): Promise<Resposta> {
+  try {
+    const resp = await fetch("/api/agency/leads");
+    const body = await resp.json();
+    if (!resp.ok || body?.medido !== true) {
+      return { estado: "nao_medido", motivo: body?.motivo ?? "a lista de interessados não pôde ser lida agora" };
+    }
+    return { estado: "ok", leads: body.leads ?? [], semContato: body.semContato ?? 0 };
+  } catch {
+    return { estado: "nao_medido", motivo: "não consegui falar com o servidor — esta lista não é zero, é desconhecida" };
+  }
+}
+
+/**
+ * A FONTE DE `/api/agency/conversas-sem-pedido`, extraída para fora do
+ * componente.
+ *
+ * ⚠️ POR QUE ISTO EXISTE (29/08/2026, rodada 2 do despacho `interface`): o
+ * teste anterior provava que `SecaoConversasParadas` RENDERIZA quando recebe
+ * `resposta` por prop — nunca que `LeadsPage` chama esta rota. Se alguém
+ * apagasse o `fetch`, a suíte continuava verde e a fila voltava a ser
+ * invisível: a mesma "trava sem fechadura" que esta seção existe para
+ * fechar, um nível abaixo. Extraindo o `fetch` para uma função pura e
+ * exportada, o teste de comportamento (`__tests__/agency/promessa/`) chama
+ * ela direto, com um duplo de `fetch`, e prova a URL, os três estados e o
+ * corpo mal formado — sem depender de jsdom, que esta casa não tem.
+ */
+export async function carregarConversasParadas(): Promise<RespostaConversasParadas> {
+  try {
+    const resp = await fetch("/api/agency/conversas-sem-pedido");
+    const body = await resp.json();
+    if (!resp.ok || !Array.isArray(body?.conversas)) {
+      return {
+        estado: "nao_medido",
+        motivo: body?.error ?? "as conversas que pararam na sala não puderam ser lidas agora",
+      };
+    }
+    return { estado: "ok", total: body.total ?? body.conversas.length, conversas: body.conversas };
+  } catch {
+    return {
+      estado: "nao_medido",
+      motivo: "não consegui falar com o servidor — esta lista não é zero, é desconhecida",
+    };
+  }
+}
 
 export default function LeadsPage() {
   const [r, setR] = useState<Resposta>({ estado: "carregando" });
   const [aberto, setAberto] = useState<string | null>(null);
+  const [conversas, setConversas] = useState<RespostaConversasParadas>({ estado: "carregando" });
 
   const carregar = useCallback(async () => {
     setR({ estado: "carregando" });
-    try {
-      const resp = await fetch("/api/agency/leads");
-      const body = await resp.json();
-      if (!resp.ok || body?.medido !== true) {
-        setR({ estado: "nao_medido", motivo: body?.motivo ?? "a lista de interessados não pôde ser lida agora" });
-        return;
-      }
-      setR({ estado: "ok", leads: body.leads ?? [], semContato: body.semContato ?? 0 });
-    } catch {
-      setR({ estado: "nao_medido", motivo: "não consegui falar com o servidor — esta lista não é zero, é desconhecida" });
-    }
+    setR(await carregarLeads());
+  }, []);
+
+  // Fonte independente da acima: se `/api/agency/leads` falhar, esta lista
+  // continua carregando normalmente, e vice-versa — nenhuma das duas espera
+  // pela outra nem herda o estado dela.
+  const carregarConversas = useCallback(async () => {
+    setConversas({ estado: "carregando" });
+    setConversas(await carregarConversasParadas());
   }, []);
 
   useEffect(() => { void carregar(); }, [carregar]);
+  useEffect(() => { void carregarConversas(); }, [carregarConversas]);
+
+  const semContatoBadge = r.estado === "ok" && r.semContato > 0 ? `${r.semContato} sem forma de contato` : null;
 
   return (
     <div className="max-w-[900px]">
@@ -63,10 +189,16 @@ export default function LeadsPage() {
         title="Quem procurou a Dioli"
         subtitle="Briefings que chegaram pela porta pública e ainda não viraram cliente. O mais antigo em cima."
         meta={
-          r.estado === "ok" && r.semContato > 0 ? (
-            // Mesmo `Selo` dos cartões: duas cópias da mesma pílula no mesmo
-            // arquivo divergem na primeira vez que alguém ajustar uma delas.
-            <Selo tom="danger">{r.semContato} sem forma de contato</Selo>
+          semContatoBadge ? (
+            <div className="flex flex-wrap gap-2">
+              {/* Mesmo `Selo` dos cartões: duas cópias da mesma pílula no
+                  mesmo arquivo divergem na primeira vez que alguém ajustar
+                  uma delas. "N com promessa de contato pendente" NÃO mora
+                  aqui — ver `SecaoConversasParadas`: esse total é da lista de
+                  BAIXO, e ficar aqui em cima (achado do `experiencia` em
+                  29/08/2026) lia como um segundo total da lista de CIMA. */}
+              <Selo tom="danger">{semContatoBadge}</Selo>
+            </div>
           ) : undefined
         }
       />
@@ -111,8 +243,220 @@ export default function LeadsPage() {
           ))}
         </div>
       )}
+
+      <SecaoConversasParadas resposta={conversas} onTentarDeNovo={() => void carregarConversas()} />
     </div>
   );
+}
+
+/**
+ * "CONVERSAS QUE PARARAM NA SALA" — a segunda fonte desta tela.
+ *
+ * Exportada para o teste renderizar direto, com `resposta` passada à mão nos
+ * três estados — mesmo modelo de `AvisosDeOrcamentoView`
+ * (`app/agency/avisos-de-orcamento/page.tsx`): a aparência não chama `fetch`.
+ */
+export function SecaoConversasParadas({
+  resposta,
+  onTentarDeNovo,
+}: {
+  resposta: RespostaConversasParadas;
+  onTentarDeNovo: () => void;
+}) {
+  // O selo mora AQUI, não no `AgencyHeader` da página: o total é desta
+  // lista (de BAIXO), e até 29/08/2026 ele vivia no cabeçalho — que fala da
+  // lista de CIMA. Dois totais de filas diferentes no mesmo cabeçalho.
+  // Achado do `experiencia`; conserto do `interface`.
+  const prometidasPendentes = resposta.estado === "ok" ? resposta.conversas.filter((c) => c.prometidoEm !== null).length : 0;
+
+  return (
+    <div className="mt-10">
+      <div className="mb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-[16px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">
+            Conversas que pararam na sala
+          </h2>
+          {prometidasPendentes > 0 && (
+            <Selo tom="warning">{prometidasPendentes} com promessa de contato pendente</Selo>
+          )}
+        </div>
+        <p className="text-[13px] text-[var(--text-muted)] mt-1 leading-relaxed">
+          Conversas do SDR que pararam antes de virar briefing — inclusive as que a casa prometeu retomar.
+        </p>
+      </div>
+
+      {resposta.estado === "carregando" && (
+        <div className="space-y-3">
+          {[0, 1].map((i) => (
+            <div key={i} className="h-[112px] rounded-[12px] border border-[var(--border)] bg-[var(--bg)] animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {resposta.estado === "nao_medido" && (
+        <div role="alert" className="rounded-[12px] border border-[var(--danger)] bg-[var(--danger-bg)] px-5 py-4">
+          <p className="text-[13px] font-semibold text-[var(--danger)]">Não consegui ler esta fila</p>
+          <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed">{resposta.motivo}</p>
+          <button
+            onClick={() => onTentarDeNovo()}
+            style={{ touchAction: "manipulation" }}
+            className="mt-3 h-9 px-4 rounded-[8px] border border-[var(--border)] bg-white text-[13px] font-medium text-[var(--text-primary)]"
+          >
+            Tentar de novo
+          </button>
+        </div>
+      )}
+
+      {resposta.estado === "ok" && resposta.conversas.length === 0 && (
+        <EmptyState
+          title="Nenhuma conversa parada"
+          description="Toda conversa que o SDR teve virou briefing ou ainda está em andamento. Quando uma parar sem virar pedido, ela aparece aqui."
+        />
+      )}
+
+      {resposta.estado === "ok" && resposta.conversas.length > 0 && (
+        <div className="space-y-3">
+          {/* `ordemDaFila`: dívida mais velha em cima, como o cabeçalho da
+              página promete. A rota devolve `timestamp: desc`; a ordenação
+              de fila mora aqui, não nela — ver o comentário da função. */}
+          {ordemDaFila(resposta.conversas).map((c) => (
+            <CartaoConversaParada key={c.fio} conversa={c} />
+          ))}
+        </div>
+      )}
+
+      {resposta.estado === "ok" && resposta.conversas.length > 0 && (
+        <p className="text-[12px] text-[var(--text-subtle)] mt-3 leading-relaxed">
+          A casa ainda não ratificou em quantas horas responde — por isso esta lista mostra há quanto
+          tempo, não atraso.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CartaoConversaParada({ conversa }: { conversa: ConversaParada }) {
+  const semContato = !conversa.contato || (!conversa.contato.email && !conversa.contato.whatsapp);
+  const diasParada = diasDesde(conversa.paradaEm);
+  const diasPrometido = conversa.prometidoEm ? diasDesde(conversa.prometidoEm) : null;
+
+  return (
+    <div
+      className={`rounded-[12px] border bg-white px-4 sm:px-5 py-4 ${semContato ? "border-[var(--danger)]" : "border-[var(--border)]"}`}
+    >
+      <div className="min-w-0">
+        {conversa.contato?.nome ? (
+          <p className="text-[15px] font-semibold text-[var(--text-primary)] truncate">{conversa.contato.nome}</p>
+        ) : (
+          <p className="text-[13px] text-[var(--text-subtle)] italic truncate">Nome não informado</p>
+        )}
+        <p className="text-[13px] text-[var(--text-muted)] mt-0.5">
+          {conversa.turnos} turno{conversa.turnos === 1 ? "" : "s"} · parada há {diasParada} dia
+          {diasParada === 1 ? "" : "s"}
+        </p>
+      </div>
+
+      {/* Contato SEMPRE primeiro — a mesma régua do cartão de lead acima:
+          "dá para falar com ele?" é a pergunta que decide tudo, e some ela
+          entre outros selos é o defeito que aquele cartão já corrigiu uma
+          vez. */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {semContato ? (
+          <Selo tom="danger">Sem como falar com esta pessoa</Selo>
+        ) : (
+          <Selo tom="success">
+            {[conversa.contato?.whatsapp ? "WhatsApp" : null, conversa.contato?.email ? "E-mail" : null]
+              .filter(Boolean)
+              .join(" · ")}
+          </Selo>
+        )}
+        {/* O DESTAQUE DA TELA: a dívida da casa, não um atraso medido —
+            `venceEm` não existe (ver o tipo `ConversaParada`), então o selo
+            nunca fala de prazo, só do fato observável. */}
+        {diasPrometido !== null && (
+          <Selo tom="warning">
+            ⚑ Prometemos contato há {diasPrometido} dia{diasPrometido === 1 ? "" : "s"}
+          </Selo>
+        )}
+      </div>
+
+      {/* ⛔ SÓ TEXTO — NUNCA `<a href>`/`onClick`/`mailto:`/`wa.me`. Esta tela
+          é somente leitura; um clique que abre canal com pessoa real é ação
+          de produção, fora do escopo desta rodada. O selo acima só dizia a
+          PALAVRA ("WhatsApp"/"E-mail"); quem quisesse cumprir a promessa
+          tinha de sair da tela e caçar o número no banco (achado do
+          `experiencia`, 29/08/2026). `break-all` porque o valor é imprimido
+          como veio — sem máscara, sem truncar — e um número/e-mail longo não
+          pode estourar o cartão a 375px. */}
+      {!semContato && (
+        <div className="mt-2 space-y-0.5">
+          {conversa.contato?.whatsapp && (
+            <p className="text-[13px] text-[var(--text-secondary)] break-all">
+              WhatsApp: {conversa.contato.whatsapp}
+            </p>
+          )}
+          {conversa.contato?.email && (
+            <p className="text-[13px] text-[var(--text-secondary)] break-all">
+              E-mail: {conversa.contato.email}
+            </p>
+          )}
+        </div>
+      )}
+
+      <p className="text-[13px] text-[var(--text-secondary)] mt-3 leading-relaxed">
+        {resumoDoEscopo(conversa.escopo)}
+      </p>
+
+      {/* `proximaAcao` já vem pronta da rota (`proximaAcaoDoRastro`) — nunca
+          reescrita aqui, para que quem atende leia exatamente o que o
+          servidor concluiu do estado do rastro. */}
+      <p className="text-[13px] text-[var(--text-primary)] mt-2 leading-relaxed">{conversa.proximaAcao}</p>
+    </div>
+  );
+}
+
+/** Dias corridos desde um ISO, nunca negativo — relógio do cliente pode
+ *  divergir por segundos do servidor. */
+function diasDesde(iso: string): number {
+  const ms = Date.now() - new Date(iso).getTime();
+  return Math.max(0, Math.floor(ms / 86_400_000));
+}
+
+/**
+ * RESUMO CURTO DO ESCOPO — nunca despeja o JSON cru na tela.
+ *
+ * `escopo` é o que o SDR acumulou (`BriefingScope`, ver `lib/agency/sdr-agent.ts`),
+ * mas chega aqui como forma livre — a rota não valida a forma, só repassa o que
+ * foi gravado. Lê defensivamente: nenhum campo é obrigatório, e um objeto vazio
+ * ou de formato inesperado vira a frase de ausência, nunca um erro de render.
+ */
+function resumoDoEscopo(escopo: Record<string, unknown>): string {
+  const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
+
+  const negocio = texto(escopo.businessName) ?? texto(escopo.prospectName);
+  const segmento = texto(escopo.segment);
+
+  const servicos: string[] = [];
+  if (escopo.wantsSocialMedia) servicos.push("redes sociais");
+  if (escopo.wantsPaidTraffic) servicos.push("tráfego pago");
+  const branding = escopo.branding;
+  if (branding && typeof branding === "object" && (branding as Record<string, unknown>).requested) {
+    servicos.push("identidade visual");
+  }
+  if (servicos.length === 0 && Array.isArray(escopo.objectives)) {
+    for (const o of escopo.objectives) {
+      if (typeof o === "string" && o.trim()) servicos.push(o.trim());
+    }
+  }
+
+  if (!negocio && !segmento && servicos.length === 0) {
+    return "Nenhum detalhe contado antes de a conversa parar.";
+  }
+
+  const cabecalho = negocio ?? "negócio não identificado";
+  const rotulo = segmento ? `${cabecalho} (${segmento})` : cabecalho;
+  const parte2 = servicos.length > 0 ? servicos.join(", ") : "sem serviço declarado ainda";
+  return `${rotulo} — ${parte2}`;
 }
 
 function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolean; onToggle: () => void }) {
@@ -399,7 +743,7 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
 }
 
 /**
- * A pílula de estado do cartão — uma geometria só para os três tons.
+ * A pílula de estado do cartão — uma geometria só para os quatro tons.
  *
  * 🔴 **POR QUE A ALTURA DEIXOU DE SER FIXA.** As três nasceram com `h-6`, altura
  * travada em 24px. Medido a 375px, o carimbo mais longo de hoje ocupa 240px dos
@@ -410,11 +754,12 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
  * longa ou o zoom de fonte do sistema. `min-h` + `py` deixa o fundo crescer com
  * o texto; `max-w-full` impede que a pílula ultrapasse o cartão.
  */
-function Selo({ tom, children }: { tom: "danger" | "success" | "info"; children: React.ReactNode }) {
+function Selo({ tom, children }: { tom: "danger" | "success" | "info" | "warning"; children: React.ReactNode }) {
   const cor = {
     danger:  "bg-[var(--danger-bg)] text-[var(--danger)]",
     success: "bg-[var(--success-bg)] text-[var(--success)]",
     info:    "bg-[var(--info-bg)] text-[var(--info)]",
+    warning: "bg-[var(--warning-bg)] text-[var(--warning)]",
   }[tom];
   return (
     <span

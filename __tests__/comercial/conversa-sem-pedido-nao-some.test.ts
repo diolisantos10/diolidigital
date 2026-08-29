@@ -246,6 +246,12 @@ describe("a lista das conversas paradas", () => {
     const base = {
       fio: "sdr:a", escopo: {}, turnos: 3, paradaEm: new Date(),
       clienteDoConvite: null, atribuicao: null, workspaceId: "ws_1",
+      // `prometidoEm` entrou em 29/08/2026 (o carimbo de quando a casa
+      // prometeu contato). Aqui é `null` de propósito: estes quatro casos
+      // medem a ação derivada do CONTATO, sem promessa nenhuma no meio. A
+      // frase que muda quando há promessa tem teste próprio, em
+      // `__tests__/agency/promessa/`.
+      prometidoEm: null,
     };
 
     expect(proximaAcaoDoRastro({ ...base, contato: { email: "m@x.invalid" } })).toContain("e-mail");
