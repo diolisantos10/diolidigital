@@ -1,0 +1,15 @@
+{
+  "id": "integracoes-hidratacao-e-appid",
+  "quem": "ses-26db9e3919",
+  "frente": "Conserto de hidratacao e App ID de exemplo na tela de integracoes, e medicao das duas telas que faltam ao App Review",
+  "responsabilidade": "integracoes-hidratacao-e-appid",
+  "arquivos": [
+    "app/agency/integrations/page.tsx",
+    "components/agency/MetaConnectManager.tsx",
+    "lib/agency/integrations.ts",
+    "docs/plataformas/meta/o-que-falta-para-as-duas-permissoes.md"
+  ],
+  "abertaEm": "2026-08-29T02:32:59.982Z",
+  "encerradaEm": null,
+  "rotulo": "ses-integracoes-hidr"
+}
