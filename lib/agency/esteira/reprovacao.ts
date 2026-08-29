@@ -185,11 +185,29 @@ function frase(volta: number, novas: string[], escalado: boolean): string {
   );
 }
 
-/** O histórico de uma peça: quantas voltas levou e por quê. É o que responde
- *  "por que esta peça está na quarta versão?" sem ninguém precisar lembrar. */
-export async function historicoDaPeca(postId: string): Promise<Array<{ quando: Date; oQueDisseram: string }>> {
-  const post = await prisma.socialPost.findUnique({
-    where: { id: postId }, select: { workspaceId: true },
+/**
+ * O histórico de uma peça: quantas voltas levou e por quê. É o que responde
+ * "por que esta peça está na quarta versão?" sem ninguém precisar lembrar.
+ *
+ * ⛔ O WORKSPACE DE QUEM PERGUNTA — da SESSÃO, nunca do corpo.
+ *
+ * Até a varredura de 29/08, esta função buscava a peça com
+ * `findUnique({ where: { id: postId } })` — sem workspace — e usava o
+ * `workspaceId` DO PRÓPRIO POST ALHEIO para procurar os eventos. Ou seja:
+ * qualquer sessão lia o histórico de reprovação de peça de qualquer
+ * inquilino. Já estava DECLARADO como aberto na varredura de 28/08
+ * (`docs/diagnosticos/varredura-de-posse-28-08.md`, item 2) — leitura entre
+ * clientes também é vazamento, e o adiamento tinha prazo, não era permanente.
+ *
+ * O escopo agora vai no `where` da própria busca da peça: sem ele nunca se
+ * chega ao `workspaceId` alheio, porque a peça alheia nunca é encontrada.
+ */
+export async function historicoDaPeca(
+  postId: string,
+  workspaceId: string,
+): Promise<Array<{ quando: Date; oQueDisseram: string }>> {
+  const post = await prisma.socialPost.findFirst({
+    where: { id: postId, workspaceId }, select: { workspaceId: true },
   }).catch(() => null);
   if (!post) return [];
 

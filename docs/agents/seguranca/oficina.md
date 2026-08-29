@@ -75,3 +75,66 @@ chamada à Meta**. Reconstrói a escolha determinística do código antigo a par
 de `MetaConnection` e `SocialPost` e classifica cada anúncio já criado em
 limpo / com ativo de outro / **ambíguo**. Ambíguo não vira limpo: vira "não
 medido" e conferência à mão.
+
+---
+
+## 2026-08-29 — posse no CORPO e na QUERY STRING (continuação da varredura de 28/08)
+
+**Origem:** ficha `.fichas/posse-no-corpo.md`, despachada pelo PM depois de a
+varredura de 28/08 declarar que só cobriu path params. **Documento completo:**
+`docs/diagnosticos/varredura-de-posse-no-corpo-29-08.md`.
+
+### O achado que estava DECLARADO e eu fechei
+
+`historicoDaPeca(postId)` (`lib/agency/esteira/reprovacao.ts`) buscava a peça
+sem workspace e depois lia o `workspaceId` **do próprio post alheio** para
+filtrar os eventos — o filtro de posse existia, mas a fonte dele era o dado
+que deveria estar protegido. Passou a exigir `workspaceId` obrigatório, no
+`where` da busca da peça. Teste novo:
+`__tests__/seguranca/o-historico-da-peca-do-vizinho.test.ts`.
+
+### O achado que NÃO fechei, e por que isso é o ponto certo desta entrada
+
+Três rotas da família "parceria" (`agency/parcerias`,
+`agency/convites-de-parceria`, `admin/isencoes-de-parceria`) recebem
+`clientId`/`clientRequestId` pelo corpo ou pela query e **não conferem
+workspace nenhum**, em lugar algum — nem antes, nem no `where`. Qualquer
+`master`/`project_manager` de qualquer workspace desta casa concede, revoga
+ou isenta parceria (leia-se: isenção de pagamento + teto de gasto de IA) de
+cliente de **outra agência**.
+
+Eu tenho escrita. Eu não consertei. A minha própria constituição
+(`docs/kit/23-constituicao-dos-essenciais.md`, SEGURANÇA §3 e §8) exige
+autorização humana para "qualquer correção que toque pagamento ou integração
+com parceiro" — sem exceção por achado ser pequeno ou por eu já ter a mão no
+arquivo ao lado. Registro isto na oficina, e não só no documento, porque é o
+primeiro caso real (não hipotético) em que a trava da minha própria régua me
+parou — e é exatamente esse o comportamento que a régua existe para produzir.
+
+### O que aprendi, e vale para a próxima varredura
+
+1. **A família "parceria/isenção/convite" nasceu em 27/08 sob pressão de
+   "seis travas sem fechadura em 24 horas"** — o foco de quem escreveu era
+   fazer a porta EXISTIR (ver os cabeçalhos dos três arquivos). Posse entre
+   workspaces não estava na lista de preocupação daquele dia. **Toda vez que
+   uma trava nasce resolvendo "isto nunca pôde ser acionado", vale conferir
+   se ela também resolveu "e por quem".**
+2. **`findUnique`/`upsert` por uma chave que não é `workspaceId` (aqui,
+   `clientId` como chave primária de `ParceriaDoCliente`) é o mesmo padrão de
+   sempre, com uma cara nova**: a chave única do modelo (`@unique` no schema)
+   tenta a escrever `where: { clientId }` sozinho, porque "funciona" — e
+   funciona para qualquer `clientId`, de qualquer casa.
+3. **Nem todo furo fechado é meu para fechar.** A régua "faço sozinho quando é
+   reversível" tem uma exceção que não é sobre reversibilidade: é sobre
+   **domínio do dano** (pagamento, parceiro). Isto já estava escrito; esta
+   entrada é a primeira vez que apareceu um caso real para testá-la.
+
+### Irmãos do mesmo defeito, medidos e NÃO varridos (fora do tempo desta rodada)
+
+Ver a seção "O QUE NÃO VARRI" do documento — em resumo: as rotas
+`app/api/admin/*` restantes (reverter-aprovação, refazer-com-direção,
+produzir-peças, recompor-peças, cards-de-aprovação, reconciliar-drive,
+training/sdr), `self-serve/assinatura` e `self-serve/order` (públicas, sem
+workspace — mas também tocam pagamento, mesma trava), o resto de
+`app/api/meta/*` e `app/api/google/*`, `ai-keys`, `financeiro`, `capacidades`,
+`pulso`, `top-down`, `produto-tecnologia`.
