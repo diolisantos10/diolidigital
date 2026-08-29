@@ -1,0 +1,14 @@
+{
+  "id": "esteira-preco-negociado-fonte-unica",
+  "quem": "ses-69fa836d5e",
+  "frente": "o preco negociado vira O preco: fonte unica lida por todos, e o valor aprovado registrado no aceite",
+  "responsabilidade": "esteira-preco-negociado-fonte-unica",
+  "arquivos": [
+    "lib/agency/execution/negotiate-proposal.ts",
+    "lib/agency/esteira/orcamento-do-briefing.ts",
+    "app/api/portal/briefing/proposta/route.ts"
+  ],
+  "abertaEm": "2026-08-29T23:22:03.147Z",
+  "encerradaEm": null,
+  "rotulo": "sala-convite-2908"
+}
