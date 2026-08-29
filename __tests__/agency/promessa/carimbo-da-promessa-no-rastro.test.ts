@@ -55,7 +55,11 @@ describe("o rastro nasce com o carimbo certo", () => {
     });
     expect(ok).toBe(true);
     const carga = cargaCriada();
-    expect(carga.v).toBe(4);
+    // A versão da carga é CONTRATO, e este `toBe` é um arame de tropeço de
+    // propósito: subir a versão tem de ser ato consciente de quem sobe, com o
+    // leitor das versões antigas ajustado no mesmo commit. `4` virou `5` em
+    // 29/08/2026, quando o ato "a casa contatou esta pessoa" entrou na carga.
+    expect(carga.v).toBe(5);
     expect(typeof carga.prometidoEm).toBe("string");
     expect(new Date(carga.prometidoEm as string).toString()).not.toBe("Invalid Date");
   });

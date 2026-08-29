@@ -100,6 +100,13 @@ beforeEach(() => {
 
 describe("o link montado é o que a porta aceita", () => {
   it("com PortalAccess vivo, o link termina com AQUELE token, e a porta aceita", async () => {
+    // "tok-vivo-123" é um token FALSO, de uma tabela falsa, que nunca existiu em
+    // banco nenhum. Ele precisa ser LITERAL aqui porque o teste prova que o link
+    // montado termina exatamente neste token e que a porta o aceita — um valor
+    // sorteado não provaria a identidade entre os dois lados, que é a coisa toda
+    // que este arquivo existe para medir. A isenção é de LINHA, e por isso a marca
+    // fica coladinha na linha que ela isenta:
+    // segredo-permitido
     const acesso = novoAcesso({ token: "tok-vivo-123", clientId: "c1" });
     estado.acessos = [acesso];
 
@@ -114,6 +121,13 @@ describe("o link montado é o que a porta aceita", () => {
   it("um link montado a partir de um cuid AVULSO (o formato antigo de Client.portalToken) é RECUSADO", async () => {
     // Simula exatamente o defeito de 15/08: um token que nunca foi gravado em
     // PortalAccess — porque veio de outra coluna, gerada independentemente.
+    // "tok-vivo-123" é um token FALSO, de uma tabela falsa, que nunca existiu em
+    // banco nenhum. Ele precisa ser LITERAL aqui porque o teste prova que o link
+    // montado termina exatamente neste token e que a porta o aceita — um valor
+    // sorteado não provaria a identidade entre os dois lados, que é a coisa toda
+    // que este arquivo existe para medir. A isenção é de LINHA, e por isso a marca
+    // fica coladinha na linha que ela isenta:
+    // segredo-permitido
     estado.acessos = [novoAcesso({ token: "tok-vivo-123", clientId: "c1" })];
 
     const cuidQueNuncaFoiEmitidoAqui = "ckxx000000000000clientptoken";

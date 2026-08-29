@@ -60,6 +60,10 @@ const CONVERSA_PROMETIDA: ConversaParada = {
   escopo: { businessName: "Foocci", segment: "Restaurante", wantsSocialMedia: true },
   proximaAcao: "A casa PROMETEU contato e ainda não cumpriu — responder por WhatsApp é dívida, não sugestão.",
   prometidoEm: "2026-08-26T12:00:00.000Z", // há 3 dias
+  contatadoEm: null,
+  contatadoPor: null,
+  clienteDoConvite: null,
+  atribuicao: null,
 };
 
 const CONVERSA_SEM_PROMESSA: ConversaParada = {
@@ -70,6 +74,10 @@ const CONVERSA_SEM_PROMESSA: ConversaParada = {
   escopo: { businessName: "Loja X" },
   proximaAcao: "Sem contato nenhum. O rastro serve para medir quantas conversas morrem na sala, não para retomar esta.",
   prometidoEm: null,
+  contatadoEm: null,
+  contatadoPor: null,
+  clienteDoConvite: null,
+  atribuicao: null,
 };
 
 const CONVERSA_SO_EMAIL: ConversaParada = {
@@ -80,6 +88,10 @@ const CONVERSA_SO_EMAIL: ConversaParada = {
   escopo: { businessName: "Camila Studio" },
   proximaAcao: "Retomar por e-mail.",
   prometidoEm: null,
+  contatadoEm: null,
+  contatadoPor: null,
+  clienteDoConvite: null,
+  atribuicao: null,
 };
 
 const CONVERSA_OS_DOIS: ConversaParada = {
@@ -90,6 +102,59 @@ const CONVERSA_OS_DOIS: ConversaParada = {
   escopo: { businessName: "Beatriz Co" },
   proximaAcao: "Retomar pelo canal que preferir.",
   prometidoEm: null,
+  contatadoEm: null,
+  contatadoPor: null,
+  clienteDoConvite: null,
+  atribuicao: null,
+};
+
+// ── AS DUAS FIXAS NOVAS DA RODADA "A FILA DEIXA DE SER SÓ LEITURA" ──────────
+
+const CONVERSA_CONTATADA: ConversaParada = {
+  fio: "sdr:ja-contatada",
+  turnos: 3,
+  paradaEm: "2026-08-24T12:00:00.000Z", // há 5 dias
+  contato: { nome: "Sushi Cazza", whatsapp: "5511977776666" },
+  escopo: { businessName: "Sushi Cazza" },
+  proximaAcao: "Já contatada.",
+  prometidoEm: "2026-08-23T12:00:00.000Z", // tinha promessa — mas já foi paga
+  contatadoEm: "2026-08-26T12:00:00.000Z", // há 3 dias
+  contatadoPor: "user_abc123",
+  clienteDoConvite: null,
+  atribuicao: null,
+};
+
+const CONVERSA_COM_CLIENTE_DO_CONVITE: ConversaParada = {
+  fio: "sdr:convite-camila",
+  turnos: 4,
+  paradaEm: "2026-08-27T12:00:00.000Z",
+  contato: { nome: "Camila Pereira", email: "camila@example.com" },
+  escopo: { businessName: "Camila Pereira" },
+  proximaAcao: "Cliente já derivado pelo convite — falta confirmar.",
+  prometidoEm: null,
+  contatadoEm: null,
+  contatadoPor: null,
+  clienteDoConvite: "client_camila_1",
+  atribuicao: null,
+};
+
+const CONVERSA_JA_ATRIBUIDA: ConversaParada = {
+  fio: "sdr:ja-atribuida",
+  turnos: 2,
+  paradaEm: "2026-08-27T12:00:00.000Z",
+  contato: { nome: "Beatriz Gimenes", email: "beatriz@example.com" },
+  escopo: { businessName: "Beatriz Gimenes" },
+  proximaAcao: "Já atribuída.",
+  prometidoEm: null,
+  contatadoEm: null,
+  contatadoPor: null,
+  clienteDoConvite: "client_beatriz_1",
+  atribuicao: {
+    clientId: "client_beatriz_1",
+    atribuidoPor: "user_xyz789",
+    atribuidoEm: "2026-08-28T12:00:00.000Z",
+    fio: "sdr:ja-atribuida",
+  },
 };
 
 describe("⚑ conversa com prometidoEm: o texto da promessa é LIDO pelo usuário", () => {
@@ -217,5 +282,132 @@ describe("fila vazia de verdade (0 conversas) é o estado normal — EmptyState 
   it("mostra o EmptyState, não um alarme", () => {
     expect(txt()).toContain("Nenhuma conversa parada");
     expect(html()).not.toContain('role="alert"');
+  });
+});
+
+// ═══ A FILA DEIXA DE SER SÓ LEITURA (rodada "TELA") ═════════════════════════
+//
+// As quatro garantias da ficha de despacho, provadas por RENDER (a interação
+// de clique em si — chamar a função e recarregar — é fiação, no arquivo
+// irmão `fiacao-acoes-da-fila.test.ts`; esta casa não tem jsdom).
+
+describe("conversa NÃO contatada, com promessa: mostra ⚑ Prometemos contato E o botão de marcar", () => {
+  it("os dois aparecem juntos", () => {
+    const txt = txtDe({ estado: "ok", total: 1, conversas: [CONVERSA_PROMETIDA] });
+    expect(txt).toContain("Prometemos contato há 3 dias");
+    expect(txt).toContain("Marcar como contatado");
+  });
+});
+
+describe("conversa CONTATADA: 'Contatada há N dias' substitui a promessa, e o botão de marcar some", () => {
+  const txt = () => txtDe({ estado: "ok", total: 1, conversas: [CONVERSA_CONTATADA] });
+
+  it("mostra 'Contatada há 3 dias', calculado de contatadoEm", () => {
+    expect(txt()).toContain("Contatada há 3 dias");
+  });
+
+  it("NÃO mostra o destaque de promessa, mesmo tendo prometidoEm preenchido", () => {
+    expect(txt()).not.toContain("Prometemos contato");
+    expect(txt()).not.toContain("⚑");
+  });
+
+  it("NÃO mostra o botão 'Marcar como contatado' — já foi", () => {
+    expect(txt()).not.toContain("Marcar como contatado");
+  });
+
+  it("contatadoPor é id de usuário: NUNCA vai para a tela", () => {
+    expect(txt()).not.toContain("user_abc123");
+  });
+});
+
+describe("botão 'Confirmar que é deste cliente': só existe com clienteDoConvite e sem atribuicao", () => {
+  it("clienteDoConvite: null → o botão NÃO existe no HTML", () => {
+    const txt = txtDe({ estado: "ok", total: 1, conversas: [CONVERSA_PROMETIDA] });
+    expect(txt).not.toContain("Confirmar que é deste cliente");
+  });
+
+  it("clienteDoConvite preenchido e atribuicao null → o botão aparece", () => {
+    const txt = txtDe({ estado: "ok", total: 1, conversas: [CONVERSA_COM_CLIENTE_DO_CONVITE] });
+    expect(txt).toContain("Confirmar que é deste cliente");
+  });
+
+  it("clienteDoConvite preenchido MAS já com atribuicao → o botão some (já foi confirmado)", () => {
+    const txt = txtDe({ estado: "ok", total: 1, conversas: [CONVERSA_JA_ATRIBUIDA] });
+    expect(txt).not.toContain("Confirmar que é deste cliente");
+  });
+
+  it("⛔ nunca vira seletor: nenhum <select> nasce nesta seção, com ou sem clienteDoConvite", () => {
+    const html = view({
+      estado: "ok",
+      total: 2,
+      conversas: [CONVERSA_COM_CLIENTE_DO_CONVITE, CONVERSA_JA_ATRIBUIDA],
+    });
+    expect(html).not.toContain("<select");
+  });
+});
+
+describe("o selo do cabeçalho 'N com promessa de contato pendente' NÃO conta quem já foi contatado", () => {
+  it("uma prometida pendente + uma prometida e já contatada → conta só 1", () => {
+    const txt = txtDe({
+      estado: "ok",
+      total: 2,
+      conversas: [CONVERSA_PROMETIDA, CONVERSA_CONTATADA],
+    });
+    expect(txt).toContain("1 com promessa de contato pendente");
+  });
+
+  it("todas contatadas → o selo some inteiramente, mesmo que todas tivessem prometidoEm", () => {
+    const outraContatada: ConversaParada = { ...CONVERSA_CONTATADA, fio: "sdr:outra-contatada" };
+    const txt = txtDe({
+      estado: "ok",
+      total: 2,
+      conversas: [CONVERSA_CONTATADA, outraContatada],
+    });
+    expect(txt).not.toContain("com promessa de contato pendente");
+  });
+});
+
+describe("ORDEM DE LEITURA: o insumo para agir vem ANTES do botão de ação — achado da CAPTURA AO VIVO (29/08/2026)", () => {
+  it("no HTML, 'WhatsApp: <número>' aparece antes de 'Marcar como contatado'", () => {
+    const html = view({ estado: "ok", total: 1, conversas: [CONVERSA_PROMETIDA] });
+    const indiceDoValor = html.indexOf("WhatsApp: 5511900000000");
+    const indiceDoBotao = html.indexOf("Marcar como contatado");
+    expect(indiceDoValor).toBeGreaterThan(-1);
+    expect(indiceDoBotao).toBeGreaterThan(-1);
+    expect(indiceDoValor).toBeLessThan(indiceDoBotao);
+  });
+
+  it("no HTML, a proximaAcao aparece antes de 'Marcar como contatado' — a pessoa lê o que fazer antes de poder marcar que já fez", () => {
+    const html = view({ estado: "ok", total: 1, conversas: [CONVERSA_PROMETIDA] });
+    const indiceDaProximaAcao = html.indexOf(CONVERSA_PROMETIDA.proximaAcao);
+    const indiceDoBotao = html.indexOf("Marcar como contatado");
+    expect(indiceDaProximaAcao).toBeGreaterThan(-1);
+    expect(indiceDoBotao).toBeGreaterThan(-1);
+    expect(indiceDaProximaAcao).toBeLessThan(indiceDoBotao);
+  });
+
+  it("no HTML, 'E-mail: <endereço>' e a proximaAcao aparecem antes de 'Confirmar que é deste cliente'", () => {
+    const html = view({ estado: "ok", total: 1, conversas: [CONVERSA_COM_CLIENTE_DO_CONVITE] });
+    const indiceDoValor = html.indexOf("E-mail: camila@example.com");
+    const indiceDaProximaAcao = html.indexOf(CONVERSA_COM_CLIENTE_DO_CONVITE.proximaAcao);
+    const indiceDoBotao = html.indexOf("Confirmar que é deste cliente");
+    expect(indiceDoValor).toBeGreaterThan(-1);
+    expect(indiceDaProximaAcao).toBeGreaterThan(-1);
+    expect(indiceDoBotao).toBeGreaterThan(-1);
+    expect(indiceDoValor).toBeLessThan(indiceDoBotao);
+    expect(indiceDaProximaAcao).toBeLessThan(indiceDoBotao);
+  });
+});
+
+describe("⛔ a trava contra virar porta de disparo continua valendo com os botões novos", () => {
+  it("nenhum href de mailto:/wa.me, nenhum <a>, em nenhum dos estados novos", () => {
+    const html = view({
+      estado: "ok",
+      total: 3,
+      conversas: [CONVERSA_CONTATADA, CONVERSA_COM_CLIENTE_DO_CONVITE, CONVERSA_JA_ATRIBUIDA],
+    });
+    expect(html).not.toContain('href="mailto:');
+    expect(html).not.toContain("wa.me");
+    expect(html).not.toContain("<a ");
   });
 });

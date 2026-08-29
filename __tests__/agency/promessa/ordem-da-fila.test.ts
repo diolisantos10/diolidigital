@@ -22,6 +22,10 @@ function conversa(parcial: Partial<ConversaParada> & { fio: string }): ConversaP
     escopo: {},
     proximaAcao: "",
     prometidoEm: null,
+    contatadoEm: null,
+    contatadoPor: null,
+    clienteDoConvite: null,
+    atribuicao: null,
     ...parcial,
   };
 }
@@ -87,5 +91,46 @@ describe("ordemDaFila", () => {
 
   it("lista vazia devolve lista vazia", () => {
     expect(ordemDaFila([])).toEqual([]);
+  });
+});
+
+// A regra nova (rodada "a fila deixa de ser só leitura"): dívida QUITADA
+// desce para o fim, mesmo que tivesse a promessa mais velha de todas —
+// senão marcar como contatado não move o cartão, e a fila parece parada.
+describe("ordemDaFila — quem já foi CONTATADO desce para o fim", () => {
+  it("contatada com a promessa MAIS VELHA ainda assim vai para o fim, atrás de quem não tem promessa nenhuma", () => {
+    const semPromessaNaoContatada = conversa({
+      fio: "sem-promessa",
+      paradaEm: "2026-08-28T12:00:00.000Z",
+      prometidoEm: null,
+    });
+    const prometidaEContatada = conversa({
+      fio: "prometida-e-contatada",
+      paradaEm: "2026-08-20T12:00:00.000Z",
+      prometidoEm: "2026-08-20T12:00:00.000Z", // a mais velha de todas
+      contatadoEm: "2026-08-27T12:00:00.000Z",
+    });
+
+    const ordenada = ordemDaFila([prometidaEContatada, semPromessaNaoContatada]);
+
+    expect(ordenada.map((c) => c.fio)).toEqual(["sem-promessa", "prometida-e-contatada"]);
+  });
+
+  it("entre duas contatadas, cai no mesmo desempate de quem não tem promessa (parada mais antiga primeiro)", () => {
+    const contatadaRecente = conversa({
+      fio: "contatada-recente",
+      paradaEm: "2026-08-20T12:00:00.000Z",
+      contatadoEm: "2026-08-28T12:00:00.000Z",
+    });
+    const contatadaAntiga = conversa({
+      fio: "contatada-antiga",
+      paradaEm: "2026-08-10T12:00:00.000Z",
+      contatadoEm: "2026-08-27T12:00:00.000Z",
+    });
+
+    expect(ordemDaFila([contatadaRecente, contatadaAntiga]).map((c) => c.fio)).toEqual([
+      "contatada-antiga",
+      "contatada-recente",
+    ]);
   });
 });

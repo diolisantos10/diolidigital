@@ -29,6 +29,21 @@
 // As duas fontes são independentes: uma pode carregar enquanto a outra falha,
 // e cada uma trata os três estados (carregando / vazio / não medido) sozinha
 // — misturar os dois estados numa tela só é o mesmo erro, em dobro.
+//
+// ─── DE LEITURA PARA AÇÃO (29/08/2026, rodada seguinte) ─────────────────────
+//
+// A fila deixa de ser só leitura. Dois atos, dois casos diferentes:
+//   • "Marcar como contatado" — todo lead SEM `Client` (a maioria: visitante
+//     anônimo). Registra que a casa já falou com a pessoa. Não envia nada a
+//     ninguém, não apaga o rastro.
+//   • "Confirmar que é deste cliente" — só quando o servidor JÁ DERIVOU o
+//     cliente por token de convite (`clienteDoConvite`) e ninguém confirmou
+//     ainda (`atribuicao === null`). Um clique confirma um dado do servidor;
+//     NUNCA um seletor — escolher o cliente errado é irreversível na prática.
+//
+// As duas ações recarregam a fila do servidor depois de um sucesso
+// (`carregarConversasParadas()`); nenhum estado otimista, porque mentir sobre
+// "já contatei" quando a escrita falhou pela metade é pior que não ter botão.
 
 import { useCallback, useEffect, useState } from "react";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
@@ -46,8 +61,8 @@ type Resposta =
 
 /** Uma linha de `GET /api/agency/conversas-sem-pedido` — ver o cabeçalho da
  *  rota para o porquê de cada campo. Só os campos que esta tela usa entram
- *  aqui; `clienteDoConvite`, `atribuicao` e `dono` existem na rota para quem
- *  atribui (fora do escopo desta rodada, que é só leitura). */
+ *  aqui; `dono` e `venceEm`/`motivoDoPrazo` existem na rota e não entram
+ *  aqui porque esta tela não os lê. */
 export type ConversaParada = {
   fio: string;
   turnos: number;
@@ -62,6 +77,19 @@ export type ConversaParada = {
    *  prometeu. `venceEm` NÃO existe neste tipo de propósito — a rota devolve
    *  sempre `null` porque não há SLA ratificado, e esta tela não inventa um. */
   prometidoEm: string | null;
+  /** Quando um humano da casa marcou esta conversa como contatada
+   *  (`POST .../contatado`). `null` = ninguém marcou ainda. É o que tira o
+   *  cartão da faixa de dívida pendente — sem apagar o rastro. */
+  contatadoEm: string | null;
+  /** Id de quem marcou — PERÍCIA, nunca tela. Um id de usuário não é
+   *  informação que a agência reconhece; não renderize isto. */
+  contatadoPor: string | null;
+  /** Cliente que o SERVIDOR já derivou pelo token de convite (`clientId`).
+   *  `null` = visitante anônimo, sem cliente para atribuir. */
+  clienteDoConvite: string | null;
+  /** Atribuição já DECLARADA por um operador (`POST .../atribuir`). Presente
+   *  → já foi confirmado, o botão de confirmar não aparece mais. */
+  atribuicao: { clientId: string; atribuidoPor: string; atribuidoEm: string; fio: string } | null;
 };
 
 export type RespostaConversasParadas =
@@ -87,12 +115,22 @@ export type RespostaConversasParadas =
  * ainda não recebeu nada da casa não pode furar a fila de quem já recebeu uma
  * palavra e está esperando ela ser cumprida.
  *
+ * ⚠️ ANTES de tudo isso: quem já foi CONTATADO (`contatadoEm` não nulo) desce
+ * para o fim, mesmo que tivesse promessa pendente — a dívida foi paga, e o
+ * topo da fila é para quem ainda não recebeu nada da casa. É o que faz o selo
+ * do cabeçalho ("N com promessa de contato pendente") continuar batendo com
+ * o que aparece no topo da lista.
+ *
  * Nunca muta o array recebido — quem chama pode reusar `resposta.conversas`
  * depois, e mutar aqui seria um efeito colateral escondido numa função que
  * parece só de leitura.
  */
 export function ordemDaFila(conversas: ConversaParada[]): ConversaParada[] {
   return [...conversas].sort((a, b) => {
+    const aContatada = a.contatadoEm !== null;
+    const bContatada = b.contatadoEm !== null;
+    if (aContatada !== bContatada) return aContatada ? 1 : -1;
+
     if (a.prometidoEm && b.prometidoEm) {
       return new Date(a.prometidoEm).getTime() - new Date(b.prometidoEm).getTime();
     }
@@ -156,6 +194,64 @@ export async function carregarConversasParadas(): Promise<RespostaConversasParad
       estado: "nao_medido",
       motivo: "não consegui falar com o servidor — esta lista não é zero, é desconhecida",
     };
+  }
+}
+
+/** Resultado de um ato de escrita nesta tela — sucesso, ou uma mensagem já
+ *  pronta para a pessoa ler (nunca o objeto de erro cru do servidor). */
+export type ResultadoDaAcao = { ok: true } | { ok: false; error: string };
+
+/**
+ * MARCAR COMO CONTATADO — `POST /api/agency/conversas-sem-pedido/contatado`.
+ *
+ * Extraída para fora do componente pela MESMA razão de `carregarLeads` e
+ * `carregarConversasParadas`: esta casa não tem jsdom nem testing-library, e
+ * o teste de comportamento chama esta função direto, com um duplo de
+ * `fetch` — sem montar React.
+ *
+ * ⛔ Não manda nada a ninguém. É o registro de um ato que um humano já fez
+ * por fora desta tela (ligou, escreveu por fora) — ver o cabeçalho da rota.
+ */
+export async function marcarContatado(fio: string): Promise<ResultadoDaAcao> {
+  try {
+    const resp = await fetch("/api/agency/conversas-sem-pedido/contatado", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fio }),
+    });
+    const body = await resp.json().catch(() => ({}));
+    if (!resp.ok || body?.ok !== true) {
+      return { ok: false, error: body?.error ?? "o servidor não confirmou o registro" };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "não consegui falar com o servidor — tente de novo" };
+  }
+}
+
+/**
+ * CONFIRMAR CLIENTE — `POST /api/agency/conversas-sem-pedido/atribuir`.
+ *
+ * ⛔ `clientId` nunca vem de uma lista escolhida na tela: o único valor que
+ * esta função manda é o `clienteDoConvite` que o SERVIDOR já derivou do
+ * token de convite. Deixar um humano escolher o cliente numa lista é como se
+ * atribui a conversa ao cliente errado — e o dono errado é irreversível na
+ * prática. Ver a ficha de despacho, §1.
+ */
+export async function confirmarCliente(fio: string, clientId: string): Promise<ResultadoDaAcao> {
+  try {
+    const resp = await fetch("/api/agency/conversas-sem-pedido/atribuir", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fio, clientId }),
+    });
+    const body = await resp.json().catch(() => ({}));
+    if (!resp.ok || body?.ok !== true) {
+      return { ok: false, error: body?.error ?? "o servidor não confirmou a atribuição" };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "não consegui falar com o servidor — tente de novo" };
   }
 }
 
@@ -267,7 +363,15 @@ export function SecaoConversasParadas({
   // lista (de BAIXO), e até 29/08/2026 ele vivia no cabeçalho — que fala da
   // lista de CIMA. Dois totais de filas diferentes no mesmo cabeçalho.
   // Achado do `experiencia`; conserto do `interface`.
-  const prometidasPendentes = resposta.estado === "ok" ? resposta.conversas.filter((c) => c.prometidoEm !== null).length : 0;
+  //
+  // ⚠️ NÃO conta quem já foi contatado — este número é a DÍVIDA em aberto,
+  // não o histórico. Marcar como contatado tem de fazer este número CAIR na
+  // hora; contar as duas juntas deixaria o selo parado depois de um clique
+  // que claramente resolveu alguma coisa.
+  const prometidasPendentes =
+    resposta.estado === "ok"
+      ? resposta.conversas.filter((c) => c.prometidoEm !== null && c.contatadoEm === null).length
+      : 0;
 
   return (
     <div className="mt-10">
@@ -320,7 +424,11 @@ export function SecaoConversasParadas({
               página promete. A rota devolve `timestamp: desc`; a ordenação
               de fila mora aqui, não nela — ver o comentário da função. */}
           {ordemDaFila(resposta.conversas).map((c) => (
-            <CartaoConversaParada key={c.fio} conversa={c} />
+            // `aoRecarregar` é o MESMO `onTentarDeNovo` que a falha de leitura
+            // usa: os dois pedem a mesma coisa ao servidor — "leia esta fila
+            // de novo". Depois de marcar/confirmar com sucesso, a tela nunca
+            // inventa o próprio estado; ela pergunta ao servidor de novo.
+            <CartaoConversaParada key={c.fio} conversa={c} aoRecarregar={onTentarDeNovo} />
           ))}
         </div>
       )}
@@ -335,10 +443,59 @@ export function SecaoConversasParadas({
   );
 }
 
-function CartaoConversaParada({ conversa }: { conversa: ConversaParada }) {
+/** Estado do ato de escrita DESTE cartão — local, por `fio`. Nunca
+ *  compartilhado entre cartões: marcar um não pode deixar outro "enviando". */
+type EstadoDaAcaoDoCartao =
+  | { fase: "idle" }
+  | { fase: "enviando"; acao: "contatado" | "cliente" }
+  | { fase: "erro"; acao: "contatado" | "cliente"; motivo: string };
+
+function CartaoConversaParada({
+  conversa,
+  aoRecarregar,
+}: {
+  conversa: ConversaParada;
+  /** Pede ao pai para reler a fila do servidor. Chamado SÓ depois de um
+   *  `ok: true` — nunca antes, e nunca substituído por mexer no estado local
+   *  à mão (estado otimista mente quando a escrita falha pela metade). */
+  aoRecarregar: () => void;
+}) {
+  const [acaoEstado, setAcaoEstado] = useState<EstadoDaAcaoDoCartao>({ fase: "idle" });
+
   const semContato = !conversa.contato || (!conversa.contato.email && !conversa.contato.whatsapp);
+  const contatada = conversa.contatadoEm !== null;
   const diasParada = diasDesde(conversa.paradaEm);
-  const diasPrometido = conversa.prometidoEm ? diasDesde(conversa.prometidoEm) : null;
+  // A promessa some do destaque assim que a casa contatou — a dívida foi
+  // paga, e o selo de dívida junto de um selo dizendo "já contatada" seria a
+  // tela se contradizendo na mesma linha.
+  const diasPrometido = !contatada && conversa.prometidoEm ? diasDesde(conversa.prometidoEm) : null;
+  const diasContatado = conversa.contatadoEm ? diasDesde(conversa.contatadoEm) : null;
+  // O botão de confirmar só existe quando o SERVIDOR já derivou um cliente
+  // pelo token de convite E ninguém confirmou ainda. Sem `clienteDoConvite`
+  // não há botão nenhum — nunca um seletor.
+  const podeConfirmarCliente = conversa.clienteDoConvite !== null && conversa.atribuicao === null;
+  const enviando = acaoEstado.fase === "enviando";
+
+  const marcar = async () => {
+    setAcaoEstado({ fase: "enviando", acao: "contatado" });
+    const r = await marcarContatado(conversa.fio);
+    if (r.ok) {
+      aoRecarregar();
+    } else {
+      setAcaoEstado({ fase: "erro", acao: "contatado", motivo: r.error });
+    }
+  };
+
+  const confirmar = async () => {
+    if (!conversa.clienteDoConvite) return;
+    setAcaoEstado({ fase: "enviando", acao: "cliente" });
+    const r = await confirmarCliente(conversa.fio, conversa.clienteDoConvite);
+    if (r.ok) {
+      aoRecarregar();
+    } else {
+      setAcaoEstado({ fase: "erro", acao: "cliente", motivo: r.error });
+    }
+  };
 
   return (
     <div
@@ -351,8 +508,7 @@ function CartaoConversaParada({ conversa }: { conversa: ConversaParada }) {
           <p className="text-[13px] text-[var(--text-subtle)] italic truncate">Nome não informado</p>
         )}
         <p className="text-[13px] text-[var(--text-muted)] mt-0.5">
-          {conversa.turnos} turno{conversa.turnos === 1 ? "" : "s"} · parada há {diasParada} dia
-          {diasParada === 1 ? "" : "s"}
+          {conversa.turnos} turno{conversa.turnos === 1 ? "" : "s"} · parada {idadeEmDias(diasParada)}
         </p>
       </div>
 
@@ -370,24 +526,29 @@ function CartaoConversaParada({ conversa }: { conversa: ConversaParada }) {
               .join(" · ")}
           </Selo>
         )}
-        {/* O DESTAQUE DA TELA: a dívida da casa, não um atraso medido —
-            `venceEm` não existe (ver o tipo `ConversaParada`), então o selo
-            nunca fala de prazo, só do fato observável. */}
+        {/* O DESTAQUE DA DÍVIDA: só enquanto ela está aberta. `venceEm` não
+            existe (ver o tipo `ConversaParada`), então o selo nunca fala de
+            prazo, só do fato observável. */}
         {diasPrometido !== null && (
           <Selo tom="warning">
-            ⚑ Prometemos contato há {diasPrometido} dia{diasPrometido === 1 ? "" : "s"}
+            ⚑ Prometemos contato {idadeEmDias(diasPrometido ?? 0)}
+          </Selo>
+        )}
+        {/* A dívida quitada: tom neutro, de propósito — não é alarme, é
+            histórico. Ver a ficha de despacho, §2. */}
+        {contatada && (
+          <Selo tom="neutro">
+            Contatada {idadeEmDias(diasContatado ?? 0)}
           </Selo>
         )}
       </div>
 
-      {/* ⛔ SÓ TEXTO — NUNCA `<a href>`/`onClick`/`mailto:`/`wa.me`. Esta tela
-          é somente leitura; um clique que abre canal com pessoa real é ação
-          de produção, fora do escopo desta rodada. O selo acima só dizia a
-          PALAVRA ("WhatsApp"/"E-mail"); quem quisesse cumprir a promessa
-          tinha de sair da tela e caçar o número no banco (achado do
-          `experiencia`, 29/08/2026). `break-all` porque o valor é imprimido
-          como veio — sem máscara, sem truncar — e um número/e-mail longo não
-          pode estourar o cartão a 375px. */}
+      {/* ⛔ SÓ TEXTO — NUNCA `<a href>`/`onClick`/`mailto:`/`wa.me`. O selo
+          acima só dizia a PALAVRA ("WhatsApp"/"E-mail"); quem quisesse
+          cumprir a promessa tinha de sair da tela e caçar o número no banco
+          (achado do `experiencia`, 29/08/2026). `break-all` porque o valor é
+          imprimido como veio — sem máscara, sem truncar — e um número/e-mail
+          longo não pode estourar o cartão a 375px. */}
       {!semContato && (
         <div className="mt-2 space-y-0.5">
           {conversa.contato?.whatsapp && (
@@ -411,12 +572,69 @@ function CartaoConversaParada({ conversa }: { conversa: ConversaParada }) {
           reescrita aqui, para que quem atende leia exatamente o que o
           servidor concluiu do estado do rastro. */}
       <p className="text-[13px] text-[var(--text-primary)] mt-2 leading-relaxed">{conversa.proximaAcao}</p>
+
+      {/* OS DOIS ATOS — SEMPRE POR ÚLTIMO. A pessoa só marca "contatado"
+          depois de ler quem é, o valor de contato e a próxima ação — nunca
+          antes. Achado da CAPTURA AO VIVO (29/08/2026): botão antes do
+          insumo convida a clicar antes de agir. Borda superior sutil separa
+          o bloco de ação do texto de leitura acima, sem novo componente. */}
+      {(!contatada || podeConfirmarCliente) && (
+        <div className="mt-3 pt-3 border-t border-[var(--border)] flex flex-wrap gap-2">
+          {!contatada && (
+            <button
+              onClick={() => void marcar()}
+              disabled={enviando}
+              style={{ touchAction: "manipulation" }}
+              className="h-9 px-4 rounded-[8px] bg-[var(--sidebar)] text-white text-[13px] font-medium disabled:opacity-50"
+            >
+              {acaoEstado.fase === "enviando" && acaoEstado.acao === "contatado" ? "Marcando…" : "Marcar como contatado"}
+            </button>
+          )}
+          {/* ⛔ NUNCA um seletor de cliente. O `clientId` só pode vir de
+              `conversa.clienteDoConvite` — o servidor já decidiu; o clique só
+              confirma. Ver §1 da ficha. */}
+          {podeConfirmarCliente && (
+            <button
+              onClick={() => void confirmar()}
+              disabled={enviando}
+              style={{ touchAction: "manipulation" }}
+              className="h-9 px-4 rounded-[8px] border border-[var(--border-strong)] bg-white text-[13px] font-medium text-[var(--text-primary)] disabled:opacity-50"
+            >
+              {acaoEstado.fase === "enviando" && acaoEstado.acao === "cliente" ? "Confirmando…" : "Confirmar que é deste cliente"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Falha aparece — nunca silenciosa, e logo abaixo dos botões, onde
+          o clique acabou de acontecer. Um clique que não fez nada e não
+          disse nada é o defeito que a ficha de despacho proíbe. */}
+      {acaoEstado.fase === "erro" && (
+        <p role="alert" className="mt-2 text-[13px] text-[var(--danger)] leading-relaxed">
+          {acaoEstado.motivo}
+        </p>
+      )}
     </div>
   );
 }
 
 /** Dias corridos desde um ISO, nunca negativo — relógio do cliente pode
  *  divergir por segundos do servidor. */
+/**
+ * "há N dias" em português que uma pessoa lê sem tropeçar.
+ *
+ * ⚠️ Achado da CAPTURA AO VIVO, não do teste: logo depois de clicar em "Marcar
+ * como contatado", o selo dizia **"Contatada há 0 dias"** — que é verdade
+ * aritmética e frase que ninguém fala. O momento em que esse texto mais é lido
+ * é justamente o segundo seguinte ao clique, então era o pior caso que estava
+ * pior escrito. `0` vira "hoje"; `1` vira "há 1 dia"; o resto, "há N dias".
+ */
+export function idadeEmDias(dias: number): string {
+  if (dias <= 0) return "hoje";
+  if (dias === 1) return "há 1 dia";
+  return `há ${dias} dias`;
+}
+
 function diasDesde(iso: string): number {
   const ms = Date.now() - new Date(iso).getTime();
   return Math.max(0, Math.floor(ms / 86_400_000));
@@ -743,7 +961,7 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
 }
 
 /**
- * A pílula de estado do cartão — uma geometria só para os quatro tons.
+ * A pílula de estado do cartão — uma geometria só para os cinco tons.
  *
  * 🔴 **POR QUE A ALTURA DEIXOU DE SER FIXA.** As três nasceram com `h-6`, altura
  * travada em 24px. Medido a 375px, o carimbo mais longo de hoje ocupa 240px dos
@@ -753,13 +971,25 @@ function Cartao({ lead, aberto, onToggle }: { lead: DossieDoLead; aberto: boolea
  * que um teste perceba. Basta um `12º briefing (de 15)`, uma tradução mais
  * longa ou o zoom de fonte do sistema. `min-h` + `py` deixa o fundo crescer com
  * o texto; `max-w-full` impede que a pílula ultrapasse o cartão.
+ *
+ * `neutro` (29/08/2026): para fato histórico, não estado que pede atenção —
+ * "Contatada há N dias" não é alarme nem sucesso, é registro. Mesmo par
+ * `--accent`/`--text-secondary` que os chips de "O que ele pediu" já usam
+ * neste arquivo, para não introduzir um quinto par de tokens.
  */
-function Selo({ tom, children }: { tom: "danger" | "success" | "info" | "warning"; children: React.ReactNode }) {
+function Selo({
+  tom,
+  children,
+}: {
+  tom: "danger" | "success" | "info" | "warning" | "neutro";
+  children: React.ReactNode;
+}) {
   const cor = {
     danger:  "bg-[var(--danger-bg)] text-[var(--danger)]",
     success: "bg-[var(--success-bg)] text-[var(--success)]",
     info:    "bg-[var(--info-bg)] text-[var(--info)]",
     warning: "bg-[var(--warning-bg)] text-[var(--warning)]",
+    neutro:  "bg-[var(--accent)] text-[var(--text-secondary)]",
   }[tom];
   return (
     <span

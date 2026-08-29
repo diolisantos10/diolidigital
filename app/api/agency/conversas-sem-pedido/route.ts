@@ -98,6 +98,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         prometidoEm: r.prometidoEm ? r.prometidoEm.toISOString() : null,
         venceEm: null as string | null,
         motivoDoPrazo: "sla_nao_ratificado:PublicBriefingRoom.tsx:835 promete 24h uteis ao cliente e nao ha decisao registrada",
+        // ═══ O CARIMBO DO ATO (29/08/2026) ═════════════════════════════════
+        //
+        // `contatadoEm`: quando um humano da casa marcou esta conversa como
+        // contatada (`POST .../contatado`, `marcarConversaComoContatada`).
+        // `null` = ninguém marcou ainda. É o que tira o lead da dívida que
+        // `prometidoEm` declara — sem apagar o rastro, e sem prometer nada
+        // sobre o que a pessoa vai responder.
+        contatadoEm: r.contatadoEm ? r.contatadoEm.toISOString() : null,
+        contatadoPor: r.contatadoPor,
       })),
     });
   } catch (e) {

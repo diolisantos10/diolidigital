@@ -252,6 +252,13 @@ describe("a lista das conversas paradas", () => {
       // frase que muda quando há promessa tem teste próprio, em
       // `__tests__/agency/promessa/`.
       prometidoEm: null,
+      // `contatadoEm`/`contatadoPor` entraram em 29/08/2026 (o ato "a casa
+      // contatou esta pessoa"). `null` aqui é de propósito: estes quatro casos
+      // medem a ação derivada do CONTATO DECLARADO PELO VISITANTE, sem ato da
+      // casa no meio. A frase que muda quando a casa já contatou tem teste
+      // próprio, em `__tests__/agency/promessa/`.
+      contatadoEm: null,
+      contatadoPor: null,
     };
 
     expect(proximaAcaoDoRastro({ ...base, contato: { email: "m@x.invalid" } })).toContain("e-mail");
