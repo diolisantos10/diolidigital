@@ -1,0 +1,16 @@
+{
+  "id": "coordenacao/fila-que-se-cobra",
+  "quem": "ses-7dac4226a4",
+  "frente": "rotina diaria que le reivindicacoes vencidas e PRs parados e cobra no repositorio",
+  "responsabilidade": "coordenacao/fila-que-se-cobra",
+  "arquivos": [
+    "lib/coordenacao/fila-parada.ts",
+    "scripts/varrer-fila-parada.mts",
+    ".github/workflows/fila-parada.yml",
+    "__tests__/coordenacao/fila-parada.test.ts",
+    "docs/relatorios/fila-parada.md",
+    "docs/diagnosticos/a-fila-que-se-cobra-29-08.md"
+  ],
+  "abertaEm": "2026-08-29T03:42:44.655Z",
+  "encerradaEm": null
+}
