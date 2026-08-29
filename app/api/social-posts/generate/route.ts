@@ -10,10 +10,17 @@
 // in the client's real Brain data (segment, audience, objectives, brand voice).
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
 import { generate } from "@/lib/ai/generate";
 import { deveBloquearMutacaoCrossSite } from "@/lib/security/navegacao-cross-site";
+// `loadClientContext` mora em lib/, não aqui: route.ts é arquivo de rota do
+// Next, e o plugin de tipos do framework reprova no BUILD qualquer export que
+// não seja um dos reconhecidos (GET/POST/..., `dynamic`) — passaria no
+// `tsc --noEmit` e no `npm test`, mas quebraria `next build`. Ver o cabeçalho
+// de `lib/agency/social-posts/contexto-do-cliente.ts` (varredura de posse,
+// rodada 2, lote B — 29/08/2026: era aqui que faltava o workspace no `where`
+// do briefing do cliente).
+import { loadClientContext, type ClientContext } from "@/lib/agency/social-posts/contexto-do-cliente";
 
 const NETWORK_LABELS: Record<string, string> = {
   instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", linkedin: "LinkedIn",
@@ -24,47 +31,6 @@ const FORMAT_LABELS: Record<string, string> = {
   feed: "post de feed", reel: "reel (vídeo curto vertical)", story: "story",
   carousel: "carrossel", video: "vídeo",
 };
-
-interface ClientContext {
-  businessName: string;
-  segment: string;
-  targetAudience: string;
-  tone: string;
-  services: string[];
-  objectives: string[];
-}
-
-async function loadClientContext(clientId: string | null, workspaceId: string): Promise<ClientContext | null> {
-  if (!clientId) return null;
-  try {
-    const [client, request] = await Promise.all([
-      prisma.client.findFirst({ where: { id: clientId, workspaceId }, include: { brandBrain: true } }),
-      prisma.clientRequestDb.findFirst({
-        where: { clientId }, orderBy: { createdAt: "desc" },
-      }),
-    ]);
-    if (!client && !request) return null;
-
-    let scope: Record<string, unknown> = {};
-    try { scope = JSON.parse(request?.briefingJson ?? "{}")?.scope ?? {}; } catch { /* ignore */ }
-    const brand = client?.brandBrain ?? null;
-    const services = (() => { try { return JSON.parse(request?.services ?? "[]"); } catch { return []; } })();
-    const objectives = (() => { try { return JSON.parse(request?.objectives ?? "[]"); } catch { return []; } })();
-
-    const str = (...vals: unknown[]) => vals.find((v) => typeof v === "string" && v.trim())?.toString().trim() ?? "";
-
-    return {
-      businessName: str(request?.businessName, client?.name, "o cliente"),
-      segment:      str(request?.segment, scope.segment, client?.industry),
-      targetAudience: str(scope.targetAudience, brand?.targetAudience),
-      tone:         str(brand?.tone),
-      services:     Array.isArray(services) ? services.filter((s): s is string => typeof s === "string") : [],
-      objectives:   Array.isArray(objectives) ? objectives.filter((o): o is string => typeof o === "string") : [],
-    };
-  } catch {
-    return null;
-  }
-}
 
 function contextBlock(ctx: ClientContext | null): string {
   if (!ctx) return "Cliente: negócio genérico (sem contexto específico). Escreva de forma versátil e profissional.";

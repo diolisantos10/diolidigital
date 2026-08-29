@@ -13,8 +13,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const db = vi.hoisted(() => ({
-  // `reprovarPeca` usa findFirst (agora filtra workspace); `historicoDaPeca`
-  // ainda usa findUnique — os dois precisam existir no dublê.
+  // `reprovarPeca` e `historicoDaPeca` usam findFirst — as duas filtram
+  // workspace desde a varredura de 29/08 (docs/diagnosticos/varredura-de-posse-no-corpo-29-08.md).
   socialPost: { findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   activityEvent: { count: vi.fn(), create: vi.fn() },
 }));
@@ -33,9 +33,6 @@ const MOTIVO = "nunca escreva o nome da marca em texto gigante na capa";
 beforeEach(() => {
   vi.clearAllMocks();
   db.socialPost.findFirst.mockResolvedValue({ id: "p1", workspaceId: "ws1", clientId: "c1" });
-  // `historicoDaPeca` ainda busca por `findUnique` — ver a dívida declarada no
-  // documento da varredura de 28/08 (é LEITURA de histórico, não escrita).
-  db.socialPost.findUnique.mockResolvedValue({ id: "p1", workspaceId: "ws1", clientId: "c1" });
   db.socialPost.update.mockResolvedValue({});
   db.activityEvent.count.mockResolvedValue(0);
   db.activityEvent.create.mockResolvedValue({});
@@ -159,7 +156,7 @@ describe("o histórico responde 'por que esta peça está na quarta versão?'", 
       { timestamp: new Date("2026-08-02"), message: "p1 — volta 2, reprovada por Dioli: texto gigante de novo" },
     ]);
     (db.activityEvent as Record<string, unknown>).findMany = eventos;
-    const h = await historicoDaPeca("p1");
+    const h = await historicoDaPeca("p1", "ws1");
     expect(h).toHaveLength(2);
     expect(h[0]!.oQueDisseram).toContain("sem foto real");
   });

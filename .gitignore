@@ -80,6 +80,13 @@ scratch-*
 # Testes de rascunho de auditoria (não versionar)
 __tests__/_scratch/
 
+# Fichas de despacho: rascunho de trabalho (o pedido a um especialista), não
+# entrega. Se algo delas merece ficar — a lista de rotas varridas, por exemplo —
+# vira seção do documento de diagnóstico, não arquivo de ficha.
+.fichas/
+**/_fichas/
+scripts/_tmp/
+
 # Evidência de tela (screenshots de auto-revisão). Prova de trabalho, não
 # entregável: nasce a cada rodada, pesa, e o que importa dela já foi relatado.
 scratchpad/

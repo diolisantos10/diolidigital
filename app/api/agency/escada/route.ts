@@ -10,6 +10,7 @@ import {
   estadoDaEscada, subirDegrau, descerDegrau, liberarCliente,
 } from "@/lib/agency/escada/registro";
 import { ROTULO_DO_DEGRAU, JANELA_DE_EVIDENCIA_DIAS, CRITERIO } from "@/lib/agency/escada/degraus";
+import { clienteDoWorkspace, naoEncontrado } from "@/lib/auth/posse-de-workspace";
 
 export async function GET(): Promise<NextResponse> {
   const session = await getSession();
@@ -60,6 +61,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(r, { status: r.ok ? 200 : 400 });
   }
   if (body.acao === "liberar_cliente" && typeof body.clientId === "string") {
+    // POSSE: `clientId` chega do CORPO. Sem esta conferência, um master do
+    // workspace A gravava o id de um cliente do workspace B na allowlist do
+    // PRÓPRIO departamento — o sistema nunca perguntava de quem era aquele id.
+    // O escopo vai no `where` de `clienteDoWorkspace` (nunca numa comparação
+    // depois da busca), e a recusa é 404 — nunca 403, que confirmaria que o id
+    // existe em outra conta.
+    if (!(await clienteDoWorkspace(body.clientId, session.workspaceId))) return naoEncontrado();
     const r = await liberarCliente({ workspaceId: session.workspaceId, departmentId, clientId: body.clientId, quem });
     return NextResponse.json(r, { status: r.ok ? 200 : 409 });
   }

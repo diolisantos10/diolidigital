@@ -15,6 +15,66 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🔴 29/08/2026 — VARREDURA DE POSSE, RODADA 2 LOTE B: 1 FURO FECHADO, 2 ESCALADOS
+
+`seguranca` cobriu as 23 rotas do lote B (`docs/diagnosticos/varredura-de-posse-29-08/lote-B.txt`) da rodada 2 de
+varredura de posse — a outra metade do lote A logo abaixo.
+Documento completo: `docs/diagnosticos/varredura-de-posse-rodada2-lote-B.md`.
+
+- **Fechado, com teste que prova as duas metades:** `POST
+  /api/social-posts/generate` montava o contexto que vira prompt da IA
+  (legenda/ideias/roteiro) buscando o briefing (`ClientRequestDb`) só por
+  `clientId`, sem `workspaceId` — a busca do `Client` conferia certo, mas
+  bastava o briefing existir para o `!client && !request` deixar passar. Um
+  `clientId` de outro workspace recebia de volta conteúdo gerado com o
+  briefing REAL do cliente alheio (nome do negócio, segmento, público-alvo,
+  serviços, objetivos). A função saiu de `route.ts` (que não pode exportar
+  função extra sem quebrar `next build`) para
+  `lib/agency/social-posts/contexto-do-cliente.ts`, e passou a só buscar o
+  briefing DEPOIS de confirmar que o `Client` é deste workspace.
+- **🔴 Escalado — falta coluna no schema, não é conserto de rota:** `POST
+  /api/produto-tecnologia/cadeia` lê/gera execuções (`ExecucaoV2`/`RecusaV2`)
+  sem `workspaceId` nenhum na tabela — qualquer direção de qualquer workspace
+  lê o histórico de auto-conserto da plataforma inteira e pode reusar
+  (`correlationId`) o resultado já pago por outro workspace. Conserto exige
+  migração de schema (coluna nulável `workspaceId`) e decisão de negócio sobre
+  se este departamento deveria ser particionado por workspace — não é minha
+  para tomar sozinha.
+- **Escalado — classe diferente, por regra da própria ficha:** `POST
+  /api/sdr/chat` é rota pública sem sessão e sem fronteira de inquilino por
+  design; nenhum furo de posse encontrado nela nesta rodada.
+- Também tocado, sem furo: `POST /api/self-serve/webhook` (família pagamento —
+  fora da minha alçada mesmo sem achado) e observações sobre rotulagem sem
+  verificação em `financeiro` (POST) e `meta/token` (POST) que não têm leitor
+  que vaze — descritas no documento, não consertadas por não serem furo.
+
+## 🔴 29/08/2026 — VARREDURA DE POSSE, RODADA 2 LOTE A: 2 FUROS FECHADOS, 1 ESCALADO (toca pagamento)
+
+`seguranca` cobriu as 23 rotas do lote A (`docs/diagnosticos/varredura-de-posse-29-08/lote-A.txt`) da rodada 2 de
+varredura de posse — a mesma frente citada como pendente logo abaixo, item 1.
+Documento completo: `docs/diagnosticos/varredura-de-posse-rodada2-lote-A.md`.
+
+- **Fechados, com teste que prova as duas metades:**
+  - `POST /api/agency/escada` (ação `liberar_cliente`) gravava o `clientId` do
+    corpo na allowlist do departamento sem conferir que ele era do workspace
+    de quem chamou — exatamente o `liberarCliente` da escada citado no item 1
+    abaixo, em 28/08, como suspeito nunca auditado.
+  - `PATCH /api/avisos` (`enviei`/`dispensar`) marcava/dispensava o
+    `ClientNotice` de **qualquer** workspace, sem conferir dono — um vizinho
+    de inquilino conseguia silenciar a fila de avisos de outra agência.
+- **🔴 Escalado, NÃO consertado — precisa de humano:** `POST
+  /api/admin/pagamentos` registra `PagamentoConfirmado` para o
+  `clientRequestId` do corpo **sem conferir workspace nenhum**. Qualquer
+  `master`/`project_manager` desta casa libera produção (gasta IA) de um
+  pedido de **outra** agência, gravando "pago" com o próprio nome como
+  `registradoPor`. Toca pagamento — cai na trava humana da constituição de
+  `seguranca` (SEGURANÇA §3), mesma classe dos 3 furos de parceria que a
+  rodada 1 já escalou. Conserto pronto e descrito no documento: uma linha
+  (`solicitacaoDoWorkspace` antes do `registrarPagamento`), reversível em
+  minutos, aguardando autorização.
+- **Lote B** (as outras 23 candidatas da rodada 2) foi coberto no mesmo dia —
+  ver a entrada logo acima.
+
 ## 🟡 28/08/2026 — DUAS FRENTES ADIADAS POR ORDEM (depois da manhã do cliente)
 
 O Diretor Geral carimbou as duas para depois da entrada do primeiro cliente real.

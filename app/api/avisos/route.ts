@@ -34,11 +34,11 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   const quem = session.email ?? session.userId ?? "equipe";
 
   if (body.acao === "enviei") {
-    const ok = await marcarComoEnviado(body.id, quem);
+    const ok = await marcarComoEnviado(body.id, session.workspaceId, quem);
     return NextResponse.json({ ok }, { status: ok ? 200 : 404 });
   }
   if (body.acao === "dispensar") {
-    const ok = await dispensar(body.id, quem);
+    const ok = await dispensar(body.id, session.workspaceId, quem);
     return NextResponse.json({ ok }, { status: ok ? 200 : 404 });
   }
 

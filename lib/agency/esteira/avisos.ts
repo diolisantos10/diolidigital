@@ -279,27 +279,38 @@ export async function filaDeAvisos(workspaceId: string, limite = 50): Promise<Av
   }
 }
 
-/** Alguém do time disparou à mão. Registra quem e quando. */
-export async function marcarComoEnviado(id: string, quem: string): Promise<boolean> {
+/**
+ * Alguém do time disparou à mão. Registra quem e quando.
+ *
+ * POSSE: `id` chega do corpo de uma rota interna (`PATCH /api/avisos`), e
+ * `ClientNotice` é dado de OUTRO inquilino em potencial. Sem `workspaceId` no
+ * `where`, qualquer sessão master/PM desta casa marcava como "enviado" (ou
+ * dispensava, abaixo) o aviso pendente de uma agência que não é a dela —
+ * silenciando a fila de quem realmente precisava mandar aquele aviso. O
+ * escopo vai no `where` do `updateMany`, nunca numa comparação depois: zero
+ * linhas afetadas é a mesma resposta de "não existe", de propósito.
+ */
+export async function marcarComoEnviado(id: string, workspaceId: string, quem: string): Promise<boolean> {
   try {
-    await prisma.clientNotice.update({
-      where: { id },
+    const { count } = await prisma.clientNotice.updateMany({
+      where: { id, workspaceId },
       data: { status: "enviado", channel: "manual", sentAt: new Date(), sentBy: quem },
     });
-    return true;
+    return count > 0;
   } catch {
     return false;
   }
 }
 
-/** O aviso não é mais necessário (o cliente já resolveu por outro caminho). */
-export async function dispensar(id: string, quem: string): Promise<boolean> {
+/** O aviso não é mais necessário (o cliente já resolveu por outro caminho).
+ *  Mesma posse de `marcarComoEnviado` — ver o comentário lá. */
+export async function dispensar(id: string, workspaceId: string, quem: string): Promise<boolean> {
   try {
-    await prisma.clientNotice.update({
-      where: { id },
+    const { count } = await prisma.clientNotice.updateMany({
+      where: { id, workspaceId },
       data: { status: "dispensado", sentBy: quem },
     });
-    return true;
+    return count > 0;
   } catch {
     return false;
   }
