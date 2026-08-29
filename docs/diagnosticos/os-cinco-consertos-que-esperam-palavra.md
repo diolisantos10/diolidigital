@@ -46,13 +46,16 @@ os mesmos argumentos de hoje) continua verde nas duas condições, que é a prov
 de que a trava não inventa problema no caso limpo.
 
 **O portão inteiro, medido:** `npx tsc --noEmit` limpo (saída vazia, código 0);
-`npm run build` verde; suíte completa em **535 de 536 arquivos verdes, 7.452
-testes passados**. O único arquivo vermelho é
-`__tests__/coordenacao/registro-de-reivindicacao.test.ts`, e **não é deste PR**:
-é uma colisão de reivindicação entre duas OUTRAS frentes
-(`higiene-de-fila` × `triagem-prs-parados`, sobre
-`docs/diagnosticos/triagem-dos-prs-parados-28-08.md`), encerrada no remoto
-depois que esta worktree nasceu.
+`npm run build` verde; suíte completa **536 de 536 arquivos verdes, 7.454
+testes passados, zero falhas**.
+
+Antes do rebase sobre o deploy, um arquivo ficava vermelho —
+`__tests__/coordenacao/registro-de-reivindicacao.test.ts`, por uma colisão de
+reivindicação entre duas OUTRAS frentes (`higiene-de-fila` ×
+`triagem-prs-parados`, sobre `docs/diagnosticos/triagem-dos-prs-parados-28-08.md`).
+Não era deste PR: a colisão foi encerrada no remoto depois que esta worktree
+nasceu, e o `git pull --rebase` a resolveu sozinho. Fica registrado porque
+vermelho que some sem ninguém explicar por quê é vermelho que volta.
 
 ## ⚠️ Achado colateral — três testes existentes iam para VERMELHO (JÁ CONSERTADO)
 
