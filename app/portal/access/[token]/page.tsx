@@ -74,7 +74,9 @@ import {
   type ProjetoDoPortal,
 } from "@/components/portal/cliente/abas";
 import { EntrevistaDeMarca } from "@/components/portal/cliente/EntrevistaDeMarca";
-import { CapaDaAba, Carregando, Erro, Etiqueta, Numeros, TituloDeSecao, Vazio, dataCurta } from "@/components/portal/cliente/pecas";
+import { CapaDaAba, Carregando, Etiqueta, Numeros, TituloDeSecao, Vazio, dataCurta } from "@/components/portal/cliente/pecas";
+import { AcessoBloqueado } from "@/components/portal/cliente/AcessoBloqueado";
+import { falhaDoPortal, type MotivoDoBloqueio } from "@/components/portal/cliente/acesso";
 
 // ── As 11 abas, na ordem do handoff ─────────────────────────────────────────
 type AbaId =
@@ -94,6 +96,16 @@ const ABAS: { id: AbaId; label: string }[] = [
   { id: "integracoes",  label: "Integrações" },
   { id: "conta",        label: "Minha conta" },
 ];
+
+/** O `reason` que o servidor manda, traduzido para o motivo da tela de
+ *  acesso bloqueado. Chave desconhecida cai no `?? "rede"` de quem usa —
+ *  mapa de dado de rede sempre tem saída (DESIGN.md §7.5, regra 1). */
+const MOTIVO_DO_PORTAO: Record<string, MotivoDoBloqueio> = {
+  expired: "expirado",
+  revoked: "revogado",
+  invalid: "invalido",
+  network: "rede",
+};
 
 /** Endereços antigos que continuam válidos — link antigo nunca vira beco. */
 const DESTINO_ANTIGO: Record<string, AbaId> = {
@@ -188,6 +200,15 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+
+  // ── O ACESSO QUE MORRE COM A PESSOA DENTRO (29/08/2026) ───────────────────
+  // Perder o acesso ao ABRIR o portal e perdê-lo NO MEIO de uma decisão são
+  // duas notícias diferentes, e por meses foram a mesma: a segunda nem chegava
+  // a ser notícia — virava a string "Access denied", em inglês, embaixo do
+  // botão Aprovar. Este sinalizador é o que faz o portão falar com quem já
+  // estava aqui ("seu acesso expirou enquanto você estava aqui") em vez de
+  // mandar conferir um link que a pessoa nem usou nesta visita.
+  const [bloqueio, setBloqueio] = useState<MotivoDoBloqueio | null>(null);
 
   const [aba, setAba] = useState<AbaId>("inicio");
   const [chatAberto, setChatAberto] = useState(false);
@@ -358,6 +379,32 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
    *  Nunca um campo digitado na tela — quem decide é o dono do acesso. */
   const nomeDeQuemDecide = vista?.marca.nome || data?.businessName || "Cliente do portal";
 
+  /**
+   * ── LER O `res.status` EM VEZ DE JOGÁ-LO FORA ───────────────────────────
+   *
+   * As três decisões abaixo faziam `throw new Error(j.error ?? "HTTP …")`. O
+   * `??` matava o status sempre que a API preenchia `error` — e ela preenche:
+   * o 403 de token morto vem como `{"error":"Access denied","reason":"expired"}`.
+   * O tradutor de erro só reconhece o status quando a string é literalmente
+   * "HTTP 403"; com "Access denied" ele concluía que já era frase de humano e
+   * **devolvia o inglês da API** embaixo do botão Aprovar, para o cliente
+   * pagante, no celular. Medido ao vivo em 29/08/2026.
+   *
+   * Agora o status e o `reason` são lidos e separam duas coisas que nunca
+   * foram a mesma: *seu acesso morreu* (a tela inteira vira a tela de acesso
+   * perdido, com o próximo passo) e *deu erro agora* (frase em português no
+   * lugar de sempre, e a decisão continua possível).
+   */
+  async function relatarFalha(res: Response, acao: string): Promise<void> {
+    const falha = await falhaDoPortal(res, acao);
+    if (falha.bloqueio) {
+      setBloqueio(falha.bloqueio);
+      setErroDecisao(falha.mensagem);
+      return;
+    }
+    setErroDecisao(mensagemDeErro(new Error(falha.mensagem), acao).mensagem);
+  }
+
   function irPara(destino: string, aprovacaoId?: string | null) {
     const alvo = (ABAS.find((a) => a.id === destino)?.id) ?? DESTINO_ANTIGO[destino] ?? "inicio";
     setAba(alvo);
@@ -396,8 +443,8 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
         }),
       });
       if (!res.ok) {
-        const j = await res.json().catch(() => ({} as { error?: string }));
-        throw new Error(j.error ?? `HTTP ${res.status}`);
+        await relatarFalha(res, "registrar sua resposta");
+        return false;
       }
       await carregarPortalData();
       return true;
@@ -419,8 +466,8 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
         body: JSON.stringify({ ...(token ? { token } : {}), pedidoId, decisao, ...(apontamento ? { apontamento } : {}) }),
       });
       if (!res.ok) {
-        const j = await res.json().catch(() => ({} as { error?: string }));
-        throw new Error(j.error ?? `HTTP ${res.status}`);
+        await relatarFalha(res, "registrar sua resposta");
+        return false;
       }
       await carregarPedidos();
       return true;
@@ -442,8 +489,8 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
         body: JSON.stringify(token ? { token, decisao } : { decisao }),
       });
       if (!res.ok) {
-        const j = await res.json().catch(() => ({} as { error?: string }));
-        throw new Error(j.error ?? `HTTP ${res.status}`);
+        await relatarFalha(res, "registrar sua aprovação");
+        return false;
       }
       await Promise.all([carregarEsteira(), carregarPortalData()]);
       return true;
@@ -615,25 +662,22 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
   if (carregando) {
     return <div className="cp-shell"><main className="cp-main"><Carregando /></main></div>;
   }
-  if (erro || !vista) {
-    const mensagens: Record<string, { titulo: string; corpo: string }> = {
-      expired: { titulo: "Link expirado", corpo: "Este link de acesso expirou. Peça um novo à equipe Dioli." },
-      revoked: { titulo: "Acesso revogado", corpo: "Este link foi desativado. Entre em contato com a equipe Dioli." },
-      invalid: { titulo: "Link inválido", corpo: "Este link não é válido. Confira o link que você recebeu ou peça um novo." },
-      network: { titulo: "Erro de conexão", corpo: "Não consegui verificar o seu acesso. Tente novamente em instantes." },
-    };
-    const m = mensagens[erro ?? "invalid"] ?? mensagens.invalid;
-    const podeTentar = erro === "network" || !erro;
+  if (bloqueio || erro || !vista) {
+    // O motivo vem do SERVIDOR (o `reason` de /api/brain/portal-data) ou da
+    // negativa que derrubou a decisão. Sem nenhum dos dois, o que houve foi
+    // não ter conseguido falar com o servidor — e o texto diz isso, em vez de
+    // acusar o link da pessoa de inválido sem ter como saber.
+    const motivo: MotivoDoBloqueio =
+      bloqueio ?? MOTIVO_DO_PORTAO[erro ?? ""] ?? "rede";
+    // Tentar de novo só aparece quando tentar de novo pode resolver. Botão que
+    // repete a mesma negativa é pior que botão nenhum.
+    const podeTentar = !bloqueio && motivo === "rede";
     return (
-      <div className="cp-shell">
-        <main className="cp-main">
-          <Erro
-            titulo={m.titulo}
-            texto={m.corpo}
-            aoTentarDeNovo={podeTentar ? () => { setErro(null); setCarregando(true); void carregarVista(); } : undefined}
-          />
-        </main>
-      </div>
+      <AcessoBloqueado
+        motivo={motivo}
+        contexto={bloqueio ? "sessao" : "entrada"}
+        aoTentarDeNovo={podeTentar ? () => { setErro(null); setCarregando(true); void carregarVista(); } : undefined}
+      />
     );
   }
 
