@@ -2,6 +2,33 @@
 // Uses only production dependencies: @libsql/client + bcryptjs.
 import { createClient } from "@libsql/client";
 import { hash } from "bcryptjs";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
+/**
+ * Carrega o `.env` do repositório, se houver — leitura pura, nenhum I/O de
+ * escrita.
+ *
+ * Por que existe: a receita de boot do CLAUDE.md monta um `.env` e chama
+ * `node scripts/seed-db.mjs`. O Prisma lê `.env` sozinho; o Node **não**. Sem
+ * esta linha, tudo o que a receita escreve no `.env` é invisível para o seed —
+ * era metade do motivo de a receita não funcionar.
+ *
+ * ⚠️ `process.loadEnvFile` NÃO sobrescreve variável que já está no ambiente
+ * (verificado em 29/08/2026, Node 22). A ordem de precedência continua sendo a
+ * certa: ambiente explícito > `.env`. Em produção não há `.env` no container,
+ * então isto é no-op.
+ */
+function carregarEnvLocal() {
+  const arquivo = join(process.cwd(), ".env");
+  if (!existsSync(arquivo)) return;
+  try {
+    process.loadEnvFile(arquivo);
+  } catch {
+    // `.env` malformado não pode derrubar o boot de produção. Quem manda em
+    // produção é o ambiente do painel, não um arquivo que nem deveria existir lá.
+  }
+}
 
 /**
  * Lê uma senha do ambiente ou PARA a execução.
@@ -38,19 +65,128 @@ function exigirSenha(nomeDaVariavel) {
   return valor;
 }
 
+/** Recusa que o usuário provocou e sabe consertar: sai sem despejar stack. */
+class RecusaLimpa extends Error {
+  constructor(mensagem) {
+    super(mensagem);
+    this.name = "RecusaLimpa";
+    this.recusaLimpa = true;
+  }
+}
+
+/**
+ * ⛔ NADA DE I/O ANTES DAQUI. Esta função é a PRIMEIRA coisa que main() chama.
+ *
+ * Em 29/08/2026 mediu-se ao vivo: rodando o seed sem as duas variáveis, ele
+ * apagava 8 linhas (3 Deliverable, 1 MaterialRequest, 1 Project, 1 BrandBrain,
+ * 1 User, 1 Client), inseria o workspace, e SÓ ENTÃO parava por falta de senha.
+ * Quem seguia a receita do CLAUDE.md — que também não citava as variáveis —
+ * terminava PIOR do que começou: sem seed e sem o que tinha.
+ *
+ * A regra que saiu dali: recusar ANTES de destruir é o piso, não o extra.
+ * Toda conferência de pré-requisito mora aqui, e aqui é antes da primeira
+ * escrita. Se você precisar de uma variável nova no seed, ela entra NESTA
+ * lista — não num `process.env.X` solto lá embaixo.
+ *
+ * Junta TODAS as ausências numa mensagem só. Uma por vez faria o dev definir
+ * a primeira, rodar de novo e descobrir a segunda — duas idas para um problema.
+ */
+function conferirCredenciais(ambiente = process.env) {
+  const OBRIGATORIAS = ["SEED_MASTER_PASSWORD", "SEED_STAFF_PASSWORD"];
+  const faltantes = OBRIGATORIAS.filter((nome) => !ambiente[nome]);
+
+  if (faltantes.length > 0) {
+    // A mensagem diz o NOME da variável e COMO defini-la. Nunca o valor de
+    // nenhuma — log é lido, copiado e colado.
+    const linhas = [
+      "",
+      `✗ O seed foi RECUSADO — falta ${faltantes.length === 1 ? "1 variável" : `${faltantes.length} variáveis`} de ambiente:`,
+      ...faltantes.map((nome) => `    • ${nome}`),
+      "",
+      "  NADA foi escrito e NADA foi apagado. O banco está exatamente como estava.",
+      "",
+      "  Para rodar LOCALMENTE (senhas descartáveis, de desenvolvimento):",
+      ...faltantes.map((nome) => `    echo '${nome}=dev-${nome.toLowerCase().replace(/_/g, "-")}-local-only' >> .env`),
+      "",
+      "  Em PRODUÇÃO: defina no painel da hospedagem (Railway → Variables) e",
+      "  reimplante. ATENÇÃO: esta casa NÃO tem fluxo de \"esqueci minha senha\" —",
+      "  a variável é a única via de recuperação.",
+      "",
+    ];
+    throw new RecusaLimpa(linhas.join("\n"));
+  }
+
+  // Passou pela conferência agregada; `exigirSenha` continua sendo a trava de
+  // última instância (e é quem avisa sobre senha curta).
+  return {
+    masterPw: exigirSenha("SEED_MASTER_PASSWORD"),
+    staffPw: exigirSenha("SEED_STAFF_PASSWORD"),
+  };
+}
+
+carregarEnvLocal();
+
 const dbUrl = process.env.DATABASE_URL ?? "file:./dev.db";
 const url = dbUrl.startsWith("file:./")
   ? `file:${process.cwd()}/${dbUrl.slice("file:./".length)}`
   : dbUrl;
 
-const db = createClient({ url });
+// ⚠️ LAZY DE PROPÓSITO. `createClient` com uma URL `file:` CRIA o arquivo.
+// Abrir a conexão no topo do módulo faria uma recusa por falta de credencial
+// deixar um dev.db vazio para trás — pequeno, mas ainda é o disco mudando numa
+// execução que não devia ter tocado em nada.
+let db = null;
+
+function abrirBanco() {
+  if (!db) db = createClient({ url });
+  return db;
+}
 
 async function q(sql, args = []) {
-  return db.execute({ sql, args });
+  return abrirBanco().execute({ sql, args });
+}
+
+/**
+ * Conferência de SCHEMA — leitura pura, também antes da primeira escrita.
+ *
+ * Sem isto, um banco sem `prisma db push` morre no primeiro `DELETE FROM
+ * Deliverable` com "no such table", que é um erro sobre o SQL e não sobre o
+ * que o usuário esqueceu de fazer.
+ */
+async function conferirSchema() {
+  const alvo = await abrirBanco().execute(
+    `SELECT name FROM sqlite_master WHERE type='table' AND name='User'`,
+  );
+  if (alvo.rows.length === 0) {
+    throw new RecusaLimpa(
+      [
+        "",
+        "✗ O seed foi RECUSADO — o banco não tem as tabelas da aplicação.",
+        `    DATABASE_URL: ${url}`,
+        "",
+        "  NADA foi escrito e NADA foi apagado.",
+        "",
+        "  Provisione o schema antes:",
+        "    npx prisma db push",
+        "",
+      ].join("\n"),
+    );
+  }
 }
 
 async function main() {
   console.log("🌱 Seeding Dioli Agency OS…");
+
+  // ── PRÉ-REQUISITOS — tudo o que pode recusar, recusa AQUI ─────────────────
+  // Antes de qualquer DELETE, INSERT ou UPDATE. Não mova nada daqui para baixo.
+  const { masterPw, staffPw } = conferirCredenciais();
+  await conferirSchema();
+
+  // O hash também vem antes: é a última etapa que ainda pode falhar sem que o
+  // disco tenha mudado.
+  const masterHash = await hash(masterPw, 12);
+  const staffHash = await hash(staffPw, 12);
+  // ── A PARTIR DAQUI O DISCO MUDA ───────────────────────────────────────────
 
   const wsId = "cmpyzf1nw0000nq7dz5ij66aa";
 
@@ -84,10 +220,9 @@ async function main() {
   // `|| echo` — a falha é dita alto e o app sobe do mesmo jeito, com a base
   // que já existe. O que não acontece mais é a base nascer com credencial
   // que ninguém controla.
-  const masterPw = exigirSenha("SEED_MASTER_PASSWORD");
-  const staffPw  = exigirSenha("SEED_STAFF_PASSWORD");
-  const masterHash = await hash(masterPw, 12);
-  const staffHash  = await hash(staffPw,  12);
+  //
+  // As senhas já foram exigidas e hasheadas no TOPO de main(), antes do
+  // primeiro DELETE — ver `conferirCredenciais`.
 
   await q(`INSERT OR IGNORE INTO User (id, email, name, passwordHash, role, workspaceId, createdAt, updatedAt)
     VALUES ('cmpyzf27d0001nq7dt0331v31','master@dioli.studio','Dioli Master',?,'master',?, datetime('now'), datetime('now'))`, [masterHash, wsId]);
@@ -110,5 +245,18 @@ async function main() {
 }
 
 main()
-  .catch((e) => { console.error(e); process.exit(1); })
-  .finally(() => db.close());
+  .catch((e) => {
+    // Recusa por pré-requisito é erro do OPERADOR, não defeito do programa: ele
+    // precisa ler o que fazer, não uma stack. Stack de 12 linhas empurra a
+    // instrução para fora da tela e o dev conclui "quebrou" em vez de "faltou".
+    if (e instanceof RecusaLimpa || e?.recusaLimpa) {
+      console.error(e.message);
+    } else {
+      console.error(e);
+    }
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    // `db` é null quando a recusa veio antes de abrir a conexão.
+    if (db) db.close();
+  });

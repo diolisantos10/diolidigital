@@ -255,6 +255,7 @@ describe("(d) o retrato não escreve nada", () => {
     const convitesBrutos = [
       // segredo-permitido: fixture do caso "o retrato não escreve" — valor inventado para um cliente inventado (cli_1).
       { token: "tok_abc12345", clientId: "cli_1", expiraEm: DEPOIS, revogadoEm: null, usos: 3, ultimoUsoEm: DEPOIS },
+      // segredo-permitido: segunda fixture inventada (cli_2, já vencida). Marca própria porque a isenção do sentinela é de LINHA.
       { token: "tok_def67890", clientId: "cli_2", expiraEm: JA_PASSOU, revogadoEm: null, usos: 0, ultimoUsoEm: null },
     ];
     const parceriasBrutas = [{ clientId: "cli_1", revogadaEm: null, validaAte: DEPOIS }];
