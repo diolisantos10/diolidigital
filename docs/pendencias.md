@@ -15,6 +15,172 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🔴 29/08/2026 — O DIA DE ONZE PRs E NENHUM MERGE: O ESTADO ESCRITO
+
+- O dia produziu **onze PRs novos** (#380 é de 28/08 e entra na lista porque o
+  #385 depende dele) e **nenhum foi mesclado, fechado ou revisado formalmente**.
+- Duas rotas ficam LACRADAS até palavra do CEO: o #387 (cinco rotas de
+  pagamento/parceria) e a decisão de preço — nenhum agente desta casa pode
+  autorizar as duas.
+- A negociação de desconto foi **remedida por execução**, não por leitura: a
+  frase do Diretor sobre "intervalo vazio" caiu; o achado real é outro, e pior
+  em um ponto específico — ver seção própria abaixo.
+- A casa flagrou em si mesma, no mesmo dia, o padrão "verifiquei" sem ter
+  executado — cinco vezes fora e uma vez dentro do próprio #388.
+- Nada do que está aberto foi resolvido por este bloco: este bloco só registra
+  o estado para o próximo turno não perguntar nada a ninguém.
+
+### Os PRs abertos em 29/08 — estado conferido pela API, nenhum mesclado
+
+- **#380** (28/08, não é rascunho) — P0: varredura de posse por path param —
+  três rotas alcançavam recurso de outro inquilino. É a BASE do #385; precisa
+  mesclar primeiro.
+- **#381** (não é rascunho) — P0: o pedido do parceiro nascia ÓRFÃO (sem
+  `clientId`) porque a sala de briefing submetia sem o convite, e a proposta
+  saía cobrando um parceiro isento. Conserto passa o TOKEN do convite,
+  resolvido no servidor; a trava que proíbe `clientId` do corpo não foi
+  afrouxada. Trava: nenhuma citada além de review.
+- **#382** (não é rascunho) — P0: a régua do #356 (detecta promessa de contato
+  humano) não pegava "a equipe entra em contato", só primeira pessoa. Cadeia do
+  convite medida inteira no código; os dois passos que faltam só se medem com
+  dado de produção.
+- **#383** (não é rascunho) — veredito de que a base órfã NUNCA existiu (era
+  clone raso), sobre #163, #165, #166, #167, #168, com prova de cinco jeitos e
+  reprodução controlada.
+- **#384** (não é rascunho) — gravação do App Review da Meta: parede
+  declarada, nenhuma das 9 permissões é gravável sem conta real; parecer do
+  `meta` (PODE COM AJUSTE) já obtido; os 8 vídeos são vistoria de roteiro, não
+  material de submissão.
+- **#385** (não é rascunho) — varredura de posse quando o id chega no CORPO: 4
+  furos de inquilino fechados, 5 escalados. **BASE = #380 (`claude/varredura-de-posse`).
+  Trava: só mescla depois do #380.**
+- **#386** (não é rascunho) — integrações: erro de hidratação consertado na
+  raiz, App ID de "exemplo" que era o real, e medição das duas telas que faltam
+  ao App Review.
+- **#387** — **RASCUNHO LACRADO.** Cinco rotas de pagamento/parceria. Trava:
+  não mescla sem palavra do CEO.
+- **#388** (não é rascunho) — trava do clone raso instalada e provada, mais
+  refutação da triagem de 28/08 e veredito sobre 11 PRs que ninguém nunca
+  julgou.
+- **#389** — **RASCUNHO.** A saída de emergência `--forcar --motivo` não abria:
+  `forcadaPor` era gravado e nunca consultado por `conferirColisao` nem por
+  `conferirRegistro` — quem forçava ficava preso dos dois lados. Trava: é
+  rascunho, não mescla ainda.
+- **#390** (não é rascunho) — a rotina que cobra a fila parada. Traz o comando
+  `npm run varrer-fila`.
+- **#391** (não é rascunho) — solta 7 dos 8 furos vivos presos dentro de PRs
+  parados (#153, #158, #159, #161). O furo 6 ficou preso (ver linha vermelha
+  abaixo).
+
+### ⛔ O que continua ABERTO no ar — cada um é um bullet próprio
+
+- 🔴 **As cinco rotas de dinheiro seguem abertas no ar.** Enquanto o #387 não
+  for autorizado, qualquer sessão `master` ou `project_manager` de QUALQUER
+  agência consegue, sobre cliente ou pedido de OUTRA agência, só copiando o id
+  da tela: conceder parceria com isenção de pagamento e teto de gasto em dólar
+  à escolha; revogar parceria legítima de terceiro; cunhar convite que dispensa
+  a pergunta de verba; isentar de pagamento um pedido alheio; registrar que um
+  Pix entrou num pedido alheio. O trabalho está escrito, testado e lacrado no
+  #387 — falta a palavra humana do CEO. O Diretor não pode dar essa palavra.
+- 🔴 **A fila de PRs nunca foi julgada.** Conferido contra a API: zero review
+  formal em todos os PRs abertos. Vinte deles estão abertos há 13 dias ou mais
+  (medido pela idade desde a abertura — PRs de 15 e 16/08, mais o #10 de
+  03/08). ⚠️ Medido pela data do último commit o número é OUTRO: as duas réguas
+  não dão o mesmo retrato, então toda contagem daqui em diante precisa dizer
+  qual régua usou. O que produz o número sozinho é `npm run varrer-fila`, que
+  chega com o #390 e **ainda não está no deploy**.
+- 🔴 **O quadro do CEO de 15/08 (#159) está aberto e parado desde 15/08** — já
+  não compila contra o deploy. A medição de resgate está EM ANDAMENTO em frente
+  separada (`claude/o-quadro-treze-dias-depois`) — desfecho não escrito aqui
+  porque ainda não existe.
+- 🔴 **Duas migrations declaradas e não feitas.** Conferido no
+  `prisma/schema.prisma` do deploy: `OutboxV2`, `RecusaV2`, `HandoffV2` e
+  `ExecucaoV2` não têm coluna `workspaceId`. Consequência medida: a premissa
+  que protegia o `OutboxV2` caiu — já existe executor mandando WhatsApp/e-mail
+  de verdade — e qualquer direção de qualquer workspace lê o histórico de
+  auto-conserto da plataforma inteira e pode reusar, por `correlationId`,
+  resultado já pago por outro workspace. O conserto de `RecusaV2`/`HandoffV2`
+  está pronto no #166, parado desde 16/08.
+- 🔴 **Furo 6 — link de aviso ao cliente devolve 403 — ficou BLOQUEADO**, não
+  grande: o arquivo que ele precisa tocar pertence a outra frente viva.
+  Trabalho bloqueado por coordenação; volta assim que a outra frente encerrar.
+- 🔴 **`raio-x-noturno.yml` pousa em branch lateral.** Conferido: a rotina faz
+  checkout e `git pull --rebase` de `claude/dioli-pm-role-pow56e` — **essa
+  branch EXISTE no remoto** (conferido com `git ls-remote`), ela é LATERAL, não
+  morta e não apagada. Por isso o raio-x noturno não enxerga o que a casa
+  realmente roda. Conserto no #152, aberto e parado desde 15/08.
+- 🔴 **Meta — duas permissões pedidas sem tela que as demonstre:**
+  `pages_read_engagement` (a Meta exige ver o CONTEÚDO de um post de Página
+  dentro do app; nenhum componente de tela renderiza post de Página) e
+  `instagram_manage_insights` (a metade `business_discovery` da exigência tem
+  ZERO ocorrência no repositório). Pergunta aberta ao CEO: algum cliente já tem
+  Página do Facebook conectada, com posts reais? Sem isso a tela nasce vazia no
+  dia da gravação — e vídeo de tela vazia REPROVA, por texto oficial da Meta.
+- 🔴 **`--forcar` continua quebrado no deploy** enquanto o #389 não for
+  mesclado. Nenhuma frente deve usá-lo. (O #389 é rascunho.)
+- 🔴 **Desconto autorizado é ZERO nos sete serviços da casa.** Medido por
+  execução (não leitura): o piso é igual ao preço cheio em todos, porque
+  `descontoAutorizadoPct` é `null` em todos — cinco das seis parcelas de custo
+  da casa não são medidas (só a IA é medida; gateway, infra, e-mail, hora
+  humana e impostos não são), e não se prova que uma margem desconhecida não é
+  negativa. A fronteira de preço é decisão do CEO; nenhum agente pode tomá-la.
+- 🔴 **Achado novo do adendo: o degrau oferecido a quem acha caro pode não ser
+  comparável ao que a pessoa comprava.** `degrausAbaixo` mistura a escada de
+  PLANOS com o catálogo de itens AVULSOS e de BALCÃO. Medido: quem acha o
+  Ritmo caro (R$ 290/mês, 12 peças/mês) recebe como alternativa o Post avulso
+  com a fala literal *"o Post avulso sai por R$ 190,00/mês com 1 peças/mês — é
+  menos volume, pelo preço que cabe"* — doze peças viram uma, por 34% menos, e
+  isso não é "menos volume", é outro produto. Item avulso (compra única) é
+  apresentado com "/mês" na mesma fala. Os degraus entre planos (Conteúdo →
+  Presença → Ritmo), esses, são coerentes — o defeito é a mistura de catálogo.
+  Qualquer sessão comercial de hoje pode repetir essa fala para um cliente real
+  até o conserto entrar.
+
+### O que está EM ANDAMENTO
+
+- A medição de resgate do quadro do CEO (#159) roda em
+  `claude/o-quadro-treze-dias-depois` — ainda sem desfecho escrito.
+- O casamento entre proposta e serviço da tabela por igualdade exata de
+  centavos foi medido (R$ 790,00 casa com o plano Conteúdo; R$ 790,01 não casa
+  com nada, e o SDR escala ao gerente em vez de citar valor) — degrada com
+  segurança, mas nenhuma frente para consertá-lo foi aberta ainda; preciso
+  confirmar se alguém já está nisso.
+
+### O que a casa aprendeu em 29/08
+
+- **Padrão observado, não acusação a ninguém:** cinco vezes em 29/08 um
+  especialista afirmou "verifiquei" sem ter executado, e nas cinco a afirmação
+  caiu ao ser medida de verdade.
+- **O mesmo padrão apareceu dentro da própria correção**, no #388: o teste da
+  trava do clone raso nasceu com `git clone --depth 1 <caminho-local>`, e o git
+  IGNORA `--depth` em clone local — o teste não estava provando o que dizia. O
+  próprio autor achou o furo.
+- **Leitura de código não é a mesma coisa que execução.** O adendo sobre
+  negociação só existe porque alguém rodou `vitest` sobre a régua real, em vez
+  de inferir da leitura — e a leitura anterior (do Diretor) errou um ponto e
+  não viu o achado mais grave (a mistura de catálogo).
+- A triagem de 28/08 foi corrigida, não apagada: documento errado leva bloco
+  de refutação no topo e a análise antiga intacta abaixo — apagar levaria a
+  lição junto.
+- Merge zero em 29/08 foi decisão deliberada: dois julgamentos de "seguro"
+  caíram no mesmo dia ao serem medidos; merge é irreversível na prática,
+  auditoria é barata.
+
+### O que o próximo turno faz primeiro
+
+1. Mesclar #380, depois #385 (a base depende da ordem).
+2. Rodar `npm run varrer-fila` para obter o número corrente de PRs sem review
+   e de PRs parados, em vez de repetir o número de ontem.
+3. Levar ao CEO, numa só rodada: a autorização do #387 (rotas de
+   pagamento/parceria) e a fronteira de preço/desconto autorizado.
+4. Abrir frente para separar o catálogo de PLANOS do catálogo de AVULSOS/BALCÃO
+   dentro de `degrausAbaixo`, antes que a fala de negociação chegue a um
+   cliente real.
+5. Cobrar desfecho de `claude/o-quadro-treze-dias-depois` (#159) e do furo 6
+   bloqueado, assim que a frente que segura o arquivo encerrar.
+6. Revisar #381, #382, #384, #386, #388, #391 — nenhum tem review formal ainda.
+
+
 ## 🟡 28/08/2026 — DUAS FRENTES ADIADAS POR ORDEM (depois da manhã do cliente)
 
 O Diretor Geral carimbou as duas para depois da entrada do primeiro cliente real.
