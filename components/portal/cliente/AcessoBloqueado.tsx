@@ -80,7 +80,12 @@ export function AcessoBloqueado({
       </header>
 
       <main className="cp-main cp-bloqueio-main">
-        <section className="cp-bloqueio" role="alert" aria-live="polite">
+        {/* `role="alert"` só quando a tela APARECE no lugar de outra (o acesso
+            que morreu no meio da sessão) — é aí que existe algo novo a
+            anunciar. Na página `/portal/invalid` o cartão é a página inteira, e
+            marcar a página toda como alerta faz o leitor de tela ler tudo de
+            novo por cima do conteúdo. */}
+        <section className="cp-bloqueio" {...(contexto === "sessao" ? { role: "alert" as const } : {})}>
           <i aria-hidden>{motivo === "rede" ? <IconeDaRede /> : <IconeDoLink />}</i>
           <h1>{t.titulo}</h1>
           <p>{t.corpo}</p>
@@ -111,7 +116,7 @@ export function AcessoBloqueado({
           </div>
 
           <small className="cp-bloqueio-rodape">
-            Portal seguro da Dioli — área exclusiva da sua marca. É por isso que o acesso tem prazo.
+            {t.rodape}
           </small>
         </section>
       </main>

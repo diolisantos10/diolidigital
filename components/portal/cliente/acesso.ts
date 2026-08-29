@@ -135,6 +135,8 @@ export interface TextoDoBloqueio {
   passos: string[];
   /** O rótulo do botão de conversa. */
   acao: string;
+  /** A linha discreta do pé — explica o porquê da regra, sem repetir o corpo. */
+  rodape: string;
 }
 
 /** O canal público da casa — o MESMO número de `app/contato/page.tsx:39`.
@@ -168,6 +170,7 @@ export function textoDoBloqueio(motivo: MotivoDoBloqueio, contexto: ContextoDoBl
         "Se insistir por alguns minutos, avise a equipe — pode ser coisa nossa.",
       ],
       acao: conversa,
+      rodape: "Portal seguro da Dioli — área exclusiva da sua marca.",
     };
   }
 
@@ -179,6 +182,7 @@ export function textoDoBloqueio(motivo: MotivoDoBloqueio, contexto: ContextoDoBl
           "O link do portal tem prazo, por segurança — e o seu venceu agora há pouco. Isso é normal e não é culpa sua. Sua última resposta não foi registrada; nada do que você já tinha decidido se perdeu.",
         passos: [PEDIR_NOVO, ABRIR_DE_NOVO],
         acao: conversa,
+      rodape: "Portal seguro da Dioli — área exclusiva da sua marca. É por isso que o acesso tem prazo.",
       };
     }
     if (motivo === "revogado") {
@@ -191,6 +195,7 @@ export function textoDoBloqueio(motivo: MotivoDoBloqueio, contexto: ContextoDoBl
           "Se não encontrar, fale com a Dioli que a gente reenvia.",
         ],
         acao: conversa,
+      rodape: "Portal seguro da Dioli — área exclusiva da sua marca. É por isso que o acesso tem prazo.",
       };
     }
     return {
@@ -199,6 +204,7 @@ export function textoDoBloqueio(motivo: MotivoDoBloqueio, contexto: ContextoDoBl
         "O portal deixou de reconhecer o seu acesso agora há pouco. Isso é normal e não é culpa sua: seu conteúdo continua guardado, e sua última resposta não foi registrada.",
       passos: [PEDIR_NOVO, ABRIR_DE_NOVO],
       acao: conversa,
+      rodape: "Portal seguro da Dioli — área exclusiva da sua marca. É por isso que o acesso tem prazo.",
     };
   }
 
@@ -212,6 +218,7 @@ export function textoDoBloqueio(motivo: MotivoDoBloqueio, contexto: ContextoDoBl
         PEDIR_NOVO,
       ],
       acao: conversa,
+      rodape: "Portal seguro da Dioli — área exclusiva da sua marca. É por isso que o acesso tem prazo.",
     };
   }
 
@@ -222,6 +229,7 @@ export function textoDoBloqueio(motivo: MotivoDoBloqueio, contexto: ContextoDoBl
         "Os links do portal têm prazo, por segurança. Isso é normal e não é culpa sua — seu conteúdo continua guardado, esperando você entrar de novo.",
       passos: [PEDIR_NOVO, ABRIR_DE_NOVO],
       acao: conversa,
+      rodape: "Portal seguro da Dioli — área exclusiva da sua marca. É por isso que o acesso tem prazo.",
     };
   }
 
@@ -235,6 +243,7 @@ export function textoDoBloqueio(motivo: MotivoDoBloqueio, contexto: ContextoDoBl
         "Se não encontrar, fale com a Dioli que a gente reenvia.",
       ],
       acao: conversa,
+      rodape: "Portal seguro da Dioli — área exclusiva da sua marca. É por isso que o acesso tem prazo.",
     };
   }
 
@@ -247,5 +256,6 @@ export function textoDoBloqueio(motivo: MotivoDoBloqueio, contexto: ContextoDoBl
       PEDIR_NOVO,
     ],
     acao: conversa,
+    rodape: "Portal seguro da Dioli — área exclusiva da sua marca. É por isso que o acesso tem prazo.",
   };
 }
