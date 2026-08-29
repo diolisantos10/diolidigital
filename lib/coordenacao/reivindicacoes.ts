@@ -82,7 +82,19 @@ export type Reivindicacao = {
   /** ISO-8601. */
   abertaEm: string;
   encerradaEm: string | null;
-  forcadaPor?: { quem: string; motivo: string; em: string };
+  /**
+   * Presente quando esta reivindicação nasceu com `--forcar --motivo`.
+   * `contra` (28/08/2026, "a saída que abre"): os `quem` das reivindicações
+   * CONTRA as quais a força foi exercida — preenchido em `comandoAbrir` com
+   * `resultado.quemColidiu`, o mesmo valor que `conferirColisao` já calcula
+   * no instante da colisão. Campo OPCIONAL de propósito: há reivindicações
+   * legadas com `forcadaPor` e SEM `contra` no registro real (de antes desta
+   * data), e força SEM alvo nomeado NUNCA é honrada — ver `honraForcada`,
+   * abaixo. Honrar força sem alvo desculparia colisão contra QUALQUER
+   * terceiro que nunca foi forçado; isso seria afrouxar a trava, não
+   * destravar a saída de emergência.
+   */
+  forcadaPor?: { quem: string; motivo: string; em: string; contra?: string[] };
   /**
    * Presente quando esta reivindicação foi aberta em modo DEGRADADO (sem
    * âncora de sessão no ambiente — ver `descobrirAncoraDeSessao` em
@@ -120,12 +132,24 @@ export type ResultadoDeColisao = {
    * `motivos` (texto livre) seria frágil; melhor devolver estruturado.
    */
   quemColidiu: string[];
+  /**
+   * Colisões que ERAM bloqueio e foram HONRADAS por uma força nomeada
+   * (`forcadaPor.motivo` não-vazio + `forcadaPor.contra` incluindo o outro
+   * lado) — ver `honraForcada`, abaixo. NÃO entra em `motivos`, NÃO conta
+   * para `colide`, mas também NUNCA é silenciosa: uma linha por colisão
+   * honrada, nomeando quem forçou, contra quem, o motivo e desde quando
+   * (28/08/2026, "a saída que abre").
+   */
+  forcadas: string[];
 };
 
 export type ResultadoDoRegistro = {
   ok: boolean;
   /** Um problema por par de reivindicações vivas em conflito. */
   problemas: string[];
+  /** Mesmo canal nomeado de `ResultadoDeColisao.forcadas`, para o par
+   *  inteiro do registro (o que o sentinela de `npm test` confere). */
+  forcadas: string[];
 };
 
 /** 24h — o teto padrão da casa. Sessão que morre sem encerrar não pode travar
@@ -327,6 +351,35 @@ export function estaViva(r: Reivindicacao, agora: Date, tetoHoras: number = TETO
 }
 
 /**
+ * Se `r.forcadaPor` documenta força NÃO-VAZIA e nomeada CONTRA `contraQuem`,
+ * devolve o próprio `forcadaPor` — a fonte da linha "FORÇADA E HONRADA". Duas
+ * formas de NÃO honrar, as duas deliberadas (28/08/2026, "a saída que abre"):
+ *
+ *   • `motivo` ausente/vazio/só espaço → nunca honra (mesma trava de sempre:
+ *     `--forcar` sem `--motivo` já é recusado na abertura, e um `motivo` só
+ *     de espaço não pode driblar essa régua por um caminho lateral);
+ *   • `contra` ausente (força LEGADA, de antes deste campo existir) ou
+ *     presente mas sem `contraQuem` dentro → nunca honra. Honrar força sem
+ *     alvo nomeado desculparia colisão contra QUALQUER terceiro que nunca foi
+ *     forçado — isso seria afrouxar a trava, não abrir a saída de emergência.
+ */
+function honraForcada(r: Reivindicacao, contraQuem: string): NonNullable<Reivindicacao["forcadaPor"]> | undefined {
+  const f = r.forcadaPor;
+  if (!f) return undefined;
+  if (!f.motivo.trim()) return undefined;
+  if (!f.contra || !f.contra.includes(contraQuem)) return undefined;
+  return f;
+}
+
+/** A linha do canal NOVO e NOMEADO "forçadas" — nunca discreta, nunca dentro
+ *  de `avisos`/"velha" (esse canal já significa outra coisa). Nomeia QUEM
+ *  forçou, CONTRA QUEM, o MOTIVO e DESDE QUANDO — as quatro coisas que a
+ *  ficha exige que a linha nomeie. */
+function linhaForcadaEHonrada(quemForcou: string, contra: string, motivo: string, desde: string): string {
+  return `⚠️  FORÇADA E HONRADA — ${quemForcou} forçou contra ${contra}: "${motivo}" (desde ${desde}).`;
+}
+
+/**
  * A régua de colisão — duas regras independentes, cada uma pega um dos casos
  * reais de 16/08/2026:
  *
@@ -338,16 +391,28 @@ export function estaViva(r: Reivindicacao, agora: Date, tetoHoras: number = TETO
  * `avisos`, nunca em `motivos` — ela NÃO bloqueia. A própria reivindicação do
  * mesmo `quem` nunca colide consigo mesma (reabrir/conferir a própria frente
  * não pode acusar a própria sessão de invasão).
+ *
+ * `forcadasDoAutor` (28/08/2026, "a saída que abre") — a saída de emergência
+ * do gancho pre-push: no comando `conferir`, a "nova" é uma proposta-isca sem
+ * `forcadaPor` (só arquivos do working tree), então a força que precisa ser
+ * consultada não está em `nova` — está em reivindicações VIVAS do MESMO autor
+ * já gravadas no registro. Uma colisão com `existente` é HONRADA quando
+ * alguma reivindicação de `forcadasDoAutor` documenta força contra
+ * `existente.quem` (ver `honraForcada`). Honrada não entra em `motivos`, não
+ * conta para `colide`, e não entra em `quemColidiu` — mas nunca é silenciosa:
+ * vai para `forcadas`, o canal nomeado.
  */
 export function conferirColisao(
   nova: PropostaDeReivindicacao,
   existentes: Reivindicacao[],
   agora: Date,
   tetoHoras: number = TETO_HORAS_PADRAO,
+  forcadasDoAutor: Reivindicacao[] = [],
 ): ResultadoDeColisao {
   const motivos: string[] = [];
   const avisos: string[] = [];
   const quemColidiu: string[] = [];
+  const forcadas: string[] = [];
 
   const respostaDaNova = normalizarResponsabilidade(nova.responsabilidade);
   const arquivosDaNova = nova.arquivos.map(normalizarCaminho);
@@ -370,13 +435,23 @@ export function conferirColisao(
 
     if (estado === "velha") {
       avisos.push(`[reivindicação velha, não bloqueia] ${motivo} — aberta em ${existente.abertaEm}.`);
-    } else {
-      motivos.push(motivo);
-      if (!quemColidiu.includes(existente.quem)) quemColidiu.push(existente.quem);
+      continue;
     }
+
+    // estado === "viva": bloqueia — A MENOS que uma reivindicação do próprio
+    // autor documente força nomeada contra ESTE `existente.quem`.
+    const honradora = forcadasDoAutor.find((f) => honraForcada(f, existente.quem));
+    if (honradora) {
+      const f = honraForcada(honradora, existente.quem)!;
+      forcadas.push(linhaForcadaEHonrada(f.quem, existente.quem, f.motivo, f.em));
+      continue;
+    }
+
+    motivos.push(motivo);
+    if (!quemColidiu.includes(existente.quem)) quemColidiu.push(existente.quem);
   }
 
-  return { colide: motivos.length > 0, motivos, avisos, quemColidiu };
+  return { colide: motivos.length > 0, motivos, avisos, quemColidiu, forcadas };
 }
 
 /**
@@ -388,6 +463,7 @@ export function conferirColisao(
  */
 export function conferirRegistro(reivindicacoes: Reivindicacao[], agora: Date, tetoHoras: number = TETO_HORAS_PADRAO): ResultadoDoRegistro {
   const problemas: string[] = [];
+  const forcadas: string[] = [];
 
   for (let i = 0; i < reivindicacoes.length; i++) {
     for (let j = i + 1; j < reivindicacoes.length; j++) {
@@ -423,13 +499,33 @@ export function conferirRegistro(reivindicacoes: Reivindicacao[], agora: Date, t
       if (estaViva(a, agora, tetoHoras) !== "viva" || estaViva(b, agora, tetoHoras) !== "viva") continue;
 
       const r = conferirColisao(a, [b], agora, tetoHoras);
-      if (r.colide) {
-        problemas.push(`"${a.id}" (${a.quem}) × "${b.id}" (${b.quem}): ${r.motivos.join("; ")}`);
+      if (!r.colide) continue;
+
+      // ── FORÇADA E HONRADA (28/08/2026, "a saída que abre") ────────────────
+      // O par colide pela régua normal (`r.colide`). Antes de virar
+      // `problemas` — o que reprova a suíte inteira via
+      // `conferirRegistroNoDisco` — confere se algum dos dois lados
+      // documentou força NOMEADA contra o outro (`honraForcada`, acima do
+      // arquivo). A checagem é simétrica de propósito: tanto faz qual dos
+      // dois entrou primeiro no par `(a, b)` — só a ORDEM do laço decide quem
+      // é "a" e quem é "b", e essa ordem não pode mudar o veredito.
+      const forcaDeAContraB = honraForcada(a, b.quem);
+      const forcaDeBContraA = honraForcada(b, a.quem);
+
+      if (forcaDeAContraB) {
+        forcadas.push(linhaForcadaEHonrada(a.forcadaPor!.quem, b.quem, forcaDeAContraB.motivo, forcaDeAContraB.em));
+        continue;
       }
+      if (forcaDeBContraA) {
+        forcadas.push(linhaForcadaEHonrada(b.forcadaPor!.quem, a.quem, forcaDeBContraA.motivo, forcaDeBContraA.em));
+        continue;
+      }
+
+      problemas.push(`"${a.id}" (${a.quem}) × "${b.id}" (${b.quem}): ${r.motivos.join("; ")}`);
     }
   }
 
-  return { ok: problemas.length === 0, problemas };
+  return { ok: problemas.length === 0, problemas, forcadas };
 }
 
 /**
@@ -542,8 +638,19 @@ export function validarReivindicacao(dado: unknown, origem: string): Reivindicac
     ) {
       throw new Error(`${origem}: "forcadaPor" presente mas malformado (precisa de quem/motivo/em, todos string).`);
     }
-    const ff = f as { quem: string; motivo: string; em: string };
+    const ff = f as { quem: string; motivo: string; em: string; contra?: unknown };
     reivindicacao.forcadaPor = { quem: ff.quem, motivo: ff.motivo, em: ff.em };
+    // "contra" (28/08/2026, "a saída que abre") é OPCIONAL — retrocompatível
+    // com as 4 reivindicações legadas que têm `forcadaPor` e SEM `contra` no
+    // registro real. Mas, se vier, tem que ser lista de strings: não se pode
+    // deixar lixo de tipo entrar no registro e ser lido, mais tarde, como se
+    // fosse um `quem` de verdade por `honraForcada`.
+    if (ff.contra !== undefined) {
+      if (!Array.isArray(ff.contra) || ff.contra.some((c: unknown) => typeof c !== "string")) {
+        throw new Error(`${origem}: "forcadaPor.contra", se presente, tem que ser uma lista de strings.`);
+      }
+      reivindicacao.forcadaPor.contra = ff.contra as string[];
+    }
   }
 
   if (d.degradadaPor !== undefined) {
