@@ -5,6 +5,98 @@
 
 ---
 
+## 2026-08-29 — A fila que se cobra: reivindicação vencida + PR parado, num relatório diário
+
+Despacho do PM (`DESPACHO-fila-parada.md`), a partir de números medidos por ele
+no mesmo dia: 4 reivindicações vencidas (3 há 12+ dias) e 34 PRs abertos sem
+**nenhum** review formal — só 3 com qualquer comentário. Reivindicação em
+`reivindicacoes/coordenacao-fila-que-se-cobra.json`.
+
+### O que foi construído — os quatro artefatos, exatamente os pedidos
+
+1. **`lib/coordenacao/fila-parada.ts`** — a régua pura. Reusa `estaViva` e
+   `TETO_HORAS_PADRAO` de `lib/coordenacao/reivindicacoes.ts:321,134` para
+   reivindicação vencida (não inventei um segundo cálculo de idade). Acrescenta
+   só o que faltava: `PullRequestAberto`, `DIAS_ATE_PR_PARADO = 7`,
+   `estacionadoDePropOsito()` e `retratoDaFila()`, com as quatro regras da
+   ficha (a–d) implementadas na ordem: estacionado sai ANTES de qualquer outra
+   regra rodar, para nunca contar em `totalCobravel` mas nunca sumir do
+   relatório.
+2. **`scripts/varrer-fila-parada.mts`** — o I/O. Lê `reivindicacoes/` com
+   `lerReivindicacoesDoDisco`; busca PRs abertos e, por PR, `commits`,
+   `reviews` e `issues/comments` na API REST do GitHub, reusando
+   `cabecalhosDoGitHub`/`comTempoLimite`/`REPO_PADRAO` de
+   `lib/plataforma/consulta-de-ci.ts` (o mesmo módulo que o sentinela do
+   deploy já usa — uma implementação de autenticação/timeout contra a API do
+   GitHub, não duas). Sem `GITHUB_TOKEN`, ou API fora do ar: sai != 0 **sem
+   escrever relatório**, gritando que a metade de PRs ficou CEGA — nunca
+   fingindo fila limpa. Escreve `docs/relatorios/fila-parada.md`
+   (sobrescrito), soma no `$GITHUB_STEP_SUMMARY` via workflow. Registrado em
+   `package.json` como `"varrer-fila"`.
+3. **`.github/workflows/fila-parada.yml`** — `cron: "41 7 * * *"` (04:41 BRT,
+   slot livre confirmado pela ficha), `workflow_dispatch`, aponta para
+   `claude/dioli-agency-os-architecture-kk7kp` (**não** para a branch morta que
+   `raio-x-noturno.yml` usa — conferido linha a linha, é o defeito citado na
+   própria ficha). Varredura roda com `continue-on-error: true` e `id: varrer`
+   para o relatório ser comitado mesmo com a fila suja; commit só de
+   `docs/relatorios/fila-parada.md`, com `git pull --rebase ... || exit 0`
+   antes do push; o último passo falha o job com `::error::` nomeando quantos
+   itens estão cobráveis, lidos de volta do próprio relatório.
+4. **`__tests__/coordenacao/fila-parada.test.ts`** — sem mock (a régua é pura):
+   os cinco casos da ficha, mais os dois PRs reais (#10, #387) para
+   `estacionadoDePropOsito`.
+
+### Decisões de desenho que não estavam na ficha
+
+- **Reusei `cabecalhosDoGitHub`/`comTempoLimite`/`REPO_PADRAO` de
+  `lib/plataforma/consulta-de-ci.ts`** em vez de escrever `fetch` cru de novo
+  no script. A ficha pedia "API REST com `fetch`, `Authorization: Bearer
+  ${GITHUB_TOKEN}`, repo `diolisantos10/diolidigital`" — é exatamente o que
+  esse módulo já faz para o sentinela do deploy, com timeout e sem vazar o
+  token em erro. Duas implementações da mesma chamada autenticada é o tipo de
+  duplicação que diverge sem ninguém perceber.
+- **PRs buscados sequencialmente**, não em `Promise.all` sobre os 34 — a API
+  do GitHub tem limite secundário de requisições concorrentes, e 34 PRs × 3
+  chamadas em paralelo total arrisca 429 no meio da varredura. Mais lento,
+  não estoura limite.
+- **"PR sem veredito" mede idade por `criadoEm`, não por `ultimoCommitEm`** —
+  a ficha diz "aberto há mais de X dias", que é a idade da abertura, não da
+  última atividade (essa é a régua de "PR parado", item b, que é outra
+  pergunta). As duas listas podem conter o mesmo PR — não deduplico entre
+  elas, porque respondem perguntas diferentes ("está murchando" × "nunca foi
+  julgado").
+- **`ha_quanto` sai formatado em dias com uma casa decimal** (`"12.4d"`), no
+  mesmo formato que o PM usou na própria medição da ficha — mantém o relatório
+  legível contra o número que já apareceu na conversa.
+- **A régua de marcador de parada (`nao mesclar`, `nao mergear`, `nao
+  fechar`, `wip`) é `.includes()` sobre o título normalizado**, não regex com
+  fronteira de palavra — a ficha só pede "compare sem acento e em
+  minúsculas"; `.includes()` é a leitura mais direta disso e já cobre os dois
+  casos reais citados (#10, #387).
+
+### O que ficou faltando
+
+- **Não rodei `tsc --noEmit`, `vitest` nem `git`** — por instrução explícita
+  da ficha e do meu papel ("o portão e o commit são meus", do PM). Os quatro
+  arquivos foram revisados à mão contra os tipos exportados por
+  `reivindicacoes.ts`/`leitura-do-registro.ts`/`consulta-de-ci.ts`, mas o
+  veredito formal (tipo + suíte) ainda não rodou.
+- **`docs/relatorios/fila-parada.md` não existe ainda** — só nasce na primeira
+  corrida do script (local ou do workflow). O diretório é criado pelo script
+  (`mkdirSync` recursivo).
+- **Não testei o script contra a API real do GitHub** (não tenho
+  `GITHUB_TOKEN` de escrita nesta sessão, e a ficha veda `npm`/`node` aqui) —
+  a forma dos payloads (`commit.committer.date`/`commit.author.date`,
+  `state` de review) foi conferida contra a documentação da API REST, não
+  contra uma resposta real capturada.
+- **Segredo aberto:** `GITHUB_TOKEN` do `secrets.GITHUB_TOKEN` padrão do
+  Actions só enxerga o próprio repositório — se um dia o relatório precisar
+  incluir PRs de outro repo do org, o token vai precisar de escopo maior.
+  Não é o caso hoje (`diolisantos10/diolidigital` é o único repo desta
+  varredura).
+
+---
+
 ## 2026-08-06 · noite — Provedor por cliente, a tela que manda, e a conta de IA
 
 Três defeitos da mesma família, e a família é: **a tela grava e ninguém lê.**

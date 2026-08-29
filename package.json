@@ -35,7 +35,8 @@
     "diagnose:railway": "tsx scripts/diagnose-railway-env.ts",
     "reivindicar": "tsx scripts/reivindicar.mts",
     "kit:espelhar": "tsx scripts/espelhar-kit.mts espelhar",
-    "kit:carimbo": "tsx scripts/espelhar-kit.mts carimbo"
+    "kit:carimbo": "tsx scripts/espelhar-kit.mts carimbo",
+    "varrer-fila": "tsx scripts/varrer-fila-parada.mts"
   },
   "prisma": {
     "seed": "node scripts/seed-db.mjs"
