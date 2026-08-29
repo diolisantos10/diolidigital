@@ -905,9 +905,21 @@ async function aceitarAPropostaComoOCliente(
       body: JSON.stringify({ token, clientRequestId, decisao: "aceito" }),
     });
     const res = await POST(req);
-    const corpo = (await res.json()) as { ok?: boolean; projetoCriado?: boolean; aguardandoPessoa?: boolean; error?: string };
+    const corpo = (await res.json()) as {
+      ok?: boolean; projetoCriado?: boolean; aguardandoPessoa?: boolean;
+      error?: string; mensagem?: string; status?: string; jaDecidido?: boolean;
+    };
     if (res.status >= 400 || !corpo.ok) {
-      const motivo = `a porta do aceite recusou (${res.status}): ${corpo.error ?? "sem motivo"}`;
+      // ── O INSTRUMENTO LIA O CAMPO ERRADO (cliente oculto, 29/08/2026) ─────
+      // A porta do aceite NUNCA devolve `error`: o 409 dela sai com `mensagem`
+      // (a frase que o cliente lê) e `status` (o estado em que a solicitação
+      // estava). Ler só `error` fazia o placar imprimir "409: sem motivo" —
+      // recusa muda inventada pelo medidor, não pela casa. As outras duas
+      // leituras deste mesmo arquivo (linhas ~758 e ~1032) já liam
+      // `error ?? mensagem`; esta era a única fora do padrão.
+      const dito = corpo.error ?? corpo.mensagem ?? "sem motivo";
+      const estado = corpo.status ? ` [solicitação em "${corpo.status}"]` : "";
+      const motivo = `a porta do aceite recusou (${res.status}): ${dito}${estado}`;
       tropecos.push({ etapa: "aceite", erro: motivo });
       return { tentou: true, viaPortal: false, nasceuSozinho: false, motivo };
     }

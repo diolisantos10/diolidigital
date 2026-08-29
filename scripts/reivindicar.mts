@@ -87,7 +87,25 @@ import {
 } from "../lib/coordenacao/portao-de-push.ts";
 import { soLevaAReivindicacao } from "../lib/coordenacao/so-o-commit-da-reivindicacao.ts";
 
-const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+// RAIZ é sempre o repositório real onde este arquivo vive — SALVO quando um
+// teste automatizado pede explicitamente, via REIVINDICAR_RAIZ_DE_TESTE, para
+// apontar para um repositório git TEMPORÁRIO e descartável. Só variável de
+// ambiente, nunca argumento de linha de comando — ninguém digita isto por
+// engano, só um teste define. Em produção a variável não existe, e o
+// comportamento é idêntico ao de antes desta linha.
+//
+// ── POR QUE ISTO PRECISOU EXISTIR (29/08/2026, ficha B1) ───────────────────
+// Sem isto, NENHUM teste consegue rodar `scripts/reivindicar.mts` COMO
+// PROCESSO — que é o único jeito de provar ORDEM de execução (escrita antes
+// ou depois da guarda), em vez de só ler o código e confiar que a ordem que
+// os olhos veem é a ordem que o processo de fato executa. `cwd: RAIZ` é usado
+// em TODO comando git deste arquivo; sem um jeito de trocar RAIZ, testar a
+// guarda de verdade exigiria rodar o script contra ESTE repositório — o que
+// `__tests__/coordenacao/encerrar-com-tree-sujo.test.ts` já registrou como
+// inaceitável (teste automatizado nunca escreve/empurra no repositório real).
+const RAIZ = process.env.REIVINDICAR_RAIZ_DE_TESTE
+  ? resolve(process.env.REIVINDICAR_RAIZ_DE_TESTE)
+  : resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PASTA_REIVINDICACOES = join(RAIZ, "reivindicacoes");
 
 /** Onde o RÓTULO (não a identidade — ver o bloco "Identidade da sessão",

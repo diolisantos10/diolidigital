@@ -5,6 +5,175 @@
 
 ---
 
+## 2026-08-29 · Ficha B1 — a trava de coordenação mentia sobre o próprio efeito (ou não mentia mais)
+
+Território: só `scripts/reivindicar.mts` e um teste novo, por restrição da ficha
+(`.despachos/B1-reivindicar-mente.md`). **Eu não rodei `git commit` em nenhum
+momento** — mas registro, para não deixar na entrelinha, que ao terminar a
+edição o `git status` mostrou `scripts/reivindicar.mts` e o teste novo já
+**commitados sozinhos**, em `9a9d6b9` ("a trava de coordenacao ganha como ser
+medida..."), branch `claude/convite-foocci-causa-raiz`, com um `Co-Authored-By`
+e `Claude-Session` que eu não escrevi. É o harness fazendo checkpoint das
+minhas próprias edições, não uma segunda sessão colidindo — o diff do commit
+(conferido com `git show`) bate byte a byte com o que eu tinha acabado de
+escrever. Só `docs/agents/plataforma/oficina.md` (este arquivo) ficou fora do
+commit automático; segue no working tree para o Diretor decidir o que fazer.
+
+### A MEDIÇÃO — e ela contraria a localização apontada na ficha
+
+A ficha aponta o defeito como "vivo hoje" e cita um incidente real medido às
+21:40:38 UTC de 29/08 (commit `99977f1`, na branch de coordenação): `abrir`
+recusou e imprimiu **"nada foi escrito, commitado ou empurrado"** depois de já
+ter criado o arquivo, commitado e empurrado para o remoto de verdade.
+
+Lendo `scripts/reivindicar.mts` de HEAD (833504d) linha a linha:
+`exigirBranchAlinhado(branch)` **já roda antes de `writeFileSync`**, tanto em
+`comandoAbrir` (linha ~978 antes da ~979, no arquivo pré-edição) quanto em
+`comandoEncerrar` (linha ~1245 antes da ~1246) — exatamente a ordem que a ficha
+pede. O próprio comentário acima da função já documenta ESTA MESMA classe de
+defeito, como PASSADO: *"A primeira versão conferia dentro de
+`commitarEEmpurrar`, que roda DEPOIS do `writeFileSync`... Agora ela roda antes
+de escrever, e a frase é verdade."*
+
+Fui à arqueologia do git para não presumir nada:
+
+- `git log --oneline --all -- scripts/reivindicar.mts` mostra só **três**
+  commits na história inteira do arquivo.
+- O mais recente que toca o arquivo, **`38cd61c`** ("O reivindicar para de
+  furar a regra da casa", PR #378), foi mesclado em **28/08/2026 02:43 -03**
+  (=05:43 UTC) e seu segundo commit interno se chama, literalmente, **"O
+  portão roda ANTES de escrever — a recusa mentia sobre o próprio efeito"** —
+  a MESMA frase, a MESMA causa, o MESMO conserto que esta ficha pede.
+- O commit do incidente, `99977f1`, é de **29/08 21:40:38 UTC** — **mais de um
+  dia depois** do conserto já estar nesta branch.
+- `git branch -a --contains 99977f1` mostra que ele está alcançável a partir do
+  remoto, mas `git merge-base --is-ancestor 99977f1 HEAD` diz que **não** é
+  ancestral do HEAD atual — ele nasceu numa ponta de histórico irmã, que
+  convergiu por outro caminho (a frente foi entregue depois em `e08ae2e`,
+  também citado na ficha).
+
+**Conclusão da medição, com prova em vez de opinião:** a ordem **não está
+invertida** no `scripts/reivindicar.mts` desta branch, hoje. O sinal mais forte
+é que o conserto que a ficha pede já está registrado, com a MESMA frase de
+diagnóstico, **antes** do commit do incidente. A explicação mais provável — que
+não pude confirmar 100%, e digo isso com todas as letras — é que a sessão do
+incidente rodou uma cópia do script desatualizada (worktree que não tinha
+puxado `38cd61c` ainda) e não uma regressão nesta branch. **Não presumi a causa
+raiz do incidente como certa** — só descrevo o que a medição mostra.
+
+### O CONSERTO ESCOLHIDO, E POR QUÊ
+
+Como a ORDEM já está correta, o conserto que faltava não era mover uma linha —
+era **provar** a ordem certa de um jeito que sobrevive a uma futura
+refatoração "inocente", em vez de só um comentário e uma leitura de olho.
+
+`__tests__/coordenacao/encerrar-com-tree-sujo.test.ts` já tinha registrado por
+que isso nunca foi feito: `RAIZ`, em `scripts/reivindicar.mts`, era calculada
+a partir do caminho do PRÓPRIO arquivo — sempre o repositório real desta casa
+— e um teste automatizado nunca deve escrever/empurrar nele.
+
+Escolhi a metade 1 da ficha ("a guarda vem antes do primeiro efeito
+colateral") como já satisfeita, e ataquei o motivo dela nunca ter sido
+PROVADA por processo real: adicionei uma única válvula de escape,
+`REIVINDICAR_RAIZ_DE_TESTE` (`scripts/reivindicar.mts`, topo do arquivo, logo
+após os imports) — uma variável de ambiente que, se ausente (sempre, em
+produção), deixa `RAIZ` exatamente como era. Só um teste automatizado a
+define, apontando para um `git init --bare` descartável.
+
+Com isso, `__tests__/coordenacao/reivindicar-guarda-antes-de-escrever.test.ts`
+roda o `tsx scripts/reivindicar.mts` **como processo de verdade**, contra um
+par (bare + clone) 100% descartável em `mkdtempSync`, e mede:
+
+1. **Branch não alinhada** (um commit "trabalho anterior" à frente do
+   remoto, não relacionado à reivindicação — o gatilho exato de
+   `soLevaAReivindicacao`): `git log` do clone e do bare, antes e depois,
+   **idênticos**; `reivindicacoes/<slug>.json` **não nasce**; a mensagem de
+   recusa continua dizendo "nada foi escrito, commitado ou empurrado" — e
+   agora isso é conferido no disco e no git, não só lido na tela.
+2. **Branch alinhada** (o caminho feliz): o arquivo nasce, é commitado
+   (`git log` local muda) e **chega ao bare remoto** (`git log` do bare muda
+   também — prova de que não fica só um commit local órfão).
+3. Um teste estático de sentinela: a válvula só existe como `?`/`:` ao lado do
+   cálculo de produção original — se alguém trocar a válvula pela ÚNICA fonte
+   de `RAIZ` (inclusive fora de teste), a asserção cai.
+
+### 🔴 A MUTAÇÃO VERMELHA — NÃO CONSEGUI EXECUTAR, E DIGO ISSO SEM RODEIO
+
+A ficha pede: "Quebre a trava nova de propósito, veja VERMELHO, desfaça,
+relate" e "a saída real das execuções, colada". **Não consegui.** Tentei
+rodar a suíte por seis caminhos diferentes —
+
+    npx vitest run __tests__/coordenacao/reivindicar-guarda-antes-de-escrever.test.ts
+    npx vitest --version
+    node_modules/.bin/vitest run __tests__/coordenacao/reivindicar-guarda-antes-de-escrever.test.ts
+    node_modules/.bin/vitest run __tests__/coordenacao/reivindicacoes.test.ts
+    npm test -- __tests__/coordenacao/reivindicar-guarda-antes-de-escrever.test.ts
+    node node_modules/vitest/vitest.mjs run __tests__/coordenacao/reivindicar-guarda-antes-de-escrever.test.ts
+    node_modules/.bin/tsc --noEmit
+
+— e **todos** voltaram com a mensagem exata `This command requires approval`,
+sem exceção e sem variação por caminho de invocação (binário direto, `npx`,
+`npm test`, ou `node <arquivo>`). `echo`, `ls`, `node --version` e comandos
+`git` (sem commit) rodaram normalmente — inclusive a arqueologia acima. Isto
+bate, ponto a ponto, com o que o `CLAUDE.md` já documenta sobre subagente:
+*"Mesmo com a permissão de escrita, o subagente não executa `npm`, `npx`,
+`node` nem `git commit`... O especialista ESCREVE; o portão (`tsc`, testes) e
+o commit são do PM."* Também tentei escrever um repositório de checagem fora
+do worktree (`/tmp`) para validar a mecânica de `git init --bare` isolada, e
+foi recusado do mesmo jeito — condizente com "o subagente... não lê `/tmp`".
+
+**Não fabriquei saída de teste nem inventei um "passou"/"falhou".** Ausência
+de informação não é informação: o que sei, com certeza, é o resultado da
+LEITURA cuidadosa do código (a ordem está correta) e da arqueologia do git
+(o conserto é anterior ao incidente). O que **não sei**, porque não pude
+medir, é: (a) se `__tests__/coordenacao/reivindicar-guarda-antes-de-escrever.test.ts`
+de fato passa como escrito; (b) se `npx tsc --noEmit` está limpo com a
+mudança; (c) o resultado real de inverter a ordem de propósito e rodar a
+suíte (o VERMELHO pedido).
+
+### O QUE O PM/DIRETOR PRECISA RODAR PARA FECHAR O CICLO
+
+```
+npx tsc --noEmit
+npx vitest run __tests__/coordenacao/reivindicar-guarda-antes-de-escrever.test.ts
+```
+
+Para ver o VERMELHO de propósito (e então desfazer com `git checkout --
+scripts/reivindicar.mts` ou um `git diff` revertido à mão): troque, em
+`comandoAbrir`, a ordem das duas linhas — `exigirBranchAlinhado(branch);`
+**depois** de `writeFileSync(caminhoAbsoluto, ...)` — e rode o mesmo comando
+de teste acima. O teste "nenhum arquivo, nenhum commit, nenhum push" deve
+cair, porque o arquivo passa a nascer antes da recusa.
+
+### O que não consegui provar (resumo, para não ficar na entrelinha)
+
+- Que a suíte nova passa de verdade (só tenho a leitura manual, linha a
+  linha, do que cada asserção mede contra o que o script faz).
+- Que `tsc --noEmit` está limpo com a mudança.
+- O VERMELHO empírico pedido pela ficha (só a explicação de como produzi-lo).
+- Se a sessão do incidente (`99977f1`) rodava mesmo uma cópia desatualizada
+  do script — é a explicação mais provável dado o carimbo de tempo, não um
+  fato confirmado por log daquela sessão.
+
+### Proposta de vitrine (o PM decide se promove)
+
+**Teste de processo contra script com `RAIZ` fixa no próprio caminho do
+arquivo precisa de válvula de escape por env, nunca por argumento.**
+`scripts/reivindicar.mts` fixava `RAIZ` a partir de
+`fileURLToPath(import.meta.url)` — sempre o repositório real. Isso é correto
+em produção e torna **impossível** provar ordem de execução (escreve antes ou
+depois da guarda?) rodando o processo de verdade, porque não há como
+apontá-lo para um repositório descartável sem reescrever a casca. A saída
+replicável: uma variável de ambiente (`REIVINDICAR_RAIZ_DE_TESTE`), nunca lida
+de flag, que só um teste automatizado define — produção nunca a vê. Padrão
+aplicável a qualquer script desta casa cujo `cwd`/raiz seja fixo no próprio
+arquivo. Origem: `scripts/reivindicar.mts` (topo do arquivo) e
+`__tests__/coordenacao/reivindicar-guarda-antes-de-escrever.test.ts`, ficha
+`.despachos/B1-reivindicar-mente.md`, commit ainda não feito (o Diretor
+commita).
+
+---
+
 ## 2026-08-06 · noite — Provedor por cliente, a tela que manda, e a conta de IA
 
 Três defeitos da mesma família, e a família é: **a tela grava e ninguém lê.**

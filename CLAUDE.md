@@ -464,7 +464,16 @@ falando do script, não do arquivo — confira o arquivo.
 # 1. Banco local (uma vez): cria .env, provisiona SQLite e semeia
 echo 'DATABASE_URL="file:./dev.db"' > .env
 echo 'JWT_SECRET=dev-secret-local-only' >> .env
-npx prisma db push && node scripts/seed-db.mjs   # login: master@dioli.studio
+# As DUAS senhas abaixo são OBRIGATÓRIAS — o seed recusa sem elas (e recusa
+# sem tocar no banco). São descartáveis e locais: nunca use valor de produção.
+echo 'SEED_MASTER_PASSWORD=dev-master-local-only' >> .env
+echo 'SEED_STAFF_PASSWORD=dev-staff-local-only' >> .env
+npx prisma db push && node scripts/seed-db.mjs
+
+# Login: master@dioli.studio · senha: o valor de SEED_MASTER_PASSWORD acima.
+# Staff (pm@ / social@ / design@ .dioli.studio) usam SEED_STAFF_PASSWORD.
+# Trocar a senha = editar o .env e rodar `node scripts/seed-db.mjs` de novo:
+# o seed ROTACIONA a senha das contas que já existem.
 
 # 2. Subir o servidor de desenvolvimento
 npm run dev            # http://localhost:3000
@@ -472,6 +481,16 @@ npm run dev            # http://localhost:3000
 # 3. Screenshot em 3 tamanhos (celular/tablet/desktop)
 node scripts/shot.mjs /auth/signin signin
 ```
+
+> **Esta receita foi rodada do zero em 29/08/2026, num diretório vazio, e
+> funciona.** Antes disso ela mentia: mandava rodar o seed sem citar as duas
+> senhas, e o seed **apagava dados demo do banco e só então falhava** por falta
+> delas — quem confiou na receita ficou pior do que antes. Hoje o seed confere
+> todos os pré-requisitos **antes da primeira escrita** e recusa com o disco
+> intacto (`__tests__/plataforma/seed-recusa-antes-de-destruir.test.ts` trava as
+> duas coisas, esta seção inclusive). Se você mudar a receita, **rode-a** num
+> diretório limpo antes de commitar. Receita que não roda é pior que receita
+> ausente.
 
 ## Componentes shadcn/ui
 
