@@ -458,7 +458,9 @@ export const ModelName = {
   ConviteDeParceria: 'ConviteDeParceria',
   IsencaoDeParceria: 'IsencaoDeParceria',
   AssinaturaRecorrente: 'AssinaturaRecorrente',
-  CobrancaRecorrente: 'CobrancaRecorrente'
+  CobrancaRecorrente: 'CobrancaRecorrente',
+  LinhaDoFunil: 'LinhaDoFunil',
+  TransicaoDoFunil: 'TransicaoDoFunil'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -474,7 +476,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "linhaDoFunil" | "transicaoDoFunil"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -6028,6 +6030,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    LinhaDoFunil: {
+      payload: Prisma.$LinhaDoFunilPayload<ExtArgs>
+      fields: Prisma.LinhaDoFunilFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LinhaDoFunilFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinhaDoFunilPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LinhaDoFunilFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinhaDoFunilPayload>
+        }
+        findFirst: {
+          args: Prisma.LinhaDoFunilFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinhaDoFunilPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LinhaDoFunilFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinhaDoFunilPayload>
+        }
+        findMany: {
+          args: Prisma.LinhaDoFunilFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinhaDoFunilPayload>[]
+        }
+        create: {
+          args: Prisma.LinhaDoFunilCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinhaDoFunilPayload>
+        }
+        createMany: {
+          args: Prisma.LinhaDoFunilCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LinhaDoFunilCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinhaDoFunilPayload>[]
+        }
+        delete: {
+          args: Prisma.LinhaDoFunilDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinhaDoFunilPayload>
+        }
+        update: {
+          args: Prisma.LinhaDoFunilUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinhaDoFunilPayload>
+        }
+        deleteMany: {
+          args: Prisma.LinhaDoFunilDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LinhaDoFunilUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LinhaDoFunilUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinhaDoFunilPayload>[]
+        }
+        upsert: {
+          args: Prisma.LinhaDoFunilUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LinhaDoFunilPayload>
+        }
+        aggregate: {
+          args: Prisma.LinhaDoFunilAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLinhaDoFunil>
+        }
+        groupBy: {
+          args: Prisma.LinhaDoFunilGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LinhaDoFunilGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LinhaDoFunilCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LinhaDoFunilCountAggregateOutputType> | number
+        }
+      }
+    }
+    TransicaoDoFunil: {
+      payload: Prisma.$TransicaoDoFunilPayload<ExtArgs>
+      fields: Prisma.TransicaoDoFunilFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TransicaoDoFunilFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDoFunilPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TransicaoDoFunilFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDoFunilPayload>
+        }
+        findFirst: {
+          args: Prisma.TransicaoDoFunilFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDoFunilPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TransicaoDoFunilFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDoFunilPayload>
+        }
+        findMany: {
+          args: Prisma.TransicaoDoFunilFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDoFunilPayload>[]
+        }
+        create: {
+          args: Prisma.TransicaoDoFunilCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDoFunilPayload>
+        }
+        createMany: {
+          args: Prisma.TransicaoDoFunilCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TransicaoDoFunilCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDoFunilPayload>[]
+        }
+        delete: {
+          args: Prisma.TransicaoDoFunilDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDoFunilPayload>
+        }
+        update: {
+          args: Prisma.TransicaoDoFunilUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDoFunilPayload>
+        }
+        deleteMany: {
+          args: Prisma.TransicaoDoFunilDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TransicaoDoFunilUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TransicaoDoFunilUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDoFunilPayload>[]
+        }
+        upsert: {
+          args: Prisma.TransicaoDoFunilUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TransicaoDoFunilPayload>
+        }
+        aggregate: {
+          args: Prisma.TransicaoDoFunilAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTransicaoDoFunil>
+        }
+        groupBy: {
+          args: Prisma.TransicaoDoFunilGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TransicaoDoFunilGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TransicaoDoFunilCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TransicaoDoFunilCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -7435,6 +7585,34 @@ export const CobrancaRecorrenteScalarFieldEnum = {
 export type CobrancaRecorrenteScalarFieldEnum = (typeof CobrancaRecorrenteScalarFieldEnum)[keyof typeof CobrancaRecorrenteScalarFieldEnum]
 
 
+export const LinhaDoFunilScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  oportunidadeId: 'oportunidadeId',
+  estado: 'estado',
+  entrouNoEstadoEm: 'entrouNoEstadoEm',
+  criadoEm: 'criadoEm',
+  atualizadoEm: 'atualizadoEm'
+} as const
+
+export type LinhaDoFunilScalarFieldEnum = (typeof LinhaDoFunilScalarFieldEnum)[keyof typeof LinhaDoFunilScalarFieldEnum]
+
+
+export const TransicaoDoFunilScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  oportunidadeId: 'oportunidadeId',
+  estadoAnterior: 'estadoAnterior',
+  estadoNovo: 'estadoNovo',
+  autor: 'autor',
+  origem: 'origem',
+  justificativa: 'justificativa',
+  criadoEm: 'criadoEm'
+} as const
+
+export type TransicaoDoFunilScalarFieldEnum = (typeof TransicaoDoFunilScalarFieldEnum)[keyof typeof TransicaoDoFunilScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -7676,6 +7854,8 @@ export type GlobalOmitConfig = {
   isencaoDeParceria?: Prisma.IsencaoDeParceriaOmit
   assinaturaRecorrente?: Prisma.AssinaturaRecorrenteOmit
   cobrancaRecorrente?: Prisma.CobrancaRecorrenteOmit
+  linhaDoFunil?: Prisma.LinhaDoFunilOmit
+  transicaoDoFunil?: Prisma.TransicaoDoFunilOmit
 }
 
 /* Types for Logging */

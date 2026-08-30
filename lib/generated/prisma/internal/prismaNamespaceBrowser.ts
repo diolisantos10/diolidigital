@@ -125,7 +125,9 @@ export const ModelName = {
   ConviteDeParceria: 'ConviteDeParceria',
   IsencaoDeParceria: 'IsencaoDeParceria',
   AssinaturaRecorrente: 'AssinaturaRecorrente',
-  CobrancaRecorrente: 'CobrancaRecorrente'
+  CobrancaRecorrente: 'CobrancaRecorrente',
+  LinhaDoFunil: 'LinhaDoFunil',
+  TransicaoDoFunil: 'TransicaoDoFunil'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1510,6 +1512,34 @@ export const CobrancaRecorrenteScalarFieldEnum = {
 } as const
 
 export type CobrancaRecorrenteScalarFieldEnum = (typeof CobrancaRecorrenteScalarFieldEnum)[keyof typeof CobrancaRecorrenteScalarFieldEnum]
+
+
+export const LinhaDoFunilScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  oportunidadeId: 'oportunidadeId',
+  estado: 'estado',
+  entrouNoEstadoEm: 'entrouNoEstadoEm',
+  criadoEm: 'criadoEm',
+  atualizadoEm: 'atualizadoEm'
+} as const
+
+export type LinhaDoFunilScalarFieldEnum = (typeof LinhaDoFunilScalarFieldEnum)[keyof typeof LinhaDoFunilScalarFieldEnum]
+
+
+export const TransicaoDoFunilScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  oportunidadeId: 'oportunidadeId',
+  estadoAnterior: 'estadoAnterior',
+  estadoNovo: 'estadoNovo',
+  autor: 'autor',
+  origem: 'origem',
+  justificativa: 'justificativa',
+  criadoEm: 'criadoEm'
+} as const
+
+export type TransicaoDoFunilScalarFieldEnum = (typeof TransicaoDoFunilScalarFieldEnum)[keyof typeof TransicaoDoFunilScalarFieldEnum]
 
 
 export const SortOrder = {

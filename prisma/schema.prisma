@@ -3007,3 +3007,99 @@ model CobrancaRecorrente {
   @@unique([assinaturaId, competencia])
   @@index([competencia])
 }
+
+/// ─── O FUNIL DA CÉLULA DE PROSPECÇÃO (Onda 1, 30/08/2026) ───────────────────
+///
+/// Dois models NOVOS, aditivos, acrescentados ao FIM do arquivo por ordem
+/// explícita da ficha de despacho — nenhuma linha de model existente foi
+/// tocada. A ligação com `Oportunidade` é só por `oportunidadeId String`, SEM
+/// relação Prisma de mão dupla, de propósito: não gera o risco de mexer no
+/// model dela.
+///
+/// ── O VEREDITO SOBRE REAPROVEITAR `TransicaoDeEstado` (linha ~2466) ────────
+/// PEDIDO NA FICHA: avaliar honestamente se dá para reaproveitar o
+/// `TransicaoDeEstado` da máquina V2 de PROJETO para este funil de
+/// PROSPECÇÃO. O palpite do CEO estava certo — confirmado, não refutado:
+///
+///   1. `versaoLida Int` (NOT NULL) é controle de concorrência otimista: a
+///      máquina V2 de projeto exige que quem escreve declare qual versão leu,
+///      e `maquina.ts` (condição 3) recusa se a versão mudou entre a leitura
+///      e a escrita. Este funil usa outro desenho: `avancarFunil` LÊ o estado
+///      atual de DENTRO da mesma `$transaction` que escreve — não há "versão
+///      lida" para declarar, porque não há janela entre leitura e escrita a
+///      fechar por número de versão.
+///   2. `chaveIdempotencia String @unique` é a chave de idempotência de
+///      QUEM CHAMA (quem reenvia a mesma chamada preserva o mesmo resultado).
+///      Este funil não tem, na ficha, um conceito de "a mesma transição
+///      reenviada" — resolve duplicidade de outra forma (a linha ATUAL vive
+///      em `LinhaDoFunil`, uma por oportunidade, e cada tentativa de avanço é
+///      julgada contra o que está lá agora).
+///   3. Conferido em código (`lib/agency/estados-v2/maquina.ts`): o campo
+///      `motivo` do `TransicaoDeEstado` é `String` livre, SEM trava de
+///      tamanho mínimo. Este funil exige `justificativa` com pelo menos 3
+///      caracteres úteis (`avaliarTransicao` em `lib/agency/celula/funil.ts`)
+///      — é uma invariante DESTE domínio, e reaproveitar a coluna genérica
+///      misturaria duas travas diferentes sob o mesmo nome de campo.
+///   4. `entidadeTipo`/`entidadeId` genéricos serviriam — mas sem (1) e (2)
+///      sobrariam colunas obrigatórias (`versaoLida`, `chaveIdempotencia`)
+///      que este domínio não tem como preencher com sentido, forçando valor
+///      inventado só para satisfazer NOT NULL. Ausência de informação não é
+///      informação: preencher "porque a coluna pede" seria isso.
+///
+/// CONCLUSÃO: não reaproveitar a tabela. O FORMATO é copiado (é uma boa
+/// decisão de desenho, não amarrada aos dois campos acima): trilha
+/// append-only, um par `estadoAnterior/estadoNovo` por linha, autor + origem
+/// + justificativa carimbados na escrita, nunca editados depois.
+model LinhaDoFunil {
+  id          String @id @default(cuid())
+  workspaceId String
+  /// Sem relação Prisma para `Oportunidade` — ver nota acima do bloco.
+  oportunidadeId String @unique
+
+  /// Um dos 22 slugs de `Estado` em `lib/agency/celula/funil.ts`. Guardado
+  /// como `String` (não enum do Prisma) porque quem valida pertencimento ao
+  /// conjunto fechado é o TypeScript (`estadoDeclarado`), não o SQLite —
+  /// mesma postura fail-closed do resto do módulo.
+  estado String @default("encontrada")
+
+  /// Quando a oportunidade ENTROU no `estado` atual — não quando a linha foi
+  /// criada. Atualiza a cada avanço, junto com `estado`.
+  entrouNoEstadoEm DateTime
+
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([workspaceId, estado])
+}
+
+/// A TRILHA APPEND-ONLY do funil — nunca `update`, nunca `delete`, nunca
+/// `upsert`. Só `.create` e leitura (trava reforçada em código E em teste:
+/// ver `lib/agency/celula/trilha.ts` e
+/// `__tests__/celula/trilha-e-append-only.test.ts`). `justificativa` é
+/// `String` NOT NULL, sem default: nenhuma transição entra sem o "por quê"
+/// escrito por quem pediu o avanço.
+model TransicaoDoFunil {
+  id          String @id @default(cuid())
+  workspaceId String
+  /// Sem relação Prisma para `Oportunidade` — ver nota acima do bloco.
+  oportunidadeId String
+
+  estadoAnterior String
+  estadoNovo     String
+
+  /// Quem pediu o avanço — identificador livre (id de agente, e-mail de
+  /// gerente, "sistema"). Nunca vazio: `avaliarTransicao` recusa antes de
+  /// chegar aqui.
+  autor String
+  /// Um de `agente | gerente | cliente | sistema` — ver `OrigemDaTransicao`
+  /// em `lib/agency/celula/funil.ts`.
+  origem String
+  /// O porquê, escrito por quem pediu. NUNCA derivado do texto do anúncio ou
+  /// do cliente — ver a nota "O QUE ESTE ARQUIVO NÃO FAZ" em `funil.ts`.
+  justificativa String
+
+  criadoEm DateTime @default(now())
+
+  @@index([oportunidadeId, criadoEm])
+  @@index([workspaceId, criadoEm])
+}
