@@ -28,8 +28,8 @@
         },
         {
           "id": "objetivo",
-          "oQueColhe": "qual e o objetivo principal dele",
-          "comoSePergunta": "Me conta: qual e o objetivo principal do negocio agora -- trazer cliente novo, vender mais para quem ja e cliente, ou aparecer mais?",
+          "oQueColhe": "qual é o objetivo principal dele",
+          "comoSePergunta": "Me conta: qual é o objetivo principal do negócio agora — trazer cliente novo, vender mais para quem já é cliente, ou aparecer mais?",
           "obrigatoria": true,
           "ordem": 2,
           "dependeDe": null,
@@ -46,7 +46,7 @@
         },
         {
           "id": "modalidade",
-          "oQueColhe": "se e gestao mensal, projeto pontual ou parceria continua",
+          "oQueColhe": "se é gestão mensal, projeto pontual ou parceria contínua",
           "comoSePergunta": "Isso e para uma peca avulsa, ou voce quer um plano mensal de conteudo?",
           "obrigatoria": true,
           "ordem": 4,
@@ -55,7 +55,7 @@
         },
         {
           "id": "canais_sociais",
-          "oQueColhe": "em quais redes sociais o negocio esta",
+          "oQueColhe": "em quais redes sociais o negócio está",
           "comoSePergunta": "Em quais redes sociais o negocio esta presente hoje?",
           "obrigatoria": false,
           "ordem": 5,
@@ -64,7 +64,7 @@
         },
         {
           "id": "material_pronto",
-          "oQueColhe": "se ele ja tem fotos, videos ou logo prontos",
+          "oQueColhe": "se ele já tem fotos, vídeos ou logo prontos",
           "comoSePergunta": "Voces ja tem fotos e videos do negocio, ou a gente produz do zero?",
           "obrigatoria": false,
           "ordem": 6,
@@ -82,8 +82,8 @@
         },
         {
           "id": "prazo",
-          "oQueColhe": "o prazo para comecar",
-          "comoSePergunta": "E para quando voce quer isso de pe -- proximas semanas, este mes, sem pressa?",
+          "oQueColhe": "o prazo para começar",
+          "comoSePergunta": "E para quando você quer isso de pé — próximas semanas, este mês, sem pressa?",
           "obrigatoria": false,
           "ordem": 8,
           "dependeDe": null,
@@ -92,7 +92,7 @@
         {
           "id": "budget_range",
           "oQueColhe": "a faixa de investimento",
-          "comoSePergunta": "Pra eu ja montar a proposta certa pro seu momento: quanto voce pensa em investir por mes -- ate R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, entre R$ 1.500 e R$ 5.000, ou acima disso?",
+          "comoSePergunta": "Pra eu já montar a proposta certa pro seu momento: quanto você pensa em\ninvestir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500,\nentre R$ 1.500 e R$ 5.000, ou acima disso?",
           "obrigatoria": false,
           "ordem": 9,
           "dependeDe": null,
@@ -106,8 +106,8 @@
       "perguntas": [
         {
           "id": "objetivo",
-          "oQueColhe": "qual e o objetivo principal dele",
-          "comoSePergunta": "Me conta: qual e o objetivo principal do negocio agora -- trazer cliente novo, vender mais para quem ja e cliente, ou aparecer mais?",
+          "oQueColhe": "qual é o objetivo principal dele",
+          "comoSePergunta": "Me conta: qual é o objetivo principal do negócio agora — trazer cliente novo, vender mais para quem já é cliente, ou aparecer mais?",
           "obrigatoria": true,
           "ordem": 1,
           "dependeDe": null,
@@ -115,8 +115,8 @@
         },
         {
           "id": "publico_alvo",
-          "oQueColhe": "quem e o publico do negocio",
-          "comoSePergunta": "Quem e o cliente tipico de voces? Me descreve em uma frase.",
+          "oQueColhe": "quem é o público do negócio",
+          "comoSePergunta": "Quem é o cliente típico de vocês? Me descreve em uma frase.",
           "obrigatoria": true,
           "ordem": 2,
           "dependeDe": null,
@@ -133,8 +133,8 @@
         },
         {
           "id": "prazo",
-          "oQueColhe": "o prazo para comecar",
-          "comoSePergunta": "E para quando voce quer isso de pe -- proximas semanas, este mes, sem pressa?",
+          "oQueColhe": "o prazo para começar",
+          "comoSePergunta": "E para quando você quer isso de pé — próximas semanas, este mês, sem pressa?",
           "obrigatoria": false,
           "ordem": 4,
           "dependeDe": null,
@@ -148,8 +148,8 @@
       "perguntas": [
         {
           "id": "objetivo",
-          "oQueColhe": "qual e o objetivo principal dele",
-          "comoSePergunta": "Me conta: qual e o objetivo principal do negocio agora -- trazer cliente novo, vender mais para quem ja e cliente, ou aparecer mais?",
+          "oQueColhe": "qual é o objetivo principal dele",
+          "comoSePergunta": "Me conta: qual é o objetivo principal do negócio agora — trazer cliente novo, vender mais para quem já é cliente, ou aparecer mais?",
           "obrigatoria": true,
           "ordem": 1,
           "dependeDe": null,
@@ -157,8 +157,8 @@
         },
         {
           "id": "publico_alvo",
-          "oQueColhe": "quem e o publico do negocio",
-          "comoSePergunta": "Quem e o cliente tipico de voces? Me descreve em uma frase.",
+          "oQueColhe": "quem é o público do negócio",
+          "comoSePergunta": "Quem é o cliente típico de vocês? Me descreve em uma frase.",
           "obrigatoria": true,
           "ordem": 2,
           "dependeDe": null,
@@ -166,7 +166,7 @@
         },
         {
           "id": "concorrentes",
-          "oQueColhe": "concorrentes ou referencias que ele admira",
+          "oQueColhe": "concorrentes ou referências que ele admira",
           "comoSePergunta": "Quais concorrentes ou referencias voce admira -- marcas que voce gostaria que a sua parecesse?",
           "obrigatoria": true,
           "ordem": 3,
@@ -175,7 +175,7 @@
         },
         {
           "id": "material_pronto",
-          "oQueColhe": "se ele ja tem fotos, videos ou logo prontos",
+          "oQueColhe": "se ele já tem fotos, vídeos ou logo prontos",
           "comoSePergunta": "Voces ja tem fotos, videos ou logo prontos, ou e tudo para criar do zero?",
           "obrigatoria": false,
           "ordem": 4,
@@ -193,8 +193,8 @@
         },
         {
           "id": "prazo",
-          "oQueColhe": "o prazo para comecar",
-          "comoSePergunta": "E para quando voce quer isso de pe -- proximas semanas, este mes, sem pressa?",
+          "oQueColhe": "o prazo para começar",
+          "comoSePergunta": "E para quando você quer isso de pé — próximas semanas, este mês, sem pressa?",
           "obrigatoria": false,
           "ordem": 6,
           "dependeDe": null,
@@ -208,8 +208,8 @@
       "perguntas": [
         {
           "id": "objetivo",
-          "oQueColhe": "qual e o objetivo principal dele",
-          "comoSePergunta": "Me conta: qual e o objetivo principal do negocio agora -- trazer cliente novo, vender mais para quem ja e cliente, ou aparecer mais?",
+          "oQueColhe": "qual é o objetivo principal dele",
+          "comoSePergunta": "Me conta: qual é o objetivo principal do negócio agora — trazer cliente novo, vender mais para quem já é cliente, ou aparecer mais?",
           "obrigatoria": true,
           "ordem": 1,
           "dependeDe": null,
@@ -217,7 +217,7 @@
         },
         {
           "id": "material_pronto",
-          "oQueColhe": "se ele ja tem fotos, videos ou logo prontos",
+          "oQueColhe": "se ele já tem fotos, vídeos ou logo prontos",
           "comoSePergunta": "Voces ja tem o video bruto gravado? Hoje a gente edita a partir do que voces ja filmaram -- ainda nao gravamos do zero.",
           "obrigatoria": true,
           "ordem": 2,
@@ -235,8 +235,8 @@
         },
         {
           "id": "prazo",
-          "oQueColhe": "o prazo para comecar",
-          "comoSePergunta": "E para quando voce quer isso de pe -- proximas semanas, este mes, sem pressa?",
+          "oQueColhe": "o prazo para começar",
+          "comoSePergunta": "E para quando você quer isso de pé — próximas semanas, este mês, sem pressa?",
           "obrigatoria": false,
           "ordem": 4,
           "dependeDe": null,

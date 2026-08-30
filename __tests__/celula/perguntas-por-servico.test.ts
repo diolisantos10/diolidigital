@@ -236,8 +236,20 @@ describe("reaproveitamento -- mesmo id, mesmo texto de origem, sem segunda copia
     expect(p.comoSePergunta.toLowerCase()).toContain("bruto");
   });
 
-  it("COMO_SE_PERGUNTA_AO_CLIENTE.canal_de_contato nao e usado em nenhuma pergunta -- o texto original cita WhatsApp/e-mail e violaria o Guardiao", () => {
-    expect(COMO_SE_PERGUNTA_AO_CLIENTE.canal_de_contato).toMatch(/e-?mail|whats/i);
+  // A premissa original deste teste estava ERRADA e o portao pegou: o texto de
+  // `COMO_SE_PERGUNTA_AO_CLIENTE.canal_de_contato` e neutro ("por onde voce
+  // prefere ser respondido"). Quem cita e-mail e WhatsApp com todas as letras e
+  // a fala da FILA de descoberta -- e e ELA que nao pode ser reaproveitada aqui.
+  //
+  // O motivo da exclusao continua de pe, e e mais forte que o texto: no
+  // 99Freelas, perguntar o canal de contato CONVIDA o cliente a responder com
+  // telefone ou e-mail, e os Termos proibem dado de contato antes da garantia
+  // de pagamento (`docs/plataformas/99freelas/policy.json`,
+  // `proibicoes_de_conteudo.dado_de_contato`). A pergunta que provoca a
+  // violacao e tao proibida quanto a que a comete.
+  it("canal_de_contato nao e usado em nenhuma pergunta -- a fala da fila cita WhatsApp/e-mail e convidaria a violacao", () => {
+    const daFila = PERGUNTAS_DA_FILA.filter((q) => /e-?mail|whats/i.test(q));
+    expect(daFila.length).toBeGreaterThan(0);
     for (const p of TODAS_AS_PERGUNTAS) expect(p.id).not.toBe("canal_de_contato");
   });
 });

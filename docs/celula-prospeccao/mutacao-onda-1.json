@@ -1,6 +1,6 @@
 {
-  "rodadoEm": "2026-08-30T13:56:24.250Z",
-  "base": "40 passed (40)",
+  "rodadoEm": "2026-08-30T14:09:59.394Z",
+  "base": "49 passed (49)",
   "mutacoes": [
     {
       "guarda": "M1 · a tabela de pares (par não listado é rejeitado)",
@@ -10,18 +10,24 @@
       "espera": "funil.test.ts — par não permitido passa a ser aceito",
       "estado": "VERMELHO",
       "falhas": [
-        "rejeita um par que não está na tabela (pular etapas) 16ms",
+        "rejeita um par que não está na tabela (pular etapas) 7ms",
         "rejeita transição invertida (voltar sem passar por retomar/exceção) 1ms",
-        "é possível sair de excecao_operacional para um estado de trabalho 2ms",
-        "rejeita par não permitido, citando os dois estados pelo nome no motivo 1ms",
-        "transição inválida (par não permitido) não grava NADA — nem linha, nem trilha 51ms",
+        "é possível sair de excecao_operacional para um estado de trabalho 1ms",
+        "2a. perdida DEIXOU de ser terminal: perdida → retomar é legal, perdida → ganha continua ilegal 1ms",
+        "2c. a metade limpa: perdida → abordagem_preparada continua ILEGAL — a volta passa obrigatoriamente por retomar 1ms",
+        "3b. a metade negativa: contratada → ganha e em_producao → aprovada continuam ILEGAIS — não se pula entrega nem aprovação 1ms",
+        "rejeita par não permitido, citando os dois estados pelo nome no motivo 0ms",
+        "transição inválida (par não permitido) não grava NADA — nem linha, nem trilha 58ms",
         "__tests__/celula/funil.test.ts > transicaoPermitida / TRANSICOES_PERMITIDAS — a tabela de pares > rejeita um par que não está na tabela (pular etapas)",
         "__tests__/celula/funil.test.ts > transicaoPermitida / TRANSICOES_PERMITIDAS — a tabela de pares > rejeita transição invertida (voltar sem passar por retomar/exceção)",
         "__tests__/celula/funil.test.ts > transicaoPermitida / TRANSICOES_PERMITIDAS — a tabela de pares > é possível sair de excecao_operacional para um estado de trabalho",
+        "__tests__/celula/funil.test.ts > as 4 arbitragens do funil (Diretor, 30/08/2026) > 2a. perdida DEIXOU de ser terminal: perdida → retomar é legal, perdida → ganha continua ilegal",
+        "__tests__/celula/funil.test.ts > as 4 arbitragens do funil (Diretor, 30/08/2026) > 2c. a metade limpa: perdida → abordagem_preparada continua ILEGAL — a volta passa obrigatoriamente por retomar",
+        "__tests__/celula/funil.test.ts > as 4 arbitragens do funil (Diretor, 30/08/2026) > 3b. a metade negativa: contratada → ganha e em_producao → aprovada continuam ILEGAIS — não se pula entrega nem aprovação",
         "__tests__/celula/funil.test.ts > avaliarTransicao — o juiz puro > rejeita par não permitido, citando os dois estados pelo nome no motivo",
         "__tests__/celula/trilha-sobrevive-ao-reinicio.test.ts > a trilha do funil sobrevive ao reinício do processo > transição inválida (par não permitido) não grava NADA — nem linha, nem trilha"
       ],
-      "placar": "5 ⎯⎯⎯⎯⎯⎯⎯"
+      "placar": "8 ⎯⎯⎯⎯⎯⎯⎯"
     },
     {
       "guarda": "M2 · leitura fail-closed de estado (nunca `as Estado`)",
@@ -31,10 +37,10 @@
       "espera": "funil.test.ts — grafia errada/espaço/maiúscula deixa de virar null",
       "estado": "VERMELHO",
       "falhas": [
-        "rejeita grafia errada, espaço nas pontas, maiúscula, null, número e objeto 5ms",
+        "rejeita grafia errada, espaço nas pontas, maiúscula, null, número e objeto 8ms",
         "devolve 'encontrada' para undefined, null, lixo e string vazia 3ms",
         "rejeita estado de origem desconhecido 1ms",
-        "rejeita estado de destino desconhecido 2ms",
+        "rejeita estado de destino desconhecido 1ms",
         "__tests__/celula/funil.test.ts > estadoDeclarado — leitura defensiva de fonte não confiável > rejeita grafia errada, espaço nas pontas, maiúscula, null, número e objeto",
         "__tests__/celula/funil.test.ts > estadoAtualOuInicial — fail closed > devolve 'encontrada' para undefined, null, lixo e string vazia",
         "__tests__/celula/funil.test.ts > avaliarTransicao — o juiz puro > rejeita estado de origem desconhecido",
@@ -50,13 +56,13 @@
       "espera": "funil.test.ts e trilha-sobrevive — ausência de informação vira informação",
       "estado": "VERMELHO",
       "falhas": [
-        "devolve 'encontrada' para undefined, null, lixo e string vazia 17ms",
-        "avancarFunil grava a transição via .create, e ela é lida de volta 204ms",
-        "3 transições gravadas continuam lá, na ordem, com os 5 campos intactos, depois do 'deploy' 207ms",
-        "o ESTADO também sobrevive ao reinício (prova nº 8 do CEO) 133ms",
-        "transição sem justificativa não grava NADA 28ms",
-        "duas transições válidas em sequência: o estadoAnterior da 2ª é o estadoNovo da 1ª 40ms",
-        "oportunidade nunca tocada lê 'encontrada' 28ms",
+        "devolve 'encontrada' para undefined, null, lixo e string vazia 10ms",
+        "avancarFunil grava a transição via .create, e ela é lida de volta 194ms",
+        "3 transições gravadas continuam lá, na ordem, com os 5 campos intactos, depois do 'deploy' 196ms",
+        "o ESTADO também sobrevive ao reinício (prova nº 8 do CEO) 140ms",
+        "transição sem justificativa não grava NADA 26ms",
+        "duas transições válidas em sequência: o estadoAnterior da 2ª é o estadoNovo da 1ª 36ms",
+        "oportunidade nunca tocada lê 'encontrada' 25ms",
         "__tests__/celula/funil.test.ts > estadoAtualOuInicial — fail closed > devolve 'encontrada' para undefined, null, lixo e string vazia",
         "__tests__/celula/trilha-e-append-only.test.ts > a metade positiva: .create funciona de verdade contra SQLite real > avancarFunil grava a transição via .create, e ela é lida de volta",
         "__tests__/celula/trilha-sobrevive-ao-reinicio.test.ts > a trilha do funil sobrevive ao reinício do processo > 3 transições gravadas continuam lá, na ordem, com os 5 campos intactos, depois do 'deploy'",
@@ -75,16 +81,18 @@
       "espera": "funil.test.ts e trilha-sobrevive — transição sem justificativa é gravada",
       "estado": "VERMELHO",
       "falhas": [
-        "rejeita transição sem justificativa (undefined) 7ms",
-        "rejeita justificativa só de espaços em branco 1ms",
+        "2d. perdida → retomar SEM justificativa continua rejeitada — ninguém ressuscita em silêncio 9ms",
+        "rejeita transição sem justificativa (undefined) 1ms",
+        "rejeita justificativa só de espaços em branco 0ms",
         "rejeita justificativa com menos de 3 caracteres úteis 1ms",
-        "transição sem justificativa não grava NADA 44ms",
+        "transição sem justificativa não grava NADA 42ms",
+        "__tests__/celula/funil.test.ts > as 4 arbitragens do funil (Diretor, 30/08/2026) > 2d. perdida → retomar SEM justificativa continua rejeitada — ninguém ressuscita em silêncio",
         "__tests__/celula/funil.test.ts > avaliarTransicao — o juiz puro > rejeita transição sem justificativa (undefined)",
         "__tests__/celula/funil.test.ts > avaliarTransicao — o juiz puro > rejeita justificativa só de espaços em branco",
         "__tests__/celula/funil.test.ts > avaliarTransicao — o juiz puro > rejeita justificativa com menos de 3 caracteres úteis",
         "__tests__/celula/trilha-sobrevive-ao-reinicio.test.ts > a trilha do funil sobrevive ao reinício do processo > transição sem justificativa não grava NADA"
       ],
-      "placar": "4 ⎯⎯⎯⎯⎯⎯⎯"
+      "placar": "5 ⎯⎯⎯⎯⎯⎯⎯"
     },
     {
       "guarda": "M5 · origem fechada nas 4 (sem default silencioso)",
@@ -95,11 +103,11 @@
       "estado": "VERMELHO",
       "falhas": [
         "aceita as 4 origens 8ms",
-        "rejeita origem fora das 4, sem cair silenciosamente em 'sistema' 1ms",
-        "rejeita origem fora das 4, sem default silencioso para 'sistema' 3ms",
-        "metade negativa: linha com origem='xpto' (corrupção simulada) volta com origem null — não 'sistema', não some 81ms",
-        "metade positiva: as 4 origens legítimas (agente, gerente, cliente, sistema) voltam intactas 63ms",
-        "3 transições gravadas continuam lá, na ordem, com os 5 campos intactos, depois do 'deploy' 347ms",
+        "rejeita origem fora das 4, sem cair silenciosamente em 'sistema' 3ms",
+        "rejeita origem fora das 4, sem default silencioso para 'sistema' 1ms",
+        "metade negativa: linha com origem='xpto' (corrupção simulada) volta com origem null — não 'sistema', não some 55ms",
+        "metade positiva: as 4 origens legítimas (agente, gerente, cliente, sistema) voltam intactas 56ms",
+        "3 transições gravadas continuam lá, na ordem, com os 5 campos intactos, depois do 'deploy' 311ms",
         "__tests__/celula/funil.test.ts > origemDeclarada > aceita as 4 origens",
         "__tests__/celula/funil.test.ts > origemDeclarada > rejeita origem fora das 4, sem cair silenciosamente em 'sistema'",
         "__tests__/celula/funil.test.ts > avaliarTransicao — o juiz puro > rejeita origem fora das 4, sem default silencioso para 'sistema'",
@@ -117,7 +125,7 @@
       "espera": "funil.test.ts — autor vazio deixa de ser rejeitado",
       "estado": "VERMELHO",
       "falhas": [
-        "rejeita autor ausente / vazio / não-string 9ms",
+        "rejeita autor ausente / vazio / não-string 8ms",
         "__tests__/celula/funil.test.ts > avaliarTransicao — o juiz puro > rejeita autor ausente / vazio / não-string"
       ],
       "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
@@ -130,8 +138,8 @@
       "espera": "trilha-sobrevive — a rejeição passa a deixar rastro no banco",
       "estado": "VERMELHO",
       "falhas": [
-        "transição inválida (par não permitido) não grava NADA — nem linha, nem trilha 55ms",
-        "transição sem justificativa não grava NADA 41ms",
+        "transição inválida (par não permitido) não grava NADA — nem linha, nem trilha 41ms",
+        "transição sem justificativa não grava NADA 36ms",
         "__tests__/celula/trilha-sobrevive-ao-reinicio.test.ts > a trilha do funil sobrevive ao reinício do processo > transição inválida (par não permitido) não grava NADA — nem linha, nem trilha",
         "__tests__/celula/trilha-sobrevive-ao-reinicio.test.ts > a trilha do funil sobrevive ao reinício do processo > transição sem justificativa não grava NADA"
       ],
@@ -145,8 +153,8 @@
       "espera": "trilha-e-append-only — a varredura estática acha o método mutante",
       "estado": "VERMELHO",
       "falhas": [
-        "não existe .update / .updateMany / .delete / .deleteMany / .upsert sobre transicaoDoFunil 7ms",
-        "3 transições gravadas continuam lá, na ordem, com os 5 campos intactos, depois do 'deploy' 370ms",
+        "não existe .update / .updateMany / .delete / .deleteMany / .upsert sobre transicaoDoFunil 5ms",
+        "3 transições gravadas continuam lá, na ordem, com os 5 campos intactos, depois do 'deploy' 278ms",
         "__tests__/celula/trilha-e-append-only.test.ts > varredura estática: nenhuma escrita mutante sobre transicaoDoFunil > não existe .update / .updateMany / .delete / .deleteMany / .upsert sobre transicaoDoFunil",
         "__tests__/celula/trilha-sobrevive-ao-reinicio.test.ts > a trilha do funil sobrevive ao reinício do processo > 3 transições gravadas continuam lá, na ordem, com os 5 campos intactos, depois do 'deploy'"
       ],
@@ -160,7 +168,7 @@
       "espera": "trilha-sobrevive — o estado deixa de sobreviver ao reinício",
       "estado": "VERMELHO",
       "falhas": [
-        "o ESTADO também sobrevive ao reinício (prova nº 8 do CEO) 99ms",
+        "o ESTADO também sobrevive ao reinício (prova nº 8 do CEO) 96ms",
         "__tests__/celula/trilha-sobrevive-ao-reinicio.test.ts > a trilha do funil sobrevive ao reinício do processo > o ESTADO também sobrevive ao reinício (prova nº 8 do CEO)"
       ],
       "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
@@ -173,7 +181,7 @@
       "espera": "trilha-e-append-only — origem corrompida ('xpto') vaza como se fosse origem válida, em vez de virar null",
       "estado": "VERMELHO",
       "falhas": [
-        "metade negativa: linha com origem='xpto' (corrupção simulada) volta com origem null — não 'sistema', não some 74ms",
+        "metade negativa: linha com origem='xpto' (corrupção simulada) volta com origem null — não 'sistema', não some 58ms",
         "__tests__/celula/trilha-e-append-only.test.ts > leitura de origem: corrupção vira null, nunca 'sistema', nunca some a linha > metade negativa: linha com origem='xpto' (corrupção simulada) volta com origem null — não 'sistema', não some"
       ],
       "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"

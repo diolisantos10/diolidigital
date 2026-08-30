@@ -6,7 +6,6 @@ import {
   ESTADOS,
   ESTADO_INICIAL,
   ESTADOS_TERMINAIS,
-  TOTAL_DECLARADO_PELO_CEO,
   TRANSICOES_PERMITIDAS,
   estadoDeclarado,
   estadoAtualOuInicial,
@@ -50,12 +49,8 @@ describe("ESTADOS — o conjunto fechado", () => {
     expect(ESTADOS).toEqual(OS_22_ESTADOS_DA_FICHA);
   });
 
-  it("tem 22 elementos — e a divergência com a ordem do CEO (23) fica documentada em código", () => {
+  it("tem 22 elementos — o Diretor recontou em 30/08/2026 e confirmou: 'encontrada' já é o estado de entrada, não um 23º à parte", () => {
     expect(ESTADOS.length).toBe(22);
-    expect(TOTAL_DECLARADO_PELO_CEO).toBe(23);
-    // A divergência é o ponto do teste: se um dia baterem, é porque o CEO
-    // confirmou o 23º estado e alguém atualizou os dois lados juntos.
-    expect(ESTADOS.length).not.toBe(TOTAL_DECLARADO_PELO_CEO);
   });
 
   it("o estado inicial é 'encontrada'", () => {
@@ -160,6 +155,69 @@ describe("transicaoPermitida / TRANSICOES_PERMITIDAS — a tabela de pares", () 
     expect(transicaoPermitida("excecao_operacional", "em_producao")).toBe(true);
     expect(transicaoPermitida("excecao_operacional", "ganha")).toBe(false); // nunca atalho direto para terminal
     expect(transicaoPermitida("excecao_operacional", "perdida")).toBe(false);
+  });
+});
+
+describe("as 4 arbitragens do funil (Diretor, 30/08/2026)", () => {
+  it("1. ESTADOS_TERMINAIS tem exatamente 3, e nenhum deles tem saída", () => {
+    expect(ESTADOS_TERMINAIS).toEqual(["duplicada", "recusada_pela_qualificacao", "ganha"]);
+    const origens = new Set(TRANSICOES_PERMITIDAS.map(([de]) => de));
+    for (const estado of ESTADOS_TERMINAIS) {
+      expect(origens.has(estado), `terminal "${estado}" não deveria ter saída`).toBe(false);
+    }
+  });
+
+  it("2a. perdida DEIXOU de ser terminal: perdida → retomar é legal, perdida → ganha continua ilegal", () => {
+    expect(ESTADOS_TERMINAIS.includes("perdida")).toBe(false);
+    expect(transicaoPermitida("perdida", "retomar")).toBe(true);
+    expect(transicaoPermitida("perdida", "ganha")).toBe(false);
+  });
+
+  it("2b. perdida → excecao_operacional é legal (a fila de exceção alcança todo não-terminal, e perdida agora é não-terminal)", () => {
+    expect(transicaoPermitida("perdida", "excecao_operacional")).toBe(true);
+  });
+
+  it("2c. a metade limpa: perdida → abordagem_preparada continua ILEGAL — a volta passa obrigatoriamente por retomar", () => {
+    expect(transicaoPermitida("perdida", "abordagem_preparada")).toBe(false);
+  });
+
+  it("2d. perdida → retomar SEM justificativa continua rejeitada — ninguém ressuscita em silêncio", () => {
+    const veredicto = avaliarTransicao({
+      de: "perdida",
+      para: "retomar",
+      autor: "sdr-agent",
+      origem: "agente",
+      justificativa: "",
+    });
+    expect(veredicto.ok).toBe(false);
+    if (!veredicto.ok) expect(veredicto.codigo).toBe("justificativa_ausente");
+  });
+
+  it("2e. perdida → retomar COM justificativa é aceita pelo juiz puro", () => {
+    const veredicto = avaliarTransicao({
+      de: "perdida",
+      para: "retomar",
+      autor: "sdr-agent",
+      origem: "agente",
+      justificativa: "cliente voltou a responder no 99Freelas",
+    });
+    expect(veredicto.ok).toBe(true);
+  });
+
+  it("3a. contratada → perdida e em_producao → perdida são LEGAIS (cancelamento é transição direta)", () => {
+    expect(transicaoPermitida("contratada", "perdida")).toBe(true);
+    expect(transicaoPermitida("em_producao", "perdida")).toBe(true);
+  });
+
+  it("3b. a metade negativa: contratada → ganha e em_producao → aprovada continuam ILEGAIS — não se pula entrega nem aprovação", () => {
+    expect(transicaoPermitida("contratada", "ganha")).toBe(false);
+    expect(transicaoPermitida("em_producao", "aprovada")).toBe(false);
+  });
+
+  it("4. aprovada é a ÚNICA origem que alcança ganha", () => {
+    const entradasEmGanha = TRANSICOES_PERMITIDAS.filter(([, para]) => para === "ganha");
+    expect(entradasEmGanha.length).toBe(1);
+    expect(entradasEmGanha[0][0]).toBe("aprovada");
   });
 });
 
