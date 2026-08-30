@@ -1,21 +1,28 @@
-# A carta — preço por serviço, 30/08/2026
+# A carta — preço por serviço (REFEITO 30/08/2026 — correção de enquadramento do CEO)
 
-> Despacho: `.despachos/D1-tabela-unitaria.md`. Ordem do CEO: *"Cadê a tabela de
-> preços dos serviços que a gente presta? [...] o que o cliente pedir tem que
-> ter preço. Quem manda é o cliente."*
+> Despacho original: `.despachos/D1-tabela-unitaria.md`. Este documento foi
+> **refeito** por ordem do CEO em `.despachos/D2-carta-e-o-produto.md`, porque a
+> primeira versão descrevia a casa com uma arquitetura errada: presets de um
+> lado, e um caminho separado — tratado como situação especial — para quem
+> pede outra coisa. **Não é essa a casa.**
+>
+> As palavras do CEO: *"Não existe volume acima ou abaixo. O pacote é um
+> produto predefinido. Se o cliente quiser trezentos carrosséis por dia, a
+> gente vai ter que dar um jeito. Entenda que não é que esse é uma exceção. O
+> que ele está comprando é um pacote personalizado."*
 >
 > **Este documento não decide preço nenhum — decide o CEO.** Todo número abaixo
 > tem procedência: arquivo e linha, ou a conta que o produziu.
 
 ## ⚠️ Como este documento foi feito — leia antes dos números
 
-Esta sessão **não conseguiu executar nenhum comando** (`node`, `npx tsx`, `npm
-test`) — o ambiente recusa com *"This command requires approval"*, inclusive
-com a flag de bypass. **Nada abaixo saiu de rodar `CATALOGO_VENDAVEL` ou os
-testes; tudo foi derivado LENDO a régua linha por linha** (`capacidade-de-
-producao.ts`, `self-serve-catalog.ts`) e conferido à mão contra o que os
-testes afirmam (`__tests__/financeiro/tabela-de-precos.test.ts`,
-`__tests__/comercial/*`). **Antes de imprimir a carta, rode:**
+Nem a primeira sessão nem esta conseguiram executar `node`, `npx tsx` ou
+`npm test` — o ambiente recusa com *"This command requires approval"*. Todo
+número abaixo saiu de **ler o código linha a linha**
+(`lib/agency/planos.ts`, `lib/agency/financeiro/tabela-de-precos.ts`,
+`lib/agency/contrato-de-quantidade.ts`, `lib/agency/self-serve-catalog.ts`,
+`lib/agency/capacidade-de-producao.ts`) e conferir à mão contra o que os
+testes afirmam. **Antes de imprimir a carta, rode:**
 
 ```
 npx vitest __tests__/comercial/so-vende-o-que-produz.test.ts __tests__/financeiro/tabela-de-precos.test.ts __tests__/comercial/a-tabela-e-uma-so.test.ts
@@ -23,288 +30,346 @@ npx vitest __tests__/comercial/so-vende-o-que-produz.test.ts __tests__/financeir
 
 ---
 
-## 🔴 ACHADO 1 — já existe um Departamento Financeiro nesta casa, e ele não é o da Control Room
+## O MODELO — o que estava errado, e o que é certo agora
 
-O despacho pedia para eu declarar que o Financeiro **não existe** neste
-repositório, citando as branches `financeiro/celulas-e-sala-v1` e
-`arquitetura/departamento-financeiro-control-room-v1` (essas, de fato, não
-existem aqui — conferido). **Mas existe outra coisa, já mesclada, já testada,
-com ordem própria do CEO:** `lib/agency/financeiro/tabela-de-precos.ts`, datado
-de **27/08/2026** — três dias antes deste despacho.
+❌ **Errado (a versão anterior deste documento):** existe o plano, e existe um
+caminho separado para quem quer volume diferente do plano.
 
-É exatamente o que a ordem original pedia: *"tabela de preço com todos os
-serviços [...] preço de custo, preço final, margem de desconto — até onde eu
-posso dar de desconto [...] o SDR não pode oferecer abaixo do piso."* O módulo:
+✅ **Certo:** existe **a carta item a item** — o preço de cada peça, em cada
+motor de produção que a casa tem. **Todo pedido, sempre, é uma composição
+dessa carta.** Um "plano" (Pulso, Ritmo, Presença, Conteúdo) não é um produto à
+parte: é **uma composição pré-montada, vendida com desconto sobre a mesma
+carta**. É um atalho de compra — não é o produto.
 
-- Lê os 3 planos de `planos.ts` — **não os redigita** (`tabela-de-precos.ts:191-203`).
-- Mede o único custo que a casa mede (IA, ~US$0,17/peça) e declara os outros
-  cinco como `nao_medido`, cada um com motivo e dono (`tabela-de-precos.ts:115-150`).
+Duas consequências, e elas mudam a leitura de tudo daqui para baixo:
+
+1. **Nenhum pedido fica sem preço.** Um pedido que não bate com nenhuma
+   composição pré-montada recebe **a conta item a item**, na hora — nunca "vou
+   verificar".
+2. **A capacidade de produção comprovada da casa hoje — 36 peças/mês por
+   contrato de cliente (`CAPACIDADE_MENSAL`, `planos.ts:57`; a mesma conta em
+   `contrato-de-quantidade.ts:89`, 3 levas × 12) — é um teto de ENTREGA, não um
+   teto de VENDA.** Pedido que passa dele tem número igual a qualquer outro; o
+   que muda é o prazo, e a decisão de escalar produção (contratar gente, abrir
+   mais um motor de produção em paralelo) — e essa decisão é do CEO, não desta
+   carta. Ela nunca vira "não temos isso para você".
+
+## 🔴 Achado 0 (novo nesta rodada) — o código ainda fala a língua antiga
+
+Isto é um achado de leitura, **não conserto** — a entrega desta rodada é só o
+documento. Mas precisa constar, porque é exatamente o defeito que o CEO acabou
+de corrigir, e ele já está em produção:
+
+- `financeiro/tabela-de-precos.ts:413-423` (`podePrometerVolume`) devolve
+  `pode: false` com a frase *"passa da capacidade da casa [...] Vender acima
+  do que se produz é dívida com outro rosto"* para qualquer volume acima de 36
+  peças/mês. Não devolve preço nem prazo — devolve recusa.
+- `financeiro/tabela-de-precos.ts:461-479` (`volumeQueACasaVende`) devolve
+  `vende: false, frase: "X peças/mês não cabe em nenhum plano da casa"` para o
+  mesmo caso.
+
+**As duas funções são código, hoje, do enquadramento que o CEO acabou de
+proibir.** Recomendo ao PM abrir uma frente de código para as duas: em vez de
+recusar, devolver a composição item a item com o preço e o prazo — nunca
+`pode: false` por causa de volume. Não fiz essa mudança porque este despacho é
+só documento.
+
+## Achado 1 — o Departamento Financeiro já existe, e não é o da Control Room
+
+O despacho original pedia para declarar o Financeiro inexistente. **Existe,
+já mesclado, testado, com ordem própria do CEO:**
+`lib/agency/financeiro/tabela-de-precos.ts` (27/08/2026). Ele:
+
+- Lê os 4 presets de `planos.ts` — **não os redigita** (`tabela-de-precos.ts:191-203`).
+- Mede o único custo que a casa mede (IA, ~US$ 0,17/peça) e declara os outros
+  cinco como `nao_medido`, cada um com motivo e dono (`:115-150`).
 - Trava o piso de desconto em **0%** enquanto o custo tiver buraco — *"margem
-  calculada sobre custo incompleto é pior que margem nenhuma"* (`tabela-de-
-  precos.ts:225-260`).
-- Fixa o chão de lucro em **10% do preço** (não 10% em cima do custo — a leitura
-  que protege, `tabela-de-precos.ts:268-297`).
-- **Está em produção**: `lib/agency/comercial/negociacao-da-proposta.ts` (a
-  negociação da página de orçamento, ordem do CEO de 27/08) e
-  `lib/agency/comercial/negociacao.ts` (o piso dos 3 planos) já leem daqui.
+  calculada sobre custo incompleto é pior que margem nenhuma"* (`:225-260`).
+- Fixa o chão de lucro em **10% do preço** (`:268-297`).
+- Já é lido por `comercial/negociacao-da-proposta.ts` e `comercial/negociacao.ts`.
 
-**Isto muda a resposta da lacuna declarada no despacho:** não falta Financeiro
-— falta **achar** o que já foi construído antes de escrever "não existe" de
-novo. Recomendo: da próxima vez que alguém for declarar `SEM_FINANCEIRO`,
-grep primeiro em `lib/agency/financeiro/`.
+## Achado 2 — duas leituras vivas do mesmo item, e não são a mesma coisa
 
-## 🔴 ACHADO 2 — duas verdades vivas para "a peça além do contratado"
+Existem **três preços diferentes para uma peça fora da composição de um
+preset**, e cada um vale para uma situação distinta — o problema não é que
+existam três, é que ninguém declarou qual vale quando:
 
-E é aqui que o achado 1 vira problema de preço, não só de organização.
+| Motor de produção | Quando se aplica | Preço (post / carrossel) | Fonte |
+|---|---|---:|---|
+| **Peça extra dentro do preset** | Cliente já tem um preset ativo e quer peça além da cota contratada. Mesma esteira, sem diferenciar post/carrossel. | **R$ 90** (indiferenciado) | `planos.ts:64`, exibida em `app/planos/page.tsx:203-205` |
+| **Balcão, 100% máquina** | Pedido novo, sem preset, sem revisão humana, pago antes de produzir. | **R$ 79 / R$ 129** | `self-serve-catalog.ts:71-102` |
+| **Com direção de arte humana** | Pedido novo, sem preset, com direção de arte e 2 rodadas de ajuste. Nomeado `avulso_post`/`avulso_carrossel` no código. | **R$ 190 / R$ 290** | `tabela-de-precos.ts:211-212` |
 
-| Fonte | O que é | Valor | Onde |
-|---|---|---|---|
-| `planos.ts` | **Peça extra** — "a peça além do contratado", mostrada **na página pública** `/planos` | **R$ 90** | `planos.ts:64` (`PECA_EXTRA`), exibida em `app/planos/page.tsx:203-205` |
-| `financeiro/tabela-de-precos.ts` | **Post avulso** / **Carrossel avulso** — "avulso para quem já é cliente: com direção de arte e 2 rodadas" | **R$ 190** / **R$ 290** | `tabela-de-precos.ts:211-212` (`avulso_post`, `avulso_carrossel`) |
+O risco é **latente, não ativo**: hoje só o R$ 90 aparece numa tela que o
+cliente vê. Mas o comentário de quem escreveu o R$ 190/290
+(`tabela-de-precos.ts:174-178`) mostra que ele descreve **o mesmo tipo de
+peça** que o R$ 90 descreve, só que com um processo de produção diferente
+(direção humana). No dia em que uma tela mostrar as duas linhas juntas, o
+cliente vê preços de **2,1× a 3,2×** para "a mesma coisa" — sem ninguém ter
+decidido isso.
 
-São descrições que apontam para a **mesma situação de negócio** — cliente de
-plano pedindo uma peça a mais — com preços **2,1× a 3,2× diferentes**. Hoje o
-risco é **latente, não ativo**: `avulso_post`/`avulso_carrossel` estão
-declarados na tabela financeira mas **nenhuma rota ou componente os chama** por
-esse nome (conferido: só aparecem no próprio arquivo e no teste dele). O R$ 90
-é o único que um cliente vê hoje, porque é o único ligado a uma tela pública.
+**Recomendação:** os três motores podem conviver, porque descrevem processos
+de produção diferentes — mas isso precisa estar **escrito e nomeado** (ex.:
+`pecaExtraDentroDoPreset`, `pecaBalcao`, `pecaComDirecaoDeArte`), não um nome
+no código (`avulso_post`/`avulso_carrossel`) que hoje aponta para duas
+leituras diferentes ao mesmo tempo. Ver "o que decide
+o CEO", item 1.
 
-**Mas o R$ 190/290 não é lixo nem erro de digitação** — o comentário de quem
-escreveu (`tabela-de-precos.ts:174-178`) diz que eles vieram da seção "Preço
-por serviço" de `docs/precos.md` (05/08/2026), a MESMA tabela que existia
-**antes** de `PECA_EXTRA` consolidar tudo num número só (26/08/2026,
-`planos.ts:66-133`). Isto é: **o número velho nunca foi apagado, só ficou
-esperando dentro de um arquivo mais novo.** No dia em que alguém construir uma
-tela que itera `TABELA_DE_PRECOS` inteira (um catálogo interno, por exemplo),
-ela vai mostrar R$ 190 para o mesmo item que a vitrine pública vende a R$ 90 —
-sem ninguém decidir isso.
+## Achado 3 (sem risco ativo) — um piso órfão
 
-**Isto é a pergunta central do documento, com um número a mais do que o
-despacho original sabia.** Ver "O que decide o CEO", item 1.
-
-## Achado 3 (menor, sem risco ativo) — um piso órfão
-
-`self-serve-catalog.ts:194-197` guarda `precoMinimo: Math.round(RITMO.preco *
-0.78)` = **R$ 226** para o item "Pacote mês" do balcão — o Ritmo vendido pelo
-balcão. Esse campo é o resíduo do desconto de 22% que o CEO **revogou** em
-27/08/2026 (*"desconto que a casa não autorizou não existe"*,
-`negociacao.ts:303-317`) — e a negociação real do plano Ritmo já foi corrigida
-para usar o piso certo (R$ 290, zero desconto — `negociacao.ts:318-323`).
-Conferido: `PISO_BALCAO`/`dentroDoPiso` (que leriam esse 226) não são chamados
-em lugar nenhum do app. **Não quota errado hoje, mas mente se alguém ler o
-código sem saber disso.** Não é bloqueante; listo para o PM decidir se limpa.
+`self-serve-catalog.ts:194-197` guarda `precoMinimo` = **R$ 226** para o
+"Pacote mês" do balcão — resíduo de um desconto de 22% que o CEO **revogou**
+em 27/08/2026. A negociação real do preset Ritmo já usa o piso certo (R$ 290,
+zero desconto — `negociacao.ts:318-323`); esse campo não é lido por nada em
+produção hoje. Não é bloqueante; PM decide se limpa.
 
 ---
 
-## 1. A carta — o que a casa vende hoje, com preço e procedência
+## 1. A carta — as unidades atômicas, com procedência
 
-### 1.1 — Os quatro planos (mensalidade, fonte: `planos.ts`)
+### 1.1 — Peça (post, carrossel, story), nos três motores de produção
 
-*Não altero preço de plano nenhum — só derivo o preço por peça, que não
-existia escrito em lugar nenhum.*
+| Item | Motor | Preço | Prazo | Quando usar |
+|---|---|---:|---|---|
+| Post — peça extra do preset | peça extra | R$ 90 | conforme o ciclo do preset | cliente já com preset ativo |
+| Carrossel — peça extra do preset | peça extra | R$ 90 | conforme o ciclo do preset | idem |
+| Post (balcão) | máquina, sem revisão | R$ 79 | 2d úteis | pedido novo, sem preset |
+| Carrossel até 5 telas (balcão) | máquina, sem revisão | R$ 129 | 2d úteis | pedido novo, sem preset |
+| 1 story (balcão) | máquina, sem revisão | R$ 35 | 1d útil | pedido novo, sem preset |
+| 4 stories (balcão) | máquina, sem revisão | R$ 99 | 2d úteis | pedido novo, sem preset |
+| Legenda / copy unitária | só texto | R$ 39 | 1d útil | pedido novo, sem preset |
+| Post, com direção de arte (`avulso_post` no código) | máquina + direção humana, 2 rodadas | R$ 190 | a combinar | pedido novo, recorrente, sem preset |
+| Carrossel, com direção de arte (`avulso_carrossel` no código) | máquina + direção humana, 2 rodadas | R$ 290 | a combinar | idem |
 
-| Plano | Preço/mês | Peças/mês | Preço por peça (preço ÷ peças) | Fonte |
-|---|---:|---:|---:|---|
-| Pulso | R$ 49 | 0 (não entrega peça) | — | `planos.ts:138,152` |
-| Ritmo | R$ 290 | 12 | **R$ 24,17** | `planos.ts:159,183` |
-| Presença | R$ 490 | 20 | **R$ 24,50** | `planos.ts:189,216` |
-| Conteúdo | R$ 790 | 36 (`CAPACIDADE_MENSAL`) | **R$ 21,94** | `planos.ts:224,248,57` |
+Fontes: `planos.ts:64`; `self-serve-catalog.ts:71-155`;
+`tabela-de-precos.ts:208-212`. Nenhum desconto está autorizado hoje em nenhuma
+dessas linhas (`descontoAutorizadoPct: null` em todas — `tabela-de-precos.ts:208-212`):
+sem faixa aprovada pelo CEO, o piso de negociação **é** o preço de tabela.
 
-**Peça extra (além do contratado, em qualquer plano): R$ 90** — `planos.ts:64`,
-mostrada ao cliente em `app/planos/page.tsx:203-205`. ⚠️ Ver Achado 2: existe um
-segundo número (R$ 190/290) para o mesmo conceito, ainda não ativo.
+### 1.2 — Outros itens do balcão, com produtor de verdade
 
-### 1.2 — Balcão (público, 100% máquina, pago antes de produzir, sem revisão)
+| Item | Preço | Entrega | Fonte |
+|---|---:|---|---|
+| Pacote mês (= preset Ritmo, vendido no balcão) | R$ 290 | mensal | `self-serve-catalog.ts:184-202` |
+| Setup Meta Ads | R$ 380 | 3d úteis | `self-serve-catalog.ts:297-306`, `lib/integrations/meta/ads.ts` |
 
-Fonte: `self-serve-catalog.ts`, filtrado pela régua de capacidade
-(`capacidade-de-producao.ts`) — só entra o que tem **caminho de produção real
-no código**, conferido item a item abaixo (não executei `CATALOGO_VENDAVEL`;
-segui a régua na mão, ver aviso no topo).
+### 1.3 — Itens que a casa não produz hoje — isto é prazo, não recusa de venda
 
-| Item | Preço | Piso de negociação | Entrega | Vendável? | Por quê |
-|---|---:|---:|---|:---:|---|
-| Post para feed | R$ 79 | R$ 49 | 2d úteis | ✅ | usa `arte-estatica-jpeg` + `texto-de-marca`, as duas com ponto de produção (`capacidade-de-producao.ts:84-99`) — `self-serve-catalog.ts:71-85` |
-| Carrossel até 5 telas | R$ 129 | R$ 79 | 2d úteis | ✅ | idem — `self-serve-catalog.ts:87-102` |
-| 1 story | R$ 35 | R$ 25 | 1d útil | ✅ | idem — `self-serve-catalog.ts:109-123` |
-| 4 stories | R$ 99 | R$ 59 | 2d úteis | ✅ | idem — `self-serve-catalog.ts:125-139` |
-| Legenda / copy avulsa | R$ 39 | R$ 29 | 1d útil | ✅ | só `texto-de-marca` — `self-serve-catalog.ts:141-155` |
-| Pacote mês (= plano Ritmo, vendido no balcão) | R$ 290 | — (ver Achado 3) | mensal | ✅ | `self-serve-catalog.ts:184-202`, deriva de `RITMO` |
-| Setup Meta Ads | R$ 380 | — | 3d úteis | ✅ | `campanha-de-trafego-meta` tem ponto (`lib/integrations/meta/ads.ts:criarCampanhaPausada`) — `self-serve-catalog.ts:297-306` |
-| Auditoria de perfil | R$ 149 | R$ 99 | 3d úteis | ⛔ **NÃO** | exige `relatorio-de-auditoria-de-perfil`, `ponto: null` — "a esteira produz PEÇA; não há produtor de relatório de diagnóstico em lugar nenhum" (`capacidade-de-producao.ts:166-174`) |
-| Banner Digital | R$ 120 | — | 1d útil | ⛔ **NÃO** | promete PDF (`arquivo-pdf`, `ponto: null`) — "não existe gerador de PDF no repositório" (`capacidade-de-producao.ts:157-165`) |
-| Identidade Básica | R$ 480 | — | 5d úteis | ⛔ **NÃO** | exige `logotipo-de-cliente`, `ponto: null` — "a casa só deriva um monograma das iniciais" (`capacidade-de-producao.ts:145-156`) |
-| 1 Reel | R$ 350 | — | 4d úteis | ⛔ **NÃO** | exige `legenda-animada-em-video`, `ponto: null` — "a edição corta o material do cliente e tira uma capa; não escreve nem anima texto" (`capacidade-de-producao.ts:136-144`) |
-| Pack 2 Reels | R$ 620 | — | 6d úteis | ⛔ **NÃO** | mesma falta acima |
+Estes itens estão no catálogo mas o código já os bloqueia na vitrine porque
+**falta o produtor** — nenhuma linha de produção real os entrega hoje. Isso
+**não é "não vendemos"**: é "não produzimos ainda", e a diferença importa —
+vira uma conversa de prazo e de construir o que falta, decisão do CEO abrir
+ou não essa frente.
+
+| Item | Preço de referência no catálogo | Falta o quê | Fonte |
+|---|---:|---|---|
+| Auditoria de perfil | R$ 149 | produtor de relatório de diagnóstico — a esteira produz PEÇA, não relatório | `capacidade-de-producao.ts:166-174` |
+| Banner Digital | R$ 120 | gerador de PDF — não existe no repositório | `capacidade-de-producao.ts:157-165` |
+| Identidade Básica | R$ 480 | logotipo real — a casa só deriva monograma das iniciais | `capacidade-de-producao.ts:145-156` |
+| 1 Reel | R$ 350 | legenda animada em vídeo — a edição corta e tira capa, não anima texto | `capacidade-de-producao.ts:136-144` |
+| Pack 2 Reels | R$ 620 | mesma falta acima | idem |
+
+**Se um cliente pedir um destes:** a resposta certa é "hoje não produzimos
+isto — para vender com responsabilidade, primeiro precisa existir quem
+produza; é uma decisão do CEO se vale abrir essa frente, e quanto tempo leva."
+Nunca "não vendemos isto" como se fosse definitivo, e nunca um preço sem
+produtor por trás.
 
 **Sobreposição já registrada no código, decisão pendente do CEO** (não deste
-despacho): `pack-4-stories` (R$ 150) e `pack-8-stories` (R$ 270),
-`pack-4-posts` (R$ 220) e `pack-8-posts` (R$ 400) — categoria "social", legado
-— **passam** na régua de capacidade (mesmas duas capacidades do balcão) e por
-isso continuam tecnicamente vendáveis, entregando quase a mesma coisa que
-`balcao-4-stories` (R$ 99) por preço diferente. O próprio código já sinaliza
-isto como pendência (`self-serve-catalog.ts:204-208`) — eu **não** decido qual
-fica; só confirmo que a pendência é real e ainda está aberta.
+documento): `pack-4-stories` (R$ 150), `pack-8-stories` (R$ 270),
+`pack-4-posts` (R$ 220), `pack-8-posts` (R$ 400) — categoria "social", legado
+— passam na régua de capacidade e entregam quase a mesma coisa que
+`balcao-4-stories` (R$ 99) por preço diferente (`self-serve-catalog.ts:204-208`).
+Não decido qual fica; só confirmo que a pendência segue aberta.
 
-### 1.3 — Avulso para quem já é cliente de plano (fonte: `financeiro/tabela-de-precos.ts`)
-
-⚠️ **Ver Achado 2 antes de usar esta tabela** — estes dois valores conflitam
-com o R$ 90 (peça extra) que a página pública mostra hoje.
-
-| Item | Preço | Produção | Fonte |
-|---|---:|---|---|
-| Post avulso | R$ 190 | máquina + direção de arte, 2 rodadas | `tabela-de-precos.ts:211` |
-| Carrossel avulso | R$ 290 | máquina + direção de arte, 2 rodadas | `tabela-de-precos.ts:212` |
-
-### 1.4 — O que fica fora de todo plano (decisão do CEO, não deste documento)
+### 1.4 — O que hoje é projeto à parte, não mensalidade
 
 Vídeo (gravação, edição, geração), posicionamento/identidade de marca, site e
-página de captura, verba de mídia — `planos.ts:270-290` (`FORA_DE_TODO_PLANO`).
-Tráfego pago (gestão mensal) e identidade visual/rebranding aparecem em
-`service-catalog.ts:47-85` com **faixas** (R$ 500–1.200, R$ 1.200–2.500,
-R$ 2.000–4.000), mas **não são cotados com número fixo em proposta nenhuma**:
-`live-calculator.ts:396-440` sempre escreve *"orçado à parte"* para os dois,
-sem número — confirmado, `ORCADO_A_PARTE` não carrega preço. Além disso,
-identidade visual não tem capacidade de produção real (Achado da tabela 1.2,
-`logotipo-de-cliente`), então mesmo que alguém cotasse um número, a casa não
-teria como entregar hoje.
+página de captura, verba de mídia (`planos.ts:270-290`,
+`FORA_DE_TODO_PLANO`). **Isto não é "fora da carta" — é um formato de venda
+diferente:** projeto com prazo próprio, não assinatura mensal.
+
+- Tráfego pago e identidade visual/rebranding têm **faixa** hoje
+  (R$ 500–1.200 e R$ 1.200–2.500 a R$ 2.000–4.000, `service-catalog.ts:47-85`),
+  mas nenhuma proposta fecha um número: `live-calculator.ts:396-440` sempre
+  escreve *"orçado à parte"*, sem valor fixo.
+- Vídeo e identidade visual completa não têm nenhum caminho de produção real
+  hoje (mesma lacuna da seção 1.3) — para vender com número fechado, primeiro
+  precisa existir quem produza. É decisão do CEO abrir essa frente; até lá,
+  um pedido nessa linha vira "hoje não produzimos, aqui está o prazo estimado
+  para montar" — não um preço inventado.
 
 ---
 
-## 2. A conta dos combos — cada plano como soma dos itens menos desconto
+## 2. Os presets — composições pré-montadas, com o desconto explícito
 
-**A régua usada:** o único preço unitário que a casa já declara para "uma peça
-avulsa dentro do mesmo motor de produção do plano" é a **peça extra, R$ 90**
-(`planos.ts:64`) — não os R$ 190/290 do Achado 2, que descrevem um produto com
-direção de arte humana, possivelmente diferente do que sai dentro do plano.
-Uso R$ 90 porque é o número que a própria casa já publica para este cálculo; se
-o CEO decidir no Achado 2 que o número certo é outro, esta tabela recalcula.
+Um preset é uma composição de peças **já fechada e vendida com desconto**
+sobre o preço que a mesma quantidade custaria comprada item a item. O desconto
+muda dependendo de qual das três linhas da seção 1.1 se usa como referência —
+e por isso ele é mostrado nas duas leituras, até o Achado 2 fechar.
 
-| Plano | Peças × R$ 90 | Preço cobrado | Desconto em R$ | Desconto em % |
+| Preset | Preço/mês | Peças/mês | Preço por peça | Fonte |
+|---|---:|---:|---:|---|
+| Pulso | R$ 49 | 0 (não entrega peça) | — | `planos.ts:138,152` |
+| Ritmo | R$ 290 | 12 | R$ 24,17 | `planos.ts:159,183` |
+| Presença | R$ 490 | 20 | R$ 24,50 | `planos.ts:189,216` |
+| Conteúdo | R$ 790 | 36 | R$ 21,94 | `planos.ts:224,248,57` |
+
+### O desconto do combo, contra as duas réguas do Achado 2
+
+**Leitura A — usando R$ 90 (peça extra dentro do motor do preset)**, a mesma
+régua que a própria casa usa para essa comparação:
+
+| Preset | Mesma quantidade item a item | Preço do preset | Desconto em R$ | Desconto em % |
 |---|---:|---:|---:|---:|
-| Ritmo | 12 × 90 = R$ 1.080 | R$ 290 | R$ 790 | **73,1%** |
-| Presença | 20 × 90 = R$ 1.800 | R$ 490 | R$ 1.310 | **72,8%** |
-| Conteúdo | 36 × 90 = R$ 3.240 | R$ 790 | R$ 2.450 | **75,6%** |
+| Ritmo (12 peças) | 12 × 90 = R$ 1.080 | R$ 290 | R$ 790 | **73,1%** |
+| Presença (20 peças) | 20 × 90 = R$ 1.800 | R$ 490 | R$ 1.310 | **72,8%** |
+| Conteúdo (36 peças) | 36 × 90 = R$ 3.240 | R$ 790 | R$ 2.450 | **75,6%** |
 
-⚠️ **Esta conta é incompleta, e é honesto dizer onde:** Presença e Conteúdo
-incluem itens que **não têm preço avulso nenhum na carta** — publicação no
-Instagram/Facebook, gestão de avaliações, atendimento humano por WhatsApp,
-sequências de stories, pesquisa de concorrência, plano de medição, reunião
-mensal (`planos.ts:193-199,228-235`). O desconto real desses dois planos é
-**maior** que a tabela acima mostra, porque o numerador (o que se somaria)
-está subestimado — falta o preço desses itens, e ele não existe hoje em lugar
-nenhum da casa.
+⚠️ **Incompleto por construção:** Presença e Conteúdo incluem itens sem preço
+unitário na carta hoje — publicação no Instagram/Facebook, gestão de
+avaliações, atendimento humano por WhatsApp, sequências de stories, pesquisa
+de concorrência, plano de medição, reunião mensal (`planos.ts:193-199,228-235`).
+O desconto real é **maior** que a tabela mostra, porque falta o preço desses
+itens no numerador.
 
-**Se em vez disso alguém usar os R$ 190/290 do Achado 2** (a leitura que
-`financeiro/tabela-de-precos.ts` sustenta), o desconto do Conteúdo passa de
-75,6% para **~89%** (36 × uma média ponderada de 190/290 ≈ R$ 8.500 contra
-R$ 790). É a mesma pergunta do Achado 2 aparecendo de novo, agora como
-diferença de 14 pontos percentuais de "desconto do combo" — outra razão para
-resolver os dois números como um só antes de este documento virar carta oficial.
+**Leitura B — usando R$ 190/290 (motor com direção de arte)**, se o Achado 2
+for resolvido nesse sentido: o desconto do Conteúdo passa de 75,6% para
+**~89%** (36 peças a uma média ponderada de R$ 190/290 ≈ R$ 8.500 contra
+R$ 790). É a mesma pergunta do Achado 2 reaparecendo como 14 pontos
+percentuais de diferença de desconto — outra razão para fechá-lo antes de
+imprimir esta carta como oficial.
 
 ---
 
-## 3. A pergunta central: R$ 90 (avulso) vs ~R$ 22–24 (dentro do plano) — e o caso real
+## 3. Teste 1 — "e se o cliente quiser trezentos carrosséis por dia?"
 
-**A régua do plano** entrega a peça a R$ 22–24. **A régua do avulso** cobra
-R$ 90 — quase 4×. Quem manda é o cliente (ordem do CEO), então as duas réguas
-precisam existir; a pergunta é **qual usar quando o pedido não bate limpo com
-nenhum plano**.
+Este é o caso que o próprio CEO deu como régua. A carta **produz um número**:
 
-### O caso real: 28–30 posts/mês + 3 carrosséis/semana
+**Assunção declarada** (não há convenção na casa para dia→mês; uso 30 dias
+corridos, porque "por dia" foi dito sem restringir a dias úteis — se a
+intenção era só dias úteis, o número cai para 22/mês, ver a linha entre
+parênteses):
 
-Usando a convenção que a própria casa já usa para converter semana↔mês
-(`live-calculator.ts:128`, 4 semanas/mês): 3 carrosséis/semana × 4 = **12
-carrosséis/mês**. Post e carrossel são **peças diferentes** dentro do mesmo
-teto (`planos.ts` conta os dois como "peça"), então:
+| Motor de produção | Preço/dia | Preço/mês (30 dias) | Preço/mês (22 dias úteis) |
+|---|---:|---:|---:|
+| Balcão, 100% máquina (R$ 129/carrossel) | R$ 38.700 | **R$ 1.161.000** | R$ 851.400 |
+| Com direção de arte (R$ 290/carrossel) | R$ 87.000 | **R$ 2.610.000** | R$ 1.914.000 |
 
-**Total pedido: 28–30 (posts) + 12 (carrosséis) = 40–42 peças/mês.**
+**O número existe: entre R$ 851 mil e R$ 2,61 milhões por mês**, a depender do
+motor de produção que o CEO escolher para este volume (nenhum desconto de
+mega-volume está autorizado hoje — `descontoAutorizadoPct: null` em toda a
+tabela — então este É o preço de tabela, sem invenção de desconto).
 
-🔴 **Isto passa do teto de produção da casa por cliente: 36 peças/mês**
-(`planos.ts:53-57`, `CAPACIDADE_MENSAL`; confirmado em
-`financeiro/tabela-de-precos.ts:64`, `TETO_DE_PECAS_POR_MES`, com teste que
-trava o número — `__tests__/financeiro/tabela-de-precos.test.ts:218-230`). O
-plano mais alto (Conteúdo, 36) **não cobre** o pedido como está descrito. Isto
-é uma decisão de **capacidade**, separada da de preço — ver item 3 de "o que
-decide o CEO".
+**O prazo é a parte que exige decisão do CEO, não recusa:**
 
-A boa notícia: a própria casa já escreveu o caminho para isto.
-`contrato-de-quantidade.ts:134-144` recusa pedido acima do teto **com a
-instrução gêmea**: *"se X for essencial pra você, a gente conversa sobre uma
-segunda frente antes de fechar"* — ou seja, o código já prevê que um cliente
-grande vira **dois contratos**, não um contrato estourado.
-
-**Quatro contas para o mesmo pedido, dependendo de qual régua e qual caminho:**
-
-| Caminho | Conta | Total/mês |
-|---|---|---:|
-| A. Conteúdo (36) + excedente (4–6 peças) na peça extra (R$ 90) | 790 + 4×90 a 790 + 6×90 | **R$ 1.150 – R$ 1.330** |
-| B. Tudo avulso, peça extra (R$ 90) | 40×90 a 42×90 | **R$ 3.600 – R$ 3.780** |
-| C. Tudo avulso, R$ 190 post / R$ 290 carrossel (Achado 2) | (28–30)×190 + 12×290 | **R$ 8.800 – R$ 9.180** |
-| D. "Segunda frente": Conteúdo (36) + Ritmo (12) em contrato à parte | 790 + 290 | **R$ 1.080** (mas entrega 48, acima do pedido) |
-
-**A distância entre R$ 1.080 (caminho D) e R$ 9.180 (caminho C) é 8,5×, para o
-mesmo pedido de cliente.** Isto não é uma tabela pronta para imprimir — é a
-prova de que o Achado 2 precisa fechar antes desta proposta sair.
+- A capacidade de entrega comprovada hoje é **36 peças/mês por contrato de
+  cliente** (`CAPACIDADE_MENSAL`, `planos.ts:57`).
+- 300 carrosséis/dia × 30 = **9.000/mês**. Isso é **9.000 ÷ 36 = 250×** a
+  capacidade de um único contrato — não uma diferença que se resolve com
+  "mais uma leva", é uma diferença de ordem de grandeza.
+- **O dinheiro não é o gargalo.** O custo de IA por peça é ~US$ 0,17
+  (`tabela-de-precos.ts:112`); 9.000 peças/mês custam **~US$ 1.530 de IA** —
+  irrisório contra um contrato de sete dígitos. O gargalo é **produção e
+  orquestração**: a esteira de hoje é desenhada para entregar em levas por
+  cliente, não para operar como fábrica de um cliente só nesta escala.
+- **"Dar um jeito" (a frase do CEO) é literalmente isto:** decidir se a casa
+  monta uma linha de produção dedicada para este volume (o que envolve gente
+  e/ou reescrever a orquestração), e em que prazo isso fica pronto. A carta
+  não recusa o pedido — ela entrega o preço e devolve ao CEO a pergunta de
+  capacidade, que é dele.
 
 ---
 
-## 4. O que decide o CEO
+## 4. Teste 2 — o caso do parceiro (28–30 posts/mês + 3 carrosséis/semana)
 
-1. **Achado 2 — qual é o preço da peça além do plano: R$ 90 ou R$ 190/290?**
-   Hoje os dois existem no código, para o mesmo conceito. **Recomendação:**
-   manter R$ 90 como fonte única (é o que já está na página pública e no que o
-   cliente já pode ter lido) e apagar `avulso_post`/`avulso_carrossel` de
-   `financeiro/tabela-de-precos.ts` — ou, se a intenção era mesmo cobrar mais
-   caro por direção de arte humana, declarar isso por escrito e criar um
-   segundo campo explícito (`pecaExtraComDirecaoDeArte`), não um chave paralela
-   que ninguém liga a nada ainda.
+Convertendo semana→mês pela mesma convenção que a casa já usa
+(`live-calculator.ts:128`, 4 semanas/mês): 3 × 4 = **12 carrosséis/mês**.
+**Pedido total: 28–30 posts + 12 carrosséis = 40–42 peças/mês.**
 
-2. **O caso dos 28–30 posts + 3 carrosséis/semana — qual dos quatro caminhos
-   da seção 3?** Recomendação: **caminho D** (segunda frente, Conteúdo + Ritmo,
-   R$ 1.080/mês, 48 peças) — é o único que respeita o teto de 36/contrato sem
-   inventar preço, e sobra 6–8 peças de folga em vez de faltar. Se o parceiro
-   quer exatamente 40–42 e não 48, a alternativa é caminho A (R$ 1.150–1.330).
+### A composição, item a item — a resposta ao que ele pediu
 
-3. **O teto de 36 peças/cliente/mês — vale para este parceiro, ou ele é
-   especial?** Se a casa tem produção sobrando (não medido nesta sessão — ver
-   §5), dá para autorizar uma exceção pontual de teto para um cliente só.
-   Quem decide isso é o CEO ou o dono do projeto, nunca a esteira sozinha.
+| Base | Posts (28–30 × preço) | Carrosséis (12 × preço) | Total/mês |
+|---|---:|---:|---:|
+| Balcão, 100% máquina | R$ 2.212 – R$ 2.370 | R$ 1.548 | **R$ 3.760 – R$ 3.918** |
+| Com direção de arte | R$ 5.320 – R$ 5.700 | R$ 3.480 | **R$ 8.800 – R$ 9.180** |
 
-4. **Os itens da carta sem quem produza** (Auditoria de perfil, Banner
-   Digital, Identidade Básica, 1 Reel, Pack 2 Reels — seção 1.2) — hoje o
-   próprio código já os bloqueia na vitrine. Recomendação: manter bloqueados,
-   não reativar preço sem antes existir o produtor.
+Isto é o número que se entrega ao parceiro se ele comprar exatamente o que
+pediu, peça por peça, sem preset nenhum: **entre R$ 3.760 e R$ 9.180/mês**,
+dependendo de qual motor de produção (Achado 2).
 
-5. **A sobreposição pack-4/8-stories vs balcao-4-stories** (mesmo produto,
-   dois preços, seção 1.2) — pendência já aberta no código desde 26/08/2026,
-   ainda sem veredito. Não é deste despacho resolver; só registro que segue
-   aberta.
+### O preset só entra porque é mais barato — não porque "encaixa"
 
-6. **Achado 3 (o piso órfão de R$ 226)** — sem risco ativo hoje. Recomendação:
-   PM agenda a limpeza quando mexer em `self-serve-catalog.ts` de novo; não é
-   urgente.
+40–42 peças/mês passa do teto de um único contrato (36). Isso não significa
+recusa: significa que, **se comprado como presets prontos**, o pedido cabe em
+**dois motores de produção rodando juntos** — Conteúdo (36 peças, R$ 790) +
+Ritmo (12 peças, R$ 290) = **R$ 1.080/mês**, entregando 48 peças (mais do que
+os 40–42 pedidos, nunca menos).
+
+**R$ 1.080 é de 3,5× a 8,5× mais barato** que qualquer uma das duas leituras
+item a item acima. É só por essa conta — nunca por "é assim que a casa
+organiza" — que vale oferecer o combo de presets ao parceiro: ele recebe as
+duas opções (a composição pura, e o combo mais barato que entrega um pouco
+mais do que pediu) e escolhe.
 
 ---
 
-## 5. O que eu não consegui apurar
+## 5. O que decide o CEO
 
-- **Nenhum comando foi executado nesta sessão** (ver aviso no topo). Os
-  vereditos de "vendável/não vendável" da seção 1.2 foram feitos lendo a régua
-  à mão — recomendo rodar os testes citados antes de imprimir a carta oficial.
-- **Custo real de cada serviço, fora IA.** `financeiro/tabela-de-precos.ts`
-  declara cinco parcelas como `nao_medido` (taxa de gateway, infraestrutura,
-  domínio/e-mail, hora humana, impostos), cada uma com dono (`CEO` na maioria)
-  — sem isso, **nenhum piso abaixo do preço de tabela pode ser autorizado**,
-  por construção.
-- **Se a casa tem produção sobrando** para atender uma exceção de teto
-  (decisão 3 acima) — não medido nesta sessão.
-- **Se "nós publicamos" (Presença/Conteúdo) está realmente entregável hoje.**
-  Fora do escopo de preço, mas relevante: por conhecimento de domínio desta
-  esteira, a publicação em nome do cliente depende do App Review da Meta, e o
-  registro mais recente em `docs/pendencias.md` (linha ~3321) ainda o mostra
-  pendente. Isto não muda o preço do plano — muda se a promessa "nós
-  publicamos" é cumprível agora. Não investiguei a fundo porque é assunto do
-  especialista `meta`, não desta tabela.
-- **As "cinco propostas de concorrentes da mesma praça, datadas"** que
-  `docs/precos.md` (linha 190-194) já registrava como pendente — segue
-  pendente; não é escopo deste despacho.
+1. **Achado 2 — três motores, um preço cada, mas um dos nomes no código
+   (`avulso_post`/`avulso_carrossel`) hoje aponta para leituras diferentes.**
+   Recomendação: nomear os três
+   explicitamente no código (`pecaExtraDentroDoPreset` R$ 90,
+   `pecaBalcao` R$ 79/129, `pecaComDirecaoDeArte` R$ 190/290) — sem apagar
+   nenhum, porque descrevem processos de produção diferentes.
+
+2. **300 carrosséis/dia tem preço: entre R$ 851 mil e R$ 2,61 milhões/mês**
+   (seção 3), a depender do motor escolhido. O que falta decidir é **se e como
+   a casa escala a produção 250× para este volume**, e em que prazo — isto é
+   "dar um jeito", não é preço.
+
+3. **O caso do parceiro tem dois números: R$ 3.760–9.180/mês (item a item) ou
+   R$ 1.080/mês (combo de dois presets, entregando 48 peças em vez de 40–42).**
+   Recomendação: oferecer as duas opções ao parceiro; o combo é
+   objetivamente mais barato, mas quem escolhe é ele.
+
+4. **Achado 0 — o código ainda recusa por volume** (`podePrometerVolume`,
+   `volumeQueACasaVende`). Isto está em produção e contradiz a ordem desta
+   semana. Recomendo abrir uma frente de código, separada deste documento,
+   para trocar a recusa por preço + prazo.
+
+5. **Os itens sem produtor** (seção 1.3: Auditoria, Banner, Identidade
+   Básica, Reel) e os de projeto à parte sem produtor (seção 1.4: vídeo,
+   identidade completa) — decidir se vale abrir a frente de construir quem
+   produz. Enquanto não existe produtor, não há preço fechado para eles.
+
+6. **A sobreposição pack-4/8 vs balcão-4/8** (seção 1.3) — pendência já
+   aberta no código desde 26/08/2026, segue sem veredito.
+
+7. **Achado 3 (piso órfão de R$ 226)** — sem risco ativo; PM agenda limpeza.
+
+---
+
+## 6. O que eu não consegui apurar
+
+- **Nenhum comando foi executado nesta sessão** (ver aviso no topo) — os
+  números vieram de leitura do código, não de rodar `CATALOGO_VENDAVEL` nem os
+  testes. Recomendo rodar os três testes citados antes de imprimir a carta
+  oficial.
+- **A capacidade TOTAL da casa (todos os clientes somados).** O único número
+  que o código declara é o teto **por contrato de cliente** (36 peças/mês).
+  Não há, em lugar nenhum lido nesta sessão, um teto agregado de quantos
+  contratos a casa roda em paralelo hoje — sem isso, não dá para dizer com
+  precisão quanto da "escalada 250×" do Teste 1 é gargalo de orquestração
+  versus gargalo de gente.
+- **Custo real de cada serviço, fora IA.** `tabela-de-precos.ts` declara
+  cinco parcelas como `nao_medido` (gateway, infraestrutura, domínio/e-mail,
+  hora humana, impostos) — sem elas, nenhum desconto abaixo do preço de
+  tabela pode ser autorizado, por construção.
+- **Se "nós publicamos" (Presença/Conteúdo) é cumprível hoje.** Fora do
+  escopo de preço: a publicação em nome do cliente depende do App Review da
+  Meta, ainda pendente conforme `docs/pendencias.md`. Não muda o preço do
+  preset; muda se a promessa é cumprível agora. Assunto do especialista
+  `meta`, não desta carta.
+- **Cinco propostas de concorrentes da mesma praça, datadas** — já pendente
+  desde `docs/precos.md`, segue pendente, fora do escopo deste despacho.
