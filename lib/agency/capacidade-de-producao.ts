@@ -54,7 +54,8 @@ export type CapacidadeDeProducao =
   | "legenda-animada-em-video"
   | "logotipo-de-cliente"
   | "arquivo-pdf"
-  | "relatorio-de-auditoria-de-perfil";
+  | "relatorio-de-auditoria-de-perfil"
+  | "site-institucional";
 
 /** Onde a capacidade vira arquivo entregue. `arquivo` é caminho a partir da
  *  raiz do repositório; `simbolo` é a função exportada que produz. */
@@ -114,6 +115,26 @@ export const CAPACIDADES: Record<CapacidadeDeProducao, Capacidade> = {
   },
 
   // ── AUSENTES ─────────────────────────────────────────────────────────────
+  // Acrescentada em 30/08/2026 pela decisão 5 do CEO. Ela não existia no mapa,
+  // e essa AUSÊNCIA era o problema: uma oferta de site caía no fail-closed
+  // genérico ("não declara nenhuma capacidade"), que é o motivo certo pela
+  // razão errada. Quem lesse a recusa aprenderia que faltou preencher um
+  // campo, e não que a casa não constrói sites.
+  "site-institucional": {
+    id: "site-institucional",
+    produz: "site institucional ou landing page entregue no ar",
+    ponto: null,
+    marcadores: [
+      /\bsites?\b/i,
+      /landing\s*pages?/i,
+      /\bwordpress\b/i,
+      /p[áa]ginas?\s+de\s+vendas?/i,
+      /\bwebsites?\b/i,
+    ],
+    falta:
+      "construir site. Não existe motor de site nesta casa: nenhum arquivo " +
+      "produz HTML de página de cliente, e não há sequer símbolo órfão a ligar.",
+  },
   "publicacao-no-google": {
     id: "publicacao-no-google",
     produz: "post no perfil do Google (novidade, oferta, evento) na busca e no mapa",
