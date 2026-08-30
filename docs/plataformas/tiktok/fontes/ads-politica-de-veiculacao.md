@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok Ad Serving Policy"
 url: https://ads.tiktok.com/help/article/ad-serving-policy?lang=en
-capturado_em: 2026-08-29
+capturado_em: 2026-08-30
 hash: f715c72cc055667c
 ---
 
