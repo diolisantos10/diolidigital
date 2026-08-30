@@ -231,3 +231,103 @@ describe("✅ conferirColisao — NÃO INVENTA problema no caso limpo (três PMs
     expect(r.avisos).toHaveLength(0);
   });
 });
+
+// ── AS DUAS METADES DE `prisma/schema.prisma` COLIDIR POR MODELO ───────────
+//
+// Ordem do Diretor Geral, 30/08/2026 (`.despachos/F2-schema-colide-por-modelo.md`):
+// o schema deixa de colidir por ARQUIVO e passa a colidir por MODELO. Nomes
+// FICTÍCIOS de propósito — a ficha proíbe usar `ParceriaDoCliente` e
+// `Publication`, que têm frente viva de verdade.
+describe("⚖️ conferirColisao — prisma/schema.prisma colide por MODELO, não por arquivo inteiro", () => {
+  it("METADE 1 — modelos DIFERENTES do schema NÃO colidem (o caso limpo de 30/08: três sessões, três modelos)", () => {
+    const existente = reivindicacao({
+      quem: "sessao-a",
+      frente: "colunas de preço",
+      responsabilidade: "schema/colunas-de-preco",
+      arquivos: ["prisma/schema.prisma#ModeloDeTestePreco"],
+    });
+    const nova = {
+      quem: "sessao-b",
+      responsabilidade: "schema/conta-de-servico",
+      arquivos: ["prisma/schema.prisma#ModeloDeTesteContaDeServico"],
+    };
+
+    const r = conferirColisao(nova, [existente], AGORA);
+    expect(r.colide).toBe(false);
+    expect(r.motivos).toHaveLength(0);
+  });
+
+  it("METADE 2 — o MESMO modelo do schema continua colidindo, e o motivo nomeia o modelo", () => {
+    const existente = reivindicacao({
+      quem: "sessao-a",
+      frente: "colunas de preço",
+      responsabilidade: "schema/colunas-de-preco",
+      arquivos: ["prisma/schema.prisma#ModeloDeTestePreco"],
+    });
+    const nova = {
+      quem: "sessao-b",
+      responsabilidade: "schema/outro-ajuste-no-mesmo-modelo",
+      arquivos: ["prisma/schema.prisma#ModeloDeTestePreco"],
+    };
+
+    const r = conferirColisao(nova, [existente], AGORA);
+    expect(r.colide).toBe(true);
+    expect(r.motivos.join(" ")).toContain("ModeloDeTestePreco");
+    expect(r.quemColidiu).toEqual(["sessao-a"]);
+  });
+
+  it("compatibilidade — reivindicação ANTIGA sem modelo (bare) não vira coringa contra uma nova com modelo", () => {
+    const existenteBare = reivindicacao({
+      quem: "sessao-a",
+      frente: "reivindicação de antes desta régua",
+      responsabilidade: "schema/reivindicacao-antiga",
+      arquivos: ["prisma/schema.prisma"], // formato ANTIGO, sem "#modelo"
+    });
+    const nova = {
+      quem: "sessao-b",
+      responsabilidade: "schema/colunas-de-preco",
+      arquivos: ["prisma/schema.prisma#ModeloDeTestePreco"],
+    };
+
+    const r = conferirColisao(nova, [existenteBare], AGORA);
+    expect(r.colide).toBe(false);
+  });
+
+  it("compatibilidade — duas reivindicações ANTIGAS, ambas bare, NÃO colidem mais entre si (é o caso real de 30/08: sem modelo declarado, não dá para provar 'mesmo modelo')", () => {
+    // Fixture inspirada no caso REAL medido em disco em 30/08/2026:
+    // `reivindicacoes/mesa-de-comando-diretriz-do-sdr.json` e
+    // `conta-de-servico-diretor-geral.json` citam as DUAS só "prisma/schema.prisma"
+    // (sem "#modelo") e colidiam sob a régua de arquivo antiga — apesar de a
+    // auditoria do Diretor ter confirmado que acrescentavam modelos distintos.
+    const existenteBare = reivindicacao({
+      quem: "sessao-a",
+      frente: "reivindicação antiga 1",
+      responsabilidade: "schema/antiga-1",
+      arquivos: ["prisma/schema.prisma"],
+    });
+    const novaBare = {
+      quem: "sessao-b",
+      responsabilidade: "schema/antiga-2",
+      arquivos: ["prisma/schema.prisma"],
+    };
+
+    const r = conferirColisao(novaBare, [existenteBare], AGORA);
+    expect(r.colide).toBe(false);
+  });
+
+  it("fora do schema.prisma, a régua por arquivo inteiro continua valendo — nada mais foi afrouxado", () => {
+    const existente = reivindicacao({
+      quem: "sessao-a",
+      frente: "outra frente qualquer",
+      responsabilidade: "outra/frente",
+      arquivos: ["lib/agency/outro-arquivo.ts"],
+    });
+    const nova = {
+      quem: "sessao-b",
+      responsabilidade: "mais-uma/frente",
+      arquivos: ["lib/agency/outro-arquivo.ts"],
+    };
+
+    expect(conferirColisao(nova, [existente], AGORA).colide).toBe(true);
+  });
+});
