@@ -19,6 +19,7 @@ import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import { generate } from "@/lib/ai/generate";
 import { computeEstimate } from "@/lib/agency/live-calculator";
+import { comEstimativa } from "@/lib/agency/esteira/orcamento-do-briefing";
 import { segredoConfere } from "@/lib/security/crypto";
 
 import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
@@ -242,7 +243,15 @@ Se estiver tudo certo, é só clicar em Aprovar aqui embaixo. Assim que você ap
     });
     const approval = await createApprovalRequest({ clientRequestId: target.id, department: "proposal", requestedBy: "Agência", clientVisible: true });
     await prisma.approvalRequest.update({ where: { id: approval.id }, data: { reviewNote: proposalText } });
-    await prisma.clientRequestDb.update({ where: { id: target.id }, data: { status: "scope_ready" } });
+    // ── O MESMO DEFEITO DA ORDEM C1, ACHADO AQUI TAMBÉM (29/08/2026) ─────────
+    // Esta rota calculava `est` fresco e só o escrevia no `reviewNote` do
+    // card — nunca em `briefingJson.estimate`, que é o que `GET
+    // /api/portal/briefing/proposta` lê. Mesmo merge que `negotiate-proposal`
+    // passou a usar: reaproveita `comEstimativa`, não uma segunda régua.
+    await prisma.clientRequestDb.update({
+      where: { id: target.id },
+      data: { status: "scope_ready", briefingJson: comEstimativa(fullReq?.briefingJson ?? null, est) },
+    });
     // Ensure the client has portal access to read + approve the proposal.
     let portal = await prisma.portalAccess.findFirst({ where: { clientRequestId: target.id, revokedAt: null } });
     if (!portal) portal = await prisma.portalAccess.create({ data: { clientRequestId: target.id, clientId: target.clientId ?? undefined } });

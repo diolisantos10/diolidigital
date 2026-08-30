@@ -16,6 +16,8 @@ import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
 import { resolverOuCriarCliente, registrarReaproveitamento } from "@/lib/agency/execution/cliente-do-briefing";
 import { despacharPlanoPeloGerenteGeral, frazeDoDespacho } from "@/lib/agency/gerencia/entrada-da-demanda";
+import { precoCongeladoNoAceite } from "@/lib/agency/esteira/caminho-automatico";
+import { faixaDoOrcamento } from "@/lib/agency/esteira/orcamento-do-briefing";
 import { escopoDoBriefingJson } from "@/lib/agency/gerencia/contrato-do-plano";
 
 import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
@@ -135,8 +137,23 @@ export async function createProjectFromRequest(clientRequestId: string, approved
     })
     .catch((e) => console.error("[projeto] não consegui ler as proibições do briefing:", e));
 
+  // ── O PREÇO CONGELADO ENTRA JUNTO, QUANDO EXISTE (29/08/2026, ordem C1) ────
+  // `precoCongeladoNoAceite` lê a Metade B — o preço que o cliente aceitou,
+  // gravado no instante do aceite (`caminho-automatico.ts`, `marcarAceite`).
+  // Copiar para `Project.proposalPricing` é conveniência de leitura (o
+  // projeto carrega o próprio preço sem voltar ao `ClientRequestDb`); a fonte
+  // continua sendo o registro do aceite, nunca este campo. `null` — aceite
+  // sem número entregue, ou caminho que não passou pelo aceite do portal
+  // (ex.: a rota de staff) — deixa o campo como já era: vazio.
+  const precoAceito = await precoCongeladoNoAceite(clientRequestId).catch(() => null);
+  const proposalPricing = precoAceito ? faixaDoOrcamento(precoAceito.estimativa) : undefined;
+
   const project = await prisma.project.create({
-    data: { workspaceId, clientId, clientRequestId, name: proposal.name, goal: proposal.goal, stage: "planning", priority: "medium" },
+    data: {
+      workspaceId, clientId, clientRequestId, name: proposal.name, goal: proposal.goal,
+      stage: "planning", priority: "medium",
+      ...(proposalPricing ? { proposalPricing } : {}),
+    },
   });
 
   // PORTÃO DO PM: tarefa sem dono ou sem prazo NÃO é criada (`portao-do-pm.ts`).

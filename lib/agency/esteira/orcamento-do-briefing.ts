@@ -401,8 +401,17 @@ export function derivarEstimativa(briefingJson: string | null): EstimativaGuarda
 /** O `briefingJson` com a estimativa derivada gravada dentro dele — para que a
  *  proposta que o cliente lê, o e-mail que ele recebe e a regra que decide o
  *  nascimento do projeto leiam TODOS o mesmo número. Duas versões da mesma
- *  conta é como o cliente aceita um preço e o sistema cobra outro. */
-function comEstimativa(briefingJson: string | null, e: EstimativaGuardada): string {
+ *  conta é como o cliente aceita um preço e o sistema cobra outro.
+ *
+ *  ── EXPORTADA EM 29/08/2026 (ordem C1 do CEO) ──────────────────────────────
+ *  Até aqui só este arquivo gravava `estimate` dentro do `briefingJson`. O
+ *  preço negociado (`negotiate-proposal.ts`) escrevia o valor NOVO só dentro
+ *  do TEXTO do card de aprovação (`reviewNote`) — nunca aqui — e a página da
+ *  proposta (`estimativaEntregue`, logo acima) continuava lendo o número
+ *  velho. Duas verdades sobre dinheiro. É este merge, e só ele, que decide
+ *  como um número novo entra no `briefingJson`: quem grava preço negociado
+ *  reaproveita esta função em vez de inventar um segundo merge de JSON. */
+export function comEstimativa(briefingJson: string | null, e: EstimativaGuardada): string {
   try {
     const corpo = JSON.parse(briefingJson ?? "{}") as Record<string, unknown>;
     return JSON.stringify({ ...corpo, estimate: e });

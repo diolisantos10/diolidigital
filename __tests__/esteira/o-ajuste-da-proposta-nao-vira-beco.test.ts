@@ -50,6 +50,12 @@ const db = vi.hoisted(() => ({
     findUnique: vi.fn(async (_args?: unknown): Promise<Record<string, unknown> | null> => null),
     findFirst: vi.fn(async (_args?: unknown): Promise<Record<string, unknown> | null> => null),
     update: vi.fn(async (_args: { where: { id: string }; data: { status?: string } }): Promise<unknown> => ({})),
+    // `marcarAceite` (real, não mockada aqui) grava o congelamento de preço
+    // com `updateMany` — API padrão do Prisma (ficha C1d, 29/08/2026, trocou
+    // o `$executeRawUnsafe` de antes). Este arquivo é sobre o beco da
+    // negociação, não sobre preço, mas passa pela rota real de aceite, que
+    // chama a função real.
+    updateMany: vi.fn(async (_args?: unknown): Promise<{ count: number }> => ({ count: 1 })),
   },
   portalMessage: { create: vi.fn(async (_args?: unknown): Promise<unknown> => ({})) },
   approvalRequest: { update: vi.fn(async (_args?: unknown): Promise<unknown> => ({})) },

@@ -51,6 +51,7 @@ import { prisma } from "@/lib/db/client";
 import { PLANOS } from "@/lib/agency/planos";
 import { lerEscopoDeConteudo } from "@/lib/agency/execution/escopo-do-cliente";
 import { separarValoresInformados } from "@/lib/agency/execution/piso-de-verdade";
+import { estimativaEntregue, type EstimativaGuardada } from "@/lib/agency/esteira/orcamento-do-briefing";
 
 /** O menor degrau da tabela do site — o piso comercial da casa. */
 export const PISO_DA_TABELA = Math.min(...PLANOS.map((p) => p.preco));
@@ -277,6 +278,121 @@ export const STATUS_ACEITO = "accepted";
 export const ESPERANDO_DECISAO_DA_PROPOSTA: readonly string[] = [
   "proposal_pending", "proposal", "negotiation",
 ];
+
+/**
+ * ═══ METADE B: O PREÇO CONGELA NO INSTANTE DO ACEITE (29/08/2026, ordem C1) ═
+ *
+ * `briefingJson.estimate` é o preço AGORA — muda a cada rodada de
+ * `negotiateProposal`. Esta função grava o preço NAQUELE DIA: o número que
+ * estava em `briefingJson.estimate` no exato instante em que `status` vira
+ * `STATUS_ACEITO`, numa coluna que NENHUMA renegociação posterior toca.
+ *
+ * ── POR QUE AQUI, E NÃO NA ROTA ────────────────────────────────────────────
+ * `STATUS_ACEITO` só é escrito por UM caminho no código inteiro (varredura por
+ * grep, 29/08/2026): `app/api/portal/briefing/aceite/route.ts`. Colocar o
+ * congelamento DENTRO da função que escreve o status — em vez de deixar a
+ * rota lembrar de chamar as duas coisas separadamente — é o que garante que
+ * nenhum aceite futuro nasça sem o registro: não há como escrever
+ * `STATUS_ACEITO` sem passar por aqui.
+ *
+ * ── ATÔMICO E IDEMPOTENTE, NUM `UPDATE` SÓ ─────────────────────────────────
+ * `COALESCE(precoAceitoJson, ?)` significa "grava só se ainda não tinha
+ * nada" — a mesma regra de "escreve uma vez" que `avisoOrcamentoStatus` já
+ * usa neste arquivo-irmão (`orcamento-do-briefing.ts`). Chamar esta função
+ * duas vezes para o mesmo pedido (rota chamada de novo, corrida entre duas
+ * abas) não apaga o preço que já tinha sido congelado da primeira vez — e
+ * como o `status` só é lido como `!== STATUS_ACEITO` antes de chamar isto
+ * (ver a rota), na prática ela roda uma vez por pedido.
+ *
+ * Sem estimativa entregue (`estimativaEntregue` devolve `null`): grava o
+ * status normalmente e NÃO inventa preço — as duas colunas ficam `NULL`,
+ * exatamente como o resto da casa trata ausência de número.
+ *
+ * ── REGRESSÃO MEDIDA (ficha C1d, 29/08/2026) — POR QUE NÃO É MAIS SQL CRU ────
+ * A versão anterior usava `$executeRawUnsafe` com `COALESCE` porque as duas
+ * colunas eram "novas" e o cliente Prisma gerado, versionado de propósito,
+ * não tinha sido regenerado nesta árvore. Medido nesta rodada: o gerado **já
+ * tem** `precoAceitoJson`/`precoAceitoEm` (`lib/generated/prisma/models/
+ * ClientRequestDb.ts`) — a premissa que justificava o SQL cru não vale mais.
+ * SQL cru fora do Prisma normal quebrou os testes que montam um Prisma falso
+ * (o fake não tem `$executeRawUnsafe`, e nunca precisou ter), e mais: um
+ * detalhe de implementação (a string SQL) teria de vazar para mocks de
+ * arquivos que não têm nada a ver com preço — a dívida que a ficha pediu para
+ * não espalhar.
+ *
+ * `updateMany` com a condição no `where` é UMA instrução só, exatamente como
+ * o `UPDATE` cru era — a atomicidade não depende de SQL cru, depende de ser
+ * um único comando.
+ *
+ * ── A SEMÂNTICA DO COALESCE, TRADUZIDA LITERALMENTE ──────────────────────────
+ * `COALESCE(precoAceitoJson, ?)` só reescrevia a coluna quando ela ainda
+ * estava `NULL`. `where: { id, precoAceitoJson: null }` é a MESMA condição,
+ * só que expressa no filtro em vez de dentro do valor: a chamada só toca a
+ * linha se a coluna ainda não tiver sido congelada. Chamar de novo com a
+ * coluna já preenchida bate 0 linhas — não sobrescreve nada. Prova ao vivo:
+ * `__tests__/portal/o-preco-negociado-e-uma-fonte-so.test.ts`, bloco 5, chama
+ * `marcarAceite` duas vezes contra SQLite de verdade e confere que a segunda
+ * chamada não muda o preço congelado pela primeira.
+ *
+ * ── O STATUS CONTINUA NO MESMO ATO — E O RISCO DE VIRAR DOIS ATOS ───────────
+ * `status` entra no MESMO `data` do MESMO `updateMany`: não há uma escrita de
+ * status separada de uma escrita de preço, então não existe a janela "status
+ * gravado sem preço congelado" que duas instruções abririam.
+ *
+ * O que isso muda de comportamento, e por que é seguro: `status` só é escrito
+ * quando a condição do `where` bate — ou seja, só quando a coluna de preço
+ * ainda está `NULL`. No SQL cru, `status` era escrito em TODA chamada,
+ * independente da coluna de preço. A diferença só importa numa segunda
+ * chamada tardia: o único chamador desta função
+ * (`app/api/portal/briefing/aceite/route.ts`) só chama quando
+ * `solicitacao.status !== STATUS_ACEITO` — ou seja, na prática `marcarAceite`
+ * roda no máximo uma vez por pedido pelo caminho normal, e nesse caminho a
+ * condição do `where` SEMPRE bate na primeira (e única) chamada, porque a
+ * coluna começa `NULL`. Uma segunda chamada só existe hoje em teste direto
+ * (bloco 5, acima) e nela o objetivo é justamente confirmar que nada é
+ * sobrescrito — incluindo o `status`, que já estava correto.
+ *
+ * O único cenário em que isto teria efeito observável é um aceite SEM
+ * estimativa (`precoNoAceite` nulo): a coluna de preço fica `NULL` mesmo
+ * depois do aceite, então uma chamada futura (hipotética, hoje sem chamador)
+ * ainda bateria a condição e re-escreveria `status` (para o mesmo valor —
+ * sem efeito) e tentaria congelar o preço se um número aparecesse depois.
+ * Isso é ESTRITAMENTE MAIS PERMISSIVO que o SQL cru anterior nesse caso
+ * (que também deixava a porta aberta para o mesmo backfill, via COALESCE) —
+ * não fecha uma porta que já estava aberta.
+ */
+export async function marcarAceite(clientRequestId: string, briefingJsonAtual: string | null): Promise<void> {
+  const precoNoAceite = estimativaEntregue(briefingJsonAtual);
+  await prisma.clientRequestDb.updateMany({
+    where: { id: clientRequestId, precoAceitoJson: null },
+    data: {
+      status: STATUS_ACEITO,
+      precoAceitoJson: precoNoAceite ? JSON.stringify(precoNoAceite) : null,
+      precoAceitoEm: precoNoAceite ? new Date() : null,
+    },
+  });
+}
+
+/**
+ * O preço que ficou registrado quando o cliente aceitou — ou `null` quando o
+ * pedido nunca foi aceito com número entregue. É a leitura irmã de
+ * `marcarAceite`: nenhum outro lugar do código lê ou escreve estas colunas.
+ */
+export async function precoCongeladoNoAceite(
+  clientRequestId: string,
+): Promise<{ estimativa: EstimativaGuardada; congeladoEm: string | null } | null> {
+  const linhas = await prisma.$queryRawUnsafe<{ precoAceitoJson: string | null; precoAceitoEm: string | null }[]>(
+    `SELECT precoAceitoJson, precoAceitoEm FROM ClientRequestDb WHERE id = ?`,
+    clientRequestId,
+  );
+  const linha = linhas[0];
+  if (!linha?.precoAceitoJson) return null;
+  try {
+    return { estimativa: JSON.parse(linha.precoAceitoJson) as EstimativaGuardada, congeladoEm: linha.precoAceitoEm };
+  } catch {
+    return null;
+  }
+}
 
 /**
  * O registro do que o caminho automático fez ou recusou a fazer.

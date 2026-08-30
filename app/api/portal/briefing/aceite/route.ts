@@ -31,7 +31,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
-import { nascerDoAceite, STATUS_ACEITO, ESPERANDO_DECISAO_DA_PROPOSTA } from "@/lib/agency/esteira/caminho-automatico";
+import { nascerDoAceite, marcarAceite, STATUS_ACEITO, ESPERANDO_DECISAO_DA_PROPOSTA } from "@/lib/agency/esteira/caminho-automatico";
 
 export const maxDuration = 300;
 
@@ -77,13 +77,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const solicitacao = doToken
     ? await prisma.clientRequestDb.findUnique({
         where: { id: doToken },
-        select: { id: true, status: true, businessName: true },
+        select: { id: true, status: true, businessName: true, briefingJson: true },
       })
     : doCliente
       ? await prisma.clientRequestDb.findFirst({
           where: { clientId: doCliente },
           orderBy: { createdAt: "desc" },
-          select: { id: true, status: true, businessName: true },
+          select: { id: true, status: true, businessName: true, briefingJson: true },
         })
       : null;
   if (!solicitacao) return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
@@ -136,8 +136,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Grava o aceite ANTES de tentar criar: se a criação morrer no meio, o fato
   // "o cliente aceitou" não pode morrer junto — o relógio retoma daí
   // (`aplicarCaminhoAutomatico`). A esteira não depende do navegador.
+  //
+  // `marcarAceite` faz DUAS coisas no mesmo `UPDATE`: grava o status E
+  // congela o preço que estava em `briefingJson.estimate` neste instante —
+  // é a Metade B da ordem C1 do CEO (29/08/2026). Ver o porquê de estar
+  // colado ao status em `caminho-automatico.ts`.
   if (solicitacao.status !== STATUS_ACEITO) {
-    await prisma.clientRequestDb.update({ where: { id: solicitacao.id }, data: { status: STATUS_ACEITO } });
+    await marcarAceite(solicitacao.id, solicitacao.briefingJson);
   }
 
   const r = await nascerDoAceite(solicitacao.id, "cliente (portal)");
