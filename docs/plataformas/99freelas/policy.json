@@ -86,6 +86,31 @@
     "spam": "Termos, Sanções: 'propagação de spams' é sancionável. Proposta repetida entre projetos é o vetor."
   },
 
+  "ritmo_de_operacao": {
+    "_leia_isto": [
+      "REGRA DA CASA, não da plataforma. O 99Freelas NÃO publica limite de",
+      "requisições (anti_bot.rate_limit é null, não confirmado).",
+      "Ausência de informação não é informação: estes números são da Dioli,",
+      "escolhidos APERTADOS de propósito, e estão declarados como tal.",
+      "",
+      "O incidente que produziu esta seção não é do 99Freelas — é da Meta,",
+      "em 03/08/2026: a conta de anúncios da agência foi restringida por",
+      "'automação que não segue as regras', operando em ritmo de máquina.",
+      "Aqui a conta é PESSOAL do CEO e o banimento alcança outras contas do",
+      "mesmo titular. Errar para o lado de ir devagar custa tempo; errar para",
+      "o outro custa o canal inteiro."
+    ],
+    "intervalo_minimo_entre_acoes_segundos": 45,
+    "intervalo_minimo_procedencia": "regra da casa, 30/08/2026. Não é número do 99Freelas.",
+    "maximo_de_acoes_por_hora": 20,
+    "maximo_de_acoes_por_dia": 80,
+    "maximo_procedencia": "regra da casa. Piso conservador: a cota de conexões do plano mais alto é 240/mês, e 80/dia jamais deve ser o gargalo real.",
+    "limite_da_plataforma_confirmado": null,
+    "limite_da_plataforma_motivo": "NÃO CONFIRMADO. Enquanto for null, valem os números da casa — nunca o contrário.",
+    "ao_exceder": "ADIAR_E_REGISTRAR",
+    "ao_exceder_motivo": "Exceder não é erro do operador: é o freio funcionando. A ação é ADIADA e registrada, não descartada em silêncio — descartar calado é como a casa descobre um mês depois que nada rodou."
+  },
+
   "anexos_no_chat": {
     "_leia_isto": [
       "Decisão 4 do CEO, 30/08/2026: 'O chat aceita arquivos de até 16 MB.'",
