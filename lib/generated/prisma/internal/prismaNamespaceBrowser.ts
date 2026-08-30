@@ -127,7 +127,11 @@ export const ModelName = {
   AssinaturaRecorrente: 'AssinaturaRecorrente',
   CobrancaRecorrente: 'CobrancaRecorrente',
   LinhaDoFunil: 'LinhaDoFunil',
-  TransicaoDoFunil: 'TransicaoDoFunil'
+  TransicaoDoFunil: 'TransicaoDoFunil',
+  ArquivoDaCelula: 'ArquivoDaCelula',
+  EventoDoArquivoDaCelula: 'EventoDoArquivoDaCelula',
+  ExcecaoDaCelula: 'ExcecaoDaCelula',
+  EventoDaExcecaoDaCelula: 'EventoDaExcecaoDaCelula'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1540,6 +1544,79 @@ export const TransicaoDoFunilScalarFieldEnum = {
 } as const
 
 export type TransicaoDoFunilScalarFieldEnum = (typeof TransicaoDoFunilScalarFieldEnum)[keyof typeof TransicaoDoFunilScalarFieldEnum]
+
+
+export const ArquivoDaCelulaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  oportunidadeId: 'oportunidadeId',
+  clienteId: 'clienteId',
+  projetoId: 'projetoId',
+  direcao: 'direcao',
+  linhagemId: 'linhagemId',
+  versao: 'versao',
+  nomeOriginal: 'nomeOriginal',
+  extensao: 'extensao',
+  mimeType: 'mimeType',
+  tamanhoBytes: 'tamanhoBytes',
+  sha256: 'sha256',
+  caminhoInterno: 'caminhoInterno',
+  estado: 'estado',
+  destinatarioDeclarado: 'destinatarioDeclarado',
+  motivoDaQuarentena: 'motivoDaQuarentena',
+  retencaoAteEm: 'retencaoAteEm',
+  criadoEm: 'criadoEm'
+} as const
+
+export type ArquivoDaCelulaScalarFieldEnum = (typeof ArquivoDaCelulaScalarFieldEnum)[keyof typeof ArquivoDaCelulaScalarFieldEnum]
+
+
+export const EventoDoArquivoDaCelulaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  arquivoId: 'arquivoId',
+  tipo: 'tipo',
+  autor: 'autor',
+  origem: 'origem',
+  detalhe: 'detalhe',
+  criadoEm: 'criadoEm'
+} as const
+
+export type EventoDoArquivoDaCelulaScalarFieldEnum = (typeof EventoDoArquivoDaCelulaScalarFieldEnum)[keyof typeof EventoDoArquivoDaCelulaScalarFieldEnum]
+
+
+export const ExcecaoDaCelulaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  oportunidadeId: 'oportunidadeId',
+  arquivoId: 'arquivoId',
+  caso: 'caso',
+  prioridade: 'prioridade',
+  responsavel: 'responsavel',
+  prazoEm: 'prazoEm',
+  contexto: 'contexto',
+  acaoRecomendada: 'acaoRecomendada',
+  estado: 'estado',
+  interrompeAutomacao: 'interrompeAutomacao',
+  abertaEm: 'abertaEm',
+  resolvidaEm: 'resolvidaEm',
+  resolucao: 'resolucao'
+} as const
+
+export type ExcecaoDaCelulaScalarFieldEnum = (typeof ExcecaoDaCelulaScalarFieldEnum)[keyof typeof ExcecaoDaCelulaScalarFieldEnum]
+
+
+export const EventoDaExcecaoDaCelulaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  excecaoId: 'excecaoId',
+  tipo: 'tipo',
+  autor: 'autor',
+  detalhe: 'detalhe',
+  criadoEm: 'criadoEm'
+} as const
+
+export type EventoDaExcecaoDaCelulaScalarFieldEnum = (typeof EventoDaExcecaoDaCelulaScalarFieldEnum)[keyof typeof EventoDaExcecaoDaCelulaScalarFieldEnum]
 
 
 export const SortOrder = {

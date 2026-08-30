@@ -790,3 +790,23 @@ export type LinhaDoFunil = Prisma.LinhaDoFunilModel
  * escrito por quem pediu o avanço.
  */
 export type TransicaoDoFunil = Prisma.TransicaoDoFunilModel
+/**
+ * Model ArquivoDaCelula
+ * 
+ */
+export type ArquivoDaCelula = Prisma.ArquivoDaCelulaModel
+/**
+ * Model EventoDoArquivoDaCelula
+ * 
+ */
+export type EventoDoArquivoDaCelula = Prisma.EventoDoArquivoDaCelulaModel
+/**
+ * Model ExcecaoDaCelula
+ * 
+ */
+export type ExcecaoDaCelula = Prisma.ExcecaoDaCelulaModel
+/**
+ * Model EventoDaExcecaoDaCelula
+ * 
+ */
+export type EventoDaExcecaoDaCelula = Prisma.EventoDaExcecaoDaCelulaModel

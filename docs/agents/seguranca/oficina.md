@@ -163,3 +163,55 @@ perfil de navegador que não existe
   função e caminho de diretório — e mesmo assim não protegia nada porque
   ninguém tinha escrito o código. Vale para toda futura leitura de
   especificação como se fosse estado atual do sistema.
+
+---
+
+## 2026-08-30 — o meio-termo do Guardião: consertar a ação, não a palavra
+
+**Origem:** laudo do `qualidade` sobre a Onda 2, ficha
+`docs/celula-prospeccao/despachos/I-o-meio-termo-do-guardiao.md`. **Parecer:**
+`docs/plataformas/99freelas/pareceres/2026-08-30-guardiao-perfil-fora-da-plataforma.md`.
+
+### O achado
+
+Meu próprio conserto anterior (Onda 2, ficha B — tirar `instagram`/`insta`/
+`linkedin` da regra `dado_de_contato` para não barrar "posts para Instagram")
+resolveu o falso positivo e abriu um meio-termo: `"me segue no insta"` e
+`"meu perfil no linkedin"` passaram a **passar**, porque nem citam `@handle`
+nem a palavra da rede sozinha. O `qualidade` pegou certo: **acertei o
+problema e errei o tamanho do conserto**, numa tacada só.
+
+### O que aprendi, e vale para a próxima trava que eu mexer
+
+1. **Remover uma palavra de uma régua de conteúdo é sempre um conserto de dois
+   passos, não um.** Passo 1: tirar o que causava o falso positivo. Passo 2:
+   perguntar "o que essa palavra ESTAVA cobrindo, e por que verbo isso pode
+   ser dito sem ela?" — pular o passo 2 é deixar a régua estreita de novo, só
+   que agora com um buraco no lugar exato de onde a palavra saiu.
+2. **A trava certa mira a AÇÃO, não o substantivo.** "Instagram" é ambíguo —
+   é rede (proibida citar para contato) e é entrega (produto da casa). O
+   verbo ("segue", "acha", "perfil no") não é ambíguo: ninguém escreve "me
+   segue no" vendendo gestão de conteúdo. Trocar o alvo do regex do
+   substantivo para o verbo é o que permitiu não reintroduzir "instagram" na
+   lista e ainda assim fechar o buraco.
+3. **Guardião compartilhado exige parecer mesmo em conserto de uma linha.**
+   A ficha B mexeu neste mesmo arquivo sem parecer — a trava de 03/08 vale
+   também para "consertar um regex". Escrevi o parecer retroativo para B e o
+   da ficha I juntos, para a próxima pessoa não achar que foi descuido.
+
+### As duas metades, de novo — e por que a segunda é a que importa mais
+
+Testei nomeadamente as três frases que a Onda 2 tinha usado como prova do
+falso positivo ("gestão de Instagram e TikTok", "reels para o Instagram",
+"12 posts para Instagram") contra os novos padrões, **antes** de considerar
+o conserto pronto — não bastava rodar as quatro frases hostis novas, era
+preciso reconfirmar que elas não regrediram. As duas metades continuam de
+pé em `__tests__/celula/entrada-hostil.test.ts`.
+
+### Proposta de vitrine (para o PM avaliar)
+
+- **"Remover palavra de régua é conserto de dois passos"** — o padrão acima:
+  toda vez que uma trava de conteúdo perde uma palavra por falso positivo,
+  a pergunta seguinte obrigatória é "que ação essa palavra cobria, e existe
+  verbo para ela que sobrevive sem a palavra?". Aplica a qualquer guardião de
+  conteúdo desta casa, não só ao 99Freelas.

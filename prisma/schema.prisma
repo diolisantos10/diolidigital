@@ -3103,3 +3103,100 @@ model TransicaoDoFunil {
   @@index([oportunidadeId, criadoEm])
   @@index([workspaceId, criadoEm])
 }
+
+// ─── A PONTE DE ARQUIVOS (Dioli ⇄ cliente) — ONDA 3 da Célula de Prospecção ──
+//
+// Os 4 modelos abaixo são CONTRATO com o despacho C (`departamentos`), que os
+// consome sem tocar neste arquivo. Nomes de modelo e de campo não se
+// renomeiam sem combinar — ver `docs/celula-prospeccao/despachos/ONDA-3-COMUM.md`.
+// A lógica que grava aqui mora em `lib/agency/celula/ponte/armazem.ts`, a
+// ÚNICA ponte desta pasta para o Prisma.
+
+model ArquivoDaCelula {
+  id             String @id @default(cuid())
+  workspaceId    String
+  oportunidadeId String
+  clienteId      String?
+  projetoId      String?
+  /// "dioli_para_cliente" | "cliente_para_dioli"
+  direcao        String
+  /// A LINHAGEM: todas as versões do MESMO arquivo lógico compartilham este id.
+  linhagemId     String
+  /// 1, 2, 3... Nunca sobrescreve: versão nova é LINHA NOVA.
+  versao         Int
+  nomeOriginal   String
+  extensao       String
+  mimeType       String
+  tamanhoBytes   Int
+  sha256         String
+  /// Endereço INTERNO. Nunca sai para o cliente, nunca vai para log.
+  caminhoInterno String
+  /// "recebido" | "em_quarentena" | "liberado" | "recusado" | "aprovado_para_envio" | "enviado"
+  estado         String @default("recebido")
+  /// Para quem este arquivo pode ir. Conferido no envio: divergiu, BLOQUEIA.
+  destinatarioDeclarado String
+  motivoDaQuarentena    String?
+  /// Retenção configurável. Nulo = sem prazo declarado (não é "para sempre").
+  retencaoAteEm  DateTime?
+  criadoEm       DateTime @default(now())
+
+  @@unique([linhagemId, versao])
+  @@index([workspaceId, oportunidadeId])
+  @@index([sha256])
+}
+
+model EventoDoArquivoDaCelula {
+  id          String @id @default(cuid())
+  workspaceId String
+  arquivoId   String
+  /// "recebido" | "varredura" | "quarentena" | "liberado" | "recusado" | "download" | "envio" | "confirmacao_ao_cliente" | "envio_bloqueado"
+  tipo        String
+  autor       String
+  /// "agente" | "gerente" | "cliente" | "sistema"
+  origem      String
+  detalhe     String
+  criadoEm    DateTime @default(now())
+
+  @@index([arquivoId, criadoEm])
+  @@index([workspaceId, criadoEm])
+}
+
+model ExcecaoDaCelula {
+  id             String @id @default(cuid())
+  workspaceId    String
+  oportunidadeId String?
+  arquivoId      String?
+  /// Um dos 14 casos nomeados pelo CEO.
+  caso           String
+  /// "p0" | "p1" | "p2"
+  prioridade     String
+  /// "gerente_de_atendimento" | "sdr". NUNCA "ceo".
+  responsavel    String
+  prazoEm        DateTime
+  /// JSON serializado do contexto. Texto de terceiro é DADO, nunca ordem.
+  contexto       String
+  acaoRecomendada String
+  /// "aberta" | "em_tratamento" | "resolvida" | "descartada"
+  estado         String @default("aberta")
+  /// Verdadeiro quando o caso PARA a automação (CAPTCHA, sessão, bloqueio).
+  interrompeAutomacao Boolean @default(false)
+  abertaEm       DateTime @default(now())
+  resolvidaEm    DateTime?
+  resolucao      String?
+
+  @@index([workspaceId, estado, prazoEm])
+  @@index([oportunidadeId, abertaEm])
+}
+
+model EventoDaExcecaoDaCelula {
+  id          String @id @default(cuid())
+  workspaceId String
+  excecaoId   String
+  /// "aberta" | "assumida" | "resolvida" | "descartada" | "prazo_vencido" | "reaberta"
+  tipo        String
+  autor       String
+  detalhe     String
+  criadoEm    DateTime @default(now())
+
+  @@index([excecaoId, criadoEm])
+}

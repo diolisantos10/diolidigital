@@ -167,13 +167,20 @@ export function avaliarAberturaDeExcecao(
 
   const prazoEm = new Date(agora.getTime() + PRAZO_EM_MINUTOS_POR_PRIORIDADE[prioridade] * 60_000);
 
+  // A partir daqui `textoUtilValido` já confirmou que `acaoRecomendada` é
+  // string não vazia — o cast só nomeia o que já foi validado, no mesmo
+  // molde de `trilha.ts` (`const autor = entrada.autor as string;`), em vez
+  // de depender de estreitamento de tipo através da fronteira da função de
+  // guarda.
+  const acaoRecomendada = entrada.acaoRecomendada as string;
+
   return {
     ok: true,
     caso,
     prioridade,
     responsavel,
     contexto,
-    acaoRecomendada: entrada.acaoRecomendada,
+    acaoRecomendada,
     prazoEm,
   };
 }
