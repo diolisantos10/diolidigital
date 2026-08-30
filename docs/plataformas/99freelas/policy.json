@@ -173,11 +173,17 @@
     "fingerprint": null,
     "rate_limit_e_fingerprint_motivo": "NÃO CONFIRMADO — não fizemos login e não há documento público do 99Freelas sobre isso.",
 
-    "central_de_ajuda_html_2026_08_07": "HTTP 429 (Too Many Requests) depois de ~14 leituras seguidas, sem desafio antes disso.",
-    "central_de_ajuda_html_2026_08_30": "HTTP 403 com cf-mitigated: challenge (desafio Cloudflare Managed/Turnstile) NA PRIMEIRA requisição — a proteção apertou entre 07/08 e 30/08.",
+    "central_de_ajuda_html_2026_08_07": "LACUNA — a fonte de 07/08 (fontes/medicao-tecnica-2026-08-07.md §4) fala de HTTP 429 na API pública do Help Center (Zendesk), não no HTML; e o parecer do mesmo dia (pareceres/2026-08-07-agente-autonomo-de-prospeccao.md) registra 'navegador é o único caminho que existe' para essa mesma leitura. As duas fontes de 07/08 se contradizem sobre qual interface foi medida — NÃO SABEMOS se o HTML respondia 200 naquela data, nem por qual interface o 429 foi observado.",
+    "central_de_ajuda_html_2026_08_30": "FATO MEDIDO, e só isto: HTTP 403 com cf-mitigated: challenge (desafio Cloudflare Managed/Turnstile) na primeira requisição, nas 12 URLs, em 30/08/2026. Correção depois da auditoria do Essencial `qualidade`: a redação anterior deste campo afirmava 'a proteção apertou entre 07/08 e 30/08' como fato — isso é inferência não sustentada, porque não existe medição confiável do HTML em 07/08 para comparar (ver central_de_ajuda_html_2026_08_07). Retirado; fica só o que foi medido hoje.",
     "central_de_ajuda_api_2026_08_30": "GET https://99freelas.zendesk.com/api/v2/help_center/pt-br/articles/<id>.json — HTTP 200 nas 12 URLs, sem desafio, sem autenticação, mesmo user-agent honesto que levou 403 no HTML. Permitido pelo robots.txt de 99freelas.zendesk.com (só /stats/view e /hc/*/search são Disallow).",
-    "central_de_ajuda_api_ressalva": "O operador pode ter protegido o HTML e deixado a API pública aberta sem essa intenção — não há declaração dele sobre isso. Submetido ao Essencial `seguranca`; ver bloco dedicado no parecer de 30/08/2026 (rodada 2) sobre o que muda se ele reprovar este caminho.",
+    "central_de_ajuda_api_ressalva": "O operador pode ter protegido o HTML e deixado a API pública aberta sem essa intenção — não há declaração dele sobre isso. DECIDIDO pelo Essencial `seguranca` em pareceres/2026-08-30-seguranca-sessao-do-titular.md, pergunta 1: NÃO CONTORNOU proteção — as 12 capturas de hoje ficam válidas, mas não vira rotina (só recaptura ocasional de documentação, no mesmo ritmo humano de hoje; não se estende a /projects nem a qualquer desafio futuro).",
     "fonte": "docs/plataformas/99freelas/fontes/medicao-tecnica-2026-08-07.md e medicao-tecnica-2026-08-30.md"
+  },
+
+  "sessao_autenticada": {
+    "pre_condicao_p0": "BLOQUEADO — perfil de navegador isolado, dedicado só ao 99Freelas (sem e-mail/banco/outra sessão no mesmo perfil), NÃO existe em código hoje: existe só como parágrafo em docs/projetos/99freelas/00-ESPECIFICACAO-DO-CEO.md §4. Aberto pelo Essencial `seguranca` em pareceres/2026-08-30-seguranca-sessao-do-titular.md como P0 de pré-condição.",
+    "pre_condicao_p0_efeito": "Nenhuma operação real de sessão autenticada do titular — mesmo supervisionada, mesmo só leitura de /projects ou do chat — deve rodar antes de o perfil isolado existir em código. Risco: prompt injection via briefing de terceiro pivotando para e-mail/banco do CEO no mesmo perfil de navegador. Isto é P0 de pré-condição, não P0 de sistema em produção — não há execução de navegador implementada hoje.",
+    "flags_nao_afrouxadas": "auto_submission_allowed, browser_automation_allowed e auto_messaging_allowed continuam false; human_gate_required continua true. Este campo ACRESCENTA uma barreira anterior a essas, não substitui nem afrouxa nenhuma."
   },
 
   "projetos_a_rejeitar_antes_de_gastar_conexao": [

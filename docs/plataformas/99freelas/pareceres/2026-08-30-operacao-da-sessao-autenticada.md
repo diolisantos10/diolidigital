@@ -53,13 +53,40 @@ mesmo `robots.txt` proíbe `/hc/*/search`, também não tocado
 esquecido a API — **não temos declaração dele sobre isso.** Isto não é fato
 confirmado, é interpretação do PM sobre um comportamento técnico observado.
 
-**O que muda se o Essencial `seguranca` decidir que esse caminho não vale:**
+**A pergunta foi decidida — pelo Essencial `seguranca`, não por este parecer.**
+Em `pareceres/2026-08-30-seguranca-sessao-do-titular.md`, pergunta 1: **NÃO
+CONTORNOU proteção nenhuma.** O teste aplicado foi "houve um controle técnico
+*derrotado*?" — credencial falsificada, desafio resolvido, identidade forjada
+— e nenhum dos três aconteceu; o que houve foi leitura de **outra interface,
+publicada pelo mesmo operador, com `robots.txt` positivo**, não uma porta
+secreta. Veredito: **as 12 capturas de hoje ficam válidas**, com a ressalva de
+que **isto não vira rotina** — vale só como captura ocasional de documentação,
+no mesmo ritmo humano de hoje, e **não** se estende a `/projects`, ao chat, ou
+a qualquer desafio futuro em outra parte do site; um "achei outra porta" novo
+exige parecer novo, não herda este. **Por isso os dois blocos abaixo ("o que
+muda se...") ficam registrados como estavam — descrevem o cenário que NÃO se
+concretizou** (o `seguranca` não reprovou o caminho), preservados aqui porque
+mostram que nenhuma das três conclusões centrais deste parecer dependia dessa
+decisão de qualquer forma.
+
+**O que muda se o Essencial `seguranca` decidir que esse caminho não vale**
+*(cenário hipotético, não concretizado — ver decisão real acima):*
 
 - **Caem as 12 capturas de hoje** (`ajuda-*-2026-08-30.md`), e a Central de
-  Ajuda **volta a valer só pela captura de 07/08/2026** (agora 23 dias, feita
-  em HTML limpo, sem desafio, antes de a proteção apertar) — não vira LACUNA
-  total, porque já existia fonte anterior válida; volta a ser fonte **envelhecida**,
-  no mesmo estado em que estava antes desta rodada.
+  Ajuda **volta a valer só pela captura de 07/08/2026** (agora 23 dias) — não
+  vira LACUNA total, porque já existia fonte anterior válida; volta a ser
+  fonte **envelhecida**, no mesmo estado em que estava antes desta rodada.
+  **Correção, depois da auditoria do Essencial `qualidade`:** a redação
+  anterior deste trecho afirmava que a captura de 07/08 tinha sido "feita em
+  HTML limpo, sem desafio, antes de a proteção apertar" — isso era inferência
+  não sustentada pela fonte, e foi retirado. O que a fonte de 07/08 diz,
+  literalmente, é que a **API pública do Help Center (Zendesk)** devolveu HTTP
+  429 depois de ~14 leituras (`fontes/medicao-tecnica-2026-08-07.md`, §4) —
+  fala de API, não de HTML — e que, no mesmo dia, o parecer de 07/08 registra
+  "Navegador é o único caminho que existe" para essa mesma leitura
+  (`pareceres/2026-08-07-agente-autonomo-de-prospeccao.md`), o que contradiz o
+  item anterior. **Portanto: LACUNA — não sabemos por qual interface a
+  captura de 07/08 foi feita, nem se o HTML respondia 200 naquela data.**
 - **O que SOBREVIVE mesmo assim:** o veredito da pergunta 2 (silêncio sobre
   automação) e o fato do banimento alcançar outras contas do mesmo usuário —
   **ambos estão em `termos-de-uso-2026-08-30.md`**, capturado por HTTP 200
@@ -76,6 +103,27 @@ confirmado, é interpretação do PM sobre um comportamento técnico observado.
   que **nenhum dos 12 artigos foi alterado depois de 07/08/2026** — ou seja,
   mesmo que `seguranca` reprove o caminho, o conteúdo em disco desde 07/08
   continua sendo, pela palavra da própria plataforma, a versão vigente.
+
+**O que o `seguranca` decidiu além da pergunta 1 — e que muda o que este
+parecer recomenda operacionalmente, embora não mude o veredito FAIL CLOSED já
+registrado:** ele abriu um **P0 de pré-condição**, independente do 99Freelas
+em si — "Claude in Chrome com a sessão autenticada do titular" só é seguro
+rodando dentro de um **perfil de navegador isolado**, dedicado só ao
+99Freelas, sem e-mail/banco/outra sessão no mesmo perfil
+(`docs/projetos/99freelas/00-ESPECIFICACAO-DO-CEO.md` §4 descreve o desenho;
+`pareceres/2026-08-30-seguranca-sessao-do-titular.md` confirma que **esse
+isolamento não existe em código, só como parágrafo de especificação**). Até
+esse mecanismo existir, o `seguranca` **bloqueia qualquer operação de sessão
+autenticada real**, mesmo supervisionada — risco que não é o 99Freelas banir a
+conta, é o agente alcançar e-mail ou banco do CEO pelo mesmo navegador se
+conteúdo de um projeto tentar manipulá-lo (prompt injection via briefing de
+terceiro). Isto **não afrouxa nem aperta** as flags já vigentes deste
+parecer — `auto_submission_allowed`, `browser_automation_allowed` e
+`auto_messaging_allowed` já eram `false` e `human_gate_required` já era `true`
+antes desta decisão; o que o `seguranca` acrescenta é uma **segunda barreira,
+anterior à primeira**: mesmo a leitura supervisionada de `/projects` e do chat
+via sessão autenticada do titular não deve ser operada de verdade — nem
+supervisionada — enquanto o perfil isolado for só especificação.
 
 ---
 
@@ -122,10 +170,20 @@ do site e um artigo de amostra da Central de Ajuda contra as versões de
   plataforma, nada mudou.
 - **`robots.txt` e `sitemap.xml`**: idênticos aos de 07/08/2026
   (`fontes/medicao-tecnica-2026-08-30.md` §1-§2).
-- **A única mudança real e verificada é técnica, não normativa: a Central de
-  Ajuda em HTML apertou a proteção** (429 depois de ~14 leituras em 07/08 →
-  403 com desafio na 1ª leitura hoje). Isto é fato de infraestrutura anti-bot,
-  não de contrato — tratado no bloco 🔴 acima.
+- **A única mudança técnica verificada é o que a medição de hoje encontrou:
+  403 com `cf-mitigated: challenge` na 1ª requisição, nas 12 URLs, em
+  30/08/2026** (`fontes/medicao-tecnica-2026-08-30.md`, §4). **Correção, depois
+  da auditoria do Essencial `qualidade`:** a redação anterior deste trecho
+  afirmava que isso era um aperto em relação a 07/08 ("429 depois de ~14
+  leituras em 07/08 → 403 com desafio na 1ª leitura hoje"), tratando "a
+  proteção apertou" como fato. **Não é fato — é LACUNA.** A fonte de 07/08 fala
+  de HTTP 429 na **API** do Help Center, não no HTML
+  (`fontes/medicao-tecnica-2026-08-07.md`, §4), e o parecer do mesmo dia
+  registra que o navegador era "o único caminho que existe"
+  (`pareceres/2026-08-07-agente-autonomo-de-prospeccao.md`) — as duas fontes de
+  07/08 se contradizem sobre qual interface foi medida, então não há linha de
+  base em HTML para comparar com o 403 de hoje. Isto é fato de infraestrutura
+  anti-bot medido só em 30/08, não de contrato — tratado no bloco 🔴 acima.
 - **`como-funciona-2026-08-30.md`**: nunca foi capturada antes, então não há
   `diff` para ela — é addição, não mudança. Ver achado de precificação
   abaixo.
@@ -168,15 +226,28 @@ scraping, raspagem, extração/extrair, coletar (verbo), "meios automatizados",
 **API** (no corpo — ver nota abaixo), integração, procurador, representante,
 delegar, intransferível, cessão.
 
-**Nota metodológica, para não inflar o silêncio artificialmente:** a primeira
-rodada dessa busca, sem filtrar metadados, contava "API" **~24 vezes** — mas
-essas ocorrências estavam **inteiramente dentro do cabeçalho que o PM escreveu
-em cada arquivo** ("Capturado pela API pública do Help Center: `.../api/v2/...`"),
-descrevendo **o nosso próprio método de captura**, não texto da plataforma.
-Contar isso como "a plataforma menciona API 24 vezes" seria inflar um silêncio
-real com ruído do nosso processo — por isso os metadados foram excluídos antes
-da contagem final, e por isso a tabela acima mostra **zero** ocorrências reais
-de "API" no texto da plataforma.
+**Nota metodológica, para não inflar o silêncio artificialmente — dois filtros
+aplicados, os dois declarados aqui.** A primeira rodada dessa busca, sem
+filtrar metadados, contava "API" **~24 vezes** — mas essas ocorrências estavam
+**inteiramente dentro do cabeçalho que o PM escreveu em cada arquivo**
+("Capturado pela API pública do Help Center: `.../api/v2/...`"), descrevendo
+**o nosso próprio método de captura**, não texto da plataforma. Contar isso
+como "a plataforma menciona API 24 vezes" seria inflar um silêncio real com
+ruído do nosso processo — por isso os metadados foram excluídos antes da
+contagem final, e por isso a tabela acima mostra **zero** ocorrências reais de
+"API" no texto da plataforma. **O segundo filtro, não declarado na primeira
+redação deste parecer — correção depois da auditoria do Essencial
+`qualidade`:** a mesma passagem também excluiu **1 ocorrência de "exclusiva"**
+que estava no campo `titulo:` do frontmatter de
+`ajuda-plano-gratuito-nao-consigo-enviar-proposta-2026-08-30.md` (linha 2,
+"...janela de 24h **exclusiva** de assinantes") — é metadado de arquivo
+(título dado pelo script de captura ao artigo), não corpo do texto da
+plataforma, pelo mesmo critério aplicado ao filtro de "API" acima. O número
+final da tabela (**28 ocorrências**) já refletia os dois filtros; o que
+faltava era declarar o segundo. Filtro não declarado parece filtro escondido —
+por isso ambos ficam registrados aqui, com o mesmo critério: só é excluído o
+que é metadado do nosso processo de captura, nunca texto normativo da
+plataforma.
 
 **Confirmado, igual ao parecer de 07/08/2026 e ao de 30/08 rodada 1: isto
 continua sendo silêncio do contrato, não autorização.** Pela regra do próprio
