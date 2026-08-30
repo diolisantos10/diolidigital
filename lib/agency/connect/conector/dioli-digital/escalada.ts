@@ -98,8 +98,15 @@ export function escaladaDaDioliDigital(
           agente: contexto.agente,
           canal: contexto.canal,
           referenciaDoCliente: contexto.referenciaDoCliente,
-          assuntos,
-          pergunta: contexto.pergunta,
+          // ⭐ `foraDaAlcada`, e NÃO `assuntos` — medido contra o núcleo real em
+          // 30/08/2026. Com `assuntos` o núcleo recusa a escalada inteira:
+          //   {"estado":"recusado","codigo":"sem_assuntos_fora_da_alcada",
+          //    "motivo":"o despacho nao declarou 'foraDaAlcada' ..."}
+          // O nome do campo é do núcleo; quem traduz é o produto (decisão D3).
+          foraDaAlcada: assuntos,
+          // ⭐ `mensagem`, e NÃO `pergunta`: o núcleo não lê `pergunta`. Era
+          // texto viajando para lugar nenhum.
+          mensagem: contexto.pergunta,
           // ⭐ Quem vai decidir precisa saber que JÁ HOUVE decisão sobre isto e
           // que ela não valeu para este caso. Sem esta linha o gerente responde
           // a pergunta errada — ele acha que é a primeira vez.
@@ -128,9 +135,9 @@ export function escaladaDaDioliDigital(
       };
     }
 
-    let corpo: { fio?: unknown; aberta?: unknown } | null = null;
+    let corpo: { fioId?: unknown; fio?: unknown; aberta?: unknown } | null = null;
     try {
-      corpo = (await resposta.json()) as { fio?: unknown; aberta?: unknown };
+      corpo = (await resposta.json()) as { fioId?: unknown; fio?: unknown; aberta?: unknown };
     } catch {
       // ⚠️ 200 com corpo ilegível NÃO é consulta aberta. Ausência de informação
       // não é informação: dar por aberta uma consulta que não se sabe se abriu
@@ -142,7 +149,28 @@ export function escaladaDaDioliDigital(
       };
     }
 
-    const fio = typeof corpo?.fio === "string" && corpo.fio.trim() ? corpo.fio.trim() : null;
+    // ⭐⭐ `fioId`, E NÃO `fio` — medido contra o núcleo real em 30/08/2026.
+    //
+    // ⚠️ O DEFEITO QUE ISTO FECHA, e ele é dos silenciosos: lendo `corpo.fio`
+    // de uma resposta que traz `fioId`, o fio saía SEMPRE `null`. A consulta
+    // fica aberta no núcleo, o produto grava a pendência sem fio, e o rastro
+    // passa a dizer "o núcleo não devolveu fio" sobre uma consulta que o núcleo
+    // gravou direitinho. Cliente esperando a resposta de uma pergunta que a
+    // empresa acha que abriu pela metade.
+    //
+    // O CityJobs e o FOOCCI Manager tinham o mesmo e já consertaram.
+    //
+    // `fio` continua aceito como nome ANTIGO: leitor tolerante na ENTRADA não é
+    // complacência — complacência era o duplo de teste aceitar qualquer coisa.
+    // Aqui aceitar os dois nomes só evita quebrar se algum núcleo mais velho
+    // ainda responder pelo campo antigo.
+    const fioBruto =
+      typeof corpo?.fioId === "string" && corpo.fioId.trim()
+        ? corpo.fioId
+        : typeof corpo?.fio === "string" && corpo.fio.trim()
+          ? corpo.fio
+          : null;
+    const fio = fioBruto ? fioBruto.trim() : null;
     return {
       aberta: true,
       fio,

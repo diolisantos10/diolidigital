@@ -92,6 +92,8 @@ export function nucleoDeMentira(chamadas: ChamadaAoNucleo[], opcoes: OpcoesDoNuc
       segredo: (init.headers as Record<string, string>)[CABECALHO_DO_SEGREDO] ?? null,
     });
 
+    const ehDespacho = url.endsWith("/api/connect/despacho");
+
     if (estrito) {
       // ── Trava 2: o remetente existe no diretório, recortado pelo produto? ──
       const produto = String(corpo.produto ?? "");
@@ -101,8 +103,33 @@ export function nucleoDeMentira(chamadas: ChamadaAoNucleo[], opcoes: OpcoesDoNuc
         return resposta({ codigo: "remetente_desconhecido" }, false, 400);
       }
 
+      // ── Trava 3: o DESPACHO declara `foraDaAlcada`? ───────────────────────
+      //
+      // ⭐ Medido contra o núcleo real em 30/08/2026: no despacho o campo é
+      // `foraDaAlcada`, e mandar `assuntos` faz o núcleo recusar com
+      // `sem_assuntos_fora_da_alcada`. Na CONSULTA DE POLÍTICA o campo segue
+      // sendo `assuntos` — é outro endpoint, e esse não foi medido.
+      //
+      // ⚠️ O NÚCLEO REAL TAMBÉM EXIGE `de` E `para`, e este duplo AINDA NÃO os
+      // cobra: são chaves resolvidas contra o diretório corporativo do núcleo, e
+      // ninguém aqui sabe quais são as da Dioli Digital. Cobrar a presença sem
+      // saber o valor certo trocaria um verde por um vermelho que não ensina
+      // nada. Assim que as chaves forem medidas, a trava entra AQUI.
+      if (ehDespacho && !Array.isArray(corpo.foraDaAlcada)) {
+        return resposta(
+          {
+            estado: "recusado",
+            codigo: "sem_assuntos_fora_da_alcada",
+            motivo: "o despacho nao declarou 'foraDaAlcada' (lista de {assunto, motivo})",
+          },
+          false,
+          400,
+        );
+      }
+
       // ── Trava 1: todo assunto está no vocabulário fechado? ────────────────
-      const assuntos = Array.isArray(corpo.assuntos) ? corpo.assuntos : [];
+      const lista = ehDespacho ? corpo.foraDaAlcada : corpo.assuntos;
+      const assuntos = Array.isArray(lista) ? lista : [];
       for (const a of assuntos as Array<{ assunto?: unknown }>) {
         const nome = String(a?.assunto ?? "");
         if (!(ASSUNTOS_DO_NUCLEO as readonly string[]).includes(nome)) {
@@ -112,8 +139,11 @@ export function nucleoDeMentira(chamadas: ChamadaAoNucleo[], opcoes: OpcoesDoNuc
     }
 
     if (url.endsWith("/api/connect/politicas/consulta")) return resposta(politica, true, 200);
-    if (url.endsWith("/api/connect/despacho")) {
-      return resposta({ aberta: true, fio }, true, 200);
+    if (ehDespacho) {
+      // ⭐ `fioId` — o nome que o núcleo real devolve. O duplo devolvia `fio`,
+      // que é exatamente o nome que o produto lia por engano: duplo e produto
+      // erravam juntos, e o teste passava. Agora o duplo fala como o real.
+      return resposta({ aberta: true, fioId: fio }, true, 200);
     }
     throw new Error(`o produto chamou uma porta que não existe: ${url}`);
   });
