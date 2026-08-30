@@ -162,6 +162,31 @@ describe("modeloParaEnvio — só \"aprovado\" sai", () => {
 
 // ── 3, 4, 5, 6. preencher() ──────────────────────────────────────────────────
 
+describe("preencher — segundo cinto: confere estado e pendência por conta própria (Ficha J)", () => {
+  it.each(["rascunho", "pausado", "aposentado"] as const)(
+    'bloqueia quando chamado direto com modelo em estado "%s", mesmo com variáveis corretas',
+    (estado) => {
+      const modelo: ModeloDeMensagem = { ...MODELO_APROVADO_FIXTURE, estado };
+      const r = preencher(modelo, { nomeDoCliente: "Ana", projeto: "Site institucional" });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.motivo).toContain(estado);
+    },
+  );
+
+  it("bloqueia quando o modelo tem pendência declarada, mesmo estando aprovado", () => {
+    const modelo: ModeloDeMensagem = { ...MODELO_APROVADO_FIXTURE, pendencia: "texto oficial do CEO não recebido" };
+    const r = preencher(modelo, { nomeDoCliente: "Ana", projeto: "Site institucional" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.motivo).toContain("pendência");
+  });
+
+  it("metade gêmea: modelo aprovado e sem pendência continua preenchendo normalmente", () => {
+    const r = preencher(MODELO_APROVADO_FIXTURE, { nomeDoCliente: "Ana", projeto: "Site institucional" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.texto).toBe("Olá Ana, tudo bem sobre Site institucional?");
+  });
+});
+
 describe("preencher", () => {
   it("bloqueia quando variável obrigatória está vazia (só espaço)", () => {
     const r = preencher(MODELO_APROVADO_FIXTURE, { nomeDoCliente: "   " });

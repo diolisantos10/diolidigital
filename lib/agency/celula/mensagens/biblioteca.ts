@@ -374,8 +374,30 @@ const PLACEHOLDER = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
  * ausente/nula/vazia — bloqueia com o nome da variável no motivo. Placeholder
  * remanescente no texto final bloqueia. O texto final é julgado pelo Guardião
  * (`validarTexto`) — nenhum outro validador de conteúdo é escrito aqui.
+ *
+ * SEGUNDO CINTO (Ficha J): confere `estado` e `pendencia` por conta própria,
+ * mesmo que `modeloParaEnvio` já tenha aprovado antes de chegar aqui. Hoje o
+ * único chamador é `proxima-mensagem.ts`, que passa por `modeloParaEnvio`
+ * primeiro — mas essa é só a ordem de chamadas de HOJE, e barreira que depende
+ * de o próximo programador lembrar a ordem não é barreira. Isto NÃO substitui
+ * a conferência de `modeloParaEnvio` (que também barra modelo inexistente ou
+ * inválido) — são dois cintos, não um cinto mudado de lugar.
  */
 export function preencher(modelo: ModeloDeMensagem, variaveis: Record<string, string | null | undefined>): ResultadoDoPreenchimento {
+  if (modelo.estado !== "aprovado") {
+    return {
+      ok: false,
+      motivo: `modelo "${modelo.codigo}" está em estado "${modelo.estado}", não "aprovado" — não pode ser enviado.`,
+    };
+  }
+
+  if (modelo.pendencia !== undefined && modelo.pendencia !== null && modelo.pendencia.trim() !== "") {
+    return {
+      ok: false,
+      motivo: `modelo "${modelo.codigo}" tem pendência declarada e não pode ser preenchido: ${modelo.pendencia}`,
+    };
+  }
+
   for (const chave of modelo.variaveisObrigatorias) {
     const valor = variaveis[chave];
     if (valor === null || valor === undefined || valor.trim() === "") {

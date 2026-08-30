@@ -53,6 +53,13 @@ interface Padrao {
 const F_REGRAS = "Termos de Uso · Regras para Freelancers";
 const F_AJUDA = "Central de Ajuda · Como enviar propostas?";
 const F_PROIBIDOS = "Central de Ajuda · Projetos não permitidos";
+// Fonte específica do padrão de direcionamento-para-fora (ficha I, abaixo):
+// citação literal do policy.json que o parecer da ficha B já apontava e a
+// ficha I cobrou de volta.
+const F_DIRECIONAMENTO =
+  'policy.json · proibicoes_de_conteudo.dado_de_contato + link_externo — ' +
+  '"não se pode adicionar dados de contato e/ou links ao seu perfil ou ' +
+  'portfólio" / "não se pode solicitar ou compartilhar dados de contato"';
 
 /**
  * Os padrões. Ordem não importa (todos rodam); o que importa é cada um ter
@@ -97,6 +104,54 @@ const PADROES: Padrao[] = [
     // apps de contato direto, não plataformas de entrega desta agência.
     re: /\b(?:whats\s*app|whatsapp|whats|zap|telegram|skype|discord|e-?mail|email|celular|telefone|meu\s+site|meu\s+portf[óo]lio|fora\s+da\s+plataforma|me\s+chama\s+n[oa]|chama\s+n[oa]|falar\s+por\s+fora)\b/gi,
     fonte: F_REGRAS,
+  },
+
+  // 2b. DIRECIONAMENTO PARA FORA DA PLATAFORMA — a AÇÃO, não o nome da rede ──
+  // Ficha I (docs/celula-prospeccao/despachos/I-o-meio-termo-do-guardiao.md,
+  // 30/08/2026, laudo do `qualidade`). A remoção de "instagram"/"insta"/
+  // "linkedin" (ficha B, Onda 2) consertou o falso positivo de verdade
+  // ("12 posts para Instagram" é o produto central desta casa) mas abriu um
+  // meio-termo: "me segue no insta" e "meu perfil no linkedin" passaram a
+  // PASSAR — não são @handle, não citam a palavra proibida sozinha, e
+  // "perfil" ≠ "portfólio". A fonte (policy.json, ver F_DIRECIONAMENTO acima)
+  // proíbe a CONDUTA de mandar o cliente seguir/achar/conferir um perfil fora
+  // da plataforma — não o nome da rede. Por isso o padrão pega o VERBO de
+  // direcionamento (segue, acha, procura, "meu perfil no", "dá uma olhada no
+  // meu perfil"), não a palavra da plataforma: nenhuma dessas construções
+  // aparece numa proposta comum de "posts/gestão/reels para Instagram" — quem
+  // vende entrega não pede para ser seguido.
+  {
+    regra: "dado_de_contato",
+    // "me segue no/na X", "nos segue no/na X", "segue a gente no/na X"
+    re: /\b(?:me\s+segue|nos\s+segue|segue\s+a\s+gente)\s+n[oa]\s+\S+/gi,
+    fonte: F_DIRECIONAMENTO,
+  },
+  {
+    regra: "dado_de_contato",
+    // "meu perfil no/na X" — direciona para FORA; distinto de citar o
+    // próprio portfólio DENTRO da plataforma, que não tem "no/na + destino".
+    re: /\bmeu\s+perfil\s+n[oa]\s+\S+/gi,
+    fonte: F_DIRECIONAMENTO,
+  },
+  {
+    regra: "dado_de_contato",
+    // "me acha no/na X", "me encontra no/na X"
+    re: /\b(?:me\s+acha|me\s+encontra)\s+n[oa]\s+\S+/gi,
+    fonte: F_DIRECIONAMENTO,
+  },
+  {
+    regra: "dado_de_contato",
+    // "procura por mim/a gente/nós no/na X" — mantido estreito (auto-
+    // referência + "no/na") para não pegar "procura qualidade no mercado" e
+    // frases benignas parecidas.
+    re: /\bprocura\s+(?:por\s+)?(?:mim|a\s+gente|n[oó]s)\s+n[oa]\s+\S+/gi,
+    fonte: F_DIRECIONAMENTO,
+  },
+  {
+    regra: "dado_de_contato",
+    // "dá/dê uma olhada no meu perfil", "olha/confere meu perfil"
+    re: /\b(?:d[áa]|d[êe])\s+uma\s+olhada\s+(?:n[oa]\s+)?meu\s+perfil\b|\b(?:olha|olhe|confere|conf[ie]ra)\s+meu\s+perfil\b/gi,
+    fonte: F_DIRECIONAMENTO,
   },
 
   // 3. PAGAMENTO POR FORA ───────────────────────────────────────────────────

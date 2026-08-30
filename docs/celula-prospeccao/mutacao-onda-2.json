@@ -1,0 +1,334 @@
+{
+  "_leia_isto": [
+    "O RESULTADO CRU das mutacoes da Onda 2 — o .md e a leitura, este e o dado.",
+    "Gerado por scripts/mutacao-onda-2.mjs. Nao editar a mao.",
+    "estado VERMELHO_COMO_ESPERADO = a guarda derrubou o teste quando afrouxada.",
+    "restaurado:true = o arquivo voltou byte a byte ao original (sha256 conferido)."
+  ],
+  "rodadaEm": "2026-08-30T14:34:47.064Z",
+  "total": 32,
+  "cairam": 30,
+  "resultados": [
+    {
+      "nome": "biblioteca/estado-aprovado",
+      "guarda": "modelo em rascunho, pausado ou aposentado NAO pode ser enviado",
+      "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+      "teste": "__tests__/celula/biblioteca-de-mensagens.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× recusa modelo em estado \"rascunho\" · × recusa modelo em estado \"pausado\" · × recusa modelo em estado \"aposentado\" · × nenhum dos 22 modelos M01–M22 é entregável hoje — a casa não envia texto que ela mesma inventou",
+      "contagem": "Tests 4 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "biblioteca/placeholder-remanescente",
+      "guarda": "placeholder nao preenchido no texto final BLOQUEIA",
+      "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+      "teste": "__tests__/celula/biblioteca-de-mensagens.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia quando sobra placeholder não declarado no texto final · × bloqueia quando variável opcional fica sem valor e o placeholder sobra · × uma variável com valor hostil (\"{{outra}}\" literal) não é reprocessada — não vira substituição de segunda ordem",
+      "contagem": "Tests 3 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "anti-generico/variavel-generica",
+      "guarda": "variavel preenchida com frase generica BLOQUEIA",
+      "arquivo": "lib/agency/celula/mensagens/anti-generico.ts",
+      "teste": "__tests__/celula/anti-generico.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia variável preenchida com frase genérica de catálogo, nomeando a frase · × bloqueia a frase genérica mesmo com acento/caixa diferentes ou embutida em frase maior · × bloqueia as irmãs da mesma família genérica ('seu projeto', 'sua empresa'...)",
+      "contagem": "Tests 3 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "anti-generico/texto-identico",
+      "guarda": "texto identico a um ja enviado BLOQUEIA (impressao digital)",
+      "arquivo": "lib/agency/celula/mensagens/anti-generico.ts",
+      "teste": "__tests__/celula/anti-generico.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia texto IDÊNTICO a um já enviado, por impressão digital · × bloqueia mesmo com diferença só de acento, caixa e espaço (a impressão normaliza)",
+      "contagem": "Tests 2 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "anti-generico/texto-parecido",
+      "guarda": "texto so com o nome trocado BLOQUEIA (similaridade por trigrama)",
+      "arquivo": "lib/agency/celula/mensagens/anti-generico.ts",
+      "teste": "__tests__/celula/anti-generico.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia texto QUASE idêntico — só o nome do cliente foi trocado",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "entrada-hostil/envelope",
+      "guarda": "texto do cliente sai delimitado e marcador forjado e neutralizado",
+      "arquivo": "lib/agency/celula/mensagens/entrada-hostil.ts",
+      "teste": "__tests__/celula/entrada-hostil.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× 2) o texto sai DELIMITADO, e a tentativa de fechar o envelope na marra FALHA",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "trava-de-conversa/reserva-atomica",
+      "guarda": "segundo agente na mesma conversa e BARRADO",
+      "arquivo": "lib/agency/celula/mensagens/trava-de-conversa.ts",
+      "teste": "__tests__/celula/trava-de-conversa.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia o segundo agente e nomeia o primeiro",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "trava-de-conversa/mensagem-duplicada",
+      "guarda": "mensagem identica a ultima enviada BLOQUEIA",
+      "arquivo": "lib/agency/celula/mensagens/trava-de-conversa.ts",
+      "teste": "__tests__/celula/trava-de-conversa.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia texto idêntico à última enviada, mesmo com caixa/espaço diferentes · × libera quando uma conferência bloqueia",
+      "contagem": "Tests 2 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "trava-de-conversa/pergunta-repetida",
+      "guarda": "pergunta ja feita alem do limite BLOQUEIA",
+      "arquivo": "lib/agency/celula/mensagens/trava-de-conversa.ts",
+      "teste": "__tests__/celula/trava-de-conversa.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia depois de passar do LIMITE_DE_INSISTENCIA",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "objecoes/sem-autorizacao",
+      "guarda": "concessao sem autorizacao registrada BLOQUEIA (fail closed)",
+      "arquivo": "lib/agency/celula/mensagens/objecoes.ts",
+      "teste": "__tests__/celula/objecoes.test.ts",
+      "estado": "⚠️ CONTINUOU_VERDE_A_GUARDA_E_DECORATIVA",
+      "porqueCaiu": "(sem linha de falha capturada)",
+      "contagem": "Tests  53 passed (53)",
+      "restaurado": true
+    },
+    {
+      "nome": "objecoes/maquina-nao-se-aprova",
+      "guarda": "autorizacao com autor sistema/ia/agente ou sem referencia BLOQUEIA",
+      "arquivo": "lib/agency/celula/mensagens/objecoes.ts",
+      "teste": "__tests__/celula/objecoes.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× CRITÉRIO 3 — autoautorização (\"sistema\") ⇒ BLOQUEADA · × CRITÉRIO 3 — autoautorização (\"ia\") ⇒ BLOQUEADA · × CRITÉRIO 3 — autoautorização (\"agente\") ⇒ BLOQUEADA · × CRITÉRIO 3 — autoautorização (\"automatico\") ⇒ BLOQUEADA",
+      "contagem": "Tests 8 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "objecoes/piso-do-motor",
+      "guarda": "desconto autorizado ainda assim passa pelo piso do motor de precos",
+      "arquivo": "lib/agency/celula/mensagens/objecoes.ts",
+      "teste": "__tests__/celula/objecoes.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× CRITÉRIO 4 — desconto autorizado mas ABAIXO do piso do motor ⇒ BLOQUEADO · × item fora da tabela ⇒ BLOQUEADO — sem piso conhecido não existe autorização",
+      "contagem": "Tests 2 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "objecoes/sem-autorizacao (no ponto certo)",
+      "guarda": "CRITERIO 5 do CEO: desconto/concessao sem autorizacao registrada e BLOQUEADO",
+      "arquivo": "lib/agency/celula/mensagens/objecoes.ts",
+      "teste": "__tests__/celula/objecoes.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× CRITÉRIO 2 — desconto sem autorização registrada ⇒ BLOQUEADO (o padrão) · × autorização de OUTRA concessão não vale para esta ⇒ BLOQUEADO · × CRITÉRIO 3 — autoautorização (\"sistema\") ⇒ BLOQUEADA · × CRITÉRIO 3 — autoautorização (\"ia\") ⇒ BLOQUEADA",
+      "contagem": "Tests 12 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "compromisso/dono-humano",
+      "guarda": "CRITERIO 6: promessa com dono sistema/ia/agente/vazio e BLOQUEADA",
+      "arquivo": "lib/agency/celula/mensagens/compromisso.ts",
+      "teste": "__tests__/celula/trava-de-promessa.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× dono AUSENTE (null) ⇒ BLOQUEIO · × dono \"sistema\" ⇒ BLOQUEIO · × dono \"ia\" ⇒ BLOQUEIO · × dono vazio (string em branco) ⇒ BLOQUEIO",
+      "contagem": "Tests 4 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "compromisso/prazo-futuro",
+      "guarda": "prazo no passado e BLOQUEADO",
+      "arquivo": "lib/agency/celula/mensagens/compromisso.ts",
+      "teste": "__tests__/celula/trava-de-promessa.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× prazo NO PASSADO ⇒ BLOQUEIO",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "compromisso/reconhece-a-data",
+      "guarda": "o defeito de 29/08: promessa de data em primeira pessoa e RECONHECIDA",
+      "arquivo": "lib/agency/celula/mensagens/compromisso.ts",
+      "teste": "__tests__/celula/trava-de-promessa.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× reconhece as formas da ordem do CEO combinadas com verbo de entrega · × acha DUAS promessas quando o texto tem duas sentenças com compromisso · × compõe com o irmão de 27/08: verbo que só o padrão DELE reconhece, com data, também conta · × dispara para a forma \"ainda esta semana\": \"Ainda esta semana eu trago a resposta.\"",
+      "contagem": "Tests 26 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "compromisso/registra-antes-de-liberar",
+      "guarda": "CRITERIO 6: falha ao registrar ⇒ o texto NAO sai (o defeito de 29/08)",
+      "arquivo": "lib/agency/celula/mensagens/compromisso.ts",
+      "teste": "__tests__/celula/trava-de-promessa.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× FALHA ao registrar ⇒ o texto NÃO sai · × DUAS promessas, a segunda falha ⇒ nada sai, mesmo a primeira tendo sido registrada",
+      "contagem": "Tests 2 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "motor/responde-antes-de-perguntar",
+      "guarda": "REGRA LITERAL DO CEO: a mensagem primeiro RESPONDE ao cliente e so depois pergunta",
+      "arquivo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+      "teste": "__tests__/celula/proxima-mensagem.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× devolve enviar, com uma pergunta só, texto conforme e nada bloqueado · × o índice de `resposta` dentro de `texto` é menor que o índice de `pergunta` · × um sinal de injeção não altera qual modelo é escolhido nem o texto final · × metade gêmea — mesmo cliente hostil, pergunta LIMPA continua saindo (o Guardião não vira trava geral)",
+      "contagem": "Tests 4 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "motor/cliente-perguntou-e-nao-foi-respondido",
+      "guarda": "CRITERIO 2: pergunta direta do cliente sem resposta ⇒ BLOQUEADO",
+      "arquivo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+      "teste": "__tests__/celula/proxima-mensagem.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia em vez de ignorar o cliente e perguntar outra coisa · × libera quando a conversa não é encontrada depois de reservada",
+      "contagem": "Tests 2 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "motor/uma-pergunta-so",
+      "guarda": "CRITERIO 3 do CEO: duas perguntas na mesma mensagem ⇒ BLOQUEADO",
+      "arquivo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+      "teste": "__tests__/celula/proxima-mensagem.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia quando a RESPOSTA já contrabandeia uma segunda pergunta",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "motor/guardiao-no-texto-final",
+      "guarda": "conteudo proibido pela plataforma no texto final ⇒ BLOQUEADO",
+      "arquivo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+      "teste": "__tests__/celula/proxima-mensagem.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× MOCK DO CATÁLOGO — com uma objeção de teste cuja respostaAprovada viola o Guardião, a porta 1 BLOQUEIA de verdade · × bloqueia quando é a PERGUNTA, não a resposta, que carrega dado de contato · × CRITÉRIO 7 do CEO — cliente hostil e a PERGUNTA (upstream) obedeceu e devolveu contato ⇒ o motor BLOQUEIA mesmo assim",
+      "contagem": "Tests 3 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "motor/anti-generico-no-caminho",
+      "guarda": "CRITERIO 6: texto repetido ou generico ⇒ BLOQUEADO tambem pelo motor",
+      "arquivo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+      "teste": "__tests__/celula/proxima-mensagem.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia um texto final IDÊNTICO a um já enviado para outro contato",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "motor/compromisso-no-caminho",
+      "guarda": "CRITERIO 7: promessa de data sem compromisso registrado ⇒ BLOQUEADO no motor",
+      "arquivo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+      "teste": "__tests__/celula/proxima-mensagem.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia quando o texto promete data e não há dono/prazo para registrar",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "motor/concessao-sem-autorizacao",
+      "guarda": "CRITERIO 5: objecao de preco sem autorizacao ⇒ ESCALA, nunca desconto",
+      "arquivo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+      "teste": "__tests__/celula/proxima-mensagem.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× escala em vez de conceder desconto sozinha",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "motor/modelo-aprovado",
+      "guarda": "CRITERIO 8: modelo em rascunho/pausado/aposentado nao e escolhido pelo motor",
+      "arquivo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+      "teste": "__tests__/celula/proxima-mensagem.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× um modelo em rascunho não é escolhido — o motor escala, não improvisa texto",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "motor/reserva-da-conversa",
+      "guarda": "a trava de conversa segura o segundo agente tambem no motor",
+      "arquivo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+      "teste": "__tests__/celula/proxima-mensagem.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× libera quando a conversa está ocupada por outro agente (esperar)",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "biblioteca/segundo-cinto-estado",
+      "guarda": "Ficha J: preencher() confere estado por conta propria, nao confia em quem chama",
+      "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+      "teste": "__tests__/celula/biblioteca-de-mensagens.test.ts",
+      "de": "  if (modelo.estado !== \"aprovado\") {\n    return {\n      ok: false,\n      motivo:",
+      "para": "  if (false) {\n    return {\n      ok: false,\n      motivo:",
+      "estado": "ALVO_NAO_ENCONTRADO",
+      "ocorrencias": 2,
+      "detalhe": "esperava 1 ocorrência do alvo, achei 2"
+    },
+    {
+      "nome": "biblioteca/segundo-cinto-pendencia",
+      "guarda": "Ficha J: modelo com pendencia declarada nao preenche",
+      "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+      "teste": "__tests__/celula/biblioteca-de-mensagens.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia quando o modelo tem pendência declarada, mesmo estando aprovado",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "biblioteca/textoBase-vazio-sem-justificativa",
+      "guarda": "textoBase vazio sem pendencia = campo obrigatorio faltando",
+      "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+      "teste": "__tests__/celula/biblioteca-de-mensagens.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia textoBase vazio sem pendencia explicando o motivo",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "guardiao/me-segue-no-perfil",
+      "guarda": "Ficha I: direcionar o cliente para um perfil FORA da plataforma e barrado",
+      "arquivo": "lib/marketplaces/99freelas/conformidade.ts",
+      "teste": "__tests__/celula/entrada-hostil.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× BARRA a ação de direcionar o cliente para fora, mesmo sem o nome da rede sozinho disparando",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "guardiao/meu-perfil-no",
+      "guarda": "Ficha I: 'meu perfil no ___' e barrado",
+      "arquivo": "lib/marketplaces/99freelas/conformidade.ts",
+      "teste": "__tests__/celula/entrada-hostil.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× BARRA a ação de direcionar o cliente para fora, mesmo sem o nome da rede sozinho disparando",
+      "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    },
+    {
+      "nome": "biblioteca/segundo-cinto-estado",
+      "guarda": "Ficha J: preencher() confere estado por conta propria, nao confia em quem chama",
+      "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+      "teste": "__tests__/celula/biblioteca-de-mensagens.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": "× bloqueia quando chamado direto com modelo em estado \"rascunho\", mesmo com variáveis corretas · × bloqueia quando chamado direto com modelo em estado \"pausado\", mesmo com variáveis corretas · × bloqueia quando chamado direto com modelo em estado \"aposentado\", mesmo com variáveis corretas",
+      "contagem": "Tests 3 ⎯⎯⎯⎯⎯⎯⎯",
+      "restaurado": true
+    }
+  ]
+}

@@ -121,6 +121,45 @@ describe("entrada hostil — o caso plantado", () => {
   });
 });
 
+describe("o meio-termo do Guardião (ficha I) — direciona para fora ≠ nome da plataforma", () => {
+  // O `qualidade` provou que a remoção de "instagram"/"insta"/"linkedin"
+  // (ficha B) resolveu o falso positivo real e abriu um meio-termo: frases
+  // que MANDAM o cliente seguir/achar/conferir um perfil fora da plataforma
+  // passavam a PASSAR, porque não usam @handle nem a palavra proibida
+  // sozinha. Ver docs/celula-prospeccao/despachos/I-o-meio-termo-do-guardiao.md.
+
+  it("BARRA a ação de direcionar o cliente para fora, mesmo sem o nome da rede sozinho disparando", () => {
+    const frasesHostis = [
+      "me segue no insta",
+      "meu perfil no linkedin",
+      "me acha no facebook",
+      "dá uma olhada no meu perfil",
+    ];
+    for (const frase of frasesHostis) {
+      const r = validarTexto(frase);
+      expect(r.ok, `deveria barrar: "${frase}"`).toBe(false);
+      expect(
+        r.achados.map((a) => a.regra),
+        `deveria nomear dado_de_contato para: "${frase}"`,
+      ).toContain("dado_de_contato");
+      for (const a of r.achados) expect(a.fonte.length).toBeGreaterThan(5);
+    }
+  });
+
+  it("a METADE GÊMEA: NÃO barra a plataforma como entrega — o produto central desta casa", () => {
+    const frasesLimpas = [
+      "preciso de 12 posts para Instagram de uma clínica odontológica",
+      "gestão de Instagram e TikTok por 3 meses",
+      "quero reels para o Instagram da loja",
+    ];
+    for (const frase of frasesLimpas) {
+      const r = validarTexto(frase);
+      expect(r.ok, `NÃO deveria barrar: "${frase}" — achados: ${JSON.stringify(r.achados)}`).toBe(true);
+      expect(r.achados).toEqual([]);
+    }
+  });
+});
+
 describe("entrada hostil — a metade gêmea: o caso limpo NÃO é barrado", () => {
   it("o Guardião NÃO barra um anúncio comum e legítimo", () => {
     const r = validarTexto(TEXTO_LIMPO);

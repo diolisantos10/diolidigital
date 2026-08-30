@@ -339,7 +339,8 @@ export async function decidirProximaMensagem(
       // ── 5. PREÇO, se o modelo pedir ───────────────────────────────────────
       const variaveisDePreco = modelo.variaveisObrigatorias.filter((v) => /pre[cç]o|valor/i.test(v));
       if (variaveisDePreco.length > 0) {
-        if (!entrada.precoDoItem) {
+        const pedidoDePreco = entrada.precoDoItem;
+        if (!pedidoDePreco) {
           await finalizar();
           return {
             desfecho: "escalar",
@@ -347,12 +348,12 @@ export async function decidirProximaMensagem(
             oQuePrecisaDeGente: "informar o item a precificar (ou confirmar o valor manualmente antes de enviar).",
           };
         }
-        const preco = precificar(entrada.precoDoItem);
+        const preco = precificar(pedidoDePreco);
         if (!preco.ok) {
           await finalizar();
           return {
             desfecho: "escalar",
-            motivo: `O motor de preço não respondeu para "${entrada.precoDoItem.item}": ${preco.motivo}`,
+            motivo: `O motor de preço não respondeu para "${pedidoDePreco.item}": ${preco.motivo}`,
             oQuePrecisaDeGente: "confirmar o preço deste item com quem cuida da tabela — nenhum número é chutado.",
           };
         }
