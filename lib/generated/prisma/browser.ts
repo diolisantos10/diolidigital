@@ -810,3 +810,13 @@ export type ExcecaoDaCelula = Prisma.ExcecaoDaCelulaModel
  * 
  */
 export type EventoDaExcecaoDaCelula = Prisma.EventoDaExcecaoDaCelulaModel
+/**
+ * Model ConversaDaCelula
+ * 
+ */
+export type ConversaDaCelula = Prisma.ConversaDaCelulaModel
+/**
+ * Model TravaDaConversaDaCelula
+ * 
+ */
+export type TravaDaConversaDaCelula = Prisma.TravaDaConversaDaCelulaModel

@@ -131,7 +131,9 @@ export const ModelName = {
   ArquivoDaCelula: 'ArquivoDaCelula',
   EventoDoArquivoDaCelula: 'EventoDoArquivoDaCelula',
   ExcecaoDaCelula: 'ExcecaoDaCelula',
-  EventoDaExcecaoDaCelula: 'EventoDaExcecaoDaCelula'
+  EventoDaExcecaoDaCelula: 'EventoDaExcecaoDaCelula',
+  ConversaDaCelula: 'ConversaDaCelula',
+  TravaDaConversaDaCelula: 'TravaDaConversaDaCelula'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1617,6 +1619,29 @@ export const EventoDaExcecaoDaCelulaScalarFieldEnum = {
 } as const
 
 export type EventoDaExcecaoDaCelulaScalarFieldEnum = (typeof EventoDaExcecaoDaCelulaScalarFieldEnum)[keyof typeof EventoDaExcecaoDaCelulaScalarFieldEnum]
+
+
+export const ConversaDaCelulaScalarFieldEnum = {
+  conversaId: 'conversaId',
+  workspaceId: 'workspaceId',
+  estado: 'estado',
+  agenteResponsavel: 'agenteResponsavel',
+  etapa: 'etapa',
+  criadaEm: 'criadaEm',
+  atualizadaEm: 'atualizadaEm'
+} as const
+
+export type ConversaDaCelulaScalarFieldEnum = (typeof ConversaDaCelulaScalarFieldEnum)[keyof typeof ConversaDaCelulaScalarFieldEnum]
+
+
+export const TravaDaConversaDaCelulaScalarFieldEnum = {
+  conversaId: 'conversaId',
+  agente: 'agente',
+  expiraEm: 'expiraEm',
+  criadaEm: 'criadaEm'
+} as const
+
+export type TravaDaConversaDaCelulaScalarFieldEnum = (typeof TravaDaConversaDaCelulaScalarFieldEnum)[keyof typeof TravaDaConversaDaCelulaScalarFieldEnum]
 
 
 export const SortOrder = {

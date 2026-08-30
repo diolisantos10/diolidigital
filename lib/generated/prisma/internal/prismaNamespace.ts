@@ -464,7 +464,9 @@ export const ModelName = {
   ArquivoDaCelula: 'ArquivoDaCelula',
   EventoDoArquivoDaCelula: 'EventoDoArquivoDaCelula',
   ExcecaoDaCelula: 'ExcecaoDaCelula',
-  EventoDaExcecaoDaCelula: 'EventoDaExcecaoDaCelula'
+  EventoDaExcecaoDaCelula: 'EventoDaExcecaoDaCelula',
+  ConversaDaCelula: 'ConversaDaCelula',
+  TravaDaConversaDaCelula: 'TravaDaConversaDaCelula'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -480,7 +482,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "linhaDoFunil" | "transicaoDoFunil" | "arquivoDaCelula" | "eventoDoArquivoDaCelula" | "excecaoDaCelula" | "eventoDaExcecaoDaCelula"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "medicaoDeEventos" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost" | "execucaoV2" | "recusaV2" | "transicaoDeEstado" | "bloqueioV2" | "outboxV2" | "flagV2" | "reconciliacaoV2" | "heartbeatDoRelogio" | "handoffV2" | "pagamentoConfirmado" | "parceriaDoCliente" | "conviteDeParceria" | "isencaoDeParceria" | "assinaturaRecorrente" | "cobrancaRecorrente" | "linhaDoFunil" | "transicaoDoFunil" | "arquivoDaCelula" | "eventoDoArquivoDaCelula" | "excecaoDaCelula" | "eventoDaExcecaoDaCelula" | "conversaDaCelula" | "travaDaConversaDaCelula"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -6478,6 +6480,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ConversaDaCelula: {
+      payload: Prisma.$ConversaDaCelulaPayload<ExtArgs>
+      fields: Prisma.ConversaDaCelulaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ConversaDaCelulaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversaDaCelulaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ConversaDaCelulaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversaDaCelulaPayload>
+        }
+        findFirst: {
+          args: Prisma.ConversaDaCelulaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversaDaCelulaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ConversaDaCelulaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversaDaCelulaPayload>
+        }
+        findMany: {
+          args: Prisma.ConversaDaCelulaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversaDaCelulaPayload>[]
+        }
+        create: {
+          args: Prisma.ConversaDaCelulaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversaDaCelulaPayload>
+        }
+        createMany: {
+          args: Prisma.ConversaDaCelulaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ConversaDaCelulaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversaDaCelulaPayload>[]
+        }
+        delete: {
+          args: Prisma.ConversaDaCelulaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversaDaCelulaPayload>
+        }
+        update: {
+          args: Prisma.ConversaDaCelulaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversaDaCelulaPayload>
+        }
+        deleteMany: {
+          args: Prisma.ConversaDaCelulaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ConversaDaCelulaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ConversaDaCelulaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversaDaCelulaPayload>[]
+        }
+        upsert: {
+          args: Prisma.ConversaDaCelulaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConversaDaCelulaPayload>
+        }
+        aggregate: {
+          args: Prisma.ConversaDaCelulaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateConversaDaCelula>
+        }
+        groupBy: {
+          args: Prisma.ConversaDaCelulaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ConversaDaCelulaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ConversaDaCelulaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ConversaDaCelulaCountAggregateOutputType> | number
+        }
+      }
+    }
+    TravaDaConversaDaCelula: {
+      payload: Prisma.$TravaDaConversaDaCelulaPayload<ExtArgs>
+      fields: Prisma.TravaDaConversaDaCelulaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TravaDaConversaDaCelulaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TravaDaConversaDaCelulaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TravaDaConversaDaCelulaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TravaDaConversaDaCelulaPayload>
+        }
+        findFirst: {
+          args: Prisma.TravaDaConversaDaCelulaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TravaDaConversaDaCelulaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TravaDaConversaDaCelulaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TravaDaConversaDaCelulaPayload>
+        }
+        findMany: {
+          args: Prisma.TravaDaConversaDaCelulaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TravaDaConversaDaCelulaPayload>[]
+        }
+        create: {
+          args: Prisma.TravaDaConversaDaCelulaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TravaDaConversaDaCelulaPayload>
+        }
+        createMany: {
+          args: Prisma.TravaDaConversaDaCelulaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TravaDaConversaDaCelulaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TravaDaConversaDaCelulaPayload>[]
+        }
+        delete: {
+          args: Prisma.TravaDaConversaDaCelulaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TravaDaConversaDaCelulaPayload>
+        }
+        update: {
+          args: Prisma.TravaDaConversaDaCelulaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TravaDaConversaDaCelulaPayload>
+        }
+        deleteMany: {
+          args: Prisma.TravaDaConversaDaCelulaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TravaDaConversaDaCelulaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TravaDaConversaDaCelulaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TravaDaConversaDaCelulaPayload>[]
+        }
+        upsert: {
+          args: Prisma.TravaDaConversaDaCelulaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TravaDaConversaDaCelulaPayload>
+        }
+        aggregate: {
+          args: Prisma.TravaDaConversaDaCelulaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTravaDaConversaDaCelula>
+        }
+        groupBy: {
+          args: Prisma.TravaDaConversaDaCelulaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TravaDaConversaDaCelulaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TravaDaConversaDaCelulaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TravaDaConversaDaCelulaCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -7986,6 +8136,29 @@ export const EventoDaExcecaoDaCelulaScalarFieldEnum = {
 export type EventoDaExcecaoDaCelulaScalarFieldEnum = (typeof EventoDaExcecaoDaCelulaScalarFieldEnum)[keyof typeof EventoDaExcecaoDaCelulaScalarFieldEnum]
 
 
+export const ConversaDaCelulaScalarFieldEnum = {
+  conversaId: 'conversaId',
+  workspaceId: 'workspaceId',
+  estado: 'estado',
+  agenteResponsavel: 'agenteResponsavel',
+  etapa: 'etapa',
+  criadaEm: 'criadaEm',
+  atualizadaEm: 'atualizadaEm'
+} as const
+
+export type ConversaDaCelulaScalarFieldEnum = (typeof ConversaDaCelulaScalarFieldEnum)[keyof typeof ConversaDaCelulaScalarFieldEnum]
+
+
+export const TravaDaConversaDaCelulaScalarFieldEnum = {
+  conversaId: 'conversaId',
+  agente: 'agente',
+  expiraEm: 'expiraEm',
+  criadaEm: 'criadaEm'
+} as const
+
+export type TravaDaConversaDaCelulaScalarFieldEnum = (typeof TravaDaConversaDaCelulaScalarFieldEnum)[keyof typeof TravaDaConversaDaCelulaScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -8233,6 +8406,8 @@ export type GlobalOmitConfig = {
   eventoDoArquivoDaCelula?: Prisma.EventoDoArquivoDaCelulaOmit
   excecaoDaCelula?: Prisma.ExcecaoDaCelulaOmit
   eventoDaExcecaoDaCelula?: Prisma.EventoDaExcecaoDaCelulaOmit
+  conversaDaCelula?: Prisma.ConversaDaCelulaOmit
+  travaDaConversaDaCelula?: Prisma.TravaDaConversaDaCelulaOmit
 }
 
 /* Types for Logging */
