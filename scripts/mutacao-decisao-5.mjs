@@ -129,7 +129,7 @@ for (const m of MUTACOES) {
 }
 
 writeFileSync(
-  "docs/celula-prospeccao/mutacao-onda-1.json",
+  "docs/celula-prospeccao/mutacao-decisao-5.json",
   JSON.stringify({ rodadoEm: new Date().toISOString(), base: baseResumo.placar, mutacoes: relatorio }, null, 2),
 );
 

@@ -1,0 +1,142 @@
+{
+  "rodadoEm": "2026-08-30T17:19:48.909Z",
+  "base": "13 passed (13)",
+  "mutacoes": [
+    {
+      "guarda": "D3-M1 · contratação e pagamento NUNCA saem (a ausência de ramo)",
+      "arquivo": "lib/agency/celula/saida-do-canal.ts",
+      "de": "const NUNCA_SAEM: readonly EscopoDeSaida[] = [\"contratacao\", \"pagamento\"];",
+      "para": "const NUNCA_SAEM: readonly EscopoDeSaida[] = []; // MUTAÇÃO: consentimento passa a destravar pagamento",
+      "espera": "pagamento/contratação deixam de ser barrados — a trava que protege contra banimento",
+      "estado": "VERMELHO",
+      "falhas": [
+        "contratação e pagamento são barrados mesmo com garantia E consentimento do próprio escopo 6ms",
+        "o motivo cita a ordem do CEO e o risco de banimento — motivo sem fonte é opinião 2ms",
+        "palavras do cliente tentando se autoautorizar NÃO mudam o veredito 1ms",
+        "__tests__/celula/saida-do-canal.test.ts > o que NENHUM consentimento destrava > contratação e pagamento são barrados mesmo com garantia E consentimento do próprio escopo",
+        "__tests__/celula/saida-do-canal.test.ts > o que NENHUM consentimento destrava > o motivo cita a ordem do CEO e o risco de banimento — motivo sem fonte é opinião",
+        "__tests__/celula/saida-do-canal.test.ts > entrada hostil — texto de cliente é dado, nunca ordem > palavras do cliente tentando se autoautorizar NÃO mudam o veredito"
+      ],
+      "placar": "3 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D3-M2 · o piso: antes da garantia, nada sai",
+      "arquivo": "lib/agency/celula/saida-do-canal.ts",
+      "de": "if (garantiaDeclarada(pedido.garantia) !== \"confirmada\") {",
+      "para": "if (false) { // MUTAÇÃO: a garantia deixa de ser exigida",
+      "espera": "contato liberado ANTES da garantia de pagamento",
+      "estado": "VERMELHO",
+      "falhas": [
+        "BLOQUEIA contato antes da garantia, mesmo com consentimento perfeito 7ms",
+        "garantia ilegível NÃO vale como confirmada — fail closed 2ms",
+        "__tests__/celula/saida-do-canal.test.ts > o piso do CEO — antes da garantia, nada sai > BLOQUEIA contato antes da garantia, mesmo com consentimento perfeito",
+        "__tests__/celula/saida-do-canal.test.ts > o piso do CEO — antes da garantia, nada sai > garantia ilegível NÃO vale como confirmada — fail closed"
+      ],
+      "placar": "2 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D3-M3 · garantia ilegível não vira confirmada",
+      "arquivo": "lib/agency/celula/saida-do-canal.ts",
+      "de": "return valor === \"confirmada\" ? \"confirmada\" : \"nao_confirmada\";",
+      "para": "return (valor as Garantia) ?? \"confirmada\"; // MUTAÇÃO: lixo vira garantia boa",
+      "espera": "garantia 'sim'/'CONFIRMADA'/true passam a liberar",
+      "estado": "VERMELHO",
+      "falhas": [
+        "garantia ilegível NÃO vale como confirmada — fail closed 6ms",
+        "__tests__/celula/saida-do-canal.test.ts > o piso do CEO — antes da garantia, nada sai > garantia ilegível NÃO vale como confirmada — fail closed"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D3-M4 · sem registro, comporta-se como antes da garantia",
+      "arquivo": "lib/agency/celula/saida-do-canal.ts",
+      "de": "  if (c === null || c === undefined) {",
+      "para": "  if (false) { // MUTAÇÃO: consentimento ausente deixa de bloquear",
+      "espera": "garantia confirmada libera SEM consentimento nenhum",
+      "estado": "VERMELHO",
+      "falhas": [
+        "garantia confirmada SEM registro comporta-se como antes da garantia 4ms",
+        "__tests__/celula/saida-do-canal.test.ts > o consentimento é DADO, nunca inferido > garantia confirmada SEM registro comporta-se como antes da garantia"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D3-M5 · o consentimento é DADO — origem tem de ser declaração do cliente",
+      "arquivo": "lib/agency/celula/saida-do-canal.ts",
+      "de": "  if (c.origem !== \"declaracao_do_cliente\") {",
+      "para": "  if (false) { // MUTAÇÃO: consentimento inferido da conversa passa a valer",
+      "espera": "origem 'inferido_da_conversa' passa — a inferência que a ordem proíbe",
+      "estado": "VERMELHO",
+      "falhas": [
+        "origem que não seja declaração do cliente é RECUSADA — a inferência tem de mentir para passar 8ms",
+        "__tests__/celula/saida-do-canal.test.ts > o consentimento é DADO, nunca inferido > origem que não seja declaração do cliente é RECUSADA — a inferência tem de mentir para passar"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D3-M6 · registro sem as palavras do cliente é registro sem prova",
+      "arquivo": "lib/agency/celula/saida-do-canal.ts",
+      "de": "  if (typeof c.palavrasDoCliente !== \"string\" || c.palavrasDoCliente.trim() === \"\") {",
+      "para": "  if (false) { // MUTAÇÃO: consentimento sem prova passa",
+      "espera": "consentimento com palavras vazias passa a liberar",
+      "estado": "VERMELHO",
+      "falhas": [
+        "registro sem as palavras do cliente é registro sem prova — RECUSADO 6ms",
+        "__tests__/celula/saida-do-canal.test.ts > o consentimento é DADO, nunca inferido > registro sem as palavras do cliente é registro sem prova — RECUSADO"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D3-M7 · registro sem autor não se audita",
+      "arquivo": "lib/agency/celula/saida-do-canal.ts",
+      "de": "  if (typeof c.registradoPor !== \"string\" || c.registradoPor.trim() === \"\") {",
+      "para": "  if (false) { // MUTAÇÃO: registro anônimo passa",
+      "espera": "consentimento sem autor passa a liberar",
+      "estado": "VERMELHO",
+      "falhas": [
+        "registro sem autor e registro com data inválida são RECUSADOS 8ms",
+        "__tests__/celula/saida-do-canal.test.ts > o consentimento é DADO, nunca inferido > registro sem autor e registro com data inválida são RECUSADOS"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D3-M8 · data de registro tem de ser data",
+      "arquivo": "lib/agency/celula/saida-do-canal.ts",
+      "de": "  if (!(c.registradoEm instanceof Date) || Number.isNaN(c.registradoEm.getTime())) {",
+      "para": "  if (false) { // MUTAÇÃO: data inválida passa",
+      "espera": "consentimento com data inválida passa a liberar",
+      "estado": "VERMELHO",
+      "falhas": [
+        "registro sem autor e registro com data inválida são RECUSADOS 5ms",
+        "__tests__/celula/saida-do-canal.test.ts > o consentimento é DADO, nunca inferido > registro sem autor e registro com data inválida são RECUSADOS"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D3-M9 · consentimento é POR ITEM, não 'para tudo'",
+      "arquivo": "lib/agency/celula/saida-do-canal.ts",
+      "de": "  if (c.escopo !== escopo) {",
+      "para": "  if (false) { // MUTAÇÃO: consentir em briefing vira consentir em tudo",
+      "espera": "consentimento de briefing_externo libera troca de contato",
+      "estado": "VERMELHO",
+      "falhas": [
+        "consentimento é POR ITEM: o de briefing não libera troca de contato 6ms",
+        "__tests__/celula/saida-do-canal.test.ts > o consentimento é DADO, nunca inferido > consentimento é POR ITEM: o de briefing não libera troca de contato"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D3-M10 · escopo ilegível bloqueia, nunca vira default",
+      "arquivo": "lib/agency/celula/saida-do-canal.ts",
+      "de": "  return typeof valor === \"string\" && ESCOPOS.includes(valor) ? (valor as EscopoDeSaida) : null;",
+      "para": "  return (valor as EscopoDeSaida) ?? null; // MUTAÇÃO: o cast cego que a casa proíbe",
+      "espera": "escopo 'DADO_DE_CONTATO'/' dado_de_contato' passam como válidos",
+      "estado": "VERMELHO",
+      "falhas": [
+        "qualquer coisa fora do conjunto fechado BLOQUEIA, nunca vira default 7ms",
+        "__tests__/celula/saida-do-canal.test.ts > escopo ilegível > qualquer coisa fora do conjunto fechado BLOQUEIA, nunca vira default"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    }
+  ]
+}
