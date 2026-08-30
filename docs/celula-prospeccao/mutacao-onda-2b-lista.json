@@ -1,0 +1,170 @@
+[
+  {
+    "nome": "colchete/remanescente-bloqueia",
+    "guarda": "colchete nao preenchido no texto final BLOQUEIA (o [NOME] literal chegando ao cliente)",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "de": "  const colcheteRemanescente = texto.match(/\\[[^[\\]]*\\]/);",
+    "para": "  const colcheteRemanescente = null;"
+  },
+  {
+    "nome": "colchete/substitui-o-colchete",
+    "guarda": "a variavel em colchete e de fato substituida (a regex combinada conhece [MIOLO])",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "de": "const PLACEHOLDER_COMBINADO = /\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}|\\[([^[\\]]+)\\]/g;",
+    "para": "const PLACEHOLDER_COMBINADO = /\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}/g;"
+  },
+  {
+    "nome": "colchete/ausencia-vs-obrigatoria",
+    "guarda": "regra de ausencia para variavel OBRIGATORIA e contradicao e BLOQUEIA",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "de": "    if (modelo.variaveisObrigatorias.includes(regra.variavel)) {",
+    "para": "    if (false) {"
+  },
+  {
+    "nome": "colchete/ausencia-recorte-inexistente",
+    "guarda": "regra de ausencia cujo recorte nao existe no textoBase e regra morta e BLOQUEIA",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "de": "    if (!modelo.textoBase.includes(regra.de)) {",
+    "para": "    if (false) {"
+  },
+  {
+    "nome": "colchete/palavras-proibidas-globais",
+    "guarda": "as tres frases proibidas pelo CEO na raiz do JSON valem para TODO modelo",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "de": "  return { lista: r.palavrasProibidasGlobais, malformada: false };",
+    "para": "  return { lista: [], malformada: false };"
+  },
+  {
+    "nome": "colchete/globais-malformada-visivel",
+    "guarda": "lista global malformada aparece em invalidos, nao passa em silencio",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "de": "  if (globais.malformada) {",
+    "para": "  if (false) {"
+  },
+  {
+    "nome": "biblioteca/os-22-continuam-inenviaveis",
+    "guarda": "com os 22 textos do CEO preenchidos, estado rascunho continua BARRANDO o envio",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/os-22-textos-do-ceo.test.ts",
+    "de": "  if (modelo.estado !== \"aprovado\") {\n    return {\n      ok: false,\n      motivo: `modelo \"${chave}\" está em estado \"${modelo.estado}\", não \"aprovado\" — não pode ser enviado.`,\n      codigo: chave,\n    };\n  }",
+    "para": "  if (false) {\n    return {\n      ok: false,\n      motivo: `modelo \"${chave}\" está em estado \"${modelo.estado}\", não \"aprovado\" — não pode ser enviado.`,\n      codigo: chave,\n    };\n  }"
+  },
+  {
+    "nome": "m14/clienteRecusou",
+    "guarda": "M14 — NAO enviar se: o cliente recusou",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "de": "    { valor: estado.clienteRecusou, campo: \"clienteRecusou\", frase: \"o cliente recusou\" },\n",
+    "para": ""
+  },
+  {
+    "nome": "m14/projetoEncerrado",
+    "guarda": "M14 — NAO enviar se: o projeto encerrou",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "de": "    { valor: estado.projetoEncerrado, campo: \"projetoEncerrado\", frase: \"o projeto encerrou\" },\n",
+    "para": ""
+  },
+  {
+    "nome": "m14/outraPessoaContratada",
+    "guarda": "M14 — NAO enviar se: outra pessoa foi contratada",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "de": "    { valor: estado.outraPessoaContratada, campo: \"outraPessoaContratada\", frase: \"outra pessoa foi contratada\" },\n",
+    "para": ""
+  },
+  {
+    "nome": "m14/clientePediuParaNaoReceber",
+    "guarda": "M14 — NAO enviar se: o cliente pediu para não receber",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "de": "    { valor: estado.clientePediuParaNaoReceber, campo: \"clientePediuParaNaoReceber\", frase: \"o cliente pediu para não receber\" },\n",
+    "para": ""
+  },
+  {
+    "nome": "m14/plataformaBloqueou",
+    "guarda": "M14 — NAO enviar se: a plataforma bloqueou",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "de": "    { valor: estado.plataformaBloqueou, campo: \"plataformaBloqueou\", frase: \"a plataforma bloqueou\" },\n",
+    "para": ""
+  },
+  {
+    "nome": "m14/teto-de-um",
+    "guarda": "M14 — apenas UM acompanhamento automatico por oportunidade (>= 1 bloqueia)",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "de": "  } else if (estado.acompanhamentosJaEnviados >= maximoPorOportunidade) {",
+    "para": "  } else if (false) {"
+  },
+  {
+    "nome": "m14/desconhecido-bloqueia",
+    "guarda": "campo nao informado (null) BLOQUEIA — ausencia de informacao nao e informacao",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "de": "  if (valor === null) {\n",
+    "para": "  if (false) {\n"
+  },
+  {
+    "nome": "m14/intervalo-minimo",
+    "guarda": "M14 — intervalo minimo configuravel desde a ultima mensagem da agencia",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "de": "    if (horasCorridas < intervaloHoras) {",
+    "para": "    if (false) {"
+  },
+  {
+    "nome": "m14/politica-fail-closed",
+    "guarda": "politica ausente cai no valor MAIS restritivo (1), nunca no mais permissivo",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "de": "    typeof maximoBruto === \"number\" && Number.isFinite(maximoBruto) && maximoBruto >= 0 ? maximoBruto : 1;",
+    "para": "    typeof maximoBruto === \"number\" && Number.isFinite(maximoBruto) && maximoBruto >= 0 ? maximoBruto : Infinity;"
+  },
+  {
+    "nome": "m14/contagem-negativa",
+    "guarda": "acompanhamentosJaEnviados negativo e dado corrompido, nunca permissao",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "de": "  } else if (estado.acompanhamentosJaEnviados < 0) {",
+    "para": "  } else if (false) {"
+  },
+  {
+    "nome": "fronteira/voce-agora-e",
+    "guarda": "o sinal de injecao 'voce agora e' dispara na forma ACENTUADA (a comum em portugues)",
+    "arquivo": "lib/agency/celula/mensagens/entrada-hostil.ts",
+    "teste": "__tests__/celula/fronteira-de-palavra-acentuada.test.ts",
+    "de": "{ sinal: \"voce_agora_e\", re: /\\bvoc[êe]\\s+agora\\s+[ée](?![\\p{L}\\p{N}])/giu },",
+    "para": "{ sinal: \"voce_agora_e\", re: /\\bvoc[êe]\\s+agora\\s+[ée]\\b/gi },"
+  },
+  {
+    "nome": "fronteira/ate-amanha",
+    "guarda": "a promessa de data 'ate amanha' e reconhecida na forma ACENTUADA",
+    "arquivo": "lib/agency/celula/mensagens/compromisso.ts",
+    "teste": "__tests__/celula/fronteira-de-palavra-acentuada.test.ts",
+    "de": "{ re: /\\bat[ée]\\s+amanh[ãa](?![\\p{L}\\p{N}])/iu, forma: \"até amanhã\" },",
+    "para": "{ re: /\\bat[ée]\\s+amanh[ãa]\\b/i, forma: \"até amanhã\" },"
+  },
+  {
+    "nome": "colchete/opcional-vazia-nao-some",
+    "guarda": "variavel OPCIONAL com string vazia e AUSENTE — nao some do texto deixando buraco",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "de": "function ausente(v: string | null | undefined): boolean {\n  return v === null || v === undefined || v.trim() === \"\";",
+    "para": "function ausente(v: string | null | undefined): boolean {\n  return v === null || v === undefined;"
+  },
+  {
+    "nome": "guardiao/permuta-sem-cedilha",
+    "guarda": "'faco de graca' sem cedilha e barrado pelo Guardiao (o typo [cc] que deixava passar)",
+    "arquivo": "lib/marketplaces/99freelas/conformidade.ts",
+    "teste": "__tests__/celula/fronteira-de-palavra-acentuada.test.ts",
+    "de": "fa[çc]o\\s+de\\s+gra[çc]a",
+    "para": "fa[çc]o\\s+de\\s+gra[çç]a"
+  }
+]

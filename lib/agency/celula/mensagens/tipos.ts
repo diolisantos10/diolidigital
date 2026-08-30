@@ -25,13 +25,26 @@ export interface HistoricoDoModelo {
   oQueMudou: string;
 }
 
+// ─── REGRA DE AUSÊNCIA — Ficha B (o motor do colchete) ──────────────────────
+// O caso "sem nome, usar só Olá" que o CEO citou ao falar de M01. Uma regra
+// diz: se `variavel` não veio preenchida, troca o recorte LITERAL `de` (tirado
+// do textoBase) por `para`, ANTES da substituição de variáveis. Nada de
+// heurística de saudação — só troca de texto declarada, com fonte.
+// Fonte: docs/celula-prospeccao/despachos/ONDA-2B-B-o-motor-do-colchete.md §3.
+export interface RegraDeAusencia {
+  variavel: string; // "NOME"
+  de: string; // recorte literal do textoBase, ex.: "Olá, [NOME]."
+  para: string; // substituto, ex.: "Olá."
+  fonte: string; // de onde veio a regra
+}
+
 export interface ModeloDeMensagem {
   codigo: string; // "M01".."M22"
   nome: string;
   plataforma: string; // "99freelas"
   etapaDoFunil: string; // texto livre por ora — a Onda 1 tipa depois
   finalidade: string;
-  textoBase: string; // com {{variaveis}} entre chaves duplas
+  textoBase: string; // com {{variaveis}} entre chaves duplas OU [VARIAVEIS] entre colchetes
   variaveisObrigatorias: string[];
   variaveisOpcionais: string[];
   palavrasProibidas: string[];
@@ -47,6 +60,8 @@ export interface ModeloDeMensagem {
   historico: HistoricoDoModelo[];
   /** Preenchido quando o texto oficial do CEO ainda não chegou. Ver §4 da ficha. */
   pendencia?: string | null;
+  /** Regras de "sem esta variável, troca este recorte por aquele". Ausente == []. */
+  regrasDeAusencia?: RegraDeAusencia[];
 }
 
 /**

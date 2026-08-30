@@ -159,6 +159,16 @@
     "leitura_do_chat_motivo": "O chat fica atrás do login, e login é BLOCK nesta rodada. Enquanto for assim, a fila de follow-up é alimentada à mão ou pelo e-mail de notificação encaminhado — e isso é RISCO ABERTO, não recurso pronto."
   },
 
+  "acompanhamento": {
+    "_leia_isto": "REGRA DA CASA, não da plataforma. O 99Freelas não publica quantas horas esperar antes de um acompanhamento, e a ordem do CEO diz 'intervalo configurável' sem fixar número. Estes números são da DIOLI e estão declarados como tal — quem trocá-los troca aqui, não no código.",
+    "maximo_por_oportunidade": 1,
+    "maximo_procedencia": "ordem literal do CEO, 30/08/2026: 'apenas UM acompanhamento automático por oportunidade'.",
+    "intervalo_da_casa_horas": 72,
+    "intervalo_procedencia": "preciso confirmar com o CEO — a ordem dele diz 'intervalo configurável' e NÃO fixa o número. 72 h é um padrão conservador da casa, escolhido para errar do lado de insistir menos. NÃO é número do CEO nem da plataforma.",
+    "intervalo_da_plataforma_horas": null,
+    "intervalo_da_plataforma_procedencia": "o 99Freelas não publica prazo de acompanhamento — ausência de informação, não permissão."
+  },
+
   "sancoes": [
     { "nome": "Violação", "efeito": "ícone de alerta no perfil e propostas rebaixadas para o fim da fila", "prazo": "30 dias corridos", "motivos": ["não cumprir o combinado", "não cumprir o prazo", "NÃO RESPONDER O CLIENTE A TEMPO"] },
     { "nome": "Penalização", "efeito": "bloqueia publicar projeto e ENVIAR PROPOSTA", "prazo": "definido pela plataforma" },

@@ -181,9 +181,16 @@ const PADROES: Padrao[] = [
   },
 
   // 6. PERMUTA / TESTE GRÁTIS ───────────────────────────────────────────────
+  // `gra[çç]a` era um typo — a classe repetia o mesmo caractere (ç) em vez de
+  // ser o par [çc], o mesmo padrão usado em toda parte deste arquivo (ex.:
+  // `comiss[ãa]o`, `participa[çc][ãa]o`). Efeito: "faço de graca" (sem
+  // cedilha, comum em teclado mal configurado e em celular) atravessava o
+  // Guardião em silêncio. Achado pela varredura do `\b` (ficha E, escalado —
+  // família diferente), consertado e varrido por completo aqui (ficha I,
+  // ONDA-2B). Prova: __tests__/celula/fronteira-de-palavra-acentuada.test.ts.
   {
     regra: "permuta_ou_teste_gratis",
-    re: /\b(?:permuta|escambo|teste\s+gr[áa]tis|amostra\s+gr[áa]tis|fa[çc]o\s+de\s+gra[çç]a|sem\s+custo\s+inicial)\b/gi,
+    re: /\b(?:permuta|escambo|teste\s+gr[áa]tis|amostra\s+gr[áa]tis|fa[çc]o\s+de\s+gra[çc]a|sem\s+custo\s+inicial)\b/gi,
     fonte: F_PROIBIDOS,
   },
 ];

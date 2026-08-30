@@ -1,0 +1,212 @@
+[
+  {
+    "nome": "colchete/remanescente-bloqueia",
+    "guarda": "colchete nao preenchido no texto final BLOQUEIA (o [NOME] literal chegando ao cliente)",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× BLOQUEIA quando sobra [ALGO] não declarado no textoBase · × valor hostil contendo \"[OUTRA]\" literal não é reprocessado — é BLOQUEADO pela trava, não aceito em silêncio · × BLOQUEIA quando variável opcional é \"\" e não há regra de ausência — motivo cita o colchete remanescente · × BLOQUEIA quando variável opcional é \"   \" (só espaços) — mesmo caminho da string vazia",
+    "contagem": "Tests 4 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "colchete/substitui-o-colchete",
+    "guarda": "a variavel em colchete e de fato substituida (a regex combinada conhece [MIOLO])",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× preenche [NOME] com valor — texto correto, sem colchete no resultado · × reconhece e preenche variável de colchete com acento e espaço · × reconhece variável de colchete com vírgula no miolo · × {{chave}} continua funcionando lado a lado com [CHAVE] no mesmo texto",
+    "contagem": "Tests 9 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "colchete/ausencia-vs-obrigatoria",
+    "guarda": "regra de ausencia para variavel OBRIGATORIA e contradicao e BLOQUEIA",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× BLOQUEIA regra de ausência para variável que está em variaveisObrigatorias — contradição",
+    "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "colchete/ausencia-recorte-inexistente",
+    "guarda": "regra de ausencia cujo recorte nao existe no textoBase e regra morta e BLOQUEIA",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× BLOQUEIA quando o recorte \"de\" da regra não existe no textoBase",
+    "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "colchete/palavras-proibidas-globais",
+    "guarda": "as tres frases proibidas pelo CEO na raiz do JSON valem para TODO modelo",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× bloqueia o envio de um modelo que não tinha a palavra na lista própria",
+    "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "colchete/globais-malformada-visivel",
+    "guarda": "lista global malformada aparece em invalidos, nao passa em silencio",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× malformada aparece em invalidos, e a biblioteca ainda carrega os modelos",
+    "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "biblioteca/os-22-continuam-inenviaveis",
+    "guarda": "com os 22 textos do CEO preenchidos, estado rascunho continua BARRANDO o envio",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/os-22-textos-do-ceo.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× modeloParaEnvio(M01) recusa citando \"rascunho\" · × modeloParaEnvio(M02) recusa citando \"rascunho\" · × modeloParaEnvio(M03) recusa citando \"rascunho\" · × modeloParaEnvio(M04) recusa citando \"rascunho\"",
+    "contagem": "Tests 22 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "m14/clienteRecusou",
+    "guarda": "M14 — NAO enviar se: o cliente recusou",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× cliente recusou · × \"clienteRecusou\" em null bloqueia · × cliente recusou + plataforma bloqueou → motivos tem os dois · × todos os oito campos em null ao mesmo tempo → oito motivos DESCONHECIDO",
+    "contagem": "Tests 4 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "m14/projetoEncerrado",
+    "guarda": "M14 — NAO enviar se: o projeto encerrou",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× projeto encerrado · × \"projetoEncerrado\" em null bloqueia · × todos os oito campos em null ao mesmo tempo → oito motivos DESCONHECIDO",
+    "contagem": "Tests 3 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "m14/outraPessoaContratada",
+    "guarda": "M14 — NAO enviar se: outra pessoa foi contratada",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× outra pessoa contratada · × \"outraPessoaContratada\" em null bloqueia · × todos os oito campos em null ao mesmo tempo → oito motivos DESCONHECIDO",
+    "contagem": "Tests 3 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "m14/clientePediuParaNaoReceber",
+    "guarda": "M14 — NAO enviar se: o cliente pediu para não receber",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× cliente pediu para não receber · × \"clientePediuParaNaoReceber\" em null bloqueia · × todos os oito campos em null ao mesmo tempo → oito motivos DESCONHECIDO",
+    "contagem": "Tests 3 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "m14/plataformaBloqueou",
+    "guarda": "M14 — NAO enviar se: a plataforma bloqueou",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× plataforma bloqueou · × \"plataformaBloqueou\" em null bloqueia · × cliente recusou + plataforma bloqueou → motivos tem os dois · × todos os oito campos em null ao mesmo tempo → oito motivos DESCONHECIDO",
+    "contagem": "Tests 4 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "m14/teto-de-um",
+    "guarda": "M14 — apenas UM acompanhamento automatico por oportunidade (>= 1 bloqueia)",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× já houve acompanhamento (acompanhamentosJaEnviados >= 1) · × : 1 bloqueia (o teto é UM, >= 1) · × já houve acompanhamento + intervalo não cumprido → motivos tem os dois · × intervalo já cumprido (nada bloqueia por tempo) + acompanhamentosJaEnviados: 1 + política sem maximo_por_oportunidade → BLOQUEIA pelo teto, e só pelo teto",
+    "contagem": "Tests 4 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "m14/desconhecido-bloqueia",
+    "guarda": "campo nao informado (null) BLOQUEIA — ausencia de informacao nao e informacao",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× \"clienteRecusou\" em null bloqueia · × \"projetoEncerrado\" em null bloqueia · × \"outraPessoaContratada\" em null bloqueia · × \"clientePediuParaNaoReceber\" em null bloqueia",
+    "contagem": "Tests 6 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "m14/intervalo-minimo",
+    "guarda": "M14 — intervalo minimo configuravel desde a ultima mensagem da agencia",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× 1 h desde a proposta bloqueia e diz quantas faltam · × 71.9 h (um tico antes do limite) ainda bloqueia · × já houve acompanhamento + intervalo não cumprido → motivos tem os dois · × intervalo indeterminado bloqueia sozinho, e o único motivo nomeado é o intervalo (não o teto, que este caso não exercita)",
+    "contagem": "Tests 4 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "m14/politica-fail-closed",
+    "guarda": "politica ausente cai no valor MAIS restritivo (1), nunca no mais permissivo",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× bloco {} (campo ausente) → maximoPorOportunidade === 1 · × maximo_por_oportunidade: \"dois\" (texto) → 1 · × maximo_por_oportunidade: null → 1 · × maximo_por_oportunidade: -3 (negativo) → 1, negativo não vira permissão",
+    "contagem": "Tests 9 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "m14/contagem-negativa",
+    "guarda": "acompanhamentosJaEnviados negativo e dado corrompido, nunca permissao",
+    "arquivo": "lib/agency/celula/mensagens/acompanhamento.ts",
+    "teste": "__tests__/celula/acompanhamento-unico.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× negativo bloqueia como dado corrompido, não como permissão",
+    "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "fronteira/voce-agora-e",
+    "guarda": "o sinal de injecao 'voce agora e' dispara na forma ACENTUADA (a comum em portugues)",
+    "arquivo": "lib/agency/celula/mensagens/entrada-hostil.ts",
+    "teste": "__tests__/celula/fronteira-de-palavra-acentuada.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× metade 1 — COM acento (\"você agora é...\"), como um brasileiro escreve: dispara o sinal · × o sinal é GROSSEIRO por desenho — não restringe o que vem depois de 'é', e isto é esperado: é telemetria, nunca a trava (ver docs do próprio arquivo)",
+    "contagem": "Tests 2 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "fronteira/ate-amanha",
+    "guarda": "a promessa de data 'ate amanha' e reconhecida na forma ACENTUADA",
+    "arquivo": "lib/agency/celula/mensagens/compromisso.ts",
+    "teste": "__tests__/celula/fronteira-de-palavra-acentuada.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× metade 1 — COM acento: dispara a promessa de data",
+    "contagem": "Tests 1 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "colchete/opcional-vazia-nao-some",
+    "guarda": "variavel OPCIONAL com string vazia e AUSENTE — nao some do texto deixando buraco",
+    "arquivo": "lib/agency/celula/mensagens/biblioteca.ts",
+    "teste": "__tests__/celula/placeholder-de-colchete.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× BLOQUEIA quando variável opcional é \"\" e não há regra de ausência — motivo cita o colchete remanescente · × BLOQUEIA quando variável opcional é \"   \" (só espaços) — mesmo caminho da string vazia · × metade gêmea: opcional \"\" COM regra de ausência — a regra aplica, texto correto, sem colchete sobrando · × obrigatória com \"\" bloqueia pelo motivo de \"obrigatória\", não pelo de colchete remanescente",
+    "contagem": "Tests 5 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  },
+  {
+    "nome": "guardiao/permuta-sem-cedilha",
+    "guarda": "'faco de graca' sem cedilha e barrado pelo Guardiao (o typo [cc] que deixava passar)",
+    "arquivo": "lib/marketplaces/99freelas/conformidade.ts",
+    "teste": "__tests__/celula/fronteira-de-palavra-acentuada.test.ts",
+    "estado": "VERMELHO_COMO_ESPERADO",
+    "porqueCaiu": "× metade 1a — SEM cedilha na palavra ('faço de graca') agora é barrado · × metade 1b — SEM cedilha nas duas palavras ('faco de graca') agora é barrado",
+    "contagem": "Tests 2 ⎯⎯⎯⎯⎯⎯⎯",
+    "restaurado": true
+  }
+]

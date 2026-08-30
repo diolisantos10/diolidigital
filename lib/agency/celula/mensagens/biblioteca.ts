@@ -33,6 +33,7 @@ import {
   type HistoricoDoModelo,
   type LeituraDoModelo,
   type ModeloDeMensagem,
+  type RegraDeAusencia,
 } from "./tipos";
 
 // ── Guardas de forma, campo a campo. Sem `any`. ──────────────────────────────
@@ -71,6 +72,21 @@ function entradaDeHistoricoValida(item: unknown): item is HistoricoDoModelo {
 
 function historicoValido(v: unknown): v is HistoricoDoModelo[] {
   return Array.isArray(v) && v.every(entradaDeHistoricoValida);
+}
+
+// ── Regra de ausência: forma, só forma. A validade de CONTEÚDO (variável
+// obrigatória em contradição, recorte que não existe no textoBase) é checada
+// em `preencher`, não aqui — é o mesmo padrão do "segundo cinto" que já existe
+// para `estado`/`pendencia`: quem monta um `ModeloDeMensagem` na mão (como os
+// testes fazem) também passa por essa guarda. Ver Ficha B, §3.
+function regraDeAusenciaValida(item: unknown): item is RegraDeAusencia {
+  if (typeof item !== "object" || item === null) return false;
+  const r = item as Record<string, unknown>;
+  return textoNaoVazio(r.variavel) && textoNaoVazio(r.de) && textoNaoVazio(r.para) && textoNaoVazio(r.fonte);
+}
+
+function regrasDeAusenciaValidas(v: unknown): v is RegraDeAusencia[] {
+  return Array.isArray(v) && v.every(regraDeAusenciaValida);
 }
 
 /**
@@ -231,6 +247,23 @@ export function lerModelo(bruto: unknown): LeituraDoModelo {
   }
   const historico = historicoBruto;
 
+  // Campo novo (Ficha B, §3). Opcional: ausente é legítimo e vira `[]` — não é
+  // "campo obrigatório faltando" disfarçado, é modelo que não usa o recurso.
+  // Presente mas malformado bloqueia o modelo inteiro, igual a qualquer outro
+  // campo aqui — fail closed, não "ignora e segue".
+  const regrasDeAusenciaBruta = m.regrasDeAusencia;
+  let regrasDeAusencia: RegraDeAusencia[] = [];
+  if (regrasDeAusenciaBruta !== undefined) {
+    if (!regrasDeAusenciaValidas(regrasDeAusenciaBruta)) {
+      return {
+        ok: false,
+        motivo: 'campo "regrasDeAusencia" precisa ser uma lista de regras completas (variavel, de, para, fonte — todos texto não vazio).',
+        codigo,
+      };
+    }
+    regrasDeAusencia = regrasDeAusenciaBruta;
+  }
+
   const modelo: ModeloDeMensagem = {
     codigo,
     nome,
@@ -252,6 +285,7 @@ export function lerModelo(bruto: unknown): LeituraDoModelo {
     estado,
     historico,
     pendencia,
+    regrasDeAusencia,
   };
   return { ok: true, modelo };
 }
@@ -277,6 +311,21 @@ function raizValida(bruto: unknown): { modelos: unknown[] } | null {
   const r = bruto as Record<string, unknown>;
   if (!Array.isArray(r.modelos)) return null;
   return { modelos: r.modelos };
+}
+
+// ── Palavras proibidas GLOBAIS, na raiz do arquivo (Ficha B, §4) ────────────
+// Uma fonte só (a raiz), fundida com o `palavrasProibidas` de cada modelo ao
+// carregar — zero duplicação copiada nos 22 modelos. Campo é NOVO e opcional:
+// raiz sem ele não é malformação (`{ lista: [], malformada: false }`). Raiz
+// COM o campo mas fora do formato de lista de texto é visível, não engolida
+// em silêncio: vira item em `invalidos` com `indice: -1`, e a biblioteca segue
+// com lista vazia — os 22 modelos continuam carregando normalmente.
+function palavrasProibidasGlobaisDaRaiz(bruto: unknown): { lista: string[]; malformada: boolean } {
+  if (typeof bruto !== "object" || bruto === null) return { lista: [], malformada: false };
+  const r = bruto as Record<string, unknown>;
+  if (r.palavrasProibidasGlobais === undefined) return { lista: [], malformada: false };
+  if (!arrayDeTextos(r.palavrasProibidasGlobais)) return { lista: [], malformada: true };
+  return { lista: r.palavrasProibidasGlobais, malformada: false };
 }
 
 /**
@@ -307,6 +356,15 @@ export function carregarBiblioteca(bruto: unknown = bibliotecaCrua): BibliotecaC
     candidatos.push({ indice, modelo: leitura.modelo });
   });
 
+  const globais = palavrasProibidasGlobaisDaRaiz(bruto);
+  if (globais.malformada) {
+    invalidos.push({
+      indice: -1,
+      codigo: "(desconhecido)",
+      motivo: 'campo "palavrasProibidasGlobais" da raiz precisa ser uma lista de texto — ignorado; a biblioteca segue com lista vazia.',
+    });
+  }
+
   // Duplicidade de código: nenhum dos dois entra. Um código repetido é a
   // biblioteca dizendo duas coisas diferentes com o mesmo nome — inválido para
   // os dois, não só para o segundo que apareceu.
@@ -324,7 +382,11 @@ export function carregarBiblioteca(bruto: unknown = bibliotecaCrua): BibliotecaC
       });
       continue;
     }
-    modelos[c.modelo.codigo] = c.modelo;
+    // Funde palavrasProibidas do modelo com as globais da raiz, sem duplicar.
+    // `modeloParaEnvio`/`preencher` continuam recebendo só `palavrasProibidas`
+    // — assinatura de `preencher` não muda; a fusão acontece uma vez, aqui.
+    const palavrasProibidasFundidas = Array.from(new Set([...c.modelo.palavrasProibidas, ...globais.lista]));
+    modelos[c.modelo.codigo] = { ...c.modelo, palavrasProibidas: palavrasProibidasFundidas };
   }
 
   return { modelos, invalidos };
@@ -366,14 +428,46 @@ export function modeloParaEnvio(codigo: string, bruto: unknown = bibliotecaCrua)
 
 export type ResultadoDoPreenchimento = { ok: true; texto: string } | { ok: false; motivo: string };
 
-/** Casa `{{chave}}`, com espaço opcional dentro das chaves: `{{ chave }}`. */
-const PLACEHOLDER = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
+// ── Uma definição só do que "ausente" significa (Ficha H) ───────────────────
+// `null`, `undefined` ou string vazia/só-espaços — usada em TODO ponto de
+// `preencher` que decide isso: a checagem de variável obrigatória, a de
+// regra de ausência e o substituidor. Antes deste conserto havia duas
+// definições que discordavam entre si: o substituidor tratava `""` como
+// "presente" (devolvia `""`, o placeholder sumia do texto) enquanto a regra
+// de ausência já tratava `""` como ausente — é dessa discordância que nascia
+// o buraco `"Olá, . Li seu projeto..."`. Uma função só, usada nos três
+// lugares, fecha a divergência.
+function ausente(v: string | null | undefined): boolean {
+  return v === null || v === undefined || v.trim() === "";
+}
+
+// ── O MOTOR DO COLCHETE (Ficha B) ────────────────────────────────────────────
+// O texto oficial do CEO para os 22 modelos usa colchetes, não chaves duplas —
+// ordem literal dele: "Os colchetes são as variáveis". Sem isto, um "[NOME]"
+// do textoBase chegaria ao cliente como literal, pelo caminho limpo, sem
+// nenhum bloqueio. O nome da variável é o MIOLO exatamente como está no texto
+// — maiúsculas, acentos, espaços e vírgulas não são normalizados; a
+// comparação com `variaveisObrigatorias`/`variaveisOpcionais` usa `trim()`
+// dos dois lados, nunca lowercase nem remoção de acento.
+// Fonte: docs/celula-prospeccao/despachos/ONDA-2B-B-o-motor-do-colchete.md.
+//
+// Casa `{{chave}}` (com espaço opcional: `{{ chave }}`) OU `[MIOLO]`, numa
+// ÚNICA regex combinada, para que a substituição rode numa ÚNICA passada
+// sobre o texto ORIGINAL. Isso importa: se processássemos colchete e chave
+// dupla em duas passadas separadas, o valor de uma variável poderia conter
+// literalmente "[OUTRA]" e ser reprocessado como molde na segunda passada —
+// substituição de segunda ordem. Com uma passada combinada só, o que sobrar é
+// sempre pego pelas checagens de "remanescente" abaixo, nunca executado.
+const PLACEHOLDER_COMBINADO = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}|\[([^[\]]+)\]/g;
 
 /**
- * Substitui `{{chave}}` pelo valor. NÃO inventa valor para variável obrigatória
- * ausente/nula/vazia — bloqueia com o nome da variável no motivo. Placeholder
- * remanescente no texto final bloqueia. O texto final é julgado pelo Guardião
- * (`validarTexto`) — nenhum outro validador de conteúdo é escrito aqui.
+ * Substitui `{{chave}}` e `[CHAVE]` pelo valor. NÃO inventa valor para
+ * variável obrigatória ausente/nula/vazia — bloqueia com o nome da variável
+ * no motivo. Placeholder remanescente (de qualquer um dos dois formatos) no
+ * texto final bloqueia — **esta é a trava principal do motor do colchete**: é
+ * o que impede um "[NOME]" literal de chegar ao cliente quando algo falhou
+ * antes. O texto final é julgado pelo Guardião (`validarTexto`) — nenhum
+ * outro validador de conteúdo é escrito aqui.
  *
  * SEGUNDO CINTO (Ficha J): confere `estado` e `pendencia` por conta própria,
  * mesmo que `modeloParaEnvio` já tenha aprovado antes de chegar aqui. Hoje o
@@ -398,31 +492,89 @@ export function preencher(modelo: ModeloDeMensagem, variaveis: Record<string, st
     };
   }
 
+  // ── Regras de ausência (Ficha B, §3) — "sem nome, usar só Olá" ────────────
+  // Duas guardas são checadas para TODA regra declarada, sempre — não só
+  // quando a variável está ausente nesta chamada. São contradições/erros de
+  // FORMA do próprio modelo, e uma regra inválida bloqueia o preenchimento
+  // inteiro, com motivo, em vez de ser ignorada em silêncio.
+  const regrasDeAusencia = modelo.regrasDeAusencia ?? [];
+  for (const regra of regrasDeAusencia) {
+    if (modelo.variaveisObrigatorias.includes(regra.variavel)) {
+      return {
+        ok: false,
+        motivo: `regra de ausência para "${regra.variavel}" é inválida: a variável está em variaveisObrigatorias — ou é obrigatória, ou pode faltar, nunca as duas.`,
+      };
+    }
+    if (!modelo.textoBase.includes(regra.de)) {
+      return {
+        ok: false,
+        motivo: `regra de ausência inválida: o recorte "${regra.de}" não existe no textoBase do modelo "${modelo.codigo}".`,
+      };
+    }
+  }
+
   for (const chave of modelo.variaveisObrigatorias) {
     const valor = variaveis[chave];
-    if (valor === null || valor === undefined || valor.trim() === "") {
+    if (ausente(valor)) {
       return { ok: false, motivo: `variável obrigatória "${chave}" está ausente, nula ou vazia.` };
     }
   }
 
-  // Substituição de UMA passada sobre o texto ORIGINAL (`String.replace` com
+  // Aplica as regras de ausência ANTES da substituição de variáveis, sobre o
+  // textoBase original. Só troca `de` por `para` quando a variável está de
+  // fato ausente/nula/vazia em `variaveis` — presente, a regra não entra e o
+  // valor real segue seu caminho normal (checado no item de teste "9").
+  let textoComAusencia = modelo.textoBase;
+  for (const regra of regrasDeAusencia) {
+    const valor = variaveis[regra.variavel];
+    if (ausente(valor)) {
+      textoComAusencia = textoComAusencia.split(regra.de).join(regra.para);
+    }
+  }
+
+  // Substituição de UMA passada sobre o texto (já com as regras de ausência
+  // aplicadas), casando `{{chave}}` e `[CHAVE]` juntos (`String.replace` com
   // regex global não reprocessa o texto já substituído). Isso importa: texto
   // de cliente é entrada hostil (lei 5 do domínio) — se o valor de uma
-  // variável contivesse literalmente "{{outraVariavel}}", uma substituição
-  // iterativa poderia reprocessar esse texto injetado como se fosse molde. Com
-  // uma passada só, o que sobrar de "{{" é pego pela checagem abaixo, nunca
-  // executado como placeholder de verdade.
+  // variável contivesse literalmente "{{outraVariavel}}" ou "[OUTRA]", uma
+  // substituição iterativa (ou em duas passadas separadas) poderia
+  // reprocessar esse texto injetado como se fosse molde. Com uma passada
+  // combinada só, o que sobrar de "{{" ou "[" é pego pelas checagens abaixo,
+  // nunca executado como placeholder de verdade.
   const conhecidas = new Set<string>([...modelo.variaveisObrigatorias, ...modelo.variaveisOpcionais]);
-  const texto = modelo.textoBase.replace(PLACEHOLDER, (casamentoCompleto, chave: string) => {
-    if (!conhecidas.has(chave)) return casamentoCompleto; // não declarado — fica, e é barrado abaixo.
-    const valor = variaveis[chave];
-    if (valor === null || valor === undefined) return casamentoCompleto; // opcional ausente — fica, e é barrado abaixo se sobrar.
-    return valor;
-  });
+  const conhecidasColchete = new Set<string>([...conhecidas].map((c) => c.trim()));
+  const texto = textoComAusencia.replace(
+    PLACEHOLDER_COMBINADO,
+    (casamentoCompleto: string, chaveChaveDupla: string | undefined, chaveColchete: string | undefined) => {
+      if (chaveChaveDupla !== undefined) {
+        if (!conhecidas.has(chaveChaveDupla)) return casamentoCompleto; // não declarado — fica, barrado abaixo.
+        const valor = variaveis[chaveChaveDupla];
+        // opcional ausente (null/undefined/"") — fica intacto, barrado abaixo
+        // se sobrar. Nunca devolve "": foi exatamente "" tratado como
+        // "presente" aqui que fazia o placeholder sumir do texto sem
+        // acionar nenhuma trava (o furo desta ficha).
+        if (ausente(valor)) return casamentoCompleto;
+        return valor as string;
+      }
+      const chave = (chaveColchete ?? "").trim();
+      if (!conhecidasColchete.has(chave)) return casamentoCompleto; // não declarado — fica, barrado abaixo.
+      const valor = variaveis[chave];
+      if (ausente(valor)) return casamentoCompleto; // opcional ausente — fica, barrado abaixo se sobrar.
+      return valor as string;
+    },
+  );
 
   if (texto.includes("{{")) {
     const trecho = texto.slice(texto.indexOf("{{"));
     return { ok: false, motivo: `placeholder não preenchido restou no texto final: "${trecho}".` };
+  }
+
+  // TRAVA PRINCIPAL do motor do colchete: colchete remanescente no texto
+  // final bloqueia, do mesmo jeito que "{{" remanescente já bloqueia acima —
+  // sem isto, um "[NOME]" literal chegaria ao cliente pelo caminho limpo.
+  const colcheteRemanescente = texto.match(/\[[^[\]]*\]/);
+  if (colcheteRemanescente) {
+    return { ok: false, motivo: `colchete não preenchido restou no texto final: "${colcheteRemanescente[0]}".` };
   }
 
   for (const proibida of modelo.palavrasProibidas) {

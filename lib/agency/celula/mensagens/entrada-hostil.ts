@@ -84,7 +84,13 @@ interface PadraoDeSinal {
 const PADROES_DE_INJECAO: PadraoDeSinal[] = [
   { sinal: "ignore_instrucoes_ou_regras", re: /\bignor[ae]\s+(?:as\s+|todas\s+as\s+)?(?:suas\s+)?(?:instru[çc][õo]es|regras)\b/gi },
   { sinal: "esqueca_as_regras", re: /\besque[çc]a\s+(?:as\s+)?(?:regras|instru[çc][õo]es)\b/gi },
-  { sinal: "voce_agora_e", re: /\bvoc[êe]\s+agora\s+[ée]\b/gi },
+  // Fronteira final NÃO pode ser `\b` aqui: `\b` é ASCII, e viria logo depois
+  // de "é" — que o motor de regex não trata como caractere de palavra. "é"
+  // seguido de espaço/ponto são DOIS não-palavra, então não existe fronteira
+  // e o padrão nunca casava a forma acentuada ("você agora é...", a forma
+  // comum). `(?![\p{L}\p{N}])` com a flag `u` entende acento como letra de
+  // verdade. Achado e conserto: docs/celula-prospeccao/despachos/ONDA-2B-E-varredura-do-b.md.
+  { sinal: "voce_agora_e", re: /\bvoc[êe]\s+agora\s+[ée](?![\p{L}\p{N}])/giu },
   { sinal: "system_prompt", re: /\bsystem\s*:/gi },
   { sinal: "aja_como", re: /\baja\s+como\b/gi },
   {

@@ -393,17 +393,65 @@ describe("o registro da pergunta ao suporte bate com o que aconteceu", () => {
     // Registro que contradiz o fato é pior que registro ausente: ele faz a casa
     // decidir de novo o que já foi feito. O `.md` já dizia "ENVIADA"; o JSON
     // dizia `nao_perguntado`, e é o JSON que o Policy Engine lê.
-    expect(autorizacao.status).toBe("perguntado");
+    //
+    // 30/08/2026 — ONDA 2B/D: esta asserção deixou de prender a string exata
+    // "perguntado". Na recaptura de 30/08 o status evoluiu para "sem_resposta"
+    // (23 dias corridos sem resposta de suporte@99freelas.com.br — ver
+    // `status_atualizado_em_2026_08_30` no próprio policy.json): justificativa
+    // escrita no arquivo, `sem_resposta` já previsto em `status_valores` e nada
+    // destravado (metade 2 abaixo continua fechada). Isso é a política
+    // evoluindo de forma LEGÍTIMA, não regredindo — o fato que o CEO corrigiu
+    // em 08/08 (ele perguntou, o registro não pode voltar a dizer o contrário)
+    // é o invariante, não a letra "perguntado". Prender a string fixa faria a
+    // casa reescrever o registro toda vez que ele evoluísse corretamente.
+    expect(autorizacao.status).not.toBe("nao_perguntado");
+    expect(autorizacao.status_valores as string[]).toContain(autorizacao.status);
+    expect(["perguntado", "sem_resposta", "autorizado", "negado"]).toContain(autorizacao.status);
     expect(autorizacao.perguntado_em).toBe("2026-08-07");
     expect(autorizacao.canal).toBeTruthy();
   });
 
-  it("metade 2 — e 'perguntado' NÃO destrava o envio", () => {
-    // A parte fácil de escrever com otimismo é o status. O gate exige os três.
+  it("metade 2 — nenhum destes estados destrava o envio sozinho", () => {
+    // A parte fácil de escrever com otimismo é o status. O gate exige os três
+    // campos juntos, e nenhum estado só de "a pergunta foi feita" basta.
     const a = autorizacaoDoSuporte(politicaDe("99freelas"));
     expect(a.valeParaOGate).toBe(false);
     expect(autorizacao.respondido_em).toBeNull();
     expect(autorizacao.evidencia).toBeNull();
+    expect(policy.auto_submission_allowed).toBe(false);
+  });
+
+  it("se o status virar 'autorizado', o gate só abre com respondido_em E evidência juntos", () => {
+    // Prova com um objeto de política construído no teste — o arquivo real não
+    // é tocado. Impede a próxima quebra boba: alguém escrever "autorizado" sem
+    // arquivar a resposta.
+    const base = politicaDe("99freelas");
+    const soStatus = autorizacaoDoSuporte({ ...base, cru: { autorizacao_do_suporte: { status: "autorizado" } } });
+    expect(soStatus.valeParaOGate).toBe(false);
+
+    const semEvidencia = autorizacaoDoSuporte({
+      ...base,
+      cru: { autorizacao_do_suporte: { status: "autorizado", respondido_em: "2026-08-30" } },
+    });
+    expect(semEvidencia.valeParaOGate).toBe(false);
+
+    const semData = autorizacaoDoSuporte({
+      ...base,
+      cru: { autorizacao_do_suporte: { status: "autorizado", evidencia: "docs/plataformas/99freelas/resposta-do-suporte.md" } },
+    });
+    expect(semData.valeParaOGate).toBe(false);
+
+    const completo = autorizacaoDoSuporte({
+      ...base,
+      cru: {
+        autorizacao_do_suporte: {
+          status: "autorizado",
+          respondido_em: "2026-08-30",
+          evidencia: "docs/plataformas/99freelas/resposta-do-suporte.md",
+        },
+      },
+    });
+    expect(completo.valeParaOGate).toBe(true);
   });
 
   it("a divergência de Upwork e Freelancer ficou ESCRITA, não resolvida por palpite", () => {
