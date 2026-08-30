@@ -23,13 +23,13 @@ import { nucleoDeMentira, type ChamadaAoNucleo } from "./_nucleo-de-mentira";
 
 const URL_CONSULTA = "https://nucleo.invalido/api/connect/politicas/consulta";
 
-function corpo(assuntos: Array<{ assunto: string; motivo: string }>, agente = "pm-responde") {
+function corpo(assuntos: Array<{ assunto: string; motivo: string }>) {
   return {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       produto: "dioli-digital",
-      agente,
+      agente: "pm-responde",
       protocolo: "dioli-digital:c1:u1",
       referenciaDoCliente: "c1",
       assuntos,
@@ -37,6 +37,24 @@ function corpo(assuntos: Array<{ assunto: string; motivo: string }>, agente = "p
     }),
   } as RequestInit;
 }
+
+/** Um DESPACHO, que é onde `de`/`para` são exigidos. */
+function corpoDeDespacho(de = "conversational-sdr", para = "manager-atendimento") {
+  return {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      produto: "dioli-digital",
+      agente: "pm-responde",
+      de,
+      para,
+      foraDaAlcada: [{ assunto: "preco_ou_desconto", motivo: "m" }],
+      mensagem: "m",
+    }),
+  } as RequestInit;
+}
+
+const URL_DESPACHO = "https://nucleo.invalido/api/connect/despacho";
 
 describe("METADE 1 — o produto passa a falar a língua do núcleo", () => {
   it("⛔ ANTES: a classificação CRUA da casa não tem UM termo que o núcleo aceite", () => {
@@ -125,10 +143,7 @@ describe("METADE 2 — a CAUSA: o núcleo de mentira deixou de ser complacente",
     const chamadas: ChamadaAoNucleo[] = [];
     const nucleo = nucleoDeMentira(chamadas, { politica: {} });
 
-    const r = await nucleo(
-      URL_CONSULTA,
-      corpo([{ assunto: "preco_ou_desconto", motivo: "m" }], "agente-que-nao-existe"),
-    );
+    const r = await nucleo(URL_DESPACHO, corpoDeDespacho("agente-que-nao-existe"));
 
     expect(r.ok).toBe(false);
     await expect(r.json()).resolves.toEqual({ codigo: "remetente_desconhecido" });
@@ -153,8 +168,8 @@ describe("METADE 2 — a CAUSA: o núcleo de mentira deixou de ser complacente",
       corpo([{ assunto: "cancelamento", motivo: "m" }]),
     );
     const remetenteDesconhecido = await complacente(
-      URL_CONSULTA,
-      corpo([{ assunto: "preco_ou_desconto", motivo: "m" }], "agente-que-nao-existe"),
+      URL_DESPACHO,
+      corpoDeDespacho("agente-que-nao-existe"),
     );
 
     // É ISTO que deixou o defeito atravessar duas suítes verdes.

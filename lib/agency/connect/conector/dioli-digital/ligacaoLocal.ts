@@ -76,6 +76,31 @@ export const CANAL = "portal-do-cliente";
 /** Quem atende. É o PM automático — o único agente desta casa com ouvido. */
 export const AGENTE = "pm-responde";
 
+/**
+ * ⭐⭐ AS DUAS IDENTIDADES DO DIRETÓRIO CORPORATIVO — medidas, não supostas.
+ *
+ * ⚠️ NÃO CONFUNDIR COM `AGENTE`. `AGENTE` é o nome do processo DESTA casa
+ * (`pm-responde`, o laço do relógio que lê a caixa do portal). `DE` e `PARA`
+ * são **chaves do diretório do NÚCLEO**, que ele resolve e recorta pelo produto
+ * do portão. São perguntas diferentes: "que código meu disparou isto?" e "quem,
+ * no organograma da empresa, está perguntando e quem tem alçada para decidir?".
+ *
+ * Medidas contra o núcleo real em 30/08/2026 — este par voltou **201**, com
+ * `{"estado":"entregue","consultaId":…,"fioId":…}`, e resolveu para
+ * `dioli.dioli-digital.client-service-sdr.conversational-sdr` e
+ * `…client-service-sdr.manager-atendimento`.
+ *
+ * ⛔ Não se inventa crachá aqui. Chave que o diretório não conhece faz o núcleo
+ * recusar com `remetente_desconhecido`, e chave que ele conhece mas que não é
+ * quem atendeu é PIOR: passa, e assina a consulta com o nome errado.
+ */
+
+/** Quem pergunta: o SDR conversacional — o único da sala que lê o cliente. */
+export const DE = "conversational-sdr";
+
+/** Quem decide: o gerente da sala de atendimento. */
+export const PARA = "manager-atendimento";
+
 /** Teto da linha de `PortalMessage.body` já praticado na casa
  *  (`porta-da-pergunta.ts` corta em 2000). O conector nunca corta texto de
  *  gerente: quem recusa por tamanho é `receberRetorno`, com teto de 4000. Este

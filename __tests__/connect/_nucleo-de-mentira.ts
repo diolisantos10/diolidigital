@@ -52,16 +52,29 @@ export interface ChamadaAoNucleo {
  * ligacaoLocal.ts`), e ninguém verificou se o núcleo a conhece — esta sessão
  * não tem a credencial de produção para perguntar.
  *
- * ⚠️ Ou seja: este duplo prova a metade do VOCABULÁRIO (que é fato medido) e
- * NÃO prova a metade do REMETENTE para a Dioli Digital. Escrever aqui uma linha
- * que faz a suíte passar não torna o núcleo real de acordo — seria trocar um
- * duplo complacente por um duplo crédulo, que é o mesmo defeito com outro nome.
- * Quem tiver a credencial mede e corrige AQUI.
+ * ✅ A linha da Dioli Digital TAMBÉM É FATO desde 30/08/2026: o par
+ * `de: "conversational-sdr"` / `para: "manager-atendimento"` voltou **201**,
+ * resolvendo para `dioli.dioli-digital.client-service-sdr.conversational-sdr` e
+ * `…client-service-sdr.manager-atendimento`.
+ *
+ * ⚠️ E A CORREÇÃO QUE A MEDIÇÃO TROUXE, que vale ficar escrita: até aqui este
+ * duplo conferia o campo `agente` contra o diretório. Estava medindo o CAMPO
+ * ERRADO. `agente` é o nome do processo do produto (`pm-responde`, o laço do
+ * relógio); as chaves do diretório viajam em `de` e `para`. Um duplo que confere
+ * o campo errado dá verde sobre a pergunta errada — é primo do duplo
+ * complacente, e custa o mesmo tempo até alguém descobrir.
  */
 export const DIRETORIO_DO_NUCLEO: Readonly<Record<string, readonly string[]>> = {
-  // ⚠️ NÃO VERIFICADO contra o núcleo real — ver o aviso acima.
-  "dioli-digital": ["pm-responde"],
-  // ✅ Verificado pelo operador em 30/08/2026.
+  // ✅ Medido em 30/08/2026 — a sala `client-service-sdr` inteira.
+  "dioli-digital": [
+    "conversational-sdr",
+    "manager-atendimento",
+    "prospecting",
+    "qualification",
+    "initial-diagnosis",
+    "opportunity-crm",
+  ],
+  // ✅ Verificado pelo operador (`diretor-foocci` era recusado, `diretor` passa).
   foocci: ["diretor"],
 };
 
@@ -95,11 +108,20 @@ export function nucleoDeMentira(chamadas: ChamadaAoNucleo[], opcoes: OpcoesDoNuc
     const ehDespacho = url.endsWith("/api/connect/despacho");
 
     if (estrito) {
-      // ── Trava 2: o remetente existe no diretório, recortado pelo produto? ──
+      // ── Trava 2: `de` e `para` existem no diretório, recortados pelo produto?
+      //
+      // ⭐ São ESTES os campos que o núcleo resolve — não `agente`. No despacho
+      // as duas pontas são exigidas: quem pergunta e quem tem alçada.
       const produto = String(corpo.produto ?? "");
-      const agente = String(corpo.agente ?? "");
       const conhecidos = DIRETORIO_DO_NUCLEO[produto];
-      if (!conhecidos || !conhecidos.includes(agente)) {
+      if (ehDespacho) {
+        const de = String(corpo.de ?? "");
+        const para = String(corpo.para ?? "");
+        if (!conhecidos || !conhecidos.includes(de) || !conhecidos.includes(para)) {
+          return resposta({ codigo: "remetente_desconhecido" }, false, 400);
+        }
+      } else if (!conhecidos) {
+        // Na consulta de política o núcleo ainda recorta pelo PRODUTO do portão.
         return resposta({ codigo: "remetente_desconhecido" }, false, 400);
       }
 
@@ -108,13 +130,10 @@ export function nucleoDeMentira(chamadas: ChamadaAoNucleo[], opcoes: OpcoesDoNuc
       // ⭐ Medido contra o núcleo real em 30/08/2026: no despacho o campo é
       // `foraDaAlcada`, e mandar `assuntos` faz o núcleo recusar com
       // `sem_assuntos_fora_da_alcada`. Na CONSULTA DE POLÍTICA o campo segue
-      // sendo `assuntos` — é outro endpoint, e esse não foi medido.
-      //
-      // ⚠️ O NÚCLEO REAL TAMBÉM EXIGE `de` E `para`, e este duplo AINDA NÃO os
-      // cobra: são chaves resolvidas contra o diretório corporativo do núcleo, e
-      // ninguém aqui sabe quais são as da Dioli Digital. Cobrar a presença sem
-      // saber o valor certo trocaria um verde por um vermelho que não ensina
-      // nada. Assim que as chaves forem medidas, a trava entra AQUI.
+      // sendo `assuntos` — e isso TAMBÉM foi medido em 30/08/2026: aquele
+      // endpoint respondeu `{"contrato":"1.0.0","encontrada":false,...}` com
+      // `assuntos`. São dois contratos diferentes DE PROPÓSITO, e é por isso que
+      // `conector/politicas.ts` (comum) está certo e não se toca.
       if (ehDespacho && !Array.isArray(corpo.foraDaAlcada)) {
         return resposta(
           {
