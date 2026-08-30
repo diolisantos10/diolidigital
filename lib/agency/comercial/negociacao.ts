@@ -26,16 +26,22 @@
 // (as faixas e as regras de conduta). A trava do piso é executada no servidor,
 // aqui — trava, não aviso.
 //
-// ─── CONFLITO CONHECIDO, DECLARADO E NÃO ESCONDIDO ───────────────────────────
-// `docs/precos.md` (05/08/2026) diz: "Desconto sai do prazo ou da implantação,
-// nunca da mensalidade". A decisão do CEO desta tarefa (05/08/2026) autoriza
-// piso ABAIXO da mensalidade cheia dos planos (Ritmo 297→229 etc.). As duas
-// regras não cabem juntas. Este módulo implementa a decisão mais recente E
-// mantém a anterior viva como PREFERÊNCIA: em `moedasDeTroca`, o primeiro
-// pedido é sempre o que não custa margem (pagamento à vista, prazo). Quem
-// resolve a contradição no papel é o Diretor com o CEO — está em aberto.
+// ─── O CONFLITO QUE ESTAVA ABERTO AQUI FOI FECHADO (27/08/2026) ──────────────
+// Este cabeçalho declarava uma contradição viva: `docs/precos.md` dizia
+// "desconto sai do prazo ou da implantação, nunca da mensalidade", e este
+// módulo descontava a mensalidade em 22% (`preco * 0.78`).
+//
+// O CEO decidiu, e decidiu para o lado mais apertado: *"desconto que a casa não
+// autorizou não existe; sem faixa configurada, desconto nenhum"*. O piso agora
+// vem de `lib/agency/financeiro/tabela-de-precos.ts`, que é a fonte única — e
+// lá ele só desce se houver faixa DECLARADA, o que hoje não há.
+//
+// `moedasDeTroca` continua sendo a primeira resposta, e agora é a ÚNICA: o que
+// se negocia é prazo, escopo e degrau — nunca a mensalidade.
 
-import { precoEmReais } from "../planos";
+import { precoEmReais, PLANOS } from "../planos";
+import { pisoDoServico, servicoPorChave } from "@/lib/agency/financeiro/tabela-de-precos";
+import { SELF_SERVE_CATALOG } from "../self-serve-catalog";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. FAIXAS DE INVESTIMENTO — o que se oferece para cada bolso
@@ -67,6 +73,31 @@ export interface Oferta {
 
 /** As cinco faixas, na ordem. Ordem importa: `ofertaParaFaixa` percorre de baixo
  *  para cima e devolve a primeira que couber. */
+/**
+ * COMO O SDR NOMEIA UM PLANO. Nome e preço vêm de `planos.ts` — nunca digitados.
+ *
+ * ⛔ AQUI MORAVA O DEFEITO MAIS CARO DESTE ARQUIVO, e ele estava vivo em
+ * produção: as ofertas eram strings digitadas à mão, e tinham envelhecido sem
+ * que ninguém relesse. O SDR que conversa com prospect de verdade estava
+ * oferecendo, em 27/08/2026:
+ *
+ *   • *"Plano Ritmo (R$ 297/mês): 8 peças"*      → hoje é R$ 290 e 12 peças
+ *   • *"Plano Presença (R$ 790/mês)"*            → hoje é R$ 490 (R$ 790 é o CONTEÚDO)
+ *   • *"Plano Conteúdo (R$ 1.390/mês)"*          → hoje é R$ 790
+ *   • *"Plano Crescimento (R$ 2.590/mês)"*       → **este plano NÃO EXISTE MAIS**
+ *
+ * Quatro preços errados e um plano descontinuado sendo vendido. Não é detalhe
+ * de texto: é a casa cobrando o número errado na boca de quem fecha negócio.
+ *
+ * A lição é a da casa inteira: *verdade escrita em dois lugares já está errada
+ * em um deles* — e a cópia que apodrece é sempre a que ninguém relê.
+ */
+function ofertaDoPlano(id: "ritmo" | "presenca" | "conteudo"): string {
+  const p = PLANOS.find((x) => x.id === id);
+  if (!p) return "Plano sob consulta";
+  return `Plano ${p.nome} (${precoEmReais(p.preco)}/mês, ${p.pecasPorMes} peças)`;
+}
+
 export const FAIXAS: Oferta[] = [
   {
     faixa: "balcao",
@@ -85,7 +116,7 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 150 e R$ 500",
     de: 150,
     ate: 500,
-    principal: "Plano Ritmo (R$ 297/mês): pauta, 8 peças prontas por mês e aprovação no portal — quem publica é o cliente",
+    principal: `${ofertaDoPlano("ritmo")}: pauta, peças prontas e aprovação no portal — quem publica é o cliente`,
     alternativa: "Pacote de peças avulsas montado dentro do que ele tem para gastar",
     condicao: "No Ritmo a publicação é do cliente. Publicar por ele derruba a conta do degrau.",
     confirmarAntes: false,
@@ -95,7 +126,7 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 500 e R$ 1.500",
     de: 500,
     ate: 1500,
-    principal: "Plano Presença (R$ 790/mês): é aqui que entra gente da nossa equipe, publicação e Google gerenciado",
+    principal: `${ofertaDoPlano("presenca")}: é aqui que entra gente da nossa equipe, publicação e Google gerenciado`,
     alternativa: "Projeto de marca (identidade visual ou posicionamento), com começo e fim",
     condicao: "Projeto de marca não é mensalidade — é entrega com prazo próprio.",
     confirmarAntes: false,
@@ -105,8 +136,8 @@ export const FAIXAS: Oferta[] = [
     rotulo: "entre R$ 1.500 e R$ 5.000",
     de: 1500,
     ate: 5000,
-    principal: "Plano Crescimento (R$ 2.590/mês): conteúdo, criativos de anúncio e a campanha desenhada",
-    alternativa: "Plano Conteúdo (R$ 1.390/mês), quando ele ainda não vai colocar verba em anúncio",
+    principal: `${ofertaDoPlano("conteudo")}: o volume inteiro da casa, stories, plano de medição e reunião mensal`,
+    alternativa: "Projeto orçado à parte (campanha paga desenhada), com escopo, prazo e preço fechados antes de começar",
     // A verba de mídia fica FORA. Se ela entrar na conta da faixa, o cliente
     // acha que R$ 2.000 cobrem plano + anúncio, e a agência trabalha de graça.
     condicao: "A verba de mídia é sempre à parte, paga por ele direto à plataforma. Zero promessa de retorno.",
@@ -118,7 +149,7 @@ export const FAIXAS: Oferta[] = [
     de: 5000,
     ate: Number.POSITIVE_INFINITY,
     principal: "Projeto em fases: cada fase com escopo, prazo e preço fechados antes de começar",
-    alternativa: "Plano Crescimento como base, com as fases entrando por cima mês a mês",
+    alternativa: `${ofertaDoPlano("conteudo")} como base, com as fases entrando por cima mês a mês`,
     condicao: "Fase seguinte só é vendida com a anterior entregue. Nada de escopo aberto.",
     confirmarAntes: false,
   },
@@ -165,10 +196,11 @@ export type ItemNegociavel =
   | "stories"
   | "copy"
   | "auditoria"
+  // ⚠️ Os planos vêm da TABELA ÚNICA. `crescimento` saiu em 26/08/2026, junto
+  // com o degrau — não se negocia o que não se vende.
   | "ritmo"
   | "presenca"
-  | "conteudo"
-  | "crescimento";
+  | "conteudo";
 
 export interface LinhaDaTabela {
   id: ItemNegociavel;
@@ -186,45 +218,116 @@ export interface LinhaDaTabela {
 }
 
 export const TABELA_DE_PISO: Record<ItemNegociavel, LinhaDaTabela> = {
-  post: {
-    id: "post", nome: "Post único com arte e legenda", cheio: 79, piso: 49, recorrente: false,
-    versaoMenor: "só a legenda pronta, com a arte por conta dele",
-  },
-  carrossel: {
-    id: "carrossel", nome: "Carrossel", cheio: 129, piso: 79, recorrente: false,
-    versaoMenor: "um post único no lugar do carrossel",
-  },
-  stories: {
-    id: "stories", nome: "Sequência de stories", cheio: 99, piso: 59, recorrente: false,
-    versaoMenor: "uma sequência mais curta, com menos telas",
-  },
-  copy: {
-    id: "copy", nome: "Copy / legenda", cheio: 39, piso: 29, recorrente: false,
-    // A copy é o item mais barato da casa: não existe degrau abaixo dela.
-    // Aqui a saída é prazo, não escopo — e isso está dito com todas as letras.
-    versaoMenor: "sem versão menor: a saída é prazo maior de entrega, não preço",
-  },
-  auditoria: {
-    id: "auditoria", nome: "Auditoria de perfil", cheio: 149, piso: 99, recorrente: false,
-    versaoMenor: "uma leitura mais curta, só com o diagnóstico, sem o plano de ação",
-  },
-  ritmo: {
-    id: "ritmo", nome: "Plano Ritmo", cheio: 297, piso: 229, recorrente: true,
-    versaoMenor: "menos peças por mês dentro do próprio Ritmo, ou o Pulso (R$ 49) para começar medindo",
-  },
-  presenca: {
-    id: "presenca", nome: "Plano Presença", cheio: 790, piso: 690, recorrente: true,
-    versaoMenor: "o Ritmo (R$ 297), em que ele mesmo publica",
-  },
-  conteudo: {
-    id: "conteudo", nome: "Plano Conteúdo", cheio: 1390, piso: 1190, recorrente: true,
-    versaoMenor: "o Presença (R$ 790), sem stories e sem roteiro de reels",
-  },
-  crescimento: {
-    id: "crescimento", nome: "Plano Crescimento", cheio: 2590, piso: 2190, recorrente: true,
-    versaoMenor: "o Conteúdo (R$ 1.390), sem os criativos de anúncio",
-  },
+  // ── OS AVULSOS SÃO DERIVADOS DO BALCÃO (26/08/2026) ──────────────────────
+  //
+  // `cheio` e `piso` eram digitados aqui — 79/49, 129/79, 99/59, 39/29,
+  // 149/99 — e são, número por número, o `price` e o `precoMinimo` do mesmo
+  // item em `self-serve-catalog.ts`. Concordavam por sorte. Agora vêm de lá,
+  // pela mesma razão que os planos vêm de `planos.ts`: verdade escrita em dois
+  // lugares já está errada em um deles.
+  ...(avulsoDoBalcao("post", "balcao-post-feed", "Post único com arte e legenda",
+    "só a legenda pronta, com a arte por conta dele") as Record<"post", LinhaDaTabela>),
+  ...(avulsoDoBalcao("carrossel", "balcao-carrossel-5", "Carrossel",
+    "um post único no lugar do carrossel") as Record<"carrossel", LinhaDaTabela>),
+  ...(avulsoDoBalcao("stories", "balcao-4-stories", "Sequência de stories",
+    "uma sequência mais curta, com menos telas") as Record<"stories", LinhaDaTabela>),
+  // A copy é o item mais barato da casa: não existe degrau abaixo dela. Aqui a
+  // saída é prazo, não escopo — e isso está dito com todas as letras.
+  ...(avulsoDoBalcao("copy", "balcao-legenda", "Copy / legenda",
+    "sem versão menor: a saída é prazo maior de entrega, não preço") as Record<"copy", LinhaDaTabela>),
+  ...(avulsoDoBalcao("auditoria", "balcao-auditoria-perfil", "Auditoria de perfil",
+    "uma leitura mais curta, só com o diagnóstico, sem o plano de ação") as Record<"auditoria", LinhaDaTabela>),
+  // ── OS PLANOS SÃO DERIVADOS DA TABELA ÚNICA (26/08/2026) ─────────────────
+  //
+  // `cheio` era digitado aqui: 297 · 790 · 1390 · 2590 — uma quarta cópia dos
+  // preços da vitrine. Ela CONCORDAVA com a vitrine por sorte; nada a obrigava.
+  // No dia em que um preço mudasse num lugar só, o comercial negociaria contra
+  // um "cheio" que ninguém cobra — e desconto sobre preço errado é prejuízo com
+  // aparência de disciplina.
+  //
+  // `piso` é ~78% do cheio: piso COMERCIAL, o quanto a casa aceita descontar
+  // num recorrente. Derivado do mesmo número, pela mesma razão.
+  //
+  // O plano Crescimento saiu da tabela (ver `planos.ts`) e sai daqui junto: não
+  // se negocia o que não se vende.
+  ...(planosNegociaveis() as Record<"ritmo" | "presenca" | "conteudo", LinhaDaTabela>),
 };
+
+/**
+ * Uma linha de negociação a partir do item do BALCÃO. Preço cheio e piso saem
+ * do catálogo; o que mora aqui é o vocabulário da negociação (o nome que o
+ * comercial usa e a versão menor que ele oferece no lugar do desconto).
+ *
+ * Item sem `precoMinimo` no catálogo NÃO ganha piso inventado: cai em 70% do
+ * cheio, que é a mesma régua comercial dos planos — e nunca em zero, que
+ * autorizaria dar o trabalho de graça.
+ */
+function avulsoDoBalcao(
+  id: ItemNegociavel,
+  idNoCatalogo: string,
+  nome: string,
+  versaoMenor: string,
+): Record<string, LinhaDaTabela> {
+  const item = SELF_SERVE_CATALOG.find((s) => s.id === idNoCatalogo);
+  if (!item) {
+    // Fail-closed com barulho: um id de catálogo que sumiu não pode virar uma
+    // linha de negociação silenciosamente ausente — o comercial pediria piso e
+    // receberia `undefined`, que `dentroDoPiso` já trata como recusa.
+    throw new Error(`negociacao.ts: o item "${idNoCatalogo}" não existe em SELF_SERVE_CATALOG`);
+  }
+  return {
+    [id]: {
+      id,
+      nome,
+      cheio: item.price,
+      piso: item.precoMinimo ?? Math.round(item.price * 0.7),
+      recorrente: false,
+      versaoMenor,
+    } satisfies LinhaDaTabela,
+  };
+}
+
+/** Uma linha de negociação por plano que ENTREGA PEÇA — o Pulso não se negocia
+ *  (R$ 49 não tem degrau abaixo e não há escopo a tirar). */
+function planosNegociaveis(): Record<string, LinhaDaTabela> {
+  const comPeca = PLANOS.filter((p) => p.pecasPorMes > 0);
+  return Object.fromEntries(
+    comPeca.map((p: (typeof PLANOS)[number], i: number) => {
+      const abaixo = i > 0 ? comPeca[i - 1]! : PLANOS[0]!;
+      return [
+        p.id,
+        {
+          id: p.id as ItemNegociavel,
+          nome: `Plano ${p.nome}`,
+          cheio: p.preco,
+          // ⛔ AQUI HAVIA `Math.round(p.preco * 0.78)` — um desconto de 22%
+          // que NINGUÉM autorizou, embutido numa multiplicação.
+          //
+          // Ordem do CEO em 27/08/2026: *"desconto que a casa não autorizou não
+          // existe; sem faixa configurada, desconto nenhum"*. E o motivo é mais
+          // duro que a ordem: o piso tem de ter margem positiva PROVADA, e o
+          // custo desta casa está medido pela metade (só IA; gateway, infra,
+          // e-mail, hora humana e impostos são NÃO MEDIDOS — ver
+          // `tabela-de-precos.ts`). Não se prova que 78% do preço cobre um custo
+          // que ninguém conhece. Um coeficiente escolhido a olho é exatamente a
+          // "régua verde sobre o componente errado".
+          //
+          // O piso passa a vir da tabela única. Hoje ele é o preço cheio. No dia
+          // em que o CEO autorizar uma faixa, ela entra lá — num campo só, com
+          // dono — e este arquivo obedece sem ser tocado.
+          piso: pisoDoServico(servicoPorChave(`plano_${p.id}`) ?? {
+            chave: `plano_${p.id}`, nome: p.nome, precoFinalCentavos: p.preco * 100,
+            pecasPorMes: p.pecasPorMes, produtor: "humano",
+            custo: { estado: "nao_medido", motivo: "plano fora da tabela financeira" },
+            descontoAutorizadoPct: null,
+          }) / 100,
+          recorrente: true,
+          versaoMenor: `o ${abaixo.nome} (${precoEmReais(abaixo.preco)})`,
+        } satisfies LinhaDaTabela,
+      ];
+    }),
+  );
+}
 
 export interface VeredictoDePreco {
   pode: boolean;
@@ -678,4 +781,87 @@ export function normalizarFaixa(valor: unknown): string | null {
   if (!limpo) return null;
   const achou = FAIXAS.find((f) => f.faixa === limpo || f.rotulo.toLowerCase() === limpo);
   return achou ? achou.rotulo : null;
+}
+
+/**
+ * A FAIXA QUE O CLIENTE ESCOLHEU DO CARDÁPIO — quando ele repetiu o rótulo.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * POR QUE ISTO EXISTE (cliente oculto, 8ª volta, 26/08/2026)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * ⚠️ MEDIDO EM PRODUÇÃO, no 3º turno da jornada. O SDR ofereceu a régua inteira
+ * — "até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500, …" — e o
+ * cliente respondeu, palavra por palavra:
+ *
+ *     "Entre R$ 500 e R$ 1.500."
+ *
+ * O escopo saiu com **`budgetRange: "entre R$ 150 e R$ 500"`** — o degrau de
+ * BAIXO. E o SDR respondeu "Anotei sua faixa de investimento": a casa confirmou
+ * ter registrado o que ele disse, e registrou outra coisa. É a mesma família da
+ * mira invertida, agora num campo de DINHEIRO.
+ *
+ * ── A CAUSA, E ELA É UM CONSERTO ANTERIOR ─────────────────────────────────
+ *
+ * A 6ª volta acertou uma regra: *"quando o cliente disse um número, o número
+ * manda"* — nasceu de *"meu teto é R$ 900"* virar "entre R$ 150 e R$ 500".
+ * Certa para uma FALA COM VALOR.
+ *
+ * Só que aqui o cliente não disse um valor: ele **repetiu um RÓTULO do cardápio
+ * que a casa acabou de oferecer**. `parseBudgetAmount` pegou o primeiro número
+ * do rótulo (500) e `ofertaParaFaixa(500)` escolheu, corretamente pela própria
+ * régua (`500 > 150 && 500 <= 500`), o degrau de baixo — porque 500 é o TETO de
+ * um degrau e o PISO do seguinte. A regra do número atropelou a escolha explícita.
+ *
+ * ── A HIERARQUIA CERTA ────────────────────────────────────────────────────
+ *
+ * Escolher do cardápio é a evidência MAIS FORTE que existe: não há o que
+ * derivar, ele apontou o degrau. Por isso esta função roda ANTES do número, e
+ * o número continua mandando em tudo o que não for uma escolha explícita.
+ *
+ * Casa por NÚMEROS, não por texto: os dois valores da fala têm de ser os dois
+ * limites de um degrau. Uma comparação de string tropeçaria em "R$ 1.500" contra
+ * "R$1500" e em maiúscula, acento e pontuação — e uma régua frouxa aqui erra
+ * para o lado caro ou barato do bolso do cliente.
+ */
+export function faixaEscolhidaNaFala(fala: unknown): string | null {
+  if (typeof fala !== "string" || !fala.trim()) return null;
+  const t = fala.toLowerCase();
+
+  // Os números da fala, com a pontuação brasileira desfeita: "1.500" é mil e
+  // quinhentos, não um e meio.
+  const numeros = [...t.matchAll(/\d[\d.,]*/g)]
+    .map((m) => Number(m[0].replace(/\.(?=\d{3}\b)/g, "").replace(",", ".")))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (numeros.length === 0) return null;
+
+  // 1. O DEGRAU FECHADO — "entre R$ 500 e R$ 1.500". Os dois limites, na fala.
+  //    É o caso medido, e o mais forte: dois números que casam com um degrau
+  //    inteiro não são coincidência.
+  for (const f of FAIXAS) {
+    if (!Number.isFinite(f.ate)) continue;
+    if (numeros.includes(f.de) && numeros.includes(f.ate)) return f.rotulo;
+  }
+
+  // 2. O DEGRAU ABERTO PARA CIMA — "acima de R$ 5.000", "mais de 5000".
+  //    Sem isto, `ofertaParaFaixa(5000)` devolveria "entre R$ 1.500 e R$ 5.000",
+  //    pela mesma aritmética de borda que causou o defeito medido.
+  if (/\b(?:acima|mais)\s+de\b/.test(t)) {
+    const f = FAIXAS.find((x) => numeros.includes(x.de));
+    if (f) return f.rotulo;
+  }
+
+  // 3. O DEGRAU ABERTO PARA BAIXO — "até R$ 150". Aqui a aritmética de borda já
+  //    acerta (150 <= 150), mas a escolha explícita não deve depender disso.
+  // `é` não é caractere de palavra: um `\b` depois dele NUNCA casa, e a régua
+  // devolvia `null` para "até R$ 150" — o próprio teste de cardápio pegou.
+  // É a mesma armadilha que `mira-da-peca.ts` já registrou sobre `ª`/`º`.
+  if (/\bat[ée](?![a-z])/.test(t)) {
+    const f = FAIXAS.find((x) => Number.isFinite(x.ate) && numeros.includes(x.ate));
+    if (f) return f.rotulo;
+  }
+
+  // Ele falou de dinheiro, mas não apontou um degrau. Quem responde é o número
+  // — a regra da 6ª volta, intacta.
+  return null;
 }

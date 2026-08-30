@@ -1,0 +1,127 @@
+// O GERENTE GERAL DESPACHAVA PARA SI MESMO — 8ª volta, 26/08/2026.
+//
+// Medido em produção: `gerente_geral_recusou_demanda` — "O Gerente Geral não
+// despacha para si mesmo — demanda que volta para o topo não anda."
+//
+// A trava está certa e continua de pé. Quem errava era a ORIGEM: no manifesto,
+// o gerente do departamento `project-management` é o próprio `gerente-geral`.
+// Toda tarefa nascida com esse departamento produzia, por aritmética da cadeia,
+// um despacho do GG para ele mesmo — e uma recusa. Não era borda: era sempre.
+
+import { describe, it, expect } from "vitest";
+import { validatePMOrchestratorOutput, buildPMOrchestratorMessages, ORCHESTRATOR_DEPTS } from "@/lib/agency/intelligence/openai-schemas";
+import { proposeProjectRuleBased } from "@/lib/dioli-brain/pm-orchestrator";
+import { despacharPlanoPeloGerenteGeral } from "@/lib/agency/gerencia/entrada-da-demanda";
+import { gerenteDe, GERENTE_GERAL } from "@/lib/agency/gerencia/cadeia";
+
+import type { ClientKnowledgeSnapshot } from "@/lib/dioli-brain/client-snapshot";
+
+const CTX = { aceiteComercial: true, correlationId: "teste" };
+
+/** O snapshot mínimo que o tipo exige. `tsc` barrou este teste antes do commit
+ *  por causa de `brandBrainComplete` — a régua da casa pegando de novo o meu
+ *  próprio teste, e é para isso que ela existe. */
+const snapshot = (o: Partial<ClientKnowledgeSnapshot>): ClientKnowledgeSnapshot => ({
+  clientRequestId: "r1", businessName: "N", segment: "", services: [], objectives: [],
+  rawContext: "", missingFields: [], brandBrainComplete: false, ...o,
+});
+
+describe("o fato que produziu a recusa", () => {
+  it("o gerente de project-management É o Gerente Geral — a colisão é estrutural", () => {
+    expect(gerenteDe("project-management")).toBe(GERENTE_GERAL);
+  });
+
+  it("a trava continua de pé: uma tarefa de project-management AINDA é recusada", () => {
+    const plano = despacharPlanoPeloGerenteGeral(
+      [{ title: "Coordenar o projeto", description: null, department: "project-management", estimatedDays: 2 }],
+      CTX,
+    );
+    expect(plano.despachadas).toHaveLength(0);
+    expect(plano.recusadas[0].motivo).toContain("não despacha para si mesmo");
+  });
+});
+
+describe("a origem parou de chamar errado", () => {
+  it("o Brand Brain incompleto vira AVISO com dono e próxima ação — não tarefa do plano", () => {
+    const proposta = proposeProjectRuleBased(snapshot({
+      businessName: "GRAO DO BECO NOME TESTE", segment: "cafeteria",
+      services: ["social media"], objectives: ["vender mais"],
+      missingFields: ["tom de voz", "paleta", "público", "posicionamento", "tagline"],
+    }));
+
+    // Coletar dado que falta não é entrega de departamento nenhum: é a casa
+    // falando com o cliente, e disso a casa já cuida por outro cano.
+    expect(proposta.tasks.find((t) => t.title.includes("Brand Brain"))).toBeUndefined();
+    const aviso = proposta.warnings.find((w) => w.includes("Brand Brain incompleto"));
+    expect(aviso).toBeTruthy();
+    expect(aviso).toContain("Dono:");
+    expect(aviso).toContain("Próxima ação:");
+    expect(aviso).toContain("tom de voz");
+
+    const plano = despacharPlanoPeloGerenteGeral(
+      proposta.tasks.map((t) => ({ title: t.title, description: t.description ?? null, department: t.department, estimatedDays: t.estimatedDays })),
+      CTX,
+    );
+    // O plano inteiro passa: nenhuma recusa, e nenhuma delas do próprio GG.
+    expect(plano.recusadas).toEqual([]);
+    expect(plano.despachadas.map((d) => d.gerenteId)).not.toContain(GERENTE_GERAL);
+  });
+
+  it("NENHUMA tarefa da proposta rule-based nasce em project-management", () => {
+    for (const servicos of [["social media"], ["tráfego pago"], ["design"], []]) {
+      const p = proposeProjectRuleBased(snapshot({ services: servicos, missingFields: ["tom de voz"] }));
+      expect(p.tasks.map((t) => t.department), servicos.join()).not.toContain("project-management");
+    }
+  });
+
+  it("a porta que oferecia o departamento ao modelo deixou de oferecê-lo", () => {
+    const { system } = buildPMOrchestratorMessages({
+      businessName: "N", segment: "", services: [], objectives: [], rawContext: "",
+    });
+    expect(system).not.toMatch(/department"\):\n[^\n]*project-management/);
+    expect(system).toMatch(/NUNCA use "project-management"/);
+  });
+
+  it("e o validador RECUSA o plano que insistir — prompt é aviso, código é trava", () => {
+    const cru = {
+      name: "P", goal: "G", stage: "briefing",
+      tasks: [{ title: "Coordenar", description: "d", department: "project-management", priority: "high", estimatedDays: 2 }],
+    };
+    expect(validatePMOrchestratorOutput(cru)).toBeNull();
+
+    const bom = { ...cru, tasks: [{ ...cru.tasks[0], department: "strategy" }] };
+    expect(validatePMOrchestratorOutput(bom)?.tasks[0].department).toBe("strategy");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A CATRACA GENÉRICA — a propriedade, não a palavra (26/08/2026)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Tudo acima confere o literal `"project-management"`. Isso guarda o defeito de
+// ontem e não guarda o de amanhã: o que produziu a recusa não foi o NOME do
+// departamento, foi a PROPRIEDADE de o gerente dele ser o próprio Gerente
+// Geral. No dia em que o manifesto promover outro departamento ao GG, cada
+// régua literal acima passa verde sobre exatamente o mesmo defeito.
+//
+// (E é a lição que o auditor anterior deixou escrita no próprio código: ele
+// tratou como ROTEAMENTO — trocar o departamento — o que era CLASSE. A régua
+// literal é a versão dessa mesma confusão dentro do teste.)
+describe("catraca — nenhum departamento oferecido tem o GG por gerente", () => {
+  it("a lista que o orquestrador de IA pode usar não contém nenhum", () => {
+    for (const dept of ORCHESTRATOR_DEPTS) {
+      expect(
+        gerenteDe(dept),
+        `o departamento "${dept}" tem o Gerente Geral por gerente — toda tarefa nele volta para o topo`,
+      ).not.toBe(GERENTE_GERAL);
+    }
+  });
+
+  it("e nenhum departamento que a proposta rule-based emite, para nenhum serviço", () => {
+    for (const servicos of [["social media"], ["tráfego pago"], ["design"], ["social media", "tráfego pago"], []]) {
+      for (const t of proposeProjectRuleBased(snapshot({ services: servicos, missingFields: ["tom de voz"] })).tasks) {
+        expect(gerenteDe(t.department), `${servicos.join()} → "${t.title}" (${t.department})`).not.toBe(GERENTE_GERAL);
+      }
+    }
+  });
+});

@@ -67,8 +67,60 @@
 
 import { prisma } from "@/lib/db/client";
 
+// ─── O DEFEITO QUE ESTE TETO CAUSOU, MEDIDO EM PRODUÇÃO (25/08/2026) ────────
+//
+// O cliente oculto bateu na porta pública de `www.diolidigital.com.br` e levou
+// `{"ok":false,"reason":"teto_de_custo"}` em NOVE turnos seguidos. A porta da
+// frente da agência — a única entrada de receita — estava fechada para todo
+// visitante da internet.
+//
+// A causa não foi ataque nem laço de requisições. Foi ESTE ARQUIVO contando a
+// coisa errada. `gastoNaJanelaUsd` somava **todo** o `AIRunLog` do workspace na
+// janela, e o relatório de gasto das últimas 24 h dizia:
+//
+//     total ............................ US$ 7,67   (teto: US$ 5,00)
+//     openai/gpt-image-1 ...............  US$ 6,09  ← 79%, 28 chamadas
+//     claude/claude-haiku-4-5 ..........  US$ 1,49
+//
+// `gpt-image-1` é **produção de arte** — trabalho interno, autenticado, de
+// clientes que já pagaram. Ou seja: a casa produzia as peças da manhã e, com
+// isso, fechava a própria porta da frente à tarde. Quanto melhor a agência
+// trabalha, menos clientes novos ela consegue atender. É o incentivo invertido.
+//
+// O cabeçalho acima já dizia o que este teto queria ser — *"o teto de GASTO da
+// porta da rua"*, *"o gasto da porta pública"*, *"um chão embaixo do laço de
+// requisições"*. A implementação media outra coisa. Régua verde sobre o
+// componente errado é pior que régua nenhuma.
+//
+// ─── DOIS TETOS, PORQUE SÃO DOIS RISCOS ─────────────────────────────────────
+//
+// Estreitar o teto para a porta pública, e só isso, abriria um buraco: o gasto
+// TOTAL da casa deixaria de ter qualquer limite. Então são dois, com motivos
+// diferentes e números diferentes:
+//
+//   1. **O teto da porta** (US$ 5 / 24 h) — conta só o que o agente
+//      `comercial-sdr` gastou. É o freio contra o desconhecido da internet.
+//   2. **O teto do workspace** (US$ 25 / 24 h) — conta tudo. É o freio contra
+//      a casa se sangrando sozinha (um laço de produção, um modelo caro novo).
+//      Ele NÃO é o freio da porta: quando ele estoura, o problema é interno.
+//
+// ⚠️ **O NÚMERO 25 PRECISA DO CEO.** Ele não saiu de uma medição de negócio —
+// saiu de "cinco vezes o teto da porta, e acima do pico real medido de US$ 7,67
+// num dia de produção". É um chão para impedir sangria, não um orçamento. Quem
+// decide quanto a agência pode gastar por dia é o CEO; até ele dizer, este
+// número está declarado aqui e sobrescrevível por `TETO_DIARIO_WORKSPACE_USD`.
+
+/** O agente que atende a porta da rua. É o mesmo `agentId` que
+ *  `app/api/sdr/chat/route.ts` carimba nas duas chamadas pagas dela — e é o
+ *  que separa "a internet gastou" de "a casa produziu". */
+export const AGENTE_DA_PORTA_PUBLICA = "comercial-sdr";
+
 /** O padrão da casa: US$ por workspace, por janela de 24 h, na porta pública. */
 export const TETO_DIARIO_PADRAO_USD = 5;
+
+/** O teto de TUDO que o workspace gasta na janela. Ver o aviso acima: o
+ *  número é provisório e é do CEO. */
+export const TETO_DIARIO_WORKSPACE_PADRAO_USD = 25;
 
 /** A janela do teto. Rolante, não "meia-noite": um atacante que espera o
  *  virar do dia ganharia a cota inteira de novo às 00h01. */
@@ -88,7 +140,16 @@ export const CUSTO_DE_CHAMADA_SEM_PRECO_USD = 0.05;
 
 export type VeredictoDeTeto =
   | { pode: true; gastoUsd: number; tetoUsd: number }
-  | { pode: false; motivo: "sem_workspace" | "sem_teto" | "contador_fora_do_ar" | "teto_estourado"; gastoUsd: number | null; tetoUsd: number | null };
+  | {
+      pode: false;
+      /** `teto_estourado` é a PORTA; `teto_do_workspace_estourado` é a casa.
+       *  Achatar os dois num motivo só foi exatamente o que fez a auditoria de
+       *  25/08 levar meia hora para descobrir que ninguém estava atacando
+       *  nada. Dois fatos, dois motivos. */
+      motivo: "sem_workspace" | "sem_teto" | "contador_fora_do_ar" | "teto_estourado" | "teto_do_workspace_estourado";
+      gastoUsd: number | null;
+      tetoUsd: number | null;
+    };
 
 /**
  * O teto configurado, em USD — ou `null` quando a configuração é ilegível.
@@ -97,13 +158,21 @@ export type VeredictoDeTeto =
  * zero. Os dois NUNCA caem no mesmo `if` — ver o cabeçalho.
  */
 export function tetoConfiguradoUsd(env: NodeJS.ProcessEnv = process.env): number | null {
-  const cru = env.TETO_DIARIO_SDR_USD;
-  if (cru === undefined || cru === null || cru.trim() === "") return TETO_DIARIO_PADRAO_USD;
+  return lerTeto(env.TETO_DIARIO_SDR_USD, TETO_DIARIO_PADRAO_USD, "TETO_DIARIO_SDR_USD");
+}
+
+/** O teto de TUDO no workspace. Mesma regra de leitura, outro número. */
+export function tetoDoWorkspaceUsd(env: NodeJS.ProcessEnv = process.env): number | null {
+  return lerTeto(env.TETO_DIARIO_WORKSPACE_USD, TETO_DIARIO_WORKSPACE_PADRAO_USD, "TETO_DIARIO_WORKSPACE_USD");
+}
+
+function lerTeto(cru: string | undefined, padrao: number, nome: string): number | null {
+  if (cru === undefined || cru === null || cru.trim() === "") return padrao;
   const n = Number(cru.trim());
   // `Number("")` é 0 e `Number("abc")` é NaN: o vazio já saiu acima, e o
   // ilegível vira `null` (não gasta), nunca o padrão.
   if (!Number.isFinite(n) || n < 0) {
-    console.error(`[teto-de-custo] TETO_DIARIO_SDR_USD ilegível ("${cru}") — a porta pública NÃO gasta até isto ser corrigido`);
+    console.error(`[teto-de-custo] ${nome} ilegível ("${cru}") — a porta pública NÃO gasta até isto ser corrigido`);
     return null;
   }
   return n;
@@ -115,11 +184,17 @@ export function tetoConfiguradoUsd(env: NodeJS.ProcessEnv = process.env): number
  * `null` = o contador não respondeu. Quem chama não gasta: contador fora do ar
  * recusa, não libera.
  */
-export async function gastoNaJanelaUsd(workspaceId: string, agora = Date.now()): Promise<number | null> {
+export async function gastoNaJanelaUsd(
+  workspaceId: string,
+  agora = Date.now(),
+  /** `undefined` = tudo do workspace. Um `agentId` = só o que ELE gastou.
+   *  É este parâmetro que separa "a internet gastou" de "a casa produziu". */
+  agentId?: string,
+): Promise<number | null> {
   const desde = new Date(agora - JANELA_DO_TETO_MS);
   try {
     const linhas = await prisma.aIRunLog.findMany({
-      where: { workspaceId, createdAt: { gte: desde } },
+      where: { workspaceId, createdAt: { gte: desde }, ...(agentId ? { agentId } : {}) },
       select: { custoEstimadoUsd: true },
     });
     let soma = 0;
@@ -151,13 +226,27 @@ export async function podeGastarNaPortaPublica(
   const teto = tetoConfiguradoUsd();
   if (teto === null) return { pode: false, motivo: "sem_teto", gastoUsd: null, tetoUsd: null };
 
-  const gasto = await gastoNaJanelaUsd(workspaceId, agora);
+  const tetoDaCasa = tetoDoWorkspaceUsd();
+  if (tetoDaCasa === null) return { pode: false, motivo: "sem_teto", gastoUsd: null, tetoUsd: null };
+
+  // 1. O FREIO DA CASA. Conta tudo. Estourar aqui é problema INTERNO — um laço
+  //    de produção, um modelo caro novo — e não um visitante na porta.
+  const gastoDaCasa = await gastoNaJanelaUsd(workspaceId, agora);
+  if (gastoDaCasa === null) return { pode: false, motivo: "contador_fora_do_ar", gastoUsd: null, tetoUsd: tetoDaCasa };
+  if (gastoDaCasa >= tetoDaCasa) {
+    console.warn(`[teto-de-custo] TETO DA CASA estourado — workspace=${workspaceId} gasto=US$${gastoDaCasa.toFixed(4)} teto=US$${tetoDaCasa.toFixed(2)}`);
+    return { pode: false, motivo: "teto_do_workspace_estourado", gastoUsd: gastoDaCasa, tetoUsd: tetoDaCasa };
+  }
+
+  // 2. O FREIO DA PORTA. Conta SÓ o que a porta pública gastou. Era isto que
+  //    este arquivo sempre disse que fazia, e não fazia.
+  const gasto = await gastoNaJanelaUsd(workspaceId, agora, AGENTE_DA_PORTA_PUBLICA);
   if (gasto === null) return { pode: false, motivo: "contador_fora_do_ar", gastoUsd: null, tetoUsd: teto };
 
   // `>=` e não `>`: com teto 0 e gasto 0, `0 > 0` é falso e a porta abriria —
   // é assim que "teto 0" vira "sem limite". Com `>=`, zero é zero.
   if (gasto >= teto) {
-    console.warn(`[teto-de-custo] teto estourado — workspace=${workspaceId} gasto=US$${gasto.toFixed(4)} teto=US$${teto.toFixed(2)}`);
+    console.warn(`[teto-de-custo] teto DA PORTA estourado — workspace=${workspaceId} gasto=US$${gasto.toFixed(4)} teto=US$${teto.toFixed(2)}`);
     return { pode: false, motivo: "teto_estourado", gastoUsd: gasto, tetoUsd: teto };
   }
   return { pode: true, gastoUsd: gasto, tetoUsd: teto };

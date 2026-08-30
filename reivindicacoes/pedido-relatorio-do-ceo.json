@@ -1,0 +1,12 @@
+{
+  "id": "pedido-relatorio-do-ceo",
+  "quem": "ses-b6c221003f",
+  "frente": "Pedido do CEO: relatorio consolidado pelo Diretor Geral",
+  "responsabilidade": "pedido-relatorio-do-ceo",
+  "arquivos": [
+    "docs/diagnosticos/pedido-do-ceo-relatorio-consolidado.md"
+  ],
+  "abertaEm": "2026-08-28T11:42:51.948Z",
+  "encerradaEm": null,
+  "rotulo": "diolidigital-f0"
+}

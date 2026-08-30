@@ -1,0 +1,11 @@
+-- Operação Salvaguarda — Instagram Story V1 (25/08/2026)
+--
+-- O PRODUTO CANÔNICO passa a viajar COM o pedido.
+--
+-- Até aqui o formato que o cliente pediu morria na triagem: story, post e
+-- carrossel dividiam o mesmo atendimento e o mesmo item de catálogo, e não
+-- havia coluna onde "isto é um story" pudesse sobreviver até a produção.
+--
+-- ADITIVA e NULA por padrão: nenhum pedido existente muda de comportamento.
+-- Nulo NÃO é um produto padrão — quem lê trata a ausência como ausência.
+ALTER TABLE "ContentRequest" ADD COLUMN "produtoId" TEXT;

@@ -49,21 +49,27 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     select: {
       id: true, name: true, clientRequestId: true, stage: true,
       executionStatus: true, directionApprovedAt: true, presentedAt: true, clientApprovedAt: true,
+      // O carimbo da produção concluída — já estava no banco e ninguém lia.
+      // Ver `RetratoDoProjeto.producaoConcluidaEm`.
+      executionFinishedAt: true, executionError: true,
       workspaceId: true, clientId: true,
       client: { select: { name: true } },
     },
   }).catch(() => null);
   if (!projeto) return null;
 
-  const [tarefas, pendencias, ciclo, entregaveis, solicitacao, posts, conexoes, pacote] = await Promise.all([
+  const [tarefas, pendencias, ciclo, entregaveis, solicitacao, posts, conexoes, pacote, pagamentoConfirmado] = await Promise.all([
     contarTarefas(projectId),
     pedidosAbertos(projectId),
     cicloAberto(projectId),
     prisma.deliverable.groupBy({
-      by: ["status", "revisionStatus"],
+      // `qualityArbitragem` entra no agrupamento porque a pergunta "quem
+      // julgou" não é respondível por `revisionStatus` — foi essa fusão que
+      // deixou o Farol 27 exibir auditoria independente onde não houve nenhuma.
+      by: ["status", "revisionStatus", "qualityArbitragem"],
       where: { projectId },
       _count: { _all: true },
-    }).catch(() => [] as Array<{ status: string; revisionStatus: string | null; _count: { _all: number } }>),
+    }).catch(() => [] as Array<{ status: string; revisionStatus: string | null; qualityArbitragem: string | null; _count: { _all: number } }>),
     projeto.clientRequestId
       ? prisma.clientRequestDb.findUnique({ where: { id: projeto.clientRequestId }, select: { status: true } }).catch(() => null)
       : Promise.resolve(null),
@@ -82,12 +88,31 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     // Nunca lança e nunca devolve "pronto" por engano: falha de leitura vira
     // pacote vazio, e pacote vazio não pede aprovação. Ver `pacote.ts`.
     retratoDoPacote(projectId),
+    // ── O PAGAMENTO, LIDO PELA MESMA TESTEMUNHA DA TRAVA ──────────────────
+    //
+    // `PagamentoConfirmado` é a tabela que `conferirPagamento` consulta para
+    // LIBERAR a produção. Vem para cá porque `/api/portal/projetos` sabia disto
+    // e a esteira não — e foi essa assimetria que produziu a terceira
+    // contradição do portal (ver o ramo novo em `lerFase`).
+    //
+    // ⚠️ `undefined` quando não há como medir (projeto sem pedido de origem, ou
+    // leitura que falhou): ausência de informação não é informação, e um
+    // `false` de banco lento faria a etapa do cliente dizer "aguardando
+    // pagamento" sobre um projeto pago.
+    projeto.clientRequestId
+      ? prisma.pagamentoConfirmado
+          .count({ where: { clientRequestId: projeto.clientRequestId, valorCentavos: { gt: 0 } } })
+          .then((n) => n > 0)
+          .catch(() => undefined)
+      : Promise.resolve(undefined as boolean | undefined),
   ]);
 
   const contarPosts = (status: string) =>
     posts.find((p) => p.status === status)?._count._all ?? 0;
 
   let total = 0, emRevisao = 0, comRessalva = 0, aprovados = 0, semAuditoria = 0;
+  // As três palavras, contadas separadas. Ver `RetratoDoProjeto.entregaveis`.
+  let julgadasPorArbitroIndependente = 0, autojulgadas = 0, decididasPorPessoa = 0, arbitragemNaoMedida = 0;
   for (const linha of entregaveis) {
     const n = linha._count._all;
     total += n;
@@ -101,6 +126,23 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     // nenhum do sistema, embora o dado estivesse gravado no banco desde o
     // primeiro dia do estado novo.
     if (linha.revisionStatus === "quality_nao_auditado") semAuditoria += n;
+
+    // ── QUEM JULGOU — pergunta diferente, coluna diferente ──────────────────
+    // Só as peças que RECEBERAM um veredito entram nesta conta: `nao_auditado`
+    // já tem a coluna dele (`semAuditoria`) e contá-lo aqui de novo faria o
+    // mesmo número aparecer duas vezes com dois significados.
+    const teveVeredito = linha.revisionStatus === "quality_ok" || linha.revisionStatus === "quality_flag";
+    if (teveVeredito) {
+      if (linha.qualityArbitragem === "arbitro_independente") julgadasPorArbitroIndependente += n;
+      else if (linha.qualityArbitragem === "autojulgado") autojulgadas += n;
+      // Uma PESSOA decidiu pela tela. Somar isto a "árbitro independente" seria
+      // exatamente a mentira que estas colunas existem para impedir.
+      else if (linha.qualityArbitragem === "decisao_humana") decididasPorPessoa += n;
+      // NULO É "NÃO MEDIDO", NUNCA "INDEPENDENTE". Peça anterior a 25/08/2026
+      // não tem a medição; empurrá-la para a coluna verde reconstruiria o
+      // defeito que esta coluna existe para consertar.
+      else arbitragemNaoMedida += n;
+    }
   }
 
   const statusSolicitacao = solicitacao?.status ?? null;
@@ -113,13 +155,28 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
       Boolean(projeto.presentedAt) ||
       STATUS_ACEITE.includes((statusSolicitacao ?? "").toLowerCase()) ||
       (projeto.stage ?? "") !== "briefing",
+    ...(pagamentoConfirmado === undefined ? {} : { pagamentoConfirmado }),
     direcaoAprovadaEm: projeto.directionApprovedAt,
     apresentadoEm: projeto.presentedAt,
     aprovadoPeloClienteEm: projeto.clientApprovedAt,
     execucao: projeto.executionStatus,
+    // ── O CARIMBO, NÃO O STATUS ────────────────────────────────────────────
+    // `executionStatus` oscila (um reinício de contêiner o põe em `pending`);
+    // `executionFinishedAt` não é apagado nunca. O par com `executionError`
+    // vazio é o único que diz "uma passada TERMINOU com tudo resolvido" — que
+    // é o que o degrau da revisão interna significa. Ver `pisoDaTrilha`.
+    producaoConcluidaEm: projeto.executionError ? null : projeto.executionFinishedAt,
     tarefas,
-    entregaveis: { total, emRevisao, comRessalva, aprovados, semAuditoria },
+    entregaveis: {
+      total, emRevisao, comRessalva, aprovados, semAuditoria,
+      julgadasPorArbitroIndependente, autojulgadas, decididasPorPessoa, arbitragemNaoMedida,
+    },
     pedidosAbertos: pendencias.length,
+    // Quantos desses pedidos o cliente DE FATO recebeu (`askedClientAt`). É a
+    // conta que separa "esperando o cliente" de "esquecemos de perguntar" — e
+    // é a MESMA lista que o portal já filtrava para montar `pendencias`
+    // (`app/api/portal/esteira/route.ts`), agora também vista pela etapa.
+    pedidosCobrados: pendencias.filter((p) => p.jaFoiPedido).length,
     cicloAberto: ciclo !== null,
     redesConectadas: conexoes > 0,
     postsPublicados: contarPosts("published"),

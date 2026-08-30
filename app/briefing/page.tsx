@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { canalFoiRetratado } from "@/lib/agency/comercial/retratacao";
 import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
 import { PublicBriefingRoom } from "@/components/agency/briefing/PublicBriefingRoom";
@@ -35,7 +36,17 @@ export default function BriefingPage() {
   async function handleSubmit(data: PublicBriefingRoomSubmitData) {
     // O contato da PORTA manda: ele é o que o visitante declarou antes de
     // começar. O da conversa só completa o que ficou em branco.
-    const contato = contatoDaPorta ?? data.contato;
+    //
+    // ── SALVO O QUE ELE DESDISSE DEPOIS (8ª volta, 26/08/2026) ──────────────
+    // A porta é ANTERIOR à conversa. Quando o cliente escreve "esquece o
+    // WhatsApp", a declaração mais nova é a da conversa — e era por esta linha
+    // que o número da porta voltava inteiro para a solicitação gravada. A porta
+    // continua ganhando de palpite; ela não ganha de retratação.
+    const whatsappRetratado = canalFoiRetratado(data.v2Scope, "whatsapp");
+    const contatoBruto = contatoDaPorta ?? data.contato;
+    const contato = contatoBruto && whatsappRetratado
+      ? { ...contatoBruto, whatsapp: "" }
+      : contatoBruto;
     setTemContato(contato !== null);
     const id = addClientRequest({
       clientId: `prospect-${Date.now()}`,
@@ -52,7 +63,7 @@ export default function BriefingPage() {
       v2Estimate: data.v2Estimate,
       prospectName: contatoDaPorta?.nome || data.prospectName,
       prospectEmail: contatoDaPorta?.email || data.prospectEmail,
-      prospectPhone: contatoDaPorta?.whatsapp || data.prospectPhone,
+      prospectPhone: whatsappRetratado ? "" : (contatoDaPorta?.whatsapp || data.prospectPhone),
       sdrHandoff: data.sdrHandoff,
     });
 
@@ -86,6 +97,10 @@ export default function BriefingPage() {
           objectives:     data.extractedSummary.objectives,
           rawContext:     data.rawText,
           source:         "briefing",
+          // O fio da conversa. O servidor usa só para RESOLVER o rastro que os
+          // turnos do SDR deixaram (`conversa-sem-pedido.ts`) — nunca como
+          // identidade de ninguém: ele vem do navegador e é sujo por definição.
+          sessionId:      data.sessionId,
           // O contato vai como CAMPO PRÓPRIO, não enterrado no escopo. Quem
           // decide o que fazer com ele (proposta ou lead incompleto) é o
           // servidor — a tela só entrega o fato.

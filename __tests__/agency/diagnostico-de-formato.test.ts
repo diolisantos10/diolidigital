@@ -55,6 +55,8 @@ describe("a linha que o laudo não atravessa — nada do que o modelo escreveu",
     'Aqui está o plano: R$ 4.000 por mês com desconto {"scope": ,}',
     'Qual é o seu e-mail para eu confirmar? {"reply": }',
     '{"scope": {"businessName": "Cantina da Prova"} "reply": "fechamos por R$ 6.500"}',
+    // Insumo do teste que prova que a redação funciona.
+    // segredo-permitido: chave FALSA, não existe fora deste arquivo.
     'segredo colado pelo visitante: sk-ant-api03-NAOPODEVAZAR {"a": ,}',
   ];
 

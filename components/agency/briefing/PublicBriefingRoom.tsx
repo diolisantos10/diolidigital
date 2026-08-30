@@ -1,5 +1,6 @@
 "use client";
 
+import { NOME_DA_EMPRESA } from "@/lib/marca";
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
 import { initProspectConvState, processProspectMessage, type ProspectConvState, type ContatoInicial } from "@/lib/agency/prospect-engine";
@@ -8,11 +9,14 @@ import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live
 import { montarAvisoDeAnexo } from "@/lib/agency/anexo-nao-e-resposta";
 import { semMarcacao } from "@/lib/agency/texto-sem-marcacao";
 import { unirLacunas, type LacunaDeEscopo } from "@/lib/agency/comercial/lacuna-de-escopo";
+import { escopoComRetratacao, canalFoiRetratado, CAMPO_DO_CANAL } from "@/lib/agency/comercial/retratacao";
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
+import { precoDoItemEmTexto } from "@/lib/agency/comercial/preco-do-item";
+import { linhaDeVolume, linhaDeVideo, linhaDeModalidade, type LinhaDeEscopo } from "@/lib/agency/comercial/escopo-na-voz-da-casa";
 
 // ── Public types ───────────────────────────────────────────────────────────────
 
@@ -39,6 +43,18 @@ export interface PublicBriefingRoomSubmitData {
    * proposta. Ver `lib/agency/comercial/contato-do-lead.ts`.
    */
   contato: { nome: string; email: string; whatsapp: string } | null;
+  /**
+   * O FIO DA CONVERSA que produziu este briefing (o mesmo `sessionId` mandado a
+   * cada turno para `/api/sdr/chat`).
+   *
+   * Ele viaja no envio por um motivo só: a partir de 27/08/2026 cada turno do
+   * SDR guarda um RASTRO da conversa (`conversa-sem-pedido.ts`), para que uma
+   * conversa abandonada no meio deixe de sumir em silêncio. Quando o briefing
+   * finalmente sobe, esse rastro precisa ser RESOLVIDO — senão toda conversa
+   * bem-sucedida ficaria para sempre na lista de "paradas", e uma lista que
+   * acusa o que está certo é uma lista que se aprende a ignorar.
+   */
+  sessionId: string;
 }
 
 interface PublicBriefingRoomProps {
@@ -204,7 +220,12 @@ const PKG_STYLE: Record<string, { bg: string; text: string }> = {
 
 // ── Scope section ─────────────────────────────────────────────────────────────
 
-function ScopeSection({ scope }: { scope: BriefingScope }) {
+/** EXPORTADA para que o teste alcance o HTML que o cliente lê de verdade, e
+ *  não só as funções que o alimentam. A pergunta obrigatória desta casa é "o
+ *  teste alcança o código que responde ao cliente?" — provar `linhaDeVolume`
+ *  isolada deixaria passar exatamente a falha que originou este trabalho: a
+ *  função certa que tela nenhuma chamava. */
+export function ScopeSection({ scope }: { scope: BriefingScope }) {
   let pkgLabel: string | null = null;
   let pkgStyle: { bg: string; text: string } | null = null;
 
@@ -216,42 +237,29 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
     pkgStyle = PKG_STYLE[pkgId];
   }
 
-  const rows: { label: string; value: string; dim?: boolean }[] = [];
+  const rows: LinhaDeEscopo[] = [];
 
-  if (scope.serviceMode === "monthly")  rows.push({ label: "Modalidade", value: "Gestão mensal" });
-  if (scope.serviceMode === "one_off")  rows.push({ label: "Modalidade", value: "Projeto pontual" });
-  if (scope.serviceMode === "umbrella") rows.push({ label: "Modalidade", value: "Parceria contínua (guarda-chuva)" });
+  // A modalidade passa pela voz da casa: "projeto pontual" com peças/MÊS são
+  // duas afirmações que cobram diferente, e a tela não pode fazer as duas.
+  rows.push(linhaDeModalidade(scope));
 
   if (scope.wantsSocialMedia) {
     rows.push({ label: "Serviço", value: "Social Media" });
     if (scope.social?.platforms.length)
       rows.push({ label: "Canais", value: scope.social.platforms.join(", ") });
+    // O volume sai no DEGRAU que a casa vende (12 · 20 · 36), com o número que
+    // o cliente pediu ao lado. 28 não existe na tabela, e mostrar 28 como se
+    // fosse o contratado é o caminho mais curto para um preço inventado.
     if (scope.social?.postsPerWeek !== undefined)
-      rows.push({
-        label: "Posts",
-        value: scope.social.postsPerWeek > 0 ? `${scope.social.postsPerWeek * 4}/mês` : "Não incluído",
-        dim: scope.social.postsPerWeek === 0,
-      });
+      rows.push(linhaDeVolume("Posts", scope.social.postsPerWeek * 4));
     if (scope.social?.storiesPerWeek !== undefined)
-      rows.push({
-        label: "Stories",
-        value: scope.social.storiesPerWeek > 0 ? `${scope.social.storiesPerWeek * 4}/mês` : "Não incluído",
-        dim: scope.social.storiesPerWeek === 0,
-      });
+      rows.push(linhaDeVolume("Stories", scope.social.storiesPerWeek * 4));
     if (scope.social?.reelsPerMonth !== undefined)
-      rows.push({
-        label: "Reels",
-        value: scope.social.reelsPerMonth > 0 ? `${scope.social.reelsPerMonth}/mês (edição)` : "Não incluído",
-        dim: scope.social.reelsPerMonth === 0,
-      });
-    if (scope.social?.hasVideomaker !== undefined || scope.social?.needsVideoProduction !== undefined) {
-      const v = scope.social?.needsVideoProduction
-        ? "Produção pela Dioli"
-        : scope.social?.hasVideomaker
-        ? "Videomaker próprio"
-        : "A definir";
-      rows.push({ label: "Vídeo", value: v, dim: v === "A definir" });
-    }
+      rows.push(linhaDeVolume("Reels", scope.social.reelsPerMonth));
+    // Vídeo não tem produtor. A tela dizia "Produção pela Dioli" a quem pedia,
+    // e "A definir" a quem não pedia — um sim e um talvez, os dois falsos.
+    const video = linhaDeVideo(scope.social);
+    if (video) rows.push(video);
     if (scope.social?.hasPhotos !== undefined)
       rows.push({ label: "Fotos", value: scope.social.hasPhotos ? "Disponíveis" : "Sem produção", dim: !scope.social.hasPhotos });
     if (scope.social?.creativesReady !== undefined)
@@ -292,10 +300,21 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
           conversor de markdown como o balão de chat — em 16/08/2026 o asterisco
           chegou cru na tela, no print do CEO. Limpar aqui protege todo campo,
           venha de onde vier. */}
+      {/* `detalhe` NÃO é decoração. É onde a casa explica o que corrigiu no
+          pedido — o degrau que cobre 28, o vídeo que não temos, a modalidade
+          que trocou. Corrigir sem dizer por quê é o cliente descobrir na
+          fatura; por isso `alerta` destaca em vez de apagar. */}
       {rows.map((r, i) => (
         <div key={i} className="flex items-start gap-2 text-[11px]">
           <span className="text-[var(--text-muted)] shrink-0 w-[68px]">{r.label}</span>
-          <span className={r.dim ? "text-[var(--text-subtle)]" : "text-[var(--text-primary)] font-medium"}>{semMarcacao(r.value)}</span>
+          <span className="min-w-0">
+            <span className={r.dim ? "text-[var(--text-subtle)]" : r.alerta ? "text-[var(--warning)] font-semibold" : "text-[var(--text-primary)] font-medium"}>
+              {semMarcacao(r.value)}
+            </span>
+            {r.detalhe ? (
+              <span className="block text-[10px] leading-[1.45] text-[var(--text-muted)] mt-0.5">{semMarcacao(r.detalhe)}</span>
+            ) : null}
+          </span>
         </div>
       ))}
     </div>
@@ -359,8 +378,8 @@ function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
         <div key={i} className="flex items-start gap-2 text-[11px]">
           <span className="text-[var(--text-muted)] flex-1 leading-relaxed">{item.label}</span>
           <span className="text-[var(--text-secondary)] shrink-0 text-right">
-            {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}
-            <span className="text-[var(--text-subtle)]">/{item.unit}</span>
+            {precoDoItemEmTexto(item, fmtBRL)}
+            {item.minPrice !== null && <span className="text-[var(--text-subtle)]">/{item.unit}</span>}
           </span>
         </div>
       ))}
@@ -708,11 +727,22 @@ function ProposalCard({
 }) {
   const [useFallback, setUseFallback] = useState(false);
 
+  // ── DUAS QUANTIDADES NA MESMA TELA (25/08/2026) ──────────────────────────
+  //
+  // Esta linha mostrava `pkg.description` — a cadência da TABELA, ex. "5 posts
+  // + 7 stories/semana + 4 reels/mês" — logo acima de `estimate.included`, que
+  // desde o conserto do case Farol 27 traz o que a casa REALMENTE entrega,
+  // derivado do briefing e cortado pelo contrato de quantidade.
+  //
+  // Ou seja: a mesma tela dizia 5 posts em cima e 3 posts embaixo. Verdade
+  // escrita em dois lugares já está errada em um deles — e aqui as duas
+  // estavam à vista uma da outra, para o cliente ler.
+  //
+  // Fica só o NOME do plano. A quantidade tem um dono só, e é a estimativa.
   let pkgDesc: string | null = null;
   if (scope.wantsSocialMedia && scope.social?.postsPerWeek !== undefined) {
     const ppm = scope.social.postsPerWeek * 4;
-    const pkg = getPackageDef(detectPackage(ppm));
-    pkgDesc = pkg.description;
+    pkgDesc = getPackageDef(detectPackage(ppm)).label;
   }
 
   const timeline = scope.serviceMode === "one_off" ? "A definir por escopo" : "Início imediato após aprovação";
@@ -842,12 +872,71 @@ function ProposalCard({
 // um booleano/null. Ver `avisoParaResultadoSdr` e `causaDaFalhaDeUpload` —
 // são os únicos dois lugares que traduzem motivo em texto, para não haver
 // dois textos divergentes para o mesmo fato em pontos diferentes da tela.
+/**
+ * A PARCERIA COMO A SALA A GUARDA — `Date`, não string.
+ *
+ * `parceriaVale` compara `validaAte.getTime()`, e uma string vinda do JSON
+ * passaria no `tsc` (o campo é tipado) e falharia em silêncio na comparação.
+ * A conversão é aqui, uma vez, na fronteira.
+ */
+export type ParceriaDaSala = { autorizadaPor: string; validaAte: Date };
+
+/**
+ * Lê a parceria que o SERVIDOR declarou na resposta do turno.
+ *
+ * Devolve `null` para tudo que não seja uma parceria legível: campo ausente,
+ * `null`, formato errado, data ilegível. *Ausência de informação não é
+ * informação* — e aqui o "não sei" seguro é **cliente comum**, que continua
+ * sendo perguntado sobre verba, como sempre foi.
+ *
+ * Exportada para teste direto: é uma fronteira de dado, e fronteira se testa
+ * chamando a função — não lendo o arquivo como texto.
+ */
+export function lerParceriaDoServidor(bruto: unknown): ParceriaDaSala | null {
+  if (!bruto || typeof bruto !== "object") return null;
+  const p = bruto as { autorizadaPor?: unknown; validaAte?: unknown };
+  const dono = typeof p.autorizadaPor === "string" ? p.autorizadaPor.trim() : "";
+  if (!dono) return null;
+  if (typeof p.validaAte !== "string") return null;
+  const ate = new Date(p.validaAte);
+  // Data ilegível NÃO vira "vale para sempre" — vira cliente comum.
+  if (Number.isNaN(ate.getTime())) return null;
+  return { autorizadaPor: dono, validaAte: ate };
+}
+
+/**
+ * APLICA a parceria no estado da conversa — a única escrita de
+ * `parceriaDeclarada` que existe nesta sala.
+ *
+ * Exportada pelo mesmo motivo que `fetchSdrReply` e `mergeScopeGaps`: é a
+ * ligação que decide se `budget_range` sai da fila do parceiro, e ligação se
+ * testa CHAMANDO, não lendo o arquivo como texto.
+ *
+ * ── Por que uma função e não um spread solto (28/08/2026) ──────────────────
+ * Havia dois lugares escrevendo o campo (o turno bom e o fallback da IA), e
+ * duas escritas do mesmo fato divergem no primeiro dia de pressa — uma some
+ * numa remontagem e ninguém percebe, que é exatamente como este campo passou a
+ * existir sem nunca ser escrito. Uma função só, chamada nos dois.
+ */
+export function comParceria(conv: ConvState, parceria: ParceriaDaSala | null): ConvState {
+  return { ...conv, parceriaDeclarada: parceria };
+}
+
 export type SdrOutcome =
   /** Passou pela rede e pelo parser: `reply` pode ainda ser `null` — é o caso
    *  já existente de fala barrada por CORTE (truncado/malformado) com
    *  `scope` resgatável (ver `MOTIVOS_COM_ESCOPO_APROVEITAVEL`). Isso não é
    *  erro de rede; o motor de regras sempre soube responder aqui. */
-  | { kind: "resposta"; reply: string | null; scope: Record<string, unknown> }
+  | {
+      kind: "resposta";
+      reply: string | null;
+      scope: Record<string, unknown>;
+      /** A parceria DECLARADA, vinda do servidor (28/08/2026). `null` =
+       *  visitante comum. Ver `lerParceriaDoServidor` e o bloco no retorno
+       *  de `app/api/sdr/chat/route.ts`. ⛔ Nunca sai do corpo que o
+       *  visitante escreve: o servidor a derivou do TOKEN do convite. */
+      parceria: ParceriaDaSala | null;
+    }
   /** HTTP 429 — `limite-no-banco.ts` recusou porque a PESSOA está mandando
    *  rápido demais. Não é falha do sistema; é ritmo dela. */
   | { kind: "barrado" }
@@ -1002,6 +1091,35 @@ export const MOTIVOS_COM_ESCOPO_APROVEITAVEL: ReadonlySet<string> = new Set([
   "malformado",
 ]);
 
+/**
+ * O CONVITE DO PARCEIRO, LIDO DA URL — e só daqui.
+ *
+ * ── Por que esta função existe (27/08/2026) ────────────────────────────────
+ * A rota do SDR já aceitava `convite` e já sabia resolvê-lo pelo servidor. Mas
+ * **nada nesta sala mandava o campo** — o link `?convite=…` chegava ao
+ * navegador e morria aqui. Era a oitava "trava sem fechadura" da casa em 24h, e
+ * a mais cara delas: um link entregue ao parceiro que não faria absolutamente
+ * nada, com todo mundo achando que faria.
+ *
+ * *A pergunta obrigatória é "quem CHAMA isto?"* — e a resposta era "ninguém".
+ *
+ * ⚠️ O token é só TRANSPORTADO. Ele não decide nada aqui: quem resolve quem é o
+ * parceiro, e se a parceria está viva, é o SERVIDOR
+ * (`resolverConviteDeParceria`). Um token inventado à mão na barra de endereço
+ * vale exatamente o mesmo que nenhum — o visitante segue anônimo e a verba
+ * continua sendo perguntada.
+ */
+export function conviteDaUrl(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const t = new URLSearchParams(window.location.search).get("convite")?.trim();
+    return t ? t : undefined;
+  } catch {
+    // URL malformada não pode derrubar a sala de briefing de ninguém.
+    return undefined;
+  }
+}
+
 // Exportada para teste direto (16/08): o contrato "scope sobrevive quando a
 // fala não sobrevive" é lógica, não prosa de prompt — e lógica se testa
 // chamando a função, não lendo o arquivo como texto.
@@ -1024,6 +1142,9 @@ export async function fetchSdrReply(
         currentMessage,
         scope,
         sessionId,
+        // O convite viaja em TODO turno: a decisão é do servidor a cada vez, e
+        // não um estado que a sala guarda e poderia perder no meio da conversa.
+        convite: conviteDaUrl(),
       }),
     });
   } catch {
@@ -1040,9 +1161,9 @@ export async function fetchSdrReply(
     return res.status === 429 ? { kind: "barrado" } : { kind: "quebrado" };
   }
 
-  let data: { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown };
+  let data: { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown; parceria?: unknown };
   try {
-    data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown };
+    data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown; reason?: unknown; parceria?: unknown };
   } catch {
     return { kind: "quebrado" };
   }
@@ -1075,7 +1196,15 @@ export async function fetchSdrReply(
   // (o servidor respondeu 200): "sem novidade da IA", nenhum aviso na tela.
   if (replyUsavel === null && Object.keys(scopeRecuperado).length === 0) return { kind: "sem_novidade" };
 
-  return { kind: "resposta", reply: replyUsavel, scope: scopeRecuperado };
+  return {
+    kind: "resposta",
+    reply: replyUsavel,
+    scope: scopeRecuperado,
+    // Só quando o servidor disse `ok: true`. Um pacote barrado por corte
+    // aproveita o `scope`, mas NÃO a parceria: ali o turno estava fora do
+    // roteiro, e parceria é a maior porta desta sala.
+    parceria: data.ok === true ? lerParceriaDoServidor((data as { parceria?: unknown }).parceria) : null,
+  };
 }
 
 function asNum(v: unknown): number | undefined {
@@ -1088,6 +1217,18 @@ function asNum(v: unknown): number | undefined {
 export function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): BriefingScope {
   if (!patch || typeof patch !== "object") return base;
   const out: BriefingScope = { ...base };
+
+  // ── A RETRATAÇÃO ATRAVESSA O GAP-FILL PORQUE ELA SÓ CRESCE ───────────────
+  //
+  // Este merge é gap-fill DECLARADO: por construção ele não apaga nada. Foi
+  // por aqui que o telefone retratado voltou em produção (8ª volta) — o
+  // servidor tinha ouvido "esquece o WhatsApp" e mandado o patch sem o campo,
+  // e "campo ausente" aqui significa "preserva o que já havia".
+  //
+  // A marca (`canaisRetratados`) é a única forma que atravessa: ela é positiva
+  // e cumulativa. O apagamento acontece DEPOIS do merge, uma vez, lendo a
+  // marca — e não vira uma segunda regra de deleção espalhada pelos campos.
+  // Ver `lib/agency/comercial/retratacao.ts`.
 
   const fillStr = (key: "prospectName" | "businessName" | "segment" | "targetAudience" | "prospectPhone" | "budgetRange" | "deadline") => {
     if (!out[key] && typeof patch[key] === "string" && (patch[key] as string).trim()) {
@@ -1224,6 +1365,20 @@ export function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknow
                          : Array.isArray(pt.platforms) ? (pt.platforms as unknown[]).filter((x): x is string => typeof x === "string") : [],
       monthlyAdBudget: cur.monthlyAdBudget ?? (typeof pt.monthlyAdBudget === "string" ? pt.monthlyAdBudget : undefined),
     };
+  }
+
+  const saida = out as unknown as Record<string, unknown>;
+  const retratado = escopoComRetratacao({ ...saida, ...patch }, "");
+  const marcas = retratado.canaisRetratados;
+  if (Array.isArray(marcas) && marcas.length > 0) {
+    saida.canaisRetratados = marcas;
+    for (const canal of marcas) {
+      const campo = CAMPO_DO_CANAL[canal as "whatsapp" | "email"];
+      if (campo) delete saida[campo];
+    }
+    if (typeof retratado.preferredChannel === "string") {
+      saida.preferredChannel = retratado.preferredChannel;
+    }
   }
 
   return out;
@@ -1384,6 +1539,26 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
   // não depois. Se entrasse por `useEffect`, a saudação já teria sido escrita
   // pedindo o nome e a correção chegaria tarde demais para a pessoa que leu.
   const [state,          setState]          = useState<ProspectConvState>(() => initProspectConvState(contatoDaPorta));
+  // ── A PARCERIA VIVE FORA DO `ConvState` (28/08/2026) ──────────────────
+  // `processProspectMessage` remonta o `conv` a cada turno a partir do
+  // anterior; guardar a parceria só lá dentro faria ela sobreviver por
+  // acidente, não por desenho. Aqui ela é explícita e é REAFIRMADA pelo
+  // servidor a cada turno bom.
+  //
+  // ⚠️ Um turno em que a IA falha NÃO apaga a parceria: `outcome.kind` só é
+  // "resposta" quando o servidor respondeu, e é só aí que ela é reescrita.
+  // Zerar num erro de rede faria a pergunta de verba voltar no meio da
+  // conversa do parceiro — o defeito que este conserto veio matar,
+  // reaparecendo de forma intermitente, que é pior que constante.
+  //
+  // ⛔ E isto NÃO libera produção: quem decide se a casa produz de graça é
+  // o portão, no servidor, a cada conferência. Aqui só se decide se uma
+  // PERGUNTA é feita.
+  // ⚠️ REF, não `useState`: `runTurn` é um `useCallback` cuja lista de
+  // dependências não inclui este valor — um estado comum ficaria preso no
+  // closure e o SEGUNDO turno do parceiro leria a parceria do PRIMEIRO
+  // (ou seja, `null`). É o mesmo motivo de `stateRef` existir aqui em cima.
+  const parceriaRef = useRef<ParceriaDaSala | null>(null);
   const [inputText,      setInputText]      = useState("");
   const [showMaterials,  setShowMaterials]  = useState(false);
   const [linkAtts,       setLinkAtts]       = useState<RequestAttachment[]>([]);
@@ -1585,12 +1760,25 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
         const assistantMsg: ConvMessage = outcome.reply
           ? { ...ruleAssistant, text: outcome.reply }
           : ruleAssistant;
-        const newConv: ConvState = {
+        // A parceria que o servidor declarou NESTE turno. Reafirmada a cada
+        // turno bom: se ela foi revogada, o servidor manda `null` e a pergunta
+        // de verba volta — a decisão continua sendo dele, nunca um estado que
+        // a sala guardou e nunca mais conferiu.
+        // Reescreve SEMPRE que o servidor respondeu — inclusive com `null`,
+        // que é como uma revogação chega até aqui.
+        parceriaRef.current = outcome.parceria;
+        const parceriaAgora = outcome.parceria;
+
+        const convDoTurno: ConvState = {
           ...ruleResult.conv,
           scope: mergedScope,
           estimate,
           messages: [...userVisible, assistantMsg],
         };
+        // ⚠️ É ESTA LINHA que tira `budget_range` da fila do parceiro
+        // (`dispensadoDeVerba`, question-engine.ts:1030). O campo existia, era
+        // lido, e ninguém escrevia nele.
+        const newConv = comParceria(convDoTurno, parceriaAgora);
         setState({
           conv: { ...newConv, canSubmit: canSubmitProposal(newConv, ruleResult.sdr) },
           sdr: ruleResult.sdr,
@@ -1600,7 +1788,13 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
         // sempre, para os três motivos (barrado, quebrado, sem_novidade).
         // `fireAiExtract` não muda: seu silêncio é fallback de segundo plano,
         // correto, e não é aqui que o defeito mora.
-        setState(ruleResult);
+        // A parceria já conhecida SOBREVIVE ao turno que falhou: o motor de
+        // regras remonta o `conv` e apagaria o campo sem esta linha.
+        const convComParceria = comParceria(ruleResult.conv, parceriaRef.current);
+        setState({
+          conv: { ...convComParceria, canSubmit: canSubmitProposal(convComParceria, ruleResult.sdr) },
+          sdr: ruleResult.sdr,
+        });
         void fireAiExtract(text, priorMessages);
 
         // `avisoParaResultadoSdr` devolve `null` para "sem_novidade" (não é
@@ -1716,8 +1910,32 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
     const scope = conv.scope;
     const mergedScope: BriefingScope = {
       ...scope,
-      prospectEmail: contato?.email || scope.prospectEmail,
-      prospectPhone: contato?.whatsapp || scope.prospectPhone,
+      // ── O E-MAIL QUE ELE DEU NA CONVERSA É O ÚLTIMO RECURSO (6ª rodada) ──
+      //
+      // Ordem, e ela é intencional: a PORTA primeiro (declaração explícita num
+      // campo de contato), o escopo depois, e por último o que ele escreveu no
+      // meio da conversa. Palpite nunca passa na frente de declaração.
+      //
+      // Sem esta terceira parcela, quem pulava a porta e escreveu o e-mail na
+      // conversa entregava o briefing SEM canal nenhum: o dado existia, o
+      // consumidor existia, e não havia ligação entre os dois — a "seta
+      // faltando" que esta casa já conhece (D-003). Medido no cliente oculto.
+      //
+      // ⛔ Ele vem de `sdr.contatoOferecido`, NUNCA do `scope`: e-mail não
+      // trafega pelo caminho do modelo. Ver `SDRAgentState.contatoOferecido`.
+      prospectEmail: contato?.email || scope.prospectEmail || sdr.contatoOferecido?.email,
+      // ── O QUE ELE DESDISSE NA CONVERSA VENCE O QUE ELE DEIXOU NA PORTA ────
+      //
+      // Aqui era o SEGUNDO cano do número retratado (8ª volta): a porta vem
+      // primeiro nesta linha — e ela é ANTERIOR à retratação. O cliente deixou
+      // o WhatsApp ao entrar, disse "esquece o WhatsApp" dez turnos depois, e
+      // este `||` devolvia o número da porta na hora do envio.
+      //
+      // Declaração mais NOVA manda sobre declaração mais VELHA. A porta continua
+      // ganhando de palpite; ela não ganha de retratação.
+      prospectPhone: canalFoiRetratado(scope, "whatsapp")
+        ? undefined
+        : contato?.whatsapp || scope.prospectPhone,
       prospectName:  scope.prospectName ?? contato?.nome ?? "",
     };
     const rawText = buildRawText(conv.messages);
@@ -1735,7 +1953,14 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
       businessName:     mergedScope.businessName ?? "",
       segment:          mergedScope.segment ?? "",
       sdrHandoff:       buildHandoffSummary(conv, sdr),
-      contato,
+      // O fio, para que o rastro desta conversa seja resolvido no servidor.
+      sessionId:        tempClientId,
+      // E o `contato` bruto vai pelo mesmo crivo: ele é gravado como
+      // `briefingJson.contato` e é DELE que a solicitação tira `contato.whatsapp`
+      // — o terceiro lugar onde o número retratado reapareceu.
+      contato: contato && canalFoiRetratado(scope, "whatsapp")
+        ? { ...contato, whatsapp: "" }
+        : contato,
     });
   }
 
@@ -1795,7 +2020,7 @@ export function PublicBriefingRoom({ onSubmit, contatoDaPorta }: PublicBriefingR
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
           <div>
             <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Consultora de Orçamento</div>
-            <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">Conversa com a Dioli Studio</div>
+            <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">Conversa com a {NOME_DA_EMPRESA}</div>
           </div>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-[var(--success)]" />

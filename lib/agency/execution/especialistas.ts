@@ -39,6 +39,15 @@ import {
 /** O contexto do cliente que todo especialista recebe. Verdade ancorada: campo
  *  vazio é campo vazio — nenhum prompt aqui manda preencher por inferência. */
 export interface Ctx {
+  /**
+   * QUAL LEVA DO CICLO esta passada está produzindo (1, 2, 3…).
+   *
+   * O mês deixou de sair numa passada só (ver `escopo-do-cliente.ts`). É este
+   * número que diz ao especialista o TAMANHO do lote que ele escreve agora —
+   * sem ele, todo lote voltaria a ser o mês inteiro e a régua o reprovaria.
+   * Ausente = 1, que é o comportamento de quem monta Ctx fora do motor.
+   */
+  leva?: number;
   /** A RÉGUA DA MARCA, entregue ANTES de produzir — texto de no máximo uma tela
    *  vindo de `esteira/contrato-de-marca.ts`: quem a marca é, o que ela NUNCA
    *  faz, com o que se parece, e o que ela ainda não decidiu (nomeado, para
@@ -146,6 +155,17 @@ export interface Especialista {
   deliverableType: string;
   /** O que este especialista precisa para não inventar. */
   precisaDe?: { tem: (c: Ctx) => boolean; pedido: string };
+  /**
+   * QUANDO ESTE ESPECIALISTA SEQUER É ESCALADO.
+   *
+   * Diferente de `precisaDe`: aquilo é "falta insumo, pergunte ao cliente";
+   * isto é "este trabalho NÃO está no escopo dele, não custe um token". Nasceu
+   * com a saída do vídeo da vitrine (25/08/2026) — a casa não edita vídeo, e o
+   * roteiro de reel era produzido para todo cliente de social, inclusive os que
+   * declararam zero reel no briefing. Produzir o que não se vende é a mesma
+   * dívida de D-0A3 pelo avesso: a promessa some da tabela e o gasto fica.
+   */
+  soQuando?: (c: Ctx) => boolean;
   prompt: (c: Ctx) => string;
   provedor?: ProvedorPreferido;
   /**
@@ -175,7 +195,11 @@ export interface Especialista {
 // nunca usar" (identidade visual) mora dentro de um campo de texto livre e
 // continua sem trava — está declarado, não esquecido.
 
-function itensDe(data: Record<string, unknown>): Array<Record<string, unknown>> {
+/** Os itens do JSON do especialista. Exportada em 25/08/2026 para que a
+ *  corrente do Story leia as peças da MESMA forma que o contrato de saída as
+ *  conta — uma segunda leitura aqui faria o produtor e o conferente
+ *  discordarem sobre quantas peças existem. */
+export function itensDe(data: Record<string, unknown>): Array<Record<string, unknown>> {
   return Array.isArray(data.items)
     ? data.items.filter((x): x is Record<string, unknown> => typeof x === "object" && x !== null)
     : [];
@@ -234,7 +258,21 @@ const MAX_TELAS = 6;
  * comprado 12 e o especialista, obediente ao prompt, nunca teve como acertar:
  * cada refação relia o mesmo "6 a 8". A régua estava certa e o pedido, errado.
  */
-export const MISTURA_DE_FORMATOS = { carrossel: [1, 2], story: [2, 3], feed: [2, 3] } as const;
+/**
+ * ⚠️ 25/08/2026 — A TABELA MUDOU DE CASA, E NENHUM NÚMERO MUDOU.
+ *
+ * Ela agora mora em `lib/agency/contrato-de-quantidade.ts` e aqui só é
+ * REEXPORTADA. O motivo foi medido no case Farol 27: a proposta prometia
+ * 7 stories/semana, esta tabela admite 3, e as duas verdades viviam em
+ * arquivos que não se conheciam. O especialista obedecia à proposta, este
+ * contrato recusava, três tentativas, `blocked` — impasse por construção.
+ *
+ * Quem VENDE passou a ler DAQUI (o mesmo objeto, provado por identidade em
+ * `__tests__/comercial/a-proposta-nasce-do-briefing`), e por isso a proposta
+ * não tem mais como prometer o que este contrato proíbe.
+ */
+import { LIMITES_POR_FORMATO, misturaDoLote, receitaDoLote } from "@/lib/agency/contrato-de-quantidade";
+export { LIMITES_POR_FORMATO as MISTURA_DE_FORMATOS };
 
 /** O contrato da pauta: 4 semanas de calendário, uma por item. */
 function contratoDaPauta(data: Record<string, unknown>): string[] {
@@ -261,7 +299,7 @@ function contratoDasLegendas(data: Record<string, unknown>, c?: Ctx): string[] {
   // Sem contrato legível, `escopoNaoDeclarado()` devolve a régua histórica com
   // a lacuna nomeada — parar todo cliente cujo briefing não escreveu o volume
   // trocaria um dano por um maior.
-  const exigencia: ExigenciaDeConteudo = exigenciaDeConteudo(c?.escopoContratado ?? escopoNaoDeclarado());
+  const exigencia: ExigenciaDeConteudo = exigenciaDeConteudo(c?.escopoContratado ?? escopoNaoDeclarado(), c?.leva ?? 1);
   const problemas = exigirQuantidade(data, exigencia.min, exigencia.max, "peças de conteúdo");
 
   const porFormato = { carrossel: 0, story: 0, feed: 0, reel: 0, semFormato: 0 };
@@ -314,15 +352,25 @@ function contratoDasLegendas(data: Record<string, unknown>, c?: Ctx): string[] {
   // faz sentido quando há mais de um formato no escopo. Cliente de UM formato
   // só (o CityJobs: post simples de feed) não tem mistura para fazer, e exigi-la
   // é o defeito que este bloco corrige.
+  //
+  // ── E A RÉGUA É A DO LOTE, NÃO A DE UM LOTE DE 12 (25/08/2026) ────────────
+  //
+  // `LIMITES_POR_FORMATO` descrevia a forma de um lote de 12 peças com REEL
+  // absorvendo a sobra. Sem reel (a casa não edita vídeo) e com lotes de tamanho
+  // variável (as levas), aquela régua reprovava os dois extremos: o lote de 11
+  // do plano Completo, porque os tetos somavam 8; e o lote de 4 do Essencial,
+  // porque os mínimos somavam 5. A mistura passou a ser PROPORÇÃO do lote, na
+  // mesma fonte única — ver `misturaDoLote` em `contrato-de-quantidade.ts`.
   const daMistura = (["carrossel", "story", "feed"] as const).filter((f) =>
     exigencia.permitidos.includes(f as FormatoContratado),
   );
   if (daMistura.length > 1) {
+    const regua = misturaDoLote(exigencia.max, daMistura);
     for (const f of daMistura) {
-      const [min, max] = MISTURA_DE_FORMATOS[f];
+      const [min, max] = regua[f];
       const n = porFormato[f];
-      if (n < min) problemas.push(`só ${n} peça(s) de ${f} — o contrato pede de ${min} a ${max}. Sem a mistura, o mês inteiro sai no mesmo formato.`);
-      else if (n > max) problemas.push(`${n} peças de ${f} — o contrato pede no máximo ${max}.`);
+      if (n < min) problemas.push(`só ${n} peça(s) de ${f} — este lote pede de ${min} a ${max}. Sem a mistura, o mês inteiro sai no mesmo formato.`);
+      else if (n > max) problemas.push(`${n} peças de ${f} — este lote pede no máximo ${max}.`);
     }
   }
 
@@ -568,19 +616,28 @@ REGRAS INEGOCIÁVEIS
  * Enquanto eram dois, o especialista era reprovado por obedecer ao prompt.
  */
 function pedidoDeVolume(c: Ctx): string {
-  const e = exigenciaDeConteudo(c.escopoContratado ?? escopoNaoDeclarado());
+  const e = exigenciaDeConteudo(c.escopoContratado ?? escopoNaoDeclarado(), c.leva ?? 1);
   const quantas = e.min === e.max ? `EXATAMENTE ${e.min} peças` : `de ${e.min} a ${e.max} peças`;
   const linhas = [
     `Escreva ${quantas}. Este número é o que o cliente COMPROU e é conferido em código: `
     + "entregar menos reprova a entrega inteira, e ela não chega a ele.",
   ];
+  if (e.cobreDoMes && e.cobreDoMes.levas > 1) {
+    // Ele está escrevendo UMA leva do mês, e precisa saber disso: sem esta
+    // linha o especialista tenta "compensar" escrevendo o mês inteiro — e é
+    // barrado pelo outro lado da régua, que confere o tamanho da leva.
+    linhas.push(
+      `(Esta é a leva ${e.cobreDoMes.leva} de ${e.cobreDoMes.levas} deste mês. O cliente comprou `
+      + `${e.cobreDoMes.contratado} peças no ciclo; as outras levas vêm nos próximos dias — não tente compensar aqui.)`,
+    );
+  }
   if (e.cobreDoMes && e.cobreDoMes.entrega < e.cobreDoMes.contratado) {
     // Honestidade com quem produz: ele não está entregando o mês inteiro, e não
     // é falha dele. Sem esta linha, o especialista tenta "compensar" escrevendo
     // mais do que o teto permite — e é barrado pelo outro lado da régua.
     linhas.push(
-      `(O cliente comprou ${e.cobreDoMes.contratado} peças no mês; esta entrega traz ${e.cobreDoMes.entrega}, `
-      + "que é o teto por passada. O restante vem nas próximas — não tente compensar aqui.)",
+      `(⚠️ O cliente comprou ${e.cobreDoMes.contratado} peças no mês e a casa entrega ${e.cobreDoMes.entrega} `
+      + "no ciclo inteiro — o teto do mês mordeu. Isso é pergunta para gente, não trabalho seu: não tente compensar aqui.)",
     );
   }
   linhas.push("Use a MISTURA de formatos que funciona para negócio local — não faça tudo feed:");
@@ -596,7 +653,7 @@ function pedidoDeVolume(c: Ctx): string {
  * contrato pede no máximo 3".
  */
 function misturaPedida(c: Ctx): string {
-  const e = exigenciaDeConteudo(c.escopoContratado ?? escopoNaoDeclarado());
+  const e = exigenciaDeConteudo(c.escopoContratado ?? escopoNaoDeclarado(), c.leva ?? 1);
   const daMistura = (["carrossel", "story", "feed"] as const)
     .filter((f) => e.permitidos.includes(f as FormatoContratado));
   if (daMistura.length <= 1) {
@@ -642,27 +699,13 @@ function misturaPedida(c: Ctx): string {
 function receitaDeFormatos(e: ExigenciaDeConteudo): Record<string, number> {
   const daMistura = (["carrossel", "story", "feed"] as const)
     .filter((f) => e.permitidos.includes(f as FormatoContratado));
+  // A MESMA função que a régua usa, e é esse o ponto: o pedido recita a receita
+  // exata, e o contrato confere a mesma receita com uma peça de tolerância. Duas
+  // contas separadas aqui foram exatamente o defeito de 24/08 — o modelo
+  // entregava 11 de 12 porque a aritmética tinha sido deixada com ele.
+  const r = receitaDoLote(e.max, daMistura);
   const receita: Record<string, number> = {};
-  for (const f of daMistura) receita[f] = MISTURA_DE_FORMATOS[f][0];
-
-  let faltam = e.min - Object.values(receita).reduce((a, b) => a + b, 0);
-
-  // Sobe cada formato até o teto, na ordem da mistura, enquanto faltar peça.
-  for (const f of daMistura) {
-    if (faltam <= 0) break;
-    const espaco = MISTURA_DE_FORMATOS[f][1] - receita[f]!;
-    const usa = Math.min(espaco, faltam);
-    receita[f]! += usa;
-    faltam -= usa;
-  }
-
-  // O que ainda faltar vai para reel — sem teto na mistura. Sem reel no escopo,
-  // a receita fica curta e DIZ isso em vez de fingir que fecha: contrato que não
-  // fecha é pergunta para gente, não para o especialista.
-  if (faltam > 0 && e.permitidos.includes("reel" as FormatoContratado)) {
-    receita.reel = faltam;
-    faltam = 0;
-  }
+  for (const f of daMistura) receita[f] = r[f];
   return receita;
 }
 
@@ -907,6 +950,13 @@ ${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel|carross
         id: "social-roteiro-video",
         label: "Roteiro de vídeo",
         deliverableType: "video",
+        // VÍDEO E REEL NÃO ENTRAM NO PLANO (decisão do CEO, 25/08/2026): a casa
+        // não edita vídeo, e vender o roteiro sozinho é a dívida de D-0A3 —
+        // promessa sem produtor. Ele só roda para quem contratou reel de forma
+        // explícita; para todo o resto, nem é escalado e não custa nada.
+        soQuando: (c) => (c.escopoContratado?.excluidos.includes("reel") === false)
+          && (c.escopoContratado?.pecasPorMes ?? 0) > 0
+          && /reel|v[ií]deo/i.test(c.services.join(" ")),
         contrato: (d) => exigirQuantidade(d, 3, 6, "roteiros de vídeo"),
         provedor: "claude",
         prompt: (c) => `Você é o especialista de ROTEIRO DE VÍDEO da Dioli Digital. Escreva roteiros de reels prontos para gravar.
@@ -968,7 +1018,14 @@ ${ctxBlock(c)}
 
 Descreva de 3 a 4 peças: o que aparece, a composição, onde entra o texto, e a sensação que ela precisa provocar. Específico ao segmento — nada de "imagem bonita do produto".
 ${REGRA}
-${formato("Criativos de Social — <negócio>", `"headline": "nome da peça", "direction": "composição e enquadramento", "palette": "cores desta peça", "note": "texto que entra na arte"`)}`,
+
+O CAMPO "direction" É A DIREÇÃO DE ARTE, E ELE VIRA O PEDIDO À CÂMERA. É CONFERIDO EM CÓDIGO (\`lib/agency/design/direcao-fotografavel.ts\`) ANTES de qualquer imagem ser paga: direção que não descreve uma foto não vira imagem e volta para você reescrever. Escreva a FOTO que existe, numa destas duas famílias:
+  A) CENA DE AMBIENTE — SUJEITO (quem aparece e o que está fazendo) + LUGAR (onde, com nome) + LUZ (a hora do dia ou a luz da cena).
+     ex.: "galpão de logística em Suzano no fim da tarde, operador conferindo caixas, luz baixa entrando pelo portão"
+  B) TOMADA CONTROLADA (close-up de produto), quando a peça é sobre uma COISA — diga o ENQUADRAMENTO FECHADO com todas as letras ("close-up de", "macro de", "detalhe de", "primeiro plano de"), o que aparece ATRÁS (fundo, superfície, estúdio, bancada) e a LUZ.
+     ex.: "macro do disco de freio desgastado sobre a bancada, fundo desfocado cinza escuro, luz fria de fluorescente da oficina"
+A LUZ É OBRIGATÓRIA NAS DUAS FAMÍLIAS. Nada de "estilo moderno", "cores vibrantes", "visual limpo e premium" ou "imagem bonita do produto" — nada disso é fotografável, e o gerador resolve tudo isso com símbolo, ícone e cor chapada.
+${formato("Criativos de Social — <negócio>", `"headline": "nome da peça", "direction": "a direção de arte: a FOTO que existe, com sujeito/lugar/luz ou enquadramento/fundo/luz", "palette": "cores desta peça", "note": "texto que entra na arte"`)}`,
       },
       {
         id: "design-criativo-trafego",

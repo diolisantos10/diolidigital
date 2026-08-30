@@ -54,6 +54,9 @@ import { conferirFundoDaPeca } from "@/lib/agency/design/portao-do-fundo";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
 
 const ENTREGA = join(process.cwd(), "docs/entregas/cityjobs-08-08");
+const PECA_COMPOSTA_REAL = readFileSync(
+  join(process.cwd(), "docs/entregas/peca-final-26-08/boa-med_1f79e9f3_mt8xj2gu.jpg"),
+);
 const ler = (p: string) => readFileSync(join(ENTREGA, p));
 
 /** As DUAS peças que o CEO reprovou em 08/08 — prédio-retângulo e sol-círculo,
@@ -140,9 +143,13 @@ describe("produzirArtesPendentes não deixa clipart virar peça de cliente", () 
     db.mediaAsset.count.mockResolvedValue(0);
     estiloVisualPersistido.mockResolvedValue("");
     estiloVistoPersistido.mockResolvedValue("");
+    // A PEÇA COMPOSTA É UM ARQUIVO REAL, e não `Buffer.from("peca")`. Desde
+    // 26/08/2026 a `regua-da-peca-final.ts` mede a peça ANTES de gravar, e
+    // "não decodifica" é reprovação — de propósito. Este dublê passa a devolver
+    // a peça que estava viva em produção.
     montarPeca.mockResolvedValue({
-      ok: true, bytes: Buffer.from("peca"), largura: 1080, altura: 1350,
-      textosPintados: [], textoRecusado: [], encolheu: false, origemDoMolde: "marca", lacunasDoMolde: [],
+      ok: true, bytes: PECA_COMPOSTA_REAL, largura: 1080, altura: 1350,
+      textosPintados: ["A vaga que você procura pode ser aqui do lado", "CityJobs"], textoRecusado: [], encolheu: false, origemDoMolde: "marca", lacunasDoMolde: [],
     });
   });
 

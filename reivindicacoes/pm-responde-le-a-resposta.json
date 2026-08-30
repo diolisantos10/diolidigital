@@ -1,0 +1,12 @@
+{
+  "id": "pm-responde-le-a-resposta",
+  "quem": "ses-2248051fb4",
+  "frente": "o PM automatico nunca respondeu uma mensagem: pede prosa a uma camada que so devolve JSON",
+  "responsabilidade": "pm-responde-le-a-resposta",
+  "arquivos": [
+    "lib/agency/esteira/pm-responde.ts"
+  ],
+  "abertaEm": "2026-08-25T18:28:22.965Z",
+  "encerradaEm": "2026-08-25T18:33:31.427Z",
+  "rotulo": "pm-tem-ouvido"
+}

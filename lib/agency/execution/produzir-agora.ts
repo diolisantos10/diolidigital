@@ -73,6 +73,7 @@ import {
 } from "@/lib/agency/execution/artes";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
 import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
+import { PRECO_DE_TABELA_USD } from "@/lib/ai/precos";
 
 // ── O QUE UMA IMAGEM CUSTA ───────────────────────────────────────────────────
 
@@ -89,12 +90,12 @@ import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
  * O recorte segue `artes.ts:325` — `story` sai em retrato (1024×1536), todo o
  * resto sai quadrado (1024×1024). Carrossel multiplica por tela.
  */
-export const PRECO_DE_TABELA_USD = {
-  /** 1024×1024, qualidade alta. */
-  quadrada: 0.167,
-  /** 1024×1536, qualidade alta — é o `story`. */
-  retrato: 0.25,
-} as const;
+// A tabela mora em `lib/ai/precos.ts`, junto das outras verdades de preço da
+// casa, e é a MESMA que o livro-caixa carimba em cada linha de imagem desde
+// 24/08/2026. Aqui só se reexporta o nome, para quem já o importava daqui:
+// dois números iguais em dois arquivos já estão errados em um deles no dia em
+// que a OpenAI mudar a tabela.
+export { PRECO_DE_TABELA_USD } from "@/lib/ai/precos";
 
 /** Teto padrão de imagens desta passada. Igual ao teto DIÁRIO da casa de
  *  propósito: assim este botão nunca é o freio mais estreito — quem freia
@@ -670,4 +671,99 @@ export function portaoQueBarraAProducao(p: {
     return "o cliente ainda não aprovou a DIREÇÃO — a produção não começa antes disso, e este botão não pula esse portão";
   }
   return null;
+}
+
+// ─── A SETA QUE FALTAVA: A ENTREGA VIRA PEÇA NA RODADA AUTOMÁTICA ────────────
+//
+// ── O DEFEITO, MEDIDO EM PRODUÇÃO (24/08/2026, case Farol 27) ───────────────
+//
+// A cadeia andou inteira e produziu 14 entregas de texto. **Artes: zero.** E a
+// causa NÃO era o gerador de imagem: `renderizadorDisponivel()` respondeu
+// "pronto", a chave estava no cofre, e o despertador chamou
+// `produzirArtesPendentes()` a cada 5 minutos, como sempre chamou.
+//
+// A causa é que ele chamou **sobre uma tabela vazia**. `produzirArtesPendentes`
+// lê `SocialPost`; quem CRIA `SocialPost` é `agendarPostsDaEntrega`; e essa
+// função tem três chamadores — `marcos.apresentar`, `mes.apresentarCiclo` e a
+// repescagem da escada — e os três são EVENTOS QUE JÁ PASSARAM. Entrega que
+// fica elegível depois do último desses eventos (a Qualidade reavaliou, a
+// escada liberou, a refação terminou) nunca mais é colhida por ninguém.
+//
+// A prova, lida da produção com a rota de leitura pura, sem gastar um centavo:
+// o Farol 27 tinha **0 peça(s) esperando arte** e **2 peça(s) novas previstas**
+// — duas entregas prontas para virar peça paradas desde as 22:33, enquanto a
+// perna de arte do despertador rodava por cima de nada.
+//
+// ── POR QUE AQUI, E POR QUE NÃO UM SEGUNDO CAMINHO ──────────────────────────
+//
+// Esta função NÃO produz nada e não gasta: ela chama a MESMA
+// `agendarPostsDaEntrega` que a porta manual chama, com os MESMOS portões por
+// dentro (escada de exposição, parecer da Qualidade, pilar bloqueado). Uma
+// cópia da colheita começaria idêntica e divergiria no primeiro ajuste — e um
+// calendário que discorda do outro é pior que nenhum, porque é acreditado.
+//
+// ── NADA AQUI AFROUXA TRAVA ─────────────────────────────────────────────────
+//
+//   • **Pagamento (D-0A7):** a peça criada aqui é `draft` e não custa nada. Quem
+//     gasta é a arte, e o portão dela está onde o dinheiro sai
+//     (`artes.ts` → `conferirPagamentoDaAncora`). Peça sem pagamento nasce,
+//     espera, e não vira imagem.
+//   • **Teto diário por cliente:** intocado, e fail-closed em `artes.ts`.
+//   • **Portão de direção de arte:** intocado. Ele reprova direção genérica
+//     ANTES de gastar, e continua reprovando — isto não muda uma linha dele.
+//   • **Nada publica.** `draft` é "data proposta, sem aval do cliente".
+//
+// ── SÓ PROJETO JÁ APRESENTADO ───────────────────────────────────────────────
+//
+// `presentedAt: { not: null }` é a mesma condição que `agendarPostsDaEntrega`
+// exige por dentro. Filtrar aqui não é uma segunda régua: é não bater no banco
+// uma vez por projeto para ouvir "não" — a régua continua sendo dela.
+
+/** Quantos projetos uma colheita automática visita. Teto de laço, não de
+ *  volume: a consulta é barata, mas uma rodada a cada 5 minutos não pode
+ *  varrer uma casa inteira sem limite declarado. */
+export const MAX_PROJETOS_POR_COLHEITA = 50;
+
+export interface ColheitaFeita {
+  /** Peças `draft` criadas nesta passada. */
+  criadas: number;
+  /** Projetos visitados. */
+  projetos: number;
+  /** Entregas que EXISTEM e não viraram peça, com o motivo. Nunca silêncio:
+   *  o que é barrado aqui é trabalho já pago. */
+  retidas: Array<{ nome: string; motivo: string }>;
+  /** Falhas de leitura/escrita — não derrubam a rodada. */
+  falhas: string[];
+}
+
+/**
+ * Colhe, na casa inteira, as entregas já apresentadas que ainda não viraram
+ * peça de calendário. Não gasta, não publica, não aprova.
+ */
+export async function colherPecasDasEntregas(): Promise<ColheitaFeita> {
+  const saida: ColheitaFeita = { criadas: 0, projetos: 0, retidas: [], falhas: [] };
+
+  const projetos = await prisma.project.findMany({
+    where: { presentedAt: { not: null } },
+    select: { id: true, name: true },
+    orderBy: { updatedAt: "desc" },
+    take: MAX_PROJETOS_POR_COLHEITA,
+  }).catch((err) => {
+    saida.falhas.push(`não consegui ler os projetos: ${err instanceof Error ? err.message.slice(0, 160) : "erro"}`);
+    return [] as Array<{ id: string; name: string }>;
+  });
+
+  saida.projetos = projetos.length;
+  for (const p of projetos) {
+    try {
+      const r = await agendarPostsDaEntrega(p.id);
+      saida.criadas += r.criados;
+      for (const x of r.retidas) saida.retidas.push({ nome: x.nome, motivo: x.motivo });
+      for (const x of r.bloqueadasPorPilar) saida.retidas.push({ nome: `pilar ${x.pilar}`, motivo: x.motivo });
+      for (const nome of r.naoInterpretadas) saida.retidas.push({ nome, motivo: "o leitor não conseguiu quebrar o texto em peças" });
+    } catch (err) {
+      saida.falhas.push(`calendário de ${p.name}: ${err instanceof Error ? err.message.slice(0, 160) : "erro"}`);
+    }
+  }
+  return saida;
 }

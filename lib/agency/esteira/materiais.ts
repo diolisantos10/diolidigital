@@ -64,6 +64,47 @@ export async function materialRecebido(materialRequestId: string): Promise<Mater
     });
   }
 
+  return destravarPorMaterial({
+    projectId: pedido.projectId,
+    requestedByAgentId: pedido.requestedByAgentId,
+  });
+}
+
+/**
+ * O DESTRAVE, separado de QUEM fechou o pedido.
+ *
+ * ── O defeito que esta extração conserta (26/08/2026, medido em produção) ───
+ *
+ * Fechar o pedido e DESTRAVAR a produção são duas coisas, e a casa tinha duas
+ * portas de fechamento com só uma delas destravando:
+ *
+ *   • `PATCH /api/material-requests/[id]` → status `received`, chama
+ *     `materialRecebido`, destrava. É a porta da EQUIPE.
+ *   • `POST /api/portal/materiais`        → status `resolved`, e parava aí.
+ *     É a porta do CLIENTE — a única que ele tem para dizer "mandei",
+ *     "não tenho" ou "já está no Drive".
+ *
+ * Pela porta do cliente, a tarefa do agente travado continuava marcada como
+ * bloqueada para sempre e o projeto nunca voltava para a fila. E a rota
+ * respondia, com todas as letras: *"Anotado. A produção volta a andar com
+ * isso"* — uma promessa que o código não cumpria. Promessa escrita ao cliente
+ * que o código não cumpre é a pior classe de defeito desta casa: não quebra
+ * nada, não acusa em lugar nenhum, e o cliente espera.
+ *
+ * Medido em produção em 26/08/2026: 30 pedidos de material no workspace,
+ * 30 `pending`, ZERO fechados em toda a história — e a resposta do cliente
+ * era, até aqui, um caminho sem volta.
+ *
+ * `pending` é o único status que conta como "falta". `received` (a equipe viu
+ * chegar) e `resolved` (o cliente respondeu) são fechamentos diferentes de
+ * propósito — quem lê o banco precisa saber se foi arquivo ou frase —, mas
+ * destravam igual. Por isso a contagem daqui pergunta por `pending` e não por
+ * uma lista de fechados: status novo nasce fechado, e não travando a casa.
+ */
+export async function destravarPorMaterial(pedido: {
+  projectId: string;
+  requestedByAgentId?: string | null;
+}): Promise<MaterialRecebido> {
   // O agente que estava travado volta para a fila — a tarefa dele deixa de
   // mentir que está bloqueada.
   if (pedido.requestedByAgentId) {

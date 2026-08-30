@@ -32,6 +32,7 @@
 import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 /** Teto por rodada. O relógio bate de 5 em 5 min; enxurrada nunca. */
 const MAX_POR_RODADA = 5;
 
@@ -55,8 +56,49 @@ const SISTEMA = [
   "  com a equipe e te falo' é a resposta certa.",
   "- Nunca diga que já fez algo que o contexto não mostra feito.",
   "",
-  "Responda APENAS com o texto da mensagem, sem aspas e sem assinatura.",
+  // ── O FORMATO DA RESPOSTA — E POR QUE NÃO É PROSA SOLTA (25/08/2026) ──────
+  //
+  // Este prompt pedia *"responda APENAS com o texto da mensagem"* e o leitor
+  // abaixo fazia `typeof r.data === "string" ? r.data : ""`. Só que
+  // `lib/ai/generate.ts` NÃO devolve string: o caminho do Claude força
+  // `tool_choice` na ferramenta `responder` e devolve o INPUT DELA, um objeto —
+  // e quando sobra texto cru, ele tenta `extractJson` e falha com
+  // "JSON inválido".
+  //
+  // Ou seja: `r.data` nunca era string, `texto` era sempre "", e toda mensagem
+  // caía em `sem-ia`. **O PM automático desta casa nunca respondeu uma única
+  // mensagem de cliente** — e o log dizia, a cada 5 minutos, "N mensagem(ns)
+  // sem resposta automática — aguardando gente", que se lê como "a IA está
+  // fora", não como "o leitor e a camada discordam do formato".
+  //
+  // Medido na produção em 25/08/2026, no mesmo minuto em que a mesma camada de
+  // IA produzia arte com sucesso (`[arte] peça … recebeu arte … US$ 0.167`):
+  // **5 mensagens acumuladas**, exatamente as do relato do cliente oculto. A
+  // causa NÃO era o departamento em sombra — a escada não filtra `pm-responde`
+  // em lugar nenhum. Era esta linha.
+  'Responda pela ferramenta "responder", com este objeto e nada mais:',
+  '{ "mensagem": "o texto que o cliente vai ler" }',
 ].join("\n");
+
+/**
+ * Tira o texto da resposta da camada de IA.
+ *
+ * Aceita as três formas que ela pode devolver, porque as três acontecem de
+ * verdade: o objeto da ferramenta (o caminho normal do Claude), uma string (os
+ * provedores que respondem texto puro) e o objeto de um provedor que devolveu a
+ * mensagem sob outra chave. O que NÃO se faz é inventar texto: sem nada
+ * legível, devolve "" e a mensagem fica na fila para gente.
+ */
+export function textoDaResposta(data: unknown): string {
+  if (typeof data === "string") return data.trim();
+  if (data && typeof data === "object") {
+    for (const chave of ["mensagem", "resposta", "reply", "texto", "message"]) {
+      const v = (data as Record<string, unknown>)[chave];
+      if (typeof v === "string" && v.trim()) return v.trim();
+    }
+  }
+  return "";
+}
 
 export type ResultadoDaResposta = {
   respondidas: number;
@@ -73,6 +115,14 @@ export type ResultadoDaResposta = {
    * saber qual foi qual.
    */
   peloConector: number;
+  /**
+   * Quantas dessas mensagens são NOVAS na fila — as que chegaram na última
+   * janela. É a TRANSIÇÃO; `semIA` é o estado de pé.
+   *
+   * Ver `JANELA_DE_NOVIDADE` para o porquê e para o limite exato do que esta
+   * aproximação garante.
+   */
+  novasSemIA: number;
   falhas: string[];
 };
 
@@ -82,8 +132,40 @@ export type ResultadoDaResposta = {
  * Chamado pelo despertador a cada passada. Erro numa conversa não derruba as
  * outras: o cliente seguinte não pode pagar pelo anterior.
  */
+/**
+ * O QUE CONTA COMO "NOVA NA FILA" — e o limite exato desta aproximação.
+ *
+ * ── A DOENÇA, MEDIDA EM PRODUÇÃO (cliente oculto, 6ª rodada) ──────────────
+ *
+ * `/api/pulso` de 26/08/2026: *"5 mensagem(ns) sem resposta automática —
+ * aguardando gente"* disparado **57 vezes em 24h**, mais 2 e mais 1 de outras
+ * contagens. É a MESMA doença do alarme do orçamento (76×), noutra perna, e o
+ * despacho não a tinha nomeado: `semIA` é um ESTADO DE PÉ, a mensagem fica
+ * `readByTeam: false` até uma pessoa abrir a tela, e o relógio recontava a
+ * mesma fila a cada 5 minutos.
+ *
+ * Nada estava quebrado: a casa não tem IA para aquela conversa e a deixou para
+ * gente, que é o certo. Alarme sobre o normal ensina a ignorar alarme.
+ *
+ * ── POR QUE UMA JANELA, E NÃO UMA MARCA ────────────────────────────────────
+ *
+ * O orçamento tinha onde carimbar (`faltaAvisadaEm`, dentro do `briefingJson`
+ * que já viaja com o pedido). `PortalMessage` não tem campo sobrando, e
+ * `readByTeam` não serve: marcá-la esconderia a mensagem de quem precisa
+ * respondê-la — trocaria ruído por silêncio, que é pior.
+ *
+ * Então a transição é derivada da IDADE. E o que esta aproximação garante,
+ * dito com o número na mão: com a cadência de 5 minutos do relógio, uma mesma
+ * mensagem pode alarmar no máximo **3 vezes** (15 ÷ 5), contra 288. Não é
+ * exato como a marca; é honesto e é bem menor que o problema.
+ *
+ * ⚠️ E o estado de pé NÃO some: `semIA` continua saindo toda rodada por
+ * `estadoDe`, no pulso. Calar o alarme nunca pode virar calar o fato.
+ */
+const JANELA_DE_NOVIDADE_MS = 15 * 60_000;
+
 export async function responderMensagensDeClientes(): Promise<ResultadoDaResposta> {
-  const resultado: ResultadoDaResposta = { respondidas: 0, semIA: 0, peloConector: 0, falhas: [] };
+  const resultado: ResultadoDaResposta = { respondidas: 0, semIA: 0, peloConector: 0, novasSemIA: 0, falhas: [] };
 
   const pendentes = await prisma.portalMessage.findMany({
     where: { authorRole: "client", readByTeam: false },
@@ -97,7 +179,12 @@ export async function responderMensagensDeClientes(): Promise<ResultadoDaRespost
       const feito = await responderUma(mensagem);
       if (feito === "respondida") resultado.respondidas += 1;
       else if (feito === "conector") resultado.peloConector += 1;
-      else resultado.semIA += 1;
+      else {
+        resultado.semIA += 1;
+        if (Date.now() - mensagem.createdAt.getTime() <= JANELA_DE_NOVIDADE_MS) {
+          resultado.novasSemIA += 1;
+        }
+      }
     } catch (err) {
       resultado.falhas.push(err instanceof Error ? err.message : String(err));
     }
@@ -209,7 +296,14 @@ async function responderUma(mensagem: Mensagem): Promise<"respondida" | "sem-ia"
     clientId: cliente?.id,
   });
 
-  const texto = r.ok && typeof r.data === "string" ? r.data.trim() : "";
+  // ── O TEXTO CRU É A REDE, NÃO O CAMINHO ──────────────────────────────────
+  // Quando o modelo responde fora da ferramenta, `generate` devolve
+  // `ok: false` COM `textoCru`. Isso é uma resposta escrita pelo modelo que
+  // seria jogada fora — e jogar fora resposta pronta é o defeito deste arquivo
+  // pela segunda vez.
+  const texto = r.ok
+    ? textoDaResposta(r.data)
+    : (typeof r.textoCru === "string" ? r.textoCru.trim() : "");
   if (!texto) {
     // Fica na fila, NÃO LIDA, que é onde um humano a encontra. Resposta falsa
     // seria pior que silêncio: o cliente pararia de cobrar.
@@ -222,7 +316,7 @@ async function responderUma(mensagem: Mensagem): Promise<"respondida" | "sem-ia"
         clientId: mensagem.clientId,
         clientRequestId: mensagem.clientRequestId,
         authorRole: "team",
-        authorName: "Gerente de projeto",
+        authorName: VOZ_DO_CLIENTE,
         body: texto,
         readByTeam: true,
       },

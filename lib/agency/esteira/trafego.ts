@@ -25,6 +25,7 @@ import {
   type PlanoDeCampanha, type DesempenhoPago, type PublicoDoConjunto,
 } from "@/lib/integrations/meta/ads";
 import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 import {
   oQueFaltaParaSegmentar, NAO_PERGUNTADO, type AreaDeAtendimento,
 } from "@/lib/agency/comercial/onde-o-negocio-vende";
@@ -287,7 +288,7 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
   if (projeto.clientRequestId && completa) {
     await prisma.portalMessage.create({
       data: {
-        clientRequestId: projeto.clientRequestId, authorRole: "team", authorName: "Gerente de projeto",
+        clientRequestId: projeto.clientRequestId, authorRole: "team", authorName: VOZ_DO_CLIENTE,
         body: [
           "Sua campanha de anúncios está montada e PAUSADA, esperando seu ok. 🎯",
           "",

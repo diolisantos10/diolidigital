@@ -32,7 +32,12 @@ const resolvePortalClient = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, resolvePortalClient }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, resolvePortalClient,
+  // 6ª rodada: as rotas de leitura passaram a usar `donoDoPortal`, que separa
+  // "token inválido" de "ainda não há ficha de cliente". O dublê DERIVA do
+  // mesmo `resolvePortalClient` deste arquivo — nenhuma expectativa mudou.
+  donoDoPortal: async (t: string) => (await resolvePortalClient(t)) ?? "invalido",
+}));
 vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { GET as listarPosts } from "@/app/api/social-posts/route";
@@ -128,7 +133,9 @@ describe("GET /api/portal/projetos — o calendário sai com as telas", () => {
   it("a consulta continua exigindo visibility 'compartilhado' — interno não entra no calendário", async () => {
     await projetosPortal(new NextRequest("http://localhost/api/portal/projetos?token=tok-a"));
     expect(db.socialPost.findMany.mock.calls[0]![0].where).toEqual({
-      clientId: "cli-foocci", visibility: "compartilhado",
+      // `mediaUrl: { not: null }` desde 26/08/2026 — peça sem arte não é
+      // entrega. Ver `lib/agency/portal/peca-visivel-ao-cliente.ts`.
+      clientId: "cli-foocci", visibility: "compartilhado", mediaUrl: { not: null },
     });
   });
 

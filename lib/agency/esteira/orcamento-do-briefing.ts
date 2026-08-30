@@ -154,15 +154,28 @@ import {
   type ConfrontoDeVerba,
 } from "@/lib/agency/comercial/verba-declarada";
 import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
+import { textoDaIsencao, type IsencaoVisivel } from "@/lib/agency/comercial/aviso-de-isencao";
+import { parceriaVivaDoCliente } from "@/lib/agency/financeiro/parceria-do-parceiro";
 import { HOST_PADRAO } from "@/lib/agency/esteira/links-do-portal";
 import { computeEstimate } from "@/lib/agency/live-calculator";
 import { randomBytes } from "crypto";
+import { avisoDeAgendamentoManual } from "@/lib/agency/esteira/aviso-de-agendamento-manual";
 import { sendEmail } from "@/lib/email/send";
 import { orcamentoProntoEmail } from "@/lib/email/templates";
 import { provaDoProprioBriefing } from "@/lib/agency/consentimento/quem-pode-receber";
 
-/** Teto por rodada. O relógio bate de 5 em 5 min; enxurrada nunca. */
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
+/** Teto de ENTREGAS por rodada. O relógio bate de 5 em 5 min; enxurrada nunca. */
 const MAX_POR_RODADA = 5;
+/**
+ * Quantos pedidos a rodada LÊ antes de escolher quais servir.
+ *
+ * Ler é barato (uma consulta), servir é caro (transação, e-mail, link). São
+ * dois tetos diferentes porque o defeito de 25/08/2026 foi confundi-los: com um
+ * teto só, os 5 pedidos mais antigos que nunca geram orçamento ocupavam as 5
+ * vagas para sempre. Ver o bloco em `entregarOrcamentosPendentes`.
+ */
+const JANELA_DE_LEITURA = 50;
 
 export type ResultadoDoOrcamento = {
   entregues: number;
@@ -173,10 +186,30 @@ export type ResultadoDoOrcamento = {
   semCanal: number;
   /** O e-mail não saiu, mas a entrega valeu. Vira notícia no despertador. */
   avisosQueFalharam: string[];
+  /**
+   * Quantos clientes foram AVISADOS de que o pedido deles está parado por falta
+   * de informação — o que falta, por quê, quem tem a bola e a próxima ação.
+   *
+   * Conta separada de `avisados` (o toque no ombro do orçamento PRONTO) porque
+   * são notícias opostas: uma diz "chegou", a outra diz "não chega enquanto
+   * faltar isto". Somar as duas num número só seria apresentar uma parada como
+   * entrega.
+   */
+  faltaAvisada: number;
+  /**
+   * Quantas propostas NÃO foram escritas porque a porta de aceite do cliente
+   * não pôde ser cunhada. Ver o bloco "SEM PORTA NÃO SE ESCREVE PROPOSTA".
+   *
+   * Conta separada de `falhas` porque é um número que se compara entre
+   * rodadas: `falhas` é texto para gente ler, este é o placar da trava.
+   */
+  semPortaDeAceite: number;
   falhas: string[];
 };
 
 export type EstimativaGuardada = {
+  /** O que o cliente veio buscar, nas palavras dele. Ver o Clube Farol 27. */
+  objetivos?: string[];
   totalMin?: number;
   totalMax?: number;
   items?: { label?: string; detail?: string; unit?: string }[];
@@ -192,6 +225,18 @@ export type EstimativaGuardada = {
  *  que derruba a rodada inteira do relógio. */
 export function estimativaEntregue(briefingJson: string | null): EstimativaGuardada | null {
   return estimativaDe(briefingJson);
+}
+
+/**
+ * ESTE PEDIDO TEM NÚMERO? — a mesma pergunta que a rodada faz lá embaixo, e
+ * feita pela MESMA função.
+ *
+ * Existe para que a partição da fila (quem serve primeiro) e a decisão de
+ * entregar não possam divergir. Se um dia `derivarEstimativa` mudar, as duas
+ * mudam juntas — que é o contrário do que aconteceu com o teto da janela.
+ */
+export function temNumero(briefingJson: string | null): boolean {
+  return (estimativaDe(briefingJson) ?? derivarEstimativa(briefingJson)) !== null;
 }
 
 function estimativaDe(briefingJson: string | null): EstimativaGuardada | null {
@@ -405,6 +450,10 @@ async function avisarPorEmail(
     /** A porta de aceite deste pedido, já cunhada por quem chamou. `null` só
      *  quando cunhar falhou — e aí o e-mail sai sem link em vez de não sair. */
     linkDaProposta?: string | null;
+    /** De quem é o pedido — é daqui que sai a pergunta da parceria. Ausente
+     *  (pedido órfão, consulta antiga sem a coluna) = cliente pagante, que é o
+     *  comportamento seguro e o de sempre. */
+    clientId?: string | null;
   },
   e: EstimativaGuardada,
 ): Promise<ResultadoDoAviso> {
@@ -422,12 +471,27 @@ async function avisarPorEmail(
     const { subject, html } = orcamentoProntoEmail({
       prospectName: contato.nome ?? undefined,
       businessName: pedido.businessName ?? undefined,
-      faixa: faixaDoOrcamento(e),
+      // ⛔ A FAIXA NÃO VAI MAIS NO E-MAIL (ordem do CEO, 27/08/2026):
+      // *"eu não acho que o valor tem que estar estampado no e-mail"*. Preço lido
+      // sozinho, sem ninguém para conversar, é preço que o cliente compara e
+      // descarta em silêncio. O valor mora no portal, junto do SDR.
       // Sinalizador, não conta: o e-mail reconhece que a faixa passou da verba
       // declarada e manda ler a conversa, onde a diferença é nomeada e o que
       // cabe é oferecido. Repetir a conta aqui criaria duas versões dela.
       verbaEstourada: Boolean(e.confrontoDeVerba),
       portalLink: pedido.linkDaProposta ?? undefined,
+      // ── A ISENÇÃO, DITA NO E-MAIL (27/08/2026) ─────────────────────────
+      // O parceiro recebia "seu orçamento está pronto" sem uma palavra sobre
+      // não pagar, clicava, e encontrava preço. A linha entra aqui.
+      //
+      // ⛔ SINALIZADOR, NUNCA CONTA — e a ordem do CEO de hoje continua de pé:
+      // *"eu não acho que o valor tem que estar estampado no e-mail"*. Dizer
+      // "isento" não é dizer preço, e por isso o que sobe é um BOOLEANO: não há
+      // número a vazar por um campo que não existe.
+      //
+      // Fail-closed: leitura que falha vira `false` (ver
+      // `isencaoVisivelDoCliente`), e o e-mail sai como o do pagante.
+      isentoPorParceria: (await isencaoVisivelDoCliente(pedido.clientId)) !== null,
     });
 
     // O orçamento vai para quem PEDIU o orçamento, no e-mail que ele mesmo
@@ -445,7 +509,16 @@ async function avisarPorEmail(
     // variável de ambiente — e evita reenviar achando que vai resolver
     // sozinho quando o que falta é configurar a chave.
     if (r.skipped) {
-      const detalhe = "RESEND_API_KEY ausente";
+      // O MOTIVO VEM DE QUEM SABE (25/08/2026). Aqui havia a frase fixa
+      // "RESEND_API_KEY ausente", escrita quando `skipped` só tinha um motivo
+      // possível. Passou a ter dois — a trava de saída do cliente falso também
+      // devolve `skipped` — e a frase fixa virou mentira medida em produção:
+      // dois pedidos com contato `@cliente-falso.invalid` (barrados pela trava,
+      // como deviam) apareceram na tela do CEO como falta de chave, com a chave
+      // cadastrada no Railway. Copiar o motivo recebido é o que impede a
+      // próxima divergência: `sendEmail` ganha um motivo novo, a tela mostra o
+      // motivo novo, sem ninguém precisar lembrar deste arquivo.
+      const detalhe = r.error ?? "skipped sem motivo declarado por sendEmail";
       console.warn(`[orcamento] aviso não enviado (${detalhe}) — pedido ${pedido.id}`);
       return { tipo: "skipped", detalhe };
     }
@@ -503,13 +576,91 @@ async function gravarResultadoDoAviso(pedidoId: string, aviso: ResultadoDoAviso)
 }
 
 /**
+ * A ISENÇÃO deste cliente, no formato que o cliente pode ver — ou `null`.
+ *
+ * ── UMA FONTE DA VERDADE ───────────────────────────────────────────────────
+ * `parceriaVivaDoCliente` é a MESMA função que o portão de pagamento consulta.
+ * Não há uma segunda régua aqui: esta função só recorta (fora o teto de IA e as
+ * peças, que são conta interna) e converte a data para texto. *Verdade escrita
+ * em dois lugares já está errada em um deles.*
+ *
+ * ⛔ FAIL-CLOSED, herdado inteiro: parceria inexistente, revogada, VENCIDA (a
+ * validade é conferida a cada leitura) ou banco fora do ar → `null`, e o
+ * cliente segue PAGANTE, com preço no texto e o portão fechando normalmente.
+ * O `catch` está aqui pelo mesmo motivo: uma leitura que estoure não pode nem
+ * derrubar a entrega do orçamento, nem virar isenção.
+ */
+async function isencaoVisivelDoCliente(clientId: string | null | undefined): Promise<IsencaoVisivel | null> {
+  try {
+    const p = await parceriaVivaDoCliente(clientId);
+    if (!p) return null;
+    return { autorizadaPor: p.autorizadaPor, validaAte: p.validaAte.toISOString(), escopo: p.escopo };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * O texto que o cliente lê. Escrito para quem NÃO trabalha na agência: sem id,
  * sem nome de sistema, sem custo interno, sem prazo prometido.
  */
-export function textoDoOrcamento(negocio: string, e: EstimativaGuardada, linkDaProposta?: string | null): string {
+export function textoDoOrcamento(
+  negocio: string,
+  e: EstimativaGuardada,
+  linkDaProposta?: string | null,
+  /**
+   * O aviso de que a publicação automática ainda não existe, quando ele deve
+   * existir. Vem PRONTO de `avisoDeAgendamentoManual()` — este texto não
+   * pergunta o estado do canal, para não criar uma segunda leitura dele.
+   *
+   * `null`/ausente = a publicação automática está no ar e não há o que avisar.
+   */
+  avisoDeAgendamento?: string | null,
+  /**
+   * A ISENÇÃO POR PARCERIA deste cliente, quando ela existe e está VIVA.
+   *
+   * Medido em 27/08/2026: `grep -rn "parceria"` neste arquivo devolvia ZERO. A
+   * casa liberava a esteira do parceiro sem cobrar nada e mandava a ele um
+   * texto de orçamento idêntico ao do pagante — com preço e com convite a
+   * fechar. O mecanismo existia; nenhum texto que o cliente lê o chamava.
+   *
+   * ⛔ Ausente/`null` = cliente PAGANTE, e o texto sai exatamente como saía.
+   * Quem decide é `parceriaVivaDoCliente`, no servidor; este texto só veste um
+   * fato que chegou pronto.
+   */
+  isencao?: IsencaoVisivel | null,
+): string {
   const linhas: string[] = [];
 
   linhas.push(`Recebemos seu briefing${negocio ? ` da ${negocio}` : ""} — obrigado pelo material.`);
+
+  // ── A ISENÇÃO VEM ANTES DO NÚMERO, e a posição é a metade da correção ────
+  // Quem está esperando o orçamento lê de cima para baixo. Encontrar o valor
+  // primeiro é ler uma cobrança; a frase que a desmente, cinco linhas abaixo,
+  // chega depois de o cliente já ter feito a conta na cabeça.
+  if (isencao) {
+    linhas.push("");
+    linhas.push(...textoDaIsencao(isencao));
+  }
+
+  // ── O MOTIVO DO PROJETO, NA SEGUNDA LINHA (25/08/2026) ────────────────────
+  // Medido no Farol 27: o projeto inteiro existia para lançar o Clube Farol 27
+  // e a proposta não citava o clube uma vez sequer. Quem lê procura o próprio
+  // objetivo antes do preço; não achando, entende que recebeu um pacote de
+  // prateleira — e a peça comercial falhou antes do número.
+  //
+  // Vem GRAVADO com a estimativa (`computeEstimate`), e não reescrito aqui:
+  // são as palavras do cliente, não uma paráfrase da casa.
+  const objetivos = (e.objetivos ?? []).filter((o) => typeof o === "string" && o.trim());
+  if (objetivos.length > 0) {
+    linhas.push("");
+    linhas.push(
+      objetivos.length === 1
+        ? `Entendemos que o que você quer é: ${objetivos[0]!.trim()}. É para isso que esta proposta foi montada.`
+        : `Entendemos que o que você quer é: ${objetivos.map((o) => o.trim()).join("; ")}. É para isso que esta proposta foi montada.`,
+    );
+  }
+
   linhas.push("");
 
   const min = e.totalMin ?? 0;
@@ -564,6 +715,20 @@ export function textoDoOrcamento(negocio: string, e: EstimativaGuardada, linkDaP
       "estiver diferente do que você precisa, é só responder nesta conversa.",
   );
 
+  // ── O QUE ELE PRECISA SABER ANTES DE ACEITAR (27/08/2026) ────────────────
+  //
+  // Ordem do CEO: a casa avisa que a publicação automática no Instagram ainda
+  // não está disponível e que o agendamento é manual por enquanto.
+  //
+  // ⚠️ A POSIÇÃO É A METADE DA ORDEM: o aviso vem ANTES do convite a aceitar.
+  // *Quem aceita tem de saber o que está comprando* — um aviso depois do botão
+  // é um aviso que chega tarde, e guardrail 5 (nunca vender como pronto o que
+  // está em piloto) morre exatamente aí.
+  if (avisoDeAgendamento) {
+    linhas.push("");
+    linhas.push(avisoDeAgendamento);
+  }
+
   // ── O CONVITE A RESPONDER — e a razão de ele existir ──────────────────────
   // Até 24/08/2026 este texto terminava aqui: contava o preço e não dizia como
   // dizer "sim". O cursograma tinha um "cliente aceitou?" que o cliente não
@@ -581,6 +746,142 @@ export function textoDoOrcamento(negocio: string, e: EstimativaGuardada, linkDaP
   return linhas.join("\n");
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// O PEDIDO QUE IA SUMIR EM SILÊNCIO
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Um briefing sem o volume de posts não vira preço — e isso está CERTO: é a
+// trava do CityJobs, e ela existe para o zero não virar "Plano Essencial".
+//
+// O que estava errado é o que acontecia depois: nada. O pedido ficava em
+// `scope_ready`, o relógio escrevia "aguardando gente" a cada 5 minutos, e o
+// cliente do outro lado não recebia uma palavra. Ele mandou o briefing e ficou
+// olhando para um portal que não dizia nem que estava parado, nem por quê.
+//
+// ── POR QUE UMA VEZ SÓ, E COMO SE SABE QUE JÁ FOI ──────────────────────────
+// A varredura roda a cada 5 minutos. Sem marca, este aviso seria 288 mensagens
+// por dia no portal do cliente — o jeito mais rápido de ensinar alguém a não
+// ler o portal (é a mesma lição de `pedidos.ts`). A marca mora no próprio
+// `briefingJson`, ao lado da estimativa, porque é o mesmo objeto que já viaja
+// com o pedido: coluna nova para um booleano seria a sexta porta.
+//
+// A marca é uma DATA, não um `true`: quando alguém precisar saber há quanto
+// tempo o cliente está esperando, a resposta está no dado, não num log.
+
+/** Onde a marca do aviso mora dentro do `briefingJson`. */
+const MARCA_DA_FALTA = "faltaAvisadaEm";
+
+function jaAvisouDaFalta(briefingJson: string | null): boolean {
+  if (!briefingJson) return false;
+  try {
+    const c = JSON.parse(briefingJson) as Record<string, unknown>;
+    return typeof c[MARCA_DA_FALTA] === "string" && (c[MARCA_DA_FALTA] as string).trim() !== "";
+  } catch {
+    // JSON quebrado: NÃO se conclui "já avisei". Concluir isso do ilegível é
+    // transformar um defeito de dado no silêncio que este bloco veio acabar.
+    return false;
+  }
+}
+
+function comMarcaDaFalta(briefingJson: string | null): string {
+  try {
+    const c = JSON.parse(briefingJson ?? "{}") as Record<string, unknown>;
+    return JSON.stringify({ ...c, [MARCA_DA_FALTA]: new Date().toISOString() });
+  } catch {
+    return JSON.stringify({ [MARCA_DA_FALTA]: new Date().toISOString() });
+  }
+}
+
+/**
+ * O que exatamente falta, nas palavras que a casa já escreveu.
+ *
+ * NÃO inventa a lista. `computeEstimate` grava `travadaPor` (a frase em
+ * português) e `missingForEstimate` (os campos), e os dois estavam guardados no
+ * banco sem nenhuma tela que os abrisse. Quando nenhum dos dois existe, o texto
+ * NÃO chuta o que falta: diz que a conta não fechou e passa a bola a gente, com
+ * nome. Ausência de informação não é informação.
+ */
+export function textoDaFalta(briefingJson: string | null): string {
+  let travada = "";
+  let faltando: string[] = [];
+  try {
+    const c = JSON.parse(briefingJson ?? "{}") as { estimate?: EstimativaGuardada; scope?: unknown };
+    const e = c?.estimate;
+    if (e && typeof e.travadaPor === "string") travada = e.travadaPor.trim();
+    if (e && Array.isArray(e.missingForEstimate)) {
+      faltando = e.missingForEstimate.filter((x): x is string => typeof x === "string" && !!x.trim());
+    }
+    if (!travada) {
+      // A estimativa pode nem ter sido gravada — o briefing entrou e a conta
+      // nunca rodou. Deriva AGORA, só para saber o motivo. Não vira preço:
+      // `derivarEstimativa` já devolve null quando está travada.
+      const scope = (c as { scope?: Record<string, unknown> })?.scope;
+      if (scope && typeof scope === "object" && !Array.isArray(scope)) {
+        const bruta = computeEstimate(scope as unknown as Parameters<typeof computeEstimate>[0]);
+        if (typeof bruta.travadaPor === "string") travada = bruta.travadaPor.trim();
+        if (Array.isArray(bruta.missingForEstimate) && faltando.length === 0) {
+          faltando = bruta.missingForEstimate.filter((x): x is string => typeof x === "string" && !!x.trim());
+        }
+      }
+    }
+  } catch { /* JSON quebrado cai no texto honesto lá embaixo */ }
+
+  const linhas: string[] = ["Oi! Seu briefing chegou inteiro e está aqui comigo — mas o orçamento ainda não saiu, e eu prefiro te dizer por quê a te deixar esperando."];
+  linhas.push("");
+  linhas.push(travada || "A minha conta não fechou com o que veio no briefing, e eu não vou te mandar um número que eu não consigo sustentar.");
+  if (faltando.length > 0) {
+    linhas.push("");
+    linhas.push(faltando.length === 1 ? "O que falta é:" : "O que falta é:");
+    for (const f of faltando.slice(0, 6)) linhas.push(`• ${f}`);
+  }
+  linhas.push("");
+  // DONO e PRÓXIMA AÇÃO, com todas as letras. Parada sem dono é a parada que
+  // ninguém retoma — e o cliente não tem como cobrar quem não foi nomeado.
+  linhas.push("Quem está com isso agora é a equipe comercial. Assim que esse número chegar, o orçamento sai na hora e aparece aqui no portal.");
+  linhas.push("Pode me responder por aqui mesmo com o que falta — é o caminho mais rápido.");
+  return linhas.join("\n");
+}
+
+/**
+ * Avisa o cliente de que o pedido dele está parado, e por quê. Uma vez.
+ *
+ * Devolve `true` só quando a mensagem EFETIVAMENTE foi escrita no portal.
+ * `false` cobre os dois casos benignos (já avisado) e o de falha — e a falha
+ * sai no log, nomeada, em vez de virar um `true` que mente para o contador.
+ */
+async function avisarQueFaltaInformacao(pedido: {
+  id: string;
+  clientId: string | null;
+  briefingJson: string | null;
+}): Promise<boolean> {
+  if (jaAvisouDaFalta(pedido.briefingJson)) return false;
+  try {
+    await prisma.$transaction([
+      prisma.portalMessage.create({
+        data: {
+          clientRequestId: pedido.id,
+          clientId: pedido.clientId,
+          authorRole: "team",
+          authorName: VOZ_DO_CLIENTE,
+          body: textoDaFalta(pedido.briefingJson),
+          readByTeam: true,
+        },
+      }),
+      // A marca vai na MESMA transação da mensagem. Marcar antes deixaria o
+      // cliente sem aviso e a casa achando que avisou; marcar depois, numa
+      // escrita própria, deixaria a janela para a mensagem sair duas vezes.
+      prisma.clientRequestDb.update({
+        where: { id: pedido.id },
+        data: { briefingJson: comMarcaDaFalta(pedido.briefingJson) },
+      }),
+    ]);
+    return true;
+  } catch (e) {
+    console.warn("[orcamento] não consegui avisar o cliente da falta:", e instanceof Error ? e.message : e);
+    return false;
+  }
+}
+
 /**
  * Entrega o orçamento de quem acabou de entregar briefing.
  *
@@ -593,6 +894,8 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
     semOrcamento: 0,
     avisados: 0,
     semCanal: 0,
+    faltaAvisada: 0,
+    semPortaDeAceite: 0,
     avisosQueFalharam: [],
     falhas: [],
   };
@@ -626,13 +929,48 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
   // A lição, que vale mais que a linha: durante três teorias eu procurei o
   // pedido nos estados que EU imaginava, em vez de perguntar ao banco em que
   // estado ele estava. Diagnóstico por dedução perde para uma leitura.
-  const pedidos = await prisma.clientRequestDb
+  // ── O ENTUPIMENTO DA JANELA, E O CONSERTO (26/08/2026) ────────────────────
+  //
+  // Medido em produção em 25/08/2026 (`docs/medicoes/elo-9-orcamento.md`):
+  // **86 falhas em 24h**, e dois briefings batendo há 38 rodadas em "sem
+  // orçamento calculado — aguardando gente". A causa não era IA, nem rede, nem
+  // ambiente: era **aritmética de fila**.
+  //
+  // A consulta pegava os 5 MAIS ANTIGOS. Um pedido que nunca gera orçamento
+  // também **nunca muda de estado** — então ele volta na janela para sempre.
+  // Bastam 5 desses para a esteira parar **para todo mundo**, inclusive para
+  // quem já tem orçamento pronto. E o modo de falha é silencioso: a rodada
+  // devolve `entregues=0, semOrcamento=5` todo ciclo, que parece número
+  // estável e inofensivo. Provado por experimento controlado na medição: com 6
+  // pedidos velhos à frente, `entregues=0`; sem eles, `entregues=1`, mesma
+  // estimativa, mesmo pedido.
+  //
+  // O conserto NÃO é aumentar o teto (isso só adia) nem dar estado terminal a
+  // quem espera gente (o pedido continua vivo e o cliente continua esperando).
+  // É separar as duas filas: **lê-se uma janela larga e servem-se PRIMEIRO os
+  // que têm número**. Quem não tem continua sendo atendido — com as vagas que
+  // sobrarem, e sem nunca mais bloquear quem tem.
+  //
+  // A leitura continua limitada (`JANELA_DE_LEITURA`): fila que se lê inteira é
+  // a próxima parada da casa quando o banco crescer.
+  const janela = await prisma.clientRequestDb
     .findMany({
       where: { status: { in: ["new", "lead_incompleto", "scope_ready"] } },
       orderBy: { createdAt: "asc" },
-      take: MAX_POR_RODADA,
+      take: JANELA_DE_LEITURA,
     })
     .catch(() => []);
+
+  // A partição é feita com a MESMA função que decide lá embaixo — `temNumero`
+  // chama `estimativaDe`/`derivarEstimativa`, e não uma segunda régua parecida.
+  // Duas réguas para a mesma pergunta divergem no primeiro conserto de uma
+  // delas, e aí a fila volta a entupir sem ninguém entender por quê.
+  const comNumero = janela.filter((p) => temNumero(p.briefingJson));
+  const semNumero = janela.filter((p) => !temNumero(p.briefingJson));
+  const pedidos = [
+    ...comNumero.slice(0, MAX_POR_RODADA),
+    ...semNumero.slice(0, Math.max(0, MAX_POR_RODADA - Math.min(comNumero.length, MAX_POR_RODADA))),
+  ];
 
   for (const pedido of pedidos) {
     try {
@@ -646,6 +984,24 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
         // Sem número derivado não se inventa número. Fica de pé como estava,
         // para a fila de gente — e conta como notícia, não como rotina.
         resultado.semOrcamento += 1;
+        // ── NADA SOME EM SILÊNCIO (25/08/2026) ────────────────────────────
+        //
+        // Até aqui era só `continue`. Medido em produção: um briefing entregue
+        // SEM o número de posts por semana ficava em `scope_ready`, o relógio o
+        // marcava como "aguardando gente" a cada 5 minutos, e **o cliente nunca
+        // era avisado de nada**. Ele sumia sem barulho.
+        //
+        // Pior: o motivo JÁ ESTAVA ESCRITO. `computeEstimate` grava
+        // `travadaPor` ("O volume de posts não chegou no pedido…") e
+        // `missingForEstimate` — em português, prontos para serem lidos, dentro
+        // de uma coluna que nenhuma tela do cliente abria. **Coluna gravada não
+        // é cliente informado.** Ausência de informação não é informação, e
+        // silêncio não é espera.
+        //
+        // Agora o cliente recebe, UMA vez, o que falta, por que falta, quem
+        // está com a bola e qual é a próxima ação. Best-effort: o aviso é
+        // comunicação, e comunicação não derruba a rodada dos outros clientes.
+        if (await avisarQueFaltaInformacao(pedido)) resultado.faltaAvisada += 1;
         continue;
       }
 
@@ -653,7 +1009,57 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
       // escrita: o texto que o cliente lê precisa carregar o link, e um link
       // que aparece só no e-mail some quando o e-mail falha.
       const link = await linkDaProposta(pedido.id, pedido.clientId);
-      const corpo = textoDoOrcamento(pedido.businessName ?? "", e, link);
+
+      // ── SEM PORTA NÃO SE ESCREVE PROPOSTA (26/08/2026) ────────────────────
+      //
+      // Medido em produção na 9ª volta: DUAS solicitações reais ficaram DEZ
+      // DIAS (14.388 min) em `proposal_pending`, com número calculado, e
+      // `porta de aceite AUSENTE`. O cliente não tinha botão para responder
+      // nem que quisesse. A vigilância nova (`proposta-parada.ts`) as ENXERGA
+      // — mas enxergar não é resolver, e quem OLHA não age de propósito.
+      //
+      // A origem estava aqui, e não era o token: era esta função seguir em
+      // frente com `link = null`. `linkDaProposta` nunca lança ("sem link o
+      // orçamento AINDA é entregue"), então uma falha ao cunhar produzia,
+      // em silêncio, exatamente o estado medido: mensagem escrita, pedido
+      // fora de `new`, e nenhuma porta. Uma vez fora de `new`, a entrega não
+      // se repete — o silêncio virava definitivo.
+      //
+      // A regra passa a ser a da casa: **nada pronto fica parado sem dono e
+      // sem próxima ação.** Sem porta, a entrega PARA aqui:
+      //
+      //   • o pedido continua em `new`, que é o único estado do qual a
+      //     próxima batida do relógio o alcança de novo. Falha transitória de
+      //     banco se cura sozinha na batida seguinte, sem gente;
+      //   • nada é escrito ao cliente. Escrever a proposta e depois voltar
+      //     atrás é pior: o portal mostraria o número sem meio de aceitar;
+      //   • vira ALARME com dono e próxima ação, não linha de log. É estado
+      //     ANORMAL — alguém precisa olhar se ele persistir.
+      //
+      // Nunca é o caminho normal: `linkDaProposta` só devolve `null` quando o
+      // banco recusa a escrita do token. O caminho feliz reaproveita o token
+      // vivo e nem chega aqui.
+      if (!link) {
+        resultado.semPortaDeAceite += 1;
+        resultado.falhas.push(
+          `pedido ${pedido.id} (${pedido.businessName?.trim() || "negócio não informado"}): ` +
+            "não consegui cunhar a porta de aceite — a proposta NÃO foi escrita e o pedido continua na fila. " +
+            "Dono: Atendimento. Próxima ação: destravar a criação de PortalAccess deste pedido; " +
+            "sem porta o cliente não tem como responder nem que queira.",
+        );
+        continue;
+      }
+
+      // O aviso do agendamento manual entra aqui, lido do estado REAL do canal
+      // — no dia em que a Meta liberar, ele some sozinho de toda proposta nova.
+      const corpo = textoDoOrcamento(
+        pedido.businessName ?? "", e, link, await avisoDeAgendamentoManual(),
+        // A isenção entra na MENSAGEM DO PORTAL também, e não só na página da
+        // proposta: é este texto que fica na conversa do cliente para sempre, e
+        // um parceiro relendo a conversa daqui a um mês não pode reencontrar
+        // um preço sem a frase que diz que ele não paga.
+        await isencaoVisivelDoCliente(pedido.clientId),
+      );
 
       await prisma.$transaction([
         prisma.portalMessage.create({
@@ -661,7 +1067,7 @@ export async function entregarOrcamentosPendentes(): Promise<ResultadoDoOrcament
             clientRequestId: pedido.id,
             clientId: pedido.clientId,
             authorRole: "team",
-            authorName: "Gerente de projeto",
+            authorName: VOZ_DO_CLIENTE,
             body: corpo,
             readByTeam: true,
           },

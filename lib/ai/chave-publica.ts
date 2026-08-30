@@ -99,3 +99,45 @@ export async function primeiraChaveDeRotaPublica(
 export async function workspaceDaRotaPublica(): Promise<string | null> {
   return (await resolverWorkspacePublico()) ?? null;
 }
+
+/**
+ * TODOS OS PROVEDORES COM CHAVE, na ordem da casa — para a porta que precisa
+ * de um SEGUNDO se o primeiro estiver sem saldo.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * POR QUE ISTO EXISTE (cliente oculto, 8ª volta, 26/08/2026)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * ⚠️ MEDIDO EM PRODUÇÃO, no primeiro turno da jornada: `POST /api/sdr/chat`
+ * devolveu `{"ok":false,"reason":"sem_saldo_no_provedor"}`. Conferido no
+ * livro-caixa no mesmo minuto (07:24:54Z): *"Your credit balance is too low to
+ * access the Anthropic API"*. A conta da Anthropic zerou. A da OpenAI já estava
+ * zerada desde a véspera (*"You have no credits remaining"*).
+ *
+ * E havia Gemini com chave e funcionando na mesma base — 12 chamadas com
+ * sucesso na mesma janela. **A porta da rua da agência ficou fechada para toda
+ * a internet com um provedor bom parado ao lado.**
+ *
+ * A causa é `primeiraChaveDeRotaPublica`: ela escolhe o primeiro provedor que
+ * tem CHAVE, e a conversa fica presa nele. Ter chave não é ter saldo. O resto
+ * da casa não tem esse problema — `lib/ai/generate.ts` anda na ordem de
+ * preferência e cai para o próximo. A porta pública, que é a ÚNICA que atende
+ * quem ainda não é cliente, era a única sem essa rede.
+ *
+ * ── O QUE ISTO NÃO CONSERTA, E É DO CEO ────────────────────────────────────
+ *
+ * Conta zerada é conta zerada. Esta lista compra o próximo provedor, não crédito
+ * — se todos zerarem, a porta fecha e tem de fechar. Guardrail 2: quem põe
+ * saldo é o CEO, e o código só evita que UMA conta zerada derrube o que as
+ * outras ainda pagam.
+ */
+export async function chavesDeRotaPublica(
+  ordem: readonly AiProvider[],
+): Promise<Array<{ provider: AiProvider; chave: ResolvedKey }>> {
+  const achadas: Array<{ provider: AiProvider; chave: ResolvedKey }> = [];
+  for (const provider of ordem) {
+    const chave = await chaveDeRotaPublica(provider);
+    if (chave) achadas.push({ provider, chave });
+  }
+  return achadas;
+}

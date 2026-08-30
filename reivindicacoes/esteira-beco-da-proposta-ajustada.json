@@ -1,0 +1,12 @@
+{
+  "id": "esteira-beco-da-proposta-ajustada",
+  "quem": "ses-69fa836d5e",
+  "frente": "o beco de quem negocia: proposta ajustada nasce em estado interno e o cliente nao consegue responder",
+  "responsabilidade": "esteira-beco-da-proposta-ajustada",
+  "arquivos": [
+    "lib/agency/execution/negotiate-proposal.ts"
+  ],
+  "abertaEm": "2026-08-29T21:40:38.833Z",
+  "encerradaEm": "2026-08-30T12:09:17.871Z",
+  "rotulo": "sala-convite-2908"
+}

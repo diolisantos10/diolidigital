@@ -56,6 +56,8 @@ import { conferirFormatoDeMidia, type MidiaConferida } from "@/lib/integrations/
 import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
 import { AUTOR_DA_ESTEIRA } from "@/lib/agency/esteira/registro-de-publicacao";
 import { REVISION_STATUS_DA_QUALIDADE } from "@/lib/agency/execution/quality-auditor";
+import { frasesDeDirecaoInterna } from "@/lib/agency/esteira/direcao-interna";
+import { conferirDataDaPeca } from "@/lib/agency/esteira/calendario-do-cliente";
 
 /** Quantos posts publicamos por rodada do relógio. Publicação é irreversível e
  *  a Meta limita chamadas — melhor ir devagar e nunca em enxurrada. */
@@ -182,17 +184,33 @@ const HORA_PADRAO = 10;
  * o único ponto de tradução veredito → banco, e ele mesmo avisa que "string
  * comparada à mão é como o bug volta".
  *
- * `nao_auditado` ENTRA, e isto é obediência a uma decisão já tomada — não
- * descuido. A casa declarou, em `quality-auditor.ts:19-24` e aplicou em
- * `run-execution.ts:771-786`, que "ninguém olhou" **não bloqueia**: a operação
- * não pode parar porque um provedor caiu, e o fato fica declarado no banco e num
- * `ActivityEvent`. Barrar aqui criaria uma SEGUNDA política sobre o mesmo estado,
- * divergindo da que já roda em três arquivos. Se a casa quiser que "não
- * auditado" bloqueie, isso se muda lá, uma vez, para todo mundo.
+ * ── `nao_auditado` SAIU DAQUI EM 26/08/2026 ────────────────────────────────
+ *
+ * Até esta data ele ENTRAVA, e o comentário desta linha dizia por quê: a casa
+ * havia decidido que "ninguém olhou" não bloqueia, para a operação não parar
+ * quando um provedor de IA cai. A decisão era coerente e estava aplicada em
+ * três arquivos. Ela também estava MEDIDA — e o que a medição mostrou é que ela
+ * custava exatamente o que ela prometia evitar, do lado errado:
+ *
+ *   **9 entregas chegaram ao cliente sem auditoria nenhuma** (cliente oculto em
+ *   produção, 25/08/2026). Não "com ressalva na tela": sem árbitro nenhum,
+ *   indistinguíveis das aprovadas para quem abre o portal.
+ *
+ * A própria casa já tinha corrigido METADE disso em 24/08, e no arquivo ao
+ * lado: `esteira/marcos.ts:208` retém a APRESENTAÇÃO de entrega
+ * `quality_nao_auditado`. Ou seja, desde 24/08 havia DUAS políticas sobre o
+ * mesmo estado — a apresentação retinha, o calendário deixava passar —, e o
+ * comentário que estava aqui pedia justamente que isso não acontecesse. Elas
+ * ficam iguais agora, e a que sobrevive é a fail-closed.
+ *
+ * **Auditor mudo nunca é aprovado.** Peça retida não some: ela sai com nome e
+ * motivo em `AgendamentoFeito.retidas` e num `ActivityEvent`, e destravá-la é
+ * conectar a auditoria — não reescrever a peça, que não tem defeito conhecido.
+ * O caminho de escape continua existindo e continua sendo de GENTE
+ * (`mesmoComRessalva`, em `marcos.ts`).
  */
 const REVISOES_QUE_PODEM_VIRAR_POST: readonly string[] = [
   REVISION_STATUS_DA_QUALIDADE.aprovado,
-  REVISION_STATUS_DA_QUALIDADE.nao_auditado,
 ];
 
 /** A visibilidade que a escada de exposição carimba em quem ela liberou. */
@@ -231,6 +249,23 @@ export function motivoParaNaoVirarCalendario(
   }
   return null;
 }
+
+/**
+ * O ESTADO QUE A FILA DE ENTREGA LÊ. Um só, e é este.
+ *
+ * Exportado em 25/08/2026 para que a régua do ajuste (o e2e do Story) meça a
+ * MESMA constante que `publicarAgendados` consulta, em vez de repetir a
+ * palavra "scheduled" num `expect`. Uma régua que copia a literal fica verde no
+ * dia em que a fila passar a ler outra coisa — e é justamente aí que a peça do
+ * cliente para de sair.
+ *
+ * ⚠️ É um VALOR, não uma lista, e isso foi medido: como lista, a consulta virava
+ * `status: { in: [...] }` e três réguas que guardam o FORMATO da consulta de
+ * `publicarAgendados` ficaram vermelhas. Elas estão certas — é o formato que
+ * impede uma condição de se perder no dia em que alguém mexer no filtro. Quem
+ * se adapta é a constante.
+ */
+export const ESTADO_QUE_A_FILA_LE = "scheduled";
 
 /**
  * Estados de onde uma peça PODE ser promovida a "scheduled".
@@ -605,7 +640,7 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
 
   const pendentes = await prisma.socialPost.findMany({
     where: {
-      status: "scheduled",
+      status: ESTADO_QUE_A_FILA_LE,
       scheduledFor: { lte: agora },
       ...(opcoes.apenasPostId ? { id: opcoes.apenasPostId } : {}),
     },
@@ -836,6 +871,40 @@ export async function publicarAgendados(opcoes: OpcoesDaRodada = {}): Promise<Pu
       }
     }
 
+    // ── DIREÇÃO INTERNA NÃO VAI AO AR (27/08/2026, medido em produção) ─────
+    //
+    // A peneira mora em `captionDaPeca`, no nascimento e no ajuste. Esta é a
+    // ÚLTIMA porta, e ela existe porque `SocialPost.caption` também é escrito
+    // por outros caminhos (portal, painel, importação) que não passam por lá.
+    //
+    // Aqui NÃO se limpa o texto: publicar uma legenda diferente da que o
+    // cliente aprovou seria a agência reescrevendo a peça na saída, calada.
+    // Barra, grava o motivo e deixa para gente — com dono e próxima ação.
+    const internas = frasesDeDirecaoInterna(post.caption);
+    if (internas.length > 0) {
+      await falhar(
+        `a legenda desta peça contém DIREÇÃO INTERNA (${internas.map((i) => `"${i.frase.slice(0, 60)}"`).join(" · ")}) — ` +
+        "isso é briefing, não legenda, e publicado sairia no perfil do cliente. " +
+        "Dono: a agência (produção). Próxima ação: corrigir a legenda da peça e reagendar.",
+      );
+      continue;
+    }
+
+    // ── O DIA CITADO NO TEXTO É O DIA DA PEÇA? (27/08/2026) ────────────────
+    //
+    // A peça medida na rodada paga saiu com "Sexta é dia de estar aqui" num
+    // calendário todo terça-a-quinta. Publicada, ela convida o público do
+    // cliente para um dia que não é o dela — e quem lê não tem como saber qual
+    // das duas informações vale.
+    //
+    // Aqui a data está no banco (`scheduledFor`), então a pergunta é forte e a
+    // resposta é determinística. Texto que não cita dia nenhum passa direto.
+    const data = conferirDataDaPeca({ texto: post.caption, agendadaPara: post.scheduledFor });
+    if (!data.passa) {
+      await falhar(data.motivo);
+      continue;
+    }
+
     let r;
     try {
       r = await publishPost(post.workspaceId, {
@@ -916,7 +985,13 @@ async function promoverParaAgendado(
     const quando = original && original > proximo ? original : new Date(proximo);
     await prisma.socialPost.update({
       where: { id: post.id },
-      data: { status: "scheduled", scheduledFor: quando },
+      data: {
+        status: "scheduled", scheduledFor: quando,
+        // A PEÇA ENTROU NA FILA — logo, não está mais parada. O aviso da
+        // parada anterior sai junto: aviso que sobrevive ao conserto vira
+        // ruído, e ruído ensina a ignorar o aviso da próxima vez.
+        avisoAoCliente: null,
+      },
     });
     proximo = new Date(Math.max(quando.getTime(), proximo.getTime()) + 24 * 60 * 60_000);
   }

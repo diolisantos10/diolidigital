@@ -114,6 +114,25 @@ export interface SDRAgentState {
   qualificationScore: number;
   isRestaurant: boolean;
   handoff?: SDRHandoff;
+  /**
+   * O CONTATO QUE O CLIENTE DEU DE GRAÇA NA CONVERSA (6ª rodada).
+   *
+   * ── Por que ele mora AQUI e não no escopo ──────────────────────────────
+   * O `BriefingScope` inteiro é serializado para dentro do prompt do modelo
+   * (`app/api/sdr/chat/route.ts`, "dados já captados"), e a doutrina da casa é
+   * que e-mail NUNCA trafega por ali — `aplicarTravasDeEscopo` chega a apagar
+   * `prospectEmail` de qualquer coisa que volte do modelo. O estado do SDR não
+   * sobe para a rota: é o único lugar em que o dado pode ficar guardado sem
+   * quebrar a regra.
+   *
+   * ── E por que ele precisa existir ──────────────────────────────────────
+   * Medido no cliente oculto: o cliente escreveu o e-mail dele no meio da
+   * conversa e a casa não fez NADA — não guardou, não agradeceu, não usou. Ele
+   * deu o contato e recebeu silêncio, e o briefing terminou sem canal nenhum
+   * para quem tinha pulado a porta. Guardar sem avisar seria PII escondida;
+   * avisar sem guardar seria teatro. São as duas coisas, ou nenhuma.
+   */
+  contatoOferecido?: { email?: string; whatsapp?: string };
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────

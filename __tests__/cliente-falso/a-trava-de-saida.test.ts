@@ -19,7 +19,8 @@ import {
   motivoDoBloqueio, modoClienteFalso, limparSaidasBloqueadas, saidasBloqueadas,
   DOMINIO_DO_CLIENTE_FALSO,
 } from "@/lib/agency/cliente-falso/trava-de-saida";
-import { sendEmail } from "@/lib/email/send";
+import { briefingConfirmationEmail } from "@/lib/email/templates";
+import { sendEmail, SEM_CHAVE } from "@/lib/email/send";
 // Ver a nota gêmea em `travas-das-quatro-portas.test.ts`: consentimento é
 // obrigatório desde 24/08/2026, e o que este arquivo mede é o outro cadeado.
 const CONSENTE_EMAIL = { natureza: "resposta", mensagemRecebidaId: "msg-1" } as const;
@@ -87,5 +88,54 @@ describe("a trava dentro de sendEmail — antes da chave, não depois", () => {
     // prova — e afirmação sem prova é o que esta casa chama de vender pronto o
     // que está em piloto.
     expect(saidasBloqueadas()).toHaveLength(2);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OS DOIS "skipped" NÃO PODEM SER O MESMO FATO — 25/08/2026
+//
+// `sendEmail` devolve `skipped: true` por dois motivos opostos: a trava de
+// saída barrou o destino (a casa funcionando) OU a chave não está configurada
+// (a casa desligada). Enquanto o segundo ramo era mudo, quem chamava chutava —
+// e a tela do CEO ficou dizendo "RESEND_API_KEY ausente" sobre e-mails que a
+// TRAVA barrou, com a chave cadastrada no Railway. Motivo é mensagem, nunca
+// forma.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// ⚠️ 27/08/2026: os dois casos abaixo passaram a mandar um corpo DE VERDADE.
+// Antes diziam `html: "a"`, e desde a trava do molde (`lib/email/trava-do-molde.ts`)
+// isso é recusado ANTES da leitura da chave — o teste passaria a medir a recusa
+// do molde achando que media a da chave. Régua verde sobre o componente errado
+// é pior que régua nenhuma.
+describe("skipped diz POR QUÊ — a trava e a falta de chave não se confundem", () => {
+  const DO_MOLDE = briefingConfirmationEmail({ prospectName: "NOME TESTE", businessName: "Padaria do Teste" });
+
+  it("sem chave, o motivo é a chave — e vem escrito", async () => {
+    delete process.env.CLIENTE_FALSO;
+    delete process.env.RESEND_API_KEY;
+    const r = await sendEmail({ to: "quem.pediu@gmail.com", subject: DO_MOLDE.subject, html: DO_MOLDE.html, consentimento: CONSENTE_EMAIL });
+    expect(r.skipped).toBe(true);
+    expect(r.error).toBe(SEM_CHAVE);
+    expect(r.error).toMatch(/RESEND_API_KEY/);
+  });
+
+  it("chave cadastrada COM VALOR EM BRANCO conta como não configurada — não vira Bearer vazio", async () => {
+    // O modo de falha que engana auditoria: o NOME aparece na lista do Railway,
+    // então "está configurada" parece verdade. Sem o `.trim()`, um valor de
+    // espaços passaria do `if` e a Resend responderia 401 sem dizer o motivo.
+    delete process.env.CLIENTE_FALSO;
+    process.env.RESEND_API_KEY = "   ";
+    const r = await sendEmail({ to: "quem.pediu@gmail.com", subject: DO_MOLDE.subject, html: DO_MOLDE.html, consentimento: CONSENTE_EMAIL });
+    expect(r.skipped).toBe(true);
+    expect(r.error).toBe(SEM_CHAVE);
+  });
+
+  it("barrado pela trava, o motivo é a TRAVA — mesmo com chave configurada", async () => {
+    process.env.RESEND_API_KEY = "re_chave_falsa_de_teste";
+    delete process.env.CLIENTE_FALSO;
+    const r = await sendEmail({ to: `ana@${DOMINIO_DO_CLIENTE_FALSO}`, subject: "a", html: "a", consentimento: CONSENTE_EMAIL });
+    expect(r.skipped).toBe(true);
+    expect(r.error).toBe("bloqueado:dominio_inexistente");
+    expect(r.error).not.toMatch(/RESEND_API_KEY/);
   });
 });

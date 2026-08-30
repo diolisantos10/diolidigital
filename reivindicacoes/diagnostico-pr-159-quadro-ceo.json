@@ -1,0 +1,12 @@
+{
+  "id": "diagnostico-pr-159-quadro-ceo",
+  "quem": "ses-d7f3b41ab1",
+  "frente": "diagnostico do PR 159 (quadro do CEO 15/08) treze dias depois",
+  "responsabilidade": "diagnostico-pr-159-quadro-ceo",
+  "arquivos": [
+    "docs/diagnosticos/o-quadro-do-ceo-15-08-treze-dias-depois.md"
+  ],
+  "abertaEm": "2026-08-29T04:22:20.597Z",
+  "encerradaEm": "2026-08-29T04:39:30.801Z",
+  "rotulo": "pm-quadro-159"
+}

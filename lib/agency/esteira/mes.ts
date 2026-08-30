@@ -35,7 +35,7 @@ import { departamentoDoAgente } from "@/lib/agency/escada/degraus";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { lerEvolucao } from "@/lib/agency/esteira/comparacao";
 import {
-  auditDeliverable, revisionStatusDoVeredito, foiReprovadaPelaQualidade,
+  auditDeliverable, revisionStatusDoVeredito, camposDaQualidade, foiReprovadaPelaQualidade,
 } from "@/lib/agency/execution/quality-auditor";
 
 /** Quantos ciclos viram por rodada do relógio. Cada virada é uma chamada de IA
@@ -555,7 +555,9 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
       data: {
         projectId, name: relatorio.titulo, type: "report", status: "in_review",
         content: relatorio.corpo, ownerAgentId: "relatorio-mensal", cycleId: ciclo.id,
-        revisionStatus: revisionStatusDoVeredito(vereditoDoRelatorio.verdict),
+        // Veredito + QUEM julgou. O relatório mensal também some da conta de
+        // "auditado" quando quem o julgou foi o próprio autor.
+        ...camposDaQualidade(vereditoDoRelatorio),
         lastFeedback: (vereditoDoRelatorio.issues.join("; ") || vereditoDoRelatorio.note).slice(0, 500),
       },
     }).catch(() => null);

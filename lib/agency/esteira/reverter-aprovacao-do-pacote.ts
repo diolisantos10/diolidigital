@@ -117,6 +117,14 @@ export interface CardPreservado extends CardAfetado {
   motivo: string;
 }
 
+/** Uma peça que volta da fila de publicação para rascunho. */
+export interface PecaDesagendada {
+  postId: string;
+  /** O que ela dizia, curto — o operador precisa reconhecer a peça na lista. */
+  caption: string;
+  quando: string | null;
+}
+
 export interface ProjetoNaReversao {
   projectId: string;
   projeto: string;
@@ -129,6 +137,21 @@ export interface ProjetoNaReversao {
   reverte: CardAfetado[];
   /** Os cards do mesmo instante que ficam como estão, cada um com o motivo. */
   preserva: CardPreservado[];
+  /**
+   * AS PEÇAS QUE SAEM DA FILA DE PUBLICAÇÃO (27/08/2026).
+   *
+   * O clique do pacote não parava nos cards: ele seguia para a promoção do
+   * calendário, que leva as peças de `draft` a `scheduled` — e `scheduled` é o
+   * estado que o relógio publica. (A promoção NÃO é chamada aqui: este arquivo
+   * escreve o estado da peça direto, e o teste de fonte confere isso.) Reverter os cards e deixar as
+   * peças agendadas desfazia a papelada e não a consequência: foi por isso que,
+   * na rodada paga, tirar UMA peça de teste da fila exigiu `/reprovar`.
+   *
+   * Volta a `draft`, que é o mesmo caminho que a reabertura de card já usa para
+   * RETIRAR o aval. Peça com aprovação `client:` de verdade **não entra aqui**,
+   * e peça já publicada muito menos — desfazer demais não tem volta.
+   */
+  desagenda: PecaDesagendada[];
 }
 
 export type SituacaoDaReversao =
@@ -152,6 +175,8 @@ export interface RelatorioDaReversao {
   cardsRevertidos: number;
   /** Quantos carimbos de projeto seriam (ou foram) limpos. */
   carimbosLimpos: number;
+  /** Quantas peças saem (ou saíram) da fila de publicação. */
+  pecasDesagendadas: number;
   /**
    * ── A RESPOSTA DA PERGUNTA QUE VEM DEPOIS ───────────────────────────────
    * Quantas peças deste cliente têm aprovação `client:` de verdade — as ÚNICAS
@@ -229,7 +254,7 @@ export async function reverterAprovacaoDoPacote(pedido: PedidoDeReversao): Promi
   const vazio = {
     cliente: null, clientId: null, janelaMinutos, desde: desde.toISOString(),
     projetos: [] as ProjetoNaReversao[], cardsRevertidos: 0, carimbosLimpos: 0,
-    pecasLiberadasParaPublicar: null,
+    pecasDesagendadas: 0, pecasLiberadasParaPublicar: null,
   };
 
   // ── Autor e motivo vêm ANTES do banco ─────────────────────────────────────
@@ -269,6 +294,13 @@ export async function reverterAprovacaoDoPacote(pedido: PedidoDeReversao): Promi
     },
     orderBy: { clientApprovedAt: "desc" },
   });
+
+  // As peças com aprovação `client:` de verdade. Lidas UMA vez, antes do laço,
+  // e pela mesma função que responde "esse clique liberou alguma peça?" —
+  // duas leituras do mesmo fato divergiriam justamente no caso raro.
+  const decididasPeloCliente = await cardsQueJaDecidem(achado.id)
+    .then((r) => r.aprovadaPeloCliente)
+    .catch(() => new Set<string>());
 
   const leitura: ProjetoNaReversao[] = [];
 
@@ -312,7 +344,29 @@ export async function reverterAprovacaoDoPacote(pedido: PedidoDeReversao): Promi
     );
     const limpaCarimboDoProjeto = !sustentadoPorOutro;
 
-    if (reverte.length === 0 && !limpaCarimboDoProjeto) continue;
+    // ── AS PEÇAS QUE O MESMO CLIQUE MANDOU PARA A FILA ─────────────────────
+    //
+    // O clique do pacote → a promoção do calendário → `scheduled`. Sem isto a
+    // reversão desfazia a papelada e deixava a consequência de pé.
+    //
+    // As três exclusões são as que impedem "desfazer demais":
+    //   • peça já PUBLICADA não volta (o fato aconteceu);
+    //   • peça com aprovação `client:` de verdade não volta (é decisão dele);
+    //   • peça que não é do pedido deste projeto nem é olhada.
+    const desagenda: PecaDesagendada[] = [];
+    if (p.clientRequestId) {
+      const agendadas = await prisma.socialPost.findMany({
+        where: { clientRequestId: p.clientRequestId, status: "scheduled", publishedAt: null },
+        select: { id: true, caption: true, scheduledFor: true },
+        orderBy: { scheduledFor: "asc" },
+      }).catch(() => []);
+      for (const peca of agendadas) {
+        if (decididasPeloCliente.has(peca.id)) continue;
+        desagenda.push({ postId: peca.id, caption: (peca.caption ?? "").slice(0, 120), quando: iso(peca.scheduledFor) });
+      }
+    }
+
+    if (reverte.length === 0 && !limpaCarimboDoProjeto && desagenda.length === 0) continue;
 
     leitura.push({
       projectId: p.id,
@@ -321,18 +375,20 @@ export async function reverterAprovacaoDoPacote(pedido: PedidoDeReversao): Promi
       limpaCarimboDoProjeto,
       reverte,
       preserva,
+      desagenda,
     });
   }
 
   const cardsRevertidos = leitura.reduce((n, p) => n + p.reverte.length, 0);
   const carimbosLimpos = leitura.filter((p) => p.limpaCarimboDoProjeto).length;
+  const pecasDesagendadas = leitura.reduce((n, p) => n + p.desagenda.length, 0);
 
   // ── A pergunta que vem depois, medida em vez de deduzida ──────────────────
   const liberadas = await cardsQueJaDecidem(achado.id)
     .then((r) => r.aprovadaPeloCliente.size)
     .catch(() => null);
 
-  const placar = { ...base, projetos: leitura, cardsRevertidos, carimbosLimpos, pecasLiberadasParaPublicar: liberadas };
+  const placar = { ...base, projetos: leitura, cardsRevertidos, carimbosLimpos, pecasDesagendadas, pecasLiberadasParaPublicar: liberadas };
 
   if (leitura.length === 0) {
     return {
@@ -349,7 +405,8 @@ export async function reverterAprovacaoDoPacote(pedido: PedidoDeReversao): Promi
       ...placar, situacao: "so_medi",
       veredito:
         `LEITURA PURA — nada foi gravado. Se você aplicar: ${cardsRevertidos} card(s) voltam a "pending" ` +
-        `com autor e data limpos, e ${carimbosLimpos} carimbo(s) de aprovação de projeto voltam a nulo. ` +
+        `com autor e data limpos, ${carimbosLimpos} carimbo(s) de aprovação de projeto voltam a nulo, e ` +
+        `${pecasDesagendadas} peça(s) SAEM DA FILA DE PUBLICAÇÃO (voltam a rascunho). ` +
         `${leitura.reduce((n, p) => n + p.preserva.length, 0)} carimbo(s) do mesmo instante ficam como estão ` +
         "(veja `preserva`, com o motivo de cada um). Confira a lista item por item antes de aplicar.",
     };
@@ -373,6 +430,17 @@ export async function reverterAprovacaoDoPacote(pedido: PedidoDeReversao): Promi
         prisma.approvalRequest.updateMany({
           where: { id: { in: ids }, status: "approved", reviewedBy: CARIMBO_SECO },
           data: { status: "pending", reviewedBy: null, reviewedAt: null },
+        }),
+      );
+    }
+    const idsDasPecas = alvo.desagenda.map((x) => x.postId);
+    if (idsDasPecas.length > 0) {
+      escritas.push(
+        prisma.socialPost.updateMany({
+          // Compare-and-set: se alguém publicou ou mexeu no estado entre a
+          // leitura e a escrita, a peça não é tocada.
+          where: { id: { in: idsDasPecas }, status: "scheduled", publishedAt: null },
+          data: { status: "draft" },
         }),
       );
     }
@@ -404,6 +472,7 @@ export async function reverterAprovacaoDoPacote(pedido: PedidoDeReversao): Promi
           `Aprovação do pacote REVERTIDA por ${autor}. Motivo: ${motivo}. ` +
           `Carimbo do projeto ${alvo.limpaCarimboDoProjeto ? `(${alvo.clientApprovedAt}) apagado` : "MANTIDO (há decisão legítima no mesmo instante)"}; ` +
           `${ids.length} card(s) de volta a "pending": ${ids.join(", ") || "nenhum"}. ` +
+          `${idsDasPecas.length} peça(s) fora da fila de publicação: ${idsDasPecas.join(", ") || "nenhuma"}. ` +
           `Preservados: ${alvo.preserva.map((c) => `${c.id} (${c.leitura})`).join(", ") || "nenhum"}.`
             .slice(0, 900),
       },
@@ -415,8 +484,9 @@ export async function reverterAprovacaoDoPacote(pedido: PedidoDeReversao): Promi
   return {
     ...placar, situacao: "revertido",
     veredito:
-      `Feito: ${cardsRevertidos} card(s) voltaram a "pending" (sem autor e sem data) e ${carimbosLimpos} ` +
-      `projeto(s) voltaram a esperar a decisão do cliente. Autor: ${autor}. A reversão ficou registrada na ` +
+      `Feito: ${cardsRevertidos} card(s) voltaram a "pending" (sem autor e sem data), ${carimbosLimpos} ` +
+      `projeto(s) voltaram a esperar a decisão do cliente e ${pecasDesagendadas} peça(s) saíram da FILA DE ` +
+      `PUBLICAÇÃO (voltaram a rascunho). Autor: ${autor}. A reversão ficou registrada na ` +
       "linha do tempo de cada projeto. Rodar de novo não faz mal — a segunda passada não encontra nada.",
   };
 }

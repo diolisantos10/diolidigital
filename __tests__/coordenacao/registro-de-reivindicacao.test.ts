@@ -119,8 +119,67 @@ describe("✅ o sentinela NÃO INVENTA problema no caso limpo", () => {
     expect(() => lerReivindicacoesDoDisco(join(tmpdir(), "esta-pasta-nao-existe-" + Date.now()))).not.toThrow();
   });
 
+  // ── A TRAVA ETERNA, MEDIDA NO BRANCH PADRÃO (25/08/2026) ──────────────────
+  //
+  // Uma reivindicação aberta em 16/08 e nunca encerrada (213h, quase 9x o teto
+  // de 24h) reprovava a CI de uma frente aberta HOJE — e com ela toda
+  // implantação do repositório. A sessão dona não existia mais para encerrá-la.
+  //
+  // `estaViva` já sabia dizer "velha"; `conferirRegistro` só consultava
+  // "encerrada", então bastava a morta cair na primeira posição do par. Era o
+  // guardrail 5 do próprio arquivo sendo contrariado pelo único laço que não o
+  // lia: *trava eterna é trava que alguém arranca por fora.*
+  //
+  // Os DOIS testes abaixo andam juntos de propósito — um prova que a morta
+  // solta, o outro que a viva continua barrando. Só o primeiro seria uma régua
+  // que aprova qualquer coisa.
+  it("reivindicação VELHA (além do teto) NÃO trava uma frente aberta hoje", () => {
+    const pasta = pastaTemporaria();
+    const antiga = new Date(AGORA.getTime() - 213 * 60 * 60 * 1000).toISOString();
+    // A morta na PRIMEIRA posição do par: é exatamente o caso que passava
+    // batido, porque `conferirColisao` só olha o estado do segundo.
+    gravar(pasta, "a.json", { ...BASE, abertaEm: antiga, id: "fila-antiga", quem: "sessao-morta", responsabilidade: "esteira-orcamento-fila", arquivos: ["lib/agency/esteira/orcamento-do-briefing.ts"] });
+    gravar(pasta, "b.json", { ...BASE, id: "porta-de-hoje", quem: "sessao-viva", responsabilidade: "porta-de-resposta", arquivos: ["lib/agency/esteira/orcamento-do-briefing.ts"] });
+
+    expect(conferirRegistroNoDisco(pasta, AGORA).ok).toBe(true);
+  });
+
+  it("mas duas VIVAS no mesmo arquivo continuam colidindo — nada foi afrouxado", () => {
+    const pasta = pastaTemporaria();
+    gravar(pasta, "a.json", { ...BASE, id: "fila-de-hoje", quem: "sessao-a", responsabilidade: "esteira-orcamento-fila", arquivos: ["lib/agency/esteira/orcamento-do-briefing.ts"] });
+    gravar(pasta, "b.json", { ...BASE, id: "porta-de-hoje", quem: "sessao-b", responsabilidade: "porta-de-resposta", arquivos: ["lib/agency/esteira/orcamento-do-briefing.ts"] });
+
+    expect(conferirRegistroNoDisco(pasta, AGORA).ok).toBe(false);
+  });
+
   it("O REGISTRO REAL deste repositório — o que roda de verdade em `npm test` — está limpo", () => {
     const r = conferirRegistroNoDisco(REGISTRO_REAL, new Date());
-    expect(r.ok, `reivindicacoes/ tem colisão viva: ${r.problemas.join(" | ")}`).toBe(true);
+
+    // ── O AVISO ALTO SAI AQUI (30/08/2026) ────────────────────────────────
+    //
+    // Colisão FORÇADA não reprova mais (ver `conferirRegistro`), mas aviso que
+    // ninguém vê é o mesmo que aviso nenhum — e "não reprova" viraria "passou
+    // batido". Este é o ponto da casa em que o registro REAL é lido em
+    // `npm test`, então é aqui que o aviso tem que APARECER, na saída da
+    // suíte, com os dois donos e o motivo escrito de cada um.
+    for (const aviso of r.avisos) console.warn(`\n${aviso}\n`);
+
+    // E ele tem que ser LEGÍVEL, não um marcador vazio: quem lê julga a
+    // justificativa pelo texto, então todo aviso nomeia os dois donos e
+    // carrega o motivo de cada lado que forçou. Asserção ESTRUTURAL de
+    // propósito — cravar aqui o `quem` das frentes vivas de hoje viraria a
+    // trava eterna que este mesmo arquivo já documenta mais acima: o teste
+    // ficaria vermelho no dia em que o dono legítimo encerrasse a frente.
+    for (const aviso of r.avisos) {
+      expect(aviso).toMatch(/COLISÃO FORÇADA/);
+      expect(aviso).toMatch(/arquivo\(s\) em comum:/);
+      expect(aviso.split("\n").filter((l) => l.includes("FORÇADA por")).length).toBeGreaterThanOrEqual(1);
+      expect(aviso).toMatch(/motivo \.+:/);
+    }
+
+    expect(
+      r.ok,
+      `reivindicacoes/ tem colisão viva NÃO forçada: ${r.problemas.join(" | ")}`,
+    ).toBe(true);
   });
 });

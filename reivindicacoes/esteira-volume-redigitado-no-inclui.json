@@ -1,0 +1,13 @@
+{
+  "id": "esteira/volume-redigitado-no-inclui",
+  "quem": "ses-8204a390f8",
+  "frente": "irmaos do mesmo defeito: inclui[] dos planos redigita o volume ao lado de pecasPorMes, e vai para a pagina publica /planos",
+  "responsabilidade": "esteira/volume-redigitado-no-inclui",
+  "arquivos": [
+    "lib/agency/planos.ts",
+    "__tests__/comercial/a-vitrine-nao-promete-acima-do-teto.test.ts"
+  ],
+  "abertaEm": "2026-08-29T05:58:56.272Z",
+  "encerradaEm": "2026-08-29T06:13:22.252Z",
+  "rotulo": "pm-recompra-2908"
+}

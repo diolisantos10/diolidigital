@@ -44,6 +44,9 @@ export default defineConfig({
       // a C3 existe para impedir.
       "lib/agency/connect/conector/tests/*.test.ts",
     ],
+    // Ver `vitest.setup.ts`: há estado de PROCESSO que é correto em produção e
+    // veneno entre casos de teste. Ele é limpo aqui, para a suíte inteira.
+    setupFiles: ["./vitest.setup.ts"],
     globals: true,
     // ── POR QUE ESTES TIMEOUTS SÃO MAIORES QUE O PADRÃO ──────────────────────
     // Em 02/08/2026 a suíte ficou vermelha duas vezes SEM nenhuma mudança de

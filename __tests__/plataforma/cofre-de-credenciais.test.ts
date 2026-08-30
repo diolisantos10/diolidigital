@@ -41,8 +41,12 @@ afterEach(() => {
 
 describe("o básico continua funcionando", () => {
   it("cifra e decifra o mesmo texto", () => {
+    // O texto claro precisa aparecer aqui, senão não há como provar que o
+    // cofre devolve o original depois de cifrar.
+    // segredo-permitido: chave FALSA de fixture.
     const cifrado = encryptSecret("sk-ant-uma-chave-de-verdade");
     expect(cifrado).not.toContain("sk-ant");
+    // segredo-permitido: o mesmo valor falso, do outro lado do cofre.
     expect(decryptSecret(cifrado)).toBe("sk-ant-uma-chave-de-verdade");
   });
 
@@ -140,6 +144,7 @@ describe("a constante 'change-me' saiu do caminho de produção", () => {
 
 describe("a dica de chave nunca revela a chave", () => {
   it("mostra só o prefixo e os 4 últimos", () => {
+    // segredo-permitido: chave FALSA de fixture.
     const dica = keyHint("sk-ant-api03-ABCDEFGHIJKLMNOPqrst");
     expect(dica).not.toContain("ABCDEFGHIJKLMNOP");
     expect(dica.endsWith("qrst")).toBe(true);

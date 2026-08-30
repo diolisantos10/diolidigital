@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { PLANOS } from "@/lib/agency/planos";
 import { frequenciaSemanal } from "@/lib/agency/question-engine";
 import { initProspectConvState, processProspectMessage } from "@/lib/agency/prospect-engine";
 import { computeEstimate } from "@/lib/agency/live-calculator";
@@ -83,10 +84,17 @@ describe("ponta a ponta: o que o CEO declarou chega ao escopo E à estimativa", 
   });
 
   it("a estimativa cobra pelo que foi pedido, não por um sétimo dele", () => {
-    // Antes do conserto este mesmo roteiro produzia R$ 600–900: o preço de 2
-    // posts por semana. Se a estimativa sai diferente do que a pessoa declarou,
-    // a estimativa está errada — não a pessoa.
+    // Antes do conserto este mesmo roteiro cotava o degrau de ENTRADA: o preço
+    // de 2 posts por semana, para quem pediu 14. Se a estimativa sai diferente
+    // do que a pessoa declarou, a estimativa está errada — não a pessoa.
+    //
+    // ⚠️ A régua é o DEGRAU, não um valor absoluto (26/08/2026). Ela travava
+    // `> 900`, um número da tabela antiga; com a tabela nova o topo custa
+    // R$ 790 e a asserção acusaria como defeito a casa cotando certo. O que
+    // importa é: 14 posts/semana (56/mês) caem no MAIOR degrau, não no menor.
     const est = computeEstimate(scope as never);
-    expect(est.totalMin).toBeGreaterThan(900);
+    const comPeca = PLANOS.filter((p) => p.pecasPorMes > 0);
+    expect(est.totalMin).toBe(comPeca.at(-1)!.preco);
+    expect(est.totalMin).toBeGreaterThan(comPeca[0]!.preco);
   });
 });

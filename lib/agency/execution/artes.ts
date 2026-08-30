@@ -35,6 +35,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { generateDesign } from "@/lib/ai/design-engine";
+import { produtorDaPeca } from "@/lib/ai/produtor-da-peca";
 import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
 import { estiloVisualPersistido, estiloVistoPersistido } from "@/lib/agency/execution/leitura-do-cliente";
 import { moldeDoCliente, moldeComLogo, formatoDoPost, MIMES_DE_LOGO, type Molde } from "@/lib/agency/design/molde";
@@ -45,6 +46,7 @@ import {
 } from "@/lib/agency/design/escolha-de-foto";
 import type { MaterialReal } from "@/lib/agency/design/storyboard";
 import { montarPeca } from "@/lib/agency/design/peca";
+import { motivoDaLegibilidade, tituloReprovaAPeca, type MedidaDaLegibilidade } from "@/lib/agency/design/legibilidade-do-titulo";
 import {
   renderizadorDisponivel, MIME_DA_PECA_RENDERIZADA, type MotivoDeFalhaDeRender,
 } from "@/lib/agency/design/renderizar";
@@ -52,9 +54,21 @@ import { tituloDaFonte, chamadaDaMarca } from "@/lib/agency/design/trava-de-text
 // O PORTÃO DE PIXEL. Ficou sete dias em `lib/` sem um único chamador — este é
 // o chamador. Ver `portao-do-fundo.ts` para por que ele mede o fundo CRU.
 import { conferirFundoDaPeca, motivoDoFundoEmUmaLinha } from "@/lib/agency/design/portao-do-fundo";
+// ── A RÉGUA DO ARQUIVO QUE VAI AO CLIENTE (26/08/2026) ──────────────────────
+// O portão acima mede o FUNDO CRU e está certo no que mede. Esta mede a PEÇA
+// COMPOSTA — o arquivo que o portal entrega. Ver o cabeçalho de
+// `regua-da-peca-final.ts` para por que são duas réguas e não uma.
+import {
+  reguaDaPecaFinal, motivoDaPecaFinalEmUmaLinha, type DeclaracaoDaComposicao,
+} from "@/lib/agency/design/regua-da-peca-final";
+import { medirPecaFinal } from "@/lib/agency/design/medir-peca-final";
 // O PRÉ-PORTÃO, de custo zero. Roda ANTES de `generateDesign` e nunca depois:
 // ver o bloco no ponto de chamada e o cabeçalho do arquivo.
 import { conferirDirecaoFotografavel } from "@/lib/agency/design/direcao-fotografavel";
+import {
+  reescreverDirecao, contarReescritasDaDirecao, MAX_REESCRITAS_DA_DIRECAO,
+} from "@/lib/agency/design/reescrever-direcao";
+import { generate } from "@/lib/ai/generate";
 import { cerebroDaMarca } from "@/lib/agency/design/repertorio-registrado";
 import {
   composicaoParaFuncao, composicaoDoPostSimples, direcaoDeAmplitude,
@@ -72,6 +86,7 @@ import { conferirPagamentoDaAncora } from "@/lib/agency/financeiro/portao-de-pag
 // pior que nenhum, porque ele é acreditado.
 import { conferirFormatoDeMidia } from "@/lib/integrations/meta/formato-de-midia";
 import { postsComFormatoRecusado } from "@/lib/agency/execution/reconversao-de-formato";
+import { PRECO_DE_TABELA_USD } from "@/lib/ai/precos";
 
 /** Quantas artes por rodada. Cada uma é uma chamada cara de modelo de imagem —
  *  um calendário de 12 posts custaria 12 de uma vez se não houvesse teto. */
@@ -228,7 +243,21 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // TODAS as telas ficam prontas, então um carrossel pela metade continua
       // aparecendo como pendente na rodada seguinte.
       ...(refazendo ? { id: { in: recorte.refazer! } } : { mediaUrl: null }),
-      status: { in: ["draft", "scheduled", "approved"] },
+      // ── POR QUE "revision_requested" SÓ ENTRA REFAZENDO (25/08/2026) ──────
+      //
+      // O Auditor mediu: o cliente pediu "a terceira peça mais clara", a rota
+      // devolveu 200 e **0 de 4 arquivos mudaram**. Uma das duas causas estava
+      // aqui — a rota do portal marca a peça apontada como `revision_requested`
+      // (`app/api/portal/approvals/route.ts`), e este `where` não a selecionava.
+      // A peça que o cliente pediu para mudar era exatamente a única que não
+      // podia ser produzida de novo.
+      //
+      // Ela entra SÓ no caminho nomeado (`refazer`), e a distinção não é
+      // estilo: na rodada de sempre a seleção é `mediaUrl: null`, e peça em
+      // revisão TEM arquivo — ela nunca seria alcançada de qualquer forma.
+      // Manter o estado fora do laço global deixa explícito que ninguém
+      // redesenha uma peça em revisão por conta do relógio: só quem a NOMEIA.
+      status: { in: refazendo ? ["draft", "scheduled", "approved", "revision_requested"] : ["draft", "scheduled", "approved"] },
       // O recorte por cliente é OPCIONAL e some quando ninguém o pede — sem ele
       // o `where` é idêntico ao de sempre. `clientId: undefined` seria ignorado
       // pelo Prisma de qualquer forma; a condicional está aqui para que a
@@ -435,6 +464,10 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
     const proporcao = post.format === "story" ? "portrait" : "square";
 
     let bytes: Buffer | null = null;
+    /** DE QUEM ESTA PEÇA NASCEU. Ver o freio 3 da fila de imagem. "design" é o
+     *  valor de quem NÃO passou pelo gerador (a foto real do cliente, o
+     *  re-render local) — e continua sendo o de sempre. */
+    let carimboDoProdutor = "design";
     let mimeDaFoto = "image/png";
 
     if (fotoDoCliente) {
@@ -466,13 +499,90 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // "post sem direção (peça anterior a 15/08) continua saindo pela
       // legenda"), e revogá-lo aqui congelaria o acervo inteiro anterior a
       // 15/08. O buraco está declarado em `docs/pendencias.md`.
-      const direcaoEscrita = (post.artDirection ?? "").trim();
+      //
+      // ── E O CAMINHO DE VOLTA, QUE FALTAVA (25/08/2026) ────────────────────
+      //
+      // Até hoje este portão reprovava e gravava "reescreva a direção" — e
+      // NINGUÉM reescrevia. Medido em produção: 4 peças, 4 rodadas do
+      // despertador, `mediaUrl: null` nas quatro, US$ 0,00 gastos e nenhum
+      // arquivo. `marcarErro(..., null)` nem gastava tentativa, então a peça
+      // voltava a cada 5 minutos para sempre, reprovando igual, em silêncio.
+      // Fila morta com aviso bonito.
+      //
+      // Agora a direção reprovada VOLTA a quem a escreveu, com o motivo da
+      // recusa na mão, e passa pela MESMA régua antes de qualquer imagem ser
+      // pedida (`design/reescrever-direcao.ts`). O portão não afrouxou: a régua
+      // é a mesma função, sem tolerância. O que mudou é que a proibição passou a
+      // dizer o que fazer no lugar.
+      let direcaoEscrita = (post.artDirection ?? "").trim();
       if (direcaoEscrita) {
         const veredito = conferirDirecaoFotografavel(direcaoEscrita);
         if (!veredito.fotografavel) {
-          saida.desistiram.push(post.id);
-          await marcarErro(post.id, veredito.motivo, null);
-          continue;
+          // O contador mora no `lastError` e ATRAVESSA RODADAS: sem isto, cada
+          // rodada do despertador recomeçaria do zero e a peça gastaria duas
+          // chamadas de texto a cada 5 minutos, para sempre — trocaria uma fila
+          // morta de graça por uma fila morta que custa.
+          const jaGastas = contarReescritasDaDirecao(post.lastError);
+          const r = await reescreverDirecao(
+            {
+              direcaoOriginal: direcaoEscrita,
+              legenda: post.caption,
+              pilar: post.pillar,
+              negocio: marca.nome,
+              segmento: marca.segmento,
+              formato: post.format,
+            },
+            veredito,
+            async (pedido) => {
+              const g = await generate({
+                system: pedido.system,
+                user: pedido.user,
+                maxTokens: 400,
+                workspaceId: post.workspaceId,
+                // O dono da linha de custo tem NOME PRÓPRIO, e não é
+                // `design-engine`: aquele é o dono da IMAGEM. Um gasto de TEXTO
+                // somado ao de imagem faria "quanto custou a arte deste cliente"
+                // misturar US$ 0,003 com US$ 0,167 na mesma linha.
+                agentId: "design-reescrever-direcao",
+                clientId: post.clientId ?? null,
+              });
+              if (!g.ok) return { ok: false as const, error: g.error };
+              const direcao = (g.data as { direction?: unknown })?.direction;
+              const texto = typeof direcao === "string" ? direcao : (g.textoCru ?? "");
+              return { ok: true as const, texto };
+            },
+            jaGastas,
+          );
+
+          if (!r.ok) {
+            // PARADA DECLARADA: motivo, dono e próxima ação já vêm escritos.
+            // `desistiram` e `marcarErro(..., null)` continuam certos — não foi
+            // a máquina de arte que falhou, e nenhuma tentativa de ARTE foi
+            // gasta. O que impede o laço eterno agora é o contador da reescrita.
+            saida.desistiram.push(post.id);
+            await marcarErro(post.id, r.motivo, null);
+            continue;
+          }
+
+          // A direção reescrita é GRAVADA. Se ela ficasse só na memória desta
+          // rodada, a rodada seguinte releria a direção velha do banco e pagaria
+          // a reescrita de novo — e o entregável continuaria mentindo sobre o
+          // que foi pedido à câmera.
+          // ── A REESCRITA APARECE NO LOG DA RODADA ────────────────────────
+          // Um mecanismo que ninguém consegue ver rodando é um mecanismo que
+          // ninguém consegue auditar — e foi assim que sete auditorias
+          // homologaram uma corrente que não entregava nada. O despertador já
+          // conta arte produzida e arte falhada; a direção reescrita é o terceiro
+          // desfecho, e até aqui ele era mudo.
+          console.log(
+            `[arte] direção reescrita (${r.reescritas}/${MAX_REESCRITAS_DA_DIRECAO}) na peça ${post.id}: ` +
+            `faltava ${veredito.faltou.join(", ")} — agora "${r.direcao.slice(0, 120)}"`,
+          );
+          direcaoEscrita = r.direcao;
+          await prisma.socialPost.update({
+            where: { id: post.id },
+            data: { artDirection: r.direcao, lastError: null },
+          }).catch(() => { /* best-effort: a imagem desta rodada não depende disto */ });
         }
       }
 
@@ -483,7 +593,10 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
           // A direção de arte que o especialista escreveu, e que até hoje era
           // gravada no entregável e descartada na leitura. `null` cai na
           // legenda — o comportamento de antes, mantido de propósito.
-          direcaoDeArte: post.artDirection,
+          // A direção REESCRITA quando houve reescrita; a do banco quando não
+          // houve. Ler `post.artDirection` aqui mandaria ao gerador exatamente a
+          // direção que a régua acabou de recusar.
+          direcaoDeArte: direcaoEscrita || post.artDirection,
           pilar: post.pillar,
           negocio: marca.nome,
           segmento: marca.segmento,
@@ -518,6 +631,10 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
         size: proporcao,
         quality: "high",
         workspaceId: post.workspaceId,
+        // A QUEM ESTA IMAGEM É COBRADA. Sem isto a linha do livro-caixa sai sem
+        // cliente, e "quanto custou este cliente este mês" volta a não ter
+        // resposta — que é o defeito que o registro de custo existe para matar.
+        conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine" },
       }).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : "erro" }));
       // A chamada saiu: o dinheiro saiu junto, deu certo ou não.
       orcamento.gastar(post.clientId, 1);
@@ -535,6 +652,16 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // nunca subia, `MAX_TENTATIVAS_POR_PECA` nunca era atingido, e a peça
       // voltava na rodada seguinte (a cada 5 minutos, para sempre) gerando uma
       // imagem paga por rodada sem NUNCA entregar nada.
+      // ── O ARQUIVO DIZ DE QUEM NASCEU (26/08/2026, freio 3 da fila) ───────
+      //
+      // Com a fila de imagem, a mesma peça pode nascer da OpenAI hoje e do
+      // Gemini amanhã. O livro-caixa registra o produtor por CHAMADA, mas ele
+      // não acompanha o arquivo — e a pergunta que a casa vai fazer daqui a um
+      // mês é sobre a PEÇA: *"a qualidade caiu junto com a troca?"*. Sem a
+      // marca aqui, responder exige cruzar horários, que é adivinhação com
+      // cara de dado.
+      carimboDoProdutor = produtorDaPeca(r);
+
       bytes = await baixarImagem(r.url).catch(() => null);
       if (!bytes) {
         const erro = "não consegui baixar a imagem gerada";
@@ -559,6 +686,41 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       // dinheiro, ele impede que peça amadora saia em nome de um cliente
       // pagante. Gasta tentativa: regerar É o remédio certo para este caso
       // (diferente do pilar bloqueado, onde regerar só inventa número novo).
+      // ── ⚠️ DÍVIDA DECLARADA: A RÉGUA NÃO ALCANÇA A PEÇA COMPOSTA ─────────
+      //
+      // O raciocínio acima está certo e é medido (29× no fundo cru contra 1,2×
+      // na peça composta). A consequência, porém, é um vão — e o cliente
+      // oculto de 25/08/2026 caiu nele, em PRODUÇÃO:
+      //
+      //   SocialPost cmt8xk6ks00790xqofkbfqpab (TRATTORIA DA ANA TESTE)
+      //   /api/media/med_35f7fcb6_mt8xpfoj — HTTP 200, 1080x1350, 19.207 bytes
+      //   sha256 394850e7fdc09af5c2cd4ac633b368866f68d0cdb594d2d3d0ca1921238fa7aa
+      //
+      //   A peça saiu com a FOTO AUSENTE (retângulo cinza chapado no lugar
+      //   dela), o TÍTULO CORTADO no meio da frase ("O ambiente cheio", quando
+      //   a legenda é "O ambiente cheio que faz você querer estar aqui
+      //   também.") e SEM assinatura de marca. Comparada: a peça irmã do mesmo
+      //   cliente (med_1f79e9f3_mt8xj2gu, 150.203 bytes) saiu correta. O
+      //   tamanho do arquivo já denunciava — 19 KB para 1080x1350.
+      //
+      //   E ela está `status: "draft"`, `visibility: "compartilhado"` — ou
+      //   seja, VISÍVEL NO PORTAL DO CLIENTE (`app/api/portal/vista/route.ts`
+      //   filtra exatamente por esse carimbo).
+      //
+      // O `lastError` da peça declara honestamente a falta de MARCA (molde
+      // neutro, monograma no lugar do logo). Não declara a foto ausente nem o
+      // título cortado: essas duas ninguém mediu.
+      //
+      // A pergunta obrigatória desta casa é *"o teste alcança o código que
+      // responde ao cliente?"*. Aqui, não: o portão protege o FUNDO, e o
+      // cliente recebe a COMPOSIÇÃO. Régua verde sobre o componente errado.
+      //
+      // ✅ DÍVIDA PAGA EM 26/08/2026. A régua nova existe: mora em
+      // `design/regua-da-peca-final.ts`, mede a PEÇA COMPOSTA (a faixa da foto,
+      // não o quadro inteiro) e roda LOGO ANTES de `guardarArquivo`, mais abaixo
+      // neste mesmo laço. Peça reprovada por ela não ganha arquivo, não ganha
+      // `mediaUrl` e por isso não chega ao portal. Este portão continua onde
+      // está, medindo o que ele mede bem: o fundo cru.
       const portao = await conferirFundoDaPeca({ bytes, mime: "image/png" });
       if (!portao.ok) {
         const erro = motivoDoFundoEmUmaLinha(portao);
@@ -584,7 +746,7 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
         clientId: post.clientId,
         clientRequestId: post.clientRequestId,
         kind: "generated",
-        uploadedBy: "design",
+        uploadedBy: carimboDoProdutor,
       });
       if (!fundo.ok) {
         saida.falhas.push({ postId: post.id, erro: fundo.motivo });
@@ -661,6 +823,58 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       continue;
     }
 
+    // ── A RÉGUA DA PEÇA FINAL, ANTES DE O ARQUIVO EXISTIR (26/08/2026) ─────
+    //
+    // Aqui morava o vão que o cliente oculto caiu em 25/08/2026: a peça
+    // composta ia para o armazenamento e para `mediaUrl` SEM NINGUÉM OLHAR o
+    // arquivo. O portão do fundo já tinha rodado — e ele mede o fundo CRU, que
+    // naquele caso estava certo; o que quebrou foi a COMPOSIÇÃO, e a
+    // composição não tinha régua nenhuma.
+    //
+    // A ordem importa e é o conserto: a régua roda ANTES de `guardarArquivo`,
+    // então a peça reprovada não ganha arquivo, não ganha `mediaUrl`, e por
+    // consequência não aparece no portal — que é o que o carimbo
+    // `compartilhado` mostraria. **Nada nesse estado recebe o carimbo porque
+    // nada nesse estado chega a ter arquivo.**
+    //
+    // Fail-closed em todos os ramos, inclusive o de não conseguir medir: ver
+    // `reguaDaPecaFinal(null, ...)`. A tentativa é GASTA — regerar é o remédio
+    // certo aqui, do mesmo jeito que no portão do fundo.
+    const medidaDaPeca = await medirPecaFinal(composta.bytes).catch(() => null);
+    const vereditoDaPeca = reguaDaPecaFinal(
+      medidaDaPeca,
+      composta.declaracao ?? { textosPintados: [], tituloPedido: "", assinaturaPedida: "" },
+    );
+    if (!vereditoDaPeca.ok) {
+      const erro = motivoDaPecaFinalEmUmaLinha(vereditoDaPeca);
+      saida.falhas.push({ postId: post.id, erro });
+      await marcarErro(post.id, erro, tentativas + 1);
+      continue;
+    }
+
+    // ── O TÍTULO ILEGÍVEL PASSA A BARRAR, COM A MARGEM MEDIDA ─────────────
+    //
+    // Até aqui a legibilidade do título era só DECLARADA (`comAviso`, logo
+    // abaixo). Era a decisão certa enquanto a régua errava até 86% — ver a
+    // medição inteira em `CONTRASTE_QUE_BARRA_O_TITULO`. Com a régua
+    // consertada e o erro residual medido em −6% a −15%, a faixa abaixo de
+    // 2,55 é a faixa em que o fundo real está abaixo do piso da WCAG mesmo no
+    // pior erro da régua — nenhuma peça legítima cai aqui.
+    //
+    // Barra no MESMO lugar que a régua da peça final: ANTES de `guardarArquivo`.
+    // A peça reprovada não ganha arquivo, não ganha `mediaUrl`, não chega ao
+    // portal — e a tentativa é GASTA, para o laço regerar, que é o remédio
+    // certo (a foto de fundo muda e o título volta a caber).
+    //
+    // Entre 2,55 e 3,00 nada muda: continua declarado no `lastError`, a peça
+    // sai, o time vê. Duas faixas, duas respostas.
+    if (tituloReprovaAPeca(composta.legibilidadeDoTitulo)) {
+      const erro = `${MARCA_DE_TITULO_ILEGIVEL} ${motivoDaLegibilidade(composta.legibilidadeDoTitulo!)}`;
+      saida.falhas.push({ postId: post.id, erro });
+      await marcarErro(post.id, erro, tentativas + 1);
+      continue;
+    }
+
     // Guardada no MESMO lugar que o material do cliente: um só armazenamento,
     // uma só cota, um só link assinado que a Meta consegue buscar.
     const guardado = await guardarArquivo({
@@ -673,7 +887,9 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       clientId: post.clientId,
       clientRequestId: post.clientRequestId,
       kind: "generated",
-      uploadedBy: "design",
+      // A PEÇA FINAL carrega o mesmo carimbo do fundo de que ela nasceu — freio
+      // 3 da fila de imagem.
+      uploadedBy: carimboDoProdutor,
     });
     if (!guardado.ok) {
       saida.falhas.push({ postId: post.id, erro: guardado.motivo });
@@ -689,9 +905,51 @@ export async function produzirArtesPendentes(recorte: RecorteDaRodadaDeArte = {}
       data: { mediaUrl: `/api/media/${guardado.arquivo.id}`, lastError: composta.nota },
     });
     saida.produzidas++;
+    // A ARTE SAIU: o arquivo, a peça e o preço de tabela, numa linha só.
+    // Sem isto o único rastro de uma imagem paga era `mediaUrl` no banco — e
+    // "quanto a casa produziu hoje" só se respondia abrindo o banco. O custo
+    // é ESTIMATIVA DE TABELA (a linha do livro-caixa é escrita pelo motor, em
+    // `design-engine.ts`); esta casa não lê o faturamento do provedor.
+    console.log(
+      `[arte] peça ${post.id} recebeu arte — /api/media/${guardado.arquivo.id}` +
+      ` · cliente=${post.clientId ?? "(sem dono)"} · formato=${post.format}` +
+      ` · custo estimado de tabela US$ ${PRECO_DA_IMAGEM_NA_TABELA(post.format).toFixed(3)} (estimativa, não fatura)`,
+    );
   }
 
+  contarOSilencio(saida);
   return saida;
+}
+
+/** O preço de tabela de UMA imagem no recorte que esta rodada pede. Lido da
+ *  tabela única da casa — nunca digitado aqui. */
+function PRECO_DA_IMAGEM_NA_TABELA(formato: string | null | undefined): number {
+  return normalizarFormatoDaArte(formato) === "story" ? PRECO_DE_TABELA_USD.retrato : PRECO_DE_TABELA_USD.quadrada;
+}
+
+function normalizarFormatoDaArte(f: string | null | undefined): string {
+  return (f ?? "").trim().toLowerCase();
+}
+
+/**
+ * O QUE A RODADA NÃO FEZ, DITO EM VOZ ALTA.
+ *
+ * `desistiram`, `semOrcamento` e `semPagamento` eram três silêncios: o
+ * despertador só repassa `falhas` e `semRenderizador`, então uma casa inteira
+ * podendo estar parada por falta de pagamento, por teto do dia ou por pilar
+ * bloqueado registrava exatamente a mesma coisa que uma casa sem trabalho —
+ * "0 arte(s) produzida(s)". Fila parada conta como entrega não feita, e é a
+ * mesma regra que fez `semRenderizador` existir.
+ *
+ * Só fala quando há o que dizer: rodada limpa continua silenciosa.
+ */
+function contarOSilencio(saida: ArtesFeitas): void {
+  const partes: string[] = [];
+  if (saida.semPagamento.length > 0) partes.push(`${saida.semPagamento.length} esperando pagamento confirmado`);
+  if (saida.semOrcamento.length > 0) partes.push(`${saida.semOrcamento.length} adiada(s) pelo teto do dia`);
+  if (saida.desistiram.length > 0) partes.push(`${saida.desistiram.length} desistiram (precisam de gente ou de material)`);
+  if (partes.length === 0) return;
+  console.log(`[arte] rodada produziu ${saida.produzidas} — e NÃO produziu: ${partes.join(" · ")}`);
 }
 
 // ─── Internos ───────────────────────────────────────────────────────────────
@@ -752,8 +1010,41 @@ function abrirOrcamentoDoDia(): OrcamentoDeImagens {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// `SocialPost.lastError` — O CAMPO COMPARTILHADO, DECLARADO (6ª auditoria)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O achado: `[titulo ilegivel]` passou a ser gravado no MESMO campo que
+// `contarTentativas` interpreta. É inofensivo HOJE — o contador exige o
+// prefixo `^[arte N/` e a marca de legibilidade nunca abre a linha — mas o
+// campo já acumulou significados sem ninguém declarar quais são, e "inofensivo
+// hoje" é exatamente o estado em que o terceiro escritor entra sem saber que
+// existe um leitor.
+//
+// Então fica dito, aqui, ao lado de quem lê:
+//
+//   ESCREVEM em `lastError`
+//     1. o laço de arte, com o contador de tentativas no INÍCIO da linha:
+//        `[arte N/MAX] <motivo>` — ver `marcarErro`;
+//     2. `comporComMolde`, com notas de degradação da peça, entre elas
+//        `MARCA_DE_TITULO_ILEGIVEL` e `[molde] …` — NUNCA no início da linha
+//        quando há contador, e nunca com o formato `[arte …`.
+//
+//   LEEM `lastError`
+//     a. `contarTentativas` (aqui) — só o PREFIXO `^[arte N/`. Qualquer outra
+//        coisa no campo vale zero, de propósito;
+//     b. `tituloSaiuIlegivel` — procura a marca em QUALQUER posição;
+//     c. `pecaSaiuSemTitulo` — as notas `[molde] …` da degradação;
+//     d. o time, com os olhos.
+//
+// A REGRA QUE MANTÉM ISSO DE PÉ: **o contador é um PREFIXO exclusivo.** Quem
+// acrescentar um significado novo a este campo escreve DEPOIS do início da
+// linha e com marcador próprio — nunca com o formato `[arte …`. A régua que
+// prende esta regra é `__tests__/execution/o-campo-de-um-significado-so.test.ts`.
+
 /** Quantas vezes esta peça já falhou. O contador mora no próprio `lastError`
- *  para não inventar mais uma coluna que um dia diverge do que aconteceu. */
+ *  para não inventar mais uma coluna que um dia diverge do que aconteceu —
+ *  ver a declaração do campo compartilhado logo acima. */
 export function contarTentativas(lastError: string | null): number {
   const m = lastError?.match(/^\[arte (\d+)\//);
   return m ? Number(m[1]) : 0;
@@ -1083,8 +1374,59 @@ const MOTIVOS_DE_INFRA: ReadonlySet<MotivoDeFalhaDeRender> = new Set([
  * Por isso o resultado DIZ o que ele é, e quem grava obedece.
  */
 type ResultadoDaComposicao =
-  | { ok: true; bytes: Buffer; mime: string; nota: string | null }
+  | { ok: true; bytes: Buffer; mime: string; nota: string | null;
+      /** A legibilidade do título medida NO ARQUIVO (`legibilidade-do-titulo.ts`).
+       *  Ausente na peça sem camada de texto — que é ausência de título, não
+       *  título ilegível, e as duas não podem virar a mesma coisa. */
+      legibilidadeDoTitulo?: MedidaDaLegibilidade | null;
+      /** O QUE O RASTERIZADOR CONFERIU NO DOM, e o que a peça deveria carregar.
+       *  É a metade da `regua-da-peca-final.ts` que não se responde no pixel —
+       *  ver o docstring de `reguaDaLetraDaPecaFinal`. Ausente é ausente: a
+       *  régua reprova quem chega sem ela apenas quando há letra a cobrar. */
+      declaracao?: DeclaracaoDaComposicao }
   | { ok: false; motivo: MotivoDeFalhaDeRender; erro: string };
+
+/**
+ * O QUE A PEÇA DEVERIA CARREGAR × O QUE O RASTERIZADOR CONFIRMOU NO DOM.
+ *
+ * Alimenta `reguaDaLetraDaPecaFinal`. Duas escolhas que precisam estar escritas
+ * porque são elas que decidem se a régua tem dente:
+ *
+ * • **SÓ SE COBRA O QUE UMA TRAVA NÃO RECUSOU.** Título e assinatura barrados
+ *   por `travaDeTextoNaArte`/`travaDeRotuloNaArte` são degradação DECLARADA,
+ *   antiga, com motivo escrito em `textoRecusado` e dono conhecido. Cobrá-los
+ *   aqui criaria uma SEGUNDA política sobre o mesmo estado — o erro que esta
+ *   casa já cometeu com `nao_auditado` — e, pior, pararia a produção inteira de
+ *   um cliente por causa da FORMA do nome dele. Medido: a marca
+ *   "Padaria da Arte que Não Saiu TESTE" (seis palavras) é recusada pela forma
+ *   da assinatura, e a primeira versão desta régua bloqueou as quatro peças
+ *   dela em `__tests__/produtos/story-instagram-v1-ponta-a-ponta.test.ts`.
+ *
+ * • **⚠️ DÍVIDA DECLARADA, com dono.** Isso deixa um buraco de pé: a marca cujo
+ *   nome não passa na forma da assinatura continua recebendo arte SEM
+ *   assinatura, e o cliente não lê esse fato — ele mora no `lastError`. O
+ *   conserto não é esta régua: é a forma da assinatura aceitar (ou encurtar,
+ *   com regra) nome de marca comprido, em `trava-de-texto.ts`. Dono: quem
+ *   mantém a trava de texto. Ponto fraco declarado é dívida; silencioso é
+ *   armadilha.
+ *
+ * • **O QUE ESTA RÉGUA FECHA, então, é o outro buraco — e é o do incidente:** a
+ *   peça que TINHA título e assinatura aprovados, foi rasterizada, e mesmo
+ *   assim saiu com a caixa vazia.
+ */
+function declaracaoDaComposicao(
+  textosPintados: readonly string[],
+  tituloPedido: string | null,
+  assinaturaPedida: string | null | undefined,
+  textoRecusado: readonly { papel: string; detalhe: string }[],
+): DeclaracaoDaComposicao {
+  const recusou = (papel: string) => textoRecusado.some((t) => t.papel === papel);
+  return {
+    textosPintados,
+    tituloPedido: recusou("titulo") ? "" : (tituloPedido ?? "").trim(),
+    assinaturaPedida: recusou("assinatura") ? "" : (assinaturaPedida ?? "").trim(),
+  };
+}
 
 export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposicao> {
   // ── O MOLDE NEUTRO PRECISA SER DECLARADO PARA FORA ────────────────────────
@@ -1131,6 +1473,10 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
       bytes: p.fotoBytes,
       mime: mimeDaFotoCrua,
       nota: comAviso("[molde] peça entregue só com a foto: o conteúdo não tem uma frase utilizável como chamada."),
+      // Degradação DECLARADA: não há camada de texto, então não há letra a
+      // cobrar. A régua da peça final continua valendo no PIXEL (a foto tem de
+      // ter entrado) — o que ela não faz é exigir título que ninguém pediu.
+      declaracao: { textosPintados: [], tituloPedido: "", assinaturaPedida: "" },
     };
   }
 
@@ -1177,6 +1523,7 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
       // ausente e a do material do cliente não podem sumir só porque o texto
       // não coube. Nota que some é declaração que nunca existiu.
       nota: comAviso(`[molde] peça entregue só com a foto (sem camada de texto): ${r.motivo} — ${r.erro}`),
+      declaracao: { textosPintados: [], tituloPedido: "", assinaturaPedida: "" },
     };
   }
   if (r.textoRecusado.length > 0) {
@@ -1187,9 +1534,84 @@ export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDa
       bytes: r.bytes,
       mime: MIME_DA_PECA_RENDERIZADA,
       nota: comAviso(`[molde] texto barrado pela trava — ${barrado}`),
+      legibilidadeDoTitulo: r.legibilidadeDoTitulo,
+      declaracao: declaracaoDaComposicao(r.textosPintados, titulo, p.assinatura, r.textoRecusado),
     };
   }
-  return { ok: true, bytes: r.bytes, mime: MIME_DA_PECA_RENDERIZADA, nota: comAviso(null) };
+  // ── O TÍTULO ILEGÍVEL É DECLARADO, NÃO SUPOSTO ──────────────────────────
+  //
+  // Fecha a dívida nº 3 do `O_QUE_NAO_FOI_MEDIDO` do lado da PRODUÇÃO: o
+  // degradê do molde agora protege a faixa do título (`molde.ts`), e aqui se
+  // confere o RESULTADO no arquivo. Escolher sem conferir é o padrão que esta
+  // operação já pagou três vezes — foi a lição de `contraste.ts`, e ela vale
+  // igual para o par que ele não mede.
+  //
+  // Declara e NÃO derruba a peça, de propósito. A medida erra para o lado
+  // seguro (a média da faixa inclui os pixels da própria letra, o que BAIXA a
+  // razão), então uma peça no limite pode ser marcada sem estar perdida —
+  // e jogar fora uma peça paga por uma medida conservadora seria trocar um
+  // prejuízo por outro. O que não pode é sair calada: com a marca no
+  // `lastError`, o time vê, a régua do e2e reprova a regressão, e a peça não
+  // atravessa a casa fingindo que ninguém olhou.
+  const ilegivel = r.legibilidadeDoTitulo && !r.legibilidadeDoTitulo.suficiente
+    ? `${MARCA_DE_TITULO_ILEGIVEL} ${motivoDaLegibilidade(r.legibilidadeDoTitulo)}`
+    : null;
+
+  return {
+    ok: true, bytes: r.bytes, mime: MIME_DA_PECA_RENDERIZADA, nota: comAviso(ilegivel),
+    legibilidadeDoTitulo: r.legibilidadeDoTitulo,
+    declaracao: declaracaoDaComposicao(r.textosPintados, titulo, p.assinatura, r.textoRecusado),
+  };
+}
+
+/**
+ * A ASSINATURA, no `lastError`, de uma peça cujo TÍTULO não alcançou o piso de
+ * legibilidade sobre a foto.
+ *
+ * Constante exportada e não literal solta: quem escreve a marca e quem a
+ * procura têm de ser a MESMA palavra. Duas grafias parecidas em dois arquivos é
+ * como uma régua fica verde para sempre.
+ */
+export const MARCA_DE_TITULO_ILEGIVEL = "[titulo ilegivel]";
+
+/** A peça saiu com o título abaixo do piso de legibilidade sobre a foto? */
+export function tituloSaiuIlegivel(lastError: string | null | undefined): boolean {
+  return (lastError ?? "").includes(MARCA_DE_TITULO_ILEGIVEL);
+}
+
+/**
+ * A PEÇA FICOU SEM TÍTULO?
+ *
+ * Lê a nota que `comporComMolde` acabou de escrever em `SocialPost.lastError`.
+ * Mora AQUI, coladinha em quem escreve a nota, porque conhecimento de marcador
+ * separado de quem o emite envelhece calado: a frase muda de um lado e o leitor
+ * do outro passa a responder "não" para sempre, sem ninguém ficar vermelho.
+ *
+ * ── POR QUE ALGUÉM PRECISA PERGUNTAR ISSO (25/08/2026) ─────────────────────
+ *
+ * `comporComMolde` DEGRADA de propósito em três casos: o conteúdo não tem uma
+ * frase utilizável como chamada, o rasterizador reprovou a letra por conteúdo,
+ * ou a trava de texto barrou o título. Nos três a peça SAI — só com a foto e a
+ * assinatura — e a degradação fica declarada na nota.
+ *
+ * Degradar é certo para o CALENDÁRIO: uma peça a menos no mês é pior que uma
+ * peça sem headline. Não é certo para um produto que o cliente PEDIU e PAGOU:
+ * ali, "peça sem título" não é peça, é arquivo — e ele aprova sem ver o buraco,
+ * porque o cartão mostra uma imagem bonita e o banco diz que está tudo pronto.
+ *
+ * Decisão do CEO: **o produto canônico PARA.** Falha visível, com motivo e
+ * próxima ação, nunca peça capenga no portal. Quem age sobre esta resposta é
+ * `produtos/story-instagram-v1.ts`; nada muda para o calendário, que continua
+ * degradando e declarando como sempre fez.
+ */
+export function pecaSaiuSemTitulo(lastError: string | null | undefined): boolean {
+  const nota = lastError ?? "";
+  // Saiu SÓ com a foto: não houve camada de texto nenhuma.
+  if (nota.includes("[molde] peça entregue só com a foto")) return true;
+  // A trava barrou especificamente o TÍTULO. Chip ou faixa barrados não
+  // derrubam a peça — ela continua tendo headline, que é a pergunta daqui.
+  if (/\[molde\] texto barrado pela trava[^]*?\btitulo:/.test(nota)) return true;
+  return false;
 }
 
 // ─── AS PEÇAS QUE FICARAM SEM A CAMADA DE TEXTO ──────────────────────────────
@@ -1444,6 +1866,19 @@ export async function recomporPecas(
         postId: post.id,
         erro: `a peça recomposta continua em formato que a plataforma recusa — NADA foi gravado. ${formatoDaPecaNova.motivo}`,
       });
+      continue;
+    }
+
+    // A MESMA RÉGUA DA PEÇA FINAL. Recomposição que sai quebrada é peça
+    // quebrada igual — e esta rota grava `mediaUrl` direto no post que o portal
+    // já mostra, então ela é ainda mais curta até o cliente.
+    const medidaDaRecomposta = await medirPecaFinal(composta.bytes).catch(() => null);
+    const vereditoDaRecomposta = reguaDaPecaFinal(
+      medidaDaRecomposta,
+      composta.declaracao ?? { textosPintados: [], tituloPedido: "", assinaturaPedida: "" },
+    );
+    if (!vereditoDaRecomposta.ok) {
+      saida.falhas.push({ postId: post.id, erro: motivoDaPecaFinalEmUmaLinha(vereditoDaRecomposta) });
       continue;
     }
 
@@ -2029,10 +2464,40 @@ async function montarCarrossel(
       size: "square",
       quality: "high",
       workspaceId: post.workspaceId,
-    }).catch(() => ({ ok: false as const, url: undefined }));
+      // Cada TELA é uma imagem paga e uma linha do livro-caixa — um carrossel
+      // de 6 telas custa 6 imagens, e contá-lo como uma esconderia o item que
+      // mais multiplica gasto nesta casa.
+      conta: { departmentId: "design", clientId: post.clientId, agentId: "design-engine" },
+    }).catch((e) => ({ ok: false as const, url: undefined, error: e instanceof Error ? e.message : "erro", reason: undefined }));
     gerou++;
 
-    if (!r.ok || !r.url) return { ok: false, gerou, erro: `não consegui gerar a tela ${i + 1} de ${cenas.length}` };
+    // ── O MOTIVO REAL SOBE. ANTES ELE MORRIA AQUI ─────────────────────────
+    //
+    // ⚠️ MEDIDO (cliente oculto, 7ª volta, 26/08/2026). Quatro posts nasceram
+    // `draft` com `mediaUrl: null` e a única coisa que a casa sabia dizer era
+    // *"arte: não consegui gerar a tela 1 de 4"*. Uma frase que não distingue
+    // código quebrado de chave sem crédito — e a diferença é entre uma dívida
+    // de engenharia e um bloqueio do CEO.
+    //
+    // O motivo EXISTIA o tempo todo. `generateDesign` devolve `error` e
+    // `reason`, e `AIRunLog` já gravava a frase inteira. Conferido no
+    // livro-caixa de produção: as 4 falhas de imagem daquela volta eram, todas,
+    // **"You have no credits remaining"** — conta da OpenAI zerada, não código.
+    // O `.catch(() => …)` desta linha jogava isso fora, e o irmão desta função
+    // (o post simples, linha ~637) já fazia certo. Duas contas parecidas em dois
+    // lugares, de novo.
+    //
+    // `reason` vem junto porque é o campo que se lê sem interpretar prosa:
+    // `not_configured` e `provider_error` são do CEO; `bad_request` é da casa.
+    if (!r.ok || !r.url) {
+      const porque = r.error?.trim() || "o gerador de imagem não devolveu nada";
+      const classe = r.reason ? ` [${r.reason}]` : "";
+      return { ok: false, gerou, erro: `não consegui gerar a tela ${i + 1} de ${cenas.length}: ${porque}${classe}` };
+    }
+
+    // O ARQUIVO DIZ DE QUEM NASCEU — tela a tela, porque a fila pode escorregar
+    // no meio de um carrossel e as telas passariam a ter produtores diferentes.
+    const carimboDaTela = produtorDaPeca(r);
 
     const bytes = await baixarImagem(r.url).catch(() => null);
     if (!bytes) return { ok: false, gerou, erro: `não consegui baixar a tela ${i + 1}` };
@@ -2120,7 +2585,7 @@ async function montarCarrossel(
       clientId: post.clientId,
       clientRequestId: post.clientRequestId,
       kind: "generated",
-      uploadedBy: "design",
+      uploadedBy: carimboDaTela,
     });
     if (!g.ok) return { ok: false, gerou, erro: g.motivo };
     urls.push(`/api/media/${g.arquivo.id}`);

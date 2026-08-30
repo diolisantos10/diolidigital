@@ -26,6 +26,8 @@
 // conta do cliente.
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const db = vi.hoisted(() => ({
   socialPost: { findMany: vi.fn(), update: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn() },
@@ -117,7 +119,15 @@ beforeEach(() => {
   db.driveMaterial.findMany.mockResolvedValue([]);
   db.mediaAsset.count.mockResolvedValue(0);
 
-  lerArquivo.mockResolvedValue(Buffer.from("os-bytes-da-foto-ja-paga-de-08-08"));
+  // A FOTO JÁ PAGA DE 08/08 É UMA FOTOGRAFIA DE VERDADE. Até 26/08/2026 este
+  // dublê devolvia uma string: o Chromium rasterizava o molde sobre uma imagem
+  // que não decodifica, a peça saía com campo chapado no lugar da foto, e
+  // `regua-da-peca-final.ts` — que entrou no caminho vivo naquele dia — a
+  // reprovava, com razão. O fixture fabricava o incidente que a régua existe
+  // para pegar. É a fotografia real que entrou na peça refeita do CityJobs.
+  lerArquivo.mockResolvedValue(
+    readFileSync(join(process.cwd(), "docs/entregas/cityjobs-08-08/fotos/p1-recorte.jpg")),
+  );
 
   let n = 0;
   guardarArquivo.mockImplementation(async (i: { bytes: Buffer; fileName: string; mimeType: string }) => {

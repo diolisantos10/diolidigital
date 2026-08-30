@@ -20,7 +20,7 @@
 //     para página pública.
 
 export type Plano = {
-  id: "pulso" | "ritmo" | "presenca" | "conteudo" | "crescimento";
+  id: "pulso" | "ritmo" | "presenca" | "conteudo";
   nome: string;
   preco: number;
   /** Cobrada uma vez, na entrada. `null` = isenta. */
@@ -36,12 +36,101 @@ export type Plano = {
   permanencia: number;
   /** Preço da peça além do contratado, em reais. `null` = não se aplica. */
   pecaExtra: number | null;
+  /**
+   * QUANTAS PEÇAS O PLANO ENTREGA POR MÊS — o campo que faltava, e sem o qual a
+   * esteira precisava de uma tabela PRÓPRIA para saber que volume cabe em que
+   * preço. Era essa a razão de existir de `SOCIAL_PACKAGES`, e é por isso que
+   * ela morre com este campo nascendo.
+   *
+   * ⚠️ TETO: `CAPACIDADE_MENSAL`. Plano que prometa acima disso quebra o teste
+   * — vender mais do que se produz é a dívida de D-0A3 com outro rosto.
+   */
+  pecasPorMes: number;
   /** O degrau que deve receber metade da carteira. */
   destaque?: boolean;
 };
 
-export const PECA_EXTRA = 180;
+/**
+ * A CAPACIDADE PROVADA DA CASA, em peças por mês: 3 levas de 12
+ * (`contrato-de-quantidade.ts`). É o teto de TODA promessa desta tabela.
+ */
+export const CAPACIDADE_MENSAL = 36;
 
+/**
+ * A peça além do contratado. Mercado 2026: post avulso de agência ou freelancer
+ * fica entre R$ 120 e R$ 190 — este fica abaixo, pela mesma decisão de
+ * posicionamento de entrada que fixou as mensalidades.
+ */
+export const PECA_EXTRA = 90;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A TABELA ÚNICA — fechada em 26/08/2026, e agora ela É a única
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ── O QUE HAVIA, MEDIDO ────────────────────────────────────────────────────
+//
+// A esteira COTAVA Essencial R$ 590 · Crescimento R$ 990 · Completo R$ 1.790
+// (`live-calculator.SOCIAL_PACKAGES`) e esta página VENDIA 49 · 297 · 790 ·
+// 1.390 · 2.590. **Nenhum dos três cotados existia na vitrine**, e "Crescimento"
+// existia nas duas com preços 2,6× diferentes. O cliente oculto recebeu uma
+// proposta de "Plano Essencial · R$ 590" — nome e preço que não existiam na
+// página que ele acabara de ler. Verdade escrita em dois lugares já está errada
+// em um deles; ali estava errada nos dois.
+//
+// ── QUEM DECIDIU ───────────────────────────────────────────────────────────
+//
+// O CEO, em 26/08/2026, tirou a decisão das costas dele e a passou ao Diretor
+// Geral, com uma régua só: **agência nova, sem fama nenhuma, começando do zero
+// — preço de entrada, abaixo do mercado, por decisão e não por acaso.**
+//
+// ── O MERCADO, PESQUISADO (agosto/2026) ────────────────────────────────────
+//
+//   • gestão de redes sociais BÁSICA para pequeno negócio local:
+//     **R$ 800 a R$ 1.500/mês**;
+//   • freelancer iniciante: R$ 800 a R$ 1.500/mês por cliente;
+//   • média empresa: R$ 2.000 a R$ 4.000/mês;
+//   • post avulso: R$ 120 a R$ 190.
+//
+// **O teto desta tabela (R$ 790) fica ABAIXO do piso do mercado (R$ 800).** Não
+// é um degrau que ficou barato: é a tabela INTEIRA posicionada abaixo do menor
+// preço que o mercado pratica — que é o que "pegar cliente barato" quer dizer.
+//
+// ── O TETO DE VOLUME É A CAPACIDADE PROVADA, não um número redondo ─────────
+//
+// A casa produz **3 levas × 12 = 36 peças/mês**. O degrau mais alto entrega
+// exatamente 36, e o teste não deixa nenhum passar disso.
+//
+// ── A CONTA FECHA? (custo de IA, medido) ───────────────────────────────────
+//
+// Cada peça custa ~US$ 0,17 de imagem (`PRECOS_DE_IMAGEM`, gpt-image-1 alta) —
+// ~R$ 0,95 a R$ 5,60/US$. Por degrau, o custo de IA de imagem no mês cheio:
+//
+//   Ritmo    12 peças → US$ 2,04 ≈ R$ 11  sobre R$ 290 = **3,8% da receita**
+//   Presença 20 peças → US$ 3,40 ≈ R$ 19  sobre R$ 490 = **3,9%**
+//   Conteúdo 36 peças → US$ 6,12 ≈ R$ 33  sobre R$ 790 = **4,2%**
+//
+// O texto é fração de centavo por chamada e não move a conta. ⚠️ O que NÃO
+// está nesta conta, e é honesto dizer: a HORA HUMANA do Presença para cima
+// (atendimento por WhatsApp, resposta a avaliação). Ela é o custo real desses
+// dois degraus, e não há medição dela nesta casa — é dívida declarada, não
+// número omitido.
+//
+// ── O QUE MORREU PARA ESTA SER A ÚNICA ────────────────────────────────────
+//
+//   • `live-calculator.SOCIAL_PACKAGES` (590/990/1790) — agora DERIVADO daqui;
+//   • `live-calculator.P` (reel 150–400, tráfego 500–1200, branding 1200–2500 e
+//     2000–4000) — a esteira parou de cotar número para o que a vitrine não
+//     precifica. O que a casa não vende na vitrine, ela não cota na proposta;
+//   • o `cheio` dos planos em `negociacao.TABELA_DE_PISO` — derivado daqui;
+//   • o plano **Crescimento (R$ 2.590)** saiu da tabela: R$ 2.590 é preço de
+//     agência com nome, e o que ele vendia (campanha paga desenhada) é
+//     maturidade que esta casa ainda não tem. Tráfego pago continua existindo
+//     como projeto à parte, sem preço de tabela — onde sempre esteve, em
+//     `FORA_DE_TODO_PLANO`.
+//
+// A trava não é este comentário: é
+// `__tests__/comercial/a-tabela-e-uma-so.test.ts`. Mude um preço num lugar só e
+// a casa fica vermelha.
 export const PLANOS: Plano[] = [
   {
     id: "pulso",
@@ -60,18 +149,24 @@ export const PLANOS: Plano[] = [
     naoInclui: ["Nenhuma peça de conteúdo", "Nenhuma publicação", "Google, tráfego e vídeo"],
     permanencia: 0,
     pecaExtra: null,
+    pecasPorMes: 0,
   },
   {
     id: "ritmo",
     nome: "Ritmo",
-    preco: 297,
-    implantacao: 390,
+    // Mercado: o básico (publicar em 1–2 redes) começa em R$ 800/mês. Este
+    // degrau entrega 12 peças por R$ 290 — 2,8× abaixo do piso do mercado.
+    preco: 290,
+    // Implantação isenta no degrau de entrada, de propósito: cobrar entrada de
+    // quem está experimentando a casa é o atrito exato que uma agência sem
+    // nome não pode se dar ao luxo de criar.
+    implantacao: null,
     paraQuem: "Para quem quer conteúdo constante e publica ele mesmo.",
     salto: "O degrau que faltava entre medir e contratar uma agência.",
     inclui: [
       "Tudo do Pulso",
       "Pauta do mês: quantos posts, de que tipo, sobre o quê e em que ordem",
-      "8 peças por mês — carrossel de até 6 telas ou post único, com a arte pronta",
+      "12 peças por mês — carrossel de até 6 telas ou post único, com a arte pronta",
       "Legenda de cada peça, no seu tom e ancorada no que você informou",
       "Calendário com data e hora, visível no portal",
       "Aprovação no portal vendo imagem e legenda, peça por peça",
@@ -85,16 +180,18 @@ export const PLANOS: Plano[] = [
     ],
     permanencia: 3,
     pecaExtra: PECA_EXTRA,
+    pecasPorMes: 12,
   },
   {
     id: "presenca",
     nome: "Presença",
-    preco: 790,
-    implantacao: 1290,
+    // Ainda abaixo do piso do mercado (R$ 800), e é AQUI que entra hora humana.
+    preco: 490,
+    implantacao: 390,
     paraQuem: "Para o negócio que precisa aparecer no Google e não tem ninguém cuidando disso.",
     salto: "É aqui que entra gente da nossa equipe.",
     inclui: [
-      "Tudo do Ritmo, com 10 peças por mês",
+      "Tudo do Ritmo, com 20 peças por mês",
       "Nós publicamos no Instagram e no Facebook",
       "Gestão de avaliações: elogio respondido; reclamação vira rascunho e chama gente",
       "Atendimento humano por WhatsApp, em horário comercial",
@@ -116,57 +213,56 @@ export const PLANOS: Plano[] = [
     ],
     permanencia: 3,
     pecaExtra: PECA_EXTRA,
+    pecasPorMes: 20,
     destaque: true,
   },
   {
     id: "conteudo",
     nome: "Conteúdo",
-    preco: 1390,
-    implantacao: 1900,
+    // O TETO DA TABELA, e ele é R$ 10 abaixo do piso do mercado — entregando o
+    // volume que o mercado só cobre na faixa de R$ 2.000 a R$ 4.000.
+    preco: 790,
+    implantacao: 690,
     paraQuem: "Para quem já vive do digital e precisa de volume e formato variado.",
     salto: "Mais peça, mais formato e alguém lendo os números todo mês com você.",
     inclui: [
-      "Tudo do Presença, com 14 peças por mês",
+      "Tudo do Presença, com 36 peças por mês — a capacidade INTEIRA da casa",
       "4 sequências de stories por mês, no formato vertical protegido",
-      "4 roteiros de reels — cena a cena, prontos para gravar",
       "Plano de medição: o que vamos medir e qual número significa sucesso, combinado antes",
       "Pesquisa de concorrência atualizada a cada ciclo",
       "Reunião mensal de leitura dos números",
       "3 rodadas de ajuste por peça",
     ],
     naoInclui: [
-      "A gravação e a edição do vídeo — o roteiro está incluído, o vídeo pronto se compra à parte",
+      // 25/08/2026 — decisão do CEO. Esta linha prometia "4 roteiros de reels"
+      // em `inclui`. Vídeo e reel NÃO entram em plano nenhum: a casa não grava,
+      // não edita e não gera vídeo, e o roteiro sozinho é a mesma dívida de
+      // D-0A3 — promessa sem produtor. O que se tira é a PROMESSA; o produtor
+      // não existe para ser tirado.
+      "Vídeo e reel, em qualquer forma — roteiro, gravação, edição ou geração",
       "Tráfego pago e verba de mídia",
       "Site e material impresso",
     ],
     permanencia: 6,
     pecaExtra: PECA_EXTRA,
+    pecasPorMes: CAPACIDADE_MENSAL,
   },
-  {
-    id: "crescimento",
-    nome: "Crescimento",
-    preco: 2590,
-    implantacao: 2900,
-    paraQuem: "Para quem vai colocar dinheiro em anúncio.",
-    salto: "A campanha desenhada por quem produz o conteúdo — rodando na sua conta.",
-    inclui: [
-      "Tudo do Conteúdo, com 18 peças por mês",
-      "3 criativos de anúncio por mês, em formatos para teste",
-      "Estrutura de campanha: objetivo, conjuntos e verba desenhados antes de gastar o primeiro real",
-      "Segmentação de público, com o porquê de cada recorte",
-      "Copy de anúncio em vários ângulos, não uma frase só",
-      "Plano de investimento: quanto colocar, onde e o que esperar",
-      "Leitura quinzenal dos resultados e ajuste de rota",
-    ],
-    naoInclui: [
-      "A verba de mídia — sempre fora da mensalidade, paga por você direto à plataforma",
-      "A campanha roda na sua conta de anúncios, no seu nome",
-      "Gravação e edição de vídeo",
-      "Qualquer promessa de faturamento ou de retorno",
-    ],
-    permanencia: 6,
-    pecaExtra: PECA_EXTRA,
-  },
+  // ── O DEGRAU QUE SAIU: Crescimento, R$ 2.590 (26/08/2026) ─────────────────
+  //
+  // Ele vendia a campanha paga desenhada, a R$ 2.590/mês. Duas razões, e
+  // nenhuma delas é o preço em si:
+  //
+  //   1. **posicionamento.** A régua desta tabela é agência NOVA, sem fama,
+  //      pegando cliente barato. R$ 2.590 é a faixa de média empresa
+  //      (R$ 2.000–4.000 no mercado) — é o preço de quem já tem nome. Um degrau
+  //      desses no fim da escada não é ambição, é a tabela dizendo duas coisas
+  //      opostas sobre quem a casa é;
+  //   2. **volume.** Ele prometia 18 peças "além" do Conteúdo, que já entregava
+  //      14 — e a casa produz 36 no total. A escada inteira agora cabe dentro
+  //      da capacidade provada, com o teto colado nela.
+  //
+  // Tráfego pago não sumiu da casa: continua em `FORA_DE_TODO_PLANO`, como
+  // projeto orçado à parte. O que sumiu foi a MENSALIDADE que o embrulhava.
 ];
 
 /** O que fica fora de TODO plano. Não é falta de escopo: o custo destes quatro
@@ -175,7 +271,7 @@ export const FORA_DE_TODO_PLANO = [
   {
     titulo: "Vídeo",
     texto:
-      "Gravação, edição e vídeo gerado por IA. O roteiro está incluído a partir do Conteúdo; o vídeo pronto é sempre orçado à parte.",
+      "Gravação, edição, roteiro e vídeo gerado por IA. A casa não produz vídeo hoje — em nenhum plano, em nenhuma forma. Quando houver quem produza, entra na tabela; até lá, não é escopo.",
   },
   {
     titulo: "Marca",

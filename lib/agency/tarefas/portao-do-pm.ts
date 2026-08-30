@@ -21,7 +21,9 @@
 // Ele não completa o que falta. Se completasse, nunca reprovaria — e a checagem
 // voltaria a ser enfeite com outra roupa. Quem chama é que precisa trazer dono e
 // prazo de uma FONTE REAL:
-//   • dono  → o `primaryAgentId` do departamento (`lib/agency/departments.ts`);
+//   • dono  → o agente que o GERENTE do departamento atribuiu, via
+//     `lib/agency/gerencia/entrada-da-demanda.ts` (25/08/2026: antes disto o
+//     criador do projeto escolhia o agente de linha sozinho, pulando o gerente);
 //   • prazo → o `estimatedDays` que o próprio PM estimou na proposta
 //     (`pm-orchestrator.ts:19`) — plano da casa, não data inventada sobre o
 //     cliente. Ausência de informação não é informação: o que não tem fonte não

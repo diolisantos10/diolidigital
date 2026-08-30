@@ -17,7 +17,9 @@ import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { statusPelaSolicitacao } from "@/lib/agency/esteira/retrato";
+import { lerFase } from "@/lib/agency/esteira/fases";
 import { aprovarDirecao, aprovarPacote } from "@/lib/agency/esteira/marcos";
+import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 
 export const maxDuration = 300;
 
@@ -123,6 +125,10 @@ async function trilhaDoProjetoDireto(clientId: string) {
     progresso: Math.round(((atual === -1 ? etapas.length : atual) / etapas.length) * 100),
     trilha,
     pendencias: [],
+    // Sem solicitação de briefing não há direção para avalizar por esta porta —
+    // e `false` aqui é MEDIDO, não omissão: este ramo não tem projeto com
+    // portão de direção pendente (ele só existe quando há `clientRequestId`).
+    direcao: { pedeAprovacao: false },
     ciclo: null,
   };
 }
@@ -144,10 +150,55 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const status = await statusPelaSolicitacao(alvo.id);
   if (!status) {
+    // ═══════════════════════════════════════════════════════════════════════
+    // A QUARTA CONTRADIÇÃO DO PORTAL (cliente oculto, 6ª rodada)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Medido em produção, MESMO token, MESMO minuto:
+    //   • `/api/portal/messages` → a proposta dele, com o valor, a lista do que
+    //     entra e o link de aceitar ou recusar;
+    //   • esta rota            → *"Ainda estamos organizando tudo. Seu projeto
+    //     está sendo preparado."*
+    //
+    // A frase era um literal cravado aqui, disparado sempre que não existe
+    // linha de `Project` — e `Project` só nasce DEPOIS do aceite. Ou seja: em
+    // toda a fase comercial, a esteira dizia ao cliente que nada tinha
+    // acontecido, enquanto a proposta esperava a assinatura dele na aba do
+    // lado. É a mesma família das três anteriores: um segundo escritor da
+    // etapa, aqui na forma de um texto fixo.
+    //
+    // `lerFase` já sabia responder isto — os ramos comerciais (`orcamento`,
+    // `negociacao`, `sondagem`) existem e nunca eram alcançados por esta porta.
+    // O conserto é ler a solicitação e passá-la ao MESMO leitor, em vez de
+    // escrever a quarta versão da verdade.
+    const solicitacao = await prisma.clientRequestDb
+      .findUnique({ where: { id: alvo.id }, select: { status: true, businessName: true } })
+      .catch(() => null);
+    const leitura = lerFase({
+      statusDaSolicitacao: solicitacao?.status ?? null,
+      propostaAceita: false,
+      tarefas: { total: 0, entregues: 0, produzindo: 0, bloqueadas: 0 },
+      entregaveis: { total: 0, emRevisao: 0, comRessalva: 0, aprovados: 0 },
+      pedidosAbertos: 0, pedidosCobrados: 0,
+      cicloAberto: false, postsPublicados: 0, postsAgendados: 0,
+    });
     return NextResponse.json({
-      ok: true, temProjeto: false,
-      titulo: "Ainda estamos organizando tudo",
-      agora: "Seu projeto está sendo preparado. Em breve você acompanha tudo por aqui.",
+      ok: true,
+      temProjeto: false,
+      projeto: solicitacao?.businessName ?? null,
+      etapa: leitura.paraCliente.titulo,
+      // `titulo` fica no lugar por compatibilidade com quem já o lia — mas
+      // agora ele diz a MESMA coisa que `etapa`, e as duas saem do leitor
+      // único. Duas chaves com dois textos é como esta casa se contradiz.
+      titulo: leitura.paraCliente.titulo,
+      agora: leitura.paraCliente.agora,
+      oQueEsperamosDeVoce: leitura.paraCliente.oQueEsperamosDeVoce,
+      aBolaEstaComVoce: leitura.responsavel === "cliente",
+      progresso: leitura.progresso,
+      trilha: [],
+      pendencias: [],
+      direcao: { pedeAprovacao: false },
+      ciclo: null,
     });
   }
 
@@ -173,6 +224,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     //
     // `prontas` sobe com nome de cliente porque o card TEM de listar o que
     // está dentro — ele estava pedindo assinatura sem dizer em quê.
+    // ── A PORTA DE APROVAR A DIREÇÃO ──────────────────────────────────────
+    // Mesmo molde do card do pacote, logo abaixo, e pelo mesmo motivo: as duas
+    // telas do portal desenhavam este botão casando o TEXTO da etapa com a
+    // frase "confirme o caminho". Bastou a etapa virar "Precisamos de uma
+    // coisa sua" para o botão sumir enquanto a conversa dizia "é só aprovar"
+    // (case Farol 27, 24/08/2026). Agora quem decide é o ESTADO, medido aqui.
+    direcao: { pedeAprovacao: status.leitura.precisaAprovarDirecao },
     pacote: {
       pedeAprovacao: status.pacote.pedeAprovacao,
       prontas: status.pacote.prontas.map((i) => i.titulo),
@@ -200,7 +258,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!projeto) return NextResponse.json({ error: "Projeto não encontrado" }, { status: 404 });
 
   if (body.decisao === "aprovar_direcao") {
-    const r = await aprovarDirecao(projeto.id);
+    // ── RESPONDE CEDO, TRABALHA ATRÁS (medido, 7ª volta, 26/08/2026) ───────
+    //
+    // ⚠️ MEDIDO EM PRODUÇÃO: este clique segurava o cliente **mais de 2
+    // minutos** dentro da requisição. `aprovarDirecao()` rodava a PRODUÇÃO
+    // INTEIRA — seis entregas, dezenas de chamadas de IA — antes de devolver
+    // qualquer coisa ao navegador dele.
+    //
+    // Isso é ruim de dois jeitos, e o segundo é pior: o cliente fica olhando
+    // um botão girando e conclui que travou (e clica de novo); e qualquer
+    // tempo-limite no meio do caminho — proxy, navegador, celular que dorme —
+    // mata a resposta de uma produção que JÁ ACONTECEU. Ele não vê confirmação
+    // nenhuma de uma coisa que a casa fez inteira e cobrou.
+    //
+    // `produzirAgora: false` faz `aprovarDirecao` gravar `directionApprovedAt`,
+    // deixar o projeto em `executionStatus: "pending"` e avisar o cliente — que
+    // é o que ele precisa saber AGORA. A produção sai logo depois, sem `await`.
+    //
+    // E o `void` não é a única garantia, de propósito: `retomarProducao()` no
+    // despertador já varre exatamente `directionApprovedAt != null` +
+    // `executionStatus: "pending"`. Se este processo morrer no meio, o relógio
+    // pega o projeto na batida seguinte. Promessa solta sozinha seria esperança;
+    // com a rede do relógio atrás, é resposta cedo com trabalho garantido.
+    const r = await aprovarDirecao(projeto.id, { produzirAgora: false });
+    if (r.ok) {
+      void runProjectExecution(projeto.id).catch((e) => {
+        // Nunca derruba a resposta já enviada. O relógio retoma na próxima
+        // batida — este log é só para o motivo não sumir.
+        console.error(`[portal/esteira] produção de ${projeto.id} falhou fora da requisição:`,
+          e instanceof Error ? e.message : e);
+      });
+    }
     return NextResponse.json({ ok: r.ok, mensagem: r.ok ? "Direção aprovada. A produção já começou." : r.erro },
       { status: r.ok ? 200 : 409 });
   }

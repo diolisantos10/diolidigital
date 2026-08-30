@@ -64,7 +64,19 @@ const CANVAS_DAS_PROIBICOES = "proibicoes";
 
 /** De onde a proibição veio. Sem origem ninguém consegue auditar depois por que
  *  uma peça foi barrada — e uma trava que não se explica é desligada. */
-export type OrigemDaProibicao = "briefing" | "pedido" | "ajuste" | "marca" | "equipe";
+/**
+ * De onde a proibição veio.
+ *
+ * `"recusa"` entrou em 25/08/2026, junto com o conserto do "não" do cliente: a
+ * regra que nasce de uma RECUSA não é a mesma coisa que a que nasce de um
+ * pedido de ajuste, e guardar as duas com o mesmo rótulo apagaria justamente a
+ * distinção que o conserto veio criar. Quem lê o histórico precisa poder
+ * perguntar "o que ele já recusou?" e receber resposta.
+ *
+ * É rótulo, não chave de comportamento: nenhum ramo do código decide nada por
+ * esta string — ela é lastro para quem audita depois.
+ */
+export type OrigemDaProibicao = "briefing" | "pedido" | "ajuste" | "recusa" | "marca" | "equipe";
 
 export interface Proibicao extends ProibicaoRegistrada {
   origem: OrigemDaProibicao;

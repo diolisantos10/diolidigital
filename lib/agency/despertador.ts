@@ -24,7 +24,8 @@
 import { prisma } from "@/lib/db/client";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { dispatchWhatsAppNotifications } from "@/lib/integrations/meta/notifications";
-import { destravarPacote, pacotesTravados } from "@/lib/agency/esteira/pacote-travado";
+import { destravarPacote, pacotesTravados, reauditarSemArbitro } from "@/lib/agency/esteira/pacote-travado";
+import { apresentarPacotesProntos } from "@/lib/agency/esteira/pacote-travado";
 import { publicarAgendados } from "@/lib/agency/esteira/publicacao";
 import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
@@ -39,6 +40,7 @@ import { cobrarPedidosEsquecidos } from "@/lib/agency/esteira/pedidos";
 import { fazerBackup, estadoDoBackup } from "@/lib/agency/backup";
 import { registrarBatida, type FalhaDaRodada, type EstadoDaRodada } from "@/lib/agency/pulso";
 import { vigiarAMadrugada } from "@/lib/agency/vigia-da-madrugada";
+import { propostasParadas, apenasNaoEntregues, fraseDaParada, MINUTOS_DE_PACIENCIA } from "@/lib/agency/esteira/proposta-parada";
 
 /** De quanto em quanto tempo a agência olha se tem trabalho parado. */
 const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5 * 60_000);
@@ -191,11 +193,48 @@ async function destravarPacotesBarrados(): Promise<number> {
   // IA cara, e um pacote travado não é urgência de segundos.
   for (const t of travados.filter((p) => !p.esperandoDecisao).slice(0, MAX_POR_RODADA)) {
     try {
+      // ── PRIMEIRO O JUIZ QUE FALTOU, DEPOIS A REESCRITA (26/08/2026) ───────
+      //
+      // Peça `quality_nao_auditado` NÃO tem defeito conhecido: falta parecer.
+      // `apresentar()` a segura dizendo "não reescreva, destrave a auditoria",
+      // e até aqui ninguém destravava — o pacote não aparecia nem nesta perna
+      // nem em `/api/pacotes-travados`. Medido no cliente oculto de 26/08, com
+      // o provedor devolvendo HTTP 429.
+      //
+      // A ordem importa: reauditar é barato e pode liberar o pacote inteiro
+      // sem uma linha reescrita. Só o que o juiz REPROVAR desce para a
+      // reescrita, na mesma rodada.
+      // `?? []` porque esta perna NÃO pode morrer por um campo ausente: o
+      // `catch` lá embaixo engoliria o projeto inteiro e a reescrita — que já
+      // funcionava — deixaria de rodar por causa da novidade.
+      let liberadasPeloJuiz = 0;
+      if ((t.naoAuditadas ?? []).length > 0) {
+        const rr = await reauditarSemArbitro(t.projectId);
+        liberadasPeloJuiz = rr.aprovadas.length;
+        corrigidas += liberadasPeloJuiz;
+        if (rr.aindaSemArbitro.length > 0) {
+          log(`pacote ${t.projectId}: ${rr.aindaSemArbitro.length} peça(s) continuam sem árbitro — a auditoria é que está fora, não a peça`);
+        }
+      }
+
       const r = await destravarPacote(t.projectId);
       corrigidas += r.corrigidas.length;
       // Voltou a ter peça boa? A produção é re-enfileirada para que o fluxo
       // normal (auditoria + apresentação automática) siga daqui.
-      if (r.corrigidas.length > 0 && !r.escalado) {
+      //
+      // ── `liberadasPeloJuiz` ENTROU NESTA CONDIÇÃO DEPOIS, E É DÍVIDA MINHA ──
+      //
+      // Medido em produção 20 minutos depois do deploy do próprio conserto: a
+      // reauditoria funcionou (`moveu: {destravadas: 8}`, a peça passou a
+      // `quality_ok` julgada pelo Gemini) e **o pacote continuou sem ser
+      // apresentado**. Só `r.corrigidas` — o resultado da REESCRITA — mandava
+      // nesta condição, e a reescrita não tinha feito nada porque não havia
+      // nada a reescrever.
+      //
+      // Ou seja: eu destravei a auditoria e não devolvi o pacote ao fluxo.
+      // Meio conserto é pior que nenhum, porque o instrumento passa a dizer
+      // "destravei 8" enquanto o cliente continua sem ver a entrega.
+      if ((r.corrigidas.length > 0 || liberadasPeloJuiz > 0) && !r.escalado) {
         await prisma.project.update({
           where: { id: t.projectId },
           data: { executionStatus: "pending", executionRequestedAt: new Date(), executionAttempts: 0 },
@@ -259,11 +298,32 @@ async function cuidarDosPedidos(): Promise<number> {
   const { MAX_TENTATIVAS_DE_PRODUCAO } = await import("@/lib/agency/esteira/producao-de-pedido");
   const paraProduzir = await prisma.contentRequest.findMany({
     where: {
-      deliverableId: null,
       // Depois do teto, o pedido já virou `precisa_decisao` — insistir aqui só
       // queimaria IA para chegar sempre ao mesmo lugar.
       productionAttempts: { lt: MAX_TENTATIVAS_DE_PRODUCAO },
-      OR: [{ status: "triado" }, { status: "em_producao", updatedAt: { lt: travadoAntesDe } }],
+      // ── O QUE O RELÓGIO ENXERGA (25/08/2026) ─────────────────────────────
+      //
+      // Era `deliverableId: null` seco, e para a entrega de TEXTO isso está
+      // certo: lá o entregável só existe quando o trabalho terminou.
+      //
+      // A corrente VISUAL grava o entregável ANTES da arte, de propósito — é a
+      // chave de idempotência que faz a retomada reencontrar o mesmo trabalho
+      // em vez de criar outras quatro peças pagas. Consequência não intencional:
+      // uma corrente que morresse no meio (provedor de imagem caído, Chromium
+      // sumido) ficava com entregável gravado e status "em_producao", e este
+      // `where` NUNCA mais a via. O pedido do cliente ficava preso para sempre,
+      // e o único jeito de destravá-lo era alguém escrever no banco.
+      //
+      // Agora o relógio reconhece as duas formas. Produto canônico com
+      // entregável e sem cartão é corrente parada no meio — e retomá-la não
+      // duplica nada: `entregarStoryInstagramV1` reaproveita as peças que já
+      // existem para aquele entregável.
+      OR: [
+        { deliverableId: null, status: "triado" },
+        { deliverableId: null, status: "em_producao", updatedAt: { lt: travadoAntesDe } },
+        { produtoId: { not: null }, deliverableId: { not: null }, status: "triado" },
+        { produtoId: { not: null }, deliverableId: { not: null }, status: "em_producao", updatedAt: { lt: travadoAntesDe } },
+      ],
     },
     orderBy: { createdAt: "asc" },
     take: MAX_POR_RODADA,
@@ -284,6 +344,10 @@ async function cuidarDosPedidos(): Promise<number> {
 /** Uma batida do relógio. Nunca lança — o relógio não pode morrer. */
 export async function baterORelogio(): Promise<{
   retomados: number;
+  /** Projetos que estavam parados em `idle` e entraram na fila nesta rodada. */
+  ligados: number;
+  /** Levas do mês (2ª e 3ª passadas) que venceram e entraram na fila. */
+  levasAbertas: number;
   avisos: number;
   destravadas: number;
   publicados: number;
@@ -304,10 +368,16 @@ export async function baterORelogio(): Promise<{
   backup: boolean;
 }> {
   let retomados = 0;
+  /** Projetos que saíram de `idle` sozinhos nesta rodada. */
+  let ligados = 0;
+  /** Levas do mês que venceram e entraram na fila nesta rodada. */
+  let levasAbertas = 0;
   let pedidos = 0;
   let avisos = 0;
   let respondidas = 0;
   let orcamentos = 0;
+  /** Conversas paradas de parceiro que viraram pedido sozinhas nesta rodada. */
+  let conversasPromovidas = 0;
   let destravadas = 0;
   let publicados = 0;
   let mesesVirados = 0;
@@ -390,12 +460,24 @@ export async function baterORelogio(): Promise<{
   // durar a casa serve pela reserva — que é pior e mais cara, calada. Teto de
   // ritmo passa sozinho e não vira alarme.
   try {
-    const { provedoresCaidos, precisamDeGente, ROTULO_DA_FALHA } = await import("@/lib/ai/falha-de-provedor");
+    const { provedoresCaidos, precisamDeGente, ROTULO_DA_FALHA, haQuantoTempo } =
+      await import("@/lib/ai/falha-de-provedor");
     const caidos = await provedoresCaidos(60);
     for (const c of precisamDeGente(caidos)) {
+      // ── QUEBRADO HÁ HORAS ≠ SOLUÇO DE AGORA (27/08/2026) ─────────────────
+      // Medido: 27 alarmes idênticos de 5 em 5 min, das 13:38 às 15:48, todos
+      // "credit balance is too low", todos com o MESMO peso de um erro
+      // isolado. Alarme que grita sobre o normal ensina a ignorar alarme — e
+      // este gritava sobre o quebrado, o que é pior: acostuma a casa a ver
+      // vermelho e não olhar. Continua gritando (a conta segue zerada), mas
+      // agora a frase diz HÁ QUANTO TEMPO, e é o tempo que separa "pega o
+      // cartão de crédito" de "olha isso daqui a pouco".
+      const quanto = c.persistente
+        ? `PARADO ${haQuantoTempo(c)} — ${c.quantas} chamada(s) na última hora, sempre igual`
+        : `${c.quantas} chamada(s) na última hora`;
       quebrou(
         "provedor-de-ia",
-        `${c.provider}: ${ROTULO_DA_FALHA[c.motivo!]} — ${c.quantas} chamada(s) na última hora. Exemplo: ${c.exemplo}`,
+        `${c.provider}: ${ROTULO_DA_FALHA[c.motivo!]} — ${quanto}. Exemplo: ${c.exemplo}`,
       );
     }
     // Os passageiros ficam como ESTADO: visíveis sem gritar. Um provedor
@@ -449,6 +531,41 @@ export async function baterORelogio(): Promise<{
     quebrou("repescagem-da-escada", err);
   }
 
+  // ── E O PEDIDO RETIDO, QUE NEM CHEGOU A VIRAR ENTREGA ────────────────────
+  //
+  // A perna acima repesca a ENTREGA que ficou `interno`. Ela nunca alcançou o
+  // caso medido em 25/08/2026: às 17:02 a escada reteve a peça do balcão e o
+  // PEDIDO parou em `precisa_decisao` — antes de existir `Deliverable` para
+  // repescar; às 17:03, 64 segundos depois, o relógio abriu o degrau para a
+  // mesma cliente. Nada voltou a olhar o pedido, e foi preciso retriá-lo à
+  // mão. Era um dos dois empurrões manuais que sobravam, e a meta é zero.
+  //
+  // Está AQUI, e não num relógio novo, de propósito: esta casa perdeu dez dias
+  // com um cron próprio que morreu em silêncio com o painel verde. E está
+  // nesta ORDEM de propósito: a decisão do dono já foi aplicada mais acima
+  // nesta mesma rodada, então o degrau que abriu e o pedido que volta
+  // acontecem na mesma batida — não na seguinte.
+  try {
+    const { repescarPedidosRetidosPelaEscada } = await import("@/lib/agency/escada/repescagem");
+    const r = await repescarPedidosRetidosPelaEscada();
+    if (r.rearmados > 0) {
+      log(`escada: ${r.rearmados} pedido(s) retido(s) voltaram sozinhos para a fila — o degrau abriu`);
+    }
+    // Degrau ainda fechado é a escada FUNCIONANDO: estado, nunca falha. Um
+    // alarme que grita a cada 5 minutos sobre o comportamento correto é o
+    // alarme que quem lê aprende a pular — o achado de 24/08/2026.
+    if (r.aindaRetidos.length > 0) {
+      estadoDe("repescagem-de-pedido",
+        `${r.aindaRetidos.length} pedido(s) seguem retidos pela escada: ${r.aindaRetidos[0].motivo}`);
+    }
+    // Teto esgotado é PARADA DECLARADA, e essa acorda gente: o pedido não volta
+    // mais sozinho, e quem não for avisado nunca vai saber.
+    for (const x of r.desistidos) quebrou("repescagem-de-pedido", x.motivo);
+    for (const a of r.avisos) quebrou("repescagem-de-pedido", a);
+  } catch (err) {
+    quebrou("repescagem-de-pedido", err);
+  }
+
   // A virada vem ANTES da retomada de propósito: ela é quem abre o mês novo e
   // marca o projeto como "pending". Assim o mês nasce e já é produzido na mesma
   // rodada, em vez de esperar mais cinco minutos.
@@ -470,6 +587,59 @@ export async function baterORelogio(): Promise<{
     quebrou("pedidos-do-cliente", err);
   }
 
+  // ── O PROJETO QUE NASCEU E NINGUÉM LIGA (24/08/2026) ──────────────────────
+  // Vem ANTES da retomada de propósito: é ela que tira o projeto de `idle` e o
+  // põe em `pending`, que é o estado que `retomarProducao` sabe ler. Assim o
+  // projeto liga e produz na MESMA rodada, em vez de esperar mais cinco minutos.
+  //
+  // A trava de pagamento continua inteira e é conferida duas vezes — aqui e
+  // dentro de `runProjectExecution`. Ver `esteira/ligar-projeto.ts`.
+  try {
+    const { ligarProjetosParados } = await import("@/lib/agency/esteira/ligar-projeto");
+    const r = await ligarProjetosParados();
+    ligados = r.ligados;
+    if (r.ligados > 0) log(`${r.ligados} projeto(s) saíram de "idle" sozinhos e entraram na fila de produção`);
+    // Esperar pagamento e esperar o aval do cliente são ESTADO, não falha: é a
+    // régua funcionando. O que não pode é ser silêncio — projeto parado que
+    // ninguém enxerga é o defeito de origem.
+    if (r.aguardandoPagamento > 0) {
+      estadoDe("ligar-projeto",
+        `${r.aguardandoPagamento} projeto(s) parados por falta de pagamento confirmado — o cliente foi avisado no portal, com o que fazer para liberar`);
+    }
+    if (r.aguardandoDirecao > 0) {
+      estadoDe("ligar-projeto",
+        `${r.aguardandoDirecao} projeto(s) pagos esperando o cliente aprovar a direção — o pedido de aval está no portal dele`);
+    }
+    for (const d of r.desfechos) {
+      if (d.desfecho === "sem_acao") quebrou("ligar-projeto", `${d.projectId}: ${d.motivo}`);
+    }
+  } catch (err) {
+    quebrou("ligar-projeto", err);
+  }
+
+  // ── AS LEVAS DO MÊS (25/08/2026) ─────────────────────────────────────────
+  //
+  // Vem ANTES da retomada pelo mesmo motivo da virada e do "ligar projeto": ela
+  // põe o projeto em `pending`, que é o estado que `retomarProducao` sabe ler.
+  // Assim a leva vencida entra na fila e produz na MESMA rodada.
+  //
+  // NÃO é um relógio novo: é uma perna do relógio que já existe. Esta casa
+  // perdeu dez dias com um cron que morreu em silêncio com o painel verde.
+  //
+  // A trava de pagamento continua inteira: `pending` não gasta nada, e
+  // `runProjectExecution` confere o portão antes de qualquer token.
+  try {
+    const { abrirLevasVencidas, resumoDasLevas } = await import("@/lib/agency/esteira/levas");
+    const r = await abrirLevasVencidas();
+    levasAbertas = r.abertas.length;
+    if (r.abertas.length > 0) log(`levas: ${resumoDasLevas(r)}`);
+    // Leva que não abriu e não avisou é o cliente recebendo menos do que pagou,
+    // invisível — que é exatamente como o teto de 12 peças viveu meses.
+    for (const a of r.avisos) quebrou("levas-do-mes", a);
+  } catch (err) {
+    quebrou("levas-do-mes", err);
+  }
+
   try {
     retomados = await retomarProducao();
   } catch (err) {
@@ -480,6 +650,51 @@ export async function baterORelogio(): Promise<{
     destravadas = await destravarPacotesBarrados();
   } catch (err) {
     quebrou("destravamento-de-pacote", err);
+  }
+
+  // Depois do destravamento, de propósito: a rodada que acabou de liberar uma
+  // peça é a mesma que pode entregar o pacote. Antes, o projeto liberado
+  // esperaria mais 5 minutos parado — e foi assim que ele esperou horas.
+  try {
+    const apresentados = await apresentarPacotesProntos(MAX_POR_RODADA);
+    if (apresentados > 0) estadoDe("pacote-pronto", `${apresentados} pacote(s) prontos e parados foram apresentados ao cliente`);
+  } catch (err) {
+    quebrou("apresentacao-de-pacote-pronto", err);
+  }
+
+  // ── A MESMA PERGUNTA, UMA ETAPA ANTES NO FUNIL (8ª volta, 26/08/2026) ─────
+  //
+  // A perna acima cuida do PACOTE pronto e parado. Uma etapa antes, a PROPOSTA
+  // escrita e parada não tinha olho nenhum: a solicitação do cliente oculto
+  // ficou 27 minutos em `proposal_pending` com a proposta pronta, zero cards,
+  // zero eventos, e o portal dele dizendo "Conhecendo o seu negócio · 0%".
+  // Foi o único empurrão por defeito da volta inteira.
+  //
+  // Ela não aparecia em varredura nenhuma porque não estava FALHANDO: estava
+  // num estado válido, quieta, com o número certo dentro. Estado terminal
+  // silencioso é a forma mais cara de defeito que esta casa conhece.
+  //
+  // ⚠️ DOIS BALDES, e a separação é o ponto:
+  //   • proposta que nunca CHEGOU ao cliente → `quebrou`. É defeito da casa, tem
+  //     dono (Atendimento) e próxima ação, e acorda quem lê alarme;
+  //   • proposta entregue e sem resposta → `estadoDe`. Não é defeito, é a espera
+  //     legítima do funil — mas é NOMEADA, porque proposta que envelhece calada
+  //     é venda que morre sem ninguém saber.
+  //
+  // Esta perna OLHA e não age: ela não escreve proposta, não cria card e não
+  // muda status. Agir sozinha aqui seria mandar ao cliente uma proposta que
+  // ninguém sabe por que parou — e o conserto de um funil parado não pode ser
+  // um segundo caminho de entrega divergindo do primeiro.
+  try {
+    const paradas = await propostasParadas();
+    const naoEntregues = apenasNaoEntregues(paradas);
+    for (const p of naoEntregues) quebrou("proposta-parada", fraseDaParada(p));
+    const semResposta = paradas.filter((p) => p.dono === "cliente");
+    if (semResposta.length > 0) {
+      estadoDe("proposta-parada", `${semResposta.length} proposta(s) entregue(s) e sem resposta do cliente há mais de ${MINUTOS_DE_PACIENCIA} min`);
+    }
+  } catch (err) {
+    quebrou("proposta-parada", err);
   }
 
   // ── O MATERIAL PRESO — 15/08/2026 ────────────────────────────────────────
@@ -509,6 +724,33 @@ export async function baterORelogio(): Promise<{
     }
   } catch (err) {
     quebrou("material-do-drive", err);
+  }
+
+  // ── A COLHEITA, ANTES DA ARTE — 24/08/2026 ───────────────────────────────
+  //
+  // Vem aqui porque a perna de arte logo abaixo lê `SocialPost`, e nada nesta
+  // rodada enchia essa tabela: `agendarPostsDaEntrega` só era chamada por três
+  // eventos que já passaram (apresentar, virar mês, repescagem da escada).
+  // Entrega que ficava elegível DEPOIS deles nunca mais era colhida — e a
+  // rodada de arte trabalhava sobre nada, a cada 5 minutos. Medido no case
+  // Farol 27: 14 entregas de texto, 0 peça esperando arte, 2 peças prontas
+  // para nascer e paradas.
+  //
+  // Não gasta, não publica e não afrouxa portão nenhum: a peça nasce `draft` e
+  // os portões (escada, Qualidade, pilar) continuam por dentro da MESMA função
+  // que a porta manual usa. Ver `colherPecasDasEntregas`.
+  //
+  // Falhar aqui NÃO pode derrubar a rodada.
+  try {
+    const { colherPecasDasEntregas } = await import("@/lib/agency/execution/produzir-agora");
+    const r = await colherPecasDasEntregas();
+    if (r.criadas > 0) log(`colheita: ${r.criadas} entrega(s) viraram peça de calendário em ${r.projetos} projeto(s)`);
+    // Trabalho pago que não virou peça é NOTÍCIA, nunca silêncio — mesma regra
+    // de `naoInterpretadas` e `retidas` em `publicacao.ts`.
+    for (const x of r.retidas) log(`colheita reteve "${x.nome}": ${x.motivo}`);
+    for (const f of r.falhas) quebrou("colheita-de-pecas", f);
+  } catch (err) {
+    quebrou("colheita-de-pecas", err);
   }
 
   // A arte vem ANTES da publicação, e por um motivo prático: o Instagram exige
@@ -713,11 +955,77 @@ export async function baterORelogio(): Promise<{
     quebrou("backup", err);
   }
 
+  // ── DUAS TABELAS DE PREÇO VIVAS: A CASA GRITA ATÉ O CEO DECIDIR ──────────
+  //
+  // Achado do cliente oculto (26/08/2026): a proposta cotou "Plano Essencial
+  // R$ 590" e a página pública `/planos`, no mesmo minuto, mostrava outros
+  // cinco degraus — nenhum deles com esse nome nem com esse preço. E
+  // "Crescimento" existe nas duas com R$ 990 e R$ 2.590, 2,6× de diferença.
+  //
+  // Qual das duas é a verdadeira é decisão de PREÇO, e preço é do CEO — este
+  // bloco NÃO escolhe e não muda número nenhum. Ele grita.
+  //
+  // ⚠️ E este é o oposto do alarme que esta mesma rodada CALOU ("briefing sem
+  // orçamento", que gritava sobre comportamento correto). Aqui não há
+  // comportamento correto acontecendo: enquanto as duas tabelas divergirem,
+  // alguém está sendo cobrado errado em toda proposta que a esteira emite. É
+  // notícia todo dia porque é defeito todo dia — e some no minuto em que houver
+  // uma tabela só.
+  try {
+    const { SOCIAL_PACKAGES } = await import("@/lib/agency/live-calculator");
+    const { PLANOS } = await import("@/lib/agency/planos");
+    const daVitrine = new Set(PLANOS.map((p) => p.preco));
+    const fora = SOCIAL_PACKAGES
+      .filter((p) => !daVitrine.has(p.minPrice) || !daVitrine.has(p.maxPrice))
+      .map((p) => `${p.label} R$ ${p.minPrice}`);
+    if (fora.length > 0) {
+      quebrou("precos",
+        `${fora.length} preço(s) que a esteira COTA não existem na página pública /planos (${fora.join(" · ")}). ` +
+        "Duas tabelas vivas cobram errado de alguém. Dono: o CEO. " +
+        "Próxima ação: decidir qual tabela vale — a da vitrine ou a da proposta.");
+    }
+  } catch (err) {
+    quebrou("precos", err);
+  }
+
   try {
     const r = await dispatchWhatsAppNotifications();
     avisos = typeof r?.sent === "number" ? r.sent : 0;
   } catch (err) {
     quebrou("avisos", err);
+  }
+
+  // ── A CONVERSA PARADA DO PARCEIRO VIRA PEDIDO ────────────────────────────
+  //
+  // 27/08/2026: o primeiro cliente real (FOOCCI) conversou com o SDR às 01:34 e
+  // às 13:43, entregou o briefing inteiro, e nenhum pedido nasceu — a conversa
+  // travou na pergunta de verba, que para um PARCEIRO a casa não deveria nem
+  // fazer. 24 horas de atraso no orçamento de quem já tinha contado tudo.
+  //
+  // O rastro dessas conversas já era gravado desde o mesmo dia, e NINGUÉM AGIA
+  // SOBRE ELE: a casa passou a GRAVAR o cliente perdido e continuou PERDENDO
+  // ele. Décima ocorrência de "trava construída sem fechadura".
+  //
+  // ⚠️ FICA IMEDIATAMENTE ANTES DO ORÇAMENTO, e a ordem é a entrega: o pedido
+  // que nasce aqui entra em `new` e a perna seguinte, NESTA MESMA batida, lê a
+  // fila e entrega o orçamento dele. Mover este bloco para depois custaria mais
+  // cinco minutos ao cliente e faria o teste de ponta a ponta virar teatro.
+  try {
+    const { promoverConversasParadas } = await import("@/lib/agency/comercial/promover-conversas-paradas");
+    const r = await promoverConversasParadas();
+    conversasPromovidas = r.promovidos.length;
+    for (const p of r.promovidos) {
+      log(`conversa parada ${p.fio} virou o pedido ${p.clientRequestId} (parceiro ${p.clientId})`);
+    }
+    // Pendência é conversa de PARCEIRO que não dá para orçar ainda. Vira
+    // notícia com o que falta — nomeado —, porque é cliente esperando e é gente
+    // que resolve. Conversa sem parceria NÃO entra aqui: ela é o caminho de
+    // sempre (parada com dono humano), e gritar sobre o normal ensina a ignorar
+    // alarme — a lição que este mesmo arquivo pagou com 76 disparos em 24h.
+    for (const p of r.pendencias) quebrou("conversa-recuperada", p);
+    for (const f of r.falhas) quebrou("conversa-recuperada", f);
+  } catch (err) {
+    quebrou("conversa-recuperada", err);
   }
 
   // ── O ORÇAMENTO SAI DA GAVETA ─────────────────────────────────────────────
@@ -744,7 +1052,63 @@ export async function baterORelogio(): Promise<{
     for (const a of r.avisosQueFalharam) quebrou("orcamento", a);
     // Briefing sem número derivado NÃO ganha número inventado — vai para gente,
     // e isso é notícia: é cliente esperando com a casa sem resposta.
-    if (r.semOrcamento > 0) quebrou("orcamento", `${r.semOrcamento} briefing(s) sem orçamento calculado — aguardando gente`);
+    // O AVISO AO CLIENTE, contado à parte (25/08/2026). Até aqui a linha
+    // abaixo saía a cada 5 minutos e era TUDO que acontecia: o cliente do
+    // outro lado não recebia uma palavra. O pedido sumia em silêncio, e o
+    // silêncio virava rotina de log. Agora ele é avisado, uma vez, com o que
+    // falta, o motivo, o dono e a próxima ação — e o número diz quantos foram.
+    if (r.faltaAvisada > 0) log(`${r.faltaAvisada} cliente(s) avisado(s) de que o pedido está parado por falta de informação`);
+    // ═══════════════════════════════════════════════════════════════════════
+    // ALARME QUE GRITA SOBRE O NORMAL ENSINA A IGNORAR ALARME (6ª rodada)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Medido no cliente oculto: *"2 briefing(s) sem orçamento calculado"*
+    // disparou **76 vezes em 24h** — para um comportamento CORRETO. Dois
+    // briefings chegaram sem o dado que fecha a conta, a casa se recusou a
+    // inventar número (certo), avisou o cliente do que falta (certo), e ficou
+    // esperando gente (certo). Nada estava quebrado. O alarme gritava mesmo
+    // assim, a cada batida do relógio, porque ele perguntava a coisa errada.
+    //
+    // `semOrcamento` é um ESTADO DE PÉ, não um evento. Estado de pé multiplicado
+    // por 288 batidas de relógio por dia vira ruído — e ruído ninguém lê. O
+    // custo não é a linha: é que a notícia REAL do dia seguinte chega na mesma
+    // caixa e recebe o mesmo desprezo já treinado. Esta casa já escreveu essa
+    // lição duas vezes (`pedidos.ts`, e o aviso do próprio orçamento em 25/08)
+    // e depois gritou por cima dela.
+    //
+    // A regra: **alarme é sobre a TRANSIÇÃO; log é sobre o estado.**
+    //
+    //   • `faltaAvisada` é a transição — ela só é maior que zero no ciclo em
+    //     que um briefing NOVO entrou no buraco, porque `avisarQueFaltaInformacao`
+    //     carimba `faltaAvisadaEm` no `briefingJson` e nunca avisa duas vezes.
+    //     Um briefing, um alarme, para sempre. Reusa a marca que já existe: uma
+    //     segunda contagem de "já gritei" divergiria da primeira no primeiro
+    //     conserto de uma delas;
+    //   • `semOrcamento` continua sendo dito TODA rodada — por `estadoDe`, que
+    //     é o canal que esta casa já tinha para "fatos que são ESTADO, não
+    //     quebra" (`EstadoDaRodada`, em `pulso.ts`). Ele não some de lugar
+    //     nenhum: quem quiser saber quantos estão parados agora lê o pulso.
+    //
+    // ⚠️ ISTO NÃO CONTRADIZ A PORTA DE RESET, no topo desta função, que denuncia
+    // a cada batida de propósito. A diferença não é a duração, é a NATUREZA: lá
+    // o estado de pé é ANORMAL (alguém deixou ligada a variável que apaga a
+    // produção) e enquanto durar é notícia; aqui o estado de pé é a casa
+    // fazendo a coisa certa — recusando-se a inventar um número que não tem.
+    // Alarme sobre o anormal contínuo é vigilância; alarme sobre o normal
+    // contínuo é o treino que faz a vigilância ser ignorada.
+    if (r.faltaAvisada > 0) {
+      quebrou("orcamento", `${r.faltaAvisada} briefing(s) NOVO(s) sem orçamento calculado — aguardando gente (o cliente JÁ foi avisado do que falta)`);
+    }
+    if (r.semOrcamento > 0) {
+      estadoDe("orcamento", `${r.semOrcamento} briefing(s) parados sem orçamento calculado — aguardando gente (o cliente JÁ foi avisado do que falta)`);
+    }
+    // A PROPOSTA QUE NÃO NASCEU SEM PORTA (26/08/2026). O texto com dono e
+    // próxima ação já vai em `falhas` — este número é o placar, para quem
+    // compara rodadas ver se a trava disparou uma vez (falha transitória, que
+    // a batida seguinte cura) ou toda batida (alguém precisa olhar).
+    if (r.semPortaDeAceite > 0) {
+      log(`${r.semPortaDeAceite} proposta(s) NÃO escrita(s) por falta de porta de aceite — o pedido continua na fila`);
+    }
     for (const f of r.falhas) quebrou("orcamento", f);
   } catch (err) {
     quebrou("orcamento", err);
@@ -770,7 +1134,17 @@ export async function baterORelogio(): Promise<{
     // ⭐ O Dioli Connect atendendo é ROTINA, não notícia: o assunto estava fora
     // da alçada do agente e seguiu o caminho certo. Só se registra no log.
     if (r.peloConector > 0) log(`Dioli Connect atendeu ${r.peloConector} assunto(s) fora da alçada`);
-    if (r.semIA > 0) quebrou("pm-responde", `${r.semIA} mensagem(ns) sem resposta automática — aguardando gente`);
+    // A MESMA regra do alarme do orçamento, e pelo mesmo motivo medido: `semIA`
+    // é ESTADO DE PÉ (a mensagem fica na fila até gente abrir a tela) e
+    // disparava 57 vezes em 24h sobre comportamento correto. Alarme na
+    // TRANSIÇÃO (`novasSemIA`), estado no pulso. Ver `JANELA_DE_NOVIDADE_MS`
+    // em `pm-responde.ts` — inclusive o limite exato do que ela garante.
+    if (r.novasSemIA > 0) {
+      quebrou("pm-responde", `${r.novasSemIA} mensagem(ns) NOVA(s) sem resposta automática — aguardando gente`);
+    }
+    if (r.semIA > 0) {
+      estadoDe("pm-responde", `${r.semIA} mensagem(ns) na fila sem resposta automática — aguardando gente`);
+    }
     for (const f of r.falhas) quebrou("pm-responde", f);
   } catch (err) {
     quebrou("pm-responde", err);
@@ -861,8 +1235,95 @@ export async function baterORelogio(): Promise<{
     quebrou("pm-varredura", err);
   }
 
-  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
-    log(`rodada: ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
+  // ── O LAÇO DO GERENTE GERAL (25/08/2026) ──────────────────────────────────
+  //
+  // Ordem do CEO: o GG "é o agente que não para: está sempre checando quem
+  // está atrasado e quem não está" e "valida se cada projeto está saindo
+  // dentro do cronograma".
+  //
+  // A perna acima (a varredura do PM) olha HANDOFF e TAREFA e termina em
+  // `log(...)`. Esta olha o PROJETO — a unidade que o cliente conhece — e
+  // termina em `BloqueioV2`, com dono, ação e escalada. Linha de log some no
+  // reinício do contêiner; linha com dono ocupa espaço até alguém resolver.
+  //
+  // ⚠️ Ela mora AQUI, e não em `POST /api/cron/v2`, por um achado de
+  // 25/08/2026: **nenhum agendador chama `/api/cron/v2`** — nem workflow do
+  // GitHub, nem perna do despertador, nem `scripts/`. O relógio da V2 está
+  // construído e MUDO desde o M6. A chamada foi mantida lá também (é o lugar
+  // certo quando alguém ligar o agendador), mas quem faz o laço rodar de
+  // verdade hoje é esta perna. Motor construído e mudo é o defeito que esta
+  // casa já viu duas vezes.
+  try {
+    const { rodadaDoGerenteGeral } = await import("@/lib/agency/gerencia/rodada");
+    const r = await rodadaDoGerenteGeral();
+    if (r.atrasados > 0 || r.bloqueiosAbertos > 0 || r.avisosEnfileirados > 0) {
+      log(`Gerente Geral: ${r.frase}`);
+    }
+    for (const e of r.estadosSemRegua) quebrou("gerente-geral", `estado sem régua de SLA: ${e}`);
+  } catch (err) {
+    quebrou("gerente-geral", err);
+  }
+
+  // ── A PORTA DA FRENTE TEM ALARME (25/08/2026) ─────────────────────────────
+  //
+  // O cliente oculto bateu em `/api/sdr/chat` e levou `teto_de_custo` NOVE
+  // vezes. A casa estava com a porta da frente fechada para a internet inteira
+  // — e **nenhum instrumento dela sabia disso**. Medido: zero ocorrências de
+  // `teto_de_custo` no despertador e no coletor do Diretor, e nenhuma linha
+  // sobre a porta em `/api/pulso`.
+  //
+  // O visitante não vê erro: `PublicBriefingRoom` lê `ok:false` como
+  // "sem novidade da IA" e cai no motor de REGRAS, calado e de propósito. É o
+  // desenho certo para o visitante — e é exatamente o que faz a degradação ser
+  // invisível para a casa. Porta que se fecha sem barulho é pior que porta que
+  // trava: a que trava, alguém conserta.
+  //
+  // Aqui ela passa a fazer barulho, no mesmo lugar em que o CEO já olha.
+  // Note que este alarme distingue os DOIS motivos: "a internet gastou a cota"
+  // e "a casa se sangrou sozinha" pedem providências opostas.
+  try {
+    const { podeGastarNaPortaPublica } = await import("@/lib/ai/teto-de-custo");
+    const { workspaceDaRotaPublica } = await import("@/lib/ai/chave-publica");
+    const veredicto = await podeGastarNaPortaPublica(await workspaceDaRotaPublica());
+    if (!veredicto.pode) {
+      const quanto =
+        veredicto.gastoUsd !== null && veredicto.tetoUsd !== null
+          ? ` (gasto US$${veredicto.gastoUsd.toFixed(2)} de US$${veredicto.tetoUsd.toFixed(2)})`
+          : "";
+      quebrou(
+        "porta-publica",
+        `A PORTA DA FRENTE está fechada — o SDR de IA não atende visitante nenhum: ${veredicto.motivo}${quanto}. ` +
+          "Quem chega cai no motor de regras, sem aviso na tela dele.",
+      );
+    }
+  } catch (err) {
+    quebrou("porta-publica", err);
+  }
+
+  // ── A BATIDA DA V2, PENDURADA AQUI (25/08/2026) ───────────────────────────
+  //
+  // A perna acima faz a varredura do Gerente Geral e ENFILEIRA o aviso de
+  // atraso ao cliente no outbox. Quem tira o aviso da fila e o entrega é o
+  // processador do outbox, que vivia só dentro de `POST /api/cron/v2` — e essa
+  // rota **nunca teve um chamador**. Resultado medido: a casa gravava a
+  // intenção de avisar e nunca avisava. Coluna gravada não é cliente informado.
+  //
+  // Nenhum relógio novo nasceu: é a mesma batida de 5 em 5 minutos, com mais
+  // uma perna. `rodarGerenteGeral: false` porque a rodada já aconteceu logo
+  // acima — dois placares da mesma rodada mentiriam sobre quantas houve.
+  try {
+    const { baterORelogioDaV2 } = await import("@/lib/agency/v2-recovery/batida-da-v2");
+    const v2 = await baterORelogioDaV2(new Date(), { rodarGerenteGeral: false });
+    if (v2.outbox.enviados > 0 || v2.outbox.mortos > 0 || v2.ausencias.length > 0) {
+      log(`V2: outbox ${v2.outbox.enviados} enviado(s), ${v2.outbox.mortos} morto(s); ${v2.ausencias.length} relógio(s) ausente(s)`);
+    }
+    for (const r of v2.ausencias) quebrou("v2-batida", `relógio ausente: ${r.relogio}`);
+  } catch (err) {
+    quebrou("v2-batida", err);
+  }
+
+  if (ligados > 0 || retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
+    log(`rodada: ${ligados} projeto(s) ligado(s), ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
   }
 
   // A BATIDA É GRAVADA SEMPRE — inclusive (e principalmente) a rodada em que
@@ -878,12 +1339,12 @@ export async function baterORelogio(): Promise<{
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
-    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas },
+    moveu: { pedidos, mesesVirados, retomados, levasAbertas, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, avisos, pmCobrancas },
     falhas,
     estados,
   });
 
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, backup };
+  return { retomados, ligados, levasAbertas, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, materiaisRecuperados, pmCobrancas, backup };
 }
 
 /**

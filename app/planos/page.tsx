@@ -14,6 +14,13 @@ import Link from "next/link";
 import { DioliLogo } from "@/components/brand/DioliLogo";
 import { OrbitMotif } from "@/components/brand/OrbitMotif";
 import { PLANOS, FORA_DE_TODO_PLANO, precoEmReais } from "@/lib/agency/planos";
+
+/** Quantos degraus a página anuncia — CONTADO, nunca escrito por extenso. A
+ *  frase "Cinco degraus" sobreviveu ao Crescimento sair da tabela, e uma página
+ *  que erra a própria contagem é a primeira coisa que o leitor confere. */
+const NUMERO_POR_EXTENSO = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete"];
+const QUANTOS_DEGRAUS =
+  (NUMERO_POR_EXTENSO[PLANOS.length] ?? String(PLANOS.length)).replace(/^./, (c) => c.toUpperCase());
 import { linkDoWhatsApp } from "@/lib/agency/comercial/link-do-whatsapp";
 
 // O número e a montagem da URL vêm de `comercial/link-do-whatsapp.ts`. Estavam
@@ -27,7 +34,12 @@ export const metadata: Metadata = {
     "Cinco planos mensais, do acompanhamento de resultados à operação completa. Cada um diz em número o que entrega — e o que não entrega.",
   openGraph: {
     title: "Planos e preços — Dioli Digital",
-    description: "Do R$ 49 que mede ao R$ 2.590 que cresce. Escopo escrito, sem letra miúda.",
+    // ⚠️ DERIVADO (26/08/2026). Este texto dizia "ao R$ 2.590 que cresce"
+    // depois de o Crescimento sair da tabela — uma frase da página mentindo
+    // sobre a própria página. Contagem e preço saem de `PLANOS`.
+    description: `Do ${precoEmReais(Math.min(...PLANOS.map((p) => p.preco)))} que mede ao ` +
+      `${precoEmReais(Math.max(...PLANOS.map((p) => p.preco)))} que entrega o mês inteiro. ` +
+      "Escopo escrito, sem letra miúda.",
     type: "website",
     locale: "pt_BR",
   },
@@ -83,7 +95,7 @@ export default function PlanosPage() {
             Planos mensais
           </span>
           <h1 className="mt-6 max-w-3xl text-balance text-[38px] font-bold leading-[1.04] tracking-[-0.035em] text-[var(--navy)] md:text-[58px]">
-            Cinco degraus. <span className="text-gradient-cool">Você sobe quando quiser.</span>
+            {QUANTOS_DEGRAUS} degraus. <span className="text-gradient-cool">Você sobe quando quiser.</span>
           </h1>
           <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-[var(--text-secondary)] md:text-[18px]">
             Cada plano diz, em número, o que entrega — e traz por escrito o que <em>não</em> entrega.

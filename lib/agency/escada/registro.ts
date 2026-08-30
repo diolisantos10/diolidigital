@@ -157,6 +157,51 @@ export interface FiltroDaEscada {
  * Não lança NUNCA por erro de banco: falha de leitura retém tudo (fail-closed)
  * em vez de liberar tudo. Reter é um alarme que a equipe resolve; liberar é uma
  * peça publicada em nome de um cliente pagante.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * A PORTA PRINCIPAL PASSOU A LER A MESMA FONTE DA PORTA LATERAL (25/08/2026)
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Medido em produção, com 64 segundos entre os dois fatos:
+ *
+ *   17:02:12 — ESTA função reteve a peça: "design está em ALLOWLIST e o
+ *              cliente não está na lista" → o pedido parou em `precisa_decisao`;
+ *   17:03:16 — o despertador aplicou `DECISOES_DO_DONO` e incluiu a MESMA
+ *              cliente, sozinho, na lista de `design`.
+ *
+ * **A casa recusava o que ela mesma liberava um minuto depois.**
+ *
+ * O conserto anterior (08/2026) ensinou a decisão do dono à porta MANUAL
+ * (`liberarCliente`, abaixo) e parou ali. Mas a porta manual não é a que retém
+ * a peça — é esta. O conserto fechou a porta lateral e deixou a principal
+ * aberta, e por isso o defeito continuou vivo com a régua verde em cima.
+ *
+ * ── QUAL DAS DUAS É A REGRA ───────────────────────────────────────────────
+ *
+ * A decisão do dono, pelo mesmo motivo já registrado em `decisoes-do-dono.ts`:
+ * é ela que tem PROCEDÊNCIA — datada, assinada, com a fala literal, versionada
+ * em código e validada por `recusarDecisao`. A lista gravada em
+ * `DepartmentLadder.clientesLiberados` não é uma segunda verdade: é o CACHE
+ * que o relógio materializa a partir da decisão. Verdade escrita em dois
+ * lugares já está errada em um deles — então este portão passou a ler a fonte,
+ * e não só o cache.
+ *
+ * ── A FONTE É UMA SÓ, POR IDENTIDADE ──────────────────────────────────────
+ *
+ * As duas portas chamam **a mesma função**, `decisaoQueCobre`. Não são duas
+ * cópias que hoje concordam: é uma função só, com um chamador a mais. Se ela
+ * for trocada, as duas portas mudam juntas — e o teste desta casa prova isso
+ * substituindo a função e exigindo que AS DUAS mudem de resposta. Duas tabelas
+ * gêmeas passariam num teste de igualdade de valor; nenhuma passa neste.
+ *
+ * ── O QUE **NÃO** FOI AFROUXADO ───────────────────────────────────────────
+ *
+ * Nada. `liberarCliente` continua exigindo a mesma evidência, byte por byte,
+ * para todo cliente que nenhuma decisão cobre. A escada continua de pé: quem a
+ * decisão não nomeia não passa por aqui — nem por evidência que este portão
+ * não sabe medir. O que este portão ganhou foi CONHECER a exceção declarada, e
+ * conceder em nome dela exatamente o que o relógio concederia sozinho na
+ * rodada seguinte. `wide` continua se conquistando só com número.
  */
 export async function escadaFiltraEntregas(p: {
   workspaceId: string;
@@ -191,22 +236,64 @@ export async function escadaFiltraEntregas(p: {
     }]),
   );
 
+  // A decisão do dono, perguntada UMA VEZ por departamento nesta chamada. O
+  // cache é do escopo da chamada e morre com ela: guardá-lo entre chamadas
+  // criaria a terceira verdade, que é o defeito de novo com outra roupa.
+  const jaPerguntei = new Map<string, boolean>();
+  async function decisaoLibera(departmentId: string): Promise<boolean> {
+    const emCache = jaPerguntei.get(departmentId);
+    if (emCache !== undefined) return emCache;
+    let cobre = false;
+    try {
+      // Import dinâmico pelo mesmo motivo de `liberarCliente`: manter este
+      // módulo carregável sem arrastar a lista de decisões no caminho quente.
+      const { decisaoQueCobre } = await import("./decisoes-do-dono");
+      cobre = (await decisaoQueCobre({
+        workspaceId: p.workspaceId,
+        departmentId,
+        clientId: p.clientId!,
+      })) !== null;
+    } catch {
+      // Não consegui ler a decisão = não sei se cobre = não cobre. Fail-closed:
+      // a régua da lista continua valendo, e a peça fica retida.
+      cobre = false;
+    }
+    jaPerguntei.set(departmentId, cobre);
+    return cobre;
+  }
+
   const liberados: string[] = [];
   const retidos: FiltroDaEscada["retidos"] = [];
   for (const entrega of p.entregas) {
     const dept = departamentoDoAgente(entrega.ownerAgentId);
     const estado = dept ? porId.get(dept) ?? null : null;
     const veredito = decidirEntrega(estado, p.clientId);
-    if (veredito.chega) liberados.push(entrega.id);
-    else {
-      retidos.push({
-        id: entrega.id,
-        departmentId: dept,
-        motivo: dept
-          ? veredito.motivo ?? "retida pela escada"
-          : `executor "${entrega.ownerAgentId ?? "(vazio)"}" não pertence a departamento conhecido — fail-closed: retida`,
-      });
+    if (veredito.chega) {
+      liberados.push(entrega.id);
+      continue;
     }
+    // ── A SEGUNDA PERGUNTA, E SÓ PARA QUEM A PRIMEIRA RETEVE ────────────────
+    //
+    // Só entra aqui o caso que o relógio resolveria sozinho na rodada seguinte:
+    // departamento conhecido, cliente identificado, e degrau que
+    // `aplicarDecisoesDoDono` mexeria (ou seja: nada acima de allowlist — em
+    // `wide` a lista não tem efeito, e a decisão do dono nunca desce ninguém).
+    //
+    // Estado NULO entra de propósito: `aplicarDecisoesDoDono` CRIA a linha do
+    // departamento coberto. Deixá-lo de fora reproduziria o mesmo desencontro
+    // de um minuto, com o departamento sem linha em vez de com lista curta.
+    const podeSubirPelaDecisao = !estado || alturaDo(estado.degrau) <= alturaDo("allowlist");
+    if (dept && p.clientId && podeSubirPelaDecisao && (await decisaoLibera(dept))) {
+      liberados.push(entrega.id);
+      continue;
+    }
+    retidos.push({
+      id: entrega.id,
+      departmentId: dept,
+      motivo: dept
+        ? veredito.motivo ?? "retida pela escada"
+        : `executor "${entrega.ownerAgentId ?? "(vazio)"}" não pertence a departamento conhecido — fail-closed: retida`,
+    });
   }
   return { liberados, retidos };
 }
@@ -280,6 +367,14 @@ export interface ResultadoDaMudanca {
   degrau: Degrau;
   erro?: string;
   faltam?: string[];
+  /**
+   * POR QUE ISTO FOI CONCEDIDO SEM EVIDÊNCIA.
+   *
+   * Só é preenchido quando a mudança saiu por uma DECISÃO DO DONO declarada. É
+   * o oposto de uma exceção silenciosa: quem chama a rota recebe, na resposta,
+   * a decisão que autorizou — id, data, quem, e a frase.
+   */
+  porDecisaoDoDono?: { id: string; quem: string; em: string; motivo: string };
 }
 
 /**
@@ -366,6 +461,25 @@ export async function descerDegrau(p: {
  * Exige a MESMA evidência do degrau de allowlist. Sem isto, a lista seria a
  * porta dos fundos: o departamento fica em "allowlist" com um cliente herdado e
  * alguém acrescenta os outros nove à mão — wide sem nunca ter subido.
+ *
+ * ── A EXCEÇÃO QUE JÁ EXISTIA, E QUE ESTA PORTA NÃO CONHECIA (25/08/2026) ────
+ *
+ * Medido em produção: às 13:47 a escada RETEVE um Story ("design está em
+ * ALLOWLIST e o cliente não está na lista"); às 13:48 o despertador aplicou
+ * `DECISOES_DO_DONO` e incluiu o mesmo cliente sozinho. E esta função, chamada
+ * pela porta certa (`POST /api/agency/escada`, ação `liberar_cliente`), recusou
+ * com 409 "evidência insuficiente".
+ *
+ * Duas verdades sobre a mesma liberação, e a casa obedecia às duas — que é como
+ * uma escada vira enfeite: quem quisesse o resultado esperava cinco minutos
+ * pelo relógio em vez de passar pela porta que pergunta.
+ *
+ * A regra é a decisão do dono, porque é ela que tem PROCEDÊNCIA (datada,
+ * assinada, com a fala literal, versionada, validada). Então quem obedece é
+ * esta função — **e a régua de evidência não foi afrouxada em um milímetro**:
+ * ela continua valendo, inteira, para todo cliente que a decisão não cobre.
+ * O que esta porta ganhou foi CONHECER a decisão, e conceder em nome dela
+ * exatamente o que o relógio concederia sozinho na rodada seguinte.
  */
 export async function liberarCliente(p: {
   workspaceId: string;
@@ -381,15 +495,74 @@ export async function liberarCliente(p: {
   if (atual !== "allowlist") {
     return { ok: false, degrau: atual, erro: `só faz sentido em allowlist — o departamento está em ${atual}` };
   }
+  // ── A DECISÃO DO DONO, PERGUNTADA ANTES DA EVIDÊNCIA ──────────────────────
+  //
+  // Antes, e não depois: se a decisão cobre este cliente, a resposta certa é
+  // "sim, por esta decisão" — e devolver primeiro um 409 de evidência sobre um
+  // caso já autorizado é justamente a contradição medida em 25/08/2026.
+  //
+  // Import dinâmico porque `decisoes-do-dono.ts` importa deste módulo
+  // (`degraus`), e um import estático cruzado aqui fecharia o ciclo.
+  const { decisaoQueCobre, provaDaDecisao } = await import("./decisoes-do-dono");
+  // `try/catch` e não `.catch()`: os dois NÃO são a mesma coisa. `.catch()` só
+  // pega a rejeição — uma exceção SÍNCRONA (a fonte quebrada, o módulo trocado)
+  // passa por cima dele e derruba a rota inteira, em vez de cair de volta na
+  // régua de evidência, que é o lado seguro. É o mesmo cuidado de
+  // `registrarProducao`, e aqui ele foi medido faltando.
+  let cobertura: Awaited<ReturnType<typeof decisaoQueCobre>> = null;
+  try {
+    cobertura = await decisaoQueCobre({
+      workspaceId: p.workspaceId,
+      departmentId: p.departmentId,
+      clientId: p.clientId,
+    });
+  } catch {
+    cobertura = null;
+  }
+
+  if (cobertura) {
+    const lista = new Set(lerClientes(linha?.clientesLiberados));
+    lista.add(p.clientId);
+    await prisma.departmentLadder.update({
+      where: { workspaceId_departmentId: { workspaceId: p.workspaceId, departmentId: p.departmentId } },
+      data: {
+        clientesLiberados: JSON.stringify([...lista]),
+        // A assinatura diz as DUAS coisas: qual decisão autorizou e quem pediu.
+        // "decidido por: usuario:42" sozinho esconderia que a autorização não
+        // era dele.
+        decididoPor: `decisao-do-dono:${cobertura.decisao.id} (pedido por ${p.quem})`,
+        motivo: cobertura.motivo,
+        provaJson: provaDaDecisao({
+          decisao: cobertura.decisao, de: atual, para: atual, clientes: [...lista], porQuem: p.quem,
+        }),
+      },
+    });
+    return {
+      ok: true,
+      degrau: atual,
+      porDecisaoDoDono: {
+        id: cobertura.decisao.id, quem: cobertura.decisao.quem,
+        em: cobertura.decisao.em, motivo: cobertura.motivo,
+      },
+    };
+  }
+
   const desde = new Date(Date.now() - JANELA_DE_EVIDENCIA_DIAS * 24 * 60 * 60_000);
   const registros = await prisma.departmentLadderRecord.findMany({
     where: { workspaceId: p.workspaceId, departmentId: p.departmentId, criadoEm: { gte: desde } },
     select: { resultado: true, clientId: true },
   }).catch(() => [] as Array<{ resultado: string; clientId: string | null }>);
   // A régua é a de ENTRAR em allowlist, aplicada a cada novo cliente.
+  // INTOCADA: quem a decisão do dono não cobre continua precisando do número.
   const avaliacao = avaliarSubida("sombra", registros);
   if (!avaliacao?.pode) {
-    return { ok: false, degrau: atual, erro: "evidência insuficiente para liberar mais um cliente", faltam: avaliacao?.faltam ?? [] };
+    return {
+      ok: false, degrau: atual,
+      erro:
+        "evidência insuficiente para liberar mais um cliente — e nenhuma decisão do dono declarada cobre " +
+        "este cliente neste departamento",
+      faltam: avaliacao?.faltam ?? [],
+    };
   }
   const lista = new Set(lerClientes(linha?.clientesLiberados));
   lista.add(p.clientId);

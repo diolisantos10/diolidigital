@@ -203,7 +203,9 @@ describe("runProjectExecution — produção durável e confiável", () => {
     expect(r.ok).toBe(true);
     // O rótulo agora diz a casa E o especialista — é isso que o CEO lê no relatório.
     expect(r.produced).toContain("Social Media \u00b7 Pauta do m\u00eas");
-    expect(r.produced).toContain("Social Media \u00b7 Roteiro de v\u00eddeo");
+    // O roteiro de vídeo NÃO está aqui, e é o certo: este cliente não contratou
+    // reel, e desde 25/08/2026 vídeo não entra em plano nenhum.
+    expect(r.produced).not.toContain("Social Media \u00b7 Roteiro de v\u00eddeo");
     expect(db.deliverable.create).toHaveBeenCalled();
     // marcou running no começo (pelo `updateMany` da trava atômica) e done no fim
     const travas = db.project.updateMany.mock.calls.map((c) => c[0].data.executionStatus);
@@ -220,11 +222,12 @@ describe("runProjectExecution — produção durável e confiável", () => {
     generate.mockResolvedValue(noContrato({ title: "Pacote", summary: "s", items: [{ format: "feed", headline: "Oi", caption: "legenda bem completa aqui", visual: "foto" }] }));
 
     const r = await runProjectExecution("p1");
-    // Social Media tem 3 especialistas: 3 gerações + 1 revisão do que foi reprovado.
-    expect(generate).toHaveBeenCalledTimes(4);
+    // Social Media escala 2 especialistas para quem não contratou reel (vídeo
+    // não entra em plano nenhum desde 25/08/2026): 2 gerações + 1 revisão.
+    expect(generate).toHaveBeenCalledTimes(3);
     // Cada especialista publica UMA peça — a melhor versão dele, nunca as duas.
-    expect(db.deliverable.create).toHaveBeenCalledTimes(3);
-    expect(r.produced).toHaveLength(3);
+    expect(db.deliverable.create).toHaveBeenCalledTimes(2);
+    expect(r.produced).toHaveLength(2);
   });
 
   it("IA indisponível → NÃO perde: marca 'failed' pra o cron re-tentar", async () => {
@@ -260,7 +263,6 @@ describe("runProjectExecution — produção durável e confiável", () => {
     const r = await runProjectExecution("p1");
     expect(r.produced).not.toContain("Social Media \u00b7 Pauta do m\u00eas");
     expect(r.produced).toContain("Social Media \u00b7 Copy dos posts");
-    expect(r.produced).toContain("Social Media \u00b7 Roteiro de v\u00eddeo");
   });
 
   it("idempotente: departamento inteiro já entregue → ninguém reproduz", async () => {
@@ -324,10 +326,10 @@ describe("a tarefa segue a produção", () => {
     await runProjectExecution("p1");
 
     const estados = db.task.updateMany.mock.calls.map((c) => c[0].data.status);
-    // Cada especialista percorre o mesmo caminho, um depois do outro. Três
-    // especialistas em Social Media = a sequência repetida três vezes.
+    // Cada especialista percorre o mesmo caminho, um depois do outro. Dois
+    // especialistas escalados em Social Media = a sequência repetida duas vezes
+    // (o roteiro de vídeo só entra para quem contratou reel).
     expect(estados).toEqual([
-      "in_progress", "review", "done",
       "in_progress", "review", "done",
       "in_progress", "review", "done",
     ]);
@@ -537,9 +539,9 @@ describe("reprovação bloqueia, indisponibilidade não", () => {
     auditMock().mockResolvedValue({ verdict: "nao_auditado", issues: [], note: "n/a", motivo: "erro" });
 
     await runProjectExecution("p1");
-    // 3 especialistas de Social Media = 3 gerações. Nenhuma revisão extra.
-    expect(generate).toHaveBeenCalledTimes(3);
-    expect(auditDeliverable).toHaveBeenCalledTimes(3);
+    // 2 especialistas escalados de Social Media = 2 gerações. Nenhuma revisão.
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(auditDeliverable).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -679,10 +681,17 @@ describe("a leitura minuciosa do cliente entra na produção", () => {
 // Resultado: a dona do salao dizia que tinha os videos e a agencia mandava ela
 // gravar os videos que ela ja tinha.
 describe("o motor entende o que o briefing REALMENTE grava sobre material", () => {
+  // ⚠️ CONTRATA REEL DE PROPÓSITO. Desde 25/08/2026 o especialista de roteiro de
+  // vídeo só é escalado para quem contratou reel EXPLICITAMENTE (decisão do
+  // CEO: vídeo não entra em plano nenhum — a casa não edita vídeo, e o roteiro
+  // sozinho é promessa sem produtor). Sem esta linha o prompt nem existe, e o
+  // que estes testes conferem é o TEXTO do prompt, não a régua de escopo — essa
+  // é conferida em `a-vitrine-nao-promete-acima-do-teto`.
   function comEscopo(social: Record<string, unknown>) {
     db.clientRequestDb.findUnique.mockResolvedValue({
-      id: "cr1", businessName: "Salão da Bia", services: JSON.stringify(["social"]), objectives: "[]",
-      briefingJson: JSON.stringify({ scope: { social } }),
+      id: "cr1", businessName: "Salão da Bia",
+      services: JSON.stringify(["social", "reels sob demanda"]), objectives: "[]",
+      briefingJson: JSON.stringify({ scope: { social: { postsPerWeek: 3, reelsPerMonth: 2, ...social } } }),
     });
     db.project.findUnique.mockResolvedValue({ ...baseProject });
     generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
@@ -904,8 +913,8 @@ describe("o contrato de saída é conferido no JSON, não confiado ao prompt", (
     const r = await runProjectExecution("p1");
     expect(db.deliverable.create).not.toHaveBeenCalled();
     expect(r.skipped.join(" ")).toMatch(/contrato de sa[íi]da/i);
-    // Tentou corrigir uma vez por especialista antes de barrar: 3 especialistas × 2.
-    expect(generate).toHaveBeenCalledTimes(6);
+    // Tentou corrigir uma vez por especialista antes de barrar: 2 especialistas × 2.
+    expect(generate).toHaveBeenCalledTimes(4);
     // E o pedido de correção diz o número que falta, não "melhore".
     expect(generate.mock.calls[1]![0].user as string).toMatch(/entregou 2/);
   });

@@ -91,8 +91,55 @@ export const CAMPOS_DA_ENTREGA = [
  */
 export const ESQUEMA_DA_ENTREGA =
   'Responda JSON: {"title":"...","summary":"1 frase","items":[{"headline":"...","note":"...",' +
+  '"format":"feed|carrossel|story|reel","pillar":"o pilar editorial da peça",' +
   '"caption":"...","cenas":"1) [papel] tela · 2) [papel] tela · ...","visual":"...",' +
-  '"direction":"...","audience":"...","cta":"..."}]}';
+  '"direction":"...","audience":"...","cta":"..."}]}' +
+  ' — "format" e "pillar" são OBRIGATÓRIOS em TODO item.';
+
+/**
+ * ⚠️ `format` E `pillar` NO ESQUEMA — O MESMO DEFEITO DE `cenas`, DE NOVO
+ * (26/08/2026, medido em produção).
+ *
+ * A lista de campos acima diz, em dois comentários longos, que os dois são
+ * LOAD-BEARING: `format` decide como a arte é gerada e onde a peça é
+ * publicada; `pillar` é o que DESLIGA o bloqueio de conteúdo quando falta.
+ * `contratoDasLegendas` cobra os dois, item por item, e reprova quem não os
+ * traz.
+ *
+ * E o esquema que os caminhos de conserto pediam ao modelo **não citava
+ * nenhum dos dois.** A casa exigia na saída o que nunca pediu na entrada.
+ *
+ * Medido na refação: o cliente pedia ajuste, o modelo devolvia os itens sem
+ * `format` e sem `pillar`, o contrato barrava (certo), e o pedido dele morria
+ * em `fora_do_contrato`. **O portão estava certo; quem não cumpria o contrato
+ * era o gerador.** Afrouxar o portão teria trocado um pedido barrado por uma
+ * peça sem pilar dentro do calendário do cliente — que é o defeito de 07/08
+ * (salário inventado no pixel) de volta.
+ *
+ * É literalmente a lição que o cabeçalho deste arquivo já escrevia sobre
+ * `cenas`, na mesma constante, e que foi reescrita em vez de lida: **um lugar
+ * para os dois lados da mesma conversa — o que se pede e o que se lê.**
+ */
+
+/**
+ * Quantos itens um markdown de entrega tem — a leitura INVERSA de
+ * `renderizarEntrega`, e por isso mora ao lado dela.
+ *
+ * Serve a um pedido só, e ele é de dinheiro: a refação precisa dizer ao modelo
+ * quantos itens devolver. O caso comum medido é o cliente pedir "muda só o
+ * gancho do primeiro" e o modelo devolver UM item — os outros somem, e o
+ * cliente recebe um terço do que comprou. O contrato de saída pega isso e
+ * barra (certo), mas barrar é o segundo melhor desfecho: o melhor é o modelo
+ * saber o número antes de escrever.
+ *
+ * Conta o cabeçalho que `renderizarEntrega` emite (`**1. …**`) — nunca uma
+ * heurística de prosa. Texto sem nenhum cabeçalho devolve 0, e quem chama
+ * decide o que fazer com "não sei", que nunca é um palpite de quantidade.
+ */
+export function quantosItens(markdown: string | null | undefined): number {
+  if (!markdown) return 0;
+  return (markdown.match(/^\*\*\d+\.\s/gm) ?? []).length;
+}
 
 /**
  * O JSON do especialista vira o markdown que o cliente lê.
@@ -117,4 +164,43 @@ export function renderizarEntrega(data: Record<string, unknown>): string {
     linhas.push("");
   });
   return linhas.join("\n").trim();
+}
+
+/**
+ * O MARKDOWN VOLTA A SER ITENS — a leitura inversa completa de
+ * `renderizarEntrega`, e por isso mora aqui, coladinha nela.
+ *
+ * Existe por um pedido só, e ele é a regra do congelamento (27/08/2026): para
+ * segurar o campo que o cliente NÃO pediu para mudar, é preciso saber o que
+ * havia nele. O `Deliverable` guarda o texto renderizado — o JSON do
+ * especialista que o gerou não sobrevive à gravação.
+ *
+ * ⚠️ Lê pela MESMA lista `CAMPOS_DA_ENTREGA` que o renderizador escreve. Um
+ * segundo vocabulário aqui leria "- Legenda:" como campo desconhecido e
+ * devolveria item vazio — e item vazio, no congelamento, vira "não havia nada
+ * antes", que libera exatamente o que devia ser segurado.
+ *
+ * O `headline` volta do cabeçalho `**1. …**`, que é onde o renderizador o põe.
+ * Texto sem cabeçalho nenhum devolve lista vazia — nunca um item adivinhado.
+ */
+export function itensDaEntrega(markdown: string | null | undefined): Record<string, string>[] {
+  if (!markdown) return [];
+  const porRotulo = new Map<string, string>(CAMPOS_DA_ENTREGA.map(([k, label]) => [label.toLowerCase(), k]));
+  const itens: Record<string, string>[] = [];
+  let atual: Record<string, string> | null = null;
+
+  for (const linha of markdown.split("\n")) {
+    const cab = linha.match(/^\*\*\d+\.\s+(.*?)\*\*\s*$/);
+    if (cab) {
+      atual = { headline: (cab[1] ?? "").trim() };
+      itens.push(atual);
+      continue;
+    }
+    if (!atual) continue;
+    const campo = linha.match(/^-\s+([^:]+):\s*(.*)$/);
+    if (!campo) continue;
+    const chave = porRotulo.get((campo[1] ?? "").trim().toLowerCase());
+    if (chave) atual[chave] = (campo[2] ?? "").trim();
+  }
+  return itens;
 }

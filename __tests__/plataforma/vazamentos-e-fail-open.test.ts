@@ -102,8 +102,10 @@ describe("o webhook de pagamento não é mais fail-open", () => {
 
 describe("a mensagem do provedor é limpa antes de virar registro", () => {
   it("chave da OpenAI ecoada no erro NÃO é guardada", () => {
+    // segredo-permitido: chave FALSA — insumo do teste que prova a redação.
     const cru = "Incorrect API key provided: sk-proj-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789. You can find your API key at…";
     const limpo = sanitizarMensagemDeProvedor(cru);
+    // segredo-permitido: o mesmo valor falso da linha acima.
     expect(limpo).not.toContain("sk-proj-AbCdEfGhIjKlMnOpQrStUvWxYz");
     expect(limpo).toContain("credencial removida");
   });

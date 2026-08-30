@@ -36,7 +36,7 @@ import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import {
-  DEPARTAMENTOS, TODOS_OS_ESPECIALISTAS, ctxBlock, conferirContrato,
+  DEPARTAMENTOS, TODOS_OS_ESPECIALISTAS, ctxBlock, conferirContrato, itensDe,
   type Ctx,
 } from "@/lib/agency/execution/especialistas";
 import {
@@ -44,7 +44,7 @@ import {
   separarValoresInformados, type VerdadeDoCliente,
 } from "@/lib/agency/execution/piso-de-verdade";
 import {
-  auditDeliverable, revisionStatusDoVeredito,
+  auditDeliverable, revisionStatusDoVeredito, camposDaQualidade,
   foiReprovadaPelaQualidade, ficouSemArbitro,
 } from "@/lib/agency/execution/quality-auditor";
 import { comoTexto, MINIMO_DE_CONTEUDO, temSubstancia } from "@/lib/agency/esteira/conteudo";
@@ -53,6 +53,12 @@ import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
 import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
 import { TRAVA_MS, pararComMotivo, avisarCliente } from "@/lib/agency/esteira/triagem";
 import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
+import { produtoCanonico, dimensaoExigida, type ProdutoCanonico } from "@/lib/agency/produtos/registro";
+import { entregarStoryInstagramV1, type PecaDoEspecialista } from "@/lib/agency/produtos/story-instagram-v1";
+import { conferirBriefingMinimo } from "@/lib/agency/produtos/briefing-minimo";
+import { contratoDoPedido } from "@/lib/agency/esteira/contrato-do-pedido";
+import type { OpcaoDaPergunta } from "@/lib/agency/esteira/porta-da-pergunta";
+import { paradaDoPisoDeVerdade, paradaDaQualidade } from "@/lib/agency/esteira/porta-da-peca-barrada";
 
 /** Uma correção por freio. Se o modelo repetiu a violação COM o parecer e o
  *  texto anterior na frente, insistir só queima IA — e a peça não pode ir ao
@@ -83,12 +89,37 @@ export async function produzirPedido(pedidoId: string): Promise<ResultadoDaProdu
   if (!pedido) return { ok: false, parou: false, motivo: "pedido não encontrado" };
 
   // Já produzido: devolve o que existe. Reentrada é caso normal, não erro.
+  //
+  // ── MAS "TEM ENTREGÁVEL" NÃO É "ESTÁ ENTREGUE" (25/08/2026) ──────────────
+  //
+  // Este atalho respondia `ok: true` com `approvalRequestId: ""` sempre que
+  // houvesse `deliverableId`. Para as entregas de texto isso é inofensivo — lá
+  // o entregável e o card nascem na mesma respiração.
+  //
+  // Na corrente visual, não: o `deliverableId` é gravado ANTES da produção da
+  // arte, de propósito, para ser a chave de idempotência da retentativa. Uma
+  // corrente que parou no renderizador deixa entregável SEM card — e este
+  // atalho responderia "ok, já está pronto, o card é ''". É exatamente o falso
+  // `done` que a Operação Salvaguarda veio matar, reaparecendo pela porta da
+  // reentrada.
+  //
+  // A pergunta certa não é "existe entregável?", é **"o cliente tem onde
+  // decidir?"**. Sem card, o trabalho não terminou: a produção reentra e a
+  // corrente retoma de onde parou (as peças já criadas são reaproveitadas).
   if (pedido.deliverableId) {
     const card = await prisma.approvalRequest.findFirst({
       where: { clientId: pedido.clientId, department: `pedido:${pedido.id}` },
       select: { id: true },
     });
-    return { ok: true, deliverableId: pedido.deliverableId, approvalRequestId: card?.id ?? "", jaExistia: true };
+    if (card) {
+      return { ok: true, deliverableId: pedido.deliverableId, approvalRequestId: card.id, jaExistia: true };
+    }
+    if (!pedido.produtoId) {
+      // Caminho de texto: sem produto canônico, o comportamento é o de sempre.
+      return { ok: true, deliverableId: pedido.deliverableId, approvalRequestId: "", jaExistia: true };
+    }
+    // Produto canônico sem card: a corrente parou no meio. Cai fora do atalho
+    // e reentra na produção.
   }
 
   if (pedido.status !== "triado" && pedido.status !== "em_producao") {
@@ -115,10 +146,25 @@ export async function produzirPedido(pedidoId: string): Promise<ResultadoDaProdu
   const tomou = await prisma.contentRequest.updateMany({
     where: {
       id: pedido.id,
-      deliverableId: null,
+      // `deliverableId: null` continua sendo a trava para o caminho de texto:
+      // lá, entregável gravado quer dizer trabalho terminado.
+      //
+      // Na corrente visual o entregável é gravado ANTES da arte (é a chave de
+      // idempotência da retomada), então exigi-lo nulo transformaria a trava em
+      // ARMADILHA: a corrente que parou no meio nunca mais seria retomada, e o
+      // pedido ficaria preso com entregável e sem peça. A retomada de produto
+      // canônico é reconhecida pelo par (produto declarado + entregável já
+      // gravado) — e ela NÃO duplica trabalho: `entregarStoryInstagramV1`
+      // reaproveita as peças que já existem para aquele entregável.
+      // As quatro combinações escritas por extenso, e de propósito: um `AND`
+      // aninhado dentro de um `OR` é a forma de `where` que ninguém relê
+      // corretamente seis meses depois — e a que os dublês de banco desta casa
+      // não sabem avaliar, o que faria a trava passar em teste sem travar nada.
       OR: [
-        { status: "triado" },
-        { status: "em_producao", updatedAt: { lt: travadoAntesDe } },
+        { deliverableId: null, status: "triado" },
+        { deliverableId: null, status: "em_producao", updatedAt: { lt: travadoAntesDe } },
+        { produtoId: { not: null }, deliverableId: { not: null }, status: "triado" },
+        { produtoId: { not: null }, deliverableId: { not: null }, status: "em_producao", updatedAt: { lt: travadoAntesDe } },
       ],
     },
     data: { status: "em_producao" },
@@ -265,7 +311,79 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     "Entregue exatamente o que ele pediu, dentro do formato acima. Não escreva preço, prazo nem promessa comercial na peça.",
   ].filter(Boolean).join("\n");
 
-  const promptBase = `${esp.prompt(contexto)}\n${pedidoNoPrompt}`;
+  // ── O PRODUTO CANÔNICO DESTE PEDIDO ───────────────────────────────────────
+  // Gravado pela triagem (`ContentRequest.produtoId`). `null` = pedido sem
+  // produto declarado, que é o caso de todos os atendimentos ainda não
+  // migrados — e nulo segue EXATAMENTE pelo caminho de sempre, sem desvio.
+  const produto = produtoCanonico(pedido.produtoId);
+
+  // ── PORTÃO 0 · O BRIEFING MÍNIMO, ANTES DE GASTAR UM CENTAVO ──────────────
+  //
+  // Item B do contrato de aceite: "o briefing mínimo é cobrado ANTES da
+  // produção". Estava inteiro descoberto — a casa lia o briefing "quando
+  // existe" e produzia sem ele, descobrindo a falta depois de já ter gasto IA e
+  // imagem.
+  //
+  // Roda antes do primeiro `generate` de propósito. E o que sai daqui é uma
+  // SOLICITAÇÃO ACIONÁVEL, não um erro: a pergunta vai para o cliente com
+  // exemplos do que responder, e o pedido fica visível esperando a resposta
+  // dele — não parado num balde.
+  // O texto conferido é o que o cliente escreveu SOBRE A PEÇA — o pedido dele e
+  // o briefing —, nunca o OBJETIVO. Objetivo é o porquê ("fazer o bairro
+  // conhecer o pão"), e ele usa verbos parecidos com os de uma chamada. Aceitar
+  // o objetivo como CTA faria o portão passar verde em quase todo pedido, que é
+  // como uma trava vira enfeite.
+  // ── A CHAMADA PARA AÇÃO QUE O CLIENTE CONFIRMOU PELA PORTA ───────────────
+  //
+  // Entra no MESMO campo que a leitura léxica varre. Sem esta linha, responder
+  // a porta não adiantaria nada: o texto original continua sem chamada para
+  // ação, e o portão barraria de novo — a porta abriria para o mesmo beco, que
+  // é o defeito que ela veio fechar.
+  const ctaConfirmada = pedido.confirmedCta?.trim() ?? "";
+  const briefing = conferirBriefingMinimo(produto, {
+    oQueComunicar: [req?.rawContext ?? "", pedido.description, ctaConfirmada].filter(Boolean).join("\n"),
+    objetivo: pedido.objective ?? "",
+  });
+  if (!briefing.completo) {
+    await moverTarefa(pedido.taskId, "pending");
+    await registrar(
+      projeto, "briefing_minimo_incompleto",
+      `${nome} para ${contexto.businessName}: produção NÃO iniciada — falta ${briefing.faltas.join(", ")}. Nenhuma IA foi chamada.`,
+    );
+    // ── A INSTRUÇÃO GÊMEA (26/08/2026) ────────────────────────────────────
+    //
+    // MEDIDO EM PRODUÇÃO, cliente oculto: o pedido parou aqui com o motivo
+    // escrito e `pergunta: null`. O cliente novo — que já tinha pagado — não
+    // tinha onde responder, e a resposta certa ("chamar no WhatsApp") é
+    // literalmente uma das quatro que o próprio motivo lista.
+    //
+    // A porta existe SÓ para a falta da chamada para ação, e de propósito: "o
+    // que comunicar" e "o objetivo" são texto livre que o portal já cobra na
+    // porta de entrada (422 com a pergunta), e enumerá-los aqui seria inventar
+    // opções para o cliente escolher o que ele quer dizer.
+    //
+    // ⚠️ NADA é afrouxado: quem não responder continua parado. O que muda é
+    // que responder passou a ser possível — e a resposta é ESCOLHIDA por ele,
+    // nunca inferida. A opção de escapar para gente vai junto, com dono e
+    // próxima ação, porque a ação de verdade pode não estar entre as quatro.
+    const soFaltaACta = briefing.faltas.length === 1 && briefing.faltas[0] === "chamada-para-acao";
+    return await parar(
+      pedidoId,
+      briefing.pergunta,
+      soFaltaACta
+        ? { pergunta: "O que você quer que a pessoa faça depois de ver a peça?", opcoes: portasDaChamada(verdade) }
+        : undefined,
+    );
+  }
+
+  // A chamada confirmada VIRA INSTRUÇÃO, e não só um carimbo de coluna. Uma
+  // resposta que destrava o portão e não chega a quem escreve é o aviso gravado
+  // numa coluna que nunca virou pixel — o defeito que esta casa já cometeu três
+  // vezes nesta operação.
+  const blocoDaChamada = ctaConfirmada
+    ? `\n\nCHAMADA PARA AÇÃO, DITA PELO PRÓPRIO CLIENTE: ${ctaConfirmada}. A peça precisa levar a pessoa a fazer exatamente isso. NÃO invente outro canal nem outra ação.`
+    : "";
+  const promptBase = `${esp.prompt(contexto)}\n${pedidoNoPrompt}${blocoDoProduto(produto)}${blocoDaChamada}`;
 
   const gerar = (user: string) => generate({
     system: `Você é o especialista de ${esp.label} do departamento de ${dept.label} de uma agência de marketing brasileira. Produza conteúdo real, específico e pronto para o cliente. Responda SOMENTE com JSON válido.`,
@@ -292,13 +410,37 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   let data = primeira.data as Record<string, unknown>;
 
   // ── FREIO 1 · CONTRATO DE SAÍDA ───────────────────────────────────────────
-  let contrato = conferirContrato(esp, data);
+  //
+  // ── QUANDO HÁ PRODUTO, QUEM MANDA NA CONTAGEM É O PRODUTO (25/08/2026) ──
+  //
+  // O contrato do especialista de criativo de social é `exigirQuantidade(3, 8)`
+  // — uma régua de LOTE, escrita para o pacote do mês. O Story passou por ela
+  // por coincidência (4 cabe em 3..8). O post de feed, que é UMA peça por
+  // R$ 79, batia de frente: a produção descrevia 1 peça, o contrato exigia 3, o
+  // pedido parava em `precisa_decisao` e o cliente ficava sem nada.
+  //
+  // Duas verdades sobre a mesma quantidade — e a que o CLIENTE PAGOU é a do
+  // produto (`quantidadeDePecas`, derivada do item de tabela). Então, quando o
+  // pedido tem produto canônico, é ele que confere a contagem, com piso e teto
+  // no MESMO número: nem a menos (entregar menos por preço cheio) nem a mais
+  // (imagem paga que ninguém comprou).
+  //
+  // ⚠️ Isto NÃO afrouxa nada: `exigirQuantidade(n, n)` é mais estrito que
+  // `(3, 8)`, não menos. E o pedido SEM produto continua caindo no contrato do
+  // especialista, byte por byte como sempre.
+  // ⚠️ 26/08/2026 — a régua saiu daqui para `contrato-do-pedido.ts` e NENHUM
+  // número mudou. O motivo é de classe: a REFAÇÃO chamava `conferirContrato(esp)`
+  // e continuava cobrando `3 a 8` de um pedido de UMA peça. Duas cópias da mesma
+  // conta é uma que envelhece sem ninguém notar, e o cliente descobriu a
+  // diferença pedindo ajuste — três produções barradas seguidas.
+  const contratoDaEntrega = contratoDoPedido(esp, pedido.produtoId);
+  let contrato = conferirContrato(contratoDaEntrega, data);
   if (!contrato.cumpriu) {
     const refeito = await gerar(refazer(promptBase, data, `O CONTRATO DE FORMATO NÃO FOI CUMPRIDO:\n- ${contrato.violacoes.join("\n- ")}`,
       "Reentregue o JSON inteiro cumprindo exatamente essas contagens e formatos."));
     if (refeito.ok) {
       const novo = refeito.data as Record<string, unknown>;
-      const conferido = conferirContrato(esp, novo);
+      const conferido = conferirContrato(contratoDaEntrega, novo);
       // Só troca se MELHOROU: resposta mais recente não é resposta melhor.
       if (conferido.violacoes.length <= contrato.violacoes.length) { data = novo; contrato = conferido; }
     }
@@ -335,7 +477,7 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     const corrigido = corpoLegivel(novo);
     if (!temSubstancia(corrigido)) break;
     // A correção do piso não pode DESFAZER o contrato de saída.
-    if (!conferirContrato(esp, novo).cumpriu) break;
+    if (!conferirContrato(contratoDaEntrega, novo).cumpriu) break;
     data = novo;
     body = corrigido;
     if (typeof novo.title === "string" && novo.title.trim()) title = novo.title.trim();
@@ -344,10 +486,13 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   if (!piso.aprovado) {
     await moverTarefa(pedido.taskId, "pending");
     await registrar(projeto, "piso_de_verdade_barrou", `${nome} para ${contexto.businessName}: ${resumirViolacoes(piso.violacoes)}`);
-    return await parar(
-      pedidoId,
-      "A peça afirmou dados que a agência não tem como confirmar, então ela NÃO foi publicada. A equipe vai revisar com você antes de entregar.",
-    );
+    // ── E A PARADA GANHOU PORTA (26/08/2026) ──────────────────────────────
+    // A frase daqui era "A equipe vai revisar com você antes de entregar" — e
+    // nada revisava: nenhum varredor lê pedido em `precisa_decisao`. E o
+    // cartão do portal não tinha um único botão. Motivo, dono, próxima ação e
+    // os botões de verdade vivem em `porta-da-peca-barrada.ts`.
+    const barrado = paradaDoPisoDeVerdade();
+    return await parar(pedidoId, barrado.motivo, barrado.porta);
   }
 
   // ── FREIO 3 · O JUIZ ──────────────────────────────────────────────────────
@@ -370,7 +515,7 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
       const novoTitulo = typeof corrigido.title === "string" && corrigido.title.trim() ? corrigido.title.trim() : title;
       // As travas que já rodaram continuam valendo depois da revisão: nem a
       // Qualidade pode encolher a entrega nem reintroduzir dado inventado.
-      if (temSubstancia(novoCorpo) && conferirContrato(esp, corrigido).cumpriu && conferirPeca(novoTitulo, novoCorpo).aprovado) {
+      if (temSubstancia(novoCorpo) && conferirContrato(contratoDaEntrega, corrigido).cumpriu && conferirPeca(novoTitulo, novoCorpo).aprovado) {
         data = corrigido; body = novoCorpo; title = novoTitulo;
         audit = await auditDeliverable({
           deptLabel: nome, title, content: body, brandContext: contextoDaMarca,
@@ -385,7 +530,11 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     const parecer = audit.issues.join("; ") || audit.note || "qualidade insuficiente";
     await moverTarefa(pedido.taskId, "pending");
     await registrar(projeto, "qualidade_reprovou", `${nome} para ${contexto.businessName}: REPROVADA — ${parecer}. NÃO foi apresentada ao cliente.`);
-    return await parar(pedidoId, "A nossa própria revisão reprovou a peça, então ela não foi entregue. A equipe vai refazer e te avisar.");
+    // Mesma história do piso: "A equipe vai refazer e te avisar" era uma
+    // promessa que nenhuma linha desta casa cumpria, e o cliente ficava sem
+    // botão. Ver `porta-da-peca-barrada.ts`.
+    const barrada = paradaDaQualidade(parecer);
+    return await parar(pedidoId, barrada.motivo, barrada.porta);
   }
   if (ficouSemArbitro(audit.verdict)) {
     // NÃO bloqueia — a operação não para porque um provedor caiu. Mas fica
@@ -413,6 +562,23 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     const porque = escada.retidos[0]?.motivo ?? "retida pela escada de exposição";
     await moverTarefa(pedido.taskId, "pending");
     await registrar(projeto, "escada_reteve_entrega", `${nome} para ${contexto.businessName}: peça produzida e NÃO entregue — ${porque}`);
+    // ── O CARIMBO QUE FAZ O PEDIDO VOLTAR SOZINHO (25/08/2026) ──────────────
+    //
+    // Sem esta linha, o pedido parava aqui e ficava. Medido em produção: às
+    // 17:02 a escada reteve, às 17:03 o relógio abriu o degrau para a MESMA
+    // cliente, e nada voltou a olhar o pedido — foi preciso retriá-lo à mão.
+    // Um dos dois empurrões manuais que sobravam na esteira.
+    //
+    // O carimbo é o que separa "parado pela escada" (condição que deixa de
+    // valer sozinha) de "parado pela Qualidade" (que exige gente). Só o
+    // primeiro é rearmado, por `repescarPedidosRetidosPelaEscada`.
+    //
+    // Best-effort: se o carimbo falhar, o pedido continua parado e visível
+    // como sempre esteve — nunca o contrário.
+    await prisma.contentRequest.update({
+      where: { id: pedidoId },
+      data: { escadaRetidaEm: new Date() },
+    }).catch(() => { /* sem carimbo, sem repescagem: fica como estava, e aparece */ });
     return await parar(pedidoId, "A peça ficou pronta, mas este time ainda está em rodagem interna nesta conta. A equipe vai revisar antes de te entregar.");
   }
 
@@ -420,7 +586,30 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   // `visibility: "compartilhado"` já aqui, e é o único caso da casa em que isso
   // é correto por natureza: o cliente PEDIU esta peça específica. Não há pacote
   // para juntar nem apresentação para esperar — segurar seria recriar o balde.
-  const entregavel = await prisma.deliverable.create({
+  // ── O ENTREGÁVEL, UMA VEZ SÓ POR PEDIDO ───────────────────────────────────
+  //
+  // Na retomada de uma corrente visual que parou no meio, criar um entregável
+  // NOVO quebraria a idempotência das peças: `entregarStoryInstagramV1` acha as
+  // peças já criadas pelo `deliverableId`, e um id novo faria a corrente criar
+  // outras quatro — com imagem paga em cada uma. Reaproveitar o entregável é o
+  // que faz "retomar" significar retomar.
+  const entregavelExistente = pedido.produtoId && pedido.deliverableId
+    ? await prisma.deliverable.findUnique({ where: { id: pedido.deliverableId }, select: { id: true } }).catch(() => null)
+    : null;
+
+  const entregavel = entregavelExistente
+    ? await prisma.deliverable.update({
+        where: { id: entregavelExistente.id },
+        data: {
+          name: title,
+          content: body,
+          status: "in_review",
+          revisionStatus: revisionStatusDoVeredito(audit.verdict),
+          lastFeedback: [audit.note, ...audit.issues].filter(Boolean).join(" · ") || null,
+        },
+        select: { id: true },
+      })
+    : await prisma.deliverable.create({
     data: {
       projectId,
       name: title,
@@ -429,7 +618,8 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
       content: body,
       ownerAgentId: esp.id,
       visibility: "compartilhado",
-      revisionStatus: revisionStatusDoVeredito(audit.verdict),
+      // Veredito + QUEM julgou, por um ponto só. Ver `camposDaQualidade`.
+      ...camposDaQualidade(audit),
       // ── O PARECER INTEIRO, NÃO SÓ A FRASE DE RESUMO (24/08/2026) ────────
       // Era `audit.note`, e o juiz às vezes devolve `note` vazia com os
       // problemas em `issues`. Medido no piloto: duas peças reprovadas com
@@ -440,6 +630,107 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     },
     select: { id: true },
   });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // O PRODUTO COM CORRENTE VISUAL SAI POR OUTRA PORTA (25/08/2026)
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Daqui para baixo está o caminho ANTIGO, e ele continua correto para o que
+  // ele sempre atendeu: entregas de TEXTO (roteiro, legenda, plano). O defeito
+  // nunca foi este bloco — foi ele ser o ÚNICO. Peça que precisa virar ARQUIVO
+  // saía por aqui, virava um `Deliverable` de texto e um card sem imagem, e o
+  // pedido era carimbado "entregue". `done` sem mídia.
+  //
+  // O produto canônico com corrente visual sai por `entregarStoryInstagramV1`,
+  // que é a ÚNICA porta dessa corrente. Ela cria a peça publicável, chama o
+  // gerador que já existe, CONFERE O ARQUIVO NOS BYTES e só então abre o card.
+  //
+  // ⚠️ Os três freios acima (contrato, piso de verdade, juiz) e a escada JÁ
+  // rodaram. Este desvio não os pula e não os repete: ele recebe o conteúdo
+  // auditado e acrescenta o quarto freio, o do artefato.
+  if (produto) {
+    // O ELO, GRAVADO ANTES DA CORRENTE VISUAL. É o que faz a retentativa
+    // reencontrar o mesmo trabalho em vez de começar outro — sem ele, uma
+    // falha no meio (renderizador que caiu) produziria quatro peças novas a
+    // cada rodada do despertador, com imagem paga em cada uma.
+    // O status NÃO muda aqui: o pedido só é "entregue" com arquivo conferido.
+    await prisma.contentRequest.update({
+      where: { id: pedidoId },
+      data: { deliverableId: entregavel.id },
+    });
+
+    const corrente = await entregarStoryInstagramV1({
+      pedidoId,
+      produto,
+      workspaceId: projeto.workspaceId,
+      clientId: pedido.clientId,
+      clientRequestId: projeto.clientRequestId ?? pedido.clientRequestId ?? null,
+      projectId,
+      deliverableId: entregavel.id,
+      titulo: title,
+      pecas: pecasDoEspecialista(data),
+      assinadoPor: `${esp.label} (${dept.label})`,
+      ownerAgentId: esp.id,
+      // NINGUÉM JULGOU? O cartão do cliente tem de DIZER isso. Registrar só na
+      // coluna interna deixava o cliente aprovando às cegas uma peça que a
+      // revisão da casa não olhou — a segunda metade do critério D.
+      semArbitro: ficouSemArbitro(audit.verdict) ? { motivo: audit.motivo ?? null } : null,
+    });
+
+    if (!corrente.ok) {
+      // NENHUMA FALHA TERMINA EM `done`. A tarefa volta para gente, o pedido
+      // vira `precisa_decisao` com o motivo (que já vem com dono e próxima
+      // ação), e o cliente NÃO é chamado a decidir sobre nada.
+      await moverTarefa(pedido.taskId, "pending");
+      await registrar(
+        projeto,
+        `corrente_do_produto_parou:${corrente.etapa}`,
+        `${nome} para ${contexto.businessName}: ${produto.id} PAROU em "${corrente.etapa}" — ${corrente.motivo}`,
+      );
+      return await parar(
+        pedidoId,
+        `A sua peça foi produzida, mas NÃO passou na conferência do arquivo final, então eu não vou te ` +
+        `entregar um arquivo que não serve. Motivo: ${corrente.motivo}`,
+      );
+    }
+
+    const medida = dimensaoExigida(produto);
+    await prisma.contentRequest.update({
+      where: { id: pedidoId },
+      data: { status: "entregue", declineReason: null, productionAttempts: 0, escadaRetidaEm: null },
+    });
+    if (pedido.taskId) {
+      await prisma.task.update({
+        where: { id: pedido.taskId },
+        data: { status: "done", deliverableId: entregavel.id },
+      }).catch(() => { /* a tarefa é rastro; não desfaz a entrega */ });
+    }
+    await prisma.timelineEvent.create({
+      data: {
+        projectId, type: "deliverable", dept: dept.id,
+        label: `Pedido do cliente entregue: ${title}`,
+        // O rastro cita o que foi MEDIDO, não o veredito. "Entregue" sem
+        // número é a palavra que esta operação inteira veio desmentir.
+        detail:
+          `${produto.id} · ${corrente.provas.length} peça(s) · ` +
+          corrente.provas.map((v) => `${v.postId}: ${v.resumo}`).join(" · "),
+      },
+    }).catch(() => { /* rastro */ });
+
+    await avisarCliente(
+      pedido.clientId,
+      `Seu pedido "${pedido.title}" está pronto: ${corrente.provas.length} peça(s) de ` +
+      `${medida.largura}×${medida.altura}. Já estão na aba de aprovações para você VER a imagem e me dizer ` +
+      "se aprova, se quer ajustar ou se recusa.",
+    );
+
+    return {
+      ok: true,
+      deliverableId: entregavel.id,
+      approvalRequestId: corrente.approvalRequestId,
+      jaExistia: false,
+    };
+  }
 
   // O card no portal. `department` carrega o id do pedido para que o caminho de
   // volta exista: sem isso, achar de qual pedido veio o card é adivinhação por
@@ -454,7 +745,7 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
 
   await prisma.contentRequest.update({
     where: { id: pedidoId },
-    data: { status: "entregue", deliverableId: entregavel.id, declineReason: null, productionAttempts: 0 },
+    data: { status: "entregue", deliverableId: entregavel.id, declineReason: null, productionAttempts: 0, escadaRetidaEm: null },
   });
   if (pedido.taskId) {
     await prisma.task.update({
@@ -476,6 +767,156 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
 }
 
 // ── auxiliares ──────────────────────────────────────────────────────────────
+
+/**
+ * AS CHAMADAS PARA AÇÃO QUE O PORTAL OFERECE — derivadas do que a casa SUSTENTA.
+ *
+ * São exatamente as que o motivo do portão já cita em prosa
+ * (`produtos/briefing-minimo.ts`): uma redação, dois lugares seria a segunda
+ * verdade nascendo. O texto de cada opção é o que vai para o especialista como
+ * instrução, então ele é escrito para ser lido por quem produz, não só clicado.
+ *
+ * ⚠️ NÃO HÁ OPÇÃO PADRÃO e não há campo de texto livre. Ação inventada manda o
+ * cliente do cliente para um lugar que talvez não exista — é o dano que este
+ * portão nasceu para impedir, e ele não pode voltar pela porta da resposta.
+ *
+ * ⚠️ E A LISTA NÃO É FIXA — MEDIDO EM PRODUÇÃO, 26/08/2026. A primeira versão
+ * oferecia "Chamar no WhatsApp" a todo mundo. A cliente oculta clicou, a
+ * produção retomou (a porta funcionou) e o PISO DE VERDADE barrou a peça:
+ * aquele cliente não tinha telefone nem canal declarado, então "chame no
+ * WhatsApp" era `canal_nao_informado` — afirmação sem lastro. O piso estava
+ * CERTO; a porta é que oferecia um caminho que a casa não podia sustentar.
+ *
+ * Porta que leva a uma parada é meia porta. Onde o canal não tem lastro, a
+ * opção continua na tela — some seria esconder o que o cliente quer — mas
+ * escala com dono e próxima ação: a casa pede o número em vez de gastar uma
+ * produção inteira para descobrir que não o tem.
+ */
+function portasDaChamada(verdade: VerdadeDoCliente): OpcaoDaPergunta[] {
+  // ── O QUE A CASA CONSEGUE SUSTENTAR ──────────────────────────────────────
+  //
+  // Derivação, nunca invenção. O piso confere o CANAL contra o que o cliente
+  // contou (`piso-de-verdade.ts`, regra 5): sem telefone e sem canal declarado,
+  // "chame no WhatsApp" é `canal_nao_informado` — afirmação sem lastro.
+  const canais = new Set((verdade.operacao?.canais ?? []).map((c) => c.toLowerCase()));
+  const temTelefone = verdade.telefones.length > 0 || canais.has("whatsapp") || canais.has("telefone");
+  // A peça é para o Instagram por construção (é o produto). Direct e link da
+  // bio vivem DENTRO do próprio post: apontar para eles não afirma um canal
+  // externo que o cliente nunca declarou.
+  const instagramCabe = true;
+
+  const paraGente = (proximaAcao: string) => ({
+    escalar: true as const, dono: "a equipe de atendimento", proximaAcao,
+  });
+
+  return [
+    temTelefone
+      ? { id: "whatsapp", rotulo: "Chamar no WhatsApp", cta: "chamar a loja no WhatsApp" }
+      // ⚠️ NÃO É UM BOTÃO QUEBRADO, É A VERDADE: sem telefone seu na casa, uma
+      // peça que mandar chamar no WhatsApp é barrada pelo piso — e a resposta
+      // certa é pegar o número com você, não gastar uma produção para descobrir.
+      : { id: "whatsapp", rotulo: "Chamar no WhatsApp — preciso te passar o número",
+          ...paraGente("te pede o WhatsApp por aqui e retoma a produção com ele") },
+    { id: "loja", rotulo: "Vir na loja", cta: "vir até a loja" },
+    ...(instagramCabe
+      ? [
+          { id: "bio", rotulo: "Pedir pelo link da bio", cta: "pedir pelo link da bio do perfil" },
+          { id: "direct", rotulo: "Encomendar pelo direct", cta: "encomendar pelo direct do Instagram" },
+        ]
+      : []),
+    { id: "outra", rotulo: "É outra coisa — quero falar com a equipe",
+      ...paraGente("te chama por aqui para anotar a ação certa e retomar a produção") },
+  ];
+}
+
+/**
+ * A INSTRUÇÃO DO PRODUTO, anexada ao prompt do especialista.
+ *
+ * ⚠️ ISTO É AVISO, NÃO TRAVA. A regra da casa é literal: "prompt é aviso;
+ * código é trava". O número de peças e o formato são conferidos em CÓDIGO —
+ * pelo contrato de saída (`conferirContrato`), pelo portão de quantidade da
+ * corrente (`entregarStoryInstagramV1`) e pela conferência dos bytes do arquivo
+ * final. Este bloco existe para que o especialista ACERTE de primeira, não para
+ * que alguém confie que ele acertou.
+ *
+ * Sem produto declarado devolve string vazia — o prompt fica byte por byte o
+ * que sempre foi.
+ */
+function blocoDoProduto(produto: ProdutoCanonico | null): string {
+  if (!produto) return "";
+  const d = dimensaoExigida(produto);
+  return [
+    "",
+    `──────── O PRODUTO DESTE PEDIDO: ${produto.label} ────────`,
+    `Entregue EXATAMENTE ${produto.quantidadeDePecas} peças. Nem uma a menos: o preço da tabela cobre ${produto.quantidadeDePecas}.`,
+    // ── O FORMATO SAI DO REGISTRO, NÃO DAQUI (25/08/2026) ─────────────────
+    //
+    // Estas duas linhas diziam "Cada peça é um STORY VERTICAL" e "Story tem
+    // barra de progresso em cima", escritas na mão, para QUALQUER produto.
+    // Enquanto o registro tinha um produto só, a mentira não aparecia. No
+    // minuto em que o feed e o carrossel entraram, o especialista de uma peça
+    // de feed passaria a receber, por escrito, a ordem de fazer um story — e
+    // prompt é aviso, mas aviso errado é aviso que atrapalha.
+    `Cada peça mede ${d.largura}×${d.altura}.`,
+    ...produto.instrucoesDeFormato,
+    "Para CADA peça, o campo `headline` é o TÍTULO QUE VAI APARECER NA IMAGEM: curto, forte, no máximo 8 palavras.",
+    "O campo `note` é o texto de apoio da peça — uma frase. O campo `direction` é o que a IMAGEM mostra e NUNCA vira letra.",
+    // A régua de `direcao-fotografavel.ts` roda em código antes de pagar imagem.
+    // Ela existia e NUNCA chegava a este prompt: o bloco dizia "cenário, luz,
+    // enquadramento" e omitia o SUJEITO, que é uma das três famílias exigidas.
+    // Regra escrita que não atravessa a porta é a doença que esta casa já nomeou.
+    "`direction` É CONFERIDO EM CÓDIGO antes de qualquer imagem ser paga. Descreva a FOTO que existe, numa destas duas famílias:",
+    '  A) CENA DE AMBIENTE — SUJEITO (quem aparece, fazendo o quê) + LUGAR (onde) + LUZ. ex.: "galpão em Suzano no fim da tarde, operador conferindo caixas, luz baixa pelo portão".',
+    '  B) TOMADA CONTROLADA (close-up de produto) — ENQUADRAMENTO FECHADO com todas as letras ("close-up de", "macro de", "detalhe de") + o que aparece ATRÁS (fundo, superfície, bancada, estúdio) + LUZ. ex.: "macro do disco de freio desgastado sobre a bancada, fundo desfocado cinza escuro, luz fria de fluorescente da oficina".',
+    "A LUZ É OBRIGATÓRIA NAS DUAS. Direção que não descreve uma foto não vira imagem: ela volta para você reescrever, e a peça não sai enquanto isso.",
+    // ⚠️ A LINHA DO STORY SAIU DAQUI NA MESCLA (25/08/2026), e não foi perdida:
+    // "Story tem barra de progresso em cima e caixa de resposta embaixo" agora
+    // vem de `produto.instrucoesDeFormato`, logo acima. Escrita à mão neste
+    // bloco, ela mandava o especialista de uma peça de FEED cuidar de bordas de
+    // story — o defeito que o campo do registro veio fechar.
+    "──────── FIM DO PRODUTO ────────",
+  ].join("\n");
+}
+
+/**
+ * O JSON do especialista vira as peças da corrente visual.
+ *
+ * Lê `items` pela MESMA função que o contrato de saída usa para contá-los
+ * (`itensDe`, de `especialistas.ts`). Uma segunda leitura aqui faria o
+ * conferente e o produtor discordarem sobre quantas peças existem — e a
+ * discordância apareceria como "entregou 4" de um lado e "achei 3" do outro,
+ * sem ninguém saber qual estava certo.
+ *
+ * ⚠️ NADA é inventado para completar campo. Peça sem `headline` ou sem texto
+ * sai com string vazia e é DESCARTADA pelo portão de quantidade da corrente —
+ * que é o comportamento certo: entregar uma peça com título vazio é entregar
+ * uma peça quebrada com cara de peça.
+ */
+// Exportada em 25/08/2026 para o AJUSTE. A refação precisava transformar o
+// JSON refeito do especialista nas mesmas peças que a produção cria — e a
+// alternativa era um segundo leitor (ou reler o markdown, que é uma volta com
+// perda: `extrairPecas` procura "- Legenda:" e este especialista escreve
+// `note`, então a peça voltava vazia). Duas leituras do mesmo JSON divergiriam
+// no primeiro ajuste, e aí a imagem refeita traria o texto de outra peça.
+export function pecasDoEspecialista(data: Record<string, unknown>): PecaDoEspecialista[] {
+  const campo = (it: Record<string, unknown>, nome: string): string =>
+    typeof it[nome] === "string" ? (it[nome] as string).trim() : "";
+
+  return itensDe(data).map((it): PecaDoEspecialista => {
+    // O texto da peça: `note` é onde o especialista de criativo escreve "o
+    // texto que entra na arte" (o prompt dele diz isso com todas as letras);
+    // `caption` é onde o de copy escreve. Ler os dois evita que a peça nasça
+    // muda porque o especialista usou o rótulo do vizinho.
+    const texto = campo(it, "note") || campo(it, "caption") || campo(it, "body");
+    const direcao = campo(it, "direction") || campo(it, "visual");
+    return {
+      titulo: campo(it, "headline") || campo(it, "title"),
+      legenda: texto,
+      direcaoDeArte: direcao.length >= 10 ? direcao.slice(0, 1200) : null,
+      pilar: campo(it, "pillar") || campo(it, "pilar") || null,
+    };
+  });
+}
 
 /** O JSON do especialista vira o markdown que o cliente lê. O `summary` sobe
  *  para o topo — `comoTexto` pula `title`/`summary` no corpo de propósito. */
@@ -527,8 +968,16 @@ async function registrar(
 /** PARADA DEFINITIVA. A peça existiu e foi RECUSADA (piso, contrato, juiz), ou
  *  falta algo estrutural. Retentar é re-rolar o dado sem nada ter mudado no
  *  mundo — então para, chama, e o motivo fica visível dos dois lados. */
-async function parar(pedidoId: string, motivo: string): Promise<ResultadoDaProducao> {
-  await pararComMotivo(pedidoId, motivo);
+async function parar(
+  pedidoId: string,
+  motivo: string,
+  /** A INSTRUÇÃO GÊMEA da proibição: as respostas possíveis, quando a casa sabe
+   *  quais são. Opcional de propósito — nem toda parada da produção tem resposta
+   *  enumerável, e onde não tem, inventar uma opção só para o cartão não ficar
+   *  feio seria porta que não abre. Ver `esteira/porta-da-pergunta.ts`. */
+  porta?: Parameters<typeof pararComMotivo>[2],
+): Promise<ResultadoDaProducao> {
+  await pararComMotivo(pedidoId, motivo, porta);
   return { ok: false, parou: true, motivo };
 }
 

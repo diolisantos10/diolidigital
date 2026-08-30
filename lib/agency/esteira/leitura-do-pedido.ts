@@ -90,6 +90,36 @@ const CONTAGEM = new RegExp(`\\b(${NUM})\\s+(?:novos?|novas?|outros?|outras?|\\w
 const PLURAL = new RegExp(`\\b${PECAS_PLURAL}\\b`, "g");
 
 // ─────────────────────────────────────────────────────────────────────────────
+// O MARCADOR DE TOTAL — como gente escreve "é só isso"
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// ── O defeito, medido em 25/08/2026 ─────────────────────────────────────────
+//
+//   "Quero um post de feed, uma arte só"   → RECUSADO ("mais de uma quantidade")
+//   "Quero 1 post"                         → passou
+//
+// A leitura contava DUAS contagens ("um post", "uma arte") e concluía ambiguidade.
+// Mas o cliente não pediu duas coisas: ele pediu uma e a descreveu duas vezes,
+// e escreveu a palavra que fecha a conta — **"só"**. Um cliente que escreve como
+// gente era punido, e um que escreve como formulário passava.
+//
+// ── O que este marcador é, e o que ele NÃO é ────────────────────────────────
+//
+// Ele NÃO adivinha. Ele lê UMA palavra que o cliente escreveu de propósito para
+// dizer "este é o total": `só`, `somente`, `apenas`, `no total`, `ao todo`.
+// Quando ela vem colada a uma contagem, aquela contagem é o TOTAL e as outras
+// menções são a mesma coisa dita de outro jeito.
+//
+// O que continua ambíguo continua ambíguo — e agora tem porta para perguntar:
+//   • "6 reels e 4 videos"      → dois números, nenhum marcador → PERGUNTA
+//   • "um post e um story"      → dois itens somados por "e", sem marcador → PERGUNTA
+//   • "2 posts só e 3 reels só" → dois marcadores brigando → PERGUNTA
+//
+// Somar sem o marcador seria inventar total; escolher o maior seria subtrair
+// trabalho. Nem uma coisa nem outra: a casa pergunta, e a pergunta tem porta.
+const MARCADOR_DE_TOTAL = /^[\s,;.]*(?:so|somente|apenas|no total|ao todo)\b/;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // O resultado
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -175,9 +205,25 @@ export function lerPedido(textoDoCliente: string): LeituraDoPedido {
   const distintos = new Set(contagens.map((m) => m[0]!.trim()));
   const plurais = achar(t, PLURAL);
 
+  // ── O TOTAL DECLARADO PELO CLIENTE ────────────────────────────────────────
+  // Antes de decidir que há ambiguidade, olha se ele já FECHOU a conta com uma
+  // palavra ("uma arte só", "10 posts no total"). Um marcador = o total; dois
+  // marcadores brigando continuam sendo pergunta.
+  const totaisDeclarados = contagens
+    .filter((m) => MARCADOR_DE_TOTAL.test(t.slice(m.index! + m[0]!.length)))
+    .map((m) => {
+      const bruto = m[1]!;
+      return /^\d+$/.test(bruto) ? Number(bruto) : (NUMERO_POR_EXTENSO[bruto] ?? 0);
+    })
+    .filter((n) => n > 0);
+  const totalDeclarado = new Set(totaisDeclarados).size === 1 ? totaisDeclarados[0]! : null;
+
   let quantidade: number | null;
   let motivoDaContagem: MotivoDaContagem;
-  if (distintos.size > 1) {
+  if (totalDeclarado !== null) {
+    quantidade = totalDeclarado;
+    motivoDaContagem = "contada";
+  } else if (distintos.size > 1) {
     // "6 reels e 4 videos": somar seria inventar o total, escolher o maior
     // seria subtrair trabalho. Nem uma coisa nem outra — pergunta.
     quantidade = null;

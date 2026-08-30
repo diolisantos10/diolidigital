@@ -270,6 +270,8 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
     direcaoPedida: false, direcaoViaPortal: false, direcaoMotivo: null,
     execucaoPendencias: null, execucaoTentativas: 0,
     entregasSemArbitro: 0, motivoSemArbitro: null,
+    entregasComArbitroIndependente: 0, entregasAutojulgadas: 0,
+    entregasDecididasPorPessoa: 0, entregasArbitragemNaoMedida: 0,
   };
   let aceite: DesfechoDoAceite = { tentou: false, viaPortal: false, nasceuSozinho: false, motivo: "não houve proposta para aceitar" };
   let material: DesfechoDoMaterial = { pedidos: 0, enviados: 0, viaPortal: false, motivo: null };
@@ -359,6 +361,28 @@ export async function rodarPercurso(opts: OpcoesDoPercurso = {}): Promise<Result
           });
           esteira.entregasSemArbitro = semArbitro.length;
           esteira.motivoSemArbitro = semArbitro.find((d) => d.lastFeedback?.trim())?.lastFeedback ?? null;
+
+          // ── E DAS QUE FORAM JULGADAS: QUEM JULGOU? ───────────────────────
+          // O contador acima responde "quantas ninguém olhou". Ele NÃO responde
+          // "das que alguém olhou, quantas tiveram juiz independente" — e era
+          // exatamente essa a pergunta sem resposta no Farol 27. Lido do banco,
+          // do mesmo lugar que a tela lê.
+          const julgadas = await prisma.deliverable.groupBy({
+            by: ["qualityArbitragem"],
+            where: { projectId: esteira.projetoId, revisionStatus: { in: ["quality_ok", "quality_flag"] } },
+            _count: { _all: true },
+          });
+          const quantas = (v: string | null) =>
+            julgadas.find((g) => g.qualityArbitragem === v)?._count._all ?? 0;
+          esteira.entregasComArbitroIndependente = quantas("arbitro_independente");
+          esteira.entregasAutojulgadas = quantas("autojulgado");
+          esteira.entregasDecididasPorPessoa = quantas("decisao_humana");
+          // Nulo é NÃO MEDIDO. Some tudo que não é uma das duas palavras
+          // conhecidas: palavra desconhecida também não é verde.
+          esteira.entregasArbitragemNaoMedida =
+            julgadas.reduce((n, g) => n + g._count._all, 0)
+            - esteira.entregasComArbitroIndependente - esteira.entregasAutojulgadas
+            - esteira.entregasDecididasPorPessoa;
         } catch (e) {
           esteira.execucaoErro = e instanceof Error ? e.message : String(e);
           tropecos.push({ etapa: "execucao", erro: esteira.execucaoErro });
@@ -881,9 +905,21 @@ async function aceitarAPropostaComoOCliente(
       body: JSON.stringify({ token, clientRequestId, decisao: "aceito" }),
     });
     const res = await POST(req);
-    const corpo = (await res.json()) as { ok?: boolean; projetoCriado?: boolean; aguardandoPessoa?: boolean; error?: string };
+    const corpo = (await res.json()) as {
+      ok?: boolean; projetoCriado?: boolean; aguardandoPessoa?: boolean;
+      error?: string; mensagem?: string; status?: string; jaDecidido?: boolean;
+    };
     if (res.status >= 400 || !corpo.ok) {
-      const motivo = `a porta do aceite recusou (${res.status}): ${corpo.error ?? "sem motivo"}`;
+      // ── O INSTRUMENTO LIA O CAMPO ERRADO (cliente oculto, 29/08/2026) ─────
+      // A porta do aceite NUNCA devolve `error`: o 409 dela sai com `mensagem`
+      // (a frase que o cliente lê) e `status` (o estado em que a solicitação
+      // estava). Ler só `error` fazia o placar imprimir "409: sem motivo" —
+      // recusa muda inventada pelo medidor, não pela casa. As outras duas
+      // leituras deste mesmo arquivo (linhas ~758 e ~1032) já liam
+      // `error ?? mensagem`; esta era a única fora do padrão.
+      const dito = corpo.error ?? corpo.mensagem ?? "sem motivo";
+      const estado = corpo.status ? ` [solicitação em "${corpo.status}"]` : "";
+      const motivo = `a porta do aceite recusou (${res.status}): ${dito}${estado}`;
       tropecos.push({ etapa: "aceite", erro: motivo });
       return { tentou: true, viaPortal: false, nasceuSozinho: false, motivo };
     }

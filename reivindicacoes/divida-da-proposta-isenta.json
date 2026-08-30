@@ -1,0 +1,12 @@
+{
+  "id": "divida-da-proposta-isenta",
+  "quem": "ses-b6c221003f",
+  "frente": "Fechar a dívida: rota da proposta, render da tela e a perna do e-mail",
+  "responsabilidade": "divida-da-proposta-isenta",
+  "arquivos": [
+    "__tests__/comercial/a-proposta-do-parceiro-atravessa-a-rota.test.ts"
+  ],
+  "abertaEm": "2026-08-28T02:45:54.652Z",
+  "encerradaEm": "2026-08-28T03:13:56.681Z",
+  "rotulo": "diolidigital-f0"
+}

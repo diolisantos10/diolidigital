@@ -66,6 +66,13 @@ const OPERACIONAIS: DonoDeChamada[] = [
   { id: "esteira-avaliacoes",     label: "Resposta a avaliação do Google", departmentId: "client-service-sdr", natureza: "operacao" },
   { id: "esteira-relatorio-mes",  label: "Relatório mensal do cliente",    departmentId: "analytics",          natureza: "operacao" },
   { id: "esteira-producao",       label: "Produção de pedido avulso",      departmentId: "project-management", natureza: "operacao" },
+  // A REESCRITA DA DIREÇÃO DE ARTE (25/08/2026). Chamada de TEXTO, e por isso
+  // dono próprio: `design-engine` é o dono da IMAGEM, e misturar os dois faria
+  // "quanto custou a arte deste cliente" somar laranja com maçã. Ela nasce
+  // quando o pré-portão da direção reprova e a peça volta ao especialista
+  // (`design/reescrever-direcao.ts`) — é gasto de DESIGN, e é barato de
+  // propósito: existe justamente para não pagar a imagem errada.
+  { id: "design-reescrever-direcao", label: "Reescrita de direção de arte reprovada", departmentId: "design", natureza: "operacao" },
 
   // ── Comercial e entrada ───────────────────────────────────────────────────
   // O SDR é a PRIMEIRA porta e, em volume, a mais cara do comercial: uma

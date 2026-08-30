@@ -5,6 +5,7 @@
 // peça sem molde deve ser publicada: verde, e descrevendo o defeito como se
 // fosse o contrato.
 
+import { TABELA_DE_PISO } from "@/lib/agency/comercial/negociacao";
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -397,7 +398,10 @@ describe("PRICING ENGINE — o piso protege a margem; a taxa é ACRÉSCIMO ao cl
 
   it("quando o piso da casa é maior, é ele que vale", () => {
     const p = precificar({ item: "presenca", categoriaDaPlataforma: "Design & Criação" });
-    expect(p.ofertaADigitar).toBe(690);
+    // ⚠️ O piso do plano é DERIVADO da tabela única desde 26/08/2026 — não é
+    // mais um número digitado aqui nem lá. A régua é "o maior dos dois pisos
+    // vence"; o valor é consequência.
+    expect(p.ofertaADigitar).toBe(TABELA_DE_PISO.presenca.piso);
     expect(p.pisoQueVenceu).toBe("casa");
   });
 
@@ -439,7 +443,7 @@ describe("PRICING ENGINE — o piso protege a margem; a taxa é ACRÉSCIMO ao cl
   });
 
   it("nunca desce do piso, mesmo com valor desejado menor", () => {
-    expect(precificar({ item: "presenca", valorDesejado: 10 }).ofertaADigitar).toBe(690);
+    expect(precificar({ item: "presenca", valorDesejado: 10 }).ofertaADigitar).toBe(TABELA_DE_PISO.presenca.piso);
   });
 });
 

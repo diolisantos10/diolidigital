@@ -4,11 +4,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import { PECA_VISIVEL_AO_CLIENTE } from "@/lib/agency/portal/peca-visivel-ao-cliente";
 import { requireSession } from "@/lib/auth/api-guard";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 
 interface DbPost {
+  /** Quem gerou a peça. Ver o comentário em `toDTO`. */
+  deliverableId?: string | null;
   id: string; clientId: string | null; clientRequestId: string | null;
   caption: string; networks: string; format: string; pillar: string | null;
   mediaUrl: string | null; mediaUrlsJson: string | null; scenesJson?: string | null;
@@ -41,6 +44,21 @@ function toDTO(p: DbPost) {
   if (p.scriptJson) { try { script = JSON.parse(p.scriptJson); } catch { /* null */ } }
   return {
     id: p.id, clientId: p.clientId, clientRequestId: p.clientRequestId,
+    // ── QUEM GEROU A PEÇA, VISÍVEL PARA QUEM MEDE (6ª rodada) ──────────────
+    //
+    // `SocialPost.deliverableId` é a chave que liga a peça à entrega que a
+    // fez — e é ela que a mira do ajuste passou a usar para saber QUAL entrega
+    // refazer (`esteira/refacao.ts`). O DTO da agência não a devolvia, e a
+    // consequência foi imediata: durante a jornada de cliente oculto eu li
+    // "dlv = nulo" em três peças e quase registrei como causa-raiz que a FK
+    // nunca era escrita. Não era nulo — era invisível.
+    //
+    // Ausência de informação não é informação, e a régua vale para quem audita
+    // também. Campo que decide comportamento e não aparece em lugar nenhum é
+    // campo que vai ser diagnosticado errado.
+    //
+    // ⛔ Fica FORA de `toPortalDTO`: é id interno, e o cliente não vê id.
+    deliverableId: p.deliverableId ?? null,
     caption: p.caption, networks, format: p.format, pillar: p.pillar,
     mediaUrl: p.mediaUrl,
     // As telas do carrossel (mediaUrlsJson). O cliente aprova a IMAGEM, não a
@@ -130,11 +148,27 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // foi explicitamente compartilhado sai pelo token. "interno" NUNCA — é a
     // regra fail-closed da Fase 1 (2.2) virando código. E sempre dentro do
     // workspace do token: o inquilino é parte do filtro, não uma suposição.
+    // ── O CARIMBO NÃO BASTA: TEM DE HAVER PEÇA (26/08/2026) ────────────────
+    //
+    // `visibility: "compartilhado"` é carimbado no NASCIMENTO do post, em cinco
+    // lugares da esteira — antes de a arte existir. É o desenho certo (a
+    // escada de exposição decide o QUE o cliente pode ver, não o QUANDO), e ele
+    // deixa um vão medido em produção em 26/08/2026: **três posts em `draft`,
+    // carimbados `compartilhado`, com `mediaUrl: null`** porque o portão do
+    // fundo reprovou a arte três vezes. O cliente abria o portal e via cartão
+    // de peça sem peça — e nada na tela dizia que aquilo era produção em curso.
+    //
+    // Peça sem arquivo não é entrega; é trabalho em andamento. Ela volta a
+    // aparecer sozinha na rodada em que a arte sair — e a arte só sai depois de
+    // `regua-da-peca-final.ts`, que é a outra metade deste conserto.
+    //
+    // Fail-closed de propósito: o filtro é positivo (`not: null`), então um
+    // estado novo de mídia não passa a vazar por omissão.
     const posts = await prisma.socialPost.findMany({
       where: {
         workspaceId: escopo.workspaceId,
         clientRequestId: escopo.reqId,
-        visibility: "compartilhado",
+        ...PECA_VISIVEL_AO_CLIENTE,
       },
       orderBy: { scheduledFor: "asc" },
     });
@@ -233,6 +267,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         workspaceId:     session.workspaceId,
         clientId,
         clientRequestId,
+        // ── A TERCEIRA PORTA TAMBÉM CARREGA A CHAVE (6ª rodada) ────────────
+        //
+        // `publicacao.ts` e `story-instagram-v1.ts` gravam `deliverableId` ao
+        // criar a peça; esta rota — a terceira porta, por onde a equipe cria à
+        // mão — não gravava. "Guarda que existe em um caminho e não no outro é
+        // guarda que não existe": a peça nascida por aqui chegaria ao ajuste
+        // sem dizer de qual entrega veio, e a mira cairia no fallback que esta
+        // rodada acabou de consertar.
+        deliverableId:   typeof body.deliverableId === "string" && body.deliverableId.trim()
+          ? body.deliverableId.trim() : null,
         caption:         typeof body.caption === "string" ? body.caption : "",
         networks:        JSON.stringify(networks),
         format:          typeof body.format === "string" ? body.format : "feed",

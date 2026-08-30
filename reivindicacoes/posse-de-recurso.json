@@ -1,0 +1,14 @@
+{
+  "id": "posse-de-recurso",
+  "quem": "ses-b6c221003f",
+  "frente": "posse de recurso em id vindo do corpo da requisicao",
+  "responsabilidade": "posse-de-recurso",
+  "arquivos": [
+    "docs/diagnosticos/varredura-de-posse-no-corpo-29-08.md",
+    "lib/agency/esteira/reprovacao.ts",
+    "__tests__/seguranca"
+  ],
+  "abertaEm": "2026-08-29T01:56:41.640Z",
+  "encerradaEm": "2026-08-29T02:32:39.967Z",
+  "rotulo": "pm-posse-corpo"
+}

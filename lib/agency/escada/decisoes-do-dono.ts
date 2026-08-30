@@ -192,6 +192,119 @@ export async function resolverClientes(
   return { ids, naoResolvidos };
 }
 
+// ── A MESMA REGRA, PARA QUEM PERGUNTA ANTES ──────────────────────────────────
+//
+// ═══════════════════════════════════════════════════════════════════════════
+// DUAS PORTAS DISCORDAVAM, E A ESCADA VIRAVA ENFEITE PELA SEGUNDA (25/08/2026)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Medido em produção com cliente oculto, com um minuto entre os dois fatos:
+//
+//   13:47 — um pedido de Story foi RETIDO pela escada: "design está em
+//           ALLOWLIST e o cliente não está na lista";
+//   13:48 — o despertador aplicou `DECISOES_DO_DONO` e incluiu sozinho o mesmo
+//           cliente novo em `design` e `social-media`.
+//
+// E quando o MESMO pedido foi feito pela porta manual — `POST /api/agency/escada`,
+// ação `liberar_cliente` → `registro.liberarCliente` — o sistema recusou com
+// 409: "evidência insuficiente para liberar mais um cliente".
+//
+// Uma porta exigia evidência; a outra liberava sozinha em um minuto.
+//
+// ── QUAL DAS DUAS ERA A REGRA ───────────────────────────────────────────────
+//
+// A automática. E não por ser a mais permissiva — por ser a que tem
+// PROCEDÊNCIA: uma decisão datada, assinada, com a fala literal do dono,
+// versionada em código, validada por `recusarDecisao` e com escopo resolvido em
+// ids concretos. É a exceção declarada que este arquivo inteiro existe para
+// carregar. A régua de evidência continua sendo a regra para todo o resto.
+//
+// ── O QUE **NÃO** FOI FEITO ─────────────────────────────────────────────────
+//
+// Afrouxar `liberarCliente`. Ela continua exigindo evidência — byte por byte a
+// mesma régua — para todo cliente que a decisão do dono NÃO cobre. O que mudou
+// é que ela **passou a conhecer a decisão**: quando o cliente está dentro do
+// escopo de uma decisão válida para aquele departamento, a liberação acontece
+// EM NOME DA DECISÃO, com a mesma prova e a mesma assinatura que o despertador
+// gravaria — porque é literalmente o que o despertador faria na rodada
+// seguinte. Recusar aqui o que a casa concede sozinha em cinco minutos não é
+// rigor: é uma das duas verdades estar errada, e ninguém saber qual.
+//
+// A porta manual continua sem poder INVENTAR liberação: ela não aceita
+// departamento e cliente fora do que está declarado, e quem não é coberto ouve
+// o mesmo 409 de sempre.
+
+export interface CoberturaDaDecisao {
+  decisao: DecisaoDoDono;
+  /** Por extenso, para o registro e para a resposta da rota. */
+  motivo: string;
+}
+
+/**
+ * A decisão do dono que cobre ESTE cliente NESTE departamento — ou `null`.
+ *
+ * `null` é ausência de cobertura, e ausência NUNCA vira liberação: quem chama
+ * cai de volta na régua de evidência. Decisão malformada (`recusarDecisao`) não
+ * cobre ninguém, pelo mesmo motivo de sempre — sem procedência, não existe.
+ *
+ * NUNCA lança: um erro de leitura devolve `null`, que é o lado seguro
+ * (fail-closed) — a evidência volta a ser exigida.
+ */
+export async function decisaoQueCobre(p: {
+  workspaceId: string;
+  departmentId: string;
+  clientId: string;
+  decisoes?: readonly DecisaoDoDono[];
+}): Promise<CoberturaDaDecisao | null> {
+  for (const d of p.decisoes ?? DECISOES_DO_DONO) {
+    if (recusarDecisao(d)) continue;
+    if (!d.departamentos.includes(p.departmentId)) continue;
+    let alvo: ClientesResolvidos;
+    try {
+      alvo = await resolverClientes(p.workspaceId, d.escopo);
+    } catch {
+      // Não consegui ler os clientes = não sei se cobre = não cobre.
+      continue;
+    }
+    if (!alvo.ids.includes(p.clientId)) continue;
+    return {
+      decisao: d,
+      motivo:
+        `liberado por DECISÃO DO DONO (${d.quem}, ${d.em}) — não por evidência. ` +
+        `Este cliente está no escopo declarado da decisão "${d.id}", e o relógio da agência o incluiria ` +
+        "sozinho na próxima rodada. A peça chega ao card de aprovação do cliente; publicar continua sendo clique dele.",
+    };
+  }
+  return null;
+}
+
+/** A prova que fica gravada na linha quando a liberação sai pela decisão. É a
+ *  MESMA forma que `aplicarDecisoesDoDono` grava — uma só, para que quem
+ *  auditar o banco não precise saber por qual porta a liberação entrou. */
+export function provaDaDecisao(p: {
+  decisao: DecisaoDoDono;
+  de: Degrau;
+  para: Degrau;
+  clientes: string[];
+  porQuem: string;
+}): string {
+  return JSON.stringify({
+    origem: "decisao-do-dono",
+    decisao: p.decisao.id,
+    decididaEm: p.decisao.em,
+    quem: p.decisao.quem,
+    fala: p.decisao.fala,
+    escopo: p.decisao.escopo,
+    aplicadaEm: new Date().toISOString(),
+    de: p.de,
+    para: p.para,
+    clientes: p.clientes,
+    // QUEM pediu pela porta manual. O despertador não tem isto, e é a única
+    // diferença entre as duas provas — ela é informação a mais, não a menos.
+    pedidaPor: p.porQuem,
+  });
+}
+
 // ── A APLICAÇÃO ──────────────────────────────────────────────────────────────
 
 export interface MudancaDaDecisao {

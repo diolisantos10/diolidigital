@@ -121,6 +121,11 @@ export const ModelName = {
   HeartbeatDoRelogio: 'HeartbeatDoRelogio',
   HandoffV2: 'HandoffV2',
   PagamentoConfirmado: 'PagamentoConfirmado',
+  ParceriaDoCliente: 'ParceriaDoCliente',
+  ConviteDeParceria: 'ConviteDeParceria',
+  IsencaoDeParceria: 'IsencaoDeParceria',
+  AssinaturaRecorrente: 'AssinaturaRecorrente',
+  CobrancaRecorrente: 'CobrancaRecorrente',
   PendenciaDeConsulta: 'PendenciaDeConsulta'
 } as const
 
@@ -370,12 +375,15 @@ export const DeliverableScalarFieldEnum = {
   type: 'type',
   status: 'status',
   revisionStatus: 'revisionStatus',
+  qualityArbiter: 'qualityArbiter',
+  qualityArbitragem: 'qualityArbitragem',
   visibility: 'visibility',
   content: 'content',
   clientFeedback: 'clientFeedback',
   lastFeedback: 'lastFeedback',
   ownerAgentId: 'ownerAgentId',
   cycleId: 'cycleId',
+  leva: 'leva',
   version: 'version',
   revisionHistory: 'revisionHistory',
   createdAt: 'createdAt',
@@ -432,6 +440,7 @@ export const ContentRequestScalarFieldEnum = {
   quoteNote: 'quoteNote',
   quoteStatus: 'quoteStatus',
   quoteDecidedAt: 'quoteDecidedAt',
+  produtoId: 'produtoId',
   taskId: 'taskId',
   triagedBy: 'triagedBy',
   triagedAt: 'triagedAt',
@@ -439,6 +448,12 @@ export const ContentRequestScalarFieldEnum = {
   deliverableId: 'deliverableId',
   productionAttempts: 'productionAttempts',
   declineReason: 'declineReason',
+  escadaRetidaEm: 'escadaRetidaEm',
+  escadaRepescagens: 'escadaRepescagens',
+  pendingQuestionJson: 'pendingQuestionJson',
+  confirmedQuantity: 'confirmedQuantity',
+  confirmedDeliverable: 'confirmedDeliverable',
+  confirmedCta: 'confirmedCta',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -797,6 +812,7 @@ export const ClientRequestDbScalarFieldEnum = {
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   chaveDoProspect: 'chaveDoProspect',
+  fioDaConversa: 'fioDaConversa',
   avisoOrcamentoStatus: 'avisoOrcamentoStatus',
   avisoOrcamentoDetalhe: 'avisoOrcamentoDetalhe',
   avisoOrcamentoEm: 'avisoOrcamentoEm',
@@ -845,6 +861,7 @@ export const SocialPostScalarFieldEnum = {
   publishedAt: 'publishedAt',
   publishedBy: 'publishedBy',
   lastError: 'lastError',
+  avisoAoCliente: 'avisoAoCliente',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1396,10 +1413,104 @@ export const PagamentoConfirmadoScalarFieldEnum = {
   confirmadoEm: 'confirmadoEm',
   registradoPor: 'registradoPor',
   observacao: 'observacao',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  taxaCentavos: 'taxaCentavos',
+  liquidoCentavos: 'liquidoCentavos'
 } as const
 
 export type PagamentoConfirmadoScalarFieldEnum = (typeof PagamentoConfirmadoScalarFieldEnum)[keyof typeof PagamentoConfirmadoScalarFieldEnum]
+
+
+export const ParceriaDoClienteScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  autorizadaPor: 'autorizadaPor',
+  registradaPor: 'registradaPor',
+  validaAte: 'validaAte',
+  escopo: 'escopo',
+  pecasContratadas: 'pecasContratadas',
+  tetoDeIaCentavosUsd: 'tetoDeIaCentavosUsd',
+  revogadaEm: 'revogadaEm',
+  observacao: 'observacao',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ParceriaDoClienteScalarFieldEnum = (typeof ParceriaDoClienteScalarFieldEnum)[keyof typeof ParceriaDoClienteScalarFieldEnum]
+
+
+export const ConviteDeParceriaScalarFieldEnum = {
+  id: 'id',
+  token: 'token',
+  clientId: 'clientId',
+  criadoPor: 'criadoPor',
+  expiraEm: 'expiraEm',
+  revogadoEm: 'revogadoEm',
+  usos: 'usos',
+  ultimoUsoEm: 'ultimoUsoEm',
+  observacao: 'observacao',
+  createdAt: 'createdAt'
+} as const
+
+export type ConviteDeParceriaScalarFieldEnum = (typeof ConviteDeParceriaScalarFieldEnum)[keyof typeof ConviteDeParceriaScalarFieldEnum]
+
+
+export const IsencaoDeParceriaScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
+  autorizadaPor: 'autorizadaPor',
+  validaAte: 'validaAte',
+  escopo: 'escopo',
+  pecasContratadas: 'pecasContratadas',
+  tetoDeIaCentavosUsd: 'tetoDeIaCentavosUsd',
+  registradaPor: 'registradaPor',
+  observacao: 'observacao',
+  createdAt: 'createdAt'
+} as const
+
+export type IsencaoDeParceriaScalarFieldEnum = (typeof IsencaoDeParceriaScalarFieldEnum)[keyof typeof IsencaoDeParceriaScalarFieldEnum]
+
+
+export const AssinaturaRecorrenteScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
+  planoId: 'planoId',
+  valorCentavos: 'valorCentavos',
+  moeda: 'moeda',
+  provedor: 'provedor',
+  provedorAssinaturaId: 'provedorAssinaturaId',
+  estado: 'estado',
+  motivoDoEstado: 'motivoDoEstado',
+  dono: 'dono',
+  proximaCobrancaEm: 'proximaCobrancaEm',
+  ultimaCobrancaEm: 'ultimaCobrancaEm',
+  cobrancasFalhadas: 'cobrancasFalhadas',
+  canceladaEm: 'canceladaEm',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AssinaturaRecorrenteScalarFieldEnum = (typeof AssinaturaRecorrenteScalarFieldEnum)[keyof typeof AssinaturaRecorrenteScalarFieldEnum]
+
+
+export const CobrancaRecorrenteScalarFieldEnum = {
+  id: 'id',
+  assinaturaId: 'assinaturaId',
+  provedorPagamentoId: 'provedorPagamentoId',
+  competencia: 'competencia',
+  valorCentavos: 'valorCentavos',
+  moeda: 'moeda',
+  taxaCentavos: 'taxaCentavos',
+  liquidoCentavos: 'liquidoCentavos',
+  estado: 'estado',
+  motivo: 'motivo',
+  confirmadoEm: 'confirmadoEm',
+  createdAt: 'createdAt'
+} as const
+
+export type CobrancaRecorrenteScalarFieldEnum = (typeof CobrancaRecorrenteScalarFieldEnum)[keyof typeof CobrancaRecorrenteScalarFieldEnum]
 
 
 export const PendenciaDeConsultaScalarFieldEnum = {

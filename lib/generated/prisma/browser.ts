@@ -611,6 +611,130 @@ export type HandoffV2 = Prisma.HandoffV2Model
  */
 export type PagamentoConfirmado = Prisma.PagamentoConfirmadoModel
 /**
+ * Model ParceriaDoCliente
+ * A TERCEIRA TESTEMUNHA: a parceria isenta de pagamento.
+ * 
+ * ─── POR QUE ELA É UMA TABELA PRÓPRIA, E NÃO UMA LINHA DE PAGAMENTO ─────────
+ * 
+ * O primeiro cliente real da agência (Foocci, 27/08/2026) entra por parceria:
+ * não paga nada. E hoje ele TRAVA no portão de pagamento — e o portão está
+ * certo.
+ * 
+ * A tentação era registrar um `PagamentoConfirmado` de R$ 0,00. Duas razões
+ * para não fazer isso, e as duas são do CEO:
+ * 1. **Receita fantasma.** Uma linha de pagamento diz "entrou dinheiro". Não
+ * entrou. O financeiro passaria a somar vendas que não existem.
+ * 2. **Destruiria a testemunha.** `PagamentoConfirmado` recusa valor ≤ 0 no
+ * código E no portão, de propósito — é o que garante que toda linha ali
+ * seja dinheiro de verdade. Furar isso para o parceiro fura para todos.
+ * 
+ * Então a isenção é OUTRO fato, com OUTRA tabela: ela libera a esteira sem
+ * nunca afirmar que houve pagamento. *Parceria não é grátis — é investimento,
+ * e investimento se mede.*
+ * O CONVITE DO PARCEIRO — a única coisa que faz a casa SABER que a conversa é dele.
+ * 
+ * ── Por que ele existe (27/08/2026) ─────────────────────────────────────────
+ * O parceiro não paga, então a pergunta obrigatória da verba não protege
+ * ninguém e só trava o pedido dele — foi o que parou a conversa das 13:43. Mas
+ * dispensar a pergunta exige SABER que é parceria, e na sala de briefing o
+ * visitante é ANÔNIMO: só `sessionId`. `clientRequestId` vem do corpo, e a casa
+ * já o trata como não-confiável ("um id que qualquer pessoa digita").
+ * 
+ * ⚠️ **A verdade tem que vir de um token que a casa CUNHOU** — nunca do que o
+ * interlocutor afirma. É o mesmo molde de `PortalAccess`, e a mesma regra de
+ * 03/08: em caminho público, o `clientId` sai SEMPRE do token — derivação,
+ * nunca comparação.
+ * 
+ * E o convite NÃO é a autorização: ele só APONTA para a `IsencaoDeParceria`,
+ * que continua sendo a fonte da verdade. A isenção é conferida VIVA a cada uso;
+ * revogá-la ou deixá-la vencer mata o convite no mesmo instante, sem precisar
+ * caçar link nenhum.
+ * A PARCERIA É DO PARCEIRO — não do pedido. Quebra do nó circular (27/08/2026).
+ * 
+ * ── O NÓ, medido em quatro pontos ──────────────────────────────────────────
+ * `IsencaoDeParceria` exige `clientRequestId` ("isenção sem pedido não isenta
+ * nada"), o portão de pagamento a lê por pedido, o convite exigia isenção viva,
+ * e o pedido nasce do briefing. Ou seja:
+ * 
+ * convite → isenção → pedido → briefing → (convite)
+ * 
+ * A porta existia e **não podia ser aberta a primeira vez**. É a família
+ * "trava construída sem fechadura", agora em forma de círculo — e o efeito
+ * prático era exato: **não havia como cunhar o link do primeiro parceiro**.
+ * 
+ * (Precisão: o PEDIDO não ficava trancado — `budget_range` fecha com qualquer
+ * resposta. O parceiro conseguia terminar o briefing respondendo justamente a
+ * pergunta que a parceria deveria poupar. O que estava trancado era o CONVITE,
+ * e portanto o tratamento de parceiro.)
+ * 
+ * ── O conserto ─────────────────────────────────────────────────────────────
+ * A autorização passa a viver no nível do PARCEIRO e existe ANTES de qualquer
+ * pedido. É daqui que o convite nasce, e é isto que rompe o círculo.
+ * 
+ * ⚠️ E ela vira a ÚNICA FONTE DA VERDADE: a `IsencaoDeParceria` de cada pedido
+ * passa a ser DERIVADA desta linha, não um ato manual novo. *Verdade escrita
+ * em dois lugares já está errada em um deles.*
+ * 
+ * O que NÃO muda: teto de custo obrigatório (sem ele o parceiro come o crédito
+ * do pagante), validade obrigatória (parceria eterna vira esquecimento), dono
+ * nominal, e NUNCA um pagamento falso de R$ 0 — receita de parceria é R$ 0 com
+ * o custo contado normalmente, e a margem negativa fica à vista.
+ */
+export type ParceriaDoCliente = Prisma.ParceriaDoClienteModel
+/**
+ * Model ConviteDeParceria
+ * 
+ */
+export type ConviteDeParceria = Prisma.ConviteDeParceriaModel
+/**
+ * Model IsencaoDeParceria
+ * 
+ */
+export type IsencaoDeParceria = Prisma.IsencaoDeParceriaModel
+/**
+ * Model AssinaturaRecorrente
+ * ═══════════════════════════════════════════════════════════════════════════
+ * A ASSINATURA RECORRENTE — a agência aprende a cobrar o SEGUNDO mês.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * ─── O DEFEITO QUE ELA FECHA (achado do CEO, 27/08/2026) ───────────────────
+ * 
+ * A vitrine vende PLANO MENSAL. O código só sabia criar cobrança AVULSA — uma
+ * `preference` de Checkout Pro, que cobra uma vez e acabou. Do segundo mês em
+ * diante a casa **entregava e não recebia**, e ninguém receberia um aviso: não
+ * existe nada que fique vermelho quando um dinheiro simplesmente não chega.
+ * 
+ * ⛔ E havia um segundo defeito, dentro do primeiro e pior: o portão de
+ * pagamento libera pela EXISTÊNCIA de uma linha em `PagamentoConfirmado`. O
+ * pagamento do mês 1 ficava lá para sempre — logo, do mês 2 ao mês 40, o portão
+ * dizia "pago" para quem parou de pagar no primeiro. A trava fail-closed da
+ * casa tinha um vazamento com data de validade infinita.
+ * 
+ * Por isso a assinatura é uma tabela própria: ela é o fato "este pedido é
+ * mensal", e é a presença dela que faz o portão passar a exigir a competência
+ * do MÊS CORRENTE em vez de aceitar qualquer pagamento antigo.
+ */
+export type AssinaturaRecorrente = Prisma.AssinaturaRecorrenteModel
+/**
+ * Model CobrancaRecorrente
+ * UMA COBRANÇA MENSAL. É esta linha, e só ela, que libera o mês.
+ * 
+ * ─── AS DUAS TRAVAS DE "NÃO COBRAR DUAS VEZES", E SÃO DIFERENTES ───────────
+ * 
+ * 1. `provedorPagamentoId @unique` — **o webhook reenviado**. O Mercado Pago
+ * reenvia o mesmo aviso por horas quando não recebe 200. Sem esta trava,
+ * cada reenvio viraria uma linha de receita nova e o DRE inflaria sozinho.
+ * 2. `@@unique([assinaturaId, competencia])` — **o mês cobrado duas vezes**.
+ * Esta é outra falha: dois pagamentos DIFERENTES (ids diferentes, portanto
+ * a trava 1 não pega) caindo na mesma competência é o cliente pagando
+ * setembro duas vezes. O banco recusa a segunda, e quem grava trata a
+ * recusa devolvendo a linha que já existe.
+ * 
+ * Uma trava só não bastava — e era a trava 2 que faltaria a quem só pensasse
+ * em reenvio de webhook.
+ */
+export type CobrancaRecorrente = Prisma.CobrancaRecorrenteModel
+/**
  * Model PendenciaDeConsulta
  * 
  */

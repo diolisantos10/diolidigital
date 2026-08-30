@@ -166,20 +166,51 @@ export interface BriefingScope {
   prospectName?: string;
   prospectEmail?: string;
   prospectPhone?: string;
+  /** Por onde o cliente escolheu ser avisado: "email" | "whatsapp". */
+  preferredChannel?: string;
+  /**
+   * OS CANAIS QUE O CLIENTE DESDISSE — e por que isto é um campo, e não uma
+   * ausência.
+   *
+   * 8ª volta do cliente oculto (26/08/2026): ele escreveu "esquece o WhatsApp,
+   * prefiro e-mail" e o número reapareceu em `briefingJson.scope.prospectPhone`
+   * e em `contato.whatsapp`. O modelo tinha ouvido — o turno seguinte já não
+   * trazia o telefone. O que não existia era um jeito de a retratação
+   * ATRAVESSAR os merges: o escopo acumulado do servidor sobrescreve, o
+   * `mergeScopeGaps` do navegador só preenche buraco, e a porta de gravação lê
+   * o contato da PORTA antes do escopo. Deleção some no primeiro merge.
+   *
+   * Uma lista que só CRESCE atravessa os três sem que nenhum deles aprenda a
+   * apagar. Ver `lib/agency/comercial/retratacao.ts`.
+   */
+  canaisRetratados?: string[];
 }
 
 // ── Live estimate ─────────────────────────────────────────────────────────────
 export interface EstimateItem {
   label: string;
   detail: string;
-  minPrice: number;
-  maxPrice: number;
+  /**
+   * `null` = ORÇADO À PARTE, e nunca zero (26/08/2026).
+   *
+   * A tabela única só precifica os PLANOS. O que a vitrine lista sem número —
+   * tráfego pago, identidade visual, site — entra na proposta como item COM
+   * escopo e SEM preço: cotar um valor que a vitrine não promete é "duas
+   * tabelas vivas" com outro rosto. E zero seria pior que `null`, porque zero
+   * SOMA — e somar zero diz ao cliente que aquilo é de graça.
+   */
+  minPrice: number | null;
+  maxPrice: number | null;
   unit: string;
 }
 
 export type EstimateConfidence = "none" | "low" | "medium" | "high";
 
 export interface LiveEstimate {
+  /** O que o cliente disse que veio buscar, nas palavras dele. Viaja com o
+   *  número para que a proposta cite o motivo do projeto — ver o caso do
+   *  Clube Farol 27 em `live-calculator.computeEstimate`. */
+  objetivos?: string[];
   items: EstimateItem[];
   totalMin: number;
   totalMax: number;
@@ -244,6 +275,21 @@ export interface ConvState {
    * como zero, que é a verdade: nada foi contado.
    */
   perguntasFeitas?: Record<string, number>;
+  /**
+   * A PARCERIA DECLARADA desta conversa — quando existe uma, e válida.
+   *
+   * ⚠️ MORA AQUI, E **NÃO** EM `scope`, POR UMA RAZÃO DE SEGURANÇA (27/08/2026).
+   * `scope` chega no CORPO da requisição do SDR (`body.scope`) — o visitante
+   * escreve o que quiser nele. Um campo de parceria dentro do escopo seria uma
+   * chave que qualquer pessoa digita: bastaria mandar `parceria: true` para
+   * pular a pergunta da verba, e a régua que existe para a casa não mandar
+   * preço errado cairia por uma linha de JSON.
+   *
+   * Este campo é preenchido pelo SERVIDOR, a partir de `IsencaoDeParceria`
+   * (ver `comercial/parceria-declarada.ts`). Ausente = a casa NÃO SABE que é
+   * parceria, e continua perguntando a verba — que é o comportamento de sempre.
+   */
+  parceriaDeclarada?: { autorizadaPor: string; validaAte: Date } | null;
   isFirstMessage: boolean;
   estimate: LiveEstimate;
   canSubmit: boolean;

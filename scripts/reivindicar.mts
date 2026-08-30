@@ -64,7 +64,7 @@
  */
 
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -82,8 +82,30 @@ import {
   type Reivindicacao,
 } from "../lib/coordenacao/reivindicacoes.ts";
 import { lerReivindicacoesDoDisco } from "../lib/coordenacao/leitura-do-registro.ts";
+import {
+  vereditoDoPortao, refsDaEntradaPadrao, PASTA_QUE_PASSA_DIRETO,
+} from "../lib/coordenacao/portao-de-push.ts";
+import { soLevaAReivindicacao } from "../lib/coordenacao/so-o-commit-da-reivindicacao.ts";
 
-const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+// RAIZ é sempre o repositório real onde este arquivo vive — SALVO quando um
+// teste automatizado pede explicitamente, via REIVINDICAR_RAIZ_DE_TESTE, para
+// apontar para um repositório git TEMPORÁRIO e descartável. Só variável de
+// ambiente, nunca argumento de linha de comando — ninguém digita isto por
+// engano, só um teste define. Em produção a variável não existe, e o
+// comportamento é idêntico ao de antes desta linha.
+//
+// ── POR QUE ISTO PRECISOU EXISTIR (29/08/2026, ficha B1) ───────────────────
+// Sem isto, NENHUM teste consegue rodar `scripts/reivindicar.mts` COMO
+// PROCESSO — que é o único jeito de provar ORDEM de execução (escrita antes
+// ou depois da guarda), em vez de só ler o código e confiar que a ordem que
+// os olhos veem é a ordem que o processo de fato executa. `cwd: RAIZ` é usado
+// em TODO comando git deste arquivo; sem um jeito de trocar RAIZ, testar a
+// guarda de verdade exigiria rodar o script contra ESTE repositório — o que
+// `__tests__/coordenacao/encerrar-com-tree-sujo.test.ts` já registrou como
+// inaceitável (teste automatizado nunca escreve/empurra no repositório real).
+const RAIZ = process.env.REIVINDICAR_RAIZ_DE_TESTE
+  ? resolve(process.env.REIVINDICAR_RAIZ_DE_TESTE)
+  : resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PASTA_REIVINDICACOES = join(RAIZ, "reivindicacoes");
 
 /** Onde o RÓTULO (não a identidade — ver o bloco "Identidade da sessão",
@@ -135,6 +157,44 @@ function gitOuNulo(args: string[]): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * QUANTOS COMMITS ESTE BRANCH LEVARIA ALÉM DA REIVINDICAÇÃO?
+ *
+ * Mede contra `origin/<branch>` DEPOIS do fetch que `abrir`/`encerrar` já
+ * fizeram. Falhou a leitura → `mediu: false`, e a régua recusa: *"não sei o que
+ * iria junto" nunca vira "então vai"*.
+ */
+function medirOQuePushLevaria(branch: string): { commitsAlemDaReivindicacao: number; titulos: string[]; mediu: boolean } {
+  const bruto = gitOuNulo(["log", "--oneline", `origin/${branch}..HEAD`]);
+  if (bruto === null) return { commitsAlemDaReivindicacao: 0, titulos: [], mediu: false };
+  const titulos = bruto.split("\n").map((l) => l.trim()).filter(Boolean);
+  return { commitsAlemDaReivindicacao: titulos.length, titulos, mediu: true };
+}
+
+/**
+ * O PORTÃO, COMO OS COMANDOS O CHAMAM — e ele roda ANTES de tocar o disco.
+ *
+ * ⚠️ A POSIÇÃO É METADE DO CONSERTO. A primeira versão conferia dentro de
+ * `commitarEEmpurrar`, que roda DEPOIS do `writeFileSync` — a recusa saía com a
+ * frase "o disco está como estava" e **o arquivo já estava lá**. Medido
+ * exercitando o comando de verdade, não lendo o código: a recusa mentia.
+ *
+ * Recusa que mente sobre o próprio efeito é pior que recusa nenhuma — quem lê
+ * confia e não limpa. Agora ela roda antes de escrever, e a frase é verdade.
+ */
+function exigirBranchAlinhado(branch: string): void {
+  const veredito = soLevaAReivindicacao(medirOQuePushLevaria(branch));
+  if (veredito.pode) return;
+  // ⚠️ IMPRIME E SAI, no padrão das outras recusas deste arquivo (🚫 +
+  // `process.exit(1)`) — e NÃO `throw`. Medido exercitando: o `try/catch` de
+  // `comandoAbrir` só envolve `commitarEEmpurrar`, então um `throw` daqui subia
+  // como STACK TRACE de Node na cara de quem rodou o comando. Recusa que sai
+  // como stack não é lida: ela parece defeito da ferramenta, não decisão dela.
+  console.error(`🚫 reivindicação NÃO empurrada: ${veredito.motivo}`);
+  console.error("   (nada foi escrito, commitado ou empurrado — o disco está como estava.)");
+  process.exit(1);
 }
 
 /** `git fetch origin <branch>` — o primeiro passo de `abrir` e `conferir`,
@@ -281,8 +341,31 @@ function commitarEEmpurrar(
   // sem autostash.
   autostashNoRebase = false,
 ): void {
+  // ═══ SEGUNDA TRAVA (28/08/2026) ══════════════════════════════════════════
+  //
+  // `abrir` e `encerrar` já chamaram `exigirBranchAlinhado` ANTES de escrever o
+  // arquivo — é lá que a recusa é barata e honesta. Esta aqui existe porque um
+  // caminho novo pode chegar a este ponto sem passar por lá, e o dano deste
+  // ponto em diante é irreversível: um push para o deploy não se desfaz.
+  // Duas travas para o mesmo dano, de propósito.
+  exigirBranchAlinhado(branch);
+
   git(["add", caminhoRelativo]);
-  git(["commit", "-m", mensagem]);
+  // ⛔ `--only <caminho>` — MEDIDO EM 28/08/2026, EXERCITANDO O COMANDO.
+  //
+  // `git commit -m` sem `--only` commita **tudo o que estiver no index**, não só
+  // o que este comando adicionou. Provando o conserto do push, o próprio
+  // conserto (dois arquivos que eu tinha deixado staged) subiu junto com a
+  // reivindicação, para o deploy, sem PR e sem CI — a MESMA família do defeito
+  // que este arquivo está consertando, um andar abaixo.
+  //
+  // O portão do push conferia COMMITS além da base e via zero, corretamente: o
+  // vazamento não estava nos commits, estava no ÍNDICE. Duas portas, e eu só
+  // tinha fechado uma.
+  //
+  // `--only` faz o commit conter exatamente os caminhos nomeados, ignorando o
+  // resto do index — e o que estava staged continua staged, intocado.
+  git(["commit", "--only", "-m", mensagem, "--", caminhoRelativo]);
 
   // `--no-verify` É DELIBERADO — não é atalho, é o CONSERTO do deadlock medido
   // em 16/08/2026. Sem ele, este push aciona o gancho pre-push, que roda
@@ -299,7 +382,25 @@ function commitarEEmpurrar(
   // só pode dar falso positivo. `abrir` já recusou colisão ANTES de escrever
   // qualquer coisa; `encerrar` só REMOVE reivindicação, nunca adiciona risco.
   // Nenhum dos dois precisa do gancho para se auto-policiar.
-  const tentarPush = () => execFileSync("git", ["push", "--no-verify", "origin", `HEAD:${branch}`], { cwd: RAIZ, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  // ⛔ O SHA DO COMMIT, NUNCA `HEAD:` — defesa em profundidade.
+  //
+  // O portão acima já garantiu que não há mais nada no branch; empurrar o SHA
+  // garante que, se um dia o portão falhar ou for contornado, o que sobe ainda
+  // é UM commit nomeado, e não "tudo o que o HEAD tiver". Duas travas para o
+  // mesmo dano, de propósito: esta linha é a que não depende de ninguém ter
+  // medido nada.
+  //
+  // ⚠️ `--no-verify` FICA, e a justificativa é a de sempre (deadlock medido em
+  // 16/08: o gancho pre-push chama `conferir`, que lê a MESMA responsabilidade
+  // que este comando acabou de gravar, e barra o push pela própria
+  // reivindicação que ele está empurrando). O que mudou é que ele deixou de ser
+  // a ÚNICA defesa: antes, desligar o gancho era desligar tudo; agora o portão
+  // acima roda sempre, e ele é mais preciso que o gancho para este risco
+  // específico — o gancho confere COLISÃO, não o que o push carrega.
+  const tentarPush = () => {
+    const sha = git(["rev-parse", "HEAD"]);
+    return execFileSync("git", ["push", "--no-verify", "origin", `${sha}:${branch}`], { cwd: RAIZ, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  };
 
   try {
     tentarPush();
@@ -890,6 +991,9 @@ function comandoAbrir(argv: string[]): void {
 
   mkdirSync(PASTA_REIVINDICACOES, { recursive: true });
   const caminhoAbsoluto = join(PASTA_REIVINDICACOES, nomeArquivo);
+  // ⛔ ANTES de escrever: a recusa promete que nada foi tocado, e a promessa
+  // tem de ser verdade. Ver `exigirBranchAlinhado`.
+  exigirBranchAlinhado(branch);
   writeFileSync(caminhoAbsoluto, `${JSON.stringify(reivindicacao, null, 2)}\n`, "utf8");
 
   try {
@@ -1155,6 +1259,8 @@ function comandoEncerrar(argv: string[]): void {
   mkdirSync(PASTA_REIVINDICACOES, { recursive: true });
   const nomeArquivo = nomeDoArquivo(id);
   const caminhoRelativo = join("reivindicacoes", nomeArquivo);
+  // ⛔ ANTES de escrever — mesma razão do `abrir`.
+  exigirBranchAlinhado(branch);
   writeFileSync(join(RAIZ, caminhoRelativo), `${JSON.stringify(encerrada, null, 2)}\n`, "utf8");
 
   try {
@@ -1232,7 +1338,15 @@ const CONTEUDO_DO_GANCHO = `#!/bin/sh
 # Sem rede, "conferir" avisa e deixa passar (a régua fica dentro dele, não
 # aqui): portão que barra por falha de infraestrutura ensina todo mundo a usar
 # --no-verify, e aí ele deixa de existir.
-npx tsx "$(git rev-parse --show-toplevel)/scripts/reivindicar.mts" conferir
+npx tsx "$(git rev-parse --show-toplevel)/scripts/reivindicar.mts" conferir || exit 1
+
+# ── AS DUAS CATRACAS DA FASE 1 (26/08/2026) ────────────────────────────────
+#
+# Prompt é aviso; código é trava. As duas regras abaixo estavam escritas no
+# CLAUDE.md e foram furadas assim mesmo — uma vez o push direto na branch de
+# deploy, CINCO vezes o CI barrado no \`tsc --noEmit\`. Regra que só existe em
+# prosa é uma regra que a próxima sessão não lê.
+npx tsx "$(git rev-parse --show-toplevel)/scripts/reivindicar.mts" portao-de-push "$@"
 `;
 
 /** Escreve o gancho de fato. Lança em vez de chamar `process.exit` — quem
@@ -1301,6 +1415,96 @@ function comandoInstalarGancho(argv: string[]): void {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// portao-de-push — AS DUAS CATRACAS DA FASE 1 (26/08/2026)
+// ─────────────────────────────────────────────────────────────────────────
+//
+// ── CATRACA 1: NINGUÉM EMPURRA DIRETO NA BRANCH DE DEPLOY ──────────────────
+//
+// A regra está no CLAUDE.md e foi furada uma vez, declarada por quem furou. O
+// remédio de prosa já falhou; este é o de código.
+//
+// ⚠️ COM UMA EXCEÇÃO, E ELA NÃO É CONVENIÊNCIA: `reivindicacoes/` é a ÚNICA
+// fonte que duas sessões isoladas compartilham, e o próprio `abrir`/`encerrar`
+// publica lá com `git push origin HEAD:<branch de deploy>`. Barrar isso
+// quebraria a trava de colisão da casa — trocaria uma catraca por outra.
+// Então a catraca é precisa: push na branch de deploy que mexa em QUALQUER
+// coisa fora de `reivindicacoes/` é barrado.
+//
+// ── CATRACA 2: `tsc --noEmit`, COM O CÓDIGO DE SAÍDA CONFERIDO ─────────────
+//
+// O CLAUDE.md tem uma seção inteira sobre isto e a casa barrou o CI CINCO
+// vezes pelo mesmo motivo, sempre em arquivo de teste novo que estava verde no
+// `vitest` — que não checa tipo. "Teste verde não é teste que compila" estava
+// escrito; o que faltava era alguém conferir.
+//
+// ── POR QUE NÃO BARRA POR FALHA DE INFRAESTRUTURA ─────────────────────────
+//
+// Mesma regra do `conferir` logo acima, e ela é da casa: portão que barra por
+// falta de rede ou por `tsc` ausente ensina todo mundo a usar `--no-verify`, e
+// aí ele deixa de existir. Falta de ferramenta AVISA e deixa passar. O que
+// barra é o veredito de verdade — `tsc` que rodou e reprovou.
+
+/**
+ * A CASCA. A DECISÃO mora em `lib/coordenacao/portao-de-push.ts`, e o motivo
+ * está escrito lá: o teste da primeira versão passou aqui e REPROVOU no CI,
+ * porque media o repositório em volta em vez de medir a régua.
+ */
+function comandoPortaoDePush(argv: string[]): void {
+  const branchDeDeploy = branchAlvo(argv);
+
+  let bruto = "";
+  try { bruto = readFileSync(0, "utf8"); } catch { bruto = ""; }
+  const refs = refsDaEntradaPadrao(bruto);
+
+  // ── CATRACA 1 ────────────────────────────────────────────────────────────
+  //
+  // `arquivosTocados: null` é "não consegui comparar", NUNCA "nada mudou". Num
+  // checkout raso (CI) `origin/<deploy>` não existe local, e a régua trata a
+  // ausência como ausência.
+  const base = gitOuNulo(["merge-base", "HEAD", `origin/${branchDeDeploy}`])
+    ?? gitOuNulo(["rev-parse", `origin/${branchDeDeploy}`]);
+  const arquivosTocados = base
+    ? (gitOuNulo(["diff", "--name-only", `${base}..HEAD`]) ?? "")
+        .split("\n").map((l) => l.trim()).filter(Boolean)
+    : null;
+
+  const veredito = vereditoDoPortao({ refs, branchDeDeploy, arquivosTocados });
+  if (veredito.barrar) {
+    const fora = veredito.foraDaReivindicacao;
+    console.error(
+      `🚫 PUSH DIRETO NA BRANCH DE DEPLOY (${branchDeDeploy}) — barrado aqui.\n\n` +
+        `   ${fora.length} arquivo(s) fora de \`${PASTA_QUE_PASSA_DIRETO}\`:\n` +
+        fora.slice(0, 10).map((f) => `     • ${f}`).join("\n") +
+        (fora.length > 10 ? `\n     … e mais ${fora.length - 10}` : "") +
+        "\n\n   A regra desta casa é PR + CI. Abra a sua branch e o PR:\n" +
+        "     git switch -c claude/<o-que-voce-esta-fazendo>\n" +
+        "     git push -u origin HEAD\n\n" +
+        `   \`${PASTA_QUE_PASSA_DIRETO}\` continua passando direto — é a única fonte que duas\n` +
+        "   sessões isoladas compartilham, e barrá-la quebraria a trava de colisão.",
+    );
+    process.exit(1);
+  }
+  if (veredito.aviso) console.warn(`⚠️  portao-de-push: ${veredito.aviso}`);
+
+  // ── CATRACA 2 ────────────────────────────────────────────────────────────
+  const r = spawnSync("npx", ["tsc", "--noEmit"], { cwd: RAIZ, encoding: "utf8" });
+  if (r.error) {
+    console.warn("⚠️  portao-de-push: não consegui rodar `tsc --noEmit` — deixo passar. Ferramenta ausente não é defeito do código.");
+    return;
+  }
+  if (r.status !== 0) {
+    console.error(
+      "🚫 `tsc --noEmit` REPROVOU — barrado aqui, e não no CI.\n\n" +
+        (r.stdout ?? "").split("\n").slice(0, 20).join("\n") +
+        "\n\n   Esta casa barrou o CI CINCO vezes pelo mesmo motivo, sempre em arquivo\n" +
+        "   de teste novo que estava verde no `vitest` — que não checa tipo.\n" +
+        "   Teste verde não é teste que compila.",
+    );
+    process.exit(1);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 
 function main(): void {
   const [subcomando, ...resto] = process.argv.slice(2);
@@ -1316,8 +1520,10 @@ function main(): void {
       return comandoListar(resto);
     case "instalar-gancho":
       return comandoInstalarGancho(resto);
+    case "portao-de-push":
+      return comandoPortaoDePush(resto);
     default:
-      console.error("Uso: npm run reivindicar -- <abrir|conferir|encerrar|listar|instalar-gancho> [opções]");
+      console.error("Uso: npm run reivindicar -- <abrir|conferir|encerrar|listar|instalar-gancho|portao-de-push> [opções]");
       process.exit(1);
   }
 }

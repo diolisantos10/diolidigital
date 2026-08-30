@@ -1,0 +1,13 @@
+{
+  "id": "esteira-cancelar-avisa-e-para",
+  "quem": "ses-69fa836d5e",
+  "frente": "cancelar avisa os dois lados e PARA a producao, inclusive o que ja esta em voo (ordem C2 do CEO)",
+  "responsabilidade": "esteira-cancelar-avisa-e-para",
+  "arquivos": [
+    "app/api/portal/approvals/route.ts",
+    "lib/agency/esteira/refacao.ts"
+  ],
+  "abertaEm": "2026-08-30T00:06:40.951Z",
+  "encerradaEm": "2026-08-30T12:09:20.421Z",
+  "rotulo": "sala-convite-2908"
+}

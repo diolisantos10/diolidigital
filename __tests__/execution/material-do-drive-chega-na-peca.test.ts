@@ -19,6 +19,7 @@
 //      o que havia e por que nada entrou. Nada é inventado.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { PECA_COMPOSTA_REAL } from "../_helpers/peca-composta";
 
 const generateDesign = vi.fn();
 const guardarArquivo = vi.fn();
@@ -91,7 +92,10 @@ const { produzirArtesPendentes } = await import("@/lib/agency/execution/artes");
 /** Os bytes REAIS do arquivo que o cliente mandou. É por eles que a prova passa. */
 const BYTES_DO_CLIENTE = Buffer.from("JPEG-DO-PANETONE-QUE-O-CLIENTE-FOTOGRAFOU");
 const BYTES_GERADOS = Buffer.from("PNG-INVENTADO-PELO-MODELO");
-const PECA_FINAL = Buffer.from("PECA-RASTERIZADA");
+// A PEÇA FINAL É UM ARQUIVO REAL desde 26/08/2026: `regua-da-peca-final.ts`
+// mede a peça antes de gravá-la, e string não decodifica. Ver
+// `__tests__/_helpers/peca-composta.ts`.
+const PECA_FINAL = PECA_COMPOSTA_REAL;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -99,7 +103,8 @@ beforeEach(() => {
   guardarArquivo.mockResolvedValue({ ok: true, arquivo: { id: "arq-1" } });
   montarPeca.mockResolvedValue({
     ok: true, bytes: PECA_FINAL, largura: 1080, altura: 1350,
-    textosPintados: [], textoRecusado: [], encolheu: false,
+    textosPintados: ["o panetone artesanal já está em pré-venda", "Padaria Aurora"],
+    textoRecusado: [], encolheu: false,
     origemDoMolde: "marca", lacunasDoMolde: [],
   });
   generateDesign.mockResolvedValue({ ok: true, url: "https://modelo/img.png" });

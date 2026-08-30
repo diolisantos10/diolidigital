@@ -10,10 +10,12 @@
 // Configuration (Railway Variables):
 //   RESEND_API_KEY   required to actually send (starts with "re_")
 //   RESEND_FROM      sender address. Must be on a domain verified in Resend,
-//                    e.g. "Dioli Studio <contato@dioli.studio>". Falls back to
+//                    e.g. "Dioli Digital <contato@diolidigital.com.br>". Falls back to
 //                    Resend's shared onboarding sender, which can ONLY deliver
 //                    to the Resend account owner's own address (testing only).
 
+import { NOME_DA_EMPRESA } from "@/lib/marca";
+import { motivoParaNaoEnviar } from "@/lib/email/trava-do-molde";
 import {
   motivoDoBloqueio,
   registrarSaidaBloqueada,
@@ -45,7 +47,61 @@ export interface SendEmailResult {
   error?: string;
 }
 
-const DEFAULT_FROM = "Dioli Studio <onboarding@resend.dev>";
+/**
+ * O remetente compartilhado da Resend. **NÃO é mais um fallback de envio** —
+ * ver `SEM_REMETENTE` logo abaixo. Fica declarado aqui porque é o valor que a
+ * Resend usaria, e nomear o que se recusa a fazer vale mais que apagá-lo.
+ */
+const REMETENTE_COMPARTILHADO_DA_RESEND = `${NOME_DA_EMPRESA} <onboarding@resend.dev>`;
+
+/** Motivo devolvido quando a chave não está configurada (ou está em branco). */
+export const SEM_CHAVE = "sem_chave: RESEND_API_KEY não configurada (ausente ou vazia) no ambiente";
+
+/**
+ * ⛔ O REMETENTE AUSENTE VIRA RECUSA — e o motivo, em 25/08/2026, é MEDIDO.
+ *
+ * `GET /api/agency/diagnostico-de-email` em produção, nesta data, respondeu:
+ * `RESEND_API_KEY` **válida** (`restricted_api_key`, que é o certo para chave
+ * de aplicação) e `RESEND_FROM` **ausente**. Sem ela, esta função caía no
+ * remetente compartilhado da Resend — que entrega SÓ para o dono da conta
+ * Resend. Cliente nenhum recebe.
+ *
+ * E o envio voltava `{ ok: true, id }`. Esse é o defeito, e ele é pior que o
+ * silêncio: `orcamento-do-briefing.ts` gravava `avisoOrcamentoStatus =
+ * "avisado"`, e a fila de reenvio **nunca busca "avisado"** (é justamente essa
+ * regra que impede o cliente de receber o orçamento duas vezes). Ou seja: cada
+ * aviso que "saiu" ficava marcado como entregue **para sempre**, e nem o dia em
+ * que o `RESEND_FROM` existir os traria de volta. Régua verde sobre o
+ * componente errado mata a dúvida e deixa o defeito.
+ *
+ * Agora é recusa `skipped` — o mesmo balde de "sem chave", que a fila de
+ * reenvio BUSCA (`falhou`/`skipped`). Consequência: no minuto em que o CEO
+ * cadastrar `RESEND_FROM` num domínio verificado, todo mundo que ficou sem
+ * aviso é avisado, sem duplicar quem já recebeu.
+ *
+ * ⚠️ O QUE ISTO **NÃO** RESOLVE, e é do CEO: cadastrar `RESEND_FROM` no
+ * Railway com um endereço de domínio VERIFICADO na conta Resend. Não há
+ * contorno em código — e inventar um remetente num domínio não verificado
+ * trocaria este erro claro por um 403 da Resend.
+ */
+export const SEM_REMETENTE =
+  `sem_remetente: RESEND_FROM não está no ambiente. Sem ela a casa enviaria por ${REMETENTE_COMPARTILHADO_DA_RESEND}, ` +
+  "que a Resend entrega SÓ para o dono da conta — cliente nenhum receberia, e a casa registraria 'avisado'. " +
+  "Ação do CEO: cadastrar RESEND_FROM no Railway com um endereço de domínio verificado na Resend.";
+
+/**
+ * `diolisantos10@gmail.com` → `d…@gmail.com`.
+ *
+ * Domínio inteiro, parte local reduzida à inicial. Um endereço SEM `@` (que
+ * nunca deveria chegar aqui, mas chegar não pode derrubar um envio que já
+ * aconteceu) vira `(destino ilegível)` em vez de vazar a string crua.
+ */
+export function mascararDestino(destino: string): string {
+  const alvo = (destino ?? "").trim();
+  const at = alvo.lastIndexOf("@");
+  if (at <= 0 || at === alvo.length - 1) return "(destino ilegível)";
+  return `${alvo[0]}…${alvo.slice(at)}`;
+}
 
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   // ⛔ A TRAVA VEM ANTES DE TUDO — inclusive antes de ler a chave.
@@ -93,13 +149,58 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     return { ok: false, error: `sem_consentimento:${consent.motivo}\n${comoDestravar(consent)}` };
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    // E-mail not configured — no-op so the calling flow never breaks.
-    return { ok: false, skipped: true };
+  // ── TRAVA DO MOLDE — TAMBÉM ANTES DA CHAVE ──────────────────────────────
+  //
+  // Pelo mesmo motivo dos dois blocos acima: o que decide se o e-mail pode sair
+  // é o CONTEÚDO, não o ambiente. Se esta trava morasse depois do `if
+  // (!apiKey)`, ela valeria só nas máquinas sem chave — e produção tem chave.
+  //
+  // O que ela recusa e por quê está em `lib/email/trava-do-molde.ts`. Em uma
+  // frase: e-mail que não nasceu do molde da casa, ou que estampa valor, não
+  // sai. **Prompt é aviso; código é trava** — e esta é a trava.
+  const foraDoMolde = motivoParaNaoEnviar(input.html, input.subject);
+  if (foraDoMolde) {
+    console.error(`[email/send] recusado: ${foraDoMolde} para=${mascararDestino(input.to)}`);
+    // O motivo já vem prefixado com a sua própria etiqueta
+    // (`fora_do_molde:`, `valor_no_corpo:`, `nome_aposentado:`) — repetir o
+    // prefixo aqui produziria "fora_do_molde:fora_do_molde:", que é ruído na
+    // tela de quem lê o erro.
+    return { ok: false, error: foraDoMolde };
   }
 
-  const from = process.env.RESEND_FROM?.trim() || DEFAULT_FROM;
+  // `.trim()` de propósito: variável CADASTRADA COM VALOR EM BRANCO (ou só
+  // espaço) é o modo de falha mais traiçoeiro do Railway — o nome aparece na
+  // lista, então quem audita conclui "está configurada", e o header
+  // `Authorization: Bearer ` sairia vazio para a Resend, que responderia um
+  // 401 genérico. Aqui isso vira o MESMO caso de "não configurada", dito com
+  // essa palavra.
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) {
+    // E-mail not configured — no-op so the calling flow never breaks.
+    //
+    // ⚠️ O `error` NÃO É DECORAÇÃO (medido em 25/08/2026). Antes daqui este
+    // ramo devolvia `{ ok:false, skipped:true }` mudo, e o bloco de cima —
+    // a trava de saída — devolve `{ ok:false, skipped:true, error:"bloqueado:…" }`.
+    // Dois motivos OPOSTOS, a mesma forma. Quem chamava (`orcamento-do-briefing.ts`)
+    // lia só `r.skipped` e gravava no banco a frase fixa "RESEND_API_KEY ausente".
+    // Resultado medido em produção: dois pedidos do CLIENTE FALSO, com contato
+    // `@cliente-falso.invalid`, barrados corretamente pela trava `.invalid` e
+    // registrados na tela do CEO como "RESEND_API_KEY ausente" — a chave EXISTE
+    // no Railway. A tela mandava o CEO configurar uma chave que já estava lá,
+    // e escondia que a trava de teste é que tinha funcionado.
+    //
+    // Status de erro não é motivo; o motivo está na mensagem. Quem devolve
+    // `skipped` devolve TAMBÉM por quê, e quem grava copia o porquê recebido em
+    // vez de adivinhar.
+    return { ok: false, skipped: true, error: SEM_CHAVE };
+  }
+
+  // ⛔ FAIL-CLOSED NO REMETENTE. Antes daqui havia `|| DEFAULT_FROM`, e era
+  // uma porta que dizia "entreguei" sem entregar. Ver `SEM_REMETENTE`.
+  const from = process.env.RESEND_FROM?.trim();
+  if (!from) {
+    return { ok: false, skipped: true, error: SEM_REMETENTE };
+  }
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -125,6 +226,35 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     }
 
     const data = (await res.json().catch(() => ({}))) as { id?: string };
+
+    // ⛔ O RECIBO DO ENVIO — e por que ele precisou existir (27/08/2026).
+    //
+    // Até aqui, o único ramo desta função que deixava rastro era o ramo do
+    // ERRO. O sucesso saía calado: `id` era devolvido a quem chamou, e os dois
+    // chamadores da casa o descartam — `client-requests` é fire-and-forget e só
+    // loga quando falha; `orcamento-do-briefing` grava a PALAVRA "avisado" numa
+    // coluna e joga o `id` fora. Resultado medido: **a casa não tinha como
+    // provar que uma única mensagem saiu.** Coluna gravada não é cliente
+    // informado, e log só de erro é verde por ausência — que não é verde.
+    //
+    // E não havia como remediar depois: a chave desta casa é
+    // `restricted_api_key` (medido em `/api/agency/diagnostico-de-email`, que
+    // recebe 401 `"This API key is restricted to only send emails"` ao tentar
+    // LER). Chave de envio não lista o que enviou. Ou seja: o `id` da Resend
+    // existe por um instante, na resposta deste `fetch`, e se não for anotado
+    // aqui **não existe em lugar nenhum do mundo a que esta casa tenha acesso**.
+    //
+    // Por isso o recibo é `console.info` e não `debug`: é a prova de entrega.
+    //
+    // ⚠️ O DESTINATÁRIO VAI MASCARADO. O endereço de um cliente é dado pessoal,
+    // e log de plataforma é lido por quem não precisa dele. O domínio fica
+    // inteiro (é o que responde "o e-mail foi para o lugar certo?") e a parte
+    // local vira inicial + reticências — o bastante para casar com um pedido
+    // conhecido, insuficiente para virar lista de contatos.
+    console.info(
+      `[email/send] entregue à Resend: id=${data.id ?? "(sem id na resposta)"} para=${mascararDestino(input.to)} assunto=${JSON.stringify(input.subject)}`,
+    );
+
     return { ok: true, id: data.id };
   } catch (e) {
     const reason = e instanceof Error ? e.message : "unknown";

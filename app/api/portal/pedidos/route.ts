@@ -20,8 +20,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
+import { donoDoPortal, resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { lerPergunta } from "@/lib/agency/esteira/porta-da-pergunta";
 
 /** O menor texto que ainda é um pedido. "oi" e "?" não são. */
 const MINIMO_DE_DESCRICAO = 8;
@@ -117,8 +118,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = tokenDoPortal(request, new URL(request.url).searchParams.get("token"));
   if (!token) return NextResponse.json({ error: "token é obrigatório" }, { status: 400 });
 
-  const dono = await resolvePortalClient(token);
-  if (!dono) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  // ── TOKEN VÁLIDO SEM FICHA DE CLIENTE NÃO É ACESSO NEGADO (6ª rodada) ─────
+  //
+  // Medido em produção: um prospect recém-orçado, com o link que a casa acabou
+  // de mandar, recebia 200 na esteira e nas mensagens (com a proposta dele
+  // dentro) e **403 "Acesso negado"** aqui — porque a ficha de `Client` só
+  // nasce quando ele ACEITA. Ausência de ficha virava afirmação de que ele não
+  // podia entrar. Ver `donoDoPortal`.
+  //
+  // Token inválido, expirado ou revogado continua 403, sem um milímetro de
+  // folga. O que muda é só o caso em que o acesso é legítimo e ainda não há o
+  // que mostrar — e aí a casa mostra o vazio, com todas as letras.
+  const dono = await donoDoPortal(token);
+  if (dono === "invalido") return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+  if (dono === "sem-cliente") return NextResponse.json({ ok: true, pedidos: [], aindaSemFicha: true });
 
   try {
     const pedidos = await prisma.contentRequest.findMany({
@@ -140,6 +153,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // de vir com preço, ou o cliente sai do portal para perguntar quanto
         // custa — e a venda vai junto com ele.
         quotedPrice: true, quoteNote: true, quoteStatus: true,
+        // ── A PORTA DA PERGUNTA ─────────────────────────────────────────────
+        // `declineReason` diz POR QUE parou. Isto diz COMO responder. Sem ele o
+        // cartão mostra um selo amarelo e prosa, e a resposta do cliente cai no
+        // chat livre, onde ninguém pode decidir escopo — foi assim que "pode ser
+        // o pacote de 4" virou cinco mensagens sem resposta.
+        pendingQuestionJson: true,
       },
     });
     return NextResponse.json({
@@ -169,6 +188,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // Sem preço não existe orçamento na mesa — e "pendente" sem número
         // seria botão de aprovar o nada.
         orcamento: p.quotedPrice ? (p.quoteStatus ?? "pendente") : null,
+        // A pergunta aberta, quando existe. Só o que o cliente precisa para
+        // responder — id, rótulo e se aceita número. O EFEITO de cada opção
+        // (quantidade, escalar, dono) fica no servidor: o cliente escolhe o
+        // rótulo, nunca a consequência.
+        pergunta: (() => {
+          const q = lerPergunta(p.pendingQuestionJson);
+          if (!q) return null;
+          return {
+            texto: q.pergunta,
+            aceitaNumero: q.aceitaNumero === true,
+            opcoes: q.opcoes.map((o) => ({ id: o.id, rotulo: o.rotulo })),
+          };
+        })(),
       })),
     });
   } catch {

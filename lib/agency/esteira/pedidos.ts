@@ -16,6 +16,7 @@
 
 import { prisma } from "@/lib/db/client";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 export interface PedidoAberto {
   id: string;
   tipo: string;
@@ -144,7 +145,7 @@ export async function cobrarCliente(input: {
       data: {
         clientRequestId: input.clientRequestId,
         authorRole: "team",
-        authorName: "Gerente de projeto",
+        authorName: VOZ_DO_CLIENTE,
         body: texto,
         readByTeam: true,
       },

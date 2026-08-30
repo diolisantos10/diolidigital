@@ -334,21 +334,30 @@ describe("a direção de arte não atravessa para o pixel", () => {
     }
   });
 
-  it("`artDirection` só é lido em DOIS pontos, e os dois são antes do pixel", () => {
+  it("`artDirection` só aparece em TRÊS pontos, e nenhum deles é o pixel", () => {
     // Eram dois desde 15/08/2026, e a lista é fechada de propósito: cada leitura
     // nova de `artDirection` é uma chance de a direção virar letra na peça.
     //
-    //   1. `direcaoDeArte: post.artDirection` — monta o PROMPT da imagem.
-    //   2. `const direcaoEscrita = (post.artDirection ?? "").trim()` — o
+    //   1. `direcaoDeArte: direcaoEscrita || post.artDirection` — monta o PROMPT
+    //      da imagem. Desde 25/08 ele prefere a direção REESCRITA, porque mandar
+    //      ao gerador a direção que a régua acabou de recusar seria pagar pela
+    //      peça que o portão já disse que não presta.
+    //   2. `let direcaoEscrita = (post.artDirection ?? "").trim()` — o
     //      pré-portão de `direcao-fotografavel.ts`, que decide se a peça chega
     //      a ser tentada. Ele lê a string e devolve um veredito; não guarda,
     //      não compõe, não pinta.
+    //   3. `data: { artDirection: r.direcao ... }` — a ESCRITA da direção
+    //      reescrita (25/08/2026). É o único ponto que GRAVA, e ele grava no
+    //      banco, não no molde: sem ele a rodada seguinte releria a direção
+    //      velha e pagaria a reescrita de novo, para sempre.
     //
-    // Nenhum dos dois toca o molde. O teste acima é quem prova isso por papel.
+    // Nenhum dos três toca o molde. O teste acima é quem prova isso por papel.
     const ocorrencias = corpo.match(/artDirection/g) ?? [];
-    expect(ocorrencias.length).toBe(2);
-    expect(corpo).toMatch(/direcaoDeArte:\s*post\.artDirection/);
-    expect(corpo).toMatch(/const direcaoEscrita = \(post\.artDirection \?\? ""\)\.trim\(\)/);
+    expect(ocorrencias.length).toBe(3);
+    expect(corpo).toMatch(/direcaoDeArte:\s*direcaoEscrita \|\| post\.artDirection/);
+    expect(corpo).toMatch(/let direcaoEscrita = \(post\.artDirection \?\? ""\)\.trim\(\)/);
+    // A terceira é uma escrita no BANCO — `data:` do update — e não um papel do molde.
+    expect(corpo).toMatch(/data:\s*\{\s*artDirection:/);
   });
 
   it("a fonte auditada da peça continua sendo a legenda, e só ela", () => {

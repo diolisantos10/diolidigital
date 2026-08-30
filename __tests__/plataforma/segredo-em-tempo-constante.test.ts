@@ -40,7 +40,7 @@ import { POST as dispatch } from "@/app/api/meta/dispatch/route";
 import { webhookVerifyToken } from "@/lib/integrations/meta/config";
 import { GET as webhookGet } from "@/app/api/meta/webhooks/route";
 
-const SEGREDO = "um-segredo-de-cron-bem-comprido-123";
+const SEGREDO = "um-segredo-de-cron-bem-comprido-123"; // segredo-permitido: fixture inventada
 
 function comBearer(url: string, token: string | null, metodo = "POST"): NextRequest {
   return new NextRequest(url, {

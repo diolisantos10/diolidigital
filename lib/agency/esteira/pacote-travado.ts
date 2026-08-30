@@ -29,7 +29,7 @@ import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
 import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 import {
-  auditDeliverable, revisionStatusDoVeredito,
+  auditDeliverable, revisionStatusDoVeredito, arbitragemDoVeredito,
   foiAprovadaPelaQualidade, foiReprovadaPelaQualidade,
 } from "@/lib/agency/execution/quality-auditor";
 
@@ -282,6 +282,12 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
         content: novoCorpo,
         version: { increment: 1 },
         revisionStatus: status,
+        // ⚠️ `revisionStatus` aqui NÃO sai do veredito: quando ninguém olhou de
+        // novo, a peça CONTINUA barrada pela reprovação anterior (ver acima). Já
+        // "quem julgou" sai do veredito desta passada e de mais nada — herdar o
+        // árbitro da rodada passada seria afirmar uma auditoria que não houve.
+        qualityArbiter: veredito.arbitro ?? null,
+        qualityArbitragem: arbitragemDoVeredito(veredito),
         lastFeedback: parecer.slice(0, 500),
       },
     });
@@ -364,20 +370,251 @@ function listar(bruto: string | null | undefined): string {
 const renderizar = renderizarEntrega;
 
 /** Os pacotes que estão travados agora — o que o painel do Diretor precisa ver. */
+/**
+ * OS ESTADOS DE EXECUÇÃO EM QUE UM PACOTE PODE ESTAR TRAVADO.
+ *
+ * ── O DEFEITO, MEDIDO EM PRODUÇÃO (25/08/2026) ────────────────────────────
+ *
+ * Dois instrumentos da mesma casa discordavam, e a discordância era o achado:
+ *
+ *   GET /api/diretor/pendencias  → 6 entregas em `quality_flag`, paradas
+ *                                  22–25 h. "Confira se a refação automática
+ *                                  travou."
+ *   GET /api/pacotes-travados    → `{"total":0,"aguardandoDecisao":0}`
+ *
+ * E `destravadas: 0` em todas as batidas do despertador. O destravador não
+ * estava falhando: ele não estava VENDO. Esta consulta exigia
+ * `executionStatus: "done"` — e os dois projetos com as 6 entregas reprovadas
+ * estavam em `executionStatus: "blocked"`, com `executionAttempts: 3`.
+ *
+ * Ou seja: a rede de segurança só resgatava o projeto cuja execução tinha
+ * terminado BEM. O projeto que quebrou — que é o que precisa de resgate —
+ * ficava invisível para sempre, e a única saída era alguém perceber na mão.
+ * Zero paradas lidas não é verde; é vazio.
+ *
+ * `blocked` entra porque é a palavra que o próprio banco usa para "travado", e
+ * o nome deste módulo é `pacote-travado`. A proteção contra laço infinito NÃO
+ * mora aqui — mora em `MAX_TENTATIVAS_DE_REFAZER` (a peça na terceira versão
+ * vira `persistente` e escala), que continua igual.
+ */
+export const EXECUCOES_QUE_PODEM_ESTAR_TRAVADAS = ["done", "blocked"] as const;
+
 export async function pacotesTravados(workspaceId?: string) {
   const projetos = await prisma.project.findMany({
     where: {
+      // ⚠️ `presentedAt: null` FICA. Peça que o cliente JÁ VIU não se refaz por
+      // conta própria: ele aprovou ou comentou aquela versão, e trocá-la por
+      // baixo é a casa mudando o que ela mesma apresentou. Consequência
+      // declarada: o projeto `cmt7savmn001u0xpajd03nq73`, apresentado em
+      // 24/08 com 4 entregas reprovadas, continua FORA do alcance automático —
+      // é decisão de gente, e aparece em `/api/diretor/pendencias` para isso.
       presentedAt: null,
-      executionStatus: "done",
+      executionStatus: { in: [...EXECUCOES_QUE_PODEM_ESTAR_TRAVADAS] },
       ...(workspaceId ? { workspaceId } : {}),
-      deliverables: { some: { revisionStatus: "quality_flag" } },
+      // ── O PACOTE QUE NINGUÉM AUDITOU TAMBÉM ESTÁ TRAVADO (26/08/2026) ────
+      //
+      // Medido em produção, cliente oculto, projeto `cmt9l4eu0005e0xmngtcm4w3o`:
+      // a auditoria bateu no `HTTP 429` do provedor, a peça ficou
+      // `quality_nao_auditado`, e `apresentar()` a segurou — corretamente, com
+      // a frase certa: *"não reescreva, destrave a auditoria"*.
+      //
+      // E aí o pacote sumiu. Este filtro só via `quality_flag`, então:
+      //   • `/api/pacotes-travados` não listava o projeto;
+      //   • o despertador não passava por ele;
+      //   • ninguém reauditava, nunca.
+      //
+      // Proibição sem instrução gêmea empurra o operador para o contorno — e o
+      // contorno aqui é `mesmoComRessalva`, que desliga o único freio da casa.
+      // O pacote parado por AUSÊNCIA de juiz é tão travado quanto o parado por
+      // reprovação; o conserto é que é outro, e por isso o campo é outro.
+      deliverables: { some: { revisionStatus: { in: ["quality_flag", "quality_nao_auditado"] } } },
     },
     select: {
       id: true, name: true, clientId: true, updatedAt: true,
       deliverables: {
-        where: { revisionStatus: "quality_flag" },
-        select: { id: true, name: true, lastFeedback: true, version: true },
+        where: { revisionStatus: { in: ["quality_flag", "quality_nao_auditado"] } },
+        select: { id: true, name: true, lastFeedback: true, version: true, revisionStatus: true },
       },
+    },
+    orderBy: { updatedAt: "asc" },
+  });
+
+  return projetos.map((p) => {
+    // DUAS LISTAS, NUNCA UMA. "A Qualidade barrou" e "ninguém olhou" são fatos
+    // diferentes com consertos diferentes — juntá-los mandaria a equipe
+    // reescrever o que não tem defeito. É a mesma separação que `apresentar()`
+    // já faz na frase de recusa.
+    // A não auditada é a exceção NOMEADA; todo o resto que a consulta trouxe é
+    // reprovação. A direção do `filter` importa: se um dia o estado chegar
+    // vazio ou com nome novo, a peça cai na lista que GRITA (reprovadas), não
+    // na que some. Peça que não está em nenhuma das duas é peça invisível — foi
+    // exatamente esse o defeito que este bloco existe para não repetir.
+    const naoAuditadas = p.deliverables.filter((d) => d.revisionStatus === "quality_nao_auditado");
+    const reprovadas = p.deliverables.filter((d) => d.revisionStatus !== "quality_nao_auditado");
+    return {
+      projectId: p.id,
+      projeto: p.name,
+      clientId: p.clientId,
+      desde: p.updatedAt,
+      reprovadas,
+      /** Peças que NENHUM árbitro examinou. Não se reescreve: reaudita-se. */
+      naoAuditadas,
+      /** Já esgotou as tentativas? Então está esperando gente, não a máquina.
+       *  Vale só para as reprovadas: a nunca auditada não tem tentativa de
+       *  reescrita — ela espera um juiz, e um juiz pode voltar a qualquer hora. */
+      esperandoDecisao: reprovadas.some((d) => d.version > MAX_TENTATIVAS_DE_REFAZER),
+    };
+  });
+}
+
+/**
+ * A INSTRUÇÃO GÊMEA DA PROIBIÇÃO: reauditar o que ninguém olhou.
+ *
+ * `apresentar()` barra a peça `quality_nao_auditado` e diz, com todas as
+ * letras, *"não é defeito da peça: não reescreva, destrave a auditoria"*. Esta
+ * função é o "destravar" — e ela existe porque, sem ela, aquela frase era um
+ * pedido a um humano que nunca ficava sabendo do pacote.
+ *
+ * ⚠️ **NÃO REESCREVE NADA.** A peça não tem defeito conhecido: o que falta é
+ * juiz. Reescrever aqui seria trocar um problema de disponibilidade por uma
+ * versão nova sem motivo, e queimar IA de produção para isso.
+ *
+ * Fail-closed: árbitro que continua fora do ar deixa a peça exatamente como
+ * está — barrada. Ausência de parecer nunca vira aprovação.
+ */
+export async function reauditarSemArbitro(projectId: string): Promise<{
+  projectId: string;
+  aprovadas: string[];
+  reprovadas: string[];
+  aindaSemArbitro: string[];
+}> {
+  const saida = { projectId, aprovadas: [] as string[], reprovadas: [] as string[], aindaSemArbitro: [] as string[] };
+
+  const projeto = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, workspaceId: true, clientId: true, clientRequestId: true, presentedAt: true },
+  });
+  if (!projeto || projeto.presentedAt) return saida;
+
+  const semJuiz = await prisma.deliverable.findMany({
+    where: { projectId, revisionStatus: "quality_nao_auditado" },
+    select: { id: true, name: true, content: true, type: true, ownerAgentId: true },
+  });
+  if (semJuiz.length === 0) return saida;
+
+  const req = projeto.clientRequestId
+    ? await prisma.clientRequestDb.findUnique({
+        where: { id: projeto.clientRequestId },
+        select: { businessName: true, segment: true, services: true, objectives: true },
+      })
+    : null;
+  const negocio = req?.businessName ?? "o cliente";
+  const contextoDaMarca = [
+    `Negócio: ${negocio}`,
+    req?.segment ? `Segmento: ${req.segment}` : "",
+    listar(req?.services) ? `Serviços contratados: ${listar(req?.services)}` : "",
+    listar(req?.objectives) ? `Objetivos: ${listar(req?.objectives)}` : "",
+  ].filter(Boolean).join("\n");
+
+  for (const entrega of semJuiz) {
+    const esp = TODOS_OS_ESPECIALISTAS.find((e) => e.id === entrega.ownerAgentId);
+    const veredito = await auditDeliverable({
+      deptLabel: esp?.departamentoLabel ?? "Produção",
+      title: entrega.name,
+      content: entrega.content ?? "",
+      brandContext: contextoDaMarca,
+      workspaceId: projeto.workspaceId,
+      tipoDaEntrega: entrega.type,
+      clientId: projeto.clientId ?? null,
+      projectId: projeto.id,
+    }).catch(() => null);
+
+    // Sem parecer, NADA muda: a peça continua `quality_nao_auditado` e volta a
+    // aparecer na próxima rodada. É de propósito que não há teto de tentativas
+    // aqui — o teto existe para reescrita cara; reaudição espera o provedor
+    // voltar, e o custo de uma auditoria é a fração barata do pacote.
+    if (!veredito || (!foiAprovadaPelaQualidade(veredito.verdict) && !foiReprovadaPelaQualidade(veredito.verdict))) {
+      saida.aindaSemArbitro.push(entrega.name);
+      continue;
+    }
+
+    const aprovada = foiAprovadaPelaQualidade(veredito.verdict);
+    await prisma.deliverable.update({
+      where: { id: entrega.id },
+      data: {
+        revisionStatus: aprovada ? revisionStatusDoVeredito("aprovado") : revisionStatusDoVeredito("reprovado"),
+        qualityArbiter: veredito.arbitro ?? null,
+        qualityArbitragem: arbitragemDoVeredito(veredito),
+        lastFeedback: veredito.note ?? null,
+      },
+    }).catch(() => { /* best-effort: uma escrita perdida volta na próxima rodada */ });
+
+    (aprovada ? saida.aprovadas : saida.reprovadas).push(entrega.name);
+  }
+
+  return saida;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// O PACOTE PRONTO QUE NINGUÉM APRESENTOU
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ⚠️ MEDIDO EM PRODUÇÃO (cliente oculto, 7ª volta, 26/08/2026), e foi o ÚNICO
+// empurrão manual por defeito da casa naquela volta.
+//
+// O projeto `cmt9l4eu0005e0xmngtcm4w3o` ficou assim: direção aprovada,
+// pagamento registrado, todos os pedidos de material resolvidos, **as 6
+// entregas `quality_ok`**, `presentedAt: null`, `executionStatus: pending`.
+// Tudo verde. O relógio bateu, pegou o projeto, o motor rodou — e **nada
+// aconteceu, sem um evento sequer**. Foi preciso apresentar pela rota de
+// operador para o cliente ver alguma coisa.
+//
+// A causa é uma ausência, não um erro: a ÚNICA consulta da casa que procura
+// projeto não apresentado é `pacotesTravados()`, e ela exige uma entrega
+// TRAVADA (`quality_flag` ou `quality_nao_auditado`). Pacote sem nada travado e
+// não apresentado não está em lista nenhuma — invisível, silencioso, e o
+// cliente esperando. Zero paradas lidas não é verde; é vazio.
+//
+// Esta consulta é o complemento exato da outra: `pacotesTravados()` acha o que
+// está PARADO POR DEFEITO; esta acha o que está PARADO POR NADA. Juntas, nenhum
+// projeto não apresentado fica sem dono.
+//
+// ── AS TRÊS TRAVAS, E POR QUE CADA UMA ────────────────────────────────────
+//
+// 1. `directionApprovedAt` não pode ser nulo. Sem direção aprovada não existe
+//    pacote a apresentar — `apresentar()` recusaria, e chamá-la aqui só geraria
+//    ruído a cada 5 minutos.
+// 2. NENHUMA entrega em `quality_flag` nem `quality_nao_auditado`. Este é o
+//    ponto em que esta perna poderia virar o contorno que a casa proibiu: se
+//    ela pegasse pacote com ressalva, seria `mesmoComRessalva` por outro nome,
+//    automático e sem gente. Ela NÃO pega, e `apresentar()` continua recusando
+//    por conta própria — a trava é dupla de propósito.
+// 3. QUIETO HÁ UM TEMPO. Um pacote em produção tem entregas verdes enquanto as
+//    outras ainda nascem; apresentar no meio disso mostraria meio pacote ao
+//    cliente, que é exatamente o que o marco 2 existe para evitar. `running`
+//    fica fora pelo estado, e o silêncio de `updatedAt` cobre o resto.
+export const QUIETO_HA_MINUTOS = 15;
+
+export async function pacotesProntosNaoApresentados(workspaceId?: string) {
+  const corte = new Date(Date.now() - QUIETO_HA_MINUTOS * 60_000);
+  const projetos = await prisma.project.findMany({
+    where: {
+      presentedAt: null,
+      directionApprovedAt: { not: null },
+      executionStatus: { not: "running" },
+      updatedAt: { lt: corte },
+      ...(workspaceId ? { workspaceId } : {}),
+      // Tem o que apresentar…
+      deliverables: { some: {} },
+      // …e nada travado. `none` sobre a lista NOMEADA, e não `every` sobre o
+      // complemento: estado novo que aparecer no banco cai no lado seguro
+      // (entra na lista e é apresentável) só se não for um dos dois travados —
+      // e se um terceiro estado travado nascer, `apresentar()` ainda barra.
+      NOT: { deliverables: { some: { revisionStatus: { in: ["quality_flag", "quality_nao_auditado"] } } } },
+    },
+    select: {
+      id: true, name: true, clientId: true, updatedAt: true,
+      _count: { select: { deliverables: true } },
     },
     orderBy: { updatedAt: "asc" },
   });
@@ -386,9 +623,60 @@ export async function pacotesTravados(workspaceId?: string) {
     projectId: p.id,
     projeto: p.name,
     clientId: p.clientId,
-    desde: p.updatedAt,
-    reprovadas: p.deliverables,
-    /** Já esgotou as tentativas? Então está esperando gente, não a máquina. */
-    esperandoDecisao: p.deliverables.some((d) => d.version > MAX_TENTATIVAS_DE_REFAZER),
+    /** Há quanto tempo ele está pronto e parado. É este número que vira notícia. */
+    paradoDesde: p.updatedAt,
+    entregas: p._count.deliverables,
   }));
 }
+
+/**
+ * O PACOTE PRONTO QUE NINGUÉM APRESENTOU — a perna que não existia.
+ *
+ * ⚠️ MEDIDO EM PRODUÇÃO (cliente oculto, 7ª volta, 26/08/2026). Foi o ÚNICO
+ * empurrão manual por defeito da casa naquela volta: o pacote ficou com a
+ * direção aprovada, o pagamento registrado, os pedidos de material resolvidos e
+ * **as 6 entregas `quality_ok`** — e `presentedAt` continuou `null`. O relógio
+ * bateu, pegou o projeto, o motor rodou, e **nada aconteceu, sem um evento
+ * sequer**. Foi preciso apresentar pela rota de operador.
+ *
+ * A casa tinha rede para o pacote parado POR DEFEITO (`destravarPacotesBarrados`)
+ * e nenhuma para o parado POR NADA. Nada pronto pode ficar parado sem dono e
+ * sem próxima ação.
+ *
+ * ── ESTA PERNA NÃO É UM CONTORNO, E A DIFERENÇA É O TODO ──────────────────
+ *
+ * `apresentar()` é chamada **sem `mesmoComRessalva`**, e nunca com. Se a
+ * Qualidade retiver o pacote, ela retém — isso é RESULTADO, e o pacote volta
+ * para a perna do destravamento, que é onde ele tem conserto. A consulta já
+ * exclui pacote com ressalva; a recusa de `apresentar()` é a segunda trava, e
+ * as duas são de propósito. Uma perna automática que apresentasse assim mesmo
+ * seria `mesmoComRessalva` por outro nome — o único freio da casa, desligado
+ * sem gente e sem testemunha.
+ *
+ * O que ela devolve é o número de pacotes que CHEGARAM AO CLIENTE. Recusa não
+ * conta como apresentação: contar seria a mesma mentira de estado que "destravei
+ * 8" enquanto o cliente continuava sem ver a entrega (26/08, dívida anterior).
+ */
+export async function apresentarPacotesProntos(maxPorRodada = 5): Promise<number> {
+  const { apresentar } = await import("@/lib/agency/esteira/marcos");
+  const prontos = await pacotesProntosNaoApresentados();
+  let apresentados = 0;
+  for (const p of prontos.slice(0, maxPorRodada)) {
+    try {
+      const horas = Math.round((Date.now() - new Date(p.paradoDesde).getTime()) / 3_600_000);
+      const r = await apresentar(p.projectId);
+      if (r.ok && !r.erro) {
+        apresentados++;
+        console.log(`[despertador] pacote ${p.projectId} ("${p.projeto}") estava PRONTO e parado há ~${horas}h — apresentado ao cliente (${p.entregas} entrega(s))`);
+      } else if (r.erro) {
+        // Retido é notícia, não silêncio: quem lê o pulso precisa saber que a
+        // casa viu o pacote e por que ele não foi.
+        console.log(`[despertador] pacote ${p.projectId} pronto há ~${horas}h NÃO foi apresentado: ${r.erro}`);
+      }
+    } catch (err) {
+      console.log(`[despertador] pacote ${p.projectId} falhou ao apresentar: ${err instanceof Error ? err.message : "erro"}`);
+    }
+  }
+  return apresentados;
+}
+

@@ -74,7 +74,9 @@ import {
   type ProjetoDoPortal,
 } from "@/components/portal/cliente/abas";
 import { EntrevistaDeMarca } from "@/components/portal/cliente/EntrevistaDeMarca";
-import { CapaDaAba, Carregando, Erro, Etiqueta, Numeros, TituloDeSecao, Vazio, dataCurta } from "@/components/portal/cliente/pecas";
+import { CapaDaAba, Carregando, Etiqueta, Numeros, TituloDeSecao, Vazio, dataCurta } from "@/components/portal/cliente/pecas";
+import { AcessoBloqueado } from "@/components/portal/cliente/AcessoBloqueado";
+import { falhaDoPortal, type MotivoDoBloqueio } from "@/components/portal/cliente/acesso";
 
 // ── As 11 abas, na ordem do handoff ─────────────────────────────────────────
 type AbaId =
@@ -94,6 +96,16 @@ const ABAS: { id: AbaId; label: string }[] = [
   { id: "integracoes",  label: "Integrações" },
   { id: "conta",        label: "Minha conta" },
 ];
+
+/** O `reason` que o servidor manda, traduzido para o motivo da tela de
+ *  acesso bloqueado. Chave desconhecida cai no `?? "rede"` de quem usa —
+ *  mapa de dado de rede sempre tem saída (DESIGN.md §7.5, regra 1). */
+const MOTIVO_DO_PORTAO: Record<string, MotivoDoBloqueio> = {
+  expired: "expirado",
+  revoked: "revogado",
+  invalid: "invalido",
+  network: "rede",
+};
 
 /** Endereços antigos que continuam válidos — link antigo nunca vira beco. */
 const DESTINO_ANTIGO: Record<string, AbaId> = {
@@ -125,6 +137,8 @@ interface EstadoEsteira {
   aBolaEstaComVoce?: boolean;
   pendencias?: string[];
   pacote?: { pedeAprovacao: boolean; prontas: string[]; emProducao: string[] } | null;
+  /** A porta de aprovar a DIREÇÃO, medida no servidor. Ausente = não pede. */
+  direcao?: { pedeAprovacao: boolean } | null;
 }
 
 interface ConexaoView {
@@ -186,6 +200,15 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+
+  // ── O ACESSO QUE MORRE COM A PESSOA DENTRO (29/08/2026) ───────────────────
+  // Perder o acesso ao ABRIR o portal e perdê-lo NO MEIO de uma decisão são
+  // duas notícias diferentes, e por meses foram a mesma: a segunda nem chegava
+  // a ser notícia — virava a string "Access denied", em inglês, embaixo do
+  // botão Aprovar. Este sinalizador é o que faz o portão falar com quem já
+  // estava aqui ("seu acesso expirou enquanto você estava aqui") em vez de
+  // mandar conferir um link que a pessoa nem usou nesta visita.
+  const [bloqueio, setBloqueio] = useState<MotivoDoBloqueio | null>(null);
 
   const [aba, setAba] = useState<AbaId>("inicio");
   const [chatAberto, setChatAberto] = useState(false);
@@ -281,6 +304,30 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
     } catch { /* a porta de pedir continua funcionando sem a lista */ }
   }, [q]);
 
+  // ── A PORTA DA PERGUNTA (25/08/2026) ──────────────────────────────────────
+  // Manda a resposta do cliente e RECARREGA a lista: a mesma requisição roda a
+  // triagem de novo, então o cartão que volta já é o estado novo. Sem o
+  // recarregamento o cliente responderia, leria "anotado", e continuaria vendo
+  // o selo amarelo — que é indistinguível de não ter sido escutado.
+  const responderPergunta = useCallback(
+    async (input: { pedidoId: string; opcaoId?: string; numero?: number }) => {
+      try {
+        const res = await fetch(`/api/portal/pedidos/responder${q}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) return { ok: false, erro: typeof j.error === "string" ? j.error : "Não consegui registrar sua resposta agora." };
+        await carregarPedidos();
+        return { ok: true, recado: typeof j.recado === "string" ? j.recado : undefined };
+      } catch {
+        return { ok: false, erro: "Sem conexão agora. Sua resposta não foi registrada — tente de novo." };
+      }
+    },
+    [q, carregarPedidos],
+  );
+
   const carregarEsteira = useCallback(async () => {
     try {
       const res = await fetch(`/api/portal/esteira${q}`, { cache: "no-store" });
@@ -332,6 +379,32 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
    *  Nunca um campo digitado na tela — quem decide é o dono do acesso. */
   const nomeDeQuemDecide = vista?.marca.nome || data?.businessName || "Cliente do portal";
 
+  /**
+   * ── LER O `res.status` EM VEZ DE JOGÁ-LO FORA ───────────────────────────
+   *
+   * As três decisões abaixo faziam `throw new Error(j.error ?? "HTTP …")`. O
+   * `??` matava o status sempre que a API preenchia `error` — e ela preenche:
+   * o 403 de token morto vem como `{"error":"Access denied","reason":"expired"}`.
+   * O tradutor de erro só reconhece o status quando a string é literalmente
+   * "HTTP 403"; com "Access denied" ele concluía que já era frase de humano e
+   * **devolvia o inglês da API** embaixo do botão Aprovar, para o cliente
+   * pagante, no celular. Medido ao vivo em 29/08/2026.
+   *
+   * Agora o status e o `reason` são lidos e separam duas coisas que nunca
+   * foram a mesma: *seu acesso morreu* (a tela inteira vira a tela de acesso
+   * perdido, com o próximo passo) e *deu erro agora* (frase em português no
+   * lugar de sempre, e a decisão continua possível).
+   */
+  async function relatarFalha(res: Response, acao: string): Promise<void> {
+    const falha = await falhaDoPortal(res, acao);
+    if (falha.bloqueio) {
+      setBloqueio(falha.bloqueio);
+      setErroDecisao(falha.mensagem);
+      return;
+    }
+    setErroDecisao(mensagemDeErro(new Error(falha.mensagem), acao).mensagem);
+  }
+
   function irPara(destino: string, aprovacaoId?: string | null) {
     const alvo = (ABAS.find((a) => a.id === destino)?.id) ?? DESTINO_ANTIGO[destino] ?? "inicio";
     setAba(alvo);
@@ -370,8 +443,8 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
         }),
       });
       if (!res.ok) {
-        const j = await res.json().catch(() => ({} as { error?: string }));
-        throw new Error(j.error ?? `HTTP ${res.status}`);
+        await relatarFalha(res, "registrar sua resposta");
+        return false;
       }
       await carregarPortalData();
       return true;
@@ -393,8 +466,8 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
         body: JSON.stringify({ ...(token ? { token } : {}), pedidoId, decisao, ...(apontamento ? { apontamento } : {}) }),
       });
       if (!res.ok) {
-        const j = await res.json().catch(() => ({} as { error?: string }));
-        throw new Error(j.error ?? `HTTP ${res.status}`);
+        await relatarFalha(res, "registrar sua resposta");
+        return false;
       }
       await carregarPedidos();
       return true;
@@ -416,8 +489,8 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
         body: JSON.stringify(token ? { token, decisao } : { decisao }),
       });
       if (!res.ok) {
-        const j = await res.json().catch(() => ({} as { error?: string }));
-        throw new Error(j.error ?? `HTTP ${res.status}`);
+        await relatarFalha(res, "registrar sua aprovação");
+        return false;
       }
       await Promise.all([carregarEsteira(), carregarPortalData()]);
       return true;
@@ -442,7 +515,14 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
   const pacoteDaEsteira = esteira?.pacote ?? null;
   const etapaEsteira = (esteira?.etapa ?? "").toLowerCase();
 
-  const decisaoDaEsteira: DecisaoDaEsteira | null = etapaEsteira.includes("confirme o caminho")
+  // ── A PORTA DE APROVAR A DIREÇÃO VEM DO SERVIDOR (24/08/2026) ─────────────
+  // Era um `includes` da frase "confirme o caminho" na etapa: o botão dependia de uma
+  // frase dentro da prosa da etapa. Bastou o projeto ter um pedido de material
+  // aberto para a etapa virar "Precisamos de uma coisa sua" e o botão sumir —
+  // com a conversa dizendo à cliente "é só aprovar" (case Farol 27). Verdade
+  // escrita em dois lugares já está errada em um deles: o que decide agora é o
+  // estado da etapa, medido em `lerFase.precisaAprovarDirecao`.
+  const decisaoDaEsteira: DecisaoDaEsteira | null = (esteira?.direcao?.pedeAprovacao ?? false)
     ? {
         titulo: "Confirme o caminho do projeto",
         descricao: "A equipe montou a direção do trabalho a partir do seu briefing. Com o seu sim, a produção começa; se algo não fizer sentido, fale com seu PM antes de aprovar.",
@@ -582,25 +662,22 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
   if (carregando) {
     return <div className="cp-shell"><main className="cp-main"><Carregando /></main></div>;
   }
-  if (erro || !vista) {
-    const mensagens: Record<string, { titulo: string; corpo: string }> = {
-      expired: { titulo: "Link expirado", corpo: "Este link de acesso expirou. Peça um novo à equipe Dioli." },
-      revoked: { titulo: "Acesso revogado", corpo: "Este link foi desativado. Entre em contato com a equipe Dioli." },
-      invalid: { titulo: "Link inválido", corpo: "Este link não é válido. Confira o link que você recebeu ou peça um novo." },
-      network: { titulo: "Erro de conexão", corpo: "Não consegui verificar o seu acesso. Tente novamente em instantes." },
-    };
-    const m = mensagens[erro ?? "invalid"] ?? mensagens.invalid;
-    const podeTentar = erro === "network" || !erro;
+  if (bloqueio || erro || !vista) {
+    // O motivo vem do SERVIDOR (o `reason` de /api/brain/portal-data) ou da
+    // negativa que derrubou a decisão. Sem nenhum dos dois, o que houve foi
+    // não ter conseguido falar com o servidor — e o texto diz isso, em vez de
+    // acusar o link da pessoa de inválido sem ter como saber.
+    const motivo: MotivoDoBloqueio =
+      bloqueio ?? MOTIVO_DO_PORTAO[erro ?? ""] ?? "rede";
+    // Tentar de novo só aparece quando tentar de novo pode resolver. Botão que
+    // repete a mesma negativa é pior que botão nenhum.
+    const podeTentar = !bloqueio && motivo === "rede";
     return (
-      <div className="cp-shell">
-        <main className="cp-main">
-          <Erro
-            titulo={m.titulo}
-            texto={m.corpo}
-            aoTentarDeNovo={podeTentar ? () => { setErro(null); setCarregando(true); void carregarVista(); } : undefined}
-          />
-        </main>
-      </div>
+      <AcessoBloqueado
+        motivo={motivo}
+        contexto={bloqueio ? "sessao" : "entrada"}
+        aoTentarDeNovo={podeTentar ? () => { setErro(null); setCarregando(true); void carregarVista(); } : undefined}
+      />
     );
   }
 
@@ -915,7 +992,11 @@ export default function PortalDoCliente({ params }: { params: Promise<{ token: s
                     </div>
                   ) : (
                     <div style={{ marginTop: 13 }}>
-                      <MeusPedidos pedidos={pedidos} aoIrParaAprovacoes={(id) => irPara("aprovacoes", idDeOrcamento(id))} />
+                      <MeusPedidos
+                        pedidos={pedidos}
+                        aoIrParaAprovacoes={(id) => irPara("aprovacoes", idDeOrcamento(id))}
+                        aoResponderPergunta={responderPergunta}
+                      />
                     </div>
                   )}
                 </article>

@@ -49,6 +49,25 @@ interface LinhaDeProjeto {
   id: string; label: string;
   receita: Dinheiro; custo: Dinheiro; custoDeIaUsd: Dinheiro;
   chamadasDeIa: number; resultado: Dinheiro;
+  /** Presente = parceria com isenção viva. Ausente = NÃO é parceria. */
+  parceria?: { autorizadaPor: string; validaAte: string; escopo: string };
+}
+
+/** O selo da parceria — ordem do CEO (D-0B9): *"tudo tem que ser medido,
+ *  inclusive as parcerias"*. Sem ele, R$ 0,00 na coluna "Faturou" lê-se como
+ *  calote ou descuido. Com ele, lê-se como o que é: investimento autorizado,
+ *  com dono e prazo, e a margem negativa ao lado é o preço declarado dele. */
+function SeloDeParceria({ p }: { p: NonNullable<LinhaDeProjeto["parceria"]> }) {
+  const ate = new Date(p.validaAte);
+  const legivel = Number.isNaN(ate.getTime()) ? p.validaAte : ate.toLocaleDateString("pt-BR");
+  return (
+    <span
+      className="ml-2 inline-flex items-center h-[18px] px-1.5 rounded-[4px] bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-semibold align-middle"
+      title={`Parceria autorizada por ${p.autorizadaPor} — vale até ${legivel}. Escopo: ${p.escopo}`}
+    >
+      parceria · até {legivel}
+    </span>
+  );
 }
 interface Resposta {
   referencia: string;
@@ -301,7 +320,9 @@ export default function FinanceiroPage() {
                     <li key={p.id}>
                       <Cartao className="p-3.5">
                         <div className="flex items-baseline justify-between gap-3 mb-2">
-                          <p className="text-[14px] font-medium text-[var(--text-primary)] truncate">{p.label}</p>
+                          <p className="text-[14px] font-medium text-[var(--text-primary)] truncate">
+                            {p.label}{p.parceria ? <SeloDeParceria p={p.parceria} /> : null}
+                          </p>
                           <Valor d={p.resultado} />
                         </div>
                         <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
@@ -333,7 +354,9 @@ export default function FinanceiroPage() {
                     <tbody className="divide-y divide-[var(--border)]">
                       {dados!.projetos.map((p) => (
                         <tr key={p.id}>
-                          <td className="px-4 py-3 text-[13.5px] text-[var(--text-primary)]">{p.label}</td>
+                          <td className="px-4 py-3 text-[13.5px] text-[var(--text-primary)]">
+                            {p.label}{p.parceria ? <SeloDeParceria p={p.parceria} /> : null}
+                          </td>
                           <td className="px-4 py-3 text-right"><Valor d={p.receita} /></td>
                           <td className="px-4 py-3 text-right"><Valor d={p.custo} /></td>
                           <td className="px-4 py-3 text-right"><Valor d={p.custoDeIaUsd} /></td>

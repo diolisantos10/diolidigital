@@ -15,6 +15,7 @@ import {
   type VerdadeOperacional,
 } from "@/lib/agency/execution/piso-de-verdade";
 import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { nomeDoNegocio } from "@/lib/agency/comercial/negocio-do-lead";
 
 export interface ClientKnowledgeSnapshot {
   clientRequestId: string;
@@ -109,14 +110,74 @@ function achatar(valor: unknown, profundidade = 0): string {
 }
 
 /** Tudo que o cliente contou, em texto, pronto para o extrator. */
+/**
+ * O QUE O CLIENTE ESCREVEU NA CONVERSA DO PORTAL — e só ele.
+ *
+ * ── O buraco que isto fecha (cliente oculto, 26/08/2026) ───────────────────
+ *
+ * Medido em produção, no pedido cmt9exi95001f0xo74bhonn77 (CANTINA DO PORTO
+ * TESTE). A cadeia, inteira:
+ *
+ *   1. o SDR nunca perguntou o horário de funcionamento (ele preencheu o campo
+ *      `operacao` com a FRASE DE OBJETIVO do cliente, então a pergunta
+ *      `operacao_basica` passou por respondida);
+ *   2. o briefing chegou à produção sem horário;
+ *   3. o especialista de Estratégia escreveu sobre horário;
+ *   4. o piso de verdade REPROVOU, e com a frase certa: *"Horário de
+ *      funcionamento. O cliente nunca informou isso."*;
+ *   5. o projeto do cliente PAGANTE ficou `blocked`, com zero peças.
+ *
+ * E o passo que transforma isso de "portão funcionando" em buraco: **o cliente
+ * ESCREVEU o horário.** Ele respondeu, na conversa do portal — que é o único
+ * canal que ele tem —, *"abrimos de terça a domingo, das 18h às 23h30"*. O piso
+ * continuou dizendo que ele nunca informou, porque `palavrasDoCliente` lia
+ * `rawContext`, `briefingJson` e `sdrHandoffJson` e **nunca leu `PortalMessage`**.
+ *
+ * Esta casa já escreveu a lição no espelho: *"coluna gravada não é cliente
+ * informado"*. A daqui é a outra metade: **cliente informado não é coluna
+ * lida.**
+ *
+ * ── ⚠️ SÓ O QUE O CLIENTE DISSE, NUNCA O QUE A CASA DISSE ──────────────────
+ *
+ * `authorRole: "client"` não é filtro de conveniência, é a trava. As mensagens
+ * da EQUIPE moram na mesma tabela, e incluí-las faria a agência ATESTAR AS
+ * PRÓPRIAS INVENÇÕES: bastaria um agente escrever "vocês abrem às 9h" no portal
+ * para o piso de verdade passar a aceitar aquele horário como fato do cliente.
+ * Seria a porta dos fundos perfeita para o portão que este arquivo alimenta.
+ *
+ * Nunca lança: conversa ilegível vira ausência de fala, e ausência de fala
+ * mantém o piso fail-closed — que é o comportamento de antes.
+ */
+async function falasDoClienteNoPortal(clientRequestId: string): Promise<string> {
+  try {
+    const linhas = await prisma.portalMessage.findMany({
+      // O ANCORAMENTO É O PEDIDO. Não se lê por `clientId` aqui: o mesmo cliente
+      // pode ter outros pedidos, e verdade de um pedido não atesta outro.
+      where: { clientRequestId, authorRole: "client" },
+      orderBy: { createdAt: "asc" },
+      take: 100,
+      select: { body: true },
+    });
+    return linhas.map((l) => l.body).filter(Boolean).join("\n");
+  } catch {
+    return "";
+  }
+}
+
 function palavrasDoCliente(input: {
   rawContext: string;
   briefingJson?: string | null;
   sdrHandoffJson?: string | null;
   brand?: string[];
   website?: string | null;
+  /** O que o CLIENTE escreveu na conversa do portal. Ver `falasDoClienteNoPortal`. */
+  falasNoPortal?: string;
 }): string {
   const partes: string[] = [input.rawContext];
+  // Entra junto com o resto do que ele disse: o canal é outro, a fonte é a
+  // mesma pessoa. O que separa fala do cliente de fala da casa é o filtro de
+  // `authorRole`, aplicado na leitura.
+  if (input.falasNoPortal) partes.push(input.falasNoPortal);
   for (const bruto of [input.briefingJson, input.sdrHandoffJson]) {
     if (!bruto) continue;
     try {
@@ -142,6 +203,13 @@ export async function buildClientSnapshot(
   // BrandBrain lives on Client (1:1). A request may not be linked to a Client yet.
   const brandBrain = request.clientId
     ? await prisma.brandBrain.findUnique({ where: { clientId: request.clientId } })
+    : null;
+
+  // O nome do CADASTRO é a terceira memória do nome do negócio. Best-effort: a
+  // falta dele não pode derrubar o snapshot — ele é o último recurso, não o
+  // primeiro. Ver `nomeDoNegocio`.
+  const cadastro = request.clientId
+    ? await prisma.client.findUnique({ where: { id: request.clientId }, select: { name: true } }).catch(() => null)
     : null;
 
   // Map DB BrandBrain → snapshot fields. Fields the DB model does not carry stay
@@ -199,6 +267,7 @@ export async function buildClientSnapshot(
       rawContext: request.rawContext,
       briefingJson: request.briefingJson,
       sdrHandoffJson: request.sdrHandoffJson,
+      falasNoPortal: await falasDoClienteNoPortal(request.id),
       brand: [
         clean(brandBrain?.positioning) ?? "",
         clean(brandBrain?.targetAudience) ?? "",
@@ -210,7 +279,15 @@ export async function buildClientSnapshot(
 
   return {
     clientRequestId: request.id,
-    businessName: request.businessName,
+    // O nome olha as três memórias — coluna, escopo do briefing e cadastro. A
+    // coluna sozinha grava `""` quando a porta não soube o nome, e foi assim
+    // que uma entrega nasceu com "PRECISO CONFIRMAR: nome do negócio" no título
+    // com o nome no escopo desde o primeiro turno (8ª volta, 26/08/2026).
+    businessName: nomeDoNegocio({
+      businessName: request.businessName,
+      briefingJson: request.briefingJson,
+      clientName: cadastro?.name,
+    }) ?? "",
     segment: request.segment,
     services: Array.isArray(services) ? services : [],
     objectives: Array.isArray(objectives) ? objectives : [],
@@ -312,6 +389,7 @@ async function lerVerdadeDoCliente(clientRequestId: string): Promise<VerdadeDoCl
     rawContext: request.rawContext,
     briefingJson: request.briefingJson,
     sdrHandoffJson: request.sdrHandoffJson,
+    falasNoPortal: await falasDoClienteNoPortal(request.id),
     brand: [clean(brandBrain?.positioning) ?? "", clean(brandBrain?.targetAudience) ?? "", clean(brandBrain?.tagline) ?? ""],
     website: clean(client?.website),
   });

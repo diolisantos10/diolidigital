@@ -10,6 +10,8 @@ import {
   conferirOferta,
   type CapacidadeDeProducao,
 } from "@/lib/agency/capacidade-de-producao";
+// A TABELA ÚNICA. O balcão vende avulso; a MENSALIDADE dele é a da casa.
+import { PLANOS } from "@/lib/agency/planos";
 
 export type SelfServeCategory = "social" | "video" | "design" | "traffic" | "balcao";
 
@@ -44,6 +46,10 @@ export interface MicroService {
   deliveryLabel?: string;
 }
 
+/** O Ritmo, lido da TABELA ÚNICA. O balcão não tem preço de mensalidade
+ *  próprio: a mensalidade da casa é uma só. */
+const RITMO = PLANOS.find((p) => p.id === "ritmo")!;
+
 export const SELF_SERVE_CATALOG: MicroService[] = [
   // ── Balcão ───────────────────────────────────────────────────────────────
   // Decisão do CEO em 05/08/2026: a Dioli é empresa de serviços digitais PARA
@@ -63,13 +69,13 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   // empurrar a produção à mão, o que mata a premissa (1).
   {
     id: "balcao-post-feed",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "Post para feed",
     description: "Uma arte para o feed com legenda pronta para publicar.",
     deliverables: [
       "1 arte 1080×1350 (feed vertical)",
       "Legenda pronta, no tom da marca",
-      "Arquivo PNG no portal do cliente",
+      "Arquivo JPEG no portal do cliente",
       "Escopo fechado: sem rodada de revisão",
     ],
     price: 79,
@@ -79,14 +85,14 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "balcao-carrossel-5",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "Carrossel até 5 telas",
     description: "Sequência de até cinco telas com capa e legenda.",
     deliverables: [
       "Capa + até 4 telas de miolo (1080×1350)",
       "Sequência com começo, meio e fim",
       "Legenda pronta, no tom da marca",
-      "Arquivos PNG numerados na ordem de publicação",
+      "Arquivos JPEG numerados na ordem de publicação",
     ],
     price: 129,
     precoMinimo: 79,
@@ -95,15 +101,36 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
     popular: true,
   },
   {
+    // O PREÇO QUE FALTAVA NA TABELA (CEO, 25/08/2026). O balcão vendia 4 stories
+    // por R$ 99 e não vendia UM — e quem quer um story não compra quatro: ele
+    // some da conversa. R$ 35 mantém a escada honesta (4 por R$ 99 continua
+    // sendo o negócio melhor, R$ 24,75 cada), em vez de um avulso tão caro que
+    // só existe para empurrar o pacote.
+    id: "balcao-1-story",
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
+    label: "1 story",
+    description: "Um story vertical com margem protegida.",
+    deliverables: [
+      "1 story 1080×1920",
+      "Margem protegida: nada de texto cortado por barra ou botão",
+      "Texto da tela",
+      "Arquivo JPEG no portal do cliente",
+    ],
+    price: 35,
+    precoMinimo: 25,
+    deliveryDays: 1,
+    category: "balcao",
+  },
+  {
     id: "balcao-4-stories",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "4 stories",
     description: "Quatro stories verticais com margem protegida.",
     deliverables: [
       "4 stories 1080×1920",
       "Margem protegida: nada de texto cortado por barra ou botão",
       "Texto de cada tela",
-      "Arquivos PNG no portal do cliente",
+      "Arquivos JPEG no portal do cliente",
     ],
     price: 99,
     precoMinimo: 59,
@@ -143,18 +170,31 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
     category: "balcao",
   },
   {
+    // ── ESTE ITEM É O PLANO RITMO, VENDIDO NO BALCÃO (26/08/2026) ──────────
+    //
+    // Ele tinha preço PRÓPRIO (R$ 297 / piso R$ 229) e volume próprio (8
+    // peças) — a mesma mensalidade da vitrine, com outro número. Duas verdades
+    // sobre o mesmo produto: quem entrasse pelo balcão pagava um preço e quem
+    // entrasse pela página pagava outro, pelo mesmo mês de conteúdo.
+    //
+    // Agora ele É o Ritmo: preço, piso e volume vêm de `PLANOS`. O balcão
+    // continua sendo o lugar do AVULSO; este item é a porta de entrada do
+    // recorrente, e porta de entrada não pode cobrar diferente do que a casa
+    // cobra por dentro.
     id: "balcao-pacote-mes",
-    requer: ["arte-estatica-png", "texto-de-marca"],
-    label: "Pacote mês — 8 peças",
-    description: "Um mês de conteúdo: pauta, oito peças e calendário.",
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
+    label: `Pacote mês — ${RITMO.pecasPorMes} peças`,
+    description: `Um mês de conteúdo: pauta, ${RITMO.pecasPorMes} peças e calendário.`,
     deliverables: [
       "Pauta do mês enviada antes da produção",
-      "8 peças (posts e/ou carrosséis)",
+      `${RITMO.pecasPorMes} peças (posts e/ou carrosséis)`,
       "Calendário com a data de cada publicação",
       "Aprovação peça a peça no portal do cliente",
     ],
-    price: 297,
-    precoMinimo: 229,
+    price: RITMO.preco,
+    // O piso do recorrente é o mesmo da negociação (78% do cheio) — uma régua,
+    // não duas. Ver `negociacao.planosNegociaveis`.
+    precoMinimo: Math.round(RITMO.preco * 0.78),
     deliveryDays: 30,
     deliveryLabel: "mensal",
     category: "balcao",
@@ -168,20 +208,20 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   // vitrine mostra dois preços para o mesmo produto. Decisão pendente do CEO.
   {
     id: "pack-4-stories",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "Pack 4 Stories",
     description: "Quatro stories personalizados com design e copy prontos para publicar.",
-    deliverables: ["4 stories 1080×1920", "Copy e hashtags", "Arquivo final (PNG/MP4)", "Entrega em 2 dias úteis"],
+    deliverables: ["4 stories 1080×1920", "Copy e hashtags", "Arquivo final (JPEG/MP4)", "Entrega em 2 dias úteis"],
     price: 150,
     deliveryDays: 2,
     category: "social",
   },
   {
     id: "pack-8-stories",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "Pack 8 Stories",
     description: "Oito stories — uma semana cheia de conteúdo com sequência estratégica.",
-    deliverables: ["8 stories 1080×1920", "Copy e sequência narrativa", "Arquivo final (PNG/MP4)", "Entrega em 3 dias úteis"],
+    deliverables: ["8 stories 1080×1920", "Copy e sequência narrativa", "Arquivo final (JPEG/MP4)", "Entrega em 3 dias úteis"],
     price: 270,
     deliveryDays: 3,
     category: "social",
@@ -189,17 +229,17 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   },
   {
     id: "pack-4-posts",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "4 Posts Feed",
     description: "Quatro posts para feed com design exclusivo e texto otimizado.",
-    deliverables: ["4 artes 1080×1080", "Copy e legenda completa", "Arquivo final (PNG)", "Entrega em 3 dias úteis"],
+    deliverables: ["4 artes 1080×1080", "Copy e legenda completa", "Arquivo final (JPEG)", "Entrega em 3 dias úteis"],
     price: 220,
     deliveryDays: 3,
     category: "social",
   },
   {
     id: "pack-8-posts",
-    requer: ["arte-estatica-png", "texto-de-marca"],
+    requer: ["arte-estatica-jpeg", "texto-de-marca"],
     label: "8 Posts Feed",
     description: "Oito posts — quinzena completa de conteúdo estratégico.",
     deliverables: ["8 artes 1080×1080", "Copy e legenda completa", "Calendário de publicação", "Entrega em 5 dias úteis"],
@@ -234,7 +274,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
   // ── Design ───────────────────────────────────────────────────────────────
   {
     id: "banner-digital",
-    requer: ["arte-estatica-png", "arquivo-pdf"],
+    requer: ["arte-estatica-jpeg", "arquivo-pdf"],
     label: "Banner Digital",
     description: "Banner para anúncio, capa de perfil ou materiais de divulgação.",
     deliverables: ["1 banner no formato solicitado", "Até 2 revisões", "Arquivo em PNG e PDF", "Entrega em 1 dia útil"],

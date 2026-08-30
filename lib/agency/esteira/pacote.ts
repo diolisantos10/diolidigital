@@ -72,6 +72,15 @@ export type PecaDoCard = {
   capa: string | null;
   /** TODAS as telas do carrossel (mediaUrlsJson), na ordem de publicação. */
   telas: string[];
+  /**
+   * A PARADA DESTA PEÇA, nas palavras que o cliente lê — `SocialPost.avisoAoCliente`.
+   *
+   * Existe porque a 5ª auditoria varreu o HTML da tela de decisão e não achou
+   * NADA: a peça mostrava o texto refeito sobre a imagem que o cliente acabara
+   * de recusar, e a frase honesta da casa vivia só na aba de mensagens e no
+   * log do servidor. Nulo = a peça não está parada.
+   */
+  avisoAoCliente: string | null;
 };
 
 /** O filtro de aprovação do portal — os DOIS estados (com solicitação e cliente
@@ -158,6 +167,7 @@ export async function montarPecas(aprovacoes: AprovacaoDb[]): Promise<Map<string
         select: {
           id: true, clientId: true, clientRequestId: true, caption: true, format: true,
           pillar: true, scheduledFor: true, mediaUrl: true, mediaUrlsJson: true,
+          avisoAoCliente: true,
         },
       })
     : [];
@@ -188,6 +198,7 @@ export async function montarPecas(aprovacoes: AprovacaoDb[]): Promise<Map<string
         scheduledFor: p.scheduledFor ? p.scheduledFor.toISOString() : null,
         capa: p.mediaUrl,
         telas: lerLista(p.mediaUrlsJson),
+        avisoAoCliente: p.avisoAoCliente,
       });
     }
 
@@ -205,6 +216,10 @@ export async function montarPecas(aprovacoes: AprovacaoDb[]): Promise<Map<string
           scheduledFor: null,
           capa: midias[0] ?? null,
           telas: midias,
+          // Peça de fallback (versão vinculada por FK, sem `SocialPost`): não
+          // há onde uma parada ser gravada, e ausência de campo não é ausência
+          // de parada — é ausência de informação. Nulo, declarado.
+          avisoAoCliente: null,
         });
       }
     }
@@ -253,19 +268,50 @@ export function cardTemCorpo(
  * do schema é "interno", e fail-open aqui vaza rascunho para o cliente.
  */
 export async function conteudoPorDepartamento(projectId: string): Promise<(dept: string) => string | null> {
+  const porDept = await entregaMostradaPorDepartamento(projectId);
+  return (dept: string) => porDept.get(dept)?.corpo ?? null;
+}
+
+/** A entrega que o card de um departamento MOSTRA — id, nome e corpo. */
+export interface EntregaMostrada {
+  id: string;
+  name: string;
+  corpo: string;
+}
+
+/**
+ * ── QUAL PEÇA O CARD ESTÁ MOSTRANDO ────────────────────────────────────────
+ *
+ * Esta é a função que decide o que o cliente LÊ num card genérico de
+ * departamento — e, por isso, é a única que sabe responder "qual entrega ele
+ * está olhando quando aperta *Pedir ajuste*".
+ *
+ * Ela existe porque `conteudoPorDepartamento` devolvia só o TEXTO. O id ficava
+ * pelo caminho, e a refação — que precisa saber em qual `Deliverable` mexer —
+ * não tinha como perguntar. Sem o id, ela mirava no DEPARTAMENTO inteiro: o
+ * cliente pedia para trocar um título da Pauta do Mês e a máquina reescrevia os
+ * Roteiros de Vídeo, que estavam bons (medido em produção, Farol 27, rodada 4).
+ *
+ * Devolver o id junto com o corpo é o que torna "a peça que ele viu" e "a peça
+ * que volta ao autor" a MESMA por construção, e não por coincidência. Duas
+ * cópias desta regra seriam duas respostas diferentes na primeira mudança.
+ */
+export async function entregaMostradaPorDepartamento(
+  projectId: string,
+): Promise<Map<string, EntregaMostrada>> {
   const deliverables = await prisma.deliverable.findMany({
     where: { projectId, visibility: "compartilhado" },
     orderBy: { createdAt: "asc" },
-    select: { name: true, content: true, ownerAgentId: true },
-  }).catch(() => [] as Array<{ name: string; content: string | null; ownerAgentId: string | null }>);
+    select: { id: true, name: true, content: true, ownerAgentId: true },
+  }).catch(() => [] as Array<{ id: string; name: string; content: string | null; ownerAgentId: string | null }>);
 
-  const porDept = new Map<string, string>();
+  const porDept = new Map<string, EntregaMostrada>();
   for (const d of deliverables) {
     const dept = d.ownerAgentId ? departamentoDoAgente(d.ownerAgentId) : null;
     const corpo = `${d.name}\n\n${d.content ?? ""}`.trim();
-    if (dept && corpo && !porDept.has(dept)) porDept.set(dept, corpo);
+    if (dept && corpo && !porDept.has(dept)) porDept.set(dept, { id: d.id, name: d.name, corpo });
   }
-  return (dept: string) => porDept.get(dept) ?? null;
+  return porDept;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -44,7 +44,7 @@ function valor(bruto: string): number | null {
 }
 
 /**
- * Lê a TABELA "Os cinco degraus" de `docs/precos.md`.
+ * Lê a TABELA "Os quatro degraus" de `docs/precos.md`.
  * Formato: | **Nome** | R$ X/mês | R$ Y | ... |
  */
 function planosDoDocumento(): Array<{ nome: string; preco: number | null; implantacao: number | null }> {
@@ -78,13 +78,14 @@ describe("o preço mora em UM lugar só", () => {
       // Um portão que devolve [] quando não entende o documento não protege
       // nada: ele passaria a aprovar tudo em silêncio. Melhor quebrar.
       const doDoc = planosDoDocumento();
-      expect(doDoc.length).toBe(5);
+      // Quatro desde 26/08/2026 — o Crescimento saiu com a tabela única.
+      expect(doDoc.length).toBe(4);
     });
   });
 
   // ── METADE 2: NÃO INVENTA PROBLEMA NO CASO LIMPO ─────────────────────────
   describe("NÃO acusa divergência onde não há", () => {
-    it("os 5 planos do documento existem no código, com o mesmo nome", () => {
+    it("os 4 planos do documento existem no código, com o mesmo nome", () => {
       const doDoc = planosDoDocumento().map((p) => p.nome).sort();
       const doCodigo = PLANOS.map((p) => p.nome).sort();
       expect(doDoc).toEqual(doCodigo);

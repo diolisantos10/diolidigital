@@ -1,0 +1,271 @@
+name: Cliente oculto — o título novo chega ao pixel, e a parada tem botão
+
+# ── PARA QUE ESTE BOTÃO EXISTE (26/08/2026) ──────────────────────────────────
+#
+# Duas das quatro dívidas do acabamento não se provam com teste verde, porque as
+# duas foram MEDIDAS em produção:
+#
+#   ITEM 1 · o cliente pede um TÍTULO novo, a arte sai com o título velho.
+#            A prova é o ARQUIVO: sha256 antes ≠ sha256 depois, e a fonte do
+#            título (a primeira linha de `caption`, que é o que
+#            `tituloDaFonte` rasteriza) passa a ser o título pedido.
+#   ITEM 3 · a produção para e o cartão do cliente não tem um único botão.
+#            A prova é o que `/api/portal/pedidos` devolve — é ele que a tela
+#            renderiza como botão.
+#
+# ── POR QUE UM WORKFLOW, E NÃO UM TERMINAL ───────────────────────────────────
+#
+# Mesmo motivo de `prova-da-mira.yml`: o link do portal é credencial e mora
+# atrás do `CRON_SECRET`, que por regra da casa ninguém digita fora do CI. Aqui
+# o segredo já está nos secrets; o job USA e nunca imprime (`::add-mask::` na
+# primeira linha em que o valor existe). O que sai no log é o placar.
+#
+# ── AS TRAVAS ────────────────────────────────────────────────────────────────
+#
+#   • **Um cliente só, e é o de teste.** O padrão é `NOME TESTE` — sem
+#     colchetes, porque `Client.name` é rasterizado no molde e a trava de texto
+#     reprova pontuação — e o job RECUSA rodar com qualquer outro nome.
+#   • **Não publica em lugar nenhum.** Nenhuma chamada aqui toca Meta,
+#     Instagram, Google ou TikTok.
+#   • **Não fura a trava de pagamento.** Não existe passo de pagamento neste
+#     job: ele age sobre peça que JÁ está na mesa do cliente.
+#   • **Não emite token novo** (nunca passa `emitir=1`) e **não aprova nada**.
+#     A única decisão que ele toma é "pedir ajuste", que é a que está sendo
+#     provada.
+#   • `medir` é leitura pura: nada é decidido.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: "Cliente do teste. Decidir: só NOME TESTE. Ler (medir): também Farol 27, o de teste da casa."
+        required: true
+        default: "NOME TESTE"
+      acao:
+        description: "preparar = cria o cliente de teste e faz nascer UMA peça paga. medir = leitura pura. pedir-ajuste = manda o pedido e compara o sha256."
+        required: true
+        type: choice
+        options: ["preparar", "medir", "pedir-ajuste"]
+        default: "medir"
+      titulo:
+        description: "O TÍTULO NOVO que o cliente está pedindo. É ele que tem de virar pixel."
+        required: true
+        default: "Pao quentinho as sete da manha"
+
+jobs:
+  provar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Cliente oculto em producao
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          MASTER_PASSWORD: ${{ secrets.SEED_MASTER_PASSWORD }}
+          CLIENTE: ${{ inputs.cliente }}
+          ACAO: ${{ inputs.acao }}
+          TITULO: ${{ inputs.titulo }}
+        run: |
+          set -u
+          BASE="https://www.diolidigital.com.br"
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET nao esta nos secrets — nada foi medido."; exit 1
+          fi
+          # ── QUEM ESTE BOTAO PODE TOCAR ─────────────────────────────────────
+          #
+          # Decidir (preparar/pedir-ajuste) so no cliente que este job criou:
+          # `NOME TESTE`. Nenhum outro, nunca.
+          #
+          # LER e outra coisa, e a diferenca e o ponto: `medir` nao escreve nada
+          # — nao emite token, nao abre pedido, nao decide. Nele o cliente de
+          # teste da propria casa (`Farol 27`, o do case, o mesmo que
+          # `prova-da-mira.yml` ja usa) tambem entra, porque e o unico lugar em
+          # producao onde ha parada de verdade para conferir se ela tem botao.
+          case "$ACAO:$CLIENTE" in
+            *":NOME TESTE") ;;
+            "medir:Farol 27") ;;
+            *) echo "::error::'$ACAO' so roda em 'NOME TESTE' (e 'medir' tambem em 'Farol 27'). Voce pediu '$CLIENTE'."; exit 1 ;;
+          esac
+
+          echo "— commit no ar:"
+          curl -s --max-time 30 "$BASE/api/health" | jq -r '"  " + .commit + " (" + .branch + ")"'
+
+          # ── 0. PREPARAR · O CLIENTE DE TESTE E A PRIMEIRA PECA ─────────────
+          #
+          # So roda em `preparar`, e so para o cliente de teste (a trava acima).
+          # Nada aqui fura o portao de pagamento: o pagamento e registrado pela
+          # rota LEGITIMA da agencia (`/api/admin/pagamentos`), que e o caminho
+          # que o proprio portao manda usar quando o cliente paga por Pix.
+          if [ "$ACAO" = "preparar" ]; then
+            if [ -z "${MASTER_PASSWORD:-}" ]; then
+              # Medido em 26/08/2026: o secret esta VAZIO neste repositorio.
+              # Sem ele nao ha sessao de agencia, e sem sessao de agencia nao da
+              # para criar o cliente de teste — `/api/clients` exige master ou
+              # PM. Quem seta segredo e o CEO, sempre; este job nao contorna.
+              echo "::error::SEED_MASTER_PASSWORD esta vazio nos secrets do repositorio. Sem ele o cliente de teste nao nasce, e quem seta segredo e o CEO. Nada foi criado."; exit 1
+            fi
+            jq -Rn --arg p "$MASTER_PASSWORD" '{email:"master@dioli.studio", password:$p}' > /tmp/cred.json
+            curl -s --max-time 60 -c /tmp/cookies.txt -o /tmp/signin.json -w "  signin HTTP %{http_code}\n" \
+              -X POST "$BASE/api/auth/signin" -H "content-type: application/json" --data @/tmp/cred.json
+            rm -f /tmp/cred.json
+            jq -e '.ok == true' /tmp/signin.json >/dev/null || { echo "::error::login falhou"; exit 1; }
+
+            # O cliente de teste. Nome SEM colchetes: `Client.name` e rasterizado
+            # no molde e a trava de texto reprova pontuacao. Contato .invalid.
+            curl -s --max-time 60 -b /tmp/cookies.txt -o /tmp/cli.json -w "  cliente HTTP %{http_code}\n" \
+              -X POST "$BASE/api/clients" -H "content-type: application/json" -H "sec-fetch-site: same-origin" \
+              --data '{"name":"NOME TESTE","industry":"padaria de bairro","email":"contato@nometeste.invalid","phone":"","website":""}'
+            CID=$(jq -r '.id // ""' /tmp/cli.json)
+            echo "  cliente de teste: ${CID:-(ja existia ou falhou)}"
+            echo "::notice::Cliente de teste criado. Rode 'preparar-pedido' a seguir (proximo passo do job)."
+          fi
+
+          # ── 1. O LINK DO PORTAL ────────────────────────────────────────────
+          # Em `preparar` o token e EMITIDO (o cliente acabou de nascer e nao tem
+          # nenhum). Nas outras acoes, nunca: `emitir` fica de fora.
+          EMITIR=""
+          [ "$ACAO" = "preparar" ] && EMITIR="--data-urlencode emitir=1"
+          curl -s --max-time 60 -o /tmp/links.json -w "  links HTTP %{http_code}\n" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -G "$BASE/api/admin/links-do-portal" --data-urlencode "clientes=$CLIENTE" $EMITIR
+
+          SIT=$(jq -r '[.. | objects | select(has("situacao"))][0].situacao // "?"' /tmp/links.json)
+          # O campo e `link` (`links-do-portal.ts`), nao `url`. Ler so `url`
+          # devolvia vazio COM o link vivo na mao — e o job dizia "sem link"
+          # sobre um cliente que tem link. Ausencia de leitura nao e ausencia
+          # de link.
+          URL=$(jq -r '[.. | objects | (.link? // .url?) | strings][0] // ""' /tmp/links.json)
+          TOKEN="${URL##*/portal/access/}"
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ] || [ "$TOKEN" = "$URL" ]; then
+            echo "::error::Sem link vivo para $CLIENTE (situacao: $SIT). Nada foi emitido — quem emite e o CEO."
+            jq -r 'keys' /tmp/links.json; exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          echo "  link do portal: vivo (situacao: $SIT) — o token NAO e impresso"
+
+          # ── 1b. PREPARAR · O PEDIDO PAGO QUE VIRA PECA ─────────────────────
+          if [ "$ACAO" = "preparar" ]; then
+            # O pedido, como o cliente o escreve. Traz a CHAMADA PARA ACAO
+            # ("vir na loja") de proposito: sem ela o briefing minimo para — e o
+            # que se quer aqui e a peca nascer, nao provar aquele portao.
+            jq -Rn --arg t "$TOKEN" '{token:$t,
+              descricao:"Quero um post para o feed do Instagram sobre o pao de fermentacao natural que sai do forno as sete da manha.",
+              objetivo:"quero que a pessoa venha na loja de manha comprar o pao"}' > /tmp/ped.json
+            curl -s --max-time 300 -o /tmp/ped_r.json -w "  pedido HTTP %{http_code}\n" \
+              -X POST "$BASE/api/portal/pedidos" -H "content-type: application/json" -H "sec-fetch-site: same-origin" \
+              --data @/tmp/ped.json
+            rm -f /tmp/ped.json
+            PED=$(jq -r '.pedido.id // ""' /tmp/ped_r.json)
+            echo "  pedido: $PED  status: $(jq -r '.pedido.status // "?"' /tmp/ped_r.json)"
+            jq -r '"  devolutiva: " + ((.pedido.recado // .recado // "(sem recado)") | .[0:200])' /tmp/ped_r.json
+
+            # O cliente ACEITA o orcamento. E a decisao dele, pela rota dele.
+            jq -Rn --arg t "$TOKEN" --arg p "$PED" '{token:$t, pedidoId:$p, decisao:"aceito"}' > /tmp/orc.json
+            curl -s --max-time 300 -o /tmp/orc_r.json -w "  orcamento HTTP %{http_code}\n" \
+              -X POST "$BASE/api/portal/pedidos/orcamento" -H "content-type: application/json" -H "sec-fetch-site: same-origin" \
+              --data @/tmp/orc.json
+            rm -f /tmp/orc.json
+            jq -r '"  " + ((.recado // .error // "(sem recado)") | .[0:200])' /tmp/orc_r.json
+
+            echo "::notice::Preparacao feita. O pedido pode ter parado no portao de pagamento — leia a devolutiva acima. Nada foi furado."
+            exit 0
+          fi
+
+          # ── 2. ITEM 3 · A PARADA TEM BOTAO? ────────────────────────────────
+          # O que a tela do cliente recebe. Cada `pergunta.opcoes[]` e um botao
+          # em `SolicitarAlgo.tsx`. Parada sem `pergunta` e selo amarelo mudo.
+          curl -s --max-time 60 -o /tmp/pedidos.json "$BASE/api/portal/pedidos?token=$TOKEN"
+          echo "— ITEM 3 · os pedidos parados e o que o cliente pode APERTAR:"
+          jq -r '(.pedidos // [])[] | select(.status=="precisa_decisao")
+                 | "  · " + .id + "  motivo: \"" + ((.motivo // "") | .[0:120]) + "\"\n"
+                   + "    botoes: " + (if .pergunta then ([.pergunta.opcoes[].rotulo] | join(" | ")) else "NENHUM — selo amarelo mudo" end)' \
+            /tmp/pedidos.json
+
+          MUDAS=$(jq '[(.pedidos // [])[] | select(.status=="precisa_decisao" and (.pergunta == null))] | length' /tmp/pedidos.json)
+          PARADAS=$(jq '[(.pedidos // [])[] | select(.status=="precisa_decisao")] | length' /tmp/pedidos.json)
+          echo "  paradas: $PARADAS · sem botao: $MUDAS"
+          if [ "$PARADAS" != "0" ] && [ "$MUDAS" != "0" ]; then
+            echo "::error::$MUDAS de $PARADAS paradas continuam sem porta. Botao nenhum e o defeito."; exit 1
+          fi
+
+          # ── 3. A PECA QUE O CLIENTE ESTA VENDO ─────────────────────────────
+          curl -s --max-time 60 -o /tmp/portal.json "$BASE/api/brain/portal-data?token=$TOKEN"
+          echo "— ITEM 1 · as pecas na mesa do cliente:"
+          jq -r '((if type=="array" then .[0] else . end).approvals // [])[]
+                 | select(.status=="pending" and (.semConteudo | not))
+                 | . as $c | ($c.pecas // [])[]
+                 | "  · card " + $c.id + " peca " + .id + "  1a linha da legenda: \""
+                   + ((.caption // "") | split("\n")[0] | .[0:80]) + "\""' /tmp/portal.json
+
+          CARD=$(jq -r '[((if type=="array" then .[0] else . end).approvals // [])[]
+                        | select(.status=="pending" and (.semConteudo | not) and ((.pecas // []) | length > 0))][0].id // ""' /tmp/portal.json)
+          PECA=$(jq -r '[((if type=="array" then .[0] else . end).approvals // [])[]
+                        | select(.status=="pending" and (.semConteudo | not) and ((.pecas // []) | length > 0))][0].pecas[0].id // ""' /tmp/portal.json)
+
+          if [ "$ACAO" = "medir" ]; then
+            echo "::notice::Leitura pura. Card $CARD, peca $PECA. Nada foi decidido."
+            exit 0
+          fi
+          if [ -z "$CARD" ] || [ -z "$PECA" ]; then
+            echo "::error::Nenhum card pendente COM PECA no portal — nao ha arte para comparar. Nada foi decidido."; exit 1
+          fi
+
+          # ── 4. O SHA256 DO ARQUIVO **ANTES** ───────────────────────────────
+          # A pergunta nao e "a rodada disse que refez": e se o arquivo que ele
+          # vai ABRIR e outro. Foi confiando no relato do laco que a casa
+          # devolveu 200 com 0 de 4 arquivos trocados.
+          baixar() {
+            curl -s --max-time 120 -o "$2" "$BASE/api/social-posts/$PECA/download?token=$TOKEN"
+          }
+          baixar "$PECA" /tmp/antes.bin
+          ANTES=$(sha256sum /tmp/antes.bin | cut -d' ' -f1)
+          LEG_ANTES=$(jq -r --arg p "$PECA" '[((if type=="array" then .[0] else . end).approvals // [])[] | (.pecas // [])[] | select(.id==$p)][0].caption // ""' /tmp/portal.json | head -1)
+          echo "— ANTES: sha256=$ANTES  |  1a linha da legenda: \"$LEG_ANTES\""
+
+          # ── 5. O PEDIDO DE AJUSTE, COMO O CLIENTE FAZ ──────────────────────
+          COMENTARIO="troca o titulo da primeira peca para: $TITULO"
+          echo "— pedindo ajuste no card $CARD: \"$COMENTARIO\""
+          jq -Rn --arg t "$TOKEN" --arg c "$CARD" --arg m "$COMENTARIO" \
+            '{token:$t, approvalRequestId:$c, action:"request_revision", comment:$m, authorName:"cliente oculto"}' \
+            > /tmp/pedido.json
+          code=$(curl -s --max-time 300 -o /tmp/decisao.json -w "%{http_code}" \
+            -X POST "$BASE/api/portal/approvals" \
+            -H "content-type: application/json" -H "sec-fetch-site: same-origin" \
+            --data @/tmp/pedido.json)
+          rm -f /tmp/pedido.json
+          echo "  HTTP $code"
+          if [ "$code" != "200" ]; then
+            jq -r '.error // "(sem erro legivel)"' /tmp/decisao.json | sed 's/^/  /'
+            echo "::error::O pedido de ajuste nao foi aceito. Nada a medir."; exit 1
+          fi
+
+          sleep 25
+
+          # ── 6. O SHA256 **DEPOIS**, E A FONTE DO TITULO ────────────────────
+          baixar "$PECA" /tmp/depois.bin
+          DEPOIS=$(sha256sum /tmp/depois.bin | cut -d' ' -f1)
+          curl -s --max-time 60 -o /tmp/portal2.json "$BASE/api/brain/portal-data?token=$TOKEN"
+          LEG_DEPOIS=$(jq -r --arg p "$PECA" '[((if type=="array" then .[0] else . end).approvals // [])[] | (.pecas // [])[] | select(.id==$p)][0].caption // ""' /tmp/portal2.json | head -1)
+          echo "— DEPOIS: sha256=$DEPOIS  |  1a linha da legenda: \"$LEG_DEPOIS\""
+
+          echo ""
+          echo "— o placar:"
+          if [ "$ANTES" = "$DEPOIS" ]; then
+            echo "  ARQUIVO: IGUAL  <== o pixel nao mudou"
+          else
+            echo "  ARQUIVO: MUDOU  ($ANTES -> $DEPOIS)"
+          fi
+          # A 1a linha de `caption` e LITERALMENTE o que `tituloDaFonte`
+          # rasteriza (`comporComMolde`, com `fonteAuditada: post.caption`).
+          case "$LEG_DEPOIS" in
+            *"$TITULO"*) echo "  FONTE DO TITULO: e o titulo pedido" ; TIT_OK=1 ;;
+            *)           echo "  FONTE DO TITULO: continua \"$LEG_DEPOIS\"  <== o titulo novo nao chegou" ; TIT_OK=0 ;;
+          esac
+
+          if [ "$ANTES" = "$DEPOIS" ]; then
+            echo "::error::O arquivo NAO mudou. O cliente recebeu 200 e a mesma arte — o defeito de sempre."; exit 1
+          fi
+          if [ "$TIT_OK" != "1" ]; then
+            echo "::error::O arquivo mudou mas a fonte do titulo nao. Arte nova com o titulo que ele mandou trocar."; exit 1
+          fi
+          echo "::notice::O arquivo mudou E a fonte do titulo e o titulo pedido. Item 1 provado no ar."

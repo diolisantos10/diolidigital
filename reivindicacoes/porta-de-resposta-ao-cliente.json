@@ -1,0 +1,17 @@
+{
+  "id": "porta-de-resposta-ao-cliente",
+  "quem": "ses-2248051fb4",
+  "frente": "Toda pergunta ao cliente ganha porta de resposta: precisa_decisao, pedidos de material e briefing sem volume",
+  "responsabilidade": "porta-de-resposta-ao-cliente",
+  "arquivos": [
+    "lib/agency/esteira/triagem.ts",
+    "lib/agency/esteira/leitura-do-pedido.ts",
+    "lib/agency/esteira/orcamento-do-briefing.ts",
+    "app/api/portal/pedidos/route.ts",
+    "app/api/portal/materiais/route.ts",
+    "components/portal/SolicitarAlgo.tsx"
+  ],
+  "abertaEm": "2026-08-25T17:36:18.961Z",
+  "encerradaEm": "2026-08-25T18:05:56.647Z",
+  "rotulo": "porta-do-cliente"
+}

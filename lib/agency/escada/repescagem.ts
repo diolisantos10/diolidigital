@@ -195,3 +195,222 @@ export async function repescarEntregasRetidas(): Promise<ResultadoDaRepescagem> 
 
   return r;
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// A OUTRA METADE: O PEDIDO RETIDO PELA ESCADA TAMBÉM VOLTA SOZINHO (25/08/2026)
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// `repescarEntregasRetidas`, acima, conserta a ENTREGA que ficou `interno`. Ela
+// nunca alcançou o outro caso, e o outro caso é o que doeu em produção:
+//
+//   17:02:12 — a escada reteve a peça do balcão e o PEDIDO parou em
+//              `precisa_decisao` (`producao-de-pedido.ts`, o bloco da escada);
+//   17:03:16 — 64 segundos depois, o relógio aplicou `DECISOES_DO_DONO` e
+//              incluiu a mesma cliente na lista.
+//
+// A entrega nem existia para ser repescada — a produção parou ANTES de criar o
+// `Deliverable`. O pedido ficou em `precisa_decisao`, que é um estado que só
+// gente tira. Foi preciso retriá-lo à mão: um dos dois empurrões manuais que
+// ainda sobravam, e a meta é zero.
+//
+// ── COMO ELA VOLTA, E POR QUE NÃO É UM RELÓGIO NOVO ────────────────────────
+//
+// Esta casa perdeu dez dias com um cron próprio que morreu em silêncio com o
+// painel verde. Então não há cron aqui: esta função é uma perna do despertador
+// que já bate a cada 5 minutos, chamada colada na repescagem de entregas —
+// que é chamada colada na aplicação da decisão do dono. A ordem é a garantia:
+// na MESMA rodada em que o degrau abre, o pedido é rearmado.
+//
+// ── E POR QUE ELA NÃO REPRODUZ A PEÇA ──────────────────────────────────────
+//
+// Rearmar é devolver o pedido a `triado`, e `triado` custa uma produção de IA
+// inteira na rodada seguinte. Por isso ela NÃO rearma "para ver se agora vai":
+// ela pergunta ao portão — `escadaFiltraEntregas`, a MESMA função que reteve —
+// se a peça passaria AGORA. Enquanto o degrau estiver fechado, esta perna lê e
+// não escreve nada, e não queima um token.
+//
+// ── O QUE ELA NÃO FAZ ──────────────────────────────────────────────────────
+//
+//   • **Não toca em pedido parado por outro motivo.** Só o que tem
+//     `escadaRetidaEm` gravado. Qualidade reprovou, piso de verdade barrou,
+//     tarefa sem especialista: continuam esperando gente, como devem.
+//   • **Não reimplementa a régua.** Quem decide é `escadaFiltraEntregas`.
+//   • **Não fala com ninguém.** Não manda mensagem, não publica, não
+//     reapresenta. Devolve o pedido à fila e sai.
+//   • **Não tenta para sempre.** Ver o freio abaixo.
+
+/**
+ * O FREIO. Todo conserto precisa do seu.
+ *
+ * Três, e o número tem motivo — não é "um número pequeno qualquer":
+ *
+ *   • O caso que esta função existe para resolver se fecha na PRIMEIRA volta:
+ *     o relógio aplica a decisão do dono e, na mesma rodada, esta perna rearma.
+ *     Uma tentativa já bastaria para o defeito medido.
+ *   • A segunda e a terceira existem para o degrau que abre e fecha (alguém
+ *     usou `descerDegrau` no meio, uma corrida entre rodadas). Custam, no pior
+ *     caso, duas produções de IA a mais — teto conhecido e barato.
+ *   • Da quarta em diante, "o degrau ia abrir a qualquer momento" deixou de ser
+ *     uma explicação: o que segura o pedido é estrutural (falta evidência,
+ *     falta decisão declarada), e isso é trabalho de gente. Continuar tentando
+ *     seria queimar IA para chegar sempre na mesma parede — o laço caro que o
+ *     contador de `productionAttempts` já existe para não repetir.
+ *
+ * Deliberadamente MENOR que `MAX_TENTATIVAS_DE_PRODUCAO` (5, em
+ * `producao-de-pedido.ts`): lá o que
+ * falha é o mundo (rede, provedor), que volta sozinho; aqui o que falha é uma
+ * decisão da casa, que não volta sozinha depois da terceira vez.
+ */
+export const MAX_REPESCAGENS_DO_PEDIDO = 3;
+
+/** Teto por passada: repescagem é conserto, não migração em massa. */
+const MAX_PEDIDOS_POR_RODADA = 100;
+
+export interface ResultadoDaRepescagemDePedidos {
+  /** Pedidos que voltaram para a fila de produção. */
+  rearmados: number;
+  /** O degrau continua fechado — não é falha, é a escada funcionando. */
+  aindaRetidos: Array<{ id: string; motivo: string }>;
+  /**
+   * PARADA DECLARADA: esgotou o teto. Cada linha tem motivo, dono e próxima
+   * ação — nunca "não deu certo".
+   */
+  desistidos: Array<{ id: string; motivo: string }>;
+  avisos: string[];
+}
+
+/**
+ * Rearma os pedidos que a escada reteve e que a escada já não retém.
+ *
+ * Idempotente: o pedido rearmado sai de `precisa_decisao` e some do universo
+ * desta consulta. Numa casa em dia, lê zero linha e escreve nada.
+ *
+ * NUNCA lança — roda dentro do relógio da agência.
+ */
+export async function repescarPedidosRetidosPelaEscada(): Promise<ResultadoDaRepescagemDePedidos> {
+  const r: ResultadoDaRepescagemDePedidos = { rearmados: 0, aindaRetidos: [], desistidos: [], avisos: [] };
+
+  type Retido = {
+    id: string; clientId: string; taskId: string | null; projectId: string | null;
+    escadaRepescagens: number;
+  };
+  let retidos: Retido[];
+  // ⚠️ `ContentRequest` NÃO tem relação com `Project` — só o `projectId` solto
+  // (ponteiro sem FK, declarado no schema). Por isso o projeto vem numa SEGUNDA
+  // consulta, e não num `select` aninhado que o schema não tem.
+  const projetos = new Map<string, { id: string; workspaceId: string; clientId: string }>();
+  try {
+    retidos = await prisma.contentRequest.findMany({
+      where: {
+        // O carimbo, e não o texto do motivo: `declineReason` é frase para o
+        // cliente ler, e casar defeito por substring quebra na primeira vez que
+        // alguém melhora a frase.
+        escadaRetidaEm: { not: null },
+        status: "precisa_decisao",
+      },
+      take: MAX_PEDIDOS_POR_RODADA,
+      select: { id: true, clientId: true, taskId: true, projectId: true, escadaRepescagens: true },
+    });
+    const ids = [...new Set(retidos.map((x) => x.projectId).filter((x): x is string => !!x))];
+    if (ids.length > 0) {
+      const achados = await prisma.project.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, workspaceId: true, clientId: true },
+      });
+      for (const pr of achados) projetos.set(pr.id, pr);
+    }
+  } catch (e) {
+    r.avisos.push(`não consegui ler os pedidos retidos pela escada: ${e instanceof Error ? e.message : "erro"}`);
+    return r;
+  }
+  if (retidos.length === 0) return r;
+
+  for (const pedido of retidos) {
+    try {
+      const projeto = pedido.projectId ? projetos.get(pedido.projectId) ?? null : null;
+      if (!projeto) {
+        r.avisos.push(`pedido ${pedido.id}: carimbado pela escada e sem projeto — não sei por qual workspace perguntar`);
+        continue;
+      }
+
+      // ── O TETO, CONFERIDO ANTES DE QUALQUER LEITURA CARA ─────────────────
+      if (pedido.escadaRepescagens >= MAX_REPESCAGENS_DO_PEDIDO) {
+        const motivo =
+          `pedido ${pedido.id}: a escada já o reteve depois de ${MAX_REPESCAGENS_DO_PEDIDO} rearmes — PAREI de tentar. ` +
+          "Motivo: o degrau do departamento não abre sozinho (falta evidência ou falta decisão do dono declarada). " +
+          "Dono: a equipe da agência. Próxima ação: subir o degrau pela porta certa " +
+          "(`POST /api/agency/escada`, ação `liberar_cliente` ou `subir`, que exigem a evidência) " +
+          "ou declarar a decisão do dono em `DECISOES_DO_DONO`. O pedido segue visível em `precisa_decisao`.";
+        r.desistidos.push({ id: pedido.id, motivo });
+        continue;
+      }
+
+      // QUEM produziria. É a mesma derivação da produção (`Task.agentId`), e
+      // não um palpite: sem o executor, a escada não sabe de que departamento
+      // é a peça, e "não sei" é fail-closed.
+      const tarefa = pedido.taskId
+        ? await prisma.task.findUnique({ where: { id: pedido.taskId }, select: { agentId: true } })
+        : null;
+      if (!tarefa?.agentId) {
+        r.avisos.push(`pedido ${pedido.id}: carimbado pela escada e sem tarefa com especialista — a repescagem não adivinha o departamento`);
+        continue;
+      }
+
+      // ── A PERGUNTA, AO MESMO PORTÃO QUE RETEVE ───────────────────────────
+      // Nada de reimplementar a regra aqui: duas cópias divergem, e foi
+      // exatamente uma divergência dessas que produziu este defeito.
+      const escada = await escadaFiltraEntregas({
+        workspaceId: projeto.workspaceId,
+        clientId: pedido.clientId ?? projeto.clientId ?? null,
+        entregas: [{ id: pedido.id, ownerAgentId: tarefa.agentId }],
+      });
+      if (escada.liberados.length === 0) {
+        // NÃO é falha e NÃO consome tentativa: o degrau continua fechado, e a
+        // escada segurando peça é a escada funcionando. Consumir tentativa aqui
+        // esgotaria o teto sem nunca ter produzido nada.
+        r.aindaRetidos.push({ id: pedido.id, motivo: escada.retidos[0]?.motivo ?? "retido pela escada" });
+        continue;
+      }
+
+      // ── O REARME ─────────────────────────────────────────────────────────
+      // `triado` é de onde o despertador pega em até 5 minutos. Não se produz
+      // nada aqui dentro: esta perna roda no relógio, e produzir IA em linha
+      // dentro dela seria uma rodada que estoura o tempo por causa do conserto.
+      //
+      // O `updateMany` com o status no `where` é a trava: se alguém tirou o
+      // pedido de `precisa_decisao` entre a leitura e agora, não há o que
+      // rearmar, e a contagem não sobe.
+      const tomou = await prisma.contentRequest.updateMany({
+        where: { id: pedido.id, status: "precisa_decisao" },
+        data: {
+          status: "triado",
+          escadaRetidaEm: null,
+          escadaRepescagens: pedido.escadaRepescagens + 1,
+          declineReason: null,
+        },
+      });
+      if (tomou.count === 0) continue;
+      r.rearmados++;
+
+      // O rastro, para que ninguém precise adivinhar por que um pedido saiu de
+      // `precisa_decisao` sem gente ter tocado nele.
+      await prisma.activityEvent.create({
+        data: {
+          workspaceId: projeto.workspaceId,
+          projectId: projeto.id,
+          clientId: pedido.clientId,
+          type: "escada_repescou_pedido",
+          message: (
+            `O degrau que tinha retido este pedido abriu. Ele voltou sozinho para a fila de produção ` +
+            `(rearme ${pedido.escadaRepescagens + 1} de ${MAX_REPESCAGENS_DO_PEDIDO}). ` +
+            `Nenhum aviso novo ao cliente, nada publicado.`
+          ).slice(0, 900),
+        },
+      }).catch(() => { /* best-effort: o rastro não pode desfazer o rearme */ });
+    } catch (e) {
+      r.avisos.push(`pedido ${pedido.id}: ${e instanceof Error ? e.message : "erro"}`);
+    }
+  }
+
+  return r;
+}

@@ -1,0 +1,14 @@
+{
+  "id": "esteira/numero-do-toque-de-recompra",
+  "quem": "ses-bba0052229",
+  "frente": "o numero que o teste protegia: toque de recompra redigita 8 pecas/mes onde a fonte diz 12; texto passa a ler de PLANOS e o teste defende a fonte",
+  "responsabilidade": "esteira/numero-do-toque-de-recompra",
+  "arquivos": [
+    "lib/agency/esteira/recompra.ts",
+    "__tests__/esteira/recompra.test.ts",
+    "docs/diagnosticos/o-numero-que-o-teste-protegia-29-08.md"
+  ],
+  "abertaEm": "2026-08-29T05:34:49.557Z",
+  "encerradaEm": "2026-08-29T06:13:13.842Z",
+  "rotulo": "pm-recompra-2908"
+}

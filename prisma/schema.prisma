@@ -509,6 +509,21 @@ model Deliverable {
   type            String
   status          String   @default("draft")
   revisionStatus  String?
+  /// QUEM julgou esta peça — o provedor de IA que deu o veredito. NULO = nenhum
+  /// modelo julgou (retida, ou reprovada pela régua determinística de código).
+  ///
+  /// `revisionStatus` responde "qual foi o veredito"; este campo responde "quem
+  /// julgou". Eram a mesma coluna até 25/08/2026, e por isso uma peça julgada
+  /// pelo próprio autor era indistinguível de uma julgada por árbitro
+  /// independente em TODA tela da casa. Ver `quality-auditor.ts`.
+  qualityArbiter  String?
+  /// A arbitragem em UMA palavra: `arbitro_independente` | `autojulgado` |
+  /// `sem_arbitro`. Escrita só por `arbitragemDoVeredito` — ponto único de
+  /// tradução, para nenhuma tela comparar provedor com autor na mão.
+  ///
+  /// NULO = peça anterior a 25/08/2026, quando a casa não media isto. Nulo é
+  /// "não medido", NUNCA "independente": ausência de medição não é verde.
+  qualityArbitragem String?
   /// Contrato de visibilidade do Hub (interno | aguardando_publicacao |
   /// compartilhado). Nasce "interno" de propósito: a auditoria do Hub provou
   /// que o padrão fail-open ("o que a rota esquecer de filtrar, vaza") é o
@@ -524,6 +539,15 @@ model Deliverable {
   /// ela a idempotência por especialista vale para sempre e a agência entrega
   /// uma vez só na vida do cliente.
   cycleId         String?
+  /// De que LEVA do ciclo esta entrega é (1, 2, 3…). NULO = entrega anterior a
+  /// 25/08/2026, quando o mês inteiro saía numa passada só — leia nulo como
+  /// leva 1, nunca como "sem leva".
+  ///
+  /// É a chave que faz a SEGUNDA passada do mês existir: a idempotência do
+  /// motor é por especialista dentro do ciclo, e sem esta coluna o especialista
+  /// de conteúdo que já produziu no dia 1 nunca mais produziria naquele ciclo —
+  /// que é exatamente por que o teto real da casa era 12 peças/mês.
+  leva            Int?
   version         Int      @default(1)
   // JSON-encoded revision history
   revisionHistory String   @default("[]")
@@ -667,6 +691,20 @@ model ContentRequest {
   /// pendente | aceito | recusado. Nulo = não há orçamento na mesa.
   quoteStatus     String?
   quoteDecidedAt  DateTime?
+  /// O PRODUTO CANÔNICO que a triagem decidiu entregar (`produtos/registro.ts`).
+  ///
+  /// Nasceu na Operação Salvaguarda (25/08/2026) para consertar um defeito de
+  /// classe: **o formato pedido pelo cliente não sobrevivia à triagem.** Story,
+  /// post e carrossel caíam no mesmo atendimento, com o mesmo item de catálogo
+  /// (`balcao-post-feed`) e o mesmo especialista — e não existia campo nenhum
+  /// onde "isto é um story" pudesse ser gravado. O critério de aceite "o formato
+  /// permanece `story` em todas as transições" era uma pergunta sem sujeito.
+  ///
+  /// Nulo = pedido sem produto canônico declarado, que é o estado de todos os
+  /// pedidos anteriores a esta data e de todos os atendimentos ainda não
+  /// migrados. Nulo NÃO é "story" e NÃO é um produto padrão: quem lê trata a
+  /// ausência como ausência e segue pelo caminho de sempre.
+  produtoId       String?
   /// A tarefa criada na triagem. É por aqui que o pedido encontra a esteira.
   taskId          String?
   /// Quem triou e quando — pedido parado sem dono é vazamento.
@@ -692,11 +730,82 @@ model ContentRequest {
   /// Por que foi recusado — ou por que PAROU. Em linguagem que o cliente lê:
   /// é o mesmo campo que carrega o motivo do `precisa_decisao`.
   declineReason   String?
+  /// QUANDO A ESCADA DE EXPOSIÇÃO RETEVE ESTE PEDIDO. Nulo = não foi ela.
+  ///
+  /// Nasceu em 25/08/2026 e tem UM leitor nomeado, que é a razão de existir:
+  /// `repescarPedidosRetidosPelaEscada` (`escada/repescagem.ts`). Sem esta
+  /// coluna, um pedido parado em `precisa_decisao` pela escada é
+  /// indistinguível de um parado pela Qualidade ou pelo piso de verdade — e
+  /// retentar os outros dois seria abrir a porta dos fundos dos dois portões.
+  ///
+  /// NÃO é derivável de `declineReason`: aquele campo é texto para o cliente
+  /// ler, e casar defeito por substring é a régua que quebra na primeira vez
+  /// que alguém melhora a frase.
+  escadaRetidaEm  DateTime?
+  /// Quantas vezes a repescagem já rearmou este pedido depois de a escada o
+  /// reter. É o FREIO: em `MAX_REPESCAGENS_DO_PEDIDO` a repescagem para de
+  /// tentar e declara a parada (motivo, dono e próxima ação). Sem teto, um
+  /// degrau que abre e fecha faria a casa reproduzir a mesma peça para sempre,
+  /// com IA paga em cada volta.
+  escadaRepescagens Int    @default(0)
+  /// ── A PORTA DA PERGUNTA (25/08/2026) ────────────────────────────────────
+  ///
+  /// A pergunta ESTRUTURADA que a casa fez ao cliente, com as respostas
+  /// possíveis e o efeito de cada uma (`lib/agency/esteira/porta-da-pergunta.ts`).
+  ///
+  /// `declineReason` diz ao cliente POR QUE parou, em prosa. Isto diz COMO ele
+  /// responde. Eram a mesma coisa e não são: a Ana leu o motivo, respondeu no
+  /// chat "pode ser o pacote de 4" e o pedido não andou, porque prosa não tem
+  /// botão e o chat livre não tem quem decida escopo. Proibição sem instrução
+  /// gêmea é beco.
+  ///
+  /// Nulo = não há pergunta aberta. É o estado normal, e é o que o cartão do
+  /// portal lê para NÃO mostrar botão nenhum. Respondida, volta a nulo na mesma
+  /// escrita — pergunta que sobrevive à resposta é a mesma pergunta duas vezes.
+  pendingQuestionJson String?
+  /// A quantidade que o CLIENTE confirmou respondendo à pergunta acima.
+  ///
+  /// Existe porque a leitura da quantidade é léxica e roda no texto ORIGINAL
+  /// (`leitura-do-pedido.ts`) — que continua dizendo "1 story" depois de o
+  /// cliente ter dito "pode ser o pacote de 4". Sem esta coluna, rodar a
+  /// triagem de novo daria exatamente a mesma parada, para sempre.
+  ///
+  /// Nulo = o cliente não confirmou número nenhum, e aí vale a leitura do
+  /// texto. Nulo NUNCA vira 1: quantidade inventada é erro de dinheiro.
+  confirmedQuantity Int?
+  /// O ENTREGÁVEL que o CLIENTE confirmou respondendo à porta da pergunta:
+  /// "peca" (a arte pronta) ou "insumo" (o texto/roteiro para ele produzir).
+  ///
+  /// Irmã de `confirmedQuantity`, e pelo mesmo motivo: a leitura do entregável
+  /// é léxica e roda no texto ORIGINAL (`leitura-do-pedido.ts`). Quando ela lê
+  /// "ambíguo" ou lê INSUMO onde a classificação escolheu PEÇA, a triagem para
+  /// e pergunta — e sem esta coluna, rodar a triagem de novo depois da resposta
+  /// daria exatamente a mesma parada, para sempre.
+  ///
+  /// Nulo = o cliente não confirmou nada, e vale a leitura do texto. Nulo NUNCA
+  /// vira "peca": escolher o entregável por ele é cobrar o trabalho errado.
+  confirmedDeliverable String?
+  /// A CHAMADA PARA AÇÃO que o CLIENTE confirmou respondendo à porta da
+  /// pergunta — "chamar no WhatsApp", "vir na loja", "pedir pelo link da bio".
+  ///
+  /// O portão do briefing mínimo (`produtos/briefing-minimo.ts`) PARA a
+  /// produção quando o texto do cliente não traz chamada para ação, e está
+  /// certo: sem ela quem inventa a ação (e o canal junto) é o modelo. O que
+  /// faltava era o caminho DEPOIS da parada — medido em produção com cliente
+  /// oculto em 26/08/2026: o pedido parou com o motivo escrito e `pergunta:
+  /// null`, e um cliente que só sabe usar o portal não tinha onde responder.
+  ///
+  /// Nulo = o cliente não confirmou ação nenhuma, e vale a leitura léxica do
+  /// texto dele. Nulo NUNCA vira uma CTA padrão: ação inventada manda o cliente
+  /// do cliente para um lugar que talvez não exista.
+  confirmedCta String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   @@index([clientId, status])
   @@index([status, createdAt])
+  /// A consulta da repescagem: os retidos pela escada, e só eles.
+  @@index([escadaRetidaEm])
 }
 
 // ─── Brand Brain ─────────────────────────────────────────────────────────────
@@ -1242,6 +1351,22 @@ model ClientRequestDb {
   /// é a inferência que esta casa proíbe.
   chaveDoProspect String?
 
+  /// ── DE QUAL CONVERSA ESTE PEDIDO NASCEU (27/08/2026, aditiva) ────────────
+  ///
+  /// Preenchida SÓ quando o pedido nasceu de uma conversa parada que a casa
+  /// recuperou sozinha (`lib/agency/comercial/promover-conversas-paradas.ts`).
+  /// Guarda o fio (`sdr:...`) da conversa de origem. Nula em todo pedido que
+  /// veio pela porta da frente — e nula NÃO significa "veio da conversa".
+  ///
+  /// ⚠️ **É ELA A TRAVA DA IDEMPOTÊNCIA, e não um `if`.** O relógio bate de 5
+  /// em 5 minutos e duas batidas podem se cruzar na mesma conversa; uma
+  /// checagem em código ("já existe pedido?") é uma janela entre a leitura e a
+  /// escrita, e é nessa janela que nascem dois pedidos para o mesmo cliente. O
+  /// índice único abaixo fecha isso no BANCO: a segunda escrita não passa, e
+  /// quem promove trata a violação como "já promovida" — não como erro.
+  /// *A trava real é o índice único.*
+  fioDaConversa String? @unique
+
   /// ── O AVISO DE ORÇAMENTO QUE FALHA NUNCA MAIS SOME (16/08/2026, aditiva) ──
   ///
   /// Motivo completo em `lib/agency/esteira/orcamento-do-briefing.ts`. Resumo:
@@ -1416,6 +1541,22 @@ model SocialPost {
   // Último motivo de falha, em linguagem de gente. Fica visível ao time em vez
   // de morrer no log do servidor.
   lastError       String?
+  /// A PARADA DESTA PEÇA, NAS PALAVRAS QUE O CLIENTE LÊ (25/08/2026).
+  ///
+  /// `lastError` é para o TIME e é técnico. Este campo é para o CLIENTE, e ele
+  /// existe porque a 5ª auditoria mediu o buraco: o ajuste refez o TEXTO, a
+  /// arte não saiu, e a tela do cliente mostrou a legenda NOVA sobre a imagem
+  /// que ele acabara de recusar. A frase honesta existia — mas só na aba de
+  /// mensagens e no log. Ele varreu o HTML da tela de decisão: zero ocorrências
+  /// de "não consegui", "não foi possível", "equipe", "erro", "problema".
+  ///
+  /// Regra: quem escreve aqui escreve MOTIVO, DONO e PRÓXIMA AÇÃO (critério F),
+  /// em português de gente. `montarPecas` leva ao portal e `PecaDoCard` põe na
+  /// tela, ACIMA da imagem — antes de o cliente decidir, nunca depois.
+  ///
+  /// Nulo = a peça não está parada. Quem resolve a parada LIMPA o campo: aviso
+  /// que sobrevive ao conserto vira ruído, e ruído ninguém lê.
+  avisoAoCliente  String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -2526,7 +2667,345 @@ model PagamentoConfirmado {
 
   createdAt       DateTime @default(now())
 
+
+  /// ── A TAXA DO GATEWAY, MEDIDA (27/08/2026) ────────────────────────────────
+  ///
+  /// O CEO mandou pôr a taxa do Mercado Pago no custo. A casa NÃO a conhecia: não
+  /// havia constante de taxa em lugar nenhum do repositório, e a única fonte
+  /// honesta dela — `fee_details[]` do próprio pagamento, que é o que o provedor
+  /// REALMENTE reteve — era lida pelo webhook e jogada fora.
+  ///
+  /// ⚠️ NULO É "NÃO MEDIDO", NUNCA "TAXA ZERO". `taxaDoGatewayMedida()` só soma
+  /// linhas com número; sem nenhuma, ela devolve `nao_medido` e o piso sobe. Ler
+  /// nulo como zero daria ao negociador margem que não existe — que é exatamente
+  /// o defeito que esta coluna nasce para não deixar acontecer.
+  taxaCentavos    Int?
+
+  /// O que sobrou depois da taxa (`net_received_amount`). Também opcional, também
+  /// nulo = não medido.
+  liquidoCentavos Int?
+
   @@index([confirmadoEm])
+}
+
+/// A TERCEIRA TESTEMUNHA: a parceria isenta de pagamento.
+///
+/// ─── POR QUE ELA É UMA TABELA PRÓPRIA, E NÃO UMA LINHA DE PAGAMENTO ─────────
+///
+/// O primeiro cliente real da agência (Foocci, 27/08/2026) entra por parceria:
+/// não paga nada. E hoje ele TRAVA no portão de pagamento — e o portão está
+/// certo.
+///
+/// A tentação era registrar um `PagamentoConfirmado` de R$ 0,00. Duas razões
+/// para não fazer isso, e as duas são do CEO:
+///   1. **Receita fantasma.** Uma linha de pagamento diz "entrou dinheiro". Não
+///      entrou. O financeiro passaria a somar vendas que não existem.
+///   2. **Destruiria a testemunha.** `PagamentoConfirmado` recusa valor ≤ 0 no
+///      código E no portão, de propósito — é o que garante que toda linha ali
+///      seja dinheiro de verdade. Furar isso para o parceiro fura para todos.
+///
+/// Então a isenção é OUTRO fato, com OUTRA tabela: ela libera a esteira sem
+/// nunca afirmar que houve pagamento. *Parceria não é grátis — é investimento,
+/// e investimento se mede.*
+/// O CONVITE DO PARCEIRO — a única coisa que faz a casa SABER que a conversa é dele.
+///
+/// ── Por que ele existe (27/08/2026) ─────────────────────────────────────────
+/// O parceiro não paga, então a pergunta obrigatória da verba não protege
+/// ninguém e só trava o pedido dele — foi o que parou a conversa das 13:43. Mas
+/// dispensar a pergunta exige SABER que é parceria, e na sala de briefing o
+/// visitante é ANÔNIMO: só `sessionId`. `clientRequestId` vem do corpo, e a casa
+/// já o trata como não-confiável ("um id que qualquer pessoa digita").
+///
+/// ⚠️ **A verdade tem que vir de um token que a casa CUNHOU** — nunca do que o
+/// interlocutor afirma. É o mesmo molde de `PortalAccess`, e a mesma regra de
+/// 03/08: em caminho público, o `clientId` sai SEMPRE do token — derivação,
+/// nunca comparação.
+///
+/// E o convite NÃO é a autorização: ele só APONTA para a `IsencaoDeParceria`,
+/// que continua sendo a fonte da verdade. A isenção é conferida VIVA a cada uso;
+/// revogá-la ou deixá-la vencer mata o convite no mesmo instante, sem precisar
+/// caçar link nenhum.
+/// A PARCERIA É DO PARCEIRO — não do pedido. Quebra do nó circular (27/08/2026).
+///
+/// ── O NÓ, medido em quatro pontos ──────────────────────────────────────────
+/// `IsencaoDeParceria` exige `clientRequestId` ("isenção sem pedido não isenta
+/// nada"), o portão de pagamento a lê por pedido, o convite exigia isenção viva,
+/// e o pedido nasce do briefing. Ou seja:
+///
+///     convite → isenção → pedido → briefing → (convite)
+///
+/// A porta existia e **não podia ser aberta a primeira vez**. É a família
+/// "trava construída sem fechadura", agora em forma de círculo — e o efeito
+/// prático era exato: **não havia como cunhar o link do primeiro parceiro**.
+///
+/// (Precisão: o PEDIDO não ficava trancado — `budget_range` fecha com qualquer
+/// resposta. O parceiro conseguia terminar o briefing respondendo justamente a
+/// pergunta que a parceria deveria poupar. O que estava trancado era o CONVITE,
+/// e portanto o tratamento de parceiro.)
+///
+/// ── O conserto ─────────────────────────────────────────────────────────────
+/// A autorização passa a viver no nível do PARCEIRO e existe ANTES de qualquer
+/// pedido. É daqui que o convite nasce, e é isto que rompe o círculo.
+///
+/// ⚠️ E ela vira a ÚNICA FONTE DA VERDADE: a `IsencaoDeParceria` de cada pedido
+/// passa a ser DERIVADA desta linha, não um ato manual novo. *Verdade escrita
+/// em dois lugares já está errada em um deles.*
+///
+/// O que NÃO muda: teto de custo obrigatório (sem ele o parceiro come o crédito
+/// do pagante), validade obrigatória (parceria eterna vira esquecimento), dono
+/// nominal, e NUNCA um pagamento falso de R$ 0 — receita de parceria é R$ 0 com
+/// o custo contado normalmente, e a margem negativa fica à vista.
+model ParceriaDoCliente {
+  id       String @id @default(cuid())
+
+  /// ⚠️ `@unique`: um cliente tem UMA parceria. Duas linhas vivas para o mesmo
+  /// parceiro seriam duas verdades sobre o mesmo fato — exatamente o que este
+  /// modelo existe para acabar.
+  clientId String @unique
+
+  /// ⚠️ NOMINAL E OBRIGATÓRIO — a FONTE da autorização (o CEO, citando D-0B9).
+  /// Parceria sem dono é buraco: em seis meses ninguém sabe quem liberou.
+  autorizadaPor String
+
+  /// QUEM APERTOU O BOTÃO, da SESSÃO e nunca do corpo. Distinto de
+  /// `autorizadaPor`: um campo que o operador digita não pode ser a única
+  /// testemunha do ato. Nulo = veio por script, não "não teve dono".
+  registradaPor String?
+
+  /// ⚠️ OBRIGATÓRIA. Vencida não libera nada e o pedido volta a travar no portão.
+  validaAte DateTime
+
+  /// O que a parceria cobre, em texto do operador. Sem escopo, cobre tudo.
+  escopo String
+
+  /// Quantas peças a parceria dá direito. Zero é ZERO — nunca "sem limite".
+  pecasContratadas Int
+
+  /// ⛔ TETO DE CUSTO DE IA, EM CENTAVOS DE DÓLAR. Sem teto, o parceiro come o
+  /// crédito do cliente pagante — finito e sem recarga automática.
+  tetoDeIaCentavosUsd Int
+
+  /// Revogação explícita, independente do vencimento. Revogar aqui mata os
+  /// convites do parceiro na hora, porque eles conferem esta linha a cada uso.
+  revogadaEm DateTime?
+
+  observacao String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model ConviteDeParceria {
+  id         String    @id @default(cuid())
+
+  /// 256 bits de aleatório, base64url. `cuid` é resistente a colisão e POBRE em
+  /// entropia — e este token é credencial. Mesma decisão de `PortalAccess.token`.
+  token      String    @unique
+
+  /// O cliente parceiro. É ELE que o servidor deriva do token; nada vindo do
+  /// corpo da requisição pode dizer quem é o dono desta conversa.
+  clientId   String
+
+  /// ⚠️ NOMINAL E OBRIGATÓRIO — quem cunhou o convite fica na linha. Sai da
+  /// SESSÃO na rota, nunca do corpo: um campo que o operador escolhe não pode
+  /// ser a única testemunha do ato (a lição de `IsencaoDeParceria.registradaPor`).
+  criadoPor  String
+
+  /// ⚠️ OBRIGATÓRIO, E É PRAZO **PRÓPRIO** — não herda o da isenção. Convite não
+  /// pode virar senha eterna: um link que circula por e-mail e vale para sempre
+  /// é pior que a pergunta que ele dispensa. A cunhagem ainda o obriga a nunca
+  /// ultrapassar a validade da isenção — parceria eterna pela porta dos fundos
+  /// continua sendo parceria eterna.
+  expiraEm   DateTime
+
+  /// Revogação explícita, para o link que vazou. Independente do vencimento.
+  revogadoEm DateTime?
+
+  /// Trilha de uso: quantas vezes e quando. Convite é credencial, e credencial
+  /// sem trilha é a que ninguém percebe sendo usada.
+  usos       Int       @default(0)
+  ultimoUsoEm DateTime?
+
+  observacao String?
+  createdAt  DateTime  @default(now())
+
+  @@index([clientId])
+}
+
+model IsencaoDeParceria {
+  id              String   @id @default(cuid())
+
+  /// O pedido isentado. `@unique` pelo mesmo motivo do pagamento: um pedido tem
+  /// UMA isenção, e registrar de novo cai na mesma linha.
+  clientRequestId String   @unique
+
+  /// O cliente, quando derivável. Serve ao financeiro (a conta da parceria é
+  /// por cliente, não por pedido).
+  clientId        String?
+
+  /// ⚠️ NOMINAL E OBRIGATÓRIO. **Isenção sem dono é buraco**: daqui a seis meses
+  /// ninguém sabe quem liberou, e "sempre foi assim" vira a resposta.
+  autorizadaPor   String
+
+  /// ⚠️ OBRIGATÓRIA. **Parceria eterna vira esquecimento** — a casa segue
+  /// produzindo de graça anos depois de a contrapartida ter acabado. Vencida, a
+  /// isenção não libera mais nada e o pedido volta a travar no portão.
+  validaAte       DateTime
+
+  /// O que a parceria cobre: produtos/serviços, em texto do operador.
+  escopo          String
+
+  /// Quantas peças a parceria dá direito. Zero é ZERO — nunca "sem limite".
+  pecasContratadas Int
+
+  /// ⛔ O TETO DE CUSTO DE IA, EM CENTAVOS DE DÓLAR.
+  ///
+  /// Sem teto, o parceiro come o crédito do cliente pagante — e o crédito desta
+  /// casa é finito e sem recarga automática. Zero é ZERO, não "liberado".
+  tetoDeIaCentavosUsd Int
+
+  /// QUEM APERTOU O BOTÃO, quando a concessão veio pela rota — sai da SESSÃO,
+  /// nunca do corpo. `autorizadaPor` é a FONTE da autorização (o CEO, citando
+  /// D-0B9) e é digitada pelo operador; um campo que o operador escolhe não
+  /// pode ser a única testemunha do ato. Mesmo princípio de
+  /// `PagamentoConfirmado.registradoPor`.
+  ///
+  /// Nulo = veio pelo script, sem sessão. NUNCA significa "sem dono":
+  /// `autorizadaPor` continua obrigatório nos dois caminhos.
+  registradaPor   String?
+
+  observacao      String?
+  createdAt       DateTime @default(now())
+
+  @@index([validaAte])
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// A ASSINATURA RECORRENTE — a agência aprende a cobrar o SEGUNDO mês.
+/// ═══════════════════════════════════════════════════════════════════════════
+///
+/// ─── O DEFEITO QUE ELA FECHA (achado do CEO, 27/08/2026) ───────────────────
+///
+/// A vitrine vende PLANO MENSAL. O código só sabia criar cobrança AVULSA — uma
+/// `preference` de Checkout Pro, que cobra uma vez e acabou. Do segundo mês em
+/// diante a casa **entregava e não recebia**, e ninguém receberia um aviso: não
+/// existe nada que fique vermelho quando um dinheiro simplesmente não chega.
+///
+/// ⛔ E havia um segundo defeito, dentro do primeiro e pior: o portão de
+/// pagamento libera pela EXISTÊNCIA de uma linha em `PagamentoConfirmado`. O
+/// pagamento do mês 1 ficava lá para sempre — logo, do mês 2 ao mês 40, o portão
+/// dizia "pago" para quem parou de pagar no primeiro. A trava fail-closed da
+/// casa tinha um vazamento com data de validade infinita.
+///
+/// Por isso a assinatura é uma tabela própria: ela é o fato "este pedido é
+/// mensal", e é a presença dela que faz o portão passar a exigir a competência
+/// do MÊS CORRENTE em vez de aceitar qualquer pagamento antigo.
+model AssinaturaRecorrente {
+  id                   String   @id @default(cuid())
+
+  /// O pedido que virou assinatura. `@unique` pela mesma razão do pagamento: um
+  /// pedido tem UMA assinatura, e o reenvio do webhook cai na mesma linha.
+  clientRequestId      String   @unique
+
+  clientId             String?
+
+  /// `ritmo` | `presenca` | `conteudo` — o id de `lib/agency/planos.ts`. O preço
+  /// NÃO se digita aqui livremente: `criarAssinatura` o lê da tabela de preços e
+  /// recusa valor abaixo do piso.
+  planoId              String
+
+  /// CENTAVOS. Mesma disciplina do resto da casa.
+  valorCentavos        Int
+  moeda                String   @default("BRL")
+
+  provedor             String   @default("mercadopago")
+
+  /// O `preapproval.id` do provedor. `@unique` — é a segunda chave de
+  /// idempotência: dois avisos do mesmo preapproval nunca viram duas assinaturas.
+  provedorAssinaturaId String   @unique
+
+  /// `pendente` (criada, cliente ainda não autorizou) · `ativa` · `inadimplente`
+  /// (cobrança falhou e o mês corrente não está pago) · `cancelada`.
+  ///
+  /// ⚠️ Nenhum destes estados libera produção sozinho. Quem libera é a COBRANÇA
+  /// do mês corrente. Assinatura `ativa` com o mês não pago **não produz** — é
+  /// justamente o buraco que esta tabela existe para tapar.
+  estado               String
+
+  /// Por que está neste estado, em português. Cancelamento e falha de cobrança
+  /// **não podem virar beco**: o operador precisa saber o que houve.
+  motivoDoEstado       String?
+
+  /// ⚠️ OBRIGATÓRIO. Quem cuida quando a cobrança falha. Inadimplência sem dono
+  /// é cliente parado que ninguém liga — o mesmo princípio de `autorizadaPor`
+  /// na isenção de parceria.
+  dono                 String
+
+  proximaCobrancaEm    DateTime?
+  ultimaCobrancaEm     DateTime?
+
+  /// Quantas cobranças seguidas falharam. Zera a cada aprovação.
+  cobrancasFalhadas    Int      @default(0)
+
+  canceladaEm          DateTime?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  cobrancas            CobrancaRecorrente[]
+
+  @@index([estado])
+  @@index([proximaCobrancaEm])
+}
+
+/// UMA COBRANÇA MENSAL. É esta linha, e só ela, que libera o mês.
+///
+/// ─── AS DUAS TRAVAS DE "NÃO COBRAR DUAS VEZES", E SÃO DIFERENTES ───────────
+///
+///   1. `provedorPagamentoId @unique` — **o webhook reenviado**. O Mercado Pago
+///      reenvia o mesmo aviso por horas quando não recebe 200. Sem esta trava,
+///      cada reenvio viraria uma linha de receita nova e o DRE inflaria sozinho.
+///   2. `@@unique([assinaturaId, competencia])` — **o mês cobrado duas vezes**.
+///      Esta é outra falha: dois pagamentos DIFERENTES (ids diferentes, portanto
+///      a trava 1 não pega) caindo na mesma competência é o cliente pagando
+///      setembro duas vezes. O banco recusa a segunda, e quem grava trata a
+///      recusa devolvendo a linha que já existe.
+///
+/// Uma trava só não bastava — e era a trava 2 que faltaria a quem só pensasse
+/// em reenvio de webhook.
+model CobrancaRecorrente {
+  id                   String   @id @default(cuid())
+
+  assinaturaId         String
+  assinatura           AssinaturaRecorrente @relation(fields: [assinaturaId], references: [id], onDelete: Cascade)
+
+  /// O id do pagamento no provedor. Ver trava 1 acima.
+  provedorPagamentoId  String   @unique
+
+  /// O MÊS que esta cobrança paga, em `AAAA-MM`. Ver trava 2 acima. É por este
+  /// campo que o portão pergunta "o mês corrente está pago?" — não pela data do
+  /// pagamento, que pode chegar adiantada ou atrasada.
+  competencia          String
+
+  valorCentavos        Int
+  moeda                String   @default("BRL")
+
+  /// A taxa do gateway nesta cobrança. Nulo = NÃO MEDIDO, nunca zero.
+  taxaCentavos         Int?
+  liquidoCentavos      Int?
+
+  /// `aprovada` (o dinheiro entrou) · `recusada` (o provedor tentou e falhou).
+  /// ⚠️ Só `aprovada` libera. "Não recusada" não é "paga" — `pending` e
+  /// `in_process` são estados em que o dinheiro ainda não entrou.
+  estado               String
+
+  /// Por que foi recusada, quando foi. É o que o dono lê para agir.
+  motivo               String?
+
+  confirmadoEm         DateTime
+  createdAt            DateTime @default(now())
+
+  @@unique([assinaturaId, competencia])
+  @@index([competencia])
 }
 
 // ─── Dioli Connect: a pendência de consulta ao gerente ───────────────────────

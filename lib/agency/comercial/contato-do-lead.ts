@@ -72,6 +72,24 @@ export function whatsappValido(v: unknown): v is string {
   return d.length >= 10 && d.length <= 13;
 }
 
+/** O e-mail escrito NO MEIO de uma frase — não a frase inteira sendo um e-mail.
+ *
+ *  Nasceu do achado da 6ª rodada: o cliente escreveu *"pode mandar pro
+ *  contato@exemplo.com que eu vejo"* e a casa não guardou, não usou e não
+ *  agradeceu. `emailValido` responde sobre a string TODA e por isso dizia não.
+ *
+ *  Devolve `null` quando não há e-mail, e o PRIMEIRO quando há mais de um —
+ *  escolher entre dois endereços seria adivinhar, e quem adivinha contato manda
+ *  proposta para o lugar errado. Um só, o que ele escreveu primeiro. */
+export function emailNoTexto(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const m = v.match(/[^\s<>()[\],;:"']+@[^\s<>()[\],;:"']+\.[A-Za-z]{2,}/);
+  if (!m) return null;
+  // Pontuação final de frase não faz parte do endereço: "manda pro x@y.com."
+  const bruto = m[0].replace(/[.,;:!?)\]]+$/, "");
+  return emailValido(bruto) ? bruto : null;
+}
+
 /** Só dígitos, sem o `+`. Formatação é assunto de tela, não de dado. */
 export function normalizarWhatsapp(v: string): string {
   return v.replace(/\D/g, "");

@@ -23,6 +23,7 @@
 //      nomeou essa doença duas vezes.
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { PECA_COMPOSTA_REAL } from "../_helpers/peca-composta";
 
 const db = vi.hoisted(() => ({
   // O portão de pagamento deriva o pedido pelo projeto do cliente quando a
@@ -104,8 +105,10 @@ beforeEach(() => {
   estiloVisualPersistido.mockResolvedValue("");
   estiloVistoPersistido.mockResolvedValue("");
   montarPeca.mockResolvedValue({
-    ok: true, bytes: Buffer.from("peca"), largura: 1080, altura: 1920,
-    textosPintados: ["A vaga que você procura pode ser aqui do lado"], textoRecusado: [],
+    // Bytes REAIS: `regua-da-peca-final.ts` mede a peça antes de gravá-la, e
+    // string não decodifica (ver `__tests__/_helpers/peca-composta.ts`).
+    ok: true, bytes: PECA_COMPOSTA_REAL, largura: 1080, altura: 1920,
+    textosPintados: ["A vaga que você procura pode ser aqui do lado", "CityJobs"], textoRecusado: [],
     encolheu: false, origemDoMolde: "marca",
   });
 });

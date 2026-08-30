@@ -241,13 +241,17 @@ Guarda **apenas** estado de tour de UI (`lib/onboarding/storage.ts`). **Não é 
 
 ### Contas semeadas (`prisma/seed.ts`)
 
-| Email | Senha | Papel |
+**Nenhuma senha mora aqui, nem no código.** Cada conta recebe a senha de uma
+variável de ambiente; sem a variável o seed **para** (fail-closed) — não existe
+senha padrão nem senha inventada. Os valores vivem só no painel da hospedagem.
+
+| Email | Senha vem de | Papel |
 |---|---|---|
-| `master@dioli.studio` | `dioli2025` | master |
-| `pm@dioli.studio` | `staff2025` | project_manager |
-| `social@dioli.studio` | `staff2025` | social_staff |
-| `design@dioli.studio` | `staff2025` | design_staff |
-| `cliente@diolidigital.com.br` | `cliente2025` | client |
+| `master@dioli.studio` | `SEED_MASTER_PASSWORD` | master |
+| `pm@dioli.studio` | `SEED_STAFF_PASSWORD` | project_manager |
+| `social@dioli.studio` | `SEED_STAFF_PASSWORD` | social_staff |
+| `design@dioli.studio` | `SEED_STAFF_PASSWORD` | design_staff |
+| `cliente@diolidigital.com.br` | `SEED_PILOTO_CLIENT_PASSWORD` | client (só com `SEED_PILOTO=true`) |
 
 Mais workspace "Dioli Agência", cliente piloto "Dioli Digital", projeto piloto e 12 entregas demo.
 
@@ -257,7 +261,11 @@ Mais workspace "Dioli Agência", cliente piloto "Dioli Digital", projeto piloto 
 
 Não bloqueiam o piloto interno, mas devem ser resolvidos antes de cliente externo de verdade:
 
-1. **Senha semeada `dioli2025` hardcoded** — trocar antes de qualquer cliente externo.
+1. ~~Senha semeada hardcoded~~ — **resolvido em 26/08/2026.** Toda senha saiu do
+   código e vem só do ambiente; o seed falha fechado sem a variável. A trava
+   contra a volta é `__tests__/seguranca/nenhum-segredo-em-texto-puro.test.ts`.
+   **Continua em aberto:** não existe fluxo de "esqueci minha senha" — se as
+   variáveis forem apagadas, redefini-las e reiniciar é a única recuperação.
 2. **Rota legada `/portal/client/[id]` ainda existe** — a oficial é `/portal/access/[token]`.
 3. **`GET /api/brain/client-requests`** isola workspace por query param, não pela sessão — vira
    problema em cenário multi-cliente.

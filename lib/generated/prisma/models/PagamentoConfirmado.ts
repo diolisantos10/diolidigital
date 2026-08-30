@@ -59,10 +59,14 @@ export type AggregatePagamentoConfirmado = {
 
 export type PagamentoConfirmadoAvgAggregateOutputType = {
   valorCentavos: number | null
+  taxaCentavos: number | null
+  liquidoCentavos: number | null
 }
 
 export type PagamentoConfirmadoSumAggregateOutputType = {
   valorCentavos: number | null
+  taxaCentavos: number | null
+  liquidoCentavos: number | null
 }
 
 export type PagamentoConfirmadoMinAggregateOutputType = {
@@ -76,6 +80,8 @@ export type PagamentoConfirmadoMinAggregateOutputType = {
   registradoPor: string | null
   observacao: string | null
   createdAt: Date | null
+  taxaCentavos: number | null
+  liquidoCentavos: number | null
 }
 
 export type PagamentoConfirmadoMaxAggregateOutputType = {
@@ -89,6 +95,8 @@ export type PagamentoConfirmadoMaxAggregateOutputType = {
   registradoPor: string | null
   observacao: string | null
   createdAt: Date | null
+  taxaCentavos: number | null
+  liquidoCentavos: number | null
 }
 
 export type PagamentoConfirmadoCountAggregateOutputType = {
@@ -102,16 +110,22 @@ export type PagamentoConfirmadoCountAggregateOutputType = {
   registradoPor: number
   observacao: number
   createdAt: number
+  taxaCentavos: number
+  liquidoCentavos: number
   _all: number
 }
 
 
 export type PagamentoConfirmadoAvgAggregateInputType = {
   valorCentavos?: true
+  taxaCentavos?: true
+  liquidoCentavos?: true
 }
 
 export type PagamentoConfirmadoSumAggregateInputType = {
   valorCentavos?: true
+  taxaCentavos?: true
+  liquidoCentavos?: true
 }
 
 export type PagamentoConfirmadoMinAggregateInputType = {
@@ -125,6 +139,8 @@ export type PagamentoConfirmadoMinAggregateInputType = {
   registradoPor?: true
   observacao?: true
   createdAt?: true
+  taxaCentavos?: true
+  liquidoCentavos?: true
 }
 
 export type PagamentoConfirmadoMaxAggregateInputType = {
@@ -138,6 +154,8 @@ export type PagamentoConfirmadoMaxAggregateInputType = {
   registradoPor?: true
   observacao?: true
   createdAt?: true
+  taxaCentavos?: true
+  liquidoCentavos?: true
 }
 
 export type PagamentoConfirmadoCountAggregateInputType = {
@@ -151,6 +169,8 @@ export type PagamentoConfirmadoCountAggregateInputType = {
   registradoPor?: true
   observacao?: true
   createdAt?: true
+  taxaCentavos?: true
+  liquidoCentavos?: true
   _all?: true
 }
 
@@ -251,6 +271,8 @@ export type PagamentoConfirmadoGroupByOutputType = {
   registradoPor: string | null
   observacao: string | null
   createdAt: Date
+  taxaCentavos: number | null
+  liquidoCentavos: number | null
   _count: PagamentoConfirmadoCountAggregateOutputType | null
   _avg: PagamentoConfirmadoAvgAggregateOutputType | null
   _sum: PagamentoConfirmadoSumAggregateOutputType | null
@@ -287,6 +309,8 @@ export type PagamentoConfirmadoWhereInput = {
   registradoPor?: Prisma.StringNullableFilter<"PagamentoConfirmado"> | string | null
   observacao?: Prisma.StringNullableFilter<"PagamentoConfirmado"> | string | null
   createdAt?: Prisma.DateTimeFilter<"PagamentoConfirmado"> | Date | string
+  taxaCentavos?: Prisma.IntNullableFilter<"PagamentoConfirmado"> | number | null
+  liquidoCentavos?: Prisma.IntNullableFilter<"PagamentoConfirmado"> | number | null
 }
 
 export type PagamentoConfirmadoOrderByWithRelationInput = {
@@ -300,6 +324,8 @@ export type PagamentoConfirmadoOrderByWithRelationInput = {
   registradoPor?: Prisma.SortOrderInput | Prisma.SortOrder
   observacao?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  taxaCentavos?: Prisma.SortOrderInput | Prisma.SortOrder
+  liquidoCentavos?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type PagamentoConfirmadoWhereUniqueInput = Prisma.AtLeast<{
@@ -316,6 +342,8 @@ export type PagamentoConfirmadoWhereUniqueInput = Prisma.AtLeast<{
   registradoPor?: Prisma.StringNullableFilter<"PagamentoConfirmado"> | string | null
   observacao?: Prisma.StringNullableFilter<"PagamentoConfirmado"> | string | null
   createdAt?: Prisma.DateTimeFilter<"PagamentoConfirmado"> | Date | string
+  taxaCentavos?: Prisma.IntNullableFilter<"PagamentoConfirmado"> | number | null
+  liquidoCentavos?: Prisma.IntNullableFilter<"PagamentoConfirmado"> | number | null
 }, "id" | "clientRequestId">
 
 export type PagamentoConfirmadoOrderByWithAggregationInput = {
@@ -329,6 +357,8 @@ export type PagamentoConfirmadoOrderByWithAggregationInput = {
   registradoPor?: Prisma.SortOrderInput | Prisma.SortOrder
   observacao?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  taxaCentavos?: Prisma.SortOrderInput | Prisma.SortOrder
+  liquidoCentavos?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.PagamentoConfirmadoCountOrderByAggregateInput
   _avg?: Prisma.PagamentoConfirmadoAvgOrderByAggregateInput
   _max?: Prisma.PagamentoConfirmadoMaxOrderByAggregateInput
@@ -350,6 +380,8 @@ export type PagamentoConfirmadoScalarWhereWithAggregatesInput = {
   registradoPor?: Prisma.StringNullableWithAggregatesFilter<"PagamentoConfirmado"> | string | null
   observacao?: Prisma.StringNullableWithAggregatesFilter<"PagamentoConfirmado"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"PagamentoConfirmado"> | Date | string
+  taxaCentavos?: Prisma.IntNullableWithAggregatesFilter<"PagamentoConfirmado"> | number | null
+  liquidoCentavos?: Prisma.IntNullableWithAggregatesFilter<"PagamentoConfirmado"> | number | null
 }
 
 export type PagamentoConfirmadoCreateInput = {
@@ -363,6 +395,8 @@ export type PagamentoConfirmadoCreateInput = {
   registradoPor?: string | null
   observacao?: string | null
   createdAt?: Date | string
+  taxaCentavos?: number | null
+  liquidoCentavos?: number | null
 }
 
 export type PagamentoConfirmadoUncheckedCreateInput = {
@@ -376,6 +410,8 @@ export type PagamentoConfirmadoUncheckedCreateInput = {
   registradoPor?: string | null
   observacao?: string | null
   createdAt?: Date | string
+  taxaCentavos?: number | null
+  liquidoCentavos?: number | null
 }
 
 export type PagamentoConfirmadoUpdateInput = {
@@ -389,6 +425,8 @@ export type PagamentoConfirmadoUpdateInput = {
   registradoPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   observacao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  taxaCentavos?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  liquidoCentavos?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type PagamentoConfirmadoUncheckedUpdateInput = {
@@ -402,6 +440,8 @@ export type PagamentoConfirmadoUncheckedUpdateInput = {
   registradoPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   observacao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  taxaCentavos?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  liquidoCentavos?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type PagamentoConfirmadoCreateManyInput = {
@@ -415,6 +455,8 @@ export type PagamentoConfirmadoCreateManyInput = {
   registradoPor?: string | null
   observacao?: string | null
   createdAt?: Date | string
+  taxaCentavos?: number | null
+  liquidoCentavos?: number | null
 }
 
 export type PagamentoConfirmadoUpdateManyMutationInput = {
@@ -428,6 +470,8 @@ export type PagamentoConfirmadoUpdateManyMutationInput = {
   registradoPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   observacao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  taxaCentavos?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  liquidoCentavos?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type PagamentoConfirmadoUncheckedUpdateManyInput = {
@@ -441,6 +485,8 @@ export type PagamentoConfirmadoUncheckedUpdateManyInput = {
   registradoPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   observacao?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  taxaCentavos?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  liquidoCentavos?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type PagamentoConfirmadoCountOrderByAggregateInput = {
@@ -454,10 +500,14 @@ export type PagamentoConfirmadoCountOrderByAggregateInput = {
   registradoPor?: Prisma.SortOrder
   observacao?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  taxaCentavos?: Prisma.SortOrder
+  liquidoCentavos?: Prisma.SortOrder
 }
 
 export type PagamentoConfirmadoAvgOrderByAggregateInput = {
   valorCentavos?: Prisma.SortOrder
+  taxaCentavos?: Prisma.SortOrder
+  liquidoCentavos?: Prisma.SortOrder
 }
 
 export type PagamentoConfirmadoMaxOrderByAggregateInput = {
@@ -471,6 +521,8 @@ export type PagamentoConfirmadoMaxOrderByAggregateInput = {
   registradoPor?: Prisma.SortOrder
   observacao?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  taxaCentavos?: Prisma.SortOrder
+  liquidoCentavos?: Prisma.SortOrder
 }
 
 export type PagamentoConfirmadoMinOrderByAggregateInput = {
@@ -484,10 +536,14 @@ export type PagamentoConfirmadoMinOrderByAggregateInput = {
   registradoPor?: Prisma.SortOrder
   observacao?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  taxaCentavos?: Prisma.SortOrder
+  liquidoCentavos?: Prisma.SortOrder
 }
 
 export type PagamentoConfirmadoSumOrderByAggregateInput = {
   valorCentavos?: Prisma.SortOrder
+  taxaCentavos?: Prisma.SortOrder
+  liquidoCentavos?: Prisma.SortOrder
 }
 
 
@@ -503,6 +559,8 @@ export type PagamentoConfirmadoSelect<ExtArgs extends runtime.Types.Extensions.I
   registradoPor?: boolean
   observacao?: boolean
   createdAt?: boolean
+  taxaCentavos?: boolean
+  liquidoCentavos?: boolean
 }, ExtArgs["result"]["pagamentoConfirmado"]>
 
 export type PagamentoConfirmadoSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -516,6 +574,8 @@ export type PagamentoConfirmadoSelectCreateManyAndReturn<ExtArgs extends runtime
   registradoPor?: boolean
   observacao?: boolean
   createdAt?: boolean
+  taxaCentavos?: boolean
+  liquidoCentavos?: boolean
 }, ExtArgs["result"]["pagamentoConfirmado"]>
 
 export type PagamentoConfirmadoSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -529,6 +589,8 @@ export type PagamentoConfirmadoSelectUpdateManyAndReturn<ExtArgs extends runtime
   registradoPor?: boolean
   observacao?: boolean
   createdAt?: boolean
+  taxaCentavos?: boolean
+  liquidoCentavos?: boolean
 }, ExtArgs["result"]["pagamentoConfirmado"]>
 
 export type PagamentoConfirmadoSelectScalar = {
@@ -542,9 +604,11 @@ export type PagamentoConfirmadoSelectScalar = {
   registradoPor?: boolean
   observacao?: boolean
   createdAt?: boolean
+  taxaCentavos?: boolean
+  liquidoCentavos?: boolean
 }
 
-export type PagamentoConfirmadoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientRequestId" | "origem" | "provedorId" | "valorCentavos" | "moeda" | "confirmadoEm" | "registradoPor" | "observacao" | "createdAt", ExtArgs["result"]["pagamentoConfirmado"]>
+export type PagamentoConfirmadoOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientRequestId" | "origem" | "provedorId" | "valorCentavos" | "moeda" | "confirmadoEm" | "registradoPor" | "observacao" | "createdAt" | "taxaCentavos" | "liquidoCentavos", ExtArgs["result"]["pagamentoConfirmado"]>
 
 export type $PagamentoConfirmadoPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "PagamentoConfirmado"
@@ -597,6 +661,25 @@ export type $PagamentoConfirmadoPayload<ExtArgs extends runtime.Types.Extensions
      */
     observacao: string | null
     createdAt: Date
+    /**
+     * ── A TAXA DO GATEWAY, MEDIDA (27/08/2026) ────────────────────────────────
+     * 
+     * O CEO mandou pôr a taxa do Mercado Pago no custo. A casa NÃO a conhecia: não
+     * havia constante de taxa em lugar nenhum do repositório, e a única fonte
+     * honesta dela — `fee_details[]` do próprio pagamento, que é o que o provedor
+     * REALMENTE reteve — era lida pelo webhook e jogada fora.
+     * 
+     * ⚠️ NULO É "NÃO MEDIDO", NUNCA "TAXA ZERO". `taxaDoGatewayMedida()` só soma
+     * linhas com número; sem nenhuma, ela devolve `nao_medido` e o piso sobe. Ler
+     * nulo como zero daria ao negociador margem que não existe — que é exatamente
+     * o defeito que esta coluna nasce para não deixar acontecer.
+     */
+    taxaCentavos: number | null
+    /**
+     * O que sobrou depois da taxa (`net_received_amount`). Também opcional, também
+     * nulo = não medido.
+     */
+    liquidoCentavos: number | null
   }, ExtArgs["result"]["pagamentoConfirmado"]>
   composites: {}
 }
@@ -1030,6 +1113,8 @@ export interface PagamentoConfirmadoFieldRefs {
   readonly registradoPor: Prisma.FieldRef<"PagamentoConfirmado", 'String'>
   readonly observacao: Prisma.FieldRef<"PagamentoConfirmado", 'String'>
   readonly createdAt: Prisma.FieldRef<"PagamentoConfirmado", 'DateTime'>
+  readonly taxaCentavos: Prisma.FieldRef<"PagamentoConfirmado", 'Int'>
+  readonly liquidoCentavos: Prisma.FieldRef<"PagamentoConfirmado", 'Int'>
 }
     
 

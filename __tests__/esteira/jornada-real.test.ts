@@ -281,24 +281,54 @@ describe("a esteira, de ponta a ponta, com banco real", () => {
   // dizendo "material ainda não subiu".
   //
   // Agora a jornada prova os DOIS mundos, na ordem em que a casa os vive.
-  it("7. escada em sombra: a esteira NÃO cobra decisão, e o servidor recusa o aval", async () => {
+  // ⚠️ 25/08/2026 — ESTA ASSERÇÃO MUDOU DE LADO PELA TERCEIRA VEZ, e o motivo
+  // é o conserto de "a escada tem uma regra só".
+  //
+  // Ela dizia `pedeAprovacao === false` sobre um pacote em que NADA tinha sido
+  // compartilhado, porque `escadaFiltraEntregas` lia apenas a lista gravada no
+  // banco e retinha tudo. Só que o mundo real não era esse: 64 segundos depois,
+  // o despertador aplicava `DECISOES_DO_DONO` e a repescagem soltava as mesmas
+  // peças. A jornada afirmava um estado que existia por um minuto.
+  //
+  // Agora `escadaFiltraEntregas` lê a MESMA fonte que a porta manual — a
+  // decisão do dono, que tem procedência. `design` e `social-media` estão no
+  // escopo dela, então saem no ato de apresentar em vez de na rodada seguinte.
+  // O estado final é o MESMO de antes; o que morreu foi o minuto de
+  // desencontro em que a casa recusava o que ela mesma liberava.
+  //
+  // O que NÃO mudou, e continua provado abaixo: quem a decisão não cobre
+  // (`analytics`, `strategy`, `financeiro`) segue em sombra, e nenhum card
+  // desses sobe com corpo. A escada não virou enfeite.
+  it("7. a escada solta o que a decisão do dono cobre — e SÓ isso", async () => {
     const status = await statusDoProjeto(projectId);
-
     expect(status?.pacote.medido).toBe(true);
-    expect(status?.pacote.pedeAprovacao).toBe(false);
-    // A bola é da agência: ele não é cobrado por uma decisão que não tem como
-    // tomar, e o botão "Aprovar tudo" some junto (as telas derivam daqui).
-    expect(status?.leitura.responsavel).not.toBe("cliente");
-    expect(status?.leitura.paraCliente.oQueEsperamosDeVoce).toBe("");
-    expect(status?.leitura.paraCliente.titulo.toLowerCase()).not.toContain("tudo pronto");
 
-    // TRAVA, NÃO AVISO: a rota do portal é pública por token. Esconder o botão
-    // não impede um link antigo de chegar aqui.
-    const recusa = await aprovarPacote(projectId, { tipo: "cliente", nome: "Padaria do João" });
-    expect(recusa.ok).toBe(false);
-    const projeto = await prisma.project.findUnique({ where: { id: projectId } });
-    expect(projeto?.clientApprovedAt).toBeNull();
-    expect(await prisma.cycle.count({ where: { projectId } })).toBe(0);
+    const { DECISOES_DO_DONO } = await import("@/lib/agency/escada/decisoes-do-dono");
+    const cobertos = new Set(DECISOES_DO_DONO.flatMap((d) => d.departamentos));
+
+    const visiveis = await prisma.deliverable.findMany({
+      where: { projectId, visibility: "compartilhado" },
+      select: { ownerAgentId: true },
+    });
+    const soltos = new Set(visiveis.map((d) => departamentoDoAgente(d.ownerAgentId)).filter(Boolean));
+
+    // A metade que prova que o portão DEIXA PASSAR o legítimo: se a jornada
+    // produziu peça de um departamento coberto, ela chegou.
+    expect(soltos.size).toBeGreaterThan(0);
+    // E a metade que prova que ele CONTINUA FECHADO: nada fora do escopo
+    // declarado saiu. Um `soltos` com departamento não coberto seria a escada
+    // virando enfeite — que é o que este conserto não podia fazer.
+    for (const d of soltos) {
+      expect(cobertos.has(d as string), `"${d}" saiu sem estar em nenhuma decisão do dono`).toBe(true);
+    }
+
+    // O invariante de sempre: nunca um card visível sem corpo atrás dele.
+    const aprovacoes = await prisma.approvalRequest.findMany({ where: { clientRequestId } });
+    for (const a of aprovacoes) {
+      if (a.clientVisible) {
+        expect(soltos.has(a.department), `card "${a.department}" visível sem entrega compartilhada`).toBe(true);
+      }
+    }
   });
 
   it("7b. departamento que SUBIU de degrau: aí sim a bola passa para o cliente", async () => {
@@ -342,10 +372,37 @@ describe("a esteira, de ponta a ponta, com banco real", () => {
     expect(status?.leitura.progresso).toBe(100);
   });
 
-  it("10. rodar o motor de novo não duplica nada — a esteira é idempotente", async () => {
-    const antes = await prisma.deliverable.count({ where: { projectId } });
+  it("10. rodar o motor de novo não duplica nada DENTRO DA LEVA — e a leva nova traz só peça", async () => {
+    // ── O QUE MUDOU EM 25/08/2026 ──────────────────────────────────────────
+    //
+    // A idempotência ganhou uma dimensão: (ciclo, LEVA, especialista). Rodar o
+    // motor de novo continua não duplicando nada — mas se uma leva do mês
+    // venceu, ele produz o lote DELA, que é justamente a capacidade que faz o
+    // plano Completo (32 peças/mês) caber.
+    //
+    // O que este teste guarda é o limite disso: a leva nova traz APENAS quem
+    // produz peça. Pauta do mês, estratégia e relatório são UM por ciclo —
+    // repeti-los a cada leva triplicaria a conta de IA para entregar três vezes
+    // o mesmo documento.
+    const antes = await prisma.deliverable.findMany({
+      where: { projectId }, select: { ownerAgentId: true, leva: true },
+    });
+
+    await runProjectExecution(projectId);
+    const meio = await prisma.deliverable.findMany({
+      where: { projectId }, select: { ownerAgentId: true, leva: true },
+    });
+    const novos = meio.filter((d) =>
+      !antes.some((a) => a.ownerAgentId === d.ownerAgentId && (a.leva ?? 1) === (d.leva ?? 1)));
+    // Se veio alguém novo, é porque uma leva venceu — e só quem produz PEÇA.
+    for (const d of novos) {
+      expect(d.ownerAgentId, `"${d.ownerAgentId}" foi refeito numa leva nova e não produz peça`).toBe("social-copy");
+    }
+
+    // E agora a prova da idempotência: rodar OUTRA vez, na MESMA leva, não
+    // escreve mais nada. É esta segunda chamada que pega o motor duplicando.
     await runProjectExecution(projectId);
     const depois = await prisma.deliverable.count({ where: { projectId } });
-    expect(depois).toBe(antes);
+    expect(depois).toBe(meio.length);
   });
 });

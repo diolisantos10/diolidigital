@@ -1,0 +1,21 @@
+{
+  "id": "higiene-de-fila",
+  "quem": "ses-7ea9d3607d",
+  "frente": "trava de clone raso, refutacao da triagem de 28-08 e veredito dos 11 PRs nunca julgados",
+  "responsabilidade": "higiene-de-fila",
+  "arquivos": [
+    "lib/coordenacao/historico-completo.ts",
+    "__tests__/coordenacao/ancestral-nao-mente.test.ts",
+    "scripts/reivindicar.mts",
+    "docs/diagnosticos/triagem-dos-prs-parados-28-08.md",
+    "docs/diagnosticos/a-fila-inteira-29-08.md"
+  ],
+  "abertaEm": "2026-08-29T02:20:32.697Z",
+  "encerradaEm": "2026-08-29T02:48:41.646Z",
+  "rotulo": "pm-fila-e-trava",
+  "forcadaPor": {
+    "quem": "ses-7ea9d3607d",
+    "motivo": "documento no ar da ordem de fechar 169, 170 e 172 sobre premissa refutada; 169 conserta furo de inquilino vivo no deploy; correcao autorizada pelo Diretor em 29/08",
+    "em": "2026-08-29T02:20:32.697Z"
+  }
+}

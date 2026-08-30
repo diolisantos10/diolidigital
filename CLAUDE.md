@@ -430,13 +430,50 @@ Estas regras valem para **todo** trabalho de interface neste projeto. Não são 
    **iterar sozinho** (ajustar e re-screenshotar) antes de mostrar. Ao apresentar,
    mostrar o **antes e depois**.
 
+## Antes de dar `push`: `tsc --noEmit` DEPOIS de escrever o teste
+
+O CI desta casa roda `npx tsc --noEmit` antes do `vitest`, e **três PRs
+seguidos foram barrados nele pelo mesmo motivo**, sempre em arquivo de teste
+novo que estava verde localmente:
+
+```
+error TS2322: Type 'string' is not assignable to type 'never'.
+error TS2493: Tuple type '[]' of length '0' has no element at index '0'.
+```
+
+A raiz é sempre a mesma: um mock criado com `vi.hoisted(() => vi.fn())` **sem
+assinatura**. O TypeScript infere `never[]` para as listas e `[]` para
+`mock.calls`, então `mock.calls[0][0]` e qualquer `string` dentro de um
+`mockResolvedValue` viram erro — e `vitest` não reclama, porque ele não checa
+tipo. Teste verde não é teste que compila.
+
+Duas regras, as duas baratas:
+
+1. **Anote o retorno do mock** quando ele devolver listas ou objetos:
+   `vi.fn(async (): Promise<{ aprovadas: string[] }> => ({ aprovadas: [] }))`.
+2. **Rode `npx tsc --noEmit` depois de escrever o teste, não antes.** Rodar
+   antes e commitar depois é o erro que produziu as três barradas.
+
+E a régua geral que vale para qualquer conserto por script: **`replace` sem
+`assert` não é conserto, é esperança.** Um `python -c` que imprime "ok" está
+falando do script, não do arquivo — confira o arquivo.
+
 ## Como rodar e ver o app localmente
 
 ```sh
 # 1. Banco local (uma vez): cria .env, provisiona SQLite e semeia
 echo 'DATABASE_URL="file:./dev.db"' > .env
 echo 'JWT_SECRET=dev-secret-local-only' >> .env
-npx prisma db push && node scripts/seed-db.mjs   # login: master@dioli.studio
+# As DUAS senhas abaixo são OBRIGATÓRIAS — o seed recusa sem elas (e recusa
+# sem tocar no banco). São descartáveis e locais: nunca use valor de produção.
+echo 'SEED_MASTER_PASSWORD=dev-master-local-only' >> .env
+echo 'SEED_STAFF_PASSWORD=dev-staff-local-only' >> .env
+npx prisma db push && node scripts/seed-db.mjs
+
+# Login: master@dioli.studio · senha: o valor de SEED_MASTER_PASSWORD acima.
+# Staff (pm@ / social@ / design@ .dioli.studio) usam SEED_STAFF_PASSWORD.
+# Trocar a senha = editar o .env e rodar `node scripts/seed-db.mjs` de novo:
+# o seed ROTACIONA a senha das contas que já existem.
 
 # 2. Subir o servidor de desenvolvimento
 npm run dev            # http://localhost:3000
@@ -444,6 +481,16 @@ npm run dev            # http://localhost:3000
 # 3. Screenshot em 3 tamanhos (celular/tablet/desktop)
 node scripts/shot.mjs /auth/signin signin
 ```
+
+> **Esta receita foi rodada do zero em 29/08/2026, num diretório vazio, e
+> funciona.** Antes disso ela mentia: mandava rodar o seed sem citar as duas
+> senhas, e o seed **apagava dados demo do banco e só então falhava** por falta
+> delas — quem confiou na receita ficou pior do que antes. Hoje o seed confere
+> todos os pré-requisitos **antes da primeira escrita** e recusa com o disco
+> intacto (`__tests__/plataforma/seed-recusa-antes-de-destruir.test.ts` trava as
+> duas coisas, esta seção inclusive). Se você mudar a receita, **rode-a** num
+> diretório limpo antes de commitar. Receita que não roda é pior que receita
+> ausente.
 
 ## Componentes shadcn/ui
 

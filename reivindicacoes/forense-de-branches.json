@@ -1,0 +1,12 @@
+{
+  "id": "forense-de-branches",
+  "quem": "ses-95d943e2da",
+  "frente": "causa raiz da base orfa e veredito dos 5 PRs",
+  "responsabilidade": "forense-de-branches",
+  "arquivos": [
+    "docs/diagnosticos/a-base-orfa-e-os-cinco-prs-29-08.md"
+  ],
+  "abertaEm": "2026-08-29T01:57:39.505Z",
+  "encerradaEm": "2026-08-29T02:15:50.331Z",
+  "rotulo": "pm-base-orfa"
+}

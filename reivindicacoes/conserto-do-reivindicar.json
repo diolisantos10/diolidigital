@@ -1,0 +1,12 @@
+{
+  "id": "conserto-do-reivindicar",
+  "quem": "ses-b6c221003f",
+  "frente": "Consertar o reivindicar que empurrava o branch inteiro",
+  "responsabilidade": "conserto-do-reivindicar",
+  "arquivos": [
+    "scripts/reivindicar.mts"
+  ],
+  "abertaEm": "2026-08-28T04:52:25.139Z",
+  "encerradaEm": "2026-08-28T04:53:24.689Z",
+  "rotulo": "diolidigital-f0"
+}

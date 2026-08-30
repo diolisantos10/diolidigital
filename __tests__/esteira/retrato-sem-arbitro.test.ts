@@ -21,6 +21,10 @@ const db = vi.hoisted(() => ({
   task: { groupBy: vi.fn() },
   materialRequest: { findMany: vi.fn() },
   cycle: { findFirst: vi.fn() },
+  // 6ª rodada: `statusDoProjeto` passou a ler o PAGAMENTO — o que só
+  // `/api/portal/projetos` sabia — para as duas rotas do portal pararem de
+  // divergir. Ver o ramo `aguardando_pagamento` em `fases.ts`.
+  pagamentoConfirmado: { count: vi.fn() },
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
@@ -40,6 +44,7 @@ beforeEach(() => {
   db.task.groupBy.mockResolvedValue([]);
   db.materialRequest.findMany.mockResolvedValue([]);
   db.cycle.findFirst.mockResolvedValue(null);
+  db.pagamentoConfirmado.count.mockResolvedValue(1);
 });
 
 describe("o retrato conta as entregas que ninguém auditou", () => {

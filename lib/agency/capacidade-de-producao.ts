@@ -43,7 +43,7 @@
 
 export type CapacidadeDeProducao =
   // ── O que a casa produz ──────────────────────────────────────────────────
-  | "arte-estatica-png"
+  | "arte-estatica-jpeg"
   | "texto-de-marca"
   | "edicao-de-video-do-cliente"
   | "publicacao-instagram-facebook"
@@ -81,9 +81,15 @@ export interface Capacidade {
 }
 
 export const CAPACIDADES: Record<CapacidadeDeProducao, Capacidade> = {
-  "arte-estatica-png": {
-    id: "arte-estatica-png",
-    produz: "arte de feed, story ou carrossel em PNG, com o molde da marca",
+  "arte-estatica-jpeg": {
+    id: "arte-estatica-jpeg",
+    // JPEG, e o id diz JPEG desde 25/08/2026. Chamava-se `arte-estatica-png` e
+    // produzia JPEG havia semanas: `SAIDA_DA_PECA` em `design/renderizar.ts`
+    // captura `type: "jpeg"`, e `MIME_DA_PECA_RENDERIZADA` deriva o MIME da
+    // MESMA opção. O nome era o resíduo de antes da conversão (ver
+    // `scripts/reconverter-pecas-para-jpeg.mts`) e mentia na vitrine, que é
+    // onde o cliente lê o que vai receber.
+    produz: "arte de feed, story ou carrossel em JPEG, com o molde da marca",
     ponto: { arquivo: "lib/agency/design/molde.ts", simbolo: "montarHtmlDaPeca" },
   },
   "texto-de-marca": {

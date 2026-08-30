@@ -47,6 +47,43 @@
 // sair dela tendo torrado a paciência de quem veio comprar.
 
 import type { LacunaDeEscopo } from "./lacuna-de-escopo";
+import { emailNoTexto } from "./contato-do-lead";
+
+/**
+ * O TEXTO DO CLIENTE, SEM O E-MAIL DELE.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * A ÚNICA EXCEÇÃO À REGRA "AS PALAVRAS DELE ENTRAM CRUAS" (6ª rodada)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Achado por régua, e ele é desconfortável: **este módulo era um canal de
+ * vazamento de PII.** A lacuna guarda a fala crua e a lacuna mora dentro de
+ * `BriefingScope.lacunasDeEscopo` — e o escopo inteiro é serializado para
+ * dentro do prompt do modelo (`app/api/sdr/chat/route.ts`). A casa apaga
+ * `prospectEmail` de tudo o que volta do modelo, e mandava o mesmo endereço
+ * para lá pela porta dos fundos, escrito por ela mesma.
+ *
+ * O conserto NÃO é parar de registrar: descartar a fala é o defeito que este
+ * arquivo inteiro existe para matar. É registrar sem o endereço.
+ *
+ * E nada se perde: quando o cliente oferece um e-mail, ele é guardado — fora
+ * do escopo, em `SDRAgentState.contatoOferecido`, com a casa dizendo em voz
+ * alta que anotou. A lacuna precisa da FRASE para alguém entender o que ele
+ * quis; ela nunca precisou do endereço.
+ *
+ * Só e-mail, e isso é escopo declarado: telefone já é apagado adiante por
+ * `semPii` (sequências longas de dígitos), e inventar aqui um segundo apagador
+ * de telefone criaria as duas gramáticas que esta casa passa o tempo fechando.
+ */
+function semEmail(texto: string): string {
+  let saida = texto;
+  for (let i = 0; i < 8; i++) {
+    const achado = emailNoTexto(saida);
+    if (!achado) break;
+    saida = saida.split(achado).join("[e-mail do cliente]");
+  }
+  return saida;
+}
 
 /**
  * Quantas vezes a MESMA pergunta pode ser feita numa conversa.
@@ -81,7 +118,7 @@ export function acrescentarRespostaSemEncaixe(
   if (i < 0) { lista.push(nova); return lista; }
 
   const jaTem = lista[i].oQueOClienteDisse;
-  const fala  = respostaCrua.trim().slice(0, 400);
+  const fala  = semEmail(respostaCrua).trim().slice(0, 400);
   // A mesma fala repetida não entra duas vezes: o cliente que reenvia a mesma
   // frase está insistindo, não dizendo algo novo.
   if (jaTem.includes(fala)) return lista;
@@ -102,7 +139,7 @@ export function lacunaDeRespostaSemEncaixe(
   respostaCrua: string,
   oQueAPerguntaColhe: string,
 ): LacunaDeEscopo {
-  const texto = respostaCrua.trim().slice(0, 400);
+  const texto = semEmail(respostaCrua).trim().slice(0, 400);
   return {
     // O id carrega a pergunta: duas respostas sem encaixe para a MESMA pergunta
     // são o mesmo buraco, e `unirLacunas` guarda a primeira. Buracos de
@@ -123,6 +160,11 @@ export function lacunaDeRespostaSemEncaixe(
 export const O_QUE_A_PERGUNTA_COLHE: Record<string, string> = {
   detect_service:    "qual serviço ele quer (redes sociais, tráfego pago ou identidade visual)",
   prospect_name_biz: "o nome dele e o nome do negócio",
+  // 6ª rodada: entrou aqui junto com a trava do `parse`. Sem esta linha a
+  // lacuna registrada diria "um dado do pedido", e quem for perguntar depois
+  // não saberia o que perguntar — lacuna sem nome é lacuna que ninguém fecha.
+  operacao_basica:
+    "os básicos operacionais do negócio (o @ do Instagram, o horário e os dias de funcionamento, e os bairros ou cidades atendidos)",
 };
 
 /**

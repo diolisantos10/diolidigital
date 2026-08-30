@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { canalFoiRetratado } from "@/lib/agency/comercial/retratacao";
 import { createClientRequest, listClientRequests, updateClientRequest, getClientRequest, deleteClientRequest } from "@/lib/agency/persistence/client-request-service";
 import { requireSession } from "@/lib/auth/api-guard";
 import {
@@ -12,6 +13,7 @@ import { sendEmail } from "@/lib/email/send";
 import { briefingConfirmationEmail } from "@/lib/email/templates";
 import { lerContato, montarContato } from "@/lib/agency/comercial/contato-do-lead";
 import { provaDoProprioBriefing } from "@/lib/agency/consentimento/quem-pode-receber";
+import { resolverRastroDaConversa } from "@/lib/agency/comercial/conversa-sem-pedido";
 
 // ── OS TETOS DA ÚNICA PORTA PÚBLICA DE GRAVAÇÃO (raio-x de 16/08/2026) ────────
 //
@@ -77,7 +79,10 @@ function sendBriefingConfirmation(body: Record<string, unknown>, briefingJson: u
   // e a referência aponta o pedido, para ser conferível depois.
   sendEmail({ to: email, subject, html, consentimento: provaDoProprioBriefing(String(body.id ?? "novo-pedido")) })
     .then((r) => {
-      if (r.skipped) console.warn("[client-requests] confirmation e-mail skipped — RESEND_API_KEY not set");
+      // O motivo é o que `sendEmail` devolveu, nunca um palpite: `skipped`
+      // hoje significa OU falta de chave OU a trava de saída do cliente falso
+      // (`bloqueado:…`). Ver o comentário longo em `lib/email/send.ts`.
+      if (r.skipped) console.warn("[client-requests] confirmation e-mail skipped:", r.error ?? "sem motivo declarado");
       else if (!r.ok) console.error("[client-requests] confirmation e-mail failed:", r.error);
     })
     .catch((e) => console.error("[client-requests] confirmation e-mail threw:", e));
@@ -225,13 +230,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // O que NÃO acontece no caso sem contato: nenhuma inferência. O `rawContext`
   // não é vasculhado atrás de um telefone. Arroba de Instagram no meio da
   // conversa é PISTA para o CEO ler, nunca contato (`pistasDeContato`).
+  //
+  // ── E O CANAL QUE O CLIENTE DESDISSE NÃO ENTRA POR AQUI (8ª volta) ────────
+  //
+  // Esta é a TERCEIRA memória da conversa, e a última. O cliente escreveu
+  // "esquece o WhatsApp, prefiro e-mail"; o número reapareceu em
+  // `contato.whatsapp` na solicitação gravada — porque a linha abaixo lê o
+  // contato da PORTA, que é anterior à retratação, antes do escopo.
+  //
+  // A trava é aqui, no SERVIDOR, pelo mesmo motivo que o gate de contato: esta
+  // rota é pública e um POST direto passa por cima de qualquer decisão de tela.
+  // A tela já obedece à marca; se ela deixar de obedecer, o número continua não
+  // entrando. Ver `lib/agency/comercial/retratacao.ts`.
+  const escopoDoBriefing = (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope;
+  const whatsappRetratado = canalFoiRetratado(escopoDoBriefing, "whatsapp");
+  if (whatsappRetratado) {
+    console.warn("[client-requests] WhatsApp retratado pelo cliente — não entra no contato da solicitação");
+  }
   const contatoDeclarado = montarContato({
     nome:     (body.contato as Record<string, unknown> | undefined)?.nome
-              ?? (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope?.prospectName,
+              ?? escopoDoBriefing?.prospectName,
     email:    (body.contato as Record<string, unknown> | undefined)?.email
-              ?? (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope?.prospectEmail,
-    whatsapp: (body.contato as Record<string, unknown> | undefined)?.whatsapp
-              ?? (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope?.prospectPhone,
+              ?? escopoDoBriefing?.prospectEmail,
+    whatsapp: whatsappRetratado
+              ? undefined
+              : (body.contato as Record<string, unknown> | undefined)?.whatsapp
+                ?? escopoDoBriefing?.prospectPhone,
   });
 
   const briefingJson =
@@ -285,6 +309,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       sdrHandoffJson:  body.sdrHandoffJson  != null              ? body.sdrHandoffJson as object : undefined,
       attachmentsJson,
     });
+
+    // ── A CONVERSA VIROU PEDIDO: O RASTRO DEIXA DE SER UMA PARADA ──────────
+    //
+    // Cada turno do SDR guarda um rastro do escopo acumulado
+    // (`conversa-sem-pedido.ts`, 27/08/2026), para que uma conversa abandonada
+    // no meio não suma em silêncio. Este é o outro lado: quando o briefing
+    // sobe de verdade, aquele rastro precisa sair da lista de paradas.
+    //
+    // Sem isto a lista mentiria PARA CIMA — toda conversa bem-sucedida
+    // apareceria para sempre como abandonada, e um alarme que acusa o que está
+    // certo é o alarme cego que esta casa já pagou uma vez no `cron-execute`.
+    //
+    // Depois do `create` e fora do caminho de erro: resolver ANTES de gravar
+    // apagaria o rastro de uma conversa cujo pedido ainda pode falhar — e aí a
+    // perda seria total e silenciosa, exatamente o que este conserto existe
+    // para impedir. Nunca lança.
+    await resolverRastroDaConversa(body.sessionId);
 
     if (contato.temComoFalar) {
       // Automatically generate the full scope as soon as the briefing lands —

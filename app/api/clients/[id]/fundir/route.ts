@@ -16,7 +16,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
-import { completarCampos, moverVinculos } from "@/lib/agency/persistence/cliente-vinculos";
+import {
+  completarCampos,
+  moverVinculos,
+  traduzirConflitoDeFusao,
+} from "@/lib/agency/persistence/cliente-vinculos";
 
 export async function POST(
   request: NextRequest,
@@ -57,17 +61,40 @@ export async function POST(
 
   // Transação: uma fusão pela metade — metade do trabalho movido e o cadastro
   // ainda de pé — é pior que não ter começado, porque ninguém sabe onde parou.
-  const resultado = await prisma.$transaction(async (tx) => {
-    const movimento = await moverVinculos(tx, absorvidoId, sobreviventeId);
+  //
+  // O try/catch NÃO substitui a transação — ele só evita que a rejeição dela
+  // vire 500 mudo. `unicoPorCliente` (em cliente-vinculos.ts) já evita a
+  // maioria dos P2002 checando antes de mover; isto aqui é a rede para o que
+  // ela não cobre: o próximo `clientId @unique` sem a flag, ou uma corrida
+  // real entre duas fusões do mesmo par. Ver `traduzirConflitoDeFusao`.
+  let resultado;
+  try {
+    resultado = await prisma.$transaction(async (tx) => {
+      const movimento = await moverVinculos(tx, absorvidoId, sobreviventeId);
 
-    const completar = completarCampos(sobrevivente, absorvido);
-    if (Object.keys(completar).length > 0) {
-      await tx.client.update({ where: { id: sobreviventeId }, data: completar });
+      const completar = completarCampos(sobrevivente, absorvido);
+      if (Object.keys(completar).length > 0) {
+        await tx.client.update({ where: { id: sobreviventeId }, data: completar });
+      }
+
+      await tx.client.delete({ where: { id: absorvidoId } });
+      return { ...movimento, completados: Object.keys(completar) };
+    });
+  } catch (erro) {
+    const conflito = traduzirConflitoDeFusao(erro);
+    if (conflito) {
+      return NextResponse.json({ error: conflito.mensagem }, { status: conflito.status });
     }
-
-    await tx.client.delete({ where: { id: absorvidoId } });
-    return { ...movimento, completados: Object.keys(completar) };
-  });
+    // Não é P2002: continua sendo erro, não vira sucesso. Nada de PII no log
+    // — só ids (cuid, não é dado pessoal) e o código/mensagem do Prisma.
+    console.error("[fundir] falha inesperada na transação de fusão", {
+      absorvidoId,
+      sobreviventeId,
+      code: (erro as { code?: unknown } | null)?.code,
+      message: erro instanceof Error ? erro.message : String(erro),
+    });
+    return NextResponse.json({ error: "não foi possível concluir a fusão" }, { status: 500 });
+  }
 
   return NextResponse.json({
     ok: true,

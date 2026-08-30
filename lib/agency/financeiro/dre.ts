@@ -47,78 +47,20 @@ import { donoDaChamada } from "@/lib/ai/donos";
  */
 export const MEDICAO_DE_IA_COMPLETA_DESDE = new Date("2026-08-07T00:00:00.000Z");
 
-// ─── Dinheiro: um número, ou a razão de não haver número ──────────────────────
+// ─── Dinheiro ────────────────────────────────────────────────────────────────
+//
+// O vocabulário mudou de casa em 27/08/2026 (`dinheiro.ts`) e é REEXPORTADO
+// daqui para que nenhum chamador antigo precise mudar. O motivo da mudança está
+// no cabeçalho de lá: importar a palavra "não medido" arrastava o roster de
+// agentes junto, e isso fechou um ciclo de import quando a tabela de preços
+// entrou no caminho do SDR.
 
-export type OrigemDoNumero =
-  | "registro_de_ia"   // AIRunLog — chamada medida, preço da tabela da casa
-  | "manual"           // alguém lançou à mão
-  | "contrato"         // valor de contrato/plano assinado
-  | "extrato"          // conciliação bancária
-  | "importado"        // rotina automática
-  | "derivado";        // soma/subtração dos acima — carrega a origem mais fraca
+export {
+  medido, emReais, somar, subtrair,
+  type Dinheiro, type OrigemDoNumero,
+} from "@/lib/agency/financeiro/dinheiro";
 
-export type Dinheiro =
-  | { estado: "medido"; centavos: number; moeda: "BRL" | "USD"; origem: OrigemDoNumero }
-  /** Ninguém mediu. Diferente de "custou zero" e diferente de "não houve". */
-  | { estado: "nao_medido"; motivo: string }
-  /** A janela existe e está vazia: não houve lançamento. Isto SIM é zero real. */
-  | { estado: "nao_lancado"; motivo: string };
-
-export function medido(centavos: number, origem: OrigemDoNumero, moeda: "BRL" | "USD" = "BRL"): Dinheiro {
-  return { estado: "medido", centavos, moeda, origem };
-}
-
-/** Formata para a tela. Nunca devolve "R$ 0,00" para o que não foi medido. */
-export function emReais(d: Dinheiro): string {
-  if (d.estado === "nao_medido") return "não medido";
-  if (d.estado === "nao_lancado") return "nada lançado";
-  const valor = (d.centavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return d.moeda === "USD" ? `US$ ${valor}` : `R$ ${valor}`;
-}
-
-/**
- * Soma que se recusa a inventar.
- *
- * Se QUALQUER parcela não foi medida, a soma não é medida — ela vira
- * `nao_medido` nomeando quem faltou. Tratar a parcela ausente como zero é
- * exatamente como um DRE passa a mentir para baixo sem ninguém errar uma conta.
- * Parcelas todas `nao_lancado` somam `nao_lancado`, que é zero de verdade.
- */
-export function somar(parcelas: Array<{ rotulo: string; valor: Dinheiro }>): Dinheiro {
-  const faltando = parcelas.filter((p) => p.valor.estado === "nao_medido").map((p) => p.rotulo);
-  if (faltando.length) {
-    return { estado: "nao_medido", motivo: `depende de ${faltando.join(", ")}, que não foi medido` };
-  }
-  const medidas = parcelas.filter((p) => p.valor.estado === "medido");
-  if (medidas.length === 0) {
-    return { estado: "nao_lancado", motivo: "nenhum lançamento no período" };
-  }
-  const moedas = new Set(medidas.map((p) => (p.valor as { moeda: string }).moeda));
-  if (moedas.size > 1) {
-    // Somar BRL com USD sem câmbio declarado produziria um número que não
-    // existe em moeda nenhuma. É a regra 3 aplicada onde ela mais dói.
-    return { estado: "nao_medido", motivo: "há valores em moedas diferentes e não há câmbio declarado" };
-  }
-  return {
-    estado: "medido",
-    centavos: medidas.reduce((s, p) => s + (p.valor as { centavos: number }).centavos, 0),
-    moeda: [...moedas][0] as "BRL" | "USD",
-    origem: "derivado",
-  };
-}
-
-/** Subtração com a mesma disciplina da soma. */
-export function subtrair(a: { rotulo: string; valor: Dinheiro }, b: { rotulo: string; valor: Dinheiro }): Dinheiro {
-  return somar([
-    a,
-    {
-      rotulo: b.rotulo,
-      valor: b.valor.estado === "medido"
-        ? { ...b.valor, centavos: -b.valor.centavos, origem: "derivado" as const }
-        : b.valor,
-    },
-  ]);
-}
+import { medido, emReais, somar, subtrair, type Dinheiro, type OrigemDoNumero } from "@/lib/agency/financeiro/dinheiro";
 
 // ─── O período ────────────────────────────────────────────────────────────────
 
@@ -387,6 +329,18 @@ export interface LinhaDeProjeto {
   custoDeIaUsd: Dinheiro;
   chamadasDeIa: number;
   resultado: Dinheiro;
+  /**
+   * A PARCERIA, quando este centro de custo é um parceiro com isenção VIVA.
+   *
+   * Ordem do CEO (D-0B9): *"Tudo tem que ser medido, inclusive as parcerias."*
+   * Sem este campo a linha do parceiro era indistinguível da do caloteiro: as
+   * duas apareciam como "nada lançado". Aqui a receita vira R$ 0,00 de origem
+   * `parceria`, o custo continua contado normalmente, e a margem negativa fica
+   * visível COM O NOME de quem autorizou o investimento.
+   *
+   * Ausente = não é parceria. Nunca use a ausência para concluir que é.
+   */
+  parceria?: { autorizadaPor: string; validaAte: Date; escopo: string };
 }
 
 /**
@@ -424,6 +378,35 @@ export async function porProjeto(
 
   const ia = await custoDeIaNoPeriodo(workspaceId, periodo, nomeDoCliente);
 
+  // ─── AS PARCERIAS VIVAS ───────────────────────────────────────────────────
+  // Só as VÁLIDAS no fim do período: uma isenção vencida não explica mais um
+  // R$ 0, e apresentá-la como se explicasse esconderia justamente o mês em que
+  // a casa continuou produzindo de graça depois do combinado.
+  //
+  // Leitura que falha NÃO vira "não há parceria": vira mapa vazio E a linha
+  // segue como estava (`nao_lancado`), que é o estado conservador — dizer "R$ 0
+  // por parceria" sem ter lido a parceria seria inventar a autorização.
+  const parcerias = new Map<string, { autorizadaPor: string; validaAte: Date; escopo: string }>();
+  try {
+    const vivas = (await prisma.isencaoDeParceria.findMany({
+      where: { validaAte: { gte: periodo.inicio } },
+      select: { clientId: true, autorizadaPor: true, validaAte: true, escopo: true },
+    })) as Array<{ clientId: string | null; autorizadaPor: string; validaAte: Date; escopo: string }>;
+    for (const v of vivas) {
+      // ⚠️ DEFESA EM PROFUNDIDADE, e ela NÃO é load-bearing hoje — está escrito
+      // porque a mutação que a remove SOBREVIVEU à suíte, e ponto fraco
+      // silencioso é armadilha. Hoje um `clientId` nulo viraria uma chave que
+      // `parcerias.get(id)` nunca casa, então remover esta linha não muda
+      // nada. Ela existe para o dia em que a chave passar a ter um padrão
+      // (`v.clientId ?? "sem-centro-de-custo"`): aí a isenção órfã grudaria na
+      // linha do vala-comum e explicaria um R$ 0 que não é dela.
+      if (!v.clientId) continue;
+      parcerias.set(v.clientId, { autorizadaPor: v.autorizadaPor, validaAte: v.validaAte, escopo: v.escopo });
+    }
+  } catch {
+    // mapa vazio — ver o comentário acima
+  }
+
   const chaves = new Map<string, string>();
   const chaveDe = (clientId: string | null, centro: string | null) => {
     // O centro de custo escrito à mão é resolvido para o cliente ANTES de virar
@@ -448,9 +431,16 @@ export async function porProjeto(
 
   return [...chaves.entries()].map(([id, label]) => {
     const linhaIa = ia.porCliente.find((l) => l.id === id || (id === "sem-centro-de-custo" && l.id === "sem-cliente"));
+    const parceria = parcerias.get(id);
+    // A receita LANÇADA vence a parceria: se entrou dinheiro deste cliente no
+    // período, o fato é o dinheiro. Parceria explica a AUSÊNCIA de receita, não
+    // apaga a presença dela.
     const receita: Dinheiro = receitas.has(id)
       ? medido(receitas.get(id)!, "manual")
-      : { estado: "nao_lancado", motivo: "nenhuma receita lançada para este centro de custo no período" };
+      : parceria
+        // Conhecida e igual a zero — não é "a janela está vazia".
+        ? medido(0, "parceria")
+        : { estado: "nao_lancado", motivo: "nenhuma receita lançada para este centro de custo no período" };
     const custo: Dinheiro = custos.has(id)
       ? medido(custos.get(id)!, "manual")
       : { estado: "nao_lancado", motivo: "nenhum custo em reais lançado para este centro de custo no período" };
@@ -459,6 +449,9 @@ export async function porProjeto(
       custoDeIaUsd: linhaIa?.valor ?? { estado: "nao_lancado", motivo: "nenhuma chamada de IA atribuída" },
       chamadasDeIa: linhaIa?.chamadas ?? 0,
       resultado: subtrair({ rotulo: "receita", valor: receita }, { rotulo: "custo", valor: custo }),
+      // Só vai o que EXISTE: campo ausente significa "não é parceria", e é
+      // assim que o leitor deve entender a ausência.
+      ...(parceria ? { parceria } : {}),
     };
   }).sort((a, b) => {
     const va = a.resultado.estado === "medido" ? a.resultado.centavos : Number.MAX_SAFE_INTEGER;

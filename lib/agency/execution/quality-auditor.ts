@@ -29,6 +29,9 @@
 
 import { generate } from "@/lib/ai/generate";
 import type { AiProvider } from "@/lib/ai/resolve-key";
+import {
+  eFalhaTerminal, filtrarForaDeJogo, porQueEstaFora,
+} from "@/lib/ai/provedor-fora-de-jogo";
 // ── A RÉGUA DETERMINÍSTICA, ANTES DA OPINIÃO (13/08/2026) ────────────────────
 //
 // Este juiz é UMA chamada de IA com cinco perguntas em prosa e a instrução
@@ -56,7 +59,39 @@ export type MotivoDeNaoAuditar =
   | "tipo_nao_declarado"
   /** O juiz acabou sendo o MESMO modelo que escreveu a peça — ver
    *  `escolherArbitro`. Aprovação de si mesmo não é aprovação. */
-  | "juiz_nao_imparcial";
+  | "juiz_nao_imparcial"
+  /**
+   * TODOS os árbitros independentes responderam LIMITE DE TAXA (HTTP 429).
+   *
+   * ── Por que é um motivo próprio (25/08/2026) ──────────────────────────────
+   * Medido em produção no case Farol 27, rodada 5: as 8 chamadas ao juiz
+   * `gpt-4o` voltaram 429 e o julgamento caiu para o `claude-haiku-4-5`, que é
+   * quem escreveu as peças. `ia_indisponivel` teria dito "a IA caiu" — e não
+   * caiu: ela está viva e recusando por VOLUME. O conserto é esperar e repetir
+   * (ou conectar outra chave), não investigar um provedor morto.
+   *
+   * Doutrina da casa, aprendida duas vezes no mesmo dia: **status de erro não é
+   * motivo — o motivo está na mensagem.** Um `400` era falta de saldo; um `404`
+   * era host morto; um `429` é fila cheia.
+   */
+  | "limite_de_taxa"
+  /**
+   * Um ou mais árbitros independentes estão SEM SALDO (ou com a chave
+   * recusada) — e por isso a peça ficou sem juiz.
+   *
+   * ── Por que é um motivo próprio (27/08/2026) ──────────────────────────────
+   * Medido no log de produção, 13:38→15:48, 27 batidas idênticas de 5 em 5
+   * min: a conta da Anthropic zerada, `claude` abrindo a fila em toda chamada,
+   * HTTP 400 *"Your credit balance is too low"*, e a retenção saindo carimbada
+   * `ia_indisponivel` — "o provedor caiu". Ele não caiu: está de pé, e não foi
+   * pago. `ia_indisponivel` manda investigar um servidor; `limite_de_taxa`
+   * manda esperar. As duas mandam a pessoa fazer a coisa errada, e a coisa
+   * certa — pôr crédito na conta — é a única que NINGUÉM faz em código.
+   *
+   * Doutrina da casa, agora pela terceira vez: **status de erro não é motivo —
+   * o motivo está na mensagem.**
+   */
+  | "provedor_sem_saldo";
 
 export interface QualityVerdict {
   verdict: VereditoDaQualidade;
@@ -66,6 +101,14 @@ export interface QualityVerdict {
   motivo?: MotivoDeNaoAuditar;
   /** Quem de fato julgou. Ausente = ninguém julgou. */
   arbitro?: AiProvider;
+  /**
+   * O juiz era OUTRO modelo, que não o autor?
+   *
+   * Campo próprio em vez de "compare `arbitro` com `provedorDoAutor` lá fora":
+   * a comparação depende de saber quem é o autor, e quem lê o banco meses
+   * depois não sabe. A resposta é gravada no momento em que ela é conhecida.
+   */
+  arbitroIndependente?: boolean;
 }
 
 // ── O JUIZ NÃO PODE SER O AUTOR ──────────────────────────────────────────────
@@ -94,8 +137,101 @@ const FILA_DE_ARBITROS: AiProvider[] = ["claude", "openai", "gemini", "deepseek"
  * conservadora, porque claude é quem escreve quase tudo nesta casa.
  */
 export function escolherArbitro(autor?: string | null): AiProvider {
+  return filaDeArbitros(autor)[0] ?? "openai";
+}
+
+/**
+ * TODOS os árbitros independentes possíveis para uma peça escrita por `autor`,
+ * em ordem de preferência. O autor NUNCA está na lista.
+ *
+ * ── Por que a fila inteira, e não só o primeiro (25/08/2026) ────────────────
+ * `escolherArbitro` devolvia um nome só, e quem chamava passava esse nome como
+ * `preferredProvider` para `generate` — que é PREFERÊNCIA, não trava: quando o
+ * preferido falha, `generate` anda na ordem da casa, e a ordem da casa começa
+ * no `claude`, que é quem escreve quase tudo. Ou seja: o mecanismo que existia
+ * para garantir independência entregava o julgamento ao autor no primeiro
+ * tropeço do juiz.
+ *
+ * Medido no Farol 27, rodada 5: 8 chamadas ao `gpt-4o` em 429, 10 julgamentos
+ * saídos do mesmo `claude-haiku-4-5` que escreveu as peças, 0 de 10 com árbitro
+ * independente — e nenhuma tela mudou.
+ *
+ * Com a fila inteira, o auditor anda ELE MESMO de árbitro em árbitro, cada um
+ * chamado com `apenasOPreferido: true` — que desliga a reserva de `generate`.
+ * Acabou a fila, a peça é RETIDA. Nunca cai no autor.
+ *
+ * `perplexity` não entra: é pesquisadora com fonte, não juíza de texto.
+ */
+export function filaDeArbitros(autor?: string | null): AiProvider[] {
   const doAutor = (autor ?? "claude").trim().toLowerCase();
-  return FILA_DE_ARBITROS.find((p) => p !== doAutor) ?? "openai";
+  return FILA_DE_ARBITROS.filter((p) => p !== doAutor);
+}
+
+// ── AS TRÊS PALAVRAS QUE A TELA PRECISA DIZER (25/08/2026) ───────────────────
+//
+// `revisionStatus` responde "qual foi o veredito" e NÃO responde "quem julgou".
+// São perguntas diferentes, e confundi-las é o defeito do Farol 27: uma peça
+// `quality_flag` julgada pelo próprio autor e uma peça `quality_flag` julgada
+// por um juiz independente ficavam idênticas em toda tela da casa.
+//
+// Três coisas, três palavras:
+//   • `arbitro_independente` → outro modelo, que não o autor, olhou e decidiu.
+//   • `autojulgado`          → quem julgou foi o MESMO modelo que escreveu.
+//                              Vale como freio (reprovação bloqueia), NUNCA
+//                              como aprovação — ver a degradação assimétrica.
+//   • `sem_arbitro`          → ninguém olhou. Retém.
+//   • `decisao_humana`      → quem decidiu foi uma PESSOA, pela tela. É uma
+//                              quarta coisa, e a palavra é própria por isso:
+//                              não é auto-julgamento (nenhum modelo julgou a si
+//                              mesmo) e muito menos árbitro independente. Ver
+//                              `camposDaDecisaoHumana`.
+export type Arbitragem = "arbitro_independente" | "autojulgado" | "sem_arbitro" | "decisao_humana";
+
+export const ARBITRAGEM_EM_PALAVRAS: Record<Arbitragem, string> = {
+  arbitro_independente: "julgada por árbitro independente",
+  autojulgado: "julgada pelo PRÓPRIO autor — não é aprovação independente",
+  sem_arbitro: "NÃO julgada — ninguém auditou",
+  decisao_humana: "decidida por uma PESSOA pela tela — não é auditoria de árbitro nenhum",
+};
+
+/**
+ * OS CAMPOS DE BANCO quando quem decidiu foi UMA PESSOA, pela tela.
+ *
+ * ── Por que uma QUARTA palavra (25/08/2026, ordem do Diretor Geral) ─────────
+ * `app/api/deliverables/[id]` grava `revisionStatus` vindo do corpo da
+ * requisição. Sem esta função, ela escreveria o veredito e deixaria
+ * `qualityArbitragem` como estava — herdando o carimbo da auditoria anterior,
+ * ou ficando nulo. Nos dois casos a tela volta a mentir, e sem má-fé nenhuma:
+ * basta alguém usar a tela.
+ *
+ * E não bastava reusar uma palavra existente. "Um humano decidiu" NÃO é
+ * `autojulgado` (nenhum modelo julgou a si mesmo), NÃO é `sem_arbitro` (alguém
+ * olhou, e com mais autoridade que qualquer modelo) e MUITO menos
+ * `arbitro_independente` (não houve árbitro). É uma quarta coisa e ganhou o
+ * nome dela — do mesmo jeito honesto que as outras três.
+ *
+ * `qualityArbiter` guarda QUEM, com prefixo `pessoa:`: o prefixo é o que
+ * impede a coluna de ser lida como nome de provedor de IA por quem abrir o
+ * banco daqui a um mês.
+ */
+export function camposDaDecisaoHumana(revisionStatus: string, quem: string): {
+  revisionStatus: string;
+  qualityArbiter: string;
+  qualityArbitragem: Arbitragem;
+} {
+  return { revisionStatus, qualityArbiter: `pessoa:${quem}`, qualityArbitragem: "decisao_humana" };
+}
+
+/**
+ * Quem julgou esta peça, na linguagem das três palavras acima.
+ *
+ * Ponto ÚNICO de tradução, igual a `revisionStatusDoVeredito`: nenhuma tela,
+ * contador ou relatório compara `arbitro` com `provedorDoAutor` na mão. Foi
+ * comparação de string espalhada que produziu o bug original.
+ */
+export function arbitragemDoVeredito(v: QualityVerdict): Arbitragem {
+  if (v.verdict === "nao_auditado") return "sem_arbitro";
+  return v.arbitroIndependente ? "arbitro_independente" : "autojulgado";
 }
 
 /**
@@ -115,6 +251,44 @@ export type RevisionStatusDaQualidade =
 
 export function revisionStatusDoVeredito(v: VereditoDaQualidade): RevisionStatusDaQualidade {
   return REVISION_STATUS_DA_QUALIDADE[v];
+}
+
+/**
+ * OS `revisionStatus` QUE SÃO VEREDITO DA QUALIDADE.
+ *
+ * Nem todo `revisionStatus` é veredito: `revision_requested`, `resolved` e
+ * `none` são estados do fluxo com o cliente e não afirmam auditoria nenhuma.
+ * Só os três daqui dizem "a Qualidade decidiu isto" — e só eles obrigam quem
+ * grava a dizer TAMBÉM quem decidiu.
+ */
+export const VEREDITOS_NO_BANCO: readonly string[] =
+  Object.values(REVISION_STATUS_DA_QUALIDADE);
+
+export function eVereditoDaQualidade(revisionStatus?: string | null): boolean {
+  return typeof revisionStatus === "string" && VEREDITOS_NO_BANCO.includes(revisionStatus);
+}
+
+
+/**
+ * OS CAMPOS DE BANCO que um veredito grava — os três de uma vez.
+ *
+ * Existe para que nenhum dos cinco chamadores de `auditDeliverable` grave o
+ * veredito e ESQUEÇA de gravar quem julgou. Foi exatamente isso que aconteceu
+ * até 25/08/2026: `QualityVerdict.arbitro` era calculado e descartado, em todos
+ * os caminhos, porque cada chamador montava o `data:` do Prisma à mão.
+ *
+ * Espalhe-se em `prisma.deliverable.create({ data: { ..., ...camposDaQualidade(v) } })`.
+ */
+export function camposDaQualidade(v: QualityVerdict): {
+  revisionStatus: RevisionStatusDaQualidade;
+  qualityArbiter: string | null;
+  qualityArbitragem: Arbitragem;
+} {
+  return {
+    revisionStatus: revisionStatusDoVeredito(v.verdict),
+    qualityArbiter: v.arbitro ?? null,
+    qualityArbitragem: arbitragemDoVeredito(v),
+  };
 }
 
 /**
@@ -145,6 +319,13 @@ export const AUDIT_TIMEOUT_MS = 45_000;
 
 export const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
   ia_indisponivel: "NÃO AUDITADA: a IA da Qualidade estava indisponível — nenhum árbitro olhou esta peça.",
+  // ── A FRASE QUE MANDA A PESSOA CERTA FAZER A COISA CERTA (27/08/2026) ─────
+  // "IA indisponível" faz o dono investigar um servidor; "limite de taxa" faz
+  // ele esperar. Nenhuma das duas põe crédito na conta — que é a única coisa
+  // que destrava esta peça. A retenção continua sendo o RESULTADO CERTO; o que
+  // muda é ela finalmente dizer o que destrava.
+  provedor_sem_saldo:
+    "NÃO AUDITADA: os árbitros independentes desta peça estão SEM SALDO na conta do provedor (ou com a chave recusada) — nenhum juiz imparcial pôde olhar. A peça fica RETIDA até alguém recarregar a conta ou conectar outra chave. Isto NÃO se resolve reescrevendo a peça e NÃO passa esperando.",
   timeout: "NÃO AUDITADA: a IA da Qualidade não respondeu a tempo — nenhum árbitro olhou esta peça.",
   erro: "NÃO AUDITADA: a auditoria falhou com erro — nenhum árbitro olhou esta peça.",
   resposta_invalida: "NÃO AUDITADA: a IA da Qualidade respondeu fora do formato — o parecer não pôde ser lido.",
@@ -163,7 +344,96 @@ export const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
     + "CONSERTO: conectar uma SEGUNDA chave de IA (openai, gemini ou deepseek) em "
     + "Integrações — qualquer uma delas serve como árbitro independente.",
   tipo_nao_declarado: "NÃO AUDITADA: quem pediu a auditoria não declarou o TIPO da entrega — sem saber se julga um post ou um plano, o juiz inventaria a régua.",
+  // ── 429 É FILA CHEIA, NÃO PROVEDOR MORTO (25/08/2026) ─────────────────────
+  // O conserto aqui NÃO é reescrever a peça e NÃO é investigar um host caído: é
+  // esperar (a casa já esperou e repetiu, ver `VOLTAS_DO_ARBITRO`) ou ampliar o
+  // limite da chave. Dizer "IA indisponível" mandaria a pessoa procurar o
+  // defeito no lugar errado.
+  limite_de_taxa:
+    "NÃO AUDITADA: todos os árbitros independentes recusaram por LIMITE DE TAXA (HTTP 429) — "
+    + "a IA está no ar e recusando por volume, não fora do ar. A casa já repetiu com espera crescente. "
+    + "NÃO é defeito da peça: não reescreva. CONSERTO: repetir a auditoria mais tarde, ou ampliar o "
+    + "limite/conectar outra chave de árbitro (openai, gemini ou deepseek) em Integrações.",
 };
+
+/** Quantas VOLTAS na fila inteira de árbitros antes de reter. Cada volta já
+ *  carrega as re-tentativas internas de `generate` (espera crescente); a volta
+ *  existe para o caso em que TODOS os árbitros estavam em 429 ao mesmo tempo,
+ *  que é transitório por definição. Teto baixo de propósito: auditoria que
+ *  insiste para sempre trava a produção tanto quanto auditoria que não roda. */
+export const VOLTAS_DO_ARBITRO = 2;
+
+/** Espera entre uma volta e outra na fila de árbitros, em ms. Cresce por volta. */
+export const ESPERA_ENTRE_VOLTAS_MS = 1_500;
+
+/**
+ * O erro veio de LIMITE DE TAXA?
+ *
+ * Lê a MENSAGEM, não um código isolado — é a doutrina da casa: `400` já foi
+ * falta de saldo e `404` já foi host morto. O que identifica a fila cheia é o
+ * 429 e as palavras que os provedores usam junto dele.
+ */
+export function eLimiteDeTaxa(erro?: string | null): boolean {
+  const e = (erro ?? "").toLowerCase();
+  return e.includes("429") || e.includes("rate limit") || e.includes("rate_limit")
+      || e.includes("too many requests") || e.includes("limite de taxa")
+      || e.includes("quota");
+}
+
+/**
+ * O árbitro RESPONDEU, mas o que veio não dá para ler como parecer: corpo
+ * vazio, JSON quebrado, ou JSON válido sem veredito reconhecível.
+ *
+ * ── Por que isto ganhou nome próprio (26/08/2026) ──────────────────────────
+ * Medido na 7ª volta de cliente oculto, em produção: OpenAI devolveu 429,
+ * DeepSeek devolveu corpo VAZIO e Gemini devolveu JSON INVÁLIDO. A peça foi
+ * retida — o que está certo — mas retida DEPOIS DE UMA VOLTA SÓ, porque a
+ * segunda volta na fila era guardada por `if (!houve429) break`. Ou seja: a
+ * casa desistia de dois árbitros vivos que tinham apenas gaguejado.
+ *
+ * `generate` já classifica "vazia" e "json" como TRANSITÓRIOS e repete por
+ * dentro (`isTransientError` / `callWithRetry`). O auditor discordava do seu
+ * próprio motor: tratava como veredito final o que o motor chama de soluço.
+ * Agora as duas metades concordam.
+ *
+ * O que NÃO muda: continua fail-closed. Mais uma volta é mais uma CHANCE de
+ * achar juiz — nunca um caminho para aprovar sem juiz. Fila esgotada retém.
+ */
+export function eRespostaIlegivel(erro?: string | null): boolean {
+  const e = (erro ?? "").toLowerCase();
+  return e.includes("vazia") || e.includes("json inválido") || e.includes("json invalido")
+      || e.includes("resposta ilegível");
+}
+
+/**
+ * Esta falha merece outra volta na fila inteira?
+ *
+ * Só o que o tempo conserta: fila cheia (429), soluço de formato (vazio/JSON
+ * quebrado), timeout e queda de rede. Falta de chave NÃO merece — provedor sem
+ * chave não ganha chave esperando, e insistir só atrasa a retenção honesta.
+ */
+export function mereceOutraVolta(erro?: string | null): boolean {
+  if (eFaltaDeChave(erro)) return false;
+  // ⚠️ TERMINAL VENCE O 429, E TEM DE VIR ANTES DELE. A OpenAI anuncia conta
+  // zerada com *"You exceeded your current quota"* — e `eLimiteDeTaxa` procura
+  // a palavra "quota". Sem esta linha, uma conta sem saldo seria lida como
+  // fila cheia: a casa daria mais uma volta inteira, esperaria, e ainda
+  // carimbaria a retenção de `limite_de_taxa` — "espere e passa" sobre algo
+  // que não passa sozinho nunca. Saldo não volta esperando.
+  if (eFalhaTerminal(erro)) return false;
+  const e = (erro ?? "").toLowerCase();
+  return eLimiteDeTaxa(erro) || eRespostaIlegivel(erro)
+      || e.includes("timeout") || e.includes("rede") || /http 5\d\d/.test(e);
+}
+
+/** O erro é "esse provedor não tem chave"? Ausência de chave NÃO é falha do
+ *  provedor — é o árbitro não existir nesta casa. Motivos diferentes, consertos
+ *  diferentes: um pede espera, o outro pede uma chave nova. */
+function eFaltaDeChave(erro?: string | null): boolean {
+  const e = (erro ?? "").toLowerCase();
+  return e.includes("não está configurado") || e.includes("nenhuma ia conectada")
+      || e.includes("não tem chave conectada");
+}
 
 /**
  * O QUE O JUIZ ESTÁ JULGANDO — e com que régua.
@@ -260,8 +530,12 @@ function naturezaDaEntrega(tipo: string | null): string {
   ].join("\n");
 }
 
-function semArbitro(motivo: MotivoDeNaoAuditar): QualityVerdict {
-  return { verdict: "nao_auditado", issues: [], note: MOTIVO_EM_PALAVRAS[motivo], motivo };
+function semArbitro(motivo: MotivoDeNaoAuditar, detalhe?: string): QualityVerdict {
+  // `detalhe` carrega a PROVA (qual provedor, com que motivo). O rótulo é a
+  // interpretação; o detalhe é o fato — e é o fato que diz em qual conta pôr
+  // crédito. Sem ele a frase seria verdadeira e inútil.
+  const note = detalhe ? `${MOTIVO_EM_PALAVRAS[motivo]} (${detalhe})` : MOTIVO_EM_PALAVRAS[motivo];
+  return { verdict: "nao_auditado", issues: [], note, motivo };
 }
 
 /** Lê o veredito do JSON do modelo SEM inventar o benefício da dúvida.
@@ -346,12 +620,33 @@ export async function auditDeliverable(input: {
         // atribui a um modelo o que nenhum modelo decidiu — e passa a discutir
         // com o juiz uma recusa que não é dele.
         note: `Reprovada pela régua de texto da casa (conferência determinística, sem IA): ${regua.violacoes.length} afirmação(ões) que nada sustenta.`,
+        // A régua é CÓDIGO da casa. É independente do autor pela construção —
+        // nenhum modelo a convence — e por isso não pode ser contada como
+        // "autojulgada" na tela. `arbitro` fica ausente de propósito: não houve
+        // provedor nenhum, e inventar um nome aqui seria mentir sobre o custo.
+        arbitroIndependente: true,
       };
     }
   }
 
-  const arbitro = escolherArbitro(input.provedorDoAutor);
   const autor = (input.provedorDoAutor ?? "claude").trim().toLowerCase();
+  // ── A FILA DE JUÍZES NÃO GASTA VAGA COM QUEM NÃO TEM SALDO (27/08/2026) ───
+  //
+  // `filaDeArbitros` continua sendo quem manda, e ela tira o AUTOR primeiro —
+  // essa trava não se toca. O que muda é o passo seguinte: de quem sobrou,
+  // saem também os que a casa acabou de ver sem saldo ou com a chave recusada.
+  //
+  // Isto importa MAIS aqui do que em qualquer outro lugar. A fila do árbitro
+  // tem 3 nomes, e um deles morto significa 1 chance em 3 desperdiçada — duas
+  // vezes, porque `VOLTAS_DO_ARBITRO` é 2. Cada porta fechada é latência que a
+  // peça espera para no fim ser retida por falta de juiz. A Qualidade parava
+  // de auditar por causa de uma conta zerada em OUTRO provedor.
+  //
+  // ⚠️ `filtrarForaDeJogo` só REMOVE nomes — nunca acrescenta. É por isso que
+  // ela não tem como devolver o autor: ele nunca entrou. A independência
+  // continua garantida pela construção, e a conferência de cinto lá embaixo
+  // (`tentativa.provider !== autor`) continua de pé por cima dela.
+  const { fila, barrados } = filtrarForaDeJogo(filaDeArbitros(autor));
   // O critério do feed real (pedido do CEO, 04/08/2026) tem TRÊS estados, e a
   // versão anterior só enxergava dois porque decidia farejando o texto do
   // contexto (`includes("FEED REAL DO CLIENTE")`). Conta conectada com ZERO
@@ -374,10 +669,9 @@ export async function auditDeliverable(input: {
       : estado === "semPosts"
         ? `\nATENÇÃO: a conta do cliente está conectada e NÃO tem nenhum post publicado — não existe feed contra o qual comparar. NÃO avalie aderência ao feed, NÃO penalize a peça por isso e NÃO descreva um estilo anterior que não existe.`
         : "";
-  try {
-    const chamada = generate({
-      system: "Você é o agente de Qualidade de uma agência de marketing brasileira. Audite a entrega abaixo com rigor — NÃO reescreva, só avalie. Responda SOMENTE com JSON válido.",
-      user: `${naturezaDaEntrega(input.tipoDaEntrega)}
+  const promptDoJuiz = {
+    system: "Você é o agente de Qualidade de uma agência de marketing brasileira. Audite a entrega abaixo com rigor — NÃO reescreva, só avalie. Responda SOMENTE com JSON válido.",
+    user: `${naturezaDaEntrega(input.tipoDaEntrega)}
 
 ENTREGA (${input.deptLabel}) — "${input.title}":
 ${input.content}
@@ -388,9 +682,26 @@ ${input.marketGuidelines ? `\n${input.marketGuidelines}\n` : ""}
 Verifique: (1) está no tom e no segmento certos? (2) tem promessa falsa ou garantia irreal? (3) inventa número/preço/dado que não foi fornecido? (4) tem clichê vazio ou erro grave? (5) está alinhada às diretrizes ATUAIS de mercado acima (quando houver)?${criterioDoFeed}${avisoSemFeed}
 ${LIMITE_DO_JUIZ}
 Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"note":"1 frase de parecer"}. verdict="flag" só se houver problema real.`,
+  };
+
+  /** Uma tentativa contra UM árbitro nomeado. `apenasOPreferido` é a trava:
+   *  sem ela `generate` cai na ordem da casa — que começa no autor. */
+  async function chamarArbitro(candidato: AiProvider): Promise<
+    | { tipo: "ok"; provider: AiProvider; data: Record<string, unknown> }
+    | { tipo: "falha"; erro: string }
+    | { tipo: "timeout" }
+  > {
+    const chamada = generate({
+      ...promptDoJuiz,
       maxTokens: 500,
       workspaceId: input.workspaceId,
-      preferredProvider: arbitro,
+      preferredProvider: candidato,
+      // ⚠️ A LINHA QUE CONSERTA O FAROL 27. `preferredProvider` sozinho é
+      // preferência: quando o juiz falha, `generate` anda na fila da casa e a
+      // fila da casa começa no `claude` — o autor. Com `apenasOPreferido`, a
+      // chamada é COM ESTE ÁRBITRO OU NENHUM. Quem anda na fila, agora, é este
+      // laço aqui, e esta fila não contém o autor.
+      apenasOPreferido: true,
       agentId: "quality-auditor",
       clientId: input.clientId ?? null,
       projectId: input.projectId ?? null,
@@ -408,48 +719,133 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
     ]);
     if (relogio) clearTimeout(relogio);
     // Uma chamada abandonada que rejeita depois viraria unhandled rejection.
-    void Promise.resolve(chamada).catch(() => { /* já respondemos nao_auditado */ });
+    void Promise.resolve(chamada).catch(() => { /* já respondemos */ });
 
-    if (estourou || !result) return semArbitro("timeout");
-    if (!result.ok) return semArbitro("ia_indisponivel");
+    if (estourou || !result) return { tipo: "timeout" };
+    if (!result.ok) return { tipo: "falha", erro: result.error };
+    return { tipo: "ok", provider: result.provider, data: result.data as Record<string, unknown> };
+  }
 
-    const d = result.data as Record<string, unknown>;
-    const veredito = lerVeredito(d.verdict);
-    // Resposta que não traz veredito legível NÃO é aprovação. Este `return` é o
-    // conserto do `d.verdict === "flag" ? "flag" : "pass"` antigo, onde `{}`,
-    // `null` e "talvez" todos viravam aprovação silenciosa.
-    if (veredito === null) return semArbitro("resposta_invalida");
-
-    const issues = Array.isArray(d.issues) ? d.issues.filter((x): x is string => typeof x === "string") : [];
-    const note = typeof d.note === "string" ? d.note : "";
-
-    // ── QUEM REALMENTE JULGOU ────────────────────────────────────────────────
-    // `preferredProvider` é preferência, não trava: sem a chave do árbitro,
-    // `generate` volta para a fila e o autor pode ter se auto-aprovado.
+  try {
+    // ── ANDAR NA FILA, E SÓ ENTÃO RETER ──────────────────────────────────────
     //
-    // A degradação é ASSIMÉTRICA de propósito:
-    //   • REPROVAÇÃO continua valendo. Ela bloqueia, e um problema apontado pelo
-    //     próprio modelo é um problema — jogá-la fora seria trocar um freio real
-    //     por pureza de método.
-    //   • APROVAÇÃO vira `nao_auditado`. Não é reprovação, mas também não é
-    //     aprovação: ninguém independente olhou. Fica declarada e contável, e
-    //     some do "aprovado pela Qualidade".
+    // Ordem das decisões, e ela importa:
+    //   1. tenta cada árbitro independente, um por um (cada um já com as
+    //      re-tentativas de espera crescente de `generate` por dentro);
+    //   2. se TODOS caíram por limite de taxa, espera e dá outra volta na fila
+    //      inteira — 429 é transitório por definição, e desistir na primeira
+    //      recusa por volume é desistir de um juiz que está vivo;
+    //   3. acabaram as voltas: RETÉM, com o motivo real.
     //
-    // ⚠️ ATUALIZAÇÃO DE 24/08/2026 — esta linha dizia "não bloqueia", e deixou
-    // de ser verdade por ordem do Diretor Geral: `nao_auditado` passou a RETER a
-    // apresentação (`marcos.apresentar`), porque peça que ninguém olhou não pode
-    // chegar ao cliente. O comentário está corrigido aqui porque doutrina que
-    // descreve o comportamento antigo é pior que doutrina nenhuma: ela ensina
-    // errado com a autoridade de estar escrita no código.
-    //
-    // CONSEQUÊNCIA MEDIDA, e é decisão de gente: com UM só provedor de IA
-    // conectado, todo especialista que escreve em `claude` se auto-aprovaria, e
-    // agora fica retido. No piloto de 24/08 isso foi 5 de 7 entregas. Não há
-    // conserto em código — exige uma segunda chave de provedor.
-    if (result.provider === autor && veredito === "aprovado") {
-      return { ...semArbitro("juiz_nao_imparcial"), issues, arbitro: result.provider };
+    // O que NUNCA acontece em nenhum ramo: cair no autor.
+    let ultimaFalha: string | null = null;
+    let houve429 = false;
+    let houveTimeout = false;
+    // Algum árbitro está SEM SALDO / com a chave recusada? Nunca vira "espere".
+    let houveSemSaldo = barrados.length > 0;
+    // Alguém RESPONDEU ilegível em QUALQUER ponto da fila — não só por último.
+    // `ultimaFalha` sozinha é memória de um item só: com três árbitros, o
+    // "resposta vazia" do DeepSeek era apagado pelo "JSON inválido" do Gemini,
+    // e a retenção saía carimbada `ia_indisponivel` — "o provedor caiu" — sobre
+    // dois provedores que estavam de pé e falando. Motivo errado manda o dono
+    // investigar a coisa errada.
+    let houveIlegivel = false;
+    // Alguma falha da volta merece outra volta? Ver `mereceOutraVolta`.
+    let valeOutraVolta = false;
+    let todosSemChave = fila.length > 0;
+
+    for (let volta = 0; volta < VOLTAS_DO_ARBITRO; volta++) {
+      if (volta > 0) {
+        // Só vale outra volta se o que derrubou a fila for coisa que o TEMPO
+        // conserta: volume (429), soluço de formato (corpo vazio / JSON
+        // quebrado), timeout, rede. Provedor sem chave não ganha chave
+        // esperando — esse continua sem segunda volta.
+        //
+        // A versão anterior escrevia aqui "resposta ilegível não melhora", e
+        // isso é falso pelo próprio motor da casa: `generate.isTransientError`
+        // trata "vazia" e "json" como transitórios e repete. A 7ª volta de
+        // cliente oculto pagou a conta — DeepSeek vazio + Gemini JSON inválido,
+        // uma volta só, peça retida sem segunda chance.
+        if (!valeOutraVolta) break;
+        await new Promise((r) => setTimeout(r, ESPERA_ENTRE_VOLTAS_MS * volta));
+      }
+
+      for (const candidato of fila) {
+        const tentativa = await chamarArbitro(candidato);
+
+        if (tentativa.tipo === "timeout") {
+          houveTimeout = true; todosSemChave = false; valeOutraVolta = true; continue;
+        }
+        if (tentativa.tipo === "falha") {
+          ultimaFalha = tentativa.erro;
+          // Terminal PRIMEIRO, e com `continue`: sem isto, a mensagem de conta
+          // zerada da OpenAI ("exceeded your current quota") acenderia
+          // `houve429` e a retenção sairia como "espere que passa".
+          if (eFalhaTerminal(tentativa.erro)) {
+            houveSemSaldo = true; todosSemChave = false; continue;
+          }
+          if (eLimiteDeTaxa(tentativa.erro)) houve429 = true;
+          if (eRespostaIlegivel(tentativa.erro)) houveIlegivel = true;
+          if (mereceOutraVolta(tentativa.erro)) valeOutraVolta = true;
+          if (!eFaltaDeChave(tentativa.erro)) todosSemChave = false;
+          continue;
+        }
+
+        // ── A CONFERÊNCIA DE CINTO, MESMO COM A TRAVA POSTA ──────────────────
+        // `apenasOPreferido` já impede a queda no autor. Esta linha existe
+        // porque a trava anterior desta casa também "já impedia" — e não
+        // impedia. Se o provedor que respondeu for o autor, o julgamento não
+        // conta como independente, e aprovação NUNCA sai daqui.
+        const independente = tentativa.provider !== autor;
+
+        const veredito = lerVeredito(tentativa.data.verdict);
+        // Resposta que não traz veredito legível NÃO é aprovação. Este `return`
+        // é o conserto do `d.verdict === "flag" ? "flag" : "pass"` antigo, onde
+        // `{}`, `null` e "talvez" todos viravam aprovação silenciosa.
+        // JSON válido, veredito inelegível. É soluço de formato como qualquer
+        // outro: próximo árbitro AGORA, e a fila inteira de novo depois.
+        if (veredito === null) {
+          todosSemChave = false; ultimaFalha = "resposta ilegível";
+          houveIlegivel = true; valeOutraVolta = true; continue;
+        }
+
+        const issues = Array.isArray(tentativa.data.issues)
+          ? tentativa.data.issues.filter((x): x is string => typeof x === "string") : [];
+        const note = typeof tentativa.data.note === "string" ? tentativa.data.note : "";
+
+        // ── DEGRADAÇÃO ASSIMÉTRICA, DE PROPÓSITO ─────────────────────────────
+        //   • REPROVAÇÃO do próprio autor continua valendo. Ela bloqueia, e um
+        //     problema apontado pelo próprio modelo é um problema — jogá-la
+        //     fora seria trocar um freio real por pureza de método. Mas agora
+        //     ela sai CARIMBADA como `autojulgado`, e a tela diz isso.
+        //   • APROVAÇÃO do próprio autor não existe. Vira `nao_auditado` e
+        //     RETÉM a apresentação (`marcos.apresentar`).
+        if (!independente && veredito === "aprovado") {
+          return { ...semArbitro("juiz_nao_imparcial"), issues, arbitro: tentativa.provider, arbitroIndependente: false };
+        }
+        return { verdict: veredito, issues, note, arbitro: tentativa.provider, arbitroIndependente: independente };
+      }
     }
-    return { verdict: veredito, issues, note, arbitro: result.provider };
+
+    // Fila esgotada. A peça NÃO é julgada — é retida, com o motivo real.
+    // ── O MOTIVO REAL VEM PRIMEIRO ────────────────────────────────────────
+    // *Status de erro não é motivo; o motivo está na mensagem.* Entre "está
+    // sem saldo" e "está com a fila cheia", quem manda é o que NINGUÉM
+    // conserta esperando — senão a casa espera para sempre por uma recarga que
+    // ninguém pediu, porque ninguém foi avisado.
+    if (houveSemSaldo) {
+      return semArbitro(
+        "provedor_sem_saldo",
+        barrados.length > 0 ? barrados.map(porQueEstaFora).join("; ") : (ultimaFalha ?? undefined),
+      );
+    }
+    if (houve429) return semArbitro("limite_de_taxa");
+    if (todosSemChave || fila.length === 0) return semArbitro("juiz_nao_imparcial");
+    if (houveTimeout && ultimaFalha === null) return semArbitro("timeout");
+    // `houveIlegivel`, não `ultimaFalha === "resposta ilegível"`: o motivo é
+    // sobre a FILA INTEIRA, e não sobre quem falou por último.
+    if (houveIlegivel) return semArbitro("resposta_invalida");
+    return semArbitro("ia_indisponivel");
   } catch {
     return semArbitro("erro");
   }

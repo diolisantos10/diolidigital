@@ -56,11 +56,15 @@ import { generate } from "@/lib/ai/generate";
 import { SELF_SERVE_CATALOG } from "@/lib/agency/self-serve-catalog";
 import { DEPARTAMENTOS, TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 import { lerPedido, explicarLeitura } from "@/lib/agency/esteira/leitura-do-pedido";
+import { serializarPergunta, type PerguntaAoCliente } from "@/lib/agency/esteira/porta-da-pergunta";
 import {
   lerOperacao, executarOperacaoDeCalendario, contarAoCliente, OPERACOES,
 } from "@/lib/agency/esteira/operacoes";
 import { registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { ID_STORY_V1, ID_POST_FEED_V1, produtoCanonico } from "@/lib/agency/produtos/registro";
+import { pediuStoryPorEscrito, pediuFeedPorEscrito } from "@/lib/agency/produtos/leitura-de-formato";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
 /**
  * O que o cliente já anexou, dito ao modelo em uma linha.
  *
@@ -148,6 +152,56 @@ export interface Atendimento {
    * item de unidade quando ele pediu vários é erro de dinheiro.
    */
   cobre: 1 | "pacote";
+  /**
+   * O PRODUTO CANÔNICO que este atendimento entrega (`produtos/registro.ts`).
+   *
+   * ── Por que existe (Operação Salvaguarda, 25/08/2026) ────────────────────
+   * Até aqui o atendimento amarrava especialista, departamento e preço — e não
+   * amarrava O QUE SAI. Story, post e carrossel dividiam esta mesma linha, e o
+   * formato pedido pelo cliente morria aqui: não havia campo onde ele pudesse
+   * sobreviver. "O formato permanece `story` em todas as transições" era uma
+   * pergunta sem sujeito.
+   *
+   * `undefined` = atendimento sem produto canônico declarado, que é o estado de
+   * todos os outros hoje. Isso NÃO os quebra e NÃO os promove: eles seguem
+   * exatamente pelo caminho de sempre. A migração de cada um é trabalho
+   * próprio, com prova própria — mexer em seis produtos para consertar um é
+   * como se estraga o que estava de pé.
+   */
+  produtoId?: string;
+  /**
+   * ESTE ATENDIMENTO NÃO TEM PRODUTO CANÔNICO — e aqui está escrito QUEM produz.
+   *
+   * ── Por que este campo existe (25/08/2026) ───────────────────────────────
+   *
+   * O defeito medido em produção: `post-ou-carrossel` era uma peça
+   * (`entrega: "peca"`), tinha item de tabela (R$ 79) e **não tinha produtor**.
+   * O cliente pagava e recebia um card de texto com a descrição da arte. A casa
+   * já conhecia essa doença — foi ela que tirou reel, logotipo e banner da
+   * vitrine em D-0A3 — mas a régua morava só na VITRINE
+   * (`capacidade-de-producao.ts`). A porta do PORTAL, que é texto livre e passa
+   * pela triagem, não tinha régua nenhuma.
+   *
+   * Agora tem, e ela é catraca de CARREGAMENTO (`conferirAtendimento`): todo
+   * atendimento de `entrega: "peca"` com item de tabela é obrigado a ter
+   * `produtoId` **ou** declarar aqui, por escrito, por que não tem. Um terceiro
+   * estado — peça, com preço, sem produtor e sem declaração — derruba o módulo
+   * em vez de cobrar do cliente.
+   *
+   * O texto responde UMA pergunta: **se não é a corrente visual, quem produz o
+   * que este cliente vai receber?** Três respostas são legítimas, e as três
+   * ficam escritas:
+   *
+   *   • outro motor da casa produz (o ciclo do calendário, por exemplo);
+   *   • ninguém produz, e a venda já está fechada em outro lugar (a régua de
+   *     capacidade da vitrine, D-0A3);
+   *   • ninguém produz, e é ESTA linha que fecha a venda — o caso do carrossel.
+   *
+   * No terceiro caso o atendimento fica com `itemDeCatalogo: null`, e o texto
+   * daqui vai INTEIRO para a resposta ao cliente: parada declarada é parada que
+   * a pessoa entende.
+   */
+  semProdutorProprio?: string;
 }
 
 export const ATENDIMENTOS: Atendimento[] = [
@@ -175,16 +229,108 @@ export const ATENDIMENTOS: Atendimento[] = [
     entrega: "peca",
     itemDeCatalogo: "1-reel",
     cobre: 1,
+    // A venda deste item JÁ está fechada, e não é aqui: `1-reel` exige a
+    // capacidade `legenda-animada-em-video`, que `capacidade-de-producao.ts`
+    // declara AUSENTE (`ponto: null`) — a rota `/api/self-serve/order` o recusa
+    // desde D-0A3. Esta linha não fecha nada de novo; ela responde à pergunta
+    // da catraca dizendo onde a resposta mora.
+    semProdutorProprio:
+      "ninguém, e a venda já está fechada: `1-reel` depende de `legenda-animada-em-video`, capacidade " +
+      "declarada AUSENTE na régua de capacidade (D-0A3). Quem recusa é a régua, não esta carta.",
   },
   {
-    id: "post-ou-carrossel",
+    // ── STORY É PRODUTO, NÃO SINÔNIMO DE POST (25/08/2026) ─────────────────
+    //
+    // Esta linha nasceu de um defeito com endereço: até hoje o story caía em
+    // `post-ou-carrossel` logo abaixo, que aponta para `balcao-post-feed` —
+    // peça de feed, 1080×1350, R$ 79. A palavra "story" existia SÓ na frase
+    // `quando` daquele atendimento: o modelo lia, escolhia o id certo pela
+    // descrição errada, e o formato que o cliente pediu não sobrevivia à
+    // triagem. Ele pagava por feed e recebia (quando recebia) feed.
+    //
+    // O item de tabela correto já existia e nunca era escolhido:
+    // `balcao-4-stories`, 1080×1920, margem protegida. Era o achado 2.2 do
+    // plano de recuperação — "o produto correto existe, mas não é usado".
+    //
+    // Este atendimento vem ANTES do de feed de propósito: a carta é lida na
+    // ordem por quem escreve o prompt, e o caso específico tem de ser lido
+    // antes do genérico.
+    id: "story-instagram",
     especialistaId: "design-criativo-social",
     departamentoId: "design",
-    label: "Peça para o feed (post ou carrossel)",
-    quando: "o cliente quer uma arte, um post, um carrossel ou um story para publicar",
+    label: "Stories para Instagram (imagem vertical)",
+    quando:
+      "o cliente quer STORY / STORIES para o Instagram — a peça VERTICAL de tela cheia que some em 24h, " +
+      "não a arte do feed. Escolha este quando ele escrever story, stories, ou descrever peça vertical para stories",
+    entrega: "peca",
+    itemDeCatalogo: "balcao-4-stories",
+    // "pacote", e não 1: o item de tabela cobre QUATRO stories por R$ 99.
+    // Declará-lo como unidade faria a TRAVA 2 (a quantidade) parar todo pedido
+    // que dissesse "quero 4 stories" — o cliente escreveria o número certo do
+    // produto certo e a casa responderia que não sabe orçar. `cobre` responde
+    // "o preço já é de um conjunto?", e aqui a resposta é sim.
+    cobre: "pacote",
+    produtoId: ID_STORY_V1,
+  },
+  {
+    // ── POST E CARROSSEL DEIXARAM DE SER A MESMA LINHA (25/08/2026) ────────
+    //
+    // Até hoje havia UM atendimento, `post-ou-carrossel`, apontando os dois
+    // para `balcao-post-feed` (R$ 79, uma peça) e sem `produtoId` nenhum.
+    // Duas consequências medidas em produção com cliente oculto:
+    //
+    //   • sem `produtoId`, `producao-de-pedido.ts` desviava para o caminho de
+    //     TEXTO. O cliente pagava e recebia um card com a DESCRIÇÃO da arte —
+    //     nenhum `SocialPost`, nenhum arquivo para baixar;
+    //   • o carrossel era cobrado a preço de post avulso, com o item certo
+    //     (`balcao-carrossel-5`, R$ 129, capa + 4 telas) parado na tabela sem
+    //     ninguém escolher. É o achado 2.2 outra vez.
+    //
+    // Separar é o conserto inteiro do segundo ponto: são dois trabalhos, dois
+    // preços e duas quantidades, e um id só nunca ia conseguir carregar os
+    // dois. `story-instagram` continua ANTES dos dois, porque o caso específico
+    // tem de ser lido antes do genérico.
+    id: "post-feed",
+    especialistaId: "design-criativo-social",
+    departamentoId: "design",
+    label: "Post para o feed (uma arte)",
+    // "story" SAIU desta frase em 25/08/2026, e a saída é a metade que importa
+    // do conserto: enquanto a palavra estivesse aqui, o modelo continuaria
+    // mandando story para o preço e para o formato de feed — com a carta
+    // dizendo, por escrito, que era o lugar certo.
+    quando:
+      "o cliente quer UMA arte para o FEED do perfil — a peça que fica publicada, não a que some em 24h. " +
+      "Escolha este quando ele fala de post, arte, publicação ou peça de feed, e NÃO fala de sequência de telas",
     entrega: "peca",
     itemDeCatalogo: "balcao-post-feed",
     cobre: 1,
+    produtoId: ID_POST_FEED_V1,
+  },
+  {
+    id: "carrossel",
+    especialistaId: "design-criativo-social",
+    departamentoId: "design",
+    label: "Carrossel para o feed (capa + 4 telas)",
+    quando:
+      "o cliente quer um CARROSSEL — a sequência de telas que se arrasta para o lado no feed. " +
+      "Escolha este quando ele escrever carrossel, carousel, ou descrever várias telas em sequência para o mesmo post",
+    entrega: "peca",
+    // ── SEM PREÇO, DE PROPÓSITO ────────────────────────────────────────────
+    //
+    // O item `balcao-carrossel-5` (R$ 129) EXISTE na tabela, e mesmo assim este
+    // atendimento não aponta para ele: cobrar por esta porta é justamente o que
+    // estava errado. Ver `semProdutor` abaixo e o bloco "CARROSSEL: A VENDA FOI
+    // FECHADA" em `produtos/registro.ts`.
+    //
+    // Este atendimento continua existindo — e existir é metade do conserto: sem
+    // ele, o carrossel voltaria a cair em `post-feed` e a ser cobrado R$ 79
+    // como se fosse uma arte só.
+    itemDeCatalogo: null,
+    cobre: "pacote",
+    semProdutorProprio:
+      "carrossel é uma SEQUÊNCIA de telas, e a nossa linha de produção automática de peça avulsa " +
+      "hoje entrega uma peça por vez. Enquanto as duas não se encontram, eu NÃO vou te cobrar por um " +
+      "carrossel — a equipe monta o seu com a mão e te responde por aqui com o valor.",
   },
   {
     id: "legenda-copy",
@@ -205,6 +351,13 @@ export const ATENDIMENTOS: Atendimento[] = [
     entrega: "peca",
     itemDeCatalogo: "balcao-pacote-mes",
     cobre: "pacote",
+    // Este NÃO é peça avulsa: é o CICLO. Quem produz é o motor grande — o
+    // projeto entra em execução (`executionStatus: "pending"`) e o despertador
+    // roda o calendário do mês, que cria os `SocialPost` e chama a fila de arte.
+    // Não passa pela corrente visual de peça avulsa, e não deve passar.
+    semProdutorProprio:
+      "o motor de ciclo (o calendário do mês), acordado pelo despertador — não a corrente visual de peça " +
+      "avulsa. Pacote do mês não é um arquivo, é uma agenda de peças.",
   },
   {
     id: "banner-ou-criativo-de-anuncio",
@@ -215,6 +368,11 @@ export const ATENDIMENTOS: Atendimento[] = [
     entrega: "peca",
     itemDeCatalogo: "banner-digital",
     cobre: 1,
+    // Mesma situação do reel: `banner-digital` exige `arquivo-pdf`, capacidade
+    // declarada AUSENTE. A venda já está fechada pela régua de capacidade.
+    semProdutorProprio:
+      "ninguém, e a venda já está fechada: `banner-digital` depende de `arquivo-pdf`, capacidade declarada " +
+      "AUSENTE na régua de capacidade (D-0A3).",
   },
   {
     id: "identidade-visual",
@@ -225,6 +383,12 @@ export const ATENDIMENTOS: Atendimento[] = [
     entrega: "peca",
     itemDeCatalogo: "identidade-basica",
     cobre: "pacote",
+    // Mesma família do reel e do banner: `identidade-basica` exige
+    // `logotipo-de-cliente`, capacidade declarada AUSENTE — a casa só deriva um
+    // monograma das iniciais (`monogramaDe`), e a própria peça declara a falta.
+    semProdutorProprio:
+      "ninguém, e a venda já está fechada: `identidade-basica` depende de `logotipo-de-cliente`, capacidade " +
+      "declarada AUSENTE na régua de capacidade (D-0A3).",
   },
   {
     id: "campanha-de-trafego",
@@ -235,6 +399,13 @@ export const ATENDIMENTOS: Atendimento[] = [
     entrega: "peca",
     itemDeCatalogo: "setup-meta-ads",
     cobre: "pacote",
+    // O que sai daqui não é ARQUIVO: é campanha criada PAUSADA na conta do
+    // cliente (`criarCampanhaPausada`, capacidade presente). A corrente visual
+    // de peça avulsa não tem o que fazer aqui, e o departamento de tráfego tem
+    // portões próprios (parecer do especialista da plataforma).
+    semProdutorProprio:
+      "o integrador da Meta (`criarCampanhaPausada`), não a corrente visual: o que se entrega é campanha " +
+      "pausada na conta do cliente, não um arquivo de imagem.",
   },
 ];
 
@@ -250,6 +421,60 @@ for (const a of ATENDIMENTOS) {
   }
   if (a.itemDeCatalogo !== null && !SELF_SERVE_CATALOG.some((s) => s.id === a.itemDeCatalogo)) {
     throw new Error(`triagem.ts: atendimento "${a.id}" aponta para o item "${a.itemDeCatalogo}", que não está no catálogo — sem item não há preço nem prazo, e preço não se inventa`);
+  }
+  // ── O PRODUTO CANÔNICO, CONFERIDO NO CARREGAMENTO (25/08/2026) ────────────
+  //
+  // Mesma catraca das três de cima, e pelo mesmo motivo: um `produtoId` com
+  // erro de digitação produziria um pedido que atravessa a triagem inteira e só
+  // descobre no fim da corrente que não tem produto — depois de gastar IA e
+  // imagem. Erro de digitação tem de derrubar o módulo, não o pedido do
+  // cliente.
+  // ── A CATRACA DO PRODUTOR (25/08/2026) ────────────────────────────────────
+  //
+  // "Item sem produtor não é vendável" (D-0A3/D-0B1) valia na VITRINE e não
+  // valia aqui. `post-ou-carrossel` era `entrega: "peca"`, apontava para um item
+  // de R$ 79 e não dizia em lugar nenhum quem produzia o arquivo — e foi por
+  // esse buraco que o cliente pagou e recebeu um card de texto.
+  //
+  // A pergunta que passou a ser obrigatória: **quem produz o que este cliente
+  // vai receber?** Todo atendimento que entrega PEÇA responde de uma das duas
+  // formas, e o silêncio derruba o módulo no carregamento (não o pedido do
+  // cliente no fim da corrente):
+  //
+  //   • `produtoId` — a corrente visual produz o arquivo, e o registro diz qual;
+  //   • `semProdutorProprio` — a declaração escrita de quem produz no lugar
+  //     dela, ou de que ninguém produz.
+  //
+  // ⚠️ Vale só para `entrega: "peca"`. Insumo é TEXTO, e texto o caminho de
+  // sempre entrega — foi ele que sempre entregou, e é ele que continua certo.
+  if (a.entrega === "peca" && a.produtoId === undefined && !a.semProdutorProprio?.trim()) {
+    throw new Error(
+      `triagem.ts: o atendimento "${a.id}" entrega PEÇA e não diz quem produz o arquivo — nem \`produtoId\` ` +
+      "(a corrente visual) nem `semProdutorProprio` (a declaração de quem produz no lugar dela). " +
+      "Peça sem produtor declarado é o defeito de 25/08/2026: o cliente paga e recebe um card de texto.",
+    );
+  }
+  // Declarar as duas coisas é dizer "produz pela corrente" e "não produz pela
+  // corrente" ao mesmo tempo.
+  if (a.produtoId !== undefined && a.semProdutorProprio?.trim()) {
+    throw new Error(
+      `triagem.ts: o atendimento "${a.id}" declara produto "${a.produtoId}" E \`semProdutorProprio\`. Uma das duas é falsa.`,
+    );
+  }
+  if (a.produtoId !== undefined) {
+    const produto = produtoCanonico(a.produtoId);
+    if (!produto) {
+      throw new Error(`triagem.ts: atendimento "${a.id}" declara o produto "${a.produtoId}", que não existe em produtos/registro.ts`);
+    }
+    // O produto também aponta o item de catálogo. Os dois têm de dizer a MESMA
+    // coisa: se divergirem, um dos dois está cobrando o preço errado, e não há
+    // como saber qual — então nenhum dos dois vale.
+    if (produto.itemDeCatalogo !== a.itemDeCatalogo) {
+      throw new Error(
+        `triagem.ts: atendimento "${a.id}" cobra pelo item "${a.itemDeCatalogo}" e o produto "${produto.id}" ` +
+        `declara "${produto.itemDeCatalogo}". Duas verdades de preço para o mesmo trabalho: conserte a divergência.`,
+      );
+    }
   }
 }
 
@@ -410,6 +635,36 @@ export async function triarPedido(pedidoId: string): Promise<ResultadoDaTriagem>
   }
 }
 
+/**
+ * A PORTA MÍNIMA — para a parada que a máquina NÃO sabe resolver sozinha.
+ *
+ * ⚠️ Ela é honesta sobre o que é: não destrava nada por si. O que ela faz é
+ * garantir que a parada tenha **onde o cliente responde**, com MOTIVO (já no
+ * `declineReason`), DONO e PRÓXIMA AÇÃO escritos — e que a resposta dele vire
+ * mensagem na conversa, em vez de morrer no chat livre onde ninguém decide.
+ *
+ * Onde existe caminho de máquina, a porta tem EFEITO (`quantidade`,
+ * `entregavel`) e o cliente segue sozinho. Onde não existe — classificação sem
+ * confiança, formato divergente, item sem preço de tabela — a casa **não
+ * finge** um botão que daria na mesma parada. Ver o relatório: estas continuam
+ * exigindo gente, e isso está declarado, não escondido.
+ */
+function portaDeEscalada(dono: string, proximaAcao: string, pergunta: string) {
+  return {
+    pergunta,
+    opcoes: [
+      { id: "seguir", rotulo: "Sim, quero seguir com este pedido", escalar: true, dono, proximaAcao },
+      {
+        id: "falar",
+        rotulo: "Prefiro falar com alguém antes",
+        escalar: true,
+        dono: "a equipe de atendimento",
+        proximaAcao: "te chama por aqui para entender o que você precisa",
+      },
+    ],
+  };
+}
+
 async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTriagem> {
   const pedido = await prisma.contentRequest.findUniqueOrThrow({ where: { id: pedidoId } });
 
@@ -517,22 +772,6 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     };
   }
 
-  // O projeto que recebe. NUNCA inventado: sem projeto aberto, a tarefa não é
-  // executada por ninguém — seria criar o próximo balde.
-  const projeto = pedido.projectId
-    ? await prisma.project.findFirst({ where: { id: pedido.projectId, clientId: cliente.id }, select: { id: true, name: true } })
-    : await prisma.project.findFirst({
-        where: { clientId: cliente.id },
-        orderBy: { createdAt: "desc" },
-        select: { id: true, name: true },
-      });
-  if (!projeto) {
-    return await parar(
-      pedidoId,
-      `${cliente.name} não tem projeto aberto, então o pedido não tem onde ser executado. A equipe precisa abrir o projeto antes.`,
-    );
-  }
-
   // ── A CLASSIFICAÇÃO ───────────────────────────────────────────────────────
   const user = [
     "CARTA DE ATENDIMENTOS (escolha UM id):",
@@ -585,12 +824,16 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     return await parar(
       pedidoId,
       `Este pedido não se encaixa direto em nenhum dos serviços que a máquina produz sozinha${motivoDoModelo ? ` (${motivoDoModelo})` : ""}. A equipe vai te responder por aqui.`,
+      portaDeEscalada("a equipe de atendimento", "monta este pedido com você e te responde por aqui",
+        "Quer que a equipe siga com este pedido do jeito que você descreveu?"),
     );
   }
   if (confianca < CONFIANCA_MINIMA) {
     return await parar(
       pedidoId,
       `Não tenho certeza do que você precisa${motivoDoModelo ? ` — ${motivoDoModelo}` : ""}. Para não fazer a peça errada, a equipe vai confirmar com você.`,
+      portaDeEscalada("a equipe de atendimento", "confirma com você o que entra e retoma o pedido por aqui",
+        "Quer que a equipe confirme com você o que este pedido inclui?"),
     );
   }
 
@@ -601,17 +844,152 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
   // contradiz o que está escrito. Cliente pediu o INSUMO e o modelo escolheu a
   // PEÇA FINAL? A resposta certa é PERGUNTAR: são trabalhos e preços
   // diferentes, e cobrar reel de quem pediu roteiro é o erro de 06/08/2026.
-  const leitura = lerPedido(pedido.description);
+  // ── O NÚMERO QUE O CLIENTE CONFIRMOU MANDA SOBRE A LEITURA DO TEXTO ───────
+  //
+  // A leitura é léxica e roda no texto ORIGINAL, que continua dizendo "1 story"
+  // depois de o cliente ter respondido "pode ser o pacote de 4" pela porta da
+  // pergunta. Sem esta linha, a releitura reproduziria exatamente a mesma
+  // parada, para sempre — a porta abriria para o mesmo beco.
+  //
+  // Só sobrepõe o NÚMERO. O verbo (insumo × peça) continua vindo do texto dele:
+  // confirmar quantidade não é autorização para reinterpretar o que ele pediu.
+  const leituraDoTexto = lerPedido(pedido.description);
+  const comQuantidade = typeof pedido.confirmedQuantity === "number" && pedido.confirmedQuantity > 0
+    ? { ...leituraDoTexto, quantidade: pedido.confirmedQuantity, motivoDaContagem: "contada" as const }
+    : leituraDoTexto;
+  // ── E O ENTREGÁVEL CONFIRMADO MANDA SOBRE A LEITURA, PELO MESMO MOTIVO ────
+  //
+  // Irmã exata da linha acima. A leitura é léxica e roda no texto ORIGINAL, que
+  // continua ambíguo ("quero os roteiros e as artes") depois de o cliente ter
+  // respondido "só as peças prontas" pela porta. Sem esta linha, a releitura
+  // reproduziria a mesma parada, para sempre.
+  //
+  // Só sobrepõe o ENTREGÁVEL. Quantidade e formato continuam vindo de onde
+  // vinham: confirmar um eixo não é autorização para reinterpretar os outros.
+  const leitura = pedido.confirmedDeliverable === "peca" || pedido.confirmedDeliverable === "insumo"
+    ? { ...comQuantidade, entregavel: pedido.confirmedDeliverable as "peca" | "insumo" }
+    : comQuantidade;
   if (leitura.entregavel === "insumo" && atendimento.entrega === "peca") {
+    // ── A INSTRUÇÃO GÊMEA (26/08/2026) ────────────────────────────────────
+    // A proibição ("não vou orçar a coisa errada") continua igual. O que
+    // faltava era o caminho depois dela. UM dos dois lados é resolvível por
+    // máquina — "eu quero a peça pronta" grava o entregável e a triagem roda de
+    // novo com o preço da tabela. O outro NÃO é: roteiro avulso não tem linha
+    // de tabela nesta casa, e por isso ele escala com dono e próxima ação, em
+    // vez de fingir um botão que daria na mesma parada.
     return await parar(
       pedidoId,
-      "Pelo que você escreveu, o que você precisa é do TEXTO (roteiro/copy) para produzir você mesmo — não da peça pronta, que é outro trabalho e outro preço. Não vou orçar a coisa errada: a equipe confirma com você qual dos dois é e responde por aqui.",
+      "Pelo que você escreveu, o que você precisa é do TEXTO (roteiro/copy) para produzir você mesmo — não da peça pronta, que é outro trabalho e outro preço. Não vou orçar a coisa errada. Me diz aqui qual dos dois é:",
+      {
+        pergunta: "Você quer o TEXTO para produzir, ou a PEÇA pronta?",
+        opcoes: [
+          { id: "peca", rotulo: "Quero a PEÇA pronta (arte finalizada)", entregavel: "peca" },
+          {
+            id: "insumo",
+            rotulo: "Quero só o TEXTO (roteiro/copy)",
+            escalar: true,
+            dono: "a equipe comercial",
+            proximaAcao: "te manda por aqui o orçamento do texto avulso, que não tem preço fechado na tabela",
+          },
+        ],
+      },
     );
   }
   if (leitura.entregavel === "ambiguo") {
     return await parar(
       pedidoId,
-      "Seu pedido tem as duas coisas: o TEXTO para você gravar e as peças prontas. São trabalhos diferentes, com preços diferentes, e eu não vou escolher por você. A equipe confirma o que entra e responde por aqui.",
+      "Seu pedido tem as duas coisas: o TEXTO para você gravar e as peças prontas. São trabalhos diferentes, com preços diferentes, e eu não vou escolher por você. Me diz aqui o que entra:",
+      {
+        pergunta: "O que entra neste pedido?",
+        opcoes: [
+          { id: "peca", rotulo: "Só as PEÇAS prontas", entregavel: "peca" },
+          {
+            id: "insumo",
+            rotulo: "Só o TEXTO (roteiro/copy)",
+            escalar: true,
+            dono: "a equipe comercial",
+            proximaAcao: "te manda por aqui o orçamento do texto avulso, que não tem preço fechado na tabela",
+          },
+          {
+            id: "ambos",
+            rotulo: "As duas coisas",
+            escalar: true,
+            dono: "a equipe comercial",
+            proximaAcao: "te manda por aqui o valor dos dois trabalhos, separados",
+          },
+        ],
+      },
+    );
+  }
+
+  // ── TRAVA 1-B · O FORMATO CONTRA O ITEM DE FEED ───────────────────────────
+  //
+  // Irmã da TRAVA 1, no eixo do FORMATO, e nascida do mesmo tipo de defeito.
+  // A leitura é léxica, roda no texto do PRÓPRIO cliente e não usa IA
+  // (`produtos/leitura-de-formato.ts`).
+  //
+  // O fato: o cliente escreveu "story" com todas as letras. Se, com esse fato
+  // na mesa, a classificação apontar para um item de FEED, o mapeamento que a
+  // Operação Salvaguarda veio fechar está prestes a acontecer de novo — story
+  // cobrado a preço de feed e produzido em 1080×1350.
+  //
+  // ⚠️ POR QUE PARAR E NÃO CORRIGIR SOZINHO. Trocar o atendimento aqui seria a
+  // triagem escolhendo por conta própria um produto que o classificador não
+  // escolheu — e o texto pode legitimamente pedir as DUAS coisas ("um post pro
+  // feed e um story"), que são dois trabalhos e dois preços. A casa já tem a
+  // resposta certa para divergência: **pergunta, nunca cobra.** É a mesma
+  // conduta da TRAVA 1, três blocos acima.
+  //
+  // O caso positivo é o único em que age: silêncio do cliente não vira
+  // conclusão nenhuma (ver o cabeçalho de `leitura-de-formato.ts`).
+  const textoDoPedido = [pedido.description, pedido.objective].filter(Boolean).join("\n");
+  // ── A PERGUNTA CERTA É O FORMATO, NÃO O ID DO ITEM (25/08/2026) ─────────
+  //
+  // Isto era `atendimento.itemDeCatalogo === "balcao-post-feed"`, e a régua
+  // ficou MIRADA NO IRMÃO no mesmo dia em que o carrossel ganhou item próprio:
+  // um pedido que dissesse "story" e caísse em `carrossel` (`balcao-carrossel-5`,
+  // 1080×1350) passava direto por esta trava, porque o id não batia. A régua
+  // que só conhece o nome de um item envelhece na primeira linha nova de
+  // tabela. Agora ela pergunta o que de fato importa — **o produto deste
+  // atendimento é peça de feed?** — e o registro responde.
+  const produtoDoAtendimento = produtoCanonico(atendimento.produtoId);
+  const ehItemDeFeed =
+    produtoDoAtendimento !== null
+      ? produtoDoAtendimento.formatoDaPeca !== "story"
+      : atendimento.itemDeCatalogo === "balcao-post-feed";
+  if (ehItemDeFeed && pediuStoryPorEscrito(textoDoPedido)) {
+    return await parar(
+      pedidoId,
+      pediuFeedPorEscrito(textoDoPedido)
+        ? "Você citou story E peça de feed no mesmo pedido. São dois formatos diferentes, com preços diferentes " +
+          "(o story é vertical, 1080×1920; a do feed é 1080×1350), e eu não vou escolher por você nem cobrar os " +
+          "dois como se fossem um. A equipe confirma o que entra e responde por aqui."
+        : "Você pediu STORY, e a classificação automática mandou este pedido para o preço e o formato de peça de " +
+          "FEED. São produtos diferentes — o story é vertical (1080×1920) e tem margem protegida — e eu não vou " +
+          "cobrar nem produzir o formato errado. A equipe confirma com você e responde por aqui.",
+      // ⚠️ SEM EFEITO DE MÁQUINA, E DE PROPÓSITO. Confirmar o formato aqui
+      // exigiria trocar o ATENDIMENTO — o produto, o item de tabela e o preço
+      // — que é justamente a decisão que esta trava se recusa a tomar sozinha.
+      // Um botão "quero story" que caísse na mesma classificação daria na mesma
+      // parada, e porta que não abre é pior que porta nenhuma: mata a dúvida e
+      // deixa o defeito. Fica declarado como o que é.
+      portaDeEscalada("a equipe comercial", "confirma o formato com você e te devolve o valor certo por aqui",
+        "Quer que a equipe confirme o formato com você?"),
+    );
+  }
+
+  // ── TRAVA 1-C · SEM PRODUTOR, NÃO SE COBRA ────────────────────────────────
+  //
+  // Vem ANTES do preço de propósito: o pedido não pode nem chegar perto de uma
+  // linha de tabela. É a régua de D-0A3 ("vitrine é promessa; promessa sem
+  // produtor é dívida") chegando na porta do portal, onde ela não existia.
+  if (atendimento.itemDeCatalogo === null && atendimento.semProdutorProprio?.trim()) {
+    return await parar(
+      pedidoId,
+      `Entendi o que você quer (${atendimento.label.toLowerCase()}), e eu não vou cobrar por isso agora: ` +
+      `${atendimento.semProdutorProprio}`,
+      portaDeEscalada("a equipe de atendimento", "te explica por aqui o que a casa consegue fazer hoje e o que não consegue",
+        "Quer que a equipe fale com você sobre este pedido?"),
     );
   }
 
@@ -624,6 +1002,8 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     return await parar(
       pedidoId,
       `Entendi o que você precisa (${atendimento.label.toLowerCase()}), mas isso não tem preço fechado na minha tabela — e eu não vou chutar um valor. A equipe te manda o orçamento por aqui.`,
+      portaDeEscalada("a equipe comercial", "te manda o orçamento deste pedido por aqui",
+        "Quer que a equipe te mande o orçamento deste pedido?"),
     );
   }
 
@@ -636,20 +1016,180 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
   // preço dele já é de um conjunto.
   if (atendimento.cobre === 1) {
     if (leitura.quantidade === null && leitura.motivoDaContagem !== "sem_peca_citada") {
+      // A PORTA: aqui o que falta é literalmente um NÚMERO, e o cliente sabe
+      // dizê-lo. `aceitaNumero` é o único lugar da casa que aceita texto livre
+      // do cliente como resposta — e só porque "3" é conferível. Qualquer coisa
+      // que não seja um número entre 1 e 200 volta com a pergunta de novo, em
+      // vez de virar um palpite.
       return await parar(
         pedidoId,
-        `Consigo fazer ${item.label.toLowerCase()}, mas ${explicarLeitura(leitura)} — e eu não vou orçar uma peça só se você precisa de várias. Me diz quantas são (ou a equipe confirma com você) e eu devolvo o valor certo.`,
+        `Consigo fazer ${item.label.toLowerCase()}, mas ${explicarLeitura(leitura)} — e eu não vou orçar uma peça só se você precisa de várias. Me diz quantas são e eu devolvo o valor certo.`,
+        {
+          pergunta: "Quantas peças são?",
+          aceitaNumero: true,
+          opcoes: [
+            { id: "uma", rotulo: "É uma peça só", quantidade: 1 },
+            {
+              id: "equipe",
+              rotulo: "Prefiro que a equipe confirme comigo",
+              escalar: true,
+              dono: "a equipe comercial",
+              proximaAcao: "te chama por aqui para fechar a quantidade e o valor",
+            },
+          ],
+        },
       );
     }
     if (typeof leitura.quantidade === "number" && leitura.quantidade > 1) {
       return await parar(
         pedidoId,
         `Você pediu ${leitura.quantidade} peças e a minha tabela tem preço fechado de uma (${item.label}). Não vou orçar uma e cobrar o resto depois: a equipe te manda o valor das ${leitura.quantidade} por aqui.`,
+        {
+          pergunta: `Você pediu ${leitura.quantidade} peças, e a minha tabela tem preço fechado de uma. Como você prefere?`,
+          opcoes: [
+            // ESTE tem efeito de máquina: reduzir para UMA é o que a tabela
+            // sabe fazer sozinha, e é o cliente quem manda reduzir.
+            { id: "uma", rotulo: `Pode ser 1 peça só — ${item.label}`, quantidade: 1 },
+            {
+              id: "todas",
+              rotulo: `Quero orçamento das ${leitura.quantidade}`,
+              escalar: true,
+              dono: "a equipe comercial",
+              proximaAcao: `te manda o valor das ${leitura.quantidade} peças por aqui`,
+            },
+          ],
+        },
       );
     }
   }
 
+  // ── TRAVA 2-B · O PACOTE NÃO É ARREDONDAMENTO PARA CIMA ───────────────────
+  //
+  // A TRAVA 2, logo acima, é fail-closed só PARA MENOS: ela impede orçar 1
+  // quando o cliente pediu 11. O outro lado ficou aberto — e nele mora um
+  // defeito comercial de verdade: **quem pede 1 story recebe e paga 4.**
+  //
+  // Item de `cobre: "pacote"` pulava a contagem inteira, porque "o preço dele já
+  // é de um conjunto". Isso vale para o MÊS e para a IDENTIDADE, que não têm
+  // unidade. Não vale para um pacote de peças CONTÁVEIS: ali o cliente sabe
+  // dizer quantas quer, e cobrar quatro de quem pediu uma não é arredondamento,
+  // é cobrar a mais.
+  //
+  // Só age quando existem os DOIS fatos — o produto declara quantas peças o
+  // preço cobre, e o cliente escreveu um número menor. Silêncio do cliente não
+  // vira conclusão: quem não disse quantas recebe o pacote, que é o que a
+  // tabela vende.
+  //
+  // E, como sempre nesta casa: **pergunta, nunca cobra.**
+  // Lido uma vez só, lá em cima na TRAVA 1-B — duas leituras do mesmo registro
+  // na mesma função é a segunda verdade nascendo dentro de um arquivo só.
+  if (
+    produtoDoAtendimento &&
+    typeof leitura.quantidade === "number" &&
+    leitura.quantidade > 0 &&
+    leitura.quantidade < produtoDoAtendimento.quantidadeDePecas
+  ) {
+    // ── A INSTRUÇÃO GÊMEA DA PROIBIÇÃO (25/08/2026) ─────────────────────────
+    //
+    // A proibição ("não te cobro 4 se você pediu 1") continua exatamente igual.
+    // O que faltava era o caminho DEPOIS do "pode ser o pacote de 4": em
+    // produção a cliente respondeu isso no chat e o pedido não andou, porque
+    // `precisa_decisao` não tinha saída pelo lado dela e o chat não tem quem
+    // decida escopo. Agora a resposta é um botão com EFEITO — confirmar o
+    // pacote grava a quantidade e a triagem roda de novo, com o preço da tabela.
+    const n = produtoDoAtendimento.quantidadeDePecas;
+    return await parar(
+      pedidoId,
+      `Você pediu ${leitura.quantidade} ${leitura.quantidade === 1 ? "peça" : "peças"}, e o que eu tenho na ` +
+      `tabela é o pacote de ${n} (${item.label}, R$ ${preco}). ` +
+      "Não vou te cobrar o pacote inteiro por menos peças sem você mandar. Me diz aqui como você prefere:",
+      {
+        pergunta: `Você pediu ${leitura.quantidade}, e a minha tabela tem o pacote de ${n}. Como você prefere?`,
+        opcoes: [
+          { id: "pacote", rotulo: `Pode ser o pacote de ${n} — R$ ${preco}`, quantidade: n },
+          {
+            id: "avulso",
+            rotulo: `Quero orçamento avulso de ${leitura.quantidade}`,
+            escalar: true,
+            dono: "a equipe comercial",
+            proximaAcao: `te manda o valor de ${leitura.quantidade} ${leitura.quantidade === 1 ? "peça" : "peças"} por aqui`,
+          },
+        ],
+      },
+    );
+  }
+
   const prazo = somarDiasUteis(new Date(), item.deliveryDays);
+
+  // ── ONDE ESTE PEDIDO É EXECUTADO ──────────────────────────────────────────
+  //
+  // ⚠️ ESTE BLOCO MUDOU DE LUGAR E DE CONDUTA EM 26/08/2026. Ele rodava LÁ EM
+  // CIMA, antes da classificação, e dizia: *"o projeto NUNCA é inventado: sem
+  // projeto aberto a tarefa não é executada por ninguém — seria criar o próximo
+  // balde"*. Parava em `precisa_decisao` com "a equipe precisa abrir o projeto
+  // antes" — **e sem porta nenhuma.**
+  //
+  // Medido em produção (cliente oculto, 26/08/2026): foi um dos empurrões
+  // manuais. Um cliente novo, que só sabe usar o portal, fica preso na PRIMEIRA
+  // tentativa dele — e o cliente desta agência vai ser um agente de IA
+  // representando uma marca, que não liga nem xinga: fica preso pedindo, para
+  // sempre.
+  //
+  // O que mudou, e por quê:
+  //
+  //   1. **A pergunta passou a ser feita no fim, não no começo.** Projeto é o
+  //      CONTÊINER de execução — só é preciso quando o pedido vai mesmo ser
+  //      executado. Perguntar antes de classificar reprovava por falta de
+  //      contêiner pedidos que nem chegariam a precisar de um.
+  //
+  //   2. **Quando a casa sabe exatamente o que vendeu, ela abre o contêiner.**
+  //      Aqui já existem `atendimento` (classificado, acima da confiança
+  //      mínima), `item` de catálogo e `preco` de TABELA. Abrir o contêiner
+  //      nesse ponto não inventa escopo, prazo nem valor: é a consequência
+  //      mecânica de uma venda que a casa sabe fazer. É, aliás, exatamente o
+  //      que o balcão já fazia desde sempre (`lib/agency/balcao/producao.ts`:
+  //      pagou → `prisma.project.create`). O portal era o único lugar onde a
+  //      mesma compra não tinha onde acontecer.
+  //
+  // E o que NÃO mudou, que é o ponto:
+  //
+  //   • O contêiner nasce SEM aval nenhum — `stage: "briefing"`, sem
+  //     `directionApprovedAt`. Projeto novo não tem ciclo aberto, então
+  //     `decidirEscopo` devolve **"extra"** logo abaixo, e "extra" é o caminho
+  //     que EXIGE orçamento aceito antes de qualquer produção. Abrir o
+  //     contêiner é o contrário de afrouxar: joga o pedido no caminho pago.
+  //   • Nenhum preço, prazo ou escopo é inventado aqui: todos já vieram da
+  //     tabela, acima.
+  //   • E se a criação falhar, a parada continua existindo — agora **com
+  //     porta**: motivo, dono e próxima ação, e um botão em que o cliente diz
+  //     que quer seguir assim mesmo. Proibição sem instrução gêmea é beco.
+  const projeto = await projetoQueRecebe(pedido.projectId, cliente, atendimento.label);
+  if (!projeto) {
+    return await parar(
+      pedidoId,
+      `Entendi o que você quer (${atendimento.label.toLowerCase()}), mas não consegui abrir aqui dentro o espaço ` +
+      "onde este pedido é executado. Não vou fingir que ele entrou na fila: a equipe abre e te responde por aqui.",
+      {
+        pergunta: "Quer que a equipe abra o espaço deste pedido e siga com ele?",
+        opcoes: [
+          {
+            id: "seguir",
+            rotulo: "Sim, pode seguir com o pedido",
+            escalar: true,
+            dono: "a equipe de operações",
+            proximaAcao: "abre o espaço deste pedido e retoma a produção por aqui",
+          },
+          {
+            id: "falar",
+            rotulo: "Prefiro falar com alguém antes",
+            escalar: true,
+            dono: "a equipe de atendimento",
+            proximaAcao: "te chama por aqui para entender o que você precisa",
+          },
+        ],
+      },
+    );
+  }
 
   // ── ESCOPO: CONSULTA, NÃO PALPITE ─────────────────────────────────────────
   const escopo = await decidirEscopo(projeto.id, atendimento.departamentoId);
@@ -685,6 +1225,14 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
       scopeDecision: escopo,
       projectId: projeto.id,
       taskId: tarefa.id,
+      // ── O PRODUTO VIAJA COM O PEDIDO (25/08/2026) ─────────────────────────
+      // É a linha que faz o formato pedido pelo cliente SOBREVIVER à triagem.
+      // Sem ela, a produção teria de adivinhar o produto a partir do agente da
+      // tarefa — e `design-criativo-social` atende story E feed, então a
+      // adivinhação escolheria errado metade das vezes, em silêncio.
+      // `?? null` e não `undefined`: reprocessar um pedido que trocou de
+      // atendimento tem de LIMPAR o produto antigo, nunca herdá-lo.
+      produtoId: atendimento.produtoId ?? null,
       promisedFor: prazo,
       declineReason: null,
       // O ORÇAMENTO só existe no escopo EXTRA. No ciclo, a peça já está paga
@@ -734,6 +1282,60 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
 }
 
 /**
+ * O CONTÊINER DE EXECUÇÃO DESTE PEDIDO — o que existe, ou um novo.
+ *
+ * Ordem de firmeza, e ela importa:
+ *
+ *   1. o projeto que o PRÓPRIO pedido já aponta (`ContentRequest.projectId`),
+ *      conferido contra o dono — pedido não muda de projeto por acidente;
+ *   2. o projeto mais recente do cliente — o comportamento histórico da casa;
+ *   3. um contêiner novo, e só aqui há escrita.
+ *
+ * ⚠️ O QUE ESTE CONTÊINER NÃO É. Ele não é uma proposta, não é um contrato e
+ * não é um aval: nasce em `briefing`, sem `directionApprovedAt`, sem ciclo e
+ * sem `executionStatus`. Sem ciclo aberto, `decidirEscopo` devolve "extra" — o
+ * caminho que segura a produção até o cliente aceitar o orçamento da tabela.
+ *
+ * Devolve `null` se a escrita falhar. `null` vira parada COM PORTA em quem
+ * chama — nunca uma produção que segue sem lugar para acontecer.
+ */
+async function projetoQueRecebe(
+  projectIdDoPedido: string | null,
+  cliente: { id: string; name: string; workspaceId: string },
+  rotuloDoAtendimento: string,
+): Promise<{ id: string; name: string } | null> {
+  const existente = projectIdDoPedido
+    ? await prisma.project.findFirst({
+        where: { id: projectIdDoPedido, clientId: cliente.id },
+        select: { id: true, name: true },
+      }).catch(() => null)
+    : await prisma.project.findFirst({
+        where: { clientId: cliente.id },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, name: true },
+      }).catch(() => null);
+  if (existente) return existente;
+
+  return await prisma.project.create({
+    data: {
+      workspaceId: cliente.workspaceId,
+      clientId: cliente.id,
+      // O nome diz a VERDADE do que ele é: o espaço dos pedidos que o cliente
+      // faz pelo portal. Nome que promete um projeto de agência inteiro seria a
+      // primeira mentira dentro do painel.
+      name: `Pedidos de ${cliente.name}`,
+      goal: `Atender os pedidos avulsos que ${cliente.name} faz pelo portal (primeiro: ${rotuloDoAtendimento.toLowerCase()}).`,
+      type: "balcao",
+      stage: "briefing",
+    },
+    select: { id: true, name: true },
+  }).catch((e: unknown) => {
+    console.error("[triagem] não consegui abrir o espaço do pedido:", e);
+    return null;
+  });
+}
+
+/**
  * Está dentro do que ele já paga, ou é trabalho a mais?
  *
  * Consulta, não julgamento: existe ciclo ABERTO no projeto **e** o departamento
@@ -775,14 +1377,33 @@ async function decidirEscopo(projectId: string, departamentoId: string): Promise
 // Parar com motivo — o único jeito de um pedido sair da esteira sem sumir
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function parar(pedidoId: string, motivo: string): Promise<ResultadoDaTriagem> {
-  await pararComMotivo(pedidoId, motivo);
+async function parar(
+  pedidoId: string,
+  motivo: string,
+  /**
+   * ── A INSTRUÇÃO GÊMEA DA PROIBIÇÃO (25/08/2026) ──────────────────────────
+   * As respostas possíveis, quando a casa sabe quais são. Sem isto, `parar`
+   * escrevia um motivo bonito em prosa e o cliente ficava com um selo amarelo
+   * e nenhum botão — a Ana respondeu "pode ser o pacote de 4" no chat livre e
+   * o pedido não andou. Ver `lib/agency/esteira/porta-da-pergunta.ts`.
+   *
+   * Opcional de propósito: nem toda parada tem resposta enumerável. Onde não
+   * tem, o comportamento é exatamente o de antes — o que NÃO se faz é inventar
+   * uma opção para o cartão não ficar feio.
+   */
+  porta?: Omit<PerguntaAoCliente, "abertaEm">,
+): Promise<ResultadoDaTriagem> {
+  await pararComMotivo(pedidoId, motivo, porta);
   return { ok: false, parou: true, motivo };
 }
 
 /** Grava `precisa_decisao` + o motivo em português. Os dois lados leem: o
  *  cliente pelo `/api/portal/pedidos`, a agência pela caixa de entrada. */
-export async function pararComMotivo(pedidoId: string, motivo: string): Promise<void> {
+export async function pararComMotivo(
+  pedidoId: string,
+  motivo: string,
+  porta?: Omit<PerguntaAoCliente, "abertaEm">,
+): Promise<void> {
   await prisma.contentRequest.update({
     where: { id: pedidoId },
     data: {
@@ -790,6 +1411,10 @@ export async function pararComMotivo(pedidoId: string, motivo: string): Promise<
       declineReason: motivo.slice(0, 600),
       triagedBy: "Triagem automática",
       triagedAt: new Date(),
+      // Grava a porta JUNTO com a pergunta, na mesma escrita. Duas escritas
+      // deixariam uma janela em que o cliente lê a pergunta e não acha o botão
+      // — que é literalmente o defeito que isto conserta.
+      pendingQuestionJson: porta ? serializarPergunta(porta) : null,
     },
   }).catch(() => { /* o pedido pode ter sido apagado no meio; não derruba nada */ });
 }
@@ -805,7 +1430,7 @@ export async function avisarCliente(clientId: string, corpo: string): Promise<vo
         clientId: conversa.ancora.clientId,
         clientRequestId: conversa.ancora.clientRequestId,
         authorRole: "team",
-        authorName: "Equipe Dioli",
+        authorName: VOZ_DO_CLIENTE,
         body: corpo,
         readByTeam: true,
         readByClient: false,

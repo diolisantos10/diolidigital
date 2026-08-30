@@ -181,6 +181,38 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   // entregas, tarefas, briefings, ciclos, avisos e o cérebro de marca.
   await prisma.$transaction(async (tx) => {
     await tx.evidenceItem.deleteMany({});
+    // A isenção de parceria (27/08/2026). Ela é o que LIBERA produção sem
+    // pagamento — uma isenção sobrevivente ao reset é a pior sobra possível:
+    // um pedido novo herdaria o direito de produzir de graça de um cliente que
+    // não existe mais. O teste-guarda desta casa exigiu esta linha.
+    await tx.isencaoDeParceria.deleteMany({});
+    // Convite é credencial ligada a cliente: inauguração que deixasse convites
+    // para trás entregaria a casa nova com chaves da casa velha na rua.
+    // A autorização de parceria é do cliente: casa nova não herda parceiro velho.
+    await tx.parceriaDoCliente.deleteMany({});
+    await tx.conviteDeParceria.deleteMany({});
+    // A ASSINATURA RECORRENTE (27/08/2026), e a sobra dela é de outro tipo — pior.
+    // A isenção sobrevivente libera produção de graça; a assinatura sobrevivente
+    // libera produção com a competência de um cliente que não existe mais, E
+    // deixa a linha viva que o financeiro lê como receita mensal. As COBRANÇAS
+    // caem por cascata desta (`onDelete: Cascade`), então não têm linha própria.
+    //
+    // ⚠️ O QUE ESTA LINHA **NÃO** FAZ, e precisa estar escrito: ela não cancela
+    // nada no Mercado Pago. O `preapproval` continua lá, cobrando todo mês.
+    // Apagar aqui e esquecer lá é a casa parando de entregar e continuando a
+    // receber — o avesso exato do defeito que a recorrência veio consertar.
+    // Quem roda o reset com assinatura viva TEM de cancelar no painel do
+    // provedor; o log abaixo diz isso na hora, com o número.
+    const assinaturasVivas = await tx.assinaturaRecorrente.count({
+      where: { estado: { in: ["pendente", "ativa", "inadimplente"] } },
+    });
+    if (assinaturasVivas > 0) {
+      console.error(
+        `[admin/reset] ⚠️ ${assinaturasVivas} assinatura(s) NÃO CANCELADA(S) no Mercado Pago foram apagadas desta base. ` +
+        "O provedor vai continuar cobrando esses clientes todo mês. Cancele os `preapproval` no painel do Mercado Pago AGORA.",
+      );
+    }
+    await tx.assinaturaRecorrente.deleteMany({});
     await tx.portalAccess.deleteMany({});
     await tx.portalMessage.deleteMany({});
     // O pedido de conteúdo é operacional: cascatearia só junto com o cliente,

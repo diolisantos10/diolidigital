@@ -1,0 +1,21 @@
+{
+  "id": "conta-de-servico-diretor-geral",
+  "quem": "ses-0f653c553f",
+  "frente": "conta de servico do Diretor Geral: chave propria, travas no codigo, rastro append-only",
+  "responsabilidade": "conta-de-servico-diretor-geral",
+  "arquivos": [
+    "lib/auth/conta-de-servico.ts",
+    "lib/auth/mandato-do-diretor-geral.ts",
+    "lib/auth/guarda-do-diretor-geral.ts",
+    "lib/auth/rastro-do-diretor-geral.ts",
+    "prisma/schema.prisma"
+  ],
+  "abertaEm": "2026-08-30T02:43:05.464Z",
+  "encerradaEm": null,
+  "rotulo": "diretor-conta-servico",
+  "forcadaPor": {
+    "quem": "ses-0f653c553f",
+    "motivo": "Simetrica a forcada de ses-b8ee2d70ad, e pelo mesmo raciocinio, que eu confirmo estar correto: colisao de ARQUIVO, nao de responsabilidade. As duas frentes so ACRESCENTAM model ao prisma/schema.prisma — la Diretriz (mesa de comando do SDR), aqui RastroDoDiretorGeral. Provado, nao afirmado: meu diff no schema e 65 insercoes e ZERO remocoes, e o merge da base nesta branch rodou sem um unico conflito. Perguntas disjuntas: la, que orientacao o agente le antes de responder; aqui, quem e o Diretor Geral e o que ele nao pode fazer. Registrado pelo Diretor apos auditoria.",
+    "em": "2026-08-30T02:43:05.464Z"
+  }
+}

@@ -56,7 +56,13 @@ const PASTAS = ["lib", "app", "scripts"];
 
 const db = vi.hoisted(() => ({
   pagamentoConfirmado: { findUnique: vi.fn() },
+  isencaoDeParceria: { findUnique: vi.fn() },
   clientRequestDb: { findUnique: vi.fn() },
+  // A RECORRÊNCIA entrou no portão em 27/08/2026 e é a PRIMEIRA pergunta que ele
+  // faz. Sem estes dois dublês, toda liberação abaixo cairia em
+  // `leitura_indisponivel` — que é recusa, e é o lado certo de falhar.
+  assinaturaRecorrente: { findUnique: vi.fn() },
+  cobrancaRecorrente: { findFirst: vi.fn() },
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
@@ -70,7 +76,18 @@ const ANTES_DO_CORTE = new Date(CORTE_DO_PORTAO_DE_PAGAMENTO.getTime() - 86_400_
 describe("o veredito do portão de pagamento", () => {
   beforeEach(() => {
     db.pagamentoConfirmado.findUnique.mockReset();
+    db.isencaoDeParceria.findUnique.mockReset();
+    // O padrão é NÃO haver parceria: a isenção é a exceção nomeada, nunca o
+    // estado de repouso da casa.
+    db.isencaoDeParceria.findUnique.mockResolvedValue(null);
     db.clientRequestDb.findUnique.mockReset();
+    // O padrão é o pedido NÃO ser mensal. Assinatura é fato declarado, nunca o
+    // estado de repouso — e `sem_assinatura` devolve a decisão às regras de
+    // sempre, que é exatamente o que estes casos medem.
+    db.assinaturaRecorrente.findUnique.mockReset();
+    db.assinaturaRecorrente.findUnique.mockResolvedValue(null);
+    db.cobrancaRecorrente.findFirst.mockReset();
+    db.cobrancaRecorrente.findFirst.mockResolvedValue(null);
   });
 
   it("LIBERA com registro de pagamento de valor positivo", async () => {
@@ -163,6 +180,10 @@ describe("o veredito do portão de pagamento", () => {
     ];
     for (const montar of casos) {
       db.pagamentoConfirmado.findUnique.mockReset();
+    db.isencaoDeParceria.findUnique.mockReset();
+    // O padrão é NÃO haver parceria: a isenção é a exceção nomeada, nunca o
+    // estado de repouso da casa.
+    db.isencaoDeParceria.findUnique.mockResolvedValue(null);
       db.clientRequestDb.findUnique.mockReset();
       montar();
       const v = await conferirPagamento("pedido-1");
@@ -444,5 +465,120 @@ describe("o fecho da produção", () => {
         "  b) entre pela esteira (runProjectExecution) / pela rodada de arte, que já são guardadas.\n" +
         violacoes.map((v) => `  - ${v}`).join("\n"),
     ).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A TERCEIRA TESTEMUNHA: A PARCERIA ISENTA — 27/08/2026
+//
+// O primeiro cliente real da agência (Foocci) entra por parceria e não paga
+// nada. Ele TRAVAVA aqui, e o portão estava certo. O caminho legítimo não é
+// furar a trava: é uma testemunha própria, que libera a esteira sem NUNCA
+// afirmar que entrou dinheiro.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("a isenção de parceria", () => {
+  const AMANHA = new Date(Date.now() + 86_400_000);
+  const ONTEM = new Date(Date.now() - 86_400_000);
+  const isencao = (over: Record<string, unknown> = {}) => ({
+    autorizadaPor: "Dioli (CEO)",
+    validaAte: AMANHA,
+    escopo: "Foocci — social media, 12 peças",
+    ...over,
+  });
+
+  beforeEach(() => {
+    db.pagamentoConfirmado.findUnique.mockReset();
+    db.isencaoDeParceria.findUnique.mockReset();
+    db.clientRequestDb.findUnique.mockReset();
+    db.pagamentoConfirmado.findUnique.mockResolvedValue(null);
+    db.isencaoDeParceria.findUnique.mockResolvedValue(null);
+    db.clientRequestDb.findUnique.mockResolvedValue({ createdAt: DEPOIS_DO_CORTE });
+  });
+
+  it("LIBERA o parceiro que hoje travava no portão", async () => {
+    db.isencaoDeParceria.findUnique.mockResolvedValue(isencao());
+    const v = await conferirPagamento("pedido-foocci");
+    expect(v.liberado).toBe(true);
+    expect(v.motivo).toBe("parceria_isenta");
+  });
+
+  it("NÃO se chama pagamento — o financeiro não pode somar isto como venda", async () => {
+    db.isencaoDeParceria.findUnique.mockResolvedValue(isencao());
+    const v = await conferirPagamento("pedido-foocci");
+    expect(v.motivo).not.toBe("pagamento_confirmado");
+    // E o detalhe diz, em palavras, o que a conta tem de enxergar.
+    expect(v.detalhe).toMatch(/receita R\$ 0,00/i);
+    expect(v.detalhe).toMatch(/margem negativa/i);
+  });
+
+  it("carrega o DONO na linha — isenção sem dono é buraco", async () => {
+    db.isencaoDeParceria.findUnique.mockResolvedValue(isencao());
+    const v = await conferirPagamento("pedido-foocci");
+    expect(v.detalhe).toContain("Dioli (CEO)");
+  });
+
+  // ══════════════════════════════════════════════════════════════════════
+  // A MUTAÇÃO QUE O CEO PEDIU: desligue a isenção e o pedido VOLTA a travar
+  // ══════════════════════════════════════════════════════════════════════
+  it("desligada a isenção, o MESMO pedido volta a travar no portão", async () => {
+    db.isencaoDeParceria.findUnique.mockResolvedValue(isencao());
+    expect((await conferirPagamento("pedido-foocci")).liberado).toBe(true);
+
+    db.isencaoDeParceria.findUnique.mockResolvedValue(null);
+    const v = await conferirPagamento("pedido-foocci");
+    expect(v.liberado).toBe(false);
+    expect(v.motivo).toBe("sem_registro_de_pagamento");
+  });
+
+  it("NÃO abre porta para pedido comum — só vale para quem TEM o registro", async () => {
+    // A isenção é por `clientRequestId`. Um pedido sem linha na tabela continua
+    // travado, mesmo com outro pedido isento na casa ao lado.
+    db.isencaoDeParceria.findUnique.mockResolvedValue(null);
+    const v = await conferirPagamento("pedido-de-cliente-comum");
+    expect(v.liberado).toBe(false);
+    if (!v.liberado) expect(v.mensagemAoCliente).toBeTruthy();
+  });
+
+  it("parceria VENCIDA não libera — parceria eterna vira esquecimento", async () => {
+    db.isencaoDeParceria.findUnique.mockResolvedValue(isencao({ validaAte: ONTEM }));
+    const v = await conferirPagamento("pedido-foocci");
+    expect(v.liberado).toBe(false);
+    expect(v.motivo).toBe("parceria_vencida");
+    // Recusa com nome PRÓPRIO: o operador precisa saber que existiu e acabou,
+    // para renovar — diferente de nunca ter havido parceria.
+    expect(v.motivo).not.toBe("sem_registro_de_pagamento");
+  });
+
+  it("validade ilegível NÃO vira 'vale para sempre'", async () => {
+    db.isencaoDeParceria.findUnique.mockResolvedValue(isencao({ validaAte: new Date("nada") }));
+    const v = await conferirPagamento("pedido-foocci");
+    expect(v.liberado).toBe(false);
+    expect(v.motivo).toBe("parceria_vencida");
+  });
+
+  it("a recusa por vencimento traz a instrução gêmea, e não culpa o cliente", async () => {
+    db.isencaoDeParceria.findUnique.mockResolvedValue(isencao({ validaAte: ONTEM }));
+    const v = await conferirPagamento("pedido-foocci");
+    expect(v.liberado).toBe(false);
+    if (!v.liberado) {
+      expect(v.mensagemAoCliente).toMatch(/renovar/i);
+      expect(v.mensagemAoCliente).toMatch(/WhatsApp/);
+    }
+  });
+
+  it("quem PAGOU é liberado por ter pagado — a isenção nunca reescreve isso", async () => {
+    db.pagamentoConfirmado.findUnique.mockResolvedValue({
+      valorCentavos: 49000, origem: "mercadopago", confirmadoEm: new Date(),
+    });
+    db.isencaoDeParceria.findUnique.mockResolvedValue(isencao());
+    const v = await conferirPagamento("pedido-pagante");
+    expect(v.motivo).toBe("pagamento_confirmado");
+  });
+
+  it("banco tossindo na isenção é RECUSA, nunca liberação", async () => {
+    db.isencaoDeParceria.findUnique.mockRejectedValue(new Error("db off"));
+    const v = await conferirPagamento("pedido-foocci");
+    expect(v.liberado).toBe(false);
+    expect(v.motivo).toBe("leitura_indisponivel");
   });
 });

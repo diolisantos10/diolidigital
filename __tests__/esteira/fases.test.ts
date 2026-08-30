@@ -174,7 +174,12 @@ describe("a trilha desenhada", () => {
 
   it("fases fora da trilha herdam a posição da etapa equivalente", () => {
     expect(posicaoNaTrilha("negociacao")).toBe(posicaoNaTrilha("orcamento"));
-    expect(posicaoNaTrilha("aguardando_cliente")).toBe(posicaoNaTrilha("producao"));
+    // ⚠️ MUDOU EM 26/08/2026 (Fase 1). Herdava PRODUÇÃO, e o ramo do material
+    // devolve ANTES do portão de direção: o projeto sem direção aprovada lia
+    // 50% só por ter pedido aberto e caía para 38% quando o cliente RESPONDIA.
+    // Herda o DESENHO; com a direção aprovada quem segura os 50% é o PISO.
+    // Ver `o-andamento-e-monotonico.test.ts`.
+    expect(posicaoNaTrilha("aguardando_cliente")).toBe(posicaoNaTrilha("desenho"));
   });
 
   it("o progresso cresce ao longo da esteira", () => {

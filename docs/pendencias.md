@@ -14,6 +14,263 @@
 > - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
+
+## 🟡 28/08/2026 — DUAS FRENTES ADIADAS POR ORDEM (depois da manhã do cliente)
+
+O Diretor Geral carimbou as duas para depois da entrada do primeiro cliente real.
+Ficam aqui para não sumirem.
+
+### 1. Varredura de rotas sem conferência de posse — do `seguranca`
+
+O conserto do vazamento da ficha de marca (#376) fechou **uma** rota. O PR #169
+mencionava outros pontos com o mesmo padrão — `liberarCliente` da escada, a fila
+comercial — e **eu não os auditei**. `lib/agency/esteira/posse-do-cliente.ts` já
+exporta `clienteEDesteWorkspace` para eles.
+
+**A pergunta da varredura:** que outras rotas recebem um id pela URL ou pelo
+corpo e não conferem de quem é o recurso? É frente do especialista de segurança,
+não um apêndice de outra tarefa.
+
+### 2. Por que a branch de deploy virou história órfã — a causa-raiz
+
+`claude/dioli-agency-os-architecture-kk7kp` não tem ancestral comum com sete PRs
+abertos (150 commits contra 870). Eles são **impossíveis de mergear** e ficaram
+12 dias presos, com **US$ 1.198 já pagos** dentro deles — incluindo um conserto
+de segurança que só foi recuperado em 28/08.
+
+**Medi o efeito, não a causa.** Se aconteceu uma vez, acontece de novo, e o custo
+está calculado. Ver `triagem-dos-prs-parados-28-08.md` e
+`o-custo-de-construir-28-08.md`.
+
+
+## 🟢 28/08/2026 — A FICHA DE MARCA VAZAVA ENTRE INQUILINOS (CONSERTADO)
+
+> **Fechado pelo PR #376**, conferido na branch de deploy: `posse-do-cliente.ts`
+> está lá e a rota da marca chama `clienteOuNulo` nas duas pontas (404, nunca
+> 403). Ficou aberto 12 dias porque o conserto existia desde 16/08 preso num PR
+> que não mergeia mais.
+>
+> ⚠️ **O que NÃO foi feito e continua aberto:** a varredura de OUTRAS rotas com
+> o mesmo padrão — ver a seção das frentes adiadas, no topo. Uma rota fechada
+> não é uma classe de defeito fechada.
+>
+> O texto abaixo fica como está: é a história que produziu a regra.
+
+**Denunciado pelo PR #169 em 16/08, provado lá, e o conserto nunca entrou.**
+Medido de novo hoje contra a base de deploy — continua aberto.
+
+`app/api/agency/clients/[id]/marca/route.ts`, `GET` e `PUT`: conferem que existe
+sessão (`if (!sessao)`) e **não conferem de quem é o cliente**. O `id` vem cru da
+URL. A camada de baixo também não filtra:
+`ficha-de-marca.ts:309` faz `brandBrain.findUnique({ where: { clientId } })` sem
+`workspaceId`, e `escrita-da-ficha.ts:213` usa o `clientId` recebido direto.
+
+**Qualquer sessão válida de qualquer workspace LÊ e ESCREVE a ficha de marca de
+qualquer cliente de qualquer outro workspace** — basta trocar o id na URL. Vale
+para `design_staff`, o perfil mais baixo. O #169 provou com sessão do workspace A
+sobre cliente do workspace B: 200 nas duas.
+
+### O conserto existe e está preso
+
+`lib/agency/esteira/posse-do-cliente.ts` foi escrito no #169, está ausente da
+base, e **o #169 não consegue mais ser mergeado** (história órfã — ver
+`docs/diagnosticos/triagem-dos-prs-parados-28-08.md`). O caminho é COPIAR o
+arquivo para um PR novo sobre a base atual, com teste de posse próprio.
+
+### Por que não foi consertado em 28/08
+
+Ordem em vigor era triagem, e nada podia desestabilizar o deploy antes do
+cliente. O furo **exige credencial interna da agência** e **não está no caminho
+do cliente que entra pelo portal**. É P0 e está aberto há 12 dias — mas não era
+P0 daquela manhã. Conserto de rota sem teste de posse, de madrugada, trocaria um
+risco conhecido por um desconhecido.
+## 🟢 28/08/2026 — `npm run reivindicar` EMPURRAVA O SEU BRANCH INTEIRO (CONSERTADO)
+
+> **Fechado no mesmo dia, pelo PR #378.** O portão recusa antes de escrever, o
+> push nomeia o SHA em vez de `HEAD:`, e o commit usa `--only` — o índice era
+> uma segunda porta, descoberta exercitando o comando. O relato do incidente
+> está no #374. O texto abaixo fica como está: é a história que produziu a regra.
+
+**Aconteceu comigo hoje, e o resultado foi quatro commits de um PR aberto
+pousando direto na branch de deploy, sem revisão e sem CI prévio.**
+
+### O que a ferramenta faz
+
+`scripts/reivindicar.mts:305`:
+
+```
+git push --no-verify origin HEAD:<branch de deploy>
+```
+
+`HEAD:` não empurra "o commit da reivindicação" — empurra **tudo que o seu HEAD
+tem e o remoto não**. E `--no-verify` pula o gancho pré-push, que seria a única
+defesa.
+
+O desenho está explicado no topo do arquivo (linhas 30-38) e é coerente com a
+premissa dele: worktree de agente, branch privada, cujo único commit pendente é
+o da própria reivindicação. **A premissa não vale para uma sessão que trabalha
+num branch de feature** — e nada avisa quando ela não vale.
+
+### A medição
+
+Rodei `npm run reivindicar -- encerrar` com o branch `claude/fechar-a-divida-da-proposta`
+em cima (4 commits, PR #373 aberto, esperando revisão). O push foi recusado
+porque a base tinha andado; o script **rebaseou e reempurrou** — levando os
+quatro commits junto. `git log` da branch de deploy os mostra fora de qualquer PR.
+
+### Por que não foi pior desta vez, e por que isso é sorte
+
+O conteúdo eram **dois testes e um documento — zero linha de produção** — e
+estava validado antes (`tsc` limpo, 2.478 testes verdes, build compilando). A
+branch de deploy foi reconferida depois e está sã: `tsc` limpo, 688 testes de
+comercial verdes, `npm run build` compilando.
+
+**Com código de produção no branch, o mesmo comando teria publicado alteração de
+comportamento sem revisão e sem CI.** A regra da casa é "nunca empurre direto no
+branch de deploy" — e a ferramenta oficial da casa faz exatamente isso, em
+silêncio.
+
+### O que fazer (nenhuma iniciada — é conserto de ferramenta, precisa de decisão)
+
+1. Empurrar **só o commit da reivindicação**, não o `HEAD` inteiro — por exemplo
+   criando o commit sobre `origin/<branch>` e empurrando esse objeto, nunca `HEAD:`.
+2. **Recusar** quando o HEAD tiver commits não empurrados além do da
+   reivindicação, dizendo o que faria — recusa barata, dano caro.
+3. Reavaliar o `--no-verify`: ele desliga a única trava que existia.
+
+### A lição operacional, até isso ser consertado
+
+⚠️ **Não rode `npm run reivindicar` com trabalho não empurrado no branch atual.**
+Empurre o seu PR primeiro, ou rode o comando a partir de um branch limpo.
+## 🔴 28/08/2026 — ORDEM DO CEO: departamento financeiro por produto (não feita)
+
+**Ordem repassada pelo Diretor do Foocci em 28/08.** Palavras do CEO: *"Todo
+produto precisa ter o seu departamento financeiro… Railway, assinatura e tudo
+mais… Esses departamentos precisam reportar pra um novo departamento, que é o
+departamento financeiro da empresa, que fica lá dentro da Control Room."*
+
+**O padrão já existe: `diolisantos10/FOOCCI` → `docs/financeiro-padrao-da-casa.md`.**
+É para copiar, não reinventar — se cada produto criar as próprias colunas, a
+Control Room não soma, só traduz. *Regra não se copia, se aponta.*
+
+**Não construído em 28/08** por estar em vigor a regra de não desestabilizar a
+casa antes da entrada do primeiro cliente real. É trabalho de poucas horas.
+
+### O que a medição já apurou (`docs/diagnosticos/o-custo-de-construir-28-08.md`)
+
+- Total visível de sessões de Claude Code: **US$ 6.913 (R$ 35.671)** — piso, não fechamento.
+- **Control Room / Diretor Geral: US$ 4.272 — 61,8% de tudo, em 4 sessões.**
+  Uma única sessão custou US$ 2.995. **É o maior bolso da casa e ninguém media.**
+- Dioli Digital: US$ 1.588 em 17 sessões.
+- O Railway da casa inteira custa US$ 40,99/mês: o total de sessões equivale a
+  **14 anos** de servidor de todos os nove projetos.
+
+⚠️ **Isto não é desperdício provado** — coordenação cara que destrava seis
+produtos pode ser o melhor dinheiro da casa. O ponto é que **ninguém sabia**.
+
+### 🔴 E US$ 1.198 foram pagos por trabalho que nunca chegou
+
+Onze sessões da Dioli Digital de 15-16/08, paradas desde então — **75% de tudo
+que o produto gastou**. Os assuntos delas são os mesmos dos PRs #169-#172, que
+**não conseguem mais ser mergeados** (base órfã, ver
+`triagem-dos-prs-parados-28-08.md`). A casa pagou para diagnosticar, o
+diagnóstico virou PR, a base foi recriada por baixo, e 12 dias depois um dos
+defeitos ainda estava **vivo em produção** (o vazamento da ficha de marca, #376).
+
+*A casa não perdeu tempo: perdeu dinheiro já gasto, e não sabia.*
+
+
+## 🟢 28/08/2026 — O PARCEIRO ERA PERGUNTADO SOBRE VERBA (CONSERTADO, no ar)
+
+> **Fechado pelo PR #372**, conferido na branch de deploy: a rota do SDR devolve
+> a parceria derivada do token e a sala a escreve no estado que decide a fila de
+> perguntas (`comParceria`). Era a décima primeira "trava sem fechadura" da casa
+> — o campo existia, era lido, e nenhuma linha de produção escrevia nele.
+>
+> A travessia que provou isso é `__tests__/comercial/a-jornada-do-parceiro.test.ts`.
+>
+> O texto abaixo fica como está: é a história que produziu a regra.
+
+**Medido por travessia executável, não por leitura:**
+`__tests__/comercial/a-jornada-do-parceiro.test.ts` — 14 testes, banco real, IA
+dublada, 10 mutações rodadas. Diagnóstico inteiro em
+`docs/diagnosticos/a-jornada-do-parceiro-de-ponta-a-ponta.md`.
+
+`dispensadoDeVerba` (`question-engine.ts:1030`) lê `state.parceriaDeclarada`. O
+campo existe no tipo (`briefing-conversation.ts:292`), é lido, tem comentário
+dizendo que "o SERVIDOR preenche" — e **nenhuma linha de produção escreve nele**.
+Fora o teste, ele aparece em 5 lugares e em nenhum como escrita.
+
+A causa é mecânica: quem decide a fila de perguntas é o `question-engine`, que
+roda **no navegador**. O servidor resolve o convite mas devolve só
+`{ok, reply, needsClarification, scope}` — a parceria nunca volta para quem
+decide a pergunta. No servidor o convite alimenta o **prompt** e o **rastro**,
+nada mais.
+
+### O que o parceiro vive amanhã
+
+- é perguntado a faixa de orçamento mensal — a MESMA pergunta que travou a
+  conversa do primeiro cliente real às 13:43 de 27/08;
+- o botão de fechar o pedido fica travado (`canSubmitProposal` exige fila vazia);
+- **o pedido nasce assim mesmo**, pela via de recuperação, em até 5 minutos — a
+  régua da promoção não exige verba. Feio, não fatal.
+
+### O que JÁ funciona (medido, não suposto)
+
+Convite chega em todo turno e sobrevive a recarregamento · isenção derivada da
+parceria · portão devolve `parceria_isenta` · zero pagamento falso de R$ 0 ·
+e-mail do briefing chega ao pedido · trava `.invalid` não barra endereço real ·
+proposta diz "100% isento" antes do número e o botão não convida a pagar.
+
+### Dívida declarada
+
+A mutação "a rota da proposta esquece a parceria" **sobreviveu**: o teste prova a
+régua e a fonte, mas não atravessa a rota. Nada foi renderizado — a ordem visual
+foi lida no JSX, não vista.
+## 🔴 28/08/2026 — A FUSÃO DE CLIENTE ABORTA SE OS DOIS LADOS TIVEREM PARCERIA
+
+**Achado durante o diagnóstico do cadastro duplicado da FOOCCI (PR #370,
+`docs/diagnosticos/fusao-de-cliente-duplicado.md`). Nada consertado ainda —
+o Diretor Geral pediu diagnóstico primeiro.**
+
+`ParceriaDoCliente.clientId` é `@unique` no schema, e a lista de vínculos
+**não** o marca como `unicoPorCliente` (`lib/agency/persistence/cliente-vinculos.ts:74`).
+O mesmo vale para `BrandBrain` (`:101`, na lista de cascata).
+
+### A consequência
+
+Se os dois cadastros de uma fusão tiverem parceria — ou os dois tiverem cérebro
+de marca — o `updateMany` viola a restrição, o Prisma joga `P2002` e **a
+transação inteira aborta**. A rota não tem `try/catch` em volta do
+`$transaction` (`app/api/clients/[id]/fundir/route.ts:60-70`): sai **500 cru**, e
+a tela mostra só "não foi possível concluir".
+
+O banco fica protegido — a transação garante isso. **O operador é que fica
+travado sem saber por quê**, na única ferramenta que a casa tem para desfazer
+cadastro duplicado.
+
+### Por que o teste-guarda não pegou
+
+`__tests__/agency/fundir-cliente.test.ts:138` confere **presença** na lista, não
+**unicidade**. Um `@unique` novo no schema entra sem flag e nada acusa. O teste
+foi escrito para o furo anterior (modelo esquecido da lista) e não cobre este.
+
+### A perda silenciosa, de quebra
+
+`completarCampos` nunca sobrescreve campo preenchido — correto. Mas quando os
+dois lados têm **e-mail diferente**, o do absorvido é descartado **sem entrar em
+`movidos` nem em `descartados`**: a fusão perde um dado e não conta a ninguém.
+
+### O que falta fazer (nenhuma iniciada)
+
+1. Marcar `parceriaDoCliente` e `brandBrain` como `unicoPorCliente`.
+2. `try/catch` na rota de fusão — mensagem legível em vez de 500 cru.
+3. Estender o teste-guarda para conferir **unicidade**, não só presença.
+4. Trava de idempotência em `POST /api/clients` — foi o double-submit (7s de
+   diferença) que criou a FOOCCI duas vezes, e nada impede a repetição.
+5. Registrar em `descartados` o campo divergente que hoje some calado.
+
+
 ## 🔴 24/08/2026 — SEM SALDO NA CONTA DA ANTHROPIC (precisa de gente)
 
 **A conta do provedor de IA está sem saldo. Ninguém resolve isto em código.**
@@ -1345,8 +1602,12 @@ se corrige o que a rota mediu, não o Diretor.
 - [ ] 🔴 Tela dos avisos de orçamento presos e o alinhamento API-vs-página — em
       andamento, `pm-9ab49074` (`agencia/api-alinha-com-a-pagina`, aberta
       19:00).
-- [ ] 🔴 Barra branca no topo (relato do CEO, 15/08) — em andamento,
-      `pm-defeitos-do-ceo` (`layout-barra-do-topo`, aberta 18:52).
+- [x] ✅ Barra branca no topo (relato do CEO, 15/08) — **RESOLVIDO em
+      28/08**. Era a `AgencyTopBar`, a barra fixa do celular: pintada com
+      `--bg` (#F7F8FA, o fundo da PÁGINA) quando ela é o topo da sidebar no
+      celular. Passou a sair de #0B0F2A, a parada de 0% do gradiente da
+      sidebar. Medido a 375px em /agency/dashboard, /agency/brain e
+      /agency/tasks, tema claro e escuro: rgb(247,248,250) → rgb(11,15,42).
 
 ---
 
@@ -5747,21 +6008,25 @@ seria vender o que a casa não tem.
   hoje a resposta honesta é: sem os gates, sobe sem proteção.
 - **A senha do master mora no Railway — e é o único lugar onde ela existe.**
   Conferido no painel em 01/08/2026: `SEED_MASTER_PASSWORD` e `SEED_STAFF_PASSWORD`
-  **estão definidas** em produção, e o login com elas funciona. A senha `dioli2025`
-  dos scripts do repositório é rejeitada — ela não vale nada, e quem tentar por ali
-  vai concluir errado que perdeu o acesso.
+  **estão definidas** em produção, e o login com elas funciona.
 
-  Vale saber por quê, porque é frágil: o `seed-db.mjs` usa `INSERT OR IGNORE` (não
-  toca usuário existente) e gera senha **aleatória a cada boot** quando a env não
-  está definida. Se alguém apagar essas duas variáveis, a única via de recuperação
-  é redefini-las e reiniciar — **não existe fluxo de "esqueci minha senha"** no
-  sistema (`app/api/auth/` só tem `signin`, `signout` e o Google do briefing, que
-  nem cria sessão).
+  **26/08/2026 — a senha antiga saiu do repositório inteiro.** Ela já era
+  rejeitada em produção (o `seed-db.mjs` roda `UPDATE` a cada boot com a env),
+  mas continuava escrita em `prisma/seed.ts` e em dez scripts, ensinando a
+  credencial errada a quem lesse o código. Agora não existe mais senha em texto
+  puro no repositório, e `__tests__/seguranca/nenhum-segredo-em-texto-puro.test.ts`
+  quebra a rodada se alguma voltar.
 
-  > A mensagem que o próprio seed imprime — *"use o fluxo de redefinição de
-  > senha"* — **está errada**: esse fluxo não existe. Corrigir a mensagem, ou
-  > construir o fluxo, é fila normal; sem isso a próxima pessoa perde uma hora
-  > procurando uma tela que não está lá.
+  O seed também deixou de inventar senha **aleatória por boot** quando a env
+  falta: isso escondia o defeito num aviso de log e criava um master que
+  ninguém consegue usar. Agora ele **para com motivo** (fail-closed). O boot de
+  produção não fica refém — `start.sh` chama o seed com `|| echo`.
+
+  **Continua em aberto e é frágil:** se alguém apagar essas duas variáveis, a
+  única via de recuperação é redefini-las e reiniciar — **não existe fluxo de
+  "esqueci minha senha"** (`app/api/auth/` só tem `signin`, `signout` e o Google
+  do briefing, que nem cria sessão). A mensagem errada do seed, que mandava usar
+  um fluxo inexistente, foi corrigida.
 
 ---
 
@@ -6021,10 +6286,15 @@ identidade em `prospect-engine` —, e não foi tocado nesta peça.
   disparando em `[conv.messages, aiThinking]`, nas duas telas
   (`PublicBriefingRoom`, `SDRSimulator`). **Não reproduzi.** Falta ao CEO dizer
   QUAL tela e em que aparelho — sem isso, qualquer mexida aqui é chute.
-- **"Barra branca no topo atrapalhando as telas" (15/08).** O cabeçalho de
-  `/briefing` é `#070A1F` (escuro) e o layout raiz não tem barra. Screenshot nos
-  três tamanhos: nenhuma barra branca. **Não reproduzi nesta tela** — pode ser
-  outra rota.
+- **"Barra branca no topo atrapalhando as telas" (15/08).** ❌ **ESTE VERBETE
+  ESTAVA ERRADO — o defeito EXISTIA e foi corrigido em 28/08.** Fica aqui
+  porque o erro de método é a lição, não o defeito. Duas coisas esconderam a
+  barra de quem foi procurar: (1) olharam `/briefing`, uma tela **pública**, e
+  a barra vive no shell da **agência**; (2) ela é `md:hidden` — só existe
+  abaixo de 768px, e a captura usada era `fullPage`, que **achata elemento
+  fixo**. Screenshot de página inteira não é prova de ausência de barra fixa.
+  Procurar no lugar errado com o instrumento errado devolve "não reproduzi", e
+  "não reproduzi" arquivado como se fosse "não existe" custou 13 dias.
 
 ## 🟢 24/08/2026 — O DESPERTADOR GRITOU 4.600 VEZES SOBRE UMA CASA VAZIA
 
@@ -6096,3 +6366,271 @@ Arquivos: `lib/agency/escada/decisoes-do-dono.ts`, `lib/agency/pulso.ts`,
 `lib/agency/despertador.ts`. Testes que reprovam contra o código antigo:
 `__tests__/qualidade/decisao-do-dono-na-escada.test.ts` (3) e
 `__tests__/execution/despertador.test.ts` (3).
+
+## 🔴 27/08/2026 — O AJUSTE DO CLIENTE CHEGOU AO FIM, E ENTREGOU O CONTRÁRIO DO QUE ELE PEDIU
+
+**Medido na rodada paga da Fase 2, em produção, como cliente oculto.** É o item 4
+da lista do CEO ("o ajuste COMPLETANDO sobre a peça apontada"). A mecânica
+funcionou inteira — e o resultado é ruim. As duas coisas são verdade e as duas
+precisam estar escritas.
+
+### O que funcionou (e está provado)
+
+Cliente pediu ajuste pelo portal na peça `cmt8xk6ks00790xqofkbfqpab`
+(TRATTORIA DA ANA TESTE). A refação **chegou ao fim sozinha, em menos de um
+minuto**:
+
+| | antes | depois |
+|---|---|---|
+| arquivo | `med_35f7fcb6_mt8xpfoj` | `med_78f44713_mtakx2e0` |
+| sha256 | `35f7fcb6ad062c56…` | `78f4471335d83bfb…` |
+| bytes | 143.254 | 103.968 |
+
+**Exatamente 1 peça mudou; as outras 8 do cliente ficaram byte a byte
+idênticas** (sha256 conferido nas nove, pela porta do cliente). A mira acerta.
+Os dois arquivos estão em `docs/entregas/refacao-27-08/`.
+
+### O que a peça nova entregou
+
+O cliente escreveu, palavra por palavra:
+
+> *"o fundo ficou escuro demais e o prato some. Refaça ESSA peça com mais luz e
+> o prato em primeiro plano."*
+
+Medido nos dois arquivos:
+
+| faixa | antes | depois |
+|---|---|---|
+| luminância média | 40,5 | **29,8** (−26%) |
+| terço de cima | 64,2 | **42,1** |
+| terço do meio | 36,1 | **25,5** |
+| terço de baixo (onde o prato ficaria) | 21,2 | 21,9 |
+
+**Ele pediu mais luz e recebeu 26% menos.** A zona morta da base, que era a
+queixa dele, continua exatamente onde estava — a refação escureceu justamente o
+que ainda era legível.
+
+### E a legenda foi reescrita sem ele pedir
+
+O pedido era VISUAL. A refação regenerou o entregável inteiro
+(`refacao.ts:864`, `prisma.deliverable.update`), e a legenda da peça mudou de:
+
+> "O ambiente cheio que faz você querer estar aqui também."
+
+para:
+
+> "Sexta é dia de estar aqui\n**Post destacando a atmosfera acolhedora da
+> trattoria.**"
+
+Dois problemas, e o segundo é o grave:
+
+1. **"Sexta"** num calendário cujas outras peças são todas terça-a-quinta
+   ("Terça tem prato especial", "Terça é dia de cacio e pepe", "Terça a quinta é
+   quando a gente mais convida os amigos").
+2. **A segunda linha é direção interna, não legenda.** "Post destacando a
+   atmosfera acolhedora da trattoria" é a descrição DO post dentro do próprio
+   post. Se essa peça fosse publicada, o Instagram do cliente sairia com o
+   briefing colado na legenda.
+
+### O que isto custa e o que falta decidir
+
+Nenhuma régua pegou nada disso: o portão do fundo mede o fundo cru, a régua da
+peça final mede se a foto entrou. **Nenhuma das duas pergunta se a peça nova é
+melhor que a anterior, nem se ela atende o que o cliente pediu.** Uma refação
+pode piorar a peça indefinidamente e toda régua da casa continua verde.
+
+Não consertado nesta rodada, e o motivo é honesto: exige decidir **o que a
+refação tem direito de mudar**. Hoje "ajuste" e "reescrever a entrega" são a
+mesma porta. As perguntas para o CEO:
+
+- pedido visual pode reescrever a LEGENDA? (recomendação: não — pixel e texto
+  deveriam ser dois pedidos);
+- a casa deve medir a peça nova CONTRA a anterior antes de mostrá-la ao cliente
+  (ex.: "ele pediu mais luz e a luz caiu" é reprovação)?
+- a linha de direção do entregável nunca pode virar legenda — isto é conserto de
+  leitura e cabe em qualquer rodada.
+
+## 🟢 27/08/2026 — O AJUSTE PASSOU A OBEDECER AO PEDIDO: CONGELAMENTO, RÉGUA E PORTA
+
+Fecha os sete itens abertos pela rodada paga em que a refação entregou o
+contrário do pedido. **Tudo o que está aqui foi provado em custo ZERO** — a
+travessia paga não rodou, e o motivo está no fim desta seção.
+
+### 1. O ajuste só mexe no que o cliente apontou (`escopo-do-ajuste.ts`)
+
+`escopoDoAjuste` lê as faces citadas (arte, legenda, título, data, formato,
+pilar, CTA) e `congelarItens` descarta o valor novo dos campos das outras. O
+anterior é lido do texto que o cliente está vendo, por `itensDaEntrega` — a
+leitura inversa de `renderizarEntrega`, pela MESMA lista `CAMPOS_DA_ENTREGA`.
+
+Duas fronteiras: pedido **amplo** ("não gostei, refaz") sai `incerto` e não
+congela nada; **recusa** da entrega inteira nunca congela.
+
+Sobre o caso medido: "o fundo ficou escuro demais…" → face `arte`, e
+`caption`/`note`/`headline` congelados. A legenda "Sexta é dia de estar aqui /
+Post destacando…" não teria sido gravada.
+
+### 2. Direção interna é trava de código (`direcao-interna.ts`)
+
+A peneira mora em `captionDaPeca` — o funil por onde toda legenda passa, no
+nascimento e no ajuste, e a mesma fonte que vira pixel. A última porta é
+`publicacao.ts`, antes da Meta: ali **não se limpa** (reescrever na saída seria
+a agência mudando o que o cliente aprovou) — barra, com dono e próxima ação.
+
+⚠️ A régua foi ESTREITADA antes do merge: a primeira redação casava "Conteúdo de
+qualidade para você". Como ela barra publicação, falso positivo custa o post de
+um cliente real.
+
+### 3. A régua que faltava (`design/medir-luz.ts` + `regua-da-refacao.ts`)
+
+A peça nova é medida contra a anterior. Sobre os dois arquivos guardados:
+
+| | antes | depois |
+|---|---|---|
+| luminância média | 39,9 | 29,5 |
+| terço de cima | 63,4 | 41,8 |
+
+(A auditoria escreveu 40,5 → 29,8 e 64,2 → 42,1; a diferença é da amostra de
+160px e está declarada no teste.) Veredito: **`piorou` → não entrega.** O
+`mediaUrl` volta ao arquivo anterior, a peça segue inagendável, o cliente lê a
+verdade e a equipe é escalada — **sem queimar a tentativa paga dele**.
+
+**O que a régua NÃO alcança, e sai declarado:** "o prato em primeiro plano",
+"o prato some", enquadramento, ângulo e gosto. Isso é olho humano, e a régua diz
+isso mesmo quando a luz melhorou.
+
+### 4. Data coerente (`calendario-do-cliente.ts`)
+
+O dia citado tem de ser o dia da peça; sem hora marcada, tem de estar no
+calendário do cliente; sem os dois, `nao_medido`. Faixa é faixa ("de terça a
+quinta" são três dias).
+
+### 5. O beco de OFICINA FAROL ganhou porta (`porta-do-ajuste.ts`)
+
+Teto e pedido repetido têm dono com rosto (o gerente do projeto) e três caminhos
+concretos. `valeChamarAIa` impede o pedido repetido de queimar outra tentativa
+paga, com memória curta no carimbo `[parada:<causa>]`.
+
+`PARADAS_QUE_NAO_MUDAM` é curta de propósito: `fora_do_contrato` e
+`dado_inventado` retentam — nascem da saída do modelo, que varia.
+
+### 6. A reversão do pacote cobre o card de calendário
+
+Desagenda `scheduled → draft`, com compare-and-set e três exclusões (publicada
+não volta; aprovada por `client:` não volta; peça de outro pedido nem é olhada).
+
+### 7. O provedor reserva de imagem entrou no livro-caixa
+
+Gemini de imagem: US$ 0,039. **Correção de diagnóstico:** o gasto NÃO ficava
+fora do teto — entrava com o palpite de US$ 0,05, **28% acima do preço real**.
+Teto que fecha com número errado fecha na hora errada.
+
+### ⛔ O QUE NÃO FOI MEDIDO — a travessia paga não rodou
+
+**Custo desta rodada: US$ 0,00.** O saldo da OpenAI continua onde estava.
+
+A Fase 2 exigia autenticar como master contra a produção, e a senha só pode
+entrar por variável de ambiente. **O ambiente de execução recusou o comando que
+carregava a credencial** — não é defeito da casa nem falta de caminho: é a
+permissão do sandbox. Sem sessão não há token de portal, e sem token não há
+pedido de ajuste.
+
+**Continua NÃO MEDIDO ao vivo, portanto:**
+- o cliente pedindo mais luz e recebendo mais luz **em produção**;
+- a legenda não mencionada ficando intacta **em produção**;
+- a régua reprovando uma peça pior **em produção** (o caminho está provado em
+  teste e sobre os dois arquivos reais, que é o mais perto que custo zero chega).
+
+**Depende só do CEO:** liberar a execução do comando com a credencial (uma regra
+de permissão de Bash na sessão) ou fazer ele mesmo a volta pelo portal.
+
+## 🟢 27/08/2026 — O E-MAIL QUE CHEGOU, A TABELA DE PREÇOS E O SDR QUE PROMETIA
+
+### O que ficou provado NO AR
+
+**PROVA 1 — o e-mail chega de verdade. ✅** Um e-mail real saiu pelo caminho
+normal da casa (`POST /api/brain/client-requests`, a confirmação de briefing) e
+chegou à caixa do CEO. Ele leu e devolveu consertos — que é a prova mais forte
+que existe de que chegou.
+
+⚠️ **A casa não conseguiu provar o envio sozinha, e isso era defeito.** O `id`
+que a Resend devolve era descartado pelos dois chamadores. E não dava para
+remediar depois: a chave é `restricted_api_key` — a Resend responde `401 "This
+API key is restricted to only send emails"` a qualquer LEITURA. Chave de envio
+não lista o que enviou. Consertado: `sendEmail` grava o recibo (id + destino
+mascarado + assunto).
+
+### ⛔ PROVA 2 — as sete travas: 2 provadas no ar, 5 NÃO MEDIDAS
+
+A travessia foi montada em produção com cliente próprio (`NOME TESTE`), 3 peças
+reais e token de portal. O pedido de ajuste ("a primeira peça ficou com o fundo
+escuro demais… mais luz") entrou pela rota do cliente e voltou `200`.
+
+| trava | estado | número que sustenta |
+|---|---|---|
+| 5. o ajuste toca só a peça apontada | ✅ **provada no ar** | peça 1 → `revision_requested`; peças 2 e 3 intactas, `mediaUrl` idêntica (o id da mídia É o prefixo do sha256 — arquivo diferente, URL diferente) |
+| 6. peça travada tem porta | ✅ **provada no ar** | o card voltou a `pending` e o cliente conseguiu agir de novo — sem o 409 "já decidido" |
+| 1, 2, 3, 4, 7 | ⛔ **NÃO MEDIDAS** | nenhuma arte foi regenerada |
+
+**O motivo é bom, e é a trava funcionando:** `conferirPagamentoDaAncora` recusou
+antes de qualquer chamada paga — cliente criado hoje, sem pedido e sem
+pagamento, cai em `sem_registro_de_pagamento`. **O portão de pagamento segurou
+uma produção não paga em produção.** Custo da travessia: **US$ 0,00**.
+
+Para medir as outras cinco ao vivo seria preciso dar contrato pago (ou isenção)
+ao cliente de teste — mexer em registro financeiro de produção. Não foi feito.
+
+### O QUE MUDOU NO E-MAIL (ordens do CEO, no dia)
+
+O e-mail chegou assinado **"DIOLI STUDIO"**, sem logo, com o WhatsApp escrito
+como número solto. O nome estava **digitado à mão em seis arquivos**.
+
+Agora: `lib/marca.ts` (fonte única do nome, WhatsApp e paleta) + `lib/email/molde.ts`
+(casca única: cabeçalho navy com logo, botão de WhatsApp, rodapé). Logo por URL
+absoluta e pública (medido: 200 sem cookie), `alt` = nome da empresa porque
+Gmail e Outlook bloqueiam imagem por padrão, layout em tabela, 600px.
+
+E **o preço saiu do e-mail** por ordem do CEO: ele virou convite + botão. Preço
+lido sozinho, sem ninguém do outro lado, é preço que o cliente compara e
+descarta em silêncio.
+
+### 🔴 O ACHADO MAIS CARO: o SDR vendia quatro preços mortos
+
+As `FAIXAS` de `negociacao.ts` eram strings digitadas à mão e apodreceram:
+
+| o SDR oferecia | é hoje |
+|---|---|
+| Ritmo **R$ 297**, 8 peças | R$ 290, **12 peças** |
+| Presença **R$ 790** | **R$ 490** (790 é o Conteúdo) |
+| Conteúdo **R$ 1.390** | **R$ 790** |
+| Crescimento **R$ 2.590** | **não existe mais** |
+
+E um **desconto de 22% que ninguém autorizou** (`piso: preco * 0.78`). Um teste
+até então EXIGIA `piso < cheio` — exigia o desconto. Foi invertido.
+
+### A TABELA DE PREÇOS — e a honestidade sobre custo
+
+O CEO esperava que o Financeiro já tivesse os custos. **Foi medido: não tem.**
+Só a IA é medida (US$ 13,74 em 1.747 chamadas/30d — e **485 delas sem preço
+gravado**). Gateway, infra, e-mail, hora humana e impostos: **NÃO MEDIDOS**,
+cada um com dono.
+
+Como margem no piso = preço − custo, e o custo é `nao_medido`, **não se prova
+que a margem não é negativa** → o piso não desce. Os 10% de lucro do CEO estão
+em código como CHÃO (vencem a faixa de desconto), mas não rodam enquanto o custo
+não existir: não se calcula 10% sobre um número que não existe.
+
+### ⛔ O QUE CONTINUA ABERTO
+
+- **O deploy está PARADO.** O merge de #355 está no branch, mas a CI do commit
+  de merge ficou vermelha por um teste que depende de navegador de verdade
+  (`story-instagram-v1-ponta-a-ponta`: `Protocol error (Page.captureScreenshot):
+  Unable to capture screenshot`). A suíte inteira passa localmente (7.027).
+  Railway tem `checkSuites: true` e **corretamente recusa** deployar branch
+  vermelho. **Um teste que depende de navegador gateia todo deploy da casa** —
+  isso é dívida de infraestrutura, não de código.
+- **`RESEND_FROM` é do CEO** e decide o nome no campo "De:".
+- **Resíduo em produção que não consegui limpar:** o cliente `NOME TESTE` e 1
+  card de aprovação. A casa RECUSA apagar cliente com trabalho pendurado ("funda
+  em vez de apagar") — comportamento correto, e não há rota para apagar o card.
+  O token do portal expira sozinho em 29/08 (foi cunhado com 2 dias).

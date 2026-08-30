@@ -202,6 +202,13 @@ export function montarDossie(
     // Caminho bom: a conversa deixou cadência declarada. Aplica-se a tabela.
     const est = computeEstimate(gravado);
     for (const item of est.items) {
+      // ── ITEM SEM PREÇO NÃO ENTRA NA FAIXA (26/08/2026) ──────────────────
+      // Com a tabela única, tráfego pago e identidade visual saem da proposta
+      // COM escopo e SEM preço ("orçado à parte"). Entrar aqui como zero
+      // puxaria o mínimo do dossiê para baixo e faria o comercial negociar
+      // contra um piso que não existe. O item continua sendo dito ao cliente
+      // na proposta; o que ele não faz é virar número numa faixa.
+      if (item.minPrice === null || item.maxPrice === null) continue;
       escopo.push({
         departamento: "declarado no briefing",
         item: item.label,

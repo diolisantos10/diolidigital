@@ -1,0 +1,17 @@
+{
+  "id": "consertos-presos/porte-de-furos-vivos",
+  "quem": "ses-0f40f00b52",
+  "frente": "Porte dos consertos de furo vivo presos em PRs parados",
+  "responsabilidade": "consertos-presos/porte-de-furos-vivos",
+  "arquivos": [
+    "app/api/v2/assistido/route.ts",
+    "app/api/v2/retomar/route.ts",
+    "app/api/messages/conversa.ts",
+    "lib/agency/execution/negotiate-proposal.ts",
+    "__tests__/consertos-presos",
+    "docs/diagnosticos/os-consertos-que-ficaram-presos-29-08.md"
+  ],
+  "abertaEm": "2026-08-29T03:18:14.745Z",
+  "encerradaEm": "2026-08-29T04:22:54.499Z",
+  "rotulo": "ses-consertos-presos"
+}

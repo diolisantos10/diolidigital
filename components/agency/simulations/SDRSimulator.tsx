@@ -9,6 +9,7 @@ import {
   type SDRHandoff, type SDRAgentState,
 } from "@/lib/agency/sdr-agent";
 import { detectPackage, getPackageDef, SOCIAL_PACKAGES } from "@/lib/agency/live-calculator";
+import { precoDoItemEmTexto } from "@/lib/agency/comercial/preco-do-item";
 
 // ── Presets ────────────────────────────────────────────────────────────────────
 
@@ -234,8 +235,8 @@ function CartPanel({
               <div key={i} className="flex items-start gap-2 text-[11px]">
                 <span className="text-[var(--text-muted)] flex-1">{item.label}</span>
                 <span className="text-[var(--text-secondary)] shrink-0">
-                  {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}
-                  <span className="text-[var(--text-subtle)]">/{item.unit}</span>
+                  {precoDoItemEmTexto(item, fmtBRL)}
+                  {item.minPrice !== null && <span className="text-[var(--text-subtle)]">/{item.unit}</span>}
                 </span>
               </div>
             ))}

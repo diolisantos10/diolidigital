@@ -297,7 +297,7 @@ Se quiser fazer o primeiro teste em **2 semanas** trabalhando focado:
 - PM com execução automática de tarefas (task → auto-trigger do agente)
 - Treinamento/simulação aplicado automaticamente
 - Multi-workspace / isolamento completo para clientes externos
-- Rotação de senha semeada `dioli2025`
+- ~~Rotação de senha semeada~~ — feita: a senha saiu do código e vem só do ambiente (26/08/2026)
 - Remoção da rota legada `/portal/client/[id]`
 
 ---

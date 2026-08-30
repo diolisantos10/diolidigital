@@ -1,0 +1,16 @@
+{
+  "id": "comercial/acao-na-fila-de-promessa",
+  "quem": "ses-a03a77af11",
+  "frente": "a fila deixa de ser so leitura: a acao existente ganha chamador de tela em /agency/leads",
+  "responsabilidade": "comercial/acao-na-fila-de-promessa",
+  "arquivos": [
+    "app/agency/leads/page.tsx",
+    "app/api/agency/conversas-sem-pedido/atribuir/route.ts",
+    "lib/agency/comercial/atribuir-conversa-orfa.ts",
+    "__tests__/agency/promessa",
+    "docs/diagnosticos/a-fila-que-nao-agia-29-08.md"
+  ],
+  "abertaEm": "2026-08-29T04:59:47.450Z",
+  "encerradaEm": "2026-08-29T05:56:19.108Z",
+  "rotulo": "pm-promessa-2908"
+}

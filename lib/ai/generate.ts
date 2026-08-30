@@ -12,6 +12,10 @@ import { resolveProviderKey, isAiProvider, type AiProvider } from "@/lib/ai/reso
 import { escolhaDoCliente } from "@/lib/ai/escolha-por-cliente";
 import { registrarChamadaDeIa, type UsoDeTokens } from "@/lib/ai/registro-de-custo";
 import { departamentoQuePaga } from "@/lib/ai/donos";
+import { motivoLegivel } from "@/lib/ai/motivo-da-falha";
+import {
+  marcarForaDeJogo, limparForaDeJogo, filtrarForaDeJogo, porQueEstaFora, eFalhaTerminal,
+} from "@/lib/ai/provedor-fora-de-jogo";
 
 /**
  * O DESFECHO CRU DA GERAÇÃO — os dois campos que o SDR não pode perder.
@@ -71,6 +75,37 @@ function usoDoGemini(json: unknown): UsoDeTokens | null {
   const u = (json as { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number } })?.usageMetadata;
   if (!u) return null;
   return { entrada: u.promptTokenCount ?? null, saida: u.candidatesTokenCount ?? null };
+}
+
+/**
+ * O QUE O PROVEDOR DISSE AO RECUSAR — cortado, sem interpolar nada.
+ *
+ * ── O vão que isto fecha (27/08/2026) ──────────────────────────────────────
+ * Só o caminho do Claude lia o corpo do erro. `callOpenAICompatible` e
+ * `callGemini` reportavam `"OpenAI HTTP 429"` e `"Gemini HTTP 400"` — o status
+ * SOZINHO, que é exatamente o que a doutrina desta casa proíbe desde 24/08:
+ * **status de erro não é motivo; o motivo está na mensagem.**
+ *
+ * A consequência era concreta e cara: a OpenAI anuncia conta zerada com HTTP
+ * **429** e a frase *"You exceeded your current quota"*. Jogando a frase fora,
+ * "conta sem saldo" e "fila cheia" viravam a MESMA string — e a casa repetia
+ * três vezes, dava outra volta na fila e carimbava `limite_de_taxa`: "espere
+ * que passa", sobre uma conta que não se paga esperando. O `sem_saldo` da
+ * OpenAI e do Gemini era, literalmente, indetectável.
+ *
+ * A lição já estava escrita no arquivo ao lado, para um provedor só. Aqui ela
+ * vale para todos.
+ *
+ * Ler o corpo NUNCA pode derrubar a chamada: se a leitura falhar, o que se
+ * perde é o detalhe — o status continua sendo reportado.
+ */
+async function detalheDaRecusa(res: Response): Promise<string> {
+  try {
+    if (typeof res.text !== "function") return "";
+    return (await res.text()).slice(0, 300).replace(/\s+/g, " ").trim();
+  } catch {
+    return "";
+  }
 }
 
 const TIMEOUT_MS = 60_000;
@@ -222,14 +257,7 @@ async function callClaude(
       // Ler o corpo NÃO PODE derrubar a chamada: se a leitura falhar, o que
       // se perde é o detalhe — o status continua sendo reportado. Sem esta
       // guarda, um corpo ilegível virava "erro de rede" e apagava o 400.
-      let detalhe = "";
-      try {
-        if (typeof res.text === "function") {
-          detalhe = (await res.text()).slice(0, 300).replace(/\s+/g, " ").trim();
-        }
-      } catch {
-        detalhe = "";
-      }
+      const detalhe = await detalheDaRecusa(res);
       return { ok: false, error: `Claude HTTP ${res.status}${detalhe ? `: ${detalhe}` : ""}` };
     }
     const json = (await res.json()) as {
@@ -306,7 +334,10 @@ async function callOpenAICompatible(
       }),
       signal,
     });
-    if (!res.ok) return { ok: false, error: `${label} HTTP ${res.status}` };
+    if (!res.ok) {
+      const detalhe = await detalheDaRecusa(res);
+      return { ok: false, error: `${label} HTTP ${res.status}${detalhe ? `: ${detalhe}` : ""}` };
+    }
     const json = (await res.json()) as { choices?: { message?: { content?: string }; finish_reason?: string }[] };
     const uso = usoOpenAICompativel(json);
     const motivoDeParada = json.choices?.[0]?.finish_reason ?? null;
@@ -345,7 +376,10 @@ async function callGemini(apiKey: string, model: string, m: OpenAIMessages, maxT
       }),
       signal,
     });
-    if (!res.ok) return { ok: false, error: `Gemini HTTP ${res.status}` };
+    if (!res.ok) {
+      const detalhe = await detalheDaRecusa(res);
+      return { ok: false, error: `Gemini HTTP ${res.status}${detalhe ? `: ${detalhe}` : ""}` };
+    }
     const json = (await res.json()) as {
       candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
     };
@@ -396,6 +430,14 @@ export async function anyProviderConfigured(workspaceId?: string): Promise<boole
 // A transient failure is worth retrying (a momentary blip); a permanent one
 // (no key, bad request, auth) is not — retrying would just waste time.
 function isTransientError(error: string): boolean {
+  // ⚠️ TERMINAL VENCE TUDO, E VEM PRIMEIRO. A régua abaixo é feita de pedaços
+  // de texto, e pedaço de texto se encontra onde não devia: a OpenAI anuncia
+  // conta zerada com *"You exceeded your current quota"* e a Anthropic com um
+  // **HTTP 400**. Sem esta linha, "sem saldo" cairia no ramo do 429/5xx em
+  // alguns provedores e a casa repetiria três vezes, com espera crescente, uma
+  // porta que ela acabou de ver fechada — 1,8s de latência por chamada para
+  // ouvir a mesma recusa. Falta de saldo não é soluço: é porta fechada.
+  if (eFalhaTerminal(error)) return false;
   const e = error.toLowerCase();
   if (/http (429|5\d\d)/.test(e)) return true;                 // rate-limit / server / overload (529)
   if (e.includes("timeout") || e.includes("rede")) return true; // network / timeout
@@ -604,10 +646,31 @@ export async function generate(options: {
           ? [preferido]
           : [preferido, ...preferenceOrder().filter((p) => p !== preferido)])
       : preferenceOrder();
+  // ── TURNO SEM TEXTO NÃO VAI AO PROVEDOR (medido, 26/08/2026) ─────────────
+  //
+  // ⚠️ MEDIDO NO LIVRO-CAIXA DE PRODUÇÃO: 4 chamadas do `comercial-sdr`
+  // devolveram **HTTP 400 — `messages.0.content: Field required`**, quatro
+  // segundos seguidos, e o turno inteiro do prospect se perdeu. `content` era
+  // `undefined`, então `JSON.stringify` apagava o campo e a Anthropic recusava
+  // o corpo. Índice 0 = o primeiro turno do HISTÓRICO, não a fala da vez.
+  //
+  // A origem é lá atrás (`montarConversa` do SDR faz `content: m.text` e o
+  // navegador pode mandar mensagem sem `text`), mas o conserto é AQUI, e de
+  // propósito: são 29 caminhos chamando esta camada, e qualquer um deles pode
+  // montar um turno vazio. Uma trava por chamador é a doença que esta casa já
+  // pagou — quem lembrasse de um esqueceria dos outros.
+  //
+  // Descartar é o certo, e não abortar: um turno vazio não tem informação
+  // nenhuma a perder, e derrubar a conversa por causa dele entregaria ao
+  // cliente exatamente o silêncio que o 400 já entregava.
+  const historicoLimpo = (options.historico ?? []).filter(
+    (t) => typeof t?.content === "string" && t.content.trim().length > 0,
+  );
+
   const messages: OpenAIMessages = {
     system: options.system,
     user: options.user,
-    ...(options.historico?.length ? { historico: options.historico } : {}),
+    ...(historicoLimpo.length ? { historico: historicoLimpo } : {}),
   };
 
   // A conta pode vir por dois caminhos, e o de cima manda: quem passou
@@ -649,6 +712,24 @@ export async function generate(options: {
     });
   };
 
+  // ── QUEM ESTÁ SEM SALDO NÃO ENTRA NA FILA (27/08/2026) ───────────────────
+  //
+  // MEDIDO EM PRODUÇÃO, log do Railway, 13:38→15:48 sem falhar uma batida: 27
+  // chamadas idênticas abriram por `claude`, levaram o mesmo HTTP 400 *"Your
+  // credit balance is too low"* e só então caíram para a `openai`. A conta da
+  // Anthropic está zerada há horas e a casa sabe disso — `provedoresCaidos` lê
+  // e o despertador grita de 5 em 5 min. A fila era o único lugar onde a casa
+  // continuava sem saber.
+  //
+  // Isto NÃO substitui `isTransientError`: aquele decide se vale repetir DENTRO
+  // de uma chamada; este decide se vale ABRIR a próxima. Sem memória entre
+  // chamadas, cada volta do relógio recomeçava do zero na mesma porta fechada.
+  //
+  // ⚠️ Só REMOVE nomes. Nunca acrescenta — é por isso que a trava de
+  // independência do árbitro (`filaDeArbitros`, que tira o autor) continua
+  // valendo: quem não entrou na fila não pode sair dela.
+  const { fila: ordemViva, barrados } = filtrarForaDeJogo(order);
+
   let firstFailure: string | null = null;
   // ── O DESFECHO DA PRIMEIRA TENTATIVA VIAJA JUNTO COM A FALHA ──────────────
   // Pego por teste em 24/08/2026: o retorno final de erro montava um objeto
@@ -659,7 +740,7 @@ export async function generate(options: {
   let desfechoDaPrimeira: DesfechoDaGeracao = {};
   const tried: string[] = [];
 
-  for (const provider of order) {
+  for (const provider of ordemViva) {
     // ⚠️ A chave entregue pronta NUNCA passa por `resolveProviderKey` — é essa
     // linha que impede a rota pública de cair no `findFirst` global.
     const resolved =
@@ -677,6 +758,10 @@ export async function generate(options: {
     const duracaoMs = Date.now() - comecou;
 
     if (result.ok) {
+      // O provedor respondeu — está VIVO. Se ele estava marcado, a marca cai
+      // agora: é isto que faz uma recarga de crédito valer no ato, sem deploy
+      // e sem esperar o relógio de `TEMPO_FORA_DE_JOGO_MS`.
+      limparForaDeJogo(provider);
       if (tried.length > 0) {
         console.warn(`[generate] ${tried.join(", ")} falhou — entregue por ${provider} (${model})`);
       }
@@ -689,6 +774,10 @@ export async function generate(options: {
     }
 
     anotar({ provider, model, status: "error", uso: result.uso, duracaoMs, erro: result.error });
+    // Falha TERMINAL (sem saldo, chave recusada) tira o provedor da fila das
+    // PRÓXIMAS chamadas. Falha passageira não marca nada — quem gagueja
+    // continua na fila, e é assim que tem de ser.
+    marcarForaDeJogo(provider, result.error);
     if (firstFailure === null) {
       desfechoDaPrimeira = { motivoDeParada: result.motivoDeParada ?? null, textoCru: result.textoCru ?? null };
     }
@@ -696,13 +785,33 @@ export async function generate(options: {
     tried.push(`${provider} (${result.error})`);
   }
 
+  // ── A FILA ESGOTOU SEM NINGUÉM TENTAR: TODOS JÁ ESTAVAM FORA ─────────────
+  //
+  // *Status de erro não é motivo; o motivo está na mensagem.* Cair aqui em
+  // "Nenhuma IA conectada" seria a mentira mais cara desta rotina: há chave
+  // conectada, o provedor está de pé, e o que falta é CRÉDITO — a única causa
+  // desta lista que nenhuma pessoa resolve em código e que ninguém descobre
+  // lendo `provider_error`. A frase que sai daqui nomeia o provedor e diz
+  // SEM SALDO, porque é isso que manda a pessoa certa fazer a coisa certa.
+  if (tried.length === 0 && barrados.length > 0) {
+    return {
+      ok: false,
+      error: `IA indisponível — nenhum provedor da fila está de pé: ${barrados.map(porQueEstaFora).join("; ")}`,
+    };
+  }
+
   if (tried.length > 0) {
     // Reporta a PRIMEIRA falha, não a última: a primeira é a do provedor que
     // devia ter atendido, e é a que a pessoa precisa investigar.
     const porFixacao = fixado ? ` [provedor fixado no cliente: ${fixado.provider}, sem reserva]` : "";
+    // E o motivo LEGÍVEL vem na frente do texto cru, quando a casa sabe lê-lo.
+    // O texto cru continua junto — ele é a prova; o rótulo é a interpretação.
+    const foraDaFila = barrados.length > 0
+      ? ` [fora da fila por falha terminal: ${barrados.map(porQueEstaFora).join("; ")}]`
+      : "";
     return {
       ok: false,
-      error: `IA indisponível: ${firstFailure}${tried.length > 1 ? ` (reservas também falharam: ${tried.length - 1})` : ""}${porFixacao}`,
+      error: `IA indisponível: ${motivoLegivel(firstFailure)} — ${firstFailure}${tried.length > 1 ? ` (reservas também falharam: ${tried.length - 1})` : ""}${porFixacao}${foraDaFila}`,
       ...desfechoDaPrimeira,
     };
   }

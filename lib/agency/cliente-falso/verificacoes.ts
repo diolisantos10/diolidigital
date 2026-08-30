@@ -198,6 +198,19 @@ export type EstadoDaEsteira = {
    * o que não tem defeito.
    */
   entregasSemArbitro: number;
+  // ── AS TRÊS PALAVRAS NO PLACAR (25/08/2026) ─────────────────────────────
+  // Farol 27, rodada 5: 0 de 10 peças com árbitro independente e o placar não
+  // mudou uma linha, porque só existia o contador de "ninguém auditou". Peça
+  // julgada pelo PRÓPRIO autor não caía em contador nenhum — passava por
+  // auditada. Três estados, três números, nunca somados.
+  /** Julgadas por OUTRO modelo, que não o autor. A única auditoria de verdade. */
+  entregasComArbitroIndependente: number;
+  /** Julgadas pelo MESMO modelo que escreveu. Não é aprovação independente. */
+  entregasAutojulgadas: number;
+  /** Decididas por uma PESSOA pela tela — nem árbitro, nem auto-julgamento. */
+  entregasDecididasPorPessoa: number;
+  /** Gravadas antes de a casa medir quem julgava. NÃO MEDIDO nunca é verde. */
+  entregasArbitragemNaoMedida: number;
   /** O motivo mais comum de não ter havido árbitro, em uma frase. */
   motivoSemArbitro: string | null;
   /** Quantas vezes a execução foi tentada. Zero = o portão nem deixou começar. */

@@ -19,6 +19,19 @@
 // Lei 2: the rule-based engine remains the authoritative fallback. If this route
 // fails (no key, timeout, bad JSON), the client falls back to it.
 
+import {
+  promessasSoltas, limparPromessaSolta, motivoDaPromessa,
+} from "@/lib/agency/comercial/promessa-que-a-maquina-nao-cumpre";
+import { prisma } from "@/lib/db/client";
+import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { estimativaEntregue, textoDoOrcamento } from "@/lib/agency/esteira/orcamento-do-briefing";
+import { avisoDeAgendamentoManual } from "@/lib/agency/esteira/aviso-de-agendamento-manual";
+import {
+  contextoDaNegociacao, servicoDaProposta, falaQueRespeitaOPiso,
+} from "@/lib/agency/comercial/negociacao-da-proposta";
+import type { ServicoDaCasa } from "@/lib/agency/financeiro/tabela-de-precos";
+import { parceriaVivaDoCliente } from "@/lib/agency/financeiro/parceria-do-parceiro";
+import type { IsencaoVisivel } from "@/lib/agency/comercial/aviso-de-isencao";
 import { NextRequest, NextResponse } from "next/server";
 // O TETO SAIU DA MEMÓRIA DO PROCESSO E FOI PARA O BANCO (raio-x de 05/08/2026).
 // `rateLimited` zerava em todo deploy e não atravessava réplica — numa casa em
@@ -26,12 +39,14 @@ import { NextRequest, NextResponse } from "next/server";
 // de graça, numa rota pública que gasta chave de IA PAGA. `limiteExcedido` conta
 // no volume, é atômico e é fail-closed: contador fora do ar recusa, não libera.
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
-import { primeiraChaveDeRotaPublica, workspaceDaRotaPublica } from "@/lib/ai/chave-publica";
+import { chavesDeRotaPublica, workspaceDaRotaPublica } from "@/lib/ai/chave-publica";
 import { classificarFalhaDeProvedor } from "@/lib/ai/falha-de-provedor";
 import { generate, ordemDePreferenciaDaCasa } from "@/lib/ai/generate";
 import type { AiProvider } from "@/lib/ai/resolve-key";
 import type { TurnoDeHistorico } from "@/lib/agency/intelligence/openai-schemas";
-import { ehPerguntaDeFaixa, formaDoPrecoNaFala, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
+import { ehPerguntaDeFaixa, faixaEscolhidaNaFala, formaDoPrecoNaFala, normalizarFaixa, ofertaParaFaixa } from "@/lib/agency/comercial/negociacao";
+import { parseBudgetAmount } from "@/lib/agency/sdr-agent";
+import { escopoComRetratacao, canaisRetratados, cortesiaDaRetratacao } from "@/lib/agency/comercial/retratacao";
 // ATÉ 16/08/2026 ESTA ROTA NÃO ESCREVIA NADA. Zero chamadas a `prisma.`: o SDR
 // conversava, errava, e o diário do piloto mostrava `mensagens: 0` enquanto a
 // conversa acontecia. O porquê e as travas estão no cabeçalho do módulo.
@@ -55,6 +70,7 @@ import {
 import {
   identificarPergunta, vezesJaPerguntada, segundaFormulacao, oQueDizerNoLugar,
   LIMITE_DE_INSISTENCIA, O_QUE_A_PERGUNTA_DE_IA_COLHE,
+  perguntaJaRespondida, proximaPerguntaEmAberto, falaSobreOClienteEmTerceiraPessoa,
 } from "@/lib/agency/comercial/pergunta-repetida";
 import { acrescentarRespostaSemEncaixe, O_QUE_A_PERGUNTA_COLHE } from "@/lib/agency/comercial/pergunta-sem-encaixe";
 // ── O TETO DE GASTO DA PORTA DA RUA (24/08/2026) ────────────────────────────
@@ -63,6 +79,7 @@ import { acrescentarRespostaSemEncaixe, O_QUE_A_PERGUNTA_COLHE } from "@/lib/age
 // custam o que custam, e o teto de ritmo fica verde a fatura inteira. Ver
 // `lib/ai/teto-de-custo.ts`.
 import { podeGastarNaPortaPublica } from "@/lib/ai/teto-de-custo";
+import { guardarRastroDaConversa } from "@/lib/agency/comercial/conversa-sem-pedido";
 // A MONTAGEM DO PROMPT (SYSTEM_PROMPT + a ficha do cargo, via
 // `sistemaDoSdr()`) saiu daqui e foi para `lib/agency/comercial/
 // prompt-do-sdr.ts` (despacho `esteira`, 16/08 — segunda rodada). Motivo:
@@ -73,6 +90,8 @@ import { podeGastarNaPortaPublica } from "@/lib/ai/teto-de-custo";
 // teste não pode morar num arquivo com essa restrição. Ver o cabeçalho do
 // módulo novo para o raciocínio completo.
 import { sistemaDoSdr } from "@/lib/agency/comercial/prompt-do-sdr";
+import { blocoDoParceiro } from "@/lib/agency/comercial/prompt-do-sdr";
+import { resolverConviteDeParceria } from "@/lib/agency/comercial/convite-de-parceria";
 // "malformado" sozinho é um nome, não um achado — ver o cabeçalho do módulo.
 // Ele devolve FORMA (houve `{`? sobrou texto fora? onde o parser desistiu?),
 // nunca uma letra do que o modelo escreveu.
@@ -122,6 +141,24 @@ interface ChatRequest {
   sessionId?: unknown;
   /** O briefing, quando já existe. Conferido antes de virar vínculo. */
   clientRequestId?: unknown;
+  /**
+   * `"negociacao"` = a conversa está na PÁGINA DO ORÇAMENTO, e o assunto é a
+   * decisão, não o levantamento. Ausente = a sala de briefing de sempre.
+   */
+  contexto?: unknown;
+  /**
+   * O token da proposta. ⚠️ É dele que sai QUEM é o cliente e QUANTO foi
+   * orçado — nunca do corpo. Derivação, nunca comparação: um `clientRequestId`
+   * informado seria um id que qualquer pessoa digita.
+   */
+  propostaToken?: unknown;
+  /**
+   * O CONVITE DO PARCEIRO. ⚠️ É um token que a CASA cunhou — o servidor resolve
+   * quem é o cliente A PARTIR dele e confere a isenção viva. Nada aqui é
+   * acreditado: um convite desconhecido, vencido ou revogado vale exatamente o
+   * mesmo que nenhum, e o visitante segue anônimo.
+   */
+  convite?: unknown;
 }
 
 /**
@@ -131,6 +168,48 @@ interface ChatRequest {
  * banco não pode transformar uma resposta pronta em tela de erro para o
  * prospect. Falhou? Fica no log do servidor e a conversa segue.
  */
+/**
+ * GUARDA O ESCOPO DO TURNO — a régua de 27/08/2026: *nenhuma conversa de
+ * cliente pode terminar sem deixar rastro recuperável.*
+ *
+ * Chamada nos DOIS caminhos que a conversa pode tomar sem chegar ao modelo
+ * (`not_configured` e `teto_de_custo`) e no caminho normal. É de propósito que
+ * ela não fique só no caminho feliz: a conversa continua pelo motor de regras
+ * nos três, e o que a pessoa contou vale o mesmo nos três.
+ *
+ * `workspaceId` opcional porque o caminho `not_configured` corta antes de o dono
+ * estar resolvido — aí ela resolve sozinha. Nunca lança; ver o módulo.
+ */
+async function guardarRastroDoTurno(
+  body: ChatRequest,
+  workspaceId?: string | null,
+  /**
+   * O cliente DERIVADO do convite pelo servidor — `resolverConviteDeParceria`,
+   * nunca o corpo. É o único elo honesto entre um fio de sessão pública e um
+   * cliente de verdade, e é o que autoriza a promoção automática da conversa
+   * parada (`promover-conversas-paradas.ts`) a existir sem adivinhar de quem é
+   * a conversa. Ausente → `null` → a promoção NÃO age.
+   */
+  clienteDoConvite?: string | null,
+): Promise<void> {
+  const escopo = body.scope as Record<string, unknown> | undefined;
+  await guardarRastroDaConversa({
+    sessionId: body.sessionId,
+    workspaceId: workspaceId !== undefined ? workspaceId : await workspaceDaRotaPublica(),
+    escopo,
+    // O contato sai do PRÓPRIO escopo, que é onde a sala já acumula o que a
+    // pessoa declarou (na porta ou na conversa). Não se deduz de arroba de
+    // Instagram nem de nome de negócio — a inferência que esta casa proíbe.
+    contato: {
+      nome:     escopo?.prospectName,
+      email:    escopo?.prospectEmail,
+      whatsapp: escopo?.prospectPhone,
+    },
+    turnos: Array.isArray(body.messages) ? body.messages.length + 1 : 1,
+    clienteDoConvite: clienteDoConvite ?? null,
+  });
+}
+
 async function registrar(turno: TurnoDoSdr): Promise<void> {
   try {
     await registrarTurnoDoSdr(turno);
@@ -290,7 +369,17 @@ export function repararJsonTruncado(text: string): Record<string, unknown> | nul
 // enquanto a outra muda — por isso a extração, não por estética.
 //
 // Guarda que existe em um caminho e não no outro é guarda que não existe.
-function aplicarTravasDeEscopo(bruto: Record<string, unknown>): Record<string, unknown> {
+function aplicarTravasDeEscopo(
+  bruto: Record<string, unknown>,
+  /** O que o cliente acabou de dizer. Entra por PARÂMETRO, nunca como campo do
+   *  escopo: ele serve às travas e não pode virar dado gravado por engano.
+   *  Hoje só a trava da faixa o usa — ver `faixaDoTexto`. */
+  falaDoCliente?: string,
+  /** A faixa que a conversa JÁ tinha estabelecida, vinda do escopo acumulado do
+   *  cliente. Entra por PARÂMETRO pelo mesmo motivo de `falaDoCliente`: serve à
+   *  trava e não pode virar dado gravado por engano. Ver o bloco da faixa. */
+  faixaJaEstabelecida?: unknown,
+): Record<string, unknown> {
   const scopePatch = { ...bruto };
 
   // E-mail comes from Google login; the negotiation itself happens after login
@@ -299,6 +388,35 @@ function aplicarTravasDeEscopo(bruto: Record<string, unknown>): Record<string, u
   // they want to be reached: e-mail or WhatsApp).
   delete scopePatch.prospectEmail;
   delete scopePatch.negotiation;
+
+  // ── PLACEHOLDER NÃO É NOME (cliente oculto, 6ª rodada) ────────────────────
+  //
+  // MEDIDO EM PRODUÇÃO. O modelo devolveu `prospectName: "<UNKNOWN>"` — o jeito
+  // dele de dizer *"não sei"* —, a casa gravou isso como o nome da pessoa, e a
+  // consultora passou a chamar o cliente assim **na cara dele**:
+  //
+  //     "Entendi, <UNKNOWN> — e tudo bem."
+  //
+  // Nove turnos seguidos. `primeiroNome` (`pergunta-repetida.ts`) só perguntava
+  // se o campo tinha texto; texto ele tinha.
+  //
+  // É o guardrail 1 na forma mais literal que ele já apareceu nesta casa:
+  // **ausência de informação não é informação.** O modelo declarou ausência e a
+  // casa a promoveu a fato. Fail-closed: o campo some, e o resto do sistema
+  // trata o nome como desconhecido — que é a verdade, e que ele já sabe fazer
+  // (a saudação sem nome existe e é a original).
+  //
+  // Vale para os DOIS campos de identidade: um `<UNKNOWN>` em `businessName`
+  // viraria o nome do negócio na fila do CEO, na proposta e na peça.
+  const EH_PLACEHOLDER =
+    /^\s*(?:<[^>]*>|\[[^\]]*\]|\{[^}]*\}|n\/?a|null|none|undefined|unknown|desconhecid[oa]|n[ãa]o\s+(?:informad[oa]|sabe|dispon[íi]vel)|sem\s+nome|[-–—]{1,}|\?+|\.{2,})\s*$/i;
+  for (const campo of ["prospectName", "businessName"] as const) {
+    const v = scopePatch[campo];
+    if (typeof v === "string" && EH_PLACEHOLDER.test(v)) {
+      console.warn(`[sdr/chat] ${campo}="${v}" é placeholder, não nome — descartado`);
+      delete scopePatch[campo];
+    }
+  }
 
   // NOME DA PESSOA NÃO É NOME DO NEGÓCIO — e aqui a regra é trava, não aviso.
   // 16/08/2026: o cliente confirmou "City Jobs" por voz, anexou o brand book
@@ -327,11 +445,109 @@ function aplicarTravasDeEscopo(bruto: Record<string, unknown>): Record<string, u
   // Guarda o RÓTULO, não o id: o painel público do briefing renderiza este
   // campo direto na tela ("Orçamento: ..."), e id interno não é linguagem de
   // cliente.
-  const faixaNormalizada = normalizarFaixa(scopePatch.budgetRange);
-  if (faixaNormalizada) scopePatch.budgetRange = faixaNormalizada;
-  else delete scopePatch.budgetRange;
+  // ── E A FAIXA CERTA VEM DO NÚMERO, NÃO DO RÓTULO QUE O MODELO ESCOLHEU ───
+  //
+  // MEDIDO EM PRODUÇÃO (cliente oculto, 6ª rodada, DEPOIS do deploy desta
+  // mesma rodada): o cliente disse *"Tá caro. Meu teto é R$ 900 por mês."* e o
+  // escopo saiu com **"entre R$ 150 e R$ 500"** — metade do teto que ele
+  // declarou, com todas as letras, na frase anterior.
+  //
+  // A allowlist estava funcionando: "entre R$ 150 e R$ 500" É um rótulo válido.
+  // Ela responde "este rótulo existe?", e a pergunta que importa é outra —
+  // "este rótulo é o do número que ele disse?". **Allowlist não é correção.**
+  //
+  // O estrago é de preço: `tetoDaFaixa` devolve 500 para essa faixa, o
+  // confronto de verba passa a comparar a proposta contra um teto que o cliente
+  // nunca deu, e a casa ou vende abaixo do que ele podia pagar ou barra uma
+  // proposta legítima. É a mesma família do CityJobs, com o sinal trocado.
+  //
+  // A regra: **quando o cliente disse um número, o número manda.** `faixaDoTexto`
+  // usa os DOIS leitores que a casa já tem — `parseBudgetAmount` para achar o
+  // valor na fala e `ofertaParaFaixa` para escolher o degrau — e nenhum
+  // terceiro. O rótulo do modelo só vale quando não há número de onde derivar.
+  // ── E A TRAVA TEM DE SOBREVIVER AO TURNO SEGUINTE (27/08/2026) ───────────
+  //
+  // MEDIDO EM PRODUÇÃO, na travessia paga desta rodada, com o modelo de
+  // verdade. O cliente disse *"Meu orçamento é uns R$ 790 por mês."* e o turno
+  // saiu CERTO: `faixaDoTexto` leu 790 e gravou "entre R$ 500 e R$ 1.500". Dois
+  // turnos depois — falando de CONTATO e de FOTOS, sem um número à vista — o
+  // modelo reemitiu `budgetRange: "entre R$ 150 e R$ 500"`, `faixaDoTexto`
+  // devolveu `null` (não havia número naquela fala, e está certo), o rótulo do
+  // modelo passou pela allowlist e **reescreveu a verba do cliente para baixo.**
+  // O escopo final da conversa saiu com teto de R$ 500 para quem declarou 790.
+  //
+  // O estrago é o MESMO da 6ª volta, que este bloco existe para fechar, só que
+  // deslocado no tempo: `tetoDaFaixa` devolve 500, o confronto de verba compara
+  // a proposta contra um teto que o cliente nunca deu, e a casa esconde dele o
+  // Conteúdo (R$ 790) — que é exatamente o plano do número que ele disse — para
+  // oferecer os dois degraus de baixo. E não há alarme: `divergenciaDeVerba` só
+  // acorda em uma ordem de grandeza (fator 10), e 790/500 é 1,6.
+  //
+  // A regra da 6ª volta ("quando o cliente disse um número, o número manda")
+  // estava certa e continua inteira — faltava dizer POR QUANTO TEMPO ela manda.
+  // Resposta: até o cliente dizer outro número ou escolher outro degrau do
+  // cardápio. O rótulo do modelo volta a valer só para PREENCHER faixa que
+  // ainda não existe, nunca para TROCAR a que veio da boca do cliente.
+  //
+  // Fail-closed no sentido do cliente: na dúvida entre o que ELE disse e o que
+  // o modelo lembrou, vale o dele.
+  const daFala = faixaDoTexto(falaDoCliente);
+  const jaEstabelecida = normalizarFaixa(faixaJaEstabelecida);
+  const doModelo = normalizarFaixa(scopePatch.budgetRange);
+  const faixaNormalizada =
+    daFala ??
+    // Sem número nesta fala: a faixa já estabelecida manda, e o rótulo do
+    // modelo só entra quando não há nenhuma.
+    (jaEstabelecida ?? doModelo);
+  if (faixaNormalizada) {
+    if (!daFala && jaEstabelecida && doModelo && doModelo !== jaEstabelecida) {
+      console.warn(
+        `[sdr/chat] o modelo tentou trocar a faixa de "${jaEstabelecida}" para "${doModelo}" ` +
+          `numa fala sem número — mantida a do cliente`,
+      );
+    }
+    scopePatch.budgetRange = faixaNormalizada;
+  } else {
+    delete scopePatch.budgetRange;
+  }
 
   return scopePatch;
+}
+
+/**
+ * A FAIXA DERIVADA DO QUE O CLIENTE DISSE — ou `null` quando ele não disse
+ * número nenhum.
+ *
+ * Dois leitores da casa, em sequência, e nenhum terceiro: `parseBudgetAmount`
+ * acha o valor na fala (é o mesmo que o motor de regras usa) e `ofertaParaFaixa`
+ * escolhe o degrau (é o mesmo que a negociação usa). Uma régua nova aqui seria
+ * a segunda gramática que envelhece sozinha.
+ *
+ * `null` é honesto e é o caso comum: a maioria das falas não traz valor, e aí
+ * quem responde é o rótulo do modelo, como sempre foi.
+ */
+function faixaDoTexto(fala: unknown): string | null {
+  if (typeof fala !== "string" || !fala.trim()) return null;
+  // ── A ESCOLHA DO CARDÁPIO VEM ANTES DO NÚMERO (medido, 26/08/2026) ───────
+  //
+  // O SDR ofereceu a régua inteira e o cliente respondeu "Entre R$ 500 e
+  // R$ 1.500". O escopo saiu com "entre R$ 150 e R$ 500" — o degrau de baixo —
+  // e o SDR ainda respondeu "Anotei sua faixa de investimento". A casa
+  // confirmou ter registrado o que ele disse e registrou outra coisa, num
+  // campo de DINHEIRO.
+  //
+  // A causa é a regra certa da 6ª volta aplicada ao caso errado: ele não disse
+  // um VALOR, repetiu um RÓTULO. `parseBudgetAmount` pegou o primeiro número
+  // (500) e `ofertaParaFaixa(500)` escolheu o degrau de baixo pela própria
+  // régua (500 é teto de um degrau e piso do seguinte). Ver
+  // `faixaEscolhidaNaFala` — escolher do cardápio é a evidência mais forte que
+  // existe, e o número segue mandando em todo o resto.
+  const escolhida = faixaEscolhidaNaFala(fala);
+  if (escolhida) return escolhida;
+  const valor = parseBudgetAmount(fala);
+  if (valor === undefined || !Number.isFinite(valor) || valor <= 0) return null;
+  const oferta = ofertaParaFaixa(valor);
+  return normalizarFaixa(oferta.rotulo);
 }
 
 // RECONCILIAÇÃO DE 16/08: a outra sessão resolvia esta mesma pergunta — "o
@@ -376,6 +592,12 @@ async function segundaChanceSemPreco(args: {
   historico: TurnoDeHistorico[];
   contaDoWorkspace: string | null;
   guardaBarra: (fala: string) => boolean;
+  /** A fala do cliente deste turno — as travas de escopo precisam dela
+   *  (a faixa de verba é derivada do número que ele disse). */
+  falaDoCliente?: string;
+  /** Ver `aplicarTravasDeEscopo`: a segunda chance passa pelas MESMAS travas,
+   *  e uma trava que existe num caminho e não no outro é trava que não existe. */
+  faixaJaEstabelecida?: unknown;
 }): Promise<{ reply: string; scope: Record<string, unknown> } | null> {
   const r = await generate({
     system: args.system,
@@ -412,8 +634,14 @@ async function segundaChanceSemPreco(args: {
   const bruto = pacote.scope && typeof pacote.scope === "object" && !Array.isArray(pacote.scope)
     ? (pacote.scope as Record<string, unknown>)
     : {};
-  return { reply: fala, scope: aplicarTravasDeEscopo(bruto) };
+  return { reply: fala, scope: aplicarTravasDeEscopo(bruto, args.falaDoCliente, args.faixaJaEstabelecida) };
 }
+
+/** O que a casa diz quando a fala do modelo, tirada a promessa, ficou vazia.
+ *  Verdade + próxima ação, que é o que faltava na tela do cliente 001. */
+const O_QUE_DIZER_NO_LUGAR_AO_CLIENTE =
+  "Seu escopo está pronto. Confira o resumo do seu pedido aqui na tela e confirme " +
+  "para a casa calcular o seu orçamento.";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const barrado = await limiteExcedido(req, "sdr-chat", 30, 60_000);
@@ -427,12 +655,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // servidor — e agora o PROVEDOR também. Anda na ordem de preferência da casa
   // (a mesma dos outros 29 caminhos de IA) resolvendo cada um pela regra desta
   // rota, nunca pelo `findFirst` global. Ver `lib/ai/chave-publica.ts`.
-  const escolha = await primeiraChaveDeRotaPublica(ordemDePreferenciaDaCasa());
-  if (!escolha) {
-    return NextResponse.json({ ok: false, reason: "not_configured" });
-  }
-  const resolved = escolha.chave;
-
+  //
+  // ⚠️ A LISTA INTEIRA, não só o primeiro (medido 26/08/2026, 07:24:54Z). O
+  // primeiro turno desta jornada devolveu `sem_saldo_no_provedor`: a conta da
+  // Anthropic zerou, a da OpenAI já estava zerada — e havia Gemini com chave
+  // funcionando na mesma base. A porta da rua da agência ficou fechada para
+  // toda a internet com um provedor bom parado ao lado, porque **ter chave não
+  // é ter saldo** e esta rota escolhia por chave e não olhava mais. Ver
+  // `chavesDeRotaPublica` e o laço logo abaixo.
+  // ⚠️ O CORPO É LIDO ANTES DA CONFERÊNCIA DE PROVEDOR, e a ordem é o conserto
+  // (27/08/2026). Até aqui `not_configured` devolvia ANTES de `req.json()` — e
+  // como o cliente cai no motor de regras e SEGUE conversando, uma casa com os
+  // provedores zerados atendia a conversa inteira sem nunca ler o escopo que
+  // vinha no corpo. Nenhum turno deixava rastro exatamente na noite em que a
+  // conta zera, que é a noite em que menos se pode perder um lead. Ler o corpo
+  // é uma operação pura: não gasta, não escreve, não chama ninguém.
   let body: ChatRequest;
   try {
     body = (await req.json()) as ChatRequest;
@@ -443,6 +680,96 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!Array.isArray(body.messages) || typeof body.currentMessage !== "string") {
     return NextResponse.json({ ok: false, reason: "bad_request" }, { status: 400 });
   }
+
+  const provedores = await chavesDeRotaPublica(ordemDePreferenciaDaCasa());
+  if (provedores.length === 0) {
+    // A conversa não morre aqui — o motor de regras assume no navegador. Por
+    // isso o rastro é guardado ANTES de sair: sem esta linha, uma casa sem
+    // provedor perde todo escopo de toda conversa, em silêncio.
+    await guardarRastroDoTurno(body);
+    return NextResponse.json({ ok: false, reason: "not_configured" });
+  }
+  let escolha = provedores[0]!;
+  let resolved = escolha.chave;
+
+  // ═══ O SDR NA PÁGINA DO ORÇAMENTO (27/08/2026) ══════════════════════════
+  //
+  // Ordem do CEO: *"a página onde vai estar o orçamento tem que ter o agente de
+  // SDR pronto para negociar valores e não deixar o cliente desistir."*
+  //
+  // É o MESMO SDR, o mesmo funil e os mesmos guardas — só o assunto muda. Um
+  // segundo SDR seria a segunda cópia da voz da casa, e verdade escrita em dois
+  // lugares já está errada em um deles.
+  //
+  // ⚠️ TUDO VEM DO TOKEN. Quem é o cliente, o que foi orçado e por quanto saem
+  // de `validatePortalAccess` — nada disso é aceito do corpo, porque corpo é o
+  // que qualquer pessoa digita. É a mesma gramática da rota da proposta.
+  //
+  // Falha ao derivar NÃO vira negociação sem contexto: vira a sala de briefing
+  // de sempre, e a fala continua passando pelo piso lá embaixo com
+  // `servicoDaNegociacao = null`, que recusa qualquer valor. Fail-closed.
+  let servicoDaNegociacao: ServicoDaCasa | null = null;
+  let blocoDaNegociacao = "";
+  if (body.contexto === "negociacao" && typeof body.propostaToken === "string" && body.propostaToken.trim()) {
+    try {
+      const acesso = await validatePortalAccess(body.propostaToken.trim());
+      if (acesso.valid && acesso.record) {
+        const doToken = acesso.record.clientRequestId ?? null;
+        const doCliente = acesso.record.clientId ?? null;
+        const pedido = doToken
+          ? await prisma.clientRequestDb.findUnique({ where: { id: doToken } })
+          : doCliente
+            ? await prisma.clientRequestDb.findFirst({ where: { clientId: doCliente }, orderBy: { createdAt: "desc" } })
+            : null;
+        const e = pedido ? estimativaEntregue(pedido.briefingJson) : null;
+        if (pedido && e) {
+          servicoDaNegociacao = servicoDaProposta(e.totalMin, e.totalMax);
+          const aviso = await avisoDeAgendamentoManual();
+          // ── O SDR NÃO NEGOCIA PREÇO COM QUEM NÃO PAGA (27/08/2026) ───────
+          //
+          // A parceria vem da MESMA fonte que o portão de pagamento consulta, e
+          // do `clientId` que ESTE servidor acabou de derivar do token — nunca
+          // do corpo, nunca do que o visitante escreveu. Vencida, revogada ou
+          // banco fora do ar → `null` → o SDR de sempre, com piso e degraus.
+          const p = await parceriaVivaDoCliente(pedido.clientId).catch(() => null);
+          const isento: IsencaoVisivel | null = p
+            ? { autorizadaPor: p.autorizadaPor, validaAte: p.validaAte.toISOString(), escopo: p.escopo }
+            : null;
+          blocoDaNegociacao = contextoDaNegociacao({
+            negocio: pedido.businessName ?? "",
+            servico: servicoDaNegociacao,
+            textoDaProposta: textoDoOrcamento(pedido.businessName ?? "", e, null, aviso, isento),
+            avisoDeAgendamento: aviso,
+            isento,
+          });
+        }
+      }
+    } catch (err) {
+      // Contexto é melhoria, não condição: uma leitura que falha não pode
+      // derrubar a conversa do cliente. Ele segue sem o bloco — e o piso
+      // continua barrando valor, porque `servicoDaNegociacao` fica `null`.
+      console.warn(`[sdr/chat] contexto da negociação não carregou: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  // ── O CONVITE DO PARCEIRO, RESOLVIDO PELO SERVIDOR (27/08/2026) ───────────
+  //
+  // MEDIDO ÀS 13:43: o interlocutor do primeiro cliente real disse o que
+  // precisava e o SDR respondeu perguntando quanto ele pretende investir por
+  // mês. A conversa parou ali e nenhum pedido nasceu. Ele entra por PARCERIA e
+  // não paga nada — a pergunta que travou o pedido dele é a única que a
+  // parceria torna irrelevante.
+  //
+  // ⚠️ A parceria NÃO se adivinha, e a fonte NÃO é o corpo: `resolver` recebe o
+  // token e devolve o cliente e a isenção VIVA. Convite ausente, desconhecido,
+  // vencido ou revogado → `null` → visitante anônimo, e a verba continua sendo
+  // perguntada. É o comportamento seguro e é o de sempre.
+  const conviteDoParceiro = await resolverConviteDeParceria(body.convite);
+
+  const sistemaDaVez = [
+    sistemaDoSdr(),
+    blocoDaNegociacao || null,
+    conviteDoParceiro ? blocoDoParceiro(conviteDoParceiro.parceria.autorizadaPor) : null,
+  ].filter(Boolean).join("\n\n");
 
   // ─── FREIO POR `sessionId` — parecer do `seguranca`, 16/08/2026 ────────────
   //
@@ -566,6 +893,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // O visitante recebe `ok:false` e o motor de regras assume, exatamente como
   // no `not_configured` acima: a conversa continua, a chave paga é que para.
   const workspaceDaConta = await workspaceDaRotaPublica();
+
+  // ── O RASTRO DA CONVERSA QUE PODE NÃO VIRAR PEDIDO (27/08/2026) ───────
+  //
+  // Até aqui o escopo acumulado chegava neste corpo a cada turno e era jogado
+  // fora: o ÚNICO caminho que gravava um `ClientRequestDb` era o botão de
+  // enviar, travado por `canSubmitProposal` (nome + negócio + serviço + zero
+  // perguntas obrigatórias em aberto). Conversa que morria antes disso — como a
+  // do cliente 001 às 01:34 de 27/08, medida como ausente em produção — não
+  // deixava linha nenhuma. O motivo completo está no cabeçalho do módulo.
+  //
+  // Fica ANTES do teto de gasto de propósito: quando o teto barra, a conversa
+  // continua pelo motor de regras, e o que a pessoa já contou vale exatamente o
+  // mesmo. Guardar o rastro é escrita em banco, não chamada paga — o teto de
+  // gasto não tem nada a dizer sobre ele.
+  //
+  // Nunca lança e nunca bloqueia: `guardarRastroDaConversa` devolve `false` e
+  // segue. Rastro é nosso; a conversa é do cliente.
+  // O terceiro argumento é o que fecha a fechadura da décima trava: sem ele o
+  // rastro sabe O QUE foi dito e não sabe POR QUEM, e a promoção automática não
+  // teria como reconhecer o parceiro sem adivinhar. Sai de `conviteDoParceiro`,
+  // que o SERVIDOR resolveu por token algumas linhas acima.
+  await guardarRastroDoTurno(body, workspaceDaConta, conviteDoParceiro?.clientId ?? null);
+
   const veredicto = await podeGastarNaPortaPublica(workspaceDaConta);
   if (!veredicto.pode) {
     await registrar({ ...fio, doVisitante: body.currentMessage, motivoDaRecusa: `teto_de_custo:${veredicto.motivo}` });
@@ -588,8 +938,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // workspace — o `findFirst` global que `lib/ai/chave-publica.ts` existe para
     // fechar. Aqui quem resolve continua sendo a regra da rota pública, provedor
     // por provedor, e a camada recebe a decisão já tomada.
-    const r = await generate({
-      system: sistemaDoSdr(),
+    // ── O LAÇO QUE CAI PARA O PRÓXIMO PROVEDOR ────────────────────────────
+    //
+    // A condição é a MESMA da casa, e isso é uma correção de rota minha,
+    // declarada. Meu primeiro conserto (26/08, 07:47Z) só andava em `sem_saldo`
+    // e `sem_chave`, com o argumento de que `429` "passa sozinho" e trocar de
+    // provedor nele multiplicaria gasto. Medido em produção no turno seguinte:
+    // claude devolveu `sem_saldo` (andou, certo) e a OpenAI devolveu
+    // **HTTP 429** — que naquela conta é a conta zerada vestida de teto de
+    // ritmo. A porta continuou fechada, com Gemini funcionando ao lado. Errei o
+    // diagnóstico: a régua estava mais dura que a doutrina da própria casa.
+    //
+    // `lib/ai/generate.ts` — os outros 29 caminhos — cai para o próximo
+    // provedor em QUALQUER falha, e o argumento de custo não se sustenta aqui:
+    // só se anda sobre um turno que JÁ ESTÁ PERDIDO. O visitante receberia
+    // `ok:false` e nada mais. Gastar uma chamada num provedor que funciona é
+    // estritamente melhor que devolver silêncio com um provedor bom parado.
+    //
+    // `!r.textoCru` é a trava que impede o desperdício de verdade: resposta que
+    // veio (mesmo truncada ou malformada) NÃO faz andar — ela tem escopo a
+    // resgatar, e as quatro conquistas desta rota vivem disso.
+    let r = await chamarOSdr(escolha);
+    for (let i = 1; i < provedores.length && !r.ok && !r.textoCru; i++) {
+      console.warn(`[sdr/chat] ${escolha.provider} falhou (${classificarFalhaDeProvedor(r.error) ?? "não classificada"}: ${r.error}) — tentando ${provedores[i]!.provider}`);
+      escolha = provedores[i]!;
+      resolved = escolha.chave;
+      r = await chamarOSdr(escolha);
+    }
+
+    async function chamarOSdr(quem: { provider: AiProvider; chave: { apiKey: string; model?: string | null } }) {
+      return generate({
+      system: sistemaDaVez,
       user,
       historico,
       maxTokens: MAX_TOKENS,
@@ -610,8 +989,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // `contaDoWorkspace` em `lib/ai/generate.ts`). Sem esta linha, todo turno
       // desta rota saía no log como "fora da conta" e não havia teto possível.
       contaDoWorkspace: workspaceDaConta,
-      chaveJaResolvida: { provider: escolha.provider, apiKey: resolved.apiKey, model: resolved.model },
-    });
+      chaveJaResolvida: { provider: quem.provider, apiKey: quem.chave.apiKey, model: quem.chave.model ?? null },
+      });
+    }
 
     // ── AS QUATRO CONQUISTAS DESTA ROTA, PRESERVADAS ────────────────────────
     // `motivoDeParada` e `textoCru` são os dois campos que a camada passou a
@@ -682,7 +1062,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       parsed.scope && typeof parsed.scope === "object" && !Array.isArray(parsed.scope)
         ? (parsed.scope as Record<string, unknown>)
         : {};
-    const scopePatch = aplicarTravasDeEscopo(scopePatchBruto);
+    const scopePatch = aplicarTravasDeEscopo(
+      scopePatchBruto,
+      body.currentMessage,
+      (body.scope as Record<string, unknown> | undefined)?.budgetRange,
+    );
     const temScopeUtil = Object.keys(scopePatch).length > 0;
 
     // `temScopeUtil` sozinho não basta para os guardas abaixo: ele confunde
@@ -817,11 +1201,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       const segunda = await segundaChanceSemPreco({
         escolha: { provider: escolha.provider, chave: { apiKey: resolved.apiKey, model: resolved.model } },
-        system: sistemaDoSdr(),
+        system: sistemaDaVez,
         user,
         historico,
         contaDoWorkspace: workspaceDaConta,
         guardaBarra: vazaPreco,
+        falaDoCliente: body.currentMessage,
+        faixaJaEstabelecida: (body.scope as Record<string, unknown> | undefined)?.budgetRange,
       });
 
       if (segunda) {
@@ -887,7 +1273,74 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // silêncio, que é pior que a repetição: o cliente fica olhando uma tela
     // muda.
     const perguntaDaVez = identificarPergunta(replyText);
+
+    // ── A PERGUNTA QUE O ESCOPO DESTE MESMO TURNO JÁ RESPONDEU (8ª volta) ────
+    //
+    // MEDIDO EM PRODUÇÃO: o SDR reperguntou o que o cliente ACABARA de
+    // responder. O contador logo abaixo não pega este caso — ele conta
+    // REPETIÇÕES e só freia na segunda. Aqui a pergunta saiu uma vez, e uma vez
+    // já era demais: `reply` e `scope` vêm do MESMO pacote do modelo, então ele
+    // grava o dado e pergunta o dado no mesmo fôlego.
+    //
+    // A régua olha o escopo ACUMULADO (o que o cliente já tinha dito + o que ele
+    // acabou de dizer), que é o mesmo lugar onde a fila lê "isto foi
+    // respondido?". Nenhuma segunda gramática: `perguntaJaRespondida` usa a
+    // FILA que já existe.
+    //
+    // E a proibição vem com a instrução gêmea: no lugar da pergunta respondida
+    // sai a PRÓXIMA em aberto. Calar deixaria o cliente olhando uma tela muda.
+    //
+    // ── E FALA-SE COM O CLIENTE, NÃO SOBRE ELE ──────────────────────────────
+    // Medido na mesma volta: *"você consegue me dizer se ELE já tem fotos?"*. O
+    // conserto é a redação canônica da fila, que é escrita na segunda pessoa —
+    // a mesma substituição, por um motivo diferente.
+    const escopoAcumulado = { ...(body.scope ?? {}), ...scopeDaVez };
+    let jaSubstituida = false;
     if (perguntaDaVez) {
+      const jaRespondida = perguntaJaRespondida(perguntaDaVez, escopoAcumulado);
+      const emTerceiraPessoa = falaSobreOClienteEmTerceiraPessoa(replyText);
+      if (jaRespondida || emTerceiraPessoa) {
+        const proxima = proximaPerguntaEmAberto(escopoAcumulado, jaRespondida ? [perguntaDaVez] : []);
+        if (proxima) {
+          replyText = proxima;
+          jaSubstituida = true;
+          console.warn(
+            `[sdr/chat] pergunta "${perguntaDaVez}" ${jaRespondida ? "JÁ RESPONDIDA no escopo" : "falava do cliente em 3ª pessoa"} — substituída pela próxima em aberto`,
+          );
+        } else if (jaRespondida) {
+          // Sondagem fechada e nada em aberto: a pergunta respondida vira o
+          // fecho, nunca a mesma pergunta de novo.
+          replyText =
+            "Já tenho o essencial do seu pedido — está tudo no resumo, ao lado. " +
+            "Se estiver certo, é só confirmar que eu preparo o seu orçamento.";
+          jaSubstituida = true;
+          console.warn(`[sdr/chat] pergunta "${perguntaDaVez}" JÁ RESPONDIDA e nada em aberto — fecho`);
+        }
+        // Terceira pessoa sem nada em aberto: a fala do modelo passa. Substituir
+        // por um fecho tiraria do cliente a última pergunta da sondagem por uma
+        // questão de redação — o remédio seria pior que a doença.
+      }
+    }
+
+    // ── E O CONTADOR NÃO AGE SOBRE UMA FALA QUE JÁ NÃO É A DO MODELO ────────
+    //
+    // ⚠️ DEFEITO MEU, MEDIDO NA 9ª VOLTA, no ar, uma hora depois de eu escrever
+    // o bloco acima. O cliente respondeu *"Já temos fotos boas do café e dos
+    // doces"* e a casa devolveu:
+    //
+    //     "Entendi, Rafael — e tudo bem. Anotei isso do seu jeito e vou seguir
+    //      sem esse dado por enquanto; a equipe confirma com você depois."
+    //
+    // Sobre um dado que ela ACABARA de receber — `social.hasPhotos` estava no
+    // patch DAQUELE MESMO turno. É o "remédio virou a doença" da 6ª volta
+    // voltando por uma porta que eu abri: `perguntaDaVez` é calculada da fala
+    // ORIGINAL do modelo, e o contador abaixo continuava agindo sobre ela mesmo
+    // depois de o bloco de cima já ter trocado a fala inteira.
+    //
+    // Substituída a fala, o contador não tem mais o que contar: a pergunta que
+    // ele mediria não vai mais sair. Contar uma fala que não foi dita é a mesma
+    // família de erro que este arquivo passa o tempo todo fechando.
+    if (perguntaDaVez && !jaSubstituida) {
       const doCorpo = body.messages
         .filter((m) => m.role === "assistant" && typeof m.text === "string")
         .map((m) => m.text);
@@ -913,7 +1366,56 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         );
         const jaPerguntadas = [...new Set([...doCorpo, ...doBanco].map(identificarPergunta).filter((x): x is string => x !== null))];
         const escopoParaAFila = { ...(body.scope ?? {}), ...scopeDaVez };
-        replyText = oQueDizerNoLugar(perguntaDaVez, escopoParaAFila, jaPerguntadas);
+        const ASSINATURA_DO_FECHO = "Anotei isso do seu jeito e vou seguir sem esse dado";
+        const jaDisseOFecho = [...doCorpo, ...doBanco].some((f) => f.includes(ASSINATURA_DO_FECHO));
+        // A partir da SEGUNDA vez o fecho ecoa as palavras do cliente — assim
+        // ele nunca é a mesma frase duas vezes, e nunca mais diz "sigo sem
+        // esse dado" para quem está falando. Ver `oQueDizerNoLugar`.
+        const noLugar = oQueDizerNoLugar(
+          perguntaDaVez, escopoParaAFila, jaPerguntadas,
+          jaDisseOFecho ? body.currentMessage : undefined,
+        );
+
+        // ═══════════════════════════════════════════════════════════════════
+        // ⛔ O REMÉDIO VIROU A DOENÇA (cliente oculto, 6ª rodada)
+        // ═══════════════════════════════════════════════════════════════════
+        //
+        // ⚠️ E o conserto NÃO é deixar de substituir. A primeira tentativa foi
+        // exatamente essa — deixar a fala do modelo passar quando o fecho já
+        // tivesse saído — e ela derrubou a trava irmã na hora
+        // (`laco-do-sdr-de-ia.test.ts`): sem a substituição, a MESMA PERGUNTA
+        // chegava ao cliente três vezes. As duas regras estão certas.
+        // Quem muda é o FECHO, que passa a ecoar o cliente.
+        //
+        // MEDIDO EM PRODUÇÃO: esta substituição — a máquina que existe para
+        // acabar com a frase repetida — saiu **NOVE TURNOS SEGUIDOS, palavra
+        // por palavra**:
+        //
+        //   "Entendi, <UNKNOWN> — e tudo bem. Anotei isso do seu jeito e vou
+        //    seguir sem esse dado por enquanto; a equipe confirma com você
+        //    depois. Já tenho o essencial aqui. […]"
+        //
+        // E saiu nos turnos em que o cliente ESTAVA RESPONDENDO: o e-mail dele,
+        // o horário de funcionamento, a área atendida. A casa disse nove vezes
+        // "vou seguir sem esse dado" sobre dados que acabara de receber. Para
+        // quem está do outro lado, isso é pior que a pergunta repetida — a
+        // pergunta ao menos admite que quer algo; isto afirma que desistiu.
+        //
+        // A causa: quando a sondagem já fechou, `proximaEmAberto` devolve
+        // `null` e `oQueDizerNoLugar` cai sempre no MESMO fecho. O guarda
+        // dispara de novo a cada turno em que o modelo repete a pergunta, e
+        // reemite o mesmo fecho para sempre.
+        //
+        // A regra que faltava é a que o próprio módulo já pregava, aplicada a
+        // ele mesmo: **a mesma frase não sai duas vezes.** Se este fecho já foi
+        // dito neste fio, a substituição não acontece — a fala do MODELO passa,
+        // porque nesse ponto ela é a coisa mais responsiva que existe, e a
+        // lacuna continua sendo registrada de qualquer jeito.
+        //
+        // A checagem usa as falas que já estão na mão (`doCorpo`/`doBanco`):
+        // nenhuma leitura nova, e nenhuma segunda contagem de "já disse" que um
+        // dia divergiria da primeira.
+        replyText = noLugar;
         scopeDaVez = { ...scopeDaVez, lacunasDeEscopo: lacunas };
         console.warn(`[sdr/chat] pergunta "${perguntaDaVez}" já feita ${jaFeita}x — registrada como lacuna, a conversa avança`);
       } else if (jaFeita === LIMITE_DE_INSISTENCIA - 1) {
@@ -927,6 +1429,108 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     }
 
+    // ── A RETRATAÇÃO, APLICADA SOBRE O ESCOPO ACUMULADO ────────────────────
+    //
+    // MEDIDO EM PRODUÇÃO (8ª volta): "esquece o WhatsApp, prefiro e-mail". O
+    // modelo OUVIU — o turno seguinte já não trazia `prospectPhone` — e o
+    // número reapareceu inteiro na solicitação gravada. Ouvir não bastava
+    // porque nenhuma das três memórias desta conversa sabe APAGAR: o escopo
+    // acumulado aqui sobrescreve, o `mergeScopeGaps` do navegador só preenche
+    // buraco, e a porta de gravação lê o contato da PORTA antes do escopo.
+    //
+    // O que atravessa merge é o que CRESCE, e por isso a retratação sai daqui
+    // como uma MARCA (`canaisRetratados`), não como um campo que sumiu. A marca
+    // vai no patch de resposta e viaja para as outras duas memórias, que a
+    // OBEDECEM — em vez de cada uma reimplementar um apagamento próprio.
+    //
+    // ⚠️ Lê-se sobre o escopo ACUMULADO (`body.scope` + o patch da vez), nunca
+    // só sobre o patch: a marca de um turno anterior tem de continuar valendo
+    // mesmo num turno em que o cliente não falou de canal nenhum — que é
+    // exatamente o turno em que o número voltou.
+    const acumulado = escopoComRetratacao({ ...(body.scope ?? {}), ...scopeDaVez }, body.currentMessage);
+    const retratados = acumulado.canaisRetratados;
+    if (Array.isArray(retratados) && retratados.length > 0) {
+      scopeDaVez = { ...scopeDaVez, canaisRetratados: retratados };
+      // O campo derrubado sai TAMBÉM do patch: mandá-lo de volta preenchido
+      // faria o navegador regravar o que o cliente acabou de desdizer.
+      delete (scopeDaVez as Record<string, unknown>).prospectPhone;
+      if (typeof acumulado.preferredChannel === "string") {
+        scopeDaVez = { ...scopeDaVez, preferredChannel: acumulado.preferredChannel };
+      }
+      console.warn(`[sdr/chat] canal(is) retratado(s) pelo cliente: ${retratados.join(", ")}`);
+    }
+
+    // ── E A CASA DIZ, EM VOZ ALTA, O QUE ACABOU DE APAGAR (26/08/2026) ─────
+    //
+    // MEDIDO EM PRODUÇÃO nas três passadas da 9ª volta: o dado saía das três
+    // memórias (certo) e a fala seguinte não dizia uma palavra sobre isso —
+    // ia direto para a próxima pergunta. Do lado do cliente, apagar em
+    // silêncio e não apagar são a mesma coisa: ele pediu, não ouviu resposta,
+    // e não tem como saber se foi atendido.
+    //
+    // ⚠️ SÓ NO TURNO EM QUE ELE PEDIU. A marca é acumulativa de propósito (é o
+    // que a faz atravessar os três merges); a CORTESIA não pode ser — repetir
+    // "apaguei o seu WhatsApp" em todo turno seguinte seria a casa relembrando
+    // o cliente de uma coisa que ele resolveu há dez turnos. Por isso a
+    // leitura é da fala DESTE turno, e não da marca acumulada.
+    const retratadosAgora = canaisRetratados(body.currentMessage);
+    const cortesia = cortesiaDaRetratacao(retratadosAgora, acumulado.preferredChannel);
+    if (cortesia) {
+      // Emenda, nunca substitui: a pergunta que o SDR ia fazer continua sendo
+      // feita. Trocar a fala inteira pelo reconhecimento custaria um turno de
+      // sondagem por uma questão de educação.
+      replyText = `${cortesia}\n\n${replyText}`.trim();
+    }
+
+    // ⛔ A ÚLTIMA TRAVA ANTES DA BOCA DO SDR (27/08/2026) ────────────────────
+    //
+    // Medido em produção com o CLIENTE 001 na tela: o SDR disse *"eu finalizo o
+    // orçamento e envio para você"* e depois *"vou preparar seu orçamento
+    // personalizado… estou à disposição"*, e se despediu. **Nada nesta casa
+    // dispara esse envio.** O cliente entregou tudo e ficou numa tela sem um
+    // único botão.
+    //
+    // O prompt JÁ mandava apontar o resumo e o botão de confirmar — os textos
+    // prontos de `prospect-engine.ts` dizem isso. O que saiu foi texto livre do
+    // modelo inventando um compromisso da casa em primeira pessoa. *Prompt é
+    // aviso; código é trava*, e a trava mora na saída, que é por onde a frase
+    // passa em qualquer caminho.
+    //
+    // Limpar (e não barrar o turno) é a escolha certa AQUI, e a diferença em
+    // relação à legenda é de dono: a legenda é do cliente e reescrevê-la seria a
+    // agência mudando o que ele aprovou; esta fala é da própria casa e ainda
+    // está na mão dela. Barrar o turno inteiro deixaria o cliente sem resposta
+    // nenhuma — trocaria uma promessa falsa por um silêncio, que é pior.
+    const promessas = promessasSoltas(replyText);
+    if (promessas.length > 0) {
+      console.warn(`[sdr/chat] ${motivoDaPromessa(promessas)}`);
+      const limpo = limparPromessaSolta(replyText);
+      // Se limpar esvaziou a fala, a casa diz a verdade em vez de nada.
+      replyText = limpo || O_QUE_DIZER_NO_LUGAR_AO_CLIENTE;
+    }
+
+    // ⛔ O PISO, SOBRE A FALA PRONTA (27/08/2026) ─────────────────────────────
+    //
+    // A ordem do CEO manda o SDR negociar — e a decisão do Financeiro é que
+    // **o desconto é ZERO até o custo estar medido**. As duas cabem juntas
+    // porque a manga dele não é preço: é TROCAR DE DEGRAU.
+    //
+    // Esta trava roda DEPOIS do modelo, de propósito. O bloco de contexto já
+    // diz "você não pode dar desconto" — mas prompt é aviso, e um modelo que
+    // resolva ser generoso encontra a recusa aqui, não uma recomendação.
+    //
+    // `servicoDaNegociacao` é `null` fora da página do orçamento, e aí qualquer
+    // valor citado é recusado: ausência de piso não é piso zero, é ausência de
+    // autorização. Na sala de briefing isso não muda nada — lá o SDR já é
+    // proibido de falar preço por outro guarda (`vazaPreco`).
+    if (blocoDaNegociacao) {
+      const doPiso = falaQueRespeitaOPiso(replyText, servicoDaNegociacao);
+      if (doPiso.corrigida) {
+        console.warn(`[sdr/chat] fala abaixo do piso, corrigida: ${doPiso.motivo}`);
+        replyText = doPiso.fala;
+      }
+    }
+
     await registrar({ ...fio, doVisitante: body.currentMessage, doSdr: replyText });
 
     return NextResponse.json({
@@ -934,6 +1538,40 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       reply: replyText,
       needsClarification: parsed.needsClarification === true,
       scope: scopeDaVez,
+      // ── A PARCERIA VOLTA PARA QUEM DECIDE A PERGUNTA (28/08/2026) ────────
+      //
+      // O servidor já resolvia o convite oito passos acima
+      // (`resolverConviteDeParceria`) e usava o resultado em DUAS coisas: o
+      // bloco de prompt e o rastro da conversa. Nenhuma delas decide a fila de
+      // perguntas — e a fila é o que fazia o parceiro ser interrogado sobre
+      // uma verba que ele não paga.
+      //
+      // ⚠️ QUEM DECIDE A FILA RODA NO NAVEGADOR. `question-engine.ts` é
+      // importado pela sala pública, que é client component (o topo de
+      // `parceria-declarada.ts` conta a história: um import de banco aqui
+      // reprovou o build de produção). Então a única forma de a régua
+      // `dispensadoDeVerba` saber da parceria é o servidor CONTAR — e era essa
+      // linha que não existia. `parceriaDeclarada` era um campo lido por
+      // `question-engine.ts:1031`, comentado como "o SERVIDOR preenche", e que
+      // NENHUMA linha de produção escrevia. *A pergunta obrigatória é "quem
+      // CHAMA isto?" — e a resposta era "ninguém".*
+      //
+      // ⛔ SAI DO SERVIDOR, NUNCA DO CORPO. `conviteDoParceiro` é o que
+      // `resolverConviteDeParceria` devolveu a partir do TOKEN — não é
+      // `body.scope`, que o visitante escreve. Um token inventado na barra de
+      // endereço resolve `null`, e `null` vira `parceria: null`: o visitante
+      // segue anônimo e a verba continua sendo perguntada, que é o
+      // comportamento de sempre e o seguro.
+      //
+      // ⛔ E ISTO NÃO LIBERA PRODUÇÃO. Quem decide se a casa produz de graça
+      // continua sendo o portão (`parceriaVivaDoCliente`, no servidor, a cada
+      // conferência). Esta linha só decide se uma PERGUNTA é feita.
+      parceria: conviteDoParceiro
+        ? {
+            autorizadaPor: conviteDoParceiro.parceria.autorizadaPor,
+            validaAte: conviteDoParceiro.parceria.validaAte.toISOString(),
+          }
+        : null,
     });
   } catch (err) {
     const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : "network_error";

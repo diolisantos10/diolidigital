@@ -40,6 +40,13 @@ vi.mock("@/lib/ai/chave-publica", () => ({
     const chave = await chaveDeRotaPublica("claude");
     return chave ? { provider: "claude", chave } : null;
   },
+  // A rota passou a pedir a LISTA (medido 26/08/2026: a porta da rua ficou
+  // fechada com um provedor bom parado ao lado). O mock continua derivando da
+  // mesma função de sempre — um provedor, que é o cenário destes testes.
+  chavesDeRotaPublica: async () => {
+    const chave = await chaveDeRotaPublica("claude");
+    return chave ? [{ provider: "claude", chave }] : [];
+  },
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: {} }));
 
@@ -52,7 +59,14 @@ const ROTAS: Array<{ nome: string; caminho: string; chamar: () => Promise<Respon
   {
     nome: "/api/sdr/chat",
     caminho: "app/api/sdr/chat/route.ts",
-    chamar: () => sdrChat(corpoJson("http://localhost/api/sdr/chat", { messages: [] })),
+    // ⚠️ `currentMessage` É OBRIGATÓRIO NO FIXTURE desde 27/08/2026. A rota passou
+    // a VALIDAR o corpo antes de resolver a chave de IA (o rastro da conversa
+    // precisa do escopo, que vem no corpo — ver `conversa-sem-pedido.ts`), e a
+    // ordem nova é a que o próprio teto defende: não resolver chave para um
+    // pedido que já se sabe malformado é o mesmo "não gasta antes de recusar"
+    // do caso acima. Sem esta linha o fixture parava em `bad_request` e a
+    // asserção media a validação, não o teto.
+    chamar: () => sdrChat(corpoJson("http://localhost/api/sdr/chat", { messages: [], currentMessage: "oi" })),
   },
   {
     nome: "/api/sdr/transcribe",

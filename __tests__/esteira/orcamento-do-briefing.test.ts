@@ -23,6 +23,10 @@ const db = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
+// `send.ts` está mockado, então o módulo real não entrega a constante aqui —
+// o valor de verdade é exercitado em `__tests__/cliente-falso/a-trava-de-saida.test.ts`,
+// contra o `sendEmail` real. Aqui só interessa que o motivo ATRAVESSE.
+const SEM_CHAVE = "sem_chave: RESEND_API_KEY não configurada (ausente ou vazia) no ambiente";
 const email = vi.hoisted(() => ({ sendEmail: vi.fn() }));
 vi.mock("@/lib/email/send", () => email);
 
@@ -109,16 +113,42 @@ describe("entrega o número que já estava calculado", () => {
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ O QUE ESTE BLOCO GARANTIA, E O QUE MUDOU EM 25/08/2026
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Este bloco exigia `portalMessage.create` NUNCA chamado, e chamava isso de
+// "não inventa número". Duas coisas estavam grudadas numa asserção só:
+//
+//   1. **não inventar PREÇO** — verdadeiro, obrigatório, e continua exigido
+//      aqui (`entregues: 0`, sem `proposal_pending`);
+//   2. **não dizer NADA ao cliente** — que não era garantia nenhuma: era o
+//      defeito. Medido em produção em 25/08: um briefing sem o número de posts
+//      por semana travava em `scope_ready`, o relógio escrevia "aguardando
+//      gente" a cada 5 minutos, e o cliente do outro lado nunca era avisado.
+//      Ele sumia sem barulho.
+//
+// A régua nova separa as duas: o preço continua proibido, e o SILÊNCIO passa a
+// ser proibido também. Ausência de informação não é informação, e silêncio não
+// é espera.
+
 describe("NÃO inventa número — a metade que importa", () => {
-  it("briefing sem estimativa não vira mensagem nenhuma", async () => {
+  it("briefing sem estimativa não vira PREÇO — e não vira silêncio", async () => {
     db.clientRequestDb.findMany.mockResolvedValue([pedido({ briefingJson: JSON.stringify({ scope: {} }) })]);
     const r = await entregarOrcamentosPendentes();
 
     expect(r.entregues).toBe(0);
     expect(r.semOrcamento).toBe(1);
-    expect(db.portalMessage.create).not.toHaveBeenCalled();
-    // E continua em `new`: fica para gente resolver, não some da fila.
-    expect(db.clientRequestDb.update).not.toHaveBeenCalled();
+    // NÃO avança para a fila que promete um número que ele não tem.
+    const avancou = db.clientRequestDb.update.mock.calls.some(
+      (c: unknown[]) => "status" in (c[0] as { data: Record<string, unknown> }).data,
+    );
+    expect(avancou).toBe(false);
+    // E o cliente É avisado, uma vez, do que falta.
+    expect(r.faltaAvisada).toBe(1);
+    expect(db.portalMessage.create).toHaveBeenCalledTimes(1);
+    const corpo = db.portalMessage.create.mock.calls[0][0].data.body as string;
+    expect(corpo).not.toMatch(/R\$/);
   });
 
   it("JSON quebrado não derruba a rodada nem inventa valor", async () => {
@@ -126,7 +156,10 @@ describe("NÃO inventa número — a metade que importa", () => {
     const r = await entregarOrcamentosPendentes();
     expect(r.semOrcamento).toBe(1);
     expect(r.falhas).toEqual([]);
-    expect(db.portalMessage.create).not.toHaveBeenCalled();
+    // JSON quebrado NÃO conclui "já avisei": o cliente é avisado, com o texto
+    // honesto ("a minha conta não fechou"), sem chutar o que falta.
+    expect(r.faltaAvisada).toBe(1);
+    expect(db.portalMessage.create.mock.calls[0][0].data.body).not.toMatch(/R\$/);
   });
 
   it("estimativa zerada é o mesmo que estimativa nenhuma", async () => {
@@ -135,7 +168,8 @@ describe("NÃO inventa número — a metade que importa", () => {
     ]);
     const r = await entregarOrcamentosPendentes();
     expect(r.semOrcamento).toBe(1);
-    expect(db.portalMessage.create).not.toHaveBeenCalled();
+    expect(r.entregues).toBe(0);
+    expect(r.faltaAvisada).toBe(1);
   });
 
   it("um pedido com erro não impede o seguinte de ser entregue", async () => {
@@ -231,14 +265,20 @@ describe("estimativa travada nao vira orcamento — o CityJobs de 16/08", () => 
     },
   });
 
-  it("nao manda mensagem nenhuma ao cliente", async () => {
+  it("nao manda ORCAMENTO nenhum — manda o motivo", async () => {
     db.clientRequestDb.findMany.mockResolvedValue([pedido({ briefingJson: travada })]);
     const r = await entregarOrcamentosPendentes();
 
     // Numero que nao se sustenta nao vira preco nesta casa. Nesta casa valor
     // vem de calculo, e a IA nunca inventa.
     expect(r.entregues).toBe(0);
-    expect(db.portalMessage.create).not.toHaveBeenCalled();
+    const corpo = db.portalMessage.create.mock.calls[0][0].data.body as string;
+    // R$ 1.800 estava gravado e nao pode aparecer: e o numero que nao se sustenta.
+    expect(corpo).not.toMatch(/1\.800|3\.400|R\$/);
+    // O que aparece e o MOTIVO, que ja estava guardado na coluna e nunca virava
+    // pixel — mais o dono e a proxima acao.
+    expect(corpo).toContain("volume de posts");
+    expect(corpo).toContain("equipe comercial");
   });
 
   it("conta como semOrcamento — o pedido fica parado, mas nunca em silencio", async () => {
@@ -256,8 +296,25 @@ describe("estimativa travada nao vira orcamento — o CityJobs de 16/08", () => 
     db.clientRequestDb.findMany.mockResolvedValue([pedido({ briefingJson: travada })]);
     await entregarOrcamentosPendentes();
     // Sem `proposal_pending`: o pedido nao avanca para uma fila que promete um
-    // numero que ele nao tem.
-    expect(db.clientRequestDb.update).not.toHaveBeenCalled();
+    // numero que ele nao tem. A UNICA escrita permitida aqui e a marca do
+    // aviso, que nao muda estado nenhum.
+    for (const c of db.clientRequestDb.update.mock.calls) {
+      expect(Object.keys(c[0].data)).toEqual(["briefingJson"]);
+    }
+  });
+
+  it("avisa UMA vez: a segunda rodada nao repete a mensagem", async () => {
+    // A varredura roda de 5 em 5 min. Sem a marca seriam 288 mensagens por dia
+    // — o jeito mais rapido de ensinar o cliente a nao ler o portal.
+    const jaAvisado = JSON.stringify({
+      ...JSON.parse(travada),
+      faltaAvisadaEm: "2026-08-25T12:00:00.000Z",
+    });
+    db.clientRequestDb.findMany.mockResolvedValue([pedido({ briefingJson: jaAvisado })]);
+    const r = await entregarOrcamentosPendentes();
+    expect(r.semOrcamento).toBe(1);
+    expect(r.faltaAvisada).toBe(0);
+    expect(db.portalMessage.create).not.toHaveBeenCalled();
   });
 });
 
@@ -299,26 +356,39 @@ describe("o cliente FICA SABENDO que o orçamento ficou pronto", () => {
 
     const html = email.sendEmail.mock.calls[0][0].html as string;
     // Mandar a mensagem inteira por e-mail criaria uma segunda verdade, que
-    // diverge do portal no primeiro ajuste de escopo. O e-mail leva o
-    // essencial (a faixa) e o caminho de ver o resto.
+    // diverge do portal no primeiro ajuste de escopo. Desde 27/08 o e-mail não
+    // leva NEM a faixa: leva o aviso e o botão. O valor mora no portal.
     expect(html).toMatch(/conversa/i);
-    expect(html).toContain("Ver o orçamento completo");
+    expect(html).toContain("Ver o meu orçamento");
     expect(html).not.toContain("O que NÃO está incluído");
   });
 
-  it("quando NÃO dá para cunhar a porta, o e-mail sai assim mesmo — sem botão que não leva a lugar nenhum", async () => {
-    // Cunhar falhou (banco fora do ar, por exemplo). A entrega vale: falhar em
-    // fabricar o link não pode desfazer um orçamento já entregue.
+  // ═══════════════════════════════════════════════════════════════════════
+  // ⚠️ ESTE TESTE DIZIA O CONTRÁRIO ATÉ 26/08/2026 — e o contrário era o BUG
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // Ele exigia que, sem conseguir cunhar a porta, a entrega seguisse em frente
+  // e o e-mail saísse "sem botão que não leva a lugar nenhum". A produção
+  // mediu o preço dessa regra: DUAS solicitações reais, DEZ DIAS em
+  // `proposal_pending`, com número calculado e `porta de aceite AUSENTE` — o
+  // cliente sem meio de responder, e o pedido fora de `new`, portanto fora do
+  // alcance do relógio para sempre.
+  //
+  // Um orçamento sem porta não é um orçamento entregue pela metade: é uma
+  // venda que morre calada. A regra passa a ser parar e chamar gente.
+  it("sem conseguir cunhar a porta, NADA é entregue — nem portal, nem e-mail", async () => {
     db.portalAccess.findMany.mockResolvedValue([]);
     db.portalAccess.create.mockRejectedValue(new Error("banco fora do ar"));
     db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
     const r = await entregarOrcamentosPendentes();
 
-    expect(r.avisados).toBe(1);
-    const html = email.sendEmail.mock.calls[0][0].html as string;
-    expect(html).not.toContain("Ver o orçamento completo");
-    // E continua dizendo por onde responder: aviso sem saída é aviso pela metade.
-    expect(html).toMatch(/responder/i);
+    expect(r.entregues).toBe(0);
+    expect(r.avisados).toBe(0);
+    expect(r.semPortaDeAceite).toBe(1);
+    expect(email.sendEmail).not.toHaveBeenCalled();
+    expect(db.portalMessage.create).not.toHaveBeenCalled();
+    // Continua em `new`: a batida seguinte tenta de novo, sem gente.
+    expect(db.clientRequestDb.update).not.toHaveBeenCalled();
   });
 });
 
@@ -398,9 +468,25 @@ describe("o texto do e-mail entra na MESMA regra do texto do orçamento", () => 
     orcamentoProntoEmail({
       prospectName: "Dioli",
       businessName: "CityJobs",
-      faixa: "R$ 1.390 a R$ 2.590 por mês",
       portalLink: "https://www.diolidigital.com.br/portal/access/tok123",
     });
+
+  it("NÃO estampa preço — ordem do CEO em 27/08", () => {
+    // *"eu não acho que o valor tem que estar estampado no e-mail. Tem que ser
+    // um e-mail clicável, tipo: 'seu orçamento está pronto, clique aqui'."*
+    // Preço lido sozinho, sem ninguém do outro lado, é preço que o cliente
+    // compara e descarta em silêncio.
+    const { subject, html } = pronto();
+    // Só o texto VISÍVEL: dentro dos atributos moram o telefone do WhatsApp e o
+    // nome do arquivo do logo (…-512.png), que são números legítimos.
+    const visivel = html.replace(/<[^>]*>/g, " ");
+    for (const t of [subject, visivel]) {
+      expect(t).not.toMatch(/R\$/);
+      expect(t).not.toMatch(/\b\d{1,3}\.\d{3}\b/);   // 1.390, 2.590…
+      expect(t).not.toMatch(/\b(290|490|790)\b/);     // a tabela fechada
+      expect(t).not.toMatch(/por mês|mensal/i);
+    }
+  });
 
   it("NÃO promete prazo — ordem do CEO em 16/08", () => {
     // *"em relação à confirmação de promessa, de orçamento em um dia, não
@@ -418,13 +504,17 @@ describe("o texto do e-mail entra na MESMA regra do texto do orçamento", () => 
     expect(pronto().html).toMatch(/não a proposta final/i);
   });
 
-  it("mostra a faixa que veio pronta e não inventa número nenhum", () => {
+  it("NÃO carrega a faixa — nem quando quem chama tem o número na mão", () => {
+    // ⚠️ ESTE TESTE DIZIA O CONTRÁRIO ATÉ 27/08/2026, e o contrário virou ordem:
+    // *"eu não acho que o valor tem que estar estampado no e-mail."*
+    // A esteira SEGUE calculando a faixa e escrevendo no portal — o que mudou é
+    // que ela não atravessa mais a fronteira do e-mail. `faixa` deixou de ser
+    // parâmetro desta função de propósito: campo que existe é campo que alguém
+    // volta a preencher.
     const { html } = pronto();
-    expect(html).toMatch(/1\.390/);
-    expect(html).toMatch(/2\.590/);
+    expect(html).not.toMatch(/1\.390|2\.590/);
+    expect(html).not.toMatch(/R\$/);
 
-    // Sem faixa não aparece valor: o template NÃO calcula. Se quem chama não
-    // derivou número, número não existe — nesta casa valor vem de cálculo.
     const sem = orcamentoProntoEmail({ businessName: "CityJobs" });
     expect(sem.html).not.toMatch(/R\$/);
   });
@@ -462,7 +552,7 @@ describe("o texto do e-mail entra na MESMA regra do texto do orçamento", () => 
     ]);
     return entregarOrcamentosPendentes().then(() => {
       const html = email.sendEmail.mock.calls[0][0].html as string;
-      expect(html).toMatch(/verba menor/i);
+      expect(html).toMatch(/verba mais enxuta/i);
       // Reconhecimento, não conta. Quem nomeia a diferença e oferece o que cabe
       // é a conversa — duas versões da mesma conta divergem no primeiro ajuste.
       expect(html).not.toMatch(/2\.900|R\$\s?500\b/);
@@ -472,7 +562,7 @@ describe("o texto do e-mail entra na MESMA regra do texto do orçamento", () => 
   it("sem confronto de verba o e-mail não inventa ressalva nenhuma", async () => {
     db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
     await entregarOrcamentosPendentes();
-    expect(email.sendEmail.mock.calls[0][0].html as string).not.toMatch(/verba menor/i);
+    expect(email.sendEmail.mock.calls[0][0].html as string).not.toMatch(/verba mais enxuta/i);
   });
 });
 
@@ -507,13 +597,34 @@ describe("a falha do aviso vira estado gravado — não some com a rodada", () =
   });
 
   it("RESEND_API_KEY ausente grava 'skipped', distinto de 'falhou' — é configuração, não defeito do pedido", async () => {
-    email.sendEmail.mockResolvedValue({ ok: false, skipped: true });
+    email.sendEmail.mockResolvedValue({ ok: false, skipped: true, error: SEM_CHAVE });
     db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
     await entregarOrcamentosPendentes();
 
     const args = db.$executeRawUnsafe.mock.calls[0];
     expect(args[1]).toBe("skipped");
     expect(args[2]).toMatch(/RESEND_API_KEY/);
+  });
+
+  // ── O DEFEITO MEDIDO EM PRODUÇÃO EM 25/08/2026 ────────────────────────────
+  // A tela do CEO mostrava DOIS pedidos com o motivo "RESEND_API_KEY ausente"
+  // e contato `@cliente-falso.invalid` — enquanto `RESEND_API_KEY` estava
+  // cadastrada no Railway. O e-mail não saiu porque a TRAVA DE SAÍDA barrou o
+  // domínio de teste, que é ela funcionando; mas o motivo gravado mandava o CEO
+  // configurar uma chave que já existia, e escondia a trava.
+  //
+  // `sendEmail` devolve `skipped: true` nos dois casos. Ler só a forma e chutar
+  // o motivo é o defeito. Este teste mata a mutação que o traria de volta: se
+  // alguém reescrever `detalhe` como frase fixa, ele fica vermelho.
+  it("skipped por TRAVA DE SAÍDA grava a trava — nunca 'RESEND_API_KEY ausente'", async () => {
+    email.sendEmail.mockResolvedValue({ ok: false, skipped: true, error: "bloqueado:dominio_inexistente" });
+    db.clientRequestDb.findMany.mockResolvedValue([pedido()]);
+    await entregarOrcamentosPendentes();
+
+    const args = db.$executeRawUnsafe.mock.calls[0];
+    expect(args[1]).toBe("skipped");
+    expect(args[2]).toMatch(/bloqueado:dominio_inexistente/);
+    expect(args[2]).not.toMatch(/RESEND_API_KEY/);
   });
 
   it("caso limpo intacto: quem foi avisado de primeira grava 'avisado', nunca estado de erro", async () => {
@@ -546,5 +657,64 @@ describe("a falha do aviso vira estado gravado — não some com a rodada", () =
     expect(r.entregues).toBe(2);
     expect(r.avisados).toBe(2);
     expect(r.falhas).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A FILA NÃO ENTUPE MAIS — 86 falhas em 24h eram ARITMÉTICA, não IA
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Medição de 25/08/2026 (`docs/medicoes/elo-9-orcamento.md`): a rodada pegava
+// os 5 mais antigos, e pedido sem estimativa nunca muda de estado — logo nunca
+// sai da janela. Cinco desses paravam a esteira para todo mundo, com
+// `entregues=0, semOrcamento=5` a cada 5 minutos, calado.
+//
+// A prova aqui é a mesma do experimento controlado da medição: MESMO pedido,
+// MESMA estimativa, mudando só quantos pedidos sem orçamento estão à frente.
+
+describe("a fila do orçamento não entope com quem nunca gera número", () => {
+  /** Um pedido ANTIGO e sem estimativa nenhuma: ele volta para sempre. */
+  function velhoSemNumero(n: number) {
+    return pedido({
+      id: `velho${n}`,
+      createdAt: new Date(`2026-07-0${n}T00:00:00Z`),
+      briefingJson: JSON.stringify({ contato: CONTATO }),
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.clientRequestDb.update.mockResolvedValue({});
+    db.portalMessage.create.mockResolvedValue({});
+    db.portalAccess.findMany.mockResolvedValue([]);
+    db.portalAccess.create.mockResolvedValue({ token: "tok" });
+    email.sendEmail.mockResolvedValue({ ok: true });
+  });
+
+  it("com SEIS pedidos velhos sem número na frente, o orçamento pronto SAI mesmo assim", async () => {
+    // Antes de 26/08/2026 este caso devolvia `entregues=0, semOrcamento=5`.
+    db.clientRequestDb.findMany.mockResolvedValue([
+      ...[1, 2, 3, 4, 5, 6].map(velhoSemNumero),
+      pedido({ id: "novo-com-numero" }),
+    ]);
+    const r = await entregarOrcamentosPendentes();
+    expect(r.entregues).toBe(1);
+  });
+
+  it("quem não tem número CONTINUA sendo atendido — com as vagas que sobram", async () => {
+    // A partição não é uma fila de exclusão: sem ninguém com número na frente,
+    // os sem número ocupam a rodada inteira e recebem o aviso do que falta.
+    db.clientRequestDb.findMany.mockResolvedValue([1, 2, 3].map(velhoSemNumero));
+    const r = await entregarOrcamentosPendentes();
+    expect(r.entregues).toBe(0);
+    expect(r.semOrcamento).toBe(3);
+  });
+
+  it("o teto de ENTREGAS por rodada continua valendo — a janela larga é só de leitura", async () => {
+    db.clientRequestDb.findMany.mockResolvedValue(
+      Array.from({ length: 9 }, (_, i) => pedido({ id: `com-numero-${i}` })),
+    );
+    const r = await entregarOrcamentosPendentes();
+    expect(r.entregues).toBe(5);
   });
 });

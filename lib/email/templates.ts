@@ -1,33 +1,43 @@
-// E-mail templates (HTML). Plain inline styles for broad client support.
+// templates.ts — O QUE CADA E-MAIL DA CASA DIZ.
 //
-// ── A REGRA DE VALOR, E O DIA EM QUE ELA MUDOU DE FORMA ─────────────────────
+// A CASCA (logo, cabeçalho navy, botão de WhatsApp, rodapé, paleta) mora em
+// `lib/email/molde.ts`. Aqui fica só o que MUDA de uma mensagem para outra.
+// Até 27/08/2026 cada template carregava a sua própria cópia do HTML inteiro, e
+// foi assim que o nome errado da empresa sobreviveu em dois rodapés ao mesmo
+// tempo — para consertar era preciso lembrar dos dois.
 //
-// Esta linha ficou aqui por meses: *"prospect-facing templates NEVER include
-// prices — the briefing flow deliberately withholds values until the agency
-// reviews the scope."* A premissa dela morreu em 16/08/2026, quando a casa
-// passou a ENTREGAR a estimativa sozinha, sem revisão da agência
-// (`lib/agency/esteira/orcamento-do-briefing.ts`).
-//
-// A regra que vale agora, e é mais estreita:
+// ─── AS DUAS MENSAGENS, E O QUE CADA UMA PODE DIZER ─────────────────────────
 //
 //   • `briefingConfirmationEmail` — sai ANTES de existir número. Nunca leva
 //     valor, porque valor nenhum foi derivado ainda. Inventar aqui seria
 //     alucinar preço.
-//   • `orcamentoProntoEmail` — sai DEPOIS, e leva EXATAMENTE a faixa que o
-//     cálculo derivou e que já está escrita na conversa do portal. Nunca um
-//     número próprio: quem monta o texto passa o valor pronto.
+//   • `orcamentoProntoEmail` — sai DEPOIS, e **também não leva valor**. Ele é
+//     um CONVITE: "está pronto" + o botão para o portal, onde o número mora
+//     junto do SDR que responde por ele. Ordem do CEO em 27/08/2026.
+//
+// ⛔ **NENHUM E-MAIL DESTA CASA ESTAMPA PREÇO.** Não é estilo: preço lido
+// sozinho, sem ninguém do outro lado, é preço que o cliente compara e descarta
+// em silêncio — e a agência nem fica sabendo que houve uma objeção.
 //
 // O que NENHUM dos dois pode ter: promessa de prazo. Ordem do CEO em
 // 16/08/2026 — *"em relação à confirmação de promessa, de orçamento em um dia,
 // não autorizei nada disso."*
+//
+// ⛔ E nenhum dos dois carrega DIREÇÃO INTERNA. A mesma lei da legenda: "Post
+// destacando…", "Peça que comunica…", trecho de briefing e instrução de equipe
+// são conversa da casa. O que entra aqui é o que o cliente escreveu ou o que a
+// casa decidiu DIZER a ele.
 
-function esc(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import {
+  blocoDeBotao, blocoDeTexto, blocoRotulado, esc, moldeDoEmail,
+} from "@/lib/email/molde";
+import { CORES } from "@/lib/marca";
+// A frase da isenção mora em UM lugar (`aviso-de-isencao.ts`, texto puro, sem
+// banco), e é o mesmo lugar de onde a página da proposta lê. Duas cópias da
+// mesma promessa já estão diferentes na semana em que uma muda.
+import { LINHA_DE_ISENCAO_NO_EMAIL } from "@/lib/agency/comercial/aviso-de-isencao";
+
+export { esc };
 
 export interface BriefingConfirmationInput {
   prospectName?: string;
@@ -42,122 +52,103 @@ export function briefingConfirmationEmail(input: BriefingConfirmationInput): {
   const name = input.prospectName?.trim();
   const biz = input.businessName?.trim();
   const greeting = name ? `Olá, ${esc(name)}!` : "Olá!";
-  const bizLine = biz
-    ? `Recebemos o pedido de orçamento para <strong>${esc(biz)}</strong>.`
-    : "Recebemos o seu pedido de orçamento.";
 
   const services = (input.services ?? []).filter((s) => typeof s === "string" && s.trim());
-  const servicesBlock =
-    services.length > 0
-      ? `<tr><td style="padding:0 0 16px">
-           <p style="margin:0 0 6px;font-size:12px;color:#9B9B95;text-transform:uppercase;letter-spacing:.06em;font-weight:600">O que você pediu</p>
-           <p style="margin:0;font-size:15px;color:#1A1A1A">${esc(services.join(" · "))}</p>
-         </td></tr>`
-      : "";
 
-  const subject = biz
-    ? `Recebemos seu pedido — ${biz}`
-    : "Recebemos seu pedido de orçamento";
+  const corpo: string[] = [
+    blocoDeTexto(
+      biz
+        ? `Recebemos o pedido de orçamento para ${biz}. Nossa equipe já está com ele em mãos.`
+        : "Recebemos o seu pedido de orçamento. Nossa equipe já está com ele em mãos.",
+    ),
+  ];
 
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F7F7F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F7F6;padding:32px 16px">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border:1px solid #E5E5E2;border-radius:14px;overflow:hidden">
-        <tr><td style="padding:28px 32px 8px">
-          <p style="margin:0;font-size:13px;font-weight:700;color:#1A1A1A;letter-spacing:.02em">DIOLI STUDIO</p>
-        </td></tr>
-        <tr><td style="padding:8px 32px 0">
-          <h1 style="margin:0 0 12px;font-size:20px;color:#1A1A1A">${greeting}</h1>
-          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#3A3A38">
-            ${bizLine} Nossa equipe já está com ele em mãos.
-          </p>
-        </td></tr>
-        <tr><td style="padding:0 32px">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            ${servicesBlock}
-          </table>
-        </td></tr>
-        <tr><td style="padding:4px 32px 0">
-          <p style="margin:0 0 8px;font-size:12px;color:#9B9B95;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Próximos passos</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#3A3A38;line-height:1.6">
-            <tr><td style="padding:2px 0">1. Analisamos o escopo que você enviou</td></tr>
-            <tr><td style="padding:2px 0">2. Preparamos uma proposta formal detalhada</td></tr>
-            <!-- ⛔ SEM PRAZO. Ordem do CEO em 16/08/2026: *"em relação à
-                 confirmação de promessa, de orçamento em um dia, não autorizei
-                 nada disso."* Este e-mail é a IRMÃ da tela de confirmação: as
-                 duas nasceram do mesmo texto, e consertar só a que aparece no
-                 print deixa a promessa viva na caixa de entrada do cliente. -->
-            <tr><td style="padding:2px 0">3. Entramos em contato por este e-mail</td></tr>
-          </table>
-        </td></tr>
-        <tr><td style="padding:24px 32px 28px">
-          <p style="margin:0;font-size:13px;line-height:1.6;color:#6B6B65">
-            Quer adiantar algo? É só responder este e-mail ou falar com a gente no
-            WhatsApp <a href="https://wa.me/5511989400692" style="color:#1A1A1A;font-weight:600;text-decoration:none">(11) 98940-0692</a>.
-          </p>
-        </td></tr>
-        <tr><td style="padding:16px 32px;background:#FAFAF9;border-top:1px solid #F0F0ED">
-          <p style="margin:0;font-size:11px;color:#9B9B95">Dioli Studio · Este é um e-mail automático de confirmação.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  if (services.length > 0) {
+    corpo.push(
+      blocoRotulado(
+        "O que você pediu",
+        `<p style="margin:0;font-size:15px;line-height:1.6;color:${CORES.grafite}">${esc(services.join(" · "))}</p>`,
+      ),
+    );
+  }
 
-  return { subject, html };
+  corpo.push(
+    blocoRotulado(
+      "Próximos passos",
+      // ⛔ SEM PRAZO. Ordem do CEO em 16/08/2026. Este e-mail é a IRMÃ da tela
+      // de confirmação: as duas nasceram do mesmo texto, e consertar só a que
+      // aparece no print deixa a promessa viva na caixa de entrada do cliente.
+      `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:15px;color:${CORES.grafite};line-height:1.6">
+         <tr><td style="padding:3px 0">1. Analisamos o escopo que você enviou</td></tr>
+         <tr><td style="padding:3px 0">2. Preparamos uma proposta formal detalhada</td></tr>
+         <tr><td style="padding:3px 0">3. Entramos em contato por este e-mail</td></tr>
+       </table>`,
+    ),
+  );
+
+  return {
+    subject: biz ? `Recebemos seu pedido — ${biz}` : "Recebemos seu pedido de orçamento",
+    html: moldeDoEmail({
+      saudacao: greeting,
+      // A prévia da caixa de entrada. Ela diz o que aconteceu, não repete o
+      // assunto: quem lê os dois lado a lado ganha uma informação a mais.
+      previa: "Seu pedido chegou. A equipe já está com ele em mãos.",
+      corpo,
+      notaDoRodape: "Este é um e-mail automático de confirmação.",
+    }),
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // O AVISO DE QUE O ORÇAMENTO FICOU PRONTO
 //
 // A pergunta do CEO em 16/08/2026, com o piloto no ar: *"nada ainda via e-mail.
-// O que aconteceu?"*
+// O que aconteceu?"* O orçamento fora calculado, o texto escrito e a conversa
+// do portal recebera tudo — e ninguém avisou o destinatário. É o defeito D-003:
+// caixa certa, seta faltando.
 //
-// O que tinha acontecido: o orçamento foi calculado, o texto foi escrito e a
-// conversa do portal recebeu tudo — e ninguém avisou o destinatário. A casa
-// mandava e-mail na CONFIRMAÇÃO do briefing e ficava muda justamente na hora da
-// coisa que o cliente estava esperando. É o defeito D-003 outra vez: caixa
-// certa, seta faltando. Na véspera o CEO esperou a noite inteira por uma seta;
-// no dia seguinte, pela seta seguinte.
-//
-// ── O QUE ESTE E-MAIL É, E O QUE ELE NÃO É ──────────────────────────────────
-//
-// Ele é um TOQUE NO OMBRO: o essencial (a faixa que já está no portal) e o link
-// para ver o resto. **Ele não substitui o portal** — a conversa continua sendo
-// a fonte da verdade, é lá que o cliente responde e é lá que a equipe lê. Um
-// e-mail que tentasse ser a conversa inteira criaria uma segunda verdade, e
-// duas verdades divergem no primeiro ajuste de escopo.
-//
-// ⛔ SEM PRAZO. Mesma ordem do CEO que tirou o "em 1 dia" da tela de
-// confirmação e do e-mail de confirmação. Prazo prometido por máquina é dívida
-// que a agência paga.
+// Ele é um TOQUE NO OMBRO com um botão: avisa que ficou pronto e leva ao portal.
+// **Não substitui o portal** — a conversa continua sendo a fonte da verdade, e é
+// lá que o valor aparece. Um e-mail que tentasse ser a conversa inteira criaria
+// uma segunda verdade, e duas verdades divergem no primeiro ajuste de escopo.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface OrcamentoProntoInput {
   prospectName?: string;
   businessName?: string;
-  /** A faixa JÁ DERIVADA e já escrita no portal. Este template não calcula
-   *  nada: ele recebe o número pronto ou não mostra número nenhum. */
-  faixa?: string;
-  /** O endereço da conversa no portal. Ausente quando não há token — o e-mail
-   *  sai assim mesmo, com o caminho de responder, em vez de não sair. */
+  /**
+   * O endereço da conversa no portal — onde o valor mora e onde o SDR atende.
+   * É o destino do botão, e por isso virou a peça mais importante deste e-mail.
+   */
   portalLink?: string;
-  /** A estimativa passou da verba que o cliente declarou.
+  /**
+   * A estimativa passou da verba que o cliente declarou.
    *
-   *  Existe porque o CityJobs, em 16/08/2026, disse *"algo em torno de R$ 500
-   *  por mês"* e recebeu R$ 1.800–3.400 sem uma palavra sobre a diferença. O
-   *  portal passou a nomear a diferença e oferecer o que cabe; se o e-mail
-   *  mostrasse só a faixa, o número chegaria NU na caixa de entrada — e o
-   *  primeiro lugar onde o cliente lê o valor é justamente o e-mail.
+   * Existe porque o CityJobs, em 16/08/2026, disse *"algo em torno de R$ 500
+   * por mês"* e recebeu R$ 1.800–3.400 sem uma palavra sobre a diferença.
    *
-   *  Aqui entra só o RECONHECIMENTO, sem número e sem oferta: quem nomeia a
-   *  diferença e lista o que cabe é a conversa. Duas versões da mesma conta em
-   *  dois lugares divergem no primeiro ajuste. */
+   * ⚠️ Aqui entra só o RECONHECIMENTO, **sem número nenhum** — quem nomeia a
+   * diferença, mostra o que cabe e negocia é a conversa do portal.
+   */
   verbaEstourada?: boolean;
+  /**
+   * Este cliente entra por PARCERIA VIVA e não paga nada.
+   *
+   * ── Por que existe (27/08/2026) ────────────────────────────────────────
+   * Medido: `grep -rn "parceria" lib/email/templates.ts` → ZERO. O parceiro
+   * recebia este mesmo e-mail — "seu orçamento está pronto" —, clicava, e
+   * encontrava preço e um botão de aceitar como qualquer pagante. A casa sabia
+   * que ele não paga e não contava a ele em lugar nenhum.
+   *
+   * ⛔ É UM BOOLEANO DE PROPÓSITO, e isso é a trava: um campo com valor,
+   * validade ou escopo seria um campo que alguém volta a preencher com número
+   * — a mesma razão pela qual `faixa` deixou de ser parâmetro desta função. O
+   * e-mail diz que é isento; **não diz preço**.
+   *
+   * Ausente/`false` = cliente pagante, e o e-mail sai exatamente como saía.
+   * Quem decide é `parceriaVivaDoCliente`, no servidor.
+   */
+  isentoPorParceria?: boolean;
 }
 
 export function orcamentoProntoEmail(input: OrcamentoProntoInput): {
@@ -168,76 +159,253 @@ export function orcamentoProntoEmail(input: OrcamentoProntoInput): {
   const biz = input.businessName?.trim();
   const greeting = name ? `Olá, ${esc(name)}!` : "Olá!";
 
-  const subject = biz
-    ? `Seu orçamento está pronto — ${biz}`
-    : "Seu orçamento está pronto";
+  // ⛔ ESTE E-MAIL É UM CONVITE, NÃO UMA PROPOSTA (ordem do CEO, 27/08/2026):
+  //
+  //   *"Eu não acho que o valor tem que estar estampado no e-mail. Tem que ser
+  //   um e-mail clicável, tipo: 'seu orçamento está pronto, clique aqui'."*
+  //
+  // O motivo é comercial e vale a pena escrever: **preço lido sozinho, sem
+  // ninguém do outro lado, é preço que o cliente compara e descarta em
+  // silêncio.** Ninguém fica sabendo que ele desistiu, e não houve conversa
+  // nenhuma. No portal o número aparece junto de quem responde por ele.
+  //
+  // Por isso `faixa` NÃO É MAIS PARÂMETRO desta função: campo que existe é
+  // campo que alguém volta a preencher.
+  const corpo: string[] = [
+    blocoDeTexto(
+      biz
+        ? `O orçamento da ${biz} está pronto. Ele fica na sua conversa com a gente — é lá que a gente detalha o que entra, ajusta o que precisar e responde o que você quiser perguntar.`
+        : "O seu orçamento está pronto. Ele fica na sua conversa com a gente — é lá que a gente detalha o que entra, ajusta o que precisar e responde o que você quiser perguntar.",
+    ),
+  ];
 
-  const faixa = input.faixa?.trim();
-  const faixaBlock = faixa
-    ? `<tr><td style="padding:0 0 4px">
-         <p style="margin:0 0 6px;font-size:12px;color:#9B9B95;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Estimativa</p>
-         <p style="margin:0;font-size:22px;font-weight:700;color:#1A1A1A">${esc(faixa)}</p>
-       </td></tr>`
-    : "";
+  // ── A ISENÇÃO VEM ANTES DE TUDO O MAIS (27/08/2026) ──────────────────────
+  // É a primeira coisa que o parceiro tem de ler, e por isso é o primeiro bloco
+  // depois da abertura: quem clica no botão sem ter lido isto abre a página
+  // achando que vai encontrar uma cobrança.
+  if (input.isentoPorParceria) {
+    corpo.push(blocoDeTexto(LINHA_DE_ISENCAO_NO_EMAIL));
+  }
 
-  const verbaBlock = input.verbaEstourada
-    ? `<tr><td style="padding:12px 0 0">
-         <p style="margin:0;font-size:14px;line-height:1.6;color:#3A3A38">
-           Você comentou uma verba menor que isso — a gente nomeia a diferença
-           na conversa e mostra o que cabe no seu momento. Preferimos te dizer
-           agora do que mandar um número que não cabe.
-         </p>
-       </td></tr>`
-    : "";
+  // ⚠️ A VERBA NÃO É ASSUNTO DE QUEM NÃO PAGA. Dizer a um parceiro isento que
+  // o escopo passou da verba dele é cobrar com outras palavras, na linha
+  // seguinte à que promete que nada será cobrado — as duas frases juntas se
+  // desmentem, e o cliente fica com a pior das duas.
+  if (input.verbaEstourada && !input.isentoPorParceria) {
+    corpo.push(
+      blocoDeTexto(
+        "Você comentou uma verba mais enxuta do que o escopo que a gente montou — isso está nomeado lá na conversa, junto do que cabe no seu momento. Preferimos conversar sobre isso com você do que mandar um número solto.",
+      ),
+    );
+  }
 
   // O botão só existe quando há link de verdade. Botão que leva a lugar nenhum
-  // é pior que ausência de botão: o cliente clica, não acontece nada, e ele
-  // conclui que a agência está quebrada.
-  const linkBlock = input.portalLink
-    ? `<tr><td style="padding:20px 32px 4px">
-         <a href="${esc(input.portalLink)}" style="display:inline-block;background:#1A1A1A;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:10px">Ver o orçamento completo</a>
-       </td></tr>`
-    : "";
+  // é pior que ausência de botão: o cliente clica, não acontece nada, e conclui
+  // que a agência está quebrada.
+  if (input.portalLink) {
+    corpo.push(blocoDeBotao(input.portalLink, "Ver o meu orçamento"));
+  }
 
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F7F7F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F7F6;padding:32px 16px">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border:1px solid #E5E5E2;border-radius:14px;overflow:hidden">
-        <tr><td style="padding:28px 32px 8px">
-          <p style="margin:0;font-size:13px;font-weight:700;color:#1A1A1A;letter-spacing:.02em">DIOLI STUDIO</p>
-        </td></tr>
-        <tr><td style="padding:8px 32px 0">
-          <h1 style="margin:0 0 12px;font-size:20px;color:#1A1A1A">${greeting}</h1>
-          <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#3A3A38">
-            O orçamento${biz ? ` da <strong>${esc(biz)}</strong>` : ""} está pronto e já está na sua conversa com a gente.
-          </p>
-        </td></tr>
-        <tr><td style="padding:0 32px">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            ${faixaBlock}
-            ${verbaBlock}
-          </table>
-        </td></tr>
-        ${linkBlock}
-        <tr><td style="padding:20px 32px 28px">
-          <p style="margin:0;font-size:13px;line-height:1.6;color:#6B6B65">
-            É uma estimativa a partir do que você contou, não a proposta final —
-            o detalhamento, o que entra e o que fica de fora estão lá na conversa.
-            Se algo estiver diferente do que você precisa, é só responder por lá
-            ou responder este e-mail.
-          </p>
-        </td></tr>
-        <tr><td style="padding:16px 32px;background:#FAFAF9;border-top:1px solid #F0F0ED">
-          <p style="margin:0;font-size:11px;color:#9B9B95">Dioli Studio · Este é um aviso automático. A conversa completa fica no seu portal.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  corpo.push(
+    blocoDeTexto(
+      "É uma estimativa a partir do que você contou, não a proposta final. Se algo estiver diferente do que você precisa, é só dizer por lá — dá para trocar o plano, tirar e acrescentar.",
+    ),
+  );
 
-  return { subject, html };
+  return {
+    subject: biz ? `Seu orçamento está pronto — ${biz}` : "Seu orçamento está pronto",
+    html: moldeDoEmail({
+      saudacao: greeting,
+      // ⛔ SEM VALOR AQUI TAMBÉM. A prévia é lida ANTES de abrir o e-mail — um
+      // preço nela seria o preço mais exposto de todos.
+      previa: "Ele está na sua conversa com a gente. É só abrir e ver.",
+      corpo,
+      notaDoRodape: "Este é um aviso automático. A conversa completa fica no seu portal.",
+    }),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OS TRÊS E-MAILS QUE FALTAVAM — 27/08/2026
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// A casa tinha DOIS e-mails: a confirmação do briefing e o orçamento. Faltavam
+// os três momentos em que o cliente mais precisa de notícia — e a falta não era
+// cosmética:
+//
+//   1. **A peça ficou pronta e ninguém batia na porta dele.** A entrega
+//      acontecia, o portal era atualizado, e o cliente só descobria se abrisse
+//      o portal por conta própria. É o e-mail mais importante que faltava:
+//      a agência terminava o trabalho e ficava esperando em silêncio.
+//   2. **O atraso era contado para a casa, não para o cliente.** O Gerente
+//      Geral detectava o prazo queimado e gravava uma `PortalMessage`. O
+//      comentário em `batida-da-v2.ts` já dizia a régua certa — *"coluna
+//      gravada não é cliente informado"* — logo acima do código que gravava a
+//      coluna e parava ali.
+//   3. **O cliente não recebia o caminho de volta.** Foi por isso que uma
+//      travessia inteira precisou cunhar link à mão.
+//
+// ── TODOS SAEM PELO MOLDE, E ISSO É TRAVA, NÃO COMBINADO ───────────────────
+// `lib/email/trava-do-molde.ts` recusa na porta o que não tem o cabeçalho da
+// marca, o rodapé assinado, ou o que estampa valor. Nenhum destes três escreve
+// `<!DOCTYPE>`, rodapé ou nome próprio: tudo vem de `moldeDoEmail`.
+//
+// ── E NENHUM DELES TEM PREÇO ───────────────────────────────────────────────
+// Ordem do CEO: o e-mail é CONVITE, não proposta. Preço lido sozinho, sem
+// ninguém do outro lado, é preço que o cliente compara e descarta em silêncio.
+
+/** O que estes três precisam saber sobre quem vai ler. */
+interface DestinatarioDoAviso {
+  prospectName?: string;
+  businessName?: string;
+  /** O caminho de volta. Sem ele, não nasce botão — botão que não leva a lugar
+   *  nenhum é pior que ausência de botão. */
+  portalLink?: string;
+}
+
+function saudacaoDe(nome?: string): string {
+  const n = nome?.trim();
+  return n ? `Olá, ${esc(n)}!` : "Olá!";
+}
+
+export interface PecaProntaInput extends DestinatarioDoAviso {
+  /** Quantas peças ficaram prontas. Governa o plural — e só isso. */
+  quantasPecas?: number;
+  /**
+   * O aviso de que a publicação automática ainda não existe.
+   *
+   * ⚠️ DERIVADO, nunca constante: quem chama passa
+   * `avisoDeAgendamentoManual()`, que sai de `freioSolto()`. No dia em que a
+   * Meta liberar, o aviso some sozinho. Uma constante aqui criaria texto
+   * fóssil — a tela continuaria negando algo que a casa passou a ter, e
+   * ninguém apaga texto que não dá erro.
+   */
+  avisoDePublicacaoManual?: string | null;
+}
+
+/**
+ * "SUA PEÇA ESTÁ PRONTA" — o e-mail que faltava, e o mais importante deles.
+ *
+ * Dispara no evento REAL: `apresentar()` → `falarComOCliente` →
+ * `avisarCliente({ tipo: "entrega" })`. Não há segundo caminho de envio, e é de
+ * propósito: *verdade escrita em dois lugares já está errada em um deles.*
+ */
+export function pecaProntaEmail(input: PecaProntaInput): { subject: string; html: string } {
+  const biz = input.businessName?.trim();
+  const n = typeof input.quantasPecas === "number" && input.quantasPecas > 0 ? input.quantasPecas : null;
+  const quantas =
+    n === null ? "O seu material" : n === 1 ? "A sua peça" : `As suas ${n} peças`;
+
+  const corpo: string[] = [
+    blocoDeTexto(
+      `${quantas} ${n === 1 || n === null ? "está pronta" : "estão prontas"} e ${
+        n !== null && n > 1 ? "esperam" : "espera"
+      } a sua olhada. Está tudo no seu portal, na aba de aprovações.`,
+    ),
+    blocoDeTexto(
+      "Lá você pode aprovar, pedir ajuste, recusar ou cancelar — cada peça, uma por uma. " +
+        "Se algo não ficou como você imaginava, é só dizer o que mudar: refazer faz parte.",
+    ),
+  ];
+
+  if (input.portalLink) corpo.push(blocoDeBotao(input.portalLink, "Ver o meu material"));
+
+  // O aviso da publicação manual entra AQUI e não em outro lugar: é neste
+  // e-mail que o cliente passa a esperar o material no ar. Quem vai aprovar
+  // precisa saber o que acontece depois do sim.
+  if (input.avisoDePublicacaoManual) corpo.push(blocoDeTexto(input.avisoDePublicacaoManual));
+
+  return {
+    subject: biz ? `Seu material está pronto — ${biz}` : "Seu material está pronto",
+    html: moldeDoEmail({
+      saudacao: saudacaoDe(input.prospectName),
+      previa: "Está no seu portal, na aba de aprovações. É só abrir e dizer o que achou.",
+      corpo,
+      notaDoRodape: "Este é um aviso automático. Suas peças e a conversa ficam no seu portal.",
+    }),
+  };
+}
+
+export interface AvisoDeAtrasoInput extends DestinatarioDoAviso {
+  /** O que atrasou, em palavras do cliente. Sem jargão, sem nome de coluna. */
+  oQueAtrasou?: string;
+}
+
+/**
+ * "AVISO DE ATRASO" — a casa avisando ANTES de o cliente perguntar.
+ *
+ * ⛔ ESTE E-MAIL NÃO PROMETE DATA NOVA, e a omissão é decisão. Uma data nova
+ * dada no susto é a segunda promessa quebrada esperando para acontecer — e a
+ * primeira acabou de ser. A casa reconhece, diz que está em cima, e chama para
+ * a conversa, onde a data sai com quem responde por ela.
+ *
+ * Também NÃO carrega direção interna: por que atrasou é assunto da casa. O
+ * cliente recebe o fato e o próximo passo.
+ */
+export function avisoDeAtrasoEmail(input: AvisoDeAtrasoInput): { subject: string; html: string } {
+  const biz = input.businessName?.trim();
+  const oQue = input.oQueAtrasou?.trim();
+
+  const corpo: string[] = [
+    blocoDeTexto(
+      oQue
+        ? `Passei para te avisar: ${esc(oQue)} não vai sair no prazo que combinamos.`
+        : "Passei para te avisar: uma entrega sua não vai sair no prazo que combinamos.",
+    ),
+    blocoDeTexto(
+      "Preferimos te contar agora a deixar você descobrir pelo silêncio. " +
+        "Estamos em cima, e assim que tiver uma data que a gente consiga cumprir, ela vai para o seu portal — " +
+        "com quem responde por ela do outro lado.",
+    ),
+  ];
+
+  if (input.portalLink) corpo.push(blocoDeBotao(input.portalLink, "Falar com a gente"));
+
+  return {
+    subject: biz ? `Um aviso sobre o seu prazo — ${biz}` : "Um aviso sobre o seu prazo",
+    html: moldeDoEmail({
+      saudacao: saudacaoDe(input.prospectName),
+      previa: "Uma entrega sua vai atrasar. Preferimos te contar agora.",
+      corpo,
+      notaDoRodape: "Este é um aviso automático. A conversa completa fica no seu portal.",
+    }),
+  };
+}
+
+/**
+ * "SEU LINK DO PORTAL" — o caminho de volta.
+ *
+ * O portal é onde tudo acontece (peças, aprovações, conversa, orçamento) e o
+ * cliente não recebia o endereço dele. Foi por isso que uma travessia inteira
+ * precisou cunhar link à mão.
+ *
+ * ⚠️ SEM LINK, ESTE E-MAIL NÃO EXISTE — quem chama recebe `null`. Um e-mail
+ * chamado "seu link do portal" sem link é a definição de promessa vazia, e ele
+ * NASCERIA fora do único motivo de existir.
+ */
+export function linkDoPortalEmail(
+  input: DestinatarioDoAviso,
+): { subject: string; html: string } | null {
+  if (!input.portalLink) return null;
+  const biz = input.businessName?.trim();
+
+  return {
+    subject: biz ? `Seu acesso ao portal — ${biz}` : "Seu acesso ao portal",
+    html: moldeDoEmail({
+      saudacao: saudacaoDe(input.prospectName),
+      previa: "É por aqui que você acompanha tudo. Guarde este link.",
+      corpo: [
+        blocoDeTexto(
+          "Este é o seu caminho de volta. No portal ficam as suas peças, as aprovações, " +
+            "os pedidos de material e a conversa com a gente — tudo no mesmo lugar.",
+        ),
+        blocoDeBotao(input.portalLink, "Abrir o meu portal"),
+        blocoDeTexto(
+          "Guarde este e-mail: o link é só seu e não pede senha. " +
+            "Se em algum momento ele parar de funcionar, é só responder aqui que a gente manda outro.",
+        ),
+      ],
+      notaDoRodape: "Este é um aviso automático. O portal é o seu acesso a tudo o que fazemos para você.",
+    }),
+  };
 }

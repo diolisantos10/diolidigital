@@ -42,7 +42,7 @@ vi.mock("@/app/api/messages/conversa", () => ({
 
 import { responderMensagensDeClientes } from "@/lib/agency/esteira/pm-responde";
 import { POST as retornoPOST } from "@/app/api/connect/retorno/route";
-import { CABECALHO_DO_SEGREDO } from "@/lib/agency/connect/porta";
+import { CABECALHO_DO_SEGREDO } from "@/lib/agency/connect/porta-do-retorno";
 import { VERSAO_DO_CONTRATO } from "@/lib/agency/connect/conector/versao";
 
 // ── O AMBIENTE, como o operador o configura ─────────────────────────────────

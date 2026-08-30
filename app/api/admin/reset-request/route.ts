@@ -21,6 +21,8 @@ import { generate } from "@/lib/ai/generate";
 import { computeEstimate } from "@/lib/agency/live-calculator";
 import { segredoConfere } from "@/lib/security/crypto";
 
+import { VOZ_DO_CLIENTE } from "@/lib/agency/gerencia/voz-unica";
+import { precoDoItemEmTexto } from "@/lib/agency/comercial/preco-do-item";
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // ⚠️ O PIOR DOS SEIS: com este segredo a rota roda SEM escopo de workspace —
   // apaga projeto de qualquer inquilino. Comparar com `===` deixava o segredo
@@ -209,7 +211,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
     const deliverables = friendlyItems.map((i) => `• ${i}`).join("\n");
     const valueLines = est.items.length
-      ? est.items.map((it) => `• ${it.label}: ${money(it.minPrice)}${it.maxPrice > it.minPrice ? ` a ${money(it.maxPrice)}` : ""}${it.unit ? ` / ${it.unit}` : ""}`).join("\n")
+      ? est.items.map((it) =>
+          // Item sem preço de tabela sai por escrito como "orçado à parte" —
+          // nunca como R$ 0. Regra e redação numa fonte só.
+          `• ${it.label}: ${precoDoItemEmTexto(it, money)}${it.minPrice !== null && it.unit ? ` / ${it.unit}` : ""}`,
+        ).join("\n")
       : "• A combinar";
     const totalLine = est.totalMax > 0
       ? `Total: ${money(est.totalMin)}${est.totalMax > est.totalMin ? ` a ${money(est.totalMax)}` : ""} / mês`
@@ -232,7 +238,7 @@ Se estiver tudo certo, é só clicar em Aprovar aqui embaixo. Assim que você ap
 
     const msg = `📋 ${target.businessName}, sua proposta já está aqui no portal! Abre a aba "Aprovações", dá uma olhada com calma e, se gostar, é só aprovar. Qualquer dúvida ou ajuste, me chama por aqui. 💛`;
     await prisma.portalMessage.create({
-      data: { clientRequestId: target.id, authorRole: "team", authorName: "Equipe Dioli", body: msg, readByTeam: true },
+      data: { clientRequestId: target.id, authorRole: "team", authorName: VOZ_DO_CLIENTE, body: msg, readByTeam: true },
     });
     const approval = await createApprovalRequest({ clientRequestId: target.id, department: "proposal", requestedBy: "Agência", clientVisible: true });
     await prisma.approvalRequest.update({ where: { id: approval.id }, data: { reviewNote: proposalText } });

@@ -61,7 +61,13 @@ export async function pecasEmTexto(projectId: string, nomeDoCliente: string): Pr
   const entregas = await prisma.deliverable.findMany({
     where: { projectId },
     orderBy: { createdAt: "asc" },
-    select: { name: true, type: true, content: true, revisionStatus: true, visibility: true, lastFeedback: true },
+    select: {
+      name: true, type: true, content: true, revisionStatus: true, visibility: true, lastFeedback: true,
+      // QUEM julgou. "Revisada pela Qualidade" era a frase que mentia: ela
+      // saía igual para a peça julgada por um juiz independente e para a peça
+      // julgada pelo próprio modelo que a escreveu (Farol 27, rodada 5).
+      qualityArbiter: true, qualityArbitragem: true,
+    },
   }).catch(() => []);
 
   const l: string[] = [];
@@ -80,8 +86,23 @@ export async function pecasEmTexto(projectId: string, nomeDoCliente: string): Pr
   l.push("");
   for (const e of entregas) {
     l.push(`---`, "", `## ${e.name}`);
-    const revisada = e.revisionStatus === "quality_ok";
-    l.push("", revisada ? "_Revisada pela Qualidade._" : `_Revisão: ${e.revisionStatus ?? "não auditada"}._`);
+    // ── TRÊS PALAVRAS, PORQUE SÃO TRÊS COISAS (25/08/2026) ────────────────
+    // "Revisada pela Qualidade" dizia a mesma coisa para um julgamento
+    // independente e para um auto-julgamento. Agora o veredito e QUEM o deu
+    // saem juntos, sempre — e "não medido" tem palavra própria.
+    const veredito = e.revisionStatus === "quality_ok" ? "APROVADA"
+      : e.revisionStatus === "quality_flag" ? "REPROVADA"
+      : null;
+    const quem = e.qualityArbitragem === "arbitro_independente"
+      ? `por árbitro independente${e.qualityArbiter ? ` (${e.qualityArbiter})` : " (régua determinística da casa)"}`
+      : e.qualityArbitragem === "decisao_humana"
+        ? `por uma **PESSOA** pela tela${e.qualityArbiter ? ` (${e.qualityArbiter.replace(/^pessoa:/, "")})` : ""} — decisão de gente, não auditoria`
+      : e.qualityArbitragem === "autojulgado"
+        ? `pelo **PRÓPRIO autor**${e.qualityArbiter ? ` (${e.qualityArbiter})` : ""} — NÃO é julgamento independente`
+        : "— **não medido** quem julgou (peça anterior à medição)";
+    l.push("", veredito
+      ? `_Qualidade: **${veredito}** ${quem}._`
+      : `_Qualidade: **NÃO JULGADA** — ${e.revisionStatus ?? "sem registro"}._`);
     // ── O PARECER DA QUALIDADE, QUANDO ELA BARROU ──────────────────────────
     // `apresentar()` recusa o pacote inteiro enquanto houver peça em
     // `quality_flag`, e sem o parecer aqui a única forma de saber POR QUÊ é

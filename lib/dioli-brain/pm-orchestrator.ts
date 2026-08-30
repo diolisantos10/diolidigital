@@ -106,16 +106,38 @@ export function proposeProjectRuleBased(snapshot: ClientKnowledgeSnapshot): Proj
     estimatedDays: 2,
   });
 
-  // Missing brand-brain fields → an explicit alignment task instead of inventing.
+  // ── O ALINHAMENTO DE BRAND BRAIN DEIXOU DE SER TAREFA DO PLANO (8ª volta) ──
+  //
+  // Aqui nascia a tarefa "Alinhar Brand Brain com o cliente", com
+  // `department: "project-management"`. MEDIDO EM PRODUÇÃO (26/08/2026):
+  // `gerente_geral_recusou_demanda` — *"O Gerente Geral não despacha para si
+  // mesmo — demanda que volta para o topo não anda."*
+  //
+  // A trava está certa e não se afrouxa. Quem chamava errado era esta linha: no
+  // manifesto, o gerente do departamento `project-management` é o PRÓPRIO
+  // `gerente-geral`. Então toda vez que o Brand Brain estivesse incompleto —
+  // que é quase sempre, no começo — o plano continha, por construção, um
+  // despacho do GG para ele mesmo, e uma recusa.
+  //
+  // ⚠️ E o conserto NÃO é trocar o departamento. Foi a minha primeira tentativa
+  // (mandar para `branding`), e a jornada ponta-a-ponta a reprovou na hora: o
+  // departamento passou a receber TRABALHO DE PRODUÇÃO que o cliente não
+  // comprou, e o pacote deixou de fechar. Ponto fraco meu, declarado: eu tratei
+  // um problema de ROTEAMENTO no que era um problema de CLASSE.
+  //
+  // Coletar dado que falta não é entrega de departamento nenhum — é a casa
+  // falando com o cliente, e disso a casa já cuida por outro cano
+  // (`coletarMaterialDeProduto`, `cobrarCliente`). O que sobra aqui é o AVISO,
+  // que já existia e já tem leitor de verdade: a tela do pedido
+  // (`app/agency/requests/page.tsx`) renderiza `proposal.warnings`. Ele passa a
+  // carregar o que todo aviso desta casa carrega — o que falta, o dono e a
+  // próxima ação.
   if (snapshot.missingFields.length > 0) {
-    tasks.push({
-      title: "Alinhar Brand Brain com o cliente",
-      description: `Coletar campos ausentes antes da produção em escala: ${snapshot.missingFields.join(", ")}.`,
-      department: "project-management",
-      priority: snapshot.missingFields.length >= 5 ? "high" : "medium",
-      estimatedDays: 2,
-    });
-    warnings.push(`Brand Brain incompleto (${snapshot.missingFields.length} campo(s) ausente(s)) — tarefa de alinhamento adicionada.`);
+    warnings.push(
+      `Brand Brain incompleto: ${snapshot.missingFields.join(", ")}. ` +
+        "Dono: Gerente de projeto. Próxima ação: pedir esses campos ao cliente ANTES da produção em escala — " +
+        "peça escrita sem eles sai com \"PRECISO CONFIRMAR\" e é barrada no portão de saída.",
+    );
   }
 
   const goal =
