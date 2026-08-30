@@ -37,5 +37,32 @@ for (const c of clientes) {
   );
 }
 
+// ── SEGUNDA PERGUNTA, no mesmo deploy: o App Review tem por onde entrar? ────
+//
+// Todos os 6 vídeos de demonstração da Meta começam com o revisor fazendo login.
+// Se o usuário de teste não existir, os seis morrem no primeiro passo — e isso
+// reprova o ENVIO INTEIRO, não uma permissão.
+//
+// O seed da casa cria `pm@dioli.studio` com papel `project_manager`, que é
+// exatamente o que o dossiê da Meta pede. Perguntar aqui custa uma linha e
+// evita descobrir isso no domingo à noite.
+//
+// ⛔ NÃO imprime senha, hash nem token. Só se existe e com que papel.
+const usuariosDeTeste = await prisma.user.findMany({
+  where: { email: { in: ["pm@dioli.studio", "master@dioli.studio"] } },
+  select: { email: true, role: true, createdAt: true },
+});
+
+console.log(`[APP-REVIEW] usuários do seed encontrados: ${usuariosDeTeste.length}`);
+for (const u of usuariosDeTeste) {
+  console.log(`[APP-REVIEW] email=${u.email} papel=${u.role} criado=${u.createdAt.toISOString()}`);
+}
+if (!usuariosDeTeste.some((u) => u.email === "pm@dioli.studio")) {
+  console.log(
+    "[APP-REVIEW] ⚠️ pm@dioli.studio NAO EXISTE — o revisor da Meta nao tem como entrar, " +
+      "e os 6 videos param no primeiro passo. Rodar o seed em producao e decisao do CEO.",
+  );
+}
+
 console.log("[RAIO-X] FIM — nenhuma escrita foi feita.");
 await prisma.$disconnect();
