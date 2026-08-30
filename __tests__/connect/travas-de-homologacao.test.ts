@@ -27,6 +27,14 @@ import {
   CAMPOS_DE_CLIENTE_PROIBIDOS,
 } from "@/lib/agency/connect/contrato";
 import {
+  CARACTERES_DISTINTOS_MINIMOS,
+  TAMANHO_MINIMO_DO_SEGREDO,
+  VARIAVEL_DO_SEGREDO,
+  conferirSegredo,
+  segredoApresentado,
+  segredoDaPorta,
+} from "@/lib/agency/connect/porta";
+import {
   escolherClienteDeHomologacao,
   type LinhaDeCliente,
 } from "@/lib/agency/connect/cliente-de-homologacao";
@@ -45,6 +53,92 @@ function corpo(extra: Record<string, unknown> = {}) {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ⭐ A-1 da auditoria independente (30/08/2026) — O PISO DO SEGREDO.
+//
+// A reprodução do auditor: `CONNECT_SECRET="x"` mais `authorization: Bearer x`
+// devolviam HTTP 200, estado executado, com linha gravada no banco. A guarda
+// era `process.env.CONNECT_SECRET?.trim() || null` — sem piso nenhum. O irmão
+// Foocci já tinha o piso de 16 (`src/services/connect/porta.ts:63`).
+//
+// Aqui a decisão é medida onde ela MORA (função pura); o comportamento pela
+// rota tem o par em `a-porta-do-connect.test.ts`.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("A-1 — segredo abaixo do piso é porta DESLIGADA, não porta fraca", () => {
+  /** Um segredo que cumpre tudo: comprido e variado. */
+  const BOM = "segredo-de-homologacao-do-connect";
+
+  /** Um ambiente com UMA variável, e nenhuma outra — a guarda é pura, e é isso
+   *  que permite montar o mundo inteiro dela numa linha. */
+  function ambiente(segredo: string): NodeJS.ProcessEnv {
+    return { [VARIAVEL_DO_SEGREDO]: segredo } as unknown as NodeJS.ProcessEnv;
+  }
+
+  it.each([
+    ["o segredo de UM caractere que o auditor usou", "x"],
+    ["quinze caracteres — um a menos que o piso", "a".repeat(7) + "bcdefgh"],
+    ["vazio", ""],
+    ["só espaço em branco", "        "],
+    ["curto com espaços em volta para parecer longo", "   x   "],
+  ])("desliga a porta com %s", (_caso, valor) => {
+    expect(segredoDaPorta(ambiente(valor))).toBeNull();
+  });
+
+  it("⭐ A VARIANTE VIZINHA — dezesseis caracteres repetidos também é porta desligada", () => {
+    // O piso de comprimento sozinho fecharia o buraco medido e deixaria este,
+    // um metro ao lado: `xxxxxxxxxxxxxxxx` tem o tamanho e não é um segredo.
+    for (const marcador of ["x".repeat(16), "ab".repeat(10), "1234".repeat(5), "-".repeat(20)]) {
+      expect(marcador.length).toBeGreaterThanOrEqual(TAMANHO_MINIMO_DO_SEGREDO);
+      expect(
+        segredoDaPorta(ambiente(marcador)),
+        `"${marcador}" passou no piso — marcador de lugar não é segredo`,
+      ).toBeNull();
+    }
+  });
+
+  it("A OUTRA METADE — o segredo legítimo passa, e passa com espaço em volta", () => {
+    expect(segredoDaPorta(ambiente(BOM))).toBe(BOM);
+    expect(segredoDaPorta(ambiente(`  ${BOM}\n`))).toBe(BOM);
+    // E um segredo aleatório do tamanho mínimo — o caso real de produção.
+    const aleatorio = "K7pQ2mZ9xR4tB6wL";
+    expect(aleatorio.length).toBe(TAMANHO_MINIMO_DO_SEGREDO);
+    expect(new Set(aleatorio).size).toBeGreaterThanOrEqual(CARACTERES_DISTINTOS_MINIMOS);
+    expect(segredoDaPorta(ambiente(aleatorio))).toBe(aleatorio);
+  });
+
+  it("⭐ o segredo curto NÃO é comparado com coisa nenhuma: é 503, e nunca 401", () => {
+    // A ordem importa. Se a comparação viesse primeiro, `Bearer x` contra
+    // `CONNECT_SECRET="x"` conferiria — que é exatamente o 200 do auditor.
+    const r = conferirSegredo("Bearer x", ambiente("x"));
+    expect(r.ok, "o segredo de um caractere voltou a abrir a porta").toBe(false);
+    if (r.ok) return;
+    expect(r.status).toBe(503);
+    expect(r.motivo).toMatch(/permanece fechada/i);
+    expect(r.motivo).toContain(String(TAMANHO_MINIMO_DO_SEGREDO));
+  });
+
+  it("com a porta LIGADA, o cabeçalho errado é 401 — a distinção não se perdeu", () => {
+    const env = ambiente(BOM);
+    expect(conferirSegredo("Bearer chute", env)).toEqual({ ok: false, status: 401, motivo: "segredo inválido" });
+    expect(conferirSegredo(null, env)).toMatchObject({ status: 401 });
+    expect(conferirSegredo(`Basic ${BOM}`, env)).toMatchObject({ status: 401 });
+    expect(conferirSegredo(BOM, env)).toMatchObject({ status: 401 }); // sem o esquema
+  });
+
+  it("A OUTRA METADE — o cabeçalho certo atravessa, com o esquema em qualquer caixa", () => {
+    const env = ambiente(BOM);
+    expect(conferirSegredo(`Bearer ${BOM}`, env)).toEqual({ ok: true });
+    expect(conferirSegredo(`bearer ${BOM}`, env)).toEqual({ ok: true });
+    expect(conferirSegredo(`BEARER  ${BOM}  `, env)).toEqual({ ok: true });
+  });
+
+  it("o valor do segredo NUNCA é normalizado — normalizar apaga diferença que conta", () => {
+    expect(segredoApresentado(`Bearer ${BOM.toUpperCase()}`)).toBe(BOM.toUpperCase());
+    expect(conferirSegredo(`Bearer ${BOM.toUpperCase()}`, ambiente(BOM)))
+      .toMatchObject({ status: 401 });
+  });
+});
+
 // ───────────────────────────────────────────────────────────────────────────
 // TRAVA 3 — segredo de outra finalidade não abre porta corporativa.
 // ───────────────────────────────────────────────────────────────────────────
@@ -56,19 +150,57 @@ describe("trava 3 — o encosto no PILOTO_SECRET não pode voltar sem alguém ve
   // o próprio arquivo da rota é lido, e a leitura só admite uma menção — a que
   // EXPLICA por que ele não é aceito.
   const rota = fs.readFileSync(path.join(RAIZ, "app/api/connect/despacho/route.ts"), "utf8");
+  // ⚠️ A GUARDA MUDOU DE CASA em 30/08/2026 (defeito A-1 da auditoria): ela é
+  // função pura em `lib/agency/connect/porta.ts` e a rota virou casca. Esta
+  // leitura acompanha a mudança e fica MAIS estrita, não menos — antes se exigia
+  // que a rota lesse UM segredo só; agora se exige que ela não leia NENHUM, e
+  // que o único lugar que lê o segredo desta porta seja o módulo da guarda.
+  const porta = fs.readFileSync(path.join(RAIZ, "lib/agency/connect/porta.ts"), "utf8");
 
-  it("a rota lê CONNECT_SECRET e nenhum outro segredo de ambiente", () => {
-    const lidos = [...rota.matchAll(/process\.env\.([A-Z_]+)/g)].map((m) => m[1]);
-    expect(lidos).toContain("CONNECT_SECRET");
+  /**
+   * O CÓDIGO, sem os comentários. A distinção importa e não é preciosismo: os
+   * dois arquivos CITAM `process.env.CONNECT_SECRET?.trim() || null` — a linha
+   * que a auditoria reprovou — para registrar o que foi consertado. Uma leitura
+   * que não separasse citação de leitura reprovaria a própria explicação, e a
+   * lição seria "apague o comentário", que é o contrário do que se quer.
+   */
+  function codigoSemComentarios(fonte: string): string {
+    return fonte.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  }
+
+  it("a guarda lê CONNECT_SECRET e nenhum outro segredo de ambiente", () => {
+    const codigo = codigoSemComentarios(porta);
+    const lidos = [...codigo.matchAll(/env\[\s*([A-Za-z_"'`]+)\s*\]|process\.env\.([A-Z_]+)/g)].map((m) =>
+      (m[1] ?? m[2])!.replace(/["'`]/g, ""),
+    );
+    // A leitura é indireta, pela constante — e a constante é CONNECT_SECRET.
+    expect(lidos).toContain("VARIAVEL_DO_SEGREDO");
+    expect(codigo).toContain('VARIAVEL_DO_SEGREDO = "CONNECT_SECRET"');
     expect(
-      lidos.filter((v) => v !== "CONNECT_SECRET"),
+      lidos.filter((v) => v !== "VARIAVEL_DO_SEGREDO"),
       "a porta do Connect voltou a ler outro segredo de ambiente — segredo de outra finalidade não abre porta corporativa",
     ).toEqual([]);
   });
 
-  it("PILOTO_SECRET só aparece na rota como explicação, nunca como leitura", () => {
-    expect(rota).toContain("PILOTO_SECRET"); // o comentário que registra a decisão
-    expect(rota).not.toContain("process.env.PILOTO_SECRET");
+  it("⭐ a ROTA não lê variável de ambiente nenhuma — a decisão mora na guarda pura", () => {
+    expect(
+      [...codigoSemComentarios(rota).matchAll(/process\.env\.([A-Z_]+)/g)].map((m) => m[1]),
+      "a rota voltou a decidir sobre segredo por conta própria; a decisão tem que morar em porta.ts, onde ela é testável nas duas metades sem levantar HTTP",
+    ).toEqual([]);
+  });
+
+  it("PILOTO_SECRET só aparece como explicação, nunca como leitura", () => {
+    // O comentário que registra a decisão, e a FRASE de recusa que o operador
+    // lê ("não existe encosto em PILOTO_SECRET…"), continuam vivos — os dois
+    // são explicação, e explicação é o que se quer manter.
+    expect(rota + porta).toContain("PILOTO_SECRET");
+    // O que não pode voltar é a LEITURA. O teste anterior já prova o caso geral
+    // (a guarda lê uma variável só); este nomeia o encosto que já existiu aqui,
+    // para que a reintrodução tenha um vermelho com o nome dela.
+    const codigo = codigoSemComentarios(rota) + codigoSemComentarios(porta);
+    expect(codigo).not.toMatch(/process\.env\.PILOTO_SECRET/);
+    expect(codigo).not.toMatch(/env\[\s*["'`]?PILOTO_SECRET/);
+    expect(codigo).not.toMatch(/VARIAVEL_DO_SEGREDO\s*=\s*["'`]PILOTO_SECRET/);
   });
 });
 

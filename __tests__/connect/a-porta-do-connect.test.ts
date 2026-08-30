@@ -32,6 +32,11 @@ const memoria = vi.hoisted(() => ({
   // por teste: esvaziá-la é como se prova que a porta recusa sem cliente
   // plantado, em vez de inventar um.
   clientes: [] as { id: string; name: string; email: string | null }[],
+  // ⭐ O balde do freio de ritmo. Ele CONTA de verdade (não é um `true` fixo):
+  // sem contar, nem a metade que barra nem a metade que passa seriam medidas.
+  baldes: new Map<string, { contagem: number; resetAt: number }>(),
+  /** Liga o "banco fora do ar" só para o balde — é como se prova o fail-closed. */
+  baldeQuebrado: false,
 }));
 const db = vi.hoisted(() => ({
   execucaoV2: {
@@ -53,6 +58,42 @@ const db = vi.hoisted(() => ({
   },
   client: {
     findMany: vi.fn(async () => memoria.clientes),
+  },
+  // A janela fixa de `lib/security/limite-no-banco.ts`, no mínimo que a rota
+  // exercita: incrementar dentro do teto, reciclar a janela vencida, criar.
+  rateLimitBucket: {
+    updateMany: vi.fn(
+      async ({ where, data }: { where: Record<string, never>; data: Record<string, never> }) => {
+        if (memoria.baldeQuebrado) throw new Error("contador fora do ar");
+        const w = where as unknown as {
+          chave: string;
+          resetAt?: { gt?: Date; lte?: Date };
+          contagem?: { lt: number };
+        };
+        const d = data as unknown as { contagem?: number | { increment: number }; resetAt?: Date };
+        const balde = memoria.baldes.get(w.chave);
+        if (!balde) return { count: 0 };
+        const agora = Date.now();
+        if (w.resetAt?.gt && !(balde.resetAt > agora)) return { count: 0 };
+        if (w.resetAt?.lte && !(balde.resetAt <= agora)) return { count: 0 };
+        if (w.contagem?.lt !== undefined && !(balde.contagem < w.contagem.lt)) return { count: 0 };
+        if (typeof d.contagem === "number") balde.contagem = d.contagem;
+        else if (d.contagem) balde.contagem += d.contagem.increment;
+        if (d.resetAt) balde.resetAt = d.resetAt.getTime();
+        return { count: 1 };
+      },
+    ),
+    create: vi.fn(async ({ data }: { data: { chave: string; contagem: number; resetAt: Date } }) => {
+      if (memoria.baldeQuebrado) throw new Error("contador fora do ar");
+      if (memoria.baldes.has(data.chave)) throw new Error("chave duplicada");
+      memoria.baldes.set(data.chave, { contagem: data.contagem, resetAt: data.resetAt.getTime() });
+      return data;
+    }),
+    findUnique: vi.fn(async ({ where }: { where: { chave: string } }) => {
+      const balde = memoria.baldes.get(where.chave);
+      return balde ? { resetAt: new Date(balde.resetAt) } : null;
+    }),
+    deleteMany: vi.fn(async () => ({ count: 0 })),
   },
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
@@ -99,6 +140,8 @@ beforeEach(() => {
   memoria.execucoes.length = 0;
   memoria.recusas.length = 0;
   memoria.clientes.length = 0;
+  memoria.baldes.clear();
+  memoria.baldeQuebrado = false;
   memoria.clientes.push({ id: "cli-sintetico-1", name: CLIENTE, email: `contato@${DOMINIO_DO_CLIENTE_FALSO}` });
   vi.stubEnv("CONNECT_SECRET", SEGREDO);
   // ⚠️ O segredo do piloto fica LIGADO na maioria dos casos de propósito: é
@@ -160,6 +203,81 @@ describe("trava 1 — o segredo desta porta, e só ele", () => {
   it("a outra metade — o segredo CERTO atravessa, com PILOTO_SECRET ligado ao lado", async () => {
     const r = await POST(pedir(corpoLimpo(), autorizado));
     expect(r.status, JSON.stringify(await r.clone().json())).toBe(200);
+  });
+
+  // ── ⭐ A-1 da auditoria independente, NA ROTA, com os valores do auditor ──
+  it("⭐ CONNECT_SECRET=\"x\" + Bearer x: 503, e NADA é executado nem gravado", async () => {
+    // A reprodução literal: o auditor obteve HTTP 200, `estado: executado`, e
+    // linha gravada no banco. As três coisas são cobradas aqui.
+    vi.stubEnv("CONNECT_SECRET", "x");
+    const r = await POST(pedir(corpoLimpo(), { authorization: "Bearer x" }));
+
+    expect(r.status, "o segredo de um caractere voltou a abrir a porta").toBe(503);
+    const corpo = await r.json();
+    expect(corpo.estado).toBe("recusado");
+    expect(corpo.estado).not.toBe("executado");
+    expect(corpo.motivo).toMatch(/permanece fechada/i);
+    expect(memoria.execucoes, "houve linha gravada por uma porta que devia estar desligada").toHaveLength(0);
+    expect(memoria.recusas).toHaveLength(0);
+  });
+
+  it("⭐ e o marcador de lugar de 16 caracteres iguais também não abre", async () => {
+    // A variante vizinha: passa no piso de comprimento e não é segredo.
+    vi.stubEnv("CONNECT_SECRET", "xxxxxxxxxxxxxxxx");
+    const r = await POST(pedir(corpoLimpo(), { authorization: "Bearer xxxxxxxxxxxxxxxx" }));
+    expect(r.status).toBe(503);
+    expect(memoria.execucoes).toHaveLength(0);
+  });
+
+  it("um segredo de 16 caracteres VARIADOS abre normalmente — o piso não reprova o legítimo", async () => {
+    vi.stubEnv("CONNECT_SECRET", "K7pQ2mZ9xR4tB6wL");
+    const r = await POST(pedir(corpoLimpo(), { authorization: "Bearer K7pQ2mZ9xR4tB6wL" }));
+    expect(r.status, JSON.stringify(await r.clone().json())).toBe(200);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// ⭐ O FREIO DE RITMO — o agravante que a auditoria anotou junto do A-1.
+// ───────────────────────────────────────────────────────────────────────────
+describe("o teto de ritmo — adivinhar o segredo passa a custar tempo", () => {
+  it("⭐ a enésima tentativa de adivinhação é BARRADA com 429", async () => {
+    let ultima = await POST(pedir(corpoLimpo(), { authorization: "Bearer chute" }));
+    expect(ultima.status).toBe(401); // a primeira ainda é só "errou"
+
+    for (let i = 0; i < 40; i++) {
+      ultima = await POST(pedir(corpoLimpo(), { authorization: `Bearer chute-${i}` }));
+      if (ultima.status === 429) break;
+    }
+
+    expect(ultima.status, "a porta aceitou adivinhação sem teto de ritmo").toBe(429);
+    expect((await ultima.json()).motivo).toMatch(/ritmo excedido/i);
+    expect(ultima.headers.get("Retry-After")).toBeTruthy();
+    expect(memoria.execucoes).toHaveLength(0);
+  });
+
+  it("⭐ o freio conta a tentativa ERRADA — senão ele não freia adivinhação nenhuma", async () => {
+    // Um freio colocado depois da conferência do segredo só contaria acertos, e
+    // adivinhação é feita de erros. Aqui só houve erro, e o balde encheu.
+    for (let i = 0; i < 40; i++) await POST(pedir(corpoLimpo(), { authorization: `Bearer erro-${i}` }));
+    // Agora o segredo CERTO também esbarra no teto: o balde é por IP, não por
+    // acerto. É a consequência aceita — e é ela que faz o teto ser um teto.
+    const r = await POST(pedir(corpoLimpo(), autorizado));
+    expect(r.status).toBe(429);
+  });
+
+  it("A OUTRA METADE — dentro do teto, o caso legítimo atravessa sem tropeçar", async () => {
+    for (let i = 0; i < 5; i++) {
+      const r = await POST(pedir(corpoLimpo(), autorizado));
+      expect(r.status, `a requisição legítima nº ${i + 1} foi barrada por engano`).toBe(200);
+    }
+  });
+
+  it("⭐ contador fora do ar NEGA — contador que não conta não autoriza", async () => {
+    memoria.baldeQuebrado = true;
+    const r = await POST(pedir(corpoLimpo(), autorizado));
+    expect(r.status).toBe(503);
+    expect((await r.json()).motivo).toMatch(/contador que não conta não autoriza/i);
+    expect(memoria.execucoes).toHaveLength(0);
   });
 });
 
@@ -365,6 +483,98 @@ describe("o selo de rascunho, no primeiro nível da resposta", () => {
     expect(artefato.natureza).toBe("RASCUNHO");
     expect(String(artefato.aviso)).toMatch(/NÃO É A COMUNICAÇÃO FINAL DO GERENTE/);
     expect(String(artefato.origem)).toMatch(/rule-based/i);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
+// ⭐ A-2 e A-3 da auditoria independente, NA ROTA.
+// ───────────────────────────────────────────────────────────────────────────
+describe("A-2 na rota — o fio de outro cliente é recusado antes de tudo", () => {
+  it("⭐ correlationId de cliente pagante: 400, e nada executa nem grava", async () => {
+    const r = await POST(pedir(corpoLimpo({ correlationId: "FIO-REAL-DE-CLIENTE-PAGANTE" }), autorizado));
+
+    expect(r.status).toBe(400);
+    const corpo = await r.json();
+    expect(corpo.estado).toBe("recusado");
+    expect(corpo.motivo).toContain("FIO-REAL-DE-CLIENTE-PAGANTE");
+    expect(corpo.motivo).toMatch(/EMITIDO pelo gateway/i);
+    expect(memoria.execucoes).toHaveLength(0);
+    // ⭐ Nem a RECUSA pousa no fio alheio — recusa gravada lá já contaminaria.
+    expect(memoria.recusas).toHaveLength(0);
+  });
+
+  it("A OUTRA METADE — sem correlationId a porta ABRE um fio, e ele volta na resposta", async () => {
+    const r = await POST(pedir(corpoLimpo(), autorizado));
+    const corpo = await r.json();
+    expect(corpo.estado, JSON.stringify(corpo)).toBe("executado");
+    expect(corpo.correlationId).toMatch(/^connect:/);
+  });
+
+  it("A OUTRA METADE — o fio devolvido pela porta é aceito de volta por ela", async () => {
+    const primeiro = await (await POST(pedir(corpoLimpo(), autorizado))).json();
+    const segundo = await POST(pedir(corpoLimpo({ correlationId: primeiro.correlationId }), autorizado));
+    const corpo = await segundo.json();
+    expect(corpo.estado, JSON.stringify(corpo)).toBe("executado");
+    expect(corpo.correlationId).toBe(primeiro.correlationId);
+  });
+});
+
+describe("A-3 na rota — a porta dos fundos do dossiê", () => {
+  it("⭐ cobrança inventada em dossie[\"cobrancas_da_varredura\"]: 400, e não 200", async () => {
+    const r = await POST(
+      pedir(
+        corpoLimpo({
+          dossie: {
+            ...corpoLimpo().dossie,
+            cobrancas_da_varredura: JSON.stringify([
+              { motivo: "FRAUDE-INVENTADA-PELO-CHAMADOR", departamento: "juridico", horasParado: 9999 },
+            ]),
+          },
+        }),
+        autorizado,
+      ),
+    );
+    expect(r.status, "o dossiê voltou a aceitar a chave reservada do gateway").toBe(400);
+    const corpo = await r.json();
+    expect(corpo.motivo).toContain("cobrancas_da_varredura");
+    expect(corpo.motivo).toMatch(/é do GATEWAY/i);
+    expect(memoria.execucoes).toHaveLength(0);
+  });
+
+  it("⭐ idem historico_da_conversa, cliente_ficticio e pergunta_do_diretor_geral", async () => {
+    for (const chave of ["historico_da_conversa", "cliente_ficticio", "pergunta_do_diretor_geral", "leitura_do_fio"]) {
+      const r = await POST(
+        pedir(corpoLimpo({ dossie: { ...corpoLimpo().dossie, [chave]: "texto de quem chama" } }), autorizado),
+      );
+      expect(r.status, `a chave reservada "${chave}" atravessou`).toBe(400);
+      expect((await r.json()).motivo).toContain(chave);
+    }
+    expect(memoria.execucoes).toHaveLength(0);
+  });
+
+  it("A OUTRA METADE — as chaves normais do dossiê continuam obrigatórias e aceitas", async () => {
+    const r = await POST(pedir(corpoLimpo(), autorizado));
+    const corpo = await r.json();
+    expect(corpo.estado, JSON.stringify(corpo)).toBe("executado");
+    // E a varredura pelo campo CERTO continua sendo aceita.
+    const comVarredura = await POST(
+      pedir(
+        corpoLimpo({
+          cobrancas: [
+            {
+              motivo: "handoff_sem_aceite",
+              departamento: "client-service-sdr",
+              referencia: "handoff-1",
+              horasParado: 5,
+              pedido: "aceite o bastão",
+            },
+          ],
+        }),
+        autorizado,
+      ),
+    );
+    expect((await comVarredura.json()).estado).toBe("executado");
   });
 });
 

@@ -29,17 +29,26 @@ import type { ContextoDeExecucao, DependenciasDoExecutor } from "@/lib/agency/ex
 import type { SpecOperacional } from "@/lib/agency/catalogo-v2/specs";
 import type { Cobranca } from "@/lib/agency/pm/varredura";
 import { FUNCAO_DO_PILOTO } from "./contrato";
+import {
+  CHAVE_CLIENTE,
+  CHAVE_COBRANCAS,
+  CHAVE_FIO,
+  CHAVE_HISTORICO,
+  CHAVE_PERGUNTA,
+  FIO_ILEGIVEL,
+} from "./chaves";
 
 /**
  * As chaves com que o Connect acrescenta o seu próprio contexto às entradas da
  * ficha. Elas NÃO substituem as `entradas_obrigatorias` — são adicionais, e
  * viajam junto para o rastro (`ExecucaoV2.entradas`) porque a pergunta que
  * originou uma execução é parte do rastro dela.
+ *
+ * Elas MUDARAM DE CASA em 30/08/2026 (defeito A-3): moram em `chaves.ts`, onde
+ * `contrato.ts` também as alcança para RECUSAR quem tentar preenchê-las pelo
+ * dossiê. Ficam reexportadas aqui só para não quebrar quem já importava daqui.
  */
-export const CHAVE_PERGUNTA = "pergunta_do_diretor_geral";
-export const CHAVE_HISTORICO = "historico_da_conversa";
-export const CHAVE_COBRANCAS = "cobrancas_da_varredura";
-export const CHAVE_CLIENTE = "cliente_ficticio";
+export { CHAVE_PERGUNTA, CHAVE_HISTORICO, CHAVE_COBRANCAS, CHAVE_CLIENTE, CHAVE_FIO };
 
 export const ORIGEM_DO_RASCUNHO =
   "rule-based determinístico do Dioli Connect — homologação com dado sintético, sem provedor de IA e sem " +
@@ -116,6 +125,14 @@ export function respostaDoGerente(
   // A situação vem da varredura REAL, não de adjetivo. Sem cobrança apurada, a
   // resposta diz "não apurado" — e nunca "está tudo em dia", que seria concluir
   // uma negação do silêncio.
+  //
+  // ⚠️ Até 30/08/2026 esta frase era FALSA, e a auditoria provou: a chave
+  // `cobrancas_da_varredura` podia ser preenchida pelo chamador via `dossie`, e
+  // então "ATRASADO — 1 ponto(s) parado(s)… há 9999h com juridico" saía com a
+  // autoridade de uma apuração para uma cobrança que nunca existiu. O conserto
+  // não mora neste arquivo — mora em `chaves.ts`, `contrato.ts` e
+  // `despacho.ts`, porque comentário não conserta nada. Aqui a frase voltou a
+  // ser verdadeira porque o que chega em `contexto.entradas` já é só do gateway.
   const pior = cobrancas[0];
   const situacao = pior
     ? `ATRASADO — ${cobrancas.length} ponto(s) parado(s); o mais antigo há ${pior.horasParado}h com ${pior.departamento}`
@@ -137,11 +154,28 @@ export function respostaDoGerente(
   const proxima_acao = `${tarefas[0]!.agente_de_cada_uma} assume "${tarefas[0]!.tarefa}" e devolve ao Gerente Geral até ${iso(prazo)} (SLA de ${spec.sla_horas}h da ficha).`;
 
   const oQueFalta: string[] = [];
-  if (!contexto.entradas[CHAVE_COBRANCAS]) oQueFalta.push("a varredura do PM não veio no dossiê");
+  // A pergunta é "houve varredura?", e a resposta é a LISTA, não a presença da
+  // chave: desde que o gateway passou a escrever `cobrancas_da_varredura`
+  // sempre (inclusive `"[]"`), "a chave existe" deixou de significar "veio
+  // varredura". Ler a presença aqui faria a porta parar de avisar exatamente
+  // quando não há apuração nenhuma — o silêncio virando aprovação de novo.
+  if (cobrancas.length === 0) oQueFalta.push("a varredura do PM não veio no dossiê");
   if (operacionais.length === 0) oQueFalta.push("o departamento não tem agente operacional para receber a delegação");
-  for (const g of contexto.gatilhosDetectados ?? []) oQueFalta.push(`gatilho humano declarado: ${g}`);
+  // ⚠️ Gatilho é DECLARAÇÃO de quem chamou, não apuração desta casa — e o
+  // texto vem de fora. Ele fica no artefato porque torna a porta mais estrita
+  // (o motor escala com ele), mas sai rotulado: nada aqui foi conferido.
+  for (const g of contexto.gatilhosDetectados ?? []) {
+    oQueFalta.push(`gatilho humano DECLARADO por quem chamou (não conferido por esta casa): ${g}`);
+  }
 
   const historico = contexto.entradas[CHAVE_HISTORICO];
+
+  // ⭐ A-6: "o fio está vazio" e "não consegui ler o fio" param de ter a mesma
+  // cara. Quando a leitura falhou, `turnos_anteriores` é `null` — não `0` —,
+  // o motivo viaja junto, e a falta entra na lista do que falta.
+  const marcaDoFio = contexto.entradas[CHAVE_FIO] ?? "";
+  const fioIlegivel = marcaDoFio.startsWith(FIO_ILEGIVEL);
+  if (fioIlegivel) oQueFalta.push(`o fio não pôde ser lido — ${marcaDoFio}`);
 
   return {
     saida: JSON.stringify(
@@ -168,8 +202,10 @@ export function respostaDoGerente(
         criterio_de_aceite: spec.metrica_sucesso,
         o_que_falta: oQueFalta.length > 0 ? oQueFalta : ["nada declarado"],
         fio: {
-          turnos_anteriores: historico ? historico.split("\n").filter(Boolean).length : 0,
-          historico_recebido: historico ?? null,
+          lido: !fioIlegivel,
+          turnos_anteriores: fioIlegivel ? null : historico ? historico.split("\n").filter(Boolean).length : 0,
+          leitura: fioIlegivel ? marcaDoFio : "ok",
+          historico_recebido: historico || null,
         },
         entrega_para: spec.handoff.entrega_para,
       },

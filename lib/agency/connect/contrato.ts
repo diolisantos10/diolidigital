@@ -43,7 +43,36 @@
 // silêncio. Ignorar deixaria quem chama achando que escolheu; recusar diz na
 // cara que essa escolha não existe mais.
 
+// ─── E A TRAVA QUE FALTAVA: O FIO TAMBÉM É UM ID ACEITO SEM DONO ───────────
+//
+// Auditoria independente de 30/08/2026, defeito A-2. O `clienteId` saiu do
+// corpo, e o `correlationId` ficou — aceito de quem chama, sem conferência de
+// dono nenhuma. É EXATAMENTE o mesmo padrão nº 2 do raio-x que este PR declara
+// ter matado, um metro ao lado: tiraram um id e deixaram o outro.
+//
+// O auditor plantou execução real (`funcao-real-secreta`, `cliente-real-999`)
+// sob o fio `FIO-REAL-DE-CLIENTE-PAGANTE`, despachou homologação no MESMO
+// `correlationId`, e obteve as duas metades do furo:
+//
+//   • VAZAMENTO DE LEITURA — o artefato devolvido trouxe id, horário e função
+//     da execução alheia, e isso ficou PERSISTIDO no rastro da homologação;
+//   • CONTAMINAÇÃO DE ESCRITA — a linha de homologação foi gravada dentro do
+//     fio do cliente pagante, com `turno: 2`.
+//
+// O conserto tem que ser de DESENHO, não de filtro: o fio deixa de ser um texto
+// livre e passa a ser um identificador que SÓ O GATEWAY EMITE. Quem chama não
+// inventa fio — ele recebe o fio na resposta do primeiro turno e devolve aquele
+// mesmo. Qualquer outra coisa é recusa nomeada, antes de qualquer leitura e
+// antes de qualquer escrita. É a mesma frase da trava 5, aplicada ao outro id:
+// **o que o chamador não escolhe, ele não força.**
+//
+// A conferência de DONO (a linha lida pertence mesmo a este cliente e a esta
+// função?) mora em `despacho.ts`, porque "o formato está certo" não é o mesmo
+// que "é meu" — e as duas travas precisam existir, não uma delas.
+
+import { randomUUID } from "node:crypto";
 import type { Cobranca } from "@/lib/agency/pm/varredura";
+import { CHAVES_RESERVADAS_DO_GATEWAY, chaveEReservada } from "./chaves";
 
 /** O modo é literal e único. Não existe padrão. */
 export const MODO_EXIGIDO = "homologacao" as const;
@@ -64,6 +93,91 @@ export const FUNCOES_PERMITIDAS: readonly string[] = [FUNCAO_DO_PILOTO];
  * resposta é recusa nomeada — nunca um "ignorei e segui".
  */
 export const CAMPOS_DE_CLIENTE_PROIBIDOS = ["clienteId", "cliente"] as const;
+
+/**
+ * ⭐ TODOS OS CAMPOS QUE ESTA PORTA CONHECE — e nenhum outro atravessa.
+ *
+ * ─── A-7 DA AUDITORIA, E POR QUE O CONSERTO NÃO É UMA DENYLIST MAIOR ───────
+ *
+ * O achado: "grafias alternativas de cliente ignoradas em silêncio". Um corpo
+ * com `cliente_id`, `customerId` ou `clientID` não era recusado — era IGNORADO,
+ * e quem chamou seguia achando que tinha escolhido o cliente.
+ *
+ * A tentação é acrescentar as grafias a `CAMPOS_DE_CLIENTE_PROIBIDOS`. Isso é
+ * caçar nomes, e caçar nomes perde sempre: a lista nunca fecha, e a grafia que
+ * ninguém imaginou continua passando calada. O desenho certo é o inverso —
+ * **negar por padrão**, que é a mesma regra que esta casa já aplica a
+ * ferramentas no executor ("fora da lista permitida: negado por padrão").
+ *
+ * Com uma allowlist, `cliente_id` não precisa estar em lista nenhuma para ser
+ * recusado: ele é recusado por não estar NESTA. E os dois nomes proibidos
+ * continuam com mensagem própria porque, para eles, existe uma lição a ensinar
+ * ("o cliente é resolvido pelo gateway") que "campo desconhecido" não ensina.
+ */
+export const CAMPOS_CONHECIDOS: readonly string[] = [
+  "modo",
+  "sintetico",
+  "funcao",
+  "pergunta",
+  "dossie",
+  "historico",
+  "cobrancas",
+  "gatilhos",
+  "correlationId",
+  // Declarados só para poder RECUSAR com o motivo próprio — ver acima.
+  ...CAMPOS_DE_CLIENTE_PROIBIDOS,
+];
+
+// ─── O FIO: EMITIDO AQUI, RECONHECIDO AQUI ─────────────────────────────────
+
+/** O espaço de nomes do Connect. Nenhum fio de fora da porta mora aqui. */
+export const PREFIXO_DO_FIO = "connect:";
+
+/** Teto do apelido dentro do fio, para o que é emitido caber no que é aceito. */
+export const TAMANHO_MAXIMO_DO_APELIDO = 64;
+
+/**
+ * O formato EXATO que `fioDoConnect` emite — e o único que `conferirPedido`
+ * aceita de volta. Não é um prefixo "que começa com connect:", é a forma
+ * inteira: espaço de nomes, apelido normalizado e um UUID v4.
+ *
+ * O UUID é o que faz disto uma capacidade em vez de um palpite: quem não
+ * recebeu o fio na resposta do primeiro turno não tem como escrever um que
+ * passe. E o casamento entre emissão e conferência é provado por ida e volta no
+ * teste — trava cuja metade permissiva ninguém mede é trava que um dia rejeita
+ * o próprio fio da casa.
+ */
+export const FORMATO_DO_FIO =
+  /^connect:[a-z0-9-]{1,64}:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** Um fio novo, emitido pelo gateway. A ÚNICA origem legítima de um fio. */
+export function fioDoConnect(nomeDoCliente: string): string {
+  const apelido =
+    nomeDoCliente
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, TAMANHO_MAXIMO_DO_APELIDO)
+      .replace(/-$/, "") || "cliente";
+  return `${PREFIXO_DO_FIO}${apelido}:${randomUUID()}`;
+}
+
+/** O fio é do Connect? Comparação de FORMA, e ela não prova posse sozinha —
+ *  a posse é reconferida em `despacho.ts`, sobre a linha que o banco devolveu. */
+export function fioEDoConnect(valor: string): boolean {
+  return FORMATO_DO_FIO.test(valor);
+}
+
+/** O motivo da recusa do fio alheio, em um lugar só (a rota e o núcleo usam o mesmo). */
+export function motivoDeFioAlheio(recebido: unknown): string {
+  return (
+    `correlationId ${JSON.stringify(recebido)} recusado: o fio desta porta é EMITIDO pelo gateway, não ` +
+    `escolhido por quem chama. Um fio aceito de fora deixaria a homologação ler e escrever dentro da conversa ` +
+    `de outro cliente — o mesmo "id aceito sem conferir de quem é" que tirou "clienteId" daqui. Use, sem ` +
+    `alterar, o correlationId que a resposta do primeiro turno devolveu; para começar uma conversa nova, ` +
+    `OMITA o campo e o gateway emite um.`
+  );
+}
 
 /** Um turno do fio: quem falou e o que disse. */
 export interface TurnoDoFio {
@@ -162,6 +276,27 @@ export function conferirPedido(corpo: PedidoDeDespacho): Conferencia {
     };
   }
 
+  // ── Trava 3b: campo que esta porta não conhece é RECUSA, não silêncio. ───
+  //
+  // Vem DEPOIS da trava do cliente de propósito: `clienteId` e `cliente` são
+  // campos conhecidos-e-proibidos, e a mensagem deles ensina o que o "campo
+  // desconhecido" não ensinaria. Vem ANTES de tudo o mais porque um corpo com
+  // um campo que ninguém lê é um corpo que quem escreveu entendeu errado — e
+  // descobrir isso na recusa é mais barato do que descobrir no artefato.
+  for (const campo of Object.keys(corpo)) {
+    if (CAMPOS_CONHECIDOS.includes(campo)) continue;
+    return {
+      ok: false,
+      motivo:
+        `"${campo}" não é um campo desta porta — recusado em vez de ignorado. Campo ignorado em silêncio ` +
+        `deixa quem chama achando que mandou o que não mandou (foi assim que grafias alternativas de cliente ` +
+        `atravessavam sem efeito e sem aviso). Esta porta nega por padrão: os campos que ela conhece são ` +
+        `${CAMPOS_CONHECIDOS.filter((c) => !CAMPOS_DE_CLIENTE_PROIBIDOS.includes(c as never))
+          .map((c) => `"${c}"`)
+          .join(", ")}.`,
+    };
+  }
+
   // ── Trava 4: a função é uma lista de uma. ────────────────────────────────
   //
   // Ausente cai na única função permitida — e isso NÃO é o padrão silencioso de
@@ -194,6 +329,30 @@ export function conferirPedido(corpo: PedidoDeDespacho): Conferencia {
     for (const [chave, valor] of Object.entries(corpo.dossie as Record<string, unknown>)) {
       if (typeof valor !== "string") {
         return { ok: false, motivo: `dossie["${chave}"] não é texto — o rastro guarda o que foi usado, não um objeto solto` };
+      }
+      // ── ⭐ A PORTA DOS FUNDOS DO DOSSIÊ (defeito A-3), fechada por RECUSA. ──
+      //
+      // Estas chaves são preenchidas pelo GATEWAY, com o que ele apurou: o
+      // cliente que ele resolveu no banco, a pergunta conferida, o fio que o
+      // banco conhece, a varredura que passou pela validação de `cobrancas`.
+      // Aceitá-las no dossiê era deixar o chamador escrever "a apuração" e o
+      // artefato então afirmar, com nome de agente e prazo, uma cobrança que
+      // nunca existiu.
+      //
+      // Recusa, e não "ignoro e sigo": ignorar deixaria quem chama achando que
+      // mandou contexto útil, e o defeito voltaria pela primeira refatoração
+      // que confundisse "não usei" com "não deixei entrar".
+      if (chaveEReservada(chave)) {
+        return {
+          ok: false,
+          motivo:
+            `dossie["${chave}"] recusado: esta chave é do GATEWAY, e o que ela carrega é apurado por ele — ` +
+            `o cliente resolvido no banco, a pergunta conferida, o fio que o banco conhece e a varredura do PM ` +
+            `que passou pela validação de "cobrancas". Aceitá-la de quem chama seria deixar o artefato afirmar ` +
+            `sobre o mundo o que ninguém apurou. As chaves reservadas são: ` +
+            `${CHAVES_RESERVADAS_DO_GATEWAY.map((c) => `"${c}"`).join(", ")}. Mande a varredura pelo campo ` +
+            `"cobrancas" e o fio pelo campo "historico" — eles são conferidos.`,
+        };
       }
       dossie[chave] = valor;
     }
@@ -251,6 +410,22 @@ export function conferirPedido(corpo: PedidoDeDespacho): Conferencia {
     }
   }
 
+  // ── ⭐ O FIO (defeito A-2): omitir é legítimo; escolher, não. ─────────────
+  //
+  // Ausente = conversa nova, e o gateway emite o fio. PRESENTE tem que ser um
+  // fio que o gateway emitiu — a forma inteira, não um prefixo. A recusa
+  // acontece AQUI, antes de qualquer leitura de antecedentes e antes de
+  // qualquer linha (execução OU recusa) ser gravada: uma recusa gravada sob o
+  // fio de um cliente pagante já seria contaminação de escrita.
+  let correlationId: string | undefined;
+  if (corpo.correlationId !== undefined && corpo.correlationId !== null) {
+    const bruto = texto(corpo.correlationId);
+    if (!bruto || !fioEDoConnect(bruto)) {
+      return { ok: false, motivo: motivoDeFioAlheio(corpo.correlationId) };
+    }
+    correlationId = bruto;
+  }
+
   return {
     ok: true,
     pedido: {
@@ -262,7 +437,7 @@ export function conferirPedido(corpo: PedidoDeDespacho): Conferencia {
       historico,
       cobrancas,
       gatilhos,
-      correlationId: texto(corpo.correlationId) ?? undefined,
+      correlationId,
     },
   };
 }

@@ -24,6 +24,7 @@ function linha(l: {
   ator: string;
   modelo: string | null;
   custoUsd: number | null;
+  clienteId: string | null;
 }): LinhaDeExecucaoLida {
   return {
     id: l.id,
@@ -36,6 +37,9 @@ function linha(l: {
     ator: l.ator,
     modelo: l.modelo,
     custoUsd: l.custoUsd,
+    // ⭐ Sem este campo não existe conferência de posse possível — era o que
+    // faltava para o despacho poder recusar linha alheia (defeitos A-2 e A-4).
+    clienteId: l.clienteId,
   };
 }
 
@@ -83,9 +87,24 @@ export function armazemDoConnectNoBanco(db: PrismaClient): ArmazemDoConnect {
       return l ? linha(l) : null;
     },
 
-    async antecedentes(correlationId) {
+    // ⭐ O RECORTE DO FIO É POR DONO, não só por `correlationId` (defeito A-2).
+    //
+    // A consulta antiga filtrava SÓ pelo `correlationId`, que era um texto que
+    // quem chamava escolhia. O auditor plantou execução real sob um fio de
+    // cliente pagante, despachou homologação no mesmo fio, e o artefato voltou
+    // com id, horário e função da execução alheia dentro — persistido no rastro.
+    //
+    // Agora o `WHERE` carrega as três coordenadas do dono. E mesmo assim o
+    // despacho reconfere cada linha em código (`linhaPertenceAoFio`): esta
+    // consulta é uma das implementações possíveis do armazém, e uma trava que
+    // só existe dentro de uma consulta some na refatoração que troca a consulta.
+    async antecedentes(dono) {
       const linhas = await db.execucaoV2.findMany({
-        where: { correlationId },
+        where: {
+          correlationId: dono.correlationId,
+          clienteId: dono.clienteId,
+          funcaoId: { in: [...dono.funcoes] },
+        },
         orderBy: { inicio: "asc" },
         take: ANTECEDENTES_NO_FIO,
       });
