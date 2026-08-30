@@ -22,6 +22,30 @@ violação da régua da casa registrada como **dado**, não como desculpa.
 **Se num turno novo o `Agent` responder, DESPACHE.** Confira com uma linha
 antes de assumir que não dá.
 
+## 🔇 APAGÃO DE NOTIFICAÇÕES — cinco chegaram, nenhuma foi lida
+
+`ReadNotifications` está desabilitado junto com o `Agent`. Cinco avisos
+agendados chegaram nesta sessão e **nenhum pôde ser aberto**:
+
+```
+Error: No such tool available: ReadNotifications. ReadNotifications is
+disabled for this session, in subagents as well as here.
+```
+
+**Consequência que precisa ficar dita:** se o CEO ou o Diretor Geral mandaram
+algo por esse canal, **não chegou**. Não é silêncio de quem não respondeu — é
+mensagem que nunca foi entregue. Quem retomar deve conferir o canal por fora
+antes de assumir que não havia recado.
+
+## 🔴 ACHADO DE SEGURANÇA HERDADO — fora desta frente
+
+A senha do login vai para a **query string** quando o JavaScript ainda não
+hidratou (`<form onSubmit>` sem `method`). Visto em texto puro no log do
+servidor. Registrado com evidência e conserto provável em `docs/pendencias.md`.
+**Sem dono atribuído** — não houve como despachar. Não foi consertado aqui de
+propósito: é frente de auth, e mexer nela dentro do PR da Célula alargaria o PR
+e esconderia a mudança onde ninguém procura.
+
 ## O que consegue ser feito sem a camada de despacho
 
 Há saída de rede (`curl` funciona) e `GITHUB_TOKEN` está no ambiente, então o
@@ -61,6 +85,7 @@ Rode qualquer um deles para conferir — não acredite nesta tabela.
 | **Executor** (plano + atestação + registro, SEM driver) | `lib/agency/celula/executor.ts` | `scripts/mutacao-executor.mjs` | 9/9 vermelhas |
 | **Rota do funil** — `app/` importa a Célula | `app/api/agency/oportunidades/[id]/funil/route.ts` | — | sessão · posse · papel |
 | **JORNADA PONTA A PONTA** (banco real, 11 etapas) | `__tests__/celula/jornada-ponta-a-ponta.test.ts` | — | 15 transições, trilha completa |
+| **Tela do funil** no Radar (estado + trilha) | `components/agency/comercial/PainelDoFunil.tsx` | — | capturada em 375/768/1440 |
 | Migration das 4 tabelas | `prisma/migrations/20260830170000_*` | — | aplicada em banco vazio + controle negativo |
 
 **Decisão 1** (Claude in Chrome, não OpenAI/Playwright) está registrada como
@@ -85,18 +110,12 @@ fora e chegou ao mesmo resultado.
 
 Em ordem de dependência. Os três primeiros destravam o resto.
 
-1. **A TELA.** A *rota* existe (`app/api/.../funil`), mas a **página** do Radar
-   ainda não mostra funil, trilha nem conversa. Quem opera hoje precisa de
-   `curl`. É acabamento, e foi conscientemente adiado em favor da jornada, por
-   ordem do Diretor Geral em 30/08 ("entregue a jornada rodando e declare o que
-   ficou tosco").
-
-2. **Download e upload EFETIVOS · PDF, imagem e editável.** A ponte tem a
+1. **Download e upload EFETIVOS · PDF, imagem e editável.** A ponte tem a
    lógica inteira, com checksum, quarentena, versão e destinatário conferido —
    e a jornada exercita tudo isso com `Buffer` controlado. **O que não existe é
    o braço que baixa do 99Freelas e anexa lá.** Ele depende do item 3.
 
-3. 🔴 **A operação real depende de uma coisa que não é código:** a atestação
+2. 🔴 **A operação real depende de uma coisa que não é código:** a atestação
    humana de que o perfil dedicado do Chrome está limpo, feita na máquina do
    CEO. `executor.ts` já EXIGE essa atestação e recusa planejar sem ela — mas
    ninguém a produziu ainda. Ver `decisao-1-vs-decisao-2.md`.
