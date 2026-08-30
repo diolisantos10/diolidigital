@@ -41,6 +41,7 @@ import { atenderComOConector, type ResultadoDoConector } from "./conector/atendi
 import { ligacaoDaDioliDigital, CANAL, AGENTE } from "./conector/dioli-digital/ligacaoLocal";
 import { escaladaDaDioliDigital } from "./conector/dioli-digital/escalada";
 import { foraDaAlcadaNaMensagem } from "./fora-da-alcada";
+import { traduzirAssuntosParaONucleo } from "./vocabulario-do-nucleo";
 import type { LigacaoLocal } from "./conector/ligacaoLocal";
 
 export type ResultadoDoAtendimento =
@@ -86,6 +87,18 @@ export async function atenderForaDaAlcada(
   // conector não é acionado, e a mensagem segue para gente — que é o chão.
   if (!conversa || !conversa.trim()) return { acionou: false };
 
+  // ── ⭐ A TRADUÇÃO, ANTES DA REDE (medido em 30/08/2026) ───────────────────
+  //
+  // O núcleo tem vocabulário FECHADO para `assunto`, e assunto fora dele faz o
+  // núcleo recusar a consulta INTEIRA. A classificação desta casa é local
+  // ("desconto", "prazo", …) e não é a língua dele. Quem traduz é o produto —
+  // decisão D3, e é por isso que a tradução mora em `vocabulario-do-nucleo.ts`
+  // e não em nenhum arquivo comum do conector.
+  //
+  // ⚠️ O gatilho já disparou ACIMA, com a lista LOCAL: nada aqui pode fazer a
+  // mensagem voltar para o modelo. Traduzir mexe só no que viaja.
+  const { paraORede: assuntosParaONucleo } = traduzirAssuntosParaONucleo(assuntos);
+
   const ligacao = deps.ligacao ?? ligacaoDaDioliDigital();
 
   try {
@@ -98,7 +111,7 @@ export async function atenderForaDaAlcada(
         // concedida a este cliente de uma regra da empresa. ⛔ Nenhum outro
         // dado pessoal atravessa — nada de nome, e-mail ou telefone.
         referenciaDoCliente: conversa,
-        assuntos,
+        assuntos: assuntosParaONucleo,
         pergunta: mensagem.slice(0, 1500),
         agora: deps.agora,
       },
