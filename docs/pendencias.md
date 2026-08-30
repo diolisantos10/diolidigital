@@ -6644,6 +6644,24 @@ consertados por ela. Ficam aqui com dono a definir.
 
 ### 1. O gancho pré-push é intransponível para quem forçou uma colisão legítima
 
+> ⚠️ **ATUALIZADO em 30/08/2026, algumas horas depois de eu escrever isto:
+> METADE JÁ FOI CONSERTADA por outra frente, e eu não sabia.** O commit
+> `8a6e3d2` (#410) — *"O sentinela passa a LER a forçada: colisão sancionada
+> vira AVISO ALTO"* — ensinou o **sentinela do `npm test`** a reconhecer a
+> forçada, com `forcadaSancionada()` em `lib/coordenacao/reivindicacoes.ts`.
+> A suíte da casa parou de ficar vermelha por colisão sancionada, e isso
+> resolveu o CI.
+>
+> **A outra metade continua aberta, e foi medida agora:** `npm run reivindicar
+> -- conferir`, que é o que o **gancho pré-push** chama, ainda recusa. Ele
+> compara os arquivos que a sessão ALTEROU contra as reivindicações alheias, e
+> não passa por `forcadaSancionada()`. Quem forçou uma colisão legítima
+> continua só empurrando com `--no-verify`.
+>
+> Ou seja: o teste já honra a forçada; o push ainda não. **Quem for fechar
+> isto, o caminho já existe** — é aplicar `forcadaSancionada()` no caminho do
+> `conferir`, do mesmo jeito que o #410 aplicou no do sentinela.
+
 `npm run reivindicar -- conferir` — que é o que o gancho pré-push chama —
 **não reconhece a reivindicação forçada que o próprio mecanismo aceitou,
 registrou e empurrou.** Ele relista a colisão e recusa o push.
