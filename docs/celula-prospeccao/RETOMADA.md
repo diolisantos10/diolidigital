@@ -55,10 +55,26 @@ Rode qualquer um deles para conferir — não acredite nesta tabela.
 | **Decisão 5** — catálogo derivado da capacidade | `lib/agency/celula/catalogo-ofertavel.ts` | `scripts/mutacao-decisao-5.mjs` | 6/6 vermelhas |
 | **Decisão 4** — limite de 16 MB do canal | `policy.json → anexos_no_chat` | — (dado) | — |
 | Limitador de ritmo | `lib/agency/celula/ritmo.ts` | `scripts/mutacao-ritmo.mjs` | 8/8 vermelhas |
+| **Trava de conversa com fechadura** (banco, disputa real) | `mensagens/porta-da-conversa-no-banco.ts` | `scripts/mutacao-trava-de-conversa.mjs` | 6/6 vermelhas |
+| **Papéis e permissões de Gerente e SDR** | `lib/agency/celula/papeis.ts` | `scripts/mutacao-papeis.mjs` | 8/8 vermelhas |
+| **Simulador + jornada ponta a ponta (dados controlados)** | `lib/agency/celula/simulador.ts` | varredura estática do fonte | 19 passos, 0 barrados |
 | Migration das 4 tabelas | `prisma/migrations/20260830170000_*` | — | aplicada em banco vazio + controle negativo |
 
 **Decisão 1** (Claude in Chrome, não OpenAI/Playwright) está registrada como
 rumo; o executor ainda não existe — ver abaixo.
+
+### ✅ CI — MEDIDO, não suposto
+
+**PR #412 estava VERDE em 30/08/2026: 3 de 3 checks `success`** (`quality` ×2 e
+"As travas da porta do Connect"), no head `8a7e0a5`, sem conflito de merge.
+Conferido na API do GitHub, não na máquina local. O Diretor Geral reconferiu por
+fora e chegou ao mesmo resultado.
+
+> ⚠️ Uma armadilha de leitura que custou tempo aqui: **cada commit dispara DOIS
+> tipos de execução** — `push` (a branch crua) e `pull_request` (a branch **já
+> mesclada com a base**). As duas aparecem como "quality". Uma pode estar
+> vermelha e a outra verde no MESMO commit, e foi o que aconteceu em `07e3e71`.
+> Ao conferir "CI verde", olhe **qual evento** produziu o resultado.
 
 ---
 
@@ -66,36 +82,20 @@ rumo; o executor ainda não existe — ver abaixo.
 
 Em ordem de dependência. Os três primeiros destravam o resto.
 
-1. **Travas conversacionais com implementação REAL.**
-   `PortaDaConversa` e `PortaDeCompromissos` são **só interface**; o motor da
-   próxima mensagem só roda com substituto de teste. O CEO nomeou isto como
-   critério de conclusão ("não concluído se dois agentes podem responder ao
-   mesmo tempo"). Implementar contra o banco, no padrão de `trilha.ts`
-   (models aditivos + `$transaction`). **O teste tem de provar concorrência
-   real** — duas tentativas disputando a mesma conversa, não duas em sequência.
-
-2. **Tela e rotas operacionais.** Hoje **nada em `app/` importa a Célula**.
+1. **Tela e rotas operacionais.** Hoje **nada em `app/` importa a Célula**.
    O funil não tem rota nem tela: `avancarFunil` não tem chamador fora de
    teste. Evoluir o Radar em `/agency/oportunidades`, sem sistema paralelo.
 
-3. **Papéis e permissões de Gerente e SDR.** O Gerente de Atendimento e SDR
-   não existe como papel operável — só como campo `aprovador`. **Sem ele os 22
-   modelos não podem ser aprovados**, e sem aprovação nenhuma mensagem sai.
-
-4. **Simulador completo.** Critério de conclusão declarado. Percorrer o funil
-   inteiro sem enviar nada externamente.
-
-5. **Executor ligado ao navegador isolado.** `navegador-isolado.ts` decide e
+2. **Executor ligado ao navegador isolado.** `navegador-isolado.ts` decide e
    descreve; ninguém ainda abre o Chrome com ele. Ligar exige
    `launchPersistentContext` (hoje o contexto é efêmero, `navegador.ts:213`).
 
-6. **Download e upload efetivos · PDF, imagem e editável.** A ponte tem a
+3. **Download e upload efetivos · PDF, imagem e editável.** A ponte tem a
    lógica; falta o braço que baixa e anexa de verdade.
 
-7. **Jornada ponta a ponta.** Nunca percorrida. É o critério de conclusão da V1.
+4. **Jornada ponta a ponta.** Nunca percorrida. É o critério de conclusão da V1.
 
-8. **CI verde no PR #412.** Não confirmado nesta sessão — a suíte da casa passa
-   de 8.000 testes e o check estava `in_progress` no último push.
+
 
 ---
 
