@@ -57,7 +57,7 @@
 // (D-0B6). Ela CERCA os planos — piso, margem e avulsos —, não os remarca.
 
 import { emReais, medido, somar, type Dinheiro } from "@/lib/agency/financeiro/dinheiro";
-import { PLANOS } from "@/lib/agency/planos";
+import { PLANOS, PRECO_DA_PECA_AVULSA, composicaoDoPlano as composicaoDoPresetPlano } from "@/lib/agency/planos";
 
 /** Teto de produção da casa, em peças/mês. Vender acima disto é dívida com
  *  outro rosto — `docs/precos.md`: *"nenhum plano passa disso"*. */
@@ -202,14 +202,36 @@ const PLANOS_DA_TABELA: ServicoDaCasa[] = PLANOS
     descontoAutorizadoPct: null,
   }));
 
+// ─── AS TRÊS PEÇAS QUE ERAM UMA SÓ (E$1, 30/08/2026) ────────────────────────
+//
+// Antes deste despacho, "1 peça além do combinado, com direção de arte, para
+// quem já é cliente" tinha DOIS preços vivos ao mesmo tempo: R$ 90
+// (`PECA_EXTRA`, em `planos.ts`) e R$ 190/290 (`avulso_post`/`avulso_carrossel`,
+// aqui). MESMO cenário comercial, dois números — quem cobrava dependia de qual
+// caminho de código respondia. Os dois convergem para `PRECO_DA_PECA_AVULSA`
+// (R$ 55), que agora é a ÚNICA fonte — ver o cabeçalho dela em `planos.ts` para
+// a conta completa de por que R$ 55 e não outro número.
+//
+// O BALCÃO (`balcao_post`/`balcao_carrossel`, R$ 79/R$ 129) FICA DE FORA da
+// convergência, DE PROPÓSITO — é produto diferente, não a mesma peça:
+//   • pago ANTES da produção, sem contrato e sem relação prévia com a casa;
+//   • produção 100% automática, ZERO direção de arte, ZERO rodada de ajuste;
+//   • aberto a qualquer pessoa — não precisa ser cliente de plano.
+// `avulso_post`/`avulso_carrossel` (agora R$ 55) é a promessa OPOSTA: cliente
+// já dentro da casa, com direção de arte e 2 rodadas de revisão — o mesmo
+// serviço que `PECA_EXTRA` descrevia, por isso os dois se fundem e o balcão
+// não. (O balcão ficar hoje mais caro que o avulso com direção é um artefato
+// dessa fusão — está registrado no relato desta frente, não escondido.)
 export const TABELA_DE_PRECOS: ReadonlyArray<ServicoDaCasa> = [
   ...PLANOS_DA_TABELA,
   // ── Balcão: 100% automático, pago antes da produção ────────────────────
   { chave: "balcao_post",     nome: "Post (balcão)",      precoFinalCentavos:  7900, pecasPorMes: 1, produtor: "maquina",             custo: custoDoServico(1), descontoAutorizadoPct: null },
   { chave: "balcao_carrossel",nome: "Carrossel (balcão)", precoFinalCentavos: 12900, pecasPorMes: 1, produtor: "maquina",             custo: custoDoServico(1), descontoAutorizadoPct: null },
   // ── Avulso para quem já é cliente: com direção de arte e 2 rodadas ──────
-  { chave: "avulso_post",     nome: "Post avulso",        precoFinalCentavos: 19000, pecasPorMes: 1, produtor: "maquina_com_direcao", custo: custoDoServico(1), descontoAutorizadoPct: null },
-  { chave: "avulso_carrossel",nome: "Carrossel avulso",   precoFinalCentavos: 29000, pecasPorMes: 1, produtor: "maquina_com_direcao", custo: custoDoServico(1), descontoAutorizadoPct: null },
+  // Preço único, `PRECO_DA_PECA_AVULSA` — não mais 190/290 digitados aqui, nem
+  // 90 digitado em `planos.ts` (`PECA_EXTRA` morreu). Ver o bloco acima.
+  { chave: "avulso_post",     nome: "Post avulso",        precoFinalCentavos: PRECO_DA_PECA_AVULSA * 100, pecasPorMes: 1, produtor: "maquina_com_direcao", custo: custoDoServico(1), descontoAutorizadoPct: null },
+  { chave: "avulso_carrossel",nome: "Carrossel avulso",   precoFinalCentavos: PRECO_DA_PECA_AVULSA * 100, pecasPorMes: 1, produtor: "maquina_com_direcao", custo: custoDoServico(1), descontoAutorizadoPct: null },
 ];
 
 export function servicoPorChave(chave: string): ServicoDaCasa | null {
@@ -386,11 +408,25 @@ export function podeOfertar(chave: string, precoCentavos: number): VereditoDaOfe
  * Oferecer o degrau de baixo é venda — ele existe, tem preço e entrega menos.
  * Baixar o preço do mesmo degrau é sangria. Quando não há degrau abaixo, a
  * resposta é gente, com dono e próxima ação — nunca um beco.
+ *
+ * ⚠️ O "DEGRAU ABAIXO" SÓ EXISTE DENTRO DA MESMA ESCADA (E1, 30/08/2026). Desde
+ * que `avulso_post`/`avulso_carrossel` convergiram para `PRECO_DA_PECA_AVULSA`
+ * (R$ 55), eles ficaram MAIS BARATOS que o balcão (R$ 79/129) — uma inversão
+ * conhecida e registrada em `planos.ts`. Sem esta restrição, um prospect que
+ * achasse o balcão caro seria mandado para o "avulso", que é serviço EXCLUSIVO
+ * de quem já é cliente de plano — oferecer isso a um desconhecido é vender o
+ * que ele não pode comprar. Por isso a busca só compara PLANOS com PLANOS:
+ * é a única família que forma uma escada de verdade (mais peça por mais
+ * dinheiro, mesmo produto). Balcão e avulso são itens únicos, cada um para o
+ * seu público — sem degrau abaixo, a saída correta sempre foi (e continua
+ * sendo) chamar gente.
  */
 export function comoSeguirSemBaixarOPreco(s: ServicoDaCasa): string {
-  const abaixo = TABELA_DE_PRECOS
-    .filter((o) => o.precoFinalCentavos < s.precoFinalCentavos && o.pecasPorMes > 0)
-    .sort((a, b) => b.precoFinalCentavos - a.precoFinalCentavos)[0];
+  const abaixo = s.chave.startsWith("plano_")
+    ? TABELA_DE_PRECOS
+        .filter((o) => o.chave.startsWith("plano_") && o.precoFinalCentavos < s.precoFinalCentavos && o.pecasPorMes > 0)
+        .sort((a, b) => b.precoFinalCentavos - a.precoFinalCentavos)[0]
+    : undefined;
   if (abaixo) {
     return (
       `Ofereça o degrau de baixo: ${abaixo.nome}, ${emReais(medido(abaixo.precoFinalCentavos, "contrato"))}` +
@@ -476,6 +512,80 @@ export function volumeQueACasaVende(pecasPedidas: number): RespostaDeVolume {
     : `Você pediu ${pedido} peças/mês. A casa vende em degraus, e o que cobre esse volume é o ` +
       `plano ${degrau.nome}, com ${degrau.pecasPorMes} peças/mês — você recebe mais, não menos.`;
   return { vende: true, degrau, pedido, frase };
+}
+
+/**
+ * A COMPOSIÇÃO DE UM PEDIDO CUSTOMIZADO CONTRA A CURVA DE VOLUME — item 3 do
+ * despacho E1 (30/08/2026): o SDR responde sozinho "quanto custa N peças por
+ * mês", com a conta à vista, nunca um número forçado para bater com uma
+ * expectativa.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * A CONTA QUE ESTE DESPACHO PEDIU, E O NÚMERO QUE ELA PRODUZ DE VERDADE
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * O despacho previa R$ 700/mês para 28–30 peças e mandava: *"mostre a conta
+ * que produz R$ 700 [...]. Se a sua curva não produzir R$ 700, PARE e relate o
+ * número que ela produz — não force o resultado."*
+ *
+ * A CONTA, com as DUAS curvas que esta casa tem:
+ *
+ *   1. **Soma à carta** — `pecasPedidas × PRECO_DA_PECA_AVULSA`. Para 28 peças:
+ *      28 × R$ 55 = **R$ 1.540**. Para 30: R$ 1.650. Nenhum dos dois é R$ 700.
+ *   2. **A curva de volume de verdade — os degraus dos PLANOS.** Comprar muito
+ *      sai mais barato por peça (Conteúdo: R$ 790 ÷ 36 = R$ 21,94/peça). 28–30
+ *      peças cabem dentro do teto do Conteúdo (36) e são cobertas por ele —
+ *      é a MESMA regra de `volumeQueACasaVende`, já provada por teste, já no
+ *      caminho real do SDR (`computeEstimate` → `detectPackage`). O preço que
+ *      ela produz é **R$ 790/mês**, não R$ 700.
+ *
+ * Testei as duas curvas que a tabela desta casa sustenta. NENHUMA produz
+ * R$ 700. Não inventei uma terceira curva (ex.: interpolação entre degraus)
+ * para forçar o número: isso seria exatamente o desconto não autorizado que
+ * `pisoDoServico` existe para proibir — "sem faixa configurada, desconto
+ * nenhum" vale aqui do mesmo jeito que vale para qualquer negociação.
+ *
+ * **A resposta honesta e provável para 28–30 peças/mês é R$ 790/mês** (o
+ * plano Conteúdo) — R$ 90 ABAIXO do que a soma à carta cobraria, mas R$ 90
+ * ACIMA do R$ 700 esperado no despacho. Essa diferença de R$ 90 precisa de
+ * decisão do CEO: ou o número certo do pedido do Marcos é R$ 790 (e o R$ 700
+ * do despacho estava arredondado/errado), ou existe uma faixa de desconto que
+ * ainda não foi declarada em `descontoAutorizadoPct` — e enquanto ela não for
+ * declarada, o SDR não pode cobrar R$ 700 por conta própria.
+ */
+export interface ContaDaComposicao {
+  pedido: number;
+  /** `pedido × PRECO_DA_PECA_AVULSA`, em centavos — o que custaria à carta. */
+  somaAvulsaCentavos: number;
+  /** A resposta real, pelo caminho que a casa já prova e já usa. */
+  respostaPelaCurvaDeVolume: RespostaDeVolume;
+  /** Quanto a curva de volume economiza sobre comprar peça a peça. `null`
+   *  quando a casa não vende esse volume (nada a comparar). */
+  economiaCentavos: number | null;
+}
+
+export function contaDaComposicao(pecasPedidas: number): ContaDaComposicao {
+  const pedido = Math.max(0, Math.round(Number(pecasPedidas) || 0));
+  const somaAvulsaCentavos = pedido * PRECO_DA_PECA_AVULSA * 100;
+  const respostaPelaCurvaDeVolume = volumeQueACasaVende(pedido);
+  const economiaCentavos = respostaPelaCurvaDeVolume.vende
+    ? Math.max(0, somaAvulsaCentavos - respostaPelaCurvaDeVolume.degrau.precoFinalCentavos)
+    : null;
+  return { pedido, somaAvulsaCentavos, respostaPelaCurvaDeVolume, economiaCentavos };
+}
+
+/**
+ * A composição do preço de um PLANO (soma da carta menos desconto do atalho) —
+ * item 2 do despacho E1. Só existe para serviços `plano_*`; `null` para
+ * balcão/avulso, que já são uma peça só (nada a compor), e para o Pulso, que
+ * não entrega peça.
+ */
+export function composicaoDoServico(s: ServicoDaCasa) {
+  if (!s.chave.startsWith("plano_")) return null;
+  const id = s.chave.slice("plano_".length);
+  const plano = PLANOS.find((p) => p.id === id);
+  if (!plano) return null;
+  return composicaoDoPresetPlano(plano);
 }
 
 /**
