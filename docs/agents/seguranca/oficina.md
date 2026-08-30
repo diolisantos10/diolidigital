@@ -75,3 +75,91 @@ chamada à Meta**. Reconstrói a escolha determinística do código antigo a par
 de `MetaConnection` e `SocialPost` e classifica cada anúncio já criado em
 limpo / com ativo de outro / **ambíguo**. Ambíguo não vira limpo: vira "não
 medido" e conferência à mão.
+
+---
+
+## 2026-08-30 — a sessão do titular no 99Freelas: contorno de proteção e o
+perfil de navegador que não existe
+
+**Despacho:** `DESPACHO-99FREELAS-SEGURANCA.md`. **Parecer entregue:**
+`docs/plataformas/99freelas/pareceres/2026-08-30-seguranca-sessao-do-titular.md`.
+**Sem rede** — tudo julgado a partir do que já estava em disco.
+
+### As duas decisões
+
+1. **A captura de hoje (12 artigos de ajuda lidos pela API pública do Zendesk
+   depois de 403/Cloudflare no HTML) não é contorno.** O teste que usei:
+   "burlar" exige um controle técnico *derrotado* — nenhum foi. O que houve
+   foi outra porta, publicada pelo mesmo operador, sem desafio, sem
+   autenticação, **autorizada pelo `robots.txt` do próprio host**. Silêncio +
+   sinal positivo é diferente do silêncio isolado que rege a pergunta de
+   automação — por isso o veredito muda de pergunta para pergunta na mesma
+   ficha, e isso é o esperado, não inconsistência.
+   - **O que aprendi, e vale para a próxima vez que alguém achar "outra
+     porta":** legitimidade de um caminho alternativo não é transitiva.
+     Funcionar para documentação pública genérica não autoriza o mesmo
+     truque em `/projects` (dado de negócio) ou em qualquer coisa
+     autenticada — cada superfície precisa do próprio teste (existe API
+     alternativa? é documentada pelo operador? o conteúdo é público por
+     natureza? há sinal positivo de `robots.txt`?). Registrei isso como
+     recomendação de comentário em `lib/marketplaces/portao.ts` para quem
+     mexer depois.
+
+2. **Bloqueei a operação de sessão autenticada, mesmo supervisionada —
+   não pelo 99Freelas, pelo Chrome do titular.** A ficha pedia julgamento
+   sobre "Claude in Chrome com a sessão dele". Encontrei DOIS desenhos
+   possíveis atrás da mesma frase: (a) o que a própria especificação da casa
+   já descreve — perfil de navegador **dedicado e isolado**, só com o
+   99Freelas dentro (`docs/projetos/99freelas/00-ESPECIFICACAO-DO-CEO.md`
+   §4); (b) o Chrome pessoal e cotidiano do CEO, onde ele também está
+   logado em e-mail. Busquei por `playwright` e `browser-profiles/` no disco
+   inteiro: **não existe implementação nenhuma.** O isolamento é parágrafo de
+   especificação, não trava. Pela regra desta casa ("prompt é aviso, código é
+   trava"), isso é `LACUNA`, e uma lacuna dessa classe — agente com
+   ferramenta de navegador exposto a conteúdo de terceiro não confiável
+   (briefing de projeto) dentro do MESMO perfil que tem e-mail/banco — é
+   exatamente "quem entrou alcança o que não é dele", só que o dono do
+   recurso não é outro cliente da agência: é a vida pessoal do CEO.
+   - **Por que isto não virou "vulnerabilidade ativa" no laudo:** não existe
+     execução de navegador rodando hoje (nem `playwright`, nem
+     `lib/agency/celula/**` toca o 99Freelas de verdade — só monta
+     mensagem/funil). Sem execução, não há ataque possível hoje. Registrei
+     como **pré-condição de ir ao ar**, não como incidente — mas com a
+     mesma força de um P0, porque "ninguém tentou ainda" não é "está
+     seguro".
+
+### O que também descobri no caminho, e não é o escopo direto da pergunta
+
+- `lib/marketplaces/portao.ts` já é um bom exemplo de trava desta casa:
+  `login` é `BLOCK` incondicional em código, `contornarAntiBot` é
+  `SEMPRE_BLOQUEADAS`, cota e spam são fail-closed. Registro para a vitrine:
+  é outro exemplo de mecanismo que barra o caso plantado sem inventar
+  problema no caso limpo — `qualificar` (nada toca a plataforma) sai `ALLOW`
+  sozinho, sem fricção.
+- **Achado sobre a "uma linha" que destrava tudo:** `autorizacao_do_suporte`
+  em `policy.json` é, por desenho, o único campo que troca `HUMAN_GATE` por
+  `ALLOW` no envio de proposta. Isso é intencional e documentado
+  (`portao.ts`, comentário de topo) — mas também significa que quem puder
+  editar essas três linhas de `policy.json` controla o portão inteiro.
+  Recomendei revisão dupla nomeada para qualquer mudança nessas linhas
+  especificamente, não travei — travar edição de dado de política não é meu
+  escopo aqui, é registro para o PM decidir processo.
+- Busquei credencial de 99Freelas em todo o disco: **zero encontrada.** O que
+  existe são nomes de variável (`RADAR_GMAIL_APP_PASSWORD`), nunca valor.
+  Nenhum gancho de pré-commit escaneia segredo hoje — disciplina manual sem
+  furo observado, registrado como reforço recomendado, não bloqueio.
+
+### Proposta de vitrine (para o PM avaliar)
+
+- **"Legitimidade de caminho alternativo não é transitiva"** — o teste de
+  quatro perguntas (existe API alternativa documentada pelo operador? é
+  publicada pelo mesmo operador? o conteúdo é público por natureza? há sinal
+  positivo de `robots.txt`?) usado para decidir a pergunta 1 deste parecer é
+  reaproveitável em qualquer futura "achei outra porta" de qualquer
+  plataforma — Meta, Google, TikTok inclusive.
+- **"Especificação não é trava"** — a mesma frase da constituição
+  (`23-constituicao-dos-essenciais.md` §3) aplicada a um caso concreto:
+  perfil de navegador isolado estava desenhado, documentado, com nome de
+  função e caminho de diretório — e mesmo assim não protegia nada porque
+  ninguém tinha escrito o código. Vale para toda futura leitura de
+  especificação como se fosse estado atual do sistema.

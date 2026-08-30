@@ -1,0 +1,72 @@
+{
+  "_leia_isto": [
+    "A lista MORA aqui. O `.ts` (`lib/agency/celula/mensagens/anti-generico.ts`) LÊ este arquivo — nunca duplica a lista em regex escondido no código.",
+    "Cada entrada tem `frase`, `porqueEGenerica` e `exemploDoQueSeEsperaNoLugar`.",
+    "A comparação é sobre o texto NORMALIZADO (sem acento, minúsculo, espaço colapsado) — 'Alta Qualidade' e 'alta qualidade' caem na mesma entrada.",
+    "Ordem do CEO, M01: o sistema deve IMPEDIR (mecanismo, não aviso) que uma variável de mensagem seja preenchida com frase de catálogo em vez de dado real do cliente."
+  ],
+  "versao": "2026-08-a",
+  "atualizadoEm": "2026-08-30",
+  "frases": [
+    {
+      "frase": "um serviço de qualidade",
+      "porqueEGenerica": "Não descreve NADA específico do projeto do cliente — a mesma frase serve para qualquer job em qualquer categoria. É o exemplo que o CEO citou nominalmente em M01.",
+      "exemploDoQueSeEsperaNoLugar": "12 posts para Instagram de clínica odontológica, com paleta e logo já definidos"
+    },
+    {
+      "frase": "alta qualidade",
+      "porqueEGenerica": "Adjetivo vazio sem referência ao briefing. Todo mundo promete 'alta qualidade'; nenhum cliente confirma que recebeu isso do texto sozinho.",
+      "exemploDoQueSeEsperaNoLugar": "entrega revisada em até 2 rodadas, seguindo o manual de marca enviado"
+    },
+    {
+      "frase": "seu projeto",
+      "porqueEGenerica": "Referência sem nome nem detalhe é o sintoma clássico de texto de catálogo colado sem preencher a variável — a mesma frase serve para os trinta clientes da rodada.",
+      "exemploDoQueSeEsperaNoLugar": "seu catálogo de 8 produtos para a loja de calçados"
+    },
+    {
+      "frase": "soluções personalizadas",
+      "porqueEGenerica": "'Personalizada' sem citar o que foi personalizado é o oposto do que a palavra promete — a frase é genérica sobre não ser genérica.",
+      "exemploDoQueSeEsperaNoLugar": "identidade visual com a paleta azul-petróleo que você mandou no briefing"
+    },
+    {
+      "frase": "melhor custo-benefício",
+      "porqueEGenerica": "Promessa de preço sem número. Preço vem do motor de precificação, nunca de frase solta — repetir isso em texto é prometer o que a mensagem não pode garantir.",
+      "exemploDoQueSeEsperaNoLugar": "a proposta com o valor calculado para o seu orçamento de R$ 1.200"
+    },
+    {
+      "frase": "sua empresa",
+      "porqueEGenerica": "Igual a 'seu projeto': referência sem nome. Serve para qualquer CNPJ do planeta.",
+      "exemploDoQueSeEsperaNoLugar": "a Clínica Sorriso Aberto"
+    },
+    {
+      "frase": "seu negócio",
+      "porqueEGenerica": "Mesma família de 'sua empresa' — placeholder que nunca foi trocado pelo dado real do cliente.",
+      "exemploDoQueSeEsperaNoLugar": "sua loja de roupas infantis no bairro Centro"
+    },
+    {
+      "frase": "atendimento diferenciado",
+      "porqueEGenerica": "'Diferenciado' sem dizer de quê. Toda agência escreve isso; nenhuma explica a diferença no texto.",
+      "exemploDoQueSeEsperaNoLugar": "resposta em até 12h úteis, combinado no follow-up do 99Freelas"
+    },
+    {
+      "frase": "resultados incríveis",
+      "porqueEGenerica": "Promessa solta sem métrica nem prazo — exatamente o padrão que `promessa-que-a-maquina-nao-cumpre.ts` já trava em outro ponto da casa. Isto é a mesma doença em texto de prospecção.",
+      "exemploDoQueSeEsperaNoLugar": "entrega das 12 peças em até 7 dias úteis"
+    },
+    {
+      "frase": "excelente trabalho",
+      "porqueEGenerica": "Autoelogio sem prova nem referência ao que foi pedido — não descreve o projeto do cliente, descreve como a agência se vê.",
+      "exemploDoQueSeEsperaNoLugar": "o portfólio de 6 identidades visuais para clínicas, anexado nesta proposta"
+    },
+    {
+      "frase": "equipe altamente qualificada",
+      "porqueEGenerica": "Mesma família de 'alta qualidade' aplicada à equipe em vez do serviço — vazio do mesmo jeito.",
+      "exemploDoQueSeEsperaNoLugar": "designer responsável com 3 projetos publicados na categoria Design & Criação"
+    },
+    {
+      "frase": "compromisso com a excelência",
+      "porqueEGenerica": "Clichê de proposta comercial que não cita o briefing recebido — passa em qualquer categoria do 99Freelas sem alteração.",
+      "exemploDoQueSeEsperaNoLugar": "revisão incluída até você aprovar a arte final"
+    }
+  ]
+}

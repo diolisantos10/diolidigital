@@ -1,0 +1,190 @@
+{
+  "_leia_isto": [
+    "AS RESPOSTAS APROVADAS SÃO DADO, NÃO TEXTO DE PROMPT — o `.ts` lê deste",
+    "arquivo, nunca digita a resposta de novo. Mudou a resposta? Muda aqui.",
+    "NENHUM NÚMERO DE PREÇO ENTRA NESTE ARQUIVO. Preço vem do motor",
+    "(`lib/agency/comercial/negociacao.ts`), nunca de texto digitado — verdade",
+    "escrita em dois lugares já está errada em um deles.",
+    "`pedido_de_contato_externo` e `pedido_de_teste` têm resposta OBRIGATÓRIA:",
+    "política de plataforma, não gosto comercial. As duas foram escritas para",
+    "passar por `validarTexto` de lib/marketplaces/99freelas/conformidade.ts —",
+    "isso é testado em __tests__/celula/objecoes.test.ts.",
+    "`limiteDeNegociacao` nunca autoriza nada por si só: quem autoriza é",
+    "`podeConceder` em lib/agency/celula/mensagens/objecoes.ts, contra",
+    "autorização registrada por humano E o piso do motor.",
+    "`silencio` não tem sinais de texto (comoOClienteFala vazio) porque não é",
+    "detectado por texto — é detectado por tempo sem resposta, por parâmetro."
+  ],
+
+  "plataforma": "99freelas",
+  "versao": "2026-08-a",
+  "atualizadoEm": "2026-08-30",
+
+  "objecoes": [
+    {
+      "id": "preco",
+      "comoOClienteFala": [
+        "está caro",
+        "muito caro",
+        "fora do meu orçamento",
+        "não tenho esse valor",
+        "consegue baixar",
+        "tem desconto",
+        "consegue fazer mais barato",
+        "caro"
+      ],
+      "respostaAprovada": "Entendo a preocupação com o valor. O preço que te passei já é o que a casa pratica para esse serviço; qualquer ajuste depende de autorização interna, e eu preciso confirmar antes de prometer qualquer coisa. Me conta o que faria sentido caber no seu orçamento que eu levo para análise.",
+      "dadosNecessarios": ["item", "valorProposto"],
+      "limiteDeNegociacao": "Só dentro do piso do motor (podeFechar, lib/agency/comercial/negociacao.ts). Autorização não fura piso — só permite descer até ele. Nenhum desconto sem autorização registrada (concessao: desconto).",
+      "quandoEscalarAoGerente": "Cliente propõe valor abaixo do piso do motor, ou não há autorização registrada cobrindo o valor discutido.",
+      "fonte": "ordem literal do CEO (trava dura) · TABELA_DE_PISO em lib/agency/comercial/negociacao.ts"
+    },
+    {
+      "id": "prazo",
+      "comoOClienteFala": [
+        "precisa mais rápido",
+        "para ontem",
+        "consegue antecipar",
+        "reduzir o prazo",
+        "tem como agilizar",
+        "consegue entregar antes"
+      ],
+      "respostaAprovada": "O prazo que te passei é o que a casa consegue cumprir com qualidade. Qualquer alteração de prazo, para mais rápido ou mais devagar, depende de autorização interna; vou confirmar e te retorno com uma resposta certa.",
+      "dadosNecessarios": ["prazoAtual", "prazoDesejadoPeloCliente"],
+      "limiteDeNegociacao": "Nenhuma alteração de prazo sem autorização registrada (concessao: alteracao_de_prazo).",
+      "quandoEscalarAoGerente": "Cliente exige prazo menor do que o combinado como condição para fechar.",
+      "fonte": "ordem literal do CEO (trava dura)"
+    },
+    {
+      "id": "confianca",
+      "comoOClienteFala": [
+        "não conheço vocês",
+        "como sei que são confiáveis",
+        "já tiveram problema",
+        "é seguro contratar vocês",
+        "tem garantia de que funciona",
+        "vocês são de confiança"
+      ],
+      "respostaAprovada": "Entendo a cautela — é natural antes de fechar com quem você ainda não conhece. Posso te mostrar como o trabalho é estruturado e o que está dentro do escopo do serviço. Não prometo resultado nem retorno, porque isso depende de fatores que eu não controlo sozinho.",
+      "dadosNecessarios": [],
+      "limiteDeNegociacao": "Não oferece garantia sem autorização registrada (concessao: garantia). Não inventa depoimento nem prova social — guardrail permanente da casa.",
+      "quandoEscalarAoGerente": "Cliente pede garantia formal, depoimento ou prova social específica.",
+      "fonte": "guardrails permanentes do papel de departamentos · ordem literal do CEO (trava dura)"
+    },
+    {
+      "id": "portfolio",
+      "comoOClienteFala": [
+        "tem portfólio",
+        "posso ver trabalhos anteriores",
+        "manda exemplos",
+        "tem case",
+        "já fizeram algo parecido"
+      ],
+      "respostaAprovada": "Posso te mostrar exemplos do tipo de trabalho que fazemos dentro da própria conversa. Se você precisar de algo mais específico para o seu segmento, preciso confirmar internamente o que dá para compartilhar antes de te prometer.",
+      "dadosNecessarios": ["segmentoDoCliente"],
+      "limiteDeNegociacao": "Não amplia escopo para produzir material sob medida sem autorização (concessao: ampliacao_de_escopo).",
+      "quandoEscalarAoGerente": "Cliente pede material fora do que já existe pronto, ou pede contato direto para ver mais exemplos.",
+      "fonte": "ordem literal do CEO (trava dura)"
+    },
+    {
+      "id": "escopo",
+      "comoOClienteFala": [
+        "inclui também",
+        "dá pra colocar mais",
+        "e se eu quiser adicionar",
+        "sem custo a mais",
+        "isso já está incluso"
+      ],
+      "respostaAprovada": "O que está incluso é exatamente o que consta na proposta. Qualquer item a mais entra como ampliação, e isso eu preciso confirmar internamente antes de garantir — não posso incluir por conta própria.",
+      "dadosNecessarios": ["itemAdicionalPedido"],
+      "limiteDeNegociacao": "Nenhuma ampliação de escopo sem autorização registrada (concessao: ampliacao_de_escopo).",
+      "quandoEscalarAoGerente": "Cliente pede item fora do escopo contratado, mesmo que pareça pequeno.",
+      "fonte": "ordem literal do CEO (trava dura)"
+    },
+    {
+      "id": "forma_de_pagamento",
+      "comoOClienteFala": [
+        "pode parcelar",
+        "aceita boleto",
+        "consigo pagar depois",
+        "tem como dividir",
+        "só pago na entrega"
+      ],
+      "respostaAprovada": "A forma de pagamento é a que está configurada na própria plataforma. Qualquer condição diferente da padrão eu preciso confirmar internamente antes de aceitar.",
+      "dadosNecessarios": ["condicaoPedidaPeloCliente"],
+      "limiteDeNegociacao": "Nenhuma condição comercial diferente da padrão da plataforma sem autorização (concessao: condicao_comercial).",
+      "quandoEscalarAoGerente": "Cliente condiciona o fechamento a uma forma de pagamento fora do padrão da plataforma.",
+      "fonte": "ordem literal do CEO (trava dura) · Termos de Uso do 99Freelas (pagamento passa pela plataforma)"
+    },
+    {
+      "id": "pedido_de_contato_externo",
+      "comoOClienteFala": [
+        "me passa seu whatsapp",
+        "qual seu email",
+        "tem instagram",
+        "fora da plataforma",
+        "me chama no zap",
+        "manda seu contato",
+        "tem outro jeito de falar"
+      ],
+      "respostaAprovada": "Prefiro seguir por aqui mesmo, pelo canal da própria plataforma — assim fica tudo registrado para os dois lados. Ainda não posso compartilhar outro meio de contato: é uma regra da plataforma até a garantia de pagamento ser confirmada. Qualquer dúvida, me manda por aqui que eu respondo.",
+      "dadosNecessarios": [],
+      "limiteDeNegociacao": "OBRIGATÓRIA E NÃO NEGOCIÁVEL — política de plataforma, não gosto comercial. Nunca entrega contato, nunca abre exceção, com ou sem autorização registrada.",
+      "quandoEscalarAoGerente": "Cliente insiste mais de duas vezes ou condiciona o fechamento a receber outro contato.",
+      "fonte": "policy.json · proibicoes_de_conteudo.dado_de_contato · Termos, Regras para Freelancers"
+    },
+    {
+      "id": "pedido_de_teste",
+      "comoOClienteFala": [
+        "faz um teste grátis",
+        "topa uma permuta",
+        "faz de graça primeiro",
+        "sem custo pra começar",
+        "faz uma amostra"
+      ],
+      "respostaAprovada": "Não trabalho com projeto sem remuneração nem troca por produto ou serviço — é uma regra da própria plataforma, não decisão minha. Posso te mostrar o que está incluso no valor que te passei, para você decidir com o orçamento fechado.",
+      "dadosNecessarios": [],
+      "limiteDeNegociacao": "OBRIGATÓRIA E NÃO NEGOCIÁVEL — permuta e teste grátis são projetos não permitidos pela própria plataforma.",
+      "quandoEscalarAoGerente": "Cliente insiste ou reformula o mesmo pedido de teste/permuta de outro jeito.",
+      "fonte": "policy.json · proibicoes_de_conteudo.spam / projetos_a_rejeitar_antes_de_gastar_conexao · Central de Ajuda, Projetos não permitidos"
+    },
+    {
+      "id": "comparacao_com_concorrente",
+      "comoOClienteFala": [
+        "outro freelancer cobra menos",
+        "vi uma proposta mais barata",
+        "concorrente oferece mais",
+        "outra agência faz por menos"
+      ],
+      "respostaAprovada": "Cada proposta é montada de um jeito diferente, então não dá pra comparar só pelo valor sem saber o que está incluso em cada uma. Posso detalhar o que entra na minha proposta para você decidir com clareza; não vou alterar o valor só por comparação, sem antes confirmar internamente.",
+      "dadosNecessarios": ["ofertaDoConcorrenteSeMencionada"],
+      "limiteDeNegociacao": "Não iguala preço de concorrente automaticamente. Qualquer ajuste passa pelas mesmas regras: autorização registrada + piso do motor (concessao: desconto).",
+      "quandoEscalarAoGerente": "Cliente pede igualar valor de concorrente como condição para fechar.",
+      "fonte": "ordem literal do CEO (trava dura)"
+    },
+    {
+      "id": "silencio",
+      "comoOClienteFala": [],
+      "respostaAprovada": "Segue tudo certo por aí? Fico à disposição para qualquer dúvida sobre a proposta.",
+      "dadosNecessarios": ["msDesdeUltimaRespostaDoCliente"],
+      "limiteDeNegociacao": "Nenhuma concessão automática por silêncio. Retomar contato não é motivo para desconto, prazo ou condição especial.",
+      "quandoEscalarAoGerente": "Silêncio ultrapassa o limite de horas da política (follow_up.prazo_da_casa_horas em policy.json) sem resposta do gerente.",
+      "fonte": "não vem de texto — detectada por tempo sem resposta, por parâmetro. policy.json · follow_up"
+    },
+    {
+      "id": "indecisao",
+      "comoOClienteFala": [
+        "vou pensar",
+        "preciso decidir com calma",
+        "não sei ainda",
+        "deixa eu ver com meu sócio",
+        "ainda não decidi"
+      ],
+      "respostaAprovada": "Sem problema, é uma decisão importante. Fico à disposição se surgir alguma dúvida enquanto você decide, e a proposta continua valendo pelo que já te passei.",
+      "dadosNecessarios": [],
+      "limiteDeNegociacao": "Não estende prazo de validade da proposta nem oferece condição especial para apressar a decisão sem autorização registrada.",
+      "quandoEscalarAoGerente": "Cliente pede prazo estendido de validade da proposta, ou some por mais tempo do que o limite de silêncio da casa.",
+      "fonte": "ordem literal do CEO (trava dura)"
+    }
+  ]
+}

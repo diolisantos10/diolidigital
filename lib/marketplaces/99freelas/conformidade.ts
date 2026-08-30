@@ -79,14 +79,35 @@ const PADROES: Padrao[] = [
   { regra: "dado_de_contato", re: /(?:\+?55\s*)?(?:\(?\d{2}\)?[\s.-]*)?9?\d{4}[\s.-]?\d{4}\b/g, fonte: F_REGRAS },
   {
     regra: "dado_de_contato",
-    re: /\b(?:whats\s*app|whatsapp|whats|zap|telegram|skype|discord|instagram|insta|linkedin|e-?mail|email|celular|telefone|meu\s+site|meu\s+portf[óo]lio|fora\s+da\s+plataforma|me\s+chama\s+n[oa]|chama\s+n[oa]|falar\s+por\s+fora)\b/gi,
+    // "instagram", "insta" e "linkedin" foram TIRADOS desta lista pelo
+    // `seguranca` na Onda 2 (célula de prospecção, ficha B) — achado, não
+    // suspeita: o texto limpo de teste da própria ficha do CEO ("preciso de
+    // 12 posts para Instagram de uma clínica odontológica...") é um anúncio
+    // NORMAL de uma agência de social media, e a palavra nua "Instagram"
+    // como PLATAFORMA DE ENTREGA disparava esta regra por engano — a prova
+    // de que o defeito já era conhecido: `PROPOSTA_LIMPA` em
+    // `__tests__/marketplaces/99freelas.test.ts` evita citar a palavra
+    // "Instagram" e escreve "perfil de rede social" no lugar dela. Trava que
+    // barra o caso limpo é desligada na primeira sexta-feira apertada — e
+    // "fazer posts para Instagram" é o produto central desta casa, não uma
+    // exceção. A combinação REALMENTE hostil ("me chama no instagram", "fala
+    // comigo no instagram") continua barrada pelos padrões
+    // `me\s+chama\s+n[oa]` / `chama\s+n[oa]`, que não dependem do nome da
+    // plataforma. WhatsApp/Telegram/Skype/Discord continuam na lista: são
+    // apps de contato direto, não plataformas de entrega desta agência.
+    re: /\b(?:whats\s*app|whatsapp|whats|zap|telegram|skype|discord|e-?mail|email|celular|telefone|meu\s+site|meu\s+portf[óo]lio|fora\s+da\s+plataforma|me\s+chama\s+n[oa]|chama\s+n[oa]|falar\s+por\s+fora)\b/gi,
     fonte: F_REGRAS,
   },
 
   // 3. PAGAMENTO POR FORA ───────────────────────────────────────────────────
+  // A variante conjugada ("pago por fora", "paga por fora") foi ACRESCENTADA
+  // pelo `seguranca` na Onda 2 (célula de prospecção, ficha B) — o teste da
+  // entrada hostil usa "pago por fora, sem a taxa da plataforma", e a
+  // alternação antiga só cobria "pagar"/"pagamento"/"receber" por fora.
+  // Mesma fonte da regra original: é a mesma proibição, só faltava a flexão.
   {
     regra: "pagamento_fora",
-    re: /\b(?:pix|dep[óo]sito\s+em\s+conta|transfer[êe]ncia\s+banc[áa]ria|dados?\s+banc[áa]rios?|pagar\s+por\s+fora|pagamento\s+por\s+fora|receber\s+por\s+fora|direto\s+comigo)\b/gi,
+    re: /\b(?:pix|dep[óo]sito\s+em\s+conta|transfer[êe]ncia\s+banc[áa]ria|dados?\s+banc[áa]rios?|pag(?:ar|amento|o|a)\s+por\s+fora|receber\s+por\s+fora|direto\s+comigo)\b/gi,
     fonte: "Termos de Uso · Sanções",
   },
 

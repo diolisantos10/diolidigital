@@ -1,0 +1,698 @@
+{
+  "_leia_isto": [
+    "A biblioteca de mensagens do 99Freelas como DADO VERSIONADO, no mesmo",
+    "formato de `docs/plataformas/99freelas/policy.json`: bloco `_leia_isto`",
+    "no topo, toda afirmação com fonte, versão e data.",
+    "Quem lê este arquivo é `lib/agency/celula/mensagens/biblioteca.ts`",
+    "(`carregarBiblioteca`). Modelo que não estiver `aprovado` NÃO sai —",
+    "`modeloParaEnvio` recusa, sempre com motivo.",
+    "",
+    "⚠️ OS 22 SLOTS ABAIXO ESTÃO VAZIOS DE PROPÓSITO. A ordem do CEO manda copiar",
+    "LITERALMENTE o texto-base dos modelos M01–M22, e esse texto NÃO CHEGOU até",
+    "esta rodada (foi procurado no repositório inteiro e não existe). Escrever um",
+    "texto nosso no lugar seria a casa inventando a fala que vai ao cliente em",
+    "nome do CEO — a lei 3 do domínio proíbe isso. Por isso cada modelo tem",
+    "`textoBase: \"\"`, `estado: \"rascunho\"`, `aprovador: null` e `pendencia`",
+    "explicando o motivo. Todo campo de texto sobre o qual a ordem do CEO NÃO",
+    "falou está escrito literalmente como `\"preciso confirmar com o CEO\"` — não",
+    "foi inventado, foi marcado.",
+    "",
+    "O que a ordem do CEO já disse, e só isso, está preenchido:",
+    "- M01 é a primeira abordagem, e é o modelo em que o CEO citou o caso da",
+    "  variável genérica (ver `pendencia` de M01 e a Ficha B, outro especialista).",
+    "- M07, M08 e M09 envolvem PREÇO — o valor tem de vir do motor de preços",
+    "  (`lib/marketplaces/99freelas/preco.ts`), nunca de constante nem escrito",
+    "  fixo no texto.",
+    "- M15, M16, M18 e M19 prometem data ao cliente — caem na trava de",
+    "  compromisso (outro especialista, outra ficha).",
+    "",
+    "Fonte da ordem: docs/celula-prospeccao/despachos/A-biblioteca.md §4."
+  ],
+
+  "plataforma": "99freelas",
+  "versao": "0.1.0-rascunho",
+  "atualizadoEm": "2026-08-30",
+
+  "modelos": [
+    {
+      "codigo": "M01",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "primeira abordagem",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado. Nota: o CEO citou este modelo (a primeira abordagem) como o caso em que nomeou o problema da variável genérica — contexto para a trava de similaridade/genérico de outro especialista (Ficha B), não implementado aqui."
+    },
+    {
+      "codigo": "M02",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M03",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M04",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M05",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M06",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M07",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "envolve PREÇO — o valor tem de vir do motor de preços (lib/marketplaces/99freelas/preco.ts), nunca de constante nem escrito fixo no texto.",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M08",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "envolve PREÇO — o valor tem de vir do motor de preços (lib/marketplaces/99freelas/preco.ts), nunca de constante nem escrito fixo no texto.",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M09",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "envolve PREÇO — o valor tem de vir do motor de preços (lib/marketplaces/99freelas/preco.ts), nunca de constante nem escrito fixo no texto.",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M10",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M11",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M12",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M13",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M14",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M15",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "promete data ao cliente — cai na trava de compromisso (outro especialista, outra ficha).",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M16",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "promete data ao cliente — cai na trava de compromisso (outro especialista, outra ficha).",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M17",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M18",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "promete data ao cliente — cai na trava de compromisso (outro especialista, outra ficha).",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M19",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "promete data ao cliente — cai na trava de compromisso (outro especialista, outra ficha).",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M20",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M21",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    },
+    {
+      "codigo": "M22",
+      "nome": "preciso confirmar com o CEO",
+      "plataforma": "99freelas",
+      "etapaDoFunil": "preciso confirmar com o CEO",
+      "finalidade": "preciso confirmar com o CEO",
+      "textoBase": "",
+      "variaveisObrigatorias": [],
+      "variaveisOpcionais": [],
+      "palavrasProibidas": [],
+      "condicaoDeEntrada": "preciso confirmar com o CEO",
+      "condicaoDeSaida": "preciso confirmar com o CEO",
+      "proximaAcao": "preciso confirmar com o CEO",
+      "tempoDeEsperaHoras": null,
+      "maximoDeUsos": null,
+      "versao": "0.1.0",
+      "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+      "aprovador": null,
+      "estado": "rascunho",
+      "historico": [
+        {
+          "versao": "0.1.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
+          "aprovador": null,
+          "oQueMudou": "Slot criado; texto oficial do CEO ainda não recebido — estado rascunho, não entregável."
+        }
+      ],
+      "pendencia": "texto oficial do CEO não recebido — modelo não pode ser enviado."
+    }
+  ]
+}
