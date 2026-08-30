@@ -33,7 +33,7 @@ import {
   conferirSegredo,
   segredoApresentado,
   segredoDaPorta,
-} from "@/lib/agency/connect/porta";
+} from "@/lib/agency/connect/porta-do-despacho";
 import {
   escolherClienteDeHomologacao,
   type LinhaDeCliente,
@@ -159,7 +159,7 @@ describe("trava 3 — o encosto no PILOTO_SECRET não pode voltar sem alguém ve
   // leitura acompanha a mudança e fica MAIS estrita, não menos — antes se exigia
   // que a rota lesse UM segredo só; agora se exige que ela não leia NENHUM, e
   // que o único lugar que lê o segredo desta porta seja o módulo da guarda.
-  const porta = fs.readFileSync(path.join(RAIZ, "lib/agency/connect/porta.ts"), "utf8");
+  const porta = fs.readFileSync(path.join(RAIZ, "lib/agency/connect/porta-do-despacho.ts"), "utf8");
 
   /**
    * O CÓDIGO, sem os comentários. A distinção importa e não é preciosismo: os

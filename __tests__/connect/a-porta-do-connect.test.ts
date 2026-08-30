@@ -109,7 +109,7 @@ import {
   BALDE_DO_TRABALHO,
   CHAMADAS_AUTENTICADAS_POR_JANELA,
   TENTATIVAS_FALHAS_POR_JANELA,
-} from "@/lib/agency/connect/porta";
+} from "@/lib/agency/connect/porta-do-despacho";
 
 const SEGREDO = "segredo-de-homologacao-do-connect";
 /** O segredo de OUTRA finalidade. Ele existe no ambiente — e não abre nada. */
