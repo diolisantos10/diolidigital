@@ -46,6 +46,20 @@ export const ORIGEM_DO_RASCUNHO =
   "credencial. Rascunho estruturado que se declara rascunho (Lei 2 da casa): a qualidade da prosa sobe " +
   "quando o dono configurar um provedor; o que este piloto prova é o acionamento e o rastro, não a eloquência.";
 
+/**
+ * ⚠️ A PRIMEIRA LINHA DE TEXTO DO ARTEFATO, EM PALAVRAS DE GENTE.
+ *
+ * Determinação do CEO (30/08/2026): "não apresente como comunicação final e
+ * inteligente do gerente… o texto do artefato também". O campo `origem` já
+ * dizia, mas dizia em jargão e no meio do JSON. Este aqui é a frase que alguém
+ * lê sem precisar de contexto nenhum, e ela abre o artefato.
+ */
+export const AVISO_DE_RASCUNHO =
+  "⚠️ RASCUNHO — NÃO É A COMUNICAÇÃO FINAL DO GERENTE. Este texto saiu de um motor de regras determinístico, " +
+  "sem provedor de IA, em homologação com dado sintético. Não envie a cliente, não trate como resposta " +
+  "pronta e não apresente como fala inteligente do gerente: ele prova que o acionamento aconteceu e ficou " +
+  "com rastro, e mais nada.";
+
 function lerCobrancas(contexto: ContextoDeExecucao): Cobranca[] {
   const bruto = contexto.entradas[CHAVE_COBRANCAS];
   if (!bruto) return [];
@@ -132,6 +146,12 @@ export function respostaDoGerente(
   return {
     saida: JSON.stringify(
       {
+        // As três primeiras chaves do artefato existem só para ele não poder
+        // ser confundido com a fala final do gerente — nem por máquina
+        // (`rascunho`), nem por tela (`natureza`), nem por gente (`aviso`).
+        rascunho: true,
+        natureza: "RASCUNHO",
+        aviso: AVISO_DE_RASCUNHO,
         origem: ORIGEM_DO_RASCUNHO,
         modo: contexto.modo,
         sintetico: contexto.sintetico === true,

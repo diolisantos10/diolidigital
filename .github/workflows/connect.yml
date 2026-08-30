@@ -1,0 +1,87 @@
+name: Dioli Connect — as travas da porta corporativa
+
+# ─── POR QUE ESTE ARQUIVO EXISTE, SE JÁ EXISTE `ci.yml` ─────────────────────
+#
+# Determinação do CEO (30/08/2026), literal: **"nenhum resultado local é
+# suficiente para homologação"**. E até aqui as travas do Dioli Connect só
+# tinham sido medidas na máquina de quem as escreveu.
+#
+# `ci.yml` roda `npm test`, que roda a suíte inteira — e sim, `__tests__/connect`
+# entra nela. Este arquivo NÃO substitui aquele e não repete o que ele faz: ele
+# ACRESCENTA um portão com nome próprio, e a diferença entre os dois é o que
+# justifica a existência deste:
+#
+#   • `ci.yml` leva ~8 min e reprova por qualquer coisa da casa — instalar
+#     Chromium, construir produção, 5.900+ testes de todo o resto. Quando ele
+#     fica vermelho, ninguém sabe olhando o nome se foi o Connect ou o vizinho.
+#   • este roda em ~2 min, toca SÓ as travas desta porta, e o nome do check
+#     diz de quem é a culpa. Numa homologação em que a pergunta é "as travas do
+#     Connect estão de pé?", a resposta precisa ser um sinal separado — e não
+#     um verde compartilhado com outras 5.900 provas.
+#
+# Os dois rodam. Este é o que responde pela porta.
+
+on:
+  push:
+    branches:
+      - arquitetura/dioli-connect-gateway
+      - claude/dioli-agency-os-architecture-kk7kp
+      - "**"
+  pull_request:
+    branches: ["**"]
+
+# Mesmo raciocínio de `ci.yml`, e pelo mesmo incidente: o grupo é por COMMIT, e
+# não por branch. Um re-push do MESMO commit cancela o run anterior (o ruído
+# vermelho de run supersedido fica apagado); um commit NOVO nunca cancela o run
+# de um commit DIFERENTE, para cada commit ter o seu próprio veredito. Ver o
+# comentário longo em `ci.yml` — a regra por branch congelou a entrega em
+# 16/08/2026 e não se repete aqui.
+concurrency:
+  group: connect-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  travas:
+    name: As travas da porta do Connect
+    runs-on: ubuntu-latest
+    # O portão é curto de propósito. Passou de 15 min, o problema não é o
+    # código — é a rodada, e ela morre rápido em vez de apodrecer segurando
+    # runner (mesma lição de 06/08/2026 registrada em `ci.yml`).
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      # `__tests__/connect/execucao-carimbada.test.ts` NÃO usa banco de mentira:
+      # ele sobe um SQLite descartável e roda `npx prisma migrate deploy` com as
+      # migrations de verdade. Sem o cliente gerado, ele nem importa.
+      - name: Prisma generate
+        run: npx prisma generate
+
+      # Typecheck da árvore inteira. É barato perto do que custa descobrir em
+      # produção que o contrato da porta não fecha com quem a chama.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # ─── O PORTÃO PROPRIAMENTE DITO ────────────────────────────────────────
+      #
+      # `--reporter=verbose` é deliberado, e não é enfeite de log: dois testes
+      # de `a-ficha-chega-em-producao.test.ts` são `it.skipIf(!construido)` —
+      # eles só medem quando existe `.next/standalone`, que este portão não
+      # constrói. Com o relatório resumido, esses dois sumiriam dentro de um
+      # verde e ninguém saberia que não foram medidos aqui. Verbose faz o
+      # "skipped" aparecer escrito na tela do run.
+      #
+      # Quem constrói produção e mede aquilo é `ci.yml`, no mesmo PR — mas lá o
+      # build roda DEPOIS dos testes, então aquela medição também não acontece
+      # em CI hoje. Está declarado no corpo do PR como pendência aberta, em vez
+      # de maquiado aqui: verde sem prova é pior que vermelho.
+      - name: As travas do Dioli Connect
+        run: npx vitest run __tests__/connect/ --reporter=verbose

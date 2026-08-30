@@ -8,6 +8,7 @@
 
 import type { PrismaClient } from "@/lib/generated/prisma/client";
 import type { ArmazemDoConnect, LinhaDeExecucaoLida } from "./despacho";
+import { resolverClienteDeHomologacao } from "./cliente-de-homologacao";
 
 /** Quantas execuções anteriores do mesmo fio entram no contexto do turno. */
 export const ANTECEDENTES_NO_FIO = 20;
@@ -89,6 +90,12 @@ export function armazemDoConnectNoBanco(db: PrismaClient): ArmazemDoConnect {
         take: ANTECEDENTES_NO_FIO,
       });
       return linhas.map(linha);
+    },
+
+    // ⭐ O cliente sintético sai do BANCO, não do corpo do pedido. A regra e as
+    // duas conferências moram em `cliente-de-homologacao.ts`; aqui é só a ponte.
+    async clienteDeHomologacao() {
+      return resolverClienteDeHomologacao(db);
     },
   };
 }

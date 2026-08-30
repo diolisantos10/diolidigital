@@ -43,6 +43,10 @@ import {
 import type { RegistroDeExecucao } from "@/lib/agency/execucao-v2/registro";
 import type { PerfilOrganizacional } from "@/lib/agency/organizacao/autoridade";
 import {
+  MOTIVO_SEM_CLIENTE_SINTETICO,
+  type ClienteDeHomologacao,
+} from "./cliente-de-homologacao";
+import {
   CHAVE_CLIENTE,
   CHAVE_COBRANCAS,
   CHAVE_HISTORICO,
@@ -92,6 +96,12 @@ export interface ArmazemDoConnect {
   relerExecucao(id: string): Promise<LinhaDeExecucaoLida | null>;
   /** O fio: as execuções que já aconteceram sob o mesmo correlationId. */
   antecedentes(correlationId: string): Promise<LinhaDeExecucaoLida[]>;
+  /**
+   * ⭐ QUEM ESCOLHE O CLIENTE. Não é quem chama — é isto, contra o banco.
+   * Devolve `null` quando não há cliente sintético de homologação plantado, e
+   * aí a porta recusa em vez de inventar um.
+   */
+  clienteDeHomologacao(): Promise<ClienteDeHomologacao | null>;
 }
 
 export interface DependenciasDoDespacho {
@@ -118,8 +128,39 @@ export interface ProvaDaExecucao {
   custoUsd: number | null;
 }
 
+/**
+ * ⚠️ O QUE A CONTROL ROOM LÊ PARA SABER QUE ISTO NÃO É O GERENTE FALANDO.
+ *
+ * Determinação do CEO (30/08/2026): a resposta determinística **continua
+ * identificada como RASCUNHO**, e o campo que a Control Room lê tem que deixar
+ * isso inequívoco. Antes a única declaração vivia DENTRO do artefato, num campo
+ * `origem` que só aparece para quem abre o JSON e lê até o fim — quem lesse a
+ * resposta de fora via `estado: "executado"` e mais nada.
+ *
+ * Agora são três campos no primeiro nível da resposta, e eles são redundantes
+ * de propósito: um booleano para a máquina decidir, um rótulo curto para a tela,
+ * e a frase inteira para quem for ler. Nenhum deles depende de abrir o artefato.
+ */
+export interface SeloDeRascunho {
+  /** Para a máquina: nunca `false` enquanto não houver provedor de IA. */
+  rascunho: true;
+  /** Para a tela: uma palavra, em caixa alta, que não dá para ler como outra coisa. */
+  natureza: "RASCUNHO";
+  /** Para quem lê: o que isto é e o que isto não é. */
+  aviso: string;
+}
+
+export const SELO_DE_RASCUNHO: SeloDeRascunho = {
+  rascunho: true,
+  natureza: "RASCUNHO",
+  aviso:
+    "RASCUNHO — saída de motor de regras determinístico, sem provedor de IA e sem credencial. NÃO é a " +
+    "comunicação final e inteligente do gerente, e não deve ser apresentada como tal a cliente nenhum. " +
+    "Serve para provar o acionamento e o rastro; a redação sobe quando o dono configurar um provedor.",
+};
+
 export type ResultadoDoDespacho =
-  | {
+  | ({
       estado: "executado";
       funcao: string;
       correlationId: string;
@@ -127,7 +168,9 @@ export type ResultadoDoDespacho =
       execucaoId: string;
       prova: ProvaDaExecucao;
       artefato: string;
-    }
+      /** O cliente que o GATEWAY resolveu. Não veio no pedido; não podia vir. */
+      cliente: ClienteDeHomologacao;
+    } & SeloDeRascunho)
   | {
       estado: "recusado";
       funcao: string;
@@ -152,9 +195,15 @@ function fioNovo(cliente: string): string {
   return `connect:${apelido}:${randomUUID()}`;
 }
 
-function entradasDoDespacho(pedido: PedidoConferido, antecedentes: LinhaDeExecucaoLida[]): Record<string, string> {
+function entradasDoDespacho(
+  pedido: PedidoConferido,
+  cliente: ClienteDeHomologacao,
+  antecedentes: LinhaDeExecucaoLida[],
+): Record<string, string> {
   const entradas: Record<string, string> = { ...pedido.dossie };
-  entradas[CHAVE_CLIENTE] = pedido.cliente;
+  // O nome do cliente que entra no rastro é o RESOLVIDO, lido do banco — não um
+  // texto que quem chamou digitou.
+  entradas[CHAVE_CLIENTE] = cliente.nome;
   entradas[CHAVE_PERGUNTA] = pedido.pergunta;
 
   // O fio tem duas fontes e as duas entram: o que o chamador mandou e o que o
@@ -191,9 +240,40 @@ export async function despachar(
   pedido: PedidoConferido,
   deps: DependenciasDoDespacho,
 ): Promise<ResultadoDoDespacho> {
-  const correlationId = pedido.correlationId ?? fioNovo(pedido.cliente);
   const especificacao = (deps.specDe ?? specDaFuncao)(pedido.funcao);
   const exigidas = especificacao.ok ? especificacao.spec.entradas_obrigatorias : undefined;
+
+  // ── ⭐ O CLIENTE É RESOLVIDO AQUI, ANTES DE QUALQUER COISA ACONTECER ──────
+  //
+  // Antes do executor, antes do fio, antes de qualquer linha ser gravada: se
+  // não há cliente sintético de homologação, nada roda. Fail-closed — e a
+  // recusa é NOMEADA, com o que falta, porque "não abriu" sem motivo obriga
+  // quem chama a adivinhar.
+  let cliente: ClienteDeHomologacao | null = null;
+  try {
+    cliente = await deps.armazem.clienteDeHomologacao();
+  } catch (e) {
+    return {
+      estado: "nao_verificavel",
+      funcao: pedido.funcao,
+      correlationId: pedido.correlationId ?? "connect:sem-fio",
+      turno: 0,
+      execucaoId: null,
+      motivo: `a resolução do cliente sintético falhou: ${e instanceof Error ? e.message : String(e)}`,
+    };
+  }
+  if (!cliente) {
+    return {
+      estado: "recusado",
+      funcao: pedido.funcao,
+      correlationId: pedido.correlationId ?? "connect:sem-fio",
+      turno: 0,
+      motivo: MOTIVO_SEM_CLIENTE_SINTETICO,
+      recusaId: null,
+    };
+  }
+
+  const correlationId = pedido.correlationId ?? fioNovo(cliente.nome);
 
   let antecedentes: LinhaDeExecucaoLida[] = [];
   try {
@@ -209,7 +289,7 @@ export async function despachar(
   const contexto: ContextoDeExecucao = {
     modo: MODO_EXIGIDO,
     sintetico: true,
-    entradas: entradasDoDespacho(pedido, antecedentes),
+    entradas: entradasDoDespacho(pedido, cliente, antecedentes),
     // Nenhuma ferramenta é prevista: esta porta não toca o mundo, e ferramenta
     // não pedida é ferramenta que a ficha não precisa autorizar.
     ferramentasPrevistas: [],
@@ -221,7 +301,9 @@ export async function despachar(
     correlationId,
     // Homologação não consulta flag de produção; escopo vazio é o honesto.
     escopos: [],
-    clienteId: pedido.clienteId,
+    // O id que vai para o rastro é o RESOLVIDO. Nunca mais um id que chegou no
+    // corpo do pedido sem ninguém conferir de quem era.
+    clienteId: cliente.id,
   };
 
   // O que o executor mandou gravar, capturado aqui para a releitura ter um id.
@@ -345,10 +427,14 @@ export async function despachar(
 
   return {
     estado: "executado",
+    // O selo vem PRIMEIRO no objeto, e no primeiro nível: quem lê a resposta
+    // não precisa abrir o artefato para saber que isto é rascunho.
+    ...SELO_DE_RASCUNHO,
     funcao: pedido.funcao,
     correlationId,
     turno,
     execucaoId: linha.id,
+    cliente,
     artefato: linha.resultado,
     prova: {
       tabela: "ExecucaoV2",

@@ -24,13 +24,25 @@
 // produção porque alguém esqueceu um campo, que é exatamente o modo de falha
 // que o guardrail 4 da casa proíbe ("prompt é aviso; código é trava").
 //
-// A terceira trava é o CARIMBO: o nome do cliente precisa carregar
-// `[TESTE]` (`MARCA_DO_CLIENTE_FALSO`, a mesma constante que a trava de saída
-// do cliente falso usa). Nenhum negócio real se chama "[TESTE]" — e, com esta
-// checagem, nenhum nome de cliente REAL atravessa esta porta, nem por engano
-// de quem chama.
+// ─── A HOMOLOGAÇÃO FINAL (30/08/2026): DUAS TRAVAS NOVAS AQUI ──────────────
+//
+// **A função virou lista de uma.** Era campo livre com padrão silencioso
+// (`texto(corpo.funcao) ?? FUNCAO_DO_PILOTO`) — quem chamasse podia despachar
+// QUALQUER ficha do catálogo por esta porta, e quem mandasse lixo no campo
+// (um número, um objeto) caía no padrão sem saber. O piloto foi aprovado para
+// UMA função, e agora a porta só conhece essa uma: qualquer outra é recusada
+// **com o nome pedido no motivo**, para quem chama saber o que fez.
+//
+// **O cliente saiu do corpo do pedido, inteiro.** Este arquivo já não lê
+// `clienteId` nem `cliente`. Antes o chamador mandava o id e a porta confiava —
+// o "id aceito sem conferir de quem é", o padrão nº 2 do raio-x desta casa. A
+// determinação do CEO foi resolver internamente, e é o que
+// `cliente-de-homologacao.ts` faz: o gateway vai ao banco e escolhe sozinho o
+// cliente sintético. Aqui a única regra que sobra é a mais dura de todas —
+// **campo de cliente presente no corpo é RECUSA**, não um campo ignorado em
+// silêncio. Ignorar deixaria quem chama achando que escolheu; recusar diz na
+// cara que essa escolha não existe mais.
 
-import { MARCA_DO_CLIENTE_FALSO } from "@/lib/agency/cliente-falso/trava-de-saida";
 import type { Cobranca } from "@/lib/agency/pm/varredura";
 
 /** O modo é literal e único. Não existe padrão. */
@@ -38,6 +50,20 @@ export const MODO_EXIGIDO = "homologacao" as const;
 
 /** A função do piloto — o Gerente de Atendimento e SDR. */
 export const FUNCAO_DO_PILOTO = "manager-atendimento";
+
+/**
+ * A LISTA DE UMA. Não é um padrão, é um conjunto fechado: o que não está aqui
+ * não atravessa. É lista (e não uma comparação com a constante) porque a forma
+ * do código tem que dizer a regra — o dia em que o CEO liberar uma segunda
+ * função, o conserto é acrescentar um item, e a trava continua sendo a lista.
+ */
+export const FUNCOES_PERMITIDAS: readonly string[] = [FUNCAO_DO_PILOTO];
+
+/**
+ * Os campos de cliente que ESTA PORTA NÃO ACEITA MAIS. Presentes no corpo, a
+ * resposta é recusa nomeada — nunca um "ignorei e segui".
+ */
+export const CAMPOS_DE_CLIENTE_PROIBIDOS = ["clienteId", "cliente"] as const;
 
 /** Um turno do fio: quem falou e o que disse. */
 export interface TurnoDoFio {
@@ -50,8 +76,11 @@ export interface PedidoDeDespacho {
   modo?: unknown;
   sintetico?: unknown;
   funcao?: unknown;
+  /**
+   * ⛔ NÃO É ENTRADA. Declarados só para a porta poder RECUSAR quem os mandar.
+   * O cliente sintético é resolvido pelo gateway (`cliente-de-homologacao.ts`).
+   */
   cliente?: unknown;
-  /** Id do cliente fictício no banco, quando existe — vai para o rastro. */
   clienteId?: unknown;
   pergunta?: unknown;
   /** As entradas obrigatórias da ficha, com as chaves EXATAS que ela declara. */
@@ -66,13 +95,13 @@ export interface PedidoDeDespacho {
   correlationId?: unknown;
 }
 
-/** O pedido depois de conferido — só existe se passou por todas as travas. */
+/** O pedido depois de conferido — só existe se passou por todas as travas.
+ *  Repare no que NÃO existe aqui: cliente e clienteId. Um pedido conferido não
+ *  carrega cliente nenhum, porque o cliente não vem do pedido. */
 export interface PedidoConferido {
   modo: typeof MODO_EXIGIDO;
   sintetico: true;
   funcao: string;
-  cliente: string;
-  clienteId?: string;
   pergunta: string;
   dossie: Record<string, string>;
   historico: TurnoDoFio[];
@@ -114,21 +143,43 @@ export function conferirPedido(corpo: PedidoDeDespacho): Conferencia {
     };
   }
 
-  // ── Trava 3: o carimbo do cliente fictício. ──────────────────────────────
-  const cliente = texto(corpo.cliente);
-  if (!cliente) {
-    return { ok: false, motivo: "cliente é obrigatório — não se despacha trabalho sem dizer de quem é" };
-  }
-  if (!cliente.includes(MARCA_DO_CLIENTE_FALSO)) {
+  // ── Trava 3: o cliente NÃO vem de quem chama. ────────────────────────────
+  //
+  // A recusa é por campo PRESENTE, não por valor errado: mesmo um `[TESTE]`
+  // impecável é recusado, porque o defeito não era o valor — era a porta deixar
+  // o chamador escolher. Conferir o valor manteria o furo com um filtro em
+  // cima; tirar a entrada fecha o furo.
+  for (const campo of CAMPOS_DE_CLIENTE_PROIBIDOS) {
+    const enviado = (corpo as Record<string, unknown>)[campo];
+    if (enviado === undefined) continue;
     return {
       ok: false,
       motivo:
-        `cliente "${cliente}" não carrega o carimbo ${MARCA_DO_CLIENTE_FALSO} — em homologação só entra ` +
-        `cliente fictício, e o carimbo é como o código reconhece um. Nenhum negócio real se chama "${MARCA_DO_CLIENTE_FALSO}".`,
+        `"${campo}" não é mais entrada desta porta — recebi ${JSON.stringify(enviado)} e recusei. ` +
+        `O cliente sintético de homologação é resolvido pelo próprio gateway, no banco, conferindo o carimbo de ` +
+        `teste e o domínio de homologação na linha lida. Quem chama não escolhe cliente: o que o chamador não ` +
+        `escolhe, ele não força. Remova "${campo}" do corpo — a resposta devolve o cliente que foi resolvido.`,
     };
   }
 
-  const funcao = texto(corpo.funcao) ?? FUNCAO_DO_PILOTO;
+  // ── Trava 4: a função é uma lista de uma. ────────────────────────────────
+  //
+  // Ausente cai na única função permitida — e isso NÃO é o padrão silencioso de
+  // antes: quando a lista tem um item só, "não escolher" e "escolher o único"
+  // são a mesma coisa, e nenhuma segunda função fica alcançável por omissão.
+  // O que mudou é que escolher OUTRA coisa deixou de ser possível.
+  const funcaoPedida = corpo.funcao === undefined || corpo.funcao === null ? FUNCAO_DO_PILOTO : corpo.funcao;
+  if (typeof funcaoPedida !== "string" || !FUNCOES_PERMITIDAS.includes(funcaoPedida)) {
+    return {
+      ok: false,
+      motivo:
+        `funcao ${JSON.stringify(funcaoPedida)} recusada: esta porta está presa a ` +
+        `${FUNCOES_PERMITIDAS.map((f) => `"${f}"`).join(", ")} e não despacha nenhuma outra ficha. ` +
+        `O piloto foi aprovado para essa função e só para ela.`,
+    };
+  }
+  const funcao = funcaoPedida;
+
   const pergunta = texto(corpo.pergunta);
   if (!pergunta) {
     return { ok: false, motivo: "pergunta é obrigatória — a porta despacha uma pergunta, não um silêncio" };
@@ -206,8 +257,6 @@ export function conferirPedido(corpo: PedidoDeDespacho): Conferencia {
       modo: MODO_EXIGIDO,
       sintetico: true,
       funcao,
-      cliente,
-      clienteId: texto(corpo.clienteId) ?? undefined,
       pergunta,
       dossie,
       historico,

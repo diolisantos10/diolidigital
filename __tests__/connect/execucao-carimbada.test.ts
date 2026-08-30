@@ -33,6 +33,7 @@ import { executarFuncao, type ContextoDeExecucao } from "@/lib/agency/execucao-v
 import { armazemDoConnectNoBanco } from "@/lib/agency/connect/armazem-prisma";
 import { despachar, ATOR_DO_CONNECT, type ArmazemDoConnect } from "@/lib/agency/connect/despacho";
 import { conferirPedido, FUNCAO_DO_PILOTO, type PedidoConferido } from "@/lib/agency/connect/contrato";
+import { MOTIVO_SEM_CLIENTE_SINTETICO } from "@/lib/agency/connect/cliente-de-homologacao";
 import {
   fabricarAtrasoDoClienteFalso,
   CLIENTE_DO_PILOTO,
@@ -66,7 +67,9 @@ afterAll(async () => {
   limparArquivosDoBanco(CAMINHO_DB);
 });
 
-/** O pedido do caso-piloto, montado pelo MESMO conferidor que a rota usa. */
+/** O pedido do caso-piloto, montado pelo MESMO conferidor que a rota usa.
+ *  Repare no que sumiu daqui em 30/08/2026: `cliente` e `clienteId`. O pedido
+ *  legítimo não carrega cliente nenhum — quem resolve é o gateway. */
 function pedidoDoPiloto(extra: Record<string, unknown> = {}): PedidoConferido {
   const spec = specDaFuncao(FUNCAO_DO_PILOTO);
   if (!spec.ok) throw new Error(spec.motivo);
@@ -75,8 +78,6 @@ function pedidoDoPiloto(extra: Record<string, unknown> = {}): PedidoConferido {
     modo: "homologacao",
     sintetico: true,
     funcao: FUNCAO_DO_PILOTO,
-    cliente: atraso.clienteNome,
-    clienteId: atraso.clienteId,
     pergunta: "O atendimento da Cantina está atrasado. O que houve?",
     dossie: {
       [primeira!]: atraso.demanda,
@@ -126,6 +127,69 @@ describe("o atraso do cliente fictício é fabricado, não simulado no papel", (
 });
 
 // ───────────────────────────────────────────────────────────────────────────
+// ⭐ TRAVA 5 do CEO, contra BANCO DE VERDADE: o cliente é resolvido aqui dentro.
+// ───────────────────────────────────────────────────────────────────────────
+describe("o cliente sintético é resolvido pelo gateway, no banco", () => {
+  it("acha o cliente plantado, e as duas condições vêm conferidas na linha lida", async () => {
+    const resolvido = await armazem.clienteDeHomologacao();
+    expect(resolvido, "o gateway não achou o cliente sintético que ele mesmo planta").not.toBeNull();
+    expect(resolvido!.id).toBe(atraso.clienteId);
+    expect(resolvido!.nome).toContain(MARCA_DO_CLIENTE_FALSO);
+    expect(resolvido!.resolvido_por).toBe("gateway");
+
+    // E a linha do banco cumpre de fato as duas condições que a resolução exige.
+    const linha = await prisma.client.findUnique({ where: { id: resolvido!.id } });
+    expect(linha!.name).toContain(MARCA_DO_CLIENTE_FALSO);
+    expect(linha!.email).toMatch(/\.invalid$/);
+  });
+
+  it("⭐ um cliente REAL no mesmo banco NUNCA é escolhido — nem sendo o mais recente", async () => {
+    // O pior caso possível: um cliente de verdade, criado DEPOIS do sintético,
+    // no mesmo workspace. A ordenação é "mais recente primeiro" — então se a
+    // resolução dependesse só da ordem, este seria o escolhido.
+    const real = await prisma.client.create({
+      data: { workspaceId: atraso.workspaceId, name: "Padaria do Zé", email: "ze@padariadoze.com.br" },
+      select: { id: true },
+    });
+
+    const resolvido = await armazem.clienteDeHomologacao();
+    expect(resolvido!.id, "um cliente real foi escolhido pela porta de homologação").not.toBe(real.id);
+    expect(resolvido!.id).toBe(atraso.clienteId);
+
+    // E o despacho inteiro continua gravando o id do sintético, não o do real.
+    const r = await despachar(pedidoDoPiloto(), { armazem, perfil: PERFIL, agora: () => AGORA });
+    expect(r.estado).toBe("executado");
+    if (r.estado !== "executado") return;
+    expect(r.cliente.id).toBe(atraso.clienteId);
+
+    await prisma.client.delete({ where: { id: real.id } });
+  });
+
+  it("sem cliente sintético nenhum, o despacho RECUSA — não inventa e não segue sem", async () => {
+    const semCliente: ArmazemDoConnect = { ...armazem, clienteDeHomologacao: async () => null };
+    const r = await despachar(pedidoDoPiloto(), { armazem: semCliente, perfil: PERFIL, agora: () => AGORA });
+
+    expect(r.estado).toBe("recusado");
+    if (r.estado !== "recusado") return;
+    expect(r.motivo).toBe(MOTIVO_SEM_CLIENTE_SINTETICO);
+    expect(r.motivo).toMatch(/permanece fechada/i);
+  });
+
+  it("a resolução estourando não vira sucesso: cai em nao_verificavel", async () => {
+    const quebrado: ArmazemDoConnect = {
+      ...armazem,
+      clienteDeHomologacao: async () => {
+        throw new Error("banco fora do ar");
+      },
+    };
+    const r = await despachar(pedidoDoPiloto(), { armazem: quebrado, perfil: PERFIL, agora: () => AGORA });
+    expect(r.estado).toBe("nao_verificavel");
+    if (r.estado !== "nao_verificavel") return;
+    expect(r.motivo).toMatch(/resolução do cliente sintético falhou/i);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
 describe("o caminho legítimo — e o carimbo que volta do banco", () => {
   it("executa de verdade e devolve o identificador da execução", async () => {
     const r = await despachar(pedidoDoPiloto(), { armazem, perfil: PERFIL, agora: () => AGORA });
@@ -139,7 +203,11 @@ describe("o caminho legítimo — e o carimbo que volta do banco", () => {
     expect(linha, "o id devolvido não existe em ExecucaoV2 — a resposta mentiria").not.toBeNull();
     expect(linha!.funcaoId).toBe(FUNCAO_DO_PILOTO);
     expect(linha!.departamentoId).toBe("client-service-sdr");
+    // ⭐ O id gravado é o que o GATEWAY resolveu no banco — e ele bate com o
+    // cliente sintético plantado, sem ninguém ter informado id nenhum.
     expect(linha!.clienteId).toBe(atraso.clienteId);
+    expect(r.cliente.id).toBe(atraso.clienteId);
+    expect(r.cliente.resolvido_por).toBe("gateway");
     expect(linha!.inicio).toBeInstanceOf(Date);
     expect(linha!.fim).toBeInstanceOf(Date);
     expect(linha!.resultado).toBeTruthy();
@@ -299,8 +367,14 @@ describe("o acionamento cortado — e a resposta que NÃO vira sucesso", () => {
 // ───────────────────────────────────────────────────────────────────────────
 describe("as recusas nomeadas, pelo núcleo", () => {
   it("ficha inexistente: recusa com nome, e o rastro da recusa fica no banco", async () => {
+    // ⚠️ O pedido é montado À MÃO, sem passar pelo conferidor, DE PROPÓSITO.
+    // Desde 30/08/2026 a lista de uma (`FUNCOES_PERMITIDAS`) barra qualquer
+    // outra função no contrato, antes do motor — então o único jeito de ainda
+    // provar que o MOTOR recusa ficha inexistente e grava o rastro é entrar por
+    // baixo da trava de entrada. As duas camadas ficam cobertas: a de fora em
+    // `a-porta-do-connect.test.ts`, esta aqui.
     const antes = await prisma.recusaV2.count();
-    const r = await despachar(pedidoDoPiloto({ funcao: "cargo-inventado" }), {
+    const r = await despachar({ ...pedidoDoPiloto(), funcao: "cargo-inventado" }, {
       armazem,
       perfil: PERFIL,
       agora: () => AGORA,
