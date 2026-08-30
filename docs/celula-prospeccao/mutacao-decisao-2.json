@@ -1,0 +1,109 @@
+{
+  "rodadoEm": "2026-08-30T17:19:37.788Z",
+  "base": "13 passed (13)",
+  "mutacoes": [
+    {
+      "guarda": "D2-M1 · comparação por host exato/subdomínio, nunca `includes`",
+      "arquivo": "lib/agency/celula/navegador-isolado.ts",
+      "de": "    if (partes.host === p.host || partes.host.endsWith(`.${p.host}`)) {",
+      "para": "    if (partes.host.includes(p.host)) { // MUTAÇÃO: o defeito clássico de allowlist",
+      "espera": "99freelas.com.br.evil.com passa a ser alcançável",
+      "estado": "VERMELHO",
+      "falhas": [
+        "domínio que CONTÉM o do canal não passa — 99freelas.com.br.evil.com é de outro dono 6ms",
+        "__tests__/celula/navegador-isolado.test.ts > o contorno clássico de allowlist > domínio que CONTÉM o do canal não passa — 99freelas.com.br.evil.com é de outro dono"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D2-M2 · só https (file: alcança o disco, http: entrega a sessão)",
+      "arquivo": "lib/agency/celula/navegador-isolado.ts",
+      "de": "  if (partes.esquema !== \"https:\") {",
+      "para": "  if (false) { // MUTAÇÃO: file: e http: passam a ser aceitos",
+      "espera": "file:///etc/passwd deixa de ser barrado",
+      "estado": "VERMELHO",
+      "falhas": [
+        "só https — file: alcançaria o disco, http: entregaria a sessão 6ms",
+        "__tests__/celula/navegador-isolado.test.ts > o contorno clássico de allowlist > só https — file: alcançaria o disco, http: entregaria a sessão"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D2-M3 · a lista é de PERMISSÃO — o que não foi declarado é negado",
+      "arquivo": "lib/agency/celula/navegador-isolado.ts",
+      "de": "  return {\n    alcancavel: false,\n    regra: \"fora_da_lista_de_permissao\",",
+      "para": "  return { alcancavel: true, host: partes.host, porque: \"canal\" }; // MUTAÇÃO: vira lista de proibição — tudo que não foi negado passa\n  return {\n    alcancavel: false,\n    regra: \"fora_da_lista_de_permissao\",",
+      "espera": "Gmail, banco e redes sociais passam a ser alcançáveis",
+      "estado": "VERMELHO",
+      "falhas": [
+        "Gmail, banco e redes sociais são BARRADOS — e nenhum deles é nomeado no código 9ms",
+        "a prova de que é lista de PERMISSÃO: um serviço inventado, que ninguém listaria, também é barrado 1ms",
+        "domínio que CONTÉM o do canal não passa — 99freelas.com.br.evil.com é de outro dono 1ms",
+        "sem DIOLI_DOMINIO_OPERACIONAL, nada da Dioli é alcançável 1ms",
+        "declarada, ela passa — e só ela 1ms",
+        "URL que se anuncia como autorizada continua barrada 1ms",
+        "__tests__/celula/navegador-isolado.test.ts > 🔴 o que a decisão 2 existe para impedir > Gmail, banco e redes sociais são BARRADOS — e nenhum deles é nomeado no código",
+        "__tests__/celula/navegador-isolado.test.ts > 🔴 o que a decisão 2 existe para impedir > a prova de que é lista de PERMISSÃO: um serviço inventado, que ninguém listaria, também é barrado",
+        "__tests__/celula/navegador-isolado.test.ts > o contorno clássico de allowlist > domínio que CONTÉM o do canal não passa — 99freelas.com.br.evil.com é de outro dono",
+        "__tests__/celula/navegador-isolado.test.ts > a área operacional da Dioli — fail closed quando não declarada > sem DIOLI_DOMINIO_OPERACIONAL, nada da Dioli é alcançável",
+        "__tests__/celula/navegador-isolado.test.ts > a área operacional da Dioli — fail closed quando não declarada > declarada, ela passa — e só ela",
+        "__tests__/celula/navegador-isolado.test.ts > entrada hostil — o texto de um projeto não move a lista > URL que se anuncia como autorizada continua barrada"
+      ],
+      "placar": "6 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D2-M4 · URL ilegível é negada, nunca consertada",
+      "arquivo": "lib/agency/celula/navegador-isolado.ts",
+      "de": "  if (partes === null) {",
+      "para": "  if (false) { // MUTAÇÃO: entrada ilegível deixa de ser negada",
+      "espera": "'', null e javascript: deixam de ser barrados",
+      "estado": "VERMELHO",
+      "falhas": [
+        "entrada ilegível é NEGADA, nunca consertada 4ms",
+        "__tests__/celula/navegador-isolado.test.ts > o contorno clássico de allowlist > entrada ilegível é NEGADA, nunca consertada"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D2-M5 · área operacional da Dioli é fail closed quando não declarada",
+      "arquivo": "lib/agency/celula/navegador-isolado.ts",
+      "de": "  if (bruto === \"\") return null;",
+      "para": "  if (bruto === \"\") return \"dioli.studio\"; // MUTAÇÃO: default silencioso onde deveria haver ausência",
+      "espera": "a Dioli passa a ser alcançável sem ninguém ter declarado",
+      "estado": "VERMELHO",
+      "falhas": [
+        "sem DIOLI_DOMINIO_OPERACIONAL, nada da Dioli é alcançável 5ms",
+        "configuração malformada NÃO vira permissão 1ms",
+        "__tests__/celula/navegador-isolado.test.ts > a área operacional da Dioli — fail closed quando não declarada > sem DIOLI_DOMINIO_OPERACIONAL, nada da Dioli é alcançável",
+        "__tests__/celula/navegador-isolado.test.ts > a área operacional da Dioli — fail closed quando não declarada > configuração malformada NÃO vira permissão"
+      ],
+      "placar": "2 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D2-M6 · configuração malformada não vira permissão",
+      "arquivo": "lib/agency/celula/navegador-isolado.ts",
+      "de": "  if (!/^[a-z0-9.-]+\\.[a-z]{2,}$/.test(bruto)) return null;",
+      "para": "  // MUTAÇÃO: aceita qualquer coisa como domínio operacional",
+      "espera": "'*', 'localhost' e uma URL inteira passam a valer como domínio",
+      "estado": "VERMELHO",
+      "falhas": [
+        "configuração malformada NÃO vira permissão 5ms",
+        "__tests__/celula/navegador-isolado.test.ts > a área operacional da Dioli — fail closed quando não declarada > configuração malformada NÃO vira permissão"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "D2-M7 · o diretório do perfil nunca é o do navegador pessoal",
+      "arquivo": "lib/agency/celula/navegador-isolado.ts",
+      "de": "    if (normalizado.includes(s)) {",
+      "para": "    if (false) { // MUTAÇÃO: o perfil do Chrome do CEO passa a ser aceito",
+      "espera": "o perfil com Gmail e banco passa a ser aceito como isolado",
+      "estado": "VERMELHO",
+      "falhas": [
+        "RECUSA caminhos que parecem perfil padrão de navegador 6ms",
+        "__tests__/celula/navegador-isolado.test.ts > o diretório do perfil — nunca o do navegador pessoal do CEO > RECUSA caminhos que parecem perfil padrão de navegador"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    }
+  ]
+}

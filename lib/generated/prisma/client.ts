@@ -758,3 +758,89 @@ export type AssinaturaRecorrente = Prisma.AssinaturaRecorrenteModel
  * em reenvio de webhook.
  */
 export type CobrancaRecorrente = Prisma.CobrancaRecorrenteModel
+/**
+ * Model LinhaDoFunil
+ * ─── O FUNIL DA CÉLULA DE PROSPECÇÃO (Onda 1, 30/08/2026) ───────────────────
+ * 
+ * Dois models NOVOS, aditivos, acrescentados ao FIM do arquivo por ordem
+ * explícita da ficha de despacho — nenhuma linha de model existente foi
+ * tocada. A ligação com `Oportunidade` é só por `oportunidadeId String`, SEM
+ * relação Prisma de mão dupla, de propósito: não gera o risco de mexer no
+ * model dela.
+ * 
+ * ── O VEREDITO SOBRE REAPROVEITAR `TransicaoDeEstado` (linha ~2466) ────────
+ * PEDIDO NA FICHA: avaliar honestamente se dá para reaproveitar o
+ * `TransicaoDeEstado` da máquina V2 de PROJETO para este funil de
+ * PROSPECÇÃO. O palpite do CEO estava certo — confirmado, não refutado:
+ * 
+ * 1. `versaoLida Int` (NOT NULL) é controle de concorrência otimista: a
+ * máquina V2 de projeto exige que quem escreve declare qual versão leu,
+ * e `maquina.ts` (condição 3) recusa se a versão mudou entre a leitura
+ * e a escrita. Este funil usa outro desenho: `avancarFunil` LÊ o estado
+ * atual de DENTRO da mesma `$transaction` que escreve — não há "versão
+ * lida" para declarar, porque não há janela entre leitura e escrita a
+ * fechar por número de versão.
+ * 2. `chaveIdempotencia String @unique` é a chave de idempotência de
+ * QUEM CHAMA (quem reenvia a mesma chamada preserva o mesmo resultado).
+ * Este funil não tem, na ficha, um conceito de "a mesma transição
+ * reenviada" — resolve duplicidade de outra forma (a linha ATUAL vive
+ * em `LinhaDoFunil`, uma por oportunidade, e cada tentativa de avanço é
+ * julgada contra o que está lá agora).
+ * 3. Conferido em código (`lib/agency/estados-v2/maquina.ts`): o campo
+ * `motivo` do `TransicaoDeEstado` é `String` livre, SEM trava de
+ * tamanho mínimo. Este funil exige `justificativa` com pelo menos 3
+ * caracteres úteis (`avaliarTransicao` em `lib/agency/celula/funil.ts`)
+ * — é uma invariante DESTE domínio, e reaproveitar a coluna genérica
+ * misturaria duas travas diferentes sob o mesmo nome de campo.
+ * 4. `entidadeTipo`/`entidadeId` genéricos serviriam — mas sem (1) e (2)
+ * sobrariam colunas obrigatórias (`versaoLida`, `chaveIdempotencia`)
+ * que este domínio não tem como preencher com sentido, forçando valor
+ * inventado só para satisfazer NOT NULL. Ausência de informação não é
+ * informação: preencher "porque a coluna pede" seria isso.
+ * 
+ * CONCLUSÃO: não reaproveitar a tabela. O FORMATO é copiado (é uma boa
+ * decisão de desenho, não amarrada aos dois campos acima): trilha
+ * append-only, um par `estadoAnterior/estadoNovo` por linha, autor + origem
+ * + justificativa carimbados na escrita, nunca editados depois.
+ */
+export type LinhaDoFunil = Prisma.LinhaDoFunilModel
+/**
+ * Model TransicaoDoFunil
+ * A TRILHA APPEND-ONLY do funil — nunca `update`, nunca `delete`, nunca
+ * `upsert`. Só `.create` e leitura (trava reforçada em código E em teste:
+ * ver `lib/agency/celula/trilha.ts` e
+ * `__tests__/celula/trilha-e-append-only.test.ts`). `justificativa` é
+ * `String` NOT NULL, sem default: nenhuma transição entra sem o "por quê"
+ * escrito por quem pediu o avanço.
+ */
+export type TransicaoDoFunil = Prisma.TransicaoDoFunilModel
+/**
+ * Model ArquivoDaCelula
+ * 
+ */
+export type ArquivoDaCelula = Prisma.ArquivoDaCelulaModel
+/**
+ * Model EventoDoArquivoDaCelula
+ * 
+ */
+export type EventoDoArquivoDaCelula = Prisma.EventoDoArquivoDaCelulaModel
+/**
+ * Model ExcecaoDaCelula
+ * 
+ */
+export type ExcecaoDaCelula = Prisma.ExcecaoDaCelulaModel
+/**
+ * Model EventoDaExcecaoDaCelula
+ * 
+ */
+export type EventoDaExcecaoDaCelula = Prisma.EventoDaExcecaoDaCelulaModel
+/**
+ * Model ConversaDaCelula
+ * 
+ */
+export type ConversaDaCelula = Prisma.ConversaDaCelulaModel
+/**
+ * Model TravaDaConversaDaCelula
+ * 
+ */
+export type TravaDaConversaDaCelula = Prisma.TravaDaConversaDaCelulaModel

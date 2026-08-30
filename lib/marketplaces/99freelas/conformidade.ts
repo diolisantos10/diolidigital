@@ -53,6 +53,13 @@ interface Padrao {
 const F_REGRAS = "Termos de Uso · Regras para Freelancers";
 const F_AJUDA = "Central de Ajuda · Como enviar propostas?";
 const F_PROIBIDOS = "Central de Ajuda · Projetos não permitidos";
+// Fonte específica do padrão de direcionamento-para-fora (ficha I, abaixo):
+// citação literal do policy.json que o parecer da ficha B já apontava e a
+// ficha I cobrou de volta.
+const F_DIRECIONAMENTO =
+  'policy.json · proibicoes_de_conteudo.dado_de_contato + link_externo — ' +
+  '"não se pode adicionar dados de contato e/ou links ao seu perfil ou ' +
+  'portfólio" / "não se pode solicitar ou compartilhar dados de contato"';
 
 /**
  * Os padrões. Ordem não importa (todos rodam); o que importa é cada um ter
@@ -79,14 +86,83 @@ const PADROES: Padrao[] = [
   { regra: "dado_de_contato", re: /(?:\+?55\s*)?(?:\(?\d{2}\)?[\s.-]*)?9?\d{4}[\s.-]?\d{4}\b/g, fonte: F_REGRAS },
   {
     regra: "dado_de_contato",
-    re: /\b(?:whats\s*app|whatsapp|whats|zap|telegram|skype|discord|instagram|insta|linkedin|e-?mail|email|celular|telefone|meu\s+site|meu\s+portf[óo]lio|fora\s+da\s+plataforma|me\s+chama\s+n[oa]|chama\s+n[oa]|falar\s+por\s+fora)\b/gi,
+    // "instagram", "insta" e "linkedin" foram TIRADOS desta lista pelo
+    // `seguranca` na Onda 2 (célula de prospecção, ficha B) — achado, não
+    // suspeita: o texto limpo de teste da própria ficha do CEO ("preciso de
+    // 12 posts para Instagram de uma clínica odontológica...") é um anúncio
+    // NORMAL de uma agência de social media, e a palavra nua "Instagram"
+    // como PLATAFORMA DE ENTREGA disparava esta regra por engano — a prova
+    // de que o defeito já era conhecido: `PROPOSTA_LIMPA` em
+    // `__tests__/marketplaces/99freelas.test.ts` evita citar a palavra
+    // "Instagram" e escreve "perfil de rede social" no lugar dela. Trava que
+    // barra o caso limpo é desligada na primeira sexta-feira apertada — e
+    // "fazer posts para Instagram" é o produto central desta casa, não uma
+    // exceção. A combinação REALMENTE hostil ("me chama no instagram", "fala
+    // comigo no instagram") continua barrada pelos padrões
+    // `me\s+chama\s+n[oa]` / `chama\s+n[oa]`, que não dependem do nome da
+    // plataforma. WhatsApp/Telegram/Skype/Discord continuam na lista: são
+    // apps de contato direto, não plataformas de entrega desta agência.
+    re: /\b(?:whats\s*app|whatsapp|whats|zap|telegram|skype|discord|e-?mail|email|celular|telefone|meu\s+site|meu\s+portf[óo]lio|fora\s+da\s+plataforma|me\s+chama\s+n[oa]|chama\s+n[oa]|falar\s+por\s+fora)\b/gi,
     fonte: F_REGRAS,
   },
 
+  // 2b. DIRECIONAMENTO PARA FORA DA PLATAFORMA — a AÇÃO, não o nome da rede ──
+  // Ficha I (docs/celula-prospeccao/despachos/I-o-meio-termo-do-guardiao.md,
+  // 30/08/2026, laudo do `qualidade`). A remoção de "instagram"/"insta"/
+  // "linkedin" (ficha B, Onda 2) consertou o falso positivo de verdade
+  // ("12 posts para Instagram" é o produto central desta casa) mas abriu um
+  // meio-termo: "me segue no insta" e "meu perfil no linkedin" passaram a
+  // PASSAR — não são @handle, não citam a palavra proibida sozinha, e
+  // "perfil" ≠ "portfólio". A fonte (policy.json, ver F_DIRECIONAMENTO acima)
+  // proíbe a CONDUTA de mandar o cliente seguir/achar/conferir um perfil fora
+  // da plataforma — não o nome da rede. Por isso o padrão pega o VERBO de
+  // direcionamento (segue, acha, procura, "meu perfil no", "dá uma olhada no
+  // meu perfil"), não a palavra da plataforma: nenhuma dessas construções
+  // aparece numa proposta comum de "posts/gestão/reels para Instagram" — quem
+  // vende entrega não pede para ser seguido.
+  {
+    regra: "dado_de_contato",
+    // "me segue no/na X", "nos segue no/na X", "segue a gente no/na X"
+    re: /\b(?:me\s+segue|nos\s+segue|segue\s+a\s+gente)\s+n[oa]\s+\S+/gi,
+    fonte: F_DIRECIONAMENTO,
+  },
+  {
+    regra: "dado_de_contato",
+    // "meu perfil no/na X" — direciona para FORA; distinto de citar o
+    // próprio portfólio DENTRO da plataforma, que não tem "no/na + destino".
+    re: /\bmeu\s+perfil\s+n[oa]\s+\S+/gi,
+    fonte: F_DIRECIONAMENTO,
+  },
+  {
+    regra: "dado_de_contato",
+    // "me acha no/na X", "me encontra no/na X"
+    re: /\b(?:me\s+acha|me\s+encontra)\s+n[oa]\s+\S+/gi,
+    fonte: F_DIRECIONAMENTO,
+  },
+  {
+    regra: "dado_de_contato",
+    // "procura por mim/a gente/nós no/na X" — mantido estreito (auto-
+    // referência + "no/na") para não pegar "procura qualidade no mercado" e
+    // frases benignas parecidas.
+    re: /\bprocura\s+(?:por\s+)?(?:mim|a\s+gente|n[oó]s)\s+n[oa]\s+\S+/gi,
+    fonte: F_DIRECIONAMENTO,
+  },
+  {
+    regra: "dado_de_contato",
+    // "dá/dê uma olhada no meu perfil", "olha/confere meu perfil"
+    re: /\b(?:d[áa]|d[êe])\s+uma\s+olhada\s+(?:n[oa]\s+)?meu\s+perfil\b|\b(?:olha|olhe|confere|conf[ie]ra)\s+meu\s+perfil\b/gi,
+    fonte: F_DIRECIONAMENTO,
+  },
+
   // 3. PAGAMENTO POR FORA ───────────────────────────────────────────────────
+  // A variante conjugada ("pago por fora", "paga por fora") foi ACRESCENTADA
+  // pelo `seguranca` na Onda 2 (célula de prospecção, ficha B) — o teste da
+  // entrada hostil usa "pago por fora, sem a taxa da plataforma", e a
+  // alternação antiga só cobria "pagar"/"pagamento"/"receber" por fora.
+  // Mesma fonte da regra original: é a mesma proibição, só faltava a flexão.
   {
     regra: "pagamento_fora",
-    re: /\b(?:pix|dep[óo]sito\s+em\s+conta|transfer[êe]ncia\s+banc[áa]ria|dados?\s+banc[áa]rios?|pagar\s+por\s+fora|pagamento\s+por\s+fora|receber\s+por\s+fora|direto\s+comigo)\b/gi,
+    re: /\b(?:pix|dep[óo]sito\s+em\s+conta|transfer[êe]ncia\s+banc[áa]ria|dados?\s+banc[áa]rios?|pag(?:ar|amento|o|a)\s+por\s+fora|receber\s+por\s+fora|direto\s+comigo)\b/gi,
     fonte: "Termos de Uso · Sanções",
   },
 
@@ -105,9 +181,16 @@ const PADROES: Padrao[] = [
   },
 
   // 6. PERMUTA / TESTE GRÁTIS ───────────────────────────────────────────────
+  // `gra[çç]a` era um typo — a classe repetia o mesmo caractere (ç) em vez de
+  // ser o par [çc], o mesmo padrão usado em toda parte deste arquivo (ex.:
+  // `comiss[ãa]o`, `participa[çc][ãa]o`). Efeito: "faço de graca" (sem
+  // cedilha, comum em teclado mal configurado e em celular) atravessava o
+  // Guardião em silêncio. Achado pela varredura do `\b` (ficha E, escalado —
+  // família diferente), consertado e varrido por completo aqui (ficha I,
+  // ONDA-2B). Prova: __tests__/celula/fronteira-de-palavra-acentuada.test.ts.
   {
     regra: "permuta_ou_teste_gratis",
-    re: /\b(?:permuta|escambo|teste\s+gr[áa]tis|amostra\s+gr[áa]tis|fa[çc]o\s+de\s+gra[çç]a|sem\s+custo\s+inicial)\b/gi,
+    re: /\b(?:permuta|escambo|teste\s+gr[áa]tis|amostra\s+gr[áa]tis|fa[çc]o\s+de\s+gra[çc]a|sem\s+custo\s+inicial)\b/gi,
     fonte: F_PROIBIDOS,
   },
 ];

@@ -1,0 +1,248 @@
+{
+  "_leia_isto": [
+    "Ficha E da Onda 2 da Celula de Prospeccao (docs/celula-prospeccao/despachos/E-perguntas-por-servico.md).",
+    "Formato no modelo de docs/plataformas/99freelas/policy.json: dado versionado, nao texto de prompt.",
+    "Para cada um dos QUATRO servicos que o CEO pediu (social media, site, branding, video), a lista de perguntas progressivas -- uma decisao por vez, nunca um questionario.",
+    "Todo id reaproveitado de lib/agency/comercial/pergunta-repetida.ts usa o MESMO texto de O_QUE_A_PERGUNTA_DE_IA_COLHE / COMO_SE_PERGUNTA_AO_CLIENTE (ou da fila FILA/PERGUNTAS_DA_FILA) de la -- verdade escrita em dois lugares ja esta errada em um deles. O teste confere a igualdade.",
+    "Onde o catalogo real (lib/agency/self-serve-catalog.ts, lib/agency/planos.ts, lib/agency/capacidade-de-producao.ts) NAO cobre o que se esta perguntando -- porque e decisao de precificacao/escopo que so o CEO pode tomar, e nao uma pergunta que o cliente saiba responder --, oQueColhe e comoSePergunta sao literalmente preciso confirmar com o CEO. Essas entradas NUNCA saem por proximaPergunta() (ver lib/agency/celula/mensagens/perguntas-por-servico.ts) -- so aparecem em perguntasEmAberto(), que e uso INTERNO da casa. Mandar preciso confirmar com o CEO para um cliente seria pior do que nao perguntar nada.",
+    "Toda pergunta aqui foi conferida contra o Guardiao de conteudo do 99Freelas (lib/marketplaces/99freelas/conformidade.ts, validarTexto) -- nenhuma cita WhatsApp, Instagram, e-mail, telefone ou qualquer palavra da lista de proibicoes. Isso e deliberado: mesmo que estas perguntas hoje sirvam ao briefing do cliente ja contratado (nao ao texto que vai para o 99Freelas), a ficha exige a regua do Guardiao em cada comoSePergunta, sem excecao."
+  ],
+
+  "plataforma": "99freelas",
+  "versao": "1.0.0",
+  "atualizadoEm": "2026-08-30",
+
+  "servicos": [
+    {
+      "servico": "social media",
+      "origemNoCatalogo": "lib/agency/self-serve-catalog.ts",
+      "perguntas": [
+        {
+          "id": "o-que-comunicar",
+          "oQueColhe": "o que o cliente quer comunicar nesta peca -- o assunto central",
+          "comoSePergunta": "Me conta com um pouco mais de detalhe o que voce quer comunicar nessa peca -- uma frase ja basta (ex.: o pao de fermentacao natural que sai as 7h).",
+          "obrigatoria": true,
+          "ordem": 1,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Item (1), INCONDICIONAL, do briefing minimo (lib/agency/produtos/briefing-minimo.ts) -- exigido por todo produto com exigeBriefingMinimo: true (instagram_story_estatico_v1, instagram_post_feed_v1 em lib/agency/produtos/registro.ts). Sem isso o modelo escolhe o assunto sozinho."
+        },
+        {
+          "id": "objetivo",
+          "oQueColhe": "qual é o objetivo principal dele",
+          "comoSePergunta": "Me conta: qual é o objetivo principal do negócio agora — trazer cliente novo, vender mais para quem já é cliente, ou aparecer mais?",
+          "obrigatoria": true,
+          "ordem": 2,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Item (2), INCONDICIONAL, do briefing minimo -- sem o porque, quem escolhe o angulo e o modelo, no chute (lib/agency/produtos/briefing-minimo.ts)."
+        },
+        {
+          "id": "chamada-para-acao",
+          "oQueColhe": "o que a pessoa deve fazer depois de ver a peca",
+          "comoSePergunta": "O que voce quer que a pessoa faca depois de ver a peca? Pode ser em poucas palavras -- vir na loja, pedir pelo link da bio, encomendar pelo direct, mandar mensagem.",
+          "obrigatoria": true,
+          "ordem": 3,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Item (3), INCONDICIONAL desde 25/08/2026, do briefing minimo. Sem CTA declarada, quem preenche a lacuna e o modelo -- ele inventa a acao e o canal junto (temChamadaParaAcao, lib/agency/produtos/briefing-minimo.ts)."
+        },
+        {
+          "id": "modalidade",
+          "oQueColhe": "se é gestão mensal, projeto pontual ou parceria contínua",
+          "comoSePergunta": "Isso e para uma peca avulsa, ou voce quer um plano mensal de conteudo?",
+          "obrigatoria": true,
+          "ordem": 4,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Decide qual item do catalogo real se aplica: avulso do balcao (lib/agency/self-serve-catalog.ts) ou mensalidade (lib/agency/planos.ts -- Ritmo/Presenca/Conteudo), com pisos diferentes em lib/agency/comercial/negociacao.ts."
+        },
+        {
+          "id": "canais_sociais",
+          "oQueColhe": "em quais redes sociais o negócio está",
+          "comoSePergunta": "Em quais redes sociais o negocio esta presente hoje?",
+          "obrigatoria": false,
+          "ordem": 5,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "A casa so publica em duas redes hoje -- capacidade publicacao-instagram-facebook em lib/agency/capacidade-de-producao.ts. Outra rede citada pelo cliente nao tem caminho de producao."
+        },
+        {
+          "id": "material_pronto",
+          "oQueColhe": "se ele já tem fotos, vídeos ou logo prontos",
+          "comoSePergunta": "Voces ja tem fotos e videos do negocio, ou a gente produz do zero?",
+          "obrigatoria": false,
+          "ordem": 6,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Item (5), CONDICIONAL quando indispensavel, do briefing minimo. Quem pede o que falta -- e nao pede de novo o que ja chegou -- e a fila de MaterialRequest (lib/agency/produtos/briefing-minimo.ts)."
+        },
+        {
+          "id": "volume_de_posts",
+          "oQueColhe": "quantos posts por semana ele quer",
+          "comoSePergunta": "Depois de saber onde voces estao, me diz: quantos posts por semana voce quer?",
+          "obrigatoria": false,
+          "ordem": 7,
+          "dependeDe": "canais_sociais",
+          "porQuePrecisamosDisto": "Define se cabe num item avulso do balcao ou num plano mensal com pecasPorMes (lib/agency/planos.ts -- teto CAPACIDADE_MENSAL = 36). So faz sentido depois de saber em quais redes, porque o volume e por canal publicado."
+        },
+        {
+          "id": "prazo",
+          "oQueColhe": "o prazo para começar",
+          "comoSePergunta": "E para quando você quer isso de pé — próximas semanas, este mês, sem pressa?",
+          "obrigatoria": false,
+          "ordem": 8,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Cada item do balcao tem deliveryDays proprio (lib/agency/self-serve-catalog.ts) -- prazo apertado pode nao caber no item mais barato."
+        },
+        {
+          "id": "budget_range",
+          "oQueColhe": "a faixa de investimento",
+          "comoSePergunta": "Pra eu já montar a proposta certa pro seu momento: quanto você pensa em\ninvestir por mês — até R$ 150, entre R$ 150 e R$ 500, entre R$ 500 e R$ 1.500,\nentre R$ 1.500 e R$ 5.000, ou acima disso?",
+          "obrigatoria": false,
+          "ordem": 9,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "E a regua de faixas de lib/agency/comercial/negociacao.ts (FAIXAS) -- nunca se propoe plano sem saber o bolso do cliente. Texto identico ao exemplo de blocoDeNegociacaoParaPrompt() no mesmo arquivo."
+        }
+      ]
+    },
+    {
+      "servico": "site",
+      "origemNoCatalogo": "lib/agency/planos.ts",
+      "perguntas": [
+        {
+          "id": "objetivo",
+          "oQueColhe": "qual é o objetivo principal dele",
+          "comoSePergunta": "Me conta: qual é o objetivo principal do negócio agora — trazer cliente novo, vender mais para quem já é cliente, ou aparecer mais?",
+          "obrigatoria": true,
+          "ordem": 1,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Discovery minimo antes de qualquer escopo -- o mesmo id e texto usados em social media, reaproveitados de lib/agency/comercial/pergunta-repetida.ts."
+        },
+        {
+          "id": "publico_alvo",
+          "oQueColhe": "quem é o público do negócio",
+          "comoSePergunta": "Quem é o cliente típico de vocês? Me descreve em uma frase.",
+          "obrigatoria": true,
+          "ordem": 2,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Discovery minimo antes de qualquer escopo -- reaproveitado de lib/agency/comercial/pergunta-repetida.ts."
+        },
+        {
+          "id": "escopo-do-site",
+          "oQueColhe": "preciso confirmar com o CEO",
+          "comoSePergunta": "preciso confirmar com o CEO",
+          "obrigatoria": true,
+          "ordem": 3,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "lib/agency/planos.ts declara Site como projeto proprio, orcado caso a caso dentro de FORA_DE_TODO_PLANO -- nao existe item de catalogo, capacidade de producao (lib/agency/capacidade-de-producao.ts) nem regra de preco para site em codigo nenhum desta casa. Perguntar numero de paginas, CMS, dominio ou prazo ao cliente sem uma regua de precificacao por tras coletaria dado que a casa nao sabe usar depois, e prometeria implicitamente um produto que ainda nao existe. Por isso esta entrada nao sai por proximaPergunta() -- so aparece em perguntasEmAberto(), para uso interno."
+        },
+        {
+          "id": "prazo",
+          "oQueColhe": "o prazo para começar",
+          "comoSePergunta": "E para quando você quer isso de pé — próximas semanas, este mês, sem pressa?",
+          "obrigatoria": false,
+          "ordem": 4,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Discovery minimo -- reaproveitado de lib/agency/comercial/pergunta-repetida.ts. Nao substitui a decisao de escopo/preco pendente do CEO."
+        }
+      ]
+    },
+    {
+      "servico": "branding",
+      "origemNoCatalogo": "lib/agency/self-serve-catalog.ts",
+      "perguntas": [
+        {
+          "id": "objetivo",
+          "oQueColhe": "qual é o objetivo principal dele",
+          "comoSePergunta": "Me conta: qual é o objetivo principal do negócio agora — trazer cliente novo, vender mais para quem já é cliente, ou aparecer mais?",
+          "obrigatoria": true,
+          "ordem": 1,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Discovery minimo -- reaproveitado de lib/agency/comercial/pergunta-repetida.ts."
+        },
+        {
+          "id": "publico_alvo",
+          "oQueColhe": "quem é o público do negócio",
+          "comoSePergunta": "Quem é o cliente típico de vocês? Me descreve em uma frase.",
+          "obrigatoria": true,
+          "ordem": 2,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Discovery minimo -- reaproveitado de lib/agency/comercial/pergunta-repetida.ts. Identidade visual sem publico definido e chute de estilo."
+        },
+        {
+          "id": "concorrentes",
+          "oQueColhe": "concorrentes ou referências que ele admira",
+          "comoSePergunta": "Quais concorrentes ou referencias voce admira -- marcas que voce gostaria que a sua parecesse?",
+          "obrigatoria": true,
+          "ordem": 3,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Reaproveitado de lib/agency/comercial/pergunta-repetida.ts (oQueColhe identico a O_QUE_A_PERGUNTA_DE_IA_COLHE.concorrentes). Projeto de marca sem referencia e decisao estetica tomada pelo modelo, nao pelo cliente."
+        },
+        {
+          "id": "material_pronto",
+          "oQueColhe": "se ele já tem fotos, vídeos ou logo prontos",
+          "comoSePergunta": "Voces ja tem fotos, videos ou logo prontos, ou e tudo para criar do zero?",
+          "obrigatoria": false,
+          "ordem": 4,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "oQueColhe identico a O_QUE_A_PERGUNTA_DE_IA_COLHE.material_pronto; comoSePergunta adaptado do fragmento equivalente em COMO_SE_PERGUNTA_AO_CLIENTE, que ja cita logo -- pertinente aqui porque decide se algo do branding ja existe."
+        },
+        {
+          "id": "escopo-do-logotipo",
+          "oQueColhe": "preciso confirmar com o CEO",
+          "comoSePergunta": "preciso confirmar com o CEO",
+          "obrigatoria": true,
+          "ordem": 5,
+          "dependeDe": "material_pronto",
+          "porQuePrecisamosDisto": "lib/agency/capacidade-de-producao.ts declara logotipo-de-cliente com ponto: null -- a casa NAO produz logotipo hoje (so deriva um monograma das iniciais). Em lib/agency/self-serve-catalog.ts o item identidade-basica esta em CATALOGO_SUSPENSO por causa disso. Perguntar escopo de logo ao cliente antes de a casa decidir SE e COMO vende este item coletaria uma promessa que ninguem vai cumprir. Por isso esta entrada nao sai por proximaPergunta() -- so em perguntasEmAberto(), para uso interno. Depende de material_pronto porque so faz sentido perguntar depois de saber se algo ja existe."
+        },
+        {
+          "id": "prazo",
+          "oQueColhe": "o prazo para começar",
+          "comoSePergunta": "E para quando você quer isso de pé — próximas semanas, este mês, sem pressa?",
+          "obrigatoria": false,
+          "ordem": 6,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Discovery minimo -- reaproveitado de lib/agency/comercial/pergunta-repetida.ts. Nao substitui a decisao de escopo/preco pendente do CEO."
+        }
+      ]
+    },
+    {
+      "servico": "video",
+      "origemNoCatalogo": "lib/agency/self-serve-catalog.ts",
+      "perguntas": [
+        {
+          "id": "objetivo",
+          "oQueColhe": "qual é o objetivo principal dele",
+          "comoSePergunta": "Me conta: qual é o objetivo principal do negócio agora — trazer cliente novo, vender mais para quem já é cliente, ou aparecer mais?",
+          "obrigatoria": true,
+          "ordem": 1,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Discovery minimo -- reaproveitado de lib/agency/comercial/pergunta-repetida.ts."
+        },
+        {
+          "id": "material_pronto",
+          "oQueColhe": "se ele já tem fotos, vídeos ou logo prontos",
+          "comoSePergunta": "Voces ja tem o video bruto gravado? Hoje a gente edita a partir do que voces ja filmaram -- ainda nao gravamos do zero.",
+          "obrigatoria": true,
+          "ordem": 2,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "oQueColhe identico a O_QUE_A_PERGUNTA_DE_IA_COLHE.material_pronto, mas o comoSePergunta e adaptado (nao copiado da fila): a capacidade real e edicao-de-video-do-cliente (lib/agency/capacidade-de-producao.ts), que so corta e edita o BRUTO que o cliente ja filmou -- reusar o texto generico de a gente produz do zero prometeria uma gravacao que a casa nao faz."
+        },
+        {
+          "id": "legenda-animada",
+          "oQueColhe": "preciso confirmar com o CEO",
+          "comoSePergunta": "preciso confirmar com o CEO",
+          "obrigatoria": true,
+          "ordem": 3,
+          "dependeDe": "material_pronto",
+          "porQuePrecisamosDisto": "legenda-animada-em-video esta em CAPACIDADES_AUSENTES (lib/agency/capacidade-de-producao.ts, ponto: null) -- a casa nao gera nem anima legenda em video. Por causa disso 1-reel e pack-2-reels estao em CATALOGO_SUSPENSO (lib/agency/self-serve-catalog.ts), e lib/agency/planos.ts diz, com todas as letras, que video nao e produzido hoje em nenhum plano, em nenhuma forma. Perguntar prazo ou preco de algo que a casa nao vende hoje inventaria uma promessa. Por isso esta entrada nao sai por proximaPergunta() -- so em perguntasEmAberto(). Depende de material_pronto porque so faz sentido perguntar depois de confirmar que ha video bruto para editar."
+        },
+        {
+          "id": "prazo",
+          "oQueColhe": "o prazo para começar",
+          "comoSePergunta": "E para quando você quer isso de pé — próximas semanas, este mês, sem pressa?",
+          "obrigatoria": false,
+          "ordem": 4,
+          "dependeDe": null,
+          "porQuePrecisamosDisto": "Discovery minimo -- reaproveitado de lib/agency/comercial/pergunta-repetida.ts. Nao substitui a decisao de capacidade pendente do CEO (legenda animada)."
+        }
+      ]
+    }
+  ]
+}

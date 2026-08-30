@@ -125,7 +125,15 @@ export const ModelName = {
   ConviteDeParceria: 'ConviteDeParceria',
   IsencaoDeParceria: 'IsencaoDeParceria',
   AssinaturaRecorrente: 'AssinaturaRecorrente',
-  CobrancaRecorrente: 'CobrancaRecorrente'
+  CobrancaRecorrente: 'CobrancaRecorrente',
+  LinhaDoFunil: 'LinhaDoFunil',
+  TransicaoDoFunil: 'TransicaoDoFunil',
+  ArquivoDaCelula: 'ArquivoDaCelula',
+  EventoDoArquivoDaCelula: 'EventoDoArquivoDaCelula',
+  ExcecaoDaCelula: 'ExcecaoDaCelula',
+  EventoDaExcecaoDaCelula: 'EventoDaExcecaoDaCelula',
+  ConversaDaCelula: 'ConversaDaCelula',
+  TravaDaConversaDaCelula: 'TravaDaConversaDaCelula'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1510,6 +1518,130 @@ export const CobrancaRecorrenteScalarFieldEnum = {
 } as const
 
 export type CobrancaRecorrenteScalarFieldEnum = (typeof CobrancaRecorrenteScalarFieldEnum)[keyof typeof CobrancaRecorrenteScalarFieldEnum]
+
+
+export const LinhaDoFunilScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  oportunidadeId: 'oportunidadeId',
+  estado: 'estado',
+  entrouNoEstadoEm: 'entrouNoEstadoEm',
+  criadoEm: 'criadoEm',
+  atualizadoEm: 'atualizadoEm'
+} as const
+
+export type LinhaDoFunilScalarFieldEnum = (typeof LinhaDoFunilScalarFieldEnum)[keyof typeof LinhaDoFunilScalarFieldEnum]
+
+
+export const TransicaoDoFunilScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  oportunidadeId: 'oportunidadeId',
+  estadoAnterior: 'estadoAnterior',
+  estadoNovo: 'estadoNovo',
+  autor: 'autor',
+  origem: 'origem',
+  justificativa: 'justificativa',
+  criadoEm: 'criadoEm'
+} as const
+
+export type TransicaoDoFunilScalarFieldEnum = (typeof TransicaoDoFunilScalarFieldEnum)[keyof typeof TransicaoDoFunilScalarFieldEnum]
+
+
+export const ArquivoDaCelulaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  oportunidadeId: 'oportunidadeId',
+  clienteId: 'clienteId',
+  projetoId: 'projetoId',
+  direcao: 'direcao',
+  linhagemId: 'linhagemId',
+  versao: 'versao',
+  nomeOriginal: 'nomeOriginal',
+  extensao: 'extensao',
+  mimeType: 'mimeType',
+  tamanhoBytes: 'tamanhoBytes',
+  sha256: 'sha256',
+  caminhoInterno: 'caminhoInterno',
+  estado: 'estado',
+  destinatarioDeclarado: 'destinatarioDeclarado',
+  motivoDaQuarentena: 'motivoDaQuarentena',
+  retencaoAteEm: 'retencaoAteEm',
+  criadoEm: 'criadoEm'
+} as const
+
+export type ArquivoDaCelulaScalarFieldEnum = (typeof ArquivoDaCelulaScalarFieldEnum)[keyof typeof ArquivoDaCelulaScalarFieldEnum]
+
+
+export const EventoDoArquivoDaCelulaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  arquivoId: 'arquivoId',
+  tipo: 'tipo',
+  autor: 'autor',
+  origem: 'origem',
+  detalhe: 'detalhe',
+  criadoEm: 'criadoEm'
+} as const
+
+export type EventoDoArquivoDaCelulaScalarFieldEnum = (typeof EventoDoArquivoDaCelulaScalarFieldEnum)[keyof typeof EventoDoArquivoDaCelulaScalarFieldEnum]
+
+
+export const ExcecaoDaCelulaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  oportunidadeId: 'oportunidadeId',
+  arquivoId: 'arquivoId',
+  caso: 'caso',
+  prioridade: 'prioridade',
+  responsavel: 'responsavel',
+  prazoEm: 'prazoEm',
+  contexto: 'contexto',
+  acaoRecomendada: 'acaoRecomendada',
+  estado: 'estado',
+  interrompeAutomacao: 'interrompeAutomacao',
+  abertaEm: 'abertaEm',
+  resolvidaEm: 'resolvidaEm',
+  resolucao: 'resolucao'
+} as const
+
+export type ExcecaoDaCelulaScalarFieldEnum = (typeof ExcecaoDaCelulaScalarFieldEnum)[keyof typeof ExcecaoDaCelulaScalarFieldEnum]
+
+
+export const EventoDaExcecaoDaCelulaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  excecaoId: 'excecaoId',
+  tipo: 'tipo',
+  autor: 'autor',
+  detalhe: 'detalhe',
+  criadoEm: 'criadoEm'
+} as const
+
+export type EventoDaExcecaoDaCelulaScalarFieldEnum = (typeof EventoDaExcecaoDaCelulaScalarFieldEnum)[keyof typeof EventoDaExcecaoDaCelulaScalarFieldEnum]
+
+
+export const ConversaDaCelulaScalarFieldEnum = {
+  conversaId: 'conversaId',
+  workspaceId: 'workspaceId',
+  estado: 'estado',
+  agenteResponsavel: 'agenteResponsavel',
+  etapa: 'etapa',
+  criadaEm: 'criadaEm',
+  atualizadaEm: 'atualizadaEm'
+} as const
+
+export type ConversaDaCelulaScalarFieldEnum = (typeof ConversaDaCelulaScalarFieldEnum)[keyof typeof ConversaDaCelulaScalarFieldEnum]
+
+
+export const TravaDaConversaDaCelulaScalarFieldEnum = {
+  conversaId: 'conversaId',
+  agente: 'agente',
+  expiraEm: 'expiraEm',
+  criadaEm: 'criadaEm'
+} as const
+
+export type TravaDaConversaDaCelulaScalarFieldEnum = (typeof TravaDaConversaDaCelulaScalarFieldEnum)[keyof typeof TravaDaConversaDaCelulaScalarFieldEnum]
 
 
 export const SortOrder = {

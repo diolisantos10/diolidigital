@@ -1,0 +1,114 @@
+{
+  "rodadoEm": "2026-08-30T17:20:03.729Z",
+  "base": "13 passed (13)",
+  "mutacoes": [
+    {
+      "guarda": "R-M1 · sem configuração, NADA age (ausência de limite ≠ correr livre)",
+      "arquivo": "lib/agency/celula/ritmo.ts",
+      "de": "  if (config === null) {",
+      "para": "  if (false) { // MUTAÇÃO: sem freio declarado, passa a agir livremente",
+      "espera": "configuração ausente deixa de bloquear",
+      "estado": "VERMELHO",
+      "falhas": [
+        "sem configuração, NADA age — ausência de limite não é permissão de correr 4ms",
+        "__tests__/celula/ritmo.test.ts > a configuração vem da política, não do código > sem configuração, NADA age — ausência de limite não é permissão de correr"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "R-M2 · leitura fail-closed da política (campo faltando derruba tudo)",
+      "arquivo": "lib/agency/celula/ritmo.ts",
+      "de": "  if (intervalo === null || hora === null || dia === null) return null;",
+      "para": "  if (false) return null; // MUTAÇÃO: campo faltando vira configuração válida",
+      "espera": "política sem intervalo mínimo passa a ser aceita",
+      "estado": "VERMELHO",
+      "falhas": [
+        "configuração ausente ou malformada BLOQUEIA — nunca vira ritmo livre 5ms",
+        "__tests__/celula/ritmo.test.ts > a configuração vem da política, não do código > configuração ausente ou malformada BLOQUEIA — nunca vira ritmo livre"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "R-M3 · número inválido não vira número (0, negativo, string)",
+      "arquivo": "lib/agency/celula/ritmo.ts",
+      "de": "    typeof v === \"number\" && Number.isFinite(v) && v > 0 ? v : null;",
+      "para": "    Number(v) || 1; // MUTAÇÃO: 0/negativo/string viram número qualquer",
+      "espera": "intervalo 0 e -5 passam a valer como configuração",
+      "estado": "VERMELHO",
+      "falhas": [
+        "configuração ausente ou malformada BLOQUEIA — nunca vira ritmo livre 5ms",
+        "__tests__/celula/ritmo.test.ts > a configuração vem da política, não do código > configuração ausente ou malformada BLOQUEIA — nunca vira ritmo livre"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "R-M4 · o intervalo mínimo entre ações",
+      "arquivo": "lib/agency/celula/ritmo.ts",
+      "de": "    if (decorridoMs < minimoMs) {",
+      "para": "    if (false) { // MUTAÇÃO: ritmo de máquina liberado",
+      "espera": "10s desde a última ação deixa de bloquear",
+      "estado": "VERMELHO",
+      "falhas": [
+        "BLOQUEIA antes do intervalo, e diz quando tentar de novo 6ms",
+        "exatamente no limite ainda BLOQUEIA — a borda erra para o lado seguro 1ms",
+        "__tests__/celula/ritmo.test.ts > o intervalo mínimo — o que separa ritmo humano de ritmo de máquina > BLOQUEIA antes do intervalo, e diz quando tentar de novo",
+        "__tests__/celula/ritmo.test.ts > o intervalo mínimo — o que separa ritmo humano de ritmo de máquina > exatamente no limite ainda BLOQUEIA — a borda erra para o lado seguro"
+      ],
+      "placar": "2 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "R-M5 · teto do dia",
+      "arquivo": "lib/agency/celula/ritmo.ts",
+      "de": "  if (noDia >= config.maximoPorDia) {",
+      "para": "  if (noDia > config.maximoPorDia + 1000) { // MUTAÇÃO: o teto do dia some",
+      "espera": "80/80 deixa de bloquear",
+      "estado": "VERMELHO",
+      "falhas": [
+        "teto do dia bloqueia, e VENCE o da hora — a espera informada é a mais longa que se aplica 5ms",
+        "o teto é >=, não > — a 80ª ação não pode virar a 81ª 2ms",
+        "__tests__/celula/ritmo.test.ts > os tetos > teto do dia bloqueia, e VENCE o da hora — a espera informada é a mais longa que se aplica",
+        "__tests__/celula/ritmo.test.ts > os tetos > o teto é >=, não > — a 80ª ação não pode virar a 81ª"
+      ],
+      "placar": "2 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "R-M6 · teto da hora",
+      "arquivo": "lib/agency/celula/ritmo.ts",
+      "de": "  if (naHora >= config.maximoPorHora) {",
+      "para": "  if (naHora > config.maximoPorHora + 1000) { // MUTAÇÃO: o teto da hora some",
+      "espera": "20/20 na hora deixa de bloquear",
+      "estado": "VERMELHO",
+      "falhas": [
+        "teto da hora bloqueia e manda tentar daqui a uma hora 5ms",
+        "__tests__/celula/ritmo.test.ts > os tetos > teto da hora bloqueia e manda tentar daqui a uma hora"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "R-M7 · histórico ilegível bloqueia",
+      "arquivo": "lib/agency/celula/ritmo.ts",
+      "de": "  if (naHora === null || noDia === null) {",
+      "para": "  if (false) { // MUTAÇÃO: contagem negativa/ausente passa a valer",
+      "espera": "contagem -1 e undefined deixam de bloquear",
+      "estado": "VERMELHO",
+      "falhas": [
+        "contagens ausentes, negativas ou não numéricas BLOQUEIAM 6ms",
+        "__tests__/celula/ritmo.test.ts > histórico ilegível bloqueia — não saber quantas ações houve é não ter freio > contagens ausentes, negativas ou não numéricas BLOQUEIAM"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "R-M8 · última ação no futuro não vira crédito de tempo",
+      "arquivo": "lib/agency/celula/ritmo.ts",
+      "de": "    if (decorridoMs < 0) {",
+      "para": "    if (false) { // MUTAÇÃO: relógio torto passa a liberar",
+      "espera": "última ação no futuro deixa de bloquear",
+      "estado": "VERMELHO",
+      "falhas": [
+        "última ação NO FUTURO bloqueia — relógio torto não vira crédito de tempo 6ms",
+        "__tests__/celula/ritmo.test.ts > histórico ilegível bloqueia — não saber quantas ações houve é não ter freio > última ação NO FUTURO bloqueia — relógio torto não vira crédito de tempo"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    }
+  ]
+}

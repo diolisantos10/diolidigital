@@ -1,0 +1,237 @@
+{
+  "rodadoEm": "2026-08-30T15:25:10.782Z",
+  "catalogo": "docs/celula-prospeccao/mutacao-onda-3-catalogo.json",
+  "alvosDaLinhaDeBase": [
+    "__tests__/celula/funil.test.ts",
+    "__tests__/celula/ponte-destinatario.test.ts",
+    "__tests__/celula/ponte-endereco-interno.test.ts",
+    "__tests__/celula/ponte-quarentena.test.ts",
+    "__tests__/celula/ponte-quarentena-sem-byte-cru.test.ts",
+    "__tests__/celula/ponte-versoes.test.ts",
+    "__tests__/celula/ponte-caminho-interno-derivado.test.ts",
+    "__tests__/celula/ponte-retencao.test.ts",
+    "__tests__/celula/ponte-download.test.ts",
+    "__tests__/celula/excecoes-fila.test.ts",
+    "__tests__/celula/excecoes-interrompe-automacao.test.ts",
+    "__tests__/celula/excecoes-vencida-grita.test.ts"
+  ],
+  "base": "178 passed (178)",
+  "mutacoes": [
+    {
+      "guarda": "M11 · destinatário divergente bloqueia o envio (prova nº 14)",
+      "arquivo": "lib/agency/celula/ponte/saida.ts",
+      "teste": "__tests__/celula/ponte-destinatario.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "destinatarioDeclarado divergente → BLOQUEIA, com motivo legível e pedido de exceção 6ms",
+        "oportunidadeId divergente → BLOQUEIA — arquivo do cliente A não chega ao cliente B (prova nº 14) 1ms",
+        "clienteId/projetoId divergente → BLOQUEIA 1ms",
+        "fail-closed: destino SEM destinatarioDeclarado (ausente/vazio) → BLOQUEIA — ausência não é informação 1ms",
+        "fail-closed: destino SEM clienteId nem projetoId → BLOQUEIA 1ms",
+        "destinatário divergente → BLOQUEIA com o pedido de exceção de T1 1ms",
+        "__tests__/celula/ponte-destinatario.test.ts > conferirDestinatario — metade suja: cada eixo divergente bloqueia > destinatarioDeclarado divergente → BLOQUEIA, com motivo legível e pedido de exceção",
+        "__tests__/celula/ponte-destinatario.test.ts > conferirDestinatario — metade suja: cada eixo divergente bloqueia > oportunidadeId divergente → BLOQUEIA — arquivo do cliente A não chega ao cliente B (prova nº 14)",
+        "__tests__/celula/ponte-destinatario.test.ts > conferirDestinatario — metade suja: cada eixo divergente bloqueia > clienteId/projetoId divergente → BLOQUEIA",
+        "__tests__/celula/ponte-destinatario.test.ts > conferirDestinatario — metade suja: cada eixo divergente bloqueia > fail-closed: destino SEM destinatarioDeclarado (ausente/vazio) → BLOQUEIA — ausência não é informação",
+        "__tests__/celula/ponte-destinatario.test.ts > conferirDestinatario — metade suja: cada eixo divergente bloqueia > fail-closed: destino SEM clienteId nem projetoId → BLOQUEIA",
+        "__tests__/celula/ponte-destinatario.test.ts > avaliarEnvioAoCliente — composição: estado + T1 + T2 > destinatário divergente → BLOQUEIA com o pedido de exceção de T1"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M12 · o endereço interno nunca sai numa mensagem ao cliente (detecção do caminho interno)",
+      "arquivo": "lib/agency/celula/ponte/endereco-interno.ts",
+      "teste": "__tests__/celula/ponte-endereco-interno.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "caminho interno do arquivo aparecendo no texto → BLOQUEIA 13ms",
+        "__tests__/celula/ponte-endereco-interno.test.ts > contemEnderecoInterno — metade suja: cada marca interna é detectada e bloqueia > caminho interno do arquivo aparecendo no texto → BLOQUEIA"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M13 · arquivo suspeito vai para quarentena e não entra no projeto (recusa direta desligada)",
+      "arquivo": "lib/agency/celula/ponte/quarentena.ts",
+      "teste": "__tests__/celula/ponte-quarentena.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "MIME fora da lista fechada → recusado, abre exceção 'arquivo_recusado' 7ms",
+        "tamanho acima do teto → recusado 1ms",
+        "extensão dupla perigosa (nota.pdf.exe) → recusado 2ms",
+        "nome com travessia de diretório (../) → recusado 1ms",
+        "nome com NUL byte → recusado (ataque clássico de truncamento de nome) 1ms",
+        "nome com caractere Unicode de sobrescrita de direção (RTL override, U+202E) → recusado 1ms",
+        "marca de executável (MZ) nos primeiros bytes, mesmo com MIME/extensão de PDF → recusado 1ms",
+        "__tests__/celula/ponte-quarentena.test.ts > varrerArquivoRecebido — metade suja: RECUSA direta > MIME fora da lista fechada → recusado, abre exceção 'arquivo_recusado'",
+        "__tests__/celula/ponte-quarentena.test.ts > varrerArquivoRecebido — metade suja: RECUSA direta > tamanho acima do teto → recusado",
+        "__tests__/celula/ponte-quarentena.test.ts > varrerArquivoRecebido — metade suja: RECUSA direta > extensão dupla perigosa (nota.pdf.exe) → recusado",
+        "__tests__/celula/ponte-quarentena.test.ts > varrerArquivoRecebido — metade suja: RECUSA direta > nome com travessia de diretório (../) → recusado",
+        "__tests__/celula/ponte-quarentena.test.ts > varrerArquivoRecebido — metade suja: RECUSA direta > nome com NUL byte → recusado (ataque clássico de truncamento de nome)",
+        "__tests__/celula/ponte-quarentena.test.ts > varrerArquivoRecebido — metade suja: RECUSA direta > nome com caractere Unicode de sobrescrita de direção (RTL override, U+202E) → recusado",
+        "__tests__/celula/ponte-quarentena.test.ts > varrerArquivoRecebido — metade suja: RECUSA direta > marca de executável (MZ) nos primeiros bytes, mesmo com MIME/extensão de PDF → recusado"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M14 · versão nova não sobrescreve a anterior (numeração de versão desligada)",
+      "arquivo": "lib/agency/celula/ponte/armazem.ts",
+      "teste": "__tests__/celula/ponte-versoes.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "VERSÃO NOVA É LINHA NOVA: duas gravações da mesma linhagem geram DUAS linhas, e a v1 continua legível byte a byte 64ms",
+        "__tests__/celula/ponte-versoes.test.ts > armazem.ts contra SQLite real > VERSÃO NOVA É LINHA NOVA: duas gravações da mesma linhagem geram DUAS linhas, e a v1 continua legível byte a byte"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M15 · confirmação de recebimento exige integridade conferida (T4 desligada)",
+      "arquivo": "lib/agency/celula/ponte/entrada.ts",
+      "teste": "__tests__/celula/ponte-quarentena.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "estado 'recebido' → RECUSA a confirmação 7ms",
+        "estado 'em_quarentena' → RECUSA a confirmação 1ms",
+        "__tests__/celula/ponte-quarentena.test.ts > T4 — confirmarRecebimentoAoCliente: fail-closed, só 'liberado' confirma > estado 'recebido' → RECUSA a confirmação",
+        "__tests__/celula/ponte-quarentena.test.ts > T4 — confirmarRecebimentoAoCliente: fail-closed, só 'liberado' confirma > estado 'em_quarentena' → RECUSA a confirmação"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M16 · caminhoInterno é derivado do id, nunca vem de fora (sanitização desligada)",
+      "arquivo": "lib/agency/celula/ponte/endereco-interno.ts",
+      "teste": "__tests__/celula/ponte-caminho-interno-derivado.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "sanitiza workspaceId, id e extensão — nenhum caractere fora de [a-zA-Z0-9_-] sobrevive 5ms",
+        "nunca produz travessia de diretório mesmo com entrada adversarial pesada 3ms",
+        "__tests__/celula/ponte-caminho-interno-derivado.test.ts > derivarCaminhoInterno — pura > sanitiza workspaceId, id e extensão — nenhum caractere fora de [a-zA-Z0-9_-] sobrevive",
+        "__tests__/celula/ponte-caminho-interno-derivado.test.ts > derivarCaminhoInterno — pura > nunca produz travessia de diretório mesmo com entrada adversarial pesada"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M17 · CAPTCHA / sessão expirada / bloqueio param a automação (trava 2 desligada)",
+      "arquivo": "lib/agency/celula/excecoes/fila.ts",
+      "teste": "__tests__/celula/excecoes-interrompe-automacao.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "caso 'captcha' com estado 'aberta' bloqueia 6ms",
+        "caso 'sessao_expirada' com estado 'aberta' bloqueia 1ms",
+        "caso 'confirmacao_de_seguranca' com estado 'aberta' bloqueia 1ms",
+        "caso 'mensagem_bloqueada' com estado 'aberta' bloqueia 1ms",
+        "caso 'possivel_violacao_de_politica' com estado 'aberta' bloqueia 1ms",
+        "caso 'captcha' com estado 'em_tratamento' também bloqueia 1ms",
+        "caso 'sessao_expirada' com estado 'em_tratamento' também bloqueia 1ms",
+        "caso 'confirmacao_de_seguranca' com estado 'em_tratamento' também bloqueia 0ms",
+        "caso 'mensagem_bloqueada' com estado 'em_tratamento' também bloqueia 1ms",
+        "caso 'possivel_violacao_de_politica' com estado 'em_tratamento' também bloqueia 1ms",
+        "um caso bloqueador no meio de vários outros ainda bloqueia (não é só o primeiro item) 0ms",
+        "__tests__/celula/excecoes-interrompe-automacao.test.ts > metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação > caso 'captcha' com estado 'aberta' bloqueia",
+        "__tests__/celula/excecoes-interrompe-automacao.test.ts > metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação > caso 'sessao_expirada' com estado 'aberta' bloqueia",
+        "__tests__/celula/excecoes-interrompe-automacao.test.ts > metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação > caso 'confirmacao_de_seguranca' com estado 'aberta' bloqueia",
+        "__tests__/celula/excecoes-interrompe-automacao.test.ts > metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação > caso 'mensagem_bloqueada' com estado 'aberta' bloqueia",
+        "__tests__/celula/excecoes-interrompe-automacao.test.ts > metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação > caso 'possivel_violacao_de_politica' com estado 'aberta' bloqueia",
+        "__tests__/celula/excecoes-interrompe-automacao.test.ts > metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação > caso 'captcha' com estado 'em_tratamento' também bloqueia",
+        "__tests__/celula/excecoes-interrompe-automacao.test.ts > metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação > caso 'sessao_expirada' com estado 'em_tratamento' também bloqueia",
+        "__tests__/celula/excecoes-interrompe-automacao.test.ts > metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação > caso 'confirmacao_de_seguranca' com estado 'em_tratamento' também bloqueia",
+        "__tests__/celula/excecoes-interrompe-automacao.test.ts > metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação > caso 'mensagem_bloqueada' com estado 'em_tratamento' também bloqueia",
+        "__tests__/celula/excecoes-interrompe-automacao.test.ts > metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação > caso 'possivel_violacao_de_politica' com estado 'em_tratamento' também bloqueia",
+        "__tests__/celula/excecoes-interrompe-automacao.test.ts > metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação > um caso bloqueador no meio de vários outros ainda bloqueia (não é só o primeiro item)"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M18 · exceção vencida grita (o cálculo de vencimento desligado)",
+      "arquivo": "lib/agency/celula/excecoes/fila.ts",
+      "teste": "__tests__/celula/excecoes-vencida-grita.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "uma exceção 'aberta' com prazoEm no passado é vencida, com vencidaHaMinutos correto 9ms",
+        "'em_tratamento' também pode vencer 1ms",
+        "item com caso/responsavel/prioridade ilegíveis, mas id/prazoEm/estado legíveis, AINDA é reportado como vencido — com esses campos null (nunca inventados, nunca some) 1ms",
+        "com vencidas, o grito não silencia: total, por caso, por responsável e a mais antiga 1ms",
+        "__tests__/celula/excecoes-vencida-grita.test.ts > excecoesVencidas — a metade suja: prazo estourado e aberta/em_tratamento entra > uma exceção 'aberta' com prazoEm no passado é vencida, com vencidaHaMinutos correto",
+        "__tests__/celula/excecoes-vencida-grita.test.ts > excecoesVencidas — a metade suja: prazo estourado e aberta/em_tratamento entra > 'em_tratamento' também pode vencer",
+        "__tests__/celula/excecoes-vencida-grita.test.ts > excecoesVencidas — a metade suja: prazo estourado e aberta/em_tratamento entra > item com caso/responsavel/prioridade ilegíveis, mas id/prazoEm/estado legíveis, AINDA é reportado como vencido — com esses campos null (nunca inventados, nunca some)",
+        "__tests__/celula/excecoes-vencida-grita.test.ts > gritoDaFila — silêncio é proibido, nos dois sentidos > com vencidas, o grito não silencia: total, por caso, por responsável e a mais antiga"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M19 · o CEO não pode ser responsável na fila (trava 1 desligada)",
+      "arquivo": "lib/agency/celula/excecoes/fila.ts",
+      "teste": "__tests__/celula/excecoes-fila.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "responsável 'ceo' é rejeitado com o motivo específico da trava 6ms",
+        "responsável 'dono' e o e-mail do CEO também são rejeitados como tentativa de atribuir ao CEO 1ms",
+        "__tests__/celula/excecoes-fila.test.ts > trava 1 — o CEO NÃO opera esta fila > responsável 'ceo' é rejeitado com o motivo específico da trava",
+        "__tests__/celula/excecoes-fila.test.ts > trava 1 — o CEO NÃO opera esta fila > responsável 'dono' e o e-mail do CEO também são rejeitados como tentativa de atribuir ao CEO"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M20 · os 5 campos obrigatórios de uma exceção não têm default (ação recomendada vira opcional)",
+      "arquivo": "lib/agency/celula/excecoes/fila.ts",
+      "teste": "__tests__/celula/excecoes-fila.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "ação recomendada ausente, vazia ou curta demais não entra 6ms",
+        "__tests__/celula/excecoes-fila.test.ts > avaliarAberturaDeExcecao — as cinco coisas obrigatórias, nenhuma opcional > ação recomendada ausente, vazia ou curta demais não entra"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M21 · a trilha de eventos é append-only — EventoDoArquivoDaCelula (armazem.ts da ponte)",
+      "arquivo": "lib/agency/celula/ponte/armazem.ts",
+      "teste": "__tests__/celula/ponte-versoes.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "não existe .update / .updateMany / .delete / .deleteMany / .upsert sobre eventoDoArquivoDaCelula 7ms",
+        "__tests__/celula/ponte-versoes.test.ts > varredura estática: nenhuma escrita mutante sobre eventoDoArquivoDaCelula > não existe .update / .updateMany / .delete / .deleteMany / .upsert sobre eventoDoArquivoDaCelula"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M22 · a trilha de eventos é append-only — EventoDaExcecaoDaCelula (armazem.ts das exceções)",
+      "arquivo": "lib/agency/celula/excecoes/armazem.ts",
+      "teste": "__tests__/celula/excecoes-fila.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "não existe .update / .updateMany / .delete / .deleteMany / .upsert sobre eventoDaExcecaoDaCelula 6ms",
+        "__tests__/celula/excecoes-fila.test.ts > varredura estática: nenhuma escrita mutante sobre eventoDaExcecaoDaCelula > não existe .update / .updateMany / .delete / .deleteMany / .upsert sobre eventoDaExcecaoDaCelula"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    },
+    {
+      "guarda": "M23 · perdida → retomar legal e perdida → ganha ilegal (a linha da tabela trocada)",
+      "arquivo": "lib/agency/celula/funil.ts",
+      "teste": "__tests__/celula/funil.test.ts",
+      "estado": "VERMELHO_COMO_ESPERADO",
+      "porqueCaiu": [
+        "2a. perdida DEIXOU de ser terminal: perdida → retomar é legal, perdida → ganha continua ilegal 9ms",
+        "2d. perdida → retomar SEM justificativa continua rejeitada — ninguém ressuscita em silêncio 3ms",
+        "2e. perdida → retomar COM justificativa é aceita pelo juiz puro 1ms",
+        "4. aprovada é a ÚNICA origem que alcança ganha 1ms",
+        "__tests__/celula/funil.test.ts > as 4 arbitragens do funil (Diretor, 30/08/2026) > 2a. perdida DEIXOU de ser terminal: perdida → retomar é legal, perdida → ganha continua ilegal",
+        "__tests__/celula/funil.test.ts > as 4 arbitragens do funil (Diretor, 30/08/2026) > 2d. perdida → retomar SEM justificativa continua rejeitada — ninguém ressuscita em silêncio",
+        "__tests__/celula/funil.test.ts > as 4 arbitragens do funil (Diretor, 30/08/2026) > 2e. perdida → retomar COM justificativa é aceita pelo juiz puro",
+        "__tests__/celula/funil.test.ts > as 4 arbitragens do funil (Diretor, 30/08/2026) > 4. aprovada é a ÚNICA origem que alcança ganha"
+      ],
+      "contagem": 1,
+      "restaurado": true
+    }
+  ]
+}

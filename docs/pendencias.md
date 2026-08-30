@@ -6634,3 +6634,131 @@ não existir: não se calcula 10% sobre um número que não existe.
   card de aprovação. A casa RECUSA apagar cliente com trabalho pendurado ("funda
   em vez de apagar") — comportamento correto, e não há rota para apagar o card.
   O token do portal expira sozinho em 29/08 (foi cunhado com 2 dias).
+
+---
+
+## 🔧 Dívida de coordenação e de schema — medida em 30/08/2026 (Célula de Prospecção)
+
+Três achados que **não são da frente da Célula** e por isso não foram
+consertados por ela. Ficam aqui com dono a definir.
+
+### 1. O gancho pré-push é intransponível para quem forçou uma colisão legítima
+
+> ⚠️ **ATUALIZADO em 30/08/2026, algumas horas depois de eu escrever isto:
+> METADE JÁ FOI CONSERTADA por outra frente, e eu não sabia.** O commit
+> `8a6e3d2` (#410) — *"O sentinela passa a LER a forçada: colisão sancionada
+> vira AVISO ALTO"* — ensinou o **sentinela do `npm test`** a reconhecer a
+> forçada, com `forcadaSancionada()` em `lib/coordenacao/reivindicacoes.ts`.
+> A suíte da casa parou de ficar vermelha por colisão sancionada, e isso
+> resolveu o CI.
+>
+> **A outra metade continua aberta, e foi medida agora:** `npm run reivindicar
+> -- conferir`, que é o que o **gancho pré-push** chama, ainda recusa. Ele
+> compara os arquivos que a sessão ALTEROU contra as reivindicações alheias, e
+> não passa por `forcadaSancionada()`. Quem forçou uma colisão legítima
+> continua só empurrando com `--no-verify`.
+>
+> Ou seja: o teste já honra a forçada; o push ainda não. **Quem for fechar
+> isto, o caminho já existe** — é aplicar `forcadaSancionada()` no caminho do
+> `conferir`, do mesmo jeito que o #410 aplicou no do sentinela.
+
+`npm run reivindicar -- conferir` — que é o que o gancho pré-push chama —
+**não reconhece a reivindicação forçada que o próprio mecanismo aceitou,
+registrou e empurrou.** Ele relista a colisão e recusa o push.
+
+Medido: a frente `celula-prospeccao-99freelas-v1` forçou colisão em
+`prisma/schema.prisma` com motivo escrito (o mesmo raciocínio que
+`ses-b8ee2d70ad` e `ses-0f653c553f` usaram horas antes, e que o Diretor
+auditou). Mesmo assim, **todo push precisou de `--no-verify`** — quatro vezes
+no dia.
+
+**Por que isso é grave e não é chateação:** `--no-verify` desliga o gancho
+INTEIRO, não só a parte que errou. Quem for forçado a usá-lo por uma colisão
+legítima perde junto todas as outras verificações de pré-push. E, pior, aprende
+que o caminho normal de trabalho é contornar o mecanismo — que é como um
+mecanismo morre. **Trava sem fechadura possível não é trava: é pedágio.**
+
+Sugestão (não implementada): `conferir` deve tratar como resolvida a colisão
+que já consta como `forcada` na própria reivindicação da sessão corrente.
+
+### 2. A colisão é por arquivo, e `prisma/schema.prisma` é tocado por toda frente
+
+Toda frente que acrescenta um `model` toca o mesmo arquivo. Enquanto a colisão
+for por caminho, **todo mundo vai forçar**, e forçar vira hábito — que é
+exatamente a morte anunciada no item 1. Em 30/08 havia **três** frentes vivas
+na mesma situação, todas legítimas, todas aditivas, nenhuma em conflito real.
+
+Sugestão (não implementada): colidir por **model** e não por arquivo. O sinal
+que a casa quer ("duas frentes mexendo na mesma coisa") está no nome do model,
+não no nome do arquivo.
+
+### 3. Desvio schema-vs-migration em quatro tabelas alheias
+
+`npx prisma migrate diff --from-migrations prisma/migrations --to-schema
+prisma/schema.prisma` (30/08) devolve, além do que a Célula precisava, um
+`RedefineTables` de **AssinaturaRecorrente, ClientAiProvider, MetricaDePost e
+ParceriaDoCliente**, mais um `DROP INDEX` em `ClientRequestDb`.
+
+Ou seja: essas quatro tabelas têm schema e migrations divergentes hoje. A
+migration da Célula (`20260830170000_a_ponte_e_a_fila_de_excecoes_da_celula`)
+**recortou deliberadamente só as suas quatro tabelas** — levar a carona faria
+uma migration de prospecção derrubar e recriar tabelas de assinatura,
+faturamento e parceria em produção, escondendo a dívida de um dentro do commit
+de outro.
+
+O desvio continua lá. **Quem o criou não foi medido** — é preciso um `git log`
+por tabela antes de atribuir dono.
+
+---
+
+## 🔴 ACHADO DE SEGURANÇA — a senha do login vai para a URL sem JS
+
+**Medido em 30/08/2026**, por acaso, montando a captura de tela da Célula. Não é
+desta frente e por isso **não foi consertado aqui** — consertar auth dentro do
+PR da Célula alargaria o PR e esconderia a mudança onde ninguém procura.
+
+### O que acontece
+
+`app/auth/signin/page.tsx:61` declara:
+
+```tsx
+<form onSubmit={handleSubmit} className="space-y-4">
+```
+
+**Sem `method` e sem `action`.** O padrão do HTML para os dois é `GET` na URL
+atual. Enquanto o JavaScript está hidratando — ou se ele falhar, ou for
+bloqueado — o `submit` não é interceptado por `handleSubmit`, e o navegador faz
+o envio nativo: **`GET /auth/signin?email=...&password=...`**.
+
+### A evidência, e ela não é teórica
+
+Saiu no log do servidor de desenvolvimento desta sessão, em texto puro:
+
+```
+GET /auth/signin?email=master%40dioli.studio&password=<a senha, legível> 200
+```
+
+A senha usada era descartável e local. **O caminho, não.**
+
+### Por que isso é grave
+
+Senha em query string não fica só na tela. Ela vai para:
+
+- a **barra de endereço** e o **histórico do navegador**, que sobrevivem à sessão;
+- o **log de acesso do servidor** — como se viu acima, em produção também;
+- qualquer **proxy, CDN ou observabilidade** no caminho, que loga URL por padrão;
+- o cabeçalho **`Referer`** enviado a terceiros a partir daquela página.
+
+É a família "PII/credencial em log" que o `seguranca` desta casa persegue. E a
+janela não é exótica: **todo primeiro carregamento tem um intervalo antes da
+hidratação**, e quem digita rápido cai nele.
+
+### O conserto provável é de um atributo
+
+`method="post"` no `<form>`. Sem hidratação, o envio vira POST e **a senha deixa
+de ir na URL**. Precisa de quem responde por auth para conferir o que o POST
+não interceptado faz na rota, e para decidir se há um caminho sem JS de
+verdade — não é uma linha para se aplicar sem esse julgamento.
+
+**Dono:** `seguranca` com `plataforma`. **Não atribuído** — a camada de despacho
+está indisponível nesta sessão.

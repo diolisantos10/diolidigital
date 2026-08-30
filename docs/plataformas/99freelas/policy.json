@@ -9,10 +9,36 @@
   ],
 
   "platform": "99freelas",
-  "version": "2026-08-b",
+  "version": "2026-08-c",
   "active": true,
-  "policy_verified_at": "2026-08-07",
-  "verificado_por": "PM da frente 99Freelas, sob a trava de plataforma de 03/08/2026",
+  "policy_verified_at": "2026-08-30",
+  "verificado_por": "PM da frente 99Freelas (captura, exceção SEM_AGENTE registrada) + CÉREBRO (leitura, diff, busca e parecer), sob a trava de plataforma de 03/08/2026",
+
+  "tentativas_de_recaptura": [
+    {
+      "tentado_em": "2026-08-30T1",
+      "rodada": 1,
+      "solicitante": "PM da Dioli Digital, a mando do Diretor, a mando do CEO — DESPACHO-99FREELAS-CAPTURA.md",
+      "resultado": "falhou_ambiente",
+      "policy_verified_at_alterado": false,
+      "motivo": "A sessão do agente CÉREBRO (subagente despachado, sem egress de rede liberado) teve TODAS as tentativas de acesso à rede recusadas pelo próprio ambiente de execução — curl (o comando exato pedido pela ficha), curl com sandbox desligada, curl contra host neutro, socket TCP cru e python3 urllib — todas com a mensagem literal 'This command requires approval', antes de qualquer pacote sair para o 99Freelas ou para o Zendesk. Nenhuma das 15 URLs públicas foi relida. Nenhum arquivo de fontes/ com conteúdo de página foi fabricado.",
+      "evidencia": "docs/plataformas/99freelas/fontes/medicao-tecnica-2026-08-30.md (versão da rodada 1, hoje substituída/expandida pela versão da rodada 2)",
+      "parecer": "docs/plataformas/99freelas/pareceres/2026-08-30-operacao-da-sessao-autenticada.md (versão da rodada 1, hoje substituída)",
+      "recomendacao": "Repetir a captura numa sessão com rede liberada — cumprida na rodada 2, pelo PM, na mesma data."
+    },
+    {
+      "tentado_em": "2026-08-30T2",
+      "rodada": 2,
+      "solicitante": "PM da Dioli Digital, a mando do Diretor, a mando do CEO — DESPACHO-99FREELAS-CAPTURA.md (ficha reescrita)",
+      "resultado": "sucesso",
+      "policy_verified_at_alterado": true,
+      "motivo": "O PM capturou as 15 URLs (exceção SEM_AGENTE, registrada — captura feita fora de um subagente, por quem tinha rede liberada). As 3 páginas do site abriram HTTP 200 direto. Os 12 artigos da Central de Ajuda devolveram HTTP 403 com desafio Cloudflare em HTML na 1ª tentativa (proteção mais apertada que em 07/08, quando só devolvia 429 depois de ~14 leituras); foram lidos com sucesso pela API pública documentada do Zendesk Help Center (HTTP 200, sem desafio, sem autenticação), permitida pelo robots.txt do host Zendesk. O CÉREBRO então leu tudo, comparou por diff normalizado contra as capturas de 07/08 e rodou a busca de termos de automação exigida pela ficha, sem tocar rede.",
+      "achado_principal": "Conteúdo normativo idêntico ao de 07/08/2026 em todos os pontos comparados (termos, política de privacidade, amostra de artigo de ajuda) e confirmado independentemente pela tabela updated_at que a própria API do Zendesk devolveu — nenhum dos 12 artigos foi alterado depois de 07/08/2026.",
+      "evidencia": "docs/plataformas/99freelas/fontes/medicao-tecnica-2026-08-30.md",
+      "parecer": "docs/plataformas/99freelas/pareceres/2026-08-30-operacao-da-sessao-autenticada.md",
+      "ressalva_seguranca": "A leitura dos 12 artigos de ajuda passou pela API do Zendesk depois de o HTML levar 403/Cloudflare. O parecer registra a ressalva e o que muda se o Essencial `seguranca` reprovar esse caminho — ver bloco 🔴 do parecer. As conclusões de automação (pergunta 2) e de banimento-alcança-outras-contas NÃO dependem desse caminho: estão em termos-de-uso, capturado limpo, HTTP 200 direto."
+    }
+  ],
 
   "regra_oficial_do_ceo": {
     "modo": "ENVIO_SUPERVISIONADO",
@@ -58,6 +84,47 @@
     "referencia_a_comissao": "Termos: 'Não se pode fazer referência à comissão da 99Freelas'. ESTA NÃO ESTAVA NA ESPECIFICAÇÃO 00 — 'esse valor já considera a taxa da plataforma' é violação.",
     "pagamento_comissionado": "Termos: 'Não se pode solicitar pagamento comissionado'.",
     "spam": "Termos, Sanções: 'propagação de spams' é sancionável. Proposta repetida entre projetos é o vetor."
+  },
+
+  "ritmo_de_operacao": {
+    "_leia_isto": [
+      "REGRA DA CASA, não da plataforma. O 99Freelas NÃO publica limite de",
+      "requisições (anti_bot.rate_limit é null, não confirmado).",
+      "Ausência de informação não é informação: estes números são da Dioli,",
+      "escolhidos APERTADOS de propósito, e estão declarados como tal.",
+      "",
+      "O incidente que produziu esta seção não é do 99Freelas — é da Meta,",
+      "em 03/08/2026: a conta de anúncios da agência foi restringida por",
+      "'automação que não segue as regras', operando em ritmo de máquina.",
+      "Aqui a conta é PESSOAL do CEO e o banimento alcança outras contas do",
+      "mesmo titular. Errar para o lado de ir devagar custa tempo; errar para",
+      "o outro custa o canal inteiro."
+    ],
+    "intervalo_minimo_entre_acoes_segundos": 45,
+    "intervalo_minimo_procedencia": "regra da casa, 30/08/2026. Não é número do 99Freelas.",
+    "maximo_de_acoes_por_hora": 20,
+    "maximo_de_acoes_por_dia": 80,
+    "maximo_procedencia": "regra da casa. Piso conservador: a cota de conexões do plano mais alto é 240/mês, e 80/dia jamais deve ser o gargalo real.",
+    "limite_da_plataforma_confirmado": null,
+    "limite_da_plataforma_motivo": "NÃO CONFIRMADO. Enquanto for null, valem os números da casa — nunca o contrário.",
+    "ao_exceder": "ADIAR_E_REGISTRAR",
+    "ao_exceder_motivo": "Exceder não é erro do operador: é o freio funcionando. A ação é ADIADA e registrada, não descartada em silêncio — descartar calado é como a casa descobre um mês depois que nada rodou."
+  },
+
+  "anexos_no_chat": {
+    "_leia_isto": [
+      "Decisão 4 do CEO, 30/08/2026: 'O chat aceita arquivos de até 16 MB.'",
+      "ESTE LIMITE É DO CANAL, e é OUTRO limite que MAX_BYTES_POR_ARQUIVO",
+      "(120 MB), que é o teto do NOSSO armazém. Colapsar os dois faria um",
+      "arquivo de 40 MB ser aprovado pela Qualidade, versionado, e só então",
+      "morrer na hora de anexar — depois de a casa já ter prometido a entrega."
+    ],
+    "tamanho_maximo_mb": 16,
+    "tamanho_maximo_procedencia": "declarado pelo CEO em 30/08/2026. NÃO foi lido de página do 99Freelas nesta rodada — nenhuma fonte em fontes/ menciona limite de anexo no chat.",
+    "acima_do_limite": "ABRIR_EXCECAO",
+    "acima_do_limite_motivo": "O CEO mandou 'tratar conforme a orientação oficial do 99Freelas para transferência de arquivos'. ESSA ORIENTAÇÃO NÃO ESTÁ CAPTURADA — é LACUNA. Enquanto for lacuna, o caminho é a fila de exceções com dono, NUNCA um contorno inventado: dividir arquivo, comprimir sem avisar ou mandar link externo seriam três violações diferentes, e a terceira derruba a conta.",
+    "link_externo_como_alternativa": false,
+    "link_externo_motivo": "Mandar link de download seria 'link externo', que os Termos proíbem antes da garantia de pagamento. A saída para arquivo grande NÃO pode ser a violação de outra regra."
   },
 
   "limites_da_plataforma": {
@@ -117,7 +184,9 @@
       "Web, Mobile & Software": 50
     },
     "regra_do_piso": "max(piso da tabela da casa, piso da categoria da plataforma). Nunca o contrário.",
-    "valor_maximo": null
+    "valor_maximo": null,
+
+    "_divergencia_2026_08_30": "ACHADO NOVO, NÃO RESOLVIDO. termos-de-uso-2026-08-30.md diz taxa de 10% a 20% (R$ 5,00 mínimo). como-funciona-2026-08-30.md (NUNCA capturada antes) diz taxa de 5% a 20% (R$ 10,00 mínimo), para a mesma cobrança. Os números acima (taxa_da_plataforma_percentual, taxa_minima_reais) seguem os TERMOS DE USO por serem o documento contratual — como-funciona é material de marketing e pode estar desatualizado ou impreciso. NÃO decidido por engenharia: precisa de confirmação humana ou nova captura antes de confiar cegamente em qualquer um dos dois números para o cálculo de margem. Fonte: docs/plataformas/99freelas/pareceres/2026-08-30-operacao-da-sessao-autenticada.md, seção 'Achado extra'."
   },
 
   "follow_up": {
@@ -129,6 +198,16 @@
     "alerta_da_casa_horas": 6,
     "leitura_do_chat": "MANUAL",
     "leitura_do_chat_motivo": "O chat fica atrás do login, e login é BLOCK nesta rodada. Enquanto for assim, a fila de follow-up é alimentada à mão ou pelo e-mail de notificação encaminhado — e isso é RISCO ABERTO, não recurso pronto."
+  },
+
+  "acompanhamento": {
+    "_leia_isto": "REGRA DA CASA, não da plataforma. O 99Freelas não publica quantas horas esperar antes de um acompanhamento, e a ordem do CEO diz 'intervalo configurável' sem fixar número. Estes números são da DIOLI e estão declarados como tal — quem trocá-los troca aqui, não no código.",
+    "maximo_por_oportunidade": 1,
+    "maximo_procedencia": "ordem literal do CEO, 30/08/2026: 'apenas UM acompanhamento automático por oportunidade'.",
+    "intervalo_da_casa_horas": 72,
+    "intervalo_procedencia": "preciso confirmar com o CEO — a ordem dele diz 'intervalo configurável' e NÃO fixa o número. 72 h é um padrão conservador da casa, escolhido para errar do lado de insistir menos. NÃO é número do CEO nem da plataforma.",
+    "intervalo_da_plataforma_horas": null,
+    "intervalo_da_plataforma_procedencia": "o 99Freelas não publica prazo de acompanhamento — ausência de informação, não permissão."
   },
 
   "sancoes": [
@@ -143,7 +222,19 @@
     "ao_encontrar_desafio": "PARAR e escalar (HUMAN_AUTH_REQUIRED). Contornar é fraude na lista de Sanções e é proibido pela §61 da especificação 01.",
     "rate_limit": null,
     "fingerprint": null,
-    "rate_limit_e_fingerprint_motivo": "NÃO CONFIRMADO — não fizemos login e não há documento público do 99Freelas sobre isso."
+    "rate_limit_e_fingerprint_motivo": "NÃO CONFIRMADO — não fizemos login e não há documento público do 99Freelas sobre isso.",
+
+    "central_de_ajuda_html_2026_08_07": "LACUNA — a fonte de 07/08 (fontes/medicao-tecnica-2026-08-07.md §4) fala de HTTP 429 na API pública do Help Center (Zendesk), não no HTML; e o parecer do mesmo dia (pareceres/2026-08-07-agente-autonomo-de-prospeccao.md) registra 'navegador é o único caminho que existe' para essa mesma leitura. As duas fontes de 07/08 se contradizem sobre qual interface foi medida — NÃO SABEMOS se o HTML respondia 200 naquela data, nem por qual interface o 429 foi observado.",
+    "central_de_ajuda_html_2026_08_30": "FATO MEDIDO, e só isto: HTTP 403 com cf-mitigated: challenge (desafio Cloudflare Managed/Turnstile) na primeira requisição, nas 12 URLs, em 30/08/2026. Correção depois da auditoria do Essencial `qualidade`: a redação anterior deste campo afirmava 'a proteção apertou entre 07/08 e 30/08' como fato — isso é inferência não sustentada, porque não existe medição confiável do HTML em 07/08 para comparar (ver central_de_ajuda_html_2026_08_07). Retirado; fica só o que foi medido hoje.",
+    "central_de_ajuda_api_2026_08_30": "GET https://99freelas.zendesk.com/api/v2/help_center/pt-br/articles/<id>.json — HTTP 200 nas 12 URLs, sem desafio, sem autenticação, mesmo user-agent honesto que levou 403 no HTML. Permitido pelo robots.txt de 99freelas.zendesk.com (só /stats/view e /hc/*/search são Disallow).",
+    "central_de_ajuda_api_ressalva": "O operador pode ter protegido o HTML e deixado a API pública aberta sem essa intenção — não há declaração dele sobre isso. DECIDIDO pelo Essencial `seguranca` em pareceres/2026-08-30-seguranca-sessao-do-titular.md, pergunta 1: NÃO CONTORNOU proteção — as 12 capturas de hoje ficam válidas, mas não vira rotina (só recaptura ocasional de documentação, no mesmo ritmo humano de hoje; não se estende a /projects nem a qualquer desafio futuro).",
+    "fonte": "docs/plataformas/99freelas/fontes/medicao-tecnica-2026-08-07.md e medicao-tecnica-2026-08-30.md"
+  },
+
+  "sessao_autenticada": {
+    "pre_condicao_p0": "BLOQUEADO — perfil de navegador isolado, dedicado só ao 99Freelas (sem e-mail/banco/outra sessão no mesmo perfil), NÃO existe em código hoje: existe só como parágrafo em docs/projetos/99freelas/00-ESPECIFICACAO-DO-CEO.md §4. Aberto pelo Essencial `seguranca` em pareceres/2026-08-30-seguranca-sessao-do-titular.md como P0 de pré-condição.",
+    "pre_condicao_p0_efeito": "Nenhuma operação real de sessão autenticada do titular — mesmo supervisionada, mesmo só leitura de /projects ou do chat — deve rodar antes de o perfil isolado existir em código. Risco: prompt injection via briefing de terceiro pivotando para e-mail/banco do CEO no mesmo perfil de navegador. Isto é P0 de pré-condição, não P0 de sistema em produção — não há execução de navegador implementada hoje.",
+    "flags_nao_afrouxadas": "auto_submission_allowed, browser_automation_allowed e auto_messaging_allowed continuam false; human_gate_required continua true. Este campo ACRESCENTA uma barreira anterior a essas, não substitui nem afrouxa nenhuma."
   },
 
   "projetos_a_rejeitar_antes_de_gastar_conexao": [
@@ -158,8 +249,11 @@
 
   "autorizacao_do_suporte": {
     "_leia_isto": "ESTE É O CAMPO QUE A RESPOSTA DO SUPORTE VAI PREENCHER. É a UMA LINHA DE DADO que troca HUMAN_GATE por ALLOW no envio. Não existe flag escondida no código: `auto_submission_allowed` e a capability `proposalSubmission` só mudam quando `status` aqui virar `autorizado` COM data e evidência.",
-    "status": "perguntado",
+    "status": "sem_resposta",
     "status_valores": ["nao_perguntado", "perguntado", "autorizado", "negado", "sem_resposta"],
+    "status_atualizado_em_2026_08_30": "De `perguntado` para `sem_resposta`. Justificativa (parecer 2026-08-30-operacao-da-sessao-autenticada.md): 23 dias corridos desde o envio (07/08/2026) sem resposta de suporte@99freelas.com.br. `sem_resposta` já era um dos `status_valores` previstos aqui — não é estado novo. NÃO DESTRAVA NADA: `respondido_em` e `evidencia` continuam null, e o gate abaixo exige os três campos juntos. `auto_submission_allowed` permanece false. Esta mudança só torna visível que a via de autorização por escrito está parada; não é autorização, nem inferência de autorização.",
+    "dias_sem_resposta_em_2026_08_30": 23,
+    "dias_sem_resposta_motivo": "Aritmética simples entre perguntado_em (2026-08-07) e a data desta rodada (2026-08-30), não é confirmação de novo fato — reconfirmado na rodada 2 do despacho de captura. Não há prazo declarado pelo 99Freelas para responder e-mail de suporte, então este número NÃO vira `negado` por decurso de tempo — ausência de resposta permanece `sem_resposta` indefinidamente, até evidência em contrário.",
     "perguntado_em": "2026-08-07",
     "respondido_em": null,
     "canal": "e-mail",

@@ -68,5 +68,163 @@
     "slug": "ajuda-tirando-duvida-com-o-cliente",
     "titulo": "99Freelas — Tirando uma dúvida com o cliente (pergunta também consome conexão)",
     "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500007358381-Tirando-uma-d%C3%BAvida-com-o-cliente"
+  },
+  {
+    "slug": "termos-de-uso-2026-08-30",
+    "titulo": "99Freelas — Termos de uso (recaptura 30/08/2026)",
+    "url": "https://www.99freelas.com.br/termos",
+    "arquivo": "fontes/termos-de-uso-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status": 200,
+    "capturado_por": "PM da Dioli Digital, curl com UA honesto DioliDigital-PolicyAudit/1.0, área pública, sem login"
+  },
+  {
+    "slug": "politica-de-privacidade-2026-08-30",
+    "titulo": "99Freelas — Política de privacidade (recaptura 30/08/2026)",
+    "url": "https://www.99freelas.com.br/privacidade",
+    "arquivo": "fontes/politica-de-privacidade-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status": 200,
+    "capturado_por": "PM da Dioli Digital, curl com UA honesto DioliDigital-PolicyAudit/1.0, área pública, sem login"
+  },
+  {
+    "slug": "como-funciona-2026-08-30",
+    "titulo": "99Freelas — Como funciona (página pública, NUNCA capturada antes de 30/08/2026)",
+    "url": "https://www.99freelas.com.br/como-funciona",
+    "arquivo": "fontes/como-funciona-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status": 200,
+    "capturado_por": "PM da Dioli Digital, curl com UA honesto DioliDigital-PolicyAudit/1.0, área pública, sem login",
+    "achado": "Diverge de termos-de-uso quanto à taxa cobrada — ver policy.json precificacao._divergencia_2026_08_30."
+  },
+  {
+    "slug": "ajuda-o-que-sao-conexoes-2026-08-30",
+    "titulo": "99Freelas — O que são conexões (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/4410951411223-O-que-s%C3%A3o-conex%C3%B5es",
+    "arquivo": "fontes/ajuda-o-que-sao-conexoes-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json"
+  },
+  {
+    "slug": "ajuda-minhas-conexoes-2026-08-30",
+    "titulo": "99Freelas — Minhas conexões (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500008364942-Minhas-conex%C3%B5es",
+    "arquivo": "fontes/ajuda-minhas-conexoes-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json"
+  },
+  {
+    "slug": "ajuda-como-enviar-propostas-2026-08-30",
+    "titulo": "99Freelas — Como enviar propostas (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500007214242-Como-enviar-propostas",
+    "arquivo": "fontes/ajuda-como-enviar-propostas-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json"
+  },
+  {
+    "slug": "ajuda-plano-gratuito-nao-consigo-enviar-proposta-2026-08-30",
+    "titulo": "99Freelas — Plano gratuito e a janela de 24h (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/360012176014-Sou-profissional-do-plano-gratuito-e-n%C3%A3o-consigo-enviar-proposta-Como-fa%C3%A7o",
+    "arquivo": "fontes/ajuda-plano-gratuito-nao-consigo-enviar-proposta-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json"
+  },
+  {
+    "slug": "ajuda-planos-de-freelancers-2026-08-30",
+    "titulo": "99Freelas — Planos de freelancers (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500008543262-Planos-de-freelancers",
+    "arquivo": "fontes/ajuda-planos-de-freelancers-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json",
+    "updated_at_declarado_pela_api": "2026-08-07"
+  },
+  {
+    "slug": "ajuda-valor-minimo-2026-08-30",
+    "titulo": "99Freelas — O que é o valor mínimo (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500009181841-O-que-%C3%A9-o-valor-m%C3%ADnimo-freelancer",
+    "arquivo": "fontes/ajuda-valor-minimo-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json"
+  },
+  {
+    "slug": "ajuda-violacao-freelancer-2026-08-30",
+    "titulo": "99Freelas — Violação (freelancer) (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500009819622-Viola%C3%A7%C3%A3o-freelancer",
+    "arquivo": "fontes/ajuda-violacao-freelancer-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json",
+    "nota": "A captura via API não traz os comentários de usuários que a captura HTML de 07/08 trazia (a API devolve o artigo, não o widget de comentários) — perda de cobertura, não de conteúdo normativo."
+  },
+  {
+    "slug": "ajuda-projetos-nao-permitidos-2026-08-30",
+    "titulo": "99Freelas — Projetos não permitidos (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/360007809654-Projetos-n%C3%A3o-permitidos",
+    "arquivo": "fontes/ajuda-projetos-nao-permitidos-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json"
+  },
+  {
+    "slug": "ajuda-usando-o-chat-freelancer-2026-08-30",
+    "titulo": "99Freelas — Usando o chat (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500007359441-Usando-o-chat-freelancer",
+    "arquivo": "fontes/ajuda-usando-o-chat-freelancer-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json"
+  },
+  {
+    "slug": "ajuda-pesquisando-por-projetos-2026-08-30",
+    "titulo": "99Freelas — Pesquisando por projetos (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500007160041-Pesquisando-por-projetos",
+    "arquivo": "fontes/ajuda-pesquisando-por-projetos-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json"
+  },
+  {
+    "slug": "ajuda-subindo-no-ranking-2026-08-30",
+    "titulo": "99Freelas — Subindo no ranking (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500007148521-Subindo-no-ranking",
+    "arquivo": "fontes/ajuda-subindo-no-ranking-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json"
+  },
+  {
+    "slug": "ajuda-tirando-duvida-com-o-cliente-2026-08-30",
+    "titulo": "99Freelas — Tirando uma dúvida com o cliente (recaptura 30/08/2026)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500007358381-Tirando-uma-d%C3%BAvida-com-o-cliente",
+    "arquivo": "fontes/ajuda-tirando-duvida-com-o-cliente-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "http_status_html": 403,
+    "http_status_api": 200,
+    "capturado_via": "API pública do Zendesk Help Center (HTML devolveu 403/desafio Cloudflare) — ver anti_bot em policy.json"
+  },
+  {
+    "slug": "medicao-tecnica-2026-08-30",
+    "titulo": "99Freelas — Medição técnica do ambiente, rodada 2 (robots.txt, sitemap, anti-bot, tabela updated_at)",
+    "url": null,
+    "arquivo": "fontes/medicao-tecnica-2026-08-30.md",
+    "capturado_em": "2026-08-30",
+    "nota": "NÃO é documento oficial da plataforma — é medição direta desta sessão (curl), citada pelo parecer. Ver medicao-tecnica-2026-08-07.md para a medição equivalente da rodada anterior."
   }
 ]
