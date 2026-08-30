@@ -123,10 +123,17 @@ jobs:
         env:
           DATABASE_URL: "file:./ci.db"
 
+      # `NO_COLOR` não é enfeite: a trava logo abaixo procura a linha de resumo do
+      # vitest no log gravado, e códigos ANSI no meio de "  Tests  …" fariam o
+      # `grep` não achar a linha. Como a trava é FAIL-CLOSED, isso reprovaria uma
+      # rodada sã — trava que erra para o lado barulhento treina todo mundo a
+      # ignorá-la. O repórter escreve texto puro, e a linha é sempre encontrável.
       - name: Tests (a suíte inteira, com o artefato de produção já construído)
         run: |
           set -o pipefail
           npx vitest run 2>&1 | tee vitest-saida.log
+        env:
+          NO_COLOR: "1"
 
       # ⛔ ZERO PULADOS, E A TRAVA É CÓDIGO — NÃO RECOMENDAÇÃO ESCRITA.
       #
@@ -142,7 +149,9 @@ jobs:
       # régua de `soLevaAReivindicacao` em `lib/coordenacao/`.
       - name: Nenhum teste pulado (pulado passa por aprovado para quem lê o verde)
         run: |
-          RESUMO=$(grep -E "^[[:space:]]*Tests[[:space:]]" vitest-saida.log | tail -1)
+          # Tira qualquer código ANSI que tenha escapado, e só então procura a linha.
+          sed -e 's/\x1b\[[0-9;]*[a-zA-Z]//g' vitest-saida.log > vitest-limpo.log
+          RESUMO=$(grep -E "^[[:space:]]*Tests[[:space:]]" vitest-limpo.log | tail -1)
           echo "Resumo do vitest: ${RESUMO}"
           if [ -z "${RESUMO}" ]; then
             echo "::error::não achei a linha de resumo do vitest; não sei se houve teste pulado, e 'não sei' não vira 'então passou'."

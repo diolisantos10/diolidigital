@@ -132,17 +132,25 @@ jobs:
       # porta é a culpada, o nome do passo que ficou vermelho diz isso sem
       # ninguém precisar ler 7.600 testes. Este passo responde pela outra
       # metade — este workflow NÃO fica verde com a casa vermelha.
+      #
+      # `NO_COLOR`: a trava abaixo é FAIL-CLOSED e procura a linha de resumo no
+      # log gravado. Código ANSI no meio de "  Tests  …" faria o `grep` não achar
+      # a linha e reprovar uma rodada sã. Mesma razão e mesma linha em `ci.yml`.
       - name: A suíte inteira (este portão não fica verde com a casa vermelha)
         run: |
           set -o pipefail
           npx vitest run 2>&1 | tee vitest-saida.log
+        env:
+          NO_COLOR: "1"
 
       # ⛔ ZERO PULADOS — a mesma trava de `ci.yml`, e pela mesma razão: teste
       # pulado sai com "ok" e código de saída zero, e qualquer leitor lê
       # aprovação. FAIL-CLOSED: sem a linha de resumo, REPROVA.
       - name: Nenhum teste pulado (pulado passa por aprovado para quem lê o verde)
         run: |
-          RESUMO=$(grep -E "^[[:space:]]*Tests[[:space:]]" vitest-saida.log | tail -1)
+          # Tira qualquer código ANSI que tenha escapado, e só então procura a linha.
+          sed -e 's/\x1b\[[0-9;]*[a-zA-Z]//g' vitest-saida.log > vitest-limpo.log
+          RESUMO=$(grep -E "^[[:space:]]*Tests[[:space:]]" vitest-limpo.log | tail -1)
           echo "Resumo do vitest: ${RESUMO}"
           if [ -z "${RESUMO}" ]; then
             echo "::error::não achei a linha de resumo do vitest; não sei se houve teste pulado, e 'não sei' não vira 'então passou'."
