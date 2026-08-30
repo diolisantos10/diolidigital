@@ -1412,6 +1412,27 @@ model ClientRequestDb {
   /// parecer que o reenvio nunca rodou.
   avisoOrcamentoTentativas Int      @default(0)
 
+  /// ── O PREÇO CONGELA NO INSTANTE DO ACEITE (29/08/2026, ordem C1 do CEO) ───
+  ///
+  /// Duas verdades diferentes sobre dinheiro, e as duas obrigatórias:
+  ///   • `briefingJson.estimate` é o preço AGORA — corrente, muda a cada
+  ///     negociação (ver `orcamento-do-briefing.ts`, `comEstimativa`).
+  ///   • Estas duas colunas são o preço NAQUELE DIA — o que o cliente leu
+  ///     quando disse sim, e que uma renegociação POSTERIOR não pode reescrever.
+  ///
+  /// Gravadas UMA vez só, no mesmo instante em que `status` vira `"accepted"`
+  /// (`caminho-automatico.ts`, `marcarAceite` — o único lugar do código que
+  /// escreve esse status). `precoAceitoJson` é a mesma forma de
+  /// `EstimativaGuardada` que `briefingJson.estimate` já usa — não um segundo
+  /// formato para aprender. `NULL`/`NULL` é honesto: "o cliente aceitou sem
+  /// número entregue" (não deveria acontecer, mas não se inventa preço aqui
+  /// tampouco).
+  ///
+  /// Lidas por `precoCongeladoNoAceite` (`caminho-automatico.ts`) — nenhum
+  /// outro lugar lê ou escreve estas colunas.
+  precoAceitoJson String?
+  precoAceitoEm   DateTime?
+
   artifacts     BrainArtifact[]
   approvals     ApprovalRequest[]
   evidenceItems EvidenceItem[]

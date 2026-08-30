@@ -30,7 +30,18 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
-  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+  clientRequestDb: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    update: vi.fn(),
+    // `marcarAceite` (real, não mockada aqui) passou a gravar o congelamento
+    // de preço com `updateMany` em vez de `$executeRawUnsafe` (ficha C1d,
+    // 29/08/2026) — API padrão do Prisma, não detalhe de SQL. Este teste é
+    // sobre roteamento de decisão, não sobre preço, mas exercita a função
+    // real por trás da rota, então o fake de Prisma precisa da mesma
+    // superfície que `caminho-automatico.ts` chama.
+    updateMany: vi.fn(async (): Promise<{ count: number }> => ({ count: 1 })),
+  },
   portalAccess: { findUnique: vi.fn(), update: vi.fn() },
 }));
 const nascerDoAceite = vi.hoisted(() => vi.fn());
