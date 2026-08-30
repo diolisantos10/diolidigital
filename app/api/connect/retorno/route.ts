@@ -41,7 +41,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { CABECALHO_DO_SEGREDO, conferirSegredo } from "@/lib/agency/connect/porta-do-retorno";
+import { CABECALHO_DO_SEGREDO, conferirSegredo } from "@/lib/agency/connect/porta";
 import { receberRetorno } from "@/lib/agency/connect/conector/retorno";
 import { ligacaoDaDioliDigital } from "@/lib/agency/connect/conector/dioli-digital/ligacaoLocal";
 

@@ -24,7 +24,7 @@
 //    IP (o laço de um chamador legítimo tem teto). Contador no volume. A ordem
 //    em que cada um entra está no bloco grande logo acima de
 //    `freioDeAdivinhacao`; os números, e a medição que os escolheu, em
-//    `lib/agency/connect/porta.ts`.
+//    `lib/agency/connect/porta-do-despacho.ts`.
 //
 // 1. SEGREDO PRÓPRIO, ÚNICO E COM PISO. `Bearer` conferido em TEMPO CONSTANTE
 //    contra `CONNECT_SECRET` **e mais nada**, e só depois de o segredo cumprir
@@ -32,7 +32,7 @@
 //    porta responde **503 e permanece fechada** — não cai para `PILOTO_SECRET`
 //    (o encosto que o CEO mandou tirar em 30/08/2026) nem para nenhum outro
 //    segredo da casa. Com segredo válido configurado e cabeçalho errado, 401.
-//    A decisão inteira é função pura em `lib/agency/connect/porta.ts`.
+//    A decisão inteira é função pura em `lib/agency/connect/porta-do-despacho.ts`.
 //    NÃO existe caminho por sessão/cookie aqui de propósito: quem chama é
 //    máquina (a Control Room), não navegador — e sem cookie não há CSRF a
 //    barrar nem sessão a sequestrar.
@@ -82,7 +82,7 @@ import {
   MOTIVO_RITMO_DO_TRABALHO,
   TENTATIVAS_FALHAS_POR_JANELA,
   conferirSegredo,
-} from "@/lib/agency/connect/porta";
+} from "@/lib/agency/connect/porta-do-despacho";
 
 // O executor tem timeout por ficha (20 min na ficha do gerente). A janela da
 // rota acompanha a de `v2/assistido` — 300s é o teto da plataforma.
@@ -102,7 +102,7 @@ export const maxDuration = 300;
  * ⭐ E o que faltava, medido por auditoria independente no mesmo dia: a porta
  * abria com `CONNECT_SECRET="x"`. O comentário que ficava aqui prometia que ela
  * "permanece fechada"; a promessa não estava no código. A decisão inteira mudou
- * de casa — vive agora em `lib/agency/connect/porta.ts`, em função PURA, com o
+ * de casa — vive agora em `lib/agency/connect/porta-do-despacho.ts`, em função PURA, com o
  * piso de tamanho do molde da casa (o mesmo do irmão Foocci) e com o piso
  * vizinho de repetição. Esta rota voltou a ser casca: ela não lê variável de
  * ambiente nenhuma, e é por isso que este arquivo não tem mais um `process.env`.

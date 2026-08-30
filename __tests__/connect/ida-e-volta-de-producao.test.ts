@@ -42,11 +42,11 @@ vi.mock("@/app/api/messages/conversa", () => ({
 
 import { responderMensagensDeClientes } from "@/lib/agency/esteira/pm-responde";
 import { POST as retornoPOST } from "@/app/api/connect/retorno/route";
-import { CABECALHO_DO_SEGREDO } from "@/lib/agency/connect/porta-do-retorno";
+import { CABECALHO_DO_SEGREDO } from "@/lib/agency/connect/porta";
 import { VERSAO_DO_CONTRATO } from "@/lib/agency/connect/conector/versao";
 
 // ── O AMBIENTE, como o operador o configura ─────────────────────────────────
-const SEGREDO = "segredo-de-teste-com-mais-de-16-caracteres";
+const SEGREDO = "segredo-de-teste-com-mais-de-16-caracteres"; // segredo-permitido: fixture inventada, não existe fora deste arquivo
 const NUCLEO = "https://nucleo.invalido";
 
 const CLIENTE_A = "cliente-aaa";
