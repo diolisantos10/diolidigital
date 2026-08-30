@@ -16,6 +16,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  caminhosDeSchemaSemModelo,
   conferirColisao,
   estaViva,
   nomeDoArquivo,
@@ -329,5 +330,49 @@ describe("⚖️ conferirColisao — prisma/schema.prisma colide por MODELO, nã
     };
 
     expect(conferirColisao(nova, [existente], AGORA).colide).toBe(true);
+  });
+});
+
+// ── A PORTA DE ENTRADA: `caminhosDeSchemaSemModelo` ─────────────────────────
+//
+// Ficha `.despachos/F3-schema-exige-modelo.md`, 30/08/2026: a compatibilidade
+// acima (metades "compatibilidade" do describe anterior) é fail-OPEN de
+// propósito — sem modelo não colide com NADA, nem com outra sem modelo. Isto
+// aqui NÃO é a régua de colisão: é a função pura que a PORTA
+// (`scripts/reivindicar.mts`, comando `abrir`) usa para recusar ANTES de
+// escrever. As duas convivem: a régua acima continua idêntica (nenhum destes
+// testes toca `conferirColisao`), só a entrada fecha.
+describe("🚪 caminhosDeSchemaSemModelo — a porta que o comando `abrir` usa antes de escrever", () => {
+  it("aponta prisma/schema.prisma SEM modelo", () => {
+    expect(caminhosDeSchemaSemModelo(["prisma/schema.prisma"])).toEqual(["prisma/schema.prisma"]);
+  });
+
+  it("aponta prisma/schema.prisma com '#' vazio — mesma falta de prova que sem '#' nenhum", () => {
+    expect(caminhosDeSchemaSemModelo(["prisma/schema.prisma#"])).toEqual(["prisma/schema.prisma#"]);
+    // Devolve o caminho COMO O OPERADOR DIGITOU, com o "#" solto: a mensagem de
+    // recusa mostra a ele o proprio erro, em vez de uma versao limpa que ele nao
+    // reconhece. Eco do que foi digitado ensina; eco normalizado confunde.
+  });
+
+  it("NÃO aponta prisma/schema.prisma#Modelo — modelo declarado", () => {
+    expect(caminhosDeSchemaSemModelo(["prisma/schema.prisma#ModeloDeTeste"])).toEqual([]);
+  });
+
+  it("NÃO aponta arquivo comum, mesmo sem '#'", () => {
+    expect(caminhosDeSchemaSemModelo(["lib/qualquer.ts"])).toEqual([]);
+  });
+
+  it("lista mista: só o que é o schema sem modelo entra na lista", () => {
+    expect(
+      caminhosDeSchemaSemModelo(["lib/qualquer.ts", "prisma/schema.prisma", "prisma/schema.prisma#ModeloDeTeste"]),
+    ).toEqual(["prisma/schema.prisma"]);
+  });
+
+  it("tolera caminho cru, não normalizado ('./prisma/schema.prisma/')", () => {
+    expect(caminhosDeSchemaSemModelo(["./prisma/schema.prisma/"])).toEqual(["prisma/schema.prisma"]);
+  });
+
+  it("lista vazia para lista vazia", () => {
+    expect(caminhosDeSchemaSemModelo([])).toEqual([]);
   });
 });

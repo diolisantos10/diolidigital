@@ -342,6 +342,36 @@ function partirCaminhoDeSchema(caminhoNormalizado: string): { modelo: string | n
 }
 
 /**
+ * PORTA DE ENTRADA (30/08/2026, `.despachos/F3-schema-exige-modelo.md`) —
+ * quais dos caminhos BRUTOS de `--arquivos` citam `prisma/schema.prisma` SEM
+ * declarar modelo. Lista vazia = tudo certo.
+ *
+ * ── POR QUE ISTO É PORTA, NÃO RÉGUA DE COLISÃO ──────────────────────────────
+ * `seTocamNoSchema`, acima, trata "pelo menos um lado sem modelo" como `false`
+ * — decisão deliberada do despacho F2: uma reivindicação sem modelo não colide
+ * com NADA, nem com outra também sem modelo, e isso é o que destravou as
+ * frentes vivas de 30/08. Mas essa compatibilidade é fail-OPEN: quem omite o
+ * modelo numa reivindicação NOVA simplesmente SOME da trava — nem colide, nem
+ * avisa. Corrigir mexendo em `seTocamNoSchema` reintroduziria o bloqueio que o
+ * F2 acabou de tirar das reivindicações JÁ GRAVADAS. Esta função não decide
+ * colisão nenhuma — só nomeia, para quem chama recusar ANTES de escrever, os
+ * caminhos que tentam entrar pela porta sem o modelo. Reivindicações antigas
+ * sem modelo não passam por aqui (isto só roda no comando `abrir`, sobre o que
+ * está SENDO digitado agora) e continuam exatamente como estavam: sem colidir.
+ *
+ * Pura: recebe os caminhos como vieram de `--arquivos` (já separados por
+ * vírgula, ainda crus) — sem I/O, sem rede, sem depender de `RAIZ`.
+ */
+export function caminhosDeSchemaSemModelo(caminhosBrutos: string[]): string[] {
+  return caminhosBrutos
+    .map(normalizarCaminho)
+    .filter((c) => {
+      const partido = partirCaminhoDeSchema(c);
+      return partido !== null && partido.modelo === null;
+    });
+}
+
+/**
  * A régua por modelo — decide sozinha, sem cair de volta na régua de arquivo
  * de sempre, sempre que os DOIS lados são `prisma/schema.prisma` (com ou sem
  * modelo). Só devolve `null` (= "não é sobre o schema, decida por arquivo")
