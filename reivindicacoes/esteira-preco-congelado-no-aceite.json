@@ -1,0 +1,17 @@
+{
+  "id": "esteira-preco-congelado-no-aceite",
+  "quem": "ses-69fa836d5e",
+  "frente": "duas colunas em ClientRequestDb: o preco congela no instante do aceite (ordem C1 do CEO)",
+  "responsabilidade": "esteira-preco-congelado-no-aceite",
+  "arquivos": [
+    "prisma/schema.prisma"
+  ],
+  "abertaEm": "2026-08-30T00:04:30.899Z",
+  "encerradaEm": null,
+  "rotulo": "sala-convite-2908",
+  "forcadaPor": {
+    "quem": "ses-69fa836d5e",
+    "motivo": "Colisao de ARQUIVO, nao de responsabilidade. ses-0f653c553f reivindicou schema.prisma para 'conta de servico do Diretor Geral' (modelo proprio, rastro append-only). Esta frente so ACRESCENTA duas colunas a ClientRequestDb (precoAceitoJson, precoAceitoEm), por ordem direta do CEO de 29/08. Modelos diferentes, secoes diferentes do arquivo, nenhuma linha existente alterada. Zero sobreposicao da pergunta respondida.",
+    "em": "2026-08-30T00:04:30.899Z"
+  }
+}
