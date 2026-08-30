@@ -120,7 +120,8 @@ export const ModelName = {
   ReconciliacaoV2: 'ReconciliacaoV2',
   HeartbeatDoRelogio: 'HeartbeatDoRelogio',
   HandoffV2: 'HandoffV2',
-  PagamentoConfirmado: 'PagamentoConfirmado'
+  PagamentoConfirmado: 'PagamentoConfirmado',
+  PendenciaDeConsulta: 'PendenciaDeConsulta'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1399,6 +1400,23 @@ export const PagamentoConfirmadoScalarFieldEnum = {
 } as const
 
 export type PagamentoConfirmadoScalarFieldEnum = (typeof PagamentoConfirmadoScalarFieldEnum)[keyof typeof PagamentoConfirmadoScalarFieldEnum]
+
+
+export const PendenciaDeConsultaScalarFieldEnum = {
+  protocolo: 'protocolo',
+  produto: 'produto',
+  conversa: 'conversa',
+  canal: 'canal',
+  agente: 'agente',
+  fio: 'fio',
+  assunto: 'assunto',
+  estado: 'estado',
+  avisadoEm: 'avisadoEm',
+  respondidaEm: 'respondidaEm',
+  criadaEm: 'criadaEm'
+} as const
+
+export type PendenciaDeConsultaScalarFieldEnum = (typeof PendenciaDeConsultaScalarFieldEnum)[keyof typeof PendenciaDeConsultaScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -767,6 +767,9 @@ export async function baterORelogio(): Promise<{
     // Sem IA a mensagem FICA na fila para um humano — mas isso é notícia, não
     // rotina: cliente esperando em silêncio é o defeito que este bloco existe
     // para acabar.
+    // ⭐ O Dioli Connect atendendo é ROTINA, não notícia: o assunto estava fora
+    // da alçada do agente e seguiu o caminho certo. Só se registra no log.
+    if (r.peloConector > 0) log(`Dioli Connect atendeu ${r.peloConector} assunto(s) fora da alçada`);
     if (r.semIA > 0) quebrou("pm-responde", `${r.semIA} mensagem(ns) sem resposta automática — aguardando gente`);
     for (const f of r.falhas) quebrou("pm-responde", f);
   } catch (err) {

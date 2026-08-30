@@ -634,3 +634,8 @@ export type HandoffV2 = Prisma.HandoffV2Model
  * para produzindo de graça.
  */
 export type PagamentoConfirmado = Prisma.PagamentoConfirmadoModel
+/**
+ * Model PendenciaDeConsulta
+ * 
+ */
+export type PendenciaDeConsulta = Prisma.PendenciaDeConsultaModel
