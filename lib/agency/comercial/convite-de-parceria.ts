@@ -37,6 +37,12 @@ import { randomBytes } from "crypto";
 import { prisma } from "@/lib/db/client";
 import { type ParceriaDeclarada } from "./parceria-declarada";
 import { parceriaVivaDoCliente } from "@/lib/agency/financeiro/parceria-do-parceiro";
+import {
+  decidirConvite,
+  type LinhaDeConvite,
+  type LinhaDeParceria,
+  type MotivoDaRecusaDoConvite,
+} from "./regra-do-convite";
 
 /** Quanto vale um convite quando ninguém diz. Curto de propósito: ver `expiraEm`. */
 export const VALIDADE_PADRAO_DIAS = 14;
@@ -171,36 +177,132 @@ export type ConviteResolvido = {
  * pode ser o que decide o acesso, e uma escrita que falha não pode barrar um
  * parceiro legítimo.
  */
+/**
+ * POR QUE um convite não virou parceria.
+ *
+ * `null` significa que virou — resolveu. Todo o resto é uma recusa, e cada
+ * recusa tem nome próprio. Antes disto os cinco caminhos devolviam o mesmo
+ * `null` indistinguível: o parceiro virava visitante anônimo, era cobrado, e a
+ * casa não tinha como saber que isso havia acontecido. *Mecanismo cuja falha é
+ * invisível não é mecanismo seguro — é mecanismo mudo.*
+ *
+ * `sem_token` é o único que NÃO é anormal: é o visitante que chegou sem link,
+ * que é a maioria. Os outros cinco nunca são normais.
+ *
+ * ⚠️ Definido em `./regra-do-convite.ts` (29/08/2026) e re-exportado daqui,
+ * porque outros arquivos importam o tipo deste módulo. A decisão em si
+ * (`decidirConvite`) também mora lá — é a mesma régua usada pelo retrato em
+ * `retrato-dos-convites.ts`. Duas cópias desta regra é o defeito que a mudança
+ * fecha: divergiriam, e o diagnóstico passaria a mentir.
+ */
+export type { MotivoDaRecusaDoConvite } from "./regra-do-convite";
+
+export type ConviteExaminado = {
+  convite: ConviteResolvido | null;
+  motivo: MotivoDaRecusaDoConvite | null;
+};
+
+/**
+ * O mesmo exame de sempre, mas ele DIZ o que decidiu.
+ *
+ * A decisão é byte a byte a de antes — fail-closed em todo ramo. O que muda é
+ * que a recusa deixa de ser muda.
+ */
+export async function examinarConviteDeParceria(
+  token: unknown,
+  agora: Date = new Date(),
+): Promise<ConviteExaminado> {
+  const t = typeof token === "string" ? token.trim() : "";
+  if (!t) return { convite: null, motivo: "sem_token" };
+  try {
+    const registro = await prisma.conviteDeParceria.findUnique({
+      where: { token: t },
+      select: { id: true, clientId: true, expiraEm: true, revogadoEm: true },
+    });
+
+    const linha: LinhaDeConvite | null = registro
+      ? { clientId: registro.clientId, expiraEm: registro.expiraEm, revogadoEm: registro.revogadoEm }
+      : null;
+
+    // ⚠️ DECIDE PRIMEIRO SEM A PARCERIA — e só vai ao banco se ela puder mudar
+    // a resposta (29/08/2026).
+    //
+    // `decidirConvite` julga `token_desconhecido` → `revogado` → `vencido`
+    // ANTES de olhar a parceria: nesses três a parceria é irrelevante, e ler o
+    // banco por ela é uma consulta que não muda desfecho nenhum. Passar a
+    // parceria como `null` nesta primeira volta é seguro justamente porque ela
+    // só pesa no quarto teste — se a resposta for `parceria_nao_esta_viva`, a
+    // decisão ainda NÃO está tomada e a leitura acontece logo abaixo.
+    //
+    // Não é só economia de consulta: é FIDELIDADE DO MOTIVO. Enquanto a leitura
+    // da parceria ficava no caminho de um convite revogado, o motivo verdadeiro
+    // dependia de um `catch` que mora em OUTRO módulo
+    // (`parceriaVivaDoCliente`, em `lib/agency/financeiro/parceria-do-parceiro.ts`,
+    // que absorve a falha e devolve `null`). Bastaria alguém deixar aquele erro
+    // propagar — mudança que parece limpeza — para um convite revogado passar a
+    // relatar `erro_de_banco`. *Alarme que mente sobre a causa é pior que alarme
+    // nenhum*, e a casa acabou de gastar um PR inteiro (#399) para esta recusa
+    // deixar de ser muda. Agora a verdade de `revogado` e `vencido` não depende
+    // de `catch` de terceiro: aquele código não é mais alcançado.
+    const semAParceria = decidirConvite(linha, null, agora);
+    if (semAParceria && semAParceria !== "parceria_nao_esta_viva") {
+      return { convite: null, motivo: semAParceria };
+    }
+
+    // A PARCERIA É CONFERIDA AGORA, não na cunhagem. É isto que faz revogar a
+    // parceria matar o convite no mesmo instante, sem caçar link nenhum.
+    // `registro` é não-nulo aqui por construção: token ausente teria saído
+    // acima como `token_desconhecido`.
+    const parceria = await autorizacaoViva(registro!.clientId, agora);
+    const linhaDeParceria: LinhaDeParceria = parceria ? { revogadaEm: null, validaAte: parceria.validaAte } : null;
+
+    // A MESMA régua que decide em lote no diagnóstico (`retrato-dos-convites.ts`).
+    // Duas versões desta decisão divergiriam cedo ou tarde. E é a MESMA chamada
+    // de antes, com os MESMOS argumentos: o que mudou foi QUANDO se lê o banco,
+    // nunca o que se conclui.
+    const motivo = decidirConvite(linha, linhaDeParceria, agora);
+    if (motivo) return { convite: null, motivo };
+
+    // Trilha, depois da decisão e sem poder derrubá-la.
+    void prisma.conviteDeParceria
+      .update({ where: { id: registro!.id }, data: { usos: { increment: 1 }, ultimoUsoEm: agora } })
+      .catch(() => { /* trilha não barra parceiro legítimo */ });
+
+    return { convite: { clientId: registro!.clientId, parceria: parceria! }, motivo: null };
+  } catch {
+    // Banco fora do ar = "não sei se é parceria" = CONTINUA PERGUNTANDO.
+    return { convite: null, motivo: "erro_de_banco" };
+  }
+}
+
+/**
+ * RESOLVE um convite: token → cliente → isenção viva.
+ *
+ * Devolve `null` em TODO caminho que não seja "este token é bom E a parceria
+ * está viva agora". Quem chama trata `null` como *visitante anônimo* — que é o
+ * comportamento de sempre, e o seguro.
+ *
+ * ⚠️ **Recusa com token na mão nunca é silenciosa.** Quando alguém APRESENTOU
+ * um token e ele não valeu, isto grita no log com marcador estável. É a
+ * diferença entre "ninguém tinha convite" e "um parceiro foi tratado como
+ * estranho" — e foi exatamente essa diferença que a casa não soube ver quando
+ * um parceiro recebeu cobrança na tela.
+ */
 export async function resolverConviteDeParceria(
   token: unknown,
   agora: Date = new Date(),
 ): Promise<ConviteResolvido | null> {
-  const t = typeof token === "string" ? token.trim() : "";
-  if (!t) return null;
-  try {
-    const convite = await prisma.conviteDeParceria.findUnique({
-      where: { token: t },
-      select: { id: true, clientId: true, expiraEm: true, revogadoEm: true },
-    });
-    if (!convite) return null;
-    if (convite.revogadoEm) return null;
-    if (convite.expiraEm.getTime() <= agora.getTime()) return null;
-
-    // A PARCERIA É CONFERIDA AGORA, não na cunhagem. É isto que faz revogar a
-    // parceria matar o convite no mesmo instante, sem caçar link nenhum.
-    const parceria = await autorizacaoViva(convite.clientId, agora);
-    if (!parceria) return null;
-
-    // Trilha, depois da decisão e sem poder derrubá-la.
-    void prisma.conviteDeParceria
-      .update({ where: { id: convite.id }, data: { usos: { increment: 1 }, ultimoUsoEm: agora } })
-      .catch(() => { /* trilha não barra parceiro legítimo */ });
-
-    return { clientId: convite.clientId, parceria };
-  } catch {
-    // Banco fora do ar = "não sei se é parceria" = CONTINUA PERGUNTANDO.
-    return null;
+  const { convite, motivo } = await examinarConviteDeParceria(token, agora);
+  if (motivo && motivo !== "sem_token") {
+    // Não vaza o token: ele é credencial. Só o motivo e um prefixo curto para
+    // casar com o link que a pessoa diz ter usado.
+    const t = typeof token === "string" ? token.trim() : "";
+    console.warn(
+      `[CONVITE-RECUSADO] motivo=${motivo} prefixo=${t.slice(0, 8)}… ` +
+      `— alguem apresentou um convite e foi tratado como visitante anonimo`,
+    );
   }
+  return convite;
 }
 
 /** Revoga um convite (o link que vazou). Idempotente. */

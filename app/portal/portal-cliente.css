@@ -209,3 +209,89 @@
 @media (max-width: 720px) {
   .cp-shell .cp-performance-hero.sem-numeros { min-height: 0; padding-bottom: 160px; }
 }
+
+/* ── A TELA DE ACESSO BLOQUEADO (29/08/2026) ───────────────────────────────
+   Ver `components/portal/cliente/AcessoBloqueado.tsx`. Substitui o 404 em
+   inglês de `/portal/invalid` e o cartão de duas linhas do portão do portal.
+   Nada aqui redesenha a referência: usa a mesma barra, o mesmo cartão branco e
+   a mesma cor de ação (`--cp-navy`) do resto do portal. */
+
+/* No portal cheio, a barra esconde o wordmark no celular porque disputa espaço
+   com o nome do cliente e com o botão do PM. Aqui não há disputa — e uma tela
+   de erro sem a marca é justamente o que fazia o cliente achar que a agência
+   sumiu. */
+.cp-bloqueio-topo { justify-content: flex-start; }
+.cp-shell .cp-bloqueio-topo .cp-dioli > b { display: block; }
+
+.cp-bloqueio {
+  background: #fff; border: 1px solid var(--cp-line); border-radius: 16px;
+  max-width: 520px; margin: 44px auto; padding: 34px 30px;
+  box-shadow: 0 18px 44px #0710220a;
+}
+.cp-bloqueio > i {
+  display: grid; place-items: center; width: 52px; height: 52px;
+  border-radius: 15px; background: #eaf7f7; color: #14929a; margin-bottom: 19px;
+}
+.cp-shell .cp-bloqueio > h1 {
+  font: 700 22px var(--sora); line-height: 1.28; letter-spacing: -.02em;
+  margin: 0; color: var(--cp-text);
+}
+/* Contraste: `--cp-muted` (#6f7e84) dá 4.21:1 sobre branco — reprova no AA da
+   §2.2 do DESIGN.md, e AQUI o parágrafo é o conteúdo inteiro da tela, não uma
+   legenda. Os três blocos de texto usam os degraus da casa, que passam. */
+.cp-shell .cp-bloqueio > p { margin: 11px 0 0; font-size: 14px !important; line-height: 1.62; color: var(--text-secondary); }
+
+.cp-bloqueio-passos { margin-top: 23px; border-top: 1px solid #eef2f2; padding-top: 19px; }
+.cp-shell .cp-bloqueio-passos > small {
+  display: block; font-size: 12px !important; font-weight: 800; letter-spacing: 1.1px;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.cp-bloqueio-passos ol {
+  counter-reset: passo; list-style: none; margin: 14px 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.cp-bloqueio-passos li {
+  display: grid; grid-template-columns: 25px 1fr; gap: 11px; align-items: start;
+  font-size: 14px; line-height: 1.55; color: var(--cp-text);
+}
+.cp-bloqueio-passos li::before {
+  counter-increment: passo; content: counter(passo);
+  width: 25px; height: 25px; border-radius: 50%;
+  background: var(--cp-navy); color: #fff;
+  font: 800 12px var(--sora); display: grid; place-items: center;
+}
+
+.cp-bloqueio-acoes { margin-top: 25px; display: flex; flex-wrap: wrap; gap: 10px; }
+.cp-shell .cp-bloqueio-acoes > a,
+.cp-shell .cp-bloqueio-acoes > button {
+  min-height: 44px; padding: 0 18px; border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 750; text-decoration: none;
+  border: 1px solid var(--cp-line); background: #fff; color: var(--cp-text);
+}
+.cp-shell .cp-bloqueio-acoes > .principal {
+  background: var(--cp-navy); color: #fff; border-color: var(--cp-navy);
+}
+.cp-shell .cp-bloqueio-rodape {
+  display: block; margin-top: 21px; font-size: 12px !important; line-height: 1.5; color: var(--text-muted);
+}
+
+/* Da altura de tablet para cima o cartão fica no centro óptico da tela, não
+   grudado no topo com meia página vazia embaixo. No celular ele começa alto de
+   propósito: centralizar um cartão mais alto que a tela empurraria o título
+   para fora. */
+@media (min-width: 720px) {
+  .cp-shell .cp-bloqueio-main {
+    min-height: calc(100vh - 74px);
+    display: grid; align-content: center;
+    padding-bottom: 28px;
+  }
+  .cp-bloqueio { margin: 0 auto; }
+}
+
+@media (max-width: 480px) {
+  .cp-bloqueio { margin: 20px auto 34px; padding: 26px 21px; border-radius: 14px; }
+  .cp-shell .cp-bloqueio > h1 { font-size: 20px; }
+  /* Um toque só, sem caçar o botão: no celular as ações ocupam a linha inteira. */
+  .cp-bloqueio-acoes { flex-direction: column; align-items: stretch; }
+}
