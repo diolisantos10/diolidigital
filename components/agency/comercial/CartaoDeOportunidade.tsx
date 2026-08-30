@@ -14,6 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useId, useRef, useState } from "react";
+import PainelDoFunil from "@/components/agency/comercial/PainelDoFunil";
 import {
   faixaDaNota,
   nomeDaRegra,
@@ -513,6 +514,14 @@ export default function CartaoDeOportunidade({
                 salvando…
               </span>
             )}
+          </div>
+
+          {/* O funil e a trilha. Só aqui dentro, no painel JÁ expandido: a
+              listagem do Radar mostra dezenas de cartões, e uma chamada de rede
+              por cartão fechado transformaria abrir a página em dezenas de
+              requisições para dados que ninguém pediu. */}
+          <div className="border-t border-[var(--border)]">
+            <PainelDoFunil oportunidadeId={o.id} />
           </div>
         </div>
       )}

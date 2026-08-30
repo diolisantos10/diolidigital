@@ -6708,3 +6708,57 @@ de outro.
 
 O desvio continua lá. **Quem o criou não foi medido** — é preciso um `git log`
 por tabela antes de atribuir dono.
+
+---
+
+## 🔴 ACHADO DE SEGURANÇA — a senha do login vai para a URL sem JS
+
+**Medido em 30/08/2026**, por acaso, montando a captura de tela da Célula. Não é
+desta frente e por isso **não foi consertado aqui** — consertar auth dentro do
+PR da Célula alargaria o PR e esconderia a mudança onde ninguém procura.
+
+### O que acontece
+
+`app/auth/signin/page.tsx:61` declara:
+
+```tsx
+<form onSubmit={handleSubmit} className="space-y-4">
+```
+
+**Sem `method` e sem `action`.** O padrão do HTML para os dois é `GET` na URL
+atual. Enquanto o JavaScript está hidratando — ou se ele falhar, ou for
+bloqueado — o `submit` não é interceptado por `handleSubmit`, e o navegador faz
+o envio nativo: **`GET /auth/signin?email=...&password=...`**.
+
+### A evidência, e ela não é teórica
+
+Saiu no log do servidor de desenvolvimento desta sessão, em texto puro:
+
+```
+GET /auth/signin?email=master%40dioli.studio&password=<a senha, legível> 200
+```
+
+A senha usada era descartável e local. **O caminho, não.**
+
+### Por que isso é grave
+
+Senha em query string não fica só na tela. Ela vai para:
+
+- a **barra de endereço** e o **histórico do navegador**, que sobrevivem à sessão;
+- o **log de acesso do servidor** — como se viu acima, em produção também;
+- qualquer **proxy, CDN ou observabilidade** no caminho, que loga URL por padrão;
+- o cabeçalho **`Referer`** enviado a terceiros a partir daquela página.
+
+É a família "PII/credencial em log" que o `seguranca` desta casa persegue. E a
+janela não é exótica: **todo primeiro carregamento tem um intervalo antes da
+hidratação**, e quem digita rápido cai nele.
+
+### O conserto provável é de um atributo
+
+`method="post"` no `<form>`. Sem hidratação, o envio vira POST e **a senha deixa
+de ir na URL**. Precisa de quem responde por auth para conferir o que o POST
+não interceptado faz na rota, e para decidir se há um caminho sem JS de
+verdade — não é uma linha para se aplicar sem esse julgamento.
+
+**Dono:** `seguranca` com `plataforma`. **Não atribuído** — a camada de despacho
+está indisponível nesta sessão.
