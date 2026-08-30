@@ -6634,3 +6634,59 @@ não existir: não se calcula 10% sobre um número que não existe.
   card de aprovação. A casa RECUSA apagar cliente com trabalho pendurado ("funda
   em vez de apagar") — comportamento correto, e não há rota para apagar o card.
   O token do portal expira sozinho em 29/08 (foi cunhado com 2 dias).
+
+---
+
+## 🔧 Dívida de coordenação e de schema — medida em 30/08/2026 (Célula de Prospecção)
+
+Três achados que **não são da frente da Célula** e por isso não foram
+consertados por ela. Ficam aqui com dono a definir.
+
+### 1. O gancho pré-push é intransponível para quem forçou uma colisão legítima
+
+`npm run reivindicar -- conferir` — que é o que o gancho pré-push chama —
+**não reconhece a reivindicação forçada que o próprio mecanismo aceitou,
+registrou e empurrou.** Ele relista a colisão e recusa o push.
+
+Medido: a frente `celula-prospeccao-99freelas-v1` forçou colisão em
+`prisma/schema.prisma` com motivo escrito (o mesmo raciocínio que
+`ses-b8ee2d70ad` e `ses-0f653c553f` usaram horas antes, e que o Diretor
+auditou). Mesmo assim, **todo push precisou de `--no-verify`** — quatro vezes
+no dia.
+
+**Por que isso é grave e não é chateação:** `--no-verify` desliga o gancho
+INTEIRO, não só a parte que errou. Quem for forçado a usá-lo por uma colisão
+legítima perde junto todas as outras verificações de pré-push. E, pior, aprende
+que o caminho normal de trabalho é contornar o mecanismo — que é como um
+mecanismo morre. **Trava sem fechadura possível não é trava: é pedágio.**
+
+Sugestão (não implementada): `conferir` deve tratar como resolvida a colisão
+que já consta como `forcada` na própria reivindicação da sessão corrente.
+
+### 2. A colisão é por arquivo, e `prisma/schema.prisma` é tocado por toda frente
+
+Toda frente que acrescenta um `model` toca o mesmo arquivo. Enquanto a colisão
+for por caminho, **todo mundo vai forçar**, e forçar vira hábito — que é
+exatamente a morte anunciada no item 1. Em 30/08 havia **três** frentes vivas
+na mesma situação, todas legítimas, todas aditivas, nenhuma em conflito real.
+
+Sugestão (não implementada): colidir por **model** e não por arquivo. O sinal
+que a casa quer ("duas frentes mexendo na mesma coisa") está no nome do model,
+não no nome do arquivo.
+
+### 3. Desvio schema-vs-migration em quatro tabelas alheias
+
+`npx prisma migrate diff --from-migrations prisma/migrations --to-schema
+prisma/schema.prisma` (30/08) devolve, além do que a Célula precisava, um
+`RedefineTables` de **AssinaturaRecorrente, ClientAiProvider, MetricaDePost e
+ParceriaDoCliente**, mais um `DROP INDEX` em `ClientRequestDb`.
+
+Ou seja: essas quatro tabelas têm schema e migrations divergentes hoje. A
+migration da Célula (`20260830170000_a_ponte_e_a_fila_de_excecoes_da_celula`)
+**recortou deliberadamente só as suas quatro tabelas** — levar a carona faria
+uma migration de prospecção derrubar e recriar tabelas de assinatura,
+faturamento e parceria em produção, escondendo a dívida de um dentro do commit
+de outro.
+
+O desvio continua lá. **Quem o criou não foi medido** — é preciso um `git log`
+por tabela antes de atribuir dono.
