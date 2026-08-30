@@ -23,11 +23,20 @@ function modeloValidoBruto(sobrescreve: Record<string, unknown> = {}): Record<st
     codigo: "M99",
     nome: "Modelo de teste — motor do colchete",
     plataforma: "99freelas",
-    etapaDoFunil: "abertura",
+    // "qualificada" — um dos 22 estados de `lib/agency/celula/funil.ts`. A
+    // trava da Ficha B (Onda 4A) valida `etapaDoFunil` no ENVIO contra o funil
+    // real; "abertura" nunca foi estado e bloqueava o modelo ANTES de o teste
+    // chegar na trava de colchete que ele existe para provar.
+    etapaDoFunil: "qualificada",
     finalidade: "testar o motor do colchete",
     textoBase: "Olá, [NOME]. Sobre [PROJETO]?",
     variaveisObrigatorias: ["NOME"],
     variaveisOpcionais: ["PROJETO"],
+    // Ficha B: as 2 variáveis do textoBase, ligadas. Variável sem ligação
+    // bloqueia a leitura do modelo inteiro — é trava, não campo opcional.
+    // [ALGO], usado adiante, segue SEM ligação de propósito: é o caso que
+    // a trava do colchete não declarado tem de barrar.
+    ligacaoDeVariaveis: { NOME: "nomeDoCliente", PROJETO: "entregavel" },
     palavrasProibidas: [],
     condicaoDeEntrada: "projeto elegível",
     condicaoDeSaida: "cliente respondeu",
@@ -51,11 +60,20 @@ function modeloAprovado(sobrescreve: Partial<ModeloDeMensagem> = {}): ModeloDeMe
     codigo: "M99",
     nome: "Modelo de teste — motor do colchete",
     plataforma: "99freelas",
-    etapaDoFunil: "abertura",
+    // "qualificada" — um dos 22 estados de `lib/agency/celula/funil.ts`. A
+    // trava da Ficha B (Onda 4A) valida `etapaDoFunil` no ENVIO contra o funil
+    // real; "abertura" nunca foi estado e bloqueava o modelo ANTES de o teste
+    // chegar na trava de colchete que ele existe para provar.
+    etapaDoFunil: "qualificada",
     finalidade: "testar o motor do colchete",
     textoBase: "Olá, [NOME]. Sobre [PROJETO]?",
     variaveisObrigatorias: ["NOME"],
     variaveisOpcionais: ["PROJETO"],
+    // Ficha B: as 2 variáveis do textoBase, ligadas. Variável sem ligação
+    // bloqueia a leitura do modelo inteiro — é trava, não campo opcional.
+    // [ALGO], usado adiante, segue SEM ligação de propósito: é o caso que
+    // a trava do colchete não declarado tem de barrar.
+    ligacaoDeVariaveis: { NOME: "nomeDoCliente", PROJETO: "entregavel" },
     palavrasProibidas: [],
     condicaoDeEntrada: "projeto elegível",
     condicaoDeSaida: "cliente respondeu",

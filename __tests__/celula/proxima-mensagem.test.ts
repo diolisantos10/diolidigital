@@ -63,7 +63,11 @@ function modeloBrutoAprovado(overrides: Record<string, unknown> = {}): Record<st
     codigo: "M50",
     nome: "primeira resposta — social media",
     plataforma: "99freelas",
-    etapaDoFunil: "descoberta",
+    // "respondeu" — um dos 22 estados de `lib/agency/celula/funil.ts`, e o
+    // que corresponde à finalidade deste modelo. "descoberta" nunca foi
+    // estado do funil: a trava da Ficha B valida no ENVIO e barrava o
+    // modelo antes do teste chegar ao que ele existe para provar.
+    etapaDoFunil: "respondeu",
     finalidade: "responder à primeira mensagem do cliente",
     textoBase: "Oi! Trabalhamos com social media para negócios locais.",
     variaveisObrigatorias: [],
