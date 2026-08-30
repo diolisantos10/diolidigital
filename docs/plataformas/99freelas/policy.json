@@ -86,6 +86,22 @@
     "spam": "Termos, Sanções: 'propagação de spams' é sancionável. Proposta repetida entre projetos é o vetor."
   },
 
+  "anexos_no_chat": {
+    "_leia_isto": [
+      "Decisão 4 do CEO, 30/08/2026: 'O chat aceita arquivos de até 16 MB.'",
+      "ESTE LIMITE É DO CANAL, e é OUTRO limite que MAX_BYTES_POR_ARQUIVO",
+      "(120 MB), que é o teto do NOSSO armazém. Colapsar os dois faria um",
+      "arquivo de 40 MB ser aprovado pela Qualidade, versionado, e só então",
+      "morrer na hora de anexar — depois de a casa já ter prometido a entrega."
+    ],
+    "tamanho_maximo_mb": 16,
+    "tamanho_maximo_procedencia": "declarado pelo CEO em 30/08/2026. NÃO foi lido de página do 99Freelas nesta rodada — nenhuma fonte em fontes/ menciona limite de anexo no chat.",
+    "acima_do_limite": "ABRIR_EXCECAO",
+    "acima_do_limite_motivo": "O CEO mandou 'tratar conforme a orientação oficial do 99Freelas para transferência de arquivos'. ESSA ORIENTAÇÃO NÃO ESTÁ CAPTURADA — é LACUNA. Enquanto for lacuna, o caminho é a fila de exceções com dono, NUNCA um contorno inventado: dividir arquivo, comprimir sem avisar ou mandar link externo seriam três violações diferentes, e a terceira derruba a conta.",
+    "link_externo_como_alternativa": false,
+    "link_externo_motivo": "Mandar link de download seria 'link externo', que os Termos proíbem antes da garantia de pagamento. A saída para arquivo grande NÃO pode ser a violação de outra regra."
+  },
+
   "limites_da_plataforma": {
     "unidade_de_cota": "conexao",
     "cota_e_mensal": true,
