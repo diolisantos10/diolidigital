@@ -58,6 +58,9 @@ Rode qualquer um deles para conferir — não acredite nesta tabela.
 | **Trava de conversa com fechadura** (banco, disputa real) | `mensagens/porta-da-conversa-no-banco.ts` | `scripts/mutacao-trava-de-conversa.mjs` | 6/6 vermelhas |
 | **Papéis e permissões de Gerente e SDR** | `lib/agency/celula/papeis.ts` | `scripts/mutacao-papeis.mjs` | 8/8 vermelhas |
 | **Simulador + jornada ponta a ponta (dados controlados)** | `lib/agency/celula/simulador.ts` | varredura estática do fonte | 19 passos, 0 barrados |
+| **Executor** (plano + atestação + registro, SEM driver) | `lib/agency/celula/executor.ts` | `scripts/mutacao-executor.mjs` | 9/9 vermelhas |
+| **Rota do funil** — `app/` importa a Célula | `app/api/agency/oportunidades/[id]/funil/route.ts` | — | sessão · posse · papel |
+| **JORNADA PONTA A PONTA** (banco real, 11 etapas) | `__tests__/celula/jornada-ponta-a-ponta.test.ts` | — | 15 transições, trilha completa |
 | Migration das 4 tabelas | `prisma/migrations/20260830170000_*` | — | aplicada em banco vazio + controle negativo |
 
 **Decisão 1** (Claude in Chrome, não OpenAI/Playwright) está registrada como
@@ -82,18 +85,27 @@ fora e chegou ao mesmo resultado.
 
 Em ordem de dependência. Os três primeiros destravam o resto.
 
-1. **Tela e rotas operacionais.** Hoje **nada em `app/` importa a Célula**.
-   O funil não tem rota nem tela: `avancarFunil` não tem chamador fora de
-   teste. Evoluir o Radar em `/agency/oportunidades`, sem sistema paralelo.
+1. **A TELA.** A *rota* existe (`app/api/.../funil`), mas a **página** do Radar
+   ainda não mostra funil, trilha nem conversa. Quem opera hoje precisa de
+   `curl`. É acabamento, e foi conscientemente adiado em favor da jornada, por
+   ordem do Diretor Geral em 30/08 ("entregue a jornada rodando e declare o que
+   ficou tosco").
 
-2. **Executor ligado ao navegador isolado.** `navegador-isolado.ts` decide e
-   descreve; ninguém ainda abre o Chrome com ele. Ligar exige
-   `launchPersistentContext` (hoje o contexto é efêmero, `navegador.ts:213`).
+2. **Download e upload EFETIVOS · PDF, imagem e editável.** A ponte tem a
+   lógica inteira, com checksum, quarentena, versão e destinatário conferido —
+   e a jornada exercita tudo isso com `Buffer` controlado. **O que não existe é
+   o braço que baixa do 99Freelas e anexa lá.** Ele depende do item 3.
 
-3. **Download e upload efetivos · PDF, imagem e editável.** A ponte tem a
-   lógica; falta o braço que baixa e anexa de verdade.
+3. 🔴 **A operação real depende de uma coisa que não é código:** a atestação
+   humana de que o perfil dedicado do Chrome está limpo, feita na máquina do
+   CEO. `executor.ts` já EXIGE essa atestação e recusa planejar sem ela — mas
+   ninguém a produziu ainda. Ver `decisao-1-vs-decisao-2.md`.
 
-4. **Jornada ponta a ponta.** Nunca percorrida. É o critério de conclusão da V1.
+> ⚠️ **A distinção que não pode se perder:** a jornada prova que as peças se
+> encaixam **quando ligadas**, com dados controlados. Ela **não** prova que a
+> casa opera o 99Freelas — não há navegador, login nem rede. "Arquivo entregue"
+> significa aprovado, endereçado ao cliente certo e registrado; não anexado no
+> site.
 
 
 
