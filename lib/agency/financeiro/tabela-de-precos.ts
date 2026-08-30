@@ -59,8 +59,18 @@
 import { emReais, medido, somar, type Dinheiro } from "@/lib/agency/financeiro/dinheiro";
 import { PLANOS, PRECO_DA_PECA_AVULSA, composicaoDoPlano as composicaoDoPresetPlano } from "@/lib/agency/planos";
 
-/** Teto de produção da casa, em peças/mês. Vender acima disto é dívida com
- *  outro rosto — `docs/precos.md`: *"nenhum plano passa disso"*. */
+/**
+ * Teto de PRODUÇÃO da casa, em peças/mês — `docs/precos.md`: *"nenhum plano
+ * passa disso"*. Nenhum PLANO de tabela promete acima dele (ver o teste que
+ * trava isso).
+ *
+ * ⚠️ NÃO é mais teto de VENDA (E2, 30/08/2026). Até 30/08 este comentário dizia
+ * "vender acima disto é dívida com outro rosto", e o código recusava o pedido
+ * — o CEO revogou isso: *"não existe volume acima ou abaixo [...] não é
+ * exceção — o que ele está comprando é um pacote personalizado"*. Pedido
+ * acima deste número não se recusa: vira PRAZO maior (`podePrometerVolume`),
+ * nunca "não".
+ */
 export const TETO_DE_PECAS_POR_MES = 36;
 
 /**
@@ -440,22 +450,75 @@ export function comoSeguirSemBaixarOPreco(s: ServicoDaCasa): string {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// O QUE A CASA RESPONDE A UM VOLUME PEDIDO (E2, 30/08/2026) — E O QUE MORREU
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ORDEM DO CEO, contra o que este arquivo dizia até esta rodada:
+//
+//   *"Não existe volume acima ou abaixo. Se o cliente quiser trezentos
+//   carrosséis por dia, a gente vai ter que dar um jeito. Não é exceção — o
+//   que ele está comprando é um pacote personalizado."*
+//
+// E a régua: *cliente que pede uma composição que ninguém nunca pediu recebe
+// PREÇO, não recebe "vou verificar".*
+//
+// `podePrometerVolume` devolvia `{ pode: false, motivo: "... dívida com outro
+// rosto" }` para qualquer pedido acima de `TETO_DE_PECAS_POR_MES`. Era o
+// avesso da ordem: transformava um teto de PRODUÇÃO (o que a casa entrega por
+// mês, hoje) num teto de VENDA (o que ela aceita vender). Foram medidas quatro
+// respostas de "vou verificar" com um parceiro real por causa deste código.
+//
+// ⛔ `TETO_DE_PECAS_POR_MES` NÃO SOME. Continua sendo verdade: é o que a casa
+// produz por mês, hoje, e nada nesta função finge o contrário. O que muda é o
+// que se faz com ele — teto de ENTREGA vira PRAZO, nunca teto de VENDA.
+export interface RespostaDeCapacidade {
+  /** O pedido, normalizado (inteiro, não negativo). */
+  pecasPorMes: number;
+  /** O preço da composição, cobrada como pedida — nunca "a definir" nem "sob consulta". */
+  precoCentavos: number;
+  /** Em quantos meses a casa ENTREGA esse volume, na capacidade de HOJE
+   *  (`TETO_DE_PECAS_POR_MES`). `0` só quando o pedido é `0`. */
+  prazoEmMeses: number;
+  /** O pedido cabe dentro de UM mês, na capacidade de produção de hoje? */
+  cabeNaCapacidadeAtual: boolean;
+  /** A frase para o cliente: SEMPRE número + prazo. Acima da capacidade,
+   *  nomeia que encurtar o prazo é decisão do CEO — nunca insinuado, nunca
+   *  escondido atrás de uma recusa. */
+  frase: string;
+}
+
 /**
- * O que o SDR pode PROMETER. Vitrine é promessa.
+ * O que a casa promete de um volume — em PREÇO e PRAZO, nunca em recusa.
  *
- * Volume acima da capacidade não se vende, e o que a casa não produz não se
- * oferece — vídeo e reel continuam fora porque não têm produtor.
+ * ⛔ Vitrine é promessa, mas a promessa que este arquivo fazia era vazia:
+ * dizer "não" para um pedido grande não é proteção, é dívida com o cliente que
+ * queria comprar. A proteção de verdade é dizer a VERDADE sobre o prazo — a
+ * casa não finge que entrega em uma semana o que leva dois meses — e deixar a
+ * decisão de acelerar (contratar, escalar) com quem manda: o CEO.
+ *
+ * Vídeo e reel continuam fora da tabela porque não têm produtor — isso não é
+ * teto de volume, é ausência de serviço, e `aCasaProduz` responde por ele.
  */
-export function podePrometerVolume(pecasPorMes: number): { pode: boolean; motivo?: string } {
-  if (pecasPorMes > TETO_DE_PECAS_POR_MES) {
-    return {
-      pode: false,
-      motivo:
-        `${pecasPorMes} peças/mês passa da capacidade da casa (${TETO_DE_PECAS_POR_MES}). ` +
-        "Vender acima do que se produz é dívida com outro rosto.",
-    };
-  }
-  return { pode: true };
+export function podePrometerVolume(pecasPorMes: number): RespostaDeCapacidade {
+  const pedido = Math.max(0, Math.round(Number(pecasPorMes) || 0));
+  const precoCentavos = pedido * PRECO_DA_PECA_AVULSA * 100;
+  const cabeNaCapacidadeAtual = pedido <= TETO_DE_PECAS_POR_MES;
+  // Quantas "levas" de capacidade atual (36/mês) o pedido exige, arredondado
+  // para cima: sobra de peça não vira mês inteiro escondido, mas falta de um
+  // mês inteiro tem de aparecer no prazo.
+  const prazoEmMeses = pedido === 0 ? 0 : Math.max(1, Math.ceil(pedido / TETO_DE_PECAS_POR_MES));
+
+  const frase = pedido === 0
+    ? "Nenhuma peça pedida."
+    : cabeNaCapacidadeAtual
+      ? `${pedido} peças/mês: ${emReais(medido(precoCentavos, "derivado"))}, entregue em até 1 mês.`
+      : `${pedido} peças/mês passa da capacidade de PRODUÇÃO de hoje (${TETO_DE_PECAS_POR_MES}/mês), ` +
+        `não da capacidade de VENDA: ${emReais(medido(precoCentavos, "derivado"))}, entregue em ` +
+        `${prazoEmMeses} ${prazoEmMeses === 1 ? "mês" : "meses"} no ritmo atual. ` +
+        "Encurtar esse prazo é decisão do CEO — dá para escalar a produção; o preço não muda, o prazo sim.";
+
+  return { pecasPorMes: pedido, precoCentavos, prazoEmMeses, cabeNaCapacidadeAtual, frase };
 }
 
 /** O quanto desta tabela está apoiado em custo medido. Para o relatório — e
@@ -468,99 +531,114 @@ export function coberturaDeCusto(): { medidos: number; total: number; parcelasEm
   };
 }
 
-// ─── O QUE A CASA RESPONDE SOBRE UM PEDIDO (27/08/2026) ─────────────────────
+// ─── O QUE A CASA RESPONDE SOBRE UM PEDIDO — E2 REESCREVE ISTO (30/08/2026) ─
 //
-// Medido no escopo do cliente 001, no painel: **"Posts: 28/mês"** e **"Vídeo: A
-// definir"**. As duas linhas são defeito, e por razões diferentes:
+// Até esta rodada, `volumeQueACasaVende` fazia DUAS coisas que o CEO proibiu:
 //
-//   • **28 não existe na tabela** (12 · 20 · 36). Mostrar o pedido cru como se
-//     fosse o contratado é o caminho mais curto para um preço inventado — e
-//     para o cliente descobrir na fatura que comprou outra coisa.
-//   • **"A definir" para vídeo é a pior resposta possível.** Vídeo **não tem
-//     produtor** nesta casa. "A definir" soa como "ainda vamos combinar", o
-//     cliente conta com aquilo, e a casa descobre depois que não produz.
-//     *Vitrine é promessa; promessa sem produtor é dívida.* A resposta honesta
-//     é curta: **não fazemos**.
-
-/** O que a casa responde a um volume pedido. */
-export type RespostaDeVolume =
-  | { vende: true; degrau: ServicoDaCasa; pedido: number; frase: string }
-  | { vende: false; pedido: number; frase: string };
+//   1. Acima de `TETO_DE_PECAS_POR_MES`, devolvia `vende: false` — recusa.
+//   2. Abaixo do teto, **empurrava** o pedido para o degrau mais próximo que
+//      cobre ("a casa vende em degraus") — o pedido de 28 virava "36, plano
+//      Conteúdo" como se fosse a resposta, não uma oferta.
+//
+// A ordem: *"Não é exceção — o que ele está comprando é um pacote
+// personalizado."* Isso vira código assim:
+//
+//   • **A composição pedida é precificada COMO PEDIDA** — à carta,
+//     `pedido × PRECO_DA_PECA_AVULSA`. 28 peças custam o preço de 28 peças,
+//     nunca o de 36.
+//   • **O preset (plano) só entra quando é MAIS BARATO** para o volume pedido
+//     — e aí é OFERTA, dita como pergunta ("o plano X sai mais barato e te dá
+//     mais peças; quer?"), nunca encaixe forçado nem resposta única.
+//   • **Acima da capacidade, preço e prazo — nunca recusa.** Ver
+//     `podePrometerVolume`, que esta função reaproveita.
+export interface RespostaDeVolume {
+  pedido: number;
+  /** O preço da composição pedida, à carta — nunca forçado num degrau. */
+  precoCentavos: number;
+  /** Em quantos meses a casa entrega, na capacidade de hoje. */
+  prazoEmMeses: number;
+  /** Cabe dentro de um mês, na capacidade de hoje? */
+  cabeNaCapacidadeAtual: boolean;
+  /**
+   * Quando existe um PLANO pronto que entrega este volume (ou mais) por
+   * MENOS do que a composição à carta, a oferta — nunca imposição.
+   * `null` quando nenhum preset é mais barato que o pedido à carta.
+   */
+  ofertaMaisBarata: { servico: ServicoDaCasa; economiaCentavos: number } | null;
+  /** A frase para o cliente: preço, prazo e — quando existir — a oferta do
+   *  preset mais barato, sempre como pergunta, nunca como fato consumado. */
+  frase: string;
+}
 
 /**
- * Encaixa o volume pedido no degrau que a casa VENDE — e diz isso em voz alta.
- *
- * O degrau escolhido é o menor que **cobre** o pedido: quem pede 28 recebe 36,
- * nunca 20. Arredondar para baixo entregaria menos do que foi pedido sem
- * ninguém avisar, que é a forma silenciosa de quebrar contrato.
+ * O preço e o prazo de um volume pedido — pela composição PEDIDA, nunca por
+ * um degrau imposto. Quando um plano de tabela entrega esse volume (ou mais)
+ * por menos, ele entra como OFERTA — não como resposta.
  */
 export function volumeQueACasaVende(pecasPedidas: number): RespostaDeVolume {
-  const pedido = Math.max(0, Math.round(Number(pecasPedidas) || 0));
-  const teto = podePrometerVolume(pedido);
-  if (!teto.pode) {
-    return { vende: false, pedido, frase: teto.motivo ?? "acima da capacidade da casa" };
+  const capacidade = podePrometerVolume(pecasPedidas);
+  const pedido = capacidade.pecasPorMes;
+
+  // O menor plano que já entrega este volume (ou mais) — candidato a oferta,
+  // nunca a resposta. Planos de tabela nunca passam do teto (provado em
+  // teste), então nenhum plano cobre pedidos acima da capacidade — correto:
+  // não há o que ofertar de mais barato para um volume que a casa ainda não
+  // produz num mês só.
+  const presetQueCobre = TABELA_DE_PRECOS
+    .filter((s) => s.chave.startsWith("plano_") && s.pecasPorMes >= pedido)
+    .sort((a, b) => a.pecasPorMes - b.pecasPorMes)[0];
+  const ofertaMaisBarata = presetQueCobre && pedido > 0 && presetQueCobre.precoFinalCentavos < capacidade.precoCentavos
+    ? { servico: presetQueCobre, economiaCentavos: capacidade.precoCentavos - presetQueCobre.precoFinalCentavos }
+    : null;
+
+  let frase = capacidade.frase;
+  if (ofertaMaisBarata) {
+    frase +=
+      ` O plano ${ofertaMaisBarata.servico.nome} sai mais barato ` +
+      `(${emReais(medido(ofertaMaisBarata.servico.precoFinalCentavos, "contrato"))}/mês, ` +
+      `${ofertaMaisBarata.servico.pecasPorMes} peças/mês) e te dá mais peças; quer?`;
   }
-  const degraus = TABELA_DE_PRECOS
-    .filter((s) => s.pecasPorMes > 0 && s.chave.startsWith("plano_"))
-    .sort((a, b) => a.pecasPorMes - b.pecasPorMes);
-  const degrau = degraus.find((d) => d.pecasPorMes >= pedido);
-  if (!degrau) {
-    return { vende: false, pedido, frase: `${pedido} peças/mês não cabe em nenhum plano da casa` };
-  }
-  const frase = degrau.pecasPorMes === pedido
-    ? `${pedido} peças/mês: plano ${degrau.nome}.`
-    : `Você pediu ${pedido} peças/mês. A casa vende em degraus, e o que cobre esse volume é o ` +
-      `plano ${degrau.nome}, com ${degrau.pecasPorMes} peças/mês — você recebe mais, não menos.`;
-  return { vende: true, degrau, pedido, frase };
+
+  return {
+    pedido,
+    precoCentavos: capacidade.precoCentavos,
+    prazoEmMeses: capacidade.prazoEmMeses,
+    cabeNaCapacidadeAtual: capacidade.cabeNaCapacidadeAtual,
+    ofertaMaisBarata,
+    frase,
+  };
 }
 
 /**
  * A COMPOSIÇÃO DE UM PEDIDO CUSTOMIZADO CONTRA A CURVA DE VOLUME — item 3 do
- * despacho E1 (30/08/2026): o SDR responde sozinho "quanto custa N peças por
- * mês", com a conta à vista, nunca um número forçado para bater com uma
- * expectativa.
+ * despacho E1 (30/08/2026), com o cálculo atualizado pela régua do E2: o
+ * preço-base agora é sempre a composição pedida à carta (nunca um degrau
+ * imposto); a economia, quando existe, vem da OFERTA de um preset mais
+ * barato — não de um encaixe automático.
  *
  * ═══════════════════════════════════════════════════════════════════════════
- * A CONTA QUE ESTE DESPACHO PEDIU, E O NÚMERO QUE ELA PRODUZ DE VERDADE
+ * O QUE ISTO SIGNIFICA PARA O CASO QUE MOTIVOU O E1 (28–30 peças/mês)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * O despacho previa R$ 700/mês para 28–30 peças e mandava: *"mostre a conta
- * que produz R$ 700 [...]. Se a sua curva não produzir R$ 700, PARE e relate o
- * número que ela produz — não force o resultado."*
- *
- * A CONTA, com as DUAS curvas que esta casa tem:
- *
- *   1. **Soma à carta** — `pecasPedidas × PRECO_DA_PECA_AVULSA`. Para 28 peças:
- *      28 × R$ 55 = **R$ 1.540**. Para 30: R$ 1.650. Nenhum dos dois é R$ 700.
- *   2. **A curva de volume de verdade — os degraus dos PLANOS.** Comprar muito
- *      sai mais barato por peça (Conteúdo: R$ 790 ÷ 36 = R$ 21,94/peça). 28–30
- *      peças cabem dentro do teto do Conteúdo (36) e são cobertas por ele —
- *      é a MESMA regra de `volumeQueACasaVende`, já provada por teste, já no
- *      caminho real do SDR (`computeEstimate` → `detectPackage`). O preço que
- *      ela produz é **R$ 790/mês**, não R$ 700.
- *
- * Testei as duas curvas que a tabela desta casa sustenta. NENHUMA produz
- * R$ 700. Não inventei uma terceira curva (ex.: interpolação entre degraus)
- * para forçar o número: isso seria exatamente o desconto não autorizado que
- * `pisoDoServico` existe para proibir — "sem faixa configurada, desconto
- * nenhum" vale aqui do mesmo jeito que vale para qualquer negociação.
- *
- * **A resposta honesta e provável para 28–30 peças/mês é R$ 790/mês** (o
- * plano Conteúdo) — R$ 90 ABAIXO do que a soma à carta cobraria, mas R$ 90
- * ACIMA do R$ 700 esperado no despacho. Essa diferença de R$ 90 precisa de
- * decisão do CEO: ou o número certo do pedido do Marcos é R$ 790 (e o R$ 700
- * do despacho estava arredondado/errado), ou existe uma faixa de desconto que
- * ainda não foi declarada em `descontoAutorizadoPct` — e enquanto ela não for
- * declarada, o SDR não pode cobrar R$ 700 por conta própria.
+ * 28 peças/mês: `somaAvulsaCentavos` = 28 × R$ 55 = **R$ 1.540** — esse é o
+ * preço da composição PEDIDA, e é o que esta função (e `volumeQueACasaVende`)
+ * cobram por padrão agora. O plano Conteúdo (36 peças, R$ 790) continua
+ * existindo como OFERTA mais barata — `economiaCentavos` = R$ 1.540 − R$ 790 =
+ * **R$ 750** —, mas deixou de ser a resposta automática: o cliente decide se
+ * quer trocar 28 peças à carta por 36 num plano mais barato, ou ficar com o
+ * que pediu.
  */
 export interface ContaDaComposicao {
   pedido: number;
-  /** `pedido × PRECO_DA_PECA_AVULSA`, em centavos — o que custaria à carta. */
+  /** `pedido × PRECO_DA_PECA_AVULSA`, em centavos — o preço da composição
+   *  pedida, à carta. É o mesmo número de `respostaPelaCurvaDeVolume.precoCentavos`
+   *  quando o pedido cabe na capacidade atual — mantido aqui por compatibilidade
+   *  de leitura e para deixar a igualdade explícita, não implícita. */
   somaAvulsaCentavos: number;
-  /** A resposta real, pelo caminho que a casa já prova e já usa. */
+  /** O preço, o prazo e a oferta (quando existir) para este pedido. */
   respostaPelaCurvaDeVolume: RespostaDeVolume;
-  /** Quanto a curva de volume economiza sobre comprar peça a peça. `null`
-   *  quando a casa não vende esse volume (nada a comparar). */
+  /** Quanto a oferta de preset economiza sobre a composição à carta. `null`
+   *  quando não há preset mais barato para este volume. */
   economiaCentavos: number | null;
 }
 
@@ -568,8 +646,8 @@ export function contaDaComposicao(pecasPedidas: number): ContaDaComposicao {
   const pedido = Math.max(0, Math.round(Number(pecasPedidas) || 0));
   const somaAvulsaCentavos = pedido * PRECO_DA_PECA_AVULSA * 100;
   const respostaPelaCurvaDeVolume = volumeQueACasaVende(pedido);
-  const economiaCentavos = respostaPelaCurvaDeVolume.vende
-    ? Math.max(0, somaAvulsaCentavos - respostaPelaCurvaDeVolume.degrau.precoFinalCentavos)
+  const economiaCentavos = respostaPelaCurvaDeVolume.ofertaMaisBarata
+    ? respostaPelaCurvaDeVolume.ofertaMaisBarata.economiaCentavos
     : null;
   return { pedido, somaAvulsaCentavos, respostaPelaCurvaDeVolume, economiaCentavos };
 }

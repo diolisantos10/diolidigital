@@ -152,40 +152,54 @@ describe("3. o SDR responde 'quanto custa 28-30 peças/mês' pelo caminho real d
     expect(e.items[0]!.label).toBe("Plano Conteúdo");
   });
 
-  it("30 peças/mês (o teto do pedido do Marcos): mesma resposta, R$ 790 — a casa entrega MAIS, não inventa outro preço", () => {
+  it("30 peças/mês (o teto do pedido do Marcos): precificado como pedido, com o Conteúdo OFERECIDO por ser mais barato", () => {
     // 30 não é múltiplo de 4; o que o cliente pede em VOLUME MENSAL é o que
     // importa — `volumeQueACasaVende` já prova isso para o número exato.
+    //
+    // ⚠️ ATUALIZADO PELO DESPACHO E2 (30/08/2026): a casa PARA de empurrar o
+    // pedido para o degrau mais próximo. 30 é precificado como 30, à carta —
+    // o plano Conteúdo entra como OFERTA (mais barato), não como resposta.
     const r = volumeQueACasaVende(30);
-    expect(r.vende).toBe(true);
-    if (r.vende) {
-      expect(r.degrau.nome).toBe("Conteúdo");
-      expect(r.degrau.precoFinalCentavos).toBe(79000);
-    }
+    expect(r.pedido).toBe(30);
+    expect(r.precoCentavos).toBe(30 * 55 * 100); // R$ 1.650, à carta — o pedido, como pedido.
+    expect(r.ofertaMaisBarata).not.toBeNull();
+    expect(r.ofertaMaisBarata!.servico.nome).toBe("Conteúdo");
+    expect(r.ofertaMaisBarata!.servico.precoFinalCentavos).toBe(79000);
   });
 
-  it("⚠️ A CONTA QUE O DESPACHO PEDIU: nenhuma curva desta casa produz R$ 700 para 28 peças — mostrada e não forçada", () => {
+  it("⚠️ A CONTA QUE O DESPACHO E1 PEDIU, ATUALIZADA PELO E2: 28 peças custam R$ 1.540 (à carta); R$ 790 é a OFERTA, não a resposta", () => {
     const conta = contaDaComposicao(28);
     // Curva 1 — soma à carta: 28 × R$ 55.
-    expect(conta.somaAvulsaCentavos).toBe(154000); // R$ 1.540 — bate com o despacho.
-    // Curva 2 — a curva de volume de verdade (o degrau que cobre o pedido).
+    expect(conta.somaAvulsaCentavos).toBe(154000); // R$ 1.540 — bate com o despacho E1.
+    // ⚠️ MUDANÇA DO E2: esta soma à carta agora É o preço que a casa cobra por
+    // padrão — não mais o "caminho que ninguém escolhe". A curva de volume
+    // (o degrau que cobre o pedido) virou OFERTA, sujeita ao "quer?" do
+    // cliente, nunca imposição.
     const resposta = conta.respostaPelaCurvaDeVolume;
-    expect(resposta.vende).toBe(true);
-    if (!resposta.vende) throw new Error("a casa deveria vender 28 peças/mês");
-    const precoDoDegrauCentavos = resposta.degrau.precoFinalCentavos;
-    expect(precoDoDegrauCentavos).toBe(79000); // R$ 790.
+    expect(resposta.precoCentavos).toBe(154000);
+    expect(resposta.ofertaMaisBarata).not.toBeNull();
+    const precoDoPlanoOfertadoCentavos = resposta.ofertaMaisBarata!.servico.precoFinalCentavos;
+    expect(precoDoPlanoOfertadoCentavos).toBe(79000); // R$ 790 — a OFERTA, não mais "a resposta".
     // NENHUMA das duas é R$ 700 (70000 centavos) — a régua desta casa (sem
     // faixa de desconto declarada, "sem faixa configurada, desconto nenhum")
-    // não sustenta o número esperado no despacho. Isto NÃO É defeito deste
+    // não sustenta o número esperado no despacho E1. Isto NÃO É defeito deste
     // teste: é o relato que o despacho pediu — "PARE e relate o número real".
     expect(conta.somaAvulsaCentavos).not.toBe(70000);
-    expect(precoDoDegrauCentavos).not.toBe(70000);
-    // A economia de comprar pelo plano em vez de peça a peça — para o registro.
+    expect(precoDoPlanoOfertadoCentavos).not.toBe(70000);
+    // A economia de trocar para o plano em vez de ficar à carta — para o registro.
     expect(conta.economiaCentavos).toBe(75000); // R$ 750 de economia, não R$ 840 (que R$ 700 exigiria).
   });
 
-  it("acima da capacidade (37+) a casa não vende, e diz por quê — nunca inventa um preço maior", () => {
+  it("⛔ E2 (30/08/2026): acima da capacidade (37+) a casa NÃO recusa — devolve preço e prazo, nunca 'não vende'", () => {
+    // Este teste SUBSTITUI o que existia (`r.vende === false`). O anterior
+    // travava exatamente a recusa que o CEO proibiu. Rodar esta suíte contra
+    // o código de antes do E2 é o que prova a mutação: `.vende` nem existe
+    // mais no tipo de retorno.
     const r = volumeQueACasaVende(300);
-    expect(r.vende).toBe(false);
+    expect(r.cabeNaCapacidadeAtual).toBe(false);
+    expect(r.precoCentavos).toBe(300 * 55 * 100);
+    expect(r.prazoEmMeses).toBe(Math.ceil(300 / 36));
     expect(r.frase).toMatch(/capacidade/i);
+    expect(r.frase).not.toMatch(/não vend|dívida com outro rosto/i);
   });
 });
