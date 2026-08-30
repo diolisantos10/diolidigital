@@ -30,8 +30,9 @@
     "",
     "Todo campo sobre o qual a ordem do CEO NÃO falou (finalidade,",
     "condicaoDeEntrada quando não citada, condicaoDeSaida, proximaAcao,",
-    "etapaDoFunil) continua `\"preciso confirmar com o CEO\"` — não foi",
-    "inventado, foi marcado. Ver `pendencia` de cada modelo para o que falta.",
+    "etapaDoFunil quando não derivável) continua \"preciso confirmar com o",
+    "CEO\" — não foi inventado, foi marcado. Ver `pendencia` de cada modelo",
+    "para o que falta.",
     "",
     "M07, M08 e M09 envolvem PREÇO — o valor de `[VALOR]` tem de vir do motor",
     "de preços (`lib/marketplaces/99freelas/preco.ts`) na hora do envio,",
@@ -39,54 +40,68 @@
     "ao cliente — caem na trava de compromisso (outro especialista, outra",
     "ficha) antes de sair.",
     "",
-    "Fonte da ordem: docs/celula-prospeccao/despachos/ONDA-2B-A-os-22-textos.md."
+    "✅ ONDA 4A, FICHA B (30/08/2026): dois campos novos por modelo.",
+    "",
+    "`ligacaoDeVariaveis` diz, POR MODELO, em que campo do estado cada",
+    "[VARIAVEL] entre colchetes liga — a mesma marcação `[NOME]` significa",
+    "PESSOA em M01/M14 e ARQUIVO em M06/M17/M20, por arbitragem literal do",
+    "Diretor de 30/08/2026. Conjunto FECHADO em",
+    "`lib/agency/celula/mensagens/tipos.ts` (`ALVOS_DE_LIGACAO`); leitura",
+    "fail-closed em `lib/agency/celula/mensagens/biblioteca.ts`",
+    "(`alvoDeLigacaoDeclarado`). Variável citada sem ligação, ou com alvo",
+    "fora do conjunto, BLOQUEIA A LEITURA do modelo inteiro (mesmo nível de",
+    "\"campo obrigatório malformado\" dos outros campos). O alvo",
+    "\"preciso_confirmar_com_o_ceo\" É membro válido do conjunto — não é erro",
+    "de forma — mas BLOQUEIA O ENVIO (`modeloParaEnvio`/`preencher` recusam,",
+    "nomeando a variável). Nenhum dos 22 usa esse alvo hoje: todo alvo",
+    "genuinamente indefinido foi resolvido por um conceito próprio — ver o",
+    "relatório da ficha para o grau de confiança de cada escolha.",
+    "",
+    "`etapaDoFunil` deixou de ser só \"texto não vazio\": agora é validada, NO",
+    "ENVIO, contra os 22 estados de `lib/agency/celula/funil.ts`",
+    "(`estadoDeclarado`) — a leitura do modelo continua aceitando qualquer",
+    "texto não vazio (inclusive o placeholder), mas `modeloParaEnvio` e",
+    "`preencher` recusam quando o valor não é EXATAMENTE um dos 22 estados.",
+    "11 dos 22 modelos ganharam etapaDoFunil DERIVADO (não é texto literal do",
+    "CEO — a derivação e o grau de confiança de cada um estão na `pendencia`",
+    "do próprio modelo, e no relatório da ficha). Os outros 11 continuam",
+    "\"preciso confirmar com o CEO\", o que BLOQUEIA o envio pelo mesmo",
+    "mecanismo — nem mais nem menos travado que antes desta ficha.",
+    "",
+    "Fonte da ordem: docs/celula-prospeccao/despachos/ONDA-2B-A-os-22-textos.md",
+    "e docs/celula-prospeccao/despachos/ONDA-4A-B-ligacao-e-metadado.md."
   ],
 
   "plataforma": "99freelas",
-  "versao": "0.2.0-rascunho",
+  "versao": "0.3.0-rascunho",
   "atualizadoEm": "2026-08-30",
 
   "palavrasProibidasGlobais": ["copiei e colei", "somos os melhores", "garantimos resultado"],
-  "_proibicoes_do_ceo_sem_mecanismo": {
-    "_leia_isto": "Estas proibições do CEO são CATEGORIAS, não texto literal — não dá para verificá-las por substring. Estão escritas aqui para não desaparecerem, e cada uma diz quem a verifica hoje, ou declara que NINGUÉM verifica.",
-    "exageros": "preciso confirmar com o CEO — nenhum mecanismo conhecido",
-    "pressão artificial": "preciso confirmar com o CEO — nenhum mecanismo conhecido",
-    "urgência inventada": "preciso confirmar com o CEO — nenhum mecanismo conhecido",
-    "promessa de resultado": "preciso confirmar com o CEO — nenhum mecanismo conhecido",
-    "experiência não comprovada": "preciso confirmar com o CEO — nenhum mecanismo conhecido",
-    "portfólio inexistente": "preciso confirmar com o CEO — nenhum mecanismo conhecido",
-    "excesso de elogios": "preciso confirmar com o CEO — nenhum mecanismo conhecido",
-    "texto longo sobre a Dioli": "preciso confirmar com o CEO — nenhum mecanismo conhecido",
-    "múltiplas perguntas misturadas": "verificada por lib/agency/celula/mensagens/proxima-mensagem.ts (regra uma-pergunta-so)",
-    "contato ou link externo": "verificada por lib/marketplaces/99freelas/conformidade.ts (o Guardião)"
-  },
-
-  "_regras_editoriais_do_ceo": {
-    "toda_mensagem": [
-      "preciso confirmar com o CEO"
-    ],
-    "mensagem_inicial": [
-      "preciso confirmar com o CEO"
-    ]
-  },
+  "_proibicoes_e_regras_editoriais_do_ceo": "ONDA 4A, FICHA B (30/08/2026): as proibições-categoria (8) e as regras editoriais do CEO deixaram de ser gravadas aqui — a fonte única passa a ser docs/plataformas/99freelas/regras-editoriais.json (Onda 4A, ficha A, agente cerebro). Regra não se copia, se aponta. Se esse arquivo ainda não existir quando você ler isto, é porque a ficha A ainda está em voo — não duplique a lista aqui enquanto isso.",
 
   "modelos": [
     {
       "codigo": "M01",
       "nome": "ABORDAGEM INICIAL",
       "plataforma": "99freelas",
-      "etapaDoFunil": "preciso confirmar com o CEO",
+      "etapaDoFunil": "qualificada",
       "finalidade": "preciso confirmar com o CEO",
       "textoBase": "Olá, [NOME]. Li seu projeto sobre [ENTREGÁVEL] e entendi que você precisa [NECESSIDADE ESPECÍFICA]. Consigo atender essa demanda. Antes de definir o escopo e o prazo, preciso confirmar: [PERGUNTA ESPECÍFICA SOBRE O PROJETO]?",
       "variaveisObrigatorias": ["ENTREGÁVEL", "NECESSIDADE ESPECÍFICA", "PERGUNTA ESPECÍFICA SOBRE O PROJETO"],
       "variaveisOpcionais": ["NOME"],
+      "ligacaoDeVariaveis": {
+        "NOME": "nomeDoCliente",
+        "ENTREGÁVEL": "entregavel",
+        "NECESSIDADE ESPECÍFICA": "necessidadeEspecifica",
+        "PERGUNTA ESPECÍFICA SOBRE O PROJETO": "perguntaEspecifica"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "oportunidade qualificada, sem contato anterior",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -116,26 +131,36 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada para as 4 variáveis (NOME liga em nomeDoCliente, por arbitragem literal do Diretor). etapaDoFunil derivado (não literal do CEO) da condicaoDeEntrada — ver pendencia."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: finalidade, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. etapaDoFunil foi DERIVADO (não é texto literal do CEO) a partir da condicaoDeEntrada — \"oportunidade qualificada, sem contato anterior\" → estado \"qualificada\" do funil (lib/agency/celula/funil.ts) — sujeito a confirmação do Diretor/CEO (Onda 4A, ficha B)."
     },
     {
       "codigo": "M02",
       "nome": "COMPLEMENTO DE ESCOPO",
       "plataforma": "99freelas",
-      "etapaDoFunil": "preciso confirmar com o CEO",
+      "etapaDoFunil": "respondeu",
       "finalidade": "preciso confirmar com o CEO",
       "textoBase": "Perfeito. Para eu montar a proposta corretamente, preciso confirmar mais um ponto: [INFORMAÇÃO PENDENTE]?",
       "variaveisObrigatorias": ["INFORMAÇÃO PENDENTE"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "INFORMAÇÃO PENDENTE": "informacaoPendente"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "respondeu, falta informação decisiva",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -155,26 +180,40 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada. etapaDoFunil derivado literalmente da condicaoDeEntrada — ver pendencia."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: finalidade, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. etapaDoFunil foi DERIVADO literalmente da condicaoDeEntrada — \"respondeu, falta informação decisiva\" → estado \"respondeu\" do funil — sujeito a confirmação do Diretor/CEO (Onda 4A, ficha B)."
     },
     {
       "codigo": "M03",
       "nome": "CONFIRMAÇÃO DE ENTENDIMENTO",
       "plataforma": "99freelas",
-      "etapaDoFunil": "preciso confirmar com o CEO",
+      "etapaDoFunil": "briefing_em_coleta",
       "finalidade": "preciso confirmar com o CEO",
       "textoBase": "Pelo que entendi, você precisa de [ENTREGÁVEIS], com [CARACTERÍSTICAS], para [OBJETIVO], dentro do prazo de [PRAZO]. [MATERIAIS] serão fornecidos por você. Está correto ou falta algum ponto importante?",
       "variaveisObrigatorias": ["ENTREGÁVEIS", "CARACTERÍSTICAS", "OBJETIVO", "PRAZO", "MATERIAIS"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "ENTREGÁVEIS": "entregavel",
+        "CARACTERÍSTICAS": "caracteristicas",
+        "OBJETIVO": "objetivo",
+        "PRAZO": "prazo",
+        "MATERIAIS": "materiais"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "informações mínimas coletadas",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -194,9 +233,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada para as 5 variáveis. etapaDoFunil derivado por interpretação (confiança MÉDIA) — ver pendencia."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: finalidade, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. etapaDoFunil foi DERIVADO por interpretação (confiança MÉDIA, não é texto literal do CEO) — \"informações mínimas coletadas\" foi lido como ainda dentro da coleta (a confirmação de entendimento antecede a declaração de briefing_completo) → estado \"briefing_em_coleta\". Poderia alternativamente ser \"briefing_completo\" — sujeito a confirmação do Diretor/CEO (Onda 4A, ficha B)."
     },
     {
       "codigo": "M04",
@@ -207,13 +253,16 @@
       "textoBase": "Para concluir o escopo, pode anexar aqui na plataforma [LISTA OBJETIVA DE MATERIAIS]? Assim consigo verificar o que já está pronto e o que precisará ser desenvolvido.",
       "variaveisObrigatorias": ["LISTA OBJETIVA DE MATERIAIS"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "LISTA OBJETIVA DE MATERIAIS": "materiais"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -233,26 +282,36 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada. etapaDoFunil continua pendente — sem condicaoDeEntrada do CEO para derivar com segurança."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. Não há condicaoDeEntrada do CEO para M04, e o nome/finalidade do modelo não sustentam uma derivação segura de etapaDoFunil — continua pendente e bloqueando (Onda 4A, ficha B)."
     },
     {
       "codigo": "M05",
       "nome": "ARQUIVO RECEBIDO",
       "plataforma": "99freelas",
-      "etapaDoFunil": "preciso confirmar com o CEO",
+      "etapaDoFunil": "briefing_em_coleta",
       "finalidade": "preciso confirmar com o CEO",
       "textoBase": "Recebi [ARQUIVO OU CONJUNTO DE ARQUIVOS]. Vou analisar o material junto com o briefing e retorno por aqui com a próxima etapa.",
       "variaveisObrigatorias": ["ARQUIVO OU CONJUNTO DE ARQUIVOS"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "ARQUIVO OU CONJUNTO DE ARQUIVOS": "materiais"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "baixado, verificado e associado ao projeto correto",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -272,9 +331,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada (reuso do conceito \"materiais\" de M03/M04). etapaDoFunil derivado por interpretação (confiança MÉDIA) — ver pendencia."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: finalidade, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. etapaDoFunil foi DERIVADO por interpretação (confiança MÉDIA) — a condicaoDeEntrada (\"baixado, verificado e associado ao projeto correto\") é uma condição operacional, não nomeia um estado do funil; o próprio textoBase (\"vou analisar o material junto com o briefing\") indica que a coleta de briefing ainda está em curso → estado \"briefing_em_coleta\". Sujeito a confirmação do Diretor/CEO (Onda 4A, ficha B)."
     },
     {
       "codigo": "M06",
@@ -285,13 +351,18 @@
       "textoBase": "Não consegui abrir o arquivo [NOME]. A plataforma indicou [MOTIVO SEGURO E COMPREENSÍVEL]. Você consegue anexá-lo novamente em [FORMATO ACEITO]?",
       "variaveisObrigatorias": ["NOME", "MOTIVO SEGURO E COMPREENSÍVEL", "FORMATO ACEITO"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "NOME": "nomeDoArquivo",
+        "MOTIVO SEGURO E COMPREENSÍVEL": "motivo",
+        "FORMATO ACEITO": "formatoAceito"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -311,26 +382,38 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada; NOME liga em nomeDoArquivo, por arbitragem literal do Diretor (confirmado pelo próprio regrasDoCeo do modelo). etapaDoFunil continua pendente."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. Não há condicaoDeEntrada do CEO para M06, e o nome/finalidade do modelo não sustentam uma derivação segura de etapaDoFunil — continua pendente e bloqueando (Onda 4A, ficha B)."
     },
     {
       "codigo": "M07",
       "nome": "APRESENTAÇÃO DA PROPOSTA",
       "plataforma": "99freelas",
-      "etapaDoFunil": "preciso confirmar com o CEO",
+      "etapaDoFunil": "briefing_completo",
       "finalidade": "envolve PREÇO — o valor tem de vir do motor de preços (lib/marketplaces/99freelas/preco.ts), nunca de constante nem escrito fixo no texto.",
       "textoBase": "Com base no que alinhamos, a proposta contempla [ESCOPO RESUMIDO], com entrega em [PRAZO] e investimento de [VALOR], conforme as condições registradas na plataforma. Se estiver de acordo, podemos avançar para a contratação por aqui.",
       "variaveisObrigatorias": ["ESCOPO RESUMIDO", "PRAZO", "VALOR"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "ESCOPO RESUMIDO": "escopoResumido",
+        "PRAZO": "prazo",
+        "VALOR": "valor"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "briefing mínimo completo e preço validado",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -350,26 +433,38 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada para as 3 variáveis. etapaDoFunil derivado literalmente da condicaoDeEntrada — ver pendencia."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. etapaDoFunil foi DERIVADO da condicaoDeEntrada — \"briefing mínimo completo e preço validado\" → estado \"briefing_completo\" do funil — sujeito a confirmação do Diretor/CEO (Onda 4A, ficha B)."
     },
     {
       "codigo": "M08",
       "nome": "ORÇAMENTO ABAIXO DO NECESSÁRIO",
       "plataforma": "99freelas",
-      "etapaDoFunil": "preciso confirmar com o CEO",
+      "etapaDoFunil": "negociacao",
       "finalidade": "envolve PREÇO — o valor tem de vir do motor de preços (lib/marketplaces/99freelas/preco.ts), nunca de constante nem escrito fixo no texto.",
       "textoBase": "Para entregar todo o escopo descrito, o investimento necessário é [VALOR]. Se precisar manter o orçamento de [ORÇAMENTO DO CLIENTE], consigo ajustar a proposta para [ESCOPO REDUZIDO]. Qual caminho atende melhor neste momento?",
       "variaveisObrigatorias": ["VALOR", "ORÇAMENTO DO CLIENTE", "ESCOPO REDUZIDO"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "VALOR": "valor",
+        "ORÇAMENTO DO CLIENTE": "orcamentoDoCliente",
+        "ESCOPO REDUZIDO": "escopoAjustado"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -389,26 +484,38 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada para as 3 variáveis. etapaDoFunil derivado por indicação da ficha de despacho (M08 é conversa de negociação) — ver pendencia."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. etapaDoFunil foi DERIVADO por indicação da própria ficha de despacho (M08 é conversa de negociação de orçamento) → estado \"negociacao\" do funil — sujeito a confirmação do Diretor/CEO (Onda 4A, ficha B)."
     },
     {
       "codigo": "M09",
       "nome": "PRAZO INVIÁVEL",
       "plataforma": "99freelas",
-      "etapaDoFunil": "preciso confirmar com o CEO",
+      "etapaDoFunil": "negociacao",
       "finalidade": "envolve PREÇO — o valor tem de vir do motor de preços (lib/marketplaces/99freelas/preco.ts), nunca de constante nem escrito fixo no texto.",
       "textoBase": "Para entregar o escopo completo com segurança, o prazo necessário é [PRAZO REALISTA]. Para atender até [DATA DO CLIENTE], consigo priorizar [ESCOPO POSSÍVEL]. Essa alternativa funciona para você?",
       "variaveisObrigatorias": ["PRAZO REALISTA", "DATA DO CLIENTE", "ESCOPO POSSÍVEL"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "PRAZO REALISTA": "prazoRealista",
+        "DATA DO CLIENTE": "dataDoCliente",
+        "ESCOPO POSSÍVEL": "escopoAjustado"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -428,9 +535,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada para as 3 variáveis. etapaDoFunil derivado por indicação da ficha de despacho (M09 é conversa de negociação) — ver pendencia."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. etapaDoFunil foi DERIVADO por indicação da própria ficha de despacho (M09 é conversa de negociação de prazo) → estado \"negociacao\" do funil — sujeito a confirmação do Diretor/CEO (Onda 4A, ficha B)."
     },
     {
       "codigo": "M10",
@@ -441,13 +555,14 @@
       "textoBase": "Para manter o histórico e a segurança desta negociação, vamos continuar por aqui nesta etapa. Consigo coletar todas as informações, apresentar a proposta e acompanhar o projeto pela própria plataforma.",
       "variaveisObrigatorias": [],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {},
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -467,9 +582,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada como {} — M10 não tem variável. etapaDoFunil continua pendente."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. M10 não tem variável — ligacaoDeVariaveis declarada como {} (nada a ligar). etapaDoFunil continua pendente e bloqueando (Onda 4A, ficha B)."
     },
     {
       "codigo": "M11",
@@ -480,13 +602,14 @@
       "textoBase": "Obrigado. Nesta etapa, vou manter o briefing, a proposta e a contratação registrados por aqui para preservar o histórico do projeto.",
       "variaveisObrigatorias": [],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {},
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -506,9 +629,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada como {} — M11 não tem variável. etapaDoFunil continua pendente."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. M11 não tem variável — ligacaoDeVariaveis declarada como {} (nada a ligar). etapaDoFunil continua pendente e bloqueando (Onda 4A, ficha B)."
     },
     {
       "codigo": "M12",
@@ -519,13 +649,14 @@
       "textoBase": "Consigo fazer o briefing por aqui. Vou organizar as perguntas de forma objetiva para não tomar muito do seu tempo.",
       "variaveisObrigatorias": [],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {},
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -545,9 +676,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada como {} — M12 não tem variável. etapaDoFunil continua pendente."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. M12 não tem variável — ligacaoDeVariaveis declarada como {} (nada a ligar). etapaDoFunil continua pendente e bloqueando (Onda 4A, ficha B)."
     },
     {
       "codigo": "M13",
@@ -558,13 +696,14 @@
       "textoBase": "Consigo apresentar experiência, método e proposta, mas não realizamos produção completa não remunerada. Se for necessário validar uma etapa antes do projeto integral, posso estruturar uma entrega inicial remunerada e com escopo reduzido.",
       "variaveisObrigatorias": [],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {},
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -584,9 +723,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada como {} — M13 não tem variável. etapaDoFunil continua pendente."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. M13 não tem variável — ligacaoDeVariaveis declarada como {} (nada a ligar). etapaDoFunil continua pendente e bloqueando (Onda 4A, ficha B)."
     },
     {
       "codigo": "M14",
@@ -597,13 +743,16 @@
       "textoBase": "Olá, [NOME]. Passando para confirmar se conseguiu analisar a proposta. Se houver alguma dúvida sobre escopo, prazo ou entrega, posso esclarecer por aqui.",
       "variaveisObrigatorias": [],
       "variaveisOpcionais": ["NOME"],
+      "ligacaoDeVariaveis": {
+        "NOME": "nomeDoCliente"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -638,26 +787,38 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada; NOME liga em nomeDoCliente (mesma ligação de M01), por arbitragem literal do Diretor. etapaDoFunil continua pendente."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. A TRAVA que faz cumprir as seis condições de 'NÃO enviar se' é de outro despacho (Ficha C) — não implementada aqui."
+      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. A TRAVA que faz cumprir as seis condições de 'NÃO enviar se' é de outro despacho (Ficha C) — não implementada aqui. etapaDoFunil continua pendente e bloqueando — não há condicaoDeEntrada do CEO para M14 (Onda 4A, ficha B)."
     },
     {
       "codigo": "M15",
       "nome": "CONTRATAÇÃO CONFIRMADA",
       "plataforma": "99freelas",
-      "etapaDoFunil": "preciso confirmar com o CEO",
+      "etapaDoFunil": "contratada",
       "finalidade": "promete data ao cliente — cai na trava de compromisso (outro especialista, outra ficha).",
       "textoBase": "Projeto confirmado. Vou iniciar com [PRIMEIRA ETAPA]. O próximo retorno será [MARCO OU ENTREGA] até [DATA]. Todas as atualizações serão registradas por aqui.",
       "variaveisObrigatorias": ["PRIMEIRA ETAPA", "MARCO OU ENTREGA", "DATA"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "PRIMEIRA ETAPA": "primeiraEtapa",
+        "MARCO OU ENTREGA": "marcoOuEntrega",
+        "DATA": "data"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -677,26 +838,38 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada para as 3 variáveis. etapaDoFunil derivado por indicação da ficha de despacho (M15 é o instante da contratação) — ver pendencia."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. etapaDoFunil foi DERIVADO por indicação da própria ficha de despacho (M15 é o instante da contratação) → estado \"contratada\" do funil — sujeito a confirmação do Diretor/CEO (Onda 4A, ficha B)."
     },
     {
       "codigo": "M16",
       "nome": "ATUALIZAÇÃO DE ANDAMENTO",
       "plataforma": "99freelas",
-      "etapaDoFunil": "preciso confirmar com o CEO",
+      "etapaDoFunil": "em_producao",
       "finalidade": "promete data ao cliente — cai na trava de compromisso (outro especialista, outra ficha).",
       "textoBase": "Atualização do projeto: [ETAPA] foi concluída. Agora estamos trabalhando em [PRÓXIMA ETAPA]. A previsão para o próximo envio permanece [DATA].",
       "variaveisObrigatorias": ["ETAPA", "PRÓXIMA ETAPA", "DATA"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "ETAPA": "etapaConcluida",
+        "PRÓXIMA ETAPA": "proximaEtapa",
+        "DATA": "data"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "marco real concluído",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -716,26 +889,37 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada para as 3 variáveis. etapaDoFunil derivado por interpretação (confiança MÉDIA-ALTA) — ver pendencia."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. etapaDoFunil foi DERIVADO por interpretação (confiança MÉDIA-ALTA) — a condicaoDeEntrada (\"marco real concluído\") e o textoBase (\"agora estamos trabalhando em...\") descrevem uma atualização DURANTE a produção, não a entrega final → estado \"em_producao\" do funil — sujeito a confirmação do Diretor/CEO (Onda 4A, ficha B)."
     },
     {
       "codigo": "M17",
       "nome": "ENTREGA PARA AVALIAÇÃO",
       "plataforma": "99freelas",
-      "etapaDoFunil": "preciso confirmar com o CEO",
+      "etapaDoFunil": "entrega_enviada",
       "finalidade": "preciso confirmar com o CEO",
       "textoBase": "Concluímos [ENTREGA]. O arquivo [NOME DO ARQUIVO] está anexado para sua avaliação. Por favor, confirme se está aprovado ou indique de forma objetiva os ajustes necessários.",
       "variaveisObrigatorias": ["ENTREGA", "NOME DO ARQUIVO"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "ENTREGA": "entregavel",
+        "NOME DO ARQUIVO": "nomeDoArquivo"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "arquivo aprovado pela Qualidade e anexado ao cliente certo",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -755,9 +939,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada; NOME DO ARQUIVO liga em nomeDoArquivo, mesmo conceito de M06/M20 por instrução literal da ficha. etapaDoFunil derivado — ver pendencia."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: finalidade, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. etapaDoFunil foi DERIVADO do nome do modelo (ENTREGA PARA AVALIAÇÃO) e do textoBase (\"está anexado para sua avaliação\") → estado \"entrega_enviada\" do funil — sujeito a confirmação do Diretor/CEO (Onda 4A, ficha B)."
     },
     {
       "codigo": "M18",
@@ -768,13 +959,17 @@
       "textoBase": "Recebi o pedido de ajuste: [RESUMO OBJETIVO]. Vou aplicar as alterações dentro do escopo acordado e retornar até [PRAZO].",
       "variaveisObrigatorias": ["RESUMO OBJETIVO", "PRAZO"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "RESUMO OBJETIVO": "resumoObjetivo",
+        "PRAZO": "prazo"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -794,9 +989,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada para as 2 variáveis. etapaDoFunil continua pendente — ambíguo entre em_producao e ajuste_solicitado."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: etapaDoFunil, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. Não há condicaoDeEntrada do CEO para M18, e o nome/finalidade não sustentam uma derivação segura de etapaDoFunil (poderia ser \"em_producao\" ou \"ajuste_solicitado\", ambíguo) — continua pendente e bloqueando (Onda 4A, ficha B)."
     },
     {
       "codigo": "M19",
@@ -807,13 +1009,16 @@
       "textoBase": "O ajuste solicitado acrescenta [NOVA DEMANDA], que não estava incluída no escopo original. Posso preparar uma ampliação da proposta com prazo e valor correspondentes, ou manter a entrega dentro do escopo contratado. Qual opção você prefere?",
       "variaveisObrigatorias": ["NOVA DEMANDA"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "NOVA DEMANDA": "novaDemanda"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -833,9 +1038,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada. etapaDoFunil continua pendente — ambíguo entre ajuste_solicitado e negociacao."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: etapaDoFunil, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. Não há condicaoDeEntrada do CEO para M19, e o nome/finalidade não sustentam uma derivação segura de etapaDoFunil (poderia ser \"ajuste_solicitado\" ou \"negociacao\", ambíguo) — continua pendente e bloqueando (Onda 4A, ficha B)."
     },
     {
       "codigo": "M20",
@@ -846,13 +1058,17 @@
       "textoBase": "A entrega final de [ENTREGÁVEL] foi concluída e o arquivo [NOME] está anexado. Obrigado pela confirmação. Vou manter todo o histórico e os materiais associados a este projeto.",
       "variaveisObrigatorias": ["ENTREGÁVEL", "NOME"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "ENTREGÁVEL": "entregavel",
+        "NOME": "nomeDoArquivo"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -872,9 +1088,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada; NOME liga em nomeDoArquivo, por arbitragem literal do Diretor (confirmado pelo próprio regrasDoCeo do modelo). etapaDoFunil continua pendente."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. Não há condicaoDeEntrada do CEO para M20, e o nome/finalidade não sustentam uma derivação segura de etapaDoFunil (poderia ser \"entrega_enviada\" ou \"aprovada\", ambíguo) — continua pendente e bloqueando (Onda 4A, ficha B)."
     },
     {
       "codigo": "M21",
@@ -885,13 +1108,16 @@
       "textoBase": "Obrigado pelas informações. Neste momento, não conseguiremos assumir o projeto dentro das condições necessárias de [PRAZO, ESCOPO OU ORÇAMENTO]. Prefiro não confirmar uma entrega que não conseguiríamos cumprir com segurança.",
       "variaveisObrigatorias": ["PRAZO, ESCOPO OU ORÇAMENTO"],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {
+        "PRAZO, ESCOPO OU ORÇAMENTO": "motivoDaRecusa"
+      },
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -911,26 +1137,34 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada (a variável combinada liga em motivoDaRecusa). etapaDoFunil continua pendente — ambíguo entre negociacao e perdida."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. Não há condicaoDeEntrada do CEO para M21, e o nome/finalidade não sustentam uma derivação segura de etapaDoFunil (poderia ser \"negociacao\" ou \"perdida\", ambíguo) — continua pendente e bloqueando (Onda 4A, ficha B)."
     },
     {
       "codigo": "M22",
       "nome": "CLIENTE NÃO SELECIONADO OU PROJETO ENCERRADO",
       "plataforma": "99freelas",
-      "etapaDoFunil": "preciso confirmar com o CEO",
+      "etapaDoFunil": "perdida",
       "finalidade": "preciso confirmar com o CEO",
       "textoBase": "Obrigado pela conversa e pelas informações compartilhadas. Como o projeto foi encerrado, vou finalizar esta oportunidade por aqui. Desejo uma excelente execução.",
       "variaveisObrigatorias": [],
       "variaveisOpcionais": [],
+      "ligacaoDeVariaveis": {},
       "palavrasProibidas": [],
       "condicaoDeEntrada": "preciso confirmar com o CEO",
       "condicaoDeSaida": "preciso confirmar com o CEO",
       "proximaAcao": "preciso confirmar com o CEO",
       "tempoDeEsperaHoras": null,
       "maximoDeUsos": null,
-      "versao": "0.2.0",
+      "versao": "0.3.0",
       "autor": "Onda 2 — Célula de Prospecção (ficha A-biblioteca)",
       "aprovador": null,
       "estado": "rascunho",
@@ -950,9 +1184,16 @@
           "autor": "Onda 2B — Célula de Prospecção (ficha A-os-22-textos)",
           "aprovador": null,
           "oQueMudou": "Texto oficial do CEO transcrito literalmente (Onda 2B, ficha A). Estado continua rascunho — a aprovação é do Gerente de Atendimento e SDR."
+        },
+        {
+          "versao": "0.3.0",
+          "em": "2026-08-30T00:00:00.000Z",
+          "autor": "Onda 4A — Célula de Prospecção (ficha B-ligacao-e-metadado)",
+          "aprovador": null,
+          "oQueMudou": "ligacaoDeVariaveis declarada como {} — M22 não tem variável. etapaDoFunil derivado por indicação da ficha de despacho (M22 é o fim da linha) — ver pendencia."
         }
       ],
-      "pendencia": "faltam do CEO: etapaDoFunil, finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito."
+      "pendencia": "faltam do CEO: finalidade, condicaoDeEntrada, condicaoDeSaida, proximaAcao. O texto oficial JÁ foi recebido e transcrito. etapaDoFunil foi DERIVADO por indicação da própria ficha de despacho (M22 é o fim da linha) → estado \"perdida\" do funil — a escolha específica entre \"perdida\" e outro estado terminal é interpretação desta ficha (confiança MÉDIA), sujeita a confirmação do Diretor/CEO (Onda 4A, ficha B). M22 não tem variável — ligacaoDeVariaveis declarada como {}."
     }
   ]
 }
