@@ -1,0 +1,106 @@
+[
+  {
+    "guarda": "M11 · destinatário divergente bloqueia o envio (prova nº 14)",
+    "arquivo": "lib/agency/celula/ponte/saida.ts",
+    "teste": "__tests__/celula/ponte-destinatario.test.ts",
+    "de": "  if (eixosDivergentes.length > 0) {",
+    "para": "  if (false) { // MUTAÇÃO: a checagem de divergência nunca dispara, T1 vira decoração",
+    "espera": "conferirDestinatario passa a devolver ok:true mesmo com eixos divergentes — quebra as 5 asserções da 'metade suja' (destinatarioDeclarado divergente, oportunidadeId divergente, clienteId/projetoId divergente, e as duas fail-closed de ausência) e a composição em avaliarEnvioAoCliente ('destinatário divergente → BLOQUEIA com o pedido de exceção de T1' deixa de bloquear)."
+  },
+  {
+    "guarda": "M12 · o endereço interno nunca sai numa mensagem ao cliente (detecção do caminho interno)",
+    "arquivo": "lib/agency/celula/ponte/endereco-interno.ts",
+    "teste": "__tests__/celula/ponte-endereco-interno.test.ts",
+    "de": "  if (arquivo.caminhoInterno && alvo.includes(arquivo.caminhoInterno)) {",
+    "para": "  if (false && arquivo.caminhoInterno && alvo.includes(arquivo.caminhoInterno)) { // MUTAÇÃO: a varredura do caminho interno nunca dispara",
+    "espera": "'caminho interno do arquivo aparecendo no texto → BLOQUEIA' (describe 'contemEnderecoInterno — metade suja') vira vermelho — o texto que carrega o caminho interno deixa de ser bloqueado. Efeito colateral fora do teste alvo, só para registro: o mesmo caminho é exercitado pela composição T1+T2 em ponte-destinatario.test.ts ('mensagem de acompanhamento com o caminho interno... → BLOQUEIA')."
+  },
+  {
+    "guarda": "M13 · arquivo suspeito vai para quarentena e não entra no projeto (recusa direta desligada)",
+    "arquivo": "lib/agency/celula/ponte/quarentena.ts",
+    "teste": "__tests__/celula/ponte-quarentena.test.ts",
+    "de": "  if (achadosDeRecusa.length > 0) {",
+    "para": "  if (false) { // MUTAÇÃO: a recusa direta nunca dispara — MIME errado, tamanho, extensão dupla, executável e caractere de controle passam a 'ok: true'",
+    "espera": "os 7 casos do describe 'varrerArquivoRecebido — metade suja: RECUSA direta' (MIME fora da lista, tamanho acima do teto, extensão dupla perigosa, travessia de diretório, NUL byte, override RTL, marca de executável MZ) viram vermelho — todos passam a devolver ok:true em vez de estado:'recusado'."
+  },
+  {
+    "guarda": "M14 · versão nova não sobrescreve a anterior (numeração de versão desligada)",
+    "arquivo": "lib/agency/celula/ponte/armazem.ts",
+    "teste": "__tests__/celula/ponte-versoes.test.ts",
+    "de": "    const ultima = await tx.arquivoDaCelula.findFirst({\n      where: { workspaceId: input.workspaceId, linhagemId: input.linhagemId },\n      orderBy: { versao: \"desc\" },\n      select: { versao: true },\n    });\n    const versao = (ultima?.versao ?? 0) + 1;",
+    "para": "    const ultima = await tx.arquivoDaCelula.findFirst({\n      where: { workspaceId: input.workspaceId, linhagemId: input.linhagemId },\n      orderBy: { versao: \"desc\" },\n      select: { versao: true },\n    });\n    const versao = ultima?.versao ?? 1; // MUTAÇÃO: nunca incrementa — a v2 tenta gravar como versao 1 de novo",
+    "espera": "'VERSÃO NOVA É LINHA NOVA: duas gravações da mesma linhagem geram DUAS linhas, e a v1 continua legível byte a byte' vira vermelho — a segunda gravação tenta reusar versao=1 e colide com a trava @@unique([linhagemId, versao]) do banco (lança exceção em vez de gravar versao=2)."
+  },
+  {
+    "guarda": "M15 · confirmação de recebimento exige integridade conferida (T4 desligada)",
+    "arquivo": "lib/agency/celula/ponte/entrada.ts",
+    "teste": "__tests__/celula/ponte-quarentena.test.ts",
+    "de": "  if (arquivo.estado !== UNICO_ESTADO_QUE_CONFIRMA) {",
+    "para": "  if (false) { // MUTAÇÃO: confirma o recebimento em qualquer estado, mesmo sem varredura concluída",
+    "espera": "describe 'T4 — confirmarRecebimentoAoCliente: fail-closed, só liberado confirma' vira vermelho nos dois casos de recusa: estado 'recebido' e estado 'em_quarentena' passam a confirmar (ok:true) em vez de recusar."
+  },
+  {
+    "guarda": "M16 · caminhoInterno é derivado do id, nunca vem de fora (sanitização desligada)",
+    "arquivo": "lib/agency/celula/ponte/endereco-interno.ts",
+    "teste": "__tests__/celula/ponte-caminho-interno-derivado.test.ts",
+    "de": "  const limpo = (bruto ?? \"\").replace(/[^a-zA-Z0-9_-]/g, \"\");",
+    "para": "  const limpo = (bruto ?? \"\").replace(/xxNADAxx/g, \"\"); // MUTAÇÃO: a sanitização nunca casa nada — qualquer caractere sobrevive, inclusive '../'",
+    "espera": "'sanitiza workspaceId, id e extensão — nenhum caractere fora de [a-zA-Z0-9_-] sobrevive' e 'nunca produz travessia de diretório mesmo com entrada adversarial pesada' viram vermelho — derivarCaminhoInterno volta a deixar '../' sobreviver no caminho."
+  },
+  {
+    "guarda": "M17 · CAPTCHA / sessão expirada / bloqueio param a automação (trava 2 desligada)",
+    "arquivo": "lib/agency/celula/excecoes/fila.ts",
+    "teste": "__tests__/celula/excecoes-interrompe-automacao.test.ts",
+    "de": "    if (CASOS_QUE_INTERROMPEM_A_AUTOMACAO.has(caso) && (estado === \"aberta\" || estado === \"em_tratamento\")) {",
+    "para": "    if (false) { // MUTAÇÃO: nenhum caso interrompe mais a automação, mesmo aberto ou em_tratamento",
+    "espera": "todo o describe 'metade suja: cada um dos 5 casos, aberto ou em_tratamento, BARRA a automação' (os it.each dos 5 casos em 'aberta' e em 'em_tratamento', mais o teste 'um caso bloqueador no meio de vários outros ainda bloqueia') vira vermelho — podeSeguirAutomatizando devolve podeSeguir:true mesmo com CAPTCHA/sessão expirada/confirmação de segurança/mensagem bloqueada/possível violação de política abertos."
+  },
+  {
+    "guarda": "M18 · exceção vencida grita (o cálculo de vencimento desligado)",
+    "arquivo": "lib/agency/celula/excecoes/fila.ts",
+    "teste": "__tests__/celula/excecoes-vencida-grita.test.ts",
+    "de": "    if (prazoEm.getTime() >= agora.getTime()) continue; // ainda no prazo",
+    "para": "    if (true) continue; // MUTAÇÃO: nunca conta nada como vencida, mesmo com o prazo estourado",
+    "espera": "os testes do describe 'excecoesVencidas — a metade suja: prazo estourado e aberta/em_tratamento entra' e o teste 'com vencidas, o grito não silencia' de gritoDaFila viram vermelho — a lista de vencidas volta sempre vazia, mesmo com prazoEm no passado."
+  },
+  {
+    "guarda": "M19 · o CEO não pode ser responsável na fila (trava 1 desligada)",
+    "arquivo": "lib/agency/celula/excecoes/fila.ts",
+    "teste": "__tests__/celula/excecoes-fila.test.ts",
+    "de": "  if (ehTentativaDeAtribuirAoCeo(entrada.responsavel)) {",
+    "para": "  if (false) { // MUTAÇÃO: a checagem específica do CEO nunca dispara",
+    "espera": "'responsável ceo é rejeitado com o motivo específico da trava' e 'responsável dono e o e-mail do CEO também são rejeitados como tentativa de atribuir ao CEO' viram vermelho — o código devolvido passa a ser 'responsavel_invalido' (motivo genérico), nunca mais 'responsavel_e_o_ceo'."
+  },
+  {
+    "guarda": "M20 · os 5 campos obrigatórios de uma exceção não têm default (ação recomendada vira opcional)",
+    "arquivo": "lib/agency/celula/excecoes/fila.ts",
+    "teste": "__tests__/celula/excecoes-fila.test.ts",
+    "de": "  if (!textoUtilValido(entrada.acaoRecomendada)) {",
+    "para": "  if (false) { // MUTAÇÃO: ação recomendada vazia, ausente ou curta demais passa a ser aceita",
+    "espera": "'ação recomendada ausente, vazia ou curta demais não entra' vira vermelho para os 4 valores testados (undefined, '', '  ', 'oi') — todos passam a ok:true."
+  },
+  {
+    "guarda": "M21 · a trilha de eventos é append-only — EventoDoArquivoDaCelula (armazem.ts da ponte)",
+    "arquivo": "lib/agency/celula/ponte/armazem.ts",
+    "teste": "__tests__/celula/ponte-versoes.test.ts",
+    "de": "    await tx.eventoDoArquivoDaCelula.create({\n      data: {\n        workspaceId: input.workspaceId,\n        arquivoId: criado.id,\n        tipo: veredicto.ok ? \"varredura\" : veredicto.estado === \"em_quarentena\" ? \"quarentena\" : \"recusado\",\n        autor: input.autor,\n        origem: \"sistema\",\n        detalhe: veredicto.ok ? \"Varredura concluída sem achados. Arquivo liberado.\" : veredicto.motivo,\n      },\n    });",
+    "para": "    await tx.eventoDoArquivoDaCelula.create({\n      data: {\n        workspaceId: input.workspaceId,\n        arquivoId: criado.id,\n        tipo: veredicto.ok ? \"varredura\" : veredicto.estado === \"em_quarentena\" ? \"quarentena\" : \"recusado\",\n        autor: input.autor,\n        origem: \"sistema\",\n        detalhe: veredicto.ok ? \"Varredura concluída sem achados. Arquivo liberado.\" : veredicto.motivo,\n      },\n    });\n    // MUTAÇÃO: escrita mutante que a varredura estática tem que pegar\n    await tx.eventoDoArquivoDaCelula.updateMany({\n      where: { arquivoId: criado.id },\n      data: { detalhe: \"reescrita\" },\n    });",
+    "espera": "'não existe .update / .updateMany / .delete / .deleteMany / .upsert sobre eventoDoArquivoDaCelula' vira vermelho — a varredura estática por regex encontra o .updateMany injetado no arquivo-fonte."
+  },
+  {
+    "guarda": "M22 · a trilha de eventos é append-only — EventoDaExcecaoDaCelula (armazem.ts das exceções)",
+    "arquivo": "lib/agency/celula/excecoes/armazem.ts",
+    "teste": "__tests__/celula/excecoes-fila.test.ts",
+    "de": "    await tx.eventoDaExcecaoDaCelula.create({\n      data: {\n        workspaceId: entrada.workspaceId,\n        excecaoId: excecao.id,\n        tipo: \"aberta\",\n        autor,\n        detalhe: `Exceção aberta para o caso \"${veredicto.caso}\" (prioridade ${veredicto.prioridade}), atribuída a ${veredicto.responsavel}.`,\n      },\n    });",
+    "para": "    await tx.eventoDaExcecaoDaCelula.create({\n      data: {\n        workspaceId: entrada.workspaceId,\n        excecaoId: excecao.id,\n        tipo: \"aberta\",\n        autor,\n        detalhe: `Exceção aberta para o caso \"${veredicto.caso}\" (prioridade ${veredicto.prioridade}), atribuída a ${veredicto.responsavel}.`,\n      },\n    });\n    // MUTAÇÃO: escrita mutante que a varredura estática tem que pegar\n    await tx.eventoDaExcecaoDaCelula.updateMany({\n      where: { excecaoId: excecao.id },\n      data: { detalhe: \"reescrita\" },\n    });",
+    "espera": "'não existe .update / .updateMany / .delete / .deleteMany / .upsert sobre eventoDaExcecaoDaCelula' vira vermelho pelo mesmo motivo — o .updateMany injetado é encontrado pela varredura."
+  },
+  {
+    "guarda": "M23 · perdida → retomar legal e perdida → ganha ilegal (a linha da tabela trocada)",
+    "arquivo": "lib/agency/celula/funil.ts",
+    "teste": "__tests__/celula/funil.test.ts",
+    "de": "  perdida: [\"retomar\", \"excecao_operacional\"],",
+    "para": "  perdida: [\"ganha\", \"excecao_operacional\"], // MUTAÇÃO: inverte a regra — perdida→ganha vira legal, perdida→retomar vira ilegal",
+    "espera": "'2a. perdida DEIXOU de ser terminal: perdida → retomar é legal, perdida → ganha continua ilegal' vira vermelho (as duas asserções invertem de sinal); '2d. perdida → retomar SEM justificativa continua rejeitada' e '2e. perdida → retomar COM justificativa é aceita pelo juiz puro' também caem, porque o par 'perdida→retomar' deixou de existir na tabela e o código de rejeição vira 'par_nao_permitido' em vez de julgar a justificativa."
+  }
+]

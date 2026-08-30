@@ -16,6 +16,44 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+// ── CONSERTO B2/2 — o caminho interno é DERIVADO, nunca aceito de fora ────
+//
+// Laudo do `qualidade` na Onda 3 (despacho B): `caminhoInterno` era aceito
+// como STRING CRUA vinda de fora em `armazem.ts` — o oposto do que a ficha B
+// mandava reaproveitar de `lib/agency/media/armazenamento.ts`
+// (`caminhoAbsoluto`: "Derivado do id — NUNCA do nome enviado pelo cliente,
+// que é o que mata travessia de diretório por construção"). A partir deste
+// conserto, `registrarArquivoDoCliente` e `registrarArquivoParaCliente` (em
+// `armazem.ts`) NÃO aceitam mais `caminhoInterno` como parâmetro de entrada —
+// ele é sempre calculado aqui, a partir do `id` gerado dentro do próprio
+// `armazem.ts` (nunca do nome ou de qualquer outro dado vindo de quem chama).
+//
+// LACUNA DECLARADA (escolha (b) do despacho B2): esta onda deriva o caminho
+// com segurança, mas NÃO grava o byte em disco — `armazem.ts` continua sem
+// `writeFile`/`node:fs`. Quem executar a escrita física do byte numa onda
+// futura reaproveita `lib/agency/media/armazenamento.ts`; até lá, o
+// `caminhoInterno` gravado no banco é um endereço RESERVADO e seguro (nunca
+// injetável), não um caminho que já tem byte atrás dele.
+
+/** Deriva o caminho interno de um arquivo da célula A PARTIR DO ID —
+ *  nunca aceita nenhuma parte do caminho vinda de fora (nem o nome
+ *  original, nem uma extensão não sanitizada, nem o workspace cru). Mesma
+ *  disciplina de `sanitizarPasta` em `lib/agency/media/armazenamento.ts`. */
+export function derivarCaminhoInterno(input: { workspaceId: string; id: string; extensao: string }): string {
+  const pasta = apenasCaracteresSeguros(input.workspaceId, "sem-workspace");
+  const id = apenasCaracteresSeguros(input.id, "sem-id");
+  const extensao = apenasCaracteresSeguros(input.extensao, "bin").slice(0, 10) || "bin";
+  return `celula/${pasta}/${id}.${extensao}`;
+}
+
+/** Só o que é seguro num segmento de caminho — nunca `../`, nunca separador,
+ *  nunca caractere de controle. A garantia não depende de quem chama ter
+ *  sanitizado antes. */
+function apenasCaracteresSeguros(bruto: string, valorSeVazio: string): string {
+  const limpo = (bruto ?? "").replace(/[^a-zA-Z0-9_-]/g, "");
+  return limpo.length > 0 ? limpo.slice(0, 80) : valorSeVazio;
+}
+
 // ── Link interno temporário — só para o operador ────────────────────────
 
 export interface LinkInternoInput {

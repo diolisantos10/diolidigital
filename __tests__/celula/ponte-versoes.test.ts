@@ -104,7 +104,6 @@ CREATE INDEX "EventoDoArquivoDaCelula_workspaceId_criadoEm_idx" ON "EventoDoArqu
       extensaoDeclarada: "pdf",
       mimeType: "application/pdf",
       bytes: Buffer.from("conteudo da versao 1"),
-      caminhoInterno: "cli_1/lin_briefing_1_v1.pdf",
       destinatarioDeclarado: "atendimento-dioli",
       autor: "operador_1",
     });
@@ -126,7 +125,6 @@ CREATE INDEX "EventoDoArquivoDaCelula_workspaceId_criadoEm_idx" ON "EventoDoArqu
       extensaoDeclarada: "pdf",
       mimeType: "application/pdf",
       bytes: Buffer.from("conteudo v1"),
-      caminhoInterno: "cli_1/lin_x_v1.pdf",
       destinatarioDeclarado: "atendimento-dioli",
       autor: "operador_1",
     });
@@ -143,7 +141,6 @@ CREATE INDEX "EventoDoArquivoDaCelula_workspaceId_criadoEm_idx" ON "EventoDoArqu
       extensaoDeclarada: "pdf",
       mimeType: "application/pdf",
       bytes: Buffer.from("conteudo v2, diferente"),
-      caminhoInterno: "cli_1/lin_x_v2.pdf",
       destinatarioDeclarado: "atendimento-dioli",
       autor: "operador_1",
     });
@@ -158,9 +155,11 @@ CREATE INDEX "EventoDoArquivoDaCelula_workspaceId_criadoEm_idx" ON "EventoDoArqu
     expect(linhas).toHaveLength(2);
     expect(linhas[0].versao).toBe(1);
     expect(linhas[0].sha256).not.toBe(linhas[1].sha256);
-    // a v1 continua legível byte a byte: o registro dela não foi tocado.
+    // a v1 continua legível byte a byte: o registro dela não foi tocado, e o
+    // caminhoInterno segue DERIVADO do id (conserto B2/2) — nunca aceito de
+    // fora, e nunca reescrito entre versões.
     const v1Relido = await estado.prisma.arquivoDaCelula.findUnique({ where: { id: v1.arquivoId } });
-    expect(v1Relido?.caminhoInterno).toBe("cli_1/lin_x_v1.pdf");
+    expect(v1Relido?.caminhoInterno).toBe(`celula/ws_1/${v1.arquivoId}.pdf`);
     expect(v1Relido?.versao).toBe(1);
   });
 
@@ -220,7 +219,6 @@ CREATE INDEX "EventoDoArquivoDaCelula_workspaceId_criadoEm_idx" ON "EventoDoArqu
       extensaoDeclarada: "pdf",
       mimeType: "application/pdf",
       bytes: Buffer.from("conteudo do dono original"),
-      caminhoInterno: "cli_1/lin_colisao_v1.pdf",
       destinatarioDeclarado: "atendimento-dioli",
       autor: "operador_1",
     });
@@ -243,7 +241,6 @@ CREATE INDEX "EventoDoArquivoDaCelula_workspaceId_criadoEm_idx" ON "EventoDoArqu
         extensaoDeclarada: "pdf",
         mimeType: "application/pdf",
         bytes: Buffer.from("conteudo de outro workspace"),
-        caminhoInterno: "cli_de_outro_workspace/x.pdf",
         destinatarioDeclarado: "atendimento-dioli",
         autor: "operador_2",
       }),
@@ -269,7 +266,6 @@ CREATE INDEX "EventoDoArquivoDaCelula_workspaceId_criadoEm_idx" ON "EventoDoArqu
       extensaoDeclarada: "png",
       mimeType: "image/jpeg", // diverge de "png"
       bytes: Buffer.from("bytes quaisquer"),
-      caminhoInterno: "cli_1/lin_suspeito_v1.jpg",
       destinatarioDeclarado: "atendimento-dioli",
       autor: "operador_1",
     });
@@ -295,7 +291,6 @@ CREATE INDEX "EventoDoArquivoDaCelula_workspaceId_criadoEm_idx" ON "EventoDoArqu
       extensaoDeclarada: "png",
       mimeType: "image/jpeg",
       bytes: Buffer.from("bytes"),
-      caminhoInterno: "cli_1/x.jpg",
       destinatarioDeclarado: "atendimento-dioli",
       autor: "operador_1",
     });
@@ -321,7 +316,6 @@ CREATE INDEX "EventoDoArquivoDaCelula_workspaceId_criadoEm_idx" ON "EventoDoArqu
       extensaoDeclarada: "pdf",
       mimeType: "application/pdf",
       bytes: Buffer.from("bytes limpos"),
-      caminhoInterno: "cli_1/y.pdf",
       destinatarioDeclarado: "atendimento-dioli",
       autor: "operador_1",
     });
@@ -355,7 +349,6 @@ CREATE INDEX "EventoDoArquivoDaCelula_workspaceId_criadoEm_idx" ON "EventoDoArqu
       extensao: "pdf",
       mimeType: "application/pdf",
       bytes: Buffer.from("proposta final"),
-      caminhoInterno: "cli_1/proposta.pdf",
       destinatarioDeclarado: "cliente-a@exemplo.com",
       autor: "designer_1",
     });

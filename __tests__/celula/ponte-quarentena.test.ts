@@ -85,8 +85,11 @@ describe("varrerArquivoRecebido — metade suja: RECUSA direta", () => {
   });
 
   it("nome com caractere Unicode de sobrescrita de direção (RTL override, U+202E) → recusado", () => {
-    // Idem: escape `‮`, nunca o glifo cru no arquivo-fonte.
-    const nomeComOverrideRTL = "fatura" + "‮" + "fdp.exe";
+    // Achado extra do conserto B2/1 (PM): esta linha continha o GLIFO CRU
+    // dentro do arquivo-fonte de teste, apesar do comentário original dizer
+    // o contrário — o mesmo defeito do próprio `quarentena.ts`. Construído
+    // por código-de-caractere agora, como a linha acima já fazia para o NUL.
+    const nomeComOverrideRTL = "fatura" + String.fromCharCode(0x202e) + "fdp.exe";
     const veredicto = varrerArquivoRecebido(
       { nomeOriginal: nomeComOverrideRTL, extensaoDeclarada: "pdf", mimeType: "application/pdf", tamanhoBytes: 500 },
       REGRAS,
