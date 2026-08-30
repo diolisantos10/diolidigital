@@ -15,11 +15,18 @@ function modeloValidoBruto(sobrescreve: Record<string, unknown> = {}): Record<st
     codigo: "M99",
     nome: "Modelo de teste",
     plataforma: "99freelas",
-    etapaDoFunil: "abertura",
+    // "qualificada" — um dos 22 estados de `lib/agency/celula/funil.ts`. A
+    // trava nova (Ficha B, Onda 4A) valida etapaDoFunil no ENVIO; um valor
+    // livre como "abertura" bloquearia até os testes que não têm nada a ver
+    // com essa trava.
+    etapaDoFunil: "qualificada",
     finalidade: "testar a biblioteca",
     textoBase: "Olá {{nomeDoCliente}}, tudo bem sobre {{projeto}}?",
     variaveisObrigatorias: ["nomeDoCliente"],
     variaveisOpcionais: ["projeto"],
+    // Ficha B, Onda 4A: cobertura completa para as 2 variáveis do textoBase
+    // acima — sem isso, a trava nova de ligação bloquearia a leitura.
+    ligacaoDeVariaveis: { nomeDoCliente: "nomeDoCliente", projeto: "entregavel" },
     palavrasProibidas: ["concorrente"],
     condicaoDeEntrada: "projeto elegível",
     condicaoDeSaida: "cliente respondeu",
@@ -41,11 +48,12 @@ const MODELO_APROVADO_FIXTURE: ModeloDeMensagem = {
   codigo: "M99",
   nome: "Modelo de teste",
   plataforma: "99freelas",
-  etapaDoFunil: "abertura",
+  etapaDoFunil: "qualificada",
   finalidade: "testar a biblioteca",
   textoBase: "Olá {{nomeDoCliente}}, tudo bem sobre {{projeto}}?",
   variaveisObrigatorias: ["nomeDoCliente"],
   variaveisOpcionais: ["projeto"],
+  ligacaoDeVariaveis: { nomeDoCliente: "nomeDoCliente", projeto: "entregavel" },
   palavrasProibidas: ["concorrente"],
   condicaoDeEntrada: "projeto elegível",
   condicaoDeSaida: "cliente respondeu",

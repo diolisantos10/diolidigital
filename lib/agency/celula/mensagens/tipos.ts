@@ -38,11 +38,66 @@ export interface RegraDeAusencia {
   fonte: string; // de onde veio a regra
 }
 
+// ─── LIGAÇÃO DE VARIÁVEIS — Ficha B, Onda 4A ────────────────────────────────
+// `[NOME]` significa PESSOA em M01/M14 e ARQUIVO em M06/M17/M20 — a mesma
+// marcação, dois significados. `ligacaoDeVariaveis` declara, POR MODELO, em
+// que campo do estado cada variável liga. Conjunto FECHADO: um alvo fora
+// desta lista (typo, valor de migração, `null`) nunca vira default — vira
+// bloqueio nomeado. Leitura fail-closed em `alvoDeLigacaoDeclarado()`
+// (`biblioteca.ts`), na forma exata de `estadoDeclarado()` em `funil.ts`.
+//
+// "preciso_confirmar_com_o_ceo" é membro VÁLIDO deste conjunto — declarar
+// isto não é erro de forma (não bloqueia a leitura do modelo), mas BLOQUEIA
+// o ENVIO (`modeloParaEnvio`/`preencher` recusam, nomeando a variável). É o
+// oposto de inventar: declara a ausência de forma que ela pare a mensagem.
+//
+// O conjunto foi derivado das variáveis que os 22 modelos REALMENTE usam
+// (ver docs/plataformas/99freelas/mensagens.json e o relatório da ficha) —
+// um alvo por CONCEITO, não um alvo por modelo.
+export const ALVO_PENDENTE = "preciso_confirmar_com_o_ceo" as const;
+
+export const ALVOS_DE_LIGACAO = [
+  "nomeDoCliente",
+  "nomeDoArquivo",
+  "entregavel",
+  "necessidadeEspecifica",
+  "perguntaEspecifica",
+  "informacaoPendente",
+  "caracteristicas",
+  "objetivo",
+  "prazo",
+  "materiais",
+  "motivo",
+  "formatoAceito",
+  "escopoResumido",
+  "valor",
+  "orcamentoDoCliente",
+  "escopoAjustado",
+  "prazoRealista",
+  "dataDoCliente",
+  "primeiraEtapa",
+  "marcoOuEntrega",
+  "data",
+  "etapaConcluida",
+  "proximaEtapa",
+  "resumoObjetivo",
+  "novaDemanda",
+  "motivoDaRecusa",
+  ALVO_PENDENTE,
+] as const;
+
+export type AlvoDeLigacao = (typeof ALVOS_DE_LIGACAO)[number];
+
 export interface ModeloDeMensagem {
   codigo: string; // "M01".."M22"
   nome: string;
   plataforma: string; // "99freelas"
-  etapaDoFunil: string; // texto livre por ora — a Onda 1 tipa depois
+  /** Texto livre na FORMA (não-vazio) — mas, para ENVIO, validada contra os
+   *  22 estados de `lib/agency/celula/funil.ts` (`estadoDeclarado`). Valor
+   *  fora do conjunto — inclusive o placeholder "preciso confirmar com o
+   *  CEO" — não bloqueia a LEITURA (o modelo continua inspecionável), mas
+   *  bloqueia o ENVIO (`modeloParaEnvio`/`preencher`). Ver Ficha B, Onda 4A. */
+  etapaDoFunil: string;
   finalidade: string;
   textoBase: string; // com {{variaveis}} entre chaves duplas OU [VARIAVEIS] entre colchetes
   variaveisObrigatorias: string[];
@@ -62,6 +117,12 @@ export interface ModeloDeMensagem {
   pendencia?: string | null;
   /** Regras de "sem esta variável, troca este recorte por aquele". Ausente == []. */
   regrasDeAusencia?: RegraDeAusencia[];
+  /** Para cada variável do modelo, em QUE campo do estado ela se liga.
+   *  OPCIONAL na forma (ausente == não usa o recurso — nenhum modelo antigo
+   *  quebra), mas quando presente é validada por inteiro: toda variável
+   *  citada precisa de ligação, e todo alvo precisa ser do conjunto
+   *  fechado. Ver `ALVOS_DE_LIGACAO` acima e `biblioteca.ts`. */
+  ligacaoDeVariaveis?: Record<string, AlvoDeLigacao>;
 }
 
 /**

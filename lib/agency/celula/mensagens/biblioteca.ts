@@ -26,9 +26,13 @@
 
 import { validarTexto } from "@/lib/marketplaces/99freelas/conformidade";
 import bibliotecaCrua from "@/docs/plataformas/99freelas/mensagens.json";
+import { estadoDeclarado as etapaDoFunilDeclarada } from "../funil";
 import {
+  ALVO_PENDENTE,
+  ALVOS_DE_LIGACAO,
   ESTADOS_DO_MODELO,
   PADRAO_DE_CODIGO,
+  type AlvoDeLigacao,
   type EstadoDoModelo,
   type HistoricoDoModelo,
   type LeituraDoModelo,
@@ -87,6 +91,90 @@ function regraDeAusenciaValida(item: unknown): item is RegraDeAusencia {
 
 function regrasDeAusenciaValidas(v: unknown): v is RegraDeAusencia[] {
   return Array.isArray(v) && v.every(regraDeAusenciaValida);
+}
+
+// ── LIGAÇÃO DE VARIÁVEIS — Ficha B, Onda 4A ─────────────────────────────────
+// Leitura fail-closed de conjunto fechado, na forma exata de
+// `estadoDeclarado()` em `lib/agency/celula/funil.ts`: valor que não seja
+// EXATAMENTE um dos alvos declarados vira `null` — nunca `as AlvoDeLigacao`.
+const CONJUNTO_DE_ALVOS_DE_LIGACAO: ReadonlySet<string> = new Set(ALVOS_DE_LIGACAO);
+
+export function alvoDeLigacaoDeclarado(valor: unknown): AlvoDeLigacao | null {
+  return typeof valor === "string" && CONJUNTO_DE_ALVOS_DE_LIGACAO.has(valor) ? (valor as AlvoDeLigacao) : null;
+}
+
+// Casa `{{chave}}` OU `[MIOLO]` — mesma regex combinada de `preencher()` (ver
+// `PLACEHOLDER_COMBINADO` abaixo), mas aqui só para COLETAR nomes, nunca para
+// substituir. Reaproveita a mesma leitura do miolo: sem normalizar caixa,
+// acento ou espaço.
+const PADRAO_DE_NOME_DE_VARIAVEL = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}|\[([^[\]]+)\]/g;
+
+function nomesDeVariaveisNoTexto(textoBase: string): string[] {
+  const nomes = new Set<string>();
+  const re = new RegExp(PADRAO_DE_NOME_DE_VARIAVEL);
+  let casamento: RegExpExecArray | null;
+  while ((casamento = re.exec(textoBase)) !== null) {
+    const nome = (casamento[1] ?? casamento[2] ?? "").trim();
+    if (nome) nomes.add(nome);
+  }
+  return Array.from(nomes);
+}
+
+type ResultadoDaLigacao =
+  | { ok: true; ligacao: Record<string, AlvoDeLigacao> }
+  | { ok: false; motivo: string };
+
+/**
+ * Valida `ligacaoDeVariaveis` de UM modelo. `bruto === undefined` é
+ * legítimo — modelo que não usa o recurso — e devolve `{}` (mesmo espírito
+ * de `regrasDeAusencia` ausente). Presente, é validado por inteiro:
+ *
+ *  1. Cobertura: toda variável em `variaveisObrigatorias` ∪
+ *     `variaveisOpcionais` ∪ os colchetes/chaves do `textoBase` tem ligação
+ *     declarada. Falta uma → recusa, nomeando qual.
+ *  2. Alvo válido: todo alvo é membro do conjunto fechado
+ *     (`alvoDeLigacaoDeclarado`). Fora → recusa, nomeando a variável e o
+ *     valor recebido — nunca vira default.
+ *
+ * (O bloqueio de ENVIO quando um alvo é `ALVO_PENDENTE` é checagem à parte,
+ * em `modeloParaEnvio`/`preencher` — `ALVO_PENDENTE` É membro válido aqui.)
+ */
+function ligacaoDeVariaveisValida(
+  bruto: unknown,
+  variaveisObrigatorias: string[],
+  variaveisOpcionais: string[],
+  textoBase: string,
+): ResultadoDaLigacao {
+  if (bruto === undefined) return { ok: true, ligacao: {} };
+
+  if (typeof bruto !== "object" || bruto === null || Array.isArray(bruto)) {
+    return { ok: false, motivo: 'precisa ser um objeto no formato "variável" → alvo.' };
+  }
+  const mapa = bruto as Record<string, unknown>;
+
+  const esperadas = new Set<string>([...variaveisObrigatorias, ...variaveisOpcionais, ...nomesDeVariaveisNoTexto(textoBase)]);
+  for (const variavel of esperadas) {
+    if (!(variavel in mapa)) {
+      return {
+        ok: false,
+        motivo: `a variável "${variavel}" (citada em variaveisObrigatorias, variaveisOpcionais ou no textoBase) não tem ligação declarada.`,
+      };
+    }
+  }
+
+  const ligacao: Record<string, AlvoDeLigacao> = {};
+  for (const [chave, valorBruto] of Object.entries(mapa)) {
+    const alvo = alvoDeLigacaoDeclarado(valorBruto);
+    if (alvo === null) {
+      return {
+        ok: false,
+        motivo: `a variável "${chave}" tem alvo ${JSON.stringify(valorBruto)}, fora do conjunto fechado de alvos — não vira default.`,
+      };
+    }
+    ligacao[chave] = alvo;
+  }
+
+  return { ok: true, ligacao };
 }
 
 /**
@@ -264,6 +352,17 @@ export function lerModelo(bruto: unknown): LeituraDoModelo {
     regrasDeAusencia = regrasDeAusenciaBruta;
   }
 
+  // Campo novo (Ficha B, Onda 4A). Mesma régua de `regrasDeAusencia`: ausente
+  // é legítimo ({} — modelo que não usa o recurso); presente é validado por
+  // inteiro (cobertura + alvo do conjunto fechado) — fail closed, não
+  // "ignora e segue".
+  const ligacaoDeVariaveisBruta = m.ligacaoDeVariaveis;
+  const ligacaoResultado = ligacaoDeVariaveisValida(ligacaoDeVariaveisBruta, variaveisObrigatorias, variaveisOpcionais, textoBase);
+  if (!ligacaoResultado.ok) {
+    return { ok: false, motivo: `campo "ligacaoDeVariaveis" inválido: ${ligacaoResultado.motivo}`, codigo };
+  }
+  const ligacaoDeVariaveis = ligacaoResultado.ligacao;
+
   const modelo: ModeloDeMensagem = {
     codigo,
     nome,
@@ -286,6 +385,7 @@ export function lerModelo(bruto: unknown): LeituraDoModelo {
     historico,
     pendencia,
     regrasDeAusencia,
+    ligacaoDeVariaveis,
   };
   return { ok: true, modelo };
 }
@@ -421,6 +521,28 @@ export function modeloParaEnvio(codigo: string, bruto: unknown = bibliotecaCrua)
     };
   }
 
+  // ── etapaDoFunil precisa ser um dos 22 estados do funil (Ficha B, Onda 4A) ──
+  // Vale mesmo para o placeholder "preciso confirmar com o CEO": não é um dos
+  // 22, então bloqueia igual a qualquer outro valor fora do conjunto — sem
+  // isso ser um caso especial no código.
+  if (etapaDoFunilDeclarada(modelo.etapaDoFunil) === null) {
+    return {
+      ok: false,
+      motivo: `modelo "${chave}" tem etapaDoFunil "${modelo.etapaDoFunil}", que não é um dos 22 estados do funil (lib/agency/celula/funil.ts) — não pode ser enviado até a etapa ser corrigida ou confirmada.`,
+      codigo: chave,
+    };
+  }
+
+  // ── Nenhuma variável pode ter ligação PENDENTE (Ficha B, Onda 4A) ──────────
+  const ligacaoPendente = Object.entries(modelo.ligacaoDeVariaveis ?? {}).find(([, alvo]) => alvo === ALVO_PENDENTE);
+  if (ligacaoPendente) {
+    return {
+      ok: false,
+      motivo: `modelo "${chave}" tem a variável "${ligacaoPendente[0]}" com ligação "${ALVO_PENDENTE}" — não pode ser enviado até o Diretor/CEO confirmar em que campo ela liga.`,
+      codigo: chave,
+    };
+  }
+
   return { ok: true, modelo };
 }
 
@@ -489,6 +611,25 @@ export function preencher(modelo: ModeloDeMensagem, variaveis: Record<string, st
     return {
       ok: false,
       motivo: `modelo "${modelo.codigo}" tem pendência declarada e não pode ser preenchido: ${modelo.pendencia}`,
+    };
+  }
+
+  // ── SEGUNDO CINTO (Ficha B, Onda 4A): etapaDoFunil e ligação pendente ──────
+  // `modeloParaEnvio` já confere isto, mas este módulo é chamado por conta
+  // própria em testes e por `proxima-mensagem.ts` — o mesmo espírito do
+  // segundo cinto que já existe para `estado`/`pendencia` acima.
+  if (etapaDoFunilDeclarada(modelo.etapaDoFunil) === null) {
+    return {
+      ok: false,
+      motivo: `modelo "${modelo.codigo}" tem etapaDoFunil "${modelo.etapaDoFunil}", que não é um dos 22 estados do funil (lib/agency/celula/funil.ts) — não pode ser enviado até a etapa ser corrigida ou confirmada.`,
+    };
+  }
+
+  const ligacaoPendenteEmPreencher = Object.entries(modelo.ligacaoDeVariaveis ?? {}).find(([, alvo]) => alvo === ALVO_PENDENTE);
+  if (ligacaoPendenteEmPreencher) {
+    return {
+      ok: false,
+      motivo: `modelo "${modelo.codigo}" tem a variável "${ligacaoPendenteEmPreencher[0]}" com ligação "${ALVO_PENDENTE}" — não pode ser enviado até o Diretor/CEO confirmar em que campo ela liga.`,
     };
   }
 

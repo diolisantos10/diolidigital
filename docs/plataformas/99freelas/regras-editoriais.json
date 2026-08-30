@@ -1,0 +1,245 @@
+{
+  "_leia_isto": [
+    "FICHA A DA ONDA 4A (docs/celula-prospeccao/despachos/ONDA-4A-A-o-juiz-editorial.md).",
+    "O DADO do juiz editorial: as 8 categorias julgadas pelo LLM-judge, e as 14",
+    "regras editoriais literais do CEO — cada uma apontando para o que de fato",
+    "a verifica hoje (mecanismo, juiz, ou nenhum dos dois).",
+    "",
+    "FONTE ÚNICA: este arquivo é a fonte destas 8 categorias e destas 14 regras.",
+    "`docs/plataformas/99freelas/mensagens.json` tinha um rascunho duplicado",
+    "(`_proibicoes_do_ceo_sem_mecanismo`, `_regras_editoriais_do_ceo`) — outra",
+    "ficha desta mesma onda transforma aquele bloco em ponteiro para cá. Este",
+    "arquivo NÃO foi editado por essa outra ficha e vice-versa: cada um mexe só",
+    "no seu.",
+    "",
+    "QUEM LÊ ESTE ARQUIVO: lib/agency/celula/mensagens/juiz-editorial.ts (as 8",
+    "categorias, para o conjunto fechado `CATEGORIAS`). As 14 regras são",
+    "REGISTRO — nenhum código as lê hoje; elas existem para a casa saber, regra",
+    "por regra, o que está de fato protegido e o que não está. Um teste desta",
+    "mesma ficha (__tests__/celula/juiz-editorial.test.ts) confere que as 8",
+    "categorias aqui e as 8 hardcoded em juiz-editorial.ts são EXATAMENTE as",
+    "mesmas — pra as duas listas não divergirem como aconteceu antes entre",
+    "quality-gates.ts e quality-canvas.ts (ver o cabeçalho de quality-gates.ts).",
+    "",
+    "`verificadaPor` de cada regra é uma de três formas, e nunca uma quarta:",
+    "  - mecanismo: existe código que barra, e o caminho do arquivo é real —",
+    "    conferido abrindo o arquivo antes de escrever a linha, nunca por",
+    "    suposição.",
+    "  - juiz: uma das 8 categorias abaixo cobre esta regra (nenhuma das 14",
+    "    regras editoriais bateu 1:1 com uma das 8 categorias do CEO — as 8 são",
+    "    proibições de CONTEÚDO; as 14 são regras de FORMA/ESTRUTURA da",
+    "    mensagem. Por isso nenhuma regra abaixo usa este tipo hoje; o juiz",
+    "    continua sendo uma checagem própria, rodada sobre o texto inteiro,",
+    "    não amarrada a nenhuma das 14 linhas).",
+    "  - sem_mecanismo: motivo e dono, honestos. Ausência de informação não é",
+    "    informação — uma regra sem mecanismo precisa DIZER que não tem.",
+    "",
+    "Fonte da ordem literal do CEO: docs/celula-prospeccao/despachos/ONDA-4A-A-o-juiz-editorial.md, §1.1 e §1.2."
+  ],
+
+  "versao": "1.0.0",
+  "atualizadoEm": "2026-08-30",
+  "fonte": "Ordem literal do CEO, transcrita na ficha ONDA-4A-A. Não reescrita, não resumida, não 'melhorada'.",
+
+  "categorias": [
+    {
+      "slug": "exageros",
+      "rotuloDoCeo": "exageros",
+      "definicaoOperacional": "Afirmações infladas ou desproporcionais sobre a qualidade, o alcance ou o efeito do serviço oferecido — adjetivos e superlativos sem lastro (ex.: 'a melhor', 'incrível', 'extraordinário') aplicados ao próprio serviço ou à agência.",
+      "exemploQueReprova": "Somos simplesmente os melhores do mercado e nosso trabalho é sempre extraordinário.",
+      "exemploQuePassa": "Trabalhamos com social media para negócios locais e já entregamos projetos parecidos com o seu."
+    },
+    {
+      "slug": "pressao_artificial",
+      "rotuloDoCeo": "pressão artificial",
+      "definicaoOperacional": "Linguagem que empurra o cliente a decidir rápido por medo de perder algo, sem que exista de fato um limite real declarado pela agência (ex.: 'decida agora', 'não vou conseguir garantir depois').",
+      "exemploQueReprova": "Preciso que você decida agora, porque não sei se vou conseguir esse valor depois.",
+      "exemploQuePassa": "Fico à disposição para você decidir com calma — quando estiver pronto, é só me chamar."
+    },
+    {
+      "slug": "urgencia_inventada",
+      "rotuloDoCeo": "urgência inventada",
+      "definicaoOperacional": "Prazo ou escassez apresentados como reais quando não há fonte real para eles — vaga limitada, promoção que 'acaba hoje', fila de espera inventada.",
+      "exemploQueReprova": "Só tenho mais uma vaga esta semana, depois só no mês que vem.",
+      "exemploQuePassa": "Posso te dar um prazo assim que a gente confirmar o escopo."
+    },
+    {
+      "slug": "promessa_de_resultado",
+      "rotuloDoCeo": "promessa de resultado",
+      "definicaoOperacional": "Garantia de um resultado de negócio do cliente (vendas, seguidores, faturamento) que a agência não controla e não pode assegurar.",
+      "exemploQueReprova": "Garanto que você vai triplicar as vendas em 30 dias.",
+      "exemploQuePassa": "Trabalhamos com estratégia orientada a resultado, mas o retorno depende de vários fatores do seu negócio."
+    },
+    {
+      "slug": "experiencia_nao_comprovada",
+      "rotuloDoCeo": "experiência não comprovada",
+      "definicaoOperacional": "Alegação de anos de experiência, número de clientes atendidos ou especialização em um nicho sem que a casa tenha essa informação confirmada para citar.",
+      "exemploQueReprova": "Já são 8 anos atuando só com clínicas odontológicas.",
+      "exemploQuePassa": "Trabalhamos com social media para negócios locais."
+    },
+    {
+      "slug": "portfolio_inexistente",
+      "rotuloDoCeo": "portfólio inexistente",
+      "definicaoOperacional": "Menção a cases, clientes ou trabalhos anteriores específicos que a casa não tem registrados/confirmados para citar.",
+      "exemploQueReprova": "Veja o case que fizemos para a marca X — aumentamos o faturamento dela em 40%.",
+      "exemploQuePassa": "Posso te mostrar exemplos do nosso trabalho depois de entendermos melhor o seu projeto."
+    },
+    {
+      "slug": "excesso_de_elogios",
+      "rotuloDoCeo": "excesso de elogios",
+      "definicaoOperacional": "Elogio ao projeto, ao anúncio ou ao cliente que soa bajulação — mais de uma frase de elogio, ou elogio desproporcional ao que foi de fato dito pelo cliente.",
+      "exemploQueReprova": "Seu projeto é simplesmente incrível, sensacional, e você tem um gosto impecável — parabéns por tudo!",
+      "exemploQuePassa": "Li seu projeto e entendi o que você precisa."
+    },
+    {
+      "slug": "texto_longo_sobre_a_dioli",
+      "rotuloDoCeo": "texto longo sobre a Dioli",
+      "definicaoOperacional": "Parágrafo extenso descrevendo a agência, sua história, missão ou valores, em vez de responder objetivamente ao cliente — a mensagem deve falar do cliente e do projeto dele, não da Dioli.",
+      "exemploQueReprova": "Somos a Dioli Digital, uma agência fundada com o propósito de transformar negócios através do marketing digital, atendendo dezenas de clientes com dedicação e paixão desde o primeiro dia...",
+      "exemploQuePassa": "Trabalhamos com social media para negócios locais."
+    }
+  ],
+
+  "regras": [
+    {
+      "slug": "parece_escrita_por_pessoa",
+      "texto": "parece escrita por pessoa",
+      "escopo": "toda_mensagem",
+      "verificadaPor": {
+        "tipo": "sem_mecanismo",
+        "motivo": "julgamento subjetivo de tom/voz; não corresponde a nenhuma das 8 categorias julgadas pelo juiz editorial (que julga CONTEÚDO proibido, não 'soa humano'), e não há checagem determinística de naturalidade de texto nesta casa.",
+        "dono": "qualidade"
+      }
+    },
+    {
+      "slug": "demonstra_que_o_projeto_foi_lido",
+      "texto": "demonstra que o projeto foi lido",
+      "escopo": "toda_mensagem",
+      "verificadaPor": {
+        "tipo": "sem_mecanismo",
+        "motivo": "exige comparar o texto final contra o conteúdo do anúncio/briefing do cliente para achar referência específica — não é nenhuma das 8 categorias julgadas, e a casa não tem hoje um comparador de conteúdo dessa natureza.",
+        "dono": "qualidade"
+      }
+    },
+    {
+      "slug": "objetiva",
+      "texto": "objetiva",
+      "escopo": "toda_mensagem",
+      "verificadaPor": {
+        "tipo": "sem_mecanismo",
+        "motivo": "julgamento de estilo (concisão/foco); não corresponde a nenhuma das 8 categorias julgadas pelo juiz — a mais próxima ('texto longo sobre a Dioli') é sobre o ASSUNTO do texto (falar da Dioli), não sobre objetividade em geral, e generalizar uma para a outra seria inventar equivalência.",
+        "dono": "qualidade"
+      }
+    },
+    {
+      "slug": "trata_o_cliente_com_respeito",
+      "texto": "trata o cliente com respeito",
+      "escopo": "toda_mensagem",
+      "verificadaPor": {
+        "tipo": "sem_mecanismo",
+        "motivo": "julgamento subjetivo de tom. Tem sobreposição parcial com 'pressão artificial' e 'excesso de elogios' (as duas são formas de desrespeito), mas 'respeito' é mais amplo que a soma das duas — reduzir esta regra a uma única categoria do juiz seria inventar uma equivalência que o CEO não declarou.",
+        "dono": "qualidade"
+      }
+    },
+    {
+      "slug": "no_maximo_uma_pergunta_principal",
+      "texto": "no máximo uma pergunta principal",
+      "escopo": "toda_mensagem",
+      "verificadaPor": {
+        "tipo": "mecanismo",
+        "modulo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+        "como": "a etapa 'unica_pergunta' de decidirProximaMensagem conta os pontos de interrogação do texto final (resposta + pergunta já concatenados) e BLOQUEIA se houver mais de um — inclusive quando a segunda pergunta vem escondida dentro da própria resposta."
+      }
+    },
+    {
+      "slug": "proxima_acao_clara",
+      "texto": "próxima ação clara",
+      "escopo": "toda_mensagem",
+      "verificadaPor": {
+        "tipo": "sem_mecanismo",
+        "motivo": "exige avaliar se o texto final deixa claro o que o cliente deve fazer a seguir; não é nenhuma das 8 categorias julgadas nem tem checagem determinística hoje.",
+        "dono": "qualidade"
+      }
+    },
+    {
+      "slug": "so_informacao_confirmada",
+      "texto": "só informação confirmada",
+      "escopo": "toda_mensagem",
+      "verificadaPor": {
+        "tipo": "mecanismo",
+        "modulo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+        "como": "quando o modelo exige uma variável de preço, o texto SÓ sai com o valor devolvido pelo motor de preço (lib/marketplaces/99freelas/preco.ts) — sem pedido de preço informado, ou sem resposta do motor, o desfecho é 'escalar', nunca um número inventado. Reforço parcial: o Guardião (lib/marketplaces/99freelas/conformidade.ts, regra 'referencia_a_comissao') barra frases como 'esse valor já considera a taxa da plataforma', que também são informação não confirmada sobre o preço final."
+      }
+    },
+    {
+      "slug": "preserva_o_historico",
+      "texto": "preserva o histórico",
+      "escopo": "toda_mensagem",
+      "verificadaPor": {
+        "tipo": "mecanismo",
+        "modulo": "lib/agency/celula/mensagens/trava-de-conversa.ts",
+        "como": "verificarContradicao (chamada por decidirProximaMensagem na etapa 8) compara a fala candidata contra a última fala ENVIADA na mesma conversa — preço, prazo e escopo declarados — e bloqueia se a nova fala contradiz o que a casa já disse antes."
+      }
+    },
+    {
+      "slug": "respeita_o_idioma_do_cliente",
+      "texto": "respeita o idioma do cliente",
+      "escopo": "toda_mensagem",
+      "verificadaPor": {
+        "tipo": "sem_mecanismo",
+        "motivo": "exige detectar o idioma do texto do cliente e comparar com o idioma da resposta; nenhum detector de idioma existe nesta casa hoje.",
+        "dono": "qualidade"
+      }
+    },
+    {
+      "slug": "saudacao",
+      "texto": "saudação",
+      "escopo": "mensagem_inicial",
+      "verificadaPor": {
+        "tipo": "sem_mecanismo",
+        "motivo": "presença de saudação no texto final; nenhuma checagem determinística hoje. Os modelos M01/M14 trazem 'Olá' no textoBase como DADO (biblioteca.json), mas isso não é uma checagem que roda sobre o texto final — é conteúdo, não gate.",
+        "dono": "qualidade"
+      }
+    },
+    {
+      "slug": "referencia_especifica_ao_projeto",
+      "texto": "referência específica ao projeto",
+      "escopo": "mensagem_inicial",
+      "verificadaPor": {
+        "tipo": "sem_mecanismo",
+        "motivo": "mesma lacuna de 'demonstra que o projeto foi lido' — exige comparar o texto final contra o conteúdo do anúncio/briefing do cliente, e a casa não tem esse comparador hoje.",
+        "dono": "qualidade"
+      }
+    },
+    {
+      "slug": "demonstracao_de_entendimento",
+      "texto": "demonstração de entendimento",
+      "escopo": "mensagem_inicial",
+      "verificadaPor": {
+        "tipo": "sem_mecanismo",
+        "motivo": "mesma lacuna de 'demonstra que o projeto foi lido' — julgamento sobre o CONTEÚDO específico da mensagem contra o briefing do cliente, sem comparador determinístico nem categoria do juiz que cubra isto.",
+        "dono": "qualidade"
+      }
+    },
+    {
+      "slug": "uma_pergunta_relevante",
+      "texto": "uma pergunta relevante",
+      "escopo": "mensagem_inicial",
+      "verificadaPor": {
+        "tipo": "mecanismo",
+        "modulo": "lib/agency/celula/mensagens/proxima-mensagem.ts",
+        "como": "a mesma etapa 'unica_pergunta' citada em 'no máximo uma pergunta principal' garante o 'uma' — conta os pontos de interrogação e bloqueia acima de um. NÃO garante a metade 'relevante': a relevância do CONTEÚDO da pergunta escolhida (ela vem de perguntas-por-servico.ts) não tem checagem própria hoje."
+      }
+    },
+    {
+      "slug": "encerramento_curto",
+      "texto": "encerramento curto",
+      "escopo": "mensagem_inicial",
+      "verificadaPor": {
+        "tipo": "sem_mecanismo",
+        "motivo": "julgamento de estilo/extensão do fechamento da mensagem; nenhuma checagem determinística hoje, e não corresponde a nenhuma das 8 categorias julgadas pelo juiz.",
+        "dono": "qualidade"
+      }
+    }
+  ]
+}

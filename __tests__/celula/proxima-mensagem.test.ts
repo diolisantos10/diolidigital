@@ -17,6 +17,7 @@ import type { EstadoDaConversa, PortaDaConversa } from "@/lib/agency/celula/mens
 import type { PortaDeCompromissos } from "@/lib/agency/celula/mensagens/compromisso";
 import { objecaoPorId } from "@/lib/agency/celula/mensagens/objecoes";
 import * as conformidade from "@/lib/marketplaces/99freelas/conformidade";
+import type { PortaDoJuiz } from "@/lib/agency/celula/mensagens/juiz-editorial";
 
 // ── Fábricas de teste ────────────────────────────────────────────────────────
 
@@ -89,6 +90,15 @@ function bibliotecaFixture(...modelos: Record<string, unknown>[]): unknown {
   return { modelos };
 }
 
+// ── ONDA 4A, FICHA A: o juiz editorial agora RODA em toda chamada
+// (etapa 11, entre o Guardião e o Compromisso). "Sem gate = reprovado" — a
+// ausência da porta é `indisponivel`, nunca "passa direto". Por isso todo
+// teste desta suíte que espera "enviar" precisa de uma porta de juiz que
+// APROVA de propósito, injetada por padrão em `entradaBase()`. Os testes que
+// examinam o próprio juiz (reprovação, indisponibilidade, ordem com o
+// Compromisso) sobrescrevem esse padrão.
+const JUIZ_APROVA: PortaDoJuiz = vi.fn(async () => ({ aprovado: true }));
+
 const PERGUNTA_CANAIS: ObtenedorDeProximaPergunta = () => ({
   id: "canais_sociais",
   comoSePergunta: "em quais redes sociais o negócio já está",
@@ -108,6 +118,8 @@ function entradaBase(overrides: Partial<EntradaDoMotorDeProximaMensagem> = {}): 
     codigoDoModeloCandidato: null,
     obterProximaPergunta: SEM_PERGUNTA,
     agora: new Date("2026-08-30T12:00:00Z"),
+    portaDoJuiz: JUIZ_APROVA,
+    casoDaIndisponibilidadeDoJuiz: "ambiguidade_de_briefing",
     ...overrides,
   };
 }
@@ -796,5 +808,141 @@ describe("preço do modelo", () => {
     if (decisao.desfecho !== "escalar") throw new Error("deveria ter escalado");
     expect(decisao.motivo).toMatch(/pre[çc]o/i);
     expect(porta.liberar).toHaveBeenCalled();
+  });
+});
+
+// ── ONDA 4A, FICHA A — o JUIZ EDITORIAL (etapa 11) ──────────────────────────
+
+describe("juiz editorial (etapa 11) — as 8 categorias que o piso determinístico não cobre", () => {
+  it("reprova e bloqueia mesmo com o resto do texto inteiramente limpo", async () => {
+    const porta = criarPorta();
+    const juizReprova: PortaDoJuiz = vi.fn(async () => ({
+      aprovado: false,
+      categorias: ["exageros"],
+      explicacao: "o texto exagera sobre a qualidade do serviço.",
+    }));
+    const decisao = await decidirProximaMensagem(
+      entradaBase({
+        porta,
+        codigoDoModeloCandidato: "M50",
+        bibliotecaBruta: bibliotecaFixture(modeloBrutoAprovado()),
+        obterProximaPergunta: PERGUNTA_CANAIS,
+        portaDoJuiz: juizReprova,
+      }),
+    );
+
+    expect(decisao.desfecho).toBe("bloqueado");
+    if (decisao.desfecho !== "bloqueado") throw new Error("deveria ter bloqueado");
+    expect(decisao.etapa).toBe("juiz_editorial");
+    expect(decisao.motivo).toMatch(/exageros/);
+    expect(porta.liberar).toHaveBeenCalled();
+  });
+
+  it("porta do juiz AUSENTE ⇒ indisponível e bloqueado — ausência não é aprovação por omissão", async () => {
+    const porta = criarPorta();
+    const decisao = await decidirProximaMensagem(
+      entradaBase({
+        porta,
+        codigoDoModeloCandidato: "M50",
+        bibliotecaBruta: bibliotecaFixture(modeloBrutoAprovado()),
+        obterProximaPergunta: PERGUNTA_CANAIS,
+        portaDoJuiz: null,
+      }),
+    );
+
+    expect(decisao.desfecho).toBe("bloqueado");
+    if (decisao.desfecho !== "bloqueado") throw new Error("deveria ter bloqueado");
+    expect(decisao.etapa).toBe("juiz_editorial_indisponivel");
+    expect(porta.liberar).toHaveBeenCalled();
+  });
+
+  it("porta ausente, COM caso injetado ⇒ a decisão carrega pedidoDeExcecaoDoJuiz pronto para a fila", async () => {
+    const decisao = await decidirProximaMensagem(
+      entradaBase({
+        codigoDoModeloCandidato: "M50",
+        bibliotecaBruta: bibliotecaFixture(modeloBrutoAprovado()),
+        obterProximaPergunta: PERGUNTA_CANAIS,
+        portaDoJuiz: null,
+        casoDaIndisponibilidadeDoJuiz: "ambiguidade_de_briefing",
+      }),
+    );
+
+    expect(decisao.desfecho).toBe("bloqueado");
+    if (decisao.desfecho !== "bloqueado") throw new Error("deveria ter bloqueado");
+    expect(decisao.pedidoDeExcecaoDoJuiz).toBeDefined();
+    expect(decisao.pedidoDeExcecaoDoJuiz?.caso).toBe("ambiguidade_de_briefing");
+    expect(decisao.pedidoDeExcecaoDoJuiz?.responsavel).toBe("gerente_de_atendimento");
+  });
+
+  it("roda DEPOIS do Guardião — texto barrado pelo piso determinístico nunca chega ao juiz", async () => {
+    const porta = criarPorta();
+    const juizEspiado: PortaDoJuiz = vi.fn(async () => ({ aprovado: true }));
+    const modeloComContato = modeloBrutoAprovado({
+      codigo: "M64",
+      textoBase: "Claro, pode me chamar no zap, meu número é 11987654321.",
+    });
+    const decisao = await decidirProximaMensagem(
+      entradaBase({
+        porta,
+        codigoDoModeloCandidato: "M64",
+        bibliotecaBruta: bibliotecaFixture(modeloComContato),
+        portaDoJuiz: juizEspiado,
+      }),
+    );
+
+    expect(decisao.desfecho).toBe("bloqueado");
+    if (decisao.desfecho !== "bloqueado") throw new Error("deveria ter bloqueado");
+    expect(decisao.etapa).toBe("preencher_modelo");
+    expect(juizEspiado).not.toHaveBeenCalled();
+  });
+
+  it("roda ANTES do Compromisso — reprovado pelo juiz não registra compromisso nenhum", async () => {
+    const portaDeCompromissos = criarPortaDeCompromissos(true);
+    const juizReprova: PortaDoJuiz = vi.fn(async () => ({
+      aprovado: false,
+      categorias: ["urgencia_inventada"],
+      explicacao: "inventa prazo apertado sem fonte real.",
+    }));
+    const modeloComPromessa = modeloBrutoAprovado({
+      codigo: "M65",
+      textoBase: "Te envio a proposta ainda hoje.",
+    });
+    const decisao = await decidirProximaMensagem(
+      entradaBase({
+        portaDeCompromissos,
+        codigoDoModeloCandidato: "M65",
+        bibliotecaBruta: bibliotecaFixture(modeloComPromessa),
+        obterProximaPergunta: SEM_PERGUNTA,
+        donoDoCompromisso: "dioli",
+        prazoDoCompromisso: "2026-08-31T00:00:00.000Z",
+        portaDoJuiz: juizReprova,
+      }),
+    );
+
+    expect(decisao.desfecho).toBe("bloqueado");
+    if (decisao.desfecho !== "bloqueado") throw new Error("deveria ter bloqueado");
+    expect(decisao.etapa).toBe("juiz_editorial");
+    expect(portaDeCompromissos.registrar).not.toHaveBeenCalled();
+  });
+
+  it("aprovado ⇒ a mensagem segue e o Compromisso roda normalmente depois (metade gêmea)", async () => {
+    const portaDeCompromissos = criarPortaDeCompromissos(true);
+    const modeloComPromessa = modeloBrutoAprovado({
+      codigo: "M66",
+      textoBase: "Te envio a proposta ainda hoje.",
+    });
+    const decisao = await decidirProximaMensagem(
+      entradaBase({
+        portaDeCompromissos,
+        codigoDoModeloCandidato: "M66",
+        bibliotecaBruta: bibliotecaFixture(modeloComPromessa),
+        obterProximaPergunta: SEM_PERGUNTA,
+        donoDoCompromisso: "dioli",
+        prazoDoCompromisso: "2026-08-31T00:00:00.000Z",
+      }),
+    );
+
+    expect(decisao.desfecho).toBe("enviar");
+    expect(portaDeCompromissos.registrar).toHaveBeenCalled();
   });
 });

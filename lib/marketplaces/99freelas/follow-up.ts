@@ -18,6 +18,13 @@
 // esta fila NÃO se alimenta sozinha: alguém informa as conversas, ou o e-mail
 // de notificação da plataforma é encaminhado. Enquanto for assim, o mecanismo
 // existe e a ENTRADA dele não — e isso é risco aberto, não recurso pronto.
+//
+// Esta ausência é DÍVIDA DECLARADA, não comentário perdido: registro em
+// `lib/agency/celula/divida-declarada.ts`, id
+// "entrada-de-acompanhamentos-ja-enviados", com dono, prazo e um teste que
+// GRITA sozinho quando o prazo vence
+// (`__tests__/celula/divida-da-entrada-do-m14.test.ts`). Ver
+// docs/celula-prospeccao/despachos/ONDA-4A-C-divida-do-m14.md.
 
 import { politicaDe } from "@/lib/marketplaces/politica";
 

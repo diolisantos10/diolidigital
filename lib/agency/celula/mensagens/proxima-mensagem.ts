@@ -38,8 +38,15 @@
 //      contradição com a última fala enviada)
 //   9. ANTI-GENÉRICO — repetido/parecido/genérico ⇒ BLOQUEIO
 //  10. GUARDIÃO (`validarTexto`) — conteúdo proibido ⇒ BLOQUEIO
-//  11. COMPROMISSO — promete data? registra ANTES de liberar
-//  12. LIBERAR a trava de conversa — em TODOS os caminhos, exceção inclusive
+//  11. JUIZ EDITORIAL (`julgarTexto`) — as 8 categorias que o piso
+//      determinístico não cobre (exageros, pressão artificial, urgência
+//      inventada, promessa de resultado, experiência não comprovada,
+//      portfólio inexistente, excesso de elogios, texto longo sobre a
+//      Dioli). Reprovado ⇒ BLOQUEIO. Indisponível (porta ausente, resposta
+//      malformada, exceção do provedor) ⇒ BLOQUEIO também — nunca "passa
+//      direto" (ver ONDA-4A-A-o-juiz-editorial.md, "sem gate = reprovado").
+//  12. COMPROMISSO — promete data? registra ANTES de liberar
+//  13. LIBERAR a trava de conversa — em TODOS os caminhos, exceção inclusive
 //
 // Nenhuma etapa é pulável por configuração. Não há flag de bypass.
 //
@@ -89,6 +96,12 @@ import { avaliarAntiGenerico } from "./anti-generico";
 import { liberarTextoComPromessa, type PortaDeCompromissos } from "./compromisso";
 import { validarTexto } from "@/lib/marketplaces/99freelas/conformidade";
 import { precificar } from "@/lib/marketplaces/99freelas/preco";
+import {
+  julgarTexto,
+  type PortaDoJuiz,
+  type PedidoDeExcecaoDoJuiz,
+} from "./juiz-editorial";
+import type { Caso } from "@/lib/agency/celula/excecoes/tipos";
 
 // ── O RETORNO — literal do contrato da ficha ─────────────────────────────────
 
@@ -105,7 +118,17 @@ export interface MensagemMontada {
 export type DecisaoDaProximaMensagem =
   | { desfecho: "enviar"; mensagem: MensagemMontada; compromissos: string[] }
   | { desfecho: "escalar"; motivo: string; oQuePrecisaDeGente: string }
-  | { desfecho: "bloqueado"; motivo: string; etapa: string }
+  | {
+      desfecho: "bloqueado";
+      motivo: string;
+      etapa: string;
+      /** Só presente quando `etapa === "juiz_editorial_indisponivel"` e havia
+       *  um `casoDaIndisponibilidadeDoJuiz` legível — pronto para
+       *  `avaliarAberturaDeExcecao` (lib/agency/celula/excecoes/fila.ts).
+       *  Quem consome esta decisão é quem abre a exceção; este motor não
+       *  escreve na fila sozinho. */
+      pedidoDeExcecaoDoJuiz?: PedidoDeExcecaoDoJuiz;
+    }
   | { desfecho: "esperar"; motivo: string; ateQuando: string | null };
 
 // ── A entrada ─────────────────────────────────────────────────────────────
@@ -180,6 +203,21 @@ export interface EntradaDoMotorDeProximaMensagem {
    *  (ver aviso da ficha: outro especialista mexe nele agora). Default = a
    *  função real. */
   obterProximaPergunta?: ObtenedorDeProximaPergunta;
+
+  /**
+   * O juiz editorial (ONDA-4A-A). Ausente ⇒ `indisponivel` — NUNCA "passa
+   * direto" ("sem gate = reprovado"). Nenhum provedor de IA é importado
+   * neste arquivo; quem chama injeta a porta real (ou uma porta de teste).
+   */
+  portaDoJuiz?: PortaDoJuiz | null;
+  /**
+   * Injetado pelo chamador — nenhum dos 14 casos fechados de
+   * `lib/agency/celula/excecoes/tipos.ts` descreve "o juiz editorial está
+   * fora do ar" (o 15º caso, `juiz_indisponivel`, ainda não existe — ver o
+   * relatório da ficha). Ausente/ilegível ⇒ `indisponivel_sem_caso`: a
+   * mensagem continua bloqueada, só não abre exceção.
+   */
+  casoDaIndisponibilidadeDoJuiz?: Caso | null;
 }
 
 // ── Mapa fechado: só as objeções que a casa já sabe traduzir em concessão.
@@ -463,7 +501,41 @@ export async function decidirProximaMensagem(
       };
     }
 
-    // ── 11. COMPROMISSO — registra ANTES de liberar ────────────────────────
+    // ── 11. JUIZ EDITORIAL — as 8 categorias que o piso determinístico não
+    //    cobre. Roda DEPOIS do piso (anti-genérico + Guardião já rodaram e
+    //    já teriam bloqueado um texto ruim antes de gastar uma chamada de
+    //    IA) e ANTES de qualquer coisa ser registrada como enviável — em
+    //    particular, ANTES do Compromisso (etapa 12), para nunca registrar
+    //    um compromisso de uma mensagem que o juiz ainda vai reprovar. ──────
+    const veredictoDoJuiz = await julgarTexto({
+      texto,
+      porta: entrada.portaDoJuiz ?? null,
+      casoDaIndisponibilidade: entrada.casoDaIndisponibilidadeDoJuiz ?? null,
+    });
+    if (!veredictoDoJuiz.ok) {
+      await finalizar();
+      if (veredictoDoJuiz.motivo === "reprovado") {
+        const categorias =
+          veredictoDoJuiz.categorias.length > 0
+            ? veredictoDoJuiz.categorias.join(", ")
+            : "tentativa de fuga do delimitador do juiz";
+        return {
+          desfecho: "bloqueado",
+          motivo: `O juiz editorial reprovou o texto final (${categorias}): ${veredictoDoJuiz.explicacao}`,
+          etapa: "juiz_editorial",
+        };
+      }
+      const pedidoDeExcecaoDoJuiz =
+        veredictoDoJuiz.motivo === "indisponivel" ? veredictoDoJuiz.pedidoDeExcecao : undefined;
+      return {
+        desfecho: "bloqueado",
+        motivo: `O juiz editorial está indisponível (${veredictoDoJuiz.causa}) — a mensagem não sai sem decisão humana.`,
+        etapa: "juiz_editorial_indisponivel",
+        pedidoDeExcecaoDoJuiz,
+      };
+    }
+
+    // ── 12. COMPROMISSO — registra ANTES de liberar ────────────────────────
     const veredictoDaPromessa = await liberarTextoComPromessa({
       texto,
       conversaId: entrada.conversaId,
@@ -477,7 +549,7 @@ export async function decidirProximaMensagem(
       return { desfecho: "bloqueado", motivo: veredictoDaPromessa.motivo, etapa: "compromisso" };
     }
 
-    // ── 12. LIBERAR e devolver ──────────────────────────────────────────────
+    // ── 13. LIBERAR e devolver ──────────────────────────────────────────────
     await finalizar();
     const mensagem: MensagemMontada = {
       codigoDoModelo: modelo?.codigo ?? null,
