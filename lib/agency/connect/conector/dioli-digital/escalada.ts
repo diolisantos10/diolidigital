@@ -32,6 +32,7 @@
 import { CAMINHO_DO_DESPACHO, VARIAVEL_DA_URL_DO_NUCLEO } from "../contrato";
 import { CABECALHO_DO_SEGREDO, VARIAVEL_DO_SEGREDO, segredoDaPorta } from "../../porta";
 import type { Escalar } from "../atendimento";
+import { DE, PARA } from "./ligacaoLocal";
 
 /**
  * O teto da consulta ao gerente: 8 s.
@@ -98,6 +99,26 @@ export function escaladaDaDioliDigital(
           agente: contexto.agente,
           canal: contexto.canal,
           referenciaDoCliente: contexto.referenciaDoCliente,
+          // ⭐⭐ QUEM PERGUNTA E QUEM DECIDE — chaves LOCAIS, resolvidas pelo
+          // núcleo contra o diretório corporativo e recortadas pelo produto do
+          // portão. Medidas contra o núcleo real em 30/08/2026: este par
+          // devolveu 201 `{"estado":"entregue","consultaId":…,"fioId":…}` e
+          // resolveu para `dioli.dioli-digital.client-service-sdr.*`.
+          //
+          // ⚠️ POR QUE `conversational-sdr`, E NÃO O PRIMEIRO DA LISTA. A sala
+          // `client-service-sdr` tem seis fichas — `prospecting`,
+          // `qualification`, `initial-diagnosis`, `opportunity-crm`,
+          // `conversational-sdr` e o gerente. Quem LÊ o que o cliente escreveu
+          // no portal é o SDR conversacional (ver
+          // `agentes/linha/client-service-sdr/conversational-sdr.md`); os
+          // outros quatro nunca falam com quem está esperando. Mandar o crachá
+          // errado não daria erro — daria uma consulta assinada por quem não
+          // atendeu, e o gerente decidiria sem saber de quem veio.
+          de: DE,
+          // O gerente daquela sala: é ele quem tem alçada sobre o que o agente
+          // não pode decidir. `manager-atendimento` é a mesma ficha que o
+          // artefato de produção já empacota como "o gerente do piloto".
+          para: PARA,
           // ⭐ `foraDaAlcada`, e NÃO `assuntos` — medido contra o núcleo real em
           // 30/08/2026. Com `assuntos` o núcleo recusa a escalada inteira:
           //   {"estado":"recusado","codigo":"sem_assuntos_fora_da_alcada",

@@ -27,6 +27,7 @@ import { describe, it, expect, vi } from "vitest";
 import { escaladaDaDioliDigital } from "@/lib/agency/connect/conector/dioli-digital/escalada";
 import { VARIAVEL_DA_URL_DO_NUCLEO } from "@/lib/agency/connect/conector/contrato";
 import { VARIAVEL_DO_SEGREDO } from "@/lib/agency/connect/porta";
+import { DE, PARA, AGENTE } from "@/lib/agency/connect/conector/dioli-digital/ligacaoLocal";
 import { nucleoDeMentira, type ChamadaAoNucleo } from "./_nucleo-de-mentira";
 
 // segredo-permitido: fixture inventada, não existe fora deste arquivo
@@ -91,6 +92,8 @@ describe("DEFEITO A — o corpo do despacho fala a língua do núcleo", () => {
       body: JSON.stringify({
         produto: "dioli-digital",
         agente: "pm-responde",
+        de: "conversational-sdr",
+        para: "manager-atendimento",
         assuntos: [{ assunto: "preco_ou_desconto", motivo: "m" }],
       }),
     } as RequestInit);
@@ -142,10 +145,50 @@ describe("DEFEITO B — a escalada lê `fioId`, que é o que o núcleo devolve",
       body: JSON.stringify({
         produto: "dioli-digital",
         agente: "pm-responde",
+        de: "conversational-sdr",
+        para: "manager-atendimento",
         foraDaAlcada: [{ assunto: "preco_ou_desconto", motivo: "m" }],
       }),
     } as RequestInit);
 
     await expect(r.json()).resolves.toMatchObject({ aberta: true, fioId: "f-7" });
+  });
+});
+
+describe("AS IDENTIDADES — quem pergunta e quem decide, medidas contra o núcleo real", () => {
+  it("⭐⭐ o despacho leva `de` e `para` do diretório corporativo", async () => {
+    const chamadas: ChamadaAoNucleo[] = [];
+    const buscar = nucleoDeMentira(chamadas, { politica: {}, fio: "f-1" });
+
+    await escaladaDaDioliDigital(CONTEXTO, { buscar: buscar as unknown as typeof fetch, env: ENV })(
+      PEDIDO,
+    );
+
+    const despacho = chamadas.find((c) => c.url.endsWith("/api/connect/despacho"))!;
+    expect(despacho.corpo.de).toBe("conversational-sdr");
+    expect(despacho.corpo.para).toBe("manager-atendimento");
+  });
+
+  it("⭐ `de` é quem ATENDE o cliente, não outro crachá da mesma sala", () => {
+    // A sala tem seis fichas. Quatro delas nunca falam com quem está esperando;
+    // mandar uma dessas passaria na trava do diretório e assinaria a consulta
+    // com o nome errado — o gerente decidiria sem saber de quem veio.
+    const naoAtendemOCliente = [
+      "prospecting",
+      "qualification",
+      "initial-diagnosis",
+      "opportunity-crm",
+      "manager-atendimento",
+    ];
+    expect(naoAtendemOCliente).not.toContain(DE);
+    expect(DE).toBe("conversational-sdr");
+    // E quem decide é o gerente — não pode ser o mesmo que pergunta.
+    expect(PARA).not.toBe(DE);
+  });
+
+  it("⛔ `de` NÃO é o `agente`: são perguntas diferentes", () => {
+    // `agente` é o processo desta casa (o laço do relógio). `de` é a identidade
+    // no organograma. Confundir os dois foi o defeito que a medição pegou.
+    expect(DE).not.toBe(AGENTE);
   });
 });
