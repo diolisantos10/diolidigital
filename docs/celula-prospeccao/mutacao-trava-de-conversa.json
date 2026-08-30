@@ -1,0 +1,98 @@
+{
+  "rodadoEm": "2026-08-30T17:26:54.326Z",
+  "base": "11 passed (11)",
+  "mutacoes": [
+    {
+      "guarda": "TC-M1 · a reserva é ATÔMICA (não 'ler, verificar, gravar')",
+      "arquivo": "lib/agency/celula/mensagens/porta-da-conversa-no-banco.ts",
+      "de": "      try {\n        await db.travaDaConversaDaCelula.create({\n          data: { conversaId, agente, expiraEm: limite },\n        });\n        return true;\n      } catch {",
+      "para": "      // MUTAÇÃO: a implementação que qualquer um escreveria — lê, vê que está\n      // livre, e só então grava. Entre as duas coisas cabe o outro agente inteiro.\n      {\n        const existente = await db.travaDaConversaDaCelula.findUnique({ where: { conversaId } });\n        if (!existente) {\n          await db.travaDaConversaDaCelula.upsert({\n            where: { conversaId },\n            create: { conversaId, agente, expiraEm: limite },\n            update: { agente, expiraEm: limite },\n          });\n          return true;\n        }\n      }\n      if (false) {",
+      "espera": "os 10 agentes simultâneos deixam de ter UM só vencedor",
+      "estado": "VERMELHO",
+      "falhas": [
+        "DEZ agentes disputando a MESMA conversa simultaneamente: exatamente UM ganha 246ms",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > 🔴 dois agentes ao mesmo tempo — a prova que o CEO exigiu > DEZ agentes disputando a MESMA conversa simultaneamente: exatamente UM ganha"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "TC-M2 · só se toma trava VENCIDA (a condição está no WHERE)",
+      "arquivo": "lib/agency/celula/mensagens/porta-da-conversa-no-banco.ts",
+      "de": "        where: { conversaId, expiraEm: { lt: agora() } },",
+      "para": "        where: { conversaId }, // MUTAÇÃO: toma a trava mesmo viva",
+      "espera": "bruno passa a roubar a trava viva de ana",
+      "estado": "VERMELHO",
+      "falhas": [
+        "DEZ agentes disputando a MESMA conversa simultaneamente: exatamente UM ganha 232ms",
+        "outro agente NÃO consegue reservar enquanto a trava está viva 32ms",
+        "liberar só solta o que é seu — bruno não destrava a conversa de ana 48ms",
+        "dois agentes disputando a MESMA trava vencida: só um toma 52ms",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > 🔴 dois agentes ao mesmo tempo — a prova que o CEO exigiu > DEZ agentes disputando a MESMA conversa simultaneamente: exatamente UM ganha",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > a trava é de quem pegou > outro agente NÃO consegue reservar enquanto a trava está viva",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > a trava é de quem pegou > liberar só solta o que é seu — bruno não destrava a conversa de ana",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > nenhum estado prende trabalho para sempre > dois agentes disputando a MESMA trava vencida: só um toma"
+      ],
+      "placar": "4 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "TC-M3 · liberar só solta o que é seu",
+      "arquivo": "lib/agency/celula/mensagens/porta-da-conversa-no-banco.ts",
+      "de": "      await db.travaDaConversaDaCelula.deleteMany({ where: { conversaId, agente } });",
+      "para": "      await db.travaDaConversaDaCelula.deleteMany({ where: { conversaId } }); // MUTAÇÃO: qualquer um libera a trava de qualquer um",
+      "espera": "bruno passa a destravar a conversa de ana",
+      "estado": "VERMELHO",
+      "falhas": [
+        "liberar só solta o que é seu — bruno não destrava a conversa de ana 37ms",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > a trava é de quem pegou > liberar só solta o que é seu — bruno não destrava a conversa de ana"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "TC-M4 · renovar é só do dono",
+      "arquivo": "lib/agency/celula/mensagens/porta-da-conversa-no-banco.ts",
+      "de": "        where: { conversaId, agente },\n        data: { expiraEm: limite },",
+      "para": "        where: { conversaId }, // MUTAÇÃO: renova a trava de outro agente\n        data: { agente, expiraEm: limite },",
+      "espera": "bruno passa a assumir a trava viva de ana pela via da renovação",
+      "estado": "VERMELHO",
+      "falhas": [
+        "DEZ agentes disputando a MESMA conversa simultaneamente: exatamente UM ganha 260ms",
+        "outro agente NÃO consegue reservar enquanto a trava está viva 35ms",
+        "liberar só solta o que é seu — bruno não destrava a conversa de ana 45ms",
+        "dois agentes disputando a MESMA trava vencida: só um toma 55ms",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > 🔴 dois agentes ao mesmo tempo — a prova que o CEO exigiu > DEZ agentes disputando a MESMA conversa simultaneamente: exatamente UM ganha",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > a trava é de quem pegou > outro agente NÃO consegue reservar enquanto a trava está viva",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > a trava é de quem pegou > liberar só solta o que é seu — bruno não destrava a conversa de ana",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > nenhum estado prende trabalho para sempre > dois agentes disputando a MESMA trava vencida: só um toma"
+      ],
+      "placar": "4 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "TC-M5 · prazo ilegível é recusado (trava sem prazo é trava eterna)",
+      "arquivo": "lib/agency/celula/mensagens/porta-da-conversa-no-banco.ts",
+      "de": "      if (Number.isNaN(limite.getTime())) return false;",
+      "para": "      // MUTAÇÃO: aceita prazo ilegível",
+      "espera": "expiraEm 'nao-e-data' passa a criar trava",
+      "estado": "VERMELHO",
+      "falhas": [
+        "expiraEm inválido é RECUSADO — trava sem prazo legível é trava eterna 26ms",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > nenhum estado prende trabalho para sempre > expiraEm inválido é RECUSADO — trava sem prazo legível é trava eterna"
+      ],
+      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+    },
+    {
+      "guarda": "TC-M6 · estado corrompido vira null, nunca remendo com defaults",
+      "arquivo": "lib/agency/celula/mensagens/porta-da-conversa-no-banco.ts",
+      "de": "  if (perguntas === null || modelos === null) return null;\n  if (typeof o.etapa !== \"string\" || o.etapa === \"\") return null;",
+      "para": "  // MUTAÇÃO: remenda o estado ilegível com defaults — e aí o motor decide\n  // 'esta pergunta ainda não foi feita' sobre um histórico que não foi lido\n  const perguntasR = perguntas ?? [];\n  const modelosR = modelos ?? [];\n  return {\n    conversaId,\n    ultimaRecebida: null,\n    ultimaEnviada: null,\n    agenteResponsavel: null,\n    etapa: typeof o.etapa === \"string\" && o.etapa !== \"\" ? o.etapa : \"encontrada\",\n    perguntasJaFeitas: perguntasR,\n    respostasRecebidas: {},\n    arquivos: [],\n    proximaAcao: null,\n    modelosJaUsados: modelosR,\n  };",
+      "espera": "estado corrompido passa a virar estado válido vazio",
+      "estado": "VERMELHO",
+      "falhas": [
+        "estado gravado é lido de volta por um processo NOVO sobre o mesmo arquivo 47ms",
+        "estado CORROMPIDO devolve null — remendar com defaults faria a pergunta repetida sair 30ms",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > o histórico SOBREVIVE ao reinício — o outro critério do CEO > estado gravado é lido de volta por um processo NOVO sobre o mesmo arquivo",
+        "__tests__/celula/trava-de-conversa-no-banco.test.ts > o histórico SOBREVIVE ao reinício — o outro critério do CEO > estado CORROMPIDO devolve null — remendar com defaults faria a pergunta repetida sair"
+      ],
+      "placar": "2 ⎯⎯⎯⎯⎯⎯⎯"
+    }
+  ]
+}

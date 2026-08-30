@@ -3200,3 +3200,51 @@ model EventoDaExcecaoDaCelula {
 
   @@index([excecaoId, criadoEm])
 }
+
+// ─── A CONVERSA DA CÉLULA E A TRAVA DE QUEM RESPONDE ────────────────────────
+//
+// O CEO nomeou isto como CRITÉRIO DE CONCLUSÃO, com estas palavras: "não
+// concluído se dois agentes podem responder ao mesmo tempo" e "se o histórico
+// não sobreviver ao reinício". Até 30/08/2026 `PortaDaConversa` existia SÓ
+// COMO INTERFACE — o motor da próxima mensagem só rodava com substituto de
+// teste. Estas duas tabelas são a fechadura que faltava naquela trava.
+model ConversaDaCelula {
+  conversaId  String @id
+  workspaceId String
+
+  /// O estado inteiro, em JSON: última recebida, última enviada, perguntas já
+  /// feitas, respostas, arquivos, modelos usados. É JSON porque o formato de
+  /// `EstadoDaConversa` é do motor, e espalhar 10 colunas aqui obrigaria uma
+  /// migration a cada campo novo dele — e migration por campo de estado é como
+  /// se para de registrar estado.
+  estado String
+
+  /// Quem respondeu por último. Coluna própria, e não só dentro do JSON,
+  /// porque é por ela que a tela lista "conversas sem dono".
+  agenteResponsavel String?
+  etapa             String
+
+  criadaEm     DateTime @default(now())
+  atualizadaEm DateTime @updatedAt
+
+  @@index([workspaceId, etapa])
+  @@index([workspaceId, agenteResponsavel])
+}
+
+// A trava propriamente dita. Tabela SEPARADA da conversa, e isso é decisão, não
+// arrumação: uma coluna `travadaPor` dentro de `ConversaDaCelula` obrigaria
+// "ler, verificar, gravar" — a sequência que deixa duas requisições simultâneas
+// passarem pelo mesmo "está livre". Aqui `conversaId` é a CHAVE PRIMÁRIA, então
+// o segundo `create` FALHA por unicidade, decidido pelo banco, não pelo código.
+// É o mesmo desenho de `RateLimitBucket`, e pelo mesmo motivo.
+model TravaDaConversaDaCelula {
+  conversaId String   @id
+  agente     String
+  /// Trava sem prazo é conversa presa para sempre quando um processo morre no
+  /// meio — e "nenhum estado prende trabalho para sempre" é regra desta casa.
+  expiraEm   DateTime
+  criadaEm   DateTime @default(now())
+
+  /// A faxina das travas vencidas varre por aqui.
+  @@index([expiraEm])
+}
