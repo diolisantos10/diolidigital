@@ -52,6 +52,24 @@
 //
 // Como sempre nesta rota: só leitura (`findMany`), respeita `LIMITE`, e
 // **nunca** o token inteiro — só os 8 primeiros caracteres (`retrato-dos-convites.ts`).
+//
+// ─── SEÇÃO `preco_cheio_apos_negociacao` (30/08/2026) — DINHEIRO DE CLIENTE ─
+//
+// Ordem do Diretor Geral (`.despachos/F1-auditoria-preco-cheio.md`): quem foi
+// cobrado o preço cheio depois de pedir ajuste? `minPrice === maxPrice`, em
+// vigor desde 25/08 (`live-calculator.ts:51`), tornou a trava de
+// `negotiateProposal` (`lib/agency/execution/negotiate-proposal.ts:39`) uma
+// condição impossível de satisfazer — `newTotal` é sempre `null`, e a
+// proposta reaberta sai sempre no valor de tabela.
+//
+// A regra de "o que é uma negociação" e o cruzamento com pagamento moram em
+// `lib/agency/comercial/preco-cheio-apos-negociacao.ts` (módulo puro). Esta
+// rota só lê `ApprovalRequest` (department "proposal") e `PagamentoConfirmado`
+// e chama o módulo — nenhuma decisão de negócio aqui.
+//
+// Nome do negócio e id são devolvidos aqui de propósito: o CEO pediu "quem",
+// e o próprio despacho autoriza os dois. Nada além disso — sem telefone,
+// e-mail ou frase de conversa.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
@@ -64,6 +82,11 @@ import {
   type LinhaDeParceriaBruta,
   type LinhaDeClienteBruta,
 } from "@/lib/agency/comercial/retrato-dos-convites";
+import {
+  retratoDoLote as retratoDoPrecoCheio,
+  type LinhaDeAprovacaoBruta,
+  type LinhaDePagamentoBruta,
+} from "@/lib/agency/comercial/preco-cheio-apos-negociacao";
 
 export const dynamic = "force-dynamic";
 
@@ -151,6 +174,33 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       agora,
     );
 
+    // ── SEÇÃO `preco_cheio_apos_negociacao` (30/08/2026) — AUDITORIA DE
+    // DINHEIRO DE CLIENTE, ordem do Diretor Geral. `minPrice === maxPrice`
+    // (25/08) tornou a trava de `negotiateProposal` uma condição impossível:
+    // todo pedido de ajuste, desde então, reabre a proposta no preço cheio.
+    // Só leitura — `findMany`, igual ao resto da rota. A regra do que É uma
+    // negociação (não um retrato inventado aqui) mora em
+    // `lib/agency/comercial/preco-cheio-apos-negociacao.ts`.
+    const [aprovacoesDeProposta, pagamentosConfirmados] = await Promise.all([
+      prisma.approvalRequest.findMany({
+        where: { department: "proposal" },
+        select: { clientRequestId: true, department: true, reviewNote: true, createdAt: true },
+        orderBy: { createdAt: "asc" },
+        take: LIMITE,
+      }),
+      prisma.pagamentoConfirmado.findMany({
+        select: { clientRequestId: true, confirmadoEm: true, valorCentavos: true },
+        orderBy: { confirmadoEm: "asc" },
+        take: LIMITE,
+      }),
+    ]);
+
+    const precoCheioAposNegociacao = retratoDoPrecoCheio(
+      aprovacoesDeProposta as LinhaDeAprovacaoBruta[],
+      linhas.map((l) => ({ id: l.id, businessName: l.businessName })),
+      pagamentosConfirmados as LinhaDePagamentoBruta[],
+    );
+
     return NextResponse.json({
       medido: true,
       lidos: linhas.length,
@@ -178,6 +228,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         por_motivo: parcerias.porMotivo,
         convites: parcerias.convites,
         clientes_de_nome_colidente: parcerias.gruposDeNomeColidente,
+      },
+      // AUDITORIA DE 30/08/2026 (F1-auditoria-preco-cheio.md, ordem do
+      // Diretor Geral): quem pediu ajuste de preço, desde que a tabela de
+      // preço fechado (25/08) tornou a condição de `negotiateProposal`
+      // impossível de satisfazer, e recebeu o preço cheio de volta. Nome do
+      // negócio e id são AUTORIZADOS aqui, por decisão do CEO no despacho —
+      // nunca telefone, e-mail ou frase de conversa.
+      //
+      // ⚠️ Isto é o INSTRUMENTO que lê a lista, rodando neste ambiente sem
+      // credencial de produção. A LISTA REAL só existe quando esta rota
+      // responde a partir do banco de produção — ver o cabeçalho do arquivo.
+      preco_cheio_apos_negociacao: {
+        total: precoCheioAposNegociacao.total,
+        pagos: precoCheioAposNegociacao.pagos,
+        nao_pagos: precoCheioAposNegociacao.naoPagos,
+        casos: precoCheioAposNegociacao.linhas.map((l) => ({
+          client_request_id: l.clientRequestId,
+          negocio: l.negocio,
+          valor_na_proposta_centavos: l.valorNaPropostaCentavos,
+          negociado_em: l.negociadoEm,
+          pago: l.pago,
+          pago_em: l.pagoEm,
+          valor_pago_centavos: l.valorPagoCentavos,
+        })),
       },
       // O que fazer com o número — para quem lê o JSON não ter de perguntar.
       correcao: "npx tsx scripts/volume-subestimado.mts | scripts/nome-do-negocio.mts (simulam por padrão; escrever exige duas confirmações e é decisão do CEO)",
