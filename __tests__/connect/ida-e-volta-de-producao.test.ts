@@ -44,6 +44,7 @@ import { responderMensagensDeClientes } from "@/lib/agency/esteira/pm-responde";
 import { POST as retornoPOST } from "@/app/api/connect/retorno/route";
 import { CABECALHO_DO_SEGREDO } from "@/lib/agency/connect/porta";
 import { VERSAO_DO_CONTRATO } from "@/lib/agency/connect/conector/versao";
+import { nucleoDeMentira } from "./_nucleo-de-mentira";
 
 // ── O AMBIENTE, como o operador o configura ─────────────────────────────────
 const SEGREDO = "segredo-de-teste-com-mais-de-16-caracteres"; // segredo-permitido: fixture inventada, não existe fora deste arquivo
@@ -65,18 +66,17 @@ function respostaJson(corpo: unknown, ok = true): Response {
   } as unknown as Response;
 }
 
-/** O núcleo de mentira: responde a consulta de política e o despacho. */
+/**
+ * O núcleo de mentira — agora o ESTRITO, compartilhado (`_nucleo-de-mentira.ts`).
+ *
+ * ⚠️ ELE ERA COMPLACENTE ATÉ 30/08/2026, e é por isso que esta suíte ficava
+ * verde com a Dioli Digital mandando um vocabulário que o núcleo real recusa
+ * inteiro. O duplo agora aplica as duas travas do real — vocabulário fechado e
+ * remetente resolvido —, então esta bateria passou a medir o contrato, e não a
+ * educação do duplo. Ver o cabeçalho daquele arquivo.
+ */
 function nucleo(politica: unknown, fio: string | null = "fio-1") {
-  return vi.fn(async (url: string, init: RequestInit) => {
-    chamadas.push({
-      url,
-      corpo: JSON.parse(String(init.body)) as Record<string, unknown>,
-      segredo: (init.headers as Record<string, string>)[CABECALHO_DO_SEGREDO] ?? null,
-    });
-    if (url.endsWith("/api/connect/politicas/consulta")) return respostaJson(politica);
-    if (url.endsWith("/api/connect/despacho")) return respostaJson({ aberta: true, fio });
-    throw new Error(`o produto chamou uma porta que não existe: ${url}`);
-  });
+  return nucleoDeMentira(chamadas, { politica, fio });
 }
 
 /** Uma mensagem do cliente chegando na caixa, como o portal a grava. */
@@ -158,7 +158,15 @@ describe("⭐⭐ IDA — a pergunta sobe pelo caminho de produção", () => {
     expect(consulta!.corpo.produto).toBe("dioli-digital");
     expect(consulta!.corpo.versaoDoContrato).toBe(VERSAO_DO_CONTRATO);
     expect(consulta!.corpo.referenciaDoCliente).toBe(CLIENTE_A);
-    expect((consulta!.corpo.assuntos as { assunto: string }[]).map((a) => a.assunto)).toContain("desconto");
+    // ⭐ NA LÍNGUA DO NÚCLEO, e não na desta casa. Até 30/08/2026 esta linha
+    // exigia `"desconto"` — ou seja, o teste CODIFICAVA o defeito: cobrava do
+    // produto exatamente o vocabulário que o núcleo real recusa inteiro, com
+    // `assunto_fora_do_vocabulario`. O duplo complacente deixava passar.
+    // A classificação local segue "desconto"; quem traduz para a rede é o
+    // produto (decisão D3, `lib/agency/connect/vocabulario-do-nucleo.ts`).
+    expect((consulta!.corpo.assuntos as { assunto: string }[]).map((a) => a.assunto)).toContain(
+      "preco_ou_desconto",
+    );
 
     // 3. A escalada abriu.
     const despacho = chamadas.find((c) => c.url.endsWith("/api/connect/despacho"));
