@@ -1,4 +1,4 @@
-// A FICHA CHEGA EM PRODUÇÃO? — o risco levantado, e a medição dele.
+// A FICHA CHEGA EM PRODUÇÃO? — o risco levantado, o conserto, e a medição dele.
 //
 // ─── O RISCO, EM UMA FRASE ─────────────────────────────────────────────────
 //
@@ -18,28 +18,45 @@
 // e recusa em silêncio para quem só olha o log de deploy, porque o app sobe
 // normalmente.
 //
-// ─── O QUE FOI MEDIDO EM 30/08/2026 ────────────────────────────────────────
+// ─── O QUE FOI MEDIDO EM 30/08/2026, E O QUE MUDOU ─────────────────────────
 //
-// `npm run build` nesta árvore produziu `.next/standalone/agentes/linha/` com
-// as 93 fichas. Então HOJE o risco não se materializa. Mas ele chega lá por
-// ACIDENTE, não por decisão: o próprio build imprime, quatro vezes,
+// `npm run build` já produzia `.next/standalone/agentes/linha/` com as 93
+// fichas — mas por ACIDENTE, não por decisão: o próprio build imprimia, quatro
+// vezes,
 //
 //   "Encountered unexpected file in NFT list — A file was traced that indicates
 //    that the whole project was traced unintentionally."
 //
-// É esse rastreio acidentalmente total que carrega `agentes/` junto. `npm run
-// build` copia explicitamente só `.next/static` e `public`, e
-// `outputFileTracingIncludes` (next.config.ts) nomeia só arquivos do
-// playwright. **No dia em que alguém consertar aquele aviso — que é um
-// conserto legítimo, de tamanho de imagem — o motor de fichas para de achar as
-// fichas em produção, e nenhum teste desta casa acusaria.** Este arquivo
-// acusa.
+// e era esse rastreio acidentalmente total que carregava `agentes/` junto.
+// `npm run build` copia explicitamente só `.next/static` e `public`, e
+// `outputFileTracingIncludes` nomeava só arquivos do playwright. **No dia em
+// que alguém consertasse aquele aviso — que é um conserto legítimo, de tamanho
+// de imagem — o motor de fichas pararia de achar as fichas em produção, e
+// nenhum teste da casa acusaria.**
 //
-// A correção, se o dono quiser blindar sem esperar o acidente, é uma linha em
-// `next.config.ts`: acrescentar `"agentes/linha/**/*.md"` ao
-// `outputFileTracingIncludes`. Não foi feita aqui: mexer no empacotamento de
-// produção não estava no escopo desta obra, e é decisão de quem responde pelo
-// deploy.
+// O empacotamento agora é EXPLÍCITO: `next.config.ts` nomeia
+// `"agentes/linha/**/*.md"` em `outputFileTracingIncludes`. Este arquivo guarda
+// as DUAS metades desse conserto, e cada uma morde sozinha:
+//
+//   • metade 1 — a DECLARAÇÃO existe (e a dependência de disco que a exige
+//     também). Tirar a linha do `next.config.ts` deixa esta metade VERMELHA.
+//   • metade 2 — o ARTEFATO construído de fato carrega as fichas. Quebrar o
+//     empacotamento (build sem a inclusão, ou fichas apagadas do contêiner)
+//     deixa esta metade VERMELHA.
+//
+// ─── POR QUE AQUI NÃO HÁ `it.skipIf` ───────────────────────────────────────
+//
+// A metade 2 já foi `it.skipIf(!construido)`: sem `.next/standalone` ela era
+// PULADA. Pulado é o defeito que esta casa persegue — *a palavra do protocolo
+// é ok e o código de saída é zero; qualquer leitor lê aprovação*. Nos dois
+// portões de CI o pulo era o estado NORMAL, porque nenhum deles construía
+// antes de testar: a prova mais importante deste arquivo nunca rodou em CI
+// nenhum, e o verde dizia o contrário.
+//
+// Agora o CI constrói ANTES de testar (`.github/workflows/ci.yml` e
+// `connect.yml`), e a ausência do artefato REPROVA em vez de pular: "não medi"
+// nunca mais passa por "está certo". Quem roda a suíte na mão faz o mesmo que
+// o CI faz — `npm run build` antes de `npx vitest run`.
 
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
@@ -48,7 +65,7 @@ import { FUNCOES_V2 } from "@/lib/agency/catalogo-v2/catalogo";
 
 const RAIZ = process.cwd();
 
-describe("metade 1 — a dependência de disco existe mesmo, e é do cwd", () => {
+describe("metade 1 — a dependência de disco existe, e o empacotamento dela é DECLARADO", () => {
   it("`specs.ts` lê a ficha de `process.cwd()/agentes/linha` em runtime", () => {
     const fonte = fs.readFileSync(path.join(RAIZ, "lib/agency/catalogo-v2/specs.ts"), "utf8");
     expect(fonte).toContain('path.join(process.cwd(), "agentes", "linha")');
@@ -62,16 +79,48 @@ describe("metade 1 — a dependência de disco existe mesmo, e é do cwd", () =>
       "o template do standalone mudou; refaça a medição do cwd de produção antes de confiar neste raciocínio",
     ).toBe(true);
   });
+
+  // ⛔ A TRAVA CONTRA O CONSERTO LEGÍTIMO DO VIZINHO.
+  // Nenhum `import`/`require` leva às fichas (são `.md` abertos por caminho
+  // montado em runtime), então o rastreador do `output: "standalone"` não tem
+  // como segui-las. Enquanto elas viajavam pelo rastreio acidentalmente total,
+  // quem consertasse o aviso do NFT — conserto certo, e de outra frente —
+  // derrubaria o motor de fichas em produção sem uma linha vermelha em lugar
+  // nenhum. Esta é a linha vermelha.
+  it("`next.config.ts` NOMEIA as fichas no rastreio — o empacotamento é decisão, não acidente", () => {
+    const config = fs.readFileSync(path.join(RAIZ, "next.config.ts"), "utf8");
+    expect(
+      config.includes("outputFileTracingIncludes"),
+      "outputFileTracingIncludes saiu de next.config.ts — nada mais garante o que viaja para o contêiner",
+    ).toBe(true);
+    expect(
+      config.includes("agentes/linha/**/*.md"),
+      'a inclusão explícita das fichas ("agentes/linha/**/*.md") saiu de outputFileTracingIncludes em ' +
+        "next.config.ts. Sem ela as fichas só chegam ao contêiner pelo rastreio acidentalmente total que o " +
+        'próprio build denuncia ("the whole project was traced unintentionally") — e o motor recusaria TODAS ' +
+        'as funções em produção com "sem ficha não se executa" no dia em que esse acidente fosse consertado.',
+    ).toBe(true);
+  });
 });
 
 describe("metade 2 — o artefato construído realmente carrega as fichas", () => {
   const pastaDeFichas = path.join(RAIZ, ".next/standalone/agentes/linha");
-  const construido = fs.existsSync(path.join(RAIZ, ".next/standalone/server.js"));
 
-  // Sem build não se mede — e "não medi" não é "está certo". O skip DIZ isso,
-  // em vez de passar verde calado (mesmo desenho de
-  // `plataforma/o-navegador-chega-em-producao.test.ts`).
-  it.skipIf(!construido)("toda função do catálogo tem a ficha dentro de `.next/standalone`", () => {
+  // ⛔ SEM ARTEFATO, REPROVA — NÃO PULA. Ver o bloco "POR QUE AQUI NÃO HÁ
+  // `it.skipIf`" no cabeçalho. Esta é a primeira asserção de propósito: sem
+  // ela, as duas provas abaixo quebrariam com um `ENOENT` cru, que se lê como
+  // defeito do teste em vez de "o portão não construiu antes de medir".
+  it("o artefato de produção existe — sem ele não há o que medir, e 'não medi' não é 'está certo'", () => {
+    expect(
+      fs.existsSync(path.join(RAIZ, ".next/standalone/server.js")),
+      "não existe `.next/standalone/server.js`: o artefato de produção não foi construído antes deste teste. " +
+        "Rode `npm run build` antes de `npx vitest run` — é o que os dois portões de CI fazem " +
+        "(`.github/workflows/ci.yml` e `connect.yml` constroem ANTES dos testes). Este teste REPROVA em vez " +
+        "de pular porque pulado passa por aprovado para quem lê o verde.",
+    ).toBe(true);
+  });
+
+  it("toda função do catálogo tem a ficha dentro de `.next/standalone`", () => {
     const faltando = FUNCOES_V2.filter(
       (f) => !fs.existsSync(path.join(pastaDeFichas, f.departamentoId, `${f.id}.md`)),
     ).map((f) => `${f.departamentoId}/${f.id}`);
@@ -79,12 +128,12 @@ describe("metade 2 — o artefato construído realmente carrega as fichas", () =
     expect(
       faltando,
       `${faltando.length} ficha(s) não viajaram para o contêiner — o motor recusaria essas funções em produção ` +
-        `com "sem ficha não se executa". Conserto: acrescentar "agentes/linha/**/*.md" a ` +
-        `outputFileTracingIncludes em next.config.ts.`,
+        `com "sem ficha não se executa". Confira se "agentes/linha/**/*.md" continua em ` +
+        `outputFileTracingIncludes (next.config.ts) e se o build rodou depois disso.`,
     ).toEqual([]);
   });
 
-  it.skipIf(!construido)("a ficha do gerente do piloto está lá e continua legível por máquina", () => {
+  it("a ficha do gerente do piloto está lá e continua legível por máquina", () => {
     const caminho = path.join(pastaDeFichas, "client-service-sdr", "manager-atendimento.md");
     const conteudo = fs.readFileSync(caminho, "utf8");
     const bloco = conteudo.match(/```json\n([\s\S]*?)\n```/);
