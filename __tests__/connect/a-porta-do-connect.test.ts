@@ -104,11 +104,27 @@ import {
   MARCA_DO_CLIENTE_FALSO,
 } from "@/lib/agency/cliente-falso/trava-de-saida";
 import { FUNCAO_DO_PILOTO } from "@/lib/agency/connect/contrato";
+import {
+  BALDE_DAS_TENTATIVAS_FALHAS,
+  BALDE_DO_TRABALHO,
+  CHAMADAS_AUTENTICADAS_POR_JANELA,
+  TENTATIVAS_FALHAS_POR_JANELA,
+} from "@/lib/agency/connect/porta";
 
 const SEGREDO = "segredo-de-homologacao-do-connect";
 /** O segredo de OUTRA finalidade. Ele existe no ambiente — e não abre nada. */
 const SEGREDO_DO_PILOTO = "segredo-do-piloto-interno-que-nao-abre-esta-porta";
 const CLIENTE = `Cantina da Prova ${MARCA_DO_CLIENTE_FALSO}`;
+
+/**
+ * O IP do chamador, fixado para que a CHAVE do balde seja conferível no teste.
+ * `203.0.113.7` é TEST-NET-3 (RFC 5737): endereço reservado para documentação,
+ * que não é de ninguém e não roteia para lugar nenhum.
+ */
+const IP = "203.0.113.7";
+const daControlRoom = { "x-forwarded-for": IP };
+const CHAVE_DAS_FALHAS = `${BALDE_DAS_TENTATIVAS_FALHAS}:${IP}`;
+const CHAVE_DO_TRABALHO = `${BALDE_DO_TRABALHO}:${IP}`;
 
 function pedir(corpo: unknown, cabecalhos: Record<string, string> = {}): NextRequest {
   return new NextRequest("http://localhost/api/connect/despacho", {
@@ -237,44 +253,231 @@ describe("trava 1 — o segredo desta porta, e só ele", () => {
 });
 
 // ───────────────────────────────────────────────────────────────────────────
-// ⭐ O FREIO DE RITMO — o agravante que a auditoria anotou junto do A-1.
+// ⭐ O FREIO DE RITMO — DOIS BALDES, PORQUE SÃO DUAS POPULAÇÕES.
+//
+// ── O que este bloco media antes, e por que ele mudou ──────────────────────
+//
+// O freio nasceu junto com o piso do segredo, e a intenção estava certa: sem
+// teto, 300 palpites passavam em 4 ms. O que ele NÃO tinha era separação — um
+// balde só, por IP, cobrado antes de autenticar, contando na mesma janela quem
+// adivinha e quem trabalha. O CI do PR #7 da Control Room ficou vermelho em
+// três passos por isso (17 · porta dos fundos → 429; 4 · destinatário recebe e
+// aceita → nao_verificavel com "ritmo excedido"; 13 · autoridade indevida →
+// 429 ao segredo ERRADO), e nenhum dos três era defeito do chamador.
+//
+// ⚠️ UM TESTE DESTE BLOCO FOI REESCRITO, E VALE DIZER QUAL. Havia aqui um
+// "o freio conta a tentativa ERRADA" que, depois de encher o balde com erros,
+// EXIGIA 429 também para o segredo certo — "a consequência aceita", dizia o
+// comentário. Não era consequência aceita: era o defeito medido, escrito como
+// expectativa. O teste continua existindo com a mesma primeira metade (o erro
+// enche o balde) e a segunda metade invertida (o acerto atravessa), que é a
+// única leitura compatível com a bateria de homologação.
+//
+// ── As duas metades, e as duas são medidas, não raciocinadas ───────────────
+//
+//   BARRA: 300 palpites de segredo errado — 20 passam por 401 e 280 levam 429.
+//   PASSA: a bateria legítima de 127 chamadas atravessa INTEIRA, sem um 429.
 // ───────────────────────────────────────────────────────────────────────────
-describe("o teto de ritmo — adivinhar o segredo passa a custar tempo", () => {
-  it("⭐ a enésima tentativa de adivinhação é BARRADA com 429", async () => {
-    let ultima = await POST(pedir(corpoLimpo(), { authorization: "Bearer chute" }));
-    expect(ultima.status).toBe(401); // a primeira ainda é só "errou"
+describe("o teto de ritmo — dois baldes, porque são duas populações", () => {
+  // ── A METADE QUE BARRA ───────────────────────────────────────────────────
 
+  it("⭐ os 300 palpites de segredo errado continuam sendo barrados — nada afrouxou", async () => {
+    // O número é o do ataque medido: 300 palpites. O barulho do `console.warn`
+    // do contador é capturado — e conferido, porque o rastro do estouro é
+    // metade do valor do freio para quem opera.
+    const avisos: string[] = [];
+    const espia = vi.spyOn(console, "warn").mockImplementation((...a: unknown[]) => {
+      avisos.push(a.map(String).join(" "));
+    });
+    try {
+      const status: number[] = [];
+      for (let i = 0; i < 300; i++) {
+        const r = await POST(
+          pedir(corpoLimpo(), { ...daControlRoom, authorization: `Bearer palpite-numero-${i}` }),
+        );
+        status.push(r.status);
+      }
+
+      expect(status.filter((s) => s === 401)).toHaveLength(TENTATIVAS_FALHAS_POR_JANELA);
+      expect(status.filter((s) => s === 429)).toHaveLength(300 - TENTATIVAS_FALHAS_POR_JANELA);
+      expect(status.filter((s) => s === 200), "um palpite atravessou").toHaveLength(0);
+      expect(memoria.execucoes, "adivinhação gravou linha em ExecucaoV2").toHaveLength(0);
+
+      // O rastro nomeia o balde — e NUNCA o identificador (o IP não vai ao log).
+      expect(avisos.some((a) => a.includes(`balde=${BALDE_DAS_TENTATIVAS_FALHAS}`))).toBe(true);
+      expect(avisos.some((a) => a.includes(IP)), "o IP vazou para o log").toBe(false);
+    } finally {
+      espia.mockRestore();
+    }
+  }, 60_000);
+
+  it("⭐ adivinhação NÃO gasta vaga do balde de trabalho — os baldes são separados", async () => {
     for (let i = 0; i < 40; i++) {
-      ultima = await POST(pedir(corpoLimpo(), { authorization: `Bearer chute-${i}` }));
-      if (ultima.status === 429) break;
+      await POST(pedir(corpoLimpo(), { ...daControlRoom, authorization: `Bearer erro-${i}` }));
+    }
+    expect(memoria.baldes.get(CHAVE_DAS_FALHAS)?.contagem).toBe(TENTATIVAS_FALHAS_POR_JANELA);
+    expect(
+      memoria.baldes.has(CHAVE_DO_TRABALHO),
+      "o balde do trabalho foi mordido por quem nem autenticou — é a mistura de populações de volta",
+    ).toBe(false);
+  });
+
+  it("⭐ o freio continua contando a tentativa ERRADA — e é o acerto que atravessa", async () => {
+    // PRIMEIRA METADE (inalterada): um freio que só contasse ACERTO não frearia
+    // adivinhação nenhuma. Só houve erro aqui, e o balde encheu.
+    for (let i = 0; i < 40; i++) {
+      await POST(pedir(corpoLimpo(), { ...daControlRoom, authorization: `Bearer erro-${i}` }));
+    }
+    const maisUmErro = await POST(
+      pedir(corpoLimpo(), { ...daControlRoom, authorization: "Bearer erro-41" }),
+    );
+    expect(maisUmErro.status).toBe(429);
+
+    // SEGUNDA METADE (invertida, e é o conserto): o segredo CERTO, do MESMO IP,
+    // na MESMA janela, atravessa. O 429 no acerto era o dano colateral medido —
+    // é ele que derrubava a bateria da Control Room.
+    const r = await POST(pedir(corpoLimpo(), { ...daControlRoom, ...autorizado }));
+    expect(r.status, "quem tem o segredo foi barrado pelo balde de quem não tem").toBe(200);
+  });
+
+  it("⭐ o balde do trabalho é TETO, não enfeite: a chamada acima do teto para", async () => {
+    // O balde é semeado no contador em vez de gastar 600 chamadas de verdade:
+    // o que este teste prova é o LIMIAR, e o limiar é uma decisão do contador,
+    // que já tem prova própria em `__tests__/security`. Gastar 600 execuções do
+    // motor aqui mediria o mesmo e custaria minutos.
+    memoria.baldes.set(CHAVE_DO_TRABALHO, {
+      contagem: CHAMADAS_AUTENTICADAS_POR_JANELA - 1,
+      resetAt: Date.now() + 60_000,
+    });
+
+    const ultimaQueCabe = await POST(pedir(corpoLimpo(), { ...daControlRoom, ...autorizado }));
+    expect(ultimaQueCabe.status, "a chamada 600 foi barrada — o teto está um a menos").toBe(200);
+
+    const primeiraQueNaoCabe = await POST(pedir(corpoLimpo(), { ...daControlRoom, ...autorizado }));
+    expect(primeiraQueNaoCabe.status).toBe(429);
+    const corpo = await primeiraQueNaoCabe.json();
+    expect(corpo.motivo).toMatch(/tráfego JÁ AUTENTICADO/);
+    expect(corpo.motivo).toContain(String(CHAMADAS_AUTENTICADAS_POR_JANELA));
+    expect(primeiraQueNaoCabe.headers.get("Retry-After")).toBeTruthy();
+    // Estourou ANTES de despachar: nada executou.
+    expect(memoria.execucoes).toHaveLength(1);
+  });
+
+  it("os dois 429 dizem em QUAL balde se bateu — senão o operador não sabe o que houve", async () => {
+    memoria.baldes.set(CHAVE_DAS_FALHAS, {
+      contagem: TENTATIVAS_FALHAS_POR_JANELA,
+      resetAt: Date.now() + 60_000,
+    });
+    memoria.baldes.set(CHAVE_DO_TRABALHO, {
+      contagem: CHAMADAS_AUTENTICADAS_POR_JANELA,
+      resetAt: Date.now() + 60_000,
+    });
+
+    const adivinhando = await POST(
+      pedir(corpoLimpo(), { ...daControlRoom, authorization: "Bearer chute" }),
+    );
+    const trabalhando = await POST(pedir(corpoLimpo(), { ...daControlRoom, ...autorizado }));
+
+    expect(adivinhando.status).toBe(429);
+    expect(trabalhando.status).toBe(429);
+    const m1 = (await adivinhando.json()).motivo as string;
+    const m2 = (await trabalhando.json()).motivo as string;
+    expect(m1).toMatch(/tentativas MALSUCEDIDAS/);
+    expect(m2).toMatch(/tráfego JÁ AUTENTICADO/);
+    expect(m1, "as duas recusas dizem a mesma coisa — o operador não distingue laço de ataque").not.toBe(m2);
+  });
+
+  // ── A OUTRA METADE: O TRABALHO LEGÍTIMO ATRAVESSA ────────────────────────
+
+  it("⭐ A OUTRA METADE — a bateria legítima de 127 chamadas atravessa INTEIRA", async () => {
+    // O número é o medido no CI do PR #7: 127 chamadas em 43 s (≈177/min), das
+    // quais 107 levaram 429. Aqui elas cabem todas na MESMA janela fixa de 60 s
+    // (o teste roda em bem menos que 43 s), o que torna a prova mais dura que a
+    // corrida real: lá a rajada podia se partir entre duas janelas e aliviar o
+    // teto; aqui ela não se parte.
+    const status: number[] = [];
+    for (let i = 0; i < 127; i++) {
+      const r = await POST(pedir(corpoLimpo(), { ...daControlRoom, ...autorizado }));
+      status.push(r.status);
     }
 
-    expect(ultima.status, "a porta aceitou adivinhação sem teto de ritmo").toBe(429);
-    expect((await ultima.json()).motivo).toMatch(/ritmo excedido/i);
-    expect(ultima.headers.get("Retry-After")).toBeTruthy();
-    expect(memoria.execucoes).toHaveLength(0);
-  });
+    expect(status.filter((s) => s === 429), "a bateria legítima voltou a levar 429").toHaveLength(0);
+    expect(status.filter((s) => s === 200)).toHaveLength(127);
+    expect(memoria.execucoes).toHaveLength(127);
+    expect(memoria.baldes.get(CHAVE_DO_TRABALHO)?.contagem).toBe(127);
+    // E o balde da adivinhação não foi tocado: trabalho não é palpite.
+    expect(memoria.baldes.has(CHAVE_DAS_FALHAS)).toBe(false);
+  }, 120_000);
 
-  it("⭐ o freio conta a tentativa ERRADA — senão ele não freia adivinhação nenhuma", async () => {
-    // Um freio colocado depois da conferência do segredo só contaria acertos, e
-    // adivinhação é feita de erros. Aqui só houve erro, e o balde encheu.
-    for (let i = 0; i < 40; i++) await POST(pedir(corpoLimpo(), { authorization: `Bearer erro-${i}` }));
-    // Agora o segredo CERTO também esbarra no teto: o balde é por IP, não por
-    // acerto. É a consequência aceita — e é ela que faz o teto ser um teto.
-    const r = await POST(pedir(corpoLimpo(), autorizado));
-    expect(r.status).toBe(429);
-  });
+  it("⭐ A BATERIA COMO ELA É — 127 legítimas MAIS as 9 batidas de credencial inválida", async () => {
+    // A reprodução do vermelho do CI. A bateria não é só tráfego legítimo: ela
+    // empurra a porta de propósito NOVE vezes (a sonda 14 bate com sete
+    // segredos curtos e uma vez sem cabeçalho; o passo 13 bate com um segredo
+    // errado), e essas nove precisam receber 401 — não 429. Um 429 não prova
+    // que a porta OLHOU o segredo, e é isso que a sonda 13 existe para medir.
+    const CURTOS = ["", "x", "1234", "segredo", "connect", "0123456789", "a".repeat(15)];
+    const invalidas: number[] = [];
+    const legitimas: number[] = [];
 
-  it("A OUTRA METADE — dentro do teto, o caso legítimo atravessa sem tropeçar", async () => {
+    for (const curto of CURTOS) {
+      const r = await POST(pedir(corpoLimpo(), { ...daControlRoom, authorization: `Bearer ${curto}` }));
+      invalidas.push(r.status);
+    }
+    // A batida sem cabeçalho nenhum (o "controle" da sonda 14).
+    invalidas.push((await POST(pedir(corpoLimpo(), daControlRoom))).status);
+    // E o segredo errado do passo 13.
+    invalidas.push(
+      (await POST(pedir(corpoLimpo(), { ...daControlRoom, authorization: "Bearer segredo-errado-de-proposito" })))
+        .status,
+    );
+
+    for (let i = 0; i < 127; i++) {
+      legitimas.push((await POST(pedir(corpoLimpo(), { ...daControlRoom, ...autorizado }))).status);
+    }
+
+    expect(invalidas).toHaveLength(9);
+    expect(
+      invalidas.filter((s) => s === 401),
+      "a porta respondeu 429 ao segredo errado — é o vermelho da sonda 13 de volta",
+    ).toHaveLength(9);
+    expect(legitimas.filter((s) => s === 200), "a bateria legítima foi derrubada").toHaveLength(127);
+    // As nove nunca chegaram perto do teto de vinte, e por isso não roubam nada.
+    expect(memoria.baldes.get(CHAVE_DAS_FALHAS)?.contagem).toBe(9);
+  }, 120_000);
+
+  it("A OUTRA METADE, curta — dentro do teto, o caso legítimo atravessa sem tropeçar", async () => {
     for (let i = 0; i < 5; i++) {
       const r = await POST(pedir(corpoLimpo(), autorizado));
       expect(r.status, `a requisição legítima nº ${i + 1} foi barrada por engano`).toBe(200);
     }
   });
 
+  // ── OS CASOS DE BORDA DOS DOIS BALDES ────────────────────────────────────
+
+  it("⭐ a porta DESLIGADA responde 503 sem gastar vaga nenhuma — não há segredo a adivinhar", async () => {
+    vi.stubEnv("CONNECT_SECRET", "");
+    for (let i = 0; i < 50; i++) {
+      const r = await POST(pedir(corpoLimpo(), { ...daControlRoom, authorization: `Bearer tentativa-${i}` }));
+      expect(r.status).toBe(503);
+    }
+    expect(
+      memoria.baldes.size,
+      "a porta desligada gastou escrita no banco por batida não autenticada — amplificação de graça",
+    ).toBe(0);
+    expect(memoria.execucoes).toHaveLength(0);
+  });
+
   it("⭐ contador fora do ar NEGA — contador que não conta não autoriza", async () => {
     memoria.baldeQuebrado = true;
-    const r = await POST(pedir(corpoLimpo(), autorizado));
+    const r = await POST(pedir(corpoLimpo(), { ...daControlRoom, ...autorizado }));
+    expect(r.status).toBe(503);
+    expect((await r.json()).motivo).toMatch(/contador que não conta não autoriza/i);
+    expect(memoria.execucoes).toHaveLength(0);
+  });
+
+  it("⭐ contador fora do ar nega TAMBÉM quem errou o segredo — o fail-closed é dos dois baldes", async () => {
+    memoria.baldeQuebrado = true;
+    const r = await POST(pedir(corpoLimpo(), { ...daControlRoom, authorization: "Bearer chute" }));
     expect(r.status).toBe(503);
     expect((await r.json()).motivo).toMatch(/contador que não conta não autoriza/i);
     expect(memoria.execucoes).toHaveLength(0);
@@ -456,6 +659,40 @@ describe("a ficha e as entradas obrigatórias", () => {
     expect(corpo.entradas_exigidas_pela_ficha).toHaveLength(2);
     // Recusa sem rastro é recusa invisível (regra 8 do motor).
     expect(memoria.recusas).toHaveLength(1);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// ⭐ SONDA 16 · a prova conferia PARA SI e não publicava o que conferiu.
+//
+// A trava de identidade já existia e resistiu à verificação (as quatro
+// conferências da linha relida). O que faltava era a outra ponta: um bloco que
+// se declara `relido_do_banco: true` sem dizer de QUAL execução ele foi relido
+// pede que quem lê acredite — e "acredite" é o que esta porta inteira existe
+// para não precisar dizer. A sonda 16 lê a RESPOSTA HTTP, então a prova
+// também é cobrada aqui, na resposta HTTP.
+// ───────────────────────────────────────────────────────────────────────────
+describe("sonda 16 — a prova publica de qual execução ela foi relida", () => {
+  it("⭐ a resposta traz `prova.correlationId` e `prova.funcao`, e eles batem com o rastro gravado", async () => {
+    const r = await POST(pedir(corpoLimpo(), autorizado));
+    const corpo = await r.json();
+
+    expect(corpo.estado, JSON.stringify(corpo)).toBe("executado");
+    expect(corpo.prova.relido_do_banco).toBe(true);
+    // Os dois campos que faltavam. Sem eles, `relido_do_banco: true` é uma
+    // afirmação que ninguém de fora consegue conferir.
+    expect(corpo.prova.correlationId, "a prova não diz de qual FIO ela foi relida").toBeTruthy();
+    expect(corpo.prova.funcao, "a prova não diz de qual FUNÇÃO ela foi relida").toBeTruthy();
+
+    // E eles são conferíveis: batem com a linha que ficou gravada, que é o que
+    // um terceiro leria para refazer a conferência por conta própria.
+    const gravada = memoria.execucoes[0]!;
+    expect(corpo.prova.execucaoId).toBe(gravada.id);
+    expect(corpo.prova.correlationId).toBe(gravada.correlationId);
+    expect(corpo.prova.funcao).toBe(gravada.funcaoId);
+    // O fio publicado na prova é o mesmo fio do primeiro nível — a resposta não
+    // se contradiz consigo mesma.
+    expect(corpo.prova.correlationId).toBe(corpo.correlationId);
   });
 });
 

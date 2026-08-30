@@ -38,7 +38,11 @@ import {
   escolherClienteDeHomologacao,
   type LinhaDeCliente,
 } from "@/lib/agency/connect/cliente-de-homologacao";
-import { SELO_DE_RASCUNHO } from "@/lib/agency/connect/despacho";
+import {
+  SELO_DE_RASCUNHO,
+  provaDaLinha,
+  type LinhaDeExecucaoLida,
+} from "@/lib/agency/connect/despacho";
 import { AVISO_DE_RASCUNHO } from "@/lib/agency/connect/realizar-sintetico";
 
 const RAIZ = process.cwd();
@@ -341,5 +345,120 @@ describe("trava 9 — o selo de rascunho é inequívoco nos dois lugares", () =>
     expect(AVISO_DE_RASCUNHO).toMatch(/RASCUNHO/);
     expect(AVISO_DE_RASCUNHO).toMatch(/NÃO É A COMUNICAÇÃO FINAL DO GERENTE/);
     expect(AVISO_DE_RASCUNHO).toMatch(/não envie a cliente/i);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ⭐ SONDA 16 — a prova conferia PARA SI, e não publicava o que conferiu.
+//
+// A trava interna estava certa e continua onde estava: as quatro conferências
+// de identidade sobre a linha relida (fio, cliente, função e o próprio id).
+// O defeito era do outro lado do balcão — a `prova` devolvida não trazia
+// `correlationId` nem `funcao`, então quem lê a resposta não tinha como
+// conferir DE QUAL EXECUÇÃO aquele `relido_do_banco: true` estava falando.
+//
+// ─── E POR QUE ESTE TESTE É DE UMA FUNÇÃO PURA, E NÃO DE PONTA A PONTA ─────
+//
+// O defeito que a sonda 16 caça é uma prova que ECOA o pedido de volta. Ele é
+// invisível de fora: no caminho feliz, `pedido.funcao` e `linha.funcaoId` são
+// obrigatoriamente iguais (a conferência de identidade garante isso), e no
+// caminho em que eles diferem a porta nem chega a devolver prova — devolve
+// `nao_verificavel`. Ou seja: **nenhuma asserção de caixa-preta distingue o
+// certo do errado aqui.**
+//
+// Por isso o conserto não é um teste, é a ASSINATURA: `provaDaLinha` recebe a
+// LINHA e não recebe o pedido, então o eco não é uma coisa que alguém tem que
+// lembrar de não fazer — é uma coisa que não dá para escrever. `prompt é
+// aviso; código é trava`. O que este teste faz é fixar isso: ele monta uma
+// linha cujo fio e cuja função NÃO SÃO os de pedido nenhum desta porta, e
+// exige que a prova saia com os valores DELA.
+// ═══════════════════════════════════════════════════════════════════════════
+describe("sonda 16 — a prova diz de qual execução ela foi relida", () => {
+  /** Uma linha relida cujos valores não coincidem com pedido nenhum: fio de
+   *  outro formato, função que não está na lista de uma, datas próprias. */
+  const linha: LinhaDeExecucaoLida & { fim: Date } = {
+    id: "exec-da-linha-relida",
+    funcaoId: "funcao-que-so-existe-na-linha",
+    departamentoId: "client-service-sdr",
+    correlationId: "fio-que-so-existe-na-linha",
+    inicio: new Date("2026-08-30T15:00:00.000Z"),
+    fim: new Date("2026-08-30T15:00:02.500Z"),
+    resultado: '{"situacao":"ok"}',
+    ator: "ia",
+    modelo: "rule-based-sintetico",
+    custoUsd: 0,
+    clienteId: "cli-sintetico",
+  };
+
+  it("⭐ os dois campos que faltavam saem da LINHA — fio e função", () => {
+    const prova = provaDaLinha(linha);
+    expect(prova.correlationId).toBe("fio-que-so-existe-na-linha");
+    expect(prova.funcao).toBe("funcao-que-so-existe-na-linha");
+    // E nenhum deles é o que um pedido legítimo carregaria: se a prova ecoasse
+    // o pedido, o valor que sairia aqui seria "manager-atendimento".
+    expect(prova.funcao).not.toBe(FUNCAO_DO_PILOTO);
+  });
+
+  it("a prova inteira vem da linha, campo a campo — nada é deduzido", () => {
+    expect(provaDaLinha(linha)).toEqual({
+      tabela: "ExecucaoV2",
+      relido_do_banco: true,
+      execucaoId: "exec-da-linha-relida",
+      correlationId: "fio-que-so-existe-na-linha",
+      funcao: "funcao-que-so-existe-na-linha",
+      inicio: "2026-08-30T15:00:00.000Z",
+      fim: "2026-08-30T15:00:02.500Z",
+      duracaoMs: 2500,
+      ator: "ia",
+      modelo: "rule-based-sintetico",
+      custoUsd: 0,
+    });
+  });
+
+  it("trocar QUALQUER coordenada da linha troca a prova — nenhum campo é constante disfarçada", () => {
+    const outra = provaDaLinha({
+      ...linha,
+      id: "outro-id",
+      funcaoId: "outra-funcao",
+      correlationId: "outro-fio",
+    });
+    expect(outra.execucaoId).toBe("outro-id");
+    expect(outra.funcao).toBe("outra-funcao");
+    expect(outra.correlationId).toBe("outro-fio");
+  });
+
+  // ── A TRAVA ESTRUTURAL: o defeito não pode voltar pela porta do lado ──────
+  //
+  // `provaDaLinha` impede o eco DENTRO dela. O que sobra é o ponto de chamada:
+  // alguém poderia, numa refatoração, voltar a montar o objeto `prova` à mão
+  // no retorno de `despachar` e ecoar `pedido.funcao` ali. Nenhuma asserção de
+  // comportamento pega isso (ver a nota grande acima). Esta leitura pega — e é
+  // o mesmo instrumento que a trava 3 usa para o `PILOTO_SECRET`.
+  it("⭐ o retorno de sucesso monta a prova com `provaDaLinha`, e não à mão", () => {
+    const fonte = fs.readFileSync(path.join(RAIZ, "lib/agency/connect/despacho.ts"), "utf8");
+    const codigo = fonte.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+
+    // `prova:` aparece em dois papéis no arquivo: a ANOTAÇÃO DE TIPO no
+    // contrato da resposta (`prova: ProvaDaExecucao;`) e o VALOR, no retorno de
+    // sucesso. Separar os dois é o que faz esta leitura mirar no valor.
+    const ehAnotacaoDeTipo = (v: string) => /^[A-Z][A-Za-z]*;$/.test(v);
+    const ocorrencias = [...codigo.matchAll(/\bprova:\s*([^\n]*)/g)].map((m) => m[1]!.trim());
+    const valores = ocorrencias.filter((v) => !ehAnotacaoDeTipo(v));
+
+    expect(ocorrencias.filter(ehAnotacaoDeTipo), "o contrato da resposta mudou de forma").toHaveLength(1);
+    expect(valores, "o número de lugares que MONTAM a prova mudou").toHaveLength(1);
+    expect(
+      valores[0],
+      "a prova voltou a ser montada à mão no retorno — é por ali que o eco do pedido volta",
+    ).toMatch(/^provaDaLinha\(/);
+
+    // E a função que monta a prova não conhece o pedido: se `pedido` aparecer
+    // na assinatura dela, a trava deixou de ser a assinatura.
+    const assinatura = codigo.match(/export function provaDaLinha\(([^)]*)\)/);
+    expect(assinatura, "provaDaLinha sumiu ou mudou de forma").not.toBeNull();
+    expect(
+      assinatura![1],
+      "provaDaLinha passou a receber o pedido — o eco voltou a ser possível de escrever",
+    ).not.toMatch(/pedido/);
   });
 });

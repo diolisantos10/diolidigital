@@ -18,8 +18,13 @@
 //
 // ─── AS CINCO TRAVAS, NA ORDEM EM QUE ELAS FECHAM ──────────────────────────
 //
-// 0. TETO DE RITMO, antes de tudo. Vinte tentativas por minuto por IP, no
-//    contador que mora no volume. Adivinhar o segredo passa a custar tempo.
+// 0. TETO DE RITMO, em DOIS baldes — porque são duas populações. Vinte
+//    tentativas MALSUCEDIDAS de autenticação por minuto por IP (adivinhar o
+//    segredo custa tempo) e seiscentas chamadas JÁ AUTENTICADAS por minuto por
+//    IP (o laço de um chamador legítimo tem teto). Contador no volume. A ordem
+//    em que cada um entra está no bloco grande logo acima de
+//    `freioDeAdivinhacao`; os números, e a medição que os escolheu, em
+//    `lib/agency/connect/porta.ts`.
 //
 // 1. SEGREDO PRÓPRIO, ÚNICO E COM PISO. `Bearer` conferido em TEMPO CONSTANTE
 //    contra `CONNECT_SECRET` **e mais nada**, e só depois de o segredo cumprir
@@ -60,16 +65,22 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { consumirVaga } from "@/lib/security/limite-no-banco";
+import { consumirVaga, type ResultadoDoLimite } from "@/lib/security/limite-no-banco";
 import { clientIp } from "@/lib/security/rate-limit";
 import { PERFIL_DO_PAPEL } from "@/lib/agency/roles";
 import { armazemDoConnectNoBanco } from "@/lib/agency/connect/armazem-prisma";
 import { conferirPedido, type PedidoDeDespacho } from "@/lib/agency/connect/contrato";
 import { despachar } from "@/lib/agency/connect/despacho";
 import {
-  BALDE_DA_PORTA,
-  JANELA_DO_BALDE_MS,
-  TENTATIVAS_POR_JANELA,
+  BALDE_DAS_TENTATIVAS_FALHAS,
+  BALDE_DO_TRABALHO,
+  CHAMADAS_AUTENTICADAS_POR_JANELA,
+  JANELA_DAS_FALHAS_MS,
+  JANELA_DO_TRABALHO_MS,
+  MOTIVO_CONTADOR_FORA_DO_AR,
+  MOTIVO_RITMO_DE_ADIVINHACAO,
+  MOTIVO_RITMO_DO_TRABALHO,
+  TENTATIVAS_FALHAS_POR_JANELA,
   conferirSegredo,
 } from "@/lib/agency/connect/porta";
 
@@ -96,61 +107,114 @@ export const maxDuration = 300;
  * vizinho de repetição. Esta rota voltou a ser casca: ela não lê variável de
  * ambiente nenhuma, e é por isso que este arquivo não tem mais um `process.env`.
  */
-async function autenticar(request: NextRequest): Promise<NextResponse | null> {
-  const guarda = conferirSegredo(request.headers.get("authorization"));
-  if (!guarda.ok) {
-    // 503 quando a porta está DESLIGADA (segredo ausente ou abaixo do piso),
-    // 401 quando ela está ligada e o cabeçalho está errado. Dizer "não
-    // autorizado" no primeiro caso esconderia do operador que falta configurar.
-    return NextResponse.json({ estado: "recusado", motivo: guarda.motivo }, { status: guarda.status });
-  }
-  return null;
-}
+// (A guarda em si é `conferirSegredo`, em `porta.ts`. Ela é chamada direto no
+//  `POST` — ver o bloco abaixo: qual balde cobra esta requisição depende da
+//  resposta dela, então ela precisa vir antes dos dois.)
 
 /**
- * ⭐ O TETO DE RITMO — o agravante que a auditoria anotou junto do A-1.
+ * ⭐ O TETO DE RITMO — DOIS BALDES, E A ORDEM É A METADE DIFÍCIL.
+ *
+ * ── O que já estava certo, e continua ──────────────────────────────────────
  *
  * O piso de dezesseis caracteres torna o segredo caro POR TENTATIVA; sem teto
  * de ritmo, o atacante compra as tentativas no atacado e o piso vira uma conta
- * de tempo em vez de uma trava. As duas metades são a mesma trava, e faltava
- * uma.
+ * de tempo em vez de uma trava. Essa metade não se mexe. O mecanismo também
+ * não: contador no VOLUME (`limite-no-banco.ts`), que atravessa deploy e
+ * réplica — o `Map` em memória seria pior que nada, porque qualquer push de
+ * qualquer agente desta casa devolveria a cota inteira ao atacante.
  *
- * Ele vem ANTES da conferência do segredo de propósito: um freio que só conta
- * as tentativas BEM-SUCEDIDAS não freia adivinhação nenhuma. O balde é por IP,
- * e o mecanismo é o da casa (contador no volume, que atravessa deploy e
- * réplica) — o `Map` em memória seria pior que nada aqui, porque qualquer push
- * de qualquer agente desta casa devolveria a cota inteira ao atacante.
+ * ── O que estava errado, medido em 30/08/2026 ──────────────────────────────
  *
- * Fail-closed herdado do mecanismo: contador que não responde nega. Esta rota
- * precisa do banco para tudo o que ela faz, então "banco fora" não é um mundo
- * em que ela funcionaria.
+ * Um balde só, de vinte por minuto por IP, cobrado ANTES de autenticar,
+ * misturando duas populações que não têm nada a ver uma com a outra: quem
+ * ADIVINHA o segredo e quem já AUTENTICOU e está trabalhando. O CI do PR #7 da
+ * Control Room ficou vermelho em três passos por isso — inclusive na sonda que
+ * empurra a porta com o segredo ERRADO, que recebeu 429 no lugar do 401 e, com
+ * ele, perdeu a prova de que a porta chega a olhar o segredo. A bateria mede
+ * 127 chamadas em 43 s (≈177/min) e 107 delas levaram 429. A lista inteira dos
+ * três vermelhos e o porquê de cada número estão em `porta.ts`.
+ *
+ * ── A ordem, que é onde mora o conserto ────────────────────────────────────
+ *
+ *   1. `conferirSegredo` PRIMEIRO. Função pura: não toca banco, não gasta vaga
+ *      nenhuma. Rodá-la antes é de graça — e é ela que diz a qual população
+ *      esta requisição pertence. Sem essa resposta não dá para escolher balde,
+ *      e era por não tê-la que o desenho antigo só podia ter um.
+ *   2. ERROU (401) → `freioDeAdivinhacao`, o balde APERTADO. É por isso que
+ *      esta metade continua contando o ERRO: um freio que só contasse ACERTO
+ *      não frearia adivinhação nenhuma. A razão original de o freio vir antes
+ *      de autenticar continua inteira — ela vale para ESTE balde.
+ *   3. ACERTOU → `freioDoTrabalho`, o balde FOLGADO. Aqui vir DEPOIS da
+ *      autenticação é obrigatório: contar trabalho legítimo no balde da
+ *      adivinhação é exatamente o defeito que foi medido.
+ *
+ * ── E o caso que não gasta vaga nenhuma: 503, a porta DESLIGADA ────────────
+ *
+ * Sem segredo utilizável configurado não há segredo a adivinhar: a batida não
+ * é uma tentativa, é uma porta que não existe. Cobrá-la custaria uma escrita
+ * no banco por batida NÃO autenticada, e devolver 429 ao operador que acabou
+ * de subir a porta com o segredo errado esconderia dele o 503 — a única
+ * resposta útil que esta porta tem nesse estado, e a razão de `conferirSegredo`
+ * separar 503 de 401 lá na origem.
+ *
+ * ── Fail-closed, nos dois ──────────────────────────────────────────────────
+ *
+ * Herdado do mecanismo: contador que não responde NEGA, com 503. Esta rota
+ * precisa do banco para tudo o que faz, então "banco fora" não é um mundo em
+ * que ela funcionaria — e vale igual para quem errou o segredo e para quem
+ * acertou.
  */
-async function freioDeRitmo(request: NextRequest): Promise<NextResponse | null> {
+async function freioDeAdivinhacao(request: NextRequest): Promise<NextResponse | null> {
   const r = await consumirVaga(
-    `${BALDE_DA_PORTA}:${clientIp(request)}`,
-    TENTATIVAS_POR_JANELA,
-    JANELA_DO_BALDE_MS,
+    `${BALDE_DAS_TENTATIVAS_FALHAS}:${clientIp(request)}`,
+    TENTATIVAS_FALHAS_POR_JANELA,
+    JANELA_DAS_FALHAS_MS,
   );
-  if (r.liberado) return null;
+  return r.liberado ? null : recusaDeRitmo(r, MOTIVO_RITMO_DE_ADIVINHACAO);
+}
+
+/** O balde folgado. Ver o bloco acima para a ordem, e `porta.ts` para o número. */
+async function freioDoTrabalho(request: NextRequest): Promise<NextResponse | null> {
+  const r = await consumirVaga(
+    `${BALDE_DO_TRABALHO}:${clientIp(request)}`,
+    CHAMADAS_AUTENTICADAS_POR_JANELA,
+    JANELA_DO_TRABALHO_MS,
+  );
+  return r.liberado ? null : recusaDeRitmo(r, MOTIVO_RITMO_DO_TRABALHO);
+}
+
+/**
+ * A recusa por ritmo, num formato só — para os dois baldes não divergirem na
+ * forma. O que MUDA entre eles é a frase, e ela é o parâmetro: quem lê um 429
+ * precisa saber em qual dos dois bateu sem abrir log nenhum.
+ */
+function recusaDeRitmo(r: ResultadoDoLimite, motivoDoEstouro: string): NextResponse {
+  const foraDoAr = r.motivo === "indisponivel";
   return NextResponse.json(
-    {
-      estado: "recusado",
-      motivo:
-        r.motivo === "indisponivel"
-          ? "o contador de ritmo não respondeu, e esta porta nega por precaução — contador que não conta não autoriza."
-          : `ritmo excedido nesta porta: no máximo ${TENTATIVAS_POR_JANELA} tentativas por minuto. ` +
-            "O teto existe para que adivinhar o segredo custe tempo, e não só sorte.",
-    },
-    { status: r.motivo === "indisponivel" ? 503 : 429, headers: { "Retry-After": String(r.esperarSegundos) } },
+    { estado: "recusado", motivo: foraDoAr ? MOTIVO_CONTADOR_FORA_DO_AR : motivoDoEstouro },
+    { status: foraDoAr ? 503 : 429, headers: { "Retry-After": String(r.esperarSegundos) } },
   );
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const rapidoDemais = await freioDeRitmo(request);
-  if (rapidoDemais) return rapidoDemais;
+  // ── 1. A guarda pura decide primeiro, e de graça. ────────────────────────
+  const guarda = conferirSegredo(request.headers.get("authorization"));
 
-  const barrado = await autenticar(request);
-  if (barrado) return barrado;
+  // ── 2. Errou o segredo? Isto é ADIVINHAÇÃO, e vai para o balde apertado. ──
+  if (!guarda.ok) {
+    // 503 = porta DESLIGADA (segredo ausente ou abaixo do piso): sai por fora
+    // do balde, porque não há segredo a adivinhar. 401 = a porta está ligada e
+    // o cabeçalho está errado — essa É uma tentativa, e é contada.
+    if (guarda.status === 401) {
+      const freado = await freioDeAdivinhacao(request);
+      if (freado) return freado;
+    }
+    return NextResponse.json({ estado: "recusado", motivo: guarda.motivo }, { status: guarda.status });
+  }
+
+  // ── 3. Acertou. Daqui para baixo é TRABALHO, e o balde é o folgado. ──────
+  const rapidoDemais = await freioDoTrabalho(request);
+  if (rapidoDemais) return rapidoDemais;
 
   let corpo: PedidoDeDespacho;
   try {

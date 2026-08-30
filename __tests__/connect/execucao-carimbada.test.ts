@@ -221,6 +221,30 @@ describe("o caminho legítimo — e o carimbo que volta do banco", () => {
     expect(r.prova.custoUsd).toBe(0); // homologação sintética não gasta
   });
 
+  it("⭐ sonda 16 — a prova PUBLICA de qual execução ela foi relida, contra banco de verdade", async () => {
+    // A trava de identidade (as quatro conferências) já existia e não mudou.
+    // O que mudou é que a resposta agora deixa um TERCEIRO refazer a
+    // conferência: com `execucaoId`, `correlationId` e `funcao` na mão, quem lê
+    // consulta `ExecucaoV2` e vê a mesma linha. É isso que este teste faz —
+    // consulta o banco por fora, com o que a resposta publicou.
+    const r = await despachar(pedidoDoPiloto(), { armazem, perfil: PERFIL, agora: () => AGORA });
+    expect(r.estado, JSON.stringify(r)).toBe("executado");
+    if (r.estado !== "executado") return;
+
+    expect(r.prova.correlationId, "a prova não diz de qual FIO ela foi relida").toBeTruthy();
+    expect(r.prova.funcao, "a prova não diz de qual FUNÇÃO ela foi relida").toBeTruthy();
+
+    // A releitura de fora, feita SÓ com o que a resposta publicou.
+    const conferida = await prisma.execucaoV2.findUnique({ where: { id: r.prova.execucaoId } });
+    expect(conferida).not.toBeNull();
+    expect(conferida!.correlationId).toBe(r.prova.correlationId);
+    expect(conferida!.funcaoId).toBe(r.prova.funcao);
+
+    // E a prova não se contradiz com o primeiro nível da resposta.
+    expect(r.prova.correlationId).toBe(r.correlationId);
+    expect(r.prova.funcao).toBe(r.funcao);
+  });
+
   it("o gerente devolve situação, motivo, próxima ação e prazo — e nomeia a quem delega", async () => {
     const r = await despachar(pedidoDoPiloto(), { armazem, perfil: PERFIL, agora: () => AGORA });
     expect(r.estado).toBe("executado");

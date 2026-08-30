@@ -210,12 +210,64 @@ export interface ProvaDaExecucao {
   tabela: "ExecucaoV2";
   relido_do_banco: true;
   execucaoId: string;
+  /**
+   * ⭐ DE QUAL EXECUÇÃO ISTO FOI RELIDO — os dois campos que a sonda 16 cobrava.
+   *
+   * A trava interna existia e está certa: as quatro conferências de identidade
+   * logo antes do retorno de sucesso. Mas ela conferia **para si**. A resposta
+   * declarava `relido_do_banco: true` e não publicava nada que permitisse a um
+   * TERCEIRO refazer a conferência — quem lê tinha que acreditar. Um bloco que
+   * se diz relido do banco tem que dizer de QUAL linha, e "qual" é o fio e a
+   * função dela; sem isso, `relido_do_banco: true` é a mesma classe de
+   * afirmação que "o despachante disse ok".
+   *
+   * Os dois vêm da LINHA, nunca do pedido — e isso não é promessa de
+   * comentário: `provaDaLinha` não RECEBE o pedido. Ver a nota lá.
+   */
+  correlationId: string;
+  funcao: string;
   inicio: string;
   fim: string;
   duracaoMs: number;
   ator: string;
   modelo: string | null;
   custoUsd: number | null;
+}
+
+/**
+ * A PROVA, MONTADA A PARTIR DA LINHA RELIDA — e de mais nada.
+ *
+ * ⭐ A ASSINATURA É A TRAVA, e ela É o conserto. `prompt é aviso; código é
+ * trava`: o defeito que a sonda 16 existe para pegar é uma prova que ECOA o
+ * pedido de volta. Devolver `pedido.funcao` no lugar de `linha.funcaoId` daria
+ * uma resposta idêntica no caminho feliz — as quatro conferências de identidade
+ * garantem que os dois valores coincidem lá — e uma prova VAZIA no único
+ * caminho em que ela importa, o de um armazém que devolve linha alheia. Ou
+ * seja: um defeito que nenhum teste de caixa-preta consegue ver.
+ *
+ * Um comentário pedindo "leia da linha" seria aviso. Isto é trava: esta função
+ * não recebe o pedido, então não existe caminho, dentro dela, em que o pedido
+ * seja ecoado. Quem quiser reintroduzir o defeito tem que mudar a assinatura —
+ * e aí o vermelho tem nome e endereço.
+ *
+ * `fim` entra no tipo do parâmetro (e não como `Date | null`) porque prova de
+ * execução pela metade não é prova: quem chama já provou que a linha tem fim,
+ * e o tipo carrega essa prova em vez de repeti-la aqui com um `!`.
+ */
+export function provaDaLinha(linha: LinhaDeExecucaoLida & { fim: Date }): ProvaDaExecucao {
+  return {
+    tabela: "ExecucaoV2",
+    relido_do_banco: true,
+    execucaoId: linha.id,
+    correlationId: linha.correlationId,
+    funcao: linha.funcaoId,
+    inicio: linha.inicio.toISOString(),
+    fim: linha.fim.toISOString(),
+    duracaoMs: linha.fim.getTime() - linha.inicio.getTime(),
+    ator: linha.ator,
+    modelo: linha.modelo,
+    custoUsd: linha.custoUsd,
+  };
 }
 
 /**
@@ -682,16 +734,9 @@ export async function despachar(
     execucaoId: linha.id,
     cliente,
     artefato: linha.resultado,
-    prova: {
-      tabela: "ExecucaoV2",
-      relido_do_banco: true,
-      execucaoId: linha.id,
-      inicio: linha.inicio.toISOString(),
-      fim: linha.fim.toISOString(),
-      duracaoMs: linha.fim.getTime() - linha.inicio.getTime(),
-      ator: linha.ator,
-      modelo: linha.modelo,
-      custoUsd: linha.custoUsd,
-    },
+    // ⭐ A prova sai de `provaDaLinha`, e ela recebe A LINHA — não o pedido, não
+    //    o `correlationId` local, não `pedido.funcao`. Ver a nota da função: é
+    //    a assinatura dela que impede o eco, não a boa intenção deste retorno.
+    prova: provaDaLinha({ ...linha, fim: linha.fim }),
   };
 }
