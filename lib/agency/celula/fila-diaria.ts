@@ -126,7 +126,17 @@ export interface LiberacaoDeItem {
 }
 
 export type ResultadoDaLiberacao =
-  | { ok: true; liberados: readonly LiberacaoDeItem[]; recusados: readonly LiberacaoDeItem[] }
+  | {
+      ok: true;
+      liberados: readonly LiberacaoDeItem[];
+      recusados: readonly LiberacaoDeItem[];
+      /** 🔴 O NÚMERO QUE DECIDE O CAMINHO B. Itens que estavam PRONTOS — que
+       *  passaram por todas as conferências — e que o operador, olhando,
+       *  decidiu NÃO enviar. Cada um é uma correção que só o humano fez, e é
+       *  exatamente o que se perde quando a pessoa sai do meio.
+       *  Ver `docs/celula-prospeccao/decisao-b-automatico.md`, seção 4. */
+      naoSelecionados: readonly string[];
+    }
   | { ok: false; motivo: string; regra: "sem_permissao" | "lista_vazia" };
 
 /**
@@ -139,7 +149,22 @@ export type ResultadoDaLiberacao =
  * o que faz o registro dizer QUEM liberou, e não "o sistema".
  */
 export async function liberarEmBloco(
-  input: { workspaceId: string; arquivoIds: readonly string[]; credencial: Credencial; autor: string; agora?: Date },
+  input: {
+    workspaceId: string;
+    /** O que o operador SELECIONOU. */
+    arquivoIds: readonly string[];
+    /**
+     * O que foi APRESENTADO a ele como pronto. Opcional, e a diferença entre
+     * este e o de cima é a medição inteira: sem saber o que ele viu, não se
+     * sabe o que ele descartou — só o que ele escolheu. Omitir não quebra a
+     * liberação; apenas apaga a evidência, e por isso o número medido nasce
+     * como `[]` e não como zero fingido.
+     */
+    prontosApresentados?: readonly string[];
+    credencial: Credencial;
+    autor: string;
+    agora?: Date;
+  },
   db: typeof prisma = prisma,
 ): Promise<ResultadoDaLiberacao> {
   const permissao = podeNaCelula(input.credencial, "autorizar_envio");
@@ -200,5 +225,26 @@ export async function liberarEmBloco(
     liberados.push({ arquivoId, liberado: true, motivo: null });
   }
 
-  return { ok: true, liberados, recusados };
+  // A MEDIÇÃO. Registrada como evento, não contada em memória: um número que
+  // só existe enquanto o processo vive não sobrevive até quinta-feira.
+  const selecionados = new Set(input.arquivoIds);
+  const naoSelecionados = (input.prontosApresentados ?? []).filter((id) => !selecionados.has(id));
+  for (const arquivoId of naoSelecionados) {
+    const existe = await db.arquivoDaCelula.findFirst({ where: { id: arquivoId, workspaceId: input.workspaceId } });
+    if (!existe) continue;
+    await db.eventoDoArquivoDaCelula.create({
+      data: {
+        workspaceId: input.workspaceId,
+        arquivoId,
+        tipo: "nao_selecionado_pelo_operador",
+        autor: input.autor,
+        origem: "fila_diaria",
+        detalhe:
+          `Estava PRONTO na fila de ${agora.toISOString().slice(0, 10)} e o operador NÃO o selecionou. ` +
+          `Este é o número que sustenta ou derruba o caminho B: uma correção que só o humano fez.`,
+      },
+    });
+  }
+
+  return { ok: true, liberados, recusados, naoSelecionados };
 }

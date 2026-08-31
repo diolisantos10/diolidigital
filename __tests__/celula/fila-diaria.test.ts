@@ -190,3 +190,66 @@ describe("🔴 quem pode liberar", () => {
     if (!r.ok) expect(r.regra).toBe("lista_vazia");
   }, 60_000);
 });
+
+describe("🔴 A MEDIÇÃO QUE DECIDE O CAMINHO B", () => {
+  // Sem este número, quinta-feira chega sem evidência: sabe-se o que saiu e o
+  // que a máquina recusou, mas não o que o CEO viu e deixou de fora. E é
+  // exatamente isso que se perde quando a pessoa sai do meio.
+
+  it("registra os itens PRONTOS que o operador não selecionou", async () => {
+    const { montarFilaDoDia, liberarEmBloco } = await import("@/lib/agency/celula/fila-diaria");
+    const a = await entrega("op-a", "a.jpg");
+    const b = await entrega("op-b", "b.jpg");
+    const c = await entrega("op-c", "c.jpg");
+
+    const fila = await montarFilaDoDia({ workspaceId: W }, estado.prisma);
+    const prontos = fila.itens.filter((i) => i.pronto).map((i) => i.arquivoId);
+    expect(prontos.length).toBe(3);
+
+    // O operador olha os três e envia só dois. O terceiro é a correção humana.
+    const r = await liberarEmBloco(
+      { workspaceId: W, arquivoIds: [a, b], prontosApresentados: prontos, credencial: GERENTE, autor: "gerente" },
+      estado.prisma,
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.naoSelecionados).toEqual([c]);
+
+    // E o número SOBREVIVE ao processo: está no banco, não na memória.
+    const evento = await estado.prisma.eventoDoArquivoDaCelula.findFirst({
+      where: { arquivoId: c, tipo: "nao_selecionado_pelo_operador" },
+    });
+    expect(evento).not.toBeNull();
+    expect(evento!.detalhe).toMatch(/caminho B/i);
+
+    // O não selecionado NÃO foi enviado — continua na fila de amanhã.
+    const depois = await estado.prisma.arquivoDaCelula.findUniqueOrThrow({ where: { id: c } });
+    expect(depois.estado).toBe("aprovado_para_envio");
+  }, 120_000);
+
+  it("operador que envia TUDO gera medição vazia — o caso que sustenta B", async () => {
+    const { montarFilaDoDia, liberarEmBloco } = await import("@/lib/agency/celula/fila-diaria");
+    const a = await entrega("op-a", "a.jpg");
+    const b = await entrega("op-b", "b.jpg");
+    const fila = await montarFilaDoDia({ workspaceId: W }, estado.prisma);
+    const prontos = fila.itens.map((i) => i.arquivoId);
+
+    const r = await liberarEmBloco(
+      { workspaceId: W, arquivoIds: [a, b], prontosApresentados: prontos, credencial: GERENTE, autor: "g" },
+      estado.prisma,
+    );
+    expect(r.ok && r.naoSelecionados).toEqual([]);
+    expect(await estado.prisma.eventoDoArquivoDaCelula.count({ where: { tipo: "nao_selecionado_pelo_operador" } })).toBe(0);
+  }, 120_000);
+
+  it("sem `prontosApresentados` a medição fica VAZIA, não zero fingido", async () => {
+    const { liberarEmBloco } = await import("@/lib/agency/celula/fila-diaria");
+    const a = await entrega("op-a", "a.jpg");
+    await entrega("op-b", "b.jpg");
+    // Quem chamar sem dizer o que apresentou não pode produzir a evidência de
+    // que "nada foi descartado" — porque ninguém sabe o que ele mostrou.
+    const r = await liberarEmBloco({ workspaceId: W, arquivoIds: [a], credencial: GERENTE, autor: "g" }, estado.prisma);
+    expect(r.ok && r.naoSelecionados).toEqual([]);
+    expect(await estado.prisma.eventoDoArquivoDaCelula.count({ where: { tipo: "nao_selecionado_pelo_operador" } })).toBe(0);
+  }, 120_000);
+});
