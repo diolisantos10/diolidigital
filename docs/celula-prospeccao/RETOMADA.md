@@ -86,6 +86,9 @@ Rode qualquer um deles para conferir — não acredite nesta tabela.
 | **Rota do funil** — `app/` importa a Célula | `app/api/agency/oportunidades/[id]/funil/route.ts` | — | sessão · posse · papel |
 | **JORNADA PONTA A PONTA** (banco real, 11 etapas) | `__tests__/celula/jornada-ponta-a-ponta.test.ts` | — | 15 transições, trilha completa |
 | **Tela do funil** no Radar (estado + trilha) | `components/agency/comercial/PainelDoFunil.tsx` | — | capturada em 375/768/1440 |
+| **Corpo do arquivo** (byte gravado, integridade na leitura) | `lib/agency/celula/ponte/corpo.ts` | — | 11 testes, byte a byte |
+| **Pacote do operador** (o que o CEO clica para anexar) | `lib/agency/celula/ponte/pacote-do-operador.ts` | — | 4 conferências |
+| **Fila diária** (derivada, bloco não-cego, idempotente) | `lib/agency/celula/fila-diaria.ts` | — | 9 testes, inclui bloco sujo |
 | Migration das 4 tabelas | `prisma/migrations/20260830170000_*` | — | aplicada em banco vazio + controle negativo |
 
 **Decisão 1** (Claude in Chrome, não OpenAI/Playwright): resolvida e
@@ -113,15 +116,21 @@ fora e chegou ao mesmo resultado.
 
 São dois, e o segundo destrava o primeiro.
 
-1. **Download e upload EFETIVOS · PDF, imagem e editável.** A ponte tem a
-   lógica inteira, com checksum, quarentena, versão e destinatário conferido —
-   e a jornada exercita tudo isso com `Buffer` controlado. **O que não existe é
-   o braço que baixa do 99Freelas e anexa lá.** Ele depende do item 3.
+**O caminho A (decisão D-0D1) está OPERÁVEL em código.** O que falta não é
+código:
 
-2. 🔴 **A operação real depende de uma coisa que não é código:** a atestação
-   humana de que o perfil dedicado do Chrome está limpo, feita na máquina do
-   CEO. `executor.ts` já EXIGE essa atestação e recusa planejar sem ela — mas
-   ninguém a produziu ainda. Ver `decisao-1-vs-decisao-2.md`.
+1. 🔴 **A atestação humana de que o perfil dedicado do Chrome está limpo**,
+   feita na máquina do CEO. `executor.ts` já EXIGE essa atestação e recusa
+   planejar sem ela — ninguém a produziu ainda. Ver `decisao-1-vs-decisao-2.md`.
+
+2. **A tela da fila diária.** A lógica existe e é testada
+   (`montarFilaDoDia`/`liberarEmBloco`); a página para o CEO revisar e liberar
+   com um clique, não. Hoje passa por chamada de código.
+
+3. **O caminho B (automático), decidido para 03/09.** Desenhado, não
+   construído: `docs/celula-prospeccao/decisao-b-automatico.md`. Só entra em
+   código na quinta, com a fila do caminho A já tendo rodado alguns dias como
+   prova.
 
 > ⚠️ **A distinção que não pode se perder:** a jornada prova que as peças se
 > encaixam **quando ligadas**, com dados controlados. Ela **não** prova que a
@@ -135,6 +144,9 @@ São dois, e o segundo destrava o primeiro.
 
 ## 🔴 Riscos abertos que o próximo turno herda
 
+- **RESOLVIDO em 31/08:** a lacuna declarada em `armazem.ts` — "o byte nunca é
+  gravado em disco" — foi fechada por `ponte/corpo.ts`. Se você estiver lendo
+  aquele cabeçalho, ele está desatualizado quanto a isto.
 - **Trava sem fechadura:** dois mecanismos (M14 e `follow-up.ts`) esperam o
   histórico de acompanhamentos, que **nada preenche** — o chat está atrás do
   login, que é BLOCK. O mecanismo decide certo sobre um dado que não existe.
