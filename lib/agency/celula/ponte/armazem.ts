@@ -56,6 +56,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db/client";
+import { gravarCorpo } from "@/lib/agency/celula/ponte/corpo";
 import { MIMES_ACEITOS, MAX_BYTES_POR_ARQUIVO } from "@/lib/agency/media/armazenamento";
 import { varrerArquivoRecebido, type ArquivoRecebido } from "./quarentena";
 import { confirmarRecebimentoAoCliente } from "./entrada";
@@ -144,6 +145,36 @@ export async function registrarArquivoDoCliente(input: {
   const estadoInicial: EstadoDoArquivo = veredicto.ok ? "liberado" : veredicto.estado;
   const direcao: Direcao = "cliente_para_dioli";
 
+  // ── O BYTE VEM ANTES DO REGISTRO ──────────────────────────────────────
+  // Id e caminho passaram a ser calculados AQUI, fora da transação, para que o
+  // corpo possa ser gravado antes de existir qualquer linha no banco. Se o
+  // disco falhar, não nasce registro — a casa não promete um arquivo que não
+  // tem. Se o registro falhar depois, sobra um órfão no disco, que é lixo
+  // barato. A ordem inversa produziria um registro dizendo "pronto" apontando
+  // para o nada, descoberto só na frente do cliente.
+  //
+  // O corpo é gravado mesmo quando a varredura manda para QUARENTENA: revisar
+  // um arquivo suspeito exige tê-lo. Quem impede a quarentena de chegar ao
+  // cliente é o estado, não a ausência do byte.
+  const id = gerarIdDeArquivoDaCelula();
+  const caminhoInterno = derivarCaminhoInterno({
+    workspaceId: input.workspaceId,
+    id,
+    extensao: input.extensaoDeclarada,
+  });
+  const corpo = await gravarCorpo(caminhoInterno, input.bytes);
+  if (!corpo.ok) {
+    return {
+      ok: false,
+      motivo: `não consegui guardar o arquivo: ${corpo.motivo}`,
+      abrirExcecao: {
+        caso: "falha_de_download" as const,
+        contexto: { nomeOriginal: input.nomeOriginal, regra: corpo.regra },
+        acaoRecomendada: "Gerente de atendimento confirma o arquivo com o cliente e pede reenvio.",
+      },
+    };
+  }
+
   return prisma.$transaction(async (tx) => {
     // MAX(versao) + 1 para a linhagem, DENTRO da transação — nunca aceita
     // `versao` vinda de fora. Inline (não extraído para função à parte) para
@@ -172,13 +203,6 @@ export async function registrarArquivoDoCliente(input: {
     // malicioso que alguém tente injetar em `input` (campo que nem existe
     // mais no tipo, mas poderia chegar via `any`/JS puro) nunca é lido nem
     // usado — prova em `__tests__/celula/ponte-caminho-interno-derivado.test.ts`.
-    const id = gerarIdDeArquivoDaCelula();
-    const caminhoInterno = derivarCaminhoInterno({
-      workspaceId: input.workspaceId,
-      id,
-      extensao: input.extensaoDeclarada,
-    });
-
     const criado = await tx.arquivoDaCelula.create({
       data: {
         id,
@@ -282,6 +306,22 @@ export async function registrarArquivoParaCliente(input: {
   const sha256 = createHash("sha256").update(input.bytes).digest("hex");
   const direcao: Direcao = "dioli_para_cliente";
 
+  // ── O BYTE VEM ANTES DO REGISTRO ──────────────────────────────────────
+  // Mesmo desenho de `registrarArquivoDoCliente`, e pelo mesmo motivo: um
+  // registro de ENTREGA apontando para o nada é pior que entrega nenhuma —
+  // ele faz a casa dizer "pronto" e só falha na frente do cliente.
+  // Conserto B2/2 preservado: id gerado aqui, caminho DERIVADO dele.
+  const id = gerarIdDeArquivoDaCelula();
+  const caminhoInterno = derivarCaminhoInterno({
+    workspaceId: input.workspaceId,
+    id,
+    extensao: input.extensao,
+  });
+  const corpo = await gravarCorpo(caminhoInterno, input.bytes);
+  if (!corpo.ok) {
+    return { ok: false as const, motivo: `não consegui guardar a entrega: ${corpo.motivo}` };
+  }
+
   return prisma.$transaction(async (tx) => {
     // Mesma fronteira de posse do registro do lado cliente → Dioli (ver o
     // comentário em `registrarArquivoDoCliente`): escopado por workspaceId.
@@ -291,15 +331,6 @@ export async function registrarArquivoParaCliente(input: {
       select: { versao: true },
     });
     const versao = (ultima?.versao ?? 0) + 1;
-
-    // Conserto B2/2: mesmo desenho de `registrarArquivoDoCliente` — id
-    // gerado aqui, caminho DERIVADO desse id, nunca aceito de fora.
-    const id = gerarIdDeArquivoDaCelula();
-    const caminhoInterno = derivarCaminhoInterno({
-      workspaceId: input.workspaceId,
-      id,
-      extensao: input.extensao,
-    });
 
     const criado = await tx.arquivoDaCelula.create({
       data: {
