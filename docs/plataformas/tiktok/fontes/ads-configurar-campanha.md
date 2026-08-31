@@ -1,8 +1,8 @@
 ---
 titulo: "How to Set Up a Campaign (objetivos e configuração no Ads Manager)"
 url: https://ads.tiktok.com/help/article/campaign-set-up?lang=en
-capturado_em: 2026-08-30
-hash: 190eefdf18f2cafb
+capturado_em: 2026-08-31
+hash: b2cd2e005d8f3aea
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -91,6 +91,7 @@ If you save a campaign as a draft, it will be stored on your Campaign list under
 
 After you create your ad campaign, you can verify your settings before it is delivered. Visit How to view ad settings for quality assurance to learn more.
 
+*Was the information helpful?
 Related Articles
  How to choose the right objective in TikTok Ads Manager
  About TikTok Ads Structure
