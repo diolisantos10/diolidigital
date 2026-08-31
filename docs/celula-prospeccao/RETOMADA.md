@@ -88,8 +88,11 @@ Rode qualquer um deles para conferir — não acredite nesta tabela.
 | **Tela do funil** no Radar (estado + trilha) | `components/agency/comercial/PainelDoFunil.tsx` | — | capturada em 375/768/1440 |
 | Migration das 4 tabelas | `prisma/migrations/20260830170000_*` | — | aplicada em banco vazio + controle negativo |
 
-**Decisão 1** (Claude in Chrome, não OpenAI/Playwright) está registrada como
-rumo; o executor ainda não existe — ver abaixo.
+**Decisão 1** (Claude in Chrome, não OpenAI/Playwright): resolvida e
+construída. O executor EXISTE (linha acima) — na forma que a decisão implica:
+**plano + atestação + registro, sem driver de navegador**. O porquê está em
+`decisao-1-vs-decisao-2.md`, e o resumo é que `launchPersistentContext` era
+implementação onde o requisito pedia uma propriedade (perfil isolado).
 
 ### ✅ CI — MEDIDO, não suposto
 
@@ -108,7 +111,7 @@ fora e chegou ao mesmo resultado.
 
 ## ❌ NÃO FEITO — a lista obrigatória do CEO que continua aberta
 
-Em ordem de dependência. Os três primeiros destravam o resto.
+São dois, e o segundo destrava o primeiro.
 
 1. **Download e upload EFETIVOS · PDF, imagem e editável.** A ponte tem a
    lógica inteira, com checksum, quarentena, versão e destinatário conferido —
