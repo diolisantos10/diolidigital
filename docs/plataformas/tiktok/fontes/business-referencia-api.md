@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — API Reference (índice completo dos endpoints v1.3)"
 url: https://business-api.tiktok.com/portal/docs/api-reference/v1.3
-capturado_em: 2026-08-31
-hash: e27912ab11d51752
+capturado_em: 2026-09-01
+hash: e23f19df46937243
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -4989,7 +4989,7 @@ Business Verification > Read
 
 -
 	
-/account/verification/submit/
+/account/verification/upload/
 	
 Upload verification documents.
 	
@@ -4997,7 +4997,7 @@ Business Verification > Write
 
 -
 	
-/account/verification/upload/
+/account/verification/submit/
 	
 Submit a verification request for your account.
 	

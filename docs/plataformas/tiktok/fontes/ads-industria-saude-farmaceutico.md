@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Healthcare and Pharmaceuticals (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-healthcare-pharmaceuticals
-capturado_em: 2026-08-31
-hash: 74b7be6f35b61c8e
+capturado_em: 2026-09-01
+hash: 3532759a047f7ef8
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -2470,11 +2470,15 @@ Pharmacies
 
 Domestic and online pharmacies are not allowed.
 
-Contraceptives
+Condoms and lubricants
 
 	
 
-Not allowed.
+- The ad must be restricted to users aged 18 years or older.
+
+- Verifiable medical device certification number in the ad and/or landing page.
+
+- Explicit/Implicit sexual content and phrasing not allowed.
 
 Medical-related products or services
 
@@ -5256,6 +5260,7 @@ Baby food products
 
 Not allowed.
 
+*Was the information helpful?
 Content
 Principle
 Healthcare-related products and services

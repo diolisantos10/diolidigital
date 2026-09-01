@@ -1,7 +1,7 @@
 ---
 titulo: "Políticas do Google Ads — visão geral"
 url: https://support.google.com/adspolicy/answer/6008942?hl=pt-BR
-capturado_em: 2026-08-31
+capturado_em: 2026-09-01
 hash: 53c4b8c38e1b3d05
 ---
 

@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads — abuso da rede de publicidade"
 url: https://support.google.com/adspolicy/answer/6020954?hl=pt-BR
-capturado_em: 2026-08-31
+capturado_em: 2026-09-01
 hash: caa0aee36609663f
 ---
 

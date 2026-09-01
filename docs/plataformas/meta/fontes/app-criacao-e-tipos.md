@@ -1,8 +1,8 @@
 ---
 titulo: "Desenvolvimento — criar um app, tipos de app e painel"
 url: https://developers.facebook.com/documentation/development/create-an-app
-capturado_em: 2026-08-31
-hash: 8cb918705986f5a9
+capturado_em: 2026-09-01
+hash: 56d5c1bb501bb7a6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -86,6 +86,8 @@ public_profile
 business_management
 pages_manage_posts
 email
+live_shopping_manage_video
+catalog_management
 Acessar a API do Threads
 threads_basic
 threads_read_replies

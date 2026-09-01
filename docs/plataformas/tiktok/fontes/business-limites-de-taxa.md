@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok API for Business — Rate limits (limites por app, por anunciante e por endpoint)"
 url: https://business-api.tiktok.com/portal/docs/rate-limits/v1.3
-capturado_em: 2026-08-31
-hash: 2f5d6913a58fd750
+capturado_em: 2026-09-01
+hash: a5cb6347e25b757b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -96,7 +96,7 @@ Offline Events(/offline/track/ with POST method)	1,000	600,000	86,400,000	1,000	
 Streaming API	10,000	600,000	864,000,000	20,000	1,200,000	1,728,000,000	30,000	1,800,000	2,592,000,000	50,000	3,000,000	4,320,000,000
 /campaign/copy/task/create/	1	30	432,000	1	30	432,000	1	30	432,000	1	30	432,000
 /campaign/copy/task/check/	2	60	864,000	2	60	864,000	2	60	864,000	2	60	864,000
-/gmv_max/report/get/	8	240	20,000	12	360	30,000	20	600	50,000	20	600	50,000
+/gmv_max/report/get/	8	240	80,000	12	360	120,000	20	600	200,000	20	600	200,000
 Best practices
 
 To avoid your request being throttled and better utilize the resources, you can send requests in bulk and limit the number of concurrent requests.

@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Financial Services (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-financial-services
-capturado_em: 2026-08-31
-hash: d5bf9f783d6b694f
+capturado_em: 2026-09-01
+hash: 4bfbbad15f2e2372
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -3266,7 +3266,6 @@ Unaccredited digital banks that perform any traditional bank-like function
 
 Virtual currencies or cryptocurrencies, such as Bitcoin and Ethereum
 
-*Was the information helpful?
 Content
 Principle
 Market-specific requirements
