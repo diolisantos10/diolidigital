@@ -31,15 +31,22 @@ Enquanto foi assim, o Diretor executou à mão sob exceção `SEM_AGENTE`
 declarada — o que é violação da régua da casa registrada como **dado**, não
 como desculpa.
 
-## 🔇 APAGÃO DE NOTIFICAÇÕES — cinco chegaram, nenhuma foi lida
+## 🔇 APAGÃO DE NOTIFICAÇÕES — segue aberto, confirmado de novo em 02/09
 
-`ReadNotifications` está desabilitado junto com o `Agent`. Cinco avisos
-agendados chegaram nesta sessão e **nenhum pôde ser aberto**:
+`ReadNotifications` está desabilitado. Cinco avisos agendados chegaram na
+sessão de 30-31/08 e **nenhum pôde ser aberto**; na sessão de 02/09 (a que
+fechou o achado do papel na Célula) chegou pelo menos mais um, e o resultado
+foi o mesmo:
 
 ```
 Error: No such tool available: ReadNotifications. ReadNotifications is
 disabled for this session, in subagents as well as here.
 ```
+
+**Diferente do `Agent` (que voltou em 02/09 e foi usado de verdade), o
+`ReadNotifications` continua fora do ar em duas sessões separadas.** Não é
+sinal de que vai voltar sozinho — confira de novo a cada sessão nova, não
+assuma pelo estado do `Agent`.
 
 **Consequência que precisa ficar dita:** se o CEO ou o Diretor Geral mandaram
 algo por esse canal, **não chegou**. Não é silêncio de quem não respondeu — é
