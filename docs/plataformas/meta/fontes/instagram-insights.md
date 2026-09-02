@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram Platform — insights (guia)"
 url: https://developers.facebook.com/documentation/instagram-platform/insights
-capturado_em: 2026-09-01
-hash: f8e2f559b55e88bc
+capturado_em: 2026-09-02
+hash: 2defb932ff2449ee
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,7 +10,7 @@ hash: f8e2f559b55e88bc
 
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
-Informações
+Insights da plataforma do Instagram
 Updated: 21 de jan de 2025
 Copiar para LLM
 Ver como Markdown
@@ -58,31 +58,31 @@ Acesso padrão se o app atender a contas profissionais do Instagram que você po
 Pontos de extremidade
 GET /<INSTAGRAM_MEDIA_ID>/insights, para obter métricas sobre um objeto de mídia.
 GET /<INSTAGRAM_ACCOUNT_ID>/insights, para obter métricas sobre uma conta comercial ou de criador de conteúdo do Instagram.
-Consulte a documentação de cada ponto de extremidade para ver requisitos adicionais de métricas, parâmetros e permissões.
+Consulte a documentação de cada endpoint para ver requisitos adicionais de métricas, parâmetros e permissões.
 UTC
 Os registros de data e hora das respostas da API usam o formato UTC com deslocamento zero e são formatados de acordo com a norma ISO-8601. Por exemplo: 2019-04-05T07:56:32+0000
 Assinaturas de eventos de webhook
 story_insights – Disponível somente na API do Instagram com o Login do Facebook.
 Limitações
 Insights sobre a mídia
-Métricas como comments, likes e views retornam o engajamento apenas da mídia do Instagram e não incluem dados de outras plataformas. Por exemplo, comments retorna o número de comentários em uma foto, mas não comentários em anúncios que contêm essa foto. Use total_comments, total_likes e total_views no ponto de extremidade de insights para receber contagens agregadas que incluem engajamento de mídia de anúncio promovida/turbinada. Essas métricas totais só estão disponíveis para a API do Instagram com o Login do Facebook.
+Métricas como comments, likes e views retornam o engajamento apenas da mídia do Instagram e não incluem dados de outras plataformas. Por exemplo, comments retorna o número de comentários em uma foto, mas não comentários em anúncios que contêm essa foto. Use total_comments, total_likes e total_views no ponto de extremidade de insights para obter contagens agregadas que incluem engajamento de mídia de anúncio promovida/turbinada. Essas métricas totais só estão disponíveis para a API do Instagram com o Login do Facebook.
 A mídia do Instagram de vídeo ao vivo só pode ser lida durante a transmissão desse conteúdo.
-Essa API retorna apenas dados de mídia de propriedade de contas profissionais do Instagram. Ela não pode ser usada para obter dados de mídia de propriedade de contas pessoais do Instagram.
+Essa API retorna apenas dados de mídia de propriedade de contas profissionais do Instagram. Não é possível usá-la para obter dados de mídia de propriedade de contas pessoais do Instagram.
 Insights sobre contas
-Algumas métricas não estão disponíveis em contas do Instagram com menos de 100 seguidores.
+Algumas métricas não estão disponíveis para contas do Instagram com menos de 100 seguidores.
 Os dados de métricas do usuário são armazenados por até 90 dias.
 Só é possível obter informações de um usuário por vez.
 Insights sobre Páginas do Facebook não poderão ser acessados.
 Se os dados de insights solicitados não existirem ou estiverem indisponíveis, a API retornará um conjunto vazio para as métricas individuais, em vez de 0.
 Exemplos
-Pedido de conta do Instagram
-O exemplo de API do Instagram com Login do Facebook a seguir obtém o número de impressions, profile_views e reach da conta profissional do usuário do app no Instagram durante um período de 24 horas.
+Solicitação de conta do Instagram
+O exemplo de API do Instagram com Login do Facebook a seguir obtém o número de impressions, profile_views e reach para a conta profissional do usuário do app no Instagram durante um período de 24 horas.
 Para obter métricas sobre uma conta empresarial ou de criador de conteúdo do Instagram, consulte o ponto de extremidade GET /<INSTAGRAM_USER_ID>/insights com o parâmetro metrics definido como uma lista separada por vírgulas das métricas, impressions, profile_views e reach, e o period definido como day.
 GET graph.facebook.com/17841405822304914/insights
     ?metric=impressions,reach,profile_views
     &period=day
 Exemplo de resposta
-Se o processo for bem-sucedido, o app receberá uma matriz para cada métrica com a descrição, o ID, o nome e o título, o período de mensuração e os valores dela.
+Se o processo for bem-sucedido, o app receberá uma matriz para cada métrica que inclui a descrição, o ID, o nome e o título, o período de mensuração e os valores da métrica.
 {
   "data": [
     {
@@ -140,7 +140,7 @@ Se o processo for bem-sucedido, o app receberá uma matriz para cada métrica co
 }
 Solicitação de mídia do Instagram
 O exemplo de API do Instagram com Login do Instagram a seguir obtém o número de engagement, impressions e reach para a mídia do Instagram do usuário do seu app ao longo de um período de 24 horas.
-Para obter métricas de mídia de uma conta empresarial ou de criador de conteúdo do Instagram, consulte o ponto de extremidade GET /<INSTAGRAM_MEDIA_ID>/insights com o parâmetro metrics definido como uma lista separada por vírgulas das métricas, engagement, impressions e reach, e o period definido como day.
+Para obter métricas sobre a mídia de uma conta empresarial ou de criador de conteúdo do Instagram, consulte o ponto de extremidade GET /<INSTAGRAM_MEDIA_ID>/insights com o parâmetro metrics definido como uma lista separada por vírgulas das métricas, engagement, impressions e reach, e o period definido como day.
 GET graph.instagram.com/17841491440582230/insights
     ?metric=engagement,impressions,reach
 Exemplo de resposta
@@ -186,5 +186,5 @@ Se o processo for bem-sucedido, o app receberá uma matriz para cada métrica qu
   ]
 }
 Próximas etapas
-Acesse a referência da API para ver todas as métricas disponíveis para contas empresariais e de criadores de conteúdo do Instagram e os respectivos objetos de mídia do Instagram.
+Consulte a referência da API para ver todas as métricas disponíveis para contas empresariais e de criadores de conteúdo do Instagram e os respectivos objetos de mídia do Instagram.
 Você achou esta página útil?

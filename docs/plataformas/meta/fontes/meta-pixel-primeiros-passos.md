@@ -1,8 +1,8 @@
 ---
 titulo: "Meta Pixel — instalação e eventos"
 url: https://developers.facebook.com/documentation/meta-pixel/get-started
-capturado_em: 2026-09-01
-hash: b94f2d175be86f70
+capturado_em: 2026-09-02
+hash: c35ec4e1a615482b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,7 +10,7 @@ hash: b94f2d175be86f70
 
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
-Primeiros passos
+Começar a usar o Pixel da Meta
 Updated: 30 de jun de 2026
 Copiar para LLM
 Ver como Markdown
@@ -24,7 +24,7 @@ Para implementar o pixel, você precisará do seguinte:
 Acesso à base de código do site
 o código de base ou a identificação do Pixel;
 acesso ao Gerenciador de Anúncios do Facebook⁠.
-Além disso, dependendo de onde você faz negócios, pode ser necessário manter a conformidade com o Regulamento Geral sobre a Proteção de Dados.
+Além disso, dependendo de onde você faz negócios, pode ser necessário cumprir o Regulamento Geral sobre a Proteção de Dados.
 Tudo pronto? Vamos começar.
 Código de base
 Antes de instalar o Pixel, você precisará do código de base, que pode ser encontrado em Gerenciador de Anúncios > Gerenciador de Eventos⁠. Caso você ainda não tenha um pixel, siga estas instruções⁠ para criar um. Você só precisa do código base do pixel (etapa 1).
@@ -46,8 +46,8 @@ O código de base do pixel contém a identificação do pixel em dois locais e t
 </noscript><!-- End Facebook Pixel Code -->
 Quando executado, esse código baixará uma biblioteca de funções que você poderá usar para rastreamento de conversão. Ele também rastreia automaticamente uma única conversão PageView chamando a função fbq() sempre que ela é carregada. Recomendamos que você deixe essa chamada de função intacta.
 Como instalar o pixel
-Para instalar o pixel, recomendamos que você adicione o código de base entre as tags de abertura e fechamento <head> em cada página em que você rastreará as ações dos visitantes do site. A maioria dos desenvolvedores adiciona o código ao cabeçalho persistente do site para que ele possa ser usado em todas as páginas.
-Incluir o código nas tags <head> reduz a probabilidade de navegadores ou código de terceiros bloquearem a execução do Pixel. Ele também executa o código antes, aumentando a probabilidade de que os visitantes sejam rastreados antes de saírem da página.
+Para instalar o Pixel, recomendamos que você adicione o código de base entre as tags de abertura e fechamento <head> em cada página em que você rastreará as ações dos visitantes do site. A maioria dos desenvolvedores adiciona o código ao cabeçalho persistente do site para que ele possa ser usado em todas as páginas.
+Posicionar o código dentro das tags <head> reduz a probabilidade de navegadores ou código de terceiros bloquearem a execução do Pixel. Ele também executa o código antes, aumentando a probabilidade de que os visitantes sejam rastreados antes de saírem da página.
 Depois de adicionar o código ao site, carregue a página que contém o Pixel. Isso deve chamar fbq('track', 'PageView'), que será rastreado como um evento PageView no Gerenciador de Eventos.
 Acesse o Gerenciador de Eventos para verificar se o evento foi rastreado. Localize o pixel e clique nos detalhes. Se você vir um novo evento PageView, isso significa que o pixel foi instalado com sucesso. Caso o banner não seja exibido, aguarde alguns minutos e atualize a página. Se o Pixel ainda não estiver funcionando, use o Consultor de Dados de Anúncios da Meta para identificar o problema.
 Instalação com um gerenciador de tags

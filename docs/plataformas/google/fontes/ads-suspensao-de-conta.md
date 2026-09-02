@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads — contas suspensas"
 url: https://support.google.com/adspolicy/answer/2375414?hl=pt-BR
-capturado_em: 2026-09-01
+capturado_em: 2026-09-02
 hash: a3addaed388a1380
 ---
 

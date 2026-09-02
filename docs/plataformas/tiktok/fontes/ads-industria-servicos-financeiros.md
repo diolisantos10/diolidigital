@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Financial Services (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-financial-services
-capturado_em: 2026-09-01
-hash: 4bfbbad15f2e2372
+capturado_em: 2026-09-02
+hash: fcb66339f811ef99
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,7 +65,7 @@ Policies and security /
 Advertising Policies /
 Advertising policies /
 Financial Services
-Last updated: August 2026
+Last updated: September 2026
 Principle
 
 At TikTok, our aim is to provide our users with the necessary details to allow them to make well-informed financial choices. Our policies prioritize equipping users with the information they need to evaluate financial products and services, while also protecting them from any deceptive or harmful practices.
@@ -3266,6 +3266,7 @@ Unaccredited digital banks that perform any traditional bank-like function
 
 Virtual currencies or cryptocurrencies, such as Bitcoin and Ethereum
 
+*Was the information helpful?
 Content
 Principle
 Market-specific requirements

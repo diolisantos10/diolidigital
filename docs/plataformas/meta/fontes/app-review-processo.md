@@ -1,8 +1,8 @@
 ---
 titulo: "App Review — processo e requisitos (Iniciativas de Plataforma Responsável)"
 url: https://developers.facebook.com/documentation/resp-plat-initiatives/individual-processes/app-review
-capturado_em: 2026-09-01
-hash: 3455a0769174c2de
+capturado_em: 2026-09-02
+hash: 11a94005a45f2eaf
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,7 +10,7 @@ hash: 3455a0769174c2de
 
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
-Análise do App
+Processo de análise do app – Iniciativas de plataforma responsável
 Updated: 10 de abr de 2024
 Copiar para LLM
 Ver como Markdown

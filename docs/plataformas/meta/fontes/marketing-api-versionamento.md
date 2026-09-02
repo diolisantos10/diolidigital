@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — versionamento e ciclo de vida das versões"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/overview/versioning
-capturado_em: 2026-09-01
-hash: 6dc2f07d8cf246fb
+capturado_em: 2026-09-02
+hash: 2afadc6bb59e848d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,7 +10,7 @@ hash: 6dc2f07d8cf246fb
 
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
-Controle de versões
+Controle de versões da API de Marketing
 Updated: 24 de jun de 2026
 Copiar para LLM
 Ver como Markdown
@@ -24,7 +24,7 @@ Por exemplo, a API de Marketing v17.0 foi lançada em 23 de maio de 2023, e a v1
 Veja um exemplo de cronograma. É possível que a Meta não lance uma nova versão no final do período de carência de 90 dias da versão anterior. No exemplo, a v16.0 fica obsoleta um pouco antes do lançamento da v18.0:
 No caso dos SDKs, uma versão está sempre disponível porque o SDK é um pacote para download. Depois do fim de vida útil, o SDK continuará se baseando nas APIs de Marketing ou em métodos que não funcionam mais; por isso, presuma que ele não funcionará mais no fim de vida útil.
 Como fazer solicitações com controle de versão
-Todos os pontos de extremidade da API de Marketing estão disponíveis por meio de um caminho com controle de versões. Inclua o identificador de versão no início do caminho da solicitação. Por exemplo:
+Todos os pontos de extremidade da API de Marketing estão disponíveis por meio de um caminho com controle de versões. Adicione o identificador de versão no início do caminho da solicitação. Por exemplo:
 curl -G \
 -d "access_token=<ACCESS_TOKEN>" \
 "https://graph.facebook.com/v26.0/me/adaccounts"
@@ -40,13 +40,13 @@ As migrações podem ser gerenciadas por meio do campo de migrações do nó /ap
 Gerenciar migrações por meio do Painel de Apps
 Você pode ativar e desativar as migrações disponíveis no Painel de Apps, em Configurações > Migrações. A lista de migrações pode não ser a mesma da imagem abaixo, já que as migrações disponíveis são específicas para cada app, em momentos diferentes. Caso você veja uma migração Use Graph API v2.0 by default, ela será para Graph API somente, não para a API de Marketing.
 Ativação temporária de migrações no lado do cliente
-Em vez de ativar a migração no Painel de Apps ou por meio da API de Marketing, é possível adicionar uma sinalização especial às chamadas da API de Marketing que define a migração. A sinalização é chamada de migrations_override e exige que você defina um blob JSON que descreva as migrações a serem ativadas ou desativadas. Por exemplo, se fosse fazer uma chamada bruta, você poderia passar:
+Em vez de ativar a migração no Painel de Apps ou via API de Marketing, é possível adicionar uma sinalização especial às suas chamadas da API de Marketing que define a migração. A sinalização é chamada de migrations_override e exige que você defina um blob JSON que descreva as migrações a serem ativadas ou desativadas. Por exemplo, se fosse fazer uma chamada bruta, você poderia passar:
 https://graph.facebook.com/path?
   migrations_override={"migration1":true, "migration2":false}
 Ao usar a sinalização migrations_override, você poderá chamar a nova API de Marketing por meio de atualizações do cliente, em vez de fazer com que todos atualizem para chamar a nova API de Marketing ao mesmo tempo. A sinalização também é útil para depuração.
 Os nomes dessas migrações são encontrados no campo migrations do nó /app, que representa a configuração do seu app.
 Atualização automática da versão
-As versões da API de Marketing são lançadas a cada quatro meses. A partir de maio de 2024, a Meta habilitará o recurso de atualização automática da versão para os pontos de extremidade da API de Marketing que não forem afetados entre as versões. A atualização automática da versão significa que, entre uma versão prestes a ficar obsoleta e a próxima disponível, se nenhum ponto de extremidade for afetado, a plataforma atualizará a chamada para a versão a ser lançada, em vez de apresentar falha na solicitação diretamente. Esse recurso reduz o número de solicitações que resultam em falha quando uma versão é descontinuada.
+As versões da API de Marketing são lançadas a cada quatro meses. A partir de maio de 2024, a Meta habilitará o recurso de atualização automática da versão para os pontos de extremidade da API de Marketing que não são afetados entre as versões. A atualização automática da versão significa que, entre uma versão prestes a ficar obsoleta e a próxima disponível, se nenhum ponto de extremidade for afetado, a plataforma atualizará a chamada para a versão a ser lançada, em vez de apresentar falha na solicitação diretamente. Esse recurso reduz o número de solicitações que resultam em falha quando uma versão é descontinuada.
 Por exemplo, no dia 14 de maio de 2024, a versão 17.0 ficou obsoleta. De acordo com o registro de alterações da v18.0, a v18.0 altera os seguintes pontos de extremidade:
 POST /act_{ad-account-id}/reachfrequencypredictions
 GET /act_{ad-account-id}/reachestimate
@@ -88,7 +88,7 @@ A atualização se aplica apenas à versão que ficará obsoleta e à próxima v
 A atualização será aplicada em qualquer versão obsoleta para a próxima versão disponível. Isso significa que, hipoteticamente, se o app fizer chamadas à versão 15.0 depois que a versão 16.0 ficar obsoleta, a chamada também será atualizada para a versão 17.0 se o ponto de extremidade não estiver listado como ponto de extremidade afetado nas versões 16.0 e 17.0.
 Isso significa que os desenvolvedores não precisam fazer nada durante a descontinuação da versão?
 Não. Recomendamos que os desenvolvedores façam upgrades de versão antes que uma versão fique obsoleta, pelos seguintes motivos:
-Talvez seja necessário atualizar manualmente os pontos de extremidade que serão impactados na próxima versão.
+Talvez você ainda precise atualizar manualmente os pontos de extremidade que serão impactados na próxima versão.
 Recomendamos atualizar para versões mais recentes, aproveitando os novos recursos, em vez de usar a versão mais antiga disponível.
 Como posso descobrir quais pontos de extremidade não serão atualizados automaticamente?
 Você pode pesquisar os pontos de extremidade afetados no Registro de alterações da API de Marketing.
