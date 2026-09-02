@@ -1,6 +1,6 @@
 {
-  "rodadoEm": "2026-08-30T17:32:12.396Z",
-  "base": "13 passed (13)",
+  "rodadoEm": "2026-09-02T12:35:37.908Z",
+  "base": "17 passed (17)",
   "mutacoes": [
     {
       "guarda": "P-M1 · o papel é DADO declarado, nunca inferido do departamento",
@@ -10,7 +10,7 @@
       "espera": "membro sem papel declarado passa a aprovar modelo",
       "estado": "VERMELHO",
       "falhas": [
-        "NÃO aprova nem pausa modelo 6ms",
+        "NÃO aprova nem pausa modelo 9ms",
         "NÃO dá o aceite do modo supervisionado 1ms",
         "membro do departamento SEM papel declarado não é gerente 1ms",
         "papel declarado fora do conjunto fechado NÃO vale 1ms",
@@ -29,7 +29,7 @@
       "espera": "papel 'ceo'/'GERENTE_DE_ATENDIMENTO' passam a valer",
       "estado": "VERMELHO",
       "falhas": [
-        "papel declarado fora do conjunto fechado NÃO vale 5ms",
+        "papel declarado fora do conjunto fechado NÃO vale 6ms",
         "__tests__/celula/papeis.test.ts > o papel é DADO declarado, nunca inferido do cargo > papel declarado fora do conjunto fechado NÃO vale"
       ],
       "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
@@ -42,7 +42,7 @@
       "espera": "impostor do Design passa a aprovar modelo",
       "estado": "VERMELHO",
       "falhas": [
-        "quem é de OUTRO departamento não vira gerente nem declarando o papel 5ms",
+        "quem é de OUTRO departamento não vira gerente nem declarando o papel 6ms",
         "__tests__/celula/papeis.test.ts > o papel é DADO declarado, nunca inferido do cargo > quem é de OUTRO departamento não vira gerente nem declarando o papel"
       ],
       "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
@@ -55,23 +55,29 @@
       "espera": "CEO e diretor passam a operar a fila",
       "estado": "VERMELHO",
       "falhas": [
-        "CEO e direção são BARRADOS na fila de exceções 8ms",
-        "__tests__/celula/papeis.test.ts > 🔴 \"O CEO NÃO opera essa fila\" — ordem literal, e autoridade não destrava > CEO e direção são BARRADOS na fila de exceções"
+        "CEO e direção são BARRADOS na fila de exceções 9ms",
+        "(a) master SEM papel atribuído: operar_fila_de_excecoes continua recusado 1ms",
+        "(b) master COM gerente_de_atendimento auto-atribuído: operar_fila_de_excecoes AGORA recusado 2ms",
+        "__tests__/celula/papeis.test.ts > 🔴 \"O CEO NÃO opera essa fila\" — ordem literal, e autoridade não destrava > CEO e direção são BARRADOS na fila de exceções",
+        "__tests__/celula/papeis.test.ts > 🔴 achado do seguranca (2026-09-02): auto-atribuição não destrava a fila nem a aprovação > (a) master SEM papel atribuído: operar_fila_de_excecoes continua recusado",
+        "__tests__/celula/papeis.test.ts > 🔴 achado do seguranca (2026-09-02): auto-atribuição não destrava a fila nem a aprovação > (b) master COM gerente_de_atendimento auto-atribuído: operar_fila_de_excecoes AGORA recusado"
       ],
-      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+      "placar": "3 ⎯⎯⎯⎯⎯⎯⎯"
     },
     {
       "guarda": "P-M5 · direção não aprova a própria fala",
       "arquivo": "lib/agency/celula/papeis.ts",
-      "de": "  if ((a === \"aprovar_modelo\" || a === \"pausar_modelo\") && papel !== \"gerente_de_atendimento\") {",
+      "de": "  if ((a === \"aprovar_modelo\" || a === \"pausar_modelo\") && (c?.autoridade === \"master\" || c?.autoridade === \"director\")) {",
       "para": "  if (false) { // MUTAÇÃO: a direção passa a liberar a mensagem que ela encomendou",
       "espera": "CEO e diretor passam a aprovar modelo",
       "estado": "VERMELHO",
       "falhas": [
-        "CEO e direção NÃO aprovam nem pausam a fala que vai ao cliente 7ms",
-        "__tests__/celula/papeis.test.ts > 🔴 \"O CEO NÃO opera essa fila\" — ordem literal, e autoridade não destrava > CEO e direção NÃO aprovam nem pausam a fala que vai ao cliente"
+        "CEO e direção NÃO aprovam nem pausam a fala que vai ao cliente 12ms",
+        "(c) master COM gerente_de_atendimento auto-atribuído: aprovar_modelo e pausar_modelo AGORA recusados 3ms",
+        "__tests__/celula/papeis.test.ts > 🔴 \"O CEO NÃO opera essa fila\" — ordem literal, e autoridade não destrava > CEO e direção NÃO aprovam nem pausam a fala que vai ao cliente",
+        "__tests__/celula/papeis.test.ts > 🔴 achado do seguranca (2026-09-02): auto-atribuição não destrava a fila nem a aprovação > (c) master COM gerente_de_atendimento auto-atribuído: aprovar_modelo e pausar_modelo AGORA recusados"
       ],
-      "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
+      "placar": "2 ⎯⎯⎯⎯⎯⎯⎯"
     },
     {
       "guarda": "P-M6 · a tabela de permissões (SDR não libera o que vai dizer)",
@@ -81,7 +87,7 @@
       "espera": "o SDR passa a aprovar modelo e autorizar envio",
       "estado": "VERMELHO",
       "falhas": [
-        "NÃO aprova nem pausa modelo 6ms",
+        "NÃO aprova nem pausa modelo 7ms",
         "NÃO dá o aceite do modo supervisionado 1ms",
         "__tests__/celula/papeis.test.ts > o SDR usa os modelos, mas não libera o que vai dizer > NÃO aprova nem pausa modelo",
         "__tests__/celula/papeis.test.ts > o SDR usa os modelos, mas não libera o que vai dizer > NÃO dá o aceite do modo supervisionado"
@@ -96,7 +102,7 @@
       "espera": "'publicar' e 'APROVAR_MODELO' deixam de ser barrados",
       "estado": "VERMELHO",
       "falhas": [
-        "qualquer coisa fora do conjunto fechado BLOQUEIA 13ms",
+        "qualquer coisa fora do conjunto fechado BLOQUEIA 8ms",
         "__tests__/celula/papeis.test.ts > ação desconhecida é indisponível, nunca 'deve ser nova' > qualquer coisa fora do conjunto fechado BLOQUEIA"
       ],
       "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"
@@ -109,7 +115,7 @@
       "espera": "cliente passa a ler a Célula",
       "estado": "VERMELHO",
       "falhas": [
-        "o cliente não lê a Célula — /agency/** é território proibido 6ms",
+        "o cliente não lê a Célula — /agency/** é território proibido 8ms",
         "__tests__/celula/papeis.test.ts > 🔴 \"O CEO NÃO opera essa fila\" — ordem literal, e autoridade não destrava > o cliente não lê a Célula — /agency/** é território proibido"
       ],
       "placar": "1 ⎯⎯⎯⎯⎯⎯⎯"

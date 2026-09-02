@@ -8,8 +8,11 @@
 // Mesma família de rota da que já existe para o funil individual
 // (`app/api/agency/oportunidades/[id]/funil/route.ts`) — mesma forma de
 // montar a credencial, copiada literalmente de lá. Não invente uma segunda
-// forma: o papel na Célula é DADO DECLARADO (header `x-papel-na-celula`),
-// nunca inferido de autoridade.
+// forma: o papel na Célula é DADO DECLARADO, mas vem do BANCO
+// (`User.papelNaCelula`, atribuído só por quem tem autoridade `master` — ver
+// `lib/agency/celula/papel-do-usuario.ts`), nunca inferido de autoridade e,
+// desde 02/09/2026, nunca mais de um header — um header é forjável por
+// qualquer chamador, e era exatamente esse o furo.
 //
 // ── AS GUARDAS, NA ORDEM ──────────────────────────────────────────────────
 //   1. SESSÃO — quem não entrou não passa;
@@ -25,20 +28,54 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { montarFilaDoDia, liberarEmBloco } from "@/lib/agency/celula/fila-diaria";
 import { podeNaCelula, type Credencial } from "@/lib/agency/celula/papeis";
-import type { Autoridade } from "@/lib/agency/organizacao/autoridade";
+import { buscarPapelNaCelula } from "@/lib/agency/celula/papel-do-usuario";
+import { autoridadeDoPapel, ehPapelDaAgencia, type AgencyRole } from "@/lib/agency/roles";
 import type { DepartamentoId } from "@/lib/agency/organizacao/departamentos";
+
+/**
+ * `ehPapelDaAgencia` ANTES de qualquer coisa que chame `credencialDe`.
+ *
+ * Achado ao corrigir `app/api/agency/celula/papeis/route.ts` em 02/09/2026:
+ * `session.role` é TIPADO como `AgencyRole`, mas `getSession()` não confere
+ * a FORMA do payload em runtime — uma sessão `role: "client"` (JWT válido de
+ * conta de portal) chega aqui com esse valor de verdade. `/api/**` fica FORA
+ * do `proxy.ts` (`PUBLIC_PATHS` inclui `"/api/"`), então esta rota é quem
+ * tem que recusar. Sem este guarda, `autoridadeDoPapel("client")` EXPLODE
+ * (`"client"` não existe em `PERFIL_DO_PAPEL`) em vez de recusar — um 500
+ * em vez de um 403 limpo.
+ */
+function recusaSeNaoForPapelDaAgencia(role: string): NextResponse | null {
+  if (!ehPapelDaAgencia(role)) {
+    return NextResponse.json({ error: "cliente não acessa `/agency/**`." }, { status: 403 });
+  }
+  return null;
+}
 
 /**
  * A credencial da Célula, montada a partir da sessão.
  *
  * Copiado de `app/api/agency/oportunidades/[id]/funil/route.ts` — mesma
- * função, mesma razão de existir. Ver o comentário lá para o porquê de não
- * derivar o papel do `role` da sessão.
+ * função, mesma razão de existir. O papel vem do BANCO
+ * (`buscarPapelNaCelula`, que lê `User.papelNaCelula`) — nunca de um header:
+ * um header é forjável por qualquer chamador, e não há fallback para ele
+ * aqui de propósito. Reintroduzir "se não tiver no banco, tenta o header"
+ * reabriria o mesmo furo.
+ *
+ * `autoridade` vem de `autoridadeDoPapel(session.role)`, NUNCA de um cast
+ * direto. Achado do `experiencia` em 02/09/2026: `session.role` é
+ * `AgencyRole` (vocabulário em português — "diretor", "executivo_comercial"…)
+ * e `Autoridade` é outro vocabulário (`"director"`, `"department_member"`…).
+ * Um `as Autoridade` produzia, para qualquer conta que não fosse "master" (as
+ * duas grafias colidem por acidente), um valor que não batia com NENHUMA
+ * chave de `Autoridade` — as travas incondicionais de `papeis.ts` que
+ * comparam `c?.autoridade === "director"` nunca disparavam para essas
+ * contas. `autoridadeDoPapel` é o conversor certo, já usado em
+ * `app/api/agency/celula/papeis/route.ts`.
  */
-function credencialDe(session: { role: string; workspaceId: string }, req: NextRequest): Credencial {
-  const papel = req.headers.get("x-papel-na-celula");
+async function credencialDe(session: { userId: string; role: AgencyRole; workspaceId: string }): Promise<Credencial> {
+  const papel = await buscarPapelNaCelula(session.userId);
   return {
-    autoridade: session.role as Autoridade,
+    autoridade: autoridadeDoPapel(session.role),
     departamentos: ["client-service-sdr"] as DepartamentoId[],
     papelDeclaradoNaCelula: papel ?? undefined,
   };
@@ -47,8 +84,10 @@ function credencialDe(session: { role: string; workspaceId: string }, req: NextR
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { session, error } = await requireSession();
   if (error) return error;
+  const recusa = recusaSeNaoForPapelDaAgencia(session.role);
+  if (recusa) return recusa;
 
-  const leitura = podeNaCelula(credencialDe(session, request), "ler_a_celula");
+  const leitura = podeNaCelula(await credencialDe(session), "ler_a_celula");
   if (!leitura.pode) {
     return NextResponse.json({ error: leitura.motivo }, { status: 403 });
   }
@@ -60,6 +99,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const { session, error } = await requireSession();
   if (error) return error;
+  const recusa = recusaSeNaoForPapelDaAgencia(session.role);
+  if (recusa) return recusa;
 
   let corpo: unknown;
   try {
@@ -73,7 +114,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // Liberar em bloco é ESCRITA. Só quem tem papel na Célula.
-  const permissao = podeNaCelula(credencialDe(session, request), "autorizar_envio");
+  const credencial = await credencialDe(session);
+  const permissao = podeNaCelula(credencial, "autorizar_envio");
   if (!permissao.pode) {
     return NextResponse.json({ error: permissao.motivo }, { status: 403 });
   }
@@ -89,7 +131,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     prontosApresentados: Array.isArray(c.prontosApresentados)
       ? (c.prontosApresentados as string[])
       : undefined,
-    credencial: credencialDe(session, request),
+    credencial,
     // O autor é da SESSÃO, nunca do corpo: aceitar autor do cliente da API
     // deixaria qualquer um assinar a liberação com o nome de outro.
     autor: session.userId,

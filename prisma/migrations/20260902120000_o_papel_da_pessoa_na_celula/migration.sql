@@ -1,0 +1,20 @@
+-- O PAPEL DE CADA PESSOA NA CÉLULA DE PROSPECÇÃO — DADO NO BANCO, NÃO NO HEADER.
+--
+-- Até aqui as duas rotas de escrita da Célula (fila-diaria e funil) liam o
+-- papel ("gerente_de_atendimento" | "sdr") de um header HTTP
+-- (`x-papel-na-celula`) que qualquer chamador podia forjar. Esta coluna é o
+-- que passa a valer: `null` por padrão (entrar no sistema não dá papel na
+-- Célula por acidente), escrita só por quem tem autoridade `master`
+-- (`lib/agency/celula/papel-do-usuario.ts`), lida fail-closed
+-- (`lib/agency/celula/papel-do-usuario.ts` recusa qualquer valor que não seja
+-- exatamente um de `RESPONSAVEIS`, em `lib/agency/celula/excecoes/tipos.ts`).
+--
+-- Aditiva e anulável: toda linha existente continua com NULL — ninguém ganha
+-- papel na Célula por causa desta migration.
+--
+-- RECORTADA DE PROPÓSITO: só esta coluna, só a tabela "User". Há um desvio
+-- schema-vs-migration conhecido em 4 tabelas alheias (AssinaturaRecorrente,
+-- ClientAiProvider, MetricaDePost, ParceriaDoCliente) — documentado em
+-- docs/pendencias.md, "Desvio schema-vs-migration". A Célula nunca leva essas
+-- tabelas na própria migration.
+ALTER TABLE "User" ADD COLUMN "papelNaCelula" TEXT;

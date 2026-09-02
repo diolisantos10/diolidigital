@@ -150,30 +150,37 @@ export function podeNaCelula(c: Credencial, acao: unknown): VereditoDePermissao 
   // fila — o Gerente de Atendimento e SDR responde por ela." Vale mesmo para
   // quem tem a maior autoridade da casa, e é por isso que está ANTES da
   // checagem de papel: autoridade não destrava, e não deve nem ser consultada.
+  // INCONDICIONAL: não há `if (papel === null)` aqui. Master/director tem uma
+  // porta legítima para se auto-atribuir "gerente_de_atendimento" (é assim que
+  // o CEO libera arquivo pelo Caminho A) — e essa mesma auto-atribuição NÃO
+  // pode virar chave para operar a fila de exceções. Achado do `seguranca` em
+  // 2026-09-02: com o `if` condicional, master auto-atribuído atravessava esta
+  // trava. Autoridade não destrava — nem quando o papel foi auto-concedido.
   if (a === "operar_fila_de_excecoes" && (c?.autoridade === "master" || c?.autoridade === "director")) {
-    if (papel === null) {
-      return {
-        pode: false,
-        regra: "o_ceo_nao_opera_a_fila",
-        motivo:
-          "o CEO e a direção não operam a fila de exceções — ordem do CEO de 30/08/2026. " +
-          "O dono dela é o Gerente de Atendimento e SDR.",
-      };
-    }
+    return {
+      pode: false,
+      regra: "o_ceo_nao_opera_a_fila",
+      motivo:
+        "o CEO e a direção não operam a fila de exceções — ordem do CEO de 30/08/2026. " +
+        "O dono dela é o Gerente de Atendimento e SDR. Vale mesmo que a conta master/director " +
+        "tenha se auto-atribuído o papel de gerente_de_atendimento: autoridade não destrava.",
+    };
   }
 
   // Direção não aprova nem pausa a fala que vai ao cliente. Quem responde pela
-  // mensagem é quem convive com a resposta.
-  if ((a === "aprovar_modelo" || a === "pausar_modelo") && papel !== "gerente_de_atendimento") {
-    if (c?.autoridade === "master" || c?.autoridade === "director") {
-      return {
-        pode: false,
-        regra: "direcao_nao_aprova_a_propria_fala",
-        motivo:
-          "aprovar e pausar modelo é do Gerente de Atendimento e SDR, não da direção. " +
-          "O CEO nomeou o papel exatamente para a fala ao cliente não ser liberada por quem a encomendou.",
-      };
-    }
+  // mensagem é quem convive com a resposta. INCONDICIONAL pelo mesmo motivo do
+  // bloco acima: não depende de `papel` — nem mesmo quando `papel ===
+  // "gerente_de_atendimento"` por auto-atribuição de master/director.
+  if ((a === "aprovar_modelo" || a === "pausar_modelo") && (c?.autoridade === "master" || c?.autoridade === "director")) {
+    return {
+      pode: false,
+      regra: "direcao_nao_aprova_a_propria_fala",
+      motivo:
+        "aprovar e pausar modelo é do Gerente de Atendimento e SDR, não da direção. " +
+        "O CEO nomeou o papel exatamente para a fala ao cliente não ser liberada por quem a " +
+        "encomendou — vale mesmo que a conta master/director tenha se auto-atribuído o papel " +
+        "de gerente_de_atendimento.",
+    };
   }
 
   if (papel === null) {

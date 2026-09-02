@@ -45,6 +45,17 @@ model User {
   clientId     String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+
+  /// O papel desta pessoa DENTRO da Célula de Prospecção — "gerente_de_atendimento"
+  /// | "sdr" | null ("nenhum"). Atribuído SÓ por quem tem autoridade `master`,
+  /// nunca inferido de `role`. `null` por padrão: entrar no sistema não dá papel
+  /// na Célula por acidente.
+  ///
+  /// O conjunto válido é `RESPONSAVEIS` em `lib/agency/celula/excecoes/tipos.ts`
+  /// — não duplicado aqui como enum do banco de propósito (uma fonte só). A
+  /// leitura em `lib/agency/celula/papel-do-usuario.ts` é FAIL CLOSED: valor
+  /// gravado que não bate com `RESPONSAVEIS` vira `null`, nunca vira permissão.
+  papelNaCelula String?
 }
 
 // ─── Clients ──────────────────────────────────────────────────────────────────

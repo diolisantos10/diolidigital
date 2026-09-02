@@ -15,6 +15,31 @@
 >   lida como pendência. Em conflito com o mapa, **o mapa vence**.
 
 
+## 🟢 02/09/2026 — CÉLULA DE PROSPECÇÃO: O PAPEL SAI DO HEADER FORJÁVEL, VAI PRO BANCO (CONSERTADO)
+
+Achado do `experiencia`, herdado da sessão de 30-31/08: as duas únicas rotas
+de ESCRITA da Célula (`fila-diaria`, `funil`) exigiam um header HTTP
+(`x-papel-na-celula`) que **qualquer sessão válida podia forjar** — e que
+**nenhuma tela declarava**, então ninguém, nem o CEO, conseguia liberar
+arquivo. Fechado no mesmo dia pelo `pm`, em 6 rodadas de despacho
+(`plataforma`, `interface`, `experiencia`, `seguranca`): papel agora é
+`User.papelNaCelula`, gravado só por `master`, lido fail-closed; header
+forjado provadamente não muda mais o resultado; tela nova
+(`/agency/celula/papeis`) para o master atribuir; papel do CEO já atribuído
+no banco local. No caminho, mais três achados reais fechados no mesmo dia:
+`master` conseguia se auto-atribuir e furar duas travas que o CEO nomeou por
+escrito; conta de cliente do portal podia entrar na lista/atribuição; e um
+cast (não conversão) de `role` da sessão fazia a trava incondicional acima
+não valer para conta com `role: "diretor"` — e, ao testar o conserto disso,
+apareceu um quinto: `autoridadeDoPapel("client")` explodia em 500 em vez de
+recusar com 403 nas três rotas, porque `/api/**` fica fora do `proxy.ts`.
+`npx tsc --noEmit` limpo, suíte 588/588 arquivos (8464 testes) verde,
+mutação de `papeis.ts` 8/8. Parecer do `seguranca`: PODE, com os ajustes já
+aplicados. Detalhe completo, evidência e o que ainda sobrou (rota para
+`aprovar_modelo`/`operar_fila_de_excecoes` ainda não existe; funil sem botão
+de avanço manual na UI) em `docs/celula-prospeccao/RETOMADA.md`.
+
+
 ## 🟡 28/08/2026 — DUAS FRENTES ADIADAS POR ORDEM (depois da manhã do cliente)
 
 O Diretor Geral carimbou as duas para depois da entrada do primeiro cliente real.

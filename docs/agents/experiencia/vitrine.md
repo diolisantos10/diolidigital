@@ -69,3 +69,23 @@ o especialista do domínio; a decisão de eliminar tela ou passo, para o PM.
 
 — promovido em 2026-08-07 pelo PM · origem: ordem do CEO de 07/08/2026 e
 `dioli-brain-kit/docs/23-constituicao-dos-essenciais.md`
+
+---
+
+## Toda tela que trata 403 de permissão precisa do mesmo tratamento — mesmo quando ela É o destino do link de outra tela
+
+Distinguir "erro de permissão" (nunca resolve com "Tentar de novo") de "erro
+transitório" (rede caiu, 500) é um padrão que só protege onde foi aplicado.
+Uma tela que existe **especificamente para resolver** o 403 de outra
+(ex.: "vá até Papéis da Célula para pedir seu papel") ainda pode nascer
+tratando o PRÓPRIO 403 dela — para quem não tem autoridade de ver ou mexer —
+como se fosse temporário, empurrando a pessoa para um segundo muro sem saída
+no fim do link que deveria destravá-la.
+
+Mais barato: confira se o nível de acesso da PÁGINA (quem consegue nem abrir
+a tela) e o nível de acesso da API que ela consome combinam. Um mismatch aí
+(página mais aberta que a API, ou o inverso) é onde este tipo de loop nasce.
+
+— promovido em 2026-09-02 pelo PM · origem: laudo do `experiencia` sobre
+`/agency/celula/papeis`, Célula de Prospecção,
+`docs/celula-prospeccao/RETOMADA.md`

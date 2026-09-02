@@ -34,6 +34,7 @@ export type UserMinAggregateOutputType = {
   clientId: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  papelNaCelula: string | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -46,6 +47,7 @@ export type UserMaxAggregateOutputType = {
   clientId: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  papelNaCelula: string | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -58,6 +60,7 @@ export type UserCountAggregateOutputType = {
   clientId: number
   createdAt: number
   updatedAt: number
+  papelNaCelula: number
   _all: number
 }
 
@@ -72,6 +75,7 @@ export type UserMinAggregateInputType = {
   clientId?: true
   createdAt?: true
   updatedAt?: true
+  papelNaCelula?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -84,6 +88,7 @@ export type UserMaxAggregateInputType = {
   clientId?: true
   createdAt?: true
   updatedAt?: true
+  papelNaCelula?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -96,6 +101,7 @@ export type UserCountAggregateInputType = {
   clientId?: true
   createdAt?: true
   updatedAt?: true
+  papelNaCelula?: true
   _all?: true
 }
 
@@ -181,6 +187,7 @@ export type UserGroupByOutputType = {
   clientId: string | null
   createdAt: Date
   updatedAt: Date
+  papelNaCelula: string | null
   _count: UserCountAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
@@ -214,6 +221,7 @@ export type UserWhereInput = {
   clientId?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  papelNaCelula?: Prisma.StringNullableFilter<"User"> | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
 }
 
@@ -227,6 +235,7 @@ export type UserOrderByWithRelationInput = {
   clientId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  papelNaCelula?: Prisma.SortOrderInput | Prisma.SortOrder
   workspace?: Prisma.AgencyWorkspaceOrderByWithRelationInput
 }
 
@@ -243,6 +252,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   clientId?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  papelNaCelula?: Prisma.StringNullableFilter<"User"> | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
 }, "id" | "email">
 
@@ -256,6 +266,7 @@ export type UserOrderByWithAggregationInput = {
   clientId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  papelNaCelula?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
@@ -274,6 +285,7 @@ export type UserScalarWhereWithAggregatesInput = {
   clientId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
+  papelNaCelula?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
 }
 
 export type UserCreateInput = {
@@ -285,6 +297,7 @@ export type UserCreateInput = {
   clientId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  papelNaCelula?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutUsersInput
 }
 
@@ -298,6 +311,7 @@ export type UserUncheckedCreateInput = {
   clientId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  papelNaCelula?: string | null
 }
 
 export type UserUpdateInput = {
@@ -309,6 +323,7 @@ export type UserUpdateInput = {
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  papelNaCelula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutUsersNestedInput
 }
 
@@ -322,6 +337,7 @@ export type UserUncheckedUpdateInput = {
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  papelNaCelula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserCreateManyInput = {
@@ -334,6 +350,7 @@ export type UserCreateManyInput = {
   clientId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  papelNaCelula?: string | null
 }
 
 export type UserUpdateManyMutationInput = {
@@ -345,6 +362,7 @@ export type UserUpdateManyMutationInput = {
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  papelNaCelula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -357,6 +375,7 @@ export type UserUncheckedUpdateManyInput = {
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  papelNaCelula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserListRelationFilter = {
@@ -379,6 +398,7 @@ export type UserCountOrderByAggregateInput = {
   clientId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  papelNaCelula?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -391,6 +411,7 @@ export type UserMaxOrderByAggregateInput = {
   clientId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  papelNaCelula?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -403,6 +424,7 @@ export type UserMinOrderByAggregateInput = {
   clientId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  papelNaCelula?: Prisma.SortOrder
 }
 
 export type UserCreateNestedManyWithoutWorkspaceInput = {
@@ -460,6 +482,7 @@ export type UserCreateWithoutWorkspaceInput = {
   clientId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  papelNaCelula?: string | null
 }
 
 export type UserUncheckedCreateWithoutWorkspaceInput = {
@@ -471,6 +494,7 @@ export type UserUncheckedCreateWithoutWorkspaceInput = {
   clientId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  papelNaCelula?: string | null
 }
 
 export type UserCreateOrConnectWithoutWorkspaceInput = {
@@ -511,6 +535,7 @@ export type UserScalarWhereInput = {
   clientId?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  papelNaCelula?: Prisma.StringNullableFilter<"User"> | string | null
 }
 
 export type UserCreateManyWorkspaceInput = {
@@ -522,6 +547,7 @@ export type UserCreateManyWorkspaceInput = {
   clientId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  papelNaCelula?: string | null
 }
 
 export type UserUpdateWithoutWorkspaceInput = {
@@ -533,6 +559,7 @@ export type UserUpdateWithoutWorkspaceInput = {
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  papelNaCelula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserUncheckedUpdateWithoutWorkspaceInput = {
@@ -544,6 +571,7 @@ export type UserUncheckedUpdateWithoutWorkspaceInput = {
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  papelNaCelula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -555,6 +583,7 @@ export type UserUncheckedUpdateManyWithoutWorkspaceInput = {
   clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  papelNaCelula?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -569,6 +598,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   clientId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  papelNaCelula?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -582,6 +612,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   clientId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  papelNaCelula?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -595,6 +626,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   clientId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  papelNaCelula?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -608,9 +640,10 @@ export type UserSelectScalar = {
   clientId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  papelNaCelula?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "name" | "passwordHash" | "role" | "workspaceId" | "clientId" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "name" | "passwordHash" | "role" | "workspaceId" | "clientId" | "createdAt" | "updatedAt" | "papelNaCelula", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }
@@ -636,6 +669,18 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     clientId: string | null
     createdAt: Date
     updatedAt: Date
+    /**
+     * O papel desta pessoa DENTRO da Célula de Prospecção — "gerente_de_atendimento"
+     * | "sdr" | null ("nenhum"). Atribuído SÓ por quem tem autoridade `master`,
+     * nunca inferido de `role`. `null` por padrão: entrar no sistema não dá papel
+     * na Célula por acidente.
+     * 
+     * O conjunto válido é `RESPONSAVEIS` em `lib/agency/celula/excecoes/tipos.ts`
+     * — não duplicado aqui como enum do banco de propósito (uma fonte só). A
+     * leitura em `lib/agency/celula/papel-do-usuario.ts` é FAIL CLOSED: valor
+     * gravado que não bate com `RESPONSAVEIS` vira `null`, nunca vira permissão.
+     */
+    papelNaCelula: string | null
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -1069,6 +1114,7 @@ export interface UserFieldRefs {
   readonly clientId: Prisma.FieldRef<"User", 'String'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly papelNaCelula: Prisma.FieldRef<"User", 'String'>
 }
     
 

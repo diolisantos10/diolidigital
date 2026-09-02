@@ -121,6 +121,12 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
         // A revisão diária das entregas já aprovadas pela Qualidade — mesmo
         // gesto de decisão em bloco, uma vez por dia, ao lado de Oportunidades.
         { label: "Fila diária", href: "/agency/oportunidades/fila-diaria", icon: LiberarIcon },
+        // Quem é Gerente de Atendimento e quem é SDR na Célula. Fica ao lado
+        // de "Fila diária" porque as duas rotas de liberação de arquivo dela
+        // dependem deste papel — sem ele, o item acima devolve 403 para
+        // quem clicar. `podeAbrirRota` já filtra para master/diretor/PM
+        // (o resto da equipe nem vê este item no menu).
+        { label: "Papéis da Célula", href: "/agency/celula/papeis", icon: PapeisIcon },
         // O cliente escrevia e ninguem lia: a mensagem gravava no banco e morria.
         // O badge soma conversa nao lida + pedido novo, sem contar duas vezes.
         { label: "Caixa de entrada", href: "/agency/inbox", icon: InboxIcon, badge: caixa.total },
@@ -500,6 +506,15 @@ function LiberarIcon({ size = 16, className = "" }: { size?: number; className?:
       <rect x="2" y="3" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M4.5 7l1.5 1.5 2.5-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
       <path d="M12 6v6a1 1 0 01-1 1H5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function PapeisIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <circle cx="6" cy="5.5" r="2.2" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M2.2 13.2c.4-2.3 1.9-3.5 3.8-3.5s3.4 1.2 3.8 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M10.8 4.3a2.1 2.1 0 010 3.9M12.4 13c-.3-1.8-1.2-2.9-2.5-3.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

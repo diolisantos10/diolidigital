@@ -5,6 +5,113 @@
 
 ---
 
+## 2026-09-02 · Terceiro despacho da Célula — fechando o alvo-cliente em `papeis`
+
+Território: `app/api/agency/celula/papeis/route.ts`,
+`lib/agency/celula/papel-do-usuario.ts` e os testes correspondentes. Achado
+veio do `interface`, ao construir a tela que consome esta rota: `User` guarda
+staff e cliente do portal no MESMO model (`role: "client"`, mesmo
+`workspaceId`), e nem a listagem nem a escrita de `papelNaCelula` excluíam
+cliente.
+
+### O que mudou
+
+1. **`GET /api/agency/celula/papeis`** (`route.ts:66-83`) — o `where` da
+   consulta ganhou `role: { not: "client" }`, e a resposta ganhou um
+   `.filter((c) => c.role !== "client")` **antes** do `.map` de sanitização —
+   defesa em profundidade sobre a própria query, mesma postura que já existia
+   para `papelNaCelula` sujo.
+2. **`atribuirPapelNaCelula`** (`papel-do-usuario.ts:79-154`) — a busca do
+   alvo (`findFirst`) passou a selecionar `role`; se `role === "client"`,
+   recusa **antes de gravar**, com o código novo `"alvo_e_cliente"`. Roda
+   **depois** da checagem de posse (workspace) e **antes** do `update` — não
+   revela "é cliente" antes de confirmar que o id é do workspace certo.
+3. **`POST /api/agency/celula/papeis`** (`route.ts:125-133`) — `"alvo_e_cliente"`
+   mapeado para **400** (erro de requisição), mesmo tratamento de
+   `"papel_invalido"` — não é 403 (o ator é master de verdade) nem 404 (o
+   alvo existe e é do workspace certo, só não é elegível).
+
+A string exata do papel de cliente é **`"client"`** (`prisma/schema.prisma:41`
+e comentário de `lib/agency/roles.ts:18-21`: *"'client' é o papel do
+portal"*) — usada literalmente nos dois pontos acima, não uma constante
+nova.
+
+### Item 4 — a confirmação por teste, e o que ela revelou
+
+A ficha pediu para **confirmar, com teste, não por leitura**, se
+`podeNaCelula` (`lib/agency/celula/papeis.ts`) já recusa `autoridade:
+"client"` para `autorizar_envio`/`operar_fila_de_excecoes`/`aprovar_modelo`/
+`pausar_modelo` mesmo com `papel` preenchido.
+
+**A resposta é NÃO — é um gap real, e não é hipotético de graça.** Rastreei o
+caminho de produção: `credencialDe()`, copiado idêntico em
+`app/api/agency/oportunidades/fila-diaria/route.ts:45-52` e
+`.../[id]/funil/route.ts`, monta a `Credencial` com **`departamentos:
+["client-service-sdr"]` hard-coded**, sem checar `session.role` antes disso,
+e `papelDeclaradoNaCelula: papel ?? undefined` lendo `buscarPapelNaCelula`
+direto do banco. Antes desta frente, se um master atribuísse papel a uma
+conta `client` (o próprio bug que os itens 1–3 fecham), a sessão daquele
+cliente montaria `{ autoridade: "client", departamentos:
+["client-service-sdr"], papelDeclaradoNaCelula: "gerente_de_atendimento" }` —
+e os quatro `if` de `podeNaCelula` que barram master/director checam
+`autoridade === "master" || "director"` **por nome**, nunca `!== "client"`.
+"client" cai direto no caminho normal `papel !== null → PODE[papel].includes(a)`
+e **passa**. Só `ler_a_celula` (via `eDeDentroDaCasa`) já barra client
+incondicionalmente.
+
+Escrevi o teste em `__tests__/celula/papeis.test.ts`, descrevendo o achado
+com `it.fails(...)` — passa (fica verde) exatamente PORQUE a asserção de
+segurança falha hoje, documentando o gap sem quebrar a suíte nem inventar um
+"passou". Um segundo teste confirma que `ler_a_celula` já está seguro.
+
+**Não toquei `papeis.ts`, por instrução explícita da ficha** ("pare e me
+avise antes de mexer — não amplie o escopo"). Com os itens 1–3 desta mesma
+frente, o caminho de produção que preenchia esse dado sujo (`atribuirPapelNaCelula`
+gravando papel numa conta `client`) está fechado — a única escrita de
+`User.papelNaCelula` agora recusa `role === "client"`. Mas `papeis.ts` é
+lógica pura, sem I/O, e não sabe disso: se um dia surgir uma segunda escrita
+do campo (import, script, migração de dado) que não passe por
+`atribuirPapelNaCelula`, o dado sujo volta a ser suficiente para escrever na
+Célula com uma sessão de cliente. **Recomendo ao PM/`seguranca`**: adicionar,
+nos quatro blocos de `podeNaCelula`, uma trava incondicional para `autoridade
+=== "client"` (mesmo padrão INCONDICIONAL que já existe para
+master/director) — troca pequena, mas `papeis.ts` foi tocado duas vezes hoje
+e cada mudança pede rodar `scripts/mutacao-papeis.mjs` de novo, por isso não
+ampliei sozinho.
+
+### Placar dos testes novos
+
+- `__tests__/celula/rota-papeis.test.ts`: +3 (`GET` filtra na query e no
+  retorno mesmo com banco sujo; `POST` mapeia `"alvo_e_cliente"` para 400).
+- `__tests__/celula/papel-do-usuario.test.ts`: +2 (recusa cliente antes de
+  gravar, com `select` provando que lê `role` real; alvo staff continua
+  funcionando) — e 1 teste existente ajustado (`select` do `findFirst` ganhou
+  `role: true`, quebraria por assinatura diferente senão).
+- `__tests__/celula/papeis.test.ts`: +2 (`it.fails` documentando o gap do
+  item 4; confirmação de que `ler_a_celula` já é seguro).
+
+### 🔴 Não consegui rodar `tsc`/`vitest`
+
+Mesma restrição já documentada no CLAUDE.md e na entrada de 29/08 desta
+oficina: subagente não executa `npx`/`node`, mesmo com
+`dangerouslyDisableSandbox`, mesmo para leitura (tentei `npx tsc --noEmit` e
+um `tsx -e` só de diagnóstico para o item 4) — sempre `"This command requires
+approval"`. **A leitura manual, linha a linha, é o que tenho**; o `tsx -e`
+que eu queria rodar para confirmar o item 4 empiricamente também foi
+recusado, então a confirmação do gap é só por rastreamento do código (acima),
+não por execução. O PM precisa rodar `npx tsc --noEmit` e `npx vitest run
+__tests__/celula/` para fechar o ciclo.
+
+### O que fica aberto
+
+1. **A recomendação do item 4 acima** — decisão do PM/`seguranca`: travar
+   `autoridade === "client"` incondicionalmente em `podeNaCelula`, ou aceitar
+   que o fechamento da única escrita (itens 1–3) já é suficiente por ora.
+2. **Não rodei o portão** (`tsc`, `vitest`) — bloqueio de ferramenta do
+   subagente, não escolha.
+
+---
+
 ## 2026-08-29 · Ficha B1 — a trava de coordenação mentia sobre o próprio efeito (ou não mentia mais)
 
 Território: só `scripts/reivindicar.mts` e um teste novo, por restrição da ficha

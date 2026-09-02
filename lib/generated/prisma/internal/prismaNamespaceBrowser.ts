@@ -168,7 +168,8 @@ export const UserScalarFieldEnum = {
   workspaceId: 'workspaceId',
   clientId: 'clientId',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  papelNaCelula: 'papelNaCelula'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]

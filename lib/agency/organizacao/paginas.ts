@@ -98,6 +98,21 @@ export const PAGINAS: PaginaInterna[] = [
   // em bloco. Item próprio no menu — mesma razão do WhatsApp e do Radar: rota
   // sem porta na interface não é alcançada por quem precisa dela todo dia.
   { href: "/agency/oportunidades/fila-diaria", titulo: "Fila diária de liberação", dono: "client-service-sdr", acesso: "dono_e_gestao", noMenu: false },
+  // Quem é Gerente de Atendimento e quem é SDR na Célula — sem esta tela,
+  // ninguém grava `User.papelNaCelula`, e as duas rotas de liberação de
+  // arquivo (fila-diaria e funil) ficam inalcançáveis para todo mundo.
+  //
+  // ⚠️ Corrigido em 02/09/2026 (achado do `experiencia`): nasceu como
+  // `acesso: "gestao"`, e isso bloqueava a pessoa que MAIS precisa desta
+  // tela — o `executivo_comercial`, dono do próprio departamento
+  // `client-service-sdr` — no `proxy.ts`, ANTES de a página sequer montar.
+  // A tela linka daqui de `fila-diaria` quando alguém bate no 403 de
+  // permissão; se quem bate for justamente o dono do departamento, ele
+  // batia num SEGUNDO muro sem saída. `acesso: "todos_internos"` segue a
+  // regra geral da casa ("ler é largo de propósito") — a ESCRITA continua
+  // estreita (só `master`), imposta pela API
+  // (`app/api/agency/celula/papeis/route.ts`), não pelo inventário.
+  { href: "/agency/celula/papeis",         titulo: "Papéis da Célula",        dono: "client-service-sdr", acesso: "todos_internos", noMenu: false, administrativa: true },
   { href: "/agency/inbox",                 titulo: "Caixa de entrada",        dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/whatsapp",              titulo: "WhatsApp",                dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
 

@@ -24,18 +24,22 @@
 // medição de quantas correções só o humano fez (ver o comentário em
 // `lib/agency/celula/fila-diaria.ts`).
 //
-// ── GAP CONHECIDO, NOMEADO E NÃO RESOLVIDO AQUI ───────────────────────────
-// A rota exige o header `x-papel-na-celula: gerente_de_atendimento` para
-// autorizar o POST, e HOJE NÃO EXISTE, em nenhuma tela do produto, um jeito
-// de a pessoa logada declarar esse papel. Esta tela não inventa esse
-// mecanismo — inventar aqui seria fingir uma declaração que ninguém fez, o
-// oposto de "papel é dado declarado, nunca inferido" (`papeis.ts`). Por isso
-// o botão "Liberar selecionados" pode devolver 403 com `regra:
-// "sem_permissao"` para QUALQUER pessoa, inclusive o CEO — e a tela trata
-// isso como um estado de erro normal, mostrando o motivo exato que o
-// servidor manda. Relatado no despacho de volta ao PM.
+// ── O GAP DE 02/09/2026, FECHADO ──────────────────────────────────────────
+// A rota exige o papel `gerente_de_atendimento` — lido de `User.papelNaCelula`
+// (`lib/agency/celula/papel-do-usuario.ts`), nunca de um header forjável —
+// para autorizar o POST. Até 02/09/2026 não existia, em nenhuma tela do
+// produto, um jeito de a pessoa logada RECEBER esse papel: a coluna existia,
+// a regra existia, e a única porta de escrita era um script de terminal.
+// Agora existe: `/agency/celula/papeis` (só master atribui, master/diretor/PM
+// consultam). Esta tela continua sem inventar nada por conta própria — ela só
+// chama a rota e mostra o que o servidor responde; quem grava o papel é a
+// outra tela. Por isso o botão "Liberar selecionados" ainda pode devolver 403
+// com `regra: "sem_permissao"` para quem não tiver o papel — a tela trata
+// isso como um estado de erro normal, mostrando o motivo exato que o servidor
+// manda, com o caminho para resolver.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import EmptyState from "@/components/agency/ui/EmptyState";
 import Button from "@/components/agency/ui/Button";
@@ -264,7 +268,11 @@ export default function FilaDiariaPage() {
             // Não é falha transitória — é permissão. Oferecer "Tentar de
             // novo" aqui prenderia a pessoa num laço que nunca resolve.
             <p className="mt-2 text-[12px] leading-relaxed text-[var(--danger)]/80">
-              Isto não tem solução por aqui — fale com quem administra o sistema.
+              Você não tem papel atribuído na Célula. Peça a um master para atribuir em{" "}
+              <Link href="/agency/celula/papeis" className="underline font-medium">
+                Papéis da Célula
+              </Link>
+              .
             </p>
           ) : (
             <button

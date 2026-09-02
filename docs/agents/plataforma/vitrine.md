@@ -264,3 +264,29 @@ deliverables foram **anexados ali de propósito** para dar visibilidade.
 tela de execução de novo.**
 
 — promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §E5 (commit `465cf05`)
+
+---
+
+## `User` mistura staff e cliente do portal no mesmo model — toda listagem/atribuição operacional precisa filtrar `role !== "client"` explicitamente
+
+`requireSession()` não distingue por `role`: qualquer sessão autenticada
+passa, staff ou cliente. Uma rota interna que lista contas do workspace para
+um `master` escolher (ex.: atribuir um papel operacional) pode, sem esse
+filtro, listar e até aceitar como alvo uma conta de cliente do portal — que
+depois carrega aquele dado sensível numa sessão que nunca deveria alcançá-lo.
+
+Aplique dos DOIS lados: a LISTAGEM não deve nem oferecer o cliente como
+opção, e a ESCRITA não deve confiar só na listagem — quem grava confere de
+novo, porque um chamador direto (script, rota futura) não passa pela tela.
+
+Achado irmão, mesma fonte: `session.role` (vocabulário `AgencyRole`, em
+português) não é o mesmo vocabulário de `Autoridade` — um cast (`as
+Autoridade`) não é uma conversão. Sempre `autoridadeDoPapel(session.role)`,
+e ANTES dele, confira `ehPapelDaAgencia(session.role)` — `"client"` não é um
+`AgencyRole`, e o conversor explode em vez de recusar se você pular esse
+passo. `/api/**` fica fora do `proxy.ts` (que só cobre `/agency/**`), então
+cada rota de API responde pela própria porta.
+
+— promovido em 2026-09-02 pelo PM · origem: despachos ao `plataforma` e
+achado do `interface`, Célula de Prospecção,
+`docs/celula-prospeccao/RETOMADA.md`

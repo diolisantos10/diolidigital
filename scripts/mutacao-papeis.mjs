@@ -40,7 +40,7 @@ const MUTACOES = [
   {
     guarda: "P-M5 · direção não aprova a própria fala",
     arquivo: P,
-    de: '  if ((a === "aprovar_modelo" || a === "pausar_modelo") && papel !== "gerente_de_atendimento") {',
+    de: '  if ((a === "aprovar_modelo" || a === "pausar_modelo") && (c?.autoridade === "master" || c?.autoridade === "director")) {',
     para: "  if (false) { // MUTAÇÃO: a direção passa a liberar a mensagem que ela encomendou",
     espera: "CEO e diretor passam a aprovar modelo",
   },

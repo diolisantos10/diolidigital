@@ -24,20 +24,50 @@ import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
 import { estadoDoFunil, trilhaDoFunil, avancarFunil } from "@/lib/agency/celula/trilha";
 import { podeNaCelula, type Credencial } from "@/lib/agency/celula/papeis";
-import type { Autoridade } from "@/lib/agency/organizacao/autoridade";
+import { buscarPapelNaCelula } from "@/lib/agency/celula/papel-do-usuario";
+import { autoridadeDoPapel, ehPapelDaAgencia, type AgencyRole } from "@/lib/agency/roles";
 import type { DepartamentoId } from "@/lib/agency/organizacao/departamentos";
+
+/**
+ * `ehPapelDaAgencia` ANTES de qualquer coisa que chame `credencialDe`.
+ *
+ * Mesma correção de `app/api/agency/oportunidades/fila-diaria/route.ts` —
+ * ver o comentário lá para o porquê: `/api/**` fica fora do `proxy.ts`, e
+ * `autoridadeDoPapel("client")` explode em vez de recusar.
+ */
+function recusaSeNaoForPapelDaAgencia(role: string): NextResponse | null {
+  if (!ehPapelDaAgencia(role)) {
+    return NextResponse.json({ error: "cliente não acessa `/agency/**`." }, { status: 403 });
+  }
+  return null;
+}
 
 /**
  * A credencial da Célula, montada a partir da sessão.
  *
- * O papel na Célula é DADO DECLARADO — vem do cabeçalho de papel operacional,
- * não do `role` da sessão. Derivar "gerente" de `role: master` faria o CEO
- * aprovar a própria fala, que é justamente o que `papeis.ts` impede.
+ * O papel na Célula é DADO DECLARADO — vem do BANCO (`User.papelNaCelula`,
+ * lido por `buscarPapelNaCelula`), atribuído só por quem tem autoridade
+ * `master` (ver `app/api/agency/celula/papeis/route.ts`), não do `role` da
+ * sessão. Derivar "gerente" de `role: master` faria o CEO aprovar a própria
+ * fala, que é justamente o que `papeis.ts` impede. Até 02/09/2026 este dado
+ * vinha de um header HTTP (`x-papel-na-celula`) que qualquer chamador podia
+ * forjar — não há fallback para ele aqui de propósito.
+ *
+ * `autoridade` vem de `autoridadeDoPapel(session.role)`, NUNCA de um cast
+ * direto. Achado do `experiencia` em 02/09/2026: `session.role` é
+ * `AgencyRole` (vocabulário em português — "diretor", "executivo_comercial"…)
+ * e `Autoridade` é outro vocabulário (`"director"`, `"department_member"`…).
+ * Um `as Autoridade` produzia, para qualquer conta que não fosse "master" (as
+ * duas grafias colidem por acidente), um valor que não batia com NENHUMA
+ * chave de `Autoridade` — as travas incondicionais de `papeis.ts` que
+ * comparam `c?.autoridade === "director"` nunca disparavam para essas
+ * contas. `autoridadeDoPapel` é o conversor certo, já usado em
+ * `app/api/agency/celula/papeis/route.ts`.
  */
-function credencialDe(session: { role: string; workspaceId: string }, req: NextRequest): Credencial {
-  const papel = req.headers.get("x-papel-na-celula");
+async function credencialDe(session: { userId: string; role: AgencyRole; workspaceId: string }): Promise<Credencial> {
+  const papel = await buscarPapelNaCelula(session.userId);
   return {
-    autoridade: session.role as Autoridade,
+    autoridade: autoridadeDoPapel(session.role),
     // Enquanto a lotação por departamento não vier do banco, quem é da casa é
     // tratado como do departamento da Célula para efeito de LEITURA — e o papel
     // declarado continua sendo o que decide ESCRITA. Sem o papel, `papeis.ts`
@@ -61,13 +91,15 @@ export async function GET(
 ): Promise<NextResponse> {
   const { session, error } = await requireSession();
   if (error) return error;
+  const recusa = recusaSeNaoForPapelDaAgencia(session.role);
+  if (recusa) return recusa;
 
   const { id } = await ctx.params;
   if (!(await oportunidadeDoWorkspace(id, session.workspaceId))) {
     return NextResponse.json({ error: "oportunidade não encontrada" }, { status: 404 });
   }
 
-  const leitura = podeNaCelula(credencialDe(session, request), "ler_a_celula");
+  const leitura = podeNaCelula(await credencialDe(session), "ler_a_celula");
   if (!leitura.pode) {
     return NextResponse.json({ error: leitura.motivo }, { status: 403 });
   }
@@ -82,6 +114,8 @@ export async function POST(
 ): Promise<NextResponse> {
   const { session, error } = await requireSession();
   if (error) return error;
+  const recusa = recusaSeNaoForPapelDaAgencia(session.role);
+  if (recusa) return recusa;
 
   const { id } = await ctx.params;
   if (!(await oportunidadeDoWorkspace(id, session.workspaceId))) {
@@ -89,7 +123,7 @@ export async function POST(
   }
 
   // Avançar o funil é ESCRITA. Só quem tem papel na Célula.
-  const permissao = podeNaCelula(credencialDe(session, request), "autorizar_envio");
+  const permissao = podeNaCelula(await credencialDe(session), "autorizar_envio");
   if (!permissao.pode) {
     return NextResponse.json({ error: permissao.motivo }, { status: 403 });
   }

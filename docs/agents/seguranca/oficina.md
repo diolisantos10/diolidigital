@@ -215,3 +215,64 @@ pé em `__tests__/celula/entrada-hostil.test.ts`.
   a pergunta seguinte obrigatória é "que ação essa palavra cobria, e existe
   verbo para ela que sobrevive sem a palavra?". Aplica a qualquer guardião de
   conteúdo desta casa, não só ao 99Freelas.
+
+---
+
+## 2026-09-02 — o papel na Célula saiu do header, mas a porta nova reabre uma
+trava antiga por outro lado
+
+**Despacho:** parecer sobre a correção do furo do header `x-papel-na-celula`
+(commit em curso, branch `claude/celula-prospeccao-99freelas-v1`).
+
+### O achado principal — o furo do header está fechado, e bem fechado
+
+`lib/agency/celula/papel-do-usuario.ts` move a fonte do papel do header
+(forjável por qualquer sessão válida) para `User.papelNaCelula`, gravado só
+por `master`, lido fail-closed. `grep` exaustivo confirma zero caminho de
+código vivo lendo o header para decidir permissão; os testes provam as duas
+metades — inclusive o caso "banco diz sdr, header alega gerente" continua
+barrado. Isto é a trava certa, no padrão desta casa.
+
+### O achado que a ficha pediu para procurar, e que apareceu
+
+Item (b) da ficha perguntava nomeadamente: *"alguém consegue atribuir um
+papel MAIOR que o próprio — releia a combinação 'sou master, mas o corpo
+pode conter dados de outro ator'?"* A resposta é sim, por uma porta que não
+é a auto-atribuição em si: `atribuirPapelNaCelula` não impede
+`alvoUserId === atorUserId`, e `lib/agency/celula/papeis.ts` — arquivo **não
+tocado neste despacho** — bloqueia `master`/`director` de
+`operar_fila_de_excecoes` e `aprovar_modelo`/`pausar_modelo` só
+**condicionalmente** (`papel === null`, ou `papel !== "gerente_de_atendimento"`),
+não incondicionalmente por autoridade. Master que se auto-atribui
+`gerente_de_atendimento` — que é literalmente o exemplo de uso documentado em
+`scripts/atribuir-papel-celula.mjs:19` — atravessa os dois bloqueios que a
+ordem do CEO de 30/08 desenhou por nome ("o CEO não opera a fila", "direção
+não aprova a própria fala").
+
+### O que aprendi, e vale para a próxima varredura de permissão em camadas
+
+1. **Fechar a fonte de um dado não fecha a trava que consome esse dado.**
+   O conserto de hoje corrigiu **de onde vem** o papel; não conferiu **o que
+   o papel destrava** do outro lado, num arquivo mais antigo que ninguém
+   tocou nesta rodada. Toda vez que uma "fonte de verdade" muda de lugar
+   (header → banco, config → banco, etc.), a pergunta seguinte obrigatória é:
+   *quem consome este dado, e as travas de lá foram escritas assumindo que
+   ele nunca chegaria a certos valores?*
+2. **Comentário que promete uma ordem de checagem ("autoridade não destrava,
+   e não deve nem ser consultada") e código que não cumpre essa ordem é o
+   pior tipo de achado — porque o próprio arquivo já documenta a intenção
+   certa.** `papeis.ts:150-152` é exatamente isso. Vale procurar esse padrão
+   — comentário-promessa vs. `if` que não entrega — em outras travas da casa.
+3. **Teste que cobre `{ autoridade: "master", departamentos: [] }` sem o
+   papel declarado não cobre o caso real** — a credencial de produção sempre
+   tem `departamentos: ["client-service-sdr"]` hard-coded. O teste existente
+   testava um shape que a rota nunca produz.
+
+### Proposta de vitrine (para o PM avaliar)
+
+- **"Fechar a fonte não fecha o consumidor"** — ao mover uma fonte de dado
+  sensível (header → banco, etc.), auditar também as travas que já
+  consumiam esse dado antes da mudança, especialmente as que têm bloqueio
+  condicional em vez de incondicional para papéis de maior autoridade.
+  Reaproveitável em qualquer futura migração de fonte de permissão desta
+  casa.

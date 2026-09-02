@@ -78,3 +78,26 @@ conta como vazada** e precisa de rotação — foi assim no Foocci.
 
 — promovido em 2026-08-07 pelo PM · origem:
 `dioli-brain-kit/docs/23-constituicao-dos-essenciais.md`, SEGURANÇA §9
+
+---
+
+## Fechar a fonte de um dado não fecha a trava que consome esse dado
+
+Ao mover uma fonte de dado sensível de lugar (header → banco, config → banco,
+etc.), a pergunta seguinte obrigatória é: **quem consome este dado, e as
+travas de lá foram escritas assumindo que ele nunca chegaria a certos
+valores?** Um `if` condicional que só bloqueia quando o dado está ausente
+(`papel === null`) para de proteger no instante em que o dado passa a poder
+ser preenchido de verdade — mesmo que a lógica de PODE/NÃO PODE em si nunca
+tenha mudado uma linha.
+
+Sinal de alerta específico: comentário que promete uma ordem de checagem
+("autoridade não destrava, e não deve nem ser consultada") e código que só
+cumpre essa promessa condicionalmente. O comentário certo ao lado do `if`
+errado é o pior tipo de achado, porque o arquivo já documenta a intenção
+certa — só não a aplica.
+
+— promovido em 2026-09-02 pelo PM · origem: parecer do `seguranca` sobre a
+correção do furo do header `x-papel-na-celula` na Célula de Prospecção,
+`docs/agents/seguranca/oficina.md` (entrada de 02/09/2026) e
+`docs/celula-prospeccao/RETOMADA.md`

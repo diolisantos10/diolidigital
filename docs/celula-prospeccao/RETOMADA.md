@@ -100,7 +100,8 @@ Rode qualquer um deles para conferir — não acredite nesta tabela.
 | **Fila diária** (derivada, bloco não-cego, idempotente) | `lib/agency/celula/fila-diaria.ts` | — | 9 testes, inclui bloco sujo |
 | Migration das 4 tabelas | `prisma/migrations/20260830170000_*` | — | aplicada em banco vazio + controle negativo |
 | **Rota da fila diária** (GET expõe `montarFilaDoDia`, POST expõe `liberarEmBloco`) — despachada ao `plataforma`, 02/09 | `app/api/agency/oportunidades/fila-diaria/route.ts` | — | `__tests__/celula/rota-fila-diaria.test.ts`, 8/8 verdes |
-| **Tela da fila diária** — o CEO revisa e libera em bloco com um clique. Despachada ao `interface` (forma) + `experiencia` (percurso), 02/09 | `app/agency/oportunidades/fila-diaria/page.tsx` | — | responsivo 375/768/1440 capturado; ver achado crítico abaixo |
+| **Tela da fila diária** — o CEO revisa e libera em bloco com um clique. Despachada ao `interface` (forma) + `experiencia` (percurso), 02/09 | `app/agency/oportunidades/fila-diaria/page.tsx` | — | responsivo 375/768/1440 capturado |
+| **Papel na Célula sai do header, vem do banco** — persistência, rota de atribuição e tela para o `master` atribuir. 6 rodadas de despacho + achados fechados no mesmo dia, ver seção própria acima | `lib/agency/celula/papel-do-usuario.ts`, `app/api/agency/celula/papeis/`, `app/agency/celula/papeis/page.tsx` | — | 588/588 arquivos verdes; mutação de `papeis.ts` 8/8 |
 
 > ✅ **Reconferido de verdade em 02/09/2026, não só lido**: `npx vitest run
 > __tests__/celula/corpo-e-pacote.test.ts __tests__/celula/fila-diaria.test.ts`
@@ -142,13 +143,12 @@ código:
    feita na máquina do CEO. `executor.ts` já EXIGE essa atestação e recusa
    planejar sem ela — ninguém a produziu ainda. Ver `decisao-1-vs-decisao-2.md`.
 
-2. ✅ **FECHADO em 02/09/2026 — a tela da fila diária existe.**
-   `app/agency/oportunidades/fila-diaria/page.tsx`, atrás de
-   `app/api/agency/oportunidades/fila-diaria/route.ts` (GET lista, POST
-   libera em bloco). Menu atualizado (`AgencySidebar.tsx`,
+2. ✅ **FECHADO em 02/09/2026 — a tela da fila diária existe, E o papel que
+   ela exige agora tem como ser atribuído.** `app/agency/oportunidades/fila-diaria/page.tsx`,
+   atrás de `app/api/agency/oportunidades/fila-diaria/route.ts` (GET lista,
+   POST libera em bloco). Menu atualizado (`AgencySidebar.tsx`,
    `lib/agency/organizacao/paginas.ts`). Responsivo capturado nos 3 tamanhos.
-   **Mas ela nasceu presa por um achado novo — ver o item 🔴 logo abaixo, não
-   pule.**
+   O achado 🔴 que a travava — ver o item abaixo — está fechado.
 
 3. **O caminho B (automático), decidido para 03/09.** Desenhado, não
    construído: `docs/celula-prospeccao/decisao-b-automatico.md`. Só entra em
@@ -163,47 +163,153 @@ código:
 
 ---
 
-## 🔴 ACHADO NOVO, CRÍTICO — as duas únicas rotas de ESCRITA da Célula estão 100% inutilizáveis
+## ✅ FECHADO em 02/09/2026 — as duas rotas de ESCRITA da Célula estavam 100% inutilizáveis, e o furo era pior do que "faltava tela"
 
-Medido em 02/09/2026 pelo `experiencia` (percurso ao vivo por leitura de
-código + `grep` exaustivo, não suposição), depois de a tela da fila diária ser
-construída.
+Medido primeiro em 02/09/2026 pelo `experiencia` (percurso ao vivo por leitura
+de código + `grep` exaustivo, não suposição), depois de a tela da fila diária
+ser construída. **Fechado no mesmo dia**, pelo `pm`, em seis despachos
+coordenados (`plataforma` × 4, `interface` × 2, `experiencia` × 1,
+`seguranca` × 1), com um ajuste final do próprio `pm` (dois achados pequenos
+demais para um sétimo despacho — exceção `MENOR_QUE_O_DESPACHO`, declarada).
 
-**O que é:** `POST /api/agency/oportunidades/fila-diaria` (libera em bloco) e
-`POST /api/agency/oportunidades/[id]/funil` (avança o funil individual — já
-existia desde 30/08) exigem o header `x-papel-na-celula:
-gerente_de_atendimento` para autorizar a ação (`papeis.ts`: papel é DADO
-DECLARADO, nunca inferido de `session.role`/autoridade — nem `master` nem
-`director` são promovidos automaticamente, de propósito). **Não existe, em
-nenhuma tela do produto, nenhum formulário, nenhum campo de perfil, um jeito
-de a pessoa logada declarar esse papel.** `grep` em `app/` e `components/`
-inteiros não encontra nenhum emissor desse header fora dos dois clientes que
-acabaram de ser construídos (que também não o enviam, corretamente — não é
-deles inventar o dado).
+### O que era
 
-**Tamanho do dano:** não é degradado, é **total**. Qualquer pessoa, inclusive
-o CEO, clica em "Liberar selecionados" (fila diária) ou tenta avançar o funil
-(tela do funil) e recebe 403 `sem_permissao`, sempre, sem exceção e sem
-contorno dentro do produto. As duas únicas portas de ESCRITA que a Célula tem
-hoje em `app/` estão mortas pelo mesmo motivo — não é um bug de uma tela, é a
-Célula inteira sem porta de saída operacional.
+`POST /api/agency/oportunidades/fila-diaria` e
+`POST /api/agency/oportunidades/[id]/funil` exigiam o header HTTP
+`x-papel-na-celula: gerente_de_atendimento` para autorizar a ação — e
+**nenhuma tela declarava esse header**, então as duas únicas portas de
+escrita da Célula devolviam 403 para qualquer pessoa, inclusive o CEO,
+sempre, sem contorno.
 
-**O que já foi feito para não deixar a experiência pior:** a tela da fila
-diária (02/09) trata esse 403 como erro permanente, não transitório — não
-oferece "Tentar de novo" quando a regra é de permissão, e diz "isto não tem
-solução por aqui, fale com quem administra o sistema". A tela do funil
-(`PainelDoFunil.tsx`, 30/08) **não tem** esse tratamento — herda o mesmo 403
-mas ainda não foi revisitada; não mexi nela nesta sessão porque é edição fora
-do escopo do despacho, fica nomeada aqui.
+### O achado de segurança por trás disso, que o Diretor viu ANTES de despachar
 
-**O que falta, e por que não construí sozinho:** um mecanismo para a pessoa
-logada declarar "estou atuando como Gerente de Atendimento e SDR" — sessão,
-seletor de papel operacional, ou vínculo persistido no banco. Não inventei
-esse mecanismo porque a regra da casa é clara (`papeis.ts`: "papel é DADO,
-nunca inferido de cargo — inferir faria todo membro do departamento virar
-gerente"), e decidir ONDE e COMO esse dado é declarado é decisão de produto,
-não um detalhe de implementação de tela. **Precisa de decisão do CEO/Diretor:
-quem declara esse papel, e onde.**
+O header vinha do REQUEST — o cliente da API é quem afirmava "eu sou gerente"
+e a rota acreditava. Autorização por dado auto-declarado pelo chamador,
+trivialmente forjável por qualquer sessão válida (mesmo `design_staff`, o
+perfil mais baixo). Mesma família de furo de PR #376 (ficha de marca vazando
+entre workspaces).
+
+### O que foi construído, nesta ordem
+
+1. **Persistência real do papel** — `User.papelNaCelula` (coluna nova,
+   nullable, migration `20260902120000_o_papel_da_pessoa_na_celula`), lida
+   fail-closed e escrita só por `master`, em
+   `lib/agency/celula/papel-do-usuario.ts` (`buscarPapelNaCelula`,
+   `atribuirPapelNaCelula`).
+2. **As duas rotas passaram a ler o banco, nunca mais o header** —
+   `app/api/agency/oportunidades/fila-diaria/route.ts` e
+   `app/api/agency/oportunidades/[id]/funil/route.ts`. Provado por teste que
+   um header forjado com valor diferente do banco NÃO muda o resultado.
+3. **Rota nova para o `master` atribuir o papel** —
+   `app/api/agency/celula/papeis/route.ts` (GET lê largo — qualquer pessoa
+   interna, corrigido no passo 6 abaixo —, POST só `master` escreve, com a
+   MESMA checagem repetida dentro de `atribuirPapelNaCelula`).
+4. **Tela para o `master` atribuir** — `app/agency/celula/papeis/page.tsx`,
+   no menu como "Papéis da Célula". Responsivo 375/768/1440, capturado de
+   verdade (não só lido), auto-nota 8+ nos quatro critérios.
+5. **O papel do CEO foi atribuído nesta sessão**, no banco local:
+   ```
+   node scripts/atribuir-papel-celula.mjs --email master@dioli.studio --papel gerente_de_atendimento
+   ```
+   (script novo, Node puro, mesmo padrão de `scripts/seed-db.mjs` — não
+   hardcoded em produção; roda de novo em qualquer ambiente pelo `master`
+   real, ou pela tela nova).
+6. **Três achados reais apareceram DEPOIS do primeiro fechamento, cada um
+   auditado e corrigido no mesmo dia** — nenhum ficou pendurado:
+   - **`master` conseguia se auto-atribuir e furar duas travas nomeadas pelo
+     CEO** ("o CEO não opera a fila", "direção não aprova a própria fala") —
+     `lib/agency/celula/papeis.ts` bloqueava isso só quando `papel === null`,
+     não incondicionalmente. Corrigido: bloqueio incondicional para
+     master/director nessas DUAS ações específicas; `autorizar_envio` (o que
+     esta frente inteira existe para destravar) continua permitido — provado
+     por teste dedicado para não regredir o motivo de existir do bloco.
+   - **Contas de cliente do portal podiam aparecer na lista e receber
+     papel** — `User` guarda staff e cliente no mesmo model. Corrigido nos
+     dois lados: a listagem filtra `role !== "client"`, e
+     `atribuirPapelNaCelula` recusa gravar em alvo `client` mesmo que
+     chamado direto (defesa em profundidade).
+   - **Cast em vez de conversão** — `autoridade: session.role as Autoridade`
+     nas duas rotas antigas não convertia o vocabulário português da sessão
+     (`"diretor"`) para o vocabulário de `Autoridade` (`"director"`); só
+     "master" calhava de bater nos dois. Isso fazia a trava incondicional do
+     item anterior nunca disparar para conta com `role: "diretor"`.
+     Corrigido: as duas rotas usam `autoridadeDoPapel()`, o conversor que já
+     existia e que a rota de papéis já usava certo.
+   - **A própria tela de papéis tratava seu 403 de "sem autoridade de
+     gestão" como transitório**, com "Tentar de novo" que nunca resolvia —
+     loop sem saída para quem mais precisava (o dono do departamento, sem
+     ser gestão). Duas correções, uma maior que a outra: `interface`
+     replicou o padrão de erro-sem-solução já usado em `fila-diaria`; e o
+     **`pm` corrigiu a causa real** — a leitura da lista estava presa a
+     `acesso: "gestao"` no inventário de páginas (`paginas.ts`) E a `eGestao`
+     na API, bloqueando no `proxy.ts` ANTES de a página sequer montar.
+     Virou `todos_internos`/`eInterno` — "ler é largo", a régua da casa;
+     escrever continua só do `master`. Ao escrever o teste desse ajuste,
+     apareceu um QUINTO achado: `autoridadeDoPapel("client")` **explode**
+     (não existe em `PERFIL_DO_PAPEL`) em vez de recusar — uma sessão de
+     cliente com JWT válido batendo nessas três rotas de API (que ficam FORA
+     do `proxy.ts`, que só cobre `/agency/**`, não `/api/**`) causava 500 em
+     vez de 403. Corrigido nas três rotas com `ehPapelDaAgencia()` antes de
+     qualquer conversão.
+
+### Parecer do `seguranca`
+
+Registrado em `docs/agents/seguranca/oficina.md`, entrada
+"2026-09-02 — o papel na Célula saiu do header, mas a porta nova reabre uma
+trava antiga por outro lado". Veredito: **PODE seguir com os ajustes
+aplicados antes** (os ajustes citados foram os dois primeiros do item 6
+acima, aplicados no mesmo dia).
+
+### Evidência
+
+- `npx tsc --noEmit`: limpo (conferido 6 vezes ao longo do dia, a cada
+  rodada).
+- `npx vitest run`: **588/588 arquivos, 8464 passed + 1 falha esperada
+  (`it.fails`, documentando um gap sem rota viva para explorá-lo hoje) + 1
+  skip**.
+- `node scripts/mutacao-papeis.mjs`: 8/8 vermelho (mutação não regrediu).
+- Screenshots reais (não só lidos): tela normal (master vê e atribui),
+  tela em modo consulta (staff de outro departamento vê badges, sem ação),
+  nos 3 tamanhos.
+
+### O que ainda impede um cliente real de receber uma peça HOJE
+
+Nada relacionado a este achado. O que falta é o item 1 da lista acima (a
+atestação humana do perfil de Chrome), que é do CEO, não de código.
+
+### Riscos/decisões que sobraram, registrados e não escondidos
+
+- 🟡 **`aprovar_modelo`, `pausar_modelo` e `operar_fila_de_excecoes`** — as
+  travas incondicionais que o item 6 fechou em `papeis.ts` não têm, hoje,
+  NENHUMA rota em `app/` que as exponha por HTTP. A prova de ponta a ponta
+  (a trava disparando via requisição real) fica pendente até essas ações
+  ganharem rota — decisão de escopo futuro, não bloqueio deste bloco.
+- 🟡 **`PainelDoFunil.tsx` não tem botão para avançar o funil manualmente**
+  — o `experiencia` mediu que o achado antigo ("tela do funil herda o 403
+  sem tratamento") não é reproduzível hoje: não existe UI que chame
+  `POST .../funil` nenhuma. Corrigindo o registro: o gap real é "não existe
+  avanço manual na interface", não "existe e quebra". Decisão do CEO/PM:
+  isso precisa existir, ou o funil avança sempre pelo motor automático?
+- 🟢 **`podeNaCelula` (`lib/agency/celula/papeis.ts`) ainda não bloqueia
+  `autoridade === "client"` incondicionalmente** — hoje "client" só é barrado
+  via `eDeDentroDaCasa` para `ler_a_celula`; nas outras quatro ações, uma
+  `Credencial` fabricada com `autoridade: "client"` e um `papel` preenchido
+  passaria pela lógica pura. **Fechado em DOIS pontos fora deste arquivo,
+  ambos nesta sessão:** (1) `atribuirPapelNaCelula` recusa gravar
+  `papelNaCelula` em conta `role: "client"`, então esse `papel` nunca existe
+  de verdade; (2) as três rotas (`papeis`, `fila-diaria`, `funil`) recusam a
+  sessão `client` com `ehPapelDaAgencia()` antes de montar qualquer
+  `Credencial`. Documentado como `it.fails(...)` em `papeis.test.ts`
+  (proposta do `plataforma`, registrada em `docs/agents/plataforma/oficina.md`)
+  — a lógica pura continua com a lacuna, só não é mais alcançável pelos
+  caminhos que existem hoje. Endurecer `papeis.ts` diretamente é troca
+  pequena e fica para quem tocar o arquivo de novo (ele já foi mexido 2x
+  hoje; cada mudança pede rodar `scripts/mutacao-papeis.mjs`).
+- 🟢 Decidido e descartado pelo `pm`: a sugestão do `seguranca` de recusar
+  atribuir papel operacional a conta `master`/`director` dentro de
+  `atribuirPapelNaCelula` **contradiria o motivo desta frente existir** — o
+  CEO precisa poder receber "gerente_de_atendimento". Não implementada, de
+  propósito.
 
 ---
 
