@@ -94,6 +94,10 @@ export const PAGINAS: PaginaInterna[] = [
   // avisou. Ver `app/agency/avisos-de-orcamento/page.tsx`.
   { href: "/agency/avisos-de-orcamento",   titulo: "Avisos de orçamento",     dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/oportunidades",         titulo: "Oportunidades",           dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
+  // A revisão diária: o que a Célula aprovou e está esperando alguém liberar
+  // em bloco. Item próprio no menu — mesma razão do WhatsApp e do Radar: rota
+  // sem porta na interface não é alcançada por quem precisa dela todo dia.
+  { href: "/agency/oportunidades/fila-diaria", titulo: "Fila diária de liberação", dono: "client-service-sdr", acesso: "dono_e_gestao", noMenu: false },
   { href: "/agency/inbox",                 titulo: "Caixa de entrada",        dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
   { href: "/agency/whatsapp",              titulo: "WhatsApp",                dono: "client-service-sdr", acesso: "dono_e_gestao",  noMenu: true  },
 

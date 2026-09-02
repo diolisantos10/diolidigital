@@ -118,6 +118,9 @@ export default function AgencySidebar({ id, userInfo, perfil, mobileOpen = false
         // um projeto de plataforma de freela, o Diretor aprova ou recusa. Mesmo
         // gesto de Solicitações e Caixa de entrada, por isso mesma vizinhança.
         { label: "Oportunidades", href: "/agency/oportunidades", icon: TargetIcon },
+        // A revisão diária das entregas já aprovadas pela Qualidade — mesmo
+        // gesto de decisão em bloco, uma vez por dia, ao lado de Oportunidades.
+        { label: "Fila diária", href: "/agency/oportunidades/fila-diaria", icon: LiberarIcon },
         // O cliente escrevia e ninguem lia: a mensagem gravava no banco e morria.
         // O badge soma conversa nao lida + pedido novo, sem contar duas vezes.
         { label: "Caixa de entrada", href: "/agency/inbox", icon: InboxIcon, badge: caixa.total },
@@ -488,6 +491,15 @@ function CheckIcon({ size = 16, className = "" }: { size?: number; className?: s
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+function LiberarIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <rect x="2" y="3" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M4.5 7l1.5 1.5 2.5-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 6v6a1 1 0 01-1 1H5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

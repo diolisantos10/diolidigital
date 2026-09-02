@@ -8,19 +8,28 @@
 
 ## A condição operacional que muda tudo — leia antes de planejar
 
-**A camada de despacho está DESABILITADA nesta sessão.** Medido, não suposto:
+> ✅ **ATUALIZADO em 02/09/2026, pelo `pm`: a camada de despacho VOLTOU.**
+> Medido, não suposto — `claude --agent <nome> --permission-mode acceptEdits
+> -p "..."` funcionou nesta sessão para `plataforma`, `interface` e
+> `experiencia`, com escrita de verdade no disco (rota de API, página, dois
+> arquivos de menu ajustados). O parágrafo abaixo é HISTÓRICO da sessão de
+> 30-31/08, quando a camada estava fora do ar — não confie nele sem conferir
+> de novo: **abra o turno testando uma linha** (`claude --agent plataforma
+> --permission-mode acceptEdits -p "Responda apenas com a palavra: OK"`) antes
+> de assumir qualquer um dos dois estados.
+
+**Histórico (30-31/08): a camada de despacho estava DESABILITADA.** Medido,
+não suposto, naquela sessão:
 
 ```
 Error: No such tool available: Agent. Agent is disabled for this session,
 in subagents as well as here.
 ```
 
-O mesmo vale para as ferramentas de GitHub e de notificações. Enquanto for
-assim, o Diretor executa à mão sob exceção `SEM_AGENTE` declarada — o que é
-violação da régua da casa registrada como **dado**, não como desculpa.
-
-**Se num turno novo o `Agent` responder, DESPACHE.** Confira com uma linha
-antes de assumir que não dá.
+O mesmo valia para as ferramentas de GitHub e de notificações naquela sessão.
+Enquanto foi assim, o Diretor executou à mão sob exceção `SEM_AGENTE`
+declarada — o que é violação da régua da casa registrada como **dado**, não
+como desculpa.
 
 ## 🔇 APAGÃO DE NOTIFICAÇÕES — cinco chegaram, nenhuma foi lida
 
@@ -90,6 +99,16 @@ Rode qualquer um deles para conferir — não acredite nesta tabela.
 | **Pacote do operador** (o que o CEO clica para anexar) | `lib/agency/celula/ponte/pacote-do-operador.ts` | — | 4 conferências |
 | **Fila diária** (derivada, bloco não-cego, idempotente) | `lib/agency/celula/fila-diaria.ts` | — | 9 testes, inclui bloco sujo |
 | Migration das 4 tabelas | `prisma/migrations/20260830170000_*` | — | aplicada em banco vazio + controle negativo |
+| **Rota da fila diária** (GET expõe `montarFilaDoDia`, POST expõe `liberarEmBloco`) — despachada ao `plataforma`, 02/09 | `app/api/agency/oportunidades/fila-diaria/route.ts` | — | `__tests__/celula/rota-fila-diaria.test.ts`, 8/8 verdes |
+| **Tela da fila diária** — o CEO revisa e libera em bloco com um clique. Despachada ao `interface` (forma) + `experiencia` (percurso), 02/09 | `app/agency/oportunidades/fila-diaria/page.tsx` | — | responsivo 375/768/1440 capturado; ver achado crítico abaixo |
+
+> ✅ **Reconferido de verdade em 02/09/2026, não só lido**: `npx vitest run
+> __tests__/celula/corpo-e-pacote.test.ts __tests__/celula/fila-diaria.test.ts`
+> → **23/23 verdes**. Revisão de `pacote-do-operador.ts` confirma que o pacote
+> devolvido ao CEO já carrega tudo que falta para o clique de anexar: bytes
+> conferidos contra o sha256, nome de exibição, mimeType, tamanho, destino e
+> `evidenciaExigida` — nenhuma lacuna nova entre "byte gravado" e "pronto pra
+> anexar" foi encontrada.
 
 **Decisão 1** (Claude in Chrome, não OpenAI/Playwright): resolvida e
 construída. O executor EXISTE (linha acima) — na forma que a decisão implica:
@@ -123,9 +142,13 @@ código:
    feita na máquina do CEO. `executor.ts` já EXIGE essa atestação e recusa
    planejar sem ela — ninguém a produziu ainda. Ver `decisao-1-vs-decisao-2.md`.
 
-2. **A tela da fila diária.** A lógica existe e é testada
-   (`montarFilaDoDia`/`liberarEmBloco`); a página para o CEO revisar e liberar
-   com um clique, não. Hoje passa por chamada de código.
+2. ✅ **FECHADO em 02/09/2026 — a tela da fila diária existe.**
+   `app/agency/oportunidades/fila-diaria/page.tsx`, atrás de
+   `app/api/agency/oportunidades/fila-diaria/route.ts` (GET lista, POST
+   libera em bloco). Menu atualizado (`AgencySidebar.tsx`,
+   `lib/agency/organizacao/paginas.ts`). Responsivo capturado nos 3 tamanhos.
+   **Mas ela nasceu presa por um achado novo — ver o item 🔴 logo abaixo, não
+   pule.**
 
 3. **O caminho B (automático), decidido para 03/09.** Desenhado, não
    construído: `docs/celula-prospeccao/decisao-b-automatico.md`. Só entra em
@@ -138,7 +161,49 @@ código:
 > significa aprovado, endereçado ao cliente certo e registrado; não anexado no
 > site.
 
+---
 
+## 🔴 ACHADO NOVO, CRÍTICO — as duas únicas rotas de ESCRITA da Célula estão 100% inutilizáveis
+
+Medido em 02/09/2026 pelo `experiencia` (percurso ao vivo por leitura de
+código + `grep` exaustivo, não suposição), depois de a tela da fila diária ser
+construída.
+
+**O que é:** `POST /api/agency/oportunidades/fila-diaria` (libera em bloco) e
+`POST /api/agency/oportunidades/[id]/funil` (avança o funil individual — já
+existia desde 30/08) exigem o header `x-papel-na-celula:
+gerente_de_atendimento` para autorizar a ação (`papeis.ts`: papel é DADO
+DECLARADO, nunca inferido de `session.role`/autoridade — nem `master` nem
+`director` são promovidos automaticamente, de propósito). **Não existe, em
+nenhuma tela do produto, nenhum formulário, nenhum campo de perfil, um jeito
+de a pessoa logada declarar esse papel.** `grep` em `app/` e `components/`
+inteiros não encontra nenhum emissor desse header fora dos dois clientes que
+acabaram de ser construídos (que também não o enviam, corretamente — não é
+deles inventar o dado).
+
+**Tamanho do dano:** não é degradado, é **total**. Qualquer pessoa, inclusive
+o CEO, clica em "Liberar selecionados" (fila diária) ou tenta avançar o funil
+(tela do funil) e recebe 403 `sem_permissao`, sempre, sem exceção e sem
+contorno dentro do produto. As duas únicas portas de ESCRITA que a Célula tem
+hoje em `app/` estão mortas pelo mesmo motivo — não é um bug de uma tela, é a
+Célula inteira sem porta de saída operacional.
+
+**O que já foi feito para não deixar a experiência pior:** a tela da fila
+diária (02/09) trata esse 403 como erro permanente, não transitório — não
+oferece "Tentar de novo" quando a regra é de permissão, e diz "isto não tem
+solução por aqui, fale com quem administra o sistema". A tela do funil
+(`PainelDoFunil.tsx`, 30/08) **não tem** esse tratamento — herda o mesmo 403
+mas ainda não foi revisitada; não mexi nela nesta sessão porque é edição fora
+do escopo do despacho, fica nomeada aqui.
+
+**O que falta, e por que não construí sozinho:** um mecanismo para a pessoa
+logada declarar "estou atuando como Gerente de Atendimento e SDR" — sessão,
+seletor de papel operacional, ou vínculo persistido no banco. Não inventei
+esse mecanismo porque a regra da casa é clara (`papeis.ts`: "papel é DADO,
+nunca inferido de cargo — inferir faria todo membro do departamento virar
+gerente"), e decidir ONDE e COMO esse dado é declarado é decisão de produto,
+não um detalhe de implementação de tela. **Precisa de decisão do CEO/Diretor:
+quem declara esse papel, e onde.**
 
 ---
 
