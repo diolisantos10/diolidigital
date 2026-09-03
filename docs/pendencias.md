@@ -6635,7 +6635,64 @@ não existir: não se calcula 10% sobre um número que não existe.
   em vez de apagar") — comportamento correto, e não há rota para apagar o card.
   O token do portal expira sozinho em 29/08 (foi cunhado com 2 dias).
 
-## 🔴 03/09/2026 — RAIO-X URGENTE (ordem do CEO): a sessão comercial NÃO fecha contrato hoje
+## 🟢 03/09/2026 — O 409 do item 3 abaixo foi CONSERTADO (item 1, 2 e 4 continuam abertos)
+
+> **A causa raiz NÃO era a lista `ESPERANDO_DECISAO_DA_PROPOSTA`** — o
+> diagnóstico do item 3 abaixo apontou o sintoma certo (`scope_ready` fora da
+> lista) mas a raiz errada. Havia um aviso explícito em
+> `lib/agency/execution/negotiate-proposal.ts:85-92` proibindo alargar aquela
+> lista, porque `scope_ready` carrega DOIS significados opostos noutro lugar
+> (`lib/dioli-brain/run-auto-scope.ts`: "a agência ainda não revisou"). Alargar
+> a lista teria deixado clientes aceitarem sozinhos um escopo que a agência
+> nunca viu.
+>
+> **A raiz de verdade era uma condição de corrida.**
+> `app/api/brain/client-requests/route.ts:334` dispara `runAutoScope` SEM
+> `await` (fire-and-forget, para o 201 não esperar 6 motores de IA). Em
+> paralelo, `entregarOrcamentosPendentes()` já lê pedidos em `scope_ready` (de
+> propósito) e os avança para `proposal_pending` assim que calcula o
+> orçamento. Se `runAutoScope` terminasse DEPOIS, o `update` incondicional que
+> ele fazia no final sobrescrevia `proposal_pending` de volta para
+> `scope_ready` — a proposta já estava escrita no portal com link de aceite,
+> mas o status regredia, e o aceite via 409 achando que "já tinha sido
+> respondida".
+>
+> **Conserto:** `lib/dioli-brain/run-auto-scope.ts` trocou o `update`
+> incondicional por um `updateMany` condicionado a `status: { in: ["new",
+> "lead_incompleto", "needs_revision", "scope_ready"] }` — só avança para
+> `scope_ready` a partir de onde `scope_ready` ainda é a fronteira de verdade.
+> Se outra escrita concorrente já levou o pedido adiante, os `BrainArtifact`
+> (o trabalho de IA) são gravados do mesmo jeito; só o status, que ficou
+> obsoleto, não regride. A lista `ESPERANDO_DECISAO_DA_PROPOSTA` **não foi
+> tocada** — continua correta como estava.
+>
+> **Prova:** `__tests__/brain/run-auto-scope-nao-perde-a-corrida.test.ts`
+> (2 testes) — reproduz a corrida de verdade (pausa `runAutoScope` no meio,
+> simula a escrita concorrente de `proposal_pending`, só então libera), não o
+> sintoma. Confirmado que o teste FALHA no código antigo (`update`
+> incondicional) e PASSA no novo (`git stash` do arquivo + rodada isolada).
+> `npx tsc --noEmit` limpo. Suíte completa: 555 arquivos / 7781 testes
+> passando, 1 falha pré-existente e não relacionada
+> (`__tests__/connect/a-ficha-chega-em-producao.test.ts`, precisa de
+> `.next/standalone` que não existe neste ambiente sem build — falha também
+> sem a mudança). `npm run cliente-falso` rodado de novo: pedido saiu de
+> `scope_ready` para `proposal_pending`, aceite sem 409, projeto nasceu
+> sozinho com 3 tarefas despachadas (a única falha da rodada foi "execução não
+> produziu nada", limitação conhecida por faltar `ANTHROPIC_API_KEY` neste
+> ambiente — item já listado como "não medido" abaixo, fora do escopo deste
+> conserto).
+>
+> Commit na branch `claude/raiox-esteira-comercial-03-09` (a partir de
+> `862852e`), empurrado ao remoto. Reivindicação `esteira-scope-ready-aceite`
+> encerrada.
+>
+> ⚠️ **O que NÃO foi tocado, e continua igual:** itens 1, 2 e 4 da tabela
+> abaixo (upload de PDF no financeiro, desconto travado no piso, "conector
+> apagava faturamento" — que não existe neste repo) e os achados herdados do
+> diagnóstico de 29/08 (cancelamento sem aviso). Cada um é o próximo item, não
+> este.
+
+### 🔴 03/09/2026 — RAIO-X URGENTE (ordem do CEO): a sessão comercial NÃO fecha contrato hoje
 
 Medido do zero, local, banco limpo, sem confiar na sessão órfã `claude/posse-de-id-no-corpo` (que não tinha nada sobre isto). Servidor local rodado por esta sessão, login master, `npm run cliente-falso` rodado ao vivo às 11:27 de hoje.
 

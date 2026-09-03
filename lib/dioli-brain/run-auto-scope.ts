@@ -13,6 +13,32 @@ import { generateQualityCanvas } from "@/lib/dioli-brain/quality-engine";
 
 const SCOPE_DEPTS = ["strategy", "social", "design", "traffic", "analytics", "quality"] as const;
 
+// ── A CONDIÇÃO DE CORRIDA MEDIDA EM 03/09/2026 ──────────────────────────────
+//
+// `app/api/brain/client-requests/route.ts` dispara este runner SEM `await`
+// ("fire-and-forget... enquanto o 201 retorna na hora") para que o cliente não
+// espere seis motores de IA rodarem. Em paralelo — às vezes no mesmíssimo
+// ciclo do relógio, como no percurso do cliente oculto — roda
+// `entregarOrcamentosPendentes()`, que já LÊ pedidos em `new`/`lead_incompleto`
+// (não depende deste runner ter terminado: o número vem do `briefingJson`, não
+// do canvas) e os avança para `proposal_pending` assim que calcula o orçamento.
+//
+// Como as duas escritas correm sem ordem garantida, se este runner terminar
+// DEPOIS da entrega do orçamento, o `update` incondicional que havia aqui
+// pisava de volta em `scope_ready` — sobrescrevendo um pedido que já tinha
+// proposta escrita e link de aceite no portal. Resultado medido ao vivo: o
+// aceite do cliente devolvia 409 ("já foi respondida") para uma proposta que,
+// na prática, era a primeira resposta.
+//
+// O conserto não é ordenar as escritas (isso trocaria uma corrida por uma
+// espera desnecessária no caminho crítico do 201) nem alargar a lista que
+// decide "o cliente pode aceitar" — é fazer ESTA escrita só valer quando ela
+// ainda é a fronteira: se o pedido já andou para um estado que representa uma
+// proposta em curso ou uma decisão já tomada, os artefatos (canvases) ainda
+// são gravados — o trabalho de IA não se perde — mas o status do pedido fica
+// como está, porque ele já é mais recente do que "escopo pronto".
+const PRE_SCOPE_STATUSES = ["new", "lead_incompleto", "needs_revision", "scope_ready"] as const;
+
 export async function runAutoScope(
   clientRequestId: string,
   opts: { approvedBy?: string; workspaceId?: string } = {},
@@ -80,11 +106,28 @@ export async function runAutoScope(
     })),
   });
 
-  await prisma.clientRequestDb.update({
-    where: { id: clientRequestId },
+  const avanco = await prisma.clientRequestDb.updateMany({
+    where: {
+      id: clientRequestId,
+      // Só avança para `scope_ready` a partir de onde `scope_ready` É a
+      // fronteira de verdade. Se outra escrita concorrente já levou o pedido
+      // adiante (proposta entregue, aceite, recusa, projeto em andamento...),
+      // esta escrita chegou atrasada e não pode voltar o relógio do pedido.
+      status: { in: [...PRE_SCOPE_STATUSES] },
+    },
     data: {
       status: "scope_ready",
       ...(opts.workspaceId ? { workspaceId: opts.workspaceId } : {}),
     },
   });
+
+  if (avanco.count === 0) {
+    // Não é erro: é a corrida documentada acima resolvida a favor de quem
+    // chegou primeiro. Os artefatos (BrainArtifact) já foram gravados — só o
+    // status do pedido, que outra escrita tornou obsoleto, não regride.
+    console.warn(
+      `[run-auto-scope] pedido ${clientRequestId} já saiu do estágio de escopo ` +
+        "antes deste runner terminar — artefatos gravados, status preservado.",
+    );
+  }
 }
