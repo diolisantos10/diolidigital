@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — contornar sistemas (circumventing systems)"
 url: https://support.google.com/adspolicy/answer/15938075?hl=pt-BR
-capturado_em: 2026-08-31
-hash: fc84922b3af463c0
+capturado_em: 2026-09-03
+hash: 32af196ddbf80459
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -20,7 +20,7 @@ Os anúncios em toda a Rede do Google precisam ser úteis, variados, relevantes 
 
 Saiba mais sobre a política de abuso da rede de publicidade.
 
-Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads é considerada tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se forem identificadas violações dessa política, suas contas do Google Ads serão suspensas imediatamente, sem aviso prévio, e você não poderá mais anunciar na plataforma. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
+Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads e do Display & Video 360 é considerada tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se identificarmos violações dessa política, suas contas do Google Ads e do Display & Video 360 serão suspensas imediatamente, sem aviso prévio, e você não poderá mais anunciar nessas plataformas. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
 
 Neste artigo
 Fraude de sistema
@@ -56,13 +56,10 @@ Fraude de sistema: técnicas de cloaking
 Alguns exemplos:
 
 Mostrar ao Google uma página de destino ou destino de um anúncio que esteja em conformidade com as políticas do Google Ads e, ao mesmo tempo, exibir às pessoas um conteúdo diferente. Por exemplo, divulgar a venda de roupas ao Google quando o site vende armas
-Usar um pop-up, também conhecido como interstitial intrusivo, que bloqueia o acesso à maior parte do conteúdo do seu site, impedindo que o Google acesse a página de destino ou o destino do anúncio para determinar se ele é proibido
+Usar um pop-up, também conhecido como intersticial intrusivo, que bloqueia o acesso à maior parte do conteúdo do seu site, impedindo que o Google acesse a página de destino ou o destino do anúncio para determinar se o conteúdo é proibido
 Promover um tópico que interessa a um usuário e o direcionar a um site com tema totalmente diferente, tentando enganar essa pessoa a clicar no seu anúncio, ao mesmo tempo que você esconde essa inconsistência do Google e dos rastreadores
 Enviar usuários para um site completamente diferente que viola as políticas do Google Ads, mesmo que esteja no mesmo domínio
 Usar rastreadores de cliques, que são ferramentas que medem quantas pessoas clicam em um link, para redirecionar as pessoas a sites com conteúdo proibido pelas políticas do Google Ads
-
-É permitido usar rastreadores de cliques certificados e redirecionar usuários, desde que não haja a tentativa de ocultar o conteúdo da página nem fazer qualquer outra coisa que viole nossas políticas.
-
 Por que isso não é permitido
 É enganoso: as pessoas veem no seu site algo diferente do que o prometido pelos seus anúncios, o que pode ser frustrante.
 Pode ocultar problemas: as técnicas de cloaking podem ser usadas para ocultar itens que vão contra nossas políticas de publicidade.
@@ -75,6 +72,7 @@ Dicas para enviar uma contestação
 Siga as práticas recomendadas: caso ainda não tenha feito isso, siga as práticas recomendadas disponíveis neste documento.
 Explique sua situação: explique o motivo de você mostrar conteúdo diferente para o Google e outros usuários. Se houve um engano, explique o que você fez para garantir que técnicas de cloaking não sejam usadas no seu site. Por exemplo, você removeu redirecionamentos ou tem uma certificação para anunciar conteúdo restrito.
 Fraude de sistema: uso indevido de várias contas
+
   A política contra fraude de sistema proíbe o uso indevido de várias contas. Isso significa que não é permitido criar várias contas do Google Ads para tentar burlar nossas políticas após uma suspensão ou para exibir conteúdo que infrinja as regras do Google Ads.
 
 Alguns exemplos:
@@ -98,15 +96,15 @@ Corrigir a suspensão da sua conta
 
 Se você acredita que houve um erro e que não violou as políticas do Google Ads, envie uma contestação.
 
-Na sua conta do Google Ads, clique em Entre em contato na notificação na parte superior da tela.
-Esse link vai direcionar para o formulário de contestação no lado direito da tela.
+Na sua conta do Google Ads, selecione o link Entre em contato na notificação na parte de cima da tela.
+Esse link vai abrir o formulário de contestação no lado direito da tela.
 Durante o preenchimento, você vai encontrar informações relevantes sobre a política que ajudarão a entender o motivo da suspensão, além do processo para contestar.
 
-Se você selecionar "Entre em contato" novamente durante o processamento da contestação, sua conta do Google Ads terá o status de "Contestação pendente". Quando a contestação for analisada, vamos enviar um e-mail com a resposta. Caso sua contestação seja recusada, você poderá enviar outra pelo mesmo processo descrito acima.
+Se você selecionar Entre em contato de novo durante o processamento da contestação, sua conta do Google Ads terá o status de "Contestação pendente". Quando a contestação for analisada, vamos enviar um e-mail com a resposta. Caso sua contestação seja recusada, você poderá enviar outra pelo mesmo processo descrito acima.
 
 Alguns anunciantes precisam concluir a verificação para contestar a suspensão da conta. A contestação só será permitida se pudermos verificar a identidade do anunciante em até 3 tentativas. Talvez os anunciantes suspensos por questões de faturamento e pagamento tenham que verificar a forma de pagamento para processar as contestações.
 
-As contas só são restabelecidas em circunstâncias justificáveis, como no caso de um erro da nossa parte. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada.
+As contas só são restabelecidas em circunstâncias convincentes, como quando cometemos um erro. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada.
 
 Começar
 

@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — envio de mensagens (janela de 24h, tipos)"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages
-capturado_em: 2026-09-02
-hash: 47f64e4a195302bf
+capturado_em: 2026-09-03
+hash: 6847330a042dd82f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -58,7 +58,7 @@ As mensagens de vídeo exibem uma prévia em miniatura de uma imagem de vídeo c
 
 As mensagens de reação são reações com emoji que você pode aplicar a uma mensagem anterior recebida de um usuário do WhatsApp.
 Qualidade da mensagem
-O WhatsApp determina a qualidade das mensagens com base na forma como os usuários do WhatsApp as receberam nos últimos 7 dias, ponderadas pela mais recente. Baseia essa pontuação em sinais de feedback, que incluem bloqueios, denúncias, silenciamentos e arquivamentos, além dos motivos fornecidos pelos usuários quando bloqueiam sua empresa.
+O WhatsApp determina a qualidade das mensagens com base na forma como os usuários do WhatsApp receberam suas mensagens nos últimos 7 dias, ponderada pela mais recente. Baseia essa pontuação em sinais de feedback, que incluem bloqueios, denúncias, silenciamentos e arquivamentos, além dos motivos fornecidos pelos usuários quando bloqueiam sua empresa.
 Diretrizes para o envio de mensagens de alta qualidade:
 As mensagens devem seguir a Política de Mensagens do WhatsApp Business⁠.
 Envie mensagens apenas a usuários do WhatsApp que aceitaram receber mensagens da sua empresa.
@@ -198,7 +198,7 @@ Número possivelmente errado
 Número possivelmente errado
 Observação: no Brasil e no México, o prefixo extra adicionado ao número de telefone poderá ser modificado pela API de Nuvem. Esse é um comportamento padrão do sistema e não é considerado um bug.
 Cache de mídia
-Caso esteja usando um link (link) para um ativo de mídia no servidor (em vez da identificação (id) de um ativo carregado nos servidores da Meta), a API de Nuvem do WhatsApp armazena em cache interno o ativo por dez minutos. O ativo em cache será reutilizado em pedidos de envio de mensagem subsequentes se o link nas cargas posteriores for o mesmo que o da carga inicial.
+Caso esteja usando um link (link) para um ativo de mídia no servidor (em vez do ID (id) de um ativo carregado nos servidores da Meta), a API de Nuvem do WhatsApp armazena em cache interno o ativo por dez minutos. O ativo em cache será reutilizado em pedidos de envio de mensagem subsequentes se o link nas cargas posteriores for o mesmo que o da carga inicial.
 Se não quiser que o ativo em cache seja reutilizado em uma mensagem subsequente no período de dez minutos, adicione uma string de consulta aleatória ao link do ativo na nova carga de pedido de envio de mensagem. A API de Nuvem o trata como um novo ativo, obtido do seu servidor, e o armazena em cache por 10 minutos.
 Por exemplo:
 Link do ativo no 1º pedido de envio de mensagem: https://link.to.media/sample.jpg — ativo recuperado, em cache por dez minutos
@@ -216,7 +216,7 @@ Você pode personalizar o TTL padrão para modelos de autenticação e utilidade
 Quando o TTL é excedido: mensagens descartadas
 A plataforma descarta as mensagens que não puderem ser entregues dentro do TTL padrão ou personalizado.
 Se você não receber um webhook de mensagens de status com status definido como delivered antes da expiração do TTL, presuma que a mensagem foi descartada.
-Se você enviar uma mensagem que resulte em falha (com status definido como failed), poderá haver um atraso no recebimento do webhook. Aguarde um tempo antes de presumir que a mensagem foi descartada.
+Se você enviar uma mensagem que falha (status definido como failed), pode haver um atraso no recebimento do webhook. Aguarde um tempo antes de presumir que a mensagem foi descartada.
 Solução de problemas
 Se você está tendo problemas com a entrega de mensagens, consulte Mensagem não entregue.
 Você achou esta página útil?

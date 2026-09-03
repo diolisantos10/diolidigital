@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — contas suspensas"
 url: https://support.google.com/adspolicy/answer/2375414?hl=pt-BR
-capturado_em: 2026-09-02
-hash: a3addaed388a1380
+capturado_em: 2026-09-03
+hash: 32bfbda4fdf8fe79
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -95,15 +95,15 @@ Corrigir a suspensão da sua conta
 
 Se você acredita que houve um erro e que não violou as políticas do Google Ads, envie uma contestação.
 
-Na sua conta do Google Ads, clique em Entre em contato na notificação na parte superior da tela.
-Esse link vai direcionar para o formulário de contestação no lado direito da tela.
+Na sua conta do Google Ads, selecione o link Entre em contato na notificação na parte de cima da tela.
+Esse link vai abrir o formulário de contestação no lado direito da tela.
 Durante o preenchimento, você vai encontrar informações relevantes sobre a política que ajudarão a entender o motivo da suspensão, além do processo para contestar.
 
-Se você selecionar "Entre em contato" novamente durante o processamento da contestação, sua conta do Google Ads terá o status de "Contestação pendente". Quando a contestação for analisada, vamos enviar um e-mail com a resposta. Caso sua contestação seja recusada, você poderá enviar outra pelo mesmo processo descrito acima.
+Se você selecionar Entre em contato de novo durante o processamento da contestação, sua conta do Google Ads terá o status de "Contestação pendente". Quando a contestação for analisada, vamos enviar um e-mail com a resposta. Caso sua contestação seja recusada, você poderá enviar outra pelo mesmo processo descrito acima.
 
 Alguns anunciantes precisam concluir a verificação para contestar a suspensão da conta. A contestação só será permitida se pudermos verificar a identidade do anunciante em até 3 tentativas. Talvez os anunciantes suspensos por questões de faturamento e pagamento tenham que verificar a forma de pagamento para processar as contestações.
 
-As contas só são restabelecidas em circunstâncias justificáveis, como no caso de um erro da nossa parte. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada.
+As contas só são restabelecidas em circunstâncias convincentes, como quando cometemos um erro. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada.
 
 Começar
 

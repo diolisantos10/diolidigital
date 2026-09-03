@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — referência de erros (códigos e subcódigos)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/error-reference
-capturado_em: 2026-09-02
-hash: bac5cd8ba5a2e39e
+capturado_em: 2026-09-03
+hash: 2907345888940510
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,7 +10,7 @@ hash: bac5cd8ba5a2e39e
 
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
-Códigos de erro
+Códigos de erro da API de Marketing
 Updated: 16 de jun de 2026
 Copiar para LLM
 Ver como Markdown
@@ -223,7 +223,7 @@ Esse erro ocorre se você tenta salvar um número maior de exclusões do emprega
 
 1885029
 	
-A Página selecionada para seu anúncio não corresponde àquela associada ao objeto que você está promovendo, como um app ou uma publicação da Página. As Páginas precisam ser iguais.
+A Página selecionada para seu anúncio não corresponde à Página associada ao objeto que você está promovendo, como um post da Página ou um app. As Páginas precisam ser iguais.
 
 1885088
 	
@@ -231,7 +231,7 @@ O anúncio foi arquivado e não pode ser editado. Só é possível editar o nome
 
 1885183
 	
-A publicação do criativo dos anúncios foi criada por um app que está no modo de desenvolvimento. Ela deve estar pública para criar o anúncio.
+A publicação do criativo dos anúncios foi criada por um app que está no modo de desenvolvimento. Ela deve estar pública para criar esse anúncio.
 
 1885204
 	
@@ -243,7 +243,7 @@ O orçamento é muito baixo.
 
 1885557
 	
-O anúncio está promovendo um post indisponível. Ela foi excluída, foi tirada do ar, não pertence à Página do anúncio ou você não tem permissão para visualizar nem promover a publicação.
+O anúncio está promovendo um post indisponível. Ele foi excluído, foi tirado do ar, não pertence à Página do anúncio, ou você não tem permissão para visualizar nem promover o post.
 
 1885621
 	
@@ -275,7 +275,7 @@ A etiqueta da regra de direcionamento com o nome {label} não se refere a nenhum
 
 2446289
 	
-A {post_type} selecionada para o anúncio não está disponível. Ele pode ter sido excluído, ou você não tem permissão para visualizá-lo. Verifique o criativo e tente novamente.
+A {post_type} selecionada para o anúncio não está disponível. Ele pode ter sido excluído ou você não tem permissão para visualizá-lo. Verifique o criativo do anúncio e tente novamente.
 
 2446347
 	
@@ -287,7 +287,7 @@ O objetivo da campanha exige um URL de site externo. Selecione uma chamada para 
 
 2446394
 	
-O conjunto de anúncios inclui opções de direcionamento detalhado que não estão mais disponíveis ou que ficam indisponíveis ao excluir pessoas de um público. Talvez seja necessário remover itens do direcionamento detalhado ou confirmar as alterações para ativá-lo novamente.
+O conjunto de anúncios inclui opções de direcionamento detalhado que ficaram indisponíveis ou que não estão disponíveis ao excluir pessoas de um público. Talvez seja necessário remover itens do direcionamento detalhado ou confirmar as alterações para ativá-lo novamente.
 
 2446509
 	

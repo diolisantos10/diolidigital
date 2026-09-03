@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — boas práticas"
 url: https://developers.facebook.com/docs/marketing-api/best-practices/
-capturado_em: 2026-09-02
-hash: f6246a1b6bdf32d5
+capturado_em: 2026-09-03
+hash: 651c09429463aad9
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,12 +10,12 @@ hash: f6246a1b6bdf32d5
 
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
-Melhores práticas
+Boas práticas da API de Marketing
 Updated: 23 de mar de 2024
 Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
-Alterações de anúncio que acionam análises de anúncio
+Alterações de anúncio acionando análises de anúncio
 Caso faça alguma alteração nos seguintes cenários, o anúncio será acionado para análise:
 Quaisquer alterações no criativo (imagem, texto, link, vídeo, entre outros)
 Quaisquer alterações de direcionamento
@@ -36,7 +36,7 @@ Também é possível consultar diversos objetos pelo ID da seguinte forma:
 https://graph.facebook.com/<API_VERSION>?ids=[id1,id2]
 Para fazer uma consulta por campo específico:
 https://graph.facebook.com/<API_VERSION>?ids=[id1,id2]&fields=field1,field2
-Verifique as alterações de dados com ETags.
+Verificar alterações de dados com ETags
 Para verificar rapidamente se a resposta a uma solicitação foi alterada desde a última vez, consulte:
 Blog de ETags
 Referência de ETags

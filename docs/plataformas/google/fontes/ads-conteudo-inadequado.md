@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — conteúdo inadequado (proibido)"
 url: https://support.google.com/adspolicy/answer/6015406?hl=pt-BR
-capturado_em: 2026-09-02
-hash: a1705b38c01df812
+capturado_em: 2026-09-03
+hash: 603f04d498222630
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -54,7 +54,7 @@ Não é permitido:
 
  Conteúdo que promove a criação ou distribuição de conteúdo sintético que foi alterado ou gerado para ser sexualmente explícito ou conter nudez, conforme descrito acima
 
-Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads é considerada tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se forem identificadas violações dessa política, suas contas do Google Ads serão suspensas imediatamente, sem aviso prévio, e você não poderá mais anunciar na plataforma. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
+Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads e do Display & Video 360 é considerada tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se identificarmos violações dessa política, suas contas do Google Ads e do Display & Video 360 serão suspensas imediatamente, sem aviso prévio, e você não poderá mais anunciar nessas plataformas. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
 
 Saiba mais sobre a política de conteúdo sexualmente explícito.
 
@@ -68,7 +68,7 @@ Todo tipo de conteúdo, seja ele real, fictício, simulado, animado, gerado com 
 
 Violações dessa política são consideradas muito graves. Se detectarmos essas violações, removeremos o conteúdo inadequado e suspenderemos as contas do Google Ads sem aviso prévio, o que restringirá sua permissão para anunciar com o Google. Também poderemos notificar o Centro Nacional para Crianças Desaparecidas e Exploradas.
 
-Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads é considerada tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se forem identificadas violações dessa política, suas contas do Google Ads serão suspensas imediatamente, sem aviso prévio, e você não poderá mais anunciar na plataforma. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
+Violações dessa política são tratadas com seriedade e consideradas infrações graves. Uma violação grave das políticas do Google Ads e do Display & Video 360 é considerada tão séria que pode ser ilegal ou causar prejuízos significativos aos nossos usuários. Para determinar se um anunciante ou destino viola a política mencionada aqui, o Google analisa informações de várias fontes, como seu anúncio, site e contas, além de fontes externas. Se identificarmos violações dessa política, suas contas do Google Ads e do Display & Video 360 serão suspensas imediatamente, sem aviso prévio, e você não poderá mais anunciar nessas plataformas. Se você acredita que houve um erro e que não violou nossa política, envie uma contestação e explique o motivo. As contas só são restabelecidas em circunstâncias justificáveis e quando há um motivo plausível. Por isso, a contestação precisa ser escrita de maneira honesta, clara e fundamentada. Saiba mais sobre contas suspensas.
 
 Saiba como o Google está combatendo abuso e exploração sexual infantil on-line.
 

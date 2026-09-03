@@ -1,7 +1,7 @@
 ---
 titulo: "WhatsApp Cloud API — primeiros passos"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started
-capturado_em: 2026-09-02
+capturado_em: 2026-09-03
 hash: 674e800a34a4157b
 ---
 

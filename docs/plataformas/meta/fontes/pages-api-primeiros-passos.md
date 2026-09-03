@@ -1,8 +1,8 @@
 ---
 titulo: "Pages API — primeiros passos e tokens de Página"
 url: https://developers.facebook.com/documentation/pages-api/getting-started
-capturado_em: 2026-09-02
-hash: c26d322bcc6ba6fc
+capturado_em: 2026-09-03
+hash: d216fe23319f03b9
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -10,7 +10,7 @@ hash: c26d322bcc6ba6fc
 
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
-Primeiros passos
+Introdução à API de Páginas
 Updated: 30 de jun de 2026
 Copiar para LLM
 Ver como Markdown
@@ -94,7 +94,7 @@ Clique no ID da Página que aparece logo abaixo do nome dela de modo a mover o I
 Etapa 2. publicar como uma Página
 Selecione o token de acesso à Página no menu suspenso Usuário ou Página. A seguir, configure o método como POST com uma solicitação ao ponto de extremidade /{page-id}/feed. Depois disso, defina a key dos parâmetros como message e o value do texto da publicação. Clique em Enviar.
 Se o processo for bem-sucedido, o Graph Explorer exibirá a identificação da publicação da Página.
-Visite a Página do Facebook⁠ para ver a publicação.
+Visite a Página do Facebook⁠ para ver o post.
 Etapa 3. verificar a publicação
 Envie uma solicitação GET ao ponto de extremidade /page-id/feed.
 Se ela for bem-sucedida, o Graph Explorer exibirá o horário de criação, o texto e a identificação da publicação.
@@ -110,7 +110,7 @@ Visão geral da API de Páginas – Tarefas
 Referências
 Referência sobre Páginas
 Referência sobre feed de Páginas
-Referência sobre post da Página
+Referência para post da Página
 Referência de permissões
 Referência sobre contas do usuário
 Você achou esta página útil?

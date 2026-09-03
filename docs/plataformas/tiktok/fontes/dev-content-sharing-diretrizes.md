@@ -1,7 +1,7 @@
 ---
 titulo: "Content Sharing Guidelines — auditoria de app e restrições (TikTok for Developers)"
 url: https://developers.tiktok.com/doc/content-sharing-guidelines
-capturado_em: 2026-09-02
+capturado_em: 2026-09-03
 hash: 0ce7985a981d16ec
 ---
 
