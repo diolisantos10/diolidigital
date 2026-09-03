@@ -6634,3 +6634,26 @@ não existir: não se calcula 10% sobre um número que não existe.
   card de aprovação. A casa RECUSA apagar cliente com trabalho pendurado ("funda
   em vez de apagar") — comportamento correto, e não há rota para apagar o card.
   O token do portal expira sozinho em 29/08 (foi cunhado com 2 dias).
+
+## 🔴 03/09/2026 — RAIO-X URGENTE (ordem do CEO): a sessão comercial NÃO fecha contrato hoje
+
+Medido do zero, local, banco limpo, sem confiar na sessão órfã `claude/posse-de-id-no-corpo` (que não tinha nada sobre isto). Servidor local rodado por esta sessão, login master, `npm run cliente-falso` rodado ao vivo às 11:27 de hoje.
+
+| # | Item | Veredito | Evidência |
+|---|---|---|---|
+| 1 | Upload de PDF no financeiro | **NÃO PRONTO** | `app/api/financeiro/route.ts` só tem `req.json()`; testado com `curl -F file=@teste.pdf` → 400 "Lançamento recusado" (tentou ler como JSON manual). Não existe rota de upload em lugar nenhum do financeiro (grep por `multipart`/`FormData`/`pdf`) |
+| 2 | Cardápio de preços | **SAIU, mas travado no piso = preço cheio** | `lib/agency/financeiro/tabela-de-precos.ts`, 32 testes verdes. 5 das 6 parcelas de custo continuam `nao_medido` (`MERCADOPAGO_WEBHOOK_SECRET` não está no `.env` local; produção não verificada — sem acesso). `descontoAutorizadoPct: null` em toda a tabela → SDR não desce um centavo, mas VENDE no preço cheio normalmente |
+| 3 | Fechar contrato ponta a ponta | **NÃO PRONTO — bloqueio crítico confirmado HOJE** | `npm run cliente-falso` (11:27, 03/09): a proposta cai em `scope_ready`, e `POST /api/portal/briefing/aceite` devolve **409 "Esta proposta já foi respondida"**. Projeto nunca nasce. Raiz: `lib/agency/esteira/caminho-automatico.ts:277-279`, `ESPERANDO_DECISAO_DA_PROPOSTA` não inclui `scope_ready`. Mesmo defeito do diagnóstico de 29/08, **ainda vivo**, e pior: reproduz no fluxo padrão (primeira aceitação), não só na negociação |
+| 4 | "Conector apagava faturamento por resposta truncada = 200 sem venda" | **NÃO EXISTE neste repositório** | `git log --all --grep`, busca na branch órfã (154 arquivos, nenhum sobre faturamento/sincronização), grep em `docs/` inteiro: nada bate. "Dioli Connect" (`lib/agency/connect/`, PR #414) é escalação de decisão PM↔núcleo, não sincronização financeira. O webhook do Mercado Pago (`app/api/self-serve/webhook/route.ts`) trata parse malformado com 400/500, nunca 200 silencioso |
+| 5 | Outros bloqueios encontrados no caminho | ver abaixo | — |
+
+**Boas notícias medidas hoje (defeitos do diagnóstico de 29/08 que JÁ FORAM corrigidos):**
+- `/portal/invalid` agora é página com marca, em PT-BR, com botão de WhatsApp — não é mais 404 em inglês.
+- O "Access denied" cru virou mensagem em português com o `reason` (expirado/revogado/inexistente) tratado à parte.
+
+**Não medido (fora do alcance deste ambiente):**
+- Produção real de peça pela IA (passo 7 da esteira) — sem `ANTHROPIC_API_KEY` neste ambiente.
+- `MERCADOPAGO_WEBHOOK_SECRET` em produção (Railway) — sem credencial/acesso nesta sessão.
+- Cancelamento não avisar ninguém (§6.1 do diagnóstico de 29/08) — não re-testado hoje, fica como achado herdado.
+
+**Conclusão para o CEO: NÃO dá para vender hoje pela esteira automática.** O primeiro lead que aceitar a proposta trava num 409 e o projeto não nasce — nem negociando, nem no caminho padrão. Fechar contrato hoje exige um humano criando o projeto manualmente depois da proposta aceita "de boca" (ou corrigindo a lista `ESPERANDO_DECISAO_DA_PROPOSTA`, que é a causa raiz). Cobrança pode ser lançada manualmente via `POST /api/financeiro` (JSON, sem PDF). Upload de PDF para lançar valores de setembro/2025: não existe, precisa ser feito na mão pela tela.
