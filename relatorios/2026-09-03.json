@@ -1,0 +1,148 @@
+{
+  "produto": "dioli-digital",
+  "data": "2026-09-03",
+  "geradoEm": "2026-09-03T11:20:00Z",
+  "assinatura": "Diretor da Dioli Digital",
+
+  "avisoDeFormato": {
+    "seguiuAFicha": false,
+    "motivo": "`control_room` não está anexado a esta sala; `docs/relatorio-diario.md` não pôde ser lido. Schema montado a partir das 8 seções da chamada.",
+    "delegou": false,
+    "motivoDeNaoDelegar": "a ferramenta de acionar especialistas segue desabilitada desde 29/08 — `Error: No such tool available: Agent`. Exceção SEM_AGENTE declarada, 5º dia. Contraria a chamada; é falha, não escolha.",
+    "comparacaoContra": "2026-09-02"
+  },
+
+  "saude": {
+    "arvoreMedida": "origin/claude/dioli-agency-os-architecture-kk7kp (deploy), worktree sincronizada em 03/09 11:09 UTC, 0 commits atrás",
+    "tsc": { "valor": "limpo", "exit": 0, "fonte": "npx tsc --noEmit executado hoje" },
+    "suite": {
+      "arquivos": 555,
+      "testesPassando": 7781,
+      "testesFalhando": 2,
+      "totalTestes": 7783,
+      "fonte": "npx vitest run executado no deploy em 03/09 11:09 UTC"
+    },
+    "falhasDeCODIGO": 0,
+    "falhasDeAMBIENTE": 2,
+    "falhaDetalhada": {
+      "arquivo": "__tests__/coordenacao/reivindicar-guarda-antes-de-escrever.test.ts",
+      "natureza": "AMBIENTE, não código",
+      "prova": "node_modules/tsx/dist/cli.mjs tem 0 bytes nesta máquina, medido hoje. O teste exercita scripts/reivindicar.mts, que roda por tsx e devolve saída vazia.",
+      "ressalva": "afeta toda worktree desta máquina. NÃO medi se o CI sofre o mesmo — não tenho como ler o CI."
+    },
+    "comparacaoComOntem": {
+      "arquivos": { "de": 555, "para": 555 },
+      "testes": { "de": 7783, "para": 7783 },
+      "falhasTotais": { "de": 5, "para": 2 },
+      "falhasDeCodigo": { "de": 0, "para": 0 },
+      "leitura": "as 3 falhas que sumiram eram estado de build (`.next/standalone`), não conserto — o artefato passou a existir nesta worktree. O código não mudou: o deploy é o MESMO commit de ontem."
+    }
+  },
+
+  "cliente": {
+    "clientesAtendidos": null,
+    "pecasEntregues": null,
+    "avisosEnviados": null,
+    "faturamentoDoMesPassado": null,
+    "motivoDoNulo": "esta sala não tem acesso ao banco de produção. Nenhum número de cliente ou de faturamento foi medido — e nenhum foi estimado. Vale inclusive para a cobrança do CEO sobre o valor do mês passado.",
+    "defeitosVIVOSQueAlcancamCliente": [
+      { "o_que": "a mensagem automática de recompra oferece \"8 peças por mês\"; a fonte diz 12", "vivoNoDeploy": true, "diasVivo": 5, "fonte": "git show <deploy>:lib/agency/esteira/recompra.ts | grep -c = 1" },
+      { "o_que": "o link do portal no aviso usa `Client.portalToken`; a porta valida `PortalAccess.token`. Cliente vê \"acesso negado\" e a casa grava \"enviado\"", "vivoNoDeploy": true, "diasVivo": 5, "fonte": "git show <deploy>:lib/agency/esteira/avisos.ts | grep -c portalToken = 4" },
+      { "o_que": "item de compra única é oferecido ao cliente com \"/mês\"", "vivoNoDeploy": true, "diasVivo": 5, "fonte": "git show <deploy>:lib/agency/comercial/negociacao-da-proposta.ts | grep -c = 4" }
+    ],
+    "comparacaoComOntem": "os três continuam vivos. Quinto dia. Zero progresso."
+  },
+
+  "produtividade": {
+    "deployParado": true,
+    "ultimoCommitNoDeploy": "564bb538 — 30/08 20:18",
+    "horasSemDeploy": 87,
+    "commitsNoDeploy": { "em_31_08": 0, "em_01_09": 0, "em_02_09": 0, "em_03_09": 0 },
+    "fonte": "git log origin/<deploy> --since/--until, medido hoje",
+    "meusPacotesEntregues": 0,
+    "meusPacotesParados": 12,
+    "detalhe": "conferido um a um com `git merge-base --is-ancestor`. Igual a 30/08 e 02/09.",
+    "prsAbertos": null,
+    "motivoDoNuloEmPRs": "ferramentas do GitHub desabilitadas. O \"34\" é de 29/08 e não foi reconfirmado em 5 dias."
+  },
+
+  "qualidade": {
+    "ondeSeProcurou": "deploy inteiro: tsc e suíte completa (555 arquivos, 7783 testes), executados hoje. Mais verificação dirigida dos defeitos conhecidos por `git show` no deploy.",
+    "verdePorAusencia": false,
+    "falhasDeCodigoNoDeploy": 0,
+    "furosAINDAvivosNoDeploy": {
+      "rotasDeDinheiroSemConferenciaDePosse": 5,
+      "diasVivo": 5,
+      "fonte": "git show <deploy>:app/api/agency/parcerias/route.ts | grep -c clienteDoWorkspace = 0",
+      "o_que_permitem": "qualquer master ou project_manager de qualquer agência concede/revoga parceria, cunha convite, isenta pedido e marca pedido como pago sobre agência alheia"
+    },
+    "verificacaoExtraOrdenadaPeloDiretorGeral": {
+      "assunto": "o apagador de faturamento (fetch sem paginação + deleteMany) cobrado pelo CEO",
+      "veredito": "NÃO EXISTE neste produto",
+      "comoFoiVerificado": "padrão, não nome, tudo contra o deploy: `raia-da-chave.ts` não existe; nenhum fetch paginado de faturamento; nenhum deleteMany toca linha de faturamento (os únicos no caminho do dinheiro são rotas explícitas de reset); o webhook do Mercado Pago só cria; nenhum cron reprocessa janela de dias; a receita vem de LancamentoFinanceiro manual (dre.ts:266-269), fail-closed — sem lançamento vira `nao_lancado`, nunca 0.",
+      "registrado": "docs/diagnosticos/o-apagador-de-faturamento-nao-e-daqui-02-09.md",
+      "oQueNAOafirma": "que o valor que o CEO vê está certo. Sem acesso à produção, isso seria verde por ausência."
+    }
+  },
+
+  "dinheiro": {
+    "custoDoDia": { "valor": 0, "moeda": "USD", "fonte": "nenhuma chamada de IA real, nenhum e-mail, nenhum pagamento — medido, e deu zero" },
+    "parcelasDeCustoMedidas": 1,
+    "parcelasDeCustoTotais": 6,
+    "unicaParcelaMedida": { "rotulo": "IA por peça", "valor": 0.17, "moeda": "USD", "fonte": "CUSTO_DE_IA_POR_PECA_USD em lib/agency/financeiro/tabela-de-precos.ts:112" },
+    "parcelasNaoMedidas": ["taxa do gateway (Mercado Pago)", "infraestrutura (Railway)", "domínio e e-mail (Resend)", "hora humana", "impostos"],
+    "margemDeLucro": null,
+    "margemNegociavel": null,
+    "motivoDoNulo": "5 das 6 parcelas não são medidas, e o código nomeia o CEO como dono de cada uma. Aberto há 4 dias, zero progresso.",
+    "itensNoCardapio": 4,
+    "descontoAutorizado": { "valor": 0, "fonte": "descontoAutorizadoPct: null em 5 itens — fail-closed correto: a máquina recusa desconto sobre custo que não conhece" }
+  },
+
+  "risco": {
+    "coordenacaoDesligadaNaPratica": {
+      "reivindicacoesTotal": 95,
+      "vivas": 15,
+      "vencidasMais24h": 15,
+      "gravidade": "alta",
+      "descricao": "TODAS as 15 vivas estão vencidas — nenhuma dentro da janela válida. Vencida vira aviso, não bloqueio: a proteção contra trabalho em dobro está DESLIGADA para a casa inteira. Igual a ontem, zero progresso.",
+      "fonte": "leitura dos 95 JSON no deploy, com cálculo de idade, hoje"
+    },
+    "colisaoDeSchemaAindaAberta": {
+      "arquivo": "prisma/schema.prisma",
+      "partes": ["conta-de-servico-diretor-geral", "mesa-de-comando-diretriz-do-sdr"],
+      "estado": "as duas seguem ABERTAS há 4 dias",
+      "porqueOTesteNaoAcusa": "as duas passaram de 24h e viraram `velha` = aviso. A colisão envelheceu; nunca foi resolvida."
+    },
+    "identidadeDeSessaoAmbigua": { "confirmado": true, "consertado": false, "diasAberto": 5 },
+    "camadaDeDespachoIndisponivel": {
+      "diasFora": 5,
+      "saidaLiteral": "Error: No such tool available: Agent. Agent is disabled for this session, in subagents as well as here.",
+      "tambemFora": ["Artifact", "ReadNotifications", "WebSearch", "ferramentas do GitHub", "Railway"]
+    },
+    "ordemAgendadaNaoLida": { "tentativas": 22, "saidaLiteral": "Error: No such tool available: ReadNotifications.", "descricao": "há aviso agendado enfileirado que esta sessão não lê. Quem despachou acredita ter entregado." },
+    "tsxCorrompido": { "descricao": "node_modules/tsx/dist/cli.mjs com 0 bytes em toda worktree desta máquina; quebra `npm run reivindicar` e 2 testes", "ehDefeitoDoRepositorio": false }
+  },
+
+  "bloqueioDoCeo": [
+    { "id": 1, "assunto": "publicar os 12 pacotes auditados — deploy parado há 87 horas", "passoExato": "responder aqui: \"pode publicar\".", "custoDeNaoDecidir": "cinco dias de conserto pronto e não entregue", "diasAberto": 5 },
+    { "id": 2, "assunto": "fechar as 5 rotas de dinheiro abertas entre agências", "passoExato": "responder: \"autorizo aplicar os 4 consertos de risco baixo\".", "custoDeNaoDecidir": "qualquer dono de agência mexe no dinheiro de outra, hoje", "diasAberto": 5 },
+    { "id": 3, "assunto": "as 5 parcelas de custo — trava o cardápio inteiro", "passoExato": "Railway → Billing → copiar o total DEBITADO no último mês fechado. Mercado Pago → painel → Taxas → copiar o percentual por transação. Registro do domínio + Resend → custo mensal. Responder se existe hora humana paga e quanto vale. Informar regime tributário e alíquota efetiva.", "custoDeNaoDecidir": "sem isso não há custo, margem, preço nem margem negociável", "diasAberto": 4 },
+    { "id": 4, "assunto": "o pacote do mês tem 12 peças?", "passoExato": "responder o número. A máquina oferece 8; a tabela diz 12.", "custoDeNaoDecidir": "a casa oferece um terço a menos do que entrega, por relógio, todo dia", "diasAberto": 5 },
+    { "id": 5, "assunto": "o valor do mês passado que ele diz estar errado", "passoExato": "abrir o painel financeiro → mês passado → DIZER QUAL VALOR APARECE. Com o número dá para comparar contra o que o sistema soma. Custa 2 minutos e é o passo que falta.", "custoDeNaoDecidir": "sem o número, qualquer resposta minha sobre o faturamento é chute com cara de dado", "diasAberto": 1 },
+    { "id": 6, "assunto": "vídeo entra no cardápio?", "passoExato": "responder sim/não. A edição do vídeo do cliente JÁ ESTÁ construída e ligada. A frase que justificou tirá-lo dos planos em 25/08 — \"a casa não edita\" — é FALSA.", "custoDeNaoDecidir": "produto pronto e não vendido", "diasAberto": 4 },
+    { "id": 7, "assunto": "pedidos sem agência dona na produção", "passoExato": "painel da agência → aba Solicitações → contar os sem cliente vinculado. Responder o número.", "custoDeNaoDecidir": "trava o 5º conserto de dinheiro", "diasAberto": 5 }
+  ],
+
+  "oQueNaoFoiMedido": [
+    "Qualquer número de PRODUÇÃO: clientes, peças, avisos, pedidos órfãos e — importante hoje — o FATURAMENTO DO MÊS PASSADO que o CEO cobra. Sem acesso ao banco.",
+    "De qual produto é o `raia-da-chave.ts`. Só medi que NÃO é deste.",
+    "POR QUE o deploy está parado há 87 horas. Medi a parada; não medi a causa nem quem parou.",
+    "Se as 2 falhas de `tsx` também quebram o CI. Só medi nesta máquina e não consigo ler o CI.",
+    "Quantos PRs estão abertos. Ferramentas do GitHub fora há 5 dias.",
+    "Quantos avisos históricos saíram com link morto marcados como \"enviado\".",
+    "Quantos clientes ficam sem aviso por não terem PortalAccess vivo.",
+    "Se existe portão de qualidade para VÍDEO. Não procurei.",
+    "O mercado: preço de concorrente. WebSearch desabilitado.",
+    "Se o servidor Railway que apareceu nesta sessão dá acesso à produção — as ferramentas dele responderam indisponíveis quando testadas hoje."
+  ]
+}
