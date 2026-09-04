@@ -1,8 +1,8 @@
 ---
 titulo: "Políticas do Google Ads — visão geral"
 url: https://support.google.com/adspolicy/answer/6008942?hl=pt-BR
-capturado_em: 2026-09-03
-hash: 53c4b8c38e1b3d05
+capturado_em: 2026-09-04
+hash: 48a20871efbb3718
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -201,7 +201,7 @@ Requisitos de destino
 
 Nosso objetivo é oferecer uma boa experiência quando os consumidores clicam em um anúncio. Portanto, os destinos precisam agregar valor exclusivo, além de serem funcionais, úteis e fáceis de navegar.
 
-Alguns exemplos de promoções que não atendem aos requisitos de destino: URLs de visualização que não refletem com precisão o URL da página de destino; sites ou apps em construção; sites que não podem ser acessados em navegadores comuns; sites que desativaram o botão "Voltar" do navegador.
+Alguns exemplos de promoções que não atendem aos requisitos de destino: URLs de visualização que não refletem corretamente o URL de apps em construção, da página de destino ou de sites; sites que não podem ser acessados em navegadores comuns; sites que desativaram o botão "Voltar" do navegador.
 
 Requisitos técnicos
 

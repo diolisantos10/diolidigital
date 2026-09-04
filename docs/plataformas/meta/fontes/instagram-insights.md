@@ -1,7 +1,7 @@
 ---
 titulo: "Instagram Platform — insights (guia)"
 url: https://developers.facebook.com/documentation/instagram-platform/insights
-capturado_em: 2026-09-03
+capturado_em: 2026-09-04
 hash: 2defb932ff2449ee
 ---
 

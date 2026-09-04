@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Weight Management and Body Image"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-weight-management
-capturado_em: 2026-09-03
-hash: 84b2ea748438ca62
+capturado_em: 2026-09-04
+hash: 5e9f9d527b8d6bf4
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -65,7 +65,7 @@ Policies and security /
 Advertising Policies /
 Advertising policies /
 Weight Management and Body Image
-Last updated: August 2026
+Last updated: September 2026
 Principle
 
 At TikTok, our goal is to foster a body-positive and inclusive environment. We strive to create a space where our community feels comfortable, confident, and valued. We are committed to making TikTok a place that promotes self-esteem and discourages negative social comparisons.
