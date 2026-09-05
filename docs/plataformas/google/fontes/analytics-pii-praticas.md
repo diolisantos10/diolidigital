@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — práticas para evitar envio de PII"
 url: https://support.google.com/analytics/answer/6366371?hl=pt-BR
-capturado_em: 2026-09-04
-hash: 1afea37362012133
+capturado_em: 2026-09-05
+hash: f061b273f16ebf25
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -17,15 +17,15 @@ Saiba mais sobre o que o Google considera PIIs.
 
 Ao implementar o Google Analytics em uma propriedade, siga as práticas recomendadas deste artigo para reduzir o risco de enviar PIIs ao Google.
 
-Neste artigo:
-User-IDs
+Nesta página
+IDs do usuário
 URLs e títulos de página
 PIIs inseridas pelos usuários
 Importação de dados
 Recursos do Google Analytics e risco de privacidade
 Geolocalização
-Google AdSense
-User-IDs
+AdSense
+IDs do usuário
 
 Antes de usar os User-IDs, leia o artigo Práticas recomendadas para User-ID.
 
@@ -67,7 +67,7 @@ Geolocalização
 
 Se você coleta informações de geolocalização, é importante garantir que os dados de localização não sejam recebidos de GPS nem refinados, porque isso pode levar à dedução de dados do indivíduo. Para o Google Analytics, informações de "localização refinada" compõem qualquer área com menos de um quilômetro quadrado, incluindo todos os dados de latitude/longitude. Em alguns casos, como no Reino Unido, o CEP pode ser mapeado para uma única residência e, portanto, não deve ser transmitido para o Google Analytics.
 
-Google AdSense
+AdSense
 
 Se você usar o Google AdSense, leia e siga as práticas recomendadas para evitar o envio de PIIs na Central de Ajuda do Google AdSense.
 

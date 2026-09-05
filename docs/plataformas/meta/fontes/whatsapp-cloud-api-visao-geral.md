@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — visão geral da plataforma"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform
-capturado_em: 2026-09-04
-hash: 139d81646ff23990
+capturado_em: 2026-09-05
+hash: c66975587b9d69c2
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -31,7 +31,7 @@ Facilitar as transações do início ao fim, da descoberta do produto até o pag
 Ativar a autenticação multifatorial ou as senhas descartáveis para fazer a confirmação de contas e usuários.
 Fornecer experiências de conversa interativas e personalizadas
 Saiba mais sobre os tipos de mensagens na API de Nuvem do WhatsApp.
-API de Gerenciamento de Negócios da Plataforma Comercial do WhatsApp
+API de Gerenciamento de Negócios da Plataforma do WhatsApp Business
 A API de Gerenciamento do WhatsApp Business permite gerenciar programaticamente uma conta do WhatsApp Business e os ativos associados.
 Gerencie ativos de conta com a API de Gerenciamento do WhatsApp Business, como:
 Números de telefone comerciais: adicione e remova números de telefone associados à sua empresa.
@@ -150,7 +150,7 @@ Os números de telefone comercial podem enviar até 80 mensagens por segundo por
 Saiba mais sobre taxa de transferência.
 Criptografia
 Com a API de Nuvem, todas as mensagens do WhatsApp continuam protegidas pela criptografia do protocolo Signal, que assegura a segurança das mensagens antes de saírem do dispositivo. A criptografia do protocolo Signal garante que as mensagens com uma conta do WhatsApp Business sejam entregues com segurança ao destino escolhido por cada empresa.
-A API de Nuvem aplica técnicas padrão de criptografia da indústria para proteger os dados em trânsito e em repouso. A API de Nuvem usa a Graph API para enviar mensagens e Webhooks a fim de receber eventos. Ambos operam com HTTPS padrão da indústria protegido por TLS.
+A API de Nuvem aplica técnicas padrão de criptografia da indústria para proteger os dados em trânsito e em repouso. Ela usa a Graph API para enviar mensagens e Webhooks para receber eventos. Ambos operam com HTTPS padrão da indústria protegido por TLS.
 Para saber mais, consulte o relatório técnico Visão Geral da Criptografia do WhatsApp⁠.
 Dimensionamento
 A API de Nuvem dimensiona automaticamente o uso dentro dos limites de volume.

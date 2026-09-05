@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — primeiros passos"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started
-capturado_em: 2026-09-04
-hash: 674e800a34a4157b
+capturado_em: 2026-09-05
+hash: 20734fc4313f9aa6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -38,7 +38,7 @@ Clique no botão Começar a usar a API para configurar a API adicionando um núm
 Na seção Configuração da API, conecte o app a uma conta do WhatsApp Business. Com essa conexão, o app pode acessar a API da Nuvem do WhatsApp e enviar mensagens em nome da empresa. Selecione uma conta do WhatsApp Business existente ou crie uma nova:
 Para usar uma conta existente: selecione a conta do WhatsApp Business no menu suspenso.
 Para criar uma conta: Clique em Criar uma conta do WhatsApp Business e siga as instruções para configurar seu perfil comercial.
-Depois de se conectar, você verá a identificação da conta do WhatsApp Business no painel Configuração da API.
+Depois de se conectar, você verá a identificação da conta do WhatsApp Business no painel de configuração da API.
 Salve essa identificação para usar em chamadas de API.
 Observação: se você tiver criado um novo portfólio empresarial da Meta durante a criação do app, uma conta do WhatsApp Business poderá ter sido criada automaticamente para você. Verifique a conexão na seção "Configuração da API" antes de continuar.
 Etapa 3. Enviar e receber mensagens
@@ -46,17 +46,17 @@ Clique em Gerar token de acesso para gerar um token de acesso temporário e envi
 Selecione um número de telefone De ou adicione um novo no menu suspenso.
 Adicione um número de telefone Para que receberá a mensagem de teste.
 Clique no botão Enviar mensagem para enviar sua primeira mensagem.
-Guarde o ID do número de telefone de teste e o ID da conta do WhatsApp Business para usar mais tarde.
+Guarde o ID do número de telefone de teste e a identificação da conta do WhatsApp Business para usar mais tarde.
 Depois de receber a mensagem que você enviou, responda para manter a conversa ativa.
 O menu do lado esquerdo apresenta maneiras de personalizar as configurações e permissões de casos de uso para que seu app funcione do jeito que você quer. Você pode atualizar essas configurações a qualquer momento.
 Permissões e recursos – Confira as permissões necessárias e opcionais para o caso de uso e adicione-as ao envio da Análise do App, se aplicável.
 Início rápido – Comece a usar a API e aprenda como expandir seus negócios, melhorar o ROI e gerenciar a conta do WhatsApp Business.
 Configuração da API – gere tokens de acesso, envie e receba mensagens, além de configurar webhooks e o SDK do WhatsApp.
 Configuração – Configure webhooks e o SDK do WhatsApp.
-Recursos – veja a documentação para desenvolvedores do WhatsApp, os cursos do Meta Blueprint e os recursos de suporte.
+Recursos – Veja a documentação para desenvolvedores do WhatsApp, os cursos do Meta Blueprint e os recursos de suporte.
 Integração do Provedor de Tecnologia – Comece a dimensionar a Plataforma do WhatsApp Business para sua empresa.
-Soluções de parceiros – crie uma solução de parceiro.
-Configurador de cadastro incorporado – integre o fluxo de Cadastro incorporado ao seu site ou ao portal do cliente.
+Soluções de parceiros – Crie uma solução de parceiro.
+Configurador de cadastro incorporado – integre o fluxo de Cadastro Incorporado ao seu site ou ao portal do cliente.
 Etapa 4: Configurar o app de webhook de teste
 Você precisará configurar um ponto de extremidade de webhook para receber notificações sobre o status das mensagens, como "lida" e "entregue".
 Use o servidor de webhook de exemplo para fins de teste seguindo o guia Como usar um app de webhook de teste.
@@ -116,7 +116,7 @@ business_management
 whatsapp_business_messaging
 whatsapp_business_management
 Copie o token e guarde-o em um local seguro para usá-lo nas etapas seguintes.
-Etapa 6. Enviar uma mensagem que não seja um modelo
+Etapa 6. Enviar uma mensagem que não seja de modelo
 Quando você respondeu à mensagem de teste anterior, uma janela de atendimento ao cliente foi aberta. Essa janela de 24 horas permite que você envie mensagens que não sejam de modelo aos usuários do WhatsApp. Com a janela de atendimento ao cliente aberta, você pode enviar uma mensagem que não seja de modelo para você. Para isso, insira a identificação do número de telefone de teste, o token de acesso do usuário do sistema e o número de telefone no exemplo de código abaixo. Depois, cole o código no seu terminal e execute-o.
 curl 'https://graph.facebook.com/v23.0/<TEST_BUSINESS_PHONE_NUMBER_ID>/messages' \
 -H 'Content-Type: application/json' \

@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok Advertising Policies — Intellectual Property Infringement"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-intellectual-property-infringement?lang=en
-capturado_em: 2026-09-04
+capturado_em: 2026-09-05
 hash: 7051eaa90021cd06
 ---
 
