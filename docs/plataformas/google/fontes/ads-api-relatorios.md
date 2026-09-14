@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — relatórios (reporting)"
 url: https://developers.google.com/google-ads/api/docs/reporting/overview?hl=pt-br
-capturado_em: 2026-09-13
+capturado_em: 2026-09-14
 hash: f57c92e69fdf07c6
 ---
 

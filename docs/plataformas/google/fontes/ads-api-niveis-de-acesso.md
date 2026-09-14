@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — níveis de acesso e RMF"
 url: https://developers.google.com/google-ads/api/docs/productionize/access-levels?hl=pt-br
-capturado_em: 2026-09-13
-hash: b0e8553d5d99f3bc
+capturado_em: 2026-09-14
+hash: d2d70f07500ccd00
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -32,4 +32,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-09-12 UTC.
+Última atualização 2026-09-14 UTC.

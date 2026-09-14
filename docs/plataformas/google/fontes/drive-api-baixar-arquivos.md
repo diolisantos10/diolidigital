@@ -1,8 +1,8 @@
 ---
 titulo: "Google Drive API — baixar e exportar arquivos"
 url: https://developers.google.com/workspace/drive/api/guides/manage-downloads
-capturado_em: 2026-09-13
-hash: 645fbfbade2cd8b5
+capturado_em: 2026-09-14
+hash: 8c78228b3e662887
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -12,41 +12,41 @@ O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de pre
 Envie comentários
 Baixar e exportar arquivos
 Nesta página
-Fazer o download do conteúdo de arquivos blob
+Baixar conteúdo do arquivo blob
 Acessar dados de arquivos na memória
 Download parcial
-Fazer o download do conteúdo de arquivos blob em uma versão anterior
-Fazer o download do conteúdo de arquivos blob em um navegador
+Baixar o conteúdo do arquivo blob em uma versão anterior
+Fazer o download do conteúdo de um arquivo blob em um navegador
 
-A API Google Drive oferece suporte a vários tipos de ações de download e exportação, conforme listado na tabela a seguir:
+A API Google Drive é compatível com vários tipos de ações de download e exportação, conforme listado na tabela a seguir:
 
 Ações de download	
-Conteúdo de arquivo blob usando o método files.get com o parâmetro alt=media.
-Conteúdo de arquivo blob em uma versão anterior usando o método revisions.get com o parâmetro alt=media.
-Conteúdo de arquivo blob em um navegador usando o campo webContentLink.
-Conteúdo de arquivo blob usando o método files.download com operações de longa duração. Essa é a única maneira de baixar arquivos do Google Vids.
+Conteúdo do arquivo blob usando o método files.get com o parâmetro alt=media.
+Conteúdo do arquivo blob em uma versão anterior usando o método revisions.get com o parâmetro alt=media.
+Conteúdo do arquivo blob em um navegador usando o campo webContentLink.
+Conteúdo do arquivo blob usando o método files.download com operações de longa duração. Essa é a única maneira de baixar arquivos do Google Vids.
 
 Ações de exportação	
-Conteúdo de documentos do Google Workspace em um formato que seu app pode processar, usando o método files.export.
+Conteúdo de documentos do Google Workspace em um formato que seu app possa processar usando o método files.export.
 Conteúdo de documentos do Google Workspace em um navegador usando o campo exportLinks.
 Conteúdo de documentos do Google Workspace em uma versão anterior em um navegador usando o campo exportLinks.
 Conteúdo de documentos do Google Workspace usando o método files.download com operações de longa duração.
 
-Na API Drive, um arquivo blob se refere a qualquer arquivo binário bruto armazenado no Google Drive (como imagens, vídeos e PDFs), em vez de um documento do Google Workspace. Ele não se refere ao objeto Blob do JavaScript. Para descrições detalhadas dos tipos de arquivo mencionados aqui, incluindo arquivos blob e do Google Workspace, consulte Tipos de arquivo.
+Na API Drive, um arquivo blob se refere a qualquer arquivo binário bruto armazenado no Google Drive, como imagens, vídeos e PDFs, em vez de um documento do Google Workspace. Não se refere ao objeto Blob do JavaScript. Para descrições detalhadas dos tipos de arquivo mencionados aqui, incluindo blob e arquivos do Google Workspace, consulte Tipos de arquivo.
 
-Antes de fazer o download ou exportar o conteúdo do arquivo, verifique se os usuários podem baixar o arquivo usando o capabilities.canDownload campo no recurso files.
+Antes de baixar ou exportar o conteúdo do arquivo, verifique se os usuários podem fazer o download usando o campo capabilities.canDownload no recurso files.
 
 O restante deste documento fornece instruções detalhadas para realizar esses tipos de ações de download e exportação.
 
-Fazer o download do conteúdo de arquivos blob
+Baixar conteúdo do arquivo blob
 
-Para baixar um arquivo blob armazenado no Drive, use o files.get método com o ID do arquivo a ser baixado e o alt parâmetro do sistema. O parâmetro alt=media informa ao servidor que um download de conteúdo está sendo solicitado como um formato de resposta alternativo.
+Para fazer o download de um arquivo blob armazenado no Drive, use o método files.get com o ID do arquivo a ser baixado e o parâmetro de sistema alt. O parâmetro alt=media informa ao servidor que um download de conteúdo está sendo solicitado como um formato de resposta alternativo.
 
-O parâmetro do sistema alt está disponível em todas as APIs REST do Google. Se você usar uma biblioteca de cliente da API Drive, não precisará definir esse parâmetro explicitamente, já que o método da biblioteca de cliente adiciona o parâmetro alt=media à solicitação HTTP subjacente.
+O parâmetro de sistema alt está disponível em todas as APIs REST do Google. Se você usar uma biblioteca de cliente da API Drive, não será necessário definir explicitamente esse parâmetro, já que o método da biblioteca de cliente adiciona o parâmetro alt=media à solicitação HTTP subjacente.
 
 Os exemplos de código a seguir mostram como usar o método files.get para baixar um arquivo:
 
-Observação: se você estiver usando a versão mais antiga da API Drive v2, poderá encontrar exemplos de código no GitHub. Saiba como migrar para a API Drive v3.
+Observação: se você estiver usando a API Drive v2 mais antiga, confira exemplos de código no GitHub. Saiba como migrar para a API Drive v3.
 Apps Script
 Java
 Python
@@ -69,17 +69,17 @@ function downloadFile(fileId) {
   return response.getBlob();
 }
 
-Os downloads de arquivos iniciados no seu app precisam ser autorizados com um escopo que permita acesso de leitura ao conteúdo do arquivo. Por exemplo, um app que usa o escopo drive.readonly.metadata não está autorizado a baixar o conteúdo do arquivo. Os exemplos de código da biblioteca de cliente usam o escopo de arquivo drive restrito que permite aos usuários visualizar e gerenciar todos os arquivos do Drive. Para saber mais sobre os escopos do Drive, consulte Escolher escopos da API Google Drive.
+Os downloads de arquivos iniciados no seu app precisam ser autorizados com um escopo que permita acesso de leitura ao conteúdo do arquivo. Por exemplo, um app que usa o escopo drive.readonly.metadata não tem autorização para fazer o download do conteúdo do arquivo. As amostras de código da biblioteca de cliente usam o escopo de arquivo drive restrito, que permite aos usuários visualizar e gerenciar todos os arquivos do Drive. Para saber mais sobre os escopos do Drive, consulte Escolher escopos da API Google Drive.
 
-Os usuários com permissões owner (para arquivos do Meu Drive) ou organizer (para arquivos de drives compartilhados) podem restringir o download pelo DownloadRestrictionsMetadata objeto. Para mais informações, consulte Impedir que os usuários façam o download, imprimam ou copiem seu arquivo.
+Os usuários com permissões owner (para arquivos do Meu Drive) ou organizer (para arquivos de drives compartilhados) podem restringir o download usando o objeto DownloadRestrictionsMetadata. Para mais informações, consulte Impedir que os usuários baixem, imprimam ou copiem seu arquivo.
 
-Os arquivos identificados como abusivos (como softwares nocivos) só podem ser baixados pelo proprietário do arquivo. Além disso, o parâmetro de consulta acknowledgeAbuse precisa ser definido como true para indicar que o usuário reconheceu o risco de baixar software indesejado ou outros arquivos abusivos. Seu aplicativo precisa avisar o usuário de forma interativa antes de usar esse parâmetro de consulta.
+Os arquivos identificados como abusivos (como software malicioso) só podem ser baixados pelo proprietário. Além disso, o parâmetro de consulta acknowledgeAbuse precisa ser definido como true para indicar que o usuário reconheceu o risco de fazer o download de software indesejado ou outros arquivos abusivos. Seu aplicativo precisa avisar o usuário de forma interativa antes de usar esse parâmetro de consulta.
 
 Acessar dados de arquivos na memória
 
-Se o aplicativo precisar acessar os dados do arquivo diretamente na memória (por exemplo, como um buffer de bytes) em vez de salvá-los em um disco local, ajuste a solicitação da biblioteca de cliente ou processe o stream retornado:
+Se o aplicativo precisar acessar os dados do arquivo diretamente na memória (por exemplo, como um buffer de bytes) em vez de salvá-los em um disco local, ajuste a solicitação da biblioteca de cliente ou processe o fluxo retornado:
 
-Node.js: por padrão, a biblioteca de cliente do Node.js retorna o conteúdo do arquivo como um Readable stream. Para salvar o arquivo no disco local:
+Node.js: por padrão, a biblioteca de cliente do Node.js retorna o conteúdo do arquivo como um fluxo Readable. Para salvar o arquivo no disco local:
 
 const fs = require('fs');
 
@@ -97,7 +97,7 @@ response.data
   })
   .pipe(dest);
 
-Como alternativa, para retornar os dados diretamente na memória como um ArrayBuffer em vez de um stream, defina o parâmetro responseType nas opções de solicitação:
+Outra opção é retornar os dados diretamente na memória como um ArrayBuffer em vez de um fluxo. Para isso, defina o parâmetro responseType nas opções de solicitação:
 
 const file = await service.files.get({
   fileId,
@@ -107,26 +107,26 @@ const file = await service.files.get({
 // Convert the ArrayBuffer to a Node.js Buffer object.
 const buffer = Buffer.from(file.data);
 
-Python: o exemplo de código Python para baixar um arquivo blob já grava os blocos de download em um objeto na memória io.BytesIO(). Para acessar os bytes brutos, chame file.getvalue().
+Python: o exemplo de código em Python para fazer o download de um arquivo blob já grava os blocos de download em um objeto io.BytesIO() na memória. Para acessar os bytes brutos, chame file.getvalue().
 
-Java: o exemplo de código Java para baixar um arquivo blob usa um java.io.ByteArrayOutputStream para capturar os bytes baixados na memória. Use outputStream.toByteArray() para acessar a matriz de bytes brutos.
+Java: o exemplo de código Java para fazer o download de um arquivo blob usa um java.io.ByteArrayOutputStream para capturar os bytes baixados na memória. Use outputStream.toByteArray() para acessar a matriz de bytes bruta.
 
 .NET: o exemplo de código C# para baixar um arquivo blob usa um System.IO.MemoryStream. Use stream.ToArray() para acessar a matriz de bytes subjacente.
 
-Apps Script: o exemplo de código do Apps Script para baixar um blob arquivo usa um response.getBlob() método para retornar um Blob objeto. Converta isso em uma matriz de bytes usando o método getBytes().
+Apps Script: o exemplo de código do Apps Script para baixar um arquivo blob usa um método response.getBlob() para retornar um objeto Blob. Converta isso em uma matriz de bytes usando o método getBytes().
 
 Download parcial
 
-O download parcial envolve o download apenas de uma parte especificada de um arquivo. É possível especificar a parte do arquivo que você quer baixar usando um intervalo de bytes com o Range cabeçalho. Exemplo:
+O download parcial envolve o download apenas de uma parte especificada de um arquivo. É possível especificar a parte do arquivo que você quer baixar usando um intervalo de bytes com o cabeçalho Range. Exemplo:
 
 Range: bytes=500-999
 
-Observação: os downloads parciais não são aceitos ao exportar documentos do Google Workspace.
-Fazer o download do conteúdo de arquivos blob em uma versão anterior
+Observação: os downloads parciais não são compatíveis ao exportar documentos do Google Workspace.
+Baixar o conteúdo do arquivo blob em uma versão anterior
 
-Para baixar o conteúdo de arquivos blob em uma versão anterior, use o revisions.get método com o ID do arquivo a ser baixado, o ID da revisão e o alt parâmetro do sistema. O parâmetro alt=media informa ao servidor que um download de conteúdo está sendo solicitado como um formato de resposta alternativo. Semelhante a files.get, o método revisions.get também aceita o parâmetro de consulta acknowledgeAbuse e o cabeçalho Range.
+Para fazer o download do conteúdo de arquivos blob em uma versão anterior, use o método revisions.get com o ID do arquivo a ser baixado, o ID da revisão e o alt parâmetro do sistema. O parâmetro alt=media informa ao servidor que um download de conteúdo está sendo solicitado como um formato de resposta alternativo. Assim como files.get, o método revisions.get também aceita o parâmetro de consulta acknowledgeAbuse e o cabeçalho Range.
 
-Só é possível baixar revisões de conteúdo de arquivos blob marcadas como "Manter indefinidamente". Se você quiser baixar uma revisão, defina-a como "Manter indefinidamente" primeiro. Para mais informações, consulte Especificar revisões para salvar da exclusão automática.
+Só é possível baixar revisões de conteúdo de arquivos blob marcadas como "Manter indefinidamente". Se quiser baixar uma revisão, defina como "Manter indefinidamente" primeiro. Para mais informações, consulte Especificar revisões para salvar da exclusão automática.
 
 Para mais informações sobre como baixar uma revisão, consulte Gerenciar operações de longa duração.
 
@@ -139,11 +139,11 @@ Substitua:
 
 FILE_ID: o ID do arquivo a ser baixado.
 REVISION_ID: o ID da revisão a ser baixada.
-ACCESS_TOKEN: o token de acesso que concede acesso a API.
+ACCESS_TOKEN: o token de acesso que concede acesso à API.
 FILE_NAME: o nome do arquivo de saída.
-Fazer o download do conteúdo de arquivos blob em um navegador
+Fazer o download do conteúdo de um arquivo blob em um navegador
 
-Para baixar o conteúdo de arquivos blob armazenados no Drive em um navegador, em vez de usar a API, use o webContentLink campo do recurso files. Se o usuário tiver acesso de download ao arquivo, um link para baixar o arquivo e o conteúdo dele será retornado. É possível redirecionar um usuário para esse URL ou oferecê-lo como um link clicável.
+Para baixar o conteúdo de arquivos blob armazenados no Drive em um navegador, em vez de usar a API, use o campo webContentLink do recurso files. Se o usuário tiver acesso para fazer o download do arquivo, um link para baixar o arquivo e o conteúdo dele será retornado. É possível redirecionar um usuário para esse URL ou oferecê-lo como um link clicável.
 
 curl
 curl "https://www.googleapis.com/drive/v3/files/FILE_ID?fields=webContentLink" \
@@ -152,17 +152,17 @@ curl "https://www.googleapis.com/drive/v3/files/FILE_ID?fields=webContentLink" \
 
 Substitua:
 
-FILE_ID: o ID do arquivo para receber o link de download para.
-ACCESS_TOKEN: o token de acesso que concede acesso a API.
-Fazer o download do conteúdo de arquivos blob usando operações de longa duração
+FILE_ID: o ID do arquivo para receber o link de download.
+ACCESS_TOKEN: o token de acesso que concede acesso à API.
+Baixar conteúdo de arquivo blob usando operações de longa duração
 
-Para baixar o conteúdo de arquivos blob usando operações de longa duração (LROs), use o files.download método com o ID do arquivo a ser baixado. Opcionalmente, defina o ID da revisão.
+Para baixar o conteúdo de arquivos blob usando operações de longa duração (LROs), use o método files.download com o ID do arquivo a ser baixado. Você pode definir o ID da revisão, se quiser.
 
-Essa é a única maneira de baixar arquivos do Google Vids. Se você tentar exportar arquivos do Google Vids, vai receber um fileNotExportable erro. Para mais informações, consulte Gerenciar operações de longa duração.
+Essa é a única maneira de baixar arquivos do Google Vids. Se você tentar exportar arquivos do Google Vids, vai receber um erro fileNotExportable. Para mais informações, consulte Gerenciar operações de longa duração.
 
 curl
 
-O comando curl a seguir inicia uma LRO e retorna uma resposta JSON. Para baixar o arquivo ou consultar essa LRO, faça outra solicitação usando o ID retornado para receber o URL do conteúdo. Em seguida, você pode fazer uma solicitação curl final para esse URL para baixar o arquivo. Para mais informações, consulte Gerenciar operações de longa duração.
+O comando curl a seguir inicia uma LRO e retorna uma resposta JSON. Para baixar o arquivo ou fazer uma pesquisa de LRO, faça outra solicitação usando o ID retornado para receber o URL do conteúdo. Em seguida, faça uma solicitação curl final para esse URL e baixe o arquivo. Para mais informações, consulte Gerenciar operações de longa duração.
 
 curl --request POST "https://www.googleapis.com/drive/v3/files/FILE_ID/download?mimeType=video/mp4" \
   --header "Authorization: Bearer ACCESS_TOKEN" \
@@ -172,14 +172,14 @@ curl --request POST "https://www.googleapis.com/drive/v3/files/FILE_ID/download?
 Substitua:
 
 FILE_ID: o ID do arquivo a ser baixado.
-ACCESS_TOKEN: o token de acesso que concede acesso a API.
+ACCESS_TOKEN: o token de acesso que concede acesso à API.
 Exportar conteúdo de documentos do Google Workspace
 
-Para exportar o conteúdo de bytes de documentos do Google Workspace, use o files.export método com o ID do arquivo a ser exportado e o tipo MIME correto. O conteúdo exportado é limitado a 10 MB.
+Para exportar o conteúdo de bytes de um documento do Google Workspace, use o método files.export com o ID do arquivo a ser exportado e o tipo MIME correto. O conteúdo exportado é limitado a 10 MB.
 
-Os exemplos de código a seguir mostram como usar o método files.export para exportar um documento do Google Workspace no formato PDF:
+Os exemplos de código a seguir mostram como usar o método files.export para exportar um documento do Google Workspace em formato PDF:
 
-Observação: se você estiver usando a versão mais antiga da API Drive v2, poderá encontrar exemplos de código no GitHub. Saiba como migrar para a API Drive v3.
+Observação: se você estiver usando a API Drive v2 mais antiga, confira exemplos de código no GitHub. Saiba como migrar para a API Drive v3.
 Apps Script
 Java
 Python
@@ -203,13 +203,13 @@ function exportPdf(fileId, mimeType) {
   return response.getBlob();
 }
 
-Os exemplos de código da biblioteca de cliente usam o escopo drive restrito que permite aos usuários visualizar e gerenciar todos os arquivos do Drive. Para saber mais sobre os escopos do Drive, consulte Escolher escopos da API Google Drive.
+As amostras de código da biblioteca de cliente usam o escopo restrito drive, que permite aos usuários visualizar e gerenciar todos os arquivos do Drive. Para saber mais sobre os escopos do Drive, consulte Escolher escopos da API Google Drive.
 
-Os exemplos de código também declaram o tipo MIME de exportação como application/pdf. Para uma lista completa de todos os tipos MIME de exportação aceitos para cada documento do Google Workspace, consulte Tipos MIME de exportação para documentos do Google Workspace.
+Os exemplos de código também declaram o tipo MIME de exportação como application/pdf. Para uma lista completa de todos os tipos MIME de exportação compatíveis com cada documento do Google Workspace, consulte Tipos MIME de exportação para documentos do Google Workspace.
 
 Exportar conteúdo de documentos do Google Workspace em um navegador
 
-Para exportar o conteúdo de documentos do Google Workspace em um navegador, use o exportLinks campo do files recurso. Dependendo do tipo de documento, um link para baixar o arquivo e o conteúdo dele é retornado para cada tipo MIME disponível. É possível redirecionar um usuário para um URL ou oferecê-lo como um link clicável.
+Para exportar o conteúdo de um documento do Google Workspace em um navegador, use o campo exportLinks do recurso files. Dependendo do tipo de documento, um link para baixar o arquivo e o conteúdo dele é retornado para cada tipo MIME disponível. É possível redirecionar um usuário para um URL ou oferecê-lo como um link clicável.
 
 curl
 curl "https://www.googleapis.com/drive/v3/files/FILE_ID?fields=id,name,exportLinks" \
@@ -218,11 +218,11 @@ curl "https://www.googleapis.com/drive/v3/files/FILE_ID?fields=id,name,exportLin
 
 Substitua:
 
-FILE_ID: o ID do arquivo para receber o link de download para.
-ACCESS_TOKEN: o token de acesso que concede acesso a API.
+FILE_ID: o ID do arquivo para receber o link de download.
+ACCESS_TOKEN: o token de acesso que concede acesso à API.
 Exportar conteúdo de documentos do Google Workspace em uma versão anterior em um navegador
 
-Para exportar o conteúdo de documentos do Google Workspace em uma versão anterior em um navegador, use o revisions.get método com o ID do arquivo a ser baixado e o ID da revisão para gerar um link de exportação em que você possa fazer o download. Se o usuário tiver acesso de download ao arquivo, um link para baixar o arquivo e o conteúdo dele será retornado. É possível redirecionar um usuário para esse URL ou oferecê-lo como um link clicável.
+Para exportar o conteúdo de um documento do Google Workspace em uma versão anterior em um navegador, use o método revisions.get com o ID do arquivo a ser baixado e o ID da revisão para gerar um link de exportação em que você pode fazer o download. Se o usuário tiver acesso para baixar o arquivo, um link para fazer o download do arquivo e do conteúdo dele será retornado. É possível redirecionar um usuário para esse URL ou oferecê-lo como um link clicável.
 
 curl
 curl "https://www.googleapis.com/drive/v3/files/FILE_ID/revisions/REVISION_ID?fields=id,name,exportLinks" \
@@ -233,14 +233,14 @@ Substitua:
 
 FILE_ID: o ID do arquivo a ser baixado.
 REVISION_ID: o ID da revisão a ser baixada.
-ACCESS_TOKEN: o token de acesso que concede acesso a API.
+ACCESS_TOKEN: o token de acesso que concede acesso à API.
 Exportar conteúdo de documentos do Google Workspace usando operações de longa duração
 
-Para exportar o conteúdo de documentos do Google Workspace usando operações de longa duração (LROs), use o files.download método com o ID do arquivo a ser baixado e o ID da revisão. Para mais informações, consulte Gerenciar operações de longa duração.
+Para exportar o conteúdo de documentos do Google Workspace usando operações de longa duração (LROs), use o método files.download com o ID do arquivo a ser baixado e o ID da revisão. Para mais informações, consulte Gerenciar operações de longa duração.
 
 curl
 
-O comando curl a seguir inicia uma LRO e retorna uma resposta JSON. Para baixar o arquivo ou consultar essa LRO, faça outra solicitação usando o ID retornado para receber o URL do conteúdo. Em seguida, você pode fazer uma solicitação curl final para esse URL para baixar o arquivo. Para mais informações, consulte Gerenciar operações de longa duração.
+O comando curl a seguir inicia uma LRO e retorna uma resposta JSON. Para baixar o arquivo ou fazer uma pesquisa de LRO, faça outra solicitação usando o ID retornado para receber o URL do conteúdo. Em seguida, faça uma solicitação curl final para esse URL e baixe o arquivo. Para mais informações, consulte Gerenciar operações de longa duração.
 
 curl --request POST "https://www.googleapis.com/drive/v3/files/FILE_ID/download?mimeType=MIME_TYPE&revisionId=REVISION_ID" \
   --header "Authorization: Bearer ACCESS_TOKEN" \
@@ -252,13 +252,13 @@ Substitua:
 FILE_ID: o ID do arquivo a ser baixado.
 MIME_TYPE: o tipo MIME para exportar.
 REVISION_ID: o ID da revisão a ser baixada.
-ACCESS_TOKEN: o token de acesso que concede acesso a API.
+ACCESS_TOKEN: o token de acesso que concede acesso à API.
 Temas relacionados
 Proteger o conteúdo do arquivo
-Tipos MIME de exportação para documentos do Google Workspace
+Exportar tipos MIME para documentos do Google Workspace
 Isso foi útil?
 Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-09-11 UTC.
+Última atualização 2026-09-14 UTC.
