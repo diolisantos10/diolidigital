@@ -1,8 +1,8 @@
 ---
 titulo: "Padrões de Publicidade da Meta (visão geral)"
 url: https://transparency.meta.com/pt-br/policies/ad-standards/
-capturado_em: 2026-09-14
-hash: 949c56c3ef28748e
+capturado_em: 2026-09-15
+hash: 24465d66c4c12759
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -48,7 +48,7 @@ Os anúncios permanecem sempre sujeitos à análise e nova análise e podem ser 
 4. O que fazer caso seu anúncio seja rejeitado ou caso seu ativo comercial seja restringido
 Criar um anúncio ou editar seu anúncio
 Você pode criar um anúncio ou editá-lo para cumprir nossas políticas. Esses anúncios serão tratados como novos anúncios e analisados pelo nosso sistema de análise de anúncio. Confira as etapas de edição nesta página.
-Solicitar outra análise
+Pedir outra análise
 Se você acredita que o anúncio, a conta de anúncio, a conta de usuário, a Página ou a conta empresarial foram rejeitados ou restringidos incorretamente, solicite uma análise da decisão em Qualidade da Conta.
 Padrões da Comunidade
 Os Padrões da Comunidade descrevem o que não é permitido nas tecnologias da Meta.
@@ -60,7 +60,7 @@ Conteúdo ilegal ou considerado inaceitável para pessoas que usam nossas tecnol
 Exploração sexual, abuso e nudez infantil
 Os anúncios não devem conter conteúdo que explore sexualmente ou coloque crianças em perigo. Quando tomamos conhecimento de um caso aparente de exploração infantil, fazemos uma denúncia ao National Center for Missing and Exploited Children (Centro Nacional para Crianças Desaparecidas e Exploradas, NCMEC, na sigla em inglês), em conformidade com a legislação aplicável.
 Saiba mais
-Coordenação de danos e incitação ao crime
+Coordenação de atos danosos e incentivo à prática de atividades criminosas
 Os anúncios não devem facilitar, organizar, promover ou admitir determinadas atividades criminosas ou prejudiciais direcionadas a pessoas, empresas, propriedades ou animais.
 Saiba mais
 Organizações e indivíduos perigosos
@@ -97,13 +97,10 @@ Saiba mais
 Desencorajamento da vacinação
 Os anúncios não devem desencorajar as pessoas a se vacinarem nem defender o movimento antivacina.
 Saiba mais
-Fraudes, golpes e práticas enganosas
+Práticas Comerciais Proibidas
 Conteúdo que pode iludir ou enganar as pessoas.
-Fraudes, golpes e práticas enganosas
-Os anúncios devem estar em conformidade com os Padrões da Comunidade sobre Fraudes, Golpes e Práticas Enganosas.
-Saiba mais
-Práticas de negócios inaceitáveis
-Os anúncios não devem promover produtos, serviços, esquemas ou ofertas usando práticas enganosas ou falsas identificadas, inclusive aquelas cuja intenção é conseguir dinheiro ou informações pessoais. Quando detectamos que os anunciantes estão se envolvendo em comportamentos potencialmente suspeitos, incluindo comportamento não autêntico, ou estão veiculando anúncios em determinadas categorias que provavelmente serão alvo de golpistas, podemos exigir que esses anunciantes concluam processos de verificação adicionais.
+Práticas Comerciais Proibidas
+Os anúncios devem estar em conformidade com os Padrões da Comunidade sobre Práticas Comerciais Proibidas.
 Saiba mais
 Produtos e serviços restritos
 Conteúdo que pode impactar negativamente a saúde e a segurança das pessoas.
@@ -166,6 +163,9 @@ Saiba mais
 Jogos e jogos de azar online
 A Meta define jogos e jogos de azar online como qualquer produto ou serviço em que algo de valor monetário seja incluído como parte de um método de entrada e prêmio. Anúncios que promovem jogos e jogos de azar online somente são permitidos com nossa autorização prévia por escrito. Os anunciantes autorizados devem seguir todas as leis aplicáveis e incluir critérios de direcionamento consistentes com os requisitos específicos da Meta. No mínimo, os anúncios não podem ser direcionados a pessoas menores de 18 anos. Saiba mais em nossa Central de Ajuda para Empresas.
 Saiba mais
+Documentos e serviços financeiros proibidos
+Os anúncios devem cumprir os Padrões da Comunidade sobre Documentos Proibidos e Serviços Financeiros (em Produtos e Serviços Restritos) e não devem promover conteúdo que facilite ou ofereça a solicitação, a criação, a venda, a compra ou a troca de documentos, bens ou serviços falsos, forjados ou roubados; dispositivos ou assinaturas manipulados ou usados de maneira não autorizada; informações de identificação pessoal ou outras informações pessoais; produtos que permitem trapaças; money muling; ou lavagem de dinheiro.
+Saiba mais
 Conteúdo censurável
 Conteúdo que pode levar a experiências negativas.
 Nudez adulta e atividades sexuais
@@ -219,7 +219,7 @@ Consumo de drogas e álcool
 Conteúdo adulto
 Linguagem ofensiva
 Violência e brutalidade
-Anúncios de cadastro
+Anúncios de lead
 Os anunciantes não devem criar perguntas de anúncios de lead para solicitar os tipos de informação a seguir sem nossa permissão prévia por escrito.
 Saiba mais
 Direcionamento
@@ -278,7 +278,7 @@ Nesta página
 4. O que fazer caso seu anúncio seja rejeitado ou caso seu ativo comercial seja restringido
 Padrões da Comunidade
 Conteúdo inaceitável
-Fraudes, golpes e práticas enganosas
+Práticas Comerciais Proibidas
 Produtos e serviços restritos
 Conteúdo censurável
 Violações de propriedade intelectual

@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — token de desenvolvedor"
 url: https://developers.google.com/google-ads/api/docs/get-started/dev-token?hl=pt-br
-capturado_em: 2026-09-14
+capturado_em: 2026-09-15
 hash: c6d7f93336dd9140
 ---
 

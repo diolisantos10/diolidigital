@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — projeto do Cloud e credenciais OAuth"
 url: https://developers.google.com/google-ads/api/docs/get-started/oauth-cloud-project?hl=pt-br
-capturado_em: 2026-09-14
+capturado_em: 2026-09-15
 hash: d6cf3ad802a6d7d2
 ---
 

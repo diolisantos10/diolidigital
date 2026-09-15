@@ -1,8 +1,8 @@
 ---
 titulo: "Diretrizes da Comunidade — Bens regulamentados e atividades comerciais (divulgação de conteúdo comercial) (pt-BR)"
 url: https://www.tiktok.com/community-guidelines/pt-br/regulated-commercial-activities
-capturado_em: 2026-09-14
-hash: 18781635bb9ce8d1
+capturado_em: 2026-09-15
+hash: 9cc2d8d633da6376
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -48,7 +48,7 @@ Mais informações
 
 Fraudes e golpes
 
-O TikTok é um espaço para aprender e interagir com uma grande diversidade de assuntos, e buscamos garantir que ninguém se aproveite do seu interesse em explorar e se envolver com novos temas. Por esse motivo, é proibida qualquer tentativa de aplicar golpes, ludibriar ou fraudar outras pessoas. Essa proibição inclui ações como facilitar golpes financeiros, fingir ser uma celebridade para vender produtos ou interagir com usuários, além de qualquer outro tipo de fraude. Saiba mais sobre como identificar fraudes  online e se proteger.
+O TikTok é um espaço para aprender e interagir com uma grande diversidade de assuntos, e buscamos garantir que ninguém se aproveite do seu interesse em explorar e se envolver com novos temas. Por esse motivo, é proibida qualquer tentativa de aplicar golpes, ludibriar ou fraudar outras pessoas. Essa proibição inclui ações como facilitar golpes financeiros, fingir ser uma celebridade para vender produtos ou interagir com usuários, além de qualquer outro tipo de fraude. Saiba mais sobre como identificar fraudes online e se proteger.
 
 Mais informações
 
