@@ -1,8 +1,8 @@
 ---
 titulo: "Pages API — visão geral (Páginas do Facebook por API)"
 url: https://developers.facebook.com/documentation/pages-api
-capturado_em: 2026-09-15
-hash: 29c09afeafe955ea
+capturado_em: 2026-09-16
+hash: fb5cbc47dde7226b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -130,6 +130,6 @@ Pesquisa de Páginas: pesquise Páginas.
 Abas da Página: veja uma lista das abas da sua Página.
 Webhooks da Meta: receba no seu servidor notificações em tempo real de eventos que ocorreram na sua Página.
 Alterações futuras: receba notificações sobre as alterações futuras que a Meta implementará na sua Página.
-Códigos de erro – Veja os códigos de erro e a descrição de erros que podem ocorrer ao implementar a API de Páginas.
+Códigos de erro: veja os códigos de erro e a descrição de erros que podem ocorrer ao implementar a API de Páginas.
 Registro de alterações: veja o registro de alterações da API de Páginas.
 Você achou esta página útil?

@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads API — relação entre entidades (conta → campanha → grupo → anúncio)"
 url: https://developers.google.com/google-ads/api/docs/concepts/entity-relationships?hl=pt-br
-capturado_em: 2026-09-15
+capturado_em: 2026-09-16
 hash: 6fff9cad4d27d8ab
 ---
 

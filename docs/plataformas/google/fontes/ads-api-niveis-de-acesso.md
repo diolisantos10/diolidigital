@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads API — níveis de acesso e RMF"
 url: https://developers.google.com/google-ads/api/docs/productionize/access-levels?hl=pt-br
-capturado_em: 2026-09-15
-hash: d2d70f07500ccd00
+capturado_em: 2026-09-16
+hash: 4dbeda8e6fb60749
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -13,15 +13,15 @@ Participe da nossa transmissão ao vivo no Discord no servidor da comunidade de 
 Envie comentários
 Níveis de acesso e RMF
 
-A API Google Ads tem níveis de acesso associados ao projeto do Google Cloud e usa um processo de análise de aplicativos para conceder vários níveis de acesso. É importante planejar e conseguir os níveis de acesso corretos antes de colocar o aplicativo em produção.
+A API Google Ads tem níveis de acesso associados ao projeto do Google Cloud e usa um processo de revisão de aplicativos para conceder vários níveis de acesso. É importante planejar e obter os níveis de acesso corretos antes de produzir seu aplicativo.
 
-Um cenário comum é que o desenvolvimento do aplicativo comece com o nível de acesso do Explorer, mas depois ultrapasse os limites de cota ao longo do tempo. Nesse momento, você precisa solicitar o nível de acesso básico ou padrão nível de acesso. Como o processo de análise pode levar dias ou até semanas para ser concluído, peça o upgrade para o nível de acesso padrão bem antes de precisar dos limites de cota aumentados.
+Um cenário comum é que o desenvolvimento do aplicativo comece com o nível de acesso de explorador, mas depois ultrapasse os limites de cota ao longo do tempo. Nesse momento, você precisa solicitar o nível de acesso básico ou o nível de acesso padrão. Como o processo de revisão pode levar dias ou semanas para ser concluído, solicite o upgrade para o nível de acesso padrão bem antes de precisar dos limites de cota aumentados.
 
-O Google pode exigir que seu app ofereça determinados recursos ou funcionalidades, conforme listado nos recursos mínimos obrigatórios (RMF). Ao usar a API Google Ads, os RMF só se aplicam a projetos do Google Cloud com nível de acesso padrão. Analise esses requisitos com antecedência para evitar mais atrasos na criação dos recursos necessários no seu app.
+O Google pode exigir que seu app ofereça determinados recursos ou funcionalidades, conforme listado nos Recursos mínimos obrigatórios (RMF). Ao usar a API Google Ads, a RMF só se aplica a projetos do Google Cloud com nível de acesso padrão. Revise esses requisitos com antecedência para evitar mais atrasos na criação dos recursos necessários no seu app.
 
 Preços
 
-A API Google Ads é sem custo financeiro. Não há cobranças pelo uso da API Google Ads nos níveis de acesso do Explorer, básico ou padrão. No entanto, se você estiver sujeito aos recursos mínimos obrigatórios (RMF), a equipe de análise da API vai auditar sua ferramenta para verificar a conformidade. Se a auditoria resultar em uma descoberta de não conformidade, talvez seja necessário pagar taxas de não conformidade.
+O uso da API Google Ads é sem custo financeiro. Não há cobranças para usar a API Google Ads nos níveis de acesso Explorer, Básico ou Padrão. No entanto, se você estiver sujeito aos Recursos mínimos obrigatórios (RMF), a equipe de revisão da API vai auditar sua ferramenta para verificar a conformidade. Se a auditoria resultar em uma descoberta de não conformidade, talvez seja necessário pagar taxas de não conformidade.
 
 Anterior
 Proteger credenciais
@@ -32,4 +32,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-09-14 UTC.
+Última atualização 2026-09-15 UTC.
