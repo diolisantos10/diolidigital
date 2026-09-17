@@ -1,14 +1,14 @@
 ---
 titulo: "Google Ads API — token de desenvolvedor"
 url: https://developers.google.com/google-ads/api/docs/get-started/dev-token?hl=pt-br
-capturado_em: 2026-09-16
-hash: 7f65a46267778359
+capturado_em: 2026-09-17
+hash: 278354b3289666b9
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Participe da nossa transmissão ao vivo no Discord no servidor da comunidade de publicidade e medição do Google e no YouTube em 20 de agosto, às 11h (horário de Brasília). Vamos discutir os novos recursos adicionados à versão 25.1 da API Google Ads.
+Participe da nossa transmissão ao vivo no Discord no servidor da comunidade de publicidade e medição do Google e no YouTube em 24 de setembro às 11h (horário de Brasília)! Vamos falar sobre os novos recursos adicionados na v25.2 da API Google Ads.
  O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Token de desenvolvedor
@@ -46,7 +46,7 @@ Para novos aplicativos de acesso básico e padrão, é necessário concluir a ve
 
 As solicitações de acesso básico agora são automatizadas e serão analisadas em minutos após a verificação e o envio da marca.
 
-Devido a essas atualizações de processo, todas as solicitações de acesso básico pendentes serão encerradas como parte dessa transição. Os candidatos afetados vão receber um e-mail com detalhes e precisam se inscrever novamente para o acesso básico na página de visão geral da API Google Ads.
+Devido a essas atualizações de processo, todas as solicitações pendentes de acesso básico serão encerradas como parte dessa transição. Os candidatos afetados vão receber um e-mail com detalhes e precisam se inscrever novamente para o acesso básico na página de visão geral da API Google Ads.
 
 Novos e-mails de contato da API
 
@@ -62,6 +62,68 @@ Corrija o código do app:recomendamos que você atualize o app para parar de env
 
 Entre em contato com o suporte da API Google Ads se precisar de mais ajuda ou tiver mais dúvidas.
 
+Problemas conhecidos
+
+Esta seção documenta todos os problemas conhecidos relacionados ao encerramento dos tokens de desenvolvedor.
+
+Os usuários não recebem acesso ao Explorer ou acesso básico mesmo depois de concluir a verificação de marca
+
+Estamos cientes de um problema em que alguns usuários com projetos verificados pela marca são rejeitados ao solicitar o acesso básico. Os usuários vão receber um e-mail de rejeição que diz: "O acesso básico exige um perfil de marca OAuth verificado com sucesso. Sua inscrição não foi aprovada porque você não concluiu a verificação da marca do seu projeto". Da mesma forma, alguns usuários que se inscrevem para o acesso ao Explorer também são rejeitados com um e-mail que diz: "No momento, não é possível conceder acesso ao Explorer ao seu projeto do Google Cloud porque ele não atende aos critérios de qualificação necessários para acesso direto à conta de produção de acordo com nossas políticas e Termos de Serviço da API Google Ads".
+
+Causa raiz
+
+Seu projeto na nuvem do Google Cloud pode estar no programa de teste sem custo financeiro do Google Cloud ou ter uma conta de faturamento suspensa ou desativada.
+
+Como verificar
+
+Verifique seu status de faturamento do Google Cloud. Se o projeto de faturamento aparecer como "Conta de teste sem custo financeiro" ou estiver suspenso ou desativado, você será afetado por esse problema.
+
+Status
+
+Identificamos a causa principal e estamos trabalhando em uma correção para esse problema.
+
+Solução alternativa temporária
+
+Há várias soluções alternativas para resolver esse problema. Selecione a opção mais adequada para seu caso de uso.
+
+Fazer upgrade do seu projeto do Google Cloud para um nível pago
+
+Faça upgrade do seu projeto do Google Cloud para um nível pago. Aguarde alguns minutos e tente se inscrever no acesso básico novamente.
+
+Remover o faturamento do seu projeto na nuvem do Google Cloud
+
+Aviso :a remoção do faturamento desativa todos os outros serviços pagos do Google Cloud em execução nesse projeto e pode ter outros efeitos indesejados. Use essa solução alternativa apenas se você planeja usar esse projeto exclusivamente para a integração da API Google Ads ou se não tiver problemas em pausar temporariamente outros serviços de nuvem.
+
+Se você não tiver outros serviços em execução no projeto do Google Cloud, remova o faturamento do projeto. Aguarde alguns minutos e tente se inscrever no acesso básico novamente.
+
+Usar outro projeto na nuvem do Google Cloud
+
+Se você tiver outro projeto na nuvem do Google Cloud com verificação de marca, use-o para solicitar o acesso básico.
+
+Projetos com níveis de acesso básico ou explorador recém-aprovados recebem um AUTHORIZATION_ERROR
+
+Estamos cientes de um problema em que alguns usuários que fizeram upgrade recentemente do nível de acesso do projeto do Google Cloud para os níveis de acesso básico ou Explorer aprovados recebem um AUTHORIZATION_ERROR ao fazer chamadas da API Google Ads para contas de produção.
+
+Causa raiz
+
+A API Google Ads não está honrando os upgrades de nível de acesso à API concluídos no console do Google Cloud para alguns projetos.
+
+Como verificar
+
+Você será afetado por esse problema se todas as condições a seguir forem verdadeiras:
+
+Você tem um token de desenvolvedor com nível de acesso de teste.
+Você usou seu projeto do Google Cloud e token de desenvolvedor para fazer chamadas de API Google Ads antes de 9 de setembro de 2026.
+Você fez upgrade do nível de acesso do seu projeto do Google Cloud para Explorer, Basic ou acesso padrão após 9 de setembro de 2026.
+Suas chamadas de API para uma conta de produção estão falhando com um AUTHORIZATION_ERROR. As chamadas de API para contas de teste são concluídas.
+Status
+
+Já temos uma correção para esse problema e estamos trabalhando para implementá-la nos nossos servidores. Assim que a correção for implementada, suas chamadas de API vão voltar a funcionar.
+
+Solução alternativa temporária
+
+Você pode usar um novo projeto do Google Cloud para solicitar acesso ao Explorer.
+
 Perguntas frequentes
 O que vai acontecer com os níveis de acesso à API?
 
@@ -75,7 +137,7 @@ Se você já tinha um token de desenvolvedor aprovado antes de 9 de setembro de 
 
 Analisamos os registros de chamadas de API dos últimos 90 dias para identificar quais projetos do Cloud foram usados para fazer chamadas de API com seu token de desenvolvedor aprovado.
 Atribuímos os níveis de acesso à API do token de desenvolvedor a todos os projetos do Cloud identificados.
-Posso ter vários projetos do Cloud com vários níveis de acesso após essa mudança?"
+Posso ter vários projetos do Cloud com vários níveis de acesso após essa mudança?
 
 Sim, é possível ter vários projetos do Google Cloud com diferentes níveis de acesso à API. Por exemplo, é possível ter um projeto do Google Cloud com acesso básico e outro com acesso padrão.
 
@@ -181,6 +243,12 @@ Sou um novo desenvolvedor. Como faço para me inscrever na API Google Ads?
 
 Siga as instruções do guia para iniciantes e inscreva-se na API Google Ads. Não se inscreva para receber um token de desenvolvedor na Central de API da sua conta de administrador do Google Ads. Essas solicitações não serão processadas. O API Center será desativado em breve.
 
+Quais permissões do IAM são necessárias para gerenciar níveis de acesso à API?
+
+Você precisa de permissões de gerenciamento de cota para seu projeto na nuvem do Google Cloud para gerenciar níveis de acesso da API Google Ads. As permissões necessárias estão incluídas por padrão nos seguintes papéis: proprietário, editor, administrador de cotas e administrador do Service Usage. Consulte a documentação sobre permissões de cota para mais informações.
+
+Confira na página do IAM do seu projeto na nuvem do Google Cloud os papéis atribuídos a você. Trabalhe com o administrador do projeto do Google Cloud para conceder os papéis necessários do IAM ao projeto.
+
 Avançar
 Níveis de acesso e uso permitido
 Isso foi útil?
@@ -188,4 +256,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-09-15 UTC.
+Última atualização 2026-09-16 UTC.

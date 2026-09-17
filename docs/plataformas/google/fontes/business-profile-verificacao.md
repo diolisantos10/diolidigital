@@ -1,8 +1,8 @@
 ---
 titulo: "Perfil de Empresa — verificar a empresa no Google"
 url: https://support.google.com/business/answer/7107242?hl=pt-BR
-capturado_em: 2026-09-16
-hash: 49ce6784e63eaf97
+capturado_em: 2026-09-17
+hash: fce88acb22c08cdf
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -36,9 +36,9 @@ Etapa 2: verificar sua empresa
 
 Importante: os métodos de verificação são determinados de forma automática pelo Google e não podem ser alterados.
 
-Para verificar seu negócio, use as opções disponíveis no Perfil da Empresa. Se a sua empresa estiver qualificada para a verificação por vídeo, recomendamos que você use essa opção. Saiba como verificar sua empresa com uma gravação de vídeo.
+Para verificar seu negócio, use as opções disponíveis no Perfil da Empresa. As opções de verificação disponíveis dependem do tipo de empresa, das informações públicas, da região ou do horário de funcionamento. Em alguns casos, será necessário verificar sua empresa usando mais de um método.
 
-As opções de verificação disponíveis dependem do tipo de empresa, das informações públicas, da região ou do horário de funcionamento. Em alguns casos, será necessário verificar sua empresa usando mais de um método.
+Dica: se a sua empresa estiver qualificada para a verificação por vídeo, recomendamos que você use essa opção. Saiba como verificar sua empresa com uma gravação de vídeo.
 
 Telefone ou mensagem de texto
 E-mail
@@ -46,7 +46,7 @@ Videochamada
 Correio
 Etapa 3: aguardar até 5 dias úteis para a verificação
 
-Depois que você seguir as etapas de verificação, o Google vai analisar as informações enviadas. Para manter a integridade do seu Perfil da Empresa, essa análise pode levar até 5 dias úteis.
+Depois que você seguir as etapas de verificação, o Google vai analisar as informações enviadas. Para manter a integridade do seu Perfil da Empresa, as análises de verificação levam até 5 dias úteis. Em raras ocasiões, elas podem levar mais tempo.
 
 Em alguns casos, o Google verifica um perfil instantaneamente. Isso pode acontecer quando:
 

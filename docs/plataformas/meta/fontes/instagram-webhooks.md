@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — webhooks (campos e assinatura)"
 url: https://developers.facebook.com/documentation/instagram-platform/webhooks
-capturado_em: 2026-09-16
-hash: 7ac5ea84a580c7ab
+capturado_em: 2026-09-17
+hash: 8f52ef1a612d4a28
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,18 +14,18 @@ Configurar assinaturas de Webhooks
 Updated: 3 de mar de 2026
 Copiar para LLM
 Ver como Markdown
-Este documento mostra como criar um ponto de extremidade no seu servidor para receber notificações de webhook da Meta e assinar os campos de webhook de uma conta profissional do Instagram usando seu app. Isso permite que você receba notificações em tempo real quando alguém comentar nos objetos de mídia da conta profissional do Instagram que usa seu app, @mencionar os usuários do app, quando os stories dos usuários do app expirarem ou quando um usuário do Instagram enviar uma mensagem para a conta profissional do Instagram em questão.
+Este documento mostra como criar um ponto de extremidade no seu servidor para receber notificações de webhook da Meta e assinar os campos de webhook de uma conta profissional do Instagram usando seu app. Com isso, você recebe notificações em tempo real quando alguém comenta nos objetos de mídia da conta profissional do Instagram que usa seu app, @menciona os usuários do app, quando os stories dos usuários do app expiram ou quando um usuário do Instagram envia uma mensagem para a conta profissional do Instagram em questão.
 Etapas
 Estas são as etapas necessárias para receber notificações de webhook:
-Etapa 1.Crie um ponto de extremidade no seu servidor para receber webhooks da Meta
+Etapa 1.Criar um ponto de extremidade no seu servidor para receber webhooks da Meta
 Verificar as solicitações da Meta (no Painel de Apps da Meta).
-Aceitar e validar cargas JSON da Meta – ocorre no seu servidor.
+Aceitar e validar os payloads JSON da Meta (ocorre no seu servidor)
 Etapa 2. Inscrever o app nos campos de webhook – ocorre no Painel de Apps da Meta
-Etapa 3: Permitir que a conta profissional do Instagram do usuário do seu app receba notificações por meio de uma chamada de API à Meta
+Etapa 3. Permitir que a conta profissional do Instagram do usuário do seu app receba notificações por meio de uma chamada de API à Meta
 Etapa 4: Envie uma mensagem à sua conta profissional do Instagram para testar a configuração.
 Exemplo de app no GitHub
 Fornecemos um exemplo de app no GitHub⁠ que é implementado no Heroku⁠. Você pode configurá-lo e reutilizá-lo ou usá-lo para testar rapidamente a configuração do seu Webhooks.
-Confira os requisitos:
+Você precisará do seguinte:
 Uma conta gratuita do Heroku
 A chave secreta do app, que pode ser encontrada no Painel de Apps da Meta em Configurações do app > Básico
 Um token de verificação, que é uma string. Nas configurações do app no Heroku, insira duas variáveis de configuração: APP_SECRET e TOKEN. Defina APP_SECRET como a chave secreta do app e TOKEN como sua senha. Nós incluiremos essa string em todas as solicitações de verificação quando você configurar o produto Webhooks no Painel de Aplicativos (o aplicativo validará a solicitação automaticamente).
@@ -65,11 +65,11 @@ Token de acesso do usuário ou da Página do Facebook
 
 Verificação da empresa
 	
-Obrigatório.
+Obrigatório
 	
-Obrigatório.
+Obrigatório
 	
-Obrigatório.
+Obrigatório
 
 URL base
 	
@@ -81,15 +81,15 @@ graph.facebook.com
 
 Pontos de extremidade
 	
-/<INSTAGRAM_ACCOUNT_ID> ou /me: representa a conta profissional do usuário do app no Instagram.
+/<INSTAGRAM_ACCOUNT_ID> ou /me: representa a conta profissional do usuário do Instagram do seu app.
 	
-/<PAGE_ID> ou /me: representa a Página do Facebook vinculada à conta profissional do usuário do Instagram.
+/<PAGE_ID> ou /me: representa a Página do Facebook vinculada à conta profissional do Instagram do usuário do seu app.
 	
-/<PAGE_ID> ou /me: representa a Página do Facebook vinculada à conta profissional do usuário do Instagram.
+/<PAGE_ID> ou /me: representa a Página do Facebook vinculada à conta profissional do Instagram do usuário do seu app.
 
 IDs
 	
-A identificação da conta profissional do Instagram do usuário do seu app
+O ID da conta profissional do usuário do seu app no Instagram
 	
 O ID da Página do Facebook vinculada à conta profissional do Instagram do usuário do seu app
 	
@@ -157,7 +157,7 @@ Verificar se o valor hub.verify_token corresponde à string definida no campo Ve
 responder com o valor hub.challenge.
 Se você estiver no Painel de Apps e configurar o produto Webhooks (e isso acionará uma solicitação de verificação), o painel indicará se o ponto de extremidade validou a solicitação corretamente. Se você usar o ponto de extremidade /app/subscriptions da Graph API para configurar o produto Webhooks, a API indicará sucesso ou falha com uma resposta.
 Notificações de eventos
-Na configuração do produto Webhooks, você se inscreverá em fields específicos em um tipo object (por exemplo, o campo photos no objeto user). Sempre que houver uma mudança em um desses campos, enviaremos uma solicitação POST para seu ponto de extremidade com uma carga JSON descrevendo a alteração.
+Na configuração do produto Webhooks, você se inscreverá em fields específicos em um tipo object (por exemplo, o campo photos no objeto user). Sempre que houver uma mudança em um desses campos, enviaremos uma solicitação POST para seu endpoint com um payload JSON descrevendo a alteração.
 Por exemplo, se você assinar o campo photos do objeto user e um dos usuários do app tiver publicado uma foto, enviaremos a você uma solicitação POST semelhante a:
 POST / HTTPS/1.1
 Host: your-clever-domain-name.com/webhooks
@@ -187,9 +187,9 @@ Content-Length: 311
 }
 
 Conteúdo da carga
-As cargas conterão um objeto descrevendo a mudança. Ao configurar o produto Webhooks, você pode indicar se as cargas devem conter somente os nomes dos campos alterados ou se elas devem incluir também os novos valores.
+As cargas conterão um objeto descrevendo a mudança. Ao configurar o produto Webhooks, você pode indicar se os payloads devem conter somente os nomes dos campos alterados ou se eles devem incluir também os novos valores.
 Como formatamos todas as cargas com JSON, é possível analisar a carga usando métodos ou pacotes comuns de análise de JSON.
-Não será possível consultar dados de notificações referentes a eventos históricos de webhook. Por isso, capture e armazene o conteúdo de todas as cargas de webhook que você deseja manter.
+Não será possível consultar dados de notificações referentes a eventos históricos de webhook. Por isso, capture e armazene o conteúdo de todos os payloads de webhook que você deseja manter.
 A maioria das cargas conterá as propriedades comuns descritas a seguir, mas o conteúdo e a estrutura de cada carga variam dependendo dos campos do objeto em que você está inscrito. Consulte o documento de referência de cada objeto para ver quais campos serão incluídos.
 Propriedade	Descrição	Tipo
 
@@ -207,7 +207,7 @@ array
 
 id
 	
-O ID do objeto.
+É a identificação do objeto.
 	
 string
 
@@ -229,10 +229,10 @@ Um registro de data e hora do UNIX indicando quando a notificação do evento fo
 	
 int
 Como validar cargas
-Nós assinamos todas as cargas de notificação de eventos com uma assinatura SHA256 e a incluímos no cabeçalho X-Hub-Signature-256 da solicitação, precedida por sha256=. A validação de carga não é obrigatória. No entanto, é recomendada.
+Nós assinamos todos os payloads de notificação de eventos com uma assinatura SHA256 e a incluímos no cabeçalho X-Hub-Signature-256 da solicitação, precedida por sha256=. Não é necessário validar o payload, mas é recomendado.
 Para validar a carga:
-gere uma assinatura SHA256 usando a carga e a chave secreta do app;
-compare sua assinatura com a do cabeçalho X-Hub-Signature-256 (tudo que aparece após sha256=). Se as assinaturas coincidirem, a carga será verdadeira.
+gere uma assinatura SHA256 usando o payload e a chave secreta do app;
+Compare sua assinatura com a do cabeçalho X-Hub-Signature-256 (tudo que aparece após sha256=). Se as assinaturas coincidirem, a carga será verdadeira.
 Como responder a notificações de eventos
 Seu ponto de extremidade deve responder a todas as notificações de eventos com 200 OK HTTPS.
 Frequência
@@ -489,7 +489,7 @@ No código do app, extraia o CN do cabeçalho HTTP “X-Amzn-Mtls-Clientcert-Sub
 Certificado da CA para download
 meta-outbound-api-ca-2025-12.pem
 Configuração do teste
-Envie uma mensagem de teste à sua conta profissional do Instagram (a conta pública adicionada no Painel de Apps da Meta para testes). Isso deve disparar um evento de webhook messages. A notificação deve conter a recipient.id, definida como a identificação no escopo do Instagram da sua conta profissional do Instagram, além das propriedades is_echo e is_self, ambas definidas como true, na matriz messaging.
+Envie uma mensagem de teste à sua conta profissional do Instagram (a conta pública adicionada no Painel de Apps da Meta para testes). Isso deve disparar um evento de webhook messages. A notificação deve conter a recipient.id, definida como o ID no escopo do Instagram da sua conta profissional do Instagram, além das propriedades is_echo e is_self, ambas definidas como true, na matriz messaging.
 Envie uma resposta ao ID no escopo do Instagram usando a API.
 Próximas etapas
 Saiba como enviar e receber mensagens de contas profissionais do Instagram

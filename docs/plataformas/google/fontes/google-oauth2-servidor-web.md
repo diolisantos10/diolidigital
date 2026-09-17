@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — OAuth 2.0 para apps de servidor web (refresh token)"
 url: https://developers.google.com/identity/protocols/oauth2/web-server?hl=pt-br
-capturado_em: 2026-09-16
-hash: ebb3de84a6b5a5a3
+capturado_em: 2026-09-17
+hash: 70151086973d87cf
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -669,4 +669,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-05-26 UTC.
+Última atualização 2026-09-16 UTC.

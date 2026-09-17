@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — lista de escopos OAuth 2.0 das APIs"
 url: https://developers.google.com/identity/protocols/oauth2/scopes?hl=pt-br
-capturado_em: 2026-09-16
-hash: 731c8c5bf5ff2e4c
+capturado_em: 2026-09-17
+hash: 5dbfc9097574cbd8
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -15,11 +15,11 @@ API Access Approval, v1
 API Access Context Manager, v1
 API Ad Exchange Buyer II, v2beta1
 API Address Validation, v1
-API Admin SDK, v1
+SDK Admin API, v1
 
-Este documento lista os escopos do OAuth 2.0 que talvez seja necessário solicitar para acessar as APIs do Google, dependendo do nível de acesso necessário. Os escopos sensíveis precisam ser analisados pelo Google e têm um indicador sensível na página de configuração da tela de permissão OAuth do console do Google Cloud. Muitos escopos se sobrepõem, então é melhor usar um que não seja sensível. Para informações sobre os requisitos de escopo de cada método, consulte a documentação da API individual.
+Este documento lista os escopos do OAuth 2.0 que talvez seja necessário solicitar para acessar as APIs do Google, dependendo do nível de acesso necessário. Os escopos sensíveis exigem análise do Google e têm um indicador sensível na página de configuração da tela de permissão OAuth do console do Google Cloud. Muitos escopos se sobrepõem. Por isso, é melhor usar um que não seja sensível. Para informações sobre os requisitos de escopo de cada método, consulte a documentação da API individual.
 
-Se o aplicativo público usar escopos que permitem o acesso a determinados dados do usuário, ele precisará concluir um processo de verificação. Se você vir app não verificado na tela ao testar o aplicativo, envie uma solicitação de verificação para remover essa mensagem. Saiba mais sobre apps não verificados e tire suas dúvidas sobre perguntas frequentes sobre a verificação de apps na Central de Ajuda.
+Se o aplicativo público usar escopos que permitem acesso a determinados dados do usuário, ele precisará concluir um processo de verificação. Se a mensagem app não verificado aparecer na tela ao testar o aplicativo, envie uma solicitação de verificação para remover essa mensagem. Saiba mais sobre apps não verificados e encontre respostas para perguntas frequentes sobre a verificação de apps na Central de Ajuda.
 API Access Approval, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
@@ -32,15 +32,15 @@ https://www.googleapis.com/auth/adexchange.buyer	Gerencie a configuração da su
 API Address Validation, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
-API Admin SDK, v1
+SDK Admin API, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/admin.reports.audit.readonly	Visualizar relatórios de auditoria sobre seu domínio do Google Workspace
 https://www.googleapis.com/auth/admin.reports.usage.readonly	Visualizar relatórios de uso do seu domínio do Google Workspace
-API Admin SDK, v1
+SDK Admin API, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/admin.datatransfer	Ver e gerenciar transferências de dados entre os usuários de sua organização
 https://www.googleapis.com/auth/admin.datatransfer.readonly	Ver transferências de dados entre os usuários de sua organização
-API Admin SDK, v1
+SDK Admin API, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/admin.chrome.printers	Ver, adicionar, editar e excluir permanentemente as impressoras que sua organização pode usar com o Chrome
 https://www.googleapis.com/auth/admin.chrome.printers.readonly	Ver as impressoras que sua organização pode usar com o Chrome
@@ -79,7 +79,7 @@ API AdSense Management, v2
 Escopo	Descrição
 https://www.googleapis.com/auth/adsense	Visualize e gerencie os dados do Google AdSense
 https://www.googleapis.com/auth/adsense.readonly	Visualize seus dados do Google AdSense
-API da plataforma do AdSense, v1
+API AdSense Platform, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/adsense	Visualize e gerencie os dados do Google AdSense
 https://www.googleapis.com/auth/adsense.readonly	Visualize seus dados do Google AdSense
@@ -166,7 +166,7 @@ https://www.googleapis.com/auth/cloud-platform.read-only	Ver seus dados nos serv
 API Assured Workloads, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
-API do Authorized Buyers Marketplace, v1
+API Authorized Buyers Marketplace, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/authorized-buyers-marketplace	Veja, crie, edite e exclua suas entidades do Marketplace do Authorized Buyers.
 API do serviço de Backup e DR, v1
@@ -205,7 +205,7 @@ API BigQuery Data Policy, v2
 Escopo	Descrição
 https://www.googleapis.com/auth/bigquery	Ver e gerenciar seus dados no Google BigQuery e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
-API Data Transfer do BigQuery, v1
+API BigQuery Data Transfer, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/bigquery	Ver e gerenciar seus dados no Google BigQuery e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
@@ -316,7 +316,7 @@ https://www.googleapis.com/auth/cloudcomposer.readonly	Ver seus dados do Google 
 API Cloud Controls Partner, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
-API Data Fusion, v1
+API Cloud Data Fusion, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 API Cloud Dataplex, v1
@@ -325,12 +325,12 @@ https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir
 https://www.googleapis.com/auth/cloud-platform.read-only	Ver seus dados nos serviços do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/dataplex.read-write	Acessar, editar, configurar e excluir seus dados do Google Cloud Dataplex e ver o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/dataplex.readonly	Ver seus dados do Google Cloud Dataplex e o e-mail da sua Conta do Google
-API Dataproc, v1
+API Cloud Dataproc, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/dataproc	Acessar, editar, configurar e excluir seus dados do Google Cloud Dataproc e consultar o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/dataproc.read-only	Acessar seus dados do Google Cloud Dataproc e o endereço de e-mail da sua Conta do Google
-API Datastore, v1
+API Cloud Datastore, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/datastore	Visualize e gerencie seus dados do Google Cloud Datastore
@@ -355,7 +355,7 @@ https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir
 API Cloud Domains, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
-API Filestore, v1
+API Cloud Filestore, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 API Firestore, v1
@@ -427,7 +427,7 @@ API Cloud Pub/Sub, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/pubsub	Ver e gerenciar tópicos e inscrições Pub/Sub
-API Resource Manager, v3
+API Cloud Resource Manager, v3
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/cloud-platform.read-only	Ver seus dados nos serviços do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
@@ -473,7 +473,7 @@ API Cloud Storage para Firebase, v1beta
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/firebase	Ver e administrar os dados e as configurações da Firebase
-Cloud Storage JSON API, v1
+API Cloud Storage JSON, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Visualize e gerencie seus dados nos serviços do Google Cloud Platform
 https://www.googleapis.com/auth/cloud-platform.read-only	Ver seus dados nos serviços do Google Cloud Plataform
@@ -508,7 +508,7 @@ API Cloud Translation, v3
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/cloud-translation	Traduza textos de um idioma para outro usando o Google Tradutor
-API Video Intelligence, v1
+API Cloud Video Intelligence, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 API Cloud Vision, v1
@@ -663,7 +663,7 @@ https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir
 https://www.googleapis.com/auth/cloud_search.query	Pesquisar os dados da sua organização no índice do Cloud Search
 https://www.googleapis.com/auth/discoveryengine.assist.readwrite	Acessar seu histórico de conversas do Agentspace, incluindo arquivos enviados e visualizações e relatórios, e interaja com o assistente do Agentspace em seu nome.
 https://www.googleapis.com/auth/discoveryengine.readwrite	Ver, editar, criar e excluir seus dados associados a qualquer produto da API Discovery Engine, como Agentspace, Vertex AI para Pesquisa ou NotebookLM Enterprise, incluindo dados de usuários finais e de administração ou configuração.
-API do Display & Video 360, v4
+API Display & Video 360, v4
 Escopo	Descrição
 https://www.googleapis.com/auth/display-video	Criar, visualizar, editar e excluir permanentemente seus relatórios e entidades do Display & Video 360
 https://www.googleapis.com/auth/display-video-mediaplanning	Criar, visualizar e editar entidades de campanhas do Display & Video 360 e ver as faturas
@@ -770,7 +770,7 @@ https://www.googleapis.com/auth/fitness.reproductive_health.read	Ver informaçõ
 https://www.googleapis.com/auth/fitness.reproductive_health.write	Adicionar informações sobre sua saúde reprodutiva no Google Fit. Autorizo o Google a usar informações sobre minha saúde reprodutiva com este app.
 https://www.googleapis.com/auth/fitness.sleep.read	Veja seus dados de sono no Google Fit. Autorizo o Google a compartilhar minhas informações de sono com este app.
 https://www.googleapis.com/auth/fitness.sleep.write	Adicionar seus dados de sono no Google Fit. Autorizo o Google a usar minhas informações de sono com este app.
-API Gemini Enterprise para experiência do cliente, v1
+API Gemini Enterprise for Customer Experience, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/ces	Criar, atualizar, excluir e gerenciar seus agentes de última geração
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
@@ -818,7 +818,7 @@ API Google Analytics Data, v1beta
 Escopo	Descrição
 https://www.googleapis.com/auth/analytics	Visualize e gerencie seus dados do Google Analytics
 https://www.googleapis.com/auth/analytics.readonly	Ver seus dados do Google Analytics e fazer o download deles
-API do Perfil da Empresa no Google
+API Google Business Profile
 Escopo	Descrição
 https://www.googleapis.com/auth/business.manage	Gerenciar o Perfil da Empresa no Google
 API Google Chat, v1
@@ -885,7 +885,7 @@ https://www.googleapis.com/auth/classroom.topics.readonly	Ver tópicos no Google
 API Data Catalog do Google Cloud, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
-API Google Cloud Memorystore para Redis, v1
+API do Google Cloud Memorystore para Redis, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/redis.read-only	Acessar seus dados do Memorystore for Redis no Google Cloud e o endereço de e-mail da sua Conta do Google
@@ -998,11 +998,11 @@ API Google Tasks, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/tasks	Criar, editar, organizar e excluir todas as suas tarefas
 https://www.googleapis.com/auth/tasks.readonly	Visualize suas tarefas
-API do Google Vault, v1
+API Google Vault, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/ediscovery	Gerencie seus dados de eDiscovery
 https://www.googleapis.com/auth/ediscovery.readonly	Visualize seus dados de eDiscovery
-API do Alert Center do Google Workspace, v1beta1
+API Alert Center do Google Workspace, v1beta1
 Escopo	Descrição
 https://www.googleapis.com/auth/apps.alerts	Ver e excluir os alertas do Google Workspace do seu domínio e enviar feedback sobre alertas
 API Google Workspace Events, v1
@@ -1027,7 +1027,7 @@ https://www.googleapis.com/auth/drive.metadata.readonly	Ver informações sobre 
 https://www.googleapis.com/auth/drive.readonly	Ver e baixar todos os seus arquivos do Google Drive
 https://www.googleapis.com/auth/meetings.space.created	Criar, editar e ver informações sobre as videoconferências do Google Meet criadas pelo app.
 https://www.googleapis.com/auth/meetings.space.readonly	Conferir informações sobre suas videoconferências do Google Meet
-API do Google Workspace Marketplace, v2
+API Google Workspace Marketplace, v2
 Escopo	Descrição
 https://www.googleapis.com/auth/appsmarketplace.license	Visualize as informações de licenciamento de seu aplicativo instalado
 API Google Workspace Reseller, v1
@@ -1067,7 +1067,7 @@ https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir
 Serviço Gerenciado para Apache Kafka API, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
-API do serviço gerenciado do Microsoft Active Directory, v1
+API do Serviço Gerenciado para Microsoft Active Directory, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 API Manufacturer Center, v1
@@ -1160,7 +1160,10 @@ https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir
 API Policy Analyzer, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
-Simulador de política da API, v1
+API Policy Assist
+Escopo	Descrição
+https://www.googleapis.com/auth/policyassist	Ver e gerenciar as recomendações de função do Policy Assist
+API Policy Simulator, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 API Solucionador de problemas de políticas, v3
@@ -1219,7 +1222,7 @@ https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir
 API Security Posture, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
-Proteção de dados sensíveis (DLP), v2
+Proteção de Dados Sensíveis (DLP), v2
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 API de acesso VPC sem servidor, v1
@@ -1265,7 +1268,7 @@ https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir
 API Street View Publish, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/streetviewpublish	Publicar e gerenciar suas fotos em 360º no Google Street View
-API do Gerenciador de Tags, v2
+API Tag Manager, v2
 Escopo	Descrição
 https://www.googleapis.com/auth/tagmanager.delete.containers	Excluir seus contêineres do Gerenciador de tags do Google
 https://www.googleapis.com/auth/tagmanager.edit.containers	Gerenciar seu contêiner do Gerenciador de tags do Google e os subcomponentes desse contêiner, excluindo o controle de versões e a publicação
@@ -1287,7 +1290,7 @@ API Vertex AI, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/cloud-platform.read-only	Ver seus dados nos serviços do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
-API Vertex AI para Pesquisa em e-commerce, v2
+API AI Commerce Search, v2
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 API VM Migration, v1
@@ -1299,7 +1302,7 @@ https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir
 API Web Risk, v1
 Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
-API Indexing da Pesquisa Google na web, v3
+API Indexing da Pesquisa Google na Web, v3
 Escopo	Descrição
 https://www.googleapis.com/auth/indexing	Enviar dados ao Google para indexação
 API Web Security Scanner, v1
@@ -1338,4 +1341,4 @@ Isso foi útil?
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-05-26 UTC.
+Última atualização 2026-09-16 UTC.

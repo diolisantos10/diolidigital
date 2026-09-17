@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp — modelo de cobrança por conversa/mensagem"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing
-capturado_em: 2026-09-16
-hash: 49960e3cf246b0a1
+capturado_em: 2026-09-17
+hash: d29ff468a1200c85
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -15,16 +15,16 @@ Updated: 10 de set de 2026
 Copiar para LLM
 Ver como Markdown
 Este documento explica como funcionam os preços na Plataforma do WhatsApp Business.
-As atualizações de preços para mensagens de agente, serviço e utilidade do Meta Business serão lançadas em 1º de agosto de 2026 e 1º de outubro de 2026. Saiba mais.
+As atualizações de preços para mensagens de Meta Business Agent, serviço e utilidade entrarão em vigor em 1º de agosto de 2026 e 1º de outubro de 2026. Saiba mais.
 API de Nuvem e API de Mensagens de Marketing para o WhatsApp
-A partir de 1º de julho de 2025, a Meta passará a cobrar por mensagem pelas mensagens que as empresas enviarem a usuários do WhatsApp:
+A partir de 1º de julho de 2025, a Meta fará cobranças em por mensagem para mensagens que as empresas entregarem a usuários do WhatsApp:
 Você recebe cobranças apenas quando uma mensagem de modelo é entregue ("type":"template").
 As taxas variam conforme a categoria do modelo e o código de ligação do país do número de telefone do WhatsApp do destinatário.
 A Meta gera valor para as empresas das seguintes maneiras:
-A partir de 1º de novembro de 2024, a Meta não cobrará por mensagens que não são de modelo ("type":"text", "type":"image" e assim por diante). É possível enviar mensagens que não são de modelo somente dentro de uma janela aberta de atendimento ao cliente. Consulte Como enviar mensagens para ver uma lista com os tipos de mensagens.
-A partir de 1º de julho de 2025, a Meta não cobrará por modelos de utilidade em resposta a dos usuários (entregues dentro de uma janela aberta de atendimento ao cliente).
+A partir de 1º de novembro de 2024, a Meta não cobrará por mensagens que não forem de modelo ("type":"text", "type":"image" e assim por diante). É possível enviar mensagens que não são de modelo somente dentro de uma janela aberta de atendimento ao cliente. Consulte Como enviar mensagens para ver uma lista com os tipos de mensagens.
+A partir de 1º de julho de 2025: a Meta não cobra por modelos de utilidade em resposta a dos usuários (entregues dentro de uma janela aberta de atendimento ao cliente).
 A partir de 1º de julho de 2025: é possível acessar taxas mais baixas para mensagens de modelo de autenticação e utilidade, com base no volume de mensagens.
-Janela de ponto de entrada gratuito: todas as mensagens, incluindo mensagens de modelo, serão gratuitas por 72 horas, quando forem enviadas dentro de uma janela aberta de ponto de entrada gratuito.
+Período de ponto de entrada gratuito: todas as mensagens, incluindo mensagens de modelo, serão gratuitas por 72 horas, quando forem enviadas dentro de uma janela aberta de ponto de entrada gratuito.
 Informações sobre preços
 As atualizações de preços para mensagens de agente, serviço e utilidade do Meta Business serão lançadas em 1º de agosto de 2026 e 1º de outubro de 2026. Saiba mais.
 O PDF explicativo sobre preços descreve como a Meta cobra as empresas e reflete as atualizações que serão lançadas em 1º de outubro de 2026:
@@ -266,13 +266,13 @@ Aumentos no Cazaquistão*, Kuwait*, Marrocos*, Omã*, Paquistão, Peru, África 
 Diminuições em Bangladesh*, Iraque*, Nepal*, Sri Lanka*.
 Tarifas de autenticação internacional – Novas tarifas em Bangladesh*, Iraque*, Cazaquistão*, Kuwait*, Marrocos*, Nepal*, Omã*, Sri Lanka*, Ucrânia*, conforme anunciado em 27 de maio de 2026 para fornecer aviso de quatro meses, e não de um mês.
 * O mercado será retirado da respectiva região de preços "Outros" e passará a ter uma tarifa independente. As 9 tarifas com atualizações para utilidade, autenticação e autenticação internacional foram anunciadas em 27 de maio de 2026.
-1b. Mercados independentes a partir de 1º de outubro de 2026
+1b. Mercados independentes, a partir de 1º de outubro de 2026
 A Meta anunciou em 27 de maio de 2026 que seis mercados seriam removidos das respectivas regiões de preços "Outros" em 1º de julho de 2026 e que pelo menos outros nove mercados seriam removidos em 1º de outubro de 2026. Para os que se tornarão independentes a partir de 1º de outubro de 2026, isso significa o seguinte:
 Cobrança	Até 18 de setembro de 2024, as 30, 2026	A partir de 1º de outubro de 2026
 
 Taxa cobrada
 	
-Taxa da respectiva região de preços "Outros".
+Taxa da respectiva região de preços do "restante".
 	
 Taxa de mercado independente
 
@@ -282,11 +282,11 @@ Níveis de volume da região de preços "Restante".
 	
 Níveis de volume específicos de mercados independentes
 1c. Mercados com uma nova taxa internacional de autenticação, em vigor a partir de 1º de outubro de 2026
-Em vigor a partir de 1º de setembro de 2026 – Conforme abaixo, e conforme anunciado em 27 de maio de 2026, a Meta determinará a elegibilidade para taxas internacionais de autenticação com base em mensagens de autenticação em 18 mercados, e não 9, com taxas desse tipo, incluindo os 9 mercados adicionais que terão uma taxa internacional de autenticação a partir de 1º de outubro de 2026.
+1º de setembro de 2026 – Conforme abaixo, e conforme anunciado em 27 de maio de 2026, a Meta determinará a elegibilidade para taxas internacionais de autenticação com base em mensagens de autenticação em 18 mercados, e não 9, com taxas desse tipo, incluindo os 9 mercados adicionais que terão uma taxa internacional de autenticação a partir de 1º de outubro de 2026.
 A partir de 1º de outubro de 2026 – As empresas poderão ser cobradas pelas taxas internacionais de autenticação em até +9 mercados ou começarão a ser cobradas pelas taxas internacionais de autenticação, conforme a tabela abaixo.
 A partir de 30 de agosto de 2026	A partir de 19 de setembro de 2024, as 1, 2026	A partir de 1º de outubro de 2026
 
-Qualifica-se para taxas de autenticação internacional. Assim, taxas de autenticação internacional cobradas em até 9 mercados 1
+Qualifica-se para taxas de autenticação internacional. Assim, são cobradas taxas de autenticação internacional em até 9 mercados 1.
 	
 Sem alteração; a qualificação atual se aplica a novos mercados com taxas de autenticação internacional
 	
@@ -294,20 +294,20 @@ Cobrança de taxas internacionais de autenticação em até 9 mercados adicionai
 
 Ainda não qualificado para as taxas de autenticação internacional. Assim, não são cobradas taxas de autenticação internacional em nenhum mercado
 	
-Pode se qualificar para taxas internacionais de autenticação, por mensagens em 18 mercados, e não 92
+Qualificação para taxas internacionais de autenticação, por mensagens em 18 mercados, e não 92
 	
-Cobrança de taxas de autenticação internacional em até 18 mercados
+Cobrança de taxas internacionais de autenticação em até 18 mercados
 Conforme o ponto comercial principal, as empresas poderão continuar a ser cobradas pela taxa de autenticação em um desses 18 mercados.
 A Meta continuará fornecendo um aviso de qualificação de 30 dias antes do início da cobrança das taxas internacionais de autenticação.
 2. Taxas de serviço, em vigor a partir de 1º de outubro de 2026
 As novas tarifas de serviço são publicadas abaixo.
 A partir de 1º de outubro de 2026 – A Meta cobrará por mensagem as mensagens de serviço. Conforme anunciado em 1º de julho de 2026, as taxas para mensagens de serviço serão as mesmas que as de utilidade e autenticação, por mercado. As atualizações nas taxas de utilidade e autenticação (conforme mencionado acima) são refletidas nas taxas de serviço.
-Não há alteração no momento em que a mensagem de serviço pode ser enviada. Ela ainda pode ser enviada apenas em uma janela de atendimento ao cliente de 24 horas que é aberta e redefinida a cada mensagem do usuário.
+Não há alteração no envio das mensagens de serviço. Elas ainda podem ser enviadas apenas dentro da janela de atendimento ao cliente de 24 horas, que é aberta e redefinida a cada mensagem do usuário.
 (NOVO)A partir de 1º de outubro de 2026 – A Meta lançará um nível mensal gratuito para mensagens de serviço.
-Cada número de telefone comercial tem um nível gratuito compartilhado de mil mensagens de serviço entregues por mês. As entregas de serviço individuais e em grupo usam esse mesmo nível gratuito. Uma entrega individual consome uma unidade; um envio em grupo consome uma unidade por destinatário. A Meta cobra por mensagens de serviço após o nível gratuito ser usado.
+Cada número de telefone comercial tem um nível gratuito compartilhado de 1.000 mensagens de serviço entregues por mês. As entregas de serviço individuais e em grupo usam esse mesmo nível gratuito. Uma entrega individual consome uma unidade; um envio em grupo consome uma unidade por destinatário. A Meta cobra por mensagens de serviço após o nível gratuito ser usado.
 As mensagens de serviço não utilizadas no nível gratuito não são acumuladas. O limite de conversas gratuitas é restaurado a cada mês para todos os números de telefone comerciais. Por exemplo, 1.000 conversas em outubro sem acumulação; 1.000 para novembro sem acumulação).
-Caso você não tenha uma forma de pagamento para sua conta do WhatsApp Business, a Meta entregará mensagens de serviço dentro do nível gratuito compartilhado, mas não as entregará depois que o nível gratuito for usado. Para garantir a continuidade das suas mensagens de serviço, verifique se você tem uma forma de pagamento na Central de Cobrança⁠.
-O campo type no objeto pricing de webhooks de mensagens de status será alterado conforme a seguir para mensagens com category de service ou group_service:
+Caso você não tenha uma forma de pagamento para sua conta do WhatsApp Business, a Meta entregará as mensagens de serviço dentro do nível gratuito compartilhado, mas não as entregará depois que o nível gratuito for usado. Para garantir a continuidade das suas mensagens de serviço, verifique se você tem uma forma de pagamento na Central de Cobrança⁠.
+O tipo de preço (<PRICING_TYPE>) no objeto pricing dos webhooks de mensagens de status será alterado conforme a seguir para mensagens com uma categoria de preço (<PRICING_CATEGORY>) de service ou group_service:
 Quais mensagens	Até 30 de setembro 30, 2026	A partir de 1º de outubro de 2026
 type	Carregado	type	Carregado
 
@@ -351,7 +351,7 @@ regular
 	
 Sim
 Mensagem de serviço no nível gratuito
-Para uma mensagem de serviço individual entregue enquanto o número de telefone comercial está no nível gratuito:
+Para uma mensagem de serviço individual entregue enquanto o número de telefone comercial ainda está no nível gratuito:
 "pricing": {
   "billable": false,
   "pricing_model": "PMP",
@@ -385,13 +385,13 @@ Para uma mensagem de serviço de grupo entregue após o uso do nível gratuito:
 }
 
 Depois de receber essas informações, poderemos analisar isso para você. Taxas de utilidade, vigentes a partir de 1º de outubro de 2026
-Em vigor a partir de 1º de outubro de 2026 – A Meta passará a cobrar pelas mensagens de utilidade enviadas durante uma janela aberta de atendimento ao cliente de 24 horas, conforme anunciado em 1º de julho de 2026.
-Não há alteração quanto a quando uma mensagem de utilidade pode ser enviada. As empresas podem usar uma mensagem de modelo de utilidade para entrar em contato ou responder aos usuários, mesmo quando não há uma janela de atendimento ao cliente aberta.
-O campo type no objeto pricing de webhooks de mensagens de status será alterado conforme a seguir para mensagens com category de utility ou group_utility enviadas em resposta a usuários, dentro de uma janela aberta de atendimento ao cliente:
+A partir de 1º de outubro de 2026 – A Meta passará a cobrar pelas mensagens de utilidade enviadas em uma janela aberta de atendimento ao cliente de 24 horas, conforme anunciado em 1º de julho de 2026.
+Não há alteração no momento em que a mensagem de utilidade pode ser enviada. As empresas podem usar um modelo de mensagem de utilidade para entrar em contato com os usuários ou responder a eles, mesmo quando não há uma janela de atendimento ao cliente aberta.
+O tipo de preço (<PRICING_TYPE>) no objeto pricing de webhooks de mensagens de status será alterado conforme a seguir para mensagens com uma categoria de preço (<PRICING_CATEGORY>) de utility ou group_utility enviadas em resposta a usuários, dentro de uma janela aberta de atendimento ao cliente:
 Quais mensagens	Até 30 de setembro 30, 2026	A partir de 1º de outubro de 2026
 type	Carregado	type	Carregado
 
-Mensagens de utilidade individuais enviadas em resposta a usuários, dentro da janela de atendimento ao cliente de 24 horas
+Mensagens de utilidade individuais enviadas em resposta aos usuários, dentro da janela de atendimento ao cliente de 24 horas
 	
 free_customer_service
 	
@@ -411,7 +411,7 @@ regular
 	
 Sim
 Mensagem de utilidade enviada em resposta a um usuário
-Até 30 de setembro de 2026, o objeto pricing para uma mensagem de utilidade individual enviada dentro de uma janela aberta de atendimento ao cliente será:
+Até 30 de setembro de 2026, o objeto pricing de uma mensagem de utilidade individual enviada durante uma janela aberta de atendimento ao cliente será:
 "pricing": {
   "billable": false,
   "pricing_model": "PMP",
@@ -419,7 +419,7 @@ Até 30 de setembro de 2026, o objeto pricing para uma mensagem de utilidade ind
   "category": "utility"
 }
 
-Para uma mensagem de utilidade em grupo enviada dentro de uma janela aberta de atendimento ao cliente do grupo até 30 de setembro de 2026:
+Para uma mensagem de utilidade em grupo enviada dentro de uma janela aberta de atendimento ao cliente em grupo até 30 de setembro de 2026:
 "pricing": {
   "billable": false,
   "pricing_model": "PMP",
@@ -427,7 +427,7 @@ Para uma mensagem de utilidade em grupo enviada dentro de uma janela aberta de a
   "category": "group_utility"
 }
 
-A partir de 1º de outubro de 2026, o objeto pricing para uma mensagem de utilidade individual enviada dentro de uma janela aberta de atendimento ao cliente será:
+A partir de 1º de outubro de 2026, o objeto pricing para uma mensagem de utilidade 1:1 enviada dentro de uma janela aberta de atendimento ao cliente será:
 "pricing": {
   "billable": true,
   "pricing_model": "PMP",
@@ -435,7 +435,7 @@ A partir de 1º de outubro de 2026, o objeto pricing para uma mensagem de utilid
   "category": "utility"
 }
 
-Para uma mensagem de utilidade em grupo enviada dentro de uma janela aberta de atendimento ao cliente do grupo a partir de 1º de outubro de 2026:
+Para uma mensagem de utilidade em grupo enviada dentro de uma janela aberta de atendimento ao cliente em grupo a partir de 1º de outubro de 2026:
 "pricing": {
   "billable": true,
   "pricing_model": "PMP",
@@ -444,7 +444,7 @@ Para uma mensagem de utilidade em grupo enviada dentro de uma janela aberta de a
 }
 
 Tabelas de tarifas vigentes a partir de 1º de outubro de 2026
-Confira abaixo as futuras atualizações das nossas taxas. Veja as taxas atualizadas nas nossas tabelas de taxas acima.
+Confira a seguir as futuras atualizações das nossas taxas. Veja as taxas atualizadas nas nossas tabelas de taxas acima.
 Moeda	Taxas (csv)	Níveis de volume (csv)	Taxas e níveis de volume (PDF)
 
 USD
@@ -575,8 +575,8 @@ Níveis de volume em SGD
 	
 Taxas e níveis de volume em SGD
 Conforme anunciado em 27 de maio de 2026
-Para fornecer um aviso com mais de um mês de antecedência, dando mais tempo para planejamento e preparação, a Meta compartilhou atualizações de preços que entrarão em vigor em 1º de outubro de 2026 a 1º de junho de 2026. A partir de 1º de julho de 2026, a Meta removerá mercados adicionais das respectivas regiões de preços "Outros" para que tenham cartões de taxas independentes. Veja abaixo os mercados que serão retirados pela Meta e as atualizações correspondentes das taxas. A Meta anunciará as novas taxas até 1º de setembro de 2026, conforme o calendário de preços.
-Bangladesh*, Iraque*, Nepal*, Sri Lanka* – Redução nas taxas de autenticação e utilidade, além de uma nova taxa internacional de autenticação mais alta em relação à taxa regional de autenticação atual
+Para fornecer um aviso com mais de um mês de antecedência, dando mais tempo para planejamento e preparação, a Meta compartilhou atualizações de preços que entrarão em vigor em 1º de outubro de 2026 a 1º de junho de 2026. A partir de 1º de julho de 2026, a Meta removerá mercados adicionais das respectivas regiões de preços "Outros" para que tenham cartões de taxas independentes. Veja abaixo os mercados que serão retirados pela Meta e as atualizações correspondentes das taxas. A Meta anunciará as novas tarifas até 1º de setembro de 2026, conforme o calendário de preços.
+Bangladesh*, Iraque*, Nepal*, Sri Lanka* – Redução nas tarifas de autenticação e utilidade, além da nova tarifa de autenticação internacional, que é superior à tarifa de autenticação regional atual
 Cazaquistão*, Kuwait*, Marrocos*, Omã*, Ucrânia* – Taxas de autenticação e utilidade mais altas, além de uma nova taxa internacional de autenticação mais alta em relação à taxa de autenticação regional atual
 As atualizações de preços entrarão em vigor em 1º de agosto de 2026 e 1º de outubro de 2026.
 As atualizações de preços para mensagens de agente, serviço e utilidade do Meta Business serão lançadas em 1º de agosto de 2026 e 1º de outubro de 2026. Consulte aqui para saber mais.
@@ -594,21 +594,21 @@ Em 1º de julho de 2026, à meia-noite, conforme o fuso horário da conta do Wha
 Hong Kong*: tarifas de utilidade e autenticação mais altas.
 Hungria*: tarifas de utilidade e autenticação mais altas.
 Itália: taxa de mensagens de marketing mais alta.
-Polônia*: taxas de marketing, utilidade e autenticação mais baixas.
+Polônia* – Redução nas tarifas de marketing, utilidade e autenticação.
 Catar*: tarifas de utilidade e autenticação mais altas.
 Romênia*: tarifas de utilidade e autenticação mais altas.
 Singapura*: tarifas de utilidade e autenticação mais altas.
 Espanha: taxa de mensagens de marketing mais alta.
 Reino Unido: taxa de mensagens de marketing mais alta.
 * Até 30 de junho de 2026, as mensagens para usuários nesses mercados eram cobradas pelas respectivas taxas regionais (por exemplo, Outros países da Europa Central e Oriental para a Polônia). Esses mercados foram removidos da precificação da taxa regional para serem independentes nas tabelas de tarifas, com taxas específicas do mercado.
-Para mensagens de utilidade e autenticação – Os níveis de volume para esses mercados agora são específicos do mercado. Por exemplo, as mensagens que as empresas enviam a usuários na Polônia a/ não contam mais para os níveis de volume do restante da Europa Central e Oriental e, em vez disso, b/ contam para os níveis de volume da Polônia.
+Para mensagens de utilidade e autenticação: os níveis de volume para esses mercados agora são específicos de cada mercado. Por exemplo, as mensagens que as empresas enviam a usuários na Polônia a/ não contam mais para os níveis de volume do restante da Europa Central e Oriental e, em vez disso, b/ contam para os níveis de volume da Polônia.
 Em 1º de abril de 2026, à meia-noite, conforme o fuso horário da conta do WhatsApp Business, as atualizações de taxas abaixo serão aplicadas:
 Arábia Saudita: taxa de mensagens de marketing mais alta.
 Índia: tarifa internacional de autenticação mais alta.
 Paquistão: tarifas de utilidade e autenticação mais altas. A tarifa internacional de autenticação não será alterada.
 Turquia: tarifas de utilidade e autenticação mais baixas.
 Introdução de 8 novas moedas de cobrança: ARS (Argentina), CLP (Chile), COP (Colômbia), MYR (Malásia), PEN (Peru), SAR (Arábia Saudita), SGD (Singapura), AED (Emirados Árabes Unidos).
-Em 1º de janeiro de 2026, à meia-noite, conforme o fuso horário da conta do WhatsApp Business, as atualizações de taxas abaixo serão aplicadas:
+Em 1º de janeiro de 2026, à meia-noite, conforme o fuso horário da conta do WhatsApp Business, serão aplicadas as atualizações de taxas abaixo:
 Índia: taxa de marketing mais alta.
 França, Egito: taxas de marketing mais baixas.
 América do Norte: tarifas de utilidade e autenticação mais baixas.
@@ -1587,7 +1587,7 @@ As mensagens sem modelo, que só podem ser enviadas dentro de uma janela de aten
 }
 
 Mensagens de modelo de utilidade em resposta a usuários
-As atualizações de preços para mensagens de agente, serviço e utilidade do Meta Business serão lançadas em 1º de agosto de 2026 e 1º de outubro de 2026. Saiba mais.
+As atualizações de preços para mensagens de Meta Business Agent, serviço e utilidade entrarão em vigor em 1º de agosto de 2026 e 1º de outubro de 2026. Saiba mais.
 A partir de 1º de julho de 2025, as mensagens de modelo de utilidade enviadas dentro de uma janela de atendimento ao cliente aberta não serão cobradas. Nessas mensagens, type será definido como free_customer_service e category será definido como utility no objeto pricing de webhooks messages de status:
 "pricing": {
   "billable": false,

@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — IG User Insights (métricas de conta)"
 url: https://developers.facebook.com/documentation/instagram-platform/api-reference/instagram-user/insights
-capturado_em: 2026-09-16
-hash: e9f2aad836474942
+capturado_em: 2026-09-17
+hash: a4a1798cefb378d5
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,7 +14,7 @@ Insights sobre a conta no Instagram
 Updated: 16 de jun de 2026
 Copiar para LLM
 Ver como Markdown
-Representa as métricas de interação social na conta comercial ou de criador de conteúdo do usuário do seu app no Instagram.
+Representa as métricas de interação social na conta comercial ou de criador de conteúdo do Instagram do usuário do seu app.
 Neste guia, os termos usuário do Instagram e conta do Instagram são usados como sinônimos.
 Disponível para a API do Instagram com Login do Facebook e para a API do Instagram com Login do Instagram.
 As seguintes métricas foram descontinuadas na versão 22.0 e ficarão obsoletas em todas as versões a partir do dia 21 de abril de 2025:
@@ -55,7 +55,7 @@ instagram_business_manage_insights
 instagram_basic
 instagram_manage_insights
 pages_read_engagement
-Caso uma função tenha sido concedida ao usuário do app por meio do Gerenciador de Negócios na Página Page conectada à conta profissional do Instagram do usuário, seu app também precisará de uma destas permissões:
+Caso uma função tenha sido concedida ao usuário do app na Página conectada à respectiva conta profissional do Instagram por meio do Gerenciador de Negócios, seu app também precisará da seguinte permissão:
 ads_management
 ads_read
 Limitações
@@ -87,11 +87,11 @@ A versão da API que seu app está utilizando ao fazer chamadas para os servidor
 
 <APP_USERS_INSTAGRAM_ACCOUNT_ID>
 	
-Obrigatório. A identificação da conta profissional do usuário do seu app no Instagram.
+Obrigatório. A identificação da conta profissional do Instagram do usuário do seu app.
 
 <HOST_URL>
 	
-Obrigatório. A identificação da conta profissional do usuário do seu app no Instagram.
+Obrigatório. A identificação da conta profissional do Instagram do usuário do seu app.
 Parâmetros
 Chave	Valor
 
@@ -117,7 +117,7 @@ Designa se você quer as respostas agregadas por período ou como total simples.
 
 period
 	
-Obrigatório. Agregação de Período. <PERIOD>
+Obrigatório.Agregação de período. <PERIOD>
 
 since
 	
@@ -211,7 +211,7 @@ As características demográficas do público engajado, incluindo distribuição
 Não é compatível com since nem until. Para obter mais informações, consulte Intervalo.
 Não retornado se o usuário do Instagram tiver menos de 100 engajamentos durante o período.
 
-Observação: a partir da versão 20.0, os períodos last_14_days, last_30_days, last_90_days e prev_month não serão mais aceitos. Consulte o registro de alterações para saber mais.
+Observação: a partir da versão 20.0, os períodos last_14_days, last_30_days, last_90_days e prev_month não serão mais aceitos. Consulte o registro de alterações para obter mais informações.
 
 follows_and_unfollows
 	
@@ -244,7 +244,7 @@ As características demográficas dos seguidores, incluindo distribuição por p
 Não é compatível com since nem until. Para obter mais informações, consulte Intervalo.
 Esse valor não é retornado se o usuário do Instagram tiver menos de 100 seguidores.
 
-impressionsDescontinuado para v22.0+ e todas as versões a partir de 21 de abril de 2025.
+impressionsObsoleto para v22.0+ e todas as versões a partir de 21 de abril de 2025.
 	
 day
 	
@@ -315,7 +315,7 @@ N/A
 	
 total_value
 	
-O número de reposts dos seus posts, stories, reels e vídeos.
+É o número de republicações dos seus posts, stories, reels e vídeos.
 
 saves
 	

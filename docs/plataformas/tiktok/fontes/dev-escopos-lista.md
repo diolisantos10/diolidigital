@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok API Scopes — lista de escopos disponíveis (LACUNA 05/08/2026: página é tabela; abaixo do piso de conteúdo útil do capturador)"
 url: https://developers.tiktok.com/doc/tiktok-api-scopes
-capturado_em: 2026-09-16
-hash: cf3f8f1e54711e4e
+capturado_em: 2026-09-17
+hash: 1ea7a78fd03280cd
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -54,10 +54,10 @@ List Videos
 Query Videos
 
 video.publish	Directly post content to a user's TikTok profile.	Post content to TikTok.	
-Get Post Status
 Direct Post
+Get Post Status
 
 video.upload	Share content to creator's account as a draft to further edit and post in TikTok.	Share content as a draft to your TikTok account.	
 Share Video API
-Get Post Status
 Upload
+Get Post Status
