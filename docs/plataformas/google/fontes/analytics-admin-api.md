@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Admin API (GA4): visão geral"
 url: https://developers.google.com/analytics/devguides/config/admin/v1?hl=pt-br
-capturado_em: 2026-09-17
-hash: 4c38081ad67fa786
+capturado_em: 2026-09-18
+hash: 57d92b5260bc1f76
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -259,4 +259,4 @@ Envie comentários
 
 Exceto em caso de indicação contrária, o conteúdo desta página é licenciado de acordo com a Licença de atribuição 4.0 do Creative Commons, e as amostras de código são licenciadas de acordo com a Licença Apache 2.0. Para mais detalhes, consulte as políticas do site do Google Developers. Java é uma marca registrada da Oracle e/ou afiliadas.
 
-Última atualização 2026-09-12 UTC.
+Última atualização 2026-09-18 UTC.
