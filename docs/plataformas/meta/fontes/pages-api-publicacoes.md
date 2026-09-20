@@ -1,7 +1,7 @@
 ---
 titulo: "Pages API — publicações (criar, ler, apagar posts)"
 url: https://developers.facebook.com/documentation/pages-api/posts
-capturado_em: 2026-09-19
+capturado_em: 2026-09-20
 hash: 65865ee1063d484d
 ---
 

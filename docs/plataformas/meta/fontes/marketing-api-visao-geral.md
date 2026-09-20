@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — visão geral"
 url: https://developers.facebook.com/docs/marketing-api/overview
-capturado_em: 2026-09-19
+capturado_em: 2026-09-20
 hash: 9afeb2c7ec8957df
 ---
 
