@@ -1,8 +1,8 @@
 ---
 titulo: "Políticas do Google Ads — visão geral"
 url: https://support.google.com/adspolicy/answer/6008942?hl=pt-BR
-capturado_em: 2026-09-20
-hash: 48a20871efbb3718
+capturado_em: 2026-09-21
+hash: 00769cfadc1814f4
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -49,7 +49,8 @@ Queremos proteger as pessoas on-line e off-line. Sendo assim, não permitimos a 
 Alguns exemplos de conteúdo perigoso: drogas recreativas (químicas ou à base de plantas); substâncias psicoativas; equipamentos para facilitar o uso de entorpecentes; armas, munições, materiais explosivos e fogos de artifício; instruções para a confecção de bombas ou outros produtos nocivos; derivados do tabaco.
 
 Facilitação de práticas desonestas
-Valorizamos a honestidade e a justiça. Por isso, não permitimos a promoção de produtos ou serviços que viabilizam comportamentos desonestos.
+
+O Google Ads valoriza a honestidade e a integridade. Por isso, não aceitamos a promoção de produtos ou serviços criados para facilitar práticas desonestas. Veja abaixo alguns exemplos de conteúdo que deve ser evitado nos seus anúncios. Saiba o que acontece quando nossas políticas são violadas.
 
 Alguns exemplos de produtos ou serviços que facilitam práticas desonestas: software ou instruções para invasões; serviços que aumentam artificialmente o tráfego do anúncio ou do site; documentos falsificados; serviços de fraude acadêmica.
 

@@ -1,14 +1,13 @@
 ---
 titulo: "Google Analytics — política do Measurement Protocol, SDK e User-ID"
 url: https://developers.google.com/analytics/devguides/collection/protocol/ga4/policy?hl=pt-br
-capturado_em: 2026-09-20
-hash: 1feb95918d64ed15
+capturado_em: 2026-09-21
+hash: 61110fbc2853c00a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-O Measurement Protocol atingiu um estado de produto maduro e finalizado e vai continuar operacional sem planos de descontinuação. No entanto, para garantir que suas configurações técnicas estejam preparadas para o futuro, recomendamos criar integrações de eventos de servidor para servidor usando a API Data Manager, que é nossa infraestrutura central para futuras inovações de ingestão de dados.
 Envie comentários
 Política do Measurement Protocol, SDK e User-ID
 
