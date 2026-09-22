@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — visão geral da plataforma"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform
-capturado_em: 2026-09-21
-hash: 49ee628a3362efeb
+capturado_em: 2026-09-22
+hash: b222beb0612ed2fb
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -59,7 +59,7 @@ Saiba mais sobre webhooks.
 Meta Business Agent
 Com o Meta Business Agent, você pode configurar e operar agentes com tecnologia de IA no WhatsApp. Os agentes lidam com as conversas de forma autônoma, usando as fontes de conhecimento fornecidas (perguntas frequentes, informações da empresa, catálogos de produtos, arquivos e sites) e conectores personalizados às suas APIs externas.
 O Meta Business Agent inclui:
-Configuração do agente: defina o comportamento, a identidade, o idioma e as instruções do sistema para o agente.
+Configuração do agente: defina o comportamento, a persona, o idioma e as instruções do sistema para o agente.
 Gerenciamento de conhecimento: conecte perguntas frequentes, informações da empresa, catálogos, arquivos e sites para consulta do agente.
 Conectores personalizados: integre suas APIs externas para que o agente possa realizar ações como verificar o status do pedido ou marcar um horário
 Controle da conversa: gerencie a troca entre o agente de IA e os agentes humanos
@@ -127,7 +127,7 @@ Depois que você começar a usar a API de Nuvem, uma conta do WhatsApp Business 
 Será possível excluir seu portfólio empresarial e os respectivos recursos de teste se:
 você for um administrador do portfólio empresarial associada ao app;
 nenhum outro app estiver associado ao portfólio empresarial;
-O portfólio empresarial não estiver associado a outras contas do WhatsApp Business.
+o portfólio empresarial não estiver associado a nenhuma outra conta do WhatsApp Business;
 a conta do WhatsApp Business não estiver associada a nenhum outro número de telefone comercial.
 Para excluir seu portfólio empresarial e os respectivos recursos de teste:
 Acesse Painel de Apps > WhatsApp > Configuração.
@@ -203,8 +203,8 @@ GET
 Para ver informações adicionais sobre como obter a utilização do limite de volume atual, consulte Cabeçalhos.
 Além disso, a plataforma aplica vários limites de volume de mensagens:
 Limites de mensagens: o número máximo de usuários únicos do WhatsApp para os quais você pode entregar mensagens, fora de uma janela de atendimento ao cliente, em um período móvel de 24 horas. Definido no nível do portfólio empresarial. Consulte Limites de mensagens.
-Taxa de transferência de dados: os números de telefone comerciais podem enviar até 80 mensagens por segundo por padrão, com atualizações de capacidade disponíveis. Definido por número de telefone comercial. Consulte Taxa de transferência de dados.
-Classificação de qualidade: atribuída por número de telefone comercial e por modelo, usada para determinar upgrades automáticos de nível de taxa de transferência de dados. Consulte Classificação de qualidade do modelo.
+Taxa de transferência de dados: os números de telefone comerciais podem enviar até 80 mensagens por segundo por padrão, com atualizações de capacidade disponíveis. Definição por número de telefone comercial. Consulte Taxa de transferência de dados.
+Classificação de qualidade: atribuída por número de telefone comercial e por modelo, usada para determinar upgrades automáticos de nível de taxa de transferência de dados. Consulte Classificação de qualidade dos modelos.
 Limites de volume de pareamento
 Os números de telefone comercial podem enviar uma mensagem a cada 6 segundos para o mesmo usuário do WhatsApp (0,17 mensagem por segundo), o que é equivalente a cerca de 10 mensagens por minuto ou 600 por hora. Exceder esse limite gera o código de erro 131056 até que você fique dentro da taxa permitida novamente.
 É possível enviar até 45 mensagens em um período de seis segundos, mas essa ação tomará "emprestado" parte da sua cota futura. Após um pico no uso, é preciso esperar o tempo equivalente ao que levaria para enviar essas mensagens dentro da taxa normal (por exemplo, uma pico de 20 mensagens requer uma espera de aproximadamente dois minutos para enviar mais mensagens para o usuário).

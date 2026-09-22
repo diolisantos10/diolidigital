@@ -1,8 +1,8 @@
 ---
 titulo: "Spark Ads — impulsionar post orgânico (do cliente ou de criador) como anúncio; exige código de autorização"
 url: https://ads.tiktok.com/help/article/spark-ads?lang=en
-capturado_em: 2026-09-21
-hash: 7bc0e16f5cbabd87
+capturado_em: 2026-09-22
+hash: a659bcfc104531ae
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -27,7 +27,7 @@ TopReach
 
 Standard feed
 
-Branded Mission
+Branded Buzz
 
 Spark Ads
 
@@ -39,6 +39,8 @@ About Spark Ads Code Error Notifications in TikTok Ads Manager
 About Captions and Translations for Spark Ads
 
 TikTok Pulse suite
+
+Branded Mission
 
 Advertisers /
 Ad formats /

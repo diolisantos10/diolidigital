@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Auction In-Feed Ads — especificações de criativo (formato, duração, resolução, sem marca d'água)"
 url: https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en
-capturado_em: 2026-09-21
-hash: c8bf71adb5c04100
+capturado_em: 2026-09-22
+hash: 670d76d66d68b860
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -30,11 +30,13 @@ Standard feed
 TikTok Auction In-Feed Ads
 TikTok reservation in-feed ad specifications (including Reach & Frequency)
 
-Branded Mission
+Branded Buzz
 
 Spark Ads
 
 TikTok Pulse suite
+
+Branded Mission
 
 Advertisers /
 Ad formats /

@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Adult Content"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-adult-content
-capturado_em: 2026-09-21
-hash: 68f2ba3ffa74a026
+capturado_em: 2026-09-22
+hash: 8734742da8bb635e
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -219,16 +219,3 @@ Related Articles
 Log in for a personalized experience
 Sign up
 Log in
-TikTok Business Help Center Feedback Survey
-*Overall, how satisfied are you with your experience using the Business Help Center? (1 being very dissatisfied and 5 being very satisfied).
-How easy or difficult is it to understand the information on the Business Help Center? (1 being very difficult and 5 being very easy).
-How easy or difficult is it to navigate to the right article? (1 being very difficult and 5 being very easy).
-How satisfied are you with the search experience on Business Help Center? (1 being very dissatisfied and 5 being very satisfied)
-Which content format is most helpful to you when you’re looking for help or guidance?
-Screenshots or images
-GIFs
-Short videos
-Written step-by-step instructions
-A combination of these formats
-No preference
-Submit

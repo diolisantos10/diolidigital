@@ -1,7 +1,7 @@
 ---
 titulo: "Content Posting API — Upload Content (enviar para a caixa de entrada/rascunho, sem publicar)"
 url: https://developers.tiktok.com/doc/content-posting-api-get-started-upload-content
-capturado_em: 2026-09-21
+capturado_em: 2026-09-22
 hash: 6692ccfbd36749d2
 ---
 

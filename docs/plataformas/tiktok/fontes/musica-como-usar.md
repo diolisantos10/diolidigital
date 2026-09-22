@@ -1,7 +1,7 @@
 ---
 titulo: "How to use the Commercial Music Library"
 url: https://ads.tiktok.com/help/article/how-to-use-the-commercial-music-library?lang=en
-capturado_em: 2026-09-21
+capturado_em: 2026-09-22
 hash: 4214cfd1fff29425
 ---
 

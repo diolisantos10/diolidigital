@@ -1,8 +1,8 @@
 ---
 titulo: "Instagram — Messaging API (mensagens diretas)"
 url: https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-instagram-login/messaging-api
-capturado_em: 2026-09-21
-hash: 062127edcc30d7a2
+capturado_em: 2026-09-22
+hash: 7ee8a1e42e6c595d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -68,13 +68,13 @@ O usuário do app deve ser proprietário de todas as mídias ou posts usados na 
 As mensagens em grupo não são compatíveis. Uma conta profissional do Instagram só pode conversar com um cliente por conversa.
 As mensagens na pasta de solicitações que estiverem inativas por 30 dias não serão retornadas nas chamadas de API.
 Apenas o URL da publicação ou mídia compartilhada é incluído na notificação de webhook quando um cliente envia uma mensagem com compartilhamento.
-Os testadores precisam ter uma função no app, conceder ao app acesso a todas as permissões necessárias e ter uma função na conta profissional do Instagram à qual o app pertence.
+Os testadores precisam ter uma função no app, conceder ao app acesso a todas as permissões necessárias e ter uma função na conta profissional do Instagram a quem o app pertence.
 Requisitos
 Este guia considera que você leu a Visão geral da plataforma do Instagram e implementou os componentes necessários para usar a API, como um fluxo de login da Meta e um servidor de webhooks para receber notificações.
 Você precisará do seguinte:
 Nível de acesso
 Advanced Access se o app atender a contas profissionais do Instagram que você não possui nem gerencia
-Acesso padrão: se o app atender a contas profissionais do Instagram que você possui ou gerencia ou que foram adicionadas ao app no Painel de Apps. Talvez algumas ferramentas não funcionem corretamente antes de o app receber acesso avançado.
+Acesso padrão se o app atender a contas profissionais do Instagram que você possui ou gerencia ou que foram adicionadas ao app no Painel de Apps. Talvez algumas ferramentas não funcionem corretamente antes de o app receber acesso avançado.
 Tokens de acesso
 Um token de acesso do usuário do Instagram solicitado por uma pessoa que pode enviar uma mensagem a partir da conta profissional do Instagram
 URL de base
@@ -142,7 +142,7 @@ curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
            }
         }'
 Enviar imagens
-Para enviar imagens, envie uma solicitação POST ao ponto de extremidade /<IG_ID>/messages com o parâmetro recipient incluindo o ID no escopo do Instagram (<IGSID>) e o parâmetro message contendo até dez objetos attachment com type definido como image e payload contendo url definido como o URL da imagem ou do GIF.
+Para enviar imagens, envie uma solicitação POST ao endpoint /<IG_ID>/messages com o parâmetro recipient incluindo o ID no escopo do Instagram (<IGSID>) e o parâmetro message contendo até dez objetos attachment com type definido como image e payload contendo url definido como o URL da imagem ou do GIF.
 Exemplo de solicitação: como enviar uma imagem única
 Texto formatado para facilitar a leitura.
 curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
@@ -225,7 +225,7 @@ Se o processo for bem-sucedido, o app receberá a seguinte resposta JSON:
 }
 
 Enviar áudio, vídeo ou arquivo
-Para enviar mensagens de áudio, vídeo ou arquivo, envie uma solicitação POST ao ponto de extremidade /<IG_ID>/messages com o parâmetro recipient contendo o ID no escopo do Instagram (<IGSID>) e o parâmetro message contendo o objeto attachment com type definido como audio, video ou file, além de payload contendo url definido como o URL do áudio, vídeo ou arquivo.
+Para enviar mensagens de áudio, vídeo ou arquivo, envie uma solicitação POST para o ponto de extremidade /<IG_ID>/messages com o parâmetro recipient contendo o ID no escopo do Instagram (<IGSID>) e o parâmetro message contendo o objeto attachment com type como audio, video ou file e payload contendo url definido como o URL do áudio, vídeo ou arquivo.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura.
 curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
@@ -264,7 +264,7 @@ curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
 Reagir ou remover a reação de uma mensagem
 Para enviar uma reação, faça uma solicitação POST para /<IG_ID>/messages com recipient contendo o ID no escopo do Instagram (<IGSID>); sender_action definido como react; payload contendo o message_id definido como o ID da mensagem reagida; e reaction definido como uma reação com emoji (<😊/🎉/etc>) ou uma representação UTF-8 válida de um emoji.
 Para editar uma reação enviada, repita essa solicitação com a reação definida como o novo emoji.
-Para remover uma reação, repita essa solicitação com sender_action definida como "não reagiu" com a carga contendo somente message_id.
+Para remover uma reação, repita essa solicitação com sender_action definida como "remover reação" com o payload contendo apenas message_id.
 Exemplo de solicitação
 Texto formatado para facilitar a leitura.
 curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
@@ -302,6 +302,32 @@ curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
               }
            }
         }'
+Enviar uma resposta
+Para enviar uma resposta a uma mensagem anterior específica da conversa, faça uma solicitação POST para o ponto de extremidade /<IG_ID>/messages com o parâmetro recipient contendo o ID no escopo do Instagram (<IGSID>), os detalhes da mensagem no objeto do parâmetro message e o objeto reply_to com mid definido como o ID da mensagem específica da conversa à qual você quer responder. A mensagem pode ser uma mensagem enviada pelo usuário do seu app ou uma mensagem enviada pelo usuário do Instagram.
+É possível enviar uma mensagem de texto, de mídia ou de modelo como resposta a uma mensagem usando o objeto reply_to.
+Exemplo de solicitação
+Texto formatado para facilitar a leitura.
+curl -X POST "https://graph.instagram.com/v26.0/<IG_ID>/messages"
+     -H "Authorization: Bearer <INSTAGRAM_USER_ACCESS_TOKEN>"
+     -H "Content-Type: application/json"
+     -d '{
+           "recipient":{
+               "id":"<IGSID>"
+           },
+           "message":{
+              "text":"<TEXT>"
+           },
+           "reply_to":{
+              "mid":"<MESSAGE_ID>"
+           }
+         }'
+Exemplo de resposta de API
+Se o processo for bem-sucedido, o app receberá a seguinte resposta JSON com as identificações do destinatário e da mensagem:
+{
+  "recipient_id": "IGSID",
+  "message_id": "MESSAGE-ID"
+}
+
 Próximas etapas
 Saiba como enviar uma resposta privada, resposta rápida ou um modelo.
 Você achou esta página útil?
