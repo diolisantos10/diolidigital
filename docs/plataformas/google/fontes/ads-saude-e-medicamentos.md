@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads — conteúdo restrito: saúde e medicamentos"
 url: https://support.google.com/adspolicy/answer/176031?hl=pt-BR
-capturado_em: 2026-09-22
+capturado_em: 2026-09-23
 hash: 3199915928257cf2
 ---
 

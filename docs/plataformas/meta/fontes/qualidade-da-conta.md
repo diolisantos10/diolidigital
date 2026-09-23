@@ -1,17 +1,14 @@
 ---
 titulo: "Central de Ajuda — Restrições de publicidade e Qualidade da Conta"
 url: https://www.facebook.com/business/help/975570072950669
-capturado_em: 2026-09-22
-hash: 769a63cb87cca72f
+capturado_em: 2026-09-23
+hash: e387df50121eb9a4
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Sobre as restrições de publicidade
-Chat with Meta AI business assistant for support around the clock
-Still need help? Your business assistant can help resolve account issues and unblock your business.
-Start chat
 Consulte a Central de Transparência da Meta para ver mais orientações sobre políticas.
 
 Na Meta, temos políticas e padrões que pedimos aos nossos anunciantes que sigam para veicular anúncios nas nossas plataformas. Quando os anunciantes não seguem essas políticas e padrões, ou se a Meta observar qualquer atividade incomum ou de alto risco, poderemos impor restrições às empresas, limitando a capacidade de anunciar.
@@ -35,7 +32,6 @@ Você pode acessar a Página Inicial do Suporte para Empresas da Meta a fim de r
 
 Assista ao vídeo abaixo para saber mais:
 
-Play Icon
 Restrições de publicidade para violações de política
 
 Se descobrirmos que um anunciante não segue os Padrões de Publicidade ou outras políticas e termos, ele poderá enfrentar restrições de publicidade. As restrições de publicidade podem ser aplicadas a estes recursos:

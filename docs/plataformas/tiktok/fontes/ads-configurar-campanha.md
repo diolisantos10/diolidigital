@@ -1,7 +1,7 @@
 ---
 titulo: "How to Set Up a Campaign (objetivos e configuração no Ads Manager)"
 url: https://ads.tiktok.com/help/article/campaign-set-up?lang=en
-capturado_em: 2026-09-22
+capturado_em: 2026-09-23
 hash: b2cd2e005d8f3aea
 ---
 
